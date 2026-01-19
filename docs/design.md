@@ -658,7 +658,7 @@ Developers should just render their content. No height estimation. No virtualiza
 
 ### How It Works
 
-InkX uses a **measure-then-render** approach:
+Inkx uses a **measure-then-render** approach:
 
 ```
 Phase 1: React creates all child elements
@@ -668,7 +668,7 @@ Phase 4: Render content ONLY for visible children
 Phase 5: Paint visible content to terminal
 ```
 
-**Key insight**: Yoga layout is cheap (~1ms for 500 nodes). The expensive part is building terminal strings for off-screen content. InkX skips that for non-visible children.
+**Key insight**: Yoga layout is cheap (~1ms for 500 nodes). The expensive part is building terminal strings for off-screen content. Inkx skips that for non-visible children.
 
 ### API
 
@@ -690,7 +690,7 @@ Props:
 - `overflow="hidden"` - clips without scroll indicators
 - `scrollTo={number}` - child index to keep visible (optional, defaults to 0)
 
-InkX handles:
+Inkx handles:
 - Measuring all children via Yoga
 - Calculating scroll position to center `scrollTo` child
 - Determining which children intersect the viewport
@@ -700,7 +700,7 @@ InkX handles:
 
 ### Implementation Details
 
-Internally, InkX does:
+Internally, Inkx does:
 
 ```typescript
 // After Yoga layout completes
@@ -764,7 +764,7 @@ function TaskList({ tasks, selectedIndex, onSelect }) {
 
 function TaskRow({ task, isSelected }) {
   // Variable height - has subtasks, long titles, etc.
-  // InkX measures this automatically
+  // Inkx measures this automatically
   return (
     <Box flexDirection="column" backgroundColor={isSelected ? 'blue' : undefined}>
       <Text>{task.done ? '✓' : '○'} {task.title}</Text>

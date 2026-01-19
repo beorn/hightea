@@ -1,10 +1,10 @@
 # Migration from Ink
 
-InkX is designed as a drop-in replacement for Ink. Most apps require only an import change.
+Inkx is designed as a drop-in replacement for Ink. Most apps require only an import change.
 
 ## Quick Start
 
-### Step 1: Install InkX
+### Step 1: Install Inkx
 
 ```bash
 # Replace ink with inkx
@@ -58,10 +58,10 @@ function Card({ width }: { width: number }) {
 <Card width={availableWidth - padding * 2} />
 ```
 
-**InkX**: Components can ask for their size.
+**Inkx**: Components can ask for their size.
 
 ```tsx
-// InkX: Just ask
+// Inkx: Just ask
 function Card() {
   const { width } = useLayout();
   return <Text>{truncate(title, width)}</Text>;
@@ -82,10 +82,10 @@ function Card() {
 // Output: "This is a very long text" (overflows)
 ```
 
-**InkX**: Text truncates to fit.
+**Inkx**: Text truncates to fit.
 
 ```tsx
-// InkX: Clean truncation
+// Inkx: Clean truncation
 <Box width={10}>
   <Text>This is a very long text</Text>
 </Box>
@@ -101,7 +101,7 @@ function Card() {
 
 **Ink**: Components render once with final output.
 
-**InkX**: Components using `useLayout()` render twice. First render has `{ width: 0, height: 0 }`, second has actual values.
+**Inkx**: Components using `useLayout()` render twice. First render has `{ width: 0, height: 0 }`, second has actual values.
 
 ```tsx
 function Header() {
@@ -136,10 +136,10 @@ function Header() {
 />
 ```
 
-**InkX**: Just render everything.
+**Inkx**: Just render everything.
 
 ```tsx
-// InkX: No config needed
+// Inkx: No config needed
 <Box overflow="scroll" scrollTo={selectedIdx}>
   {items.map(item => <Card key={item.id} item={item} />)}
 </Box>
@@ -157,7 +157,7 @@ const { width } = measureElement(ref.current);
 // Need manual re-render to use width
 ```
 
-**InkX**: `measureElement()` works for compatibility, but `useLayout()` is simpler.
+**Inkx**: `measureElement()` works for compatibility, but `useLayout()` is simpler.
 
 ```tsx
 const { width } = useLayout();
@@ -168,7 +168,7 @@ const { width } = useLayout();
 
 ### By Design
 
-| Behavior | Ink | InkX | Reason |
+| Behavior | Ink | Inkx | Reason |
 |----------|-----|------|--------|
 | Text overflow | Overflows | Truncates | Better default |
 | First render dimensions | N/A | Zeros | Required for layout feedback |
@@ -178,7 +178,7 @@ const { width } = useLayout();
 
 | Issue | Symptoms | Workaround |
 |-------|----------|------------|
-| Rapid re-renders | Flicker | InkX coalesces frames; usually fine |
+| Rapid re-renders | Flicker | Inkx coalesces frames; usually fine |
 | Deep nesting | Slower layout | Flatten tree if possible |
 | Custom reconciler | Breaks | Not supported |
 
@@ -209,7 +209,7 @@ function Column({ width, items }) {
 }
 ```
 
-### After (InkX)
+### After (Inkx)
 
 ```tsx
 function Board() {

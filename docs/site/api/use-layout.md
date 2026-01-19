@@ -1,8 +1,8 @@
 # useLayout
 
-**InkX only** - Returns the computed dimensions of the component's container.
+**Inkx only** - Returns the computed dimensions of the component's container.
 
-This is the key addition in InkX. Components can query their actual size instead of manually threading width props.
+This is the key addition in Inkx. Components can query their actual size instead of manually threading width props.
 
 ## Import
 
@@ -188,10 +188,10 @@ function Content({ width }) {
 }
 ```
 
-**InkX**: Just ask for dimensions where needed.
+**Inkx**: Just ask for dimensions where needed.
 
 ```tsx
-// InkX: Components know their size
+// Inkx: Components know their size
 function App() {
   return (
     <Box borderStyle="single">

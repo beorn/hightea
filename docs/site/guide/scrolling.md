@@ -1,6 +1,6 @@
 # Scrolling
 
-InkX makes scrolling effortless. Just render your content and let InkX handle the rest.
+Inkx makes scrolling effortless. Just render your content and let Inkx handle the rest.
 
 ## Basic Usage
 
@@ -22,7 +22,7 @@ function App() {
 }
 ```
 
-InkX will:
+Inkx will:
 - Measure all 100 children
 - Determine which fit in the viewport
 - Only render content for visible items
@@ -62,7 +62,7 @@ The selected item will be centered in the viewport when possible.
 
 ## Variable Height Items
 
-InkX handles variable heights automatically:
+Inkx handles variable heights automatically:
 
 ```tsx
 function TaskList({ tasks, selectedIndex }) {
@@ -88,11 +88,11 @@ function TaskRow({ task, isSelected }) {
 }
 ```
 
-**No height estimation needed.** InkX uses Yoga to measure each item's actual height.
+**No height estimation needed.** Inkx uses Yoga to measure each item's actual height.
 
 ## How It Works
 
-InkX uses a **measure-then-render** approach:
+Inkx uses a **measure-then-render** approach:
 
 ```
 1. React creates all child elements
@@ -102,7 +102,7 @@ InkX uses a **measure-then-render** approach:
 5. Paint visible content to terminal
 ```
 
-**Key insight**: Yoga layout is extremely fast. The expensive part is building terminal strings. InkX skips that for non-visible items.
+**Key insight**: Yoga layout is extremely fast. The expensive part is building terminal strings. Inkx skips that for non-visible items.
 
 ### Performance
 
@@ -146,7 +146,7 @@ If users can't reasonably navigate 10,000 items, scrolling isn't the answer.
 />
 ```
 
-**InkX**: Just render everything
+**Inkx**: Just render everything
 
 ```tsx
 // It just works

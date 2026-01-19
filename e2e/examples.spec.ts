@@ -1,5 +1,5 @@
 /**
- * Visual Regression Tests for InkX Examples
+ * Visual Regression Tests for Inkx Examples
  *
  * Uses ttyd + Playwright to render TUI apps and capture screenshots.
  * Compares against baseline snapshots to detect visual regressions.

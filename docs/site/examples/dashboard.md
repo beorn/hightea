@@ -339,7 +339,7 @@ The "Recent Items" section uses `overflow="scroll"`:
 
 Add more items to `recentItems` and they'll scroll automatically.
 
-## Key InkX Features Used
+## Key Inkx Features Used
 
 | Feature | Usage |
 |---------|-------|

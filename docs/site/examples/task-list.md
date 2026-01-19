@@ -16,7 +16,7 @@ A scrollable task list with variable-height items and keyboard navigation.
 ```
   Tasks (7 items)
 +------------------------------------------+
-| [ ] Research InkX documentation          |
+| [ ] Research Inkx documentation          |
 |     - Read the API docs                  |
 |     - Try the examples                   |
 | [x] Install dependencies                 |
@@ -59,7 +59,7 @@ interface Task {
 const initialTasks: Task[] = [
   {
     id: "1",
-    title: "Research InkX documentation",
+    title: "Research Inkx documentation",
     done: false,
     subtasks: [
       { id: "1a", title: "Read the API docs", done: true },
@@ -304,7 +304,7 @@ function TaskRow({ task, isSelected }: { task: Task; isSelected: boolean }) {
 }
 ```
 
-InkX measures each task's actual height. No height estimation needed.
+Inkx measures each task's actual height. No height estimation needed.
 
 ### Selection Styling
 
@@ -359,7 +359,7 @@ const truncatedTitle =
 
 The available width comes from `useLayout()`.
 
-## Key InkX Features Used
+## Key Inkx Features Used
 
 | Feature | Usage |
 |---------|-------|
@@ -371,7 +371,7 @@ The available width comes from `useLayout()`.
 
 ## How Scrolling Works
 
-InkX handles variable-height scrolling automatically:
+Inkx handles variable-height scrolling automatically:
 
 1. **Yoga measures all items** - Each task (with its subtasks) gets measured
 2. **Calculate visible range** - Based on `scrollTo` and container height

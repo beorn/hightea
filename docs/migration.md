@@ -151,7 +151,7 @@ function Header() {
 />
 ```
 
-**Inkx**: Just render everything. InkX handles the rest.
+**Inkx**: Just render everything. Inkx handles the rest.
 
 ```typescript
 // Inkx: No virtualization config needed
@@ -160,7 +160,7 @@ function Header() {
 </Box>
 ```
 
-InkX measures all children via Yoga (fast), then only renders content for visible ones (skipping the expensive part). No height estimation needed.
+Inkx measures all children via Yoga (fast), then only renders content for visible ones (skipping the expensive part). No height estimation needed.
 
 **Migration**: Replace custom virtualization components with `overflow="scroll"`.
 

@@ -86,7 +86,7 @@ import { Text } from "inkx";
 
 ## Text Wrapping
 
-By default, Text truncates at the container boundary (InkX improvement over Ink).
+By default, Text truncates at the container boundary (Inkx improvement over Ink).
 
 ### Truncation Modes
 

@@ -1,6 +1,6 @@
-# InkX Examples
+# Inkx Examples
 
-Interactive examples demonstrating InkX features.
+Interactive examples demonstrating Inkx features.
 
 ## Running Examples
 

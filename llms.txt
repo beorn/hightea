@@ -1,4 +1,4 @@
-# InkZ
+# Inkx
 
 > Ink, but components know their size
 
@@ -8,44 +8,44 @@ A terminal UI framework for React with two-phase rendering
 
 ### Introduction
 
-- [Getting Started](/inkz/guide/getting-started.md)
-- [Installation](/inkz/guide/installation.md)
-- [Why InkZ?](/inkz/guide/why-inkz.md)
+- [Getting Started](/inkx/guide/getting-started.md)
+- [Installation](/inkx/guide/installation.md)
+- [Why Inkx?](/inkx/guide/why-inkx.md)
 
 ### Core Concepts
 
-- [Components](/inkz/guide/components.md)
-- [Hooks](/inkz/guide/hooks.md)
-- [Scrolling](/inkz/guide/scrolling.md)
+- [Components](/inkx/guide/components.md)
+- [Hooks](/inkx/guide/hooks.md)
+- [Scrolling](/inkx/guide/scrolling.md)
 
 ### Migration
 
-- [Migration from Ink](/inkz/guide/migration.md)
+- [Migration from Ink](/inkx/guide/migration.md)
 
 ### Components
 
-- [Box](/inkz/api/box.md)
-- [Text](/inkz/api/text.md)
-- [Newline](/inkz/api/newline.md)
-- [Spacer](/inkz/api/spacer.md)
-- [Static](/inkz/api/static.md)
+- [Box](/inkx/api/box.md)
+- [Text](/inkx/api/text.md)
+- [Newline](/inkx/api/newline.md)
+- [Spacer](/inkx/api/spacer.md)
+- [Static](/inkx/api/static.md)
 
 ### Hooks
 
-- [useLayout](/inkz/api/use-layout.md)
-- [useInput](/inkz/api/use-input.md)
-- [useApp](/inkz/api/use-app.md)
-- [useStdout](/inkz/api/use-stdout.md)
-- [useFocus / useFocusManager](/inkz/api/use-focus.md)
+- [useLayout](/inkx/api/use-layout.md)
+- [useInput](/inkx/api/use-input.md)
+- [useApp](/inkx/api/use-app.md)
+- [useStdout](/inkx/api/use-stdout.md)
+- [useFocus / useFocusManager](/inkx/api/use-focus.md)
 
 ### Functions
 
-- [render](/inkz/api/render.md)
+- [render](/inkx/api/render.md)
 
 ### Examples
 
-- [Examples](/inkz/examples.md)
-- [Dashboard Example](/inkz/examples/dashboard.md)
-- [Task List Example](/inkz/examples/task-list.md)
-- [Kanban Board Example](/inkz/examples/kanban.md)
+- [Examples](/inkx/examples.md)
+- [Dashboard Example](/inkx/examples/dashboard.md)
+- [Task List Example](/inkx/examples/task-list.md)
+- [Kanban Board Example](/inkx/examples/kanban.md)
 

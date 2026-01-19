@@ -1,6 +1,6 @@
 # Task List Example
 
-A scrollable task list with 60+ items demonstrating InkX's overflow handling.
+A scrollable task list with 60+ items demonstrating Inkx's overflow handling.
 
 ## Features
 
@@ -28,7 +28,7 @@ bun run examples/task-list/index.tsx
 - `Enter` / `e` - Expand/collapse subtasks
 - `q` / `Escape` - Quit
 
-## Key InkX Features Demonstrated
+## Key Inkx Features Demonstrated
 
 - `overflow="hidden"` to clip content
 - Manual scroll state management with cursor tracking

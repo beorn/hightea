@@ -1,10 +1,10 @@
 # Hooks
 
-InkX provides the same hooks as Ink, plus the new `useLayout()` hook.
+Inkx provides the same hooks as Ink, plus the new `useLayout()` hook.
 
 ## useLayout
 
-**InkX only** - The key addition. Returns the computed dimensions of the component's container.
+**Inkx only** - The key addition. Returns the computed dimensions of the component's container.
 
 ```tsx
 import { Box, Text, useLayout } from "inkx";

@@ -1,6 +1,6 @@
-# Why InkX?
+# Why Inkx?
 
-InkX solves a fundamental architectural limitation in Ink that forces you to manually thread width props through your entire component tree.
+Inkx solves a fundamental architectural limitation in Ink that forces you to manually thread width props through your entire component tree.
 
 ## The Problem
 
@@ -36,7 +36,7 @@ Real apps have **100+ lines** of this. Every layout change means updating arithm
 
 ## The Solution
 
-InkX uses two-phase rendering:
+Inkx uses two-phase rendering:
 
 1. **Phase 1**: React renders component structure (not content)
 2. **Phase 2**: Yoga computes layout
@@ -45,7 +45,7 @@ InkX uses two-phase rendering:
 Components can query their size via `useLayout()`:
 
 ```tsx
-// InkX: No width props needed
+// Inkx: No width props needed
 function Board() {
   return (
     <Box flexDirection="row">
@@ -89,18 +89,18 @@ Fixing this requires:
 
 This is a breaking API change. Ink's maintainer has shown no interest in major architecture changes - and that's understandable. Ink is stable, widely used, and works for its target use case.
 
-## InkX vs Ink Comparison
+## Inkx vs Ink Comparison
 
-| Feature | Ink | InkX |
+| Feature | Ink | Inkx |
 |---------|-----|------|
 | Layout feedback | ❌ Must thread width props | ✅ `useLayout()` hook |
 | Text truncation | ❌ Overflows container | ✅ Auto-truncates |
 | Scrolling | ❌ Manual virtualization | ✅ `overflow="scroll"` |
 | API compatibility | - | ✅ Drop-in replacement |
 
-## Who Should Use InkX?
+## Who Should Use Inkx?
 
-**Use InkX if you're building:**
+**Use Inkx if you're building:**
 - Complex layouts (dashboards, kanban boards, multi-pane UIs)
 - Apps with dynamic content widths
 - Scrollable lists with variable-height items
@@ -112,10 +112,10 @@ This is a breaking API change. Ink's maintainer has shown no interest in major a
 
 ## Related Work
 
-InkX builds on proven patterns from:
+Inkx builds on proven patterns from:
 
 - **[Textual](https://textual.textualize.io/)** (Python) - Modern TUI with CSS-like styling
 - **[Ratatui](https://ratatui.rs/)** (Rust) - Immediate-mode TUI with layout feedback
 - **[Flutter](https://flutter.dev/)** - "Constraints down, sizes up" model
 
-The two-phase rendering pattern is standard in every major UI framework - browsers, native apps, mobile. InkX brings this to React terminal UIs.
+The two-phase rendering pattern is standard in every major UI framework - browsers, native apps, mobile. Inkx brings this to React terminal UIs.

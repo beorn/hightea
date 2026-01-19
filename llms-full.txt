@@ -1,5 +1,5 @@
 ---
-url: /inkz/api/box.md
+url: /inkx/api/box.md
 ---
 # Box
 
@@ -8,7 +8,7 @@ The primary layout component. Uses Yoga (flexbox) for layout.
 ## Import
 
 ```tsx
-import { Box } from "inkz";
+import { Box } from "inkx";
 ```
 
 ## Usage
@@ -77,7 +77,7 @@ import { Box } from "inkz";
 | `borderLeft` | `boolean` | `true` | Show left border |
 | `borderRight` | `boolean` | `true` | Show right border |
 
-### Overflow (InkZ Only)
+### Overflow (Inkx Only)
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
@@ -183,18 +183,18 @@ const [selected, setSelected] = useState(0);
 ---
 
 ---
-url: /inkz/guide/components.md
+url: /inkx/guide/components.md
 ---
 # Components
 
-InkZ provides the same components as Ink, with some enhancements.
+Inkx provides the same components as Ink, with some enhancements.
 
 ## Box
 
 The primary layout component. Uses Yoga (flexbox) for layout.
 
 ```tsx
-import { Box, Text } from "inkz";
+import { Box, Text } from "inkx";
 
 <Box flexDirection="row" justifyContent="space-between">
   <Text>Left</Text>
@@ -202,7 +202,7 @@ import { Box, Text } from "inkz";
 </Box>
 ```
 
-### New in InkZ: Scrolling
+### New in Inkx: Scrolling
 
 Use `overflow="scroll"` with `scrollTo` for automatic scrolling:
 
@@ -236,15 +236,15 @@ See [Scrolling Guide](/guide/scrolling) for details.
 | `minHeight` | `number` | - | Minimum height |
 | `borderStyle` | `"single" \| "double" \| "round" \| "bold" \| "classic"` | - | Border style |
 | `borderColor` | `string` | - | Border color |
-| `overflow` | `"visible" \| "hidden" \| "scroll"` | `"visible"` | **InkZ only**: Overflow behavior |
-| `scrollTo` | `number` | - | **InkZ only**: Child index to keep visible |
+| `overflow` | `"visible" \| "hidden" \| "scroll"` | `"visible"` | **Inkx only**: Overflow behavior |
+| `scrollTo` | `number` | - | **Inkx only**: Child index to keep visible |
 
 ## Text
 
 Renders text with styling. Supports Chalk strings.
 
 ```tsx
-import { Text } from "inkz";
+import { Text } from "inkx";
 import chalk from "chalk";
 
 // Basic styling
@@ -254,7 +254,7 @@ import chalk from "chalk";
 <Text>{chalk.red.bold("Error!")}</Text>
 ```
 
-### New in InkZ: Auto-Truncation
+### New in Inkx: Auto-Truncation
 
 Text automatically truncates to fit available width:
 
@@ -286,7 +286,7 @@ Opt out with `wrap={false}` if you need overflow behavior.
 Renders a newline character.
 
 ```tsx
-import { Newline, Text } from "inkz";
+import { Newline, Text } from "inkx";
 
 <Text>Line 1</Text>
 <Newline />
@@ -298,7 +298,7 @@ import { Newline, Text } from "inkz";
 Flexible space that expands to fill available room.
 
 ```tsx
-import { Box, Spacer, Text } from "inkz";
+import { Box, Spacer, Text } from "inkx";
 
 <Box>
   <Text>Left</Text>
@@ -312,7 +312,7 @@ import { Box, Spacer, Text } from "inkz";
 Renders content that won't be updated. Useful for logs or output that scrolls up.
 
 ```tsx
-import { Static, Box, Text } from "inkz";
+import { Static, Box, Text } from "inkx";
 
 function App() {
   const [logs, setLogs] = useState<string[]>([]);
@@ -338,7 +338,7 @@ function App() {
 ---
 
 ---
-url: /inkz/examples/dashboard.md
+url: /inkx/examples/dashboard.md
 ---
 # Dashboard Example
 
@@ -375,7 +375,7 @@ A multi-pane dashboard demonstrating responsive layouts with `useLayout()`.
 ## Running the Example
 
 ```bash
-cd inkz
+cd inkx
 bun run examples/dashboard/app.tsx
 ```
 
@@ -384,7 +384,7 @@ bun run examples/dashboard/app.tsx
 ::: code-group
 
 ```tsx [app.tsx]
-import { Box, Text, render, useLayout, useInput, useApp } from "inkz";
+import { Box, Text, render, useLayout, useInput, useApp } from "inkx";
 import { useState } from "react";
 
 // Sample data
@@ -681,7 +681,7 @@ The "Recent Items" section uses `overflow="scroll"`:
 
 Add more items to `recentItems` and they'll scroll automatically.
 
-## Key InkZ Features Used
+## Key Inkx Features Used
 
 | Feature | Usage |
 |---------|-------|
@@ -701,19 +701,19 @@ Add more items to `recentItems` and they'll scroll automatically.
 ---
 
 ---
-url: /inkz/examples.md
+url: /inkx/examples.md
 ---
 # Examples
 
-Learn InkZ by example. Each example demonstrates a specific pattern and can be run directly.
+Learn Inkx by example. Each example demonstrates a specific pattern and can be run directly.
 
 ## Running Examples
 
 Clone the repository and run any example:
 
 ```bash
-git clone https://github.com/beorn/inkz
-cd inkz
+git clone https://github.com/beorn/inkx
+cd inkx
 bun install
 bun run examples/dashboard/app.tsx
 ```
@@ -763,7 +763,7 @@ A scrollable task list with variable-height items and keyboard navigation.
 ```
   Processing (3)
 +-----------------------------------------+
-| [ ] Research InkZ documentation         |
+| [ ] Research Inkx documentation         |
 |     - Read the API docs                 |
 |     - Try the examples                  |
 | [x] Install dependencies                |
@@ -824,30 +824,30 @@ All examples follow the same patterns:
 ---
 
 ---
-url: /inkz/guide/getting-started.md
+url: /inkx/guide/getting-started.md
 ---
 # Getting Started
 
-InkZ is a terminal UI framework for React that lets components know their computed dimensions. It's a drop-in replacement for Ink with one key addition: the `useLayout()` hook.
+Inkx is a terminal UI framework for React that lets components know their computed dimensions. It's a drop-in replacement for Ink with one key addition: the `useLayout()` hook.
 
 ## Installation
 
 ::: code-group
 
 ```bash [bun]
-bun add inkz
+bun add inkx
 ```
 
 ```bash [npm]
-npm install inkz
+npm install inkx
 ```
 
 ```bash [yarn]
-yarn add inkz
+yarn add inkx
 ```
 
 ```bash [pnpm]
-pnpm add inkz
+pnpm add inkx
 ```
 
 :::
@@ -857,12 +857,12 @@ pnpm add inkz
 Create a file called `app.tsx`:
 
 ```tsx
-import { Box, Text, render } from "inkz";
+import { Box, Text, render } from "inkx";
 
 function App() {
   return (
     <Box borderStyle="round" padding={1}>
-      <Text>Hello from InkZ!</Text>
+      <Text>Hello from Inkx!</Text>
     </Box>
   );
 }
@@ -877,14 +877,14 @@ bun app.tsx
 # or: npx tsx app.tsx
 ```
 
-You should see a rounded box with "Hello from InkZ!" inside.
+You should see a rounded box with "Hello from Inkx!" inside.
 
 ## Using Layout Feedback
 
-The key feature of InkZ is `useLayout()`. Components can query their computed dimensions:
+The key feature of Inkx is `useLayout()`. Components can query their computed dimensions:
 
 ```tsx
-import { Box, Text, render, useLayout } from "inkz";
+import { Box, Text, render, useLayout } from "inkx";
 
 function SizedBox() {
   const { width, height } = useLayout();
@@ -914,10 +914,10 @@ Each `SizedBox` will display its actual computed dimensions. No prop threading n
 
 ## Scrollable Lists
 
-InkZ handles scrolling automatically. Just use `overflow="scroll"`:
+Inkx handles scrolling automatically. Just use `overflow="scroll"`:
 
 ```tsx
-import { Box, Text, render, useInput } from "inkz";
+import { Box, Text, render, useInput } from "inkx";
 import { useState } from "react";
 
 const items = Array.from({ length: 100 }, (_, i) => `Item ${i + 1}`);
@@ -944,7 +944,7 @@ function App() {
 render(<App />);
 ```
 
-InkZ measures all children, calculates which are visible, and only renders content for visible items. No height estimation or virtualization config needed.
+Inkx measures all children, calculates which are visible, and only renders content for visible items. No height estimation or virtualization config needed.
 
 ## Next Steps
 
@@ -956,18 +956,18 @@ InkZ measures all children, calculates which are visible, and only renders conte
 ---
 
 ---
-url: /inkz/guide/hooks.md
+url: /inkx/guide/hooks.md
 ---
 # Hooks
 
-InkZ provides the same hooks as Ink, plus the new `useLayout()` hook.
+Inkx provides the same hooks as Ink, plus the new `useLayout()` hook.
 
 ## useLayout
 
-**InkZ only** - The key addition. Returns the computed dimensions of the component's container.
+**Inkx only** - The key addition. Returns the computed dimensions of the component's container.
 
 ```tsx
-import { Box, Text, useLayout } from "inkz";
+import { Box, Text, useLayout } from "inkx";
 
 function SizedBox() {
   const { width, height, x, y } = useLayout();
@@ -1012,7 +1012,7 @@ In practice, both renders happen before the first paint, so this is usually invi
 Handle keyboard input.
 
 ```tsx
-import { useInput } from "inkz";
+import { useInput } from "inkx";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -1058,7 +1058,7 @@ useInput(
 Access app-level controls.
 
 ```tsx
-import { useApp } from "inkz";
+import { useApp } from "inkx";
 
 function App() {
   const { exit } = useApp();
@@ -1082,7 +1082,7 @@ function App() {
 Access stdout stream and dimensions.
 
 ```tsx
-import { useStdout } from "inkz";
+import { useStdout } from "inkx";
 
 function App() {
   const { stdout, write } = useStdout();
@@ -1107,7 +1107,7 @@ function App() {
 Access stdin stream.
 
 ```tsx
-import { useStdin } from "inkz";
+import { useStdin } from "inkx";
 
 function App() {
   const { stdin, setRawMode, isRawModeSupported } = useStdin();
@@ -1128,7 +1128,7 @@ function App() {
 Manage focus state for a component.
 
 ```tsx
-import { useFocus, Box, Text } from "inkz";
+import { useFocus, Box, Text } from "inkx";
 
 function FocusableItem({ label }: { label: string }) {
   const { isFocused } = useFocus();
@@ -1162,7 +1162,7 @@ useFocus({
 Control focus programmatically.
 
 ```tsx
-import { useFocusManager } from "inkz";
+import { useFocusManager } from "inkx";
 
 function App() {
   const { focusNext, focusPrevious, focus } = useFocusManager();
@@ -1193,7 +1193,7 @@ function App() {
 ---
 
 ---
-url: /inkz/guide/installation.md
+url: /inkx/guide/installation.md
 ---
 # Installation
 
@@ -1202,31 +1202,31 @@ url: /inkz/guide/installation.md
 * Node.js 18+ or Bun 1.0+
 * React 18+
 
-## Install InkZ
+## Install Inkx
 
 ::: code-group
 
 ```bash [bun]
-bun add inkz
+bun add inkx
 ```
 
 ```bash [npm]
-npm install inkz
+npm install inkx
 ```
 
 ```bash [yarn]
-yarn add inkz
+yarn add inkx
 ```
 
 ```bash [pnpm]
-pnpm add inkz
+pnpm add inkx
 ```
 
 :::
 
 ## TypeScript Support
 
-InkZ includes TypeScript definitions out of the box. No additional `@types` packages needed.
+Inkx includes TypeScript definitions out of the box. No additional `@types` packages needed.
 
 ```json
 // tsconfig.json
@@ -1242,7 +1242,7 @@ InkZ includes TypeScript definitions out of the box. No additional `@types` pack
 
 ## Running Your App
 
-InkZ apps are just TypeScript/JavaScript files. Run them directly:
+Inkx apps are just TypeScript/JavaScript files. Run them directly:
 
 ::: code-group
 
@@ -1260,12 +1260,12 @@ npx ts-node --esm app.tsx
 
 :::
 
-## Testing InkZ Apps
+## Testing Inkx Apps
 
-InkZ includes a testing helper for rendering components and examining buffer output:
+Inkx includes a testing helper for rendering components and examining buffer output:
 
 ```tsx
-import { renderToBuffer } from "inkz/testing";
+import { renderToBuffer } from "inkx/testing";
 
 test("renders hello", async () => {
   const buffer = await renderToBuffer(<Text>Hello</Text>);
@@ -1276,7 +1276,7 @@ test("renders hello", async () => {
 ---
 
 ---
-url: /inkz/examples/kanban.md
+url: /inkx/examples/kanban.md
 ---
 # Kanban Board Example
 
@@ -1309,7 +1309,7 @@ A multi-column kanban board with independent scroll regions.
 ## Running the Example
 
 ```bash
-cd inkz
+cd inkx
 bun run examples/kanban/app.tsx
 ```
 
@@ -1318,7 +1318,7 @@ bun run examples/kanban/app.tsx
 ::: code-group
 
 ```tsx [app.tsx]
-import { Box, Text, render, useLayout, useInput, useApp } from "inkz";
+import { Box, Text, render, useLayout, useInput, useApp } from "inkx";
 import { useState } from "react";
 
 interface Card {
@@ -1810,7 +1810,7 @@ The selected card has inverted colors:
 >
 ```
 
-## Key InkZ Features Used
+## Key Inkx Features Used
 
 | Feature | Usage |
 |---------|-------|
@@ -1842,7 +1842,7 @@ This makes moving cards a simple filter/concat operation.
 
 ### Scroll Independence
 
-Each `CardList` component has its own `overflow="scroll"`. InkZ handles multiple scroll regions on the same screen automatically - no coordination needed.
+Each `CardList` component has its own `overflow="scroll"`. Inkx handles multiple scroll regions on the same screen automatically - no coordination needed.
 
 ### Empty State
 
@@ -1870,30 +1870,30 @@ if (cards.length === 0) {
 ---
 
 ---
-url: /inkz/guide/migration.md
+url: /inkx/guide/migration.md
 ---
 # Migration from Ink
 
-InkZ is designed as a drop-in replacement for Ink. Most apps require only an import change.
+Inkx is designed as a drop-in replacement for Ink. Most apps require only an import change.
 
 ## Quick Start
 
-### Step 1: Install InkZ
+### Step 1: Install Inkx
 
 ```bash
-# Replace ink with inkz
+# Replace ink with inkx
 bun remove ink ink-testing-library
-bun add inkz inkz-testing-library
+bun add inkx inkx-testing-library
 ```
 
 ### Step 2: Update Imports
 
 ```diff
 - import { Box, Text, render, useInput, useApp } from 'ink';
-+ import { Box, Text, render, useInput, useApp } from 'inkz';
++ import { Box, Text, render, useInput, useApp } from 'inkx';
 
 - import { render } from 'ink-testing-library';
-+ import { render } from 'inkz-testing-library';
++ import { render } from 'inkx-testing-library';
 ```
 
 ### Step 3: Run Tests
@@ -1932,10 +1932,10 @@ function Card({ width }: { width: number }) {
 <Card width={availableWidth - padding * 2} />
 ```
 
-**InkZ**: Components can ask for their size.
+**Inkx**: Components can ask for their size.
 
 ```tsx
-// InkZ: Just ask
+// Inkx: Just ask
 function Card() {
   const { width } = useLayout();
   return <Text>{truncate(title, width)}</Text>;
@@ -1956,10 +1956,10 @@ function Card() {
 // Output: "This is a very long text" (overflows)
 ```
 
-**InkZ**: Text truncates to fit.
+**Inkx**: Text truncates to fit.
 
 ```tsx
-// InkZ: Clean truncation
+// Inkx: Clean truncation
 <Box width={10}>
   <Text>This is a very long text</Text>
 </Box>
@@ -1975,7 +1975,7 @@ function Card() {
 
 **Ink**: Components render once with final output.
 
-**InkZ**: Components using `useLayout()` render twice. First render has `{ width: 0, height: 0 }`, second has actual values.
+**Inkx**: Components using `useLayout()` render twice. First render has `{ width: 0, height: 0 }`, second has actual values.
 
 ```tsx
 function Header() {
@@ -2010,10 +2010,10 @@ function Header() {
 />
 ```
 
-**InkZ**: Just render everything.
+**Inkx**: Just render everything.
 
 ```tsx
-// InkZ: No config needed
+// Inkx: No config needed
 <Box overflow="scroll" scrollTo={selectedIdx}>
   {items.map(item => <Card key={item.id} item={item} />)}
 </Box>
@@ -2031,7 +2031,7 @@ const { width } = measureElement(ref.current);
 // Need manual re-render to use width
 ```
 
-**InkZ**: `measureElement()` works for compatibility, but `useLayout()` is simpler.
+**Inkx**: `measureElement()` works for compatibility, but `useLayout()` is simpler.
 
 ```tsx
 const { width } = useLayout();
@@ -2042,7 +2042,7 @@ const { width } = useLayout();
 
 ### By Design
 
-| Behavior | Ink | InkZ | Reason |
+| Behavior | Ink | Inkx | Reason |
 |----------|-----|------|--------|
 | Text overflow | Overflows | Truncates | Better default |
 | First render dimensions | N/A | Zeros | Required for layout feedback |
@@ -2052,7 +2052,7 @@ const { width } = useLayout();
 
 | Issue | Symptoms | Workaround |
 |-------|----------|------------|
-| Rapid re-renders | Flicker | InkZ coalesces frames; usually fine |
+| Rapid re-renders | Flicker | Inkx coalesces frames; usually fine |
 | Deep nesting | Slower layout | Flatten tree if possible |
 | Custom reconciler | Breaks | Not supported |
 
@@ -2083,7 +2083,7 @@ function Column({ width, items }) {
 }
 ```
 
-### After (InkZ)
+### After (Inkx)
 
 ```tsx
 function Board() {
@@ -2118,7 +2118,7 @@ function Card({ item }) {
 ---
 
 ---
-url: /inkz/api/newline.md
+url: /inkx/api/newline.md
 ---
 # Newline
 
@@ -2127,7 +2127,7 @@ Renders newline characters for vertical spacing in text content.
 ## Import
 
 ```tsx
-import { Newline } from "inkz";
+import { Newline } from "inkx";
 ```
 
 ## Usage
@@ -2205,7 +2205,7 @@ function Header({ title }: { title: string }) {
 ---
 
 ---
-url: /inkz/api/render.md
+url: /inkx/api/render.md
 ---
 # render
 
@@ -2214,7 +2214,7 @@ Render a React element to the terminal.
 ## Import
 
 ```tsx
-import { render } from "inkz";
+import { render } from "inkx";
 ```
 
 ## Signature
@@ -2233,7 +2233,7 @@ async function render(
 | `stdout` | `NodeJS.WriteStream` | `process.stdout` | Output stream to render to |
 | `stdin` | `NodeJS.ReadStream` | `process.stdin` | Input stream for keyboard events |
 | `exitOnCtrlC` | `boolean` | `true` | Exit the app when Ctrl+C is pressed |
-| `patchConsole` | `boolean` | `true` | Patch console methods to work with Inkz output |
+| `patchConsole` | `boolean` | `true` | Patch console methods to work with Inkx output |
 | `debug` | `boolean` | `false` | Enable verbose debug logging |
 | `alternateScreen` | `boolean` | `false` | Use alternate screen buffer (restores terminal on exit) |
 
@@ -2253,7 +2253,7 @@ Returns a `Promise<Instance>` with the following methods:
 ### Basic Usage
 
 ```tsx
-import { render, Box, Text } from "inkz";
+import { render, Box, Text } from "inkx";
 
 await render(
   <Box>
@@ -2265,7 +2265,7 @@ await render(
 ### With Custom Options
 
 ```tsx
-import { render, Box, Text } from "inkz";
+import { render, Box, Text } from "inkx";
 import { createWriteStream } from "fs";
 
 const logStream = createWriteStream("/tmp/output.log");
@@ -2285,7 +2285,7 @@ await render(
 ### Programmatic Re-render
 
 ```tsx
-import { render, Box, Text } from "inkz";
+import { render, Box, Text } from "inkx";
 
 const { rerender } = await render(<Text>Count: 0</Text>);
 
@@ -2299,7 +2299,7 @@ setInterval(() => {
 ### Async App with waitUntilExit
 
 ```tsx
-import { render, Box, Text, useApp, useInput } from "inkz";
+import { render, Box, Text, useApp, useInput } from "inkx";
 
 function App() {
   const { exit } = useApp();
@@ -2330,7 +2330,7 @@ main();
 ### Alternate Screen Mode
 
 ```tsx
-import { render, Box, Text } from "inkz";
+import { render, Box, Text } from "inkx";
 
 // Uses alternate screen buffer - terminal is restored on exit
 const { waitUntilExit } = await render(
@@ -2349,7 +2349,7 @@ await waitUntilExit();
 For cases where Yoga is already initialized, use `renderSync`:
 
 ```tsx
-import { render, renderSync, Box, Text } from "inkz";
+import { render, renderSync, Box, Text } from "inkx";
 
 // Initialize Yoga with first render
 await render(<Text>Loading...</Text>);
@@ -2368,18 +2368,18 @@ const instance = renderSync(<Text>Ready!</Text>);
 ---
 
 ---
-url: /inkz/guide/scrolling.md
+url: /inkx/guide/scrolling.md
 ---
 # Scrolling
 
-InkZ makes scrolling effortless. Just render your content and let InkZ handle the rest.
+Inkx makes scrolling effortless. Just render your content and let Inkx handle the rest.
 
 ## Basic Usage
 
 Add `overflow="scroll"` to any Box:
 
 ```tsx
-import { Box, Text } from "inkz";
+import { Box, Text } from "inkx";
 
 const items = Array.from({ length: 100 }, (_, i) => `Item ${i + 1}`);
 
@@ -2394,7 +2394,7 @@ function App() {
 }
 ```
 
-InkZ will:
+Inkx will:
 
 * Measure all 100 children
 * Determine which fit in the viewport
@@ -2406,7 +2406,7 @@ InkZ will:
 Use `scrollTo` to keep a specific item visible:
 
 ```tsx
-import { Box, Text, useInput } from "inkz";
+import { Box, Text, useInput } from "inkx";
 import { useState } from "react";
 
 const items = Array.from({ length: 100 }, (_, i) => `Item ${i + 1}`);
@@ -2435,7 +2435,7 @@ The selected item will be centered in the viewport when possible.
 
 ## Variable Height Items
 
-InkZ handles variable heights automatically:
+Inkx handles variable heights automatically:
 
 ```tsx
 function TaskList({ tasks, selectedIndex }) {
@@ -2461,11 +2461,11 @@ function TaskRow({ task, isSelected }) {
 }
 ```
 
-**No height estimation needed.** InkZ uses Yoga to measure each item's actual height.
+**No height estimation needed.** Inkx uses Yoga to measure each item's actual height.
 
 ## How It Works
 
-InkZ uses a **measure-then-render** approach:
+Inkx uses a **measure-then-render** approach:
 
 ```
 1. React creates all child elements
@@ -2475,7 +2475,7 @@ InkZ uses a **measure-then-render** approach:
 5. Paint visible content to terminal
 ```
 
-**Key insight**: Yoga layout is extremely fast. The expensive part is building terminal strings. InkZ skips that for non-visible items.
+**Key insight**: Yoga layout is extremely fast. The expensive part is building terminal strings. Inkx skips that for non-visible items.
 
 ### Performance
 
@@ -2519,7 +2519,7 @@ If users can't reasonably navigate 10,000 items, scrolling isn't the answer.
 />
 ```
 
-**InkZ**: Just render everything
+**Inkx**: Just render everything
 
 ```tsx
 // It just works
@@ -2531,7 +2531,7 @@ If users can't reasonably navigate 10,000 items, scrolling isn't the answer.
 ---
 
 ---
-url: /inkz/api/spacer.md
+url: /inkx/api/spacer.md
 ---
 # Spacer
 
@@ -2540,7 +2540,7 @@ A flexible space that expands to fill available space in its parent container.
 ## Import
 
 ```tsx
-import { Spacer } from "inkz";
+import { Spacer } from "inkx";
 ```
 
 ## Usage
@@ -2636,7 +2636,7 @@ A                   B                   C
 ---
 
 ---
-url: /inkz/api/static.md
+url: /inkx/api/static.md
 ---
 # Static
 
@@ -2645,7 +2645,7 @@ Renders items that are written to the terminal once and never updated. Useful fo
 ## Import
 
 ```tsx
-import { Static } from "inkz";
+import { Static } from "inkx";
 ```
 
 ## Usage
@@ -2759,7 +2759,7 @@ const [output, setOutput] = useState<OutputLine[]>([]);
 ---
 
 ---
-url: /inkz/examples/task-list.md
+url: /inkx/examples/task-list.md
 ---
 # Task List Example
 
@@ -2779,7 +2779,7 @@ A scrollable task list with variable-height items and keyboard navigation.
 ```
   Tasks (7 items)
 +------------------------------------------+
-| [ ] Research InkZ documentation          |
+| [ ] Research Inkx documentation          |
 |     - Read the API docs                  |
 |     - Try the examples                   |
 | [x] Install dependencies                 |
@@ -2794,7 +2794,7 @@ A scrollable task list with variable-height items and keyboard navigation.
 ## Running the Example
 
 ```bash
-cd inkz
+cd inkx
 bun run examples/task-list/app.tsx
 ```
 
@@ -2803,7 +2803,7 @@ bun run examples/task-list/app.tsx
 ::: code-group
 
 ```tsx [app.tsx]
-import { Box, Text, render, useLayout, useInput, useApp } from "inkz";
+import { Box, Text, render, useLayout, useInput, useApp } from "inkx";
 import { useState } from "react";
 
 interface Subtask {
@@ -2822,7 +2822,7 @@ interface Task {
 const initialTasks: Task[] = [
   {
     id: "1",
-    title: "Research InkZ documentation",
+    title: "Research Inkx documentation",
     done: false,
     subtasks: [
       { id: "1a", title: "Read the API docs", done: true },
@@ -3068,7 +3068,7 @@ function TaskRow({ task, isSelected }: { task: Task; isSelected: boolean }) {
 }
 ```
 
-InkZ measures each task's actual height. No height estimation needed.
+Inkx measures each task's actual height. No height estimation needed.
 
 ### Selection Styling
 
@@ -3123,7 +3123,7 @@ const truncatedTitle =
 
 The available width comes from `useLayout()`.
 
-## Key InkZ Features Used
+## Key Inkx Features Used
 
 | Feature | Usage |
 |---------|-------|
@@ -3135,7 +3135,7 @@ The available width comes from `useLayout()`.
 
 ## How Scrolling Works
 
-InkZ handles variable-height scrolling automatically:
+Inkx handles variable-height scrolling automatically:
 
 1. **Yoga measures all items** - Each task (with its subtasks) gets measured
 2. **Calculate visible range** - Based on `scrollTo` and container height
@@ -3160,7 +3160,7 @@ You don't need to:
 ---
 
 ---
-url: /inkz/api/text.md
+url: /inkx/api/text.md
 ---
 # Text
 
@@ -3169,7 +3169,7 @@ Renders styled text. Supports ANSI escape codes and Chalk strings.
 ## Import
 
 ```tsx
-import { Text } from "inkz";
+import { Text } from "inkx";
 ```
 
 ## Usage
@@ -3250,7 +3250,7 @@ import { Text } from "inkz";
 
 ## Text Wrapping
 
-By default, Text truncates at the container boundary (InkZ improvement over Ink).
+By default, Text truncates at the container boundary (Inkx improvement over Ink).
 
 ### Truncation Modes
 
@@ -3351,7 +3351,7 @@ function Code({ children }: { children: string }) {
 ---
 
 ---
-url: /inkz/api/use-app.md
+url: /inkx/api/use-app.md
 ---
 # useApp
 
@@ -3360,7 +3360,7 @@ Access app-level controls like exiting the application.
 ## Import
 
 ```tsx
-import { useApp } from "inkz";
+import { useApp } from "inkx";
 ```
 
 ## Usage
@@ -3470,7 +3470,7 @@ function App() {
 ---
 
 ---
-url: /inkz/api/use-focus.md
+url: /inkx/api/use-focus.md
 ---
 # useFocus / useFocusManager
 
@@ -3479,7 +3479,7 @@ Create focusable components and manage focus navigation.
 ## Import
 
 ```tsx
-import { useFocus, useFocusManager } from "inkz";
+import { useFocus, useFocusManager } from "inkx";
 ```
 
 ## useFocus
@@ -3682,7 +3682,7 @@ function MenuItem({ label, onSelect }: { label: string; onSelect: () => void }) 
 ---
 
 ---
-url: /inkz/api/use-input.md
+url: /inkx/api/use-input.md
 ---
 # useInput
 
@@ -3691,7 +3691,7 @@ Handle keyboard input in your app.
 ## Import
 
 ```tsx
-import { useInput } from "inkz";
+import { useInput } from "inkx";
 ```
 
 ## Usage
@@ -3885,18 +3885,18 @@ function ViNavigation() {
 ---
 
 ---
-url: /inkz/api/use-layout.md
+url: /inkx/api/use-layout.md
 ---
 # useLayout
 
-**InkZ only** - Returns the computed dimensions of the component's container.
+**Inkx only** - Returns the computed dimensions of the component's container.
 
-This is the key addition in InkZ. Components can query their actual size instead of manually threading width props.
+This is the key addition in Inkx. Components can query their actual size instead of manually threading width props.
 
 ## Import
 
 ```tsx
-import { useLayout } from "inkz";
+import { useLayout } from "inkx";
 ```
 
 ## Usage
@@ -4077,10 +4077,10 @@ function Content({ width }) {
 }
 ```
 
-**InkZ**: Just ask for dimensions where needed.
+**Inkx**: Just ask for dimensions where needed.
 
 ```tsx
-// InkZ: Components know their size
+// Inkx: Components know their size
 function App() {
   return (
     <Box borderStyle="single">
@@ -4108,7 +4108,7 @@ function Column() {
 ---
 
 ---
-url: /inkz/api/use-stdout.md
+url: /inkx/api/use-stdout.md
 ---
 # useStdout
 
@@ -4117,7 +4117,7 @@ Access the stdout stream for terminal dimensions and direct output.
 ## Import
 
 ```tsx
-import { useStdout } from "inkz";
+import { useStdout } from "inkx";
 ```
 
 ## Usage
@@ -4210,17 +4210,17 @@ function DebugComponent() {
 
 * The `stdout` object is the standard Node.js `WriteStream`
 * Use `stdout.columns` and `stdout.rows` for terminal dimensions
-* The `write` function bypasses InkZ rendering and writes directly to the terminal
-* Direct writes may interfere with InkZ's output - use sparingly
+* The `write` function bypasses Inkx rendering and writes directly to the terminal
+* Direct writes may interfere with Inkx's output - use sparingly
 
 ---
 
 ---
-url: /inkz/guide/why-inkz.md
+url: /inkx/guide/why-inkx.md
 ---
-# Why InkZ?
+# Why Inkx?
 
-InkZ solves a fundamental architectural limitation in Ink that forces you to manually thread width props through your entire component tree.
+Inkx solves a fundamental architectural limitation in Ink that forces you to manually thread width props through your entire component tree.
 
 ## The Problem
 
@@ -4256,7 +4256,7 @@ Real apps have **100+ lines** of this. Every layout change means updating arithm
 
 ## The Solution
 
-InkZ uses two-phase rendering:
+Inkx uses two-phase rendering:
 
 1. **Phase 1**: React renders component structure (not content)
 2. **Phase 2**: Yoga computes layout
@@ -4265,7 +4265,7 @@ InkZ uses two-phase rendering:
 Components can query their size via `useLayout()`:
 
 ```tsx
-// InkZ: No width props needed
+// Inkx: No width props needed
 function Board() {
   return (
     <Box flexDirection="row">
@@ -4310,18 +4310,18 @@ Fixing this requires:
 
 This is a breaking API change. Ink's maintainer has shown no interest in major architecture changes - and that's understandable. Ink is stable, widely used, and works for its target use case.
 
-## InkZ vs Ink Comparison
+## Inkx vs Ink Comparison
 
-| Feature | Ink | InkZ |
+| Feature | Ink | Inkx |
 |---------|-----|------|
 | Layout feedback | ❌ Must thread width props | ✅ `useLayout()` hook |
 | Text truncation | ❌ Overflows container | ✅ Auto-truncates |
 | Scrolling | ❌ Manual virtualization | ✅ `overflow="scroll"` |
 | API compatibility | - | ✅ Drop-in replacement |
 
-## Who Should Use InkZ?
+## Who Should Use Inkx?
 
-**Use InkZ if you're building:**
+**Use Inkx if you're building:**
 
 * Complex layouts (dashboards, kanban boards, multi-pane UIs)
 * Apps with dynamic content widths
@@ -4335,10 +4335,10 @@ This is a breaking API change. Ink's maintainer has shown no interest in major a
 
 ## Related Work
 
-InkZ builds on proven patterns from:
+Inkx builds on proven patterns from:
 
 * **[Textual](https://textual.textualize.io/)** (Python) - Modern TUI with CSS-like styling
 * **[Ratatui](https://ratatui.rs/)** (Rust) - Immediate-mode TUI with layout feedback
 * **[Flutter](https://flutter.dev/)** - "Constraints down, sizes up" model
 
-The two-phase rendering pattern is standard in every major UI framework - browsers, native apps, mobile. InkZ brings this to React terminal UIs.
+The two-phase rendering pattern is standard in every major UI framework - browsers, native apps, mobile. Inkx brings this to React terminal UIs.

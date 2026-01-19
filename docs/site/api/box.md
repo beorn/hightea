@@ -74,7 +74,7 @@ import { Box } from "inkx";
 | `borderLeft` | `boolean` | `true` | Show left border |
 | `borderRight` | `boolean` | `true` | Show right border |
 
-### Overflow (InkX Only)
+### Overflow (Inkx Only)
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|

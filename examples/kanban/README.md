@@ -1,6 +1,6 @@
 # Kanban Board Example
 
-A 3-column kanban board demonstrating InkX's multi-pane layouts and scrolling.
+A 3-column kanban board demonstrating Inkx's multi-pane layouts and scrolling.
 
 ## Features
 
@@ -25,7 +25,7 @@ bun run examples/kanban/index.tsx
 - `>` / `.` - Move selected card to next column
 - `q` / `Escape` - Quit
 
-## Key InkX Features Demonstrated
+## Key Inkx Features Demonstrated
 
 - Multiple `Box` containers with `flexGrow={1}` for equal column widths
 - Independent scroll state per column

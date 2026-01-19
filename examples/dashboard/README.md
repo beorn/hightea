@@ -1,6 +1,6 @@
 # Dashboard Example
 
-A multi-pane dashboard demonstrating InkX's layout system.
+A multi-pane dashboard demonstrating Inkx's layout system.
 
 ## Features
 
@@ -21,7 +21,7 @@ bun run examples/dashboard/index.tsx
 - `Right Arrow` / `l` - Select next pane
 - `q` / `Escape` - Quit
 
-## Key InkX Features Demonstrated
+## Key Inkx Features Demonstrated
 
 - `Box` with `flexGrow` for proportional layouts
 - `useInput()` for keyboard handling
