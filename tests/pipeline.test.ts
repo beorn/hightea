@@ -277,6 +277,140 @@ describe('scrollPhase', () => {
 
 			expect(container.scrollState).toBeUndefined();
 		});
+
+		test('identifies sticky children for rendering', async () => {
+			const { scrollPhase } = await import('../src/pipeline.js');
+
+			// Create a header (sticky) and some content
+			const stickyHeader = await createMockNode('inkx-box', {
+				height: 1,
+				position: 'sticky',
+				stickyTop: 0,
+			} as BoxProps);
+			stickyHeader.computedLayout = { x: 0, y: 0, width: 10, height: 1 };
+
+			const item1 = await createMockNode('inkx-box', { height: 1 });
+			item1.computedLayout = { x: 0, y: 1, width: 10, height: 1 };
+
+			const item2 = await createMockNode('inkx-box', { height: 1 });
+			item2.computedLayout = { x: 0, y: 2, width: 10, height: 1 };
+
+			const item3 = await createMockNode('inkx-box', { height: 1 });
+			item3.computedLayout = { x: 0, y: 3, width: 10, height: 1 };
+
+			const scrollContainer = await createMockNode(
+				'inkx-box',
+				{ overflow: 'scroll', height: 3, scrollTo: 2 } as BoxProps,
+				[stickyHeader, item1, item2, item3],
+			);
+			scrollContainer.computedLayout = { x: 0, y: 0, width: 10, height: 3 };
+
+			scrollPhase(scrollContainer);
+
+			expect(scrollContainer.scrollState).toBeDefined();
+			expect(scrollContainer.scrollState?.stickyChildren).toBeDefined();
+			expect(scrollContainer.scrollState?.stickyChildren?.length).toBe(1);
+			expect(scrollContainer.scrollState?.stickyChildren?.[0]?.index).toBe(0);
+		});
+
+		test('calculates sticky-top render offset when scrolled past header', async () => {
+			const { scrollPhase } = await import('../src/pipeline.js');
+
+			// Header at natural position 0, sticks to top when scrolled
+			const stickyHeader = await createMockNode('inkx-box', {
+				height: 1,
+				position: 'sticky',
+				stickyTop: 0,
+			} as BoxProps);
+			stickyHeader.computedLayout = { x: 0, y: 0, width: 10, height: 1 };
+
+			// Many items below it
+			const items: InkxNode[] = [stickyHeader];
+			for (let i = 1; i <= 10; i++) {
+				const item = await createMockNode('inkx-box', { height: 1 });
+				item.computedLayout = { x: 0, y: i, width: 10, height: 1 };
+				items.push(item);
+			}
+
+			// Viewport of 5 rows, scroll to item 5 (near bottom)
+			const scrollContainer = await createMockNode(
+				'inkx-box',
+				{ overflow: 'scroll', height: 5, scrollTo: 5 } as BoxProps,
+				items,
+			);
+			scrollContainer.computedLayout = { x: 0, y: 0, width: 10, height: 5 };
+
+			scrollPhase(scrollContainer);
+
+			const sticky = scrollContainer.scrollState?.stickyChildren?.[0];
+			expect(sticky).toBeDefined();
+			// When scrolled down, header should render at top (offset 0)
+			expect(sticky?.renderOffset).toBe(0);
+		});
+
+		test('sticky header at natural position when not scrolled', async () => {
+			const { scrollPhase } = await import('../src/pipeline.js');
+
+			// Header at natural position 0
+			const stickyHeader = await createMockNode('inkx-box', {
+				height: 1,
+				position: 'sticky',
+				stickyTop: 0,
+			} as BoxProps);
+			stickyHeader.computedLayout = { x: 0, y: 0, width: 10, height: 1 };
+
+			const item1 = await createMockNode('inkx-box', { height: 1 });
+			item1.computedLayout = { x: 0, y: 1, width: 10, height: 1 };
+
+			// Viewport of 5 rows, no scroll (scrollTo first item)
+			const scrollContainer = await createMockNode(
+				'inkx-box',
+				{ overflow: 'scroll', height: 5, scrollTo: 0 } as BoxProps,
+				[stickyHeader, item1],
+			);
+			scrollContainer.computedLayout = { x: 0, y: 0, width: 10, height: 5 };
+
+			scrollPhase(scrollContainer);
+
+			const sticky = scrollContainer.scrollState?.stickyChildren?.[0];
+			expect(sticky).toBeDefined();
+			// When not scrolled, header should be at its natural position (offset 0)
+			expect(sticky?.renderOffset).toBe(0);
+		});
+
+		test('sticky children are always considered visible', async () => {
+			const { scrollPhase } = await import('../src/pipeline.js');
+
+			// Header at position 0
+			const stickyHeader = await createMockNode('inkx-box', {
+				height: 1,
+				position: 'sticky',
+				stickyTop: 0,
+			} as BoxProps);
+			stickyHeader.computedLayout = { x: 0, y: 0, width: 10, height: 1 };
+
+			// 20 items below it
+			const items: InkxNode[] = [stickyHeader];
+			for (let i = 1; i <= 20; i++) {
+				const item = await createMockNode('inkx-box', { height: 1 });
+				item.computedLayout = { x: 0, y: i, width: 10, height: 1 };
+				items.push(item);
+			}
+
+			// Scroll to bottom (item 18)
+			const scrollContainer = await createMockNode(
+				'inkx-box',
+				{ overflow: 'scroll', height: 5, scrollTo: 18 } as BoxProps,
+				items,
+			);
+			scrollContainer.computedLayout = { x: 0, y: 0, width: 10, height: 5 };
+
+			scrollPhase(scrollContainer);
+
+			// Even when scrolled to bottom, sticky header should be considered "visible"
+			// firstVisibleChild should include index 0 (the sticky header)
+			expect(scrollContainer.scrollState?.firstVisibleChild).toBe(0);
+		});
 	});
 
 	describe('outputPhase', () => {

@@ -270,7 +270,15 @@ function calculateScrollState(node: InkxNode, props: BoxProps): void {
 
 	// Calculate total content height and child positions
 	let contentHeight = 0;
-	const childPositions: { child: InkxNode; top: number; bottom: number; index: number }[] = [];
+	const childPositions: {
+		child: InkxNode;
+		top: number;
+		bottom: number;
+		index: number;
+		isSticky: boolean;
+		stickyTop?: number;
+		stickyBottom?: number;
+	}[] = [];
 
 	for (let i = 0; i < node.children.length; i++) {
 		const child = node.children[i];
@@ -278,12 +286,16 @@ function calculateScrollState(node: InkxNode, props: BoxProps): void {
 
 		const childTop = child.computedLayout.y - layout.y - border.top - padding.top;
 		const childBottom = childTop + child.computedLayout.height;
+		const childProps = child.props as BoxProps;
 
 		childPositions.push({
 			child,
 			top: childTop,
 			bottom: childBottom,
 			index: i,
+			isSticky: childProps.position === 'sticky',
+			stickyTop: childProps.stickyTop,
+			stickyBottom: childProps.stickyBottom,
 		});
 
 		contentHeight = Math.max(contentHeight, childBottom);
@@ -317,6 +329,13 @@ function calculateScrollState(node: InkxNode, props: BoxProps): void {
 	let hiddenBelow = 0;
 
 	for (const cp of childPositions) {
+		// Sticky children are always considered "visible" for rendering purposes
+		if (cp.isSticky) {
+			if (firstVisible === -1) firstVisible = cp.index;
+			lastVisible = Math.max(lastVisible, cp.index);
+			continue;
+		}
+
 		if (cp.bottom <= visibleTop) {
 			hiddenAbove++;
 		} else if (cp.top >= visibleBottom) {
@@ -328,6 +347,43 @@ function calculateScrollState(node: InkxNode, props: BoxProps): void {
 		}
 	}
 
+	// Calculate sticky children render positions
+	const stickyChildren: NonNullable<InkxNode['scrollState']>['stickyChildren'] = [];
+
+	for (const cp of childPositions) {
+		if (!cp.isSticky) continue;
+
+		const childHeight = cp.bottom - cp.top;
+		const stickyTop = cp.stickyTop ?? 0;
+		const stickyBottom = cp.stickyBottom;
+
+		// Natural position: where it would be without sticking (relative to viewport)
+		const naturalRenderY = cp.top - scrollOffset;
+
+		let renderOffset: number;
+
+		if (stickyBottom !== undefined) {
+			// Sticky to bottom: element pins to bottom edge when scrolled past
+			const bottomPinPosition = viewportHeight - stickyBottom - childHeight;
+			// Use natural position if it's below the pin point, otherwise pin
+			renderOffset = Math.min(naturalRenderY, bottomPinPosition);
+		} else {
+			// Sticky to top (default): element pins to top edge when scrolled past
+			// Use natural position if it's above the pin point, otherwise pin
+			renderOffset = Math.max(naturalRenderY, stickyTop);
+		}
+
+		// Clamp to viewport bounds
+		renderOffset = Math.max(0, Math.min(renderOffset, viewportHeight - childHeight));
+
+		stickyChildren.push({
+			index: cp.index,
+			renderOffset,
+			naturalTop: cp.top,
+			height: childHeight,
+		});
+	}
+
 	// Store scroll state
 	node.scrollState = {
 		offset: scrollOffset,
@@ -337,6 +393,7 @@ function calculateScrollState(node: InkxNode, props: BoxProps): void {
 		lastVisibleChild: lastVisible,
 		hiddenAbove,
 		hiddenBelow,
+		stickyChildren: stickyChildren.length > 0 ? stickyChildren : undefined,
 	};
 }
 
@@ -379,11 +436,6 @@ function renderNodeToBuffer(
 
 	const props = node.props as BoxProps & TextProps;
 
-	// Debug: Log clip bounds for overflow containers
-	if (process.env.DEBUG_CLIP) {
-		console.error(`[clip] type=${node.type} y=${layout.y} h=${layout.height} overflow=${props.overflow ?? 'vis'} clip=${JSON.stringify(clipBounds)}`);
-	}
-
 	// Check if this is a scrollable container
 	const isScrollContainer = props.overflow === 'scroll' && node.scrollState;
 
@@ -421,8 +473,15 @@ function renderNodeToBuffer(
 				}
 			: nodeClip;
 
+		// First pass: render non-sticky visible children with scroll offset
 		for (let i = 0; i < node.children.length; i++) {
 			const child = node.children[i];
+			const childProps = child.props as BoxProps;
+
+			// Skip sticky children - they're rendered in second pass
+			if (childProps.position === 'sticky') {
+				continue;
+			}
 
 			// Skip children that are completely outside the visible range
 			if (i < ss.firstVisibleChild || i > ss.lastVisibleChild) {
@@ -431,6 +490,22 @@ function renderNodeToBuffer(
 
 			// Render visible children with scroll offset applied
 			renderNodeToBuffer(child, buffer, ss.offset, childClipBounds);
+		}
+
+		// Second pass: render sticky children at their computed positions
+		// Rendered last so they appear on top of other content
+		if (ss.stickyChildren) {
+			for (const sticky of ss.stickyChildren) {
+				const child = node.children[sticky.index];
+				if (!child || !child.computedLayout) continue;
+
+				// Calculate the scroll offset that would place the child at its sticky position
+				// stickyOffset = naturalTop - renderOffset
+				// This makes the child render at renderOffset instead of its natural position
+				const stickyScrollOffset = sticky.naturalTop - sticky.renderOffset;
+
+				renderNodeToBuffer(child, buffer, stickyScrollOffset, childClipBounds);
+			}
 		}
 	} else {
 		// For overflow='hidden' containers, calculate clip bounds
@@ -516,9 +591,6 @@ function renderBox(
 
 	// Skip if completely outside clip bounds
 	if (clipBounds && (y + height <= clipBounds.top || y >= clipBounds.bottom)) {
-		if (process.env.DEBUG_CLIP) {
-			console.error(`[BOX-OUT] y=${y} h=${height} clip=${JSON.stringify(clipBounds)}`);
-		}
 		return;
 	}
 
@@ -562,9 +634,6 @@ function renderText(
 	// Clip to bounds if specified
 	if (clipBounds) {
 		if (y + height <= clipBounds.top || y >= clipBounds.bottom) {
-			if (process.env.DEBUG_CLIP) {
-				console.error(`[CLIP-OUT] text y=${y} h=${height} clip=${JSON.stringify(clipBounds)}`);
-			}
 			return; // Completely outside clip bounds
 		}
 	}
@@ -584,9 +653,6 @@ function renderText(
 		const lineY = y + lineIdx;
 		// Skip lines outside clip bounds
 		if (clipBounds && (lineY < clipBounds.top || lineY >= clipBounds.bottom)) {
-			if (process.env.DEBUG_CLIP) {
-				console.error(`[SKIP] lineY=${lineY} clip=${JSON.stringify(clipBounds)} text="${lines[lineIdx]?.slice(0, 20)}"`);
-			}
 			continue;
 		}
 		const line = lines[lineIdx];
@@ -770,9 +836,6 @@ function renderBorder(
 
 	// Bottom border
 	const bottomY = y + height - 1;
-	if (process.env.DEBUG_CLIP) {
-		console.error(`[BORDER] bottomY=${bottomY} isVisible=${isRowVisible(bottomY)} clip=${JSON.stringify(clipBounds)}`);
-	}
 	if (showBottom && isRowVisible(bottomY)) {
 		if (showLeft) buffer.setCell(x, bottomY, { char: chars.bottomLeft, fg: color });
 		for (let col = x + 1; col < x + width - 1 && col < buffer.width; col++) {

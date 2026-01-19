@@ -89,7 +89,12 @@ export interface FlexboxProps {
 	gap?: number;
 
 	// Position
-	position?: 'relative' | 'absolute';
+	position?: 'relative' | 'absolute' | 'sticky';
+
+	// Sticky offsets (only used when position='sticky')
+	// The element will "stick" when it reaches this offset from the container edge
+	stickyTop?: number;
+	stickyBottom?: number;
 
 	// Display
 	display?: 'flex' | 'none';
@@ -207,6 +212,17 @@ export interface InkxNode {
 		hiddenAbove: number;
 		/** Count of items hidden below viewport */
 		hiddenBelow: number;
+		/** Sticky children with their computed render positions */
+		stickyChildren?: Array<{
+			/** Index of the sticky child */
+			index: number;
+			/** Computed Y offset to render at (relative to viewport, not content) */
+			renderOffset: number;
+			/** Original natural Y position (before sticky adjustment) */
+			naturalTop: number;
+			/** Height of the sticky element */
+			height: number;
+		}>;
 	};
 }
 

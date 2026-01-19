@@ -347,6 +347,7 @@ function applyBoxProps(yogaNode: YogaNode, props: BoxProps): void {
 	}
 
 	// Position
+	// Note: 'sticky' is handled at render-time, not by Yoga. For layout purposes, treat as relative.
 	if (props.position !== undefined) {
 		yogaNode.setPositionType(
 			props.position === 'absolute' ? y.POSITION_TYPE_ABSOLUTE : y.POSITION_TYPE_RELATIVE,
