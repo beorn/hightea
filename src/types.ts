@@ -109,6 +109,8 @@ export interface StyleProps {
 	backgroundColor?: string;
 	bold?: boolean;
 	dim?: boolean;
+	/** Alias for dim (Ink compatibility) */
+	dimColor?: boolean;
 	italic?: boolean;
 	underline?: boolean;
 	strikethrough?: boolean;

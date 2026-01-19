@@ -324,7 +324,7 @@ function KanbanBoard(): JSX.Element {
 				<Text bold color="yellow">Kanban Board</Text>
 			</Box>
 
-			<Box flexDirection="row" gap={1} height={20}>
+			<Box flexDirection="row" gap={1} height={20} overflow="hidden">
 				{columns.map((column, colIndex) => (
 					<ColumnComponent
 						key={column.id}

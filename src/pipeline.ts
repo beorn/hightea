@@ -379,6 +379,11 @@ function renderNodeToBuffer(
 
 	const props = node.props as BoxProps & TextProps;
 
+	// Debug: Log clip bounds for overflow containers
+	if (process.env.DEBUG_CLIP) {
+		console.error(`[clip] type=${node.type} y=${layout.y} h=${layout.height} overflow=${props.overflow ?? 'vis'} clip=${JSON.stringify(clipBounds)}`);
+	}
+
 	// Check if this is a scrollable container
 	const isScrollContainer = props.overflow === 'scroll' && node.scrollState;
 
@@ -404,10 +409,17 @@ function renderNodeToBuffer(
 		const padding = getPadding(props);
 
 		// Set up clip bounds for children
-		const childClipBounds = {
+		const nodeClip = {
 			top: layout.y + border.top + padding.top,
 			bottom: layout.y + layout.height - border.bottom - padding.bottom,
 		};
+		// Intersect with parent clip bounds if present
+		const childClipBounds = clipBounds
+			? {
+					top: Math.max(clipBounds.top, nodeClip.top),
+					bottom: Math.min(clipBounds.bottom, nodeClip.bottom),
+				}
+			: nodeClip;
 
 		for (let i = 0; i < node.children.length; i++) {
 			const child = node.children[i];
@@ -421,9 +433,30 @@ function renderNodeToBuffer(
 			renderNodeToBuffer(child, buffer, ss.offset, childClipBounds);
 		}
 	} else {
-		// Normal rendering - render all children
+		// For overflow='hidden' containers, calculate clip bounds
+		let effectiveClipBounds = clipBounds;
+		if (props.overflow === 'hidden') {
+			const border = props.borderStyle
+				? getBorderSize(props)
+				: { top: 0, bottom: 0, left: 0, right: 0 };
+			const padding = getPadding(props);
+			const nodeClip = {
+				top: layout.y + border.top + padding.top,
+				bottom: layout.y + layout.height - border.bottom - padding.bottom,
+			};
+			// Intersect with parent clip bounds if present
+			if (clipBounds) {
+				effectiveClipBounds = {
+					top: Math.max(clipBounds.top, nodeClip.top),
+					bottom: Math.min(clipBounds.bottom, nodeClip.bottom),
+				};
+			} else {
+				effectiveClipBounds = nodeClip;
+			}
+		}
+		// Normal rendering - render all children with effective clip bounds
 		for (const child of node.children) {
-			renderNodeToBuffer(child, buffer, scrollOffset, clipBounds);
+			renderNodeToBuffer(child, buffer, scrollOffset, effectiveClipBounds);
 		}
 	}
 
@@ -477,19 +510,36 @@ function renderBox(
 	buffer: TerminalBuffer,
 	layout: ComputedLayout,
 	props: BoxProps,
-	_clipBounds?: { top: number; bottom: number },
+	clipBounds?: { top: number; bottom: number },
 ): void {
 	const { x, y, width, height } = layout;
+
+	// Skip if completely outside clip bounds
+	if (clipBounds && (y + height <= clipBounds.top || y >= clipBounds.bottom)) {
+		if (process.env.DEBUG_CLIP) {
+			console.error(`[BOX-OUT] y=${y} h=${height} clip=${JSON.stringify(clipBounds)}`);
+		}
+		return;
+	}
 
 	// Fill background if set
 	if (props.backgroundColor) {
 		const bg = parseColor(props.backgroundColor);
-		buffer.fill(x, y, width, height, { bg });
+		// Clip background fill to bounds
+		if (clipBounds) {
+			const clippedY = Math.max(y, clipBounds.top);
+			const clippedHeight = Math.min(y + height, clipBounds.bottom) - clippedY;
+			if (clippedHeight > 0) {
+				buffer.fill(x, clippedY, width, clippedHeight, { bg });
+			}
+		} else {
+			buffer.fill(x, y, width, height, { bg });
+		}
 	}
 
 	// Render border if set
 	if (props.borderStyle) {
-		renderBorder(buffer, x, y, width, height, props);
+		renderBorder(buffer, x, y, width, height, props, clipBounds);
 	}
 }
 
@@ -512,6 +562,9 @@ function renderText(
 	// Clip to bounds if specified
 	if (clipBounds) {
 		if (y + height <= clipBounds.top || y >= clipBounds.bottom) {
+			if (process.env.DEBUG_CLIP) {
+				console.error(`[CLIP-OUT] text y=${y} h=${height} clip=${JSON.stringify(clipBounds)}`);
+			}
 			return; // Completely outside clip bounds
 		}
 	}
@@ -528,8 +581,16 @@ function renderText(
 
 	// Render each line
 	for (let lineIdx = 0; lineIdx < lines.length && lineIdx < height; lineIdx++) {
+		const lineY = y + lineIdx;
+		// Skip lines outside clip bounds
+		if (clipBounds && (lineY < clipBounds.top || lineY >= clipBounds.bottom)) {
+			if (process.env.DEBUG_CLIP) {
+				console.error(`[SKIP] lineY=${lineY} clip=${JSON.stringify(clipBounds)} text="${lines[lineIdx]?.slice(0, 20)}"`);
+			}
+			continue;
+		}
 		const line = lines[lineIdx];
-		renderTextLine(buffer, x, y + lineIdx, line, style);
+		renderTextLine(buffer, x, lineY, line, style);
 	}
 }
 
@@ -671,6 +732,7 @@ function renderBorder(
 	width: number,
 	height: number,
 	props: BoxProps,
+	clipBounds?: { top: number; bottom: number },
 ): void {
 	const chars = getBorderChars(props.borderStyle ?? 'single');
 	const color = props.borderColor ? parseColor(props.borderColor) : null;
@@ -680,8 +742,14 @@ function renderBorder(
 	const showLeft = props.borderLeft !== false;
 	const showRight = props.borderRight !== false;
 
+	// Helper to check if a row is visible within clip bounds
+	const isRowVisible = (row: number): boolean => {
+		if (!clipBounds) return row >= 0 && row < buffer.height;
+		return row >= clipBounds.top && row < clipBounds.bottom && row < buffer.height;
+	};
+
 	// Top border
-	if (showTop && y < buffer.height) {
+	if (showTop && isRowVisible(y)) {
 		if (showLeft) buffer.setCell(x, y, { char: chars.topLeft, fg: color });
 		for (let col = x + 1; col < x + width - 1 && col < buffer.width; col++) {
 			buffer.setCell(col, y, { char: chars.horizontal, fg: color });
@@ -692,7 +760,8 @@ function renderBorder(
 	}
 
 	// Side borders
-	for (let row = y + 1; row < y + height - 1 && row < buffer.height; row++) {
+	for (let row = y + 1; row < y + height - 1; row++) {
+		if (!isRowVisible(row)) continue;
 		if (showLeft) buffer.setCell(x, row, { char: chars.vertical, fg: color });
 		if (showRight && x + width - 1 < buffer.width) {
 			buffer.setCell(x + width - 1, row, { char: chars.vertical, fg: color });
@@ -700,8 +769,11 @@ function renderBorder(
 	}
 
 	// Bottom border
-	if (showBottom && y + height - 1 < buffer.height) {
-		const bottomY = y + height - 1;
+	const bottomY = y + height - 1;
+	if (process.env.DEBUG_CLIP) {
+		console.error(`[BORDER] bottomY=${bottomY} isVisible=${isRowVisible(bottomY)} clip=${JSON.stringify(clipBounds)}`);
+	}
+	if (showBottom && isRowVisible(bottomY)) {
 		if (showLeft) buffer.setCell(x, bottomY, { char: chars.bottomLeft, fg: color });
 		for (let col = x + 1; col < x + width - 1 && col < buffer.width; col++) {
 			buffer.setCell(col, bottomY, { char: chars.horizontal, fg: color });
@@ -1053,7 +1125,7 @@ function getTextStyle(props: TextProps): Style {
 		bg: props.backgroundColor ? parseColor(props.backgroundColor) : null,
 		attrs: {
 			bold: props.bold,
-			dim: props.dim,
+			dim: props.dim || props.dimColor, // dimColor is Ink compatibility alias
 			italic: props.italic,
 			underline: props.underline,
 			strikethrough: props.strikethrough,

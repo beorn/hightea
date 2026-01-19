@@ -471,26 +471,19 @@ export function changesToAnsi(changes: CellChange[]): string {
 	});
 
 	let output = CURSOR_HIDE;
+	// Track cursor position (where cursor IS after previous operations)
 	let cursorX = 0;
 	let cursorY = 0;
 	let currentStyle: Style | null = null;
-	let needsPositioning = true;
+	let firstCell = true;
 
 	for (const { x, y, cell } of changes) {
-		// Move cursor to position
-		if (needsPositioning || y !== cursorY || x !== cursorX) {
-			// Check if cursor would naturally be here after previous write
-			const expectedX = cursorX + (currentStyle ? 1 : 0);
-
-			if (y === cursorY && x === expectedX) {
-				// Cursor is already in the right place (after last character)
-				// No movement needed
-			} else {
-				output += optimalCursorMove(cursorX, cursorY, x, y);
-			}
-			cursorX = x;
-			cursorY = y;
-			needsPositioning = false;
+		// Move cursor to position if not already there
+		// After writing a character, cursor advances to cursorX.
+		// We need to move if we're not at the target position.
+		if (firstCell || y !== cursorY || x !== cursorX) {
+			output += optimalCursorMove(cursorX, cursorY, x, y);
+			firstCell = false;
 		}
 
 		// Apply style change if needed
@@ -506,6 +499,7 @@ export function changesToAnsi(changes: CellChange[]): string {
 
 		// Update cursor position (cursor advances after writing)
 		cursorX = x + (cell.wide ? 2 : 1);
+		cursorY = y;
 	}
 
 	// Reset style and show cursor
