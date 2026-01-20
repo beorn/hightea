@@ -24,10 +24,10 @@ function TerminalInfo() {
 
 ## Return Value
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `stdout` | `NodeJS.WriteStream` | The stdout stream |
-| `write` | `(data: string) => void` | Write directly to stdout |
+| Property | Type                     | Description              |
+| -------- | ------------------------ | ------------------------ |
+| `stdout` | `NodeJS.WriteStream`     | The stdout stream        |
+| `write`  | `(data: string) => void` | Write directly to stdout |
 
 ## Examples
 
@@ -55,8 +55,12 @@ function ResponsiveApp() {
 
   return (
     <Box flexDirection={isNarrow ? "column" : "row"}>
-      <Box flexGrow={1}><Text>Panel 1</Text></Box>
-      <Box flexGrow={1}><Text>Panel 2</Text></Box>
+      <Box flexGrow={1}>
+        <Text>Panel 1</Text>
+      </Box>
+      <Box flexGrow={1}>
+        <Text>Panel 2</Text>
+      </Box>
     </Box>
   );
 }

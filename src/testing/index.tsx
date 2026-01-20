@@ -2,40 +2,96 @@
  * Inkx Testing Library
  *
  * ink-testing-library compatible API for testing Inkx components.
+ * Uses the actual inkx render pipeline for accurate ANSI output.
+ *
+ * Auto-cleanup: Each render() call automatically unmounts the previous render,
+ * so you don't need explicit cleanup.
  *
  * @example
  * ```tsx
- * import { render } from 'inkx/testing';
+ * import { createTestRenderer } from 'inkx/testing';
  * import { Text } from 'inkx';
  *
- * const { lastFrame, frames, rerender, unmount } = render(<Text>Hello</Text>);
+ * const render = createTestRenderer();
  *
- * expect(lastFrame()).toBe('Hello');
+ * test('renders text', () => {
+ *   const { lastFrame } = render(<Text>Hello</Text>);
+ *   expect(lastFrame()).toContain('Hello');
+ * });
  *
- * rerender(<Text>World</Text>);
- * expect(lastFrame()).toBe('World');
+ * test('renders more text', () => {
+ *   // Previous render is auto-cleaned when render() is called again
+ *   const { lastFrame } = render(<Text>World</Text>);
+ *   expect(lastFrame()).toContain('World');
+ * });
+ * ```
  *
- * unmount();
+ * @example
+ * ```tsx
+ * // Testing keyboard input (stdin.write connects to useInput hooks)
+ * const render = createTestRenderer();
+ *
+ * test('handles keyboard input', () => {
+ *   const { stdin } = render(<MyComponent />);
+ *   stdin.write('\x1b');  // Send Escape key
+ *   stdin.write('q');     // Send 'q' key
+ * });
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Custom dimensions per render
+ * const render = createTestRenderer();
+ * const { lastFrame } = render(<WideComponent />, { columns: 120, rows: 40 });
  * ```
  */
 
 import { EventEmitter } from 'node:events';
-import type { ReactElement } from 'react';
+import React, { type ReactElement } from 'react';
+import { initYogaEngine } from '../adapters/yoga-adapter.js';
+import type { TerminalBuffer } from '../buffer.js';
+import { InputContext } from '../context.js';
+import type { LayoutEngine } from '../layout-engine.js';
+import { setLayoutEngine } from '../layout-engine.js';
+import { executeRender } from '../pipeline.js';
+import { createContainer, getContainerRoot, reconciler } from '../reconciler.js';
+
+// ============================================================================
+// Module Initialization
+// ============================================================================
+
+// Initialize default yoga engine at module load time via top-level await.
+// This cached engine is used by createTestRenderer() when no engine is provided.
+const defaultLayoutEngine = await initYogaEngine();
 
 // ============================================================================
 // Types
 // ============================================================================
 
 /**
- * Options for the render function.
+ * Options for creating a test renderer.
  */
-export interface RenderOptions {
+export interface TestRendererOptions {
 	/** Terminal width for layout calculations. Default: 80 */
 	columns?: number;
 	/** Terminal height. Default: 24 */
 	rows?: number;
+	/** Layout engine to use (yoga or flexx). Default: yoga */
+	layoutEngine?: LayoutEngine;
 	/** Enable debug output. Default: false */
 	debug?: boolean;
+}
+
+/**
+ * Options for individual render calls.
+ */
+export interface RenderOptions {
+	/** Enable debug output for this render. Default: false */
+	debug?: boolean;
+	/** Override terminal width for this render. Default: use renderer default (80) */
+	columns?: number;
+	/** Override terminal height for this render. Default: use renderer default (24) */
+	rows?: number;
 }
 
 /**
@@ -43,20 +99,21 @@ export interface RenderOptions {
  */
 export interface RenderResult {
 	/**
-	 * Returns the last rendered frame as a string.
+	 * Returns the last rendered frame as a string (with ANSI codes).
 	 * Returns undefined if no frames have been rendered.
 	 */
 	lastFrame: () => string | undefined;
 
 	/**
 	 * Array of all rendered frames in order.
-	 * Each frame is a string snapshot of the terminal output.
+	 * Each frame is a string snapshot of the terminal output with ANSI codes.
 	 */
 	frames: string[];
 
 	/**
 	 * Re-render with a new element.
 	 * The new frame will be appended to the frames array.
+	 * This is synchronous - the frame is available immediately after calling.
 	 */
 	rerender: (element: ReactElement) => void;
 
@@ -82,301 +139,203 @@ export interface RenderResult {
 }
 
 /**
- * Internal state for a test render instance.
+ * Test render function type.
+ * Auto-cleans previous render when called again.
  */
-interface TestInstance {
+export type TestRender = (element: ReactElement, options?: RenderOptions) => RenderResult;
+
+/**
+ * Internal state for a render instance.
+ */
+interface RenderInstance {
 	frames: string[];
-	currentElement: ReactElement | null;
+	container: ReturnType<typeof createContainer>;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- React reconciler internal type
+	fiberRoot: any;
+	prevBuffer: TerminalBuffer | null;
 	mounted: boolean;
 	columns: number;
 	rows: number;
 	inputEmitter: EventEmitter;
+	debug: boolean;
 }
 
 // ============================================================================
-// Simple Text Extraction (for basic testing without full reconciler)
+// Test Renderer Factory
 // ============================================================================
 
 /**
- * Extract text content from a React element.
- * This is a simplified rendering that extracts text for assertions.
- */
-function extractTextContent(element: ReactElement | string | number | null | undefined): string {
-	if (element === null || element === undefined) {
-		return '';
-	}
-
-	if (typeof element === 'string') {
-		return element;
-	}
-
-	if (typeof element === 'number') {
-		return String(element);
-	}
-
-	if (!element || typeof element !== 'object') {
-		return '';
-	}
-
-	const { type, props } = element;
-
-	// Handle children
-	if (props?.children !== undefined) {
-		const children = Array.isArray(props.children) ? props.children : [props.children];
-		const childText = children
-			.map((child: unknown) => {
-				if (typeof child === 'string') return child;
-				if (typeof child === 'number') return String(child);
-				if (child && typeof child === 'object' && 'type' in child) {
-					return extractTextContent(child as ReactElement);
-				}
-				return '';
-			})
-			.join('');
-
-		// Handle borders - add border characters if borderStyle is set
-		if (props.borderStyle) {
-			const borderChars = getBorderChars(props.borderStyle);
-			const lines = childText.split('\n');
-			const width = props.width ?? Math.max(...lines.map((l: string) => l.length)) + 2;
-			const innerWidth = width - 2;
-
-			let result = '';
-			result += `${borderChars.topLeft}${borderChars.horizontal.repeat(innerWidth)}${borderChars.topRight}\n`;
-			for (const line of lines) {
-				result += `${borderChars.vertical}${line.padEnd(innerWidth)}${borderChars.vertical}\n`;
-			}
-			result += `${borderChars.bottomLeft}${borderChars.horizontal.repeat(innerWidth)}${borderChars.bottomRight}`;
-			return result;
-		}
-
-		return childText;
-	}
-
-	// Handle function components
-	if (typeof type === 'function') {
-		try {
-			const result = (type as (props: unknown) => ReactElement)(props);
-			return extractTextContent(result);
-		} catch {
-			// Component may have hooks which won't work
-			return '[Component]';
-		}
-	}
-
-	return '';
-}
-
-/**
- * Border character sets.
- */
-interface BorderChars {
-	topLeft: string;
-	topRight: string;
-	bottomLeft: string;
-	bottomRight: string;
-	horizontal: string;
-	vertical: string;
-}
-
-/**
- * Get border characters for a style.
- */
-function getBorderChars(style: string): BorderChars {
-	const borders: Record<string, BorderChars> = {
-		single: {
-			topLeft: '┌',
-			topRight: '┐',
-			bottomLeft: '└',
-			bottomRight: '┘',
-			horizontal: '─',
-			vertical: '│',
-		},
-		double: {
-			topLeft: '╔',
-			topRight: '╗',
-			bottomLeft: '╚',
-			bottomRight: '╝',
-			horizontal: '═',
-			vertical: '║',
-		},
-		round: {
-			topLeft: '╭',
-			topRight: '╮',
-			bottomLeft: '╰',
-			bottomRight: '╯',
-			horizontal: '─',
-			vertical: '│',
-		},
-		bold: {
-			topLeft: '┏',
-			topRight: '┓',
-			bottomLeft: '┗',
-			bottomRight: '┛',
-			horizontal: '━',
-			vertical: '┃',
-		},
-		classic: {
-			topLeft: '+',
-			topRight: '+',
-			bottomLeft: '+',
-			bottomRight: '+',
-			horizontal: '-',
-			vertical: '|',
-		},
-	};
-
-	return borders[style] ?? borders.single;
-}
-
-// ============================================================================
-// Render Function
-// ============================================================================
-
-/**
- * Render a React element for testing.
+ * Create a test render function with custom configuration.
  *
- * Returns an object with methods to inspect rendered output,
- * re-render with new props, and clean up.
- *
- * @param element - The React element to render
- * @param options - Render options (terminal size, debug mode)
- * @returns RenderResult with inspection and control methods
+ * @param options - Renderer configuration (dimensions, layout engine, debug)
+ * @returns Render function that auto-cleans previous render on each call
  *
  * @example
  * ```tsx
- * import { render } from 'inkx/testing';
- * import { Box, Text } from 'inkx';
+ * // Custom dimensions
+ * const render = createTestRenderer({ columns: 120, rows: 40 });
  *
- * const { lastFrame } = render(
- *   <Box>
- *     <Text>Hello, World!</Text>
- *   </Box>
- * );
- *
- * expect(lastFrame()).toContain('Hello, World!');
+ * // Custom layout engine
+ * const flexx = await initFlexxEngine();
+ * const render = createTestRenderer({ layoutEngine: flexx });
  * ```
  */
-export function render(element: ReactElement, options: RenderOptions = {}): RenderResult {
-	const { columns = 80, rows = 24, debug = false } = options;
+export function createTestRenderer(options: TestRendererOptions = {}): TestRender {
+	const {
+		columns = 80,
+		rows = 24,
+		layoutEngine = defaultLayoutEngine,
+		debug: defaultDebug = false,
+	} = options;
 
-	const instance: TestInstance = {
-		frames: [],
-		currentElement: element,
-		mounted: true,
-		columns,
-		rows,
-		inputEmitter: new EventEmitter(),
-	};
+	// Set the layout engine for this renderer
+	setLayoutEngine(layoutEngine);
 
-	// Do initial render
-	const frame = extractTextContent(element);
-	instance.frames.push(frame);
+	// Track current instance for auto-cleanup
+	let currentInstance: RenderResult | null = null;
 
-	if (debug) {
-		console.log('[inkx-test] Initial render:', frame);
-	}
-
-	const result: RenderResult = {
-		lastFrame() {
-			if (instance.frames.length === 0) {
-				return undefined;
+	function render(element: ReactElement, renderOptions: RenderOptions = {}): RenderResult {
+		// Auto-cleanup previous render before creating new one
+		if (currentInstance) {
+			try {
+				currentInstance.unmount();
+			} catch {
+				// Already unmounted, ignore
 			}
-			return instance.frames[instance.frames.length - 1];
-		},
+		}
 
-		frames: instance.frames,
+		const debug = renderOptions.debug ?? defaultDebug;
+		// Allow per-render column/row overrides
+		const renderColumns = renderOptions.columns ?? columns;
+		const renderRows = renderOptions.rows ?? rows;
 
-		rerender(newElement: ReactElement) {
-			if (!instance.mounted) {
-				throw new Error('Cannot rerender after unmount');
-			}
+		const instance: RenderInstance = {
+			frames: [],
+			container: null as unknown as ReturnType<typeof createContainer>,
+			fiberRoot: null,
+			prevBuffer: null,
+			mounted: true,
+			columns: renderColumns,
+			rows: renderRows,
+			inputEmitter: new EventEmitter(),
+			debug,
+		};
 
-			instance.currentElement = newElement;
-			const newFrame = extractTextContent(newElement);
-			instance.frames.push(newFrame);
+		// Create container (onRender callback not needed for sync rendering)
+		instance.container = createContainer(() => {});
 
-			if (debug) {
-				console.log('[inkx-test] Rerender:', newFrame);
-			}
-		},
+		instance.fiberRoot = reconciler.createContainer(
+			instance.container,
+			0, // LegacyRoot
+			null, // hydrationCallbacks
+			false, // isStrictMode
+			null, // concurrentUpdatesByDefaultOverride
+			'', // identifierPrefix
+			() => {}, // onRecoverableError
+			null, // transitionCallbacks
+		);
 
-		unmount() {
-			if (!instance.mounted) {
-				throw new Error('Already unmounted');
-			}
+		// Wrap element with InputContext to enable useInput hooks
+		function wrapWithInputContext(el: ReactElement): ReactElement {
+			return React.createElement(
+				InputContext.Provider,
+				{
+					value: {
+						eventEmitter: instance.inputEmitter,
+						exitOnCtrlC: false,
+					},
+				},
+				el,
+			);
+		}
 
-			instance.mounted = false;
-			instance.inputEmitter.removeAllListeners();
+		// Render function that executes the pipeline
+		// Note: We pass null for prevBuffer to always get full frame output (not diffs)
+		// This is important for testing where we want to inspect complete frames
+		function doRender(): string {
+			const root = getContainerRoot(instance.container);
+			const { output, buffer } = executeRender(root, instance.columns, instance.rows, null);
+			instance.prevBuffer = buffer;
+			return output;
+		}
 
-			if (debug) {
-				console.log('[inkx-test] Unmounted');
-			}
-		},
+		// Synchronously update React tree and flush work
+		reconciler.updateContainerSync(wrapWithInputContext(element), instance.fiberRoot, null, null);
+		reconciler.flushSyncWork();
 
-		stdin: {
-			write(data: string) {
-				if (!instance.mounted) {
-					throw new Error('Cannot write to stdin after unmount');
+		// Execute the render pipeline
+		const output = doRender();
+		instance.frames.push(output);
+
+		if (debug) {
+			console.log('[inkx-test] Initial render:', output);
+		}
+
+		const result: RenderResult = {
+			lastFrame() {
+				if (instance.frames.length === 0) {
+					return undefined;
 				}
-				instance.inputEmitter.emit('input', data);
+				return instance.frames[instance.frames.length - 1];
 			},
-		},
 
-		clear() {
-			instance.frames.length = 0;
-		},
-	};
+			frames: instance.frames,
 
-	// Register for cleanup
-	instances.push(result);
+			rerender(newElement: ReactElement) {
+				if (!instance.mounted) {
+					throw new Error('Cannot rerender after unmount');
+				}
 
-	return result;
-}
+				// Synchronously update React tree and flush work (wrapped with InputContext)
+				reconciler.updateContainerSync(wrapWithInputContext(newElement), instance.fiberRoot, null, null);
+				reconciler.flushSyncWork();
 
-/**
- * Async render function (same as render, kept for API compatibility).
- *
- * @example
- * ```tsx
- * const { lastFrame } = await renderAsync(<MyComponent />);
- * ```
- */
-export async function renderAsync(
-	element: ReactElement,
-	options: RenderOptions = {},
-): Promise<RenderResult> {
-	return render(element, options);
-}
+				// Execute render pipeline
+				const newFrame = doRender();
+				instance.frames.push(newFrame);
 
-// ============================================================================
-// Cleanup
-// ============================================================================
+				if (debug) {
+					console.log('[inkx-test] Rerender:', newFrame);
+				}
+			},
 
-const instances: RenderResult[] = [];
+			unmount() {
+				if (!instance.mounted) {
+					throw new Error('Already unmounted');
+				}
 
-/**
- * Create a cleanup function that unmounts all rendered instances.
- * Useful in afterEach hooks.
- *
- * @example
- * ```tsx
- * import { render, cleanup } from 'inkx/testing';
- *
- * afterEach(() => {
- *   cleanup();
- * });
- * ```
- */
-export function cleanup(): void {
-	for (const instance of instances) {
-		try {
-			instance.unmount();
-		} catch {
-			// Already unmounted, ignore
-		}
+				reconciler.updateContainer(null, instance.fiberRoot, null, () => {});
+				instance.mounted = false;
+				instance.inputEmitter.removeAllListeners();
+
+				if (debug) {
+					console.log('[inkx-test] Unmounted');
+				}
+			},
+
+			stdin: {
+				write(data: string) {
+					if (!instance.mounted) {
+						throw new Error('Cannot write to stdin after unmount');
+					}
+					instance.inputEmitter.emit('input', data);
+				},
+			},
+
+			clear() {
+				instance.frames.length = 0;
+				instance.prevBuffer = null;
+			},
+		};
+
+		// Track current instance for auto-cleanup on next render
+		currentInstance = result;
+
+		return result;
 	}
-	instances.length = 0;
+
+	// Return render function directly - auto-cleans previous render on each call
+	return render;
 }
 
 // ============================================================================
@@ -387,7 +346,6 @@ export function cleanup(): void {
  * Strip ANSI escape codes from a string for easier assertions.
  */
 export function stripAnsi(str: string): string {
-	// Matches all ANSI escape sequences
 	// biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI codes use control chars
 	return str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
 }
@@ -419,6 +377,8 @@ export async function waitFor(
 		if (Date.now() - start > timeout) {
 			throw new Error(`waitFor timed out after ${timeout}ms`);
 		}
-		await new Promise((resolve) => setTimeout(resolve, interval));
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, interval);
+		});
 	}
 }

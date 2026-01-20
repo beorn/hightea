@@ -60,7 +60,7 @@ render(<App />);
 
 ## The Problem Inkx Solves
 
-In Ink, components render *before* layout is computed. You can't know a component's dimensions, so you manually thread width props everywhere:
+In Ink, components render _before_ layout is computed. You can't know a component's dimensions, so you manually thread width props everywhere:
 
 ```tsx
 // Ink: width props cascade through the entire tree
@@ -86,7 +86,9 @@ function Column({ items }) {
   const { width } = useLayout();
   return (
     <Box flexGrow={1}>
-      {items.map(item => <Card item={item} />)}
+      {items.map((item) => (
+        <Card item={item} />
+      ))}
     </Box>
   );
 }

@@ -673,5 +673,12 @@ export function renderSync(element: ReactElement, options: RenderOptions = {}): 
 export { setLayoutEngine, isLayoutEngineInitialized } from './layout-engine.js';
 
 // Re-export adapters for custom engine initialization
-export { createYogaEngine, initYogaEngine, YogaLayoutEngine } from './adapters/yoga-adapter.js';
-export { createFlexxEngine, FlexxLayoutEngine } from './adapters/flexx-adapter.js';
+export {
+	createYogaEngine,
+	initYogaEngine,
+	YogaLayoutEngine,
+} from './adapters/yoga-adapter.js';
+export {
+	createFlexxEngine,
+	FlexxLayoutEngine,
+} from './adapters/flexx-adapter.js';

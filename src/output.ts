@@ -231,7 +231,9 @@ function styleTransition(from: Style | null, to: Style): string {
 	if (to.attrs.blink && !from.attrs.blink) params.push(SGR.blink);
 	if (to.attrs.inverse && !from.attrs.inverse) params.push(SGR.inverse);
 	if (to.attrs.hidden && !from.attrs.hidden) params.push(SGR.hidden);
-	if (to.attrs.strikethrough && !from.attrs.strikethrough) params.push(SGR.strikethrough);
+	if (to.attrs.strikethrough && !from.attrs.strikethrough) {
+		params.push(SGR.strikethrough);
+	}
 
 	// Change foreground color if different
 	if (!colorEquals(from.fg, to.fg)) {

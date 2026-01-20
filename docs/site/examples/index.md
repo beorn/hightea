@@ -20,6 +20,7 @@ bun run examples/dashboard/app.tsx
 A multi-pane dashboard demonstrating responsive layouts with `useLayout()`.
 
 **Key concepts:**
+
 - Multi-pane layouts with `flexGrow`
 - Responsive breakpoints based on terminal width
 - Proportional column sizing
@@ -48,6 +49,7 @@ A multi-pane dashboard demonstrating responsive layouts with `useLayout()`.
 A scrollable task list with variable-height items and keyboard navigation.
 
 **Key concepts:**
+
 - `overflow="scroll"` for automatic scrolling
 - `scrollTo={index}` to keep selection visible
 - Variable-height items (tasks with subtasks)
@@ -76,6 +78,7 @@ A scrollable task list with variable-height items and keyboard navigation.
 A multi-column kanban board with independent scroll regions.
 
 **Key concepts:**
+
 - Multiple independent scroll containers
 - Column-based layouts with `flexGrow`
 - State management for cursor position
@@ -98,15 +101,16 @@ A multi-column kanban board with independent scroll regions.
 
 Start with the simplest example that matches your use case:
 
-| Use Case | Start With |
-|----------|------------|
-| Single scrollable list | Task List |
-| Multi-pane layout | Dashboard |
-| Multiple scroll regions | Kanban |
-| Responsive layout | Dashboard |
-| Keyboard navigation | Task List or Kanban |
+| Use Case                | Start With          |
+| ----------------------- | ------------------- |
+| Single scrollable list  | Task List           |
+| Multi-pane layout       | Dashboard           |
+| Multiple scroll regions | Kanban              |
+| Responsive layout       | Dashboard           |
+| Keyboard navigation     | Task List or Kanban |
 
 All examples follow the same patterns:
+
 1. Use `useLayout()` when you need dimensions
 2. Use `overflow="scroll"` + `scrollTo` for scrolling
 3. Use `useInput()` for keyboard handling

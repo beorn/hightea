@@ -11,22 +11,24 @@ import { Text } from "inkx";
 ## Usage
 
 ```tsx
-<Text color="green" bold>Success!</Text>
+<Text color="green" bold>
+  Success!
+</Text>
 ```
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `color` | `string` | - | Text color (named or hex) |
-| `backgroundColor` | `string` | - | Background color |
-| `bold` | `boolean` | `false` | Bold text |
-| `italic` | `boolean` | `false` | Italic text |
-| `underline` | `boolean` | `false` | Underlined text |
-| `strikethrough` | `boolean` | `false` | Strikethrough text |
-| `dimColor` | `boolean` | `false` | Dimmed color |
-| `inverse` | `boolean` | `false` | Swap foreground and background |
-| `wrap` | `"wrap" \| "truncate" \| "truncate-start" \| "truncate-middle" \| "truncate-end"` | `"truncate"` | How to handle overflow |
+| Prop              | Type                                                                              | Default      | Description                    |
+| ----------------- | --------------------------------------------------------------------------------- | ------------ | ------------------------------ |
+| `color`           | `string`                                                                          | -            | Text color (named or hex)      |
+| `backgroundColor` | `string`                                                                          | -            | Background color               |
+| `bold`            | `boolean`                                                                         | `false`      | Bold text                      |
+| `italic`          | `boolean`                                                                         | `false`      | Italic text                    |
+| `underline`       | `boolean`                                                                         | `false`      | Underlined text                |
+| `strikethrough`   | `boolean`                                                                         | `false`      | Strikethrough text             |
+| `dimColor`        | `boolean`                                                                         | `false`      | Dimmed color                   |
+| `inverse`         | `boolean`                                                                         | `false`      | Swap foreground and background |
+| `wrap`            | `"wrap" \| "truncate" \| "truncate-start" \| "truncate-middle" \| "truncate-end"` | `"truncate"` | How to handle overflow         |
 
 ## Colors
 
@@ -140,7 +142,13 @@ import chalk from "chalk";
 ### Status Indicator
 
 ```tsx
-function Status({ type, message }: { type: "success" | "error" | "warning"; message: string }) {
+function Status({
+  type,
+  message,
+}: {
+  type: "success" | "error" | "warning";
+  message: string;
+}) {
   const colors = {
     success: "green",
     error: "red",
@@ -163,10 +171,17 @@ function Status({ type, message }: { type: "success" | "error" | "warning"; mess
 ### Highlighted Selection
 
 ```tsx
-function MenuItem({ label, isSelected }: { label: string; isSelected: boolean }) {
+function MenuItem({
+  label,
+  isSelected,
+}: {
+  label: string;
+  isSelected: boolean;
+}) {
   return (
     <Text inverse={isSelected} bold={isSelected}>
-      {isSelected ? "> " : "  "}{label}
+      {isSelected ? "> " : "  "}
+      {label}
     </Text>
   );
 }

@@ -11,18 +11,16 @@ import { Static } from "inkx";
 ## Usage
 
 ```tsx
-<Static items={logs}>
-  {(log, index) => <Text key={index}>{log}</Text>}
-</Static>
+<Static items={logs}>{(log, index) => <Text key={index}>{log}</Text>}</Static>
 ```
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `items` | `T[]` | required | Array of items to render |
-| `children` | `(item: T, index: number) => ReactNode` | required | Render function called for each item |
-| `style` | `Record<string, unknown>` | - | Style props to apply to the container |
+| Prop       | Type                                    | Default  | Description                           |
+| ---------- | --------------------------------------- | -------- | ------------------------------------- |
+| `items`    | `T[]`                                   | required | Array of items to render              |
+| `children` | `(item: T, index: number) => ReactNode` | required | Render function called for each item  |
+| `style`    | `Record<string, unknown>`               | -        | Style props to apply to the container |
 
 ## Examples
 
@@ -49,6 +47,7 @@ function addLog(message: string) {
 ```
 
 Output (logs scroll up, status bar stays at bottom):
+
 ```
 [2024-01-15T10:30:00.000Z] Starting process...
 [2024-01-15T10:30:01.000Z] Loading configuration
@@ -84,6 +83,7 @@ const [completedSteps, setCompletedSteps] = useState<BuildStep[]>([]);
 ```
 
 Output:
+
 ```
 ✓ Compile TypeScript (1234ms)
 ✓ Bundle assets (567ms)

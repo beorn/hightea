@@ -34,14 +34,14 @@ Most apps should work at this point.
 
 These APIs are 100% compatible:
 
-| Category | APIs |
-|----------|------|
-| **Components** | `<Box>`, `<Text>`, `<Newline>`, `<Spacer>`, `<Static>` |
-| **Hooks** | `useInput()`, `useApp()`, `useStdout()`, `useStdin()` |
-| **Render** | `render()`, `render(element, options)` |
-| **Styling** | All Chalk styles work unchanged |
-| **Flexbox** | All flexbox props (direction, justify, align, wrap, grow, shrink, basis) |
-| **Borders** | All border styles (single, double, round, bold, etc.) |
+| Category       | APIs                                                                     |
+| -------------- | ------------------------------------------------------------------------ |
+| **Components** | `<Box>`, `<Text>`, `<Newline>`, `<Spacer>`, `<Static>`                   |
+| **Hooks**      | `useInput()`, `useApp()`, `useStdout()`, `useStdin()`                    |
+| **Render**     | `render()`, `render(element, options)`                                   |
+| **Styling**    | All Chalk styles work unchanged                                          |
+| **Flexbox**    | All flexbox props (direction, justify, align, wrap, grow, shrink, basis) |
+| **Borders**    | All border styles (single, double, round, bold, etc.)                    |
 
 ## What's Different
 
@@ -55,7 +55,7 @@ function Card({ width }: { width: number }) {
   return <Text>{truncate(title, width)}</Text>;
 }
 
-<Card width={availableWidth - padding * 2} />
+<Card width={availableWidth - padding * 2} />;
 ```
 
 **Inkx**: Components can ask for their size.
@@ -67,7 +67,7 @@ function Card() {
   return <Text>{truncate(title, width)}</Text>;
 }
 
-<Card />
+<Card />;
 ```
 
 ### 2. Text Auto-Truncates
@@ -141,7 +141,9 @@ function Header() {
 ```tsx
 // Inkx: No config needed
 <Box overflow="scroll" scrollTo={selectedIdx}>
-  {items.map(item => <Card key={item.id} item={item} />)}
+  {items.map((item) => (
+    <Card key={item.id} item={item} />
+  ))}
 </Box>
 ```
 
@@ -168,19 +170,19 @@ const { width } = useLayout();
 
 ### By Design
 
-| Behavior | Ink | Inkx | Reason |
-|----------|-----|------|--------|
-| Text overflow | Overflows | Truncates | Better default |
-| First render dimensions | N/A | Zeros | Required for layout feedback |
-| Internal APIs | Exposed | Hidden | Not public API |
+| Behavior                | Ink       | Inkx      | Reason                       |
+| ----------------------- | --------- | --------- | ---------------------------- |
+| Text overflow           | Overflows | Truncates | Better default               |
+| First render dimensions | N/A       | Zeros     | Required for layout feedback |
+| Internal APIs           | Exposed   | Hidden    | Not public API               |
 
 ### Edge Cases
 
-| Issue | Symptoms | Workaround |
-|-------|----------|------------|
-| Rapid re-renders | Flicker | Inkx coalesces frames; usually fine |
-| Deep nesting | Slower layout | Flatten tree if possible |
-| Custom reconciler | Breaks | Not supported |
+| Issue             | Symptoms      | Workaround                          |
+| ----------------- | ------------- | ----------------------------------- |
+| Rapid re-renders  | Flicker       | Inkx coalesces frames; usually fine |
+| Deep nesting      | Slower layout | Flatten tree if possible            |
+| Custom reconciler | Breaks        | Not supported                       |
 
 ## Removing Width Prop Threading
 
@@ -203,7 +205,9 @@ function Board({ width }: { width: number }) {
 function Column({ width, items }) {
   return (
     <Box width={width}>
-      {items.map(item => <Card width={width - 2} item={item} />)}
+      {items.map((item) => (
+        <Card width={width - 2} item={item} />
+      ))}
     </Box>
   );
 }
@@ -225,7 +229,9 @@ function Board() {
 function Column({ items }) {
   return (
     <Box flexGrow={1}>
-      {items.map(item => <Card item={item} />)}
+      {items.map((item) => (
+        <Card item={item} />
+      ))}
     </Box>
   );
 }

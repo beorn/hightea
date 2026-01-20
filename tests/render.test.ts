@@ -4,20 +4,18 @@
  * Basic tests for the render function and testing library.
  */
 
-import { afterEach, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import { createElement } from 'react';
-import { cleanup, render } from '../src/testing/index.js';
+import { Box, Text } from '../src/index.js';
+import { createTestRenderer } from '../src/testing/index.js';
 import { expectFrame, normalizeFrame, stripAnsi } from './setup.js';
 
-// Cleanup after each test
-afterEach(() => {
-	cleanup();
-});
+const render = createTestRenderer();
 
 describe('render', () => {
 	describe('basic rendering', () => {
 		it('renders a simple string', () => {
-			const { lastFrame } = render(createElement('text', null, 'Hello, World!'));
+			const { lastFrame } = render(createElement(Text, null, 'Hello, World!'));
 
 			expect(lastFrame()).toBeDefined();
 			expectFrame(lastFrame()).toContain('Hello, World!');
@@ -25,10 +23,10 @@ describe('render', () => {
 
 		it('renders nested elements', () => {
 			const element = createElement(
-				'box',
+				Box,
 				null,
-				createElement('text', null, 'Line 1'),
-				createElement('text', null, 'Line 2'),
+				createElement(Text, null, 'Line 1'),
+				createElement(Text, null, 'Line 2'),
 			);
 
 			const { lastFrame } = render(element);
@@ -38,7 +36,7 @@ describe('render', () => {
 		});
 
 		it('returns undefined lastFrame when no frames exist', () => {
-			const { lastFrame, clear } = render(createElement('text', null, 'Hello'));
+			const { lastFrame, clear } = render(createElement(Text, null, 'Hello'));
 			clear();
 			expect(lastFrame()).toBeUndefined();
 		});
@@ -46,32 +44,32 @@ describe('render', () => {
 
 	describe('frames tracking', () => {
 		it('tracks all rendered frames', () => {
-			const { frames, rerender } = render(createElement('text', null, 'Frame 1'));
+			const { frames, rerender } = render(createElement(Text, null, 'Frame 1'));
 
 			expect(frames).toHaveLength(1);
 
-			rerender(createElement('text', null, 'Frame 2'));
+			rerender(createElement(Text, null, 'Frame 2'));
 			expect(frames).toHaveLength(2);
 
-			rerender(createElement('text', null, 'Frame 3'));
+			rerender(createElement(Text, null, 'Frame 3'));
 			expect(frames).toHaveLength(3);
 		});
 
 		it('frames array contains actual content', () => {
-			const { frames, rerender } = render(createElement('text', null, 'First'));
+			const { frames, rerender } = render(createElement(Text, null, 'First'));
 
-			rerender(createElement('text', null, 'Second'));
-			rerender(createElement('text', null, 'Third'));
+			rerender(createElement(Text, null, 'Second'));
+			rerender(createElement(Text, null, 'Third'));
 
-			expect(normalizeFrame(frames[0])).toContain('First');
-			expect(normalizeFrame(frames[1])).toContain('Second');
-			expect(normalizeFrame(frames[2])).toContain('Third');
+			expect(normalizeFrame(frames[0]!)).toContain('First');
+			expect(normalizeFrame(frames[1]!)).toContain('Second');
+			expect(normalizeFrame(frames[2]!)).toContain('Third');
 		});
 
 		it('clear() empties the frames array', () => {
-			const { frames, clear, rerender } = render(createElement('text', null, 'Initial'));
+			const { frames, clear, rerender } = render(createElement(Text, null, 'Initial'));
 
-			rerender(createElement('text', null, 'More'));
+			rerender(createElement(Text, null, 'More'));
 			expect(frames).toHaveLength(2);
 
 			clear();
@@ -81,29 +79,29 @@ describe('render', () => {
 
 	describe('rerender', () => {
 		it('updates content on rerender', () => {
-			const { lastFrame, rerender } = render(createElement('text', null, 'Before'));
+			const { lastFrame, rerender } = render(createElement(Text, null, 'Before'));
 
 			expectFrame(lastFrame()).toContain('Before');
 
-			rerender(createElement('text', null, 'After'));
+			rerender(createElement(Text, null, 'After'));
 
 			expectFrame(lastFrame()).toContain('After');
 		});
 
 		it('throws when rerendering after unmount', () => {
-			const { unmount, rerender } = render(createElement('text', null, 'Test'));
+			const { unmount, rerender } = render(createElement(Text, null, 'Test'));
 
 			unmount();
 
 			expect(() => {
-				rerender(createElement('text', null, 'Should fail'));
+				rerender(createElement(Text, null, 'Should fail'));
 			}).toThrow('Cannot rerender after unmount');
 		});
 	});
 
 	describe('unmount', () => {
 		it('unmounts successfully', () => {
-			const { unmount, lastFrame } = render(createElement('text', null, 'Content'));
+			const { unmount, lastFrame } = render(createElement(Text, null, 'Content'));
 
 			unmount();
 
@@ -112,7 +110,7 @@ describe('render', () => {
 		});
 
 		it('throws when unmounting twice', () => {
-			const { unmount } = render(createElement('text', null, 'Test'));
+			const { unmount } = render(createElement(Text, null, 'Test'));
 
 			unmount();
 
@@ -124,13 +122,13 @@ describe('render', () => {
 
 	describe('stdin', () => {
 		it('provides stdin.write method', () => {
-			const { stdin } = render(createElement('text', null, 'Test'));
+			const { stdin } = render(createElement(Text, null, 'Test'));
 
 			expect(typeof stdin.write).toBe('function');
 		});
 
 		it('throws when writing after unmount', () => {
-			const { stdin, unmount } = render(createElement('text', null, 'Test'));
+			const { stdin, unmount } = render(createElement(Text, null, 'Test'));
 
 			unmount();
 
@@ -141,25 +139,23 @@ describe('render', () => {
 	});
 
 	describe('options', () => {
-		it('accepts columns option', () => {
-			const { lastFrame } = render(createElement('text', null, 'Test'), {
-				columns: 40,
-			});
+		it('accepts columns option via createTestRenderer', () => {
+			const customRender = createTestRenderer({ columns: 40 });
+			const { lastFrame } = customRender(createElement(Text, null, 'Test'));
 
 			expect(lastFrame()).toBeDefined();
 		});
 
-		it('accepts rows option', () => {
-			const { lastFrame } = render(createElement('text', null, 'Test'), {
-				rows: 10,
-			});
+		it('accepts rows option via createTestRenderer', () => {
+			const customRender = createTestRenderer({ rows: 10 });
+			const { lastFrame } = customRender(createElement(Text, null, 'Test'));
 
 			expect(lastFrame()).toBeDefined();
 		});
 
 		it('accepts debug option', () => {
 			// Debug mode should not throw
-			const { lastFrame } = render(createElement('text', null, 'Test'), {
+			const { lastFrame } = render(createElement(Text, null, 'Test'), {
 				debug: false,
 			});
 
@@ -217,17 +213,5 @@ describe('test utilities', () => {
 		it('handles undefined frame', () => {
 			expectFrame(undefined).toBeEmpty();
 		});
-	});
-});
-
-describe('cleanup', () => {
-	it('is a function', () => {
-		expect(typeof cleanup).toBe('function');
-	});
-
-	it('can be called multiple times', () => {
-		cleanup();
-		cleanup();
-		// Should not throw
 	});
 });

@@ -46,7 +46,9 @@ import {
 	useStdout,
 } from '../src/index.js';
 
-import { render as testRender } from '../src/testing/index.js';
+import { createTestRenderer } from '../src/testing/index.js';
+
+const testRender = createTestRenderer();
 
 describe('Ink API Compatibility', () => {
 	describe('Component Exports', () => {

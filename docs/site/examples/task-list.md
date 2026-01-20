@@ -133,8 +133,8 @@ function App() {
       // Toggle selected task
       setTasks((prev) =>
         prev.map((task, i) =>
-          i === selectedIndex ? { ...task, done: !task.done } : task
-        )
+          i === selectedIndex ? { ...task, done: !task.done } : task,
+        ),
       );
     }
   });
@@ -156,7 +156,10 @@ function Header({ total, completed }: { total: number; completed: number }) {
   return (
     <Box paddingX={1} marginBottom={1}>
       <Text bold>Tasks</Text>
-      <Text> ({completed}/{total} done)</Text>
+      <Text>
+        {" "}
+        ({completed}/{total} done)
+      </Text>
     </Box>
   );
 }
@@ -207,7 +210,11 @@ function TaskRow({ task, isSelected }: { task: Task; isSelected: boolean }) {
         {prefix} {checkbox} {truncatedTitle}
       </Text>
       {task.subtasks?.map((subtask) => (
-        <SubtaskRow key={subtask.id} subtask={subtask} isParentSelected={isSelected} />
+        <SubtaskRow
+          key={subtask.id}
+          subtask={subtask}
+          isParentSelected={isSelected}
+        />
       ))}
     </Box>
   );
@@ -246,9 +253,7 @@ function SubtaskRow({
 function HelpBar() {
   return (
     <Box paddingX={1} marginTop={1}>
-      <Text dimColor>
-        Up/Down: navigate | Space/Enter: toggle | q: quit
-      </Text>
+      <Text dimColor>Up/Down: navigate | Space/Enter: toggle | q: quit</Text>
     </Box>
   );
 }
@@ -265,7 +270,13 @@ render(<App />);
 The `TaskList` component wraps tasks in a scrollable container:
 
 ```tsx
-function TaskList({ tasks, selectedIndex }: { tasks: Task[]; selectedIndex: number }) {
+function TaskList({
+  tasks,
+  selectedIndex,
+}: {
+  tasks: Task[];
+  selectedIndex: number;
+}) {
   return (
     <Box
       flexDirection="column"
@@ -283,6 +294,7 @@ function TaskList({ tasks, selectedIndex }: { tasks: Task[]; selectedIndex: numb
 ```
 
 Key props:
+
 - `overflow="scroll"` - enables scrolling
 - `scrollTo={selectedIndex}` - keeps selected item visible
 - `flexGrow={1}` - fills available vertical space
@@ -338,8 +350,8 @@ useInput((input, key) => {
   if (input === " " || key.return) {
     setTasks((prev) =>
       prev.map((task, i) =>
-        i === selectedIndex ? { ...task, done: !task.done } : task
-      )
+        i === selectedIndex ? { ...task, done: !task.done } : task,
+      ),
     );
   }
 });
@@ -361,13 +373,13 @@ The available width comes from `useLayout()`.
 
 ## Key Inkx Features Used
 
-| Feature | Usage |
-|---------|-------|
-| `overflow="scroll"` | Scrollable task list |
-| `scrollTo={index}` | Keep selection visible as you navigate |
-| `useLayout()` | Calculate available width for text truncation |
-| `useInput()` | Arrow key navigation and task toggling |
-| Variable heights | Tasks with subtasks naturally expand |
+| Feature             | Usage                                         |
+| ------------------- | --------------------------------------------- |
+| `overflow="scroll"` | Scrollable task list                          |
+| `scrollTo={index}`  | Keep selection visible as you navigate        |
+| `useLayout()`       | Calculate available width for text truncation |
+| `useInput()`        | Arrow key navigation and task toggling        |
+| Variable heights    | Tasks with subtasks naturally expand          |
 
 ## How Scrolling Works
 
@@ -379,6 +391,7 @@ Inkx handles variable-height scrolling automatically:
 4. **Show overflow indicators** - "^ N more" / "v N more" appear automatically
 
 You don't need to:
+
 - Estimate item heights
 - Manually track scroll position
 - Implement virtualization

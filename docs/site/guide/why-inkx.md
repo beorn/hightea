@@ -4,7 +4,7 @@ Inkx solves a fundamental architectural limitation in Ink that forces you to man
 
 ## The Problem
 
-In Ink, components render *before* Yoga computes layout. By the time layout is computed, React has already finished rendering. Components can't know their dimensions:
+In Ink, components render _before_ Yoga computes layout. By the time layout is computed, React has already finished rendering. Components can't know their dimensions:
 
 ```tsx
 // Ink: Width props cascade everywhere
@@ -22,7 +22,9 @@ function Board({ width }: { width: number }) {
 function Column({ width, items }: { width: number; items: Item[] }) {
   return (
     <Box width={width}>
-      {items.map(item => <Card width={width - 2} item={item} />)}
+      {items.map((item) => (
+        <Card width={width - 2} item={item} />
+      ))}
     </Box>
   );
 }
@@ -59,13 +61,15 @@ function Board() {
 function Column({ items }: { items: Item[] }) {
   return (
     <Box flexGrow={1}>
-      {items.map(item => <Card item={item} />)}
+      {items.map((item) => (
+        <Card item={item} />
+      ))}
     </Box>
   );
 }
 
 function Card({ item }: { item: Item }) {
-  const { width } = useLayout();  // Just ask!
+  const { width } = useLayout(); // Just ask!
   return <Text>{truncate(item.title, width - 4)}</Text>;
 }
 ```
@@ -83,6 +87,7 @@ React render() → Build Yoga tree → Yoga computes layout → Write to termina
 ```
 
 Fixing this requires:
+
 1. Render to collect constraints (not content)
 2. Compute layout
 3. Re-render with dimensions
@@ -91,21 +96,23 @@ This is a breaking API change. Ink's maintainer has shown no interest in major a
 
 ## Inkx vs Ink Comparison
 
-| Feature | Ink | Inkx |
-|---------|-----|------|
-| Layout feedback | ❌ Must thread width props | ✅ `useLayout()` hook |
-| Text truncation | ❌ Overflows container | ✅ Auto-truncates |
-| Scrolling | ❌ Manual virtualization | ✅ `overflow="scroll"` |
-| API compatibility | - | ✅ Drop-in replacement |
+| Feature           | Ink                        | Inkx                   |
+| ----------------- | -------------------------- | ---------------------- |
+| Layout feedback   | ❌ Must thread width props | ✅ `useLayout()` hook  |
+| Text truncation   | ❌ Overflows container     | ✅ Auto-truncates      |
+| Scrolling         | ❌ Manual virtualization   | ✅ `overflow="scroll"` |
+| API compatibility | -                          | ✅ Drop-in replacement |
 
 ## Who Should Use Inkx?
 
 **Use Inkx if you're building:**
+
 - Complex layouts (dashboards, kanban boards, multi-pane UIs)
 - Apps with dynamic content widths
 - Scrollable lists with variable-height items
 
 **Stick with Ink if you're building:**
+
 - Simple CLI output (progress bars, spinners)
 - Apps where manual width calculation is acceptable
 - Apps that need Ink's large ecosystem of plugins

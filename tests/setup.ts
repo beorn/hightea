@@ -8,7 +8,7 @@
 import { expect } from 'bun:test';
 
 // Re-export utilities from the testing module
-export { normalizeFrame, stripAnsi, waitFor } from '../src/testing/index.js';
+export { createTestRenderer, normalizeFrame, stripAnsi, waitFor } from '../src/testing/index.js';
 
 // Import for local use
 import { normalizeFrame } from '../src/testing/index.js';

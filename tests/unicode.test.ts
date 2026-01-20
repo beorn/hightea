@@ -338,7 +338,11 @@ describe('Unicode', () => {
 
 		test('writes with style', () => {
 			const buffer = new TerminalBuffer(10, 1);
-			writeTextToBuffer(buffer, 0, 0, 'hi', { fg: 196, bg: null, attrs: { bold: true } });
+			writeTextToBuffer(buffer, 0, 0, 'hi', {
+				fg: 196,
+				bg: null,
+				attrs: { bold: true },
+			});
 			expect(buffer.getCell(0, 0).fg).toBe(196);
 			expect(buffer.getCell(0, 0).attrs.bold).toBe(true);
 		});

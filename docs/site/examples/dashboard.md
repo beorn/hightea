@@ -92,10 +92,7 @@ function TopSection() {
   const isNarrow = width < 60;
 
   return (
-    <Box
-      flexDirection={isNarrow ? "column" : "row"}
-      flexGrow={1}
-    >
+    <Box flexDirection={isNarrow ? "column" : "row"} flexGrow={1}>
       <StatsPane />
       <ActivityPane />
     </Box>
@@ -104,12 +101,7 @@ function TopSection() {
 
 function StatsPane() {
   return (
-    <Box
-      flexDirection="column"
-      flexGrow={1}
-      borderStyle="single"
-      paddingX={1}
-    >
+    <Box flexDirection="column" flexGrow={1} borderStyle="single" paddingX={1}>
       <Text bold>System Stats</Text>
       <Text> </Text>
       {stats.map((stat) => (
@@ -139,12 +131,7 @@ function StatRow({ label, value }: { label: string; value: number }) {
 
 function ActivityPane() {
   return (
-    <Box
-      flexDirection="column"
-      flexGrow={2}
-      borderStyle="single"
-      paddingX={1}
-    >
+    <Box flexDirection="column" flexGrow={2} borderStyle="single" paddingX={1}>
       <Text bold>Activity Feed</Text>
       <Text> </Text>
       {activities.map((activity, i) => (
@@ -185,12 +172,7 @@ function BottomSection() {
   });
 
   return (
-    <Box
-      flexDirection="column"
-      height={8}
-      borderStyle="single"
-      paddingX={1}
-    >
+    <Box flexDirection="column" height={8} borderStyle="single" paddingX={1}>
       <Text bold>Recent Items</Text>
       <Text> </Text>
       <Box flexDirection="column" overflow="scroll" scrollTo={selected}>
@@ -299,7 +281,11 @@ function StatRow({ label, value }: { label: string; value: number }) {
 
   const bar = "=".repeat(filledWidth) + " ".repeat(emptyWidth);
 
-  return <Text>{label.padEnd(8)} [{bar}]</Text>;
+  return (
+    <Text>
+      {label.padEnd(8)} [{bar}]
+    </Text>
+  );
 }
 ```
 
@@ -319,7 +305,11 @@ function ActivityRow({ time, message }: { time: string; message: string }) {
       ? message.slice(0, maxMessageWidth - 1) + "..."
       : message;
 
-  return <Text><Text dimColor>{time}</Text> {truncatedMessage}</Text>;
+  return (
+    <Text>
+      <Text dimColor>{time}</Text> {truncatedMessage}
+    </Text>
+  );
 }
 ```
 
@@ -341,13 +331,13 @@ Add more items to `recentItems` and they'll scroll automatically.
 
 ## Key Inkx Features Used
 
-| Feature | Usage |
-|---------|-------|
-| `useLayout()` | Get dimensions for responsive layout, progress bars, text truncation |
-| `overflow="scroll"` | Scrollable recent items list |
-| `scrollTo={index}` | Keep selected item visible |
-| `flexGrow` | Proportional pane sizing |
-| `useInput()` | Keyboard navigation |
+| Feature             | Usage                                                                |
+| ------------------- | -------------------------------------------------------------------- |
+| `useLayout()`       | Get dimensions for responsive layout, progress bars, text truncation |
+| `overflow="scroll"` | Scrollable recent items list                                         |
+| `scrollTo={index}`  | Keep selected item visible                                           |
+| `flexGrow`          | Proportional pane sizing                                             |
+| `useInput()`        | Keyboard navigation                                                  |
 
 ## Exercises
 

@@ -19,16 +19,16 @@ function Card() {
 
 **Alpha** — core functionality complete, used in production apps.
 
-| Component | Status |
-|-----------|--------|
-| Core components (Box, Text) | Complete |
-| Hooks (useLayout, useInput, useApp, useStdout) | Complete |
-| React reconciler (React 19 compatible) | Complete |
-| Yoga integration | Complete |
-| Terminal output (double-buffered diffing) | Complete |
-| `overflow="scroll"` | Complete |
-| Visual regression tests | Planned |
-| Ink API compatibility | In progress |
+| Component                                      | Status      |
+| ---------------------------------------------- | ----------- |
+| Core components (Box, Text)                    | Complete    |
+| Hooks (useLayout, useInput, useApp, useStdout) | Complete    |
+| React reconciler (React 19 compatible)         | Complete    |
+| Yoga integration                               | Complete    |
+| Terminal output (double-buffered diffing)      | Complete    |
+| `overflow="scroll"`                            | Complete    |
+| Visual regression tests                        | Planned     |
+| Ink API compatibility                          | In progress |
 
 ## The Problem
 
@@ -111,7 +111,9 @@ import { Box, Text, render, useInput, useApp } from "inkx";
 ```tsx
 // Just works - no height estimation, no virtualization config
 <Box overflow="scroll" scrollTo={selectedIdx}>
-  {items.map((item) => <Card key={item.id} item={item} />)}
+  {items.map((item) => (
+    <Card key={item.id} item={item} />
+  ))}
 </Box>
 ```
 

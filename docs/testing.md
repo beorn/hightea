@@ -427,34 +427,51 @@ async function recordMetrics() {
 
 ### 5.1 inkx-testing-library
 
-Provide a testing library compatible with ink-testing-library:
+Inkx provides a testing library with auto-cleanup between renders:
 
 ```typescript
-// packages/inkx-testing/src/index.ts
-import { createRenderer } from "inkx";
+import { createTestRenderer } from 'inkx/testing';
+import { Box, Text } from 'inkx';
 
-export function render(element: React.ReactElement) {
-  const frames: string[] = [];
-  const stdout = new MockStdout();
+// Create a render function with default options (80 columns, 24 rows)
+const render = createTestRenderer();
 
-  const { rerender, unmount } = createRenderer().render(element, {
-    stdout,
-    onRender: (output) => frames.push(output),
-  });
+// Or with custom dimensions
+const wideRender = createTestRenderer({ columns: 120, rows: 40 });
 
-  return {
-    lastFrame: () => frames[frames.length - 1],
-    frames,
-    rerender,
-    unmount,
-    stdout,
-    stdin: new MockStdin(),
-  };
-}
+test('renders text', () => {
+  const { lastFrame, rerender, stdin } = render(
+    <Box><Text>Hello</Text></Box>
+  );
 
-// Compatible with ink-testing-library API
-export { render as createInkTester };
+  expect(lastFrame()).toContain('Hello');
+
+  // Send input to components using useInput
+  stdin.write('q');
+
+  // Re-render with new props
+  rerender(<Box><Text>World</Text></Box>);
+});
+
+test('another test', () => {
+  // Previous render is auto-cleaned when render() is called again
+  const { lastFrame } = render(<Text>Fresh start</Text>);
+  expect(lastFrame()).toContain('Fresh start');
+});
+
+// Per-render dimension overrides
+test('wide render', () => {
+  const { lastFrame } = render(
+    <Box width={100}><Text>Wide</Text></Box>,
+    { columns: 120, rows: 24 }  // Override for this render
+  );
+});
 ```
+
+**Key features:**
+- Auto-cleanup: Each `render()` call automatically unmounts the previous render
+- `stdin.write()`: Connects to `useInput` hooks via `InputContext`
+- Per-render dimensions: Override `columns` and `rows` for individual renders
 
 ### 5.2 Test Fixtures
 

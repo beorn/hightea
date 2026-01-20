@@ -35,6 +35,7 @@ Spacer has no props. It uses `flexGrow={1}` internally to fill available space.
 ```
 
 Output:
+
 ```
 File.txt                          1.2 KB
 ```
@@ -50,6 +51,7 @@ File.txt                          1.2 KB
 ```
 
 Output:
+
 ```
              Centered Title
 ```
@@ -67,10 +69,11 @@ function Header({ title, status }: { title: string; status: string }) {
   );
 }
 
-<Header title="My App" status="Connected" />
+<Header title="My App" status="Connected" />;
 ```
 
 Output:
+
 ```
 ┌──────────────────────────────────┐
 │ My App                 Connected │
@@ -90,6 +93,7 @@ Output:
 ```
 
 Output:
+
 ```
 A                   B                   C
 ```

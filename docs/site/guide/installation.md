@@ -65,13 +65,22 @@ npx ts-node --esm app.tsx
 
 ## Testing Inkx Apps
 
-Inkx includes a testing helper for rendering components and examining buffer output:
+Inkx includes a testing library with auto-cleanup between renders:
 
 ```tsx
-import { renderToBuffer } from "inkx/testing";
+import { createTestRenderer } from "inkx/testing";
+import { Text } from "inkx";
 
-test("renders hello", async () => {
-  const buffer = await renderToBuffer(<Text>Hello</Text>);
-  expect(buffer.toString()).toContain("Hello");
+const render = createTestRenderer();
+
+test("renders hello", () => {
+  const { lastFrame } = render(<Text>Hello</Text>);
+  expect(lastFrame()).toContain("Hello");
+});
+
+test("renders world", () => {
+  // Previous render is auto-cleaned when render() is called again
+  const { lastFrame } = render(<Text>World</Text>);
+  expect(lastFrame()).toContain("World");
 });
 ```

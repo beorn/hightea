@@ -13,31 +13,31 @@ import { render } from "inkx";
 ```tsx
 async function render(
   element: ReactElement,
-  options?: RenderOptions
-): Promise<Instance>
+  options?: RenderOptions,
+): Promise<Instance>;
 ```
 
 ### Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `stdout` | `NodeJS.WriteStream` | `process.stdout` | Output stream to render to |
-| `stdin` | `NodeJS.ReadStream` | `process.stdin` | Input stream for keyboard events |
-| `exitOnCtrlC` | `boolean` | `true` | Exit the app when Ctrl+C is pressed |
-| `patchConsole` | `boolean` | `true` | Patch console methods to work with Inkx output |
-| `debug` | `boolean` | `false` | Enable verbose debug logging |
-| `alternateScreen` | `boolean` | `false` | Use alternate screen buffer (restores terminal on exit) |
+| Option            | Type                 | Default          | Description                                             |
+| ----------------- | -------------------- | ---------------- | ------------------------------------------------------- |
+| `stdout`          | `NodeJS.WriteStream` | `process.stdout` | Output stream to render to                              |
+| `stdin`           | `NodeJS.ReadStream`  | `process.stdin`  | Input stream for keyboard events                        |
+| `exitOnCtrlC`     | `boolean`            | `true`           | Exit the app when Ctrl+C is pressed                     |
+| `patchConsole`    | `boolean`            | `true`           | Patch console methods to work with Inkx output          |
+| `debug`           | `boolean`            | `false`          | Enable verbose debug logging                            |
+| `alternateScreen` | `boolean`            | `false`          | Use alternate screen buffer (restores terminal on exit) |
 
 ### Return Value
 
 Returns a `Promise<Instance>` with the following methods:
 
-| Method | Type | Description |
-|--------|------|-------------|
-| `rerender` | `(element: ReactNode) => void` | Re-render with a new element |
-| `unmount` | `() => void` | Unmount the component and clean up |
-| `waitUntilExit` | `() => Promise<void>` | Promise that resolves when the app exits |
-| `clear` | `() => void` | Clear the terminal output |
+| Method          | Type                           | Description                              |
+| --------------- | ------------------------------ | ---------------------------------------- |
+| `rerender`      | `(element: ReactNode) => void` | Re-render with a new element             |
+| `unmount`       | `() => void`                   | Unmount the component and clean up       |
+| `waitUntilExit` | `() => Promise<void>`          | Promise that resolves when the app exits |
+| `clear`         | `() => void`                   | Clear the terminal output                |
 
 ## Examples
 
@@ -49,7 +49,7 @@ import { render, Box, Text } from "inkx";
 await render(
   <Box>
     <Text>Hello, World!</Text>
-  </Box>
+  </Box>,
 );
 ```
 
@@ -69,7 +69,7 @@ await render(
     stdout: logStream,
     exitOnCtrlC: false,
     debug: true,
-  }
+  },
 );
 ```
 
@@ -129,7 +129,7 @@ const { waitUntilExit } = await render(
     <Text>Full-screen app</Text>
     <Text>Terminal will be restored when you exit</Text>
   </Box>,
-  { alternateScreen: true }
+  { alternateScreen: true },
 );
 
 await waitUntilExit();

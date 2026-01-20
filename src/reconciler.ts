@@ -323,10 +323,18 @@ function applyBoxProps(layoutNode: LayoutNode, props: BoxProps): void {
 	// Border (affects layout - 1 cell per border side)
 	if (props.borderStyle) {
 		const borderWidth = 1;
-		if (props.borderTop !== false) layoutNode.setBorder(c.EDGE_TOP, borderWidth);
-		if (props.borderBottom !== false) layoutNode.setBorder(c.EDGE_BOTTOM, borderWidth);
-		if (props.borderLeft !== false) layoutNode.setBorder(c.EDGE_LEFT, borderWidth);
-		if (props.borderRight !== false) layoutNode.setBorder(c.EDGE_RIGHT, borderWidth);
+		if (props.borderTop !== false) {
+			layoutNode.setBorder(c.EDGE_TOP, borderWidth);
+		}
+		if (props.borderBottom !== false) {
+			layoutNode.setBorder(c.EDGE_BOTTOM, borderWidth);
+		}
+		if (props.borderLeft !== false) {
+			layoutNode.setBorder(c.EDGE_LEFT, borderWidth);
+		}
+		if (props.borderRight !== false) {
+			layoutNode.setBorder(c.EDGE_RIGHT, borderWidth);
+		}
 	}
 }
 

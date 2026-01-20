@@ -15,8 +15,8 @@ function App() {
   const [count, setCount] = useState(0);
 
   useInput((input, key) => {
-    if (key.upArrow) setCount(c => c + 1);
-    if (key.downArrow) setCount(c => c - 1);
+    if (key.upArrow) setCount((c) => c + 1);
+    if (key.downArrow) setCount((c) => c - 1);
     if (input === "q") process.exit();
   });
 
@@ -35,29 +35,29 @@ useInput(
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `callback` | `(input: string, key: Key) => void` | Called on each keypress |
-| `options.isActive` | `boolean` | Whether to listen for input (default: `true`) |
+| Parameter          | Type                                | Description                                   |
+| ------------------ | ----------------------------------- | --------------------------------------------- |
+| `callback`         | `(input: string, key: Key) => void` | Called on each keypress                       |
+| `options.isActive` | `boolean`                           | Whether to listen for input (default: `true`) |
 
 ### Key Object
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `upArrow` | `boolean` | Up arrow key |
-| `downArrow` | `boolean` | Down arrow key |
-| `leftArrow` | `boolean` | Left arrow key |
-| `rightArrow` | `boolean` | Right arrow key |
-| `return` | `boolean` | Enter/Return key |
-| `escape` | `boolean` | Escape key |
-| `ctrl` | `boolean` | Control modifier |
-| `shift` | `boolean` | Shift modifier |
-| `meta` | `boolean` | Meta/Command modifier |
-| `tab` | `boolean` | Tab key |
-| `backspace` | `boolean` | Backspace key |
-| `delete` | `boolean` | Delete key |
-| `pageUp` | `boolean` | Page Up key |
-| `pageDown` | `boolean` | Page Down key |
+| Property     | Type      | Description           |
+| ------------ | --------- | --------------------- |
+| `upArrow`    | `boolean` | Up arrow key          |
+| `downArrow`  | `boolean` | Down arrow key        |
+| `leftArrow`  | `boolean` | Left arrow key        |
+| `rightArrow` | `boolean` | Right arrow key       |
+| `return`     | `boolean` | Enter/Return key      |
+| `escape`     | `boolean` | Escape key            |
+| `ctrl`       | `boolean` | Control modifier      |
+| `shift`      | `boolean` | Shift modifier        |
+| `meta`       | `boolean` | Meta/Command modifier |
+| `tab`        | `boolean` | Tab key               |
+| `backspace`  | `boolean` | Backspace key         |
+| `delete`     | `boolean` | Delete key            |
+| `pageUp`     | `boolean` | Page Up key           |
+| `pageDown`   | `boolean` | Page Down key         |
 
 ## Examples
 
@@ -69,10 +69,10 @@ function Menu({ items }: { items: string[] }) {
 
   useInput((input, key) => {
     if (key.upArrow) {
-      setSelected(s => Math.max(0, s - 1));
+      setSelected((s) => Math.max(0, s - 1));
     }
     if (key.downArrow) {
-      setSelected(s => Math.min(items.length - 1, s + 1));
+      setSelected((s) => Math.min(items.length - 1, s + 1));
     }
     if (key.return) {
       console.log(`Selected: ${items[selected]}`);
@@ -83,7 +83,8 @@ function Menu({ items }: { items: string[] }) {
     <Box flexDirection="column">
       {items.map((item, i) => (
         <Text key={i} inverse={i === selected}>
-          {i === selected ? "> " : "  "}{item}
+          {i === selected ? "> " : "  "}
+          {item}
         </Text>
       ))}
     </Box>
@@ -127,7 +128,7 @@ function Modal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     (input, key) => {
       if (key.escape) onClose();
     },
-    { isActive: isOpen }
+    { isActive: isOpen },
   );
 
   if (!isOpen) return null;
@@ -143,7 +144,13 @@ function Modal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
 ### Text Input
 
 ```tsx
-function TextInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function TextInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
   useInput((input, key) => {
     if (key.backspace) {
       onChange(value.slice(0, -1));
@@ -172,21 +179,25 @@ function ViNavigation() {
   useInput((input) => {
     switch (input) {
       case "h": // Left
-        setPosition(p => ({ ...p, x: Math.max(0, p.x - 1) }));
+        setPosition((p) => ({ ...p, x: Math.max(0, p.x - 1) }));
         break;
       case "j": // Down
-        setPosition(p => ({ ...p, y: p.y + 1 }));
+        setPosition((p) => ({ ...p, y: p.y + 1 }));
         break;
       case "k": // Up
-        setPosition(p => ({ ...p, y: Math.max(0, p.y - 1) }));
+        setPosition((p) => ({ ...p, y: Math.max(0, p.y - 1) }));
         break;
       case "l": // Right
-        setPosition(p => ({ ...p, x: p.x + 1 }));
+        setPosition((p) => ({ ...p, x: p.x + 1 }));
         break;
     }
   });
 
-  return <Text>Position: ({position.x}, {position.y})</Text>;
+  return (
+    <Text>
+      Position: ({position.x}, {position.y})
+    </Text>
+  );
 }
 ```
 

@@ -652,7 +652,9 @@ Developers should just render their content. No height estimation. No virtualiza
 ```tsx
 // This should just work
 <Box overflow="scroll" scrollTo={selectedIdx}>
-  {items.map(item => <Card key={item.id} item={item} />)}
+  {items.map((item) => (
+    <Card key={item.id} item={item} />
+  ))}
 </Box>
 ```
 
@@ -676,7 +678,7 @@ Phase 5: Paint visible content to terminal
 // Scrollable container with automatic scroll management
 <Box
   flexDirection="column"
-  overflow="scroll"      // Enable scrolling
+  overflow="scroll" // Enable scrolling
   scrollTo={selectedIdx} // Keep this child index visible (centered)
 >
   {items.map((item, i) => (
@@ -686,11 +688,13 @@ Phase 5: Paint visible content to terminal
 ```
 
 Props:
+
 - `overflow="scroll"` - enables scroll behavior
 - `overflow="hidden"` - clips without scroll indicators
 - `scrollTo={number}` - child index to keep visible (optional, defaults to 0)
 
 Inkx handles:
+
 - Measuring all children via Yoga
 - Calculating scroll position to center `scrollTo` child
 - Determining which children intersect the viewport
@@ -707,7 +711,7 @@ Internally, Inkx does:
 function calculateVisibleWindow(
   childHeights: number[],
   containerHeight: number,
-  scrollToIndex: number
+  scrollToIndex: number,
 ): { scrollTop: number; firstVisible: number; lastVisible: number } {
   // Compute cumulative offsets
   const offsets = cumulativeSum(childHeights);
@@ -729,17 +733,18 @@ function calculateVisibleWindow(
 
 ### Performance
 
-| List Size | Yoga Layout | Visible Content Render | Total |
-|-----------|-------------|------------------------|-------|
-| 100 items | <1ms | ~1ms (20 visible) | ~2ms |
-| 500 items | ~1ms | ~1ms (20 visible) | ~2ms |
-| 1000 items | ~2ms | ~1ms (20 visible) | ~3ms |
+| List Size  | Yoga Layout | Visible Content Render | Total |
+| ---------- | ----------- | ---------------------- | ----- |
+| 100 items  | <1ms        | ~1ms (20 visible)      | ~2ms  |
+| 500 items  | ~1ms        | ~1ms (20 visible)      | ~2ms  |
+| 1000 items | ~2ms        | ~1ms (20 visible)      | ~3ms  |
 
 Yoga layout scales linearly but is extremely fast. Content rendering is constant (only visible items). This approach works well for any realistic list size.
 
 ### When NOT to Use This
 
 For truly massive lists (10,000+ items), even Yoga layout becomes noticeable. At that scale:
+
 - Consider pagination instead of scrolling
 - Filter/search to reduce the list
 - This is a UX problem, not a rendering problem
@@ -766,10 +771,18 @@ function TaskRow({ task, isSelected }) {
   // Variable height - has subtasks, long titles, etc.
   // Inkx measures this automatically
   return (
-    <Box flexDirection="column" backgroundColor={isSelected ? 'blue' : undefined}>
-      <Text>{task.done ? '✓' : '○'} {task.title}</Text>
-      {task.subtasks?.map(st => (
-        <Text key={st.id} dimColor>  • {st.title}</Text>
+    <Box
+      flexDirection="column"
+      backgroundColor={isSelected ? "blue" : undefined}
+    >
+      <Text>
+        {task.done ? "✓" : "○"} {task.title}
+      </Text>
+      {task.subtasks?.map((st) => (
+        <Text key={st.id} dimColor>
+          {" "}
+          • {st.title}
+        </Text>
       ))}
     </Box>
   );

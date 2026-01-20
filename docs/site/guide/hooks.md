@@ -14,8 +14,12 @@ function SizedBox() {
 
   return (
     <Box borderStyle="single">
-      <Text>Size: {width}x{height}</Text>
-      <Text>Position: ({x}, {y})</Text>
+      <Text>
+        Size: {width}x{height}
+      </Text>
+      <Text>
+        Position: ({x}, {y})
+      </Text>
     </Box>
   );
 }
@@ -23,12 +27,12 @@ function SizedBox() {
 
 ### Return Value
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `width` | `number` | Computed width in characters |
-| `height` | `number` | Computed height in lines |
-| `x` | `number` | X position from left edge |
-| `y` | `number` | Y position from top edge |
+| Property | Type     | Description                  |
+| -------- | -------- | ---------------------------- |
+| `width`  | `number` | Computed width in characters |
+| `height` | `number` | Computed height in lines     |
+| `x`      | `number` | X position from left edge    |
+| `y`      | `number` | Y position from top edge     |
 
 ### First Render Behavior
 
@@ -58,8 +62,8 @@ function App() {
   const [count, setCount] = useState(0);
 
   useInput((input, key) => {
-    if (key.upArrow) setCount(c => c + 1);
-    if (key.downArrow) setCount(c => c - 1);
+    if (key.upArrow) setCount((c) => c + 1);
+    if (key.downArrow) setCount((c) => c - 1);
     if (input === "q") process.exit();
   });
 
@@ -78,20 +82,20 @@ useInput(
 
 ### Key Object
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `upArrow` | `boolean` | Up arrow pressed |
-| `downArrow` | `boolean` | Down arrow pressed |
-| `leftArrow` | `boolean` | Left arrow pressed |
-| `rightArrow` | `boolean` | Right arrow pressed |
-| `return` | `boolean` | Enter/Return pressed |
-| `escape` | `boolean` | Escape pressed |
-| `ctrl` | `boolean` | Control key held |
-| `shift` | `boolean` | Shift key held |
-| `meta` | `boolean` | Meta/Command key held |
-| `tab` | `boolean` | Tab pressed |
-| `backspace` | `boolean` | Backspace pressed |
-| `delete` | `boolean` | Delete pressed |
+| Property     | Type      | Description           |
+| ------------ | --------- | --------------------- |
+| `upArrow`    | `boolean` | Up arrow pressed      |
+| `downArrow`  | `boolean` | Down arrow pressed    |
+| `leftArrow`  | `boolean` | Left arrow pressed    |
+| `rightArrow` | `boolean` | Right arrow pressed   |
+| `return`     | `boolean` | Enter/Return pressed  |
+| `escape`     | `boolean` | Escape pressed        |
+| `ctrl`       | `boolean` | Control key held      |
+| `shift`      | `boolean` | Shift key held        |
+| `meta`       | `boolean` | Meta/Command key held |
+| `tab`        | `boolean` | Tab pressed           |
+| `backspace`  | `boolean` | Backspace pressed     |
+| `delete`     | `boolean` | Delete pressed        |
 
 ## useApp
 
@@ -113,9 +117,9 @@ function App() {
 
 ### Return Value
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `exit` | `(error?: Error) => void` | Exit the app |
+| Property | Type                      | Description  |
+| -------- | ------------------------- | ------------ |
+| `exit`   | `(error?: Error) => void` | Exit the app |
 
 ## useStdout
 
@@ -137,10 +141,10 @@ function App() {
 
 ### Return Value
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `stdout` | `NodeJS.WriteStream` | stdout stream |
-| `write` | `(data: string) => void` | Write directly to stdout |
+| Property | Type                     | Description              |
+| -------- | ------------------------ | ------------------------ |
+| `stdout` | `NodeJS.WriteStream`     | stdout stream            |
+| `write`  | `(data: string) => void` | Write directly to stdout |
 
 ## useStdin
 
@@ -157,11 +161,11 @@ function App() {
 
 ### Return Value
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `stdin` | `NodeJS.ReadStream` | stdin stream |
-| `setRawMode` | `(mode: boolean) => void` | Enable/disable raw mode |
-| `isRawModeSupported` | `boolean` | Whether raw mode is supported |
+| Property             | Type                      | Description                   |
+| -------------------- | ------------------------- | ----------------------------- |
+| `stdin`              | `NodeJS.ReadStream`       | stdin stream                  |
+| `setRawMode`         | `(mode: boolean) => void` | Enable/disable raw mode       |
+| `isRawModeSupported` | `boolean`                 | Whether raw mode is supported |
 
 ## useFocus
 
@@ -183,8 +187,8 @@ function FocusableItem({ label }: { label: string }) {
 
 ### Return Value
 
-| Property | Type | Description |
-|----------|------|-------------|
+| Property    | Type      | Description                       |
+| ----------- | --------- | --------------------------------- |
 | `isFocused` | `boolean` | Whether this component is focused |
 
 ### Options
@@ -224,8 +228,8 @@ function App() {
 
 ### Return Value
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `focusNext` | `() => void` | Focus next focusable component |
-| `focusPrevious` | `() => void` | Focus previous focusable component |
-| `focus` | `(id: string) => void` | Focus component by ID |
+| Property        | Type                   | Description                        |
+| --------------- | ---------------------- | ---------------------------------- |
+| `focusNext`     | `() => void`           | Focus next focusable component     |
+| `focusPrevious` | `() => void`           | Focus previous focusable component |
+| `focus`         | `(id: string) => void` | Focus component by ID              |

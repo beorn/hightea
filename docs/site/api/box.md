@@ -21,65 +21,65 @@ import { Box } from "inkx";
 
 ### Layout
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `flexDirection` | `"row" \| "column" \| "row-reverse" \| "column-reverse"` | `"row"` | Main axis direction |
-| `flexGrow` | `number` | `0` | How much to grow relative to siblings |
-| `flexShrink` | `number` | `1` | How much to shrink relative to siblings |
-| `flexBasis` | `number \| string` | - | Initial size before grow/shrink |
-| `flexWrap` | `"wrap" \| "nowrap" \| "wrap-reverse"` | `"nowrap"` | Whether to wrap children |
-| `alignItems` | `"flex-start" \| "flex-end" \| "center" \| "stretch"` | `"stretch"` | Cross-axis alignment of children |
-| `alignSelf` | `"auto" \| "flex-start" \| "flex-end" \| "center" \| "stretch"` | `"auto"` | Override parent's alignItems |
-| `justifyContent` | `"flex-start" \| "flex-end" \| "center" \| "space-between" \| "space-around" \| "space-evenly"` | `"flex-start"` | Main-axis alignment of children |
+| Prop             | Type                                                                                            | Default        | Description                             |
+| ---------------- | ----------------------------------------------------------------------------------------------- | -------------- | --------------------------------------- |
+| `flexDirection`  | `"row" \| "column" \| "row-reverse" \| "column-reverse"`                                        | `"row"`        | Main axis direction                     |
+| `flexGrow`       | `number`                                                                                        | `0`            | How much to grow relative to siblings   |
+| `flexShrink`     | `number`                                                                                        | `1`            | How much to shrink relative to siblings |
+| `flexBasis`      | `number \| string`                                                                              | -              | Initial size before grow/shrink         |
+| `flexWrap`       | `"wrap" \| "nowrap" \| "wrap-reverse"`                                                          | `"nowrap"`     | Whether to wrap children                |
+| `alignItems`     | `"flex-start" \| "flex-end" \| "center" \| "stretch"`                                           | `"stretch"`    | Cross-axis alignment of children        |
+| `alignSelf`      | `"auto" \| "flex-start" \| "flex-end" \| "center" \| "stretch"`                                 | `"auto"`       | Override parent's alignItems            |
+| `justifyContent` | `"flex-start" \| "flex-end" \| "center" \| "space-between" \| "space-around" \| "space-evenly"` | `"flex-start"` | Main-axis alignment of children         |
 
 ### Sizing
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `width` | `number \| string` | - | Fixed width or percentage (e.g., `"50%"`) |
-| `height` | `number \| string` | - | Fixed height or percentage |
-| `minWidth` | `number` | - | Minimum width |
-| `minHeight` | `number` | - | Minimum height |
-| `maxWidth` | `number` | - | Maximum width |
-| `maxHeight` | `number` | - | Maximum height |
+| Prop        | Type               | Default | Description                               |
+| ----------- | ------------------ | ------- | ----------------------------------------- |
+| `width`     | `number \| string` | -       | Fixed width or percentage (e.g., `"50%"`) |
+| `height`    | `number \| string` | -       | Fixed height or percentage                |
+| `minWidth`  | `number`           | -       | Minimum width                             |
+| `minHeight` | `number`           | -       | Minimum height                            |
+| `maxWidth`  | `number`           | -       | Maximum width                             |
+| `maxHeight` | `number`           | -       | Maximum height                            |
 
 ### Spacing
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `padding` | `number` | `0` | Padding on all sides |
-| `paddingTop` | `number` | `0` | Top padding |
-| `paddingBottom` | `number` | `0` | Bottom padding |
-| `paddingLeft` | `number` | `0` | Left padding |
-| `paddingRight` | `number` | `0` | Right padding |
-| `paddingX` | `number` | `0` | Horizontal padding (left + right) |
-| `paddingY` | `number` | `0` | Vertical padding (top + bottom) |
-| `margin` | `number` | `0` | Margin on all sides |
-| `marginTop` | `number` | `0` | Top margin |
-| `marginBottom` | `number` | `0` | Bottom margin |
-| `marginLeft` | `number` | `0` | Left margin |
-| `marginRight` | `number` | `0` | Right margin |
-| `marginX` | `number` | `0` | Horizontal margin |
-| `marginY` | `number` | `0` | Vertical margin |
-| `gap` | `number` | `0` | Gap between children |
+| Prop            | Type     | Default | Description                       |
+| --------------- | -------- | ------- | --------------------------------- |
+| `padding`       | `number` | `0`     | Padding on all sides              |
+| `paddingTop`    | `number` | `0`     | Top padding                       |
+| `paddingBottom` | `number` | `0`     | Bottom padding                    |
+| `paddingLeft`   | `number` | `0`     | Left padding                      |
+| `paddingRight`  | `number` | `0`     | Right padding                     |
+| `paddingX`      | `number` | `0`     | Horizontal padding (left + right) |
+| `paddingY`      | `number` | `0`     | Vertical padding (top + bottom)   |
+| `margin`        | `number` | `0`     | Margin on all sides               |
+| `marginTop`     | `number` | `0`     | Top margin                        |
+| `marginBottom`  | `number` | `0`     | Bottom margin                     |
+| `marginLeft`    | `number` | `0`     | Left margin                       |
+| `marginRight`   | `number` | `0`     | Right margin                      |
+| `marginX`       | `number` | `0`     | Horizontal margin                 |
+| `marginY`       | `number` | `0`     | Vertical margin                   |
+| `gap`           | `number` | `0`     | Gap between children              |
 
 ### Border
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `borderStyle` | `"single" \| "double" \| "round" \| "bold" \| "singleDouble" \| "doubleSingle" \| "classic"` | - | Border style |
-| `borderColor` | `string` | - | Border color |
-| `borderTop` | `boolean` | `true` | Show top border |
-| `borderBottom` | `boolean` | `true` | Show bottom border |
-| `borderLeft` | `boolean` | `true` | Show left border |
-| `borderRight` | `boolean` | `true` | Show right border |
+| Prop           | Type                                                                                         | Default | Description        |
+| -------------- | -------------------------------------------------------------------------------------------- | ------- | ------------------ |
+| `borderStyle`  | `"single" \| "double" \| "round" \| "bold" \| "singleDouble" \| "doubleSingle" \| "classic"` | -       | Border style       |
+| `borderColor`  | `string`                                                                                     | -       | Border color       |
+| `borderTop`    | `boolean`                                                                                    | `true`  | Show top border    |
+| `borderBottom` | `boolean`                                                                                    | `true`  | Show bottom border |
+| `borderLeft`   | `boolean`                                                                                    | `true`  | Show left border   |
+| `borderRight`  | `boolean`                                                                                    | `true`  | Show right border  |
 
 ### Overflow (Inkx Only)
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `overflow` | `"visible" \| "hidden" \| "scroll"` | `"visible"` | Overflow behavior |
-| `scrollTo` | `number` | - | Child index to keep visible (for `overflow="scroll"`) |
+| Prop       | Type                                | Default     | Description                                           |
+| ---------- | ----------------------------------- | ----------- | ----------------------------------------------------- |
+| `overflow` | `"visible" \| "hidden" \| "scroll"` | `"visible"` | Overflow behavior                                     |
+| `scrollTo` | `number`                            | -           | Child index to keep visible (for `overflow="scroll"`) |
 
 ## Examples
 
@@ -94,6 +94,7 @@ import { Box } from "inkx";
 ```
 
 Output:
+
 ```
 Left  Middle  Right
 ```
@@ -109,6 +110,7 @@ Left  Middle  Right
 ```
 
 Output:
+
 ```
 Line 1
 Line 2
@@ -146,9 +148,11 @@ const [selected, setSelected] = useState(0);
 
 <Box flexDirection="column" height={5} overflow="scroll" scrollTo={selected}>
   {items.map((item, i) => (
-    <Text key={i} inverse={i === selected}>{item}</Text>
+    <Text key={i} inverse={i === selected}>
+      {item}
+    </Text>
   ))}
-</Box>
+</Box>;
 ```
 
 ### Border Styles

@@ -23,6 +23,7 @@ function App() {
 ```
 
 Inkx will:
+
 - Measure all 100 children
 - Determine which fit in the viewport
 - Only render content for visible items
@@ -42,12 +43,17 @@ function App() {
   const [selected, setSelected] = useState(0);
 
   useInput((input, key) => {
-    if (key.downArrow) setSelected(s => Math.min(s + 1, items.length - 1));
-    if (key.upArrow) setSelected(s => Math.max(s - 1, 0));
+    if (key.downArrow) setSelected((s) => Math.min(s + 1, items.length - 1));
+    if (key.upArrow) setSelected((s) => Math.max(s - 1, 0));
   });
 
   return (
-    <Box flexDirection="column" height={10} overflow="scroll" scrollTo={selected}>
+    <Box
+      flexDirection="column"
+      height={10}
+      overflow="scroll"
+      scrollTo={selected}
+    >
       {items.map((item, i) => (
         <Text key={i} inverse={i === selected}>
           {item}
@@ -78,10 +84,18 @@ function TaskList({ tasks, selectedIndex }) {
 function TaskRow({ task, isSelected }) {
   // Variable height - some tasks have subtasks
   return (
-    <Box flexDirection="column" backgroundColor={isSelected ? "blue" : undefined}>
-      <Text>{task.done ? "✓" : "○"} {task.title}</Text>
-      {task.subtasks?.map(st => (
-        <Text key={st.id} dimColor>  • {st.title}</Text>
+    <Box
+      flexDirection="column"
+      backgroundColor={isSelected ? "blue" : undefined}
+    >
+      <Text>
+        {task.done ? "✓" : "○"} {task.title}
+      </Text>
+      {task.subtasks?.map((st) => (
+        <Text key={st.id} dimColor>
+          {" "}
+          • {st.title}
+        </Text>
       ))}
     </Box>
   );
@@ -106,11 +120,11 @@ Inkx uses a **measure-then-render** approach:
 
 ### Performance
 
-| List Size | Yoga Layout | Content Render | Total |
-|-----------|-------------|----------------|-------|
-| 100 items | <1ms | ~1ms (20 visible) | ~2ms |
-| 500 items | ~1ms | ~1ms (20 visible) | ~2ms |
-| 1000 items | ~2ms | ~1ms (20 visible) | ~3ms |
+| List Size  | Yoga Layout | Content Render    | Total |
+| ---------- | ----------- | ----------------- | ----- |
+| 100 items  | <1ms        | ~1ms (20 visible) | ~2ms  |
+| 500 items  | ~1ms        | ~1ms (20 visible) | ~2ms  |
+| 1000 items | ~2ms        | ~1ms (20 visible) | ~3ms  |
 
 ## overflow="hidden"
 
@@ -151,6 +165,8 @@ If users can't reasonably navigate 10,000 items, scrolling isn't the answer.
 ```tsx
 // It just works
 <Box overflow="scroll" scrollTo={selectedIdx}>
-  {items.map(item => <Card key={item.id} item={item} />)}
+  {items.map((item) => (
+    <Card key={item.id} item={item} />
+  ))}
 </Box>
 ```

@@ -18,9 +18,9 @@ import { Newline } from "inkx";
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `count` | `number` | `1` | Number of newlines to render |
+| Prop    | Type     | Default | Description                  |
+| ------- | -------- | ------- | ---------------------------- |
+| `count` | `number` | `1`     | Number of newlines to render |
 
 ## Examples
 
@@ -35,6 +35,7 @@ import { Newline } from "inkx";
 ```
 
 Output:
+
 ```
 First paragraph
 
@@ -52,6 +53,7 @@ Second paragraph (with blank line above)
 ```
 
 Output:
+
 ```
 Section 1
 
@@ -65,7 +67,9 @@ Section 2 (with extra spacing)
 function Header({ title }: { title: string }) {
   return (
     <>
-      <Text bold color="cyan">{title}</Text>
+      <Text bold color="cyan">
+        {title}
+      </Text>
       <Text color="gray">{"─".repeat(40)}</Text>
       <Newline />
     </>
@@ -75,5 +79,5 @@ function Header({ title }: { title: string }) {
 <Box flexDirection="column">
   <Header title="My App" />
   <Text>Content goes here</Text>
-</Box>
+</Box>;
 ```

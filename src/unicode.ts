@@ -618,11 +618,15 @@ export function parseAnsiText(text: string): StyledSegment[] {
 	return segments;
 }
 
+// biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences require control chars
+const ANSI_TEST_REGEX = /\x1b\[[0-9;]*[A-Za-z]/;
+
 /**
  * Check if text contains ANSI escape sequences.
  */
 export function hasAnsi(text: string): boolean {
-	return ANSI_REGEX.test(text);
+	// Use a non-global regex for testing to avoid lastIndex issues
+	return ANSI_TEST_REGEX.test(text);
 }
 
 // ============================================================================

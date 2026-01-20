@@ -178,7 +178,7 @@ function App() {
           return { ...col, cards: [...col.cards, card] };
         }
         return col;
-      })
+      }),
     );
 
     // Adjust cursor if we removed the last card
@@ -206,7 +206,7 @@ function App() {
           return { ...col, cards: [...col.cards, card] };
         }
         return col;
-      })
+      }),
     );
 
     setCursor((c) => ({
@@ -262,11 +262,12 @@ function KanbanColumn({
       borderStyle="single"
       borderColor={isSelected ? "cyan" : undefined}
     >
-      <ColumnHeader name={column.name} count={column.cards.length} isSelected={isSelected} />
-      <CardList
-        cards={column.cards}
-        selectedIndex={selectedCardIndex}
+      <ColumnHeader
+        name={column.name}
+        count={column.cards.length}
+        isSelected={isSelected}
       />
+      <CardList cards={column.cards} selectedIndex={selectedCardIndex} />
     </Box>
   );
 }
@@ -286,9 +287,7 @@ function ColumnHeader({
   const countStr = ` (${count})`;
   const maxNameWidth = Math.max(0, width - countStr.length);
   const truncatedName =
-    name.length > maxNameWidth
-      ? name.slice(0, maxNameWidth - 1) + "..."
-      : name;
+    name.length > maxNameWidth ? name.slice(0, maxNameWidth - 1) + "..." : name;
 
   return (
     <Box paddingX={1} marginBottom={1}>
@@ -310,7 +309,9 @@ function CardList({
   if (cards.length === 0) {
     return (
       <Box paddingX={1}>
-        <Text dimColor italic>No cards</Text>
+        <Text dimColor italic>
+          No cards
+        </Text>
       </Box>
     );
   }
@@ -347,7 +348,8 @@ function CardRow({ card, isSelected }: { card: Card; isSelected: boolean }) {
         backgroundColor={isSelected ? "cyan" : undefined}
         color={isSelected ? "black" : undefined}
       >
-        {prefix}{truncatedTitle}
+        {prefix}
+        {truncatedTitle}
       </Text>
       {card.tags && card.tags.length > 0 && (
         <TagRow tags={card.tags} isSelected={isSelected} />
@@ -373,7 +375,8 @@ function HelpBar() {
   return (
     <Box paddingX={1} marginTop={1}>
       <Text dimColor>
-        h/l or arrows: switch column | j/k or arrows: navigate | m/M: move card | q: quit
+        h/l or arrows: switch column | j/k or arrows: navigate | m/M: move card
+        | q: quit
       </Text>
     </Box>
   );
@@ -391,7 +394,13 @@ render(<App />);
 Each column has its own scroll container:
 
 ```tsx
-function CardList({ cards, selectedIndex }: { cards: Card[]; selectedIndex: number }) {
+function CardList({
+  cards,
+  selectedIndex,
+}: {
+  cards: Card[];
+  selectedIndex: number;
+}) {
   return (
     <Box
       flexDirection="column"
@@ -415,14 +424,20 @@ Each column scrolls independently based on its own `selectedIndex`.
 Columns use `flexGrow={1}` to share space equally:
 
 ```tsx
-function Board({ columns, cursor }: { columns: Column[]; cursor: CursorPosition }) {
+function Board({
+  columns,
+  cursor,
+}: {
+  columns: Column[];
+  cursor: CursorPosition;
+}) {
   return (
     <Box flexDirection="row" flexGrow={1}>
       {columns.map((column, colIndex) => (
         <KanbanColumn
           key={column.id}
           column={column}
-          flexGrow={1}  // Each column gets equal width
+          flexGrow={1} // Each column gets equal width
           // ...
         />
       ))}
@@ -499,7 +514,7 @@ function moveCardRight() {
         return { ...col, cards: [...col.cards, card] };
       }
       return col;
-    })
+    }),
   );
 
   // Adjust cursor if we removed the last card
@@ -532,14 +547,14 @@ The selected card has inverted colors:
 
 ## Key Inkx Features Used
 
-| Feature | Usage |
-|---------|-------|
-| `overflow="scroll"` | Each column scrolls independently |
-| `scrollTo={index}` | Keep selected card visible in its column |
-| `flexGrow={1}` | Equal-width columns |
-| `useLayout()` | Text truncation in cards and headers |
-| `useInput()` | Two-axis keyboard navigation |
-| Variable heights | Cards with tags are taller |
+| Feature             | Usage                                    |
+| ------------------- | ---------------------------------------- |
+| `overflow="scroll"` | Each column scrolls independently        |
+| `scrollTo={index}`  | Keep selected card visible in its column |
+| `flexGrow={1}`      | Equal-width columns                      |
+| `useLayout()`       | Text truncation in cards and headers     |
+| `useInput()`        | Two-axis keyboard navigation             |
+| Variable heights    | Cards with tags are taller               |
 
 ## Architecture Notes
 
@@ -572,7 +587,9 @@ Empty columns show a placeholder instead of an empty scroll container:
 if (cards.length === 0) {
   return (
     <Box paddingX={1}>
-      <Text dimColor italic>No cards</Text>
+      <Text dimColor italic>
+        No cards
+      </Text>
     </Box>
   );
 }

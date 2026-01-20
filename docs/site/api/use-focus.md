@@ -20,7 +20,8 @@ function FocusableItem({ label }: { label: string }) {
 
   return (
     <Text color={isFocused ? "green" : undefined}>
-      {isFocused ? "> " : "  "}{label}
+      {isFocused ? "> " : "  "}
+      {label}
     </Text>
   );
 }
@@ -28,18 +29,18 @@ function FocusableItem({ label }: { label: string }) {
 
 ### Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `isActive` | `boolean` | `true` | Enable/disable focus for this component |
-| `autoFocus` | `boolean` | `false` | Auto-focus this component on mount |
-| `id` | `string` | (random) | Custom ID for this focusable element |
+| Option      | Type      | Default  | Description                             |
+| ----------- | --------- | -------- | --------------------------------------- |
+| `isActive`  | `boolean` | `true`   | Enable/disable focus for this component |
+| `autoFocus` | `boolean` | `false`  | Auto-focus this component on mount      |
+| `id`        | `string`  | (random) | Custom ID for this focusable element    |
 
 ### Return Value
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `isFocused` | `boolean` | Whether this component is currently focused |
-| `focus` | `() => void` | Focus this component programmatically |
+| Property    | Type         | Description                                 |
+| ----------- | ------------ | ------------------------------------------- |
+| `isFocused` | `boolean`    | Whether this component is currently focused |
+| `focus`     | `() => void` | Focus this component programmatically       |
 
 ## useFocusManager
 
@@ -71,13 +72,13 @@ function App() {
 
 ### Return Value
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `focusNext` | `() => void` | Focus the next focusable component |
-| `focusPrevious` | `() => void` | Focus the previous focusable component |
-| `focus` | `(id: string) => void` | Focus a specific component by ID |
-| `enableFocus` | `() => void` | Enable focus management |
-| `disableFocus` | `() => void` | Disable focus management |
+| Property        | Type                   | Description                            |
+| --------------- | ---------------------- | -------------------------------------- |
+| `focusNext`     | `() => void`           | Focus the next focusable component     |
+| `focusPrevious` | `() => void`           | Focus the previous focusable component |
+| `focus`         | `(id: string) => void` | Focus a specific component by ID       |
+| `enableFocus`   | `() => void`           | Enable focus management                |
+| `disableFocus`  | `() => void`           | Disable focus management               |
 
 ## Examples
 
@@ -133,7 +134,13 @@ function SearchInput() {
 ### Conditional Focus
 
 ```tsx
-function DisableableButton({ label, disabled }: { label: string; disabled: boolean }) {
+function DisableableButton({
+  label,
+  disabled,
+}: {
+  label: string;
+  disabled: boolean;
+}) {
   const { isFocused } = useFocus({ isActive: !disabled });
 
   return (
@@ -141,7 +148,8 @@ function DisableableButton({ label, disabled }: { label: string; disabled: boole
       color={disabled ? "gray" : isFocused ? "green" : undefined}
       dimColor={disabled}
     >
-      {isFocused ? "> " : "  "}{label}
+      {isFocused ? "> " : "  "}
+      {label}
     </Text>
   );
 }
@@ -171,16 +179,20 @@ function Navigation() {
 function FocusableWithId({ id, label }: { id: string; label: string }) {
   const { isFocused } = useFocus({ id });
 
-  return (
-    <Text inverse={isFocused}>{label}</Text>
-  );
+  return <Text inverse={isFocused}>{label}</Text>;
 }
 ```
 
 ### Action on Focus
 
 ```tsx
-function MenuItem({ label, onSelect }: { label: string; onSelect: () => void }) {
+function MenuItem({
+  label,
+  onSelect,
+}: {
+  label: string;
+  onSelect: () => void;
+}) {
   const { isFocused } = useFocus();
 
   useInput((input, key) => {
@@ -191,7 +203,8 @@ function MenuItem({ label, onSelect }: { label: string; onSelect: () => void }) 
 
   return (
     <Text color={isFocused ? "cyan" : undefined}>
-      {isFocused ? "> " : "  "}{label}
+      {isFocused ? "> " : "  "}
+      {label}
     </Text>
   );
 }

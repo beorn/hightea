@@ -18,7 +18,9 @@ function SizedBox() {
 
   return (
     <Box borderStyle="single">
-      <Text>Size: {width}x{height}</Text>
+      <Text>
+        Size: {width}x{height}
+      </Text>
     </Box>
   );
 }
@@ -26,12 +28,12 @@ function SizedBox() {
 
 ## Return Value
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `width` | `number` | Computed width in characters |
-| `height` | `number` | Computed height in lines |
-| `x` | `number` | X position from terminal left edge |
-| `y` | `number` | Y position from terminal top edge |
+| Property | Type     | Description                        |
+| -------- | -------- | ---------------------------------- |
+| `width`  | `number` | Computed width in characters       |
+| `height` | `number` | Computed height in lines           |
+| `x`      | `number` | X position from terminal left edge |
+| `y`      | `number` | Y position from terminal top edge  |
 
 ## First Render Behavior
 
@@ -69,7 +71,8 @@ function ProgressBar({ progress }: { progress: number }) {
 
   return (
     <Text>
-      {"█".repeat(filled)}{"░".repeat(empty)}
+      {"█".repeat(filled)}
+      {"░".repeat(empty)}
     </Text>
   );
 }
@@ -88,8 +91,12 @@ function ResponsiveBox() {
 
   return (
     <Box flexDirection={direction}>
-      <Box flexGrow={1}><Text>Panel 1</Text></Box>
-      <Box flexGrow={1}><Text>Panel 2</Text></Box>
+      <Box flexGrow={1}>
+        <Text>Panel 1</Text>
+      </Box>
+      <Box flexGrow={1}>
+        <Text>Panel 2</Text>
+      </Box>
     </Box>
   );
 }
@@ -103,7 +110,12 @@ function CenteredText({ children }: { children: string }) {
 
   const padding = Math.max(0, Math.floor((width - children.length) / 2));
 
-  return <Text>{" ".repeat(padding)}{children}</Text>;
+  return (
+    <Text>
+      {" ".repeat(padding)}
+      {children}
+    </Text>
+  );
 }
 ```
 
