@@ -309,6 +309,12 @@ function cursorToColumn(x: number): string {
 
 /**
  * Generate optimal cursor movement from current position to target.
+ *
+ * IMPORTANT: This function must use explicit cursor positioning or \r\n
+ * (carriage return + line feed) when moving to column 0. A bare \n does
+ * NOT reset the column position in most terminals - it only advances to
+ * the next line while keeping the same column. This was the root cause
+ * of bug km-pii3 (layout jumps when cycling views).
  */
 function optimalCursorMove(fromX: number, fromY: number, toX: number, toY: number): string {
 	const dx = toX - fromX;
@@ -341,11 +347,13 @@ function optimalCursorMove(fromX: number, fromY: number, toX: number, toY: numbe
 		return cursorUp(-dy);
 	}
 
-	// Moving down to column 0 - newlines might be cheaper
+	// Moving down to column 0 - use \r\n (carriage return + line feed)
+	// IMPORTANT: Do NOT use bare \n here - it doesn't reset to column 0!
+	// \r moves to column 0, \n moves down one line
 	if (toX === 0 && dy > 0 && dy <= 3) {
-		const newlines = '\n'.repeat(dy);
+		const crLf = '\r\n'.repeat(dy);
 		const abs = moveCursor(toX, toY);
-		return newlines.length <= abs.length ? newlines : abs;
+		return crLf.length <= abs.length ? crLf : abs;
 	}
 
 	// General case: use absolute positioning

@@ -604,4 +604,115 @@ describe('Pipeline', () => {
 			expect(buffer.getCell(4, 0).char).toBe(' ');
 		});
 	});
+
+	describe('background conflict detection', () => {
+		const originalEnv = process.env.INKX_BG_CONFLICT;
+
+		test('throws on chalk bg with inkx Text backgroundColor (throw mode)', async () => {
+			process.env.INKX_BG_CONFLICT = 'throw';
+
+			// Text with backgroundColor + chalk.bgBlue ANSI code
+			const textNode = await createMockNode(
+				'inkx-text',
+				{ backgroundColor: 'cyan' } as TextProps,
+				[],
+				'\x1b[44mconflict\x1b[0m', // chalk.bgBlue output
+			);
+			textNode.computedLayout = { x: 0, y: 0, width: 20, height: 1 };
+
+			const root = await createMockNode('inkx-box', { width: 20, height: 1 }, [textNode]);
+			root.computedLayout = { x: 0, y: 0, width: 20, height: 1 };
+
+			expect(() => contentPhase(root)).toThrow(/Background conflict/);
+
+			process.env.INKX_BG_CONFLICT = originalEnv;
+		});
+
+		test('throws on chalk bg with parent Box backgroundColor (throw mode)', async () => {
+			process.env.INKX_BG_CONFLICT = 'throw';
+
+			// Text without own bg, but parent Box has bg
+			const textNode = await createMockNode(
+				'inkx-text',
+				{} as TextProps,
+				[],
+				'\x1b[44mconflict\x1b[0m', // chalk.bgBlue output
+			);
+			textNode.computedLayout = { x: 0, y: 0, width: 20, height: 1 };
+
+			// Parent box with backgroundColor - will fill buffer before text renders
+			const root = await createMockNode(
+				'inkx-box',
+				{ width: 20, height: 1, backgroundColor: 'cyan' } as BoxProps,
+				[textNode],
+			);
+			root.computedLayout = { x: 0, y: 0, width: 20, height: 1 };
+
+			expect(() => contentPhase(root)).toThrow(/Background conflict/);
+
+			process.env.INKX_BG_CONFLICT = originalEnv;
+		});
+
+		test('allows chalk bg when no inkx background (no conflict)', async () => {
+			process.env.INKX_BG_CONFLICT = 'throw';
+
+			// Text with chalk bg but no inkx backgroundColor anywhere
+			const textNode = await createMockNode(
+				'inkx-text',
+				{} as TextProps,
+				[],
+				'\x1b[44mno conflict\x1b[0m',
+			);
+			textNode.computedLayout = { x: 0, y: 0, width: 20, height: 1 };
+
+			const root = await createMockNode('inkx-box', { width: 20, height: 1 }, [textNode]);
+			root.computedLayout = { x: 0, y: 0, width: 20, height: 1 };
+
+			// Should not throw
+			expect(() => contentPhase(root)).not.toThrow();
+
+			process.env.INKX_BG_CONFLICT = originalEnv;
+		});
+
+		test('allows conflict with bgOverride marker (SGR 9999)', async () => {
+			process.env.INKX_BG_CONFLICT = 'throw';
+
+			// Text with bgOverride marker + chalk bg inside inkx bg
+			const textNode = await createMockNode(
+				'inkx-text',
+				{ backgroundColor: 'cyan' } as TextProps,
+				[],
+				'\x1b[9999m\x1b[44mintentional\x1b[0m', // bgOverride + chalk.bgBlue
+			);
+			textNode.computedLayout = { x: 0, y: 0, width: 20, height: 1 };
+
+			const root = await createMockNode('inkx-box', { width: 20, height: 1 }, [textNode]);
+			root.computedLayout = { x: 0, y: 0, width: 20, height: 1 };
+
+			// Should not throw due to bgOverride
+			expect(() => contentPhase(root)).not.toThrow();
+
+			process.env.INKX_BG_CONFLICT = originalEnv;
+		});
+
+		test('ignore mode allows conflict silently', async () => {
+			process.env.INKX_BG_CONFLICT = 'ignore';
+
+			const textNode = await createMockNode(
+				'inkx-text',
+				{ backgroundColor: 'cyan' } as TextProps,
+				[],
+				'\x1b[44mignored\x1b[0m',
+			);
+			textNode.computedLayout = { x: 0, y: 0, width: 20, height: 1 };
+
+			const root = await createMockNode('inkx-box', { width: 20, height: 1 }, [textNode]);
+			root.computedLayout = { x: 0, y: 0, width: 20, height: 1 };
+
+			// Should not throw in ignore mode
+			expect(() => contentPhase(root)).not.toThrow();
+
+			process.env.INKX_BG_CONFLICT = originalEnv;
+		});
+	});
 });

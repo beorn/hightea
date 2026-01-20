@@ -56,7 +56,12 @@ describe('Bug km-r0nz: Columns view vertical spacing', () => {
 		// Find lines with task names
 		const taskLines: number[] = [];
 		lines.forEach((line, idx) => {
-			if (line.includes('Task A') || line.includes('Task B') || line.includes('Task C') || line.includes('Task D')) {
+			if (
+				line.includes('Task A') ||
+				line.includes('Task B') ||
+				line.includes('Task C') ||
+				line.includes('Task D')
+			) {
 				taskLines.push(idx);
 			}
 		});

@@ -212,5 +212,21 @@ describe('ANSI text utilities', () => {
 			expect(segments[0].fg).toBe(31);
 			expect(segments[0].bold).toBe(true);
 		});
+
+		test('parses bgOverride marker (SGR 9999)', () => {
+			// Private code used by chalkx.bgOverride() to signal intentional bg conflict
+			const segments = parseAnsiText('\x1b[9999m\x1b[44mblue bg\x1b[0m');
+			expect(segments).toHaveLength(1);
+			expect(segments[0].text).toBe('blue bg');
+			expect(segments[0].bg).toBe(44);
+			expect(segments[0].bgOverride).toBe(true);
+		});
+
+		test('bgOverride persists across segments', () => {
+			const segments = parseAnsiText('\x1b[9999m\x1b[44mfirst\x1b[41msecond\x1b[0m');
+			expect(segments).toHaveLength(2);
+			expect(segments[0].bgOverride).toBe(true);
+			expect(segments[1].bgOverride).toBe(true);
+		});
 	});
 });

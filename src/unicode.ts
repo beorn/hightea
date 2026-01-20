@@ -22,6 +22,51 @@ import type { Style, TerminalBuffer } from './buffer.js';
 // Singleton graphemer instance (it's stateless)
 const graphemer = new Graphemer();
 
+// ============================================================================
+// Performance: LRU Cache for displayWidth
+// ============================================================================
+
+/**
+ * Simple LRU cache for displayWidth results.
+ * String width calculation is expensive (~8us for ASCII text),
+ * but the same strings are often measured repeatedly.
+ */
+class DisplayWidthCache {
+	private cache = new Map<string, number>();
+	private maxSize: number;
+
+	constructor(maxSize = 1000) {
+		this.maxSize = maxSize;
+	}
+
+	get(text: string): number | undefined {
+		const cached = this.cache.get(text);
+		if (cached !== undefined) {
+			// Move to end (most recently used)
+			this.cache.delete(text);
+			this.cache.set(text, cached);
+		}
+		return cached;
+	}
+
+	set(text: string, width: number): void {
+		// Evict oldest if at capacity
+		if (this.cache.size >= this.maxSize) {
+			const firstKey = this.cache.keys().next().value;
+			if (firstKey !== undefined) {
+				this.cache.delete(firstKey);
+			}
+		}
+		this.cache.set(text, width);
+	}
+
+	clear(): void {
+		this.cache.clear();
+	}
+}
+
+const displayWidthCache = new DisplayWidthCache();
+
 /**
  * Split a string into grapheme clusters.
  * Each grapheme is a user-perceived character that may consist of
@@ -55,9 +100,19 @@ export function graphemeCount(text: string): number {
  * - Zero-width characters (combining, ZWJ) -> 0 columns
  * - Emoji -> varies (1 or 2)
  * - ANSI escape sequences -> 0 columns (stripped)
+ *
+ * Results are cached for performance (string-width is expensive).
  */
 export function displayWidth(text: string): number {
-	return stringWidth(text);
+	// Check cache first
+	const cached = displayWidthCache.get(text);
+	if (cached !== undefined) {
+		return cached;
+	}
+
+	const width = stringWidth(text);
+	displayWidthCache.set(text, width);
+	return width;
 }
 
 /**
@@ -175,7 +230,29 @@ export function padText(
 }
 
 /**
+ * Check if a grapheme is a word boundary character (space, hyphen, etc.)
+ */
+function isWordBoundary(grapheme: string): boolean {
+	// Common word boundary characters
+	return grapheme === ' ' || grapheme === '-' || grapheme === '\t';
+}
+
+/**
+ * Check if a grapheme can break anywhere (CJK characters).
+ * CJK text doesn't use spaces between words, so any character boundary is valid.
+ */
+function canBreakAnywhere(grapheme: string): boolean {
+	return isCJK(grapheme);
+}
+
+/**
  * Wrap text to fit within a given width.
+ *
+ * Implements word-boundary wrapping:
+ * 1. Breaks at word boundaries (spaces, hyphens) when possible
+ * 2. Falls back to character wrap only when necessary (very long words)
+ * 3. Handles CJK text properly (can break anywhere since CJK has no word spaces)
+ * 4. Preserves intentional line breaks
  *
  * @param text - The text to wrap
  * @param width - Maximum display width per line
@@ -203,7 +280,13 @@ export function wrapText(text: string, width: number, preserveNewlines = true): 
 		let currentLine = '';
 		let currentWidth = 0;
 
-		for (const grapheme of graphemes) {
+		// Track the last valid break point
+		let lastBreakIndex = -1; // Index in currentLine (character position)
+		let lastBreakWidth = 0; // Width at break point
+		let lastBreakGraphemeIndex = -1; // Index in graphemes array
+
+		for (let i = 0; i < graphemes.length; i++) {
+			const grapheme = graphemes[i];
 			const gWidth = graphemeWidth(grapheme);
 
 			// Handle zero-width characters
@@ -212,14 +295,54 @@ export function wrapText(text: string, width: number, preserveNewlines = true): 
 				continue;
 			}
 
+			// Check if this grapheme is a break point
+			// Break AFTER spaces/hyphens, or BEFORE CJK characters
+			if (isWordBoundary(grapheme)) {
+				// Include the boundary character, then mark as break point
+				if (currentWidth + gWidth <= width) {
+					currentLine += grapheme;
+					currentWidth += gWidth;
+					lastBreakIndex = currentLine.length;
+					lastBreakWidth = currentWidth;
+					lastBreakGraphemeIndex = i + 1;
+					continue;
+				}
+			} else if (canBreakAnywhere(grapheme)) {
+				// CJK: can break before this character
+				lastBreakIndex = currentLine.length;
+				lastBreakWidth = currentWidth;
+				lastBreakGraphemeIndex = i;
+			}
+
 			// Would this grapheme overflow?
 			if (currentWidth + gWidth > width) {
-				// Push current line and start new one
-				if (currentLine) {
-					lines.push(currentLine);
+				if (lastBreakIndex > 0) {
+					// We have a valid break point - use it
+					const lineToAdd = currentLine.slice(0, lastBreakIndex);
+					lines.push(lineToAdd);
+
+					// Reset and continue from break point
+					currentLine = currentLine.slice(lastBreakIndex);
+					currentWidth = currentWidth - lastBreakWidth;
+
+					// Rewind to process graphemes after the break
+					i = lastBreakGraphemeIndex - 1;
+					currentLine = '';
+					currentWidth = 0;
+					lastBreakIndex = -1;
+					lastBreakWidth = 0;
+					lastBreakGraphemeIndex = -1;
+				} else {
+					// No break point found - must do character wrap
+					if (currentLine) {
+						lines.push(currentLine);
+					}
+					currentLine = grapheme;
+					currentWidth = gWidth;
+					lastBreakIndex = -1;
+					lastBreakWidth = 0;
+					lastBreakGraphemeIndex = -1;
 				}
-				currentLine = grapheme;
-				currentWidth = gWidth;
 			} else {
 				currentLine += grapheme;
 				currentWidth += gWidth;
@@ -453,6 +576,13 @@ export function truncateAnsi(text: string, maxWidth: number, ellipsis = '\u2026'
 // ANSI Parsing
 // ============================================================================
 
+/**
+ * Private SGR code used to signal intentional bg override.
+ * When this code is present, inkx won't warn/throw about chalk bg + inkx bg conflicts.
+ * Use via chalkx.bgOverride() wrapper function.
+ */
+export const BG_OVERRIDE_CODE = 9999;
+
 /** Styled text segment with associated ANSI colors/attributes */
 export interface StyledSegment {
 	text: string;
@@ -463,6 +593,7 @@ export interface StyledSegment {
 	italic?: boolean;
 	underline?: boolean;
 	inverse?: boolean;
+	bgOverride?: boolean; // Set when BG_OVERRIDE_CODE (9999) is present
 }
 
 /**
@@ -600,6 +731,10 @@ export function parseAnsiText(text: string): StyledSegment[] {
 				case 106:
 				case 107:
 					currentStyle.bg = code; // Bright background colors
+					break;
+				case BG_OVERRIDE_CODE:
+					// Private code: signals intentional bg override, skip conflict detection
+					currentStyle.bgOverride = true;
 					break;
 			}
 		}

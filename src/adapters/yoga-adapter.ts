@@ -4,13 +4,37 @@
  * Wraps yoga-wasm-web to implement the LayoutEngine interface.
  */
 
-import type { Yoga, Node as YogaNode } from 'yoga-wasm-web';
 import type {
+	Align,
+	Direction,
+	Display,
+	Edge,
+	FlexDirection,
+	Gutter,
+	Justify,
+	Overflow,
+	PositionType,
+	Wrap,
+	Yoga,
+	Node as YogaNode,
+} from 'yoga-wasm-web';
+import type {
+	AlignValue,
+	DirectionValue,
+	DisplayValue,
+	EdgeValue,
+	FlexDirectionValue,
+	GutterValue,
+	JustifyValue,
 	LayoutConstants,
 	LayoutEngine,
 	LayoutNode,
 	MeasureFunc,
 	MeasureMode,
+	MeasureModeValue,
+	OverflowValue,
+	PositionTypeValue,
+	WrapValue,
 } from '../layout-engine.js';
 
 // ============================================================================
@@ -124,69 +148,69 @@ class YogaNodeAdapter implements LayoutNode {
 	setFlexBasisAuto(): void {
 		this.node.setFlexBasisAuto();
 	}
-	// biome-ignore lint/suspicious/noExplicitAny: Yoga enum type from number
 	setFlexDirection(direction: number): void {
-		this.node.setFlexDirection(direction as any);
+		// LayoutEngine uses plain numbers; Yoga uses branded FlexDirection type
+		this.node.setFlexDirection(direction as FlexDirection);
 	}
-	// biome-ignore lint/suspicious/noExplicitAny: Yoga enum type from number
 	setFlexWrap(wrap: number): void {
-		this.node.setFlexWrap(wrap as any);
+		// LayoutEngine uses plain numbers; Yoga uses branded Wrap type
+		this.node.setFlexWrap(wrap as Wrap);
 	}
 
 	// Alignment
-	// biome-ignore lint/suspicious/noExplicitAny: Yoga enum type from number
 	setAlignItems(align: number): void {
-		this.node.setAlignItems(align as any);
+		// LayoutEngine uses plain numbers; Yoga uses branded Align type
+		this.node.setAlignItems(align as Align);
 	}
-	// biome-ignore lint/suspicious/noExplicitAny: Yoga enum type from number
 	setAlignSelf(align: number): void {
-		this.node.setAlignSelf(align as any);
+		// LayoutEngine uses plain numbers; Yoga uses branded Align type
+		this.node.setAlignSelf(align as Align);
 	}
-	// biome-ignore lint/suspicious/noExplicitAny: Yoga enum type from number
 	setAlignContent(align: number): void {
-		this.node.setAlignContent(align as any);
+		// LayoutEngine uses plain numbers; Yoga uses branded Align type
+		this.node.setAlignContent(align as Align);
 	}
-	// biome-ignore lint/suspicious/noExplicitAny: Yoga enum type from number
 	setJustifyContent(justify: number): void {
-		this.node.setJustifyContent(justify as any);
+		// LayoutEngine uses plain numbers; Yoga uses branded Justify type
+		this.node.setJustifyContent(justify as Justify);
 	}
 
 	// Spacing
-	// biome-ignore lint/suspicious/noExplicitAny: Yoga enum type from number
 	setPadding(edge: number, value: number): void {
-		this.node.setPadding(edge as any, value);
+		// LayoutEngine uses plain numbers; Yoga uses branded Edge type
+		this.node.setPadding(edge as Edge, value);
 	}
-	// biome-ignore lint/suspicious/noExplicitAny: Yoga enum type from number
 	setMargin(edge: number, value: number): void {
-		this.node.setMargin(edge as any, value);
+		// LayoutEngine uses plain numbers; Yoga uses branded Edge type
+		this.node.setMargin(edge as Edge, value);
 	}
-	// biome-ignore lint/suspicious/noExplicitAny: Yoga enum type from number
 	setBorder(edge: number, value: number): void {
-		this.node.setBorder(edge as any, value);
+		// LayoutEngine uses plain numbers; Yoga uses branded Edge type
+		this.node.setBorder(edge as Edge, value);
 	}
-	// biome-ignore lint/suspicious/noExplicitAny: Yoga enum type from number
 	setGap(gutter: number, value: number): void {
-		this.node.setGap(gutter as any, value);
+		// LayoutEngine uses plain numbers; Yoga uses branded Gutter type
+		this.node.setGap(gutter as Gutter, value);
 	}
 
 	// Display & Position
-	// biome-ignore lint/suspicious/noExplicitAny: Yoga enum type from number
 	setDisplay(display: number): void {
-		this.node.setDisplay(display as any);
+		// LayoutEngine uses plain numbers; Yoga uses branded Display type
+		this.node.setDisplay(display as Display);
 	}
-	// biome-ignore lint/suspicious/noExplicitAny: Yoga enum type from number
 	setPositionType(positionType: number): void {
-		this.node.setPositionType(positionType as any);
+		// LayoutEngine uses plain numbers; Yoga uses branded PositionType type
+		this.node.setPositionType(positionType as PositionType);
 	}
-	// biome-ignore lint/suspicious/noExplicitAny: Yoga enum type from number
 	setOverflow(overflow: number): void {
-		this.node.setOverflow(overflow as any);
+		// LayoutEngine uses plain numbers; Yoga uses branded Overflow type
+		this.node.setOverflow(overflow as Overflow);
 	}
 
 	// Layout calculation
-	// biome-ignore lint/suspicious/noExplicitAny: Yoga enum type from number
 	calculateLayout(width: number, height: number, direction?: number): void {
-		this.node.calculateLayout(width, height, (direction ?? this.yoga.DIRECTION_LTR) as any);
+		// LayoutEngine uses plain numbers; Yoga uses branded Direction type
+		this.node.calculateLayout(width, height, (direction ?? this.yoga.DIRECTION_LTR) as Direction);
 	}
 
 	// Layout results
@@ -217,68 +241,69 @@ export class YogaLayoutEngine implements LayoutEngine {
 
 	constructor(yoga: Yoga) {
 		this.yoga = yoga;
+		// Cast Yoga's branded types to our LayoutEngine branded types at the adapter boundary
 		this._constants = {
 			// Flex Direction
-			FLEX_DIRECTION_COLUMN: yoga.FLEX_DIRECTION_COLUMN,
-			FLEX_DIRECTION_COLUMN_REVERSE: yoga.FLEX_DIRECTION_COLUMN_REVERSE,
-			FLEX_DIRECTION_ROW: yoga.FLEX_DIRECTION_ROW,
-			FLEX_DIRECTION_ROW_REVERSE: yoga.FLEX_DIRECTION_ROW_REVERSE,
+			FLEX_DIRECTION_COLUMN: yoga.FLEX_DIRECTION_COLUMN as unknown as FlexDirectionValue,
+			FLEX_DIRECTION_COLUMN_REVERSE: yoga.FLEX_DIRECTION_COLUMN_REVERSE as unknown as FlexDirectionValue,
+			FLEX_DIRECTION_ROW: yoga.FLEX_DIRECTION_ROW as unknown as FlexDirectionValue,
+			FLEX_DIRECTION_ROW_REVERSE: yoga.FLEX_DIRECTION_ROW_REVERSE as unknown as FlexDirectionValue,
 
 			// Wrap
-			WRAP_NO_WRAP: yoga.WRAP_NO_WRAP,
-			WRAP_WRAP: yoga.WRAP_WRAP,
-			WRAP_WRAP_REVERSE: yoga.WRAP_WRAP_REVERSE,
+			WRAP_NO_WRAP: yoga.WRAP_NO_WRAP as unknown as WrapValue,
+			WRAP_WRAP: yoga.WRAP_WRAP as unknown as WrapValue,
+			WRAP_WRAP_REVERSE: yoga.WRAP_WRAP_REVERSE as unknown as WrapValue,
 
 			// Align
-			ALIGN_AUTO: yoga.ALIGN_AUTO,
-			ALIGN_FLEX_START: yoga.ALIGN_FLEX_START,
-			ALIGN_CENTER: yoga.ALIGN_CENTER,
-			ALIGN_FLEX_END: yoga.ALIGN_FLEX_END,
-			ALIGN_STRETCH: yoga.ALIGN_STRETCH,
-			ALIGN_BASELINE: yoga.ALIGN_BASELINE,
-			ALIGN_SPACE_BETWEEN: yoga.ALIGN_SPACE_BETWEEN,
-			ALIGN_SPACE_AROUND: yoga.ALIGN_SPACE_AROUND,
+			ALIGN_AUTO: yoga.ALIGN_AUTO as unknown as AlignValue,
+			ALIGN_FLEX_START: yoga.ALIGN_FLEX_START as unknown as AlignValue,
+			ALIGN_CENTER: yoga.ALIGN_CENTER as unknown as AlignValue,
+			ALIGN_FLEX_END: yoga.ALIGN_FLEX_END as unknown as AlignValue,
+			ALIGN_STRETCH: yoga.ALIGN_STRETCH as unknown as AlignValue,
+			ALIGN_BASELINE: yoga.ALIGN_BASELINE as unknown as AlignValue,
+			ALIGN_SPACE_BETWEEN: yoga.ALIGN_SPACE_BETWEEN as unknown as AlignValue,
+			ALIGN_SPACE_AROUND: yoga.ALIGN_SPACE_AROUND as unknown as AlignValue,
 
 			// Justify
-			JUSTIFY_FLEX_START: yoga.JUSTIFY_FLEX_START,
-			JUSTIFY_CENTER: yoga.JUSTIFY_CENTER,
-			JUSTIFY_FLEX_END: yoga.JUSTIFY_FLEX_END,
-			JUSTIFY_SPACE_BETWEEN: yoga.JUSTIFY_SPACE_BETWEEN,
-			JUSTIFY_SPACE_AROUND: yoga.JUSTIFY_SPACE_AROUND,
-			JUSTIFY_SPACE_EVENLY: yoga.JUSTIFY_SPACE_EVENLY,
+			JUSTIFY_FLEX_START: yoga.JUSTIFY_FLEX_START as unknown as JustifyValue,
+			JUSTIFY_CENTER: yoga.JUSTIFY_CENTER as unknown as JustifyValue,
+			JUSTIFY_FLEX_END: yoga.JUSTIFY_FLEX_END as unknown as JustifyValue,
+			JUSTIFY_SPACE_BETWEEN: yoga.JUSTIFY_SPACE_BETWEEN as unknown as JustifyValue,
+			JUSTIFY_SPACE_AROUND: yoga.JUSTIFY_SPACE_AROUND as unknown as JustifyValue,
+			JUSTIFY_SPACE_EVENLY: yoga.JUSTIFY_SPACE_EVENLY as unknown as JustifyValue,
 
 			// Edge
-			EDGE_LEFT: yoga.EDGE_LEFT,
-			EDGE_TOP: yoga.EDGE_TOP,
-			EDGE_RIGHT: yoga.EDGE_RIGHT,
-			EDGE_BOTTOM: yoga.EDGE_BOTTOM,
-			EDGE_HORIZONTAL: yoga.EDGE_HORIZONTAL,
-			EDGE_VERTICAL: yoga.EDGE_VERTICAL,
-			EDGE_ALL: yoga.EDGE_ALL,
+			EDGE_LEFT: yoga.EDGE_LEFT as unknown as EdgeValue,
+			EDGE_TOP: yoga.EDGE_TOP as unknown as EdgeValue,
+			EDGE_RIGHT: yoga.EDGE_RIGHT as unknown as EdgeValue,
+			EDGE_BOTTOM: yoga.EDGE_BOTTOM as unknown as EdgeValue,
+			EDGE_HORIZONTAL: yoga.EDGE_HORIZONTAL as unknown as EdgeValue,
+			EDGE_VERTICAL: yoga.EDGE_VERTICAL as unknown as EdgeValue,
+			EDGE_ALL: yoga.EDGE_ALL as unknown as EdgeValue,
 
 			// Gutter
-			GUTTER_ALL: yoga.GUTTER_ALL,
+			GUTTER_ALL: yoga.GUTTER_ALL as unknown as GutterValue,
 
 			// Display
-			DISPLAY_FLEX: yoga.DISPLAY_FLEX,
-			DISPLAY_NONE: yoga.DISPLAY_NONE,
+			DISPLAY_FLEX: yoga.DISPLAY_FLEX as unknown as DisplayValue,
+			DISPLAY_NONE: yoga.DISPLAY_NONE as unknown as DisplayValue,
 
 			// Position Type
-			POSITION_TYPE_RELATIVE: yoga.POSITION_TYPE_RELATIVE,
-			POSITION_TYPE_ABSOLUTE: yoga.POSITION_TYPE_ABSOLUTE,
+			POSITION_TYPE_RELATIVE: yoga.POSITION_TYPE_RELATIVE as unknown as PositionTypeValue,
+			POSITION_TYPE_ABSOLUTE: yoga.POSITION_TYPE_ABSOLUTE as unknown as PositionTypeValue,
 
 			// Overflow
-			OVERFLOW_VISIBLE: yoga.OVERFLOW_VISIBLE,
-			OVERFLOW_HIDDEN: yoga.OVERFLOW_HIDDEN,
-			OVERFLOW_SCROLL: yoga.OVERFLOW_SCROLL,
+			OVERFLOW_VISIBLE: yoga.OVERFLOW_VISIBLE as unknown as OverflowValue,
+			OVERFLOW_HIDDEN: yoga.OVERFLOW_HIDDEN as unknown as OverflowValue,
+			OVERFLOW_SCROLL: yoga.OVERFLOW_SCROLL as unknown as OverflowValue,
 
 			// Direction
-			DIRECTION_LTR: yoga.DIRECTION_LTR,
+			DIRECTION_LTR: yoga.DIRECTION_LTR as unknown as DirectionValue,
 
 			// Measure Mode
-			MEASURE_MODE_UNDEFINED: yoga.MEASURE_MODE_UNDEFINED,
-			MEASURE_MODE_EXACTLY: yoga.MEASURE_MODE_EXACTLY,
-			MEASURE_MODE_AT_MOST: yoga.MEASURE_MODE_AT_MOST,
+			MEASURE_MODE_UNDEFINED: yoga.MEASURE_MODE_UNDEFINED as unknown as MeasureModeValue,
+			MEASURE_MODE_EXACTLY: yoga.MEASURE_MODE_EXACTLY as unknown as MeasureModeValue,
+			MEASURE_MODE_AT_MOST: yoga.MEASURE_MODE_AT_MOST as unknown as MeasureModeValue,
 		};
 	}
 

@@ -50,6 +50,16 @@ export default defineConfig({
             { text: "Components", link: "/guide/components" },
             { text: "Hooks", link: "/guide/hooks" },
             { text: "Scrolling", link: "/guide/scrolling" },
+            { text: "Cursor API", link: "/guide/cursor-api" },
+            { text: "Input Limitations", link: "/guide/input-limitations" },
+          ],
+        },
+        {
+          text: "Advanced",
+          items: [
+            { text: "Layout Engine", link: "/guide/layout-engine" },
+            { text: "React 19", link: "/guide/react-19" },
+            { text: "Layouts", link: "/guide/layouts" },
           ],
         },
         {

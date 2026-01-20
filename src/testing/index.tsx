@@ -50,7 +50,7 @@ import { EventEmitter } from 'node:events';
 import React, { type ReactElement, act } from 'react';
 import { initYogaEngine } from '../adapters/yoga-adapter.js';
 import type { TerminalBuffer } from '../buffer.js';
-import { InputContext } from '../context.js';
+import { AppContext, InputContext } from '../context.js';
 import type { LayoutEngine } from '../layout-engine.js';
 import { setLayoutEngine } from '../layout-engine.js';
 import { executeRender } from '../pipeline.js';
@@ -240,17 +240,38 @@ export function createTestRenderer(options: TestRendererOptions = {}): TestRende
 			null, // transitionCallbacks
 		);
 
-		// Wrap element with InputContext to enable useInput hooks
-		function wrapWithInputContext(el: ReactElement): ReactElement {
+		// Track if exit was called (for testing exit behavior)
+		let exitCalled = false;
+		let exitError: Error | undefined;
+
+		// Exit handler for useApp hook
+		const handleExit = (error?: Error) => {
+			exitCalled = true;
+			exitError = error;
+			if (debug) {
+				console.log('[inkx-test] exit() called', error ? `with error: ${error.message}` : '');
+			}
+		};
+
+		// Wrap element with contexts to enable useApp and useInput hooks
+		function wrapWithContexts(el: ReactElement): ReactElement {
 			return React.createElement(
-				InputContext.Provider,
+				AppContext.Provider,
 				{
 					value: {
-						eventEmitter: instance.inputEmitter,
-						exitOnCtrlC: false,
+						exit: handleExit,
 					},
 				},
-				el,
+				React.createElement(
+					InputContext.Provider,
+					{
+						value: {
+							eventEmitter: instance.inputEmitter,
+							exitOnCtrlC: false,
+						},
+					},
+					el,
+				),
 			);
 		}
 
@@ -266,7 +287,7 @@ export function createTestRenderer(options: TestRendererOptions = {}): TestRende
 
 		// Synchronously update React tree within act() to ensure all state updates are flushed
 		act(() => {
-			reconciler.updateContainerSync(wrapWithInputContext(element), instance.fiberRoot, null, null);
+			reconciler.updateContainerSync(wrapWithContexts(element), instance.fiberRoot, null, null);
 			reconciler.flushSyncWork();
 		});
 
@@ -296,7 +317,7 @@ export function createTestRenderer(options: TestRendererOptions = {}): TestRende
 				// Synchronously update React tree within act() to ensure all state updates are flushed
 				act(() => {
 					reconciler.updateContainerSync(
-						wrapWithInputContext(newElement),
+						wrapWithContexts(newElement),
 						instance.fiberRoot,
 						null,
 						null,

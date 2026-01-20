@@ -243,9 +243,21 @@ Inkx builds on and learns from many projects. Credit where due:
 | Project                                                                                   | Relationship                                                                                                                        |
 | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | [Ink](https://github.com/vadimdemedes/ink)                                                | API compatibility target. Inkx aims to be a drop-in replacement. Ink pioneered React-in-terminal and proved the model works.        |
-| [Yoga](https://yogalayout.dev/)                                                           | Layout engine (same as Ink). Facebook's flexbox implementation, used by React Native. Inkx just exposes what Yoga already computes. |
+| [Yoga](https://yogalayout.dev/)                                                           | Default layout engine. Facebook's flexbox implementation via WASM.                                                                  |
+| [Flexx](../beorn-flexx/)                                                                  | Alternative layout engine. Pure JS, 2.5x faster, 5x smaller than Yoga. See below.                                                   |
 | [Chalk](https://github.com/chalk/chalk)                                                   | ANSI styling (same as Ink). Inkx preserves Chalk strings through truncation and wrapping.                                           |
 | [React Reconciler](https://github.com/facebook/react/tree/main/packages/react-reconciler) | Custom renderer API. How both Ink and Inkx integrate with React.                                                                    |
+
+### Layout Engine Options
+
+Inkx supports two layout engines:
+
+| Engine | Bundle (gzip) | Performance | Initialization | Use When |
+|--------|---------------|-------------|----------------|----------|
+| **Yoga** (default) | 38 KB | 316 µs | Async | Need RTL, baseline, aspect-ratio |
+| **Flexx** | 7 KB | 125 µs | Sync | Want smaller bundles, faster startup |
+
+Flexx is **2.5x faster** and **5x smaller**, but doesn't support RTL or baseline alignment. For terminal UIs, both are fast enough—choose based on bundle size and feature needs.
 
 ### Prior Art (TUI Frameworks with Proper Layout)
 
@@ -290,6 +302,56 @@ Full documentation at `docs/site/` (VitePress):
 - **Architecture** — render pipeline, reconciler internals
 
 Run locally: `cd docs/site && bun run dev`
+
+## Chalk/ANSI Compatibility
+
+Inkx fully supports chalk/ANSI styling in text content. The render pipeline:
+1. `hasAnsi()` detects ANSI codes in text
+2. `parseAnsiText()` extracts styled segments
+3. `mergeAnsiStyle()` merges ANSI styles with inkx base styles
+4. **ANSI styles override base styles** when both are present
+
+### Background Conflict Detection
+
+When using **both** chalk background colors **and** inkx `backgroundColor` on the same text, visual artifacts occur: chalk only colors text characters, while inkx fills the entire box area. This creates gaps in padding/empty space.
+
+Inkx detects this conflict and **throws by default**:
+
+```tsx
+// This throws - chalk.bg* + inkx backgroundColor = visual bugs
+<Box backgroundColor="cyan">
+  <Text>{chalk.bgBlack('text')}</Text>
+</Box>
+```
+
+**Safe patterns:**
+```tsx
+// OK: chalk bg without inkx bg
+<Text>{chalk.bgYellow('highlighted')}</Text>
+
+// OK: inkx bg without chalk bg
+<Box backgroundColor="cyan"><Text>plain</Text></Box>
+
+// OK: chalk fg/bold/italic with inkx bg
+<Box backgroundColor="cyan"><Text>{chalk.bold.white('text')}</Text></Box>
+```
+
+**Configuration** via `INKX_BG_CONFLICT` environment variable:
+- `throw` (default) — Throw error on conflict (fail fast for programming errors)
+- `warn` — Console warning (deduplicated)
+- `ignore` — No detection
+
+**Intentional override** with `@beorn/chalkx`:
+```tsx
+import { bgOverride } from '@beorn/chalkx';
+
+// When you deliberately want both backgrounds:
+<Box backgroundColor="cyan">
+  <Text>{bgOverride(chalk.bgBlack('intentional'))}</Text>
+</Box>
+```
+
+The `bgOverride()` wrapper tells inkx "I know what I'm doing" and skips detection.
 
 ## Known Limitations & Roadmap
 

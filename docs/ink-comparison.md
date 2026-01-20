@@ -213,6 +213,81 @@ Based on Ink issues, Inkx should test:
 
 ---
 
+## When to Use Ink vs Inkx
+
+### Decision Tree
+
+```
+Do you need scrolling or dimension queries?
+├── YES → Use Inkx
+│         (Ink requires manual virtualization and width-threading)
+│
+└── NO → Is this a new project?
+         ├── YES → Consider Inkx
+         │         (Better architecture, but newer and less battle-tested)
+         │
+         └── NO → Is your existing Ink app working well?
+                  ├── YES → Stay with Ink
+                  │         (Migration has cost, Ink is stable)
+                  │
+                  └── NO → What problems are you hitting?
+                           ├── Text overflow → Inkx (auto-truncation)
+                           ├── Layout complexity → Inkx (useLayout)
+                           ├── CJK/IME input → TBD (both have issues)
+                           └── Other → Evaluate case-by-case
+```
+
+### Quick Reference
+
+| If you need... | Use |
+|----------------|-----|
+| Native scrolling (`overflow="scroll"`) | Inkx |
+| Component dimension queries (`useLayout()`) | Inkx |
+| ANSI-aware text truncation | Inkx |
+| Smaller bundle size | Inkx + Flexx |
+| Maximum ecosystem compatibility | Ink |
+| Battle-tested stability | Ink |
+| Smallest risk for production | Ink |
+
+### Layout Engine Comparison
+
+Inkx supports two layout engines. Both use the same flexbox API:
+
+| Engine | Bundle (gzip) | Performance* | Initialization |
+|--------|---------------|--------------|----------------|
+| **Yoga** (WASM) | 38 KB | 316 µs | Async |
+| **Flexx** (pure JS) | 7 KB | 125 µs | Sync |
+
+*Kanban 3×50 benchmark (~150 nodes), Apple M1 Max
+
+**Flexx is 2.5x faster and 5x smaller.** Trade-off: no RTL or baseline alignment.
+
+For terminal UIs, both are fast enough for 60fps. Choose based on bundle size and feature needs. See [Flexx vs Yoga comparison](../../beorn-flexx/docs/yoga-comparison.md) for details.
+
+### Maturity Considerations
+
+**Ink**: Production-ready, battle-tested, maintenance mode
+- Millions of users via React Native, CLI tools
+- 100+ open issues (some architectural, unfixable)
+- Stable API, low churn
+
+**Inkx**: Functionally complete, seeking real-world feedback
+- Used in production by the authors
+- Comprehensive test suite
+- Not yet battle-tested across diverse environments
+- API may evolve based on feedback
+
+### Migration Path
+
+If you're on Ink and considering Inkx:
+
+1. **Evaluate if you need Inkx features** — If Ink works for you, stay
+2. **Try Inkx in a new feature** — Lower risk than full migration
+3. **Report issues** — Help us find edge cases
+4. **Consider @beorn/ink-measure** — Add dimension awareness to Ink incrementally
+
+---
+
 ## Conclusion
 
 Inkx is well-positioned to capture users frustrated with Ink's limitations:

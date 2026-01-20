@@ -318,8 +318,7 @@ describe('Layout API Compatibility', () => {
 			expect(lastFrame()).toContain('Content');
 		});
 
-		// TODO: This test hangs - investigate display="none" in the render pipeline
-		test.skip('accepts display="none"', () => {
+		test('accepts display="none"', () => {
 			const { lastFrame } = render(
 				<Box>
 					<Box display="none">
@@ -328,8 +327,9 @@ describe('Layout API Compatibility', () => {
 					<Text>Visible</Text>
 				</Box>,
 			);
-			expect(lastFrame()).toContain('Visible');
-			// Note: simplified test renderer doesn't actually hide content
+			const frame = lastFrame();
+			expect(frame).toContain('Visible');
+			expect(frame).not.toContain('Hidden');
 		});
 	});
 

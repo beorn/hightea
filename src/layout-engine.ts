@@ -95,75 +95,96 @@ export interface LayoutNode {
 }
 
 // ============================================================================
+// Branded Types for Type Safety
+// ============================================================================
+
+/**
+ * Branded types prevent accidentally mixing up layout constant categories.
+ * E.g., you can't pass an AlignValue where a FlexDirectionValue is expected.
+ */
+export type FlexDirectionValue = number & { readonly __brand: 'FlexDirection' };
+export type WrapValue = number & { readonly __brand: 'Wrap' };
+export type AlignValue = number & { readonly __brand: 'Align' };
+export type JustifyValue = number & { readonly __brand: 'Justify' };
+export type EdgeValue = number & { readonly __brand: 'Edge' };
+export type GutterValue = number & { readonly __brand: 'Gutter' };
+export type DisplayValue = number & { readonly __brand: 'Display' };
+export type PositionTypeValue = number & { readonly __brand: 'PositionType' };
+export type OverflowValue = number & { readonly __brand: 'Overflow' };
+export type DirectionValue = number & { readonly __brand: 'Direction' };
+export type MeasureModeValue = number & { readonly __brand: 'MeasureMode' };
+
+// ============================================================================
 // Layout Constants Interface
 // ============================================================================
 
 /**
  * Constants for layout configuration.
  * These are the same across Yoga and Flexx.
+ * Uses branded types for compile-time safety.
  */
 export interface LayoutConstants {
 	// Flex Direction
-	FLEX_DIRECTION_COLUMN: number;
-	FLEX_DIRECTION_COLUMN_REVERSE: number;
-	FLEX_DIRECTION_ROW: number;
-	FLEX_DIRECTION_ROW_REVERSE: number;
+	FLEX_DIRECTION_COLUMN: FlexDirectionValue;
+	FLEX_DIRECTION_COLUMN_REVERSE: FlexDirectionValue;
+	FLEX_DIRECTION_ROW: FlexDirectionValue;
+	FLEX_DIRECTION_ROW_REVERSE: FlexDirectionValue;
 
 	// Wrap
-	WRAP_NO_WRAP: number;
-	WRAP_WRAP: number;
-	WRAP_WRAP_REVERSE: number;
+	WRAP_NO_WRAP: WrapValue;
+	WRAP_WRAP: WrapValue;
+	WRAP_WRAP_REVERSE: WrapValue;
 
 	// Align
-	ALIGN_AUTO: number;
-	ALIGN_FLEX_START: number;
-	ALIGN_CENTER: number;
-	ALIGN_FLEX_END: number;
-	ALIGN_STRETCH: number;
-	ALIGN_BASELINE: number;
-	ALIGN_SPACE_BETWEEN: number;
-	ALIGN_SPACE_AROUND: number;
+	ALIGN_AUTO: AlignValue;
+	ALIGN_FLEX_START: AlignValue;
+	ALIGN_CENTER: AlignValue;
+	ALIGN_FLEX_END: AlignValue;
+	ALIGN_STRETCH: AlignValue;
+	ALIGN_BASELINE: AlignValue;
+	ALIGN_SPACE_BETWEEN: AlignValue;
+	ALIGN_SPACE_AROUND: AlignValue;
 
 	// Justify
-	JUSTIFY_FLEX_START: number;
-	JUSTIFY_CENTER: number;
-	JUSTIFY_FLEX_END: number;
-	JUSTIFY_SPACE_BETWEEN: number;
-	JUSTIFY_SPACE_AROUND: number;
-	JUSTIFY_SPACE_EVENLY: number;
+	JUSTIFY_FLEX_START: JustifyValue;
+	JUSTIFY_CENTER: JustifyValue;
+	JUSTIFY_FLEX_END: JustifyValue;
+	JUSTIFY_SPACE_BETWEEN: JustifyValue;
+	JUSTIFY_SPACE_AROUND: JustifyValue;
+	JUSTIFY_SPACE_EVENLY: JustifyValue;
 
 	// Edge
-	EDGE_LEFT: number;
-	EDGE_TOP: number;
-	EDGE_RIGHT: number;
-	EDGE_BOTTOM: number;
-	EDGE_HORIZONTAL: number;
-	EDGE_VERTICAL: number;
-	EDGE_ALL: number;
+	EDGE_LEFT: EdgeValue;
+	EDGE_TOP: EdgeValue;
+	EDGE_RIGHT: EdgeValue;
+	EDGE_BOTTOM: EdgeValue;
+	EDGE_HORIZONTAL: EdgeValue;
+	EDGE_VERTICAL: EdgeValue;
+	EDGE_ALL: EdgeValue;
 
 	// Gutter
-	GUTTER_ALL: number;
+	GUTTER_ALL: GutterValue;
 
 	// Display
-	DISPLAY_FLEX: number;
-	DISPLAY_NONE: number;
+	DISPLAY_FLEX: DisplayValue;
+	DISPLAY_NONE: DisplayValue;
 
 	// Position Type
-	POSITION_TYPE_RELATIVE: number;
-	POSITION_TYPE_ABSOLUTE: number;
+	POSITION_TYPE_RELATIVE: PositionTypeValue;
+	POSITION_TYPE_ABSOLUTE: PositionTypeValue;
 
 	// Overflow
-	OVERFLOW_VISIBLE: number;
-	OVERFLOW_HIDDEN: number;
-	OVERFLOW_SCROLL: number;
+	OVERFLOW_VISIBLE: OverflowValue;
+	OVERFLOW_HIDDEN: OverflowValue;
+	OVERFLOW_SCROLL: OverflowValue;
 
 	// Direction
-	DIRECTION_LTR: number;
+	DIRECTION_LTR: DirectionValue;
 
 	// Measure Mode
-	MEASURE_MODE_UNDEFINED: number;
-	MEASURE_MODE_EXACTLY: number;
-	MEASURE_MODE_AT_MOST: number;
+	MEASURE_MODE_UNDEFINED: MeasureModeValue;
+	MEASURE_MODE_EXACTLY: MeasureModeValue;
+	MEASURE_MODE_AT_MOST: MeasureModeValue;
 }
 
 // ============================================================================
