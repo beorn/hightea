@@ -458,8 +458,11 @@ class InkxInstance {
 			</InkxApp>
 		);
 
-		// Update the container with the new tree
-		reconciler.updateContainer(tree, this.fiberRoot, null, () => {});
+		// Use synchronous update to ensure React commits the work immediately
+		// This is necessary because the async updateContainer doesn't flush work
+		// in environments like Bun where the event loop may not be pumped
+		reconciler.updateContainerSync(tree, this.fiberRoot, null, null);
+		reconciler.flushSyncWork();
 	}
 
 	/**
