@@ -4,7 +4,13 @@
  * Diff two buffers and produce minimal ANSI output.
  */
 
-import { type CellAttrs, type Color, type Style, type TerminalBuffer, styleEquals } from '../buffer.js';
+import {
+	type CellAttrs,
+	type Color,
+	type Style,
+	type TerminalBuffer,
+	styleEquals,
+} from '../buffer.js';
 import type { CellChange } from './types.js';
 
 /**
