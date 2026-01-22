@@ -60,7 +60,7 @@ function renderNodeToBuffer(
 
 	// Render based on node type
 	if (node.type === 'inkx-box') {
-		renderBox(node, buffer, layout, props, clipBounds);
+		renderBox(node, buffer, layout, props, clipBounds, scrollOffset);
 
 		// If scrollable, render overflow indicators
 		if (isScrollContainer && node.scrollState) {

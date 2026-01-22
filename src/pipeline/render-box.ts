@@ -25,8 +25,11 @@ export function renderBox(
 	layout: ComputedLayout,
 	props: BoxProps,
 	clipBounds?: { top: number; bottom: number },
+	scrollOffset = 0,
 ): void {
-	const { x, y, width, height } = layout;
+	const { x, width, height } = layout;
+	// Apply scroll offset to y position
+	const y = layout.y - scrollOffset;
 
 	// Skip if completely outside clip bounds
 	if (clipBounds && (y + height <= clipBounds.top || y >= clipBounds.bottom)) {
