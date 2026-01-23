@@ -7,7 +7,6 @@
  */
 
 import { createContext } from "react";
-// @ts-expect-error - react-reconciler constants not typed
 import {
   DefaultEventPriority,
   NoEventPriority,
