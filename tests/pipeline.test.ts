@@ -22,6 +22,8 @@ import {
   layoutPhase,
   measurePhase,
   outputPhase,
+  scrollPhase,
+  screenRectPhase,
 } from "../src/pipeline.js";
 import type {
   BoxProps,
@@ -73,6 +75,8 @@ async function createMockNode(
     children,
     parent: null,
     layoutNode,
+    contentRect: null,
+    screenRect: null,
     computedLayout: null,
     prevLayout: null,
     layoutDirty: true,
@@ -101,6 +105,8 @@ function createRawTextNode(text: string): InkxNode {
     children: [],
     parent: null,
     layoutNode: null,
+    contentRect: null,
+    screenRect: null,
     computedLayout: null,
     prevLayout: null,
     layoutDirty: false,
@@ -109,6 +115,15 @@ function createRawTextNode(text: string): InkxNode {
     isRawText: true,
     textContent: text,
   };
+}
+
+// Helper to set layout on a node (sets both contentRect and computedLayout for compatibility)
+function setNodeLayout(
+  node: InkxNode,
+  layout: { x: number; y: number; width: number; height: number },
+): void {
+  node.contentRect = layout;
+  node.computedLayout = layout;
 }
 
 describe("Pipeline", () => {
@@ -195,13 +210,13 @@ describe("Pipeline", () => {
     test("skips when no dirty nodes", async () => {
       const root = await createMockNode("inkx-box", { width: 80, height: 24 });
       root.layoutDirty = false;
-      root.computedLayout = { x: 0, y: 0, width: 80, height: 24 };
+      setNodeLayout(root, { x: 0, y: 0, width: 80, height: 24 });
 
       // Should return early without recalculating
       layoutPhase(root, 100, 50);
 
       // Layout unchanged
-      expect(root.computedLayout?.width).toBe(80);
+      expect(root.contentRect?.width).toBe(80);
     });
 
     test("handles virtual text nodes (no layoutNode)", async () => {
@@ -221,7 +236,7 @@ describe("Pipeline", () => {
   describe("contentPhase", () => {
     test("returns buffer with correct dimensions", async () => {
       const root = await createMockNode("inkx-box", { width: 40, height: 10 });
-      root.computedLayout = { x: 0, y: 0, width: 40, height: 10 };
+      setNodeLayout(root, { x: 0, y: 0, width: 40, height: 10 });
 
       const buffer = contentPhase(root);
 
@@ -231,7 +246,7 @@ describe("Pipeline", () => {
 
     test("throws if layout not computed", async () => {
       const root = await createMockNode("inkx-box", { width: 40, height: 10 });
-      root.computedLayout = null;
+      // contentRect left as null to test error case
 
       expect(() => contentPhase(root)).toThrow(
         "contentPhase called before layout phase",
@@ -245,12 +260,12 @@ describe("Pipeline", () => {
         [],
         "Hello",
       );
-      textNode.computedLayout = { x: 0, y: 0, width: 10, height: 1 };
+      setNodeLayout(textNode, { x: 0, y: 0, width: 10, height: 1 });
 
       const root = await createMockNode("inkx-box", { width: 40, height: 10 }, [
         textNode,
       ]);
-      root.computedLayout = { x: 0, y: 0, width: 40, height: 10 };
+      setNodeLayout(root, { x: 0, y: 0, width: 40, height: 10 });
 
       const buffer = contentPhase(root);
 
@@ -454,6 +469,211 @@ describe("Pipeline", () => {
       // Even when scrolled to bottom, sticky header should be considered "visible"
       // firstVisibleChild should include index 0 (the sticky header)
       expect(scrollContainer.scrollState?.firstVisibleChild).toBe(0);
+    });
+  });
+
+  describe("screenRectPhase", () => {
+    test("computes screen positions accounting for scroll offset", async () => {
+      // Create a child at content y=10
+      const child = await createMockNode("inkx-box", { height: 3 });
+      child.contentRect = child.computedLayout = {
+        x: 0,
+        y: 10,
+        width: 10,
+        height: 3,
+      };
+
+      // Create a scroll container scrolled down by 5
+      const scrollContainer = await createMockNode(
+        "inkx-box",
+        { overflow: "scroll", height: 10, scrollTo: 1 } as BoxProps,
+        [child],
+      );
+      scrollContainer.contentRect = scrollContainer.computedLayout = {
+        x: 0,
+        y: 0,
+        width: 10,
+        height: 10,
+      };
+
+      // Run scroll phase to set scrollState.offset
+      scrollPhase(scrollContainer);
+      const scrollOffset = scrollContainer.scrollState?.offset ?? 0;
+
+      // Run screen rect phase
+      screenRectPhase(scrollContainer);
+
+      // Container screen position equals content position (no parent scroll)
+      expect(scrollContainer.screenRect).toEqual({
+        x: 0,
+        y: 0,
+        width: 10,
+        height: 10,
+      });
+
+      // Child screen position = content position - scroll offset
+      expect(child.screenRect).toEqual({
+        x: 0,
+        y: 10 - scrollOffset,
+        width: 10,
+        height: 3,
+      });
+    });
+
+    test("accumulates scroll offsets from nested containers", async () => {
+      // Inner child at content y=20
+      const innerChild = await createMockNode("inkx-box", { height: 2 });
+      innerChild.contentRect = innerChild.computedLayout = {
+        x: 0,
+        y: 20,
+        width: 10,
+        height: 2,
+      };
+
+      // Inner scroll container scrolled by 5
+      const innerScroll = await createMockNode(
+        "inkx-box",
+        { overflow: "scroll", height: 10 } as BoxProps,
+        [innerChild],
+      );
+      innerScroll.contentRect = innerScroll.computedLayout = {
+        x: 0,
+        y: 5,
+        width: 10,
+        height: 10,
+      };
+      innerScroll.scrollState = {
+        offset: 5,
+        contentHeight: 30,
+        viewportHeight: 10,
+        firstVisibleChild: 0,
+        lastVisibleChild: 0,
+        hiddenAbove: 0,
+        hiddenBelow: 0,
+      };
+
+      // Outer scroll container scrolled by 3
+      const outerScroll = await createMockNode(
+        "inkx-box",
+        { overflow: "scroll", height: 15 } as BoxProps,
+        [innerScroll],
+      );
+      outerScroll.contentRect = outerScroll.computedLayout = {
+        x: 0,
+        y: 0,
+        width: 10,
+        height: 15,
+      };
+      outerScroll.scrollState = {
+        offset: 3,
+        contentHeight: 20,
+        viewportHeight: 15,
+        firstVisibleChild: 0,
+        lastVisibleChild: 0,
+        hiddenAbove: 0,
+        hiddenBelow: 0,
+      };
+
+      // Run screen rect phase
+      screenRectPhase(outerScroll);
+
+      // Outer container: screen = content (no parent scroll)
+      expect(outerScroll.screenRect?.y).toBe(0);
+
+      // Inner container: screen = content(5) - outer scroll(3) = 2
+      expect(innerScroll.screenRect?.y).toBe(2);
+
+      // Inner child: screen = content(20) - outer scroll(3) - inner scroll(5) = 12
+      expect(innerChild.screenRect?.y).toBe(12);
+    });
+
+    test("cross-column visual navigation uses screen Y not content Y", async () => {
+      // Simulate two columns with different scroll offsets
+      // Column 1: scrolled down, card at content y=50 appears at screen y=10
+      const col1Card = await createMockNode("inkx-box", { height: 3 });
+      col1Card.contentRect = col1Card.computedLayout = {
+        x: 0,
+        y: 50,
+        width: 20,
+        height: 3,
+      };
+
+      const col1 = await createMockNode(
+        "inkx-box",
+        { overflow: "scroll", height: 20 } as BoxProps,
+        [col1Card],
+      );
+      col1.contentRect = col1.computedLayout = {
+        x: 0,
+        y: 0,
+        width: 20,
+        height: 20,
+      };
+      col1.scrollState = {
+        offset: 40,
+        contentHeight: 100,
+        viewportHeight: 20,
+        firstVisibleChild: 0,
+        lastVisibleChild: 0,
+        hiddenAbove: 0,
+        hiddenBelow: 0,
+      };
+
+      // Column 2: not scrolled, card at content y=10 appears at screen y=10
+      const col2Card = await createMockNode("inkx-box", { height: 3 });
+      col2Card.contentRect = col2Card.computedLayout = {
+        x: 20,
+        y: 10,
+        width: 20,
+        height: 3,
+      };
+
+      const col2 = await createMockNode(
+        "inkx-box",
+        { overflow: "scroll", height: 20 } as BoxProps,
+        [col2Card],
+      );
+      col2.contentRect = col2.computedLayout = {
+        x: 20,
+        y: 0,
+        width: 20,
+        height: 20,
+      };
+      col2.scrollState = {
+        offset: 0,
+        contentHeight: 50,
+        viewportHeight: 20,
+        firstVisibleChild: 0,
+        lastVisibleChild: 0,
+        hiddenAbove: 0,
+        hiddenBelow: 0,
+      };
+
+      // Root container
+      const root = await createMockNode(
+        "inkx-box",
+        { flexDirection: "row" } as BoxProps,
+        [col1, col2],
+      );
+      root.contentRect = root.computedLayout = {
+        x: 0,
+        y: 0,
+        width: 40,
+        height: 20,
+      };
+
+      // Run screen rect phase
+      screenRectPhase(root);
+
+      // Both cards should have the SAME screen Y despite different content Y
+      // col1Card: content y=50, scroll=40 → screen y=10
+      // col2Card: content y=10, scroll=0 → screen y=10
+      expect(col1Card.screenRect?.y).toBe(10);
+      expect(col2Card.screenRect?.y).toBe(10);
+
+      // This is the key invariant for h/l navigation:
+      // Cards at the same visual position have matching screenRect.y
+      expect(col1Card.screenRect?.y).toBe(col2Card.screenRect?.y);
     });
   });
 

@@ -50,6 +50,8 @@ function createMockInkxNode(layout: {
     children: [],
     parent: null,
     layoutNode: null,
+    contentRect: layout,
+    screenRect: layout,
     computedLayout: layout,
     prevLayout: null,
     layoutDirty: false,

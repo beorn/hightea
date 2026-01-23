@@ -30,6 +30,17 @@ export interface Rect {
  */
 export type ComputedLayout = Rect;
 
+/**
+ * Check if two rects are equal (same position and size).
+ */
+export function rectEqual(a: Rect | null, b: Rect | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return (
+    a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
+  );
+}
+
 // ============================================================================
 // Node Types
 // ============================================================================

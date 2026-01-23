@@ -8,9 +8,9 @@
  * - Screen rect: Position on terminal screen (like CSS getBoundingClientRect)
  */
 
-import { useContext, useLayoutEffect, useReducer } from "react";
+import { useContext, useLayoutEffect, useReducer, useRef } from "react";
 import { NodeContext } from "../context.js";
-import type { InkxNode, Rect } from "../types.js";
+import { rectEqual, type InkxNode, type Rect } from "../types.js";
 
 /**
  * @deprecated Use Rect instead. Alias kept for backwards compatibility.
@@ -122,11 +122,14 @@ export function useContentRectCallback(callback: (rect: Rect) => void): void {
 export function useScreenRect(): Rect {
   const node = useInkxNode();
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
+  const prevScreenRectRef = useRef<Rect | null>(null);
 
   useLayoutEffect(() => {
     const handleLayoutComplete = () => {
-      // Re-render when layout changes (screen rect is recomputed each frame)
-      if (!rectEqual(node.prevLayout, node.contentRect)) {
+      // Re-render when screenRect changes (can happen from scroll offset changes
+      // even when contentRect stays the same)
+      if (!rectEqual(prevScreenRectRef.current, node.screenRect)) {
+        prevScreenRectRef.current = node.screenRect;
         forceUpdate();
       }
     };
@@ -208,12 +211,4 @@ function useInkxNode(): InkxNode {
     throw new Error("useLayout must be used within an Inkx component");
   }
   return node;
-}
-
-function rectEqual(a: Rect | null, b: Rect | null): boolean {
-  if (a === b) return true;
-  if (!a || !b) return false;
-  return (
-    a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
-  );
 }

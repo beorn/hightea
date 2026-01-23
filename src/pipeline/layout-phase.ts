@@ -4,7 +4,12 @@
  * Run Yoga layout calculation and propagate dimensions to all nodes.
  */
 
-import type { BoxProps, Rect, InkxNode } from "../types.js";
+import {
+  rectEqual,
+  type BoxProps,
+  type Rect,
+  type InkxNode,
+} from "../types.js";
 
 /**
  * Run Yoga layout calculation and propagate dimensions to all nodes.
@@ -126,21 +131,13 @@ function notifyLayoutSubscribers(node: InkxNode): void {
   }
 }
 
-/**
- * Check if two rects are equal.
- */
-export function rectEqual(a: Rect | null, b: Rect | null): boolean {
-  if (a === b) return true;
-  if (!a || !b) return false;
-  return (
-    a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
-  );
-}
+// Re-export from types for backwards compatibility
+export { rectEqual } from "../types.js";
 
 /**
  * @deprecated Use rectEqual instead.
  */
-export const layoutEqual = rectEqual;
+export { rectEqual as layoutEqual } from "../types.js";
 
 // ============================================================================
 // Phase 2.5: Scroll Phase (for overflow='scroll' containers)
@@ -166,8 +163,8 @@ export function scrollPhase(root: InkxNode): void {
  * Calculate scroll state for a single scrollable container.
  */
 function calculateScrollState(node: InkxNode, props: BoxProps): void {
-  // Use computedLayout for backwards compatibility (tests set this directly)
-  const layout = node.computedLayout;
+  // Prefer contentRect, fall back to computedLayout for test compatibility
+  const layout = node.contentRect ?? node.computedLayout;
   if (!layout || !node.layoutNode) return;
 
   // Calculate viewport (container minus borders/padding)

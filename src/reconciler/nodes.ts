@@ -9,12 +9,12 @@ import {
   getConstants,
   getLayoutEngine,
 } from "../layout-engine.js";
-import type {
-  BoxProps,
-  Rect,
-  InkxNode,
-  InkxNodeType,
-  TextProps,
+import {
+  rectEqual,
+  type BoxProps,
+  type InkxNode,
+  type InkxNodeType,
+  type TextProps,
 } from "../types.js";
 import { displayWidth } from "../unicode.js";
 
@@ -450,7 +450,7 @@ function propagateLayout(
   node.layoutDirty = false;
 
   // If dimensions changed, content needs re-render
-  if (!layoutEqual(node.prevLayout, node.computedLayout)) {
+  if (!rectEqual(node.prevLayout, node.computedLayout)) {
     node.contentDirty = true;
   }
 
@@ -464,7 +464,7 @@ function propagateLayout(
  * Notify all layout subscribers of layout changes.
  */
 function notifyLayoutSubscribers(node: InkxNode): void {
-  if (!layoutEqual(node.prevLayout, node.computedLayout)) {
+  if (!rectEqual(node.prevLayout, node.computedLayout)) {
     for (const subscriber of node.layoutSubscribers) {
       subscriber();
     }
@@ -473,15 +473,4 @@ function notifyLayoutSubscribers(node: InkxNode): void {
   for (const child of node.children) {
     notifyLayoutSubscribers(child);
   }
-}
-
-/**
- * Check if two rects are equal.
- */
-function layoutEqual(a: Rect | null, b: Rect | null): boolean {
-  if (a === b) return true;
-  if (!a || !b) return false;
-  return (
-    a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
-  );
 }

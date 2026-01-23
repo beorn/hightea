@@ -70,13 +70,16 @@ function createTestNode(options: {
   } | null;
   layoutNode?: ReturnType<typeof createMockLayoutNode> | null;
 }): InkxNode {
+  const layout = options.computedLayout ?? null;
   return {
     type: "inkx-box",
     props: {},
     children: [],
     parent: null,
     layoutNode: options.layoutNode ?? null,
-    computedLayout: options.computedLayout ?? null,
+    contentRect: layout,
+    screenRect: layout,
+    computedLayout: layout,
     prevLayout: null,
     layoutDirty: false,
     contentDirty: false,

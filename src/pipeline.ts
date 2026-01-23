@@ -13,7 +13,9 @@ export {
   measurePhase,
   layoutPhase,
   layoutEqual,
+  rectEqual,
   scrollPhase,
+  screenRectPhase,
   contentPhase,
   outputPhase,
   // Utilities
