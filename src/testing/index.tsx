@@ -375,7 +375,10 @@ export function createTestRenderer(
           throw new Error("Already unmounted");
         }
 
-        reconciler.updateContainer(null, instance.fiberRoot, null, () => {});
+        // Wrap unmount in act() to ensure cleanup effects complete without warnings
+        act(() => {
+          reconciler.updateContainer(null, instance.fiberRoot, null, () => {});
+        });
         instance.mounted = false;
         instance.inputEmitter.removeAllListeners();
 
