@@ -10,7 +10,7 @@
 
 import { useContext, useLayoutEffect, useReducer, useRef } from 'react';
 import { NodeContext } from '../context.js';
-import { type InkxNode, type Rect, rectEqual } from '../types.js';
+import { type Rect, rectEqual } from '../types.js';
 
 /**
  * @deprecated Use Rect instead. Alias kept for backwards compatibility.
@@ -38,10 +38,14 @@ export type { Rect };
  * ```
  */
 export function useContentRect(): Rect {
-	const node = useInkxNode();
+	const node = useContext(NodeContext);
 	const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
 	useLayoutEffect(() => {
+		// Node may be null on first render before Box's useLayoutEffect sets it.
+		// The effect re-runs when node changes.
+		if (!node) return;
+
 		const handleLayoutComplete = () => {
 			if (!rectEqual(node.prevLayout, node.contentRect)) {
 				forceUpdate();
@@ -54,7 +58,7 @@ export function useContentRect(): Rect {
 		};
 	}, [node]);
 
-	return node.contentRect ?? { x: 0, y: 0, width: 0, height: 0 };
+	return node?.contentRect ?? { x: 0, y: 0, width: 0, height: 0 };
 }
 
 /**
@@ -74,14 +78,20 @@ export function useContentRect(): Rect {
 export function useContentRectCallback(callback: (rect: Rect) => void): void {
 	const node = useContext(NodeContext);
 
-	if (!node) {
-		throw new Error('useContentRectCallback must be used within an Inkx component');
-	}
+	// Use ref to always have current callback without re-subscribing
+	const callbackRef = useRef(callback);
+	callbackRef.current = callback;
 
 	useLayoutEffect(() => {
+		// Node may be null on first render before Box's useLayoutEffect sets it.
+		// The effect re-runs when node changes, so we'll subscribe on second render.
+		if (!node) {
+			return;
+		}
+
 		const handleLayoutComplete = () => {
 			if (node.contentRect) {
-				callback(node.contentRect);
+				callbackRef.current(node.contentRect);
 			}
 		};
 
@@ -89,13 +99,13 @@ export function useContentRectCallback(callback: (rect: Rect) => void): void {
 
 		// Also call immediately if layout already computed
 		if (node.contentRect) {
-			callback(node.contentRect);
+			callbackRef.current(node.contentRect);
 		}
 
 		return () => {
 			node.layoutSubscribers.delete(handleLayoutComplete);
 		};
-	}, [node, callback]);
+	}, [node]); // Re-run when node becomes available
 }
 
 // ============================================================================
@@ -122,11 +132,15 @@ export function useContentRectCallback(callback: (rect: Rect) => void): void {
  * ```
  */
 export function useScreenRect(): Rect {
-	const node = useInkxNode();
+	const node = useContext(NodeContext);
 	const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 	const prevScreenRectRef = useRef<Rect | null>(null);
 
 	useLayoutEffect(() => {
+		// Node may be null on first render before Box's useLayoutEffect sets it.
+		// The effect re-runs when node changes.
+		if (!node) return;
+
 		const handleLayoutComplete = () => {
 			// Re-render when screenRect changes (can happen from scroll offset changes
 			// even when contentRect stays the same)
@@ -142,7 +156,7 @@ export function useScreenRect(): Rect {
 		};
 	}, [node]);
 
-	return node.screenRect ?? { x: 0, y: 0, width: 0, height: 0 };
+	return node?.screenRect ?? { x: 0, y: 0, width: 0, height: 0 };
 }
 
 /**
@@ -167,14 +181,20 @@ export function useScreenRect(): Rect {
 export function useScreenRectCallback(callback: (rect: Rect) => void): void {
 	const node = useContext(NodeContext);
 
-	if (!node) {
-		throw new Error('useScreenRectCallback must be used within an Inkx component');
-	}
+	// Use ref to always have current callback without re-subscribing
+	const callbackRef = useRef(callback);
+	callbackRef.current = callback;
 
 	useLayoutEffect(() => {
+		// Node may be null on first render before Box's useLayoutEffect sets it.
+		// The effect re-runs when node changes, so we'll subscribe on second render.
+		if (!node) {
+			return;
+		}
+
 		const handleLayoutComplete = () => {
 			if (node.screenRect) {
-				callback(node.screenRect);
+				callbackRef.current(node.screenRect);
 			}
 		};
 
@@ -182,13 +202,13 @@ export function useScreenRectCallback(callback: (rect: Rect) => void): void {
 
 		// Also call immediately if screen rect already computed
 		if (node.screenRect) {
-			callback(node.screenRect);
+			callbackRef.current(node.screenRect);
 		}
 
 		return () => {
 			node.layoutSubscribers.delete(handleLayoutComplete);
 		};
-	}, [node, callback]);
+	}, [node]); // Re-run when node becomes available
 }
 
 // ============================================================================
@@ -204,15 +224,3 @@ export const useLayout = useContentRect;
  * @deprecated Use useContentRectCallback instead.
  */
 export const useLayoutCallback = useContentRectCallback;
-
-// ============================================================================
-// Internal Helpers
-// ============================================================================
-
-function useInkxNode(): InkxNode {
-	const node = useContext(NodeContext);
-	if (!node) {
-		throw new Error('useLayout must be used within an Inkx component');
-	}
-	return node;
-}

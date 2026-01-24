@@ -96,15 +96,21 @@ function createMockFocusContext(activeId: string | null = null): FocusContextVal
 // ============================================================================
 
 describe('useLayout', () => {
-	test('throws error when used outside Inkx component', () => {
+	test('returns default rect when used outside Inkx component', () => {
+		let capturedRect: { x: number; y: number; width: number; height: number } = {
+			x: -1,
+			y: -1,
+			width: -1,
+			height: -1,
+		};
+
 		function InvalidUsage() {
-			useLayout();
-			return <Text>Should not render</Text>;
+			capturedRect = useLayout();
+			return <Text>Should render with defaults</Text>;
 		}
 
-		expect(() => {
-			render(<InvalidUsage />);
-		}).toThrow('useLayout must be used within an Inkx component');
+		render(<InvalidUsage />);
+		expect(capturedRect).toEqual({ x: 0, y: 0, width: 0, height: 0 });
 	});
 
 	test('returns layout dimensions { width, height, x, y } from context', () => {

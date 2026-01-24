@@ -7,10 +7,13 @@
  *
  * Box renders to an 'inkx-box' host element that the reconciler converts to an
  * InkxNode with an associated Yoga layout node.
+ *
+ * Box provides NodeContext to its children, enabling useLayout/useScreenRect hooks.
  */
 
-import type { JSX, ReactNode } from 'react';
-import type { BoxProps as BoxPropsType, ComputedLayout } from '../types.js';
+import { type JSX, type ReactNode, useLayoutEffect, useRef, useState } from 'react';
+import { NodeContext } from '../context.js';
+import type { BoxProps as BoxPropsType, ComputedLayout, InkxNode } from '../types.js';
 
 // ============================================================================
 // Props
@@ -27,6 +30,8 @@ export interface BoxProps extends BoxPropsType {
 
 /**
  * Flexbox container component for terminal UIs.
+ *
+ * Provides NodeContext to children, enabling useLayout/useScreenRect hooks.
  *
  * @example
  * ```tsx
@@ -51,10 +56,24 @@ export interface BoxProps extends BoxPropsType {
  */
 export function Box(props: BoxProps): JSX.Element {
 	const { children, ...restProps } = props;
+	const nodeRef = useRef<InkxNode | null>(null);
+	const [node, setNode] = useState<InkxNode | null>(null);
 
-	// Render as inkx-box host element
-	// The reconciler will create an InkxNode and apply props to the Yoga node
-	return <inkx-box {...restProps}>{children}</inkx-box>;
+	// After mount, ref points to the InkxNode (via getPublicInstance in reconciler).
+	// Update state to provide the node to children via context.
+	useLayoutEffect(() => {
+		if (nodeRef.current && nodeRef.current !== node) {
+			setNode(nodeRef.current);
+		}
+	});
+
+	// Render inkx-box with ref, wrap children in NodeContext
+	// The reconciler creates an InkxNode, ref gives us access to it
+	return (
+		<inkx-box ref={nodeRef} {...restProps}>
+			<NodeContext.Provider value={node}>{children}</NodeContext.Provider>
+		</inkx-box>
+	);
 }
 
 // Re-export ComputedLayout for convenience
