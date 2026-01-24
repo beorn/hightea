@@ -74,9 +74,11 @@ export function useContentRect(): Rect {
 export function useContentRectCallback(callback: (rect: Rect) => void): void {
 	const node = useContext(NodeContext);
 
-	useLayoutEffect(() => {
-		if (!node) return;
+	if (!node) {
+		throw new Error('useContentRectCallback must be used within an Inkx component');
+	}
 
+	useLayoutEffect(() => {
 		const handleLayoutComplete = () => {
 			if (node.contentRect) {
 				callback(node.contentRect);
@@ -165,9 +167,11 @@ export function useScreenRect(): Rect {
 export function useScreenRectCallback(callback: (rect: Rect) => void): void {
 	const node = useContext(NodeContext);
 
-	useLayoutEffect(() => {
-		if (!node) return;
+	if (!node) {
+		throw new Error('useScreenRectCallback must be used within an Inkx component');
+	}
 
+	useLayoutEffect(() => {
 		const handleLayoutComplete = () => {
 			if (node.screenRect) {
 				callback(node.screenRect);
