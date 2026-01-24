@@ -58,7 +58,7 @@ export type { TerminalBuffer } from '../buffer.js';
 // Re-export locator API for DOM queries
 export { createLocator, type InkxLocator } from './locator.js';
 export type { Rect } from '../types.js';
-import { AppContext, InputContext } from '../context.js';
+import { AppContext, InputContext, StdoutContext } from '../context.js';
 import type { LayoutEngine } from '../layout-engine.js';
 import { setLayoutEngine } from '../layout-engine.js';
 import { executeRender } from '../pipeline.js';
@@ -307,7 +307,17 @@ export function createTestRenderer(options: TestRendererOptions = {}): TestRende
 			}
 		};
 
-		// Wrap element with contexts to enable useApp and useInput hooks
+		// Create a mock stdout for useStdout hook
+		// Provides columns/rows from test config and a no-op write function
+		const mockStdout = {
+			columns: instance.columns,
+			rows: instance.rows,
+			write: () => true,
+			// Add required WriteStream properties for type compatibility
+			isTTY: true,
+		} as unknown as NodeJS.WriteStream;
+
+		// Wrap element with contexts to enable useApp, useInput, and useStdout hooks
 		function wrapWithContexts(el: ReactElement): ReactElement {
 			return React.createElement(
 				AppContext.Provider,
@@ -317,14 +327,23 @@ export function createTestRenderer(options: TestRendererOptions = {}): TestRende
 					},
 				},
 				React.createElement(
-					InputContext.Provider,
+					StdoutContext.Provider,
 					{
 						value: {
-							eventEmitter: instance.inputEmitter,
-							exitOnCtrlC: false,
+							stdout: mockStdout,
+							write: () => {},
 						},
 					},
-					el,
+					React.createElement(
+						InputContext.Provider,
+						{
+							value: {
+								eventEmitter: instance.inputEmitter,
+								exitOnCtrlC: false,
+							},
+						},
+						el,
+					),
 				),
 			);
 		}
