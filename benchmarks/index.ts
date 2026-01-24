@@ -51,6 +51,8 @@ function createMockNode(
     parent: null,
     layoutNode,
     computedLayout: null,
+    contentRect: null,
+    screenRect: null,
     prevLayout: null,
     layoutDirty: true,
     contentDirty: true,
@@ -60,9 +62,9 @@ function createMockNode(
   };
 
   for (let i = 0; i < children.length; i++) {
-    children[i].parent = node;
-    if (children[i].layoutNode) {
-      layoutNode.insertChild(children[i].layoutNode!, i);
+    children[i]!.parent = node;
+    if (children[i]!.layoutNode) {
+      layoutNode.insertChild(children[i]!.layoutNode!, i);
     }
   }
 
