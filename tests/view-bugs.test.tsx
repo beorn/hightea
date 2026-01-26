@@ -166,7 +166,7 @@ describe("Bug km-5x66: Bottom bar background color", () => {
       <Box width={80} justifyContent="space-between" paddingX={1}>
         {/* Left side: store indicator (the bug) */}
         <Text>
-          <Text color="green">DISK REPO /path/to/vault</Text>
+          <Text color="green">DISK REPO /path/to/repo</Text>
         </Text>
         {/* Right side: mode indicators */}
         <Text>
@@ -180,7 +180,7 @@ describe("Bug km-5x66: Bottom bar background color", () => {
   function FixedBottomBar() {
     return (
       <Box width={80} justifyContent="space-between" paddingX={1}>
-        <Text color="green">DISK REPO /path/to/vault</Text>
+        <Text color="green">DISK REPO /path/to/repo</Text>
         <Text inverse>{" CARDS VIEW "}</Text>
       </Box>
     );
