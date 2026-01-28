@@ -1,12 +1,19 @@
-# useLayout
+# useContentRect
 
 **Inkx only** - Returns the computed dimensions of the component's container.
 
 This is the key addition in Inkx. Components can query their actual size instead of manually threading width props.
 
+::: info Note
+`useLayout` is a deprecated alias for `useContentRect`. Both work identically, but prefer `useContentRect` for new code.
+:::
+
 ## Import
 
 ```tsx
+import { useContentRect } from "inkx";
+
+// Deprecated alias (still works)
 import { useLayout } from "inkx";
 ```
 
@@ -14,7 +21,7 @@ import { useLayout } from "inkx";
 
 ```tsx
 function SizedBox() {
-  const { width, height } = useLayout();
+  const { width, height } = useContentRect();
 
   return (
     <Box borderStyle="single">
@@ -51,7 +58,7 @@ If your component breaks on `width=0`, add a guard:
 
 ```tsx
 function Header() {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   if (width === 0) return null; // Or a loading state
 
@@ -63,7 +70,7 @@ Or handle it in your rendering logic:
 
 ```tsx
 function ProgressBar({ progress }: { progress: number }) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   // Safe even when width=0
   const filled = Math.floor(width * progress);
@@ -71,8 +78,8 @@ function ProgressBar({ progress }: { progress: number }) {
 
   return (
     <Text>
-      {"█".repeat(filled)}
-      {"░".repeat(empty)}
+      {"#".repeat(filled)}
+      {"-".repeat(empty)}
     </Text>
   );
 }
@@ -84,7 +91,7 @@ function ProgressBar({ progress }: { progress: number }) {
 
 ```tsx
 function ResponsiveBox() {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   // Stack vertically on narrow terminals
   const direction = width < 60 ? "column" : "row";
@@ -106,7 +113,7 @@ function ResponsiveBox() {
 
 ```tsx
 function CenteredText({ children }: { children: string }) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   const padding = Math.max(0, Math.floor((width - children.length) / 2));
 
@@ -123,13 +130,13 @@ function CenteredText({ children }: { children: string }) {
 
 ```tsx
 function TruncatedTitle({ title }: { title: string }) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   if (title.length <= width) {
     return <Text>{title}</Text>;
   }
 
-  return <Text>{title.slice(0, width - 1)}…</Text>;
+  return <Text>{title.slice(0, width - 1)}...</Text>;
 }
 ```
 
@@ -137,7 +144,7 @@ function TruncatedTitle({ title }: { title: string }) {
 
 ```tsx
 function DebugOverlay({ children }: { children: React.ReactNode }) {
-  const { width, height, x, y } = useLayout();
+  const { width, height, x, y } = useContentRect();
 
   return (
     <Box flexDirection="column">
@@ -154,7 +161,7 @@ function DebugOverlay({ children }: { children: React.ReactNode }) {
 
 ```tsx
 function ProportionalColumns() {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   // 30% / 70% split
   const leftWidth = Math.floor(width * 0.3);
@@ -223,7 +230,7 @@ function Content() {
 }
 
 function Column() {
-  const { width } = useLayout(); // Only query where actually needed
+  const { width } = useContentRect(); // Only query where actually needed
   // Use width for truncation, responsive behavior, etc.
 }
 ```

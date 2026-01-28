@@ -20,7 +20,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Box, render, Text, type NonTTYMode } from '../src/index.js';
+import { Box, render, Text, createTerm, type NonTTYMode } from '../src/index.js';
 
 function ProgressExample() {
 	const [progress, setProgress] = useState(0);
@@ -66,7 +66,8 @@ async function main() {
 	console.log(`stdout.isTTY: ${process.stdout.isTTY}`);
 	console.log('---\n');
 
-	const { waitUntilExit } = await render(<ProgressExample />, {
+	using term = createTerm();
+	const { waitUntilExit } = await render(term, <ProgressExample />, {
 		mode: 'inline',
 		nonTTYMode,
 	});

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, Box, Text, useApp, useInput } from "../../src/index.js";
+import { render, Box, Text, useApp, useInput, createTerm } from "../../src/index.js";
 
 function App() {
   const { exit } = useApp();
@@ -29,7 +29,8 @@ function App() {
 }
 
 async function main() {
-  const { waitUntilExit } = await render(<App />);
+  using term = createTerm();
+  const { waitUntilExit } = await render(term, <App />);
   await waitUntilExit();
 }
 

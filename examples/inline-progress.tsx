@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { render, Box, Text } from '../src/index.js';
+import { render, Box, Text, createTerm } from '../src/index.js';
 
 function InlineProgress() {
 	const [progress, setProgress] = useState(0);
@@ -46,7 +46,8 @@ function InlineProgress() {
 async function main() {
 	console.log('This is regular console output before the progress bar.\n');
 
-	const { waitUntilExit } = await render(<InlineProgress />, {
+	using term = createTerm();
+	const { waitUntilExit } = await render(term, <InlineProgress />, {
 		mode: 'inline',
 		exitOnCtrlC: true,
 	});

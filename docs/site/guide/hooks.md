@@ -1,16 +1,16 @@
 # Hooks
 
-Inkx provides the same hooks as Ink, plus the new `useLayout()` hook.
+Inkx provides the same hooks as Ink, plus layout feedback hooks.
 
-## useLayout
+## useContentRect
 
 **Inkx only** - The key addition. Returns the computed dimensions of the component's container.
 
 ```tsx
-import { Box, Text, useLayout } from "inkx";
+import { Box, Text, useContentRect } from "inkx";
 
 function SizedBox() {
-  const { width, height, x, y } = useLayout();
+  const { width, height, x, y } = useContentRect();
 
   return (
     <Box borderStyle="single">
@@ -24,6 +24,10 @@ function SizedBox() {
   );
 }
 ```
+
+::: info Note
+`useLayout` is a deprecated alias for `useContentRect`. Both work identically, but prefer `useContentRect` for new code.
+:::
 
 ### Return Value
 
@@ -40,7 +44,7 @@ On the first render, dimensions are `{ width: 0, height: 0, x: 0, y: 0 }`. This 
 
 ```tsx
 function Header() {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   // Guard against first render if needed
   if (width === 0) return null;
@@ -50,6 +54,36 @@ function Header() {
 ```
 
 In practice, both renders happen before the first paint, so this is usually invisible.
+
+## useTerm
+
+**Inkx only** - Access the Term instance for terminal capabilities and styling.
+
+```tsx
+import { useTerm } from "inkx";
+
+function ColoredOutput() {
+  const term = useTerm();
+
+  return (
+    <Box>
+      <Text>{term.green("Success!")} Operation completed.</Text>
+      <Text>Terminal size: {term.columns}x{term.rows}</Text>
+    </Box>
+  );
+}
+```
+
+### Return Value
+
+Returns the `Term` instance passed to `render()`. Provides:
+
+| Property/Method | Description                           |
+| --------------- | ------------------------------------- |
+| `columns`       | Terminal width                        |
+| `rows`          | Terminal height                       |
+| `hasColor()`    | Check if terminal supports colors     |
+| Color methods   | `red()`, `green()`, `bold()`, etc.    |
 
 ## useInput
 

@@ -10,7 +10,7 @@
  *
  * ```tsx
  * // Components and hooks
- * import { Box, Text, useContentRect, useInput, useApp, render } from 'inkx';
+ * import { Box, Text, useContentRect, useInput, useApp, render, createTerm, term } from 'inkx';
  *
  * // Testing utilities
  * import { createTestRenderer, createLocator } from 'inkx/testing';
@@ -19,7 +19,7 @@
  * ## Quick Example
  *
  * ```tsx
- * import { render, Box, Text, useInput, useApp } from 'inkx';
+ * import { render, Box, Text, useInput, useApp, createTerm } from 'inkx';
  *
  * function App() {
  *   const { exit } = useApp();
@@ -29,7 +29,16 @@
  *   return <Box><Text>Press q to quit</Text></Box>;
  * }
  *
- * await render(<App />);
+ * using term = createTerm();
+ * await render(term, <App />);
+ * ```
+ *
+ * Or use the default term for simple scripts:
+ *
+ * ```tsx
+ * import { render, Box, Text, term } from 'inkx';
+ *
+ * await render(term, <Box><Text>Hello</Text></Box>);
  * ```
  *
  * @packageDocumentation
@@ -148,7 +157,7 @@ export { TermContext } from './context.js';
 // =============================================================================
 
 // Term primitives (so consumers don't need to import from chalkx directly)
-export { createTerm, patchConsole } from '@beorn/chalkx';
+export { createTerm, term, patchConsole } from '@beorn/chalkx';
 export type { Term, StyleChain, PatchedConsole, ColorLevel, ConsoleEntry } from '@beorn/chalkx';
 
 // Hit Registry (mouse support)
@@ -174,17 +183,19 @@ export {
  *
  * @example
  * ```tsx
- * import { render, Box, Text } from 'inkx';
+ * import { render, Box, Text, createTerm } from 'inkx';
  *
  * // Async render (initializes layout engine)
- * const { waitUntilExit, unmount, rerender } = await render(<App />);
+ * using term = createTerm();
+ * const { waitUntilExit, unmount, rerender } = await render(term, <App />);
  * await waitUntilExit();
  *
  * // Sync render (layout engine must be initialized)
- * import { renderSync, initYogaEngine, setLayoutEngine } from 'inkx';
+ * import { renderSync, initYogaEngine, setLayoutEngine, createTerm } from 'inkx';
  * const engine = await initYogaEngine();
  * setLayoutEngine(engine);
- * renderSync(<App />);
+ * using term = createTerm();
+ * renderSync(term, <App />);
  * ```
  */
 export {

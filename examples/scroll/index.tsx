@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from "react";
-import { Box, Text, render, useInput } from "../../src/index.js";
+import { Box, Text, render, useInput, createTerm } from "../../src/index.js";
 
 // Generate sample items
 const items = Array.from({ length: 50 }, (_, i) => ({
@@ -72,4 +72,5 @@ function ScrollExample() {
 }
 
 // Run the app
-await render(<ScrollExample />);
+using term = createTerm();
+await render(term, <ScrollExample />);

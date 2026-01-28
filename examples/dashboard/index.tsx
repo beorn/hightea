@@ -14,6 +14,7 @@ import {
   Text,
   useInput,
   useApp,
+  createTerm,
   type Key,
 } from "../../src/index.js";
 
@@ -196,7 +197,8 @@ function Dashboard(): JSX.Element {
 // ============================================================================
 
 async function main() {
-  const { waitUntilExit } = await render(<Dashboard />);
+  using term = createTerm();
+  const { waitUntilExit } = await render(term, <Dashboard />);
   await waitUntilExit();
 }
 

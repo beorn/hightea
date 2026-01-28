@@ -2,6 +2,36 @@
 
 **Ink, but components know their size.**
 
+## Quick Start
+
+```tsx
+// Basic app with term (NewWay)
+import { render, Box, Text, createTerm } from 'inkx'
+
+using term = createTerm()
+await render(term, (
+  <Box><Text>{term.green('Hello')} world</Text></Box>
+))
+```
+
+```tsx
+// Console capture - logs appear above status line
+import { render, Box, Text, Console, createTerm, patchConsole } from 'inkx'
+
+using term = createTerm()
+using console = patchConsole(globalThis.console)
+await render(term, (
+  <Box flexDirection="column">
+    <Console console={console} />
+    <Text>Status: running</Text>
+  </Box>
+))
+
+console.log('This appears above status line')
+```
+
+## The Problem Inkx Solves
+
 ```tsx
 // Ink: manually thread width through every component
 function Card({ width }: { width: number }) {
@@ -10,7 +40,7 @@ function Card({ width }: { width: number }) {
 
 // Inkx: just ask
 function Card() {
-  const { width } = useLayout();
+  const { width } = useContentRect();
   return <Text>{truncate(title, width)}</Text>;
 }
 ```
@@ -22,7 +52,7 @@ function Card() {
 | Component                                      | Status      |
 | ---------------------------------------------- | ----------- |
 | Core components (Box, Text)                    | Complete    |
-| Hooks (useLayout, useInput, useApp, useStdout) | Complete    |
+| Hooks (useContentRect, useInput, useApp, useTerm) | Complete    |
 | React reconciler (React 19 compatible)         | Complete    |
 | Yoga integration                               | Complete    |
 | Terminal output (double-buffered diffing)      | Complete    |
@@ -30,14 +60,14 @@ function Card() {
 | Visual regression tests                        | Planned     |
 | Ink API compatibility                          | In progress |
 
-## Why Inkx Over Ink?
+## Inkx vs Ink
 
 Based on analysis of Ink's [100+ open issues](https://github.com/vadimdemedes/ink/issues) and recent PRs, Inkx solves problems Ink architecturally cannot:
 
 | Pain Point          | Ink Status                                                                        | Inkx Status                                |
 | ------------------- | --------------------------------------------------------------------------------- | ------------------------------------------ |
 | **Scrolling**       | [Open since 2019](https://github.com/vadimdemedes/ink/issues/222) (5.5+ years!)   | ✅ `overflow="scroll"` just works          |
-| **Layout feedback** | [Architecturally impossible](https://github.com/vadimdemedes/ink/issues/5)        | ✅ `useLayout()` returns actual dimensions |
+| **Layout feedback** | [Architecturally impossible](https://github.com/vadimdemedes/ink/issues/5)        | ✅ `useContentRect()` returns dimensions |
 | **Text overflow**   | [Multiple issues](https://github.com/vadimdemedes/ink/issues/584) - breaks layout | ✅ Auto-truncates by default               |
 | **Cursor API**      | [Open since 2019](https://github.com/vadimdemedes/ink/issues/251) (6+ years!)     | 🔜 Planned - layout feedback enables this  |
 
@@ -48,7 +78,7 @@ Based on analysis of Ink's [100+ open issues](https://github.com/vadimdemedes/in
 - Chalk compatibility
 - `useInput()` keyboard handling
 
-**Where Inkx can do better**:
+**Where Inkx strives to do better**:
 
 - Components know their dimensions without prop threading
 - Scrolling without manual virtualization
@@ -115,20 +145,25 @@ function Column({ items }: { items: Item[] }) {
 }
 
 function Card({ item }: { item: Item }) {
-  const { width } = useLayout(); // ← just ask
+  const { width } = useContentRect(); // ← just ask
   return <Text>{truncate(item.title, width - 4)}</Text>;
 }
 ```
 
 ## API
 
-Drop-in Ink replacement:
+Drop-in Ink replacement with term injection:
 
 ```tsx
-import { Box, Text, render, useInput, useApp } from "inkx";
+import { Box, Text, render, useInput, useApp, createTerm, useTerm } from "inkx";
+
+using term = createTerm()
+await render(term, <App />)
 ```
 
-**New**: `useLayout()` returns `{ width, height, x, y }`.
+**Core hooks**:
+- `useContentRect()` — returns `{ width, height, x, y }` (component's computed dimensions)
+- `useTerm()` — returns the `Term` instance for styling and capability detection
 
 **Implemented**: `overflow="scroll"` with `scrollTo={index}` for automatic scrolling:
 
@@ -144,6 +179,112 @@ import { Box, Text, render, useInput, useApp } from "inkx";
 Scroll containers show visual indicators on borders (e.g., `▼3` showing 3 items below).
 
 **Coming soon**: Text auto-truncation (opt out with `wrap="truncate"`).
+
+## NewWay vs OldWay
+
+Inkx prefers **explicit term injection** over implicit globals. This makes code more testable, dependencies clearer, and cleanup automatic via `Disposable`.
+
+### Why NewWay?
+
+| Aspect | OldWay | NewWay |
+|--------|--------|--------|
+| **Dependencies** | Implicit globals | Explicit injection |
+| **Testing** | Mock globals | Inject test term |
+| **Cleanup** | Manual | Automatic via `using` |
+| **Terminal detection** | Global functions | Instance methods |
+
+### Migration Patterns
+
+**Rendering**
+
+```tsx
+// OldWay - render without term
+import { render, Box, Text } from 'inkx'
+await render(<App />)  // ❌ useTerm() will throw
+
+// NewWay - explicit term injection
+import { render, Box, Text, createTerm } from 'inkx'
+using term = createTerm()
+await render(term, <App />)  // ✅ components can useTerm()
+```
+
+**Styling**
+
+```tsx
+// OldWay - global chalk instance
+import chalk from 'chalk'
+console.log(chalk.red('error'))
+
+// NewWay - flattened styling via term
+import { createTerm } from 'inkx'
+using term = createTerm()
+console.log(term.red('error'))
+console.log(term.bold.green('success'))
+```
+
+**Terminal Detection**
+
+```tsx
+// OldWay - global detection functions
+import { isTTY } from 'some-package'
+if (isTTY()) { ... }
+
+// NewWay - instance-based detection
+using term = createTerm()
+term.hasCursor()   // Can reposition cursor?
+term.hasInput()    // Can read raw keystrokes?
+term.hasColor()    // 'basic' | '256' | 'truecolor' | null
+term.hasUnicode()  // Can render unicode?
+```
+
+### Anti-Patterns to Avoid
+
+```tsx
+// ❌ Rendering without term - useTerm() throws
+await render(<App />)
+
+// ❌ Not awaiting async render
+render(term, <App />)
+
+// ❌ Mixing chalk backgrounds with Box backgroundColor
+<Box backgroundColor="cyan">
+  <Text>{chalk.bgBlack('text')}</Text>  // Visual artifacts
+</Box>
+```
+
+**Correct patterns:**
+
+```tsx
+// ✅ Always pass term to render
+using term = createTerm()
+await render(term, <App />)
+
+// ✅ Use bgOverride for intentional background mixing
+import { bgOverride } from '@beorn/chalkx'
+<Box backgroundColor="cyan">
+  <Text>{bgOverride(chalk.bgBlack('intentional'))}</Text>
+</Box>
+```
+
+### Why Term Matters
+
+- **Testability**: Inject mock term with specific capabilities, no global mocking needed
+- **Multiple contexts**: Each render can have different terminal configurations
+- **Consistent styling**: Components share term via React context (`useTerm()`)
+- **Explicit cleanup**: Disposable pattern with `using` keyword ensures proper teardown
+- **No global state**: Detection cached per-term instance, not globally
+
+### Key APIs for NewWay
+
+| API | Description |
+|-----|-------------|
+| `createTerm()` | Create a Term instance (Disposable) |
+| `render(term, element)` | Render with term injection |
+| `useTerm()` | Access term in components |
+| `Console` | Render captured console output |
+| `patchConsole(console)` | Capture console calls (Disposable) |
+
+**Note**: `useLayout` is a deprecated alias for `useContentRect`. Use `useContentRect` in new code.
 
 ## Why a New Project?
 
@@ -299,7 +440,7 @@ The pattern is universal: calculate sizes first, render content second.
 Full documentation at `docs/site/` (VitePress):
 
 - **Getting Started** — installation, basic usage
-- **API Reference** — Box, Text, hooks (useLayout, useInput, useApp, useStdout)
+- **API Reference** — Box, Text, hooks (useContentRect, useInput, useApp, useTerm)
 - **Guides** — scrolling, text handling, migration from Ink
 - **Architecture** — render pipeline, reconciler internals
 

@@ -1,6 +1,6 @@
 # Getting Started
 
-Inkx is a terminal UI framework for React that lets components know their computed dimensions. It's a drop-in replacement for Ink with one key addition: the `useLayout()` hook.
+Inkx is a terminal UI framework for React that lets components know their computed dimensions. It's a drop-in replacement for Ink with one key addition: the `useContentRect()` hook.
 
 ## Installation
 
@@ -29,7 +29,7 @@ pnpm add inkx
 Create a file called `app.tsx`:
 
 ```tsx
-import { Box, Text, render } from "inkx";
+import { Box, Text, render, createTerm } from "inkx";
 
 function App() {
   return (
@@ -39,7 +39,8 @@ function App() {
   );
 }
 
-render(<App />);
+using term = createTerm();
+await render(term, <App />);
 ```
 
 Run it:
@@ -53,13 +54,13 @@ You should see a rounded box with "Hello from Inkx!" inside.
 
 ## Using Layout Feedback
 
-The key feature of Inkx is `useLayout()`. Components can query their computed dimensions:
+The key feature of Inkx is `useContentRect()`. Components can query their computed dimensions:
 
 ```tsx
-import { Box, Text, render, useLayout } from "inkx";
+import { Box, Text, render, useContentRect, createTerm } from "inkx";
 
 function SizedBox() {
-  const { width, height } = useLayout();
+  const { width, height } = useContentRect();
   return (
     <Box borderStyle="single" flexGrow={1}>
       <Text>
@@ -79,7 +80,8 @@ function App() {
   );
 }
 
-render(<App />);
+using term = createTerm();
+await render(term, <App />);
 ```
 
 Each `SizedBox` will display its actual computed dimensions. No prop threading needed!
@@ -89,7 +91,7 @@ Each `SizedBox` will display its actual computed dimensions. No prop threading n
 Inkx handles scrolling automatically. Just use `overflow="scroll"`:
 
 ```tsx
-import { Box, Text, render, useInput } from "inkx";
+import { Box, Text, render, useInput, createTerm } from "inkx";
 import { useState } from "react";
 
 const items = Array.from({ length: 100 }, (_, i) => `Item ${i + 1}`);
@@ -118,7 +120,8 @@ function App() {
   );
 }
 
-render(<App />);
+using term = createTerm();
+await render(term, <App />);
 ```
 
 Inkx measures all children, calculates which are visible, and only renders content for visible items. No height estimation or virtualization config needed.
@@ -126,6 +129,6 @@ Inkx measures all children, calculates which are visible, and only renders conte
 ## Next Steps
 
 - [Components](/guide/components) - Learn about Box, Text, and other components
-- [Hooks](/guide/hooks) - Deep dive into useLayout, useInput, and more
+- [Hooks](/guide/hooks) - Deep dive into useContentRect, useInput, and more
 - [Migration from Ink](/guide/migration) - Switching from an existing Ink app
 - [API Reference](/api/box) - Complete API documentation

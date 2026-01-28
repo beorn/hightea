@@ -5,28 +5,35 @@ Render a React element to the terminal.
 ## Import
 
 ```tsx
-import { render } from "inkx";
+import { render, createTerm } from "inkx";
 ```
 
 ## Signature
 
 ```tsx
 async function render(
+  term: Term,
   element: ReactElement,
   options?: RenderOptions,
 ): Promise<Instance>;
 ```
 
+### Parameters
+
+| Parameter | Type           | Description                                |
+| --------- | -------------- | ------------------------------------------ |
+| `term`    | `Term`         | Terminal instance from `createTerm()`      |
+| `element` | `ReactElement` | React element to render                    |
+| `options` | `RenderOptions`| Optional render configuration              |
+
 ### Options
 
-| Option            | Type                 | Default          | Description                                             |
-| ----------------- | -------------------- | ---------------- | ------------------------------------------------------- |
-| `stdout`          | `NodeJS.WriteStream` | `process.stdout` | Output stream to render to                              |
-| `stdin`           | `NodeJS.ReadStream`  | `process.stdin`  | Input stream for keyboard events                        |
-| `exitOnCtrlC`     | `boolean`            | `true`           | Exit the app when Ctrl+C is pressed                     |
-| `patchConsole`    | `boolean`            | `true`           | Patch console methods to work with Inkx output          |
-| `debug`           | `boolean`            | `false`          | Enable verbose debug logging                            |
-| `alternateScreen` | `boolean`            | `false`          | Use alternate screen buffer (restores terminal on exit) |
+| Option            | Type      | Default | Description                                             |
+| ----------------- | --------- | ------- | ------------------------------------------------------- |
+| `exitOnCtrlC`     | `boolean` | `true`  | Exit the app when Ctrl+C is pressed                     |
+| `patchConsole`    | `boolean` | `true`  | Patch console methods to work with Inkx output          |
+| `debug`           | `boolean` | `false` | Enable verbose debug logging                            |
+| `alternateScreen` | `boolean` | `false` | Use alternate screen buffer (restores terminal on exit) |
 
 ### Return Value
 
@@ -44,9 +51,12 @@ Returns a `Promise<Instance>` with the following methods:
 ### Basic Usage
 
 ```tsx
-import { render, Box, Text } from "inkx";
+import { render, Box, Text, createTerm } from "inkx";
+
+using term = createTerm();
 
 await render(
+  term,
   <Box>
     <Text>Hello, World!</Text>
   </Box>,
@@ -56,18 +66,18 @@ await render(
 ### With Custom Options
 
 ```tsx
-import { render, Box, Text } from "inkx";
-import { createWriteStream } from "fs";
+import { render, Box, Text, createTerm } from "inkx";
 
-const logStream = createWriteStream("/tmp/output.log");
+using term = createTerm();
 
 await render(
+  term,
   <Box>
-    <Text>Logging to file...</Text>
+    <Text>Full-screen mode...</Text>
   </Box>,
   {
-    stdout: logStream,
     exitOnCtrlC: false,
+    alternateScreen: true,
     debug: true,
   },
 );
@@ -76,9 +86,11 @@ await render(
 ### Programmatic Re-render
 
 ```tsx
-import { render, Box, Text } from "inkx";
+import { render, Text, createTerm } from "inkx";
 
-const { rerender } = await render(<Text>Count: 0</Text>);
+using term = createTerm();
+
+const { rerender } = await render(term, <Text>Count: 0</Text>);
 
 let count = 0;
 setInterval(() => {
@@ -90,7 +102,7 @@ setInterval(() => {
 ### Async App with waitUntilExit
 
 ```tsx
-import { render, Box, Text, useApp, useInput } from "inkx";
+import { render, Box, Text, useApp, useInput, createTerm } from "inkx";
 
 function App() {
   const { exit } = useApp();
@@ -109,7 +121,9 @@ function App() {
 }
 
 async function main() {
-  const { waitUntilExit } = await render(<App />);
+  using term = createTerm();
+
+  const { waitUntilExit } = await render(term, <App />);
 
   await waitUntilExit();
   console.log("App exited!");
@@ -121,10 +135,13 @@ main();
 ### Alternate Screen Mode
 
 ```tsx
-import { render, Box, Text } from "inkx";
+import { render, Box, Text, createTerm } from "inkx";
+
+using term = createTerm();
 
 // Uses alternate screen buffer - terminal is restored on exit
 const { waitUntilExit } = await render(
+  term,
   <Box flexDirection="column" padding={1}>
     <Text>Full-screen app</Text>
     <Text>Terminal will be restored when you exit</Text>
@@ -135,23 +152,46 @@ const { waitUntilExit } = await render(
 await waitUntilExit();
 ```
 
+### Using Term in Components
+
+```tsx
+import { render, Box, Text, useTerm, createTerm } from "inkx";
+
+function ColoredOutput() {
+  const term = useTerm();
+
+  return (
+    <Box>
+      <Text>{term.green("Success!")} Operation completed.</Text>
+    </Box>
+  );
+}
+
+using term = createTerm();
+await render(term, <ColoredOutput />);
+```
+
 ## Synchronous Variant
 
 For cases where Yoga is already initialized, use `renderSync`:
 
 ```tsx
-import { render, renderSync, Box, Text } from "inkx";
+import { render, renderSync, Text, createTerm } from "inkx";
+
+using term = createTerm();
 
 // Initialize Yoga with first render
-await render(<Text>Loading...</Text>);
+await render(term, <Text>Loading...</Text>);
 
 // Subsequent renders can be synchronous
-const instance = renderSync(<Text>Ready!</Text>);
+const instance = renderSync(term, <Text>Ready!</Text>);
 ```
 
 ## Notes
 
 - `render()` is async because it initializes the Yoga layout engine on first call
-- Multiple calls to `render()` with the same `stdout` reuse the same instance
+- The `term` parameter is required - use `createTerm()` to create one
+- Use `using term = createTerm()` for automatic cleanup with explicit resource management
 - Use `alternateScreen: true` for full-screen apps to restore terminal state on exit
 - The `patchConsole` option prevents console output from corrupting the UI
+- Components can access the term via `useTerm()` hook

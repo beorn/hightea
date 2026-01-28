@@ -678,71 +678,39 @@ class InkxInstance {
 /**
  * Render a React element to the terminal.
  *
- * NewWay (preferred): Pass term first for access to terminal capabilities
+ * @example
  * ```tsx
- * import { render, Box, Text, useTerm } from 'inkx';
- * import { createTerm } from '@beorn/chalkx';
+ * import { render, Box, Text, useTerm, createTerm } from 'inkx';
  *
  * using term = createTerm();
  * await render(term, <App />);
  * ```
  *
- * OldWay (deprecated): Without term
+ * @example Using the default term for simple scripts
  * ```tsx
- * import { render, Box, Text } from 'inkx';
+ * import { render, Box, Text, term } from 'inkx';
  *
- * await render(<App />);
+ * await render(term, <App />);
  * ```
  *
- * @param termOrElement - Term instance (NewWay) or React element (OldWay)
- * @param elementOrOptions - React element (NewWay) or options (OldWay)
- * @param maybeOptions - Options (NewWay only)
+ * @param term - Term instance for terminal capabilities
+ * @param element - React element to render
+ * @param options - Optional render options
  * @returns An Instance object with control methods
  */
 export async function render(
 	term: Term,
 	element: ReactElement,
 	options?: RenderOptions,
-): Promise<Instance>;
-export async function render(
-	element: ReactElement,
-	options?: RenderOptions,
-): Promise<Instance>;
-export async function render(
-	termOrElement: Term | ReactElement,
-	elementOrOptions?: ReactElement | RenderOptions,
-	maybeOptions?: RenderOptions,
 ): Promise<Instance> {
-	// Detect which overload was called
-	const isTerm = (obj: unknown): obj is Term =>
-		obj !== null &&
-		typeof obj === 'object' &&
-		'hasCursor' in obj &&
-		'hasColor' in obj &&
-		'stdout' in obj;
+	// Use term's streams by default
+	const mergedOptions: RenderOptions = {
+		...options,
+		stdout: options?.stdout ?? term.stdout,
+		stdin: options?.stdin ?? term.stdin,
+	};
 
-	let term: Term | null = null;
-	let element: ReactElement;
-	let options: RenderOptions;
-
-	if (isTerm(termOrElement)) {
-		// NewWay: render(term, element, options?)
-		term = termOrElement;
-		element = elementOrOptions as ReactElement;
-		options = maybeOptions ?? {};
-		// Use term's streams
-		options = {
-			...options,
-			stdout: options.stdout ?? term.stdout,
-			stdin: options.stdin ?? term.stdin,
-		};
-	} else {
-		// OldWay: render(element, options?)
-		element = termOrElement;
-		options = (elementOrOptions as RenderOptions) ?? {};
-	}
-
-	return renderImpl(element, options, term);
+	return renderImpl(element, mergedOptions, term);
 }
 
 /**
@@ -750,8 +718,8 @@ export async function render(
  */
 async function renderImpl(
 	element: ReactElement,
-	options: RenderOptions = {},
-	term: Term | null = null,
+	options: RenderOptions,
+	term: Term,
 ): Promise<Instance> {
 	debug('render() called');
 	const renderStart = Date.now();
@@ -781,10 +749,8 @@ async function renderImpl(
 		debug('render(): InkxInstance created in %dms', Date.now() - renderStart);
 	}
 
-	// Wrap element with TermContext if term provided
-	const wrappedElement = term
-		? <TermContext.Provider value={term}>{element}</TermContext.Provider>
-		: element;
+	// Wrap element with TermContext
+	const wrappedElement = <TermContext.Provider value={term}>{element}</TermContext.Provider>;
 
 	// Render the element
 	debug('render(): calling instance.render()');
@@ -792,11 +758,9 @@ async function renderImpl(
 	debug('render(): instance.render() complete, total: %dms', Date.now() - renderStart);
 
 	// Wrap rerender to also include TermContext
-	const rerender = term
-		? (newElement: ReactNode) => instance.rerender(
-				<TermContext.Provider value={term}>{newElement}</TermContext.Provider>
-			)
-		: instance.rerender;
+	const rerender = (newElement: ReactNode) => instance.rerender(
+		<TermContext.Provider value={term}>{newElement}</TermContext.Provider>
+	);
 
 	return {
 		rerender,
@@ -809,20 +773,14 @@ async function renderImpl(
 /**
  * Synchronous render function for use when layout engine is already initialized.
  *
- * NewWay (preferred): Pass term first for access to terminal capabilities
+ * @example
  * ```tsx
- * import { renderSync, Box, Text, useTerm, initYogaEngine, setLayoutEngine } from 'inkx';
- * import { createTerm } from '@beorn/chalkx';
+ * import { renderSync, Box, Text, useTerm, initYogaEngine, setLayoutEngine, createTerm } from 'inkx';
  *
  * const engine = await initYogaEngine();
  * setLayoutEngine(engine);
  * using term = createTerm();
  * renderSync(term, <App />);
- * ```
- *
- * OldWay (deprecated): Without term
- * ```tsx
- * renderSync(<App />);
  * ```
  *
  * @returns An Instance object with control methods
@@ -831,15 +789,6 @@ export function renderSync(
 	term: Term,
 	element: ReactElement,
 	options?: RenderOptions,
-): Instance;
-export function renderSync(
-	element: ReactElement,
-	options?: RenderOptions,
-): Instance;
-export function renderSync(
-	termOrElement: Term | ReactElement,
-	elementOrOptions?: ReactElement | RenderOptions,
-	maybeOptions?: RenderOptions,
 ): Instance {
 	if (!isLayoutEngineInitialized()) {
 		throw new Error(
@@ -847,45 +796,23 @@ export function renderSync(
 		);
 	}
 
-	// Detect which overload was called
-	const isTerm = (obj: unknown): obj is Term =>
-		obj !== null &&
-		typeof obj === 'object' &&
-		'hasCursor' in obj &&
-		'hasColor' in obj &&
-		'stdout' in obj;
-
-	let term: Term | null = null;
-	let element: ReactElement;
-	let options: RenderOptions;
-
-	if (isTerm(termOrElement)) {
-		// NewWay: renderSync(term, element, options?)
-		term = termOrElement;
-		element = elementOrOptions as ReactElement;
-		options = maybeOptions ?? {};
-		// Use term's streams
-		options = {
-			...options,
-			stdout: options.stdout ?? term.stdout,
-			stdin: options.stdin ?? term.stdin,
-		};
-	} else {
-		// OldWay: renderSync(element, options?)
-		element = termOrElement;
-		options = (elementOrOptions as RenderOptions) ?? {};
-	}
+	// Use term's streams by default
+	const mergedOptions: RenderOptions = {
+		...options,
+		stdout: options?.stdout ?? term.stdout,
+		stdin: options?.stdin ?? term.stdin,
+	};
 
 	// Merge with defaults
 	const resolvedOptions = {
-		stdout: options.stdout ?? process.stdout,
-		stdin: options.stdin ?? process.stdin,
-		exitOnCtrlC: options.exitOnCtrlC ?? true,
-		debug: options.debug ?? false,
-		patchConsole: options.patchConsole ?? true,
-		alternateScreen: options.alternateScreen ?? false,
-		mode: options.mode ?? ('fullscreen' as RenderMode),
-		nonTTYMode: options.nonTTYMode ?? ('auto' as NonTTYMode),
+		stdout: mergedOptions.stdout ?? process.stdout,
+		stdin: mergedOptions.stdin ?? process.stdin,
+		exitOnCtrlC: mergedOptions.exitOnCtrlC ?? true,
+		debug: mergedOptions.debug ?? false,
+		patchConsole: mergedOptions.patchConsole ?? true,
+		alternateScreen: mergedOptions.alternateScreen ?? false,
+		mode: mergedOptions.mode ?? ('fullscreen' as RenderMode),
+		nonTTYMode: mergedOptions.nonTTYMode ?? ('auto' as NonTTYMode),
 	};
 
 	// Get or create instance for this stdout
@@ -895,20 +822,16 @@ export function renderSync(
 		instances.set(resolvedOptions.stdout, instance);
 	}
 
-	// Wrap element with TermContext if term provided
-	const wrappedElement = term
-		? <TermContext.Provider value={term}>{element}</TermContext.Provider>
-		: element;
+	// Wrap element with TermContext
+	const wrappedElement = <TermContext.Provider value={term}>{element}</TermContext.Provider>;
 
 	// Render the element
 	instance.render(wrappedElement);
 
 	// Wrap rerender to also include TermContext
-	const rerender = term
-		? (newElement: ReactNode) => instance!.rerender(
-				<TermContext.Provider value={term}>{newElement}</TermContext.Provider>
-			)
-		: instance.rerender;
+	const rerender = (newElement: ReactNode) => instance!.rerender(
+		<TermContext.Provider value={term}>{newElement}</TermContext.Provider>
+	);
 
 	return {
 		rerender,

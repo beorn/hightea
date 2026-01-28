@@ -15,6 +15,7 @@ import {
   Text,
   useInput,
   useApp,
+  createTerm,
   type Key,
 } from "../../src/index.js";
 
@@ -371,7 +372,8 @@ function KanbanBoard(): JSX.Element {
 // ============================================================================
 
 async function main() {
-  const { waitUntilExit } = await render(<KanbanBoard />);
+  using term = createTerm();
+  const { waitUntilExit } = await render(term, <KanbanBoard />);
   await waitUntilExit();
 }
 

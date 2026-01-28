@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { render, Box, Text } from '../src/index.js';
+import { render, Box, Text, createTerm } from '../src/index.js';
 
 function Counter() {
 	const [count, setCount] = useState(0);
@@ -33,7 +33,8 @@ function Counter() {
 async function main() {
 	console.log('Before\n');
 
-	const { waitUntilExit } = await render(<Counter />, {
+	using term = createTerm();
+	const { waitUntilExit } = await render(term, <Counter />, {
 		mode: 'inline',
 	});
 

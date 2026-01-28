@@ -15,6 +15,7 @@ import {
   Text,
   useInput,
   useApp,
+  createTerm,
   type Key,
 } from "../../src/index.js";
 
@@ -299,7 +300,8 @@ function TaskList(): JSX.Element {
 // ============================================================================
 
 async function main() {
-  const { waitUntilExit } = await render(<TaskList />);
+  using term = createTerm();
+  const { waitUntilExit } = await render(term, <TaskList />);
   await waitUntilExit();
 }
 
