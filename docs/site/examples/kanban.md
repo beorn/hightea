@@ -38,7 +38,7 @@ bun run examples/kanban/app.tsx
 ::: code-group
 
 ```tsx [app.tsx]
-import { Box, Text, render, useLayout, useInput, useApp } from "inkx";
+import { Box, Text, render, useContentRect, useInput, useApp, createTerm } from "inkx";
 import { useState } from "react";
 
 interface Card {
@@ -69,7 +69,7 @@ const initialColumns: Column[] = [
     id: "doing",
     name: "In Progress",
     cards: [
-      { id: "6", title: "Implement useLayout hook", tags: ["dev"] },
+      { id: "6", title: "Implement useContentRect hook", tags: ["dev"] },
       { id: "7", title: "Scrolling component", tags: ["dev"] },
       { id: "8", title: "Write migration guide", tags: ["docs"] },
     ],
@@ -281,7 +281,7 @@ function ColumnHeader({
   count: number;
   isSelected: boolean;
 }) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   // Truncate name if needed
   const countStr = ` (${count})`;
@@ -332,7 +332,7 @@ function CardList({
 }
 
 function CardRow({ card, isSelected }: { card: Card; isSelected: boolean }) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   const prefix = isSelected ? "> " : "  ";
   const titleWidth = Math.max(0, width - 2);
@@ -382,7 +382,8 @@ function HelpBar() {
   );
 }
 
-render(<App />);
+using term = createTerm();
+await render(term, <App />);
 ```
 
 :::
@@ -552,7 +553,7 @@ The selected card has inverted colors:
 | `overflow="scroll"` | Each column scrolls independently        |
 | `scrollTo={index}`  | Keep selected card visible in its column |
 | `flexGrow={1}`      | Equal-width columns                      |
-| `useLayout()`       | Text truncation in cards and headers     |
+| `useContentRect()`  | Text truncation in cards and headers     |
 | `useInput()`        | Two-axis keyboard navigation             |
 | Variable heights    | Cards with tags are taller               |
 

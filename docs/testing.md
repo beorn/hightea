@@ -214,15 +214,17 @@ cd /tmp/chalk && npm test
 
 ### 3.1 Snapshot-Based Visual Testing
 
-Use `ink-testing-library` pattern with enhanced snapshots:
+Use inkx testing API with text snapshots:
 
 ```typescript
 // tests/visual/visual.test.ts
-import { render } from 'inkx/testing';
+import { createTestRenderer } from 'inkx/testing';
 import { Box, Text } from 'inkx';
 
+const render = createTestRenderer({ columns: 80, rows: 24 });
+
 test('basic layout renders correctly', () => {
-  const { lastFrame } = render(
+  const app = render(
     <Box flexDirection="column" width={40}>
       <Text color="green">Header</Text>
       <Box flexDirection="row">
@@ -232,7 +234,7 @@ test('basic layout renders correctly', () => {
     </Box>
   );
 
-  expect(lastFrame()).toMatchSnapshot();
+  expect(app.text).toMatchSnapshot();
 });
 ```
 
@@ -427,52 +429,51 @@ async function recordMetrics() {
 
 ### 5.1 inkx-testing-library
 
-Inkx provides a testing library with auto-cleanup between renders:
+Inkx provides a Playwright-inspired testing API with **auto-refreshing locators**:
 
 ```typescript
 import { createTestRenderer } from 'inkx/testing';
 import { Box, Text } from 'inkx';
 
-// Create a render function with default options (80 columns, 24 rows)
-const render = createTestRenderer();
+const render = createTestRenderer({ columns: 80, rows: 24 });
 
-// Or with custom dimensions
-const wideRender = createTestRenderer({ columns: 120, rows: 40 });
-
-test('renders text', () => {
-  const { lastFrame, rerender, stdin } = render(
-    <Box><Text>Hello</Text></Box>
+test('renders and responds to input', async () => {
+  const app = render(
+    <Box testID="main">
+      <Text>Hello</Text>
+    </Box>
   );
 
-  expect(lastFrame()).toContain('Hello');
+  // Plain text assertions (no ANSI)
+  expect(app.text).toContain('Hello');
 
-  // Send input to components using useInput
-  stdin.write('q');
+  // Auto-refreshing locators - same object, fresh results
+  expect(app.getByTestId('main').boundingBox()?.width).toBe(80)
+  expect(app.getByText('Hello').count()).toBe(1);
 
-  // Re-render with new props
-  rerender(<Box><Text>World</Text></Box>);
+  // Playwright-style keyboard input
+  await app.press('ArrowDown');
+  await app.press('Enter');
+
+  // Debug output
+  app.debug();
 });
 
 test('another test', () => {
   // Previous render is auto-cleaned when render() is called again
-  const { lastFrame } = render(<Text>Fresh start</Text>);
-  expect(lastFrame()).toContain('Fresh start');
-});
-
-// Per-render dimension overrides
-test('wide render', () => {
-  const { lastFrame } = render(
-    <Box width={100}><Text>Wide</Text></Box>,
-    { columns: 120, rows: 24 }  // Override for this render
-  );
+  const app = render(<Text>Fresh start</Text>);
+  expect(app.text).toContain('Fresh start');
 });
 ```
 
 **Key features:**
 
+- `app.text` — plain text output (no ANSI codes)
+- `app.getByTestId()` / `app.getByText()` — auto-refreshing locators
+- `app.locator('[selector]')` — CSS-style attribute selectors
+- `app.press()` — async keyboard input
+- `app.term` — terminal buffer access
 - Auto-cleanup: Each `render()` call automatically unmounts the previous render
-- `stdin.write()`: Connects to `useInput` hooks via `InputContext`
-- Per-render dimensions: Override `columns` and `rows` for individual renders
 
 ### 5.2 Test Fixtures
 
@@ -652,36 +653,41 @@ Terminal Unicode handling is complex. Test comprehensively:
 
 ```typescript
 // tests/unicode/unicode.test.ts
+import { createTestRenderer } from 'inkx/testing';
+import { Box, Text } from 'inkx';
+
+const render = createTestRenderer({ columns: 80, rows: 24 });
+
 describe('Unicode handling', () => {
   describe('Wide characters (CJK)', () => {
     test('Chinese characters take 2 cells', () => {
-      const { lastFrame } = render(
+      const app = render(
         <Box width={10}>
           <Text>你好世界</Text>
         </Box>
       );
       // "你好世界" = 8 cells (4 chars × 2)
-      expect(lastFrame()).toMatchSnapshot();
+      expect(app.text).toMatchSnapshot();
     });
 
     test('Mixed ASCII and CJK', () => {
-      const { lastFrame } = render(
+      const app = render(
         <Box width={10}>
           <Text>Hi你好</Text>
         </Box>
       );
       // "Hi" = 2 cells, "你好" = 4 cells = 6 total
-      expect(lastFrame()).toMatchSnapshot();
+      expect(app.text).toMatchSnapshot();
     });
 
     test('CJK truncation respects cell width', () => {
-      const { lastFrame } = render(
+      const app = render(
         <Box width={5}>
           <Text>你好世界</Text>
         </Box>
       );
       // Can fit 2 CJK chars (4 cells) + ellipsis
-      expect(lastFrame()).toMatchSnapshot();
+      expect(app.text).toMatchSnapshot();
     });
   });
 
@@ -947,50 +953,57 @@ describe('Long-running stability', () => {
 
 ---
 
-## 9. InkxLocator: DOM Queries for Tests
+## 9. Auto-Refreshing Locators
 
-inkx provides Playwright-inspired DOM queries for testing. Access the InkxNode tree
-and query elements by text, testID, or attribute selectors.
+inkx provides Playwright-inspired locators that **auto-refresh on every access**, eliminating stale reference bugs.
 
 ### 9.1 Quick Start
 
 ```typescript
-import { createTestRenderer, createLocator } from "inkx/testing";
+import { createTestRenderer } from "inkx/testing";
 import { Box, Text } from "inkx";
 
 const render = createTestRenderer({ columns: 80, rows: 24 });
 
-test("finds elements by text", () => {
-  const { getContainer } = render(
+test("locators auto-refresh after state changes", async () => {
+  const app = render(
     <Box>
-      <Text>Task 1</Text>
+      <Text testID="cursor">Task 1</Text>
       <Text>Task 2</Text>
     </Box>
   );
 
-  const locator = createLocator(getContainer());
-  expect(locator.getByText("Task 1").count()).toBe(1);
+  // Get a locator (lazy - doesn't query yet)
+  const cursor = app.getByTestId("cursor");
+
+  // First access queries the current tree
+  expect(cursor.textContent()).toBe("Task 1");
+
+  // After input, same locator queries fresh tree
+  await app.press("j");
+  expect(cursor.textContent()).toBe("Task 2");  // Auto-refreshed!
 });
 ```
 
-### 9.2 Element IDs
-
-Add `id` props for reliable querying:
+### 9.2 Querying Elements
 
 ```tsx
-<Box id="sidebar">
-  <Text id="header">Tasks</Text>
-  <Text id="task-1" data-status="done">
-    Task 1
-  </Text>
-</Box>;
+const app = render(
+  <Box testID="sidebar">
+    <Text testID="header">Tasks</Text>
+    <Text testID="task-1" data-status="done">Task 1</Text>
+  </Box>
+);
 
-// In test - use CSS #id selector
-expect(locator.locator("#sidebar").count()).toBe(1);
-expect(locator.locator("#task-1").textContent()).toBe("Task 1");
+// By testID
+expect(app.getByTestId("sidebar").count()).toBe(1);
 
-// Or use getByTestId (legacy - prefer #id selectors)
-expect(locator.getByTestId("sidebar").count()).toBe(1);
+// By text content
+expect(app.getByText("Task 1").count()).toBe(1);
+expect(app.getByText(/Task \d/).count()).toBe(1);  // regex
+
+// CSS-style attribute selectors
+expect(app.locator('[data-status="done"]').textContent()).toBe("Task 1");
 ```
 
 ### 9.3 Attribute Selectors
@@ -999,19 +1012,19 @@ CSS-like selectors for flexible querying:
 
 ```typescript
 // Presence: [attr]
-locator.locator("[data-selected]");
+app.locator("[data-selected]");
 
 // Exact match: [attr="value"]
-locator.locator('[data-status="done"]');
+app.locator('[data-status="done"]');
 
 // Prefix: [attr^="prefix"]
-locator.locator('[id^="task-"]');
+app.locator('[testID^="task-"]');
 
 // Suffix: [attr$="suffix"]
-locator.locator('[id$="-column"]');
+app.locator('[testID$="-column"]');
 
 // Contains: [attr*="substring"]
-locator.locator('[id*="task"]');
+app.locator('[testID*="task"]');
 ```
 
 ### 9.4 Layout Assertions
@@ -1019,23 +1032,22 @@ locator.locator('[id*="task"]');
 Use `boundingBox()` for position and size:
 
 ```typescript
-const sidebar = locator.getByTestId("sidebar");
-const box = sidebar.boundingBox();
-
-expect(box?.x).toBe(0); // At left edge
-expect(box?.width).toBe(20); // 20 chars wide
+const sidebar = app.getByTestId("sidebar");
+expect(sidebar.boundingBox()?.x).toBe(0);      // At left edge
+expect(sidebar.boundingBox()?.width).toBe(20); // 20 chars wide
 ```
 
-### 9.5 InkxLocator API
+### 9.5 AutoLocator API
 
 | Method               | Returns               | Description                            |
 | -------------------- | --------------------- | -------------------------------------- |
-| `getByText(text)`    | `InkxLocator`         | Find by text content (string or regex) |
-| `getByTestId(id)`    | `InkxLocator`         | Find by testID prop                    |
-| `locator(selector)`  | `InkxLocator`         | CSS-like attribute selector            |
-| `first()`            | `InkxLocator`         | First matching element                 |
-| `last()`             | `InkxLocator`         | Last matching element                  |
-| `nth(index)`         | `InkxLocator`         | Element at index                       |
+| `getByText(text)`    | `AutoLocator`         | Find by text content (string or regex) |
+| `getByTestId(id)`    | `AutoLocator`         | Find by testID prop                    |
+| `locator(selector)`  | `AutoLocator`         | CSS-like attribute selector            |
+| `first()`            | `AutoLocator`         | First matching element                 |
+| `last()`             | `AutoLocator`         | Last matching element                  |
+| `nth(index)`         | `AutoLocator`         | Element at index                       |
+| `filter(options)`    | `AutoLocator`         | Filter matches                         |
 | `resolve()`          | `InkxNode \| null`    | Get first matching node                |
 | `resolveAll()`       | `InkxNode[]`          | Get all matching nodes                 |
 | `count()`            | `number`              | Count matches                          |

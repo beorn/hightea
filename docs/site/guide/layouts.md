@@ -174,7 +174,7 @@ function ColumnSeparator() {
 Putting it all together:
 
 ```tsx
-import { render, Box, Text, useInput, useApp } from "inkx";
+import { render, Box, Text, useInput, useApp, createTerm } from "inkx";
 import { useState } from "react";
 
 function ScrollIndicator({ direction }) {
@@ -285,7 +285,8 @@ function Board() {
   );
 }
 
-render(<Board />);
+using term = createTerm();
+await render(term, <Board />);
 ```
 
 ## Anti-Patterns to Avoid

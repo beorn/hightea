@@ -40,7 +40,7 @@ bun run examples/task-list/app.tsx
 ::: code-group
 
 ```tsx [app.tsx]
-import { Box, Text, render, useLayout, useInput, useApp } from "inkx";
+import { Box, Text, render, useContentRect, useInput, useApp, createTerm } from "inkx";
 import { useState } from "react";
 
 interface Subtask {
@@ -151,7 +151,7 @@ function App() {
 }
 
 function Header({ total, completed }: { total: number; completed: number }) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   return (
     <Box paddingX={1} marginBottom={1}>
@@ -187,7 +187,7 @@ function TaskList({
 }
 
 function TaskRow({ task, isSelected }: { task: Task; isSelected: boolean }) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   const checkbox = task.done ? "[x]" : "[ ]";
   const prefix = isSelected ? ">" : " ";
@@ -227,7 +227,7 @@ function SubtaskRow({
   subtask: Subtask;
   isParentSelected: boolean;
 }) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   const checkbox = subtask.done ? "x" : " ";
 
@@ -258,7 +258,8 @@ function HelpBar() {
   );
 }
 
-render(<App />);
+using term = createTerm();
+await render(term, <App />);
 ```
 
 :::
@@ -369,7 +370,7 @@ const truncatedTitle =
     : task.title;
 ```
 
-The available width comes from `useLayout()`.
+The available width comes from `useContentRect()`.
 
 ## Key Inkx Features Used
 
@@ -377,7 +378,7 @@ The available width comes from `useLayout()`.
 | ------------------- | --------------------------------------------- |
 | `overflow="scroll"` | Scrollable task list                          |
 | `scrollTo={index}`  | Keep selection visible as you navigate        |
-| `useLayout()`       | Calculate available width for text truncation |
+| `useContentRect()`  | Calculate available width for text truncation |
 | `useInput()`        | Arrow key navigation and task toggling        |
 | Variable heights    | Tasks with subtasks naturally expand          |
 

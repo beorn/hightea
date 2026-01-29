@@ -17,7 +17,7 @@ bun run examples/dashboard/app.tsx
 
 ### [Dashboard](/examples/dashboard)
 
-A multi-pane dashboard demonstrating responsive layouts with `useLayout()`.
+A multi-pane dashboard demonstrating responsive layouts with `useContentRect()`.
 
 **Key concepts:**
 
@@ -111,7 +111,7 @@ Start with the simplest example that matches your use case:
 
 All examples follow the same patterns:
 
-1. Use `useLayout()` when you need dimensions
+1. Use `useContentRect()` when you need dimensions
 2. Use `overflow="scroll"` + `scrollTo` for scrolling
 3. Use `useInput()` for keyboard handling
 4. Let flexbox handle proportional sizing

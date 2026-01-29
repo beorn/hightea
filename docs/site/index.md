@@ -16,7 +16,7 @@ hero:
 features:
   - icon: 📐
     title: Layout Feedback
-    details: Components can access their computed dimensions via useLayout(). No more manual width prop threading.
+    details: Components can access their computed dimensions via useContentRect(). No more manual width prop threading.
   - icon: 🔄
     title: Drop-in Replacement
     details: Same API as Ink - Box, Text, useInput, render() all work unchanged. Just swap the import.
@@ -35,10 +35,10 @@ bun add inkx
 ```
 
 ```tsx
-import { Box, Text, render, useLayout } from "inkx";
+import { Box, Text, render, useContentRect, createTerm } from "inkx";
 
 function Card({ title }) {
-  const { width } = useLayout(); // Components know their size!
+  const { width } = useContentRect(); // Components know their size!
   return (
     <Box borderStyle="round" width={width}>
       <Text>{title}</Text>
@@ -55,7 +55,8 @@ function App() {
   );
 }
 
-render(<App />);
+using term = createTerm();
+await render(term, <App />);
 ```
 
 ## The Problem Inkx Solves
@@ -83,7 +84,7 @@ Real apps have 100+ lines of this. Every layout change means updating arithmetic
 ```tsx
 // Inkx: no width props needed
 function Column({ items }) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
   return (
     <Box flexGrow={1}>
       {items.map((item) => (

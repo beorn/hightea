@@ -13,17 +13,17 @@ This guide helps you migrate from Ink to Inkx. Most apps require only an import 
 ```bash
 # Replace ink with inkx
 bun remove ink ink-testing-library
-bun add inkx inkx-testing-library
+bun add inkx
 ```
 
 ### Step 2: Update Imports
 
 ```diff
 - import { Box, Text, render, useInput, useApp } from 'ink';
-+ import { Box, Text, render, useInput, useApp } from 'inkx';
++ import { Box, Text, render, useInput, useApp, createTerm } from 'inkx';
 
 - import { render } from 'ink-testing-library';
-+ import { render } from 'inkx-testing-library';
++ import { createTestRenderer } from 'inkx/testing';
 ```
 
 ### Step 3: Run Tests
@@ -245,17 +245,18 @@ bun run your-app > after.txt
 diff before.txt after.txt
 ```
 
-### 2. Run Ink's Test Suite
+### 2. Run Your Test Suite
 
-If you have tests using ink-testing-library:
+If you have tests using ink-testing-library, update to inkx/testing:
 
 ```typescript
-// They should still pass
-import { render } from 'inkx-testing-library';
+import { createTestRenderer } from 'inkx/testing';
+
+const render = createTestRenderer({ columns: 80, rows: 24 });
 
 test('my component', () => {
-  const { lastFrame } = render(<MyComponent />);
-  expect(lastFrame()).toMatchSnapshot();
+  const app = render(<MyComponent />);
+  expect(app.text).toMatchSnapshot();
 });
 ```
 

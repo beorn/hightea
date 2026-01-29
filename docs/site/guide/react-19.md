@@ -49,13 +49,13 @@ All standard React hooks work correctly:
 
 ```tsx
 import { useState, useEffect, useTransition, useDeferredValue } from "react";
-import { Box, Text, useInput, useLayout } from "inkx";
+import { Box, Text, useInput, useContentRect } from "inkx";
 
 function App() {
   const [count, setCount] = useState(0);
   const [isPending, startTransition] = useTransition();
   const deferredCount = useDeferredValue(count);
-  const { width, height } = useLayout();
+  const { width, height } = useContentRect();
 
   useInput((input, key) => {
     if (key.return) {
@@ -107,7 +107,7 @@ StrictMode works correctly with inkx. Double-rendering in development mode (for 
 
 ```tsx
 import { StrictMode } from "react";
-import { Box, Text, render } from "inkx";
+import { Box, Text, render, createTerm } from "inkx";
 
 function App() {
   return (
@@ -117,7 +117,9 @@ function App() {
   );
 }
 
-render(
+using term = createTerm();
+await render(
+  term,
   <StrictMode>
     <App />
   </StrictMode>,

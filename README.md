@@ -286,154 +286,91 @@ import { bgOverride } from '@beorn/chalkx'
 
 **Note**: `useLayout` is a deprecated alias for `useContentRect`. Use `useContentRect` in new code.
 
+## Testing
+
+Inkx provides a Playwright-inspired testing API with **auto-refreshing locators** that eliminate stale reference bugs:
+
+```tsx
+import { createTestRenderer } from 'inkx/testing'
+import { Box, Text } from 'inkx'
+
+const render = createTestRenderer({ columns: 80, rows: 24 })
+
+test('renders and responds to input', async () => {
+  const app = render(
+    <Box testID="main">
+      <Text>Hello World</Text>
+    </Box>
+  )
+
+  // Plain text assertions (no ANSI codes)
+  expect(app.text).toContain('Hello World')
+
+  // Auto-refreshing locators - same object, fresh results after state changes
+  expect(app.getByTestId('main').boundingBox()?.width).toBe(80)
+  expect(app.getByText('Hello').count()).toBe(1)
+
+  // Playwright-style keyboard input
+  await app.press('ArrowDown')
+  await app.press('Enter')
+
+  // Debug output
+  app.debug()
+})
+```
+
+**Key features:**
+- `app.text` — plain text output (no ANSI)
+- `app.getByTestId()` / `app.getByText()` — auto-refreshing locators
+- `app.locator('[selector]')` — CSS-style selectors
+- `app.press()` — async keyboard input with await
+- `app.term.cell(x, y)` — terminal buffer inspection
+
+The auto-refresh eliminates a common testing pain point:
+
+```tsx
+// Old pattern (stale locators)
+const locator = createLocator(getContainer())
+stdin.write('j')
+// locator is stale! Must manually refresh
+
+// New pattern (auto-refresh)
+const cursor = app.locator('[data-cursor]')
+await app.press('j')
+expect(cursor.textContent()).toBe('item2')  // Same locator, fresh result
+```
+
 ## Why a New Project?
 
-**This can't be fixed in Ink.** The limitation is architectural, not a missing feature.
+**Ink's limitation is architectural, not a missing feature.**
 
-### How React DOM works
-
-In web React, you rarely think about this because CSS handles it:
-
-```tsx
-// Web React: CSS does the work
-function Card() {
-  return (
-    <div style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
-  );
-}
-```
-
-The browser's layout engine calculates dimensions, then CSS properties like `text-overflow: ellipsis` apply _after_ the width is known. You don't pass width props around.
-
-When you _do_ need dimensions in React DOM, you use refs and `useLayoutEffect`:
-
-```tsx
-// Web React: read layout after browser computes it
-function Card() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-
-  useLayoutEffect(() => {
-    if (ref.current) {
-      setWidth(ref.current.offsetWidth); // Browser already calculated this
-    }
-  }, []);
-
-  return <div ref={ref}>{truncate(title, width)}</div>;
-}
-```
-
-This works because `useLayoutEffect` runs _after_ DOM mutation but _before_ paint—the browser has already computed layout. React DOM leverages the browser's two-phase architecture.
-
-**Ink can't do this** because there's no browser. Ink _is_ the layout engine, and it runs layout _after_ React finishes, not between commit and paint.
-
-### How browsers do it (under the hood)
-
-Browsers solve this with **two-phase rendering**:
-
-1. **Style/Layout phase** — build the render tree, calculate all box sizes
-2. **Paint phase** — draw pixels using the computed sizes
-
-JavaScript can query layout anytime via `getBoundingClientRect()` or `offsetWidth`. The browser already computed it. CSS features like `text-overflow: ellipsis` work because the browser truncates _after_ knowing the container width.
-
-This is the normal, well-understood approach. Every native UI toolkit works this way—Cocoa, Qt, WPF, Flutter, browser engines. **Inkx follows this standard pattern.**
-
-### Why Ink doesn't work this way
-
-Ink's render cycle:
+Ink renders components _before_ Yoga calculates layout. By the time dimensions are known, React is done. This has been a [known issue](https://github.com/vadimdemedes/ink/issues/5) since 2016.
 
 ```
-React render → VDOM → Yoga layout → Terminal output
-     ↑                    ↓
-     └────── no path ─────┘
+Ink:   React render → VDOM → Yoga layout → Terminal output
+                                   ↓
+                              (too late!)
+
+Inkx:  React render → VDOM → Yoga layout → React re-render with sizes → Terminal output
+                                   ↓                ↑
+                                   └────────────────┘
 ```
 
-Components render _before_ Yoga calculates layout. By the time Yoga runs, React is done—the text content is already decided.
+Inkx uses **two-phase rendering** (the standard approach in browsers, Flutter, SwiftUI). First pass builds the tree, Yoga calculates layout, second pass lets components use their actual sizes via `useContentRect()`.
 
-**But Yoga supports querying layout!** Yes—Yoga calculates layout correctly. The problem is _when_ Ink asks React to render. Ink builds the component tree first, hands it to Yoga, then writes to the terminal. Components never get a chance to see Yoga's results.
+**For detailed comparison**: See [docs/ink-comparison.md](docs/ink-comparison.md) for analysis of Ink's 100+ open issues and how Inkx addresses them.
 
-### Why Ink won't fix this
+## Related Projects
 
-This has been a [known issue](https://github.com/vadimdemedes/ink/issues/387) since 2020. The Ink maintainers haven't fixed it because:
-
-1. **It's a breaking architectural change** — not a bug fix, but a redesign of how rendering works
-2. **It requires two render passes** — doubles complexity and has performance implications
-3. **Ink is stable/maintenance mode** — the API is frozen, major changes aren't happening
-4. **It works for Ink's target use case** — simple CLI output where manual width-passing is tolerable
-
-For serious TUI apps (dashboards, editors, complex layouts), you either thread widths manually through hundreds of components, or you use a different framework.
-
-### What Inkx does differently
-
-Inkx inverts the render order:
-
-```
-React render → VDOM → Yoga layout → React re-render with sizes → Terminal output
-                           ↓                ↑
-                           └────────────────┘
-```
-
-First render builds the tree structure. Yoga calculates layout. Second render lets components use their actual sizes. This is how browsers work, just adapted for React's model.
-
-This requires a custom React renderer that intercepts the render cycle—not something you can add to Ink without replacing its core.
-
-## Related Work
-
-Inkx builds on and learns from many projects. Credit where due:
-
-### Direct Foundation
-
-| Project                                                                                   | Relationship                                                                                                                 |
-| ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| [Ink](https://github.com/vadimdemedes/ink)                                                | API compatibility target. Inkx aims to be a drop-in replacement. Ink pioneered React-in-terminal and proved the model works. |
-| [Yoga](https://yogalayout.dev/)                                                           | Default layout engine. Facebook's flexbox implementation via WASM.                                                           |
-| [Flexx](../beorn-flexx/)                                                                  | Alternative layout engine. Pure JS, 2.5x faster, 5x smaller than Yoga. See below.                                            |
-| [Chalk](https://github.com/chalk/chalk)                                                   | ANSI styling (same as Ink). Inkx preserves Chalk strings through truncation and wrapping.                                    |
-| [React Reconciler](https://github.com/facebook/react/tree/main/packages/react-reconciler) | Custom renderer API. How both Ink and Inkx integrate with React.                                                             |
-
-### Layout Engine Options
-
-Inkx supports two layout engines:
-
-| Engine             | Bundle (gzip) | Performance | Initialization | Use When                             |
-| ------------------ | ------------- | ----------- | -------------- | ------------------------------------ |
-| **Yoga** (default) | 38 KB         | 316 µs      | Async          | Need RTL, baseline, aspect-ratio     |
-| **Flexx**          | 7 KB          | 125 µs      | Sync           | Want smaller bundles, faster startup |
-
-Flexx is **2.5x faster** and **5x smaller**, but doesn't support RTL or baseline alignment. For terminal UIs, both are fast enough—choose based on bundle size and feature needs.
-
-### Prior Art (TUI Frameworks with Proper Layout)
-
-These frameworks solved the layout feedback problem. Inkx brings their approach to React/TypeScript:
-
-| Framework                                               | Language | Layout Feedback | Notes                                                                              |
-| ------------------------------------------------------- | -------- | --------------- | ---------------------------------------------------------------------------------- |
-| [Textual](https://textual.textualize.io/)               | Python   | ✅              | Modern TUI framework. Excellent architecture, CSS-like styling. Major inspiration. |
-| [Ratatui](https://ratatui.rs/)                          | Rust     | ✅              | Immediate-mode TUI. Components receive their `Rect` with dimensions.               |
-| [Brick](https://github.com/jtdaugherty/brick)           | Haskell  | ✅              | Declarative TUI. `Widget` rendering receives available space.                      |
-| [Cursive](https://github.com/gyscos/cursive)            | Rust     | ✅              | Views receive size constraints before drawing.                                     |
-| [Bubbletea](https://github.com/charmbracelet/bubbletea) | Go       | ✅              | Elm-architecture TUI. `WindowSizeMsg` provides dimensions.                         |
-
-### Alternatives Considered
-
-| Approach                                                             | Why Not                                                                                             |
-| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Fork Ink**                                                         | Ink's architecture is the problem. Would need to maintain fork indefinitely with invasive changes.  |
-| **Build on [blessed](https://github.com/chjj/blessed)**              | Abandoned (last commit 2017). Imperative API, no React.                                             |
-| **Build on [terminal-kit](https://github.com/cronvel/terminal-kit)** | Low-level primitives, no component model. Would need to build React layer from scratch.             |
-| **Port Textual to JS**                                               | Significant effort, different idioms, would lose Ink ecosystem compatibility.                       |
-| **Use [Taffy](https://github.com/DioxusLabs/taffy) (Rust/WASM)**     | Better flexbox than Yoga, but adds WASM complexity. Can switch layout engine to it later if needed. |
-
-### Browser Rendering (Architecture Reference)
-
-Inkx follows the standard two-phase approach used by all major rendering engines:
-
-- **WebKit/Blink/Gecko** — Style → Layout → Paint → Composite
-- **Flutter** — Build → Layout → Paint → Composite
-- **SwiftUI/AppKit** — measurementContainer → layout → render
-- **React Native** — Uses Yoga, but native views receive layout results before rendering
-
-The pattern is universal: calculate sizes first, render content second.
+| Project                                         | Role                                                     |
+| ----------------------------------------------- | -------------------------------------------------------- |
+| [Ink](https://github.com/vadimdemedes/ink)      | API compatibility target. Inkx is a drop-in replacement. |
+| [Yoga](https://yogalayout.dev/)                 | Default layout engine (WASM).                            |
+| [Flexx](../beorn-flexx/)                        | Alternative layout engine (2.5x faster, 5x smaller).     |
+| [Chalk](https://github.com/chalk/chalk)         | ANSI styling. Inkx preserves chalk strings.              |
+| [Textual](https://textual.textualize.io/)       | Python TUI with proper layout. Major inspiration.        |
+| [Ratatui](https://ratatui.rs/)                  | Rust TUI with layout feedback.                           |
+| [Bubbletea](https://github.com/charmbracelet/bubbletea) | Go TUI with dimension awareness.                 |
 
 ## Docs
 

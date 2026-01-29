@@ -16,13 +16,21 @@ bun add inkx inkx-testing-library
 
 ```diff
 - import { Box, Text, render, useInput, useApp } from 'ink';
-+ import { Box, Text, render, useInput, useApp } from 'inkx';
++ import { Box, Text, render, useInput, useApp, createTerm } from 'inkx';
 
 - import { render } from 'ink-testing-library';
 + import { render } from 'inkx-testing-library';
 ```
 
-### Step 3: Run Tests
+### Step 3: Update render() Calls
+
+```diff
+- render(<App />);
++ using term = createTerm();
++ await render(term, <App />);
+```
+
+### Step 4: Run Tests
 
 ```bash
 bun test
@@ -38,14 +46,32 @@ These APIs are 100% compatible:
 | -------------- | ------------------------------------------------------------------------ |
 | **Components** | `<Box>`, `<Text>`, `<Newline>`, `<Spacer>`, `<Static>`                   |
 | **Hooks**      | `useInput()`, `useApp()`, `useStdout()`, `useStdin()`                    |
-| **Render**     | `render()`, `render(element, options)`                                   |
 | **Styling**    | All Chalk styles work unchanged                                          |
 | **Flexbox**    | All flexbox props (direction, justify, align, wrap, grow, shrink, basis) |
 | **Borders**    | All border styles (single, double, round, bold, etc.)                    |
 
 ## What's Different
 
-### 1. Components Know Their Size (The Big Win)
+### 1. Term-First Rendering (Required)
+
+**Ink**: Render with just the element.
+
+```tsx
+// Ink
+render(<App />);
+```
+
+**Inkx**: Create a term first.
+
+```tsx
+// Inkx
+using term = createTerm();
+await render(term, <App />);
+```
+
+This enables `useTerm()` in components for terminal capabilities.
+
+### 2. Components Know Their Size (The Big Win)
 
 **Ink**: Must manually thread width props.
 
@@ -63,14 +89,14 @@ function Card({ width }: { width: number }) {
 ```tsx
 // Inkx: Just ask
 function Card() {
-  const { width } = useLayout();
+  const { width } = useContentRect();
   return <Text>{truncate(title, width)}</Text>;
 }
 
 <Card />;
 ```
 
-### 2. Text Auto-Truncates
+### 3. Text Auto-Truncates
 
 **Ink**: Text overflows its container.
 
@@ -89,7 +115,7 @@ function Card() {
 <Box width={10}>
   <Text>This is a very long text</Text>
 </Box>
-// Output: "This is a…"
+// Output: "This is a..."
 
 // Opt out if needed
 <Text wrap={false}>This overflows intentionally</Text>
@@ -97,15 +123,15 @@ function Card() {
 
 **Migration**: If you rely on overflow, add `wrap={false}`.
 
-### 3. First Render Shows Zeros
+### 4. First Render Shows Zeros
 
 **Ink**: Components render once with final output.
 
-**Inkx**: Components using `useLayout()` render twice. First render has `{ width: 0, height: 0 }`, second has actual values.
+**Inkx**: Components using `useContentRect()` render twice. First render has `{ width: 0, height: 0 }`, second has actual values.
 
 ```tsx
 function Header() {
-  const { width } = useLayout();
+  const { width } = useContentRect();
   // First render: width=0
   // Second render: width=80
   return <Text>{"=".repeat(width)}</Text>;
@@ -116,13 +142,13 @@ This is usually invisible (both renders happen before first paint). Add a guard 
 
 ```tsx
 function Header() {
-  const { width } = useLayout();
+  const { width } = useContentRect();
   if (width === 0) return null;
   return <Text>{"=".repeat(width)}</Text>;
 }
 ```
 
-### 4. Scrolling Just Works
+### 5. Scrolling Just Works
 
 **Ink**: Manual virtualization with height estimation.
 
@@ -149,7 +175,7 @@ function Header() {
 
 **Migration**: Replace virtualization components with `overflow="scroll"`.
 
-### 5. measureElement() → useLayout()
+### 6. measureElement() -> useContentRect()
 
 **Ink**: Use `measureElement()` after render.
 
@@ -159,11 +185,22 @@ const { width } = measureElement(ref.current);
 // Need manual re-render to use width
 ```
 
-**Inkx**: `measureElement()` works for compatibility, but `useLayout()` is simpler.
+**Inkx**: `measureElement()` works for compatibility, but `useContentRect()` is simpler.
 
 ```tsx
-const { width } = useLayout();
+const { width } = useContentRect();
 // Automatically re-renders with correct values
+```
+
+### 7. Hook Naming
+
+**Ink**: `useLayout` (if available)
+
+**Inkx**: `useContentRect()` is preferred. `useLayout` is a deprecated alias.
+
+```diff
+- const { width } = useLayout();
++ const { width } = useContentRect();
 ```
 
 ## Known Incompatibilities
@@ -237,7 +274,7 @@ function Column({ items }) {
 }
 
 function Card({ item }) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
   // Use width only where actually needed
 }
 ```

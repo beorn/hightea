@@ -44,7 +44,7 @@ Inkx uses two-phase rendering:
 2. **Phase 2**: Yoga computes layout
 3. **Phase 3**: React re-renders with dimensions available
 
-Components can query their size via `useLayout()`:
+Components can query their size via `useContentRect()`:
 
 ```tsx
 // Inkx: No width props needed
@@ -69,7 +69,7 @@ function Column({ items }: { items: Item[] }) {
 }
 
 function Card({ item }: { item: Item }) {
-  const { width } = useLayout(); // Just ask!
+  const { width } = useContentRect(); // Just ask!
   return <Text>{truncate(item.title, width - 4)}</Text>;
 }
 ```
@@ -98,7 +98,7 @@ This is a breaking API change. Ink's maintainer has shown no interest in major a
 
 | Feature           | Ink                        | Inkx                   |
 | ----------------- | -------------------------- | ---------------------- |
-| Layout feedback   | ❌ Must thread width props | ✅ `useLayout()` hook  |
+| Layout feedback   | ❌ Must thread width props | ✅ `useContentRect()` hook  |
 | Text truncation   | ❌ Overflows container     | ✅ Auto-truncates      |
 | Scrolling         | ❌ Manual virtualization   | ✅ `overflow="scroll"` |
 | API compatibility | -                          | ✅ Drop-in replacement |

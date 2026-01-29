@@ -225,6 +225,11 @@ export type {
 	MeasureMode,
 } from './layout-engine.js';
 
+// App types (unified render API)
+export type { App } from './app.js';
+export type { AutoLocator, FilterOptions } from './auto-locator.js';
+export type { BoundTerm } from './bound-term.js';
+
 // Types
 export type { BoxProps } from './components/Box.js';
 export type { TextProps } from './components/Text.js';

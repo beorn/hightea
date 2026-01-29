@@ -20,7 +20,7 @@ import { render, renderSync, setLayoutEngine, initYogaEngine, createFlexxEngine 
 import { createTerm, patchConsole, type Term, type PatchedConsole } from 'inkx'
 
 // Testing
-import { createTestRenderer, createLocator, bufferToText, stripAnsi, normalizeFrame } from 'inkx/testing'
+import { createTestRenderer, bufferToText, stripAnsi, keyToAnsi, debugTree } from 'inkx/testing'
 ```
 
 ## Common Patterns
@@ -104,27 +104,107 @@ function ColoredOutput() {
 }
 ```
 
-### Testing Components
+### Testing Components (App API)
 
 ```tsx
-import { createTestRenderer, createLocator } from 'inkx/testing'
+import { createTestRenderer } from 'inkx/testing'
 import { Text, Box } from 'inkx'
 
 const render = createTestRenderer({ columns: 80, rows: 24 })
 
 test('renders content', () => {
-  const { lastFrame, lastFrameText, getContainer } = render(
+  const app = render(
     <Box testID="main">
       <Text>Hello</Text>
     </Box>
   )
 
-  // String assertions
-  expect(lastFrameText()).toContain('Hello')
+  // Plain text (no ANSI)
+  expect(app.text).toContain('Hello')
 
-  // DOM-style queries
-  const locator = createLocator(getContainer())
-  expect(locator.getByText('Hello').count()).toBe(1)
+  // Auto-refreshing locators (no stale locator problem!)
+  expect(app.getByText('Hello').count()).toBe(1)
+  expect(app.getByTestId('main').boundingBox()?.width).toBe(80)
+
+  // Debug output
+  app.debug()
+})
+```
+
+### Keyboard Input Testing
+
+Use `app.press()` for Playwright-style keyboard input:
+
+```tsx
+import { createTestRenderer } from 'inkx/testing'
+
+const render = createTestRenderer({ columns: 80, rows: 24 })
+
+test('handles keyboard input', async () => {
+  const app = render(<MyComponent />)
+
+  // Single keys (awaitable, chainable)
+  await app.press('Enter')
+  await app.press('Escape')
+  await app.press('ArrowUp')
+  await app.press('ArrowDown')
+  await app.press('Tab')
+
+  // Modifier combinations
+  await app.press('Control+c')
+  await app.press('Control+d')
+  await app.press('Shift+Tab')
+
+  expect(app.text).toContain('expected result')
+})
+```
+
+### Auto-refreshing Locators
+
+The key innovation: locators re-evaluate on every access, eliminating stale locator bugs:
+
+```tsx
+test('locators auto-refresh after input', async () => {
+  const app = render(<Board />)
+  const cursor = app.locator('[data-cursor]')
+
+  // Same locator object, but result updates after state change
+  expect(cursor.textContent()).toBe('item1')
+  await app.press('j')
+  expect(cursor.textContent()).toBe('item2')  // Auto-refreshed!
+})
+```
+
+### Terminal Access
+
+```tsx
+test('inspect terminal buffer', () => {
+  const app = render(<MyComponent />)
+
+  // Screen-space access via app.term
+  const cell = app.term.cell(10, 5)
+  const node = app.term.nodeAt(10, 5)
+
+  console.log(app.term.text)
+  console.log(app.term.columns, app.term.rows)
+})
+```
+
+### Debugging Tests
+
+```tsx
+import { createTestRenderer, debugTree } from 'inkx/testing'
+
+const render = createTestRenderer({ columns: 80, rows: 24 })
+
+test('debugging example', () => {
+  const app = render(<MyComponent />)
+
+  // Print current frame
+  app.debug()
+
+  // Get screenshot
+  console.log(app.screenshot())
 })
 ```
 
@@ -164,6 +244,22 @@ render(term, <App />)
 
 // RIGHT
 await render(term, <App />)
+```
+
+### Wrong: Using old createLocator pattern
+
+```tsx
+// WRONG - stale locators, manual refresh needed
+const { getContainer } = render(<App />)
+const locator = createLocator(getContainer())
+stdin.write('j')
+const freshLocator = createLocator(getContainer())  // Must manually refresh!
+
+// RIGHT - auto-refreshing locators
+const app = render(<App />)
+const cursor = app.locator('[data-cursor]')
+await app.press('j')
+expect(cursor.textContent()).toBe('item2')  // Same locator, fresh result!
 ```
 
 ## Key Exports

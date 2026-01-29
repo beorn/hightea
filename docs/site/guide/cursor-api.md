@@ -11,7 +11,7 @@ Inkx provides two approaches to cursor display:
 1. **Rendered cursor** - A character (like `_` or `|`) rendered as part of the UI
 2. **Terminal cursor** - The actual blinking cursor controlled via ANSI escape sequences
 
-The `useCursor()` hook bridges these approaches with layout information from `useLayout()`.
+The `useCursor()` hook bridges these approaches with layout information from `useContentRect()`.
 
 ## Use Cases
 
@@ -43,7 +43,7 @@ A text editor where the cursor can be anywhere in a document:
 
 ```tsx
 function Editor({ lines }: { lines: string[] }) {
-  const { x, y } = useLayout();
+  const { x, y } = useContentRect();
   const { cursor, moveTo } = useCursor();
   const [cursorPos, setCursorPos] = useState({ line: 0, col: 0 });
 
@@ -155,11 +155,11 @@ function useCursor(options?: UseCursorOptions): UseCursorResult;
 
 ## Integration with Layout
 
-The key insight is that `useLayout()` provides _absolute_ terminal coordinates via `x` and `y`. This allows cursor positioning relative to a component:
+The key insight is that `useContentRect()` provides _absolute_ terminal coordinates via `x` and `y`. This allows cursor positioning relative to a component:
 
 ```tsx
 function PositionedInput() {
-  const { x, y, width } = useLayout();
+  const { x, y, width } = useContentRect();
   const { moveTo } = useCursor();
   const [text, setText] = useState("");
   const [cursorCol, setCursorCol] = useState(0);
@@ -265,7 +265,7 @@ Use **rendered cursor** for visual feedback (the character at cursor position st
 ```tsx
 function TextInput({ value }: { value: string }) {
   const { isFocused } = useFocus();
-  const { x, y } = useLayout();
+  const { x, y } = useContentRect();
   const { moveTo, show, hide } = useCursor();
   const [cursorCol, setCursorCol] = useState(value.length);
 
@@ -518,7 +518,7 @@ export function TextInput({
   placeholder = "",
 }: TextInputProps) {
   const { isFocused } = useFocus();
-  const { x, y } = useLayout();
+  const { x, y } = useContentRect();
   const { show, hide, moveTo } = useCursor({ style: "bar" });
   const [cursorPos, setCursorPos] = useState(value.length);
 

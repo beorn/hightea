@@ -1,6 +1,6 @@
 # Dashboard Example
 
-A multi-pane dashboard demonstrating responsive layouts with `useLayout()`.
+A multi-pane dashboard demonstrating responsive layouts with `useContentRect()`.
 
 [[toc]]
 
@@ -8,7 +8,7 @@ A multi-pane dashboard demonstrating responsive layouts with `useLayout()`.
 
 - **Multi-pane layouts** using flexbox with `flexGrow`
 - **Responsive breakpoints** that adapt to terminal width
-- **`useLayout()` usage** for proportional sizing and text truncation
+- **`useContentRect()` usage** for proportional sizing and text truncation
 - **Nested layout** with borders and padding
 
 ## Screenshot
@@ -42,7 +42,7 @@ bun run examples/dashboard/app.tsx
 ::: code-group
 
 ```tsx [app.tsx]
-import { Box, Text, render, useLayout, useInput, useApp } from "inkx";
+import { Box, Text, render, useContentRect, useInput, useApp, createTerm } from "inkx";
 import { useState } from "react";
 
 // Sample data
@@ -86,7 +86,7 @@ function App() {
 }
 
 function TopSection() {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   // Responsive: stack vertically on narrow terminals
   const isNarrow = width < 60;
@@ -112,7 +112,7 @@ function StatsPane() {
 }
 
 function StatRow({ label, value }: { label: string; value: number }) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   // Calculate bar width based on available space
   // Account for label (8 chars) + spacing
@@ -142,7 +142,7 @@ function ActivityPane() {
 }
 
 function ActivityRow({ time, message }: { time: string; message: string }) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   // Truncate message to fit available width
   const timeWidth = 6; // "12:01 "
@@ -198,7 +198,7 @@ function RecentItemRow({
   date: string;
   isSelected: boolean;
 }) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   // Calculate space for name, leaving room for date
   const dateWidth = date.length + 2;
@@ -229,7 +229,8 @@ function StatusBar() {
   );
 }
 
-render(<App />);
+using term = createTerm();
+await render(term, <App />);
 ```
 
 :::
@@ -238,11 +239,11 @@ render(<App />);
 
 ### Responsive Layout
 
-The `TopSection` component uses `useLayout()` to detect narrow terminals:
+The `TopSection` component uses `useContentRect()` to detect narrow terminals:
 
 ```tsx
 function TopSection() {
-  const { width } = useLayout();
+  const { width } = useContentRect();
   const isNarrow = width < 60;
 
   return (
@@ -273,7 +274,7 @@ The `StatRow` component builds progress bars that fill available space:
 
 ```tsx
 function StatRow({ label, value }: { label: string; value: number }) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   const barWidth = Math.max(0, width - 12); // Account for label
   const filledWidth = Math.floor((barWidth * value) / 100);
@@ -297,7 +298,7 @@ The `ActivityRow` component truncates long messages:
 
 ```tsx
 function ActivityRow({ time, message }: { time: string; message: string }) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   const maxMessageWidth = Math.max(0, width - 6);
   const truncatedMessage =
@@ -333,7 +334,7 @@ Add more items to `recentItems` and they'll scroll automatically.
 
 | Feature             | Usage                                                                |
 | ------------------- | -------------------------------------------------------------------- |
-| `useLayout()`       | Get dimensions for responsive layout, progress bars, text truncation |
+| `useContentRect()`  | Get dimensions for responsive layout, progress bars, text truncation |
 | `overflow="scroll"` | Scrollable recent items list                                         |
 | `scrollTo={index}`  | Keep selected item visible                                           |
 | `flexGrow`          | Proportional pane sizing                                             |

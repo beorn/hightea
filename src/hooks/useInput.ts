@@ -8,6 +8,7 @@
 import createDebug from 'debug';
 import { useContext, useEffect } from 'react';
 import { InputContext, StdinContext } from '../context.js';
+import { CODE_TO_KEY } from '../keys.js';
 
 const debug = createDebug('inkx:useInput');
 
@@ -74,95 +75,12 @@ export interface UseInputOptions {
 // Key Parsing
 // ============================================================================
 
-/**
- * ANSI escape sequence mappings for special keys.
- */
-const KEY_NAME: Record<string, string> = {
-	// xterm/gnome ESC O letter
-	OP: 'f1',
-	OQ: 'f2',
-	OR: 'f3',
-	OS: 'f4',
-	// xterm/rxvt ESC [ number ~
-	'[11~': 'f1',
-	'[12~': 'f2',
-	'[13~': 'f3',
-	'[14~': 'f4',
-	// from Cygwin and used in libuv
-	'[[A': 'f1',
-	'[[B': 'f2',
-	'[[C': 'f3',
-	'[[D': 'f4',
-	'[[E': 'f5',
-	// common
-	'[15~': 'f5',
-	'[17~': 'f6',
-	'[18~': 'f7',
-	'[19~': 'f8',
-	'[20~': 'f9',
-	'[21~': 'f10',
-	'[23~': 'f11',
-	'[24~': 'f12',
-	// xterm ESC [ letter
-	'[A': 'up',
-	'[B': 'down',
-	'[C': 'right',
-	'[D': 'left',
-	'[E': 'clear',
-	'[F': 'end',
-	'[H': 'home',
-	// xterm/gnome ESC O letter
-	OA: 'up',
-	OB: 'down',
-	OC: 'right',
-	OD: 'left',
-	OE: 'clear',
-	OF: 'end',
-	OH: 'home',
-	// xterm/rxvt ESC [ number ~
-	'[1~': 'home',
-	'[2~': 'insert',
-	'[3~': 'delete',
-	'[4~': 'end',
-	'[5~': 'pageup',
-	'[6~': 'pagedown',
-	// putty
-	'[[5~': 'pageup',
-	'[[6~': 'pagedown',
-	// rxvt
-	'[7~': 'home',
-	'[8~': 'end',
-	// rxvt keys with modifiers
-	'[a': 'up',
-	'[b': 'down',
-	'[c': 'right',
-	'[d': 'left',
-	'[e': 'clear',
-	'[2$': 'insert',
-	'[3$': 'delete',
-	'[5$': 'pageup',
-	'[6$': 'pagedown',
-	'[7$': 'home',
-	'[8$': 'end',
-	Oa: 'up',
-	Ob: 'down',
-	Oc: 'right',
-	Od: 'left',
-	Oe: 'clear',
-	'[2^': 'insert',
-	'[3^': 'delete',
-	'[5^': 'pageup',
-	'[6^': 'pagedown',
-	'[7^': 'home',
-	'[8^': 'end',
-	// misc.
-	'[Z': 'tab',
-};
+// Use shared key mappings from keys.ts (CODE_TO_KEY imported above)
 
 /**
  * Keys that should not be passed as input text.
  */
-const NON_ALPHANUMERIC_KEYS = [...Object.values(KEY_NAME), 'backspace'];
+const NON_ALPHANUMERIC_KEYS = [...Object.values(CODE_TO_KEY), 'backspace'];
 
 const SHIFT_CODES = new Set([
 	'[a',
@@ -283,7 +201,7 @@ function parseKeypress(s: string | Buffer): ParsedKeypress {
 				key.meta = !!(modifier & 10);
 				key.shift = !!(modifier & 1);
 				key.code = code;
-				key.name = KEY_NAME[code] ?? '';
+				key.name = CODE_TO_KEY[code] ?? '';
 				key.shift = SHIFT_CODES.has(code) || key.shift;
 				key.ctrl = CTRL_CODES.has(code) || key.ctrl;
 			}

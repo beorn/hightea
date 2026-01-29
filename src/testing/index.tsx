@@ -1,13 +1,13 @@
 /**
  * Inkx Testing Library
  *
- * ink-testing-library compatible API for testing Inkx components.
+ * Unified App-based API for testing Inkx components.
  * Uses the actual inkx render pipeline for accurate ANSI output.
  *
  * ## Import Syntax
  *
  * ```tsx
- * import { createTestRenderer, createLocator, bufferToText, stripAnsi } from 'inkx/testing';
+ * import { createTestRenderer, bufferToText, stripAnsi } from 'inkx/testing';
  * ```
  *
  * ## Auto-cleanup
@@ -15,7 +15,7 @@
  * Each render() call automatically unmounts the previous render,
  * so you don't need explicit cleanup.
  *
- * ## Basic Testing
+ * ## Basic Testing (NewWay - App API)
  *
  * @example
  * ```tsx
@@ -25,28 +25,13 @@
  * const render = createTestRenderer({ columns: 80, rows: 24 });
  *
  * test('renders text', () => {
- *   const { lastFrame, lastFrameText } = render(<Text>Hello</Text>);
- *
- *   // With ANSI codes
- *   expect(lastFrame()).toContain('Hello');
+ *   const app = render(<Text>Hello</Text>);
  *
  *   // Plain text (no ANSI)
- *   expect(lastFrameText()).toContain('Hello');
- * });
- * ```
+ *   expect(app.text).toContain('Hello');
  *
- * ## DOM-style Queries
- *
- * @example
- * ```tsx
- * import { createTestRenderer, createLocator } from 'inkx/testing';
- *
- * test('queries elements', () => {
- *   const { getContainer } = render(<Box testID="main"><Text>Hello</Text></Box>);
- *   const locator = createLocator(getContainer());
- *
- *   expect(locator.getByText('Hello').count()).toBe(1);
- *   expect(locator.getByTestId('main').boundingBox()?.width).toBe(80);
+ *   // Auto-refreshing locators
+ *   expect(app.getByText('Hello').count()).toBe(1);
  * });
  * ```
  *
@@ -55,14 +40,28 @@
  * @example
  * ```tsx
  * test('handles keyboard', () => {
- *   const { stdin, lastFrameText } = render(<MyComponent />);
+ *   const app = render(<MyComponent />);
  *
- *   stdin.write('j');           // Letter key
- *   stdin.write('\x1b[A');      // Up arrow
- *   stdin.write('\x1b');        // Escape
- *   stdin.write('\r');          // Enter
+ *   await app.press('j');           // Letter key
+ *   await app.press('ArrowUp');     // Arrow keys
+ *   await app.press('Escape');      // Special keys
+ *   await app.press('Enter');       // Enter
  *
- *   expect(lastFrameText()).toContain('expected result');
+ *   expect(app.text).toContain('expected result');
+ * });
+ * ```
+ *
+ * ## Auto-refreshing Locators
+ *
+ * @example
+ * ```tsx
+ * test('locators auto-refresh', () => {
+ *   const app = render(<Board />);
+ *   const cursor = app.locator('[data-cursor]');
+ *
+ *   expect(cursor.textContent()).toBe('item1');
+ *   await app.press('j');
+ *   expect(cursor.textContent()).toBe('item2');  // Same locator, fresh result!
  * });
  * ```
  */
@@ -71,14 +70,26 @@ import { EventEmitter } from 'node:events';
 import React, { type ReactElement, act } from 'react';
 import { initYogaEngine } from '../adapters/yoga-adapter.js';
 import { type TerminalBuffer, bufferToText } from '../buffer.js';
+import { createApp, type App } from '../app.js';
+
+// Re-export App for type usage
+export type { App } from '../app.js';
+export { createAutoLocator, type AutoLocator, type FilterOptions } from '../auto-locator.js';
+export type { BoundTerm } from '../bound-term.js';
 
 // Re-export buffer utilities for testing convenience
 export { bufferToText, bufferToStyledText } from '../buffer.js';
 export type { TerminalBuffer } from '../buffer.js';
 
-// Re-export locator API for DOM queries
+// Re-export locator API for DOM queries (legacy, prefer App.locator())
 export { createLocator, type InkxLocator } from './locator.js';
 export type { Rect } from '../types.js';
+
+// Re-export keyboard utilities
+export { keyToAnsi, CODE_TO_KEY } from '../keys.js';
+
+// Re-export debug utilities
+export { debugTree, type DebugTreeOptions } from './debug.js';
 import { AppContext, InputContext, StdoutContext } from '../context.js';
 import type { LayoutEngine } from '../layout-engine.js';
 import { setLayoutEngine } from '../layout-engine.js';
@@ -130,6 +141,7 @@ export interface RenderOptions {
 
 /**
  * Result returned by the render function.
+ * @deprecated Use App interface instead. RenderResult is kept for backward compatibility.
  */
 export interface RenderResult {
 	/**
@@ -141,88 +153,51 @@ export interface RenderResult {
 	/**
 	 * Returns the last rendered buffer for direct inspection.
 	 * Returns undefined if no frames have been rendered.
-	 *
-	 * @example
-	 * ```tsx
-	 * const { lastBuffer } = render(<MyComponent />);
-	 * const buffer = lastBuffer();
-	 * if (buffer) {
-	 *   const plainText = bufferToText(buffer);
-	 *   expect(plainText).toContain('Hello');
-	 * }
-	 * ```
 	 */
 	lastBuffer: () => TerminalBuffer | undefined;
 
 	/**
 	 * Returns the last rendered frame as plain text (no ANSI codes).
-	 * Convenience method equivalent to bufferToText(lastBuffer()).
+	 * @deprecated Use app.text instead
 	 */
 	lastFrameText: () => string | undefined;
 
-	/**
-	 * Array of all rendered frames in order.
-	 * Each frame is a string snapshot of the terminal output with ANSI codes.
-	 */
+	/** Array of all rendered frames */
 	frames: string[];
 
-	/**
-	 * Re-render with a new element.
-	 * The new frame will be appended to the frames array.
-	 * This is synchronous - the frame is available immediately after calling.
-	 */
+	/** Re-render with a new element */
 	rerender: (element: ReactElement) => void;
 
-	/**
-	 * Unmount the component and clean up.
-	 * After unmount, lastFrame() will return the last rendered state.
-	 */
+	/** Unmount the component */
 	unmount: () => void;
 
-	/**
-	 * Send stdin input to the rendered component.
-	 * Useful for testing keyboard input handling.
-	 */
-	stdin: {
-		write: (data: string) => void;
-	};
+	/** Send stdin input */
+	stdin: { write: (data: string) => void };
 
-	/**
-	 * Clear all captured frames.
-	 * Useful for testing sequences of renders.
-	 */
+	/** Clear all captured frames */
 	clear: () => void;
 
-	/**
-	 * Check if exit() was called by the component.
-	 * Useful for testing exit behavior.
-	 */
+	/** Check if exit() was called */
 	exitCalled: () => boolean;
 
-	/**
-	 * Get the error passed to exit(), if any.
-	 */
+	/** Get the error passed to exit() */
 	exitError: () => Error | undefined;
 
 	/**
 	 * Get the container root node for DOM queries.
-	 * Use with createLocator() for Playwright-style queries.
-	 *
-	 * @example
-	 * ```tsx
-	 * const { getContainer } = render(<MyComponent />);
-	 * const locator = createLocator(getContainer());
-	 * expect(locator.getByText("Hello").count()).toBe(1);
-	 * ```
+	 * @deprecated Use app.locator() instead - auto-refreshes on each access
 	 */
 	getContainer: () => import('../types.js').InkxNode;
+
+	/** Print the component tree for debugging */
+	debug: () => void;
 }
 
 /**
  * Test render function type.
- * Auto-cleans previous render when called again.
+ * Returns App which extends RenderResult for backward compatibility.
  */
-export type TestRender = (element: ReactElement, options?: RenderOptions) => RenderResult;
+export type TestRender = (element: ReactElement, options?: RenderOptions) => App;
 
 /**
  * Internal state for a render instance.
@@ -287,9 +262,9 @@ export function createTestRenderer(options: TestRendererOptions = {}): TestRende
 	setLayoutEngine(layoutEngine);
 
 	// Track current instance for auto-cleanup
-	let currentInstance: RenderResult | null = null;
+	let currentInstance: App | null = null;
 
-	function render(element: ReactElement, renderOptions: RenderOptions = {}): RenderResult {
+	function render(element: ReactElement, renderOptions: RenderOptions = {}): App {
 		// Auto-cleanup previous render before creating new one
 		if (currentInstance) {
 			try {
@@ -415,111 +390,90 @@ export function createTestRenderer(options: TestRendererOptions = {}): TestRende
 			console.log('[inkx-test] Initial render:', output);
 		}
 
-		const result: RenderResult = {
-			lastFrame() {
-				if (instance.frames.length === 0) {
-					return undefined;
-				}
-				return instance.frames[instance.frames.length - 1];
-			},
+		// Helper functions for App
+		const getContainer = () => getContainerRoot(instance.container);
+		const getBuffer = () => instance.prevBuffer;
 
-			lastBuffer() {
-				return instance.prevBuffer ?? undefined;
-			},
-
-			lastFrameText() {
-				const buffer = instance.prevBuffer;
-				if (!buffer) return undefined;
-				return bufferToText(buffer);
-			},
-
-			frames: instance.frames,
-
-			rerender(newElement: ReactElement) {
-				if (!instance.mounted) {
-					throw new Error('Cannot rerender after unmount');
-				}
-
-				// Synchronously update React tree within act() to ensure all state updates are flushed
-				act(() => {
-					reconciler.updateContainerSync(
-						wrapWithContexts(newElement),
-						instance.fiberRoot,
-						null,
-						null,
-					);
-					reconciler.flushSyncWork();
-				});
-
-				// Execute render pipeline
-				const newFrame = doRender();
-				instance.frames.push(newFrame);
-
-				if (debug) {
-					console.log('[inkx-test] Rerender:', newFrame);
-				}
-			},
-
-			unmount() {
-				if (!instance.mounted) {
-					throw new Error('Already unmounted');
-				}
-
-				// Wrap unmount in act() to ensure cleanup effects complete without warnings
-				act(() => {
-					reconciler.updateContainer(null, instance.fiberRoot, null, () => {});
-				});
-				instance.mounted = false;
-				instance.inputEmitter.removeAllListeners();
-
-				if (debug) {
-					console.log('[inkx-test] Unmounted');
-				}
-			},
-
-			stdin: {
-				write(data: string) {
-					if (!instance.mounted) {
-						throw new Error('Cannot write to stdin after unmount');
-					}
-					// Use React's act() to ensure state updates are flushed synchronously
-					// This is necessary because useInput hooks call setState from an event callback
-					act(() => {
-						instance.inputEmitter.emit('input', data);
-					});
-
-					// Capture a new frame with the updated state
-					const newFrame = doRender();
-					instance.frames.push(newFrame);
-
-					if (debug) {
-						console.log('[inkx-test] stdin.write:', newFrame);
-					}
-				},
-			},
-
-			clear() {
-				instance.frames.length = 0;
-				instance.prevBuffer = null;
-			},
-
-			exitCalled() {
-				return exitCalledFlag;
-			},
-
-			exitError() {
-				return exitErrorValue;
-			},
-
-			getContainer() {
-				return getContainerRoot(instance.container);
-			},
+		const sendInput = (data: string) => {
+			if (!instance.mounted) {
+				throw new Error('Cannot write to stdin after unmount');
+			}
+			act(() => {
+				instance.inputEmitter.emit('input', data);
+			});
+			const newFrame = doRender();
+			instance.frames.push(newFrame);
+			if (debug) {
+				console.log('[inkx-test] stdin.write:', newFrame);
+			}
 		};
 
-		// Track current instance for auto-cleanup on next render
-		currentInstance = result;
+		const rerenderFn = (newElement: React.ReactNode) => {
+			if (!instance.mounted) {
+				throw new Error('Cannot rerender after unmount');
+			}
+			act(() => {
+				reconciler.updateContainerSync(
+					wrapWithContexts(newElement as ReactElement),
+					instance.fiberRoot,
+					null,
+					null,
+				);
+				reconciler.flushSyncWork();
+			});
+			const newFrame = doRender();
+			instance.frames.push(newFrame);
+			if (debug) {
+				console.log('[inkx-test] Rerender:', newFrame);
+			}
+		};
 
-		return result;
+		const unmountFn = () => {
+			if (!instance.mounted) {
+				throw new Error('Already unmounted');
+			}
+			act(() => {
+				reconciler.updateContainer(null, instance.fiberRoot, null, () => {});
+			});
+			instance.mounted = false;
+			instance.inputEmitter.removeAllListeners();
+			if (debug) {
+				console.log('[inkx-test] Unmounted');
+			}
+		};
+
+		const clearFn = () => {
+			instance.frames.length = 0;
+			instance.prevBuffer = null;
+		};
+
+		const debugFn = () => {
+			// eslint-disable-next-line @typescript-eslint/no-require-imports
+			const { debugTree } = require('./debug.js') as typeof import('./debug.js');
+			console.log(debugTree(getContainerRoot(instance.container)));
+		};
+
+		// Create unified App instance
+		const app = createApp({
+			getContainer,
+			getBuffer,
+			sendInput,
+			rerender: rerenderFn,
+			unmount: unmountFn,
+			waitUntilExit: () => Promise.resolve(),
+			clear: clearFn,
+			exitCalled: () => exitCalledFlag,
+			exitError: () => exitErrorValue,
+			frames: instance.frames,
+			debugFn,
+			columns: renderColumns,
+			rows: renderRows,
+		});
+
+		// Track current instance for auto-cleanup on next render
+		currentInstance = app;
+
+		return app;
 	}
 
 	// Return render function directly - auto-cleans previous render on each call

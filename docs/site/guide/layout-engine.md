@@ -7,10 +7,11 @@ Inkx uses a pluggable layout engine architecture. By default, it uses [Yoga](htt
 For most apps, you don't need to configure anything. Inkx auto-initializes Yoga when you call `render()`:
 
 ```tsx
-import { render, Box, Text } from "inkx";
+import { render, Box, Text, createTerm } from "inkx";
 
 // Yoga is initialized automatically
-render(<App />);
+using term = createTerm();
+await render(term, <App />);
 ```
 
 ## Switching to Flexx
@@ -30,7 +31,8 @@ import { render, setLayoutEngine, createFlexxEngine, Box, Text } from "inkx";
 setLayoutEngine(createFlexxEngine());
 
 // Now render uses Flexx for layout
-render(<App />);
+using term = createTerm();
+await render(term, <App />);
 ```
 
 ### Using renderSync with Flexx
@@ -42,8 +44,9 @@ import { renderSync, setLayoutEngine, createFlexxEngine } from "inkx";
 
 setLayoutEngine(createFlexxEngine());
 
-// No await needed
-const instance = renderSync(<App />);
+// No await needed for renderSync
+using term = createTerm();
+const instance = renderSync(term, <App />);
 ```
 
 ## API Reference
@@ -303,14 +306,17 @@ This error means you called `renderSync()` without setting up an engine first:
 
 ```tsx
 // Wrong - no engine set
-renderSync(<App />); // Error!
+using term = createTerm();
+renderSync(term, <App />); // Error!
 
 // Right - use async render (auto-initializes Yoga)
-await render(<App />);
+using term = createTerm();
+await render(term, <App />);
 
 // Right - manually set engine first
 setLayoutEngine(createFlexxEngine());
-renderSync(<App />);
+using term = createTerm();
+renderSync(term, <App />);
 ```
 
 ### WASM loading fails
@@ -325,13 +331,15 @@ import {
   isLayoutEngineInitialized,
 } from "inkx";
 
+using term = createTerm();
+
 try {
-  await render(<App />);
+  await render(term, <App />);
 } catch (e) {
   if (!isLayoutEngineInitialized()) {
     console.warn("Falling back to Flexx engine");
     setLayoutEngine(createFlexxEngine());
-    renderSync(<App />);
+    renderSync(term, <App />);
   } else {
     throw e;
   }

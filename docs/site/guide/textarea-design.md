@@ -39,7 +39,7 @@ Single-line input is sufficient for simple prompts, but many applications need:
 - **Note taking** - Free-form text entry
 - **Configuration editors** - Multi-line config values
 
-Ink users have requested this ([#676](https://github.com/vadimdemedes/ink/issues/676)) but Ink's architecture makes it difficult. Inkx's `useLayout()` provides the dimension awareness needed to implement TextArea properly.
+Ink users have requested this ([#676](https://github.com/vadimdemedes/ink/issues/676)) but Ink's architecture makes it difficult. Inkx's `useContentRect()` provides the dimension awareness needed to implement TextArea properly.
 
 ### Challenges in Terminal
 
@@ -693,11 +693,11 @@ This allows building custom TextArea variants while reusing the core logic.
 
 ## Integration with useLayout
 
-TextArea benefits from Inkx's `useLayout()`:
+TextArea benefits from Inkx's `useContentRect()`:
 
 ```tsx
 function TextArea({ value, onChange, height = 3 }: TextAreaProps) {
-  const { width } = useLayout();
+  const { width } = useContentRect();
 
   // Calculate visible lines based on actual width
   const visualLines = useMemo(() => wrapText(value, width), [value, width]);
@@ -712,7 +712,7 @@ function TextArea({ value, onChange, height = 3 }: TextAreaProps) {
 }
 ```
 
-Without `useLayout()`, we'd need to thread width props down, complicating the API.
+Without `useContentRect()`, we'd need to thread width props down, complicating the API.
 
 ## Rendering Pipeline
 
