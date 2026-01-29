@@ -16,8 +16,8 @@ import { useContentRect, useScreenRect, useInput, useApp, useTerm, useConsole } 
 // Render functions
 import { render, renderSync, renderString, setLayoutEngine, initYogaEngine, createFlexxEngine } from 'inkx'
 
-// Term primitives (re-exported from @beorn/chalkx)
-import { createTerm, patchConsole, type Term, type PatchedConsole } from 'inkx'
+// Term primitives (re-exported from chalkx - prefer importing from inkx)
+import { createTerm, patchConsole, type Term, type StyleChain, type PatchedConsole } from 'inkx'
 
 // Testing
 import { createTestRenderer, bufferToText, stripAnsi, keyToAnsi, debugTree } from 'inkx/testing'
@@ -247,11 +247,38 @@ await render(term, <App />)
   <Text>{chalk.bgBlack('text')}</Text>
 </Box>
 
-// RIGHT - use bgOverride from @beorn/chalkx if intentional
-import { bgOverride } from '@beorn/chalkx'
+// RIGHT - use bgOverride from chalkx if intentional
+import { bgOverride } from 'chalkx'
 <Box backgroundColor="cyan">
   <Text>{bgOverride(chalk.bgBlack('text'))}</Text>
 </Box>
+```
+
+### Wrong: Using .style() (removed API)
+
+```tsx
+// WRONG - .style() method was removed from chalkx
+const term = useTerm()
+term.style().red('error')
+
+// RIGHT - term IS the style chain directly
+const term = useTerm()
+term.red('error')
+term.bold.green('success')
+```
+
+### Wrong: Importing from chalkx when using inkx
+
+```tsx
+// WRONG - unnecessary extra import
+import { createTerm } from 'chalkx'
+import { render, Box, Text } from 'inkx'
+
+// RIGHT - inkx re-exports term primitives
+import { render, Box, Text, createTerm, type Term } from 'inkx'
+
+// EXCEPTION: Extended ANSI features not re-exported by inkx
+import { curlyUnderline, hyperlink } from 'chalkx'
 ```
 
 ### Wrong: Not awaiting async render
@@ -293,6 +320,9 @@ expect(cursor.textContent()).toBe('item2')  // Same locator, fresh result!
 | `Box`, `Text`, etc | UI components |
 | `useContentRect()` | Get component dimensions |
 | `useInput()` | Keyboard input |
+| `createTerm()` | Create Term instance (re-exported from chalkx) |
+| `patchConsole()` | Capture console output (re-exported from chalkx) |
+| `Term`, `StyleChain` | Types (re-exported from chalkx) |
 
 ## Key Differences from Ink
 
