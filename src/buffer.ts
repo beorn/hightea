@@ -776,25 +776,35 @@ function hasActiveAttrs(attrs: CellAttrs): boolean {
 
 /**
  * Convert style to ANSI escape sequence.
+ *
+ * Handles inverse by swapping fg/bg colors (same as output-phase.ts).
+ * This ensures consistent visual output.
  */
 function styleToAnsiCodes(style: Style): string {
+	// Handle inverse by swapping colors (consistent with output-phase.ts)
+	let fg = style.fg;
+	let bg = style.bg;
+	if (style.attrs.inverse) {
+		[fg, bg] = [bg, fg];
+	}
+
 	const codes: number[] = [0]; // Reset first
 
 	// Foreground color
-	if (style.fg !== null) {
-		if (typeof style.fg === 'number') {
-			codes.push(38, 5, style.fg);
+	if (fg !== null) {
+		if (typeof fg === 'number') {
+			codes.push(38, 5, fg);
 		} else {
-			codes.push(38, 2, style.fg.r, style.fg.g, style.fg.b);
+			codes.push(38, 2, fg.r, fg.g, fg.b);
 		}
 	}
 
 	// Background color
-	if (style.bg !== null) {
-		if (typeof style.bg === 'number') {
-			codes.push(48, 5, style.bg);
+	if (bg !== null) {
+		if (typeof bg === 'number') {
+			codes.push(48, 5, bg);
 		} else {
-			codes.push(48, 2, style.bg.r, style.bg.g, style.bg.b);
+			codes.push(48, 2, bg.r, bg.g, bg.b);
 		}
 	}
 
@@ -808,14 +818,13 @@ function styleToAnsiCodes(style: Style): string {
 
 	// Underline: use SGR 4:x if style specified, otherwise simple SGR 4
 	const underlineStyle = style.attrs.underlineStyle;
-	if (underlineStyle && underlineStyle !== false) {
-		const styleMap: Record<UnderlineStyle, number> = {
+	if (typeof underlineStyle === 'string') {
+		const styleMap: Record<string, number> = {
 			single: 1,
 			double: 2,
 			curly: 3,
 			dotted: 4,
 			dashed: 5,
-			false: 0, // This won't be reached due to the if condition above
 		};
 		const subparam = styleMap[underlineStyle];
 		if (subparam !== undefined && subparam !== 0) {
@@ -834,7 +843,7 @@ function styleToAnsiCodes(style: Style): string {
 		}
 	}
 
-	if (style.attrs.inverse) result += ';7';
+	// Note: inverse is handled above by swapping colors, don't emit SGR 7
 	if (style.attrs.strikethrough) result += ';9';
 
 	return result + 'm';

@@ -14,7 +14,7 @@
 import { BG_OVERRIDE_CODE } from 'chalkx';
 import Graphemer from 'graphemer';
 import stringWidth from 'string-width';
-import type { Style, TerminalBuffer } from './buffer.js';
+import type { Style, TerminalBuffer, UnderlineStyle } from './buffer.js';
 
 // Re-export for consumers of inkx
 export { BG_OVERRIDE_CODE };
@@ -628,12 +628,6 @@ export function truncateAnsi(text: string, maxWidth: number, ellipsis = '\u2026'
 
 // BG_OVERRIDE_CODE is imported from chalkx and re-exported at top of file
 
-/**
- * Underline style variants (SGR 4:x codes).
- * Matches the UnderlineStyle type from types.ts/buffer.ts.
- */
-export type UnderlineStyleValue = false | 'single' | 'double' | 'curly' | 'dotted' | 'dashed';
-
 /** Styled text segment with associated ANSI colors/attributes */
 export interface StyledSegment {
 	text: string;
@@ -650,9 +644,9 @@ export interface StyledSegment {
 	underline?: boolean;
 	/**
 	 * Underline style variant (SGR 4:x).
-	 * 'single' | 'double' | 'curly' | 'dotted' | 'dashed' | false
+	 * Uses UnderlineStyle from buffer.ts.
 	 */
-	underlineStyle?: UnderlineStyleValue;
+	underlineStyle?: UnderlineStyle;
 	inverse?: boolean;
 	bgOverride?: boolean; // Set when BG_OVERRIDE_CODE (9999) is present
 }
@@ -661,7 +655,7 @@ export interface StyledSegment {
  * Map SGR 4:x subparameter to underline style.
  * 0=none, 1=single, 2=double, 3=curly, 4=dotted, 5=dashed
  */
-function parseUnderlineStyle(subparam: number): UnderlineStyleValue {
+function parseUnderlineStyle(subparam: number): UnderlineStyle {
 	switch (subparam) {
 		case 0:
 			return false;

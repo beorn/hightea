@@ -13,7 +13,6 @@ import type { CellAttrs, Color, Style, TerminalBuffer, UnderlineStyle } from '..
 import type { InkxNode, TextProps } from '../types.js';
 import {
 	type StyledSegment,
-	type UnderlineStyleValue,
 	displayWidth,
 	graphemeWidth,
 	hasAnsi,
@@ -635,10 +634,8 @@ export function mergeStyles(
 		// Container/Text: overlay wins if specified
 		fg: overlay.fg ?? base.fg,
 		bg: overlay.bg ?? base.bg,
-		// Underline color: preserved through layers if preserveDecorations
-		underlineColor: preserveDecorations
-			? (overlay.underlineColor ?? base.underlineColor)
-			: (overlay.underlineColor ?? base.underlineColor),
+		// Underline color: always use overlay ?? base (part of decoration preservation)
+		underlineColor: overlay.underlineColor ?? base.underlineColor,
 		attrs,
 	};
 }
@@ -664,13 +661,13 @@ function mergeAnsiStyle(
 	let underlineColor: Color = base.underlineColor ?? null;
 
 	if (segment.fg !== undefined && segment.fg !== null) {
-		fg = ansiColorToColor(segment.fg, false);
+		fg = ansiColorToColor(segment.fg);
 	}
 	if (segment.bg !== undefined && segment.bg !== null) {
-		bg = ansiColorToColor(segment.bg, true);
+		bg = ansiColorToColor(segment.bg);
 	}
 	if (segment.underlineColor !== undefined && segment.underlineColor !== null) {
-		underlineColor = ansiColorToColor(segment.underlineColor, false);
+		underlineColor = ansiColorToColor(segment.underlineColor);
 	}
 
 	// Build overlay attrs from segment
@@ -696,7 +693,7 @@ function mergeAnsiStyle(
  * Convert ANSI SGR color code to our Color type.
  * Color is: number (256-color index) | { r, g, b } (true color) | null
  */
-function ansiColorToColor(code: number, _isBg: boolean): Color {
+function ansiColorToColor(code: number): Color {
 	// True color (packed RGB with 0x1000000 marker from parseAnsiText)
 	if (code >= 0x1000000) {
 		const r = (code >> 16) & 0xff;

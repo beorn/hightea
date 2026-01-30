@@ -179,7 +179,7 @@ export function getTextStyle(props: TextProps): Style {
 			bold: props.bold,
 			dim: props.dim || props.dimColor, // dimColor is Ink compatibility alias
 			italic: props.italic,
-			underline: props.underline || (underlineStyle && underlineStyle !== false),
+			underline: props.underline || !!underlineStyle,
 			underlineStyle,
 			strikethrough: props.strikethrough,
 			inverse: props.inverse,
