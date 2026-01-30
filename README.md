@@ -64,9 +64,12 @@ function Card() {
 | Core components (Box, Text)                    | Complete    |
 | Hooks (useContentRect, useInput, useApp, useTerm) | Complete    |
 | React reconciler (React 19 compatible)         | Complete    |
-| Yoga integration                               | Complete    |
+| Flexx layout engine (default, 2.5x faster)     | Complete    |
+| Yoga layout engine (WASM, optional)            | Complete    |
 | Terminal output (double-buffered diffing)      | Complete    |
 | `overflow="scroll"`                            | Complete    |
+| Unicode/emoji/CJK handling                     | Complete    |
+| Style layering (preserve underlines)           | Complete    |
 | Visual regression tests                        | Planned     |
 | Ink API compatibility                          | In progress |
 
@@ -84,7 +87,7 @@ Based on analysis of Ink's [100+ open issues](https://github.com/vadimdemedes/in
 **What Ink gets right** (and Inkx maintains):
 
 - React-based declarative API
-- Flexbox layout via Yoga
+- Flexbox layout (Flexx default, Yoga optional)
 - Chalk compatibility
 - `useInput()` keyboard handling
 
@@ -368,13 +371,48 @@ Inkx uses **two-phase rendering** (the standard approach in browsers, Flutter, S
 
 **For detailed comparison**: See [docs/ink-comparison.md](docs/ink-comparison.md) for analysis of Ink's 100+ open issues and how Inkx addresses them.
 
+## Layout Engine Selection
+
+Inkx supports two layout engines:
+
+| Engine | Bundle | Speed | Initialization |
+|--------|--------|-------|----------------|
+| **Flexx** (default) | 7 KB gzip | 2.5x faster | Synchronous |
+| **Yoga** (optional) | 38 KB gzip | Baseline | Async (WASM) |
+
+**Select engine via render option:**
+
+```tsx
+await render(<App />, term, { layoutEngine: 'yoga' })  // Use Yoga
+await render(<App />, term, { layoutEngine: 'flexx' }) // Use Flexx (default)
+```
+
+**Or via environment variable:**
+
+```bash
+INKX_ENGINE=yoga bun run app.ts   # Force Yoga
+INKX_ENGINE=flexx bun test        # Force Flexx
+```
+
+Priority: `render({ layoutEngine })` → `INKX_ENGINE` env → `'flexx'` (default)
+
+**When to use Yoga:**
+- Need RTL text direction support
+- Require battle-tested stability in complex layouts
+- Already using Yoga in React Native ecosystem
+
+**When to use Flexx:**
+- Building terminal UIs (simpler layouts)
+- Want faster startup and smaller bundles
+- Prefer synchronous initialization
+
 ## Related Projects
 
 | Project                                         | Role                                                     |
 | ----------------------------------------------- | -------------------------------------------------------- |
 | [Ink](https://github.com/vadimdemedes/ink)      | API compatibility target. Inkx is a drop-in replacement. |
-| [Yoga](https://yogalayout.dev/)                 | Layout engine option (WASM).                             |
-| [Flexx](../beorn-flexx/)                        | Alternative layout engine (2.5x faster, 5x smaller).     |
+| [Flexx](../beorn-flexx/)                        | Default layout engine (2.5x faster, 5x smaller).         |
+| [Yoga](https://yogalayout.dev/)                 | Optional layout engine (WASM, more mature).              |
 | [Chalk](https://github.com/chalk/chalk)         | ANSI styling. Inkx preserves chalk strings.              |
 | [Textual](https://textual.textualize.io/)       | Python TUI with proper layout. Major inspiration.        |
 | [Ratatui](https://ratatui.rs/)                  | Rust TUI with layout feedback.                           |
