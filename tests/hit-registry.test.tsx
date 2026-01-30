@@ -7,20 +7,20 @@
  * - useHitRegionCallback for performance-optimized registration
  */
 
-import { describe, expect, test, beforeEach } from 'bun:test';
+import { beforeEach, describe, expect, test } from 'bun:test';
 import React from 'react';
 import {
+	type HitRegion,
 	HitRegistry,
 	HitRegistryContext,
+	type HitTarget,
+	Z_INDEX,
+	resetHitRegionIdCounter,
 	useHitRegion,
 	useHitRegionCallback,
 	useHitRegistry,
-	resetHitRegionIdCounter,
-	Z_INDEX,
-	type HitTarget,
-	type HitRegion,
 } from '../src/hit-registry.ts';
-import { Text, Box } from '../src/index.ts';
+import { Box, Text } from '../src/index.ts';
 import { createTestRenderer } from '../src/testing/index.tsx';
 
 const render = createTestRenderer();

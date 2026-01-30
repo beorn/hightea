@@ -13,9 +13,9 @@
 
 import { EventEmitter } from 'node:events';
 import process from 'node:process';
+import { type Term, createTerm } from 'chalkx';
 import createDebug from 'debug';
 import React, { useCallback, useMemo, useState, type ReactElement, type ReactNode } from 'react';
-import { createTerm, type Term } from 'chalkx';
 
 const debug = createDebug('inkx:render');
 import {
@@ -28,13 +28,19 @@ import {
 	StdoutContext,
 	TermContext,
 } from './context.js';
-import type { TermDef } from './types.js';
-import { isTerm, isTermDef, resolveTermDef, resolveFromTerm, type ResolvedTermDef } from './term-def.js';
-import { renderStringSync } from './render-string.js';
 import { isLayoutEngineInitialized, setLayoutEngine } from './layout-engine.js';
 import { enterAlternateScreen, leaveAlternateScreen } from './output.js';
 import { createContainer, getContainerRoot, reconciler } from './reconciler.js';
+import { renderStringSync } from './render-string.js';
 import { RenderScheduler } from './scheduler.js';
+import {
+	type ResolvedTermDef,
+	isTerm,
+	isTermDef,
+	resolveFromTerm,
+	resolveTermDef,
+} from './term-def.js';
+import type { TermDef } from './types.js';
 
 // ============================================================================
 // Types
@@ -799,9 +805,7 @@ async function renderImpl(
 	// Wrap element with TermContext and EventsContext
 	const wrappedElement = (
 		<TermContext.Provider value={term}>
-			<EventsContext.Provider value={resolved.events}>
-				{element}
-			</EventsContext.Provider>
+			<EventsContext.Provider value={resolved.events}>{element}</EventsContext.Provider>
 		</TermContext.Provider>
 	);
 
@@ -811,13 +815,12 @@ async function renderImpl(
 	debug('render(): instance.render() complete, total: %dms', Date.now() - renderStart);
 
 	// Wrap rerender to also include contexts
-	const rerender = (newElement: ReactNode) => instance.rerender(
-		<TermContext.Provider value={term}>
-			<EventsContext.Provider value={resolved.events}>
-				{newElement}
-			</EventsContext.Provider>
-		</TermContext.Provider>
-	);
+	const rerender = (newElement: ReactNode) =>
+		instance.rerender(
+			<TermContext.Provider value={term}>
+				<EventsContext.Provider value={resolved.events}>{newElement}</EventsContext.Provider>
+			</TermContext.Provider>,
+		);
 
 	return {
 		rerender,
@@ -844,9 +847,7 @@ async function renderStaticImpl(
 	// Wrap element with contexts for static rendering
 	const wrappedElement = (
 		<TermContext.Provider value={term}>
-			<EventsContext.Provider value={null}>
-				{element}
-			</EventsContext.Provider>
+			<EventsContext.Provider value={null}>{element}</EventsContext.Provider>
 		</TermContext.Provider>
 	);
 
@@ -869,9 +870,7 @@ async function renderStaticImpl(
 		rerender: (newElement: ReactNode) => {
 			const newWrapped = (
 				<TermContext.Provider value={term}>
-					<EventsContext.Provider value={null}>
-						{newElement}
-					</EventsContext.Provider>
+					<EventsContext.Provider value={null}>{newElement}</EventsContext.Provider>
 				</TermContext.Provider>
 			);
 			lastFrame = renderStringSync(newWrapped as ReactElement, {
@@ -948,12 +947,10 @@ export function renderSync(
 	if (resolved.isStatic) {
 		const wrappedElement = (
 			<TermContext.Provider value={term}>
-				<EventsContext.Provider value={null}>
-					{element}
-				</EventsContext.Provider>
+				<EventsContext.Provider value={null}>{element}</EventsContext.Provider>
 			</TermContext.Provider>
 		);
-		let lastFrame = renderStringSync(wrappedElement, {
+		const lastFrame = renderStringSync(wrappedElement, {
 			width: resolved.width,
 			height: resolved.height,
 			plain: resolved.colors === null,
@@ -998,9 +995,7 @@ export function renderSync(
 	// Wrap element with contexts
 	const wrappedElement = (
 		<TermContext.Provider value={term}>
-			<EventsContext.Provider value={resolved.events}>
-				{element}
-			</EventsContext.Provider>
+			<EventsContext.Provider value={resolved.events}>{element}</EventsContext.Provider>
 		</TermContext.Provider>
 	);
 
@@ -1008,13 +1003,12 @@ export function renderSync(
 	instance.render(wrappedElement);
 
 	// Wrap rerender to also include contexts
-	const rerender = (newElement: ReactNode) => instance!.rerender(
-		<TermContext.Provider value={term}>
-			<EventsContext.Provider value={resolved.events}>
-				{newElement}
-			</EventsContext.Provider>
-		</TermContext.Provider>
-	);
+	const rerender = (newElement: ReactNode) =>
+		instance!.rerender(
+			<TermContext.Provider value={term}>
+				<EventsContext.Provider value={resolved.events}>{newElement}</EventsContext.Provider>
+			</TermContext.Provider>,
+		);
 
 	return {
 		rerender,

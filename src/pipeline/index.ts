@@ -99,8 +99,7 @@ export function executeRender(
 	options: ExecuteRenderOptions | 'fullscreen' | 'inline' = 'fullscreen',
 ): { output: string; buffer: TerminalBuffer } {
 	// Normalize options (string shorthand for mode)
-	const opts: ExecuteRenderOptions =
-		typeof options === 'string' ? { mode: options } : options;
+	const opts: ExecuteRenderOptions = typeof options === 'string' ? { mode: options } : options;
 	const { mode = 'fullscreen', skipLayoutNotifications = false } = opts;
 	const start = Date.now();
 

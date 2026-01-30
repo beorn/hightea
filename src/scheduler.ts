@@ -318,7 +318,13 @@ export class RenderScheduler {
 			const width = this.stdout.columns ?? 80;
 			const height = this.stdout.rows ?? 24;
 
-			debug('render #%d: %dx%d, nonTTYMode=%s', this.stats.renderCount + 1, width, height, this.nonTTYMode);
+			debug(
+				'render #%d: %dx%d, nonTTYMode=%s',
+				this.stats.renderCount + 1,
+				width,
+				height,
+				this.nonTTYMode,
+			);
 
 			// Run render pipeline
 			const { output, buffer } = executeRender(

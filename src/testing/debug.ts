@@ -36,8 +36,21 @@ export interface DebugTreeOptions {
  * @returns Formatted tree string
  */
 export function debugTree(node: InkxNode, options: DebugTreeOptions = {}): string {
-	const { depth = Infinity, showRects = true, showText = true } = options;
+	const { depth = Number.POSITIVE_INFINITY, showRects = true, showText = true } = options;
 	const lines: string[] = [];
+
+	// Safe JSON.stringify that handles cyclic references
+	function safeStringify(value: unknown): string {
+		try {
+			return JSON.stringify(value);
+		} catch {
+			// Handle cyclic structures or other stringify errors
+			if (typeof value === 'object' && value !== null) {
+				return '[object]';
+			}
+			return String(value);
+		}
+	}
 
 	function walk(n: InkxNode, indent: number, currentDepth: number): void {
 		if (currentDepth > depth) return;
@@ -49,7 +62,7 @@ export function debugTree(node: InkxNode, options: DebugTreeOptions = {}): strin
 			.map(([k, v]) => {
 				if (typeof v === 'string') return `${k}="${v}"`;
 				if (typeof v === 'boolean') return k;
-				return `${k}=${JSON.stringify(v)}`;
+				return `${k}=${safeStringify(v)}`;
 			})
 			.join(' ');
 
@@ -64,7 +77,8 @@ export function debugTree(node: InkxNode, options: DebugTreeOptions = {}): strin
 		let text = '';
 		if (showText && n.textContent) {
 			// Truncate long text
-			const content = n.textContent.length > 40 ? n.textContent.slice(0, 37) + '...' : n.textContent;
+			const content =
+				n.textContent.length > 40 ? n.textContent.slice(0, 37) + '...' : n.textContent;
 			text = ` "${content}"`;
 		}
 

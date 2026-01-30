@@ -68,9 +68,13 @@
 
 import { EventEmitter } from 'node:events';
 import React, { type ReactElement, act } from 'react';
-import { ensureDefaultLayoutEngine, getLayoutEngine, isLayoutEngineInitialized } from '../layout-engine.js';
+import { type App, createApp } from '../app.js';
 import { type TerminalBuffer, bufferToText } from '../buffer.js';
-import { createApp, type App } from '../app.js';
+import {
+	ensureDefaultLayoutEngine,
+	getLayoutEngine,
+	isLayoutEngineInitialized,
+} from '../layout-engine.js';
 
 // Re-export App for type usage
 export type { App } from '../app.js';

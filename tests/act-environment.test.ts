@@ -9,11 +9,11 @@
  * This test runs in a subprocess to ensure a clean global state.
  */
 
-import { describe, expect, test } from "vitest";
-import { spawn } from "bun";
+import { spawn } from 'bun';
+import { describe, expect, test } from 'vitest';
 
-describe("IS_REACT_ACT_ENVIRONMENT", () => {
-	test("main inkx module does NOT set IS_REACT_ACT_ENVIRONMENT", async () => {
+describe('IS_REACT_ACT_ENVIRONMENT', () => {
+	test('main inkx module does NOT set IS_REACT_ACT_ENVIRONMENT', async () => {
 		// Create a test script that runs in isolation
 		const testScript = `
 			// Check before import
@@ -38,9 +38,9 @@ describe("IS_REACT_ACT_ENVIRONMENT", () => {
 		`;
 
 		const proc = spawn({
-			cmd: ["bun", "-e", testScript],
-			stdout: "pipe",
-			stderr: "pipe",
+			cmd: ['bun', '-e', testScript],
+			stdout: 'pipe',
+			stderr: 'pipe',
 		});
 
 		const exitCode = await proc.exited;
@@ -60,7 +60,7 @@ describe("IS_REACT_ACT_ENVIRONMENT", () => {
 		expect(exitCode).toBe(0);
 	});
 
-	test("testing module DOES set IS_REACT_ACT_ENVIRONMENT", async () => {
+	test('testing module DOES set IS_REACT_ACT_ENVIRONMENT', async () => {
 		// The testing module should set the flag (this is expected)
 		const testScript = `
 			// Check before import
@@ -81,9 +81,9 @@ describe("IS_REACT_ACT_ENVIRONMENT", () => {
 		`;
 
 		const proc = spawn({
-			cmd: ["bun", "-e", testScript],
-			stdout: "pipe",
-			stderr: "pipe",
+			cmd: ['bun', '-e', testScript],
+			stdout: 'pipe',
+			stderr: 'pipe',
 		});
 
 		const exitCode = await proc.exited;

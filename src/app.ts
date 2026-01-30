@@ -25,12 +25,12 @@
  */
 
 import type { ReactElement, ReactNode } from 'react';
+import { type AutoLocator, type FilterOptions, createAutoLocator } from './auto-locator.js';
+import { type BoundTerm, createBoundTerm } from './bound-term.js';
 import type { TerminalBuffer } from './buffer.js';
-import { bufferToText, bufferToStyledText } from './buffer.js';
-import type { InkxNode, Rect } from './types.js';
-import { createAutoLocator, type AutoLocator, type FilterOptions } from './auto-locator.js';
-import { createBoundTerm, type BoundTerm } from './bound-term.js';
+import { bufferToStyledText, bufferToText } from './buffer.js';
 import { keyToAnsi } from './keys.js';
+import type { InkxNode, Rect } from './types.js';
 
 /**
  * App interface - unified return type from render()
@@ -276,7 +276,14 @@ export function createApp(options: AppOptions): App {
 				const dummyBuffer = {
 					width: columns,
 					height: rows,
-					getCell: () => ({ char: ' ', fg: null, bg: null, attrs: {}, wide: false, continuation: false }),
+					getCell: () => ({
+						char: ' ',
+						fg: null,
+						bg: null,
+						attrs: {},
+						wide: false,
+						continuation: false,
+					}),
 					setCell: () => {},
 					clear: () => {},
 					inBounds: () => false,

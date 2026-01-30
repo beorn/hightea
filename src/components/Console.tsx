@@ -1,15 +1,15 @@
-import type { ReactElement, ReactNode } from 'react'
-import { Box } from './Box.js'
-import { Text } from './Text.js'
-import type { PatchedConsole, ConsoleEntry } from 'chalkx'
-import { useConsole } from '../hooks/useConsole.js'
+import type { ConsoleEntry, PatchedConsole } from 'chalkx';
+import type { ReactElement, ReactNode } from 'react';
+import { useConsole } from '../hooks/useConsole.js';
+import { Box } from './Box.js';
+import { Text } from './Text.js';
 
 interface ConsoleProps {
-  /** The patched console to render entries from */
-  console: PatchedConsole
+	/** The patched console to render entries from */
+	console: PatchedConsole;
 
-  /** Optional render function for custom entry rendering */
-  children?: (entry: ConsoleEntry, index: number) => ReactNode
+	/** Optional render function for custom entry rendering */
+	children?: (entry: ConsoleEntry, index: number) => ReactNode;
 }
 
 /**
@@ -17,19 +17,19 @@ interface ConsoleProps {
  * Joins args with spaces, handling objects via JSON.stringify.
  */
 function formatArgs(args: unknown[]): string {
-  return args
-    .map((arg) => {
-      if (typeof arg === 'string') return arg
-      if (typeof arg === 'number' || typeof arg === 'boolean') return String(arg)
-      if (arg === null) return 'null'
-      if (arg === undefined) return 'undefined'
-      try {
-        return JSON.stringify(arg)
-      } catch {
-        return String(arg)
-      }
-    })
-    .join(' ')
+	return args
+		.map((arg) => {
+			if (typeof arg === 'string') return arg;
+			if (typeof arg === 'number' || typeof arg === 'boolean') return String(arg);
+			if (arg === null) return 'null';
+			if (arg === undefined) return 'undefined';
+			try {
+				return JSON.stringify(arg);
+			} catch {
+				return String(arg);
+			}
+		})
+		.join(' ');
 }
 
 /**
@@ -59,19 +59,19 @@ function formatArgs(args: unknown[]): string {
  * ```
  */
 export function Console({ console: patched, children }: ConsoleProps): ReactElement {
-  const entries = useConsole(patched)
+	const entries = useConsole(patched);
 
-  return (
-    <Box flexDirection="column">
-      {entries.map((entry, i) =>
-        children ? (
-          children(entry, i)
-        ) : (
-          <Text key={i} color={entry.stream === 'stderr' ? 'red' : undefined}>
-            {formatArgs(entry.args)}
-          </Text>
-        )
-      )}
-    </Box>
-  )
+	return (
+		<Box flexDirection="column">
+			{entries.map((entry, i) =>
+				children ? (
+					children(entry, i)
+				) : (
+					<Text key={i} color={entry.stream === 'stderr' ? 'red' : undefined}>
+						{formatArgs(entry.args)}
+					</Text>
+				),
+			)}
+		</Box>
+	);
 }

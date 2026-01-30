@@ -10,9 +10,9 @@
  */
 
 import type { EventEmitter } from 'node:events';
+import type { Term } from 'chalkx';
 import { createContext } from 'react';
 import type { Event, InkxNode } from './types.js';
-import type { Term } from 'chalkx';
 
 // ============================================================================
 // Term Context

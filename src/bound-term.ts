@@ -15,7 +15,7 @@
  * ```
  */
 
-import type { TerminalBuffer, Cell } from './buffer.js';
+import type { Cell, TerminalBuffer } from './buffer.js';
 import type { InkxNode } from './types.js';
 
 /**

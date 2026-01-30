@@ -5,7 +5,7 @@
  * Handles auto-detection of events from stdin, dimension defaults, etc.
  */
 
-import type { Term, ColorLevel } from 'chalkx';
+import type { ColorLevel, Term } from 'chalkx';
 import type { Event, TermDef } from './types.js';
 
 // ============================================================================
@@ -146,7 +146,7 @@ function detectColorLevel(stdout?: NodeJS.WriteStream): ColorLevel | null {
 	}
 
 	if (process.env.FORCE_COLOR !== undefined) {
-		const level = parseInt(process.env.FORCE_COLOR, 10);
+		const level = Number.parseInt(process.env.FORCE_COLOR, 10);
 		if (level === 0) return null;
 		if (level === 1) return 'basic';
 		if (level === 2) return '256';
@@ -155,10 +155,7 @@ function detectColorLevel(stdout?: NodeJS.WriteStream): ColorLevel | null {
 	}
 
 	// Check COLORTERM for truecolor
-	if (
-		process.env.COLORTERM === 'truecolor' ||
-		process.env.COLORTERM === '24bit'
-	) {
+	if (process.env.COLORTERM === 'truecolor' || process.env.COLORTERM === '24bit') {
 		return 'truecolor';
 	}
 
@@ -186,12 +183,10 @@ function detectColorLevel(stdout?: NodeJS.WriteStream): ColorLevel | null {
  *
  * This enables interactive mode by providing a source of keyboard events.
  */
-export function createInputEvents(
-	stdin: NodeJS.ReadStream,
-): AsyncIterable<Event> {
+export function createInputEvents(stdin: NodeJS.ReadStream): AsyncIterable<Event> {
 	return {
 		[Symbol.asyncIterator](): AsyncIterator<Event> {
-			let buffer: Event[] = [];
+			const buffer: Event[] = [];
 			let resolveNext: ((value: IteratorResult<Event>) => void) | null = null;
 			let done = false;
 
