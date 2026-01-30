@@ -47,7 +47,8 @@ export const LAYOUT_PROPS = new Set([
 	'display',
 	'position',
 	'overflow',
-	'scrollTo',
+	// Note: scrollTo intentionally excluded - it doesn't affect layout dimensions,
+	// only scroll offset which is handled in scrollPhase (reads props.scrollTo directly)
 ]);
 
 /**
