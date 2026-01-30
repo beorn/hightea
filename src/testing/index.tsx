@@ -476,8 +476,6 @@ export function createTestRenderer(options: TestRendererOptions = {}): TestRende
 		};
 
 		const debugFn = () => {
-			// eslint-disable-next-line @typescript-eslint/no-require-imports
-			const { debugTree } = require('./debug.js') as typeof import('./debug.js');
 			console.log(debugTree(getContainerRoot(instance.container)));
 		};
 

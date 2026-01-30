@@ -26,8 +26,10 @@
 
 import React, { type ReactElement } from 'react';
 
+import { createTerm } from 'chalkx';
+
 import { bufferToStyledText, bufferToText } from './buffer.js';
-import { AppContext, StdoutContext } from './context.js';
+import { AppContext, StdoutContext, TermContext } from './context.js';
 import { isLayoutEngineInitialized, setLayoutEngine } from './layout-engine.js';
 import { executeRender } from './pipeline.js';
 import { createContainer, getContainerRoot, reconciler } from './reconciler.js';
@@ -158,23 +160,30 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
 		addListener: () => mockStdout,
 	} as unknown as NodeJS.WriteStream;
 
+	// Create mock term for components that use useTerm()
+	const mockTerm = createTerm({ level: plain ? 0 : 3, columns: width });
+
 	// Wrap with minimal contexts (no input handling needed)
 	const wrapped = React.createElement(
-		AppContext.Provider,
-		{
-			value: {
-				exit: () => {}, // No-op for static render
-			},
-		},
+		TermContext.Provider,
+		{ value: mockTerm },
 		React.createElement(
-			StdoutContext.Provider,
+			AppContext.Provider,
 			{
 				value: {
-					stdout: mockStdout,
-					write: () => {},
+					exit: () => {}, // No-op for static render
 				},
 			},
-			element,
+			React.createElement(
+				StdoutContext.Provider,
+				{
+					value: {
+						stdout: mockStdout,
+						write: () => {},
+					},
+				},
+				element,
+			),
 		),
 	);
 

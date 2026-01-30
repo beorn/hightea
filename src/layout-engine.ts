@@ -284,28 +284,28 @@ export async function ensureDefaultLayoutEngine(): Promise<void> {
 }
 
 /**
- * Get or create the default layout engine synchronously.
+ * Get or create the default layout engine.
  * Returns the engine instance for immediate use.
  *
- * Note: Currently requires Yoga to be pre-initialized for sync usage.
- * When USE_FLEXX_DEFAULT is true, Flexx can be created synchronously.
+ * Note: This function is async because both Yoga and Flexx use dynamic imports.
+ * For sync usage, call ensureDefaultLayoutEngine() first, then getLayoutEngine().
  */
-export function getOrCreateDefaultLayoutEngine(): LayoutEngine {
+export async function getOrCreateDefaultLayoutEngine(): Promise<LayoutEngine> {
 	if (isLayoutEngineInitialized()) {
 		return getLayoutEngine();
 	}
 
 	if (USE_FLEXX_DEFAULT) {
-		// Flexx is synchronous
-		const { createFlexxEngine } = require('./adapters/flexx-adapter.js');
+		// Flexx is synchronous after import
+		const { createFlexxEngine } = await import('./adapters/flexx-adapter.js');
 		const engine = createFlexxEngine();
 		setLayoutEngine(engine);
 		return engine;
 	} else {
-		// Yoga requires async initialization - can't be done synchronously
-		// Callers using sync API should ensure engine is pre-initialized
-		throw new Error(
-			'Layout engine not initialized. Call ensureDefaultLayoutEngine() first, or use createFlexxEngine() for sync initialization.',
-		);
+		// Yoga requires async initialization
+		const { initYogaEngine } = await import('./adapters/yoga-adapter.js');
+		const engine = await initYogaEngine();
+		setLayoutEngine(engine);
+		return engine;
 	}
 }
