@@ -9,11 +9,11 @@
  * - Text content collection (collectTextContent)
  */
 
-import wrapAnsi from 'wrap-ansi';
 import type { Color, Style, TerminalBuffer } from '../buffer.js';
 import type { InkxNode, TextProps } from '../types.js';
 import {
 	type StyledSegment,
+	displayWidth,
 	graphemeWidth,
 	hasAnsi,
 	parseAnsiText,
@@ -215,6 +215,112 @@ export function collectTextContent(node: InkxNode, parentContext: StyleContext =
 // ============================================================================
 
 /**
+ * Word-aware text wrapping using our own string-width.
+ *
+ * This replaces wrap-ansi because wrap-ansi@9 uses string-width@7 which has
+ * different Unicode width tables than string-width@8, causing character
+ * width mismatches for certain emoji like ⚠ (U+26A0).
+ *
+ * Features:
+ * - Breaks at word boundaries when possible
+ * - Hard breaks when a word exceeds line width
+ * - Trims leading spaces from continuation lines
+ * - Uses grapheme segmentation for proper Unicode handling
+ */
+function wrapText(text: string, maxWidth: number): string {
+	if (maxWidth <= 0) return '';
+
+	const result: string[] = [];
+	const lines = text.split('\n');
+
+	for (const line of lines) {
+		if (line === '') {
+			result.push('');
+			continue;
+		}
+
+		// Split into words (preserving spaces as separate tokens for proper handling)
+		const words: string[] = [];
+		let current = '';
+		let inWord = false;
+
+		for (const grapheme of splitGraphemes(line)) {
+			const isSpace = grapheme === ' ' || grapheme === '\t';
+			if (isSpace) {
+				if (current) {
+					words.push(current);
+					current = '';
+				}
+				words.push(grapheme);
+				inWord = false;
+			} else {
+				current += grapheme;
+				inWord = true;
+			}
+		}
+		if (current) words.push(current);
+
+		// Build lines with word wrapping
+		let currentLine = '';
+		let currentWidth = 0;
+
+		for (const word of words) {
+			const wordWidth = displayWidth(word);
+			const isSpace = word === ' ' || word === '\t';
+
+			if (currentWidth + wordWidth <= maxWidth) {
+				// Word fits on current line
+				currentLine += word;
+				currentWidth += wordWidth;
+			} else if (wordWidth > maxWidth && !isSpace) {
+				// Word is longer than max width - hard break
+				if (currentLine) {
+					result.push(currentLine.trimEnd());
+					currentLine = '';
+					currentWidth = 0;
+				}
+				// Break word into chunks
+				let remaining = word;
+				while (displayWidth(remaining) > maxWidth) {
+					const graphemes = splitGraphemes(remaining);
+					let chunk = '';
+					let chunkWidth = 0;
+					let i = 0;
+					while (i < graphemes.length && chunkWidth + graphemeWidth(graphemes[i]!) <= maxWidth) {
+						chunk += graphemes[i];
+						chunkWidth += graphemeWidth(graphemes[i]!);
+						i++;
+					}
+					result.push(chunk);
+					remaining = graphemes.slice(i).join('');
+				}
+				currentLine = remaining;
+				currentWidth = displayWidth(remaining);
+			} else if (isSpace && currentWidth === 0) {
+				// Skip leading space on continuation line (trim behavior)
+				continue;
+			} else {
+				// Word doesn't fit - start new line
+				if (currentLine) {
+					result.push(currentLine.trimEnd());
+				}
+				currentLine = isSpace ? '' : word;
+				currentWidth = isSpace ? 0 : wordWidth;
+			}
+		}
+
+		// Push final line
+		if (currentLine) {
+			result.push(currentLine.trimEnd());
+		} else if (result.length === 0 || result[result.length - 1] !== '') {
+			// Only push empty line if we had content that got trimmed
+		}
+	}
+
+	return result.join('\n');
+}
+
+/**
  * Format text into lines based on wrap mode.
  */
 export function formatTextLines(text: string, width: number, wrap: TextProps['wrap']): string[] {
@@ -241,12 +347,9 @@ export function formatTextLines(text: string, width: number, wrap: TextProps['wr
 		return lines.map((line) => truncateText(line, width, 'middle'));
 	}
 
-	// wrap === true or wrap === 'wrap' - word-aware wrapping using wrap-ansi
-	// This breaks at word boundaries when possible, preserving ANSI styles
-	// trim: true removes leading/trailing spaces from wrapped lines
-	// This prevents extra leading spaces on continuation lines when wrapping
-	// mid-sentence (e.g., "word1 word2" wrapped → "word1" and "word2", not " word2")
-	const wrapped = wrapAnsi(normalizedText, width, { hard: true, trim: true });
+	// wrap === true or wrap === 'wrap' - word-aware wrapping
+	// Uses our own wrapText function with consistent string-width
+	const wrapped = wrapText(normalizedText, width);
 	return wrapped.split('\n');
 }
 
