@@ -129,6 +129,17 @@ export interface TestProps {
 }
 
 /**
+ * Underline style variants (SGR 4:x codes).
+ * - false: no underline
+ * - 'single': standard underline (SGR 4 or 4:1)
+ * - 'double': double underline (SGR 4:2)
+ * - 'curly': curly/wavy underline (SGR 4:3)
+ * - 'dotted': dotted underline (SGR 4:4)
+ * - 'dashed': dashed underline (SGR 4:5)
+ */
+export type UnderlineStyle = false | 'single' | 'double' | 'curly' | 'dotted' | 'dashed';
+
+/**
  * Style properties for text rendering.
  */
 export interface StyleProps {
@@ -139,7 +150,18 @@ export interface StyleProps {
 	/** Alias for dim (Ink compatibility) */
 	dimColor?: boolean;
 	italic?: boolean;
+	/** Enable underline. Use underlineStyle for style variants. */
 	underline?: boolean;
+	/**
+	 * Underline style variant: 'single' | 'double' | 'curly' | 'dotted' | 'dashed'.
+	 * Setting this implies underline=true. Takes precedence over underline prop.
+	 */
+	underlineStyle?: UnderlineStyle;
+	/**
+	 * Underline color (independent of text color).
+	 * Uses SGR 58 (underline color). Falls back to text color if not specified.
+	 */
+	underlineColor?: string;
 	strikethrough?: boolean;
 	inverse?: boolean;
 }
@@ -275,7 +297,13 @@ export interface CellAttrs {
 	bold?: boolean;
 	dim?: boolean;
 	italic?: boolean;
+	/** Simple underline flag (for backwards compatibility) */
 	underline?: boolean;
+	/**
+	 * Underline style: 'single' | 'double' | 'curly' | 'dotted' | 'dashed'.
+	 * When set, takes precedence over the underline boolean.
+	 */
+	underlineStyle?: UnderlineStyle;
 	strikethrough?: boolean;
 	inverse?: boolean;
 }

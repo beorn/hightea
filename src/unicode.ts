@@ -628,26 +628,70 @@ export function truncateAnsi(text: string, maxWidth: number, ellipsis = '\u2026'
 
 // BG_OVERRIDE_CODE is imported from chalkx and re-exported at top of file
 
+/**
+ * Underline style variants (SGR 4:x codes).
+ * Matches the UnderlineStyle type from types.ts/buffer.ts.
+ */
+export type UnderlineStyleValue = false | 'single' | 'double' | 'curly' | 'dotted' | 'dashed';
+
 /** Styled text segment with associated ANSI colors/attributes */
 export interface StyledSegment {
 	text: string;
 	fg?: number | null; // SGR color code (30-37, 90-97, or 38;5;N / 38;2;r;g;b)
 	bg?: number | null; // SGR color code (40-47, 100-107, or 48;5;N / 48;2;r;g;b)
+	/**
+	 * Underline color (SGR 58).
+	 * Same format as fg/bg: packed RGB with 0x1000000 marker, or 256-color index.
+	 */
+	underlineColor?: number | null;
 	bold?: boolean;
 	dim?: boolean;
 	italic?: boolean;
 	underline?: boolean;
+	/**
+	 * Underline style variant (SGR 4:x).
+	 * 'single' | 'double' | 'curly' | 'dotted' | 'dashed' | false
+	 */
+	underlineStyle?: UnderlineStyleValue;
 	inverse?: boolean;
 	bgOverride?: boolean; // Set when BG_OVERRIDE_CODE (9999) is present
 }
 
 /**
+ * Map SGR 4:x subparameter to underline style.
+ * 0=none, 1=single, 2=double, 3=curly, 4=dotted, 5=dashed
+ */
+function parseUnderlineStyle(subparam: number): UnderlineStyleValue {
+	switch (subparam) {
+		case 0:
+			return false;
+		case 1:
+			return 'single';
+		case 2:
+			return 'double';
+		case 3:
+			return 'curly';
+		case 4:
+			return 'dotted';
+		case 5:
+			return 'dashed';
+		default:
+			return 'single'; // Unknown, default to single
+	}
+}
+
+/**
  * Parse text with ANSI escape sequences into styled segments.
- * Handles basic SGR (Select Graphic Rendition) codes.
+ * Handles basic SGR (Select Graphic Rendition) codes including:
+ * - Standard colors (30-37, 40-47, 90-97, 100-107)
+ * - Extended colors (38;5;N, 48;5;N for 256-color, 38;2;r;g;b, 48;2;r;g;b for RGB)
+ * - Underline styles (4:x where x = 0-5)
+ * - Underline color (58;5;N for 256-color, 58;2;r;g;b for RGB)
  */
 export function parseAnsiText(text: string): StyledSegment[] {
 	const segments: StyledSegment[] = [];
-	const ansiPattern = /\x1b\[([0-9;]*)m/g;
+	// Extended pattern: matches SGR with semicolons AND colons (for 4:x, 58:2::r:g:b)
+	const ansiPattern = /\x1b\[([0-9;:]*)m/g;
 
 	let currentStyle: Omit<StyledSegment, 'text'> = {};
 	let lastIndex = 0;
@@ -663,10 +707,69 @@ export function parseAnsiText(text: string): StyledSegment[] {
 			}
 		}
 
-		// Parse SGR codes
-		const codes = match[1]!.split(';').map(Number);
-		for (let i = 0; i < codes.length; i++) {
-			const code = codes[i];
+		// Parse SGR codes - split by semicolon first, then handle colon subparams
+		const rawParams = match[1]!;
+
+		// Handle colon-separated sequences (like 4:3 for curly underline, 58:2::r:g:b)
+		// Split by semicolon first to get top-level params
+		const params = rawParams.split(';');
+
+		for (let i = 0; i < params.length; i++) {
+			const param = params[i]!;
+
+			// Check if this param has colon subparameters (e.g., "4:3", "58:2::255:0:0")
+			if (param.includes(':')) {
+				const subparts = param.split(':').map((s) => (s === '' ? 0 : Number(s)));
+				const mainCode = subparts[0]!;
+
+				if (mainCode === 4) {
+					// SGR 4:x - underline style
+					const styleCode = subparts[1] ?? 1;
+					currentStyle.underlineStyle = parseUnderlineStyle(styleCode);
+					currentStyle.underline = currentStyle.underlineStyle !== false;
+				} else if (mainCode === 58) {
+					// SGR 58 - underline color
+					// Format: 58:5:N (256-color) or 58:2::r:g:b (RGB, note double colon)
+					if (subparts[1] === 5 && subparts[2] !== undefined) {
+						currentStyle.underlineColor = subparts[2];
+					} else if (subparts[1] === 2) {
+						// RGB: 58:2::r:g:b (indices 3,4,5 after the empty slot)
+						// or 58:2:r:g:b (indices 2,3,4)
+						// Handle both formats by looking for valid RGB values
+						const r = subparts[3] ?? subparts[2] ?? 0;
+						const g = subparts[4] ?? subparts[3] ?? 0;
+						const b = subparts[5] ?? subparts[4] ?? 0;
+						currentStyle.underlineColor =
+							0x1000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+					}
+				} else if (mainCode === 38) {
+					// SGR 38:2::r:g:b or 38:5:N format
+					if (subparts[1] === 5 && subparts[2] !== undefined) {
+						currentStyle.fg = subparts[2];
+					} else if (subparts[1] === 2) {
+						const r = subparts[3] ?? subparts[2] ?? 0;
+						const g = subparts[4] ?? subparts[3] ?? 0;
+						const b = subparts[5] ?? subparts[4] ?? 0;
+						currentStyle.fg =
+							0x1000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+					}
+				} else if (mainCode === 48) {
+					// SGR 48:2::r:g:b or 48:5:N format
+					if (subparts[1] === 5 && subparts[2] !== undefined) {
+						currentStyle.bg = subparts[2];
+					} else if (subparts[1] === 2) {
+						const r = subparts[3] ?? subparts[2] ?? 0;
+						const g = subparts[4] ?? subparts[3] ?? 0;
+						const b = subparts[5] ?? subparts[4] ?? 0;
+						currentStyle.bg =
+							0x1000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+					}
+				}
+				continue;
+			}
+
+			// Standard semicolon-separated params
+			const code = Number(param);
 			switch (code) {
 				case 0:
 					// Reset
@@ -682,7 +785,9 @@ export function parseAnsiText(text: string): StyledSegment[] {
 					currentStyle.italic = true;
 					break;
 				case 4:
+					// Plain SGR 4 - simple underline (no subparam)
 					currentStyle.underline = true;
+					currentStyle.underlineStyle = 'single';
 					break;
 				case 7:
 					currentStyle.inverse = true;
@@ -695,7 +800,9 @@ export function parseAnsiText(text: string): StyledSegment[] {
 					currentStyle.italic = false;
 					break;
 				case 24:
+					// SGR 24 - underline off
 					currentStyle.underline = false;
+					currentStyle.underlineStyle = false;
 					break;
 				case 27:
 					currentStyle.inverse = false;
@@ -710,21 +817,23 @@ export function parseAnsiText(text: string): StyledSegment[] {
 				case 37:
 					currentStyle.fg = code;
 					break;
-				case 38:
+				case 38: {
 					// Extended color: 38;5;N (256 color) or 38;2;r;g;b (true color)
-					if (codes[i + 1] === 5 && codes[i + 2] !== undefined) {
-						currentStyle.fg = codes[i + 2]!;
+					const nextParams = params.slice(i + 1).map(Number);
+					if (nextParams[0] === 5 && nextParams[1] !== undefined) {
+						currentStyle.fg = nextParams[1];
 						i += 2;
-					} else if (codes[i + 1] === 2 && codes[i + 4] !== undefined) {
+					} else if (nextParams[0] === 2 && nextParams[3] !== undefined) {
 						// True color - store as RGB values packed
 						currentStyle.fg =
 							0x1000000 |
-							((codes[i + 2]! & 0xff) << 16) |
-							((codes[i + 3]! & 0xff) << 8) |
-							(codes[i + 4]! & 0xff);
+							((nextParams[1]! & 0xff) << 16) |
+							((nextParams[2]! & 0xff) << 8) |
+							(nextParams[3]! & 0xff);
 						i += 4;
 					}
 					break;
+				}
 				case 39:
 					currentStyle.fg = null; // Default foreground
 					break;
@@ -738,23 +847,45 @@ export function parseAnsiText(text: string): StyledSegment[] {
 				case 47:
 					currentStyle.bg = code;
 					break;
-				case 48:
+				case 48: {
 					// Extended color: 48;5;N (256 color) or 48;2;r;g;b (true color)
-					if (codes[i + 1] === 5 && codes[i + 2] !== undefined) {
-						currentStyle.bg = codes[i + 2]!;
+					const nextParams = params.slice(i + 1).map(Number);
+					if (nextParams[0] === 5 && nextParams[1] !== undefined) {
+						currentStyle.bg = nextParams[1];
 						i += 2;
-					} else if (codes[i + 1] === 2 && codes[i + 4] !== undefined) {
+					} else if (nextParams[0] === 2 && nextParams[3] !== undefined) {
 						// True color - store as RGB values packed
 						currentStyle.bg =
 							0x1000000 |
-							((codes[i + 2]! & 0xff) << 16) |
-							((codes[i + 3]! & 0xff) << 8) |
-							(codes[i + 4]! & 0xff);
+							((nextParams[1]! & 0xff) << 16) |
+							((nextParams[2]! & 0xff) << 8) |
+							(nextParams[3]! & 0xff);
 						i += 4;
 					}
 					break;
+				}
 				case 49:
 					currentStyle.bg = null; // Default background
+					break;
+				case 58: {
+					// Underline color: 58;5;N (256 color) or 58;2;r;g;b (true color)
+					const nextParams = params.slice(i + 1).map(Number);
+					if (nextParams[0] === 5 && nextParams[1] !== undefined) {
+						currentStyle.underlineColor = nextParams[1];
+						i += 2;
+					} else if (nextParams[0] === 2 && nextParams[3] !== undefined) {
+						// True color - store as RGB values packed
+						currentStyle.underlineColor =
+							0x1000000 |
+							((nextParams[1]! & 0xff) << 16) |
+							((nextParams[2]! & 0xff) << 8) |
+							(nextParams[3]! & 0xff);
+						i += 4;
+					}
+					break;
+				}
+				case 59:
+					currentStyle.underlineColor = null; // Default underline color
 					break;
 				case 90:
 				case 91:

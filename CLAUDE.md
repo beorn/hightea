@@ -397,6 +397,71 @@ const locator = app.locator('#main')
 const item = app.getByTestId('item')
 ```
 
+## Style Props Reference
+
+### Text Component Style Props
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `color` | string | Foreground color (named, hex, or rgb()) |
+| `backgroundColor` | string | Background color |
+| `bold` | boolean | Bold text |
+| `dim` | boolean | Dimmed text |
+| `italic` | boolean | Italic text |
+| `underline` | boolean | Simple underline |
+| `underlineStyle` | UnderlineStyle | `'single'` \| `'double'` \| `'curly'` \| `'dotted'` \| `'dashed'` |
+| `underlineColor` | string | Underline color (independent of text color) |
+| `strikethrough` | boolean | Strikethrough text |
+| `inverse` | boolean | Swap foreground/background |
+
+### UnderlineStyle Values
+
+| Value | SGR Code | Description |
+|-------|----------|-------------|
+| `'single'` | 4:1 | Standard single underline |
+| `'double'` | 4:2 | Double underline |
+| `'curly'` | 4:3 | Wavy/curly underline (errors) |
+| `'dotted'` | 4:4 | Dotted underline |
+| `'dashed'` | 4:5 | Dashed underline |
+
+### Style Layering
+
+inkx uses category-based style merging that preserves semantic information:
+
+```
+┌─────────────────┬───────────────────────────────────────────┐
+│ Category        │ Merge Behavior                            │
+├─────────────────┼───────────────────────────────────────────┤
+│ Container (bg)  │ Higher layer REPLACES lower               │
+│ Text (fg)       │ Higher layer REPLACES lower               │
+├─────────────────┼───────────────────────────────────────────┤
+│ Decorations     │ PRESERVED through layers (OR merge)       │
+│ (underline*,    │ underlineColor preserved independently    │
+│  strikethrough) │                                           │
+├─────────────────┼───────────────────────────────────────────┤
+│ Emphasis        │ PRESERVED through layers (OR merge)       │
+│ (bold, dim,     │                                           │
+│  italic)        │                                           │
+├─────────────────┼───────────────────────────────────────────┤
+│ Transform       │ Applied LAST, not inherited               │
+│ (inverse)       │ Swaps final fg/bg after all merging       │
+└─────────────────┴───────────────────────────────────────────┘
+```
+
+### Usage Example: Selection with Preserved Decorations
+
+```tsx
+// Selection overlay preserves error underline
+<Text
+  color={isSelected ? 'black' : statusColor}
+  backgroundColor={isSelected ? 'yellow' : undefined}
+  underlineStyle={isOverdue ? 'curly' : undefined}
+  underlineColor={isOverdue ? 'red' : undefined}
+>
+  {icon} {title}
+</Text>
+```
+
 ## Key Exports
 
 | Export | Description |
@@ -413,6 +478,7 @@ const item = app.getByTestId('item')
 | `useInput()` | Keyboard input |
 | `createTerm()` | Create Term instance (re-exported from chalkx) |
 | `patchConsole()` | Capture console output (re-exported from chalkx) |
+| `mergeStyles()` | Category-based style merging function |
 | `Term`, `StyleChain` | Types (re-exported from chalkx) |
 
 ## Key Differences from Ink

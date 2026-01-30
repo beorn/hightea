@@ -391,14 +391,86 @@ Full documentation at `docs/site/` (VitePress):
 
 Run locally: `cd docs/site && bun run dev`
 
+## Style Layering
+
+Inkx implements **category-based style merging** that preserves semantic information through state changes (like selection). This is especially useful for TUI applications where selection overlays shouldn't destroy underlying styles like error underlines.
+
+### Style Categories
+
+| Category | Properties | Merge Behavior |
+|----------|------------|----------------|
+| **Container** | `bg` | Replace (overlay wins) |
+| **Text** | `fg` | Replace (overlay wins) |
+| **Decorations** | `underline`, `underlineStyle`, `underlineColor`, `strikethrough` | Preserved (OR merge) |
+| **Emphasis** | `bold`, `dim`, `italic` | Preserved (OR merge) |
+| **Transform** | `inverse` | Applied last, not inherited |
+
+### Example: Selection Preserves Underlines
+
+```tsx
+// Without style layering (typical behavior):
+// Selection (yellow bg + black text) DESTROYS red underline
+
+// With inkx style layering:
+// Selection preserves the red underline!
+<Text
+  color={isSelected ? 'black' : 'white'}
+  backgroundColor={isSelected ? 'yellow' : undefined}
+  underlineStyle="curly"
+  underlineColor="red"  // Preserved through selection!
+>
+  overdue task
+</Text>
+```
+
+### Underline Styles (SGR 4:x)
+
+Inkx supports extended underline styles via the `underlineStyle` prop:
+
+```tsx
+<Text underlineStyle="single">standard underline</Text>
+<Text underlineStyle="double">double underline</Text>
+<Text underlineStyle="curly">curly/wavy underline</Text>
+<Text underlineStyle="dotted">dotted underline</Text>
+<Text underlineStyle="dashed">dashed underline</Text>
+```
+
+### Underline Color (SGR 58)
+
+Set underline color independently of text color:
+
+```tsx
+<Text underlineStyle="curly" underlineColor="red">
+  Error: file not found
+</Text>
+
+<Text underlineStyle="dashed" underlineColor="#0088ff">
+  https://example.com
+</Text>
+```
+
+### Controlling Merge Behavior
+
+For advanced use cases, style merging behavior can be controlled:
+
+```tsx
+// In custom components using mergeStyles():
+import { mergeStyles } from 'inkx'
+
+const result = mergeStyles(baseStyle, overlayStyle, {
+  preserveDecorations: false,  // Overlay can clear decorations
+  preserveEmphasis: false,     // Overlay can clear emphasis
+})
+```
+
 ## Chalk/ANSI Compatibility
 
 Inkx fully supports chalk/ANSI styling in text content. The render pipeline:
 
 1. `hasAnsi()` detects ANSI codes in text
-2. `parseAnsiText()` extracts styled segments
-3. `mergeAnsiStyle()` merges ANSI styles with inkx base styles
-4. **ANSI styles override base styles** when both are present
+2. `parseAnsiText()` extracts styled segments (including SGR 4:x and SGR 58)
+3. `mergeAnsiStyle()` merges ANSI styles using category-based semantics
+4. Decorations and emphasis are **preserved** through layers by default
 
 ### Background Conflict Detection
 

@@ -9,9 +9,32 @@ import {
 	type Color,
 	type Style,
 	type TerminalBuffer,
+	type UnderlineStyle,
 	styleEquals,
 } from '../buffer.js';
 import type { CellChange } from './types.js';
+
+/**
+ * Map underline style to SGR 4:x subparameter.
+ */
+function underlineStyleToSgr(style: UnderlineStyle | undefined): number | null {
+	switch (style) {
+		case false:
+			return 0; // SGR 4:0 = no underline
+		case 'single':
+			return 1; // SGR 4:1 = single underline
+		case 'double':
+			return 2; // SGR 4:2 = double underline
+		case 'curly':
+			return 3; // SGR 4:3 = curly underline
+		case 'dotted':
+			return 4; // SGR 4:4 = dotted underline
+		case 'dashed':
+			return 5; // SGR 4:5 = dashed underline
+		default:
+			return null; // Use simple SGR 4 or no underline
+	}
+}
 
 /**
  * Check if any text attributes are active.
@@ -22,6 +45,7 @@ function hasActiveAttrs(attrs: CellAttrs): boolean {
 		attrs.dim ||
 		attrs.italic ||
 		attrs.underline ||
+		attrs.underlineStyle ||
 		attrs.blink ||
 		attrs.inverse ||
 		attrs.hidden ||
@@ -118,7 +142,7 @@ function bufferToAnsi(
 			if (cell.continuation) continue;
 
 			// Update style if changed
-			const cellStyle: Style = { fg: cell.fg, bg: cell.bg, attrs: cell.attrs };
+			const cellStyle: Style = { fg: cell.fg, bg: cell.bg, underlineColor: cell.underlineColor, attrs: cell.attrs };
 			if (!styleEquals(currentStyle, cellStyle)) {
 				output += styleToAnsi(cellStyle);
 				currentStyle = cellStyle;
@@ -236,7 +260,7 @@ function changesToAnsi(
 			output += `\x1b[${x + 1}G`;
 
 			// Update style if changed
-			const cellStyle: Style = { fg: cell.fg, bg: cell.bg, attrs: cell.attrs };
+			const cellStyle: Style = { fg: cell.fg, bg: cell.bg, underlineColor: cell.underlineColor, attrs: cell.attrs };
 			if (!styleEquals(currentStyle, cellStyle)) {
 				output += styleToAnsi(cellStyle);
 				currentStyle = cellStyle;
@@ -270,7 +294,7 @@ function changesToAnsi(
 			}
 
 			// Update style if changed
-			const cellStyle: Style = { fg: cell.fg, bg: cell.bg, attrs: cell.attrs };
+			const cellStyle: Style = { fg: cell.fg, bg: cell.bg, underlineColor: cell.underlineColor, attrs: cell.attrs };
 			if (!styleEquals(currentStyle, cellStyle)) {
 				output += styleToAnsi(cellStyle);
 				currentStyle = cellStyle;
@@ -293,19 +317,34 @@ function changesToAnsi(
 
 /**
  * Convert style to ANSI escape sequence.
+ *
+ * Emits SGR codes including:
+ * - Basic colors (30-37, 40-47)
+ * - 256-color (38;5;N, 48;5;N)
+ * - True color (38;2;r;g;b, 48;2;r;g;b)
+ * - Underline styles (4:x where x = 0-5)
+ * - Underline color (58;5;N or 58;2;r;g;b)
+ * - Inverse is applied last by swapping fg/bg in the output
  */
 function styleToAnsi(style: Style): string {
+	// Handle inverse by swapping colors
+	let fg = style.fg;
+	let bg = style.bg;
+	if (style.attrs.inverse) {
+		[fg, bg] = [bg, fg];
+	}
+
 	const codes: number[] = [0]; // Reset first
 
 	// Foreground color
-	if (style.fg !== null) {
-		const fgCode = colorToAnsiFg(style.fg);
+	if (fg !== null) {
+		const fgCode = colorToAnsiFg(fg);
 		if (fgCode) codes.push(...fgCode);
 	}
 
 	// Background color
-	if (style.bg !== null) {
-		const bgCode = colorToAnsiBg(style.bg);
+	if (bg !== null) {
+		const bgCode = colorToAnsiBg(bg);
 		if (bgCode) codes.push(...bgCode);
 	}
 
@@ -313,11 +352,55 @@ function styleToAnsi(style: Style): string {
 	if (style.attrs.bold) codes.push(1);
 	if (style.attrs.dim) codes.push(2);
 	if (style.attrs.italic) codes.push(3);
-	if (style.attrs.underline) codes.push(4);
-	if (style.attrs.inverse) codes.push(7);
+
+	// Underline: use SGR 4:x if style specified, otherwise simple SGR 4
+	const underlineStyle = style.attrs.underlineStyle;
+	const sgrSubparam = underlineStyleToSgr(underlineStyle);
+	if (sgrSubparam !== null && sgrSubparam !== 0) {
+		// Use colon-separated format for underline style: 4:x
+		// Note: We can't use codes.push here because 4:x is a single parameter
+		// We'll append it separately after the semicolon-joined codes
+	} else if (style.attrs.underline) {
+		codes.push(4); // Simple underline
+	}
+
+	// Note: inverse was handled above by swapping colors, don't emit SGR 7
 	if (style.attrs.strikethrough) codes.push(9);
 
-	return `\x1b[${codes.join(';')}m`;
+	// Build the escape sequence
+	let result = `\x1b[${codes.join(';')}`;
+
+	// Append underline style if needed (uses colon separator)
+	if (sgrSubparam !== null && sgrSubparam !== 0) {
+		result += `;4:${sgrSubparam}`;
+	}
+
+	// Append underline color if specified (SGR 58)
+	if (style.underlineColor !== null && style.underlineColor !== undefined) {
+		const ulColorCode = colorToUnderlineColor(style.underlineColor);
+		if (ulColorCode) {
+			result += `;${ulColorCode}`;
+		}
+	}
+
+	result += 'm';
+	return result;
+}
+
+/**
+ * Convert color to underline color SGR 58 code string.
+ * Returns a string like "58;5;N" or "58;2;r;g;b"
+ */
+function colorToUnderlineColor(color: Color): string | null {
+	if (color === null) return null;
+
+	if (typeof color === 'number') {
+		// 256-color
+		return `58;5;${color}`;
+	}
+
+	// True color
+	return `58;2;${color.r};${color.g};${color.b}`;
 }
 
 /**

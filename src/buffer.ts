@@ -11,13 +11,30 @@
 // ============================================================================
 
 /**
+ * Underline style variants (SGR 4:x codes).
+ * - false: no underline
+ * - 'single': standard underline (SGR 4 or 4:1)
+ * - 'double': double underline (SGR 4:2)
+ * - 'curly': curly/wavy underline (SGR 4:3)
+ * - 'dotted': dotted underline (SGR 4:4)
+ * - 'dashed': dashed underline (SGR 4:5)
+ */
+export type UnderlineStyle = false | 'single' | 'double' | 'curly' | 'dotted' | 'dashed';
+
+/**
  * Text attributes that can be applied to a cell.
  */
 export interface CellAttrs {
 	bold?: boolean;
 	dim?: boolean;
 	italic?: boolean;
+	/** Simple underline flag (for backwards compatibility) */
 	underline?: boolean;
+	/**
+	 * Underline style: 'single' | 'double' | 'curly' | 'dotted' | 'dashed'.
+	 * When set, takes precedence over the underline boolean.
+	 */
+	underlineStyle?: UnderlineStyle;
 	blink?: boolean;
 	inverse?: boolean;
 	hidden?: boolean;
@@ -42,6 +59,11 @@ export interface Cell {
 	fg: Color;
 	/** Background color */
 	bg: Color;
+	/**
+	 * Underline color (independent of fg).
+	 * Uses SGR 58. If null, underline uses fg color.
+	 */
+	underlineColor: Color;
 	/** Text attributes */
 	attrs: CellAttrs;
 	/** True if this is a wide character (CJK, emoji, etc.) */
@@ -56,6 +78,11 @@ export interface Cell {
 export interface Style {
 	fg: Color;
 	bg: Color;
+	/**
+	 * Underline color (independent of fg).
+	 * Uses SGR 58. If null, underline uses fg color.
+	 */
+	underlineColor?: Color;
 	attrs: CellAttrs;
 }
 
@@ -66,30 +93,38 @@ export interface Style {
 // Bit packing layout for cell metadata in Uint32Array:
 // [0-7]:   foreground color index (8 bits)
 // [8-15]:  background color index (8 bits)
-// [16-23]: attributes (8 bits)
-// [24-31]: flags (8 bits)
+// [16-23]: attributes (8 bits): bold, dim, italic, blink, inverse, hidden, strikethrough + 1 spare
+// [24-26]: underline style (3 bits): 0=none, 1=single, 2=double, 3=curly, 4=dotted, 5=dashed
+// [27-31]: flags (5 bits): wide, continuation, true_color_fg, true_color_bg + 1 spare
 
-// Attribute bit positions (within the attrs byte)
-const ATTR_BOLD = 1 << 0;
-const ATTR_DIM = 1 << 1;
-const ATTR_ITALIC = 1 << 2;
-const ATTR_UNDERLINE = 1 << 3;
-const ATTR_BLINK = 1 << 4;
-const ATTR_INVERSE = 1 << 5;
-const ATTR_HIDDEN = 1 << 6;
-const ATTR_STRIKETHROUGH = 1 << 7;
+// Attribute bit positions (within bits 16-23)
+const ATTR_BOLD = 1 << 16;
+const ATTR_DIM = 1 << 17;
+const ATTR_ITALIC = 1 << 18;
+const ATTR_BLINK = 1 << 19;
+const ATTR_INVERSE = 1 << 20;
+const ATTR_HIDDEN = 1 << 21;
+const ATTR_STRIKETHROUGH = 1 << 22;
+// bit 23 spare
 
-// Flag bit positions (in the flags byte, shifted to position 24-31)
-const WIDE_FLAG = 1 << 24;
-const CONTINUATION_FLAG = 1 << 25;
-const TRUE_COLOR_FG_FLAG = 1 << 26;
-const TRUE_COLOR_BG_FLAG = 1 << 27;
+// Underline style (3 bits in positions 24-26)
+// 0 = no underline, 1 = single, 2 = double, 3 = curly, 4 = dotted, 5 = dashed
+const UNDERLINE_STYLE_SHIFT = 24;
+const UNDERLINE_STYLE_MASK = 0x7 << UNDERLINE_STYLE_SHIFT; // 3 bits
+
+// Flag bit positions (in bits 27-31)
+const WIDE_FLAG = 1 << 27;
+const CONTINUATION_FLAG = 1 << 28;
+const TRUE_COLOR_FG_FLAG = 1 << 29;
+const TRUE_COLOR_BG_FLAG = 1 << 30;
+// bit 31 spare
 
 // Default empty cell
 const EMPTY_CELL: Cell = {
 	char: ' ',
 	fg: null,
 	bg: null,
+	underlineColor: null,
 	attrs: {},
 	wide: false,
 	continuation: false,
@@ -100,18 +135,68 @@ const EMPTY_CELL: Cell = {
 // ============================================================================
 
 /**
- * Convert CellAttrs to a number for bit packing.
+ * Map UnderlineStyle to numeric value for bit packing.
+ */
+function underlineStyleToNumber(style: UnderlineStyle | undefined): number {
+	switch (style) {
+		case false:
+			return 0;
+		case 'single':
+			return 1;
+		case 'double':
+			return 2;
+		case 'curly':
+			return 3;
+		case 'dotted':
+			return 4;
+		case 'dashed':
+			return 5;
+		default:
+			return 0; // undefined or unknown = no underline
+	}
+}
+
+/**
+ * Map numeric value back to UnderlineStyle.
+ */
+function numberToUnderlineStyle(n: number): UnderlineStyle | undefined {
+	switch (n) {
+		case 0:
+			return undefined; // No underline
+		case 1:
+			return 'single';
+		case 2:
+			return 'double';
+		case 3:
+			return 'curly';
+		case 4:
+			return 'dotted';
+		case 5:
+			return 'dashed';
+		default:
+			return undefined;
+	}
+}
+
+/**
+ * Convert CellAttrs to bits for packing (used internally by packCell).
+ * Note: This packs into the full 32-bit word, not just the attrs byte.
  */
 export function attrsToNumber(attrs: CellAttrs): number {
 	let n = 0;
 	if (attrs.bold) n |= ATTR_BOLD;
 	if (attrs.dim) n |= ATTR_DIM;
 	if (attrs.italic) n |= ATTR_ITALIC;
-	if (attrs.underline) n |= ATTR_UNDERLINE;
 	if (attrs.blink) n |= ATTR_BLINK;
 	if (attrs.inverse) n |= ATTR_INVERSE;
 	if (attrs.hidden) n |= ATTR_HIDDEN;
 	if (attrs.strikethrough) n |= ATTR_STRIKETHROUGH;
+
+	// Pack underline style (3 bits)
+	// If underlineStyle is set, use it. Otherwise, check underline boolean.
+	const ulStyle = attrs.underlineStyle ?? (attrs.underline ? 'single' : undefined);
+	n |= underlineStyleToNumber(ulStyle) << UNDERLINE_STYLE_SHIFT;
+
 	return n;
 }
 
@@ -123,11 +208,19 @@ export function numberToAttrs(n: number): CellAttrs {
 	if (n & ATTR_BOLD) attrs.bold = true;
 	if (n & ATTR_DIM) attrs.dim = true;
 	if (n & ATTR_ITALIC) attrs.italic = true;
-	if (n & ATTR_UNDERLINE) attrs.underline = true;
 	if (n & ATTR_BLINK) attrs.blink = true;
 	if (n & ATTR_INVERSE) attrs.inverse = true;
 	if (n & ATTR_HIDDEN) attrs.hidden = true;
 	if (n & ATTR_STRIKETHROUGH) attrs.strikethrough = true;
+
+	// Unpack underline style
+	const ulStyleNum = (n & UNDERLINE_STYLE_MASK) >> UNDERLINE_STYLE_SHIFT;
+	const ulStyle = numberToUnderlineStyle(ulStyleNum);
+	if (ulStyle) {
+		attrs.underlineStyle = ulStyle;
+		attrs.underline = true;
+	}
+
 	return attrs;
 }
 
@@ -163,10 +256,11 @@ export function packCell(cell: Cell): number {
 	// Background color index (bits 8-15)
 	packed |= (colorToIndex(cell.bg) & 0xff) << 8;
 
-	// Attributes (bits 16-23)
-	packed |= (attrsToNumber(cell.attrs) & 0xff) << 16;
+	// Attributes (bits 16-22) and underline style (bits 24-26)
+	// attrsToNumber returns bits already in their final positions
+	packed |= attrsToNumber(cell.attrs);
 
-	// Flags (bits 24-31)
+	// Flags (bits 27-30)
 	if (cell.wide) packed |= WIDE_FLAG;
 	if (cell.continuation) packed |= CONTINUATION_FLAG;
 	if (isTrueColor(cell.fg)) packed |= TRUE_COLOR_FG_FLAG;
@@ -191,9 +285,12 @@ function unpackBgIndex(packed: number): number {
 
 /**
  * Unpack attributes from packed value.
+ * Extracts both the boolean attrs (bits 16-22) and underline style (bits 24-26).
  */
 function unpackAttrs(packed: number): CellAttrs {
-	return numberToAttrs((packed >> 16) & 0xff);
+	// numberToAttrs expects the full packed value with attrs in bits 16-22
+	// and underline style in bits 24-26
+	return numberToAttrs(packed);
 }
 
 /**
@@ -244,6 +341,8 @@ export class TerminalBuffer {
 	private fgColors: Map<number, { r: number; g: number; b: number }>;
 	/** True color background storage (only for cells with true color bg) */
 	private bgColors: Map<number, { r: number; g: number; b: number }>;
+	/** Underline color storage (independent of fg, for SGR 58) */
+	private underlineColors: Map<number, Color>;
 
 	readonly width: number;
 	readonly height: number;
@@ -256,6 +355,7 @@ export class TerminalBuffer {
 		this.chars = new Array<string>(size).fill(' ');
 		this.fgColors = new Map();
 		this.bgColors = new Map();
+		this.underlineColors = new Map();
 	}
 
 	/**
@@ -307,6 +407,7 @@ export class TerminalBuffer {
 			char: char!,
 			fg,
 			bg,
+			underlineColor: this.underlineColors.get(idx) ?? null,
 			attrs: unpackAttrs(packed!),
 			wide: unpackWide(packed!),
 			continuation: unpackContinuation(packed!),
@@ -328,6 +429,7 @@ export class TerminalBuffer {
 			char: cell.char ?? ' ',
 			fg: cell.fg ?? null,
 			bg: cell.bg ?? null,
+			underlineColor: cell.underlineColor ?? null,
 			attrs: cell.attrs ?? {},
 			wide: cell.wide ?? false,
 			continuation: cell.continuation ?? false,
@@ -347,6 +449,13 @@ export class TerminalBuffer {
 			this.bgColors.set(idx, fullCell.bg);
 		} else {
 			this.bgColors.delete(idx);
+		}
+
+		// Handle underline color storage
+		if (fullCell.underlineColor !== null) {
+			this.underlineColors.set(idx, fullCell.underlineColor);
+		} else {
+			this.underlineColors.delete(idx);
 		}
 
 		// Pack and store metadata
@@ -377,6 +486,7 @@ export class TerminalBuffer {
 		this.chars.fill(' ');
 		this.fgColors.clear();
 		this.bgColors.clear();
+		this.underlineColors.clear();
 	}
 
 	/**
@@ -414,6 +524,7 @@ export class TerminalBuffer {
 		copy.chars = [...this.chars];
 		copy.fgColors = new Map(this.fgColors);
 		copy.bgColors = new Map(this.bgColors);
+		copy.underlineColors = new Map(this.underlineColors);
 		return copy;
 	}
 
@@ -452,6 +563,11 @@ export class TerminalBuffer {
 			if (!colorEquals(a, b)) return false;
 		}
 
+		// Check underline colors
+		const ulA = this.underlineColors.get(idx) ?? null;
+		const ulB = other.underlineColors.get(otherIdx) ?? null;
+		if (!colorEquals(ulA, ulB)) return false;
+
 		return true;
 	}
 }
@@ -480,6 +596,7 @@ export function cellEquals(a: Cell, b: Cell): boolean {
 		a.char === b.char &&
 		colorEquals(a.fg, b.fg) &&
 		colorEquals(a.bg, b.bg) &&
+		colorEquals(a.underlineColor, b.underlineColor) &&
 		a.wide === b.wide &&
 		a.continuation === b.continuation &&
 		attrsEquals(a.attrs, b.attrs)
@@ -495,6 +612,7 @@ export function attrsEquals(a: CellAttrs, b: CellAttrs): boolean {
 		Boolean(a.dim) === Boolean(b.dim) &&
 		Boolean(a.italic) === Boolean(b.italic) &&
 		Boolean(a.underline) === Boolean(b.underline) &&
+		(a.underlineStyle ?? false) === (b.underlineStyle ?? false) &&
 		Boolean(a.blink) === Boolean(b.blink) &&
 		Boolean(a.inverse) === Boolean(b.inverse) &&
 		Boolean(a.hidden) === Boolean(b.hidden) &&
@@ -508,7 +626,12 @@ export function attrsEquals(a: CellAttrs, b: CellAttrs): boolean {
 export function styleEquals(a: Style | null, b: Style | null): boolean {
 	if (a === b) return true;
 	if (!a || !b) return false;
-	return colorEquals(a.fg, b.fg) && colorEquals(a.bg, b.bg) && attrsEquals(a.attrs, b.attrs);
+	return (
+		colorEquals(a.fg, b.fg) &&
+		colorEquals(a.bg, b.bg) &&
+		colorEquals(a.underlineColor, b.underlineColor) &&
+		attrsEquals(a.attrs, b.attrs)
+	);
 }
 
 /**
@@ -598,7 +721,7 @@ export function bufferToStyledText(
 			if (cell.continuation) continue;
 
 			// Check if style changed
-			const cellStyle: Style = { fg: cell.fg, bg: cell.bg, attrs: cell.attrs };
+			const cellStyle: Style = { fg: cell.fg, bg: cell.bg, underlineColor: cell.underlineColor, attrs: cell.attrs };
 			if (!styleEquals(currentStyle, cellStyle)) {
 				line += styleToAnsiCodes(cellStyle);
 				currentStyle = cellStyle;
@@ -679,11 +802,42 @@ function styleToAnsiCodes(style: Style): string {
 	if (style.attrs.bold) codes.push(1);
 	if (style.attrs.dim) codes.push(2);
 	if (style.attrs.italic) codes.push(3);
-	if (style.attrs.underline) codes.push(4);
-	if (style.attrs.inverse) codes.push(7);
-	if (style.attrs.strikethrough) codes.push(9);
 
-	return `\x1b[${codes.join(';')}m`;
+	// Build base escape sequence
+	let result = `\x1b[${codes.join(';')}`;
+
+	// Underline: use SGR 4:x if style specified, otherwise simple SGR 4
+	const underlineStyle = style.attrs.underlineStyle;
+	if (underlineStyle && underlineStyle !== false) {
+		const styleMap: Record<UnderlineStyle, number> = {
+			single: 1,
+			double: 2,
+			curly: 3,
+			dotted: 4,
+			dashed: 5,
+			false: 0, // This won't be reached due to the if condition above
+		};
+		const subparam = styleMap[underlineStyle];
+		if (subparam !== undefined && subparam !== 0) {
+			result += `;4:${subparam}`;
+		}
+	} else if (style.attrs.underline) {
+		result += ';4'; // Simple underline
+	}
+
+	// Underline color (SGR 58)
+	if (style.underlineColor !== null && style.underlineColor !== undefined) {
+		if (typeof style.underlineColor === 'number') {
+			result += `;58;5;${style.underlineColor}`;
+		} else {
+			result += `;58;2;${style.underlineColor.r};${style.underlineColor.g};${style.underlineColor.b}`;
+		}
+	}
+
+	if (style.attrs.inverse) result += ';7';
+	if (style.attrs.strikethrough) result += ';9';
+
+	return result + 'm';
 }
 
 /**

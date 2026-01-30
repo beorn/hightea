@@ -30,7 +30,8 @@ describe('Buffer', () => {
 
 		test('encodes bold', () => {
 			const n = attrsToNumber({ bold: true });
-			expect(n).toBe(1);
+			// Bold is at bit 16
+			expect(n & (1 << 16)).not.toBe(0);
 			expect(numberToAttrs(n).bold).toBe(true);
 		});
 
@@ -47,7 +48,17 @@ describe('Buffer', () => {
 			};
 			const n = attrsToNumber(attrs);
 			const decoded = numberToAttrs(n);
-			expect(decoded).toEqual(attrs);
+			// All boolean attrs should round-trip
+			expect(decoded.bold).toBe(true);
+			expect(decoded.dim).toBe(true);
+			expect(decoded.italic).toBe(true);
+			expect(decoded.underline).toBe(true);
+			expect(decoded.blink).toBe(true);
+			expect(decoded.inverse).toBe(true);
+			expect(decoded.hidden).toBe(true);
+			expect(decoded.strikethrough).toBe(true);
+			// underline: true maps to underlineStyle: 'single'
+			expect(decoded.underlineStyle).toBe('single');
 		});
 
 		test('round-trips partial attrs', () => {
@@ -57,6 +68,18 @@ describe('Buffer', () => {
 			expect(decoded.underline).toBe(true);
 			expect(decoded.bold).toBeUndefined();
 		});
+
+		test('encodes underline styles', () => {
+			const curly = attrsToNumber({ underlineStyle: 'curly' });
+			expect(numberToAttrs(curly).underlineStyle).toBe('curly');
+			expect(numberToAttrs(curly).underline).toBe(true);
+
+			const dashed = attrsToNumber({ underlineStyle: 'dashed' });
+			expect(numberToAttrs(dashed).underlineStyle).toBe('dashed');
+
+			const double = attrsToNumber({ underlineStyle: 'double' });
+			expect(numberToAttrs(double).underlineStyle).toBe('double');
+		});
 	});
 
 	describe('packCell', () => {
@@ -65,6 +88,7 @@ describe('Buffer', () => {
 				char: 'A',
 				fg: null,
 				bg: null,
+				underlineColor: null,
 				attrs: {},
 				wide: false,
 				continuation: false,
@@ -78,6 +102,7 @@ describe('Buffer', () => {
 				char: 'A',
 				fg: 196, // red-ish
 				bg: 21, // blue-ish
+				underlineColor: null,
 				attrs: { bold: true },
 				wide: false,
 				continuation: false,
@@ -95,13 +120,14 @@ describe('Buffer', () => {
 				char: '한',
 				fg: null,
 				bg: null,
+				underlineColor: null,
 				attrs: {},
 				wide: true,
 				continuation: false,
 			};
 			const packed = packCell(cell);
-			// Wide flag is bit 24
-			expect(packed & (1 << 24)).not.toBe(0);
+			// Wide flag is bit 27
+			expect(packed & (1 << 27)).not.toBe(0);
 		});
 	});
 
@@ -166,6 +192,7 @@ describe('Buffer', () => {
 				char: 'A',
 				fg: 196,
 				bg: null,
+				underlineColor: null,
 				attrs: { bold: true },
 				wide: false,
 				continuation: false,
@@ -178,6 +205,7 @@ describe('Buffer', () => {
 				char: 'A',
 				fg: null,
 				bg: null,
+				underlineColor: null,
 				attrs: {},
 				wide: false,
 				continuation: false,
@@ -186,6 +214,7 @@ describe('Buffer', () => {
 				char: 'B',
 				fg: null,
 				bg: null,
+				underlineColor: null,
 				attrs: {},
 				wide: false,
 				continuation: false,

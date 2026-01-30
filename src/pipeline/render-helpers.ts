@@ -12,7 +12,7 @@
  */
 
 import sliceAnsi from 'slice-ansi';
-import type { Color, Style } from '../buffer.js';
+import type { Color, Style, UnderlineStyle } from '../buffer.js';
 import type { BoxProps, TextProps } from '../types.js';
 import { displayWidthAnsi, graphemeWidth, hasAnsi, splitGraphemes } from '../unicode.js';
 import type { BorderChars } from './types.js';
@@ -163,14 +163,24 @@ export function getBorderChars(style: BoxProps['borderStyle']): BorderChars {
  * Get text style from props.
  */
 export function getTextStyle(props: TextProps): Style {
+	// Determine underline style: underlineStyle takes precedence over underline boolean
+	let underlineStyle: UnderlineStyle | undefined;
+	if (props.underlineStyle !== undefined) {
+		underlineStyle = props.underlineStyle;
+	} else if (props.underline) {
+		underlineStyle = 'single';
+	}
+
 	return {
 		fg: props.color ? parseColor(props.color) : null,
 		bg: props.backgroundColor ? parseColor(props.backgroundColor) : null,
+		underlineColor: props.underlineColor ? parseColor(props.underlineColor) : null,
 		attrs: {
 			bold: props.bold,
 			dim: props.dim || props.dimColor, // dimColor is Ink compatibility alias
 			italic: props.italic,
-			underline: props.underline,
+			underline: props.underline || (underlineStyle && underlineStyle !== false),
+			underlineStyle,
 			strikethrough: props.strikethrough,
 			inverse: props.inverse,
 		},

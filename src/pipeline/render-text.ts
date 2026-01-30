@@ -9,10 +9,11 @@
  * - Text content collection (collectTextContent)
  */
 
-import type { Color, Style, TerminalBuffer } from '../buffer.js';
+import type { CellAttrs, Color, Style, TerminalBuffer, UnderlineStyle } from '../buffer.js';
 import type { InkxNode, TextProps } from '../types.js';
 import {
 	type StyledSegment,
+	type UnderlineStyleValue,
 	displayWidth,
 	graphemeWidth,
 	hasAnsi,
@@ -430,6 +431,7 @@ export function renderTextLine(
 			char: grapheme,
 			fg: baseStyle.fg,
 			bg: existingBg,
+			underlineColor: baseStyle.underlineColor ?? null,
 			attrs: baseStyle.attrs,
 			wide: width === 2,
 			continuation: false,
@@ -442,6 +444,7 @@ export function renderTextLine(
 				char: '',
 				fg: baseStyle.fg,
 				bg: existingBg2,
+				underlineColor: baseStyle.underlineColor ?? null,
 				attrs: baseStyle.attrs,
 				wide: false,
 				continuation: true,
@@ -520,6 +523,7 @@ export function renderAnsiTextLine(
 				char: grapheme,
 				fg: style.fg,
 				bg: existingBg,
+				underlineColor: style.underlineColor ?? null,
 				attrs: style.attrs,
 				wide: width === 2,
 				continuation: false,
@@ -531,6 +535,7 @@ export function renderAnsiTextLine(
 					char: '',
 					fg: style.fg,
 					bg: existingBg2,
+					underlineColor: style.underlineColor ?? null,
 					attrs: style.attrs,
 					wide: false,
 					continuation: true,
@@ -544,36 +549,147 @@ export function renderAnsiTextLine(
 }
 
 // ============================================================================
+// Style Merging (Category-Based)
+// ============================================================================
+
+/**
+ * Options for category-based style merging.
+ */
+export interface MergeStylesOptions {
+	/**
+	 * Preserve decoration attributes through layers (OR merge).
+	 * Affects: underline, underlineStyle, underlineColor, strikethrough
+	 * Default: true
+	 */
+	preserveDecorations?: boolean;
+	/**
+	 * Preserve emphasis attributes through layers (OR merge).
+	 * Affects: bold, dim, italic
+	 * Default: true
+	 */
+	preserveEmphasis?: boolean;
+}
+
+/**
+ * Merge two styles using category-based semantics.
+ *
+ * Categories and their merge behavior:
+ * - Container (bg): overlay replaces base
+ * - Text (fg): overlay replaces base
+ * - Decorations (underline*, strikethrough): OR merge if preserveDecorations=true
+ * - Emphasis (bold, dim, italic): OR merge if preserveEmphasis=true
+ * - Transform (inverse, hidden, blink): overlay only, not inherited
+ *
+ * @param base - The base style (from parent/container)
+ * @param overlay - The overlay style (from child/content)
+ * @param options - Merge behavior options
+ */
+export function mergeStyles(
+	base: Style,
+	overlay: Partial<Style>,
+	options: MergeStylesOptions = {},
+): Style {
+	const { preserveDecorations = true, preserveEmphasis = true } = options;
+
+	const baseAttrs = base.attrs ?? {};
+	const overlayAttrs = overlay.attrs ?? {};
+
+	// Merge attributes by category
+	const attrs: CellAttrs = {};
+
+	// Decorations: OR if preserving, otherwise overlay takes precedence
+	if (preserveDecorations) {
+		// Underline: OR the boolean, but style from overlay wins if specified
+		const hasBaseUnderline = baseAttrs.underline || baseAttrs.underlineStyle;
+		const hasOverlayUnderline = overlayAttrs.underline || overlayAttrs.underlineStyle;
+		if (hasBaseUnderline || hasOverlayUnderline) {
+			attrs.underline = true;
+			// Style: overlay wins if specified, else base
+			attrs.underlineStyle =
+				overlayAttrs.underlineStyle ?? baseAttrs.underlineStyle ?? 'single';
+		}
+		attrs.strikethrough = overlayAttrs.strikethrough || baseAttrs.strikethrough;
+	} else {
+		attrs.underline = overlayAttrs.underline ?? baseAttrs.underline;
+		attrs.underlineStyle = overlayAttrs.underlineStyle ?? baseAttrs.underlineStyle;
+		attrs.strikethrough = overlayAttrs.strikethrough ?? baseAttrs.strikethrough;
+	}
+
+	// Emphasis: OR if preserving
+	if (preserveEmphasis) {
+		attrs.bold = overlayAttrs.bold || baseAttrs.bold;
+		attrs.dim = overlayAttrs.dim || baseAttrs.dim;
+		attrs.italic = overlayAttrs.italic || baseAttrs.italic;
+	} else {
+		attrs.bold = overlayAttrs.bold ?? baseAttrs.bold;
+		attrs.dim = overlayAttrs.dim ?? baseAttrs.dim;
+		attrs.italic = overlayAttrs.italic ?? baseAttrs.italic;
+	}
+
+	// Transform: overlay only, not inherited from base
+	attrs.inverse = overlayAttrs.inverse;
+	attrs.hidden = overlayAttrs.hidden;
+	attrs.blink = overlayAttrs.blink;
+
+	return {
+		// Container/Text: overlay wins if specified
+		fg: overlay.fg ?? base.fg,
+		bg: overlay.bg ?? base.bg,
+		// Underline color: preserved through layers if preserveDecorations
+		underlineColor: preserveDecorations
+			? (overlay.underlineColor ?? base.underlineColor)
+			: (overlay.underlineColor ?? base.underlineColor),
+		attrs,
+	};
+}
+
+// ============================================================================
 // ANSI Style Helpers
 // ============================================================================
 
 /**
  * Merge ANSI segment style with base style.
- * ANSI styles override base styles where specified.
+ * Uses category-based merging to preserve decorations and emphasis.
  */
-function mergeAnsiStyle(base: Style, segment: StyledSegment): Style {
-	let fg = base.fg;
-	let bg = base.bg;
+function mergeAnsiStyle(
+	base: Style,
+	segment: StyledSegment,
+	options: MergeStylesOptions = {},
+): Style {
+	const { preserveDecorations = true, preserveEmphasis = true } = options;
 
-	// Convert ANSI SGR code to our color format
+	// Convert ANSI SGR codes to overlay style
+	let fg: Color = base.fg;
+	let bg: Color = base.bg;
+	let underlineColor: Color = base.underlineColor ?? null;
+
 	if (segment.fg !== undefined && segment.fg !== null) {
 		fg = ansiColorToColor(segment.fg, false);
 	}
 	if (segment.bg !== undefined && segment.bg !== null) {
 		bg = ansiColorToColor(segment.bg, true);
 	}
+	if (segment.underlineColor !== undefined && segment.underlineColor !== null) {
+		underlineColor = ansiColorToColor(segment.underlineColor, false);
+	}
 
-	// Merge attributes - start with base, then apply ANSI overrides
-	const attrs = {
-		...base.attrs,
-		bold: segment.bold || base.attrs.bold,
-		dim: segment.dim || base.attrs.dim,
-		italic: segment.italic || base.attrs.italic,
-		underline: segment.underline || base.attrs.underline,
-		inverse: segment.inverse || base.attrs.inverse,
-	};
+	// Build overlay attrs from segment
+	const overlayAttrs: CellAttrs = {};
+	if (segment.bold !== undefined) overlayAttrs.bold = segment.bold;
+	if (segment.dim !== undefined) overlayAttrs.dim = segment.dim;
+	if (segment.italic !== undefined) overlayAttrs.italic = segment.italic;
+	if (segment.underline !== undefined) overlayAttrs.underline = segment.underline;
+	if (segment.underlineStyle !== undefined) {
+		overlayAttrs.underlineStyle = segment.underlineStyle as UnderlineStyle;
+	}
+	if (segment.inverse !== undefined) overlayAttrs.inverse = segment.inverse;
 
-	return { fg, bg, attrs };
+	// Use mergeStyles for consistent category-based merging
+	return mergeStyles(
+		base,
+		{ fg, bg, underlineColor, attrs: overlayAttrs },
+		{ preserveDecorations, preserveEmphasis },
+	);
 }
 
 /**
