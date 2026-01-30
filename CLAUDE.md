@@ -135,7 +135,7 @@ const render = createTestRenderer({ columns: 80, rows: 24 })
 
 test('renders content', () => {
   const app = render(
-    <Box testID="main">
+    <Box id="main">
       <Text>Hello</Text>
     </Box>
   )
@@ -145,11 +145,28 @@ test('renders content', () => {
 
   // Auto-refreshing locators (no stale locator problem!)
   expect(app.getByText('Hello').count()).toBe(1)
-  expect(app.getByTestId('main').boundingBox()?.width).toBe(80)
+  expect(app.locator('#main').boundingBox()?.width).toBe(80)
 
   // Debug output
   app.debug()
 })
+```
+
+### Querying by ID vs testID
+
+Two ways to identify components for testing:
+
+```tsx
+// Option 1: id prop with #id selector (preferred - matches CSS conventions)
+<Box id="sidebar">...</Box>
+app.locator('#sidebar').textContent()
+
+// Option 2: testID prop with getByTestId (React Testing Library style)
+<Box testID="sidebar">...</Box>
+app.getByTestId('sidebar').textContent()
+```
+
+Both work identically. Use `id` for consistency with CSS selectors, or `testID` if you prefer the React Testing Library convention.
 ```
 
 ### Keyboard Input Testing
