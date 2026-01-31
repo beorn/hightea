@@ -52,7 +52,7 @@ function measureIntrinsicSize(node: InkxNode): {
 	}
 
 	if (node.type === 'inkx-text') {
-		const text = node.textContent ?? '';
+		const text = collectTextContent(node);
 		const lines = text.split('\n');
 		const width = Math.max(...lines.map((line) => getTextWidth(line)));
 		return {
@@ -110,4 +110,19 @@ function traverseTree(node: InkxNode, callback: (node: InkxNode) => void): void 
  */
 function getTextWidth(text: string): number {
 	return displayWidthAnsi(text);
+}
+
+/**
+ * Collect text content from a node and its children.
+ * Used for measuring Text nodes that have nested Text children.
+ */
+function collectTextContent(node: InkxNode): string {
+	if (node.textContent !== undefined) {
+		return node.textContent;
+	}
+	let result = '';
+	for (const child of node.children) {
+		result += collectTextContent(child);
+	}
+	return result;
 }

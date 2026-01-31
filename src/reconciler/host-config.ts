@@ -264,6 +264,7 @@ export const hostConfig = {
 			node = node.parent;
 		}
 		if (node?.layoutNode) {
+			node.contentDirty = true; // Mark ancestor content dirty for measure cache invalidation
 			node.layoutDirty = true;
 			node.layoutNode.markDirty();
 		}
