@@ -65,6 +65,8 @@ export function createNode(
 				text = collectNodeTextContent(node);
 				cachedText = text;
 				measureCache.clear(); // Text changed, invalidate all cached measurements
+				// Clear contentDirty so subsequent measure calls in same layout pass use cache
+				node.contentDirty = false;
 			}
 
 			if (!text) {
