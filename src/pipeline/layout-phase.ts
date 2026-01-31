@@ -4,7 +4,10 @@
  * Run Yoga layout calculation and propagate dimensions to all nodes.
  */
 
+import createDebug from 'debug';
 import { type BoxProps, type InkxNode, type Rect, rectEqual } from '../types.js';
+
+const debug = createDebug('inkx:layout');
 
 /**
  * Run Yoga layout calculation and propagate dimensions to all nodes.
@@ -26,7 +29,10 @@ export function layoutPhase(root: InkxNode, width: number, height: number): void
 
 	// Run layout calculation (root always has a layoutNode)
 	if (root.layoutNode) {
+		const nodeCount = countNodes(root);
+		const t0 = Date.now();
 		root.layoutNode.calculateLayout(width, height);
+		debug('calculateLayout: %dms (%d nodes)', Date.now() - t0, nodeCount);
 	}
 
 	// Propagate computed dimensions to all nodes
@@ -38,12 +44,27 @@ export function layoutPhase(root: InkxNode, width: number, height: number): void
 }
 
 /**
+ * Count total nodes in tree.
+ */
+function countNodes(node: InkxNode): number {
+	let count = 1;
+	for (const child of node.children) {
+		count += countNodes(child);
+	}
+	return count;
+}
+
+/**
  * Check if any node in the tree has layoutDirty flag set.
  */
-function hasLayoutDirtyNodes(node: InkxNode): boolean {
-	if (node.layoutDirty) return true;
-	for (const child of node.children) {
-		if (hasLayoutDirtyNodes(child)) return true;
+function hasLayoutDirtyNodes(node: InkxNode, path = 'root'): boolean {
+	if (node.layoutDirty) {
+		const props = node.props as BoxProps;
+		debug('dirty node found: %s (id=%s, type=%s)', path, props.id ?? '?', node.type);
+		return true;
+	}
+	for (let i = 0; i < node.children.length; i++) {
+		if (hasLayoutDirtyNodes(node.children[i]!, `${path}[${i}]`)) return true;
 	}
 	return false;
 }

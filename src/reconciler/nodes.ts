@@ -50,11 +50,32 @@ export function createNode(
 	// Set up measure function for text nodes
 	// This tells the layout engine how to calculate the text's intrinsic size
 	if (type === 'inkx-text') {
+		// Cache for measure results - avoid recalculating if text and constraints unchanged
+		// Cache multiple (width, widthMode) -> result entries since layout calls measure with different widths
+		let cachedText: string | null = null;
+		const measureCache = new Map<string, { width: number; height: number }>();
+
 		layoutNode.setMeasureFunc((width, widthMode, _height, _heightMode) => {
 			// Collect text content from this node and its raw text children
-			const text = collectNodeTextContent(node);
+			// Use cached text if node hasn't been marked dirty (contentDirty)
+			let text: string;
+			if (cachedText !== null && !node.contentDirty) {
+				text = cachedText;
+			} else {
+				text = collectNodeTextContent(node);
+				cachedText = text;
+				measureCache.clear(); // Text changed, invalidate all cached measurements
+			}
+
 			if (!text) {
 				return { width: 0, height: 0 };
+			}
+
+			// Check cache - same constraints = same result
+			const cacheKey = `${width}|${widthMode}`;
+			const cached = measureCache.get(cacheKey);
+			if (cached) {
+				return cached;
 			}
 
 			// Calculate text dimensions
@@ -79,10 +100,13 @@ export function createNode(
 				}
 			}
 
-			return {
+			// Cache and return result
+			const result = {
 				width: Math.min(actualWidth, maxWidth),
 				height: Math.max(1, totalHeight),
 			};
+			measureCache.set(cacheKey, result);
+			return result;
 		});
 	}
 
