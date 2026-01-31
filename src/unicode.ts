@@ -69,7 +69,9 @@ class DisplayWidthCache {
 	}
 }
 
-const displayWidthCache = new DisplayWidthCache();
+// Cache size: 10K entries should be enough for most TUI apps
+// Each entry is a string key + number value, ~100 bytes, so 10K = ~1MB
+const displayWidthCache = new DisplayWidthCache(10000);
 
 /**
  * Split a string into grapheme clusters.

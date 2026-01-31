@@ -112,10 +112,9 @@ function propagateLayout(node: InkxNode, parentX: number, parentY: number): void
 	// Clear layout dirty flag
 	node.layoutDirty = false;
 
-	// If dimensions changed, mark content as dirty
-	if (!rectEqual(node.prevLayout, node.contentRect)) {
-		node.contentDirty = true;
-	}
+	// Note: We intentionally do NOT set contentDirty here.
+	// contentDirty is for signaling that TEXT content changed (for measure function).
+	// Layout dimension changes are tracked via prevLayout/contentRect comparison.
 
 	// Recurse to children
 	for (const child of node.children) {

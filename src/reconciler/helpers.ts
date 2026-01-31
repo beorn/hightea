@@ -73,9 +73,19 @@ export function contentPropsChanged(
 	oldProps: Record<string, unknown>,
 	newProps: Record<string, unknown>,
 ): boolean {
-	// Children always trigger content change
-	if (oldProps.children !== newProps.children) {
-		return true;
+	// Children change triggers content change ONLY for primitive children (text)
+	// Array children are React elements that get reconciled separately
+	const oldChildren = oldProps.children;
+	const newChildren = newProps.children;
+	if (oldChildren !== newChildren) {
+		// Only trigger for primitive children (string, number) that affect text rendering
+		const oldIsPrimitive = typeof oldChildren === 'string' || typeof oldChildren === 'number';
+		const newIsPrimitive = typeof newChildren === 'string' || typeof newChildren === 'number';
+		if (oldIsPrimitive || newIsPrimitive) {
+			return true;
+		}
+		// Array/object children are React elements - don't set contentDirty
+		// (child nodes will be updated via their own commitUpdate calls)
 	}
 
 	// Style props affect content but not layout

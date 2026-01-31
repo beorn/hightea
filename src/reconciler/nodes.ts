@@ -14,6 +14,20 @@ import {
 } from '../types.js';
 import { displayWidth } from '../unicode.js';
 
+// Profiling counters for measure function performance analysis (dev only)
+export const measureStats = {
+	calls: 0,
+	cacheHits: 0,
+	textCollects: 0,
+	displayWidthCalls: 0,
+	reset() {
+		this.calls = 0;
+		this.cacheHits = 0;
+		this.textCollects = 0;
+		this.displayWidthCalls = 0;
+	},
+};
+
 // ============================================================================
 // Node Creation
 // ============================================================================
@@ -56,15 +70,31 @@ export function createNode(
 		const measureCache = new Map<string, { width: number; height: number }>();
 
 		layoutNode.setMeasureFunc((width, widthMode, _height, _heightMode) => {
+			measureStats.calls++;
+
+			// Fast path: check if we have a cached result for this exact constraint
+			// This avoids text collection entirely if we've measured this before
+			const cacheKey = `${width}|${widthMode}`;
+			const cached = measureCache.get(cacheKey);
+			if (cached && cachedText !== null && !node.contentDirty) {
+				measureStats.cacheHits++;
+				return cached;
+			}
+
 			// Collect text content from this node and its raw text children
 			// Use cached text if node hasn't been marked dirty (contentDirty)
 			let text: string;
 			if (cachedText !== null && !node.contentDirty) {
 				text = cachedText;
 			} else {
-				text = collectNodeTextContent(node);
+				measureStats.textCollects++;
+				const newText = collectNodeTextContent(node);
+				// Only clear measurement cache if text actually changed
+				if (newText !== cachedText) {
+					measureCache.clear();
+				}
+				text = newText;
 				cachedText = text;
-				measureCache.clear(); // Text changed, invalidate all cached measurements
 				// Clear contentDirty so subsequent measure calls in same layout pass use cache
 				node.contentDirty = false;
 			}
@@ -73,11 +103,11 @@ export function createNode(
 				return { width: 0, height: 0 };
 			}
 
-			// Check cache - same constraints = same result
-			const cacheKey = `${width}|${widthMode}`;
-			const cached = measureCache.get(cacheKey);
-			if (cached) {
-				return cached;
+			// Check cache again (may have been preserved if text unchanged)
+			const cachedAfterCollect = measureCache.get(cacheKey);
+			if (cachedAfterCollect) {
+				measureStats.cacheHits++;
+				return cachedAfterCollect;
 			}
 
 			// Calculate text dimensions
@@ -90,6 +120,7 @@ export function createNode(
 			let actualWidth = 0;
 
 			for (const line of lines) {
+				measureStats.displayWidthCalls++;
 				const lineWidth = displayWidth(line);
 				if (lineWidth <= maxWidth) {
 					totalHeight += 1;

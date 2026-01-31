@@ -226,6 +226,12 @@ export const hostConfig = {
 		newProps: BoxProps | TextProps,
 		_finishedWork: unknown,
 	) {
+		// Early exit if props are equal (React may call commitUpdate even when nothing changed)
+		if (propsEqual(oldProps as Record<string, unknown>, newProps as Record<string, unknown>)) {
+			instance.props = newProps;
+			return;
+		}
+
 		// Check if layout-affecting props changed
 		if (
 			layoutPropsChanged(oldProps as Record<string, unknown>, newProps as Record<string, unknown>)
