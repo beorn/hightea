@@ -1,8 +1,10 @@
 /**
- * Flexx Layout Engine Adapter
+ * Flexx Classic Layout Engine Adapter
  *
- * Wraps Flexx (pure JS layout engine) to implement the LayoutEngine interface.
- * Since Flexx already has a Yoga-compatible API, this is a thin wrapper.
+ * Wraps Flexx classic (allocating) variant to implement the LayoutEngine interface.
+ * Use this for debugging or when you need features not in the zero-alloc version.
+ *
+ * @deprecated Prefer flexx-zero-adapter.ts for better performance.
  */
 
 import {
@@ -48,7 +50,7 @@ import {
 	WRAP_NO_WRAP,
 	WRAP_WRAP,
 	WRAP_WRAP_REVERSE,
-} from '@beorn/flexx';
+} from '@beorn/flexx/classic';
 
 import type {
 	AlignValue,

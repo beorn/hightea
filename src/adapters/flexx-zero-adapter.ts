@@ -1,8 +1,8 @@
 /**
- * Flexx Zero-Allocation Layout Engine Adapter
+ * Flexx Layout Engine Adapter
  *
- * Wraps Flexx zero-allocation variant to implement the LayoutEngine interface.
- * This uses the optimized algorithm from @beorn/flexx/zero with reduced GC pressure.
+ * Wraps Flexx to implement the LayoutEngine interface.
+ * Uses the default zero-allocation algorithm from @beorn/flexx.
  */
 
 import {
@@ -48,7 +48,7 @@ import {
 	WRAP_NO_WRAP,
 	WRAP_WRAP,
 	WRAP_WRAP_REVERSE,
-} from '@beorn/flexx/zero';
+} from '@beorn/flexx';
 
 import type {
 	AlignValue,

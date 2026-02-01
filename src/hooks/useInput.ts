@@ -7,7 +7,7 @@
 
 import createDebug from 'debug';
 import { useContext, useEffect } from 'react';
-import { InputContext, StdinContext } from '../context.js';
+import { EventsContext, InputContext, StdinContext } from '../context.js';
 import { CODE_TO_KEY } from '../keys.js';
 
 const debug = createDebug('inkx:useInput');
@@ -235,19 +235,32 @@ function parseKeypress(s: string | Buffer): ParsedKeypress {
  * ```
  */
 export function useInput(inputHandler: InputHandler, options: UseInputOptions = {}): void {
+	const events = useContext(EventsContext);
 	const stdinContext = useContext(StdinContext);
 	const inputContext = useContext(InputContext);
 
 	const { isActive = true } = options;
 
+	// Static mode check: when events is null, we're in static rendering mode
+	// In this mode, useInput becomes a no-op (no raw mode, no event subscription)
+	const isStaticMode = events === null;
+
 	debug('useInput called', {
 		isActive,
+		isStaticMode,
+		events: !!events,
 		stdinContext: !!stdinContext,
 		isRawModeSupported: stdinContext?.isRawModeSupported,
 	});
 
-	// Set raw mode when active (only if stdin is a TTY)
+	// Set raw mode when active (only if stdin is a TTY and not in static mode)
 	useEffect(() => {
+		// No-op in static mode
+		if (isStaticMode) {
+			debug('useInput effect: static mode, skipping raw mode setup');
+			return;
+		}
+
 		debug('useInput effect', {
 			isActive,
 			stdinContext: !!stdinContext,
@@ -265,10 +278,16 @@ export function useInput(inputHandler: InputHandler, options: UseInputOptions = 
 			debug('useInput effect cleanup: setting raw mode false');
 			stdinContext.setRawMode(false);
 		};
-	}, [isActive, stdinContext]);
+	}, [isActive, isStaticMode, stdinContext]);
 
-	// Listen for input events
+	// Listen for input events via InputContext
 	useEffect(() => {
+		// No-op in static mode
+		if (isStaticMode) {
+			debug('useInput effect: static mode, skipping input subscription');
+			return;
+		}
+
 		if (!isActive || !inputContext) {
 			return;
 		}
@@ -323,5 +342,5 @@ export function useInput(inputHandler: InputHandler, options: UseInputOptions = 
 		return () => {
 			inputContext.eventEmitter.removeListener('input', handleData);
 		};
-	}, [isActive, inputContext, inputHandler]);
+	}, [isActive, isStaticMode, inputContext, inputHandler]);
 }

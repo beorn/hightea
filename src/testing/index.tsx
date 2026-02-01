@@ -109,7 +109,7 @@ export { keyToAnsi, CODE_TO_KEY } from '../keys.js';
 
 // Re-export debug utilities
 export { debugTree, type DebugTreeOptions } from './debug.js';
-import { AppContext, InputContext, StdoutContext, TermContext } from '../context.js';
+import { AppContext, EventsContext, InputContext, StdoutContext, TermContext } from '../context.js';
 import { createTerm } from 'chalkx';
 import type { LayoutEngine } from '../layout-engine.js';
 import { setLayoutEngine } from '../layout-engine.js';
@@ -304,35 +304,47 @@ export function createTestRenderer(options: TestRendererOptions = {}): TestRende
 		// Create a mock term for useTerm hook (no actual terminal, but provides styling API)
 		const mockTerm = createTerm({ level: 3, columns: renderColumns });
 
+		// Mock events for interactive mode (non-null signals to useInput that input is enabled)
+		// This empty async iterable is never iterated; tests use InputContext EventEmitter
+		const mockEvents: AsyncIterable<import('../types.js').Event> = {
+			[Symbol.asyncIterator]: () => ({
+				next: () => new Promise<IteratorResult<import('../types.js').Event>>(() => {}),
+			}),
+		};
+
 		// Wrap element with contexts to enable useApp, useInput, useStdout, and useTerm hooks
 		function wrapWithContexts(el: ReactElement): ReactElement {
 			return React.createElement(
 				TermContext.Provider,
 				{ value: mockTerm },
 				React.createElement(
-					AppContext.Provider,
-					{
-						value: {
-							exit: handleExit,
-						},
-					},
+					EventsContext.Provider,
+					{ value: mockEvents },
 					React.createElement(
-						StdoutContext.Provider,
+						AppContext.Provider,
 						{
 							value: {
-								stdout: mockStdout,
-								write: () => {},
+								exit: handleExit,
 							},
 						},
 						React.createElement(
-							InputContext.Provider,
+							StdoutContext.Provider,
 							{
 								value: {
-									eventEmitter: instance.inputEmitter,
-									exitOnCtrlC: false,
+									stdout: mockStdout,
+									write: () => {},
 								},
 							},
-							el,
+							React.createElement(
+								InputContext.Provider,
+								{
+									value: {
+										eventEmitter: instance.inputEmitter,
+										exitOnCtrlC: false,
+									},
+								},
+								el,
+							),
 						),
 					),
 				),
