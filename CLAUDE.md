@@ -307,6 +307,102 @@ const debug = createDebug('inkx:myfeature')
 debug('state change', { before, after })
 ```
 
+## React Compatibility
+
+### forwardRef on Box/Text
+
+Box and Text support `forwardRef` for imperative access to layout information:
+
+```tsx
+import { useRef } from 'react'
+import { Box, Text, type BoxHandle, type TextHandle } from 'inkx'
+
+function MyComponent() {
+  const boxRef = useRef<BoxHandle>(null)
+  const textRef = useRef<TextHandle>(null)
+
+  useEffect(() => {
+    // BoxHandle methods
+    const node = boxRef.current?.getNode()           // Yoga/Flexx node
+    const content = boxRef.current?.getContentRect() // { x, y, width, height }
+    const screen = boxRef.current?.getScreenRect()   // absolute screen coords
+
+    // TextHandle methods
+    const textNode = textRef.current?.getNode()
+  }, [])
+
+  return (
+    <Box ref={boxRef}>
+      <Text ref={textRef}>Content</Text>
+    </Box>
+  )
+}
+```
+
+### onLayout Callback
+
+Box accepts an `onLayout` prop called when layout changes:
+
+```tsx
+<Box onLayout={(layout) => console.log('Size:', layout.width, layout.height)}>
+  <Text>Resizable content</Text>
+</Box>
+```
+
+The `layout` object contains `{ x, y, width, height }` in content coordinates.
+
+### ErrorBoundary Component
+
+Catch render errors with the built-in ErrorBoundary:
+
+```tsx
+import { ErrorBoundary, Box, Text } from 'inkx'
+
+<ErrorBoundary fallback={<Text color="red">Something went wrong</Text>}>
+  <MyComponent />
+</ErrorBoundary>
+```
+
+For custom error handling, pass a render function:
+
+```tsx
+<ErrorBoundary fallback={(error) => <Text color="red">{error.message}</Text>}>
+  <MyComponent />
+</ErrorBoundary>
+```
+
+### Concurrent Features
+
+Re-exports from React for TUI responsiveness:
+
+```tsx
+import { useTransition, useDeferredValue, useId } from 'inkx'
+
+function Search() {
+  const [query, setQuery] = useState('')
+  const deferredQuery = useDeferredValue(query)  // Typing stays responsive
+  const [isPending, startTransition] = useTransition()
+
+  // Heavy updates marked as low-priority
+  startTransition(() => loadMoreData())
+}
+```
+
+### Suspense Support
+
+Full React Suspense support for data fetching with `hideInstance`/`unhideInstance` implementation:
+
+```tsx
+import { Suspense } from 'react'
+import { Box, Text } from 'inkx'
+
+<Suspense fallback={<Text>Loading...</Text>}>
+  <AsyncDataComponent />
+</Suspense>
+```
+
+Components that throw promises will show the fallback until resolved. The suspended component is hidden (not unmounted), preserving state.
+
 ## Anti-Patterns
 
 ### Wrong: Mixing chalk backgrounds with Box backgroundColor

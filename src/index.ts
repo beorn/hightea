@@ -88,6 +88,21 @@ export { Newline } from './components/Newline.js';
 export { Spacer } from './components/Spacer.js';
 export { Static } from './components/Static.js';
 
+/**
+ * Re-export ErrorBoundary component - catches render errors in children.
+ *
+ * @example
+ * ```tsx
+ * import { ErrorBoundary, Box, Text } from 'inkx';
+ *
+ * <ErrorBoundary fallback={<Text color="red">Error!</Text>}>
+ *   <MyComponent />
+ * </ErrorBoundary>
+ * ```
+ */
+export { ErrorBoundary } from './components/ErrorBoundary.js';
+export type { ErrorBoundaryProps } from './components/ErrorBoundary.js';
+
 // =============================================================================
 // Hooks
 // =============================================================================
@@ -150,6 +165,33 @@ export { useFocus, resetFocusIdCounter } from './hooks/useFocus.js';
 export { useFocusManager } from './hooks/useFocusManager.js';
 export { useTerm } from './hooks/useTerm.js';
 export { useConsole } from './hooks/useConsole.js';
+
+/**
+ * Re-export React concurrent features for TUI responsiveness.
+ *
+ * @example
+ * ```tsx
+ * import { useTransition, useDeferredValue } from 'inkx';
+ *
+ * function Search() {
+ *   const [query, setQuery] = useState('');
+ *   const deferredQuery = useDeferredValue(query);
+ *   const [isPending, startTransition] = useTransition();
+ *
+ *   // Typing stays responsive while filtering is deferred
+ *   const filtered = useMemo(() => filterItems(deferredQuery), [deferredQuery]);
+ *
+ *   // Heavy updates can be marked as low-priority
+ *   const handleChange = (value: string) => {
+ *     setQuery(value);
+ *     startTransition(() => {
+ *       loadMoreData(value);
+ *     });
+ *   };
+ * }
+ * ```
+ */
+export { useTransition, useDeferredValue, useId } from 'react';
 
 // Contexts for advanced usage (usually hooks are preferred)
 export { TermContext, EventsContext } from './context.js';
@@ -249,8 +291,8 @@ export type { AutoLocator, FilterOptions } from './auto-locator.js';
 export type { BoundTerm } from './bound-term.js';
 
 // Types
-export type { BoxProps } from './components/Box.js';
-export type { TextProps } from './components/Text.js';
+export type { BoxProps, BoxHandle } from './components/Box.js';
+export type { TextProps, TextHandle } from './components/Text.js';
 export type { Rect } from './hooks/useLayout.js';
 export type { Key, InputHandler, UseInputOptions } from './hooks/useInput.js';
 export type { UseAppResult } from './hooks/useApp.js';
