@@ -292,7 +292,7 @@ export type {
 	MeasureMode,
 } from './layout-engine.js';
 
-// Render adapter (for canvas, etc.)
+// Render adapter (for canvas, DOM, etc.)
 export {
 	setRenderAdapter,
 	getRenderAdapter,
@@ -309,6 +309,14 @@ export type {
 	TextMeasureStyle,
 	BorderChars,
 } from './render-adapter.js';
+
+// Canvas adapter
+export { createCanvasAdapter, CanvasRenderBuffer } from './adapters/canvas-adapter.js';
+export type { CanvasAdapterConfig } from './adapters/canvas-adapter.js';
+
+// DOM adapter
+export { createDOMAdapter, DOMRenderBuffer, injectDOMStyles } from './adapters/dom-adapter.js';
+export type { DOMAdapterConfig } from './adapters/dom-adapter.js';
 
 // App types (unified render API)
 export type { App } from './app.js';
