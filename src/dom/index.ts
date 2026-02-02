@@ -30,16 +30,16 @@
 
 import type { ReactElement } from 'react';
 import {
-	createDOMAdapter,
-	DOMRenderBuffer,
-	injectDOMStyles,
 	type DOMAdapterConfig,
+	DOMRenderBuffer,
+	createDOMAdapter,
+	injectDOMStyles,
 } from '../adapters/dom-adapter.js';
-import { setRenderAdapter } from '../render-adapter.js';
-import { setLayoutEngine } from '../layout-engine.js';
 import { createFlexxEngine } from '../adapters/flexx-adapter.js';
-import { createContainer, getContainerRoot, reconciler } from '../reconciler.js';
+import { setLayoutEngine } from '../layout-engine.js';
 import { executeRenderAdapter } from '../pipeline/index.js';
+import { createContainer, getContainerRoot, reconciler } from '../reconciler.js';
+import { setRenderAdapter } from '../render-adapter.js';
 import type { RenderBuffer } from '../render-adapter.js';
 
 // Re-export components and hooks for convenience
@@ -143,8 +143,8 @@ export function renderToDOM(
 	// Initialize if needed
 	initDOMRenderer(adapterConfig);
 
-	const width = options.width ?? container.clientWidth || 800;
-	const height = options.height ?? container.clientHeight || 600;
+	const width = options.width ?? (container.clientWidth || 800);
+	const height = options.height ?? (container.clientHeight || 600);
 
 	// Create reconciler container
 	const inkxContainer = createContainer(() => {
@@ -257,16 +257,7 @@ export function renderDOMOnce(
 	const root = getContainerRoot(container);
 
 	// Create fiber root and render
-	const fiberRoot = reconciler.createContainer(
-		container,
-		0,
-		null,
-		false,
-		null,
-		'',
-		() => {},
-		null,
-	);
+	const fiberRoot = reconciler.createContainer(container, 0, null, false, null, '', () => {}, null);
 
 	reconciler.updateContainerSync(element, fiberRoot, null, null);
 	reconciler.flushSyncWork();

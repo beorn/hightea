@@ -72,50 +72,74 @@ Each render adapter handles:
 
 ## RenderAdapter Interface
 
+**File:** `src/render-adapter.ts`
+
 The abstraction boundary between core and targets:
 
 ```typescript
 interface RenderAdapter {
-  // === Measurement ===
-  measureText(text: string, style: Style): { width: number; height: number };
+  /** Adapter name for debugging */
+  name: string;
 
-  // === Buffer Management ===
-  createBuffer(width: number, height: number): Buffer;
-  resizeBuffer(buffer: Buffer, width: number, height: number): void;
+  /** Text measurement for this adapter */
+  measurer: TextMeasurer;
 
-  // === Rendering ===
-  writeCell(buffer: Buffer, x: number, y: number, cell: Cell): void;
-  writeText(buffer: Buffer, x: number, y: number, text: string, style: Style): void;
+  /** Create a buffer for rendering */
+  createBuffer(width: number, height: number): RenderBuffer;
 
-  // === Output ===
-  flush(buffer: Buffer, prevBuffer: Buffer | null): void;
+  /** Flush the buffer to output (returns ANSI string for terminal, void for canvas) */
+  flush(buffer: RenderBuffer, prevBuffer: RenderBuffer | null): string | void;
 
-  // === Input (optional) ===
-  events?: AsyncIterable<InputEvent>;
+  /** Get border characters for the given style */
+  getBorderChars(style: string): BorderChars;
+}
+
+interface TextMeasurer {
+  /** Measure text dimensions (cells for terminal, pixels for canvas) */
+  measureText(text: string, style?: TextMeasureStyle): { width: number; height: number };
+
+  /** Get line height for the given style */
+  getLineHeight(style?: TextMeasureStyle): number;
+}
+
+interface RenderBuffer {
+  readonly width: number;
+  readonly height: number;
+
+  /** Fill a rectangle with a style */
+  fillRect(x: number, y: number, width: number, height: number, style: RenderStyle): void;
+
+  /** Draw text at a position */
+  drawText(x: number, y: number, text: string, style: RenderStyle): void;
+
+  /** Draw a single character at a position */
+  drawChar(x: number, y: number, char: string, style: RenderStyle): void;
+
+  /** Check if coordinates are within bounds */
+  inBounds(x: number, y: number): boolean;
 }
 ```
 
-### Terminal Adapter (Current Implementation)
+### Terminal Adapter
+
+**File:** `src/adapters/terminal-adapter.ts`
 
 ```typescript
 const terminalAdapter: RenderAdapter = {
-  measureText: (text) => ({
-    width: stringWidth(text),  // Unicode-aware width
-    height: 1,                  // Terminal: always 1 line per text segment
-  }),
+  name: 'terminal',
+  measurer: {
+    measureText: (text) => ({
+      width: displayWidth(text),  // Unicode-aware cell width
+      height: 1,                  // Terminal: always 1 line per text segment
+    }),
+    getLineHeight: () => 1,       // Terminal: 1 row = 1 line
+  },
 
   createBuffer: (w, h) => new TerminalBuffer(w, h),
 
-  writeCell: (buf, x, y, cell) => {
-    buf.cells[y][x] = cell;
-  },
+  flush: (buf, prev) => diffToAnsi(prev, buf),
 
-  flush: (buf, prev) => {
-    // Diff-based ANSI output for efficiency
-    stdout.write(diffToAnsi(prev, buf));
-  },
-
-  events: parseStdinEvents(stdin),
+  getBorderChars: (style) => BORDER_CHARS[style] ?? BORDER_CHARS.single,
 };
 ```
 

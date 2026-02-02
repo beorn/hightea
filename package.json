@@ -14,6 +14,14 @@
     "./testing": {
       "types": "./src/testing/index.tsx",
       "import": "./src/testing/index.tsx"
+    },
+    "./canvas": {
+      "types": "./src/canvas/index.ts",
+      "import": "./src/canvas/index.ts"
+    },
+    "./dom": {
+      "types": "./src/dom/index.ts",
+      "import": "./src/dom/index.ts"
     }
   },
   "scripts": {
