@@ -66,6 +66,22 @@ Ink renders components _before_ layout calculation. Components can't know their 
 - Yoga layout engine (WASM, optional) - Complete
 - Visual regression tests - Planned
 
+## Web Targets (Experimental)
+
+inkx can render to Canvas and DOM in addition to terminal:
+
+```tsx
+// Canvas rendering
+import { renderToCanvas, Box, Text } from 'inkx/canvas';
+renderToCanvas(<App />, canvas, { fontSize: 14 });
+
+// DOM rendering (text-selectable, accessible)
+import { renderToDOM, Box, Text } from 'inkx/dom';
+renderToDOM(<App />, container, { fontSize: 14 });
+```
+
+See [docs/roadmap.md](docs/roadmap.md) for the full vision including WebGL and React Native.
+
 ## Documentation
 
 | Resource | Description |
@@ -77,6 +93,7 @@ Ink renders components _before_ layout calculation. Components can't know their 
 
 ## Examples
 
+**Terminal:**
 ```bash
 bun run examples/dashboard/index.tsx      # Multi-pane dashboard
 bun run examples/kanban/index.tsx         # 3-column kanban board
@@ -84,6 +101,13 @@ bun run examples/task-list/index.tsx      # Scrollable task list
 bun run examples/search-filter/index.tsx  # useTransition + useDeferredValue
 bun run examples/async-data/index.tsx     # Suspense + async loading
 bun run examples/layout-ref/index.tsx     # forwardRef + onLayout
+```
+
+**Web (Canvas/DOM):**
+```bash
+bun run build:web                         # Build browser bundles
+open examples/web/canvas.html             # Canvas adapter demo
+open examples/web/dom.html                # DOM adapter demo
 ```
 
 See [examples/index.md](examples/index.md) for descriptions.

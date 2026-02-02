@@ -34,3 +34,4 @@ playwright-report/
 
 # Beads archive
 .beads.archived/
+examples/web/dist/
