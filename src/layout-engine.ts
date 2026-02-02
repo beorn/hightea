@@ -270,9 +270,7 @@ export type LayoutEngineType = 'flexx' | 'flexx-classic' | 'yoga';
  * @param engineType - 'flexx', 'flexx-classic', or 'yoga'. If not provided, checks
  *                     INKX_ENGINE env var, then defaults to 'flexx'.
  */
-export async function ensureDefaultLayoutEngine(
-	engineType?: LayoutEngineType,
-): Promise<void> {
+export async function ensureDefaultLayoutEngine(engineType?: LayoutEngineType): Promise<void> {
 	if (isLayoutEngineInitialized()) {
 		return;
 	}

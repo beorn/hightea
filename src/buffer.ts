@@ -721,7 +721,12 @@ export function bufferToStyledText(
 			if (cell.continuation) continue;
 
 			// Check if style changed
-			const cellStyle: Style = { fg: cell.fg, bg: cell.bg, underlineColor: cell.underlineColor, attrs: cell.attrs };
+			const cellStyle: Style = {
+				fg: cell.fg,
+				bg: cell.bg,
+				underlineColor: cell.underlineColor,
+				attrs: cell.attrs,
+			};
 			if (!styleEquals(currentStyle, cellStyle)) {
 				line += styleToAnsiCodes(cellStyle);
 				currentStyle = cellStyle;

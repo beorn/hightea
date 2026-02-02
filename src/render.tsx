@@ -28,7 +28,7 @@ import {
 	StdoutContext,
 	TermContext,
 } from './context.js';
-import { isLayoutEngineInitialized, type LayoutEngineType } from './layout-engine.js';
+import { type LayoutEngineType, isLayoutEngineInitialized } from './layout-engine.js';
 import { enterAlternateScreen, leaveAlternateScreen } from './output.js';
 import { createContainer, getContainerRoot, reconciler } from './reconciler.js';
 import { renderStringSync } from './render-string.js';
@@ -76,7 +76,7 @@ export interface RenderOptions {
 	debug?: boolean;
 	/** Patch console methods to work with Inkx output (default: true) */
 	patchConsole?: boolean;
-	/** Use alternate screen buffer (default: false) */
+	/** Use alternate screen buffer (default: true for fullscreen mode, false for inline) */
 	alternateScreen?: boolean;
 	/**
 	 * Render mode (default: 'fullscreen')
@@ -118,6 +118,56 @@ export interface Instance {
 	waitUntilExit: () => Promise<void>;
 	/** Clear the terminal output */
 	clear: () => void;
+}
+
+/**
+ * Handle returned by render() - thenable AND has fluent .run() method.
+ *
+ * Supports two usage patterns:
+ * ```tsx
+ * // Pattern 1: Get instance, then wait
+ * const instance = await render(<App />, term)
+ * await instance.waitUntilExit()
+ *
+ * // Pattern 2: Fluent - render and wait in one line
+ * await render(<App />, term).run()
+ * ```
+ */
+export class RenderHandle implements PromiseLike<Instance> {
+	constructor(private readonly promise: Promise<Instance>) {}
+
+	/** Make this thenable so `await render()` returns Instance */
+	then<TResult1 = Instance, TResult2 = never>(
+		onfulfilled?: ((value: Instance) => TResult1 | PromiseLike<TResult1>) | null,
+		onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+	): Promise<TResult1 | TResult2> {
+		return this.promise.then(onfulfilled, onrejected);
+	}
+
+	/** Catch errors */
+	catch<TResult = never>(
+		onrejected?: ((reason: unknown) => TResult | PromiseLike<TResult>) | null,
+	): Promise<Instance | TResult> {
+		return this.promise.catch(onrejected);
+	}
+
+	/** Finally handler */
+	finally(onfinally?: (() => void) | null): Promise<Instance> {
+		return this.promise.finally(onfinally);
+	}
+
+	/**
+	 * Render and wait until exit - fluent API for common case.
+	 *
+	 * @example
+	 * ```tsx
+	 * await render(<App />, term).run()
+	 * ```
+	 */
+	async run(): Promise<void> {
+		const instance = await this.promise;
+		await instance.waitUntilExit();
+	}
 }
 
 // ============================================================================
@@ -724,9 +774,30 @@ class InkxInstance {
  * @param element - React element to render
  * @param termOrDef - Term instance, TermDef config, or omitted for static mode
  * @param options - Additional render options (merged with TermDef if provided)
- * @returns An Instance object with control methods
+ * @returns RenderHandle - thenable for Instance, or use .run() for fluent API
+ *
+ * @example
+ * ```tsx
+ * // Get instance first
+ * const instance = await render(<App />, term)
+ * await instance.waitUntilExit()
+ *
+ * // Or use fluent .run()
+ * await render(<App />, term).run()
+ * ```
  */
-export async function render(
+export function render(
+	element: ReactElement,
+	termOrDef?: Term | TermDef,
+	options?: RenderOptions,
+): RenderHandle {
+	return new RenderHandle(renderAsync(element, termOrDef, options));
+}
+
+/**
+ * Internal async render implementation.
+ */
+async function renderAsync(
 	element: ReactElement,
 	termOrDef?: Term | TermDef,
 	options?: RenderOptions,
@@ -787,14 +858,16 @@ async function renderImpl(
 	}
 
 	// Merge with defaults for interactive mode
+	// alternateScreen defaults to true for fullscreen mode (clean slate, restore on exit)
+	const mode = options.mode ?? ('fullscreen' as RenderMode);
 	const resolvedOptions = {
 		stdout: options.stdout ?? process.stdout,
 		stdin: options.stdin ?? process.stdin,
 		exitOnCtrlC: options.exitOnCtrlC ?? true,
 		debug: options.debug ?? false,
 		patchConsole: options.patchConsole ?? true,
-		alternateScreen: options.alternateScreen ?? false,
-		mode: options.mode ?? ('fullscreen' as RenderMode),
+		alternateScreen: options.alternateScreen ?? mode === 'fullscreen',
+		mode,
 		nonTTYMode: options.nonTTYMode ?? ('auto' as NonTTYMode),
 	};
 
@@ -979,14 +1052,16 @@ export function renderSync(
 		stdin: options?.stdin ?? term.stdin,
 	};
 
+	// alternateScreen defaults to true for fullscreen mode
+	const mode = mergedOptions.mode ?? ('fullscreen' as RenderMode);
 	const resolvedOptions = {
 		stdout: mergedOptions.stdout ?? process.stdout,
 		stdin: mergedOptions.stdin ?? process.stdin,
 		exitOnCtrlC: mergedOptions.exitOnCtrlC ?? true,
 		debug: mergedOptions.debug ?? false,
 		patchConsole: mergedOptions.patchConsole ?? true,
-		alternateScreen: mergedOptions.alternateScreen ?? false,
-		mode: mergedOptions.mode ?? ('fullscreen' as RenderMode),
+		alternateScreen: mergedOptions.alternateScreen ?? mode === 'fullscreen',
+		mode,
 		nonTTYMode: mergedOptions.nonTTYMode ?? ('auto' as NonTTYMode),
 	};
 
@@ -1058,7 +1133,11 @@ export async function renderStatic(
 }
 
 // Re-export layout engine management for convenience
-export { setLayoutEngine, isLayoutEngineInitialized, type LayoutEngineType } from './layout-engine.js';
+export {
+	setLayoutEngine,
+	isLayoutEngineInitialized,
+	type LayoutEngineType,
+} from './layout-engine.js';
 
 // Re-export adapters for custom engine initialization
 export {

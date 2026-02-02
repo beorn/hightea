@@ -26,11 +26,13 @@
  *   Emit minimal ANSI sequences for changes
  */
 
+import { createLogger } from '@beorn/logger';
 import createDebug from 'debug';
 import type { TerminalBuffer } from '../buffer.js';
 import type { InkxNode } from '../types.js';
 
 const debug = createDebug('inkx:pipeline');
+const log = createLogger('inkx');
 
 // Re-export types
 export type { CellChange, BorderChars } from './types.js';
@@ -103,41 +105,65 @@ export function executeRender(
 	const { mode = 'fullscreen', skipLayoutNotifications = false } = opts;
 	const start = Date.now();
 
+	using render = log.span('pipeline', { width, height, mode });
+
 	// Clear per-render caches
 	clearBgConflictWarnings();
 
 	// Phase 1: Measure (for fit-content nodes)
-	const t1 = Date.now();
-	measurePhase(root);
-	debug('measure: %dms', Date.now() - t1);
+	{
+		using _measure = render.span('measure');
+		const t1 = Date.now();
+		measurePhase(root);
+		debug('measure: %dms', Date.now() - t1);
+	}
 
 	// Phase 2: Layout
-	const t2 = Date.now();
-	layoutPhase(root, width, height);
-	debug('layout: %dms', Date.now() - t2);
+	{
+		using _layout = render.span('layout');
+		const t2 = Date.now();
+		layoutPhase(root, width, height);
+		debug('layout: %dms', Date.now() - t2);
+	}
 
 	// Phase 2.5: Scroll calculation (for overflow='scroll' containers)
-	scrollPhase(root);
+	{
+		using _scroll = render.span('scroll');
+		scrollPhase(root);
+	}
 
 	// Phase 2.6: Screen rect calculation (screen-relative positions)
-	screenRectPhase(root);
+	{
+		using _screenRect = render.span('screenRect');
+		screenRectPhase(root);
+	}
 
 	// Phase 2.7: Notify layout subscribers
 	// This runs AFTER screenRectPhase so useScreenRectCallback reads correct positions
 	// Skip for static renders where no one will respond to the feedback
 	if (!skipLayoutNotifications) {
+		using _notify = render.span('notify');
 		notifyLayoutSubscribers(root);
 	}
 
 	// Phase 3: Content render
-	const t3 = Date.now();
-	const buffer = contentPhase(root);
-	debug('content: %dms', Date.now() - t3);
+	let buffer: TerminalBuffer;
+	{
+		using _content = render.span('content');
+		const t3 = Date.now();
+		buffer = contentPhase(root);
+		debug('content: %dms', Date.now() - t3);
+	}
 
 	// Phase 4: Diff and output
-	const t4 = Date.now();
-	const output = outputPhase(prevBuffer, buffer, mode);
-	debug('output: %dms (%d bytes)', Date.now() - t4, output.length);
+	let output: string;
+	{
+		using outputSpan = render.span('output');
+		const t4 = Date.now();
+		output = outputPhase(prevBuffer, buffer, mode);
+		outputSpan.spanData.bytes = output.length;
+		debug('output: %dms (%d bytes)', Date.now() - t4, output.length);
+	}
 
 	debug('total pipeline: %dms', Date.now() - start);
 

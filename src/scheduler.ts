@@ -12,6 +12,7 @@
  * - Clean shutdown
  */
 
+import { type Logger, createLogger } from '@beorn/logger';
 import createDebug from 'debug';
 import type { TerminalBuffer } from './buffer.js';
 import {
@@ -102,11 +103,12 @@ export interface RenderStats {
 export class RenderScheduler {
 	private stdout: NodeJS.WriteStream;
 	private root: InkxNode;
-	private debug: boolean;
+	private debugMode: boolean;
 	private minFrameTime: number;
 	private mode: 'fullscreen' | 'inline';
 	private nonTTYMode: ResolvedMode;
 	private outputTransformer: (content: string, prevLineCount: number) => string;
+	private log: Logger;
 
 	/** Previous buffer for diffing */
 	private prevBuffer: TerminalBuffer | null = null;
@@ -143,9 +145,10 @@ export class RenderScheduler {
 	constructor(options: SchedulerOptions) {
 		this.stdout = options.stdout;
 		this.root = options.root;
-		this.debug = options.debug ?? false;
+		this.debugMode = options.debug ?? false;
 		this.minFrameTime = options.minFrameTime ?? 16;
 		this.mode = options.mode ?? 'fullscreen';
+		this.log = createLogger('inkx:scheduler');
 
 		// Resolve non-TTY mode based on environment
 		this.nonTTYMode = resolveNonTTYMode({
@@ -184,6 +187,7 @@ export class RenderScheduler {
 
 		if (this.renderScheduled) {
 			this.stats.skippedCount++;
+			this.log.debug('render batched');
 			debug('render skipped (batched), total: %d', this.stats.skippedCount);
 			return;
 		}
@@ -253,6 +257,11 @@ export class RenderScheduler {
 	dispose(): void {
 		if (this.disposed) return;
 
+		this.log.info('scheduler disposed', {
+			renderCount: this.stats.renderCount,
+			skippedCount: this.stats.skippedCount,
+			avgRenderTime: Math.round(this.stats.avgRenderTime),
+		});
 		debug(
 			'dispose: renders=%d, skipped=%d, avg=%dms',
 			this.stats.renderCount,
@@ -311,6 +320,7 @@ export class RenderScheduler {
 	 * Execute the actual render.
 	 */
 	private executeRender(): void {
+		using render = this.log.span('render');
 		const startTime = Date.now();
 
 		try {
@@ -367,6 +377,11 @@ export class RenderScheduler {
 				this.stats.renderCount;
 			this.lastRenderTime = Date.now();
 
+			// Record span data
+			render.spanData.renderCount = this.stats.renderCount;
+			render.spanData.renderTime = renderTime;
+			render.spanData.bytes = transformedOutput.length;
+
 			debug(
 				'render #%d complete: %dms, output: %d bytes',
 				this.stats.renderCount,
@@ -374,7 +389,7 @@ export class RenderScheduler {
 				transformedOutput.length,
 			);
 
-			if (this.debug) {
+			if (this.debugMode) {
 				this.logDebug(`Render #${this.stats.renderCount} took ${renderTime}ms`);
 			}
 		} catch (error) {

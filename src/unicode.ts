@@ -757,8 +757,7 @@ export function parseAnsiText(text: string): StyledSegment[] {
 						const r = subparts[3] ?? subparts[2] ?? 0;
 						const g = subparts[4] ?? subparts[3] ?? 0;
 						const b = subparts[5] ?? subparts[4] ?? 0;
-						currentStyle.fg =
-							0x1000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+						currentStyle.fg = 0x1000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
 					}
 				} else if (mainCode === 48) {
 					// SGR 48:2::r:g:b or 48:5:N format
@@ -768,8 +767,7 @@ export function parseAnsiText(text: string): StyledSegment[] {
 						const r = subparts[3] ?? subparts[2] ?? 0;
 						const g = subparts[4] ?? subparts[3] ?? 0;
 						const b = subparts[5] ?? subparts[4] ?? 0;
-						currentStyle.bg =
-							0x1000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+						currentStyle.bg = 0x1000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
 					}
 				}
 				continue;

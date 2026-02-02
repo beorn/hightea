@@ -5,8 +5,8 @@
  */
 
 import createDebug from 'debug';
-import { type BoxProps, type InkxNode, type Rect, rectEqual } from '../types.js';
 import { measureStats } from '../reconciler/nodes.js';
+import { type BoxProps, type InkxNode, type Rect, rectEqual } from '../types.js';
 
 const debug = createDebug('inkx:layout');
 

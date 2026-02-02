@@ -75,4 +75,3 @@ export function Box(props: BoxProps): JSX.Element {
 		</inkx-box>
 	);
 }
-

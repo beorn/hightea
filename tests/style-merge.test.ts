@@ -10,9 +10,9 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import { TerminalBuffer, type Color, type Style } from '../src/buffer.js';
+import { type Color, type Style, TerminalBuffer } from '../src/buffer.js';
 import { outputPhase } from '../src/pipeline/output-phase.js';
-import { mergeStyles, type MergeStylesOptions } from '../src/pipeline/render-text.js';
+import { type MergeStylesOptions, mergeStyles } from '../src/pipeline/render-text.js';
 import { parseAnsiText } from '../src/unicode.js';
 
 describe('Style Layering', () => {

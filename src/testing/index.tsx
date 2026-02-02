@@ -109,8 +109,8 @@ export { keyToAnsi, CODE_TO_KEY } from '../keys.js';
 
 // Re-export debug utilities
 export { debugTree, type DebugTreeOptions } from './debug.js';
-import { AppContext, EventsContext, InputContext, StdoutContext, TermContext } from '../context.js';
 import { createTerm } from 'chalkx';
+import { AppContext, EventsContext, InputContext, StdoutContext, TermContext } from '../context.js';
 import type { LayoutEngine } from '../layout-engine.js';
 import { setLayoutEngine } from '../layout-engine.js';
 import { executeRender } from '../pipeline.js';

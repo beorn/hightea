@@ -142,7 +142,12 @@ function bufferToAnsi(
 			if (cell.continuation) continue;
 
 			// Update style if changed
-			const cellStyle: Style = { fg: cell.fg, bg: cell.bg, underlineColor: cell.underlineColor, attrs: cell.attrs };
+			const cellStyle: Style = {
+				fg: cell.fg,
+				bg: cell.bg,
+				underlineColor: cell.underlineColor,
+				attrs: cell.attrs,
+			};
 			if (!styleEquals(currentStyle, cellStyle)) {
 				output += styleToAnsi(cellStyle);
 				currentStyle = cellStyle;
@@ -260,7 +265,12 @@ function changesToAnsi(
 			output += `\x1b[${x + 1}G`;
 
 			// Update style if changed
-			const cellStyle: Style = { fg: cell.fg, bg: cell.bg, underlineColor: cell.underlineColor, attrs: cell.attrs };
+			const cellStyle: Style = {
+				fg: cell.fg,
+				bg: cell.bg,
+				underlineColor: cell.underlineColor,
+				attrs: cell.attrs,
+			};
 			if (!styleEquals(currentStyle, cellStyle)) {
 				output += styleToAnsi(cellStyle);
 				currentStyle = cellStyle;
@@ -294,7 +304,12 @@ function changesToAnsi(
 			}
 
 			// Update style if changed
-			const cellStyle: Style = { fg: cell.fg, bg: cell.bg, underlineColor: cell.underlineColor, attrs: cell.attrs };
+			const cellStyle: Style = {
+				fg: cell.fg,
+				bg: cell.bg,
+				underlineColor: cell.underlineColor,
+				attrs: cell.attrs,
+			};
 			if (!styleEquals(currentStyle, cellStyle)) {
 				output += styleToAnsi(cellStyle);
 				currentStyle = cellStyle;

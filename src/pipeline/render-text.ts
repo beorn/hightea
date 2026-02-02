@@ -604,8 +604,7 @@ export function mergeStyles(
 		if (hasBaseUnderline || hasOverlayUnderline) {
 			attrs.underline = true;
 			// Style: overlay wins if specified, else base
-			attrs.underlineStyle =
-				overlayAttrs.underlineStyle ?? baseAttrs.underlineStyle ?? 'single';
+			attrs.underlineStyle = overlayAttrs.underlineStyle ?? baseAttrs.underlineStyle ?? 'single';
 		}
 		attrs.strikethrough = overlayAttrs.strikethrough || baseAttrs.strikethrough;
 	} else {
