@@ -243,11 +243,16 @@ export const hostConfig = {
 			instance.layoutDirty = true;
 		}
 
-		// Check if content changed
+		// Check if content changed (text children)
 		if (
 			contentPropsChanged(oldProps as Record<string, unknown>, newProps as Record<string, unknown>)
 		) {
 			instance.contentDirty = true;
+			// Content change affects layout size (measure function returns different result)
+			// Mark layout dirty to clear flexx's measure cache
+			if (instance.layoutNode) {
+				instance.layoutNode.markDirty();
+			}
 		}
 
 		instance.props = newProps;
