@@ -427,6 +427,13 @@ Full documentation at `docs/site/` (VitePress):
 - **Guides** — scrolling, text handling, migration from Ink
 - **Architecture** — render pipeline, reconciler internals
 
+**Architecture Deep Dives:**
+
+- [docs/architecture.md](docs/architecture.md) — Core innovation, layer diagram, RenderAdapter interface
+- [docs/roadmap.md](docs/roadmap.md) — Maximum roadmap for Canvas, React Native, and beyond
+- [docs/design.md](docs/design.md) — Terminal implementation details
+- [docs/internals.md](docs/internals.md) — React reconciler internals
+
 Run locally: `cd docs/site && bun run dev`
 
 ## Style Layering

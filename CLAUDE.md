@@ -2,6 +2,20 @@
 
 React-based terminal UI framework with layout feedback. Ink-compatible API with components that know their size.
 
+## Architecture Overview
+
+inkx's core innovation is **two-phase rendering with synchronous layout feedback** — components know their size during render, not after.
+
+See [docs/architecture.md](docs/architecture.md) for:
+- Layer diagram (@inkx/core → RenderAdapter → targets)
+- RenderAdapter interface for future targets (Canvas, React Native)
+- Infinite loop prevention and containment rules
+
+See [docs/roadmap.md](docs/roadmap.md) for the maximum vision:
+- Tier 2: Enhanced Terminal (Cursor API, mouse support)
+- Tier 3: Canvas/WebGL (recommended next validation target)
+- Tier 4: React Native (high value - FlatList replacement)
+
 ## Layout Engine
 
 inkx supports multiple layout engines:
