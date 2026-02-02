@@ -24,7 +24,22 @@ export type {
 	RenderTarget,
 	Runtime,
 	RuntimeOptions,
+	// Provider types
+	Provider,
+	ProviderEvent,
+	NamespacedEvent,
+	ProviderEventKey,
+	EventData,
 } from './types.js';
+
+// Terminal provider
+export {
+	createTermProvider,
+	type TermProvider,
+	type TermState,
+	type TermEvents,
+	type TermProviderOptions,
+} from './term-provider.js';
 
 // Layer 0: Pure render functions
 export { layout, layoutSync, ensureLayoutEngine, type LayoutOptions } from './layout.js';

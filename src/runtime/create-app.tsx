@@ -1,13 +1,12 @@
 /**
  * createApp() - Layer 3 entry point for inkx-loop
  *
- * Provides Zustand store integration with flattened providers.
- * Use this when you need shared state across components with
- * fine-grained subscriptions.
+ * Provides Zustand store integration with unified providers.
+ * Providers are stores (getState/subscribe) + event sources (events()).
  *
  * @example
  * ```tsx
- * import { createApp, useApp } from 'inkx/runtime'
+ * import { createApp, useApp, createTermProvider } from 'inkx/runtime'
  *
  * const app = createApp(
  *   // Store factory
@@ -15,11 +14,14 @@
  *     count: 0,
  *     increment: () => set(s => ({ count: s.count + 1 })),
  *   }),
- *   // Event handlers (optional)
+ *   // Event handlers - namespaced as 'provider:event'
  *   {
- *     key: (k, { set }) => {
- *       if (k === 'j') set(s => ({ count: s.count + 1 }))
- *       if (k === 'q') return 'exit'
+ *     'term:key': ({ input, key }, { set }) => {
+ *       if (input === 'j') set(s => ({ count: s.count + 1 }))
+ *       if (input === 'q') return 'exit'
+ *     },
+ *     'term:resize': ({ cols, rows }, { set }) => {
+ *       // handle resize
  *     },
  *   }
  * )
@@ -29,7 +31,8 @@
  *   return <Text>Count: {count}</Text>
  * }
  *
- * await app.run(<Counter />, { term: createTerm() })
+ * const term = createTermProvider(process.stdin, process.stdout)
+ * await app.run(<Counter />, { term })
  * ```
  */
 
@@ -50,33 +53,48 @@ import { executeRender } from '../pipeline/index.js';
 import { reconciler, createContainer, getContainerRoot } from '../reconciler.js';
 import { createRuntime } from './create-runtime.js';
 import { ensureLayoutEngine } from './layout.js';
-import { parseKey, type Key, type InputHandler } from './keys.js';
-import { takeUntil, merge } from '../streams/index.js';
-import type { Buffer, Dims, Event, RenderTarget, Runtime } from './types.js';
+import { parseKey, type Key } from './keys.js';
+import { takeUntil, merge, map } from '../streams/index.js';
+import { createTermProvider, type TermProvider } from './term-provider.js';
+import type {
+	Buffer,
+	Dims,
+	RenderTarget,
+	Provider,
+	ProviderEvent,
+} from './types.js';
 
 // ============================================================================
 // Types
 // ============================================================================
 
 /**
- * Provider interface - has getState/subscribe for state synchronization.
+ * Check if value is a Provider with events (full interface).
  */
-export interface Provider<S = unknown> {
-	getState(): S;
-	subscribe(listener: (state: S) => void): () => void;
-}
-
-/**
- * Check if value is a Provider (duck typing).
- */
-function isProvider(value: unknown): value is Provider {
+function isFullProvider(value: unknown): value is Provider<unknown, Record<string, unknown>> {
 	return (
 		value !== null &&
 		typeof value === 'object' &&
 		'getState' in value &&
 		'subscribe' in value &&
+		'events' in value &&
 		typeof (value as Provider).getState === 'function' &&
-		typeof (value as Provider).subscribe === 'function'
+		typeof (value as Provider).subscribe === 'function' &&
+		typeof (value as Provider).events === 'function'
+	);
+}
+
+/**
+ * Check if value is a basic Provider (just getState/subscribe, Zustand-compatible).
+ */
+function isBasicProvider(value: unknown): value is { getState(): unknown; subscribe(l: (s: unknown) => void): () => void } {
+	return (
+		value !== null &&
+		typeof value === 'object' &&
+		'getState' in value &&
+		'subscribe' in value &&
+		typeof (value as { getState: unknown }).getState === 'function' &&
+		typeof (value as { subscribe: unknown }).subscribe === 'function'
 	);
 }
 
@@ -89,7 +107,7 @@ export interface EventHandlerContext<S> {
 }
 
 /**
- * Event handler function.
+ * Generic event handler function.
  * Return 'exit' to exit the app.
  */
 export type EventHandler<T, S> = (
@@ -98,8 +116,7 @@ export type EventHandler<T, S> = (
 ) => void | 'exit';
 
 /**
- * Key event handler function with parsed key.
- * Return 'exit' to exit the app.
+ * Legacy key handler for backwards compatibility.
  */
 export type KeyHandler<S> = (
 	input: string,
@@ -108,12 +125,17 @@ export type KeyHandler<S> = (
 ) => void | 'exit';
 
 /**
- * Event handlers map - event name to handler.
+ * Event handlers map.
+ * Keys are either:
+ * - 'provider:event' for new namespaced handlers
+ * - 'key' / 'resize' for legacy handlers (auto-maps to 'term:key', 'term:resize')
  */
 export type EventHandlers<S> = {
+	// Legacy handlers (backwards compat)
 	key?: KeyHandler<S>;
 	resize?: EventHandler<{ cols: number; rows: number }, S>;
-	[event: string]: EventHandler<unknown, S> | KeyHandler<S> | undefined;
+	// Namespaced handlers
+	[event: `${string}:${string}`]: EventHandler<unknown, S> | undefined;
 };
 
 /**
@@ -129,7 +151,7 @@ export interface AppRunOptions {
 	stdin?: NodeJS.ReadStream;
 	/** Abort signal for external cleanup */
 	signal?: AbortSignal;
-	/** Additional providers/values to inject */
+	/** Providers and plain values to inject */
 	[key: string]: unknown;
 }
 
@@ -145,7 +167,7 @@ export interface AppHandle<S> {
 	waitUntilExit(): Promise<void>;
 	/** Unmount and cleanup */
 	unmount(): void;
-	/** Send a key press */
+	/** Send a key press (simulates term:key event) */
 	press(key: string): Promise<void>;
 }
 
@@ -193,15 +215,25 @@ export function useApp<S, T>(selector: (state: S) => T): T {
 // ============================================================================
 
 /**
+ * Namespaced event from a provider.
+ */
+interface NamespacedEvent {
+	type: string;
+	provider: string;
+	event: string;
+	data: unknown;
+}
+
+/**
  * Create an app with Zustand store and provider integration.
  *
  * This is Layer 3 - it provides:
  * - Zustand store with fine-grained subscriptions
- * - Provider state flattened to store root
- * - Event handlers at app level
+ * - Providers as unified stores + event sources
+ * - Event handlers namespaced as 'provider:event'
  *
  * @param factory Store factory function that receives providers
- * @param handlers Optional event handlers
+ * @param handlers Optional event handlers (namespaced as 'provider:event')
  */
 export function createApp<I extends Record<string, unknown>, S extends Record<string, unknown>>(
 	factory: (inject: I) => StateCreator<S>,
@@ -234,104 +266,70 @@ export function createApp<I extends Record<string, unknown>, S extends Record<st
 				}
 			}
 
-			// Build injected values with flattened provider state
-			const inject = injectValues as I;
-			const providerUnsubscribes: (() => void)[] = [];
+			// Separate providers from plain values
+			const providers: Record<string, Provider<unknown, Record<string, unknown>>> = {};
+			const plainValues: Record<string, unknown> = {};
+			const providerCleanups: (() => void)[] = [];
 
-			// Create store with provider-aware middleware
+			// Create term provider if not provided
+			let termProvider: TermProvider | null = null;
+			if (!('term' in injectValues) || !isFullProvider(injectValues.term)) {
+				termProvider = createTermProvider(stdin, stdout, { cols, rows });
+				providers.term = termProvider;
+				providerCleanups.push(() => termProvider![Symbol.dispose]());
+			}
+
+			// Categorize injected values
+			for (const [name, value] of Object.entries(injectValues)) {
+				if (isFullProvider(value)) {
+					providers[name] = value;
+				} else {
+					plainValues[name] = value;
+				}
+			}
+
+			// Build inject object (providers + plain values)
+			const inject = { ...providers, ...plainValues } as I;
+
+			// Subscribe to provider state changes
+			const stateUnsubscribes: (() => void)[] = [];
+
+			// Create store
 			const store = createStore<S & I>((set, get, api) => {
 				// Get base state from factory
-				const baseState = factory(inject)(set as StoreApi<S>['setState'], get as StoreApi<S>['getState'], api as StoreApi<S>);
+				const baseState = factory(inject)(
+					set as StoreApi<S>['setState'],
+					get as StoreApi<S>['getState'],
+					api as StoreApi<S>
+				);
 
-				// Flatten provider state to root
-				const flattenedState: Record<string, unknown> = { ...baseState };
+				// Merge provider references into state (for access via selectors)
+				const mergedState: Record<string, unknown> = { ...baseState };
 
-				for (const [name, value] of Object.entries(inject)) {
-					if (isProvider(value)) {
-						// Get initial provider state
-						const providerState = value.getState();
-						if (typeof providerState === 'object' && providerState !== null) {
-							// Check for collisions
-							for (const key of Object.keys(providerState)) {
-								if (key in flattenedState) {
-									console.warn(`Provider collision: '${key}' defined by both store and provider '${name}'`);
-								}
-							}
-							Object.assign(flattenedState, providerState);
-						}
+				for (const [name, provider] of Object.entries(providers)) {
+					mergedState[name] = provider;
 
-						// Subscribe to provider updates
-						const unsub = value.subscribe((newProviderState) => {
-							if (typeof newProviderState === 'object' && newProviderState !== null) {
-								set(newProviderState as Partial<S & I>);
-							}
+					// Subscribe to provider state changes (basic providers only)
+					if (isBasicProvider(provider)) {
+						const unsub = provider.subscribe((providerState) => {
+							// Could flatten provider state here if desired
+							// For now, just trigger a re-check
 						});
-						providerUnsubscribes.push(unsub);
-
-						// Keep provider object accessible
-						flattenedState[name] = value;
-					} else {
-						// Plain value - goes to root
-						flattenedState[name] = value;
+						stateUnsubscribes.push(unsub);
 					}
 				}
 
-				return flattenedState as S & I;
+				// Add plain values
+				for (const [name, value] of Object.entries(plainValues)) {
+					mergedState[name] = value;
+				}
+
+				return mergedState as S & I;
 			});
 
 			// Track current dimensions
 			let currentDims: Dims = { cols, rows };
 			let shouldExit = false;
-
-			// Create keyboard event source
-			function createKeyboardSource(): AsyncIterable<Event> {
-				return {
-					async *[Symbol.asyncIterator]() {
-						if (!stdin.isTTY) return;
-
-						stdin.setRawMode(true);
-						stdin.resume();
-						stdin.setEncoding('utf8');
-
-						try {
-							while (!signal.aborted) {
-								const rawKey = await new Promise<string | null>((resolve) => {
-									const onData = (data: string) => {
-										stdin.off('data', onData);
-										resolve(data);
-									};
-									const onAbort = () => {
-										stdin.off('data', onData);
-										resolve(null);
-									};
-									stdin.on('data', onData);
-									signal.addEventListener('abort', onAbort, { once: true });
-								});
-
-								if (rawKey === null || signal.aborted) break;
-
-								// Parse the key using full key parsing
-								const [input, key] = parseKey(rawKey);
-
-								yield {
-									type: 'key' as const,
-									key: rawKey,
-									input,
-									parsedKey: key,
-									ctrl: key.ctrl,
-									meta: key.meta,
-									shift: key.shift,
-								};
-							}
-						} finally {
-							if (stdin.isTTY) {
-								stdin.setRawMode(false);
-								stdin.pause();
-							}
-						}
-					},
-				};
-			}
 
 			// Create render target
 			const target: RenderTarget = {
@@ -357,11 +355,47 @@ export function createApp<I extends Record<string, unknown>, S extends Record<st
 			// Create runtime
 			const runtime = createRuntime({ target, signal });
 
-			// Exit function
-			const exit = () => {
-				shouldExit = true;
-				controller.abort();
+			// Cleanup state
+			let cleanedUp = false;
+			let storeUnsubscribeFn: (() => void) | null = null;
+
+			// Cleanup function - idempotent, can be called from exit() or finally
+			const cleanup = () => {
+				if (cleanedUp) return;
+				cleanedUp = true;
+
+				// Unsubscribe from store
+				if (storeUnsubscribeFn) {
+					storeUnsubscribeFn();
+				}
+
+				// Unsubscribe from provider state changes
+				stateUnsubscribes.forEach((unsub) => {
+					try {
+						unsub();
+					} catch {
+						// Ignore
+					}
+				});
+
+				// Cleanup providers (including termProvider)
+				providerCleanups.forEach((fn) => {
+					try {
+						fn();
+					} catch {
+						// Ignore
+					}
+				});
+
+				// Dispose runtime
+				runtime[Symbol.dispose]();
+
+				// Restore cursor
+				stdout.write('\x1b[?25h\x1b[0m\n');
 			};
+
+			// Exit function - defined early so components can reference it
+			let exit: () => void;
 
 			// Create InkxNode container
 			const container = createContainer(() => {});
@@ -442,12 +476,27 @@ export function createApp<I extends Record<string, unknown>, S extends Record<st
 
 			// Exit promise
 			let exitResolve: () => void;
+			let exitResolved = false;
 			const exitPromise = new Promise<void>((resolve) => {
-				exitResolve = resolve;
+				exitResolve = () => {
+					if (!exitResolved) {
+						exitResolved = true;
+						resolve();
+					}
+				};
 			});
 
+			// Now define exit function (needs exitResolve and cleanup)
+			exit = () => {
+				if (shouldExit) return; // Already exiting
+				shouldExit = true;
+				controller.abort();
+				cleanup();
+				exitResolve();
+			};
+
 			// Subscribe to store for re-renders
-			const storeUnsubscribe = store.subscribe(() => {
+			storeUnsubscribeFn = store.subscribe(() => {
 				if (!shouldExit) {
 					const newBuffer = doRender();
 					currentText = newBuffer.text;
@@ -455,20 +504,38 @@ export function createApp<I extends Record<string, unknown>, S extends Record<st
 				}
 			});
 
+			// Create namespaced event streams from all providers
+			function createProviderEventStream(
+				name: string,
+				provider: Provider<unknown, Record<string, unknown>>
+			): AsyncIterable<NamespacedEvent> {
+				return map(provider.events(), (event) => ({
+					type: `${name}:${String(event.type)}`,
+					provider: name,
+					event: String(event.type),
+					data: event.data,
+				}));
+			}
+
 			// Start event loop
 			const eventLoop = async () => {
-				const keyboardEvents = createKeyboardSource();
-				const runtimeEvents = runtime.events();
-				const allEvents = merge(keyboardEvents, runtimeEvents);
+				// Merge all provider event streams
+				const providerEventStreams = Object.entries(providers).map(([name, provider]) =>
+					createProviderEventStream(name, provider)
+				);
+
+				const allEvents = merge(...providerEventStreams);
 
 				try {
 					for await (const event of takeUntil(allEvents, signal)) {
 						if (shouldExit) break;
 
-						// Handle key events with app-level handlers
-						if (event.type === 'key' && 'parsedKey' in event && handlers?.key) {
-							const { input, parsedKey } = event as { input: string; parsedKey: Key };
-							const result = handlers.key(input, parsedKey, {
+						// Try namespaced handler first: 'provider:event'
+						const namespacedKey = event.type;
+						const namespacedHandler = handlers?.[namespacedKey as keyof typeof handlers];
+
+						if (namespacedHandler && typeof namespacedHandler === 'function') {
+							const result = (namespacedHandler as EventHandler<unknown, S & I>)(event.data, {
 								set: store.setState,
 								get: store.getState,
 							});
@@ -478,16 +545,34 @@ export function createApp<I extends Record<string, unknown>, S extends Record<st
 							}
 						}
 
-						// Handle resize events
-						if (event.type === 'resize' && handlers?.resize) {
-							const resizeHandler = handlers.resize as EventHandler<{ cols: number; rows: number }, S & I>;
-							resizeHandler(event as { cols: number; rows: number }, {
+						// Legacy handler support: 'key' maps to 'term:key'
+						if (event.type === 'term:key' && handlers?.key) {
+							const keyData = event.data as { input: string; key: Key };
+							const result = handlers.key(keyData.input, keyData.key, {
 								set: store.setState,
 								get: store.getState,
 							});
+							if (result === 'exit') {
+								exit();
+								break;
+							}
 						}
 
-						// Re-render (store subscription handles this, but also trigger manually for events)
+						// Legacy handler support: 'resize' maps to 'term:resize'
+						if (event.type === 'term:resize' && handlers?.resize) {
+							const resizeData = event.data as { cols: number; rows: number };
+							currentDims = resizeData;
+							const result = handlers.resize(resizeData, {
+								set: store.setState,
+								get: store.getState,
+							});
+							if (result === 'exit') {
+								exit();
+								break;
+							}
+						}
+
+						// Re-render
 						const newBuffer = doRender();
 						currentText = newBuffer.text;
 						runtime.render(newBuffer);
@@ -495,11 +580,8 @@ export function createApp<I extends Record<string, unknown>, S extends Record<st
 						if (shouldExit) break;
 					}
 				} finally {
-					// Cleanup
-					storeUnsubscribe();
-					providerUnsubscribes.forEach(unsub => unsub());
-					runtime[Symbol.dispose]();
-					stdout.write('\x1b[?25h\x1b[0m\n');
+					// Cleanup and resolve exit promise
+					cleanup();
 					exitResolve();
 				}
 			};
@@ -525,7 +607,20 @@ export function createApp<I extends Record<string, unknown>, S extends Record<st
 					// Parse the key
 					const [input, parsedKey] = parseKey(rawKey);
 
-					// Call handler if exists
+					// Simulate term:key event through handlers
+					const namespacedHandler = handlers?.['term:key' as keyof typeof handlers];
+					if (namespacedHandler && typeof namespacedHandler === 'function') {
+						const result = (namespacedHandler as EventHandler<unknown, S & I>)(
+							{ input, key: parsedKey },
+							{ set: store.setState, get: store.getState }
+						);
+						if (result === 'exit') {
+							exit();
+							return;
+						}
+					}
+
+					// Legacy handler
 					if (handlers?.key) {
 						const result = handlers.key(input, parsedKey, {
 							set: store.setState,
@@ -536,6 +631,7 @@ export function createApp<I extends Record<string, unknown>, S extends Record<st
 							return;
 						}
 					}
+
 					// Trigger re-render
 					const newBuffer = doRender();
 					currentText = newBuffer.text;
