@@ -14,6 +14,10 @@
     "./testing": {
       "types": "./src/testing/index.tsx",
       "import": "./src/testing/index.tsx"
+    },
+    "./runtime": {
+      "types": "./src/runtime/index.ts",
+      "import": "./src/runtime/index.ts"
     }
   },
   "scripts": {
@@ -68,7 +72,8 @@
     "graphemer": "^1.4.0",
     "react-reconciler": "^0.33.0",
     "slice-ansi": "^7.1.2",
-    "string-width": "^8.0.0"
+    "string-width": "^8.0.0",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@beorn/flexx": "github:beorn/flexx",

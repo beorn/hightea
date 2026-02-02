@@ -30,6 +30,36 @@ export type {
 export { layout, layoutSync, ensureLayoutEngine, type LayoutOptions } from './layout.js';
 export { diff, render, type DiffMode } from './diff.js';
 
+// Layer 1: Runtime kernel
+export { createRuntime } from './create-runtime.js';
+
+// Layer 2: React integration
+export {
+	run,
+	useInput,
+	useExit,
+	type RunOptions,
+	type RunHandle,
+	type InputHandler,
+	type Key,
+} from './run.js';
+
+// Key parsing utilities
+export { parseKey, emptyKey } from './keys.js';
+
+// Layer 3: Store integration
+export {
+	createApp,
+	useApp,
+	type AppDefinition,
+	type AppHandle,
+	type AppRunOptions,
+	type EventHandler,
+	type EventHandlers,
+	type EventHandlerContext,
+	type Provider,
+} from './create-app.js';
+
 // Time/tick sources
 export {
 	createTick,
