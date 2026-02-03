@@ -448,6 +448,88 @@ describe('Pipeline', () => {
 			// firstVisibleChild should include index 0 (the sticky header)
 			expect(scrollContainer.scrollState?.firstVisibleChild).toBe(0);
 		});
+
+		test('overflowIndicator renders indicators for borderless containers', async () => {
+			// Create 10 items (only 5 visible)
+			const items: InkxNode[] = [];
+			for (let i = 0; i < 10; i++) {
+				const item = await createMockNode('inkx-box', { height: 1 });
+				item.computedLayout = { x: 0, y: i, width: 10, height: 1 };
+				items.push(item);
+			}
+
+			// Borderless container with overflowIndicator, scrolled to middle
+			const scrollContainer = await createMockNode(
+				'inkx-box',
+				{ overflow: 'scroll', height: 5, scrollTo: 5, overflowIndicator: true } as BoxProps,
+				items,
+			);
+			scrollContainer.computedLayout = { x: 0, y: 0, width: 10, height: 5 };
+
+			scrollPhase(scrollContainer);
+
+			// Should have hidden items above and below
+			expect(scrollContainer.scrollState?.hiddenAbove).toBeGreaterThan(0);
+			expect(scrollContainer.scrollState?.hiddenBelow).toBeGreaterThan(0);
+
+			// Render content phase and check for indicator characters
+			const buffer = contentPhase(scrollContainer);
+
+			// Check for ▲ indicator at top-right of first row
+			let foundTopIndicator = false;
+			for (let x = 0; x < 10; x++) {
+				if (buffer.getCell(x, 0).char === '▲') {
+					foundTopIndicator = true;
+					break;
+				}
+			}
+			expect(foundTopIndicator).toBe(true);
+
+			// Check for ▼ indicator at bottom-right of last row
+			let foundBottomIndicator = false;
+			for (let x = 0; x < 10; x++) {
+				if (buffer.getCell(x, 4).char === '▼') {
+					foundBottomIndicator = true;
+					break;
+				}
+			}
+			expect(foundBottomIndicator).toBe(true);
+		});
+
+		test('no indicators without overflowIndicator prop for borderless', async () => {
+			// Create 10 items (only 5 visible)
+			const items: InkxNode[] = [];
+			for (let i = 0; i < 10; i++) {
+				const item = await createMockNode('inkx-box', { height: 1 });
+				item.computedLayout = { x: 0, y: i, width: 10, height: 1 };
+				items.push(item);
+			}
+
+			// Borderless container WITHOUT overflowIndicator, scrolled to middle
+			const scrollContainer = await createMockNode(
+				'inkx-box',
+				{ overflow: 'scroll', height: 5, scrollTo: 5 } as BoxProps,
+				items,
+			);
+			scrollContainer.computedLayout = { x: 0, y: 0, width: 10, height: 5 };
+
+			scrollPhase(scrollContainer);
+
+			const buffer = contentPhase(scrollContainer);
+
+			// Should NOT have ▲ or ▼ indicators
+			let foundIndicator = false;
+			for (let y = 0; y < 5; y++) {
+				for (let x = 0; x < 10; x++) {
+					const char = buffer.getCell(x, y).char;
+					if (char === '▲' || char === '▼') {
+						foundIndicator = true;
+						break;
+					}
+				}
+			}
+			expect(foundIndicator).toBe(false);
+		});
 	});
 
 	describe('screenRectPhase', () => {

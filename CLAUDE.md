@@ -704,6 +704,76 @@ inkx uses category-based style merging that preserves semantic information:
 </Text>
 ```
 
+## Scrollable Containers
+
+Box supports `overflow="scroll"` for creating scrollable regions with virtualized rendering.
+
+### Basic Scrolling
+
+```tsx
+// Scrollable list with 100 items, only visible ones render
+<Box overflow="scroll" height={10} scrollTo={selectedIndex}>
+  {items.map((item, i) => (
+    <Text key={i}>{item.name}</Text>
+  ))}
+</Box>
+```
+
+### Scroll Props
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `overflow` | `'visible'` \| `'hidden'` \| `'scroll'` | Overflow behavior |
+| `scrollTo` | `number` | Child index to ensure visible (scroll to if off-screen) |
+| `overflowIndicator` | `boolean` | Show ▲N/▼N indicators for hidden items |
+
+### Overflow Indicators
+
+For **bordered** containers, indicators appear on the border automatically:
+
+```tsx
+<Box overflow="scroll" height={10} borderStyle="single" scrollTo={cursor}>
+  {items}  {/* Shows ───▲5─── on top border if 5 items hidden */}
+</Box>
+```
+
+For **borderless** containers, use `overflowIndicator` to show indicators overlaid on content:
+
+```tsx
+<Box overflow="scroll" height={10} scrollTo={cursor} overflowIndicator>
+  {items}  {/* Shows ▲5 at top-right, ▼3 at bottom-right */}
+</Box>
+```
+
+### Scroll State
+
+The scroll phase calculates which children are visible and stores state on the node:
+
+```typescript
+node.scrollState = {
+  offset: number;           // Current scroll offset in rows
+  contentHeight: number;    // Total content height
+  viewportHeight: number;   // Visible height
+  firstVisibleChild: number;
+  lastVisibleChild: number;
+  hiddenAbove: number;      // Count hidden above viewport
+  hiddenBelow: number;      // Count hidden below viewport
+}
+```
+
+### Sticky Headers
+
+Children with `position="sticky"` pin to container edges when scrolled:
+
+```tsx
+<Box overflow="scroll" height={20} scrollTo={cursor}>
+  <Box position="sticky" stickyTop={0}>
+    <Text bold>Header (always visible)</Text>
+  </Box>
+  {items.map((item, i) => <Text key={i}>{item}</Text>)}
+</Box>
+```
+
 ## Key Exports
 
 | Export | Description |

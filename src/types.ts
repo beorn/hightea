@@ -184,6 +184,16 @@ export interface BoxProps extends FlexboxProps, StyleProps, TestProps {
 	borderLeft?: boolean;
 	borderRight?: boolean;
 	onLayout?: (layout: Rect) => void;
+
+	/**
+	 * Show scroll overflow indicators (▲N / ▼N) for scrollable containers.
+	 *
+	 * For bordered containers, indicators appear on the border.
+	 * For borderless containers, indicators overlay the content at top-right/bottom-right.
+	 *
+	 * Only applies when overflow='scroll'.
+	 */
+	overflowIndicator?: boolean;
 }
 
 /**

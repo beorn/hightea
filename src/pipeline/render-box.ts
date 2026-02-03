@@ -130,8 +130,13 @@ export function renderBorder(
 // ============================================================================
 
 /**
- * Render scroll indicators on the border (e.g., "---42---" / "---42---").
- * Renders indicators directly on the border line for a cleaner look.
+ * Render scroll indicators showing hidden items above/below viewport.
+ *
+ * Two rendering modes:
+ * 1. Bordered containers: Indicators appear on the border (e.g., "───▲42───")
+ * 2. Borderless containers with overflowIndicator: Indicators overlay content at edges
+ *
+ * Uses ▲N for items hidden above, ▼N for items hidden below.
  */
 export function renderScrollIndicators(
 	_node: InkxNode,
@@ -150,19 +155,59 @@ export function renderScrollIndicators(
 		attrs: { dim: true },
 	};
 
-	// Top indicator (on top border, right side)
-	if (ss.hiddenAbove > 0 && border.top > 0) {
+	// Determine if we should show indicators for borderless containers
+	const showBorderless = props.overflowIndicator === true;
+
+	// Top indicator
+	if (ss.hiddenAbove > 0) {
 		const indicator = `\u25b2${ss.hiddenAbove}`;
-		const x = layout.x + layout.width - border.right - indicator.length - 1;
-		const y = layout.y;
-		renderTextLine(buffer, x, y, indicator, indicatorStyle);
+
+		if (border.top > 0) {
+			// Bordered: render on top border line, right side
+			const x = layout.x + layout.width - border.right - indicator.length - 1;
+			const y = layout.y;
+			renderTextLine(buffer, x, y, indicator, indicatorStyle);
+		} else if (showBorderless) {
+			// Borderless: render on first content row, right side
+			const padding = getPadding(props);
+			const x = layout.x + layout.width - indicator.length;
+			const y = layout.y + padding.top;
+			renderTextLine(buffer, x, y, indicator, indicatorStyle);
+		}
 	}
 
-	// Bottom indicator (on bottom border, right side)
-	if (ss.hiddenBelow > 0 && border.bottom > 0) {
+	// Bottom indicator
+	if (ss.hiddenBelow > 0) {
 		const indicator = `\u25bc${ss.hiddenBelow}`;
-		const x = layout.x + layout.width - border.right - indicator.length - 1;
-		const y = layout.y + layout.height - 1;
-		renderTextLine(buffer, x, y, indicator, indicatorStyle);
+
+		if (border.bottom > 0) {
+			// Bordered: render on bottom border line, right side
+			const x = layout.x + layout.width - border.right - indicator.length - 1;
+			const y = layout.y + layout.height - 1;
+			renderTextLine(buffer, x, y, indicator, indicatorStyle);
+		} else if (showBorderless) {
+			// Borderless: render on last content row, right side
+			const padding = getPadding(props);
+			const x = layout.x + layout.width - indicator.length;
+			const y = layout.y + layout.height - 1 - padding.bottom;
+			renderTextLine(buffer, x, y, indicator, indicatorStyle);
+		}
 	}
+}
+
+/**
+ * Get padding values from props.
+ */
+function getPadding(props: BoxProps): {
+	top: number;
+	bottom: number;
+	left: number;
+	right: number;
+} {
+	return {
+		top: props.paddingTop ?? props.paddingY ?? props.padding ?? 0,
+		bottom: props.paddingBottom ?? props.paddingY ?? props.padding ?? 0,
+		left: props.paddingLeft ?? props.paddingX ?? props.padding ?? 0,
+		right: props.paddingRight ?? props.paddingX ?? props.padding ?? 0,
+	};
 }
