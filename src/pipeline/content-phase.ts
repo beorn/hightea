@@ -167,15 +167,18 @@ function renderNormalChildren(
 	if (!layout) return;
 
 	// For overflow='hidden' containers, calculate clip bounds
+	// Must account for scrollOffset since clip checks happen in screen coordinates
 	let effectiveClipBounds = clipBounds;
 	if (props.overflow === 'hidden') {
 		const border = props.borderStyle
 			? getBorderSize(props)
 			: { top: 0, bottom: 0, left: 0, right: 0 };
 		const padding = getPadding(props);
+		// Adjust layout position by scrollOffset to get screen coordinates
+		const adjustedY = layout.y - scrollOffset;
 		const nodeClip = {
-			top: layout.y + border.top + padding.top,
-			bottom: layout.y + layout.height - border.bottom - padding.bottom,
+			top: adjustedY + border.top + padding.top,
+			bottom: adjustedY + layout.height - border.bottom - padding.bottom,
 		};
 		// Intersect with parent clip bounds if present
 		if (clipBounds) {
