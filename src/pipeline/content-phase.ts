@@ -7,11 +7,13 @@
  * and delegating to specialized rendering functions for boxes and text.
  */
 
+import type { Color } from '../buffer.js';
 import { TerminalBuffer } from '../buffer.js';
 import type { BoxProps, InkxNode, TextProps } from '../types.js';
 import { rectEqual } from '../types.js';
 import { getBorderSize, getPadding } from './helpers.js';
 import { renderBox, renderScrollIndicators } from './render-box.js';
+import { parseColor } from './render-helpers.js';
 import { clearBgConflictWarnings, renderText } from './render-text.js';
 
 /**
@@ -44,10 +46,26 @@ export { clearBgConflictWarnings };
  */
 function clearDirtyFlags(node: InkxNode): void {
 	node.contentDirty = false;
+	node.paintDirty = false;
 	node.subtreeDirty = false;
 	for (const child of node.children) {
 		if (child.layoutNode) clearDirtyFlags(child);
 	}
+}
+
+/**
+ * Find the nearest ancestor with a backgroundColor and return the parsed color.
+ * Used when clearing a node's region to preserve the parent's painted background
+ * instead of clearing to terminal default (black).
+ */
+function findInheritedBg(node: InkxNode): Color {
+	let current = node.parent;
+	while (current) {
+		const bg = (current.props as BoxProps).backgroundColor;
+		if (bg) return parseColor(bg);
+		current = current.parent;
+	}
+	return null;
 }
 
 /**
@@ -80,7 +98,7 @@ function renderNodeToBuffer(
 	// FAST PATH: Skip entire subtree if unchanged and we have a previous buffer
 	// The buffer was cloned from prevBuffer, so skipped nodes keep their rendered output
 	const layoutChanged = !rectEqual(node.prevLayout, node.computedLayout);
-	if (hasPrevBuffer && !node.contentDirty && !layoutChanged && !node.subtreeDirty) {
+	if (hasPrevBuffer && !node.contentDirty && !node.paintDirty && !layoutChanged && !node.subtreeDirty) {
 		clearDirtyFlags(node);
 		return;
 	}
@@ -88,19 +106,19 @@ function renderNodeToBuffer(
 	// Check if this is a scrollable container
 	const isScrollContainer = props.overflow === 'scroll' && node.scrollState;
 
-	// When re-rendering a content-dirty box on a cloned buffer, clear its region first.
-	// contentDirty means the node's own props or structure changed (backgroundColor
-	// removed, children added/removed triggering layout change, etc.), so old pixels
-	// from the cloned buffer may bleed through. Nodes with backgroundColor are already
-	// cleared by renderBox's fill. Subtree-dirty-only nodes (descendants changed but
-	// this node's own content didn't) don't need clearing - their children will
-	// overwrite their own regions.
+	// When re-rendering a dirty node on a cloned buffer, clear its region first.
+	// paintDirty means style props changed (e.g., backgroundColor removed), and
+	// contentDirty means text/structure changed. Either can leave stale pixels in
+	// the cloned buffer. Nodes with backgroundColor are already cleared by
+	// renderBox's fill or renderTextLine's style application.
+	// Note: we use paintDirty (not just contentDirty) because the measure function
+	// clears contentDirty for its text-collection cache, but paintDirty survives.
 	if (
 		hasPrevBuffer &&
-		(node.contentDirty || layoutChanged) &&
-		node.type === 'inkx-box' &&
+		(node.contentDirty || node.paintDirty || layoutChanged) &&
 		!props.backgroundColor
 	) {
+		const clearBg = findInheritedBg(node);
 		const screenY = layout.y - scrollOffset;
 		const clearY = clipBounds ? Math.max(screenY, clipBounds.top) : screenY;
 		const clearBottom = clipBounds
@@ -108,10 +126,47 @@ function renderNodeToBuffer(
 			: screenY + layout.height;
 		const clearHeight = clearBottom - clearY;
 		if (clearHeight > 0) {
-			buffer.fill(layout.x, clearY, layout.width, clearHeight, { char: ' ' });
+			buffer.fill(layout.x, clearY, layout.width, clearHeight, { char: ' ', bg: clearBg });
+		}
+
+		// Bug 3: When a node shrinks, clear the old bounds' excess area
+		if (layoutChanged && node.prevLayout) {
+			const prev = node.prevLayout;
+			const prevScreenY = prev.y - scrollOffset;
+			// Clear right margin (old was wider than new)
+			if (prev.width > layout.width) {
+				const rightClearY = clipBounds ? Math.max(prevScreenY, clipBounds.top) : prevScreenY;
+				const rightClearBottom = clipBounds
+					? Math.min(prevScreenY + prev.height, clipBounds.bottom)
+					: prevScreenY + prev.height;
+				const rightClearHeight = rightClearBottom - rightClearY;
+				if (rightClearHeight > 0) {
+					buffer.fill(
+						layout.x + layout.width,
+						rightClearY,
+						prev.width - layout.width,
+						rightClearHeight,
+						{ char: ' ', bg: clearBg },
+					);
+				}
+			}
+			// Clear bottom margin (old was taller than new)
+			if (prev.height > layout.height) {
+				const bottomY = layout.y - scrollOffset + layout.height;
+				const bottomClearY = clipBounds ? Math.max(bottomY, clipBounds.top) : bottomY;
+				const bottomClearBottom = clipBounds
+					? Math.min(prevScreenY + prev.height, clipBounds.bottom)
+					: prevScreenY + prev.height;
+				const bottomClearHeight = bottomClearBottom - bottomClearY;
+				if (bottomClearHeight > 0) {
+					buffer.fill(layout.x, bottomClearY, prev.width, bottomClearHeight, {
+						char: ' ',
+						bg: clearBg,
+					});
+				}
+			}
 		}
 	}
-
 	// Render based on node type
 	if (node.type === 'inkx-box') {
 		renderBox(node, buffer, layout, props, clipBounds, scrollOffset);
@@ -133,6 +188,7 @@ function renderNodeToBuffer(
 
 	// Clear dirty flags
 	node.contentDirty = false;
+	node.paintDirty = false;
 	node.subtreeDirty = false;
 }
 
@@ -186,7 +242,10 @@ function renderScrollContainerChildren(
 			const contentX = layout.x + border.left + padding.left;
 			const contentWidth =
 				layout.width - border.left - border.right - padding.left - padding.right;
-			buffer.fill(contentX, clearY, contentWidth, clearHeight, { char: ' ' });
+			const scrollBg = props.backgroundColor
+				? parseColor(props.backgroundColor)
+				: findInheritedBg(node);
+			buffer.fill(contentX, clearY, contentWidth, clearHeight, { char: ' ', bg: scrollBg });
 		}
 	}
 

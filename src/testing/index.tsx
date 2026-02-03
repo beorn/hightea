@@ -158,6 +158,12 @@ export interface RenderOptions {
 	columns?: number;
 	/** Override terminal height for this render. Default: use renderer default (24) */
 	rows?: number;
+	/**
+	 * Enable incremental rendering (buffer clone + subtree skip).
+	 * When true, matches live scheduler behavior and catches stale-pixel bugs.
+	 * When false (default), always does full render for stable lastFrame() output.
+	 */
+	incremental?: boolean;
 }
 
 /**
@@ -352,11 +358,18 @@ export function createTestRenderer(options: TestRendererOptions = {}): TestRende
 		}
 
 		// Render function that executes the pipeline
-		// Note: We pass null for prevBuffer to always get full frame output (not diffs)
-		// This is important for testing where we want to inspect complete frames
+		// When incremental=true, pass prevBuffer to enable buffer clone + subtree skip
+		// (matches live scheduler behavior, catches stale-pixel bugs)
+		// When incremental=false (default), always do full render for stable lastFrame() output
+		const incremental = renderOptions.incremental ?? false;
 		function doRender(): string {
 			const root = getContainerRoot(instance.container);
-			const { output, buffer } = executeRender(root, instance.columns, instance.rows, null);
+			const { output, buffer } = executeRender(
+				root,
+				instance.columns,
+				instance.rows,
+				incremental ? instance.prevBuffer : null,
+			);
 			instance.prevBuffer = buffer;
 			return output;
 		}

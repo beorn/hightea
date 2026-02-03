@@ -110,7 +110,7 @@ export interface App {
 	/** All rendered frames (internal) */
 	readonly frames: string[];
 
-	/** Get last frame with ANSI codes (internal - use app.html instead) */
+	/** Get last frame with ANSI codes (internal - use app.ansi instead) */
 	lastFrame(): string | undefined;
 
 	/** Get last buffer (internal - use app.term.buffer instead) */

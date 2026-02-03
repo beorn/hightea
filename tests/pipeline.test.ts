@@ -76,6 +76,7 @@ async function createMockNode(
 		prevLayout: null,
 		layoutDirty: true,
 		contentDirty: true,
+		paintDirty: true,
 		subtreeDirty: true,
 		layoutSubscribers: new Set(),
 		isRawText: false,
@@ -107,6 +108,7 @@ function createRawTextNode(text: string): InkxNode {
 		prevLayout: null,
 		layoutDirty: false,
 		contentDirty: true,
+		paintDirty: true,
 		subtreeDirty: true,
 		layoutSubscribers: new Set(),
 		isRawText: true,
@@ -285,6 +287,7 @@ describe('Pipeline', () => {
 
 			// Clear dirty flags and set prevLayout to simulate stable state
 			root.contentDirty = false;
+			root.paintDirty = false;
 			root.subtreeDirty = false;
 			root.prevLayout = root.computedLayout;
 
@@ -319,11 +322,13 @@ describe('Pipeline', () => {
 			const child1 = await createMockNode('inkx-text', {}, [], 'Child1');
 			setNodeLayout(child1, { x: 0, y: 0, width: 6, height: 1 });
 			child1.contentDirty = false;
+			child1.paintDirty = false;
 			child1.subtreeDirty = false;
 
 			const child2 = await createMockNode('inkx-text', {}, [], 'Child2');
 			setNodeLayout(child2, { x: 0, y: 1, width: 6, height: 1 });
 			child2.contentDirty = true; // Only child2 is dirty
+			child2.paintDirty = true;
 			child2.subtreeDirty = true;
 
 			const root = await createMockNode('inkx-box', { width: 40, height: 10 }, [child1, child2]);
@@ -338,9 +343,11 @@ describe('Pipeline', () => {
 
 			// Mark root as having dirty descendant (child2 still dirty)
 			root.contentDirty = false;
+			root.paintDirty = false;
 			root.subtreeDirty = true;
 			root.prevLayout = root.computedLayout; // No layout change on root
 			child1.contentDirty = false;
+			child1.paintDirty = false;
 			child1.subtreeDirty = false;
 			child1.prevLayout = child1.computedLayout; // No layout change
 
@@ -367,11 +374,13 @@ describe('Pipeline', () => {
 
 			// Mark text as not dirty but change its layout position
 			textNode.contentDirty = false;
+			textNode.paintDirty = false;
 			textNode.subtreeDirty = false;
 			textNode.prevLayout = { x: 0, y: 0, width: 4, height: 1 }; // Old position
 			textNode.computedLayout = { x: 5, y: 0, width: 4, height: 1 }; // New position
 
 			root.contentDirty = false;
+			root.paintDirty = false;
 			root.subtreeDirty = true;
 
 			// Second render - should re-render at new position because layout changed
@@ -431,10 +440,12 @@ describe('Pipeline', () => {
 			// Now simulate: backgroundColor removed, child is contentDirty
 			child.props = { width: 10, height: 3 } as BoxProps; // No backgroundColor
 			child.contentDirty = true;
+			child.paintDirty = true;
 			child.subtreeDirty = true;
 			child.prevLayout = child.computedLayout; // Layout unchanged
 
 			root.contentDirty = false;
+			root.paintDirty = false;
 			root.subtreeDirty = true;
 			root.prevLayout = root.computedLayout;
 
@@ -464,9 +475,11 @@ describe('Pipeline', () => {
 			child.prevLayout = { x: 0, y: 0, width: 5, height: 2 };
 			child.computedLayout = { x: 0, y: 2, width: 5, height: 2 };
 			child.contentDirty = false; // Not content-dirty, but layout changed
+			child.paintDirty = false;
 			child.subtreeDirty = false;
 
 			root.contentDirty = false;
+			root.paintDirty = false;
 			root.subtreeDirty = true;
 			root.prevLayout = root.computedLayout;
 
@@ -476,6 +489,98 @@ describe('Pipeline', () => {
 			// The new region (y=2) should be cleared (not have stale content from clone)
 			const cell = buffer2.getCell(0, 2);
 			expect(cell.char).toBe(' ');
+		});
+
+		test('shrinking node clears stale pixels in old bounds (Bug 3: km-inkx-stale)', async () => {
+			// When a node shrinks (gets narrower or shorter), the old excess area
+			// in the cloned buffer has stale pixels that must be cleared.
+
+			const child = await createMockNode('inkx-box', {
+				width: 10,
+				height: 4,
+				backgroundColor: 'blue',
+			} as BoxProps);
+			setNodeLayout(child, { x: 2, y: 1, width: 10, height: 4 });
+			child.prevLayout = child.computedLayout;
+
+			const root = await createMockNode('inkx-box', { width: 20, height: 8 }, [child]);
+			setNodeLayout(root, { x: 0, y: 0, width: 20, height: 8 });
+
+			// First render - child is 10x4 with blue bg
+			const buffer1 = contentPhase(root);
+
+			// Verify blue bg fills the 10x4 region
+			expect(buffer1.getCell(5, 2).bg).not.toBeNull(); // inside child
+			expect(buffer1.getCell(11, 2).bg).not.toBeNull(); // right edge of child
+			expect(buffer1.getCell(5, 4).bg).not.toBeNull(); // bottom area of child
+
+			// Now shrink: child goes from 10x4 → 6x2
+			child.props = { width: 6, height: 2 } as BoxProps; // No more blue bg
+			child.prevLayout = { x: 2, y: 1, width: 10, height: 4 }; // Old size
+			child.computedLayout = { x: 2, y: 1, width: 6, height: 2 }; // New size
+			child.contentDirty = true;
+			child.paintDirty = true;
+			child.subtreeDirty = true;
+
+			root.contentDirty = false;
+			root.paintDirty = false;
+			root.subtreeDirty = true;
+			root.prevLayout = root.computedLayout;
+
+			// Second render with prevBuffer
+			const buffer2 = contentPhase(root, buffer1);
+
+			// Right margin: old x=8..11 (x=2+6 to x=2+10) should be cleared
+			expect(buffer2.getCell(9, 1).bg).toBeNull(); // was blue, now cleared
+			expect(buffer2.getCell(11, 1).bg).toBeNull(); // was blue, now cleared
+
+			// Bottom margin: old y=3..4 should be cleared
+			expect(buffer2.getCell(5, 3).bg).toBeNull(); // was blue, now cleared
+			expect(buffer2.getCell(5, 4).bg).toBeNull(); // was blue, now cleared
+		});
+
+		test('parent bg inherited when clearing child (Bug 1: km-inkx-stale)', async () => {
+			// When parent Box has backgroundColor and child Text has no bg,
+			// clearing the child region should use the parent's bg, not null.
+
+			const textChild = await createMockNode('inkx-text', {}, [], 'Title');
+			setNodeLayout(textChild, { x: 0, y: 0, width: 5, height: 1 });
+
+			const parentBox = await createMockNode(
+				'inkx-box',
+				{ width: 20, height: 3, backgroundColor: 'white' } as BoxProps,
+				[textChild],
+			);
+			setNodeLayout(parentBox, { x: 0, y: 0, width: 20, height: 3 });
+
+			const root = await createMockNode('inkx-box', { width: 20, height: 3 }, [parentBox]);
+			setNodeLayout(root, { x: 0, y: 0, width: 20, height: 3 });
+
+			// First render
+			const buffer1 = contentPhase(root);
+			// Parent box fills with white bg (7)
+			expect(buffer1.getCell(0, 0).bg).toBe(7);
+
+			// Simulate content change on textChild (e.g., style changed)
+			textChild.contentDirty = true;
+			textChild.paintDirty = true;
+			textChild.prevLayout = textChild.computedLayout; // No layout change
+
+			parentBox.contentDirty = false;
+			parentBox.paintDirty = false;
+			parentBox.subtreeDirty = true;
+			parentBox.prevLayout = parentBox.computedLayout;
+
+			root.contentDirty = false;
+			root.paintDirty = false;
+			root.subtreeDirty = true;
+			root.prevLayout = root.computedLayout;
+
+			// Second render — textChild clearing should use inherited white bg
+			const buffer2 = contentPhase(root, buffer1);
+
+			// The text area should have white bg (from parent), not null/black
+			expect(buffer2.getCell(0, 0).bg).toBe(7);
 		});
 
 		test('scroll container with colored children clears stale bg on scroll', async () => {
@@ -547,20 +652,25 @@ describe('Pipeline', () => {
 
 			// Mark scroll container as having subtree changes
 			root.contentDirty = false;
+			root.paintDirty = false;
 			root.subtreeDirty = true;
 			root.prevLayout = root.computedLayout;
 			scrollContainer.contentDirty = true; // scrollState changed
+			scrollContainer.paintDirty = true;
 			scrollContainer.subtreeDirty = true;
 			scrollContainer.prevLayout = scrollContainer.computedLayout;
 
 			// Children are clean (their content didn't change, but positions will shift)
 			card1.contentDirty = false;
+			card1.paintDirty = false;
 			card1.subtreeDirty = false;
 			card1.prevLayout = card1.computedLayout;
 			card2.contentDirty = false;
+			card2.paintDirty = false;
 			card2.subtreeDirty = false;
 			card2.prevLayout = card2.computedLayout;
 			card3.contentDirty = false;
+			card3.paintDirty = false;
 			card3.subtreeDirty = false;
 			card3.prevLayout = card3.computedLayout;
 
@@ -628,21 +738,25 @@ describe('Pipeline', () => {
 			// Cursor moves: Card A loses yellow, Card B gains yellow
 			cardA.props = { width: 8, height: 2 } as BoxProps; // No backgroundColor
 			cardA.contentDirty = true;
+			cardA.paintDirty = true;
 			cardA.subtreeDirty = true;
 			cardA.prevLayout = cardA.computedLayout;
 
 			cardB.props = { width: 8, height: 2, backgroundColor: 'yellow' } as BoxProps;
 			cardB.contentDirty = true;
+			cardB.paintDirty = true;
 			cardB.subtreeDirty = true;
 			cardB.prevLayout = cardB.computedLayout;
 
 			// Scroll container: subtreeDirty (children changed) but NOT contentDirty
 			// (no scroll position change - both cards are visible)
 			scrollContainer.contentDirty = false;
+			scrollContainer.paintDirty = false;
 			scrollContainer.subtreeDirty = true;
 			scrollContainer.prevLayout = scrollContainer.computedLayout;
 
 			root.contentDirty = false;
+			root.paintDirty = false;
 			root.subtreeDirty = true;
 			root.prevLayout = root.computedLayout;
 
@@ -692,12 +806,16 @@ describe('Pipeline', () => {
 
 			// Mark all as clean
 			root.contentDirty = false;
+			root.paintDirty = false;
 			root.subtreeDirty = false;
 			scrollContainer.contentDirty = false;
+			scrollContainer.paintDirty = false;
 			scrollContainer.subtreeDirty = false;
 			child1.contentDirty = false;
+			child1.paintDirty = false;
 			child1.subtreeDirty = false;
 			child2.contentDirty = false;
+			child2.paintDirty = false;
 			child2.subtreeDirty = false;
 
 			// Modify the buffer to test if children re-render (they should, because

@@ -117,6 +117,7 @@ export const hostConfig = {
 			prevLayout: null,
 			layoutDirty: false,
 			contentDirty: true,
+			paintDirty: true,
 			subtreeDirty: true,
 			layoutSubscribers: new Set(),
 			textContent: text,
@@ -265,11 +266,15 @@ export const hostConfig = {
 			instance.layoutDirty = true;
 		}
 
-		// Check if content changed (text children)
+		// Check if content changed (text children, style props like backgroundColor)
 		if (
 			contentPropsChanged(oldProps as Record<string, unknown>, newProps as Record<string, unknown>)
 		) {
 			instance.contentDirty = true;
+			// paintDirty survives the measure phase (which clears contentDirty for
+			// its text-collection cache). contentPhase uses paintDirty to know it
+			// must clear stale backgrounds from the cloned buffer.
+			instance.paintDirty = true;
 			// Content change affects layout size (measure function returns different result)
 			// Mark layout dirty to clear flexx's measure cache
 			if (instance.layoutNode) {
