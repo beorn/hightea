@@ -2,17 +2,17 @@
  * Canvas Adapter Unit Tests
  */
 
-import { describe, expect, test, beforeEach, afterEach } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import {
-	createCanvasAdapter,
-	CanvasRenderBuffer,
 	type CanvasAdapterConfig,
+	CanvasRenderBuffer,
+	createCanvasAdapter,
 } from '../src/adapters/canvas-adapter.js';
 import {
-	setRenderAdapter,
-	hasRenderAdapter,
-	getRenderAdapter,
 	type RenderAdapter,
+	getRenderAdapter,
+	hasRenderAdapter,
+	setRenderAdapter,
 } from '../src/render-adapter.js';
 
 // Check if we have canvas support (OffscreenCanvas or document)

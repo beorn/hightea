@@ -9,7 +9,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 import React, { useState } from 'react';
-import { Box, Text, useInput, type Key } from '../../src/index.js';
+import { Box, type Key, Text, useInput } from '../../src/index.js';
 import { createTestRenderer } from '../../src/testing/index.js';
 
 describe('Text node backgroundColor clearing (incremental)', () => {

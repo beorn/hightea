@@ -24,15 +24,15 @@
 
 import type { ReactElement } from 'react';
 import {
-	createCanvasAdapter,
-	CanvasRenderBuffer,
 	type CanvasAdapterConfig,
+	CanvasRenderBuffer,
+	createCanvasAdapter,
 } from '../adapters/canvas-adapter.js';
-import { setRenderAdapter } from '../render-adapter.js';
-import { setLayoutEngine } from '../layout-engine.js';
 import { createFlexxZeroEngine } from '../adapters/flexx-zero-adapter.js';
-import { createContainer, getContainerRoot, reconciler } from '../reconciler.js';
+import { setLayoutEngine } from '../layout-engine.js';
 import { executeRenderAdapter } from '../pipeline/index.js';
+import { createContainer, getContainerRoot, reconciler } from '../reconciler.js';
+import { setRenderAdapter } from '../render-adapter.js';
 import type { RenderBuffer } from '../render-adapter.js';
 
 // Re-export components and hooks for convenience
@@ -240,16 +240,7 @@ export function renderCanvasOnce(
 	const root = getContainerRoot(container);
 
 	// Create fiber root and render
-	const fiberRoot = reconciler.createContainer(
-		container,
-		0,
-		null,
-		false,
-		null,
-		'',
-		() => {},
-		null,
-	);
+	const fiberRoot = reconciler.createContainer(container, 0, null, false, null, '', () => {}, null);
 
 	reconciler.updateContainerSync(element, fiberRoot, null, null);
 	reconciler.flushSyncWork();

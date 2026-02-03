@@ -35,7 +35,9 @@ export function layoutPhase(root: InkxNode, width: number, height: number): void
 		const t0 = Date.now();
 		root.layoutNode.calculateLayout(width, height);
 		const elapsed = Date.now() - t0;
-		log.debug?.(`calculateLayout: ${elapsed}ms (${nodeCount} nodes) measure: calls=${measureStats.calls} hits=${measureStats.cacheHits} collects=${measureStats.textCollects} displayWidth=${measureStats.displayWidthCalls}`);
+		log.debug?.(
+			`calculateLayout: ${elapsed}ms (${nodeCount} nodes) measure: calls=${measureStats.calls} hits=${measureStats.cacheHits} collects=${measureStats.textCollects} displayWidth=${measureStats.displayWidthCalls}`,
+		);
 	}
 
 	// Propagate computed dimensions to all nodes
@@ -145,7 +147,6 @@ export function notifyLayoutSubscribers(node: InkxNode): void {
 
 // Re-export from types
 export { rectEqual } from '../types.js';
-
 
 // ============================================================================
 // Phase 2.5: Scroll Phase (for overflow='scroll' containers)

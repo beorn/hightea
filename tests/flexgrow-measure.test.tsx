@@ -15,7 +15,7 @@ describe('flexGrow measurement', () => {
 					<Text>MEM 📁</Text>
 				</Box>
 				<Box flexGrow={0} flexShrink={0} id="right">
-					<Text> 📋3   COLUMNS VIEW </Text>
+					<Text> 📋3 COLUMNS VIEW </Text>
 				</Box>
 			</Box>,
 		);

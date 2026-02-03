@@ -118,6 +118,7 @@ export const hostConfig = {
 			contentDirty: true,
 			paintDirty: true,
 			subtreeDirty: true,
+			childrenDirty: false,
 			layoutSubscribers: new Set(),
 			textContent: text,
 			isRawText: true,
@@ -135,6 +136,7 @@ export const hostConfig = {
 			const layoutIndex = parentInstance.children.filter((c) => c.layoutNode !== null).length - 1;
 			parentInstance.layoutNode.insertChild(child.layoutNode, layoutIndex);
 		}
+		parentInstance.childrenDirty = true;
 		parentInstance.layoutDirty = true;
 		parentInstance.layoutNode?.markDirty();
 		markSubtreeDirty(parentInstance);
@@ -157,6 +159,7 @@ export const hostConfig = {
 			const layoutIndex = container.root.children.filter((c) => c.layoutNode !== null).length - 1;
 			container.root.layoutNode.insertChild(child.layoutNode, layoutIndex);
 		}
+		container.root.childrenDirty = true;
 		container.root.layoutDirty = true;
 		container.root.layoutNode?.markDirty();
 		markSubtreeDirty(container.root);
@@ -171,6 +174,7 @@ export const hostConfig = {
 				child.layoutNode.free();
 			}
 			child.parent = null;
+			parentInstance.childrenDirty = true;
 			parentInstance.layoutDirty = true;
 			parentInstance.layoutNode?.markDirty();
 			markSubtreeDirty(parentInstance);
@@ -186,6 +190,7 @@ export const hostConfig = {
 				child.layoutNode.free();
 			}
 			child.parent = null;
+			container.root.childrenDirty = true;
 			container.root.layoutDirty = true;
 			container.root.layoutNode?.markDirty();
 			markSubtreeDirty(container.root);
@@ -204,6 +209,7 @@ export const hostConfig = {
 					.filter((c) => c.layoutNode !== null).length;
 				parentInstance.layoutNode.insertChild(child.layoutNode, layoutIndex);
 			}
+			parentInstance.childrenDirty = true;
 			parentInstance.layoutDirty = true;
 			parentInstance.layoutNode?.markDirty();
 			markSubtreeDirty(parentInstance);
@@ -221,6 +227,7 @@ export const hostConfig = {
 					.filter((c) => c.layoutNode !== null).length;
 				container.root.layoutNode.insertChild(child.layoutNode, layoutIndex);
 			}
+			container.root.childrenDirty = true;
 			container.root.layoutDirty = true;
 			container.root.layoutNode?.markDirty();
 			markSubtreeDirty(container.root);

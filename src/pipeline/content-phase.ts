@@ -48,6 +48,7 @@ function clearDirtyFlags(node: InkxNode): void {
 	node.contentDirty = false;
 	node.paintDirty = false;
 	node.subtreeDirty = false;
+	node.childrenDirty = false;
 	for (const child of node.children) {
 		if (child.layoutNode) clearDirtyFlags(child);
 	}
@@ -98,7 +99,13 @@ function renderNodeToBuffer(
 	// FAST PATH: Skip entire subtree if unchanged and we have a previous buffer
 	// The buffer was cloned from prevBuffer, so skipped nodes keep their rendered output
 	const layoutChanged = !rectEqual(node.prevLayout, node.contentRect);
-	if (hasPrevBuffer && !node.contentDirty && !node.paintDirty && !layoutChanged && !node.subtreeDirty) {
+	if (
+		hasPrevBuffer &&
+		!node.contentDirty &&
+		!node.paintDirty &&
+		!layoutChanged &&
+		!node.subtreeDirty
+	) {
 		clearDirtyFlags(node);
 		return;
 	}
@@ -115,7 +122,7 @@ function renderNodeToBuffer(
 	// clears contentDirty for its text-collection cache, but paintDirty survives.
 	if (
 		hasPrevBuffer &&
-		(node.contentDirty || node.paintDirty || node.subtreeDirty || layoutChanged) &&
+		(node.contentDirty || node.paintDirty || node.childrenDirty || layoutChanged) &&
 		!props.backgroundColor
 	) {
 		const clearBg = findInheritedBg(node);
@@ -190,6 +197,7 @@ function renderNodeToBuffer(
 	node.contentDirty = false;
 	node.paintDirty = false;
 	node.subtreeDirty = false;
+	node.childrenDirty = false;
 }
 
 /**
@@ -240,8 +248,7 @@ function renderScrollContainerChildren(
 		const clearHeight = childClipBounds.bottom - childClipBounds.top;
 		if (clearHeight > 0) {
 			const contentX = layout.x + border.left + padding.left;
-			const contentWidth =
-				layout.width - border.left - border.right - padding.left - padding.right;
+			const contentWidth = layout.width - border.left - border.right - padding.left - padding.right;
 			const scrollBg = props.backgroundColor
 				? parseColor(props.backgroundColor)
 				: findInheritedBg(node);
@@ -326,8 +333,12 @@ function renderNormalChildren(
 		}
 	}
 
+	// When children were added/removed/reordered, force all children to re-render.
+	// The parent's region was cleared, so clean children must repaint too.
+	const childHasPrev = node.childrenDirty ? false : hasPrevBuffer;
+
 	// Normal rendering - render all children with effective clip bounds
 	for (const child of node.children) {
-		renderNodeToBuffer(child, buffer, scrollOffset, effectiveClipBounds, hasPrevBuffer);
+		renderNodeToBuffer(child, buffer, scrollOffset, effectiveClipBounds, childHasPrev);
 	}
 }

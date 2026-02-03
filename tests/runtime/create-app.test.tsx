@@ -5,16 +5,14 @@
 import { describe, expect, it } from 'bun:test';
 import React from 'react';
 import { Text } from '../../src/index.js';
-import { createApp, useApp, type Key } from '../../src/runtime/index.js';
+import { type Key, createApp, useApp } from '../../src/runtime/index.js';
 
 describe('createApp() - Layer 3', () => {
 	describe('basic rendering', () => {
 		it('renders a simple component with store', async () => {
-			const app = createApp(
-				() => () => ({
-					message: 'Hello from createApp',
-				})
-			);
+			const app = createApp(() => () => ({
+				message: 'Hello from createApp',
+			}));
 
 			function App() {
 				const message = useApp((s: { message: string }) => s.message);
@@ -31,11 +29,9 @@ describe('createApp() - Layer 3', () => {
 		});
 
 		it('provides store access via handle', async () => {
-			const app = createApp(
-				() => () => ({
-					count: 42,
-				})
-			);
+			const app = createApp(() => () => ({
+				count: 42,
+			}));
 
 			function App() {
 				const count = useApp((s: { count: number }) => s.count);
@@ -65,7 +61,7 @@ describe('createApp() - Layer 3', () => {
 						inputs.push(input);
 						if (input === 'j') set((s) => ({ count: s.count + 1 }));
 					},
-				}
+				},
 			);
 
 			function App() {
@@ -91,14 +87,11 @@ describe('createApp() - Layer 3', () => {
 		it('provides Key object with parsed modifiers', async () => {
 			const keys: Key[] = [];
 
-			const app = createApp(
-				() => () => ({}),
-				{
-					key: (input, key) => {
-						keys.push({ ...key });
-					},
-				}
-			);
+			const app = createApp(() => () => ({}), {
+				key: (input, key) => {
+					keys.push({ ...key });
+				},
+			});
 
 			function App() {
 				return <Text>Press keys</Text>;
@@ -119,14 +112,11 @@ describe('createApp() - Layer 3', () => {
 		});
 
 		it('exits when handler returns exit', async () => {
-			const app = createApp(
-				() => () => ({}),
-				{
-					key: (input) => {
-						if (input === 'q') return 'exit';
-					},
-				}
-			);
+			const app = createApp(() => () => ({}), {
+				key: (input) => {
+					if (input === 'q') return 'exit';
+				},
+			});
 
 			function App() {
 				return <Text>Press q to exit</Text>;
@@ -153,7 +143,7 @@ describe('createApp() - Layer 3', () => {
 					key: (input, key, { get }) => {
 						if (input === 'j') get().increment();
 					},
-				}
+				},
 			);
 
 			function App() {
@@ -183,12 +173,10 @@ describe('createApp() - Layer 3', () => {
 
 	describe('injected values', () => {
 		it('passes plain values to factory', async () => {
-			const app = createApp(
-				({ maxCount }: { maxCount: number }) => () => ({
-					maxCount,
-					count: 0,
-				})
-			);
+			const app = createApp(({ maxCount }: { maxCount: number }) => () => ({
+				maxCount,
+				count: 0,
+			}));
 
 			function App() {
 				const maxCount = useApp((s: { maxCount: number }) => s.maxCount);

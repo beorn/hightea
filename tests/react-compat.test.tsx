@@ -12,21 +12,15 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import React, {
-	Suspense,
-	useEffect,
-	useImperativeHandle,
-	useRef,
-	useState,
-	forwardRef,
-} from 'react';
+import type React from 'react';
+import { Suspense, forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
 	Box,
-	Text,
-	ErrorBoundary,
 	type BoxHandle,
-	type TextHandle,
+	ErrorBoundary,
 	type Rect,
+	Text,
+	type TextHandle,
 } from '../src/index.js';
 import { createTestRenderer } from '../src/testing/index.tsx';
 
@@ -324,9 +318,7 @@ describe('ErrorBoundary Component', () => {
 
 		try {
 			const app = render(
-				<ErrorBoundary
-					fallback={(error, _errorInfo) => <Text>Caught: {error.message}</Text>}
-				>
+				<ErrorBoundary fallback={(error, _errorInfo) => <Text>Caught: {error.message}</Text>}>
 					<BrokenComponent />
 				</ErrorBoundary>,
 			);

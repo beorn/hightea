@@ -4,11 +4,11 @@
  * Tests for React-level virtualization.
  */
 
-import { describe, expect, test, beforeAll } from 'bun:test';
+import { beforeAll, describe, expect, test } from 'bun:test';
 import React from 'react';
-import { VirtualList, Text, Box } from '../src/index.js';
-import { createTestRenderer } from '../src/testing/index.js';
+import { Box, Text, VirtualList } from '../src/index.js';
 import { initYogaEngine, setLayoutEngine } from '../src/render.js';
+import { createTestRenderer } from '../src/testing/index.js';
 
 // Initialize layout engine before tests
 beforeAll(async () => {

@@ -1,3 +1,4 @@
+import createDebug from 'debug';
 /**
  * VirtualList Component
  *
@@ -22,9 +23,8 @@
  * ```
  */
 import React, { forwardRef, useImperativeHandle } from 'react';
-import { Box } from './Box.js';
 import { useVirtualization } from '../hooks/useVirtualization.js';
-import createDebug from 'debug';
+import { Box } from './Box.js';
 
 const debug = createDebug('inkx:virtuallist');
 
@@ -173,9 +173,16 @@ function VirtualListInner<T>(
 	// Only pass scrollTo to inkx Box when:
 	// 1. scrollTo prop is defined (we're actively scrolling)
 	// 2. The selected index is within the rendered slice
-	const boxScrollTo = scrollTo !== undefined && isSelectedInSlice ? Math.max(0, scrollToIndex) : undefined;
+	const boxScrollTo =
+		scrollTo !== undefined && isSelectedInSlice ? Math.max(0, scrollToIndex) : undefined;
 
-	debug('VirtualList render: scrollTo=%s boxScrollTo=%s start=%d end=%d', scrollTo, boxScrollTo, startIndex, endIndex);
+	debug(
+		'VirtualList render: scrollTo=%s boxScrollTo=%s start=%d end=%d',
+		scrollTo,
+		boxScrollTo,
+		startIndex,
+		endIndex,
+	);
 
 	return (
 		<Box

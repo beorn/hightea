@@ -5,26 +5,37 @@
 import { describe, expect, it } from 'bun:test';
 import React from 'react';
 import { Text } from '../../src/index.js';
-import { createApp, useApp, type Key } from '../../src/runtime/index.js';
-import type { Provider, ProviderEvent, Dims } from '../../src/runtime/types.js';
+import { type Key, createApp, useApp } from '../../src/runtime/index.js';
+import type { Dims, Provider, ProviderEvent } from '../../src/runtime/types.js';
 
 /**
  * Minimal test provider that yields a fixed sequence of key events.
  * Implements the Provider interface so createApp treats it as a real provider.
  */
-function createTestProvider(keys: string[]): Provider<
-	{ cols: number; rows: number },
-	{ key: { input: string; key: Key } }
-> {
+function createTestProvider(
+	keys: string[],
+): Provider<{ cols: number; rows: number }, { key: { input: string; key: Key } }> {
 	const state = { cols: 80, rows: 24 };
 	const listeners = new Set<(s: typeof state) => void>();
 	let disposed = false;
 
 	const emptyKey: Key = {
-		upArrow: false, downArrow: false, leftArrow: false, rightArrow: false,
-		pageDown: false, pageUp: false, home: false, end: false,
-		return: false, escape: false, ctrl: false, shift: false,
-		tab: false, backspace: false, delete: false, meta: false,
+		upArrow: false,
+		downArrow: false,
+		leftArrow: false,
+		rightArrow: false,
+		pageDown: false,
+		pageUp: false,
+		home: false,
+		end: false,
+		return: false,
+		escape: false,
+		ctrl: false,
+		shift: false,
+		tab: false,
+		backspace: false,
+		delete: false,
+		meta: false,
 	};
 
 	return {
@@ -59,7 +70,7 @@ describe('app.run() frame iteration', () => {
 				key: (input, key, { set }) => {
 					if (input === 'j') set((s) => ({ count: s.count + 1 }));
 				},
-			}
+			},
 		);
 
 		const term = createTestProvider(['j', 'j', 'j']);
@@ -76,11 +87,9 @@ describe('app.run() frame iteration', () => {
 	});
 
 	it('is backward compatible with await', async () => {
-		const app = createApp(
-			() => () => ({
-				message: 'Hello',
-			})
-		);
+		const app = createApp(() => () => ({
+			message: 'Hello',
+		}));
 
 		const handle = await app.run(<Message />, { cols: 80, rows: 24 });
 		expect(handle.text).toContain('Hello');
@@ -96,7 +105,7 @@ describe('app.run() frame iteration', () => {
 				key: (input, key, { set }) => {
 					if (input === 'j') set((s) => ({ count: s.count + 1 }));
 				},
-			}
+			},
 		);
 
 		const handle = await app.run(<Counter />, { cols: 80, rows: 24 });
@@ -118,7 +127,7 @@ describe('app.run() frame iteration', () => {
 				key: (input, key, { set }) => {
 					if (input === 'j') set((s) => ({ count: s.count + 1 }));
 				},
-			}
+			},
 		);
 
 		const term = createTestProvider(['j', 'j', 'j', 'j', 'j']);

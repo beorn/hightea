@@ -2,16 +2,16 @@
  * Render Adapter Core Tests
  */
 
-import { describe, expect, test, beforeEach } from 'bun:test';
+import { beforeEach, describe, expect, test } from 'bun:test';
 import {
-	setRenderAdapter,
-	getRenderAdapter,
-	hasRenderAdapter,
-	getTextMeasurer,
 	type RenderAdapter,
-	type TextMeasurer,
 	type RenderBuffer,
 	type RenderStyle,
+	type TextMeasurer,
+	getRenderAdapter,
+	getTextMeasurer,
+	hasRenderAdapter,
+	setRenderAdapter,
 } from '../src/render-adapter.js';
 
 // Mock adapter for testing

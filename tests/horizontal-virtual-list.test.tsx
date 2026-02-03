@@ -1,10 +1,10 @@
 /**
  * Tests for HorizontalVirtualList component
  */
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import React from 'react';
+import { Box, HorizontalVirtualList, Text } from '../src/index.js';
 import { createTestRenderer } from '../src/testing/index.js';
-import { HorizontalVirtualList, Text, Box } from '../src/index.js';
 
 const render = createTestRenderer({ columns: 80, rows: 24 });
 

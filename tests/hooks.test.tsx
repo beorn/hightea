@@ -18,7 +18,14 @@ import {
 	StdinContext,
 	StdoutContext,
 } from '../src/context.ts';
-import { Text, useFocus, useFocusManager, useContentRect, useStdin, useStdout } from '../src/index.ts';
+import {
+	Text,
+	useContentRect,
+	useFocus,
+	useFocusManager,
+	useStdin,
+	useStdout,
+} from '../src/index.ts';
 import { createTestRenderer } from '../src/testing/index.tsx';
 import type { InkxNode } from '../src/types.ts';
 

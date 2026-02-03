@@ -55,8 +55,7 @@ describe('flexGrow full board simulation', () => {
 							{' '}
 							<Text>📋3</Text>
 							{'   '}
-							<Text>COLUMNS VIEW</Text>
-							{' '}
+							<Text>COLUMNS VIEW</Text>{' '}
 						</Text>
 					</Box>
 				</Box>
@@ -99,12 +98,7 @@ describe('flexGrow full board simulation', () => {
 		const nodeCount = 3;
 
 		const app = render(
-			<Box
-				flexDirection="column"
-				width={termWidth}
-				height={termHeight}
-				overflow="hidden"
-			>
+			<Box flexDirection="column" width={termWidth} height={termHeight} overflow="hidden">
 				{/* Top bar (from km-tui Board.tsx line 219-228) */}
 				<Box flexShrink={0} width={termWidth}>
 					<Text wrap="truncate">Top bar content</Text>
@@ -114,19 +108,8 @@ describe('flexGrow full board simulation', () => {
 					<Text>Content fills remaining space</Text>
 				</Box>
 				{/* Bottom bar (from km-tui board-bottom-bar.tsx) */}
-				<Box
-					flexDirection="row"
-					flexShrink={0}
-					width={termWidth}
-					id="bottom-bar"
-				>
-					<Box
-						flexGrow={1}
-						flexShrink={1}
-						flexDirection="row"
-						overflow="hidden"
-						id="left"
-					>
+				<Box flexDirection="row" flexShrink={0} width={termWidth} id="bottom-bar">
+					<Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden" id="left">
 						<Text dimColor>MEM</Text>
 						<Text dimColor>{' 📁'}</Text>
 					</Box>
@@ -135,8 +118,7 @@ describe('flexGrow full board simulation', () => {
 							{' '}
 							<Text id="node-count">📋{nodeCount}</Text>
 							{'   '}
-							<Text id="view-mode">{viewModeStr}</Text>
-							{' '}
+							<Text id="view-mode">{viewModeStr}</Text>{' '}
 						</Text>
 					</Box>
 				</Box>

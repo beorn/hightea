@@ -42,32 +42,20 @@
  */
 
 import process from 'node:process';
-import React, {
-	createContext,
-	useContext,
-	useEffect,
-	useRef,
-	type ReactElement,
-} from 'react';
-import { createStore, type StateCreator, type StoreApi } from 'zustand';
+import React, { createContext, useContext, useEffect, useRef, type ReactElement } from 'react';
+import { type StateCreator, type StoreApi, createStore } from 'zustand';
 
 import { createTerm } from 'chalkx';
-import { bufferToText, bufferToStyledText } from '../buffer.js';
+import { bufferToStyledText, bufferToText } from '../buffer.js';
 import { AppContext, StdoutContext, TermContext } from '../context.js';
 import { executeRender } from '../pipeline/index.js';
-import { reconciler, createContainer, getContainerRoot } from '../reconciler.js';
+import { createContainer, getContainerRoot, reconciler } from '../reconciler.js';
+import { map, merge, takeUntil } from '../streams/index.js';
 import { createRuntime } from './create-runtime.js';
+import { type Key, parseKey } from './keys.js';
 import { ensureLayoutEngine } from './layout.js';
-import { parseKey, type Key } from './keys.js';
-import { takeUntil, merge, map } from '../streams/index.js';
-import { createTermProvider, type TermProvider } from './term-provider.js';
-import type {
-	Buffer,
-	Dims,
-	RenderTarget,
-	Provider,
-	ProviderEvent,
-} from './types.js';
+import { type TermProvider, createTermProvider } from './term-provider.js';
+import type { Buffer, Dims, Provider, ProviderEvent, RenderTarget } from './types.js';
 
 // ============================================================================
 // Types
@@ -92,7 +80,9 @@ function isFullProvider(value: unknown): value is Provider<unknown, Record<strin
 /**
  * Check if value is a basic Provider (just getState/subscribe, Zustand-compatible).
  */
-function isBasicProvider(value: unknown): value is { getState(): unknown; subscribe(l: (s: unknown) => void): () => void } {
+function isBasicProvider(
+	value: unknown,
+): value is { getState(): unknown; subscribe(l: (s: unknown) => void): () => void } {
 	return (
 		value !== null &&
 		typeof value === 'object' &&
@@ -115,10 +105,7 @@ export interface EventHandlerContext<S> {
  * Generic event handler function.
  * Return 'exit' to exit the app.
  */
-export type EventHandler<T, S> = (
-	data: T,
-	ctx: EventHandlerContext<S>
-) => void | 'exit';
+export type EventHandler<T, S> = (data: T, ctx: EventHandlerContext<S>) => void | 'exit';
 
 /**
  * Event handlers map.
@@ -244,7 +231,7 @@ interface NamespacedEvent {
  */
 export function createApp<I extends Record<string, unknown>, S extends Record<string, unknown>>(
 	factory: (inject: I) => StateCreator<S>,
-	handlers?: EventHandlers<S & I>
+	handlers?: EventHandlers<S & I>,
 ): AppDefinition<S & I> {
 	return {
 		run(element: ReactElement, options: AppRunOptions = {}): AppRunner<S & I> {
@@ -360,7 +347,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 		const baseState = factory(inject)(
 			set as StoreApi<S>['setState'],
 			get as StoreApi<S>['getState'],
-			api as StoreApi<S>
+			api as StoreApi<S>,
 		);
 
 		// Merge provider references into state (for access via selectors)
@@ -461,16 +448,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 	const container = createContainer(() => {});
 
 	// Create React fiber root
-	const fiberRoot = reconciler.createContainer(
-		container,
-		0,
-		null,
-		false,
-		null,
-		'',
-		() => {},
-		null,
-	);
+	const fiberRoot = reconciler.createContainer(container, 0, null, false, null, '', () => {}, null);
 
 	// Track current buffer for text access
 	let currentText = '';
@@ -583,7 +561,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 	// Create namespaced event streams from all providers
 	function createProviderEventStream(
 		name: string,
-		provider: Provider<unknown, Record<string, unknown>>
+		provider: Provider<unknown, Record<string, unknown>>,
 	): AsyncIterable<NamespacedEvent> {
 		return map(provider.events(), (event) => ({
 			type: `${name}:${String(event.type)}`,
@@ -625,7 +603,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 	const eventLoop = async () => {
 		// Merge all provider event streams
 		const providerEventStreams = Object.entries(providers).map(([name, provider]) =>
-			createProviderEventStream(name, provider)
+			createProviderEventStream(name, provider),
 		);
 
 		const allEvents = merge(...providerEventStreams);
@@ -677,7 +655,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 			if (namespacedHandler && typeof namespacedHandler === 'function') {
 				const result = (namespacedHandler as EventHandler<unknown, S & I>)(
 					{ input, key: parsedKey },
-					{ set: store.setState, get: store.getState }
+					{ set: store.setState, get: store.getState },
 				);
 				if (result === 'exit') {
 					exit();

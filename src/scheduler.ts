@@ -255,7 +255,9 @@ export class RenderScheduler {
 	dispose(): void {
 		if (this.disposed) return;
 
-		log.info?.(`dispose: renders=${this.stats.renderCount}, skipped=${this.stats.skippedCount}, avg=${Math.round(this.stats.avgRenderTime)}ms`);
+		log.info?.(
+			`dispose: renders=${this.stats.renderCount}, skipped=${this.stats.skippedCount}, avg=${Math.round(this.stats.avgRenderTime)}ms`,
+		);
 		this.disposed = true;
 
 		// Cancel pending renders
@@ -316,7 +318,9 @@ export class RenderScheduler {
 			const width = this.stdout.columns ?? 80;
 			const height = this.stdout.rows ?? 24;
 
-			log.debug?.(`render #${this.stats.renderCount + 1}: ${width}x${height}, nonTTYMode=${this.nonTTYMode}`);
+			log.debug?.(
+				`render #${this.stats.renderCount + 1}: ${width}x${height}, nonTTYMode=${this.nonTTYMode}`,
+			);
 
 			// Run render pipeline
 			const { output, buffer } = executeRender(
@@ -364,7 +368,9 @@ export class RenderScheduler {
 			render.spanData.renderTime = renderTime;
 			render.spanData.bytes = transformedOutput.length;
 
-			log.debug?.(`render #${this.stats.renderCount} complete: ${renderTime}ms, output: ${transformedOutput.length} bytes`);
+			log.debug?.(
+				`render #${this.stats.renderCount} complete: ${renderTime}ms, output: ${transformedOutput.length} bytes`,
+			);
 
 			if (this.debugMode) {
 				this.logDebug(`Render #${this.stats.renderCount} took ${renderTime}ms`);

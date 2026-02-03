@@ -11,10 +11,10 @@
  */
 
 import {
-	getRenderAdapter,
-	hasRenderAdapter,
 	type RenderBuffer,
 	type RenderStyle,
+	getRenderAdapter,
+	hasRenderAdapter,
 } from '../render-adapter.js';
 import type { BoxProps, InkxNode, Rect, TextProps } from '../types.js';
 import { getBorderSize, getPadding } from './helpers.js';
@@ -311,8 +311,7 @@ function renderScrollIndicators(
 
 	const border = props.borderStyle ? getBorderSize(props) : { top: 0, bottom: 0, right: 0 };
 	const canScrollUp = scrollState.offset > 0;
-	const canScrollDown =
-		scrollState.offset + scrollState.viewportHeight < scrollState.contentHeight;
+	const canScrollDown = scrollState.offset + scrollState.viewportHeight < scrollState.contentHeight;
 
 	const indicatorX = x + width - border.right - 1;
 	const style: RenderStyle = { fg: props.borderColor ?? '#808080' };

@@ -43,10 +43,10 @@ import {
 	render,
 	// Hooks
 	useApp,
+	useContentRect,
 	useFocus,
 	useFocusManager,
 	useInput,
-	useContentRect,
 	useStdin,
 	useStdout,
 } from '../src/index.js';

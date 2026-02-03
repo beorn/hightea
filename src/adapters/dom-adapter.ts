@@ -20,9 +20,9 @@ import type {
 	RenderAdapter,
 	RenderBuffer,
 	RenderStyle,
-	TextMeasurer,
 	TextMeasureResult,
 	TextMeasureStyle,
+	TextMeasurer,
 } from '../render-adapter.js';
 
 // ============================================================================

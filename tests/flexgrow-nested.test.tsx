@@ -24,8 +24,7 @@ describe('flexGrow nested structure', () => {
 						{' '}
 						<Text>📋3</Text>
 						{'   '}
-						<Text>COLUMNS VIEW</Text>
-						{' '}
+						<Text>COLUMNS VIEW</Text>{' '}
 					</Text>
 				</Box>
 			</Box>,
@@ -37,7 +36,7 @@ describe('flexGrow nested structure', () => {
 
 		expect(text).toContain('COLUMNS VIEW');
 		// Should not be truncated (ends with W, not E)
-		expect(text).toMatch(/COLUMNS VIEW\s*$/)
+		expect(text).toMatch(/COLUMNS VIEW\s*$/);
 	});
 
 	test('multiple nested Text inside flexGrow={0} Box', () => {
@@ -54,8 +53,7 @@ describe('flexGrow nested structure', () => {
 						{'   '}
 						<Text>col 1/3</Text>
 						{'   '}
-						<Text>COLUMNS VIEW</Text>
-						{' '}
+						<Text>COLUMNS VIEW</Text>{' '}
 					</Text>
 				</Box>
 			</Box>,
@@ -82,8 +80,7 @@ describe('flexGrow nested structure', () => {
 						{' '}
 						<Text>📋3</Text>
 						{'   '}
-						<Text>COLUMNS VIEW</Text>
-						{' '}
+						<Text>COLUMNS VIEW</Text>{' '}
 					</Text>
 				</Box>
 			</Box>,

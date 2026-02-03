@@ -8,7 +8,7 @@
  * - When scrollTo is defined: actively track and scroll to that index
  * - When scrollTo is undefined: freeze scroll state (critical for multi-column layouts)
  */
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { calcEdgeBasedScrollOffset } from '../scroll-utils.js';
 
 // =============================================================================
@@ -217,7 +217,9 @@ export function useVirtualization<T>(config: VirtualizationConfig<T>): Virtualiz
 
 	// Determine the current selected index to use for rendering
 	const currentSelectedIndex =
-		scrollTo !== undefined ? Math.max(0, Math.min(scrollTo, items.length - 1)) : scrollState.selectedIndex;
+		scrollTo !== undefined
+			? Math.max(0, Math.min(scrollTo, items.length - 1))
+			: scrollState.selectedIndex;
 
 	// Calculate virtualization window
 	const windowCalc = useMemo(() => {

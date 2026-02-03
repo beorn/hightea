@@ -10,9 +10,9 @@ import type {
 	RenderAdapter,
 	RenderBuffer,
 	RenderStyle,
-	TextMeasurer,
 	TextMeasureResult,
 	TextMeasureStyle,
+	TextMeasurer,
 } from '../render-adapter.js';
 
 // ============================================================================
@@ -118,7 +118,8 @@ function createCanvasMeasurer(config: Required<CanvasAdapterConfig>): TextMeasur
 
 			// Use actual bounding box if available, otherwise estimate
 			const height =
-				metrics.actualBoundingBoxAscent !== undefined && metrics.actualBoundingBoxDescent !== undefined
+				metrics.actualBoundingBoxAscent !== undefined &&
+				metrics.actualBoundingBoxDescent !== undefined
 					? metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent
 					: (style?.fontSize ?? config.fontSize) * config.lineHeight;
 

@@ -2,9 +2,9 @@
  * Tests for createTermProvider - terminal as a Provider.
  */
 
-import { describe, expect, it, beforeEach, afterEach } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { EventEmitter } from 'events';
-import { createTermProvider, type TermProvider } from '../../src/runtime/term-provider.js';
+import { type TermProvider, createTermProvider } from '../../src/runtime/term-provider.js';
 
 // Mock stdin/stdout
 function createMockStreams() {

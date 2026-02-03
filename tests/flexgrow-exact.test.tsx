@@ -23,8 +23,7 @@ describe('flexGrow exact replication', () => {
 						{' '}
 						<Text>📋{nodeCount}</Text>
 						{'   '}
-						<Text>{viewModeStr}</Text>
-						{' '}
+						<Text>{viewModeStr}</Text>{' '}
 					</Text>
 				</Box>
 			</Box>,
@@ -52,8 +51,7 @@ describe('flexGrow exact replication', () => {
 						{' '}
 						<Text>📋{nodeCount}</Text>
 						{'   '}
-						<Text>{viewModeStr}</Text>
-						{' '}
+						<Text>{viewModeStr}</Text>{' '}
 					</Text>
 				</Box>
 			</Box>,
@@ -74,7 +72,7 @@ describe('flexGrow exact replication', () => {
 					<Text>MEM 📁</Text>
 				</Box>
 				<Box flexGrow={0} flexShrink={0}>
-					<Text> 📋3   COLUMNS VIEW </Text>
+					<Text> 📋3 COLUMNS VIEW </Text>
 				</Box>
 			</Box>,
 		);

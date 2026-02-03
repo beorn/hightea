@@ -22,9 +22,9 @@
  * ```
  */
 import React, { forwardRef, useImperativeHandle } from 'react';
+import { useVirtualization } from '../hooks/useVirtualization.js';
 import { Box } from './Box.js';
 import { Text } from './Text.js';
-import { useVirtualization } from '../hooks/useVirtualization.js';
 
 // =============================================================================
 // Types

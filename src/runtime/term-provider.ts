@@ -21,7 +21,7 @@
  * ```
  */
 
-import { parseKey, type Key } from './keys.js';
+import { type Key, parseKey } from './keys.js';
 import type { Dims, Provider, ProviderEvent } from './types.js';
 
 // ============================================================================
@@ -74,7 +74,7 @@ export interface TermProviderOptions {
 export function createTermProvider(
 	stdin: NodeJS.ReadStream,
 	stdout: NodeJS.WriteStream,
-	options: TermProviderOptions = {}
+	options: TermProviderOptions = {},
 ): TermProvider {
 	const { cols = stdout.columns || 80, rows = stdout.rows || 24 } = options;
 

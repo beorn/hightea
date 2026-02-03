@@ -6,13 +6,13 @@ import { describe, expect, it } from 'bun:test';
 import type React from 'react';
 import { Box, Text } from '../../src/index.js';
 import {
-	createRuntime,
-	ensureLayoutEngine,
-	layout,
 	type Buffer,
 	type Dims,
 	type Event,
 	type RenderTarget,
+	createRuntime,
+	ensureLayoutEngine,
+	layout,
 } from '../../src/runtime/index.js';
 
 // ============================================================================
@@ -60,10 +60,7 @@ function createMockTarget(dims: Dims = { cols: 80, rows: 24 }): RenderTarget & {
 /**
  * Collect events from an async iterable up to a limit.
  */
-async function collectEvents(
-	events: AsyncIterable<Event>,
-	limit: number
-): Promise<Event[]> {
+async function collectEvents(events: AsyncIterable<Event>, limit: number): Promise<Event[]> {
 	const result: Event[] = [];
 	for await (const event of events) {
 		result.push(event);
@@ -330,7 +327,7 @@ describe('createRuntime', () => {
 					await new Promise((r) => setTimeout(r, 100));
 					return 'should not reach';
 				},
-				{ signal: effectController.signal }
+				{ signal: effectController.signal },
 			);
 
 			// Abort immediately
@@ -374,7 +371,7 @@ describe('createRuntime', () => {
 					called = true;
 					return 'should not run';
 				},
-				{ signal: effectController.signal }
+				{ signal: effectController.signal },
 			);
 
 			await new Promise((r) => setTimeout(r, 10));

@@ -16,7 +16,7 @@ describe('flexGrow debug', () => {
 					<Text>MEM 📁</Text>
 				</Box>
 				<Box flexGrow={0} flexShrink={0}>
-					<Text> 📋3   COLUMNS VIEW </Text>
+					<Text> 📋3 COLUMNS VIEW </Text>
 				</Box>
 			</Box>,
 		);
@@ -38,7 +38,7 @@ describe('flexGrow debug', () => {
 					<Text>MEM 📁</Text>
 				</Box>
 				<Box flexGrow={0} flexShrink={0}>
-					<Text> 📋3   COLUMNS VIEW </Text>
+					<Text> 📋3 COLUMNS VIEW </Text>
 				</Box>
 			</Box>,
 		);
@@ -55,7 +55,7 @@ describe('flexGrow debug', () => {
 		// What width does the text component measure to?
 		const app = render(
 			<Box width={80} flexDirection="row">
-				<Text> 📋3   COLUMNS VIEW </Text>
+				<Text> 📋3 COLUMNS VIEW </Text>
 			</Box>,
 		);
 

@@ -49,8 +49,8 @@ export { contentPhase, clearBgConflictWarnings } from './content-phase.js';
 export { contentPhaseAdapter } from './content-phase-adapter.js';
 export { outputPhase } from './output-phase.js';
 
-import { clearBgConflictWarnings, contentPhase } from './content-phase.js';
 import { contentPhaseAdapter } from './content-phase-adapter.js';
+import { clearBgConflictWarnings, contentPhase } from './content-phase.js';
 import {
 	layoutPhase,
 	notifyLayoutSubscribers,
@@ -174,7 +174,7 @@ export function executeRender(
 // Execute Render (Adapter-aware)
 // ============================================================================
 
-import { getRenderAdapter, hasRenderAdapter, type RenderBuffer } from '../render-adapter.js';
+import { type RenderBuffer, getRenderAdapter, hasRenderAdapter } from '../render-adapter.js';
 
 /**
  * Execute the full render pipeline using the current RenderAdapter.

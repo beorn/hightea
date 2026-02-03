@@ -47,7 +47,7 @@ export function calcEdgeBasedScrollOffset(
 	currentOffset: number,
 	visibleCount: number,
 	totalCount: number,
-	padding: number = 1,
+	padding = 1,
 ): number {
 	// If everything fits, no scrolling needed
 	if (totalCount <= visibleCount) return 0;

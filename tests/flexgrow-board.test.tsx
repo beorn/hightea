@@ -34,8 +34,7 @@ describe('flexGrow in board structure', () => {
 							{' '}
 							<Text>📋3</Text>
 							{'   '}
-							<Text>COLUMNS VIEW</Text>
-							{' '}
+							<Text>COLUMNS VIEW</Text>{' '}
 						</Text>
 					</Box>
 				</Box>
@@ -72,7 +71,7 @@ describe('flexGrow in board structure', () => {
 						<Text dimColor>MEM 📁</Text>
 					</Box>
 					<Box flexGrow={0} flexShrink={0}>
-						<Text dimColor> 📋3   COLUMNS VIEW </Text>
+						<Text dimColor> 📋3 COLUMNS VIEW </Text>
 					</Box>
 				</Box>
 			</Box>,

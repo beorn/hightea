@@ -84,7 +84,7 @@
 import { EventEmitter } from 'node:events';
 import React, { type ReactElement, act } from 'react';
 import { type App, createApp } from '../app.js';
-import { type TerminalBuffer, bufferToText } from '../buffer.js';
+import { type TerminalBuffer, bufferToText, cellEquals } from '../buffer.js';
 import {
 	ensureDefaultLayoutEngine,
 	getLayoutEngine,
@@ -109,6 +109,9 @@ export { keyToAnsi, CODE_TO_KEY } from '../keys.js';
 
 // Re-export debug utilities
 export { debugTree, type DebugTreeOptions } from './debug.js';
+
+// Re-export buffer comparison utilities
+export { compareBuffers, formatMismatch, type BufferMismatch } from './compare-buffers.js';
 import { createTerm } from 'chalkx';
 import { AppContext, EventsContext, InputContext, StdoutContext, TermContext } from '../context.js';
 import type { LayoutEngine } from '../layout-engine.js';
@@ -374,6 +377,17 @@ export function createTestRenderer(options: TestRendererOptions = {}): TestRende
 			return output;
 		}
 
+		// Fresh render: renders from scratch without updating incremental state.
+		// Used for differential testing (incremental vs fresh comparison).
+		function doFreshRender(): TerminalBuffer {
+			const root = getContainerRoot(instance.container);
+			const { buffer } = executeRender(root, instance.columns, instance.rows, null, {
+				skipLayoutNotifications: true,
+			});
+			// NOTE: does NOT update instance.prevBuffer
+			return buffer;
+		}
+
 		// Synchronously update React tree within act() to ensure all state updates are flushed
 		act(() => {
 			reconciler.updateContainerSync(wrapWithContexts(element), instance.fiberRoot, null, null);
@@ -392,6 +406,9 @@ export function createTestRenderer(options: TestRendererOptions = {}): TestRende
 		const getContainer = () => getContainerRoot(instance.container);
 		const getBuffer = () => instance.prevBuffer;
 
+		// Auto-check incremental rendering when INKX_CHECK_INCREMENTAL is set
+		const autoCheckIncremental = incremental && !!process.env.INKX_CHECK_INCREMENTAL;
+
 		const sendInput = (data: string) => {
 			if (!instance.mounted) {
 				throw new Error('Cannot write to stdin after unmount');
@@ -403,6 +420,26 @@ export function createTestRenderer(options: TestRendererOptions = {}): TestRende
 			instance.frames.push(newFrame);
 			if (debug) {
 				console.log('[inkx-test] stdin.write:', newFrame);
+			}
+			if (autoCheckIncremental) {
+				const freshBuffer = doFreshRender();
+				const currentBuffer = instance.prevBuffer;
+				if (currentBuffer) {
+					for (let y = 0; y < currentBuffer.height; y++) {
+						for (let x = 0; x < currentBuffer.width; x++) {
+							const a = currentBuffer.getCell(x, y);
+							const b = freshBuffer.getCell(x, y);
+							if (!cellEquals(a, b)) {
+								const inputDesc = JSON.stringify(data);
+								throw new Error(
+									`INKX_CHECK_INCREMENTAL: Buffer mismatch at (${x}, ${y}) after input ${inputDesc}\n` +
+										`  incremental: char=${JSON.stringify(a.char)} fg=${JSON.stringify(a.fg)} bg=${JSON.stringify(a.bg)}\n` +
+										`  fresh:       char=${JSON.stringify(b.char)} fg=${JSON.stringify(b.fg)} bg=${JSON.stringify(b.bg)}`,
+								);
+							}
+						}
+					}
+				}
 			}
 		};
 
@@ -460,6 +497,7 @@ export function createTestRenderer(options: TestRendererOptions = {}): TestRende
 			clear: clearFn,
 			exitCalled: () => exitCalledFlag,
 			exitError: () => exitErrorValue,
+			freshRender: doFreshRender,
 			debugFn,
 			frames: instance.frames,
 			columns: renderColumns,

@@ -245,7 +245,9 @@ export function useInput(inputHandler: InputHandler, options: UseInputOptions = 
 	// In this mode, useInput becomes a no-op (no raw mode, no event subscription)
 	const isStaticMode = events === null;
 
-	log.debug?.(`useInput called: isActive=${isActive}, isStaticMode=${isStaticMode}, events=${!!events}, stdinContext=${!!stdinContext}, isRawModeSupported=${stdinContext?.isRawModeSupported}`);
+	log.debug?.(
+		`useInput called: isActive=${isActive}, isStaticMode=${isStaticMode}, events=${!!events}, stdinContext=${!!stdinContext}, isRawModeSupported=${stdinContext?.isRawModeSupported}`,
+	);
 
 	// Set raw mode when active (only if stdin is a TTY and not in static mode)
 	useEffect(() => {
@@ -255,7 +257,9 @@ export function useInput(inputHandler: InputHandler, options: UseInputOptions = 
 			return;
 		}
 
-		log.debug?.(`useInput effect: isActive=${isActive}, stdinContext=${!!stdinContext}, isRawModeSupported=${stdinContext?.isRawModeSupported}`);
+		log.debug?.(
+			`useInput effect: isActive=${isActive}, stdinContext=${!!stdinContext}, isRawModeSupported=${stdinContext?.isRawModeSupported}`,
+		);
 		if (!isActive || !stdinContext || !stdinContext.isRawModeSupported) {
 			log.debug?.('useInput effect: skipping raw mode setup');
 			return;

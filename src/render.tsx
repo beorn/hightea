@@ -245,7 +245,9 @@ function InkxApp({ children, stdin, stdout, exitOnCtrlC, onExit }: AppProps): Re
 
 	// Raw mode support check
 	const isRawModeSupported = stdin.isTTY === true;
-	log.debug?.(`InkxApp: stdin=${stdin === process.stdin ? 'process.stdin' : 'other'}, stdin.isTTY=${stdin.isTTY}, process.stdin.isTTY=${process.stdin.isTTY}, isRawModeSupported=${isRawModeSupported}`);
+	log.debug?.(
+		`InkxApp: stdin=${stdin === process.stdin ? 'process.stdin' : 'other'}, stdin.isTTY=${stdin.isTTY}, process.stdin.isTTY=${process.stdin.isTTY}, isRawModeSupported=${isRawModeSupported}`,
+	);
 
 	// Focus management functions (defined before handleReadable since it depends on them)
 	const addFocusable = useCallback((id: string, options?: { autoFocus?: boolean }) => {
@@ -380,7 +382,9 @@ function InkxApp({ children, stdin, stdout, exitOnCtrlC, onExit }: AppProps): Re
 	// Set raw mode handler
 	const setRawMode = useCallback(
 		(enabled: boolean) => {
-			log.debug?.(`setRawMode called: enabled=${enabled}, rawModeCount=${rawModeCountRef.current}, isRawModeSupported=${isRawModeSupported}`);
+			log.debug?.(
+				`setRawMode called: enabled=${enabled}, rawModeCount=${rawModeCountRef.current}, isRawModeSupported=${isRawModeSupported}`,
+			);
 			if (!isRawModeSupported) {
 				if (stdin === process.stdin) {
 					throw new Error(
@@ -399,7 +403,9 @@ function InkxApp({ children, stdin, stdout, exitOnCtrlC, onExit }: AppProps): Re
 					stdin.ref();
 					stdin.setRawMode(true);
 					stdin.on('readable', handleReadable);
-					log.debug?.(`setRawMode: stdin.isRaw=${stdin.isRaw}, listenerCount=${stdin.listenerCount('readable')}`);
+					log.debug?.(
+						`setRawMode: stdin.isRaw=${stdin.isRaw}, listenerCount=${stdin.listenerCount('readable')}`,
+					);
 				}
 				rawModeCountRef.current++;
 				log.debug?.(`setRawMode: rawModeCount incremented to ${rawModeCountRef.current}`);
@@ -598,12 +604,16 @@ class InkxInstance {
 		// in environments like Bun where the event loop may not be pumped
 		log.debug?.('InkxInstance.render() calling updateContainerSync');
 		reconciler.updateContainerSync(tree, this.fiberRoot, null, null);
-		log.debug?.(`InkxInstance.render() updateContainerSync complete in ${Date.now() - startTime}ms`);
+		log.debug?.(
+			`InkxInstance.render() updateContainerSync complete in ${Date.now() - startTime}ms`,
+		);
 
 		log.debug?.('InkxInstance.render() calling flushSyncWork');
 		const flushStart = Date.now();
 		reconciler.flushSyncWork();
-		log.debug?.(`InkxInstance.render() flushSyncWork complete in ${Date.now() - flushStart}ms (total: ${Date.now() - startTime}ms)`);
+		log.debug?.(
+			`InkxInstance.render() flushSyncWork complete in ${Date.now() - flushStart}ms (total: ${Date.now() - startTime}ms)`,
+		);
 	}
 
 	/**

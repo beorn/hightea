@@ -5,18 +5,18 @@
  * Uses character cells as units, ANSI codes for styling.
  */
 
-import { TerminalBuffer, type Color } from '../buffer.js';
-import { displayWidth } from '../unicode.js';
+import { type Color, TerminalBuffer } from '../buffer.js';
 import { outputPhase } from '../pipeline/output-phase.js';
 import type {
 	BorderChars,
 	RenderAdapter,
 	RenderBuffer,
 	RenderStyle,
-	TextMeasurer,
 	TextMeasureResult,
 	TextMeasureStyle,
+	TextMeasurer,
 } from '../render-adapter.js';
+import { displayWidth } from '../unicode.js';
 
 // ============================================================================
 // Border Characters
@@ -217,16 +217,16 @@ export class TerminalRenderBuffer implements RenderBuffer {
 			const hex = color.slice(1);
 			if (hex.length === 6) {
 				return {
-					r: parseInt(hex.slice(0, 2), 16),
-					g: parseInt(hex.slice(2, 4), 16),
-					b: parseInt(hex.slice(4, 6), 16),
+					r: Number.parseInt(hex.slice(0, 2), 16),
+					g: Number.parseInt(hex.slice(2, 4), 16),
+					b: Number.parseInt(hex.slice(4, 6), 16),
 				};
 			}
 			if (hex.length === 3) {
 				return {
-					r: parseInt(hex[0]! + hex[0]!, 16),
-					g: parseInt(hex[1]! + hex[1]!, 16),
-					b: parseInt(hex[2]! + hex[2]!, 16),
+					r: Number.parseInt(hex[0]! + hex[0]!, 16),
+					g: Number.parseInt(hex[1]! + hex[1]!, 16),
+					b: Number.parseInt(hex[2]! + hex[2]!, 16),
 				};
 			}
 		}
@@ -235,9 +235,9 @@ export class TerminalRenderBuffer implements RenderBuffer {
 		const rgbMatch = color.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
 		if (rgbMatch) {
 			return {
-				r: parseInt(rgbMatch[1]!, 10),
-				g: parseInt(rgbMatch[2]!, 10),
-				b: parseInt(rgbMatch[3]!, 10),
+				r: Number.parseInt(rgbMatch[1]!, 10),
+				g: Number.parseInt(rgbMatch[2]!, 10),
+				b: Number.parseInt(rgbMatch[3]!, 10),
 			};
 		}
 

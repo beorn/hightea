@@ -2,17 +2,17 @@
  * DOM Adapter Unit Tests
  */
 
-import { describe, expect, test, beforeEach } from 'bun:test';
+import { beforeEach, describe, expect, test } from 'bun:test';
 import {
-	createDOMAdapter,
-	DOMRenderBuffer,
 	type DOMAdapterConfig,
+	DOMRenderBuffer,
+	createDOMAdapter,
 } from '../src/adapters/dom-adapter.js';
 import {
-	setRenderAdapter,
-	hasRenderAdapter,
-	getRenderAdapter,
 	type RenderAdapter,
+	getRenderAdapter,
+	hasRenderAdapter,
+	setRenderAdapter,
 } from '../src/render-adapter.js';
 
 // Check if we have DOM support

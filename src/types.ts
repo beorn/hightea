@@ -258,6 +258,9 @@ export interface InkxNode {
 	/** True if this node or any descendant has dirty content/layout */
 	subtreeDirty: boolean;
 
+	/** True if children were added, removed, or reordered */
+	childrenDirty: boolean;
+
 	/** Callbacks subscribed to layout changes (used by useContentRect) */
 	layoutSubscribers: Set<() => void>;
 

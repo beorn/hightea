@@ -96,6 +96,11 @@ export interface App {
 
 	// === Testing extras ===
 
+	/** Render the current tree from scratch (no incremental buffer reuse).
+	 *  Returns the fresh buffer without updating incremental state.
+	 *  Only available in test renderer - throws otherwise. */
+	freshRender(): TerminalBuffer;
+
 	/** Check if exit() was called */
 	exitCalled(): boolean;
 
@@ -154,6 +159,9 @@ export interface AppOptions {
 	/** Function to get exit error */
 	exitError?: () => Error | undefined;
 
+	/** Fresh render function (test renderer only) */
+	freshRender?: () => TerminalBuffer;
+
 	/** Debug print function */
 	debugFn?: () => void;
 
@@ -179,6 +187,7 @@ export function createApp(options: AppOptions): App {
 		clear,
 		exitCalled = () => false,
 		exitError = () => undefined,
+		freshRender: freshRenderFn,
 		debugFn,
 		frames = [],
 		columns,
@@ -302,6 +311,13 @@ export function createApp(options: AppOptions): App {
 		},
 
 		// === Testing extras ===
+
+		freshRender(): TerminalBuffer {
+			if (!freshRenderFn) {
+				throw new Error('freshRender() is only available in test renderer');
+			}
+			return freshRenderFn();
+		},
 
 		exitCalled,
 		exitError,

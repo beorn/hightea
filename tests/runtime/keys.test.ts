@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { parseKey, emptyKey } from '../../src/runtime/keys.js';
+import { emptyKey, parseKey } from '../../src/runtime/keys.js';
 
 describe('parseKey()', () => {
 	describe('basic characters', () => {

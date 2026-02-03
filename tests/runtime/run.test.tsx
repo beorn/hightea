@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'bun:test';
 import React, { useState } from 'react';
 import { Text } from '../../src/index.js';
-import { run, useInput, useExit, type Key } from '../../src/runtime/index.js';
+import { type Key, run, useExit, useInput } from '../../src/runtime/index.js';
 
 describe('run() - Layer 2', () => {
 	describe('basic rendering', () => {

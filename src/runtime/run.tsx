@@ -26,22 +26,17 @@
  */
 
 import process from 'node:process';
-import React, {
-	createContext,
-	useContext,
-	useEffect,
-	type ReactElement,
-} from 'react';
+import React, { createContext, useContext, useEffect, type ReactElement } from 'react';
 
 import { createTerm } from 'chalkx';
-import { bufferToText, bufferToStyledText } from '../buffer.js';
+import { bufferToStyledText, bufferToText } from '../buffer.js';
 import { AppContext, StdoutContext, TermContext } from '../context.js';
 import { executeRender } from '../pipeline/index.js';
-import { reconciler, createContainer, getContainerRoot } from '../reconciler.js';
+import { createContainer, getContainerRoot, reconciler } from '../reconciler.js';
+import { merge, takeUntil } from '../streams/index.js';
 import { createRuntime } from './create-runtime.js';
+import { type InputHandler, type Key, parseKey } from './keys.js';
 import { ensureLayoutEngine } from './layout.js';
-import { parseKey, type Key, type InputHandler } from './keys.js';
-import { takeUntil, merge } from '../streams/index.js';
 import type { Buffer, Dims, Event, RenderTarget, Runtime } from './types.js';
 
 // Re-export types from keys.ts
@@ -146,10 +141,7 @@ export function useExit(): () => void {
  * For more control (custom event loop), use createRuntime() directly (Layer 1).
  * For stores and providers, use createApp() (Layer 3).
  */
-export async function run(
-	element: ReactElement,
-	options: RunOptions = {}
-): Promise<RunHandle> {
+export async function run(element: ReactElement, options: RunOptions = {}): Promise<RunHandle> {
 	const {
 		cols = process.stdout.columns || 80,
 		rows = process.stdout.rows || 24,
@@ -374,9 +366,7 @@ export async function run(
 			<AppContext.Provider value={{ exit }}>
 				<StdoutContext.Provider value={{ stdout: mockStdout, write: () => {} }}>
 					<RuntimeContext.Provider value={runtimeContextValue}>
-						<InputContext.Provider value={inputContextValue}>
-							{element}
-						</InputContext.Provider>
+						<InputContext.Provider value={inputContextValue}>{element}</InputContext.Provider>
 					</RuntimeContext.Provider>
 				</StdoutContext.Provider>
 			</AppContext.Provider>

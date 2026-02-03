@@ -23,7 +23,7 @@ import React, {
 	useDeferredValue,
 } from 'react';
 import { NodeContext } from '../src/context.ts';
-import { Box, Text, useInput, useContentRect } from '../src/index.ts';
+import { Box, Text, useContentRect, useInput } from '../src/index.ts';
 import { createTestRenderer, stripAnsi } from '../src/testing/index.tsx';
 import type { InkxNode } from '../src/types.ts';
 
