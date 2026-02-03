@@ -115,7 +115,7 @@ function renderNodeToBuffer(
 	// clears contentDirty for its text-collection cache, but paintDirty survives.
 	if (
 		hasPrevBuffer &&
-		(node.contentDirty || node.paintDirty || layoutChanged) &&
+		(node.contentDirty || node.paintDirty || node.subtreeDirty || layoutChanged) &&
 		!props.backgroundColor
 	) {
 		const clearBg = findInheritedBg(node);
