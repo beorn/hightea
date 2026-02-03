@@ -53,6 +53,7 @@ export function createNode(
 		prevLayout: null,
 		layoutDirty: true,
 		contentDirty: true,
+		subtreeDirty: true,
 		layoutSubscribers: new Set(),
 	};
 
@@ -186,6 +187,7 @@ export function createVirtualTextNode(props: TextProps): InkxNode {
 		prevLayout: null,
 		layoutDirty: false,
 		contentDirty: true,
+		subtreeDirty: true,
 		layoutSubscribers: new Set(),
 		isRawText: false, // Not raw text, but virtual (nested) text
 	};

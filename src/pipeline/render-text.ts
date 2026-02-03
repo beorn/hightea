@@ -37,20 +37,13 @@ import { getTextStyle, getTextWidth, sliceByWidth, sliceByWidthFromEnd } from '.
 type BgConflictMode = 'ignore' | 'warn' | 'throw';
 
 /**
- * Cached background conflict mode (evaluated once at module load).
- * This avoids reading process.env on every text render (hot path).
+ * Get the current background conflict detection mode.
+ * Reads from process.env each time so tests can change the mode dynamically.
  */
-const cachedBgConflictMode: BgConflictMode = (() => {
+function getBgConflictMode(): BgConflictMode {
 	const env = process.env.INKX_BG_CONFLICT?.toLowerCase();
 	if (env === 'ignore' || env === 'warn' || env === 'throw') return env;
 	return 'throw'; // default - fail fast on programming errors
-})();
-
-/**
- * Get the current background conflict detection mode.
- */
-function getBgConflictMode(): BgConflictMode {
-	return cachedBgConflictMode;
 }
 
 // Track warned conflicts to avoid spam (only used in 'warn' mode)

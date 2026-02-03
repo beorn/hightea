@@ -76,6 +76,7 @@ async function createMockNode(
 		prevLayout: null,
 		layoutDirty: true,
 		contentDirty: true,
+		subtreeDirty: true,
 		layoutSubscribers: new Set(),
 		isRawText: false,
 		textContent,
@@ -106,6 +107,7 @@ function createRawTextNode(text: string): InkxNode {
 		prevLayout: null,
 		layoutDirty: false,
 		contentDirty: true,
+		subtreeDirty: true,
 		layoutSubscribers: new Set(),
 		isRawText: true,
 		textContent: text,
@@ -269,6 +271,372 @@ describe('Pipeline', () => {
 			expect(buffer.getCell(0, 2).char).toBe('\u2514'); // └
 			// Horizontal border
 			expect(buffer.getCell(1, 0).char).toBe('\u2500'); // ─
+		});
+	});
+
+	describe('contentPhase incremental rendering', () => {
+		test('clones prevBuffer when dimensions match', async () => {
+			const root = await createMockNode('inkx-box', { width: 40, height: 10 });
+			setNodeLayout(root, { x: 0, y: 0, width: 40, height: 10 });
+
+			// First render
+			const buffer1 = contentPhase(root);
+			buffer1.setCell(5, 5, { char: 'X' });
+
+			// Clear dirty flags and set prevLayout to simulate stable state
+			root.contentDirty = false;
+			root.subtreeDirty = false;
+			root.prevLayout = root.computedLayout;
+
+			// Second render with prevBuffer
+			const buffer2 = contentPhase(root, buffer1);
+
+			// Should have cloned the previous buffer content
+			expect(buffer2.getCell(5, 5).char).toBe('X');
+		});
+
+		test('creates fresh buffer when dimensions differ', async () => {
+			const { TerminalBuffer: TB } = await import('../src/buffer.js');
+
+			const root = await createMockNode('inkx-box', { width: 40, height: 10 });
+			setNodeLayout(root, { x: 0, y: 0, width: 40, height: 10 });
+
+			// Create prevBuffer with different dimensions
+			const prevBuffer = new TB(30, 8);
+			prevBuffer.setCell(5, 5, { char: 'Y' });
+
+			// Render with mismatched prevBuffer - should create fresh buffer
+			const buffer = contentPhase(root, prevBuffer);
+
+			// Fresh buffer should have default empty cells
+			expect(buffer.width).toBe(40);
+			expect(buffer.height).toBe(10);
+			expect(buffer.getCell(5, 5).char).toBe(' ');
+		});
+
+		test('skips unchanged subtrees with hasPrevBuffer=true', async () => {
+			// Create a tree: root -> [child1, child2]
+			const child1 = await createMockNode('inkx-text', {}, [], 'Child1');
+			setNodeLayout(child1, { x: 0, y: 0, width: 6, height: 1 });
+			child1.contentDirty = false;
+			child1.subtreeDirty = false;
+
+			const child2 = await createMockNode('inkx-text', {}, [], 'Child2');
+			setNodeLayout(child2, { x: 0, y: 1, width: 6, height: 1 });
+			child2.contentDirty = true; // Only child2 is dirty
+			child2.subtreeDirty = true;
+
+			const root = await createMockNode('inkx-box', { width: 40, height: 10 }, [child1, child2]);
+			setNodeLayout(root, { x: 0, y: 0, width: 40, height: 10 });
+			root.subtreeDirty = true; // Has dirty descendant
+
+			// First render
+			const buffer1 = contentPhase(root);
+
+			// Modify child1's rendered area in buffer to track if it gets re-rendered
+			buffer1.setCell(0, 0, { char: 'Z' }); // Overwrite "C" from "Child1"
+
+			// Mark root as having dirty descendant (child2 still dirty)
+			root.contentDirty = false;
+			root.subtreeDirty = true;
+			root.prevLayout = root.computedLayout; // No layout change on root
+			child1.contentDirty = false;
+			child1.subtreeDirty = false;
+			child1.prevLayout = child1.computedLayout; // No layout change
+
+			// Second render - child1 should be skipped, keeping 'Z'
+			const buffer2 = contentPhase(root, buffer1);
+
+			// Child1 was skipped (kept 'Z' from buffer1 clone)
+			expect(buffer2.getCell(0, 0).char).toBe('Z');
+
+			// Child2 was re-rendered (has its content)
+			expect(buffer2.getCell(0, 1).char).toBe('C');
+		});
+
+		test('re-renders nodes when layout changed even if not contentDirty', async () => {
+			const textNode = await createMockNode('inkx-text', {}, [], 'Text');
+			setNodeLayout(textNode, { x: 0, y: 0, width: 4, height: 1 });
+
+			const root = await createMockNode('inkx-box', { width: 40, height: 10 }, [textNode]);
+			setNodeLayout(root, { x: 0, y: 0, width: 40, height: 10 });
+
+			// First render
+			const buffer1 = contentPhase(root);
+			expect(buffer1.getCell(0, 0).char).toBe('T');
+
+			// Mark text as not dirty but change its layout position
+			textNode.contentDirty = false;
+			textNode.subtreeDirty = false;
+			textNode.prevLayout = { x: 0, y: 0, width: 4, height: 1 }; // Old position
+			textNode.computedLayout = { x: 5, y: 0, width: 4, height: 1 }; // New position
+
+			root.contentDirty = false;
+			root.subtreeDirty = true;
+
+			// Second render - should re-render at new position because layout changed
+			const buffer2 = contentPhase(root, buffer1);
+
+			// Text should now be at x=5
+			expect(buffer2.getCell(5, 0).char).toBe('T');
+		});
+
+		test('subtreeDirty propagates to ancestors', async () => {
+			// This test verifies that markSubtreeDirty works correctly
+			const { hostConfig } = await import('../src/reconciler/host-config.js');
+			const { createNode } = await import('../src/reconciler/nodes.js');
+
+			const parent = createNode('inkx-box', {});
+			const child = createNode('inkx-box', {});
+
+			// Initially both have subtreeDirty = true from creation
+			parent.subtreeDirty = false;
+			child.subtreeDirty = false;
+
+			// Append child to parent
+			hostConfig.appendChild(parent, child);
+
+			// Parent should now have subtreeDirty = true
+			expect(parent.subtreeDirty).toBe(true);
+
+			// Clean up
+			child.layoutNode?.free();
+			parent.layoutNode?.free();
+		});
+
+		test('clears stale bg pixels when box becomes contentDirty without backgroundColor', async () => {
+			// Simulate the scenario that causes visual corruption:
+			// 1. First render: a box has backgroundColor (fills region with color)
+			// 2. Second render: box is contentDirty (e.g., backgroundColor removed or children changed)
+			//    Without clearing, stale colored pixels from clone bleed through
+
+			const child = await createMockNode('inkx-box', {
+				width: 10,
+				height: 3,
+				backgroundColor: 'blue',
+			} as BoxProps);
+			setNodeLayout(child, { x: 2, y: 1, width: 10, height: 3 });
+			child.prevLayout = child.computedLayout;
+
+			const root = await createMockNode('inkx-box', { width: 20, height: 5 }, [child]);
+			setNodeLayout(root, { x: 0, y: 0, width: 20, height: 5 });
+
+			// First render - child has backgroundColor='blue', fills its region
+			const buffer1 = contentPhase(root);
+
+			// Verify the blue background was painted
+			const cellBefore = buffer1.getCell(5, 2);
+			expect(cellBefore.bg).not.toBeNull(); // Should have blue bg
+
+			// Now simulate: backgroundColor removed, child is contentDirty
+			child.props = { width: 10, height: 3 } as BoxProps; // No backgroundColor
+			child.contentDirty = true;
+			child.subtreeDirty = true;
+			child.prevLayout = child.computedLayout; // Layout unchanged
+
+			root.contentDirty = false;
+			root.subtreeDirty = true;
+			root.prevLayout = root.computedLayout;
+
+			// Second render with prevBuffer - should clear child's region
+			const buffer2 = contentPhase(root, buffer1);
+
+			// The stale blue background should be gone (cleared to space with no bg)
+			const cellAfter = buffer2.getCell(5, 2);
+			expect(cellAfter.bg).toBeNull(); // No more blue bg artifact
+			expect(cellAfter.char).toBe(' '); // Cleared to space
+		});
+
+		test('clears stale pixels when box layout changes (moved/resized)', async () => {
+			// When a box moves, its old position in the cloned buffer has stale content
+			// The new position should be cleared before re-rendering
+
+			const child = await createMockNode('inkx-box', { width: 5, height: 2 } as BoxProps);
+			setNodeLayout(child, { x: 0, y: 0, width: 5, height: 2 });
+
+			const root = await createMockNode('inkx-box', { width: 20, height: 5 }, [child]);
+			setNodeLayout(root, { x: 0, y: 0, width: 20, height: 5 });
+
+			// First render
+			const buffer1 = contentPhase(root);
+
+			// Simulate layout change: child moved from y=0 to y=2
+			child.prevLayout = { x: 0, y: 0, width: 5, height: 2 };
+			child.computedLayout = { x: 0, y: 2, width: 5, height: 2 };
+			child.contentDirty = false; // Not content-dirty, but layout changed
+			child.subtreeDirty = false;
+
+			root.contentDirty = false;
+			root.subtreeDirty = true;
+			root.prevLayout = root.computedLayout;
+
+			// Second render - should detect layout change and clear new region
+			const buffer2 = contentPhase(root, buffer1);
+
+			// The new region (y=2) should be cleared (not have stale content from clone)
+			const cell = buffer2.getCell(0, 2);
+			expect(cell.char).toBe(' ');
+		});
+
+		test('scroll container with colored children clears stale bg on scroll', async () => {
+			// Simulates the cards-view scenario: scroll container with colored box children.
+			// After scrolling, children move to new screen positions. The cloned buffer
+			// has colored pixels at old positions - these must not bleed through.
+
+			// Create colored card-like boxes
+			const card1 = await createMockNode('inkx-box', {
+				width: 8,
+				height: 2,
+				backgroundColor: 'blue',
+			} as BoxProps);
+			setNodeLayout(card1, { x: 1, y: 0, width: 8, height: 2 });
+
+			const card2 = await createMockNode('inkx-box', {
+				width: 8,
+				height: 2,
+				backgroundColor: 'green',
+			} as BoxProps);
+			setNodeLayout(card2, { x: 1, y: 2, width: 8, height: 2 });
+
+			const card3 = await createMockNode('inkx-box', {
+				width: 8,
+				height: 2,
+				backgroundColor: 'red',
+			} as BoxProps);
+			setNodeLayout(card3, { x: 1, y: 4, width: 8, height: 2 });
+
+			// Scroll container: viewport of 4 rows, content of 6 rows
+			const scrollContainer = await createMockNode(
+				'inkx-box',
+				{ overflow: 'scroll', height: 4, width: 10 } as BoxProps,
+				[card1, card2, card3],
+			);
+			setNodeLayout(scrollContainer, { x: 0, y: 0, width: 10, height: 4 });
+			scrollContainer.scrollState = {
+				offset: 0,
+				contentHeight: 6,
+				viewportHeight: 4,
+				firstVisibleChild: 0,
+				lastVisibleChild: 1,
+				hiddenAbove: 0,
+				hiddenBelow: 1,
+			};
+
+			const root = await createMockNode('inkx-box', { width: 10, height: 4 }, [scrollContainer]);
+			setNodeLayout(root, { x: 0, y: 0, width: 10, height: 4 });
+
+			// First render: card1 (blue) at y=0-1, card2 (green) at y=2-3
+			const buffer1 = contentPhase(root);
+
+			// Verify colored backgrounds were painted
+			expect(buffer1.getCell(2, 0).bg).not.toBeNull(); // card1 blue
+			expect(buffer1.getCell(2, 2).bg).not.toBeNull(); // card2 green
+
+			// Now simulate scrolling down by 2 rows
+			// card1 scrolls up (partially/fully off-screen)
+			// card2 moves to y=0-1, card3 comes into view at y=2-3
+			scrollContainer.scrollState = {
+				offset: 2,
+				contentHeight: 6,
+				viewportHeight: 4,
+				firstVisibleChild: 1,
+				lastVisibleChild: 2,
+				hiddenAbove: 1,
+				hiddenBelow: 0,
+			};
+
+			// Mark scroll container as having subtree changes
+			root.contentDirty = false;
+			root.subtreeDirty = true;
+			root.prevLayout = root.computedLayout;
+			scrollContainer.contentDirty = true; // scrollState changed
+			scrollContainer.subtreeDirty = true;
+			scrollContainer.prevLayout = scrollContainer.computedLayout;
+
+			// Children are clean (their content didn't change, but positions will shift)
+			card1.contentDirty = false;
+			card1.subtreeDirty = false;
+			card1.prevLayout = card1.computedLayout;
+			card2.contentDirty = false;
+			card2.subtreeDirty = false;
+			card2.prevLayout = card2.computedLayout;
+			card3.contentDirty = false;
+			card3.subtreeDirty = false;
+			card3.prevLayout = card3.computedLayout;
+
+			// Second render with prevBuffer - scroll container forces child re-render
+			const buffer2 = contentPhase(root, buffer1);
+
+			// card2 (green) should now be at y=0-1 (was at y=2-3)
+			expect(buffer2.getCell(2, 0).bg).not.toBeNull(); // card2's green bg
+			expect(buffer2.getCell(2, 1).bg).not.toBeNull(); // card2's green bg
+
+			// card3 (red) should be at y=2-3
+			expect(buffer2.getCell(2, 2).bg).not.toBeNull(); // card3's red bg
+			expect(buffer2.getCell(2, 3).bg).not.toBeNull(); // card3's red bg
+
+			// CRITICAL: card1's old blue pixels at y=0-1 should NOT bleed through.
+			// The scroll container clears its region and re-renders children at new positions.
+			// card2 should be at y=0 now, not card1's stale blue.
+		});
+
+		test('scroll container children always re-render even with hasPrevBuffer', async () => {
+			// Create a scroll container with children
+			const child1 = await createMockNode('inkx-text', {}, [], 'A');
+			setNodeLayout(child1, { x: 0, y: 0, width: 1, height: 1 });
+
+			const child2 = await createMockNode('inkx-text', {}, [], 'B');
+			setNodeLayout(child2, { x: 0, y: 1, width: 1, height: 1 });
+
+			const scrollContainer = await createMockNode(
+				'inkx-box',
+				{ overflow: 'scroll', height: 2 } as BoxProps,
+				[child1, child2],
+			);
+			setNodeLayout(scrollContainer, { x: 0, y: 0, width: 10, height: 2 });
+			scrollContainer.scrollState = {
+				offset: 0,
+				contentHeight: 2,
+				viewportHeight: 2,
+				firstVisibleChild: 0,
+				lastVisibleChild: 1,
+				hiddenAbove: 0,
+				hiddenBelow: 0,
+			};
+
+			const root = await createMockNode('inkx-box', { width: 10, height: 2 }, [scrollContainer]);
+			setNodeLayout(root, { x: 0, y: 0, width: 10, height: 2 });
+
+			// First render
+			const buffer1 = contentPhase(root);
+			expect(buffer1.getCell(0, 0).char).toBe('A');
+			expect(buffer1.getCell(0, 1).char).toBe('B');
+
+			// Mark all as clean
+			root.contentDirty = false;
+			root.subtreeDirty = false;
+			scrollContainer.contentDirty = false;
+			scrollContainer.subtreeDirty = false;
+			child1.contentDirty = false;
+			child1.subtreeDirty = false;
+			child2.contentDirty = false;
+			child2.subtreeDirty = false;
+
+			// Modify the buffer to test if children re-render (they should, because
+			// scroll container children always re-render to handle scroll offset changes)
+			buffer1.setCell(0, 0, { char: 'X' });
+			buffer1.setCell(0, 1, { char: 'Y' });
+
+			// Mark scroll container as having dirty children (to trigger traversal)
+			root.subtreeDirty = true;
+			scrollContainer.subtreeDirty = true;
+
+			// Second render with prevBuffer
+			const buffer2 = contentPhase(root, buffer1);
+
+			// Children of scroll container should be re-rendered, overwriting X and Y
+			expect(buffer2.getCell(0, 0).char).toBe('A');
+			expect(buffer2.getCell(0, 1).char).toBe('B');
 		});
 	});
 

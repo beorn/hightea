@@ -257,6 +257,9 @@ export interface InkxNode {
 	/** True if content changed but layout didn't */
 	contentDirty: boolean;
 
+	/** True if this node or any descendant has dirty content/layout */
+	subtreeDirty: boolean;
+
 	/** Callbacks subscribed to layout changes (used by useLayout) */
 	layoutSubscribers: Set<() => void>;
 

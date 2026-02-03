@@ -9,6 +9,7 @@
 
 import { TerminalBuffer } from '../buffer.js';
 import type { BoxProps, InkxNode, TextProps } from '../types.js';
+import { rectEqual } from '../types.js';
 import { getBorderSize, getPadding } from './helpers.js';
 import { renderBox, renderScrollIndicators } from './render-box.js';
 import { clearBgConflictWarnings, renderText } from './render-text.js';
@@ -17,21 +18,37 @@ import { clearBgConflictWarnings, renderText } from './render-text.js';
  * Render all nodes to a terminal buffer.
  *
  * @param root The root InkxNode
+ * @param prevBuffer Previous buffer for incremental rendering (optional)
  * @returns A TerminalBuffer with the rendered content
  */
-export function contentPhase(root: InkxNode): TerminalBuffer {
+export function contentPhase(root: InkxNode, prevBuffer?: TerminalBuffer | null): TerminalBuffer {
 	const layout = root.computedLayout;
 	if (!layout) {
 		throw new Error('contentPhase called before layout phase');
 	}
 
-	const buffer = new TerminalBuffer(layout.width, layout.height);
-	renderNodeToBuffer(root, buffer);
+	// Clone prevBuffer if same dimensions, else create fresh
+	const canReuse =
+		prevBuffer && prevBuffer.width === layout.width && prevBuffer.height === layout.height;
+
+	const buffer = canReuse ? prevBuffer.clone() : new TerminalBuffer(layout.width, layout.height);
+	renderNodeToBuffer(root, buffer, 0, undefined, canReuse);
 	return buffer;
 }
 
 // Re-export for consumers who need to clear bg conflict warnings
 export { clearBgConflictWarnings };
+
+/**
+ * Clear dirty flags on a subtree that was skipped during incremental rendering.
+ */
+function clearDirtyFlags(node: InkxNode): void {
+	node.contentDirty = false;
+	node.subtreeDirty = false;
+	for (const child of node.children) {
+		if (child.layoutNode) clearDirtyFlags(child);
+	}
+}
 
 /**
  * Render a single node to the buffer.
@@ -41,6 +58,7 @@ function renderNodeToBuffer(
 	buffer: TerminalBuffer,
 	scrollOffset = 0,
 	clipBounds?: { top: number; bottom: number },
+	hasPrevBuffer = false,
 ): void {
 	const layout = node.computedLayout;
 	if (!layout) return;
@@ -59,8 +77,40 @@ function renderNodeToBuffer(
 	// Also skip their children since the entire subtree is hidden
 	if (props.display === 'none') return;
 
+	// FAST PATH: Skip entire subtree if unchanged and we have a previous buffer
+	// The buffer was cloned from prevBuffer, so skipped nodes keep their rendered output
+	const layoutChanged = !rectEqual(node.prevLayout, node.computedLayout);
+	if (hasPrevBuffer && !node.contentDirty && !layoutChanged && !node.subtreeDirty) {
+		clearDirtyFlags(node);
+		return;
+	}
+
 	// Check if this is a scrollable container
 	const isScrollContainer = props.overflow === 'scroll' && node.scrollState;
+
+	// When re-rendering a content-dirty box on a cloned buffer, clear its region first.
+	// contentDirty means the node's own props or structure changed (backgroundColor
+	// removed, children added/removed triggering layout change, etc.), so old pixels
+	// from the cloned buffer may bleed through. Nodes with backgroundColor are already
+	// cleared by renderBox's fill. Subtree-dirty-only nodes (descendants changed but
+	// this node's own content didn't) don't need clearing - their children will
+	// overwrite their own regions.
+	if (
+		hasPrevBuffer &&
+		(node.contentDirty || layoutChanged) &&
+		node.type === 'inkx-box' &&
+		!props.backgroundColor
+	) {
+		const screenY = layout.y - scrollOffset;
+		const clearY = clipBounds ? Math.max(screenY, clipBounds.top) : screenY;
+		const clearBottom = clipBounds
+			? Math.min(screenY + layout.height, clipBounds.bottom)
+			: screenY + layout.height;
+		const clearHeight = clearBottom - clearY;
+		if (clearHeight > 0) {
+			buffer.fill(layout.x, clearY, layout.width, clearHeight, { char: ' ' });
+		}
+	}
 
 	// Render based on node type
 	if (node.type === 'inkx-box') {
@@ -76,13 +126,14 @@ function renderNodeToBuffer(
 
 	// Render children
 	if (isScrollContainer && node.scrollState) {
-		renderScrollContainerChildren(node, buffer, props, clipBounds);
+		renderScrollContainerChildren(node, buffer, props, clipBounds, hasPrevBuffer);
 	} else {
-		renderNormalChildren(node, buffer, scrollOffset, props, clipBounds);
+		renderNormalChildren(node, buffer, scrollOffset, props, clipBounds, hasPrevBuffer);
 	}
 
-	// Clear content dirty flag
+	// Clear dirty flags
 	node.contentDirty = false;
+	node.subtreeDirty = false;
 }
 
 /**
@@ -93,6 +144,7 @@ function renderScrollContainerChildren(
 	buffer: TerminalBuffer,
 	props: BoxProps,
 	clipBounds?: { top: number; bottom: number },
+	_hasPrevBuffer = false,
 ): void {
 	const layout = node.computedLayout;
 	const ss = node.scrollState;
@@ -116,6 +168,12 @@ function renderScrollContainerChildren(
 			}
 		: nodeClip;
 
+	// IMPORTANT: Never use hasPrevBuffer for scroll container children.
+	// Even if child content hasn't changed, their SCREEN position changes when
+	// scrollOffset changes. The fast-path would incorrectly skip rendering them
+	// at their new screen positions, causing visual corruption.
+	// TODO: Track prevScrollOffset and only disable fast-path when it changes.
+
 	// First pass: render non-sticky visible children with scroll offset
 	for (let i = 0; i < node.children.length; i++) {
 		const child = node.children[i];
@@ -133,7 +191,8 @@ function renderScrollContainerChildren(
 		}
 
 		// Render visible children with scroll offset applied
-		renderNodeToBuffer(child, buffer, ss.offset, childClipBounds);
+		// Pass hasPrevBuffer=false to force re-rendering at new screen positions
+		renderNodeToBuffer(child, buffer, ss.offset, childClipBounds, false);
 	}
 
 	// Second pass: render sticky children at their computed positions
@@ -148,7 +207,7 @@ function renderScrollContainerChildren(
 			// This makes the child render at renderOffset instead of its natural position
 			const stickyScrollOffset = sticky.naturalTop - sticky.renderOffset;
 
-			renderNodeToBuffer(child, buffer, stickyScrollOffset, childClipBounds);
+			renderNodeToBuffer(child, buffer, stickyScrollOffset, childClipBounds, false);
 		}
 	}
 }
@@ -162,6 +221,7 @@ function renderNormalChildren(
 	scrollOffset: number,
 	props: BoxProps,
 	clipBounds?: { top: number; bottom: number },
+	hasPrevBuffer = false,
 ): void {
 	const layout = node.computedLayout;
 	if (!layout) return;
@@ -193,6 +253,6 @@ function renderNormalChildren(
 
 	// Normal rendering - render all children with effective clip bounds
 	for (const child of node.children) {
-		renderNodeToBuffer(child, buffer, scrollOffset, effectiveClipBounds);
+		renderNodeToBuffer(child, buffer, scrollOffset, effectiveClipBounds, hasPrevBuffer);
 	}
 }

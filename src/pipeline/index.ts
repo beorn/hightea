@@ -147,12 +147,12 @@ export function executeRender(
 		notifyLayoutSubscribers(root);
 	}
 
-	// Phase 3: Content render
+	// Phase 3: Content render (incremental if we have prevBuffer)
 	let buffer: TerminalBuffer;
 	{
 		using _content = render.span('content');
 		const t3 = Date.now();
-		buffer = contentPhase(root);
+		buffer = contentPhase(root, prevBuffer);
 		log.debug?.(`content: ${Date.now() - t3}ms`);
 	}
 

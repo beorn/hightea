@@ -13,6 +13,21 @@ import { contentPropsChanged, layoutPropsChanged, propsEqual } from './helpers.j
 import { applyBoxProps, createNode, createVirtualTextNode } from './nodes.js';
 
 // ============================================================================
+// Subtree Dirty Propagation
+// ============================================================================
+
+/**
+ * Mark this node and all ancestors as having dirty content/layout.
+ * Used to enable fast-path subtree skipping in contentPhase.
+ */
+function markSubtreeDirty(node: InkxNode | null): void {
+	while (node && !node.subtreeDirty) {
+		node.subtreeDirty = true;
+		node = node.parent;
+	}
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -102,6 +117,7 @@ export const hostConfig = {
 			prevLayout: null,
 			layoutDirty: false,
 			contentDirty: true,
+			subtreeDirty: true,
 			layoutSubscribers: new Set(),
 			textContent: text,
 			isRawText: true,
@@ -121,6 +137,7 @@ export const hostConfig = {
 		}
 		parentInstance.layoutDirty = true;
 		parentInstance.layoutNode?.markDirty();
+		markSubtreeDirty(parentInstance);
 	},
 
 	appendInitialChild(parentInstance: InkxNode, child: InkxNode) {
@@ -142,6 +159,7 @@ export const hostConfig = {
 		}
 		container.root.layoutDirty = true;
 		container.root.layoutNode?.markDirty();
+		markSubtreeDirty(container.root);
 	},
 
 	removeChild(parentInstance: InkxNode, child: InkxNode) {
@@ -155,6 +173,7 @@ export const hostConfig = {
 			child.parent = null;
 			parentInstance.layoutDirty = true;
 			parentInstance.layoutNode?.markDirty();
+			markSubtreeDirty(parentInstance);
 		}
 	},
 
@@ -169,6 +188,7 @@ export const hostConfig = {
 			child.parent = null;
 			container.root.layoutDirty = true;
 			container.root.layoutNode?.markDirty();
+			markSubtreeDirty(container.root);
 		}
 	},
 
@@ -186,6 +206,7 @@ export const hostConfig = {
 			}
 			parentInstance.layoutDirty = true;
 			parentInstance.layoutNode?.markDirty();
+			markSubtreeDirty(parentInstance);
 		}
 	},
 
@@ -202,6 +223,7 @@ export const hostConfig = {
 			}
 			container.root.layoutDirty = true;
 			container.root.layoutNode?.markDirty();
+			markSubtreeDirty(container.root);
 		}
 	},
 
@@ -256,6 +278,7 @@ export const hostConfig = {
 		}
 
 		instance.props = newProps;
+		markSubtreeDirty(instance);
 	},
 
 	commitTextUpdate(textInstance: InkxNode, _oldText: string, newText: string) {
@@ -273,6 +296,7 @@ export const hostConfig = {
 			node.layoutDirty = true;
 			node.layoutNode.markDirty();
 		}
+		markSubtreeDirty(textInstance);
 	},
 
 	// Finalization
@@ -418,6 +442,7 @@ export const hostConfig = {
 		if (instance.parent) {
 			instance.parent.contentDirty = true;
 		}
+		markSubtreeDirty(instance);
 	},
 
 	/**
@@ -431,6 +456,7 @@ export const hostConfig = {
 		if (instance.parent) {
 			instance.parent.contentDirty = true;
 		}
+		markSubtreeDirty(instance);
 	},
 
 	/**
@@ -442,6 +468,7 @@ export const hostConfig = {
 		if (textInstance.parent) {
 			textInstance.parent.contentDirty = true;
 		}
+		markSubtreeDirty(textInstance);
 	},
 
 	/**
@@ -453,5 +480,6 @@ export const hostConfig = {
 		if (textInstance.parent) {
 			textInstance.parent.contentDirty = true;
 		}
+		markSubtreeDirty(textInstance);
 	},
 };
