@@ -227,12 +227,6 @@ function calculateScrollState(node: InkxNode, props: BoxProps): void {
 	let scrollOffset = prevOffset ?? 0;
 	const scrollTo = props.scrollTo;
 
-	// Debug: track scroll changes
-	const nodeId = (props as { id?: string }).id;
-	if (nodeId) {
-		log.debug?.('scroll-calc node=%s scrollTo=%s prevOffset=%s', nodeId, scrollTo, prevOffset);
-	}
-
 	if (scrollTo !== undefined && scrollTo >= 0 && scrollTo < childPositions.length) {
 		// Find the target child
 		const target = childPositions.find((c) => c.index === scrollTo);
@@ -312,7 +306,12 @@ function calculateScrollState(node: InkxNode, props: BoxProps): void {
 		}
 
 		// Clamp to viewport bounds
-		renderOffset = Math.max(0, Math.min(renderOffset, viewportHeight - childHeight));
+		// For children taller than viewport, pin to top (can't fit, so show from top)
+		if (childHeight >= viewportHeight) {
+			renderOffset = Math.max(0, renderOffset);
+		} else {
+			renderOffset = Math.max(0, Math.min(renderOffset, viewportHeight - childHeight));
+		}
 
 		stickyChildren.push({
 			index: cp.index,
@@ -333,11 +332,6 @@ function calculateScrollState(node: InkxNode, props: BoxProps): void {
 		hiddenBelow,
 		stickyChildren: stickyChildren.length > 0 ? stickyChildren : undefined,
 	};
-
-	// Debug: log if scroll offset changed
-	if (nodeId && prevOffset !== undefined && prevOffset !== scrollOffset) {
-		log.debug?.('scroll-changed node=%s %d -> %d (scrollTo=%s)', nodeId, prevOffset, scrollOffset, scrollTo);
-	}
 }
 
 /**
