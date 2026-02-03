@@ -68,6 +68,8 @@
  */
 export { Box } from './components/Box.js';
 export { Console } from './components/Console.js';
+export { VirtualList } from './components/VirtualList.js';
+export type { VirtualListProps, VirtualListHandle } from './components/VirtualList.js';
 
 /**
  * Re-export Text component - renders text content.

@@ -774,6 +774,83 @@ Children with `position="sticky"` pin to container edges when scrolled:
 </Box>
 ```
 
+## VirtualList Component
+
+For large lists, use `VirtualList` for **React-level virtualization**. Unlike `overflow="scroll"` which only skips *rendering* non-visible children, VirtualList prevents React from *creating* elements for off-screen items.
+
+### Basic Usage
+
+```tsx
+import { VirtualList } from 'inkx';
+
+<VirtualList
+  items={allCards}
+  height={20}
+  itemHeight={1}
+  scrollTo={selectedIndex}
+  renderItem={(card, index) => (
+    <Text key={card.id}>{card.name}</Text>
+  )}
+/>
+```
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `items` | `T[]` | required | Array of items to render |
+| `height` | `number` | required | Viewport height in rows |
+| `itemHeight` | `number` | 1 | Height per item in rows |
+| `scrollTo` | `number` | - | Index to keep visible |
+| `overscan` | `number` | 5 | Extra items above/below viewport |
+| `maxRendered` | `number` | 100 | Max items to render at once |
+| `renderItem` | `(item, index) => ReactNode` | required | Render function |
+| `keyExtractor` | `(item, index) => string` | - | Custom key function |
+| `overflowIndicator` | `boolean` | - | Show ▲N/▼N indicators |
+| `width` | `number` | - | Optional fixed width |
+
+### When to Use
+
+| Scenario | Component |
+|----------|-----------|
+| Small lists (<100 items) | `Box overflow="scroll"` |
+| Large lists (100+ items) | `VirtualList` |
+| Dynamic item heights | `Box overflow="scroll"` |
+| Known fixed item heights | `VirtualList` (faster) |
+
+### Performance Comparison
+
+```tsx
+// Box overflow="scroll" - React creates ALL elements, inkx skips rendering
+<Box overflow="scroll" height={10}>
+  {items.map(i => <Text>{i}</Text>)}  // 10,000 React elements created
+</Box>
+
+// VirtualList - React only creates VISIBLE elements
+<VirtualList
+  items={items}
+  height={10}
+  renderItem={(i) => <Text>{i}</Text>}  // ~110 React elements (100 + overscan)
+/>
+```
+
+### With Selection State
+
+```tsx
+const renderCard = useCallback((card, index) => {
+  const isSelected = index === selectedIndex;
+  return <Card key={card.id} card={card} isSelected={isSelected} />;
+}, [selectedIndex]);
+
+<VirtualList
+  items={cards}
+  height={height}
+  scrollTo={selectedIndex}
+  renderItem={renderCard}
+  keyExtractor={(card) => card.id}
+/>
+```
+
 ## Key Exports
 
 | Export | Description |
