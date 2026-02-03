@@ -23,6 +23,9 @@
  */
 import React, { useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Box } from './Box.js';
+import createDebug from 'debug';
+
+const debug = createDebug('inkx:virtuallist');
 
 // =============================================================================
 // Types
@@ -146,16 +149,48 @@ function VirtualListInner<T>(
 	// Calculate how many items fit in the viewport
 	const visibleItemCount = Math.max(1, Math.floor(height / itemHeight));
 
+	// Track the last scroll position to preserve when scrollTo becomes undefined
+	// This is the KEY fix: we track both the selected index AND the computed scroll offset
+	const lastScrollStateRef = useRef<{ selectedIndex: number; scrollOffset: number }>({
+		selectedIndex: 0,
+		scrollOffset: 0,
+	});
+
 	// Calculate scroll offset using edge-based scrolling
-	const selectedIndex = scrollTo ?? 0;
-	const clampedIndex = Math.min(Math.max(0, selectedIndex), items.length - 1);
-	const newScrollOffset = calcEdgeBasedScrollOffset(
-		clampedIndex,
-		scrollOffsetRef.current,
-		visibleItemCount,
-		items.length,
-	);
-	scrollOffsetRef.current = newScrollOffset;
+	// Only recalculate when scrollTo is defined (column is selected)
+	// When undefined, use the FROZEN scroll state from when it was last selected
+	let currentScrollOffset: number;
+	let currentSelectedIndex: number;
+
+	if (scrollTo !== undefined) {
+		// Active selection - calculate new scroll position
+		currentSelectedIndex = Math.min(Math.max(0, scrollTo), items.length - 1);
+		currentScrollOffset = calcEdgeBasedScrollOffset(
+			currentSelectedIndex,
+			lastScrollStateRef.current.scrollOffset,
+			visibleItemCount,
+			items.length,
+		);
+
+		// Save state for when this column becomes unselected
+		lastScrollStateRef.current = {
+			selectedIndex: currentSelectedIndex,
+			scrollOffset: currentScrollOffset,
+		};
+
+		debug('selected: scrollTo=%d offset=%d->%d items=%d',
+			scrollTo, lastScrollStateRef.current.scrollOffset, currentScrollOffset, items.length);
+	} else {
+		// Not selected - use frozen state (don't recalculate anything!)
+		currentSelectedIndex = lastScrollStateRef.current.selectedIndex;
+		currentScrollOffset = lastScrollStateRef.current.scrollOffset;
+	}
+
+	// Update the legacy ref for compatibility with scrollToItem imperative API
+	scrollOffsetRef.current = currentScrollOffset;
+
+	// Use the current selected index for virtualization window
+	const clampedIndex = Math.min(Math.max(0, currentSelectedIndex), items.length - 1);
 
 	// Calculate virtualization window
 	const { startIndex, endIndex, topPlaceholderHeight, bottomPlaceholderHeight } = useMemo(() => {

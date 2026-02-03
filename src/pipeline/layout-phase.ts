@@ -223,8 +223,15 @@ function calculateScrollState(node: InkxNode, props: BoxProps): void {
 	// Calculate scroll offset based on scrollTo prop
 	// Use "ensure visible" scrolling: only scroll when target would be off-screen
 	// Preserve previous offset when target is already visible
-	let scrollOffset = node.scrollState?.offset ?? 0;
+	const prevOffset = node.scrollState?.offset;
+	let scrollOffset = prevOffset ?? 0;
 	const scrollTo = props.scrollTo;
+
+	// Debug: track scroll changes
+	const nodeId = (props as { id?: string }).id;
+	if (nodeId) {
+		log.debug?.('scroll-calc node=%s scrollTo=%s prevOffset=%s', nodeId, scrollTo, prevOffset);
+	}
 
 	if (scrollTo !== undefined && scrollTo >= 0 && scrollTo < childPositions.length) {
 		// Find the target child
@@ -326,6 +333,11 @@ function calculateScrollState(node: InkxNode, props: BoxProps): void {
 		hiddenBelow,
 		stickyChildren: stickyChildren.length > 0 ? stickyChildren : undefined,
 	};
+
+	// Debug: log if scroll offset changed
+	if (nodeId && prevOffset !== undefined && prevOffset !== scrollOffset) {
+		log.debug?.('scroll-changed node=%s %d -> %d (scrollTo=%s)', nodeId, prevOffset, scrollOffset, scrollTo);
+	}
 }
 
 /**
