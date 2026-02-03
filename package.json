@@ -26,6 +26,10 @@
     "./dom": {
       "types": "./src/dom/index.ts",
       "import": "./src/dom/index.ts"
+    },
+    "./scroll-utils": {
+      "types": "./src/scroll-utils.ts",
+      "import": "./src/scroll-utils.ts"
     }
   },
   "scripts": {

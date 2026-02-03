@@ -19,9 +19,10 @@
  * />
  * ```
  */
-import React, { useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Box } from './Box.js';
 import { Text } from './Text.js';
+import { calcEdgeBasedScrollOffset } from '../scroll-utils.js';
 
 // =============================================================================
 // Types
@@ -77,7 +78,14 @@ export interface HorizontalVirtualListHandle {
 const DEFAULT_OVERSCAN = 1;
 const DEFAULT_MAX_RENDERED = 20;
 
-// Padding from edge before scrolling (in items)
+/**
+ * Padding from edge before scrolling (in items).
+ *
+ * Horizontal lists use padding=1 since columns are wider and fewer fit on screen.
+ * Vertical lists (VirtualList) use padding=2 for more context visibility.
+ *
+ * @see calcEdgeBasedScrollOffset in scroll-utils.ts for the algorithm
+ */
 const SCROLL_PADDING = 1;
 
 // =============================================================================
@@ -117,34 +125,6 @@ function calcVisibleCount<T>(
 	return Math.max(1, count);
 }
 
-/**
- * Calculate edge-based scroll offset for horizontal scrolling.
- * Only scrolls when cursor approaches the edge of the visible area.
- */
-function calcHorizontalEdgeScroll(
-	selectedIndex: number,
-	currentOffset: number,
-	visibleCount: number,
-	totalCount: number,
-): number {
-	if (totalCount <= visibleCount) return 0;
-
-	const visibleStart = currentOffset;
-	const visibleEnd = currentOffset + visibleCount - 1;
-	const paddedStart = visibleStart + SCROLL_PADDING;
-	const paddedEnd = visibleEnd - SCROLL_PADDING;
-
-	let newOffset = currentOffset;
-
-	if (selectedIndex < paddedStart) {
-		newOffset = Math.max(0, selectedIndex - SCROLL_PADDING);
-	} else if (selectedIndex > paddedEnd) {
-		newOffset = Math.min(totalCount - visibleCount, selectedIndex - visibleCount + SCROLL_PADDING + 1);
-	}
-
-	return Math.max(0, Math.min(newOffset, totalCount - visibleCount));
-}
-
 // =============================================================================
 // Component
 // =============================================================================
@@ -153,7 +133,14 @@ function calcHorizontalEdgeScroll(
  * HorizontalVirtualList - React-level virtualized horizontal list.
  *
  * Only renders items within the visible viewport plus overscan.
- * Uses placeholder boxes for virtual width to maintain scroll position.
+ *
+ * Scroll state management:
+ * - When scrollTo is defined: actively track and scroll to that index
+ * - When scrollTo is undefined: completely freeze scroll state (do nothing)
+ *
+ * This freeze behavior is critical for multi-column layouts where only one
+ * column is "selected" at a time. Non-selected columns must not recalculate
+ * their scroll position.
  */
 function HorizontalVirtualListInner<T>(
 	{
@@ -172,15 +159,70 @@ function HorizontalVirtualListInner<T>(
 	}: HorizontalVirtualListProps<T>,
 	ref: React.ForwardedRef<HorizontalVirtualListHandle>,
 ): React.ReactElement {
-	// Track scroll offset (item index) for edge-based scrolling
-	const scrollOffsetRef = useRef(0);
+	// Scroll state: the selected index and computed scroll offset
+	// Using state (not refs) to ensure React re-renders when we scroll imperatively
+	const [scrollState, setScrollState] = useState<{ selectedIndex: number; scrollOffset: number }>({
+		selectedIndex: scrollTo ?? 0,
+		scrollOffset: 0,
+	});
 
-	// Expose scrollToItem method via ref
-	useImperativeHandle(ref, () => ({
-		scrollToItem(index: number) {
-			scrollOffsetRef.current = Math.max(0, Math.min(index, items.length - 1));
-		},
-	}));
+	// Estimate how many items fit in viewport
+	const avgItemWidth =
+		items.length > 0
+			? typeof itemWidth === 'function'
+				? items.reduce((sum, item, i) => sum + getItemWidth(item, i, itemWidth), 0) / items.length
+				: itemWidth
+			: 1;
+	const estimatedVisibleCount = Math.max(1, Math.floor(width / (avgItemWidth + gap)));
+
+	// Expose scrollToItem method via ref for imperative scrolling
+	useImperativeHandle(
+		ref,
+		() => ({
+			scrollToItem(index: number) {
+				const clampedIndex = Math.max(0, Math.min(index, items.length - 1));
+				setScrollState((prev) => {
+					const newOffset = calcEdgeBasedScrollOffset(
+						clampedIndex,
+						prev.scrollOffset,
+						estimatedVisibleCount,
+						items.length,
+						SCROLL_PADDING,
+					);
+					return { selectedIndex: clampedIndex, scrollOffset: newOffset };
+				});
+			},
+		}),
+		[items.length, estimatedVisibleCount],
+	);
+
+	// Update scroll state when scrollTo prop changes (only when defined)
+	// This is the key fix: we only update state when scrollTo is defined
+	// When scrollTo becomes undefined, we do NOTHING - state is frozen
+	useEffect(() => {
+		if (scrollTo === undefined) {
+			// Frozen: do not update state at all
+			return;
+		}
+
+		const clampedIndex = Math.max(0, Math.min(scrollTo, items.length - 1));
+		setScrollState((prev) => {
+			const newOffset = calcEdgeBasedScrollOffset(
+				clampedIndex,
+				prev.scrollOffset,
+				estimatedVisibleCount,
+				items.length,
+				SCROLL_PADDING,
+			);
+
+			// Only update if something actually changed
+			if (prev.selectedIndex === clampedIndex && prev.scrollOffset === newOffset) {
+				return prev;
+			}
+
+			return { selectedIndex: clampedIndex, scrollOffset: newOffset };
+		});
+	}, [scrollTo, items.length, estimatedVisibleCount]);
 
 	// Empty state - handle early
 	if (items.length === 0) {
@@ -191,30 +233,14 @@ function HorizontalVirtualListInner<T>(
 		);
 	}
 
-	// Calculate the target index for scroll
-	const targetIndex = scrollTo ?? scrollOffsetRef.current;
-	const clampedIndex = Math.min(Math.max(0, targetIndex), items.length - 1);
+	// Determine the current selected index to use for rendering
+	// When scrollTo is defined, use it directly (for immediate visual feedback)
+	// When undefined, use the frozen state
+	const currentSelectedIndex =
+		scrollTo !== undefined ? Math.max(0, Math.min(scrollTo, items.length - 1)) : scrollState.selectedIndex;
+	const currentScrollOffset = scrollState.scrollOffset;
 
-	// Estimate how many items fit in viewport (for edge-based scroll calculation)
-	const avgItemWidth =
-		typeof itemWidth === 'function'
-			? items.reduce((sum, item, i) => sum + getItemWidth(item, i, itemWidth), 0) / items.length
-			: itemWidth;
-	const estimatedVisibleCount = Math.max(1, Math.floor(width / (avgItemWidth + gap)));
-
-	// Calculate scroll offset using edge-based scrolling
-	let scrollOffset = scrollOffsetRef.current;
-	if (scrollTo !== undefined) {
-		scrollOffset = calcHorizontalEdgeScroll(
-			clampedIndex,
-			scrollOffsetRef.current,
-			estimatedVisibleCount,
-			items.length,
-		);
-		scrollOffsetRef.current = scrollOffset;
-	}
-
-	// Calculate virtualization window (inline, not memoized, since scrollOffset changes)
+	// Calculate virtualization window
 	const totalItems = items.length;
 	let startIndex: number;
 	let endIndex: number;
@@ -225,7 +251,7 @@ function HorizontalVirtualListInner<T>(
 		endIndex = totalItems;
 	} else {
 		// Start from scroll offset, add overscan
-		startIndex = Math.max(0, scrollOffset - overscan);
+		startIndex = Math.max(0, currentScrollOffset - overscan);
 
 		// Calculate how many items we can render
 		const visibleFromStart = calcVisibleCount(items, startIndex, width, itemWidth, gap);
@@ -234,7 +260,7 @@ function HorizontalVirtualListInner<T>(
 		// Cap at maxRendered - center around target
 		if (endIndex - startIndex > maxRendered) {
 			const halfWindow = Math.floor(maxRendered / 2);
-			startIndex = Math.max(0, clampedIndex - halfWindow);
+			startIndex = Math.max(0, currentSelectedIndex - halfWindow);
 			endIndex = Math.min(totalItems, startIndex + maxRendered);
 
 			// Adjust if we hit the end

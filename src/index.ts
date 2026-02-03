@@ -410,3 +410,25 @@ export {
 } from './unicode.js';
 
 export type { StyledSegment } from './unicode.js';
+
+// =============================================================================
+// Scroll Utilities
+// =============================================================================
+
+/**
+ * Scroll utility for edge-based scrolling.
+ *
+ * @example
+ * ```tsx
+ * import { calcEdgeBasedScrollOffset } from 'inkx';
+ *
+ * const newOffset = calcEdgeBasedScrollOffset(
+ *   selectedIndex,
+ *   currentOffset,
+ *   visibleCount,
+ *   totalCount,
+ *   padding  // optional, default: 1
+ * );
+ * ```
+ */
+export { calcEdgeBasedScrollOffset } from './scroll-utils.js';

@@ -23,6 +23,7 @@
  */
 import React, { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Box } from './Box.js';
+import { calcEdgeBasedScrollOffset } from '../scroll-utils.js';
 import createDebug from 'debug';
 
 const debug = createDebug('inkx:virtuallist');
@@ -76,40 +77,19 @@ const DEFAULT_ITEM_HEIGHT = 1;
 const DEFAULT_OVERSCAN = 5;
 const DEFAULT_MAX_RENDERED = 100;
 
-// Padding from edge before scrolling (in items)
-const SCROLL_PADDING = 2;
-
-// =============================================================================
-// Helpers
-// =============================================================================
-
 /**
- * Calculate edge-based scroll offset.
- * Only scrolls when cursor approaches the edge of the visible area.
+ * Padding from edge before scrolling (in items).
+ *
+ * When the selected item is within SCROLL_PADDING of the viewport edge,
+ * the viewport scrolls to keep the item visible with this margin.
+ *
+ * Vertical lists use padding=2 for more context visibility (you typically
+ * want to see what's coming when scrolling through a long list).
+ * Horizontal lists use padding=1 since columns are wider and fewer fit on screen.
+ *
+ * @see calcEdgeBasedScrollOffset in scroll-utils.ts for the algorithm
  */
-function calcEdgeBasedScrollOffset(
-	selectedIndex: number,
-	currentOffset: number,
-	visibleCount: number,
-	totalCount: number,
-): number {
-	if (totalCount <= visibleCount) return 0;
-
-	const visibleStart = currentOffset;
-	const visibleEnd = currentOffset + visibleCount - 1;
-	const paddedStart = visibleStart + SCROLL_PADDING;
-	const paddedEnd = visibleEnd - SCROLL_PADDING;
-
-	let newOffset = currentOffset;
-
-	if (selectedIndex < paddedStart) {
-		newOffset = Math.max(0, selectedIndex - SCROLL_PADDING);
-	} else if (selectedIndex > paddedEnd) {
-		newOffset = Math.min(totalCount - visibleCount, selectedIndex - visibleCount + SCROLL_PADDING + 1);
-	}
-
-	return Math.max(0, Math.min(newOffset, totalCount - visibleCount));
-}
+const SCROLL_PADDING = 2;
 
 // =============================================================================
 // Component
@@ -161,7 +141,7 @@ function VirtualListInner<T>(
 			scrollToItem(index: number) {
 				const clampedIndex = Math.max(0, Math.min(index, items.length - 1));
 				setScrollState((prev) => {
-					const newOffset = calcEdgeBasedScrollOffset(clampedIndex, prev.scrollOffset, visibleItemCount, items.length);
+					const newOffset = calcEdgeBasedScrollOffset(clampedIndex, prev.scrollOffset, visibleItemCount, items.length, SCROLL_PADDING);
 					return { selectedIndex: clampedIndex, scrollOffset: newOffset };
 				});
 			},
@@ -180,14 +160,15 @@ function VirtualListInner<T>(
 
 		const clampedIndex = Math.max(0, Math.min(scrollTo, items.length - 1));
 		setScrollState((prev) => {
-			const newOffset = calcEdgeBasedScrollOffset(clampedIndex, prev.scrollOffset, visibleItemCount, items.length);
+			const newOffset = calcEdgeBasedScrollOffset(clampedIndex, prev.scrollOffset, visibleItemCount, items.length, SCROLL_PADDING);
 
 			// Only update if something actually changed
 			if (prev.selectedIndex === clampedIndex && prev.scrollOffset === newOffset) {
+				debug('VirtualList no change: scrollTo=%d offset=%d', scrollTo, prev.scrollOffset);
 				return prev;
 			}
 
-			debug('scrollTo changed: %d -> offset=%d (was %d)', scrollTo, newOffset, prev.scrollOffset);
+			debug('VirtualList scrollTo changed: %d -> offset=%d (was %d)', scrollTo, newOffset, prev.scrollOffset);
 			return { selectedIndex: clampedIndex, scrollOffset: newOffset };
 		});
 	}, [scrollTo, items.length, visibleItemCount]);
