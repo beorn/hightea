@@ -706,8 +706,9 @@ function mergeAnsiStyle(
   if (segment.bold !== undefined) overlayAttrs.bold = segment.bold
   if (segment.dim !== undefined) overlayAttrs.dim = segment.dim
   if (segment.italic !== undefined) overlayAttrs.italic = segment.italic
-  if (segment.underline !== undefined)
+  if (segment.underline !== undefined) {
     overlayAttrs.underline = segment.underline
+  }
   if (segment.underlineStyle !== undefined) {
     overlayAttrs.underlineStyle = segment.underlineStyle as UnderlineStyle
   }

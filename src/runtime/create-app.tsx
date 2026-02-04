@@ -94,9 +94,7 @@ function isFullProvider(
 /**
  * Check if value is a basic Provider (just getState/subscribe, Zustand-compatible).
  */
-function isBasicProvider(
-  value: unknown,
-): value is {
+function isBasicProvider(value: unknown): value is {
   getState(): unknown
   subscribe(l: (s: unknown) => void): () => void
 } {

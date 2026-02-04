@@ -50,8 +50,9 @@ const DEFAULT_HEIGHT = 24
  */
 export function isTerm(value: unknown): value is Term {
   // Term can be a callable Proxy (typeof === 'function') or object
-  if (!value || (typeof value !== "object" && typeof value !== "function"))
+  if (!value || (typeof value !== "object" && typeof value !== "function")) {
     return false
+  }
   const obj = value as Record<string, unknown>
   return (
     typeof obj.hasCursor === "function" &&

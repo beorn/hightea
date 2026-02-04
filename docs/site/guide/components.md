@@ -8,7 +8,6 @@ The primary layout component. Uses Yoga (flexbox) for layout.
 
 ```tsx
 import { Box, Text } from "inkx"
-
 ;<Box flexDirection="row" justifyContent="space-between">
   <Text>Left</Text>
   <Text>Right</Text>
@@ -114,7 +113,6 @@ Flexible space that expands to fill available room.
 
 ```tsx
 import { Box, Spacer, Text } from "inkx"
-
 ;<Box>
   <Text>Left</Text>
   <Spacer />

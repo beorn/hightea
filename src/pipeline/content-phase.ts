@@ -316,7 +316,7 @@ function renderScrollContainerChildren(
   if (ss.stickyChildren) {
     for (const sticky of ss.stickyChildren) {
       const child = node.children[sticky.index]
-      if (!child || !child.contentRect) continue
+      if (!child?.contentRect) continue
 
       // Calculate the scroll offset that would place the child at its sticky position
       // stickyOffset = naturalTop - renderOffset

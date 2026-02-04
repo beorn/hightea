@@ -153,8 +153,9 @@ describe("Non-TTY Mode Detection (km-inkx-nontty)", () => {
       } finally {
         // Restore env
         if (savedEnv.CI) process.env.CI = savedEnv.CI
-        if (savedEnv.GITHUB_ACTIONS)
+        if (savedEnv.GITHUB_ACTIONS) {
           process.env.GITHUB_ACTIONS = savedEnv.GITHUB_ACTIONS
+        }
         if (savedEnv.GITLAB_CI) process.env.GITLAB_CI = savedEnv.GITLAB_CI
         if (savedEnv.JENKINS_URL) process.env.JENKINS_URL = savedEnv.JENKINS_URL
         if (savedEnv.TERM) process.env.TERM = savedEnv.TERM

@@ -20,8 +20,9 @@ function formatArgs(args: unknown[]): string {
   return args
     .map((arg) => {
       if (typeof arg === "string") return arg
-      if (typeof arg === "number" || typeof arg === "boolean")
+      if (typeof arg === "number" || typeof arg === "boolean") {
         return String(arg)
+      }
       if (arg === null) return "null"
       if (arg === undefined) return "undefined"
       try {

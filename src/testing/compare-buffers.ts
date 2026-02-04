@@ -93,8 +93,9 @@ export function formatMismatch(
   ]
 
   if (context?.seed !== undefined) lines.push(`  seed: ${context.seed}`)
-  if (context?.iteration !== undefined)
+  if (context?.iteration !== undefined) {
     lines.push(`  iteration: ${context.iteration}`)
+  }
   if (context?.key) lines.push(`  key: ${JSON.stringify(context.key)}`)
 
   if (context?.incrementalText) {

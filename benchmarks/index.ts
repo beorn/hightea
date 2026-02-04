@@ -40,8 +40,9 @@ function createMockNode(
   if (type === "inkx-box" || type === "inkx-text") {
     const boxProps = props as BoxProps
     if (typeof boxProps.width === "number") layoutNode.setWidth(boxProps.width)
-    if (typeof boxProps.height === "number")
+    if (typeof boxProps.height === "number") {
       layoutNode.setHeight(boxProps.height)
+    }
   }
 
   const node: InkxNode = {

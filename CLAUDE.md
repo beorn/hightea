@@ -532,7 +532,6 @@ Catch render errors with the built-in ErrorBoundary:
 
 ```tsx
 import { ErrorBoundary, Box, Text } from "inkx"
-
 ;<ErrorBoundary fallback={<Text color="red">Something went wrong</Text>}>
   <MyComponent />
 </ErrorBoundary>
@@ -570,7 +569,6 @@ Full React Suspense support for data fetching with `hideInstance`/`unhideInstanc
 ```tsx
 import { Suspense } from "react"
 import { Box, Text } from "inkx"
-
 ;<Suspense fallback={<Text>Loading...</Text>}>
   <AsyncDataComponent />
 </Suspense>
@@ -840,7 +838,6 @@ For large lists, use `VirtualList` for **React-level virtualization**. Unlike `o
 
 ```tsx
 import { VirtualList } from "inkx"
-
 ;<VirtualList
   items={allCards}
   height={20}
@@ -953,7 +950,6 @@ inkx detects this conflict and **throws by default**:
 
 ```tsx
 import { bgOverride } from "@beorn/chalkx"
-
 ;<Box backgroundColor="cyan">
   <Text>{bgOverride(chalk.bgBlack("intentional"))}</Text>
 </Box>
