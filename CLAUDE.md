@@ -122,11 +122,10 @@ import { Box, Text } from "inkx"
 ### Testing
 
 ```tsx
-const handle = await run(<Counter />, { cols: 80, rows: 24 })
+using handle = await run(<Counter />, { cols: 80, rows: 24 })
 expect(handle.text).toContain("Count: 0")
 await handle.press("j")
 expect(handle.text).toContain("Count: 1")
-handle.unmount()
 ```
 
 ### Frame Iteration
@@ -266,7 +265,7 @@ function App({ console: patched }: { console: PatchedConsole }) {
 {
   using term = createTerm()
   using patched = patchConsole(console)
-  const app = await render(<App console={patched} />, term)
+  using app = await render(<App console={patched} />, term)
 
   // Console.log calls now appear in <Console />
   console.log("This appears above the status line")
