@@ -45,6 +45,9 @@ export {
 export { layout, layoutSync, ensureLayoutEngine, type LayoutOptions } from './layout.js';
 export { diff, render, type DiffMode } from './diff.js';
 
+// Buffer helper
+export { createBuffer } from './create-buffer.js';
+
 // Layer 1: Runtime kernel
 export { createRuntime } from './create-runtime.js';
 
