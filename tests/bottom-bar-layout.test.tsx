@@ -48,7 +48,6 @@ describe('Bottom bar layout', () => {
 		);
 
 		const text = app.text;
-		console.log('Nested Text output:', '[' + text + ']');
 
 		// Should contain full COLUMNS VIEW without truncation
 		expect(text).toContain('COLUMNS VIEW');
@@ -81,7 +80,6 @@ describe('Bottom bar layout', () => {
 		);
 
 		const text = app.text;
-		console.log('Pre-built string output:', '[' + text + ']');
 
 		expect(text).toContain('COLUMNS VIEW');
 	});

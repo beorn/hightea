@@ -65,16 +65,12 @@ describe('flexGrow full board simulation', () => {
 		const text = app.text;
 		const lines = text.split('\n');
 		const bottomLine = lines[lines.length - 1] || '';
-		console.log('Bottom line:', '[' + bottomLine + ']');
-		console.log('Bottom line length:', bottomLine.length);
 
 		// Check computed widths
 		const left = app.locator('#left');
 		const right = app.locator('#right');
 		const leftBox = left.boundingBox();
 		const rightBox = right.boundingBox();
-		console.log('Left bbox:', leftBox);
-		console.log('Right bbox:', rightBox);
 
 		// Verify right side contains full "COLUMNS VIEW"
 		expect(bottomLine).toContain('COLUMNS VIEW');
@@ -128,14 +124,10 @@ describe('flexGrow full board simulation', () => {
 		const text = app.text;
 		const lines = text.split('\n');
 		const bottomLine = lines[lines.length - 1] || '';
-		console.log('km-tui simulation - Bottom line:', '[' + bottomLine + ']');
 
 		// Get box widths
 		const leftBox = app.locator('#left').boundingBox();
 		const rightBox = app.locator('#right').boundingBox();
-		console.log('Left width:', leftBox?.width);
-		console.log('Right width:', rightBox?.width);
-		console.log('Sum:', (leftBox?.width ?? 0) + (rightBox?.width ?? 0));
 
 		expect(bottomLine).toContain('COLUMNS VIEW');
 	});

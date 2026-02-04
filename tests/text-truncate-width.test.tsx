@@ -17,7 +17,6 @@ describe('Text truncation with explicit parent width', () => {
 		);
 
 		const text = app.text.trim();
-		console.log('Text:', text, 'Length:', text.length);
 
 		// Text should be truncated to ~20 chars (19 + ellipsis)
 		expect(text.length).toBeLessThanOrEqual(20);
@@ -40,7 +39,6 @@ describe('Text truncation with explicit parent width', () => {
 		);
 
 		const text = app.text;
-		console.log('Full output:', JSON.stringify(text));
 
 		// Should contain full "COLUMNS VIEW" without truncation
 		expect(text).toContain('COLUMNS VIEW');
@@ -57,7 +55,6 @@ describe('Text truncation with explicit parent width', () => {
 		);
 
 		const text = app.text.trim();
-		console.log('Nested Text:', text, 'Length:', text.length);
 
 		// Should contain both parts
 		expect(text).toContain('Error:');
@@ -77,7 +74,6 @@ describe('Text truncation with explicit parent width', () => {
 		);
 
 		const text = app.text.trim();
-		console.log('Nested with truncate:', text, 'Length:', text.length);
 
 		// Text should be truncated to 30 chars
 		expect(text.length).toBeLessThanOrEqual(30);
@@ -89,9 +85,6 @@ describe('Text truncation with explicit parent width', () => {
 		// Verify displayWidth calculation
 		const str = ' 📋21   col 1/3   COLUMNS VIEW ';
 		const width = displayWidth(str);
-		console.log('String:', str);
-		console.log('String.length:', str.length);
-		console.log('displayWidth:', width);
 
 		// 📋 is 2 display columns, rest is 1:1
 		// " " + "📋" + "21   col 1/3   COLUMNS VIEW " = 1 + 2 + 28 = 31

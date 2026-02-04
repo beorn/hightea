@@ -21,7 +21,6 @@ describe('flexGrow layout', () => {
 		);
 
 		const text = app.text;
-		console.log('Output:', '[' + text + ']');
 
 		expect(text).toContain('Left side');
 		expect(text).toContain('COLUMNS VIEW');
@@ -47,7 +46,6 @@ describe('flexGrow layout', () => {
 		);
 
 		const text = app.text;
-		console.log('Nested output:', '[' + text + ']');
 
 		expect(text).toContain('📋21');
 		expect(text).toContain('col 1/3');

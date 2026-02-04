@@ -43,7 +43,6 @@ describe('flexGrow in board structure', () => {
 
 		const text = app.text;
 		const lines = text.split('\n');
-		console.log('Full board - last line:', '[' + lines[lines.length - 1] + ']');
 
 		// The bottom bar line should contain full COLUMNS VIEW
 		expect(lines[lines.length - 1]).toContain('COLUMNS VIEW');
@@ -79,7 +78,6 @@ describe('flexGrow in board structure', () => {
 
 		const text = app.text;
 		const lines = text.split('\n');
-		console.log('With toast - last line:', '[' + lines[lines.length - 1] + ']');
 
 		expect(lines[lines.length - 1]).toContain('COLUMNS VIEW');
 	});

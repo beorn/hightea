@@ -289,13 +289,18 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 	options: AppRunOptions,
 ): Promise<AppHandle<S & I>> {
 	const {
-		cols = process.stdout.columns || 80,
-		rows = process.stdout.rows || 24,
-		stdout = process.stdout,
+		cols: explicitCols,
+		rows: explicitRows,
+		stdout: explicitStdout,
 		stdin = process.stdin,
 		signal: externalSignal,
 		...injectValues
 	} = options;
+
+	const headless = explicitCols != null && explicitRows != null && !explicitStdout;
+	const cols = explicitCols ?? process.stdout.columns ?? 80;
+	const rows = explicitRows ?? process.stdout.rows ?? 24;
+	const stdout = explicitStdout ?? process.stdout;
 
 	// Initialize layout engine
 	await ensureLayoutEngine();
@@ -321,7 +326,29 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 	// Create term provider if not provided
 	let termProvider: TermProvider | null = null;
 	if (!('term' in injectValues) || !isFullProvider(injectValues.term)) {
-		termProvider = createTermProvider(stdin, stdout, { cols, rows });
+		// In headless mode, provide mock streams so termProvider doesn't touch real stdin/stdout
+		const termStdout = headless
+			? ({
+					columns: cols,
+					rows,
+					write: () => true,
+					isTTY: false,
+					on: () => termStdout,
+					off: () => termStdout,
+				} as unknown as NodeJS.WriteStream)
+			: stdout;
+		const termStdin = headless
+			? ({
+					isTTY: false,
+					on: () => termStdin,
+					off: () => termStdin,
+					setRawMode: () => {},
+					resume: () => {},
+					pause: () => {},
+					setEncoding: () => {},
+				} as unknown as NodeJS.ReadStream)
+			: stdin;
+		termProvider = createTermProvider(termStdin, termStdout, { cols, rows });
 		providers.term = termProvider;
 		providerCleanups.push(() => termProvider![Symbol.dispose]());
 	}
@@ -379,25 +406,30 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 	let shouldExit = false;
 
 	// Create render target
-	const target: RenderTarget = {
-		write(frame: string): void {
-			stdout.write(frame);
-		},
-		getDims(): Dims {
-			return currentDims;
-		},
-		onResize(handler: (dims: Dims) => void): () => void {
-			const onResize = () => {
-				currentDims = {
-					cols: stdout.columns || 80,
-					rows: stdout.rows || 24,
-				};
-				handler(currentDims);
+	const target: RenderTarget = headless
+		? {
+				write() {},
+				getDims: () => currentDims,
+			}
+		: {
+				write(frame: string): void {
+					stdout.write(frame);
+				},
+				getDims(): Dims {
+					return currentDims;
+				},
+				onResize(handler: (dims: Dims) => void): () => void {
+					const onResize = () => {
+						currentDims = {
+							cols: stdout.columns || 80,
+							rows: stdout.rows || 24,
+						};
+						handler(currentDims);
+					};
+					stdout.on('resize', onResize);
+					return () => stdout.off('resize', onResize);
+				},
 			};
-			stdout.on('resize', onResize);
-			return () => stdout.off('resize', onResize);
-		},
-	};
 
 	// Create runtime
 	const runtime = createRuntime({ target, signal });
@@ -438,7 +470,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 		runtime[Symbol.dispose]();
 
 		// Restore cursor
-		stdout.write('\x1b[?25h\x1b[0m\n');
+		if (!headless) stdout.write('\x1b[?25h\x1b[0m\n');
 	};
 
 	// Exit function - defined early so components can reference it
@@ -511,7 +543,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 	currentBuffer = buffer;
 
 	// Clear screen and hide cursor
-	stdout.write('\x1b[2J\x1b[H\x1b[?25l');
+	if (!headless) stdout.write('\x1b[2J\x1b[H\x1b[?25l');
 	runtime.render(buffer);
 
 	// Exit promise

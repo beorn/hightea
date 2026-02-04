@@ -29,11 +29,11 @@ import process from 'node:process';
 import React, { createContext, useContext, useEffect, type ReactElement } from 'react';
 
 import { createTerm } from 'chalkx';
-import { bufferToStyledText, bufferToText } from '../buffer.js';
 import { AppContext, StdoutContext, TermContext } from '../context.js';
 import { executeRender } from '../pipeline/index.js';
 import { createContainer, getContainerRoot, reconciler } from '../reconciler.js';
 import { merge, takeUntil } from '../streams/index.js';
+import { createBuffer } from './create-buffer.js';
 import { createRuntime } from './create-runtime.js';
 import { type InputHandler, type Key, parseKey } from './keys.js';
 import { ensureLayoutEngine } from './layout.js';
@@ -143,12 +143,17 @@ export function useExit(): () => void {
  */
 export async function run(element: ReactElement, options: RunOptions = {}): Promise<RunHandle> {
 	const {
-		cols = process.stdout.columns || 80,
-		rows = process.stdout.rows || 24,
-		stdout = process.stdout,
+		cols: explicitCols,
+		rows: explicitRows,
+		stdout: explicitStdout,
 		stdin = process.stdin,
 		signal: externalSignal,
 	} = options;
+
+	const headless = explicitCols != null && explicitRows != null && !explicitStdout;
+	const cols = explicitCols ?? process.stdout.columns ?? 80;
+	const rows = explicitRows ?? process.stdout.rows ?? 24;
+	const stdout = explicitStdout ?? process.stdout;
 
 	// Initialize layout engine
 	await ensureLayoutEngine();
@@ -283,25 +288,30 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 	// ========================================================================
 
 	// Create render target
-	const target: RenderTarget = {
-		write(frame: string): void {
-			stdout.write(frame);
-		},
-		getDims(): Dims {
-			return currentDims;
-		},
-		onResize(handler: (dims: Dims) => void): () => void {
-			const onResize = () => {
-				currentDims = {
-					cols: stdout.columns || 80,
-					rows: stdout.rows || 24,
-				};
-				handler(currentDims);
+	const target: RenderTarget = headless
+		? {
+				write() {},
+				getDims: () => currentDims,
+			}
+		: {
+				write(frame: string): void {
+					stdout.write(frame);
+				},
+				getDims(): Dims {
+					return currentDims;
+				},
+				onResize(handler: (dims: Dims) => void): () => void {
+					const onResize = () => {
+						currentDims = {
+							cols: stdout.columns || 80,
+							rows: stdout.rows || 24,
+						};
+						handler(currentDims);
+					};
+					stdout.on('resize', onResize);
+					return () => stdout.off('resize', onResize);
+				},
 			};
-			stdout.on('resize', onResize);
-			return () => stdout.off('resize', onResize);
-		},
-	};
 
 	// Create runtime
 	const runtime = createRuntime({ target, signal });
@@ -380,7 +390,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 	currentText = buffer.text;
 
 	// Clear screen and hide cursor
-	stdout.write('\x1b[2J\x1b[H\x1b[?25l');
+	if (!headless) stdout.write('\x1b[2J\x1b[H\x1b[?25l');
 	runtime.render(buffer);
 
 	// Exit promise
@@ -424,7 +434,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 		} finally {
 			// Cleanup
 			runtime[Symbol.dispose]();
-			stdout.write('\x1b[?25h\x1b[0m\n');
+			if (!headless) stdout.write('\x1b[?25h\x1b[0m\n');
 			exitResolve();
 		}
 	};

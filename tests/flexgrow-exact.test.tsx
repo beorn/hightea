@@ -30,8 +30,6 @@ describe('flexGrow exact replication', () => {
 		);
 
 		const text = app.text;
-		console.log('CARDS output:', '[' + text + ']');
-		console.log('Length:', text.length);
 
 		expect(text).toContain('CARDS VIEW');
 	});
@@ -58,8 +56,6 @@ describe('flexGrow exact replication', () => {
 		);
 
 		const text = app.text;
-		console.log('COLUMNS output:', '[' + text + ']');
-		console.log('Length:', text.length);
 
 		// This should NOT truncate
 		expect(text).toContain('COLUMNS VIEW');
@@ -78,7 +74,6 @@ describe('flexGrow exact replication', () => {
 		);
 
 		const text = app.text;
-		console.log('Simple output:', '[' + text + ']');
 
 		expect(text).toContain('COLUMNS VIEW');
 	});

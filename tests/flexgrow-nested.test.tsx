@@ -31,8 +31,6 @@ describe('flexGrow nested structure', () => {
 		);
 
 		const text = app.text;
-		console.log('Nested output:', '[' + text + ']');
-		console.log('Text length:', text.length);
 
 		expect(text).toContain('COLUMNS VIEW');
 		// Should not be truncated (ends with W, not E)
@@ -60,7 +58,6 @@ describe('flexGrow nested structure', () => {
 		);
 
 		const text = app.text;
-		console.log('Multi-nested output:', '[' + text + ']');
 
 		expect(text).toContain('📋21');
 		expect(text).toContain('col 1/3');
@@ -87,7 +84,6 @@ describe('flexGrow nested structure', () => {
 		);
 
 		const text = app.text;
-		console.log('With termWidth:', '[' + text + ']');
 
 		expect(text).toContain('COLUMNS VIEW');
 	});

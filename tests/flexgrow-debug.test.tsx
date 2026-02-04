@@ -22,8 +22,6 @@ describe('flexGrow debug', () => {
 		);
 
 		const text = app.text;
-		console.log('Debug output:', '[' + text + ']');
-		console.log('Text length:', text.length);
 
 		// The right side text is " 📋3   COLUMNS VIEW " which is 21 chars
 		// Left side should get 80 - 21 = 59 chars
@@ -44,8 +42,6 @@ describe('flexGrow debug', () => {
 		);
 
 		const text = app.text;
-		console.log('Narrow output:', '[' + text + ']');
-		console.log('Text length:', text.length);
 
 		// With flexGrow=0 + flexShrink=0, right should keep its intrinsic width
 		expect(text).toContain('COLUMNS VIEW');
@@ -59,7 +55,6 @@ describe('flexGrow debug', () => {
 			</Box>,
 		);
 
-		console.log('Single text:', '[' + app.text + ']');
 		// Get bounding box via locator
 		// Text should be ~ 21 chars (including the emoji which is 2 wide)
 	});
