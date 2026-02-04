@@ -1019,6 +1019,130 @@ describe('Pipeline', () => {
 			expect(scrollContainer.scrollState?.firstVisibleChild).toBe(0);
 		});
 
+		test('sticky child taller than viewport scrolls to show bottom when scrolled far', async () => {
+			const { scrollPhase } = await import('../src/pipeline.js');
+
+			// Sticky child with height 8 in a viewport of 5
+			// When scrolled past, the child should progressively reveal its bottom
+			const stickyPanel = await createMockNode('inkx-box', {
+				height: 8,
+				position: 'sticky',
+				stickyTop: 0,
+			} as BoxProps);
+			stickyPanel.contentRect = { x: 0, y: 0, width: 10, height: 8 };
+
+			// Content items below the sticky panel
+			const items: InkxNode[] = [stickyPanel];
+			for (let i = 1; i <= 20; i++) {
+				const item = await createMockNode('inkx-box', { height: 1 });
+				item.contentRect = { x: 0, y: 8 + (i - 1), width: 10, height: 1 };
+				items.push(item);
+			}
+
+			// Viewport of 5, scroll to item near the end
+			const scrollContainer = await createMockNode(
+				'inkx-box',
+				{ overflow: 'scroll', height: 5, scrollTo: 20 } as BoxProps,
+				items,
+			);
+			scrollContainer.contentRect = { x: 0, y: 0, width: 10, height: 5 };
+
+			scrollPhase(scrollContainer);
+
+			const sticky = scrollContainer.scrollState?.stickyChildren?.[0];
+			expect(sticky).toBeDefined();
+
+			// childHeight(8) > viewportHeight(5), so when scrolled far:
+			// renderOffset should be negative to show the bottom of the child
+			// minimum renderOffset = viewportHeight - childHeight = 5 - 8 = -3
+			expect(sticky?.renderOffset).toBe(-3);
+		});
+
+		test('sticky child taller than viewport starts at top when not scrolled past', async () => {
+			const { scrollPhase } = await import('../src/pipeline.js');
+
+			// Sticky child with height 8 placed at y=1, in a viewport of 5
+			const item0 = await createMockNode('inkx-box', { height: 1 });
+			item0.contentRect = { x: 0, y: 0, width: 10, height: 1 };
+
+			const stickyPanel = await createMockNode('inkx-box', {
+				height: 8,
+				position: 'sticky',
+				stickyTop: 0,
+			} as BoxProps);
+			stickyPanel.contentRect = { x: 0, y: 1, width: 10, height: 8 };
+
+			// Content items below the sticky panel
+			const items: InkxNode[] = [item0, stickyPanel];
+			for (let i = 2; i <= 20; i++) {
+				const item = await createMockNode('inkx-box', { height: 1 });
+				item.contentRect = { x: 0, y: 9 + (i - 2), width: 10, height: 1 };
+				items.push(item);
+			}
+
+			// Viewport of 5, scrollTo item0 (no scroll needed, already visible)
+			const scrollContainer = await createMockNode(
+				'inkx-box',
+				{ overflow: 'scroll', height: 5, scrollTo: 0 } as BoxProps,
+				items,
+			);
+			scrollContainer.contentRect = { x: 0, y: 0, width: 10, height: 5 };
+
+			scrollPhase(scrollContainer);
+
+			const sticky = scrollContainer.scrollState?.stickyChildren?.[0];
+			expect(sticky).toBeDefined();
+
+			// scrollOffset=0, naturalRenderY = 1 - 0 = 1 (hasn't reached stick point)
+			// Child shows at natural position: renderOffset = 1
+			expect(sticky?.renderOffset).toBe(1);
+		});
+
+		test('sticky child taller than viewport has proportional offset at mid-scroll', async () => {
+			const { scrollPhase } = await import('../src/pipeline.js');
+
+			// Sticky child with height 8 in a viewport of 5
+			// The child overflows by 3 rows (8 - 5 = 3)
+			const stickyPanel = await createMockNode('inkx-box', {
+				height: 8,
+				position: 'sticky',
+				stickyTop: 0,
+			} as BoxProps);
+			stickyPanel.contentRect = { x: 0, y: 0, width: 10, height: 8 };
+
+			// Content items below the sticky panel
+			const items: InkxNode[] = [stickyPanel];
+			for (let i = 1; i <= 20; i++) {
+				const item = await createMockNode('inkx-box', { height: 1 });
+				item.contentRect = { x: 0, y: 8 + (i - 1), width: 10, height: 1 };
+				items.push(item);
+			}
+
+			// Viewport of 5, scroll just a bit past the sticky child's natural position
+			// naturalRenderY = 0 - scrollOffset. When scrollOffset = 1, naturalRenderY = -1.
+			// For sticky-top with tall child: renderOffset = max(viewportH - childH, naturalRenderY)
+			//   = max(5 - 8, -1) = max(-3, -1) = -1
+			const scrollContainer = await createMockNode(
+				'inkx-box',
+				{ overflow: 'scroll', height: 5, scrollTo: 1 } as BoxProps,
+				items,
+			);
+			scrollContainer.contentRect = { x: 0, y: 0, width: 10, height: 5 };
+
+			scrollPhase(scrollContainer);
+
+			const sticky = scrollContainer.scrollState?.stickyChildren?.[0];
+			expect(sticky).toBeDefined();
+
+			// scrollOffset should be enough to see item 1 (at content y=8)
+			// scrollOffset = 8 - 5 = 4 (to show item at y=8 at bottom of viewport)
+			// Actually scrollTo=1 means child index 1, which is at y=8, height 1.
+			// To make it visible in viewport of 5, scrollOffset = max(0, 8+1-5) = 4
+			// naturalRenderY = 0 - 4 = -4
+			// renderOffset = max(5-8, -4) = max(-3, -4) = -3
+			expect(sticky?.renderOffset).toBe(-3);
+		});
+
 		test('overflowIndicator renders indicators for borderless containers', async () => {
 			// Create 10 items (only 5 visible)
 			const items: InkxNode[] = [];

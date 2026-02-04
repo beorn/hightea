@@ -295,16 +295,24 @@ function calculateScrollState(node: InkxNode, props: BoxProps): void {
 			const bottomPinPosition = viewportHeight - stickyBottom - childHeight;
 			// Use natural position if it's below the pin point, otherwise pin
 			renderOffset = Math.min(naturalRenderY, bottomPinPosition);
+		} else if (naturalRenderY >= stickyTop) {
+			// Child hasn't reached stick point: use natural position
+			renderOffset = naturalRenderY;
+		} else if (childHeight > viewportHeight) {
+			// Oversized sticky-top child scrolled past stick point: progressively
+			// scroll the child so its bottom aligns with viewport bottom when
+			// scrolled far enough. Clamp between bottom-align and stick point.
+			renderOffset = Math.max(viewportHeight - childHeight, naturalRenderY);
 		} else {
-			// Sticky to top (default): element pins to top edge when scrolled past
-			// Use natural position if it's above the pin point, otherwise pin
-			renderOffset = Math.max(naturalRenderY, stickyTop);
+			// Normal sticky-top child scrolled past stick point: pin at stickyTop
+			renderOffset = stickyTop;
 		}
 
 		// Clamp to viewport bounds
-		// For children taller than viewport, pin to top (can't fit, so show from top)
-		if (childHeight >= viewportHeight) {
-			renderOffset = Math.max(0, renderOffset);
+		if (childHeight > viewportHeight) {
+			// Oversized child: allow negative offset (bottom of child past viewport top)
+			// but don't go below bottom-alignment, or above natural position
+			renderOffset = Math.max(viewportHeight - childHeight, renderOffset);
 		} else {
 			renderOffset = Math.max(0, Math.min(renderOffset, viewportHeight - childHeight));
 		}
@@ -317,9 +325,10 @@ function calculateScrollState(node: InkxNode, props: BoxProps): void {
 		});
 	}
 
-	// Store scroll state
+	// Store scroll state (preserve previous offset for incremental rendering)
 	node.scrollState = {
 		offset: scrollOffset,
+		prevOffset: prevOffset ?? scrollOffset,
 		contentHeight,
 		viewportHeight,
 		firstVisibleChild: firstVisible,
