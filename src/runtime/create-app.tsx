@@ -46,11 +46,11 @@ import React, { createContext, useContext, useEffect, useRef, type ReactElement 
 import { type StateCreator, type StoreApi, createStore } from 'zustand';
 
 import { createTerm } from 'chalkx';
-import { bufferToStyledText, bufferToText } from '../buffer.js';
 import { AppContext, StdoutContext, TermContext } from '../context.js';
 import { executeRender } from '../pipeline/index.js';
 import { createContainer, getContainerRoot, reconciler } from '../reconciler.js';
 import { map, merge, takeUntil } from '../streams/index.js';
+import { createBuffer } from './create-buffer.js';
 import { createRuntime } from './create-runtime.js';
 import { type Key, parseKey } from './keys.js';
 import { ensureLayoutEngine } from './layout.js';
@@ -483,7 +483,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 	const fiberRoot = reconciler.createContainer(container, 0, null, false, null, '', () => {}, () => {}, () => {}, null);
 
 	// Track current buffer for text access
-	let currentText = '';
 	let currentBuffer: Buffer;
 
 	// Create mock stdout for contexts
@@ -526,25 +525,15 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 			skipLayoutNotifications: true,
 		});
 
-		const text = bufferToText(termBuffer);
-		const ansi = bufferToStyledText(termBuffer);
-
-		return {
-			text,
-			ansi,
-			nodes: rootNode,
-			_buffer: termBuffer,
-		};
+		return createBuffer(termBuffer, rootNode);
 	}
 
 	// Initial render
-	const buffer = doRender();
-	currentText = buffer.text;
-	currentBuffer = buffer;
+	currentBuffer = doRender();
 
 	// Clear screen and hide cursor
 	if (!headless) stdout.write('\x1b[2J\x1b[H\x1b[?25l');
-	runtime.render(buffer);
+	runtime.render(currentBuffer);
 
 	// Exit promise
 	let exitResolve: () => void;
@@ -583,10 +572,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 	// Subscribe to store for re-renders
 	storeUnsubscribeFn = store.subscribe(() => {
 		if (!shouldExit) {
-			const newBuffer = doRender();
-			currentText = newBuffer.text;
-			currentBuffer = newBuffer;
-			runtime.render(newBuffer);
+			currentBuffer = doRender();
+			runtime.render(currentBuffer);
 		}
 	});
 
@@ -623,12 +610,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 		}
 
 		// Re-render
-		const newBuffer = doRender();
-		currentText = newBuffer.text;
-		currentBuffer = newBuffer;
-		runtime.render(newBuffer);
+		currentBuffer = doRender();
+		runtime.render(currentBuffer);
 
-		return newBuffer;
+		return currentBuffer;
 	}
 
 	// Start event loop
@@ -667,7 +652,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 	// Return handle with async iteration
 	const handle: AppHandle<S & I> = {
 		get text() {
-			return currentText;
+			return currentBuffer.text;
 		},
 		get store() {
 			return store;
@@ -708,9 +693,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 			}
 
 			// Trigger re-render
-			const newBuffer = doRender();
-			currentText = newBuffer.text;
-			currentBuffer = newBuffer;
+			currentBuffer = doRender();
 			await Promise.resolve();
 		},
 

@@ -183,7 +183,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 	// ========================================================================
 
 	let renderScheduled = false;
-	let currentText = '';
+	let currentBuffer: Buffer;
 
 	// Helper to render and get text
 	function doRender(): Buffer {
@@ -200,16 +200,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 			skipLayoutNotifications: true,
 		});
 
-		// Get text representations
-		const text = bufferToText(termBuffer);
-		const ansi = bufferToStyledText(termBuffer);
-
-		return {
-			text,
-			ansi,
-			nodes: rootNode,
-			_buffer: termBuffer,
-		};
+		return createBuffer(termBuffer, rootNode);
 	}
 
 	// Batched render - coalesces multiple calls within same tick
@@ -223,9 +214,8 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 				return;
 			}
 
-			const buffer = doRender();
-			currentText = buffer.text;
-			runtime.render(buffer);
+			currentBuffer = doRender();
+			runtime.render(currentBuffer);
 			renderScheduled = false;
 		});
 	}
@@ -386,12 +376,11 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 	);
 
 	// Initial render (synchronous, not batched)
-	const buffer = doRender();
-	currentText = buffer.text;
+	currentBuffer = doRender();
 
 	// Clear screen and hide cursor
 	if (!headless) stdout.write('\x1b[2J\x1b[H\x1b[?25l');
-	runtime.render(buffer);
+	runtime.render(currentBuffer);
 
 	// Exit promise
 	let exitResolve: () => void;
@@ -448,7 +437,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 
 	return {
 		get text() {
-			return currentText;
+			return currentBuffer.text;
 		},
 		waitUntilExit() {
 			return exitPromise;
@@ -470,8 +459,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 			}
 
 			// Synchronous render for testing (not batched)
-			const newBuffer = doRender();
-			currentText = newBuffer.text;
+			currentBuffer = doRender();
 			await Promise.resolve();
 		},
 	};
