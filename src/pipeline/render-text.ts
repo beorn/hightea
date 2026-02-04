@@ -19,7 +19,13 @@ import {
 	parseAnsiText,
 	splitGraphemes,
 } from '../unicode.js';
-import { getTextStyle, getTextWidth, sliceByWidth, sliceByWidthFromEnd } from './render-helpers.js';
+import {
+	getTextStyle,
+	getTextWidth,
+	parseColor,
+	sliceByWidth,
+	sliceByWidthFromEnd,
+} from './render-helpers.js';
 
 // ============================================================================
 // Background Conflict Detection
@@ -80,6 +86,10 @@ interface StyleContext {
 
 /**
  * Build ANSI escape sequence for a style context.
+ *
+ * Note: backgroundColor is intentionally NOT embedded as ANSI codes.
+ * Background color is handled at the buffer level (via BgSegment tracking)
+ * to prevent bg bleed across wrapped text lines. See km-inkx.bg-bleed.
  */
 function styleToAnsi(style: StyleContext): string {
 	const codes: number[] = [];
@@ -96,19 +106,9 @@ function styleToAnsi(style: StyleContext): string {
 		}
 	}
 
-	// Background color
-	if (style.backgroundColor) {
-		const color = getTextStyle({
-			backgroundColor: style.backgroundColor,
-		} as TextProps).bg;
-		if (color !== null) {
-			if (typeof color === 'number') {
-				codes.push(48, 5, color);
-			} else {
-				codes.push(48, 2, color.r, color.g, color.b);
-			}
-		}
-	}
+	// backgroundColor is NOT embedded here - it is tracked separately via
+	// BgSegment and applied at the buffer level in renderText(). This prevents
+	// bg color from bleeding across wrapped lines. See collectTextWithBg().
 
 	// Attributes
 	if (style.bold) codes.push(1);
@@ -208,6 +208,271 @@ export function collectTextContent(node: InkxNode, parentContext: StyleContext =
 		}
 	}
 	return result;
+}
+
+// ============================================================================
+// Background Segment Tracking
+// ============================================================================
+
+/**
+ * A background color segment in collected text.
+ * Tracks which character range has which background color,
+ * independent of ANSI codes. Used to apply bg at the buffer level
+ * after text wrapping, preventing bg bleed across wrapped lines.
+ */
+interface BgSegment {
+	/** Start character offset in the collected text (inclusive) */
+	start: number;
+	/** End character offset in the collected text (exclusive) */
+	end: number;
+	/** Background color to apply */
+	bg: Color;
+}
+
+/**
+ * Result of collecting text with background segments.
+ */
+interface TextWithBg {
+	/** The collected text string (with ANSI codes for fg/attrs, but NOT bg) */
+	text: string;
+	/** Background color segments from nested Text elements */
+	bgSegments: BgSegment[];
+}
+
+/**
+ * Collect text content and background color segments from a node tree.
+ *
+ * Like collectTextContent, but also tracks backgroundColor from nested Text
+ * elements as separate BgSegment entries. Background is NOT embedded as ANSI
+ * codes, preventing bg bleed when text wraps across lines.
+ *
+ * @param node - The node to collect text from
+ * @param parentContext - The inherited style context from parent
+ * @param offset - Current character offset in the collected text (for bg tracking)
+ */
+function collectTextWithBg(
+	node: InkxNode,
+	parentContext: StyleContext = {},
+	offset = 0,
+): TextWithBg {
+	// If this node has direct text content, return it with no bg segments
+	if (node.textContent !== undefined) {
+		return { text: node.textContent, bgSegments: [] };
+	}
+
+	let result = '';
+	const bgSegments: BgSegment[] = [];
+	let currentOffset = offset;
+
+	for (const child of node.children) {
+		if (child.type === 'inkx-text' && child.props && !child.layoutNode) {
+			const childProps = child.props as TextProps;
+			const childContext = mergeStyleContext(parentContext, childProps);
+
+			// Recursively collect with child's context
+			const childResult = collectTextWithBg(child, childContext, currentOffset);
+
+			// Apply ANSI styles for fg/attrs (but NOT bg) with push/pop
+			const styledText = applyTextStyleAnsi(childResult.text, childContext, parentContext);
+			result += styledText;
+
+			// Track bg segment if this child (or its ancestors) has backgroundColor
+			if (childContext.backgroundColor) {
+				const bg = parseColor(childContext.backgroundColor);
+				if (bg !== null) {
+					const childTextLen = childResult.text.length;
+					if (childTextLen > 0) {
+						bgSegments.push({
+							start: currentOffset,
+							end: currentOffset + childTextLen,
+							bg,
+						});
+					}
+				}
+			}
+
+			// Include child's nested bg segments
+			bgSegments.push(...childResult.bgSegments);
+
+			currentOffset += childResult.text.length;
+		} else {
+			// Not a styled Text node, just collect recursively
+			const childResult = collectTextWithBg(child, parentContext, currentOffset);
+			result += childResult.text;
+			bgSegments.push(...childResult.bgSegments);
+			currentOffset += childResult.text.length;
+		}
+	}
+
+	return { text: result, bgSegments };
+}
+
+/**
+ * Apply background segments to buffer cells for a single rendered line.
+ *
+ * Maps character offsets from the original collected text to screen positions,
+ * accounting for text wrapping. Each bg segment fills only the cells that
+ * correspond to actual text characters, not trailing whitespace.
+ *
+ * @param buffer - The terminal buffer to write to
+ * @param x - Screen x position of the line start
+ * @param y - Screen y position of the line
+ * @param lineText - The rendered line text (may contain ANSI codes)
+ * @param lineCharStart - Character offset in original text where this line starts
+ * @param lineCharEnd - Character offset in original text where this line ends
+ * @param bgSegments - Background color segments to apply
+ */
+function applyBgSegmentsToLine(
+	buffer: TerminalBuffer,
+	x: number,
+	y: number,
+	lineText: string,
+	lineCharStart: number,
+	lineCharEnd: number,
+	bgSegments: BgSegment[],
+): void {
+	if (bgSegments.length === 0) return;
+	if (y < 0 || y >= buffer.height) return;
+
+	// For each bg segment that overlaps this line's character range,
+	// calculate the screen columns and fill the bg
+	for (const seg of bgSegments) {
+		// Check overlap between segment [seg.start, seg.end) and line [lineCharStart, lineCharEnd)
+		const overlapStart = Math.max(seg.start, lineCharStart);
+		const overlapEnd = Math.min(seg.end, lineCharEnd);
+		if (overlapStart >= overlapEnd) continue;
+
+		// Convert character offsets to column positions within the line.
+		// We need to map "character offset relative to line start" to "screen column".
+		// The lineText may contain ANSI codes, so we use displayWidth-aware iteration.
+		const relStart = overlapStart - lineCharStart;
+		const relEnd = overlapEnd - lineCharStart;
+
+		// Walk through the line's visible characters to find screen columns
+		let charIdx = 0;
+		let col = x;
+		const graphemes = splitGraphemes(hasAnsi(lineText) ? stripAnsiForBg(lineText) : lineText);
+
+		for (const grapheme of graphemes) {
+			const gWidth = graphemeWidth(grapheme);
+			if (gWidth === 0) continue;
+
+			if (charIdx >= relStart && charIdx < relEnd) {
+				// This character is within the bg segment -- set bg on its cells
+				const cell = buffer.getCell(col, y);
+				buffer.setCell(col, y, { ...cell, bg: seg.bg });
+				if (gWidth === 2 && col + 1 < buffer.width) {
+					const cell2 = buffer.getCell(col + 1, y);
+					buffer.setCell(col + 1, y, { ...cell2, bg: seg.bg });
+				}
+			}
+
+			col += gWidth;
+			charIdx++;
+			if (charIdx >= relEnd) break;
+		}
+	}
+}
+
+/**
+ * Strip ANSI escape codes from text for character counting.
+ */
+function stripAnsiForBg(text: string): string {
+	return text
+		.replace(/\x1b\[[0-9;:?]*[A-Za-z]/g, '')
+		.replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, '')
+		.replace(/\x1b[DME78]/g, '')
+		.replace(/\x1b\(B/g, '');
+}
+
+/**
+ * Map formatted lines back to character offsets in the original text.
+ *
+ * After wrapping/truncation, each output line corresponds to a range
+ * of characters in the original text. This function computes those ranges
+ * by searching for each line's content in the normalized text.
+ *
+ * Handles characters consumed by word wrapping (spaces at break points,
+ * newlines) and characters added by truncation (ellipsis).
+ *
+ * @param originalText - The original collected text (with ANSI, before wrapping)
+ * @param formattedLines - The wrapped/truncated output lines
+ * @returns Array of { start, end } character offsets for each formatted line
+ */
+function mapLinesToCharOffsets(
+	originalText: string,
+	formattedLines: string[],
+): Array<{ start: number; end: number }> {
+	// Strip ANSI from the original to get the plain text character sequence
+	const plainOriginal = hasAnsi(originalText) ? stripAnsiForBg(originalText) : originalText;
+	// Normalize tabs to match formatTextLines behavior
+	const normalized = plainOriginal.replace(/\t/g, '    ');
+
+	const result: Array<{ start: number; end: number }> = [];
+	let offset = 0;
+
+	for (const line of formattedLines) {
+		const plainLine = hasAnsi(line) ? stripAnsiForBg(line) : line;
+
+		// Find where this line starts in the normalized text.
+		// Search forward from current offset, skipping newlines and spaces
+		// that were consumed by the wrapping/splitting process.
+		const lineStart = findLineStart(normalized, plainLine, offset);
+		const lineLen = Math.min(plainLine.length, normalized.length - lineStart);
+
+		result.push({ start: lineStart, end: lineStart + lineLen });
+		offset = lineStart + lineLen;
+	}
+
+	return result;
+}
+
+/**
+ * Find where a formatted line starts in the normalized original text.
+ *
+ * Scans forward from the given offset, matching the line content
+ * character by character. Skips newlines and whitespace that were
+ * consumed by wrapping between lines.
+ */
+function findLineStart(normalized: string, plainLine: string, fromOffset: number): number {
+	if (plainLine.length === 0) {
+		// Empty line -- skip to next newline
+		let pos = fromOffset;
+		while (pos < normalized.length && normalized[pos] === '\n') {
+			pos++;
+		}
+		return pos;
+	}
+
+	// Try exact match at current offset first (fast path for first line
+	// and for lines that follow explicit newlines without space trimming)
+	if (normalized.startsWith(plainLine, fromOffset)) {
+		return fromOffset;
+	}
+
+	// Scan forward, skipping newlines and spaces consumed by wrapping
+	let pos = fromOffset;
+	while (pos < normalized.length) {
+		const ch = normalized[pos]!;
+		if (ch === '\n' || ch === ' ') {
+			pos++;
+			continue;
+		}
+		// Found a non-whitespace character -- check if line starts here
+		if (normalized.startsWith(plainLine, pos)) {
+			return pos;
+		}
+		// If the line doesn't start here, it might be because wrapping
+		// trimmed trailing spaces from the line. Fall back to the position
+		// where the first character matches.
+		if (ch === plainLine[0]) {
+			return pos;
+		}
+		pos++;
+	}
+
+	// Fallback: return current position
+	return fromOffset;
 }
 
 // ============================================================================
@@ -756,6 +1021,10 @@ function ansiColorToColor(code: number): Color {
 
 /**
  * Render a Text node.
+ *
+ * Background colors from nested Text elements are handled at the buffer level
+ * (not via ANSI codes) to prevent bg bleed across wrapped text lines.
+ * See km-inkx.bg-bleed for details.
  */
 export function renderText(
 	node: InkxNode,
@@ -778,15 +1047,19 @@ export function renderText(
 		}
 	}
 
-	// Collect text content from this node and all children
-	// This handles both raw text nodes and <Text>content</Text> wrapper nodes
-	const text = collectTextContent(node);
+	// Collect text content and background segments from this node and all children.
+	// Background color from nested Text elements is tracked as BgSegments
+	// (not embedded as ANSI codes) to survive text wrapping correctly.
+	const { text, bgSegments } = collectTextWithBg(node);
 
-	// Get style
+	// Get style for this Text node
 	const style = getTextStyle(props);
 
 	// Handle wrapping/truncation
 	const lines = formatTextLines(text, width, props.wrap);
+
+	// Map formatted lines back to character offsets for bg segment application
+	const lineOffsets = bgSegments.length > 0 ? mapLinesToCharOffsets(text, lines) : [];
 
 	// Render each line
 	for (let lineIdx = 0; lineIdx < lines.length && lineIdx < height; lineIdx++) {
@@ -797,5 +1070,13 @@ export function renderText(
 		}
 		const line = lines[lineIdx]!;
 		renderTextLine(buffer, x, lineY, line, style);
+
+		// Apply background segments from nested Text elements to the buffer.
+		// This happens after renderTextLine so the bg is applied to cells
+		// that already have the correct character/fg/attrs written.
+		if (bgSegments.length > 0 && lineIdx < lineOffsets.length) {
+			const { start, end } = lineOffsets[lineIdx]!;
+			applyBgSegmentsToLine(buffer, x, lineY, line, start, end, bgSegments);
+		}
 	}
 }
