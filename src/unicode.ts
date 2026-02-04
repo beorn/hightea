@@ -95,8 +95,106 @@ export function graphemeCount(text: string): number {
 }
 
 // ============================================================================
+// Emoji Width Correction
+// ============================================================================
+
+/**
+ * Regex for Extended_Pictographic characters that have default text presentation.
+ * These characters are reported as width 1 by string-width (per Unicode EAW),
+ * but most modern terminals render them as 2 columns wide using emoji glyphs.
+ *
+ * Specifically: Extended_Pictographic AND NOT Emoji_Presentation.
+ * Examples: ⚠ (U+26A0), ☑ (U+2611), ✈ (U+2708), ❤ (U+2764)
+ * Counter-examples: 📁 (U+1F4C1) has Emoji_Presentation so string-width is correct.
+ *
+ * Uses the RGI_Emoji regex with VS16 to detect characters that support
+ * emoji presentation -- if char+VS16 is RGI emoji, the terminal likely
+ * renders the bare char as 2-wide.
+ */
+const TEXT_PRESENTATION_EMOJI_REGEX = /^\p{Extended_Pictographic}$/u;
+const EMOJI_PRESENTATION_REGEX = /^\p{Emoji_Presentation}$/u;
+const RGI_EMOJI_REGEX = /^\p{RGI_Emoji}$/v;
+
+/**
+ * Cache for isTextPresentationEmoji results.
+ * Maps first code point to boolean.
+ */
+const textPresentationEmojiCache = new Map<number, boolean>();
+
+/**
+ * Check if a grapheme is a text-presentation emoji that terminals render wide.
+ *
+ * Returns true for characters that are Extended_Pictographic, do NOT have
+ * the Emoji_Presentation property, but become RGI emoji when followed by
+ * VS16 (U+FE0F). These characters are rendered as 2 columns in most
+ * modern terminals despite string-width reporting width 1.
+ */
+function isTextPresentationEmoji(grapheme: string): boolean {
+	const cp = grapheme.codePointAt(0);
+	if (cp === undefined) return false;
+
+	// Check cache
+	const cached = textPresentationEmojiCache.get(cp);
+	if (cached !== undefined) return cached;
+
+	// Multi-codepoint graphemes (with VS16, ZWJ, etc.) are already handled
+	// correctly by string-width. Only check single-codepoint graphemes.
+	const singleChar = String.fromCodePoint(cp);
+	if (singleChar.length !== grapheme.length) {
+		textPresentationEmojiCache.set(cp, false);
+		return false;
+	}
+
+	// Must be Extended_Pictographic but NOT Emoji_Presentation
+	const isExtPict = TEXT_PRESENTATION_EMOJI_REGEX.test(grapheme);
+	const isEmojiPres = EMOJI_PRESENTATION_REGEX.test(grapheme);
+	if (!isExtPict || isEmojiPres) {
+		textPresentationEmojiCache.set(cp, false);
+		return false;
+	}
+
+	// Check if adding VS16 makes it an RGI emoji sequence
+	const withVs16 = grapheme + '\uFE0F';
+	const result = RGI_EMOJI_REGEX.test(withVs16);
+	textPresentationEmojiCache.set(cp, result);
+	return result;
+}
+
+/**
+ * Append VS16 (U+FE0F) to emoji characters that have default text presentation.
+ *
+ * Use this to normalize icon characters for consistent terminal rendering.
+ * Characters that already have emoji presentation or VS16 are returned unchanged.
+ *
+ * @example
+ * ```ts
+ * ensureEmojiPresentation('⚠')  // '⚠\uFE0F' (⚠️)
+ * ensureEmojiPresentation('☑')  // '☑\uFE0F' (☑️)
+ * ensureEmojiPresentation('☐')  // '☐' (unchanged, not an emoji)
+ * ensureEmojiPresentation('📁') // '📁' (unchanged, already emoji presentation)
+ * ```
+ */
+export function ensureEmojiPresentation(char: string): string {
+	if (char.includes('\uFE0F')) return char; // Already has VS16
+	if (isTextPresentationEmoji(char)) return char + '\uFE0F';
+	return char;
+}
+
+// ============================================================================
 // Display Width Calculation
 // ============================================================================
+
+/**
+ * Regex to detect strings that MAY contain text-presentation emoji.
+ * Used as a fast pre-check before the more expensive grapheme-based calculation.
+ * Covers the Unicode blocks where Extended_Pictographic characters live:
+ * - Miscellaneous Technical (U+2300-U+23FF)
+ * - Miscellaneous Symbols (U+2600-U+26FF)
+ * - Dingbats (U+2700-U+27BF)
+ * - Miscellaneous Symbols and Arrows (U+2B00-U+2BFF)
+ * - Other scattered ranges
+ */
+const MAY_CONTAIN_TEXT_EMOJI = /[\u203C\u2049\u2122\u2139\u2194-\u2199\u21A9\u21AA\u2328\u23CF\u23ED-\u23EF\u23F1\u23F2\u23F8-\u23FA\u25AA\u25AB\u25B6\u25C0\u25FB-\u25FE\u2600-\u2604\u260E\u2611\u2614\u2615\u2618\u261D\u2620\u2622\u2623\u2626\u262A\u262E\u262F\u2638-\u263A\u2640\u2642\u2648-\u2653\u265F\u2660\u2663\u2665\u2666\u2668\u267B\u267E\u267F\u2692-\u2697\u2699\u269B\u269C\u26A0\u26A1\u26A7\u26AA\u26AB\u26B0\u26B1\u26BD\u26BE\u26C4\u26C5\u26C8\u26CE\u26CF\u26D1\u26D3\u26D4\u26E9\u26EA\u26F0-\u26F5\u26F7-\u26FA\u26FD\u2702\u2705\u2708-\u270D\u270F\u2712\u2714\u2716\u271D\u2721\u2728\u2733\u2734\u2744\u2747\u274C\u274E\u2753-\u2755\u2757\u2763\u2764\u2795-\u2797\u27A1\u27B0\u27BF\u2934\u2935\u2B05-\u2B07\u2B1B\u2B1C\u2B50\u2B55\u3030\u303D\u3297\u3299]/;
 
 /**
  * Get the display width of a string (number of terminal columns).
@@ -107,7 +205,10 @@ export function graphemeCount(text: string): number {
  * - Emoji -> varies (1 or 2)
  * - ANSI escape sequences -> 0 columns (stripped)
  *
- * Results are cached for performance (string-width is expensive).
+ * Corrects string-width for text-presentation emoji characters
+ * (e.g., ⚠ U+26A0) that terminals render as 2 columns wide.
+ *
+ * Results are cached for performance.
  */
 export function displayWidth(text: string): number {
 	// Check cache first
@@ -116,23 +217,49 @@ export function displayWidth(text: string): number {
 		return cached;
 	}
 
-	const width = stringWidth(text);
+	let width: number;
+	// Fast path: if text cannot contain text-presentation emoji, use string-width directly
+	if (!MAY_CONTAIN_TEXT_EMOJI.test(text)) {
+		width = stringWidth(text);
+	} else {
+		// Slow path: strip ANSI codes first (they'd inflate the grapheme count),
+		// then split into graphemes and sum corrected widths
+		const stripped = stripAnsi(text);
+		width = 0;
+		for (const grapheme of splitGraphemes(stripped)) {
+			width += graphemeWidth(grapheme);
+		}
+	}
+
 	displayWidthCache.set(text, width);
 	return width;
 }
 
 /**
  * Get the display width of a single grapheme.
+ *
+ * Overrides string-width for characters that are Extended_Pictographic with
+ * default text presentation. These characters (e.g., ⚠ U+26A0, ☑ U+2611)
+ * are reported as width 1 by string-width (per Unicode EAW tables), but most
+ * modern terminals render them as 2 columns wide using emoji glyphs.
+ *
+ * The mismatch causes text after these characters to be placed at the wrong
+ * column, leading to truncation or overlap.
  */
 export function graphemeWidth(grapheme: string): number {
-	return stringWidth(grapheme);
+	const width = stringWidth(grapheme);
+	// If string-width already says 2 (or 0), trust it
+	if (width !== 1) return width;
+	// Check if this is a text-presentation emoji that terminals render wide
+	if (isTextPresentationEmoji(grapheme)) return 2;
+	return width;
 }
 
 /**
  * Check if a grapheme is a wide character (takes 2 columns).
  */
 export function isWideGrapheme(grapheme: string): boolean {
-	return stringWidth(grapheme) === 2;
+	return graphemeWidth(grapheme) === 2;
 }
 
 /**

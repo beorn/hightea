@@ -437,6 +437,8 @@ export {
 	isLikelyEmoji,
 	hasWideCharacters,
 	hasZeroWidthCharacters,
+	// Emoji presentation
+	ensureEmojiPresentation,
 	// Buffer writing
 	writeTextToBuffer,
 	writeTextTruncated,
