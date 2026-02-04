@@ -246,17 +246,17 @@ function SearchBox() {
 
 **Props:**
 
-| Prop           | Type                    | Description                          |
-| -------------- | ----------------------- | ------------------------------------ |
-| `value`        | `string`                | Controlled value                     |
-| `defaultValue` | `string`                | Initial value (uncontrolled)         |
-| `onChange`     | `(value: string) => void` | Called on value change             |
-| `onSubmit`     | `(value: string) => void` | Called on Enter                    |
-| `placeholder`  | `string`                | Placeholder when empty               |
-| `isActive`     | `boolean`               | Whether input accepts keystrokes     |
-| `prompt`       | `string`                | Prefix (e.g., `"> "`)                |
-| `promptColor`  | `string`                | Prompt color                         |
-| `mask`         | `string`                | Mask character for passwords         |
+| Prop           | Type                      | Description                      |
+| -------------- | ------------------------- | -------------------------------- |
+| `value`        | `string`                  | Controlled value                 |
+| `defaultValue` | `string`                  | Initial value (uncontrolled)     |
+| `onChange`     | `(value: string) => void` | Called on value change           |
+| `onSubmit`     | `(value: string) => void` | Called on Enter                  |
+| `placeholder`  | `string`                  | Placeholder when empty           |
+| `isActive`     | `boolean`                 | Whether input accepts keystrokes |
+| `prompt`       | `string`                  | Prefix (e.g., `"> "`)            |
+| `promptColor`  | `string`                  | Prompt color                     |
+| `mask`         | `string`                  | Mask character for passwords     |
 
 ### ReadlineInput (Full Featured)
 
@@ -284,23 +284,23 @@ function CommandLine() {
 
 **Supported shortcuts:**
 
-| Shortcut       | Action                      |
-| -------------- | --------------------------- |
-| `Ctrl+A`       | Move to beginning of line   |
-| `Ctrl+E`       | Move to end of line         |
-| `Ctrl+B`, `←`  | Move cursor left            |
-| `Ctrl+F`, `→`  | Move cursor right           |
-| `Alt+B`        | Move back one word          |
-| `Alt+F`        | Move forward one word       |
-| `Ctrl+W`       | Delete word backwards (kill)|
-| `Alt+D`        | Delete word forwards (kill) |
-| `Ctrl+U`       | Delete to beginning (kill)  |
-| `Ctrl+K`       | Delete to end (kill)        |
-| `Ctrl+Y`       | Yank (paste from kill ring) |
-| `Alt+Y`        | Cycle through kill ring     |
-| `Ctrl+T`       | Transpose characters        |
-| `Backspace`    | Delete char before cursor   |
-| `Ctrl+D`       | Delete char at cursor / EOF |
+| Shortcut      | Action                       |
+| ------------- | ---------------------------- |
+| `Ctrl+A`      | Move to beginning of line    |
+| `Ctrl+E`      | Move to end of line          |
+| `Ctrl+B`, `←` | Move cursor left             |
+| `Ctrl+F`, `→` | Move cursor right            |
+| `Alt+B`       | Move back one word           |
+| `Alt+F`       | Move forward one word        |
+| `Ctrl+W`      | Delete word backwards (kill) |
+| `Alt+D`       | Delete word forwards (kill)  |
+| `Ctrl+U`      | Delete to beginning (kill)   |
+| `Ctrl+K`      | Delete to end (kill)         |
+| `Ctrl+Y`      | Yank (paste from kill ring)  |
+| `Alt+Y`       | Cycle through kill ring      |
+| `Ctrl+T`      | Transpose characters         |
+| `Backspace`   | Delete char before cursor    |
+| `Ctrl+D`      | Delete char at cursor / EOF  |
 
 ### useReadline Hook
 
@@ -329,28 +329,28 @@ function CustomInput() {
 
 **Options:**
 
-| Option                 | Type         | Description                              |
-| ---------------------- | ------------ | ---------------------------------------- |
-| `initialValue`         | `string`     | Starting value                           |
-| `onChange`             | `(v) => void`| Called on value change                   |
-| `isActive`             | `boolean`    | Whether to handle input                  |
-| `handleEnter`          | `boolean`    | Handle Enter key (default: false)        |
-| `handleEscape`         | `boolean`    | Handle Escape key (default: false)       |
-| `handleVerticalArrows` | `boolean`    | Handle Up/Down (default: false for history) |
-| `onEOF`                | `() => void` | Called on Ctrl+D with empty input        |
+| Option                 | Type          | Description                                 |
+| ---------------------- | ------------- | ------------------------------------------- |
+| `initialValue`         | `string`      | Starting value                              |
+| `onChange`             | `(v) => void` | Called on value change                      |
+| `isActive`             | `boolean`     | Whether to handle input                     |
+| `handleEnter`          | `boolean`     | Handle Enter key (default: false)           |
+| `handleEscape`         | `boolean`     | Handle Escape key (default: false)          |
+| `handleVerticalArrows` | `boolean`     | Handle Up/Down (default: false for history) |
+| `onEOF`                | `() => void`  | Called on Ctrl+D with empty input           |
 
 **Returns:**
 
-| Property         | Type                  | Description                    |
-| ---------------- | --------------------- | ------------------------------ |
-| `value`          | `string`              | Current text value             |
-| `cursor`         | `number`              | Cursor position                |
-| `beforeCursor`   | `string`              | Text before cursor             |
-| `afterCursor`    | `string`              | Text after cursor              |
-| `clear`          | `() => void`          | Clear the input                |
-| `setValue`       | `(v: string) => void` | Set value (cursor moves to end)|
-| `setValueWithCursor` | `(v, pos) => void`| Set value and cursor position  |
-| `killRing`       | `string[]`            | Current kill ring contents     |
+| Property             | Type                  | Description                     |
+| -------------------- | --------------------- | ------------------------------- |
+| `value`              | `string`              | Current text value              |
+| `cursor`             | `number`              | Cursor position                 |
+| `beforeCursor`       | `string`              | Text before cursor              |
+| `afterCursor`        | `string`              | Text after cursor               |
+| `clear`              | `() => void`          | Clear the input                 |
+| `setValue`           | `(v: string) => void` | Set value (cursor moves to end) |
+| `setValueWithCursor` | `(v, pos) => void`    | Set value and cursor position   |
+| `killRing`           | `string[]`            | Current kill ring contents      |
 
 ## Common Patterns
 

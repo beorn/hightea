@@ -26,7 +26,10 @@ export { TextInput } from './TextInput.js';
 export type { TextInputProps, TextInputHandle } from './TextInput.js';
 
 export { ReadlineInput } from './ReadlineInput.js';
-export type { ReadlineInputProps, ReadlineInputHandle } from './ReadlineInput.js';
+export type {
+	ReadlineInputProps,
+	ReadlineInputHandle,
+} from './ReadlineInput.js';
 
 // Input Hooks
 export { useReadline } from './useReadline.js';
