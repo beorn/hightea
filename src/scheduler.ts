@@ -12,8 +12,9 @@
  * - Clean shutdown
  */
 
+import { appendFileSync } from 'node:fs';
 import { type Logger, createConditionalLogger, createLogger } from '@beorn/logger';
-import type { TerminalBuffer } from './buffer.js';
+import { type TerminalBuffer, bufferToText, cellEquals } from './buffer.js';
 import {
 	type ResolvedNonTTYMode as ResolvedMode,
 	countLines,
@@ -353,6 +354,40 @@ export class RenderScheduler {
 
 			// Save buffer for next diff
 			this.prevBuffer = buffer;
+
+			// INKX_CHECK_INCREMENTAL: compare incremental render against fresh render
+			if (process.env.INKX_CHECK_INCREMENTAL && this.stats.renderCount > 0) {
+				const { buffer: freshBuffer } = executeRender(
+					this.root,
+					width,
+					height,
+					null,
+					{ mode: this.mode === 'fullscreen' ? 'fullscreen' : 'inline', skipLayoutNotifications: true },
+				);
+				let found = false;
+				for (let y = 0; y < buffer.height && !found; y++) {
+					for (let x = 0; x < buffer.width && !found; x++) {
+						const a = buffer.getCell(x, y);
+						const b = freshBuffer.getCell(x, y);
+						if (!cellEquals(a, b)) {
+							found = true;
+							const incText = bufferToText(buffer);
+							const freshText = bufferToText(freshBuffer);
+							const msg =
+								`INKX_CHECK_INCREMENTAL: mismatch at (${x}, ${y}) on render #${this.stats.renderCount + 1}\n` +
+								`  incremental: char=${JSON.stringify(a.char)} fg=${JSON.stringify(a.fg)} bg=${JSON.stringify(a.bg)}\n` +
+								`  fresh:       char=${JSON.stringify(b.char)} fg=${JSON.stringify(b.fg)} bg=${JSON.stringify(b.bg)}\n` +
+								`--- incremental ---\n${incText}\n--- fresh ---\n${freshText}`;
+							// Write to DEBUG_LOG file if set (TUI occupies terminal)
+							if (process.env.DEBUG_LOG) {
+								appendFileSync(process.env.DEBUG_LOG, msg + '\n');
+							}
+							// Also use conditional logger
+							log.error(msg);
+						}
+					}
+				}
+			}
 
 			// Update stats
 			const renderTime = Date.now() - startTime;
