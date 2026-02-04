@@ -266,6 +266,154 @@ describe('Bug: styleEquals edge cases', () => {
 	});
 });
 
+describe('ANSI diff output correctness', () => {
+	test('selection highlight moving between items produces correct ANSI', () => {
+		// Simulate a list where selection moves from item 0 to item 1
+		const prev = new TerminalBuffer(10, 3);
+		// Row 0: selected (cyan bg, black fg)
+		for (let x = 0; x < 6; x++) {
+			prev.setCell(x, 0, { char: 'Item 1'[x], fg: 0, bg: 6, attrs: {} }); // black on cyan
+		}
+		// Row 1: unselected (default)
+		for (let x = 0; x < 6; x++) {
+			prev.setCell(x, 1, { char: 'Item 2'[x], fg: null, bg: null, attrs: {} });
+		}
+
+		const next = new TerminalBuffer(10, 3);
+		// Row 0: deselected (default)
+		for (let x = 0; x < 6; x++) {
+			next.setCell(x, 0, { char: 'Item 1'[x], fg: null, bg: null, attrs: {} });
+		}
+		// Row 1: now selected (cyan bg, black fg)
+		for (let x = 0; x < 6; x++) {
+			next.setCell(x, 1, { char: 'Item 2'[x], fg: 0, bg: 6, attrs: {} }); // black on cyan
+		}
+
+		const output = outputPhase(prev, next);
+
+		// Should contain positioning and style changes
+		expect(output.length).toBeGreaterThan(0);
+
+		// Row 0 cells should be reset (no bg) — contains SGR 0 reset
+		expect(output).toContain('\x1b[0m');
+
+		// Row 1 cells should have cyan bg (48;5;6) applied
+		expect(output).toContain('48;5;6');
+
+		// Should contain the characters from both rows
+		expect(output).toContain('I');
+	});
+
+	test('background removal emits proper reset codes', () => {
+		const prev = new TerminalBuffer(5, 1);
+		prev.setCell(0, 0, { char: 'A', fg: 1, bg: 4, attrs: { bold: true } }); // red on blue, bold
+
+		const next = new TerminalBuffer(5, 1);
+		next.setCell(0, 0, { char: 'A', fg: null, bg: null, attrs: {} }); // plain
+
+		const output = outputPhase(prev, next);
+
+		// Should contain a reset (SGR 0) — styleToAnsi always starts with reset
+		expect(output).toContain('\x1b[0m');
+
+		// Should NOT contain bg color codes (48;5;...)
+		expect(output).not.toContain('48;5;');
+	});
+
+	test('\\r\\n optimization does not leak background color', () => {
+		// Create buffers where changes span two consecutive rows starting at col 0
+		// with the first row having a bg color
+		const prev = new TerminalBuffer(10, 3);
+
+		const next = new TerminalBuffer(10, 3);
+		// Row 0, col 0: has cyan bg
+		next.setCell(0, 0, { char: 'A', fg: null, bg: 6, attrs: {} });
+		// Row 1, col 0: no bg (this triggers \r\n optimization)
+		next.setCell(0, 1, { char: 'B', fg: null, bg: null, attrs: {} });
+
+		const output = outputPhase(prev, next);
+
+		// The \r\n should be preceded by a reset when bg is active
+		// Find all occurrences of \r\n in the output
+		const rn = '\r\n';
+		const rnIdx = output.indexOf(rn);
+		if (rnIdx >= 0) {
+			// The reset (\x1b[0m) should appear before the \r\n
+			const beforeRn = output.slice(0, rnIdx);
+			// After writing 'A' with bg, reset must come before \r\n
+			const lastReset = beforeRn.lastIndexOf('\x1b[0m');
+			const lastBgSet = beforeRn.lastIndexOf('48;5;6');
+			// Reset should appear after the bg was set (i.e., after writing the bg cell)
+			expect(lastReset).toBeGreaterThan(lastBgSet);
+		}
+	});
+
+	test('style-only cell changes produce correct diff output', () => {
+		const prev = new TerminalBuffer(5, 1);
+		prev.setCell(0, 0, { char: 'X', fg: 1, bg: null, attrs: {} }); // red
+		prev.setCell(1, 0, { char: 'Y', fg: 2, bg: null, attrs: {} }); // green
+
+		const next = new TerminalBuffer(5, 1);
+		next.setCell(0, 0, { char: 'X', fg: 3, bg: null, attrs: { bold: true } }); // yellow bold
+		next.setCell(1, 0, { char: 'Y', fg: 2, bg: null, attrs: {} }); // green (unchanged)
+
+		const output = outputPhase(prev, next);
+
+		// Should have changes for cell (0,0) only — cell (1,0) unchanged
+		expect(output).toContain('X');
+		expect(output).not.toContain('Y');
+
+		// Should contain yellow fg (38;5;3) and bold (1)
+		expect(output).toContain('38;5;3');
+		expect(output).toMatch(/;1[;m]/); // bold SGR code
+	});
+
+	test('buffer shrink emits clearing changes for old area', () => {
+		const prev = new TerminalBuffer(10, 3);
+		// Fill some content in the area that will be outside the new buffer
+		prev.setCell(8, 0, { char: 'Z', fg: 1, bg: null, attrs: {} });
+		prev.setCell(0, 2, { char: 'W', fg: 2, bg: null, attrs: {} });
+
+		// Smaller buffer
+		const next = new TerminalBuffer(5, 2);
+		next.setCell(0, 0, { char: 'A', fg: null, bg: null, attrs: {} });
+
+		const output = outputPhase(prev, next);
+
+		// Should emit changes for the shrunk area
+		expect(output.length).toBeGreaterThan(0);
+
+		// The output should position cursor at cells beyond next.width (col 5-9)
+		// Col 6 (1-indexed) on row 1: \x1b[1;6H
+		expect(output).toContain('\x1b[1;6H');
+		// Row 2 col 6 clearing: \x1b[2;6H
+		expect(output).toContain('\x1b[2;6H');
+
+		// Row 3 clearing (height shrink) — may use \r\n or absolute positioning
+		// Either way, spaces must be emitted for the old row 2 area
+		// Count total spaces in output — should include clearing for cols 5-9 on rows 0-1
+		// plus all 10 cols on row 2
+		const spaceCount = (output.match(/ /g) || []).length;
+		// 5 cols × 2 rows (width shrink) + 10 cols × 1 row (height shrink) = 20
+		expect(spaceCount).toBe(20);
+	});
+
+	test('buffer shrink width clears trailing columns', () => {
+		const prev = new TerminalBuffer(8, 1);
+		prev.setCell(0, 0, { char: 'H', fg: null, bg: null, attrs: {} });
+		prev.setCell(5, 0, { char: 'X', fg: 1, bg: 2, attrs: { bold: true } });
+
+		const next = new TerminalBuffer(4, 1);
+		next.setCell(0, 0, { char: 'H', fg: null, bg: null, attrs: {} });
+
+		const output = outputPhase(prev, next);
+
+		// Cells at x=4..7 should be cleared (spaces with no style)
+		// The clearing cells are at positions 5-8 (1-indexed)
+		expect(output).toContain('\x1b[1;5H'); // cursor to col 5, row 1
+	});
+});
+
 describe('Bug: Cell comparison edge cases', () => {
 	test('cells with same char but different styles are not equal', () => {
 		const cell1 = {

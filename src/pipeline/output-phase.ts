@@ -5,6 +5,7 @@
  */
 
 import {
+	type Cell,
 	type CellAttrs,
 	type Color,
 	type Style,
@@ -198,7 +199,7 @@ function diffBuffers(prev: TerminalBuffer, next: TerminalBuffer): CellChange[] {
 		}
 	}
 
-	// Handle size changes: add all cells in new areas
+	// Handle size growth: add all cells in new areas
 	if (next.width > prev.width) {
 		for (let y = 0; y < next.height; y++) {
 			for (let x = prev.width; x < next.width; x++) {
@@ -210,6 +211,23 @@ function diffBuffers(prev: TerminalBuffer, next: TerminalBuffer): CellChange[] {
 		for (let y = prev.height; y < next.height; y++) {
 			for (let x = 0; x < next.width; x++) {
 				changes.push({ x, y, cell: next.getCell(x, y) });
+			}
+		}
+	}
+
+	// Handle size shrink: clear cells in old-but-not-new areas
+	const emptyCell: Cell = { char: ' ', fg: null, bg: null, underlineColor: null, attrs: {}, wide: false, continuation: false };
+	if (prev.width > next.width) {
+		for (let y = 0; y < height; y++) {
+			for (let x = next.width; x < prev.width; x++) {
+				changes.push({ x, y, cell: emptyCell });
+			}
+		}
+	}
+	if (prev.height > next.height) {
+		for (let y = next.height; y < prev.height; y++) {
+			for (let x = 0; x < prev.width; x++) {
+				changes.push({ x, y, cell: emptyCell });
 			}
 		}
 	}
@@ -296,6 +314,11 @@ function changesToAnsi(
 				// Bug km-x7ih: This was causing the first row to appear at the bottom.
 				if (cursorY >= 0 && y === cursorY + 1 && x === 0) {
 					// Next line at column 0, use newline (more efficient)
+					// Reset style before newline to prevent background color bleeding
+					if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle.attrs))) {
+						output += '\x1b[0m';
+						currentStyle = null;
+					}
 					output += '\r\n';
 				} else {
 					// Absolute position (1-indexed)
