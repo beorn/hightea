@@ -6,7 +6,7 @@
  * applications that use pre-styled text in Text components.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { displayWidthAnsi, hasAnsi, parseAnsiText, stripAnsi } from '../src/unicode.js';
 
 describe('ANSI text utilities', () => {

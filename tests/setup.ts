@@ -5,7 +5,7 @@
  * Import this file in tests for common utilities.
  */
 
-import { expect } from 'bun:test';
+import { expect } from 'vitest';
 
 // Re-export utilities from the testing module
 export {

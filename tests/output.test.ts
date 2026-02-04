@@ -6,7 +6,7 @@
  * is now handled by pipeline/output-phase.ts and is internal.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import {
 	ANSI,
 	disableMouse,

@@ -5,7 +5,7 @@
  * text manipulation, and buffer writing.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { TerminalBuffer } from '../src/buffer.js';
 import {
 	BG_OVERRIDE_CODE,

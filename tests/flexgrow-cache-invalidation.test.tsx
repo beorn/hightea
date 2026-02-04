@@ -5,7 +5,7 @@
  * Bug: When a flexGrow={0} sibling's content changes to be longer,
  * the layout cache may return stale intrinsic width, causing truncation.
  */
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { Box, Text } from '../src/index.js';
 import { createRenderer } from '../src/testing/index.js';
 

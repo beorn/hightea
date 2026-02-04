@@ -24,7 +24,7 @@ describe('IS_REACT_ACT_ENVIRONMENT', () => {
 			}
 
 			// Import main module (NOT testing)
-			await import("${import.meta.dir}/../src/index.ts");
+			await import("${import.meta.dirname}/../src/index.ts");
 
 			// Check after import
 			const after = globalThis.IS_REACT_ACT_ENVIRONMENT;
@@ -67,7 +67,7 @@ describe('IS_REACT_ACT_ENVIRONMENT', () => {
 			const before = globalThis.IS_REACT_ACT_ENVIRONMENT;
 
 			// Import testing module
-			await import("${import.meta.dir}/../src/testing/index.tsx");
+			await import("${import.meta.dirname}/../src/testing/index.tsx");
 
 			// Should be set after import
 			const after = globalThis.IS_REACT_ACT_ENVIRONMENT;

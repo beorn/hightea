@@ -4,7 +4,7 @@
  * Verifies that misuse patterns throw clear error messages.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import React from 'react';
 import { Text } from '../src/index.js';
 import { ensureEngine } from '../src/renderer.js';

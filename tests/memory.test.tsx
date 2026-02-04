@@ -10,7 +10,7 @@
  * @see bead km-z66f
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { EventEmitter } from 'node:events';
 import React, { useEffect, useState } from 'react';
 import { Box, Text, useInput } from '../src/index.ts';
@@ -301,6 +301,7 @@ describe('Long-running app memory patterns', () => {
 
 	test(
 		'rerender cycles do not accumulate nodes',
+		{ timeout: 15000 },
 		() => {
 			const render = createRenderer();
 
@@ -334,7 +335,6 @@ describe('Long-running app memory patterns', () => {
 
 			unmount();
 		},
-		{ timeout: 15000 },
 	);
 
 	test('deeply nested components do not leak on restructure', () => {
@@ -594,6 +594,7 @@ describe('Memory tracking', () => {
 
 	test(
 		'garbage collection reclaims unmounted component memory',
+		{ timeout: 15000 },
 		async () => {
 			// Force GC if available (Bun with --expose-gc)
 			const gc = globalThis.gc as (() => void) | undefined;
@@ -624,7 +625,6 @@ describe('Memory tracking', () => {
 			// Memory should be reclaimable (can't assert exact values due to GC timing)
 			expect(true).toBe(true);
 		},
-		{ timeout: 15000 },
 	);
 });
 

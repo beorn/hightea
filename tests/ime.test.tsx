@@ -14,7 +14,7 @@
  * @see terminal-multiplexers.test.ts for Synchronized Update Mode
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import React, { useState } from 'react';
 import { Box, type Key, Text, useInput } from '../src/index.ts';
 import { createRenderer, stripAnsi } from '../src/testing/index.tsx';

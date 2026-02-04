@@ -7,7 +7,7 @@
  * - Emoji and wide characters (characters that take 2 cells)
  * - Mixed content (text + emoji + ANSI together)
  */
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import React from 'react';
 import { Box, Text } from '../src/index.js';
 import { createRenderer, stripAnsi } from '../src/testing/index.tsx';

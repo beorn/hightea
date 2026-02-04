@@ -7,7 +7,7 @@
  *
  * Bug: km-jmxuh, km-inkx-stale
  */
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import React, { useState } from 'react';
 import { Box, type Key, Text, useInput } from '../../src/index.js';
 import { createRenderer } from '../../src/testing/index.js';

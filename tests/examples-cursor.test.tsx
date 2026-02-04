@@ -4,7 +4,7 @@
  * These tests verify that stdin.write() properly triggers useInput hooks
  * and that state updates are reflected in the rendered output.
  */
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import React, { useState } from 'react';
 import { Box, type Key, Text, useInput } from '../src/index.js';
 import { createRenderer, stripAnsi } from '../src/testing/index.tsx';

@@ -4,7 +4,7 @@
  * Tests for Playwright-inspired DOM queries on InkxNode tree.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import React from 'react';
 import { Box, Text } from '../src/components/index.ts';
 import { createLocator, createRenderer } from '../src/testing/index.tsx';

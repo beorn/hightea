@@ -4,7 +4,7 @@
  * These tests reproduce bugs before fixing them.
  * Each test should FAIL initially, then pass after the fix.
  */
-import { describe, expect, it, test } from 'bun:test';
+import { describe, expect, it, test } from 'vitest';
 import React, { useState } from 'react';
 import { Box, type Key, Text, useInput } from '../src/index.js';
 import { createRenderer, stripAnsi } from '../src/testing/index.tsx';

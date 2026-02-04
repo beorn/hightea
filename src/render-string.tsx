@@ -143,8 +143,10 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
 		false, // isStrictMode
 		null, // concurrentUpdatesByDefaultOverride
 		'', // identifierPrefix
+		() => {}, // onUncaughtError
+		() => {}, // onCaughtError
 		() => {}, // onRecoverableError
-		null, // transitionCallbacks
+		null, // onDefaultTransitionIndicator
 	);
 
 	// Create minimal mock stdout for components that use useStdout

@@ -73,8 +73,10 @@ export function layout(element: ReactElement, dims: Dims, options: LayoutOptions
 		false, // isStrictMode
 		null, // concurrentUpdatesByDefaultOverride
 		'', // identifierPrefix
+		() => {}, // onUncaughtError
+		() => {}, // onCaughtError
 		() => {}, // onRecoverableError
-		null, // transitionCallbacks
+		null, // onDefaultTransitionIndicator
 	);
 
 	// Create minimal mock stdout for components that use useStdout

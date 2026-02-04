@@ -163,6 +163,8 @@ export function renderToDOM(
 		null,
 		'',
 		() => {},
+		() => {},
+		() => {},
 		null,
 	);
 
@@ -257,7 +259,7 @@ export function renderDOMOnce(
 	const root = getContainerRoot(container);
 
 	// Create fiber root and render
-	const fiberRoot = reconciler.createContainer(container, 0, null, false, null, '', () => {}, null);
+	const fiberRoot = reconciler.createContainer(container, 0, null, false, null, '', () => {}, () => {}, () => {}, null);
 
 	reconciler.updateContainerSync(element, fiberRoot, null, null);
 	reconciler.flushSyncWork();

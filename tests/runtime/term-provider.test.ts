@@ -2,7 +2,7 @@
  * Tests for createTermProvider - terminal as a Provider.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { EventEmitter } from 'events';
 import { type TermProvider, createTermProvider } from '../../src/runtime/term-provider.js';
 

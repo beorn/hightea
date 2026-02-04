@@ -6,7 +6,7 @@
  * - The original bug was missing flexGrow={0} and using string.length instead of displayWidth
  * - Both nested Text and pre-built string approaches work when properly configured
  */
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { Box, Text, displayWidth } from '../src/index.js';
 import { createRenderer } from '../src/testing/index.js';
 

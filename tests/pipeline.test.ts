@@ -4,7 +4,7 @@
  * Tests for the render pipeline phases: measure, layout, content, output.
  */
 
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { beforeAll, describe, expect, test } from 'vitest';
 import { initYogaEngine } from '../src/adapters/yoga-adapter.js';
 import { TerminalBuffer } from '../src/buffer.js';
 import {

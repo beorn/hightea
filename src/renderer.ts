@@ -254,8 +254,10 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
 		false, // isStrictMode
 		null, // concurrentUpdatesByDefaultOverride
 		'', // identifierPrefix
+		() => {}, // onUncaughtError
+		() => {}, // onCaughtError
 		() => {}, // onRecoverableError
-		null, // transitionCallbacks
+		null, // onDefaultTransitionIndicator
 	);
 
 	// Track exit state

@@ -5,7 +5,7 @@
  * Uses simplified text extraction for fast, reliable testing.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import React from 'react';
 import { Box, Newline, Spacer, Text } from '../src/components/index.js';
 import { createRenderer } from '../src/testing/index.js';

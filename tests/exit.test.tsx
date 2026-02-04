@@ -10,7 +10,7 @@
  * @see bead km-yv6d
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import React, { useEffect, useState } from 'react';
 import { Box, Text, useApp } from '../src/index.ts';
 import { createRenderer } from '../src/testing/index.tsx';

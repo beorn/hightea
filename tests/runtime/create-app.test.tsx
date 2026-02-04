@@ -2,7 +2,7 @@
  * Tests for createApp() - Layer 3 Store integration.
  */
 
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import React from 'react';
 import { Text } from '../../src/index.js';
 import { type Key, createApp, useApp } from '../../src/runtime/index.js';

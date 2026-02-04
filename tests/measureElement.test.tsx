@@ -9,7 +9,7 @@
  * See hooks.test.tsx for useLayout tests.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { type InkxNode, measureElement } from '../src/index.js';
 
 // Helper to create a mock layout node that returns specific values

@@ -11,7 +11,7 @@
  */
 import { createRenderer } from "../src/testing/index.js"
 import { Box, Text } from "../src/index.js"
-import { test, expect, describe } from "bun:test"
+import { test, expect, describe } from "vitest"
 
 const render = createRenderer({ cols: 80, rows: 24 })
 

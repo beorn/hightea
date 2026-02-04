@@ -7,7 +7,7 @@
  * and maintains logical reading order.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import React from 'react';
 import { Box, Text } from '../src/components/index.js';
 import { createRenderer, normalizeFrame, stripAnsi } from '../src/testing/index.js';

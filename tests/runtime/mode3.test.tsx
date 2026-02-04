@@ -8,7 +8,7 @@
  * - Events flow through the system correctly
  */
 
-import { beforeAll, describe, expect, it } from 'bun:test';
+import { beforeAll, describe, expect, it } from 'vitest';
 import type React from 'react';
 import { Box, Text } from '../../src/index.js';
 import {

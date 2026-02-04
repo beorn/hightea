@@ -2,7 +2,7 @@
  * Test that Text with wrap="truncate" uses parent Box width for truncation.
  * Also tests nested Text structure (Text inside Text for styling).
  */
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { Box, Text, displayWidth } from '../src/index.js';
 import { createRenderer } from '../src/testing/index.js';
 

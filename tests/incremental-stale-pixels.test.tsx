@@ -9,7 +9,7 @@
  * to exercise the same code path as the live scheduler.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import React, { useState } from 'react';
 import { Box, Text } from '../src/index.js';
 import { createRenderer, stripAnsi } from '../src/testing/index.js';

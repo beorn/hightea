@@ -5,7 +5,7 @@
  * Measures layout time vs content render time and identifies bottlenecks.
  */
 
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, vi, test } from 'vitest';
 import React from 'react';
 import { Box, Text } from '../src/components/index.js';
 import { createRenderer, stripAnsi } from '../src/testing/index.js';
@@ -13,12 +13,12 @@ import { createRenderer, stripAnsi } from '../src/testing/index.js';
 const render = createRenderer();
 
 // Capture console.log output during tests
-let logSpy: ReturnType<typeof spyOn>;
+let logSpy: ReturnType<typeof vi.spyOn>;
 let logOutput: string[];
 
 beforeEach(() => {
 	logOutput = [];
-	logSpy = spyOn(console, 'log').mockImplementation((...args) => {
+	logSpy = vi.spyOn(console, 'log').mockImplementation((...args) => {
 		logOutput.push(args.join(' '));
 	});
 });

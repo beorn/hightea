@@ -13,7 +13,7 @@
  * See reconciler.ts for the required host config methods added for 0.33+ compatibility.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import React, {
 	Suspense,
 	StrictMode,

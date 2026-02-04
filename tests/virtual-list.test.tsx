@@ -4,7 +4,7 @@
  * Tests for React-level virtualization.
  */
 
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { beforeAll, describe, expect, test } from 'vitest';
 import React from 'react';
 import { Box, Text, VirtualList } from '../src/index.js';
 import { initYogaEngine, setLayoutEngine } from '../src/render.js';

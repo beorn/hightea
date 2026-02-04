@@ -557,8 +557,10 @@ class InkxInstance {
 			false, // isStrictMode
 			null, // concurrentUpdatesByDefaultOverride
 			'', // identifierPrefix
+			() => {}, // onUncaughtError
+			() => {}, // onCaughtError
 			() => {}, // onRecoverableError
-			null, // transitionCallbacks
+			null, // onDefaultTransitionIndicator
 		);
 
 		// Set up scheduler

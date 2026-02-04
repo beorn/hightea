@@ -8,7 +8,7 @@
  * that hand-written tests might miss.
  */
 
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { beforeAll, describe, expect, test } from 'vitest';
 import * as fc from 'fast-check';
 import { createFlexxZeroEngine } from '../src/adapters/flexx-zero-adapter.js';
 import { initYogaEngine } from '../src/adapters/yoga-adapter.js';

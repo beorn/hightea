@@ -7,7 +7,7 @@
  * These tests require document - they skip gracefully in CI without browser.
  */
 
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import React, { useState, useEffect } from 'react';
 import { createDOMAdapter } from '../src/adapters/dom-adapter.js';
 import { createFlexxZeroEngine } from '../src/adapters/flexx-zero-adapter.js';

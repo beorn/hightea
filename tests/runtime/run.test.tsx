@@ -2,7 +2,7 @@
  * Tests for run() - Layer 2 React integration.
  */
 
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import React, { useState } from 'react';
 import { Text } from '../../src/index.js';
 import { type Key, run, useExit, useInput } from '../../src/runtime/index.js';

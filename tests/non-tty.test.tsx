@@ -12,7 +12,7 @@
  * the fallback behavior when stdout.columns/rows are undefined (non-TTY).
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { Box, Text } from '../src/components/index.js';
 import {
 	countLines,

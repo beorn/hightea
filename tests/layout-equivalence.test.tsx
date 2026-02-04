@@ -13,7 +13,7 @@
  * differently on Linux runners vs local macOS development.
  */
 
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { beforeAll, describe, expect, test } from 'vitest';
 
 // Skip in CI - Yoga WASM has platform-specific behavior on Linux runners
 const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';

@@ -11,7 +11,7 @@
  * These tests ensure inkx provides the React patterns developers expect.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import type React from 'react';
 import { Suspense, forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {

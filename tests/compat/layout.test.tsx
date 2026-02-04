@@ -8,7 +8,7 @@
  * For visual layout verification, use the visual regression tests (e2e/).
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import React from 'react';
 import { Box, Newline, Spacer, Text } from '../../src/index.js';
 import { createRenderer } from '../../src/testing/index.js';

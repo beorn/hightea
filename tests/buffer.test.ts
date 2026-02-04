@@ -4,7 +4,7 @@
  * Tests for the terminal buffer implementation.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import {
 	type Cell,
 	type CellAttrs,

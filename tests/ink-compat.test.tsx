@@ -9,7 +9,7 @@
  * 4. Behavioral tests for keyboard input, focus, etc.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import type React from 'react';
 import { useState } from 'react';
 

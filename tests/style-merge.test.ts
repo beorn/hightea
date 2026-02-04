@@ -9,7 +9,7 @@
  * - Inverse transform behavior
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { type Color, type Style, TerminalBuffer } from '../src/buffer.js';
 import { outputPhase } from '../src/pipeline/output-phase.js';
 import { type MergeStylesOptions, mergeStyles } from '../src/pipeline/render-text.js';

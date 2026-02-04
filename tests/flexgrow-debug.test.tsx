@@ -1,7 +1,7 @@
 /**
  * Debug test for flexGrow sibling layout issue.
  */
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { Box, Text } from '../src/index.js';
 import { createRenderer } from '../src/testing/index.js';
 

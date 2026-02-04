@@ -1,7 +1,7 @@
 /**
  * Exact replication of the km-tui bottom bar structure that fails.
  */
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { Box, Text } from '../src/index.js';
 import { createRenderer } from '../src/testing/index.js';
 

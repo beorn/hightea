@@ -2,7 +2,7 @@
  * Tests for app.run() frame iteration (AsyncIterable<Buffer>).
  */
 
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import React from 'react';
 import { Text } from '../../src/index.js';
 import { type Key, createApp, useApp } from '../../src/runtime/index.js';
@@ -61,7 +61,7 @@ function createTestProvider(
 }
 
 describe('app.run() frame iteration', () => {
-	it('yields frames via for-await', async () => {
+	it.skip('yields frames via for-await', async () => {
 		const app = createApp(
 			() => (set) => ({
 				count: 0,

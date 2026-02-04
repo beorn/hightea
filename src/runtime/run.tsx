@@ -340,8 +340,10 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 		false, // isStrictMode
 		null, // concurrentUpdatesByDefaultOverride
 		'', // identifierPrefix
+		() => {}, // onUncaughtError
+		() => {}, // onCaughtError
 		() => {}, // onRecoverableError
-		null, // transitionCallbacks
+		null, // onDefaultTransitionIndicator
 	);
 
 	// Create mock stdout for contexts

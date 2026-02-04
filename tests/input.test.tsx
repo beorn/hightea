@@ -7,7 +7,7 @@
  * 3. Unicode edge cases (variation selectors, surrogate pairs)
  * 4. Incomplete escape sequences (buffered parsing)
  */
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import React, { useState } from 'react';
 import { Box, type Key, Text, useInput } from '../src/index.ts';
 import { createRenderer, stripAnsi } from '../src/testing/index.tsx';

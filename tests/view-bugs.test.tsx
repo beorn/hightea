@@ -7,7 +7,7 @@
  * - km-5x66: Cards view bottom bar loses background color
  * - km-n29q: Empty column navigation fails
  */
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import React, { useState } from 'react';
 import { Box, type Key, Text, useInput } from '../src/index.js';
 import { createRenderer, normalizeFrame, stripAnsi } from '../src/testing/index.tsx';

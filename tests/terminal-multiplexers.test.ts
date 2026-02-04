@@ -12,7 +12,7 @@
  * @see https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036 (Synchronized Update spec)
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { ANSI } from '../src/output.js';
 
 // ============================================================================

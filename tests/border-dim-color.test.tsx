@@ -12,7 +12,7 @@
  *
  * @see https://github.com/vadimdemedes/ink/issues/840
  */
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import React from 'react';
 import { Box, Text } from '../src/index.js';
 import { createRenderer, stripAnsi } from '../src/testing/index.tsx';

@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'bun:test';
+import { beforeAll, describe, expect, it } from 'vitest';
 import React from 'react';
 import { Box, Text } from '../../src/index.js';
 import { diff, ensureLayoutEngine, layout } from '../../src/runtime/index.js';

@@ -2,7 +2,7 @@
  * Render Adapter Core Tests
  */
 
-import { beforeEach, describe, expect, test } from 'bun:test';
+import { beforeEach, describe, expect, test } from 'vitest';
 import {
 	type RenderAdapter,
 	type RenderBuffer,

@@ -7,7 +7,7 @@
  * 3. Diff output not properly resetting styles
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import React from 'react';
 import { TerminalBuffer, cellEquals, styleEquals } from '../src/buffer.js';
 import { Box, Text } from '../src/index.js';

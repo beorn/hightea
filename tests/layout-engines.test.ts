@@ -5,7 +5,7 @@
  * and produce consistent results.
  */
 
-import { beforeEach, describe, expect, test } from 'bun:test';
+import { beforeEach, describe, expect, test } from 'vitest';
 import { createFlexxZeroEngine } from '../src/adapters/flexx-zero-adapter.js';
 import { initYogaEngine } from '../src/adapters/yoga-adapter.js';
 import {

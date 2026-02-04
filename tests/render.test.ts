@@ -4,7 +4,7 @@
  * Basic tests for the render function and testing library.
  */
 
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import { createElement } from 'react';
 import { Box, Text } from '../src/index.js';
 import { createRenderer } from '../src/testing/index.js';

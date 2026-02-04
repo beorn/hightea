@@ -448,7 +448,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 	const container = createContainer(() => {});
 
 	// Create React fiber root
-	const fiberRoot = reconciler.createContainer(container, 0, null, false, null, '', () => {}, null);
+	const fiberRoot = reconciler.createContainer(container, 0, null, false, null, '', () => {}, () => {}, () => {}, null);
 
 	// Track current buffer for text access
 	let currentText = '';

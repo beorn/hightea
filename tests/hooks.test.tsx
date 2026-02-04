@@ -9,7 +9,7 @@
  * - useStdout: Access to stdout stream
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import React from 'react';
 import {
 	FocusContext,

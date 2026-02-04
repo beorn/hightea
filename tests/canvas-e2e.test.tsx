@@ -7,7 +7,7 @@
  * These tests require OffscreenCanvas or document - they skip gracefully in CI.
  */
 
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import React, { useState, useEffect } from 'react';
 import { createCanvasAdapter } from '../src/adapters/canvas-adapter.js';
 import { createFlexxZeroEngine } from '../src/adapters/flexx-zero-adapter.js';

@@ -5,7 +5,7 @@
  * content can disappear from remaining children.
  */
 
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import React from 'react';
 import { Box, Text } from '../src/index.js';
 import { createRenderer } from '../src/testing/index.js';

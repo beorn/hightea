@@ -2,7 +2,7 @@
  * Tests for key parsing - parseKey() function.
  */
 
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import { emptyKey, parseKey } from '../../src/runtime/keys.js';
 
 describe('parseKey()', () => {
