@@ -61,6 +61,10 @@ let currentUpdatePriority = NoEventPriority;
  * This defines how React creates, updates, and manages our custom InkxNodes.
  */
 export const hostConfig = {
+	// Renderer identity (used by React DevTools to identify this renderer)
+	rendererPackageName: 'inkx',
+	rendererVersion: '0.0.1',
+
 	// Feature flags
 	supportsMutation: true,
 	supportsPersistence: false,

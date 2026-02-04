@@ -869,6 +869,12 @@ async function renderImpl(
 	await ensureLayoutEngineInitialized(options.layoutEngine);
 	log.debug?.(`render(): layout engine ready in ${Date.now() - renderStart}ms`);
 
+	// Auto-connect to React DevTools if DEBUG_DEVTOOLS=1
+	if (process.env.DEBUG_DEVTOOLS) {
+		const { autoConnectDevTools } = await import('./devtools.js');
+		await autoConnectDevTools();
+	}
+
 	// For static mode, use renderString-style rendering
 	if (resolved.isStatic) {
 		return renderStaticImpl(element, term, resolved);

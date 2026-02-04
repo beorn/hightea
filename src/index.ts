@@ -382,6 +382,27 @@ export { isTTY, resolveNonTTYMode, stripAnsi } from './non-tty.js';
 export type { NonTTYOptions, ResolvedNonTTYMode } from './non-tty.js';
 
 // =============================================================================
+// DevTools
+// =============================================================================
+
+/**
+ * React DevTools integration.
+ *
+ * Optional connection to React DevTools standalone for debugging component trees.
+ * Requires `react-devtools-core` (optional peer dependency).
+ *
+ * @example
+ * ```ts
+ * // Manual connection
+ * import { connectDevTools } from 'inkx';
+ * await connectDevTools();
+ *
+ * // Or use env var: DEBUG_DEVTOOLS=1 bun run app.ts
+ * ```
+ */
+export { connectDevTools, isDevToolsConnected } from './devtools.js';
+
+// =============================================================================
 // Unicode Text Utilities
 // =============================================================================
 
