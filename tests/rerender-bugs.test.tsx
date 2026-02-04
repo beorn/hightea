@@ -459,3 +459,233 @@ describe('Bug: Cell comparison edge cases', () => {
 		expect(cellEquals(cellNull, cellZero)).toBe(false);
 	});
 });
+
+describe('Bug: Keyed children reorder loses content', () => {
+	test('reordering keyed children should render all content', () => {
+		// Reproduce: keyed children reordered (e.g., horizontal scroll sliding window)
+		// React reuses nodes via keys but calls insertBefore/appendChild to move them.
+		// If the host config doesn't remove the child from its old position first,
+		// the child ends up duplicated in the children array, causing rendering issues.
+		function KeyedList({ order }: { order: string[] }) {
+			return (
+				<Box flexDirection="column">
+					{order.map((item) => (
+						<Text key={item}>{item}</Text>
+					))}
+				</Box>
+			);
+		}
+
+		const { lastFrame, rerender } = render(<KeyedList order={['A', 'B', 'C']} />);
+
+		const frame1 = lastFrame() ?? '';
+		expect(stripAnsi(frame1)).toContain('A');
+		expect(stripAnsi(frame1)).toContain('B');
+		expect(stripAnsi(frame1)).toContain('C');
+
+		// Reorder: move C to front
+		rerender(<KeyedList order={['C', 'A', 'B']} />);
+
+		const frame2 = lastFrame() ?? '';
+		expect(stripAnsi(frame2)).toContain('A');
+		expect(stripAnsi(frame2)).toContain('B');
+		expect(stripAnsi(frame2)).toContain('C');
+	});
+
+	test('sliding window reorder should show all visible items', () => {
+		// Simulate a horizontal sliding window where items shift
+		// Window shows 3 items at a time, sliding by 1
+		function SlidingWindow({ offset }: { offset: number }) {
+			const allItems = ['W', 'X', 'Y', 'Z'];
+			const visible = allItems.slice(offset, offset + 3);
+			return (
+				<Box flexDirection="row">
+					{visible.map((item) => (
+						<Text key={item}>{`[${item}]`}</Text>
+					))}
+				</Box>
+			);
+		}
+
+		const { lastFrame, rerender } = render(<SlidingWindow offset={0} />);
+
+		const frame1 = lastFrame() ?? '';
+		expect(stripAnsi(frame1)).toContain('[W]');
+		expect(stripAnsi(frame1)).toContain('[X]');
+		expect(stripAnsi(frame1)).toContain('[Y]');
+
+		// Slide window by 1: [X, Y, Z] - X and Y are reused (reordered), Z is new
+		rerender(<SlidingWindow offset={1} />);
+
+		const frame2 = lastFrame() ?? '';
+		expect(stripAnsi(frame2)).toContain('[X]');
+		expect(stripAnsi(frame2)).toContain('[Y]');
+		expect(stripAnsi(frame2)).toContain('[Z]');
+		// W should no longer be visible
+		expect(stripAnsi(frame2)).not.toContain('[W]');
+	});
+
+	test('reverse order should render all children correctly', () => {
+		function ReversibleList({ reversed }: { reversed: boolean }) {
+			const items = ['First', 'Second', 'Third'];
+			const ordered = reversed ? [...items].reverse() : items;
+			return (
+				<Box flexDirection="column">
+					{ordered.map((item) => (
+						<Text key={item}>{item}</Text>
+					))}
+				</Box>
+			);
+		}
+
+		const { lastFrame, rerender } = render(<ReversibleList reversed={false} />);
+
+		const frame1 = lastFrame() ?? '';
+		const text1 = stripAnsi(frame1);
+		expect(text1).toContain('First');
+		expect(text1).toContain('Second');
+		expect(text1).toContain('Third');
+
+		// Reverse the order
+		rerender(<ReversibleList reversed={true} />);
+
+		const frame2 = lastFrame() ?? '';
+		const text2 = stripAnsi(frame2);
+		expect(text2).toContain('First');
+		expect(text2).toContain('Second');
+		expect(text2).toContain('Third');
+
+		// Verify the order changed: Third should come before First
+		const thirdIdx = text2.indexOf('Third');
+		const firstIdx = text2.indexOf('First');
+		expect(thirdIdx).toBeLessThan(firstIdx);
+	});
+});
+
+describe('Bug: Inline mode cursor positioning drifts with growing content', () => {
+	test('cursor-up distance uses previous content height, not maxY of changes', () => {
+		// Simulate inline mode: content grows from 2 lines to 4 lines.
+		// After the first render, cursor is at row 1 (the last content line).
+		// The diff should move up by 1 (prevContentLine), not by 3 (maxY of changes).
+
+		// Frame 1: 2 lines of content
+		const prev = new TerminalBuffer(10, 6);
+		prev.setCell(0, 0, { char: 'A' });
+		prev.setCell(0, 1, { char: 'B' });
+
+		// Frame 2: 4 lines of content (grew by 2)
+		const next = new TerminalBuffer(10, 6);
+		next.setCell(0, 0, { char: 'A' });
+		next.setCell(0, 1, { char: 'B' });
+		next.setCell(0, 2, { char: 'C' });
+		next.setCell(0, 3, { char: 'D' });
+
+		const output = outputPhase(prev, next, 'inline');
+
+		// The output should move cursor up by 1 (previous last content line),
+		// NOT by 3 (maxY of changes). ESC[1A = move up 1 line.
+		expect(output).toContain('\x1b[1A');
+		// Should NOT contain ESC[3A (the old buggy behavior)
+		expect(output).not.toContain('\x1b[3A');
+	});
+
+	test('cursor-up is omitted when previous content was single line', () => {
+		// Frame 1: 1 line of content (cursor at row 0)
+		const prev = new TerminalBuffer(10, 4);
+		prev.setCell(0, 0, { char: 'A' });
+
+		// Frame 2: 3 lines
+		const next = new TerminalBuffer(10, 4);
+		next.setCell(0, 0, { char: 'X' });
+		next.setCell(0, 1, { char: 'Y' });
+		next.setCell(0, 2, { char: 'Z' });
+
+		const output = outputPhase(prev, next, 'inline');
+
+		// Previous content was 1 line (row 0), so cursor is at row 0.
+		// No cursor-up needed. The output should NOT have any ESC[...A sequence.
+		expect(output).not.toMatch(/\x1b\[\d+A/);
+	});
+
+	test('cursor repositions to new content bottom after rendering', () => {
+		// After rendering changes, cursor should be at the new last content line
+		// so the next diff knows where the cursor is.
+
+		// Frame 1: 2 lines
+		const prev = new TerminalBuffer(10, 6);
+		prev.setCell(0, 0, { char: 'A' });
+		prev.setCell(0, 1, { char: 'B' });
+
+		// Frame 2: 4 lines
+		const next = new TerminalBuffer(10, 6);
+		next.setCell(0, 0, { char: 'A' });
+		next.setCell(0, 1, { char: 'B' });
+		next.setCell(0, 2, { char: 'C' });
+		next.setCell(0, 3, { char: 'D' });
+
+		const output = outputPhase(prev, next, 'inline');
+
+		// The output should contain the new content characters
+		expect(output).toContain('C');
+		expect(output).toContain('D');
+
+		// Now simulate a third frame where content stays the same height.
+		// If the cursor was correctly positioned at row 3 after the previous render,
+		// then a diff from next -> next2 should move up by 3.
+		const next2 = new TerminalBuffer(10, 6);
+		next2.setCell(0, 0, { char: 'A' });
+		next2.setCell(0, 1, { char: 'B' });
+		next2.setCell(0, 2, { char: 'C' });
+		next2.setCell(0, 3, { char: 'E' }); // Changed from D to E
+
+		const output2 = outputPhase(next, next2, 'inline');
+
+		// Previous content last line is row 3, so cursor-up should be 3
+		expect(output2).toContain('\x1b[3A');
+		expect(output2).toContain('E');
+	});
+
+	test('content shrinking adjusts cursor-up correctly', () => {
+		// Frame 1: 4 lines of content
+		const prev = new TerminalBuffer(10, 6);
+		prev.setCell(0, 0, { char: 'A' });
+		prev.setCell(0, 1, { char: 'B' });
+		prev.setCell(0, 2, { char: 'C' });
+		prev.setCell(0, 3, { char: 'D' });
+
+		// Frame 2: 2 lines (content shrank)
+		const next = new TerminalBuffer(10, 6);
+		next.setCell(0, 0, { char: 'X' });
+		next.setCell(0, 1, { char: 'Y' });
+
+		const output = outputPhase(prev, next, 'inline');
+
+		// Cursor was at row 3 (prev last content line), so move up by 3
+		expect(output).toContain('\x1b[3A');
+		expect(output).toContain('X');
+		expect(output).toContain('Y');
+	});
+
+	test('stable content height produces consistent cursor movement', () => {
+		// When content height doesn't change, cursor-up should equal maxY of changes.
+		// This verifies we didn't break the common case.
+
+		const prev = new TerminalBuffer(10, 4);
+		prev.setCell(0, 0, { char: 'A' });
+		prev.setCell(0, 1, { char: 'B' });
+		prev.setCell(0, 2, { char: 'C' });
+
+		const next = new TerminalBuffer(10, 4);
+		next.setCell(0, 0, { char: 'X' });
+		next.setCell(0, 1, { char: 'Y' });
+		next.setCell(0, 2, { char: 'Z' });
+
+		const output = outputPhase(prev, next, 'inline');
+
+		// Previous last content line is row 2, so cursor-up should be 2
+		expect(output).toContain('\x1b[2A');
+		expect(output).toContain('X');
+		expect(output).toContain('Y');
+		expect(output).toContain('Z');
+	});
+});

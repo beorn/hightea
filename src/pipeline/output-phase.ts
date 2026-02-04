@@ -79,7 +79,12 @@ export function outputPhase(
 		return ''; // No changes
 	}
 
-	return changesToAnsi(changes, mode);
+	// For inline mode, pass the previous content height so changesToAnsi knows
+	// where the cursor currently sits (at the bottom of the previous render).
+	const prevContentHeight = mode === 'inline' ? findLastContentLine(prev) : 0;
+	const nextContentHeight = mode === 'inline' ? findLastContentLine(next) : 0;
+
+	return changesToAnsi(changes, mode, prevContentHeight, nextContentHeight);
 }
 
 /**
@@ -237,10 +242,19 @@ function diffBuffers(prev: TerminalBuffer, next: TerminalBuffer): CellChange[] {
 
 /**
  * Convert cell changes to optimized ANSI output.
+ *
+ * @param changes List of cell changes to render
+ * @param mode Render mode: fullscreen or inline
+ * @param prevContentLine Last content line of the previous buffer (inline mode only).
+ *   This is the row where the cursor currently sits after the previous render.
+ * @param nextContentLine Last content line of the next buffer (inline mode only).
+ *   After rendering, the cursor will be positioned at this row.
  */
 function changesToAnsi(
 	changes: CellChange[],
 	mode: 'fullscreen' | 'inline' = 'fullscreen',
+	prevContentLine = 0,
+	nextContentLine = 0,
 ): string {
 	if (changes.length === 0) return '';
 
@@ -251,15 +265,16 @@ function changesToAnsi(
 	let currentStyle: Style | null = null;
 
 	if (mode === 'inline') {
-		// Inline mode: move cursor to start of the render region
-		const maxY = Math.max(...changes.map((c) => c.y));
+		// Inline mode: move cursor to start of the render region.
+		// The cursor is currently at prevContentLine (the last content row of
+		// the previous render). We need to move up to row 0 to start rendering.
 
 		// Hide cursor
 		output += '\x1b[?25l';
 
-		// Move up to the top line of the render region if we have multiple lines
-		if (maxY > 0) {
-			output += `\x1b[${maxY}A`;
+		// Move up from the cursor's current position (prevContentLine) to row 0
+		if (prevContentLine > 0) {
+			output += `\x1b[${prevContentLine}A`;
 		}
 
 		// Move to start of line
@@ -296,6 +311,12 @@ function changesToAnsi(
 
 			// Write character
 			output += cell.char;
+		}
+
+		// After rendering, move cursor to nextContentLine so the next diff
+		// knows where the cursor is. The cursor is currently at currentY.
+		if (currentY < nextContentLine) {
+			output += `\x1b[${nextContentLine - currentY}B`;
 		}
 	} else {
 		// Fullscreen mode: use absolute positioning
