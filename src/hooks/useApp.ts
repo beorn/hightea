@@ -18,6 +18,16 @@ export interface UseAppResult {
    * Optionally pass an error to indicate the app exited due to an error.
    */
   exit: (error?: Error) => void
+  /**
+   * Pause rendering output (for screen switching). Input still works.
+   * Returns undefined if not supported (static mode).
+   */
+  pause?: () => void
+  /**
+   * Resume rendering after pause. Forces a full redraw.
+   * Returns undefined if not supported (static mode).
+   */
+  resume?: () => void
 }
 
 // ============================================================================
@@ -51,5 +61,7 @@ export function useApp(): UseAppResult {
 
   return {
     exit: context.exit,
+    pause: context.pause,
+    resume: context.resume,
   }
 }

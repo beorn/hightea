@@ -269,7 +269,7 @@ export function render(
 
   instance.fiberRoot = reconciler.createContainer(
     instance.container,
-    0, // LegacyRoot
+    1, // ConcurrentRoot
     null, // hydrationCallbacks
     false, // isStrictMode
     null, // concurrentUpdatesByDefaultOverride

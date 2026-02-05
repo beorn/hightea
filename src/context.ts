@@ -71,6 +71,10 @@ export const NodeContext = createContext<InkxNode | null>(null)
 export interface AppContextValue {
   /** Exit the application with optional error */
   exit: (error?: Error) => void
+  /** Pause rendering output (for screen switching). Input still works. */
+  pause?: () => void
+  /** Resume rendering after pause. Forces a full redraw. */
+  resume?: () => void
 }
 
 /**

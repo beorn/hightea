@@ -234,6 +234,7 @@ export type {
   StyleChain,
   PatchedConsole,
   PatchConsoleOptions,
+  ConsoleStats,
   ColorLevel,
   ConsoleEntry,
 } from "chalkx"

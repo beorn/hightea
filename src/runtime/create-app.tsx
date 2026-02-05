@@ -519,7 +519,7 @@ async function initApp<
   // Create React fiber root
   const fiberRoot = reconciler.createContainer(
     container,
-    0,
+    1, // ConcurrentRoot
     null,
     false,
     null,

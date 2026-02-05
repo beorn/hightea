@@ -162,6 +162,12 @@ export class RenderScheduler {
   /** Is the scheduler disposed? */
   private disposed = false
 
+  /** Is the scheduler paused? When paused, renders are deferred until resume. */
+  private paused = false
+
+  /** Was a render requested while paused? */
+  private pendingWhilePaused = false
+
   constructor(options: SchedulerOptions) {
     this.stdout = options.stdout
     this.root = options.root
@@ -205,6 +211,11 @@ export class RenderScheduler {
   scheduleRender(): void {
     if (this.disposed) return
 
+    if (this.paused) {
+      this.pendingWhilePaused = true
+      return
+    }
+
     if (this.renderScheduled) {
       this.stats.skippedCount++
       log.debug?.(`render skipped (batched), total: ${this.stats.skippedCount}`)
@@ -242,6 +253,11 @@ export class RenderScheduler {
   forceRender(): void {
     if (this.disposed) return
 
+    if (this.paused) {
+      this.pendingWhilePaused = true
+      return
+    }
+
     // Cancel any pending scheduled render
     this.renderScheduled = false
     if (this.frameTimeout) {
@@ -257,6 +273,44 @@ export class RenderScheduler {
    */
   getStats(): RenderStats {
     return { ...this.stats }
+  }
+
+  /**
+   * Pause rendering. While paused, scheduled and forced renders are deferred.
+   * Input handling continues normally. Call resume() to unpause and force a
+   * full redraw. Used for screen-switching (alt screen ↔ normal screen).
+   */
+  pause(): void {
+    if (this.disposed || this.paused) return
+    this.paused = true
+    this.pendingWhilePaused = false
+    log.debug?.("scheduler paused")
+  }
+
+  /**
+   * Resume rendering after pause. Resets the previous buffer so the next
+   * render outputs everything (full redraw), then forces an immediate render.
+   */
+  resume(): void {
+    if (this.disposed || !this.paused) return
+    this.paused = false
+    log.debug?.("scheduler resumed")
+
+    // Reset buffer for full redraw (alt screen was switched)
+    this.prevBuffer = null
+
+    // If anything was deferred, render now
+    if (this.pendingWhilePaused) {
+      this.pendingWhilePaused = false
+      this.executeRender()
+    }
+  }
+
+  /**
+   * Whether the scheduler is currently paused.
+   */
+  isPaused(): boolean {
+    return this.paused
   }
 
   /**

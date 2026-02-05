@@ -159,7 +159,7 @@ export function renderToDOM(
   // Create fiber root
   const fiberRoot = reconciler.createContainer(
     inkxContainer,
-    0, // LegacyRoot
+    1, // ConcurrentRoot
     null,
     false,
     null,
@@ -266,7 +266,7 @@ export function renderDOMOnce(
   // Create fiber root and render
   const fiberRoot = reconciler.createContainer(
     container,
-    0,
+    1, // ConcurrentRoot
     null,
     false,
     null,

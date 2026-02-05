@@ -354,7 +354,7 @@ export async function run(
   // Create React fiber root
   const fiberRoot = reconciler.createContainer(
     container,
-    0, // LegacyRoot
+    1, // ConcurrentRoot
     null, // hydrationCallbacks
     false, // isStrictMode
     null, // concurrentUpdatesByDefaultOverride

@@ -254,6 +254,16 @@ function SearchDialog() {
 
 Layers are identified by `id` for debugging. When a dialog mounts, its layer goes on top of the stack and receives all input first until it unmounts.
 
+### Architecture Note
+
+`useInputLayer` is a low-level primitive for raw key capture with consumption semantics. In apps with a centralized command/keybinding system (like km-tui's `@km/commands`):
+
+- **Don't** use `useInputLayer` in individual components for discrete commands (navigation, toggles, mode switches)
+- **Do** use the command system with mode/context for all discrete key-to-action mapping
+- **Do** use `useInputLayer` only for: (1) the single base layer that bridges raw keys to the command system, and (2) text input components that need raw character capture
+
+The hook silently no-ops without `InputLayerProvider` — ensure test harnesses wrap with it.
+
 ## Testing
 
 ```tsx

@@ -131,6 +131,10 @@ export interface Instance {
   clear: () => void
   /** Force an immediate render, bypassing scheduler batching */
   flush: () => void
+  /** Pause rendering output (for screen switching). Input still works. */
+  pause: () => void
+  /** Resume rendering after pause. Forces a full redraw. */
+  resume: () => void
 }
 
 /**
@@ -227,6 +231,8 @@ interface AppProps {
   stdout: NodeJS.WriteStream
   exitOnCtrlC: boolean
   onExit: (error?: Error) => void
+  onPause?: () => void
+  onResume?: () => void
 }
 
 /**
@@ -240,6 +246,8 @@ function InkxApp({
   stdout,
   exitOnCtrlC,
   onExit,
+  onPause,
+  onResume,
 }: AppProps): ReactElement {
   // Focus state
   const [focusState, setFocusState] = useState<{
@@ -467,7 +475,10 @@ function InkxApp({
   )
 
   // Context values
-  const appContextValue = useMemo(() => ({ exit: handleExit }), [handleExit])
+  const appContextValue = useMemo(
+    () => ({ exit: handleExit, pause: onPause, resume: onResume }),
+    [handleExit, onPause, onResume],
+  )
 
   const stdinContextValue = useMemo(
     () => ({
@@ -600,7 +611,7 @@ class InkxInstance {
     // Create the React fiber root
     this.fiberRoot = reconciler.createContainer(
       this.container,
-      0, // LegacyRoot
+      1, // ConcurrentRoot
       null, // hydrationCallbacks
       false, // isStrictMode
       null, // concurrentUpdatesByDefaultOverride
@@ -647,6 +658,8 @@ class InkxInstance {
         stdout={this.stdout}
         exitOnCtrlC={this.exitOnCtrlC}
         onExit={this.handleExit}
+        onPause={this.pause}
+        onResume={this.resume}
       >
         {element}
       </InkxApp>
@@ -740,6 +753,23 @@ class InkxInstance {
    */
   clear = (): void => {
     this.scheduler?.clear()
+  }
+
+  /**
+   * Pause rendering output. Scheduled and forced renders become no-ops.
+   * Input handling continues normally. Used for screen-switching.
+   */
+  pause = (): void => {
+    this.scheduler?.pause()
+  }
+
+  /**
+   * Resume rendering after pause. Forces a full redraw.
+   */
+  resume = (): void => {
+    this.scheduler?.resume()
+    // If nothing was pending, still force a full redraw
+    this.scheduler?.forceRender()
   }
 
   /**
@@ -985,6 +1015,8 @@ async function renderImpl(
     waitUntilExit: instance.waitUntilExit,
     clear: instance.clear,
     flush: instance.flush,
+    pause: instance.pause,
+    resume: instance.resume,
   }
 }
 
@@ -1049,6 +1081,8 @@ async function renderStaticImpl(
     [Symbol.dispose]() {},
     waitUntilExit: () => Promise.resolve(),
     clear: () => {},
+    pause: () => {},
+    resume: () => {},
     // Extra property for accessing last rendered frame
     get lastFrame() {
       return lastFrame
@@ -1131,6 +1165,8 @@ export function renderSync(
       waitUntilExit: () => Promise.resolve(),
       clear: () => {},
       flush: () => {},
+      pause: () => {},
+      resume: () => {},
     }
   }
 
@@ -1190,6 +1226,8 @@ export function renderSync(
     waitUntilExit: instance.waitUntilExit,
     clear: instance.clear,
     flush: instance.flush,
+    pause: instance.pause,
+    resume: instance.resume,
   }
 }
 

@@ -489,7 +489,8 @@ function findLineStart(
   // startsWith fails when the line has "…" that doesn't exist in the original.
   const ELLIPSIS = "\u2026"
   const ellipsisIdx = plainLine.indexOf(ELLIPSIS)
-  const truncatedPrefix = ellipsisIdx > 0 ? plainLine.slice(0, ellipsisIdx) : null
+  const truncatedPrefix =
+    ellipsisIdx > 0 ? plainLine.slice(0, ellipsisIdx) : null
 
   if (truncatedPrefix && normalized.startsWith(truncatedPrefix, fromOffset)) {
     return fromOffset
