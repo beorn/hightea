@@ -149,4 +149,56 @@ describe("Text backgroundColor with wrapping (km-inkx.bg-bleed)", () => {
       expect(app.term.cell(x, 0).bg).toBe(blue)
     }
   })
+
+  test("bg segments map correctly when wrapped lines have repeated content", () => {
+    // Regression test for km-inkx.findlinestart.
+    // "aa bb aa cc" wraps at width=5 to:
+    //   Line 0: "aa bb"
+    //   Line 1: "aa cc"
+    // The "aa" on line 1 must not get mapped to the "aa" on line 0.
+    // The bg segment covers "bb aa" (chars 3-8), so:
+    //   Line 0: cols 3-4 ("bb") should have red bg
+    //   Line 1: cols 0-1 ("aa") should have red bg
+    const app = render(
+      <Box width={5} height={3}>
+        <Text>
+          aa <Text backgroundColor="red">bb aa</Text> cc
+        </Text>
+      </Box>,
+    )
+
+    const red = 1
+
+    // Line 0: "aa bb" — "bb" at cols 3-4 should be red
+    expect(app.term.cell(3, 0).bg).toBe(red)
+    expect(app.term.cell(4, 0).bg).toBe(red)
+    // "aa " at cols 0-2 should NOT be red
+    expect(app.term.cell(0, 0).bg).not.toBe(red)
+
+    // Line 1: "aa cc" — "aa" at cols 0-1 should be red
+    expect(app.term.cell(0, 1).bg).toBe(red)
+    expect(app.term.cell(1, 1).bg).toBe(red)
+    // " cc" at cols 2-4 should NOT be red
+    expect(app.term.cell(3, 1).bg).not.toBe(red)
+  })
+
+  test("bg segments work with truncated lines", () => {
+    // Truncated text: "Hello World" at width=8 → "Hello W…"
+    // The bg covers "World" (chars 6-10), only "W" is visible after truncation.
+    const app = render(
+      <Box width={8} height={2}>
+        <Text wrap={false}>
+          Hello <Text backgroundColor="red">World</Text>
+        </Text>
+      </Box>,
+    )
+
+    const red = 1
+
+    // "W" at col 6 should have red bg (it's within the bg segment)
+    expect(app.term.cell(6, 0).bg).toBe(red)
+    // "Hello " at cols 0-5 should NOT be red
+    expect(app.term.cell(0, 0).bg).not.toBe(red)
+    expect(app.term.cell(5, 0).bg).not.toBe(red)
+  })
 })

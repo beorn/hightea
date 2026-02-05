@@ -485,6 +485,16 @@ function findLineStart(
     return fromOffset
   }
 
+  // For truncated lines, extract prefix before ellipsis for matching.
+  // startsWith fails when the line has "…" that doesn't exist in the original.
+  const ELLIPSIS = "\u2026"
+  const ellipsisIdx = plainLine.indexOf(ELLIPSIS)
+  const truncatedPrefix = ellipsisIdx > 0 ? plainLine.slice(0, ellipsisIdx) : null
+
+  if (truncatedPrefix && normalized.startsWith(truncatedPrefix, fromOffset)) {
+    return fromOffset
+  }
+
   // Scan forward, skipping newlines and spaces consumed by wrapping
   let pos = fromOffset
   while (pos < normalized.length) {
@@ -497,10 +507,8 @@ function findLineStart(
     if (normalized.startsWith(plainLine, pos)) {
       return pos
     }
-    // If the line doesn't start here, it might be because wrapping
-    // trimmed trailing spaces from the line. Fall back to the position
-    // where the first character matches.
-    if (ch === plainLine[0]) {
+    // Check truncated prefix match (e.g. "abcde…" -> match "abcde")
+    if (truncatedPrefix && normalized.startsWith(truncatedPrefix, pos)) {
       return pos
     }
     pos++
