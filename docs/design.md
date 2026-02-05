@@ -520,132 +520,7 @@ function updateYogaNode(node: InkxNode, prevProps: Props, nextProps: Props) {
 
 ---
 
-## 7. Implementation Plan
-
-### Phase 0: Test Infrastructure (Week 0)
-
-- [ ] Set up test harness with Bun test
-- [ ] Clone Ink test suite (31 files) and adapt imports
-- [ ] Clone Chalk test suite (6 files) and adapt imports
-- [ ] Create `inkx-testing-library` with ink-testing-library compatible API
-- [ ] Set up visual snapshot infrastructure
-- [ ] Set up performance benchmark suite (mitata)
-- [ ] Create compatibility tracking dashboard
-- [ ] Triage Ink tests into Tier 1/2/3/4 (see testing doc)
-
-**Entry criteria**: Can run Ink's tests (all failing is expected)
-**Exit criteria**: Test infrastructure runs, compatibility status visible, triage complete
-
-### Week 1 Demo (Milestone)
-
-**Goal**: A developer can run this and see Inkx working:
-
-```bash
-# Clone the demo
-git clone https://github.com/example/inkx-demo
-cd inkx-demo
-bun install
-bun run dev
-
-# See a TUI that:
-# 1. Uses <Box> and <Text> (basic layout works)
-# 2. Uses useLayout() to get dimensions
-# 3. Shows text that auto-truncates
-```
-
-**Demo app code**:
-
-```typescript
-// demo/index.tsx
-import { render, Box, Text, useLayout } from 'inkx';
-
-function App() {
-  return (
-    <Box flexDirection="column" borderStyle="single" padding={1}>
-      <Header />
-      <Content />
-    </Box>
-  );
-}
-
-function Header() {
-  const { width } = useLayout();
-  return (
-    <Box>
-      <Text color="cyan" bold>Inkx Demo</Text>
-      <Text dimColor> - Width: {width}px</Text>
-    </Box>
-  );
-}
-
-function Content() {
-  const { width, height } = useLayout();
-  return (
-    <Box flexDirection="column">
-      <Text>This box is {width}×{height}</Text>
-      <Text>This very long text will automatically truncate when it exceeds the available width...</Text>
-    </Box>
-  );
-}
-
-render(<App />);
-```
-
-**Success criteria**:
-
-- `useLayout()` returns correct dimensions (not zeros after first render)
-- Text truncates without manual width threading
-- Works in at least 3 terminals (iTerm, VS Code, xterm)
-
-### Phase 1: Foundation (1 week)
-
-- [ ] Custom React renderer skeleton
-- [ ] Yoga integration with constraint extraction
-- [ ] Basic `<Box>` with flexbox subset
-- [ ] Basic `<Text>` without auto-truncation
-- [ ] Simple output (no diffing)
-- [ ] **Target**: flex.test.tsx, flex-direction.test.tsx passing
-
-### Phase 2: Layout Feedback (1 week)
-
-- [ ] Two-phase render (measure → layout → render)
-- [ ] `useLayout()` hook
-- [ ] `onLayout` callback for `<Box>`
-- [ ] Auto-truncating `<Text>`
-- [ ] **Target**: width-height.test.tsx, measure-element.test.tsx passing
-
-### Phase 3: Compatibility (1 week)
-
-- [ ] Remaining Ink components (`<Spacer>`, `<Newline>`, `<Static>`)
-- [ ] `useInput()` hook
-- [ ] Full Ink test suite passing (80%+ of Tier 1+2 = 144 tests)
-- [ ] Chalk integration tests (100% of 6 files)
-- [ ] Write migration guide (see [migration.md](migration.md))
-- [ ] Document known incompatibilities
-- [ ] **Target**: Compatibility dashboard shows 80%+ of Tier 1+2
-
-### Phase 4: Polish (1 week)
-
-- [ ] Cell-based diffing
-- [ ] Cursor optimization
-- [ ] `<Scroll>` component
-- [ ] Performance benchmarks pass (no regression vs Ink)
-- [ ] Cross-terminal visual tests pass
-
-### Phase 5: km Integration (1 week)
-
-- [ ] Replace km-ink with inkx
-- [ ] Remove `ConstraintContext` and width threading
-- [ ] Visual regression tests pass
-- [ ] Performance parity or better
-
-**Total: 5 weeks** (could be compressed with focus)
-
-See **[testing.md](testing.md)** for detailed testing strategy.
-
----
-
-## 8. Scrolling and Long Lists
+## 7. Scrolling and Long Lists
 
 ### The Goal
 
@@ -795,7 +670,7 @@ No height estimation. No virtualization configuration. It just works.
 
 ---
 
-## 9. Proof of Concept
+## 8. Proof of Concept
 
 Before committing to full implementation, validate with minimal PoC:
 
@@ -830,7 +705,7 @@ createRenderer().render(<App />);
 
 ---
 
-## 10. Compatibility Tiers
+## 9. Compatibility Tiers
 
 Explicit expectations for what works and what doesn't:
 
@@ -865,7 +740,7 @@ Explicit expectations for what works and what doesn't:
 
 ---
 
-## 11. Risk Analysis
+## 10. Risk Analysis
 
 | Risk                                    | Likelihood | Impact | Mitigation                                                    |
 | --------------------------------------- | ---------- | ------ | ------------------------------------------------------------- |
@@ -887,7 +762,7 @@ _Note: CJK/IME and terminal multiplexer risks added based on analysis of Ink's r
 
 ---
 
-## 12. Alternatives Considered
+## 11. Alternatives Considered
 
 ### A. Patch Ink Directly
 
@@ -922,7 +797,7 @@ Taffy is a better flexbox than Yoga. Considered but deferred:
 
 ---
 
-## 13. Open Questions
+## 12. Open Questions
 
 1. **Naming**: "Inkx" is a placeholder. Options: ink-next, termink, rink (taken), terminus
 2. **Monorepo or separate packages**: `inkx` vs `@inkx/core`, `@inkx/testing`, etc.
@@ -931,7 +806,7 @@ Taffy is a better flexbox than Yoga. Considered but deferred:
 
 ---
 
-## 14. Conclusion
+## 13. Conclusion
 
 Inkx is feasible and would eliminate the biggest pain point in Ink development. The core innovation - exposing Yoga's computed layout to React components - is straightforward to implement. The challenge is maintaining API compatibility while making this architectural change.
 
