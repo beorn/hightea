@@ -24,6 +24,8 @@ export interface NodeDebugInfo {
   type: string
   /** Path from root to this node (IDs or indices) */
   path: string
+  /** Index within parent's children array */
+  childIndex: number | null
   /** Dirty flags at time of mismatch */
   dirtyFlags: {
     contentDirty: boolean
@@ -48,9 +50,15 @@ export interface NodeDebugInfo {
     viewportHeight: number
     hiddenAbove: number
     hiddenBelow: number
+    firstVisibleChild: number
+    lastVisibleChild: number
   }
   /** Background color from props */
   backgroundColor: string | undefined
+  /** Number of children */
+  childCount: number
+  /** Whether node is hidden (Suspense) */
+  hidden: boolean
 }
 
 /** Full mismatch debug context */
@@ -70,6 +78,8 @@ export interface MismatchDebugContext {
   scrollAncestors: NodeDebugInfo[]
   /** All nodes whose screenRect contains this position */
   containingNodes: NodeDebugInfo[]
+  /** Fast-path analysis - why the node was likely skipped */
+  fastPathAnalysis: string[]
 }
 
 // ============================================================================
@@ -182,10 +192,17 @@ function rectChanged(a: Rect | null, b: Rect | null): boolean {
 export function getNodeDebugInfo(node: InkxNode): NodeDebugInfo {
   const props = node.props as BoxProps & TextProps
 
+  // Get child index within parent
+  let childIndex: number | null = null
+  if (node.parent) {
+    childIndex = node.parent.children.indexOf(node)
+  }
+
   return {
     id: props.id,
     type: node.type,
     path: getNodePath(node),
+    childIndex,
     dirtyFlags: {
       contentDirty: node.contentDirty,
       paintDirty: node.paintDirty,
@@ -208,9 +225,13 @@ export function getNodeDebugInfo(node: InkxNode): NodeDebugInfo {
           viewportHeight: node.scrollState.viewportHeight,
           hiddenAbove: node.scrollState.hiddenAbove,
           hiddenBelow: node.scrollState.hiddenBelow,
+          firstVisibleChild: node.scrollState.firstVisibleChild,
+          lastVisibleChild: node.scrollState.lastVisibleChild,
         }
       : undefined,
     backgroundColor: props.backgroundColor,
+    childCount: node.children.length,
+    hidden: node.hidden ?? false,
   }
 }
 
@@ -232,6 +253,88 @@ function findScrollAncestors(node: InkxNode): InkxNode[] {
 }
 
 /**
+ * Analyze why a node might have been incorrectly skipped by fast-path.
+ */
+function analyzeFastPath(node: InkxNode | null, scrollAncestors: InkxNode[]): string[] {
+  const analysis: string[] = []
+
+  if (!node) {
+    analysis.push("⚠ No node found at mismatch position - possible virtualization issue")
+    return analysis
+  }
+
+  const flags = node
+  const allClean = !flags.contentDirty && !flags.paintDirty && !flags.subtreeDirty && !flags.childrenDirty && !flags.layoutDirty
+
+  if (allClean) {
+    analysis.push("⚠ ALL DIRTY FLAGS FALSE - fast-path likely skipped this node")
+  }
+
+  // Check if node is in a scroll container
+  const scrollParent = scrollAncestors[0]
+  if (scrollParent?.scrollState) {
+    const ss = scrollParent.scrollState
+    const childIndex = node.parent ? node.parent.children.indexOf(node) : -1
+
+    // Check if this node SHOULD be in visible range
+    const inVisibleRange = childIndex >= ss.firstVisibleChild && childIndex <= ss.lastVisibleChild
+    if (!inVisibleRange && childIndex >= 0) {
+      analysis.push(`⚠ Node index ${childIndex} is OUTSIDE visible range [${ss.firstVisibleChild}..${ss.lastVisibleChild}]`)
+      analysis.push("  → Node should have been skipped, but mismatch suggests it should render")
+    } else if (inVisibleRange) {
+      analysis.push(`✓ Node index ${childIndex} is in visible range [${ss.firstVisibleChild}..${ss.lastVisibleChild}]`)
+    }
+
+    // Check scroll offset
+    if (ss.offset === ss.prevOffset) {
+      analysis.push("✓ Scroll offset unchanged (fast-path enabled for children)")
+    } else {
+      analysis.push(`⚠ Scroll offset CHANGED: ${ss.prevOffset} → ${ss.offset}`)
+    }
+
+    // Check if visible range might have changed
+    if (ss.firstVisibleChild !== 0 || ss.lastVisibleChild !== scrollParent.children.length - 1) {
+      analysis.push(`  Visible range is partial: [${ss.firstVisibleChild}..${ss.lastVisibleChild}] of ${scrollParent.children.length} children`)
+      analysis.push("  → If visible range changed, newly visible children need rendering")
+    }
+  }
+
+  // Check prevLayout
+  const layoutChanged = rectChanged(node.prevLayout, node.contentRect)
+  if (!layoutChanged && node.prevLayout) {
+    analysis.push("✓ Layout unchanged (prevLayout matches contentRect)")
+  } else if (!node.prevLayout) {
+    analysis.push("⚠ prevLayout is NULL - node may never have been rendered before")
+  } else {
+    analysis.push("⚠ Layout CHANGED but node still skipped - dirty flag not set?")
+  }
+
+  // Check for sibling child position changes
+  if (node.parent && node.parent.children.length > 1) {
+    let siblingMoved = false
+    for (const sibling of node.parent.children) {
+      if (sibling !== node && sibling.contentRect && sibling.prevLayout) {
+        if (sibling.contentRect.x !== sibling.prevLayout.x ||
+            sibling.contentRect.y !== sibling.prevLayout.y) {
+          siblingMoved = true
+          break
+        }
+      }
+    }
+    if (siblingMoved) {
+      analysis.push("⚠ SIBLING POSITION CHANGED - parent should have detected this")
+    }
+  }
+
+  // Check hidden state
+  if (node.hidden) {
+    analysis.push("⚠ Node is HIDDEN (Suspense) - should not be rendered")
+  }
+
+  return analysis
+}
+
+/**
  * Build full mismatch debug context.
  */
 export function buildMismatchContext(
@@ -244,6 +347,7 @@ export function buildMismatchContext(
 ): MismatchDebugContext {
   const innermost = findNodeAtPosition(root, x, y)
   const containing = findAllContainingNodes(root, x, y)
+  const scrollAncestorNodes = innermost ? findScrollAncestors(innermost) : []
 
   return {
     position: { x, y },
@@ -253,10 +357,9 @@ export function buildMismatchContext(
     },
     renderNum,
     node: innermost ? getNodeDebugInfo(innermost) : null,
-    scrollAncestors: innermost
-      ? findScrollAncestors(innermost).map(getNodeDebugInfo)
-      : [],
+    scrollAncestors: scrollAncestorNodes.map(getNodeDebugInfo),
     containingNodes: containing.map(getNodeDebugInfo),
+    fastPathAnalysis: analyzeFastPath(innermost, scrollAncestorNodes),
   }
 }
 
@@ -355,7 +458,17 @@ export function formatMismatchContext(ctx: MismatchDebugContext): string {
         .join(",")
       const flagStr = flags ? ` [${flags}]` : " [clean]"
       const bgStr = node.backgroundColor ? ` bg=${node.backgroundColor}` : ""
-      lines.push(`  ${node.path}${flagStr}${bgStr}`)
+      const childStr = node.childIndex !== null ? ` child[${node.childIndex}]` : ""
+      lines.push(`  ${node.path}${flagStr}${bgStr}${childStr}`)
+    }
+    lines.push("")
+  }
+
+  // Fast-path analysis
+  if (ctx.fastPathAnalysis.length > 0) {
+    lines.push("FAST-PATH ANALYSIS:")
+    for (const line of ctx.fastPathAnalysis) {
+      lines.push(`  ${line}`)
     }
     lines.push("")
   }
@@ -382,5 +495,8 @@ function formatScrollState(
   }
   lines.push(
     `${indent}viewport: ${scroll.viewportHeight}/${scroll.contentHeight} (hidden: ▲${scroll.hiddenAbove} ▼${scroll.hiddenBelow})`,
+  )
+  lines.push(
+    `${indent}visibleRange: [${scroll.firstVisibleChild}..${scroll.lastVisibleChild}]`,
   )
 }
