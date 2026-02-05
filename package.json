@@ -45,6 +45,10 @@
     "./scroll-utils": {
       "types": "./src/scroll-utils.ts",
       "import": "./src/scroll-utils.ts"
+    },
+    "./toolbelt": {
+      "types": "./src/toolbelt/index.ts",
+      "import": "./src/toolbelt/index.ts"
     }
   },
   "scripts": {

@@ -350,8 +350,11 @@ export function render(
   }
 
   // Check INKX_STRICT for automatic incremental checking (like scheduler does)
+  // Note: "0" and "false" are treated as disabled
+  const strictEnv =
+    process.env.INKX_STRICT || process.env.INKX_CHECK_INCREMENTAL
   const strictMode =
-    incremental && (process.env.INKX_STRICT || process.env.INKX_CHECK_INCREMENTAL)
+    incremental && strictEnv && strictEnv !== "0" && strictEnv !== "false"
 
   // Render function that executes the pipeline
   function doRender(): string {

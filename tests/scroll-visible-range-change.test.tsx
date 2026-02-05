@@ -109,7 +109,9 @@ describe("Scroll visible range change", () => {
                   borderStyle="single"
                   borderColor={selectedCol === col ? "yellow" : "gray"}
                 >
-                  <Text>Card {col}-{i}</Text>
+                  <Text>
+                    Card {col}-{i}
+                  </Text>
                 </Box>
               ))}
             </Box>

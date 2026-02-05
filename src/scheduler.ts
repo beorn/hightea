@@ -382,8 +382,9 @@ export class RenderScheduler {
       this.prevBuffer = buffer
 
       // INKX_STRICT or INKX_CHECK_INCREMENTAL: compare incremental render against fresh render
-      const strictMode =
+      const strictEnv =
         process.env.INKX_STRICT || process.env.INKX_CHECK_INCREMENTAL
+      const strictMode = strictEnv && strictEnv !== "0" && strictEnv !== "false"
       if (strictMode && this.stats.renderCount > 0) {
         const renderNum = this.stats.renderCount + 1
         const { buffer: freshBuffer } = executeRender(
@@ -405,14 +406,7 @@ export class RenderScheduler {
               found = true
 
               // Build rich debug context
-              const ctx = buildMismatchContext(
-                this.root,
-                x,
-                y,
-                a,
-                b,
-                renderNum,
-              )
+              const ctx = buildMismatchContext(this.root, x, y, a, b, renderNum)
               const debugInfo = formatMismatchContext(ctx)
 
               // Include text output for full picture

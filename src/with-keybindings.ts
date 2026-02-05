@@ -81,7 +81,8 @@ function parseKey(keyStr: string): {
   return {
     key,
     ctrl: modifiers.has("control") || modifiers.has("ctrl"),
-    meta: modifiers.has("meta") || modifiers.has("cmd") || modifiers.has("command"),
+    meta:
+      modifiers.has("meta") || modifiers.has("cmd") || modifiers.has("command"),
     shift: modifiers.has("shift"),
     alt: modifiers.has("alt") || modifiers.has("option"),
   }

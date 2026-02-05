@@ -220,7 +220,8 @@ export function getNodeDebugInfo(node: InkxNode): NodeDebugInfo {
       ? {
           offset: node.scrollState.offset,
           prevOffset: node.scrollState.prevOffset,
-          offsetChanged: node.scrollState.offset !== node.scrollState.prevOffset,
+          offsetChanged:
+            node.scrollState.offset !== node.scrollState.prevOffset,
           contentHeight: node.scrollState.contentHeight,
           viewportHeight: node.scrollState.viewportHeight,
           hiddenAbove: node.scrollState.hiddenAbove,
@@ -255,19 +256,31 @@ function findScrollAncestors(node: InkxNode): InkxNode[] {
 /**
  * Analyze why a node might have been incorrectly skipped by fast-path.
  */
-function analyzeFastPath(node: InkxNode | null, scrollAncestors: InkxNode[]): string[] {
+function analyzeFastPath(
+  node: InkxNode | null,
+  scrollAncestors: InkxNode[],
+): string[] {
   const analysis: string[] = []
 
   if (!node) {
-    analysis.push("⚠ No node found at mismatch position - possible virtualization issue")
+    analysis.push(
+      "⚠ No node found at mismatch position - possible virtualization issue",
+    )
     return analysis
   }
 
   const flags = node
-  const allClean = !flags.contentDirty && !flags.paintDirty && !flags.subtreeDirty && !flags.childrenDirty && !flags.layoutDirty
+  const allClean =
+    !flags.contentDirty &&
+    !flags.paintDirty &&
+    !flags.subtreeDirty &&
+    !flags.childrenDirty &&
+    !flags.layoutDirty
 
   if (allClean) {
-    analysis.push("⚠ ALL DIRTY FLAGS FALSE - fast-path likely skipped this node")
+    analysis.push(
+      "⚠ ALL DIRTY FLAGS FALSE - fast-path likely skipped this node",
+    )
   }
 
   // Check if node is in a scroll container
@@ -277,25 +290,41 @@ function analyzeFastPath(node: InkxNode | null, scrollAncestors: InkxNode[]): st
     const childIndex = node.parent ? node.parent.children.indexOf(node) : -1
 
     // Check if this node SHOULD be in visible range
-    const inVisibleRange = childIndex >= ss.firstVisibleChild && childIndex <= ss.lastVisibleChild
+    const inVisibleRange =
+      childIndex >= ss.firstVisibleChild && childIndex <= ss.lastVisibleChild
     if (!inVisibleRange && childIndex >= 0) {
-      analysis.push(`⚠ Node index ${childIndex} is OUTSIDE visible range [${ss.firstVisibleChild}..${ss.lastVisibleChild}]`)
-      analysis.push("  → Node should have been skipped, but mismatch suggests it should render")
+      analysis.push(
+        `⚠ Node index ${childIndex} is OUTSIDE visible range [${ss.firstVisibleChild}..${ss.lastVisibleChild}]`,
+      )
+      analysis.push(
+        "  → Node should have been skipped, but mismatch suggests it should render",
+      )
     } else if (inVisibleRange) {
-      analysis.push(`✓ Node index ${childIndex} is in visible range [${ss.firstVisibleChild}..${ss.lastVisibleChild}]`)
+      analysis.push(
+        `✓ Node index ${childIndex} is in visible range [${ss.firstVisibleChild}..${ss.lastVisibleChild}]`,
+      )
     }
 
     // Check scroll offset
     if (ss.offset === ss.prevOffset) {
-      analysis.push("✓ Scroll offset unchanged (fast-path enabled for children)")
+      analysis.push(
+        "✓ Scroll offset unchanged (fast-path enabled for children)",
+      )
     } else {
       analysis.push(`⚠ Scroll offset CHANGED: ${ss.prevOffset} → ${ss.offset}`)
     }
 
     // Check if visible range might have changed
-    if (ss.firstVisibleChild !== 0 || ss.lastVisibleChild !== scrollParent.children.length - 1) {
-      analysis.push(`  Visible range is partial: [${ss.firstVisibleChild}..${ss.lastVisibleChild}] of ${scrollParent.children.length} children`)
-      analysis.push("  → If visible range changed, newly visible children need rendering")
+    if (
+      ss.firstVisibleChild !== 0 ||
+      ss.lastVisibleChild !== scrollParent.children.length - 1
+    ) {
+      analysis.push(
+        `  Visible range is partial: [${ss.firstVisibleChild}..${ss.lastVisibleChild}] of ${scrollParent.children.length} children`,
+      )
+      analysis.push(
+        "  → If visible range changed, newly visible children need rendering",
+      )
     }
   }
 
@@ -304,9 +333,13 @@ function analyzeFastPath(node: InkxNode | null, scrollAncestors: InkxNode[]): st
   if (!layoutChanged && node.prevLayout) {
     analysis.push("✓ Layout unchanged (prevLayout matches contentRect)")
   } else if (!node.prevLayout) {
-    analysis.push("⚠ prevLayout is NULL - node may never have been rendered before")
+    analysis.push(
+      "⚠ prevLayout is NULL - node may never have been rendered before",
+    )
   } else {
-    analysis.push("⚠ Layout CHANGED but node still skipped - dirty flag not set?")
+    analysis.push(
+      "⚠ Layout CHANGED but node still skipped - dirty flag not set?",
+    )
   }
 
   // Check for sibling child position changes
@@ -314,15 +347,19 @@ function analyzeFastPath(node: InkxNode | null, scrollAncestors: InkxNode[]): st
     let siblingMoved = false
     for (const sibling of node.parent.children) {
       if (sibling !== node && sibling.contentRect && sibling.prevLayout) {
-        if (sibling.contentRect.x !== sibling.prevLayout.x ||
-            sibling.contentRect.y !== sibling.prevLayout.y) {
+        if (
+          sibling.contentRect.x !== sibling.prevLayout.x ||
+          sibling.contentRect.y !== sibling.prevLayout.y
+        ) {
           siblingMoved = true
           break
         }
       }
     }
     if (siblingMoved) {
-      analysis.push("⚠ SIBLING POSITION CHANGED - parent should have detected this")
+      analysis.push(
+        "⚠ SIBLING POSITION CHANGED - parent should have detected this",
+      )
     }
   }
 
@@ -458,7 +495,8 @@ export function formatMismatchContext(ctx: MismatchDebugContext): string {
         .join(",")
       const flagStr = flags ? ` [${flags}]` : " [clean]"
       const bgStr = node.backgroundColor ? ` bg=${node.backgroundColor}` : ""
-      const childStr = node.childIndex !== null ? ` child[${node.childIndex}]` : ""
+      const childStr =
+        node.childIndex !== null ? ` child[${node.childIndex}]` : ""
       lines.push(`  ${node.path}${flagStr}${bgStr}${childStr}`)
     }
     lines.push("")
