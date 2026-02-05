@@ -1109,6 +1109,7 @@ export function renderText(
       continue
     }
     const line = lines[lineIdx]!
+
     renderTextLine(buffer, x, lineY, line, style)
 
     // Apply background segments from nested Text elements to the buffer.

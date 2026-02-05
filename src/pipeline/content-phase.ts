@@ -41,7 +41,9 @@ export function contentPhase(
   const buffer = canReuse
     ? prevBuffer.clone()
     : new TerminalBuffer(layout.width, layout.height)
+
   renderNodeToBuffer(root, buffer, 0, undefined, canReuse)
+
   return buffer
 }
 
@@ -184,10 +186,22 @@ function renderNodeToBuffer(
     const inherited = findInheritedBg(node)
     const clearBg = inherited.color
     const screenY = layout.y - scrollOffset
-    const clearY = clipBounds ? Math.max(screenY, clipBounds.top) : screenY
-    const clearBottom = clipBounds
+
+    // Clip to parent's contentRect to prevent oversized children (e.g., text nodes
+    // with layout height exceeding their parent box) from clearing beyond their
+    // parent's bounds and bleeding inherited background into sibling regions.
+    const parentRect = node.parent?.contentRect
+    const parentBottom = parentRect
+      ? parentRect.y - scrollOffset + parentRect.height
+      : undefined
+
+    let clearY = clipBounds ? Math.max(screenY, clipBounds.top) : screenY
+    let clearBottom = clipBounds
       ? Math.min(screenY + layout.height, clipBounds.bottom)
       : screenY + layout.height
+    if (parentBottom !== undefined) {
+      clearBottom = Math.min(clearBottom, parentBottom)
+    }
     const clearHeight = clearBottom - clearY
     if (clearHeight > 0) {
       buffer.fill(layout.x, clearY, layout.width, clearHeight, {
