@@ -124,6 +124,15 @@ export function createNode(
           ? Number.POSITIVE_INFINITY
           : width
 
+      // Check if text will be truncated (not wrapped) — affects height calculation
+      const { wrap } = node.props as TextProps
+      const isTruncate =
+        wrap === "truncate" ||
+        wrap === "truncate-start" ||
+        wrap === "truncate-middle" ||
+        wrap === "truncate-end" ||
+        wrap === false
+
       // Calculate actual dimensions based on wrapping
       let totalHeight = 0
       let actualWidth = 0
@@ -131,9 +140,13 @@ export function createNode(
       for (const line of lines) {
         measureStats.displayWidthCalls++
         const lineWidth = displayWidth(line)
-        if (lineWidth <= maxWidth) {
+        if (isTruncate || lineWidth <= maxWidth) {
+          // Truncated text always takes 1 line per source line
           totalHeight += 1
-          actualWidth = Math.max(actualWidth, lineWidth)
+          actualWidth = Math.max(
+            actualWidth,
+            isTruncate ? Math.min(lineWidth, maxWidth) : lineWidth,
+          )
         } else {
           // Need to wrap this line
           const wrappedLines = Math.ceil(lineWidth / Math.max(1, maxWidth))
