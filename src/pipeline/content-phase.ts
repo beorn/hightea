@@ -133,6 +133,7 @@ function renderNodeToBuffer(
     !node.paintDirty &&
     !layoutChanged &&
     !node.subtreeDirty &&
+    !node.childrenDirty &&
     !childPositionChanged
   ) {
     clearDirtyFlags(node)
