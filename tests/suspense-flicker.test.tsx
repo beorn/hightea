@@ -13,9 +13,10 @@
  * @see https://react.dev/reference/react/Suspense
  */
 
-import { Suspense, useDeferredValue, useState } from "react"
-import { describe, expect, test } from "vitest"
+import { startTransition, Suspense, useCallback, useDeferredValue, useState } from "react"
+import { afterEach, beforeEach, describe, expect, test } from "vitest"
 import { Box, Text } from "../src/index.js"
+import { run, useInput } from "../src/runtime/run.tsx"
 import { createRenderer } from "../src/testing/index.tsx"
 
 const render = createRenderer({ cols: 60, rows: 20 })
@@ -421,5 +422,212 @@ describe("Suspense flicker", () => {
     expect(app.text).toContain("Footer hint")
     expect(app.text).toContain("Loading data...")
     expect(app.text).not.toContain("Result item")
+  })
+})
+
+// ============================================================================
+// Async tests using run() headless — exercises real concurrent scheduler
+//
+// The sync tests above use createRenderer which calls updateContainerSync +
+// flushSyncWork, bypassing React's concurrent scheduler. These async tests
+// use run() headless mode where startTransition updates are NOT flushed
+// synchronously, so we can observe ConcurrentRoot behavior: the old committed
+// tree stays visible when a transition suspends.
+// ============================================================================
+
+describe("Suspense flicker (async, ConcurrentRoot)", () => {
+  // Disable act() warnings — we intentionally bypass act() to exercise
+  // React's real concurrent scheduler with startTransition.
+  const origActEnv = globalThis.IS_REACT_ACT_ENVIRONMENT
+  beforeEach(() => {
+    globalThis.IS_REACT_ACT_ENVIRONMENT = false
+  })
+  afterEach(() => {
+    globalThis.IS_REACT_ACT_ENVIRONMENT = origActEnv
+  })
+  /**
+   * Suspense resource keyed by query string.
+   * Each unique query creates a new pending promise.
+   * Resolve manually to simulate async data loading.
+   * Supports pre-resolution: calling resolve() before read() works.
+   */
+  function createQueryResource() {
+    const cache = new Map<
+      string,
+      { promise: Promise<void>; resolve: () => void; resolved: boolean }
+    >()
+    const preResolved = new Set<string>()
+
+    return {
+      read(query: string): string {
+        if (query === "") return "No results yet"
+        if (preResolved.has(query)) return `Results for: ${query}`
+
+        let entry = cache.get(query)
+        if (!entry) {
+          let resolve!: () => void
+          const promise = new Promise<void>((r) => {
+            resolve = r
+          })
+          entry = { promise, resolve, resolved: false }
+          cache.set(query, entry)
+        }
+
+        if (entry.resolved) return `Results for: ${query}`
+        throw entry.promise
+      },
+
+      resolve(query: string) {
+        const entry = cache.get(query)
+        if (entry) {
+          entry.resolved = true
+          entry.resolve()
+        } else {
+          preResolved.add(query)
+        }
+      },
+    }
+  }
+
+  test("startTransition + Suspense: old tree preserved during transition suspension", async () => {
+    // This is the ConcurrentRoot-specific behavior:
+    // When a startTransition causes suspension, React keeps the old committed
+    // tree visible instead of showing the Suspense fallback. In LegacyRoot,
+    // the fallback would be shown immediately.
+    const resource = createQueryResource()
+
+    function Results({ query }: { query: string }) {
+      const data = resource.read(query)
+      return <Text>{data}</Text>
+    }
+
+    function App() {
+      const [query, setQuery] = useState("")
+
+      useInput(
+        useCallback((input: string) => {
+          startTransition(() => setQuery((prev) => prev + input))
+        }, []),
+      )
+
+      return (
+        <Box flexDirection="column">
+          <Text bold>Title - must stay visible</Text>
+          <Text>query={query}</Text>
+          <Suspense fallback={<Text>Fallback shown</Text>}>
+            <Results query={query} />
+          </Suspense>
+          <Text>Footer</Text>
+        </Box>
+      )
+    }
+
+    const app = await run(<App />, { cols: 60, rows: 20 })
+
+    // Baseline: title, empty results, footer
+    expect(app.text).toContain("Title - must stay visible")
+    expect(app.text).toContain("No results yet")
+    expect(app.text).toContain("Footer")
+
+    // Press 'a' — handler calls startTransition(() => setQuery("a"))
+    // The transition update is NOT flushed by doRender's flushSyncWork,
+    // so the old committed tree (query="") stays visible.
+    await app.press("a")
+
+    expect(app.text).toContain("Title - must stay visible")
+    expect(app.text).toContain("Footer")
+    // Old tree preserved — "No results yet" should still be visible
+    expect(app.text).toContain("No results yet")
+    // Fallback should NOT appear (ConcurrentRoot holds old tree)
+    expect(app.text).not.toContain("Fallback shown")
+
+    // Wait for React's concurrent scheduler to process the transition
+    await new Promise((r) => setTimeout(r, 200))
+
+    // Even after scheduler runs, the transition is still suspended.
+    // ConcurrentRoot keeps the old committed tree visible.
+    expect(app.text).toContain("Title - must stay visible")
+    expect(app.text).toContain("Footer")
+
+    // Resolve the suspension
+    resource.resolve("a")
+
+    // Wait for React to retry and commit the new tree
+    await new Promise((r) => setTimeout(r, 200))
+
+    // New tree committed: query="a", results showing
+    expect(app.text).toContain("Title - must stay visible")
+    expect(app.text).toContain("Results for: a")
+    expect(app.text).toContain("Footer")
+
+    app.unmount()
+  })
+
+  test("startTransition + Suspense: re-transition preserves previous results", async () => {
+    // After results load for "a", typing "b" starts a new transition.
+    // The old results ("Results for: a") should stay visible while "b" suspends.
+    const resource = createQueryResource()
+
+    function Results({ query }: { query: string }) {
+      const data = resource.read(query)
+      return <Text>{data}</Text>
+    }
+
+    function App() {
+      const [query, setQuery] = useState("")
+
+      useInput(
+        useCallback((input: string) => {
+          startTransition(() => setQuery(input))
+        }, []),
+      )
+
+      return (
+        <Box flexDirection="column">
+          <Text>Title</Text>
+          <Suspense fallback={<Text>Loading...</Text>}>
+            <Results query={query} />
+          </Suspense>
+          <Text>Footer</Text>
+        </Box>
+      )
+    }
+
+    const app = await run(<App />, { cols: 60, rows: 20 })
+
+    expect(app.text).toContain("Title")
+    expect(app.text).toContain("No results yet")
+
+    // Press "a" → transition suspends
+    await app.press("a")
+    expect(app.text).toContain("Title")
+    expect(app.text).not.toContain("Loading...")
+
+    // Resolve "a" → results for "a" appear
+    resource.resolve("a")
+    await new Promise((r) => setTimeout(r, 200))
+
+    expect(app.text).toContain("Title")
+    expect(app.text).toContain("Results for: a")
+    expect(app.text).toContain("Footer")
+
+    // Press "b" → new transition suspends
+    await app.press("b")
+
+    // ConcurrentRoot: old results ("Results for: a") should remain visible
+    // during the new transition — no fallback shown
+    expect(app.text).toContain("Title")
+    expect(app.text).toContain("Footer")
+    expect(app.text).not.toContain("Loading...")
+
+    // Resolve "b" → new results appear
+    resource.resolve("b")
+    await new Promise((r) => setTimeout(r, 200))
+
+    expect(app.text).toContain("Title")
+    expect(app.text).toContain("Results for: b")
+    expect(app.text).toContain("Footer")
+
+    app.unmount()
   })
 })
