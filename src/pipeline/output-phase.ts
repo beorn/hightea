@@ -2,6 +2,8 @@
  * Phase 4: Output Phase
  *
  * Diff two buffers and produce minimal ANSI output.
+ *
+ * Debug: Set INKX_DEBUG_OUTPUT=1 to log diff changes and ANSI sequences.
  */
 
 import {
@@ -14,6 +16,8 @@ import {
 	styleEquals,
 } from '../buffer.js';
 import type { CellChange } from './types.js';
+
+const DEBUG_OUTPUT = !!process.env.INKX_DEBUG_OUTPUT;
 
 /**
  * Map underline style to SGR 4:x subparameter.
@@ -74,6 +78,20 @@ export function outputPhase(
 
 	// Diff and emit only changes
 	const changes = diffBuffers(prev, next);
+
+	if (DEBUG_OUTPUT) {
+		// eslint-disable-next-line no-console
+		console.error(`[INKX_DEBUG_OUTPUT] diffBuffers: ${changes.length} changes`);
+		// Log first few changes
+		for (const change of changes.slice(0, 10)) {
+			// eslint-disable-next-line no-console
+			console.error(`  (${change.x},${change.y}): "${change.cell.char}"`);
+		}
+		if (changes.length > 10) {
+			// eslint-disable-next-line no-console
+			console.error(`  ... and ${changes.length - 10} more`);
+		}
+	}
 
 	if (changes.length === 0) {
 		return ''; // No changes
