@@ -98,7 +98,6 @@ Basic text input with onChange/onSubmit:
 
 ```tsx
 import { TextInput } from "inkx"
-
 ;<TextInput
   value={query}
   onChange={setQuery}
@@ -113,7 +112,6 @@ Text input with full readline shortcuts (Ctrl+A/E start/end, Ctrl+W delete word,
 
 ```tsx
 import { ReadlineInput } from "inkx"
-
 ;<ReadlineInput
   value={command}
   onChange={setCommand}

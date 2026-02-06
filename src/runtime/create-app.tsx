@@ -146,6 +146,8 @@ export interface AppRunOptions {
   stdin?: NodeJS.ReadStream
   /** Abort signal for external cleanup */
   signal?: AbortSignal
+  /** Enter alternate screen buffer (clean slate, restore on exit). Default: false */
+  alternateScreen?: boolean
   /** Providers and plain values to inject */
   [key: string]: unknown
 }
@@ -326,6 +328,7 @@ async function initApp<
     stdout: explicitStdout,
     stdin = process.stdin,
     signal: externalSignal,
+    alternateScreen = false,
     ...injectValues
   } = options
 
@@ -442,6 +445,7 @@ async function initApp<
   // Track current dimensions
   let currentDims: Dims = { cols, rows }
   let shouldExit = false
+  let renderPaused = false
 
   // Create render target
   const target: RenderTarget = headless
@@ -451,7 +455,7 @@ async function initApp<
       }
     : {
         write(frame: string): void {
-          stdout.write(frame)
+          if (!renderPaused) stdout.write(frame)
         },
         getDims(): Dims {
           return currentDims
@@ -507,12 +511,17 @@ async function initApp<
     // Dispose runtime
     runtime[Symbol.dispose]()
 
-    // Restore cursor
-    if (!headless) stdout.write("\x1b[?25h\x1b[0m\n")
+    // Restore cursor and leave alternate screen
+    if (!headless) {
+      stdout.write("\x1b[?25h\x1b[0m\n")
+      if (alternateScreen) stdout.write("\x1b[?1049l")
+    }
   }
 
-  // Exit function - defined early so components can reference it
+  // Exit/pause/resume - defined early so components can reference them via AppContext
   let exit: () => void
+  let pause: (() => void) | undefined
+  let resume: (() => void) | undefined
 
   // Create InkxNode container
   const container = createContainer(() => {})
@@ -553,7 +562,7 @@ async function initApp<
   // Wrap element with all required providers
   const wrappedElement = (
     <TermContext.Provider value={mockTerm}>
-      <AppContext.Provider value={{ exit }}>
+      <AppContext.Provider value={{ exit, pause, resume }}>
         <StdoutContext.Provider value={{ stdout: mockStdout, write: () => {} }}>
           <StoreContext.Provider value={store as StoreApi<unknown>}>
             {element}
@@ -586,9 +595,25 @@ async function initApp<
   // Initial render
   currentBuffer = doRender()
 
-  // Clear screen and hide cursor
-  if (!headless) stdout.write("\x1b[2J\x1b[H\x1b[?25l")
+  // Enter alternate screen if requested, then clear and hide cursor
+  if (!headless) {
+    if (alternateScreen) stdout.write("\x1b[?1049h")
+    stdout.write("\x1b[2J\x1b[H\x1b[?25l")
+  }
   runtime.render(currentBuffer)
+
+  // Assign pause/resume now that doRender and runtime are available
+  if (!headless) {
+    pause = () => {
+      renderPaused = true
+    }
+    resume = () => {
+      renderPaused = false
+      // Force full re-render to restore display
+      currentBuffer = doRender()
+      runtime.render(currentBuffer)
+    }
+  }
 
   // Exit promise
   let exitResolve: () => void
