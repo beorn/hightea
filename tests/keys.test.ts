@@ -100,6 +100,40 @@ describe("keyToAnsi", () => {
     })
   })
 
+  describe("modifier aliases", () => {
+    test("ctrl+c works like Control+c", () => {
+      expect(keyToAnsi("ctrl+c")).toBe("\x03")
+    })
+
+    test("ctrl+a works like Control+a", () => {
+      expect(keyToAnsi("ctrl+a")).toBe("\x01")
+    })
+
+    test("Ctrl+c (capitalized) works", () => {
+      expect(keyToAnsi("Ctrl+c")).toBe("\x03")
+    })
+
+    test("alt+x produces ESC+x", () => {
+      expect(keyToAnsi("alt+x")).toBe("\x1bx")
+    })
+
+    test("meta+x produces ESC+x", () => {
+      expect(keyToAnsi("meta+x")).toBe("\x1bx")
+    })
+
+    test("cmd+x produces ESC+x (macOS alias)", () => {
+      expect(keyToAnsi("cmd+x")).toBe("\x1bx")
+    })
+
+    test("option+x produces ESC+x (macOS alias)", () => {
+      expect(keyToAnsi("option+x")).toBe("\x1bx")
+    })
+
+    test("shift+Tab works like Shift+Tab", () => {
+      expect(keyToAnsi("shift+Tab")).toBe(keyToAnsi("Shift+Tab"))
+    })
+  })
+
   describe("unknown keys", () => {
     test("unknown named key passes through", () => {
       expect(keyToAnsi("UnknownKey")).toBe("UnknownKey")

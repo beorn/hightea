@@ -50,6 +50,20 @@ const KEY_MAP: Record<string, string | null> = {
   Meta: null,
 }
 
+const MODIFIER_ALIASES: Record<string, string> = {
+  ctrl: "Control",
+  control: "Control",
+  shift: "Shift",
+  alt: "Alt",
+  meta: "Meta",
+  cmd: "Meta",
+  option: "Alt",
+}
+
+function normalizeModifier(mod: string): string {
+  return MODIFIER_ALIASES[mod.toLowerCase()] ?? mod
+}
+
 /**
  * Convert Playwright-style key string to ANSI sequence.
  *
@@ -57,6 +71,7 @@ const KEY_MAP: Record<string, string | null> = {
  * - Single characters: 'a', 'A', '1', etc.
  * - Named keys: 'Enter', 'ArrowUp', 'Escape', etc.
  * - Modifier combos: 'Control+c', 'Shift+Tab', 'Control+Shift+a'
+ * - Lowercase modifier aliases: 'ctrl+c', 'shift+Tab', 'alt+x'
  *
  * @example
  * ```tsx
@@ -70,7 +85,8 @@ export function keyToAnsi(key: string): string {
   // Split on + for combos: 'Control+Shift+a' → ['Control', 'Shift', 'a']
   const parts = key.split("+")
   const mainKey = parts.pop()!
-  const modifiers = parts
+  // Normalize modifier aliases: ctrl→Control, shift→Shift, alt→Alt, meta→Meta
+  const modifiers = parts.map(normalizeModifier)
 
   // Single char without modifiers
   if (!modifiers.length && mainKey.length === 1) {
