@@ -403,4 +403,4 @@ The architecture supports splitting into separate packages:
 - [design.md](design.md) - Terminal implementation details
 - [internals.md](internals.md) - React reconciler internals
 - [roadmap.md](roadmap.md) - Maximum roadmap for future targets
-- [PERFORMANCE.md](PERFORMANCE.md) - Performance characteristics and optimization
+- [performance.md](performance.md) - Performance characteristics and optimization

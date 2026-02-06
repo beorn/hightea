@@ -1,7 +1,7 @@
 {
   "name": "inkx",
-  "version": "0.0.1",
-  "description": "Next-gen terminal UI renderer with layout feedback - Ink-compatible",
+  "version": "0.1.0",
+  "description": "React rendering where components know their size — terminal, canvas, and DOM targets",
   "keywords": [
     "cli",
     "flexbox",
@@ -11,6 +11,7 @@
     "terminal",
     "tui"
   ],
+  "homepage": "https://github.com/beorn/inkx#readme",
   "license": "MIT",
   "author": "beorn",
   "repository": {

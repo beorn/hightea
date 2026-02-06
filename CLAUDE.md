@@ -85,125 +85,18 @@ function App() {
 await app.run(<App />)
 ```
 
-## Layout Hooks
-
-Components can access their computed dimensions:
-
-```tsx
-import { Box, Text, useContentRect } from "inkx"
-
-function ResponsiveCard() {
-  const { width, height } = useContentRect()
-  return <Text>{`Size: ${width}x${height}`}</Text>
-}
-```
-
 ## Components
 
-### Box
+See [docs/components.md](docs/components.md) for full reference. Key components: Box, Text, VirtualList, Static, Console, TextInput, ReadlineInput.
 
-Container with flexbox layout:
-
-```tsx
-<Box flexDirection="column" padding={1} borderStyle="single">
-  <Text>Content</Text>
-</Box>
-```
-
-### Text
-
-Styled text with auto-truncation:
+## Layout Hooks
 
 ```tsx
-<Text color="green" bold>Success</Text>
-<Text underlineStyle="curly" underlineColor="red">Error</Text>
+const { width, height } = useContentRect() // Content area dimensions
+const { x, y } = useScreenRect() // Absolute screen position
 ```
 
-**Text Style Props:**
-
-| Prop              | Type           | Description                                                       |
-| ----------------- | -------------- | ----------------------------------------------------------------- |
-| `color`           | string         | Foreground color (named, hex, or rgb())                           |
-| `backgroundColor` | string         | Background color                                                  |
-| `bold`            | boolean        | Bold text                                                         |
-| `dim`             | boolean        | Dimmed text                                                       |
-| `italic`          | boolean        | Italic text                                                       |
-| `underline`       | boolean        | Simple underline                                                  |
-| `underlineStyle`  | UnderlineStyle | `'single'` \| `'double'` \| `'curly'` \| `'dotted'` \| `'dashed'` |
-| `underlineColor`  | string         | Underline color (independent of text color)                       |
-| `strikethrough`   | boolean        | Strikethrough text                                                |
-| `inverse`         | boolean        | Swap foreground/background                                        |
-
-### Scrollable Containers
-
-```tsx
-<Box overflow="scroll" height={10} scrollTo={selectedIndex}>
-  {items.map((item, i) => (
-    <Text key={i}>{item.name}</Text>
-  ))}
-</Box>
-```
-
-### VirtualList
-
-For large lists (100+ items):
-
-```tsx
-<VirtualList
-  items={cards}
-  height={20}
-  itemHeight={1}
-  scrollTo={selectedIndex}
-  renderItem={(card, index) => <Text key={card.id}>{card.name}</Text>}
-/>
-```
-
-## Input Handling
-
-### Key Object
-
-```typescript
-interface Key {
-  upArrow: boolean
-  downArrow: boolean
-  leftArrow: boolean
-  rightArrow: boolean
-  pageUp: boolean
-  pageDown: boolean
-  home: boolean
-  end: boolean
-  return: boolean
-  escape: boolean
-  tab: boolean
-  backspace: boolean
-  delete: boolean
-  ctrl: boolean
-  shift: boolean
-  meta: boolean
-}
-```
-
-### TextInput / ReadlineInput
-
-```tsx
-import { TextInput, ReadlineInput } from "inkx"
-
-<TextInput
-  value={query}
-  onChange={setQuery}
-  onSubmit={(value) => console.log("Submitted:", value)}
-  placeholder="type here..."
-/>
-
-<ReadlineInput
-  value={command}
-  onChange={setCommand}
-  onSubmit={executeCommand}
-  prompt="$ "
-/>
-```
-
-ReadlineInput supports full readline shortcuts: Ctrl+A/E (start/end), Ctrl+W (delete word), Ctrl+K (kill to end), Ctrl+Y (yank), etc.
+See [docs/hooks.md](docs/hooks.md) for all hooks.
 
 ## Input Layer Stack
 
@@ -565,16 +458,20 @@ function createBoardDriver(repo: Repo, rootId: string) {
 
 ## Documentation
 
-| Document                                                       | Description                           |
-| -------------------------------------------------------------- | ------------------------------------- |
-| [docs/architecture.md](docs/architecture.md)                   | Core architecture and RenderAdapter   |
-| [docs/getting-started.md](docs/getting-started.md)             | Runtime layers and tutorial           |
-| [docs/testing.md](docs/testing.md)                             | Testing strategy, locators, and API   |
-| [docs/internals.md](docs/internals.md)                         | Reconciler and 5-phase pipeline       |
-| [docs/migration.md](docs/migration.md)                         | Ink to inkx migration guide           |
-| [docs/runtime-migration.md](docs/runtime-migration.md)         | Legacy inkx to inkx/runtime migration |
-| [docs/PERFORMANCE.md](docs/PERFORMANCE.md)                     | Benchmarks and optimization           |
-| [docs/ink-comparison.md](docs/ink-comparison.md)               | Ink issues and Inkx solutions         |
-| [docs/streams.md](docs/streams.md)                             | AsyncIterable stream helpers          |
-| [docs/terminal-capabilities.md](docs/terminal-capabilities.md) | Terminal detection and render modes   |
-| [docs/focus-routing.md](docs/focus-routing.md)                 | Focus-based input routing pattern     |
+| Document                                                       | Description                                              |
+| -------------------------------------------------------------- | -------------------------------------------------------- |
+| [docs/README.md](docs/README.md)                               | Documentation table of contents                          |
+| [docs/getting-started.md](docs/getting-started.md)             | Runtime layers and tutorial                              |
+| [docs/components.md](docs/components.md)                       | Box, Text, VirtualList, Console, inputs                  |
+| [docs/hooks.md](docs/hooks.md)                                 | useContentRect, useScreenRect, useInput, useApp, useTerm |
+| [docs/architecture.md](docs/architecture.md)                   | Core architecture and RenderAdapter                      |
+| [docs/testing.md](docs/testing.md)                             | Testing strategy, locators, and API                      |
+| [docs/internals.md](docs/internals.md)                         | Reconciler and 5-phase pipeline                          |
+| [docs/performance.md](docs/performance.md)                     | Benchmarks and optimization                              |
+| [docs/streams.md](docs/streams.md)                             | AsyncIterable stream helpers                             |
+| [docs/focus-routing.md](docs/focus-routing.md)                 | Focus-based input routing pattern                        |
+| [docs/ink-comparison.md](docs/ink-comparison.md)               | Ink issues and Inkx solutions                            |
+| [docs/migration.md](docs/migration.md)                         | Ink to inkx migration guide                              |
+| [docs/runtime-migration.md](docs/runtime-migration.md)         | Legacy inkx to inkx/runtime migration                    |
+| [docs/terminal-capabilities.md](docs/terminal-capabilities.md) | Terminal detection and render modes                      |
+| [docs/roadmap.md](docs/roadmap.md)                             | Render targets and future plans                          |

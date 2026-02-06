@@ -415,4 +415,4 @@ Paint/Composite
 
 - [architecture.md](architecture.md) - Core architecture and RenderAdapter interface
 - [design.md](design.md) - Terminal implementation details
-- [PERFORMANCE.md](PERFORMANCE.md) - Performance characteristics
+- [performance.md](performance.md) - Performance characteristics
