@@ -680,10 +680,16 @@ async function initApp<
   storeUnsubscribeFn = store.subscribe(() => {
     if (shouldExit) return
     if (isRendering) {
-      // Defer: schedule one re-render after current render completes
+      // Defer: schedule one re-render after current render completes.
+      // The microtask checks pendingRerender before rendering — if the
+      // caller (processEvent/handle.press) already cleared it and did
+      // its own doRender(), the microtask becomes a no-op.
       if (!pendingRerender) {
         pendingRerender = true
         queueMicrotask(() => {
+          // If processEvent already cleared pendingRerender and rendered,
+          // skip the redundant render.
+          if (!pendingRerender) return
           pendingRerender = false
           if (!shouldExit && !isRendering) {
             isRendering = true
@@ -720,45 +726,72 @@ async function initApp<
     }))
   }
 
-  // Process a single event through handlers, return the resulting buffer
-  function processEvent(event: NamespacedEvent): Buffer | null {
+  // Process a single event through handlers, return the resulting buffer.
+  //
+  // Matches handle.press() behavior exactly:
+  // 1. Handler runs WITHOUT isRendering guard → store.setState triggers
+  //    synchronous subscription renders (which schedule passive effects).
+  // 2. Explicit doRender → performSyncWorkOnRoot → flushPendingEffects
+  //    runs those passive effects → updateLayout calls store.setState →
+  //    subscription defers (pendingRerender=true + queueMicrotask).
+  // 3. Async loop: await drains microtask queue → deferred render fires
+  //    with updated layout → correct output.
+  //
+  async function processEvent(event: NamespacedEvent): Promise<Buffer | null> {
     if (shouldExit) return null
 
     // Try namespaced handler first: 'provider:event'
     const namespacedKey = event.type
     const namespacedHandler = handlers?.[namespacedKey as keyof typeof handlers]
 
-    // Guard: if the handler calls set(), the store subscription will fire
-    // doRender() synchronously (because isRendering is false). Setting
-    // isRendering=true before the handler makes set() defer to a microtask,
-    // and our single doRender() below picks up all state changes at once.
+    // Run handler WITHOUT isRendering guard — same as handle.press().
+    // If handler calls store.setState(), the subscription fires synchronously,
+    // rendering immediately. This is less batched but ensures correct state
+    // propagation through React's useSyncExternalStore + useEffect chain.
+    if (namespacedHandler && typeof namespacedHandler === "function") {
+      const result = (namespacedHandler as EventHandler<unknown, S & I>)(
+        event.data,
+        {
+          set: store.setState,
+          get: store.getState,
+        },
+      )
+      if (result === "exit") {
+        exit()
+        return null
+      }
+    }
+
+    // Explicit render (same as handle.press)
     isRendering = true
     try {
-      if (namespacedHandler && typeof namespacedHandler === "function") {
-        const result = (namespacedHandler as EventHandler<unknown, S & I>)(
-          event.data,
-          {
-            set: store.setState,
-            get: store.getState,
-          },
-        )
-        if (result === "exit") {
-          exit()
-          return null
-        }
-      }
-
-      // Clear any pending re-render queued by the handler's set() calls —
-      // our explicit doRender() below will pick up that state. If effects
-      // during doRender() call set(), they'll re-set pendingRerender.
-      pendingRerender = false
-      // Single render pass that picks up all handler state changes.
       currentBuffer = doRender()
     } finally {
       isRendering = false
     }
-    runtime.render(currentBuffer)
 
+    // Flush deferred re-renders from effects (same as handle.press).
+    // The explicit doRender above flushes pending passive effects (via
+    // performSyncWorkOnRoot → flushPendingEffects). Those effects may
+    // call store.setState while isRendering=true, deferring the render
+    // to a microtask (pendingRerender=true). Each await drains the
+    // microtask queue, letting the deferred render fire.
+    let flushCount = 0
+    const maxFlushes = 5
+    while (flushCount < maxFlushes) {
+      await Promise.resolve()
+      if (!pendingRerender) break
+      pendingRerender = false
+      isRendering = true
+      try {
+        currentBuffer = doRender()
+      } finally {
+        isRendering = false
+      }
+      flushCount++
+    }
+
+    runtime.render(currentBuffer)
     return currentBuffer
   }
 
@@ -773,7 +806,7 @@ async function initApp<
 
     try {
       for await (const event of takeUntil(allEvents, signal)) {
-        const buf = processEvent(event)
+        const buf = await processEvent(event)
         if (buf) emitFrame(buf)
         if (shouldExit) break
       }
