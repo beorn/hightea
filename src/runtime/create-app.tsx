@@ -58,6 +58,7 @@ import { createContainer, getContainerRoot, reconciler } from "../reconciler.js"
 import { map, merge, takeUntil } from "../streams/index.js"
 import { createBuffer } from "./create-buffer.js"
 import { createRuntime } from "./create-runtime.js"
+import { keyToAnsi } from "../keys.js"
 import { type Key, parseKey } from "./keys.js"
 import { ensureLayoutEngine } from "./layout.js"
 import { type TermProvider, createTermProvider } from "./term-provider.js"
@@ -446,6 +447,7 @@ async function initApp<
   let currentDims: Dims = { cols, rows }
   let shouldExit = false
   let renderPaused = false
+  let isRendering = false // Re-entrancy guard for store subscription
 
   // Create render target
   const target: RenderTarget = headless
@@ -518,10 +520,15 @@ async function initApp<
     }
   }
 
-  // Exit/pause/resume - defined early so components can reference them via AppContext
+  // Exit/pause/resume - mutable ref so AppContext always sees latest values.
+  // Object literal captures values at creation time, so we use a mutable
+  // object whose properties are updated in-place after assignment.
+  const appContextRef: { exit: () => void; pause?: () => void; resume?: () => void } = {
+    exit: () => {},
+    pause: undefined,
+    resume: undefined,
+  }
   let exit: () => void
-  let pause: (() => void) | undefined
-  let resume: (() => void) | undefined
 
   // Create InkxNode container
   const container = createContainer(() => {})
@@ -562,7 +569,7 @@ async function initApp<
   // Wrap element with all required providers
   const wrappedElement = (
     <TermContext.Provider value={mockTerm}>
-      <AppContext.Provider value={{ exit, pause, resume }}>
+      <AppContext.Provider value={appContextRef}>
         <StdoutContext.Provider value={{ stdout: mockStdout, write: () => {} }}>
           <StoreContext.Provider value={store as StoreApi<unknown>}>
             {element}
@@ -602,12 +609,13 @@ async function initApp<
   }
   runtime.render(currentBuffer)
 
-  // Assign pause/resume now that doRender and runtime are available
+  // Assign pause/resume now that doRender and runtime are available.
+  // Update appContextRef in-place so useApp() sees the latest values.
   if (!headless) {
-    pause = () => {
+    appContextRef.pause = () => {
       renderPaused = true
     }
-    resume = () => {
+    appContextRef.resume = () => {
       renderPaused = false
       // Force full re-render to restore display
       currentBuffer = doRender()
@@ -635,6 +643,7 @@ async function initApp<
     cleanup()
     exitResolve()
   }
+  appContextRef.exit = exit
 
   // Frame listeners for async iteration
   let frameResolve: ((buffer: Buffer) => void) | null = null
@@ -649,11 +658,40 @@ async function initApp<
     }
   }
 
-  // Subscribe to store for re-renders
+  // Subscribe to store for re-renders.
+  // Re-entrancy guard: effects during doRender() may call set() which
+  // triggers this subscription. Without the guard, this creates an infinite
+  // render loop (e.g. Board's updateLayout effect → set() → doRender() → ...).
+  // Instead, we defer the re-render to a microtask so the current render
+  // completes first, then only re-render once for all batched updates.
+  let pendingRerender = false
   storeUnsubscribeFn = store.subscribe(() => {
-    if (!shouldExit) {
+    if (shouldExit) return
+    if (isRendering) {
+      // Defer: schedule one re-render after current render completes
+      if (!pendingRerender) {
+        pendingRerender = true
+        queueMicrotask(() => {
+          pendingRerender = false
+          if (!shouldExit && !isRendering) {
+            isRendering = true
+            try {
+              currentBuffer = doRender()
+              runtime.render(currentBuffer)
+            } finally {
+              isRendering = false
+            }
+          }
+        })
+      }
+      return
+    }
+    isRendering = true
+    try {
       currentBuffer = doRender()
       runtime.render(currentBuffer)
+    } finally {
+      isRendering = false
     }
   })
 
@@ -750,8 +788,9 @@ async function initApp<
       exit()
     },
     async press(rawKey: string) {
-      // Parse the key
-      const [input, parsedKey] = parseKey(rawKey)
+      // Convert named keys (e.g. "Escape", "Enter", "ArrowUp") to raw ANSI bytes
+      const ansiKey = keyToAnsi(rawKey)
+      const [input, parsedKey] = parseKey(ansiKey)
 
       // Simulate term:key event through handlers
       const namespacedHandler = handlers?.["term:key" as keyof typeof handlers]
@@ -778,9 +817,24 @@ async function initApp<
         }
       }
 
-      // Trigger re-render
-      currentBuffer = doRender()
+      // Trigger re-render (with guard for effects that call set())
+      isRendering = true
+      try {
+        currentBuffer = doRender()
+      } finally {
+        isRendering = false
+      }
+      // Flush any deferred re-renders from effects
       await Promise.resolve()
+      if (pendingRerender) {
+        pendingRerender = false
+        isRendering = true
+        try {
+          currentBuffer = doRender()
+        } finally {
+          isRendering = false
+        }
+      }
     },
 
     [Symbol.asyncIterator](): AsyncIterator<Buffer> {
