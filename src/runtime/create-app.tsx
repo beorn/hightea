@@ -801,12 +801,15 @@ async function initApp<
     }
 
     // Flush deferred re-renders from effects.
-    // Effects during doRender() may call setState → subscription flags
-    // pendingRerender (no microtask since inEventHandler=true). Each
-    // iteration renders once, draining cascading effects.
+    // React's passive effects (useEffect) are scheduled during doRender
+    // but flushed at the START of the next doRender (flushPassiveEffects).
+    // The await drains the microtask queue so React's internally-queued
+    // effect flush runs. Since inEventHandler=true, any setState from
+    // effects just sets pendingRerender (no microtask render).
     let flushCount = 0
     const maxFlushes = 5
     while (flushCount < maxFlushes) {
+      await Promise.resolve() // Drain microtask queue → passive effects flush
       if (!pendingRerender) break
       pendingRerender = false
       isRendering = true
@@ -928,11 +931,14 @@ async function initApp<
       } finally {
         isRendering = false
       }
-      // Flush deferred re-renders from effects (synchronous since
-      // inEventHandler=true means no microtask interference).
+      // Flush deferred re-renders from effects.
+      // await drains microtask queue → React passive effects flush.
+      // Since inEventHandler=true, setState from effects just flags
+      // pendingRerender (no microtask render).
       let flushCount = 0
       const maxFlushes = 5
       while (flushCount < maxFlushes) {
+        await Promise.resolve()
         if (!pendingRerender) break
         pendingRerender = false
         isRendering = true
