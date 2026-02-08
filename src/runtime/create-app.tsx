@@ -754,26 +754,11 @@ async function initApp<
     }))
   }
 
-  // Process a single event through handlers, return the resulting buffer.
-  //
-  // 1. Set isRendering=true BEFORE handler → handler's store.setState()
-  //    defers subscription renders (pendingRerender=true) instead of
-  //    triggering a synchronous doRender(). This eliminates one full
-  //    render cycle per event — critical for large trees (29k+ nodes).
-  // 2. Explicit doRender batches all handler state changes in one pass,
-  //    flushing React effects which may trigger more setState calls.
-  // 3. Async flush loop drains deferred re-renders from effects.
-  //
-  async function processEvent(event: NamespacedEvent): Promise<Buffer | null> {
-    if (shouldExit) return null
-    _renderCount = 0
-    _eventStart = performance.now()
-
-    // Suppress subscription renders — the flush loop below handles everything.
-    inEventHandler = true
-    isRendering = true
-
-    // Try namespaced handler first: 'provider:event'
+  /**
+   * Run a single event's handler (state mutation only, no render).
+   * Returns true if processing should continue, false if app should exit.
+   */
+  function runEventHandler(event: NamespacedEvent): boolean {
     const namespacedKey = event.type
     const namespacedHandler = handlers?.[namespacedKey as keyof typeof handlers]
 
@@ -786,6 +771,37 @@ async function initApp<
         },
       )
       if (result === "exit") {
+        return false
+      }
+    }
+    return true
+  }
+
+  /**
+   * Process a batch of events — run all handlers, then render once.
+   *
+   * This is the key optimization for press-and-hold / auto-repeat keys.
+   * When events arrive faster than renders (e.g., 30/sec auto-repeat vs
+   * 50ms renders), we batch all pending handlers into a single render pass.
+   *
+   * For a batch of 3 'j' presses: handler1 → handler2 → handler3 → render.
+   * The cursor moves 3 positions, but we only pay one render cost.
+   */
+  async function processEventBatch(
+    events: NamespacedEvent[],
+  ): Promise<Buffer | null> {
+    if (shouldExit || events.length === 0) return null
+    _renderCount = 0
+    _eventStart = performance.now()
+
+    // Suppress subscription renders — the flush loop below handles everything.
+    inEventHandler = true
+    isRendering = true
+
+    // Run all handlers — state mutations batch naturally in Zustand
+    for (const event of events) {
+      const shouldContinue = runEventHandler(event)
+      if (!shouldContinue) {
         isRendering = false
         inEventHandler = false
         exit()
@@ -793,11 +809,11 @@ async function initApp<
       }
     }
 
-    // Clear deferred renders from handler's setState calls — the explicit
+    // Clear deferred renders from handlers' setState calls — the explicit
     // doRender below picks up all state changes in one pass.
     pendingRerender = false
 
-    // Explicit render — batches handler state changes + flushes effects
+    // Explicit render — batches all handler state changes + flushes effects
     try {
       currentBuffer = doRender()
     } finally {
@@ -832,13 +848,25 @@ async function initApp<
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       require("node:fs").appendFileSync(
         "/tmp/inkx-perf.log",
-        `EVENT ${event.type}: ${totalMs.toFixed(1)}ms total, ${_renderCount} doRender() calls\n---\n`,
+        `EVENT batch(${events.length} ${events[0]?.type}): ${totalMs.toFixed(1)}ms total, ${_renderCount} doRender() calls\n---\n`,
       )
     }
     return currentBuffer
   }
 
   // Start event loop
+  //
+  // Event coalescing: when events arrive faster than renders, we batch
+  // consecutive handler calls into a single render pass. This prevents
+  // the "event backlog" problem where auto-repeat keys queue up faster
+  // than they can be rendered (e.g., 30/sec auto-repeat vs 50ms renders).
+  //
+  // Strategy: collect events into a shared queue, run all pending handlers,
+  // render once. This means pressing and holding 'j' processes 2-3 cursor
+  // moves per render instead of 1, keeping up with auto-repeat.
+  const eventQueue: NamespacedEvent[] = []
+  let eventQueueResolve: (() => void) | null = null
+
   const eventLoop = async () => {
     // Merge all provider event streams
     const providerEventStreams = Object.entries(providers).map(
@@ -847,11 +875,47 @@ async function initApp<
 
     const allEvents = merge(...providerEventStreams)
 
+    // Pump events from async iterable into the shared queue
+    const pumpEvents = async () => {
+      try {
+        for await (const event of takeUntil(allEvents, signal)) {
+          eventQueue.push(event)
+          if (eventQueueResolve) {
+            const resolve = eventQueueResolve
+            eventQueueResolve = null
+            resolve()
+          }
+          if (shouldExit) break
+        }
+      } finally {
+        // Signal end of events
+        if (eventQueueResolve) {
+          const resolve = eventQueueResolve
+          eventQueueResolve = null
+          resolve()
+        }
+      }
+    }
+
+    // Start pump in background
+    pumpEvents().catch(console.error)
+
     try {
-      for await (const event of takeUntil(allEvents, signal)) {
-        const buf = await processEvent(event)
+      while (!shouldExit && !signal.aborted) {
+        // Wait for at least one event
+        if (eventQueue.length === 0) {
+          await new Promise<void>((resolve) => {
+            eventQueueResolve = resolve
+            signal.addEventListener("abort", resolve, { once: true })
+          })
+        }
+
+        if (shouldExit || signal.aborted) break
+        if (eventQueue.length === 0) continue
+
+        // Process all pending events — run handlers without rendering
+        const buf = await processEventBatch(eventQueue.splice(0))
         if (buf) emitFrame(buf)
-        if (shouldExit) break
       }
     } finally {
       // Mark frames as done and notify waiters
