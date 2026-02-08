@@ -913,6 +913,12 @@ async function initApp<
         if (shouldExit || signal.aborted) break
         if (eventQueue.length === 0) continue
 
+        // Yield to microtask queue so the pump can push any additional
+        // pending events before we drain. Without this, the first event
+        // after idle always processes solo (1-event batch), even when
+        // auto-repeat has queued multiple events in the term provider.
+        await Promise.resolve()
+
         // Process all pending events — run handlers without rendering
         const buf = await processEventBatch(eventQueue.splice(0))
         if (buf) emitFrame(buf)

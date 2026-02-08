@@ -25,6 +25,63 @@ import { type Key, parseKey } from "./keys.js"
 import type { Dims, Provider, ProviderEvent } from "./types.js"
 
 // ============================================================================
+// Input Splitting
+// ============================================================================
+
+/**
+ * Split a raw stdin chunk into individual key sequences.
+ *
+ * When the OS buffers key repeat events, stdin delivers multiple keystrokes
+ * in a single read (e.g., "jjjjj" for held 'j'). parseKey expects one
+ * keystroke at a time, so we must split first.
+ *
+ * Strategy:
+ * - ESC followed by [ or O starts a multi-byte sequence — consume until terminator
+ * - ESC alone or ESC + single char is a 2-byte meta sequence
+ * - Everything else is a single byte
+ */
+function splitRawInput(raw: string): string[] {
+  const result: string[] = []
+  let i = 0
+  while (i < raw.length) {
+    if (raw[i] === "\x1b") {
+      // Escape sequence
+      if (i + 1 >= raw.length) {
+        // Bare ESC at end
+        result.push("\x1b")
+        i++
+      } else if (raw[i + 1] === "[") {
+        // CSI sequence: ESC [ ... <letter or ~>
+        let j = i + 2
+        while (j < raw.length && !isCSITerminator(raw[j]!)) j++
+        if (j < raw.length) j++ // include terminator
+        result.push(raw.slice(i, j))
+        i = j
+      } else if (raw[i + 1] === "O") {
+        // SS3 sequence: ESC O <letter>
+        const end = Math.min(i + 3, raw.length)
+        result.push(raw.slice(i, end))
+        i = end
+      } else {
+        // Meta key: ESC + char
+        result.push(raw.slice(i, i + 2))
+        i += 2
+      }
+    } else {
+      // Single byte (printable char, ctrl code, etc.)
+      result.push(raw[i]!)
+      i++
+    }
+  }
+  return result
+}
+
+/** CSI sequences end with a letter (A-Z, a-z) or ~ */
+function isCSITerminator(ch: string): boolean {
+  return (ch >= "A" && ch <= "Z") || (ch >= "a" && ch <= "z") || ch === "~"
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -131,14 +188,17 @@ export function createTermProvider(
       const queue: ProviderEvent<TermEvents>[] = []
       let eventResolve: (() => void) | null = null
 
-      // Key handler
-      const onData = (rawKey: string) => {
-        const [input, key] = parseKey(rawKey)
-        const event: ProviderEvent<TermEvents> = {
-          type: "key",
-          data: { input, key },
-        }
-        queue.push(event)
+      // Single-key handler: parses one key sequence and enqueues an event.
+      const onKey = (raw: string) => {
+        const [input, key] = parseKey(raw)
+        queue.push({ type: "key", data: { input, key } })
+      }
+
+      // stdin handler: splits multi-char chunks into individual keystrokes.
+      // When the OS buffers key repeat events, stdin delivers "jjjjj" as a
+      // single read — splitRawInput breaks it into individual keys for onKey.
+      const onChunk = (chunk: string) => {
+        for (const raw of splitRawInput(chunk)) onKey(raw)
         if (eventResolve) {
           const resolve = eventResolve
           eventResolve = null
@@ -164,7 +224,7 @@ export function createTermProvider(
       }
 
       // Subscribe
-      stdin.on("data", onData)
+      stdin.on("data", onChunk)
       stdout.on("resize", onResizeEvent)
 
       try {
@@ -187,7 +247,7 @@ export function createTermProvider(
         }
       } finally {
         // Cleanup
-        stdin.off("data", onData)
+        stdin.off("data", onChunk)
         stdout.off("resize", onResizeEvent)
 
         if (stdin.isTTY) {
