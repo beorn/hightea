@@ -5,6 +5,12 @@
  *
  * This module orchestrates the rendering process by traversing the node tree
  * and delegating to specialized rendering functions for boxes and text.
+ *
+ * Layout (top-down):
+ *   contentPhase → renderNodeToBuffer → renderScrollContainerChildren
+ *                                     → renderNormalChildren
+ *   Helpers: clearDirtyFlags, hasChildPositionChanged, computeChildClipBounds
+ *   Region clearing: findInheritedBg, clearNodeRegion, clippedFill
  */
 
 import type { Color } from "../buffer.js"
@@ -56,50 +62,9 @@ export { clearBgConflictWarnings, setBgConflictMode }
 
 type ClipBounds = { top: number; bottom: number }
 
-/**
- * Clear dirty flags on a subtree that was skipped during incremental rendering.
- */
-function clearDirtyFlags(node: InkxNode): void {
-  node.contentDirty = false
-  node.paintDirty = false
-  node.subtreeDirty = false
-  node.childrenDirty = false
-  for (const child of node.children) {
-    if (child.layoutNode) clearDirtyFlags(child)
-  }
-}
-
-/**
- * Result of finding inherited background - includes both color and ancestor bounds.
- */
-interface InheritedBgResult {
-  color: Color
-  /** The rect of the ancestor that has the background color (for clipping) */
-  ancestorRect: { x: number; y: number; width: number; height: number } | null
-}
-
-/**
- * Find the nearest ancestor with a backgroundColor and return the parsed color
- * along with the ancestor's rect for proper clipping.
- *
- * When clearing excess area after a node shrinks, we need to clip to the colored
- * ancestor's bounds - not just the immediate parent. Otherwise the inherited
- * color can bleed into sibling areas that should have different backgrounds.
- */
-function findInheritedBg(node: InkxNode): InheritedBgResult {
-  let current = node.parent
-  while (current) {
-    const bg = (current.props as BoxProps).backgroundColor
-    if (bg) {
-      return {
-        color: parseColor(bg),
-        ancestorRect: current.contentRect,
-      }
-    }
-    current = current.parent
-  }
-  return { color: null, ancestorRect: null }
-}
+// ============================================================================
+// Core Rendering
+// ============================================================================
 
 /**
  * Render a single node to the buffer.
@@ -456,6 +421,23 @@ function renderNormalChildren(
   }
 }
 
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/**
+ * Clear dirty flags on a subtree that was skipped during incremental rendering.
+ */
+function clearDirtyFlags(node: InkxNode): void {
+  node.contentDirty = false
+  node.paintDirty = false
+  node.subtreeDirty = false
+  node.childrenDirty = false
+  for (const child of node.children) {
+    if (child.layoutNode) clearDirtyFlags(child)
+  }
+}
+
 /**
  * Check if any child's position changed since last render (sibling shift).
  * Checked even when subtreeDirty=true because subtreeDirty only means
@@ -504,6 +486,38 @@ function computeChildClipBounds(
 // ============================================================================
 // Region Clearing
 // ============================================================================
+
+/**
+ * Result of finding inherited background - includes both color and ancestor bounds.
+ */
+interface InheritedBgResult {
+  color: Color
+  /** The rect of the ancestor that has the background color (for clipping) */
+  ancestorRect: { x: number; y: number; width: number; height: number } | null
+}
+
+/**
+ * Find the nearest ancestor with a backgroundColor and return the parsed color
+ * along with the ancestor's rect for proper clipping.
+ *
+ * When clearing excess area after a node shrinks, we need to clip to the colored
+ * ancestor's bounds - not just the immediate parent. Otherwise the inherited
+ * color can bleed into sibling areas that should have different backgrounds.
+ */
+function findInheritedBg(node: InkxNode): InheritedBgResult {
+  let current = node.parent
+  while (current) {
+    const bg = (current.props as BoxProps).backgroundColor
+    if (bg) {
+      return {
+        color: parseColor(bg),
+        ancestorRect: current.contentRect,
+      }
+    }
+    current = current.parent
+  }
+  return { color: null, ancestorRect: null }
+}
 
 /**
  * Clear a node's region with inherited bg when it has no backgroundColor.

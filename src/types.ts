@@ -269,19 +269,32 @@ export interface InkxNode {
    */
   screenRect: Rect | null
 
-  /** True if layout-affecting props changed and Yoga needs recalculation */
+  /** True if layout-affecting props changed and Yoga needs recalculation.
+   *  Set by reconciler on prop changes. Cleared after layout phase. */
   layoutDirty: boolean
 
-  /** True if content changed but layout didn't */
+  /** True if content changed but layout didn't (e.g., text content update).
+   *  Set by reconciler. Cleared by content phase after rendering.
+   *  NOTE: measure phase may clear this for its text-collection cache —
+   *  paintDirty acts as the surviving witness for style changes. */
   contentDirty: boolean
 
-  /** True if visual props changed and content phase must repaint (survives measure phase) */
+  /** True if visual props changed (color, backgroundColor, borderStyle, etc.).
+   *  Set by reconciler alongside contentDirty. Survives measure phase clearing
+   *  of contentDirty, ensuring content phase still detects style changes.
+   *  Cleared by content phase after rendering. */
   paintDirty: boolean
 
-  /** True if this node or any descendant has dirty content/layout */
+  /** True if this node or any descendant has dirty content/layout.
+   *  Propagated upward by reconciler when any descendant is dirtied.
+   *  When only subtreeDirty (no other flags), the node's OWN rendering is
+   *  skipped — only descendants are traversed. Cleared by content phase. */
   subtreeDirty: boolean
 
-  /** True if children were added, removed, or reordered */
+  /** True if direct children were added, removed, or reordered.
+   *  Set by reconciler on child list changes. Triggers own repaint
+   *  (gap regions may need clearing) and forces child re-render.
+   *  Cleared by content phase. */
   childrenDirty: boolean
 
   /** Callbacks subscribed to layout changes (used by useContentRect) */
