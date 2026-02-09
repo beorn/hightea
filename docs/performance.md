@@ -1,8 +1,18 @@
 # Inkx Performance Analysis
 
-## Benchmark Results (M1 Max)
+## Benchmark Results (M1 Max, Bun 1.3.9)
 
-### Summary (After Optimizations)
+### inkx vs Ink 6 (Full Pipeline)
+
+| Components | inkx (Flexx) | Ink 6 (Yoga NAPI) | Ratio     |
+| ---------- | ------------ | ----------------- | --------- |
+| 1          | 172 us       | 269 us            | inkx 1.6x |
+| 100        | 45.9 ms      | 49.7 ms           | inkx 1.1x |
+| 1000       | 443 ms       | 544 ms            | inkx 1.2x |
+
+inkx uses `createRenderer()` (headless). Ink uses `render()` with mock stdout + unmount per iteration. Both include React reconciliation. See [benchmark README](../benchmarks/ink-comparison/README.md) for full methodology and additional comparisons.
+
+### inkx Pipeline Summary
 
 | Operation                     | Time  | Notes                  |
 | ----------------------------- | ----- | ---------------------- |
@@ -11,7 +21,16 @@
 | Full render (50 items, first) | 159us | Complex tree           |
 | Full render (50 items, diff)  | 88us  | Complex tree with diff |
 | contentPhase (100 children)   | 26us  | Optimized with caching |
-| layoutPhase (100 children)    | 25us  | Yoga is fast           |
+| layoutPhase (100 children)    | 25us  | Flexx layout           |
+
+### Layout Engine Comparison
+
+| Benchmark             | Flexx (JS) | Yoga WASM | Yoga NAPI (C++) |
+| --------------------- | ---------- | --------- | --------------- |
+| 100 nodes flat list   | 87 us      | 88 us     | 200 us          |
+| 50-node kanban (3col) | 62 us      | 58 us     | 136 us          |
+
+Flexx and Yoga WASM perform similarly. Both are ~2x faster than Yoga NAPI (native C++) due to NAPI bridge overhead.
 
 ### Key Optimizations Implemented
 
@@ -146,7 +165,8 @@ Reuse TerminalBuffer instances instead of allocating new ones each render.
 
 ```bash
 cd /Users/beorn/Code/pim/km/vendor/beorn-inkx
-bun run bench
+bun run bench           # Internal benchmarks
+bun run bench:compare   # Head-to-head inkx vs Ink 6
 ```
 
 ### Profile Specific Phases

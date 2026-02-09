@@ -133,8 +133,8 @@ The RenderAdapter interface separates core logic (reconciler, layout, hooks) fro
 
 - `useContentRect()` / `useScreenRect()` — sync layout feedback during render
 - Five-phase pipeline with dirty tracking
-- Pluggable layout: [Flexx](https://github.com/beorn/flexx) (default, 2.5x faster) or Yoga (WASM)
-- 54us simple renders; diffs 2.1x faster than first render
+- Pluggable layout: [Flexx](https://github.com/beorn/flexx) (default, pure JS) or Yoga (WASM)
+- 172us full pipeline render (vs ~269us in Ink 6); optimized diff rendering for large trees ([see benchmarks](benchmarks/ink-comparison/README.md))
 
 ### Components
 

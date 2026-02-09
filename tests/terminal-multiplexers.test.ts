@@ -162,6 +162,11 @@ describe("Synchronized Update Mode (DEC 2026)", () => {
     expect(SYNC_UPDATE.end).toBe("\x1b[?2026l")
   })
 
+  test("matches ANSI export constants", () => {
+    expect(SYNC_UPDATE.begin).toBe(ANSI.SYNC_BEGIN)
+    expect(SYNC_UPDATE.end).toBe(ANSI.SYNC_END)
+  })
+
   test("wraps content with synchronized update sequences", () => {
     const output = wrapWithSyncUpdate("Hello, World!")
     expect(output).toBe("\x1b[?2026hHello, World!\x1b[?2026l")

@@ -22,9 +22,11 @@ describe("Output Functions", () => {
       expect(result).toContain("\x1b[?1049h")
     })
 
-    test("leaveAlternateScreen returns leave sequence", () => {
+    test("leaveAlternateScreen returns leave sequence with SYNC_END safety", () => {
       const result = leaveAlternateScreen()
       expect(result).toContain("\x1b[?1049l")
+      // SYNC_END is prepended as safety belt to reset DEC 2026 on cleanup
+      expect(result).toContain(ANSI.SYNC_END)
     })
 
     test("enableMouse returns enable sequence with all tracking modes", () => {
@@ -66,6 +68,11 @@ describe("Output Functions", () => {
     test("ESC and CSI are defined", () => {
       expect(ANSI.ESC).toBe("\x1b")
       expect(ANSI.CSI).toBe("\x1b[")
+    })
+
+    test("SYNC_BEGIN and SYNC_END are DEC 2026 sequences", () => {
+      expect(ANSI.SYNC_BEGIN).toBe("\x1b[?2026h")
+      expect(ANSI.SYNC_END).toBe("\x1b[?2026l")
     })
   })
 

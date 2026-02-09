@@ -178,9 +178,7 @@ function VirtualListInner<T>(
   // This works for both declarative mode (scrollTo prop) and imperative mode
   // (scrollToItem via ref). For frozen columns, scrollState is preserved so
   // the index points to the same child as before (no visual change).
-  const boxScrollTo = isSelectedInSlice
-    ? Math.max(0, scrollToIndex)
-    : undefined
+  const boxScrollTo = isSelectedInSlice ? Math.max(0, scrollToIndex) : undefined
 
   debug(
     "VirtualList render: scrollTo=%s boxScrollTo=%s frozen=%s start=%d end=%d currentSelected=%d isInSlice=%s",

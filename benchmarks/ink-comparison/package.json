@@ -1,0 +1,9 @@
+{
+  "name": "inkx-ink-comparison",
+  "private": true,
+  "description": "Head-to-head benchmark: inkx vs ink",
+  "dependencies": {
+    "ink": "^6.6.0",
+    "mitata": "^0.1.11"
+  }
+}

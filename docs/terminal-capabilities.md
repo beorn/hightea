@@ -332,6 +332,60 @@ app.dispose()
 term.dispose()
 ```
 
+## Synchronized Update Mode (DEC 2026)
+
+Inkx automatically wraps all terminal output with **Synchronized Update Mode** sequences (`CSI ? 2026 h` / `CSI ? 2026 l`). This tells the terminal to batch output and paint atomically, preventing visual tearing during rapid screen updates.
+
+### How It Works
+
+```
+\x1b[?2026h   ← Begin: terminal buffers all subsequent output
+...output...   ← Cursor movement, style changes, text — all buffered
+\x1b[?2026l   ← End: terminal paints everything in one atomic update
+```
+
+Without this, the terminal may paint intermediate states mid-render, causing visible flicker — especially noticeable in multiplexers like tmux.
+
+### Terminal Support
+
+| Terminal         | Supported | Notes          |
+| ---------------- | --------- | -------------- |
+| Ghostty          | Yes       |                |
+| Kitty            | Yes       |                |
+| WezTerm          | Yes       |                |
+| iTerm2           | Yes       |                |
+| Foot             | Yes       |                |
+| Alacritty        | Yes       | 0.14+          |
+| tmux             | Yes       | 3.2+           |
+| Contour          | Yes       |                |
+| Terminal.app     | No        | Safely ignored |
+| Windows Terminal | No        | Safely ignored |
+
+Terminals that don't support it **safely ignore** the sequences — they pass through as no-ops.
+
+### Configuration
+
+Sync update is enabled by default. To disable:
+
+```bash
+INKX_SYNC_UPDATE=0 bun km view /path
+```
+
+Only applies in TTY mode. Non-TTY modes (line-by-line, static, plain) skip sync wrapping.
+
+### Feature Detection (DECRPM)
+
+Terminals can be queried for DEC 2026 support via DECRPM:
+
+```
+Query:    CSI ? 2026 $ p
+Response: CSI ? 2026 ; <value> $ y
+```
+
+Where `value` is: 0=unknown, 1=set, 2=reset, 3=permanent set, 4=permanent reset.
+
+Inkx does not currently query support — it always emits the sequences since unsupported terminals ignore them harmlessly.
+
 ## Standards Reference
 
 ### ECMA-48 (ISO 6429)

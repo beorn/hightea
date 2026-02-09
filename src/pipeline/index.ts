@@ -203,8 +203,14 @@ export function executeRender(
 
   // Expose phase timing for benchmarking
   ;(globalThis as any).__inkx_last_pipeline = {
-    measure: tMeasure, layout: tLayout, scroll: tScroll,
-    screenRect: tScreenRect, notify: tNotify, content: tContent, output: tOutput, total,
+    measure: tMeasure,
+    layout: tLayout,
+    scroll: tScroll,
+    screenRect: tScreenRect,
+    notify: tNotify,
+    content: tContent,
+    output: tOutput,
+    total,
   }
 
   return { output, buffer }

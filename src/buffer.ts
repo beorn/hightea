@@ -777,7 +777,10 @@ export class TerminalBuffer {
     if (clampedWidth <= 0 || clampedHeight <= 0) return
     if (Math.abs(delta) >= clampedHeight) {
       // Scroll amount exceeds region — just clear everything
-      this.fill(startX, startY, clampedWidth, clampedHeight, { char: clearCell.char ?? " ", bg: clearCell.bg ?? null })
+      this.fill(startX, startY, clampedWidth, clampedHeight, {
+        char: clearCell.char ?? " ",
+        bg: clearCell.bg ?? null,
+      })
       return
     }
 
@@ -790,48 +793,86 @@ export class TerminalBuffer {
         const dstBase = row * w
         const srcBase = (row + absDelta) * w
         // Copy cells and chars for the region columns
-        this.cells.copyWithin(dstBase + startX, srcBase + startX, srcBase + endX)
+        this.cells.copyWithin(
+          dstBase + startX,
+          srcBase + startX,
+          srcBase + endX,
+        )
         for (let cx = startX; cx < endX; cx++) {
           this.chars[dstBase + cx] = this.chars[srcBase + cx]!
           // Move true color maps
           const srcIdx = srcBase + cx
           const dstIdx = dstBase + cx
           const fgc = this.fgColors.get(srcIdx)
-          if (fgc) { this.fgColors.set(dstIdx, fgc); this.fgColors.delete(srcIdx) }
-          else { this.fgColors.delete(dstIdx) }
+          if (fgc) {
+            this.fgColors.set(dstIdx, fgc)
+            this.fgColors.delete(srcIdx)
+          } else {
+            this.fgColors.delete(dstIdx)
+          }
           const bgc = this.bgColors.get(srcIdx)
-          if (bgc) { this.bgColors.set(dstIdx, bgc); this.bgColors.delete(srcIdx) }
-          else { this.bgColors.delete(dstIdx) }
+          if (bgc) {
+            this.bgColors.set(dstIdx, bgc)
+            this.bgColors.delete(srcIdx)
+          } else {
+            this.bgColors.delete(dstIdx)
+          }
           const ulc = this.underlineColors.get(srcIdx)
-          if (ulc) { this.underlineColors.set(dstIdx, ulc); this.underlineColors.delete(srcIdx) }
-          else { this.underlineColors.delete(dstIdx) }
+          if (ulc) {
+            this.underlineColors.set(dstIdx, ulc)
+            this.underlineColors.delete(srcIdx)
+          } else {
+            this.underlineColors.delete(dstIdx)
+          }
         }
       }
       // Clear exposed rows at bottom
-      this.fill(startX, endY - absDelta, clampedWidth, absDelta, { char: clearCell.char ?? " ", bg: clearCell.bg ?? null })
+      this.fill(startX, endY - absDelta, clampedWidth, absDelta, {
+        char: clearCell.char ?? " ",
+        bg: clearCell.bg ?? null,
+      })
     } else {
       // Shift content DOWN: copy rows [startY .. endY - absDelta) to [startY + absDelta .. endY)
       for (let row = endY - 1; row >= startY + absDelta; row--) {
         const dstBase = row * w
         const srcBase = (row - absDelta) * w
-        this.cells.copyWithin(dstBase + startX, srcBase + startX, srcBase + endX)
+        this.cells.copyWithin(
+          dstBase + startX,
+          srcBase + startX,
+          srcBase + endX,
+        )
         for (let cx = startX; cx < endX; cx++) {
           this.chars[dstBase + cx] = this.chars[srcBase + cx]!
           const srcIdx = srcBase + cx
           const dstIdx = dstBase + cx
           const fgc = this.fgColors.get(srcIdx)
-          if (fgc) { this.fgColors.set(dstIdx, fgc); this.fgColors.delete(srcIdx) }
-          else { this.fgColors.delete(dstIdx) }
+          if (fgc) {
+            this.fgColors.set(dstIdx, fgc)
+            this.fgColors.delete(srcIdx)
+          } else {
+            this.fgColors.delete(dstIdx)
+          }
           const bgc = this.bgColors.get(srcIdx)
-          if (bgc) { this.bgColors.set(dstIdx, bgc); this.bgColors.delete(srcIdx) }
-          else { this.bgColors.delete(dstIdx) }
+          if (bgc) {
+            this.bgColors.set(dstIdx, bgc)
+            this.bgColors.delete(srcIdx)
+          } else {
+            this.bgColors.delete(dstIdx)
+          }
           const ulc = this.underlineColors.get(srcIdx)
-          if (ulc) { this.underlineColors.set(dstIdx, ulc); this.underlineColors.delete(srcIdx) }
-          else { this.underlineColors.delete(dstIdx) }
+          if (ulc) {
+            this.underlineColors.set(dstIdx, ulc)
+            this.underlineColors.delete(srcIdx)
+          } else {
+            this.underlineColors.delete(dstIdx)
+          }
         }
       }
       // Clear exposed rows at top
-      this.fill(startX, startY, clampedWidth, absDelta, { char: clearCell.char ?? " ", bg: clearCell.bg ?? null })
+      this.fill(startX, startY, clampedWidth, absDelta, {
+        char: clearCell.char ?? " ",
+        bg: clearCell.bg ?? null,
+      })
     }
   }
 

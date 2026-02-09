@@ -1,56 +1,92 @@
 # inkx vs Ink Performance Benchmark Suite
 
-Head-to-head performance comparison between inkx and Ink. Since Ink is not installed as a dependency, inkx benchmarks run directly and Ink reference points are documented from published benchmarks and analysis.
+Head-to-head performance comparison between inkx and Ink 6.
+
+## Setup
+
+Ink is installed in this directory only (not a dependency of inkx):
+
+```bash
+cd vendor/beorn-inkx/benchmarks/ink-comparison && bun install
+```
 
 ## Running
 
 ```bash
 cd /Users/beorn/Code/pim/km
-bun run vendor/beorn-inkx/benchmarks/ink-comparison/run.ts
+
+# Head-to-head comparison (runs both suites, prints comparison table)
+bun run vendor/beorn-inkx/benchmarks/ink-comparison/compare.ts
+
+# Individual suites
+bun run vendor/beorn-inkx/benchmarks/ink-comparison/run.ts       # inkx only
+bun run vendor/beorn-inkx/benchmarks/ink-comparison/ink-bench.ts  # ink only
 ```
+
+## Results (Apple M1 Max, Bun 1.3.9)
+
+These benchmarks compare inkx to Ink 6.6.0 to help users understand performance characteristics. inkx builds upon Ink's foundational work, and we're grateful to the Ink project and its community. Methodology notes are included where the comparison approaches differ.
+
+### Full Pipeline: React reconciliation → layout → string output
+
+| Workload               | inkx (Flexx) | Ink 6 (Yoga NAPI) | Ratio     |
+| ---------------------- | ------------ | ----------------- | --------- |
+| 1 Box+Text (80×24)     | 172 µs       | 269 µs            | inkx 1.6x |
+| 100 Box+Text (80×24)   | 45.9 ms      | 49.7 ms           | inkx 1.1x |
+| 1000 Box+Text (120×40) | 443 ms       | 544 ms            | inkx 1.2x |
+
+Note: inkx uses `createRenderer()` (headless, no stdout). Ink uses `render()` with mock stdout + unmount per iteration, which includes additional lifecycle overhead. Both include React reconciliation.
+
+### Layout Engine (pure layout, no React)
+
+| Workload       | Flexx (JS, 7KB) | Yoga WASM | Yoga NAPI (C++) |
+| -------------- | --------------- | --------- | --------------- |
+| 100 nodes      | 87 µs           | 88 µs     | 200 µs          |
+| 50-node kanban | 62 µs           | 58 µs     | 136 µs          |
+
+Flexx and Yoga WASM are ~2× faster than Yoga NAPI. The NAPI bridge overhead dominates.
+
+### Re-render / Diff (update performance)
+
+| Scenario                    | Time    |
+| --------------------------- | ------- |
+| ink rerender 100 Box+Text   | 2.3 ms  |
+| ink rerender 1000 Box+Text  | 20.4 ms |
+| inkx diff render 100 nodes  | 45 µs   |
+| inkx diff render 1000 nodes | 164 µs  |
+
+inkx's diff pipeline (0.16 ms for 1000 nodes) vs Ink's React rerender (20.4 ms for 1000 nodes). For most TUI updates that only change a few nodes, this architectural difference is significant.
+
+Note: These measure different operations. Ink's `rerender()` triggers React reconciliation. inkx's diff render is a low-level pipeline operation that bypasses React, using dirty tracking to update only changed nodes. This comparison shows the benefit of inkx's architectural approach rather than a direct equivalent operation.
+
+### Memory
+
+Roughly equivalent: inkx 43.4 ms vs ink 49.6 ms for 100 Box+Text heap delta.
+
+## Architectural Differences
+
+| Aspect             | inkx                                     | Ink 6                          |
+| ------------------ | ---------------------------------------- | ------------------------------ |
+| Layout feedback    | Two-phase render, components know size   | Single-phase, no size feedback |
+| Diff algorithm     | Cell-level with packed integer fast-path | Row-based string comparison    |
+| Layout engine      | Flexx (default) or Yoga WASM             | Yoga NAPI only                 |
+| Incremental render | Dirty tracking per-node                  | Full tree re-render            |
+| Text truncation    | Auto-truncate during content phase       | Manual, per-component          |
 
 ## Benchmark Categories
 
-### 1. Render Time
+### inkx suite (run.ts)
 
-Measures time to render React component trees of varying sizes (1, 100, 1000 Box+Text components) through the full inkx pipeline: reconciliation, layout, content rendering, and buffer output.
+1. **React Render** — Full pipeline with `createRenderer()` (1, 100, 1000 Box+Text)
+2. **Pipeline Render** — Low-level `executeRender` bypassing React (first render + diff render)
+3. **Diff Performance** — Buffer comparison (no changes, 10% changes, full repaint)
+4. **Resize Handling** — Re-layout after terminal size change (10, 100, 1000 nodes)
+5. **Layout Engine** — Flexx vs Yoga WASM comparison
+6. **Memory** — Heap delta for 100-component app
 
-### 2. Pipeline Render
+### Ink suite (ink-bench.ts)
 
-Low-level `executeRender` benchmarks bypassing React reconciliation. Measures pure pipeline throughput for first renders and diff renders.
-
-### 3. Diff Performance
-
-Buffer comparison benchmarks measuring the output phase that computes terminal escape sequences from two buffers. Tests: no changes, 10% changes, full repaint, and large buffers.
-
-### 4. Resize Handling
-
-Time to re-layout trees of 10, 100, and 1000 nodes after a terminal resize (80x24 to 120x40).
-
-### 5. Layout Engine Comparison
-
-Direct comparison of Flexx (pure JS) vs Yoga (WASM) layout engines on identical trees.
-
-### 6. Memory Usage
-
-Heap delta for rendering 100-component apps, measured via `process.memoryUsage()`.
-
-## Ink Reference Points
-
-Ink does not ship benchmarks. Reference points are derived from:
-
-- **Ink PR #836** (incremental rendering): Reports ~2x speedup for partial updates
-- **Ink issue #694** (large component counts): Users report degradation at 500+ components
-- **Ink's Yoga dependency**: Same WASM engine, so layout performance is comparable when inkx uses Yoga
-
-### Known Architectural Differences
-
-| Aspect             | inkx                                     | Ink                                        |
-| ------------------ | ---------------------------------------- | ------------------------------------------ |
-| Layout feedback    | Two-phase render, components know size   | Single-phase, no size feedback             |
-| Diff algorithm     | Cell-level with packed integer fast-path | Row-based string comparison                |
-| Layout engine      | Flexx (default) or Yoga                  | Yoga only                                  |
-| Incremental render | Dirty tracking per-node                  | Full tree re-render (PR #836 adds partial) |
-| Text truncation    | Auto-truncate during content phase       | Manual, per-component                      |
-
-These architectural differences mean inkx has higher per-frame overhead for simple renders (two-phase vs one-phase) but scales better for complex UIs (dirty tracking, layout feedback eliminates prop threading).
+1. **React Render** — Full pipeline with `render()` + mock stdout (1, 100, 1000 Box+Text)
+2. **Re-render** — Update existing tree with `rerender()` (100, 1000 Box+Text)
+3. **Pure Yoga Layout** — Raw `yoga-layout` (NAPI) node creation + calculation
+4. **Memory** — Heap delta for 100-component app

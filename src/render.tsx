@@ -38,7 +38,7 @@ import {
   type LayoutEngineType,
   isLayoutEngineInitialized,
 } from "./layout-engine.js"
-import { enterAlternateScreen, leaveAlternateScreen } from "./output.js"
+import { ANSI, enterAlternateScreen, leaveAlternateScreen } from "./output.js"
 import { createContainer, getContainerRoot, reconciler } from "./reconciler.js"
 import { renderStringSync } from "./render-string.js"
 import { RenderScheduler } from "./scheduler.js"
@@ -721,9 +721,13 @@ class InkxInstance {
     this.resizeCleanup?.()
     this.signalCleanup?.()
 
-    // Leave alternate screen if we entered it
+    // Leave alternate screen if we entered it (leaveAlternateScreen includes
+    // SYNC_END as a safety belt). For inline mode, emit SYNC_END directly
+    // to ensure synchronized update mode is reset even if interrupted mid-render.
     if (this.alternateScreen) {
       this.stdout.write(leaveAlternateScreen())
+    } else {
+      this.stdout.write(ANSI.SYNC_END)
     }
 
     // Clear the container

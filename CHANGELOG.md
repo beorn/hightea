@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Synchronized Update Mode (DEC 2026): all TTY output is wrapped with `CSI ? 2026 h` / `CSI ? 2026 l` for flicker-free rendering. Terminals paint atomically instead of showing intermediate states. Disable with `INKX_SYNC_UPDATE=0`.
+- `ANSI.SYNC_BEGIN` and `ANSI.SYNC_END` constants exported from `output.ts`
+
 ## [0.1.0] - 2026-02-06
 
 ### Added

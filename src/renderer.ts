@@ -480,7 +480,10 @@ export function render(
       console.log("[inkx] stdin.write:", newFrame)
     }
     // Expose timing on global for benchmarking
-    ;(globalThis as any).__inkx_last_timing = { actMs: t1 - t0, renderMs: t2 - t1 }
+    ;(globalThis as any).__inkx_last_timing = {
+      actMs: t1 - t0,
+      renderMs: t2 - t1,
+    }
   }
 
   const rerenderFn = (newElement: ReactNode) => {

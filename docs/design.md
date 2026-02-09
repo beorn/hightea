@@ -504,6 +504,8 @@ class RenderScheduler {
 }
 ```
 
+**Synchronized Update Mode (DEC 2026)**: All TTY output is wrapped with `CSI ? 2026 h` / `CSI ? 2026 l` sequences. This tells the terminal to buffer output and paint atomically, preventing visual tearing. Enabled by default; disable with `INKX_SYNC_UPDATE=0`.
+
 **Layout Caching**: Reuse Yoga tree structure.
 
 ```typescript
@@ -754,8 +756,8 @@ Explicit expectations for what works and what doesn't:
 | React 19 breaks reconciler              | Medium     | High   | Pin to React 18; add React version integration tests          |
 | Memory leaks from callbacks             | Medium     | Medium | Use WeakMap; test with long-running apps                      |
 | Unicode edge cases                      | High       | Low    | Use graphemer; comprehensive Unicode test fixtures            |
-| **CJK/IME input issues**                | High       | High   | Test thoroughly; consider Synchronized Update Mode            |
-| **Terminal multiplexer rendering**      | Medium     | High   | Test in tmux/Zellij; may need special handling                |
+| **CJK/IME input issues**                | High       | High   | Test thoroughly; DEC 2026 sync update now enabled by default  |
+| **Terminal multiplexer rendering**      | Medium     | High   | DEC 2026 sync update prevents tearing in tmux/Zellij          |
 | **Keyboard protocol limitations**       | Medium     | Medium | Document limitations; plan Kitty protocol support             |
 
 _Note: CJK/IME and terminal multiplexer risks added based on analysis of Ink's real-world issues (January 2026). These are Ink's top pain points and likely to affect Inkx users too._

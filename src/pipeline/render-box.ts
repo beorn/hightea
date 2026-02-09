@@ -27,6 +27,7 @@ export function renderBox(
   props: BoxProps,
   clipBounds?: { top: number; bottom: number },
   scrollOffset = 0,
+  skipBgFill = false,
 ): void {
   const { x, width, height } = layout
   // Apply scroll offset to y position
@@ -37,8 +38,11 @@ export function renderBox(
     return
   }
 
-  // Fill background if set
-  if (props.backgroundColor) {
+  // Fill background if set.
+  // In incremental mode, skipBgFill=true when the box itself hasn't changed
+  // (only subtreeDirty). The cloned buffer already has the correct bg fill,
+  // and re-filling would destroy child pixels that won't be repainted.
+  if (props.backgroundColor && !skipBgFill) {
     const bg = parseColor(props.backgroundColor)
     // Clip background fill to bounds
     if (clipBounds) {

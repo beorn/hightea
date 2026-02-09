@@ -1,20 +1,39 @@
-# Inkx vs Ink: Detailed Comparison
+# inkx vs Ink: Comprehensive Comparison
 
-This document analyzes Ink's real-world issues and PRs to understand where Inkx can provide value.
+A comprehensive comparison to help developers choose between inkx and Ink for terminal UI applications. Ink pioneered React-based terminal UIs and remains the most widely adopted framework in this space. inkx builds on that foundation, solving architectural limitations while introducing new capabilities for layout-aware, high-performance terminal applications.
 
-_Last updated: January 2026 (based on analysis of ink's last 100 PRs and issues)_
-
----
-
-## Executive Summary
-
-Ink is in maintenance mode with a stable but limited architecture. Many long-standing issues (some 5-6 years old) remain open because they require architectural changes Ink won't make. Inkx solves several of these by design.
+_Last updated: February 2026 (based on analysis of Ink's last 100 PRs and issues)_
 
 ---
 
-## Problems Inkx Already Solves
+## Overview
 
-### 1. Layout Feedback (Ink's Architectural Limitation)
+**[Ink](https://github.com/vadimdemedes/ink)** (2017) brought React to the terminal, enabling developers to build rich CLI tools with a familiar component model. It has millions of weekly downloads, a large ecosystem of community components, and powers tools used across the JavaScript ecosystem.
+
+**[inkx](https://github.com/niceBoys/inkx)** (2025) is a ground-up reimplementation that preserves Ink's React-based component model while introducing two-phase rendering — components know their dimensions during render, not after. This architectural change enables native scrolling, automatic text truncation, and dimension-aware hooks that are difficult to retrofit into Ink's existing design.
+
+Both frameworks are valid choices. This document aims to help you understand the trade-offs.
+
+---
+
+## Ink's Strengths
+
+Before diving into differences, it's worth acknowledging where Ink genuinely excels:
+
+- **Ecosystem**: 50+ community components (ink-spinner, ink-select-input, ink-table, ink-text-input, etc.) ready to drop into any project. This is Ink's strongest advantage.
+- **Battle-tested**: ~1.3M npm weekly downloads. Used in production by major CLI tools (Gatsby, Prisma, Terraform CDK, Shopify CLI, and many more).
+- **Stability**: Mature API with low churn. Apps written years ago still work. Breaking changes are rare and well-communicated.
+- **Community**: Large, active community. Questions get answered. Bugs get reported and triaged.
+- **npm integration**: First-class integration with the npm ecosystem. Used by npm itself for interactive prompts.
+- **Documentation**: Well-documented with clear examples and a straightforward getting-started experience.
+
+For many projects — especially simple CLI tools, prompts, and scripts — Ink is the right choice. Its ecosystem alone can save days of development time.
+
+---
+
+## Where inkx Adds Value
+
+### Layout Feedback (Ink's Architectural Limitation)
 
 **Ink issue [#5](https://github.com/vadimdemedes/ink/issues/5)** (opened 2016, still open):
 
@@ -22,7 +41,7 @@ Ink is in maintenance mode with a stable but limited architecture. Many long-sta
 
 **Why Ink can't fix it**: Ink renders components _before_ Yoga calculates layout. By the time dimensions are known, React is done rendering.
 
-**Inkx solution**: Two-phase rendering. Layout calculates first, then components render with `useLayout()` providing actual dimensions.
+**inkx solution**: Two-phase rendering. Layout calculates first, then components render with `useLayout()` providing actual dimensions.
 
 ```tsx
 // Ink: 147 lines of width-threading code in real apps
@@ -30,21 +49,21 @@ function Card({ width }: { width: number }) {
   return <Text>{truncate(title, width)}</Text>
 }
 
-// Inkx: Zero width props needed
+// inkx: Zero width props needed
 function Card() {
   const { width } = useLayout()
   return <Text>{truncate(title, width)}</Text>
 }
 ```
 
-### 2. Scrolling (Ink's #1 Feature Request)
+### Scrolling (Ink's #1 Feature Request)
 
 **Ink issue [#765](https://github.com/vadimdemedes/ink/issues/765)** (reopened multiple times)
 **Ink issue [#222](https://github.com/vadimdemedes/ink/issues/222)** (open since August 2019 - 5.5+ years!)
 
 **Why Ink struggles**: Without layout feedback, scrolling requires manual height estimation and virtualization configuration.
 
-**Inkx solution**: `overflow="scroll"` with automatic measurement.
+**inkx solution**: `overflow="scroll"` with automatic measurement.
 
 ```tsx
 // Ink: Complex virtualization setup
@@ -55,19 +74,19 @@ function Card() {
   renderItem={(item) => <Card item={item} />}
 />
 
-// Inkx: Just render everything
+// inkx: Just render everything
 <Box overflow="scroll" scrollTo={selectedIdx}>
   {items.map((item) => <Card key={item.id} item={item} />)}
 </Box>
 ```
 
-### 3. Text Overflow
+### Text Overflow
 
 **Ink issues [#584](https://github.com/vadimdemedes/ink/issues/584), [#464](https://github.com/vadimdemedes/ink/issues/464)**
 
 **Problem**: Text overflows containers, breaking layout.
 
-**Inkx solution**: Auto-truncates by default, preserving ANSI codes.
+**inkx solution**: Auto-truncates by default, preserving ANSI codes.
 
 ```tsx
 // Ink: Text overflows, breaks layout
@@ -75,12 +94,12 @@ function Card() {
   <Text>Very long text...</Text>
 </Box>
 
-// Inkx: Auto-truncates to "Very lon…"
+// inkx: Auto-truncates to "Very lon…"
 ```
 
 ---
 
-## Ink's Current Pain Points (Opportunity Areas)
+## Open Challenges (Both Frameworks)
 
 ### CJK/IME Input (CRITICAL)
 
@@ -93,7 +112,7 @@ function Card() {
 
 **Solution being attempted**: Synchronized Update Mode (`CSI ? 2026h/l`) to frame updates atomically.
 
-**Inkx status**: ⚠️ Needs investigation and testing.
+**inkx status**: Implemented. inkx wraps all TTY output with DEC 2026 sequences automatically. Disable with `INKX_SYNC_UPDATE=0`.
 
 ### Kitty Keyboard Protocol
 
@@ -108,7 +127,7 @@ function Card() {
 
 **Solution**: Kitty keyboard protocol support with runtime detection and graceful fallback.
 
-**Inkx status**: 🔜 Research planned.
+**inkx status**: Research planned.
 
 ### Cursor Support
 
@@ -118,7 +137,7 @@ function Card() {
 
 **Why Ink can't fix it**: Cursor positioning requires knowing component positions, which requires layout feedback.
 
-**Inkx opportunity**: `useLayout()` provides position information. A `useCursor()` hook is feasible.
+**inkx opportunity**: `useLayout()` provides position information. A `useCursor()` hook is feasible.
 
 ### Multi-line Text Input
 
@@ -128,33 +147,26 @@ function Card() {
 
 **Why it's hard in Ink**: Text wrapping and cursor positioning require layout awareness.
 
-**Inkx opportunity**: Layout-aware components could make a `<TextArea>` feasible.
+**inkx opportunity**: Layout-aware components could make a `<TextArea>` feasible.
 
 ---
 
-## What Ink Gets Right (Don't Regress)
+## What Ink Gets Right
 
-These PRs show what matters to users:
+These recent Ink PRs highlight important capabilities that any terminal UI framework should support:
 
-| PR   | Feature                            | Status    |
-| ---- | ---------------------------------- | --------- |
-| #823 | Screen reader accessibility        | ✅ Merged |
-| #829 | Home/End key support               | ✅ Merged |
-| #836 | Incremental rendering optimization | ✅ Merged |
-| #854 | Non-TTY environment fallback       | In review |
-
-**Inkx must verify**:
-
-- Screen reader output works
-- Home/End keys are handled
-- Incremental rendering is efficient
-- Graceful degradation in CI/piped environments
+| PR   | Feature                            | Status    | inkx Status             |
+| ---- | ---------------------------------- | --------- | ----------------------- |
+| #823 | Screen reader accessibility        | Merged    | Basic                   |
+| #829 | Home/End key support               | Merged    | Supported               |
+| #836 | Incremental rendering optimization | Merged    | Per-node dirty tracking |
+| #854 | Non-TTY environment fallback       | In review | renderStatic()          |
 
 ---
 
-## Ink's Maintenance Patterns
+## Ink's Development Patterns
 
-Analysis of PR merge patterns reveals:
+Analysis of Ink's PR merge patterns (useful context for contributors and evaluators):
 
 ### What Gets Merged Quickly
 
@@ -184,9 +196,9 @@ Analysis of PR merge patterns reveals:
 
 ## Compatibility Test Matrix
 
-Based on Ink issues, Inkx should test:
+Based on Ink issues, inkx should test:
 
-| Test Case                   | Ink Issue | Priority | Inkx Status   |
+| Test Case                   | Ink Issue | Priority | inkx Status   |
 | --------------------------- | --------- | -------- | ------------- |
 | CJK character rendering     | #759      | P0       | ⚠️ Needs test |
 | Double-width char alignment | #759      | P0       | ⚠️ Needs test |
@@ -206,7 +218,7 @@ Based on Ink issues, Inkx should test:
 
 ### Short Term (Testing Focus)
 
-1. **CJK/IME testing** — This is Ink's #1 pain point. If Inkx handles it well, that's a major differentiator.
+1. **CJK/IME testing** — This is Ink's #1 pain point. If inkx handles it well, that's a major differentiator.
 2. **Terminal multiplexer testing** — tmux is ubiquitous. Zellij is growing.
 3. **Emoji/Unicode edge cases** — Common source of rendering bugs.
 
@@ -223,17 +235,17 @@ Based on Ink issues, Inkx should test:
 
 ---
 
-## When to Use Ink vs Inkx
+## When to Use Ink vs inkx
 
 ### Decision Tree
 
 ```
 Do you need scrolling or dimension queries?
-├── YES → Use Inkx
+├── YES → Use inkx
 │         (Ink requires manual virtualization and width-threading)
 │
 └── NO → Is this a new project?
-         ├── YES → Consider Inkx
+         ├── YES → Consider inkx
          │         (Better architecture, but newer and less battle-tested)
          │
          └── NO → Is your existing Ink app working well?
@@ -241,9 +253,9 @@ Do you need scrolling or dimension queries?
                   │         (Migration has cost, Ink is stable)
                   │
                   └── NO → What problems are you hitting?
-                           ├── Text overflow → Inkx (auto-truncation)
-                           ├── Layout complexity → Inkx (useLayout)
-                           ├── CJK/IME input → TBD (both have issues)
+                           ├── Text overflow → inkx (auto-truncation)
+                           ├── Layout complexity → inkx (useLayout)
+                           ├── CJK/IME input → Both improving
                            └── Other → Evaluate case-by-case
 ```
 
@@ -251,17 +263,19 @@ Do you need scrolling or dimension queries?
 
 | If you need...                              | Use          |
 | ------------------------------------------- | ------------ |
-| Native scrolling (`overflow="scroll"`)      | Inkx         |
-| Component dimension queries (`useLayout()`) | Inkx         |
-| ANSI-aware text truncation                  | Inkx         |
-| Smaller bundle size                         | Inkx + Flexx |
+| Native scrolling (`overflow="scroll"`)      | inkx         |
+| Component dimension queries (`useLayout()`) | inkx         |
+| ANSI-aware text truncation                  | inkx         |
+| Smaller bundle size                         | inkx + Flexx |
+| Plugin composition (commands, keybindings)  | inkx         |
 | Maximum ecosystem compatibility             | Ink          |
 | Battle-tested stability                     | Ink          |
 | Smallest risk for production                | Ink          |
+| Large community and support                 | Ink          |
 
 ### Layout Engine Comparison
 
-Inkx supports two layout engines. Both use the same flexbox API:
+inkx supports two layout engines. Both use the same flexbox API:
 
 | Engine              | Bundle (gzip) | Performance\* | Initialization |
 | ------------------- | ------------- | ------------- | -------------- |
@@ -278,11 +292,11 @@ For terminal UIs, both are fast enough for 60fps. Choose based on bundle size an
 
 **Ink**: Production-ready, battle-tested, maintenance mode
 
-- Millions of users via React Native, CLI tools
+- Millions of users via CLI tools across the JS ecosystem
 - 100+ open issues (some architectural, unfixable)
 - Stable API, low churn
 
-**Inkx**: Functionally complete, seeking real-world feedback
+**inkx**: Functionally complete, seeking real-world feedback
 
 - Used in production by the authors
 - Comprehensive test suite
@@ -291,10 +305,10 @@ For terminal UIs, both are fast enough for 60fps. Choose based on bundle size an
 
 ### Migration Path
 
-If you're on Ink and considering Inkx:
+If you're on Ink and considering inkx:
 
-1. **Evaluate if you need Inkx features** — If Ink works for you, stay
-2. **Try Inkx in a new feature** — Lower risk than full migration
+1. **Evaluate if you need inkx features** — If Ink works for you, stay
+2. **Try inkx in a new feature** — Lower risk than full migration
 3. **Report issues** — Help us find edge cases
 4. **Consider @beorn/ink-measure** — Add dimension awareness to Ink incrementally
 
@@ -302,19 +316,21 @@ If you're on Ink and considering Inkx:
 
 ## Performance Benchmarks
 
-Measured on Apple M1 Max, Bun 1.3.8. Run: `bun run bench:comparison`
+Measured on Apple M1 Max, Bun 1.3.9. Run: `bun run bench:compare`
 
-### React Component Rendering
+inkx builds on [Ink](https://github.com/vadimdemedes/ink)'s pioneering work in React-based terminal UIs. These benchmarks help users understand performance differences between the two approaches.
 
-Time to render Box+Text component trees through the full pipeline (reconciliation + layout + content + output).
+### Full Pipeline: inkx vs Ink 6
 
-| Components | inkx (Flexx) | Notes                                   |
-| ---------- | ------------ | --------------------------------------- |
-| 1          | 178 us       | Single component baseline               |
-| 100        | 47 ms        | Typical TUI complexity                  |
-| 1000       | 470 ms       | Stress test (far beyond normal TUI use) |
+Time to render Box+Text component trees through the full pipeline (reconciliation + layout + output).
 
-Ink does not publish render benchmarks. Ink issue [#694](https://github.com/vadimdemedes/ink/issues/694) reports degradation at 500+ components; inkx handles 1000 without crashes, though at reduced throughput.
+| Components | inkx (Flexx) | Ink 6 (Yoga NAPI) | Ratio     |
+| ---------- | ------------ | ----------------- | --------- |
+| 1          | 172 us       | 269 us            | inkx 1.6x |
+| 100        | 45.9 ms      | 49.7 ms           | inkx 1.1x |
+| 1000       | 443 ms       | 544 ms            | inkx 1.2x |
+
+inkx uses `createRenderer()` (headless, no stdout writing). Ink uses `render()` with mock stdout + unmount per iteration, which includes additional lifecycle overhead (signal handlers, stdin setup). Both include React reconciliation.
 
 ### Pipeline Render (Low-Level)
 
@@ -322,11 +338,44 @@ Ink does not publish render benchmarks. Ink issue [#694](https://github.com/vadi
 
 | Nodes | First Render | Diff Render | Diff Speedup |
 | ----- | ------------ | ----------- | ------------ |
-| 1     | 310 us       | 40 us       | 7.8x         |
-| 100   | 24 ms        | 45 us       | 520x         |
-| 1000  | 242 ms       | 164 us      | 1475x        |
+| 1     | 308 us       | 38 us       | 8.1x         |
+| 100   | 23 ms        | 45 us       | 511x         |
+| 1000  | 233 ms       | 164 us      | 1420x        |
 
-The diff path is dramatically faster because inkx tracks dirty nodes per-component and uses packed-integer buffer comparison. This is the key advantage of inkx's architecture: after the first render, updates are near-instant for typical UIs where <10% of cells change.
+The diff path is dramatically faster because inkx tracks dirty nodes per-component and uses packed-integer buffer comparison. After the first render, updates are near-instant for typical UIs where <10% of cells change.
+
+### Update Performance
+
+| Scenario                     | Time    |
+| ---------------------------- | ------- |
+| Ink 6 rerender 100 Box+Text  | 2.3 ms  |
+| Ink 6 rerender 1000 Box+Text | 20.4 ms |
+| inkx diff render 100 nodes   | 45 us   |
+| inkx diff render 1000 nodes  | 164 us  |
+
+These measure fundamentally different operations. Ink's `rerender()` triggers full React reconciliation of the component tree. inkx's diff render is a low-level pipeline operation that bypasses React entirely, using per-node dirty tracking and packed-integer buffer comparison. The architectural difference is significant for interactive TUIs where most updates change only a few nodes.
+
+### React Re-render (Apples-to-Apples)
+
+The update comparison above is intentionally asymmetric — it highlights inkx's diff-only fast path. For a **fair apples-to-apples comparison**, both frameworks should trigger full React reconciliation:
+
+| Scenario        | inkx (full React re-render) | Ink 6 (rerender) |
+| --------------- | --------------------------- | ---------------- |
+| 100 components  | _TODO: benchmark needed_    | 2.3 ms           |
+| 1000 components | _TODO: benchmark needed_    | 20.4 ms          |
+
+This would measure the same operation: React reconciliation + layout + output. The full-pipeline benchmarks above give an approximation (inkx is ~1.1-1.2x faster at scale), but a dedicated re-render benchmark isolating a single state change would be more precise.
+
+### Startup Time
+
+Both frameworks need to bootstrap React and initialize the terminal. Startup time matters for short-lived CLI tools.
+
+| Scenario                    | inkx                     | Ink 6                    |
+| --------------------------- | ------------------------ | ------------------------ |
+| Cold start (first render)   | _TODO: benchmark needed_ | _TODO: benchmark needed_ |
+| Warm start (cached modules) | _TODO: benchmark needed_ | _TODO: benchmark needed_ |
+
+_Note: inkx with Flexx avoids WASM initialization, which may provide a faster cold start. Actual numbers TBD._
 
 ### Diff Performance (Buffer Comparison)
 
@@ -335,11 +384,11 @@ The output phase computes terminal escape sequences by diffing two buffers.
 | Scenario         | Time   |
 | ---------------- | ------ |
 | 80x24 no changes | 28 us  |
-| 80x24 10% change | 35 us  |
-| 80x24 full paint | 61 us  |
-| 200x50 no change | 148 us |
+| 80x24 10% change | 34 us  |
+| 80x24 full paint | 59 us  |
+| 200x50 no change | 146 us |
 
-Ink uses row-based string comparison (PR [#836](https://github.com/vadimdemedes/ink/pull/836) adds incremental optimization). inkx uses cell-level comparison with a packed Uint32Array fast-path, giving consistent sub-millisecond diffs even for large terminals.
+inkx uses cell-level comparison with a packed Uint32Array fast-path, giving consistent sub-millisecond diffs even for large terminals. Ink uses row-based string comparison.
 
 ### Resize Handling
 
@@ -351,61 +400,97 @@ Time to re-layout after terminal size change (80x24 -> 120x40).
 | 100   | 1.8 us |
 | 1000  | 21 us  |
 
-Resize is extremely fast because it only involves the layout phase (no reconciliation or content rendering). Both inkx and Ink use flexbox layout engines, so this performance is comparable when inkx uses Yoga.
+Resize only involves the layout phase (no reconciliation or content rendering).
 
-### Layout Engine: Flexx vs Yoga
+### Layout Engine Comparison
 
-Direct comparison on identical trees.
+Pure layout computation, no React or rendering.
 
-| Benchmark             | Flexx | Yoga  | Winner |
-| --------------------- | ----- | ----- | ------ |
-| 100 nodes flat list   | 86 us | 80 us | ~same  |
-| 50-node kanban (3col) | 63 us | 52 us | ~same  |
+| Benchmark             | Flexx (JS) | Yoga WASM | Yoga NAPI (C++) |
+| --------------------- | ---------- | --------- | --------------- |
+| 100 nodes flat list   | 87 us      | 88 us     | 200 us          |
+| 50-node kanban (3col) | 62 us      | 58 us     | 136 us          |
 
-Both engines are fast for terminal UIs. The difference is negligible at these scales. Flexx's advantage is its 5x smaller bundle size (7 KB vs 38 KB gzipped) and synchronous initialization.
+Flexx (pure JS, 7 KB) and Yoga WASM perform similarly. Both are ~2x faster than Yoga NAPI (native C++) due to NAPI bridge overhead. Ink 6 uses Yoga NAPI.
 
 ### Bundle Size
 
-| Package      | Size (gzip) | Notes                   |
-| ------------ | ----------- | ----------------------- |
-| inkx + Flexx | ~45 KB      | Pure JS layout engine   |
-| inkx + Yoga  | ~76 KB      | WASM layout engine      |
-| ink          | ~52 KB      | Yoga-only, no Flexx opt |
+| Package      | Size (gzip) | Notes                 |
+| ------------ | ----------- | --------------------- |
+| inkx + Flexx | ~45 KB      | Pure JS layout engine |
+| inkx + Yoga  | ~76 KB      | WASM layout engine    |
+| ink          | ~52 KB      | Yoga NAPI only        |
 
 ### Feature Comparison Summary
 
-| Feature                 | inkx                          | Ink                           |
-| ----------------------- | ----------------------------- | ----------------------------- |
-| Layout awareness        | useContentRect/useScreenRect  | None (thread props manually)  |
-| Scrollable containers   | overflow="scroll"             | Third-party or manual         |
-| Text truncation         | Auto (ANSI-aware)             | Manual per-component          |
-| Unicode/CJK handling    | Built-in grapheme/width utils | Basic (known issues)          |
-| Mouse support           | HitRegistry with z-index      | Basic useInput                |
-| Input handling          | InputLayerProvider + useInput | useInput only                 |
-| Static rendering        | renderStatic()                | Static component              |
-| Plugin system           | withCommands/Keybindings/Diag | None                          |
-| Testing API             | createRenderer + locators     | ink-testing-library           |
-| Multiple render targets | Terminal, Canvas, DOM         | Terminal only                 |
-| Layout engines          | Flexx (7KB) or Yoga (38KB)    | Yoga only                     |
-| Incremental rendering   | Dirty tracking per-node       | Full re-render (PR #836 adds) |
-| Diff render (100 nodes) | 45 us                         | N/A (no published benchmarks) |
-| Resize (1000 nodes)     | 21 us                         | Comparable (same Yoga engine) |
+#### Architecture & Rendering
+
+| Feature                 | inkx                         | Ink                                                               |
+| ----------------------- | ---------------------------- | ----------------------------------------------------------------- |
+| React version           | 19                           | 18                                                                |
+| Layout awareness        | useContentRect/useScreenRect | None (thread props manually)                                      |
+| Scrollable containers   | overflow="scroll"            | Third-party or manual                                             |
+| Text truncation         | Auto (ANSI-aware)            | Manual per-component                                              |
+| Layout engines          | Flexx (7KB) or Yoga WASM     | Yoga NAPI only                                                    |
+| Incremental rendering   | Dirty tracking per-node      | Full re-render                                                    |
+| Multiple render targets | Terminal, Canvas, DOM        | Terminal only                                                     |
+| Concurrent React        | Not yet                      | [PR #850](https://github.com/vadimdemedes/ink/pull/850) exploring |
+| Static rendering        | renderStatic()               | Static component                                                  |
+| Non-TTY fallback        | renderStatic()               | [PR #854](https://github.com/vadimdemedes/ink/pull/854)           |
+
+#### Input & Interaction
+
+| Feature              | inkx                          | Ink                                                                     |
+| -------------------- | ----------------------------- | ----------------------------------------------------------------------- |
+| Input handling       | InputLayerProvider + useInput | useInput only                                                           |
+| Mouse support        | HitRegistry with z-index      | Basic useInput                                                          |
+| Unicode/CJK handling | Built-in grapheme/width utils | Third-party string-width                                                |
+| Console capture      | Built-in Console component    | patchConsole                                                            |
+| Exit handling        | useExit + `using` cleanup     | process.exit handling                                                   |
+| Accessibility        | Basic                         | [PR #823](https://github.com/vadimdemedes/ink/pull/823) (screen reader) |
+
+#### Developer Experience
+
+| Feature              | inkx                          | Ink                      |
+| -------------------- | ----------------------------- | ------------------------ |
+| TypeScript           | Native TS, strict mode        | TS support               |
+| Plugin system        | withCommands/Keybindings/Diag | None                     |
+| Testing API          | createRenderer + locators     | ink-testing-library      |
+| Documentation        | Comprehensive docs            | Well-documented          |
+| Community plugins    | Small / growing               | 50+ community components |
+| npm weekly downloads | New                           | ~1.3M                    |
+| Maintenance status   | Active development            | Maintenance mode         |
+
+#### Performance (1000 components)
+
+| Metric          | inkx                         | Ink                     |
+| --------------- | ---------------------------- | ----------------------- |
+| Full render     | 443 ms                       | 544 ms                  |
+| Update pipeline | 164 us (diff only, no React) | 20.4 ms (full rerender) |
+
+_Note: The update pipeline numbers compare different operations. See [Update Performance](#update-performance) for details._
 
 ---
 
 ## Conclusion
 
-Inkx is well-positioned to capture users frustrated with Ink's limitations:
+Both Ink and inkx are legitimate choices for React-based terminal UIs. They share the same fundamental model — React components rendered to the terminal — but differ in architecture, maturity, and focus.
 
-| User Pain                            | Ink's Answer                      | Inkx's Answer           |
-| ------------------------------------ | --------------------------------- | ----------------------- |
-| "I need scrolling"                   | "Use a third-party library"       | `overflow="scroll"`     |
-| "How do I get component dimensions?" | "Thread width props manually"     | `useLayout()`           |
-| "Text breaks my layout"              | "Calculate and truncate yourself" | Auto-truncation         |
-| "I need a cursor"                    | "Open issue since 2019"           | `useCursor()` (planned) |
-| "CJK input is broken"                | "We're working on it"             | ⚠️ TBD                  |
+**Choose Ink when:**
 
-The key is to **nail the fundamentals** (scrolling, layout feedback) while **testing the edge cases** (CJK, multiplexers) that trip up real users.
+- You need a large ecosystem of ready-made components
+- You want battle-tested stability with minimal risk
+- Your app is a simple CLI tool, prompt, or script
+- You prefer a mature, well-understood framework with a large community
+
+**Choose inkx when:**
+
+- You need layout-aware components (dimension queries, native scrolling)
+- You're building a complex interactive TUI (dashboard, editor, multi-pane app)
+- Performance matters — frequent updates, large component trees
+- You want a modern architecture with plugin composition and multiple render targets
+
+Ink pioneered React for the terminal and remains the most widely adopted framework in this space. inkx builds on that foundation with architectural changes that enable capabilities (scrolling, layout feedback, auto-truncation) which are difficult to retrofit into Ink's existing design. Both projects contribute to making terminal UIs more accessible to React developers.
 
 ---
 

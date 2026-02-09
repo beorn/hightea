@@ -26,10 +26,19 @@ import {
   resolveNonTTYMode,
   stripAnsi,
 } from "./non-tty.js"
+import { ANSI } from "./output.js"
 import { executeRender } from "./pipeline.js"
 import type { InkxNode } from "./types.js"
 
 const log = createLogger("inkx:scheduler")
+
+/**
+ * Whether synchronized update mode is enabled.
+ * Enabled by default. Set INKX_SYNC_UPDATE=0 to disable.
+ */
+const SYNC_UPDATE_ENABLED =
+  process.env.INKX_SYNC_UPDATE !== "0" &&
+  process.env.INKX_SYNC_UPDATE !== "false"
 
 // ============================================================================
 // Errors
@@ -427,9 +436,17 @@ export class RenderScheduler {
         this.prevLineCount = countLines(output)
       }
 
-      // Write output if there's any
+      // Write output wrapped with synchronized update (DEC 2026) for TTY mode.
+      // This tells the terminal to batch the output and paint atomically,
+      // preventing tearing during rapid screen updates.
       if (transformedOutput.length > 0) {
-        this.stdout.write(transformedOutput)
+        if (this.nonTTYMode === "tty" && SYNC_UPDATE_ENABLED) {
+          this.stdout.write(
+            `${ANSI.SYNC_BEGIN}${transformedOutput}${ANSI.SYNC_END}`,
+          )
+        } else {
+          this.stdout.write(transformedOutput)
+        }
       }
 
       // Save buffer for next diff

@@ -17,6 +17,13 @@ const CURSOR_HIDE = `${CSI}?25l`
 const CURSOR_SHOW = `${CSI}?25h`
 const CURSOR_HOME = `${CSI}H`
 
+// Synchronized Update Mode (DEC private mode 2026)
+// Tells the terminal to batch output and paint atomically, preventing tearing.
+// Supported by: Ghostty, Kitty, WezTerm, iTerm2, Foot, Alacritty 0.14+, tmux 3.2+
+// Terminals that don't support it safely ignore these sequences.
+const SYNC_BEGIN = `${CSI}?2026h`
+const SYNC_END = `${CSI}?2026l`
+
 // Style reset
 const RESET = `${CSI}0m`
 
@@ -154,9 +161,12 @@ export function enterAlternateScreen(): string {
 
 /**
  * Leave alternate screen buffer and restore cursor.
+ * Includes SYNC_END as a safety belt — ensures synchronized update mode is
+ * reset even if the process was interrupted mid-render. Sending SYNC_END
+ * when not in sync mode is a harmless no-op.
  */
 export function leaveAlternateScreen(): string {
-  return `${CURSOR_SHOW}${CSI}?1049l`
+  return `${SYNC_END}${CURSOR_SHOW}${CSI}?1049l`
 }
 
 /**
@@ -183,6 +193,8 @@ export const ANSI = {
   CURSOR_HIDE,
   CURSOR_SHOW,
   CURSOR_HOME,
+  SYNC_BEGIN,
+  SYNC_END,
   RESET,
   SGR,
   moveCursor,

@@ -2,12 +2,15 @@
  * inkx vs Ink Comparison Benchmark Suite
  *
  * Measures inkx performance across scenarios that mirror common TUI patterns.
- * Ink is not installed as a dependency, so this suite benchmarks inkx directly
- * and provides documented Ink reference points from published benchmarks.
+ * Run alongside ink-bench.ts for head-to-head comparison via compare.ts.
  *
  * Run:
  *   cd /Users/beorn/Code/pim/km && bun run vendor/beorn-inkx/benchmarks/ink-comparison/run.ts
  */
+
+// Ensure INKX_STRICT is disabled — it adds a fresh render comparison on every render
+delete process.env.INKX_STRICT
+delete process.env.INKX_CHECK_INCREMENTAL
 
 import { bench, group, run } from "mitata"
 import React, { useState } from "react"
