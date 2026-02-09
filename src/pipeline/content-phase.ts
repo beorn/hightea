@@ -220,92 +220,9 @@ function renderNodeToBuffer(
     (hasPrevBuffer || ancestorCleared) && needsOwnRepaint
 
   if (parentRegionCleared) {
-    const inherited = findInheritedBg(node)
-    const clearBg = inherited.color
-    const screenY = layout.y - scrollOffset
-
-    // Clip to parent's contentRect to prevent oversized children (e.g., text nodes
-    // with layout height exceeding their parent box) from clearing beyond their
-    // parent's bounds and bleeding inherited background into sibling regions.
-    const parentRect = node.parent?.contentRect
-    const parentBottom = parentRect
-      ? parentRect.y - scrollOffset + parentRect.height
-      : undefined
-
-    const clearY = clipBounds ? Math.max(screenY, clipBounds.top) : screenY
-    let clearBottom = clipBounds
-      ? Math.min(screenY + layout.height, clipBounds.bottom)
-      : screenY + layout.height
-    if (parentBottom !== undefined) {
-      clearBottom = Math.min(clearBottom, parentBottom)
-    }
-    const clearHeight = clearBottom - clearY
-    if (clearHeight > 0) {
-      buffer.fill(layout.x, clearY, layout.width, clearHeight, {
-        char: " ",
-        bg: clearBg,
-      })
-    }
-
-    // When a node shrinks, clear the old bounds' excess area.
-    // IMPORTANT: clip to the COLORED ANCESTOR's bounds (not immediate parent).
-    // Using the inherited color but the immediate parent's bounds causes the
-    // color to bleed into sibling areas that should have different backgrounds.
-    // For example, if a text node inside a cyan row shrinks, clearing with cyan
-    // must not extend beyond the cyan row into an adjacent black dialog.
-    if (layoutChanged && node.prevLayout) {
-      const prev = node.prevLayout
-      const prevScreenY = prev.y - scrollOffset
-
-      // Use colored ancestor's bounds for clipping, fallback to immediate parent
-      const clipRect = inherited.ancestorRect ?? node.parent?.contentRect
-      if (!clipRect) return // No bounds to clip to
-
-      const clipRectScreenY = clipRect.y - scrollOffset
-      const clipRectBottom = clipRectScreenY + clipRect.height
-
-      // Clear right margin (old was wider than new)
-      if (prev.width > layout.width) {
-        const rightClearY = clipBounds
-          ? Math.max(prevScreenY, clipBounds.top)
-          : prevScreenY
-        const rightClearBottom = clipBounds
-          ? Math.min(prevScreenY + prev.height, clipBounds.bottom)
-          : prevScreenY + prev.height
-        // Clip to colored ancestor's bounds
-        const clippedClearBottom = Math.min(rightClearBottom, clipRectBottom)
-        const rightClearHeight = clippedClearBottom - rightClearY
-        if (rightClearHeight > 0) {
-          buffer.fill(
-            layout.x + layout.width,
-            rightClearY,
-            prev.width - layout.width,
-            rightClearHeight,
-            { char: " ", bg: clearBg },
-          )
-        }
-      }
-      // Clear bottom margin (old was taller than new)
-      if (prev.height > layout.height) {
-        const bottomY = layout.y - scrollOffset + layout.height
-        const bottomClearY = clipBounds
-          ? Math.max(bottomY, clipBounds.top)
-          : bottomY
-        const bottomClearBottom = clipBounds
-          ? Math.min(prevScreenY + prev.height, clipBounds.bottom)
-          : prevScreenY + prev.height
-        // Clip to colored ancestor's bounds - prevents color bleeding
-        const clippedClearBottom = Math.min(bottomClearBottom, clipRectBottom)
-        const bottomClearHeight = clippedClearBottom - bottomClearY
-        if (bottomClearHeight > 0) {
-          buffer.fill(layout.x, bottomClearY, prev.width, bottomClearHeight, {
-            char: " ",
-            bg: clearBg,
-          })
-        }
-      }
-    }
+    clearNodeRegion(node, buffer, layout, scrollOffset, clipBounds, layoutChanged)
   }
+
   // Render based on node type
   if (node.type === "inkx-box") {
     renderBox(node, buffer, layout, props, clipBounds, scrollOffset, skipBgFill)
@@ -579,6 +496,105 @@ function renderNormalChildren(
 
     if (childIsDirty) {
       anySiblingWasDirty = true
+    }
+  }
+}
+
+// ============================================================================
+// Region Clearing
+// ============================================================================
+
+/**
+ * Clear a node's region with inherited bg when it has no backgroundColor.
+ * Also clears excess area when the node shrank (previous layout was larger).
+ *
+ * Clipping: clips to parent's contentRect (prevents overflow) and to the
+ * colored ancestor's bounds (prevents bg color bleeding into siblings).
+ */
+function clearNodeRegion(
+  node: InkxNode,
+  buffer: TerminalBuffer,
+  layout: NonNullable<InkxNode["contentRect"]>,
+  scrollOffset: number,
+  clipBounds: { top: number; bottom: number } | undefined,
+  layoutChanged: boolean,
+): void {
+  const inherited = findInheritedBg(node)
+  const clearBg = inherited.color
+  const screenY = layout.y - scrollOffset
+
+  // Clip to parent's contentRect to prevent oversized children from clearing
+  // beyond their parent's bounds and bleeding inherited bg into sibling regions.
+  const parentRect = node.parent?.contentRect
+  const parentBottom = parentRect
+    ? parentRect.y - scrollOffset + parentRect.height
+    : undefined
+
+  const clearY = clipBounds ? Math.max(screenY, clipBounds.top) : screenY
+  let clearBottom = clipBounds
+    ? Math.min(screenY + layout.height, clipBounds.bottom)
+    : screenY + layout.height
+  if (parentBottom !== undefined) {
+    clearBottom = Math.min(clearBottom, parentBottom)
+  }
+  const clearHeight = clearBottom - clearY
+  if (clearHeight > 0) {
+    buffer.fill(layout.x, clearY, layout.width, clearHeight, {
+      char: " ",
+      bg: clearBg,
+    })
+  }
+
+  // When a node shrinks, clear the old bounds' excess area.
+  // Clip to the COLORED ANCESTOR's bounds (not immediate parent) to prevent
+  // the inherited color from bleeding into sibling areas with different bg.
+  if (!layoutChanged || !node.prevLayout) return
+  const prev = node.prevLayout
+  const prevScreenY = prev.y - scrollOffset
+
+  const clipRect = inherited.ancestorRect ?? node.parent?.contentRect
+  if (!clipRect) return
+
+  const clipRectScreenY = clipRect.y - scrollOffset
+  const clipRectBottom = clipRectScreenY + clipRect.height
+
+  // Clear right margin (old was wider than new)
+  if (prev.width > layout.width) {
+    const rightClearY = clipBounds
+      ? Math.max(prevScreenY, clipBounds.top)
+      : prevScreenY
+    const rightClearBottom = clipBounds
+      ? Math.min(prevScreenY + prev.height, clipBounds.bottom)
+      : prevScreenY + prev.height
+    const clippedBottom = Math.min(rightClearBottom, clipRectBottom)
+    const rightClearHeight = clippedBottom - rightClearY
+    if (rightClearHeight > 0) {
+      buffer.fill(
+        layout.x + layout.width,
+        rightClearY,
+        prev.width - layout.width,
+        rightClearHeight,
+        { char: " ", bg: clearBg },
+      )
+    }
+  }
+
+  // Clear bottom margin (old was taller than new)
+  if (prev.height > layout.height) {
+    const bottomY = layout.y - scrollOffset + layout.height
+    const bottomClearY = clipBounds
+      ? Math.max(bottomY, clipBounds.top)
+      : bottomY
+    const bottomClearBottom = clipBounds
+      ? Math.min(prevScreenY + prev.height, clipBounds.bottom)
+      : prevScreenY + prev.height
+    const clippedBottom = Math.min(bottomClearBottom, clipRectBottom)
+    const bottomClearHeight = clippedBottom - bottomClearY
+    if (bottomClearHeight > 0) {
+      buffer.fill(layout.x, bottomClearY, prev.width, bottomClearHeight, {
+        char: " ",
+        bg: clearBg,
+      })
     }
   }
 }
