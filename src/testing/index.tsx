@@ -101,7 +101,7 @@ export { createLocator, type InkxLocator } from "./locator.js"
 export type { Rect } from "../types.js"
 
 // Re-export keyboard utilities
-export { keyToAnsi, CODE_TO_KEY } from "../keys.js"
+export { keyToAnsi, keyToKittyAnsi, CODE_TO_KEY } from "../keys.js"
 
 // Re-export debug utilities
 export { debugTree, type DebugTreeOptions } from "./debug.js"

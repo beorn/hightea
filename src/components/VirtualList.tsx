@@ -68,6 +68,12 @@ export interface VirtualListProps<T> {
 
   /** Render separator between items (alternative to gap) */
   renderSeparator?: () => React.ReactNode
+
+  /** Predicate to determine if an item should be frozen (skipped from rendering).
+   * Only a contiguous prefix of frozen items is removed from the list.
+   * Frozen items are excluded from rendering -- callers can use Static or
+   * useScrollback to push them to terminal scrollback separately. */
+  frozen?: (item: T, index: number) => boolean
 }
 
 export interface VirtualListHandle {
@@ -125,33 +131,64 @@ function VirtualListInner<T>(
     width,
     gap = 0,
     renderSeparator,
+    frozen,
   }: VirtualListProps<T>,
   ref: React.ForwardedRef<VirtualListHandle>,
 ): React.ReactElement {
-  // Use shared virtualization hook
+  // Compute contiguous frozen prefix count
+  let frozenCount = 0
+  if (frozen) {
+    for (let i = 0; i < items.length; i++) {
+      if (!frozen(items[i]!, i)) break
+      frozenCount++
+    }
+  }
+
+  // Slice items to exclude frozen prefix
+  const activeItems = frozenCount > 0 ? items.slice(frozenCount) : items
+
+  // Adjust scrollTo to account for frozen items
+  const adjustedScrollTo =
+    scrollTo !== undefined
+      ? Math.max(0, scrollTo - frozenCount)
+      : undefined
+
+  // Adjust itemHeight function to use original indices
+  const adjustedItemHeight =
+    typeof itemHeight === "function" && frozenCount > 0
+      ? (item: T, index: number) => itemHeight(item, index + frozenCount)
+      : itemHeight
+
+  // Use shared virtualization hook with adjusted items and indices
   const {
     startIndex,
     endIndex,
     currentSelectedIndex,
     leadingPlaceholderSize,
     trailingPlaceholderSize,
-    scrollToItem,
+    scrollToItem: rawScrollToItem,
   } = useVirtualization({
-    items,
+    items: activeItems,
     viewportSize: height,
-    itemSize: itemHeight,
-    scrollTo,
+    itemSize: adjustedItemHeight,
+    scrollTo: adjustedScrollTo,
     scrollPadding: SCROLL_PADDING,
     overscan,
     maxRendered,
     gap,
   })
 
+  // Wrap scrollToItem to accept original indices
+  const scrollToItem = React.useCallback(
+    (index: number) => rawScrollToItem(Math.max(0, index - frozenCount)),
+    [rawScrollToItem, frozenCount],
+  )
+
   // Expose scrollToItem method via ref for imperative scrolling
   useImperativeHandle(ref, () => ({ scrollToItem }), [scrollToItem])
 
   // Empty state
-  if (items.length === 0) {
+  if (activeItems.length === 0) {
     return (
       <Box flexDirection="column" height={height} width={width}>
         {/* Empty - nothing to render */}
@@ -159,8 +196,8 @@ function VirtualListInner<T>(
     )
   }
 
-  // Get the slice of items to render
-  const visibleItems = items.slice(startIndex, endIndex)
+  // Get the slice of items to render (from active items, frozen prefix already excluded)
+  const visibleItems = activeItems.slice(startIndex, endIndex)
 
   // Calculate scrollTo index for inkx Box
   // inkx scrollTo expects the INDEX of the child to scroll into view
@@ -207,13 +244,16 @@ function VirtualListInner<T>(
 
       {/* Render visible items */}
       {visibleItems.map((item, i) => {
-        const actualIndex = startIndex + i
-        const key = keyExtractor ? keyExtractor(item, actualIndex) : actualIndex
+        const activeIndex = startIndex + i
+        const originalIndex = activeIndex + frozenCount
+        const key = keyExtractor
+          ? keyExtractor(item, originalIndex)
+          : originalIndex
         const isLast = i === visibleItems.length - 1
 
         return (
           <React.Fragment key={key}>
-            {renderItem(item, actualIndex)}
+            {renderItem(item, originalIndex)}
             {!isLast && renderSeparator && renderSeparator()}
             {!isLast && gap > 0 && !renderSeparator && (
               <Box height={gap} flexShrink={0} />

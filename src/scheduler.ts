@@ -26,6 +26,7 @@ import {
   resolveNonTTYMode,
   stripAnsi,
 } from "./non-tty.js"
+import { getCursorState } from "./hooks/useCursor.js"
 import { ANSI } from "./output.js"
 import { executeRender } from "./pipeline.js"
 import type { InkxNode } from "./types.js"
@@ -436,16 +437,29 @@ export class RenderScheduler {
         this.prevLineCount = countLines(output)
       }
 
+      // Build cursor control suffix (position + show/hide).
+      // This goes after rendered content so the terminal cursor lands
+      // at the right spot after painting.
+      let cursorSuffix = ""
+      if (this.nonTTYMode === "tty") {
+        const cursor = getCursorState()
+        if (cursor?.visible) {
+          cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + ANSI.CURSOR_SHOW
+        } else {
+          cursorSuffix = ANSI.CURSOR_HIDE
+        }
+      }
+
       // Write output wrapped with synchronized update (DEC 2026) for TTY mode.
       // This tells the terminal to batch the output and paint atomically,
       // preventing tearing during rapid screen updates.
-      if (transformedOutput.length > 0) {
+      if (transformedOutput.length > 0 || cursorSuffix.length > 0) {
         if (this.nonTTYMode === "tty" && SYNC_UPDATE_ENABLED) {
           this.stdout.write(
-            `${ANSI.SYNC_BEGIN}${transformedOutput}${ANSI.SYNC_END}`,
+            `${ANSI.SYNC_BEGIN}${transformedOutput}${cursorSuffix}${ANSI.SYNC_END}`,
           )
         } else {
-          this.stdout.write(transformedOutput)
+          this.stdout.write(transformedOutput + cursorSuffix)
         }
       }
 

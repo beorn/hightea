@@ -341,6 +341,82 @@ const FN_KEY_RE =
   /^(?:\x1b+)(O|N|\[|\[\[)(?:(\d+)(?:;(\d+))?([~^$])|(?:1;)?(\d+)?([a-zA-Z]))/
 
 // ============================================================================
+// Kitty Keyboard Protocol
+// ============================================================================
+
+/** Matches Kitty keyboard protocol sequences: CSI codepoint ; modifiers u */
+const KITTY_RE = /^\x1b\[(\d+)(?::(\d+))?(?:;(\d+))?(?::(\d+))?u$/
+
+/** Maps Kitty codepoints to key names for non-printable/functional keys */
+const KITTY_CODEPOINT_MAP: Record<number, string> = {
+  // Standard control keys
+  9: "tab",
+  13: "return",
+  27: "escape",
+  127: "backspace",
+  // Function keys F1-F12
+  57376: "f1",
+  57377: "f2",
+  57378: "f3",
+  57379: "f4",
+  57380: "f5",
+  57381: "f6",
+  57382: "f7",
+  57383: "f8",
+  57384: "f9",
+  57385: "f10",
+  57386: "f11",
+  57387: "f12",
+  // Function keys F13-F35
+  57388: "f13",
+  57389: "f14",
+  57390: "f15",
+  57391: "f16",
+  57392: "f17",
+  57393: "f18",
+  57394: "f19",
+  57395: "f20",
+  57396: "f21",
+  57397: "f22",
+  57398: "f23",
+  57399: "f24",
+  57400: "f25",
+  57401: "f26",
+  57402: "f27",
+  57403: "f28",
+  57404: "f29",
+  57405: "f30",
+  57406: "f31",
+  57407: "f32",
+  57408: "f33",
+  57409: "f34",
+  57410: "f35",
+  // Navigation keys
+  57352: "insert",
+  57353: "delete",
+  57354: "home", // not in legacy sequences
+  57355: "end",
+  57356: "pageup",
+  57357: "pagedown",
+  57358: "up",
+  57359: "down",
+  57360: "left",
+  57361: "right",
+  // Lock/misc keys
+  57412: "capslock",
+  57413: "scrolllock",
+  57414: "numlock",
+  57415: "printscreen",
+  57416: "pause",
+  57417: "menu",
+}
+
+/** Lookup a Kitty codepoint to a key name */
+function kittyCodepointToName(cp: number): string | undefined {
+  return KITTY_CODEPOINT_MAP[cp]
+}
+
+// ============================================================================
 // Key Parsing
 // ============================================================================
 
@@ -414,31 +490,58 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
     key.name = input.toLowerCase()
     key.shift = true
   } else {
-    let parts = META_KEY_CODE_RE.exec(input)
-    if (parts) {
-      key.meta = true
-      key.shift = /^[A-Z]$/.test(parts[1] ?? "")
-    } else {
-      parts = FN_KEY_RE.exec(input)
-      if (parts) {
-        const segs = input.split("")
-        if (segs[0] === "\u001b" && segs[1] === "\u001b") {
-          key.option = true
+    // Try Kitty keyboard protocol first (CSI codepoint ; modifiers u)
+    // Must be checked before FN_KEY_RE because 'u' matches [a-zA-Z]
+    const kittyParts = KITTY_RE.exec(input)
+    if (kittyParts) {
+      const codepoint = Number(kittyParts[1])
+      const modifier = (Number(kittyParts[3] || 1) - 1) as number
+
+      key.shift = !!(modifier & 1)
+      key.meta = !!(modifier & 2) || !!(modifier & 8) // alt or super
+      key.ctrl = !!(modifier & 4)
+
+      // Map codepoint to key name
+      const mapped = kittyCodepointToName(codepoint)
+      if (mapped) {
+        key.name = mapped
+      } else if (codepoint >= 32 && codepoint <= 126) {
+        // Printable ASCII
+        key.name = String.fromCharCode(codepoint).toLowerCase()
+        if (codepoint >= 65 && codepoint <= 90) {
+          key.shift = true
+          key.name = String.fromCharCode(codepoint + 32)
         }
+      } else {
+        key.name = String.fromCharCode(codepoint)
+      }
+    } else {
+      let parts = META_KEY_CODE_RE.exec(input)
+      if (parts) {
+        key.meta = true
+        key.shift = /^[A-Z]$/.test(parts[1] ?? "")
+      } else {
+        parts = FN_KEY_RE.exec(input)
+        if (parts) {
+          const segs = input.split("")
+          if (segs[0] === "\u001b" && segs[1] === "\u001b") {
+            key.option = true
+          }
 
-        // Reassemble key code
-        const code = [parts[1], parts[2], parts[4], parts[6]]
-          .filter(Boolean)
-          .join("")
-        const modifier = (Number(parts[3] || parts[5] || 1) - 1) as number
+          // Reassemble key code
+          const code = [parts[1], parts[2], parts[4], parts[6]]
+            .filter(Boolean)
+            .join("")
+          const modifier = (Number(parts[3] || parts[5] || 1) - 1) as number
 
-        key.ctrl = !!(modifier & 4)
-        key.meta = !!(modifier & 10)
-        key.shift = !!(modifier & 1)
-        key.code = code
-        key.name = CODE_TO_KEY[code] ?? ""
-        key.shift = SHIFT_CODES.has(code) || key.shift
-        key.ctrl = CTRL_CODES.has(code) || key.ctrl
+          key.ctrl = !!(modifier & 4)
+          key.meta = !!(modifier & 10)
+          key.shift = !!(modifier & 1)
+          key.code = code
+          key.name = CODE_TO_KEY[code] ?? ""
+          key.shift = SHIFT_CODES.has(code) || key.shift
+          key.ctrl = CTRL_CODES.has(code) || key.ctrl
+        }
       }
     }
   }
@@ -638,4 +741,98 @@ export function matchHotkey(
   if (input !== undefined && input === hotkey.key) return true
 
   return false
+}
+
+// ============================================================================
+// Kitty Protocol Output
+// ============================================================================
+
+/** Reverse map: key name → Kitty codepoint */
+const NAME_TO_KITTY_CODEPOINT: Record<string, number> = {}
+for (const [cp, name] of Object.entries(KITTY_CODEPOINT_MAP)) {
+  NAME_TO_KITTY_CODEPOINT[name] = Number(cp)
+}
+
+/** Playwright-style key name → Kitty key name for special keys */
+const PLAYWRIGHT_TO_KITTY_NAME: Record<string, string> = {
+  Enter: "return",
+  ArrowUp: "up",
+  ArrowDown: "down",
+  ArrowLeft: "left",
+  ArrowRight: "right",
+  Escape: "escape",
+  Backspace: "backspace",
+  Tab: "tab",
+  Delete: "delete",
+  Insert: "insert",
+  Home: "home",
+  End: "end",
+  PageUp: "pageup",
+  PageDown: "pagedown",
+  F1: "f1",
+  F2: "f2",
+  F3: "f3",
+  F4: "f4",
+  F5: "f5",
+  F6: "f6",
+  F7: "f7",
+  F8: "f8",
+  F9: "f9",
+  F10: "f10",
+  F11: "f11",
+  F12: "f12",
+}
+
+/**
+ * Convert a Playwright-style key string to a Kitty keyboard protocol ANSI sequence.
+ *
+ * Format: CSI codepoint ; modifiers u
+ * Where modifiers = 1 + bitfield (shift=1, alt=2, ctrl=4, super=8)
+ *
+ * @example
+ * ```tsx
+ * keyToKittyAnsi('a')            // '\x1b[97u'       (no modifiers → bare)
+ * keyToKittyAnsi('Enter')        // '\x1b[13u'
+ * keyToKittyAnsi('Control+c')    // '\x1b[99;5u'     (ctrl = 4, modifier = 5)
+ * keyToKittyAnsi('Shift+Enter')  // '\x1b[13;2u'     (shift = 1, modifier = 2)
+ * keyToKittyAnsi('ArrowUp')      // '\x1b[57358u'
+ * ```
+ */
+export function keyToKittyAnsi(key: string): string {
+  const parts = key.split("+")
+  const mainKey = parts.pop()!
+  const modifiers = parts.map(normalizeModifier)
+
+  // Calculate modifier bitfield
+  let mod = 0
+  if (modifiers.includes("Shift")) mod |= 1
+  if (modifiers.includes("Alt") || modifiers.includes("Meta")) mod |= 2
+  if (modifiers.includes("Control")) mod |= 4
+
+  // Resolve codepoint
+  let codepoint: number
+
+  // Check Playwright-style names first (ArrowUp → up → codepoint)
+  const kittyName = PLAYWRIGHT_TO_KITTY_NAME[mainKey]
+  if (kittyName) {
+    codepoint = NAME_TO_KITTY_CODEPOINT[kittyName]!
+  } else if (mainKey.length === 1) {
+    // Single character — use its Unicode codepoint
+    codepoint = mainKey.charCodeAt(0)
+  } else {
+    // Try lowercase as direct kitty name (e.g., "return", "escape")
+    const cp = NAME_TO_KITTY_CODEPOINT[mainKey.toLowerCase()]
+    if (cp !== undefined) {
+      codepoint = cp
+    } else {
+      // Fallback: return as-is (not a kitty key)
+      return keyToAnsi(key)
+    }
+  }
+
+  // Format: CSI codepoint ; modifiers u (modifiers omitted when 0)
+  if (mod > 0) {
+    return `\x1b[${codepoint};${mod + 1}u`
+  }
+  return `\x1b[${codepoint}u`
 }

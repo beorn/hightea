@@ -192,6 +192,15 @@ export { useFocus, resetFocusIdCounter } from "./hooks/useFocus.js"
 export { useFocusManager } from "./hooks/useFocusManager.js"
 export { useTerm } from "./hooks/useTerm.js"
 export { useConsole } from "./hooks/useConsole.js"
+export {
+  useCursor,
+  resetCursorState,
+  getCursorState,
+  subscribeCursor,
+} from "./hooks/useCursor.js"
+export type { CursorPosition, CursorState } from "./hooks/useCursor.js"
+export { useScrollback } from "./hooks/useScrollback.js"
+export type { UseScrollbackOptions } from "./hooks/useScrollback.js"
 
 /**
  * Re-export React concurrent features for TUI responsiveness.
