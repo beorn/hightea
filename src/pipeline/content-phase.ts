@@ -37,16 +37,16 @@ export function contentPhase(
   }
 
   // Clone prevBuffer if same dimensions, else create fresh
-  const canReuse =
+  const hasPrevBuffer =
     prevBuffer &&
     prevBuffer.width === layout.width &&
     prevBuffer.height === layout.height
 
-  const buffer = canReuse
+  const buffer = hasPrevBuffer
     ? prevBuffer.clone()
     : new TerminalBuffer(layout.width, layout.height)
 
-  renderNodeToBuffer(root, buffer, 0, undefined, canReuse)
+  renderNodeToBuffer(root, buffer, 0, undefined, hasPrevBuffer)
 
   return buffer
 }
@@ -247,8 +247,8 @@ function renderNodeToBuffer(
       })
     }
 
-    // Bug 3: When a node shrinks, clear the old bounds' excess area
-    // IMPORTANT: We clip to the COLORED ANCESTOR's bounds (not immediate parent).
+    // When a node shrinks, clear the old bounds' excess area.
+    // IMPORTANT: clip to the COLORED ANCESTOR's bounds (not immediate parent).
     // Using the inherited color but the immediate parent's bounds causes the
     // color to bleed into sibling areas that should have different backgrounds.
     // For example, if a text node inside a cyan row shrinks, clearing with cyan
@@ -311,15 +311,15 @@ function renderNodeToBuffer(
     renderBox(node, buffer, layout, props, clipBounds, scrollOffset, skipBgFill)
 
     // If scrollable, render overflow indicators
-    if (isScrollContainer && node.scrollState) {
-      renderScrollIndicators(node, buffer, layout, props, node.scrollState)
+    if (isScrollContainer) {
+      renderScrollIndicators(node, buffer, layout, props, node.scrollState!)
     }
   } else if (node.type === "inkx-text") {
     renderText(node, buffer, layout, props, scrollOffset, clipBounds)
   }
 
   // Render children
-  if (isScrollContainer && node.scrollState) {
+  if (isScrollContainer) {
     renderScrollContainerChildren(
       node,
       buffer,
@@ -532,9 +532,9 @@ function renderNormalChildren(
 
   // Force children to re-render when parent's region was modified on a clone,
   // children were restructured, or sibling positions shifted.
-  const parentDidClear =
+  const childrenNeedRepaint =
     node.childrenDirty || childPositionChanged || parentRegionChanged
-  const childHasPrev = parentDidClear ? false : hasPrevBuffer
+  const childHasPrev = childrenNeedRepaint ? false : hasPrevBuffer
   // childAncestorCleared: tells descendants that STALE pixels exist in the buffer.
   // Only parentRegionCleared (no bg fill → stale pixels remain) propagates this.
   // parentRegionChanged WITHOUT parentRegionCleared means the parent filled its bg,
