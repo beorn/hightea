@@ -54,6 +54,8 @@ export function contentPhase(
 // Re-export for consumers who need to clear bg conflict warnings
 export { clearBgConflictWarnings, setBgConflictMode }
 
+type ClipBounds = { top: number; bottom: number }
+
 /**
  * Clear dirty flags on a subtree that was skipped during incremental rendering.
  */
@@ -106,7 +108,7 @@ function renderNodeToBuffer(
   node: InkxNode,
   buffer: TerminalBuffer,
   scrollOffset = 0,
-  clipBounds?: { top: number; bottom: number },
+  clipBounds?: ClipBounds,
   hasPrevBuffer = false,
   /** True when an ancestor already cleared this node's region (pixels were erased).
    *  Separate from hasPrevBuffer because scroll containers pass childHasPrev=false
@@ -135,25 +137,10 @@ function renderNodeToBuffer(
   // The buffer was cloned from prevBuffer, so skipped nodes keep their rendered output
   const layoutChanged = !rectEqual(node.prevLayout, node.contentRect)
 
-  // Check if any child's position changed (sibling shift). When one child changes
-  // size, other children may shift positions. The gap space between children belongs
-  // to this container, so we need to re-render if children shifted.
-  // Note: We check this even when subtreeDirty=true because subtreeDirty only means
-  // descendants are dirty, not that this container's gap regions need clearing.
-  let childPositionChanged = false
-  if (hasPrevBuffer && !layoutChanged && node.children.length > 0) {
-    for (const child of node.children) {
-      if (child.contentRect && child.prevLayout) {
-        if (
-          child.contentRect.x !== child.prevLayout.x ||
-          child.contentRect.y !== child.prevLayout.y
-        ) {
-          childPositionChanged = true
-          break
-        }
-      }
-    }
-  }
+  // Check if any child shifted position (sibling shift from size changes).
+  // Gap space between children belongs to this container, so must re-render.
+  const childPositionChanged =
+    hasPrevBuffer && !layoutChanged && hasChildPositionChanged(node)
 
   const skipFastPath =
     hasPrevBuffer &&
@@ -276,7 +263,7 @@ function renderScrollContainerChildren(
   node: InkxNode,
   buffer: TerminalBuffer,
   props: BoxProps,
-  clipBounds?: { top: number; bottom: number },
+  clipBounds?: ClipBounds,
   hasPrevBuffer = false,
   parentRegionCleared = false,
   parentRegionChanged = false,
@@ -400,7 +387,7 @@ function renderNormalChildren(
   buffer: TerminalBuffer,
   scrollOffset: number,
   props: BoxProps,
-  clipBounds?: { top: number; bottom: number },
+  clipBounds?: ClipBounds,
   hasPrevBuffer = false,
   childPositionChanged = false,
   parentRegionCleared = false,
@@ -469,11 +456,24 @@ function renderNormalChildren(
   }
 }
 
-// ============================================================================
-// Clip Bounds
-// ============================================================================
-
-type ClipBounds = { top: number; bottom: number }
+/**
+ * Check if any child's position changed since last render (sibling shift).
+ * Checked even when subtreeDirty=true because subtreeDirty only means
+ * descendants are dirty, not that this container's gap regions need clearing.
+ */
+function hasChildPositionChanged(node: InkxNode): boolean {
+  for (const child of node.children) {
+    if (child.contentRect && child.prevLayout) {
+      if (
+        child.contentRect.x !== child.prevLayout.x ||
+        child.contentRect.y !== child.prevLayout.y
+      ) {
+        return true
+      }
+    }
+  }
+  return false
+}
 
 /**
  * Compute clip bounds for a container's children by insetting for border+padding,
@@ -517,7 +517,7 @@ function clearNodeRegion(
   buffer: TerminalBuffer,
   layout: NonNullable<InkxNode["contentRect"]>,
   scrollOffset: number,
-  clipBounds: { top: number; bottom: number } | undefined,
+  clipBounds: ClipBounds | undefined,
   layoutChanged: boolean,
 ): void {
   const inherited = findInheritedBg(node)
@@ -561,41 +561,51 @@ function clearNodeRegion(
 
   // Clear right margin (old was wider than new)
   if (prev.width > layout.width) {
-    const rightClearY = clipBounds
-      ? Math.max(prevScreenY, clipBounds.top)
-      : prevScreenY
-    const rightClearBottom = clipBounds
-      ? Math.min(prevScreenY + prev.height, clipBounds.bottom)
-      : prevScreenY + prev.height
-    const clippedBottom = Math.min(rightClearBottom, clipRectBottom)
-    const rightClearHeight = clippedBottom - rightClearY
-    if (rightClearHeight > 0) {
-      buffer.fill(
-        layout.x + layout.width,
-        rightClearY,
-        prev.width - layout.width,
-        rightClearHeight,
-        { char: " ", bg: clearBg },
-      )
-    }
+    clippedFill(
+      buffer,
+      layout.x + layout.width,
+      prev.width - layout.width,
+      prevScreenY,
+      prevScreenY + prev.height,
+      clipBounds,
+      clipRectBottom,
+      clearBg,
+    )
   }
 
   // Clear bottom margin (old was taller than new)
   if (prev.height > layout.height) {
-    const bottomY = layout.y - scrollOffset + layout.height
-    const bottomClearY = clipBounds
-      ? Math.max(bottomY, clipBounds.top)
-      : bottomY
-    const bottomClearBottom = clipBounds
-      ? Math.min(prevScreenY + prev.height, clipBounds.bottom)
-      : prevScreenY + prev.height
-    const clippedBottom = Math.min(bottomClearBottom, clipRectBottom)
-    const bottomClearHeight = clippedBottom - bottomClearY
-    if (bottomClearHeight > 0) {
-      buffer.fill(layout.x, bottomClearY, prev.width, bottomClearHeight, {
-        char: " ",
-        bg: clearBg,
-      })
-    }
+    clippedFill(
+      buffer,
+      layout.x,
+      prev.width,
+      screenY + layout.height,
+      prevScreenY + prev.height,
+      clipBounds,
+      clipRectBottom,
+      clearBg,
+    )
+  }
+}
+
+/** Fill a rectangular region, clipping to clipBounds and an outer bottom limit. */
+function clippedFill(
+  buffer: TerminalBuffer,
+  x: number,
+  width: number,
+  top: number,
+  bottom: number,
+  clipBounds: ClipBounds | undefined,
+  outerBottom: number,
+  bg: Color,
+): void {
+  const clippedTop = clipBounds ? Math.max(top, clipBounds.top) : top
+  const clippedBottom = Math.min(
+    clipBounds ? Math.min(bottom, clipBounds.bottom) : bottom,
+    outerBottom,
+  )
+  const height = clippedBottom - clippedTop
+  if (height > 0) {
+    buffer.fill(x, clippedTop, width, height, { char: " ", bg })
   }
 }
