@@ -16,7 +16,7 @@ import {
   type TextProps,
   rectEqual,
 } from "../types.js"
-import { displayWidth } from "../unicode.js"
+import { displayWidth, wrapText } from "../unicode.js"
 
 // Profiling counters for measure function performance analysis (dev only)
 export const measureStats = {
@@ -133,6 +133,8 @@ export function createNode(
         wrap === false
 
       // Calculate actual dimensions based on wrapping
+      // Use wrapText() for accurate line count — must match the render phase
+      // (render-text.ts formatTextLines) which also uses wrapText()
       let totalHeight = 0
       let actualWidth = 0
 
@@ -147,10 +149,12 @@ export function createNode(
             isTruncate ? Math.min(lineWidth, maxWidth) : lineWidth,
           )
         } else {
-          // Need to wrap this line
-          const wrappedLines = Math.ceil(lineWidth / Math.max(1, maxWidth))
-          totalHeight += wrappedLines
-          actualWidth = Math.max(actualWidth, Math.min(lineWidth, maxWidth))
+          // Use same word-aware wrapping as render phase for accurate height
+          const wrapped = wrapText(line, maxWidth, false, true)
+          totalHeight += wrapped.length
+          for (const wl of wrapped) {
+            actualWidth = Math.max(actualWidth, displayWidth(wl))
+          }
         }
       }
 
