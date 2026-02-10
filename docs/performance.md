@@ -103,91 +103,100 @@ Flexx and Yoga WASM perform similarly. Both are ~2x faster than Yoga NAPI (nativ
 4. **Unicode operations remain expensive**: `splitGraphemes` still takes 10us
    for ASCII strings - consider caching if profiling shows hot paths.
 
-## Current Optimizations
+## All Optimizations (by Pipeline Phase)
 
-### Core Optimizations
+### 1. Reconciler (reconcile-phase, host-config, helpers)
 
-1. **Dirty Tracking (layout-phase.ts)**
-   - `layoutDirty` flag on nodes prevents unnecessary Yoga recalculation
-   - `hasLayoutDirtyNodes()` early exit when nothing changed
-   - `layoutEqual()` check before notifying subscribers
+| # | Optimization | Description |
+|---|---|---|
+| 1.1 | **contentDirty / layoutDirty flags** | Separate flags for content vs layout changes. `contentPropsChanged()` and `layoutPropsChanged()` compare old/new props — only mark dirty if actually changed. |
+| 1.2 | **subtreeDirty propagation** | `markSubtreeDirty()` walks ancestors but early-exits when already dirty (`while (node && !node.subtreeDirty)`). |
+| 1.3 | **Virtual text ancestor lookup** | `markLayoutAncestorDirty()` skips virtual nodes without layout, finds nearest physical ancestor. |
+| 1.4 | **paintDirty separation** | Style-only changes (color, border style) don't trigger layout recalculation. |
 
-2. **Buffer Diffing (output-phase.ts)**
-   - `diffBuffers()` uses buffer-level `cellEquals()` for fast integer comparison
-   - Cursor position optimization (uses newlines when efficient)
-   - Style coalescing (only emit style changes when needed)
-   - Dimension-aware diffing handles resize gracefully
+### 2. Measure Phase (measure-phase, reconciler/nodes)
 
-3. **Content Dirty Tracking (reconciler.ts)**
-   - `contentDirty` flag on nodes
-   - `layoutPropsChanged()` vs `contentPropsChanged()` separation
-   - Only re-render nodes whose content actually changed
+| # | Optimization | Description |
+|---|---|---|
+| 2.1 | **Measure result cache** | Per-node `Map<cacheKey, result>` keyed on `"${width}|${widthMode}"`. Skips re-measurement when `contentDirty=false`. |
+| 2.2 | **Cached text collection** | `cachedText` on nodes avoids re-collecting text from children when content unchanged. |
+| 2.3 | **displayWidth LRU cache** | 10,000-entry LRU cache (unicode.ts). Repeated lookups ~45x faster (8µs → 180ns). |
+| 2.4 | **Text presentation emoji cache** | Maps first code point → boolean to avoid repeated regex tests. |
+| 2.5 | **Fit-content traversal only** | `measurePhase()` only visits nodes with `width/height: "fit-content"`, skips fixed-size nodes. |
 
-4. **Efficient Buffer Storage (buffer.ts)**
-   - Uint32Array for packed cell metadata
-   - Separate string array for characters
-   - Map for true color storage (sparse, with skip-empty optimization)
-   - Fast `cellEquals()` compares packed metadata before full comparison
+### 3. Layout Phase (layout-phase)
 
-5. **displayWidth LRU Cache (unicode.ts)**
-   - 1000-entry LRU cache for string width calculations
-   - Cache hits are ~45x faster than computing width
-   - Automatically evicts oldest entries when full
+| # | Optimization | Description |
+|---|---|---|
+| 3.1 | **hasLayoutDirtyNodes() early exit** | Skip entire `calculateLayout()` when no nodes are dirty and dimensions unchanged. |
+| 3.2 | **layoutEqual() change detection** | `propagateLayout()` compares new layout to `prevLayout`; only marks ancestors dirty if layout actually changed. |
+| 3.3 | **Scroll offset change detection** | `scrollPhase()` marks `subtreeDirty` only when scroll offset actually changed. |
+| 3.4 | **Edge-based scrolling** | Only scroll when target is off-screen; preserve previous offset when target already visible. |
+| 3.5 | **Lazy sticky child calculation** | Only compute sticky positions for nodes that actually have sticky children. |
+| 3.6 | **Screen rect propagation** | `screenRectPhase()` propagates ancestor scroll offsets through tree once per frame. |
 
-6. **Row-Level Dirty Tracking (buffer.ts, output-phase.ts)**
-   - `Uint8Array` bitset tracks which rows were modified during content phase
-   - `setCell()`, `fill()`, `scrollRegion()`, `copyFrom()` mark rows dirty
-   - `diffBuffers()` skips clean rows entirely (~90% skip for cursor movement)
-   - Lifecycle: fresh=all-dirty, clone=all-clean, content marks dirty, diff skips clean
+### 4. Content Phase (content-phase)
 
-7. **Style Interning + SGR Cache (output-phase.ts)**
-   - Unique styles interned to string key via `styleToKey()`
-   - Pre-computed SGR escape strings cached in `Map<string, string>`
-   - Eliminates repeated `styleToAnsi()` string building in diff hot path
+| # | Optimization | Description |
+|---|---|---|
+| 4.1 | **Incremental rendering via clone** | If previous buffer exists and dimensions match, `clone()` the buffer. Clean nodes keep pixels from clone — only dirty subtrees re-render. |
+| 4.2 | **skipFastPath subtree skip** | Skip entire subtree when: `hasPrevBuffer && !contentDirty && !paintDirty && !layoutChanged && !subtreeDirty && !childrenDirty && !childPositionChanged`. |
+| 4.3 | **skipBgFill optimization** | Skip background fill when: prev buffer exists, ancestor didn't clear region, and own properties unchanged. |
+| 4.4 | **Viewport clipping** | Early exit in `renderNodeToBuffer()` when node is entirely off-screen (`screenY >= buffer.height` or `screenY + layout.height <= 0`). |
+| 4.5 | **Scroll viewport clear gating** | Only clear viewport when scroll offset changed OR children restructured OR parent region changed. Does NOT clear for `subtreeDirty` alone (saved 12ms regression with 50 visible children). |
+| 4.6 | **Child position change detection** | `hasChildPositionChanged()` detects sibling shifts from size changes — avoids full subtree re-render when only gap space changed. |
 
-8. **Viewport Clipping (content-phase.ts)**
-   - Early exit for nodes entirely off-screen in `renderNodeToBuffer()`
-   - Defense-in-depth for non-VirtualList scroll containers
+### 5. Output Phase (output-phase)
 
-### Medium-Effort Improvements
+| # | Optimization | Description |
+|---|---|---|
+| 5.1 | **Row-level dirty tracking** | `_dirtyRows: Uint8Array` bitset on buffer. `setCell()`, `fill()`, `scrollRegion()`, `copyFrom()` mark rows dirty. `diffBuffers()` skips clean rows (~90% skip for cursor movement). |
+| 5.2 | **Packed cell comparison** | `cellEquals()` compares packed `Uint32Array` metadata first (single integer compare), then char, then true color maps only if flags indicate true color. |
+| 5.3 | **Style interning + SGR cache** | `styleToKey()` serializes style to string key. `cachedStyleToAnsi()` caches the computed SGR escape string in `Map<string, string>`. ~15-50 unique styles per TUI. |
+| 5.4 | **Pre-allocated diff pool** | `diffPool: CellChange[]` pre-allocated and reused across frames. Grows as needed, never shrinks. Returns pool+count instead of slicing. |
+| 5.5 | **Reusable style object** | Single `reusableCellStyle` mutated in-place during diff traversal. Snapshot only on style change. |
+| 5.6 | **Insertion sort for diff positions** | In-place insertion sort (optimal for mostly-sorted or small change counts). No array allocation. |
+| 5.7 | **Cursor movement optimization** | Uses `\r\n` for next-line-column-0 instead of absolute positioning. Tracks `cursorX/cursorY` to skip cursor-move escapes for adjacent cells. |
+| 5.8 | **Style coalescing** | Only emits style changes when transitioning between different styles. Consecutive same-style cells emit characters only. |
+| 5.9 | **Dimension-aware diffing** | Handles buffer size mismatches by only comparing the overlapping region. |
 
-#### ~~1. Spatial Skip in contentPhase~~ ✓ Implemented (Round 2, opt #7)
+### 6. Buffer (buffer.ts)
 
-#### 2. Incremental Content Rendering ✓ Already exists
+| # | Optimization | Description |
+|---|---|---|
+| 6.1 | **Packed Uint32Array metadata** | Each cell packed into 32 bits: fg(8) + bg(8) + attrs(8) + underline(3) + flags(5). |
+| 6.2 | **Sparse true color Maps** | `fgColors`, `bgColors`, `underlineColors` as `Map<offset, RGB>`. Only allocated for cells that use true color. |
+| 6.3 | **True color Map skip in fill()** | Checks `map.size > 0` before delete loops. Saves ~3 Map operations × 4000 cells per clear. |
+| 6.4 | **Zero-allocation cell accessors** | `getCellChar()`, `getCellBg()`, `getCellFg()`, `getCellAttrs()`, `isCellWide()`, `isCellContinuation()` — read without allocating Cell objects. |
+| 6.5 | **readCellInto() / createMutableCell()** | Read cell into caller-provided object for hot loops. Avoids per-cell allocation. |
+| 6.6 | **copyWithin() for scroll** | `scrollRegion()` uses `Uint32Array.copyWithin()` for native memcpy performance. |
+| 6.7 | **fill() single-pack** | Resolves defaults and packs metadata once for entire region, then direct array assignment. |
+| 6.8 | **Clone starts clean** | `clone()` sets `_dirtyRows.fill(0)` — content phase marks only modified rows dirty. |
 
-The content phase clones the previous buffer and only re-renders dirty subtrees.
-Clean nodes keep their pixels from the clone. This IS incremental rendering.
+### 7. Identity Fast Paths (throughout)
 
-#### ~~3. Row-Based Diff in outputPhase~~ ✓ Implemented (Round 2, opt #5)
+| # | Optimization | Description |
+|---|---|---|
+| 7.1 | **rectEqual() identity check** | `a === b` before field comparison. |
+| 7.2 | **styleEquals() identity check** | Reference equality before deep comparison. |
+| 7.3 | **colorEquals() fast paths** | Identity check, null handling, early exits before RGB comparison. |
 
-Row-level dirty tracking via `Uint8Array` bitset — more precise than row hashing.
+**Total: 45+ distinct optimizations across all pipeline phases.**
 
-### Major Optimizations (Future)
+## Future Optimizations
 
-#### 1. Virtual Scrolling
+Based on analysis of ratatui, notcurses, crossterm, blessed, and bubbletea:
 
-For scroll containers with many children:
-
-- Only create/render visible children
-- Use placeholder nodes for off-screen items
-- Recycle nodes as user scrolls
-
-#### 2. Layout Caching
-
-Cache Yoga layout results when dimensions don't change:
-
-```typescript
-// Key: (props_hash, available_width, available_height)
-// Value: computed_layout
-```
-
-#### 3. Worker Thread for Layout
-
-Move Yoga calculation to worker thread for large trees.
-
-#### 4. Content Buffer Pooling
-
-Reuse TerminalBuffer instances instead of allocating new ones each render.
+| Technique | Source | Effort | Expected Impact |
+|---|---|---|---|
+| **Synchronized output** (`CSI ? 2026 h/l`) | Notcurses, Textual | Low | Eliminates flicker/tearing |
+| **Scroll regions** (IL/DL instead of redraw) | blessed, ncurses | Medium | O(1) scroll vs O(N) redraw |
+| **ANSI compression** (strip redundant codes) | Bubbletea | Medium | Fewer bytes to terminal |
+| **64-bit cell packing** (one compare per cell) | Notcurses | Medium | Faster diff |
+| **Region bounding box** (only diff dirty rectangle) | General | Low-Medium | Skip more than row-level |
+| **TypedArray bulk comparison** (SIMD/DataView) | General | Medium | Faster row equality check |
+| **Virtual scrolling** | General | High | Only render visible children |
+| **Worker thread layout** | General | High | Unblock main thread for large trees |
 
 ## Profiling Guide
 
