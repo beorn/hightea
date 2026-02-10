@@ -85,12 +85,7 @@ describe("text wrap in flexGrow container", () => {
 
     // Test 2: inside overflow="scroll" container (like VirtualList)
     const scrolled = narrow(
-      <Box
-        flexDirection="column"
-        width={19}
-        height={20}
-        overflow="scroll"
-      >
+      <Box flexDirection="column" width={19} height={20} overflow="scroll">
         <CardBox>
           <Text wrap="wrap">AAAA BBBB CCCC DDDD</Text>
         </CardBox>
@@ -121,9 +116,7 @@ describe("text wrap in flexGrow container", () => {
         }
         if (/│.*─.*[a-z].*│/.test(line) || /│.*[a-z].*─.*│/.test(line)) {
           if (!/^[╭╰│─╮╯\s]+$/.test(line)) {
-            problems.push(
-              `line ${i}: border chars mixed with text: ${line}`,
-            )
+            problems.push(`line ${i}: border chars mixed with text: ${line}`)
           }
         }
       }
@@ -159,12 +152,23 @@ describe("text wrap in flexGrow container", () => {
           paddingRight={1}
           testID={testID}
         >
-          <Box flexDirection="column" testID={testID ? `${testID}-inner` : undefined}>
-            <Box flexDirection="row" alignItems="flex-start" testID={testID ? `${testID}-row` : undefined}>
+          <Box
+            flexDirection="column"
+            testID={testID ? `${testID}-inner` : undefined}
+          >
+            <Box
+              flexDirection="row"
+              alignItems="flex-start"
+              testID={testID ? `${testID}-row` : undefined}
+            >
               <Box width={3} flexShrink={0}>
                 <Text>{"·  "}</Text>
               </Box>
-              <Box flexGrow={1} flexShrink={1} testID={testID ? `${testID}-content` : undefined}>
+              <Box
+                flexGrow={1}
+                flexShrink={1}
+                testID={testID ? `${testID}-content` : undefined}
+              >
                 {children}
               </Box>
             </Box>
@@ -194,11 +198,7 @@ describe("text wrap in flexGrow container", () => {
             <Box height={1} flexShrink={0}>
               <Text wrap="truncate">{" · col1 (2)"}</Text>
             </Box>
-            <Box
-              flexDirection="column"
-              height={16}
-              overflow="scroll"
-            >
+            <Box flexDirection="column" height={16} overflow="scroll">
               <CardBox width={card1Width} testID="card1">
                 <Text wrap="wrap" testID="aaaa-text">
                   AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ KKKK LLLL
@@ -225,11 +225,7 @@ describe("text wrap in flexGrow container", () => {
             <Box height={1} flexShrink={0}>
               <Text wrap="truncate">{" · col2 (1)"}</Text>
             </Box>
-            <Box
-              flexDirection="column"
-              height={16}
-              overflow="scroll"
-            >
+            <Box flexDirection="column" height={16} overflow="scroll">
               <CardBox width={card2Width}>
                 <Text wrap="wrap">short</Text>
               </CardBox>
@@ -237,7 +233,6 @@ describe("text wrap in flexGrow container", () => {
           </Box>
         </Box>,
       )
-
 
       const text = app.text
       const lines = text.split("\n")
@@ -288,7 +283,11 @@ describe("text wrap in flexGrow container", () => {
             <Box flexDirection="column">
               {/* Child HeadRow */}
               <Box flexDirection="column">
-                <Box flexDirection="row" alignItems="flex-start" paddingLeft={1}>
+                <Box
+                  flexDirection="row"
+                  alignItems="flex-start"
+                  paddingLeft={1}
+                >
                   <Box width={4} flexShrink={0}>
                     <Text>{" ·  "}</Text>
                   </Box>

@@ -6,7 +6,13 @@
  */
 import { describe, expect, test } from "vitest"
 import { createRenderer } from "../src/testing/index.js"
-import React, { useState, createContext, useContext, type Dispatch, type SetStateAction } from "react"
+import React, {
+  useState,
+  createContext,
+  useContext,
+  type Dispatch,
+  type SetStateAction,
+} from "react"
 
 const { Box, Text } = await import("../src/index.js")
 
@@ -64,7 +70,11 @@ const MemoCard = React.memo(
   },
   (prev, next) => {
     // Only re-render if card props change (NOT selection — that's via context)
-    return prev.text === next.text && prev.index === next.index && prev.width === next.width
+    return (
+      prev.text === next.text &&
+      prev.index === next.index &&
+      prev.width === next.width
+    )
   },
 )
 
@@ -85,7 +95,12 @@ describe("React.memo card re-render isolation", () => {
 
       return (
         <SelectionContext.Provider value={{ selected }}>
-          <Box flexDirection="column" width={39} maxHeight={24} overflow="hidden">
+          <Box
+            flexDirection="column"
+            width={39}
+            maxHeight={24}
+            overflow="hidden"
+          >
             <Box height={1} flexShrink={0}>
               <Text> · col1 ({cards.length})</Text>
             </Box>
@@ -127,10 +142,7 @@ describe("React.memo card re-render isolation", () => {
       "Short task 1",
       "Another medium-length task description here",
     ]
-    const col2Cards = [
-      "Task in col2",
-      "Second task in col2 with more detail",
-    ]
+    const col2Cards = ["Task in col2", "Second task in col2 with more detail"]
 
     // Selection context that also tracks column
     const ColSelectionContext = createContext<{ colIdx: number }>({ colIdx: 0 })
@@ -182,9 +194,17 @@ describe("React.memo card re-render isolation", () => {
       setSelectedCol = _setSelectedCol
 
       const renderCol = (cards: string[], colIdx: number, width: number) => (
-        <Box flexDirection="column" width={width} maxHeight={24} overflow="hidden">
+        <Box
+          flexDirection="column"
+          width={width}
+          maxHeight={24}
+          overflow="hidden"
+        >
           <Box height={1} flexShrink={0}>
-            <Text> · col{colIdx + 1} ({cards.length})</Text>
+            <Text>
+              {" "}
+              · col{colIdx + 1} ({cards.length})
+            </Text>
           </Box>
           <Box flexDirection="column" height={20} overflow="scroll">
             {cards.map((text, i) => (
@@ -204,7 +224,9 @@ describe("React.memo card re-render isolation", () => {
         <ColSelectionContext.Provider value={{ colIdx: selectedCol }}>
           <Box flexDirection="row" width={80}>
             {renderCol(col1Cards, 0, 39)}
-            <Box width={2} flexShrink={0}><Text>{"  "}</Text></Box>
+            <Box width={2} flexShrink={0}>
+              <Text>{"  "}</Text>
+            </Box>
             {renderCol(col2Cards, 1, 39)}
           </Box>
         </ColSelectionContext.Provider>

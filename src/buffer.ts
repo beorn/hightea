@@ -355,6 +355,12 @@ export class TerminalBuffer {
   private bgColors: Map<number, { r: number; g: number; b: number }>
   /** Underline color storage (independent of fg, for SGR 58) */
   private underlineColors: Map<number, Color>
+  /**
+   * Per-row dirty tracking for diff optimization.
+   * When set, diffBuffers() can skip clean rows entirely.
+   * 0 = clean (unchanged since last resetDirtyRows), 1 = dirty (modified).
+   */
+  private _dirtyRows: Uint8Array
 
   readonly width: number
   readonly height: number
@@ -368,6 +374,8 @@ export class TerminalBuffer {
     this.fgColors = new Map()
     this.bgColors = new Map()
     this.underlineColors = new Map()
+    // All rows start dirty (fresh buffer needs full diff on first comparison)
+    this._dirtyRows = new Uint8Array(height).fill(1)
   }
 
   /**
@@ -580,6 +588,8 @@ export class TerminalBuffer {
       return
     }
 
+    this._dirtyRows[y] = 1
+
     const idx = this.index(x, y)
 
     // Resolve properties with defaults (no intermediate object)
@@ -678,6 +688,17 @@ export class TerminalBuffer {
       : null
     const hasUnderlineColor = underlineColor !== null
 
+    // Mark affected rows dirty
+    for (let cy = startY; cy < endY; cy++) {
+      this._dirtyRows[cy] = 1
+    }
+
+    // Determine which Map operations are actually needed.
+    // Skip delete() calls when the map is already empty (common case: no true colors).
+    const needFgDelete = !hasTrueColorFg && this.fgColors.size > 0
+    const needBgDelete = !hasTrueColorBg && this.bgColors.size > 0
+    const needUlDelete = !hasUnderlineColor && this.underlineColors.size > 0
+
     for (let cy = startY; cy < endY; cy++) {
       const rowBase = cy * this.width
       for (let cx = startX; cx < endX; cx++) {
@@ -687,22 +708,22 @@ export class TerminalBuffer {
         this.cells[idx] = packed
         this.chars[idx] = char
 
-        // Handle true color maps in batch
+        // Handle true color maps — skip delete when map is empty
         if (hasTrueColorFg) {
           this.fgColors.set(idx, trueColorFg!)
-        } else {
+        } else if (needFgDelete) {
           this.fgColors.delete(idx)
         }
 
         if (hasTrueColorBg) {
           this.bgColors.set(idx, trueColorBg!)
-        } else {
+        } else if (needBgDelete) {
           this.bgColors.delete(idx)
         }
 
         if (hasUnderlineColor) {
           this.underlineColors.set(idx, underlineColor)
-        } else {
+        } else if (needUlDelete) {
           this.underlineColors.delete(idx)
         }
       }
@@ -718,6 +739,7 @@ export class TerminalBuffer {
     this.fgColors.clear()
     this.bgColors.clear()
     this.underlineColors.clear()
+    this._dirtyRows.fill(1)
   }
 
   /**
@@ -734,15 +756,18 @@ export class TerminalBuffer {
   ): void {
     const cell = createMutableCell()
     for (let dy = 0; dy < height; dy++) {
+      const dstY = destY + dy
+      if (dstY >= 0 && dstY < this.height) {
+        this._dirtyRows[dstY] = 1
+      }
       for (let dx = 0; dx < width; dx++) {
         const sx = srcX + dx
         const sy = srcY + dy
-        const dstX = destX + dx
-        const dstY = destY + dy
+        const dX = destX + dx
 
-        if (source.inBounds(sx, sy) && this.inBounds(dstX, dstY)) {
+        if (source.inBounds(sx, sy) && this.inBounds(dX, dstY)) {
           source.readCellInto(sx, sy, cell)
-          this.setCell(dstX, dstY, cell)
+          this.setCell(dX, dstY, cell)
         }
       }
     }
@@ -775,6 +800,12 @@ export class TerminalBuffer {
     const clampedHeight = endY - startY
 
     if (clampedWidth <= 0 || clampedHeight <= 0) return
+
+    // Mark all rows in the scroll region dirty
+    for (let r = startY; r < endY; r++) {
+      this._dirtyRows[r] = 1
+    }
+
     if (Math.abs(delta) >= clampedHeight) {
       // Scroll amount exceeds region — just clear everything
       this.fill(startX, startY, clampedWidth, clampedHeight, {
@@ -886,7 +917,28 @@ export class TerminalBuffer {
     copy.fgColors = new Map(this.fgColors)
     copy.bgColors = new Map(this.bgColors)
     copy.underlineColors = new Map(this.underlineColors)
+    // Clone starts with all rows CLEAN. The content phase will mark only
+    // the rows it modifies as dirty. diffBuffers() then skips clean rows,
+    // which are guaranteed identical to the prev buffer (since this is a clone).
+    copy._dirtyRows.fill(0)
     return copy
+  }
+
+  /**
+   * Check if a row has been modified since the last resetDirtyRows() call.
+   * Used by diffBuffers() to skip unchanged rows.
+   */
+  isRowDirty(y: number): boolean {
+    if (y < 0 || y >= this.height) return false
+    return this._dirtyRows[y] !== 0
+  }
+
+  /**
+   * Reset all dirty row flags to clean.
+   * Call after diffing to prepare for the next frame's modifications.
+   */
+  resetDirtyRows(): void {
+    this._dirtyRows.fill(0)
   }
 
   /**

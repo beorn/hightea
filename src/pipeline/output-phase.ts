@@ -18,6 +18,94 @@ import type { CellChange } from "./types.js"
 
 const DEBUG_OUTPUT = !!process.env.INKX_DEBUG_OUTPUT
 
+// ============================================================================
+// Style Interning + SGR Cache
+// ============================================================================
+
+/**
+ * Intern table mapping serialized style keys to pre-computed SGR strings.
+ * In a typical TUI, there are only ~15-50 unique style combinations.
+ * This eliminates per-cell string concatenation in styleToAnsi().
+ */
+const sgrCache = new Map<string, string>()
+
+/**
+ * Serialize a Style into a cache key string.
+ * Fast path: most styles are simple (256-color or null fg/bg, no true color).
+ */
+function styleToKey(style: Style): string {
+  const fg = style.fg
+  const bg = style.bg
+  const attrs = style.attrs
+
+  // Fast path: common case of simple colors + few attrs
+  let key = ""
+
+  // fg
+  if (fg === null) {
+    key = "n"
+  } else if (typeof fg === "number") {
+    key = `${fg}`
+  } else {
+    key = `r${fg.r},${fg.g},${fg.b}`
+  }
+
+  key += "|"
+
+  // bg
+  if (bg === null) {
+    key += "n"
+  } else if (typeof bg === "number") {
+    key += `${bg}`
+  } else {
+    key += `r${bg.r},${bg.g},${bg.b}`
+  }
+
+  // attrs packed as bitmask for speed
+  let attrBits = 0
+  if (attrs.bold) attrBits |= 1
+  if (attrs.dim) attrBits |= 2
+  if (attrs.italic) attrBits |= 4
+  if (attrs.underline) attrBits |= 8
+  if (attrs.inverse) attrBits |= 16
+  if (attrs.strikethrough) attrBits |= 32
+  if (attrs.blink) attrBits |= 64
+  if (attrs.hidden) attrBits |= 128
+
+  key += `|${attrBits}`
+
+  // Underline style (rare)
+  if (attrs.underlineStyle) {
+    key += `|u${attrs.underlineStyle}`
+  }
+
+  // Underline color (rare)
+  const ul = style.underlineColor
+  if (ul !== null && ul !== undefined) {
+    if (typeof ul === "number") {
+      key += `|l${ul}`
+    } else {
+      key += `|lr${ul.r},${ul.g},${ul.b}`
+    }
+  }
+
+  return key
+}
+
+/**
+ * Get the SGR escape string for a style, using the intern cache.
+ * Cache hit: O(1) Map lookup + key serialization.
+ * Cache miss: builds the SGR string and caches it.
+ */
+function cachedStyleToAnsi(style: Style): string {
+  const key = styleToKey(style)
+  let sgr = sgrCache.get(key)
+  if (sgr !== undefined) return sgr
+  sgr = styleToAnsi(style)
+  sgrCache.set(key, sgr)
+  return sgr
+}
+
 /**
  * Map underline style to SGR 4:x subparameter.
  */
@@ -175,7 +263,7 @@ function bufferToAnsi(
           underlineColor: cell.underlineColor,
           attrs: { ...cell.attrs },
         }
-        output += styleToAnsi(saved)
+        output += cachedStyleToAnsi(saved)
         currentStyle = saved
       }
 
@@ -321,6 +409,11 @@ function diffBuffers(prev: TerminalBuffer, next: TerminalBuffer): DiffResult {
   const width = Math.min(prev.width, next.width)
 
   for (let y = 0; y < height; y++) {
+    // Skip rows that haven't been modified since the buffer was cloned.
+    // The content phase marks rows dirty as it renders into the clone.
+    // Clean rows still have pixels from the clone (identical to prev).
+    if (!next.isRowDirty(y)) continue
+
     for (let x = 0; x < width; x++) {
       // Use buffer's optimized cellEquals which compares packed metadata first
       if (!next.cellEquals(x, y, prev)) {
@@ -478,7 +571,7 @@ function changesToAnsi(
           underlineColor: cell.underlineColor,
           attrs: { ...cell.attrs },
         }
-        output += styleToAnsi(currentStyle)
+        output += cachedStyleToAnsi(currentStyle)
       }
 
       // Write character
@@ -540,7 +633,7 @@ function changesToAnsi(
           underlineColor: cell.underlineColor,
           attrs: { ...cell.attrs },
         }
-        output += styleToAnsi(currentStyle)
+        output += cachedStyleToAnsi(currentStyle)
       }
 
       // Write character

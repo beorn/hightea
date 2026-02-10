@@ -156,10 +156,7 @@ describe("box height stability on re-render", () => {
         "example.com/path/to/some/resource/long",
         "Short task 1",
       ]
-      const col2Cards = [
-        "Task in col2",
-        "Second task in col2 with more detail",
-      ]
+      const col2Cards = ["Task in col2", "Second task in col2 with more detail"]
 
       const renderCard = (text: string, colIdx: number, cardIdx: number) => (
         <Box
@@ -169,9 +166,7 @@ describe("box height stability on re-render", () => {
           width={37}
           borderStyle="round"
           borderColor={
-            colIdx === selectedCol && cardIdx === 0
-              ? "yellow"
-              : "blackBright"
+            colIdx === selectedCol && cardIdx === 0 ? "yellow" : "blackBright"
           }
           paddingRight={1}
         >

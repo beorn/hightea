@@ -4,12 +4,7 @@
 
 import React from "react"
 import { describe, expect, it } from "vitest"
-import {
-  Box,
-  Text,
-  withCommands,
-  withDiagnostics,
-} from "../src/index.js"
+import { Box, Text, withCommands, withDiagnostics } from "../src/index.js"
 import { checkLayoutInvariants } from "../src/with-diagnostics.js"
 import { createRenderer } from "../src/testing/index.js"
 import type { CommandDef } from "../src/with-commands.js"

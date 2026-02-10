@@ -421,7 +421,13 @@ export function checkLayoutInvariants(node: InkxNode): string[] {
 
 function walkLayout(
   node: InkxNode,
-  parentRect: { x: number; y: number; width: number; height: number; clipped: boolean } | null,
+  parentRect: {
+    x: number
+    y: number
+    width: number
+    height: number
+    clipped: boolean
+  } | null,
   violations: string[],
 ): void {
   const rect = node.contentRect

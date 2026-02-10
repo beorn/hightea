@@ -98,6 +98,15 @@ function renderNodeToBuffer(
   // Also skip their children since the entire subtree is hidden
   if (props.display === "none") return
 
+  // Skip nodes entirely off-screen (viewport clipping).
+  // The scroll container's VirtualList already handles most culling, but this
+  // catches any remaining nodes rendered below/above the visible area.
+  const screenY = layout.y - scrollOffset
+  if (screenY >= buffer.height || screenY + layout.height <= 0) {
+    clearDirtyFlags(node)
+    return
+  }
+
   // FAST PATH: Skip entire subtree if unchanged and we have a previous buffer
   // The buffer was cloned from prevBuffer, so skipped nodes keep their rendered output
   const layoutChanged = !rectEqual(node.prevLayout, node.contentRect)
