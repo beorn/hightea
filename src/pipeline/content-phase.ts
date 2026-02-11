@@ -768,13 +768,21 @@ function renderNormalChildren(
       const childProps = child.props as BoxProps
       if (childProps.position !== "absolute") continue
 
+      // ancestorCleared must be false for absolute children in the second pass.
+      // After the first pass, the buffer at the absolute child's position contains
+      // correct normal-flow content (not stale pixels). Propagating ancestorCleared
+      // causes transparent absolute overlays (no backgroundColor) to run
+      // clearNodeRegion, erasing the normal-flow content just painted.
+      // When forceRepaint is true (normal-flow siblings overwrote the absolute
+      // child's previous pixels), hasPrevBuffer=false ensures it re-renders fully
+      // without needing ancestorCleared to trigger clearing.
       renderNodeToBuffer(
         child,
         buffer,
         scrollOffset,
         effectiveClipBounds,
         forceRepaint ? false : childHasPrev,
-        forceRepaint ? true : childAncestorCleared,
+        false,
       )
     }
   }
