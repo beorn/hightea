@@ -1,4 +1,3 @@
-import createDebug from "debug"
 /**
  * VirtualList Component
  *
@@ -22,11 +21,12 @@ import createDebug from "debug"
  * />
  * ```
  */
+import { createLogger } from "@beorn/logger"
 import React, { forwardRef, useImperativeHandle } from "react"
 import { useVirtualization } from "../hooks/useVirtualization.js"
 import { Box } from "./Box.js"
 
-const debug = createDebug("inkx:virtuallist")
+const log = createLogger("inkx:virtuallist")
 
 // =============================================================================
 // Types
@@ -215,16 +215,7 @@ function VirtualListInner<T>(
   // the index points to the same child as before (no visual change).
   const boxScrollTo = isSelectedInSlice ? Math.max(0, scrollToIndex) : undefined
 
-  debug(
-    "VirtualList render: scrollTo=%s boxScrollTo=%s frozen=%s start=%d end=%d currentSelected=%d isInSlice=%s",
-    scrollTo,
-    boxScrollTo,
-    scrollTo === undefined,
-    startIndex,
-    endIndex,
-    currentSelectedIndex,
-    isSelectedInSlice,
-  )
+  log.debug?.(`VirtualList render: scrollTo=${scrollTo} boxScrollTo=${boxScrollTo} frozen=${scrollTo === undefined} start=${startIndex} end=${endIndex} currentSelected=${currentSelectedIndex} isInSlice=${isSelectedInSlice}`)
 
   return (
     <Box
