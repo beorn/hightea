@@ -516,6 +516,89 @@ async function initApp<
   let isRendering = false // Re-entrancy guard for store subscription
   let inEventHandler = false // True during processEvent/press — suppresses subscription renders
 
+  // ========================================================================
+  // ANSI Trace: INKX_TRACE=1 logs all stdout writes with decoded sequences
+  // ========================================================================
+  const _ansiTrace =
+    !headless &&
+    process.env?.INKX_TRACE === "1"
+
+  let _traceSeq = 0
+  const _traceStart = performance.now()
+  let _origStdoutWrite:
+    | typeof process.stdout.write
+    | undefined
+
+  if (_ansiTrace) {
+    const fs =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require("node:fs") as typeof import("node:fs")
+    fs.writeFileSync("/tmp/inkx-trace.log", `=== INKX TRACE START ===\n`)
+
+    _origStdoutWrite = stdout.write.bind(stdout) as typeof stdout.write
+
+    const symbolize = (s: string): string =>
+      s
+        .replace(/\x1b\[\?1049h/g, "⟨ALT_ON⟩")
+        .replace(/\x1b\[\?1049l/g, "⟨ALT_OFF⟩")
+        .replace(/\x1b\[2J/g, "⟨CLEAR⟩")
+        .replace(/\x1b\[H/g, "⟨HOME⟩")
+        .replace(/\x1b\[\?25l/g, "⟨CUR_HIDE⟩")
+        .replace(/\x1b\[\?25h/g, "⟨CUR_SHOW⟩")
+        .replace(/\x1b\[\?2026h/g, "⟨SYNC_ON⟩")
+        .replace(/\x1b\[\?2026l/g, "⟨SYNC_OFF⟩")
+        .replace(/\x1b\[\?2004h/g, "⟨BPASTE_ON⟩")
+        .replace(/\x1b\[\?2004l/g, "⟨BPASTE_OFF⟩")
+        .replace(/\x1b\[0m/g, "⟨RST⟩")
+        .replace(/\x1b\[(\d+);(\d+)H/g, "⟨GO $1,$2⟩")
+        .replace(/\x1b\[38;5;(\d+)m/g, "⟨F$1⟩")
+        .replace(/\x1b\[48;5;(\d+)m/g, "⟨B$1⟩")
+        .replace(/\x1b\[38;2;(\d+);(\d+);(\d+)m/g, "⟨FR$1,$2,$3⟩")
+        .replace(/\x1b\[48;2;(\d+);(\d+);(\d+)m/g, "⟨BR$1,$2,$3⟩")
+        .replace(/\x1b\[1m/g, "⟨BOLD⟩")
+        .replace(/\x1b\[2m/g, "⟨DIM⟩")
+        .replace(/\x1b\[3m/g, "⟨ITAL⟩")
+        .replace(/\x1b\[4m/g, "⟨UL⟩")
+        .replace(/\x1b\[7m/g, "⟨INV⟩")
+        .replace(/\x1b\[22m/g, "⟨/BOLD⟩")
+        .replace(/\x1b\[23m/g, "⟨/ITAL⟩")
+        .replace(/\x1b\[24m/g, "⟨/UL⟩")
+        .replace(/\x1b\[27m/g, "⟨/INV⟩")
+        .replace(/\x1b\[39m/g, "⟨/FG⟩")
+        .replace(/\x1b\[49m/g, "⟨/BG⟩")
+        // Catch remaining CSI sequences
+        .replace(/\x1b\[([0-9;]*)([A-Za-z])/g, "⟨CSI $1$2⟩")
+        // Catch remaining ESC sequences
+        .replace(/\x1b([^\[])/, "⟨ESC $1⟩")
+
+    const traceWrite = function (
+      this: typeof stdout,
+      chunk: unknown,
+      ...args: unknown[]
+    ): boolean {
+      const str = typeof chunk === "string" ? chunk : String(chunk)
+      const seq = ++_traceSeq
+      const ms = (performance.now() - _traceStart).toFixed(0)
+      const decoded = symbolize(str)
+      // Truncate for readability but keep enough to identify content
+      const preview =
+        decoded.length > 400
+          ? decoded.slice(0, 200) + ` ...[${decoded.length}ch]... ` + decoded.slice(-100)
+          : decoded
+      fs.appendFileSync(
+        "/tmp/inkx-trace.log",
+        `[${String(seq).padStart(4, "0")}] +${ms}ms (${str.length}b): ${preview}\n`,
+      )
+      return (_origStdoutWrite as Function).call(this, chunk, ...args)
+    } as typeof stdout.write
+
+    stdout.write = traceWrite
+    // Restore original stdout.write on cleanup (providerCleanups runs during cleanup())
+    providerCleanups.push(() => {
+      if (_origStdoutWrite) stdout.write = _origStdoutWrite
+    })
+  }
+
   // Create render target
   const target: RenderTarget = headless
     ? {
@@ -524,6 +607,13 @@ async function initApp<
       }
     : {
         write(frame: string): void {
+          if (_perfLog) {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            require("node:fs").appendFileSync(
+              "/tmp/inkx-perf.log",
+              `TARGET.write: ${frame.length} bytes (paused=${renderPaused})\n`,
+            )
+          }
           if (!renderPaused) stdout.write(frame)
         },
         getDims(): Dims {
@@ -658,11 +748,21 @@ async function initApp<
 
   // Incremental rendering — store previous pipeline buffer for diffing.
   // Without this, every render walks the entire node tree from scratch.
+  // Set INKX_NO_INCREMENTAL=1 to disable (for debugging blank screen issues).
+  const _noIncremental =
+    process.env?.INKX_NO_INCREMENTAL === "1"
   let _prevTermBuffer: import("../buffer.js").TerminalBuffer | null = null
 
   // Helper to render and get text
   function doRender(): Buffer {
     _renderCount++
+    if (_ansiTrace) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require("node:fs").appendFileSync(
+        "/tmp/inkx-trace.log",
+        `--- doRender #${_renderCount} (prev=${_prevTermBuffer ? "yes" : "null"}, incremental=${!_noIncremental && !!_prevTermBuffer}) ---\n`,
+      )
+    }
     const renderStart = performance.now()
 
     // Phase A: React reconciliation
@@ -684,17 +784,102 @@ async function initApp<
       _prevTermBuffer = null
     }
 
+    // Clear diagnostic arrays before the render so we capture only this render's data
+    ;(globalThis as any).__inkx_content_all = undefined
+    ;(globalThis as any).__inkx_node_trace = undefined
+
     const { buffer: termBuffer } = executeRender(
       rootNode,
       dims.cols,
       dims.rows,
-      _prevTermBuffer,
+      _noIncremental ? null : _prevTermBuffer,
       {
         skipLayoutNotifications: true,
       },
     )
-    _prevTermBuffer = termBuffer
+    if (!_noIncremental) _prevTermBuffer = termBuffer
     const pipelineMs = performance.now() - pipelineStart
+
+    // INKX_CHECK_INCREMENTAL: compare incremental render against fresh render.
+    // createApp bypasses Scheduler/Renderer which have this check built-in,
+    // so we add it here to catch incremental rendering bugs at runtime.
+    const strictEnv =
+      typeof process !== "undefined" &&
+      (process.env?.INKX_STRICT || process.env?.INKX_CHECK_INCREMENTAL)
+    if (strictEnv && strictEnv !== "0" && strictEnv !== "false" && _renderCount > 1) {
+      const { buffer: freshBuffer } = executeRender(
+        rootNode,
+        dims.cols,
+        dims.rows,
+        null,
+        { skipLayoutNotifications: true },
+      )
+      const { cellEquals, bufferToText } =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require("../buffer.js") as typeof import("../buffer.js")
+      for (let y = 0; y < termBuffer.height; y++) {
+        for (let x = 0; x < termBuffer.width; x++) {
+          const a = termBuffer.getCell(x, y)
+          const b = freshBuffer.getCell(x, y)
+          if (!cellEquals(a, b)) {
+            const incText = bufferToText(termBuffer)
+            const freshText = bufferToText(freshBuffer)
+            const cellStr = (c: typeof a) =>
+              `char=${JSON.stringify(c.char)} fg=${c.fg} bg=${c.bg} ulColor=${c.underlineColor} wide=${c.wide} cont=${c.continuation} attrs={bold=${c.attrs.bold},dim=${c.attrs.dim},italic=${c.attrs.italic},ul=${c.attrs.underline},ulStyle=${c.attrs.underlineStyle},blink=${c.attrs.blink},inv=${c.attrs.inverse},hidden=${c.attrs.hidden},strike=${c.attrs.strikethrough}}`
+            // Dump content phase stats for diagnosis
+            const contentAll = (globalThis as any).__inkx_content_all as unknown[]
+            const statsStr = contentAll
+              ? `\n--- content phase stats (${contentAll.length} calls) ---\n` +
+                contentAll.map((s: any, i: number) =>
+                  `  #${i}: visited=${s.nodesVisited} rendered=${s.nodesRendered} skipped=${s.nodesSkipped} ` +
+                  `clearOps=${s.clearOps} cascade="${s.cascadeNodes}" ` +
+                  `flags={C=${s.flagContentDirty} P=${s.flagPaintDirty} L=${s.flagLayoutChanged} ` +
+                  `S=${s.flagSubtreeDirty} Ch=${s.flagChildrenDirty} CP=${s.flagChildPositionChanged} noPrev=${s.noPrevBuffer}} ` +
+                  `scroll={containers=${s.scrollContainerCount} cleared=${s.scrollViewportCleared} reason="${s.scrollClearReason}"} ` +
+                  `normalRepaint="${s.normalRepaintReason}" ` +
+                  `prevBuf={null=${s._prevBufferNull} dimMismatch=${s._prevBufferDimMismatch} hasPrev=${s._hasPrevBuffer} ` +
+                  `layout=${s._layoutW}x${s._layoutH} prev=${s._prevW}x${s._prevH}}`
+                ).join("\n")
+              : ""
+            const msg =
+              `INKX_CHECK_INCREMENTAL (createApp): MISMATCH at (${x}, ${y}) on render #${_renderCount}\n` +
+              `  incremental: ${cellStr(a)}\n` +
+              `  fresh:       ${cellStr(b)}` +
+              statsStr +
+              // Per-node trace
+              (() => {
+                const traces = (globalThis as any).__inkx_node_trace as unknown[][] | undefined
+                if (!traces || traces.length === 0) return ""
+                let out = "\n--- node trace ---"
+                for (let ti = 0; ti < traces.length; ti++) {
+                  out += `\n  contentPhase #${ti}:`
+                  for (const t of traces[ti] as any[]) {
+                    out += `\n    ${t.decision} ${t.id}(${t.type})@${t.depth} rect=${t.rect} prev=${t.prevLayout}`
+                    out += ` hasPrev=${t.hasPrev} ancClr=${t.ancestorCleared} flags=[${t.flags}] layout∆=${t.layoutChanged}`
+                    if (t.decision === "RENDER") {
+                      out += ` caa=${t.contentAreaAffected} prc=${t.parentRegionCleared} prm=${t.parentRegionChanged}`
+                      out += ` childPrev=${t.childHasPrev} childAnc=${t.childAncestorCleared} skipBg=${t.skipBgFill} bg=${t.bgColor ?? "none"}`
+                    }
+                  }
+                }
+                return out
+              })() +
+              `\n--- incremental ---\n${incText}\n--- fresh ---\n${freshText}`
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            require("node:fs").appendFileSync("/tmp/inkx-perf.log", msg + "\n")
+            // Also throw to make it visible
+            throw new Error(msg)
+          }
+        }
+      }
+      if (_perfLog) {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require("node:fs").appendFileSync(
+          "/tmp/inkx-perf.log",
+          `INKX_CHECK_INCREMENTAL (createApp): render #${_renderCount} OK\n`,
+        )
+      }
+    }
 
     const buf = createBuffer(termBuffer, rootNode)
     if (_perfLog) {
@@ -717,14 +902,33 @@ async function initApp<
   }
 
   // Initial render
+  if (_ansiTrace) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require("node:fs").appendFileSync("/tmp/inkx-trace.log", "=== INITIAL RENDER ===\n")
+  }
   currentBuffer = doRender()
 
   // Enter alternate screen if requested, then clear and hide cursor
   if (!headless) {
+    if (_ansiTrace) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require("node:fs").appendFileSync("/tmp/inkx-trace.log", "=== ALT SCREEN + CLEAR ===\n")
+    }
     if (alternateScreen) stdout.write("\x1b[?1049h")
     stdout.write("\x1b[2J\x1b[H\x1b[?25l")
   }
+  if (_ansiTrace) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require("node:fs").appendFileSync("/tmp/inkx-trace.log", "=== RUNTIME.RENDER (initial) ===\n")
+  }
   runtime.render(currentBuffer)
+  if (_perfLog) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require("node:fs").appendFileSync(
+      "/tmp/inkx-perf.log",
+      `STARTUP: initial render done (render #${_renderCount}, incremental=${!_noIncremental})\n`,
+    )
+  }
 
   // Assign pause/resume now that doRender and runtime are available.
   // Update appContextRef in-place so useApp() sees the latest values.
@@ -799,6 +1003,15 @@ async function initApp<
   let pendingRerender = false
   storeUnsubscribeFn = store.subscribe(() => {
     if (shouldExit) return
+    if (_ansiTrace) {
+      const _case = inEventHandler ? "1:event" : isRendering ? "2:rendering" : "3:standalone"
+      const stack = new Error().stack?.split("\n").slice(1, 5).join("\n") ?? ""
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require("node:fs").appendFileSync(
+        "/tmp/inkx-trace.log",
+        `=== SUBSCRIPTION (case ${_case}, render #${_renderCount + 1}) ===\n${stack}\n`,
+      )
+    }
     if (inEventHandler) {
       // During processEvent/press: just flag, caller's flush loop handles it.
       pendingRerender = true
@@ -812,6 +1025,13 @@ async function initApp<
           if (!pendingRerender) return
           pendingRerender = false
           if (!shouldExit && !isRendering) {
+            if (_perfLog) {
+              // eslint-disable-next-line @typescript-eslint/no-require-imports
+              require("node:fs").appendFileSync(
+                "/tmp/inkx-perf.log",
+                `SUBSCRIPTION: deferred microtask render (case 2, render #${_renderCount + 1})\n`,
+              )
+            }
             isRendering = true
             try {
               currentBuffer = doRender()
@@ -823,6 +1043,13 @@ async function initApp<
         })
       }
       return
+    }
+    if (_perfLog) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require("node:fs").appendFileSync(
+        "/tmp/inkx-perf.log",
+        `SUBSCRIPTION: immediate render (case 3, render #${_renderCount + 1})\n`,
+      )
     }
     isRendering = true
     try {

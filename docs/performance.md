@@ -7,22 +7,22 @@
 | Metric                           | Time    |
 | -------------------------------- | ------- |
 | `executeRender (simple, first)`  | 75us    |
-| `executeRender (simple, diff)`   | 8.9us   |
+| `executeRender (simple, diff)`   | 9us     |
 | `executeRender (50 items, first)`| 189us   |
-| `executeRender (50 items, diff)` | 33us    |
+| `executeRender (50 items, diff)` | 32us    |
 
-Diff renders are 5.8-8.4x faster than first renders thanks to incremental rendering.
+Diff renders are 6-8x faster than first renders thanks to incremental rendering.
 
 ### By Phase
 
 | Phase                            | Time    | Notes                             |
 | -------------------------------- | ------- | --------------------------------- |
-| `measurePhase (simple)`          | 5ns     | Cached, no dirty nodes            |
-| `measurePhase (100 children)`    | 525ns   | Selective traversal               |
-| `layoutPhase (simple)`           | 439ns   | Flexx layout                      |
+| `measurePhase (simple)`          | 4ns     | Cached, no dirty nodes            |
+| `measurePhase (100 children)`    | 523ns   | Selective traversal               |
+| `layoutPhase (simple)`           | 442ns   | Flexx layout                      |
 | `layoutPhase (100 children)`     | 24us    | Flexx layout                      |
-| `contentPhase (simple)`          | 1.8us   | Incremental clone + dirty skip    |
-| `contentPhase (100 children)`    | 3.6us   | Incremental clone + dirty skip    |
+| `contentPhase (simple)`          | 1.7us   | Incremental clone + dirty skip    |
+| `contentPhase (100 children)`    | 3.4us   | Incremental clone + dirty skip    |
 | `outputPhase (no changes)`       | 7.5us   | Dirty bounding box skips all rows |
 | `outputPhase (10% changes)`      | 45us    | Row-level dirty + style cache     |
 | `outputPhase (first render)`     | 70us    | Full buffer diff                  |
@@ -33,7 +33,8 @@ Diff renders are 5.8-8.4x faster than first renders thanks to incremental render
 | ------------------ | ------ |
 | `fill 80x24`      | 3.0us  |
 | `setCell`          | 28ns   |
-| `getCellChar`      | 3.8ns  |
+| `getCellChar`      | 5.1ns  |
+| `getCellBg`        | 8.7ns  |
 | `readCellInto`     | 18ns   |
 | `cellEquals`       | 18ns   |
 | `create 80x24`     | 1.7us  |
@@ -47,9 +48,9 @@ inkx tracks dirty nodes and only updates what changed.
 
 | Nodes | inkx (incremental) | Ink 6 (full re-render) | Ratio       |
 | ----- | ------------------ | ---------------------- | ----------- |
-| 1     | 10us               | 257us                  | inkx ~25x   |
-| 100   | 18us               | 2.1ms                  | inkx ~117x  |
-| 1000  | 98us               | 20.2ms                 | inkx ~206x  |
+| 1     | 14us               | 262us                  | inkx ~19x   |
+| 100   | 22us               | 2.2ms                  | inkx ~100x  |
+| 1000  | 102us              | 20ms                   | inkx ~196x  |
 
 **Caveat**: This compares inkx's best case (small change, dirty tracking active) against Ink's
 only path (full re-render). Ink has no incremental mode. The comparison is representative of
@@ -60,9 +61,9 @@ entire tree every frame would not see this benefit.
 
 | Components | inkx (Flexx) | Ink 6 (Yoga NAPI) | Ratio     |
 | ---------- | ------------ | ----------------- | --------- |
-| 1          | 166 us       | 257 us            | inkx 1.5x |
-| 100        | 42.8 ms      | 48.8 ms           | inkx 1.1x |
-| 1000       | 440 ms       | 529 ms            | inkx 1.2x |
+| 1          | 173 us       | 262 us            | inkx 1.5x |
+| 100        | 44.6 ms      | 49.6 ms           | inkx 1.1x |
+| 1000       | 463 ms       | 530 ms            | inkx 1.1x |
 
 Both include React reconciliation. First-render performance is similar — the incremental
 machinery doesn't help here. See [benchmark README](../benchmarks/ink-comparison/README.md).
@@ -71,19 +72,19 @@ machinery doesn't help here. See [benchmark README](../benchmarks/ink-comparison
 
 | Benchmark             | Flexx (JS) | Yoga WASM | Yoga NAPI (C++) |
 | --------------------- | ---------- | --------- | --------------- |
-| 100 nodes flat list   | 89 us      | 80 us     | 199 us          |
-| 50-node kanban (3col) | 61 us      | 55 us     | 133 us          |
+| 100 nodes flat list   | 73 us      | 95 us     | 236 us          |
+| 50-node kanban (3col) | 57 us      | 54 us     | 156 us          |
 
-Flexx (pure JS, 7KB) matches Yoga WASM. Both ~2x faster than Yoga NAPI (C++) due to
-NAPI bridge overhead.
+Flexx (pure JS, 7KB) is 2.2x faster than Yoga NAPI for flat layouts. Matches Yoga WASM
+for kanban. Both significantly faster than Yoga NAPI (C++) due to NAPI bridge overhead.
 
 ## Key Insights
 
-1. **Diff renders are 5-8x faster than first renders** — incremental clone + dirty subtree skip means most of the buffer is preserved between frames.
+1. **Diff renders are 5-6x faster than first renders** — incremental clone + dirty subtree skip means most of the buffer is preserved between frames.
 
-2. **No-change frames are near-free at 7.5us** — the dirty bounding box means zero rows are scanned when nothing changed.
+2. **No-change frames are near-free at 7.4us** — the dirty bounding box means zero rows are scanned when nothing changed.
 
-3. **Content phase dominates the pipeline** — at 1.8-3.6us for incremental renders, it's the bottleneck for the diff path. Layout is faster (sub-microsecond for clean trees).
+3. **Content phase dominates the pipeline** — at 5-7us for incremental renders, it's the bottleneck for the diff path. Layout is faster (sub-microsecond for clean trees).
 
 4. **displayWidth LRU cache** provides 45x speedup for repeated strings — critical for TUI where the same text appears across frames.
 

@@ -48,49 +48,62 @@ export function contentPhase(
     prevBuffer.width === layout.width &&
     prevBuffer.height === layout.height
 
-  // DIAG: Track prevBuffer status per call
-  _contentPhaseCallCount++
-  _contentPhaseStats._prevBufferNull = prevBuffer == null ? 1 : 0
-  _contentPhaseStats._prevBufferDimMismatch =
-    prevBuffer && !hasPrevBuffer ? 1 : 0
-  _contentPhaseStats._hasPrevBuffer = hasPrevBuffer ? 1 : 0
-  _contentPhaseStats._layoutW = layout.width
-  _contentPhaseStats._layoutH = layout.height
-  _contentPhaseStats._prevW = prevBuffer?.width ?? 0
-  _contentPhaseStats._prevH = prevBuffer?.height ?? 0
-  _contentPhaseStats._callCount = _contentPhaseCallCount
+  if (_instrumentEnabled) {
+    _contentPhaseCallCount++
+    _contentPhaseStats._prevBufferNull = prevBuffer == null ? 1 : 0
+    _contentPhaseStats._prevBufferDimMismatch =
+      prevBuffer && !hasPrevBuffer ? 1 : 0
+    _contentPhaseStats._hasPrevBuffer = hasPrevBuffer ? 1 : 0
+    _contentPhaseStats._layoutW = layout.width
+    _contentPhaseStats._layoutH = layout.height
+    _contentPhaseStats._prevW = prevBuffer?.width ?? 0
+    _contentPhaseStats._prevH = prevBuffer?.height ?? 0
+    _contentPhaseStats._callCount = _contentPhaseCallCount
+  }
 
-  const t0 = performance.now()
+  const t0 = _instrumentEnabled ? performance.now() : 0
   const buffer = hasPrevBuffer
     ? prevBuffer.clone()
     : new TerminalBuffer(layout.width, layout.height)
-  const tClone = performance.now() - t0
+  const tClone = _instrumentEnabled ? performance.now() - t0 : 0
 
-  const t1 = performance.now()
+  const t1 = _instrumentEnabled ? performance.now() : 0
   renderNodeToBuffer(root, buffer, 0, undefined, hasPrevBuffer)
-  const tRender = performance.now() - t1
+  const tRender = _instrumentEnabled ? performance.now() - t1 : 0
 
-  // Expose sub-phase timing for profiling
-  const snap = {
-    clone: tClone,
-    render: tRender,
-    ...structuredClone(_contentPhaseStats),
+  if (_instrumentEnabled) {
+    // Expose sub-phase timing for profiling
+    const snap = {
+      clone: tClone,
+      render: tRender,
+      ...structuredClone(_contentPhaseStats),
+    }
+    ;(globalThis as any).__inkx_content_detail = snap
+    const arr = ((globalThis as any).__inkx_content_all ??= [] as typeof snap[])
+    arr.push(snap)
+    for (const key of Object.keys(_contentPhaseStats) as (keyof typeof _contentPhaseStats)[]) {
+      ;(_contentPhaseStats as any)[key] = 0
+    }
+    _contentPhaseStats.cascadeMinDepth = 999
+    _contentPhaseStats.cascadeNodes = ""
+    _contentPhaseStats.scrollClearReason = ""
+    _contentPhaseStats.normalRepaintReason = ""
   }
-  ;(globalThis as any).__inkx_content_detail = snap
-  // Also push to array for multi-call analysis
-  const arr = ((globalThis as any).__inkx_content_all ??= [] as typeof snap[])
-  arr.push(snap)
-  for (const key of Object.keys(_contentPhaseStats) as (keyof typeof _contentPhaseStats)[]) {
-    ;(_contentPhaseStats as any)[key] = 0
+
+  // Export node trace for INKX_STRICT diagnosis
+  if (_nodeTraceEnabled && _nodeTrace.length > 0) {
+    const traceArr = ((globalThis as any).__inkx_node_trace ??= [] as NodeTraceEntry[][])
+    traceArr.push([..._nodeTrace])
+    _nodeTrace.length = 0
   }
-  // Reset non-zero defaults
-  _contentPhaseStats.cascadeMinDepth = 999
-  _contentPhaseStats.cascadeNodes = ""
-  _contentPhaseStats.scrollClearReason = ""
-  _contentPhaseStats.normalRepaintReason = ""
 
   return buffer
 }
+
+/** Instrumentation enabled when INKX_STRICT, INKX_CHECK_INCREMENTAL, or INKX_INSTRUMENT is set */
+const _instrumentEnabled =
+  typeof process !== "undefined" &&
+  !!(process.env?.INKX_STRICT || process.env?.INKX_CHECK_INCREMENTAL || process.env?.INKX_INSTRUMENT)
 
 /** Mutable stats counters — reset after each contentPhase call */
 const _contentPhaseStats = {
@@ -131,6 +144,31 @@ const _contentPhaseStats = {
 
 let _contentPhaseCallCount = 0
 
+/** Per-node trace entries (populated when INKX_STRICT is set) */
+interface NodeTraceEntry {
+  id: string
+  type: string
+  depth: number
+  rect: string
+  prevLayout: string
+  hasPrev: boolean
+  ancestorCleared: boolean
+  flags: string
+  decision: string
+  layoutChanged: boolean
+  contentAreaAffected?: boolean
+  parentRegionCleared?: boolean
+  parentRegionChanged?: boolean
+  childHasPrev?: boolean
+  childAncestorCleared?: boolean
+  skipBgFill?: boolean
+  bgColor?: string
+}
+const _nodeTrace: NodeTraceEntry[] = []
+const _nodeTraceEnabled =
+  typeof process !== "undefined" &&
+  !!(process.env?.INKX_STRICT || process.env?.INKX_CHECK_INCREMENTAL)
+
 /** DIAG: compute node depth in tree */
 function _getNodeDepth(node: InkxNode): number {
   let depth = 0
@@ -163,7 +201,7 @@ function renderNodeToBuffer(
    *  its own region, but descendants may still need to clear their sub-regions. */
   ancestorCleared = false,
 ): void {
-  _contentPhaseStats.nodesVisited++
+  if (_instrumentEnabled) _contentPhaseStats.nodesVisited++
   const layout = node.contentRect
   if (!layout) return
 
@@ -194,6 +232,14 @@ function renderNodeToBuffer(
   // The buffer was cloned from prevBuffer, so skipped nodes keep their rendered output
   const layoutChanged = !rectEqual(node.prevLayout, node.contentRect)
 
+  // NOTE: prevLayout is intentionally NOT updated here. Updating it would fix
+  // the staleness bug (prevLayout=null after first render → layoutChanged=true
+  // for all nodes on every subsequent render), but the content phase currently
+  // relies on layoutChanged=true as a catch-all for contentAreaAffected region
+  // clearing. Fixing prevLayout requires also fixing contentAreaAffected to
+  // account for subtreeDirty (descendant content changes that shrink and leave
+  // stale pixels). See km-inkx.incremental-content for the full fix plan.
+
   // Check if any child shifted position (sibling shift from size changes).
   // Gap space between children belongs to this container, so must re-render.
   const childPositionChanged =
@@ -208,20 +254,43 @@ function renderNodeToBuffer(
     !node.childrenDirty &&
     !childPositionChanged
 
+  // Node ID for tracing (only trace named nodes to keep compact)
+  const _nodeId = _instrumentEnabled ? ((props.id as string | undefined) ?? "") : ""
+  const _traceThis = _instrumentEnabled && _nodeTraceEnabled && _nodeId
+
   if (skipFastPath) {
-    _contentPhaseStats.nodesSkipped++
+    if (_instrumentEnabled) {
+      _contentPhaseStats.nodesSkipped++
+      if (_traceThis) {
+        _nodeTrace.push({
+          id: _nodeId,
+          type: node.type,
+          depth: _getNodeDepth(node),
+          rect: `${layout.x},${layout.y} ${layout.width}x${layout.height}`,
+          prevLayout: node.prevLayout
+            ? `${node.prevLayout.x},${node.prevLayout.y} ${node.prevLayout.width}x${node.prevLayout.height}`
+            : "null",
+          hasPrev: hasPrevBuffer,
+          ancestorCleared,
+          flags: "",
+          decision: "SKIPPED",
+          layoutChanged,
+        })
+      }
+    }
     clearDirtyFlags(node)
     return
   }
-  _contentPhaseStats.nodesRendered++
-  // Track WHY the fast-path was missed
-  if (!hasPrevBuffer) _contentPhaseStats.noPrevBuffer++
-  if (node.contentDirty) _contentPhaseStats.flagContentDirty++
-  if (node.paintDirty) _contentPhaseStats.flagPaintDirty++
-  if (layoutChanged) _contentPhaseStats.flagLayoutChanged++
-  if (node.subtreeDirty) _contentPhaseStats.flagSubtreeDirty++
-  if (node.childrenDirty) _contentPhaseStats.flagChildrenDirty++
-  if (childPositionChanged) _contentPhaseStats.flagChildPositionChanged++
+  if (_instrumentEnabled) {
+    _contentPhaseStats.nodesRendered++
+    if (!hasPrevBuffer) _contentPhaseStats.noPrevBuffer++
+    if (node.contentDirty) _contentPhaseStats.flagContentDirty++
+    if (node.paintDirty) _contentPhaseStats.flagPaintDirty++
+    if (layoutChanged) _contentPhaseStats.flagLayoutChanged++
+    if (node.subtreeDirty) _contentPhaseStats.flagSubtreeDirty++
+    if (node.childrenDirty) _contentPhaseStats.flagChildrenDirty++
+    if (childPositionChanged) _contentPhaseStats.flagChildPositionChanged++
+  }
 
   // Check if this is a scrollable container
   const isScrollContainer = props.overflow === "scroll" && node.scrollState
@@ -275,38 +344,81 @@ function renderNodeToBuffer(
   // already has the correct bg at this node's position. That's ONLY when:
   // - hasPrevBuffer=true (buffer is a clone with previous frame's pixels)
   // - ancestorCleared=false (no ancestor erased our region)
-  // - needsOwnRepaint=false (our own properties didn't change)
+  // - contentAreaAffected=false (no content-area changes)
+  //
+  // Uses contentAreaAffected (not needsOwnRepaint) because border-only changes
+  // (paintDirty without bgDirty) don't change the bg fill — the cloned buffer
+  // already has the correct bg. Using needsOwnRepaint here caused bg fill to
+  // wipe child content on borderColor changes, while parentRegionChanged=false
+  // (from contentAreaAffected) prevented children from re-rendering to restore it.
   //
   // When ancestorCleared=true, the buffer at our position was erased to the
   // inherited bg, NOT our bg — so we must re-fill.
   // When hasPrevBuffer=false AND ancestorCleared=false, it's a fresh render.
-  const skipBgFill = hasPrevBuffer && !ancestorCleared && !needsOwnRepaint
+  const skipBgFill = hasPrevBuffer && !ancestorCleared && !contentAreaAffected
 
   // parentRegionChanged: this node's content area was modified on a cloned buffer.
   // Children must re-render (childHasPrev=false) because their pixels may be stale.
   const parentRegionChanged =
     (hasPrevBuffer || ancestorCleared) && contentAreaAffected
 
-  // DIAG: Track cascade sources
-  if (parentRegionChanged && node.children.length > 0) {
-    const depth = _getNodeDepth(node)
-    if (depth < _contentPhaseStats.cascadeMinDepth) {
-      _contentPhaseStats.cascadeMinDepth = depth
+  // DIAG: Per-node trace and cascade tracking (gated on instrumentation)
+  if (_instrumentEnabled) {
+    if (_traceThis) {
+      const flagStr = [
+        node.contentDirty && "C",
+        node.paintDirty && "P",
+        node.bgDirty && "B",
+        node.subtreeDirty && "S",
+        node.childrenDirty && "Ch",
+        childPositionChanged && "CP",
+      ].filter(Boolean).join(",")
+      const childrenNeedRepaint_ =
+        node.childrenDirty || childPositionChanged || parentRegionChanged
+      const childHasPrev_ = childrenNeedRepaint_ ? false : hasPrevBuffer
+      const childAncestorCleared_ = parentRegionCleared || ancestorCleared
+      _nodeTrace.push({
+        id: _nodeId,
+        type: node.type,
+        depth: _getNodeDepth(node),
+        rect: `${layout.x},${layout.y} ${layout.width}x${layout.height}`,
+        prevLayout: node.prevLayout
+          ? `${node.prevLayout.x},${node.prevLayout.y} ${node.prevLayout.width}x${node.prevLayout.height}`
+          : "null",
+        hasPrev: hasPrevBuffer,
+        ancestorCleared,
+        flags: flagStr,
+        decision: "RENDER",
+        layoutChanged,
+        contentAreaAffected,
+        parentRegionCleared,
+        parentRegionChanged,
+        childHasPrev: childHasPrev_,
+        childAncestorCleared: childAncestorCleared_,
+        skipBgFill,
+        bgColor: props.backgroundColor as string | undefined,
+      })
     }
-    const id = (node.props as Record<string, unknown>).id ?? node.type
-    const flags = [
-      node.contentDirty && "C",
-      node.paintDirty && "P",
-      node.childrenDirty && "Ch",
-      layoutChanged && "L",
-      childPositionChanged && "CP",
-    ].filter(Boolean).join("")
-    const entry = `${id}@${depth}[${flags}:${node.children.length}ch]`
-    _contentPhaseStats.cascadeNodes += (_contentPhaseStats.cascadeNodes ? " " : "") + entry
+    if (parentRegionChanged && node.children.length > 0) {
+      const depth = _getNodeDepth(node)
+      if (depth < _contentPhaseStats.cascadeMinDepth) {
+        _contentPhaseStats.cascadeMinDepth = depth
+      }
+      const id = (node.props as Record<string, unknown>).id ?? node.type
+      const flags = [
+        node.contentDirty && "C",
+        node.paintDirty && "P",
+        node.childrenDirty && "Ch",
+        layoutChanged && "L",
+        childPositionChanged && "CP",
+      ].filter(Boolean).join("")
+      const entry = `${id}@${depth}[${flags}:${node.children.length}ch]`
+      _contentPhaseStats.cascadeNodes += (_contentPhaseStats.cascadeNodes ? " " : "") + entry
+    }
   }
 
   if (parentRegionCleared) {
-    _contentPhaseStats.clearOps++
+    if (_instrumentEnabled) _contentPhaseStats.clearOps++
     clearNodeRegion(
       node,
       buffer,
@@ -319,7 +431,7 @@ function renderNodeToBuffer(
 
   // Render based on node type
   if (node.type === "inkx-box") {
-    _contentPhaseStats.boxNodes++
+    if (_instrumentEnabled) _contentPhaseStats.boxNodes++
     renderBox(node, buffer, layout, props, clipBounds, scrollOffset, skipBgFill)
 
     // If scrollable, render overflow indicators
@@ -327,7 +439,7 @@ function renderNodeToBuffer(
       renderScrollIndicators(node, buffer, layout, props, node.scrollState!)
     }
   } else if (node.type === "inkx-text") {
-    _contentPhaseStats.textNodes++
+    if (_instrumentEnabled) _contentPhaseStats.textNodes++
     renderText(node, buffer, layout, props, scrollOffset, clipBounds)
   }
 
@@ -417,16 +529,18 @@ function renderScrollContainerChildren(
     !scrollOnly &&
     (scrollOffsetChanged || node.childrenDirty || parentRegionChanged)
 
-  _contentPhaseStats.scrollContainerCount++
-  if (needsViewportClear || scrollOnly) {
-    _contentPhaseStats.scrollViewportCleared++
-    const reasons: string[] = []
-    if (scrollOnly) reasons.push("SHIFT")
-    if (scrollOffsetChanged) reasons.push(`scrollOffset(${ss.prevOffset}->${ss.offset})`)
-    if (node.childrenDirty) reasons.push("childrenDirty")
-    if (parentRegionChanged) reasons.push("parentRegionChanged")
-    reasons.push(`vp=${ss.viewportHeight} content=${ss.contentHeight} vis=${ss.firstVisibleChild}-${ss.lastVisibleChild}`)
-    _contentPhaseStats.scrollClearReason = reasons.join("+")
+  if (_instrumentEnabled) {
+    _contentPhaseStats.scrollContainerCount++
+    if (needsViewportClear || scrollOnly) {
+      _contentPhaseStats.scrollViewportCleared++
+      const reasons: string[] = []
+      if (scrollOnly) reasons.push("SHIFT")
+      if (scrollOffsetChanged) reasons.push(`scrollOffset(${ss.prevOffset}->${ss.offset})`)
+      if (node.childrenDirty) reasons.push("childrenDirty")
+      if (parentRegionChanged) reasons.push("parentRegionChanged")
+      reasons.push(`vp=${ss.viewportHeight} content=${ss.contentHeight} vis=${ss.firstVisibleChild}-${ss.lastVisibleChild}`)
+      _contentPhaseStats.scrollClearReason = reasons.join("+")
+    }
   }
 
   // Compute viewport geometry (shared by both paths)
@@ -582,7 +696,7 @@ function renderNormalChildren(
   // children were restructured, or sibling positions shifted.
   const childrenNeedRepaint =
     node.childrenDirty || childPositionChanged || parentRegionChanged
-  if (childrenNeedRepaint && hasPrevBuffer) {
+  if (_instrumentEnabled && childrenNeedRepaint && hasPrevBuffer) {
     _contentPhaseStats.normalChildrenRepaint++
     const reasons: string[] = []
     if (node.childrenDirty) reasons.push("childrenDirty")
@@ -596,7 +710,10 @@ function renderNormalChildren(
   // parentRegionChanged WITHOUT parentRegionCleared means the parent filled its bg,
   // so children's positions have correct bg — NOT stale. Setting ancestorCleared
   // there would cause children to re-fill, overwriting border cells at boundaries.
-  const childAncestorCleared = parentRegionCleared || ancestorCleared
+  // When this node has backgroundColor, its renderBox fill covers any stale
+  // pixels from ancestor clears — so children don't need ancestorCleared.
+  const childAncestorCleared =
+    parentRegionCleared || (ancestorCleared && !props.backgroundColor)
 
   // Two-pass rendering to match CSS paint order: normal-flow first, then
   // absolute on top. This ensures absolute children's pixels (bg fills, text)
