@@ -39,24 +39,43 @@ Diff renders are 5.8-8.4x faster than first renders thanks to incremental render
 | `create 80x24`     | 1.7us  |
 | `create 200x50`    | 3.7us  |
 
-### inkx vs Ink 6
+### inkx vs Ink 6 (Full Pipeline)
 
 | Components | inkx (Flexx) | Ink 6 (Yoga NAPI) | Ratio     |
 | ---------- | ------------ | ----------------- | --------- |
-| 1          | 172 us       | 269 us            | inkx 1.6x |
-| 100        | 45.9 ms      | 49.7 ms           | inkx 1.1x |
-| 1000       | 443 ms       | 544 ms            | inkx 1.2x |
+| 1          | 166 us       | 257 us            | inkx 1.5x |
+| 100        | 42.8 ms      | 48.8 ms           | inkx 1.1x |
+| 1000       | 440 ms       | 529 ms            | inkx 1.2x |
 
 Both include React reconciliation. See [benchmark README](../benchmarks/ink-comparison/README.md) for methodology.
+
+### inkx Dirty-Tracking Diff Render (no Ink equivalent)
+
+| Nodes | Time  |
+| ----- | ----- |
+| 1     | 10us  |
+| 100   | 18us  |
+| 1000  | 98us  |
+
+### React Re-render (apples-to-apples)
+
+| Components | inkx     | Ink 6   | Ratio     |
+| ---------- | -------- | ------- | --------- |
+| 100        | 63.4 ms  | 2.1 ms  | ink 30x   |
+| 1000       | 619 ms   | 20.2 ms | ink 31x   |
+
+Full React reconciliation of the component tree. Ink's re-render path is faster because it skips
+incremental diffing and re-renders everything. inkx pays for dirty tracking overhead that only pays
+off on the diff path (where it's 5-8x faster than first render).
 
 ### Layout Engine Comparison
 
 | Benchmark             | Flexx (JS) | Yoga WASM | Yoga NAPI (C++) |
 | --------------------- | ---------- | --------- | --------------- |
-| 100 nodes flat list   | 87 us      | 88 us     | 200 us          |
-| 50-node kanban (3col) | 62 us      | 58 us     | 136 us          |
+| 100 nodes flat list   | 89 us      | 80 us     | 199 us          |
+| 50-node kanban (3col) | 61 us      | 55 us     | 133 us          |
 
-Flexx and Yoga WASM are ~2x faster than Yoga NAPI due to NAPI bridge overhead.
+Flexx and Yoga WASM are ~1.5-2x faster than Yoga NAPI due to NAPI bridge overhead.
 
 ## Key Insights
 
