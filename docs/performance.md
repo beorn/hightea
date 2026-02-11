@@ -39,7 +39,24 @@ Diff renders are 5.8-8.4x faster than first renders thanks to incremental render
 | `create 80x24`     | 1.7us  |
 | `create 200x50`    | 3.7us  |
 
-### inkx vs Ink 6 (Full Pipeline)
+### inkx vs Ink 6: Frame Update Cost
+
+The key performance difference is how each framework handles typical frame updates
+(cursor movement, selection changes, typing). Ink re-renders the entire tree every frame.
+inkx tracks dirty nodes and only updates what changed.
+
+| Nodes | inkx (incremental) | Ink 6 (full re-render) | Ratio       |
+| ----- | ------------------ | ---------------------- | ----------- |
+| 1     | 10us               | 257us                  | inkx ~25x   |
+| 100   | 18us               | 2.1ms                  | inkx ~117x  |
+| 1000  | 98us               | 20.2ms                 | inkx ~206x  |
+
+**Caveat**: This compares inkx's best case (small change, dirty tracking active) against Ink's
+only path (full re-render). Ink has no incremental mode. The comparison is representative of
+real TUI usage where most frames change only a few nodes, but a workload that changes the
+entire tree every frame would not see this benefit.
+
+### First Render (Full Pipeline)
 
 | Components | inkx (Flexx) | Ink 6 (Yoga NAPI) | Ratio     |
 | ---------- | ------------ | ----------------- | --------- |
@@ -47,26 +64,8 @@ Diff renders are 5.8-8.4x faster than first renders thanks to incremental render
 | 100        | 42.8 ms      | 48.8 ms           | inkx 1.1x |
 | 1000       | 440 ms       | 529 ms            | inkx 1.2x |
 
-Both include React reconciliation. See [benchmark README](../benchmarks/ink-comparison/README.md) for methodology.
-
-### inkx Dirty-Tracking Diff Render (no Ink equivalent)
-
-| Nodes | Time  |
-| ----- | ----- |
-| 1     | 10us  |
-| 100   | 18us  |
-| 1000  | 98us  |
-
-### React Re-render (apples-to-apples)
-
-| Components | inkx     | Ink 6   | Ratio     |
-| ---------- | -------- | ------- | --------- |
-| 100        | 63.4 ms  | 2.1 ms  | ink 30x   |
-| 1000       | 619 ms   | 20.2 ms | ink 31x   |
-
-Full React reconciliation of the component tree. Ink's re-render path is faster because it skips
-incremental diffing and re-renders everything. inkx pays for dirty tracking overhead that only pays
-off on the diff path (where it's 5-8x faster than first render).
+Both include React reconciliation. First-render performance is similar — the incremental
+machinery doesn't help here. See [benchmark README](../benchmarks/ink-comparison/README.md).
 
 ### Layout Engine Comparison
 
@@ -75,7 +74,8 @@ off on the diff path (where it's 5-8x faster than first render).
 | 100 nodes flat list   | 89 us      | 80 us     | 199 us          |
 | 50-node kanban (3col) | 61 us      | 55 us     | 133 us          |
 
-Flexx and Yoga WASM are ~1.5-2x faster than Yoga NAPI due to NAPI bridge overhead.
+Flexx (pure JS, 7KB) matches Yoga WASM. Both ~2x faster than Yoga NAPI (C++) due to
+NAPI bridge overhead.
 
 ## Key Insights
 
