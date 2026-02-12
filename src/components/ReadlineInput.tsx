@@ -122,7 +122,8 @@ export const ReadlineInput = forwardRef<
       [onChange],
     ),
     isActive,
-    handleEnter: true,
+    handleEnter: !!onSubmit,
+    onSubmit,
     onEOF,
   })
 

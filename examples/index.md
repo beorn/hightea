@@ -1,267 +1,85 @@
 # Inkx Examples
 
-Interactive examples demonstrating Inkx features.
+Interactive examples demonstrating Inkx features. Organized by category.
 
 ## Running Examples
 
-All examples can be run directly with bun:
+Browse all examples in the interactive viewer:
 
 ```bash
-bun run examples/<name>/index.tsx
+bun examples
 ```
 
-## Available Examples
-
-### Dashboard
-
-A multi-pane dashboard with keyboard navigation.
+Run any example standalone:
 
 ```bash
-bun run examples/dashboard/index.tsx
+bun examples/<category>/<name>.tsx
 ```
 
-**Demonstrates:**
+## Structure
 
-- 3-column layout using `flexGrow`
-- Keyboard navigation between panes
-- Styled borders and conditional highlighting
-- Progress bars with visual indicators
+Examples are organized into category directories. Each exports a `meta` object
+with `name` and `description`. The viewer auto-discovers all examples — no
+registry to maintain.
 
-### Task List
-
-A scrollable task list with 60+ items.
-
-```bash
-bun run examples/task-list/index.tsx
+```
+examples/
+  _banner.tsx           # Shared banner component (not an example)
+  viewer.tsx            # Interactive example browser
+  layout/               # Layout and responsive design
+  interactive/          # Keyboard-driven interactive apps
+  runtime/              # Runtime layer demos (Layer 1-3)
+  inline/               # Inline mode and scrollback
+  playground/           # Web playground (not an example)
+  screenshots/          # Screenshot generation tool
+  web/                  # Web render targets (canvas, DOM)
 ```
 
-**Demonstrates:**
+## Layout
 
-- Virtual scrolling (only visible items rendered)
-- Variable height items with expandable subtasks
-- `overflow="hidden"` for content clipping
-- Priority badges with color coding
-- Selection highlighting with `backgroundColor`
+| Example | File | Description |
+|---------|------|-------------|
+| Dashboard | `layout/dashboard.tsx` | Multi-pane dashboard with keyboard navigation |
+| Live Resize | `layout/live-resize.tsx` | Responsive columns via `useContentRect()` |
+| Overflow | `layout/overflow.tsx` | `overflow="hidden"` content clipping |
 
-### Kanban Board
+## Interactive
 
-A 3-column kanban board with card management.
+| Example | File | Description |
+|---------|------|-------------|
+| AI Chat | `interactive/ai-chat.tsx` | Chat UI with VirtualList and streaming responses |
+| Todo App | `interactive/app-todo.tsx` | Layer 3: `createApp()` with Zustand store |
+| Async Data | `interactive/async-data.tsx` | Suspense boundaries with `use()` hook |
+| Kanban | `interactive/kanban.tsx` | Multi-column kanban with card movement |
+| Layout Ref | `interactive/layout-ref.tsx` | `forwardRef` + `onLayout` callbacks |
+| Scroll | `interactive/scroll.tsx` | Basic scrollable list |
+| Search Filter | `interactive/search-filter.tsx` | React concurrent features (`useDeferredValue`) |
+| Task List | `interactive/task-list.tsx` | VirtualList with variable-height items |
+| TextArea | `interactive/textarea.tsx` | Multi-line text input component |
+| Virtual 10K | `interactive/virtual-10k.tsx` | VirtualList with 10,000 items |
 
-```bash
-bun run examples/kanban/index.tsx
-```
+## Runtime
 
-**Demonstrates:**
+| Example | File | Description |
+|---------|------|-------------|
+| Elm Counter | `runtime/elm-counter.tsx` | Layer 1: `createRuntime()` with Elm architecture |
+| Hello Runtime | `runtime/hello-runtime.tsx` | Layer 1: minimal static render |
+| Run Counter | `runtime/run-counter.tsx` | Layer 2: `run()` with React hooks |
+| Runtime Counter | `runtime/runtime-counter.tsx` | Layer 1: `createRuntime()` with event loop |
 
-- Multiple columns with independent scrolling
-- Move cards between columns with keyboard
-- Nested `Box` layouts with `flexGrow`
-- Color-coded tags
-- Dynamic state management across columns
+## Inline
 
-### Search Filter (React Concurrent Features)
-
-Interactive search with responsive typing using React concurrent features.
-
-```bash
-bun run examples/search-filter/index.tsx
-```
-
-**Demonstrates:**
-
-- `useDeferredValue` for deferred query filtering
-- `useTransition` for low-priority state updates
-- Typing remains responsive during heavy filtering
-- Pending state indicator
-
-### Async Data (Suspense)
-
-Async data loading with independent Suspense boundaries.
-
-```bash
-bun run examples/async-data/index.tsx
-```
-
-**Demonstrates:**
-
-- React `use()` hook for data fetching
-- Multiple independent Suspense boundaries
-- Staggered loading with fallback UI
-- ErrorBoundary integration
-
-### Layout Ref (forwardRef + onLayout)
-
-Imperative access to layout information via refs and callbacks.
-
-```bash
-bun run examples/layout-ref/index.tsx
-```
-
-**Demonstrates:**
-
-- `forwardRef` on Box components
-- `BoxHandle` with `getContentRect()`, `getScreenRect()`, `getNode()`
-- `onLayout` callback for size change notifications
-- Declarative vs imperative layout access
-
-### TextArea
-
-A multi-line note editor demonstrating the TextArea component.
-
-```bash
-bun run examples/textarea/index.tsx
-```
-
-**Demonstrates:**
-
-- Multi-line text input with word wrapping via `useContentRect`
-- Cursor movement (arrows, Home/End, Ctrl+A/E)
-- Kill operations (Ctrl+K, Ctrl+U)
-- Scrolling within the textarea (PageUp/PageDown)
-- Submit with Ctrl+Enter
-
-### REPL (Scrollback Mode)
-
-Interactive expression evaluator demonstrating useScrollback + VirtualList frozen.
-
-```bash
-bun run examples/scrollback/index.tsx
-```
-
-**Demonstrates:**
-
-- `useScrollback` pushing completed results to terminal scrollback
-- `VirtualList` `frozen` prop excluding completed items from rendering
-- Inline mode (`mode: "inline"`) for normal screen buffer
-- Text input with expression evaluation
-
-### AI Chat UI
-
-A scrollable chat interface with simulated AI streaming responses.
-
-```bash
-bun run examples/ai-chat/index.tsx
-```
-
-**Demonstrates:**
-
-- `VirtualList` for efficient rendering of variable-height messages
-- `useContentRect()` for responsive layout adapting to terminal width
-- `ReadlineInput` for text entry with full readline shortcuts
-- Simulated AI streaming responses with progressive character reveal
-- Word-wrapped messages with usernames, timestamps, and styled bubbles
-
-### Live Resize
-
-Multi-column layout that reflows in real-time based on terminal width. **The** demo showcasing inkx's unique `useContentRect()` capability.
-
-```bash
-bun run examples/live-resize/index.tsx
-```
-
-**Demonstrates:**
-
-- `useContentRect()` providing synchronous width/height during render
-- Responsive breakpoints: 1 column (< 60), 2 columns (60-99), 3 columns (100+)
-- Metric cards with sparkline visualizations that adapt to size
-- Compact mode for very small terminals
-- Inline code snippet showing how the layout magic works
-
-### Virtual Scroll Benchmark (10K Items)
-
-Smooth scrolling through 10,000 items — proving VirtualList handles massive datasets instantly.
-
-```bash
-bun run examples/virtual-10k/index.tsx
-```
-
-**Demonstrates:**
-
-- `VirtualList` with 10,000 generated items and variable heights
-- Instant j/k navigation with scroll position indicator
-- Half-page jumps (d/u), jump to start/end (g/G)
-- Expandable detail view per item
-- Priority badges, status icons, progress bars, and tag labels
-- `useContentRect()` for adaptive layout
-
-## Common Patterns
-
-### Keyboard Handling
-
-All examples use `useInput()` for keyboard interaction:
-
-```tsx
-import { useInput, useApp, type Key } from "inkx"
-
-function MyComponent() {
-  const { exit } = useApp()
-
-  useInput((input: string, key: Key) => {
-    if (key.upArrow) {
-      /* move up */
-    }
-    if (input === "q") {
-      exit()
-    }
-  })
-
-  return <Text>Press q to quit</Text>
-}
-```
-
-### Scrolling
-
-For lists that exceed available height:
-
-```tsx
-const visibleCount = 15 // Fixed or calculated from terminal height
-const scrollOffset = calculateScrollOffset(cursor, visibleCount, totalItems)
-const visibleItems = items.slice(scrollOffset, scrollOffset + visibleCount)
-
-return (
-  <Box overflow="hidden" height={visibleCount}>
-    {visibleItems.map((item) => (
-      <Item key={item.id} item={item} />
-    ))}
-  </Box>
-)
-```
-
-### Flexbox Layouts
-
-Equal-width columns:
-
-```tsx
-<Box flexDirection="row" gap={1}>
-  <Box flexGrow={1}>
-    <Text>Column 1</Text>
-  </Box>
-  <Box flexGrow={1}>
-    <Text>Column 2</Text>
-  </Box>
-  <Box flexGrow={1}>
-    <Text>Column 3</Text>
-  </Box>
-</Box>
-```
-
-### Selection Highlighting
-
-```tsx
-{
-  isSelected ? (
-    <Text backgroundColor="cyan" color="black">
-      Selected item
-    </Text>
-  ) : (
-    <Text>Normal item</Text>
-  )
-}
-```
+| Example | File | Description |
+|---------|------|-------------|
+| Inline Simple | `inline/inline-simple.tsx` | Basic inline rendering |
+| Inline Progress | `inline/inline-progress.tsx` | Inline progress bar |
+| Inline Non-TTY | `inline/inline-nontty.tsx` | Inline output for piped/non-TTY |
+| Scrollback | `inline/scrollback.tsx` | REPL with `useScrollback` + VirtualList frozen |
 
 ## Creating New Examples
 
-1. Create a directory under `examples/`
-2. Add `index.tsx` with your example code
-3. Add `README.md` with description and controls
-4. Update this index to list your example
+1. Add a `.tsx` file in the appropriate category directory
+2. Export a `meta` object: `export const meta: ExampleMeta = { name: "...", description: "..." }`
+3. Export your main component as a named function
+4. Wrap with `ExampleBanner` in the `import.meta.main` block for standalone mode
+5. The viewer discovers it automatically — no registry to update

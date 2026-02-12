@@ -47,6 +47,8 @@ export interface UseReadlineOptions {
   isActive?: boolean
   /** Handle Enter key (default: false - let parent handle) */
   handleEnter?: boolean
+  /** Called when Enter is pressed (requires handleEnter: true) */
+  onSubmit?: (value: string) => void
   /** Handle Escape key (default: false - let parent handle) */
   handleEscape?: boolean
   /** Handle Up/Down arrows (default: false - let parent handle for history) */
@@ -126,6 +128,7 @@ export function useReadline({
   handleEscape = false,
   handleVerticalArrows = false,
   onEOF,
+  onSubmit,
 }: UseReadlineOptions = {}): UseReadlineResult {
   const [state, setState] = useState<ReadlineState>({
     value: initialValue,
@@ -179,6 +182,10 @@ export function useReadline({
 
       // Let parent handle Enter/Escape/vertical arrows unless explicitly enabled
       if (key.return && !handleEnter) return
+      if (key.return && handleEnter) {
+        onSubmit?.(value)
+        return
+      }
       if (key.escape && !handleEscape) return
       if ((key.upArrow || key.downArrow) && !handleVerticalArrows) return
 

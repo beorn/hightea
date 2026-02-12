@@ -4,6 +4,10 @@
  * Storybook-style TUI for browsing and running inkx examples.
  * Left: nav sidebar. Right: tabbed content (View / Source).
  *
+ * Examples are auto-discovered from category directories (layout/, interactive/,
+ * runtime/, inline/). Each example exports a `meta` object with name and description.
+ * Category is inferred from the directory name.
+ *
  * Usage: bun examples   (or: bun examples/viewer.tsx)
  *
  * Controls:
@@ -15,6 +19,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from "react"
 import { readFileSync } from "node:fs"
+import { resolve } from "node:path"
 import {
   render,
   renderStatic,
@@ -28,7 +33,7 @@ import {
 } from "../src/index.js"
 
 // =============================================================================
-// Example Registry
+// Auto-Discovery
 // =============================================================================
 
 interface Example {
@@ -38,142 +43,72 @@ interface Example {
   category: string
   /** Export name of the main component (enables live preview) */
   component?: string
+  /** API features showcased */
+  features?: string[]
 }
 
-const examples: Example[] = [
-  {
-    name: "Dashboard",
-    file: "dashboard/index.tsx",
-    description:
-      "Multi-pane dashboard with flexGrow columns and keyboard navigation",
-    category: "Layout",
-    component: "Dashboard",
-  },
-  {
-    name: "Overflow Test",
-    file: "test-overflow/index.tsx",
-    description: 'overflow="hidden" content clipping test case',
-    category: "Layout",
-    component: "OverflowApp",
-  },
-  {
-    name: "Kanban Board",
-    file: "kanban/index.tsx",
-    description: "3-column kanban with card movement and independent scroll",
-    category: "Interactive",
-    component: "KanbanBoard",
-  },
-  {
-    name: "Task List",
-    file: "task-list/index.tsx",
-    description:
-      "Scrollable list with priority badges, toggles, and expandable subtasks",
-    category: "Interactive",
-    component: "TaskList",
-  },
-  {
-    name: "Scroll",
-    file: "scroll/index.tsx",
-    description: 'Native overflow="scroll" with automatic scroll-to-selected',
-    category: "Interactive",
-    component: "ScrollExample",
-  },
-  {
-    name: "Search Filter",
-    file: "search-filter/index.tsx",
-    description:
-      "useTransition + useDeferredValue for responsive concurrent search",
-    category: "Interactive",
-    component: "SearchApp",
-  },
-  {
-    name: "Async Data",
-    file: "async-data/index.tsx",
-    description:
-      "React Suspense with independent data sources and error boundaries",
-    category: "Interactive",
-    // No preview: Suspense + async use() requires full reconciler event loop
-  },
-  {
-    name: "Layout Ref",
-    file: "layout-ref/index.tsx",
-    description:
-      "useContentRect + useScreenRect for imperative layout measurement",
-    category: "Interactive",
-    component: "LayoutRefApp",
-  },
-  {
-    name: "TextArea",
-    file: "textarea/index.tsx",
-    description:
-      "Multi-line text input with word wrap, scrolling, and kill operations",
-    category: "Interactive",
-    component: "NoteEditor",
-  },
-  {
-    name: "Todo App",
-    file: "app-todo.tsx",
-    description: "Layer 3: createApp() with Zustand store for shared state",
-    category: "Interactive",
-  },
-  {
-    name: "Hello Runtime",
-    file: "hello-runtime.tsx",
-    description:
-      "Simplest Layer 1 API: createRuntime(), layout(), Symbol.dispose",
-    category: "Runtime",
-  },
-  {
-    name: "Runtime Counter",
-    file: "runtime-counter.tsx",
-    description: "Layer 1 event loop: events() AsyncIterable + schedule()",
-    category: "Runtime",
-  },
-  {
-    name: "Run Counter",
-    file: "run-counter.tsx",
-    description: "Layer 2: run() with React hooks and useRuntimeInput",
-    category: "Runtime",
-  },
-  {
-    name: "Elm Counter",
-    file: "mode3-counter.tsx",
-    description: "Pure functional Elm-style: reducer + view, no hooks",
-    category: "Runtime",
-  },
-  {
-    name: "Inline Simple",
-    file: "inline-simple.tsx",
-    description: "Inline rendering from current cursor position",
-    category: "Inline",
-  },
-  {
-    name: "Inline Progress",
-    file: "inline-progress.tsx",
-    description: "Inline progress bar updating in place",
-    category: "Inline",
-  },
-  {
-    name: "Scrollback",
-    file: "scrollback/index.tsx",
-    description:
-      "REPL with useScrollback + VirtualList frozen for terminal scrollback",
-    category: "Inline",
-    component: "Repl",
-  },
-  {
-    name: "Non-TTY Mode",
-    file: "inline-nontty.tsx",
-    description: "Graceful degradation for pipes, CI, and TERM=dumb",
-    category: "Inline",
-  },
-]
+const CATEGORY_DIRS = ["layout", "interactive", "runtime", "inline"] as const
+
+const CATEGORY_ORDER: Record<string, number> = {
+  Layout: 0,
+  Interactive: 1,
+  Runtime: 2,
+  Inline: 3,
+}
 
 const CATEGORY_COLOR: Record<string, string> = {
   Layout: "magenta",
   Interactive: "cyan",
   Runtime: "green",
   Inline: "yellow",
+}
+
+async function discoverExamples(): Promise<Example[]> {
+  const baseDir = new URL(".", import.meta.url).pathname
+  const results: Example[] = []
+
+  for (const dir of CATEGORY_DIRS) {
+    const category = dir.charAt(0).toUpperCase() + dir.slice(1)
+    const glob = new Bun.Glob("*.tsx")
+    const dirPath = resolve(baseDir, dir)
+
+    for (const file of glob.scanSync({ cwd: dirPath })) {
+      try {
+        const mod = await import(resolve(dirPath, file))
+        if (!mod.meta?.name) continue
+
+        // Find first exported function that isn't meta or default
+        let component: string | undefined
+        for (const [key, value] of Object.entries(mod)) {
+          if (key === "meta" || key === "default") continue
+          if (typeof value === "function") {
+            component = key
+            break
+          }
+        }
+
+        results.push({
+          name: mod.meta.name,
+          description: mod.meta.description ?? "",
+          file: `${dir}/${file}`,
+          category,
+          component,
+          features: mod.meta.features,
+        })
+      } catch {
+        // Skip files that fail to import
+      }
+    }
+  }
+
+  results.sort((a, b) => {
+    const catDiff =
+      (CATEGORY_ORDER[a.category] ?? 99) - (CATEGORY_ORDER[b.category] ?? 99)
+    if (catDiff !== 0) return catDiff
+    return a.name.localeCompare(b.name)
+  })
+
+  return results
 }
 
 // =============================================================================
@@ -291,7 +226,13 @@ function highlightLine(line: string): React.ReactNode {
 // Components
 // =============================================================================
 
-function Sidebar({ cursor }: { cursor: number }) {
+function Sidebar({
+  examples,
+  cursor,
+}: {
+  examples: Example[]
+  cursor: number
+}) {
   const { groups, scrollToChild } = useMemo(() => {
     const result: {
       category: string
@@ -313,7 +254,7 @@ function Sidebar({ cursor }: { cursor: number }) {
       childIdx++
     }
     return { groups: result, scrollToChild: targetChild }
-  }, [cursor])
+  }, [examples, cursor])
 
   return (
     <Box
@@ -426,11 +367,18 @@ function Preview({ example }: { example: Example }) {
     </Box>
   )
 
+  const infoLines = [
+    "",
+    ` ${example.name}`,
+    ` ${example.description}`,
+    ...(example.features?.length
+      ? ["", ` Features: ${example.features.join(" · ")}`]
+      : []),
+  ]
+
   if (error === "no-component") {
     return renderLines([
-      "",
-      ` ${example.name}`,
-      ` ${example.description}`,
+      ...infoLines,
       "",
       " No live preview — uses non-React API.",
       " Press Enter to run standalone.",
@@ -438,11 +386,11 @@ function Preview({ example }: { example: Example }) {
   }
 
   if (error) {
-    return renderLines(["", ` ${example.name}`, "", ` Error: ${error}`])
+    return renderLines([...infoLines, "", ` Error: ${error}`])
   }
 
   if (!lines) {
-    return renderLines(["", ` ${example.name}`, "", " Loading preview..."])
+    return renderLines([...infoLines, "", " Loading preview..."])
   }
 
   return renderLines(lines)
@@ -472,7 +420,7 @@ function SourceCode({ example }: { example: Example }) {
   )
 }
 
-function Viewer() {
+function Viewer({ examples }: { examples: Example[] }) {
   const { exit } = useApp()
   const [cursor, setCursor] = useState(0)
   const [tab, setTab] = useState<"view" | "source">("view")
@@ -494,7 +442,7 @@ function Viewer() {
       })
       void proc.exited.then(() => process.exit(0))
     },
-    [exit],
+    [examples, exit],
   )
 
   useInput((input: string, key: Key) => {
@@ -555,7 +503,7 @@ function Viewer() {
 
       {/* Main: sidebar + content */}
       <Box flexDirection="row" flexGrow={1} gap={1}>
-        <Sidebar cursor={cursor} />
+        <Sidebar examples={examples} cursor={cursor} />
 
         {/* Content area with tabs */}
         <Box
@@ -565,8 +513,8 @@ function Viewer() {
           borderColor="gray"
           overflow="hidden"
         >
-          {/* Tab bar */}
-          <Box paddingX={1}>
+          {/* Tab bar + info */}
+          <Box paddingX={1} flexDirection="column">
             <Text>
               <Text
                 bold={tab === "view"}
@@ -583,8 +531,15 @@ function Viewer() {
               >
                 Source
               </Text>
-              <Text dim> {selected.name}</Text>
+              <Text> </Text>
+              <Text bold>{selected.name}</Text>
+              <Text dim> — {selected.description}</Text>
             </Text>
+            {selected.features && selected.features.length > 0 && (
+              <Text dim wrap="truncate">
+                {selected.features.join(" · ")}
+              </Text>
+            )}
           </Box>
 
           {/* Tab content — key forces full teardown on example switch */}
@@ -636,8 +591,13 @@ function Viewer() {
 // =============================================================================
 
 async function main() {
+  const examples = await discoverExamples()
+
   using term = createTerm()
-  const { waitUntilExit } = await render(<Viewer />, term)
+  const { waitUntilExit } = await render(
+    <Viewer examples={examples} />,
+    term,
+  )
   await waitUntilExit()
 }
 

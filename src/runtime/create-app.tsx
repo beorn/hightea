@@ -124,7 +124,7 @@ export interface EventHandlerContext<S> {
 export type EventHandler<T, S> = (
   data: T,
   ctx: EventHandlerContext<S>,
-) => void | "exit"
+) => void | "exit" | "flush"
 
 /**
  * Event handlers map.
@@ -1077,7 +1077,7 @@ async function initApp<
    * Run a single event's handler (state mutation only, no render).
    * Returns true if processing should continue, false if app should exit.
    */
-  function runEventHandler(event: NamespacedEvent): boolean {
+  function runEventHandler(event: NamespacedEvent): boolean | "flush" {
     const namespacedKey = event.type
     const namespacedHandler = handlers?.[namespacedKey as keyof typeof handlers]
 
@@ -1091,6 +1091,9 @@ async function initApp<
       )
       if (result === "exit") {
         return false
+      }
+      if (result === "flush") {
+        return "flush"
       }
     }
     return true
@@ -1119,12 +1122,26 @@ async function initApp<
 
     // Run all handlers — state mutations batch naturally in Zustand
     for (const event of events) {
-      const shouldContinue = runEventHandler(event)
-      if (!shouldContinue) {
+      const result = runEventHandler(event)
+      if (result === false) {
         isRendering = false
         inEventHandler = false
         exit()
         return null
+      }
+
+      // Render barrier: if handler requested flush, render now before next event.
+      // This ensures newly mounted components (e.g., InlineEditField) have their
+      // refs set up before the next event handler runs.
+      if (result === "flush") {
+        pendingRerender = false
+        currentBuffer = doRender()
+        // Flush effects so mounted components can set up refs
+        await Promise.resolve()
+        if (pendingRerender) {
+          pendingRerender = false
+          currentBuffer = doRender()
+        }
       }
     }
 
