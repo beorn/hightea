@@ -172,12 +172,20 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   const { width } = useContentRect()
   const wrapWidth = Math.max(1, width)
 
+  // Clamp cursor when controlled value shrinks (e.g., parent resets to "").
+  // Without this, cursor stays at a position past the end of the text,
+  // and cursorToRowCol falls through to the default {row: 0, col: 0}.
+  const clampedCursor = Math.min(cursor, value.length)
+  if (clampedCursor !== cursor) {
+    setCursor(clampedCursor)
+  }
+
   // Mutable ref for synchronous reads in the event handler.
   // Without this, rapid keypresses between React renders all read the same
   // stale closure state and overwrite each other (e.g. "abcdef" → "bdf").
-  const stateRef = useRef({ value, cursor })
+  const stateRef = useRef({ value, cursor: clampedCursor })
   stateRef.current.value = value
-  stateRef.current.cursor = cursor
+  stateRef.current.cursor = clampedCursor
 
   // Helper to update cursor and scroll together (avoids stale scroll)
   const scrollRef = useRef(scrollOffset)
@@ -215,8 +223,8 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   const wrappedLines = useMemo(() => getWrappedLines(value, wrapWidth), [value, wrapWidth])
 
   const { row: cursorRow, col: cursorCol } = useMemo(
-    () => cursorToRowCol(value, cursor, wrapWidth),
-    [value, cursor, wrapWidth],
+    () => cursorToRowCol(value, clampedCursor, wrapWidth),
+    [value, clampedCursor, wrapWidth],
   )
 
   // Imperative handle

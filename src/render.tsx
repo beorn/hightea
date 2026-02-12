@@ -15,13 +15,7 @@ import { EventEmitter } from "node:events"
 import process from "node:process"
 import { createLogger } from "@beorn/logger"
 import { type Term, createTerm } from "chalkx"
-import React, {
-  useCallback,
-  useMemo,
-  useState,
-  type ReactElement,
-  type ReactNode,
-} from "react"
+import React, { useCallback, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react"
 
 const log = createLogger("inkx:render")
 import {
@@ -34,26 +28,12 @@ import {
   StdoutContext,
   TermContext,
 } from "./context.js"
-import {
-  type LayoutEngineType,
-  isLayoutEngineInitialized,
-} from "./layout-engine.js"
+import { type LayoutEngineType, isLayoutEngineInitialized } from "./layout-engine.js"
 import { ANSI, enterAlternateScreen, leaveAlternateScreen } from "./output.js"
-import {
-  createContainer,
-  getContainerRoot,
-  reconciler,
-  runWithDiscreteEvent,
-} from "./reconciler.js"
+import { createContainer, getContainerRoot, reconciler, runWithDiscreteEvent } from "./reconciler.js"
 import { renderStringSync } from "./render-string.js"
 import { RenderScheduler } from "./scheduler.js"
-import {
-  type ResolvedTermDef,
-  isTerm,
-  isTermDef,
-  resolveFromTerm,
-  resolveTermDef,
-} from "./term-def.js"
+import { type ResolvedTermDef, isTerm, isTermDef, resolveFromTerm, resolveTermDef } from "./term-def.js"
 import type { TermDef } from "./types.js"
 
 // ============================================================================
@@ -160,9 +140,7 @@ export class RenderHandle implements PromiseLike<Instance> {
 
   /** Make this thenable so `await render()` returns Instance */
   then<TResult1 = Instance, TResult2 = never>(
-    onfulfilled?:
-      | ((value: Instance) => TResult1 | PromiseLike<TResult1>)
-      | null,
+    onfulfilled?: ((value: Instance) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
   ): Promise<TResult1 | TResult2> {
     return this.promise.then(onfulfilled, onrejected)
@@ -209,9 +187,7 @@ const instances = new Map<NodeJS.WriteStream, InkxInstance>()
  * Initialize layout engine if not already initialized.
  * @param engineType - 'flexx' or 'yoga'. Falls back to INKX_ENGINE env, then 'flexx'.
  */
-async function ensureLayoutEngineInitialized(
-  engineType?: LayoutEngineType,
-): Promise<void> {
+async function ensureLayoutEngineInitialized(engineType?: LayoutEngineType): Promise<void> {
   if (isLayoutEngineInitialized()) {
     log.debug?.("Layout engine already initialized")
     return
@@ -288,20 +264,16 @@ function InkxApp({
   )
 
   // Focus management functions (defined before handleReadable since it depends on them)
-  const addFocusable = useCallback(
-    (id: string, options?: { autoFocus?: boolean }) => {
-      setFocusState((prev) => {
-        const nextActiveId =
-          !prev.activeId && options?.autoFocus ? id : prev.activeId
-        return {
-          ...prev,
-          activeId: nextActiveId,
-          focusables: [...prev.focusables, { id, isActive: true }],
-        }
-      })
-    },
-    [],
-  )
+  const addFocusable = useCallback((id: string, options?: { autoFocus?: boolean }) => {
+    setFocusState((prev) => {
+      const nextActiveId = !prev.activeId && options?.autoFocus ? id : prev.activeId
+      return {
+        ...prev,
+        activeId: nextActiveId,
+        focusables: [...prev.focusables, { id, isActive: true }],
+      }
+    })
+  }, [])
 
   const removeFocusable = useCallback((id: string) => {
     setFocusState((prev) => ({
@@ -314,9 +286,7 @@ function InkxApp({
   const activateFocusable = useCallback((id: string) => {
     setFocusState((prev) => ({
       ...prev,
-      focusables: prev.focusables.map((f) =>
-        f.id === id ? { ...f, isActive: true } : f,
-      ),
+      focusables: prev.focusables.map((f) => (f.id === id ? { ...f, isActive: true } : f)),
     }))
   }, [])
 
@@ -324,9 +294,7 @@ function InkxApp({
     setFocusState((prev) => ({
       ...prev,
       activeId: prev.activeId === id ? null : prev.activeId,
-      focusables: prev.focusables.map((f) =>
-        f.id === id ? { ...f, isActive: false } : f,
-      ),
+      focusables: prev.focusables.map((f) => (f.id === id ? { ...f, isActive: false } : f)),
     }))
   }, [])
 
@@ -340,9 +308,7 @@ function InkxApp({
 
   const focusNext = useCallback(() => {
     setFocusState((prev) => {
-      const activeIndex = prev.focusables.findIndex(
-        (f) => f.id === prev.activeId,
-      )
+      const activeIndex = prev.focusables.findIndex((f) => f.id === prev.activeId)
       for (let i = activeIndex + 1; i < prev.focusables.length; i++) {
         if (prev.focusables[i]?.isActive) {
           return { ...prev, activeId: prev.focusables[i]!.id }
@@ -356,9 +322,7 @@ function InkxApp({
 
   const focusPrevious = useCallback(() => {
     setFocusState((prev) => {
-      const activeIndex = prev.focusables.findIndex(
-        (f) => f.id === prev.activeId,
-      )
+      const activeIndex = prev.focusables.findIndex((f) => f.id === prev.activeId)
       for (let i = activeIndex - 1; i >= 0; i--) {
         if (prev.focusables[i]?.isActive) {
           return { ...prev, activeId: prev.focusables[i]!.id }
@@ -379,62 +343,72 @@ function InkxApp({
     setFocusState((prev) => ({ ...prev, isFocusEnabled: false }))
   }, [])
 
-  // Handle readable input
-  const handleReadable = useCallback(() => {
-    log.debug?.("handleReadable called")
-    processInput()
+  // Mutable refs for values accessed inside the stdin readable handler.
+  // Using refs prevents handleReadable identity from ever changing, which
+  // would cascade through setRawMode → stdinContext → useInput effects →
+  // stdin listener removal/re-addition, dropping keypresses during the gap.
+  const focusStateRef = useRef(focusState)
+  focusStateRef.current = focusState
 
-    function processInput() {
-      const chunk = stdin.read() as string | null
-      log.debug?.(
-        `stdin.read() returned: ${chunk === null ? "null" : JSON.stringify(chunk)}`,
-      )
-      if (chunk === null) return
+  const exitOnCtrlCRef = useRef(exitOnCtrlC)
+  exitOnCtrlCRef.current = exitOnCtrlC
 
-      handleChunk(chunk)
-      processInput() // Process next chunk if available
-    }
+  const handleExitRef = useRef(handleExit)
+  handleExitRef.current = handleExit
 
-    function handleChunk(chunk: string) {
-      log.debug?.(`handleChunk: ${JSON.stringify(chunk)}`)
-      // Handle Ctrl+C
-      if (chunk === "\x03" && exitOnCtrlC) {
-        handleExit()
-        return
+  // Stable stdin readable handler — created once, never changes identity.
+  // All mutable state is read via refs to avoid dependency cascade.
+  const handleReadableRef = useRef<(() => void) | null>(null)
+  if (handleReadableRef.current === null) {
+    handleReadableRef.current = () => {
+      log.debug?.("handleReadable called")
+      processInput()
+
+      function processInput() {
+        const chunk = stdin.read() as string | null
+        log.debug?.(`stdin.read() returned: ${chunk === null ? "null" : JSON.stringify(chunk)}`)
+        if (chunk === null) return
+
+        handleChunk(chunk)
+        processInput() // Process next chunk if available
       }
 
-      // All input handling runs at discrete priority so React commits
-      // synchronously. Without this, concurrent mode defers the commit
-      // and onCommit → scheduleRender() never fires.
-      runWithDiscreteEvent(() => {
-        // Handle Tab/Shift+Tab for focus
-        if (focusState.isFocusEnabled) {
-          if (chunk === "\t") {
-            focusNext()
-          } else if (chunk === "\u001B[Z") {
-            focusPrevious()
+      function handleChunk(chunk: string) {
+        log.debug?.(`handleChunk: ${JSON.stringify(chunk)}`)
+        // Handle Ctrl+C
+        if (chunk === "\x03" && exitOnCtrlCRef.current) {
+          handleExitRef.current()
+          return
+        }
+
+        // All input handling runs at discrete priority so React commits
+        // synchronously. Without this, concurrent mode defers the commit
+        // and onCommit → scheduleRender() never fires.
+        runWithDiscreteEvent(() => {
+          // Read focus state from ref
+          const fs = focusStateRef.current
+
+          // Handle Tab/Shift+Tab for focus
+          if (fs.isFocusEnabled) {
+            if (chunk === "\t") {
+              focusNext()
+            } else if (chunk === "\u001B[Z") {
+              focusPrevious()
+            }
           }
-        }
 
-        // Handle Escape to clear focus
-        if (chunk === "\u001B" && focusState.activeId) {
-          setFocusState((prev) => ({ ...prev, activeId: null }))
-        }
+          // Handle Escape to clear focus
+          if (chunk === "\u001B" && fs.activeId) {
+            setFocusState((prev) => ({ ...prev, activeId: null }))
+          }
 
-        eventEmitter.emit("input", chunk)
-      })
-      reconciler.flushSyncWork()
+          eventEmitter.emit("input", chunk)
+        })
+        reconciler.flushSyncWork()
+      }
     }
-  }, [
-    stdin,
-    exitOnCtrlC,
-    handleExit,
-    focusState.isFocusEnabled,
-    focusState.activeId,
-    eventEmitter,
-    focusNext,
-    focusPrevious,
-  ])
+  }
+  const handleReadable = handleReadableRef.current
 
   // Set raw mode handler
   const setRawMode = useCallback(
@@ -460,23 +434,15 @@ function InkxApp({
           stdin.ref()
           stdin.setRawMode(true)
           stdin.on("readable", handleReadable)
-          log.debug?.(
-            `setRawMode: stdin.isRaw=${stdin.isRaw}, listenerCount=${stdin.listenerCount("readable")}`,
-          )
+          log.debug?.(`setRawMode: stdin.isRaw=${stdin.isRaw}, listenerCount=${stdin.listenerCount("readable")}`)
         }
         rawModeCountRef.current++
-        log.debug?.(
-          `setRawMode: rawModeCount incremented to ${rawModeCountRef.current}`,
-        )
+        log.debug?.(`setRawMode: rawModeCount incremented to ${rawModeCountRef.current}`)
       } else {
         rawModeCountRef.current = Math.max(0, rawModeCountRef.current - 1)
-        log.debug?.(
-          `setRawMode: rawModeCount decremented to ${rawModeCountRef.current}`,
-        )
+        log.debug?.(`setRawMode: rawModeCount decremented to ${rawModeCountRef.current}`)
         if (rawModeCountRef.current === 0) {
-          log.debug?.(
-            "setRawMode: disabling raw mode, removing readable listener",
-          )
+          log.debug?.("setRawMode: disabling raw mode, removing readable listener")
           stdin.setRawMode(false)
           stdin.off("readable", handleReadable)
           stdin.unref()
@@ -552,9 +518,7 @@ function InkxApp({
       <StdinContext.Provider value={stdinContextValue}>
         <StdoutContext.Provider value={stdoutContextValue}>
           <InputContext.Provider value={inputContextValue}>
-            <FocusContext.Provider value={focusContextValue}>
-              {children}
-            </FocusContext.Provider>
+            <FocusContext.Provider value={focusContextValue}>{children}</FocusContext.Provider>
           </InputContext.Provider>
         </StdoutContext.Provider>
       </StdinContext.Provider>
@@ -591,9 +555,7 @@ class InkxInstance {
   private resizeCleanup: (() => void) | null = null
   private signalCleanup: (() => void) | null = null
 
-  constructor(
-    options: Required<Omit<RenderOptions, "patchConsole" | "layoutEngine">>,
-  ) {
+  constructor(options: Required<Omit<RenderOptions, "patchConsole" | "layoutEngine">>) {
     log.debug?.("InkxInstance constructor start")
     const startTime = Date.now()
 
@@ -650,9 +612,7 @@ class InkxInstance {
     // Set up signal handlers
     this.setupSignalHandlers()
 
-    log.debug?.(
-      `InkxInstance constructor complete in ${Date.now() - startTime}ms`,
-    )
+    log.debug?.(`InkxInstance constructor complete in ${Date.now() - startTime}ms`)
   }
 
   /**
@@ -684,9 +644,7 @@ class InkxInstance {
     // in environments like Bun where the event loop may not be pumped
     log.debug?.("InkxInstance.render() calling updateContainerSync")
     reconciler.updateContainerSync(tree, this.fiberRoot, null, null)
-    log.debug?.(
-      `InkxInstance.render() updateContainerSync complete in ${Date.now() - startTime}ms`,
-    )
+    log.debug?.(`InkxInstance.render() updateContainerSync complete in ${Date.now() - startTime}ms`)
 
     log.debug?.("InkxInstance.render() calling flushSyncWork")
     const flushStart = Date.now()
@@ -906,11 +864,7 @@ class InkxInstance {
  * await render(<App />, term).run()
  * ```
  */
-export function render(
-  element: ReactElement,
-  termOrDef?: Term | TermDef,
-  options?: RenderOptions,
-): RenderHandle {
+export function render(element: ReactElement, termOrDef?: Term | TermDef, options?: RenderOptions): RenderHandle {
   return new RenderHandle(renderAsync(element, termOrDef, options))
 }
 
@@ -943,9 +897,7 @@ async function renderAsync(
       color: resolved.colors ?? undefined,
     })
   } else {
-    throw new Error(
-      "Invalid second argument: expected Term, TermDef, or undefined",
-    )
+    throw new Error("Invalid second argument: expected Term, TermDef, or undefined")
   }
 
   // Merge options
@@ -1005,34 +957,26 @@ async function renderImpl(
     log.debug?.("render(): creating new InkxInstance")
     instance = new InkxInstance(resolvedOptions)
     instances.set(resolvedOptions.stdout, instance)
-    log.debug?.(
-      `render(): InkxInstance created in ${Date.now() - renderStart}ms`,
-    )
+    log.debug?.(`render(): InkxInstance created in ${Date.now() - renderStart}ms`)
   }
 
   // Wrap element with TermContext and EventsContext
   const wrappedElement = (
     <TermContext.Provider value={term}>
-      <EventsContext.Provider value={resolved.events}>
-        {element}
-      </EventsContext.Provider>
+      <EventsContext.Provider value={resolved.events}>{element}</EventsContext.Provider>
     </TermContext.Provider>
   )
 
   // Render the element
   log.debug?.("render(): calling instance.render()")
   instance.render(wrappedElement)
-  log.debug?.(
-    `render(): instance.render() complete, total: ${Date.now() - renderStart}ms`,
-  )
+  log.debug?.(`render(): instance.render() complete, total: ${Date.now() - renderStart}ms`)
 
   // Wrap rerender to also include contexts
   const rerender = (newElement: ReactNode) =>
     instance.rerender(
       <TermContext.Provider value={term}>
-        <EventsContext.Provider value={resolved.events}>
-          {newElement}
-        </EventsContext.Provider>
+        <EventsContext.Provider value={resolved.events}>{newElement}</EventsContext.Provider>
       </TermContext.Provider>,
     )
 
@@ -1052,14 +996,8 @@ async function renderImpl(
  * Render in static mode (no events, render until stable).
  * Internal implementation for render() when no events are present.
  */
-async function renderStaticImpl(
-  element: ReactElement,
-  term: Term,
-  resolved: ResolvedTermDef,
-): Promise<Instance> {
-  log.debug?.(
-    `renderStatic() called, dimensions: ${resolved.width}x${resolved.height}`,
-  )
+async function renderStaticImpl(element: ReactElement, term: Term, resolved: ResolvedTermDef): Promise<Instance> {
+  log.debug?.(`renderStatic() called, dimensions: ${resolved.width}x${resolved.height}`)
 
   // Import renderString functionality
   const { renderStringSync } = await import("./render-string.js")
@@ -1090,9 +1028,7 @@ async function renderStaticImpl(
     rerender: (newElement: ReactNode) => {
       const newWrapped = (
         <TermContext.Provider value={term}>
-          <EventsContext.Provider value={null}>
-            {newElement}
-          </EventsContext.Provider>
+          <EventsContext.Provider value={null}>{newElement}</EventsContext.Provider>
         </TermContext.Provider>
       )
       lastFrame = renderStringSync(newWrapped as ReactElement, {
@@ -1136,11 +1072,7 @@ async function renderStaticImpl(
  * @param options - Additional render options
  * @returns An Instance object with control methods
  */
-export function renderSync(
-  element: ReactElement,
-  termOrDef?: Term | TermDef,
-  options?: RenderOptions,
-): Instance {
+export function renderSync(element: ReactElement, termOrDef?: Term | TermDef, options?: RenderOptions): Instance {
   if (!isLayoutEngineInitialized()) {
     throw new Error(
       "Layout engine is not initialized. Call render() (async) first, or initialize manually with setLayoutEngine().",
@@ -1165,9 +1097,7 @@ export function renderSync(
       color: resolved.colors ?? undefined,
     })
   } else {
-    throw new Error(
-      "Invalid second argument: expected Term, TermDef, or undefined",
-    )
+    throw new Error("Invalid second argument: expected Term, TermDef, or undefined")
   }
 
   // For static mode, use sync string rendering
@@ -1228,9 +1158,7 @@ export function renderSync(
   // Wrap element with contexts
   const wrappedElement = (
     <TermContext.Provider value={term}>
-      <EventsContext.Provider value={resolved.events}>
-        {element}
-      </EventsContext.Provider>
+      <EventsContext.Provider value={resolved.events}>{element}</EventsContext.Provider>
     </TermContext.Provider>
   )
 
@@ -1241,9 +1169,7 @@ export function renderSync(
   const rerender = (newElement: ReactNode) =>
     instance!.rerender(
       <TermContext.Provider value={term}>
-        <EventsContext.Provider value={resolved.events}>
-          {newElement}
-        </EventsContext.Provider>
+        <EventsContext.Provider value={resolved.events}>{newElement}</EventsContext.Provider>
       </TermContext.Provider>,
     )
 
@@ -1299,18 +1225,10 @@ export async function renderStatic(
 }
 
 // Re-export layout engine management for convenience
-export {
-  setLayoutEngine,
-  isLayoutEngineInitialized,
-  type LayoutEngineType,
-} from "./layout-engine.js"
+export { setLayoutEngine, isLayoutEngineInitialized, type LayoutEngineType } from "./layout-engine.js"
 
 // Re-export adapters for custom engine initialization
-export {
-  createYogaEngine,
-  initYogaEngine,
-  YogaLayoutEngine,
-} from "./adapters/yoga-adapter.js"
+export { createYogaEngine, initYogaEngine, YogaLayoutEngine } from "./adapters/yoga-adapter.js"
 export {
   createFlexxZeroEngine as createFlexxEngine,
   FlexxZeroLayoutEngine as FlexxLayoutEngine,
