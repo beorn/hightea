@@ -1065,14 +1065,22 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // Render barrier: if handler requested flush, render now before next event.
       // This ensures newly mounted components (e.g., InlineEditField) have their
       // refs set up before the next event handler runs.
+      //
+      // IMPORTANT: runtime.render() must be called here to keep the runtime's
+      // prevBuffer in sync with _prevTermBuffer. Without this, the post-batch
+      // doRender's dirty-row tracking (relative to _prevTermBuffer) would be
+      // stale relative to runtime.prevBuffer, causing diffBuffers() to skip
+      // all rows and produce an empty diff (0 bytes output).
       if (result === "flush") {
         pendingRerender = false
         currentBuffer = doRender()
+        runtime.render(currentBuffer)
         // Flush effects so mounted components can set up refs
         await Promise.resolve()
         if (pendingRerender) {
           pendingRerender = false
           currentBuffer = doRender()
+          runtime.render(currentBuffer)
         }
       }
     }
