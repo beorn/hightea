@@ -243,3 +243,150 @@ The content phase has extensive instrumentation gated on `_instrumentEnabled` --
 | output-phase.ts | Buffer diff, dirty row tracking, minimal ANSI output generation |
 | render-helpers.ts | Color parsing, text width, border chars, style computation |
 | helpers.ts | Border/padding size calculation |
+
+## Lessons from Past Sessions
+
+### The Big 4 Content-Phase Bugs
+
+`INKX_STRICT=1` revealed 402 mismatches across the content phase. Reduced to 47 (88%) by fixing four categories:
+
+1. **Dirty flag propagation failures** — Layout-phase changes weren't propagating `subtreeDirty` to ancestors. Added `markLayoutAncestorDirty()` helper. Without it, ~200 nodes would re-render on every border color change due to misusing `needsOwnRepaint` where `contentAreaAffected` was needed.
+
+2. **Incorrect region clearing** — `clearNodeRegion` used wrong bounds when a node shrank. Excess clearing must clip to the colored ancestor's bounds, not the parent's bounds — otherwise inherited bg bleeds into sibling areas.
+
+3. **Absolute position rendering** — Absolute children rendered in the wrong paint order. A dirty normal-flow sibling would wipe the absolute child's bg. Fixed with two-pass rendering (normal flow first, then absolute children on top).
+
+4. **Text background bleed** — Nested Text `backgroundColor` leaked across wrapped lines via ANSI codes embedded in the text stream. Replaced with `BgSegment` tracking that applies bg per-segment rather than embedding ANSI state.
+
+### Sticky Children Incremental Rendering (2026-02-12)
+
+10/10 fuzz failures in `render-fuzz.fuzz.ts` after sticky children support was added. Three complementary fixes were needed:
+
+1. **Full viewport clear to `bg: null`** — In Tier 2 (needsViewportClear), the viewport was being cleared to inherited bg, but fresh renders start with null bg. Text nodes read bg via `getCellBg`, so clearing to inherited bg produced different output than fresh. Fix: clear to `null`.
+
+2. **`stickyForceRefresh` in Tier 3** — When sticky children exist and only `subtreeDirty` is set (Tier 3), the cloned buffer has stale bg from previous frames' sticky positions. All first-pass items must re-render to paint correct bg before the sticky second pass overwrites. Without this, Text nodes at old sticky positions read stale bg.
+
+3. **Sticky `ancestorCleared=false`** — The second pass renders sticky headers ON TOP of first-pass content. Using `ancestorCleared=true` caused transparent spacer Boxes to clear their region, wiping overlapping sticky headers rendered earlier in the same pass. Fresh render has first-pass content at sticky positions, not "cleared" space.
+
+**Blind paths in this session:**
+- Pre-clearing only current sticky positions (missed that OLD positions also had stale bg)
+- Setting `hasPrevBuffer=false` without clearing buffer (Text still reads stale bg via `getCellBg`)
+- Attempting to fix with `ancestorCleared=true` for sticky children (broke transparent overlays)
+
+### Text Background Bleed (BgSegment)
+
+ANSI-embedded backgrounds (`chalk.bgBlack("text")`) inside a Box with `backgroundColor` caused bg to leak across wrapped lines. The ANSI bg state persisted across line boundaries.
+
+Fix: `BgSegment` tracking in `render-text.ts` strips ANSI bg from text content and tracks bg ranges separately. Each line's bg is applied independently. The `bgOverride` utility from chalkx allows intentional bg override where needed.
+
+## Common Blind Paths
+
+| Blind Path | Why It Doesn't Work | What to Do Instead |
+|-----------|---------------------|-------------------|
+| Broader viewport clearing | Causes 12ms regression (re-renders ~50 children vs 2 dirty ones) | Only clear viewport for Tier 2 triggers (childrenDirty, scroll+sticky, parentRegionChanged) |
+| Using `needsOwnRepaint` for cascade | Includes `paintDirty`; border color changes cascade through ~200 child nodes | Use `contentAreaAffected` — excludes pure paint changes |
+| Pre-clearing only current sticky positions | Old positions also have stale bg in the buffer | Clear entire viewport to `null` bg |
+| `hasPrevBuffer=false` without clearing buffer | Text reads stale bg via `getCellBg` regardless of hasPrevBuffer flag | Clear viewport first, then set `hasPrevBuffer=false` |
+| `ancestorCleared=true` for sticky second pass | Transparent spacer Boxes clear their region, wiping overlapping sticky content | Use `ancestorCleared=false` — matches fresh render semantics |
+| Blaming the terminal emulator | If 3 terminals show the same glitch, it's your code | Use `withDiagnostics` + `INKX_STRICT=1` first |
+| Hand-rolling VirtualTerminal tests | Too simple to catch real app complexity | Use `withDiagnostics(createBoardDriver(...))` |
+| Reading code paths without a failing test | Wastes 20+ turns on theorizing | Write failing test first, THEN trace code |
+
+## Effective Strategies (Priority Order)
+
+1. **`INKX_STRICT=1`** — Run the app or tests. Catches any incremental vs fresh render divergence immediately. Always start here.
+
+2. **Write a failing fuzz seed test** — If fuzz found it, extract the seed. If user-reported, construct a `withDiagnostics(createBoardDriver(...))` test with the minimal reproduction steps.
+
+3. **Read the mismatch error output** — The enhanced error includes cell values, node path, dirty flags, scroll context, and fast-path analysis. This tells you exactly which node diverged and why it was skipped.
+
+4. **`INKX_INSTRUMENT=1`** — Exposes skip/render counts, cascade depth, scroll tier decisions on `globalThis.__inkx_content_detail`. Useful for understanding whether too many or too few nodes rendered.
+
+5. **Check the five critical formulas** — `layoutChanged`, `contentAreaAffected`, `parentRegionCleared`, `skipBgFill`, `parentRegionChanged` in `renderNodeToBuffer`. If any is wrong, the cascade propagates errors to the entire subtree.
+
+6. **`getCellBg` coupling awareness** — Any change to when/how regions are cleared affects what Text nodes render. If your fix clears a region, check whether Text nodes at that position will read correct or stale bg.
+
+7. **Parallel hypothesis testing** — When multiple hypotheses exist (dirty flag issue vs scroll tier issue vs bg inheritance issue), launch parallel sub-agents to test each with a targeted test.
+
+## Symptom → Check Cross-Reference
+
+| Symptom | Check First |
+|---------|-------------|
+| Stale background color persists | `bgDirty` flag; `getCellBg` coupling; is region being cleared? |
+| Border artifacts after color change | `paintDirty` vs `contentAreaAffected` distinction; border-only change should NOT cascade |
+| Scroll glitch (content jumps/disappears) | Scroll tier selection; Tier 1 unsafe with sticky; Tier 3 needs `stickyForceRefresh` |
+| Children blank after parent changes | `parentRegionChanged` → `childHasPrev=false`; is viewport clear setting `childHasPrev` correctly? |
+| Absolute child disappears | Two-pass rendering order; absolute children need `ancestorCleared=false` in second pass |
+| Content correct initially, wrong after navigation | Incremental rendering bug; `INKX_STRICT=1` will catch it |
+| Text bg different from parent Box bg | `getCellBg` reading stale buffer; check if region was cleared to correct bg |
+| Flickering on every render | `prevLayout=null` causing `layoutChanged=true` every frame (known issue) |
+
+## Quick Regression Test Template
+
+When a fuzz test or user report identifies a rendering bug, use this template to write a minimal regression test:
+
+```typescript
+import { describe, test, expect } from "vitest"
+import { createRenderer } from "inkx/testing"
+import { Box, Text } from "inkx"
+
+describe("regression: <brief description>", () => {
+  test("fuzz seed <N> - <what broke>", async () => {
+    const render = createRenderer({ cols: 80, rows: 24 })
+
+    // Minimal component that reproduces the layout structure
+    function App({ state }: { state: number }) {
+      return (
+        <Box flexDirection="column">
+          {/* Mirror the component structure from the failing scenario */}
+          <Box overflow="scroll" height={10}>
+            <Box backgroundColor="blue">
+              <Text>Header</Text>
+            </Box>
+            <Text>Content {state}</Text>
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = render(<App state={0} />)
+
+    // Step 1: Initial render (establishes buffer for incremental)
+    expect(app.text).toContain("Content 0")
+
+    // Step 2: Trigger the state change that caused the mismatch
+    app.rerender(<App state={1} />)
+
+    // Step 3: Verify the content is correct (INKX_STRICT auto-checks buffer)
+    expect(app.text).toContain("Content 1")
+  })
+})
+```
+
+For `withDiagnostics` driver tests (full app):
+
+```typescript
+import { describe, test } from "vitest"
+import { createBoardDriver } from "@km/tui/driver.ts"
+import { createFakeRepo } from "@km/storage"
+import { withDiagnostics } from "inkx"
+import { item } from "@km/tui/tests/helpers/board-test.ts"
+
+describe("regression: <brief description>", () => {
+  test("repro from fuzz/user report", async () => {
+    const nodes = item.root("board",
+      item("Column 1", item("Task A"), item("Task B")),
+      item("Column 2", item("Task C")),
+    )
+    const driver = withDiagnostics(
+      createBoardDriver(createFakeRepo({ nodes }), "board"),
+      { checkIncremental: true, checkReplay: true, checkStability: true }
+    )
+
+    // Reproduce the sequence that triggered the bug
+    await driver.cmd.down()
+    await driver.cmd.down()
+    // Diagnostics auto-check after each command — throws on mismatch
+  })
+})
+```
