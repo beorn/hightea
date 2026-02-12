@@ -559,3 +559,36 @@ export type {
 
 export { InputBoundary } from "./contexts/InputBoundary.js"
 export type { InputBoundaryProps } from "./contexts/InputBoundary.js"
+
+// =============================================================================
+// Position Registry (2D Grid Virtualization)
+// =============================================================================
+
+/**
+ * Position tracking for 2D virtualized grid layouts.
+ *
+ * Items auto-register on mount and auto-unregister on unmount,
+ * eliminating stale-entry bugs in virtualized lists.
+ *
+ * @example
+ * ```tsx
+ * import { PositionRegistryProvider, GridCell, usePositionRegistry } from 'inkx';
+ *
+ * <PositionRegistryProvider>
+ *   {columns.map((col, i) => (
+ *     <VirtualList items={col.items} renderItem={(item, idx) => (
+ *       <GridCell sectionIndex={i} itemIndex={idx}>
+ *         <Card {...item} />
+ *       </GridCell>
+ *     )} />
+ *   ))}
+ * </PositionRegistryProvider>
+ * ```
+ */
+export { PositionRegistryProvider, usePositionRegistry, createPositionRegistry } from "./hooks/usePositionRegistry.js"
+export type { PositionRegistry, ScreenRect } from "./hooks/usePositionRegistry.js"
+export { useGridPosition } from "./hooks/useGridPosition.js"
+export { GridCell } from "./components/GridCell.js"
+export type { GridCellProps } from "./components/GridCell.js"
+export { findCrossAxisTarget, getItemMidY, getItemRect } from "./navigation/cross-axis.js"
+export type { CrossAxisTarget } from "./navigation/cross-axis.js"
