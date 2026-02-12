@@ -27,14 +27,7 @@
  * - Backspace/Delete: Delete characters
  * - Enter: Insert newline (or submit with submitKey="enter")
  */
-import React, {
-  forwardRef,
-  useCallback,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
+import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from "react"
 import { useContentRect } from "../hooks/useLayout.js"
 import { useInput } from "../hooks/useInput.js"
 import { wrapText } from "../unicode.js"
@@ -80,11 +73,7 @@ export interface TextAreaHandle {
 // =============================================================================
 
 /** Convert a flat cursor position to row/col in wrapped lines */
-function cursorToRowCol(
-  text: string,
-  cursor: number,
-  wrapWidth: number,
-): { row: number; col: number } {
+function cursorToRowCol(text: string, cursor: number, wrapWidth: number): { row: number; col: number } {
   if (wrapWidth <= 0) return { row: 0, col: 0 }
 
   const logicalLines = text.split("\n")
@@ -121,10 +110,7 @@ function cursorToRowCol(
 }
 
 /** Get all wrapped display lines with their character offsets */
-function getWrappedLines(
-  text: string,
-  wrapWidth: number,
-): { line: string; startOffset: number }[] {
+function getWrappedLines(text: string, wrapWidth: number): { line: string; startOffset: number }[] {
   if (wrapWidth <= 0) return [{ line: "", startOffset: 0 }]
 
   const logicalLines = text.split("\n")
@@ -147,11 +133,7 @@ function getWrappedLines(
 }
 
 /** Ensure scroll offset keeps the cursor row visible */
-function clampScroll(
-  cursorRow: number,
-  currentScroll: number,
-  viewportHeight: number,
-): number {
+function clampScroll(cursorRow: number, currentScroll: number, viewportHeight: number): number {
   if (viewportHeight <= 0) return 0
   let scroll = currentScroll
   if (cursorRow < scroll) {
@@ -167,303 +149,302 @@ function clampScroll(
 // Component
 // =============================================================================
 
-export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(
-  function TextArea(
-    {
-      value: controlledValue,
-      defaultValue = "",
-      onChange,
-      onSubmit,
-      submitKey = "ctrl+enter",
-      placeholder = "",
-      isActive = true,
-      height,
-      cursorStyle = "block",
+export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextArea(
+  {
+    value: controlledValue,
+    defaultValue = "",
+    onChange,
+    onSubmit,
+    submitKey = "ctrl+enter",
+    placeholder = "",
+    isActive = true,
+    height,
+    cursorStyle = "block",
+  },
+  ref,
+) {
+  const isControlled = controlledValue !== undefined
+  const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue)
+  const [cursor, setCursor] = useState(defaultValue.length)
+  const [scrollOffset, setScrollOffset] = useState(0)
+
+  const value = isControlled ? (controlledValue ?? "") : uncontrolledValue
+  const { width } = useContentRect()
+  const wrapWidth = Math.max(1, width)
+
+  // Mutable ref for synchronous reads in the event handler.
+  // Without this, rapid keypresses between React renders all read the same
+  // stale closure state and overwrite each other (e.g. "abcdef" → "bdf").
+  const stateRef = useRef({ value, cursor })
+  stateRef.current.value = value
+  stateRef.current.cursor = cursor
+
+  // Helper to update cursor and scroll together (avoids stale scroll)
+  const scrollRef = useRef(scrollOffset)
+  scrollRef.current = scrollOffset
+
+  const setCursorAndScroll = useCallback(
+    (newCursor: number, text: string) => {
+      // Update cursor ref synchronously for rapid event handling
+      stateRef.current.cursor = newCursor
+      setCursor(newCursor)
+      const { row } = cursorToRowCol(text, newCursor, wrapWidth)
+      const newScroll = clampScroll(row, scrollRef.current, height)
+      if (newScroll !== scrollRef.current) {
+        setScrollOffset(newScroll)
+      }
     },
-    ref,
-  ) {
-    const isControlled = controlledValue !== undefined
-    const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue)
-    const [cursor, setCursor] = useState(defaultValue.length)
-    const [scrollOffset, setScrollOffset] = useState(0)
+    [wrapWidth, height],
+  )
 
-    const value = isControlled ? (controlledValue ?? "") : uncontrolledValue
-    const { width } = useContentRect()
-    const wrapWidth = Math.max(1, width)
+  const updateValue = useCallback(
+    (newValue: string, newCursor: number) => {
+      // Update ref synchronously so the next event in the same batch sees fresh state
+      stateRef.current.value = newValue
+      stateRef.current.cursor = newCursor
 
-    // Helper to update cursor and scroll together (avoids stale scroll)
-    const scrollRef = useRef(scrollOffset)
-    scrollRef.current = scrollOffset
+      if (!isControlled) {
+        setUncontrolledValue(newValue)
+      }
+      setCursorAndScroll(newCursor, newValue)
+      onChange?.(newValue)
+    },
+    [isControlled, onChange, setCursorAndScroll],
+  )
 
-    const setCursorAndScroll = useCallback(
-      (newCursor: number, text: string) => {
-        setCursor(newCursor)
-        const { row } = cursorToRowCol(text, newCursor, wrapWidth)
-        const newScroll = clampScroll(row, scrollRef.current, height)
-        if (newScroll !== scrollRef.current) {
-          setScrollOffset(newScroll)
-        }
-      },
-      [wrapWidth, height],
-    )
+  const wrappedLines = useMemo(() => getWrappedLines(value, wrapWidth), [value, wrapWidth])
 
-    const updateValue = useCallback(
-      (newValue: string, newCursor: number) => {
-        if (!isControlled) {
-          setUncontrolledValue(newValue)
-        }
-        setCursorAndScroll(newCursor, newValue)
-        onChange?.(newValue)
-      },
-      [isControlled, onChange, setCursorAndScroll],
-    )
+  const { row: cursorRow, col: cursorCol } = useMemo(
+    () => cursorToRowCol(value, cursor, wrapWidth),
+    [value, cursor, wrapWidth],
+  )
 
-    const wrappedLines = useMemo(
-      () => getWrappedLines(value, wrapWidth),
-      [value, wrapWidth],
-    )
+  // Imperative handle
+  useImperativeHandle(ref, () => ({
+    clear: () => {
+      updateValue("", 0)
+      setScrollOffset(0)
+    },
+    getValue: () => value,
+    setValue: (v: string) => {
+      updateValue(v, v.length)
+    },
+  }))
 
-    const { row: cursorRow, col: cursorCol } = useMemo(
-      () => cursorToRowCol(value, cursor, wrapWidth),
-      [value, cursor, wrapWidth],
-    )
+  useInput(
+    (input, key) => {
+      // Read fresh state from mutable ref — NOT from render closure.
+      // Multiple events between renders all see the latest value/cursor.
+      const { value, cursor } = stateRef.current
+      const lines = getWrappedLines(value, wrapWidth)
+      const { row: cRow, col: cCol } = cursorToRowCol(value, cursor, wrapWidth)
 
-    // Imperative handle
-    useImperativeHandle(ref, () => ({
-      clear: () => {
-        updateValue("", 0)
-        setScrollOffset(0)
-      },
-      getValue: () => value,
-      setValue: (v: string) => {
-        updateValue(v, v.length)
-      },
-    }))
+      // =====================================================================
+      // Submit
+      // =====================================================================
+      if (submitKey === "ctrl+enter" && key.return && key.ctrl) {
+        onSubmit?.(value)
+        return
+      }
+      if (submitKey === "enter" && key.return && !key.ctrl) {
+        onSubmit?.(value)
+        return
+      }
 
-    useInput(
-      (input, key) => {
-        // =====================================================================
-        // Submit
-        // =====================================================================
-        if (submitKey === "ctrl+enter" && key.return && key.ctrl) {
-          onSubmit?.(value)
-          return
-        }
-        if (submitKey === "enter" && key.return && !key.ctrl) {
-          onSubmit?.(value)
-          return
-        }
+      // =====================================================================
+      // Enter (newline) — only when submitKey is not "enter"
+      // =====================================================================
+      if (key.return && submitKey !== "enter") {
+        const newValue = value.slice(0, cursor) + "\n" + value.slice(cursor)
+        updateValue(newValue, cursor + 1)
+        return
+      }
 
-        // =====================================================================
-        // Enter (newline) — only when submitKey is not "enter"
-        // =====================================================================
-        if (key.return && submitKey !== "enter") {
-          const newValue = value.slice(0, cursor) + "\n" + value.slice(cursor)
-          updateValue(newValue, cursor + 1)
-          return
-        }
+      // =====================================================================
+      // Cursor Movement
+      // =====================================================================
 
-        // =====================================================================
-        // Cursor Movement
-        // =====================================================================
+      // Left
+      if (key.leftArrow || (key.ctrl && input === "b")) {
+        if (cursor > 0) setCursorAndScroll(cursor - 1, value)
+        return
+      }
 
-        // Left
-        if (key.leftArrow || (key.ctrl && input === "b")) {
-          if (cursor > 0) setCursorAndScroll(cursor - 1, value)
-          return
-        }
+      // Right
+      if (key.rightArrow || (key.ctrl && input === "f")) {
+        if (cursor < value.length) setCursorAndScroll(cursor + 1, value)
+        return
+      }
 
-        // Right
-        if (key.rightArrow || (key.ctrl && input === "f")) {
-          if (cursor < value.length) setCursorAndScroll(cursor + 1, value)
-          return
-        }
-
-        // Up
-        if (key.upArrow) {
-          if (cursorRow > 0) {
-            const targetRow = cursorRow - 1
-            const targetLine = wrappedLines[targetRow]
-            if (targetLine) {
-              const newCol = Math.min(cursorCol, targetLine.line.length)
-              setCursorAndScroll(targetLine.startOffset + newCol, value)
-            }
-          }
-          return
-        }
-
-        // Down
-        if (key.downArrow) {
-          if (cursorRow < wrappedLines.length - 1) {
-            const targetRow = cursorRow + 1
-            const targetLine = wrappedLines[targetRow]
-            if (targetLine) {
-              const newCol = Math.min(cursorCol, targetLine.line.length)
-              setCursorAndScroll(targetLine.startOffset + newCol, value)
-            }
-          }
-          return
-        }
-
-        // Home / Ctrl+A
-        if (key.home || (key.ctrl && input === "a")) {
-          const currentLine = wrappedLines[cursorRow]
-          if (currentLine) {
-            setCursorAndScroll(currentLine.startOffset, value)
-          }
-          return
-        }
-
-        // End / Ctrl+E
-        if (key.end || (key.ctrl && input === "e")) {
-          const currentLine = wrappedLines[cursorRow]
-          if (currentLine) {
-            setCursorAndScroll(
-              currentLine.startOffset + currentLine.line.length,
-              value,
-            )
-          }
-          return
-        }
-
-        // PageUp
-        if (key.pageUp) {
-          const targetRow = Math.max(0, cursorRow - height)
-          const targetLine = wrappedLines[targetRow]
+      // Up
+      if (key.upArrow) {
+        if (cRow > 0) {
+          const targetRow = cRow - 1
+          const targetLine = lines[targetRow]
           if (targetLine) {
-            const newCol = Math.min(cursorCol, targetLine.line.length)
+            const newCol = Math.min(cCol, targetLine.line.length)
             setCursorAndScroll(targetLine.startOffset + newCol, value)
           }
-          return
         }
+        return
+      }
 
-        // PageDown
-        if (key.pageDown) {
-          const targetRow = Math.min(
-            wrappedLines.length - 1,
-            cursorRow + height,
-          )
-          const targetLine = wrappedLines[targetRow]
+      // Down
+      if (key.downArrow) {
+        if (cRow < lines.length - 1) {
+          const targetRow = cRow + 1
+          const targetLine = lines[targetRow]
           if (targetLine) {
-            const newCol = Math.min(cursorCol, targetLine.line.length)
+            const newCol = Math.min(cCol, targetLine.line.length)
             setCursorAndScroll(targetLine.startOffset + newCol, value)
           }
-          return
         }
+        return
+      }
 
-        // =====================================================================
-        // Kill Operations
-        // =====================================================================
-
-        // Ctrl+K: Kill to end of line
-        if (key.ctrl && input === "k") {
-          const currentLine = wrappedLines[cursorRow]
-          if (!currentLine) return
-          const lineEnd = currentLine.startOffset + currentLine.line.length
-          if (cursor < lineEnd) {
-            const newValue = value.slice(0, cursor) + value.slice(lineEnd)
-            updateValue(newValue, cursor)
-          } else if (cursor < value.length) {
-            const newValue = value.slice(0, cursor) + value.slice(cursor + 1)
-            updateValue(newValue, cursor)
-          }
-          return
+      // Home / Ctrl+A
+      if (key.home || (key.ctrl && input === "a")) {
+        const currentLine = lines[cRow]
+        if (currentLine) {
+          setCursorAndScroll(currentLine.startOffset, value)
         }
+        return
+      }
 
-        // Ctrl+U: Kill to beginning of line
-        if (key.ctrl && input === "u") {
-          const currentLine = wrappedLines[cursorRow]
-          if (!currentLine) return
-          const lineStart = currentLine.startOffset
-          if (cursor > lineStart) {
-            const newValue = value.slice(0, lineStart) + value.slice(cursor)
-            updateValue(newValue, lineStart)
-          }
-          return
+      // End / Ctrl+E
+      if (key.end || (key.ctrl && input === "e")) {
+        const currentLine = lines[cRow]
+        if (currentLine) {
+          setCursorAndScroll(currentLine.startOffset + currentLine.line.length, value)
         }
+        return
+      }
 
-        // =====================================================================
-        // Delete Operations
-        // =====================================================================
-
-        // Backspace
-        if (key.backspace || key.delete) {
-          if (cursor > 0) {
-            const newValue = value.slice(0, cursor - 1) + value.slice(cursor)
-            updateValue(newValue, cursor - 1)
-          }
-          return
+      // PageUp
+      if (key.pageUp) {
+        const targetRow = Math.max(0, cRow - height)
+        const targetLine = lines[targetRow]
+        if (targetLine) {
+          const newCol = Math.min(cCol, targetLine.line.length)
+          setCursorAndScroll(targetLine.startOffset + newCol, value)
         }
+        return
+      }
 
-        // Ctrl+D: Delete at cursor
-        if (key.ctrl && input === "d") {
-          if (cursor < value.length) {
-            const newValue = value.slice(0, cursor) + value.slice(cursor + 1)
-            updateValue(newValue, cursor)
-          }
-          return
+      // PageDown
+      if (key.pageDown) {
+        const targetRow = Math.min(lines.length - 1, cRow + height)
+        const targetLine = lines[targetRow]
+        if (targetLine) {
+          const newCol = Math.min(cCol, targetLine.line.length)
+          setCursorAndScroll(targetLine.startOffset + newCol, value)
         }
+        return
+      }
 
-        // =====================================================================
-        // Regular Character Input
-        // =====================================================================
-        if (input.length === 1 && input >= " ") {
-          const newValue = value.slice(0, cursor) + input + value.slice(cursor)
-          updateValue(newValue, cursor + 1)
+      // =====================================================================
+      // Kill Operations
+      // =====================================================================
+
+      // Ctrl+K: Kill to end of line
+      if (key.ctrl && input === "k") {
+        const currentLine = lines[cRow]
+        if (!currentLine) return
+        const lineEnd = currentLine.startOffset + currentLine.line.length
+        if (cursor < lineEnd) {
+          const newValue = value.slice(0, cursor) + value.slice(lineEnd)
+          updateValue(newValue, cursor)
+        } else if (cursor < value.length) {
+          const newValue = value.slice(0, cursor) + value.slice(cursor + 1)
+          updateValue(newValue, cursor)
         }
-      },
-      { isActive },
-    )
+        return
+      }
 
-    // =========================================================================
-    // Rendering
-    // =========================================================================
+      // Ctrl+U: Kill to beginning of line
+      if (key.ctrl && input === "u") {
+        const currentLine = lines[cRow]
+        if (!currentLine) return
+        const lineStart = currentLine.startOffset
+        if (cursor > lineStart) {
+          const newValue = value.slice(0, lineStart) + value.slice(cursor)
+          updateValue(newValue, lineStart)
+        }
+        return
+      }
 
-    const showPlaceholder = !value && placeholder
+      // =====================================================================
+      // Delete Operations
+      // =====================================================================
 
-    if (showPlaceholder) {
-      return (
-        <Box
-          flexDirection="column"
-          height={height}
-          justifyContent="center"
-          alignItems="center"
-        >
-          <Text dimColor>{placeholder}</Text>
-        </Box>
-      )
-    }
+      // Backspace
+      if (key.backspace || key.delete) {
+        if (cursor > 0) {
+          const newValue = value.slice(0, cursor - 1) + value.slice(cursor)
+          updateValue(newValue, cursor - 1)
+        }
+        return
+      }
 
-    const visibleLines = wrappedLines.slice(scrollOffset, scrollOffset + height)
+      // Ctrl+D: Delete at cursor
+      if (key.ctrl && input === "d") {
+        if (cursor < value.length) {
+          const newValue = value.slice(0, cursor) + value.slice(cursor + 1)
+          updateValue(newValue, cursor)
+        }
+        return
+      }
 
+      // =====================================================================
+      // Regular Character Input
+      // =====================================================================
+      if (input.length === 1 && input >= " ") {
+        const newValue = value.slice(0, cursor) + input + value.slice(cursor)
+        updateValue(newValue, cursor + 1)
+      }
+    },
+    { isActive },
+  )
+
+  // =========================================================================
+  // Rendering
+  // =========================================================================
+
+  const showPlaceholder = !value && placeholder
+
+  if (showPlaceholder) {
     return (
-      <Box key={scrollOffset} flexDirection="column" height={height}>
-        {visibleLines.map((wl, i) => {
-          const absoluteRow = scrollOffset + i
-          const isCursorRow = absoluteRow === cursorRow
-
-          if (!isCursorRow || !isActive) {
-            return <Text key={absoluteRow}>{wl.line || " "}</Text>
-          }
-
-          // Render line with cursor
-          const beforeCursor = wl.line.slice(0, cursorCol)
-          const atCursor = wl.line[cursorCol] ?? " "
-          const afterCursor = wl.line.slice(cursorCol + 1)
-
-          return (
-            <Text key={absoluteRow}>
-              {beforeCursor}
-              {cursorStyle === "block" ? (
-                <Text inverse>{atCursor}</Text>
-              ) : (
-                <Text underline>{atCursor}</Text>
-              )}
-              {afterCursor}
-            </Text>
-          )
-        })}
+      <Box flexDirection="column" height={height} justifyContent="center" alignItems="center">
+        <Text dimColor>{placeholder}</Text>
       </Box>
     )
-  },
-)
+  }
+
+  const visibleLines = wrappedLines.slice(scrollOffset, scrollOffset + height)
+
+  return (
+    <Box key={scrollOffset} flexDirection="column" height={height}>
+      {visibleLines.map((wl, i) => {
+        const absoluteRow = scrollOffset + i
+        const isCursorRow = absoluteRow === cursorRow
+
+        if (!isCursorRow || !isActive) {
+          return <Text key={absoluteRow}>{wl.line || " "}</Text>
+        }
+
+        // Render line with cursor
+        const beforeCursor = wl.line.slice(0, cursorCol)
+        const atCursor = wl.line[cursorCol] ?? " "
+        const afterCursor = wl.line.slice(cursorCol + 1)
+
+        return (
+          <Text key={absoluteRow}>
+            {beforeCursor}
+            {cursorStyle === "block" ? <Text inverse>{atCursor}</Text> : <Text underline>{atCursor}</Text>}
+            {afterCursor}
+          </Text>
+        )
+      })}
+    </Box>
+  )
+})

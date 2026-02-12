@@ -135,6 +135,12 @@ export function useReadline({
     cursor: initialValue.length,
   })
 
+  // Mutable ref for synchronous reads in the event handler.
+  // Without this, rapid keypresses between React renders all read the same
+  // stale closure state and overwrite each other.
+  const stateRef = useRef<ReadlineState>({ value: initialValue, cursor: initialValue.length })
+  stateRef.current = state
+
   // Track last yank position for Alt+Y cycling
   const yankStateRef = useRef<{
     lastYankIndex: number
@@ -142,25 +148,30 @@ export function useReadline({
     yankEnd: number
   } | null>(null)
 
-  const updateValue = useCallback(
+  const updateState = useCallback(
     (newValue: string, newCursor: number) => {
-      setState({ value: newValue, cursor: newCursor })
+      const next = { value: newValue, cursor: newCursor }
+      stateRef.current = next
+      setState(next)
       onChange?.(newValue)
-      // Reset yank state on any edit that's not a yank
       yankStateRef.current = null
     },
     [onChange],
   )
 
   const clear = useCallback(() => {
-    setState({ value: "", cursor: 0 })
+    const next = { value: "", cursor: 0 }
+    stateRef.current = next
+    setState(next)
     onChange?.("")
     yankStateRef.current = null
   }, [onChange])
 
   const setValue = useCallback(
     (value: string) => {
-      setState({ value, cursor: value.length })
+      const next = { value, cursor: value.length }
+      stateRef.current = next
+      setState(next)
       onChange?.(value)
       yankStateRef.current = null
     },
@@ -169,7 +180,9 @@ export function useReadline({
 
   const setValueWithCursor = useCallback(
     (value: string, cursor: number) => {
-      setState({ value, cursor: Math.max(0, Math.min(cursor, value.length)) })
+      const next = { value, cursor: Math.max(0, Math.min(cursor, value.length)) }
+      stateRef.current = next
+      setState(next)
       onChange?.(value)
       yankStateRef.current = null
     },
@@ -178,7 +191,9 @@ export function useReadline({
 
   useInput(
     (input, key) => {
-      const { value, cursor } = state
+      // Read fresh state from mutable ref — NOT from render closure.
+      // Multiple events between renders all see the latest value/cursor.
+      const { value, cursor } = stateRef.current
 
       // Let parent handle Enter/Escape/vertical arrows unless explicitly enabled
       if (key.return && !handleEnter) return
@@ -189,55 +204,50 @@ export function useReadline({
       if (key.escape && !handleEscape) return
       if ((key.upArrow || key.downArrow) && !handleVerticalArrows) return
 
+      // Helper for cursor-only moves (syncs ref immediately)
+      const moveCursor = (newCursor: number) => {
+        stateRef.current = { value, cursor: newCursor }
+        setState({ value, cursor: newCursor })
+        yankStateRef.current = null
+      }
+
       // =======================================================================
       // Cursor Movement
       // =======================================================================
 
       // Ctrl+A: Move to beginning
       if (key.ctrl && input === "a") {
-        setState((s) => ({ ...s, cursor: 0 }))
-        yankStateRef.current = null
+        moveCursor(0)
         return
       }
 
       // Ctrl+E: Move to end
       if (key.ctrl && input === "e") {
-        setState((s) => ({ ...s, cursor: s.value.length }))
-        yankStateRef.current = null
+        moveCursor(value.length)
         return
       }
 
       // Ctrl+B or Left: Move cursor left
       if ((key.ctrl && input === "b") || key.leftArrow) {
-        if (cursor > 0) {
-          setState((s) => ({ ...s, cursor: s.cursor - 1 }))
-        }
-        yankStateRef.current = null
+        if (cursor > 0) moveCursor(cursor - 1)
         return
       }
 
       // Ctrl+F or Right: Move cursor right
       if ((key.ctrl && input === "f") || key.rightArrow) {
-        if (cursor < value.length) {
-          setState((s) => ({ ...s, cursor: s.cursor + 1 }))
-        }
-        yankStateRef.current = null
+        if (cursor < value.length) moveCursor(cursor + 1)
         return
       }
 
       // Alt+B: Move cursor back one word
       if (key.meta && input === "b") {
-        const newCursor = findPrevWordStart(value, cursor)
-        setState((s) => ({ ...s, cursor: newCursor }))
-        yankStateRef.current = null
+        moveCursor(findPrevWordStart(value, cursor))
         return
       }
 
       // Alt+F: Move cursor forward one word
       if (key.meta && input === "f") {
-        const newCursor = findNextWordEnd(value, cursor)
-        setState((s) => ({ ...s, cursor: newCursor }))
-        yankStateRef.current = null
+        moveCursor(findNextWordEnd(value, cursor))
         return
       }
 
@@ -252,7 +262,7 @@ export function useReadline({
         const killed = value.slice(newCursor, cursor)
         addToKillRing(killed)
         const newValue = value.slice(0, newCursor) + value.slice(cursor)
-        updateValue(newValue, newCursor)
+        updateState(newValue, newCursor)
         return
       }
 
@@ -263,7 +273,7 @@ export function useReadline({
         const killed = value.slice(newCursor, cursor)
         addToKillRing(killed)
         const newValue = value.slice(0, newCursor) + value.slice(cursor)
-        updateValue(newValue, newCursor)
+        updateState(newValue, newCursor)
         return
       }
 
@@ -274,7 +284,7 @@ export function useReadline({
         const killed = value.slice(cursor, newEnd)
         addToKillRing(killed)
         const newValue = value.slice(0, cursor) + value.slice(newEnd)
-        updateValue(newValue, cursor)
+        updateState(newValue, cursor)
         return
       }
 
@@ -284,7 +294,7 @@ export function useReadline({
         const killed = value.slice(0, cursor)
         addToKillRing(killed)
         const newValue = value.slice(cursor)
-        updateValue(newValue, 0)
+        updateState(newValue, 0)
         return
       }
 
@@ -294,7 +304,7 @@ export function useReadline({
         const killed = value.slice(cursor)
         addToKillRing(killed)
         const newValue = value.slice(0, cursor)
-        updateValue(newValue, cursor)
+        updateState(newValue, cursor)
         return
       }
 
@@ -308,7 +318,9 @@ export function useReadline({
         const text = killRing[0] ?? ""
         const newValue = value.slice(0, cursor) + text + value.slice(cursor)
         const newCursor = cursor + text.length
-        setState({ value: newValue, cursor: newCursor })
+        const next = { value: newValue, cursor: newCursor }
+        stateRef.current = next
+        setState(next)
         onChange?.(newValue)
         // Track yank state for Alt+Y cycling
         yankStateRef.current = {
@@ -331,7 +343,9 @@ export function useReadline({
         const after = value.slice(yankState.yankEnd)
         const newValue = before + text + after
         const newCursor = yankState.yankStart + text.length
-        setState({ value: newValue, cursor: newCursor })
+        const next = { value: newValue, cursor: newCursor }
+        stateRef.current = next
+        setState(next)
         onChange?.(newValue)
         yankStateRef.current = {
           lastYankIndex: nextIndex,
@@ -349,12 +363,8 @@ export function useReadline({
       if (key.ctrl && input === "t") {
         // Transpose the two characters before cursor, move cursor forward
         if (cursor < 2) return
-        const newValue =
-          value.slice(0, cursor - 2) +
-          value[cursor - 1] +
-          value[cursor - 2] +
-          value.slice(cursor)
-        updateValue(newValue, cursor)
+        const newValue = value.slice(0, cursor - 2) + value[cursor - 1] + value[cursor - 2] + value.slice(cursor)
+        updateState(newValue, cursor)
         return
       }
 
@@ -366,7 +376,7 @@ export function useReadline({
         }
         if (cursor >= value.length) return
         const newValue = value.slice(0, cursor) + value.slice(cursor + 1)
-        updateValue(newValue, cursor)
+        updateState(newValue, cursor)
         return
       }
 
@@ -374,7 +384,7 @@ export function useReadline({
       if (key.ctrl && input === "h") {
         if (cursor > 0) {
           const newValue = value.slice(0, cursor - 1) + value.slice(cursor)
-          updateValue(newValue, cursor - 1)
+          updateState(newValue, cursor - 1)
         }
         return
       }
@@ -383,7 +393,7 @@ export function useReadline({
       if (key.backspace || key.delete) {
         if (cursor > 0) {
           const newValue = value.slice(0, cursor - 1) + value.slice(cursor)
-          updateValue(newValue, cursor - 1)
+          updateState(newValue, cursor - 1)
         }
         return
       }
@@ -395,7 +405,7 @@ export function useReadline({
       // Regular character input (printable ASCII)
       if (input.length === 1 && input >= " ") {
         const newValue = value.slice(0, cursor) + input + value.slice(cursor)
-        updateValue(newValue, cursor + 1)
+        updateState(newValue, cursor + 1)
       }
     },
     { isActive },

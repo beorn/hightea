@@ -60,10 +60,7 @@ export interface UseInputOptions {
  * }
  * ```
  */
-export function useInput(
-  inputHandler: InputHandler,
-  options: UseInputOptions = {},
-): void {
+export function useInput(inputHandler: InputHandler, options: UseInputOptions = {}): void {
   const events = useContext(EventsContext)
   const stdinContext = useContext(StdinContext)
   const inputContext = useContext(InputContext)
