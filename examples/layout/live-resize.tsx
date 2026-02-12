@@ -26,7 +26,8 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Live Resize",
-  description: "Responsive multi-column grid that reflows based on terminal width",
+  description:
+    "Responsive multi-column grid that reflows based on terminal width",
   features: ["useContentRect()", "responsive breakpoints", "Box flexDirection"],
 }
 
@@ -54,7 +55,8 @@ const CARDS: CardData[] = [
     value: "42%",
     detail: "4 cores, 2.4 GHz base",
     color: "green",
-    sparkline: "\u2582\u2583\u2585\u2587\u2586\u2584\u2583\u2585\u2587\u2588\u2586\u2584\u2583\u2582\u2583\u2585",
+    sparkline:
+      "\u2582\u2583\u2585\u2587\u2586\u2584\u2583\u2585\u2587\u2588\u2586\u2584\u2583\u2582\u2583\u2585",
   },
   {
     title: "Memory",
@@ -62,7 +64,8 @@ const CARDS: CardData[] = [
     value: "8.2 GB",
     detail: "of 16 GB (51% used)",
     color: "cyan",
-    sparkline: "\u2584\u2584\u2585\u2585\u2585\u2586\u2586\u2586\u2585\u2585\u2586\u2586\u2587\u2587\u2586\u2586",
+    sparkline:
+      "\u2584\u2584\u2585\u2585\u2585\u2586\u2586\u2586\u2585\u2585\u2586\u2586\u2587\u2587\u2586\u2586",
   },
   {
     title: "Disk I/O",
@@ -70,7 +73,8 @@ const CARDS: CardData[] = [
     value: "234 MB/s",
     detail: "Read: 180 MB/s Write: 54 MB/s",
     color: "yellow",
-    sparkline: "\u2581\u2582\u2583\u2587\u2588\u2587\u2584\u2582\u2581\u2582\u2585\u2587\u2586\u2583\u2582\u2581",
+    sparkline:
+      "\u2581\u2582\u2583\u2587\u2588\u2587\u2584\u2582\u2581\u2582\u2585\u2587\u2586\u2583\u2582\u2581",
   },
   {
     title: "Network",
@@ -78,7 +82,8 @@ const CARDS: CardData[] = [
     value: "1.2 Gb/s",
     detail: "In: 800 Mb/s Out: 400 Mb/s",
     color: "magenta",
-    sparkline: "\u2583\u2584\u2585\u2586\u2587\u2586\u2585\u2584\u2585\u2586\u2587\u2588\u2587\u2586\u2585\u2584",
+    sparkline:
+      "\u2583\u2584\u2585\u2586\u2587\u2586\u2585\u2584\u2585\u2586\u2587\u2588\u2587\u2586\u2585\u2584",
   },
   {
     title: "Processes",
@@ -86,7 +91,8 @@ const CARDS: CardData[] = [
     value: "247",
     detail: "12 running, 235 sleeping",
     color: "blue",
-    sparkline: "\u2585\u2585\u2585\u2586\u2585\u2585\u2585\u2585\u2586\u2585\u2585\u2585\u2586\u2585\u2585\u2585",
+    sparkline:
+      "\u2585\u2585\u2585\u2586\u2585\u2585\u2585\u2585\u2586\u2585\u2585\u2585\u2586\u2585\u2585\u2585",
   },
   {
     title: "Temperature",
@@ -94,7 +100,8 @@ const CARDS: CardData[] = [
     value: "62 C",
     detail: "Max: 85 C (safe range)",
     color: "red",
-    sparkline: "\u2583\u2583\u2584\u2584\u2585\u2585\u2586\u2586\u2585\u2585\u2584\u2584\u2583\u2584\u2585\u2585",
+    sparkline:
+      "\u2583\u2583\u2584\u2584\u2585\u2585\u2586\u2586\u2585\u2585\u2584\u2584\u2583\u2584\u2585\u2585",
   },
 ]
 
@@ -289,17 +296,6 @@ function LiveResize(): JSX.Element {
 
   return (
     <Box flexDirection="column" width="100%" height="100%" padding={1}>
-      {/* Title */}
-      <Box justifyContent="center" marginBottom={1}>
-        <Text bold color="yellow">
-          Live Resize Demo
-        </Text>
-        <Text dim>
-          {" "}
-          ({width} x {height})
-        </Text>
-      </Box>
-
       {/* Breakpoint indicator */}
       <BreakpointIndicator width={width} columns={columns} />
 
@@ -313,9 +309,7 @@ function LiveResize(): JSX.Element {
 
       {/* Footer */}
       <Box justifyContent="space-between" paddingX={1}>
-        <Text dim>
-          Resize your terminal to see the layout reflow
-        </Text>
+        <Text dim>Resize your terminal to see the layout reflow</Text>
         <Text dim>
           <Text bold dim>
             Esc/q
@@ -333,10 +327,13 @@ function LiveResize(): JSX.Element {
 
 async function main() {
   const handle = await run(
-      <ExampleBanner meta={meta} controls="Resize terminal to see reflow  Esc/q quit">
-        <LiveResize />
-      </ExampleBanner>,
-    )
+    <ExampleBanner
+      meta={meta}
+      controls="Resize terminal to see reflow  Esc/q quit"
+    >
+      <LiveResize />
+    </ExampleBanner>,
+  )
   await handle.waitUntilExit()
 }
 

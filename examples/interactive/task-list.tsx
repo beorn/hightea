@@ -22,7 +22,8 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Task List",
-  description: "Scrollable list with priority badges, toggles, and expandable subtasks",
+  description:
+    "Scrollable list with priority badges, toggles, and expandable subtasks",
   features: ["VirtualList", "variable itemHeight", "Box overflow"],
 }
 
@@ -266,12 +267,6 @@ export function TaskList(): JSX.Element {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Box marginBottom={1}>
-        <Text bold color="yellow">
-          Task List
-        </Text>
-      </Box>
-
       <Box
         flexGrow={1}
         flexDirection="column"
@@ -310,11 +305,14 @@ export function TaskList(): JSX.Element {
 async function main() {
   using term = createTerm()
   const { waitUntilExit } = await render(
-      <ExampleBanner meta={meta} controls="j/k navigate  space toggle  enter expand  Esc/q quit">
-        <TaskList />
-      </ExampleBanner>,
-      term,
-    )
+    <ExampleBanner
+      meta={meta}
+      controls="j/k navigate  space toggle  enter expand  Esc/q quit"
+    >
+      <TaskList />
+    </ExampleBanner>,
+    term,
+  )
   await waitUntilExit()
 }
 

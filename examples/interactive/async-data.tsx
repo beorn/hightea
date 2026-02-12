@@ -22,7 +22,8 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Async Data",
-  description: "React Suspense with independent data sources and error boundaries",
+  description:
+    "React Suspense with independent data sources and error boundaries",
   features: ["React Suspense", "use() hook", "ErrorBoundary"],
 }
 
@@ -167,7 +168,7 @@ export function AsyncDataApp(): JSX.Element {
   const [refreshKey, setRefreshKey] = useState(0)
 
   useInput((input: string, key: Key) => {
-    if (key.escape || (key.ctrl && input === "c")) {
+    if (key.escape) {
       exit()
       return
     }
@@ -180,12 +181,6 @@ export function AsyncDataApp(): JSX.Element {
 
   return (
     <Box flexDirection="column" padding={1} key={refreshKey}>
-      <Box marginBottom={1}>
-        <Text bold color="yellow">
-          Async Data Demo
-        </Text>
-      </Box>
-
       <Box flexGrow={1} flexDirection="row" gap={1}>
         {/* Each Suspense boundary loads independently */}
         <ErrorBoundary fallback={<Text color="red">User error</Text>}>
@@ -229,11 +224,11 @@ export function AsyncDataApp(): JSX.Element {
 async function main() {
   using term = createTerm()
   const { waitUntilExit } = await render(
-      <ExampleBanner meta={meta} controls="r refresh  Esc quit">
-        <AsyncDataApp />
-      </ExampleBanner>,
-      term,
-    )
+    <ExampleBanner meta={meta} controls="r refresh  Esc quit">
+      <AsyncDataApp />
+    </ExampleBanner>,
+    term,
+  )
   await waitUntilExit()
 }
 

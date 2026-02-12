@@ -39,10 +39,6 @@ function Counter() {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold color="cyan">
-        Layer 2 Counter (run + hooks)
-      </Text>
-      <Text> </Text>
       <Box>
         <Text>Count: </Text>
         <Text bold color={count >= 0 ? "green" : "red"}>
@@ -57,10 +53,10 @@ function Counter() {
 
 async function main() {
   const handle = await run(
-      <ExampleBanner meta={meta} controls="j/k inc/dec  r reset  Esc/q quit">
-        <Counter />
-      </ExampleBanner>,
-    )
+    <ExampleBanner meta={meta} controls="j/k inc/dec  r reset  Esc/q quit">
+      <Counter />
+    </ExampleBanner>,
+  )
 
   // Wait until user presses q
   await handle.waitUntilExit()

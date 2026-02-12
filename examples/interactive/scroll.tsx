@@ -5,13 +5,21 @@
  */
 
 import React, { useState } from "react"
-import { Box, Text, render, useInput, useApp, createTerm, type Key } from "../../src/index.js"
+import {
+  Box,
+  Text,
+  render,
+  useInput,
+  useApp,
+  createTerm,
+  type Key,
+} from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Scroll",
   description: 'Native overflow="scroll" with automatic scroll-to-selected',
-  features: ["overflow=\"scroll\"", "scrollTo", "useInput"],
+  features: ['overflow="scroll"', "scrollTo", "useInput"],
 }
 
 // Generate sample items
@@ -39,12 +47,6 @@ export function ScrollExample() {
 
   return (
     <Box flexDirection="column" width={60} height={20}>
-      <Box marginBottom={1}>
-        <Text bold color="yellow">
-          Scroll Example
-        </Text>
-      </Box>
-
       <Box
         flexGrow={1}
         flexDirection="column"

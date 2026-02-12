@@ -22,19 +22,20 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react"
-import {
-  Box,
-  Text,
-  VirtualList,
-  useContentRect,
-} from "../../src/index.js"
+import { Box, Text, VirtualList, useContentRect } from "../../src/index.js"
 import { run, useInput, type Key } from "../../src/runtime/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Virtual 10K",
-  description: "VirtualList scrolling through 10,000 items with instant navigation",
-  features: ["VirtualList", "10K items", "useContentRect()", "variable itemHeight"],
+  description:
+    "VirtualList scrolling through 10,000 items with instant navigation",
+  features: [
+    "VirtualList",
+    "10K items",
+    "useContentRect()",
+    "variable itemHeight",
+  ],
 }
 
 // ============================================================================
@@ -130,7 +131,11 @@ function generateItems(count: number): Item[] {
       if (!tags.includes(tag)) tags.push(tag)
     }
     const progress =
-      status === "done" ? 100 : status === "todo" ? 0 : Math.floor(rng() * 90) + 5
+      status === "done"
+        ? 100
+        : status === "todo"
+          ? 0
+          : Math.floor(rng() * 90) + 5
 
     items.push({
       id: i + 1,
@@ -310,10 +315,18 @@ function StatsBar({ items }: { items: Item[] }): JSX.Element {
       <Text color="cyan">P2:{stats.p2}</Text>
       <Text dim>P3:{stats.p3}</Text>
       <Text dim>|</Text>
-      <Text color="gray">{STATUS_ICONS.todo} {stats.todo}</Text>
-      <Text color="yellow">{STATUS_ICONS["in-progress"]} {stats.inProg}</Text>
-      <Text color="green">{STATUS_ICONS.done} {stats.done}</Text>
-      <Text color="red">{STATUS_ICONS.blocked} {stats.blocked}</Text>
+      <Text color="gray">
+        {STATUS_ICONS.todo} {stats.todo}
+      </Text>
+      <Text color="yellow">
+        {STATUS_ICONS["in-progress"]} {stats.inProg}
+      </Text>
+      <Text color="green">
+        {STATUS_ICONS.done} {stats.done}
+      </Text>
+      <Text color="red">
+        {STATUS_ICONS.blocked} {stats.blocked}
+      </Text>
     </Box>
   )
 }
@@ -328,8 +341,8 @@ function VirtualBenchmark(): JSX.Element {
   const [showDetail, setShowDetail] = useState(false)
 
   // Calculate available list height
-  // Title (1) + stats (1) + separator (1) + scroll indicator (1) + help (1) + borders
-  const listHeight = Math.max(5, height - 6)
+  // stats (1) + separator (1) + scroll indicator (1) + help (1) + borders
+  const listHeight = Math.max(5, height - 5)
   const halfPage = Math.max(1, Math.floor(listHeight / 2))
 
   const itemHeight = useCallback(
@@ -382,21 +395,6 @@ function VirtualBenchmark(): JSX.Element {
 
   return (
     <Box flexDirection="column" width="100%" height="100%">
-      {/* Header */}
-      <Box paddingX={1} justifyContent="space-between">
-        <Box gap={1}>
-          <Text bold color="yellow">
-            Virtual Scroll Benchmark
-          </Text>
-          <Text dim>
-            ({TOTAL_ITEMS.toLocaleString()} items)
-          </Text>
-        </Box>
-        <Text dim>
-          {width}x{height}
-        </Text>
-      </Box>
-
       {/* Stats */}
       <StatsBar items={ALL_ITEMS} />
 
@@ -462,10 +460,13 @@ function VirtualBenchmark(): JSX.Element {
 
 async function main() {
   const handle = await run(
-      <ExampleBanner meta={meta} controls="j/k navigate  d/u half-page  g/G start/end  Enter detail  Esc/q quit">
-        <VirtualBenchmark />
-      </ExampleBanner>,
-    )
+    <ExampleBanner
+      meta={meta}
+      controls="j/k navigate  d/u half-page  g/G start/end  Enter detail  Esc/q quit"
+    >
+      <VirtualBenchmark />
+    </ExampleBanner>,
+  )
   await handle.waitUntilExit()
 }
 

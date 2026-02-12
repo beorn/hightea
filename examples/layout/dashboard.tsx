@@ -21,7 +21,8 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Dashboard",
-  description: "Multi-pane dashboard with flexGrow columns and keyboard navigation",
+  description:
+    "Multi-pane dashboard with flexGrow columns and keyboard navigation",
   features: ["Box flexGrow", "borderStyle", "useInput", "backgroundColor"],
 }
 
@@ -168,12 +169,6 @@ export function Dashboard(): JSX.Element {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Box marginBottom={1}>
-        <Text bold color="yellow">
-          Dashboard
-        </Text>
-      </Box>
-
       <Box flexGrow={1} flexDirection="row" gap={1}>
         <Pane title="System Stats" isSelected={selectedPane === 0}>
           <StatsList stats={systemStats} />
@@ -211,11 +206,11 @@ export function Dashboard(): JSX.Element {
 async function main() {
   using term = createTerm()
   const { waitUntilExit } = await render(
-      <ExampleBanner meta={meta} controls="h/l navigate  Esc/q quit">
-        <Dashboard />
-      </ExampleBanner>,
-      term,
-    )
+    <ExampleBanner meta={meta} controls="h/l navigate  Esc/q quit">
+      <Dashboard />
+    </ExampleBanner>,
+    term,
+  )
   await waitUntilExit()
 }
 

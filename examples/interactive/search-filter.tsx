@@ -21,7 +21,8 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Search Filter",
-  description: "useTransition + useDeferredValue for responsive concurrent search",
+  description:
+    "useTransition + useDeferredValue for responsive concurrent search",
   features: ["useDeferredValue", "useTransition", "useInput"],
 }
 
@@ -208,7 +209,7 @@ export function SearchApp(): JSX.Element {
   const [isPending, startTransition] = useTransition()
 
   useInput((input: string, key: Key) => {
-    if (key.escape || (key.ctrl && input === "c")) {
+    if (key.escape) {
       exit()
       return
     }
@@ -231,12 +232,6 @@ export function SearchApp(): JSX.Element {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Box marginBottom={1}>
-        <Text bold color="yellow">
-          Search Filter Demo
-        </Text>
-      </Box>
-
       <SearchInput value={query} onChange={setQuery} />
 
       {/* List uses deferredQuery so typing stays responsive */}
@@ -266,11 +261,11 @@ export function SearchApp(): JSX.Element {
 async function main() {
   using term = createTerm()
   const { waitUntilExit } = await render(
-      <ExampleBanner meta={meta} controls="type to search  Esc quit">
-        <SearchApp />
-      </ExampleBanner>,
-      term,
-    )
+    <ExampleBanner meta={meta} controls="type to search  Esc quit">
+      <SearchApp />
+    </ExampleBanner>,
+    term,
+  )
   await waitUntilExit()
 }
 

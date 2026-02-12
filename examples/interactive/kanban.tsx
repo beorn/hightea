@@ -23,7 +23,12 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 export const meta: ExampleMeta = {
   name: "Kanban Board",
   description: "3-column kanban with card movement and independent scroll",
-  features: ["Box flexDirection", "useInput", "backgroundColor", "multi-column layout"],
+  features: [
+    "Box flexDirection",
+    "useInput",
+    "backgroundColor",
+    "multi-column layout",
+  ],
 }
 
 // ============================================================================
@@ -281,12 +286,6 @@ export function KanbanBoard(): JSX.Element {
 
   return (
     <Box flexDirection="column" padding={1} height="100%">
-      <Box marginBottom={1}>
-        <Text bold color="yellow">
-          Kanban Board
-        </Text>
-      </Box>
-
       <Box flexGrow={1} flexDirection="row" gap={1} overflow="hidden">
         {columns.map((column, colIndex) => (
           <ColumnComponent
@@ -312,11 +311,14 @@ export function KanbanBoard(): JSX.Element {
 async function main() {
   using term = createTerm()
   const { waitUntilExit } = await render(
-      <ExampleBanner meta={meta} controls="h/l column  j/k card  </> move  Esc/q quit">
-        <KanbanBoard />
-      </ExampleBanner>,
-      term,
-    )
+    <ExampleBanner
+      meta={meta}
+      controls="h/l column  j/k card  </> move  Esc/q quit"
+    >
+      <KanbanBoard />
+    </ExampleBanner>,
+    term,
+  )
   await waitUntilExit()
 }
 

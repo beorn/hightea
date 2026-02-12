@@ -367,18 +367,8 @@ function Preview({ example }: { example: Example }) {
     </Box>
   )
 
-  const infoLines = [
-    "",
-    ` ${example.name}`,
-    ` ${example.description}`,
-    ...(example.features?.length
-      ? ["", ` Features: ${example.features.join(" · ")}`]
-      : []),
-  ]
-
   if (error === "no-component") {
     return renderLines([
-      ...infoLines,
       "",
       " No live preview — uses non-React API.",
       " Press Enter to run standalone.",
@@ -386,11 +376,11 @@ function Preview({ example }: { example: Example }) {
   }
 
   if (error) {
-    return renderLines([...infoLines, "", ` Error: ${error}`])
+    return renderLines(["", ` Error: ${error}`])
   }
 
   if (!lines) {
-    return renderLines([...infoLines, "", " Loading preview..."])
+    return renderLines(["", " Loading preview..."])
   }
 
   return renderLines(lines)
@@ -513,25 +503,9 @@ function Viewer({ examples }: { examples: Example[] }) {
           borderColor="gray"
           overflow="hidden"
         >
-          {/* Tab bar + info */}
+          {/* Info banner */}
           <Box paddingX={1} flexDirection="column">
-            <Text>
-              <Text
-                bold={tab === "view"}
-                color={tab === "view" ? "cyan" : undefined}
-                dim={tab !== "view"}
-              >
-                View
-              </Text>
-              <Text> </Text>
-              <Text
-                bold={tab === "source"}
-                color={tab === "source" ? "cyan" : undefined}
-                dim={tab !== "source"}
-              >
-                Source
-              </Text>
-              <Text> </Text>
+            <Text wrap="truncate">
               <Text bold>{selected.name}</Text>
               <Text dim> — {selected.description}</Text>
             </Text>
@@ -540,6 +514,27 @@ function Viewer({ examples }: { examples: Example[] }) {
                 {selected.features.join(" · ")}
               </Text>
             )}
+          </Box>
+
+          {/* Tab bar */}
+          <Box paddingX={1}>
+            <Text>
+              <Text
+                bold={tab === "view"}
+                color={tab === "view" ? "cyan" : undefined}
+                dim={tab !== "view"}
+              >
+                View
+              </Text>
+              <Text dim> │ </Text>
+              <Text
+                bold={tab === "source"}
+                color={tab === "source" ? "cyan" : undefined}
+                dim={tab !== "source"}
+              >
+                Source
+              </Text>
+            </Text>
           </Box>
 
           {/* Tab content — key forces full teardown on example switch */}
@@ -594,10 +589,7 @@ async function main() {
   const examples = await discoverExamples()
 
   using term = createTerm()
-  const { waitUntilExit } = await render(
-    <Viewer examples={examples} />,
-    term,
-  )
+  const { waitUntilExit } = await render(<Viewer examples={examples} />, term)
   await waitUntilExit()
 }
 

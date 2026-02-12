@@ -94,7 +94,10 @@ const app = createApp<Record<string, unknown>, State>(
   // Event handlers
   {
     "term:key": (data: unknown, { get }: { get: () => State }) => {
-      const { input: k, key } = data as { input: string; key: { escape: boolean } }
+      const { input: k, key } = data as {
+        input: string
+        key: { escape: boolean }
+      }
       const state = get()
       if (key.escape) return "exit"
       switch (k) {
@@ -159,13 +162,11 @@ function TodoList() {
 function App() {
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold color="magenta">
-        Layer 3 Todo (createApp + Zustand)
-      </Text>
-      <Text> </Text>
       <TodoList />
       <Text> </Text>
-      <Text dimColor>j/k: move • x: toggle • a: add • d: delete • Esc/q: quit</Text>
+      <Text dimColor>
+        j/k: move • x: toggle • a: add • d: delete • Esc/q: quit
+      </Text>
     </Box>
   )
 }
@@ -176,7 +177,10 @@ function App() {
 
 async function main() {
   const handle = await app.run(
-    <ExampleBanner meta={meta} controls="j/k move  x toggle  a add  d delete  Esc/q quit">
+    <ExampleBanner
+      meta={meta}
+      controls="j/k move  x toggle  a add  d delete  Esc/q quit"
+    >
       <App />
     </ExampleBanner>,
   )

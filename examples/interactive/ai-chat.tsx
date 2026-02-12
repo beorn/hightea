@@ -33,8 +33,14 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "AI Chat",
-  description: "VirtualList chat with simulated streaming responses and ReadlineInput",
-  features: ["VirtualList", "useContentRect()", "ReadlineInput", "variable-height items"],
+  description:
+    "VirtualList chat with simulated streaming responses and ReadlineInput",
+  features: [
+    "VirtualList",
+    "useContentRect()",
+    "ReadlineInput",
+    "variable-height items",
+  ],
 }
 
 // ============================================================================
@@ -147,16 +153,10 @@ function Header(): JSX.Element {
   )
 }
 
-function StatusBar({
-  messageCount,
-}: {
-  messageCount: number
-}): JSX.Element {
+function StatusBar({ messageCount }: { messageCount: number }): JSX.Element {
   return (
     <Box paddingX={1} justifyContent="space-between">
-      <Text dim>
-        {messageCount} messages
-      </Text>
+      <Text dim>{messageCount} messages</Text>
       <Text dim>
         <Text bold dim>
           Enter
@@ -315,7 +315,11 @@ function Chat(): JSX.Element {
   )
 
   useInput((input: string, key: Key) => {
-    if (key.escape || (key.ctrl && input === "c") || (input === "q" && inputActive && !inputValue)) {
+    if (
+      key.escape ||
+      (key.ctrl && input === "c") ||
+      (input === "q" && inputActive && !inputValue)
+    ) {
       if (streamingRef.current) clearInterval(streamingRef.current)
       exit()
     }
@@ -323,8 +327,6 @@ function Chat(): JSX.Element {
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-      <Header />
-
       <Box flexGrow={1} flexDirection="column">
         <MessageArea
           messages={messages}

@@ -22,7 +22,8 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Layout Ref",
-  description: "useContentRect + useScreenRect for imperative layout measurement",
+  description:
+    "useContentRect + useScreenRect for imperative layout measurement",
   features: ["forwardRef", "BoxHandle", "onLayout", "getContentRect()"],
 }
 
@@ -122,7 +123,7 @@ export function LayoutRefApp(): JSX.Element {
   const [layouts, setLayouts] = useState<Record<string, LayoutInfo>>({})
 
   useInput((input: string, key: Key) => {
-    if (key.escape || (key.ctrl && input === "c")) {
+    if (key.escape) {
       exit()
     }
   })
@@ -133,12 +134,6 @@ export function LayoutRefApp(): JSX.Element {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Box marginBottom={1}>
-        <Text bold color="yellow">
-          Layout Ref Demo
-        </Text>
-      </Box>
-
       {/* Row of resizable panes with onLayout callbacks */}
       <Box flexDirection="row" gap={1} height={8}>
         <ResizablePane
@@ -205,11 +200,11 @@ export function LayoutRefApp(): JSX.Element {
 async function main() {
   using term = createTerm()
   const { waitUntilExit } = await render(
-      <ExampleBanner meta={meta} controls="i inspect  Esc quit">
-        <LayoutRefApp />
-      </ExampleBanner>,
-      term,
-    )
+    <ExampleBanner meta={meta} controls="i inspect  Esc quit">
+      <LayoutRefApp />
+    </ExampleBanner>,
+    term,
+  )
   await waitUntilExit()
 }
 

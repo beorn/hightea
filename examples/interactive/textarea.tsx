@@ -24,7 +24,8 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "TextArea",
-  description: "Multi-line text input with word wrap, scrolling, and kill operations",
+  description:
+    "Multi-line text input with word wrap, scrolling, and kill operations",
   features: ["TextArea", "useContentRect()", "Ctrl+Enter submit"],
 }
 
@@ -34,7 +35,7 @@ export function NoteEditor(): JSX.Element {
   const [value, setValue] = useState("")
 
   useInput((_input: string, key: Key) => {
-    if (key.escape || (_input === "d" && key.ctrl)) {
+    if (key.escape) {
       exit()
     }
   })
@@ -48,12 +49,6 @@ export function NoteEditor(): JSX.Element {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold color="yellow">
-        Note Editor
-      </Text>
-      <Text dim>Ctrl+Enter to submit, Ctrl+D to quit</Text>
-      <Box height={1} />
-
       {notes.length > 0 && (
         <Box flexDirection="column" marginBottom={1}>
           {notes.map((note, i) => (
@@ -98,11 +93,11 @@ export function NoteEditor(): JSX.Element {
 async function main() {
   using term = createTerm()
   const { waitUntilExit } = await render(
-      <ExampleBanner meta={meta} controls="Ctrl+Enter submit  Esc/Ctrl+D quit">
-        <NoteEditor />
-      </ExampleBanner>,
-      term,
-    )
+    <ExampleBanner meta={meta} controls="Ctrl+Enter submit  Esc quit">
+      <NoteEditor />
+    </ExampleBanner>,
+    term,
+  )
   await waitUntilExit()
 }
 

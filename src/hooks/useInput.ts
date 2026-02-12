@@ -6,7 +6,7 @@
  */
 
 import { createLogger } from "@beorn/logger"
-import { useContext, useEffect } from "react"
+import { useContext, useEffect, useRef } from "react"
 import { EventsContext, InputContext, StdinContext } from "../context.js"
 import { type Key, parseKey } from "../keys.js"
 
@@ -70,6 +70,12 @@ export function useInput(
 
   const { isActive = true } = options
 
+  // Stable ref for the handler — avoids tearing down/recreating the event
+  // subscription on every render. Without this, rapid keystrokes between
+  // effect cleanup and setup are lost.
+  const handlerRef = useRef(inputHandler)
+  handlerRef.current = inputHandler
+
   // Static mode check: when events is null, we're in static rendering mode
   // In this mode, useInput becomes a no-op (no raw mode, no event subscription)
   const isStaticMode = events === null
@@ -123,12 +129,12 @@ export function useInput(
         return // Let the app handle exit
       }
 
-      inputHandler(input, key)
+      handlerRef.current(input, key)
     }
 
     inputContext.eventEmitter.on("input", handleData)
     return () => {
       inputContext.eventEmitter.removeListener("input", handleData)
     }
-  }, [isActive, isStaticMode, inputContext, inputHandler])
+  }, [isActive, isStaticMode, inputContext])
 }

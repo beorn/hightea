@@ -12,7 +12,7 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 export const meta: ExampleMeta = {
   name: "Overflow",
   description: 'overflow="hidden" content clipping demonstration',
-  features: ["overflow=\"hidden\"", "Box height"],
+  features: ['overflow="hidden"', "Box height"],
 }
 
 export function OverflowApp() {
@@ -45,11 +45,11 @@ export function OverflowApp() {
 async function main() {
   using term = createTerm()
   const { waitUntilExit } = await render(
-      <ExampleBanner meta={meta} controls="Esc/q quit">
-        <OverflowApp />
-      </ExampleBanner>,
-      term,
-    )
+    <ExampleBanner meta={meta} controls="Esc/q quit">
+      <OverflowApp />
+    </ExampleBanner>,
+    term,
+  )
   await waitUntilExit()
 }
 

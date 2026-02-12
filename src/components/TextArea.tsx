@@ -258,8 +258,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(
         // Enter (newline) — only when submitKey is not "enter"
         // =====================================================================
         if (key.return && submitKey !== "enter") {
-          const newValue =
-            value.slice(0, cursor) + "\n" + value.slice(cursor)
+          const newValue = value.slice(0, cursor) + "\n" + value.slice(cursor)
           updateValue(newValue, cursor + 1)
           return
         }
@@ -365,8 +364,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(
             const newValue = value.slice(0, cursor) + value.slice(lineEnd)
             updateValue(newValue, cursor)
           } else if (cursor < value.length) {
-            const newValue =
-              value.slice(0, cursor) + value.slice(cursor + 1)
+            const newValue = value.slice(0, cursor) + value.slice(cursor + 1)
             updateValue(newValue, cursor)
           }
           return
@@ -378,8 +376,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(
           if (!currentLine) return
           const lineStart = currentLine.startOffset
           if (cursor > lineStart) {
-            const newValue =
-              value.slice(0, lineStart) + value.slice(cursor)
+            const newValue = value.slice(0, lineStart) + value.slice(cursor)
             updateValue(newValue, lineStart)
           }
           return
@@ -392,8 +389,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(
         // Backspace
         if (key.backspace || key.delete) {
           if (cursor > 0) {
-            const newValue =
-              value.slice(0, cursor - 1) + value.slice(cursor)
+            const newValue = value.slice(0, cursor - 1) + value.slice(cursor)
             updateValue(newValue, cursor - 1)
           }
           return
@@ -402,8 +398,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(
         // Ctrl+D: Delete at cursor
         if (key.ctrl && input === "d") {
           if (cursor < value.length) {
-            const newValue =
-              value.slice(0, cursor) + value.slice(cursor + 1)
+            const newValue = value.slice(0, cursor) + value.slice(cursor + 1)
             updateValue(newValue, cursor)
           }
           return
@@ -413,8 +408,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(
         // Regular Character Input
         // =====================================================================
         if (input.length === 1 && input >= " ") {
-          const newValue =
-            value.slice(0, cursor) + input + value.slice(cursor)
+          const newValue = value.slice(0, cursor) + input + value.slice(cursor)
           updateValue(newValue, cursor + 1)
         }
       },
@@ -429,22 +423,18 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(
 
     if (showPlaceholder) {
       return (
-        <Box flexDirection="column" height={height}>
+        <Box
+          flexDirection="column"
+          height={height}
+          justifyContent="center"
+          alignItems="center"
+        >
           <Text dimColor>{placeholder}</Text>
-          {isActive &&
-            (cursorStyle === "block" ? (
-              <Text inverse> </Text>
-            ) : (
-              <Text underline> </Text>
-            ))}
         </Box>
       )
     }
 
-    const visibleLines = wrappedLines.slice(
-      scrollOffset,
-      scrollOffset + height,
-    )
+    const visibleLines = wrappedLines.slice(scrollOffset, scrollOffset + height)
 
     return (
       <Box key={scrollOffset} flexDirection="column" height={height}>
@@ -453,11 +443,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(
           const isCursorRow = absoluteRow === cursorRow
 
           if (!isCursorRow || !isActive) {
-            return (
-              <Text key={absoluteRow}>
-                {wl.line || " "}
-              </Text>
-            )
+            return <Text key={absoluteRow}>{wl.line || " "}</Text>
           }
 
           // Render line with cursor
