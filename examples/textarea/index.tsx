@@ -26,9 +26,8 @@ export function NoteEditor(): JSX.Element {
   const [notes, setNotes] = useState<string[]>([])
   const [value, setValue] = useState("")
 
-  useInput((_input: string, _key: Key) => {
-    // q to quit only after saving at least one note
-    if (_input === "q" && notes.length > 0) {
+  useInput((_input: string, key: Key) => {
+    if (_input === "d" && key.ctrl) {
       exit()
     }
   })
@@ -45,7 +44,7 @@ export function NoteEditor(): JSX.Element {
       <Text bold color="yellow">
         Note Editor
       </Text>
-      <Text dim>Type a note, Ctrl+Enter to save. q to quit.</Text>
+      <Text dim>Ctrl+Enter to submit, Ctrl+D to quit</Text>
       <Box height={1} />
 
       {notes.length > 0 && (
@@ -82,7 +81,7 @@ export function NoteEditor(): JSX.Element {
 
       <Box marginTop={1}>
         <Text dim>
-          {notes.length} note{notes.length !== 1 ? "s" : ""} saved
+          {notes.length} note{notes.length !== 1 ? "s" : ""} submitted
         </Text>
       </Box>
     </Box>

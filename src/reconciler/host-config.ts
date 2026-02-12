@@ -491,7 +491,10 @@ export const hostConfig = {
   },
 
   getCurrentEventPriority() {
-    return 16 // DefaultEventPriority
+    if (currentUpdatePriority !== NoEventPriority) {
+      return currentUpdatePriority
+    }
+    return DefaultEventPriority
   },
 
   getInstanceFromNode() {

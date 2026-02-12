@@ -168,6 +168,11 @@ export function keyToAnsi(key: string): string {
     if (code >= 1 && code <= 26) return String.fromCharCode(code)
   }
 
+  // Ctrl+Enter -> \n (legacy terminal: \r = Enter, \n = Ctrl+Enter/Ctrl+J)
+  if (modifiers.includes("Control") && mainKey === "Enter") {
+    return "\n"
+  }
+
   // Alt+key -> ESC prefix (standard terminal convention)
   // Alt/Meta/Option keys send ESC followed by the key
   if (
@@ -461,7 +466,11 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
   if (input === "\r") {
     key.name = "return"
   } else if (input === "\n") {
-    key.name = "enter"
+    // In legacy terminal mode, Enter sends \r. The only way to get \n is
+    // Ctrl+Enter (or Ctrl+J, same byte). Treat it as ctrl+return so
+    // TextArea's submitKey="ctrl+enter" works without Kitty protocol.
+    key.name = "return"
+    key.ctrl = true
   } else if (input === "\t") {
     key.name = "tab"
   } else if (input === "\b" || input === "\x1b\b") {

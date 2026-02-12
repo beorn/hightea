@@ -403,24 +403,24 @@ function InkxApp({
         return
       }
 
-      // Handle Tab/Shift+Tab for focus
-      if (focusState.isFocusEnabled) {
-        if (chunk === "\t") {
-          focusNext()
-        } else if (chunk === "\u001B[Z") {
-          focusPrevious()
-        }
-      }
-
-      // Handle Escape to clear focus
-      if (chunk === "\u001B" && focusState.activeId) {
-        setFocusState((prev) => ({ ...prev, activeId: null }))
-      }
-
-      // Emit input event with discrete priority so React commits
+      // All input handling runs at discrete priority so React commits
       // synchronously. Without this, concurrent mode defers the commit
       // and onCommit → scheduleRender() never fires.
       runWithDiscreteEvent(() => {
+        // Handle Tab/Shift+Tab for focus
+        if (focusState.isFocusEnabled) {
+          if (chunk === "\t") {
+            focusNext()
+          } else if (chunk === "\u001B[Z") {
+            focusPrevious()
+          }
+        }
+
+        // Handle Escape to clear focus
+        if (chunk === "\u001B" && focusState.activeId) {
+          setFocusState((prev) => ({ ...prev, activeId: null }))
+        }
+
         eventEmitter.emit("input", chunk)
       })
       reconciler.flushSyncWork()

@@ -95,8 +95,8 @@ describe("keyToAnsi", () => {
       expect(keyToAnsi("Control+C")).toBe("\x03")
     })
 
-    test("Control with named key returns base key", () => {
-      expect(keyToAnsi("Control+Enter")).toBe("\r")
+    test("Control+Enter returns \\n (legacy Ctrl+Enter)", () => {
+      expect(keyToAnsi("Control+Enter")).toBe("\n")
     })
   })
 
