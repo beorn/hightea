@@ -891,17 +891,34 @@ function clearNodeRegion(
   }
 
   // When a node shrinks, clear the old bounds' excess area.
-  // Clip to the COLORED ANCESTOR's bounds (not immediate parent) to prevent
-  // the inherited color from bleeding into sibling areas with different bg.
+  // Clip to the COLORED ANCESTOR's content area (not immediate parent's full rect)
+  // to prevent inherited color from bleeding into sibling areas with different bg.
+  //
+  // IMPORTANT: Use content area (inside border/padding), not full contentRect.
+  // Without this, excess clearing of a child that previously filled the parent's
+  // content area will extend into the parent's border row, overwriting border chars.
   if (!layoutChanged || !node.prevLayout) return
   const prev = node.prevLayout
   const prevScreenY = prev.y - scrollOffset
 
+  // Find the clip rect and its owner for content-area inset calculation
+  const clipRectOwner = inherited.ancestorRect ? null : node.parent
   const clipRect = inherited.ancestorRect ?? node.parent?.contentRect
   if (!clipRect) return
 
   const clipRectScreenY = clipRect.y - scrollOffset
-  const clipRectBottom = clipRectScreenY + clipRect.height
+  let clipRectBottom = clipRectScreenY + clipRect.height
+
+  // Inset by border/padding when clip rect comes from the immediate parent.
+  // The excess clearing should not extend into the parent's border area.
+  // (When clip rect comes from a colored ancestor, its bg fill already covers
+  // its border area, so children's clearing into that area is harmless.)
+  if (clipRectOwner) {
+    const ownerProps = clipRectOwner.props as BoxProps
+    const border = getBorderSize(ownerProps)
+    const padding = getPadding(ownerProps)
+    clipRectBottom -= border.bottom + padding.bottom
+  }
 
   // Clear right margin (old was wider than new)
   if (prev.width > layout.width) {
