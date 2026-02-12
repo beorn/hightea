@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { keyToAnsi } from "../src/keys.js"
+import { keyToAnsi, parseKey } from "../src/keys.js"
 
 describe("keyToAnsi", () => {
   describe("single characters", () => {
@@ -131,6 +131,59 @@ describe("keyToAnsi", () => {
 
     test("shift+Tab works like Shift+Tab", () => {
       expect(keyToAnsi("shift+Tab")).toBe(keyToAnsi("Shift+Tab"))
+    })
+  })
+
+  describe("Ctrl+Enter round-trip", () => {
+    test("keyToAnsi → parseKey produces key.return + key.ctrl", () => {
+      const ansi = keyToAnsi("Control+Enter")
+      const [, key] = parseKey(ansi)
+      expect(key.return).toBe(true)
+      expect(key.ctrl).toBe(true)
+    })
+  })
+})
+
+describe("parseKey", () => {
+  describe("xterm modifyOtherKeys format", () => {
+    test("CSI 27;5;13~ = Ctrl+Enter", () => {
+      const [, key] = parseKey("\x1b[27;5;13~")
+      expect(key.return).toBe(true)
+      expect(key.ctrl).toBe(true)
+      expect(key.shift).toBe(false)
+    })
+
+    test("CSI 27;6;13~ = Ctrl+Shift+Enter", () => {
+      const [, key] = parseKey("\x1b[27;6;13~")
+      expect(key.return).toBe(true)
+      expect(key.ctrl).toBe(true)
+      expect(key.shift).toBe(true)
+    })
+
+    test("CSI 27;5;9~ = Ctrl+Tab", () => {
+      const [, key] = parseKey("\x1b[27;5;9~")
+      expect(key.tab).toBe(true)
+      expect(key.ctrl).toBe(true)
+    })
+
+    test("CSI 27;5;97~ = Ctrl+a (modifyOtherKeys)", () => {
+      const [input, key] = parseKey("\x1b[27;5;97~")
+      expect(input).toBe("a")
+      expect(key.ctrl).toBe(true)
+    })
+  })
+
+  describe("legacy terminal", () => {
+    test("\\n = Ctrl+Enter (legacy)", () => {
+      const [, key] = parseKey("\n")
+      expect(key.return).toBe(true)
+      expect(key.ctrl).toBe(true)
+    })
+
+    test("\\r = Enter", () => {
+      const [, key] = parseKey("\r")
+      expect(key.return).toBe(true)
+      expect(key.ctrl).toBe(false)
     })
   })
 

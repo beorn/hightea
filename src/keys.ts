@@ -352,6 +352,9 @@ const FN_KEY_RE =
 /** Matches Kitty keyboard protocol sequences: CSI codepoint ; modifiers u */
 const KITTY_RE = /^\x1b\[(\d+)(?::(\d+))?(?:;(\d+))?(?::(\d+))?u$/
 
+/** Matches xterm modifyOtherKeys format: CSI 27 ; modifier ; keycode ~ */
+const MODIFY_OTHER_KEYS_RE = /^\x1b\[27;(\d+);(\d+)~$/
+
 /** Maps Kitty codepoints to key names for non-printable/functional keys */
 const KITTY_CODEPOINT_MAP: Record<number, string> = {
   // Standard control keys
@@ -502,9 +505,20 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
     // Try Kitty keyboard protocol first (CSI codepoint ; modifiers u)
     // Must be checked before FN_KEY_RE because 'u' matches [a-zA-Z]
     const kittyParts = KITTY_RE.exec(input)
-    if (kittyParts) {
-      const codepoint = Number(kittyParts[1])
-      const modifier = (Number(kittyParts[3] || 1) - 1) as number
+    // xterm modifyOtherKeys format: CSI 27 ; modifier ; keycode ~
+    // Sent by Ghostty, xterm, and others for modified keys like Ctrl+Enter
+    const modifyOtherKeysParts =
+      !kittyParts && MODIFY_OTHER_KEYS_RE.exec(input)
+    if (kittyParts || modifyOtherKeysParts) {
+      let codepoint: number
+      let modifier: number
+      if (kittyParts) {
+        codepoint = Number(kittyParts[1])
+        modifier = (Number(kittyParts[3] || 1) - 1) as number
+      } else {
+        modifier = (Number(modifyOtherKeysParts![1]) - 1) as number
+        codepoint = Number(modifyOtherKeysParts![2])
+      }
 
       key.shift = !!(modifier & 1)
       key.meta = !!(modifier & 2) || !!(modifier & 8) // alt or super
