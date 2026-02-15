@@ -36,16 +36,6 @@ export interface ScreenRect {
 }
 
 /**
- * Entry for a registered item.
- */
-interface ItemEntry {
-  rect: ScreenRect
-  /** Optional head region for stickyY (title row position) */
-  headY?: number
-  headHeight?: number
-}
-
-/**
  * Position registry for 2D grid layouts.
  *
  * Items are keyed by (sectionIndex, itemIndex). Positions are screen-relative
@@ -59,9 +49,6 @@ export interface PositionRegistry {
 
   /** Remove an item's entry. Called automatically on unmount. */
   unregister(sectionIndex: number, itemIndex: number): void
-
-  /** Update the head region for an item (for stickyY calculation). */
-  updateHead(sectionIndex: number, itemIndex: number, headY: number, headHeight: number): void
 
   // === Queries ===
 
@@ -92,29 +79,9 @@ export interface PositionRegistry {
    */
   findInsertionSlot(sectionIndex: number, targetY: number): number
 
-  // === Sticky position tracking ===
-
-  /** Current sticky Y for cross-axis navigation (null if not set). */
-  stickyY: number | null
-
-  /** Current sticky X (section index) for vertical navigation (null if not set). */
-  stickyX: number | null
-
-  /** Set sticky Y position (typically the head midpoint of the source item). */
-  setStickyY(y: number): void
-
-  /** Set sticky X (section index). */
-  setStickyX(x: number): void
-
-  /** Clear sticky Y (call on vertical navigation). */
-  clearStickyY(): void
-
-  /** Clear sticky X. */
-  clearStickyX(): void
-
   // === Lifecycle ===
 
-  /** Clear all positions and sticky state. */
+  /** Clear all positions. */
   clear(): void
 
   /** Dump registry state for debugging. */
@@ -126,11 +93,8 @@ export interface PositionRegistry {
 // =============================================================================
 
 function createPositionRegistry(): PositionRegistry {
-  // Map: sectionIndex -> Map<itemIndex, ItemEntry>
-  const sections = new Map<number, Map<number, ItemEntry>>()
-
-  let stickyY: number | null = null
-  let stickyX: number | null = null
+  // Map: sectionIndex -> Map<itemIndex, { rect: ScreenRect }>
+  const sections = new Map<number, Map<number, { rect: ScreenRect }>>()
 
   const registry: PositionRegistry = {
     // === Registration ===
@@ -142,15 +106,8 @@ function createPositionRegistry(): PositionRegistry {
         sections.set(sectionIndex, sectionMap)
       }
 
-      // Preserve existing head measurements if re-registering
-      const existing = sectionMap.get(itemIndex)
-      const entry: ItemEntry = { rect }
-      if (existing?.headY !== undefined) {
-        entry.headY = existing.headY
-        entry.headHeight = existing.headHeight
-      }
+      sectionMap.set(itemIndex, { rect })
 
-      sectionMap.set(itemIndex, entry)
       log.debug?.(`register sec=${sectionIndex} item=${itemIndex} y=${rect.y} h=${rect.height}`)
     },
 
@@ -162,14 +119,6 @@ function createPositionRegistry(): PositionRegistry {
           sections.delete(sectionIndex)
         }
         log.debug?.(`unregister sec=${sectionIndex} item=${itemIndex}`)
-      }
-    },
-
-    updateHead(sectionIndex: number, itemIndex: number, headY: number, headHeight: number): void {
-      const entry = sections.get(sectionIndex)?.get(itemIndex)
-      if (entry) {
-        entry.headY = headY
-        entry.headHeight = headHeight
       }
     },
 
@@ -234,57 +183,15 @@ function createPositionRegistry(): PositionRegistry {
       return sorted.length
     },
 
-    // === Sticky position tracking ===
-
-    get stickyY() {
-      return stickyY
-    },
-    set stickyY(_) {
-      /* use setStickyY */
-    },
-
-    get stickyX() {
-      return stickyX
-    },
-    set stickyX(_) {
-      /* use setStickyX */
-    },
-
-    setStickyY(y: number): void {
-      stickyY = y
-      log.debug?.(`setStickyY: ${y}`)
-    },
-
-    setStickyX(x: number): void {
-      stickyX = x
-      log.debug?.(`setStickyX: ${x}`)
-    },
-
-    clearStickyY(): void {
-      if (stickyY !== null) {
-        log.debug?.("clearStickyY")
-        stickyY = null
-      }
-    },
-
-    clearStickyX(): void {
-      if (stickyX !== null) {
-        log.debug?.("clearStickyX")
-        stickyX = null
-      }
-    },
-
     // === Lifecycle ===
 
     clear(): void {
       sections.clear()
-      stickyY = null
-      stickyX = null
       log.debug?.("cleared all positions")
     },
 
     dump(): string {
-      const lines: string[] = [`stickyX=${stickyX}, stickyY=${stickyY}`]
+      const lines: string[] = []
 
       if (sections.size === 0) {
         lines.push("(no items registered)")

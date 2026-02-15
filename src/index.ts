@@ -590,5 +590,3 @@ export type { PositionRegistry, ScreenRect } from "./hooks/usePositionRegistry.j
 export { useGridPosition } from "./hooks/useGridPosition.js"
 export { GridCell } from "./components/GridCell.js"
 export type { GridCellProps } from "./components/GridCell.js"
-export { findCrossAxisTarget, getItemMidY, getItemRect } from "./navigation/cross-axis.js"
-export type { CrossAxisTarget } from "./navigation/cross-axis.js"
