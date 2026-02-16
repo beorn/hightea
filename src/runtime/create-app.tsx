@@ -735,9 +735,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       dims.cols,
       dims.rows,
       _noIncremental ? null : _prevTermBuffer,
-      {
-        skipLayoutNotifications: true,
-      },
     )
     if (!_noIncremental) _prevTermBuffer = termBuffer
     const pipelineMs = performance.now() - pipelineStart
