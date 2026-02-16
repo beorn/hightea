@@ -155,7 +155,11 @@ export function useVirtualization<T>(config: VirtualizationConfig<T>): Virtualiz
 
   // Calculate average item size for estimating visible count
   const avgItemSize = calcAverageItemSize(items, itemSize)
-  const estimatedVisibleCount = Math.max(1, Math.floor(viewportSize / (avgItemSize + gap)))
+  // Use ceil to match HVL's rendering behavior: items that partially overflow
+  // the viewport are still rendered (clipped by overflow="hidden"). Using floor
+  // here would under-count visible items, causing the scroll algorithm to scroll
+  // more aggressively than needed.
+  const estimatedVisibleCount = Math.max(1, Math.ceil(viewportSize / (avgItemSize + gap)))
 
   // Selected index as ref — doesn't trigger re-renders when cursor moves
   // within the viewport. Only scrollOffset (state) triggers re-renders.
