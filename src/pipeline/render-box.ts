@@ -103,8 +103,10 @@ export function renderBorder(
     }
   }
 
-  // Side borders
-  for (let row = y + 1; row < y + height - 1; row++) {
+  // Side borders — extend range when top/bottom borders are hidden
+  const sideStart = showTop ? y + 1 : y
+  const sideEnd = showBottom ? y + height - 1 : y + height
+  for (let row = sideStart; row < sideEnd; row++) {
     if (!isRowVisible(row)) continue
     if (showLeft) buffer.setCell(x, row, { char: chars.vertical, fg: color })
     if (showRight && x + width - 1 < buffer.width) {
