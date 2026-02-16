@@ -201,9 +201,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 
     // Execute render pipeline
     const dims = runtime.getDims()
-    const { buffer: termBuffer } = executeRender(rootNode, dims.cols, dims.rows, null, {
-      skipLayoutNotifications: true,
-    })
+    const { buffer: termBuffer } = executeRender(rootNode, dims.cols, dims.rows, null)
 
     return createBuffer(termBuffer, rootNode)
   }
