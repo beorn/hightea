@@ -296,6 +296,14 @@ function calculateScrollState(node: InkxNode, props: BoxProps, skipStateUpdates:
       continue
     }
 
+    // Skip zero-height children from hidden counts — they have no visual
+    // presence and would produce spurious overflow indicators (e.g., a
+    // zero-height child at position 0 has top=0, bottom=0, and 0 <= 0
+    // would incorrectly count it as "hidden above").
+    if (cp.top === cp.bottom) {
+      continue
+    }
+
     if (cp.bottom <= visibleTop) {
       hiddenAbove++
     } else if (cp.top >= visibleBottom) {

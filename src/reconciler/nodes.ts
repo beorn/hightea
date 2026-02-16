@@ -64,12 +64,12 @@ export function createNode(type: InkxNodeType, props: BoxProps | TextProps | Rec
     let cachedText: string | null = null
     const measureCache = new Map<string, { width: number; height: number }>()
 
-    layoutNode.setMeasureFunc((width, widthMode, _height, _heightMode) => {
+    layoutNode.setMeasureFunc((width, widthMode, height, heightMode) => {
       measureStats.calls++
 
       // Fast path: check if we have a cached result for this exact constraint
       // This avoids text collection entirely if we've measured this before
-      const cacheKey = `${width}|${widthMode}`
+      const cacheKey = `${width}|${widthMode}|${height}|${heightMode}`
       const cached = measureCache.get(cacheKey)
       if (cached && cachedText !== null && !node.contentDirty) {
         measureStats.cacheHits++
@@ -141,10 +141,21 @@ export function createNode(type: InkxNodeType, props: BoxProps | TextProps | Rec
         }
       }
 
+      // Respect height constraint from layout engine.
+      // When heightMode is "at-most", the text should not exceed the available height.
+      // When heightMode is "exactly", the text should be exactly that height.
+      // This prevents text from overflowing into parent border rows.
+      let resultHeight = Math.max(1, totalHeight)
+      if (heightMode === "exactly" && Number.isFinite(height)) {
+        resultHeight = height
+      } else if (heightMode === "at-most" && Number.isFinite(height)) {
+        resultHeight = Math.min(resultHeight, height)
+      }
+
       // Cache and return result
       const result = {
         width: Math.min(actualWidth, maxWidth),
-        height: Math.max(1, totalHeight),
+        height: resultHeight,
       }
       measureCache.set(cacheKey, result)
       return result

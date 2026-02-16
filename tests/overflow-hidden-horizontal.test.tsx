@@ -45,8 +45,8 @@ describe("overflow=hidden horizontal clipping", () => {
       expect(lines[i]!.length, `line ${i}: "${lines[i]}"`).toBeLessThanOrEqual(40)
     }
 
-    // Should have truncation ellipsis (inkx uses midline horizontal ellipsis U+22EF)
-    expect(text).toContain("\u22EF")
+    // Should have truncation ellipsis (inkx uses horizontal ellipsis U+2026)
+    expect(text).toContain("\u2026")
 
     // Should have the count display
     expect(text).toContain(" 5")
@@ -136,7 +136,7 @@ describe("overflow=hidden horizontal clipping", () => {
     for (let i = 0; i < lines.length; i++) {
       expect(lines[i]!.length, `line ${i}: "${lines[i]}"`).toBeLessThanOrEqual(20)
     }
-    expect(text).toContain("\u22EF")
+    expect(text).toContain("\u2026")
   })
 
   test("layout: flexShrink=1 constrains inner row to parent width", () => {

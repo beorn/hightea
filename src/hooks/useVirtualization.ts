@@ -165,61 +165,73 @@ export function useVirtualization<T>(config: VirtualizationConfig<T>): Virtualiz
   // within the viewport. Only scrollOffset (state) triggers re-renders.
   const selectedIndexRef = useRef(Math.max(0, Math.min(scrollTo ?? 0, items.length - 1)))
 
-  // Scroll offset as state — VirtualList re-renders only when offset changes
-  // (cursor exits viewport). Cursor moves within viewport skip re-render entirely.
-  const [scrollOffset, setScrollOffset] = useState(() =>
+  // Scroll offset — computed synchronously during render when scrollTo changes.
+  //
+  // Previously this was useState + useEffect, which caused a one-frame delay in
+  // production (createApp): passive effects from useEffect don't flush within
+  // the same doRender() cycle, so the scroll offset update was deferred until
+  // the next keypress. This made the viewport not scroll when entering an
+  // off-screen column from the board header.
+  //
+  // The ref stores the current offset for the "freeze" behavior (when scrollTo
+  // is undefined). The state triggers re-renders when the offset changes.
+  const scrollOffsetRef = useRef(
     calcEdgeBasedScrollOffset(selectedIndexRef.current, 0, estimatedVisibleCount, items.length, scrollPadding),
   )
+  const [scrollOffset, setScrollOffset] = useState(() => scrollOffsetRef.current)
 
-  // Imperative scroll function — updates ref always, state only when offset changes
+  // Synchronous scroll offset computation during render.
+  // When scrollTo is defined, compute the new offset immediately so the
+  // component renders with the correct viewport in a single pass.
+  // When scrollTo is undefined, return the frozen (last known) offset.
+  if (scrollTo !== undefined) {
+    const clampedIndex = Math.max(0, Math.min(scrollTo, items.length - 1))
+    selectedIndexRef.current = clampedIndex
+    const newOffset = calcEdgeBasedScrollOffset(
+      clampedIndex,
+      scrollOffsetRef.current,
+      estimatedVisibleCount,
+      items.length,
+      scrollPadding,
+    )
+    if (newOffset !== scrollOffsetRef.current) {
+      scrollOffsetRef.current = newOffset
+    }
+  }
+  // The effective offset used for rendering — always up-to-date, no effect delay.
+  const effectiveScrollOffset = scrollOffsetRef.current
+
+  // Sync state with ref (triggers re-render for dependents only when changed).
+  // This is a no-op when the offset hasn't changed, avoiding render loops.
+  useEffect(() => {
+    setScrollOffset((prev) => (prev === effectiveScrollOffset ? prev : effectiveScrollOffset))
+  }, [effectiveScrollOffset])
+
+  // Imperative scroll function — updates ref and state
   const scrollToItem = useCallback(
     (index: number) => {
       const clampedIndex = Math.max(0, Math.min(index, items.length - 1))
       selectedIndexRef.current = clampedIndex
-      setScrollOffset((prevOffset) => {
-        const newOffset = calcEdgeBasedScrollOffset(
-          clampedIndex,
-          prevOffset,
-          estimatedVisibleCount,
-          items.length,
-          scrollPadding,
-        )
-        return newOffset === prevOffset ? prevOffset : newOffset
-      })
-    },
-    [items.length, estimatedVisibleCount, scrollPadding],
-  )
-
-  // Update scroll state when scrollTo prop changes (only when defined).
-  // When scrollTo becomes undefined, we freeze state.
-  // Uses functional updater to read prevOffset (avoids oscillation from
-  // position-sensitive calcEdgeBasedScrollOffset).
-  useEffect(() => {
-    if (scrollTo === undefined) {
-      return // Frozen: do not update state
-    }
-
-    const clampedIndex = Math.max(0, Math.min(scrollTo, items.length - 1))
-    selectedIndexRef.current = clampedIndex
-    setScrollOffset((prevOffset) => {
       const newOffset = calcEdgeBasedScrollOffset(
         clampedIndex,
-        prevOffset,
+        scrollOffsetRef.current,
         estimatedVisibleCount,
         items.length,
         scrollPadding,
       )
-      return newOffset === prevOffset ? prevOffset : newOffset
-    })
-  }, [scrollTo, items.length, estimatedVisibleCount, scrollPadding])
+      scrollOffsetRef.current = newOffset
+      setScrollOffset(newOffset)
+    },
+    [items.length, estimatedVisibleCount, scrollPadding],
+  )
 
   // Determine the current selected index to use for rendering
   const currentSelectedIndex =
     scrollTo !== undefined ? Math.max(0, Math.min(scrollTo, items.length - 1)) : selectedIndexRef.current
 
   // Calculate virtualization window
-  // Depends on scrollOffset (not currentSelectedIndex) so that cursor moves
-  // within the visible window don't trigger recalculation. This prevents
+  // Depends on effectiveScrollOffset (not currentSelectedIndex) so that cursor
+  // moves within the visible window don't trigger recalculation. This prevents
   // VirtualList re-renders when the scroll position hasn't actually changed.
   const windowCalc = useMemo(() => {
     const totalItems = items.length
@@ -245,8 +257,8 @@ export function useVirtualization<T>(config: VirtualizationConfig<T>): Virtualiz
     }
 
     // Center the render window around the selected item.
-    // Dep is scrollOffset (not selectedIndex) so cursor moves within the
-    // visible window don't trigger recalculation. When scrollOffset changes
+    // Dep is effectiveScrollOffset (not selectedIndex) so cursor moves within
+    // the visible window don't trigger recalculation. When offset changes
     // (cursor leaves viewport), the memo fires and uses the latest selectedIndex.
     const viewportCenter = selectedIndexRef.current
     const halfWindow = Math.floor(maxRendered / 2)
@@ -274,13 +286,13 @@ export function useVirtualization<T>(config: VirtualizationConfig<T>): Virtualiz
       leadingPlaceholderSize: leadingSize,
       trailingPlaceholderSize: trailingSize,
     }
-  }, [items.length, scrollOffset, maxRendered, overscan, itemSize, avgItemSize, gap])
+  }, [items.length, effectiveScrollOffset, maxRendered, overscan, itemSize, avgItemSize, gap])
 
   return {
     startIndex: windowCalc.startIndex,
     endIndex: windowCalc.endIndex,
     currentSelectedIndex,
-    scrollOffset,
+    scrollOffset: effectiveScrollOffset,
     leadingPlaceholderSize: windowCalc.leadingPlaceholderSize,
     trailingPlaceholderSize: windowCalc.trailingPlaceholderSize,
     hiddenBefore: windowCalc.startIndex,

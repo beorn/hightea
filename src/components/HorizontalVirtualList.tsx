@@ -155,6 +155,29 @@ function calcActualVisibleCount<T>(
   return Math.max(1, count)
 }
 
+/**
+ * Calculate the physical right edge position of a target item relative to
+ * the viewport, given a scroll offset. Returns the pixel position past the
+ * viewport right edge (positive = clipped, zero/negative = fully visible).
+ */
+function calcItemOverflow<T>(
+  items: T[],
+  scrollOffset: number,
+  targetIndex: number,
+  viewport: number,
+  itemWidth: number | ((item: T, index: number) => number),
+  gap: number,
+): number {
+  if (targetIndex < scrollOffset || targetIndex >= items.length) return 0
+  // Sum widths from scrollOffset to targetIndex (inclusive)
+  let pos = 0
+  for (let i = scrollOffset; i <= targetIndex; i++) {
+    const w = typeof itemWidth === "number" ? itemWidth : itemWidth(items[i]!, i)
+    pos += w + (i > scrollOffset ? gap : 0)
+  }
+  return pos - viewport
+}
+
 // =============================================================================
 // Component
 // =============================================================================
@@ -229,7 +252,29 @@ function HorizontalVirtualListInner<T>(
   // When all items fit, override scrollOffset to 0. useVirtualization may compute
   // a non-zero offset due to average-based estimation with variable widths
   // (e.g., collapsed=3 vs expanded=76 averages to 39.5, underestimating visible count).
-  const displayScrollOffset = allItemsFit ? 0 : scrollOffset
+  let displayScrollOffset = allItemsFit ? 0 : scrollOffset
+
+  // Fix partial visibility: useVirtualization reserves space for both overflow
+  // indicators (left + right), but at the edges only one shows. Recalculate
+  // with the actual indicator overhead to see if items truly don't fit.
+  // If they do fit with actual indicators, keep the current offset.
+  // If they don't, bump the offset to fully reveal the cursor item.
+  if (scrollTo !== undefined && !allItemsFit && scrollTo >= displayScrollOffset) {
+    // Determine which indicators would show at the current offset
+    const wouldShowLeft = hasIndicatorRenderer && displayScrollOffset > 0
+    const prelimVisibleCount = calcActualVisibleCount(items, displayScrollOffset, effectiveViewport, itemWidth, gap)
+    const wouldShowRight = hasIndicatorRenderer && (items.length - displayScrollOffset - prelimVisibleCount) > 0
+    // Actual viewport uses only the indicators that will actually render
+    const actualIndicatorWidth = (wouldShowLeft ? overflowIndicatorWidth : 0) + (wouldShowRight ? overflowIndicatorWidth : 0)
+    const actualViewport = Math.max(1, width - actualIndicatorWidth)
+
+    const overflow = calcItemOverflow(items, displayScrollOffset, scrollTo, actualViewport, itemWidth, gap)
+    if (overflow > 0) {
+      // Scroll right by 1 to push the partially clipped item into full view.
+      const maxOffset = Math.max(0, items.length - 1)
+      displayScrollOffset = Math.min(maxOffset, displayScrollOffset + 1)
+    }
+  }
 
   // Compute how many items actually fit starting from the display scroll offset.
   // Uses actual item widths rather than averages for accurate overflow detection.
