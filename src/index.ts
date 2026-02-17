@@ -117,6 +117,9 @@ export type { ReadlineInputProps, ReadlineInputHandle } from "./components/Readl
 export { TextArea } from "./components/TextArea.js"
 export type { TextAreaProps, TextAreaHandle } from "./components/TextArea.js"
 
+export { EditContextDisplay } from "./components/EditContextDisplay.js"
+export type { EditContextDisplayProps } from "./components/EditContextDisplay.js"
+
 // Input Hooks
 export { useReadline } from "./components/useReadline.js"
 export type { ReadlineState, UseReadlineOptions, UseReadlineResult } from "./components/useReadline.js"
