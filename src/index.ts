@@ -468,6 +468,44 @@ export {
 export type { WrappedLine } from "./text-cursor.js"
 
 // =============================================================================
+// Edit Context
+// =============================================================================
+
+/**
+ * Terminal Edit Context -- W3C EditContext-aligned interface for terminal
+ * text editing, plus invertible text operations for undo/redo.
+ *
+ * @example
+ * ```ts
+ * import { createTermEditContext, applyTextOp, invertTextOp } from 'inkx'
+ *
+ * using ctx = createTermEditContext({ text: "hello", wrapWidth: 40 })
+ * ctx.onTextUpdate((op) => undoStack.push(op))
+ * ctx.insertChar("!")  // "hello!"
+ *
+ * const op: TextOp = { type: "insert", offset: 0, text: "hi " }
+ * const result = applyTextOp("world", op)  // "hi world"
+ * const inv = invertTextOp(op)              // delete "hi " at 0
+ * ```
+ */
+export { createTermEditContext } from "./edit-context.js"
+export type {
+  EditContextLike,
+  TermEditContext,
+  TermEditContextOptions,
+} from "./edit-context.js"
+
+export { applyTextOp, invertTextOp, mergeTextOps } from "./text-ops.js"
+export type { TextOp } from "./text-ops.js"
+
+export { useEditContext, activeEditContextRef } from "./hooks/use-edit-context.js"
+export type {
+  UseEditContextOptions,
+  UseEditContextResult,
+  EditTarget,
+} from "./hooks/use-edit-context.js"
+
+// =============================================================================
 // Scroll Utilities
 // =============================================================================
 
