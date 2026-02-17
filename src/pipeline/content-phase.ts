@@ -196,7 +196,14 @@ function renderNodeToBuffer(
 
   // Skip nodes without Yoga (raw text and virtual text nodes)
   // Their content is rendered by their parent inkx-text via collectTextContent()
-  if (!node.layoutNode) return
+  if (!node.layoutNode) {
+    // Clear dirty flags so markSubtreeDirty() can propagate future updates.
+    // Without this, virtual text children keep stale subtreeDirty=true from
+    // creation, causing markSubtreeDirty to stop early and never reach the
+    // layout ancestor — producing 0-byte diffs on text content changes.
+    clearVirtualTextFlags(node)
+    return
+  }
 
   // Skip hidden nodes (Suspense support)
   // When a Suspense boundary shows a fallback, the hidden subtree is not rendered
@@ -805,7 +812,31 @@ function clearDirtyFlags(node: InkxNode): void {
   node.subtreeDirty = false
   node.childrenDirty = false
   for (const child of node.children) {
-    if (child.layoutNode) clearDirtyFlags(child)
+    if (child.layoutNode) {
+      clearDirtyFlags(child)
+    } else {
+      // Virtual text children also need flags cleared — they're rendered by
+      // their parent's collectTextContent(), not by renderNodeToBuffer().
+      clearVirtualTextFlags(child)
+    }
+  }
+}
+
+/**
+ * Clear dirty flags on a virtual text node and its descendants.
+ * Virtual text nodes (no layoutNode) are rendered by their parent layout
+ * ancestor via collectTextContent(). Their dirty flags must be cleared
+ * after the parent renders, otherwise stale subtreeDirty blocks
+ * markSubtreeDirty() propagation on future updates.
+ */
+function clearVirtualTextFlags(node: InkxNode): void {
+  node.contentDirty = false
+  node.paintDirty = false
+  node.bgDirty = false
+  node.subtreeDirty = false
+  node.childrenDirty = false
+  for (const child of node.children) {
+    clearVirtualTextFlags(child)
   }
 }
 
