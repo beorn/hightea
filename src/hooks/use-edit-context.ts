@@ -97,6 +97,16 @@ export const activeEditContextRef: { current: TermEditContext | null } = {
   current: null,
 }
 
+/**
+ * Shared mutable ref for the active edit target.
+ * Stores the EditTarget wrapper (BlockEditTarget-compatible methods).
+ * board-actions.ts reads this to dispatch text editing commands.
+ * Set by useEditContext on mount, cleared on unmount.
+ */
+export const activeEditTargetRef: { current: EditTarget | null } = {
+  current: null,
+}
+
 // =============================================================================
 // Hook
 // =============================================================================
@@ -260,13 +270,17 @@ export function useEditContext({
     [ctx, forceRender],
   )
 
-  // Register as active edit context on mount, clean up on unmount.
+  // Register as active edit context + target on mount, clean up on unmount.
   // useLayoutEffect ensures registration happens before the next input event.
   useLayoutEffect(() => {
     activeEditContextRef.current = ctx
+    activeEditTargetRef.current = target
     return () => {
       if (activeEditContextRef.current === ctx) {
         activeEditContextRef.current = null
+      }
+      if (activeEditTargetRef.current === target) {
+        activeEditTargetRef.current = null
       }
       // Auto-save on unmount if value was modified and not explicitly cancelled
       if (!cancelledRef.current) {
@@ -276,7 +290,7 @@ export function useEditContext({
         }
       }
     }
-  }, [ctx])
+  }, [ctx, target])
 
   // Derive display values from TermEditContext
   const text = ctx.text

@@ -498,7 +498,7 @@ export type {
 export { applyTextOp, invertTextOp, mergeTextOps } from "./text-ops.js"
 export type { TextOp } from "./text-ops.js"
 
-export { useEditContext, activeEditContextRef } from "./hooks/use-edit-context.js"
+export { useEditContext, activeEditContextRef, activeEditTargetRef } from "./hooks/use-edit-context.js"
 export type {
   UseEditContextOptions,
   UseEditContextResult,
