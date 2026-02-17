@@ -152,9 +152,9 @@ describe("parseKey()", () => {
       expect(key.meta).toBe(true)
     })
 
-    it("parses escape as meta", () => {
+    it("parses bare escape without meta", () => {
       const [input, key] = parseKey("\x1b")
-      expect(key.meta).toBe(true)
+      expect(key.meta).toBe(false)
       expect(key.escape).toBe(true)
     })
   })

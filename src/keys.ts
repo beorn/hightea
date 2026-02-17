@@ -570,7 +570,7 @@ export function parseKey(rawInput: string | Buffer): [string, Key] {
     tab: keypress.name === "tab",
     backspace: keypress.name === "backspace",
     delete: keypress.name === "delete",
-    meta: keypress.meta || keypress.name === "escape" || keypress.option,
+    meta: keypress.name !== "escape" && (keypress.meta || keypress.option),
   }
 
   let input = keypress.ctrl ? keypress.name : keypress.sequence

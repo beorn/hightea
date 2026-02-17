@@ -296,14 +296,16 @@ describe("Escape sequence handling", () => {
     expect(frame).toContain('"escape":true')
   })
 
-  test("handles double Escape (meta)", () => {
+  test("handles double Escape (no meta — Escape never has meta)", () => {
     const app = render(<KeystrokeCapture />)
 
     app.stdin.write("\x1b\x1b") // ESC ESC
 
     const frame = app.text
     expect(frame).toContain("Keystrokes captured: 1")
-    expect(frame).toContain('"meta":true')
+    expect(frame).toContain('"escape":true')
+    // Escape never has meta=true, even as \x1b\x1b (Alt+Escape)
+    expect(frame).not.toContain('"meta":true')
   })
 
   test("handles function keys F1-F4 (xterm O-style)", () => {
