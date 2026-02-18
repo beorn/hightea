@@ -162,22 +162,24 @@ Order matters: sticky headers render ON TOP of first-pass content. The second pa
 
 Sticky children use `ancestorCleared=false` to match fresh render semantics. On a fresh render, the buffer at sticky positions has first-pass content, not "cleared" space. Using `ancestorCleared=true` would cause transparent spacer Boxes to clear their region, wiping overlapping sticky headers rendered earlier in the second pass.
 
-## Text Background Inheritance (getCellBg)
+## Text Background Inheritance (inheritedBg)
 
-This is a critical coupling between buffer state and rendering.
-
-In `render-text.ts`, when rendering graphemes:
+Text nodes with no explicit background inherit bg from their nearest ancestor Box with `backgroundColor`. This is now done via explicit `inheritedBg` parameter passed through the render tree, computed by `findInheritedBg()` in content-phase.ts.
 
 ```typescript
-// Line 600 of render-text.ts
-const existingBg = style.bg === null ? buffer.getCellBg(col, y) : style.bg
+// content-phase.ts: compute and pass inherited bg
+const textInheritedBg = findInheritedBg(node).color
+renderText(node, buffer, layout, props, scrollOffset, clipBounds, textInheritedBg)
+
+// render-text.ts → renderGraphemes: use inherited bg instead of buffer read
+const existingBg = style.bg !== null ? style.bg
+  : inheritedBg !== undefined ? inheritedBg
+  : buffer.getCellBg(col, y)  // legacy fallback for external callers
 ```
 
-When a Text node has no explicit background, it **reads the buffer** to inherit the background from whatever was rendered underneath (typically a parent Box's bg fill). This creates a dependency:
+**Why not getCellBg?** The old approach read bg from the buffer (`getCellBg`), creating a coupling between text rendering and buffer state. On incremental renders, the cloned buffer could have stale bg at positions outside the parent's bg-filled region (e.g., overflow text, moved nodes). Using `inheritedBg` from the render tree is deterministic regardless of buffer state.
 
-**The buffer state at the time Text renders determines the Text's background color.**
-
-This is why `stickyForceRefresh` exists: in Tier 3 incremental renders, the cloned buffer may have stale bg from PREVIOUS frames' sticky headers at old positions. If a Text node at that position reads stale bg, the output differs from a fresh render. The solution is to clear the viewport to null bg (matching fresh buffer state) and force all items to re-render before the sticky pass.
+**stickyForceRefresh** still exists for a related but different reason: sticky headers overwrite buffer content in a second pass, and Tier 3 incremental renders need to ensure all first-pass items re-render with correct content before the sticky pass.
 
 Nested Text `backgroundColor` is handled separately via `BgSegment` tracking (not ANSI codes) to prevent bg bleed across wrapped text lines.
 
@@ -214,7 +216,7 @@ When a node shrinks, the excess area (old bounds minus new bounds) is also clear
 
 6. **skipBgFill is critical for subtreeDirty.** When only a descendant changed, the parent's bg fill must be skipped. Re-filling destroys child pixels that won't be repainted (they're clean and will be fast-path skipped).
 
-7. **getCellBg coupling.** Text nodes read buffer bg. Any change to when/how regions are cleared or filled can change what Text renders, causing INKX_STRICT mismatches.
+7. **getCellBg coupling (mostly resolved).** Text bg inheritance now uses explicit `inheritedBg` from `findInheritedBg()` instead of reading the buffer via `getCellBg()`. This decouples text rendering from buffer state, fixing mismatches where overflow text read stale bg from the cloned buffer. The `getCellBg` fallback is still used by external callers of `renderTextLine` that don't pass `inheritedBg` (e.g., scroll indicators in render-box.ts).
 
 ## Debugging
 

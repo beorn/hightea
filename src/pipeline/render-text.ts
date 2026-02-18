@@ -626,14 +626,15 @@ export function renderTextLine(
   text: string,
   baseStyle: Style,
   maxCol?: number,
+  inheritedBg?: Color,
 ): void {
   // Check if text contains ANSI escape sequences
   if (hasAnsi(text)) {
-    renderAnsiTextLine(buffer, x, y, text, baseStyle, maxCol);
+    renderAnsiTextLine(buffer, x, y, text, baseStyle, maxCol, inheritedBg);
     return;
   }
 
-  renderGraphemes(buffer, splitGraphemes(text), x, y, baseStyle, maxCol);
+  renderGraphemes(buffer, splitGraphemes(text), x, y, baseStyle, maxCol, inheritedBg);
 }
 
 /**
@@ -656,6 +657,7 @@ function renderGraphemes(
   y: number,
   style: Style,
   maxCol?: number,
+  inheritedBg?: Color,
 ): number {
   let col = startCol;
   // Effective right boundary: text node's layout edge or buffer edge
@@ -668,9 +670,17 @@ function renderGraphemes(
     const width = graphemeWidth(grapheme);
     if (width === 0) continue;
 
-    // Preserve existing background color if style doesn't specify one
-    // This allows Text inside Box with backgroundColor to inherit the bg
-    const existingBg = style.bg === null ? buffer.getCellBg(col, y) : style.bg;
+    // Determine background color for this cell.
+    // Priority: 1) Text's own bg, 2) inherited bg from ancestor Box, 3) buffer read (legacy fallback).
+    // Using inherited bg instead of getCellBg decouples text rendering from buffer state,
+    // which is critical for incremental rendering: the cloned buffer may have stale bg
+    // at positions outside the parent's bg-filled region (e.g., overflow text).
+    const existingBg =
+      style.bg !== null
+        ? style.bg
+        : inheritedBg !== undefined
+          ? inheritedBg
+          : buffer.getCellBg(col, y);
 
     // Wide character at the boundary: the continuation cell would overflow
     // into an adjacent container. Replace with a space to match terminal
@@ -709,7 +719,11 @@ function renderGraphemes(
 
     if (width === 2 && col + 1 < buffer.width) {
       const existingBg2 =
-        style.bg === null ? buffer.getCellBg(col + 1, y) : style.bg;
+        style.bg !== null
+          ? style.bg
+          : inheritedBg !== undefined
+            ? inheritedBg
+            : buffer.getCellBg(col + 1, y);
       buffer.setCell(col + 1, y, {
         char: "",
         fg: style.fg,
@@ -739,6 +753,7 @@ export function renderAnsiTextLine(
   text: string,
   baseStyle: Style,
   maxCol?: number,
+  inheritedBg?: Color,
 ): void {
   const segments = parseAnsiText(text);
   let col = x;
@@ -785,6 +800,7 @@ export function renderAnsiTextLine(
       y,
       style,
       maxCol,
+      inheritedBg,
     );
   }
 }
@@ -1013,6 +1029,7 @@ export function renderText(
   props: TextProps,
   scrollOffset = 0,
   clipBounds?: { top: number; bottom: number },
+  inheritedBg?: Color,
 ): void {
   const { x, width, height } = layout;
   let { y } = layout;
@@ -1054,7 +1071,7 @@ export function renderText(
     // Pass maxCol to prevent wide characters from overflowing into adjacent
     // containers. Without this, continuation cells outside the text node's
     // layout bounds become stale during incremental rendering.
-    renderTextLine(buffer, x, lineY, line, style, x + width);
+    renderTextLine(buffer, x, lineY, line, style, x + width, inheritedBg);
 
     // Apply background segments from nested Text elements to the buffer.
     // This happens after renderTextLine so the bg is applied to cells

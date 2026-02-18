@@ -414,7 +414,12 @@ function renderNodeToBuffer(
     renderBox(node, buffer, layout, props, clipBounds, scrollOffset, skipBgFill)
   } else if (node.type === "inkx-text") {
     if (_instrumentEnabled) _contentPhaseStats.textNodes++
-    renderText(node, buffer, layout, props, scrollOffset, clipBounds)
+    // Pass inherited bg from nearest ancestor with backgroundColor.
+    // This decouples text bg inheritance from buffer state, which is critical
+    // for incremental rendering: getCellBg on a cloned buffer may return stale
+    // bg at positions outside the parent's bg-filled region (overflow text).
+    const textInheritedBg = findInheritedBg(node).color
+    renderText(node, buffer, layout, props, scrollOffset, clipBounds, textInheritedBg)
   }
 
   // Render children
@@ -945,9 +950,30 @@ function clearNodeRegion(
   if (parentBottom !== undefined) {
     clearBottom = Math.min(clearBottom, parentBottom)
   }
+
+  // Clip horizontally to the colored ancestor's bounds to prevent inherited bg
+  // from bleeding past the ancestor's rect. When a child node overflows (its
+  // layout extends past the ancestor with backgroundColor), clearing the child's
+  // full layout with the inherited bg would write that bg outside the ancestor's
+  // fill area. On a fresh render, those positions have bg=null, so the inherited
+  // bg should not be applied there.
+  let clearX = layout.x
+  let clearWidth = layout.width
+  if (inherited.ancestorRect) {
+    const ancestorRight = inherited.ancestorRect.x + inherited.ancestorRect.width
+    const ancestorLeft = inherited.ancestorRect.x
+    if (clearX < ancestorLeft) {
+      clearWidth -= ancestorLeft - clearX
+      clearX = ancestorLeft
+    }
+    if (clearX + clearWidth > ancestorRight) {
+      clearWidth = Math.max(0, ancestorRight - clearX)
+    }
+  }
+
   const clearHeight = clearBottom - clearY
-  if (clearHeight > 0) {
-    buffer.fill(layout.x, clearY, layout.width, clearHeight, {
+  if (clearHeight > 0 && clearWidth > 0) {
+    buffer.fill(clearX, clearY, clearWidth, clearHeight, {
       char: " ",
       bg: clearBg,
     })
