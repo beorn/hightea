@@ -309,6 +309,84 @@ describe("OSC 8 hyperlinks", () => {
   })
 
   // ==========================================================================
+  // Truncation: OSC 8 + wrap="truncate"
+  // ==========================================================================
+
+  describe("truncation with OSC 8", () => {
+    it("truncateText handles OSC 8 sequences without corruption", async () => {
+      const { truncateText } = await import("../src/pipeline/render-text.js")
+      const url = "https://example.com/very/long/path"
+      // Construct an OSC 8 hyperlink manually
+      const oscOpen = `\x1b]8;;${url}\x1b\\`
+      const oscClose = `\x1b]8;;\x1b\\`
+      const input = `Visit ${oscOpen}example.com/very/long/path${oscClose} for more`
+
+      const truncated = truncateText(input, 20, "end")
+      const plain = stripAnsi(truncated)
+      // After truncation, the plain text should not contain escape artifacts
+      expect(plain).not.toContain("]8;;")
+      expect(plain).not.toContain("https://example.com")
+      // Should end with ellipsis
+      expect(plain).toContain("\u2026")
+      // The visible text should be the prettified URL prefix, not raw URL
+      expect(plain).toContain("Visit")
+    })
+
+    it("formatTextLines truncate mode handles OSC 8 cleanly", async () => {
+      const { formatTextLines } = await import("../src/pipeline/render-text.js")
+      const url = "https://example.com/very/long/path"
+      const oscOpen = `\x1b]8;;${url}\x1b\\`
+      const oscClose = `\x1b]8;;\x1b\\`
+      const input = `Visit ${oscOpen}example.com/very/long/path${oscClose} for more`
+
+      const lines = formatTextLines(input, 20, "truncate")
+      expect(lines.length).toBeGreaterThan(0)
+
+      // Each line should not have visible escape sequence fragments
+      for (const line of lines) {
+        const plain = stripAnsi(line)
+        expect(plain).not.toContain("]8;;")
+        expect(plain).not.toContain("\x1b")
+      }
+    })
+
+    it("constrainText handles OSC 8 hyperlinks in card titles", () => {
+      const { constrainText } = require("../src/unicode.js") as typeof import("../src/unicode.js")
+      const url = "https://example.com/very/long/path"
+      const oscOpen = `\x1b]8;;${url}\x1b\\`
+      const oscClose = `\x1b]8;;\x1b\\`
+      // Simulate renderRich output: "Task with " + styled hyperlink + " details"
+      const input = `Task with ${oscOpen}\x1b[2m\x1b[4mexample.com/very/long/path\x1b[0m${oscClose} details`
+
+      // Constrain to 2 lines at width 20 (like card title rendering)
+      const { lines } = constrainText(input, 20, 2)
+      const plainText = lines.map((l) => stripAnsi(l)).join("\n")
+
+      // Should not contain raw escape artifacts
+      expect(plainText).not.toContain("]8;;")
+      expect(plainText).not.toContain("\x1b")
+      // Should contain visible text
+      expect(plainText).toContain("Task with")
+      expect(plainText).toContain("example.com")
+    })
+
+    it("parseAnsiText handles text truncated mid-OSC-8 by slice-ansi", () => {
+      // Simulate what happens when slice-ansi corrupts an OSC 8 sequence:
+      // slice-ansi may produce broken output where OSC bytes become visible text
+      const url = "https://example.com/very/long/path"
+      const oscOpen = `\x1b]8;;${url}\x1b\\`
+      const oscClose = `\x1b]8;;\x1b\\`
+      const linked = `${oscOpen}example.com/very/long/path${oscClose}`
+
+      // Parse the correct text - should work fine
+      const segments = parseAnsiText(linked)
+      const plainText = segments.map((s) => s.text).join("")
+      expect(plainText).toBe("example.com/very/long/path")
+      expect(plainText).not.toContain("]8;;")
+    })
+  })
+
+  // ==========================================================================
   // End-to-end: parse -> buffer -> output roundtrip
   // ==========================================================================
 

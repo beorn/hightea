@@ -277,9 +277,9 @@ export function isZeroWidthGrapheme(grapheme: string): boolean {
 
 /**
  * Truncate a string to fit within a given display width.
- * Handles wide characters correctly.
+ * Handles wide characters and ANSI escape sequences (including OSC 8 hyperlinks) correctly.
  *
- * @param text - The text to truncate
+ * @param text - The text to truncate (may contain ANSI escape sequences)
  * @param maxWidth - Maximum display width
  * @param ellipsis - Ellipsis to append if truncated (default: "...")
  * @returns Truncated string
@@ -304,7 +304,9 @@ export function truncateText(
     return maxWidth > 0 ? ellipsis.slice(0, maxWidth) : ""
   }
 
-  const graphemes = splitGraphemes(text)
+  // Use ANSI-aware grapheme splitting when text contains escape sequences
+  // (including OSC 8 hyperlinks) to avoid counting escape bytes as visible width.
+  const graphemes = hasAnsi(text) ? splitGraphemesAnsiAware(text) : splitGraphemes(text)
   let result = ""
   let currentWidth = 0
 

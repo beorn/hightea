@@ -204,13 +204,34 @@ export function getTextWidth(text: string): number {
 }
 
 /**
+ * OSC 8 hyperlink pattern: \x1b]8;;URL(\x1b\\ | \x07) for open/close.
+ * The slice-ansi library doesn't understand OSC sequences and corrupts them
+ * by misinterpreting the OSC bytes as ANSI SGR codes. We strip OSC 8 before
+ * passing to slice-ansi. Hyperlinks are re-added downstream by parseAnsiText
+ * in the rendering pipeline (which properly handles OSC 8).
+ */
+const OSC8_RE = /\x1b\]8;;[^\x07\x1b]*(?:\x07|\x1b\\)/g
+
+/**
+ * Strip OSC 8 hyperlink sequences from text.
+ * slice-ansi doesn't handle OSC sequences — it treats the OSC 8 bytes as
+ * ANSI SGR codes, corrupting the output. We strip them before slicing and
+ * rely on the downstream rendering pipeline (parseAnsiText) which properly
+ * handles OSC 8 from the original unsliced text.
+ */
+function stripOsc8(text: string): string {
+  return text.replace(OSC8_RE, "")
+}
+
+/**
  * Slice text by display width (from start).
  * Uses slice-ansi for ANSI-aware slicing, falls back to grapheme segmentation for plain text.
  */
 export function sliceByWidth(text: string, maxWidth: number): string {
-  // Use slice-ansi for ANSI-aware slicing (handles escape codes correctly)
+  // Use slice-ansi for ANSI-aware slicing (handles SGR escape codes correctly)
   if (hasAnsi(text)) {
-    return sliceAnsi(text, 0, maxWidth)
+    // Strip OSC 8 hyperlinks before slicing — slice-ansi corrupts them
+    return sliceAnsi(stripOsc8(text), 0, maxWidth)
   }
 
   // Plain text: use grapheme segmentation
@@ -238,8 +259,11 @@ export function sliceByWidthFromEnd(text: string, maxWidth: number): string {
 
   // Use slice-ansi for ANSI-aware slicing
   if (hasAnsi(text)) {
-    const startIndex = totalWidth - maxWidth
-    return sliceAnsi(text, startIndex)
+    // Strip OSC 8 hyperlinks before slicing — slice-ansi corrupts them
+    const cleaned = stripOsc8(text)
+    const cleanedWidth = displayWidthAnsi(cleaned)
+    const startIndex = cleanedWidth - maxWidth
+    return sliceAnsi(cleaned, startIndex)
   }
 
   // Plain text: use grapheme segmentation
