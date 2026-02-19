@@ -218,9 +218,24 @@ function renderNodeToBuffer(
   // Skip nodes entirely off-screen (viewport clipping).
   // The scroll container's VirtualList already handles most culling, but this
   // catches any remaining nodes rendered below/above the visible area.
+  //
+  // IMPORTANT: Don't clear dirty flags on nodes that were never rendered.
+  // Just skip them and leave their flags intact so they render correctly
+  // when scrolled into view.
+  //
+  // Why this matters: clearDirtyFlags on off-screen nodes prevents them from
+  // rendering when they later become visible:
+  // 1. Node off-screen → clearDirtyFlags → all flags false
+  // 2. Scroll brings node on-screen with hasPrevBuffer=true
+  // 3. skipFastPath = true (all flags clean) → node SKIPPED
+  // 4. Buffer has stale/blank pixels → blank content visible
+  //
+  // By preserving dirty flags, the node forces rendering when it enters
+  // the visible area. The subtreeDirty flag on ancestors is maintained
+  // because we don't clear it — markSubtreeDirty() already set it during
+  // reconciliation/layout, and not clearing here preserves that signal.
   const screenY = layout.y - scrollOffset
   if (screenY >= buffer.height || screenY + layout.height <= 0) {
-    clearDirtyFlags(node)
     return
   }
 
@@ -232,9 +247,9 @@ function renderNodeToBuffer(
   // the staleness bug (prevLayout=null after first render → layoutChanged=true
   // for all nodes on every subsequent render), but the content phase currently
   // relies on layoutChanged=true as a catch-all for contentAreaAffected region
-  // clearing. Fixing prevLayout requires also fixing contentAreaAffected to
-  // account for subtreeDirty (descendant content changes that shrink and leave
-  // stale pixels). See km-inkx.incremental-content for the full fix plan.
+  // clearing. The subtreeDirtyWithBg fix below handles the specific case of
+  // descendant content shrinking inside bg-bearing boxes, but fixing prevLayout
+  // broadly still requires auditing all contentAreaAffected consumers.
 
   // Check if any child shifted position (sibling shift from size changes).
   // Gap space between children belongs to this container, so must re-render.
@@ -322,6 +337,14 @@ function renderNodeToBuffer(
   const contentAreaAffected =
     node.contentDirty || layoutChanged || childPositionChanged || node.childrenDirty || node.bgDirty || textPaintDirty
 
+  // subtreeDirtyWithBg: a descendant changed inside a Box with backgroundColor.
+  // When a child Text shrinks, trailing chars from the old longer text survive in
+  // the cloned buffer. The parent's bg fill must re-run to clear them, and children
+  // must re-render on top of the fresh fill. This is NOT added to contentAreaAffected
+  // because non-bg boxes don't need region clearing for subtreeDirty — only bg-bearing
+  // boxes need their fill to overwrite stale child pixels.
+  const subtreeDirtyWithBg = hasPrevBuffer && !contentAreaAffected && node.subtreeDirty && !!props.backgroundColor
+
   // Clear this node's region when its content area changed but has no backgroundColor.
   // Without bg, renderBox won't fill, so stale pixels from the cloned buffer
   // remain visible. We must explicitly clear with inherited bg.
@@ -338,6 +361,7 @@ function renderNodeToBuffer(
   // - hasPrevBuffer=true (buffer is a clone with previous frame's pixels)
   // - ancestorCleared=false (no ancestor erased our region)
   // - contentAreaAffected=false (no content-area changes)
+  // - subtreeDirtyWithBg=false (no descendant change requiring bg refresh)
   //
   // Uses contentAreaAffected (not needsOwnRepaint) because border-only changes
   // (paintDirty without bgDirty) don't change the bg fill — the cloned buffer
@@ -348,11 +372,11 @@ function renderNodeToBuffer(
   // When ancestorCleared=true, the buffer at our position was erased to the
   // inherited bg, NOT our bg — so we must re-fill.
   // When hasPrevBuffer=false AND ancestorCleared=false, it's a fresh render.
-  const skipBgFill = hasPrevBuffer && !ancestorCleared && !contentAreaAffected
+  const skipBgFill = hasPrevBuffer && !ancestorCleared && !contentAreaAffected && !subtreeDirtyWithBg
 
   // parentRegionChanged: this node's content area was modified on a cloned buffer.
   // Children must re-render (childHasPrev=false) because their pixels may be stale.
-  const parentRegionChanged = (hasPrevBuffer || ancestorCleared) && contentAreaAffected
+  const parentRegionChanged = (hasPrevBuffer || ancestorCleared) && (contentAreaAffected || subtreeDirtyWithBg)
 
   // DIAG: Per-node trace and cascade tracking (gated on instrumentation)
   if (_instrumentEnabled) {
@@ -415,6 +439,15 @@ function renderNodeToBuffer(
   if (parentRegionCleared) {
     if (_instrumentEnabled) _contentPhaseStats.clearOps++
     clearNodeRegion(node, buffer, layout, scrollOffset, clipBounds, layoutChanged)
+  } else if (layoutChanged && node.prevLayout) {
+    // Even when parentRegionCleared is false, a shrinking node needs its excess
+    // area cleared. Key scenario: absolute-positioned overlays (e.g., search dialog)
+    // that shrink while normal-flow siblings are dirty — forceRepaint sets
+    // hasPrevBuffer=false + ancestorCleared=false, making parentRegionCleared=false,
+    // but the cloned buffer still has stale pixels from the old larger layout.
+    // Also applies to nodes WITH backgroundColor: renderBox fills only the NEW
+    // (smaller) region, leaving stale pixels in the excess area.
+    clearExcessArea(node, buffer, layout, scrollOffset, clipBounds, layoutChanged)
   }
 
   // Render based on node type
@@ -988,15 +1021,45 @@ function clearNodeRegion(
     })
   }
 
-  // When a node shrinks, clear the old bounds' excess area.
-  // Clip to the COLORED ANCESTOR's content area (not immediate parent's full rect)
-  // to prevent inherited color from bleeding into sibling areas with different bg.
-  //
-  // IMPORTANT: Use content area (inside border/padding), not full contentRect.
-  // Without this, excess clearing of a child that previously filled the parent's
-  // content area will extend into the parent's border row, overwriting border chars.
+  // Delegate excess area clearing to shared helper
+  clearExcessArea(node, buffer, layout, scrollOffset, clipBounds, layoutChanged, inherited)
+}
+
+/**
+ * Clear the excess area when a node shrinks (old bounds were larger than new).
+ *
+ * This is separated from clearNodeRegion because excess area clearing must happen
+ * even when parentRegionCleared is false. Key scenario: absolute-positioned overlays
+ * (e.g., search dialog) that shrink while normal-flow siblings are dirty. The
+ * forceRepaint path sets hasPrevBuffer=false + ancestorCleared=false, making
+ * parentRegionCleared=false — but the cloned buffer still has stale pixels from
+ * the old larger layout that must be cleared.
+ *
+ * Clips to the COLORED ANCESTOR's content area (not immediate parent's full rect)
+ * to prevent inherited color from bleeding into sibling areas with different bg.
+ *
+ * IMPORTANT: Uses content area (inside border/padding), not full contentRect.
+ * Without this, excess clearing of a child that previously filled the parent's
+ * content area will extend into the parent's border row, overwriting border chars.
+ */
+function clearExcessArea(
+  node: InkxNode,
+  buffer: TerminalBuffer,
+  layout: NonNullable<InkxNode["contentRect"]>,
+  scrollOffset: number,
+  clipBounds: ClipBounds | undefined,
+  layoutChanged: boolean,
+  inherited?: InheritedBgResult,
+): void {
   if (!layoutChanged || !node.prevLayout) return
   const prev = node.prevLayout
+
+  // Only clear if the node actually shrank in at least one dimension
+  if (prev.width <= layout.width && prev.height <= layout.height) return
+
+  if (!inherited) inherited = findInheritedBg(node)
+  const clearBg = inherited.color
+  const screenY = layout.y - scrollOffset
   const prevScreenY = prev.y - scrollOffset
 
   // Find the clip rect and its owner for content-area inset calculation
