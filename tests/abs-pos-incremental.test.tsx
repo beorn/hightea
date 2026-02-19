@@ -441,6 +441,117 @@ describe("Incremental rendering: absolute-positioned elements", () => {
    * (potentially overwriting absolute child pixels). A correct implementation
    * needs a second pass to repaint absolute children whose areas were affected.
    */
+  /**
+   * Search dialog shrink scenario: An absolute overlay (dialog) shrinks when
+   * query results change. The area that was previously covered by the larger
+   * dialog must be repainted with background content.
+   *
+   * Bug: When normal-flow siblings are dirty (anyNormalFlowDirty=true), the
+   * absolute child gets forceRepaint=true → hasPrevBuffer=false. Combined with
+   * ancestorCleared=false (hardcoded for abs children), parentRegionCleared
+   * becomes false — so clearNodeRegion is never called and the excess area
+   * from the old larger layout is not cleared.
+   */
+  test("absolute overlay shrink — excess area cleared when normal-flow siblings dirty", () => {
+    function App({ cursor, dialogHeight }: { cursor: number; dialogHeight: number }) {
+      const items = ["Item A", "Item B", "Item C", "Item D", "Item E"]
+      return (
+        <Box width={60} height={15} flexDirection="column" overflow="hidden">
+          {/* Normal-flow board content — cursor changes cause dirty */}
+          <Box flexGrow={1} flexDirection="column">
+            {items.map((item, i) => (
+              <Text key={item}>
+                {i === cursor ? "> " : "  "}
+                {item}
+              </Text>
+            ))}
+          </Box>
+          {/* Absolute dialog overlay that shrinks */}
+          <Box position="absolute" marginLeft={10} marginTop={2}>
+            <Box
+              flexDirection="column"
+              borderStyle="double"
+              borderColor="cyan"
+              backgroundColor="black"
+              paddingX={2}
+              paddingY={1}
+              width={40}
+              height={dialogHeight}
+            >
+              <Text color="cyan" bold>
+                Search
+              </Text>
+              <Text> </Text>
+              {dialogHeight > 6 && <Text>Result 1</Text>}
+              {dialogHeight > 7 && <Text>Result 2</Text>}
+              {dialogHeight > 8 && <Text>Result 3</Text>}
+            </Box>
+          </Box>
+        </Box>
+      )
+    }
+
+    // Start with large dialog
+    const app = render(<App cursor={0} dialogHeight={10} />)
+    expect(app.text).toContain("Search")
+    expect(app.text).toContain("Result 3")
+
+    // Shrink dialog AND change cursor (both dirty) — this is the bug scenario
+    app.rerender(<App cursor={1} dialogHeight={6} />)
+    expect(app.text).toContain("Search")
+    expect(app.text).not.toContain("Result 1")
+    expect(app.text).toContain("> Item B")
+
+    // The excess area (rows 8-11 under the old dialog) should show board content,
+    // not stale black pixels from the old dialog
+    assertBuffersMatch(app)
+  })
+
+  /**
+   * Same shrink scenario but ONLY the dialog changes (normal-flow siblings clean).
+   * This exercises the forceRepaint=false path where hasPrevBuffer=true for the
+   * absolute child. Ensures excess clearing works in both code paths.
+   */
+  test("absolute overlay shrink — excess area cleared when normal-flow siblings clean", () => {
+    function App({ dialogHeight }: { dialogHeight: number }) {
+      return (
+        <Box width={60} height={15} flexDirection="column" overflow="hidden">
+          <Box flexGrow={1} flexDirection="column">
+            <Text>Static item A</Text>
+            <Text>Static item B</Text>
+          </Box>
+          <Box position="absolute" marginLeft={10} marginTop={2}>
+            <Box
+              flexDirection="column"
+              borderStyle="double"
+              borderColor="cyan"
+              backgroundColor="black"
+              paddingX={2}
+              paddingY={1}
+              width={40}
+              height={dialogHeight}
+            >
+              <Text color="cyan" bold>
+                Search
+              </Text>
+              {dialogHeight > 6 && <Text>Result 1</Text>}
+              {dialogHeight > 7 && <Text>Result 2</Text>}
+            </Box>
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = render(<App dialogHeight={9} />)
+    expect(app.text).toContain("Result 2")
+
+    // Shrink dialog ONLY — normal-flow siblings unchanged (forceRepaint=false path)
+    app.rerender(<App dialogHeight={6} />)
+    expect(app.text).toContain("Search")
+    expect(app.text).not.toContain("Result 1")
+    assertBuffersMatch(app)
+  })
+
   test("absolute child needs repaint after later sibling dirties its area", () => {
     // Reproduce the exact scenario: normal-flow content child at same position
     // as absolute child, where the normal-flow child's clearNodeRegion wipes

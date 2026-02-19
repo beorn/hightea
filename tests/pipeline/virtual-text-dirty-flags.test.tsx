@@ -91,16 +91,13 @@ describe("virtual text dirty flag clearing", () => {
       _dummy: number
     }
 
-    const app = createApp<AppStore>(
-      () => () => ({ _dummy: 0 }),
-      {
-        key: (input) => {
-          if (input === "q") return "exit"
-          // Trigger React state update from key handler (like insertChar)
-          appendChar(input)
-        },
+    const app = createApp<AppStore>(() => () => ({ _dummy: 0 }), {
+      key: (input) => {
+        if (input === "q") return "exit"
+        // Trigger React state update from key handler (like insertChar)
+        appendChar(input)
       },
-    )
+    })
 
     function App() {
       const [text, setText] = useState("hello")
@@ -156,15 +153,12 @@ describe("virtual text dirty flag clearing", () => {
       _dummy: number
     }
 
-    const app = createApp<AppStore>(
-      () => () => ({ _dummy: 0 }),
-      {
-        key: (input) => {
-          if (input === "q") return "exit"
-          insertChar(input)
-        },
+    const app = createApp<AppStore>(() => () => ({ _dummy: 0 }), {
+      key: (input) => {
+        if (input === "q") return "exit"
+        insertChar(input)
       },
-    )
+    })
 
     function EditField() {
       const [before, setBefore] = useState("See instructions.")

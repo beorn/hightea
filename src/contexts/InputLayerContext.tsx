@@ -144,7 +144,7 @@ export function InputLayerProvider({ children }: InputLayerProviderProps): React
     const layers = layersRef.current
     for (let i = 0; i < layers.length; i++) {
       const layer = layers[i]
-      if (layer && layer.handler(input, key)) {
+      if (layer?.handler(input, key)) {
         // Handler consumed the event, stop bubbling
         return
       }

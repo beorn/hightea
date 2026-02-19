@@ -95,6 +95,21 @@ export interface RenderOptions {
   debug?: boolean
   /** Enable incremental rendering. Default: true */
   incremental?: boolean
+  /**
+   * Use production-like single-pass layout in doRender().
+   *
+   * When false (default), doRender() runs a synchronous layout stabilization
+   * loop (up to 5 iterations) that re-runs executeRender whenever React
+   * commits new work from layout notifications (useContentRect, etc.).
+   *
+   * When true, doRender() does a single executeRender call (matching
+   * production's create-app.tsx behavior). Layout feedback effects are
+   * flushed via a separate act()/flushSyncWork() loop after doRender(),
+   * mimicking production's processEventBatch flush pattern.
+   *
+   * Use this to make tests exercise the same rendering pipeline as production.
+   */
+  singlePassLayout?: boolean
 }
 
 /**
@@ -171,12 +186,14 @@ interface RenderInstance {
   incremental: boolean
   /** Render count for INKX_STRICT checking (skip first render) */
   renderCount: number
+  /** Use production-like single-pass layout (no stabilization loop) */
+  singlePassLayout: boolean
 }
 
 function isStore(arg: unknown): arg is Store {
   // Store has cols and rows as required (not optional) properties.
   // RenderOptions has them as optional. Disambiguate by checking for
-  // Store-only traits: no layoutEngine, no debug, no incremental.
+  // RenderOptions-only traits: layoutEngine, debug, incremental, singlePassLayout.
   if (arg === null || typeof arg !== "object") return false
   const obj = arg as Record<string, unknown>
   return (
@@ -184,7 +201,8 @@ function isStore(arg: unknown): arg is Store {
     typeof obj.rows === "number" &&
     !("layoutEngine" in obj) &&
     !("debug" in obj) &&
-    !("incremental" in obj)
+    !("incremental" in obj) &&
+    !("singlePassLayout" in obj)
   )
 }
 
@@ -218,6 +236,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   // Incremental rendering is enabled by default for all renders
   // Store mode also supports incremental - the RenderInstance tracks prevBuffer
   const incremental = storeMode ? true : (optsOrStore.incremental ?? true)
+  const singlePassLayout = storeMode ? false : (optsOrStore.singlePassLayout ?? false)
 
   // Guard: detect render leaks (absurd number of active instances)
   const liveCount = pruneAndCountActiveRenders()
@@ -250,6 +269,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     debug,
     incremental,
     renderCount: 0,
+    singlePassLayout,
   }
 
   // Track whether React committed new work (from layout notifications etc.)
@@ -341,49 +361,107 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   const strictEnv = process.env.INKX_STRICT || process.env.INKX_CHECK_INCREMENTAL
   const strictMode = incremental && strictEnv && strictEnv !== "0" && strictEnv !== "false"
 
-  // Render function that executes the pipeline with layout feedback loop.
-  // After executeRender fires notifyLayoutSubscribers (Phase 2.7), hooks like
-  // useContentRect call forceUpdate() and onLayout calls setState(). These
-  // React updates must be flushed and the pipeline re-run until stable.
+  // Render function that executes the pipeline.
+  //
+  // Two modes:
+  // 1. Multi-pass (default): Layout stabilization loop (up to 5 iterations).
+  //    After executeRender fires notifyLayoutSubscribers (Phase 2.7), hooks
+  //    like useContentRect call forceUpdate(). These React updates are flushed
+  //    and the pipeline re-run until stable.
+  //
+  // 2. Single-pass (singlePassLayout=true): Matches production create-app.tsx.
+  //    Single executeRender call per doRender(), with a separate effect flush
+  //    loop afterward (like production's processEventBatch). This ensures tests
+  //    exercise the same rendering pipeline as production.
   //
   // Key insight: executeRender must run inside act() so that forceUpdate/setState
   // calls from layout notifications are properly captured by React's scheduler.
   // With IS_REACT_ACT_ENVIRONMENT=true (set by inkx/testing), state updates
   // outside act() boundaries may be dropped.
   function doRender(): string {
-    const MAX_LAYOUT_ITERATIONS = 5
     let output: string
     let buffer: TerminalBuffer
 
-    for (let iteration = 0; iteration < MAX_LAYOUT_ITERATIONS; iteration++) {
-      hadReactCommit = false
-
-      // Run the render pipeline inside act() so that forceUpdate/setState
-      // from notifyLayoutSubscribers (Phase 2.7) are properly captured.
-      withActEnvironment(() => {
-        act(() => {
-          const root = getContainerRoot(instance.container)
-          const result = executeRender(root, instance.columns, instance.rows, incremental ? instance.prevBuffer : null)
-          output = result.output
-          buffer = result.buffer
-          instance.prevBuffer = buffer
-          instance.renderCount++
-        })
-        // Flush any React work scheduled during executeRender (e.g. from
-        // useSyncExternalStore updates triggered by Phase 2.7 callbacks).
-        // Without this, external store changes from layout notification callbacks
-        // (Phase 2.7) won't be committed until after doRender returns, causing
-        // stale text in the buffer (e.g. breadcrumb showing old cursor position).
-        if (!hadReactCommit) {
+    if (instance.singlePassLayout) {
+      // Production-matching single-pass: one executeRender, no stabilization
+      // loop. This matches create-app.tsx doRender() which does a single
+      // reconcile + pipeline pass. Layout feedback effects (useContentRect
+      // etc.) are NOT re-run within this doRender — they're flushed by the
+      // caller (sendInput) in a separate loop, matching production's
+      // processEventBatch flush pattern.
+      //
+      // IMPORTANT: Do NOT flush sync work here. executeRender fires
+      // notifyLayoutSubscribers (Phase 2.7) which may call forceUpdate().
+      // If we flushed that commit here, the pipeline output would still
+      // reflect the pre-forceUpdate state. Instead, let the sendInput
+      // flush loop detect the pending commit and call doRender() again
+      // with the updated React tree.
+      // Single-pass: run executeRender once, then flush any pending React
+      // work from layout notifications. If React committed new work, run
+      // one more executeRender to pick up the changes.
+      for (let pass = 0; pass < 2; pass++) {
+        hadReactCommit = false
+        withActEnvironment(() => {
           act(() => {
-            reconciler.flushSyncWork()
+            const root = getContainerRoot(instance.container)
+            const result = executeRender(
+              root,
+              instance.columns,
+              instance.rows,
+              incremental ? instance.prevBuffer : null,
+            )
+            output = result.output
+            buffer = result.buffer
+            instance.prevBuffer = buffer
+            instance.renderCount++
           })
-        }
-      })
+          if (!hadReactCommit) {
+            act(() => {
+              reconciler.flushSyncWork()
+            })
+          }
+        })
+        if (!hadReactCommit) break
+      }
+    } else {
+      // Classic multi-pass layout stabilization loop
+      const MAX_LAYOUT_ITERATIONS = 5
 
-      // If React didn't commit any new work from layout notifications,
-      // the layout is stable — no more iterations needed.
-      if (!hadReactCommit) break
+      for (let iteration = 0; iteration < MAX_LAYOUT_ITERATIONS; iteration++) {
+        hadReactCommit = false
+
+        // Run the render pipeline inside act() so that forceUpdate/setState
+        // from notifyLayoutSubscribers (Phase 2.7) are properly captured.
+        withActEnvironment(() => {
+          act(() => {
+            const root = getContainerRoot(instance.container)
+            const result = executeRender(
+              root,
+              instance.columns,
+              instance.rows,
+              incremental ? instance.prevBuffer : null,
+            )
+            output = result.output
+            buffer = result.buffer
+            instance.prevBuffer = buffer
+            instance.renderCount++
+          })
+          // Flush any React work scheduled during executeRender (e.g. from
+          // useSyncExternalStore updates triggered by Phase 2.7 callbacks).
+          // Without this, external store changes from layout notification callbacks
+          // (Phase 2.7) won't be committed until after doRender returns, causing
+          // stale text in the buffer (e.g. breadcrumb showing old cursor position).
+          if (!hadReactCommit) {
+            act(() => {
+              reconciler.flushSyncWork()
+            })
+          }
+        })
+
+        // If React didn't commit any new work from layout notifications,
+        // the layout is stable — no more iterations needed.
+        if (!hadReactCommit) break
+      }
     }
 
     // INKX_STRICT: Compare incremental vs fresh on every render (like scheduler)
@@ -436,8 +514,19 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     instance.rendering = false
   }
 
-  // Execute the render pipeline
+  // Execute the render pipeline.
+  // The initial render always uses the multi-pass stabilization loop regardless
+  // of singlePassLayout, because hooks like useContentRect need multiple passes
+  // to stabilize (subscribe → layout → forceUpdate → re-render). This matches
+  // production where the initial render runs once and the first user-visible
+  // frame comes after the event loop starts. For tests, we need the initial
+  // state to be stable. singlePassLayout only affects subsequent renders
+  // (sendInput/press) to match production's processEventBatch path.
+  const savedSinglePass = instance.singlePassLayout
+  instance.singlePassLayout = false
   const output = doRender()
+  instance.singlePassLayout = savedSinglePass
+
   instance.frames.push(output)
 
   if (debug) {
@@ -477,7 +566,27 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     }
     const t1 = performance.now()
     // doRender() handles INKX_STRICT checking internally
-    const newFrame = doRender()
+    let newFrame = doRender()
+
+    // In single-pass mode, flush effects after doRender() — matching
+    // production's processEventBatch pattern (lines 1107-1118 of create-app.tsx).
+    // Production does: doRender → await Promise.resolve() → check pendingRerender → repeat.
+    // In tests, we use act(flushSyncWork) as the synchronous equivalent.
+    if (instance.singlePassLayout) {
+      const MAX_EFFECT_FLUSHES = 5
+      for (let flush = 0; flush < MAX_EFFECT_FLUSHES; flush++) {
+        hadReactCommit = false
+        withActEnvironment(() => {
+          act(() => {
+            reconciler.flushSyncWork()
+          })
+        })
+        if (!hadReactCommit) break
+        // React committed new work from effects — re-render
+        newFrame = doRender()
+      }
+    }
+
     const t2 = performance.now()
     instance.frames.push(newFrame)
     if (debug) {
@@ -611,6 +720,8 @@ export function createStore(options: StoreOptions = {}): Store {
 export interface PerRenderOptions {
   /** Enable incremental rendering for this render. */
   incremental?: boolean
+  /** Use production-like single-pass layout. See RenderOptions.singlePassLayout. */
+  singlePassLayout?: boolean
 }
 
 /**

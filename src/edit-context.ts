@@ -22,13 +22,7 @@
  * ```
  */
 
-import {
-  cursorToRowCol,
-  cursorMoveUp,
-  cursorMoveDown,
-  getWrappedLines,
-  countVisualLines,
-} from "./text-cursor.js"
+import { cursorToRowCol, cursorMoveUp, cursorMoveDown, getWrappedLines, countVisualLines } from "./text-cursor.js"
 import type { TextOp } from "./text-ops.js"
 
 // =============================================================================
@@ -149,9 +143,7 @@ export interface TermEditContextOptions {
  * Returns a plain TermEditContext object with mutable internal state.
  * All cursor-to-visual-position math delegates to text-cursor.ts.
  */
-export function createTermEditContext(
-  options?: TermEditContextOptions,
-): TermEditContext {
+export function createTermEditContext(options?: TermEditContextOptions): TermEditContext {
   // Internal mutable state
   let _text = options?.text ?? ""
   let _selectionStart = options?.selectionStart ?? 0
@@ -176,8 +168,7 @@ export function createTermEditContext(
   }
 
   function fireSelectionChange(): void {
-    for (const handler of _selectionHandlers)
-      handler(_selectionStart, _selectionEnd)
+    for (const handler of _selectionHandlers) handler(_selectionStart, _selectionEnd)
   }
 
   /**
@@ -218,18 +209,12 @@ export function createTermEditContext(
   // EditContextLike implementation
   // ---------------------------------------------------------------------------
 
-  function updateText(
-    rangeStart: number,
-    rangeEnd: number,
-    newText: string,
-  ): TextOp {
+  function updateText(rangeStart: number, rangeEnd: number, newText: string): TextOp {
     const start = clampOffset(rangeStart)
     const end = clampOffset(rangeEnd)
 
     if (start > end) {
-      throw new RangeError(
-        `updateText: rangeStart (${start}) > rangeEnd (${end})`,
-      )
+      throw new RangeError(`updateText: rangeStart (${start}) > rangeEnd (${end})`)
     }
 
     const deletedText = _text.slice(start, end)
@@ -279,9 +264,7 @@ export function createTermEditContext(
     }
   }
 
-  function onSelectionChange(
-    handler: (start: number, end: number) => void,
-  ): () => void {
+  function onSelectionChange(handler: (start: number, end: number) => void): () => void {
     _selectionHandlers.push(handler)
     return () => {
       _selectionHandlers = _selectionHandlers.filter((h) => h !== handler)
@@ -327,12 +310,7 @@ export function createTermEditContext(
           const { col } = cursorToRowCol(_text, _selectionStart, _wrapWidth)
           _stickyX = col
         }
-        const next = cursorMoveDown(
-          _text,
-          _selectionStart,
-          _wrapWidth,
-          _stickyX,
-        )
+        const next = cursorMoveDown(_text, _selectionStart, _wrapWidth, _stickyX)
         if (next === null) return false
         _selectionStart = next
         _selectionEnd = next

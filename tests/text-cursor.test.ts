@@ -32,10 +32,11 @@ describe("getWrappedLines", () => {
   })
 
   test("single line that wraps at word boundary", () => {
-    // "hello world" at width 8 -> wrapText produces ["hello ", "world"]
+    // "hello world" at width 8 -> wrapText(trim=true) produces ["hello", "world"]
+    // The trailing space after "hello" is consumed as a break separator
     const lines = getWrappedLines("hello world", 8)
     expect(lines).toEqual([
-      { line: "hello ", startOffset: 0 },
+      { line: "hello", startOffset: 0 },
       { line: "world", startOffset: 6 },
     ])
   })
@@ -50,11 +51,11 @@ describe("getWrappedLines", () => {
 
   test("multi-line with wrapping", () => {
     // "hello world\nfoo" at width 8
-    // Line 0: "hello world" wraps to ["hello ", "world"]
+    // Line 0: "hello world" wraps to ["hello", "world"] (trim=true)
     // Line 1: "foo" fits
     const lines = getWrappedLines("hello world\nfoo", 8)
     expect(lines).toEqual([
-      { line: "hello ", startOffset: 0 },
+      { line: "hello", startOffset: 0 },
       { line: "world", startOffset: 6 },
       { line: "foo", startOffset: 12 }, // 6 + 5 + 1(\n)
     ])
@@ -87,11 +88,11 @@ describe("getWrappedLines", () => {
 
   test("startOffset values with wrapping and newlines combined", () => {
     // "abc def\nghijklmno" at width 5
-    // Line 0: "abc def" wraps to ["abc ", "def"]
+    // Line 0: "abc def" wraps to ["abc", "def"] (trim=true)
     // Line 1: "ghijklmno" wraps to ["ghijk", "lmno"]
     const lines = getWrappedLines("abc def\nghijklmno", 5)
     expect(lines).toEqual([
-      { line: "abc ", startOffset: 0 },
+      { line: "abc", startOffset: 0 },
       { line: "def", startOffset: 4 },
       { line: "ghijk", startOffset: 8 }, // 4 + 3 + 1(\n)
       { line: "lmno", startOffset: 13 },
@@ -99,11 +100,11 @@ describe("getWrappedLines", () => {
   })
 
   test("multiple words wrapping across several visual lines", () => {
-    // "hello beautiful world" at width 10
+    // "hello beautiful world" at width 10 (trim=true)
     const lines = getWrappedLines("hello beautiful world", 10)
     expect(lines).toEqual([
-      { line: "hello ", startOffset: 0 },
-      { line: "beautiful ", startOffset: 6 },
+      { line: "hello", startOffset: 0 },
+      { line: "beautiful", startOffset: 6 },
       { line: "world", startOffset: 16 },
     ])
   })
@@ -145,9 +146,11 @@ describe("cursorToRowCol", () => {
   })
 
   test("cursor at exact wrap boundary", () => {
-    // "hello world" at width 8 -> ["hello ", "world"]
-    // cursor 6 is the last position on the first visual line (the trailing space)
-    expect(cursorToRowCol("hello world", 6, 8)).toEqual({ row: 0, col: 6 })
+    // "hello world" at width 8 -> ["hello", "world"] (trim=true)
+    // cursor 5 is at end of "hello" (col 5, past last visible char)
+    // cursor 6 is 'w' in "world" (row 1, col 0)
+    expect(cursorToRowCol("hello world", 5, 8)).toEqual({ row: 0, col: 5 })
+    expect(cursorToRowCol("hello world", 6, 8)).toEqual({ row: 1, col: 0 })
   })
 
   test("wrapWidth <= 0 returns row 0 col 0", () => {
@@ -156,8 +159,8 @@ describe("cursorToRowCol", () => {
   })
 
   test("cursor beyond text length", () => {
-    // Falls through all lines, returns last row col 0
-    expect(cursorToRowCol("hello", 100, 10)).toEqual({ row: 0, col: 0 })
+    // Cursor beyond text length clamps to end of last line
+    expect(cursorToRowCol("hello", 100, 10)).toEqual({ row: 0, col: 5 })
   })
 
   test("empty text", () => {
@@ -174,14 +177,14 @@ describe("cursorToRowCol", () => {
   })
 
   test("multi-wrap: three visual lines from one logical line", () => {
-    // "hello beautiful world" at width 10 -> ["hello ", "beautiful ", "world"]
-    // Note: for non-last wrapped lines, cursor at lineLen stays on the same row.
-    // Transition to the next row happens at lineLen + 1.
+    // "hello beautiful world" at width 10 -> ["hello", "beautiful", "world"] (trim=true)
+    // Offsets: "hello" at 0, "beautiful" at 6, "world" at 16
     expect(cursorToRowCol("hello beautiful world", 0, 10)).toEqual({ row: 0, col: 0 })
-    expect(cursorToRowCol("hello beautiful world", 6, 10)).toEqual({ row: 0, col: 6 }) // end of "hello "
-    expect(cursorToRowCol("hello beautiful world", 7, 10)).toEqual({ row: 1, col: 1 }) // first char of "beautiful "
-    expect(cursorToRowCol("hello beautiful world", 16, 10)).toEqual({ row: 1, col: 10 }) // end of "beautiful "
-    expect(cursorToRowCol("hello beautiful world", 17, 10)).toEqual({ row: 2, col: 1 }) // first char of "world"
+    expect(cursorToRowCol("hello beautiful world", 5, 10)).toEqual({ row: 0, col: 5 }) // end of "hello"
+    expect(cursorToRowCol("hello beautiful world", 6, 10)).toEqual({ row: 1, col: 0 }) // 'b' in "beautiful"
+    expect(cursorToRowCol("hello beautiful world", 7, 10)).toEqual({ row: 1, col: 1 }) // 'e' in "beautiful"
+    expect(cursorToRowCol("hello beautiful world", 15, 10)).toEqual({ row: 1, col: 9 }) // end of "beautiful"
+    expect(cursorToRowCol("hello beautiful world", 16, 10)).toEqual({ row: 2, col: 0 }) // 'w' in "world"
     expect(cursorToRowCol("hello beautiful world", 21, 10)).toEqual({ row: 2, col: 5 })
   })
 })
@@ -344,9 +347,9 @@ describe("cursorMoveDown", () => {
   })
 
   test("multiple wrapped lines: move from line 1 to line 2", () => {
-    // "hello beautiful world" at width 10 -> ["hello ", "beautiful ", "world"]
-    // cursor 6 maps to row 0 col 6 (end of "hello "), move down -> row 1 col 6 -> offset 12
-    expect(cursorMoveDown("hello beautiful world", 6, 10)).toBe(12)
+    // "hello beautiful world" at width 10 -> ["hello", "beautiful", "world"] (trim=true)
+    // cursor 6 = row 1 col 0 ('b' in "beautiful"), move down -> row 2 col 0 -> offset 16
+    expect(cursorMoveDown("hello beautiful world", 6, 10)).toBe(16)
   })
 
   test("uses stickyX instead of current column", () => {
@@ -549,8 +552,7 @@ describe("edge cases", () => {
     // Bug: km-inkx.cursor-stuck — at wrap boundaries, end of line N has the same
     // offset as start of line N+1. cursorToRowCol assigns to line N. With stickyX=0,
     // cursorMoveDown computed startOffset+0 == current cursor → stuck.
-    const text =
-      "File issues for remaining work – Create issues for anything that needs follow-up"
+    const text = "File issues for remaining work – Create issues for anything that needs follow-up"
     const width = 30
     const lines = getWrappedLines(text, width)
     expect(lines.length).toBeGreaterThanOrEqual(3)
@@ -572,8 +574,7 @@ describe("edge cases", () => {
 
   test("cursorMoveUp does not get stuck at wrap boundaries with stickyX=0", () => {
     // Same text as the moveDown test — verify moveUp also makes progress
-    const text =
-      "File issues for remaining work – Create issues for anything that needs follow-up"
+    const text = "File issues for remaining work – Create issues for anything that needs follow-up"
     const width = 30
 
     // Start at end of text, walk up — just verify no stuck cursor

@@ -80,6 +80,15 @@ export function renderBorder(
 ): void {
   const chars = getBorderChars(props.borderStyle ?? "single")
   const color = props.borderColor ? parseColor(props.borderColor) : null
+  // Preserve the box's background color on border cells. Without this,
+  // border cells get bg=null (transparent) which differs from the box's
+  // bg fill (e.g., bg=0 for "black"). This bg=null vs bg=0 discrepancy
+  // causes ANSI output differences: bg=null emits no background SGR code
+  // (terminal default), while bg=0 emits explicit \x1b[48;5;0m. When
+  // these differ visually (some terminals/themes), border segments appear
+  // with wrong background. Setting bg explicitly ensures border cells
+  // match the box's background, producing consistent ANSI output.
+  const bg = props.backgroundColor ? parseColor(props.backgroundColor) : null
 
   const showTop = props.borderTop !== false
   const showBottom = props.borderBottom !== false
@@ -94,12 +103,12 @@ export function renderBorder(
 
   // Top border
   if (showTop && isRowVisible(y)) {
-    if (showLeft) buffer.setCell(x, y, { char: chars.topLeft, fg: color })
+    if (showLeft) buffer.setCell(x, y, { char: chars.topLeft, fg: color, bg })
     for (let col = x + 1; col < x + width - 1 && col < buffer.width; col++) {
-      buffer.setCell(col, y, { char: chars.horizontal, fg: color })
+      buffer.setCell(col, y, { char: chars.horizontal, fg: color, bg })
     }
     if (showRight && x + width - 1 < buffer.width) {
-      buffer.setCell(x + width - 1, y, { char: chars.topRight, fg: color })
+      buffer.setCell(x + width - 1, y, { char: chars.topRight, fg: color, bg })
     }
   }
 
@@ -108,9 +117,9 @@ export function renderBorder(
   const sideEnd = showBottom ? y + height - 1 : y + height
   for (let row = sideStart; row < sideEnd; row++) {
     if (!isRowVisible(row)) continue
-    if (showLeft) buffer.setCell(x, row, { char: chars.vertical, fg: color })
+    if (showLeft) buffer.setCell(x, row, { char: chars.vertical, fg: color, bg })
     if (showRight && x + width - 1 < buffer.width) {
-      buffer.setCell(x + width - 1, row, { char: chars.vertical, fg: color })
+      buffer.setCell(x + width - 1, row, { char: chars.vertical, fg: color, bg })
     }
   }
 
@@ -118,15 +127,16 @@ export function renderBorder(
   const bottomY = y + height - 1
   if (showBottom && isRowVisible(bottomY)) {
     if (showLeft) {
-      buffer.setCell(x, bottomY, { char: chars.bottomLeft, fg: color })
+      buffer.setCell(x, bottomY, { char: chars.bottomLeft, fg: color, bg })
     }
     for (let col = x + 1; col < x + width - 1 && col < buffer.width; col++) {
-      buffer.setCell(col, bottomY, { char: chars.horizontal, fg: color })
+      buffer.setCell(col, bottomY, { char: chars.horizontal, fg: color, bg })
     }
     if (showRight && x + width - 1 < buffer.width) {
       buffer.setCell(x + width - 1, bottomY, {
         char: chars.bottomRight,
         fg: color,
+        bg,
       })
     }
   }

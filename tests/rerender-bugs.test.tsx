@@ -297,6 +297,354 @@ describe("Bug: scrollOffset prop on overflow=scroll container", () => {
   })
 })
 
+describe("Bug: scrollOffset with nested fixed-height Box children", () => {
+  test("scroll container with nested Box height children scrolls correctly", () => {
+    // Replicates storybook AllViews layout: scroll container with nested
+    // Box elements that have explicit height props
+    function ScrollableContent({ offset }: { offset: number }) {
+      return (
+        <Box flexDirection="column" height={10} overflow="scroll" scrollOffset={offset}>
+          <Box flexDirection="column" height={5} borderStyle="single">
+            <Text>Section A line 1</Text>
+            <Text>Section A line 2</Text>
+            <Text>Section A line 3</Text>
+          </Box>
+          <Box flexDirection="column" height={5} borderStyle="single">
+            <Text>Section B line 1</Text>
+            <Text>Section B line 2</Text>
+            <Text>Section B line 3</Text>
+          </Box>
+          <Box flexDirection="column" height={5} borderStyle="single">
+            <Text>Section C line 1</Text>
+            <Text>Section C line 2</Text>
+            <Text>Section C line 3</Text>
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = render(<ScrollableContent offset={0} />)
+    expect(app.text).toContain("Section A line 1")
+    expect(app.text).not.toContain("Section C line 1")
+
+    // Scroll down 5 rows - should show Section B and start of Section C
+    app.rerender(<ScrollableContent offset={5} />)
+    expect(app.text).toContain("Section B line 1")
+    expect(app.text).not.toContain("Section A line 1")
+  })
+
+  test("scroll container within row layout (sidebar + content)", () => {
+    // Replicates storybook InteractiveStorybook layout:
+    // Row with sidebar + scrollable content area
+    function Layout({ offset }: { offset: number }) {
+      return (
+        <Box flexDirection="column" width={60} height={15}>
+          <Text>Header</Text>
+          <Box flexDirection="row" flexGrow={1}>
+            <Box flexDirection="column" width={15}>
+              <Text>Sidebar</Text>
+            </Box>
+            <Box flexDirection="column" flexGrow={1} height={12} overflow="scroll" scrollOffset={offset}>
+              {Array.from({ length: 30 }, (_, i) => (
+                <Text key={i}>Content line {i + 1}</Text>
+              ))}
+            </Box>
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = render(<Layout offset={0} />)
+    expect(app.text).toContain("Content line 1")
+    expect(app.text).toContain("Header")
+    expect(app.text).toContain("Sidebar")
+
+    // Scroll the content area
+    app.rerender(<Layout offset={5} />)
+    expect(app.text).toContain("Content line 6")
+    expect(app.text).not.toMatch(/\bContent line 1\b/)
+    // Sidebar and header should remain
+    expect(app.text).toContain("Header")
+    expect(app.text).toContain("Sidebar")
+  })
+
+  test("exact storybook layout: bordered header + row(sidebar + scroll content) with flexGrow", () => {
+    // Exact replica of InteractiveStorybook layout
+    const termHeight = 40
+    const contentHeight = termHeight - 3
+
+    function Storybook({ offset }: { offset: number }) {
+      return (
+        <Box flexDirection="column" width={120} height={termHeight}>
+          {/* Header with border = 3 rows */}
+          <Box borderStyle="double" paddingX={1}>
+            <Text bold>TUI Storybook</Text>
+          </Box>
+
+          {/* Main content area */}
+          <Box flexDirection="row" flexGrow={1}>
+            {/* Sidebar */}
+            <Box flexDirection="column" width={28} borderStyle="single" paddingX={1}>
+              <Text bold>Sections</Text>
+              <Text>Item 1</Text>
+              <Text>Item 2</Text>
+            </Box>
+
+            {/* Content area - scrollable */}
+            <Box
+              flexDirection="column"
+              flexGrow={1}
+              height={contentHeight}
+              paddingX={1}
+              overflow="scroll"
+              scrollOffset={offset}
+            >
+              {/* Section content that exceeds viewport */}
+              <Text>Section Header</Text>
+              <Text dimColor>Description line</Text>
+              {/* 4 "ViewBox" style elements, each ~24 rows */}
+              {[1, 2, 3, 4].map((n) => (
+                <Box key={n} flexDirection="column" height={24} borderStyle="double" paddingX={1} marginY={1}>
+                  <Text bold>View {n} Title</Text>
+                  <Box marginTop={1} flexDirection="column" flexGrow={1}>
+                    {Array.from({ length: 18 }, (_, i) => (
+                      <Text key={i}>
+                        View {n} content row {i + 1}
+                      </Text>
+                    ))}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = render(<Storybook offset={0} />)
+    expect(app.text).toContain("TUI Storybook")
+    expect(app.text).toContain("Sections")
+    expect(app.text).toContain("Section Header")
+    expect(app.text).toContain("View 1 Title")
+
+    // Scroll down significantly - View 1 is 24+2 rows, so offset 30 should show View 2
+    app.rerender(<Storybook offset={30} />)
+    const scrolledText = app.text
+    expect(scrolledText).toContain("TUI Storybook") // Header stays
+    expect(scrolledText).toContain("Sections") // Sidebar stays
+    expect(scrolledText).toContain("View 2 Title") // View 2 should be visible
+    expect(scrolledText).not.toContain("Section Header") // Top content scrolled away
+  })
+
+  test("scroll container with deeply nested Box content renders correctly", () => {
+    // Replicates the storybook bug: BoardCore inside ViewBox has deeply
+    // nested Boxes (column > card > content), and scrolling causes the
+    // nested content to disappear
+    function DeepContent({ offset }: { offset: number }) {
+      return (
+        <Box flexDirection="column" height={15} overflow="scroll" scrollOffset={offset}>
+          {/* Section 1: deeply nested content */}
+          <Box flexDirection="column" height={20} borderStyle="double">
+            <Text bold>Section 1 Title</Text>
+            <Box flexDirection="row" flexGrow={1}>
+              {/* Column A */}
+              <Box flexDirection="column" width={20}>
+                <Text>Col A Header</Text>
+                <Box borderStyle="single" flexDirection="column">
+                  <Text>Card A1 text</Text>
+                  <Text>Card A1 detail</Text>
+                </Box>
+                <Box borderStyle="single" flexDirection="column">
+                  <Text>Card A2 text</Text>
+                </Box>
+              </Box>
+              {/* Column B */}
+              <Box flexDirection="column" width={20}>
+                <Text>Col B Header</Text>
+                <Box borderStyle="single" flexDirection="column">
+                  <Text>Card B1 text</Text>
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Section 2: deeply nested content */}
+          <Box flexDirection="column" height={20} borderStyle="double">
+            <Text bold>Section 2 Title</Text>
+            <Box flexDirection="row" flexGrow={1}>
+              <Box flexDirection="column" width={20}>
+                <Text>Col C Header</Text>
+                <Box borderStyle="single" flexDirection="column">
+                  <Text>Card C1 text</Text>
+                  <Text>Card C1 detail</Text>
+                </Box>
+              </Box>
+              <Box flexDirection="column" width={20}>
+                <Text>Col D Header</Text>
+                <Box borderStyle="single" flexDirection="column">
+                  <Text>Card D1 text</Text>
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = render(<DeepContent offset={0} />)
+    expect(app.text).toContain("Section 1 Title")
+    expect(app.text).toContain("Card A1 text")
+    expect(app.text).toContain("Card A1 detail")
+    expect(app.text).toContain("Col B Header")
+    expect(app.text).toContain("Card B1 text")
+
+    // Scroll to show Section 2
+    app.rerender(<DeepContent offset={18} />)
+    const scrolled = app.text
+    expect(scrolled).toContain("Section 2 Title")
+    expect(scrolled).toContain("Col C Header")
+    expect(scrolled).toContain("Card C1 text")
+    expect(scrolled).toContain("Card C1 detail")
+    expect(scrolled).toContain("Col D Header")
+    expect(scrolled).toContain("Card D1 text")
+    // Section 1 should be scrolled away
+    expect(scrolled).not.toContain("Section 1 Title")
+  })
+
+  test("interactive scroll via useState + useInput + press()", async () => {
+    // Simulates the actual storybook pattern: useInput sets scrollOffset state,
+    // which is passed to overflow="scroll" scrollOffset prop
+    const { createRenderer: createTestRenderer } = await import("../src/testing/index.js")
+    const { useInput: useTestInput } = await import("../src/index.js")
+    const testRender = createTestRenderer({ cols: 60, rows: 15 })
+
+    function InteractiveScroll() {
+      const [scrollOffset, setScrollOffset] = React.useState(0)
+
+      useTestInput((_input: string, key: { downArrow: boolean; upArrow: boolean }) => {
+        if (key.downArrow) {
+          setScrollOffset((prev: number) => prev + 3)
+        } else if (key.upArrow) {
+          setScrollOffset((prev: number) => Math.max(0, prev - 3))
+        }
+      })
+
+      return (
+        <Box flexDirection="column" width={60} height={15}>
+          <Text>Header - offset={scrollOffset}</Text>
+          <Box flexDirection="column" flexGrow={1} height={12} overflow="scroll" scrollOffset={scrollOffset}>
+            {Array.from({ length: 40 }, (_, i) => (
+              <Text key={i}>Row {i + 1}</Text>
+            ))}
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = testRender(<InteractiveScroll />)
+    expect(app.text).toContain("Row 1")
+    expect(app.text).toContain("offset=0")
+
+    // Press ArrowDown to scroll
+    await app.press("ArrowDown")
+    expect(app.text).toContain("offset=3")
+    expect(app.text).toContain("Row 4")
+    expect(app.text).not.toMatch(/\bRow 1\b/)
+
+    // Press ArrowDown again
+    await app.press("ArrowDown")
+    expect(app.text).toContain("offset=6")
+    expect(app.text).toContain("Row 7")
+    expect(app.text).not.toMatch(/\bRow 1\b/)
+  })
+
+  test("interactive scroll with deeply nested content (incremental render)", async () => {
+    // Tests the incremental render path with deeply nested Boxes inside scroll
+    // This is the actual bug: fresh render works, but incremental doesn't repaint nested content
+    const { createRenderer: createTestRenderer } = await import("../src/testing/index.js")
+    const { useInput: useTestInput } = await import("../src/index.js")
+    const testRender = createTestRenderer({ cols: 50, rows: 15 })
+
+    function NestedScrollView() {
+      const [offset, setOffset] = React.useState(0)
+
+      useTestInput((_input: string, key: { downArrow: boolean; upArrow: boolean }) => {
+        if (key.downArrow) setOffset((p: number) => p + 5)
+        if (key.upArrow) setOffset((p: number) => Math.max(0, p - 5))
+      })
+
+      return (
+        <Box flexDirection="column" width={50} height={15}>
+          <Text>offset={offset}</Text>
+          <Box flexDirection="column" height={13} overflow="scroll" scrollOffset={offset}>
+            {/* Section 1: nested boxes */}
+            <Box flexDirection="column" height={12} borderStyle="double">
+              <Text bold>Section 1</Text>
+              <Box flexDirection="row">
+                <Box flexDirection="column" width={20} borderStyle="single">
+                  <Text>Card A1</Text>
+                  <Text>Detail A1</Text>
+                </Box>
+                <Box flexDirection="column" width={20} borderStyle="single">
+                  <Text>Card B1</Text>
+                </Box>
+              </Box>
+            </Box>
+
+            {/* Section 2: nested boxes */}
+            <Box flexDirection="column" height={12} borderStyle="double">
+              <Text bold>Section 2</Text>
+              <Box flexDirection="row">
+                <Box flexDirection="column" width={20} borderStyle="single">
+                  <Text>Card C1</Text>
+                  <Text>Detail C1</Text>
+                </Box>
+                <Box flexDirection="column" width={20} borderStyle="single">
+                  <Text>Card D1</Text>
+                </Box>
+              </Box>
+            </Box>
+
+            {/* Section 3 */}
+            <Box flexDirection="column" height={12} borderStyle="double">
+              <Text bold>Section 3</Text>
+              <Box flexDirection="row">
+                <Box flexDirection="column" width={20} borderStyle="single">
+                  <Text>Card E1</Text>
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = testRender(<NestedScrollView />)
+    expect(app.text).toContain("Section 1")
+    expect(app.text).toContain("Card A1")
+    expect(app.text).toContain("Detail A1")
+    expect(app.text).toContain("Card B1")
+
+    // Scroll down to Section 2 via press (incremental render path)
+    await app.press("ArrowDown") // offset=5
+    await app.press("ArrowDown") // offset=10
+    const scrolled = app.text
+    expect(scrolled).toContain("offset=10")
+    expect(scrolled).toContain("Section 2")
+    expect(scrolled).toContain("Card C1")
+    expect(scrolled).toContain("Detail C1")
+    expect(scrolled).toContain("Card D1")
+    expect(scrolled).not.toContain("Section 1")
+
+    // Scroll to Section 3
+    await app.press("ArrowDown") // offset=15
+    await app.press("ArrowDown") // offset=20
+    const scrolled2 = app.text
+    expect(scrolled2).toContain("Section 3")
+    expect(scrolled2).toContain("Card E1")
+  })
+})
+
 describe("Bug: styleEquals edge cases", () => {
   test("null style should not equal default style object", () => {
     const nullStyle = null

@@ -6,18 +6,18 @@ Pure functions for mapping between flat character offsets and visual (row, col) 
 
 Terminal text editors face a fundamental alignment problem: the cursor position in the underlying text (a flat offset) doesn't correspond to what the user sees on screen after word wrapping. A character at offset 45 might be on visual line 3, column 5 -- but only if you use the _same_ wrapping algorithm as the renderer.
 
-The text-cursor module solves this by using `wrapText()` from `unicode.ts` internally -- the same function the inkx rendering pipeline uses. This guarantees cursor positions always match what's displayed on screen. Apps that roll their own cursor math risk cursor/visual misalignment whenever the wrapping logic diverges.
+The text-cursor module solves this by using `wrapText()` from `unicode.ts` internally -- the same function the inkx rendering pipeline uses, with matching `trim=true` behavior. This guarantees cursor positions always match what's displayed on screen. The trim parameter is critical: the renderer trims trailing spaces at word-wrap break points and leading spaces on continuation lines. Without matching trim behavior, cursor offsets drift from visual positions on wrapped text.
 
 ## Architecture
 
 text-cursor is **Layer 0** of a 4-layer text editing stack inspired by the web's [EditContext API](https://developer.mozilla.org/en-US/docs/Web/API/EditContext_API):
 
-| Layer | Module | What It Does | Status |
-|-------|--------|--------------|--------|
-| 0 | `text-cursor.ts` | Pure functions: offset ↔ visual position | Available |
-| 1 | `useTextEdit()` | Hook: text state + cursor nav + stickyX | Planned |
-| 2 | `EditableText` | Component: renders wrapped text with cursor | Planned |
-| 3 | `TextArea` | Full widget: EditableText + scroll + useInput | Existing (will be refactored) |
+| Layer | Module           | What It Does                                  | Status                        |
+| ----- | ---------------- | --------------------------------------------- | ----------------------------- |
+| 0     | `text-cursor.ts` | Pure functions: offset ↔ visual position      | Available                     |
+| 1     | `useTextEdit()`  | Hook: text state + cursor nav + stickyX       | Planned                       |
+| 2     | `EditableText`   | Component: renders wrapped text with cursor   | Planned                       |
+| 3     | `TextArea`       | Full widget: EditableText + scroll + useInput | Existing (will be refactored) |
 
 Each layer builds on the one below. Layer 0 has no state, no hooks, no React dependency -- just pure functions. This means you can use it with any state management approach (Slate, Zustand, custom hooks, etc.).
 
@@ -26,14 +26,7 @@ Each layer builds on the one below. Layer 0 has no state, no hooks, no React dep
 All functions are exported from `inkx`:
 
 ```ts
-import {
-  cursorToRowCol,
-  getWrappedLines,
-  rowColToCursor,
-  cursorMoveUp,
-  cursorMoveDown,
-  countVisualLines,
-} from "inkx"
+import { cursorToRowCol, getWrappedLines, rowColToCursor, cursorMoveUp, cursorMoveDown, countVisualLines } from "inkx"
 import type { WrappedLine } from "inkx"
 ```
 
@@ -44,11 +37,7 @@ import type { WrappedLine } from "inkx"
 Convert a flat cursor offset to a visual (row, col) position in word-wrapped text.
 
 ```ts
-function cursorToRowCol(
-  text: string,
-  cursor: number,
-  wrapWidth: number,
-): { row: number; col: number }
+function cursorToRowCol(text: string, cursor: number, wrapWidth: number): { row: number; col: number }
 ```
 
 ```ts
@@ -77,7 +66,7 @@ function getWrappedLines(text: string, wrapWidth: number): WrappedLine[]
 
 ```ts
 interface WrappedLine {
-  line: string       // Text content of this visual line
+  line: string // Text content of this visual line
   startOffset: number // Offset in the original text where this line starts
 }
 ```
@@ -105,12 +94,7 @@ The `startOffset` enables converting a (row, col) back to a flat offset: `offset
 Convert a visual (row, col) to a flat cursor offset. Clamps `col` to the line length if it exceeds it (important for stickyX on short lines).
 
 ```ts
-function rowColToCursor(
-  text: string,
-  row: number,
-  col: number,
-  wrapWidth: number,
-): number
+function rowColToCursor(text: string, row: number, col: number, wrapWidth: number): number
 ```
 
 ```ts
@@ -129,12 +113,7 @@ rowColToCursor("hi\nbye", 0, 10, 80)
 Move the cursor up one visual line. Returns the new cursor offset, or `null` if already on the first visual line.
 
 ```ts
-function cursorMoveUp(
-  text: string,
-  cursor: number,
-  wrapWidth: number,
-  stickyX?: number,
-): number | null
+function cursorMoveUp(text: string, cursor: number, wrapWidth: number, stickyX?: number): number | null
 ```
 
 ```ts
@@ -156,12 +135,7 @@ Returns `null` at the boundary to signal the caller should handle cross-block na
 Move the cursor down one visual line. Returns the new cursor offset, or `null` if already on the last visual line.
 
 ```ts
-function cursorMoveDown(
-  text: string,
-  cursor: number,
-  wrapWidth: number,
-  stickyX?: number,
-): number | null
+function cursorMoveDown(text: string, cursor: number, wrapWidth: number, stickyX?: number): number | null
 ```
 
 ```ts
@@ -261,9 +235,7 @@ function handleVerticalMove(direction: "up" | "down", block: Block, cursor: numb
   }
 
   // Crossed the boundary — move to adjacent block
-  const adjacent = direction === "up"
-    ? getPreviousBlock(block.id)
-    : getNextBlock(block.id)
+  const adjacent = direction === "up" ? getPreviousBlock(block.id) : getNextBlock(block.id)
 
   if (!adjacent) return null // No adjacent block
 
@@ -288,11 +260,7 @@ function TextWithCursor({ text, cursor, width }: Props) {
   return (
     <Box flexDirection="column">
       {lines.map((wl, i) => (
-        <Text key={i}>
-          {i === row
-            ? wl.line.slice(0, col) + "|" + wl.line.slice(col)
-            : wl.line}
-        </Text>
+        <Text key={i}>{i === row ? wl.line.slice(0, col) + "|" + wl.line.slice(col) : wl.line}</Text>
       ))}
     </Box>
   )

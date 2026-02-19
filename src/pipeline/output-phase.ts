@@ -129,6 +129,93 @@ function underlineStyleToSgr(style: UnderlineStyle | undefined): number | null {
 }
 
 /**
+ * Find rows that have changes AND contain wide characters.
+ * These rows need full-row rendering to avoid cursor drift from
+ * wide character width mismatches between inkx and the terminal.
+ */
+function findWideCharChangedRows(pool: CellChange[], count: number, buffer: TerminalBuffer): Set<number> {
+  // Collect unique changed rows
+  const changedRows = new Set<number>()
+  for (let i = 0; i < count; i++) {
+    changedRows.add(pool[i]!.y)
+  }
+
+  // Check which changed rows have wide characters
+  const wideRows = new Set<number>()
+  for (const y of changedRows) {
+    for (let x = 0; x < buffer.width; x++) {
+      if (buffer.isCellWide(x, y)) {
+        wideRows.add(y)
+        break
+      }
+    }
+  }
+
+  return wideRows
+}
+
+/**
+ * Render full rows for rows that contain wide characters.
+ * Emits each row from column 0 sequentially with \x1b[K to clear
+ * to end of line, avoiding cursor position drift from width mismatches.
+ */
+function renderFullRows(buffer: TerminalBuffer, rows: Set<number>): string {
+  let output = ""
+  let currentStyle: Style | null = null
+  const cell = createMutableCell()
+  const cellStyle: Style = {
+    fg: null,
+    bg: null,
+    underlineColor: null,
+    attrs: {},
+  }
+
+  // Sort rows for efficient cursor movement
+  const sortedRows = Array.from(rows).sort((a, b) => a - b)
+
+  for (const y of sortedRows) {
+    // Move cursor to start of row (1-indexed)
+    output += `\x1b[${y + 1};1H`
+
+    // Render all cells on this row sequentially
+    for (let x = 0; x < buffer.width; x++) {
+      buffer.readCellInto(x, y, cell)
+
+      // Skip continuation cells
+      if (cell.continuation) continue
+
+      // Apply style changes
+      cellStyle.fg = cell.fg
+      cellStyle.bg = cell.bg
+      cellStyle.underlineColor = cell.underlineColor
+      cellStyle.attrs = cell.attrs
+      if (!styleEquals(currentStyle, cellStyle)) {
+        const saved: Style = {
+          fg: cell.fg,
+          bg: cell.bg,
+          underlineColor: cell.underlineColor,
+          attrs: { ...cell.attrs },
+        }
+        output += cachedStyleToAnsi(saved)
+        currentStyle = saved
+      }
+
+      output += cell.char
+    }
+
+    // Clear to end of line (removes any stale content from previous render)
+    output += "\x1b[K"
+  }
+
+  // Reset style at end
+  if (currentStyle) {
+    output += "\x1b[0m"
+  }
+
+  return output
+}
+
+/**
  * Diff two buffers and produce minimal ANSI output.
  *
  * @param prev Previous buffer (null on first render)
@@ -182,6 +269,38 @@ export function outputPhase(
 
   if (count === 0) {
     return "" // No changes
+  }
+
+  // Identify rows with changes that also contain wide characters.
+  // Wide chars (emoji, CJK) can have width mismatches between inkx and
+  // terminal emulators, causing cursor position drift on incremental diffs.
+  // For these rows, emit the full row sequentially instead of cell-level
+  // diffs to avoid accumulated positioning errors.
+  const wideCharRows = findWideCharChangedRows(pool, count, next)
+
+  if (wideCharRows.size > 0) {
+    // Split output: full-row rendering for wide-char rows, cell diffs for the rest.
+    // Filter out wide-char row entries from the pool.
+    let filteredCount = 0
+    for (let i = 0; i < count; i++) {
+      if (!wideCharRows.has(pool[i]!.y)) {
+        // Swap to front of pool
+        if (filteredCount !== i) {
+          const tmp = pool[filteredCount]!
+          pool[filteredCount] = pool[i]!
+          pool[i] = tmp
+        }
+        filteredCount++
+      }
+    }
+
+    // Render wide-char rows fully + remaining cell diffs
+    let output = ""
+    if (filteredCount > 0) {
+      output += changesToAnsi(pool, filteredCount, mode)
+    }
+    output += renderFullRows(next, wideCharRows)
+    return output
   }
 
   return changesToAnsi(pool, count, mode)

@@ -52,9 +52,7 @@ describe("Border toggle regression: add/remove borderStyle", () => {
           <Box
             flexDirection="column"
             width={38}
-            {...(showBorder
-              ? { borderStyle: "round" as const, borderColor: "yellow" }
-              : {})}
+            {...(showBorder ? { borderStyle: "round" as const, borderColor: "yellow" } : {})}
           >
             <Text>Content line one</Text>
             <Text>Content line two</Text>
@@ -93,9 +91,7 @@ describe("Border toggle regression: add/remove borderStyle", () => {
           <Box
             flexDirection="column"
             width={28}
-            {...(showBorder
-              ? { borderStyle: "round" as const, borderColor: "cyan" }
-              : {})}
+            {...(showBorder ? { borderStyle: "round" as const, borderColor: "cyan" } : {})}
           >
             <Text>Hello world</Text>
           </Box>
@@ -205,11 +201,7 @@ describe("Border toggle regression: add/remove borderStyle", () => {
     function App({ expanded }: { expanded: boolean }) {
       return (
         <Box width={30} height={15} flexDirection="column">
-          <Box
-            flexDirection="column"
-            width={28}
-            {...(expanded ? { marginBottom: 2 } : {})}
-          >
+          <Box flexDirection="column" width={28} {...(expanded ? { marginBottom: 2 } : {})}>
             <Text>Block A</Text>
           </Box>
           <Box flexDirection="column" width={28}>

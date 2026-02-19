@@ -11,11 +11,7 @@ describe("border rendering with borderBottom=false", () => {
     function TestApp() {
       return (
         <Box flexDirection="column" flexShrink={0} width={width}>
-          <Box
-            flexDirection="column"
-            borderStyle="round"
-            borderBottom={false}
-          >
+          <Box flexDirection="column" borderStyle="round" borderBottom={false}>
             <Text>line-a</Text>
             <Text>line-b</Text>
           </Box>
@@ -29,7 +25,7 @@ describe("border rendering with borderBottom=false", () => {
     const rows = text.split("\n")
 
     // The top border should span the full parent width
-    const topRow = rows.find(r => r.includes("\u256d"))!
+    const topRow = rows.find((r) => r.includes("\u256d"))!
     const topStart = topRow.indexOf("\u256d")
     const topEnd = topRow.indexOf("\u256e")
     expect(topEnd - topStart + 1, "inner box top border should span full parent width").toBe(width)
@@ -44,25 +40,18 @@ describe("border rendering with borderBottom=false", () => {
         <Box flexDirection="column" width={containerWidth} height={25} overflow="scroll">
           {/* Card with overflow (borderBottom=false + custom bottom border) */}
           <Box flexDirection="column" flexShrink={0} width={containerWidth}>
-            <Box
-              flexDirection="column"
-              borderStyle="round"
-              borderBottom={false}
-            >
+            <Box flexDirection="column" borderStyle="round" borderBottom={false}>
               <Text>card-a</Text>
               <Text>a-child1</Text>
             </Box>
             <Text wrap="truncate">
-              {"\u2570"}{"\u2500".repeat(containerWidth - 2)}{"\u256f"}
+              {"\u2570"}
+              {"\u2500".repeat(containerWidth - 2)}
+              {"\u256f"}
             </Text>
           </Box>
           {/* Normal card */}
-          <Box
-            flexDirection="column"
-            flexShrink={0}
-            width={containerWidth}
-            borderStyle="round"
-          >
+          <Box flexDirection="column" flexShrink={0} width={containerWidth} borderStyle="round">
             <Text>card-b</Text>
           </Box>
         </Box>
@@ -74,7 +63,7 @@ describe("border rendering with borderBottom=false", () => {
     const rows = text.split("\n")
 
     // Find the overflow card's top border
-    const topRows = rows.filter(r => r.includes("\u256d") && r.includes("\u256e"))
+    const topRows = rows.filter((r) => r.includes("\u256d") && r.includes("\u256e"))
     expect(topRows.length).toBeGreaterThanOrEqual(2) // overflow card + normal card
 
     // First top border (overflow card) should start at col 0
@@ -110,25 +99,18 @@ describe("border rendering with borderBottom=false", () => {
           <Box flexDirection="column" width={cardWidth} height={25} overflow="scroll">
             {/* Overflow card */}
             <Box flexDirection="column" flexShrink={0} width={cardWidth}>
-              <Box
-                flexDirection="column"
-                borderStyle="round"
-                borderBottom={false}
-              >
+              <Box flexDirection="column" borderStyle="round" borderBottom={false}>
                 <Text>card-a</Text>
                 <Text>a-child1</Text>
               </Box>
               <Text wrap="truncate">
-                {"\u2570"}{"\u2500".repeat(cardWidth - 2)}{"\u256f"}
+                {"\u2570"}
+                {"\u2500".repeat(cardWidth - 2)}
+                {"\u256f"}
               </Text>
             </Box>
             {/* Normal card */}
-            <Box
-              flexDirection="column"
-              flexShrink={0}
-              width={cardWidth}
-              borderStyle="round"
-            >
+            <Box flexDirection="column" flexShrink={0} width={cardWidth} borderStyle="round">
               <Text>card-b</Text>
             </Box>
           </Box>
@@ -141,7 +123,7 @@ describe("border rendering with borderBottom=false", () => {
     const rows = text.split("\n")
 
     // Check that overflow card top border starts at correct position
-    const topRows = rows.filter(r => r.includes("\u256d") && r.includes("\u256e"))
+    const topRows = rows.filter((r) => r.includes("\u256d") && r.includes("\u256e"))
     expect(topRows.length).toBeGreaterThanOrEqual(2)
 
     // Both cards' top borders should start at the same column

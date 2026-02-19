@@ -116,7 +116,11 @@ function calcAvgItemWidth<T>(items: T[], itemWidth: number | ((item: T, index: n
 /**
  * Calculate total width of all items including gaps.
  */
-function calcTotalItemsWidth<T>(items: T[], itemWidth: number | ((item: T, index: number) => number), gap: number): number {
+function calcTotalItemsWidth<T>(
+  items: T[],
+  itemWidth: number | ((item: T, index: number) => number),
+  gap: number,
+): number {
   if (items.length === 0) return 0
   if (typeof itemWidth === "number") return items.length * itemWidth + (items.length - 1) * gap
   let total = 0
@@ -263,9 +267,10 @@ function HorizontalVirtualListInner<T>(
     // Determine which indicators would show at the current offset
     const wouldShowLeft = hasIndicatorRenderer && displayScrollOffset > 0
     const prelimVisibleCount = calcActualVisibleCount(items, displayScrollOffset, effectiveViewport, itemWidth, gap)
-    const wouldShowRight = hasIndicatorRenderer && (items.length - displayScrollOffset - prelimVisibleCount) > 0
+    const wouldShowRight = hasIndicatorRenderer && items.length - displayScrollOffset - prelimVisibleCount > 0
     // Actual viewport uses only the indicators that will actually render
-    const actualIndicatorWidth = (wouldShowLeft ? overflowIndicatorWidth : 0) + (wouldShowRight ? overflowIndicatorWidth : 0)
+    const actualIndicatorWidth =
+      (wouldShowLeft ? overflowIndicatorWidth : 0) + (wouldShowRight ? overflowIndicatorWidth : 0)
     const actualViewport = Math.max(1, width - actualIndicatorWidth)
 
     const overflow = calcItemOverflow(items, displayScrollOffset, scrollTo, actualViewport, itemWidth, gap)
@@ -308,15 +313,16 @@ function HorizontalVirtualListInner<T>(
   return (
     <Box flexDirection="row" width={width} height={height} overflow="hidden">
       {/* Left overflow indicator */}
-      {showLeftIndicator && (
-        hasCustomIndicator
-          ? renderOverflowIndicator("before", overflowBefore)
-          : (
-            <Box flexShrink={0}>
-              <Text color="white" backgroundColor="gray">◀{overflowBefore}</Text>
-            </Box>
-          )
-      )}
+      {showLeftIndicator &&
+        (hasCustomIndicator ? (
+          renderOverflowIndicator("before", overflowBefore)
+        ) : (
+          <Box flexShrink={0}>
+            <Text color="white" backgroundColor="gray">
+              ◀{overflowBefore}
+            </Text>
+          </Box>
+        ))}
 
       {/* Render visible items — flexShrink={0} prevents flex from shrinking
           overscan items; they render at full size and get clipped by overflow="hidden" */}
@@ -335,15 +341,16 @@ function HorizontalVirtualListInner<T>(
       })}
 
       {/* Right overflow indicator */}
-      {showRightIndicator && (
-        hasCustomIndicator
-          ? renderOverflowIndicator("after", overflowAfter)
-          : (
-            <Box flexShrink={0}>
-              <Text color="white" backgroundColor="gray">{overflowAfter}▶</Text>
-            </Box>
-          )
-      )}
+      {showRightIndicator &&
+        (hasCustomIndicator ? (
+          renderOverflowIndicator("after", overflowAfter)
+        ) : (
+          <Box flexShrink={0}>
+            <Text color="white" backgroundColor="gray">
+              {overflowAfter}▶
+            </Text>
+          </Box>
+        ))}
     </Box>
   )
 }

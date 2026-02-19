@@ -168,6 +168,11 @@ export function keyToAnsi(key: string): string {
     if (code >= 1 && code <= 26) return String.fromCharCode(code)
   }
 
+  // Ctrl+/ -> \x1f (Unit Separator, standard terminal convention)
+  if (modifiers.includes("Control") && mainKey === "/") {
+    return "\x1f"
+  }
+
   // Ctrl+Enter -> \n (legacy terminal: \r = Enter, \n = Ctrl+Enter/Ctrl+J)
   if (modifiers.includes("Control") && mainKey === "Enter") {
     return "\n"
@@ -469,6 +474,10 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
   } else if (input.length === 1 && input <= "\x1a") {
     // ctrl+letter
     key.name = String.fromCharCode(input.charCodeAt(0) + "a".charCodeAt(0) - 1)
+    key.ctrl = true
+  } else if (input === "\x1f") {
+    // Ctrl+/ sends 0x1F (Unit Separator) in terminals
+    key.name = "/"
     key.ctrl = true
   } else if (input.length === 1 && input >= "0" && input <= "9") {
     key.name = "number"

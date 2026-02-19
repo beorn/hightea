@@ -107,9 +107,9 @@ describe("scroll container card shrink border integrity", () => {
             <Text>Card A Title</Text>
             {showChildren && (
               <>
-                <Text>  child-1</Text>
-                <Text>  child-2</Text>
-                <Text>  child-3</Text>
+                <Text> child-1</Text>
+                <Text> child-2</Text>
+                <Text> child-3</Text>
               </>
             )}
           </Box>
@@ -202,8 +202,8 @@ describe("scroll container card shrink border integrity", () => {
               paddingRight={1}
             >
               <Text>{name}</Text>
-              {depth >= 1 && <Text>  level-1-child</Text>}
-              {depth >= 2 && <Text>  level-2-child</Text>}
+              {depth >= 1 && <Text> level-1-child</Text>}
+              {depth >= 2 && <Text> level-2-child</Text>}
             </Box>
           ))}
         </Box>

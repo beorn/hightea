@@ -11,8 +11,8 @@ describe("VirtualList variable height", () => {
       <VirtualList
         items={items}
         height={10}
-        itemHeight={(item, index) => index === 0 ? 2 : 1}
-        renderItem={(item, index) => (
+        itemHeight={(item, index) => (index === 0 ? 2 : 1)}
+        renderItem={(item, index) =>
           index === 0 ? (
             <Box key={item} flexDirection="column" height={2}>
               <Text>{item}</Text>
@@ -21,8 +21,8 @@ describe("VirtualList variable height", () => {
           ) : (
             <Text key={item}>{item}</Text>
           )
-        )}
-      />
+        }
+      />,
     )
     const lines = app.text.split("\n")
     expect(lines[0]).toContain("a")
@@ -71,7 +71,7 @@ describe("VirtualList variable height", () => {
               height={17}
               overscan={20}
               maxRendered={100}
-              itemHeight={(item, index) => index === 0 ? 2 : 1}
+              itemHeight={(item, index) => (index === 0 ? 2 : 1)}
               renderItem={(item, index) => (
                 <Box key={item} paddingLeft={1}>
                   <CardTracker>
@@ -88,7 +88,7 @@ describe("VirtualList variable height", () => {
             />
           </Box>
         </Box>
-      </Box>
+      </Box>,
     )
 
     const lines = app.text.split("\n")

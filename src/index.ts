@@ -492,21 +492,13 @@ export type { WrappedLine } from "./text-cursor.js"
  * ```
  */
 export { createTermEditContext } from "./edit-context.js"
-export type {
-  EditContextLike,
-  TermEditContext,
-  TermEditContextOptions,
-} from "./edit-context.js"
+export type { EditContextLike, TermEditContext, TermEditContextOptions } from "./edit-context.js"
 
 export { applyTextOp, invertTextOp, mergeTextOps } from "./text-ops.js"
 export type { TextOp } from "./text-ops.js"
 
 export { useEditContext, activeEditContextRef, activeEditTargetRef } from "./hooks/use-edit-context.js"
-export type {
-  UseEditContextOptions,
-  UseEditContextResult,
-  EditTarget,
-} from "./hooks/use-edit-context.js"
+export type { UseEditContextOptions, UseEditContextResult, EditTarget } from "./hooks/use-edit-context.js"
 
 // =============================================================================
 // Scroll Utilities

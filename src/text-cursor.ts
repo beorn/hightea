@@ -44,44 +44,25 @@ export interface WrappedLine {
  * Uses wrapText() from unicode.ts — the same function the render pipeline
  * uses — so cursor positions always match what's displayed on screen.
  */
-export function cursorToRowCol(
-  text: string,
-  cursor: number,
-  wrapWidth: number,
-): { row: number; col: number } {
+export function cursorToRowCol(text: string, cursor: number, wrapWidth: number): { row: number; col: number } {
   if (wrapWidth <= 0) return { row: 0, col: 0 }
+  return cursorToRowColFromLines(getWrappedLines(text, wrapWidth), cursor)
+}
 
-  const logicalLines = text.split("\n")
-  let charsSeen = 0
-  let row = 0
+/** Internal: compute row/col from pre-computed wrapped lines. */
+function cursorToRowColFromLines(lines: WrappedLine[], cursor: number): { row: number; col: number } {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!
+    const lineEnd = line.startOffset + line.line.length
+    const isLast = i === lines.length - 1
 
-  for (let li = 0; li < logicalLines.length; li++) {
-    const line = logicalLines[li]!
-    const wrapped = wrapText(line, wrapWidth, false)
-    const lines = wrapped.length === 0 ? [""] : wrapped
-
-    for (let wi = 0; wi < lines.length; wi++) {
-      const wLine = lines[wi]!
-      const lineLen = wLine.length
-      const isLastWrappedLine = wi === lines.length - 1
-
-      if (isLastWrappedLine) {
-        const endOfLogical = charsSeen + lineLen
-        if (cursor <= endOfLogical) {
-          return { row, col: cursor - charsSeen }
-        }
-        charsSeen = endOfLogical + 1 // +1 for \n
-      } else {
-        if (cursor <= charsSeen + lineLen) {
-          return { row, col: cursor - charsSeen }
-        }
-        charsSeen += lineLen
-      }
-      row++
+    if (cursor <= lineEnd || isLast) {
+      const col = Math.max(0, Math.min(cursor - line.startOffset, line.line.length))
+      return { row: i, col }
     }
   }
 
-  return { row: Math.max(0, row - 1), col: 0 }
+  return { row: Math.max(0, lines.length - 1), col: 0 }
 }
 
 /**
@@ -100,12 +81,25 @@ export function getWrappedLines(text: string, wrapWidth: number): WrappedLine[] 
 
   for (let li = 0; li < logicalLines.length; li++) {
     const line = logicalLines[li]!
-    const wrapped = wrapText(line, wrapWidth, false)
+    // Use trim=true to match the renderer's wrapping behavior.
+    // The renderer uses wrapText(text, width, true, true), so cursor math
+    // must produce the same visual lines to keep positions synchronized.
+    const wrapped = wrapText(line, wrapWidth, false, true)
     const lines = wrapped.length === 0 ? [""] : wrapped
 
     for (const wLine of lines) {
+      // Skip whitespace in the original text that was trimmed:
+      // - Leading spaces on continuation lines (trimmed by renderer)
+      // - Trailing space at break point (consumed as separator by renderer)
+      while (offset < text.length && text[offset] === " " && wLine.length > 0 && text[offset] !== wLine[0]) {
+        offset++
+      }
       result.push({ line: wLine, startOffset: offset })
       offset += wLine.length
+    }
+    // Skip any remaining trailing spaces before the newline
+    while (offset < text.length && text[offset] === " ") {
+      offset++
     }
     offset++ // for \n
   }
@@ -119,12 +113,7 @@ export function getWrappedLines(text: string, wrapWidth: number): WrappedLine[] 
  * Clamps col to the line length if the target column exceeds it
  * (important for stickyX behavior on short lines).
  */
-export function rowColToCursor(
-  text: string,
-  row: number,
-  col: number,
-  wrapWidth: number,
-): number {
+export function rowColToCursor(text: string, row: number, col: number, wrapWidth: number): number {
   const lines = getWrappedLines(text, wrapWidth)
   if (row < 0) return 0
   if (row >= lines.length) return text.length
@@ -143,16 +132,11 @@ export function rowColToCursor(
  *   stay at this column. Pass the col from the original position before
  *   the first vertical move in a sequence.
  */
-export function cursorMoveUp(
-  text: string,
-  cursor: number,
-  wrapWidth: number,
-  stickyX?: number,
-): number | null {
+export function cursorMoveUp(text: string, cursor: number, wrapWidth: number, stickyX?: number): number | null {
   if (wrapWidth <= 0) return cursor > 0 ? 0 : null
 
   const lines = getWrappedLines(text, wrapWidth)
-  const { row, col } = cursorToRowCol(text, cursor, wrapWidth)
+  const { row, col } = cursorToRowColFromLines(lines, cursor)
 
   if (row === 0) return null // at first visual line — boundary
 
@@ -175,16 +159,11 @@ export function cursorMoveUp(
  *
  * @param stickyX - Preferred column position for vertical movement.
  */
-export function cursorMoveDown(
-  text: string,
-  cursor: number,
-  wrapWidth: number,
-  stickyX?: number,
-): number | null {
+export function cursorMoveDown(text: string, cursor: number, wrapWidth: number, stickyX?: number): number | null {
   if (wrapWidth <= 0) return cursor < text.length ? text.length : null
 
   const lines = getWrappedLines(text, wrapWidth)
-  const { row, col } = cursorToRowCol(text, cursor, wrapWidth)
+  const { row, col } = cursorToRowColFromLines(lines, cursor)
 
   if (row >= lines.length - 1) return null // at last visual line — boundary
 

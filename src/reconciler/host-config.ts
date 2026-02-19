@@ -416,6 +416,7 @@ export const hostConfig = {
     textInstance.textContent = newText
     textInstance.props = { children: newText } as TextProps
     textInstance.contentDirty = true
+    textInstance.paintDirty = true
     // Text content change affects layout (measure function will return different size)
     // Walk up to the nearest layout ancestor so its measure cache is invalidated
     markLayoutAncestorDirty(textInstance)

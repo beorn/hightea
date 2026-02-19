@@ -64,9 +64,7 @@ describe("useEditContext: rendering", () => {
   })
 
   test("renders with initial cursor at start", () => {
-    const app = render(
-      <TestEditor initialValue="hello" initialCursorPos="start" />,
-    )
+    const app = render(<TestEditor initialValue="hello" initialCursorPos="start" />)
     expect(app.getByTestId("cur").textContent()).toContain("cur=0")
   })
 
@@ -76,9 +74,7 @@ describe("useEditContext: rendering", () => {
   })
 
   test("beforeCursor and afterCursor split correctly at start", () => {
-    const app = render(
-      <TestEditor initialValue="hello" initialCursorPos="start" />,
-    )
+    const app = render(<TestEditor initialValue="hello" initialCursorPos="start" />)
     expect(app.getByTestId("before").textContent()).toContain("before=")
     expect(app.getByTestId("after").textContent()).toContain("after=hello")
   })
@@ -293,13 +289,7 @@ describe("useEditContext: target methods", () => {
 
   test("target.insertBreak returns true when onSplitAtBoundary provided", () => {
     const ref = React.createRef<UseEditContextResult>() as React.MutableRefObject<UseEditContextResult | null>
-    render(
-      <TestEditor
-        initialValue="hello"
-        onSplitAtBoundary={() => {}}
-        resultRef={ref}
-      />,
-    )
+    render(<TestEditor initialValue="hello" onSplitAtBoundary={() => {}} resultRef={ref} />)
     expect(ref.current!.target.insertBreak()).toBe(true)
   })
 })
@@ -316,11 +306,7 @@ describe("useEditContext: auto-save on unmount", () => {
     function Wrapper() {
       const [vis, setVis] = useState(true)
       setVisible = setVis
-      return vis ? (
-        <TestEditor initialValue="hello" onConfirm={onConfirm} />
-      ) : (
-        <Text testID="gone">gone</Text>
-      )
+      return vis ? <TestEditor initialValue="hello" onConfirm={onConfirm} /> : <Text testID="gone">gone</Text>
     }
 
     const app = render(<Wrapper />)
@@ -350,12 +336,7 @@ describe("useEditContext: auto-save on unmount", () => {
       const [vis, setVis] = useState(true)
       setVisible = setVis
       return vis ? (
-        <TestEditor
-          initialValue="hello"
-          onConfirm={onConfirm}
-          onCancel={onCancel}
-          resultRef={ref}
-        />
+        <TestEditor initialValue="hello" onConfirm={onConfirm} onCancel={onCancel} resultRef={ref} />
       ) : (
         <Text testID="gone">gone</Text>
       )
@@ -388,11 +369,7 @@ describe("useEditContext: auto-save on unmount", () => {
     function Wrapper() {
       const [vis, setVis] = useState(true)
       setVisible = setVis
-      return vis ? (
-        <TestEditor initialValue="hello" onConfirm={onConfirm} />
-      ) : (
-        <Text testID="gone">gone</Text>
-      )
+      return vis ? <TestEditor initialValue="hello" onConfirm={onConfirm} /> : <Text testID="gone">gone</Text>
     }
 
     const app = render(<Wrapper />)
@@ -459,9 +436,7 @@ describe("useEditContext: clear and setValue", () => {
   test("setValue triggers onChange", () => {
     const onChange = vi.fn()
     const ref = React.createRef<UseEditContextResult>() as React.MutableRefObject<UseEditContextResult | null>
-    render(
-      <TestEditor initialValue="hello" onChange={onChange} resultRef={ref} />,
-    )
+    render(<TestEditor initialValue="hello" onChange={onChange} resultRef={ref} />)
     React.act(() => {
       ref.current!.setValue("world")
     })

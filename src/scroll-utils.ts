@@ -70,7 +70,16 @@ export function calcEdgeBasedScrollOffset(
   if (selectedIndex < paddedStart) {
     // Scrolling UP/LEFT: place item `effectivePadding` rows from top
     newOffset = Math.max(0, selectedIndex - effectivePadding)
-  } else if (effectivePadding === 0 && selectedIndex === paddedStart && currentOffset > 0) {
+  } else if (
+    effectivePadding === 0 &&
+    selectedIndex === paddedStart &&
+    currentOffset > 0 &&
+    // Only scroll back if the viewport is large enough to show both the
+    // context item and the selected item. When visibleCount <= padding,
+    // scrolling back pushes the selected item out of view, which triggers
+    // a forward scroll on the next render → infinite oscillation.
+    visibleCount > padding
+  ) {
     // Small viewport (effectivePadding forced to 0): cursor at the very first visible
     // position should still scroll back to provide context. Without this, scrolling
     // right works (cursor past last visible triggers scroll) but scrolling left doesn't

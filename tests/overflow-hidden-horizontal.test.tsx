@@ -98,7 +98,8 @@ describe("overflow=hidden horizontal clipping", () => {
           <Box flexGrow={1} flexShrink={1} flexDirection="row" paddingLeft={1} paddingRight={1}>
             <Box flexGrow={1} flexShrink={1} overflow="hidden">
               <Text bold wrap="truncate">
-                {"# "}{longName}
+                {"# "}
+                {longName}
               </Text>
             </Box>
             <Box flexShrink={0}>
@@ -149,7 +150,8 @@ describe("overflow=hidden horizontal clipping", () => {
           <Box flexGrow={1} flexShrink={1} flexDirection="row" paddingLeft={1} paddingRight={1} testID="inner-row">
             <Box flexGrow={1} flexShrink={1} overflow="hidden" testID="truncate-box">
               <Text bold wrap="truncate" testID="long-text">
-                {"# "}{longName}
+                {"# "}
+                {longName}
               </Text>
             </Box>
             <Box flexShrink={0} testID="count-box">

@@ -10,15 +10,15 @@ The render pipeline runs on every frame. Phases execute in strict order:
 measure -> layout -> scroll -> screenRect -> [notify] -> content -> output
 ```
 
-| Phase | File | What it does |
-|-------|------|-------------|
-| measure | measure-phase.ts | Set Yoga constraints for fit-content nodes |
-| layout | layout-phase.ts | Run `calculateLayout()`, propagate rects, set `prevLayout` and `subtreeDirty` |
-| scroll | layout-phase.ts | Calculate scroll offset, visible children, sticky positions for overflow=scroll containers |
-| screenRect | layout-phase.ts | Compute screen-relative positions (content position minus ancestor scroll offsets) |
-| notify | layout-phase.ts | Fire `layoutSubscribers` callbacks (drives `useContentRect`/`useScreenRect`) |
-| **content** | **content-phase.ts** | **Render nodes to a TerminalBuffer (this is the complex part)** |
-| output | output-phase.ts | Diff current buffer against previous, emit minimal ANSI escape sequences |
+| Phase       | File                 | What it does                                                                               |
+| ----------- | -------------------- | ------------------------------------------------------------------------------------------ |
+| measure     | measure-phase.ts     | Set Yoga constraints for fit-content nodes                                                 |
+| layout      | layout-phase.ts      | Run `calculateLayout()`, propagate rects, set `prevLayout` and `subtreeDirty`              |
+| scroll      | layout-phase.ts      | Calculate scroll offset, visible children, sticky positions for overflow=scroll containers |
+| screenRect  | layout-phase.ts      | Compute screen-relative positions (content position minus ancestor scroll offsets)         |
+| notify      | layout-phase.ts      | Fire `layoutSubscribers` callbacks (drives `useContentRect`/`useScreenRect`)               |
+| **content** | **content-phase.ts** | **Render nodes to a TerminalBuffer (this is the complex part)**                            |
+| output      | output-phase.ts      | Diff current buffer against previous, emit minimal ANSI escape sequences                   |
 
 Orchestrated by `executeRender()` in `pipeline/index.ts`. The scheduler (`scheduler.ts`) calls `executeRender()` and passes the previous frame's buffer for incremental rendering.
 
@@ -26,14 +26,14 @@ Orchestrated by `executeRender()` in `pipeline/index.ts`. The scheduler (`schedu
 
 The reconciler sets flags on nodes when props/children change. The content phase reads them to decide what to re-render. All are cleared by the content phase after processing.
 
-| Flag | Set by | Meaning |
-|------|--------|---------|
-| `contentDirty` | Reconciler | Text content or content-affecting props changed |
-| `paintDirty` | Reconciler | Visual props changed (color, bg, border). Survives measure phase clearing `contentDirty` |
-| `bgDirty` | Reconciler | `backgroundColor` specifically changed (added, modified, or removed) |
-| `subtreeDirty` | Layout phase / reconciler | Some descendant has dirty flags. Node's OWN rendering may be skippable |
-| `childrenDirty` | Reconciler | Direct children added, removed, or reordered |
-| `layoutDirty` | Reconciler | Layout-affecting props changed; triggers Yoga recalculation |
+| Flag            | Set by                    | Meaning                                                                                  |
+| --------------- | ------------------------- | ---------------------------------------------------------------------------------------- |
+| `contentDirty`  | Reconciler                | Text content or content-affecting props changed                                          |
+| `paintDirty`    | Reconciler                | Visual props changed (color, bg, border). Survives measure phase clearing `contentDirty` |
+| `bgDirty`       | Reconciler                | `backgroundColor` specifically changed (added, modified, or removed)                     |
+| `subtreeDirty`  | Layout phase / reconciler | Some descendant has dirty flags. Node's OWN rendering may be skippable                   |
+| `childrenDirty` | Reconciler                | Direct children added, removed, or reordered                                             |
+| `layoutDirty`   | Reconciler                | Layout-affecting props changed; triggers Yoga recalculation                              |
 
 The layout phase also sets `subtreeDirty` upward when a descendant's `contentRect` changes.
 
@@ -49,11 +49,11 @@ The fast-path skip condition (all must be false to skip):
 
 ```typescript
 !node.contentDirty &&
-!node.paintDirty &&
-!layoutChanged &&          // !rectEqual(node.prevLayout, node.contentRect)
-!node.subtreeDirty &&
-!node.childrenDirty &&
-!childPositionChanged      // any child's x/y differs from prevLayout
+  !node.paintDirty &&
+  !layoutChanged && // !rectEqual(node.prevLayout, node.contentRect)
+  !node.subtreeDirty &&
+  !node.childrenDirty &&
+  !childPositionChanged // any child's x/y differs from prevLayout
 ```
 
 If `hasPrevBuffer` is false (first render or dimension change), nothing is skipped.
@@ -71,6 +71,7 @@ These two flags propagate down through `renderNodeToBuffer` calls and control wh
 Passed to each child. When true, the child can use the fast-path skip (its pixels are intact from the previous frame). When false, the child must render even if its own flags are clean.
 
 A parent sets `childHasPrev = false` when:
+
 - `childrenDirty` is true (children restructured)
 - `childPositionChanged` is true (sibling sizes shifted positions)
 - `parentRegionChanged` is true (parent's content area was modified)
@@ -88,14 +89,11 @@ These five computed values in `renderNodeToBuffer` control the entire incrementa
 layoutChanged = !rectEqual(node.prevLayout, node.contentRect)
 
 // Did the CONTENT AREA change? (excludes border-only paint changes)
-contentAreaAffected =
-  node.contentDirty || layoutChanged || childPositionChanged ||
-  node.childrenDirty || node.bgDirty
+contentAreaAffected = node.contentDirty || layoutChanged || childPositionChanged || node.childrenDirty || node.bgDirty
 
 // Should we clear this node's region with inherited bg?
 // Only when: buffer has stale pixels AND content area changed AND no own bg fill
-parentRegionCleared =
-  (hasPrevBuffer || ancestorCleared) && contentAreaAffected && !props.backgroundColor
+parentRegionCleared = (hasPrevBuffer || ancestorCleared) && contentAreaAffected && !props.backgroundColor
 
 // Can we skip the bg fill? Only when clone has correct bg already
 skipBgFill = hasPrevBuffer && !ancestorCleared && !contentAreaAffected
@@ -108,7 +106,7 @@ parentRegionChanged = (hasPrevBuffer || ancestorCleared) && contentAreaAffected
 
 ```typescript
 // Normal containers:
-childHasPrev = (childrenDirty || childPositionChanged || parentRegionChanged) ? false : hasPrevBuffer
+childHasPrev = childrenDirty || childPositionChanged || parentRegionChanged ? false : hasPrevBuffer
 childAncestorCleared = parentRegionCleared || (ancestorCleared && !props.backgroundColor)
 ```
 
@@ -129,6 +127,7 @@ Scroll containers (`overflow="scroll"`) have special rendering logic in `renderS
 ### Tier 1: Buffer Shift (scrollOnly)
 
 When ONLY the scroll offset changed (no child/parent changes):
+
 - Shift buffer contents by the scroll delta via `buffer.scrollRegion()`
 - Only re-render newly exposed children at the edges
 - Previously visible children keep their shifted pixels
@@ -138,6 +137,7 @@ When ONLY the scroll offset changed (no child/parent changes):
 ### Tier 2: Full Viewport Clear (needsViewportClear)
 
 When children restructured, scroll offset changed with sticky children, or parent region changed:
+
 - Clear entire viewport with inherited bg
 - Re-render all visible children (childHasPrev=false)
 
@@ -146,6 +146,7 @@ When children restructured, scroll offset changed with sticky children, or paren
 ### Tier 3: Subtree-Dirty Only
 
 When only some descendants changed:
+
 - Children use `hasPrevBuffer=true` and skip via fast-path if clean
 - Only dirty descendants re-render
 
@@ -172,9 +173,7 @@ const textInheritedBg = findInheritedBg(node).color
 renderText(node, buffer, layout, props, scrollOffset, clipBounds, textInheritedBg)
 
 // render-text.ts → renderGraphemes: use inherited bg instead of buffer read
-const existingBg = style.bg !== null ? style.bg
-  : inheritedBg !== undefined ? inheritedBg
-  : buffer.getCellBg(col, y)  // legacy fallback for external callers
+const existingBg = style.bg !== null ? style.bg : inheritedBg !== undefined ? inheritedBg : buffer.getCellBg(col, y) // legacy fallback for external callers
 ```
 
 **Why not getCellBg?** The old approach read bg from the buffer (`getCellBg`), creating a coupling between text rendering and buffer state. On incremental renders, the cloned buffer could have stale bg at positions outside the parent's bg-filled region (e.g., overflow text, moved nodes). Using `inheritedBg` from the render tree is deterministic regardless of buffer state.
@@ -196,7 +195,9 @@ Without two-pass, an absolute child rendered before a dirty normal-flow sibling 
 
 When a node's content area changed but it has no `backgroundColor`, stale pixels from the clone remain visible. `clearNodeRegion` fills the node's rect with inherited bg (found by walking up ancestors via `findInheritedBg`).
 
-When a node shrinks, the excess area (old bounds minus new bounds) is also cleared. This excess clearing clips to the colored ancestor's bounds to prevent inherited bg from bleeding into sibling areas.
+When a node shrinks, the excess area (old bounds minus new bounds) is also cleared via `clearExcessArea()`. This excess clearing clips to the colored ancestor's bounds to prevent inherited bg from bleeding into sibling areas.
+
+**Important:** Excess area clearing runs independently of `parentRegionCleared`. Even when `parentRegionCleared=false` (e.g., absolute children with `forceRepaint=true` where `hasPrevBuffer=false` + `ancestorCleared=false`), the cloned buffer still has stale pixels in the old-but-not-new area that must be cleared. This also applies to nodes WITH `backgroundColor` — `renderBox` fills only the new (smaller) region.
 
 ## prevLayout Staleness (Known Issue)
 
@@ -235,16 +236,16 @@ The content phase has extensive instrumentation gated on `_instrumentEnabled` --
 
 ## File Map
 
-| File | Responsibility |
-|------|---------------|
-| content-phase.ts | Tree traversal, dirty-flag evaluation, incremental cascade logic, scroll container tiers, region clearing |
-| render-box.ts | Box bg fill (`skipBgFill` aware), border rendering, scroll indicators |
-| render-text.ts | Text content collection, ANSI parsing, bg segment tracking, `getCellBg` inheritance, bg conflict detection |
-| layout-phase.ts | Layout calculation, scroll state, screen rects, layout subscriber notification |
-| measure-phase.ts | Intrinsic size measurement for fit-content nodes |
-| output-phase.ts | Buffer diff, dirty row tracking, minimal ANSI output generation |
-| render-helpers.ts | Color parsing, text width, border chars, style computation |
-| helpers.ts | Border/padding size calculation |
+| File              | Responsibility                                                                                             |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- |
+| content-phase.ts  | Tree traversal, dirty-flag evaluation, incremental cascade logic, scroll container tiers, region clearing  |
+| render-box.ts     | Box bg fill (`skipBgFill` aware), border rendering, scroll indicators                                      |
+| render-text.ts    | Text content collection, ANSI parsing, bg segment tracking, `getCellBg` inheritance, bg conflict detection |
+| layout-phase.ts   | Layout calculation, scroll state, screen rects, layout subscriber notification                             |
+| measure-phase.ts  | Intrinsic size measurement for fit-content nodes                                                           |
+| output-phase.ts   | Buffer diff, dirty row tracking, minimal ANSI output generation                                            |
+| render-helpers.ts | Color parsing, text width, border chars, style computation                                                 |
+| helpers.ts        | Border/padding size calculation                                                                            |
 
 ## Lessons from Past Sessions
 
@@ -271,6 +272,7 @@ The content phase has extensive instrumentation gated on `_instrumentEnabled` --
 3. **Sticky `ancestorCleared=false`** — The second pass renders sticky headers ON TOP of first-pass content. Using `ancestorCleared=true` caused transparent spacer Boxes to clear their region, wiping overlapping sticky headers rendered earlier in the same pass. Fresh render has first-pass content at sticky positions, not "cleared" space.
 
 **Blind paths in this session:**
+
 - Pre-clearing only current sticky positions (missed that OLD positions also had stale bg)
 - Setting `hasPrevBuffer=false` without clearing buffer (Text still reads stale bg via `getCellBg`)
 - Attempting to fix with `ancestorCleared=true` for sticky children (broke transparent overlays)
@@ -283,16 +285,16 @@ Fix: `BgSegment` tracking in `render-text.ts` strips ANSI bg from text content a
 
 ## Common Blind Paths
 
-| Blind Path | Why It Doesn't Work | What to Do Instead |
-|-----------|---------------------|-------------------|
-| Broader viewport clearing | Causes 12ms regression (re-renders ~50 children vs 2 dirty ones) | Only clear viewport for Tier 2 triggers (childrenDirty, scroll+sticky, parentRegionChanged) |
-| Using `needsOwnRepaint` for cascade | Includes `paintDirty`; border color changes cascade through ~200 child nodes | Use `contentAreaAffected` — excludes pure paint changes |
-| Pre-clearing only current sticky positions | Old positions also have stale bg in the buffer | Clear entire viewport to `null` bg |
-| `hasPrevBuffer=false` without clearing buffer | Text reads stale bg via `getCellBg` regardless of hasPrevBuffer flag | Clear viewport first, then set `hasPrevBuffer=false` |
-| `ancestorCleared=true` for sticky second pass | Transparent spacer Boxes clear their region, wiping overlapping sticky content | Use `ancestorCleared=false` — matches fresh render semantics |
-| Blaming the terminal emulator | If 3 terminals show the same glitch, it's your code | Use `withDiagnostics` + `INKX_STRICT=1` first |
-| Hand-rolling VirtualTerminal tests | Too simple to catch real app complexity | Use `withDiagnostics(createBoardDriver(...))` |
-| Reading code paths without a failing test | Wastes 20+ turns on theorizing | Write failing test first, THEN trace code |
+| Blind Path                                    | Why It Doesn't Work                                                            | What to Do Instead                                                                          |
+| --------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Broader viewport clearing                     | Causes 12ms regression (re-renders ~50 children vs 2 dirty ones)               | Only clear viewport for Tier 2 triggers (childrenDirty, scroll+sticky, parentRegionChanged) |
+| Using `needsOwnRepaint` for cascade           | Includes `paintDirty`; border color changes cascade through ~200 child nodes   | Use `contentAreaAffected` — excludes pure paint changes                                     |
+| Pre-clearing only current sticky positions    | Old positions also have stale bg in the buffer                                 | Clear entire viewport to `null` bg                                                          |
+| `hasPrevBuffer=false` without clearing buffer | Text reads stale bg via `getCellBg` regardless of hasPrevBuffer flag           | Clear viewport first, then set `hasPrevBuffer=false`                                        |
+| `ancestorCleared=true` for sticky second pass | Transparent spacer Boxes clear their region, wiping overlapping sticky content | Use `ancestorCleared=false` — matches fresh render semantics                                |
+| Blaming the terminal emulator                 | If 3 terminals show the same glitch, it's your code                            | Use `withDiagnostics` + `INKX_STRICT=1` first                                               |
+| Hand-rolling VirtualTerminal tests            | Too simple to catch real app complexity                                        | Use `withDiagnostics(createBoardDriver(...))`                                               |
+| Reading code paths without a failing test     | Wastes 20+ turns on theorizing                                                 | Write failing test first, THEN trace code                                                   |
 
 ## Effective Strategies (Priority Order)
 
@@ -312,16 +314,17 @@ Fix: `BgSegment` tracking in `render-text.ts` strips ANSI bg from text content a
 
 ## Symptom → Check Cross-Reference
 
-| Symptom | Check First |
-|---------|-------------|
-| Stale background color persists | `bgDirty` flag; `getCellBg` coupling; is region being cleared? |
-| Border artifacts after color change | `paintDirty` vs `contentAreaAffected` distinction; border-only change should NOT cascade |
-| Scroll glitch (content jumps/disappears) | Scroll tier selection; Tier 1 unsafe with sticky; Tier 3 needs `stickyForceRefresh` |
-| Children blank after parent changes | `parentRegionChanged` → `childHasPrev=false`; is viewport clear setting `childHasPrev` correctly? |
-| Absolute child disappears | Two-pass rendering order; absolute children need `ancestorCleared=false` in second pass |
-| Content correct initially, wrong after navigation | Incremental rendering bug; `INKX_STRICT=1` will catch it |
-| Text bg different from parent Box bg | `getCellBg` reading stale buffer; check if region was cleared to correct bg |
-| Flickering on every render | `prevLayout=null` causing `layoutChanged=true` every frame (known issue) |
+| Symptom                                           | Check First                                                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Stale background color persists                   | `bgDirty` flag; `getCellBg` coupling; is region being cleared?                                    |
+| Border artifacts after color change               | `paintDirty` vs `contentAreaAffected` distinction; border-only change should NOT cascade          |
+| Scroll glitch (content jumps/disappears)          | Scroll tier selection; Tier 1 unsafe with sticky; Tier 3 needs `stickyForceRefresh`               |
+| Children blank after parent changes               | `parentRegionChanged` → `childHasPrev=false`; is viewport clear setting `childHasPrev` correctly? |
+| Absolute child disappears                         | Two-pass rendering order; absolute children need `ancestorCleared=false` in second pass           |
+| Content correct initially, wrong after navigation | Incremental rendering bug; `INKX_STRICT=1` will catch it                                          |
+| Text bg different from parent Box bg              | `getCellBg` reading stale buffer; check if region was cleared to correct bg                       |
+| Flickering on every render                        | `prevLayout=null` causing `layoutChanged=true` every frame (known issue)                          |
+| Stale overlay pixels after shrink (black area)    | `clearExcessArea` not called; check `parentRegionCleared` + `forceRepaint` interaction            |
 
 ## Quick Regression Test Template
 
@@ -376,14 +379,12 @@ import { item } from "@km/tui/tests/helpers/board-test.ts"
 
 describe("regression: <brief description>", () => {
   test("repro from fuzz/user report", async () => {
-    const nodes = item.root("board",
-      item("Column 1", item("Task A"), item("Task B")),
-      item("Column 2", item("Task C")),
-    )
-    const driver = withDiagnostics(
-      createBoardDriver(createFakeRepo({ nodes }), "board"),
-      { checkIncremental: true, checkReplay: true, checkStability: true }
-    )
+    const nodes = item.root("board", item("Column 1", item("Task A"), item("Task B")), item("Column 2", item("Task C")))
+    const driver = withDiagnostics(createBoardDriver(createFakeRepo({ nodes }), "board"), {
+      checkIncremental: true,
+      checkReplay: true,
+      checkStability: true,
+    })
 
     // Reproduce the sequence that triggered the bug
     await driver.cmd.down()
