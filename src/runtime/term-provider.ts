@@ -22,6 +22,7 @@
  */
 
 import { type Key, parseKey } from "./keys.js"
+import { isMouseSequence, parseMouseSequence, type ParsedMouse } from "../mouse.js"
 import type { Dims, Provider, ProviderEvent } from "./types.js"
 
 // ============================================================================
@@ -98,6 +99,7 @@ export interface TermState {
  */
 export interface TermEvents {
   key: { input: string; key: Key }
+  mouse: ParsedMouse
   resize: Dims
 }
 
@@ -185,7 +187,15 @@ export function createTermProvider(
       let eventResolve: (() => void) | null = null
 
       // Single-key handler: parses one key sequence and enqueues an event.
+      // Mouse sequences are detected and parsed separately.
       const onKey = (raw: string) => {
+        if (isMouseSequence(raw)) {
+          const parsed = parseMouseSequence(raw)
+          if (parsed) {
+            queue.push({ type: "mouse", data: parsed })
+            return
+          }
+        }
         const [input, key] = parseKey(raw)
         queue.push({ type: "key", data: { input, key } })
       }

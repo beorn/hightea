@@ -43,6 +43,17 @@ export type Event =
       meta?: boolean
       shift?: boolean
     }
+  | {
+      type: "mouse"
+      button: number
+      x: number
+      y: number
+      action: "down" | "up" | "move" | "wheel"
+      delta?: number
+      shift: boolean
+      meta: boolean
+      ctrl: boolean
+    }
   | { type: "resize"; cols: number; rows: number }
   | { type: "tick"; time: number }
   | { type: "effect"; id: string; result: unknown }

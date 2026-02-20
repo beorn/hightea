@@ -37,6 +37,9 @@ import { createBuffer } from "./create-buffer.js"
 import { createRuntime } from "./create-runtime.js"
 import { type InputHandler, type Key, parseKey } from "./keys.js"
 import { splitRawInput } from "../keys.js"
+import { isMouseSequence, parseMouseSequence } from "../mouse.js"
+import { enableKittyKeyboard, disableKittyKeyboard, KittyFlags, enableMouse, disableMouse } from "../output.js"
+import { detectKittyFromStdio } from "../kitty-detect.js"
 import { ensureLayoutEngine } from "./layout.js"
 import type { Buffer, Dims, Event, RenderTarget, Runtime } from "./types.js"
 
@@ -60,6 +63,19 @@ export interface RunOptions {
   stdin?: NodeJS.ReadStream
   /** Abort signal for external cleanup */
   signal?: AbortSignal
+  /**
+   * Enable Kitty keyboard protocol.
+   * - `true`: auto-detect and enable with DISAMBIGUATE flag (1)
+   * - number: enable with specific KittyFlags bitfield
+   * - `false`/undefined: don't enable (default)
+   */
+  kitty?: boolean | number
+  /**
+   * Enable SGR mouse tracking (mode 1006).
+   * When true, enables mouse events and disables on cleanup.
+   * Default: false
+   */
+  mouse?: boolean
 }
 
 /**
@@ -151,6 +167,8 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     stdout: explicitStdout,
     stdin = process.stdin,
     signal: externalSignal,
+    kitty: kittyOption,
+    mouse: mouseOption = false,
   } = options
 
   const headless = explicitCols != null && explicitRows != null && !explicitStdout
@@ -178,6 +196,10 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 
   // Track current dimensions
   let currentDims: Dims = { cols, rows }
+
+  // Protocol tracking
+  let kittyEnabled = false
+  let mouseEnabled = false
 
   // Input handlers
   const inputHandlers = new Set<InputHandler>()
@@ -257,6 +279,25 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
             // stdin "data" events can contain multiple characters buffered
             // together (rapid typing, paste, or auto-repeat).
             for (const keyChunk of splitRawInput(rawKey)) {
+              // Check for mouse sequences first
+              if (isMouseSequence(keyChunk)) {
+                const parsed = parseMouseSequence(keyChunk)
+                if (parsed) {
+                  yield {
+                    type: "mouse" as const,
+                    button: parsed.button,
+                    x: parsed.x,
+                    y: parsed.y,
+                    action: parsed.action,
+                    delta: parsed.delta,
+                    shift: parsed.shift,
+                    meta: parsed.meta,
+                    ctrl: parsed.ctrl,
+                  }
+                  continue
+                }
+              }
+
               const [input, key] = parseKey(keyChunk)
 
               yield {
@@ -389,7 +430,29 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
   currentBuffer = doRender()
 
   // Clear screen and hide cursor
-  if (!headless) stdout.write("\x1b[2J\x1b[H\x1b[?25l")
+  if (!headless) {
+    stdout.write("\x1b[2J\x1b[H\x1b[?25l")
+
+    // Kitty keyboard protocol
+    if (kittyOption != null && kittyOption !== false) {
+      if (kittyOption === true) {
+        const result = await detectKittyFromStdio(stdout, stdin as NodeJS.ReadStream)
+        if (result.supported) {
+          stdout.write(enableKittyKeyboard(KittyFlags.DISAMBIGUATE))
+          kittyEnabled = true
+        }
+      } else {
+        stdout.write(enableKittyKeyboard(kittyOption))
+        kittyEnabled = true
+      }
+    }
+
+    // Mouse tracking
+    if (mouseOption) {
+      stdout.write(enableMouse())
+      mouseEnabled = true
+    }
+  }
   runtime.render(currentBuffer)
 
   // Exit promise
@@ -436,7 +499,11 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     } finally {
       // Cleanup
       runtime[Symbol.dispose]()
-      if (!headless) stdout.write("\x1b[?25h\x1b[0m\n")
+      if (!headless) {
+        if (mouseEnabled) stdout.write(disableMouse())
+        if (kittyEnabled) stdout.write(disableKittyKeyboard())
+        stdout.write("\x1b[?25h\x1b[0m\n")
+      }
       exitResolve()
     }
   }

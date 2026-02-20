@@ -55,6 +55,8 @@ import { createRuntime } from "./create-runtime.js"
 import { keyToAnsi, keyToKittyAnsi } from "../keys.js"
 import { type Key, parseKey } from "./keys.js"
 import { ensureLayoutEngine } from "./layout.js"
+import { enableKittyKeyboard, disableKittyKeyboard, KittyFlags, enableMouse, disableMouse } from "../output.js"
+import { detectKittyFromStdio } from "../kitty-detect.js"
 import { type TermProvider, createTermProvider } from "./term-provider.js"
 import type { Buffer, Dims, Provider, ProviderEvent, RenderTarget } from "./types.js"
 
@@ -134,6 +136,19 @@ export interface AppRunOptions {
   alternateScreen?: boolean
   /** Use Kitty keyboard protocol encoding for press(). Default: false */
   kittyMode?: boolean
+  /**
+   * Enable Kitty keyboard protocol.
+   * - `true`: auto-detect and enable with DISAMBIGUATE flag (1)
+   * - number: enable with specific KittyFlags bitfield
+   * - `false`/undefined: don't enable (default)
+   */
+  kitty?: boolean | number
+  /**
+   * Enable SGR mouse tracking (mode 1006).
+   * When true, enables mouse events and disables on cleanup.
+   * Default: false
+   */
+  mouse?: boolean
   /** Providers and plain values to inject */
   [key: string]: unknown
 }
@@ -360,6 +375,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     signal: externalSignal,
     alternateScreen = false,
     kittyMode: useKittyMode = false,
+    kitty: kittyOption,
+    mouse: mouseOption = false,
     ...injectValues
   } = options
 
@@ -588,6 +605,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // Cleanup state
   let cleanedUp = false
   let storeUnsubscribeFn: (() => void) | null = null
+  // Track protocol state for cleanup (set during setup, read during cleanup)
+  let kittyEnabled = false
+  let mouseEnabled = false
 
   // Cleanup function - idempotent, can be called from exit() or finally
   const cleanup = () => {
@@ -622,8 +642,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
     // Restore cursor and leave alternate screen
     if (!headless) {
+      // Disable mouse tracking before restoring terminal
+      if (mouseEnabled) stdout.write(disableMouse())
       // Disable Kitty keyboard protocol before restoring terminal
-      stdout.write("\x1b[<u")
+      if (kittyEnabled) stdout.write(disableKittyKeyboard())
       stdout.write("\x1b[?25h\x1b[0m\n")
       if (alternateScreen) stdout.write("\x1b[?1049l")
     }
@@ -858,8 +880,32 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     }
     if (alternateScreen) stdout.write("\x1b[?1049h")
     stdout.write("\x1b[2J\x1b[H\x1b[?25l")
-    // Enable Kitty keyboard protocol for enhanced key reporting
-    stdout.write("\x1b[>1u")
+
+    // Kitty keyboard protocol
+    if (kittyOption != null && kittyOption !== false) {
+      if (kittyOption === true) {
+        // Auto-detect: probe terminal, enable if supported
+        const result = await detectKittyFromStdio(stdout, stdin as NodeJS.ReadStream)
+        if (result.supported) {
+          stdout.write(enableKittyKeyboard(KittyFlags.DISAMBIGUATE))
+          kittyEnabled = true
+        }
+      } else {
+        // Explicit flags — enable directly without detection
+        stdout.write(enableKittyKeyboard(kittyOption))
+        kittyEnabled = true
+      }
+    } else {
+      // Legacy behavior: always enable Kitty DISAMBIGUATE
+      stdout.write(enableKittyKeyboard(KittyFlags.DISAMBIGUATE))
+      kittyEnabled = true
+    }
+
+    // Mouse tracking
+    if (mouseOption) {
+      stdout.write(enableMouse())
+      mouseEnabled = true
+    }
   }
   if (_ansiTrace) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
