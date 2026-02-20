@@ -58,10 +58,11 @@ useInput((input: string, key: Key) => {
 })
 ```
 
-The `Key` object provides booleans for special keys:
+The `Key` object provides booleans for special keys and modifiers:
 
 ```typescript
 interface Key {
+  // Navigation
   upArrow: boolean
   downArrow: boolean
   leftArrow: boolean
@@ -70,17 +71,23 @@ interface Key {
   pageUp: boolean
   home: boolean
   end: boolean
+
+  // Action keys
   return: boolean      // Enter key
   escape: boolean
-  ctrl: boolean        // Ctrl modifier
-  shift: boolean       // Shift modifier
   tab: boolean
   backspace: boolean
   delete: boolean
-  meta: boolean        // Alt/Option modifier
-  super: boolean       // Cmd/Super modifier (Kitty protocol)
-  hyper: boolean       // Hyper modifier (Kitty protocol)
-  eventType?: 1 | 2 | 3  // 1=press, 2=repeat, 3=release (Kitty flag 2)
+
+  // Modifiers
+  ctrl: boolean        // ⌃ Ctrl
+  shift: boolean       // ⇧ Shift
+  meta: boolean        // ⌥ Opt/Alt
+  super: boolean       // ⌘ Cmd/Super (requires Kitty protocol)
+  hyper: boolean       // ✦ Hyper (requires Kitty protocol)
+
+  // Kitty protocol extensions
+  eventType?: 1 | 2 | 3  // 1=press, 2=repeat, 3=release (requires REPORT_EVENTS)
 }
 ```
 
@@ -187,6 +194,33 @@ interface RunHandle {
   press(key: string): Promise<void> // For testing
 }
 ```
+
+### Advanced Input: Kitty Protocol and Mouse
+
+Enable Cmd ⌘, Hyper ✦ modifiers and mouse tracking via `run()` options:
+
+```typescript
+import { run, useInput } from "inkx/runtime"
+import { KittyFlags } from "inkx"
+
+function App() {
+  useInput((input, key) => {
+    if (key.super && input === "s") save()          // ⌘S
+    if (key.super && key.shift && input === "p") {   // ⌘⇧P
+      openCommandPalette()
+    }
+    if (input === "q") return "exit"
+  })
+  return <Text>Press ⌘S to save</Text>
+}
+
+await run(<App />, {
+  kitty: true,   // Auto-detect Kitty protocol, enable ⌘/✦ modifiers
+  mouse: true,   // Enable mouse click/scroll/drag events
+})
+```
+
+See [Input Features](input-features.md) for the full reference.
 
 ## When You Need More: createApp()
 

@@ -470,18 +470,75 @@ test('another test', () => {
 
 ### Kitty Mode (kittyMode)
 
-Enable `kittyMode` to have `press()` encode keys using the Kitty keyboard protocol (`keyToKittyAnsi`) instead of legacy ANSI (`keyToAnsi`). This is required for testing Super (Cmd) and Hyper modifiers, which have no legacy encoding.
+Enable `kittyMode` to have `press()` encode keys using the Kitty keyboard protocol (`keyToKittyAnsi`) instead of legacy ANSI (`keyToAnsi`). This is required for testing Cmd ⌘ and Hyper ✦ modifiers, which have no legacy encoding.
 
 ```typescript
 const render = createRenderer({ cols: 80, rows: 24, kittyMode: true });
 
-test("handles Super+j", async () => {
+test("handles ⌘J", async () => {
   const app = render(<MyComponent />);
-  await app.press("Super+j"); // Encoded as Kitty CSI sequence
+  await app.press("Super+j"); // Encoded as Kitty CSI sequence: \x1b[106;9u
+});
+
+test("handles ⌃⇧A", async () => {
+  const app = render(<MyComponent />);
+  await app.press("Control+Shift+a"); // Kitty CSI: \x1b[97;6u
+});
+
+test("handles ✦⌘X", async () => {
+  const app = render(<MyComponent />);
+  await app.press("Hyper+Super+x"); // Kitty CSI: \x1b[120;25u
 });
 ```
 
 `kittyMode` is also available on `AppRunOptions` (for `createApp`) and `PerRenderOptions`.
+
+### Testing with macOS Modifier Symbols
+
+Use `parseHotkey` and `matchHotkey` in your app code to handle hotkeys defined with macOS symbols. In tests, use the Playwright-style format with `press()`:
+
+```typescript
+// App code uses symbols
+const saveHotkey = parseHotkey("⌘s")
+useInput((input, key) => {
+  if (matchHotkey(saveHotkey, key, input)) save()
+})
+
+// Test code uses Playwright-style names
+const render = createRenderer({ cols: 80, rows: 24, kittyMode: true })
+test("⌘S saves", async () => {
+  const app = render(<MyApp />)
+  await app.press("Super+s")  // Triggers the ⌘S hotkey
+  expect(saved).toBe(true)
+})
+```
+
+### Testing with Mouse Events
+
+To test mouse interactions, write SGR mouse sequences directly to the app's stdin:
+
+```typescript
+import { createRenderer } from "inkx/testing"
+
+test("handles left click", async () => {
+  const app = render(<MyComponent />)
+
+  // SGR mouse: left button press at column 10, row 5
+  // Format: CSI < button;col;row M
+  app.stdin.write("\x1b[<0;10;5M")
+
+  // Verify the click was handled
+  expect(app.text).toContain("Clicked at 9,4")  // 0-indexed
+})
+
+test("handles scroll wheel", async () => {
+  const app = render(<MyComponent />)
+
+  // Wheel up: button 64, Wheel down: button 65
+  app.stdin.write("\x1b[<64;1;1M")  // Scroll up
+  app.stdin.write("\x1b[<65;1;1M")  // Scroll down
+})
+```
 
 ### 5.2 Test Fixtures
 

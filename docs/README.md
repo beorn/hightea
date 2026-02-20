@@ -16,9 +16,10 @@
 
 ### Building Apps
 
+- [Input Features](input-features.md) — Keyboard (Kitty protocol), mouse (SGR), hotkeys, modifier symbols (⌘⌥⌃⇧✦)
 - [Focus Routing](focus-routing.md) — Input routing, commands, keybindings
 - [Testing](testing.md) — createRenderer, locators, withDiagnostics
-- [Terminal Capabilities](terminal-capabilities.md) — Detection, render modes, adaptive output
+- [Terminal Capabilities](terminal-capabilities.md) — Detection, render modes, protocols
 
 ### Text Editing
 

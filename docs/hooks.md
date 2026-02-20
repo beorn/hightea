@@ -48,6 +48,7 @@ function App() {
 
 ```typescript
 interface Key {
+  // Navigation
   upArrow: boolean
   downArrow: boolean
   leftArrow: boolean
@@ -56,19 +57,44 @@ interface Key {
   pageDown: boolean
   home: boolean
   end: boolean
+
+  // Action keys
   return: boolean
   escape: boolean
   tab: boolean
   backspace: boolean
   delete: boolean
-  ctrl: boolean
-  shift: boolean
-  meta: boolean        // Alt/Option modifier
-  super: boolean       // Cmd/Super modifier (Kitty protocol)
-  hyper: boolean       // Hyper modifier (Kitty protocol)
-  eventType?: 1 | 2 | 3  // 1=press, 2=repeat, 3=release (Kitty flag 2)
+
+  // Modifiers — always available
+  ctrl: boolean        // ⌃ Ctrl
+  shift: boolean       // ⇧ Shift
+  meta: boolean        // ⌥ Opt/Alt
+
+  // Modifiers — require Kitty protocol (pass kitty: true to run())
+  super: boolean       // ⌘ Cmd/Super
+  hyper: boolean       // ✦ Hyper
+
+  // Kitty protocol extensions
+  eventType?: 1 | 2 | 3  // 1=press, 2=repeat, 3=release (requires REPORT_EVENTS flag)
 }
 ```
+
+**Modifier symbols**: Use macOS symbols in `parseHotkey()` for concise hotkey definitions:
+
+```tsx
+import { parseHotkey, matchHotkey } from "inkx"
+
+const save = parseHotkey("⌘s")
+const palette = parseHotkey("⌃⇧p")
+const hyperJump = parseHotkey("✦j")
+
+useInput((input, key) => {
+  if (matchHotkey(save, key, input)) save()
+  if (matchHotkey(palette, key, input)) openPalette()
+})
+```
+
+See [Input Features](input-features.md) for the full modifier reference, mouse events, and Kitty protocol details.
 
 ## useApp
 

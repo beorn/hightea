@@ -197,7 +197,7 @@ test("renders and handles input", async () => {
 
 ## Kitty Keyboard Protocol
 
-inkx supports the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) for unambiguous key identification. This enables modifiers that legacy ANSI cannot represent (Super/Cmd, Hyper) and event type reporting (press/repeat/release).
+inkx supports the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) for unambiguous key identification. This enables modifiers that legacy ANSI cannot represent (Cmd ⌘, Hyper ✦) and event type reporting (press/repeat/release).
 
 **Protocol control** (exported from `inkx`):
 
@@ -209,13 +209,32 @@ inkx supports the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyb
 
 **Flags** (`KittyFlags`): `DISAMBIGUATE` (1), `REPORT_EVENTS` (2), `REPORT_ALTERNATE` (4), `REPORT_ALL_KEYS` (8), `REPORT_TEXT` (16).
 
-**Key fields** (on `Key`, `KeyEvent`, `ParsedKeypress`, `ParsedHotkey`):
+**Key fields** (on `Key`, `ParsedKeypress`, `ParsedHotkey`):
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `super` | `boolean` | Cmd/Super modifier (Kitty bit 3) |
-| `hyper` | `boolean` | Hyper modifier (Kitty bit 4) |
+| `super` | `boolean` | Cmd ⌘ / Super modifier (Kitty bit 3) |
+| `hyper` | `boolean` | Hyper ✦ modifier (Kitty bit 4) |
 | `eventType` | `1 \| 2 \| 3` | Press (1), repeat (2), release (3). Requires `REPORT_EVENTS` flag. |
+| `shiftedKey` | `string` | Character produced when Shift is held (Kitty shifted codepoint) |
+| `baseLayoutKey` | `string` | Key on standard US layout (for non-Latin keyboards) |
+| `capsLock` | `boolean` | CapsLock is active (Kitty modifier bit 6) |
+| `numLock` | `boolean` | NumLock is active (Kitty modifier bit 7) |
+| `associatedText` | `string` | Decoded text from Kitty `REPORT_TEXT` mode |
+
+**Protocol detection** (exported from `inkx`):
+
+| Function | Description |
+| --- | --- |
+| `detectKittySupport(write, read, timeout?)` | Low-level: send query, parse response |
+| `detectKittyFromStdio(stdout, stdin, timeout?)` | Convenience: detect using real stdio |
+
+**Auto-enable**: Pass `kitty: true` to `run()` — inkx sends the query, enables the protocol if supported, and disables on cleanup.
+
+```tsx
+await run(<App />, { kitty: true })  // Auto-detect and enable
+await run(<App />, { kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS })  // Specific flags
+```
 
 **Testing**: Use `keyToKittyAnsi(key)` (from `inkx/testing`) to generate Kitty ANSI sequences, and `kittyMode: true` on `createRenderer` / `createApp` to route `press()` through Kitty encoding.
 
@@ -226,7 +245,60 @@ keyToKittyAnsi("Super+j")        // '\x1b[106;9u'
 keyToKittyAnsi("Hyper+Control+x") // '\x1b[120;21u'
 ```
 
-See [docs/terminal-capabilities.md](docs/terminal-capabilities.md) for protocol details and terminal support matrix.
+## macOS Modifier Symbols
+
+Hotkey strings accept macOS symbols as modifier prefixes — no `+` separator needed:
+
+| Symbol | Modifier | Key field |
+| --- | --- | --- |
+| ⌘ | Cmd (Super) | `key.super` |
+| ⌥ | Opt (Alt) | `key.meta` |
+| ⌃ | Ctrl | `key.ctrl` |
+| ⇧ | Shift | `key.shift` |
+| ✦ | Hyper | `key.hyper` |
+
+```tsx
+import { parseHotkey, matchHotkey } from "inkx"
+
+parseHotkey("⌘j")       // { key: 'j', super: true, ... }
+parseHotkey("⌃⇧a")      // { key: 'a', ctrl: true, shift: true, ... }
+parseHotkey("✦⌘x")      // { key: 'x', hyper: true, super: true, ... }
+parseHotkey("ctrl+j")   // Same as ⌃j — lowercase aliases also work
+```
+
+All modifier aliases: `ctrl`/`control`/`⌃`, `shift`/`⇧`, `alt`/`opt`/`option`/`⌥`, `cmd`/`command`/`super`/`⌘`, `hyper`/`✦`.
+
+## Mouse Events (SGR Protocol)
+
+inkx supports SGR mouse tracking (mode 1006) for click, drag, and scroll events.
+
+**Parsing** (exported from `inkx`):
+
+| Function | Description |
+| --- | --- |
+| `parseMouseSequence(input)` | Parse SGR mouse sequence → `ParsedMouse \| null` |
+| `isMouseSequence(input)` | Check if a raw input string is a mouse sequence |
+
+**ParsedMouse** fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `button` | `number` | 0=left, 1=middle, 2=right |
+| `x` | `number` | Column (0-indexed) |
+| `y` | `number` | Row (0-indexed) |
+| `action` | `string` | `"down"`, `"up"`, `"move"`, or `"wheel"` |
+| `delta` | `number` | Wheel: -1=up, +1=down |
+| `shift` | `boolean` | ⇧ Shift was held |
+| `meta` | `boolean` | ⌥ Alt/Meta was held |
+| `ctrl` | `boolean` | ⌃ Ctrl was held |
+
+**Runtime**: Pass `mouse: true` to `run()` — inkx enables SGR tracking and dispatches mouse events.
+
+```tsx
+await run(<App />, { mouse: true })
+```
+
+See [docs/input-features.md](docs/input-features.md) for comprehensive input documentation and [docs/terminal-capabilities.md](docs/terminal-capabilities.md) for protocol details and terminal support matrix.
 
 ## Layout Engine
 
@@ -267,6 +339,14 @@ import type { WrappedLine } from "inkx"
 
 // Kitty keyboard protocol
 import { KittyFlags, enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard } from "inkx"
+import { detectKittySupport, detectKittyFromStdio } from "inkx"
+
+// Mouse events (SGR protocol)
+import { parseMouseSequence, isMouseSequence, type ParsedMouse } from "inkx"
+import { enableMouse, disableMouse } from "inkx"
+
+// Hotkey parsing (supports macOS symbols ⌘⌥⌃⇧✦)
+import { parseHotkey, matchHotkey } from "inkx"
 
 // Render functions
 import { render, renderStatic, renderString } from "inkx"
@@ -522,6 +602,7 @@ to capture numbers.
 | [docs/getting-started.md](docs/getting-started.md)             | Runtime layers and tutorial                              |
 | [docs/components.md](docs/components.md)                       | Box, Text, VirtualList, Console, inputs                  |
 | [docs/hooks.md](docs/hooks.md)                                 | useContentRect, useScreenRect, useInput, useApp, useTerm |
+| [docs/input-features.md](docs/input-features.md)               | Keyboard, mouse, hotkeys, modifier symbols               |
 | [docs/architecture.md](docs/architecture.md)                   | Core architecture and RenderAdapter                      |
 | [docs/testing.md](docs/testing.md)                             | Testing strategy, locators, and API                      |
 | [docs/internals.md](docs/internals.md)                         | Reconciler and 5-phase pipeline                          |
@@ -532,5 +613,5 @@ to capture numbers.
 | [docs/ink-comparison.md](docs/ink-comparison.md)               | Ink issues and Inkx solutions                            |
 | [docs/migration.md](docs/migration.md)                         | Ink to inkx migration guide                              |
 | [docs/runtime-migration.md](docs/runtime-migration.md)         | Legacy inkx to inkx/runtime migration                    |
-| [docs/terminal-capabilities.md](docs/terminal-capabilities.md) | Terminal detection and render modes                      |
+| [docs/terminal-capabilities.md](docs/terminal-capabilities.md) | Terminal detection, render modes, protocols               |
 | [docs/roadmap.md](docs/roadmap.md)                             | Render targets and future plans                          |
