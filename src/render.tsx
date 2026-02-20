@@ -29,7 +29,13 @@ import {
   TermContext,
 } from "./context.js"
 import { type LayoutEngineType, isLayoutEngineInitialized } from "./layout-engine.js"
-import { ANSI, enterAlternateScreen, leaveAlternateScreen, enableKittyKeyboard, disableKittyKeyboard } from "./output.js"
+import {
+  ANSI,
+  enterAlternateScreen,
+  leaveAlternateScreen,
+  enableKittyKeyboard,
+  disableKittyKeyboard,
+} from "./output.js"
 import { createContainer, getContainerRoot, reconciler, runWithDiscreteEvent } from "./reconciler.js"
 import { renderStringSync } from "./render-string.js"
 import { RenderScheduler } from "./scheduler.js"
