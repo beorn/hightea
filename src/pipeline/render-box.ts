@@ -25,7 +25,7 @@ export function renderBox(
   buffer: TerminalBuffer,
   layout: Rect,
   props: BoxProps,
-  clipBounds?: { top: number; bottom: number },
+  clipBounds?: { top: number; bottom: number; left?: number; right?: number },
   scrollOffset = 0,
   skipBgFill = false,
 ): void {
@@ -34,8 +34,11 @@ export function renderBox(
   const y = layout.y - scrollOffset
 
   // Skip if completely outside clip bounds
-  if (clipBounds && (y + height <= clipBounds.top || y >= clipBounds.bottom)) {
-    return
+  if (clipBounds) {
+    if (y + height <= clipBounds.top || y >= clipBounds.bottom) return
+    if (clipBounds.left !== undefined && clipBounds.right !== undefined) {
+      if (x + width <= clipBounds.left || x >= clipBounds.right) return
+    }
   }
 
   // Fill background if set.
@@ -48,8 +51,14 @@ export function renderBox(
     if (clipBounds) {
       const clippedY = Math.max(y, clipBounds.top)
       const clippedHeight = Math.min(y + height, clipBounds.bottom) - clippedY
-      if (clippedHeight > 0) {
-        buffer.fill(x, clippedY, width, clippedHeight, { bg })
+      let clippedX = x
+      let clippedWidth = width
+      if (clipBounds.left !== undefined && clipBounds.right !== undefined) {
+        clippedX = Math.max(x, clipBounds.left)
+        clippedWidth = Math.min(x + width, clipBounds.right) - clippedX
+      }
+      if (clippedHeight > 0 && clippedWidth > 0) {
+        buffer.fill(clippedX, clippedY, clippedWidth, clippedHeight, { bg })
       }
     } else {
       buffer.fill(x, y, width, height, { bg })
@@ -76,7 +85,7 @@ export function renderBorder(
   width: number,
   height: number,
   props: BoxProps,
-  clipBounds?: { top: number; bottom: number },
+  clipBounds?: { top: number; bottom: number; left?: number; right?: number },
 ): void {
   const chars = getBorderChars(props.borderStyle ?? "single")
   const color = props.borderColor ? parseColor(props.borderColor) : null
@@ -101,13 +110,20 @@ export function renderBorder(
     return row >= clipBounds.top && row < clipBounds.bottom && row < buffer.height
   }
 
+  // Helper to check if a column is visible within clip bounds
+  const isColVisible = (col: number): boolean => {
+    if (clipBounds?.left === undefined || clipBounds.right === undefined)
+      return col >= 0 && col < buffer.width
+    return col >= clipBounds.left && col < clipBounds.right && col < buffer.width
+  }
+
   // Top border
   if (showTop && isRowVisible(y)) {
-    if (showLeft) buffer.setCell(x, y, { char: chars.topLeft, fg: color, bg })
+    if (showLeft && isColVisible(x)) buffer.setCell(x, y, { char: chars.topLeft, fg: color, bg })
     for (let col = x + 1; col < x + width - 1 && col < buffer.width; col++) {
-      buffer.setCell(col, y, { char: chars.horizontal, fg: color, bg })
+      if (isColVisible(col)) buffer.setCell(col, y, { char: chars.horizontal, fg: color, bg })
     }
-    if (showRight && x + width - 1 < buffer.width) {
+    if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
       buffer.setCell(x + width - 1, y, { char: chars.topRight, fg: color, bg })
     }
   }
@@ -117,8 +133,8 @@ export function renderBorder(
   const sideEnd = showBottom ? y + height - 1 : y + height
   for (let row = sideStart; row < sideEnd; row++) {
     if (!isRowVisible(row)) continue
-    if (showLeft) buffer.setCell(x, row, { char: chars.vertical, fg: color, bg })
-    if (showRight && x + width - 1 < buffer.width) {
+    if (showLeft && isColVisible(x)) buffer.setCell(x, row, { char: chars.vertical, fg: color, bg })
+    if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
       buffer.setCell(x + width - 1, row, { char: chars.vertical, fg: color, bg })
     }
   }
@@ -126,13 +142,13 @@ export function renderBorder(
   // Bottom border
   const bottomY = y + height - 1
   if (showBottom && isRowVisible(bottomY)) {
-    if (showLeft) {
+    if (showLeft && isColVisible(x)) {
       buffer.setCell(x, bottomY, { char: chars.bottomLeft, fg: color, bg })
     }
     for (let col = x + 1; col < x + width - 1 && col < buffer.width; col++) {
-      buffer.setCell(col, bottomY, { char: chars.horizontal, fg: color, bg })
+      if (isColVisible(col)) buffer.setCell(col, bottomY, { char: chars.horizontal, fg: color, bg })
     }
-    if (showRight && x + width - 1 < buffer.width) {
+    if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
       buffer.setCell(x + width - 1, bottomY, {
         char: chars.bottomRight,
         fg: color,

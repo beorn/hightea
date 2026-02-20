@@ -169,7 +169,7 @@ function _getNodeDepth(node: InkxNode): number {
 // Re-export for consumers who need to clear bg conflict warnings
 export { clearBgConflictWarnings, setBgConflictMode }
 
-type ClipBounds = { top: number; bottom: number }
+type ClipBounds = { top: number; bottom: number; left?: number; right?: number }
 
 // ============================================================================
 // Core Rendering
@@ -523,7 +523,9 @@ function renderScrollContainerChildren(
 
   const border = props.borderStyle ? getBorderSize(props) : { top: 0, bottom: 0, left: 0, right: 0 }
   const padding = getPadding(props)
-  const childClipBounds = computeChildClipBounds(layout, props, clipBounds)
+  // Scroll containers clip vertically (for scrolling) but NOT horizontally.
+  // Horizontal clipping is only for overflow="hidden" containers (e.g., HVL).
+  const childClipBounds = computeChildClipBounds(layout, props, clipBounds, 0, /* horizontal */ false)
 
   // Determine if scroll offset changed since last render.
   const scrollOffsetChanged = ss.offset !== ss.prevOffset
@@ -763,7 +765,7 @@ function renderNormalChildren(
   const layout = node.contentRect
   if (!layout) return
 
-  // For overflow='hidden' containers, clip children to content area
+  // For overflow='hidden' containers, clip children to content area (both vertical and horizontal)
   const effectiveClipBounds =
     props.overflow === "hidden" ? computeChildClipBounds(layout, props, clipBounds, scrollOffset) : clipBounds
 
@@ -912,6 +914,10 @@ function computeChildClipBounds(
   props: BoxProps,
   parentClip: ClipBounds | undefined,
   scrollOffset = 0,
+  /** When true, compute left/right clip bounds (for overflow="hidden" containers).
+   *  When false, only compute vertical bounds and pass through parent's horizontal bounds.
+   *  Scroll containers should use horizontal=false — they clip vertically but not horizontally. */
+  horizontal = true,
 ): ClipBounds {
   const border = props.borderStyle ? getBorderSize(props) : { top: 0, bottom: 0, left: 0, right: 0 }
   const padding = getPadding(props)
@@ -920,11 +926,24 @@ function computeChildClipBounds(
     top: adjustedY + border.top + padding.top,
     bottom: adjustedY + layout.height - border.bottom - padding.bottom,
   }
+  if (horizontal) {
+    nodeClip.left = layout.x + border.left + padding.left
+    nodeClip.right = layout.x + layout.width - border.right - padding.right
+  }
   if (!parentClip) return nodeClip
-  return {
+  const result: ClipBounds = {
     top: Math.max(parentClip.top, nodeClip.top),
     bottom: Math.min(parentClip.bottom, nodeClip.bottom),
   }
+  if (horizontal && nodeClip.left !== undefined && nodeClip.right !== undefined) {
+    result.left = Math.max(parentClip.left ?? 0, nodeClip.left)
+    result.right = Math.min(parentClip.right ?? Infinity, nodeClip.right)
+  } else if (parentClip.left !== undefined && parentClip.right !== undefined) {
+    // Pass through parent's horizontal clip bounds without adding own
+    result.left = parentClip.left
+    result.right = parentClip.right
+  }
+  return result
 }
 
 // ============================================================================
@@ -993,14 +1012,19 @@ function clearNodeRegion(
     clearBottom = Math.min(clearBottom, parentBottom)
   }
 
-  // Clip horizontally to the colored ancestor's bounds to prevent inherited bg
-  // from bleeding past the ancestor's rect. When a child node overflows (its
-  // layout extends past the ancestor with backgroundColor), clearing the child's
-  // full layout with the inherited bg would write that bg outside the ancestor's
-  // fill area. On a fresh render, those positions have bg=null, so the inherited
-  // bg should not be applied there.
+  // Clip horizontally to clipBounds (overflow:hidden containers) and to the
+  // colored ancestor's bounds (prevents inherited bg bleeding into siblings).
   let clearX = layout.x
   let clearWidth = layout.width
+  if (clipBounds?.left !== undefined && clipBounds.right !== undefined) {
+    if (clearX < clipBounds.left) {
+      clearWidth -= clipBounds.left - clearX
+      clearX = clipBounds.left
+    }
+    if (clearX + clearWidth > clipBounds.right) {
+      clearWidth = Math.max(0, clipBounds.right - clearX)
+    }
+  }
   if (inherited.ancestorRect) {
     const ancestorRight = inherited.ancestorRect.x + inherited.ancestorRect.width
     const ancestorLeft = inherited.ancestorRect.x
@@ -1140,8 +1164,19 @@ function clippedFill(
 ): void {
   const clippedTop = clipBounds ? Math.max(top, clipBounds.top) : top
   const clippedBottom = Math.min(clipBounds ? Math.min(bottom, clipBounds.bottom) : bottom, outerBottom)
+  let clippedX = x
+  let clippedWidth = width
+  if (clipBounds?.left !== undefined && clipBounds.right !== undefined) {
+    if (clippedX < clipBounds.left) {
+      clippedWidth -= clipBounds.left - clippedX
+      clippedX = clipBounds.left
+    }
+    if (clippedX + clippedWidth > clipBounds.right) {
+      clippedWidth = Math.max(0, clipBounds.right - clippedX)
+    }
+  }
   const height = clippedBottom - clippedTop
-  if (height > 0) {
-    buffer.fill(x, clippedTop, width, height, { char: " ", bg })
+  if (height > 0 && clippedWidth > 0) {
+    buffer.fill(clippedX, clippedTop, clippedWidth, height, { char: " ", bg })
   }
 }

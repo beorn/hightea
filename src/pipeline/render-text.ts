@@ -1037,7 +1037,7 @@ export function renderText(
   layout: { x: number; y: number; width: number; height: number },
   props: TextProps,
   scrollOffset = 0,
-  clipBounds?: { top: number; bottom: number },
+  clipBounds?: { top: number; bottom: number; left?: number; right?: number },
   inheritedBg?: Color,
 ): void {
   const { x, width, height } = layout
@@ -1049,7 +1049,12 @@ export function renderText(
   // Clip to bounds if specified
   if (clipBounds) {
     if (y + height <= clipBounds.top || y >= clipBounds.bottom) {
-      return // Completely outside clip bounds
+      return // Completely outside vertical clip bounds
+    }
+    if (clipBounds.left !== undefined && clipBounds.right !== undefined) {
+      if (x + width <= clipBounds.left || x >= clipBounds.right) {
+        return // Completely outside horizontal clip bounds
+      }
     }
   }
 
@@ -1096,17 +1101,22 @@ export function renderText(
     // Pass maxCol to prevent wide characters from overflowing into adjacent
     // containers. Without this, continuation cells outside the text node's
     // layout bounds become stale during incremental rendering.
-    const endCol = renderTextLineReturn(buffer, x, lineY, line, style, x + width, inheritedBg)
+    // Clip right edge to horizontal clip bounds (overflow:hidden containers).
+    const maxCol =
+      clipBounds && "right" in clipBounds && clipBounds.right !== undefined
+        ? Math.min(x + width, clipBounds.right)
+        : x + width
+    const endCol = renderTextLineReturn(buffer, x, lineY, line, style, maxCol, inheritedBg)
 
-    // Clear remaining cells after text to end of layout width.
+    // Clear remaining cells after text to end of layout width (clipped).
     // When text content shrinks (e.g., breadcrumb changes from long to short path),
     // the parent Box may skip its bg fill (skipBgFill=true when only subtreeDirty).
     // Without explicit clearing here, stale chars from the previous longer text
     // survive in the cloned buffer. This is safe: we only clear within our own
     // layout area, writing spaces with the correct inherited background.
-    if (endCol < x + width) {
+    if (endCol < maxCol) {
       const clearBg = inheritedBg ?? null
-      for (let cx = endCol; cx < x + width && cx < buffer.width; cx++) {
+      for (let cx = endCol; cx < maxCol && cx < buffer.width; cx++) {
         buffer.setCell(cx, lineY, {
           char: " ",
           fg: style.fg,

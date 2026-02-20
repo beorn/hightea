@@ -311,8 +311,8 @@ function HorizontalVirtualListInner<T>(
   const showRightIndicator = (hasCustomIndicator || overflowIndicator) && overflowAfter > 0
 
   return (
-    <Box flexDirection="row" width={width} height={height} overflow="hidden">
-      {/* Left overflow indicator */}
+    <Box flexDirection="row" width={width} height={height}>
+      {/* Left overflow indicator — outside overflow container to avoid being clipped */}
       {showLeftIndicator &&
         (hasCustomIndicator ? (
           renderOverflowIndicator("before", overflowBefore)
@@ -324,23 +324,26 @@ function HorizontalVirtualListInner<T>(
           </Box>
         ))}
 
-      {/* Render visible items — flexShrink={0} prevents flex from shrinking
-          overscan items; they render at full size and get clipped by overflow="hidden" */}
-      {visibleItems.map((item, i) => {
-        const actualIndex = vpStart + i
-        const key = keyExtractor ? keyExtractor(item, actualIndex) : actualIndex
-        const isLast = i === visibleItems.length - 1
+      {/* Overflow container — clips items that extend beyond the viewport */}
+      <Box flexGrow={1} flexDirection="row" overflow="hidden">
+        {/* Render visible items — flexShrink={0} prevents flex from shrinking
+            overscan items; they render at full size and get clipped by overflow="hidden" */}
+        {visibleItems.map((item, i) => {
+          const actualIndex = vpStart + i
+          const key = keyExtractor ? keyExtractor(item, actualIndex) : actualIndex
+          const isLast = i === visibleItems.length - 1
 
-        return (
-          <React.Fragment key={key}>
-            <Box flexShrink={0}>{renderItem(item, actualIndex)}</Box>
-            {!isLast && renderSeparator && renderSeparator()}
-            {!isLast && gap > 0 && !renderSeparator && <Box width={gap} flexShrink={0} />}
-          </React.Fragment>
-        )
-      })}
+          return (
+            <React.Fragment key={key}>
+              <Box flexShrink={0}>{renderItem(item, actualIndex)}</Box>
+              {!isLast && renderSeparator && renderSeparator()}
+              {!isLast && gap > 0 && !renderSeparator && <Box width={gap} flexShrink={0} />}
+            </React.Fragment>
+          )
+        })}
+      </Box>
 
-      {/* Right overflow indicator */}
+      {/* Right overflow indicator — outside overflow container to avoid being clipped */}
       {showRightIndicator &&
         (hasCustomIndicator ? (
           renderOverflowIndicator("after", overflowAfter)
