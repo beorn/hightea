@@ -311,6 +311,9 @@ export {
   queryKittyKeyboard,
 } from "./output.js"
 
+// Kitty protocol detection
+export { detectKittySupport, detectKittyFromStdio, type KittyDetectResult } from "./kitty-detect.js"
+
 // Layout engine types
 export type { LayoutEngine, LayoutNode, LayoutConstants, MeasureFunc, MeasureMode } from "./layout-engine.js"
 
