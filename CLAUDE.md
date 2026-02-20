@@ -111,7 +111,7 @@ Solves the race condition with async useEffect registration where multiple compo
 | `InputLayerProvider` | Wrap app to enable input layer stack          |
 | `useInputLayer`      | `(id: string, handler: InputHandler) => void` |
 
-Handler signature: `(input: string, key: Key) => boolean` - return `true` to consume, `false` to bubble.
+Handler signature: `(input: string, key: Key) => boolean` - return `true` to consume, `false` to bubble. The `Key` object includes `super` and `hyper` booleans (Kitty protocol) and an optional `eventType` (1=press, 2=repeat, 3=release).
 
 **Example: Dialog with text input**
 
@@ -164,7 +164,7 @@ The hook silently no-ops without `InputLayerProvider` — ensure test harnesses 
 ```tsx
 import { createRenderer } from "inkx/testing"
 
-const render = createRenderer({ cols: 80, rows: 24 })
+const render = createRenderer({ cols: 80, rows: 24 }) // or { kittyMode: true } for Super/Hyper
 
 test("renders and handles input", async () => {
   const app = render(<MyComponent />)
@@ -194,6 +194,39 @@ test("renders and handles input", async () => {
 | `locator.textContent()` | `string`  | Get element text             |
 | `locator.boundingBox()` | `Rect     | null`                        | Get position and size |
 | `locator.count()`       | `number`  | Count matches                |
+
+## Kitty Keyboard Protocol
+
+inkx supports the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) for unambiguous key identification. This enables modifiers that legacy ANSI cannot represent (Super/Cmd, Hyper) and event type reporting (press/repeat/release).
+
+**Protocol control** (exported from `inkx`):
+
+| Function | Description |
+| --- | --- |
+| `enableKittyKeyboard(flags?)` | Send `CSI > flags u`. Default: `DISAMBIGUATE` (1) |
+| `disableKittyKeyboard()` | Send `CSI < u` to pop mode stack |
+| `queryKittyKeyboard()` | Send `CSI ? u` to detect support |
+
+**Flags** (`KittyFlags`): `DISAMBIGUATE` (1), `REPORT_EVENTS` (2), `REPORT_ALTERNATE` (4), `REPORT_ALL_KEYS` (8), `REPORT_TEXT` (16).
+
+**Key fields** (on `Key`, `KeyEvent`, `ParsedKeypress`, `ParsedHotkey`):
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `super` | `boolean` | Cmd/Super modifier (Kitty bit 3) |
+| `hyper` | `boolean` | Hyper modifier (Kitty bit 4) |
+| `eventType` | `1 \| 2 \| 3` | Press (1), repeat (2), release (3). Requires `REPORT_EVENTS` flag. |
+
+**Testing**: Use `keyToKittyAnsi(key)` (from `inkx/testing`) to generate Kitty ANSI sequences, and `kittyMode: true` on `createRenderer` / `createApp` to route `press()` through Kitty encoding.
+
+```tsx
+import { keyToKittyAnsi } from "inkx/testing"
+
+keyToKittyAnsi("Super+j")        // '\x1b[106;9u'
+keyToKittyAnsi("Hyper+Control+x") // '\x1b[120;21u'
+```
+
+See [docs/terminal-capabilities.md](docs/terminal-capabilities.md) for protocol details and terminal support matrix.
 
 ## Layout Engine
 
@@ -232,11 +265,14 @@ import { InputLayerProvider, useInputLayer } from "inkx"
 import { cursorToRowCol, getWrappedLines, rowColToCursor, cursorMoveUp, cursorMoveDown, countVisualLines } from "inkx"
 import type { WrappedLine } from "inkx"
 
+// Kitty keyboard protocol
+import { KittyFlags, enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard } from "inkx"
+
 // Render functions
 import { render, renderStatic, renderString } from "inkx"
 
 // Testing
-import { createRenderer, keyToAnsi, debugTree } from "inkx/testing"
+import { createRenderer, keyToAnsi, keyToKittyAnsi, debugTree } from "inkx/testing"
 
 // Term primitives (re-exported from chalkx)
 import { createTerm, patchConsole, type Term, type StyleChain } from "inkx"

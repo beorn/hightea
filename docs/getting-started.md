@@ -70,14 +70,17 @@ interface Key {
   pageUp: boolean
   home: boolean
   end: boolean
-  return: boolean // Enter key
+  return: boolean      // Enter key
   escape: boolean
-  ctrl: boolean // Ctrl modifier
-  shift: boolean // Shift modifier
+  ctrl: boolean        // Ctrl modifier
+  shift: boolean       // Shift modifier
   tab: boolean
   backspace: boolean
   delete: boolean
-  meta: boolean // Alt/Option modifier
+  meta: boolean        // Alt/Option modifier
+  super: boolean       // Cmd/Super modifier (Kitty protocol)
+  hyper: boolean       // Hyper modifier (Kitty protocol)
+  eventType?: 1 | 2 | 3  // 1=press, 2=repeat, 3=release (Kitty flag 2)
 }
 ```
 

@@ -386,6 +386,92 @@ Where `value` is: 0=unknown, 1=set, 2=reset, 3=permanent set, 4=permanent reset.
 
 Inkx does not currently query support — it always emits the sequences since unsupported terminals ignore them harmlessly.
 
+## Kitty Keyboard Protocol
+
+The [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) provides unambiguous key identification, distinguishing modifiers that legacy ANSI cannot (Super/Cmd, Hyper) and reporting event types (press, repeat, release).
+
+### Protocol Control
+
+inkx exports functions to enable, query, and disable the protocol:
+
+```typescript
+import {
+  enableKittyKeyboard,
+  disableKittyKeyboard,
+  queryKittyKeyboard,
+  KittyFlags,
+} from "inkx"
+
+// Enable with default flags (disambiguate only)
+stdout.write(enableKittyKeyboard())
+
+// Enable with specific flags
+stdout.write(enableKittyKeyboard(KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS))
+
+// Query terminal support (response: CSI ? flags u)
+stdout.write(queryKittyKeyboard())
+
+// Disable (pop mode stack)
+stdout.write(disableKittyKeyboard())
+```
+
+### Flags
+
+| Flag                | Value | Description                           |
+| ------------------- | ----- | ------------------------------------- |
+| `DISAMBIGUATE`      | 1     | Disambiguate escape codes             |
+| `REPORT_EVENTS`     | 2     | Report event types (press/repeat/release) |
+| `REPORT_ALTERNATE`  | 4     | Report alternate keys                 |
+| `REPORT_ALL_KEYS`   | 8     | Report all keys as escape codes       |
+| `REPORT_TEXT`        | 16    | Report associated text                |
+
+Flags are a bitfield. Combine with `|`: `KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS`.
+
+### Modifier Parsing
+
+Kitty sequences use `CSI codepoint;modifiers[:event_type] u` format. Modifiers are a 1-based bitfield:
+
+| Bit | Modifier |
+| --- | -------- |
+| 0   | Shift    |
+| 1   | Alt/Meta |
+| 2   | Ctrl     |
+| 3   | Super/Cmd |
+| 4   | Hyper    |
+
+All five modifiers are independently distinguishable. The parsed values are available on the `Key` object:
+
+```typescript
+useInput((input, key) => {
+  if (key.super && input === "j") handleSuperJ()
+  if (key.hyper && key.ctrl) handleHyperCtrl()
+})
+```
+
+### Event Types
+
+When `REPORT_EVENTS` (flag 2) is enabled, the terminal reports press (1), repeat (2), and release (3) events. Available as `key.eventType`:
+
+```typescript
+useInput((input, key) => {
+  if (key.eventType === 1) onKeyDown(input)
+  if (key.eventType === 3) onKeyUp(input)
+})
+```
+
+### Terminal Support
+
+| Terminal | Kitty Protocol |
+| -------- | -------------- |
+| Ghostty  | Yes            |
+| Kitty    | Yes            |
+| WezTerm  | Yes            |
+| foot     | Yes            |
+| iTerm2   | No             |
+| Terminal.app | No         |
+
+Unsupported terminals ignore the enable sequence. inkx automatically sends `enableKittyKeyboard()` on interactive render and `disableKittyKeyboard()` on cleanup.
+
 ## Standards Reference
 
 ### ECMA-48 (ISO 6429)

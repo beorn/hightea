@@ -63,7 +63,10 @@ interface Key {
   delete: boolean
   ctrl: boolean
   shift: boolean
-  meta: boolean
+  meta: boolean        // Alt/Option modifier
+  super: boolean       // Cmd/Super modifier (Kitty protocol)
+  hyper: boolean       // Hyper modifier (Kitty protocol)
+  eventType?: 1 | 2 | 3  // 1=press, 2=repeat, 3=release (Kitty flag 2)
 }
 ```
 

@@ -468,6 +468,21 @@ test('another test', () => {
 - `app.term` — terminal buffer access
 - Auto-cleanup: Each `render()` call automatically unmounts the previous render
 
+### Kitty Mode (kittyMode)
+
+Enable `kittyMode` to have `press()` encode keys using the Kitty keyboard protocol (`keyToKittyAnsi`) instead of legacy ANSI (`keyToAnsi`). This is required for testing Super (Cmd) and Hyper modifiers, which have no legacy encoding.
+
+```typescript
+const render = createRenderer({ cols: 80, rows: 24, kittyMode: true });
+
+test("handles Super+j", async () => {
+  const app = render(<MyComponent />);
+  await app.press("Super+j"); // Encoded as Kitty CSI sequence
+});
+```
+
+`kittyMode` is also available on `AppRunOptions` (for `createApp`) and `PerRenderOptions`.
+
 ### 5.2 Test Fixtures
 
 ```typescript
