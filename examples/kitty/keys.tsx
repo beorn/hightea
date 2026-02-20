@@ -37,7 +37,7 @@ import {
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
-  name: "Key Explorer",
+  name: "Keys",
   description: "Interactive key chord tester with color-coded modifiers",
   features: ["parseKeypress()", "detectKittySupport()", "⌘ ⌥ ⌃ ⇧ ✦ symbols", "KittyFlags"],
 }
