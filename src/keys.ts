@@ -64,8 +64,10 @@ export interface Key {
   backspace: boolean
   /** Delete key was pressed */
   delete: boolean
-  /** Meta key (Cmd on macOS, Win on Windows) was pressed */
+  /** Meta key (Alt/Option on macOS, Alt on other platforms) was pressed */
   meta: boolean
+  /** Super key (Cmd on macOS, Win on Windows) was pressed. Requires Kitty protocol. */
+  super: boolean
 }
 
 /**
@@ -83,6 +85,7 @@ export interface ParsedHotkey {
   meta: boolean
   shift: boolean
   alt: boolean
+  super: boolean
 }
 
 // ============================================================================
@@ -117,6 +120,7 @@ const KEY_MAP: Record<string, string | null> = {
   Shift: null,
   Alt: null,
   Meta: null,
+  Super: null,
 }
 
 const MODIFIER_ALIASES: Record<string, string> = {
@@ -125,7 +129,8 @@ const MODIFIER_ALIASES: Record<string, string> = {
   shift: "Shift",
   alt: "Alt",
   meta: "Meta",
-  cmd: "Meta",
+  cmd: "Super",
+  super: "Super",
   option: "Alt",
 }
 
@@ -415,6 +420,7 @@ export interface ParsedKeypress {
   meta: boolean
   shift: boolean
   option: boolean
+  super: boolean
   sequence: string
   code?: string
 }
@@ -444,6 +450,7 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
     meta: false,
     shift: false,
     option: false,
+    super: false,
     sequence: input,
   }
 
@@ -505,8 +512,9 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
       }
 
       key.shift = !!(modifier & 1)
-      key.meta = !!(modifier & 2) || !!(modifier & 8) // alt or super
+      key.meta = !!(modifier & 2) // alt
       key.ctrl = !!(modifier & 4)
+      key.super = !!(modifier & 8) // super (Cmd on macOS)
 
       // Map codepoint to key name
       const mapped = kittyCodepointToName(codepoint)
@@ -540,7 +548,8 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
           const modifier = (Number(parts[3] || parts[5] || 1) - 1) as number
 
           key.ctrl = !!(modifier & 4)
-          key.meta = !!(modifier & 10)
+          key.meta = !!(modifier & 2) // alt
+          key.super = !!(modifier & 8) // super (Cmd on macOS)
           key.shift = !!(modifier & 1)
           key.code = code
           key.name = CODE_TO_KEY[code] ?? ""
@@ -580,6 +589,7 @@ export function parseKey(rawInput: string | Buffer): [string, Key] {
     backspace: keypress.name === "backspace",
     delete: keypress.name === "delete",
     meta: keypress.name !== "escape" && (keypress.meta || keypress.option),
+    super: keypress.super,
   }
 
   let input = keypress.ctrl ? keypress.name : keypress.sequence
@@ -629,6 +639,7 @@ export function emptyKey(): Key {
     backspace: false,
     delete: false,
     meta: false,
+    super: false,
   }
 }
 
@@ -668,12 +679,14 @@ export function keyToModifiers(key: Key): {
   meta: boolean
   shift: boolean
   alt: boolean
+  super: boolean
 } {
   return {
     ctrl: !!key.ctrl,
     meta: !!key.meta,
     shift: !!key.shift,
     alt: false,
+    super: !!key.super,
   }
 }
 
@@ -698,9 +711,10 @@ export function parseHotkey(keyStr: string): ParsedHotkey {
   return {
     key,
     ctrl: modifiers.has("control") || modifiers.has("ctrl"),
-    meta: modifiers.has("meta") || modifiers.has("cmd") || modifiers.has("command"),
+    meta: modifiers.has("meta"),
     shift: modifiers.has("shift"),
     alt: modifiers.has("alt") || modifiers.has("option"),
+    super: modifiers.has("super") || modifiers.has("cmd") || modifiers.has("command"),
   }
 }
 
@@ -716,6 +730,7 @@ export function matchHotkey(hotkey: ParsedHotkey, key: Key, input?: string): boo
   // Check modifiers
   if (!!hotkey.ctrl !== !!key.ctrl) return false
   if (!!hotkey.meta !== !!key.meta) return false
+  if (!!hotkey.super !== !!key.super) return false
   if (!!hotkey.alt !== false) return false // terminals can't distinguish alt from meta
 
   // For single uppercase letters (A-Z), shift is implicit
@@ -797,6 +812,7 @@ export function keyToKittyAnsi(key: string): string {
   if (modifiers.includes("Shift")) mod |= 1
   if (modifiers.includes("Alt") || modifiers.includes("Meta")) mod |= 2
   if (modifiers.includes("Control")) mod |= 4
+  if (modifiers.includes("Super")) mod |= 8
 
   // Resolve codepoint
   let codepoint: number

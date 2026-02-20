@@ -267,6 +267,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
                 ctrl: key.ctrl,
                 meta: key.meta,
                 shift: key.shift,
+                super: key.super,
               }
             }
           }

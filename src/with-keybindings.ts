@@ -67,7 +67,7 @@ export interface ExtendedKeybindingDef extends KeybindingDef {
  */
 function resolveKeybinding(
   key: string,
-  modifiers: { ctrl: boolean; meta: boolean; shift: boolean; alt: boolean },
+  modifiers: { ctrl: boolean; meta: boolean; shift: boolean; alt: boolean; super: boolean },
   bindings: ExtendedKeybindingDef[],
   ctx: KeybindingContext,
 ): string | null {
@@ -78,6 +78,7 @@ function resolveKeybinding(
     // Check modifiers
     if (!!binding.ctrl !== !!modifiers.ctrl) continue
     if (!!binding.meta !== !!modifiers.meta) continue
+    if (!!binding.super !== !!modifiers.super) continue
 
     // For single uppercase letters (A-Z), the shift key is implicit
     const isUppercaseLetter = key.length === 1 && key >= "A" && key <= "Z" && !binding.shift

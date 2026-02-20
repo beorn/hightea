@@ -65,10 +65,18 @@ describe("Kitty keyboard protocol parsing", () => {
     expect(key.shift).toBe(true)
   })
 
-  test("super modifier maps to meta", () => {
+  test("super modifier maps to super (not meta)", () => {
     const key = parseKeypress(kittySeq(97, 9)) // super+a: modifier=9 (super=8, +1)
     expect(key.name).toBe("a")
-    expect(key.meta).toBe(true)
+    expect(key.super).toBe(true)
+    expect(key.meta).toBe(false)
+  })
+
+  test("alt and super together", () => {
+    const key = parseKeypress(kittySeq(97, 11)) // alt+super+a: modifier=11 (alt=2+super=8, +1)
+    expect(key.name).toBe("a")
+    expect(key.meta).toBe(true) // alt
+    expect(key.super).toBe(true) // super/cmd
   })
 
   test("Enter key", () => {
@@ -209,6 +217,36 @@ describe("keyToKittyAnsi", () => {
 
   test("Tab key", () => {
     expect(keyToKittyAnsi("Tab")).toBe("\x1b[9u")
+  })
+
+  test("Super+x (cmd alias)", () => {
+    expect(keyToKittyAnsi("Super+x")).toBe("\x1b[120;9u") // super=8, modifier=9
+  })
+
+  test("cmd+x (Super alias)", () => {
+    expect(keyToKittyAnsi("cmd+x")).toBe("\x1b[120;9u") // super=8, modifier=9
+  })
+
+  test("roundtrip: super modifier", () => {
+    const ansi = keyToKittyAnsi("Super+j")
+    const parsed = parseKeypress(ansi)
+    expect(parsed.name).toBe("j")
+    expect(parsed.super).toBe(true)
+    expect(parsed.meta).toBe(false)
+  })
+
+  test("roundtrip: alt vs super are distinct", () => {
+    const altAnsi = keyToKittyAnsi("Alt+j")
+    const superAnsi = keyToKittyAnsi("Super+j")
+    expect(altAnsi).not.toBe(superAnsi)
+
+    const altParsed = parseKeypress(altAnsi)
+    expect(altParsed.meta).toBe(true)
+    expect(altParsed.super).toBe(false)
+
+    const superParsed = parseKeypress(superAnsi)
+    expect(superParsed.meta).toBe(false)
+    expect(superParsed.super).toBe(true)
   })
 
   test("roundtrip: generate then parse", () => {

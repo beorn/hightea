@@ -379,12 +379,14 @@ export interface KeyEvent {
   key: string
   /** Ctrl modifier was held */
   ctrl?: boolean
-  /** Meta/Cmd modifier was held */
+  /** Meta/Alt modifier was held */
   meta?: boolean
   /** Shift modifier was held */
   shift?: boolean
   /** Alt/Option modifier was held */
   alt?: boolean
+  /** Super/Cmd modifier was held. Requires Kitty protocol. */
+  super?: boolean
 }
 
 /**

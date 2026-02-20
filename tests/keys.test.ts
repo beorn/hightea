@@ -121,8 +121,10 @@ describe("keyToAnsi", () => {
       expect(keyToAnsi("meta+x")).toBe("\x1bx")
     })
 
-    test("cmd+x produces ESC+x (macOS alias)", () => {
-      expect(keyToAnsi("cmd+x")).toBe("\x1bx")
+    test("cmd+x falls through in legacy ANSI (Super has no encoding)", () => {
+      // cmd maps to Super, which has no legacy ANSI representation.
+      // Use keyToKittyAnsi for proper Super encoding.
+      expect(keyToAnsi("cmd+x")).toBe("x")
     })
 
     test("option+x produces ESC+x (macOS alias)", () => {

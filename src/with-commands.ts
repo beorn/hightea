@@ -59,6 +59,7 @@ export interface KeybindingDef {
   meta?: boolean
   shift?: boolean
   alt?: boolean
+  super?: boolean
 }
 
 /**
