@@ -450,10 +450,11 @@ describe("macOS symbol modifiers", () => {
     expect(hotkey.ctrl).toBe(false)
   })
 
-  test("⌥ parses as alt (Opt)", () => {
+  test("⌥ parses as meta (Opt/Alt)", () => {
     const hotkey = parseHotkey("⌥j")
     expect(hotkey.key).toBe("j")
-    expect(hotkey.alt).toBe(true)
+    expect(hotkey.meta).toBe(true)
+    expect(hotkey.alt).toBe(false) // alt and meta are indistinguishable in terminals
   })
 
   test("⌃ parses as ctrl", () => {
@@ -499,13 +500,13 @@ describe("macOS symbol modifiers", () => {
     expect(hotkey.key).toBe("x")
     expect(hotkey.hyper).toBe(true)
     expect(hotkey.super).toBe(true)
-    expect(hotkey.alt).toBe(true)
+    expect(hotkey.meta).toBe(true) // ⌥ → meta (terminals can't distinguish alt/meta)
     expect(hotkey.ctrl).toBe(true)
     expect(hotkey.shift).toBe(true)
   })
 
   test("word aliases: opt, command", () => {
-    expect(parseHotkey("opt+j").alt).toBe(true)
+    expect(parseHotkey("opt+j").meta).toBe(true)
     expect(parseHotkey("command+j").super).toBe(true)
   })
 

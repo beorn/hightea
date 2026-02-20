@@ -806,9 +806,9 @@ export function parseHotkey(keyStr: string): ParsedHotkey {
   return {
     key,
     ctrl: modifiers.has("control") || modifiers.has("ctrl") || modifiers.has("⌃"),
-    meta: modifiers.has("meta"),
+    meta: modifiers.has("meta") || modifiers.has("alt") || modifiers.has("opt") || modifiers.has("option") || modifiers.has("⌥"),
     shift: modifiers.has("shift") || modifiers.has("⇧"),
-    alt: modifiers.has("alt") || modifiers.has("opt") || modifiers.has("option") || modifiers.has("⌥"),
+    alt: false, // alt and meta are indistinguishable in terminals; use meta
     super: modifiers.has("super") || modifiers.has("cmd") || modifiers.has("command") || modifiers.has("⌘"),
     hyper: modifiers.has("hyper") || modifiers.has("✦"),
   }
