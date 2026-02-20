@@ -379,6 +379,9 @@ export type {
 } from "./types.js"
 export type { HitTarget, HitRegion } from "./hit-registry.js"
 
+// Mouse parsing (SGR mode 1006)
+export { parseMouseSequence, isMouseSequence, type ParsedMouse } from "./mouse.js"
+
 // Non-TTY utilities
 export { isTTY, resolveNonTTYMode, stripAnsi } from "./non-tty.js"
 export type { NonTTYOptions, ResolvedNonTTYMode } from "./non-tty.js"
