@@ -20,6 +20,7 @@ import {
 import type { InkxNode, TextProps } from "../types.js"
 import {
   type StyledSegment,
+  displayWidth,
   ensureEmojiPresentation,
   graphemeWidth,
   hasAnsi,
@@ -246,6 +247,21 @@ interface TextWithBg {
   text: string
   /** Background color segments from nested Text elements */
   bgSegments: BgSegment[]
+  /** Plain text character count (excluding ANSI codes). Used for DOM-level budget tracking. */
+  plainLen: number
+}
+
+/**
+ * Collect plain text content from a node tree (no ANSI codes).
+ * Used to compute DOM-level truncation budget before ANSI serialization.
+ */
+function collectPlainText(node: InkxNode): string {
+  if (node.textContent !== undefined) return node.textContent
+  let result = ""
+  for (const child of node.children) {
+    result += collectPlainText(child)
+  }
+  return result
 }
 
 /**
@@ -258,24 +274,54 @@ interface TextWithBg {
  * @param node - The node to collect text from
  * @param parentContext - The inherited style context from parent
  * @param offset - Current character offset in the collected text (for bg tracking)
+ * @param maxDisplayWidth - Maximum display width (columns) to collect. When set,
+ *   stops collecting once this many display columns of content have been gathered.
+ *   This truncates at the DOM level BEFORE ANSI serialization, so escape sequences
+ *   (OSC 8, etc.) are never generated for content that won't be displayed.
+ *   Uses getTextWidth (ANSI-aware) so pre-styled leaf text is handled correctly.
  */
-function collectTextWithBg(node: InkxNode, parentContext: StyleContext = {}, offset = 0): TextWithBg {
+function collectTextWithBg(
+  node: InkxNode,
+  parentContext: StyleContext = {},
+  offset = 0,
+  maxDisplayWidth?: number,
+): TextWithBg {
   // If this node has direct text content, return it with no bg segments
   if (node.textContent !== undefined) {
-    return { text: node.textContent, bgSegments: [] }
+    let text = node.textContent
+    // DOM-level truncation: trim leaf text to display width budget
+    if (maxDisplayWidth !== undefined) {
+      const textW = getTextWidth(text)
+      if (textW > maxDisplayWidth) {
+        text = sliceByWidth(text, maxDisplayWidth)
+      }
+    }
+    // plainLen tracks display width for budget, used for both budget tracking
+    // and BgSegment offset tracking (both are display-width based since
+    // mapLinesToCharOffsets works on plain text which maps 1:1 with display width
+    // for non-wide characters)
+    const plainLen = getTextWidth(text)
+    return { text, bgSegments: [], plainLen }
   }
 
   let result = ""
   const bgSegments: BgSegment[] = []
   let currentOffset = offset
+  let displayWidthCollected = 0
 
   for (const child of node.children) {
+    // Stop collecting if budget exhausted
+    if (maxDisplayWidth !== undefined && displayWidthCollected >= maxDisplayWidth) break
+
+    // Compute remaining budget for this child
+    const childBudget = maxDisplayWidth !== undefined ? maxDisplayWidth - displayWidthCollected : undefined
+
     if (child.type === "inkx-text" && child.props && !child.layoutNode) {
       const childProps = child.props as TextProps
       const childContext = mergeStyleContext(parentContext, childProps)
 
-      // Recursively collect with child's context
-      const childResult = collectTextWithBg(child, childContext, currentOffset)
+      // Recursively collect with child's context and budget
+      const childResult = collectTextWithBg(child, childContext, currentOffset, childBudget)
 
       // Apply ANSI styles for fg/attrs (but NOT bg) with push/pop
       const styledText = applyTextStyleAnsi(childResult.text, childContext, parentContext)
@@ -285,11 +331,10 @@ function collectTextWithBg(node: InkxNode, parentContext: StyleContext = {}, off
       if (childContext.backgroundColor) {
         const bg = parseColor(childContext.backgroundColor)
         if (bg !== null) {
-          const childTextLen = childResult.text.length
-          if (childTextLen > 0) {
+          if (childResult.plainLen > 0) {
             bgSegments.push({
               start: currentOffset,
-              end: currentOffset + childTextLen,
+              end: currentOffset + childResult.plainLen,
               bg,
             })
           }
@@ -299,17 +344,20 @@ function collectTextWithBg(node: InkxNode, parentContext: StyleContext = {}, off
       // Include child's nested bg segments
       bgSegments.push(...childResult.bgSegments)
 
-      currentOffset += childResult.text.length
+      // Track using plainLen (display width) — not text.length which includes ANSI codes
+      currentOffset += childResult.plainLen
+      displayWidthCollected += childResult.plainLen
     } else {
       // Not a styled Text node, just collect recursively
-      const childResult = collectTextWithBg(child, parentContext, currentOffset)
+      const childResult = collectTextWithBg(child, parentContext, currentOffset, childBudget)
       result += childResult.text
       bgSegments.push(...childResult.bgSegments)
-      currentOffset += childResult.text.length
+      currentOffset += childResult.plainLen
+      displayWidthCollected += childResult.plainLen
     }
   }
 
-  return { text: result, bgSegments }
+  return { text: result, bgSegments, plainLen: displayWidthCollected }
 }
 
 /**
@@ -898,7 +946,11 @@ function mergeAnsiStyle(base: Style, segment: StyledSegment, options: MergeStyle
   if (segment.inverse !== undefined) overlayAttrs.inverse = segment.inverse
 
   // Use mergeStyles for consistent category-based merging
-  const merged = mergeStyles(base, { fg, bg, underlineColor, attrs: overlayAttrs }, { preserveDecorations, preserveEmphasis })
+  const merged = mergeStyles(
+    base,
+    { fg, bg, underlineColor, attrs: overlayAttrs },
+    { preserveDecorations, preserveEmphasis },
+  )
 
   // Pass through OSC 8 hyperlink from segment (not an SGR attribute)
   if (segment.hyperlink) {
@@ -1001,10 +1053,27 @@ export function renderText(
     }
   }
 
+  // Compute DOM-level display width budget for truncate-end modes.
+  // This limits how much text collectTextWithBg gathers BEFORE ANSI serialization,
+  // making OSC 8 hyperlinks and other escape sequences safe by construction.
+  // Only applies to end-truncation (truncate, truncate-end, false) where we keep
+  // text from the start. Start/middle truncation keep text from the end or both
+  // ends, so they fall back to ANSI-level truncation in formatTextLines.
+  // Budget is width + 1 display columns per line to ensure formatTextLines sees
+  // text wider than the container and adds the ellipsis character.
+  let maxDisplayWidth: number | undefined
+  const isTruncateEnd = props.wrap === false || props.wrap === "truncate-end" || props.wrap === "truncate"
+  if (isTruncateEnd && width > 0) {
+    const plainText = collectPlainText(node)
+    const lineCount = (plainText.match(/\n/g)?.length ?? 0) + 1
+    // Each line needs width+1 columns to trigger ellipsis. Multiply by line count.
+    maxDisplayWidth = (width + 1) * lineCount
+  }
+
   // Collect text content and background segments from this node and all children.
   // Background color from nested Text elements is tracked as BgSegments
   // (not embedded as ANSI codes) to survive text wrapping correctly.
-  const { text, bgSegments } = collectTextWithBg(node)
+  const { text, bgSegments } = collectTextWithBg(node, {}, 0, maxDisplayWidth)
 
   // Get style for this Text node
   const style = getTextStyle(props)

@@ -181,7 +181,9 @@ describe("scroll offscreen render", () => {
     function ViewBox({ title, children }: { title: string; children: React.ReactNode }) {
       return (
         <Box flexDirection="column" borderStyle="double" width={38} paddingX={1}>
-          <Text bold color="magenta">{title}</Text>
+          <Text bold color="magenta">
+            {title}
+          </Text>
           <Box marginTop={1} flexDirection="column">
             {children}
           </Box>

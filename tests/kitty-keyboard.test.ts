@@ -7,6 +7,7 @@
 
 import { describe, expect, test } from "vitest"
 import { parseKeypress, keyToKittyAnsi } from "../src/keys.js"
+import { enableKittyKeyboard, disableKittyKeyboard } from "../src/output.js"
 
 // Helper: generate a Kitty CSI u sequence
 function kittySeq(codepoint: number, modifier?: number, eventType?: number): string {
@@ -240,5 +241,19 @@ describe("keyToKittyAnsi", () => {
     const parsed = parseKeypress(ansi)
     expect(parsed.name).toBe("c")
     expect(parsed.ctrl).toBe(true)
+  })
+})
+
+// =============================================================================
+// Protocol Sequences: Enable/Disable
+// =============================================================================
+
+describe("Kitty keyboard protocol sequences", () => {
+  test("enableKittyKeyboard sends CSI > 1 u (push flags=1)", () => {
+    expect(enableKittyKeyboard()).toBe("\x1b[>1u")
+  })
+
+  test("disableKittyKeyboard sends CSI < u (pop mode stack)", () => {
+    expect(disableKittyKeyboard()).toBe("\x1b[<u")
   })
 })

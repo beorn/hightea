@@ -29,7 +29,7 @@ import {
   TermContext,
 } from "./context.js"
 import { type LayoutEngineType, isLayoutEngineInitialized } from "./layout-engine.js"
-import { ANSI, enterAlternateScreen, leaveAlternateScreen } from "./output.js"
+import { ANSI, enterAlternateScreen, leaveAlternateScreen, enableKittyKeyboard, disableKittyKeyboard } from "./output.js"
 import { createContainer, getContainerRoot, reconciler, runWithDiscreteEvent } from "./reconciler.js"
 import { renderStringSync } from "./render-string.js"
 import { RenderScheduler } from "./scheduler.js"
@@ -584,6 +584,11 @@ class InkxInstance {
       this.stdout.write(enterAlternateScreen())
     }
 
+    // Enable Kitty keyboard protocol for enhanced key reporting
+    if (this.stdout.isTTY) {
+      this.stdout.write(enableKittyKeyboard())
+    }
+
     // Set up container
     this.container = createContainer(() => {
       this.scheduler?.scheduleRender()
@@ -698,6 +703,11 @@ class InkxInstance {
     // Clean up resources
     this.resizeCleanup?.()
     this.signalCleanup?.()
+
+    // Disable Kitty keyboard protocol before leaving
+    if (this.stdout.isTTY) {
+      this.stdout.write(disableKittyKeyboard())
+    }
 
     // Leave alternate screen if we entered it (leaveAlternateScreen includes
     // SYNC_END as a safety belt). For inline mode, show cursor and move to

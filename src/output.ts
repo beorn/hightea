@@ -183,6 +183,23 @@ export function disableMouse(): string {
   return `${CSI}?1006l${CSI}?1002l${CSI}?1000l`
 }
 
+/**
+ * Enable Kitty keyboard protocol (push mode with flags=1).
+ * Sends CSI > 1 u to opt into disambiguate mode.
+ * Supported: Ghostty, Kitty, WezTerm, foot. Ignored by unsupported terminals.
+ */
+export function enableKittyKeyboard(): string {
+  return `${CSI}>1u`
+}
+
+/**
+ * Disable Kitty keyboard protocol (pop mode stack).
+ * Sends CSI < u to restore previous keyboard mode.
+ */
+export function disableKittyKeyboard(): string {
+  return `${CSI}<u`
+}
+
 // ============================================================================
 // Export Constants
 // ============================================================================

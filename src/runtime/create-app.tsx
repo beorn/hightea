@@ -619,6 +619,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
     // Restore cursor and leave alternate screen
     if (!headless) {
+      // Disable Kitty keyboard protocol before restoring terminal
+      stdout.write("\x1b[<u")
       stdout.write("\x1b[?25h\x1b[0m\n")
       if (alternateScreen) stdout.write("\x1b[?1049l")
     }
@@ -853,6 +855,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     }
     if (alternateScreen) stdout.write("\x1b[?1049h")
     stdout.write("\x1b[2J\x1b[H\x1b[?25l")
+    // Enable Kitty keyboard protocol for enhanced key reporting
+    stdout.write("\x1b[>1u")
   }
   if (_ansiTrace) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
