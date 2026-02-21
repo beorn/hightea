@@ -137,8 +137,17 @@ export function createFocusManager(): FocusManager {
       const focusable = findFocusableAncestor(node)
       if (focusable) {
         focus(focusable, origin)
+        return
       }
     }
+    // Virtual focus: set the ID without a DOM node. This enables named focus
+    // targets (e.g. "board-area", "detail-pane") without requiring wrapper Boxes
+    // that would disrupt layout.
+    previousElement = activeElement
+    activeElement = null
+    activeId = id
+    focusOrigin = origin
+    notify()
   }
 
   function blur(): void {
