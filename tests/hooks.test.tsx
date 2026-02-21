@@ -3,7 +3,6 @@
  *
  * Tests for public hook APIs:
  * - useContentRect: Returns computed layout dimensions
- * - useFocus: Makes components focusable
  * - useFocusManager: Focus management controls
  * - useStdin: Access to stdin stream
  * - useStdout: Access to stdout stream
@@ -11,8 +10,8 @@
 
 import React from "react"
 import { describe, expect, test } from "vitest"
-import { FocusContext, type FocusContextValue, NodeContext, StdinContext, StdoutContext } from "../src/context.ts"
-import { Text, useContentRect, useFocus, useFocusManager, useStdin, useStdout } from "../src/index.ts"
+import { NodeContext, StdinContext, StdoutContext } from "../src/context.ts"
+import { Text, useContentRect, useFocusManager, useStdin, useStdout } from "../src/index.ts"
 import { createRenderer } from "../src/testing/index.tsx"
 import type { InkxNode } from "../src/types.ts"
 
@@ -38,44 +37,6 @@ function createMockInkxNode(layout: { x: number; y: number; width: number; heigh
     layoutDirty: false,
     contentDirty: false,
     layoutSubscribers: new Set(),
-  }
-}
-
-/**
- * Create a mock focus context for testing
- */
-function createMockFocusContext(activeId: string | null = null): FocusContextValue {
-  const focusables: Array<{ id: string; isActive: boolean }> = []
-  let currentActiveId = activeId
-
-  return {
-    activeId: currentActiveId,
-    add: (id, options) => {
-      focusables.push({ id, isActive: true })
-      if (options?.autoFocus && !currentActiveId) {
-        currentActiveId = id
-      }
-    },
-    remove: (id) => {
-      const idx = focusables.findIndex((f) => f.id === id)
-      if (idx >= 0) focusables.splice(idx, 1)
-    },
-    activate: (id) => {
-      const f = focusables.find((f) => f.id === id)
-      if (f) f.isActive = true
-    },
-    deactivate: (id) => {
-      const f = focusables.find((f) => f.id === id)
-      if (f) f.isActive = false
-    },
-    focus: (id) => {
-      currentActiveId = id
-    },
-    focusNext: () => {},
-    focusPrevious: () => {},
-    enableFocus: () => {},
-    disableFocus: () => {},
-    isFocusEnabled: true,
   }
 }
 
@@ -202,137 +163,6 @@ describe("useContentRect", () => {
 })
 
 // ============================================================================
-// useFocus Tests
-// ============================================================================
-
-describe("useFocus", () => {
-  test("returns { isFocused, focus } object", () => {
-    let result: { isFocused: boolean; focus: () => void } | null = null
-    const mockContext = createMockFocusContext()
-
-    function FocusCapture() {
-      result = useFocus()
-      return <Text>Focusable</Text>
-    }
-
-    render(
-      <FocusContext.Provider value={mockContext}>
-        <FocusCapture />
-      </FocusContext.Provider>,
-    )
-
-    expect(result).not.toBeNull()
-    expect(result).toHaveProperty("isFocused")
-    expect(result).toHaveProperty("focus")
-    expect(typeof result!.isFocused).toBe("boolean")
-    expect(typeof result!.focus).toBe("function")
-  })
-
-  test("isFocused is false when not focused", () => {
-    let isFocused = true
-    const mockContext = createMockFocusContext(null)
-
-    function FocusableItem() {
-      const focus = useFocus()
-      isFocused = focus.isFocused
-      return <Text>Item</Text>
-    }
-
-    render(
-      <FocusContext.Provider value={mockContext}>
-        <FocusableItem />
-      </FocusContext.Provider>,
-    )
-
-    expect(isFocused).toBe(false)
-  })
-
-  test("accepts custom id option", () => {
-    let capturedId = ""
-    const mockContext = createMockFocusContext()
-
-    // Override add to capture the ID
-    mockContext.add = (id) => {
-      capturedId = id
-    }
-
-    function FocusableWithId() {
-      useFocus({ id: "custom-id" })
-      return <Text>Item</Text>
-    }
-
-    render(
-      <FocusContext.Provider value={mockContext}>
-        <FocusableWithId />
-      </FocusContext.Provider>,
-    )
-
-    expect(capturedId).toBe("custom-id")
-  })
-
-  test("accepts isActive option", () => {
-    let wasDeactivated = false
-    const mockContext = createMockFocusContext()
-    mockContext.deactivate = () => {
-      wasDeactivated = true
-    }
-
-    function InactiveFocusable() {
-      useFocus({ isActive: false, id: "test" })
-      return <Text>Inactive</Text>
-    }
-
-    render(
-      <FocusContext.Provider value={mockContext}>
-        <InactiveFocusable />
-      </FocusContext.Provider>,
-    )
-
-    expect(wasDeactivated).toBe(true)
-  })
-
-  test("accepts autoFocus option", () => {
-    let autoFocusWasSet = false
-    const mockContext = createMockFocusContext()
-    mockContext.add = (_id, options) => {
-      if (options?.autoFocus) {
-        autoFocusWasSet = true
-      }
-    }
-
-    function AutoFocusItem() {
-      useFocus({ autoFocus: true })
-      return <Text>Auto</Text>
-    }
-
-    render(
-      <FocusContext.Provider value={mockContext}>
-        <AutoFocusItem />
-      </FocusContext.Provider>,
-    )
-
-    expect(autoFocusWasSet).toBe(true)
-  })
-
-  test("works without context (returns not focused)", () => {
-    // When used without FocusContext, useFocus should still work but return not focused
-    let result: { isFocused: boolean; focus: () => void } | null = null
-
-    function FocusableWithoutContext() {
-      result = useFocus()
-      return <Text>Item</Text>
-    }
-
-    // No FocusContext.Provider - should not throw
-    render(<FocusableWithoutContext />)
-
-    expect(result).not.toBeNull()
-    expect(result!.isFocused).toBe(false)
-    expect(typeof result!.focus).toBe("function")
-  })
-})
-
-// ============================================================================
 // useFocusManager Tests
 // ============================================================================
 
@@ -357,18 +187,14 @@ describe("useFocusManager", () => {
 
   test("returns focus management methods", () => {
     let result: ReturnType<typeof useFocusManager> | null = null
-    const mockContext = createMockFocusContext()
 
     function FocusManagerCapture() {
       result = useFocusManager()
       return <Text>Manager</Text>
     }
 
-    render(
-      <FocusContext.Provider value={mockContext}>
-        <FocusManagerCapture />
-      </FocusContext.Provider>,
-    )
+    // Test renderer wraps with FocusManagerContext.Provider automatically
+    render(<FocusManagerCapture />)
 
     expect(result).not.toBeNull()
     expect(result).toHaveProperty("enableFocus")

@@ -144,46 +144,11 @@ export interface InputContextValue {
 export const InputContext = createContext<InputContextValue | null>(null)
 
 // ============================================================================
-// Focus Context
-// ============================================================================
-
-export interface FocusContextValue {
-  /** Currently focused element ID */
-  activeId: string | null
-  /** Add a focusable element */
-  add: (id: string, options?: { autoFocus?: boolean }) => void
-  /** Remove a focusable element */
-  remove: (id: string) => void
-  /** Activate a focusable element (make it eligible for focus) */
-  activate: (id: string) => void
-  /** Deactivate a focusable element (make it ineligible for focus) */
-  deactivate: (id: string) => void
-  /** Set focus to element by ID */
-  focus: (id: string) => void
-  /** Focus next element */
-  focusNext: () => void
-  /** Focus previous element */
-  focusPrevious: () => void
-  /** Enable focus management */
-  enableFocus: () => void
-  /** Disable focus management */
-  disableFocus: () => void
-  /** Is focus management enabled */
-  isFocusEnabled: boolean
-}
-
-/**
- * Context for focus management.
- * Used by useFocus() and useFocusManager() hooks.
- */
-export const FocusContext = createContext<FocusContextValue | null>(null)
-
-// ============================================================================
-// Focus Manager Context (new tree-based focus system)
+// Focus Manager Context (tree-based focus system)
 // ============================================================================
 
 /**
- * Context for the new tree-based focus manager.
- * Provides the FocusManager instance to useFocusable() and useFocusWithin() hooks.
+ * Context for the tree-based focus manager.
+ * Provides the FocusManager instance to useFocusable(), useFocusWithin(), and useFocusManager() hooks.
  */
 export const FocusManagerContext = createContext<FocusManager | null>(null)

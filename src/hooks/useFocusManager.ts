@@ -2,14 +2,11 @@
  * Inkx useFocusManager Hook
  *
  * Provides methods to control focus management for all components.
- * Rewritten to use the new tree-based FocusManager via FocusManagerContext.
- *
- * Falls back to the legacy FocusContext if FocusManagerContext is not available,
- * maintaining backward compatibility.
+ * Uses the tree-based FocusManager via FocusManagerContext.
  */
 
 import { useCallback, useContext, useSyncExternalStore } from "react"
-import { FocusContext, FocusManagerContext, NodeContext } from "../context.js"
+import { FocusManagerContext, NodeContext } from "../context.js"
 import type { FocusSnapshot } from "../focus-manager.js"
 import type { InkxNode } from "../types.js"
 
@@ -30,11 +27,11 @@ export interface UseFocusManagerResult {
   focusPrev: () => void
   /** Clear focus */
   blur: () => void
-  /** Legacy: Enable focus management (no-op in new system) */
+  /** Enable focus management (no-op, kept for Ink API compatibility) */
   enableFocus: () => void
-  /** Legacy: Disable focus management (no-op in new system) */
+  /** Disable focus management (no-op, kept for Ink API compatibility) */
   disableFocus: () => void
-  /** Legacy: Focus previous (alias for focusPrev) */
+  /** Focus previous (alias for focusPrev, kept for Ink API compatibility) */
   focusPrevious: () => void
 }
 
@@ -45,8 +42,7 @@ export interface UseFocusManagerResult {
 /**
  * Hook for managing focus across all focusable components.
  *
- * Uses the new tree-based FocusManager when available (FocusManagerContext),
- * falling back to the legacy FocusContext for backward compatibility.
+ * Uses the tree-based FocusManager via FocusManagerContext.
  *
  * @example
  * ```tsx
@@ -69,7 +65,6 @@ export interface UseFocusManagerResult {
  */
 export function useFocusManager(): UseFocusManagerResult {
   const fm = useContext(FocusManagerContext)
-  const legacyContext = useContext(FocusContext)
   const node = useContext(NodeContext)
 
   // Subscribe to FocusManager state
@@ -98,7 +93,6 @@ export function useFocusManager(): UseFocusManagerResult {
     return root
   }, [node])
 
-  // --- New FocusManager path ---
   if (fm) {
     const focus = (nodeOrId: InkxNode | string) => {
       if (typeof nodeOrId === "string") {
@@ -128,33 +122,13 @@ export function useFocusManager(): UseFocusManagerResult {
       focusNext,
       focusPrev,
       blur: () => fm.blur(),
-      // Legacy compat — no-ops in the new system
       enableFocus: () => {},
       disableFocus: () => {},
       focusPrevious: focusPrev,
     }
   }
 
-  // --- Legacy FocusContext fallback ---
-  if (legacyContext) {
-    return {
-      activeElement: null,
-      activeId: legacyContext.activeId,
-      focus: (nodeOrId: InkxNode | string) => {
-        if (typeof nodeOrId === "string") {
-          legacyContext.focus(nodeOrId)
-        }
-      },
-      focusNext: legacyContext.focusNext,
-      focusPrev: legacyContext.focusPrevious,
-      blur: () => {},
-      enableFocus: legacyContext.enableFocus,
-      disableFocus: legacyContext.disableFocus,
-      focusPrevious: legacyContext.focusPrevious,
-    }
-  }
-
-  // No focus context available — return inert result (safe for standalone component tests)
+  // No FocusManagerContext available — return inert result (safe for standalone component tests)
   return {
     activeElement: null,
     activeId: null,

@@ -44,14 +44,12 @@ import {
   // Hooks
   useApp,
   useContentRect,
-  useFocus,
   useFocusManager,
   useInput,
   useStdin,
   useStdout,
 } from "../src/index.js"
 
-import { FocusContext, type FocusContextValue } from "../src/context.js"
 import { createRenderer, stripAnsi } from "../src/testing/index.js"
 
 const testRender = createRenderer()
@@ -102,10 +100,6 @@ describe("Ink API Compatibility", () => {
 
     test("useStdin hook exists and is a function", () => {
       expect(typeof useStdin).toBe("function")
-    })
-
-    test("useFocus hook exists and is a function", () => {
-      expect(typeof useFocus).toBe("function")
     })
 
     test("useFocusManager hook exists and is a function", () => {
@@ -554,156 +548,6 @@ describe("Behavioral Tests - useInput", () => {
       expect(activeInputs).toEqual(["y"])
       expect(inactiveInputs).toEqual([])
     })
-  })
-})
-
-// ============================================================================
-// Behavioral Tests - useFocus
-// ============================================================================
-
-describe("Behavioral Tests - useFocus", () => {
-  const render = createRenderer({ cols: 80, rows: 30 })
-
-  /**
-   * Create a mock focus context that tracks focus state.
-   * Uses a mutable state object so changes are visible to tests.
-   */
-  function createFocusContext(): FocusContextValue & {
-    focusables: Map<string, { isActive: boolean }>
-    getActiveId: () => string | null
-  } {
-    const state = { activeId: null as string | null }
-    const focusables = new Map<string, { isActive: boolean }>()
-    const focusOrder: string[] = []
-
-    const ctx: FocusContextValue & {
-      focusables: Map<string, { isActive: boolean }>
-      getActiveId: () => string | null
-    } = {
-      get activeId() {
-        return state.activeId
-      },
-      focusables,
-      getActiveId: () => state.activeId,
-      add: (id, options) => {
-        focusables.set(id, { isActive: true })
-        focusOrder.push(id)
-        if (options?.autoFocus && state.activeId === null) {
-          state.activeId = id
-        }
-      },
-      remove: (id) => {
-        focusables.delete(id)
-        const idx = focusOrder.indexOf(id)
-        if (idx >= 0) focusOrder.splice(idx, 1)
-        if (state.activeId === id) {
-          state.activeId = focusOrder[0] ?? null
-        }
-      },
-      activate: (id) => {
-        const f = focusables.get(id)
-        if (f) f.isActive = true
-      },
-      deactivate: (id) => {
-        const f = focusables.get(id)
-        if (f) f.isActive = false
-      },
-      focus: (id) => {
-        state.activeId = id
-      },
-      focusNext: () => {
-        const activeItems = focusOrder.filter((id) => focusables.get(id)?.isActive)
-        if (activeItems.length === 0) return
-        const currentIdx = state.activeId ? activeItems.indexOf(state.activeId) : -1
-        const nextIdx = (currentIdx + 1) % activeItems.length
-        state.activeId = activeItems[nextIdx] ?? null
-      },
-      focusPrevious: () => {
-        const activeItems = focusOrder.filter((id) => focusables.get(id)?.isActive)
-        if (activeItems.length === 0) return
-        const currentIdx = state.activeId ? activeItems.indexOf(state.activeId) : 0
-        const prevIdx = (currentIdx - 1 + activeItems.length) % activeItems.length
-        state.activeId = activeItems[prevIdx] ?? null
-      },
-      enableFocus: () => {},
-      disableFocus: () => {},
-      isFocusEnabled: true,
-    }
-
-    return ctx
-  }
-
-  test("useFocus returns isFocused=true when component is focused", () => {
-    const ctx = createFocusContext()
-
-    function FocusableItem() {
-      const focus = useFocus({ id: "item1", autoFocus: true })
-      return <Text>{focus.isFocused ? "focused" : "unfocused"}</Text>
-    }
-
-    render(
-      <FocusContext.Provider value={ctx}>
-        <FocusableItem />
-      </FocusContext.Provider>,
-    )
-
-    // autoFocus should make it focused
-    expect(ctx.getActiveId()).toBe("item1")
-  })
-
-  test("useFocus autoFocus option focuses on mount", () => {
-    const ctx = createFocusContext()
-
-    function AutoFocusItem() {
-      useFocus({ id: "auto-item", autoFocus: true })
-      return <Text>Auto</Text>
-    }
-
-    render(
-      <FocusContext.Provider value={ctx}>
-        <AutoFocusItem />
-      </FocusContext.Provider>,
-    )
-
-    expect(ctx.getActiveId()).toBe("auto-item")
-  })
-
-  test("useFocus isActive=false makes component unfocusable", () => {
-    const ctx = createFocusContext()
-
-    function InactiveFocusable() {
-      useFocus({ id: "inactive", isActive: false })
-      return <Text>Inactive</Text>
-    }
-
-    render(
-      <FocusContext.Provider value={ctx}>
-        <InactiveFocusable />
-      </FocusContext.Provider>,
-    )
-
-    expect(ctx.focusables.get("inactive")?.isActive).toBe(false)
-  })
-
-  test("focus() method focuses the component", () => {
-    const ctx = createFocusContext()
-    const focusRef = { current: null as (() => void) | null }
-
-    function ManualFocusItem() {
-      const { focus } = useFocus({ id: "manual" })
-      focusRef.current = focus
-      return <Text>Manual</Text>
-    }
-
-    render(
-      <FocusContext.Provider value={ctx}>
-        <ManualFocusItem />
-      </FocusContext.Provider>,
-    )
-
-    expect(ctx.getActiveId()).toBeNull()
-    focusRef.current?.()
-    expect(ctx.getActiveId()).toBe("manual")
   })
 })
 

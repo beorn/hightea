@@ -5,7 +5,7 @@
  * to the terminal. This wires together:
  * - Yoga (layout engine)
  * - React reconciler
- * - Context providers (App, Stdin, Stdout, Input, Focus)
+ * - Context providers (App, Stdin, Stdout, Input)
  * - Render scheduler (batching and diffing)
  *
  * Compatible with Ink's render API.
@@ -15,14 +15,12 @@ import { EventEmitter } from "node:events"
 import process from "node:process"
 import { createLogger } from "@beorn/logger"
 import { type Term, createTerm } from "chalkx"
-import React, { useCallback, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react"
+import React, { useCallback, useMemo, useRef, type ReactElement, type ReactNode } from "react"
 
 const log = createLogger("inkx:render")
 import {
   AppContext,
   EventsContext,
-  FocusContext,
-  type FocusContextValue,
   InputContext,
   StdinContext,
   StdoutContext,
@@ -239,17 +237,6 @@ function InkxApp({
   onResume,
   onScrollback,
 }: AppProps): ReactElement {
-  // Focus state
-  const [focusState, setFocusState] = useState<{
-    activeId: string | null
-    focusables: Array<{ id: string; isActive: boolean }>
-    isFocusEnabled: boolean
-  }>({
-    activeId: null,
-    focusables: [],
-    isFocusEnabled: true,
-  })
-
   // Raw mode reference count
   const rawModeCountRef = React.useRef(0)
 
@@ -270,92 +257,10 @@ function InkxApp({
     `InkxApp: stdin=${stdin === process.stdin ? "process.stdin" : "other"}, stdin.isTTY=${stdin.isTTY}, process.stdin.isTTY=${process.stdin.isTTY}, isRawModeSupported=${isRawModeSupported}`,
   )
 
-  // Focus management functions (defined before handleReadable since it depends on them)
-  const addFocusable = useCallback((id: string, options?: { autoFocus?: boolean }) => {
-    setFocusState((prev) => {
-      const nextActiveId = !prev.activeId && options?.autoFocus ? id : prev.activeId
-      return {
-        ...prev,
-        activeId: nextActiveId,
-        focusables: [...prev.focusables, { id, isActive: true }],
-      }
-    })
-  }, [])
-
-  const removeFocusable = useCallback((id: string) => {
-    setFocusState((prev) => ({
-      ...prev,
-      activeId: prev.activeId === id ? null : prev.activeId,
-      focusables: prev.focusables.filter((f) => f.id !== id),
-    }))
-  }, [])
-
-  const activateFocusable = useCallback((id: string) => {
-    setFocusState((prev) => ({
-      ...prev,
-      focusables: prev.focusables.map((f) => (f.id === id ? { ...f, isActive: true } : f)),
-    }))
-  }, [])
-
-  const deactivateFocusable = useCallback((id: string) => {
-    setFocusState((prev) => ({
-      ...prev,
-      activeId: prev.activeId === id ? null : prev.activeId,
-      focusables: prev.focusables.map((f) => (f.id === id ? { ...f, isActive: false } : f)),
-    }))
-  }, [])
-
-  const focus = useCallback((id: string) => {
-    setFocusState((prev) => {
-      const hasFocusable = prev.focusables.some((f) => f.id === id)
-      if (!hasFocusable) return prev
-      return { ...prev, activeId: id }
-    })
-  }, [])
-
-  const focusNext = useCallback(() => {
-    setFocusState((prev) => {
-      const activeIndex = prev.focusables.findIndex((f) => f.id === prev.activeId)
-      for (let i = activeIndex + 1; i < prev.focusables.length; i++) {
-        if (prev.focusables[i]?.isActive) {
-          return { ...prev, activeId: prev.focusables[i]!.id }
-        }
-      }
-      // Wrap to first active focusable
-      const first = prev.focusables.find((f) => f.isActive)
-      return { ...prev, activeId: first?.id ?? null }
-    })
-  }, [])
-
-  const focusPrevious = useCallback(() => {
-    setFocusState((prev) => {
-      const activeIndex = prev.focusables.findIndex((f) => f.id === prev.activeId)
-      for (let i = activeIndex - 1; i >= 0; i--) {
-        if (prev.focusables[i]?.isActive) {
-          return { ...prev, activeId: prev.focusables[i]!.id }
-        }
-      }
-      // Wrap to last active focusable
-      const activeFocusables = prev.focusables.filter((f) => f.isActive)
-      const last = activeFocusables[activeFocusables.length - 1]
-      return { ...prev, activeId: last?.id ?? null }
-    })
-  }, [])
-
-  const enableFocus = useCallback(() => {
-    setFocusState((prev) => ({ ...prev, isFocusEnabled: true }))
-  }, [])
-
-  const disableFocus = useCallback(() => {
-    setFocusState((prev) => ({ ...prev, isFocusEnabled: false }))
-  }, [])
-
   // Mutable refs for values accessed inside the stdin readable handler.
   // Using refs prevents handleReadable identity from ever changing, which
   // would cascade through setRawMode → stdinContext → useInput effects →
   // stdin listener removal/re-addition, dropping keypresses during the gap.
-  const focusStateRef = useRef(focusState)
-  focusStateRef.current = focusState
 
   const exitOnCtrlCRef = useRef(exitOnCtrlC)
   exitOnCtrlCRef.current = exitOnCtrlC
@@ -397,23 +302,6 @@ function InkxApp({
         // synchronously. Without this, concurrent mode defers the commit
         // and onCommit → scheduleRender() never fires.
         runWithDiscreteEvent(() => {
-          // Read focus state from ref
-          const fs = focusStateRef.current
-
-          // Handle Tab/Shift+Tab for focus
-          if (fs.isFocusEnabled) {
-            if (chunk === "\t") {
-              focusNext()
-            } else if (chunk === "\u001B[Z") {
-              focusPrevious()
-            }
-          }
-
-          // Handle Escape to clear focus
-          if (chunk === "\u001B" && fs.activeId) {
-            setFocusState((prev) => ({ ...prev, activeId: null }))
-          }
-
           eventEmitter.emit("input", chunk)
         })
         reconciler.flushSyncWork()
@@ -496,42 +384,11 @@ function InkxApp({
     [eventEmitter, exitOnCtrlC],
   )
 
-  const focusContextValue: FocusContextValue = useMemo(
-    () => ({
-      activeId: focusState.activeId,
-      add: addFocusable,
-      remove: removeFocusable,
-      activate: activateFocusable,
-      deactivate: deactivateFocusable,
-      focus,
-      focusNext,
-      focusPrevious,
-      enableFocus,
-      disableFocus,
-      isFocusEnabled: focusState.isFocusEnabled,
-    }),
-    [
-      focusState.activeId,
-      focusState.isFocusEnabled,
-      addFocusable,
-      removeFocusable,
-      activateFocusable,
-      deactivateFocusable,
-      focus,
-      focusNext,
-      focusPrevious,
-      enableFocus,
-      disableFocus,
-    ],
-  )
-
   return (
     <AppContext.Provider value={appContextValue}>
       <StdinContext.Provider value={stdinContextValue}>
         <StdoutContext.Provider value={stdoutContextValue}>
-          <InputContext.Provider value={inputContextValue}>
-            <FocusContext.Provider value={focusContextValue}>{children}</FocusContext.Provider>
-          </InputContext.Provider>
+          <InputContext.Provider value={inputContextValue}>{children}</InputContext.Provider>
         </StdoutContext.Provider>
       </StdinContext.Provider>
     </AppContext.Provider>

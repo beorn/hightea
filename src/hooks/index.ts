@@ -17,10 +17,7 @@ export { useApp, type UseAppResult } from "./useApp.js"
 export { useStdout, type UseStdoutResult } from "./useStdout.js"
 export { useStdin, type UseStdinResult } from "./useStdin.js"
 
-// Focus (legacy)
-export { useFocus, type UseFocusOptions, type UseFocusResult } from "./useFocus.js"
-
-// Focus (new tree-based system)
+// Focus (tree-based system)
 export { useFocusable, type UseFocusableResult } from "./useFocusable.js"
 export { useFocusWithin } from "./useFocusWithin.js"
 export { useFocusManager, type UseFocusManagerResult } from "./useFocusManager.js"
