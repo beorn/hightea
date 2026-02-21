@@ -24,14 +24,16 @@
  * ```
  */
 
-import type { ReactElement, ReactNode } from "react"
-import { type AutoLocator, type FilterOptions, createAutoLocator } from "./auto-locator.js"
+import type { ReactNode } from "react"
+import { type AutoLocator, createAutoLocator } from "./auto-locator.js"
 import { type BoundTerm, createBoundTerm } from "./bound-term.js"
 import type { TerminalBuffer } from "./buffer.js"
 import { bufferToHTML, bufferToStyledText, bufferToText } from "./buffer.js"
 import { type Screenshotter, createScreenshotter } from "./screenshot.js"
 import { keyToAnsi, keyToKittyAnsi } from "./keys.js"
-import type { InkxNode, Rect } from "./types.js"
+import type { ParsedMouse } from "./mouse.js"
+import { createMouseEventProcessor, processMouseEvent } from "./mouse-events.js"
+import type { InkxNode } from "./types.js"
 
 /**
  * App interface - unified return type from render()
@@ -67,6 +69,15 @@ export interface App {
 
   /** Type text input */
   type(text: string): Promise<this>
+
+  /** Simulate a mouse click at (x, y) terminal coordinates */
+  click(x: number, y: number, options?: { button?: number }): Promise<this>
+
+  /** Simulate a double-click at (x, y) terminal coordinates */
+  doubleClick(x: number, y: number, options?: { button?: number }): Promise<this>
+
+  /** Simulate a mouse wheel event at (x, y) with delta (-1=up, +1=down) */
+  wheel(x: number, y: number, delta: number): Promise<this>
 
   /** Wait until app exits */
   run(): Promise<void>
@@ -183,6 +194,9 @@ export interface AppOptions {
 
   /** Use Kitty keyboard protocol encoding for press(). When true, press() uses keyToKittyAnsi. */
   kittyMode?: boolean
+
+  /** Wrap a callback in act() + doRender() for the test renderer. Ensures React state updates from mouse handlers are flushed. */
+  actAndRender?: (fn: () => void) => void
 }
 
 /**
@@ -205,6 +219,7 @@ export function buildApp(options: AppOptions): App {
     columns,
     rows,
     kittyMode = false,
+    actAndRender,
   } = options
 
   // Create auto-refreshing locator factory
@@ -218,6 +233,9 @@ export function buildApp(options: AppOptions): App {
 
   // Note: BoundTerm is created lazily since buffer may not exist initially
   let boundTerm: BoundTerm | null = null
+
+  // Mouse event processor for click/doubleClick/wheel
+  const mouseState = createMouseEventProcessor()
 
   // Screenshotter is created lazily on first screenshot() call
   let screenshotter: Screenshotter | null = null
@@ -271,6 +289,57 @@ export function buildApp(options: AppOptions): App {
     async type(text: string): Promise<App> {
       for (const char of text) {
         sendInput(char)
+      }
+      await Promise.resolve()
+      return app
+    },
+
+    async click(x: number, y: number, options?: { button?: number }): Promise<App> {
+      const button = options?.button ?? 0
+      const doClick = () => {
+        const parsed: ParsedMouse = { button, x, y, action: "down", shift: false, meta: false, ctrl: false }
+        processMouseEvent(mouseState, parsed, getContainer())
+        const upParsed: ParsedMouse = { ...parsed, action: "up" }
+        processMouseEvent(mouseState, upParsed, getContainer())
+      }
+      if (actAndRender) {
+        actAndRender(doClick)
+      } else {
+        doClick()
+      }
+      await Promise.resolve()
+      return app
+    },
+
+    async doubleClick(x: number, y: number, options?: { button?: number }): Promise<App> {
+      const button = options?.button ?? 0
+      const doDblClick = () => {
+        const baseParsed: ParsedMouse = { button, x, y, action: "down", shift: false, meta: false, ctrl: false }
+        // First click
+        processMouseEvent(mouseState, baseParsed, getContainer())
+        processMouseEvent(mouseState, { ...baseParsed, action: "up" }, getContainer())
+        // Second click (triggers double-click detection)
+        processMouseEvent(mouseState, baseParsed, getContainer())
+        processMouseEvent(mouseState, { ...baseParsed, action: "up" }, getContainer())
+      }
+      if (actAndRender) {
+        actAndRender(doDblClick)
+      } else {
+        doDblClick()
+      }
+      await Promise.resolve()
+      return app
+    },
+
+    async wheel(x: number, y: number, delta: number): Promise<App> {
+      const doWheel = () => {
+        const parsed: ParsedMouse = { button: 0, x, y, action: "wheel", delta, shift: false, meta: false, ctrl: false }
+        processMouseEvent(mouseState, parsed, getContainer())
+      }
+      if (actAndRender) {
+        actAndRender(doWheel)
+      } else {
+        doWheel()
       }
       await Promise.resolve()
       return app

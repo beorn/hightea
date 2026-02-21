@@ -179,6 +179,12 @@ export function keyToAnsi(key: string): string {
   // Normalize modifier aliases: ctrl->Control, shift->Shift, alt->Alt, meta->Meta
   const modifiers = parts.map(normalizeModifier)
 
+  // Super/Hyper modifiers require Kitty keyboard protocol encoding
+  // (standard ANSI cannot represent Cmd/Super)
+  if (modifiers.includes("Super") || modifiers.includes("Hyper")) {
+    return keyToKittyAnsi(key)
+  }
+
   // Single char without modifiers
   if (!modifiers.length && mainKey.length === 1) {
     return mainKey
@@ -209,6 +215,26 @@ export function keyToAnsi(key: string): string {
   // Shift+Tab -> backtab (universally \x1b[Z across all terminal emulators)
   if (modifiers.includes("Shift") && mainKey === "Tab") {
     return "\x1b[Z"
+  }
+
+  // Modified arrow/function keys -> xterm-style CSI 1;modifier sequences
+  // E.g. Shift+ArrowUp -> \x1b[1;2A, Ctrl+ArrowDown -> \x1b[1;5B
+  const ARROW_SUFFIX: Record<string, string> = {
+    ArrowUp: "A",
+    ArrowDown: "B",
+    ArrowRight: "C",
+    ArrowLeft: "D",
+    Home: "H",
+    End: "F",
+  }
+  if (modifiers.length > 0 && mainKey in ARROW_SUFFIX) {
+    let mod = 1
+    if (modifiers.includes("Shift")) mod += 1
+    if (modifiers.includes("Alt") || modifiers.includes("Meta")) mod += 2
+    if (modifiers.includes("Control")) mod += 4
+    if (modifiers.includes("Super")) mod += 8
+    if (modifiers.includes("Hyper")) mod += 16
+    return `\x1b[1;${mod}${ARROW_SUFFIX[mainKey]}`
   }
 
   // Look up base key in map
@@ -681,7 +707,13 @@ export function parseKey(rawInput: string | Buffer): [string, Key] {
   // e.g., "[2~" from Insert key, "[A" from arrows when not fully parsed
   // Single "[" and "]" are allowed — they're valid key bindings
   if ((input.startsWith("[") && input.length > 1) || (input.startsWith("O") && input.length > 1)) {
-    input = ""
+    // For Kitty-encoded keys (Super/Hyper modifiers), preserve the key name
+    // since the raw sequence was CSI codepoint;modifiers u
+    if (keypress.super || keypress.hyper) {
+      input = keypress.name
+    } else {
+      input = ""
+    }
   }
 
   // Detect shift for uppercase letters
@@ -806,7 +838,12 @@ export function parseHotkey(keyStr: string): ParsedHotkey {
   return {
     key,
     ctrl: modifiers.has("control") || modifiers.has("ctrl") || modifiers.has("⌃"),
-    meta: modifiers.has("meta") || modifiers.has("alt") || modifiers.has("opt") || modifiers.has("option") || modifiers.has("⌥"),
+    meta:
+      modifiers.has("meta") ||
+      modifiers.has("alt") ||
+      modifiers.has("opt") ||
+      modifiers.has("option") ||
+      modifiers.has("⌥"),
     shift: modifiers.has("shift") || modifiers.has("⇧"),
     alt: false, // alt and meta are indistinguishable in terminals; use meta
     super: modifiers.has("super") || modifiers.has("cmd") || modifiers.has("command") || modifiers.has("⌘"),

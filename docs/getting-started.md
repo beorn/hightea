@@ -73,21 +73,21 @@ interface Key {
   end: boolean
 
   // Action keys
-  return: boolean      // Enter key
+  return: boolean // Enter key
   escape: boolean
   tab: boolean
   backspace: boolean
   delete: boolean
 
   // Modifiers
-  ctrl: boolean        // ⌃ Ctrl
-  shift: boolean       // ⇧ Shift
-  meta: boolean        // ⌥ Opt/Alt
-  super: boolean       // ⌘ Cmd/Super (requires Kitty protocol)
-  hyper: boolean       // ✦ Hyper (requires Kitty protocol)
+  ctrl: boolean // ⌃ Ctrl
+  shift: boolean // ⇧ Shift
+  meta: boolean // ⌥ Opt/Alt
+  super: boolean // ⌘ Cmd/Super (requires Kitty protocol)
+  hyper: boolean // ✦ Hyper (requires Kitty protocol)
 
   // Kitty protocol extensions
-  eventType?: 1 | 2 | 3  // 1=press, 2=repeat, 3=release (requires REPORT_EVENTS)
+  eventType?: 1 | 2 | 3 // 1=press, 2=repeat, 3=release (requires REPORT_EVENTS)
 }
 ```
 

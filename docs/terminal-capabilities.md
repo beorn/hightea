@@ -408,6 +408,7 @@ await run(<App />, {
 ```
 
 When `kitty: true`:
+
 1. inkx calls `detectKittyFromStdio()` to query the terminal
 2. If the terminal responds with `CSI ? flags u`, the protocol is supported
 3. inkx enables with `KittyFlags.DISAMBIGUATE` (flag 1)
@@ -428,9 +429,9 @@ const result = await detectKittyFromStdio(process.stdout, process.stdin, 200)
 
 // Low-level: custom I/O functions
 const result = await detectKittySupport(
-  (s) => socket.write(s),          // write function
-  (ms) => readWithTimeout(ms),     // read function (returns string | null)
-  200                               // timeout in ms
+  (s) => socket.write(s), // write function
+  (ms) => readWithTimeout(ms), // read function (returns string | null)
+  200, // timeout in ms
 )
 ```
 
@@ -441,12 +442,7 @@ The `buffered` field contains any non-response data read during detection (user 
 Manual control functions (auto-enable handles these for you):
 
 ```typescript
-import {
-  enableKittyKeyboard,
-  disableKittyKeyboard,
-  queryKittyKeyboard,
-  KittyFlags,
-} from "inkx"
+import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard, KittyFlags } from "inkx"
 
 // Enable with default flags (disambiguate only)
 stdout.write(enableKittyKeyboard())
@@ -463,13 +459,13 @@ stdout.write(disableKittyKeyboard())
 
 ### Flags
 
-| Flag                | Value | Description                           |
-| ------------------- | ----- | ------------------------------------- |
-| `DISAMBIGUATE`      | 1     | Disambiguate escape codes             |
-| `REPORT_EVENTS`     | 2     | Report event types (press/repeat/release) |
-| `REPORT_ALTERNATE`  | 4     | Report alternate keys (shifted, base layout) |
-| `REPORT_ALL_KEYS`   | 8     | Report all keys as escape codes       |
-| `REPORT_TEXT`        | 16    | Report associated text as codepoints  |
+| Flag               | Value | Description                                  |
+| ------------------ | ----- | -------------------------------------------- |
+| `DISAMBIGUATE`     | 1     | Disambiguate escape codes                    |
+| `REPORT_EVENTS`    | 2     | Report event types (press/repeat/release)    |
+| `REPORT_ALTERNATE` | 4     | Report alternate keys (shifted, base layout) |
+| `REPORT_ALL_KEYS`  | 8     | Report all keys as escape codes              |
+| `REPORT_TEXT`      | 16    | Report associated text as codepoints         |
 
 Flags are a bitfield. Combine with `|`: `KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS`.
 
@@ -499,8 +495,8 @@ All seven modifiers are independently distinguishable. Parsed values on the `Key
 
 ```typescript
 useInput((input, key) => {
-  if (key.super && input === "j") handleCmdJ()     // ⌘J
-  if (key.hyper && key.ctrl) handleHyperCtrl()      // ✦⌃
+  if (key.super && input === "j") handleCmdJ() // ⌘J
+  if (key.hyper && key.ctrl) handleHyperCtrl() // ✦⌃
 })
 ```
 
@@ -508,14 +504,14 @@ useInput((input, key) => {
 
 Available on `ParsedKeypress` (from `parseKeypress()`):
 
-| Field | Type | Flag Required | Description |
-| --- | --- | --- | --- |
-| `eventType` | `1 \| 2 \| 3` | `REPORT_EVENTS` | 1=press, 2=repeat, 3=release |
-| `shiftedKey` | `string` | `REPORT_ALTERNATE` | Character when ⇧ is held |
-| `baseLayoutKey` | `string` | `REPORT_ALTERNATE` | Key on US layout (for international keyboards) |
-| `capsLock` | `boolean` | Any | CapsLock is active |
-| `numLock` | `boolean` | Any | NumLock is active |
-| `associatedText` | `string` | `REPORT_TEXT` | Actual text the key produces |
+| Field            | Type          | Flag Required      | Description                                    |
+| ---------------- | ------------- | ------------------ | ---------------------------------------------- |
+| `eventType`      | `1 \| 2 \| 3` | `REPORT_EVENTS`    | 1=press, 2=repeat, 3=release                   |
+| `shiftedKey`     | `string`      | `REPORT_ALTERNATE` | Character when ⇧ is held                       |
+| `baseLayoutKey`  | `string`      | `REPORT_ALTERNATE` | Key on US layout (for international keyboards) |
+| `capsLock`       | `boolean`     | Any                | CapsLock is active                             |
+| `numLock`        | `boolean`     | Any                | NumLock is active                              |
+| `associatedText` | `string`      | `REPORT_TEXT`      | Actual text the key produces                   |
 
 ### Event Types
 
@@ -523,9 +519,9 @@ When `REPORT_EVENTS` (flag 2) is enabled, the terminal reports press (1), repeat
 
 ```typescript
 useInput((input, key) => {
-  if (key.eventType === 1) onKeyDown(input)   // Initial press
+  if (key.eventType === 1) onKeyDown(input) // Initial press
   if (key.eventType === 2) onKeyRepeat(input) // Key held down
-  if (key.eventType === 3) onKeyUp(input)     // Key released
+  if (key.eventType === 3) onKeyUp(input) // Key released
 })
 ```
 
@@ -557,11 +553,11 @@ await run(<App />, { kitty: true, mouse: true })
 
 inkx enables three mouse modes together:
 
-| Mode | Sequence | Description |
-| --- | --- | --- |
-| X10 basic | `CSI ?1000h` | Button press events |
-| Button tracking | `CSI ?1002h` | Press + drag motion |
-| SGR encoding | `CSI ?1006h` | Extended format (no 223-column limit) |
+| Mode            | Sequence     | Description                           |
+| --------------- | ------------ | ------------------------------------- |
+| X10 basic       | `CSI ?1000h` | Button press events                   |
+| Button tracking | `CSI ?1002h` | Press + drag motion                   |
+| SGR encoding    | `CSI ?1006h` | Extended format (no 223-column limit) |
 
 On cleanup, all three are disabled in reverse order.
 
@@ -590,14 +586,14 @@ The runtime handles mouse parsing automatically — mouse sequences are dispatch
 
 ### Button Encoding
 
-| Bits | Value | Meaning |
-| --- | --- | --- |
-| 0-1 | 0-2 | Button: 0=left, 1=middle, 2=right |
-| 2 | +4 | ⇧ Shift held |
-| 3 | +8 | ⌥ Meta/Alt held |
-| 4 | +16 | ⌃ Ctrl held |
-| 5 | +32 | Motion (drag) |
-| 6-7 | +64 | Wheel: 0=up, 1=down |
+| Bits | Value | Meaning                           |
+| ---- | ----- | --------------------------------- |
+| 0-1  | 0-2   | Button: 0=left, 1=middle, 2=right |
+| 2    | +4    | ⇧ Shift held                      |
+| 3    | +8    | ⌥ Meta/Alt held                   |
+| 4    | +16   | ⌃ Ctrl held                       |
+| 5    | +32   | Motion (drag)                     |
+| 6-7  | +64   | Wheel: 0=up, 1=down               |
 
 ### Terminal Support
 

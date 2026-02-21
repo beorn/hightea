@@ -59,13 +59,7 @@ function kittyDisplayPng(pngData: Buffer, cols: number, rows: number): string {
 }
 
 /** Build Kitty graphics escape sequences for raw RGBA pixel data. */
-function kittyDisplayRgba(
-  rgbaData: Buffer,
-  srcWidth: number,
-  srcHeight: number,
-  cols: number,
-  rows: number,
-): string {
+function kittyDisplayRgba(rgbaData: Buffer, srcWidth: number, srcHeight: number, cols: number, rows: number): string {
   const b64 = rgbaData.toString("base64")
   const chunks: string[] = []
 
@@ -75,9 +69,7 @@ function kittyDisplayRgba(
     const more = isLast ? 0 : 1
 
     if (i === 0) {
-      chunks.push(
-        `\x1b_Ga=T,f=32,t=d,s=${srcWidth},v=${srcHeight},c=${cols},r=${rows},m=${more};${chunk}\x1b\\`,
-      )
+      chunks.push(`\x1b_Ga=T,f=32,t=d,s=${srcWidth},v=${srcHeight},c=${cols},r=${rows},m=${more};${chunk}\x1b\\`)
     } else {
       chunks.push(`\x1b_Gm=${more};${chunk}\x1b\\`)
     }
@@ -148,8 +140,7 @@ function generateTestPattern(width: number, height: number): Buffer {
       } else {
         // Bottom half: checkerboard with color tint
         const cy = y - Math.floor(height / 2)
-        const isLight =
-          (Math.floor(x / checkerSize) + Math.floor(cy / checkerSize)) % 2 === 0
+        const isLight = (Math.floor(x / checkerSize) + Math.floor(cy / checkerSize)) % 2 === 0
 
         const hue = (x / width) * 360
         const [hr, hg, hb] = hsvToRgb(hue, 0.4, 1.0)
@@ -313,8 +304,7 @@ function renderStatusBar(state: ViewerState, term: ReturnType<typeof createTerm>
       ? `  ${term.dim("Image:")} ${term.bold(`${state.currentIndex + 1}/${state.images.length}`)}`
       : ""
 
-  const navHelp =
-    state.images.length > 1 ? "n/p navigate  " : ""
+  const navHelp = state.images.length > 1 ? "n/p navigate  " : ""
 
   return (
     term.dim.yellow("  inkx") +
@@ -384,11 +374,13 @@ async function main() {
   const crashCleanup = () => {
     const stdout = process.stdout
     stdout.write("\x1b[?1003l\x1b[?1006l") // Disable mouse
-    stdout.write("\x1b[?25h")               // Show cursor
-    stdout.write("\x1b[?1049l")             // Exit alternate screen
-    stdout.write("\x1b[0m")                 // Reset colors
+    stdout.write("\x1b[?25h") // Show cursor
+    stdout.write("\x1b[?1049l") // Exit alternate screen
+    stdout.write("\x1b[0m") // Reset colors
     if (process.stdin.isTTY && process.stdin.isRaw) {
-      try { process.stdin.setRawMode(false) } catch {}
+      try {
+        process.stdin.setRawMode(false)
+      } catch {}
     }
   }
   process.on("uncaughtException", (err) => {
@@ -598,11 +590,13 @@ if (import.meta.main) {
     // Restore terminal on crash
     const stdout = process.stdout
     stdout.write("\x1b[?1003l\x1b[?1006l") // Disable mouse
-    stdout.write("\x1b[?25h")               // Show cursor
-    stdout.write("\x1b[?1049l")             // Exit alternate screen
-    stdout.write("\x1b[0m")                 // Reset colors
+    stdout.write("\x1b[?25h") // Show cursor
+    stdout.write("\x1b[?1049l") // Exit alternate screen
+    stdout.write("\x1b[0m") // Reset colors
     if (process.stdin.isTTY && process.stdin.isRaw) {
-      try { process.stdin.setRawMode(false) } catch {}
+      try {
+        process.stdin.setRawMode(false)
+      } catch {}
     }
     console.error(err)
     process.exit(1)

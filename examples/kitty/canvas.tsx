@@ -279,11 +279,13 @@ async function main() {
   const crashCleanup = () => {
     const stdout = process.stdout
     stdout.write("\x1b[?1003l\x1b[?1006l") // Disable mouse
-    stdout.write("\x1b[?25h")               // Show cursor
-    stdout.write("\x1b[?1049l")             // Exit alternate screen
-    stdout.write("\x1b[0m")                 // Reset colors
+    stdout.write("\x1b[?25h") // Show cursor
+    stdout.write("\x1b[?1049l") // Exit alternate screen
+    stdout.write("\x1b[0m") // Reset colors
     if (process.stdin.isTTY && process.stdin.isRaw) {
-      try { process.stdin.setRawMode(false) } catch {}
+      try {
+        process.stdin.setRawMode(false)
+      } catch {}
     }
   }
   process.on("uncaughtException", (err) => {
@@ -306,7 +308,8 @@ async function main() {
   stdin.resume()
   stdout.write(enableMouse())
 
-  // Hide cursor
+  // Enter alternate screen, hide cursor
+  stdout.write("\x1b[?1049h")
   stdout.write("\x1b[?25l")
 
   // Clear screen and render initial frame
@@ -466,7 +469,8 @@ async function main() {
 
   const cleanup = () => {
     stdout.write(disableMouse())
-    stdout.write("\x1b[?25h")
+    stdout.write("\x1b[?25h") // Show cursor
+    stdout.write("\x1b[?1049l") // Exit alternate screen
     if (stdin.isTTY) {
       stdin.setRawMode(false)
     }
@@ -501,11 +505,13 @@ if (import.meta.main) {
     // Restore terminal on crash
     const stdout = process.stdout
     stdout.write("\x1b[?1003l\x1b[?1006l") // Disable mouse
-    stdout.write("\x1b[?25h")               // Show cursor
-    stdout.write("\x1b[?1049l")             // Exit alternate screen
-    stdout.write("\x1b[0m")                 // Reset colors
+    stdout.write("\x1b[?25h") // Show cursor
+    stdout.write("\x1b[?1049l") // Exit alternate screen
+    stdout.write("\x1b[0m") // Reset colors
     if (process.stdin.isTTY && process.stdin.isRaw) {
-      try { process.stdin.setRawMode(false) } catch {}
+      try {
+        process.stdin.setRawMode(false)
+      } catch {}
     }
     console.error(err)
     process.exit(1)

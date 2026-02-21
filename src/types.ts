@@ -5,6 +5,7 @@
  */
 
 import type { LayoutNode } from "./layout-engine.js"
+import type { MouseEventProps } from "./mouse-events.js"
 
 // ============================================================================
 // Layout Types
@@ -160,7 +161,7 @@ export interface StyleProps {
 /**
  * Props for Box component.
  */
-export interface BoxProps extends FlexboxProps, StyleProps, TestProps {
+export interface BoxProps extends FlexboxProps, StyleProps, TestProps, MouseEventProps {
   borderStyle?: "single" | "double" | "round" | "bold" | "singleDouble" | "doubleSingle" | "classic"
   borderColor?: string
   borderTop?: boolean
@@ -183,7 +184,7 @@ export interface BoxProps extends FlexboxProps, StyleProps, TestProps {
 /**
  * Props for Text component.
  */
-export interface TextProps extends StyleProps, TestProps {
+export interface TextProps extends StyleProps, TestProps, MouseEventProps {
   children?: React.ReactNode
   wrap?: "wrap" | "truncate" | "truncate-start" | "truncate-middle" | "truncate-end" | boolean
 }

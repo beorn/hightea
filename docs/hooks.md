@@ -66,16 +66,16 @@ interface Key {
   delete: boolean
 
   // Modifiers — always available
-  ctrl: boolean        // ⌃ Ctrl
-  shift: boolean       // ⇧ Shift
-  meta: boolean        // ⌥ Opt/Alt
+  ctrl: boolean // ⌃ Ctrl
+  shift: boolean // ⇧ Shift
+  meta: boolean // ⌥ Opt/Alt
 
   // Modifiers — require Kitty protocol (pass kitty: true to run())
-  super: boolean       // ⌘ Cmd/Super
-  hyper: boolean       // ✦ Hyper
+  super: boolean // ⌘ Cmd/Super
+  hyper: boolean // ✦ Hyper
 
   // Kitty protocol extensions
-  eventType?: 1 | 2 | 3  // 1=press, 2=repeat, 3=release (requires REPORT_EVENTS flag)
+  eventType?: 1 | 2 | 3 // 1=press, 2=repeat, 3=release (requires REPORT_EVENTS flag)
 }
 ```
 

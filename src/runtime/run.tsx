@@ -38,6 +38,7 @@ import { createRuntime } from "./create-runtime.js"
 import { type InputHandler, type Key, parseKey } from "./keys.js"
 import { splitRawInput } from "../keys.js"
 import { isMouseSequence, parseMouseSequence } from "../mouse.js"
+import { createMouseEventProcessor, processMouseEvent } from "../mouse-events.js"
 import { enableKittyKeyboard, disableKittyKeyboard, KittyFlags, enableMouse, disableMouse } from "../output.js"
 import { detectKittyFromStdio } from "../kitty-detect.js"
 import { ensureLayoutEngine } from "./layout.js"
@@ -200,6 +201,9 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
   // Protocol tracking
   let kittyEnabled = false
   let mouseEnabled = false
+
+  // Mouse event processor for DOM-level dispatch
+  const mouseEventState = createMouseEventProcessor()
 
   // Input handlers
   const inputHandlers = new Set<InputHandler>()
@@ -489,6 +493,34 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
               break
             }
           }
+        }
+
+        // Handle mouse events with DOM-level dispatch
+        if (event.type === "mouse") {
+          const mouseData = event as {
+            x: number
+            y: number
+            button: number
+            action: string
+            delta?: number
+            shift: boolean
+            meta: boolean
+            ctrl: boolean
+          }
+          processMouseEvent(
+            mouseEventState,
+            {
+              button: mouseData.button,
+              x: mouseData.x,
+              y: mouseData.y,
+              action: mouseData.action as "down" | "up" | "move" | "wheel",
+              delta: mouseData.delta,
+              shift: mouseData.shift,
+              meta: mouseData.meta,
+              ctrl: mouseData.ctrl,
+            },
+            getContainerRoot(container),
+          )
         }
 
         // Schedule batched render after any event

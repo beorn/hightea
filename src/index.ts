@@ -382,6 +382,23 @@ export type { HitTarget, HitRegion } from "./hit-registry.js"
 // Mouse parsing (SGR mode 1006)
 export { parseMouseSequence, isMouseSequence, type ParsedMouse } from "./mouse.js"
 
+// Mouse events (DOM-level)
+export {
+  hitTest,
+  createMouseEvent,
+  createWheelEvent,
+  dispatchMouseEvent,
+  processMouseEvent,
+  createMouseEventProcessor,
+  checkDoubleClick,
+  createDoubleClickState,
+  computeEnterLeave,
+  type InkxMouseEvent,
+  type InkxWheelEvent,
+  type MouseEventProps,
+  type MouseEventProcessorState,
+} from "./mouse-events.js"
+
 // Non-TTY utilities
 export { isTTY, resolveNonTTYMode, stripAnsi } from "./non-tty.js"
 export type { NonTTYOptions, ResolvedNonTTYMode } from "./non-tty.js"

@@ -55,6 +55,7 @@ import { createRuntime } from "./create-runtime.js"
 import { keyToAnsi, keyToKittyAnsi } from "../keys.js"
 import { type Key, parseKey } from "./keys.js"
 import { ensureLayoutEngine } from "./layout.js"
+import { createMouseEventProcessor, processMouseEvent } from "../mouse-events.js"
 import { enableKittyKeyboard, disableKittyKeyboard, KittyFlags, enableMouse, disableMouse } from "../output.js"
 import { detectKittyFromStdio } from "../kitty-detect.js"
 import { type TermProvider, createTermProvider } from "./term-provider.js"
@@ -609,6 +610,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   let kittyEnabled = false
   let mouseEnabled = false
 
+  // Mouse event processor for DOM-level dispatch
+  const mouseEventState = createMouseEventProcessor()
+
   // Cleanup function - idempotent, can be called from exit() or finally
   const cleanup = () => {
     if (cleanedUp) return
@@ -756,6 +760,21 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Clear diagnostic arrays before the render so we capture only this render's data
     ;(globalThis as any).__inkx_content_all = undefined
     ;(globalThis as any).__inkx_node_trace = undefined
+
+    // Early return: if reconciliation produced no dirty flags on the tree,
+    // skip the pipeline entirely. This avoids cloning _prevTermBuffer (which
+    // resets dirty rows to 0), preserving the row-level dirty markers that
+    // the runtime diff needs to detect actual changes.
+    const rootHasDirty =
+      rootNode.layoutDirty ||
+      rootNode.contentDirty ||
+      rootNode.paintDirty ||
+      rootNode.bgDirty ||
+      rootNode.subtreeDirty ||
+      rootNode.childrenDirty
+    if (!rootHasDirty && _prevTermBuffer && currentBuffer) {
+      return currentBuffer
+    }
 
     const { buffer: termBuffer } = executeRender(
       rootNode,
@@ -1083,6 +1102,35 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         return "flush"
       }
     }
+
+    // DOM-level mouse event dispatch for mouse events
+    if (event.event === "mouse" && event.data) {
+      const mouseData = event.data as {
+        button: number
+        x: number
+        y: number
+        action: string
+        delta?: number
+        shift: boolean
+        meta: boolean
+        ctrl: boolean
+      }
+      processMouseEvent(
+        mouseEventState,
+        {
+          button: mouseData.button,
+          x: mouseData.x,
+          y: mouseData.y,
+          action: mouseData.action as "down" | "up" | "move" | "wheel",
+          delta: mouseData.delta,
+          shift: mouseData.shift,
+          meta: mouseData.meta,
+          ctrl: mouseData.ctrl,
+        },
+        getContainerRoot(container),
+      )
+    }
+
     return true
   }
 

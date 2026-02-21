@@ -431,15 +431,10 @@ function clampPan(state: PhotoCanvasState): void {
 // ---------------------------------------------------------------------------
 
 function renderHeader(state: PhotoCanvasState, term: ReturnType<typeof createTerm>): string {
-  const modeTag =
-    state.mode === "draw"
-      ? term.bold.green(" DRAW ")
-      : term.bold.blue(" VIEW ")
+  const modeTag = state.mode === "draw" ? term.bold.green(" DRAW ") : term.bold.blue(" VIEW ")
 
   const toolTag =
-    state.tool === "pen"
-      ? term.rgb(...state.currentColor)(`[Pen ${state.brushSize}px]`)
-      : term.dim("[Eraser]")
+    state.tool === "pen" ? term.rgb(...state.currentColor)(`[Pen ${state.brushSize}px]`) : term.dim("[Eraser]")
 
   const zoomPct = Math.round(state.zoom * 100)
 
@@ -540,11 +535,13 @@ function renderOverlay(state: PhotoCanvasState, term: ReturnType<typeof createTe
         line += term.rgb(topPixel[0], topPixel[1], topPixel[2])(FULL_BLOCK)
       } else {
         // Both pixels different colors: upper half with fg=top, bg=bottom
-        line += term.rgb(topPixel![0], topPixel![1], topPixel![2]).bgRgb(
-          bottomPixel![0],
-          bottomPixel![1],
-          bottomPixel![2],
-        )(UPPER_HALF)
+        line += term
+          .rgb(topPixel![0], topPixel![1], topPixel![2])
+          .bgRgb(
+            bottomPixel![0],
+            bottomPixel![1],
+            bottomPixel![2],
+          )(UPPER_HALF)
       }
     }
     if (line.length > 0) {
@@ -645,11 +642,13 @@ async function main() {
   const crashCleanup = () => {
     const stdout = process.stdout
     stdout.write("\x1b[?1003l\x1b[?1006l") // Disable mouse
-    stdout.write("\x1b[?25h")               // Show cursor
-    stdout.write("\x1b[?1049l")             // Exit alternate screen
-    stdout.write("\x1b[0m")                 // Reset colors
+    stdout.write("\x1b[?25h") // Show cursor
+    stdout.write("\x1b[?1049l") // Exit alternate screen
+    stdout.write("\x1b[0m") // Reset colors
     if (process.stdin.isTTY && process.stdin.isRaw) {
-      try { process.stdin.setRawMode(false) } catch {}
+      try {
+        process.stdin.setRawMode(false)
+      } catch {}
     }
   }
   process.on("uncaughtException", (err) => {
@@ -1004,11 +1003,13 @@ if (import.meta.main) {
     // Restore terminal on crash
     const stdout = process.stdout
     stdout.write("\x1b[?1003l\x1b[?1006l") // Disable mouse
-    stdout.write("\x1b[?25h")               // Show cursor
-    stdout.write("\x1b[?1049l")             // Exit alternate screen
-    stdout.write("\x1b[0m")                 // Reset colors
+    stdout.write("\x1b[?25h") // Show cursor
+    stdout.write("\x1b[?1049l") // Exit alternate screen
+    stdout.write("\x1b[0m") // Reset colors
     if (process.stdin.isTTY && process.stdin.isRaw) {
-      try { process.stdin.setRawMode(false) } catch {}
+      try {
+        process.stdin.setRawMode(false)
+      } catch {}
     }
     console.error(err)
     process.exit(1)

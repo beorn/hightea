@@ -7,12 +7,7 @@
 
 import { describe, expect, test } from "vitest"
 import { parseKeypress, keyToKittyAnsi, parseKey, matchHotkey, parseHotkey } from "../src/keys.js"
-import {
-  enableKittyKeyboard,
-  disableKittyKeyboard,
-  queryKittyKeyboard,
-  KittyFlags,
-} from "../src/output.js"
+import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard, KittyFlags } from "../src/output.js"
 
 // Helper: generate a Kitty CSI u sequence
 // Format: CSI codepoint[:shifted_codepoint][;modifiers[:event_type]] u

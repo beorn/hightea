@@ -116,11 +116,7 @@ function SimColumn({
           {col.name} ({col.tasks.length})
         </Text>
       </Box>
-      <Box
-        flexDirection="column"
-        flexGrow={1}
-        overflow="scroll"
-      >
+      <Box flexDirection="column" flexGrow={1} overflow="scroll">
         {col.tasks.map((task, i) => (
           <Box
             key={task}
@@ -160,8 +156,8 @@ function DetailPane({ width, height }: { width: number; height: number }) {
       <Text> </Text>
       <Text>Description:</Text>
       <Text wrap="wrap">
-        Implement the full OAuth2 authorization code flow with PKCE. This includes the authorization endpoint,
-        token endpoint, and refresh token rotation.
+        Implement the full OAuth2 authorization code flow with PKCE. This includes the authorization endpoint, token
+        endpoint, and refresh token rotation.
       </Text>
     </Box>
   )
@@ -204,12 +200,7 @@ function SimHVL({
           <React.Fragment key={col.name}>
             {i > 0 && <Box width={gap} flexShrink={0} />}
             <Box flexShrink={0}>
-              <SimColumn
-                col={col}
-                width={colWidth}
-                height={height}
-                isSelected={actualIndex === selectedCol}
-              />
+              <SimColumn col={col} width={colWidth} height={height} isSelected={actualIndex === selectedCol} />
             </Box>
           </React.Fragment>
         )
@@ -536,7 +527,10 @@ describe("HVL border regression: many columns", () => {
   const MANY_COLUMNS: ColumnData[] = Array.from({ length: 12 }, (_, i) => ({
     name: `Column-${String.fromCharCode(65 + i)}`,
     borderColor: ["gray", "blue", "yellow", "magenta", "cyan", "green", "red", "white"][i % 8],
-    tasks: Array.from({ length: 2 + (i % 3) }, (_, j) => `Task ${i + 1}.${j + 1}: ${["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"][j % 6]} operation`),
+    tasks: Array.from(
+      { length: 2 + (i % 3) },
+      (_, j) => `Task ${i + 1}.${j + 1}: ${["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"][j % 6]} operation`,
+    ),
   }))
 
   function ManyColBoard({
@@ -681,12 +675,7 @@ describe("HVL border regression: real HorizontalVirtualList component", () => {
             scrollTo={scrollTo}
             keyExtractor={(col) => col.name}
             renderItem={(col, index) => (
-              <SimColumn
-                col={col}
-                width={EXPANDED_WIDTH}
-                height={contentHeight}
-                isSelected={index === selectedCol}
-              />
+              <SimColumn col={col} width={EXPANDED_WIDTH} height={contentHeight} isSelected={index === selectedCol} />
             )}
           />
           {showDetailPane && <DetailPane width={detailPaneWidth} height={contentHeight} />}

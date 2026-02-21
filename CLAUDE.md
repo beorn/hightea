@@ -183,17 +183,20 @@ test("renders and handles input", async () => {
 
 **Testing API:**
 
-| Method                  | Returns   | Description                  |
-| ----------------------- | --------- | ---------------------------- | --------------------- |
-| `app.text`              | `string`  | Plain text output (no ANSI)  |
-| `app.ansi`              | `string`  | Output with ANSI codes       |
-| `app.press(key)`        | `Promise` | Send keyboard input          |
-| `app.getByTestId(id)`   | `Locator` | Find by testID prop          |
-| `app.getByText(text)`   | `Locator` | Find by text content         |
-| `app.locator(sel)`      | `Locator` | CSS-style attribute selector |
-| `locator.textContent()` | `string`  | Get element text             |
-| `locator.boundingBox()` | `Rect     | null`                        | Get position and size |
-| `locator.count()`       | `number`  | Count matches                |
+| Method                         | Returns        | Description                          |
+| ------------------------------ | -------------- | ------------------------------------ |
+| `app.text`                     | `string`       | Plain text output (no ANSI)          |
+| `app.ansi`                     | `string`       | Output with ANSI codes               |
+| `app.press(key)`               | `Promise`      | Send keyboard input                  |
+| `app.click(x, y, opts?)`       | `Promise`      | Simulate mouse click at coordinates  |
+| `app.doubleClick(x, y, opts?)` | `Promise`      | Simulate double-click at coordinates |
+| `app.wheel(x, y, delta)`       | `Promise`      | Simulate wheel scroll at coordinates |
+| `app.getByTestId(id)`          | `Locator`      | Find by testID prop                  |
+| `app.getByText(text)`          | `Locator`      | Find by text content                 |
+| `app.locator(sel)`             | `Locator`      | CSS-style attribute selector         |
+| `locator.textContent()`        | `string`       | Get element text                     |
+| `locator.boundingBox()`        | `Rect \| null` | Get position and size                |
+| `locator.count()`              | `number`       | Count matches                        |
 
 ## Kitty Keyboard Protocol
 
@@ -201,39 +204,39 @@ inkx supports the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyb
 
 **Protocol control** (exported from `inkx`):
 
-| Function | Description |
-| --- | --- |
+| Function                      | Description                                       |
+| ----------------------------- | ------------------------------------------------- |
 | `enableKittyKeyboard(flags?)` | Send `CSI > flags u`. Default: `DISAMBIGUATE` (1) |
-| `disableKittyKeyboard()` | Send `CSI < u` to pop mode stack |
-| `queryKittyKeyboard()` | Send `CSI ? u` to detect support |
+| `disableKittyKeyboard()`      | Send `CSI < u` to pop mode stack                  |
+| `queryKittyKeyboard()`        | Send `CSI ? u` to detect support                  |
 
 **Flags** (`KittyFlags`): `DISAMBIGUATE` (1), `REPORT_EVENTS` (2), `REPORT_ALTERNATE` (4), `REPORT_ALL_KEYS` (8), `REPORT_TEXT` (16).
 
 **Key fields** (on `Key`, `ParsedKeypress`, `ParsedHotkey`):
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `super` | `boolean` | Cmd ⌘ / Super modifier (Kitty bit 3) |
-| `hyper` | `boolean` | Hyper ✦ modifier (Kitty bit 4) |
-| `eventType` | `1 \| 2 \| 3` | Press (1), repeat (2), release (3). Requires `REPORT_EVENTS` flag. |
-| `shiftedKey` | `string` | Character produced when Shift is held (Kitty shifted codepoint) |
-| `baseLayoutKey` | `string` | Key on standard US layout (for non-Latin keyboards) |
-| `capsLock` | `boolean` | CapsLock is active (Kitty modifier bit 6) |
-| `numLock` | `boolean` | NumLock is active (Kitty modifier bit 7) |
-| `associatedText` | `string` | Decoded text from Kitty `REPORT_TEXT` mode |
+| Field            | Type          | Description                                                        |
+| ---------------- | ------------- | ------------------------------------------------------------------ |
+| `super`          | `boolean`     | Cmd ⌘ / Super modifier (Kitty bit 3)                               |
+| `hyper`          | `boolean`     | Hyper ✦ modifier (Kitty bit 4)                                     |
+| `eventType`      | `1 \| 2 \| 3` | Press (1), repeat (2), release (3). Requires `REPORT_EVENTS` flag. |
+| `shiftedKey`     | `string`      | Character produced when Shift is held (Kitty shifted codepoint)    |
+| `baseLayoutKey`  | `string`      | Key on standard US layout (for non-Latin keyboards)                |
+| `capsLock`       | `boolean`     | CapsLock is active (Kitty modifier bit 6)                          |
+| `numLock`        | `boolean`     | NumLock is active (Kitty modifier bit 7)                           |
+| `associatedText` | `string`      | Decoded text from Kitty `REPORT_TEXT` mode                         |
 
 **Protocol detection** (exported from `inkx`):
 
-| Function | Description |
-| --- | --- |
-| `detectKittySupport(write, read, timeout?)` | Low-level: send query, parse response |
-| `detectKittyFromStdio(stdout, stdin, timeout?)` | Convenience: detect using real stdio |
+| Function                                        | Description                           |
+| ----------------------------------------------- | ------------------------------------- |
+| `detectKittySupport(write, read, timeout?)`     | Low-level: send query, parse response |
+| `detectKittyFromStdio(stdout, stdin, timeout?)` | Convenience: detect using real stdio  |
 
 **Auto-enable**: Pass `kitty: true` to `run()` — inkx sends the query, enables the protocol if supported, and disables on cleanup.
 
 ```tsx
-await run(<App />, { kitty: true })  // Auto-detect and enable
-await run(<App />, { kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS })  // Specific flags
+await run(<App />, { kitty: true }) // Auto-detect and enable
+await run(<App />, { kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS }) // Specific flags
 ```
 
 **Testing**: Use `keyToKittyAnsi(key)` (from `inkx/testing`) to generate Kitty ANSI sequences, and `kittyMode: true` on `createRenderer` / `createApp` to route `press()` through Kitty encoding.
@@ -241,7 +244,7 @@ await run(<App />, { kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS }
 ```tsx
 import { keyToKittyAnsi } from "inkx/testing"
 
-keyToKittyAnsi("Super+j")        // '\x1b[106;9u'
+keyToKittyAnsi("Super+j") // '\x1b[106;9u'
 keyToKittyAnsi("Hyper+Control+x") // '\x1b[120;21u'
 ```
 
@@ -249,21 +252,21 @@ keyToKittyAnsi("Hyper+Control+x") // '\x1b[120;21u'
 
 Hotkey strings accept macOS symbols as modifier prefixes — no `+` separator needed:
 
-| Symbol | Modifier | Key field |
-| --- | --- | --- |
-| ⌘ | Cmd (Super) | `key.super` |
-| ⌥ | Opt (Alt) | `key.meta` |
-| ⌃ | Ctrl | `key.ctrl` |
-| ⇧ | Shift | `key.shift` |
-| ✦ | Hyper | `key.hyper` |
+| Symbol | Modifier    | Key field   |
+| ------ | ----------- | ----------- |
+| ⌘      | Cmd (Super) | `key.super` |
+| ⌥      | Opt (Alt)   | `key.meta`  |
+| ⌃      | Ctrl        | `key.ctrl`  |
+| ⇧      | Shift       | `key.shift` |
+| ✦      | Hyper       | `key.hyper` |
 
 ```tsx
 import { parseHotkey, matchHotkey } from "inkx"
 
-parseHotkey("⌘j")       // { key: 'j', super: true, ... }
-parseHotkey("⌃⇧a")      // { key: 'a', ctrl: true, shift: true, ... }
-parseHotkey("✦⌘x")      // { key: 'x', hyper: true, super: true, ... }
-parseHotkey("ctrl+j")   // Same as ⌃j — lowercase aliases also work
+parseHotkey("⌘j") // { key: 'j', super: true, ... }
+parseHotkey("⌃⇧a") // { key: 'a', ctrl: true, shift: true, ... }
+parseHotkey("✦⌘x") // { key: 'x', hyper: true, super: true, ... }
+parseHotkey("ctrl+j") // Same as ⌃j — lowercase aliases also work
 ```
 
 All modifier aliases: `ctrl`/`control`/`⌃`, `shift`/`⇧`, `alt`/`opt`/`option`/`⌥`, `cmd`/`command`/`super`/`⌘`, `hyper`/`✦`.
@@ -274,29 +277,65 @@ inkx supports SGR mouse tracking (mode 1006) for click, drag, and scroll events.
 
 **Parsing** (exported from `inkx`):
 
-| Function | Description |
-| --- | --- |
+| Function                    | Description                                      |
+| --------------------------- | ------------------------------------------------ |
 | `parseMouseSequence(input)` | Parse SGR mouse sequence → `ParsedMouse \| null` |
-| `isMouseSequence(input)` | Check if a raw input string is a mouse sequence |
+| `isMouseSequence(input)`    | Check if a raw input string is a mouse sequence  |
 
 **ParsedMouse** fields:
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `button` | `number` | 0=left, 1=middle, 2=right |
-| `x` | `number` | Column (0-indexed) |
-| `y` | `number` | Row (0-indexed) |
-| `action` | `string` | `"down"`, `"up"`, `"move"`, or `"wheel"` |
-| `delta` | `number` | Wheel: -1=up, +1=down |
-| `shift` | `boolean` | ⇧ Shift was held |
-| `meta` | `boolean` | ⌥ Alt/Meta was held |
-| `ctrl` | `boolean` | ⌃ Ctrl was held |
+| Field    | Type      | Description                              |
+| -------- | --------- | ---------------------------------------- |
+| `button` | `number`  | 0=left, 1=middle, 2=right                |
+| `x`      | `number`  | Column (0-indexed)                       |
+| `y`      | `number`  | Row (0-indexed)                          |
+| `action` | `string`  | `"down"`, `"up"`, `"move"`, or `"wheel"` |
+| `delta`  | `number`  | Wheel: -1=up, +1=down                    |
+| `shift`  | `boolean` | ⇧ Shift was held                         |
+| `meta`   | `boolean` | ⌥ Alt/Meta was held                      |
+| `ctrl`   | `boolean` | ⌃ Ctrl was held                          |
 
 **Runtime**: Pass `mouse: true` to `run()` — inkx enables SGR tracking and dispatches mouse events.
 
 ```tsx
 await run(<App />, { mouse: true })
 ```
+
+### DOM-Level Mouse Events
+
+Components can receive mouse events via React DOM-compatible props:
+
+```tsx
+<Box onClick={(e) => selectCard()} onDoubleClick={(e) => editCard()} onWheel={(e) => scroll(e.deltaY)}>
+  <Text
+    onClick={(e) => {
+      e.stopPropagation()
+      handleTextClick()
+    }}
+  >
+    Click me
+  </Text>
+</Box>
+```
+
+**Event handler props** (on `BoxProps` and `TextProps`):
+
+| Prop            | Event Type       | Bubbles |
+| --------------- | ---------------- | ------- |
+| `onClick`       | `InkxMouseEvent` | Yes     |
+| `onDoubleClick` | `InkxMouseEvent` | Yes     |
+| `onMouseDown`   | `InkxMouseEvent` | Yes     |
+| `onMouseUp`     | `InkxMouseEvent` | Yes     |
+| `onMouseMove`   | `InkxMouseEvent` | Yes     |
+| `onMouseEnter`  | `InkxMouseEvent` | No      |
+| `onMouseLeave`  | `InkxMouseEvent` | No      |
+| `onWheel`       | `InkxWheelEvent` | Yes     |
+
+**InkxMouseEvent** fields: `clientX`, `clientY`, `button`, `altKey`, `ctrlKey`, `metaKey`, `shiftKey`, `target`, `currentTarget`, `type`, `nativeEvent`, `stopPropagation()`, `preventDefault()`.
+
+**InkxWheelEvent** extends InkxMouseEvent with: `deltaY` (-1=up, +1=down), `deltaX` (always 0).
+
+**Hit testing**: Automatic tree-based using `screenRect` (last sibling wins for z-order, overflow:hidden clips).
 
 See [docs/input-features.md](docs/input-features.md) for comprehensive input documentation and [docs/terminal-capabilities.md](docs/terminal-capabilities.md) for protocol details and terminal support matrix.
 
@@ -344,6 +383,10 @@ import { detectKittySupport, detectKittyFromStdio } from "inkx"
 // Mouse events (SGR protocol)
 import { parseMouseSequence, isMouseSequence, type ParsedMouse } from "inkx"
 import { enableMouse, disableMouse } from "inkx"
+
+// Mouse events (DOM-level)
+import { hitTest, processMouseEvent, createMouseEventProcessor } from "inkx"
+import type { InkxMouseEvent, InkxWheelEvent, MouseEventProps } from "inkx"
 
 // Hotkey parsing (supports macOS symbols ⌘⌥⌃⇧✦)
 import { parseHotkey, matchHotkey } from "inkx"
@@ -613,5 +656,5 @@ to capture numbers.
 | [docs/ink-comparison.md](docs/ink-comparison.md)               | Ink issues and Inkx solutions                            |
 | [docs/migration.md](docs/migration.md)                         | Ink to inkx migration guide                              |
 | [docs/runtime-migration.md](docs/runtime-migration.md)         | Legacy inkx to inkx/runtime migration                    |
-| [docs/terminal-capabilities.md](docs/terminal-capabilities.md) | Terminal detection, render modes, protocols               |
+| [docs/terminal-capabilities.md](docs/terminal-capabilities.md) | Terminal detection, render modes, protocols              |
 | [docs/roadmap.md](docs/roadmap.md)                             | Render targets and future plans                          |

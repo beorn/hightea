@@ -14,7 +14,7 @@ import { useInput, type Key } from "inkx/runtime"
 useInput((input, key) => {
   if (input === "j" || key.downArrow) moveDown()
   if (key.ctrl && input === "s") save()
-  if (key.meta && input === "p") openPalette()  // ⌥P
+  if (key.meta && input === "p") openPalette() // ⌥P
   if (key.return) submit()
   if (input === "q") return "exit"
 })
@@ -45,7 +45,7 @@ await run(<App />, { kitty: true })
 
 // Specific flags for advanced features
 await run(<App />, {
-  kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS
+  kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS,
 })
 ```
 
@@ -53,11 +53,12 @@ await run(<App />, {
 
 ```tsx
 useInput((input, key) => {
-  if (key.super && input === "s") save()          // ⌘S
-  if (key.super && key.shift && input === "p") {   // ⌘⇧P
+  if (key.super && input === "s") save() // ⌘S
+  if (key.super && key.shift && input === "p") {
+    // ⌘⇧P
     openCommandPalette()
   }
-  if (key.hyper && input === "j") hyperJump()     // ✦J
+  if (key.hyper && input === "j") hyperJump() // ✦J
 })
 ```
 
@@ -67,14 +68,14 @@ Requires `KittyFlags.REPORT_EVENTS`:
 
 ```tsx
 await run(<App />, {
-  kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS
+  kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS,
 })
 
 // In your component:
 useInput((input, key) => {
-  if (key.eventType === 1) onKeyDown(input)   // Press
-  if (key.eventType === 2) onKeyHeld(input)   // Repeat (key held down)
-  if (key.eventType === 3) onKeyUp(input)     // Release
+  if (key.eventType === 1) onKeyDown(input) // Press
+  if (key.eventType === 2) onKeyHeld(input) // Repeat (key held down)
+  if (key.eventType === 3) onKeyUp(input) // Release
 })
 ```
 
@@ -82,13 +83,13 @@ useInput((input, key) => {
 
 The `ParsedKeypress` object (from `parseKeypress()`) includes additional Kitty fields:
 
-| Field | Type | Requires Flag | Description |
-| --- | --- | --- | --- |
-| `shiftedKey` | `string` | `REPORT_ALTERNATE` | Character when Shift is held (e.g., `!` for `1`) |
-| `baseLayoutKey` | `string` | `REPORT_ALTERNATE` | Key on US layout (for AZERTY, Dvorak, etc.) |
-| `capsLock` | `boolean` | Any | CapsLock is active |
-| `numLock` | `boolean` | Any | NumLock is active |
-| `associatedText` | `string` | `REPORT_TEXT` | Actual text the key combination produces |
+| Field            | Type      | Requires Flag      | Description                                      |
+| ---------------- | --------- | ------------------ | ------------------------------------------------ |
+| `shiftedKey`     | `string`  | `REPORT_ALTERNATE` | Character when Shift is held (e.g., `!` for `1`) |
+| `baseLayoutKey`  | `string`  | `REPORT_ALTERNATE` | Key on US layout (for AZERTY, Dvorak, etc.)      |
+| `capsLock`       | `boolean` | Any                | CapsLock is active                               |
+| `numLock`        | `boolean` | Any                | NumLock is active                                |
+| `associatedText` | `string`  | `REPORT_TEXT`      | Actual text the key combination produces         |
 
 #### Protocol Detection
 
@@ -111,7 +112,7 @@ import { detectKittySupport } from "inkx"
 const result = await detectKittySupport(
   (s) => socket.write(s),
   (ms) => readWithTimeout(socket, ms),
-  200  // timeout in ms
+  200, // timeout in ms
 )
 ```
 
@@ -124,31 +125,31 @@ import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard, KittyFla
 
 stdout.write(enableKittyKeyboard(KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS))
 // ... app runs ...
-stdout.write(disableKittyKeyboard())  // Restore previous mode
+stdout.write(disableKittyKeyboard()) // Restore previous mode
 ```
 
 #### KittyFlags Reference
 
-| Flag | Value | Description |
-| --- | --- | --- |
-| `DISAMBIGUATE` | 1 | Disambiguate escape codes (minimum useful flag) |
-| `REPORT_EVENTS` | 2 | Report press/repeat/release event types |
-| `REPORT_ALTERNATE` | 4 | Report shifted key and base layout key |
-| `REPORT_ALL_KEYS` | 8 | Report all keys as escape codes (even Enter, Tab) |
-| `REPORT_TEXT` | 16 | Report associated text as codepoints |
+| Flag               | Value | Description                                       |
+| ------------------ | ----- | ------------------------------------------------- |
+| `DISAMBIGUATE`     | 1     | Disambiguate escape codes (minimum useful flag)   |
+| `REPORT_EVENTS`    | 2     | Report press/repeat/release event types           |
+| `REPORT_ALTERNATE` | 4     | Report shifted key and base layout key            |
+| `REPORT_ALL_KEYS`  | 8     | Report all keys as escape codes (even Enter, Tab) |
+| `REPORT_TEXT`      | 16    | Report associated text as codepoints              |
 
 Combine with bitwise OR: `KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS`.
 
 #### Terminal Support
 
-| Terminal | Kitty Protocol | Notes |
-| --- | --- | --- |
-| Ghostty | Yes | Full support |
-| Kitty | Yes | Original implementation |
-| WezTerm | Yes | Full support |
-| foot | Yes | Full support |
-| iTerm2 | No | Ignores enable sequence |
-| Terminal.app | No | Ignores enable sequence |
+| Terminal     | Kitty Protocol | Notes                   |
+| ------------ | -------------- | ----------------------- |
+| Ghostty      | Yes            | Full support            |
+| Kitty        | Yes            | Original implementation |
+| WezTerm      | Yes            | Full support            |
+| foot         | Yes            | Full support            |
+| iTerm2       | No             | Ignores enable sequence |
+| Terminal.app | No             | Ignores enable sequence |
 
 Unsupported terminals safely ignore the protocol sequences.
 
@@ -181,41 +182,41 @@ const event = parseMouseSequence("\x1b[<0;10;5M")
 
 #### ParsedMouse Fields
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `button` | `number` | 0=left, 1=middle, 2=right |
-| `x` | `number` | Column (0-indexed) |
-| `y` | `number` | Row (0-indexed) |
-| `action` | `"down" \| "up" \| "move" \| "wheel"` | Event action |
-| `delta` | `number` | Scroll: -1=up, +1=down (only for `action: "wheel"`) |
-| `shift` | `boolean` | ⇧ Shift was held |
-| `meta` | `boolean` | ⌥ Alt/Meta was held |
-| `ctrl` | `boolean` | ⌃ Ctrl was held |
+| Field    | Type                                  | Description                                         |
+| -------- | ------------------------------------- | --------------------------------------------------- |
+| `button` | `number`                              | 0=left, 1=middle, 2=right                           |
+| `x`      | `number`                              | Column (0-indexed)                                  |
+| `y`      | `number`                              | Row (0-indexed)                                     |
+| `action` | `"down" \| "up" \| "move" \| "wheel"` | Event action                                        |
+| `delta`  | `number`                              | Scroll: -1=up, +1=down (only for `action: "wheel"`) |
+| `shift`  | `boolean`                             | ⇧ Shift was held                                    |
+| `meta`   | `boolean`                             | ⌥ Alt/Meta was held                                 |
+| `ctrl`   | `boolean`                             | ⌃ Ctrl was held                                     |
 
 #### Button Encoding
 
 SGR button field encoding:
 
-| Bits | Meaning |
-| --- | --- |
-| 0-1 | Button: 0=left, 1=middle, 2=right |
-| 2 (+4) | ⇧ Shift held |
-| 3 (+8) | ⌥ Meta/Alt held |
-| 4 (+16) | ⌃ Ctrl held |
-| 5 (+32) | Motion event (drag) |
-| 6-7 (+64) | Wheel: 64=up, 65=down |
+| Bits      | Meaning                           |
+| --------- | --------------------------------- |
+| 0-1       | Button: 0=left, 1=middle, 2=right |
+| 2 (+4)    | ⇧ Shift held                      |
+| 3 (+8)    | ⌥ Meta/Alt held                   |
+| 4 (+16)   | ⌃ Ctrl held                       |
+| 5 (+32)   | Motion event (drag)               |
+| 6-7 (+64) | Wheel: 64=up, 65=down             |
 
 #### Terminal Support
 
-| Terminal | SGR Mouse | Notes |
-| --- | --- | --- |
-| Ghostty | Yes | |
-| Kitty | Yes | |
-| WezTerm | Yes | |
-| iTerm2 | Yes | |
-| foot | Yes | |
-| Terminal.app | Yes | Basic support |
-| xterm | Yes | 277+ |
+| Terminal     | SGR Mouse | Notes         |
+| ------------ | --------- | ------------- |
+| Ghostty      | Yes       |               |
+| Kitty        | Yes       |               |
+| WezTerm      | Yes       |               |
+| iTerm2       | Yes       |               |
+| foot         | Yes       |               |
+| Terminal.app | Yes       | Basic support |
+| xterm        | Yes       | 277+          |
 
 #### Protocol Details
 
@@ -223,11 +224,11 @@ SGR mouse format: `CSI < button;x;y M` (press/motion) or `CSI < button;x;y m` (r
 
 inkx enables three mouse modes for comprehensive tracking:
 
-| Mode | Code | Description |
-| --- | --- | --- |
-| X10 basic | `CSI ?1000h` | Button press events |
-| Button tracking | `CSI ?1002h` | Button press + drag motion |
-| SGR encoding | `CSI ?1006h` | Extended format (no 223-column limit) |
+| Mode            | Code         | Description                           |
+| --------------- | ------------ | ------------------------------------- |
+| X10 basic       | `CSI ?1000h` | Button press events                   |
+| Button tracking | `CSI ?1002h` | Button press + drag motion            |
+| SGR encoding    | `CSI ?1006h` | Extended format (no 223-column limit) |
 
 All three are enabled/disabled together by `enableMouse()`/`disableMouse()`.
 
@@ -241,20 +242,20 @@ Parse a hotkey string into its base key and modifier flags. Supports multiple fo
 import { parseHotkey } from "inkx"
 
 // Playwright-style (plus-separated)
-parseHotkey("Control+c")     // { key: 'c', ctrl: true, ... }
+parseHotkey("Control+c") // { key: 'c', ctrl: true, ... }
 parseHotkey("Shift+ArrowUp") // { key: 'ArrowUp', shift: true, ... }
 parseHotkey("Super+Shift+p") // { key: 'p', super: true, shift: true, ... }
 
 // Lowercase aliases
-parseHotkey("ctrl+c")        // { key: 'c', ctrl: true, ... }
-parseHotkey("cmd+s")         // { key: 's', super: true, ... }
-parseHotkey("opt+x")         // { key: 'x', alt: true, ... }
+parseHotkey("ctrl+c") // { key: 'c', ctrl: true, ... }
+parseHotkey("cmd+s") // { key: 's', super: true, ... }
+parseHotkey("opt+x") // { key: 'x', alt: true, ... }
 
 // macOS symbol prefix (no + needed)
-parseHotkey("⌘j")            // { key: 'j', super: true, ... }
-parseHotkey("⌃⇧a")           // { key: 'a', ctrl: true, shift: true, ... }
-parseHotkey("✦⌘x")           // { key: 'x', hyper: true, super: true, ... }
-parseHotkey("⌥⌘p")           // { key: 'p', alt: true, super: true, ... }
+parseHotkey("⌘j") // { key: 'j', super: true, ... }
+parseHotkey("⌃⇧a") // { key: 'a', ctrl: true, shift: true, ... }
+parseHotkey("✦⌘x") // { key: 'x', hyper: true, super: true, ... }
+parseHotkey("⌥⌘p") // { key: 'p', alt: true, super: true, ... }
 ```
 
 ### matchHotkey
@@ -277,13 +278,13 @@ useInput((input, key) => {
 
 ```tsx
 interface ParsedHotkey {
-  key: string      // Base key name or character
-  ctrl: boolean    // ⌃ Control
-  meta: boolean    // Meta
-  shift: boolean   // ⇧ Shift
-  alt: boolean     // ⌥ Alt/Option
-  super: boolean   // ⌘ Cmd/Super
-  hyper: boolean   // ✦ Hyper
+  key: string // Base key name or character
+  ctrl: boolean // ⌃ Control
+  meta: boolean // Meta
+  shift: boolean // ⇧ Shift
+  alt: boolean // ⌥ Alt/Option
+  super: boolean // ⌘ Cmd/Super
+  hyper: boolean // ✦ Hyper
 }
 ```
 
@@ -291,13 +292,13 @@ interface ParsedHotkey {
 
 ### macOS Modifier Symbols
 
-| Symbol | Name | Aliases | Key field |
-| --- | --- | --- | --- |
-| ⌘ | Cmd | `cmd`, `command`, `super`, `Super` | `key.super` |
-| ⌥ | Opt | `alt`, `opt`, `option`, `Alt`, `Meta` | `key.meta` |
-| ⌃ | Ctrl | `ctrl`, `control`, `Control` | `key.ctrl` |
-| ⇧ | Shift | `shift`, `Shift` | `key.shift` |
-| ✦ | Hyper | `hyper`, `Hyper` | `key.hyper` |
+| Symbol | Name  | Aliases                               | Key field   |
+| ------ | ----- | ------------------------------------- | ----------- |
+| ⌘      | Cmd   | `cmd`, `command`, `super`, `Super`    | `key.super` |
+| ⌥      | Opt   | `alt`, `opt`, `option`, `Alt`, `Meta` | `key.meta`  |
+| ⌃      | Ctrl  | `ctrl`, `control`, `Control`          | `key.ctrl`  |
+| ⇧      | Shift | `shift`, `Shift`                      | `key.shift` |
+| ✦      | Hyper | `hyper`, `Hyper`                      | `key.hyper` |
 
 Symbols can be used as prefixes without a `+` separator: `⌘j`, `⌃⇧a`, `✦⌘x`.
 
@@ -305,15 +306,15 @@ Lowercase names require `+`: `cmd+j`, `ctrl+shift+a`, `hyper+cmd+x`.
 
 ### Modifier Detection by Protocol
 
-| Modifier | Legacy ANSI | Kitty Protocol |
-| --- | --- | --- |
-| ⌃ Ctrl | Yes | Yes |
-| ⇧ Shift | Partial (letters, some combos) | Yes |
-| ⌥ Opt/Alt | Yes (ESC prefix) | Yes |
-| ⌘ Cmd | No | Yes |
-| ✦ Hyper | No | Yes |
-| CapsLock | No | Yes |
-| NumLock | No | Yes |
+| Modifier  | Legacy ANSI                    | Kitty Protocol |
+| --------- | ------------------------------ | -------------- |
+| ⌃ Ctrl    | Yes                            | Yes            |
+| ⇧ Shift   | Partial (letters, some combos) | Yes            |
+| ⌥ Opt/Alt | Yes (ESC prefix)               | Yes            |
+| ⌘ Cmd     | No                             | Yes            |
+| ✦ Hyper   | No                             | Yes            |
+| CapsLock  | No                             | Yes            |
+| NumLock   | No                             | Yes            |
 
 ## Runtime Options
 
@@ -321,18 +322,20 @@ Both `run()` and `createApp().run()` accept input protocol options:
 
 ```tsx
 interface RunOptions {
-  kitty?: boolean | number  // true = auto-detect, number = specific KittyFlags
-  mouse?: boolean           // true = enable SGR mouse tracking
+  kitty?: boolean | number // true = auto-detect, number = specific KittyFlags
+  mouse?: boolean // true = enable SGR mouse tracking
   // ... other options
 }
 ```
 
 When `kitty: true`, the runtime:
+
 1. Sends `CSI ? u` to query terminal support
 2. If supported, enables with `KittyFlags.DISAMBIGUATE`
 3. On cleanup, sends `CSI < u` to restore previous mode
 
 When `mouse: true`, the runtime:
+
 1. Enables X10 + button tracking + SGR encoding
 2. Parses incoming mouse sequences and dispatches events
 3. On cleanup, disables all mouse modes

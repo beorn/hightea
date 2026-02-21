@@ -143,8 +143,8 @@ function KeyExplorer({ kittySupported }: { kittySupported: boolean }): JSX.Eleme
             <Box flexDirection="column">
               <Text color="cyan">Try pressing some key combinations:</Text>
               <Box height={1} />
-              <Text>  Ctrl+A, Shift+Tab, Alt+Enter...</Text>
-              {kittySupported && <Text>  Cmd+S, Hyper+X (Kitty-only)</Text>}
+              <Text> Ctrl+A, Shift+Tab, Alt+Enter...</Text>
+              {kittySupported && <Text> Cmd+S, Hyper+X (Kitty-only)</Text>}
               <Box height={1} />
               <Text dim>Each keypress shows its full breakdown here.</Text>
             </Box>
@@ -179,13 +179,7 @@ function KeyDetails({ event }: { event: KeyEvent }): JSX.Element {
   const { parsed, raw } = event
 
   // Determine which modifiers are active
-  const modActive: boolean[] = [
-    parsed.ctrl,
-    parsed.shift,
-    parsed.meta || parsed.option,
-    parsed.super,
-    parsed.hyper,
-  ]
+  const modActive: boolean[] = [parsed.ctrl, parsed.shift, parsed.meta || parsed.option, parsed.super, parsed.hyper]
 
   return (
     <Box flexDirection="column">
@@ -236,7 +230,13 @@ function KeyDetails({ event }: { event: KeyEvent }): JSX.Element {
         <Text>
           <Text bold>Raw:</Text>{" "}
           <Text dim>
-            {[...raw].map((c) => (c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127 ? `\\x${c.charCodeAt(0).toString(16).padStart(2, "0")}` : c)).join("")}
+            {[...raw]
+              .map((c) =>
+                c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127
+                  ? `\\x${c.charCodeAt(0).toString(16).padStart(2, "0")}`
+                  : c,
+              )
+              .join("")}
           </Text>
         </Text>
       </Box>
@@ -264,11 +264,7 @@ function ModBadge({ mod, active }: { mod: ModDef; active: boolean }): JSX.Elemen
 
 function KeyField({ label, value }: { label: string; value: string | boolean | undefined }): JSX.Element {
   if (value === undefined) {
-    return (
-      <Text dim>
-        {label}: --
-      </Text>
-    )
+    return <Text dim>{label}: --</Text>
   }
   return (
     <Text>
@@ -324,11 +320,13 @@ async function main() {
   const cleanup = () => {
     const stdout = process.stdout
     stdout.write("\x1b[?1003l\x1b[?1006l") // Disable mouse
-    stdout.write("\x1b[?25h")               // Show cursor
-    stdout.write("\x1b[?1049l")             // Exit alternate screen
-    stdout.write("\x1b[0m")                 // Reset colors
+    stdout.write("\x1b[?25h") // Show cursor
+    stdout.write("\x1b[?1049l") // Exit alternate screen
+    stdout.write("\x1b[0m") // Reset colors
     if (process.stdin.isTTY && process.stdin.isRaw) {
-      try { process.stdin.setRawMode(false) } catch {}
+      try {
+        process.stdin.setRawMode(false)
+      } catch {}
     }
   }
   process.on("uncaughtException", (err) => {
@@ -370,11 +368,13 @@ if (import.meta.main) {
     // Restore terminal on crash
     const stdout = process.stdout
     stdout.write("\x1b[?1003l\x1b[?1006l") // Disable mouse
-    stdout.write("\x1b[?25h")               // Show cursor
-    stdout.write("\x1b[?1049l")             // Exit alternate screen
-    stdout.write("\x1b[0m")                 // Reset colors
+    stdout.write("\x1b[?25h") // Show cursor
+    stdout.write("\x1b[?1049l") // Exit alternate screen
+    stdout.write("\x1b[0m") // Reset colors
     if (process.stdin.isTTY && process.stdin.isRaw) {
-      try { process.stdin.setRawMode(false) } catch {}
+      try {
+        process.stdin.setRawMode(false)
+      } catch {}
     }
     console.error(err)
     process.exit(1)

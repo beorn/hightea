@@ -112,8 +112,7 @@ export function renderBorder(
 
   // Helper to check if a column is visible within clip bounds
   const isColVisible = (col: number): boolean => {
-    if (clipBounds?.left === undefined || clipBounds.right === undefined)
-      return col >= 0 && col < buffer.width
+    if (clipBounds?.left === undefined || clipBounds.right === undefined) return col >= 0 && col < buffer.width
     return col >= clipBounds.left && col < clipBounds.right && col < buffer.width
   }
 

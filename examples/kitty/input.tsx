@@ -88,10 +88,7 @@ function RichInputDemo({ kittySupported }: { kittySupported: boolean }): JSX.Ele
 
   function addEvent(type: "key" | "mouse", summary: string, color?: string) {
     counterRef.current++
-    setEvents((prev) => [
-      ...prev.slice(-18),
-      { index: counterRef.current, type, summary, color },
-    ])
+    setEvents((prev) => [...prev.slice(-18), { index: counterRef.current, type, summary, color }])
   }
 
   // Listen to raw stdin for mouse events + Kitty key details
@@ -115,7 +112,11 @@ function RichInputDemo({ kittySupported }: { kittySupported: boolean }): JSX.Ele
           const btn = ["Left", "Middle", "Right"][parsed.button] ?? `Btn${parsed.button}`
           addEvent("mouse", `${modStr}${btn} click at (${parsed.x},${parsed.y})`, "blue")
         } else if (parsed.action === "wheel") {
-          addEvent("mouse", `${modStr}Scroll ${parsed.delta! < 0 ? "up" : "down"} at (${parsed.x},${parsed.y})`, "magenta")
+          addEvent(
+            "mouse",
+            `${modStr}Scroll ${parsed.delta! < 0 ? "up" : "down"} at (${parsed.x},${parsed.y})`,
+            "magenta",
+          )
         }
       }
     }
@@ -208,8 +209,7 @@ function RichInputDemo({ kittySupported }: { kittySupported: boolean }): JSX.Ele
           </Text>
         </Text>
         <Text>
-          <Text bold>Kitty:</Text>{" "}
-          {kittySupported ? <Text color="green">yes</Text> : <Text color="yellow">no</Text>}
+          <Text bold>Kitty:</Text> {kittySupported ? <Text color="green">yes</Text> : <Text color="yellow">no</Text>}
         </Text>
         {mousePos && (
           <Text>
@@ -253,9 +253,7 @@ function RichInputDemo({ kittySupported }: { kittySupported: boolean }): JSX.Ele
             <Text bold dim>
               Keybindings
             </Text>
-            {KEYBINDINGS.filter(
-              (kb) => kb.mode === "both" || kb.mode === mode,
-            ).map((kb, i) => {
+            {KEYBINDINGS.filter((kb) => kb.mode === "both" || kb.mode === mode).map((kb, i) => {
               const parsed = parseHotkey(kb.hotkey)
               const hotkeyDisplay = formatHotkey(kb.hotkey, parsed)
               const needsKitty = kb.hotkey.includes("⌘") || kb.hotkey.includes("✦")
@@ -283,9 +281,7 @@ function RichInputDemo({ kittySupported }: { kittySupported: boolean }): JSX.Ele
           ) : (
             events.map((e, i) => (
               <Text key={i} dimColor={i < events.length - 1}>
-                <Text color={e.type === "key" ? "cyan" : "blue"}>
-                  {e.type === "key" ? "KEY" : "PTR"}
-                </Text>{" "}
+                <Text color={e.type === "key" ? "cyan" : "blue"}>{e.type === "key" ? "KEY" : "PTR"}</Text>{" "}
                 <Text color={(e.color ?? "white") as any}>{e.summary}</Text>
               </Text>
             ))
@@ -296,10 +292,7 @@ function RichInputDemo({ kittySupported }: { kittySupported: boolean }): JSX.Ele
   )
 }
 
-function formatHotkey(
-  raw: string,
-  parsed: ReturnType<typeof parseHotkey>,
-): string {
+function formatHotkey(raw: string, parsed: ReturnType<typeof parseHotkey>): string {
   // Use the raw string if it already uses symbols
   if (/[⌘⌥⌃⇧✦]/.test(raw)) return raw
   // Otherwise build from parsed
@@ -317,11 +310,13 @@ async function main() {
   const cleanup = () => {
     const stdout = process.stdout
     stdout.write("\x1b[?1003l\x1b[?1006l") // Disable mouse
-    stdout.write("\x1b[?25h")               // Show cursor
-    stdout.write("\x1b[?1049l")             // Exit alternate screen
-    stdout.write("\x1b[0m")                 // Reset colors
+    stdout.write("\x1b[?25h") // Show cursor
+    stdout.write("\x1b[?1049l") // Exit alternate screen
+    stdout.write("\x1b[0m") // Reset colors
     if (process.stdin.isTTY && process.stdin.isRaw) {
-      try { process.stdin.setRawMode(false) } catch {}
+      try {
+        process.stdin.setRawMode(false)
+      } catch {}
     }
   }
   process.on("uncaughtException", (err) => {
@@ -363,11 +358,13 @@ if (import.meta.main) {
     // Restore terminal on crash
     const stdout = process.stdout
     stdout.write("\x1b[?1003l\x1b[?1006l") // Disable mouse
-    stdout.write("\x1b[?25h")               // Show cursor
-    stdout.write("\x1b[?1049l")             // Exit alternate screen
-    stdout.write("\x1b[0m")                 // Reset colors
+    stdout.write("\x1b[?25h") // Show cursor
+    stdout.write("\x1b[?1049l") // Exit alternate screen
+    stdout.write("\x1b[0m") // Reset colors
     if (process.stdin.isTTY && process.stdin.isRaw) {
-      try { process.stdin.setRawMode(false) } catch {}
+      try {
+        process.stdin.setRawMode(false)
+      } catch {}
     }
     console.error(err)
     process.exit(1)

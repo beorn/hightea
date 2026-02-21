@@ -664,6 +664,19 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     console.log(debugTree(getContainerRoot(instance.container)))
   }
 
+  // actAndRender: wrap a callback in act() so React state updates are flushed,
+  // then doRender() to update the buffer. Used by click/wheel/doubleClick.
+  const actAndRenderFn = (fn: () => void) => {
+    if (!instance.mounted) return
+    withActEnvironment(() => {
+      act(() => {
+        fn()
+      })
+    })
+    const newFrame = doRender()
+    instance.frames.push(newFrame)
+  }
+
   // Build unified App instance
   return buildApp({
     getContainer,
@@ -681,6 +694,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     columns: cols,
     rows: rows,
     kittyMode,
+    actAndRender: actAndRenderFn,
   })
 }
 
