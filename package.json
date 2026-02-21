@@ -50,6 +50,18 @@
     "./toolbelt": {
       "types": "./src/toolbelt/index.ts",
       "import": "./src/toolbelt/index.ts"
+    },
+    "./core": {
+      "types": "./src/core/index.ts",
+      "import": "./src/core/index.ts"
+    },
+    "./store": {
+      "types": "./src/store/index.ts",
+      "import": "./src/store/index.ts"
+    },
+    "./react": {
+      "types": "./src/react/index.ts",
+      "import": "./src/react/index.ts"
     }
   },
   "scripts": {
