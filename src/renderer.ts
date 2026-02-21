@@ -13,7 +13,8 @@ import { EventEmitter } from "node:events"
 import React, { type ReactElement, type ReactNode, act } from "react"
 import { type App, buildApp } from "./app.js"
 import { type TerminalBuffer, cellEquals } from "./buffer.js"
-import { AppContext, EventsContext, InputContext, StdoutContext, TermContext } from "./context.js"
+import { AppContext, EventsContext, FocusManagerContext, InputContext, StdoutContext, TermContext } from "./context.js"
+import { createFocusManager } from "./focus-manager.js"
 import {
   type LayoutEngine,
   ensureDefaultLayoutEngine,
@@ -329,6 +330,9 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     }),
   }
 
+  // Focus manager (tree-based focus system)
+  const focusManager = createFocusManager()
+
   // Wrap element with contexts
   function wrapWithContexts(el: ReactElement): ReactElement {
     return React.createElement(
@@ -344,14 +348,18 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
             StdoutContext.Provider,
             { value: { stdout: mockStdout, write: () => {} } },
             React.createElement(
-              InputContext.Provider,
-              {
-                value: {
-                  eventEmitter: instance.inputEmitter,
-                  exitOnCtrlC: false,
+              FocusManagerContext.Provider,
+              { value: focusManager },
+              React.createElement(
+                InputContext.Provider,
+                {
+                  value: {
+                    eventEmitter: instance.inputEmitter,
+                    exitOnCtrlC: false,
+                  },
                 },
-              },
-              el,
+                el,
+              ),
             ),
           ),
         ),
@@ -695,6 +703,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     rows: rows,
     kittyMode,
     actAndRender: actAndRenderFn,
+    focusManager,
   })
 }
 

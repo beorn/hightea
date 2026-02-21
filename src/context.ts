@@ -12,6 +12,7 @@
 import type { EventEmitter } from "node:events"
 import type { Term } from "chalkx"
 import { createContext } from "react"
+import type { FocusManager } from "./focus-manager.js"
 import type { Event, InkxNode } from "./types.js"
 
 // ============================================================================
@@ -176,3 +177,13 @@ export interface FocusContextValue {
  * Used by useFocus() and useFocusManager() hooks.
  */
 export const FocusContext = createContext<FocusContextValue | null>(null)
+
+// ============================================================================
+// Focus Manager Context (new tree-based focus system)
+// ============================================================================
+
+/**
+ * Context for the new tree-based focus manager.
+ * Provides the FocusManager instance to useFocusable() and useFocusWithin() hooks.
+ */
+export const FocusManagerContext = createContext<FocusManager | null>(null)

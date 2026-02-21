@@ -178,6 +178,21 @@ export { useStdout } from "./hooks/useStdout.js"
 export { useStdin } from "./hooks/useStdin.js"
 export { useFocus, resetFocusIdCounter } from "./hooks/useFocus.js"
 export { useFocusManager } from "./hooks/useFocusManager.js"
+
+// Focus system (tree-based)
+export { createFocusManager } from "./focus-manager.js"
+export type { FocusManager, FocusOrigin, FocusSnapshot } from "./focus-manager.js"
+export { findFocusableAncestor, getTabOrder, findByTestID, findSpatialTarget, getExplicitFocusLink } from "./focus-queries.js"
+export {
+  createKeyEvent,
+  createFocusEvent,
+  dispatchKeyEvent,
+  dispatchFocusEvent,
+} from "./focus-events.js"
+export type { InkxKeyEvent, InkxFocusEvent, FocusEventProps } from "./focus-events.js"
+export { useFocusable } from "./hooks/useFocusable.js"
+export type { UseFocusableResult } from "./hooks/useFocusable.js"
+export { useFocusWithin } from "./hooks/useFocusWithin.js"
 export { useTerm } from "./hooks/useTerm.js"
 export { useConsole } from "./hooks/useConsole.js"
 export { useCursor, resetCursorState, getCursorState, subscribeCursor } from "./hooks/useCursor.js"
@@ -213,7 +228,7 @@ export type { UseScrollbackOptions } from "./hooks/useScrollback.js"
 export { useTransition, useDeferredValue, useId } from "react"
 
 // Contexts for advanced usage (usually hooks are preferred)
-export { TermContext, EventsContext } from "./context.js"
+export { TermContext, EventsContext, FocusManagerContext } from "./context.js"
 
 // =============================================================================
 // Re-exports from chalkx

@@ -29,7 +29,10 @@ import process from "node:process"
 import React, { createContext, useContext, useEffect, type ReactElement } from "react"
 
 import { createTerm } from "chalkx"
-import { AppContext, StdoutContext, TermContext } from "../context.js"
+import { AppContext, FocusManagerContext, StdoutContext, TermContext } from "../context.js"
+import { createFocusManager } from "../focus-manager.js"
+import { createKeyEvent, dispatchKeyEvent } from "../focus-events.js"
+import { findFocusableAncestor } from "../focus-queries.js"
 import { executeRender } from "../pipeline/index.js"
 import { createContainer, getContainerRoot, reconciler } from "../reconciler.js"
 import { merge, takeUntil } from "../streams/index.js"
@@ -38,7 +41,7 @@ import { createRuntime } from "./create-runtime.js"
 import { type InputHandler, type Key, parseKey } from "./keys.js"
 import { splitRawInput } from "../keys.js"
 import { isMouseSequence, parseMouseSequence } from "../mouse.js"
-import { createMouseEventProcessor, processMouseEvent } from "../mouse-events.js"
+import { createMouseEventProcessor, hitTest, processMouseEvent } from "../mouse-events.js"
 import { enableKittyKeyboard, disableKittyKeyboard, KittyFlags, enableMouse, disableMouse } from "../output.js"
 import { detectKittyFromStdio } from "../kitty-detect.js"
 import { ensureLayoutEngine } from "./layout.js"
@@ -204,6 +207,9 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 
   // Mouse event processor for DOM-level dispatch
   const mouseEventState = createMouseEventProcessor()
+
+  // Focus manager (tree-based focus system)
+  const focusManager = createFocusManager()
 
   // Input handlers
   const inputHandlers = new Set<InputHandler>()
@@ -422,9 +428,11 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     <TermContext.Provider value={mockTerm}>
       <AppContext.Provider value={{ exit }}>
         <StdoutContext.Provider value={{ stdout: mockStdout, write: () => {} }}>
-          <RuntimeContext.Provider value={runtimeContextValue}>
-            <InputContext.Provider value={inputContextValue}>{element}</InputContext.Provider>
-          </RuntimeContext.Provider>
+          <FocusManagerContext.Provider value={focusManager}>
+            <RuntimeContext.Provider value={runtimeContextValue}>
+              <InputContext.Provider value={inputContextValue}>{element}</InputContext.Provider>
+            </RuntimeContext.Provider>
+          </FocusManagerContext.Provider>
         </StdoutContext.Provider>
       </AppContext.Provider>
     </TermContext.Provider>
@@ -486,11 +494,41 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
             parsedKey: Key
           }
 
-          for (const handler of inputHandlers) {
-            const result = handler(input, parsedKey)
-            if (result === "exit") {
-              exit()
-              break
+          // Focus system: dispatch key event to focused node first
+          let focusHandled = false
+          if (focusManager.activeElement) {
+            const keyEvent = createKeyEvent(input, parsedKey, focusManager.activeElement)
+            dispatchKeyEvent(keyEvent)
+
+            if (keyEvent.propagationStopped || keyEvent.defaultPrevented) {
+              focusHandled = true
+            }
+
+            // Default focus navigation (Tab, Shift+Tab, arrows) if not handled
+            if (!focusHandled) {
+              const root = getContainerRoot(container)
+              if (parsedKey.tab && !parsedKey.shift) {
+                focusManager.focusNext(root)
+                focusHandled = true
+              } else if (parsedKey.tab && parsedKey.shift) {
+                focusManager.focusPrev(root)
+                focusHandled = true
+              } else if (parsedKey.upArrow || parsedKey.downArrow || parsedKey.leftArrow || parsedKey.rightArrow) {
+                const direction = parsedKey.upArrow ? "up" : parsedKey.downArrow ? "down" : parsedKey.leftArrow ? "left" : "right"
+                focusManager.focusDirection(root, direction)
+                // Don't consume arrow events — let them fall through to app handlers
+              }
+            }
+          }
+
+          // Fall through to app's useInput handlers
+          if (!focusHandled) {
+            for (const handler of inputHandlers) {
+              const result = handler(input, parsedKey)
+              if (result === "exit") {
+                exit()
+                break
+              }
             }
           }
         }
@@ -507,6 +545,20 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
             meta: boolean
             ctrl: boolean
           }
+
+          const root = getContainerRoot(container)
+
+          // Click-to-focus: on mousedown, find focusable ancestor and focus it
+          if (mouseData.action === "down") {
+            const target = hitTest(root, mouseData.x, mouseData.y)
+            if (target) {
+              const focusable = findFocusableAncestor(target)
+              if (focusable) {
+                focusManager.focus(focusable, "mouse")
+              }
+            }
+          }
+
           processMouseEvent(
             mouseEventState,
             {
@@ -519,7 +571,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
               meta: mouseData.meta,
               ctrl: mouseData.ctrl,
             },
-            getContainerRoot(container),
+            root,
           )
         }
 
@@ -564,12 +616,36 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
       // Parse the key
       const [input, parsedKey] = parseKey(key)
 
-      // Dispatch to handlers
-      for (const handler of inputHandlers) {
-        const result = handler(input, parsedKey)
-        if (result === "exit") {
-          exit()
-          break
+      // Focus system: dispatch key event to focused node first
+      let focusHandled = false
+      if (focusManager.activeElement) {
+        const keyEvent = createKeyEvent(input, parsedKey, focusManager.activeElement)
+        dispatchKeyEvent(keyEvent)
+
+        if (keyEvent.propagationStopped || keyEvent.defaultPrevented) {
+          focusHandled = true
+        }
+
+        if (!focusHandled) {
+          const root = getContainerRoot(container)
+          if (parsedKey.tab && !parsedKey.shift) {
+            focusManager.focusNext(root)
+            focusHandled = true
+          } else if (parsedKey.tab && parsedKey.shift) {
+            focusManager.focusPrev(root)
+            focusHandled = true
+          }
+        }
+      }
+
+      // Fall through to app's useInput handlers
+      if (!focusHandled) {
+        for (const handler of inputHandlers) {
+          const result = handler(input, parsedKey)
+          if (result === "exit") {
+            exit()
+            break
+          }
         }
       }
 

@@ -1,0 +1,323 @@
+/**
+ * Focus Manager — standalone state container for the inkx focus system.
+ *
+ * Pure TypeScript, no React dependency. The subscribe/getSnapshot pattern
+ * enables useSyncExternalStore in hooks.
+ *
+ * Replaces the flat focus list in context.ts (FocusContext with focusables Map).
+ */
+
+import type { InkxNode, Rect } from "./types.js"
+import { findByTestID, findFocusableAncestor, getTabOrder, findSpatialTarget, getExplicitFocusLink } from "./focus-queries.js"
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export type FocusOrigin = "keyboard" | "mouse" | "programmatic"
+
+export interface FocusSnapshot {
+  activeId: string | null
+  previousId: string | null
+  focusOrigin: FocusOrigin | null
+  scopeStack: readonly string[]
+}
+
+export interface FocusManager {
+  /** Currently focused node */
+  readonly activeElement: InkxNode | null
+  /** testID of the currently focused node */
+  readonly activeId: string | null
+  /** Previously focused node */
+  readonly previousElement: InkxNode | null
+  /** testID of the previously focused node */
+  readonly previousId: string | null
+  /** How focus was most recently acquired */
+  readonly focusOrigin: FocusOrigin | null
+  /** Stack of active focus scope IDs */
+  readonly scopeStack: readonly string[]
+  /** Map of scope ID -> last focused testID within that scope */
+  readonly scopeMemory: Readonly<Record<string, string>>
+
+  /** Focus a specific node */
+  focus(node: InkxNode, origin?: FocusOrigin): void
+  /** Focus a node by testID (requires root for tree search) */
+  focusById(id: string, root: InkxNode, origin?: FocusOrigin): void
+  /** Clear focus */
+  blur(): void
+
+  /** Push a focus scope onto the stack */
+  enterScope(scopeId: string): void
+  /** Pop the current focus scope */
+  exitScope(): void
+
+  /** Get the testID path from focused node to root */
+  getFocusPath(root: InkxNode): string[]
+  /** Check if a subtree rooted at testID contains the focused node */
+  hasFocusWithin(root: InkxNode, testID: string): boolean
+
+  /** Focus the next focusable node in tab order */
+  focusNext(root: InkxNode, scope?: InkxNode): void
+  /** Focus the previous focusable node in tab order */
+  focusPrev(root: InkxNode, scope?: InkxNode): void
+  /** Focus in a spatial direction (up/down/left/right) */
+  focusDirection(
+    root: InkxNode,
+    direction: "up" | "down" | "left" | "right",
+    layoutFn?: (node: InkxNode) => Rect | null,
+  ): void
+
+  /** Subscribe for React integration (useSyncExternalStore) */
+  subscribe(listener: () => void): () => void
+  /** Get immutable snapshot for useSyncExternalStore */
+  getSnapshot(): FocusSnapshot
+}
+
+// ============================================================================
+// Factory
+// ============================================================================
+
+export function createFocusManager(): FocusManager {
+  // Internal state
+  let activeElement: InkxNode | null = null
+  let activeId: string | null = null
+  let previousElement: InkxNode | null = null
+  let previousId: string | null = null
+  let focusOrigin: FocusOrigin | null = null
+  const scopeStack: string[] = []
+  const scopeMemory: Record<string, string> = {}
+
+  // Subscriber management
+  const listeners = new Set<() => void>()
+  let snapshot: FocusSnapshot | null = null
+
+  function notify(): void {
+    snapshot = null // Invalidate cached snapshot
+    for (const listener of listeners) {
+      listener()
+    }
+  }
+
+  function getTestID(node: InkxNode): string | null {
+    const props = node.props as Record<string, unknown>
+    return typeof props.testID === "string" ? props.testID : null
+  }
+
+  // ---- Focus operations ----
+
+  function focus(node: InkxNode, origin: FocusOrigin = "programmatic"): void {
+    // Skip if already focused on this node
+    if (activeElement === node) {
+      // Still update origin if different
+      if (focusOrigin !== origin) {
+        focusOrigin = origin
+        notify()
+      }
+      return
+    }
+
+    previousElement = activeElement
+    previousId = activeId
+    activeElement = node
+    activeId = getTestID(node)
+    focusOrigin = origin
+
+    // Remember this focus in the current scope
+    if (activeId && scopeStack.length > 0) {
+      scopeMemory[scopeStack[scopeStack.length - 1]!] = activeId
+    }
+
+    notify()
+  }
+
+  function focusById(id: string, root: InkxNode, origin: FocusOrigin = "programmatic"): void {
+    const node = findByTestID(root, id)
+    if (node) {
+      // Walk up to the nearest focusable ancestor if the found node isn't focusable
+      const focusable = findFocusableAncestor(node)
+      if (focusable) {
+        focus(focusable, origin)
+      }
+    }
+  }
+
+  function blur(): void {
+    if (!activeElement) return
+
+    previousElement = activeElement
+    previousId = activeId
+    activeElement = null
+    activeId = null
+    focusOrigin = null
+
+    notify()
+  }
+
+  // ---- Scope management ----
+
+  function enterScope(scopeId: string): void {
+    scopeStack.push(scopeId)
+    notify()
+  }
+
+  function exitScope(): void {
+    const exited = scopeStack.pop()
+    if (exited === undefined) return
+
+    // Restore focus to the remembered element in the parent scope
+    // (Caller is responsible for providing root to restore if needed)
+    notify()
+  }
+
+  // ---- Tree queries ----
+
+  function getFocusPath(root: InkxNode): string[] {
+    if (!activeElement) return []
+
+    const path: string[] = []
+    let current: InkxNode | null = activeElement
+    while (current && current !== root.parent) {
+      const id = getTestID(current)
+      if (id) path.push(id)
+      current = current.parent
+    }
+    return path
+  }
+
+  function hasFocusWithin(root: InkxNode, testID: string): boolean {
+    if (!activeElement) return false
+
+    // Find the node with the given testID
+    const target = findByTestID(root, testID)
+    if (!target) return false
+
+    // Walk up from activeElement to see if we pass through target
+    let current: InkxNode | null = activeElement
+    while (current) {
+      if (current === target) return true
+      current = current.parent
+    }
+    return false
+  }
+
+  // ---- Navigation ----
+
+  function focusNext(root: InkxNode, scope?: InkxNode): void {
+    const order = getTabOrder(root, scope)
+    if (order.length === 0) return
+
+    if (!activeElement) {
+      // Nothing focused — focus the first element
+      focus(order[0]!, "keyboard")
+      return
+    }
+
+    const currentIndex = order.indexOf(activeElement)
+    // Wrap around to the first element
+    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % order.length
+    focus(order[nextIndex]!, "keyboard")
+  }
+
+  function focusPrev(root: InkxNode, scope?: InkxNode): void {
+    const order = getTabOrder(root, scope)
+    if (order.length === 0) return
+
+    if (!activeElement) {
+      // Nothing focused — focus the last element
+      focus(order[order.length - 1]!, "keyboard")
+      return
+    }
+
+    const currentIndex = order.indexOf(activeElement)
+    // Wrap around to the last element
+    const prevIndex = currentIndex <= 0 ? order.length - 1 : currentIndex - 1
+    focus(order[prevIndex]!, "keyboard")
+  }
+
+  function focusDirection(
+    root: InkxNode,
+    direction: "up" | "down" | "left" | "right",
+    layoutFn?: (node: InkxNode) => Rect | null,
+  ): void {
+    if (!activeElement) return
+
+    // Check for explicit focus link first
+    const explicitTarget = getExplicitFocusLink(activeElement, direction)
+    if (explicitTarget) {
+      focusById(explicitTarget, root, "keyboard")
+      return
+    }
+
+    // Fall back to spatial navigation
+    const candidates = getTabOrder(root)
+    const resolvedLayoutFn = layoutFn ?? ((node: InkxNode) => node.screenRect)
+    const target = findSpatialTarget(activeElement, direction, candidates, resolvedLayoutFn)
+    if (target) {
+      focus(target, "keyboard")
+    }
+  }
+
+  // ---- Subscribe/snapshot for useSyncExternalStore ----
+
+  function subscribe(listener: () => void): () => void {
+    listeners.add(listener)
+    return () => {
+      listeners.delete(listener)
+    }
+  }
+
+  function getSnapshot(): FocusSnapshot {
+    if (!snapshot) {
+      snapshot = {
+        activeId,
+        previousId,
+        focusOrigin,
+        scopeStack: [...scopeStack],
+      }
+    }
+    return snapshot
+  }
+
+  // ---- Public interface ----
+
+  return {
+    get activeElement() {
+      return activeElement
+    },
+    get activeId() {
+      return activeId
+    },
+    get previousElement() {
+      return previousElement
+    },
+    get previousId() {
+      return previousId
+    },
+    get focusOrigin() {
+      return focusOrigin
+    },
+    get scopeStack() {
+      return scopeStack as readonly string[]
+    },
+    get scopeMemory() {
+      return scopeMemory as Readonly<Record<string, string>>
+    },
+
+    focus,
+    focusById,
+    blur,
+
+    enterScope,
+    exitScope,
+
+    getFocusPath,
+    hasFocusWithin,
+
+    focusNext,
+    focusPrev,
+    focusDirection,
+
+    subscribe,
+    getSnapshot,
+  }
+}

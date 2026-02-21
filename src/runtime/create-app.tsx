@@ -46,7 +46,10 @@ import React, { createContext, useContext, useEffect, useRef, type ReactElement 
 import { type StateCreator, type StoreApi, createStore } from "zustand"
 
 import { createTerm } from "chalkx"
-import { AppContext, StdoutContext, TermContext } from "../context.js"
+import { AppContext, FocusManagerContext, StdoutContext, TermContext } from "../context.js"
+import { createFocusManager } from "../focus-manager.js"
+import { createKeyEvent, dispatchKeyEvent } from "../focus-events.js"
+import { findFocusableAncestor } from "../focus-queries.js"
 import { executeRender } from "../pipeline/index.js"
 import { createContainer, getContainerRoot, reconciler } from "../reconciler.js"
 import { map, merge, takeUntil } from "../streams/index.js"
@@ -55,7 +58,7 @@ import { createRuntime } from "./create-runtime.js"
 import { keyToAnsi, keyToKittyAnsi } from "../keys.js"
 import { type Key, parseKey } from "./keys.js"
 import { ensureLayoutEngine } from "./layout.js"
-import { createMouseEventProcessor, processMouseEvent } from "../mouse-events.js"
+import { createMouseEventProcessor, hitTest, processMouseEvent } from "../mouse-events.js"
 import { enableKittyKeyboard, disableKittyKeyboard, KittyFlags, enableMouse, disableMouse } from "../output.js"
 import { detectKittyFromStdio } from "../kitty-detect.js"
 import { type TermProvider, createTermProvider } from "./term-provider.js"
@@ -104,6 +107,12 @@ function isBasicProvider(value: unknown): value is {
 export interface EventHandlerContext<S> {
   set: StoreApi<S>["setState"]
   get: StoreApi<S>["getState"]
+  /** The tree-based focus manager */
+  focusManager: import("../focus-manager.js").FocusManager
+  /** Convenience: focus a node by testID */
+  focus(testID: string): void
+  /** Get the focus path from focused node to root */
+  getFocusPath(): string[]
 }
 
 /**
@@ -613,6 +622,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // Mouse event processor for DOM-level dispatch
   const mouseEventState = createMouseEventProcessor()
 
+  // Focus manager (tree-based focus system)
+  const focusManager = createFocusManager()
+
   // Cleanup function - idempotent, can be called from exit() or finally
   const cleanup = () => {
     if (cleanedUp) return
@@ -710,7 +722,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     <TermContext.Provider value={mockTerm}>
       <AppContext.Provider value={appContextRef}>
         <StdoutContext.Provider value={{ stdout: mockStdout, write: () => {} }}>
-          <StoreContext.Provider value={store as StoreApi<unknown>}>{element}</StoreContext.Provider>
+          <FocusManagerContext.Provider value={focusManager}>
+            <StoreContext.Provider value={store as StoreApi<unknown>}>{element}</StoreContext.Provider>
+          </FocusManagerContext.Provider>
         </StdoutContext.Provider>
       </AppContext.Provider>
     </TermContext.Provider>
@@ -1094,6 +1108,15 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       const result = (namespacedHandler as EventHandler<unknown, S & I>)(event.data, {
         set: store.setState,
         get: store.getState,
+        focusManager,
+        focus(testID: string) {
+          const root = getContainerRoot(container)
+          focusManager.focusById(testID, root, "programmatic")
+        },
+        getFocusPath() {
+          const root = getContainerRoot(container)
+          return focusManager.getFocusPath(root)
+        },
       })
       if (result === "exit") {
         return false
@@ -1115,6 +1138,20 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         meta: boolean
         ctrl: boolean
       }
+
+      const root = getContainerRoot(container)
+
+      // Click-to-focus: on mousedown, find focusable ancestor and focus it
+      if (mouseData.action === "down") {
+        const target = hitTest(root, mouseData.x, mouseData.y)
+        if (target) {
+          const focusable = findFocusableAncestor(target)
+          if (focusable) {
+            focusManager.focus(focusable, "mouse")
+          }
+        }
+      }
+
       processMouseEvent(
         mouseEventState,
         {
@@ -1127,7 +1164,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           meta: mouseData.meta,
           ctrl: mouseData.ctrl,
         },
-        getContainerRoot(container),
+        root,
       )
     }
 
@@ -1346,12 +1383,62 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       inEventHandler = true
       isRendering = true
 
+      // Focus system: dispatch key event to focused node first
+      if (focusManager.activeElement) {
+        const keyEvent = createKeyEvent(input, parsedKey, focusManager.activeElement)
+        dispatchKeyEvent(keyEvent)
+
+        // If focus system consumed the event, skip app handlers
+        if (keyEvent.propagationStopped || keyEvent.defaultPrevented) {
+          pendingRerender = false
+          isRendering = false
+          inEventHandler = false
+          doRender()
+          await Promise.resolve()
+          return
+        }
+
+        // Default focus navigation (Tab, Shift+Tab)
+        const root = getContainerRoot(container)
+        if (parsedKey.tab && !parsedKey.shift) {
+          focusManager.focusNext(root)
+          pendingRerender = false
+          isRendering = false
+          inEventHandler = false
+          doRender()
+          await Promise.resolve()
+          return
+        } else if (parsedKey.tab && parsedKey.shift) {
+          focusManager.focusPrev(root)
+          pendingRerender = false
+          isRendering = false
+          inEventHandler = false
+          doRender()
+          await Promise.resolve()
+          return
+        }
+      }
+
+      const handlerCtx = {
+        set: store.setState,
+        get: store.getState,
+        focusManager,
+        focus(testID: string) {
+          const root = getContainerRoot(container)
+          focusManager.focusById(testID, root, "programmatic")
+        },
+        getFocusPath() {
+          const root = getContainerRoot(container)
+          return focusManager.getFocusPath(root)
+        },
+      }
+
       // Simulate term:key event through handlers
       const namespacedHandler = handlers?.["term:key" as keyof typeof handlers]
       if (namespacedHandler && typeof namespacedHandler === "function") {
         const result = (namespacedHandler as EventHandler<unknown, S & I>)(
           { input, key: parsedKey },
-          { set: store.setState, get: store.getState },
+          handlerCtx,
         )
         if (result === "exit") {
           isRendering = false
@@ -1363,10 +1450,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
       // Legacy handler
       if (handlers?.key) {
-        const result = handlers.key(input, parsedKey, {
-          set: store.setState,
-          get: store.getState,
-        })
+        const result = handlers.key(input, parsedKey, handlerCtx)
         if (result === "exit") {
           isRendering = false
           inEventHandler = false

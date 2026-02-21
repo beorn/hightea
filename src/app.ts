@@ -33,6 +33,7 @@ import { type Screenshotter, createScreenshotter } from "./screenshot.js"
 import { keyToAnsi, keyToKittyAnsi } from "./keys.js"
 import type { ParsedMouse } from "./mouse.js"
 import { createMouseEventProcessor, processMouseEvent } from "./mouse-events.js"
+import type { FocusManager } from "./focus-manager.js"
 import type { InkxNode } from "./types.js"
 
 /**
@@ -146,6 +147,17 @@ export interface App {
 
   /** Get container root node (internal - use app.locator() instead) */
   getContainer(): InkxNode
+
+  // === Focus System ===
+
+  /** Focus a node by testID */
+  focus(testID: string): void
+
+  /** Get the focus path from focused node to root (testID[]) */
+  getFocusPath(): string[]
+
+  /** Direct access to the FocusManager instance */
+  readonly focusManager: FocusManager
 }
 
 /**
@@ -197,6 +209,9 @@ export interface AppOptions {
 
   /** Wrap a callback in act() + doRender() for the test renderer. Ensures React state updates from mouse handlers are flushed. */
   actAndRender?: (fn: () => void) => void
+
+  /** Focus manager instance for focus system */
+  focusManager?: FocusManager
 }
 
 /**
@@ -220,6 +235,7 @@ export function buildApp(options: AppOptions): App {
     rows,
     kittyMode = false,
     actAndRender,
+    focusManager: fm,
   } = options
 
   // Create auto-refreshing locator factory
@@ -453,6 +469,30 @@ export function buildApp(options: AppOptions): App {
 
     getContainer(): InkxNode {
       return getContainer()
+    },
+
+    // === Focus System ===
+
+    focus(testID: string): void {
+      if (fm) {
+        const root = getContainer()
+        fm.focusById(testID, root, "programmatic")
+      }
+    },
+
+    getFocusPath(): string[] {
+      if (fm) {
+        const root = getContainer()
+        return fm.getFocusPath(root)
+      }
+      return []
+    },
+
+    get focusManager(): FocusManager {
+      if (!fm) {
+        throw new Error("FocusManager not available — pass focusManager to buildApp()")
+      }
+      return fm
     },
   }
 

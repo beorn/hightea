@@ -4,6 +4,7 @@
  * Core types for the Inkx renderer architecture.
  */
 
+import type { FocusEventProps } from "./focus-events.js"
 import type { LayoutNode } from "./layout-engine.js"
 import type { MouseEventProps } from "./mouse-events.js"
 
@@ -161,7 +162,7 @@ export interface StyleProps {
 /**
  * Props for Box component.
  */
-export interface BoxProps extends FlexboxProps, StyleProps, TestProps, MouseEventProps {
+export interface BoxProps extends FlexboxProps, StyleProps, TestProps, MouseEventProps, FocusEventProps {
   borderStyle?: "single" | "double" | "round" | "bold" | "singleDouble" | "doubleSingle" | "classic"
   borderColor?: string
   borderTop?: boolean
