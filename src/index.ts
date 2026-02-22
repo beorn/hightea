@@ -72,6 +72,19 @@ export { VirtualList } from "./components/VirtualList.js"
 export type { VirtualListProps, VirtualListHandle } from "./components/VirtualList.js"
 export { HorizontalVirtualList } from "./components/HorizontalVirtualList.js"
 export type { HorizontalVirtualListProps, HorizontalVirtualListHandle } from "./components/HorizontalVirtualList.js"
+export { SplitView } from "./components/SplitView.js"
+export type { SplitViewProps } from "./components/SplitView.js"
+export type { LayoutNode as SplitLayoutNode } from "./pane-manager.js"
+export {
+  createLeaf,
+  splitPane,
+  removePane,
+  getPaneIds,
+  findAdjacentPane,
+  resizeSplit,
+  swapPanes,
+  getTabOrder as getSplitTabOrder,
+} from "./pane-manager.js"
 
 /**
  * Re-export Text component - renders text content.
