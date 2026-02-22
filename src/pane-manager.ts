@@ -191,12 +191,12 @@ export function findAdjacentPane(
 
     // We came from 'first' and want to go to second (right/down)
     if (step.side === "first" && goToSecond) {
-      return goToSecond ? firstLeaf(step.node.second) : lastLeaf(step.node.second)
+      return firstLeaf(step.node.second)
     }
 
     // We came from 'second' and want to go to first (left/up)
     if (step.side === "second" && !goToSecond) {
-      return goToSecond ? firstLeaf(step.node.first) : lastLeaf(step.node.first)
+      return lastLeaf(step.node.first)
     }
   }
 
