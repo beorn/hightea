@@ -7,37 +7,37 @@ React 19 for modern terminals. Pure TypeScript — no WASM, no C++, no native de
 
 <table>
 <tr>
-<th>Unique to inkx</th>
-<th>Terminal Protocols</th>
-<th>Developer Experience</th>
+<th align="left">Unique to inkx</th>
+<th align="left">Terminal Protocols</th>
+<th align="left">Developer Experience</th>
 </tr>
 <tr>
 <td>
-  <a href="docs/deep-dives/performance.md">122x faster</a> updates<br>
-  Reactive layout<br>
-  AI-ready commands<br>
-  TEA/Elm + React + Zustand<br>
-  Terminal, Canvas, DOM targets<br>
-  Per-node dirty tracking<br>
-  No WASM, no C++
+  • <a href="docs/deep-dives/performance.md">122x faster</a> updates<br>
+  • Reactive layout<br>
+  • AI-ready commands<br>
+  • TEA/Elm + React + Zustand<br>
+  • Terminal, Canvas, DOM targets<br>
+  • Per-node dirty tracking<br>
+  • No WASM, no C++
 </td>
 <td>
-  Mouse — click, drag, scroll<br>
-  Kitty keyboard<br>
-  Inline images<br>
-  Clipboard over SSH<br>
-  Hyperlinks, truecolor<br>
-  Scrollback buffers<br>
-  Synchronized output
+  • Mouse — click, drag, scroll<br>
+  • Kitty keyboard<br>
+  • Inline images<br>
+  • Clipboard over SSH<br>
+  • Hyperlinks, truecolor<br>
+  • Scrollback buffers<br>
+  • Synchronized output
 </td>
 <td>
-  Playwright-style testing<br>
-  Plugin composition<br>
-  Drop-in Ink replacement<br>
-  Screenshot capture<br>
-  <code>$token</code> theming<br>
-  23+ components<br>
-  Scrollable containers
+  • Playwright-style testing<br>
+  • Plugin composition<br>
+  • Drop-in Ink replacement<br>
+  • Screenshot capture<br>
+  • <code>$token</code> theming<br>
+  • 23+ components<br>
+  • Scrollable containers
 </td>
 </tr>
 </table>
