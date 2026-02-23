@@ -572,11 +572,10 @@ Use a grapheme splitter to handle:
 - Regional indicators (flags)
 
 ```typescript
-import Graphemer from "graphemer"
-const splitter = new Graphemer()
+const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" })
 
 function splitGraphemes(text: string): string[] {
-  return splitter.splitGraphemes(text)
+  return [...segmenter.segment(text)].map(s => s.segment)
 }
 ```
 
@@ -823,4 +822,4 @@ Composition window positioning for CJK input methods. Requires terminal-specific
 - [Textual Input Widget](https://textual.textualize.io/widgets/input/) - Python TUI implementation
 - [ProseMirror](https://prosemirror.net/) - Web editor architecture (selection model inspiration)
 - [string-width](https://github.com/sindresorhus/string-width) - Character width calculation
-- [graphemer](https://github.com/flmnt/graphemer) - Grapheme cluster splitting
+- [Intl.Segmenter](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter) - Built-in grapheme cluster splitting

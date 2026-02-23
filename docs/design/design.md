@@ -457,12 +457,11 @@ interface Cell {
   continuation: boolean; // Is this the 2nd cell of a wide char?
 }
 
-// Use graphemer for proper Unicode segmentation
-import Graphemer from 'graphemer';
-const splitter = new Graphemer();
+// Use Intl.Segmenter for proper Unicode segmentation
+const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 
 function textToCells(text: string): Cell[] {
-  const graphemes = splitter.splitGraphemes(text);
+  const graphemes = [...segmenter.segment(text)].map(s => s.segment);
   const cells: Cell[] = [];
 
   for (const grapheme of graphemes) {
@@ -753,7 +752,7 @@ Explicit expectations for what works and what doesn't:
 | Yoga WASM bundle too large              | Low        | Medium | yoga-wasm-web is ~200KB; can lazy-load if needed              |
 | React 19 breaks reconciler              | Medium     | High   | Pin to React 18; add React version integration tests          |
 | Memory leaks from callbacks             | Medium     | Medium | Use WeakMap; test with long-running apps                      |
-| Unicode edge cases                      | High       | Low    | Use graphemer; comprehensive Unicode test fixtures            |
+| Unicode edge cases                      | High       | Low    | Use Intl.Segmenter; comprehensive Unicode test fixtures      |
 | **CJK/IME input issues**                | High       | High   | Test thoroughly; DEC 2026 sync update now enabled by default  |
 | **Terminal multiplexer rendering**      | Medium     | High   | DEC 2026 sync update prevents tearing in tmux/Zellij          |
 | **Keyboard protocol limitations**       | Medium     | Medium | Document limitations; plan Kitty protocol support             |

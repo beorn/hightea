@@ -134,9 +134,7 @@
   "dependencies": {
     "@beorn/logger": "github:beorn/logger",
     "chalkx": "github:beorn/chalkx",
-    "graphemer": "^1.4.0",
     "react-reconciler": "^0.33.0",
-    "shiki": "^3.22.0",
     "slice-ansi": "^7.1.2",
     "string-width": "^8.0.0",
     "zustand": "^5.0.11"

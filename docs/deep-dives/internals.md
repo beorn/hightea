@@ -519,13 +519,12 @@ function packCell(cell: Cell): number {
 Proper grapheme segmentation:
 
 ```typescript
-import Graphemer from "graphemer"
 import stringWidth from "string-width"
 
-const graphemer = new Graphemer()
+const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" })
 
 function writeTextToBuffer(buffer: TerminalBuffer, x: number, y: number, text: string, style: Style) {
-  const graphemes = graphemer.splitGraphemes(text)
+  const graphemes = [...segmenter.segment(text)].map(s => s.segment)
   let col = x
 
   for (const grapheme of graphemes) {

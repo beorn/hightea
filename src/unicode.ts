@@ -1,7 +1,7 @@
 /**
  * Unicode handling for Inkx.
  *
- * Uses graphemer for proper grapheme cluster segmentation and
+ * Uses Intl.Segmenter for proper grapheme cluster segmentation and
  * string-width for accurate terminal width calculation.
  *
  * Key concepts:
@@ -12,7 +12,6 @@
  */
 
 import { BG_OVERRIDE_CODE } from "chalkx"
-import Graphemer from "graphemer"
 import stringWidth from "string-width"
 import { type Cell, type Style, type TerminalBuffer, type UnderlineStyle, createMutableCell } from "./buffer.js"
 
@@ -23,8 +22,8 @@ export { BG_OVERRIDE_CODE }
 // Grapheme Segmentation
 // ============================================================================
 
-// Singleton graphemer instance (it's stateless)
-const graphemer = new Graphemer()
+// Singleton Intl.Segmenter instance (stateless, reusable)
+const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" })
 
 // ============================================================================
 // Performance: LRU Cache for displayWidth
@@ -84,14 +83,16 @@ const displayWidthCache = new DisplayWidthCache(10000)
  * - "한국어" -> ["한", "국", "어"]
  */
 export function splitGraphemes(text: string): string[] {
-  return graphemer.splitGraphemes(text)
+  return [...segmenter.segment(text)].map((s) => s.segment)
 }
 
 /**
  * Count the number of graphemes in a string.
  */
 export function graphemeCount(text: string): number {
-  return graphemer.countGraphemes(text)
+  let count = 0
+  for (const _ of segmenter.segment(text)) count++
+  return count
 }
 
 // ============================================================================
@@ -289,10 +290,6 @@ export function graphemeWidth(grapheme: string): number {
   if (width !== 1) return width
   // Check if this is a text-presentation emoji that terminals render wide
   if (isTextPresentationEmoji(grapheme)) return 2
-  // Check if this is a Private Use Area character (nerdfont/Powerline icon)
-  // Modern terminals render these as 2-cell width
-  const cp = grapheme.codePointAt(0)
-  if (cp !== undefined && isPrivateUseArea(cp)) return 2
   return width
 }
 

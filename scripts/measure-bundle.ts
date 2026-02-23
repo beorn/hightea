@@ -49,8 +49,6 @@ const EXTERNALS = [
   "yoga-wasm-web",
   "chalkx",
   "zustand",
-  "shiki",
-  "graphemer",
   "slice-ansi",
   "string-width",
   "playwright",
