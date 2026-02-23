@@ -111,6 +111,10 @@ export function contentPropsChanged(
     "outlineStyle",
     "outlineColor",
     "outlineDimColor",
+    "outlineTop",
+    "outlineBottom",
+    "outlineLeft",
+    "outlineRight",
     "internal_transform",
   ]
 

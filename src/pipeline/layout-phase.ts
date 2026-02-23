@@ -207,7 +207,7 @@ function calculateScrollState(node: InkxNode, props: BoxProps, skipStateUpdates:
   const border = props.borderStyle ? getBorderSize(props) : { top: 0, bottom: 0, left: 0, right: 0 }
   const padding = getPadding(props)
 
-  const viewportHeight = layout.height - border.top - border.bottom - padding.top - padding.bottom
+  const rawViewportHeight = layout.height - border.top - border.bottom - padding.top - padding.bottom
 
   // Calculate total content height and child positions
   let contentHeight = 0
@@ -242,6 +242,16 @@ function calculateScrollState(node: InkxNode, props: BoxProps, skipStateUpdates:
     contentHeight = Math.max(contentHeight, childBottom)
   }
 
+  const viewportHeight = rawViewportHeight
+
+  // Reserve 1 row at the bottom for the overflow indicator when:
+  // 1. Container uses borderless overflow indicators (overflowIndicator prop)
+  // 2. Content exceeds viewport (there will be hidden items below or above)
+  // This ensures the indicator doesn't overlay the last visible child's content.
+  const showBorderlessIndicator = props.overflowIndicator === true && !props.borderStyle
+  const hasOverflow = contentHeight > rawViewportHeight
+  const indicatorReserve = showBorderlessIndicator && hasOverflow ? 1 : 0
+
   // Calculate scroll offset based on scrollTo prop
   // Use "ensure visible" scrolling: only scroll when target would be off-screen
   // Preserve previous offset when target is already visible
@@ -259,9 +269,12 @@ function calculateScrollState(node: InkxNode, props: BoxProps, skipStateUpdates:
     // Find the target child
     const target = childPositions.find((c) => c.index === scrollTo)
     if (target) {
-      // Calculate current visible range
+      // Calculate current visible range, accounting for indicator reserve.
+      // The effective visible height is reduced by indicatorReserve so the
+      // scrollTo target is fully visible ABOVE the overflow indicator row.
+      const effectiveHeight = viewportHeight - indicatorReserve
       const visibleTop = scrollOffset
-      const visibleBottom = scrollOffset + viewportHeight
+      const visibleBottom = scrollOffset + effectiveHeight
 
       // Only scroll if target is outside visible range
       if (target.top < visibleTop) {
@@ -269,7 +282,7 @@ function calculateScrollState(node: InkxNode, props: BoxProps, skipStateUpdates:
         scrollOffset = target.top
       } else if (target.bottom > visibleBottom) {
         // Target is below viewport - scroll down to show it at bottom
-        scrollOffset = target.bottom - viewportHeight
+        scrollOffset = target.bottom - effectiveHeight
       }
       // Otherwise, keep current scroll position (target is visible)
 
@@ -279,9 +292,11 @@ function calculateScrollState(node: InkxNode, props: BoxProps, skipStateUpdates:
     }
   }
 
-  // Determine visible children
+  // Determine visible children.
+  // When the overflow indicator reserves a row (indicatorReserve=1), reduce the
+  // visible bottom by 1 so the indicator has its own row after the last visible child.
   const visibleTop = scrollOffset
-  const visibleBottom = scrollOffset + viewportHeight
+  const visibleBottom = scrollOffset + viewportHeight - indicatorReserve
 
   let firstVisible = -1
   let lastVisible = -1
@@ -315,9 +330,17 @@ function calculateScrollState(node: InkxNode, props: BoxProps, skipStateUpdates:
       lastVisible = Math.max(lastVisible, cp.index)
     } else if (cp.bottom > visibleBottom) {
       // Child is partially visible at bottom — render it (clipped by scroll
-      // container's clip bounds) so partial content is visible instead of blank space
+      // container's clip bounds) so partial content is visible instead of blank space.
+      // When indicatorReserve is active, this child extends past the reserved row,
+      // but we still render it — the overflow indicator renders AFTER children and
+      // overlays the appropriate row.
       if (firstVisible === -1) firstVisible = cp.index
       lastVisible = cp.index
+      // When indicator reserve is active, count partially visible bottom children
+      // in hiddenBelow so the indicator shows the correct count.
+      if (indicatorReserve > 0) {
+        hiddenBelow++
+      }
     } else {
       // This child is fully visible within the viewport
       if (firstVisible === -1) firstVisible = cp.index

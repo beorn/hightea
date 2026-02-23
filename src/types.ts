@@ -185,6 +185,14 @@ export interface BoxProps extends FlexboxProps, StyleProps, TestProps, MouseEven
   outlineColor?: string
   /** Apply dim styling to the outline */
   outlineDimColor?: boolean
+  /** Show top outline edge (default: true) */
+  outlineTop?: boolean
+  /** Show bottom outline edge (default: true) */
+  outlineBottom?: boolean
+  /** Show left outline edge (default: true) */
+  outlineLeft?: boolean
+  /** Show right outline edge (default: true) */
+  outlineRight?: boolean
 
   onLayout?: (layout: Rect) => void
 

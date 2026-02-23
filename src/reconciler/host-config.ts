@@ -388,6 +388,10 @@ export const hostConfig = {
       if ((oldProps as Record<string, unknown>).borderStyle && !(newProps as Record<string, unknown>).borderStyle) {
         instance.bgDirty = true
       }
+      // Outline removal: same issue — stale outline characters persist in the clone.
+      if ((oldProps as Record<string, unknown>).outlineStyle && !(newProps as Record<string, unknown>).outlineStyle) {
+        instance.bgDirty = true
+      }
     }
 
     instance.props = newProps

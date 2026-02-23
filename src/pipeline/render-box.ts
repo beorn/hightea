@@ -179,6 +179,7 @@ export function renderOutline(
 ): void {
   const chars = getBorderChars(props.outlineStyle ?? "single")
   const color = props.outlineColor ? parseColor(props.outlineColor) : null
+  const bg = props.backgroundColor ? parseColor(props.backgroundColor) : null
   const attrs = props.outlineDimColor ? { dim: true } : {}
 
   // Helper to check if a row is visible within clip bounds
@@ -193,40 +194,47 @@ export function renderOutline(
     return col >= clipBounds.left && col < clipBounds.right && col < buffer.width
   }
 
+  const showTop = props.outlineTop !== false
+  const showBottom = props.outlineBottom !== false
+  const showLeft = props.outlineLeft !== false
+  const showRight = props.outlineRight !== false
+
   // Top border
-  if (isRowVisible(y)) {
-    if (isColVisible(x)) buffer.setCell(x, y, { char: chars.topLeft, fg: color, bg: null, attrs })
+  if (showTop && isRowVisible(y)) {
+    if (showLeft && isColVisible(x)) buffer.setCell(x, y, { char: chars.topLeft, fg: color, bg, attrs })
     for (let col = x + 1; col < x + width - 1 && col < buffer.width; col++) {
-      if (isColVisible(col)) buffer.setCell(col, y, { char: chars.horizontal, fg: color, bg: null, attrs })
+      if (isColVisible(col)) buffer.setCell(col, y, { char: chars.horizontal, fg: color, bg, attrs })
     }
-    if (x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
-      buffer.setCell(x + width - 1, y, { char: chars.topRight, fg: color, bg: null, attrs })
+    if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
+      buffer.setCell(x + width - 1, y, { char: chars.topRight, fg: color, bg, attrs })
     }
   }
 
-  // Side borders
-  for (let row = y + 1; row < y + height - 1; row++) {
+  // Side borders — extend range when top/bottom are hidden
+  const sideStart = showTop ? y + 1 : y
+  const sideEnd = showBottom ? y + height - 1 : y + height
+  for (let row = sideStart; row < sideEnd; row++) {
     if (!isRowVisible(row)) continue
-    if (isColVisible(x)) buffer.setCell(x, row, { char: chars.vertical, fg: color, bg: null, attrs })
-    if (x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
-      buffer.setCell(x + width - 1, row, { char: chars.vertical, fg: color, bg: null, attrs })
+    if (showLeft && isColVisible(x)) buffer.setCell(x, row, { char: chars.vertical, fg: color, bg, attrs })
+    if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
+      buffer.setCell(x + width - 1, row, { char: chars.vertical, fg: color, bg, attrs })
     }
   }
 
   // Bottom border
   const bottomY = y + height - 1
-  if (isRowVisible(bottomY)) {
-    if (isColVisible(x)) {
-      buffer.setCell(x, bottomY, { char: chars.bottomLeft, fg: color, bg: null, attrs })
+  if (showBottom && isRowVisible(bottomY)) {
+    if (showLeft && isColVisible(x)) {
+      buffer.setCell(x, bottomY, { char: chars.bottomLeft, fg: color, bg, attrs })
     }
     for (let col = x + 1; col < x + width - 1 && col < buffer.width; col++) {
-      if (isColVisible(col)) buffer.setCell(col, bottomY, { char: chars.horizontal, fg: color, bg: null, attrs })
+      if (isColVisible(col)) buffer.setCell(col, bottomY, { char: chars.horizontal, fg: color, bg, attrs })
     }
-    if (x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
+    if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
       buffer.setCell(x + width - 1, bottomY, {
         char: chars.bottomRight,
         fg: color,
-        bg: null,
+        bg,
         attrs,
       })
     }
@@ -242,12 +250,13 @@ export function renderOutline(
  *
  * Two rendering modes:
  * 1. Bordered containers: Indicators appear on the border (e.g., "───▲42───")
- * 2. Borderless containers with overflowIndicator: Indicators overlay content at edges
+ * 2. Borderless containers with overflowIndicator: Indicators appear directly
+ *    after the last visible child (not at the viewport bottom)
  *
  * Uses ▲N for items hidden above, ▼N for items hidden below.
  */
 export function renderScrollIndicators(
-  _node: InkxNode,
+  node: InkxNode,
   buffer: TerminalBuffer,
   layout: Rect,
   props: BoxProps,
@@ -299,12 +308,42 @@ export function renderScrollIndicators(
       const y = layout.y + layout.height - 1
       renderTextLine(buffer, x, y, bar, indicatorStyle)
     } else if (showBorderless) {
-      // Borderless: render centered inverse bar on last content row
+      // Borderless: render indicator right after the last fully visible child,
+      // not at the viewport bottom. This prevents the indicator from overlaying
+      // the last visible card's content (e.g., covering its bottom border).
       const padding = getPadding(props)
       const contentWidth = layout.width - padding.left - padding.right
       const bar = padCenter(indicator, contentWidth)
       const x = layout.x + padding.left
-      const y = layout.y + layout.height - 1 - padding.bottom
+      const contentAreaTop = layout.y + border.top + padding.top
+      const viewportBottom = layout.y + layout.height - padding.bottom
+
+      // Scan backwards from lastVisibleChild to find the last child whose
+      // bottom fits entirely within the viewport (accounting for the 1-row
+      // indicator reserve). Children whose bottom extends past the effective
+      // visible area are partially visible and the indicator goes before them.
+      const effectiveViewportHeight = ss.viewportHeight - 1 // reserve 1 row for indicator
+      let y = viewportBottom - 1 // fallback: viewport last row
+      for (let i = ss.lastVisibleChild; i >= ss.firstVisibleChild; i--) {
+        const child = node.children[i]
+        if (!child?.contentRect) continue
+        const childBottomInContent =
+          child.contentRect.y + child.contentRect.height - contentAreaTop
+        // Check if this child's bottom fits within the effective viewport
+        if (childBottomInContent - ss.offset <= effectiveViewportHeight) {
+          const childBottomScreen = contentAreaTop + childBottomInContent - ss.offset
+          y = Math.min(childBottomScreen, viewportBottom - 1)
+          break
+        }
+      }
+
+      // Clear from indicator row to viewport bottom to cover any partially
+      // visible child content that renders below the indicator.
+      const clearHeight = viewportBottom - y
+      if (clearHeight > 0) {
+        buffer.fill(x, y, contentWidth, clearHeight, { char: " ", bg: indicatorStyle.bg ?? null })
+      }
+
       renderTextLine(buffer, x, y, bar, indicatorStyle)
     }
   }

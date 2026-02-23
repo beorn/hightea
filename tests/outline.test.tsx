@@ -256,4 +256,358 @@ describe("outline", () => {
     expect(withOutlineBox.text).toContain("DEF")
     expect(withOutlineBox.text).toContain("GHI")
   })
+
+  test("round style outline", () => {
+    const app = render(
+      <Box outlineStyle="round" width={10} height={3}>
+        <Text>Test</Text>
+      </Box>,
+    )
+    const ansi = app.ansi
+
+    // Round style uses curved corner characters
+    expect(ansi).toContain("\u256d") // ╭ topLeft
+    expect(ansi).toContain("\u256e") // ╮ topRight
+    expect(ansi).toContain("\u2570") // ╰ bottomLeft
+    expect(ansi).toContain("\u256f") // ╯ bottomRight
+    expect(ansi).toContain("\u2500") // ─ horizontal
+    expect(ansi).toContain("\u2502") // │ vertical
+  })
+
+  test("dynamic outline — add outline between renders", () => {
+    // Initial render without outline
+    const app = render(
+      <Box width={10} height={3}>
+        <Text>Test</Text>
+      </Box>,
+    )
+    const textBefore = stripAnsi(app.ansi)
+    // Should NOT have box drawing characters
+    expect(textBefore).not.toContain("\u250c")
+    expect(textBefore).not.toContain("\u2510")
+
+    // Re-render with outline added
+    app.rerender(
+      <Box outlineStyle="single" width={10} height={3}>
+        <Text>Test</Text>
+      </Box>,
+    )
+    const ansiAfter = app.ansi
+    // Should now have single-style box drawing characters
+    expect(ansiAfter).toContain("\u250c") // ┌
+    expect(ansiAfter).toContain("\u2510") // ┐
+    expect(ansiAfter).toContain("\u2514") // └
+    expect(ansiAfter).toContain("\u2518") // ┘
+  })
+
+  test("dynamic outline — change style between renders", () => {
+    // Initial render with single outline
+    const app = render(
+      <Box outlineStyle="single" width={10} height={3}>
+        <Text>Test</Text>
+      </Box>,
+    )
+    expect(app.ansi).toContain("\u250c") // ┌ single topLeft
+
+    // Re-render with double outline
+    app.rerender(
+      <Box outlineStyle="double" width={10} height={3}>
+        <Text>Test</Text>
+      </Box>,
+    )
+    expect(app.ansi).toContain("\u2554") // ╔ double topLeft
+    expect(app.ansi).not.toContain("\u250c") // ┌ single should be gone
+  })
+
+  test("outline color change between renders", () => {
+    // Initial render with red outline
+    const app = render(
+      <Box outlineStyle="single" outlineColor="red" width={10} height={3}>
+        <Text>Test</Text>
+      </Box>,
+    )
+    // Red = 256-color index 1
+    expect(app.ansi).toContain("38;5;1")
+
+    // Re-render with blue outline
+    app.rerender(
+      <Box outlineStyle="single" outlineColor="blue" width={10} height={3}>
+        <Text>Test</Text>
+      </Box>,
+    )
+    // Blue = 256-color index 4
+    expect(app.ansi).toContain("38;5;4")
+    // Red should no longer be present in outline cells
+    // (text "Test" has no color, so 38;5;1 should be gone)
+    expect(app.ansi).not.toContain("38;5;1")
+  })
+
+  test("outline with overflow='hidden'", () => {
+    // Use padding to push text away from outline edges so it's visible
+    const app = render(
+      <Box outlineStyle="single" width={14} height={3} overflow="hidden" paddingTop={1} paddingLeft={1}>
+        <Text>Test</Text>
+      </Box>,
+    )
+    const ansi = app.ansi
+
+    // Outline should still render with overflow hidden
+    expect(ansi).toContain("\u250c") // ┌
+    expect(ansi).toContain("\u2510") // ┐
+    expect(ansi).toContain("\u2514") // └
+    expect(ansi).toContain("\u2518") // ┘
+    // Text is on interior row with padding, so it's visible
+    expect(app.text).toContain("Test")
+  })
+
+  test("outline with backgroundColor inherits bg on outline cells", () => {
+    const app = render(
+      <Box outlineStyle="single" backgroundColor="blue" width={10} height={3} padding={1}>
+        <Text>Hi</Text>
+      </Box>,
+    )
+
+    // Access the buffer to verify outline cells have the box's bg color
+    const buffer = app.term.buffer!
+    // Top-left corner cell (0, 0) should have bg = blue (256-color index 4)
+    const topLeft = buffer.getCell(0, 0)
+    expect(topLeft.char).toBe("\u250c") // ┌
+    expect(topLeft.bg).toBe(4) // blue = index 4
+
+    // Top-right corner cell (9, 0)
+    const topRight = buffer.getCell(9, 0)
+    expect(topRight.char).toBe("\u2510") // ┐
+    expect(topRight.bg).toBe(4)
+
+    // Bottom-left corner cell (0, 2)
+    const bottomLeft = buffer.getCell(0, 2)
+    expect(bottomLeft.char).toBe("\u2514") // └
+    expect(bottomLeft.bg).toBe(4)
+
+    // Horizontal cell on top row (1, 0)
+    const topHoriz = buffer.getCell(1, 0)
+    expect(topHoriz.char).toBe("\u2500") // ─
+    expect(topHoriz.bg).toBe(4)
+
+    // Vertical cell on left side (0, 1)
+    const leftVert = buffer.getCell(0, 1)
+    expect(leftVert.char).toBe("\u2502") // │
+    expect(leftVert.bg).toBe(4)
+  })
+
+  test("outline in scroll container", () => {
+    // An outlined box inside a scrollable container
+    const app = render(
+      <Box overflow="scroll" height={5} width={20} flexDirection="column">
+        <Box outlineStyle="single" height={3} width={18}>
+          <Text>ScrollItem</Text>
+        </Box>
+        <Box height={3} width={18}>
+          <Text>Below</Text>
+        </Box>
+      </Box>,
+    )
+
+    // The outlined box should render its outline characters
+    const ansi = app.ansi
+    expect(ansi).toContain("\u250c") // ┌
+    expect(ansi).toContain("\u2510") // ┐
+    // Content should be visible
+    expect(app.text).toContain("Below")
+  })
+
+  test("all 7 outline styles render correct characters", () => {
+    const styles = [
+      {
+        style: "single" as const,
+        tl: "\u250c",
+        tr: "\u2510",
+        bl: "\u2514",
+        br: "\u2518",
+        h: "\u2500",
+        v: "\u2502",
+      },
+      {
+        style: "double" as const,
+        tl: "\u2554",
+        tr: "\u2557",
+        bl: "\u255a",
+        br: "\u255d",
+        h: "\u2550",
+        v: "\u2551",
+      },
+      {
+        style: "round" as const,
+        tl: "\u256d",
+        tr: "\u256e",
+        bl: "\u2570",
+        br: "\u256f",
+        h: "\u2500",
+        v: "\u2502",
+      },
+      {
+        style: "bold" as const,
+        tl: "\u250f",
+        tr: "\u2513",
+        bl: "\u2517",
+        br: "\u251b",
+        h: "\u2501",
+        v: "\u2503",
+      },
+      {
+        style: "classic" as const,
+        tl: "+",
+        tr: "+",
+        bl: "+",
+        br: "+",
+        h: "-",
+        v: "|",
+      },
+      {
+        style: "singleDouble" as const,
+        tl: "\u2553",
+        tr: "\u2556",
+        bl: "\u2559",
+        br: "\u255c",
+        h: "\u2500",
+        v: "\u2551",
+      },
+      {
+        style: "doubleSingle" as const,
+        tl: "\u2552",
+        tr: "\u2555",
+        bl: "\u2558",
+        br: "\u255b",
+        h: "\u2550",
+        v: "\u2502",
+      },
+    ]
+
+    for (const { style, tl, tr, bl, br, h, v } of styles) {
+      const app = render(
+        <Box outlineStyle={style} width={10} height={3}>
+          <Text>X</Text>
+        </Box>,
+      )
+      const buffer = app.term.buffer!
+
+      // Check corners and edges via buffer cells
+      expect(buffer.getCell(0, 0).char).toBe(tl) // top-left
+      expect(buffer.getCell(9, 0).char).toBe(tr) // top-right
+      expect(buffer.getCell(0, 2).char).toBe(bl) // bottom-left
+      expect(buffer.getCell(9, 2).char).toBe(br) // bottom-right
+      expect(buffer.getCell(1, 0).char).toBe(h) // horizontal top
+      expect(buffer.getCell(0, 1).char).toBe(v) // vertical left
+    }
+  })
+
+  test("partial outline — outlineTop={false}", () => {
+    const app = render(
+      <Box outlineStyle="single" outlineTop={false} width={10} height={3}>
+        <Text>Test</Text>
+      </Box>,
+    )
+    const buffer = app.term.buffer!
+
+    // Top row should NOT have outline characters
+    expect(buffer.getCell(0, 0).char).not.toBe("\u250c")
+    expect(buffer.getCell(1, 0).char).not.toBe("\u2500")
+    expect(buffer.getCell(9, 0).char).not.toBe("\u2510")
+
+    // Bottom row should still have outline
+    expect(buffer.getCell(0, 2).char).toBe("\u2514") // └
+    expect(buffer.getCell(9, 2).char).toBe("\u2518") // ┘
+    expect(buffer.getCell(1, 2).char).toBe("\u2500") // ─
+
+    // Side outlines should extend to row 0 (since top is hidden)
+    expect(buffer.getCell(0, 0).char).toBe("\u2502") // │ on row 0
+    expect(buffer.getCell(0, 1).char).toBe("\u2502") // │ on row 1
+  })
+
+  test("partial outline — outlineBottom={false}", () => {
+    const app = render(
+      <Box outlineStyle="single" outlineBottom={false} width={10} height={3}>
+        <Text>Test</Text>
+      </Box>,
+    )
+    const buffer = app.term.buffer!
+
+    // Top row should still have outline
+    expect(buffer.getCell(0, 0).char).toBe("\u250c") // ┌
+    expect(buffer.getCell(9, 0).char).toBe("\u2510") // ┐
+
+    // Bottom row should NOT have outline characters
+    expect(buffer.getCell(0, 2).char).not.toBe("\u2514")
+    expect(buffer.getCell(9, 2).char).not.toBe("\u2518")
+    expect(buffer.getCell(1, 2).char).not.toBe("\u2500")
+
+    // Side outlines should extend to row 2 (since bottom is hidden)
+    expect(buffer.getCell(0, 2).char).toBe("\u2502") // │ on row 2
+  })
+
+  test("partial outline — outlineLeft={false}", () => {
+    const app = render(
+      <Box outlineStyle="single" outlineLeft={false} width={10} height={3}>
+        <Text>Test</Text>
+      </Box>,
+    )
+    const buffer = app.term.buffer!
+
+    // Left column should NOT have outline characters
+    expect(buffer.getCell(0, 0).char).not.toBe("\u250c")
+    expect(buffer.getCell(0, 1).char).not.toBe("\u2502")
+    expect(buffer.getCell(0, 2).char).not.toBe("\u2514")
+
+    // Right column should still have outline
+    expect(buffer.getCell(9, 0).char).toBe("\u2510") // ┐ (topRight still renders when showTop=true)
+    expect(buffer.getCell(9, 1).char).toBe("\u2502") // │
+    expect(buffer.getCell(9, 2).char).toBe("\u2518") // ┘
+
+    // Top horizontal should still render (except at corners)
+    expect(buffer.getCell(1, 0).char).toBe("\u2500") // ─
+  })
+
+  test("partial outline — outlineRight={false}", () => {
+    const app = render(
+      <Box outlineStyle="single" outlineRight={false} width={10} height={3}>
+        <Text>Test</Text>
+      </Box>,
+    )
+    const buffer = app.term.buffer!
+
+    // Right column should NOT have outline characters
+    expect(buffer.getCell(9, 0).char).not.toBe("\u2510")
+    expect(buffer.getCell(9, 1).char).not.toBe("\u2502")
+    expect(buffer.getCell(9, 2).char).not.toBe("\u2518")
+
+    // Left column should still have outline
+    expect(buffer.getCell(0, 0).char).toBe("\u250c") // ┌
+    expect(buffer.getCell(0, 1).char).toBe("\u2502") // │
+    expect(buffer.getCell(0, 2).char).toBe("\u2514") // └
+  })
+
+  test("partial outline — only horizontal edges", () => {
+    // Show top and bottom but no left/right
+    const app = render(
+      <Box outlineStyle="single" outlineLeft={false} outlineRight={false} width={10} height={3}>
+        <Text>Test</Text>
+      </Box>,
+    )
+    const buffer = app.term.buffer!
+
+    // Top horizontal line should render (no corners since left/right are hidden)
+    expect(buffer.getCell(1, 0).char).toBe("\u2500") // ─
+    expect(buffer.getCell(5, 0).char).toBe("\u2500") // ─
+
+    // Bottom horizontal line should render
+    expect(buffer.getCell(1, 2).char).toBe("\u2500") // ─
+
+    // No vertical edges
+    expect(buffer.getCell(0, 1).char).not.toBe("\u2502")
+    expect(buffer.getCell(9, 1).char).not.toBe("\u2502")
+
+    // No corners (corners require both adjacent edges)
+    expect(buffer.getCell(0, 0).char).not.toBe("\u250c")
+    expect(buffer.getCell(9, 0).char).not.toBe("\u2510")
+  })
 })
