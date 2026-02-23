@@ -47,7 +47,8 @@ export function Badge({ label, variant = "default", color }: BadgeProps): React.
 
   return (
     <Text color={resolvedColor} bold>
-      {" "}{label}{" "}
+      {" "}
+      {label}{" "}
     </Text>
   )
 }

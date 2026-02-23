@@ -23,7 +23,7 @@ export const easings = {
   easeOut: (t: number) => t * (2 - t),
   easeInOut: (t: number) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
   easeInCubic: (t: number) => t * t * t,
-  easeOutCubic: (t: number) => (--t) * t * t + 1,
+  easeOutCubic: (t: number) => --t * t * t + 1,
 } as const satisfies Record<string, EasingFn>
 
 export type EasingName = keyof typeof easings

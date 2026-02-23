@@ -18,24 +18,17 @@ both CPU work and visual tearing.
 ## Utility Functions
 
 ```ts
-import {
-  setScrollRegion,
-  resetScrollRegion,
-  scrollUp,
-  scrollDown,
-  moveCursor,
-  supportsScrollRegions,
-} from "inkx"
+import { setScrollRegion, resetScrollRegion, scrollUp, scrollDown, moveCursor, supportsScrollRegions } from "inkx"
 ```
 
-| Function               | Description                                          |
-| ---------------------- | ---------------------------------------------------- |
-| `setScrollRegion(stdout, top, bottom)` | Set DECSTBM region (1-indexed rows)  |
-| `resetScrollRegion(stdout)`            | Reset to full terminal               |
-| `scrollUp(stdout, lines?)`            | Scroll content up (default: 1 line)   |
-| `scrollDown(stdout, lines?)`          | Scroll content down (default: 1 line) |
-| `moveCursor(stdout, row, col)`        | Move cursor to position (1-indexed)   |
-| `supportsScrollRegions()`             | Auto-detect terminal support          |
+| Function                               | Description                           |
+| -------------------------------------- | ------------------------------------- |
+| `setScrollRegion(stdout, top, bottom)` | Set DECSTBM region (1-indexed rows)   |
+| `resetScrollRegion(stdout)`            | Reset to full terminal                |
+| `scrollUp(stdout, lines?)`             | Scroll content up (default: 1 line)   |
+| `scrollDown(stdout, lines?)`           | Scroll content down (default: 1 line) |
+| `moveCursor(stdout, row, col)`         | Move cursor to position (1-indexed)   |
+| `supportsScrollRegions()`              | Auto-detect terminal support          |
 
 ## useScrollRegion Hook
 
@@ -49,8 +42,8 @@ Returns the scroll delta so the renderer knows which rows to repaint.
 ```tsx
 function ScrollableArea({ items, scrollOffset }) {
   const { isActive, scrollDelta } = useScrollRegion({
-    top: 2,          // 0-indexed screen row
-    bottom: 20,      // 0-indexed screen row
+    top: 2, // 0-indexed screen row
+    bottom: 20, // 0-indexed screen row
     scrollOffset,
     // enabled: true  // default: auto-detect
   })
@@ -65,36 +58,36 @@ function ScrollableArea({ items, scrollOffset }) {
 
 ### Options
 
-| Option         | Type                  | Default        | Description                    |
-| -------------- | --------------------- | -------------- | ------------------------------ |
-| `top`          | `number`              | --             | Top row (0-indexed)            |
-| `bottom`       | `number`              | --             | Bottom row (0-indexed)         |
-| `scrollOffset` | `number`              | --             | Current scroll position        |
-| `enabled`      | `boolean`             | auto-detect    | Force on/off                   |
-| `stdout`       | `NodeJS.WriteStream`  | process.stdout | Output stream                  |
+| Option         | Type                 | Default        | Description             |
+| -------------- | -------------------- | -------------- | ----------------------- |
+| `top`          | `number`             | --             | Top row (0-indexed)     |
+| `bottom`       | `number`             | --             | Bottom row (0-indexed)  |
+| `scrollOffset` | `number`             | --             | Current scroll position |
+| `enabled`      | `boolean`            | auto-detect    | Force on/off            |
+| `stdout`       | `NodeJS.WriteStream` | process.stdout | Output stream           |
 
 ### Return Value
 
-| Field         | Type      | Description                            |
-| ------------- | --------- | -------------------------------------- |
+| Field         | Type      | Description                                  |
+| ------------- | --------- | -------------------------------------------- |
 | `isActive`    | `boolean` | Whether scroll region optimization is active |
-| `scrollDelta` | `number`  | Lines shifted since last render        |
+| `scrollDelta` | `number`  | Lines shifted since last render              |
 
 ## Terminal Compatibility
 
 DECSTBM is widely supported by modern terminals:
 
-| Terminal   | Supported |
-| ---------- | --------- |
-| Ghostty    | Yes       |
-| iTerm2     | Yes       |
-| Kitty      | Yes       |
-| WezTerm    | Yes       |
-| xterm      | Yes       |
-| tmux       | Yes       |
-| screen     | Yes       |
-| VS Code    | Yes       |
-| Linux tty  | No        |
+| Terminal  | Supported |
+| --------- | --------- |
+| Ghostty   | Yes       |
+| iTerm2    | Yes       |
+| Kitty     | Yes       |
+| WezTerm   | Yes       |
+| xterm     | Yes       |
+| tmux      | Yes       |
+| screen    | Yes       |
+| VS Code   | Yes       |
+| Linux tty | No        |
 
 `supportsScrollRegions()` checks `TERM_PROGRAM` and `TERM` environment
 variables to auto-detect support. Override with the `enabled` option

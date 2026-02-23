@@ -95,9 +95,7 @@ export function SelectList({
 }: SelectListProps): React.ReactElement {
   const isControlled = controlledIndex !== undefined
 
-  const [uncontrolledIndex, setUncontrolledIndex] = useState(
-    initialIndex ?? findFirstEnabled(items),
-  )
+  const [uncontrolledIndex, setUncontrolledIndex] = useState(initialIndex ?? findFirstEnabled(items))
 
   const currentIndex = isControlled ? controlledIndex : uncontrolledIndex
 
@@ -167,11 +165,7 @@ export function SelectList({
         const isHighlighted = actualIndex === currentIndex
 
         return (
-          <Text
-            key={item.value}
-            inverse={isHighlighted}
-            dimColor={item.disabled}
-          >
+          <Text key={item.value} inverse={isHighlighted} dimColor={item.disabled}>
             {isHighlighted ? "▸ " : "  "}
             {item.label}
           </Text>

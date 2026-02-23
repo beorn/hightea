@@ -847,4 +847,10 @@ export type { GridCellProps } from "./components/GridCell.js"
  */
 export { easings, resolveEasing, useAnimation, useInterval } from "./animation/index.js"
 export { useTransition as useAnimatedTransition } from "./animation/index.js"
-export type { EasingFn, EasingName, UseAnimationOptions, UseAnimationResult, UseTransitionOptions } from "./animation/index.js"
+export type {
+  EasingFn,
+  EasingName,
+  UseAnimationOptions,
+  UseAnimationResult,
+  UseTransitionOptions,
+} from "./animation/index.js"

@@ -201,9 +201,10 @@ inkx provides a theming system based on React context and semantic color tokens.
 
 ```tsx
 import { ThemeProvider, defaultDarkTheme, useTheme } from "inkx"
-
-<ThemeProvider theme={defaultDarkTheme}>
-  <Box borderColor="$border"><Text color="$primary">Hello</Text></Box>
+;<ThemeProvider theme={defaultDarkTheme}>
+  <Box borderColor="$border">
+    <Text color="$primary">Hello</Text>
+  </Box>
 </ThemeProvider>
 ```
 
@@ -927,27 +928,27 @@ content-phase.ts, or other pipeline files, update [docs/performance.md](docs/per
 both the "All Optimizations" catalog and the benchmark tables. Run `bun run bench` before and after
 to capture numbers.
 
-| Document                                                       | Description                                               |
-| -------------------------------------------------------------- | --------------------------------------------------------- |
-| [docs/README.md](docs/README.md)                               | Documentation table of contents                           |
-| [docs/getting-started.md](docs/getting-started.md)             | Runtime layers and tutorial                               |
-| [docs/components.md](docs/components.md)                       | Box, Text, VirtualList, Console, Image, Transform, Spinner, ProgressBar, SelectList, Table, Badge, Divider, inputs |
+| Document                                                       | Description                                                                                                                  |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| [docs/README.md](docs/README.md)                               | Documentation table of contents                                                                                              |
+| [docs/getting-started.md](docs/getting-started.md)             | Runtime layers and tutorial                                                                                                  |
+| [docs/components.md](docs/components.md)                       | Box, Text, VirtualList, Console, Image, Transform, Spinner, ProgressBar, SelectList, Table, Badge, Divider, inputs           |
 | [docs/hooks.md](docs/hooks.md)                                 | useContentRect, useScreenRect, useInput, usePaste, useApp, useAnimation, useAnimatedTransition, useInterval, useScrollRegion |
-| [docs/theming.md](docs/theming.md)                             | ThemeProvider, useTheme, $token colors, custom themes     |
-| [docs/scroll-regions.md](docs/scroll-regions.md)               | DECSTBM scroll region optimization                        |
-| [docs/input-features.md](docs/input-features.md)               | Keyboard, mouse, hotkeys, modifier symbols                |
-| [docs/architecture.md](docs/architecture.md)                   | Core architecture and RenderAdapter                       |
-| [docs/testing.md](docs/testing.md)                             | Testing strategy, locators, and API                       |
-| [docs/internals.md](docs/internals.md)                         | Reconciler and 5-phase pipeline                           |
-| [docs/performance.md](docs/performance.md)                     | Benchmarks and optimization (**keep up-to-date!**)        |
-| [docs/streams.md](docs/streams.md)                             | AsyncIterable stream helpers                              |
-| [docs/text-cursor.md](docs/text-cursor.md)                     | Cursor offset ↔ visual position mapping (Layer 0)         |
-| [docs/focus-routing.md](docs/focus-routing.md)                 | Focus-based input routing pattern                         |
-| [docs/ink-comparison.md](docs/ink-comparison.md)               | Ink issues and Inkx solutions                             |
-| [docs/migration.md](docs/migration.md)                         | Ink to inkx migration guide                               |
-| [docs/runtime-migration.md](docs/runtime-migration.md)         | Legacy inkx to inkx/runtime migration                     |
-| [docs/terminal-capabilities.md](docs/terminal-capabilities.md) | Terminal detection, render modes, protocols               |
-| [docs/plugins.md](docs/plugins.md)                             | withCommands, withKeybindings, withDiagnostics, drivers   |
-| [docs/devtools.md](docs/devtools.md)                           | React DevTools integration (setup, API, troubleshooting)  |
-| [docs/troubleshooting.md](docs/troubleshooting.md)             | Common issues and debugging                               |
-| [docs/roadmap.md](docs/roadmap.md)                             | Render targets and future plans                           |
+| [docs/theming.md](docs/theming.md)                             | ThemeProvider, useTheme, $token colors, custom themes                                                                        |
+| [docs/scroll-regions.md](docs/scroll-regions.md)               | DECSTBM scroll region optimization                                                                                           |
+| [docs/input-features.md](docs/input-features.md)               | Keyboard, mouse, hotkeys, modifier symbols                                                                                   |
+| [docs/architecture.md](docs/architecture.md)                   | Core architecture and RenderAdapter                                                                                          |
+| [docs/testing.md](docs/testing.md)                             | Testing strategy, locators, and API                                                                                          |
+| [docs/internals.md](docs/internals.md)                         | Reconciler and 5-phase pipeline                                                                                              |
+| [docs/performance.md](docs/performance.md)                     | Benchmarks and optimization (**keep up-to-date!**)                                                                           |
+| [docs/streams.md](docs/streams.md)                             | AsyncIterable stream helpers                                                                                                 |
+| [docs/text-cursor.md](docs/text-cursor.md)                     | Cursor offset ↔ visual position mapping (Layer 0)                                                                            |
+| [docs/focus-routing.md](docs/focus-routing.md)                 | Focus-based input routing pattern                                                                                            |
+| [docs/ink-comparison.md](docs/ink-comparison.md)               | Ink issues and Inkx solutions                                                                                                |
+| [docs/migration.md](docs/migration.md)                         | Ink to inkx migration guide                                                                                                  |
+| [docs/runtime-migration.md](docs/runtime-migration.md)         | Legacy inkx to inkx/runtime migration                                                                                        |
+| [docs/terminal-capabilities.md](docs/terminal-capabilities.md) | Terminal detection, render modes, protocols                                                                                  |
+| [docs/plugins.md](docs/plugins.md)                             | withCommands, withKeybindings, withDiagnostics, drivers                                                                      |
+| [docs/devtools.md](docs/devtools.md)                           | React DevTools integration (setup, API, troubleshooting)                                                                     |
+| [docs/troubleshooting.md](docs/troubleshooting.md)             | Common issues and debugging                                                                                                  |
+| [docs/roadmap.md](docs/roadmap.md)                             | Render targets and future plans                                                                                              |

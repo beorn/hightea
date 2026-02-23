@@ -7,13 +7,7 @@
  */
 
 import { useEffect, useRef } from "react"
-import {
-  setScrollRegion,
-  resetScrollRegion,
-  scrollUp,
-  scrollDown,
-  supportsScrollRegions,
-} from "../scroll-region.js"
+import { setScrollRegion, resetScrollRegion, scrollUp, scrollDown, supportsScrollRegions } from "../scroll-region.js"
 
 export interface UseScrollRegionOptions {
   /** Top row of scroll area (0-indexed screen coordinates). */

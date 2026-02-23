@@ -24,11 +24,11 @@
  * ```
  */
 
-import React, { type ReactElement } from "react"
+import React, { type ReactElement, act } from "react"
 
 import { createTerm } from "chalkx"
 
-import { bufferToStyledText, bufferToText } from "./buffer.js"
+import { bufferToStyledText, bufferToText, type TerminalBuffer } from "./buffer.js"
 import { AppContext, StdoutContext, TermContext } from "./context.js"
 import { isLayoutEngineInitialized, setLayoutEngine } from "./layout-engine.js"
 import { executeRender } from "./pipeline.js"
@@ -127,8 +127,11 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
 
   const { width = 80, height = 24, plain = false } = options
 
-  // Create container for React reconciliation
-  const container = createContainer(() => {})
+  // Track whether React committed new work (from layout notifications etc.)
+  let hadReactCommit = false
+  const container = createContainer(() => {
+    hadReactCommit = true
+  })
 
   // Create fiber root
   const fiberRoot = reconciler.createContainer(
@@ -184,22 +187,42 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
     ),
   )
 
-  // Mount, render, and unmount - all without act warnings
-  withoutActWarnings(() => {
-    reconciler.updateContainerSync(wrapped, fiberRoot, null, null)
-    reconciler.flushSyncWork()
+  // Mount the React tree inside act() so layout feedback works
+  withActEnvironment(() => {
+    act(() => {
+      reconciler.updateContainerSync(wrapped, fiberRoot, null, null)
+      reconciler.flushSyncWork()
+    })
   })
 
-  // Execute render pipeline (skip layout notifications for static renders)
-  const root = getContainerRoot(container)
-  const { buffer } = executeRender(root, width, height, null, {
-    skipLayoutNotifications: true,
-  })
+  // Layout stabilization loop: run the pipeline, flush React work from
+  // layout notifications (useContentRect forceUpdate etc.), repeat until stable.
+  // This matches the test renderer's multi-pass approach.
+  let buffer!: TerminalBuffer
+  const MAX_ITERATIONS = 5
+  for (let i = 0; i < MAX_ITERATIONS; i++) {
+    hadReactCommit = false
+    withActEnvironment(() => {
+      act(() => {
+        const root = getContainerRoot(container)
+        const result = executeRender(root, width, height, null)
+        buffer = result.buffer
+      })
+      if (!hadReactCommit) {
+        act(() => {
+          reconciler.flushSyncWork()
+        })
+      }
+    })
+    if (!hadReactCommit) break
+  }
 
   // Unmount (cleanup)
-  withoutActWarnings(() => {
-    reconciler.updateContainerSync(null, fiberRoot, null, null)
-    reconciler.flushSyncWork()
+  withActEnvironment(() => {
+    act(() => {
+      reconciler.updateContainerSync(null, fiberRoot, null, null)
+      reconciler.flushSyncWork()
+    })
   })
 
   return plain ? bufferToText(buffer) : bufferToStyledText(buffer)
@@ -210,15 +233,17 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
 // ============================================================================
 
 /**
- * Run a function with React act warnings disabled.
- * Used for static renders where we don't use act() and don't need layout feedback.
+ * Run a function with IS_REACT_ACT_ENVIRONMENT temporarily set to true.
+ * This ensures act() captures forceUpdate/setState from layout notifications.
  */
-function withoutActWarnings(fn: () => void): void {
+function withActEnvironment(fn: () => void): void {
   const prev = globalThis.IS_REACT_ACT_ENVIRONMENT
-  globalThis.IS_REACT_ACT_ENVIRONMENT = false
+  // @ts-expect-error - React internal flag
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true
   try {
     fn()
   } finally {
+    // @ts-expect-error - React internal flag
     globalThis.IS_REACT_ACT_ENVIRONMENT = prev
   }
 }

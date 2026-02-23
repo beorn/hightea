@@ -55,5 +55,10 @@ export function Spinner({ type = "dots", label, interval = 80 }: SpinnerProps): 
 
   const frame = frames[frameIndex % frames.length]!
 
-  return <Text>{frame}{label ? ` ${label}` : ""}</Text>
+  return (
+    <Text>
+      {frame}
+      {label ? ` ${label}` : ""}
+    </Text>
+  )
 }

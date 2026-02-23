@@ -279,19 +279,19 @@ function FadeIn({ children }) {
 }
 ```
 
-| Option       | Type                     | Default    | Description                          |
-| ------------ | ------------------------ | ---------- | ------------------------------------ |
-| `duration`   | `number`                 | --         | Duration in milliseconds (required)  |
-| `easing`     | `EasingName \| EasingFn` | `"linear"` | Easing function or preset name       |
-| `delay`      | `number`                 | `0`        | Delay before starting (ms)           |
-| `onComplete` | `() => void`             | --         | Called when animation completes      |
-| `enabled`    | `boolean`                | `true`     | Whether to run the animation         |
+| Option       | Type                     | Default    | Description                         |
+| ------------ | ------------------------ | ---------- | ----------------------------------- |
+| `duration`   | `number`                 | --         | Duration in milliseconds (required) |
+| `easing`     | `EasingName \| EasingFn` | `"linear"` | Easing function or preset name      |
+| `delay`      | `number`                 | `0`        | Delay before starting (ms)          |
+| `onComplete` | `() => void`             | --         | Called when animation completes     |
+| `enabled`    | `boolean`                | `true`     | Whether to run the animation        |
 
-| Return         | Type         | Description                           |
-| -------------- | ------------ | ------------------------------------- |
-| `value`        | `number`     | Current progress (0 to 1, eased)      |
-| `isAnimating`  | `boolean`    | Whether the animation is still running |
-| `reset`        | `() => void` | Reset and replay the animation        |
+| Return        | Type         | Description                            |
+| ------------- | ------------ | -------------------------------------- |
+| `value`       | `number`     | Current progress (0 to 1, eased)       |
+| `isAnimating` | `boolean`    | Whether the animation is still running |
+| `reset`       | `() => void` | Reset and replay the animation         |
 
 **Easing presets** (`easings` object): `linear`, `ease`, `easeIn`, `easeOut`, `easeInOut`, `easeInCubic`, `easeOutCubic`. Pass a custom `(t: number) => number` function for others.
 
@@ -308,11 +308,11 @@ function ScrollOffset({ target }) {
 }
 ```
 
-| Parameter     | Type                     | Default      | Description                     |
-| ------------- | ------------------------ | ------------ | ------------------------------- |
-| `targetValue` | `number`                 | --           | Target value to animate toward  |
-| `duration`    | `number`                 | `300`        | Duration in milliseconds        |
-| `easing`      | `EasingName \| EasingFn` | `"easeOut"`  | Easing function or preset name  |
+| Parameter     | Type                     | Default     | Description                    |
+| ------------- | ------------------------ | ----------- | ------------------------------ |
+| `targetValue` | `number`                 | --          | Target value to animate toward |
+| `duration`    | `number`                 | `300`       | Duration in milliseconds       |
+| `easing`      | `EasingName \| EasingFn` | `"easeOut"` | Easing function or preset name |
 
 Returns the current interpolated `number`. On first render, returns the target value immediately (no animation).
 
@@ -330,11 +330,11 @@ function Clock() {
 }
 ```
 
-| Parameter  | Type         | Default | Description                        |
-| ---------- | ------------ | ------- | ---------------------------------- |
-| `callback` | `() => void` | --      | Function to call on each tick      |
-| `ms`       | `number`     | --      | Interval in milliseconds           |
-| `enabled`  | `boolean`    | `true`  | Whether the interval is active     |
+| Parameter  | Type         | Default | Description                    |
+| ---------- | ------------ | ------- | ------------------------------ |
+| `callback` | `() => void` | --      | Function to call on each tick  |
+| `ms`       | `number`     | --      | Interval in milliseconds       |
+| `enabled`  | `boolean`    | `true`  | Whether the interval is active |
 
 ## useScrollRegion
 
@@ -353,18 +353,18 @@ function ScrollableArea({ items, scrollOffset }) {
 }
 ```
 
-| Option         | Type                 | Default          | Description                    |
-| -------------- | -------------------- | ---------------- | ------------------------------ |
-| `top`          | `number`             | --               | Top row (0-indexed)            |
-| `bottom`       | `number`             | --               | Bottom row (0-indexed)         |
-| `scrollOffset` | `number`             | --               | Current scroll position        |
-| `enabled`      | `boolean`            | auto-detect      | Force on/off                   |
-| `stdout`       | `NodeJS.WriteStream` | `process.stdout` | Output stream                  |
+| Option         | Type                 | Default          | Description             |
+| -------------- | -------------------- | ---------------- | ----------------------- |
+| `top`          | `number`             | --               | Top row (0-indexed)     |
+| `bottom`       | `number`             | --               | Bottom row (0-indexed)  |
+| `scrollOffset` | `number`             | --               | Current scroll position |
+| `enabled`      | `boolean`            | auto-detect      | Force on/off            |
+| `stdout`       | `NodeJS.WriteStream` | `process.stdout` | Output stream           |
 
-| Return        | Type      | Description                                   |
-| ------------- | --------- | --------------------------------------------- |
-| `isActive`    | `boolean` | Whether scroll region optimization is active  |
-| `scrollDelta` | `number`  | Lines shifted since last render               |
+| Return        | Type      | Description                                  |
+| ------------- | --------- | -------------------------------------------- |
+| `isActive`    | `boolean` | Whether scroll region optimization is active |
+| `scrollDelta` | `number`  | Lines shifted since last render              |
 
 ## useScrollback
 

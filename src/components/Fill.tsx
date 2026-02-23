@@ -78,9 +78,8 @@ export function Fill({ children, max }: FillProps): JSX.Element | null {
 
     let count = Math.floor(width / unitWidth)
     if (max !== undefined) count = Math.min(count, max)
-    if (count <= 0) return null
 
-    let text = pattern.repeat(count)
+    let text = count > 0 ? pattern.repeat(count) : ""
     let usedWidth = count * unitWidth
 
     // CSS leader spec: allow partial pattern at the end
@@ -94,7 +93,7 @@ export function Fill({ children, max }: FillProps): JSX.Element | null {
       }
     }
 
-    return text
+    return text || null
   }, [children, width, max])
 
   if (!repeatedText) return null

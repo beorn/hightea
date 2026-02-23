@@ -34,15 +34,7 @@ function AnimationProbe(props: UseAnimationOptions & { id?: string }) {
 }
 
 /** Displays the current transition value. */
-function TransitionProbe({
-  target,
-  duration,
-  easing,
-}: {
-  target: number
-  duration?: number
-  easing?: string
-}) {
+function TransitionProbe({ target, duration, easing }: { target: number; duration?: number; easing?: string }) {
   const value = useTransition(target, { duration, easing: easing as any })
 
   return (
@@ -53,15 +45,7 @@ function TransitionProbe({
 }
 
 /** Wrapper that allows changing the target for TransitionProbe. */
-function TransitionDriver({
-  initial,
-  duration,
-  easing,
-}: {
-  initial: number
-  duration?: number
-  easing?: string
-}) {
+function TransitionDriver({ initial, duration, easing }: { initial: number; duration?: number; easing?: string }) {
   const [target, setTarget] = useState(initial)
   // Expose setter via testID so we can trigger changes
   ;(globalThis as any).__setTransitionTarget = setTarget

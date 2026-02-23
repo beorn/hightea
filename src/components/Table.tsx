@@ -106,15 +106,11 @@ export function Table({
   })
 
   // Build header row
-  const headerCells = columns.map((col, i) =>
-    alignText(col.header, colWidths[i]!, col.align),
-  )
+  const headerCells = columns.map((col, i) => alignText(col.header, colWidths[i]!, col.align))
   const headerLine = headerCells.join(separator)
 
   // Build separator line
-  const separatorLine = colWidths
-    .map((w) => "─".repeat(w))
-    .join(separator.replace(/[^│]/g, "─").replace(/│/g, "┼"))
+  const separatorLine = colWidths.map((w) => "─".repeat(w)).join(separator.replace(/[^│]/g, "─").replace(/│/g, "┼"))
 
   // Build data rows
   const dataRows = data.map((row) => {

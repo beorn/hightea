@@ -179,10 +179,7 @@ describe("SelectList", () => {
     await app.press("j") // Move to Banana
     await app.press("Enter")
 
-    expect(handleSelect).toHaveBeenCalledWith(
-      { label: "Banana", value: "banana" },
-      1,
-    )
+    expect(handleSelect).toHaveBeenCalledWith({ label: "Banana", value: "banana" }, 1)
   })
 
   test("fires onHighlight on navigation", async () => {
@@ -212,9 +209,7 @@ describe("SelectList", () => {
 
   test("does not fire onSelect for disabled items", async () => {
     const handleSelect = vi.fn()
-    const disabledItems: SelectOption[] = [
-      { label: "Only", value: "only", disabled: true },
-    ]
+    const disabledItems: SelectOption[] = [{ label: "Only", value: "only", disabled: true }]
     const app = render(<SelectList items={disabledItems} onSelect={handleSelect} />)
 
     await app.press("Enter")
@@ -309,11 +304,7 @@ describe("Table", () => {
 
   test("hides header when showHeader is false", () => {
     const app = render(
-      <Table
-        columns={[{ header: "Name", key: "name" }]}
-        data={[{ name: "Alice" }]}
-        showHeader={false}
-      />,
+      <Table columns={[{ header: "Name", key: "name" }]} data={[{ name: "Alice" }]} showHeader={false} />,
     )
 
     expect(app.text).toContain("Alice")
@@ -354,10 +345,7 @@ describe("Table", () => {
   test("handles array data rows", () => {
     const app = render(
       <Table
-        columns={[
-          { header: "Col1" },
-          { header: "Col2" },
-        ]}
+        columns={[{ header: "Col1" }, { header: "Col2" }]}
         data={[
           ["foo", "bar"],
           ["baz", "qux"],
