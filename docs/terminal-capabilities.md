@@ -636,24 +636,24 @@ requestClipboard(process.stdout)
 const text = parseClipboardResponse(rawInput) // string | null
 ```
 
-| Function                 | Description                                                  |
-| ------------------------ | ------------------------------------------------------------ |
-| `copyToClipboard`        | Write base64-encoded text to clipboard via OSC 52            |
-| `requestClipboard`       | Send OSC 52 query to request clipboard contents              |
+| Function                 | Description                                                     |
+| ------------------------ | --------------------------------------------------------------- |
+| `copyToClipboard`        | Write base64-encoded text to clipboard via OSC 52               |
+| `requestClipboard`       | Send OSC 52 query to request clipboard contents                 |
 | `parseClipboardResponse` | Decode an OSC 52 response (handles both BEL and ST terminators) |
 
 ### Terminal Support
 
-| Terminal     | OSC 52 | Notes              |
-| ------------ | ------ | ------------------ |
-| Ghostty      | Yes    |                    |
-| Kitty        | Yes    |                    |
-| WezTerm      | Yes    |                    |
-| iTerm2       | Yes    |                    |
-| xterm        | Yes    |                    |
-| foot         | Yes    |                    |
+| Terminal     | OSC 52 | Notes                     |
+| ------------ | ------ | ------------------------- |
+| Ghostty      | Yes    |                           |
+| Kitty        | Yes    |                           |
+| WezTerm      | Yes    |                           |
+| iTerm2       | Yes    |                           |
+| xterm        | Yes    |                           |
+| foot         | Yes    |                           |
 | tmux         | Yes    | `set -g set-clipboard on` |
-| Terminal.app | No     |                    |
+| Terminal.app | No     |                           |
 
 ### SSH Transparency
 
@@ -677,13 +677,7 @@ Paste end:    CSI 201 ~         (ESC [ 201 ~)
 ### API
 
 ```tsx
-import {
-  enableBracketedPaste,
-  disableBracketedPaste,
-  parseBracketedPaste,
-  PASTE_START,
-  PASTE_END,
-} from "inkx"
+import { enableBracketedPaste, disableBracketedPaste, parseBracketedPaste, PASTE_START, PASTE_END } from "inkx"
 
 // Enable/disable (the run() runtime handles this automatically)
 enableBracketedPaste(process.stdout)
@@ -696,13 +690,13 @@ if (result) {
 }
 ```
 
-| Export                   | Description                                                      |
-| ------------------------ | ---------------------------------------------------------------- |
-| `enableBracketedPaste`   | Write `CSI ? 2004 h` to enable paste bracketing                 |
-| `disableBracketedPaste`  | Write `CSI ? 2004 l` to disable paste bracketing                |
-| `parseBracketedPaste`    | Extract paste content from raw input (returns `{ type: "paste", content }` or null) |
-| `PASTE_START`            | The paste start marker string (`ESC [ 200 ~`)                   |
-| `PASTE_END`              | The paste end marker string (`ESC [ 201 ~`)                     |
+| Export                  | Description                                                                         |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| `enableBracketedPaste`  | Write `CSI ? 2004 h` to enable paste bracketing                                     |
+| `disableBracketedPaste` | Write `CSI ? 2004 l` to disable paste bracketing                                    |
+| `parseBracketedPaste`   | Extract paste content from raw input (returns `{ type: "paste", content }` or null) |
+| `PASTE_START`           | The paste start marker string (`ESC [ 200 ~`)                                       |
+| `PASTE_END`             | The paste end marker string (`ESC [ 201 ~`)                                         |
 
 ### Runtime Integration
 
@@ -724,16 +718,16 @@ useInput(handler, { onPaste: (text) => handlePaste(text) })
 
 ### Terminal Support
 
-| Terminal     | Bracketed Paste | Notes |
-| ------------ | --------------- | ----- |
-| Ghostty      | Yes             |       |
-| Kitty        | Yes             |       |
-| WezTerm      | Yes             |       |
-| iTerm2       | Yes             |       |
-| Alacritty    | Yes             |       |
-| xterm        | Yes             |       |
-| tmux         | Yes             |       |
-| foot         | Yes             |       |
+| Terminal  | Bracketed Paste | Notes |
+| --------- | --------------- | ----- |
+| Ghostty   | Yes             |       |
+| Kitty     | Yes             |       |
+| WezTerm   | Yes             |       |
+| iTerm2    | Yes             |       |
+| Alacritty | Yes             |       |
+| xterm     | Yes             |       |
+| tmux      | Yes             |       |
+| foot      | Yes             |       |
 
 ## Terminal Notifications
 

@@ -293,12 +293,12 @@ import { Image } from "inkx"
 <Image src={data} protocol="sixel" fallback="[photo]" />
 ```
 
-| Prop       | Type                            | Description                                                               |
-| ---------- | ------------------------------- | ------------------------------------------------------------------------- |
-| `src`      | `Buffer \| string`              | PNG image data (Buffer) or file path to a PNG file                        |
-| `width`    | `number`                        | Width in terminal columns (default: available width from layout)          |
-| `height`   | `number`                        | Height in terminal rows (default: half the width for rough aspect ratio)  |
-| `fallback` | `string`                        | Text to display when image rendering is not supported (default: `"[image]"`) |
+| Prop       | Type                           | Description                                                                        |
+| ---------- | ------------------------------ | ---------------------------------------------------------------------------------- |
+| `src`      | `Buffer \| string`             | PNG image data (Buffer) or file path to a PNG file                                 |
+| `width`    | `number`                       | Width in terminal columns (default: available width from layout)                   |
+| `height`   | `number`                       | Height in terminal rows (default: half the width for rough aspect ratio)           |
+| `fallback` | `string`                       | Text to display when image rendering is not supported (default: `"[image]"`)       |
 | `protocol` | `"kitty" \| "sixel" \| "auto"` | Which protocol to use (default: `"auto"` — tries Kitty, then Sixel, then fallback) |
 
 The component operates in two phases: during layout it renders a Box that reserves the visual space, then after render it writes the image escape sequence directly to stdout, positioned over the reserved space.
@@ -308,8 +308,12 @@ The component operates in two phases: during layout it renders a Box that reserv
 ```tsx
 import { isKittyGraphicsSupported, isSixelSupported } from "inkx"
 
-if (isKittyGraphicsSupported()) { /* Kitty graphics available */ }
-if (isSixelSupported()) { /* Sixel available */ }
+if (isKittyGraphicsSupported()) {
+  /* Kitty graphics available */
+}
+if (isSixelSupported()) {
+  /* Sixel available */
+}
 ```
 
 **Low-level encoding functions:**

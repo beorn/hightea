@@ -61,18 +61,18 @@ examples/
 | Clipboard     | `interactive/clipboard.tsx`     | OSC 52 clipboard copy/paste across sessions      |
 | Paste Demo    | `interactive/paste-demo.tsx`    | Bracketed paste mode — paste as single event     |
 | Outline       | `interactive/outline.tsx`       | Outline vs border side-by-side comparison        |
-| Transform     | `interactive/transform.tsx`     | Text post-processing with Transform component   |
+| Transform     | `interactive/transform.tsx`     | Text post-processing with Transform component    |
 
 ## Kitty Protocol
 
-| Example         | File                            | Description                                       |
-| --------------- | ------------------------------- | ------------------------------------------------- |
-| Image Viewer    | `kitty/images.tsx`              | Raw Kitty graphics protocol image display         |
-| Image Component | `kitty/image-component.tsx`     | Declarative `<Image>` with protocol auto-detect   |
-| Key Events      | `kitty/keys.tsx`                | Interactive key chord tester with Kitty protocol  |
-| Input           | `kitty/input.tsx`               | Kitty keyboard input demonstration                |
-| Canvas          | `kitty/canvas.tsx`              | Canvas rendering via Kitty graphics               |
-| Paint           | `kitty/paint.tsx`               | Terminal paint app using Kitty graphics            |
+| Example         | File                        | Description                                      |
+| --------------- | --------------------------- | ------------------------------------------------ |
+| Image Viewer    | `kitty/images.tsx`          | Raw Kitty graphics protocol image display        |
+| Image Component | `kitty/image-component.tsx` | Declarative `<Image>` with protocol auto-detect  |
+| Key Events      | `kitty/keys.tsx`            | Interactive key chord tester with Kitty protocol |
+| Input           | `kitty/input.tsx`           | Kitty keyboard input demonstration               |
+| Canvas          | `kitty/canvas.tsx`          | Canvas rendering via Kitty graphics              |
+| Paint           | `kitty/paint.tsx`           | Terminal paint app using Kitty graphics          |
 
 ## Runtime
 

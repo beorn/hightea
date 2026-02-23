@@ -114,7 +114,12 @@ function generateTestPatternPng(width: number, height: number): Buffer {
   ihdr[11] = 0 // filter
   ihdr[12] = 0 // interlace
 
-  return Buffer.concat([signature, makeChunk("IHDR", ihdr), makeChunk("IDAT", compressed), makeChunk("IEND", Buffer.alloc(0))])
+  return Buffer.concat([
+    signature,
+    makeChunk("IHDR", ihdr),
+    makeChunk("IDAT", compressed),
+    makeChunk("IEND", Buffer.alloc(0)),
+  ])
 }
 
 /** CRC-32 for PNG chunks */
@@ -198,7 +203,12 @@ export function ImageComponentDemo(): JSX.Element {
           </Text>
         </Box>
 
-        <Image src={pngBuffer} width={imageWidth} height={imageHeight} fallback="[Rainbow gradient — graphics protocol not available]" />
+        <Image
+          src={pngBuffer}
+          width={imageWidth}
+          height={imageHeight}
+          fallback="[Rainbow gradient — graphics protocol not available]"
+        />
       </Box>
 
       <Box flexDirection="column" borderStyle="round" borderColor="gray" paddingX={1}>

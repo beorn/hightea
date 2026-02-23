@@ -43,7 +43,14 @@ function ContentWithSize({ label }: { label: string }): JSX.Element {
     <Box flexDirection="column">
       <Text bold>{label}</Text>
       <Text>
-        Content area: <Text color="green" bold>{width}</Text>x<Text color="green" bold>{height}</Text>
+        Content area:{" "}
+        <Text color="green" bold>
+          {width}
+        </Text>
+        x
+        <Text color="green" bold>
+          {height}
+        </Text>
       </Text>
       <Text dim>The quick brown fox</Text>
       <Text dim>jumps over the lazy</Text>
@@ -58,12 +65,7 @@ function BorderPanel({ style, highlight }: { style: StyleVariant; highlight: boo
       <Text bold color={highlight ? "cyan" : "white"}>
         borderStyle="{style}"
       </Text>
-      <Box
-        borderStyle={style}
-        borderColor={highlight ? "cyan" : "gray"}
-        width={30}
-        height={9}
-      >
+      <Box borderStyle={style} borderColor={highlight ? "cyan" : "gray"} width={30} height={9}>
         <ContentWithSize label="Border Box" />
       </Box>
       <Text dim>Border adds to layout.</Text>
@@ -78,12 +80,7 @@ function OutlinePanel({ style, highlight }: { style: StyleVariant; highlight: bo
       <Text bold color={highlight ? "yellow" : "white"}>
         outlineStyle="{style}"
       </Text>
-      <Box
-        outlineStyle={style}
-        outlineColor={highlight ? "yellow" : "gray"}
-        width={30}
-        height={9}
-      >
+      <Box outlineStyle={style} outlineColor={highlight ? "yellow" : "gray"} width={30} height={9}>
         <ContentWithSize label="Outline Box" />
       </Box>
       <Text dim>Outline overlaps content.</Text>
