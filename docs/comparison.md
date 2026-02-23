@@ -2,7 +2,7 @@
 
 A feature comparison of major terminal UI frameworks across languages and ecosystems. Covers rendering, terminal protocols, layout, components, developer experience, and architecture. Values reflect the state of each framework as of early 2026.
 
-> For an in-depth inkx vs Ink analysis with code examples, benchmarks, and migration guidance, see [ink-comparison.md](ink-comparison.md).
+> For an in-depth inkx vs Ink analysis with code examples, benchmarks, and migration guidance, see [inkx-vs-ink.md](inkx-vs-ink.md).
 
 **Legend:** ✅ Full support (built-in, documented) | ⚡ Best-in-class | 🔶 Partial support | ❌ Not supported | 🔧 Community/plugin
 
@@ -105,7 +105,7 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 
 ## Unique Strengths
 
-> Performance claims below are summary figures. See [performance.md](deep-dives/performance.md) for full benchmarks and methodology.
+> Performance claims below are summary figures. See [benchmarks.md](benchmarks.md) for full benchmark data and [performance.md](deep-dives/performance.md) for optimization details.
 
 ### inkx
 

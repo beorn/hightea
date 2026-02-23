@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "inkx"
   text: "React for modern terminals"
-  tagline: "122x faster interactive updates. Reactive layout. AI-ready. Three architectures. Mouse, keyboard, images, clipboard, hyperlinks, scrollback. Pure TypeScript — no WASM, no C++."
+  tagline: "Layout feedback, every terminal protocol, React + Elm architectures, 122x faster updates. Zero native dependencies."
   actions:
     - theme: brand
       text: Get Started
@@ -16,18 +16,30 @@ hero:
 features:
   - icon: "\U0001F4D0"
     title: Layout Feedback
-    details: "useContentRect() — components know their size. Ink's oldest open issue (2016), solved."
+    details: "Components query their own dimensions via useContentRect(). No width prop drilling. Ink's oldest open issue (2016), solved."
   - icon: "\U0001F4E1"
     title: Every Protocol
-    details: "Kitty keyboard, SGR mouse, images, clipboard, hyperlinks. All built-in, all auto-detected."
+    details: "Kitty keyboard, SGR mouse, images, clipboard, hyperlinks, synchronized updates. All built-in, all auto-detected."
   - icon: "\u26A1"
     title: 122x Faster*
-    details: "Per-node dirty tracking with 7 independent flags — 169μs vs Ink's 20.7ms. Only changed nodes re-render."
+    details: "Per-node dirty tracking with 7 independent flags -- 169us vs Ink's 20.7ms. Only changed nodes re-render."
     link: /guide/why-inkx#incremental-rendering
     linkText: "* See benchmarks"
-  - icon: "\U0001F3AF"
-    title: "Runs in the Browser"
-    details: "Same React components render to xterm.js in any web page. Canvas 2D and DOM targets in development."
+  - icon: "\U0001F9E9"
+    title: Three Architectures
+    details: "Elm-style reducers, React hooks, or Zustand stores. Choose the right paradigm per use case -- all three in one framework."
+  - icon: "\U0001F4E6"
+    title: 23+ Components
+    details: "Box, Text, VirtualList, TextArea, SelectList, Table, Image, Spinner, ProgressBar, and more. Scrollable containers just work."
+  - icon: "\U0001F916"
+    title: Built for AI
+    details: "Command introspection for agents, programmatic screenshots, scrollable streaming output. CLAUDE.md ships with the package."
+  - icon: "\U0001F5C4\uFE0F"
+    title: Scrollable Containers
+    details: "overflow=\"scroll\" with scrollTo just works. No manual virtualization. Ink's #1 feature request since 2019, solved."
+  - icon: "\U0001F6AB"
+    title: Zero Dependencies
+    details: "Pure TypeScript. No WASM, no C++, no memory leaks. Runs on Node, Bun, and Deno."
 ---
 
 <script setup>
@@ -44,12 +56,12 @@ Same React component, running in the browser via xterm.js:
 
 <div class="use-cases">
 
-- **[AI Assistants & Chat](/use-cases/ai-assistants)** — Streaming output, scrollback history, command palettes
-- **[Dashboards & Monitoring](/use-cases/dashboards)** — Multi-pane layouts with real-time data
-- **[Kanban & Project Boards](/use-cases/kanban-boards)** — Multi-column navigation with cards and focus management
-- **[CLI Wizards & Setup Tools](/use-cases/cli-wizards)** — Step-by-step forms, selections, progress tracking
-- **[Developer Tools](/use-cases/developer-tools)** — REPLs, log viewers, debuggers, profilers
-- **[Data Explorers & Tables](/use-cases/data-explorers)** — Virtual lists, filtering, search, sortable tables
+- **[AI Assistants & Chat](/use-cases/ai-assistants)** -- Streaming output, scrollback history, command palettes
+- **[Dashboards & Monitoring](/use-cases/dashboards)** -- Multi-pane layouts with real-time data
+- **[Kanban & Project Boards](/use-cases/kanban-boards)** -- Multi-column navigation with cards and focus management
+- **[CLI Wizards & Setup Tools](/use-cases/cli-wizards)** -- Step-by-step forms, selections, progress tracking
+- **[Developer Tools](/use-cases/developer-tools)** -- REPLs, log viewers, debuggers, profilers
+- **[Data Explorers & Tables](/use-cases/data-explorers)** -- Virtual lists, filtering, search, sortable tables
 
 </div>
 
@@ -57,12 +69,12 @@ Same React component, running in the browser via xterm.js:
 
 <div class="features-list">
 
-- **23+ components** — Box, Text, VirtualList, TextArea, SelectList, Table, Image, Spinner, ProgressBar, and more
-- **Scrollable containers** — `overflow="scroll"` with `scrollTo` just works. No manual virtualization. Ink's #1 feature request since 2019.
-- **Three architectures** — React hooks, Elm-style reducers, or Zustand stores. Choose per use case — all three in one framework.
-- **Built for AI** — Command introspection for agents, programmatic screenshots, scrollable streaming output. CLAUDE.md ships with the package.
-- **Input system** — Input layer stack (DOM-style event bubbling), tree-based focus with spatial navigation, command system with keybinding resolution
-- **Zero native deps** — Pure TypeScript. No WASM, no C++, no memory leaks. Runs on Node, Bun, and Deno.
+- **23+ components** -- Box, Text, VirtualList, TextArea, SelectList, Table, Image, Spinner, ProgressBar, and more
+- **Scrollable containers** -- `overflow="scroll"` with `scrollTo` just works. No manual virtualization. Ink's #1 feature request since 2019.
+- **Three architectures** -- React hooks, Elm-style reducers, or Zustand stores. Choose per use case -- all three in one framework.
+- **Built for AI** -- Command introspection for agents, programmatic screenshots, scrollable streaming output. CLAUDE.md ships with the package.
+- **Input system** -- Input layer stack (DOM-style event bubbling), tree-based focus with spatial navigation, command system with keybinding resolution
+- **Zero native deps** -- Pure TypeScript. No WASM, no C++, no memory leaks. Runs on Node, Bun, and Deno.
 
 </div>
 

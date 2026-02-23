@@ -272,5 +272,5 @@ If you're building terminal UIs for AI tools and you want components that know t
 - [GitHub](https://github.com/beorn/inkx)
 - [npm](https://www.npmjs.com/package/inkx)
 - [Documentation](https://github.com/beorn/inkx/tree/main/docs)
-- [Ink comparison](https://github.com/beorn/inkx/blob/main/docs/ink-comparison.md)
+- [inkx vs Ink](https://github.com/beorn/inkx/blob/main/docs/inkx-vs-ink.md)
 - [CLAUDE.md](https://github.com/beorn/inkx/blob/main/CLAUDE.md) (the AI-readable reference)

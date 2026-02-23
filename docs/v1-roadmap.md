@@ -100,7 +100,7 @@ These APIs are the 1.0 stability contract. After 1.0, changes to these require a
 - [x] Architecture deep dive (`docs/deep-dives/architecture.md`)
 - [x] Performance deep dive (`docs/deep-dives/performance.md`)
 - [x] Testing guide (`docs/testing.md`)
-- [x] Ink comparison (`docs/ink-comparison.md`)
+- [x] Ink comparison (`docs/inkx-vs-ink.md`)
 - [x] Cross-framework comparison (`docs/comparison.md`)
 - [x] Input features reference (`docs/reference/input-features.md`)
 - [x] Terminal capabilities reference (`docs/reference/terminal-capabilities.md`)
