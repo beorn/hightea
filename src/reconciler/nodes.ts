@@ -120,6 +120,7 @@ export function createNode(type: InkxNodeType, props: BoxProps | TextProps | Rec
         wrap === "truncate-start" ||
         wrap === "truncate-middle" ||
         wrap === "truncate-end" ||
+        wrap === "clip" ||
         wrap === false
 
       // Calculate actual dimensions based on wrapping

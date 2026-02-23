@@ -557,6 +557,14 @@ export function formatTextLines(text: string, width: number, wrap: TextProps["wr
   const normalizedText = text.replace(/\t/g, "    ")
   const lines = normalizedText.split("\n")
 
+  // Hard clip: truncate without ellipsis (used by Fill component)
+  if (wrap === "clip") {
+    return lines.map((line) => {
+      if (getTextWidth(line) <= width) return line
+      return sliceByWidth(line, width)
+    })
+  }
+
   // No wrapping, just truncate at end
   if (wrap === false || wrap === "truncate-end" || wrap === "truncate") {
     return lines.map((line) => truncateText(line, width, "end"))
@@ -1067,7 +1075,8 @@ export function renderText(
   // Budget is width + 1 display columns per line to ensure formatTextLines sees
   // text wider than the container and adds the ellipsis character.
   let maxDisplayWidth: number | undefined
-  const isTruncateEnd = props.wrap === false || props.wrap === "truncate-end" || props.wrap === "truncate"
+  const isTruncateEnd =
+    props.wrap === false || props.wrap === "truncate-end" || props.wrap === "truncate" || props.wrap === "clip"
   if (isTruncateEnd && width > 0) {
     const plainText = collectPlainText(node)
     const lineCount = (plainText.match(/\n/g)?.length ?? 0) + 1

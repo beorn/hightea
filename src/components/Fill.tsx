@@ -2,15 +2,19 @@
  * Inkx Fill Component
  *
  * Repeats its children's text content to fill the parent's allocated width.
- * Wraps children (typically a styled Text) and repeats the text pattern
- * to exactly fill available space. Follows CSS leader() spec for edge cases.
+ * Single-pass rendering: generates a long repeated string that gets
+ * hard-clipped by the Text element's wrap="clip" mode. No useContentRect,
+ * no layout re-render cycle.
+ *
+ * Parent Box MUST use `flexBasis={0}` to prevent the long content from
+ * inflating the flex item's minimum size.
  *
  * @example
  * ```tsx
- * // Dot leaders (fills remaining space with dots)
+ * // Dot leaders — parent needs flexGrow={1} flexBasis={0}
  * <Box>
  *   <Text color="yellow">hjkl</Text>
- *   <Box flexGrow={1}>
+ *   <Box flexGrow={1} flexBasis={0}>
  *     <Fill><Text dimColor>.</Text></Fill>
  *   </Box>
  *   <Text>navigate</Text>
@@ -20,25 +24,22 @@
  * <Box>
  *   <Text dimColor>── </Text>
  *   <Text bold color="cyan">NAVIGATION</Text>
- *   <Box flexGrow={1}>
+ *   <Box flexGrow={1} flexBasis={0}>
  *     <Fill><Text dimColor> ─</Text></Fill>
  *   </Box>
  * </Box>
- *
- * // Capped repetition
- * <Fill max={5}><Text color="yellow">★ </Text></Fill>
  * ```
  */
 
 import { type JSX, type ReactNode, useMemo, Children, isValidElement, cloneElement } from "react"
-import { useContentRect } from "../hooks/useLayout.js"
-import { displayWidth, splitGraphemes, graphemeWidth } from "../unicode.js"
+import { displayWidth } from "../unicode.js"
+
+/** Maximum fill width in columns. Covers ultrawide terminals (8K at 5px font ≈ 1500 cols). */
+const MAX_FILL_COLS = 500
 
 export interface FillProps {
   /** Content to repeat (typically a styled Text element or plain string) */
   children: ReactNode
-  /** Maximum number of repetitions. If omitted, fills all available width. */
-  max?: number
 }
 
 /**
@@ -59,56 +60,42 @@ function extractText(children: ReactNode): string {
 }
 
 /**
- * Repeats children's text content to fill parent width.
- *
- * Uses `useContentRect()` to read the parent Box's allocated width,
- * then repeats the text pattern to exactly fill that space. Handles
- * wide characters correctly (never splits a glyph). Allows partial
- * pattern at the end per CSS leader() spec.
+ * Clone the outermost child element, replace its text content, and set
+ * wrap="clip" to hard-truncate the long text without adding an ellipsis.
+ * Falls back to plain text fragment for string children.
  */
-export function Fill({ children, max }: FillProps): JSX.Element | null {
-  const { width } = useContentRect()
-
-  const repeatedText = useMemo(() => {
-    const pattern = extractText(children)
-    if (!pattern || width <= 0) return null
-
-    const unitWidth = displayWidth(pattern)
-    if (unitWidth <= 0) return null
-
-    let count = Math.floor(width / unitWidth)
-    if (max !== undefined) count = Math.min(count, max)
-
-    let text = count > 0 ? pattern.repeat(count) : ""
-    let usedWidth = count * unitWidth
-
-    // CSS leader spec: allow partial pattern at the end
-    if (usedWidth < width && (max === undefined || count < max)) {
-      const graphemes = splitGraphemes(pattern)
-      for (const g of graphemes) {
-        const gw = graphemeWidth(g)
-        if (usedWidth + gw > width) break
-        text += g
-        usedWidth += gw
-      }
-    }
-
-    return text || null
-  }, [children, width, max])
-
-  // Before layout completes, width is 0 and repeatedText is null.
-  // Render children as-is (single copy of the pattern) instead of null
-  // to avoid flicker — a single "." or "─" is better than empty space.
-  if (!repeatedText) return <>{children}</>
-
-  // Clone the outermost child element and replace its text content
+function renderWithText(children: ReactNode, text: string): JSX.Element {
   const childArray = Children.toArray(children)
   const firstChild = childArray[0]
 
   if (isValidElement(firstChild)) {
-    return cloneElement(firstChild, {}, repeatedText)
+    return cloneElement(firstChild, { wrap: "clip" }, text)
   }
 
-  // Plain string children — return the repeated text directly
-  return <>{repeatedText}</>
+  return <>{text}</>
+}
+
+/**
+ * Repeats children's text content to fill parent width.
+ *
+ * Single-pass rendering: generates a long repeated string, truncated by the
+ * Text element. No layout feedback needed — no useContentRect, no re-render.
+ *
+ * Parent Box **must** use `flexBasis={0}` so the long text doesn't inflate
+ * the flex minimum size; it gets truncated to the allocated width.
+ */
+export function Fill({ children }: FillProps): JSX.Element {
+  const repeatedText = useMemo(() => {
+    const pattern = extractText(children)
+    if (!pattern) return null
+
+    const unitWidth = displayWidth(pattern)
+    if (unitWidth <= 0) return null
+
+    const count = Math.ceil(MAX_FILL_COLS / unitWidth)
+    return pattern.repeat(count)
+  }, [children])
+
+  if (!repeatedText) return <>{children}</>
+  return renderWithText(children, repeatedText)
 }

@@ -2,6 +2,10 @@
  * Tests for the Fill component.
  *
  * Fill repeats its children's text content to fill available width.
+ * Single-pass mode (no max): parent must use flexBasis={0} so the
+ * long text doesn't inflate the flex item's basis.
+ * Exact-fit mode (with max): uses useContentRect for precise count.
+ *
  * Note: inkx defaults to flexDirection="column" (like Ink), so horizontal
  * layouts need explicit flexDirection="row".
  */
@@ -16,7 +20,7 @@ describe("Fill component", () => {
   test("repeats single character to fill parent width", () => {
     const app = render(
       <Box width={20} flexDirection="row">
-        <Box flexGrow={1}>
+        <Box flexGrow={1} flexBasis={0}>
           <Fill>
             <Text>.</Text>
           </Fill>
@@ -29,7 +33,7 @@ describe("Fill component", () => {
   test("repeats multi-character pattern", () => {
     const app = render(
       <Box width={10} flexDirection="row">
-        <Box flexGrow={1}>
+        <Box flexGrow={1} flexBasis={0}>
           <Fill>
             <Text>-=</Text>
           </Fill>
@@ -43,7 +47,7 @@ describe("Fill component", () => {
     const app = render(
       <Box width={20} flexDirection="row">
         <Text>abc</Text>
-        <Box flexGrow={1}>
+        <Box flexGrow={1} flexBasis={0}>
           <Fill>
             <Text>.</Text>
           </Fill>
@@ -56,23 +60,11 @@ describe("Fill component", () => {
     expect(app.text).toContain(".".repeat(14))
   })
 
-  test("respects max prop", () => {
-    const app = render(
-      <Box width={20} flexDirection="row">
-        <Fill max={5}>
-          <Text>*</Text>
-        </Fill>
-      </Box>,
-    )
-    expect(app.text).toContain("*****")
-    expect(app.text).not.toContain("******")
-  })
-
   test("handles zero available width", () => {
     const app = render(
       <Box width={5} flexDirection="row">
         <Text>12345</Text>
-        <Box flexGrow={1}>
+        <Box flexGrow={1} flexBasis={0}>
           <Fill>
             <Text>.</Text>
           </Fill>
@@ -85,7 +77,7 @@ describe("Fill component", () => {
   test("handles pattern wider than available space", () => {
     const app = render(
       <Box width={3} flexDirection="row">
-        <Box flexGrow={1}>
+        <Box flexGrow={1} flexBasis={0}>
           <Fill>
             <Text>abcde</Text>
           </Fill>
@@ -99,7 +91,7 @@ describe("Fill component", () => {
   test("preserves Text styling (dimColor)", () => {
     const app = render(
       <Box width={10} flexDirection="row">
-        <Box flexGrow={1}>
+        <Box flexGrow={1} flexBasis={0}>
           <Fill>
             <Text dimColor>.</Text>
           </Fill>
@@ -114,7 +106,7 @@ describe("Fill component", () => {
   test("works with plain string children", () => {
     const app = render(
       <Box width={10} flexDirection="row">
-        <Box flexGrow={1}>
+        <Box flexGrow={1} flexBasis={0}>
           <Fill>
             <Text>-</Text>
           </Fill>
@@ -129,7 +121,7 @@ describe("Fill component", () => {
       <Box width={30} flexDirection="row">
         <Text color="yellow">hjkl</Text>
         <Text> </Text>
-        <Box flexGrow={1}>
+        <Box flexGrow={1} flexBasis={0}>
           <Fill>
             <Text dimColor>.</Text>
           </Fill>
@@ -148,7 +140,7 @@ describe("Fill component", () => {
       <Box width={30} flexDirection="row">
         <Text dimColor>── </Text>
         <Text bold>NAVIGATION</Text>
-        <Box flexGrow={1}>
+        <Box flexGrow={1} flexBasis={0}>
           <Fill>
             <Text dimColor> ─</Text>
           </Fill>
