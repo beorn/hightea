@@ -42,3 +42,22 @@ export type { ReadlineState, UseReadlineOptions, UseReadlineResult } from "./use
 // Image
 export { Image } from "../image/Image.js"
 export type { ImageProps } from "../image/Image.js"
+
+// Widgets
+export { Spinner } from "./Spinner.js"
+export type { SpinnerProps } from "./Spinner.js"
+
+export { ProgressBar } from "./ProgressBar.js"
+export type { ProgressBarProps } from "./ProgressBar.js"
+
+export { SelectList } from "./SelectList.js"
+export type { SelectListProps, SelectOption } from "./SelectList.js"
+
+export { Table } from "./Table.js"
+export type { TableProps, TableColumn } from "./Table.js"
+
+export { Badge } from "./Badge.js"
+export type { BadgeProps } from "./Badge.js"
+
+export { Divider } from "./Divider.js"
+export type { DividerProps } from "./Divider.js"

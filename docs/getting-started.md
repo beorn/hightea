@@ -394,6 +394,114 @@ runtime.schedule(async () => await longTask(), { signal: controller.signal })
 controller.abort() // Cancels the effect
 ```
 
+## TEA Store: createStore()
+
+Between `createRuntime()` and the React layers sits a pure **TEA (The Elm Architecture) store**. It has no React dependency — use it for Elm-style apps or as the state backbone under React components.
+
+```typescript
+import { createStore, inkxUpdate, defaultInit, withFocusManagement } from "inkx/store"
+import { type Effect, type InkxModel, type InkxMsg, none, batch, dispatch, compose } from "inkx/core"
+
+// Extend the base model with your state
+interface AppModel extends InkxModel {
+  count: number
+  items: string[]
+}
+
+type AppMsg = InkxMsg | { type: "increment" } | { type: "add-item"; text: string }
+
+// Pure update: (msg, model) → [newModel, effects]
+function update(msg: AppMsg, model: AppModel): [AppModel, Effect[]] {
+  switch (msg.type) {
+    case "increment":
+      return [{ ...model, count: model.count + 1 }, [none]]
+    case "add-item":
+      return [{ ...model, items: [...model.items, msg.text] }, [none]]
+    default:
+      // Delegate unhandled messages to the base inkx update
+      return inkxUpdate(msg, model)
+  }
+}
+
+// Compose plugins — withFocusManagement handles focus/blur/scope messages
+const store = createStore({
+  init: () => [{ ...defaultInit()[0], count: 0, items: [] } as AppModel, [none]],
+  update: compose(withFocusManagement<AppModel, AppMsg>())(update),
+})
+
+// Dispatch messages
+store.dispatch({ type: "increment" })
+store.getModel().count // 1
+
+// Subscribe to changes (compatible with React's useSyncExternalStore)
+const unsubscribe = store.subscribe(() => {
+  console.log("Model changed:", store.getModel().count)
+})
+```
+
+### Effects
+
+Effects are declarative descriptions of side effects, executed after each model update:
+
+| Constructor          | Description                                                    |
+| -------------------- | -------------------------------------------------------------- |
+| `none`               | No-op (default return when no side effect needed)              |
+| `dispatch(msg)`      | Queue another message (non-re-entrant — queued, not recursive) |
+| `batch(e1, e2, ...)` | Multiple effects (auto-flattens nested batches, filters none)  |
+
+```typescript
+function update(msg: AppMsg, model: AppModel): [AppModel, Effect[]] {
+  switch (msg.type) {
+    case "save":
+      // Set loading flag, then queue a "save-complete" message
+      return [{ ...model, saving: true }, [dispatch({ type: "save-complete" } as AppMsg)]]
+    case "save-complete":
+      return [{ ...model, saving: false }, [none]]
+    default:
+      return [model, [none]]
+  }
+}
+```
+
+### Plugins (Middleware Composition)
+
+Plugins wrap the update function, adding behavior before/after/around it:
+
+```typescript
+import { type Plugin, compose } from "inkx/core"
+
+// Logging plugin
+const logging: Plugin<AppModel, AppMsg> = (inner) => (msg, model) => {
+  console.log("→", msg.type)
+  const result = inner(msg, model)
+  console.log("←", result[0].count)
+  return result
+}
+
+// Compose: first plugin is outermost (sees messages first)
+const update = compose(logging, withFocusManagement())(baseUpdate)
+```
+
+### Connecting to createRuntime()
+
+The store pairs with `createRuntime()` for a full Elm-style app:
+
+```typescript
+using runtime = createRuntime({ target })
+const store = createStore({ init, update: compose(withFocusManagement())(update) })
+
+for await (const event of merge(keyboardEvents, runtime.events())) {
+  // Convert runtime events to messages and dispatch
+  if (event.type === "key") {
+    store.dispatch({ type: "term:key", key: event.key, input: event.input, ... })
+  }
+
+  // Render from current model
+  const buffer = layout(view(store.getModel()), runtime.getDims())
+  runtime.render(buffer)
+}
+```
+
 ## Architecture
 
 ```
@@ -404,8 +512,11 @@ controller.abort() // Cancels the effect
 │  run()  ← Start here                                        │
 │           React components, useInput, useState               │
 ├─────────────────────────────────────────────────────────────┤
+│  createStore()                                               │
+│           TEA: (msg, model) → [model, effects]               │
+├─────────────────────────────────────────────────────────────┤
 │  createRuntime()                                             │
-│           events(), render(), user-driven loop               │
+│           events(), render(), schedule(), user-driven loop   │
 ├─────────────────────────────────────────────────────────────┤
 │  layout() / diff()                                           │
 │           Pure functions, static output                       │

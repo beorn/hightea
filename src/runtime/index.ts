@@ -67,6 +67,10 @@ export {
 // Key parsing utilities
 export { parseKey, emptyKey } from "./keys.js"
 
+// Layer 1.5: TEA store (re-exported for discoverability)
+export { createStore, inkxUpdate, defaultInit, withFocusManagement } from "../store/index.js"
+export type { StoreConfig, StoreApi } from "../store/index.js"
+
 // Layer 3: Store integration
 export {
   createApp,

@@ -141,6 +141,25 @@ export type { EditContextDisplayProps } from "./components/EditContextDisplay.js
 export { useReadline } from "./components/useReadline.js"
 export type { ReadlineState, UseReadlineOptions, UseReadlineResult } from "./components/useReadline.js"
 
+// Widget Components
+export { Spinner } from "./components/Spinner.js"
+export type { SpinnerProps } from "./components/Spinner.js"
+
+export { ProgressBar } from "./components/ProgressBar.js"
+export type { ProgressBarProps } from "./components/ProgressBar.js"
+
+export { SelectList } from "./components/SelectList.js"
+export type { SelectListProps, SelectOption } from "./components/SelectList.js"
+
+export { Table } from "./components/Table.js"
+export type { TableProps, TableColumn } from "./components/Table.js"
+
+export { Badge } from "./components/Badge.js"
+export type { BadgeProps } from "./components/Badge.js"
+
+export { Divider } from "./components/Divider.js"
+export type { DividerProps } from "./components/Divider.js"
+
 // Image Component
 export { Image } from "./image/Image.js"
 export type { ImageProps } from "./image/Image.js"
@@ -266,6 +285,12 @@ export { useTransition, useDeferredValue, useId } from "react"
 
 // Contexts for advanced usage (usually hooks are preferred)
 export { TermContext, EventsContext, FocusManagerContext } from "./context.js"
+
+// Theming
+export { ThemeProvider, useTheme } from "./contexts/ThemeContext.js"
+export type { ThemeProviderProps } from "./contexts/ThemeContext.js"
+export { defaultDarkTheme, defaultLightTheme, resolveThemeColor } from "./theme.js"
+export type { Theme } from "./theme.js"
 
 // =============================================================================
 // Re-exports from chalkx
@@ -656,6 +681,17 @@ export type { UseEditContextOptions, UseEditContextResult, EditTarget } from "./
  */
 export { calcEdgeBasedScrollOffset } from "./scroll-utils.js"
 
+// Scroll Region Optimization (DECSTBM)
+export {
+  setScrollRegion,
+  resetScrollRegion,
+  scrollUp,
+  scrollDown,
+  moveCursor,
+  supportsScrollRegions,
+} from "./scroll-region.js"
+export type { ScrollRegionConfig } from "./scroll-region.js"
+
 // =============================================================================
 // Plugin Composition (SlateJS-style)
 // =============================================================================
@@ -786,3 +822,27 @@ export type { PositionRegistry, ScreenRect } from "./hooks/usePositionRegistry.j
 export { useGridPosition } from "./hooks/useGridPosition.js"
 export { GridCell } from "./components/GridCell.js"
 export type { GridCellProps } from "./components/GridCell.js"
+
+// =============================================================================
+// Animation
+// =============================================================================
+
+/**
+ * Animation utilities for smooth terminal UI animations (~30fps).
+ *
+ * @example
+ * ```tsx
+ * import { useAnimation, easings } from 'inkx';
+ *
+ * function FadeIn() {
+ *   const { value } = useAnimation({ duration: 300, easing: "easeOut" });
+ *   return <Text dimColor={value < 1}>Hello</Text>;
+ * }
+ * ```
+ *
+ * Note: `useAnimatedTransition` is the animation interpolation hook.
+ * React's `useTransition` (concurrent mode) is exported separately above.
+ */
+export { easings, resolveEasing, useAnimation, useInterval } from "./animation/index.js"
+export { useTransition as useAnimatedTransition } from "./animation/index.js"
+export type { EasingFn, EasingName, UseAnimationOptions, UseAnimationResult, UseTransitionOptions } from "./animation/index.js"

@@ -66,10 +66,10 @@ When `DEBUG_DEVTOOLS=1` (or `DEBUG_DEVTOOLS=true`) is set, inkx automatically ca
 
 ## Requirements
 
-| Package                | Required | Purpose                        |
-| ---------------------- | -------- | ------------------------------ |
-| `react-devtools-core`  | Yes      | DevTools client protocol       |
-| `ws`                   | Yes      | WebSocket for Node.js          |
+| Package                | Required | Purpose                          |
+| ---------------------- | -------- | -------------------------------- |
+| `react-devtools-core`  | Yes      | DevTools client protocol         |
+| `ws`                   | Yes      | WebSocket for Node.js            |
 | `react-devtools` (CLI) | Yes      | Standalone DevTools electron app |
 
 All are optional peer dependencies. If not installed, `connectDevTools()` returns `false` and logs a helpful warning.
@@ -77,12 +77,15 @@ All are optional peer dependencies. If not installed, `connectDevTools()` return
 ## Troubleshooting
 
 **DevTools window is blank / not connecting:**
-- Ensure the DevTools standalone app is running (`npx react-devtools`) *before* launching your app
+
+- Ensure the DevTools standalone app is running (`npx react-devtools`) _before_ launching your app
 - Check that `ws` is installed (`bun add -d ws`)
 - Verify no firewall is blocking localhost:8097 (the default DevTools WebSocket port)
 
 **Component tree is cluttered with internal nodes:**
+
 - inkx configures component filters automatically. If you still see noise, check that the DevTools "Component Filters" settings include host components (type 7) and `InkxApp`.
 
 **Performance impact:**
+
 - DevTools adds overhead from serializing the component tree over WebSocket. Use only during development.

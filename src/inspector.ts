@@ -127,7 +127,9 @@ export function inspectTree(rootNode: InkxNode, options?: { depth?: number; show
     const dirtyStr = dirtyFlags.length > 0 ? ` dirty=[${dirtyFlags.join(",")}]` : ""
 
     // Text content (for text nodes)
-    const textStr = node.textContent ? ` "${node.textContent.slice(0, 30)}${node.textContent.length > 30 ? "..." : ""}"` : ""
+    const textStr = node.textContent
+      ? ` "${node.textContent.slice(0, 30)}${node.textContent.length > 30 ? "..." : ""}"`
+      : ""
 
     lines.push(`${prefix}${type}${idStr}${rectStr}${dirtyStr}${textStr}`)
 

@@ -25,6 +25,10 @@ export { useFocusManager, type UseFocusManagerResult } from "./useFocusManager.j
 // Input Layer Stack
 export { useInputLayer, useInputLayerContext, type InputLayerHandler } from "./useInputLayer.js"
 
+// Scroll Region Optimization
+export { useScrollRegion } from "./useScrollRegion.js"
+export type { UseScrollRegionOptions, UseScrollRegionResult } from "./useScrollRegion.js"
+
 // Ink-compatible focus hooks
 export { useFocus, useInkFocusManager } from "./ink-compat.js"
 export type { UseFocusOptions, UseFocusResult, InkUseFocusManagerResult } from "./ink-compat.js"

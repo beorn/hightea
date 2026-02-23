@@ -11,6 +11,8 @@
  */
 
 import { type ForwardedRef, type JSX, type ReactNode, forwardRef } from "react"
+import { useTheme } from "../contexts/ThemeContext.js"
+import { resolveThemeColor } from "../theme.js"
 import type { InkxNode, TextProps as TextPropsType } from "../types.js"
 
 // ============================================================================
@@ -70,7 +72,12 @@ export interface TextHandle {
  * ```
  */
 export const Text = forwardRef(function Text(props: TextProps, ref: ForwardedRef<TextHandle>): JSX.Element {
-  const { children, ...styleProps } = props
+  const { children, color, backgroundColor, ...styleProps } = props
+  const theme = useTheme()
+
+  // Resolve $token color props against the active theme
+  const resolvedColor = resolveThemeColor(color, theme)
+  const resolvedBg = resolveThemeColor(backgroundColor, theme)
 
   // For Text, we need to pass the ref through to the host element
   // The reconciler's getPublicInstance will return the InkxNode
@@ -85,6 +92,8 @@ export const Text = forwardRef(function Text(props: TextProps, ref: ForwardedRef
           ref.current = node ? { getNode: () => node } : null
         }
       }}
+      color={resolvedColor}
+      backgroundColor={resolvedBg}
       {...styleProps}
     >
       {children}

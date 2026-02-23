@@ -33,12 +33,12 @@ inkx's core innovation is **two-phase rendering with synchronous layout feedback
 
 ## Runtime Layers
 
-| Layer | Entry Point       | Best For                        | State Management                    |
-| ----- | ----------------- | ------------------------------- | ----------------------------------- |
-| 1     | `createRuntime()` | Custom event loops, integration | Manual loop + `schedule()`          |
+| Layer | Entry Point       | Best For                        | State Management                   |
+| ----- | ----------------- | ------------------------------- | ---------------------------------- |
+| 1     | `createRuntime()` | Custom event loops, integration | Manual loop + `schedule()`         |
 | 1.5   | `createStore()`   | Elm architecture (TEA)          | `(msg, model) → [Model, Effect[]]` |
 | 2     | `run()`           | React hooks (recommended)       | `useState/useEffect`               |
-| 3     | `createApp()`     | Complex apps                    | Zustand store                       |
+| 3     | `createApp()`     | Complex apps                    | Zustand store                      |
 
 ### Layer 1.5: createStore() — TEA (The Elm Architecture)
 
@@ -62,7 +62,10 @@ function update(msg: MyMsg, model: MyModel): [MyModel, Effect[]] {
     case "decrement":
       return [{ ...model, count: model.count - 1 }, [none]]
     case "fetch-start":
-      return [{ ...model, loading: true }, [dispatch({ type: "term:key", key: "f", input: "f", ctrl: false, meta: false, shift: false })]]
+      return [
+        { ...model, loading: true },
+        [dispatch({ type: "term:key", key: "f", input: "f", ctrl: false, meta: false, shift: false })],
+      ]
     default:
       return [model, [none]]
   }
@@ -82,10 +85,10 @@ store.getModel().count // 1
 
 **Effect types:**
 
-| Constructor | Description |
-|---|---|
-| `none` | No-op (default) |
-| `dispatch(msg)` | Queue another message (non-re-entrant) |
+| Constructor          | Description                                              |
+| -------------------- | -------------------------------------------------------- |
+| `none`               | No-op (default)                                          |
+| `dispatch(msg)`      | Queue another message (non-re-entrant)                   |
 | `batch(e1, e2, ...)` | Multiple effects (flattens nested batches, filters none) |
 
 **Plugin composition** — middleware-style wrappers around the update function:

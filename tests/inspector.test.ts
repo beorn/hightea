@@ -115,7 +115,7 @@ describe("inspector", () => {
     expect(output).toContain("dirty=[subtree]")
     expect(output).toContain("inkx-text #greeting")
     expect(output).toContain("[1,2 20x1]")
-    expect(output).toContain('dirty=[content]')
+    expect(output).toContain("dirty=[content]")
     expect(output).toContain('"Hello world"')
   })
 
