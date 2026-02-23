@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "inkx"
   text: "React for modern terminals"
-  tagline: "Layout feedback, every terminal protocol, React + Elm architectures, 122x faster updates. Zero native dependencies."
+  tagline: "Layout feedback, every terminal protocol, React + Elm architectures, 122x faster updates, zero native dependencies."
   actions:
     - theme: brand
       text: Get Started
@@ -23,6 +23,8 @@ features:
   - icon: "\u26A1"
     title: 122x Faster
     details: "Per-node dirty tracking — 169us vs 20.7ms. Only changed nodes re-render."
+    link: /guide/why-inkx#incremental-rendering
+    linkText: Benchmarks
   - icon: "\U0001F3AF"
     title: "Three Render Targets"
     details: "Terminal, Canvas 2D, and DOM. Same components, different output."

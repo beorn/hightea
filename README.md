@@ -9,8 +9,6 @@ Terminals have evolved — Kitty, Ghostty, WezTerm, and iTerm2 support graphics,
 
 inkx brings all of it to React. Full mouse and keyboard support, inline images, scrollable containers, layout-aware components, and a hybrid React/Elm architecture — in one framework, with zero native dependencies.
 
-![Dashboard with multiple panes, borders, and colors](docs/images/dashboard.png)
-
 ## Why inkx?
 
 **Components that know their size.** `useContentRect()` gives components their actual dimensions during render — no width prop drilling, no second render pass, no guessing. This is [Ink's oldest open issue](https://github.com/vadimdemedes/ink/issues/5) (2016) and React's biggest layout gap, solved.
@@ -19,15 +17,16 @@ inkx brings all of it to React. Full mouse and keyboard support, inline images, 
 
 **122x faster interactive updates.** Per-node dirty tracking bypasses React reconciliation entirely for keystroke updates. When a user presses a key, only the changed nodes re-render — 169us for 1000 nodes vs Ink's 20.7ms full re-render. See [benchmarks](docs/deep-dives/performance.md).
 
-## Built for AI-powered CLIs
+**Three render targets.** Terminal, Canvas 2D, and DOM. Same React components, same layout engine — different output. See the [live demo](https://beorn.github.io/inkx/examples/live-demo).
 
-inkx was designed alongside Claude Code, Anthropic's AI coding assistant. Features that matter for AI tools:
+## Build Any Terminal App
 
-- **Scrollable containers** that handle variable-length LLM output without manual dimension management — `overflow="scroll"` just works
-- **Command introspection** — `cmd.all()` lets AI agents discover available commands; `cmd.down()` executes them programmatically
-- **[CLAUDE.md](CLAUDE.md)** — AI-readable framework reference that ships with the package, optimized for LLM context windows
-
-Equally at home in any interactive terminal app — dashboards, developer tools, task managers, data explorers.
+- **[AI Assistants & Chat](https://beorn.github.io/inkx/use-cases/ai-assistants)** — Streaming output, scrollback history, command palettes
+- **[Dashboards & Monitoring](https://beorn.github.io/inkx/use-cases/dashboards)** — Multi-pane layouts with real-time data
+- **[Kanban & Project Boards](https://beorn.github.io/inkx/use-cases/kanban-boards)** — Multi-column navigation with cards and focus management
+- **[CLI Wizards & Setup Tools](https://beorn.github.io/inkx/use-cases/cli-wizards)** — Step-by-step forms, selections, progress tracking
+- **[Developer Tools](https://beorn.github.io/inkx/use-cases/developer-tools)** — REPLs, log viewers, debuggers, profilers
+- **[Data Explorers & Tables](https://beorn.github.io/inkx/use-cases/data-explorers)** — Virtual lists, filtering, search, sortable tables
 
 ## Quick Start
 
@@ -60,27 +59,7 @@ function App() {
 await run(<App />)
 ```
 
-## Key Features
-
-### Layout & Rendering
-
-- **`useContentRect()` / `useScreenRect()`** — components query their own dimensions synchronously during render
-- **Five-phase incremental pipeline** — 7 independent dirty flags per node, only changed nodes re-render
-- **Flexx layout engine** (default) — pure TypeScript, 7KB gzipped, zero WASM, zero memory growth
-- **Layout caching** — Flexx fingerprints nodes; unchanged subtrees skip recomputation entirely (27ns no-change re-layout)
-- **Buffer diff** — emits only changed cells to terminal, reducing I/O by 90%+ for typical updates
-- **Synchronized output** (DEC 2026) — atomic screen painting, flicker-free in tmux/Zellij
-
-### Terminal Protocols
-
-- **Kitty keyboard** — all 5 flags: Cmd/Super, Hyper, key release events, international layouts. Auto-detect.
-- **SGR mouse** — DOM-style event bubbling: `onClick`, `onDoubleClick`, `onWheel`, `onMouseEnter` on any component
-- **Inline images** — Kitty graphics + Sixel with auto-detection and text fallback
-- **OSC 52 clipboard** — copy/paste that works across SSH sessions
-- **OSC 8 hyperlinks** — clickable URLs via `<Link>` component
-- **Bracketed paste** — built-in with `usePaste` hook
-- **DECSTBM scroll regions** — hardware-accelerated scrolling
-- **Adaptive rendering** — graceful degradation for non-TTY output
+## What's Inside
 
 ### Components (23+)
 
@@ -89,8 +68,6 @@ await run(<App />)
 - **Data:** VirtualList, SelectList, Table, Console
 - **Display:** Spinner, ProgressBar, Badge, Divider, Image, Link
 - **`overflow="scroll"`** with `scrollTo` — scrollable containers without manual virtualization ([Ink's #1 feature request](https://github.com/vadimdemedes/ink/issues/222) since 2019)
-
-![Scrollable task list with selection and priority badges](docs/images/task-list.png)
 
 ### Input & Focus
 
@@ -108,7 +85,7 @@ await run(<App />)
 | 2     | `run()`           | React hooks   | Most apps (recommended)        |
 | 3     | `createApp()`     | Zustand store | Complex apps with many sources |
 
-Each wraps the one below. Layer 1 gives you a pure event loop with AsyncIterable — `reducer(state, event) -> state`, `view(state) -> JSX`, `schedule()` for async effects. Layer 2 adds React hooks. Layer 3 adds centralized state with a provider pattern. Choose the right paradigm per use case — all three in one framework.
+Each wraps the one below. Choose the right paradigm per use case — all three in one framework.
 
 ### Developer Experience
 
@@ -116,23 +93,9 @@ Each wraps the one below. Layer 1 gives you a pure event loop with AsyncIterable
 - **Playwright-style testing** — `createRenderer`, `getByTestId`, `getByText`, `locator()`, `app.press()`
 - **Plugin composition** — `withCommands`, `withKeybindings`, `withDiagnostics` (SlateJS-inspired)
 - **Screenshot capture** — `app.screenshot()` renders buffer to PNG via Playwright
-- **withDiagnostics** — incremental vs fresh render verification catches regressions in CI
 - **Theming** — `ThemeProvider` with semantic `$token` colors (dark/light built-in)
-- **28+ unicode utilities** — grapheme splitting, display width, CJK/emoji support
-- **Pure TypeScript, zero native deps** — runs on Node, Bun, Deno. No WASM, no C++, no memory growth. Ink's Yoga WASM has a [known linear memory bug](https://github.com/anthropics/claude-code/issues/4953) that caused 120GB RAM in production.
-- **React 19** — `use()`, improved Suspense, Actions
-
-![Kanban board with cards, tags, and column navigation](docs/images/kanban.png)
-
-## Architecture
-
-The render target is pluggable via `RenderAdapter`. ~60% of inkx code (reconciler, layout, hooks) is target-independent.
-
-| Target    | Status       | Use Case                      |
-| --------- | ------------ | ----------------------------- |
-| Terminal  | Production   | TUI apps (primary target)     |
-| Canvas 2D | Experimental | Data viz, games, design tools |
-| DOM       | Experimental | Accessibility, text selection |
+- **Built for AI** — Command introspection for agents, programmatic screenshots, CLAUDE.md ships with the package
+- **Pure TypeScript, zero native deps** — runs on Node, Bun, Deno. No WASM, no C++, no memory growth.
 
 ## Trade-offs
 
@@ -179,9 +142,11 @@ bun run examples/textarea/index.tsx       # Multi-line text input
 bun run examples/scrollback/index.tsx     # Scrollback mode (frozen items)
 ```
 
-See [examples/index.md](examples/index.md) for descriptions.
+See [examples/index.md](examples/index.md) for descriptions and the [live demo](https://beorn.github.io/inkx/examples/live-demo) for browser-rendered examples.
 
 ## Documentation
+
+Full docs at **[beorn.github.io/inkx](https://beorn.github.io/inkx/)**
 
 | Document                                          | Description                                    |
 | ------------------------------------------------- | ---------------------------------------------- |
@@ -193,11 +158,7 @@ See [examples/index.md](examples/index.md) for descriptions.
 | [Testing](docs/testing.md)                        | Strategy, locators, withDiagnostics            |
 | [Performance](docs/deep-dives/performance.md)     | Benchmarks and optimization                    |
 | [Plugins](docs/reference/plugins.md)              | withCommands, withKeybindings, withDiagnostics |
-| [Ink Comparison](docs/ink-comparison.md)          | Detailed feature and performance comparison    |
 | [Migration](docs/guides/migration.md)             | Ink -> inkx guide                              |
-| [Troubleshooting](docs/troubleshooting.md)        | Common issues and debugging                    |
-
-See [docs/README.md](docs/README.md) for the complete documentation index.
 
 ## Related Projects
 
