@@ -24,8 +24,15 @@ export default defineConfig({
     nav: [
       { text: "Guide", link: "/guide/getting-started" },
       { text: "API", link: "/api/box" },
-      { text: "Examples", link: "/examples/" },
-      { text: "Use Cases", link: "/use-cases/ai-assistants" },
+      {
+        text: "Examples",
+        items: [
+          { text: "Live Demo", link: "/examples/live-demo" },
+          { text: "Dashboard", link: "/examples/dashboard" },
+          { text: "Task List", link: "/examples/task-list" },
+          { text: "Kanban Board", link: "/examples/kanban" },
+        ],
+      },
       {
         text: "Links",
         items: [
@@ -67,6 +74,28 @@ export default defineConfig({
           text: "Migration",
           items: [{ text: "From Ink", link: "/guide/migration" }],
         },
+        {
+          text: "Examples",
+          collapsed: false,
+          items: [
+            { text: "Live Demo", link: "/examples/live-demo" },
+            { text: "Dashboard", link: "/examples/dashboard" },
+            { text: "Task List", link: "/examples/task-list" },
+            { text: "Kanban Board", link: "/examples/kanban" },
+          ],
+        },
+        {
+          text: "Use Cases",
+          collapsed: false,
+          items: [
+            { text: "AI Assistants & Chat", link: "/use-cases/ai-assistants" },
+            { text: "Dashboards & Monitoring", link: "/use-cases/dashboards" },
+            { text: "Kanban & Project Boards", link: "/use-cases/kanban-boards" },
+            { text: "CLI Wizards & Setup", link: "/use-cases/cli-wizards" },
+            { text: "Developer Tools", link: "/use-cases/developer-tools" },
+            { text: "Data Explorers & Tables", link: "/use-cases/data-explorers" },
+          ],
+        },
       ],
       "/api/": [
         {
@@ -93,6 +122,28 @@ export default defineConfig({
           text: "Functions",
           items: [{ text: "render", link: "/api/render" }],
         },
+        {
+          text: "Examples",
+          collapsed: false,
+          items: [
+            { text: "Live Demo", link: "/examples/live-demo" },
+            { text: "Dashboard", link: "/examples/dashboard" },
+            { text: "Task List", link: "/examples/task-list" },
+            { text: "Kanban Board", link: "/examples/kanban" },
+          ],
+        },
+        {
+          text: "Use Cases",
+          collapsed: false,
+          items: [
+            { text: "AI Assistants & Chat", link: "/use-cases/ai-assistants" },
+            { text: "Dashboards & Monitoring", link: "/use-cases/dashboards" },
+            { text: "Kanban & Project Boards", link: "/use-cases/kanban-boards" },
+            { text: "CLI Wizards & Setup", link: "/use-cases/cli-wizards" },
+            { text: "Developer Tools", link: "/use-cases/developer-tools" },
+            { text: "Data Explorers & Tables", link: "/use-cases/data-explorers" },
+          ],
+        },
       ],
       "/examples/": [
         {
@@ -105,8 +156,30 @@ export default defineConfig({
             { text: "Kanban Board", link: "/examples/kanban" },
           ],
         },
+        {
+          text: "Use Cases",
+          collapsed: false,
+          items: [
+            { text: "AI Assistants & Chat", link: "/use-cases/ai-assistants" },
+            { text: "Dashboards & Monitoring", link: "/use-cases/dashboards" },
+            { text: "Kanban & Project Boards", link: "/use-cases/kanban-boards" },
+            { text: "CLI Wizards & Setup", link: "/use-cases/cli-wizards" },
+            { text: "Developer Tools", link: "/use-cases/developer-tools" },
+            { text: "Data Explorers & Tables", link: "/use-cases/data-explorers" },
+          ],
+        },
       ],
       "/use-cases/": [
+        {
+          text: "Examples",
+          collapsed: false,
+          items: [
+            { text: "Live Demo", link: "/examples/live-demo" },
+            { text: "Dashboard", link: "/examples/dashboard" },
+            { text: "Task List", link: "/examples/task-list" },
+            { text: "Kanban Board", link: "/examples/kanban" },
+          ],
+        },
         {
           text: "Use Cases",
           items: [

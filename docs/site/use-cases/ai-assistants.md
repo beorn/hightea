@@ -17,6 +17,8 @@ Terminal-based AI assistants have unique UI requirements: streaming output that 
 
 **Bracketed paste for code snippets.** The `usePaste` hook receives multi-line pasted text as a single event instead of individual keystrokes. Users can paste code blocks, stack traces, or configuration files directly into the input area without the app interpreting each line as a separate command.
 
+**Scrollback buffer support.** Long conversations need scrollback — users expect to scroll up through conversation history just like in a web chat. inkx's `overflow="scroll"` containers handle this natively: content grows downward, the viewport follows the latest message, and users can scroll back through the full history with keyboard or mouse. No manual viewport management, no height estimation, no virtualization config.
+
 **Kitty keyboard protocol for rich shortcuts.** Modern terminals support unambiguous key identification. inkx can distinguish Cmd+K from Ctrl+K, detect key release events, and parse macOS modifier symbols. Build command palettes, chord sequences, and modal interfaces with confidence that key bindings will not collide.
 
 ## Example: Minimal AI Chat

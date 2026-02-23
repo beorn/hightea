@@ -19,6 +19,8 @@ inkx solves all three problems out of the box. Components query their own dimens
 
 - **Theming** -- `ThemeProvider` with semantic `$token` colors (`$primary`, `$success`, `$error`, `$muted`, `$border`) gives your dashboard a consistent look. Switch between `defaultDarkTheme` and `defaultLightTheme` or define custom palettes.
 
+- **Scrollback buffer** -- Log panels and event feeds grow over time. `overflow="scroll"` containers handle this natively: content accumulates, the viewport follows the latest entry, and users can scroll back through full history. No manual ring buffer or viewport tracking.
+
 - **Synchronized output** -- DEC 2026 synchronized updates wrap each frame in atomic begin/end markers. Terminals that support the protocol (tmux, Zellij, Ghostty, WezTerm, kitty) paint the entire frame at once, eliminating the partial-repaint flicker that plagues fast-updating dashboards.
 
 ## Code Example

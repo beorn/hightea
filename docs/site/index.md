@@ -43,6 +43,20 @@ features:
     details: Pure TypeScript. No WASM, no C++, no memory leaks. Runs on Node, Bun, and Deno.
 ---
 
+## See It in Action
+
+The same React component rendered to three different targets — same code, same layout engine, different output:
+
+<script setup>
+import LiveDemo from './.vitepress/components/LiveDemo.vue'
+</script>
+
+<LiveDemo :height="350" />
+
+Switch between Canvas 2D, DOM, and Terminal tabs. All three run the same inkx components through the same Flexx layout engine. Only the final render adapter differs.
+
+[Explore all examples](/examples/) | [See use cases](/use-cases/ai-assistants)
+
 ## Quick Start
 
 ```bash

@@ -15,6 +15,8 @@ Unlike browser-based dev tools, terminal tools run where your code runs. They st
 
 - **VirtualList** -- Renders thousands of log lines, stack frames, or profiler entries with O(1) scroll performance. Only items within the visible viewport (plus configurable overscan) are mounted as React elements. Variable item heights, frozen row prefixes, and overflow indicators are built in.
 
+- **Scrollback buffer** -- Log viewers and REPLs produce unbounded output. `overflow="scroll"` containers grow as content arrives, track the viewport position, and let users scroll back through the full history with keyboard or mouse. The buffer retains all content — no manual ring buffer or viewport management needed.
+
 - **Hotkey parsing** -- Define keyboard shortcuts using macOS modifier symbols: `parseHotkey("⌘K")`, `matchHotkey(hotkey, key)`. Supports all modifier combinations including Ctrl, Shift, Alt/Option, Cmd/Super, and Hyper via the Kitty keyboard protocol. Build professional shortcut systems without manual key code parsing.
 
 - **Plugin composition** -- `withCommands` gives your tool a command registry with metadata (name, description, bound keys) and a `cmd` proxy for direct invocation. `withKeybindings` routes key presses to commands via context-aware binding resolution. Together they provide a command palette and customizable shortcuts with zero boilerplate.
