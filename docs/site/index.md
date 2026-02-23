@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "inkx"
-  text: "Ink, but components know their size"
-  tagline: A terminal UI framework for React with two-phase rendering
+  text: "React for modern terminals"
+  tagline: "Layout feedback, every terminal protocol, React + Elm architectures, 122x faster updates. Zero native dependencies."
   actions:
     - theme: brand
       text: Get Started
@@ -14,49 +14,61 @@ hero:
       link: https://github.com/beorn/inkx
 
 features:
-  - icon: 📐
+  - icon: "\U0001F4D0"
     title: Layout Feedback
-    details: Components can access their computed dimensions via useContentRect(). No more manual width prop threading.
-  - icon: 🔄
-    title: Drop-in Replacement
-    details: Same API as Ink - Box, Text, useInput, render() all work unchanged. Just swap the import.
-  - icon: 📜
-    title: Automatic Scrolling
-    details: Use overflow="scroll" and scrollTo={index} - inkx handles virtualization automatically.
-  - icon: ✂️
-    title: Auto-Truncation
-    details: Text automatically truncates to fit available width. No more layout overflow bugs.
+    details: Components query their own dimensions via useContentRect(). No width prop drilling. Ink's oldest open issue (2016), solved.
+  - icon: "\U0001F4E1"
+    title: Every Protocol
+    details: Kitty keyboard, SGR mouse, inline images, OSC 52 clipboard, hyperlinks, synchronized updates. No other JS framework has all of these.
+  - icon: "\U0001F3D7\uFE0F"
+    title: Three Architectures
+    details: Elm-style reducers, React hooks, or Zustand stores. Choose the right paradigm per use case — no other TUI framework offers all three.
+  - icon: "\U0001F9F1"
+    title: 23+ Components
+    details: Box, Text, VirtualList, TextArea, SelectList, Table, Image, Spinner, ProgressBar, and more. overflow="scroll" just works.
+  - icon: "\u26A1"
+    title: 122x Faster
+    details: Per-node dirty tracking with 7 independent flags. Only changed nodes re-render — 169us vs Ink's 20.7ms.
+  - icon: "\U0001F916"
+    title: Built for AI
+    details: Command introspection for agents, programmatic screenshots, scrollable streaming output. CLAUDE.md ships with the package.
+  - icon: "\U0001F4DC"
+    title: Scrollable Containers
+    details: overflow="scroll" with scrollTo — no manual virtualization. Ink's #1 feature request since 2019, built-in.
+  - icon: "\U0001F4E6"
+    title: Zero Native Dependencies
+    details: Pure TypeScript. No WASM, no C++, no memory leaks. Runs on Node, Bun, and Deno.
 ---
 
 ## Quick Start
 
 ```bash
-bun add inkx
+bun add inkx react @beorn/flexx
 ```
 
 ```tsx
-import { Box, Text, render, useContentRect, createTerm } from "inkx"
-
-function Card({ title }) {
-  const { width } = useContentRect() // Components know their size!
-  return (
-    <Box borderStyle="round" width={width}>
-      <Text>{title}</Text>
-    </Box>
-  )
-}
+import { Box, Text, useContentRect } from "inkx"
+import { run, useInput } from "inkx/runtime"
 
 function App() {
+  const { width } = useContentRect() // Components know their size!
+  const [count, setCount] = useState(0)
+
+  useInput((input, key) => {
+    if (input === "j" || key.downArrow) setCount((c) => c + 1)
+    if (input === "k" || key.upArrow) setCount((c) => c - 1)
+    if (input === "q") return "exit"
+  })
+
   return (
     <Box flexDirection="column">
-      <Card title="First Card" />
-      <Card title="Second Card" />
+      <Text>Terminal width: {width}</Text>
+      <Text>Count: {count}</Text>
     </Box>
   )
 }
 
-using term = createTerm()
-await render(<App />, term)
+await run(<App />)
 ```
 
 ## The Problem inkx Solves
@@ -94,3 +106,18 @@ function Column({ items }) {
   )
 }
 ```
+
+## Build Any Terminal App
+
+inkx powers everything from AI coding assistants to full-featured knowledge management TUIs. Explore what you can build:
+
+<div class="use-cases">
+
+- **[AI Assistants & Chat](/use-cases/ai-assistants)** — Streaming LLM output, scrollable history, command palettes
+- **[Dashboards & Monitoring](/use-cases/dashboards)** — Multi-pane layouts with real-time data
+- **[Kanban & Project Boards](/use-cases/kanban-boards)** — Multi-column navigation with cards and focus management
+- **[CLI Wizards & Setup Tools](/use-cases/cli-wizards)** — Step-by-step forms, selections, progress tracking
+- **[Developer Tools](/use-cases/developer-tools)** — REPLs, log viewers, debuggers, profilers
+- **[Data Explorers & Tables](/use-cases/data-explorers)** — Virtual lists, filtering, search, sortable tables
+
+</div>

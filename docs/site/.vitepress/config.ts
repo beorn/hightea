@@ -12,7 +12,7 @@ export default defineConfig({
   },
 
   title: "inkx",
-  description: "Ink, but components know their size",
+  description: "React for modern terminals — layout feedback, every terminal protocol, 122x faster updates",
   base: "/inkx/",
 
   head: [["link", { rel: "icon", href: "/inkx/favicon.ico" }]],
@@ -25,6 +25,7 @@ export default defineConfig({
       { text: "Guide", link: "/guide/getting-started" },
       { text: "API", link: "/api/box" },
       { text: "Examples", link: "/examples/" },
+      { text: "Use Cases", link: "/use-cases/ai-assistants" },
       {
         text: "Links",
         items: [
@@ -104,9 +105,24 @@ export default defineConfig({
           ],
         },
       ],
+      "/use-cases/": [
+        {
+          text: "Use Cases",
+          items: [
+            { text: "AI Assistants & Chat", link: "/use-cases/ai-assistants" },
+            { text: "Dashboards & Monitoring", link: "/use-cases/dashboards" },
+            { text: "Kanban & Project Boards", link: "/use-cases/kanban-boards" },
+            { text: "CLI Wizards & Setup", link: "/use-cases/cli-wizards" },
+            { text: "Developer Tools", link: "/use-cases/developer-tools" },
+            { text: "Data Explorers & Tables", link: "/use-cases/data-explorers" },
+          ],
+        },
+      ],
     },
 
     socialLinks: [{ icon: "github", link: "https://github.com/beorn/inkx" }],
+
+    outline: { level: [2, 3] },
 
     search: {
       provider: "local",

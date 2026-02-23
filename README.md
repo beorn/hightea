@@ -17,11 +17,7 @@ inkx brings all of it to React. Full mouse and keyboard support, inline images, 
 
 **Every modern terminal protocol.** [Kitty keyboard](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) (all 5 flags), SGR mouse (click, drag, scroll), inline images (Kitty graphics + Sixel), OSC 52 clipboard (works over SSH), OSC 8 hyperlinks, DECSTBM scroll regions, DEC 2026 synchronized updates (flicker-free in tmux/Zellij), and bracketed paste. No other JavaScript TUI framework exposes all of these.
 
-**122x faster interactive updates.** Per-node dirty tracking bypasses React reconciliation entirely for keystroke updates. When a user presses a key, only the changed nodes re-render — 169µs for 1000 nodes vs Ink's 20.7ms full re-render. See [benchmarks](docs/deep-dives/performance.md).
-
-**React + Elm in one framework.** Three runtime layers: Elm-style pure reducers for predictable state (`createRuntime`), React hooks for most apps (`run`), and Zustand stores for complex state (`createApp`). Choose the right paradigm per use case — no other TUI framework offers all three.
-
-**Pure TypeScript, zero native dependencies.** The [Flexx](https://github.com/beorn/flexx) layout engine is 7KB of pure JavaScript — no WASM, no C++ compilation, no memory growth. Ink's Yoga WASM has a [known linear memory bug](https://github.com/anthropics/claude-code/issues/4953) that caused 120GB RAM usage in production.
+**122x faster interactive updates.** Per-node dirty tracking bypasses React reconciliation entirely for keystroke updates. When a user presses a key, only the changed nodes re-render — 169us for 1000 nodes vs Ink's 20.7ms full re-render. See [benchmarks](docs/deep-dives/performance.md).
 
 ## Built for AI-powered CLIs
 
@@ -69,46 +65,42 @@ await run(<App />)
 ### Layout & Rendering
 
 - **`useContentRect()` / `useScreenRect()`** — components query their own dimensions synchronously during render
-- **Five-phase pipeline** with per-node dirty tracking — only changed nodes re-render
-- **Pluggable layout** — [Flexx](https://github.com/beorn/flexx) (default, pure JS, 7KB) or Yoga (WASM)
-- **Layout caching** — Flexx fingerprints nodes; unchanged subtrees skip recomputation entirely
-- **Incremental terminal output** — buffer diff emits only changed cells, not full-screen repaints
-
-### Components & Input
-
-- **23 built-in components** — Box, Text, VirtualList, TextInput, ReadlineInput, TextArea, Link, Console, Table, SelectList, Image, and more
-- **`overflow="scroll"`** with `scrollTo` — scrollable containers without manual virtualization ([Ink's #1 feature request](https://github.com/vadimdemedes/ink/issues/222) since 2019)
-- **Input layer stack** — DOM-style event bubbling for modal dialogs and text input isolation
-- **Focus system** — tree-based with scopes, spatial navigation, autoFocus, click-to-focus
-- **Mouse support** (SGR protocol) — click, double-click, scroll, drag with DOM-style event props (`onClick`, `onWheel`, etc.)
-
-![Scrollable task list with selection and priority badges](docs/images/task-list.png)
+- **Five-phase incremental pipeline** — 7 independent dirty flags per node, only changed nodes re-render
+- **Flexx layout engine** (default) — pure TypeScript, 7KB gzipped, zero WASM, zero memory growth
+- **Layout caching** — Flexx fingerprints nodes; unchanged subtrees skip recomputation entirely (27ns no-change re-layout)
+- **Buffer diff** — emits only changed cells to terminal, reducing I/O by 90%+ for typical updates
+- **Synchronized output** (DEC 2026) — atomic screen painting, flicker-free in tmux/Zellij
 
 ### Terminal Protocols
 
-- **[Kitty keyboard](https://sw.kovidgoyal.net/kitty/keyboard-protocol/)** — Cmd ⌘, Hyper ✦, key release events, auto-detect
-- **Kitty graphics + Sixel** — inline images with auto-detection and text fallback
+- **Kitty keyboard** — all 5 flags: Cmd/Super, Hyper, key release events, international layouts. Auto-detect.
+- **SGR mouse** — DOM-style event bubbling: `onClick`, `onDoubleClick`, `onWheel`, `onMouseEnter` on any component
+- **Inline images** — Kitty graphics + Sixel with auto-detection and text fallback
 - **OSC 52 clipboard** — copy/paste that works across SSH sessions
-- **DECSTBM scroll regions** — hardware-accelerated scrolling
-- **Synchronized updates** (DEC 2026) — atomic screen painting, flicker-free in tmux/Zellij
+- **OSC 8 hyperlinks** — clickable URLs via `<Link>` component
 - **Bracketed paste** — built-in with `usePaste` hook
-- **Adaptive rendering** — `term.hasCursor()`, `term.hasColor()`, `term.hasInput()` for graceful degradation
+- **DECSTBM scroll regions** — hardware-accelerated scrolling
+- **Adaptive rendering** — graceful degradation for non-TTY output
 
-### Developer Experience
+### Components (23+)
 
-- **Drop-in Ink replacement** — same Box, Text, useInput, useApp, Static, Spacer. [Migration guide](docs/guides/migration.md)
-- **Plugin composition** — `withCommands`, `withKeybindings`, `withDiagnostics` (SlateJS-inspired)
-- **Playwright-style testing** — `createRenderer`, `getByTestId`, `getByText`, `locator()`, `app.press()`
-- **`withDiagnostics`** — incremental vs fresh render verification catches rendering regressions in CI
-- **Theming** — `ThemeProvider` with semantic `$token` colors (dark/light built-in)
-- **28+ unicode utilities** — grapheme splitting, display width, CJK/emoji support
-- **AsyncIterable helpers** — merge, map, filter, throttle, debounce, batch
+- **Core:** Box, Text, Newline, Spacer, Static, Transform
+- **Input:** TextInput, ReadlineInput, TextArea (multi-line with readline shortcuts)
+- **Data:** VirtualList, SelectList, Table, Console
+- **Display:** Spinner, ProgressBar, Badge, Divider, Image, Link
+- **`overflow="scroll"`** with `scrollTo` — scrollable containers without manual virtualization ([Ink's #1 feature request](https://github.com/vadimdemedes/ink/issues/222) since 2019)
 
-![Kanban board with cards, tags, and column navigation](docs/images/kanban.png)
+![Scrollable task list with selection and priority badges](docs/images/task-list.png)
 
-## Architecture
+### Input & Focus
 
-Three runtime layers from low-level to high-level:
+- **Input layer stack** — DOM-style event bubbling for modal dialogs and text input isolation
+- **Tree-based focus** — scopes, spatial navigation (Up/Down/Left/Right), autoFocus, click-to-focus
+- **Command system** — every action gets an ID, name, help text, and configurable keybinding
+- **Keybinding resolution** — keypresses route through bindings to commands; searchable command palette for free
+- **Hotkey parsing** — native macOS symbols: `parseHotkey("⌘K")`, `matchHotkey(key, "⌃⇧A")`
+
+### Three Runtime Architectures
 
 | Layer | Entry Point       | Style         | Best For                       |
 | ----- | ----------------- | ------------- | ------------------------------ |
@@ -116,7 +108,23 @@ Three runtime layers from low-level to high-level:
 | 2     | `run()`           | React hooks   | Most apps (recommended)        |
 | 3     | `createApp()`     | Zustand store | Complex apps with many sources |
 
-Each wraps the one below. Layer 1 gives you a pure event loop with AsyncIterable — `reducer(state, event) → state`, `view(state) → JSX`, `schedule()` for async effects. Layer 2 adds React hooks. Layer 3 adds centralized state with a provider pattern.
+Each wraps the one below. Layer 1 gives you a pure event loop with AsyncIterable — `reducer(state, event) -> state`, `view(state) -> JSX`, `schedule()` for async effects. Layer 2 adds React hooks. Layer 3 adds centralized state with a provider pattern. Choose the right paradigm per use case — no other TUI framework offers all three.
+
+### Developer Experience
+
+- **Drop-in Ink replacement** — same Box, Text, useInput, useApp, Static, Spacer. [Migration guide](docs/guides/migration.md)
+- **Playwright-style testing** — `createRenderer`, `getByTestId`, `getByText`, `locator()`, `app.press()`
+- **Plugin composition** — `withCommands`, `withKeybindings`, `withDiagnostics` (SlateJS-inspired)
+- **Screenshot capture** — `app.screenshot()` renders buffer to PNG via Playwright
+- **withDiagnostics** — incremental vs fresh render verification catches regressions in CI
+- **Theming** — `ThemeProvider` with semantic `$token` colors (dark/light built-in)
+- **28+ unicode utilities** — grapheme splitting, display width, CJK/emoji support
+- **Pure TypeScript, zero native deps** — runs on Node, Bun, Deno. No WASM, no C++, no memory growth. Ink's Yoga WASM has a [known linear memory bug](https://github.com/anthropics/claude-code/issues/4953) that caused 120GB RAM in production.
+- **React 19** — `use()`, improved Suspense, Actions
+
+![Kanban board with cards, tags, and column navigation](docs/images/kanban.png)
+
+## Architecture
 
 The render target is pluggable via `RenderAdapter`. ~60% of inkx code (reconciler, layout, hooks) is target-independent.
 
@@ -186,7 +194,7 @@ See [examples/index.md](examples/index.md) for descriptions.
 | [Performance](docs/deep-dives/performance.md)     | Benchmarks and optimization                    |
 | [Plugins](docs/reference/plugins.md)              | withCommands, withKeybindings, withDiagnostics |
 | [Ink Comparison](docs/ink-comparison.md)          | Detailed feature and performance comparison    |
-| [Migration](docs/guides/migration.md)             | Ink → inkx guide                               |
+| [Migration](docs/guides/migration.md)             | Ink -> inkx guide                              |
 | [Troubleshooting](docs/troubleshooting.md)        | Common issues and debugging                    |
 
 See [docs/README.md](docs/README.md) for the complete documentation index.
