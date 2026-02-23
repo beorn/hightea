@@ -8,8 +8,7 @@
  *
  * @example
  * ```tsx
- * import { VirtualList } from 'inkx';
- *
+ * // Declarative (parent controls scroll position)
  * <VirtualList
  *   items={cards}
  *   height={20}
@@ -19,10 +18,23 @@
  *     <TreeCard key={card.id} card={card} isSelected={index === selected} />
  *   )}
  * />
+ *
+ * // Interactive (built-in j/k, arrows, PgUp/PgDn, Home/End, G, mouse wheel)
+ * <VirtualList
+ *   items={items}
+ *   height={20}
+ *   itemHeight={1}
+ *   interactive
+ *   onSelect={(index) => openItem(items[index])}
+ *   renderItem={(item, index, meta) => (
+ *     <Text>{meta?.isSelected ? '> ' : '  '}{item.name}</Text>
+ *   )}
+ * />
  * ```
  */
 import { createLogger } from "@beorn/logger"
-import React, { forwardRef, useImperativeHandle } from "react"
+import React, { forwardRef, useCallback, useImperativeHandle, useState } from "react"
+import { useInput } from "../hooks/useInput.js"
 import { useVirtualization } from "../hooks/useVirtualization.js"
 import { Box } from "./Box.js"
 
@@ -31,6 +43,12 @@ const log = createLogger("inkx:virtuallist")
 // =============================================================================
 // Types
 // =============================================================================
+
+/** Metadata passed to renderItem in the third argument */
+export interface ItemMeta {
+  /** Whether this item is the currently selected item (interactive mode only) */
+  isSelected: boolean
+}
 
 export interface VirtualListProps<T> {
   /** Array of items to render */
@@ -42,7 +60,7 @@ export interface VirtualListProps<T> {
   /** Height of each item in rows (fixed or function for variable heights) */
   itemHeight?: number | ((item: T, index: number) => number)
 
-  /** Index to keep visible (scrolls if off-screen) */
+  /** Index to keep visible (scrolls if off-screen). Ignored when interactive=true. */
   scrollTo?: number
 
   /** Extra items to render above/below viewport for smooth scrolling (default: 5) */
@@ -51,8 +69,8 @@ export interface VirtualListProps<T> {
   /** Maximum items to render at once (default: 100) */
   maxRendered?: number
 
-  /** Render function for each item */
-  renderItem: (item: T, index: number) => React.ReactNode
+  /** Render function for each item. Third arg provides selection metadata. */
+  renderItem: (item: T, index: number, meta?: ItemMeta) => React.ReactNode
 
   /** Show overflow indicators (▲N/▼N) */
   overflowIndicator?: boolean
@@ -74,6 +92,20 @@ export interface VirtualListProps<T> {
    * Frozen items are excluded from rendering -- callers can use Static or
    * useScrollback to push them to terminal scrollback separately. */
   frozen?: (item: T, index: number) => boolean
+
+  // ── Interactive mode ──────────────────────────────────────────────
+
+  /** Enable built-in keyboard (j/k, arrows, PgUp/PgDn, Home/End, G) and mouse wheel */
+  interactive?: boolean
+
+  /** Currently selected index (controlled). Managed internally when not provided. */
+  selectedIndex?: number
+
+  /** Called when selection changes (keyboard or mouse wheel navigation) */
+  onSelectionChange?: (index: number) => void
+
+  /** Called when Enter is pressed on the selected item */
+  onSelect?: (index: number) => void
 }
 
 export interface VirtualListHandle {
@@ -88,6 +120,8 @@ export interface VirtualListHandle {
 const DEFAULT_ITEM_HEIGHT = 1
 const DEFAULT_OVERSCAN = 5
 const DEFAULT_MAX_RENDERED = 100
+/** Items to move per mouse wheel tick */
+const WHEEL_STEP = 3
 
 /**
  * Padding from edge before scrolling (in items).
@@ -122,7 +156,7 @@ function VirtualListInner<T>(
     items,
     height,
     itemHeight = DEFAULT_ITEM_HEIGHT,
-    scrollTo,
+    scrollTo: scrollToProp,
     overscan = DEFAULT_OVERSCAN,
     maxRendered = DEFAULT_MAX_RENDERED,
     renderItem,
@@ -132,9 +166,51 @@ function VirtualListInner<T>(
     gap = 0,
     renderSeparator,
     frozen,
+    interactive,
+    selectedIndex: selectedIndexProp,
+    onSelectionChange,
+    onSelect,
   }: VirtualListProps<T>,
   ref: React.ForwardedRef<VirtualListHandle>,
 ): React.ReactElement {
+  // ── Interactive mode: internal selection state ────────────────────
+  // Semi-controlled: internal state is the source of truth.
+  // Prop syncs initial value and external updates.
+  const [internalIndex, setInternalIndex] = useState(selectedIndexProp ?? 0)
+  const lastPropRef = React.useRef(selectedIndexProp)
+  if (selectedIndexProp !== undefined && selectedIndexProp !== lastPropRef.current) {
+    lastPropRef.current = selectedIndexProp
+    setInternalIndex(selectedIndexProp)
+  }
+  const activeSelection = interactive ? internalIndex : -1
+
+  const moveTo = useCallback(
+    (next: number) => {
+      const clamped = Math.max(0, Math.min(next, items.length - 1))
+      setInternalIndex(clamped)
+      onSelectionChange?.(clamped)
+    },
+    [items.length, onSelectionChange],
+  )
+
+  // Keyboard input for interactive mode
+  useInput(
+    (input, key) => {
+      if (!interactive) return
+      const cur = activeSelection
+      if (input === "j" || key.downArrow) moveTo(cur + 1)
+      else if (input === "k" || key.upArrow) moveTo(cur - 1)
+      else if (input === "G" || key.end) moveTo(items.length - 1)
+      else if (key.home) moveTo(0)
+      else if (key.pageDown || (input === "d" && key.ctrl)) moveTo(cur + Math.floor(height / 2))
+      else if (key.pageUp || (input === "u" && key.ctrl)) moveTo(cur - Math.floor(height / 2))
+      else if (key.return) onSelect?.(cur)
+    },
+    { isActive: interactive },
+  )
+
+  // In interactive mode, scrollTo is derived from selection
+  const scrollTo = interactive ? activeSelection : scrollToProp
   // Compute contiguous frozen prefix count
   let frozenCount = 0
   if (frozen) {
@@ -223,6 +299,14 @@ function VirtualListInner<T>(
       overflow="scroll"
       scrollTo={boxScrollTo}
       overflowIndicator={overflowIndicator}
+      onWheel={
+        interactive
+          ? (e) => {
+              const delta = e.deltaY > 0 ? WHEEL_STEP : -WHEEL_STEP
+              moveTo(activeSelection + delta)
+            }
+          : undefined
+      }
     >
       {/* Top placeholder for virtual height */}
       {leadingPlaceholderSize > 0 && <Box height={leadingPlaceholderSize} flexShrink={0} />}
@@ -233,10 +317,11 @@ function VirtualListInner<T>(
         const originalIndex = activeIndex + frozenCount
         const key = keyExtractor ? keyExtractor(item, originalIndex) : originalIndex
         const isLast = i === visibleItems.length - 1
+        const meta: ItemMeta = { isSelected: originalIndex === activeSelection }
 
         return (
           <React.Fragment key={key}>
-            {renderItem(item, originalIndex)}
+            {renderItem(item, originalIndex, meta)}
             {!isLast && renderSeparator && renderSeparator()}
             {!isLast && gap > 0 && !renderSeparator && <Box height={gap} flexShrink={0} />}
           </React.Fragment>
