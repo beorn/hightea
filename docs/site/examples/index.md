@@ -2,6 +2,10 @@
 
 Learn inkx by example. Each example demonstrates a specific pattern and can be run directly.
 
+::: tip Live Demo
+See the same component rendered to [Canvas, DOM, and Terminal](/examples/live-demo) — demonstrating inkx's pluggable render adapter architecture.
+:::
+
 ## Running Examples
 
 Clone the repository and run any example:

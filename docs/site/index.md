@@ -35,6 +35,9 @@ features:
   - icon: "\U0001F4DC"
     title: Scrollable Containers
     details: overflow="scroll" with scrollTo — no manual virtualization. Ink's #1 feature request since 2019, built-in.
+  - icon: "\U0001F3AF"
+    title: Three Render Targets
+    details: Terminal, Canvas 2D, and DOM. Same React components, same layout engine — different output. See the [live demo](/examples/live-demo).
   - icon: "\U0001F4E6"
     title: Zero Native Dependencies
     details: Pure TypeScript. No WASM, no C++, no memory leaks. Runs on Node, Bun, and Deno.
