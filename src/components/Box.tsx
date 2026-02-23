@@ -8,7 +8,7 @@
  * Box renders to an 'inkx-box' host element that the reconciler converts to an
  * InkxNode with an associated Yoga layout node.
  *
- * Box provides NodeContext to its children, enabling useLayout/useScreenRect hooks.
+ * Box provides NodeContext to its children, enabling useContentRect/useScreenRect hooks.
  * It also supports forwardRef for imperative access and onLayout for layout callbacks.
  */
 
@@ -55,7 +55,7 @@ export interface BoxHandle {
 /**
  * Flexbox container component for terminal UIs.
  *
- * Provides NodeContext to children, enabling useLayout/useScreenRect hooks.
+ * Provides NodeContext to children, enabling useContentRect/useScreenRect hooks.
  * Supports forwardRef for imperative access and onLayout for layout callbacks.
  *
  * @example

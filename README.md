@@ -1,41 +1,43 @@
 # inkx
 
-React rendering where components know their size.
+React for modern terminals.
 
 [![npm version](https://img.shields.io/npm/v/inkx.svg)](https://www.npmjs.com/package/inkx)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-## The Problem
+Terminals have evolved — Kitty, Ghostty, WezTerm, and iTerm2 support graphics, mouse tracking, keyboard protocols, clipboard access, and hardware-accelerated scrolling. But React terminal frameworks haven't kept up.
 
-React components can't know their dimensions during render. This is universal:
-
-- **React DOM** — ResizeObserver dance, second render, layout jank
-- **React Native** — FlatList getItemLayout guesses, scroll jank
-- **Ink** — manual width-prop threading through entire tree
-
-inkx solves this with a five-phase pipeline: reconcile, measure, layout, content, output. Layout is computed _before_ content rendering. Components access their dimensions synchronously via `useContentRect()`.
-
-```tsx
-// Ink: width props cascade through entire tree
-<Board width={80}>
-  <Column width={26}>
-    <Card width={24} />
-  </Column>
-</Board>
-
-// inkx: just ask
-<Board>
-  <Column>
-    <Card />  {/* useContentRect() inside */}
-  </Column>
-</Board>
-```
-
-Same insight as [WPF's Measure/Arrange pass](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/layout) (2006) — Microsoft's two-phase layout where parent proposes size, child returns desired size; [CSS Container Queries](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries) (2022) — style elements based on their container's size instead of the viewport; and Facebook's [Litho](https://github.com/facebook/litho)/[ComponentKit](https://github.com/nicklockwood/ComponentKit) — async layout on background threads that yielded 35% scroll performance gains in the Facebook app.
+inkx brings all of it to React. Full mouse and keyboard support, inline images, scrollable containers, layout-aware components, and a hybrid React/Elm architecture — in one framework, with zero native dependencies.
 
 ![Dashboard with multiple panes, borders, and colors](docs/images/dashboard.png)
 
+## Why inkx?
+
+**Components that know their size.** `useContentRect()` gives components their actual dimensions during render — no width prop drilling, no second render pass, no guessing. This is [Ink's oldest open issue](https://github.com/vadimdemedes/ink/issues/5) (2016) and React's biggest layout gap, solved.
+
+**Every modern terminal protocol.** [Kitty keyboard](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) (all 5 flags), SGR mouse (click, drag, scroll), inline images (Kitty graphics + Sixel), OSC 52 clipboard (works over SSH), OSC 8 hyperlinks, DECSTBM scroll regions, DEC 2026 synchronized updates (flicker-free in tmux/Zellij), and bracketed paste. No other JavaScript TUI framework exposes all of these.
+
+**122x faster interactive updates.** Per-node dirty tracking bypasses React reconciliation entirely for keystroke updates. When a user presses a key, only the changed nodes re-render — 169µs for 1000 nodes vs Ink's 20.7ms full re-render. See [benchmarks](docs/deep-dives/performance.md).
+
+**React + Elm in one framework.** Three runtime layers: Elm-style pure reducers for predictable state (`createRuntime`), React hooks for most apps (`run`), and Zustand stores for complex state (`createApp`). Choose the right paradigm per use case — no other TUI framework offers all three.
+
+**Pure TypeScript, zero native dependencies.** The [Flexx](https://github.com/beorn/flexx) layout engine is 7KB of pure JavaScript — no WASM, no C++ compilation, no memory growth. Ink's Yoga WASM has a [known linear memory bug](https://github.com/anthropics/claude-code/issues/4953) that caused 120GB RAM usage in production.
+
+## Built for AI-powered CLIs
+
+inkx was designed alongside Claude Code, Anthropic's AI coding assistant. Features that matter for AI tools:
+
+- **Scrollable containers** that handle variable-length LLM output without manual dimension management — `overflow="scroll"` just works
+- **Command introspection** — `cmd.all()` lets AI agents discover available commands; `cmd.down()` executes them programmatically
+- **[CLAUDE.md](CLAUDE.md)** — AI-readable framework reference that ships with the package, optimized for LLM context windows
+
+Equally at home in any interactive terminal app — dashboards, developer tools, task managers, data explorers.
+
 ## Quick Start
+
+```bash
+bun add inkx react @beorn/flexx
+```
 
 ```tsx
 import { run, useInput } from "inkx/runtime"
@@ -62,11 +64,49 @@ function App() {
 await run(<App />)
 ```
 
-```bash
-bun add inkx react @beorn/flexx
-```
+## Key Features
 
-## Architecture at a Glance
+### Layout & Rendering
+
+- **`useContentRect()` / `useScreenRect()`** — components query their own dimensions synchronously during render
+- **Five-phase pipeline** with per-node dirty tracking — only changed nodes re-render
+- **Pluggable layout** — [Flexx](https://github.com/beorn/flexx) (default, pure JS, 7KB) or Yoga (WASM)
+- **Layout caching** — Flexx fingerprints nodes; unchanged subtrees skip recomputation entirely
+- **Incremental terminal output** — buffer diff emits only changed cells, not full-screen repaints
+
+### Components & Input
+
+- **23 built-in components** — Box, Text, VirtualList, TextInput, ReadlineInput, TextArea, Link, Console, Table, SelectList, Image, and more
+- **`overflow="scroll"`** with `scrollTo` — scrollable containers without manual virtualization ([Ink's #1 feature request](https://github.com/vadimdemedes/ink/issues/222) since 2019)
+- **Input layer stack** — DOM-style event bubbling for modal dialogs and text input isolation
+- **Focus system** — tree-based with scopes, spatial navigation, autoFocus, click-to-focus
+- **Mouse support** (SGR protocol) — click, double-click, scroll, drag with DOM-style event props (`onClick`, `onWheel`, etc.)
+
+![Scrollable task list with selection and priority badges](docs/images/task-list.png)
+
+### Terminal Protocols
+
+- **[Kitty keyboard](https://sw.kovidgoyal.net/kitty/keyboard-protocol/)** — Cmd ⌘, Hyper ✦, key release events, auto-detect
+- **Kitty graphics + Sixel** — inline images with auto-detection and text fallback
+- **OSC 52 clipboard** — copy/paste that works across SSH sessions
+- **DECSTBM scroll regions** — hardware-accelerated scrolling
+- **Synchronized updates** (DEC 2026) — atomic screen painting, flicker-free in tmux/Zellij
+- **Bracketed paste** — built-in with `usePaste` hook
+- **Adaptive rendering** — `term.hasCursor()`, `term.hasColor()`, `term.hasInput()` for graceful degradation
+
+### Developer Experience
+
+- **Drop-in Ink replacement** — same Box, Text, useInput, useApp, Static, Spacer. [Migration guide](docs/guides/migration.md)
+- **Plugin composition** — `withCommands`, `withKeybindings`, `withDiagnostics` (SlateJS-inspired)
+- **Playwright-style testing** — `createRenderer`, `getByTestId`, `getByText`, `locator()`, `app.press()`
+- **`withDiagnostics`** — incremental vs fresh render verification catches rendering regressions in CI
+- **Theming** — `ThemeProvider` with semantic `$token` colors (dark/light built-in)
+- **28+ unicode utilities** — grapheme splitting, display width, CJK/emoji support
+- **AsyncIterable helpers** — merge, map, filter, throttle, debounce, batch
+
+![Kanban board with cards, tags, and column navigation](docs/images/kanban.png)
+
+## Architecture
 
 Three runtime layers from low-level to high-level:
 
@@ -78,146 +118,44 @@ Three runtime layers from low-level to high-level:
 
 Each wraps the one below. Layer 1 gives you a pure event loop with AsyncIterable — `reducer(state, event) → state`, `view(state) → JSX`, `schedule()` for async effects. Layer 2 adds React hooks. Layer 3 adds centralized state with a provider pattern.
 
-## Terminal Rendering Modes
+The render target is pluggable via `RenderAdapter`. ~60% of inkx code (reconciler, layout, hooks) is target-independent.
 
-inkx supports several rendering strategies for terminal output:
+| Target    | Status       | Use Case                      |
+| --------- | ------------ | ----------------------------- |
+| Terminal  | Production   | TUI apps (primary target)     |
+| Canvas 2D | Experimental | Data viz, games, design tools |
+| DOM       | Experimental | Accessibility, text selection |
 
-| Mode           | Screen Buffer | Scrollback        | Input | Use Case                       |
-| -------------- | ------------- | ----------------- | ----- | ------------------------------ |
-| **Fullscreen** | Alternate     | None              | Yes   | TUI apps (takes over terminal) |
-| **Inline**     | Normal        | Exists but unused | Yes   | Progress bars, prompts         |
-| **Scrollback** | Normal        | Active            | Yes   | CLI tools with history         |
-| **Static**     | N/A           | Append-only       | No    | CI, piped output, logging      |
+## Trade-offs
 
-**Fullscreen** uses the alternate screen buffer — content disappears when the app exits. Best for interactive TUI applications.
-
-```tsx
-using term = createTerm()
-await render(<App />, term, { fullscreen: true })
-```
-
-**Inline** renders in the normal screen buffer, updating in place from the current cursor position. Scrollback exists but isn't actively used.
-
-```tsx
-using term = createTerm()
-await render(<ProgressBar />, term)
-```
-
-**Scrollback** — completed items freeze and scroll into terminal scrollback via `useScrollback` + VirtualList's `frozen` prop. The active UI shrinks as items complete. Users scroll up with native terminal features to review history. Similar to pi-tui and Rich's Live.
-
-```tsx
-const frozenCount = useScrollback(items, {
-  frozen: (item) => item.complete,
-  render: (item) => `  ✓ ${item.title}`,
-})
-
-<VirtualList items={items} frozen={(item) => item.complete} ... />
-```
-
-**Static** renders once to a string — no cursor control needed, safe for piped output and CI environments.
-
-```tsx
-const output = renderString(<Summary />, { width: 80 })
-console.log(output)
-
-// Strip ANSI codes for piped output
-const plain = renderString(<Report />, { width: 80, plain: true })
-```
-
-## Render Targets
-
-The RenderAdapter interface separates core logic (reconciler, layout, hooks) from output.
-
-| Target       | Status       | Use Case                            |
-| ------------ | ------------ | ----------------------------------- |
-| Terminal     | Production   | TUI apps (primary target)           |
-| Canvas 2D    | Experimental | Data viz, games, design tools       |
-| DOM          | Experimental | Accessibility, text selection       |
-| WebGL        | Future       | High-performance Canvas alternative |
-| React Native | Future       | Solve FlatList height estimation    |
-
-~60% of inkx code (reconciler, layout, hooks) is target-independent.
-
-## Key Features
-
-### Layout & Rendering
-
-- `useContentRect()` / `useScreenRect()` — sync layout feedback during render
-- Five-phase pipeline with dirty tracking — only changed nodes re-render
-- Pluggable layout: [Flexx](https://github.com/beorn/flexx) (default, pure JS) or Yoga (WASM)
-- 165µs cold render, 169µs dirty update for 1000 nodes ([benchmarks](docs/ink-comparison.md#performance))
-
-### Memory & Stability
-
-- **No WASM linear memory growth** — Flexx is pure TypeScript; Yoga WASM allocates linear memory that grows monotonically during long sessions and cannot be reclaimed without resetting the entire module
-- **Layout caching** — Flexx fingerprints nodes and caches layout results; unchanged subtrees skip recomputation entirely. Static UI regions (status bars, headers, chrome) have zero layout cost after first render
-- **Zero initialization overhead** — no async WASM loading; instant startup with no deferred imports needed
-- **No native dependencies** — pure JS/TS, no platform-specific C++ compilation (Yoga NAPI) or WASM binaries
-- **Built-in CJK/wide character support** — wcwidth-aware text measurement prevents misaligned layouts with Chinese, Japanese, Korean, and emoji content
-- **Incremental terminal output** — buffer diff emits only changed cells; streaming LLM output or rapid state updates produce minimal terminal I/O instead of full-screen repaints
-
-![Layout feedback: each pane displays its own dimensions via useContentRect()](docs/images/layout-feedback.png)
-
-### Components
-
-- **Box** — flexbox container with borders, padding, overflow, focus, mouse events
-- **Text** — styled text with auto-truncation, extended underlines
-- **Link** — OSC 8 hyperlinks (clickable URLs in supporting terminals)
-- **VirtualList** — efficient rendering for large lists (100+ items)
-- **Console** — captures and displays `console.log` output cleanly alongside the UI
-- **TextInput** / **ReadlineInput** — text input with readline shortcuts (Ctrl+A/E/W/K/Y)
-- **TextArea** — multi-line text input with word wrap, scrolling, and cursor movement
-- **InputBoundary** — isolates input scope for embedded interactive components
-- `overflow="scroll"` with `scrollTo` — no manual virtualization needed
-
-![Scrollable task list with selection and priority badges](docs/images/task-list.png)
-
-![Kanban board with cards, tags, and column navigation](docs/images/kanban.png)
-
-### Input & Interaction
-
-- Input layer stack — DOM-style event bubbling (LIFO) for modal dialogs and text input
-- [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) — Cmd ⌘, Hyper ✦, key release events, international keyboard support
-- Mouse support (SGR protocol) — click, double-click, scroll, drag with DOM-style event props
-- Focus system — tree-based focus management with scopes, spatial navigation, click-to-focus
-- Plugin composition: withCommands, withKeybindings, withDiagnostics
-- Hotkey parsing with macOS symbols: `parseHotkey("⌘K")`, `matchHotkey(key, "⌃⇧A")`
-
-### Terminal Features
-
-- Synchronized updates (DEC 2026) — atomic screen painting, no flicker in tmux/Zellij
-- Scrollback mode — completed items freeze into terminal scrollback via `useScrollback`; active UI shrinks as items complete
-- Adaptive rendering — `term.hasCursor()`, `term.hasColor()`, `term.hasInput()` for graceful degradation
-- `renderString()` — static rendering for non-TTY output (CI, piped, headless)
-- Kitty graphics protocol — inline image display ([example](examples/kitty/images.tsx))
-- `using` / Disposable cleanup — automatic resource teardown
-
-### Testing
-
-- `createRenderer` with configurable dimensions
-- Playwright-style locators: `getByTestId`, `getByText`, `locator()`
-- `withDiagnostics`: incremental vs fresh render verification (catches rendering regressions in CI)
-
-### Unicode & Streams
-
-- 28+ unicode utilities (grapheme splitting, display width, CJK, emoji)
-- AsyncIterable helpers: merge, map, filter, throttle, debounce, batch
+inkx optimizes for interactive apps where parts of the UI update frequently. For workloads that re-render the entire component tree from scratch (not typical for interactive CLIs), Ink's simpler reconciliation is ~30x faster. inkx's five-phase pipeline is the cost of layout feedback — and the reason interactive updates are 122x faster. See [detailed comparison](docs/ink-comparison.md).
 
 ## Ink Compatibility
 
-Drop-in replacement for [Ink](https://github.com/vadimdemedes/ink). Same components, same hooks API. See [migration guide](docs/migration.md) and [detailed comparison](docs/ink-comparison.md) for feature/performance differences.
+Drop-in replacement for [Ink](https://github.com/vadimdemedes/ink). Same components, same hooks API:
+
+```tsx
+// Before (Ink)
+import { render, Box, Text, useInput, useApp } from "ink"
+
+// After (inkx)
+import { render, Box, Text, useApp } from "inkx"
+import { useInput } from "inkx/runtime"
+```
+
+What you gain: layout feedback, scrollable containers, mouse support, focus management, Kitty keyboard, images, clipboard, theming, plugin composition, Playwright-style testing, and zero native dependencies. See [migration guide](docs/guides/migration.md) for details.
 
 ## Status
 
-**Experimental** — actively developed, used in production apps, but APIs may change and things may break. The terminal render target is stable; non-TUI render targets (Canvas, DOM) are prototypes only.
+Actively developed and used in production ([km](https://github.com/beorn/km), a terminal workspace for knowledge workers). APIs may change. The core architecture (reconciler, layout hooks, five-phase pipeline, plugin system) has been stable through months of daily production use.
 
 | Feature                                           | Status     |
 | ------------------------------------------------- | ---------- |
-| Core components (Box, Text)                       | Stable     |
+| Core components (Box, Text, VirtualList, inputs)  | Stable     |
 | Hooks (useContentRect, useInput, useApp, useTerm) | Stable     |
 | React reconciler (React 19)                       | Stable     |
-| Flexx layout engine (default)                     | Stable     |
-| Yoga layout engine (WASM, optional)               | Stable     |
+| Flexx layout engine                               | Stable     |
+| Plugin system (commands, keybindings, diagnostics) | Stable     |
 | Terminal target                                   | Production |
 | Canvas / DOM targets                              | Prototype  |
 
@@ -230,29 +168,28 @@ bun run examples/task-list/index.tsx      # Scrollable task list
 bun run examples/search-filter/index.tsx  # useTransition + useDeferredValue
 bun run examples/async-data/index.tsx     # Suspense + async loading
 bun run examples/textarea/index.tsx       # Multi-line text input
-bun run examples/scrollback/index.tsx    # Scrollback mode (frozen items)
+bun run examples/scrollback/index.tsx     # Scrollback mode (frozen items)
 ```
 
 See [examples/index.md](examples/index.md) for descriptions.
 
 ## Documentation
 
-| Document                                   | Description                                              |
-| ------------------------------------------ | -------------------------------------------------------- |
-| [Getting Started](docs/getting-started.md) | Runtime layers and tutorial                              |
-| [Components](docs/components.md)           | Box, Text, VirtualList, Console, inputs                  |
-| [Hooks](docs/hooks.md)                     | useContentRect, useScreenRect, useInput, useApp, useTerm |
-| [Architecture](docs/architecture.md)       | Pipeline, RenderAdapter interface                        |
-| [Testing](docs/testing.md)                 | Strategy, locators, withDiagnostics                      |
-| [Internals](docs/internals.md)             | Reconciler deep dive                                     |
-| [Performance](docs/performance.md)         | Benchmarks and optimization                              |
-| [Streams](docs/streams.md)                 | AsyncIterable helpers                                    |
-| [Focus Routing](docs/focus-routing.md)     | Input routing pattern                                    |
-| [Plugins](docs/plugins.md)                 | withCommands, withKeybindings, withDiagnostics           |
-| [Ink Comparison](docs/ink-comparison.md)   | Detailed comparison                                      |
-| [Migration](docs/migration.md)             | Ink → inkx guide                                         |
-| [Troubleshooting](docs/troubleshooting.md) | Common issues and debugging                              |
-| [Roadmap](docs/roadmap.md)                 | Render targets and future plans                          |
+| Document                                         | Description                                    |
+| ------------------------------------------------ | ---------------------------------------------- |
+| [Getting Started](docs/guides/getting-started.md)       | First app tutorial, basic input, layout         |
+| [Runtime Layers](docs/guides/runtime-layers.md)         | createRuntime, createStore, createApp, streams  |
+| [Components](docs/reference/components.md)               | Box, Text, VirtualList, Console, inputs         |
+| [Hooks](docs/reference/hooks.md)                         | useContentRect, useInput, useApp, useTerm       |
+| [Architecture](docs/deep-dives/architecture.md)          | Pipeline, RenderAdapter interface               |
+| [Testing](docs/testing.md)                               | Strategy, locators, withDiagnostics             |
+| [Performance](docs/deep-dives/performance.md)            | Benchmarks and optimization                     |
+| [Plugins](docs/reference/plugins.md)                     | withCommands, withKeybindings, withDiagnostics  |
+| [Ink Comparison](docs/ink-comparison.md)                 | Detailed feature and performance comparison     |
+| [Migration](docs/guides/migration.md)                    | Ink → inkx guide                                |
+| [Troubleshooting](docs/troubleshooting.md)               | Common issues and debugging                     |
+
+See [docs/README.md](docs/README.md) for the complete documentation index.
 
 ## Related Projects
 
@@ -260,7 +197,7 @@ See [examples/index.md](examples/index.md) for descriptions.
 | ------------------------------------------ | ----------------------------------------------- |
 | [Ink](https://github.com/vadimdemedes/ink) | API compatibility target                        |
 | [Flexx](https://github.com/beorn/flexx)    | Default layout engine (2.5x faster, 5x smaller) |
-| [chalkx](https://github.com/beorn/chalkx)  | Terminal primitives (re-exported by inkx)       |
+| [chalkx](https://github.com/beorn/chalkx) | Terminal primitives (re-exported by inkx)        |
 | [Yoga](https://yogalayout.dev/)            | Optional layout engine (WASM)                   |
 
 ## License

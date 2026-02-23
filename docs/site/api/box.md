@@ -124,7 +124,7 @@ the entire computed layout area, so you don't need Text elements with spaces to
 create filled regions.
 :::
 
-### Overflow (Inkx Only)
+### Overflow (inkx Only)
 
 | Prop       | Type                                | Default     | Description                                           |
 | ---------- | ----------------------------------- | ----------- | ----------------------------------------------------- |

@@ -1,6 +1,6 @@
-# Contributing to Inkx
+# Contributing to inkx
 
-Thank you for your interest in contributing to Inkx! This guide covers everything you need to get started.
+Thank you for your interest in contributing to inkx! This guide covers everything you need to get started.
 
 ## Development Setup
 
@@ -73,7 +73,7 @@ bun run test:fast
 
 ### Using createRenderer
 
-Inkx provides a testing library with auto-cleanup between renders:
+inkx provides a testing library with auto-cleanup between renders:
 
 ```tsx
 import { createRenderer } from "inkx/testing"
@@ -292,7 +292,7 @@ For feature requests, please include:
 inkx/
 ├── src/
 │ ├── components/ # Box, Text, Newline, Spacer, Static
-│ ├── hooks/ # useLayout, useInput, useApp, etc.
+│ ├── hooks/ # useContentRect, useInput, useApp, etc.
 │ ├── testing/ # Test utilities (createRenderer)
 │ ├── reconciler.ts # React reconciler
 │ ├── pipeline.ts # Render pipeline

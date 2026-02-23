@@ -34,6 +34,7 @@ import { keyToAnsi, keyToKittyAnsi } from "./keys.js"
 import type { ParsedMouse } from "./mouse.js"
 import { createMouseEventProcessor, processMouseEvent } from "./mouse-events.js"
 import type { FocusManager } from "./focus-manager.js"
+import { pointInRect } from "./tree-utils.js"
 import type { InkxNode } from "./types.js"
 
 /**
@@ -506,7 +507,7 @@ function findNodeAtContentPosition(node: InkxNode, x: number, y: number): InkxNo
   const rect = node.contentRect
   if (!rect) return null
 
-  if (x < rect.x || x >= rect.x + rect.width || y < rect.y || y >= rect.y + rect.height) {
+  if (!pointInRect(x, y, rect)) {
     return null
   }
 

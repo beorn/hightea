@@ -102,5 +102,5 @@ function DebugComponent() {
 
 - The `stdout` object is the standard Node.js `WriteStream`
 - Use `stdout.columns` and `stdout.rows` for terminal dimensions
-- The `write` function bypasses Inkx rendering and writes directly to the terminal
-- Direct writes may interfere with Inkx's output - use sparingly
+- The `write` function bypasses inkx rendering and writes directly to the terminal
+- Direct writes may interfere with inkx's output - use sparingly

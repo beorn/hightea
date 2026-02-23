@@ -1,6 +1,9 @@
 /**
  * useReadline Hook
  *
+ * This hook lives in components/ because it's tightly coupled to ReadlineInput.
+ * It manages readline state (cursor position, history, kill ring) that ReadlineInput renders.
+ *
  * Full readline-style line editing for terminal text input.
  * Supports cursor movement, word operations, kill ring, and all standard shortcuts.
  *

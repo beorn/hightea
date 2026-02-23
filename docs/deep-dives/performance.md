@@ -1,6 +1,10 @@
-# Inkx Performance
+# inkx Performance
+
+> **Canonical source** for inkx benchmark numbers. Other docs link here for methodology and current data.
 
 ## Benchmarks (M1 Max, Bun 1.3.9)
+
+_Environment: Apple M1 Max, macOS, Bun 1.3.9. Last updated February 2026. Reproduce with `bun run bench` (internal) or `bun run bench:compare` (inkx vs Ink). See [benchmark suite README](../benchmarks/ink-comparison/README.md) for Ink comparison methodology._
 
 ### Full Pipeline
 

@@ -5,8 +5,8 @@
  * element measurement functionality.
  *
  * Note: In inkx, measureElement is primarily used for direct node access.
- * For component-level measurement, useLayout() is the recommended approach.
- * See hooks.test.tsx for useLayout tests.
+ * For component-level measurement, useContentRect() is the recommended approach.
+ * See hooks.test.tsx for useContentRect tests.
  */
 
 import { describe, expect, test } from "vitest"

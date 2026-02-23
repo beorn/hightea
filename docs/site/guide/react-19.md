@@ -1,6 +1,6 @@
 # React 19 Compatibility
 
-Inkx is fully compatible with React 19. This guide covers React 19 specific features and how they work with inkx.
+inkx is fully compatible with React 19. This guide covers React 19 specific features and how they work with inkx.
 
 ## Version Requirements
 
@@ -15,11 +15,11 @@ Inkx is fully compatible with React 19. This guide covers React 19 specific feat
 }
 ```
 
-Inkx supports both React 18 and React 19 as peer dependencies. The `react-reconciler` version 0.33+ includes the necessary APIs for React 19 compatibility.
+inkx supports both React 18 and React 19 as peer dependencies. The `react-reconciler` version 0.33+ includes the necessary APIs for React 19 compatibility.
 
 ## Reconciler Configuration
 
-Inkx uses `react-reconciler` to integrate with React's rendering system. For React 19 (reconciler 0.33+), the following host config methods are required:
+inkx uses `react-reconciler` to integrate with React's rendering system. For React 19 (reconciler 0.33+), the following host config methods are required:
 
 ```typescript
 // Update priority management (required for 0.33+)
@@ -128,7 +128,7 @@ await render(
 
 ### Concurrent Rendering
 
-Inkx supports React's concurrent rendering features. The reconciler properly handles:
+inkx supports React's concurrent rendering features. The reconciler properly handles:
 
 - **useTransition**: For non-blocking state updates
 - **useDeferredValue**: For deferring expensive re-renders
@@ -185,7 +185,7 @@ The testing environment automatically:
 If upgrading from React 18, no changes to your inkx code are required. The transition is seamless:
 
 1. Update React to version 19
-2. Inkx automatically uses the appropriate reconciler APIs
+2. inkx automatically uses the appropriate reconciler APIs
 3. All existing code continues to work
 
 ## Known Limitations
@@ -220,7 +220,7 @@ bun pm ls react
 
 ### Console Warnings About Deprecated APIs
 
-Inkx's reconciler implementation uses the modern 0.33+ API. If you see deprecation warnings, they're likely from other dependencies. Check that all dependencies are up to date.
+inkx's reconciler implementation uses the modern 0.33+ API. If you see deprecation warnings, they're likely from other dependencies. Check that all dependencies are up to date.
 
 ### StrictMode Double Effects
 

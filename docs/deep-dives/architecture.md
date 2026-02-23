@@ -391,7 +391,7 @@ The architecture supports splitting into separate packages:
 
 ## See Also
 
-- [design.md](design.md) - Terminal implementation details
+- [design.md](../design/design.md) - Terminal implementation details
 - [internals.md](internals.md) - React reconciler internals
-- [roadmap.md](roadmap.md) - Maximum roadmap for future targets
+- [roadmap.md](../roadmap.md) - Maximum roadmap for future targets
 - [performance.md](performance.md) - Performance characteristics and optimization

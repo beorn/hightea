@@ -51,7 +51,7 @@ import { createFocusManager } from "../focus-manager.js"
 import { createFocusEvent, createKeyEvent, dispatchFocusEvent, dispatchKeyEvent } from "../focus-events.js"
 import { findByTestID } from "../focus-queries.js"
 import { executeRender } from "../pipeline/index.js"
-import { createContainer, getContainerRoot, reconciler } from "../reconciler.js"
+import { createContainer, createFiberRoot, getContainerRoot, reconciler } from "../reconciler.js"
 import { map, merge, takeUntil } from "../streams/index.js"
 import { createBuffer } from "./create-buffer.js"
 import { createRuntime } from "./create-runtime.js"
@@ -698,18 +698,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   const container = createContainer(() => {})
 
   // Create React fiber root
-  const fiberRoot = reconciler.createContainer(
-    container,
-    1, // ConcurrentRoot
-    null,
-    false,
-    null,
-    "",
-    () => {},
-    () => {},
-    () => {},
-    null,
-  )
+  const fiberRoot = createFiberRoot(container)
 
   // Track current buffer for text access
   let currentBuffer: Buffer

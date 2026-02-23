@@ -25,6 +25,8 @@ bun run vendor/beorn-inkx/benchmarks/ink-comparison/ink-bench.ts  # ink only
 
 ## Results (Apple M1 Max, Bun 1.3.9)
 
+_Last run: February 2026. These are the canonical Ink comparison numbers referenced by [docs/ink-comparison.md](../../docs/ink-comparison.md) and [docs/deep-dives/performance.md](../../docs/deep-dives/performance.md)._
+
 These benchmarks compare inkx to Ink 6.6.0 to help users understand performance characteristics. inkx builds upon Ink's foundational work, and we're grateful to the Ink project and its community. Methodology notes are included where the comparison approaches differ.
 
 ### Full Pipeline: React reconciliation → layout → string output

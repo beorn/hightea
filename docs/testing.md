@@ -1,8 +1,131 @@
-# Inkx: Test-Driven Development Strategy
+# Testing
+
+## Testing Your inkx App
+
+### Setup
+
+inkx works with Vitest out of the box. Add to your `vitest.config.ts`:
+
+```typescript
+import { defineConfig } from "vitest/config"
+
+export default defineConfig({
+  test: {
+    // Optional: increase timeout for async press() calls
+    testTimeout: 10_000,
+  },
+})
+```
+
+### Creating a Renderer
+
+Use `createRenderer` to get a `render` function scoped to your terminal size:
+
+```typescript
+import { createRenderer } from "inkx/testing"
+
+const render = createRenderer({ cols: 80, rows: 24 })
+```
+
+Each call to `render()` automatically unmounts the previous render — no manual cleanup needed.
+
+### Component Tests
+
+```typescript
+import { createRenderer } from "inkx/testing"
+import { Box, Text } from "inkx"
+
+const render = createRenderer({ cols: 80, rows: 24 })
+
+test("renders greeting", () => {
+  const app = render(<Text>Hello, world</Text>)
+  expect(app.text).toContain("Hello, world")
+})
+```
+
+### Buffer Assertions
+
+Use `app.text` for plain text (no ANSI) and `app.ansi` for styled output. For layout, use locators:
+
+```typescript
+test("sidebar has correct width", () => {
+  const app = render(
+    <Box testID="sidebar" width={20}>
+      <Text>Menu</Text>
+    </Box>
+  )
+
+  const sidebar = app.getByTestId("sidebar")
+  expect(sidebar.boundingBox()?.width).toBe(20)
+  expect(sidebar.textContent()).toBe("Menu")
+})
+```
+
+For position checks, `boundingBox()` returns `{ x, y, width, height }` in cell coordinates.
+
+### Testing Keyboard Interactions
+
+`app.press()` sends keyboard input using Playwright-style key names:
+
+```typescript
+test("navigates with arrow keys", async () => {
+  const app = render(<MyList items={["a", "b", "c"]} />)
+
+  expect(app.text).toContain("> a")
+  await app.press("ArrowDown")
+  expect(app.text).toContain("> b")
+  await app.press("Enter")
+  expect(app.text).toContain("Selected: b")
+})
+```
+
+Common key names: `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, `Enter`, `Escape`, `Backspace`, `Tab`, `Space`. For modifiers: `Control+c`, `Shift+Tab`, `Super+j` (requires `kittyMode: true`).
+
+### Auto-Refreshing Locators
+
+Locators re-evaluate on every access, so the same locator reflects the latest state:
+
+```typescript
+test("cursor moves", async () => {
+  const app = render(<Board />)
+  const cursor = app.getByTestId("cursor")
+
+  expect(cursor.textContent()).toBe("Task 1")
+  await app.press("j")
+  expect(cursor.textContent()).toBe("Task 2") // Same locator, fresh result
+})
+```
+
+### Diagnostics
+
+For rendering bug tests, use `withDiagnostics` to verify incremental rendering correctness:
+
+```typescript
+import { withDiagnostics } from "inkx/toolbelt"
+
+const driver = withDiagnostics(app, {
+  checkIncremental: true,
+  checkReplay: true,
+})
+
+await driver.press("j") // Throws if incremental render doesn't match fresh render
+```
+
+### Debugging
+
+```typescript
+app.debug()              // Print frame to console
+console.log(app.ansi)    // Print with ANSI colors
+console.log(app.text)    // Print plain text
+```
+
+---
+
+## inkx Internal Test Infrastructure
 
 ## Philosophy
 
-Since Inkx targets API compatibility with Ink and Chalk, we have a **golden specification**: their existing test suites. Rather than writing tests from scratch, we leverage their tests as our compatibility contract.
+Since inkx targets API compatibility with Ink and Chalk, we have a **golden specification**: their existing test suites. Rather than writing tests from scratch, we leverage their tests as our compatibility contract.
 
 **Core principle**: If Ink's tests pass, we're compatible. If they don't, we know exactly what's broken.
 
@@ -39,7 +162,7 @@ inkx/
 │   │   ├── diff.bench.ts
 │   │   └── memory.bench.ts
 │   │
-│   └── unit/                  # Inkx-specific unit tests
+│   └── unit/                  # inkx-specific unit tests
 │       ├── layout-hook.test.ts
 │       ├── two-phase.test.ts
 │       └── ...
@@ -306,11 +429,11 @@ test("interactive app works end-to-end", async () => {
 Create a visual diff utility for manual inspection:
 
 ```bash
-# Compare Inkx output vs Ink output side-by-side
+# Compare inkx output vs Ink output side-by-side
 bun run visual-diff tests/fixtures/complex-layout.tsx
 
 ┌─────────────────────────────────────┬─────────────────────────────────────┐
-│ Ink (reference)                     │ Inkx (current)                      │
+│ Ink (reference)                     │ inkx (current)                      │
 ├─────────────────────────────────────┼─────────────────────────────────────┤
 │ ┌────────────────────────────────┐  │ ┌────────────────────────────────┐  │
 │ │ Header                         │  │ │ Header                         │  │
@@ -336,14 +459,14 @@ import { ComplexLayout } from './fixtures/complex-layout';
 
 group('Initial render', () => {
   bench('Ink', () => inkRender(<ComplexLayout />));
-  bench('Inkx', () => inkxRender(<ComplexLayout />));
+  bench('inkx', () => inkxRender(<ComplexLayout />));
 });
 
 group('Re-render (state change)', () => {
   // Setup: render once, then benchmark updates
   const { rerender } = inkxRender(<ComplexLayout count={0} />);
 
-  bench('Inkx rerender', () => {
+  bench('inkx rerender', () => {
     rerender(<ComplexLayout count={Math.random()} />);
   });
 });
@@ -422,7 +545,7 @@ async function recordMetrics() {
 
 ### 5.1 inkx-testing-library
 
-Inkx provides a Playwright-inspired testing API with **auto-refreshing locators**:
+inkx provides a Playwright-inspired testing API with **auto-refreshing locators**:
 
 ```typescript
 import { createRenderer } from 'inkx/testing';
@@ -653,7 +776,7 @@ bun run dev:visual
 
 # Opens split-pane terminal:
 # Left: Ink rendering
-# Right: Inkx rendering
+# Right: inkx rendering
 # Bottom: Diff status
 ```
 
@@ -680,7 +803,7 @@ Create a live dashboard showing test status:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Inkx Compatibility Dashboard                                       v0.1.0  │
+│  inkx Compatibility Dashboard                                       v0.1.0  │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  Ink API Compatibility                                                      │
@@ -701,9 +824,9 @@ Create a live dashboard showing test status:
 │  Performance vs Ink                                                         │
 │  ═══════════════════════════════════════════════════════════════════════   │
 │                                                                             │
-│  Initial Render    [█████████░░░░░░░░░░░]  0.9x  (Inkx: 4.5ms, Ink: 5ms)   │
-│  Re-render         [████████████████████]  1.2x  (Inkx: 1.5ms, Ink: 1.8ms) │
-│  Memory            [██████████████░░░░░░]  1.1x  (Inkx: 11MB, Ink: 10MB)   │
+│  Initial Render    [█████████░░░░░░░░░░░]  0.9x  (inkx: 4.5ms, Ink: 5ms)   │
+│  Re-render         [████████████████████]  1.2x  (inkx: 1.5ms, Ink: 1.8ms) │
+│  Memory            [██████████████░░░░░░]  1.1x  (inkx: 11MB, Ink: 10MB)   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -860,9 +983,9 @@ describe('Memory management', () => {
 
   });
 
-  test('useLayout subscriptions cleaned up', async () => {
+  test('useContentRect subscriptions cleaned up', async () => {
     function LayoutUser() {
-      const { width } = useLayout();
+      const { width } = useContentRect();
       return <Text>{width}</Text>;
     }
 
@@ -890,11 +1013,11 @@ Detect visual regressions from double-render:
 ```typescript
 // tests/visual/flicker.test.ts
 describe('No visual flicker', () => {
-  test('useLayout components render without flicker', async () => {
+  test('useContentRect components render without flicker', async () => {
     const frames: string[] = [];
 
     function Header() {
-      const { width } = useLayout();
+      const { width } = useContentRect();
       return <Text>{'='.repeat(width || 0)}</Text>;
     }
 
@@ -946,7 +1069,7 @@ describe('No visual flicker', () => {
     const frames: string[] = [];
 
     function Card() {
-      const { width } = useLayout();
+      const { width } = useContentRect();
       // Graceful degradation for width=0
       if (width === 0) return null;
       return <Text>{'#'.repeat(width)}</Text>;

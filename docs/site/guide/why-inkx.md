@@ -1,6 +1,6 @@
-# Why Inkx?
+# Why inkx?
 
-Inkx solves a fundamental architectural limitation in Ink that forces you to manually thread width props through your entire component tree.
+inkx solves a fundamental architectural limitation in Ink that forces you to manually thread width props through your entire component tree.
 
 ## The Problem
 
@@ -38,7 +38,7 @@ Real apps have **100+ lines** of this. Every layout change means updating arithm
 
 ## The Solution
 
-Inkx uses two-phase rendering:
+inkx uses two-phase rendering:
 
 1. **Phase 1**: React renders component structure (not content)
 2. **Phase 2**: Yoga computes layout
@@ -47,7 +47,7 @@ Inkx uses two-phase rendering:
 Components can query their size via `useContentRect()`:
 
 ```tsx
-// Inkx: No width props needed
+// inkx: No width props needed
 function Board() {
   return (
     <Box flexDirection="row">
@@ -94,9 +94,9 @@ Fixing this requires:
 
 This is a breaking API change. Ink's maintainer has shown no interest in major architecture changes - and that's understandable. Ink is stable, widely used, and works for its target use case.
 
-## Inkx vs Ink Comparison
+## inkx vs Ink Comparison
 
-| Feature           | Ink                        | Inkx                       |
+| Feature           | Ink                        | inkx                       |
 | ----------------- | -------------------------- | -------------------------- |
 | Layout feedback   | ❌ Must thread width props | ✅ `useContentRect()` hook |
 | Text truncation   | ❌ Overflows container     | ✅ Auto-truncates          |
@@ -178,9 +178,9 @@ inkx isn't just a faster Ink — it provides capabilities Ink doesn't have at al
 - **Multiple render targets** — Terminal (production), Canvas 2D (implemented), DOM (implemented). Same React components, different output.
 - **Screenshots** — `bufferToHTML()` + Playwright rendering for programmatic screenshot capture without external tools.
 
-## Who Should Use Inkx?
+## Who Should Use inkx?
 
-**Use Inkx if you're building:**
+**Use inkx if you're building:**
 
 - Complex layouts (dashboards, kanban boards, multi-pane UIs)
 - Apps with dynamic content widths
@@ -198,10 +198,10 @@ inkx isn't just a faster Ink — it provides capabilities Ink doesn't have at al
 
 ## Related Work
 
-Inkx builds on proven patterns from:
+inkx builds on proven patterns from:
 
 - **[Textual](https://textual.textualize.io/)** (Python) - Modern TUI with CSS-like styling
 - **[Ratatui](https://ratatui.rs/)** (Rust) - Immediate-mode TUI with layout feedback
 - **[Flutter](https://flutter.dev/)** - "Constraints down, sizes up" model
 
-The two-phase rendering pattern is standard in every major UI framework - browsers, native apps, mobile. Inkx brings this to React terminal UIs.
+The two-phase rendering pattern is standard in every major UI framework - browsers, native apps, mobile. inkx brings this to React terminal UIs.

@@ -1,6 +1,6 @@
 # Components
 
-Inkx provides the same components as Ink, with some enhancements.
+inkx provides the same components as Ink, with some enhancements.
 
 ## Box
 
@@ -14,7 +14,7 @@ import { Box, Text } from "inkx"
 </Box>
 ```
 
-### New in Inkx: Scrolling
+### New in inkx: Scrolling
 
 Use `overflow="scroll"` with `scrollTo` for automatic scrolling:
 
@@ -50,8 +50,8 @@ See [Scrolling Guide](/guide/scrolling) for details.
 | `minHeight`      | `number`                                                                      | -              | Minimum height                             |
 | `borderStyle`    | `"single" \| "double" \| "round" \| "bold" \| "classic"`                      | -              | Border style                               |
 | `borderColor`    | `string`                                                                      | -              | Border color                               |
-| `overflow`       | `"visible" \| "hidden" \| "scroll"`                                           | `"visible"`    | **Inkx only**: Overflow behavior           |
-| `scrollTo`       | `number`                                                                      | -              | **Inkx only**: Child index to keep visible |
+| `overflow`       | `"visible" \| "hidden" \| "scroll"`                                           | `"visible"`    | **inkx only**: Overflow behavior           |
+| `scrollTo`       | `number`                                                                      | -              | **inkx only**: Child index to keep visible |
 
 ## Text
 
@@ -68,7 +68,7 @@ import chalk from "chalk";
 <Text>{chalk.red.bold("Error!")}</Text>
 ```
 
-### New in Inkx: Auto-Truncation
+### New in inkx: Auto-Truncation
 
 Text automatically truncates to fit available width:
 

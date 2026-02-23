@@ -1,6 +1,6 @@
 # Input Handling Limitations
 
-Terminal input handling is fundamentally constrained by how terminals communicate with applications. This page documents the known limitations when using `useInput()` in Inkx.
+Terminal input handling is fundamentally constrained by how terminals communicate with applications. This page documents the known limitations when using `useInput()` in inkx.
 
 ## Keyboard Protocol Limitations
 
@@ -38,7 +38,7 @@ The [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/
 
 - Only newer terminals support it (Kitty, WezTerm, foot, Ghostty)
 - Applications must opt-in by sending an escape sequence
-- Inkx does not currently implement this protocol
+- inkx does not currently implement this protocol
 
 When Kitty protocol support is added, these limitations will be resolved for supported terminals.
 
@@ -65,7 +65,7 @@ When typing with an IME, a composition window shows candidate characters. In ter
 
 ### Synchronized Update Mode
 
-Inkx uses Synchronized Update Mode (SUM) to reduce flicker:
+inkx uses Synchronized Update Mode (SUM) to reduce flicker:
 
 ```
 \x1b[?2026h  // Begin synchronized update
@@ -86,7 +86,7 @@ This helps with IME flicker, but:
 
 ## Terminal-Specific Behavior
 
-Different terminals send different escape sequences for the same keys. Inkx handles the most common variants, but edge cases exist.
+Different terminals send different escape sequences for the same keys. inkx handles the most common variants, but edge cases exist.
 
 ### Function Key Variations
 
@@ -98,7 +98,7 @@ Function keys F1-F12 have multiple encodings:
 | xterm ([~style) | `\x1b[11~` | `\x1b[15~` |
 | Cygwin/libuv    | `\x1b[[A`  | `\x1b[[E`  |
 
-Inkx recognizes all these variants, but some obscure terminals may use others.
+inkx recognizes all these variants, but some obscure terminals may use others.
 
 ### Navigation Key Variations
 
@@ -131,7 +131,7 @@ The Meta (Alt on PC, Option on Mac) key behavior varies:
 - **iTerm2**: Configurable - can send `Esc+<key>` or special characters
 - **Linux terminals**: Usually send `Esc+<key>`
 
-Inkx detects meta when it receives `\x1b` followed by a character:
+inkx detects meta when it receives `\x1b` followed by a character:
 
 ```tsx
 useInput((input, key) => {
@@ -258,7 +258,7 @@ function HelpScreen() {
 
 ## Future Improvements
 
-Inkx may add support for:
+inkx may add support for:
 
 1. **Kitty keyboard protocol** - Enables full modifier detection in supported terminals
 2. **Bracketed paste mode** - Already partially supported, distinguishes pasted text from typed input

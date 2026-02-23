@@ -10,6 +10,7 @@
  */
 
 import type { Key } from "./keys.js"
+import { getAncestorPath } from "./tree-utils.js"
 import type { InkxNode } from "./types.js"
 
 // ============================================================================
@@ -162,19 +163,6 @@ export function createFocusEvent(
 // ============================================================================
 // Tree Walking
 // ============================================================================
-
-/**
- * Collect the ancestor path from target to root (inclusive).
- */
-function getAncestorPath(node: InkxNode): InkxNode[] {
-  const path: InkxNode[] = []
-  let current: InkxNode | null = node
-  while (current) {
-    path.push(current)
-    current = current.parent
-  }
-  return path
-}
 
 // ============================================================================
 // Event Dispatch

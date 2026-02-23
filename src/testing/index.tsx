@@ -137,8 +137,8 @@ await ensureDefaultLayoutEngine()
 // ============================================================================
 
 // Re-export stripAnsi from unicode.ts (canonical implementation)
-import { stripAnsi as stripAnsiImpl } from "../unicode.js"
-export const stripAnsi = stripAnsiImpl
+import { stripAnsi } from "../unicode.js"
+export { stripAnsi } from "../unicode.js"
 
 /**
  * Normalize frame output for comparison.

@@ -27,7 +27,7 @@ async function render(term: Term, element: ReactElement, options?: RenderOptions
 | Option            | Type      | Default | Description                                             |
 | ----------------- | --------- | ------- | ------------------------------------------------------- |
 | `exitOnCtrlC`     | `boolean` | `true`  | Exit the app when Ctrl+C is pressed                     |
-| `patchConsole`    | `boolean` | `true`  | Patch console methods to work with Inkx output          |
+| `patchConsole`    | `boolean` | `true`  | Patch console methods to work with inkx output          |
 | `debug`           | `boolean` | `false` | Enable verbose debug logging                            |
 | `alternateScreen` | `boolean` | `false` | Use alternate screen buffer (restores terminal on exit) |
 

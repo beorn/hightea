@@ -12,6 +12,7 @@
 import type { FocusManager } from "./focus-manager.js"
 import { findFocusableAncestor } from "./focus-queries.js"
 import type { ParsedMouse } from "./mouse.js"
+import { getAncestorPath, pointInRect } from "./tree-utils.js"
 import type { InkxNode, Rect } from "./types.js"
 
 // ============================================================================
@@ -135,13 +136,6 @@ export function createWheelEvent(x: number, y: number, target: InkxNode, parsed:
 // ============================================================================
 
 /**
- * Check if a point is inside a rect.
- */
-function pointInRect(x: number, y: number, rect: Rect): boolean {
-  return x >= rect.x && x < rect.x + rect.width && y >= rect.y && y < rect.y + rect.height
-}
-
-/**
  * Tree-based hit test: find the deepest node whose screenRect contains (x, y).
  * Uses reverse child order (last sibling wins = highest z-order, like DOM).
  * Respects overflow:hidden clipping.
@@ -190,19 +184,6 @@ const EVENT_HANDLER_MAP: Record<string, keyof MouseEventProps> = {
   mouseenter: "onMouseEnter",
   mouseleave: "onMouseLeave",
   wheel: "onWheel",
-}
-
-/**
- * Collect the ancestor path from target to root (inclusive).
- */
-function getAncestorPath(node: InkxNode): InkxNode[] {
-  const path: InkxNode[] = []
-  let current: InkxNode | null = node
-  while (current) {
-    path.push(current)
-    current = current.parent
-  }
-  return path
 }
 
 /**

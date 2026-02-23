@@ -5,7 +5,7 @@
 - Node.js 18+ or Bun 1.0+
 - React 18+
 
-## Install Inkx
+## Install inkx
 
 ::: code-group
 
@@ -29,7 +29,7 @@ pnpm add inkx
 
 ## TypeScript Support
 
-Inkx includes TypeScript definitions out of the box. No additional `@types` packages needed.
+inkx includes TypeScript definitions out of the box. No additional `@types` packages needed.
 
 ```json
 // tsconfig.json
@@ -45,7 +45,7 @@ Inkx includes TypeScript definitions out of the box. No additional `@types` pack
 
 ## Running Your App
 
-Inkx apps are just TypeScript/JavaScript files. Run them directly:
+inkx apps are just TypeScript/JavaScript files. Run them directly:
 
 ::: code-group
 
@@ -63,9 +63,9 @@ npx ts-node --esm app.tsx
 
 :::
 
-## Testing Inkx Apps
+## Testing inkx Apps
 
-Inkx includes a testing library with auto-cleanup between renders:
+inkx includes a testing library with auto-cleanup between renders:
 
 ```tsx
 import { createRenderer } from "inkx/testing"

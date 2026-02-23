@@ -32,7 +32,7 @@ import { bufferToStyledText, bufferToText, type TerminalBuffer } from "./buffer.
 import { AppContext, StdoutContext, TermContext } from "./context.js"
 import { isLayoutEngineInitialized, setLayoutEngine } from "./layout-engine.js"
 import { executeRender } from "./pipeline.js"
-import { createContainer, getContainerRoot, reconciler } from "./reconciler.js"
+import { createContainer, createFiberRoot, getContainerRoot, reconciler } from "./reconciler.js"
 
 // ============================================================================
 // Types
@@ -134,18 +134,7 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
   })
 
   // Create fiber root
-  const fiberRoot = reconciler.createContainer(
-    container,
-    1, // ConcurrentRoot
-    null, // hydrationCallbacks
-    false, // isStrictMode
-    null, // concurrentUpdatesByDefaultOverride
-    "", // identifierPrefix
-    () => {}, // onUncaughtError
-    () => {}, // onCaughtError
-    () => {}, // onRecoverableError
-    null, // onDefaultTransitionIndicator
-  )
+  const fiberRoot = createFiberRoot(container)
 
   // Create minimal mock stdout for components that use useStdout
   const mockStdout = {

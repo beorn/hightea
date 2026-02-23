@@ -4,7 +4,7 @@
  * Provides contexts for:
  * - TermContext: Access to Term instance (for styling/detection)
  * - EventsContext: Access to event stream (for useInput and other hooks)
- * - NodeContext: Access to the current InkxNode (for useLayout)
+ * - NodeContext: Access to the current InkxNode (for useContentRect)
  * - AppContext: App-level controls (exit, etc.)
  * - StdioContext: Access to stdin/stdout
  */
@@ -58,7 +58,7 @@ export const EventsContext = createContext<AsyncIterable<Event> | null>(null)
 
 /**
  * Context that provides access to the current InkxNode.
- * Used by useLayout() to subscribe to layout changes.
+ * Used by useContentRect() to subscribe to layout changes.
  *
  * Each Box/Text component wraps its children in a NodeContext.Provider
  * with its corresponding InkxNode.

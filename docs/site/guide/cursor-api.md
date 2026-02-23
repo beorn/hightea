@@ -6,7 +6,7 @@ This document describes the design for `useCursor()` - a hook for managing termi
 
 Terminal applications with text input (editors, input fields, command lines) need precise control over the cursor. Unlike web browsers where the cursor is managed automatically by `<input>` elements, terminal UIs must explicitly position and style the cursor.
 
-Inkx provides two approaches to cursor display:
+inkx provides two approaches to cursor display:
 
 1. **Rendered cursor** - A character (like `_` or `|`) rendered as part of the UI
 2. **Terminal cursor** - The actual blinking cursor controlled via ANSI escape sequences
@@ -634,7 +634,7 @@ interface UseCursorOptions {
 
 ## Related Documentation
 
-- [useLayout](/api/use-layout) - Get component dimensions and position
+- [useContentRect](/api/use-content-rect) - Get component dimensions and position
 - [Focus Hooks](/api/use-focus) - Manage focus state
 - [useInput](/api/use-input) - Handle keyboard input
 - [Input Limitations](/guide/input-limitations) - Terminal input constraints

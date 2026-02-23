@@ -491,7 +491,7 @@ The selected card has inverted colors:
 >
 ```
 
-## Key Inkx Features Used
+## Key inkx Features Used
 
 | Feature             | Usage                                    |
 | ------------------- | ---------------------------------------- |
@@ -523,7 +523,7 @@ This makes moving cards a simple filter/concat operation.
 
 ### Scroll Independence
 
-Each `CardList` component has its own `overflow="scroll"`. Inkx handles multiple scroll regions on the same screen automatically - no coordination needed.
+Each `CardList` component has its own `overflow="scroll"`. inkx handles multiple scroll regions on the same screen automatically - no coordination needed.
 
 ### Empty State
 

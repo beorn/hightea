@@ -1,10 +1,15 @@
-# Inkx: Next-Generation Terminal UI Renderer
+# inkx: Next-Generation Terminal UI Renderer
 
-> **Note**: For high-level architecture and future targets (Canvas, React Native), see [architecture.md](architecture.md) and [roadmap.md](roadmap.md). This document focuses on terminal-specific implementation details.
+> **Historical Document** — This was the original design RFC for inkx (early 2025).
+> Many details (naming, layout engine, hook names) have changed since implementation.
+> For current architecture, see [architecture.md](../deep-dives/architecture.md).
+> For current API, use `useContentRect()` (not `useLayout()`).
+
+> **Note**: For high-level architecture and future targets (Canvas, React Native), see [architecture.md](../deep-dives/architecture.md) and [roadmap.md](../roadmap.md). This document focuses on terminal-specific implementation details.
 
 ## Executive Summary
 
-Ink's single-pass rendering architecture prevents components from knowing their computed size, forcing pervasive width-prop threading in every application. This document designs **Inkx** - a terminal UI renderer that maintains Ink/Chalk API compatibility while solving the layout feedback problem through a two-phase render architecture.
+Ink's single-pass rendering architecture prevents components from knowing their computed size, forcing pervasive width-prop threading in every application. This document designs **inkx** - a terminal UI renderer that maintains Ink/Chalk API compatibility while solving the layout feedback problem through a two-phase render architecture.
 
 **Key insight**: The fix isn't complex algorithms - it's exposing what Yoga already computes back to React components.
 
@@ -147,7 +152,7 @@ This is a breaking API change. Ink's maintainer has shown no interest in major a
 
 ### Key Insight: Deferred Content Rendering
 
-Unlike Ink (which renders content during React reconciliation), Inkx separates:
+Unlike Ink (which renders content during React reconciliation), inkx separates:
 
 - **Structure** (React reconciliation) - builds the layout tree
 - **Content** (Phase 3) - renders text/graphics with known dimensions
@@ -272,7 +277,7 @@ function Header() {
 This is the key difference from Ink's `measureElement()`:
 
 - Ink: You call `measureElement()`, get dimensions, manually trigger re-render
-- Inkx: `useLayout()` automatically re-renders when dimensions are ready
+- inkx: `useLayout()` automatically re-renders when dimensions are ready
 
 ---
 
@@ -540,7 +545,7 @@ Developers should just render their content. No height estimation. No virtualiza
 
 ### How It Works
 
-Inkx uses a **measure-then-render** approach:
+inkx uses a **measure-then-render** approach:
 
 ```
 Phase 1: React creates all child elements
@@ -550,7 +555,7 @@ Phase 4: Render content ONLY for visible children
 Phase 5: Paint visible content to terminal
 ```
 
-**Key insight**: Yoga layout is cheap (~1ms for 500 nodes). The expensive part is building terminal strings for off-screen content. Inkx skips that for non-visible children.
+**Key insight**: Yoga layout is cheap (~1ms for 500 nodes). The expensive part is building terminal strings for off-screen content. inkx skips that for non-visible children.
 
 ### API
 
@@ -573,7 +578,7 @@ Props:
 - `overflow="hidden"` - clips without scroll indicators
 - `scrollTo={number}` - child index to keep visible (optional, defaults to 0)
 
-Inkx handles:
+inkx handles:
 
 - Measuring all children via Yoga
 - Calculating scroll position to center `scrollTo` child
@@ -584,7 +589,7 @@ Inkx handles:
 
 ### Implementation Details
 
-Internally, Inkx does:
+Internally, inkx does:
 
 ```typescript
 // After Yoga layout completes
@@ -644,7 +649,7 @@ function TaskList({ tasks, selectedIndex, onSelect }) {
 
 function TaskRow({ task, isSelected }) {
   // Variable height - has subtasks, long titles, etc.
-  // Inkx measures this automatically
+  // inkx measures this automatically
   return (
     <Box flexDirection="column" backgroundColor={isSelected ? "blue" : undefined}>
       <Text>
@@ -753,7 +758,7 @@ Explicit expectations for what works and what doesn't:
 | **Terminal multiplexer rendering**      | Medium     | High   | DEC 2026 sync update prevents tearing in tmux/Zellij          |
 | **Keyboard protocol limitations**       | Medium     | Medium | Document limitations; plan Kitty protocol support             |
 
-_Note: CJK/IME and terminal multiplexer risks added based on analysis of Ink's real-world issues (January 2026). These are Ink's top pain points and likely to affect Inkx users too._
+_Note: CJK/IME and terminal multiplexer risks added based on analysis of Ink's real-world issues (January 2026). These are Ink's top pain points and likely to affect inkx users too._
 
 ---
 
@@ -794,7 +799,7 @@ Taffy is a better flexbox than Yoga. Considered but deferred:
 
 ## 12. Open Questions
 
-1. **Naming**: "Inkx" is a placeholder. Options: ink-next, termink, rink (taken), terminus
+1. **Naming**: "inkx" is a placeholder. Options: ink-next, termink, rink (taken), terminus
 2. **Monorepo or separate packages**: `inkx` vs `@inkx/core`, `@inkx/testing`, etc.
 3. **Ink version compatibility**: Target Ink 3.x API? Include Ink 4.x features?
 4. **License**: MIT (like Ink)? Something else?
@@ -803,7 +808,7 @@ Taffy is a better flexbox than Yoga. Considered but deferred:
 
 ## 13. Conclusion
 
-Inkx is feasible and would eliminate the biggest pain point in Ink development. The core innovation - exposing Yoga's computed layout to React components - is straightforward to implement. The challenge is maintaining API compatibility while making this architectural change.
+inkx is feasible and would eliminate the biggest pain point in Ink development. The core innovation - exposing Yoga's computed layout to React components - is straightforward to implement. The challenge is maintaining API compatibility while making this architectural change.
 
 **Recommendation**: Build the PoC (1 week). If `useLayout()` works as designed, proceed with full implementation. If unforeseen blockers emerge, document and re-evaluate.
 
@@ -822,12 +827,12 @@ See also [README.md](../README.md) for a comprehensive "Related Work" section wi
 
 ### Related GitHub Issues
 
-**Layout feedback (core problem Inkx solves)**:
+**Layout feedback (core problem inkx solves)**:
 
 - [Ink #5](https://github.com/vadimdemedes/ink/issues/5) (2016) - Original "is there a way to know width/height?" issue
 - [Ink #387](https://github.com/vadimdemedes/ink/issues/387) (2020) - Discussion of layout feedback limitations
 
-**Long-standing issues Inkx can address**:
+**Long-standing issues inkx can address**:
 
 - [Ink #222](https://github.com/vadimdemedes/ink/issues/222) (2019) - Scrolling request (5.5+ years open)
 - [Ink #251](https://github.com/vadimdemedes/ink/issues/251) (2019) - Cursor support (6+ years open)
@@ -840,7 +845,7 @@ See also [README.md](../README.md) for a comprehensive "Related Work" section wi
 - [Ink #796](https://github.com/vadimdemedes/ink/issues/796) - Process exit timing
 - [Ink #701](https://github.com/vadimdemedes/ink/issues/701) - Memory leaks in useInput
 
-See [ink-comparison.md](ink-comparison.md) for comprehensive analysis of Ink's issues and PRs.
+See [ink-comparison.md](../ink-comparison.md) for comprehensive analysis of Ink's issues and PRs.
 
 ### Prior Art (TUI Frameworks with Layout Feedback)
 

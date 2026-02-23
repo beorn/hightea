@@ -28,7 +28,7 @@ import {
   enableKittyKeyboard,
   disableKittyKeyboard,
 } from "./output.js"
-import { createContainer, getContainerRoot, reconciler, runWithDiscreteEvent } from "./reconciler.js"
+import { createContainer, createFiberRoot, getContainerRoot, reconciler, runWithDiscreteEvent } from "./reconciler.js"
 import { renderStringSync } from "./render-string.js"
 import { RenderScheduler } from "./scheduler.js"
 import { type ResolvedTermDef, isTerm, isTermDef, resolveFromTerm, resolveTermDef } from "./term-def.js"
@@ -466,18 +466,7 @@ class InkxInstance {
     })
 
     // Create the React fiber root
-    this.fiberRoot = reconciler.createContainer(
-      this.container,
-      1, // ConcurrentRoot
-      null, // hydrationCallbacks
-      false, // isStrictMode
-      null, // concurrentUpdatesByDefaultOverride
-      "", // identifierPrefix
-      () => {}, // onUncaughtError
-      () => {}, // onCaughtError
-      () => {}, // onRecoverableError
-      null, // onDefaultTransitionIndicator
-    )
+    this.fiberRoot = createFiberRoot(this.container)
 
     // Set up scheduler
     this.scheduler = new RenderScheduler({

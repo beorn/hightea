@@ -1,6 +1,6 @@
-# Inkx Internals: How the Reconciler Works
+# inkx Internals: How the Reconciler Works
 
-This document explains Inkx's architecture for contributors. Read this if you want to understand how layout feedback actually works.
+This document explains inkx's architecture for contributors. Read this if you want to understand how layout feedback actually works.
 
 ---
 
@@ -21,18 +21,18 @@ The problem: Components execute (return JSX) **before** Yoga calculates layout. 
 
 ---
 
-## Inkx's Solution: Deferred Content Rendering
+## inkx's Solution: Deferred Content Rendering
 
-Inkx separates **structure** from **content**:
+inkx separates **structure** from **content**:
 
 ```
 React.render(<App />)
   → React calls component functions
   → Components return STRUCTURE (layout constraints)
-  → Inkx builds Yoga tree
+  → inkx builds Yoga tree
   → Yoga.calculateLayout()
-  → Inkx calls CONTENT CALLBACKS with dimensions
-  → Inkx writes to terminal
+  → inkx calls CONTENT CALLBACKS with dimensions
+  → inkx writes to terminal
 ```
 
 The key insight: React components don't render terminal content directly. They declare layout constraints and register callbacks that render content later.
@@ -366,7 +366,7 @@ function changesToAnsi(changes: CellChange[]): string {
 
 ---
 
-## How useLayout() Works
+## How useContentRect() Works
 
 The hook subscribes to layout completion:
 
@@ -375,11 +375,11 @@ const NodeContext = createContext<InkxNode | null>(null)
 
 function useInkxNode(): InkxNode {
   const node = useContext(NodeContext)
-  if (!node) throw new Error("useLayout must be used within Inkx")
+  if (!node) throw new Error("useContentRect must be used within inkx")
   return node
 }
 
-function useLayout(): ComputedLayout {
+function useContentRect(): ComputedLayout {
   const node = useInkxNode()
   const [, forceUpdate] = useReducer((x) => x + 1, 0)
 
@@ -567,7 +567,7 @@ function runPipeline(root: InkxNode) {
     prevBuffer = buffer
   } catch (error) {
     // Don't crash the app on render errors
-    console.error("Inkx render error:", error)
+    console.error("inkx render error:", error)
 
     // Try to show error in terminal
     process.stdout.write("\x1b[0m\x1b[31mRender error (see console)\x1b[0m")

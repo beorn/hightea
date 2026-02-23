@@ -1,4 +1,8 @@
 /**
+ * @deprecated Use `App.locator()` instead (from `auto-locator.ts`). This module will be removed
+ * in a future version. The auto-locator provides the same API with auto-refreshing queries that
+ * re-evaluate against the current tree on each access, eliminating stale reference bugs.
+ *
  * InkxLocator - Playwright-inspired DOM queries for InkxNode tree
  *
  * Provides lazy query evaluation - queries don't resolve until you call

@@ -1,6 +1,6 @@
 # Testing
 
-Inkx includes a comprehensive test suite with **870+ tests** covering everything from low-level buffer operations to high-level React component rendering. This guide documents the test structure and how to use `createRenderer` for testing your own Inkx applications.
+inkx includes a comprehensive test suite with **870+ tests** covering everything from low-level buffer operations to high-level React component rendering. This guide documents the test structure and how to use `createRenderer` for testing your own inkx applications.
 
 ## Test Suite Overview
 
@@ -38,7 +38,7 @@ The test suite is organized by domain:
 
 ## Using createRenderer
 
-The `createRenderer` function provides an ink-testing-library compatible API for testing Inkx components.
+The `createRenderer` function provides an ink-testing-library compatible API for testing inkx components.
 
 ### Basic Usage
 

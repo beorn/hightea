@@ -37,6 +37,24 @@ export function createContainer(onRender: () => void): Container {
 }
 
 /**
+ * Create a React fiber root for a container (wraps the 10-argument reconciler call).
+ */
+export function createFiberRoot(container: Container) {
+  return reconciler.createContainer(
+    container,
+    1, // ConcurrentRoot
+    null, // hydrationCallbacks
+    false, // isStrictMode
+    null, // concurrentUpdatesByDefaultOverride
+    "", // identifierPrefix
+    () => {}, // onUncaughtError
+    () => {}, // onCaughtError
+    () => {}, // onRecoverableError
+    null, // onDefaultTransitionIndicator
+  )
+}
+
+/**
  * Get the root InkxNode from a container.
  */
 export function getContainerRoot(container: Container): InkxNode {

@@ -1,10 +1,10 @@
 # Hooks
 
-Inkx provides the same hooks as Ink, plus layout feedback hooks.
+inkx provides the same hooks as Ink, plus layout feedback hooks.
 
 ## useContentRect
 
-**Inkx only** - The key addition. Returns the computed dimensions of the component's container.
+**inkx only** - The key addition. Returns the computed dimensions of the component's container.
 
 ```tsx
 import { Box, Text, useContentRect } from "inkx"
@@ -57,7 +57,7 @@ In practice, both renders happen before the first paint, so this is usually invi
 
 ## useTerm
 
-**Inkx only** - Access the Term instance for terminal capabilities and styling.
+**inkx only** - Access the Term instance for terminal capabilities and styling.
 
 ```tsx
 import { useTerm } from "inkx"

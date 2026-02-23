@@ -28,7 +28,7 @@
 
 ### Layout oscillation / infinite loops
 
-- inkx has built-in containment for `useContentRect` (see [containment.md](containment.md)).
+- inkx has built-in containment for `useContentRect` (see [containment.md](deep-dives/containment.md)).
 - If you see oscillation, check for circular dependencies in layout — e.g., a component that changes its size based on `useContentRect` in a way that triggers another layout.
 - Avoid setting `width` or `height` dynamically based on `useContentRect` of the same Box.
 
@@ -46,8 +46,47 @@
 ### Kitty keyboard shortcuts not working
 
 - Pass `kitty: true` to `run()` to enable the Kitty keyboard protocol.
-- Check that your terminal supports it (Ghostty, Kitty, WezTerm, foot — see [terminal-capabilities.md](terminal-capabilities.md)).
+- Check that your terminal supports it (Ghostty, Kitty, WezTerm, foot — see [terminal-capabilities.md](reference/terminal-capabilities.md)).
 - iTerm2 and Terminal.app do not support the Kitty protocol.
+
+### Flexx vs Yoga layout differences
+
+If you migrated from Ink (which uses Yoga), some layout behaviors differ with Flexx:
+
+- **Percentage widths**: Flexx resolves `width="50%"` against the parent's content area. Yoga resolves against the parent's total width including padding. If your layout is off by a few cells, check padding on the parent.
+- **Default `flexShrink`**: Both default to 1, but Flexx may clamp earlier on zero-width children. If a child collapses unexpectedly, set `flexShrink={0}` explicitly.
+- **`flexBasis="auto"`**: Yoga uses the intrinsic content size. Flexx does the same but measures text differently for multi-line content. If text wraps unexpectedly, set an explicit `width`.
+- **Gap**: Flexx supports `gap`, `rowGap`, `columnGap` the same as Yoga. If gaps don't appear, verify `flexDirection` is set (gap only applies between flex children along the main axis).
+
+Switch engines to isolate: `INKX_ENGINE=yoga bun run app.ts`
+
+### Focus routing debugging
+
+If focus isn't moving where expected:
+
+1. **Enable inspector**: `INKX_DEV=1` to visualize the focus tree and see which nodes are `focusable`.
+2. **Check `focusable` prop**: Only `<Box focusable>` nodes participate in focus. Text nodes cannot receive focus.
+3. **Verify `testID`**: Spatial navigation overrides (`nextFocusUp`, `nextFocusDown`, etc.) reference nodes by `testID`. Missing or mismatched IDs are silently ignored.
+4. **Scope boundaries**: If Tab doesn't leave a subtree, a parent has `focusScope` which restricts cycling to that subtree. Remove or restructure the scope.
+5. **Debug with `FocusManager`**: Access `fm.activeId` and `fm.focusOrigin` to see what's focused and why.
+
+### VirtualList blank rendering
+
+VirtualList shows blank rows when:
+
+- **`itemHeight` is wrong**: VirtualList requires a fixed `itemHeight`. If the actual rendered height differs, items misalign and blank gaps appear. Measure a single item first.
+- **`data` array changes identity on every render**: Wrap with `useMemo` or hoist the array. Identity changes cause VirtualList to recalculate offsets.
+- **Container has no height**: VirtualList needs a parent with a known height (explicit `height` prop or flex layout). Without it, the visible window is zero and nothing renders.
+- **`scrollTo` is out of range**: A `scrollTo` value past the last item shows blank space. Clamp to `Math.max(0, data.length - visibleCount)`.
+
+### useContentRect returning zeros
+
+`useContentRect()` returns `{ width: 0, height: 0 }` on the first render because layout hasn't run yet. This is by design.
+
+- **Normal case**: The component re-renders once layout completes (usually the same frame). Your UI should handle `width === 0` gracefully (return `null` or a placeholder).
+- **Not updating at all**: Ensure the component's parent has a concrete size. A chain of `flexGrow={1}` without a root-level size means layout can't resolve.
+- **In tests**: Call `app.debug()` after render — if the layout is correct in the debug output, the hook is working. If `width` stays 0, check that `createRenderer` has `cols` and `rows` set.
+- **Oscillation**: If the component changes its own size based on `useContentRect`, it can loop. See [containment.md](deep-dives/containment.md) for the built-in protection.
 
 ## Debugging
 

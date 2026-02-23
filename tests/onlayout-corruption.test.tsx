@@ -49,7 +49,7 @@ import React, { useState, act } from "react"
 import { describe, expect, it } from "vitest"
 import { Box, Text, useContentRect, type Rect } from "../src/index.js"
 import { createRenderer } from "../src/testing/index.js"
-import { reconciler, createContainer, getContainerRoot } from "../src/reconciler.js"
+import { reconciler, createContainer, createFiberRoot, getContainerRoot } from "../src/reconciler.js"
 import { executeRender } from "../src/pipeline/index.js"
 import { AppContext, StdoutContext, TermContext, InputContext, EventsContext } from "../src/context.js"
 import { createTerm } from "chalkx"
@@ -153,18 +153,7 @@ function createProductionSimulator(element: React.ReactElement, cols = 60, rows 
     onRenderCalled = true
   })
 
-  const fiberRoot = reconciler.createContainer(
-    container,
-    1, // ConcurrentRoot
-    null,
-    false,
-    null,
-    "",
-    () => {},
-    () => {},
-    () => {},
-    null,
-  )
+  const fiberRoot = createFiberRoot(container)
 
   const mockStdout = {
     columns: cols,

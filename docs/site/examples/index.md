@@ -1,6 +1,6 @@
 # Examples
 
-Learn Inkx by example. Each example demonstrates a specific pattern and can be run directly.
+Learn inkx by example. Each example demonstrates a specific pattern and can be run directly.
 
 ## Running Examples
 
@@ -58,7 +58,7 @@ A scrollable task list with variable-height items and keyboard navigation.
 ```
   Processing (3)
 +-----------------------------------------+
-| [ ] Research Inkx documentation         |
+| [ ] Research inkx documentation         |
 |     - Read the API docs                 |
 |     - Try the examples                  |
 | [x] Install dependencies                |

@@ -22,7 +22,7 @@ import {
   setLayoutEngine,
 } from "./layout-engine.js"
 import { executeRender } from "./pipeline.js"
-import { createContainer, getContainerRoot, reconciler } from "./reconciler.js"
+import { createContainer, createFiberRoot, getContainerRoot, reconciler } from "./reconciler.js"
 
 import { createTerm } from "chalkx"
 import { bufferToText } from "./buffer.js"
@@ -282,18 +282,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     hadReactCommit = true
   })
 
-  instance.fiberRoot = reconciler.createContainer(
-    instance.container,
-    1, // ConcurrentRoot
-    null, // hydrationCallbacks
-    false, // isStrictMode
-    null, // concurrentUpdatesByDefaultOverride
-    "", // identifierPrefix
-    () => {}, // onUncaughtError
-    () => {}, // onCaughtError
-    () => {}, // onRecoverableError
-    null, // onDefaultTransitionIndicator
-  )
+  instance.fiberRoot = createFiberRoot(instance.container)
 
   // Track exit state
   let exitCalledFlag = false

@@ -24,11 +24,7 @@
 
 import type { ReactElement } from "react"
 import { type CanvasAdapterConfig, CanvasRenderBuffer, createCanvasAdapter } from "../adapters/canvas-adapter.js"
-import { createFlexxZeroEngine } from "../adapters/flexx-zero-adapter.js"
-import { setLayoutEngine } from "../layout-engine.js"
-import { executeRenderAdapter } from "../pipeline/index.js"
-import { createContainer, getContainerRoot, reconciler } from "../reconciler.js"
-import { setRenderAdapter } from "../render-adapter.js"
+import { createBrowserRenderer, initBrowserRenderer, renderOnce } from "../browser-renderer.js"
 import type { RenderBuffer } from "../render-adapter.js"
 
 // Re-export components and hooks for convenience
@@ -68,22 +64,14 @@ export interface CanvasInstance {
 // Initialization
 // ============================================================================
 
-let initialized = false
+const canvasAdapterFactory = { createAdapter: (config: CanvasAdapterConfig) => createCanvasAdapter(config) }
 
 /**
  * Initialize the canvas rendering system.
  * Called automatically by renderToCanvas, but can be called manually.
  */
 export function initCanvasRenderer(config: CanvasAdapterConfig = {}): void {
-  if (initialized) return
-
-  // Set up layout engine (Flexx is sync, no WASM needed)
-  setLayoutEngine(createFlexxZeroEngine())
-
-  // Set up canvas adapter
-  setRenderAdapter(createCanvasAdapter(config))
-
-  initialized = true
+  initBrowserRenderer(canvasAdapterFactory, config)
 }
 
 // ============================================================================
@@ -115,7 +103,6 @@ export function renderToCanvas(
   canvas: HTMLCanvasElement,
   options: CanvasRenderOptions = {},
 ): CanvasInstance {
-  // Initialize if needed
   initCanvasRenderer(options)
 
   const width = options.width ?? canvas.width
@@ -125,94 +112,12 @@ export function renderToCanvas(
   if (canvas.width !== width) canvas.width = width
   if (canvas.height !== height) canvas.height = height
 
-  // Create reconciler container
-  const container = createContainer(() => {
-    // Schedule re-render on state changes
-    scheduleRender()
+  return createBrowserRenderer<CanvasRenderBuffer>(element, width, height, (buffer) => {
+    const ctx = canvas.getContext("2d")
+    if (ctx) {
+      ctx.drawImage(buffer.canvas, 0, 0)
+    }
   })
-
-  const root = getContainerRoot(container)
-
-  // Create fiber root
-  const fiberRoot = reconciler.createContainer(
-    container,
-    1, // ConcurrentRoot
-    null,
-    false,
-    null,
-    "",
-    () => {},
-    () => {},
-    () => {},
-    null,
-  )
-
-  let currentBuffer: RenderBuffer | null = null
-  let currentElement: ReactElement = element
-  let renderScheduled = false
-
-  function scheduleRender(): void {
-    if (renderScheduled) return
-    renderScheduled = true
-
-    // Use requestAnimationFrame for smooth rendering
-    if (typeof requestAnimationFrame !== "undefined") {
-      requestAnimationFrame(() => {
-        renderScheduled = false
-        doRender()
-      })
-    } else {
-      // Fallback for non-browser environments
-      setTimeout(() => {
-        renderScheduled = false
-        doRender()
-      }, 0)
-    }
-  }
-
-  function doRender(): void {
-    // Update React tree
-    reconciler.updateContainerSync(currentElement, fiberRoot, null, null)
-    reconciler.flushSyncWork()
-
-    // Execute render pipeline
-    const prevBuffer = currentBuffer
-    const result = executeRenderAdapter(root, width, height, prevBuffer)
-    currentBuffer = result.buffer
-
-    // Draw to canvas
-    if (currentBuffer instanceof CanvasRenderBuffer) {
-      const ctx = canvas.getContext("2d")
-      if (ctx) {
-        ctx.drawImage(currentBuffer.canvas, 0, 0)
-      }
-    }
-  }
-
-  // Initial render
-  doRender()
-
-  const unmount = (): void => {
-    reconciler.updateContainer(null, fiberRoot, null, () => {})
-  }
-
-  return {
-    rerender(newElement: ReactElement): void {
-      currentElement = newElement
-      scheduleRender()
-    },
-
-    unmount,
-    [Symbol.dispose]: unmount,
-
-    getBuffer(): RenderBuffer | null {
-      return currentBuffer
-    },
-
-    refresh(): void {
-      scheduleRender()
-    },
-  }
 }
 
 /**
@@ -231,35 +136,6 @@ export function renderCanvasOnce(
   height: number,
   options: CanvasAdapterConfig = {},
 ): CanvasRenderBuffer {
-  // Initialize if needed
   initCanvasRenderer(options)
-
-  // Create reconciler container
-  const container = createContainer(() => {})
-  const root = getContainerRoot(container)
-
-  // Create fiber root and render
-  const fiberRoot = reconciler.createContainer(
-    container,
-    1, // ConcurrentRoot
-    null,
-    false,
-    null,
-    "",
-    () => {},
-    () => {},
-    () => {},
-    null,
-  )
-
-  reconciler.updateContainerSync(element, fiberRoot, null, null)
-  reconciler.flushSyncWork()
-
-  // Execute render pipeline
-  const { buffer } = executeRenderAdapter(root, width, height, null)
-
-  // Clean up
-  reconciler.updateContainer(null, fiberRoot, null, () => {})
-
-  return buffer as CanvasRenderBuffer
+  return renderOnce<CanvasRenderBuffer>(element, width, height)
 }

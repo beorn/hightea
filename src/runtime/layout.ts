@@ -11,7 +11,7 @@ import { bufferToStyledText, bufferToText } from "../buffer.js"
 import { AppContext, StdoutContext, TermContext } from "../context.js"
 import { ensureDefaultLayoutEngine, isLayoutEngineInitialized } from "../layout-engine.js"
 import { executeRender } from "../pipeline/index.js"
-import { createContainer, getContainerRoot, reconciler } from "../reconciler.js"
+import { createContainer, createFiberRoot, getContainerRoot, reconciler } from "../reconciler.js"
 import type { Buffer, Dims } from "./types.js"
 
 /**
@@ -66,18 +66,7 @@ export function layout(element: ReactElement, dims: Dims, options: LayoutOptions
   const container = createContainer(() => {})
 
   // Create fiber root
-  const fiberRoot = reconciler.createContainer(
-    container,
-    1, // ConcurrentRoot
-    null, // hydrationCallbacks
-    false, // isStrictMode
-    null, // concurrentUpdatesByDefaultOverride
-    "", // identifierPrefix
-    () => {}, // onUncaughtError
-    () => {}, // onCaughtError
-    () => {}, // onRecoverableError
-    null, // onDefaultTransitionIndicator
-  )
+  const fiberRoot = createFiberRoot(container)
 
   // Create minimal mock stdout for components that use useStdout
   const mockStdout = {

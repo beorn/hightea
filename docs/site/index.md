@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: "Inkx"
+  name: "inkx"
   text: "Ink, but components know their size"
   tagline: A terminal UI framework for React with two-phase rendering
   actions:
@@ -22,7 +22,7 @@ features:
     details: Same API as Ink - Box, Text, useInput, render() all work unchanged. Just swap the import.
   - icon: 📜
     title: Automatic Scrolling
-    details: Use overflow="scroll" and scrollTo={index} - Inkx handles virtualization automatically.
+    details: Use overflow="scroll" and scrollTo={index} - inkx handles virtualization automatically.
   - icon: ✂️
     title: Auto-Truncation
     details: Text automatically truncates to fit available width. No more layout overflow bugs.
@@ -59,7 +59,7 @@ using term = createTerm()
 await render(<App />, term)
 ```
 
-## The Problem Inkx Solves
+## The Problem inkx Solves
 
 In Ink, components render _before_ layout is computed. You can't know a component's dimensions, so you manually thread width props everywhere:
 
@@ -79,10 +79,10 @@ function Board({ width }) {
 
 Real apps have 100+ lines of this. Every layout change means updating arithmetic everywhere.
 
-**Inkx fixes this** by computing layout first, then letting components query their dimensions:
+**inkx fixes this** by computing layout first, then letting components query their dimensions:
 
 ```tsx
-// Inkx: no width props needed
+// inkx: no width props needed
 function Column({ items }) {
   const { width } = useContentRect()
   return (

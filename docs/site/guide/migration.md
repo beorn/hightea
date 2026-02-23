@@ -1,10 +1,10 @@
 # Migration from Ink
 
-Inkx is designed as a drop-in replacement for Ink. Most apps require only an import change.
+inkx is designed as a drop-in replacement for Ink. Most apps require only an import change.
 
 ## Quick Start
 
-### Step 1: Install Inkx
+### Step 1: Install inkx
 
 ```bash
 # Replace ink with inkx
@@ -61,10 +61,10 @@ These APIs are 100% compatible:
 render(<App />)
 ```
 
-**Inkx**: Create a term first.
+**inkx**: Create a term first.
 
 ```tsx
-// Inkx
+// inkx
 using term = createTerm()
 await render(<App />, term)
 ```
@@ -84,10 +84,10 @@ function Card({ width }: { width: number }) {
 ;<Card width={availableWidth - padding * 2} />
 ```
 
-**Inkx**: Components can ask for their size.
+**inkx**: Components can ask for their size.
 
 ```tsx
-// Inkx: Just ask
+// inkx: Just ask
 function Card() {
   const { width } = useContentRect()
   return <Text>{truncate(title, width)}</Text>
@@ -108,10 +108,10 @@ function Card() {
 // Output: "This is a very long text" (overflows)
 ```
 
-**Inkx**: Text truncates to fit.
+**inkx**: Text truncates to fit.
 
 ```tsx
-// Inkx: Clean truncation
+// inkx: Clean truncation
 <Box width={10}>
   <Text>This is a very long text</Text>
 </Box>
@@ -127,7 +127,7 @@ function Card() {
 
 **Ink**: Components render once with final output.
 
-**Inkx**: Components using `useContentRect()` render twice. First render has `{ width: 0, height: 0 }`, second has actual values.
+**inkx**: Components using `useContentRect()` render twice. First render has `{ width: 0, height: 0 }`, second has actual values.
 
 ```tsx
 function Header() {
@@ -162,10 +162,10 @@ function Header() {
 />
 ```
 
-**Inkx**: Just render everything.
+**inkx**: Just render everything.
 
 ```tsx
-// Inkx: No config needed
+// inkx: No config needed
 <Box overflow="scroll" scrollTo={selectedIdx}>
   {items.map((item) => (
     <Card key={item.id} item={item} />
@@ -185,7 +185,7 @@ const { width } = measureElement(ref.current)
 // Need manual re-render to use width
 ```
 
-**Inkx**: `measureElement()` works for compatibility, but `useContentRect()` is simpler.
+**inkx**: `measureElement()` works for compatibility, but `useContentRect()` is simpler.
 
 ```tsx
 const { width } = useContentRect()
@@ -196,7 +196,7 @@ const { width } = useContentRect()
 
 **Ink**: `useLayout` (if available)
 
-**Inkx**: `useContentRect()` is preferred. `useLayout` is a deprecated alias.
+**inkx**: `useContentRect()` is preferred. `useLayout` is a deprecated alias.
 
 ```diff
 - const { width } = useLayout();
@@ -207,7 +207,7 @@ const { width } = useContentRect()
 
 ### By Design
 
-| Behavior                | Ink       | Inkx      | Reason                       |
+| Behavior                | Ink       | inkx      | Reason                       |
 | ----------------------- | --------- | --------- | ---------------------------- |
 | Text overflow           | Overflows | Truncates | Better default               |
 | First render dimensions | N/A       | Zeros     | Required for layout feedback |
@@ -217,7 +217,7 @@ const { width } = useContentRect()
 
 | Issue             | Symptoms      | Workaround                          |
 | ----------------- | ------------- | ----------------------------------- |
-| Rapid re-renders  | Flicker       | Inkx coalesces frames; usually fine |
+| Rapid re-renders  | Flicker       | inkx coalesces frames; usually fine |
 | Deep nesting      | Slower layout | Flatten tree if possible            |
 | Custom reconciler | Breaks        | Not supported                       |
 
@@ -250,7 +250,7 @@ function Column({ width, items }) {
 }
 ```
 
-### After (Inkx)
+### After (inkx)
 
 ```tsx
 function Board() {

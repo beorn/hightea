@@ -154,7 +154,7 @@ const output: string = renderString(<Summary />, { width: 80, plain: true })
 
 ## Console Patching
 
-When using `inline` or `fullscreen` modes, external console.log calls would corrupt the display. Inkx can intercept these:
+When using `inline` or `fullscreen` modes, external console.log calls would corrupt the display. inkx can intercept these:
 
 ```ts
 await render(<App />, { patchConsole: true })
@@ -334,7 +334,7 @@ term.dispose()
 
 ## Synchronized Update Mode (DEC 2026)
 
-Inkx automatically wraps all terminal output with **Synchronized Update Mode** sequences (`CSI ? 2026 h` / `CSI ? 2026 l`). This tells the terminal to batch output and paint atomically, preventing visual tearing during rapid screen updates.
+inkx automatically wraps all terminal output with **Synchronized Update Mode** sequences (`CSI ? 2026 h` / `CSI ? 2026 l`). This tells the terminal to batch output and paint atomically, preventing visual tearing during rapid screen updates.
 
 ### How It Works
 
@@ -384,7 +384,7 @@ Response: CSI ? 2026 ; <value> $ y
 
 Where `value` is: 0=unknown, 1=set, 2=reset, 3=permanent set, 4=permanent reset.
 
-Inkx does not currently query support — it always emits the sequences since unsupported terminals ignore them harmlessly.
+inkx does not currently query support — it always emits the sequences since unsupported terminals ignore them harmlessly.
 
 ## Kitty Keyboard Protocol
 

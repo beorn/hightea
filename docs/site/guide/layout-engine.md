@@ -1,10 +1,10 @@
 # Layout Engine
 
-Inkx uses a pluggable layout engine architecture. It supports [Flexx](../../../beorn-flexx/) (pure JavaScript, recommended) and [Yoga](https://yogalayout.dev/) (Facebook's WASM-based flexbox implementation).
+inkx uses a pluggable layout engine architecture. It supports [Flexx](../../../beorn-flexx/) (pure JavaScript, recommended) and [Yoga](https://yogalayout.dev/) (Facebook's WASM-based flexbox implementation).
 
 ## Quick Start
 
-For most apps, you don't need to configure anything. Inkx auto-initializes the default layout engine when you call `render()`:
+For most apps, you don't need to configure anything. inkx auto-initializes the default layout engine when you call `render()`:
 
 ```tsx
 import { render, Box, Text, createTerm } from "inkx"

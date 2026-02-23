@@ -451,7 +451,7 @@ export type { BoundTerm } from "./bound-term.js"
 // Types
 export type { BoxProps, BoxHandle } from "./components/Box.js"
 export type { TextProps, TextHandle } from "./components/Text.js"
-export type { Rect } from "./hooks/useLayout.js"
+export type { Rect } from "./types.js"
 export type { Key, InputHandler, UseInputOptions } from "./hooks/useInput.js"
 export { keyToName, keyToModifiers, parseHotkey, matchHotkey, parseKeypress, parseKey, emptyKey } from "./keys.js"
 export type { ParsedKeypress, ParsedHotkey } from "./keys.js"

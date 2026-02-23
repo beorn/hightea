@@ -4,7 +4,11 @@
 
 [inkx](https://github.com/beorn/inkx) (2025) started as a ground-up reimplementation of Ink's rendering with two-phase rendering — components know their dimensions during render, not after. It has since grown into a broader app framework with runtime layers, state management integration, command/keybinding systems, and plugin composition. This makes a direct 1:1 comparison somewhat apples-to-oranges: Ink is a focused React renderer, while inkx is closer to a full terminal app toolkit.
 
-See [migration guide](migration.md) for switching the rendering layer.
+> For how inkx compares to terminal UI frameworks beyond Ink (BubbleTea, Textual, Notcurses, FTXUI, blessed), see [comparison.md](comparison.md).
+
+See [migration guide](guides/migration.md) for switching the rendering layer.
+
+> Performance numbers in this document are from the **Ink comparison benchmark suite** (see [benchmarks/ink-comparison/](../benchmarks/ink-comparison/)). For general inkx performance data and the full optimization catalog, see [performance.md](deep-dives/performance.md).
 
 ---
 

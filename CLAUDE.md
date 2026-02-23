@@ -27,9 +27,10 @@ await run(<App />)
 
 inkx's core innovation is **two-phase rendering with synchronous layout feedback** - components know their size during render, not after.
 
-- [docs/architecture.md](docs/architecture.md) - Layer diagram, RenderAdapter interface
-- [docs/getting-started.md](docs/getting-started.md) - Runtime layers and patterns
-- [docs/internals.md](docs/internals.md) - Reconciler implementation
+- [docs/deep-dives/architecture.md](docs/deep-dives/architecture.md) - Layer diagram, RenderAdapter interface
+- [docs/guides/getting-started.md](docs/guides/getting-started.md) - First app tutorial
+- [docs/guides/runtime-layers.md](docs/guides/runtime-layers.md) - Runtime architecture deep-dive (createApp, createRuntime, createStore)
+- [docs/deep-dives/internals.md](docs/deep-dives/internals.md) - Reconciler implementation
 
 ## Runtime Layers
 
@@ -151,7 +152,7 @@ await app.run(<App />)
 
 ## Components
 
-See [docs/components.md](docs/components.md) for full reference. Key components: Box, Text, VirtualList, Static, Console, TextInput, ReadlineInput, TextArea, Link, Transform, Image, Spinner, ProgressBar, SelectList, Table, Badge, Divider.
+See [docs/reference/components.md](docs/reference/components.md) for full reference. Key components: Box, Text, VirtualList, Static, Console, TextInput, ReadlineInput, TextArea, Link, Transform, Image, Spinner, ProgressBar, SelectList, Table, Badge, Divider.
 
 ### Box Outline Props
 
@@ -197,7 +198,7 @@ Renders images via Kitty graphics or Sixel protocol, with text fallback. Auto-de
 
 ## Theming
 
-inkx provides a theming system based on React context and semantic color tokens. See [docs/theming.md](docs/theming.md) for full details.
+inkx provides a theming system based on React context and semantic color tokens. See [docs/reference/theming.md](docs/reference/theming.md) for full details.
 
 ```tsx
 import { ThemeProvider, defaultDarkTheme, useTheme } from "inkx"
@@ -219,7 +220,7 @@ const { width, height } = useContentRect() // Content area dimensions
 const { x, y } = useScreenRect() // Absolute screen position
 ```
 
-See [docs/hooks.md](docs/hooks.md) for all hooks.
+See [docs/reference/hooks.md](docs/reference/hooks.md) for all hooks.
 
 ### usePaste
 
@@ -307,13 +308,13 @@ Layers are identified by `id` for debugging. When a dialog mounts, its layer goe
 
 ### Architecture Note
 
-`useInputLayer` is a low-level primitive for raw key capture with consumption semantics. For command-driven apps, the **prescribed pattern** is [focus-based input routing](docs/focus-routing.md):
+`useInputLayer` is a low-level primitive for raw key capture with consumption semantics. For command-driven apps, the **prescribed pattern** is [focus-based input routing](docs/deep-dives/focus-routing.md):
 
 - **Don't** use `useInputLayer` in individual components for discrete commands (navigation, toggles, mode switches)
 - **Do** use the command system with mode/context for all discrete key-to-action mapping
 - **Do** use `useInputLayer` only for: (1) the single base layer that bridges raw keys to the command system, and (2) dialog navigation (Enter, Escape, arrows)
 
-See [docs/focus-routing.md](docs/focus-routing.md) for the full pattern: context keys, when predicates, TextEditTarget, and text input as fallback.
+See [docs/deep-dives/focus-routing.md](docs/deep-dives/focus-routing.md) for the full pattern: context keys, when predicates, TextEditTarget, and text input as fallback.
 
 The hook silently no-ops without `InputLayerProvider` — ensure test harnesses wrap with it.
 
@@ -497,7 +498,7 @@ Components can receive mouse events via React DOM-compatible props:
 
 **Hit testing**: Automatic tree-based using `screenRect` (last sibling wins for z-order, overflow:hidden clips).
 
-See [docs/input-features.md](docs/input-features.md) for comprehensive input documentation and [docs/terminal-capabilities.md](docs/terminal-capabilities.md) for protocol details and terminal support matrix.
+See [docs/reference/input-features.md](docs/reference/input-features.md) for comprehensive input documentation and [docs/reference/terminal-capabilities.md](docs/reference/terminal-capabilities.md) for protocol details and terminal support matrix.
 
 ## Focus System (Tree-Based)
 
@@ -924,31 +925,40 @@ function createBoardDriver(repo: Repo, rootId: string) {
 ## Documentation
 
 **Maintenance**: When adding or modifying performance optimizations in buffer.ts, output-phase.ts,
-content-phase.ts, or other pipeline files, update [docs/performance.md](docs/performance.md) —
+content-phase.ts, or other pipeline files, update [docs/deep-dives/performance.md](docs/deep-dives/performance.md) —
 both the "All Optimizations" catalog and the benchmark tables. Run `bun run bench` before and after
 to capture numbers.
 
-| Document                                                       | Description                                                                                                                  |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| [docs/README.md](docs/README.md)                               | Documentation table of contents                                                                                              |
-| [docs/getting-started.md](docs/getting-started.md)             | Runtime layers and tutorial                                                                                                  |
-| [docs/components.md](docs/components.md)                       | Box, Text, VirtualList, Console, Image, Transform, Spinner, ProgressBar, SelectList, Table, Badge, Divider, inputs           |
-| [docs/hooks.md](docs/hooks.md)                                 | useContentRect, useScreenRect, useInput, usePaste, useApp, useAnimation, useAnimatedTransition, useInterval, useScrollRegion |
-| [docs/theming.md](docs/theming.md)                             | ThemeProvider, useTheme, $token colors, custom themes                                                                        |
-| [docs/scroll-regions.md](docs/scroll-regions.md)               | DECSTBM scroll region optimization                                                                                           |
-| [docs/input-features.md](docs/input-features.md)               | Keyboard, mouse, hotkeys, modifier symbols                                                                                   |
-| [docs/architecture.md](docs/architecture.md)                   | Core architecture and RenderAdapter                                                                                          |
-| [docs/testing.md](docs/testing.md)                             | Testing strategy, locators, and API                                                                                          |
-| [docs/internals.md](docs/internals.md)                         | Reconciler and 5-phase pipeline                                                                                              |
-| [docs/performance.md](docs/performance.md)                     | Benchmarks and optimization (**keep up-to-date!**)                                                                           |
-| [docs/streams.md](docs/streams.md)                             | AsyncIterable stream helpers                                                                                                 |
-| [docs/text-cursor.md](docs/text-cursor.md)                     | Cursor offset ↔ visual position mapping (Layer 0)                                                                            |
-| [docs/focus-routing.md](docs/focus-routing.md)                 | Focus-based input routing pattern                                                                                            |
-| [docs/ink-comparison.md](docs/ink-comparison.md)               | Ink issues and Inkx solutions                                                                                                |
-| [docs/migration.md](docs/migration.md)                         | Ink to inkx migration guide                                                                                                  |
-| [docs/runtime-migration.md](docs/runtime-migration.md)         | Legacy inkx to inkx/runtime migration                                                                                        |
-| [docs/terminal-capabilities.md](docs/terminal-capabilities.md) | Terminal detection, render modes, protocols                                                                                  |
-| [docs/plugins.md](docs/plugins.md)                             | withCommands, withKeybindings, withDiagnostics, drivers                                                                      |
-| [docs/devtools.md](docs/devtools.md)                           | React DevTools integration (setup, API, troubleshooting)                                                                     |
-| [docs/troubleshooting.md](docs/troubleshooting.md)             | Common issues and debugging                                                                                                  |
-| [docs/roadmap.md](docs/roadmap.md)                             | Render targets and future plans                                                                                              |
+| Document                                                                               | Description                                                                                                                  |
+| -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| [docs/README.md](docs/README.md)                                                       | Documentation table of contents                                                                                              |
+| **Guides**                                                                              |                                                                                                                              |
+| [docs/guides/getting-started.md](docs/guides/getting-started.md)                       | First app tutorial, basic input, layout feedback                                                                             |
+| [docs/guides/runtime-layers.md](docs/guides/runtime-layers.md)                         | createApp, createRuntime, createStore, streams, tick sources                                                                 |
+| [docs/guides/migration.md](docs/guides/migration.md)                                   | Ink to inkx migration guide                                                                                                  |
+| [docs/guides/runtime-migration.md](docs/guides/runtime-migration.md)                   | Legacy inkx to inkx/runtime migration                                                                                        |
+| **Reference**                                                                           |                                                                                                                              |
+| [docs/reference/components.md](docs/reference/components.md)                           | Box, Text, VirtualList, Console, Image, Transform, Spinner, ProgressBar, SelectList, Table, Badge, Divider, inputs           |
+| [docs/reference/hooks.md](docs/reference/hooks.md)                                     | useContentRect, useScreenRect, useInput, usePaste, useApp, useAnimation, useAnimatedTransition, useInterval, useScrollRegion |
+| [docs/reference/theming.md](docs/reference/theming.md)                                 | ThemeProvider, useTheme, $token colors, custom themes                                                                        |
+| [docs/reference/plugins.md](docs/reference/plugins.md)                                 | withCommands, withKeybindings, withDiagnostics, drivers                                                                      |
+| [docs/reference/input-features.md](docs/reference/input-features.md)                   | Keyboard, mouse, hotkeys, modifier symbols                                                                                   |
+| [docs/reference/streams.md](docs/reference/streams.md)                                 | AsyncIterable stream helpers                                                                                                 |
+| [docs/reference/text-cursor.md](docs/reference/text-cursor.md)                         | Cursor offset ↔ visual position mapping (Layer 0)                                                                            |
+| [docs/reference/scroll-regions.md](docs/reference/scroll-regions.md)                   | DECSTBM scroll region optimization                                                                                           |
+| [docs/reference/terminal-capabilities.md](docs/reference/terminal-capabilities.md)     | Terminal detection, render modes, protocols                                                                                  |
+| [docs/reference/recipes.md](docs/reference/recipes.md)                                 | Common patterns and recipes                                                                                                  |
+| [docs/reference/devtools.md](docs/reference/devtools.md)                               | React DevTools integration (setup, API, troubleshooting)                                                                     |
+| **Deep Dives**                                                                          |                                                                                                                              |
+| [docs/deep-dives/architecture.md](docs/deep-dives/architecture.md)                     | Core architecture and RenderAdapter                                                                                          |
+| [docs/deep-dives/internals.md](docs/deep-dives/internals.md)                           | Reconciler and 5-phase pipeline                                                                                              |
+| [docs/deep-dives/performance.md](docs/deep-dives/performance.md)                       | Benchmarks and optimization (**keep up-to-date!**)                                                                           |
+| [docs/deep-dives/containment.md](docs/deep-dives/containment.md)                       | Layout feedback loop prevention (useContentRect safe patterns)                                                               |
+| [docs/deep-dives/focus-routing.md](docs/deep-dives/focus-routing.md)                   | Focus-based input routing pattern                                                                                            |
+| **Top Level**                                                                           |                                                                                                                              |
+| [docs/testing.md](docs/testing.md)                                                     | Testing strategy, locators, and API                                                                                          |
+| [docs/ink-comparison.md](docs/ink-comparison.md)                                       | Ink issues and inkx solutions                                                                                                |
+| [docs/comparison.md](docs/comparison.md)                                               | Cross-framework comparison (BubbleTea, Textual, etc.)                                                                        |
+| [docs/troubleshooting.md](docs/troubleshooting.md)                                     | Common issues and debugging                                                                                                  |
+| [docs/roadmap.md](docs/roadmap.md)                                                     | Render targets and future plans                                                                                              |
+| [docs/blog-launch.md](docs/blog-launch.md)                                             | Launch blog post                                                                                                             |

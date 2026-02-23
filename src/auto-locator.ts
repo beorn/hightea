@@ -1,7 +1,10 @@
 /**
- * AutoLocator - Self-refreshing Playwright-style locator
+ * AutoLocator - Self-refreshing Playwright-style locator (canonical implementation)
  *
- * Unlike the static InkxLocator that holds a reference to a specific tree,
+ * This is the primary locator API. Prefer `App.locator()` / `App.getByTestId()` /
+ * `App.getByText()` which use AutoLocator internally.
+ *
+ * Unlike the static InkxLocator in `testing/locator.ts` (legacy, deprecated),
  * AutoLocator re-evaluates queries against the current tree on each access.
  * This eliminates the stale locator problem in tests.
  *

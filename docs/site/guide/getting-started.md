@@ -1,6 +1,6 @@
 # Getting Started
 
-Inkx is a terminal UI framework for React that lets components know their computed dimensions. It's a drop-in replacement for Ink with one key addition: the `useContentRect()` hook.
+inkx is a terminal UI framework for React that lets components know their computed dimensions. It's a drop-in replacement for Ink with one key addition: the `useContentRect()` hook.
 
 ## Installation
 
@@ -34,7 +34,7 @@ import { Box, Text, render, createTerm } from "inkx"
 function App() {
   return (
     <Box borderStyle="round" padding={1}>
-      <Text>Hello from Inkx!</Text>
+      <Text>Hello from inkx!</Text>
     </Box>
   )
 }
@@ -50,11 +50,11 @@ bun app.tsx
 # or: npx tsx app.tsx
 ```
 
-You should see a rounded box with "Hello from Inkx!" inside.
+You should see a rounded box with "Hello from inkx!" inside.
 
 ## Using Layout Feedback
 
-The key feature of Inkx is `useContentRect()`. Components can query their computed dimensions:
+The key feature of inkx is `useContentRect()`. Components can query their computed dimensions:
 
 ```tsx
 import { Box, Text, render, useContentRect, createTerm } from "inkx"
@@ -88,7 +88,7 @@ Each `SizedBox` will display its actual computed dimensions. No prop threading n
 
 ## Scrollable Lists
 
-Inkx handles scrolling automatically. Just use `overflow="scroll"`:
+inkx handles scrolling automatically. Just use `overflow="scroll"`:
 
 ```tsx
 import { Box, Text, render, useInput, createTerm } from "inkx"
@@ -119,7 +119,7 @@ using term = createTerm()
 await render(<App />, term)
 ```
 
-Inkx measures all children, calculates which are visible, and only renders content for visible items. No height estimation or virtualization config needed.
+inkx measures all children, calculates which are visible, and only renders content for visible items. No height estimation or virtualization config needed.
 
 ## Next Steps
 

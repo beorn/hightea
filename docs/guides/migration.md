@@ -1,14 +1,14 @@
-# Inkx Migration Guide
+# inkx Migration Guide
 
 ## Overview
 
-This guide helps you migrate from Ink to Inkx. Most apps require only an import change, but there are behavioral differences to be aware of.
+This guide helps you migrate from Ink to inkx. Most apps require only an import change, but there are behavioral differences to be aware of.
 
 ---
 
 ## Quick Start
 
-### Step 1: Install Inkx
+### Step 1: Install inkx
 
 ```bash
 # Replace ink with inkx
@@ -67,12 +67,12 @@ function Card({ width }: { width: number }) {
 <Card width={availableWidth - padding * 2} />
 ```
 
-**Inkx**: Components can ask for their size.
+**inkx**: Components can ask for their size.
 
 ```typescript
-// Inkx: Components know their size
+// inkx: Components know their size
 function Card() {
-  const { width } = useLayout();
+  const { width } = useContentRect();
   return <Text>{truncate(title, width)}</Text>;
 }
 
@@ -92,10 +92,10 @@ function Card() {
 // Output: "This is a very long text that overflows" (broken layout)
 ```
 
-**Inkx**: Text truncates to fit.
+**inkx**: Text truncates to fit.
 
 ```typescript
-// Inkx: Text truncates automatically
+// inkx: Text truncates automatically
 <Box width={10}>
   <Text>This is a very long text that overflows</Text>
 </Box>
@@ -113,14 +113,14 @@ function Card() {
 
 **Ink**: Components render once with final output.
 
-**Inkx**: Components using `useLayout()` render twice:
+**inkx**: Components using `useContentRect()` render twice:
 
 1. First render: dimensions are `{ width: 0, height: 0 }`
 2. Second render: dimensions are correct
 
 ```typescript
 function Header() {
-  const { width } = useLayout();
+  const { width } = useContentRect();
   // First render: width=0, renders ""
   // Second render: width=80, renders "=" × 80
   return <Text>{'='.repeat(width)}</Text>;
@@ -131,7 +131,7 @@ function Header() {
 
 ```typescript
 function Header() {
-  const { width } = useLayout();
+  const { width } = useContentRect();
   if (width === 0) return null; // Or <Text>Loading...</Text>
   return <Text>{'='.repeat(width)}</Text>;
 }
@@ -151,20 +151,20 @@ function Header() {
 />
 ```
 
-**Inkx**: Just render everything. Inkx handles the rest.
+**inkx**: Just render everything. inkx handles the rest.
 
 ```typescript
-// Inkx: No virtualization config needed
+// inkx: No virtualization config needed
 <Box overflow="scroll" scrollTo={selectedIdx}>
   {items.map((item) => <Card key={item.id} item={item} />)}
 </Box>
 ```
 
-Inkx measures all children via Yoga (fast), then only renders content for visible ones (skipping the expensive part). No height estimation needed.
+inkx measures all children via Yoga (fast), then only renders content for visible ones (skipping the expensive part). No height estimation needed.
 
 **Migration**: Replace custom virtualization components with `overflow="scroll"`.
 
-### 5. measureElement() Still Works But useLayout() Is Better
+### 5. measureElement() Still Works But useContentRect() Is Better
 
 **Ink**: Use `measureElement()` to get dimensions after render.
 
@@ -175,15 +175,15 @@ const { width } = measureElement(ref.current)
 // Need to manually trigger re-render if you want to use width
 ```
 
-**Inkx**: `measureElement()` works for compatibility, but `useLayout()` is simpler.
+**inkx**: `measureElement()` works for compatibility, but `useContentRect()` is simpler.
 
 ```typescript
-// Inkx: Just use the hook
-const { width } = useLayout()
+// inkx: Just use the hook
+const { width } = useContentRect()
 // Automatically re-renders with correct dimensions
 ```
 
-**Migration**: Replace `measureElement()` + manual re-render with `useLayout()`.
+**Migration**: Replace `measureElement()` + manual re-render with `useContentRect()`.
 
 ---
 
@@ -193,7 +193,7 @@ const { width } = useLayout()
 
 These behaviors differ by design:
 
-| Behavior                | Ink       | Inkx      | Reason                       |
+| Behavior                | Ink       | inkx      | Reason                       |
 | ----------------------- | --------- | --------- | ---------------------------- |
 | Text overflow           | Overflows | Truncates | Better default for TUIs      |
 | First render dimensions | N/A       | Zeros     | Required for layout feedback |
@@ -205,7 +205,7 @@ These might cause issues in rare cases:
 
 | Issue                   | Symptoms                | Workaround                                 |
 | ----------------------- | ----------------------- | ------------------------------------------ |
-| Rapid re-renders        | Flicker on fast updates | Inkx coalesces frames; usually not visible |
+| Rapid re-renders        | Flicker on fast updates | inkx coalesces frames; usually not visible |
 | Very deep nesting       | Slower layout           | Flatten component tree if possible         |
 | Custom reconciler usage | Breaks                  | Not supported; use standard components     |
 
@@ -221,7 +221,7 @@ npx inkx-codemod ./src
 
 # What it does:
 # 1. Updates imports from 'ink' to 'inkx'
-# 2. Replaces measureElement() with useLayout()
+# 2. Replaces measureElement() with useContentRect()
 # 3. Adds wrap={false} where overflow was intentional
 # 4. Warns about potential issues
 ```
@@ -260,12 +260,12 @@ test('my component', () => {
 });
 ```
 
-### 3. Check for useLayout() Opportunities
+### 3. Check for useContentRect() Opportunities
 
 Search for manual width/height props:
 
 ```bash
-# Find candidates for useLayout()
+# Find candidates for useContentRect()
 grep -r "width={" src/
 grep -r "height={" src/
 ```
@@ -274,25 +274,25 @@ grep -r "height={" src/
 
 ## FAQ
 
-### Q: Can I use Ink and Inkx in the same project?
+### Q: Can I use Ink and inkx in the same project?
 
 **A**: No. They both try to control the terminal. Pick one.
 
-### Q: Will Inkx track Ink's updates?
+### Q: Will inkx track Ink's updates?
 
-**A**: Inkx targets Ink 4.x API. We'll add new Ink features if they're useful, but we're not a fork—we're a compatible reimplementation.
+**A**: inkx targets Ink 4.x API. We'll add new Ink features if they're useful, but we're not a fork—we're a compatible reimplementation.
 
 ### Q: What about ink-\* community packages?
 
 **A**: Most should work unchanged. If they use Ink internals, they may need updates. File an issue if you find incompatibilities.
 
-### Q: Is Inkx faster than Ink?
+### Q: Is inkx faster than Ink?
 
-**A**: Similar performance for most apps. Inkx may be slightly slower on first render (two-phase), but faster on updates (smarter diffing). Benchmark your specific app.
+**A**: Similar performance for most apps. inkx may be slightly slower on first render (two-phase), but faster on updates (smarter diffing). Benchmark your specific app.
 
-### Q: Can I contribute to Inkx?
+### Q: Can I contribute to inkx?
 
-**A**: Yes! See [internals.md](internals.md) for architecture details.
+**A**: Yes! See [internals.md](../deep-dives/internals.md) for architecture details.
 
 ---
 

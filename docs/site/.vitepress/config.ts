@@ -11,7 +11,7 @@ export default defineConfig({
     ],
   },
 
-  title: "Inkx",
+  title: "inkx",
   description: "Ink, but components know their size",
   base: "/inkx/",
 
@@ -19,7 +19,7 @@ export default defineConfig({
 
   themeConfig: {
     logo: "/logo.svg",
-    siteTitle: "Inkx",
+    siteTitle: "inkx",
 
     nav: [
       { text: "Guide", link: "/guide/getting-started" },
@@ -41,7 +41,7 @@ export default defineConfig({
           items: [
             { text: "Getting Started", link: "/guide/getting-started" },
             { text: "Installation", link: "/guide/installation" },
-            { text: "Why Inkx?", link: "/guide/why-inkx" },
+            { text: "Why inkx?", link: "/guide/why-inkx" },
           ],
         },
         {
@@ -81,7 +81,7 @@ export default defineConfig({
         {
           text: "Hooks",
           items: [
-            { text: "useLayout", link: "/api/use-layout" },
+            { text: "useContentRect", link: "/api/use-content-rect" },
             { text: "useInput", link: "/api/use-input" },
             { text: "useApp", link: "/api/use-app" },
             { text: "useStdout", link: "/api/use-stdout" },

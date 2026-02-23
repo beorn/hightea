@@ -13,6 +13,7 @@ export {
   // Main exports (used by render.tsx and testing/index.tsx)
   reconciler,
   createContainer,
+  createFiberRoot,
   getContainerRoot,
   runWithDiscreteEvent,
   // Types

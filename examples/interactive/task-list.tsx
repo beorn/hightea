@@ -184,7 +184,7 @@ export function TaskList(): JSX.Element {
   const [cursor, setCursor] = useState(0)
   const [expandedTasks, setExpandedTasks] = useState<Set<number>>(new Set())
 
-  // Fixed visible count (in a real app, this would use useLayout)
+  // Fixed visible count (in a real app, this would use useContentRect)
   const visibleCount = 15
 
   // Calculate scroll offset to keep cursor visible
