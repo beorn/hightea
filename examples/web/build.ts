@@ -6,14 +6,16 @@
  * Run: bun run examples/web/build.ts
  */
 
-import { mkdir } from "node:fs/promises"
+import { mkdir, cp } from "node:fs/promises"
 import { join, dirname } from "node:path"
 
 const __dirname = dirname(new URL(import.meta.url).pathname)
 const distDir = join(__dirname, "dist")
+const docsDistDir = join(__dirname, "../../docs/site/public/examples/dist")
 
-// Ensure dist directory exists
+// Ensure dist directories exist
 await mkdir(distDir, { recursive: true })
+await mkdir(docsDistDir, { recursive: true })
 
 // Browser-safe defines for Node.js globals.
 // @beorn/logger and @beorn/chalkx access process.env at module init,
@@ -76,8 +78,33 @@ if (!domResult.success) {
   process.exit(1)
 }
 
+// Build xterm app
+const xtermResult = await Bun.build({
+  entrypoints: [join(__dirname, "xterm-app.tsx")],
+  outdir: distDir,
+  target: "browser",
+  format: "esm",
+  minify: false,
+  sourcemap: "external",
+  define: browserDefines,
+})
+
+if (!xtermResult.success) {
+  console.error("xterm build failed:")
+  for (const log of xtermResult.logs) {
+    console.error(log)
+  }
+  process.exit(1)
+}
+
+// Copy built files to VitePress public dir for docs site
+await cp(distDir, docsDistDir, { recursive: true })
+
 console.log("✓ Built examples/web/dist/canvas-app.js")
 console.log("✓ Built examples/web/dist/dom-app.js")
+console.log("✓ Built examples/web/dist/xterm-app.js")
+console.log("✓ Copied to docs/site/public/examples/dist/")
 console.log("\nOpen in browser:")
 console.log("  examples/web/canvas.html")
 console.log("  examples/web/dom.html")
+console.log("  examples/web/xterm.html")

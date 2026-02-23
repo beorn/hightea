@@ -99,6 +99,7 @@ export default defineConfig({
           text: "Examples",
           items: [
             { text: "Overview", link: "/examples/" },
+            { text: "Live Demo", link: "/examples/live-demo" },
             { text: "Dashboard", link: "/examples/dashboard" },
             { text: "Task List", link: "/examples/task-list" },
             { text: "Kanban Board", link: "/examples/kanban" },
