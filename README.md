@@ -1,6 +1,6 @@
 # inkx
 
-React for modern terminals — layout feedback, mouse & keyboard protocols, inline images, scrollable containers, truecolor, hyperlinks, clipboard, focus management, and 23+ components. Zero native dependencies.
+React 19 for modern terminals — reactive layout feedback, click/drag/scroll mouse events, keyboard protocols, inline images, virtualized scrollable containers, scrollback buffers, truecolor theming, hyperlinks, clipboard, focus trees, Playwright-style testing, AI-ready command introspection, TEA/Elm + React + Zustand architectures, drop-in Ink replacement, [122x faster](docs/deep-dives/performance.md). 23+ components. Pure TypeScript — no WASM, no C++, no native deps.
 
 [![npm version](https://img.shields.io/npm/v/inkx.svg)](https://www.npmjs.com/package/inkx)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
