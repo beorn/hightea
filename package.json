@@ -4,20 +4,31 @@
   "description": "React rendering where components know their size — terminal, canvas, and DOM targets",
   "keywords": [
     "cli",
+    "components",
     "flexbox",
     "ink",
+    "keyboard",
     "layout",
+    "mouse",
     "react",
     "terminal",
     "tui"
   ],
   "homepage": "https://github.com/beorn/inkx#readme",
+  "bugs": {
+    "url": "https://github.com/beorn/inkx/issues"
+  },
   "license": "MIT",
   "author": "beorn",
   "repository": {
     "type": "git",
     "url": "https://github.com/beorn/inkx.git"
   },
+  "engines": {
+    "node": ">=18",
+    "bun": ">=1.0"
+  },
+  "sideEffects": false,
   "type": "module",
   "main": "src/index.ts",
   "module": "src/index.ts",
