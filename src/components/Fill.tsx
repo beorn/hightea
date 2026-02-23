@@ -96,7 +96,10 @@ export function Fill({ children, max }: FillProps): JSX.Element | null {
     return text || null
   }, [children, width, max])
 
-  if (!repeatedText) return null
+  // Before layout completes, width is 0 and repeatedText is null.
+  // Render children as-is (single copy of the pattern) instead of null
+  // to avoid flicker — a single "." or "─" is better than empty space.
+  if (!repeatedText) return <>{children}</>
 
   // Clone the outermost child element and replace its text content
   const childArray = Children.toArray(children)
