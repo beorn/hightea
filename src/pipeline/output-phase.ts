@@ -21,6 +21,7 @@ import type { CellChange } from "./types.js"
 
 const DEBUG_OUTPUT = !!process.env.INKX_DEBUG_OUTPUT
 const FULL_RENDER = !!process.env.INKX_FULL_RENDER
+const STRICT_OUTPUT = !!process.env.INKX_STRICT_OUTPUT
 
 /**
  * Wrap a cell character in OSC 66 if it is a PUA character and text sizing
@@ -357,7 +358,16 @@ export function outputPhase(
   // - Continuation cells are skipped (handled with their main cell)
   // - Orphaned continuation cells (main cell unchanged) trigger a
   //   re-emit of the main cell from the buffer
-  return changesToAnsi(pool, count, mode, next)
+  const incrOutput = changesToAnsi(pool, count, mode, next)
+
+  // INKX_STRICT_OUTPUT: verify that the incremental ANSI output produces the
+  // same visible terminal state as a fresh render. Catches bugs in changesToAnsi
+  // that INKX_STRICT (buffer-level check) cannot detect.
+  if (STRICT_OUTPUT) {
+    verifyOutputEquivalence(prev, next, incrOutput, mode)
+  }
+
+  return incrOutput
 }
 
 /**
@@ -999,4 +1009,138 @@ function styleToAnsi(style: Style): string {
 
   result += "m"
   return result
+}
+
+// =============================================================================
+// INKX_STRICT_OUTPUT: ANSI output verification via virtual terminal replay
+// =============================================================================
+
+/**
+ * Minimal virtual terminal that replays ANSI output into a character grid.
+ * Only handles sequences emitted by bufferToAnsi/changesToAnsi:
+ * cursor positioning, character writes, EL, and skips style/OSC sequences.
+ */
+function replayAnsi(width: number, height: number, ansi: string): string[][] {
+  const screen: string[][] = Array.from({ length: height }, () => Array(width).fill(" "))
+  let cx = 0
+  let cy = 0
+  let i = 0
+
+  while (i < ansi.length) {
+    if (ansi[i] === "\x1b") {
+      if (ansi[i + 1] === "[") {
+        i += 2
+        let params = ""
+        while (
+          i < ansi.length &&
+          ((ansi[i]! >= "0" && ansi[i]! <= "9") || ansi[i] === ";" || ansi[i] === "?" || ansi[i] === ":")
+        ) {
+          params += ansi[i]
+          i++
+        }
+        const cmd = ansi[i]
+        i++
+        if (cmd === "H") {
+          if (params === "") {
+            cx = 0
+            cy = 0
+          } else {
+            const parts = params.split(";")
+            cy = Math.max(0, (parseInt(parts[0]!) || 1) - 1)
+            cx = Math.max(0, (parseInt(parts[1]!) || 1) - 1)
+          }
+        } else if (cmd === "K") {
+          for (let x = cx; x < width; x++) screen[cy]![x] = " "
+        } else if (cmd === "A") {
+          cy = Math.max(0, cy - (parseInt(params) || 1))
+        } else if (cmd === "B") {
+          cy = Math.min(height - 1, cy + (parseInt(params) || 1))
+        } else if (cmd === "C") {
+          cx = Math.min(width - 1, cx + (parseInt(params) || 1))
+        } else if (cmd === "D") {
+          cx = Math.max(0, cx - (parseInt(params) || 1))
+        } else if (cmd === "G") {
+          cx = Math.max(0, (parseInt(params) || 1) - 1)
+        } else if (cmd === "J") {
+          if (params === "2") {
+            for (let y = 0; y < height; y++)
+              for (let x = 0; x < width; x++) screen[y]![x] = " "
+          }
+        }
+        // Skip SGR (m), DEC modes (h/l), etc.
+      } else if (ansi[i + 1] === "]") {
+        // OSC: skip to ST (\x1b\\) or BEL (\x07)
+        i += 2
+        while (i < ansi.length) {
+          if (ansi[i] === "\x1b" && ansi[i + 1] === "\\") {
+            i += 2
+            break
+          }
+          if (ansi[i] === "\x07") {
+            i++
+            break
+          }
+          i++
+        }
+      } else if (ansi[i + 1] === ">") {
+        // DCS or private sequence: skip
+        i += 2
+        while (i < ansi.length && ansi[i] !== "\x1b") i++
+      } else {
+        i += 2
+      }
+    } else if (ansi[i] === "\r") {
+      cx = 0
+      i++
+    } else if (ansi[i] === "\n") {
+      cy = Math.min(height - 1, cy + 1)
+      i++
+    } else {
+      if (cy < height && cx < width) {
+        screen[cy]![cx] = ansi[i]!
+        cx++
+      }
+      i++
+    }
+  }
+  return screen
+}
+
+/**
+ * Verify that applying changesToAnsi output to a previous terminal state
+ * produces the same visible characters as a fresh render of the next buffer.
+ * Throws on mismatch.
+ */
+function verifyOutputEquivalence(
+  prev: TerminalBuffer,
+  next: TerminalBuffer,
+  incrOutput: string,
+  mode: "fullscreen" | "inline",
+): void {
+  const w = next.width
+  const h = next.height
+  // Replay: fresh prev render + incremental diff applied on top
+  const freshPrev = bufferToAnsi(prev, mode)
+  const screenIncr = replayAnsi(w, h, freshPrev + incrOutput)
+  // Replay: fresh render of next buffer
+  const freshNext = bufferToAnsi(next, mode)
+  const screenFresh = replayAnsi(w, h, freshNext)
+
+  // Compare character by character
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (screenIncr[y]![x] !== screenFresh[y]![x]) {
+        const incrRow = screenIncr[y]!.join("")
+        const freshRow = screenFresh[y]!.join("")
+        const msg =
+          `INKX_STRICT_OUTPUT mismatch at (${x},${y}): ` +
+          `incremental='${screenIncr[y]![x]}' fresh='${screenFresh[y]![x]}'\n` +
+          `  incr row: "${incrRow}"\n` +
+          `  fresh row: "${freshRow}"`
+        // eslint-disable-next-line no-console
+        console.error(msg)
+        throw new Error(msg)
+      }
+    }
+  }
 }
