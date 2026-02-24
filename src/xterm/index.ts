@@ -61,6 +61,8 @@ export interface XtermRenderOptions {
   cols?: number
   /** Height in rows (default: terminal.rows) */
   rows?: number
+  /** Called when the terminal is resized via fitAddon.fit() or resize() */
+  onResize?: (cols: number, rows: number) => void
 }
 
 export interface XtermInstance {
@@ -72,6 +74,8 @@ export interface XtermInstance {
   [Symbol.dispose](): void
   /** Force a re-render */
   refresh: () => void
+  /** Resize the terminal and re-render. Overrides dynamic terminal.cols/rows. */
+  resize: (cols: number, rows: number) => void
 }
 
 // ============================================================================
@@ -134,8 +138,19 @@ export function renderToXterm(
 ): XtermInstance {
   initXtermRenderer()
 
-  const cols = options.cols ?? terminal.cols
-  const rows = options.rows ?? terminal.rows
+  // If cols/rows were explicitly provided, use those (fixed size).
+  // Otherwise, read from terminal.cols/rows at render time (dynamic).
+  const fixedCols = options.cols ?? null
+  const fixedRows = options.rows ?? null
+  let overrideCols: number | null = null
+  let overrideRows: number | null = null
+
+  function getCols(): number {
+    return overrideCols ?? fixedCols ?? terminal.cols
+  }
+  function getRows(): number {
+    return overrideRows ?? fixedRows ?? terminal.rows
+  }
 
   const container = createContainer(() => {
     scheduleRender()
@@ -170,7 +185,7 @@ export function renderToXterm(
     reconciler.flushSyncWork()
 
     const prevBuffer = currentBuffer
-    const result = executeRenderAdapter(root, cols, rows, prevBuffer)
+    const result = executeRenderAdapter(root, getCols(), getRows(), prevBuffer)
     currentBuffer = result.buffer
 
     // The terminal adapter's flush() returns ANSI diff strings
@@ -199,6 +214,16 @@ export function renderToXterm(
     [Symbol.dispose]: unmount,
 
     refresh(): void {
+      scheduleRender()
+    },
+
+    resize(cols: number, rows: number): void {
+      overrideCols = cols
+      overrideRows = rows
+      // Clear the buffer so next render does a full repaint at the new size
+      currentBuffer = null
+      terminal.write(CURSOR_HOME + CLEAR_SCREEN)
+      options.onResize?.(cols, rows)
       scheduleRender()
     },
   }

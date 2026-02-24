@@ -175,7 +175,7 @@ await run(<App />)
 
 ## What inkx Adds
 
-Traditional TUI frameworks require manual width calculations for responsive panels. inkx's layout feedback lets components query their own dimensions — size progress bars, truncate text, and set responsive breakpoints without prop threading. The theming system provides consistent color tokens. Incremental rendering (122x faster than full-screen rewrites — [benchmarks](/guide/why-inkx#performance)) eliminates visible flicker in dashboards that update multiple times per second. And synchronized output ensures multiplexers like tmux show complete frames.
+Traditional TUI frameworks require manual width calculations for responsive panels. inkx's layout feedback lets components query their own dimensions — size progress bars, truncate text, and set responsive breakpoints without prop threading. The theming system provides consistent color tokens. Incremental rendering (200x+ faster than full-screen rewrites — [benchmarks](/guide/why-inkx#performance)) eliminates visible flicker in dashboards that update multiple times per second. And synchronized output ensures multiplexers like tmux show complete frames.
 
 ## Get Started
 

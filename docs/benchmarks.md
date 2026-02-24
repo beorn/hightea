@@ -157,11 +157,11 @@ Flexx (pure JS, 7KB) is 2.6x faster than Yoga NAPI for flat layouts. Matches Yog
 | Cold render (1 component)             | 165 us        | 271 us                  | inkx 1.6x faster     |
 | Cold render (1000 components)         | 463 ms        | 541 ms                  | inkx 1.2x faster     |
 | Full React rerender (1000 components) | 630 ms        | 20.7 ms                 | Ink 30x faster       |
-| **Typical interactive update**        | **169 us**    | **20.7 ms**             | **inkx 122x faster** |
+| **Typical interactive update**        | **169 us**    | **20.7 ms**             | **inkx 200x+ faster** |
 | Layout (50-node kanban)               | 57 us (Flexx) | 136 us (Yoga NAPI)      | Flexx 2.4x faster    |
 | Terminal resize (1000 nodes)          | 21 us         | Full re-render          | --                   |
 | Buffer diff (80x24, 10% changed)      | 34 us         | N/A (row-based strings) | --                   |
 
 **Understanding the rerender row:** When the _entire_ component tree re-renders from scratch (e.g., replacing the root element), Ink is 30x faster because its output is just string concatenation. inkx runs a 5-phase pipeline (measure, layout, content, output) after React reconciliation -- that's the cost of layout feedback. But this scenario almost never happens in real apps.
 
-**The row that matters -- "typical interactive update":** When a user presses a key (cursor move, scroll, toggle), only the changed nodes need updating. inkx has per-node dirty tracking that bypasses React entirely -- 169 us for 1000 nodes. Ink must re-render the full React tree for _any_ state change -- 20.7 ms. In practice, inkx is **122x faster** for the updates that actually happen during interactive use.
+**The row that matters -- "typical interactive update":** When a user presses a key (cursor move, scroll, toggle), only the changed nodes need updating. inkx has per-node dirty tracking that bypasses React entirely -- 169 us for 1000 nodes. Ink must re-render the full React tree for _any_ state change -- 20.7 ms. In practice, inkx is **200x+ faster** for the updates that actually happen during interactive use.

@@ -311,6 +311,20 @@ function renderOutlineAdapter(
 // ============================================================================
 
 /**
+ * Walk the parent chain to find the nearest ancestor Box with backgroundColor.
+ * Mirrors findInheritedBg() in content-phase.ts.
+ */
+function findAncestorBg(node: InkxNode): string | undefined {
+  let current = node.parent
+  while (current) {
+    const bg = (current.props as BoxProps).backgroundColor
+    if (bg) return bg
+    current = current.parent
+  }
+  return undefined
+}
+
+/**
  * Render a Text node.
  */
 function renderText(
@@ -331,10 +345,13 @@ function renderText(
   // Map underline style to supported values
   const underlineStyle = props.underlineStyle as "single" | "double" | "curly" | "dotted" | "dashed" | undefined
 
+  // Inherit bg from nearest ancestor Box with backgroundColor
+  const inheritedBg = props.backgroundColor ?? findAncestorBg(node)
+
   // Build style from props
   const style: RenderStyle = {
     fg: props.color ?? undefined,
-    bg: props.backgroundColor ?? undefined,
+    bg: inheritedBg ?? undefined,
     attrs: {
       bold: props.bold,
       dim: props.dim,

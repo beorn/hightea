@@ -9,7 +9,7 @@ import React from "react"
 import { Terminal } from "@xterm/xterm"
 import { FitAddon } from "@xterm/addon-fit"
 import { renderToXterm } from "../../src/xterm/index.js"
-import { SHOWCASES, emitInput } from "./showcases.js"
+import { SHOWCASES, emitInput, setTermFocused } from "./showcases.js"
 
 // Read demo name from URL params
 const params = new URLSearchParams(window.location.search)
@@ -49,6 +49,13 @@ if (!ShowcaseComponent) {
 
     // Wire keyboard input to showcase components
     term.onData((data) => emitInput(data))
+
+    // Track terminal focus state for showcase cursor/outline
+    term.textarea?.addEventListener("focus", () => setTermFocused(true))
+    term.textarea?.addEventListener("blur", () => setTermFocused(false))
+
+    // Auto-focus terminal so keyboard input works immediately
+    term.focus()
 
     // Re-fit and re-render on window resize
     window.addEventListener("resize", () => {

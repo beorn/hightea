@@ -238,8 +238,11 @@ export function useVirtualization<T>(config: VirtualizationConfig<T>): Virtualiz
       }
     }
 
-    // For small lists, render everything
-    if (totalItems <= maxRendered) {
+    // For tiny lists (≤ visible + overscan), render everything — no windowing needed.
+    // Previously this used maxRendered as the threshold, which disabled virtualization
+    // for any list under 50 items — too generous when each item is expensive.
+    const minWindowSize = estimatedVisibleCount + 2 * overscan
+    if (totalItems <= minWindowSize) {
       return {
         startIndex: 0,
         endIndex: totalItems,

@@ -123,7 +123,7 @@ Yoga recomputes the full tree on every layout pass. For applications with mostly
 
 Ink re-renders the entire React tree for any state change, then rewrites the full terminal screen. For streaming output (LLM responses, log tailing, progress updates), this means hundreds of full-screen repaints per second.
 
-inkx tracks dirty flags per node. A cursor move in a 1000-node tree costs 169µs (vs 20.7ms for Ink — 122x faster). The buffer diff then emits only changed cells to the terminal, reducing I/O by 90%+ for typical interactive updates.
+inkx tracks dirty flags per node. A cursor move in a 1000-node tree costs 169µs (vs 20.7ms for Ink — over 200x faster on incremental renders). The buffer diff then emits only changed cells to the terminal, reducing I/O by 90%+ for typical interactive updates.
 
 ### Zero Initialization
 

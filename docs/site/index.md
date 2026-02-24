@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "inkx"
   text: "React for modern terminals"
-  tagline: "Layout feedback, every terminal protocol, React + Elm architectures, 122x faster updates. Zero native dependencies."
+  tagline: "Layout feedback, every terminal protocol, React + Elm architectures, 200x+ faster incremental renders. Zero native dependencies."
   actions:
     - theme: brand
       text: Get Started
@@ -21,8 +21,8 @@ features:
     title: Every Protocol
     details: "Kitty keyboard, SGR mouse, images, clipboard, hyperlinks, synchronized updates. All built-in, all auto-detected."
   - icon: "\u26A1"
-    title: 122x Faster*
-    details: "Per-node dirty tracking with 7 independent flags -- 169us vs Ink's 20.7ms. Only changed nodes re-render."
+    title: 200x+ Faster*
+    details: "Per-node dirty tracking with 7 independent flags -- 200x+ faster on incremental renders. Only changed nodes re-render."
     link: /guide/why-inkx#incremental-rendering
     linkText: "* See benchmarks"
   - icon: "\U0001F9E9"
@@ -42,15 +42,11 @@ features:
     details: "Pure TypeScript. No WASM, no C++, no memory leaks. Runs on Node, Bun, and Deno."
 ---
 
-<script setup>
-import LiveDemo from './.vitepress/components/LiveDemo.vue'
-</script>
+## Explore the Examples
 
-## See It in Action
-
-Real inkx components, running live in the browser via xterm.js:
-
-<LiveDemo xtermSrc="/inkx/examples/showcase.html?demo=dashboard" :height="400" />
+<div class="viewer-wrapper">
+  <iframe src="/inkx/examples/viewer.html" class="viewer-iframe" frameborder="0" title="inkx Interactive Examples" loading="lazy" />
+</div>
 
 ## Build Any Terminal App
 
@@ -110,6 +106,19 @@ await run(<App />)
 ```
 
 <style>
+.viewer-wrapper {
+  margin: 1.5rem 0 2rem;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0f0f1a;
+}
+.viewer-iframe {
+  width: 100%;
+  height: 640px;
+  border: none;
+  display: block;
+}
 .use-cases {
   margin: 0.5rem 0 1.5rem;
 }

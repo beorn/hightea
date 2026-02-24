@@ -6,7 +6,7 @@
  * Run: bun run examples/web/build.ts
  */
 
-import { mkdir, cp } from "node:fs/promises"
+import { mkdir, cp, readdir } from "node:fs/promises"
 import { join, dirname } from "node:path"
 
 const __dirname = dirname(new URL(import.meta.url).pathname)
@@ -74,6 +74,117 @@ const sharedOptions = {
   external: ["yoga-wasm-web", "ws"],
 }
 
+// =============================================================================
+// Registry Generation — scan examples and write viewer-registry.ts
+// =============================================================================
+
+const skipFiles = new Set([
+  "interactive/clipboard.tsx",
+  "interactive/_input-debug.tsx",
+  "interactive/_textarea-bare.tsx",
+  "runtime/hello-runtime.tsx",
+  "inline/scrollback.tsx",
+  "inline/inline-nontty.tsx",
+])
+
+const categories = [
+  { dir: "layout", color: "#cba6f7", label: "Layout" },
+  { dir: "interactive", color: "#89dceb", label: "Interactive" },
+  { dir: "runtime", color: "#a6e3a1", label: "Runtime" },
+  { dir: "inline", color: "#fab387", label: "Inline" },
+] as const
+
+interface RegistryEntry {
+  key: string
+  name: string
+  description: string
+  features: string[]
+  category: string
+  categoryColor: string
+  source: string
+  type: "showcase" | "example"
+}
+
+async function generateRegistry(): Promise<void> {
+  const entries: RegistryEntry[] = []
+
+  // Showcase entries (from showcases.tsx — these share one file, source shown differently)
+  const showcaseKeys = ["dashboard", "coding-agent", "kanban", "cli-wizard", "dev-tools", "data-explorer", "scroll", "layout-feedback", "focus", "text-input"]
+  const showcaseMeta: Record<string, { name: string; description: string; features: string[] }> = {
+    "dashboard": { name: "System Dashboard", description: "Real-time metrics, service status, and event feed with live updating data.", features: ["Box", "Text", "borderStyle", "flexDirection", "useInput", "useEffect", "setInterval"] },
+    "coding-agent": { name: "Coding Agent", description: "Claude Code-style coding agent with tool calls, code diffs, and streaming output.", features: ["Box", "Text", "outlineStyle", "flexDirection", "wrap"] },
+    "kanban": { name: "Kanban Board", description: "Three-column kanban with selectable cards and tag badges.", features: ["Box", "Text", "borderStyle", "flexGrow", "useInput", "useState"] },
+    "cli-wizard": { name: "CLI Wizard", description: "Clack-style interactive setup wizard with step-by-step progression.", features: ["Box", "Text", "useInput", "useState", "Fragment"] },
+    "dev-tools": { name: "Log Viewer", description: "Filterable log viewer with live search, scroll, and level coloring.", features: ["Box", "Text", "borderStyle", "useInput", "useState", "wrap"] },
+    "data-explorer": { name: "Process Explorer", description: "Sortable data table with live CPU jitter and row selection.", features: ["Box", "Text", "backgroundColor", "flexDirection", "useInput", "useEffect"] },
+    "scroll": { name: "Scroll List", description: "Basic scrollable list with keyboard navigation.", features: ["Box", "Text", "borderStyle", "useInput"] },
+    "layout-feedback": { name: "Layout Feedback", description: "Live display of content dimensions via useContentRect().", features: ["Box", "Text", "useContentRect", "justifyContent", "alignItems"] },
+    "focus": { name: "Focus Panels", description: "Tab-cycling focus across three panels.", features: ["Box", "Text", "borderStyle", "useInput"] },
+    "text-input": { name: "Text Input", description: "Live text echo with cursor, backspace, and clear.", features: ["Box", "Text", "borderStyle", "useInput"] },
+  }
+
+  for (const key of showcaseKeys) {
+    const meta = showcaseMeta[key]!
+    entries.push({
+      key: `showcase-${key}`,
+      name: meta.name,
+      description: meta.description,
+      features: meta.features,
+      category: "Showcases",
+      categoryColor: "#f9e2af",
+      source: "",
+      type: "showcase",
+    })
+  }
+
+  // Scan example directories
+  for (const cat of categories) {
+    const dir = join(__dirname, "..", cat.dir)
+    const files = (await readdir(dir)).filter(f => f.endsWith(".tsx") && !skipFiles.has(`${cat.dir}/${f}`))
+
+    for (const file of files.sort()) {
+      const source = await Bun.file(join(dir, file)).text()
+      const key = file.replace(".tsx", "")
+
+      // Extract meta from ExampleMeta export
+      const metaMatch = source.match(/export const meta:\s*ExampleMeta\s*=\s*\{([^}]+)\}/)
+      let name = key, description = "", features: string[] = []
+      if (metaMatch) {
+        const metaStr = metaMatch[1]!
+        const nameMatch = metaStr.match(/name:\s*"([^"]+)"/)
+        const descMatch = metaStr.match(/description:\s*"([^"]+)"/)
+        const featMatch = metaStr.match(/features:\s*\[([^\]]*)\]/)
+        if (nameMatch) name = nameMatch[1]!
+        if (descMatch) description = descMatch[1]!
+        if (featMatch) features = featMatch[1]!.match(/"([^"]+)"/g)?.map(s => s.replace(/"/g, "")) ?? []
+      }
+
+      entries.push({ key, name, description, features, category: cat.label, categoryColor: cat.color, source, type: "example" })
+    }
+  }
+
+  // Write registry file
+  const registryContent = `// AUTO-GENERATED by build.ts — do not edit manually
+
+export interface ExampleEntry {
+  key: string
+  name: string
+  description: string
+  features: string[]
+  category: string
+  categoryColor: string
+  source: string
+  type: "showcase" | "example"
+}
+
+export const REGISTRY: ExampleEntry[] = ${JSON.stringify(entries, null, 2)}
+`
+  await Bun.write(join(__dirname, "viewer-registry.ts"), registryContent)
+}
+
+// Generate registry before building (viewer-app imports it)
+await generateRegistry()
+
 // Build canvas app
 const canvasResult = await Bun.build({
   entrypoints: [join(__dirname, "canvas-app.tsx")],
@@ -130,11 +241,32 @@ if (!showcaseResult.success) {
   process.exit(1)
 }
 
+// Build viewer app (unified example browser)
+const viewerResult = await Bun.build({
+  entrypoints: [join(__dirname, "viewer-app.tsx")],
+  ...sharedOptions,
+})
+
+if (!viewerResult.success) {
+  console.error("Viewer build failed:")
+  for (const log of viewerResult.logs) {
+    console.error(log)
+  }
+  process.exit(1)
+}
+
 // Copy built files to VitePress public dir for docs site
 await cp(distDir, docsDistDir, { recursive: true })
 
 // Copy showcase.html to docs public dir
 await cp(join(__dirname, "showcase.html"), join(__dirname, "../../docs/site/public/examples/showcase.html"))
+
+// Copy viewer.html to docs public dir (if it exists)
+try {
+  await cp(join(__dirname, "viewer.html"), join(__dirname, "../../docs/site/public/examples/viewer.html"))
+} catch {
+  // viewer.html may not exist yet — skip silently
+}
 
 // Copy xterm.css to docs public dir (needed by showcase.html in production)
 await mkdir(join(__dirname, "../../docs/site/public/examples/xterm"), { recursive: true })
@@ -143,10 +275,12 @@ await cp(
   join(__dirname, "../../docs/site/public/examples/xterm/xterm.css"),
 )
 
+console.log("✓ Generated examples/web/viewer-registry.ts")
 console.log("✓ Built examples/web/dist/canvas-app.js")
 console.log("✓ Built examples/web/dist/dom-app.js")
 console.log("✓ Built examples/web/dist/xterm-app.js")
 console.log("✓ Built examples/web/dist/showcase-app.js")
+console.log("✓ Built examples/web/dist/viewer-app.js")
 console.log("✓ Copied to docs/site/public/examples/dist/")
 console.log("✓ Copied showcase.html to docs/site/public/examples/")
 console.log("\nOpen in browser:")
@@ -154,3 +288,4 @@ console.log("  examples/web/canvas.html")
 console.log("  examples/web/dom.html")
 console.log("  examples/web/xterm.html")
 console.log("  examples/web/showcase.html?demo=dashboard")
+console.log("  examples/web/viewer.html")
