@@ -113,9 +113,9 @@
   },
   "scripts": {
     "build": "bun build src/index.ts --outdir dist --target node",
-    "test": "bun test tests/",
-    "test:fast": "bun test tests/ --timeout 5000",
-    "test:compat": "bun test tests/compat/",
+    "test": "bunx --bun vitest run tests/",
+    "test:fast": "bunx --bun vitest run tests/ --reporter=dot",
+    "test:compat": "bunx --bun vitest run tests/compat/",
     "test:visual": "playwright test",
     "test:visual:update": "playwright test --update-snapshots",
     "bench": "bun run benchmarks/index.ts",
@@ -153,6 +153,7 @@
     "typescript": "^5.5.0",
     "vitepress": "^1.5.0",
     "vitepress-plugin-llms": "^1.0.0",
+    "vitest": "^4.0.18",
     "yoga-wasm-web": "^0.3.3"
   },
   "peerDependencies": {

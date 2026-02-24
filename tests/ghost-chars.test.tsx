@@ -297,7 +297,7 @@ describe("Ghost characters when replacing content", () => {
         .slice(0, 20)
         .map((m) => `  (${m.x},${m.y}): expected="${m.expected}" actual="${m.actual}"`)
         .join("\n")
-      expect.fail(`ANSI replay mismatch: ${mismatches.length} cells differ:\n${details}`)
+      throw new Error(`ANSI replay mismatch: ${mismatches.length} cells differ:\n${details}`)
     }
 
     // Navigate to section C, then back to B
@@ -317,7 +317,7 @@ describe("Ghost characters when replacing content", () => {
         .slice(0, 20)
         .map((m) => `  (${m.x},${m.y}): expected="${m.expected}" actual="${m.actual}"`)
         .join("\n")
-      expect.fail(`ANSI replay mismatch (C→B): ${mismatches2.length} cells differ:\n${details}`)
+      throw new Error(`ANSI replay mismatch (C→B): ${mismatches2.length} cells differ:\n${details}`)
     }
   })
 })

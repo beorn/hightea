@@ -72,7 +72,7 @@ describe("cursor inverse attribute clearing (incremental)", () => {
         incrementalText: bufferToText(incBuf),
         freshText: bufferToText(freshBuf),
       })
-      expect.fail(`Incremental rendering mismatch:\n${msg}`)
+      throw new Error(`Incremental rendering mismatch:\n${msg}`)
     }
   })
 
@@ -108,7 +108,7 @@ describe("cursor inverse attribute clearing (incremental)", () => {
 
     if (mismatch) {
       const msg = formatMismatch(mismatch, { key: "rerender" })
-      expect.fail(`Incremental rendering mismatch:\n${msg}`)
+      throw new Error(`Incremental rendering mismatch:\n${msg}`)
     }
   })
 
@@ -156,7 +156,7 @@ describe("cursor inverse attribute clearing (incremental)", () => {
         incrementalText: bufferToText(incBuf),
         freshText: bufferToText(freshBuf),
       })
-      expect.fail(`Incremental rendering mismatch:\n${msg}`)
+      throw new Error(`Incremental rendering mismatch:\n${msg}`)
     }
   })
 })

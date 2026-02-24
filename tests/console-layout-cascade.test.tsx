@@ -27,7 +27,7 @@ function assertBuffersMatch(app: ReturnType<typeof render>): void {
       incrementalText: bufferToText(current),
       freshText: bufferToText(fresh),
     })
-    expect.fail(`Incremental/fresh mismatch:\n${msg}`)
+    throw new Error(`Incremental/fresh mismatch:\n${msg}`)
   }
 }
 

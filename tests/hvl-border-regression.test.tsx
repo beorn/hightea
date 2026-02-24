@@ -36,7 +36,7 @@ function assertBuffersMatch(app: ReturnType<ReturnType<typeof createRenderer>>, 
       incrementalText: bufferToText(current),
       freshText: bufferToText(fresh),
     })
-    expect.fail(`[${label}] Incremental/fresh mismatch:\n${msg}`)
+    throw new Error(`[${label}] Incremental/fresh mismatch:\n${msg}`)
   }
 }
 
