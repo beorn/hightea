@@ -7,8 +7,8 @@
 
 import { useState } from "react"
 import { describe, expect, it, vi } from "vitest"
-import { Box, Text } from "../../beorn-inkx/src/index.js"
-import type { InkxMouseEvent, InkxWheelEvent } from "../../beorn-inkx/src/mouse-events.js"
+import { Box, Text } from "../src/index.js"
+import type { InkxMouseEvent, InkxWheelEvent } from "../src/mouse-events.js"
 import {
   checkDoubleClick,
   computeEnterLeave,
@@ -19,11 +19,11 @@ import {
   dispatchMouseEvent,
   hitTest,
   processMouseEvent,
-} from "../../beorn-inkx/src/mouse-events.js"
-import { createFocusManager } from "../../beorn-inkx/src/focus-manager.js"
-import { Link } from "../../beorn-inkx/src/components/Link.js"
-import type { InkxNode } from "../../beorn-inkx/src/types.js"
-import { createRenderer } from "../../beorn-inkx/src/testing/index.js"
+} from "../src/mouse-events.js"
+import { createFocusManager } from "../src/focus-manager.js"
+import { Link } from "../src/components/Link.js"
+import type { InkxNode } from "../src/types.js"
+import { createRenderer } from "../src/testing/index.js"
 
 // ============================================================================
 // Unit Tests: Event Creation
