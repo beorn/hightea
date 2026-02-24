@@ -32,10 +32,18 @@ import type { InkxNode } from "./types.js"
 const log = createLogger("inkx:scheduler")
 
 /**
- * Whether synchronized update mode is enabled.
- * Enabled by default. Set INKX_SYNC_UPDATE=0 to disable.
+ * Whether synchronized update mode (DEC 2026) is enabled.
+ *
+ * Disabled by default due to a Ghostty rendering bug where incremental
+ * cursor-positioned updates inside a sync region cause progressive visual
+ * corruption. Works correctly in Kitty. Full renders (bufferToAnsi) work
+ * fine with sync — only incremental diff output (changesToAnsi) triggers it.
+ *
+ * Set INKX_SYNC_UPDATE=1 to force-enable (e.g., for testing in Kitty).
+ * TODO: Re-enable by default once the Ghostty bug is fixed.
+ * See: https://github.com/ghostty-org/ghostty/discussions/PENDING
  */
-const SYNC_UPDATE_ENABLED = process.env.INKX_SYNC_UPDATE !== "0" && process.env.INKX_SYNC_UPDATE !== "false"
+const SYNC_UPDATE_ENABLED = process.env.INKX_SYNC_UPDATE === "1" || process.env.INKX_SYNC_UPDATE === "true"
 
 // ============================================================================
 // Errors
