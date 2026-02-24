@@ -160,6 +160,233 @@ describe("Output Functions", () => {
     })
   })
 
+  describe("changesToAnsi correctness (incremental vs fresh)", () => {
+    /**
+     * Minimal ANSI replay simulator. Takes a character grid and applies ANSI
+     * output to it, handling cursor movement and character writes.
+     * Only supports sequences used by changesToAnsi/bufferToAnsi.
+     */
+    function replayAnsi(width: number, height: number, ansi: string): string[][] {
+      const screen: string[][] = Array.from({ length: height }, () => Array(width).fill(" "))
+      let cx = 0
+      let cy = 0
+      let i = 0
+
+      while (i < ansi.length) {
+        if (ansi[i] === "\x1b") {
+          // CSI sequence: \x1b[...
+          if (ansi[i + 1] === "[") {
+            i += 2
+            // Parse params
+            let params = ""
+            while (i < ansi.length && ansi[i]! >= "0" && ansi[i]! <= "9" || ansi[i] === ";" || ansi[i] === "?" || ansi[i] === ":") {
+              params += ansi[i]
+              i++
+            }
+            const cmd = ansi[i]
+            i++
+
+            if (cmd === "H") {
+              // Cursor position (1-indexed) or home
+              if (params === "") {
+                cx = 0; cy = 0
+              } else {
+                const parts = params.split(";")
+                cy = Math.max(0, (parseInt(parts[0]!) || 1) - 1)
+                cx = Math.max(0, (parseInt(parts[1]!) || 1) - 1)
+              }
+            } else if (cmd === "K") {
+              // Erase to end of line (character content only, ignore style)
+              for (let x = cx; x < width; x++) screen[cy]![x] = " "
+            } else if (cmd === "A") {
+              // Cursor up
+              cy = Math.max(0, cy - (parseInt(params) || 1))
+            } else if (cmd === "B") {
+              // Cursor down
+              cy = Math.min(height - 1, cy + (parseInt(params) || 1))
+            } else if (cmd === "C") {
+              // Cursor forward
+              cx = Math.min(width - 1, cx + (parseInt(params) || 1))
+            } else if (cmd === "D") {
+              // Cursor backward
+              cx = Math.max(0, cx - (parseInt(params) || 1))
+            } else if (cmd === "G") {
+              // Cursor to column (1-indexed)
+              cx = Math.max(0, (parseInt(params) || 1) - 1)
+            } else if (cmd === "J") {
+              // Erase display
+              if (params === "2") {
+                for (let y = 0; y < height; y++)
+                  for (let x = 0; x < width; x++) screen[y]![x] = " "
+              }
+            }
+            // Skip other CSI sequences (SGR 'm', mouse modes 'h'/'l', etc.)
+          } else if (ansi[i + 1] === "]") {
+            // OSC sequence: skip to ST (\x1b\\) or BEL (\x07)
+            i += 2
+            while (i < ansi.length) {
+              if (ansi[i] === "\x1b" && ansi[i + 1] === "\\") { i += 2; break }
+              if (ansi[i] === "\x07") { i++; break }
+              i++
+            }
+          } else {
+            i += 2 // Skip unknown escape
+          }
+        } else if (ansi[i] === "\r") {
+          cx = 0
+          i++
+        } else if (ansi[i] === "\n") {
+          cy = Math.min(height - 1, cy + 1)
+          i++
+        } else {
+          // Regular character
+          if (cy < height && cx < width) {
+            screen[cy]![cx] = ansi[i]!
+            cx++
+          }
+          i++
+        }
+      }
+      return screen
+    }
+
+    function screenToText(screen: string[][]): string {
+      return screen.map((row) => row.join("")).join("\n")
+    }
+
+    test("incremental diff produces same screen as fresh render", () => {
+      // Buffer 1: initial state
+      const buf1 = new TerminalBuffer(20, 4)
+      for (let x = 0; x < 10; x++) buf1.setCell(x, 0, { char: "A" })
+      for (let x = 0; x < 15; x++) buf1.setCell(x, 1, { char: "B" })
+      for (let x = 0; x < 20; x++) buf1.setCell(x, 2, { char: "C" })
+      for (let x = 0; x < 5; x++) buf1.setCell(x, 3, { char: "D" })
+
+      // Buffer 2: changed state (different content, some rows moved)
+      const buf2 = new TerminalBuffer(20, 4)
+      for (let x = 0; x < 8; x++) buf2.setCell(x, 0, { char: "X" })
+      for (let x = 0; x < 15; x++) buf2.setCell(x, 1, { char: "B" }) // unchanged
+      for (let x = 0; x < 12; x++) buf2.setCell(x, 2, { char: "Y" })
+      for (let x = 0; x < 20; x++) buf2.setCell(x, 3, { char: "Z" })
+
+      // Replay initial render through virtual terminal
+      const freshBuf1 = outputPhase(null, buf1)
+      const screen1 = replayAnsi(20, 4, freshBuf1)
+
+      // Apply incremental diff to screen1
+      const incrAnsi = outputPhase(buf1, buf2)
+      const screenIncr = replayAnsi(20, 4, freshBuf1 + incrAnsi)
+
+      // Fresh render of buf2
+      const freshBuf2 = outputPhase(null, buf2)
+      const screenFresh = replayAnsi(20, 4, freshBuf2)
+
+      expect(screenToText(screenIncr)).toBe(screenToText(screenFresh))
+    })
+
+    test("incremental diff handles row shortening correctly", () => {
+      // Row that was full now has fewer characters
+      const buf1 = new TerminalBuffer(10, 2)
+      for (let x = 0; x < 10; x++) buf1.setCell(x, 0, { char: "F" })
+      for (let x = 0; x < 10; x++) buf1.setCell(x, 1, { char: "G" })
+
+      const buf2 = new TerminalBuffer(10, 2)
+      for (let x = 0; x < 3; x++) buf2.setCell(x, 0, { char: "H" })
+      // Row 1: completely empty
+
+      const fresh1 = outputPhase(null, buf1)
+      const incrAnsi = outputPhase(buf1, buf2)
+      const screenIncr = replayAnsi(10, 2, fresh1 + incrAnsi)
+
+      const fresh2 = outputPhase(null, buf2)
+      const screenFresh = replayAnsi(10, 2, fresh2)
+
+      expect(screenToText(screenIncr)).toBe(screenToText(screenFresh))
+    })
+
+    test("incremental diff handles bg color changes", () => {
+      const buf1 = new TerminalBuffer(10, 2)
+      for (let x = 0; x < 10; x++) buf1.setCell(x, 0, { char: "A", bg: "red" })
+      for (let x = 0; x < 5; x++) buf1.setCell(x, 1, { char: "B" })
+
+      const buf2 = new TerminalBuffer(10, 2)
+      for (let x = 0; x < 10; x++) buf2.setCell(x, 0, { char: "A", bg: "blue" })
+      for (let x = 0; x < 5; x++) buf2.setCell(x, 1, { char: "C" })
+
+      const fresh1 = outputPhase(null, buf1)
+      const incrAnsi = outputPhase(buf1, buf2)
+      const screenIncr = replayAnsi(10, 2, fresh1 + incrAnsi)
+
+      const fresh2 = outputPhase(null, buf2)
+      const screenFresh = replayAnsi(10, 2, fresh2)
+
+      expect(screenToText(screenIncr)).toBe(screenToText(screenFresh))
+    })
+
+    test("incremental diff with board-like layout (mixed bg, cursor highlight)", () => {
+      // Simulates a board TUI: header row with bg, columns with cards,
+      // cursor highlight moving from one card to another
+      const W = 40
+      const H = 10
+      const buf1 = new TerminalBuffer(W, H)
+      // Header row with bg
+      for (let x = 0; x < W; x++) buf1.setCell(x, 0, { char: x < 20 ? "H" : " ", bg: "#333333" })
+      // Column separator at x=20
+      for (let y = 1; y < H; y++) buf1.setCell(20, y, { char: "│" })
+      // Card 1 (highlighted) in left column
+      for (let x = 1; x < 19; x++) buf1.setCell(x, 2, { char: "C", bg: "yellow" })
+      // Card 2 in left column
+      for (let x = 1; x < 19; x++) buf1.setCell(x, 4, { char: "D" })
+      // Card 3 in right column
+      for (let x = 21; x < 39; x++) buf1.setCell(x, 2, { char: "E" })
+
+      // Move cursor highlight from card 1 to card 2
+      const buf2 = new TerminalBuffer(W, H)
+      for (let x = 0; x < W; x++) buf2.setCell(x, 0, { char: x < 20 ? "H" : " ", bg: "#333333" })
+      for (let y = 1; y < H; y++) buf2.setCell(20, y, { char: "│" })
+      // Card 1 (no longer highlighted)
+      for (let x = 1; x < 19; x++) buf2.setCell(x, 2, { char: "C" })
+      // Card 2 (now highlighted)
+      for (let x = 1; x < 19; x++) buf2.setCell(x, 4, { char: "D", bg: "yellow" })
+      // Card 3 unchanged
+      for (let x = 21; x < 39; x++) buf2.setCell(x, 2, { char: "E" })
+
+      const fresh1 = outputPhase(null, buf1)
+      const incrAnsi = outputPhase(buf1, buf2)
+      const screenIncr = replayAnsi(W, H, fresh1 + incrAnsi)
+
+      const fresh2 = outputPhase(null, buf2)
+      const screenFresh = replayAnsi(W, H, fresh2)
+
+      expect(screenToText(screenIncr)).toBe(screenToText(screenFresh))
+    })
+
+    test("incremental diff with scattered single-cell changes", () => {
+      // Sparse changes across multiple rows (worst case for cursor movement)
+      const buf1 = new TerminalBuffer(20, 5)
+      for (let y = 0; y < 5; y++)
+        for (let x = 0; x < 20; x++) buf1.setCell(x, y, { char: "." })
+
+      const buf2 = new TerminalBuffer(20, 5)
+      for (let y = 0; y < 5; y++)
+        for (let x = 0; x < 20; x++) buf2.setCell(x, y, { char: "." })
+      // Scatter a few changed cells
+      buf2.setCell(5, 0, { char: "X" })
+      buf2.setCell(15, 1, { char: "Y" })
+      buf2.setCell(0, 3, { char: "Z" })
+      buf2.setCell(19, 4, { char: "W" })
+
+      const fresh1 = outputPhase(null, buf1)
+      const incrAnsi = outputPhase(buf1, buf2)
+      const screenIncr = replayAnsi(20, 5, fresh1 + incrAnsi)
+
+      const fresh2 = outputPhase(null, buf2)
+      const screenFresh = replayAnsi(20, 5, fresh2)
+
+      expect(screenToText(screenIncr)).toBe(screenToText(screenFresh))
+    })
+  })
+
   describe("ANSI SGR codes", () => {
     test("SGR contains attribute codes", () => {
       expect(ANSI.SGR.bold).toBe(1)
