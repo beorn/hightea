@@ -579,8 +579,8 @@ describe("withCommands", () => {
       })
 
       // Each property access triggers getKeybindings
-      enhanced.cmd.down
-      enhanced.cmd.up
+      void enhanced.cmd.down
+      void enhanced.cmd.up
       const _before = callCount
       enhanced.cmd.all()
 

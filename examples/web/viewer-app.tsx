@@ -849,6 +849,7 @@ function createViewerApp(root: HTMLElement): void {
     void navigator.clipboard.writeText(demo.source).then(() => {
       copyBtn.textContent = "Copied!"
       setTimeout(() => { copyBtn.textContent = "Copy" }, 1500)
+      return undefined
     })
   })
 

@@ -64,8 +64,8 @@ interface Measurement {
 async function gzipSize(data: Uint8Array): Promise<number> {
   const cs = new CompressionStream("gzip")
   const writer = cs.writable.getWriter()
-  writer.write(data)
-  writer.close()
+  void writer.write(data)
+  void writer.close()
 
   let total = 0
   const reader = cs.readable.getReader()
