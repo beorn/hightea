@@ -339,9 +339,11 @@ export function renderScrollIndicators(
 
       // Clear from indicator row to viewport bottom to cover any partially
       // visible child content that renders below the indicator.
+      // Use container's own bg for the clear area — indicator gray only on the bar row.
       const clearHeight = viewportBottom - y
       if (clearHeight > 0) {
-        buffer.fill(x, y, contentWidth, clearHeight, { char: " ", bg: indicatorStyle.bg ?? null })
+        const containerBg = props.backgroundColor ? parseColor(props.backgroundColor) : null
+        buffer.fill(x, y, contentWidth, clearHeight, { char: " ", bg: containerBg })
       }
 
       renderTextLine(buffer, x, y, bar, indicatorStyle)
