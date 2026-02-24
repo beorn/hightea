@@ -3,9 +3,15 @@ title: Building AI Assistants & Chat Apps with inkx
 description: Build terminal-based AI assistants with scrollable output, command palettes, and streaming-friendly rendering using inkx.
 ---
 
+<script setup>
+import LiveDemo from '../.vitepress/components/LiveDemo.vue'
+</script>
+
 # AI Assistants & Chat Interfaces
 
 Terminal-based AI assistants have unique UI requirements: streaming output that grows unpredictably, long conversation history that must scroll, multi-line code pasting, and the ability for AI agents to discover and invoke actions programmatically. inkx handles all of these out of the box.
+
+<LiveDemo xtermSrc="/inkx/examples/showcase.html?demo=ai-chat" :height="450" />
 
 ## Key Benefits
 

@@ -3,9 +3,15 @@ title: Building CLI Wizards & Setup Tools with inkx
 description: Build interactive CLI wizards with multi-step forms, selection lists, progress bars, and focus scopes using inkx.
 ---
 
+<script setup>
+import LiveDemo from '../.vitepress/components/LiveDemo.vue'
+</script>
+
 # CLI Wizards & Setup Tools
 
 Interactive CLI wizards guide users through multi-step configuration, installation, or setup flows. They combine selection prompts, text inputs, progress feedback, and branching logic into a single terminal experience. inkx provides the building blocks for all of this as first-class React components, so you can compose wizard steps the same way you compose any React UI.
+
+<LiveDemo xtermSrc="/inkx/examples/showcase.html?demo=cli-wizard" :height="400" />
 
 ## Why inkx
 

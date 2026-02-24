@@ -3,11 +3,17 @@ title: Building Terminal Dashboards with inkx
 description: Build responsive multi-pane terminal dashboards with real-time data, theming, and flicker-free rendering using inkx.
 ---
 
+<script setup>
+import LiveDemo from '../.vitepress/components/LiveDemo.vue'
+</script>
+
 # Dashboards & Monitoring
 
 Terminal dashboards are one of the most natural fits for inkx. A dashboard is a set of panels competing for screen space, each displaying different data that updates at different rates. The hard part is making panels responsive to the terminal size, updating frequently without flicker, and keeping the layout consistent across different terminal widths.
 
 inkx solves all three problems out of the box. Components query their own dimensions, the incremental renderer only repaints changed cells, and flexbox layout handles the space allocation.
+
+<LiveDemo xtermSrc="/inkx/examples/showcase.html?demo=dashboard" :height="400" />
 
 ## Key Benefits
 

@@ -3,11 +3,17 @@ title: Building Developer Tools with inkx
 description: Build terminal REPLs, log viewers, and debuggers with virtual lists, command palettes, and Playwright-style testing using inkx.
 ---
 
+<script setup>
+import LiveDemo from '../.vitepress/components/LiveDemo.vue'
+</script>
+
 # Building Developer Tools with inkx
 
 Terminal-based developer tools -- REPLs, log viewers, debuggers, profilers -- demand fast rendering of large data streams, responsive keyboard shortcuts, and composable UI panels. inkx provides the primitives to build these tools as React components with real layout feedback, virtualized scrolling, and a testable command system.
 
 Unlike browser-based dev tools, terminal tools run where your code runs. They start instantly, consume minimal resources, and integrate directly with stdin/stdout pipelines. inkx makes building them practical by handling the hard parts: efficient rendering of thousands of lines, keyboard protocol support across terminals, and deterministic testing without a real terminal.
+
+<LiveDemo xtermSrc="/inkx/examples/showcase.html?demo=dev-tools" :height="400" />
 
 ## Key Benefits
 

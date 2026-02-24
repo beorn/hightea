@@ -116,14 +116,41 @@ if (!xtermResult.success) {
   process.exit(1)
 }
 
+// Build showcase app (use-case demos for docs site)
+const showcaseResult = await Bun.build({
+  entrypoints: [join(__dirname, "showcase-app.tsx")],
+  ...sharedOptions,
+})
+
+if (!showcaseResult.success) {
+  console.error("Showcase build failed:")
+  for (const log of showcaseResult.logs) {
+    console.error(log)
+  }
+  process.exit(1)
+}
+
 // Copy built files to VitePress public dir for docs site
 await cp(distDir, docsDistDir, { recursive: true })
+
+// Copy showcase.html to docs public dir
+await cp(join(__dirname, "showcase.html"), join(__dirname, "../../docs/site/public/examples/showcase.html"))
+
+// Copy xterm.css to docs public dir (needed by showcase.html in production)
+await mkdir(join(__dirname, "../../docs/site/public/examples/xterm"), { recursive: true })
+await cp(
+  join(__dirname, "../../node_modules/@xterm/xterm/css/xterm.css"),
+  join(__dirname, "../../docs/site/public/examples/xterm/xterm.css"),
+)
 
 console.log("✓ Built examples/web/dist/canvas-app.js")
 console.log("✓ Built examples/web/dist/dom-app.js")
 console.log("✓ Built examples/web/dist/xterm-app.js")
+console.log("✓ Built examples/web/dist/showcase-app.js")
 console.log("✓ Copied to docs/site/public/examples/dist/")
+console.log("✓ Copied showcase.html to docs/site/public/examples/")
 console.log("\nOpen in browser:")
 console.log("  examples/web/canvas.html")
 console.log("  examples/web/dom.html")
 console.log("  examples/web/xterm.html")
+console.log("  examples/web/showcase.html?demo=dashboard")

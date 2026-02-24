@@ -3,11 +3,17 @@ title: Building Kanban Boards with inkx
 description: Build terminal kanban boards with multi-column layout, spatial focus navigation, scrollable columns, and mouse support using inkx.
 ---
 
+<script setup>
+import LiveDemo from '../.vitepress/components/LiveDemo.vue'
+</script>
+
 # Kanban & Project Boards
 
 Terminal-based kanban boards need multi-column layouts that adapt to the terminal width, independent scrolling per column, two-axis keyboard navigation, and ideally mouse support for quick card selection. inkx provides all of these as built-in primitives, not manual abstractions you wire together yourself.
 
 Other terminal UI frameworks either lack scrollable containers entirely (Ink), require imperative resize callbacks (BubbleTea, Ratatui), or use CSS-like styling that doesn't map naturally to React components (Textual). inkx gives you flexbox layout with `Box`, layout-aware components via `useContentRect()`, and `overflow="scroll"` that just works -- the same mental model as building a web app, but for the terminal.
+
+<LiveDemo xtermSrc="/inkx/examples/showcase.html?demo=kanban" :height="400" />
 
 ## Key Benefits
 

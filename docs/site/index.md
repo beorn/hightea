@@ -48,9 +48,9 @@ import LiveDemo from './.vitepress/components/LiveDemo.vue'
 
 ## See It in Action
 
-Same React component, running in the browser via xterm.js:
+Real inkx components, running live in the browser via xterm.js:
 
-<LiveDemo />
+<LiveDemo xtermSrc="/inkx/examples/showcase.html?demo=dashboard" :height="400" />
 
 ## Build Any Terminal App
 

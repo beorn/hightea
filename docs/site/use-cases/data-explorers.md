@@ -3,9 +3,15 @@ title: Building Data Explorers & Tables with inkx
 description: Build terminal data explorers with sortable tables, virtual lists, responsive layouts, and real-time filtering using inkx.
 ---
 
+<script setup>
+import LiveDemo from '../.vitepress/components/LiveDemo.vue'
+</script>
+
 # Data Explorers & Tables
 
 Terminal data explorers need to handle thousands of rows, resize gracefully across terminal widths, and respond instantly to search queries. inkx provides the primitives that make this straightforward: a `Table` component with column alignment, `VirtualList` for constant-memory rendering of massive datasets, `useContentRect()` for responsive column sizing, and `TextInput` for real-time filtering.
+
+<LiveDemo xtermSrc="/inkx/examples/showcase.html?demo=data-explorer" :height="400" />
 
 ## Key Benefits
 
