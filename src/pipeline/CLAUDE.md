@@ -95,7 +95,9 @@ These five computed values in `renderNodeToBuffer` control the entire incrementa
 layoutChanged = node.layoutChangedThisFrame
 
 // Did the CONTENT AREA change? (excludes border-only paint changes)
-contentAreaAffected = node.contentDirty || layoutChanged || childPositionChanged || node.childrenDirty || node.bgDirty
+// absoluteChildMutated: absolute child had children mount/unmount/reorder, layout change,
+// or child position shift. Forces parent to clear (removes stale overlay pixels in gap areas).
+contentAreaAffected = node.contentDirty || layoutChanged || childPositionChanged || node.childrenDirty || node.bgDirty || absoluteChildMutated
 
 // Should we clear this node's region with inherited bg?
 // Only when: buffer has stale pixels AND content area changed AND no own bg fill
@@ -195,7 +197,11 @@ Nested Text `backgroundColor` is handled separately via `BgSegment` tracking (no
 1. **First pass**: Normal-flow children
 2. **Second pass**: `position="absolute"` children (rendered on top)
 
-Without two-pass, an absolute child rendered before a dirty normal-flow sibling would get its bg wiped by the sibling's `clearNodeRegion`. When any normal-flow sibling is dirty, absolute children in the second pass use `hasPrevBuffer=false` (force repaint) and `ancestorCleared=false`.
+Without two-pass, an absolute child rendered before a dirty normal-flow sibling would get its bg wiped by the sibling's `clearNodeRegion`.
+
+**Second pass always uses `hasPrevBuffer=false, ancestorCleared=false`** for absolute children. The buffer at their position contains first-pass content, not previous-frame content — conceptually a fresh render. This prevents transparent overlays from clearing first-pass content via `parentRegionCleared`.
+
+**Stale overlay pixel cleanup**: When an absolute child's structure changes (children mount/unmount, layout shifts, child positions change), `absoluteChildMutated` triggers the PARENT's `contentAreaAffected=true`. This clears the parent's entire region and forces all normal-flow children to re-render, removing stale overlay pixels from gap areas (positions not covered by any current child). This makes the incremental render match a fresh render. The cost is one full re-render per frame when overlays change — acceptable since overlay changes are user-triggered (dialog open/close) and infrequent.
 
 ## Region Clearing
 

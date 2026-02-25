@@ -369,8 +369,38 @@ function renderNodeToBuffer(
   // than checking current props.backgroundColor — catches bg removal (cyan → undefined)
   // where current value is falsy but stale pixels must still be cleared.
   const textPaintDirty = node.type === "inkx-text" && node.paintDirty
+
+  // absoluteChildMutated: an absolute child had its children added/removed/reordered,
+  // or its layout changed. In the two-pass rendering model (normal-flow first, absolute
+  // second), the cloned buffer contains BOTH first-pass content AND stale overlay pixels
+  // from the previous frame. When an absolute child's content structure changes (e.g.,
+  // a dialog unmounts), its old pixels persist at positions not covered by any current
+  // child. By including this in contentAreaAffected, the parent clears its region
+  // (removing stale overlay pixels in gap areas) and forces normal-flow children to
+  // re-render on the cleared background — matching fresh render behavior.
+  //
+  // Only checked when hasPrevBuffer (incremental mode) and subtreeDirty (a descendant
+  // changed somewhere). The scan is cheap: only direct children are checked.
+  const absoluteChildMutated =
+    hasPrevBuffer &&
+    node.subtreeDirty &&
+    node.children !== undefined &&
+    node.children.some((child) => {
+      const cp = child.props as BoxProps
+      return (
+        cp.position === "absolute" &&
+        (child.childrenDirty || child.layoutChangedThisFrame || hasChildPositionChanged(child))
+      )
+    })
+
   const contentAreaAffected =
-    node.contentDirty || layoutChanged || childPositionChanged || node.childrenDirty || node.bgDirty || textPaintDirty
+    node.contentDirty ||
+    layoutChanged ||
+    childPositionChanged ||
+    node.childrenDirty ||
+    node.bgDirty ||
+    textPaintDirty ||
+    absoluteChildMutated
 
   // subtreeDirtyWithBg: a descendant changed inside a Box with backgroundColor.
   // When a child Text shrinks, trailing chars from the old longer text survive in
@@ -877,15 +907,20 @@ function renderNormalChildren(
       const childProps = child.props as BoxProps
       if (childProps.position !== "absolute") continue
 
-      // ancestorCleared must be false for absolute children in the second pass.
-      // After the first pass, the buffer at the absolute child's position contains
-      // correct normal-flow content (not stale pixels). Propagating ancestorCleared
-      // causes transparent absolute overlays (no backgroundColor) to run
-      // clearNodeRegion, erasing the normal-flow content just painted.
-      // When forceRepaint is true (normal-flow siblings overwrote the absolute
-      // child's previous pixels), hasPrevBuffer=false ensures it re-renders fully
-      // without needing ancestorCleared to trigger clearing.
-      renderNodeToBuffer(child, buffer, scrollOffset, effectiveClipBounds, forceRepaint ? false : childHasPrev, false)
+      // Both hasPrevBuffer and ancestorCleared must be false for absolute children
+      // in the second pass. The buffer at the absolute child's position contains
+      // first-pass content (normal-flow siblings), not "previous frame" content.
+      // This is conceptually a fresh render at the absolute child's position:
+      //
+      // - hasPrevBuffer=false: prevents parentRegionCleared from firing.
+      //   Without this, a transparent overlay (no backgroundColor) that changes
+      //   (contentAreaAffected=true) would clear its entire region, wiping the
+      //   normal-flow content painted in the first pass. On a fresh render,
+      //   hasPrevBuffer=false prevents clearing, so this matches.
+      //
+      // - ancestorCleared=false: prevents transparent descendants from clearing
+      //   their regions, which would also wipe first-pass content.
+      renderNodeToBuffer(child, buffer, scrollOffset, effectiveClipBounds, false, false)
     }
   }
 }
