@@ -280,25 +280,17 @@ function renderNodeToBuffer(
   // Gap space between children belongs to this container, so must re-render.
   const childPositionChanged = hasPrevBuffer && !layoutChanged && hasChildPositionChanged(node)
 
-  // CORRECTNESS CATCH-ALL: Never skip any node in the content phase.
-  //
-  // The dirty flag propagation system has latent bugs where nodes that should
-  // be dirty (due to cursor movement, scroll changes, etc.) aren't properly
-  // marked. With correct dirty flags, we could skip clean nodes for O(1)
-  // content phase. Without them, skipping causes garbled output.
-  //
-  // The old catch-all (!rectEqual(prevLayout, contentRect)) was unreliable:
-  // propagateLayout() syncs prevLayout = contentRect on every frame where
-  // the layout phase runs, breaking the catch-all for subsequent frames.
-  //
-  // Instead of manipulating layoutChanged (which cascades through
-  // contentAreaAffected/parentRegionCleared/skipBgFill), we disable the
-  // skip decision directly. This forces all nodes to re-render while
-  // preserving correct cascade behavior for region clearing and bg fills.
-  //
-  // TODO: Fix dirty flag propagation bugs, then re-enable skipping.
-  // See bead km-inkx.content-phase-skip.
-  const skipFastPath = false
+  // FAST PATH: Skip unchanged subtrees when we have a valid previous buffer.
+  // The cloned buffer already has correct pixels for clean nodes.
+  // INKX_STRICT=1 verifies this by comparing incremental vs fresh renders.
+  const skipFastPath =
+    hasPrevBuffer &&
+    !node.contentDirty &&
+    !node.paintDirty &&
+    !layoutChanged &&
+    !node.subtreeDirty &&
+    !node.childrenDirty &&
+    !childPositionChanged
 
   // Node ID for tracing (only trace named nodes to keep compact)
   const _nodeId = _instrumentEnabled ? ((props.id as string | undefined) ?? "") : ""
@@ -1200,7 +1192,8 @@ function clearExcessArea(
     const border = getBorderSize(parentProps)
     const padding = getPadding(parentProps)
     const parentRight = parent.contentRect.x + parent.contentRect.width - border.right - padding.right
-    const parentBottom = parent.contentRect.y - scrollOffset + parent.contentRect.height - border.bottom - padding.bottom
+    const parentBottom =
+      parent.contentRect.y - scrollOffset + parent.contentRect.height - border.bottom - padding.bottom
     clipRectRight = Math.min(clipRectRight, parentRight)
     clipRectBottom = Math.min(clipRectBottom, parentBottom)
   }
