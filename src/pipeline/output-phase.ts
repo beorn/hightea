@@ -778,8 +778,12 @@ function diffBuffers(prev: TerminalBuffer, next: TerminalBuffer): DiffResult {
     }
   }
 
-  // Handle size growth: add all cells in new areas
-  if (next.width > prev.width) {
+  // Handle size growth: add all cells in new areas.
+  // Width growth covers the right strip (x >= prev.width) for ALL rows.
+  // Height growth covers the bottom strip (y >= prev.height) but only up to
+  // prev.width to avoid double-counting the corner with width growth.
+  const widthGrew = next.width > prev.width
+  if (widthGrew) {
     for (let y = 0; y < next.height; y++) {
       for (let x = prev.width; x < next.width; x++) {
         writeCellChange(diffPool[changeCount]!, x, y, next)
@@ -788,16 +792,23 @@ function diffBuffers(prev: TerminalBuffer, next: TerminalBuffer): DiffResult {
     }
   }
   if (next.height > prev.height) {
+    // When width also grew, only iterate x=0..prev.width (the rest was
+    // already covered by width growth above). Otherwise iterate full width.
+    const xEnd = widthGrew ? prev.width : next.width
     for (let y = prev.height; y < next.height; y++) {
-      for (let x = 0; x < next.width; x++) {
+      for (let x = 0; x < xEnd; x++) {
         writeCellChange(diffPool[changeCount]!, x, y, next)
         changeCount++
       }
     }
   }
 
-  // Handle size shrink: clear cells in old-but-not-new areas
-  if (prev.width > next.width) {
+  // Handle size shrink: clear cells in old-but-not-new areas.
+  // Width shrink covers x >= next.width for the shared height.
+  // Height shrink covers y >= next.height but only up to next.width when
+  // width also shrank, to avoid double-counting the corner.
+  const widthShrank = prev.width > next.width
+  if (widthShrank) {
     for (let y = 0; y < height; y++) {
       for (let x = next.width; x < prev.width; x++) {
         writeEmptyCellChange(diffPool[changeCount]!, x, y)
@@ -806,12 +817,22 @@ function diffBuffers(prev: TerminalBuffer, next: TerminalBuffer): DiffResult {
     }
   }
   if (prev.height > next.height) {
+    // When width also shrank, the corner (x >= next.width, y >= next.height)
+    // was NOT covered by width shrink (which only iterates y < height =
+    // min(prev.height, next.height) = next.height). So iterate full prev.width.
     for (let y = next.height; y < prev.height; y++) {
       for (let x = 0; x < prev.width; x++) {
         writeEmptyCellChange(diffPool[changeCount]!, x, y)
         changeCount++
       }
     }
+  }
+
+  if (changeCount > maxChanges) {
+    throw new Error(
+      `diffBuffers: changeCount ${changeCount} exceeds pool capacity ${maxChanges} ` +
+        `(prev ${prev.width}x${prev.height}, next ${next.width}x${next.height})`,
+    )
   }
 
   diffResult.pool = diffPool
