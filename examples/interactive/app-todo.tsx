@@ -128,8 +128,8 @@ const app = createApp<Record<string, unknown>, State>(
 function TodoItem({ todo, isCursor }: { todo: Todo; isCursor: boolean }) {
   return (
     <Box>
-      <Text color={isCursor ? "cyan" : undefined}>{isCursor ? "› " : "  "}</Text>
-      <Text color={todo.completed ? "green" : undefined} strikethrough={todo.completed}>
+      <Text color={isCursor ? "$primary" : undefined}>{isCursor ? "› " : "  "}</Text>
+      <Text color={todo.completed ? "$success" : undefined} strikethrough={todo.completed}>
         {todo.completed ? "✓" : "○"} {todo.text}
       </Text>
     </Box>

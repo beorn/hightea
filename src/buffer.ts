@@ -602,6 +602,14 @@ export class TerminalBuffer {
       return
     }
 
+    // Write trap for INKX_STRICT mismatch diagnosis
+    const trap = (globalThis as any).__inkx_write_trap
+    if (trap && x === trap.x && y === trap.y) {
+      const char = cell.char ?? " "
+      const stack = new Error().stack?.split("\n").slice(1, 6).join("\n") ?? ""
+      trap.log.push(`  char="${char}" fg=${cell.fg ?? "null"} bg=${cell.bg ?? "null"} dim=${cell.attrs?.dim} ul=${cell.attrs?.underline}\n${stack}`)
+    }
+
     this._dirtyRows[y] = 1
     if (this._minDirtyRow === -1 || y < this._minDirtyRow) this._minDirtyRow = y
     if (y > this._maxDirtyRow) this._maxDirtyRow = y

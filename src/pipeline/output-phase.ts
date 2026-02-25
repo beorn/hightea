@@ -15,6 +15,7 @@ import {
   hasActiveAttrs,
   styleEquals,
 } from "../buffer.js"
+import { IncrementalRenderMismatchError } from "../scheduler.js"
 import { isPrivateUseArea, textSized } from "../text-sizing.js"
 import { graphemeWidth, isTextSizingEnabled } from "../unicode.js"
 import type { CellChange } from "./types.js"
@@ -1626,7 +1627,7 @@ function verifyOutputEquivalence(
           `Column detail around mismatch:\n${colDetails.join("\n")}`
         // eslint-disable-next-line no-console
         console.error(msg)
-        throw new Error(msg)
+        throw new IncrementalRenderMismatchError(msg)
       }
 
       // Check styles
@@ -1649,7 +1650,7 @@ function verifyOutputEquivalence(
           `\n  fresh:       fg=${formatColor(fresh.fg)} bg=${formatColor(fresh.bg)} bold=${fresh.bold} dim=${fresh.dim}`
         // eslint-disable-next-line no-console
         console.error(msg)
-        throw new Error(msg)
+        throw new IncrementalRenderMismatchError(msg)
       }
     }
   }
@@ -1680,7 +1681,7 @@ function verifyAccumulatedOutput(currentBuffer: TerminalBuffer, mode: "fullscree
           `accumulated='${accum.char}' fresh='${fresh.char}'`
         // eslint-disable-next-line no-console
         console.error(msg)
-        throw new Error(msg)
+        throw new IncrementalRenderMismatchError(msg)
       }
 
       const diffs: string[] = []
@@ -1700,7 +1701,7 @@ function verifyAccumulatedOutput(currentBuffer: TerminalBuffer, mode: "fullscree
           diffs.join(", ")
         // eslint-disable-next-line no-console
         console.error(msg)
-        throw new Error(msg)
+        throw new IncrementalRenderMismatchError(msg)
       }
     }
   }

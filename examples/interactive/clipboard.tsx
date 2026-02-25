@@ -55,7 +55,7 @@ const allItems = items.flatMap((group) => group.values.map((value) => ({ categor
 function ListItem({ item, isSelected }: { item: (typeof allItems)[0]; isSelected: boolean }): JSX.Element {
   return (
     <Box paddingX={1}>
-      <Text color={isSelected ? "black" : "white"} backgroundColor={isSelected ? "cyan" : undefined} bold={isSelected}>
+      <Text color={isSelected ? "black" : "white"} backgroundColor={isSelected ? "$primary" : undefined} bold={isSelected}>
         {isSelected ? " > " : "   "}
         {item.value}
       </Text>
@@ -69,11 +69,11 @@ function ListItem({ item, isSelected }: { item: (typeof allItems)[0]; isSelected
 
 function StatusBar({ lastCopied, lastPasted }: { lastCopied: string | null; lastPasted: string | null }): JSX.Element {
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="gray" paddingX={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor="$border" paddingX={1}>
       <Box gap={1}>
         <Text dim>Copied:</Text>
         {lastCopied ? (
-          <Text color="green">{lastCopied}</Text>
+          <Text color="$success">{lastCopied}</Text>
         ) : (
           <Text dim italic>
             nothing yet
@@ -141,9 +141,9 @@ export function ClipboardDemo(): JSX.Element {
 
   return (
     <Box flexDirection="column" padding={1} gap={1}>
-      <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
+      <Box flexDirection="column" borderStyle="round" borderColor="$primary" paddingX={1}>
         <Box marginBottom={1}>
-          <Text bold color="cyan">
+          <Text bold color="$primary">
             Items
           </Text>
           <Text dim>

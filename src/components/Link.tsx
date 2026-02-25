@@ -42,6 +42,8 @@ export interface LinkProps {
   color?: string
   /** Whether to underline the link text (defaults to true) */
   underline?: boolean
+  /** Whether to dim the link text */
+  dim?: boolean
   /** Called when the link is clicked. Use preventDefault() to suppress default navigation. */
   onClick?: (event: InkxMouseEvent) => void
   /** Test ID for locator queries */
@@ -59,9 +61,9 @@ export interface LinkProps {
  * render it as a clickable link. The component also registers an onClick
  * handler for mouse-driven interaction within inkx.
  */
-export function Link({ href, children, color = "blue", underline = true, onClick, testID }: LinkProps) {
+export function Link({ href, children, color = "blue", underline = true, dim, onClick, testID }: LinkProps) {
   return (
-    <Text color={color} underline={underline} onClick={onClick} testID={testID}>
+    <Text color={color} underline={underline} dim={dim} onClick={onClick} testID={testID}>
       {osc8Open(href)}
       {children}
       {OSC8_CLOSE}

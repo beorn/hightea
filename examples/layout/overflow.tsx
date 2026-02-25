@@ -18,7 +18,7 @@ export function OverflowApp() {
     <Box flexDirection="column" padding={1}>
       <Text color="yellow">Title</Text>
 
-      <Box borderStyle="single" borderColor="cyan" height={5} overflow="hidden">
+      <Box borderStyle="single" borderColor="$primary" height={5} overflow="hidden">
         <Box flexDirection="column" flexGrow={1}>
           <Text>Line 1</Text>
           <Text>Line 2</Text>
@@ -30,7 +30,7 @@ export function OverflowApp() {
         </Box>
       </Box>
 
-      <Text color="green">This should NOT be corrupted</Text>
+      <Text color="$success">This should NOT be corrupted</Text>
     </Box>
   )
 }

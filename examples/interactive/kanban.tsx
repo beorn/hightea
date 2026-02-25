@@ -91,7 +91,7 @@ const tagColors: Record<string, string> = {
 }
 
 function Tag({ name }: { name: string }): JSX.Element {
-  const color = tagColors[name] ?? "gray"
+  const color = tagColors[name] ?? "$muted"
   return (
     <Text color={color} dim>
       #{name}
@@ -101,9 +101,9 @@ function Tag({ name }: { name: string }): JSX.Element {
 
 function CardComponent({ card, isSelected }: { card: Card; isSelected: boolean }): JSX.Element {
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor={isSelected ? "cyan" : "gray"} paddingX={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor={isSelected ? "$primary" : "$border"} paddingX={1}>
       {isSelected ? (
-        <Text backgroundColor="cyan" color="black" bold>
+        <Text backgroundColor="$primary" color="black" bold>
           {card.title}
         </Text>
       ) : (
@@ -128,12 +128,12 @@ function ColumnComponent({
   selectedCardIndex: number
 }): JSX.Element {
   return (
-    <Box flexDirection="column" flexGrow={1} borderStyle="single" borderColor={isSelected ? "cyan" : "gray"}>
-      <Box backgroundColor={isSelected ? "cyan" : undefined} paddingX={1}>
-        <Text bold color={isSelected ? "black" : "white"}>
+    <Box flexDirection="column" flexGrow={1} borderStyle="single" borderColor={isSelected ? "$primary" : "$border"}>
+      <Box backgroundColor={isSelected ? "$primary" : undefined} paddingX={1}>
+        <Text bold color={isSelected ? "black" : "$text"}>
           {column.title}
         </Text>
-        <Text color={isSelected ? "black" : "gray"}> ({column.cards.length})</Text>
+        <Text color={isSelected ? "black" : "$muted"}> ({column.cards.length})</Text>
       </Box>
 
       <Box

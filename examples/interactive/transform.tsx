@@ -133,7 +133,7 @@ function TransformSelector({
           <Box key={t.name} paddingX={1}>
             <Text
               color={isSelected ? "black" : "white"}
-              backgroundColor={isSelected ? "cyan" : undefined}
+              backgroundColor={isSelected ? "$primary" : undefined}
               bold={isSelected}
             >
               {isSelected ? " > " : "   "}
@@ -156,7 +156,7 @@ function TextPanel({
   children: React.ReactNode
 }): JSX.Element {
   return (
-    <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="gray" paddingX={1}>
+    <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border" paddingX={1}>
       <Box marginBottom={1}>
         <Text bold color={titleColor}>
           {title}
@@ -190,9 +190,9 @@ export function TransformDemo(): JSX.Element {
   return (
     <Box flexDirection="column" padding={1} gap={1}>
       {/* Transform selector */}
-      <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
+      <Box flexDirection="column" borderStyle="round" borderColor="$primary" paddingX={1}>
         <Box marginBottom={1} gap={1}>
-          <Text bold color="cyan">
+          <Text bold color="$primary">
             Transform
           </Text>
           <Text dim>

@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useCallback } from "react"
-import { render, Box, Text, VirtualList, useInput, useApp, createTerm, type Key } from "../../src/index.js"
+import { render, Box, Text, Divider, VirtualList, useInput, useApp, createTerm, type Key } from "../../src/index.js"
 import { useScrollback } from "../../src/hooks/useScrollback.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
@@ -148,7 +148,7 @@ export function Repl() {
       )}
 
       {/* Separator */}
-      <Text dimColor>{"─".repeat(40)}</Text>
+      <Divider />
 
       {/* Input prompt */}
       <Text>

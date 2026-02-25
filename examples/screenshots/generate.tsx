@@ -21,7 +21,7 @@ import { mkdir } from "node:fs/promises"
 import { dirname, resolve } from "node:path"
 import React, { useState } from "react"
 import { render, createRenderer, ensureEngine, bufferToHTML } from "../../src/testing/index.tsx"
-import { Box, Text, useContentRect, useApp } from "../../src/index.js"
+import { Box, Text, Divider, useContentRect, useApp } from "../../src/index.js"
 import { createScreenshotter } from "../../src/screenshot.js"
 
 // ============================================================================
@@ -64,9 +64,9 @@ function DashboardScreenshot(): JSX.Element {
 
       <Box flexGrow={1} flexDirection="row" gap={1}>
         {/* System Stats pane (selected) */}
-        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="cyan" padding={1}>
+        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$primary" padding={1}>
           <Box marginBottom={1}>
-            <Text bold color="cyan">
+            <Text bold color="$primary">
               System Stats
             </Text>
           </Box>
@@ -74,41 +74,41 @@ function DashboardScreenshot(): JSX.Element {
             <Box flexDirection="row" justifyContent="space-between">
               <Text>CPU Usage</Text>
               <Box>
-                <Text bold color="green">
+                <Text bold color="$success">
                   45%
                 </Text>
-                <Text color="green"> +2%</Text>
+                <Text color="$success"> +2%</Text>
               </Box>
             </Box>
             <Box flexDirection="row" justifyContent="space-between">
               <Text>Memory</Text>
               <Box>
-                <Text bold color="green">
+                <Text bold color="$success">
                   8.2 GB
                 </Text>
-                <Text color="red"> -0.3</Text>
+                <Text color="$error"> -0.3</Text>
               </Box>
             </Box>
             <Box flexDirection="row" justifyContent="space-between">
               <Text>Disk</Text>
-              <Text bold color="green">
+              <Text bold color="$success">
                 234 GB
               </Text>
             </Box>
             <Box flexDirection="row" justifyContent="space-between">
               <Text>Network</Text>
               <Box>
-                <Text bold color="green">
+                <Text bold color="$success">
                   1.2 Mb/s
                 </Text>
-                <Text color="green"> +0.5</Text>
+                <Text color="$success"> +0.5</Text>
               </Box>
             </Box>
           </Box>
         </Box>
 
         {/* Recent Activity pane */}
-        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="gray" padding={1}>
+        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border" padding={1}>
           <Box marginBottom={1}>
             <Text bold color="white">
               Recent Activity
@@ -124,7 +124,7 @@ function DashboardScreenshot(): JSX.Element {
         </Box>
 
         {/* Project Progress pane */}
-        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="gray" padding={1}>
+        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border" padding={1}>
           <Box marginBottom={1}>
             <Text bold color="white">
               Project Progress
@@ -183,8 +183,7 @@ function TaskListScreenshot(): JSX.Element {
   const cursor = 2
 
   const priorityLabels = { high: "P1", medium: "P2", low: "P3" }
-  const priorityColors = { high: "#ff6b6b", medium: "#ffd43b", low: "#69db7c" }
-  const separator = "\u2500"
+  const priorityColors = { high: "red", medium: "yellow", low: "green" }
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -198,7 +197,7 @@ function TaskListScreenshot(): JSX.Element {
         </Text>
       </Box>
 
-      <Box flexGrow={1} flexDirection="column" borderStyle="round" borderColor="blue" overflow="hidden" paddingX={1}>
+      <Box flexGrow={1} flexDirection="column" borderStyle="round" borderColor="$primary" overflow="hidden" paddingX={1}>
         {tasks.map((task, index) => {
           const checkbox = task.completed ? "\u2611" : "\u2610"
           const isSelected = index === cursor
@@ -210,7 +209,7 @@ function TaskListScreenshot(): JSX.Element {
             <Box key={task.id} flexDirection="column">
               {isSelected ? (
                 <Text>
-                  <Text backgroundColor="cyan" color="black">
+                  <Text backgroundColor="$primary" color="black">
                     {" "}
                     {checkbox} {task.title}{" "}
                   </Text>{" "}
@@ -226,7 +225,7 @@ function TaskListScreenshot(): JSX.Element {
                   </Text>
                 </Text>
               )}
-              {showSeparator && <Text dim>{separator.repeat(70)}</Text>}
+              {showSeparator && <Divider />}
             </Box>
           )
         })}
@@ -335,13 +334,13 @@ function KanbanScreenshot(): JSX.Element {
             flexDirection="column"
             flexGrow={1}
             borderStyle="round"
-            borderColor={col.isSelected ? "cyan" : "gray"}
+            borderColor={col.isSelected ? "$primary" : "$border"}
           >
-            <Box backgroundColor={col.isSelected ? "cyan" : undefined} paddingX={1}>
+            <Box backgroundColor={col.isSelected ? "$primary" : undefined} paddingX={1}>
               <Text bold color={col.isSelected ? "black" : "white"}>
                 {col.title}
               </Text>
-              <Text color={col.isSelected ? "black" : "gray"}> ({col.cards.length})</Text>
+              <Text color={col.isSelected ? "black" : "$muted"}> ({col.cards.length})</Text>
             </Box>
 
             <Box flexDirection="column" paddingX={1} flexGrow={1} gap={1}>
@@ -350,11 +349,11 @@ function KanbanScreenshot(): JSX.Element {
                   key={idx}
                   flexDirection="column"
                   borderStyle="round"
-                  borderColor={card.isSelected ? "cyan" : "gray"}
+                  borderColor={card.isSelected ? "$primary" : "$border"}
                   paddingX={1}
                 >
                   {card.isSelected ? (
-                    <Text backgroundColor="cyan" color="black" bold>
+                    <Text backgroundColor="$primary" color="black" bold>
                       {card.title}
                     </Text>
                   ) : (
@@ -430,7 +429,7 @@ function LayoutFeedbackScreenshot(): JSX.Element {
         <LayoutPane title="Detail" color="cyan" grow={1} />
       </Box>
 
-      <Box marginTop={1} borderStyle="single" borderColor="gray" padding={1}>
+      <Box marginTop={1} borderStyle="single" borderColor="$border" padding={1}>
         <Box flexDirection="column">
           <Text bold>useContentRect() — components know their size during render</Text>
           <Text dim>No ResizeObserver, no second render, no layout jank.</Text>

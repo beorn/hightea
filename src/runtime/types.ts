@@ -80,6 +80,8 @@ export interface RuntimeOptions {
   target: RenderTarget
   /** Abort signal for cleanup */
   signal?: AbortSignal
+  /** Render mode: fullscreen (alt screen) or inline (scrollback-compatible) */
+  mode?: "fullscreen" | "inline"
 }
 
 /**
@@ -94,6 +96,9 @@ export interface Runtime {
 
   /** Render a buffer to the target */
   render(buffer: Buffer): void
+
+  /** Report lines written to stdout between renders (inline mode only) */
+  addScrollbackLines(lines: number): void
 
   /** Reset diff state so next render outputs a full frame */
   invalidate(): void

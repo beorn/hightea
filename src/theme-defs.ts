@@ -62,7 +62,7 @@ export interface Theme {
 // Default Themes
 // ============================================================================
 
-/** Nord-inspired dark theme. */
+/** Nord-inspired dark theme (hex). */
 export const defaultDarkTheme: Theme = {
   name: "dark",
   dark: true,
@@ -73,12 +73,12 @@ export const defaultDarkTheme: Theme = {
   success: "#A3BE8C", // Nord green
   surface: "#3B4252", // Nord polar night
   background: "#2E3440", // Nord darker
-  text: "#ECEFF4", // Nord snow
+  text: "white",
   muted: "#6C7A96", // Nord muted
   border: "#4C566A", // Nord border
 }
 
-/** Nord-inspired light theme. */
+/** Nord-inspired light theme (hex). */
 export const defaultLightTheme: Theme = {
   name: "light",
   dark: false,
@@ -92,6 +92,52 @@ export const defaultLightTheme: Theme = {
   text: "#2E3440",
   muted: "#7B88A1",
   border: "#D8DEE9",
+}
+
+/** ANSI16 dark theme — works on any terminal. */
+export const ansi16DarkTheme: Theme = {
+  name: "ansi16-dark",
+  dark: true,
+  primary: "cyan",
+  accent: "magenta",
+  error: "red",
+  warning: "yellow",
+  success: "green",
+  surface: "blackBright",
+  background: "black",
+  text: "white",
+  muted: "gray",
+  border: "gray",
+}
+
+/** ANSI16 light theme — works on any terminal. */
+export const ansi16LightTheme: Theme = {
+  name: "ansi16-light",
+  dark: false,
+  primary: "blue",
+  accent: "magenta",
+  error: "red",
+  warning: "yellow",
+  success: "green",
+  surface: "whiteBright",
+  background: "white",
+  text: "black",
+  muted: "gray",
+  border: "gray",
+}
+
+/** All built-in themes, indexed by name. */
+export const builtinThemes: Record<string, Theme> = {
+  dark: defaultDarkTheme,
+  light: defaultLightTheme,
+  "ansi16-dark": ansi16DarkTheme,
+  "ansi16-light": ansi16LightTheme,
+}
+
+/** Resolve a theme by name (for env var / CLI selection). Defaults to ansi16-dark. */
+export function getThemeByName(name?: string): Theme {
+  if (!name) return ansi16DarkTheme
+  return builtinThemes[name] ?? ansi16DarkTheme
 }
 
 // ============================================================================
@@ -114,4 +160,24 @@ export function resolveThemeColor(color: string | undefined, theme: Theme): stri
   const token = color.slice(1) as ThemeColorKey
   const val = theme[token]
   return typeof val === "string" ? val : color
+}
+
+// ============================================================================
+// Active Theme (module-level for pipeline access)
+// ============================================================================
+
+/**
+ * The currently active theme, set by ThemeProvider during render.
+ * Used by parseColor() to resolve $token strings without React context access.
+ */
+let _activeTheme: Theme = defaultDarkTheme
+
+/** Set the active theme (called by ThemeProvider). */
+export function setActiveTheme(theme: Theme): void {
+  _activeTheme = theme
+}
+
+/** Get the active theme (called by parseColor in render-helpers). */
+export function getActiveTheme(): Theme {
+  return _activeTheme
 }

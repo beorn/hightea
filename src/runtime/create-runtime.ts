@@ -121,7 +121,7 @@ function createEventChannel(signal: AbortSignal): EventChannel {
  * @returns Runtime instance implementing Symbol.dispose
  */
 export function createRuntime(options: RuntimeOptions): Runtime {
-  const { target, signal: externalSignal } = options
+  const { target, signal: externalSignal, mode = "fullscreen" } = options
 
   // Internal abort controller for cleanup
   const controller = new AbortController()
@@ -142,6 +142,9 @@ export function createRuntime(options: RuntimeOptions): Runtime {
 
   // Track previous buffer for diffing
   let prevBuffer: Buffer | null = null
+
+  // Scrollback offset tracking (inline mode only)
+  let scrollbackOffset = 0
 
   // Track if disposed
   let disposed = false
@@ -229,12 +232,20 @@ export function createRuntime(options: RuntimeOptions): Runtime {
     render(buffer: Buffer): void {
       if (disposed) return
 
-      // Compute diff internally
-      const patch = diff(prevBuffer, buffer)
+      // Compute diff internally (inline mode passes scrollback offset and terminal rows)
+      const offset = scrollbackOffset
+      scrollbackOffset = 0 // Consume the offset
+      const termRows = mode === "inline" ? target.getDims().rows : undefined
+      const patch = diff(prevBuffer, buffer, mode, offset, termRows)
       prevBuffer = buffer
 
       // Write to target
       target.write(patch)
+    },
+
+    addScrollbackLines(lines: number): void {
+      if (mode !== "inline" || lines <= 0) return
+      scrollbackOffset += lines
     },
 
     invalidate(): void {

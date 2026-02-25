@@ -20,5 +20,13 @@
 export { ThemeProvider, useTheme } from "./contexts/ThemeContext.js"
 export type { ThemeProviderProps } from "./contexts/ThemeContext.js"
 
-export { defaultDarkTheme, defaultLightTheme, resolveThemeColor } from "./theme-defs.js"
+export {
+  defaultDarkTheme,
+  defaultLightTheme,
+  ansi16DarkTheme,
+  ansi16LightTheme,
+  builtinThemes,
+  getThemeByName,
+  resolveThemeColor,
+} from "./theme-defs.js"
 export type { Theme } from "./theme-defs.js"

@@ -16,7 +16,7 @@
  */
 
 import React, { createContext, useContext } from "react"
-import { defaultDarkTheme, type Theme } from "../theme-defs.js"
+import { defaultDarkTheme, setActiveTheme, type Theme } from "../theme-defs.js"
 
 // ============================================================================
 // Context
@@ -40,6 +40,9 @@ export interface ThemeProviderProps {
  * color props (e.g. `color="$primary"`).
  */
 export function ThemeProvider({ theme, children }: ThemeProviderProps): React.ReactElement {
+  // Set module-level active theme so parseColor() can resolve $token strings
+  // during the content phase without needing React context access.
+  setActiveTheme(theme)
   return React.createElement(ThemeContext.Provider, { value: theme }, children)
 }
 

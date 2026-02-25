@@ -92,14 +92,14 @@ function MessageBubble({ message, width }: { message: Message; width: number }):
   return (
     <Box flexDirection="column" paddingX={1} marginBottom={1} alignItems={isUser ? "flex-end" : "flex-start"}>
       <Box gap={1}>
-        <Text bold color={isUser ? "cyan" : "green"}>
+        <Text bold color={isUser ? "$primary" : "$success"}>
           {isUser ? "You" : "Assistant"}
         </Text>
-        <Text dim>{formatTime(message.timestamp)}</Text>
+        <Text color="$muted">{formatTime(message.timestamp)}</Text>
       </Box>
       <Box
         borderStyle="round"
-        borderColor={isUser ? "cyan" : "green"}
+        borderColor={isUser ? "$primary" : "$success"}
         paddingX={1}
         maxWidth={Math.min(maxContentWidth, 72)}
         flexDirection="column"
@@ -107,7 +107,7 @@ function MessageBubble({ message, width }: { message: Message; width: number }):
         <Text wrap="wrap">
           {message.content}
           {message.streaming ? (
-            <Text color="yellow" bold>
+            <Text color="$warning" bold>
               {" "}
               _
             </Text>
@@ -122,11 +122,11 @@ function MessageBubble({ message, width }: { message: Message; width: number }):
 
 function Header(): JSX.Element {
   return (
-    <Box borderStyle="single" borderColor="magenta" paddingX={2} justifyContent="space-between">
-      <Text bold color="magenta">
+    <Box borderStyle="single" borderColor="$primary" paddingX={2} justifyContent="space-between">
+      <Text bold color="$primary">
         inkx AI Chat
       </Text>
-      <Text dim>Powered by VirtualList + useContentRect</Text>
+      <Text color="$muted">Powered by VirtualList + useContentRect</Text>
     </Box>
   )
 }
@@ -134,7 +134,7 @@ function Header(): JSX.Element {
 function StatusBar({ messageCount }: { messageCount: number }): JSX.Element {
   return (
     <Box paddingX={1} justifyContent="space-between">
-      <Text dim>{messageCount} messages</Text>
+      <Text color="$muted">{messageCount} messages</Text>
       <Text dim>
         <Text bold dim>
           Enter
@@ -301,9 +301,9 @@ function Chat(): JSX.Element {
         <MessageArea messages={messages} scrollIndex={scrollIndex} width={width} />
       </Box>
 
-      <Box borderStyle="single" borderColor={isStreaming ? "yellow" : "cyan"} paddingX={1}>
+      <Box borderStyle="single" borderColor={isStreaming ? "$warning" : "$primary"} paddingX={1}>
         {isStreaming ? (
-          <Text color="yellow" italic>
+          <Text color="$warning" italic>
             Assistant is typing...
           </Text>
         ) : (

@@ -132,7 +132,7 @@ const items: Item[] = [
 function SearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <Box>
-      <Text bold color="cyan">
+      <Text bold color="$primary">
         Search:{" "}
       </Text>
       <Text>{value}</Text>

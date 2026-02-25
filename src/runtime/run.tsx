@@ -86,6 +86,15 @@ export interface RunOptions {
    */
   mouse?: boolean
   /**
+   * Render mode: fullscreen (alt screen, default) or inline (scrollback-compatible).
+   * In inline mode:
+   * - No screen clear or alt screen buffer
+   * - Content auto-sizes to height (no terminal-height constraint)
+   * - useScrollback() works correctly (cursor displacement tracked)
+   * - Exit restores cursor and moves to end (no alt screen restore)
+   */
+  mode?: "fullscreen" | "inline"
+  /**
    * Enable Kitty text sizing protocol (OSC 66) for PUA characters.
    * When enabled, nerdfont/powerline icons are measured as 2-wide and
    * wrapped in OSC 66 sequences so the terminal renders them at the
@@ -281,6 +290,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     kitty: kittyOption,
     mouse: mouseOption = false,
     textSizing: textSizingOption,
+    mode: modeOption = "fullscreen",
   } = options
 
   const headless = explicitCols != null && explicitRows != null && !explicitStdout
@@ -356,7 +366,9 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 
     // Execute render pipeline
     const dims = runtime.getDims()
-    const { buffer: termBuffer } = executeRender(rootNode, dims.cols, dims.rows, null)
+    // Inline mode: use NaN height so layout engine auto-sizes to content
+    const height = modeOption === "inline" ? NaN : dims.rows
+    const { buffer: termBuffer } = executeRender(rootNode, dims.cols, height, null)
 
     return createBuffer(termBuffer, rootNode)
   }
@@ -497,7 +509,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
       }
 
   // Create runtime
-  const runtime = createRuntime({ target, signal })
+  const runtime = createRuntime({ target, signal, mode: modeOption })
 
   // Exit function
   const exit = () => {
@@ -556,7 +568,13 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
   const wrappedElement = (
     <TermContext.Provider value={mockTerm}>
       <AppContext.Provider value={{ exit }}>
-        <StdoutContext.Provider value={{ stdout: mockStdout, write: () => {} }}>
+        <StdoutContext.Provider
+          value={{
+            stdout: mockStdout,
+            write: () => {},
+            notifyScrollback: (lines: number) => runtime.addScrollbackLines(lines),
+          }}
+        >
           <FocusManagerContext.Provider value={focusManager}>
             <RuntimeContext.Provider value={runtimeContextValue}>
               <PasteContext.Provider value={pasteContextValue}>
@@ -572,9 +590,13 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
   // Initial render (synchronous, not batched)
   currentBuffer = doRender()
 
-  // Clear screen and hide cursor
+  // Setup terminal: fullscreen clears screen, inline just hides cursor
   if (!headless) {
-    stdout.write("\x1b[2J\x1b[H\x1b[?25l")
+    if (modeOption === "inline") {
+      stdout.write("\x1b[?25l") // Hide cursor only
+    } else {
+      stdout.write("\x1b[2J\x1b[H\x1b[?25l") // Clear screen + home + hide cursor
+    }
 
     // Kitty keyboard protocol
     if (kittyOption != null && kittyOption !== false) {

@@ -216,15 +216,14 @@ function HorizontalVirtualListInner<T>(
   }: HorizontalVirtualListProps<T>,
   ref: React.ForwardedRef<HorizontalVirtualListHandle>,
 ): React.ReactElement {
-  // Check if ALL items fit in the viewport without indicator reservation.
-  // Only reserve space for indicators when overflow actually exists.
-  // This prevents false overflow when items barely fit (e.g., 2×39 + gap=1 = 79 ≤ 80).
+  // Always reserve indicator space when an overflow indicator is configured.
+  // This prevents layout shift: without reservation, the first render uses full width,
+  // then a second render detects overflow and shrinks the viewport by 2 chars,
+  // causing all columns to reflow visibly.
   const totalItemsWidth = calcTotalItemsWidth(items, itemWidth, gap)
   const allItemsFit = totalItemsWidth <= width
   const hasIndicatorRenderer = renderOverflowIndicator != null || overflowIndicator === true
-  const needsIndicatorSpace = hasIndicatorRenderer && !allItemsFit
-
-  const indicatorReserved = needsIndicatorSpace ? overflowIndicatorWidth * 2 : 0
+  const indicatorReserved = hasIndicatorRenderer ? overflowIndicatorWidth * 2 : 0
   const effectiveViewport = Math.max(1, width - indicatorReserved)
 
   // Use shared virtualization hook for scroll state management
@@ -303,10 +302,11 @@ function HorizontalVirtualListInner<T>(
   const overflowBefore = displayScrollOffset
   const overflowAfter = Math.max(0, items.length - displayScrollOffset - visibleCount)
 
-  // Determine which indicators to show
+  // Always render indicators when configured (prevents layout shift).
+  // The renderer receives hiddenCount and decides visual treatment.
   const hasCustomIndicator = renderOverflowIndicator != null
-  const showLeftIndicator = (hasCustomIndicator || overflowIndicator) && overflowBefore > 0
-  const showRightIndicator = (hasCustomIndicator || overflowIndicator) && overflowAfter > 0
+  const showLeftIndicator = hasCustomIndicator || overflowIndicator === true
+  const showRightIndicator = hasCustomIndicator || overflowIndicator === true
 
   return (
     <Box flexDirection="row" width={width} height={height}>

@@ -39,6 +39,7 @@ import { setRenderAdapter } from "../render-adapter.js"
 // Re-export components and hooks for convenience
 export { Box, type BoxProps } from "../components/Box.js"
 export { Text, type TextProps } from "../components/Text.js"
+export { Divider, type DividerProps } from "../components/Divider.js"
 export { useContentRect, useScreenRect } from "../hooks/useLayout.js"
 export { useApp } from "../hooks/useApp.js"
 

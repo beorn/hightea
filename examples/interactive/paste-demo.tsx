@@ -43,11 +43,11 @@ interface PasteEvent {
 function PasteIndicator(): JSX.Element {
   return (
     <Box gap={1} paddingX={1}>
-      <Text color="green" bold>
+      <Text color="$success" bold>
         {"●"}
       </Text>
       <Text>Paste mode:</Text>
-      <Text color="green" bold>
+      <Text color="$success" bold>
         ENABLED
       </Text>
       <Text dim>(bracketed paste is automatic with render())</Text>
@@ -63,12 +63,12 @@ function PasteEventCard({ event, isLatest }: { event: PasteEvent; isLatest: bool
     <Box
       flexDirection="column"
       borderStyle="round"
-      borderColor={isLatest ? "cyan" : "gray"}
+      borderColor={isLatest ? "$primary" : "$border"}
       paddingX={1}
       marginBottom={0}
     >
       <Box justifyContent="space-between">
-        <Text bold color={isLatest ? "cyan" : "white"}>
+        <Text bold color={isLatest ? "$primary" : "white"}>
           Paste #{event.id}
         </Text>
         <Text dim>{event.timestamp}</Text>
@@ -143,9 +143,9 @@ export function PasteDemo(): JSX.Element {
     <Box flexDirection="column" padding={1} gap={1}>
       <PasteIndicator />
 
-      <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
+      <Box flexDirection="column" borderStyle="round" borderColor="$primary" paddingX={1}>
         <Box marginBottom={1}>
-          <Text bold color="cyan">
+          <Text bold color="$primary">
             Paste History
           </Text>
           <Text dim>

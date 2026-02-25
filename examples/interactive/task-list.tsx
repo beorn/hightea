@@ -109,7 +109,7 @@ function TaskItem({
     <Box flexDirection="column">
       <Box>
         {isSelected ? (
-          <Text backgroundColor="cyan" color="black">
+          <Text backgroundColor="$primary" color="black">
             {" "}
             {checkbox} {task.title}{" "}
           </Text>
@@ -252,7 +252,7 @@ export function TaskList(): JSX.Element {
         flexGrow={1}
         flexDirection="column"
         borderStyle="round"
-        borderColor="blue"
+        borderColor="$border"
         overflow="hidden"
         height={visibleCount + 2}
       >

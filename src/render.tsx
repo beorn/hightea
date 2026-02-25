@@ -27,6 +27,7 @@ import {
   leaveAlternateScreen,
   enableKittyKeyboard,
   disableKittyKeyboard,
+  resetWindowTitle,
 } from "./output.js"
 import { createContainer, createFiberRoot, getContainerRoot, reconciler, runWithDiscreteEvent } from "./reconciler.js"
 import { renderStringSync } from "./render-string.js"
@@ -568,6 +569,11 @@ class InkxInstance {
     if (this.stdout.isTTY) {
       disableBracketedPaste(this.stdout)
       this.stdout.write(disableKittyKeyboard())
+    }
+
+    // Reset window title so the terminal reverts to its default
+    if (this.stdout.isTTY) {
+      resetWindowTitle(this.stdout)
     }
 
     // Leave alternate screen if we entered it (leaveAlternateScreen includes

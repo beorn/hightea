@@ -44,11 +44,11 @@ function ContentWithSize({ label }: { label: string }): JSX.Element {
       <Text bold>{label}</Text>
       <Text>
         Content area:{" "}
-        <Text color="green" bold>
+        <Text color="$success" bold>
           {width}
         </Text>
         x
-        <Text color="green" bold>
+        <Text color="$success" bold>
           {height}
         </Text>
       </Text>
@@ -62,10 +62,10 @@ function ContentWithSize({ label }: { label: string }): JSX.Element {
 function BorderPanel({ style, highlight }: { style: StyleVariant; highlight: boolean }): JSX.Element {
   return (
     <Box flexDirection="column" flexGrow={1} gap={1}>
-      <Text bold color={highlight ? "cyan" : "white"}>
+      <Text bold color={highlight ? "$primary" : "white"}>
         borderStyle="{style}"
       </Text>
-      <Box borderStyle={style} borderColor={highlight ? "cyan" : "gray"} width={30} height={9}>
+      <Box borderStyle={style} borderColor={highlight ? "$primary" : "$border"} width={30} height={9}>
         <ContentWithSize label="Border Box" />
       </Box>
       <Text dim>Border adds to layout.</Text>
@@ -77,10 +77,10 @@ function BorderPanel({ style, highlight }: { style: StyleVariant; highlight: boo
 function OutlinePanel({ style, highlight }: { style: StyleVariant; highlight: boolean }): JSX.Element {
   return (
     <Box flexDirection="column" flexGrow={1} gap={1}>
-      <Text bold color={highlight ? "yellow" : "white"}>
+      <Text bold color={highlight ? "$warning" : "white"}>
         outlineStyle="{style}"
       </Text>
-      <Box outlineStyle={style} outlineColor={highlight ? "yellow" : "gray"} width={30} height={9}>
+      <Box outlineStyle={style} outlineColor={highlight ? "$warning" : "$border"} width={30} height={9}>
         <ContentWithSize label="Outline Box" />
       </Box>
       <Text dim>Outline overlaps content.</Text>
@@ -121,7 +121,7 @@ export function OutlineDemo(): JSX.Element {
       <Box gap={1}>
         <Text bold>Style:</Text>
         {STYLES.map((s, i) => (
-          <Text key={s} color={i === styleIndex ? "cyan" : "gray"} bold={i === styleIndex}>
+          <Text key={s} color={i === styleIndex ? "$primary" : "$muted"} bold={i === styleIndex}>
             {i === styleIndex ? `[${s}]` : s}
           </Text>
         ))}

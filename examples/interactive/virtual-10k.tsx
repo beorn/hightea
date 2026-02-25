@@ -22,7 +22,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react"
-import { Box, Text, VirtualList, useContentRect } from "../../src/index.js"
+import { Box, Text, Divider, VirtualList, useContentRect } from "../../src/index.js"
 import { run, useInput, type Key } from "../../src/runtime/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
@@ -193,7 +193,7 @@ function ItemRow({
   const idStr = String(item.id).padStart(5, " ")
 
   return (
-    <Box flexDirection="column" paddingX={1} backgroundColor={isSelected ? "blue" : undefined}>
+    <Box flexDirection="column" paddingX={1} backgroundColor={isSelected ? "$primary" : undefined}>
       <Box>
         <Text color={STATUS_COLORS[item.status]}>{STATUS_ICONS[item.status]}</Text>
         <Text dim> {idStr} </Text>
@@ -234,16 +234,16 @@ function ScrollIndicator({ current, total, width }: { current: number; total: nu
 
   return (
     <Box gap={2} paddingX={1}>
-      <Text bold color="cyan">
+      <Text bold color="$primary">
         {(current + 1).toLocaleString()}
       </Text>
       <Text dim>of</Text>
       <Text bold>{total.toLocaleString()}</Text>
       <Text>
-        <Text color="cyan">{"\u2588".repeat(filled)}</Text>
+        <Text color="$primary">{"\u2588".repeat(filled)}</Text>
         <Text dim>{"\u2591".repeat(empty)}</Text>
       </Text>
-      <Text bold color="cyan">
+      <Text bold color="$primary">
         {percent}%
       </Text>
     </Box>
@@ -369,7 +369,7 @@ function VirtualBenchmark(): JSX.Element {
 
       {/* Separator */}
       <Box paddingX={1}>
-        <Text dim>{"\u2500".repeat(Math.max(1, width - 2))}</Text>
+        <Divider />
       </Box>
 
       {/* Virtual list */}

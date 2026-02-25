@@ -259,3 +259,247 @@ describe("useScrollback", () => {
     expect(app.text).toContain("frozen=1")
   })
 })
+
+// ---------------------------------------------------------------------------
+// Chat agent pattern: useScrollback + dynamic render area
+// ---------------------------------------------------------------------------
+
+interface Exchange {
+  id: number
+  content: string
+  frozen: boolean
+}
+
+function makeExchanges(count: number, frozen = false): Exchange[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i + 1,
+    content: `exchange-${i + 1}`,
+    frozen,
+  }))
+}
+
+function ChatAgent({
+  exchanges,
+  mockStdout,
+  extra,
+}: {
+  exchanges: Exchange[]
+  mockStdout: { write(s: string): boolean }
+  extra?: string
+}) {
+  const frozenCount = useScrollback(exchanges, {
+    frozen: (e) => e.frozen,
+    render: (e) => `[${e.id}] ${e.content}`,
+    stdout: mockStdout,
+  })
+
+  const active = exchanges.filter((e) => !e.frozen)
+
+  return (
+    <Box flexDirection="column">
+      {active.map((e) => (
+        <Text key={e.id}>{e.content}</Text>
+      ))}
+      {extra && <Text>{extra}</Text>}
+      <Text>active={active.length} frozen={frozenCount}</Text>
+    </Box>
+  )
+}
+
+describe("scrollback: chat agent pattern", () => {
+  test("incremental freezing: freeze one at a time", () => {
+    const chunks: string[] = []
+    const mockStdout = {
+      write(data: string) {
+        chunks.push(data)
+        return true
+      },
+    }
+
+    // Start with 5 unfrozen exchanges
+    const exchanges = makeExchanges(5, false)
+
+    const app = render(<ChatAgent exchanges={[...exchanges]} mockStdout={mockStdout} />)
+    expect(app.text).toContain("active=5 frozen=0")
+    expect(chunks).toHaveLength(0)
+
+    // Freeze them one at a time
+    for (let i = 0; i < 5; i++) {
+      exchanges[i]!.frozen = true
+      chunks.length = 0
+
+      app.rerender(<ChatAgent exchanges={[...exchanges]} mockStdout={mockStdout} />)
+
+      // Newly frozen exchange should be written to stdout
+      const output = chunks.join("")
+      expect(output).toContain(`[${i + 1}] exchange-${i + 1}`)
+
+      // Dynamic area should show correct counts
+      expect(app.text).toContain(`active=${5 - (i + 1)} frozen=${i + 1}`)
+
+      // Already-frozen items should NOT appear in the rendered area
+      for (let j = 0; j <= i; j++) {
+        expect(app.text).not.toContain(`exchange-${j + 1}`)
+      }
+    }
+  })
+
+  test("dynamic area stays small after freezing many exchanges", () => {
+    const chunks: string[] = []
+    const mockStdout = {
+      write(data: string) {
+        chunks.push(data)
+        return true
+      },
+    }
+
+    // Create 10 frozen exchanges + 1 active
+    const exchanges: Exchange[] = [
+      ...makeExchanges(10, true),
+      { id: 11, content: "current-work", frozen: false },
+    ]
+
+    const app = render(<ChatAgent exchanges={exchanges} mockStdout={mockStdout} />)
+
+    // Only the active exchange should be in the dynamic render area
+    expect(app.text).toContain("current-work")
+    expect(app.text).toContain("active=1 frozen=10")
+
+    // None of the frozen exchanges should be in the dynamic area
+    for (let i = 1; i <= 10; i++) {
+      expect(app.text).not.toContain(`exchange-${i}`)
+    }
+
+    // All 10 frozen exchanges should have been written to stdout
+    const stdoutOutput = chunks.join("")
+    for (let i = 1; i <= 10; i++) {
+      expect(stdoutOutput).toContain(`[${i}] exchange-${i}`)
+    }
+  })
+
+  test("compaction simulation: freeze all then replace dynamic content", () => {
+    const chunks: string[] = []
+    const mockStdout = {
+      write(data: string) {
+        chunks.push(data)
+        return true
+      },
+    }
+
+    // Start with 5 unfrozen exchanges
+    const exchanges = makeExchanges(5, false)
+    const app = render(<ChatAgent exchanges={[...exchanges]} mockStdout={mockStdout} />)
+    expect(app.text).toContain("active=5 frozen=0")
+
+    // Freeze all at once
+    for (const e of exchanges) e.frozen = true
+    app.rerender(<ChatAgent exchanges={[...exchanges]} mockStdout={mockStdout} />)
+
+    // All should be in stdout
+    const stdoutOutput = chunks.join("")
+    for (let i = 1; i <= 5; i++) {
+      expect(stdoutOutput).toContain(`[${i}] exchange-${i}`)
+    }
+
+    // Dynamic area should show 0 active
+    expect(app.text).toContain("active=0 frozen=5")
+
+    // Now replace dynamic content with recovery message
+    app.rerender(
+      <ChatAgent exchanges={[...exchanges]} mockStdout={mockStdout} extra="Context recovered" />,
+    )
+
+    expect(app.text).toContain("Context recovered")
+    expect(app.text).toContain("active=0 frozen=5")
+  })
+
+  test("unicode content in scrollback: emoji, CJK, combining chars", () => {
+    const chunks: string[] = []
+    const mockStdout = {
+      write(data: string) {
+        chunks.push(data)
+        return true
+      },
+    }
+
+    const exchanges: Exchange[] = [
+      { id: 1, content: "Fix bug 🔧🐛✅", frozen: true },
+      { id: 2, content: "日本語テスト", frozen: true },
+      { id: 3, content: "café résumé naïve", frozen: true },
+      { id: 4, content: "active task", frozen: false },
+    ]
+
+    const app = render(<ChatAgent exchanges={exchanges} mockStdout={mockStdout} />)
+
+    const stdoutOutput = chunks.join("")
+    expect(stdoutOutput).toContain("[1] Fix bug 🔧🐛✅")
+    expect(stdoutOutput).toContain("[2] 日本語テスト")
+    expect(stdoutOutput).toContain("[3] café résumé naïve")
+    expect(stdoutOutput).not.toContain("active task")
+
+    // Dynamic area should only show the active exchange
+    expect(app.text).toContain("active task")
+    expect(app.text).toContain("active=1 frozen=3")
+  })
+
+  test("many items performance: freeze 200 items in a single batch", () => {
+    const chunks: string[] = []
+    const mockStdout = {
+      write(data: string) {
+        chunks.push(data)
+        return true
+      },
+    }
+
+    const exchanges = makeExchanges(200, true)
+    const app = render(<ChatAgent exchanges={exchanges} mockStdout={mockStdout} />)
+
+    // All 200 should be written to stdout
+    const stdoutOutput = chunks.join("")
+    for (let i = 1; i <= 200; i++) {
+      expect(stdoutOutput).toContain(`[${i}] exchange-${i}`)
+    }
+
+    // Component should render without error, showing 0 active
+    expect(app.text).toContain("active=0 frozen=200")
+  })
+
+  test("re-render stability: frozen items are not re-written to stdout", () => {
+    const chunks: string[] = []
+    const mockStdout = {
+      write(data: string) {
+        chunks.push(data)
+        return true
+      },
+    }
+
+    // Start with 3 frozen + 1 active
+    const exchanges: Exchange[] = [
+      ...makeExchanges(3, true),
+      { id: 4, content: "active-work", frozen: false },
+    ]
+
+    const app = render(<ChatAgent exchanges={exchanges} mockStdout={mockStdout} />)
+
+    // Initial render writes 3 frozen items
+    expect(chunks).toHaveLength(3)
+    const initialOutput = chunks.join("")
+    for (let i = 1; i <= 3; i++) {
+      expect(initialOutput).toContain(`[${i}] exchange-${i}`)
+    }
+
+    // Clear chunks and trigger a re-render with same frozen state but different extra text
+    chunks.length = 0
+    app.rerender(
+      <ChatAgent exchanges={exchanges} mockStdout={mockStdout} extra="status update" />,
+    )
+
+    // No new writes should occur — frozen count hasn't changed
+    expect(chunks).toHaveLength(0)
+
+    // Content should still be correct
+    expect(app.text).toContain("active-work")
+    expect(app.text).toContain("status update")
+    expect(app.text).toContain("active=1 frozen=3")
+  })
+})

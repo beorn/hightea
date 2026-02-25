@@ -25,11 +25,17 @@ import {
   renderStatic,
   Box,
   Text,
+  Spacer,
+  ThemeProvider,
+  useTheme,
+  ansi16DarkTheme,
+  builtinThemes,
   useInput,
   useApp,
   useContentRect,
   createTerm,
   type Key,
+  type Theme,
 } from "../src/index.js"
 
 // =============================================================================
@@ -225,7 +231,7 @@ function highlightLine(line: string): React.ReactNode {
 // Components
 // =============================================================================
 
-function Sidebar({ examples, cursor }: { examples: Example[]; cursor: number }) {
+function Sidebar({ examples, cursor, theme }: { examples: Example[]; cursor: number; theme: Theme }) {
   const { groups, scrollToChild } = useMemo(() => {
     const result: {
       category: string
@@ -254,22 +260,22 @@ function Sidebar({ examples, cursor }: { examples: Example[]; cursor: number }) 
       flexDirection="column"
       width={28}
       borderStyle="round"
-      borderColor="gray"
+      borderColor="$border"
       overflow="scroll"
       scrollTo={scrollToChild}
     >
       {groups.map((group) => (
         <React.Fragment key={group.category}>
           <Box paddingX={1}>
-            <Text bold color={CATEGORY_COLOR[group.category] ?? "white"} dim>
+            <Text bold color={CATEGORY_COLOR[group.category] ?? "$text"} dim>
               {group.category}
             </Text>
           </Box>
           {group.items.map(({ example, globalIdx }) => {
             const selected = globalIdx === cursor
             return (
-              <Box key={example.name} paddingX={1} backgroundColor={selected ? "cyan" : undefined}>
-                <Text color={selected ? "white" : "white"} bold={selected} wrap="truncate">
+              <Box key={example.name} paddingX={1} backgroundColor={selected ? "$primary" : undefined}>
+                <Text color={selected ? "$text" : "$text"} bold={selected} wrap="truncate">
                   {selected ? "\u25B8 " : "  "}
                   {example.name}
                 </Text>
@@ -289,7 +295,7 @@ function padLines(contentLines: string[], totalHeight: number): string[] {
   return [...contentLines, ...Array<string>(totalHeight - contentLines.length).fill("")]
 }
 
-function Preview({ example }: { example: Example }) {
+function Preview({ example, theme }: { example: Example; theme: Theme }) {
   const { width, height } = useContentRect()
   const [lines, setLines] = useState<string[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -320,11 +326,11 @@ function Preview({ example }: { example: Example }) {
 
         // Render in sandboxed static mode — useInput becomes a no-op,
         // useApp gets a stub exit(), no terminal needed.
-        // Keep ANSI codes for full-color preview.
-        const output = await renderStatic(React.createElement(Comp), {
-          width,
-          height,
-        })
+        // Wrap in ThemeProvider so previews pick up the active theme.
+        const output = await renderStatic(
+          React.createElement(ThemeProvider, { theme }, React.createElement(Comp)),
+          { width, height },
+        )
         if (!cancelled) setLines(output.split("\n"))
         return undefined
       })
@@ -387,12 +393,16 @@ function SourceCode({ example }: { example: Example }) {
   )
 }
 
+const THEME_NAMES = Object.keys(builtinThemes)
+
 function Viewer({ examples }: { examples: Example[] }) {
   const { exit } = useApp()
   const [cursor, setCursor] = useState(0)
   const [tab, setTab] = useState<"view" | "source">("view")
   const [running, setRunning] = useState<string | null>(null)
+  const [themeIdx, setThemeIdx] = useState(THEME_NAMES.indexOf("ansi16-dark"))
 
+  const theme = builtinThemes[THEME_NAMES[themeIdx]!]!
   const maxCursor = examples.length - 1
   const selected = examples[cursor]!
 
@@ -406,10 +416,11 @@ function Viewer({ examples }: { examples: Example[] }) {
       const file = new URL(example.file, import.meta.url).pathname
       const proc = Bun.spawn(["bun", "run", file], {
         stdio: ["inherit", "inherit", "inherit"],
+        env: { ...process.env, INKX_THEME: theme.name },
       })
       void proc.exited.then(() => process.exit(0))
     },
-    [examples, exit],
+    [examples, exit, theme.name],
   )
 
   useInput((input: string, key: Key) => {
@@ -440,99 +451,96 @@ function Viewer({ examples }: { examples: Example[] }) {
     if (key.return) {
       runExample(cursor)
     }
+    if (input === "t") {
+      setThemeIdx((i) => (i + 1) % THEME_NAMES.length)
+    }
   })
 
   if (running) {
     return (
-      <Box padding={1}>
-        <Text dim>Launching {running}...</Text>
-      </Box>
+      <ThemeProvider theme={theme}>
+        <Box padding={1}>
+          <Text color="$muted">Launching {running}...</Text>
+        </Box>
+      </ThemeProvider>
     )
   }
 
   const runLabel = selected.category === "Inline" || selected.category === "Runtime" ? "run" : "run interactive"
 
   return (
-    <Box flexDirection="column" flexGrow={1}>
-      {/* Header */}
-      <Text>
-        <Text bold color="yellow">
-          {" inkx"}
-        </Text>
-        <Text dim> examples </Text>
-        <Text dim>
-          ({cursor + 1}/{examples.length})
-        </Text>
-      </Text>
+    <ThemeProvider theme={theme}>
+      <Box flexDirection="column" flexGrow={1}>
+        {/* Header */}
+        <Box paddingX={1}>
+          <Text bold color="$warning">
+            {" inkx"}
+          </Text>
+          <Text color="$muted"> examples </Text>
+          <Text color="$muted">
+            ({cursor + 1}/{examples.length})
+          </Text>
+          <Spacer />
+          <Text color="$muted">
+            theme: <Text color="$primary" bold>{theme.name}</Text>
+          </Text>
+        </Box>
 
-      {/* Main: sidebar + content */}
-      <Box flexDirection="row" flexGrow={1} gap={1}>
-        <Sidebar examples={examples} cursor={cursor} />
+        {/* Main: sidebar + content */}
+        <Box flexDirection="row" flexGrow={1} gap={1}>
+          <Sidebar examples={examples} cursor={cursor} theme={theme} />
 
-        {/* Content area with tabs */}
-        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="gray" overflow="hidden">
-          {/* Info banner */}
-          <Box paddingX={1} flexDirection="column">
-            <Text wrap="truncate">
-              <Text bold>{selected.name}</Text>
-              <Text dim> — {selected.description}</Text>
-            </Text>
-            {selected.features && selected.features.length > 0 && (
-              <Text dim wrap="truncate">
-                {selected.features.join(" · ")}
+          {/* Content area with tabs */}
+          <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border" overflow="hidden">
+            {/* Info banner */}
+            <Box paddingX={1} flexDirection="column">
+              <Text wrap="truncate">
+                <Text bold color="$text">{selected.name}</Text>
+                <Text color="$muted"> — {selected.description}</Text>
               </Text>
+              {selected.features && selected.features.length > 0 && (
+                <Text color="$muted" wrap="truncate">
+                  {selected.features.join(" · ")}
+                </Text>
+              )}
+            </Box>
+
+            {/* Tab bar */}
+            <Box paddingX={1}>
+              <Text>
+                <Text bold={tab === "view"} color={tab === "view" ? "$primary" : "$muted"}>
+                  View
+                </Text>
+                <Text color="$border"> │ </Text>
+                <Text bold={tab === "source"} color={tab === "source" ? "$primary" : "$muted"}>
+                  Source
+                </Text>
+              </Text>
+            </Box>
+
+            {/* Tab content — key forces full teardown on example switch */}
+            {tab === "view" ? (
+              <Box key={selected.file} flexDirection="column" flexGrow={1} overflow="hidden">
+                <Preview example={selected} theme={theme} />
+              </Box>
+            ) : (
+              <SourceCode key={selected.file} example={selected} />
             )}
           </Box>
+        </Box>
 
-          {/* Tab bar */}
-          <Box paddingX={1}>
-            <Text>
-              <Text bold={tab === "view"} color={tab === "view" ? "cyan" : undefined} dim={tab !== "view"}>
-                View
-              </Text>
-              <Text dim> │ </Text>
-              <Text bold={tab === "source"} color={tab === "source" ? "cyan" : undefined} dim={tab !== "source"}>
-                Source
-              </Text>
-            </Text>
-          </Box>
-
-          {/* Tab content — key forces full teardown on example switch */}
-          {tab === "view" ? (
-            <Box key={selected.file} flexDirection="column" flexGrow={1} overflow="hidden">
-              <Preview example={selected} />
-            </Box>
-          ) : (
-            <SourceCode key={selected.file} example={selected} />
-          )}
+        {/* Bottom bar */}
+        <Box paddingX={1}>
+          <Text color="$muted">
+            <Text bold>j</Text>/<Text bold>k</Text> navigate{" "}
+            <Text bold>Tab</Text> {tab === "view" ? "source" : "view"}{" "}
+            <Text bold>Enter</Text> {runLabel}{" "}
+            <Text bold>t</Text> theme{" "}
+            <Text bold>q</Text> quit
+          </Text>
         </Box>
       </Box>
-
-      {/* Bottom bar */}
-      <Text>
-        <Text dim> </Text>
-        <Text bold dim>
-          j
-        </Text>
-        <Text dim>/</Text>
-        <Text bold dim>
-          k
-        </Text>
-        <Text dim> navigate </Text>
-        <Text bold dim>
-          Tab
-        </Text>
-        <Text dim> {tab === "view" ? "source" : "view"} </Text>
-        <Text bold dim>
-          Enter
-        </Text>
-        <Text dim> {runLabel} </Text>
-        <Text bold dim>
-          q
-        </Text>
-        <Text dim> quit</Text>
-      </Text>
-    </Box>
+    </ThemeProvider>
   )
 }
 

@@ -642,6 +642,12 @@ import { enableBracketedPaste, disableBracketedPaste, parseBracketedPaste, PASTE
 // Clipboard (OSC 52)
 import { copyToClipboard, requestClipboard, parseClipboardResponse } from "inkx"
 
+// Window title (OSC 0/2)
+import { setWindowTitle, setWindowAndIconTitle, resetWindowTitle } from "inkx"
+
+// Palette colors (OSC 4)
+import { queryPaletteColor, setPaletteColor, parsePaletteResponse, queryMultiplePaletteColors } from "inkx"
+
 // Image rendering
 import { Image, encodeKittyImage, deleteKittyImage, isKittyGraphicsSupported } from "inkx"
 import { encodeSixel, isSixelSupported } from "inkx"

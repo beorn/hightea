@@ -291,7 +291,15 @@ export { TermContext, EventsContext, FocusManagerContext } from "./context.js"
 // Theming
 export { ThemeProvider, useTheme } from "./contexts/ThemeContext.js"
 export type { ThemeProviderProps } from "./contexts/ThemeContext.js"
-export { defaultDarkTheme, defaultLightTheme, resolveThemeColor } from "./theme-defs.js"
+export {
+  defaultDarkTheme,
+  defaultLightTheme,
+  ansi16DarkTheme,
+  ansi16LightTheme,
+  builtinThemes,
+  getThemeByName,
+  resolveThemeColor,
+} from "./theme-defs.js"
 export type { Theme } from "./theme-defs.js"
 
 // =============================================================================
@@ -393,6 +401,9 @@ export {
   notifyITerm2,
   notifyKitty,
   reportDirectory,
+  setWindowTitle,
+  setWindowAndIconTitle,
+  resetWindowTitle,
 } from "./output.js"
 
 // Bracketed paste mode (DEC private mode 2004)
@@ -407,6 +418,9 @@ export type { BracketedPasteResult } from "./bracketed-paste.js"
 
 // OSC 52 clipboard support
 export { copyToClipboard, requestClipboard, parseClipboardResponse } from "./clipboard.js"
+
+// OSC 4 palette color query/set
+export { queryPaletteColor, setPaletteColor, parsePaletteResponse, queryMultiplePaletteColors } from "./osc-palette.js"
 
 // Kitty protocol detection
 export { detectKittySupport, detectKittyFromStdio, type KittyDetectResult } from "./kitty-detect.js"

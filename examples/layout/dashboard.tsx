@@ -39,9 +39,9 @@ interface PaneProps {
 
 function Pane({ title, isSelected, children }: PaneProps): JSX.Element {
   return (
-    <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor={isSelected ? "cyan" : "gray"} padding={1}>
+    <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor={isSelected ? "$primary" : "$border"} padding={1}>
       <Box marginBottom={1}>
-        <Text bold color={isSelected ? "cyan" : "white"}>
+        <Text bold color={isSelected ? "$primary" : "white"}>
           {title}
         </Text>
       </Box>
@@ -57,10 +57,10 @@ function StatsList({ stats }: { stats: StatItem[] }): JSX.Element {
         <Box key={index} flexDirection="row" justifyContent="space-between">
           <Text>{stat.label}</Text>
           <Box>
-            <Text bold color="green">
+            <Text bold color="$success">
               {stat.value}
             </Text>
-            {stat.change && <Text color={stat.change.startsWith("+") ? "green" : "red"}> {stat.change}</Text>}
+            {stat.change && <Text color={stat.change.startsWith("+") ? "$success" : "$error"}> {stat.change}</Text>}
           </Box>
         </Box>
       ))}

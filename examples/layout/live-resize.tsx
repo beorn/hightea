@@ -217,7 +217,7 @@ function CodeSnippet({ width }: { width: number }): JSX.Element {
   }
 
   return (
-    <Box flexDirection="column" borderStyle="single" borderColor="gray" paddingX={1}>
+    <Box flexDirection="column" borderStyle="single" borderColor="$border" paddingX={1}>
       <Text bold color="yellow">
         How it works:
       </Text>

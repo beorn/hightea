@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react"
-import { Box, Text, useContentRect } from "../../src/xterm/index.js"
+import { Box, Text, Divider, useContentRect } from "../../src/xterm/index.js"
 
 // ============================================================================
 // Input Event Bus
@@ -673,9 +673,7 @@ function CodingAgentShowcase(): JSX.Element {
         {activeExchange && (
           <Box flexDirection="column">
             {visibleExchanges.length > 0 && (
-              <Text dim color="#313244">
-                {"─".repeat(60)}
-              </Text>
+              <Divider />
             )}
             <ExchangeBlock ex={activeExchange} animatedTools={animatedTools} />
             {animatedTools <= activeExchange.tools.length && (

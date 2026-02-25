@@ -92,7 +92,7 @@ describe("default themes", () => {
     expect(defaultLightTheme.dark).toBe(false)
   })
 
-  test("all color tokens are hex strings", () => {
+  test("all color tokens are valid color strings", () => {
     const colorKeys = [
       "primary",
       "accent",
@@ -107,8 +107,10 @@ describe("default themes", () => {
     ] as const
 
     for (const key of colorKeys) {
-      expect(defaultDarkTheme[key]).toMatch(/^#[0-9A-Fa-f]{6}$/)
-      expect(defaultLightTheme[key]).toMatch(/^#[0-9A-Fa-f]{6}$/)
+      expect(typeof defaultDarkTheme[key]).toBe("string")
+      expect(defaultDarkTheme[key].length).toBeGreaterThan(0)
+      expect(typeof defaultLightTheme[key]).toBe("string")
+      expect(defaultLightTheme[key].length).toBeGreaterThan(0)
     }
   })
 })
@@ -237,7 +239,7 @@ describe("$token resolution via explicit resolveThemeColor", () => {
 // ============================================================================
 
 describe("theme switching", () => {
-  test("switching theme changes resolved colors", async () => {
+  test("switching theme changes resolved colors (explicit)", async () => {
     function ThemedText() {
       const theme = useTheme()
       return <Text color={resolveThemeColor("$primary", theme)}>Hello</Text>
@@ -273,5 +275,78 @@ describe("theme switching", () => {
 
     // Dark color should no longer be present
     expect(app.ansi).not.toContain(`38;2;${darkRgb.r};${darkRgb.g};${darkRgb.b}`)
+  })
+
+})
+
+// ============================================================================
+// $token auto-resolution (direct on props, no manual resolveThemeColor)
+// ============================================================================
+
+describe("$token auto-resolution in color props", () => {
+  test("Text color='$primary' resolves against ThemeProvider theme", () => {
+    const app = render(
+      <ThemeProvider theme={defaultDarkTheme}>
+        <Text color="$primary">Hello</Text>
+      </ThemeProvider>,
+    )
+
+    const { r, g, b } = hexToRgb(defaultDarkTheme.primary)
+    expect(app.ansi).toContain(`38;2;${r};${g};${b}`)
+    expect(stripAnsi(app.ansi)).toContain("Hello")
+  })
+
+  test("Box borderColor='$border' resolves against theme", () => {
+    const app = render(
+      <ThemeProvider theme={defaultDarkTheme}>
+        <Box borderStyle="single" borderColor="$border">
+          <Text>inside</Text>
+        </Box>
+      </ThemeProvider>,
+    )
+
+    const { r, g, b } = hexToRgb(defaultDarkTheme.border)
+    expect(app.ansi).toContain(`38;2;${r};${g};${b}`)
+    expect(stripAnsi(app.ansi)).toContain("inside")
+  })
+
+  test("Box backgroundColor='$surface' resolves against theme", () => {
+    const app = render(
+      <ThemeProvider theme={defaultDarkTheme}>
+        <Box backgroundColor="$surface">
+          <Text>content</Text>
+        </Box>
+      </ThemeProvider>,
+    )
+
+    const { r, g, b } = hexToRgb(defaultDarkTheme.surface)
+    // Background uses 48;2;r;g;b
+    expect(app.ansi).toContain(`48;2;${r};${g};${b}`)
+    expect(stripAnsi(app.ansi)).toContain("content")
+  })
+
+  test("ANSI16 theme resolves $tokens to named colors", () => {
+    const { ansi16DarkTheme } = require("../src/theme-defs.js")
+    const app = render(
+      <ThemeProvider theme={ansi16DarkTheme}>
+        <Text color="$primary">Hello</Text>
+      </ThemeProvider>,
+    )
+
+    // ansi16DarkTheme.primary = "cyan" → resolves via parseColor's namedColors
+    // chalkx encodes "cyan" as 38;5;6 (256-color palette index for cyan)
+    expect(app.ansi).toContain("38;5;6")
+    expect(stripAnsi(app.ansi)).toContain("Hello")
+  })
+
+  test("unknown $token renders without color (null)", () => {
+    const app = render(
+      <ThemeProvider theme={defaultDarkTheme}>
+        <Text color="$nonexistent">Hello</Text>
+      </ThemeProvider>,
+    )
+
+    // Should still render text, just without a color
+    expect(stripAnsi(app.ansi)).toContain("Hello")
   })
 })

@@ -13,6 +13,7 @@
 
 import sliceAnsi from "slice-ansi"
 import type { Color, Style, UnderlineStyle } from "../buffer.js"
+import { getActiveTheme, resolveThemeColor } from "../theme-defs.js"
 import type { BoxProps, TextProps } from "../types.js"
 import { displayWidthAnsi, graphemeWidth, hasAnsi, splitGraphemes } from "../unicode.js"
 import type { BorderChars } from "./types.js"
@@ -48,9 +49,16 @@ const namedColors: Record<string, number> = {
 
 /**
  * Parse color string to Color type.
- * Supports: named colors, hex (#rgb, #rrggbb), rgb(r,g,b)
+ * Supports: $token (theme), named colors, hex (#rgb, #rrggbb), rgb(r,g,b)
  */
 export function parseColor(color: string): Color {
+  // Resolve $token colors against the active theme
+  if (color.startsWith("$")) {
+    const resolved = resolveThemeColor(color, getActiveTheme())
+    if (resolved && resolved !== color) return parseColor(resolved)
+    return null
+  }
+
   if (color in namedColors) {
     return namedColors[color as keyof typeof namedColors]!
   }

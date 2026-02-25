@@ -273,6 +273,36 @@ export function notify(stdout: NodeJS.WriteStream, message: string, opts?: { tit
 }
 
 // ============================================================================
+// Window Title (OSC 0/2)
+// ============================================================================
+
+/**
+ * Set the terminal window title using OSC 2 (window title only).
+ * Does not affect icon title (tab name in some terminals).
+ * Widely supported: xterm, Ghostty, iTerm2, Kitty, WezTerm, Alacritty, foot.
+ */
+export function setWindowTitle(stdout: NodeJS.WriteStream, title: string): void {
+  stdout.write(`${ESC}]2;${title}${BEL}`)
+}
+
+/**
+ * Set both the window title and icon title using OSC 0.
+ * Some terminals treat OSC 0 as equivalent to OSC 2; others also change the
+ * dock/taskbar icon name.
+ */
+export function setWindowAndIconTitle(stdout: NodeJS.WriteStream, title: string): void {
+  stdout.write(`${ESC}]0;${title}${BEL}`)
+}
+
+/**
+ * Reset the terminal window title by sending an empty OSC 2 sequence.
+ * The terminal typically reverts to its default title (shell command, etc.).
+ */
+export function resetWindowTitle(stdout: NodeJS.WriteStream): void {
+  stdout.write(`${ESC}]2;${BEL}`)
+}
+
+// ============================================================================
 // Directory Reporting
 // ============================================================================
 

@@ -31,11 +31,17 @@ export type DiffMode = "fullscreen" | "inline"
  * process.stdout.write(patch)
  * ```
  */
-export function diff(prev: Buffer | null, next: Buffer, mode: DiffMode = "fullscreen"): string {
+export function diff(
+  prev: Buffer | null,
+  next: Buffer,
+  mode: DiffMode = "fullscreen",
+  scrollbackOffset = 0,
+  termRows?: number,
+): string {
   const prevBuffer = prev?._buffer ?? null
   const nextBuffer = next._buffer
 
-  return outputPhase(prevBuffer, nextBuffer, mode)
+  return outputPhase(prevBuffer, nextBuffer, mode, scrollbackOffset, termRows)
 }
 
 /**

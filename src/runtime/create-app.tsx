@@ -817,6 +817,24 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           const a = termBuffer.getCell(x, y)
           const b = freshBuffer.getCell(x, y)
           if (!cellEquals(a, b)) {
+            // Re-run fresh render with write trap to capture what writes to the mismatched cell
+            let trapInfo = ""
+            const trap = { x, y, log: [] as string[] }
+            ;(globalThis as any).__inkx_write_trap = trap
+            try {
+              executeRender(rootNode, dims.cols, dims.rows, null, {
+                skipLayoutNotifications: true,
+                skipScrollStateUpdates: true,
+              })
+            } catch {
+              // ignore
+            }
+            ;(globalThis as any).__inkx_write_trap = null
+            if (trap.log.length > 0) {
+              trapInfo = `\nWRITE TRAP (${trap.log.length} writes to (${x},${y})):\n${trap.log.join("\n")}\n`
+            } else {
+              trapInfo = `\nWRITE TRAP: NO WRITES to (${x},${y})\n`
+            }
             const incText = bufferToText(termBuffer)
             const freshText = bufferToText(freshBuffer)
             const cellStr = (c: typeof a) =>
@@ -862,6 +880,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
                 }
                 return out
               })() +
+              trapInfo +
               `\n--- incremental ---\n${incText}\n--- fresh ---\n${freshText}`
             // eslint-disable-next-line @typescript-eslint/no-require-imports
             require("node:fs").appendFileSync("/tmp/inkx-perf.log", msg + "\n")
