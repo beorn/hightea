@@ -23,8 +23,13 @@ const DEBUG_OUTPUT = !!process.env.INKX_DEBUG_OUTPUT
 const FULL_RENDER = !!process.env.INKX_FULL_RENDER
 // These use getters so they can be set after module load (e.g., in test files).
 // INKX_STRICT enables buffer + output checks (per-frame).
+// INKX_STRICT_OUTPUT=0 explicitly disables output checking even when INKX_STRICT is set.
 // INKX_STRICT_ACCUMULATE is separate — it replays ALL frames (O(N²)) and is opt-in only.
-function isStrictOutput(): boolean { return !!process.env.INKX_STRICT_OUTPUT || !!process.env.INKX_STRICT }
+function isStrictOutput(): boolean {
+  const outputEnv = process.env.INKX_STRICT_OUTPUT
+  if (outputEnv === "0" || outputEnv === "false") return false
+  return !!outputEnv || !!process.env.INKX_STRICT
+}
 function isStrictAccumulate(): boolean { return !!process.env.INKX_STRICT_ACCUMULATE }
 let accumulatedAnsi = ""
 let accumulateWidth = 0
@@ -573,7 +578,11 @@ function bufferToAnsi(buffer: TerminalBuffer, mode: "fullscreen" | "inline" = "f
         currentStyle = saved
       }
 
-      output += wrapTextSizing(cell.char, cell.wide)
+      // Write character — empty-string chars are treated as space to ensure
+      // the terminal cursor advances (an empty string writes nothing, causing
+      // all subsequent characters on the row to shift left by one column).
+      const char = cell.char || " "
+      output += wrapTextSizing(char, cell.wide)
     }
 
     // Close any open hyperlink at end of row
@@ -954,8 +963,10 @@ function changesToAnsi(
         output += styleTransition(prevStyle, currentStyle)
       }
 
-      // Write character (wrap PUA in OSC 66 when text sizing is enabled)
-      output += wrapTextSizing(cell.char, cell.wide)
+      // Write character — empty-string chars are treated as space to ensure
+      // the terminal cursor advances and cursorX tracking stays correct.
+      const char = cell.char || " "
+      output += wrapTextSizing(char, cell.wide)
       cursorX = x + (cell.wide ? 2 : 1)
       cursorY = y
       lastEmittedX = x
@@ -1558,13 +1569,13 @@ function verifyOutputEquivalence(
           const nc = next.getCell(cx, y)
           const marker = cx === x ? " <<<" : (ic.char !== fc.char ? " !!!" : "")
           colDetails.push(
-            `  col ${cx}: prev='${pc.char}' next='${nc.char}' incr='${ic.char}' fresh='${fc.char}' wide=${nc.wide} cont=${nc.continuation}${marker}`)
+            `  col ${cx}: prev='${pc.char}'(w=${pc.wide},c=${pc.continuation}) next='${nc.char}' incr='${ic.char}' fresh='${fc.char}' wide=${nc.wide} cont=${nc.continuation}${marker}`)
         }
         const msg =
           `INKX_STRICT_OUTPUT char mismatch at (${x},${y}): ` +
           `incremental='${incr.char}' fresh='${fresh.char}'\n` +
-          `  prev buffer cell: char='${prevCell.char}' bg=${prevCell.bg}\n` +
-          `  next buffer cell: char='${nextCell.char}' bg=${nextCell.bg}\n` +
+          `  prev buffer cell: char='${prevCell.char}' bg=${prevCell.bg} wide=${prevCell.wide} cont=${prevCell.continuation}\n` +
+          `  next buffer cell: char='${nextCell.char}' bg=${nextCell.bg} wide=${nextCell.wide} cont=${nextCell.continuation}\n` +
           `Column detail around mismatch:\n${colDetails.join("\n")}`
         // eslint-disable-next-line no-console
         console.error(msg)
