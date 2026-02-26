@@ -830,8 +830,11 @@ function StatusBar({ exchanges, scriptLength, scriptIdx, autoMode, compacting, d
 // Main App
 // ============================================================================
 
-/** How many live turns to keep in the dynamic area before freezing to scrollback. */
-const MAX_LIVE_TURNS = 4
+/** How many live turns to keep in the dynamic area before freezing to scrollback.
+ * Keep this low enough that the dynamic area fits within a single terminal screen
+ * (header + N exchanges + status ≤ terminal rows). Agent exchanges with tool calls
+ * can be 15+ lines, so 2 is safe for 40-row terminals. */
+const MAX_LIVE_TURNS = 2
 
 /** Streaming phases: thinking → streaming text → tool calls → done */
 type StreamPhase = "thinking" | "streaming" | "tools" | "done"
@@ -850,6 +853,14 @@ function CodingAgent({ script, autoStart, fastMode }: {
   const compactingRef = useRef(false)
   const setCompacting = useCallback((v: boolean) => { compactingRef.current = v; _setCompacting(v) }, [])
   const [pendingAdvance, setPendingAdvance] = useState(false)
+
+  // Track terminal height for full-terminal layout (enables proper scrollback)
+  const [termRows, setTermRows] = useState(process.stdout.rows ?? 40)
+  useEffect(() => {
+    const onResize = () => setTermRows(process.stdout.rows ?? 40)
+    process.stdout.on("resize", onResize)
+    return () => { process.stdout.off("resize", onResize) }
+  }, [])
 
   // Streaming state
   const [streamPhase, setStreamPhase] = useState<StreamPhase>("done")
@@ -1068,67 +1079,57 @@ function CodingAgent({ script, autoStart, fastMode }: {
   const activeExchanges = exchanges.slice(frozenCount)
 
   return (
-    <Box flexDirection="column" gap={1}>
-      {/* Header — title + feature bullets */}
+    <Box flexDirection="column" height={termRows}>
+      {/* Header */}
       <Box flexDirection="column" paddingX={1}>
         <Text bold>Static Scrollback</Text>
-        <Text> </Text>
-        <Text>Coding agent simulation showcasing inkx rendering features:</Text>
-        <Text> {"\u2022"} useScrollback() — frozen turns become real terminal scrollback</Text>
-        <Text> {"\u2022"} renderStringSync() — JSX rendered to styled ANSI strings</Text>
-        <Text> {"\u2022"} mode: "inline" — no alt screen, content flows with terminal</Text>
-        <Text> {"\u2022"} OSC 8 hyperlinks — clickable file paths and URLs in scrollback</Text>
-        <Text> {"\u2022"} OSC 133 markers — Cmd+{"\u2191"}/{"\u2193"} to jump between exchanges</Text>
-        <Text> {"\u2022"} $token theme colors — semantic color tokens resolved at render</Text>
+        {frozenCount > 0 ? (
+          <Text color="$muted" dim>{"\u2191"} {frozenCount} in scrollback (Cmd+{"\u2191"}/{"\u2193"} to navigate)</Text>
+        ) : (
+          <Text color="$muted" dim>useScrollback + inline mode + OSC 8 links + OSC 133 markers + $token theming</Text>
+        )}
       </Box>
 
-      {/* Scrollback marker */}
-      {frozenCount > 0 && (
-        <Box paddingX={1}>
-          <Text color="$muted" dim>
-            {"\u2191"} {frozenCount} exchanges in scrollback (Cmd+{"\u2191"}/{"\u2193"} to navigate)
-          </Text>
-        </Box>
-      )}
+      {/* Active exchanges — fills available space */}
+      <Box flexDirection="column" flexGrow={1} gap={1} overflow="hidden">
+        {!compacting &&
+          activeExchanges.map((ex, i) => {
+            const isLatest = i === activeExchanges.length - 1
+            return (
+              <ExchangeView
+                key={ex.id}
+                exchange={ex}
+                streamPhase={isLatest ? streamPhase : "done"}
+                revealFraction={isLatest ? revealFraction : 1}
+                pulse={pulse}
+              />
+            )
+          })}
 
-      {/* Active exchanges */}
-      {!compacting &&
-        activeExchanges.map((ex, i) => {
-          const isLatest = i === activeExchanges.length - 1
-          return (
-            <ExchangeView
-              key={ex.id}
-              exchange={ex}
-              streamPhase={isLatest ? streamPhase : "done"}
-              revealFraction={isLatest ? revealFraction : 1}
-              pulse={pulse}
-            />
-          )
-        })}
+        {/* Compaction in progress */}
+        {compacting && (
+          <Box borderStyle="round" borderColor="$warning" paddingX={1}>
+            <Text color="$warning">
+              <Spinner type="arc" /> Compacting context... freezing all turns to scrollback.
+            </Text>
+          </Box>
+        )}
 
-      {/* Compaction in progress */}
-      {compacting && (
-        <Box borderStyle="round" borderColor="$warning" paddingX={1}>
-          <Text color="$warning">
-            <Spinner type="arc" /> Compacting context... freezing all turns to scrollback.
-          </Text>
-        </Box>
-      )}
+        {/* Done message */}
+        {done && (
+          <Box flexDirection="column" borderStyle="round" borderColor="$success" paddingX={1}>
+            <Text color="$success" bold>✓ Session complete</Text>
+            <Text color="$muted">
+              Scroll up to review — colors, borders, and hyperlinks preserved in scrollback.
+            </Text>
+            <Text color="$muted" dim>
+              Try <Text bold color="$primary">Cmd+↑</Text>/<Text bold color="$primary">Cmd+↓</Text> to jump between exchanges.
+            </Text>
+          </Box>
+        )}
+      </Box>
 
-      {/* Done message */}
-      {done && (
-        <Box flexDirection="column" borderStyle="round" borderColor="$success" paddingX={1}>
-          <Text color="$success" bold>✓ Session complete</Text>
-          <Text color="$muted">
-            Scroll up to review — colors, borders, and hyperlinks preserved in scrollback.
-          </Text>
-          <Text color="$muted" dim>
-            Try <Text bold color="$primary">Cmd+↑</Text>/<Text bold color="$primary">Cmd+↓</Text> to jump between exchanges.
-          </Text>
-        </Box>
-      )}
-
-      {/* Status bar */}
+      {/* Status bar — pinned to bottom */}
       <StatusBar
         exchanges={exchanges}
         scriptLength={script.length}
