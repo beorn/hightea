@@ -557,27 +557,32 @@ function ScrollbackExchange({ exchange }: { exchange: Exchange }): JSX.Element {
   if (exchange.role === "user") {
     return (
       <Box paddingX={1}>
-        <Text dim bold color="$primary">{"❯ "}</Text>
-        <Text dim>{exchange.content}</Text>
-        <Text dim color="$muted">{tokenBadge}</Text>
+        <Text dim>
+          <Text bold color="$primary">{"❯ "}</Text>
+          {exchange.content}
+        </Text>
       </Box>
     )
   }
 
-  // Agent — dimmed tool output for scrollback
+  // Agent — dimmed, compact, left-bar for scrollback
   return (
-    <Box flexDirection="column" paddingLeft={2}>
-      <Box>
-        <Text dim>{exchange.content}</Text>
-        <Text dim color="$muted">{tokenBadge}</Text>
-      </Box>
+    <Box
+      flexDirection="column"
+      borderStyle="bold"
+      borderColor="$muted"
+      borderLeft
+      borderRight={false}
+      borderTop={false}
+      borderBottom={false}
+      paddingLeft={1}
+    >
+      <Text dim>{exchange.content}</Text>
       {exchange.toolCalls?.map((call, i) => (
         <Box key={i} flexDirection="column">
           <Text dim>
-            <Text color={TOOL_COLORS[call.tool] ?? "gray"} bold>
-              {"▸ "}{call.tool}
-            </Text>
-            <Text> </Text>
+            <Text color={TOOL_COLORS[call.tool] ?? "gray"} bold>{"▸ "}{call.tool}</Text>
+            {" "}
             <Link href={`file://${call.args}`} dim>{call.args}</Link>
           </Text>
           <Box flexDirection="column" paddingLeft={4}>
@@ -605,19 +610,13 @@ function renderExchangeToJSX(ex: Exchange): string {
 /** Thinking block — shows with spinner before agent response. */
 function ThinkingBlock({ text, done }: { text: string; done: boolean }): JSX.Element {
   return (
-    <Box flexDirection="column" paddingLeft={2} marginBottom={0}>
-      <Box>
-        {done ? (
-          <Text color="$muted" dim>{"▸ "}</Text>
-        ) : (
-          <Text color="$muted"><Spinner type="dots" /> </Text>
-        )}
-        <Text color="$muted" dim italic>thinking</Text>
-      </Box>
+    <Box flexDirection="column" paddingLeft={2}>
+      <Text color="$muted" dim italic>
+        {done ? "▸ " : <><Spinner type="dots" /> </>}
+        thinking
+      </Text>
       {!done && (
-        <Box paddingLeft={4}>
-          <Text color="$muted" dim wrap="truncate">{text}</Text>
-        </Box>
+        <Text color="$muted" dim wrap="truncate">{"    "}{text}</Text>
       )}
     </Box>
   )
@@ -630,22 +629,22 @@ function ToolCallBlock({ call, phase }: { call: ToolCall; phase: "pending" | "ru
 
   return (
     <Box flexDirection="column" marginTop={0}>
-      <Box>
+      <Text>
         {phase === "running" ? (
-          <Text color={color}><Spinner type="dots" /> </Text>
+          <><Spinner type="dots" /> </>
         ) : phase === "done" ? (
           <Text color="$success">{"✓ "}</Text>
         ) : (
           <Text color="$muted" dim>{"○ "}</Text>
         )}
         <Text color={color} bold>{call.tool}</Text>
-        <Text> </Text>
+        {" "}
         {call.tool === "Bash" || call.tool === "Grep" || call.tool === "Glob" ? (
           <Text color="$muted">{call.args}</Text>
         ) : (
           <Link href={`file://${call.args}`}>{call.args}</Link>
         )}
-      </Box>
+      </Text>
       {phase === "done" && (
         <Box
           flexDirection="column"
@@ -709,17 +708,14 @@ function ExchangeView({ exchange, streamPhase, revealFraction, pulse }: {
 }): JSX.Element {
   if (exchange.role === "system") {
     return (
-      <Box borderStyle="round" borderColor="$warning" paddingX={1}>
+      <Box paddingX={1}>
         <Text color="$warning" italic>{exchange.content}</Text>
       </Box>
     )
   }
 
   const isUser = exchange.role === "user"
-  const outlineColor = isUser ? "$primary" : "$success"
-  const icon = isUser ? "❯" : "◆"
-  const name = isUser ? "You" : "Agent"
-  const labelColor = isUser ? "$primary" : "$success"
+  const outlineColor = "$success"
 
   // Token badge for agent exchanges
   const tokenBadge = exchange.tokens && !isUser && streamPhase === "done"
@@ -732,18 +728,29 @@ function ExchangeView({ exchange, streamPhase, revealFraction, pulse }: {
     ? toolCalls.length
     : 0
 
-  return (
-    <Box flexDirection="column" borderStyle="round" borderColor={outlineColor} paddingX={1}>
-      {/* Header: icon + name + token badge */}
-      <Box>
-        <Text bold color={labelColor}>
-          <Text dimColor={!pulse && streamPhase !== "done"}>{icon}</Text> {name}
+  if (isUser) {
+    return (
+      <Box paddingX={1}>
+        <Text>
+          <Text bold color="$primary">{"❯ "}</Text>
+          {exchange.content}
         </Text>
-        {tokenBadge && (
-          <Text color="$muted" dim> {tokenBadge}</Text>
-        )}
       </Box>
+    )
+  }
 
+  // Agent exchange — compact left-bar style
+  return (
+    <Box
+      flexDirection="column"
+      borderStyle="bold"
+      borderColor={outlineColor}
+      borderLeft
+      borderRight={false}
+      borderTop={false}
+      borderBottom={false}
+      paddingLeft={1}
+    >
       {/* Thinking block */}
       {exchange.thinking && (streamPhase === "thinking" || streamPhase === "streaming") && (
         <ThinkingBlock text={exchange.thinking} done={streamPhase !== "thinking"} />
@@ -751,18 +758,16 @@ function ExchangeView({ exchange, streamPhase, revealFraction, pulse }: {
 
       {/* Content */}
       {(streamPhase === "streaming" || streamPhase === "tools" || streamPhase === "done") && (
-        <Box paddingLeft={isUser ? 0 : 0} marginTop={0}>
-          <StreamingText
-            fullText={exchange.content}
-            revealFraction={streamPhase === "streaming" ? revealFraction : 1}
-            showCursor={streamPhase === "streaming" && revealFraction < 1}
-          />
-        </Box>
+        <StreamingText
+          fullText={exchange.content}
+          revealFraction={streamPhase === "streaming" ? revealFraction : 1}
+          showCursor={streamPhase === "streaming" && revealFraction < 1}
+        />
       )}
 
       {/* Tool calls */}
       {toolRevealCount > 0 && (
-        <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection="column">
           {toolCalls.map((call, i) => (
             <ToolCallBlock
               key={i}
@@ -778,6 +783,9 @@ function ExchangeView({ exchange, streamPhase, revealFraction, pulse }: {
           ))}
         </Box>
       )}
+
+      {/* Token badge at the end */}
+      {tokenBadge ? <Text color="$muted" dim>{tokenBadge}</Text> : null}
     </Box>
   )
 }
@@ -816,21 +824,14 @@ function StatusBar({ exchanges, scriptLength, scriptIdx, autoMode, compacting, d
   const prgBar = "█".repeat(prgFilled) + "░".repeat(PRG_W - prgFilled)
 
   return (
-    <Box flexDirection="column" paddingX={1}>
-      {/* Row 1: context bar | model */}
-      <Text>
-        <Text color="$muted" dim>ctx </Text>
-        <Text color={ctxColor}>{ctxBar}</Text>
-        <Text color="$muted" dim> {ctxPct}% ({formatTokens(totalTokens)})</Text>
-        {"  "}
-        <Text color="$muted" dim>{MODEL_NAME}</Text>
-      </Text>
-
-      {/* Row 2: elapsed · tokens · cost | help keys | progress */}
+    <Box paddingX={1}>
       <Text>
         <Text color="$primary">{elapsedStr}</Text>
         <Text color="$muted" dim> · {formatTokens(totalTokens)} tokens · {cost}</Text>
         {autoMode && <Text bold color="$warning"> · auto</Text>}
+        <Text color="$muted" dim> · ctx </Text>
+        <Text color={ctxColor}>{ctxBar}</Text>
+        <Text color="$muted" dim> {ctxPct}%</Text>
         {"  "}
         {done ? (
           <Text color="$muted"><Text bold>q</Text> quit</Text>
@@ -838,17 +839,6 @@ function StatusBar({ exchanges, scriptLength, scriptIdx, autoMode, compacting, d
           <Text color="$muted"><Text bold>a</Text> stop  <Text bold>c</Text> compact  <Text bold>q</Text> quit</Text>
         ) : (
           <Text color="$muted"><Text bold>⏎</Text> next  <Text bold>a</Text> auto  <Text bold>c</Text> compact  <Text bold>q</Text> quit</Text>
-        )}
-        {"  "}
-        {compacting ? (
-          <Text color="$warning" bold dimColor={!pulse}>Compacting</Text>
-        ) : done ? (
-          <Text color="$success" bold>Done</Text>
-        ) : (
-          <>
-            <Text color={progressPct >= 1 ? "$success" : "$primary"}>{prgBar}</Text>
-            <Text color="$muted" dim> {progress}/{scriptLength}</Text>
-          </>
         )}
       </Text>
     </Box>
@@ -1097,7 +1087,7 @@ function CodingAgent({ script, autoStart, fastMode }: {
   const activeExchanges = exchanges.slice(frozenCount)
 
   return (
-    <Box flexDirection="column" gap={1} overflow="hidden">
+    <Box flexDirection="column" overflow="hidden">
       {/* Header + scrollback marker */}
       <Box flexDirection="column" paddingX={1}>
         <Text bold color="$primary">inkx</Text>
@@ -1125,23 +1115,18 @@ function CodingAgent({ script, autoStart, fastMode }: {
 
       {/* Compaction in progress */}
       {compacting && (
-        <Box borderStyle="round" borderColor="$warning" paddingX={1}>
+        <Box paddingX={1}>
           <Text color="$warning">
-            <Spinner type="arc" /> Compacting context... freezing all turns to scrollback.
+            <Spinner type="arc" /> Compacting...
           </Text>
         </Box>
       )}
 
       {/* Done message */}
       {done && (
-        <Box flexDirection="column" borderStyle="round" borderColor="$success" paddingX={1}>
-          <Text color="$success" bold>✓ Session complete</Text>
-          <Text color="$muted">
-            Scroll up to review the full conversation — colors, borders, diffs, and hyperlinks are all preserved in terminal scrollback.
-          </Text>
-          <Text color="$muted" dim>
-            Try <Text bold color="$primary">Cmd+↑</Text>/<Text bold color="$primary">Cmd+↓</Text> to jump between exchanges (OSC 133 markers).
-          </Text>
+        <Box paddingX={1}>
+          <Text color="$success" bold>✓ Done</Text>
+          <Text color="$muted" dim> — scroll up to review (Cmd+↑/↓ to navigate)</Text>
         </Box>
       )}
 
