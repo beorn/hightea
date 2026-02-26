@@ -399,7 +399,7 @@ export function generateTheme(primary: AnsiPrimary, dark: boolean): Theme {
  * The currently active theme, set by ThemeProvider during render.
  * Used by parseColor() to resolve $token strings without React context access.
  */
-let _activeTheme: Theme = defaultDarkTheme
+let _activeTheme: Theme = ansi16DarkTheme
 
 /** Set the active theme (called by ThemeProvider). */
 export function setActiveTheme(theme: Theme): void {

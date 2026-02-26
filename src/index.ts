@@ -436,6 +436,12 @@ export { detectKittySupport, detectKittyFromStdio, type KittyDetectResult } from
 // Terminal capability detection
 export { detectTerminalCaps, type TerminalCaps } from "./terminal-caps.js"
 
+// Terminal capability visual test
+export { runTermtest, TERMTEST_SECTIONS, type TermtestSection, type TermtestOptions } from "./termtest.js"
+
+// Output-phase capability configuration (suppress unsupported SGR codes)
+export { setOutputCaps } from "./pipeline/output-phase.js"
+
 // Text sizing protocol (OSC 66) — PUA character width control
 export { textSized, isPrivateUseArea, isTextSizingLikelySupported, detectTextSizingSupport } from "./text-sizing.js"
 
@@ -655,6 +661,8 @@ export {
   // Text sizing state
   setTextSizingEnabled,
   isTextSizingEnabled,
+  // Text-presentation emoji width
+  setTextEmojiWide,
   // Buffer writing
   writeTextToBuffer,
   writeTextTruncated,

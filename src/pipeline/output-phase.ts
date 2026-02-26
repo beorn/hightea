@@ -22,6 +22,33 @@ import type { CellChange } from "./types.js"
 
 const DEBUG_OUTPUT = !!process.env.INKX_DEBUG_OUTPUT
 const FULL_RENDER = !!process.env.INKX_FULL_RENDER
+
+// ============================================================================
+// Terminal Capability Flags (suppress unsupported SGR codes)
+// ============================================================================
+
+import type { TerminalCaps } from "../terminal-caps.js"
+
+/**
+ * Active terminal capabilities for output generation.
+ * Set via setOutputCaps() from the runtime when capabilities are known.
+ * Defaults assume full support (safe for modern terminals).
+ */
+let _caps: Pick<TerminalCaps, "underlineStyles" | "underlineColor" | "colorLevel"> = {
+  underlineStyles: true,
+  underlineColor: true,
+  colorLevel: "truecolor",
+}
+
+/** Configure output-phase capabilities from the detected terminal profile. */
+export function setOutputCaps(
+  caps: Partial<Pick<TerminalCaps, "underlineStyles" | "underlineColor" | "colorLevel">>,
+): void {
+  _caps = { ..._caps, ...caps }
+  // Invalidate caches when caps change
+  sgrCache.clear()
+  transitionCache.clear()
+}
 // These use getters so they can be set after module load (e.g., in test files).
 // INKX_STRICT enables buffer + output checks (per-frame).
 // INKX_STRICT_OUTPUT=0 explicitly disables output checking even when INKX_STRICT is set.
@@ -212,13 +239,18 @@ function styleTransition(oldStyle: Style | null, newStyle: Style): string {
   const oldUlStyle = oa.underlineStyle ?? false
   const newUlStyle = na.underlineStyle ?? false
   if (oldUl !== newUl || oldUlStyle !== newUlStyle) {
-    const sgrSub = underlineStyleToSgr(na.underlineStyle)
-    if (sgrSub !== null && sgrSub !== 0) {
-      codes.push(`4:${sgrSub}`)
-    } else if (newUl) {
-      codes.push("4")
+    if (!_caps.underlineStyles) {
+      // Terminal doesn't support SGR 4:x — fall back to simple SGR 4/24
+      codes.push(newUl || na.underlineStyle ? "4" : "24")
     } else {
-      codes.push("24")
+      const sgrSub = underlineStyleToSgr(na.underlineStyle)
+      if (sgrSub !== null && sgrSub !== 0) {
+        codes.push(`4:${sgrSub}`)
+      } else if (newUl) {
+        codes.push("4")
+      } else {
+        codes.push("24")
+      }
     }
   }
 
@@ -257,8 +289,8 @@ function styleTransition(oldStyle: Style | null, newStyle: Style): string {
     }
   }
 
-  // Underline color
-  if (!colorEquals(oldStyle.underlineColor, newStyle.underlineColor)) {
+  // Underline color (SGR 58/59) — skip for terminals that don't support it
+  if (_caps.underlineColor && !colorEquals(oldStyle.underlineColor, newStyle.underlineColor)) {
     if (newStyle.underlineColor === null || newStyle.underlineColor === undefined) {
       // SGR 59 resets underline color
       codes.push("59")
@@ -1098,12 +1130,17 @@ function styleToAnsi(style: Style): string {
   if (style.attrs.italic) result += ";3"
 
   // Underline: use SGR 4:x if style specified, otherwise simple SGR 4
-  const underlineStyle = style.attrs.underlineStyle
-  const sgrSubparam = underlineStyleToSgr(underlineStyle)
-  if (sgrSubparam !== null && sgrSubparam !== 0) {
-    result += `;4:${sgrSubparam}`
-  } else if (style.attrs.underline) {
-    result += ";4"
+  if (!_caps.underlineStyles) {
+    // Terminal doesn't support SGR 4:x — use simple SGR 4
+    if (style.attrs.underline || style.attrs.underlineStyle) result += ";4"
+  } else {
+    const underlineStyle = style.attrs.underlineStyle
+    const sgrSubparam = underlineStyleToSgr(underlineStyle)
+    if (sgrSubparam !== null && sgrSubparam !== 0) {
+      result += `;4:${sgrSubparam}`
+    } else if (style.attrs.underline) {
+      result += ";4"
+    }
   }
 
   // Use SGR 7 for inverse — lets the terminal correctly swap fg/bg
@@ -1111,8 +1148,8 @@ function styleToAnsi(style: Style): string {
   if (style.attrs.inverse) result += ";7"
   if (style.attrs.strikethrough) result += ";9"
 
-  // Append underline color if specified (SGR 58)
-  if (style.underlineColor !== null && style.underlineColor !== undefined) {
+  // Append underline color if specified (SGR 58) — skip for limited terminals
+  if (_caps.underlineColor && style.underlineColor !== null && style.underlineColor !== undefined) {
     if (typeof style.underlineColor === "number") {
       result += `;58;5;${style.underlineColor}`
     } else {

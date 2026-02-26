@@ -78,6 +78,26 @@ const displayWidthCache = new DisplayWidthCache(10000)
 // ============================================================================
 
 /**
+ * Global flag: when true, text-presentation emoji (⚠, ☑, ⭐) are
+ * measured as 2-wide. Modern terminals (Ghostty, iTerm, Kitty) render
+ * these at emoji width (2 cells). Terminal.app renders 1 cell.
+ * Defaults to true (modern terminal assumption).
+ */
+let _textEmojiWide = true
+
+/**
+ * Set whether text-presentation emoji should be measured as 2-wide.
+ * Call with false for terminals like Terminal.app that render them as 1-wide.
+ * Clears the displayWidth cache since widths change.
+ */
+export function setTextEmojiWide(wide: boolean): void {
+  if (_textEmojiWide === wide) return
+  _textEmojiWide = wide
+  displayWidthCache.clear()
+  textPresentationEmojiCache.clear()
+}
+
+/**
  * Global flag: when true, PUA characters are treated as 2-wide because
  * OSC 66 will tell the terminal to render them in 2 cells.
  */
@@ -295,8 +315,10 @@ export function graphemeWidth(grapheme: string): number {
   const width = stringWidth(grapheme)
   // If string-width already says 2 (or 0), trust it
   if (width !== 1) return width
-  // Check if this is a text-presentation emoji that terminals render wide
-  if (isTextPresentationEmoji(grapheme)) return 2
+  // Check if this is a text-presentation emoji that terminals render wide.
+  // Only override to 2 when the terminal actually renders them wide (_textEmojiWide).
+  // Terminal.app renders these as 1 cell; modern terminals render 2 cells.
+  if (_textEmojiWide && isTextPresentationEmoji(grapheme)) return 2
   // When text sizing is enabled, PUA characters are treated as 2-wide
   // because we'll use OSC 66 to tell the terminal to render them as 2-wide
   if (_textSizingEnabled) {
