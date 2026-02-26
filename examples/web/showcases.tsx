@@ -672,9 +672,7 @@ function CodingAgentShowcase(): JSX.Element {
         {/* Active exchange (animating) */}
         {activeExchange && (
           <Box flexDirection="column">
-            {visibleExchanges.length > 0 && (
-              <Divider />
-            )}
+            {visibleExchanges.length > 0 && <Divider />}
             <ExchangeBlock ex={activeExchange} animatedTools={animatedTools} />
             {animatedTools <= activeExchange.tools.length && (
               <Box paddingX={1}>

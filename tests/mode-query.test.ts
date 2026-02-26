@@ -43,47 +43,27 @@ describe("queryMode", () => {
   })
 
   test("returns 'set' for Ps=1", async () => {
-    const result = await queryMode(
-      createCapture().write,
-      mockRead("\x1b[?1049;1$y"),
-      DecMode.ALT_SCREEN,
-    )
+    const result = await queryMode(createCapture().write, mockRead("\x1b[?1049;1$y"), DecMode.ALT_SCREEN)
     expect(result).toBe("set")
   })
 
   test("returns 'reset' for Ps=2", async () => {
-    const result = await queryMode(
-      createCapture().write,
-      mockRead("\x1b[?1049;2$y"),
-      DecMode.ALT_SCREEN,
-    )
+    const result = await queryMode(createCapture().write, mockRead("\x1b[?1049;2$y"), DecMode.ALT_SCREEN)
     expect(result).toBe("reset")
   })
 
   test("returns 'unknown' for Ps=0 (not recognized)", async () => {
-    const result = await queryMode(
-      createCapture().write,
-      mockRead("\x1b[?9999;0$y"),
-      9999,
-    )
+    const result = await queryMode(createCapture().write, mockRead("\x1b[?9999;0$y"), 9999)
     expect(result).toBe("unknown")
   })
 
   test("returns 'set' for Ps=3 (permanently set)", async () => {
-    const result = await queryMode(
-      createCapture().write,
-      mockRead("\x1b[?25;3$y"),
-      DecMode.CURSOR_VISIBLE,
-    )
+    const result = await queryMode(createCapture().write, mockRead("\x1b[?25;3$y"), DecMode.CURSOR_VISIBLE)
     expect(result).toBe("set")
   })
 
   test("returns 'reset' for Ps=4 (permanently reset)", async () => {
-    const result = await queryMode(
-      createCapture().write,
-      mockRead("\x1b[?25;4$y"),
-      DecMode.CURSOR_VISIBLE,
-    )
+    const result = await queryMode(createCapture().write, mockRead("\x1b[?25;4$y"), DecMode.CURSOR_VISIBLE)
     expect(result).toBe("reset")
   })
 
@@ -93,30 +73,18 @@ describe("queryMode", () => {
   })
 
   test("returns 'unknown' on garbage response", async () => {
-    const result = await queryMode(
-      createCapture().write,
-      mockRead("garbage"),
-      DecMode.ALT_SCREEN,
-    )
+    const result = await queryMode(createCapture().write, mockRead("garbage"), DecMode.ALT_SCREEN)
     expect(result).toBe("unknown")
   })
 
   test("returns 'unknown' when response mode number doesn't match", async () => {
     // Queried 1049 but response says 2004
-    const result = await queryMode(
-      createCapture().write,
-      mockRead("\x1b[?2004;1$y"),
-      DecMode.ALT_SCREEN,
-    )
+    const result = await queryMode(createCapture().write, mockRead("\x1b[?2004;1$y"), DecMode.ALT_SCREEN)
     expect(result).toBe("unknown")
   })
 
   test("parses response embedded in other data", async () => {
-    const result = await queryMode(
-      createCapture().write,
-      mockRead("noise\x1b[?2004;1$yextra"),
-      DecMode.BRACKETED_PASTE,
-    )
+    const result = await queryMode(createCapture().write, mockRead("noise\x1b[?2004;1$yextra"), DecMode.BRACKETED_PASTE)
     expect(result).toBe("set")
   })
 })
@@ -138,11 +106,7 @@ describe("queryModes", () => {
         resolve(responses[callCount++] ?? null)
       })
 
-    const results = await queryModes(
-      createCapture().write,
-      read,
-      [DecMode.ALT_SCREEN, DecMode.BRACKETED_PASTE],
-    )
+    const results = await queryModes(createCapture().write, read, [DecMode.ALT_SCREEN, DecMode.BRACKETED_PASTE])
 
     expect(results.get(DecMode.ALT_SCREEN)).toBe("set")
     expect(results.get(DecMode.BRACKETED_PASTE)).toBe("reset")

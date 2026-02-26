@@ -2,16 +2,16 @@
 
 ## Directory Structure
 
-| Directory       | What                                                    |
-| --------------- | ------------------------------------------------------- |
-| `interactive/`  | Full apps — run with `bun examples/interactive/<name>.tsx` |
-| `inline/`       | Inline mode examples (no alt screen)                    |
-| `kitty/`        | Kitty protocol demos                                    |
-| `layout/`       | Layout engine examples                                  |
-| `runtime/`      | Runtime layer demos (run, createApp, createStore)       |
-| `playground/`   | Quick prototyping                                       |
-| `web/`          | Browser renderers (DOM, Canvas2D)                       |
-| `screenshots/`  | Reference screenshots for visual regression             |
+| Directory      | What                                                       |
+| -------------- | ---------------------------------------------------------- |
+| `interactive/` | Full apps — run with `bun examples/interactive/<name>.tsx` |
+| `inline/`      | Inline mode examples (no alt screen)                       |
+| `kitty/`       | Kitty protocol demos                                       |
+| `layout/`      | Layout engine examples                                     |
+| `runtime/`     | Runtime layer demos (run, createApp, createStore)          |
+| `playground/`  | Quick prototyping                                          |
+| `web/`         | Browser renderers (DOM, Canvas2D)                          |
+| `screenshots/` | Reference screenshots for visual regression                |
 
 ## Making a Great Showcase
 
@@ -42,13 +42,15 @@ function App() {
   useEffect(() => {
     const onResize = () => setTermRows(process.stdout.rows ?? 40)
     process.stdout.on("resize", onResize)
-    return () => { process.stdout.off("resize", onResize) }
+    return () => {
+      process.stdout.off("resize", onResize)
+    }
   }, [])
 
   const frozenCount = useScrollback(items, {
     frozen: (item) => item.frozen,
     render: (item) => renderStringSync(<ItemView item={item} />, { width: cols }),
-    markers: true,  // OSC 133 for Cmd+Up/Down navigation
+    markers: true, // OSC 133 for Cmd+Up/Down navigation
   })
 
   return (
@@ -58,7 +60,9 @@ function App() {
 
       {/* Content — fills available space */}
       <Box flexDirection="column" flexGrow={1} gap={1} overflow="hidden">
-        {activeItems.map(item => <ItemView key={item.id} item={item} />)}
+        {activeItems.map((item) => (
+          <ItemView key={item.id} item={item} />
+        ))}
       </Box>
 
       {/* Status bar — pinned to bottom */}
@@ -73,6 +77,7 @@ await render(<App />, term, { mode: "inline" })
 **Why `height={termRows}`?** In inline mode, inkx auto-sizes to content. Without a fixed height, the dynamic area may not fill the terminal. When `useScrollback` writes frozen content to stdout, the terminal only scrolls if the cursor is at the bottom row. If the dynamic area is shorter than the terminal, scrollback text stays visible on screen and gets erased on the next render — losing the scrollback content.
 
 Setting `height={termRows}` ensures:
+
 - The cursor is always at the terminal bottom after each render
 - Scrollback writes cause real terminal scrolling
 - Frozen content persists in the terminal's scrollback buffer
@@ -84,14 +89,14 @@ Setting `height={termRows}` ensures:
 
 Use semantic `$token` colors instead of hardcoded values:
 
-| Token      | Use for                              |
-| ---------- | ------------------------------------ |
+| Token      | Use for                               |
+| ---------- | ------------------------------------- |
 | `$primary` | Active elements, progress bars, links |
-| `$success` | Completed items, checkmarks          |
-| `$warning` | Caution, compaction                  |
-| `$error`   | Failures, diff removals              |
-| `$muted`   | Secondary info, timestamps           |
-| `$border`  | Default border color                 |
+| `$success` | Completed items, checkmarks           |
+| `$warning` | Caution, compaction                   |
+| `$error`   | Failures, diff removals               |
+| `$muted`   | Secondary info, timestamps            |
+| `$border`  | Default border color                  |
 
 ### Testing Showcases
 

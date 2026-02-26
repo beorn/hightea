@@ -18,20 +18,22 @@ import { renderStringSync } from "../src/render-string.js"
 
 // stripAnsi to measure visible width — strips ALL ANSI escape sequences and control chars
 function stripAnsi(str: string): string {
-  return str
-    // SGR sequences: \x1b[...m
-    .replace(/\x1b\[[0-9;]*m/g, "")
-    // CSI sequences: \x1b[...letter (covers \x1b[K, \x1b[2J, \x1b[H, cursor moves, etc.)
-    .replace(/\x1b\[[0-9;]*[A-Za-z]/g, "")
-    // Cursor visibility: \x1b[?25h and \x1b[?25l
-    .replace(/\x1b\[\?[0-9;]*[a-z]/g, "")
-    // OSC sequences: \x1b]...BEL or \x1b]...\x1b\\
-    .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "")
-    // Any remaining ESC sequences
-    .replace(/\x1b[^[]\S*/g, "")
-    // Control characters: \r (carriage return), \b (backspace), etc.
-    // These are zero-width terminal control chars, not visible content.
-    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\r]/g, "")
+  return (
+    str
+      // SGR sequences: \x1b[...m
+      .replace(/\x1b\[[0-9;]*m/g, "")
+      // CSI sequences: \x1b[...letter (covers \x1b[K, \x1b[2J, \x1b[H, cursor moves, etc.)
+      .replace(/\x1b\[[0-9;]*[A-Za-z]/g, "")
+      // Cursor visibility: \x1b[?25h and \x1b[?25l
+      .replace(/\x1b\[\?[0-9;]*[a-z]/g, "")
+      // OSC sequences: \x1b]...BEL or \x1b]...\x1b\\
+      .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "")
+      // Any remaining ESC sequences
+      .replace(/\x1b[^[]\S*/g, "")
+      // Control characters: \r (carriage return), \b (backspace), etc.
+      // These are zero-width terminal control chars, not visible content.
+      .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\r]/g, "")
+  )
 }
 
 /** Measure visible width of a line (counting wide chars as 2) */
@@ -103,9 +105,7 @@ describe("scrollback width: boxes must not exceed terminal width", () => {
             {"◆"} Agent
           </Text>
           <Text> </Text>
-          <Text>
-            Found it. The expiry check compares seconds (jwt.exp) to milliseconds (Date.now()). Fixing now.
-          </Text>
+          <Text>Found it. The expiry check compares seconds (jwt.exp) to milliseconds (Date.now()). Fixing now.</Text>
           <Box flexDirection="column" marginTop={1}>
             <ToolCallBlock
               tool="Edit"
@@ -153,9 +153,7 @@ describe("scrollback width: boxes must not exceed terminal width", () => {
     const app = render(
       <Box flexDirection="column">
         <Box borderStyle="round" paddingX={1}>
-          <Text>
-            {"A".repeat(100)}
-          </Text>
+          <Text>{"A".repeat(100)}</Text>
         </Box>
       </Box>,
     )
@@ -217,7 +215,9 @@ describe("scrollback width: boxes must not exceed terminal width", () => {
           <Text dim>Working on a fix...</Text>
           <Box flexDirection="column">
             <Text dim>
-              <Text color="yellow" bold>{"▸ "}Edit</Text>
+              <Text color="yellow" bold>
+                {"▸ "}Edit
+              </Text>
               <Text> src/auth.ts</Text>
             </Text>
             <Box flexDirection="column" paddingLeft={4}>
@@ -255,7 +255,9 @@ describe("scrollback width: boxes must not exceed terminal width", () => {
       return (
         <Box flexDirection="column" marginTop={0} testID="toolcall">
           <Text>
-            <Text color="blue" bold>{tool}</Text>
+            <Text color="blue" bold>
+              {tool}
+            </Text>
             <Text dim> {args}</Text>
           </Text>
           <Box
@@ -280,7 +282,9 @@ describe("scrollback width: boxes must not exceed terminal width", () => {
     function ExchangeView() {
       return (
         <Box flexDirection="column" borderStyle="round" borderColor="green" paddingX={1} testID="exchange">
-          <Text bold color="green">{"◆"} Agent</Text>
+          <Text bold color="green">
+            {"◆"} Agent
+          </Text>
           <Text> </Text>
           <Text>Found it. Fixing now.</Text>
           <Box flexDirection="column" marginTop={1}>
@@ -329,13 +333,17 @@ describe("scrollback width: boxes must not exceed terminal width", () => {
     function ExchangeView() {
       return (
         <Box flexDirection="column" borderStyle="round" borderColor="green" paddingX={1}>
-          <Text bold color="green">{"◆"} Agent</Text>
+          <Text bold color="green">
+            {"◆"} Agent
+          </Text>
           <Text> </Text>
           <Text>Found it. The expiry check compares seconds (jwt.exp) to milliseconds (Date.now()). Fixing now.</Text>
           <Box flexDirection="column" marginTop={1}>
             <Box flexDirection="column" marginTop={0}>
               <Text>
-                <Text color="yellow" bold>Edit</Text>
+                <Text color="yellow" bold>
+                  Edit
+                </Text>
                 <Text dim> src/auth.ts</Text>
               </Text>
               <Box
@@ -396,16 +404,21 @@ describe("scrollback width: boxes must not exceed terminal width", () => {
           <Text dim>Let me look at the auth module.</Text>
           <Box flexDirection="column">
             <Text dim>
-              <Text color="blue" bold>{"▸ "}Read</Text>
+              <Text color="blue" bold>
+                {"▸ "}Read
+              </Text>
               <Text> src/auth.ts</Text>
             </Text>
             <Box flexDirection="column" paddingLeft={4}>
               <Text dim>export async function login(token: string) {"{"}</Text>
-              <Text dim>  const decoded = jwt.decode(token)</Text>
-              <Text dim>  if (decoded.exp {"<"} Date.now()) {"{"}</Text>
-              <Text dim>    throw new Error("Token expired")</Text>
-              <Text dim>  {"}"}</Text>
-              <Text dim>  return decoded.user</Text>
+              <Text dim> const decoded = jwt.decode(token)</Text>
+              <Text dim>
+                {" "}
+                if (decoded.exp {"<"} Date.now()) {"{"}
+              </Text>
+              <Text dim> throw new Error("Token expired")</Text>
+              <Text dim> {"}"}</Text>
+              <Text dim> return decoded.user</Text>
               <Text dim>{"}"}</Text>
             </Box>
           </Box>
@@ -434,13 +447,17 @@ describe("scrollback width: boxes must not exceed terminal width", () => {
     function ExchangeView() {
       return (
         <Box flexDirection="column" borderStyle="round" borderColor="green" paddingX={1} testID="exchange">
-          <Text bold color="green">{"◆"} Agent</Text>
+          <Text bold color="green">
+            {"◆"} Agent
+          </Text>
           <Text> </Text>
           <Text>Found it. The expiry check compares seconds to milliseconds. Fixing now.</Text>
           <Box flexDirection="column" marginTop={1}>
             <Box flexDirection="column" marginTop={0}>
               <Text>
-                <Text color="yellow" bold>Edit</Text>
+                <Text color="yellow" bold>
+                  Edit
+                </Text>
                 <Text dim> src/auth.ts</Text>
               </Text>
               <Box
@@ -499,7 +516,9 @@ describe("scrollback width: boxes must not exceed terminal width", () => {
       return (
         <Box flexDirection="column" marginTop={0} testID="toolcall">
           <Text>
-            <Text color="blue" bold>{tool}</Text>
+            <Text color="blue" bold>
+              {tool}
+            </Text>
             <Text dim> {args}</Text>
           </Text>
           <Box
@@ -524,7 +543,9 @@ describe("scrollback width: boxes must not exceed terminal width", () => {
     function ExchangeView() {
       return (
         <Box flexDirection="column" borderStyle="round" borderColor="green" paddingX={1} testID="exchange">
-          <Text bold color="green">{"◆"} Agent</Text>
+          <Text bold color="green">
+            {"◆"} Agent
+          </Text>
           <Text> </Text>
           <Text>Found it. The expiry check compares seconds (jwt.exp) to milliseconds (Date.now()). Fixing now.</Text>
           <Box flexDirection="column" marginTop={1} testID="toolarea">
@@ -596,7 +617,9 @@ describe("scrollback width: boxes must not exceed terminal width", () => {
     function BorderedExchange() {
       return (
         <Box flexDirection="column" borderStyle="round" borderColor="green" paddingX={1}>
-          <Text bold color="green">{"◆"} Agent</Text>
+          <Text bold color="green">
+            {"◆"} Agent
+          </Text>
           <Text>Response text here.</Text>
         </Box>
       )
@@ -609,7 +632,7 @@ describe("scrollback width: boxes must not exceed terminal width", () => {
     // The top border line: ╭──...──╮ = exactly 80 chars
     // The bottom border:   ╰──...──╯ = exactly 80 chars
     // Content lines:       │ ... │   = exactly 80 chars (border chars + padding + content + padding + border)
-    const borderLines = lines.filter(l => {
+    const borderLines = lines.filter((l) => {
       const stripped = stripAnsi(l)
       return stripped.includes("╭") || stripped.includes("╰") || stripped.includes("│")
     })
@@ -645,7 +668,11 @@ describe("scrollback width: boxes must not exceed terminal width", () => {
             borderBottom={false}
             paddingLeft={1}
           >
-            <Text>{"This is a very long line of text that should definitely wrap within the 80-column terminal width boundary and not extend past it"}</Text>
+            <Text>
+              {
+                "This is a very long line of text that should definitely wrap within the 80-column terminal width boundary and not extend past it"
+              }
+            </Text>
           </Box>
         </Box>
       </Box>,

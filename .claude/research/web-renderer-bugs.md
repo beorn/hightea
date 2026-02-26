@@ -5,6 +5,7 @@
 ## The Bug
 
 Both the DOM and Canvas2D browser renderers produce garbled output:
+
 - **Visible symptom**: All content compressed into a single horizontal line with overlapping text
 - **xterm renderer**: Works correctly
 
@@ -24,11 +25,11 @@ React → Reconciler → [5-Phase Pipeline] → RenderAdapter → Output
 
 ### Three Rendering Targets
 
-| Renderer | Output Format      | File                           | Status     |
-|----------|-------------------|--------------------------------|-----------|
-| **DOM**  | `<div>` elements   | `src/dom/index.ts`            | **BROKEN**  |
-| **Canvas** | Canvas 2D pixels | `src/canvas/index.ts`         | **BROKEN**  |
-| **xterm** | ANSI sequences    | `src/xterm/index.ts`          | ✓ Working |
+| Renderer   | Output Format    | File                  | Status     |
+| ---------- | ---------------- | --------------------- | ---------- |
+| **DOM**    | `<div>` elements | `src/dom/index.ts`    | **BROKEN** |
+| **Canvas** | Canvas 2D pixels | `src/canvas/index.ts` | **BROKEN** |
+| **xterm**  | ANSI sequences   | `src/xterm/index.ts`  | ✓ Working  |
 
 ## Root Causes Identified
 
@@ -55,11 +56,13 @@ span.style.cssText = styles.join("; ")
 **Problem**: The layout phase computes layout rectangles in **character cells** (rows/cols), not pixels. When the content phase renders text at position `(x, y)`, it's expecting `x` and `y` to be character cell indices. The DOM adapter interprets these as pixels, causing massive compression.
 
 **Example**: If layout places text at cell (5, 2), the pipeline calls:
+
 ```typescript
-drawText(5, 2, "Hello", style)  // (5, 2) = char position at col 5, row 2
+drawText(5, 2, "Hello", style) // (5, 2) = char position at col 5, row 2
 ```
 
 DOM adapter renders this as:
+
 ```typescript
 left: 5px;  // 5 pixels, not 5 character widths
 top: 2px;   // 2 pixels, not 2 character heights
@@ -91,6 +94,7 @@ pixel_y = char_y * char_height_px
 ```
 
 Where:
+
 - `char_width_px` ≈ `fontSize × 0.6` (monospace fonts are roughly 60% as wide as tall)
 - `char_height_px` = `fontSize * lineHeight`
 
@@ -99,6 +103,7 @@ Where:
 The xterm adapter (`src/xterm/index.ts`) doesn't render pixels at all — it works with **ANSI escape sequences and characters**.
 
 The terminal adapter (`src/adapters/terminal-adapter.ts`) outputs a `TerminalBuffer`:
+
 - Stores cells as character grid (rows/cols)
 - Tracks foreground, background, and attributes per cell
 - The output phase (`src/pipeline/output-phase.ts`) converts this grid to ANSI
@@ -110,14 +115,16 @@ xterm.js receives the ANSI string and renders it character-by-character at corre
 ### For DOM Adapter
 
 Instead of:
+
 ```typescript
 lineDiv.style.top = `${y}px`
 span.style.left = `${run.x}px`
 ```
 
 Should be:
+
 ```typescript
-const charWidth = config.fontSize * 0.6  // or measure it
+const charWidth = config.fontSize * 0.6 // or measure it
 const charHeight = config.fontSize * config.lineHeight
 
 lineDiv.style.top = `${y * charHeight}px`
@@ -127,11 +134,13 @@ span.style.left = `${run.x * charWidth}px`
 ### For Canvas Adapter
 
 Instead of:
+
 ```typescript
 this.ctx.fillText(text, x, y)
 ```
 
 Should be:
+
 ```typescript
 const charWidth = config.fontSize * 0.6
 const charHeight = config.fontSize * config.lineHeight
@@ -147,8 +156,8 @@ From `src/pipeline/content-phase.ts`, the content phase renders to a **TerminalB
 
 ```typescript
 type TerminalBuffer = {
-  readonly width: number   // in characters
-  readonly height: number  // in characters
+  readonly width: number // in characters
+  readonly height: number // in characters
   drawText(x: number, y: number, text: string, style: RenderStyle): void
   drawChar(x: number, y: number, char: string, style: RenderStyle): void
   fillRect(x: number, y: number, width: number, height: number, style: RenderStyle): void
@@ -308,8 +317,8 @@ fillRect(x: number, y: number, width: number, height: number, style: RenderStyle
 
 ## Summary
 
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| DOM compressed to line | DOM adapter treats character positions as pixels | Convert char positions to pixel positions using `charWidth × col`, `charHeight × row` |
+| Issue                     | Root Cause                                          | Fix                                                                                   |
+| ------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| DOM compressed to line    | DOM adapter treats character positions as pixels    | Convert char positions to pixel positions using `charWidth × col`, `charHeight × row` |
 | Canvas compressed to line | Canvas adapter treats character positions as pixels | Convert char positions to pixel positions using `charWidth × col`, `charHeight × row` |
-| xterm works | Uses ANSI/character grid natively | No conversion needed |
+| xterm works               | Uses ANSI/character grid natively                   | No conversion needed                                                                  |

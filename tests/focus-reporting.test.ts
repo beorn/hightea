@@ -3,11 +3,7 @@
  */
 
 import { describe, expect, test } from "vitest"
-import {
-  enableFocusReporting,
-  disableFocusReporting,
-  parseFocusEvent,
-} from "../src/focus-reporting.js"
+import { enableFocusReporting, disableFocusReporting, parseFocusEvent } from "../src/focus-reporting.js"
 
 /** Capture all writes to a string */
 function createCapture(): { write: (data: string) => void; output: () => string } {

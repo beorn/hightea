@@ -43,44 +43,44 @@ explicit color, the theme's `$separator` token is used automatically.
 
 ### Brand (3 tokens)
 
-| Token      | Use                                           | ANSI 16 Dark | Truecolor Dark |
-| ---------- | --------------------------------------------- | ------------ | -------------- |
-| `$primary` | Brand tint, active indicators, headings       | yellow       | #EBCB8B        |
-| `$link`    | Hyperlinks, references                        | yellowBright | #ECCC90        |
-| `$control` | Interactive chrome, shortcuts, input borders  | yellow       | #B8A06E        |
+| Token      | Use                                          | ANSI 16 Dark | Truecolor Dark |
+| ---------- | -------------------------------------------- | ------------ | -------------- |
+| `$primary` | Brand tint, active indicators, headings      | yellow       | #EBCB8B        |
+| `$link`    | Hyperlinks, references                       | yellowBright | #ECCC90        |
+| `$control` | Interactive chrome, shortcuts, input borders | yellow       | #B8A06E        |
 
 ### Selection (3 tokens)
 
-| Token        | Use                                    | ANSI 16 Dark | Truecolor Dark |
-| ------------ | -------------------------------------- | ------------ | -------------- |
-| `$selected`  | Selection highlight background         | cyan         | #88C0D0        |
-| `$selectedfg`| Text on selected background            | black        | #2E3440        |
-| `$focusring` | Keyboard focus outline (always blue)   | blueBright   | #5E81AC        |
+| Token         | Use                                  | ANSI 16 Dark | Truecolor Dark |
+| ------------- | ------------------------------------ | ------------ | -------------- |
+| `$selected`   | Selection highlight background       | cyan         | #88C0D0        |
+| `$selectedfg` | Text on selected background          | black        | #2E3440        |
+| `$focusring`  | Keyboard focus outline (always blue) | blueBright   | #5E81AC        |
 
 ### Text (4 tokens)
 
-| Token    | Use                                    | ANSI 16 Dark | Truecolor Dark |
-| -------- | -------------------------------------- | ------------ | -------------- |
-| `$text`  | Primary content — headings, body       | whiteBright  | #ECEFF4        |
-| `$text2` | Secondary — descriptions, metadata     | white        | #D8DEE9        |
-| `$text3` | Tertiary — timestamps, hints           | gray         | #7B88A1        |
-| `$text4` | Quaternary — ghost text, decorative    | gray (+dim)  | #545E72        |
+| Token    | Use                                 | ANSI 16 Dark | Truecolor Dark |
+| -------- | ----------------------------------- | ------------ | -------------- |
+| `$text`  | Primary content — headings, body    | whiteBright  | #ECEFF4        |
+| `$text2` | Secondary — descriptions, metadata  | white        | #D8DEE9        |
+| `$text3` | Tertiary — timestamps, hints        | gray         | #7B88A1        |
+| `$text4` | Quaternary — ghost text, decorative | gray (+dim)  | #545E72        |
 
 ### Surface (3 tokens)
 
-| Token        | Use                                  | ANSI 16 Dark  | Truecolor Dark |
-| ------------ | ------------------------------------ | ------------- | -------------- |
-| `$bg`        | Default background                   | (default)     | #2E3440        |
-| `$raisedbg`  | Dialogs, overlays, popovers         | black         | #3B4252        |
-| `$separator` | Dividers, borders, rules            | gray          | #4C566A        |
+| Token        | Use                         | ANSI 16 Dark | Truecolor Dark |
+| ------------ | --------------------------- | ------------ | -------------- |
+| `$bg`        | Default background          | (default)    | #2E3440        |
+| `$raisedbg`  | Dialogs, overlays, popovers | black        | #3B4252        |
+| `$separator` | Dividers, borders, rules    | gray         | #4C566A        |
 
 ### Status (3 tokens)
 
-| Token      | Use                              | ANSI 16 Dark  | Truecolor Dark |
-| ---------- | -------------------------------- | ------------- | -------------- |
-| `$error`   | Destructive, overdue, errors     | redBright     | #BF616A        |
-| `$warning` | Caution, unsaved changes         | yellow        | #EBCB8B        |
-| `$success` | Positive, completed, saved       | greenBright   | #A3BE8C        |
+| Token      | Use                          | ANSI 16 Dark | Truecolor Dark |
+| ---------- | ---------------------------- | ------------ | -------------- |
+| `$error`   | Destructive, overdue, errors | redBright    | #BF616A        |
+| `$warning` | Caution, unsaved changes     | yellow       | #EBCB8B        |
+| `$success` | Positive, completed, saved   | greenBright  | #A3BE8C        |
 
 ### Content Palette (16 indexed colors)
 
@@ -131,8 +131,8 @@ Generate a complete ANSI 16 theme from a primary color:
 ```tsx
 import { generateTheme } from "inkx"
 
-const theme = generateTheme("cyan", true)   // primary=cyan, dark=true
-const light = generateTheme("blue", false)  // primary=blue, light mode
+const theme = generateTheme("cyan", true) // primary=cyan, dark=true
+const light = generateTheme("blue", false) // primary=blue, light mode
 ```
 
 The function derives all 17 tokens from the primary color + dark/light preference:
@@ -177,7 +177,9 @@ const myTheme: Theme = {
   warning: "#E0A526",
   success: "#2ECC71",
 
-  palette: [/* 16 content colors */],
+  palette: [
+    /* 16 content colors */
+  ],
 }
 ```
 
@@ -211,17 +213,17 @@ function contrastFg(bg: string): string {
 
 **Recommended derivation from a single accent hue:**
 
-| Token      | Algorithm                              |
-| ---------- | -------------------------------------- |
-| `link`     | `lighten(primary, 5%)`                 |
-| `control`  | `withOpacity(primary, bg, 0.7)`        |
-| `selected` | Pick contrasting hue, 30% over bg      |
-| `selectedfg`| `contrastFg(selected)`                |
-| `text2`    | `withOpacity(text, bg, 0.85)`          |
-| `text3`    | `withOpacity(text, bg, 0.50)`          |
-| `text4`    | `withOpacity(text, bg, 0.30)`          |
-| `raisedbg` | `lighten(bg, 5%)` (dark) or `darken(bg, 3%)` (light) |
-| `separator`| `withOpacity(text, bg, 0.20)`          |
+| Token        | Algorithm                                            |
+| ------------ | ---------------------------------------------------- |
+| `link`       | `lighten(primary, 5%)`                               |
+| `control`    | `withOpacity(primary, bg, 0.7)`                      |
+| `selected`   | Pick contrasting hue, 30% over bg                    |
+| `selectedfg` | `contrastFg(selected)`                               |
+| `text2`      | `withOpacity(text, bg, 0.85)`                        |
+| `text3`      | `withOpacity(text, bg, 0.50)`                        |
+| `text4`      | `withOpacity(text, bg, 0.30)`                        |
+| `raisedbg`   | `lighten(bg, 5%)` (dark) or `darken(bg, 3%)` (light) |
+| `separator`  | `withOpacity(text, bg, 0.20)`                        |
 
 ## useTheme() Hook
 
@@ -256,29 +258,29 @@ function CustomComponent({ highlight }: { highlight?: string }) {
 
 Old token names from v1 are aliased automatically:
 
-| Old Token      | Resolves To   |
-| -------------- | ------------- |
-| `$accent`      | `$primary`    |
-| `$muted`       | `$text2`      |
-| `$surface`     | `$raisedbg`   |
-| `$background`  | `$bg`         |
-| `$border`      | `$separator`  |
+| Old Token     | Resolves To  |
+| ------------- | ------------ |
+| `$accent`     | `$primary`   |
+| `$muted`      | `$text2`     |
+| `$surface`    | `$raisedbg`  |
+| `$background` | `$bg`        |
+| `$border`     | `$separator` |
 
 These aliases allow gradual migration. New code should use the v2 token names.
 
 ## Built-in Themes
 
-| Name              | Tier      | Primary  | Mode  |
-| ----------------- | --------- | -------- | ----- |
-| `ansi16DarkTheme` | ANSI 16   | yellow   | dark  |
-| `ansi16LightTheme`| ANSI 16   | blue     | light |
-| `defaultDarkTheme`| Truecolor | #EBCB8B  | dark  |
-| `defaultLightTheme`| Truecolor | #0056B3 | light |
+| Name                | Tier      | Primary | Mode  |
+| ------------------- | --------- | ------- | ----- |
+| `ansi16DarkTheme`   | ANSI 16   | yellow  | dark  |
+| `ansi16LightTheme`  | ANSI 16   | blue    | light |
+| `defaultDarkTheme`  | Truecolor | #EBCB8B | dark  |
+| `defaultLightTheme` | Truecolor | #0056B3 | light |
 
 Select by name at runtime:
 
 ```tsx
 import { getThemeByName } from "inkx"
 
-const theme = getThemeByName("dark-ansi16")  // or "dark-truecolor", "light-ansi16", etc.
+const theme = getThemeByName("dark-ansi16") // or "dark-truecolor", "light-ansi16", etc.
 ```

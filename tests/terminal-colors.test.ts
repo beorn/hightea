@@ -48,26 +48,17 @@ describe("queryForegroundColor", () => {
   })
 
   test("parses 4-digit hex response with BEL terminator", async () => {
-    const result = await queryForegroundColor(
-      createCapture().write,
-      mockRead("\x1b]10;rgb:ffff/ffff/ffff\x07"),
-    )
+    const result = await queryForegroundColor(createCapture().write, mockRead("\x1b]10;rgb:ffff/ffff/ffff\x07"))
     expect(result).toBe("#ffffff")
   })
 
   test("parses 4-digit hex response with ST terminator", async () => {
-    const result = await queryForegroundColor(
-      createCapture().write,
-      mockRead("\x1b]10;rgb:0000/0000/0000\x1b\\"),
-    )
+    const result = await queryForegroundColor(createCapture().write, mockRead("\x1b]10;rgb:0000/0000/0000\x1b\\"))
     expect(result).toBe("#000000")
   })
 
   test("parses 2-digit hex response", async () => {
-    const result = await queryForegroundColor(
-      createCapture().write,
-      mockRead("\x1b]10;rgb:ff/00/ff\x07"),
-    )
+    const result = await queryForegroundColor(createCapture().write, mockRead("\x1b]10;rgb:ff/00/ff\x07"))
     expect(result).toBe("#ff00ff")
   })
 
@@ -90,18 +81,12 @@ describe("queryBackgroundColor", () => {
   })
 
   test("parses dark background", async () => {
-    const result = await queryBackgroundColor(
-      createCapture().write,
-      mockRead("\x1b]11;rgb:1c1c/1c1c/1c1c\x07"),
-    )
+    const result = await queryBackgroundColor(createCapture().write, mockRead("\x1b]11;rgb:1c1c/1c1c/1c1c\x07"))
     expect(result).toBe("#1c1c1c")
   })
 
   test("parses white background", async () => {
-    const result = await queryBackgroundColor(
-      createCapture().write,
-      mockRead("\x1b]11;rgb:ffff/ffff/ffff\x07"),
-    )
+    const result = await queryBackgroundColor(createCapture().write, mockRead("\x1b]11;rgb:ffff/ffff/ffff\x07"))
     expect(result).toBe("#ffffff")
   })
 })
@@ -114,10 +99,7 @@ describe("queryCursorColor", () => {
   })
 
   test("parses cursor color response", async () => {
-    const result = await queryCursorColor(
-      createCapture().write,
-      mockRead("\x1b]12;rgb:ff/aa/00\x07"),
-    )
+    const result = await queryCursorColor(createCapture().write, mockRead("\x1b]12;rgb:ff/aa/00\x07"))
     expect(result).toBe("#ffaa00")
   })
 })
@@ -191,35 +173,23 @@ describe("resetCursorColor", () => {
 describe("detectColorScheme", () => {
   test("detects dark theme from dark background", async () => {
     // rgb:1c1c/1c1c/1c1c → #1c1c1c → very low luminance
-    const result = await detectColorScheme(
-      createCapture().write,
-      mockRead("\x1b]11;rgb:1c1c/1c1c/1c1c\x07"),
-    )
+    const result = await detectColorScheme(createCapture().write, mockRead("\x1b]11;rgb:1c1c/1c1c/1c1c\x07"))
     expect(result).toBe("dark")
   })
 
   test("detects light theme from white background", async () => {
-    const result = await detectColorScheme(
-      createCapture().write,
-      mockRead("\x1b]11;rgb:ffff/ffff/ffff\x07"),
-    )
+    const result = await detectColorScheme(createCapture().write, mockRead("\x1b]11;rgb:ffff/ffff/ffff\x07"))
     expect(result).toBe("light")
   })
 
   test("detects dark theme from pure black", async () => {
-    const result = await detectColorScheme(
-      createCapture().write,
-      mockRead("\x1b]11;rgb:0000/0000/0000\x07"),
-    )
+    const result = await detectColorScheme(createCapture().write, mockRead("\x1b]11;rgb:0000/0000/0000\x07"))
     expect(result).toBe("dark")
   })
 
   test("detects light theme from light gray", async () => {
     // #cccccc → luminance ~ 0.6 → light
-    const result = await detectColorScheme(
-      createCapture().write,
-      mockRead("\x1b]11;rgb:cc/cc/cc\x07"),
-    )
+    const result = await detectColorScheme(createCapture().write, mockRead("\x1b]11;rgb:cc/cc/cc\x07"))
     expect(result).toBe("light")
   })
 

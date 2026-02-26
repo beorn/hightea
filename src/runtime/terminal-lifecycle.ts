@@ -97,10 +97,7 @@ export function captureTerminalState(opts: {
  * Order matters: disable protocols first, then show cursor, then exit
  * alternate screen, then disable raw mode.
  */
-export function restoreTerminalState(
-  stdout: NodeJS.WriteStream,
-  stdin: NodeJS.ReadStream,
-): void {
+export function restoreTerminalState(stdout: NodeJS.WriteStream, stdin: NodeJS.ReadStream): void {
   const sequences = [
     "\x1b[0m", // Reset SGR attributes
     disableMouse(), // Disable all mouse tracking modes
@@ -143,11 +140,7 @@ export function restoreTerminalState(
  * order: raw mode first, then alternate screen, then protocols, then
  * trigger a full redraw via synthetic resize.
  */
-export function resumeTerminalState(
-  state: TerminalState,
-  stdout: NodeJS.WriteStream,
-  stdin: NodeJS.ReadStream,
-): void {
+export function resumeTerminalState(state: TerminalState, stdout: NodeJS.WriteStream, stdin: NodeJS.ReadStream): void {
   // Re-enable raw mode first (needed to receive key input)
   if (state.rawMode && stdin.isTTY) {
     try {

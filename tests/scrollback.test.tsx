@@ -301,7 +301,9 @@ function ChatAgent({
         <Text key={e.id}>{e.content}</Text>
       ))}
       {extra && <Text>{extra}</Text>}
-      <Text>active={active.length} frozen={frozenCount}</Text>
+      <Text>
+        active={active.length} frozen={frozenCount}
+      </Text>
     </Box>
   )
 }
@@ -354,10 +356,7 @@ describe("scrollback: chat agent pattern", () => {
     }
 
     // Create 10 frozen exchanges + 1 active
-    const exchanges: Exchange[] = [
-      ...makeExchanges(10, true),
-      { id: 11, content: "current-work", frozen: false },
-    ]
+    const exchanges: Exchange[] = [...makeExchanges(10, true), { id: 11, content: "current-work", frozen: false }]
 
     const app = render(<ChatAgent exchanges={exchanges} mockStdout={mockStdout} />)
 
@@ -405,9 +404,7 @@ describe("scrollback: chat agent pattern", () => {
     expect(app.text).toContain("active=0 frozen=5")
 
     // Now replace dynamic content with recovery message
-    app.rerender(
-      <ChatAgent exchanges={[...exchanges]} mockStdout={mockStdout} extra="Context recovered" />,
-    )
+    app.rerender(<ChatAgent exchanges={[...exchanges]} mockStdout={mockStdout} extra="Context recovered" />)
 
     expect(app.text).toContain("Context recovered")
     expect(app.text).toContain("active=0 frozen=5")
@@ -474,10 +471,7 @@ describe("scrollback: chat agent pattern", () => {
     }
 
     // Start with 3 frozen + 1 active
-    const exchanges: Exchange[] = [
-      ...makeExchanges(3, true),
-      { id: 4, content: "active-work", frozen: false },
-    ]
+    const exchanges: Exchange[] = [...makeExchanges(3, true), { id: 4, content: "active-work", frozen: false }]
 
     const app = render(<ChatAgent exchanges={exchanges} mockStdout={mockStdout} />)
 
@@ -490,9 +484,7 @@ describe("scrollback: chat agent pattern", () => {
 
     // Clear chunks and trigger a re-render with same frozen state but different extra text
     chunks.length = 0
-    app.rerender(
-      <ChatAgent exchanges={exchanges} mockStdout={mockStdout} extra="status update" />,
-    )
+    app.rerender(<ChatAgent exchanges={exchanges} mockStdout={mockStdout} extra="status update" />)
 
     // No new writes should occur — frozen count hasn't changed
     expect(chunks).toHaveLength(0)

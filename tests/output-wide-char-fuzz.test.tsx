@@ -282,9 +282,7 @@ function fillRowRandom(buffer: TerminalBuffer, y: number, rng: () => number, wid
       // When a wide char doesn't fit (last column), use a narrow Latin char
       // instead. A CJK char with wide=false is inconsistent — the terminal
       // still renders it as 2 columns, causing cursor drift.
-      const narrowChar = wide
-        ? LATIN[Math.floor(rng() * LATIN.length)]!
-        : char
+      const narrowChar = wide ? LATIN[Math.floor(rng() * LATIN.length)]! : char
       buffer.setCell(x, y, { char: narrowChar, wide: false })
       x++
     }
@@ -373,9 +371,7 @@ describe("Wide char fuzz: container boundary simulation", () => {
               // If a wide char doesn't fit (only 1 col left), use a narrow
               // Latin char instead. Storing a CJK char with wide=false would
               // create an inconsistent buffer (terminal renders it as 2 cols).
-              const narrowChar = wide
-                ? LATIN[Math.floor(rng() * LATIN.length)]!
-                : char
+              const narrowChar = wide ? LATIN[Math.floor(rng() * LATIN.length)]! : char
               buf.setCell(x, y, { char: narrowChar, wide: false })
               x++
             }
@@ -443,11 +439,7 @@ describe("Component-level: CJK text with incremental rendering", () => {
             <Box key={i} width={20} flexDirection="column">
               <Text bold>{header}</Text>
               {cards[i]!.map((card, j) => (
-                <Box
-                  key={j}
-                  backgroundColor={cursor === i * 3 + j ? "cyan" : undefined}
-                  width={18}
-                >
+                <Box key={j} backgroundColor={cursor === i * 3 + j ? "cyan" : undefined} width={18}>
                   <Text>{card}</Text>
                 </Box>
               ))}
@@ -608,12 +600,7 @@ describe("Component-level: CJK text with incremental rendering", () => {
       return (
         <Box flexDirection="row" width={90}>
           {cols.map((col, i) => (
-            <Box
-              key={i}
-              width={30}
-              flexDirection="column"
-              borderStyle={i === active ? "double" : "single"}
-            >
+            <Box key={i} width={30} flexDirection="column" borderStyle={i === active ? "double" : "single"}>
               <Text bold>{col.header}</Text>
               {col.items.map((item, j) => (
                 <Text key={j}>
@@ -716,12 +703,7 @@ describe("Wide char boundary edge cases", () => {
     const render = createRenderer({ cols: 40, rows: 8 })
 
     function App({ cursor }: { cursor: number }) {
-      const rows = [
-        "Hello 廈 World",
-        "Test 門 Data",
-        "foo bar baz qux",
-        "x 報 y 表 z",
-      ]
+      const rows = ["Hello 廈 World", "Test 門 Data", "foo bar baz qux", "x 報 y 表 z"]
       return (
         <Box flexDirection="column" width={40}>
           {rows.map((row, i) => (

@@ -197,7 +197,14 @@ function TaskListScreenshot(): JSX.Element {
         </Text>
       </Box>
 
-      <Box flexGrow={1} flexDirection="column" borderStyle="round" borderColor="$primary" overflow="hidden" paddingX={1}>
+      <Box
+        flexGrow={1}
+        flexDirection="column"
+        borderStyle="round"
+        borderColor="$primary"
+        overflow="hidden"
+        paddingX={1}
+      >
         {tasks.map((task, index) => {
           const checkbox = task.completed ? "\u2611" : "\u2610"
           const isSelected = index === cursor

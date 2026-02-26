@@ -72,10 +72,7 @@ describe("Incremental rendering: zoom mismatch", () => {
       )
     }
 
-    const initialRows = [
-      { text: "Task A" },
-      { text: "Task B" },
-    ]
+    const initialRows = [{ text: "Task A" }, { text: "Task B" }]
 
     const app = render(<App rows={initialRows} />)
     expect(app.text).toContain("Task A")
@@ -144,10 +141,7 @@ describe("Incremental rendering: zoom mismatch", () => {
 
     function App({ rowCount }: { rowCount: number }) {
       const rows = Array.from({ length: rowCount }, (_, i) => ({
-        segments: [
-          { text: `Task ${i}: ` },
-          { text: `example.com/task/${i}`, isLink: i % 3 === 0 },
-        ],
+        segments: [{ text: `Task ${i}: ` }, { text: `example.com/task/${i}`, isLink: i % 3 === 0 }],
       }))
 
       return (
@@ -206,10 +200,7 @@ describe("Incremental rendering: zoom mismatch", () => {
       )
     }
 
-    const initialCards = [
-      { title: "Card 1" },
-      { title: "Card 2", link: "example.com/card2" },
-    ]
+    const initialCards = [{ title: "Card 1" }, { title: "Card 2", link: "example.com/card2" }]
 
     const app = render(<App cards={initialCards} />)
     expect(app.text).toContain("Card 1")

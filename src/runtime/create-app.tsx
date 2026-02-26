@@ -68,12 +68,7 @@ import { ensureLayoutEngine } from "./layout.js"
 import { createMouseEventProcessor } from "../mouse-events.js"
 import { enableKittyKeyboard, disableKittyKeyboard, KittyFlags, enableMouse, disableMouse } from "../output.js"
 import { detectKittyFromStdio } from "../kitty-detect.js"
-import {
-  captureTerminalState,
-  performSuspend,
-  CTRL_C,
-  CTRL_Z,
-} from "./terminal-lifecycle.js"
+import { captureTerminalState, performSuspend, CTRL_C, CTRL_Z } from "./terminal-lifecycle.js"
 import { type TermProvider, createTermProvider } from "./term-provider.js"
 import type { Buffer, Dims, Provider, RenderTarget } from "./types.js"
 

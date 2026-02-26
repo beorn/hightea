@@ -55,7 +55,11 @@ const allItems = items.flatMap((group) => group.values.map((value) => ({ categor
 function ListItem({ item, isSelected }: { item: (typeof allItems)[0]; isSelected: boolean }): JSX.Element {
   return (
     <Box paddingX={1}>
-      <Text color={isSelected ? "black" : "white"} backgroundColor={isSelected ? "$primary" : undefined} bold={isSelected}>
+      <Text
+        color={isSelected ? "black" : "white"}
+        backgroundColor={isSelected ? "$primary" : undefined}
+        bold={isSelected}
+      >
         {isSelected ? " > " : "   "}
         {item.value}
       </Text>

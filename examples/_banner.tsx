@@ -32,7 +32,9 @@ export function ExampleBanner({ meta, controls, theme, children }: Props) {
           <Text dim color="$warning">
             {"▸ inkx"}
           </Text>
-          <Text bold color="$text">{meta.name}</Text>
+          <Text bold color="$text">
+            {meta.name}
+          </Text>
           <Text color="$muted">— {meta.description}</Text>
         </Box>
         {meta.features && meta.features.length > 0 && (

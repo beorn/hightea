@@ -13,13 +13,13 @@ await run(<App />)
 
 ## Options
 
-| Option           | Type                          | Default | Description                              |
-| ---------------- | ----------------------------- | ------- | ---------------------------------------- |
-| `suspendOnCtrlZ` | `boolean`                     | `true`  | Handle Ctrl+Z by suspending the process  |
-| `exitOnCtrlC`    | `boolean`                     | `true`  | Handle Ctrl+C by exiting                 |
-| `onSuspend`      | `() => boolean \| void`       | —       | Called before suspend. Return false to prevent |
-| `onResume`       | `() => void`                  | —       | Called after resume                       |
-| `onInterrupt`    | `() => boolean \| void`       | —       | Called on Ctrl+C. Return false to prevent exit |
+| Option           | Type                    | Default | Description                                    |
+| ---------------- | ----------------------- | ------- | ---------------------------------------------- |
+| `suspendOnCtrlZ` | `boolean`               | `true`  | Handle Ctrl+Z by suspending the process        |
+| `exitOnCtrlC`    | `boolean`               | `true`  | Handle Ctrl+C by exiting                       |
+| `onSuspend`      | `() => boolean \| void` | —       | Called before suspend. Return false to prevent |
+| `onResume`       | `() => void`            | —       | Called after resume                            |
+| `onInterrupt`    | `() => boolean \| void` | —       | Called on Ctrl+C. Return false to prevent exit |
 
 ## Suspend/Resume Flow
 
@@ -64,7 +64,7 @@ await run(<App />, {
   onInterrupt: () => {
     if (hasUnsavedChanges) {
       showConfirmDialog()
-      return false  // Prevent exit
+      return false // Prevent exit
     }
   },
 })
@@ -96,9 +96,9 @@ const state = captureTerminalState({
 })
 
 // Manual suspend/resume
-restoreTerminalState(stdout, stdin)  // Before suspend
+restoreTerminalState(stdout, stdin) // Before suspend
 // ... process suspends ...
-resumeTerminalState(state, stdout, stdin)  // After resume
+resumeTerminalState(state, stdout, stdin) // After resume
 
 // Or use the all-in-one helper
 performSuspend(state, stdout, stdin, () => {

@@ -283,7 +283,8 @@ function renderNodeToBuffer(
   // FAST PATH: Skip unchanged subtrees when we have a valid previous buffer.
   // The cloned buffer already has correct pixels for clean nodes.
   // INKX_STRICT=1 verifies this by comparing incremental vs fresh renders.
-  const skipFastPath = hasPrevBuffer &&
+  const skipFastPath =
+    hasPrevBuffer &&
     !node.contentDirty &&
     !node.paintDirty &&
     !layoutChanged &&

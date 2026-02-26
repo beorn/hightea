@@ -3,12 +3,7 @@
  */
 
 import { describe, expect, test } from "vitest"
-import {
-  queryPrimaryDA,
-  querySecondaryDA,
-  queryTertiaryDA,
-  queryTerminalVersion,
-} from "../src/device-attrs.js"
+import { queryPrimaryDA, querySecondaryDA, queryTertiaryDA, queryTerminalVersion } from "../src/device-attrs.js"
 
 /** Capture all writes to a string */
 function createCapture(): { write: (data: string) => void; output: () => string } {
@@ -48,10 +43,7 @@ describe("queryPrimaryDA", () => {
 
   test("parses multi-param response (xterm-like)", async () => {
     // xterm typically responds: CSI ? 64 ; 1 ; 2 ; 6 ; 9 ; 15 ; 18 ; 21 ; 22 c
-    const result = await queryPrimaryDA(
-      createCapture().write,
-      mockRead("\x1b[?64;1;2;6;9;15;18;21;22c"),
-    )
+    const result = await queryPrimaryDA(createCapture().write, mockRead("\x1b[?64;1;2;6;9;15;18;21;22c"))
     expect(result).toEqual({ params: [64, 1, 2, 6, 9, 15, 18, 21, 22] })
   })
 
@@ -114,10 +106,7 @@ describe("querySecondaryDA", () => {
   })
 
   test("parses response embedded in other data", async () => {
-    const result = await querySecondaryDA(
-      createCapture().write,
-      mockRead("noise\x1b[>65;100;1cmore"),
-    )
+    const result = await querySecondaryDA(createCapture().write, mockRead("noise\x1b[>65;100;1cmore"))
     expect(result).toEqual({ type: 65, version: 100, id: 1 })
   })
 })
@@ -135,10 +124,7 @@ describe("queryTertiaryDA", () => {
 
   test("parses hex-encoded unit ID", async () => {
     // DCS ! | 7E565434 ST
-    const result = await queryTertiaryDA(
-      createCapture().write,
-      mockRead("\x1bP!|7E565434\x1b\\"),
-    )
+    const result = await queryTertiaryDA(createCapture().write, mockRead("\x1bP!|7E565434\x1b\\"))
     expect(result).toBe("7E565434")
   })
 
@@ -170,18 +156,12 @@ describe("queryTerminalVersion", () => {
   })
 
   test("parses xterm version string", async () => {
-    const result = await queryTerminalVersion(
-      createCapture().write,
-      mockRead("\x1bP>|xterm(388)\x1b\\"),
-    )
+    const result = await queryTerminalVersion(createCapture().write, mockRead("\x1bP>|xterm(388)\x1b\\"))
     expect(result).toBe("xterm(388)")
   })
 
   test("parses tmux version string", async () => {
-    const result = await queryTerminalVersion(
-      createCapture().write,
-      mockRead("\x1bP>|tmux 3.4\x1b\\"),
-    )
+    const result = await queryTerminalVersion(createCapture().write, mockRead("\x1bP>|tmux 3.4\x1b\\"))
     expect(result).toBe("tmux 3.4")
   })
 
@@ -194,10 +174,7 @@ describe("queryTerminalVersion", () => {
   })
 
   test("parses Ghostty version string", async () => {
-    const result = await queryTerminalVersion(
-      createCapture().write,
-      mockRead("\x1bP>|ghostty 1.0.0\x1b\\"),
-    )
+    const result = await queryTerminalVersion(createCapture().write, mockRead("\x1bP>|ghostty 1.0.0\x1b\\"))
     expect(result).toBe("ghostty 1.0.0")
   })
 
@@ -212,10 +189,7 @@ describe("queryTerminalVersion", () => {
   })
 
   test("parses response embedded in other data", async () => {
-    const result = await queryTerminalVersion(
-      createCapture().write,
-      mockRead("noise\x1bP>|foot(1.16.2)\x1b\\more"),
-    )
+    const result = await queryTerminalVersion(createCapture().write, mockRead("noise\x1bP>|foot(1.16.2)\x1b\\more"))
     expect(result).toBe("foot(1.16.2)")
   })
 })

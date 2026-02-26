@@ -63,10 +63,7 @@ describe("queryTextAreaPixels", () => {
   })
 
   test("parses response embedded in other data", async () => {
-    const result = await queryTextAreaPixels(
-      createCapture().write,
-      mockRead("noise\x1b[4;480;960tmore"),
-    )
+    const result = await queryTextAreaPixels(createCapture().write, mockRead("noise\x1b[4;480;960tmore"))
     expect(result).toEqual({ height: 480, width: 960 })
   })
 })
@@ -104,10 +101,7 @@ describe("queryTextAreaSize", () => {
   })
 
   test("parses response embedded in other data", async () => {
-    const result = await queryTextAreaSize(
-      createCapture().write,
-      mockRead("noise\x1b[8;40;120tmore"),
-    )
+    const result = await queryTextAreaSize(createCapture().write, mockRead("noise\x1b[8;40;120tmore"))
     expect(result).toEqual({ rows: 40, cols: 120 })
   })
 })

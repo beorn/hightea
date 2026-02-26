@@ -134,8 +134,12 @@ await run(<App />)
 
 // With hooks:
 await run(<App />, {
-  onSuspend: () => { /* save app state before suspend */ },
-  onResume: () => { /* refresh data after resume */ },
+  onSuspend: () => {
+    /* save app state before suspend */
+  },
+  onResume: () => {
+    /* refresh data after resume */
+  },
   onInterrupt: () => {
     // Return false to prevent exit (e.g., show "unsaved changes" dialog)
     return hasUnsavedChanges ? false : undefined
@@ -147,6 +151,7 @@ await run(<App />, { suspendOnCtrlZ: false, exitOnCtrlC: false })
 ```
 
 **Protocols saved/restored across suspend/resume:**
+
 - Raw mode (stdin)
 - Alternate screen buffer
 - Cursor visibility
@@ -995,7 +1000,7 @@ to capture numbers.
 | [docs/reference/scroll-regions.md](docs/reference/scroll-regions.md)               | DECSTBM scroll region optimization                                                                                           |
 | [docs/reference/terminal-capabilities.md](docs/reference/terminal-capabilities.md) | Terminal detection, render modes, protocols                                                                                  |
 | [docs/reference/text-sizing.md](docs/reference/text-sizing.md)                     | OSC 66 text sizing protocol for PUA character width control                                                                  |
-| [docs/reference/lifecycle.md](docs/reference/lifecycle.md)                          | Terminal lifecycle: suspend/resume (Ctrl+Z), interrupt (Ctrl+C), state save/restore                                          |
+| [docs/reference/lifecycle.md](docs/reference/lifecycle.md)                         | Terminal lifecycle: suspend/resume (Ctrl+Z), interrupt (Ctrl+C), state save/restore                                          |
 | [docs/reference/recipes.md](docs/reference/recipes.md)                             | Common patterns and recipes                                                                                                  |
 | [docs/reference/devtools.md](docs/reference/devtools.md)                           | React DevTools integration (setup, API, troubleshooting)                                                                     |
 | **Deep Dives**                                                                     |                                                                                                                              |

@@ -39,7 +39,13 @@ interface PaneProps {
 
 function Pane({ title, isSelected, children }: PaneProps): JSX.Element {
   return (
-    <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor={isSelected ? "$primary" : "$border"} padding={1}>
+    <Box
+      flexDirection="column"
+      flexGrow={1}
+      borderStyle="round"
+      borderColor={isSelected ? "$primary" : "$border"}
+      padding={1}
+    >
       <Box marginBottom={1}>
         <Text bold color={isSelected ? "$primary" : "white"}>
           {title}

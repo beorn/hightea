@@ -43,7 +43,16 @@ describe("renderStringSync width constraints", () => {
           <Box flexDirection="column" borderStyle="round" borderColor="green" paddingX={1}>
             <Text bold>Header</Text>
             <Text>Some content that should be constrained</Text>
-            <Box flexDirection="column" borderStyle="bold" borderColor="yellow" borderLeft borderRight={false} borderTop={false} borderBottom={false} paddingLeft={1}>
+            <Box
+              flexDirection="column"
+              borderStyle="bold"
+              borderColor="yellow"
+              borderLeft
+              borderRight={false}
+              borderTop={false}
+              borderBottom={false}
+              paddingLeft={1}
+            >
               <Text>Nested content with left border only</Text>
               <Text>Another line of nested content</Text>
             </Box>
@@ -67,7 +76,7 @@ describe("renderStringSync width constraints", () => {
         <Box flexDirection="row" paddingX={1}>
           <Text color="cyan">0:42</Text>
           <Box flexGrow={1} />
-          <Text color="gray">Enter next  a auto  c compact  q quit</Text>
+          <Text color="gray">Enter next a auto c compact q quit</Text>
           <Box flexGrow={1} />
           <Text color="cyan">{"█████░░░░░░░░░░░░░░░"}</Text>
           <Text color="gray"> 5/20</Text>
@@ -193,7 +202,12 @@ describe("useScrollback", () => {
 
     // Phase 2: first item frozen (separate render to avoid diff issues)
     const writes2: string[] = []
-    const mockStdout2 = { write(d: string) { writes2.push(d); return true } }
+    const mockStdout2 = {
+      write(d: string) {
+        writes2.push(d)
+        return true
+      },
+    }
 
     function Phase2() {
       const items: Item[] = [
@@ -256,7 +270,9 @@ describe("inline mode content constraints", () => {
     // renderStringSync (used for scrollback rendering) should render ALL lines
     // since it's generating frozen scrollback content, not live viewport output
     const output = renderStringSync(<TallContent />, { width: 80 })
-    const lines = stripAnsi(output).split("\n").filter((l) => l.trim())
+    const lines = stripAnsi(output)
+      .split("\n")
+      .filter((l) => l.trim())
     expect(lines.length).toBe(50)
   })
 })
@@ -309,7 +325,8 @@ describe("scrollback rendering quality", () => {
   })
 
   test("renderStringSync respects width for long content", () => {
-    const longText = "This is a very long line of text that should wrap when rendered at a narrow width. It contains enough words to definitely exceed any reasonable terminal width."
+    const longText =
+      "This is a very long line of text that should wrap when rendered at a narrow width. It contains enough words to definitely exceed any reasonable terminal width."
 
     const output = renderStringSync(
       <Box borderStyle="round" paddingX={1}>
@@ -343,9 +360,7 @@ describe("DECAWM auto-wrap prevention", () => {
     }
 
     function TestApp() {
-      const items = [
-        { id: 1, text: "Frozen item", frozen: true },
-      ]
+      const items = [{ id: 1, text: "Frozen item", frozen: true }]
 
       const frozenCount = useScrollback(items, {
         frozen: (item) => item.frozen,
@@ -464,7 +479,9 @@ describe("OSC 8 hyperlinks in renderStringSync", () => {
     const output = renderStringSync(
       <Box paddingLeft={2}>
         <Text dim>Tool output: </Text>
-        <Link href="https://docs.example.com/errors/401" dim>error docs</Link>
+        <Link href="https://docs.example.com/errors/401" dim>
+          error docs
+        </Link>
       </Box>,
       { width: 80 },
     )
@@ -503,9 +520,7 @@ describe("OSC 8 hyperlinks in renderStringSync", () => {
     }
 
     function TestApp() {
-      const items: LinkedItem[] = [
-        { id: 1, rendered: preRendered, frozen: true },
-      ]
+      const items: LinkedItem[] = [{ id: 1, rendered: preRendered, frozen: true }]
 
       const frozenCount = useScrollback(items, {
         frozen: (item) => item.frozen,
@@ -597,9 +612,7 @@ describe("OSC 133 semantic markers", () => {
     }
 
     function TestApp() {
-      const items: Item[] = [
-        { id: 1, text: "First", frozen: true },
-      ]
+      const items: Item[] = [{ id: 1, text: "First", frozen: true }]
 
       const frozenCount = useScrollback(items, {
         frozen: (item) => item.frozen,
@@ -690,9 +703,7 @@ describe("OSC 133 semantic markers", () => {
     }
 
     function TestApp() {
-      const items: Item[] = [
-        { id: 1, text: "Only", frozen: true },
-      ]
+      const items: Item[] = [{ id: 1, text: "Only", frozen: true }]
 
       const frozenCount = useScrollback(items, {
         frozen: (item) => item.frozen,

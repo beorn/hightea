@@ -327,10 +327,10 @@ function Preview({ example, theme }: { example: Example; theme: Theme }) {
         // Render in sandboxed static mode — useInput becomes a no-op,
         // useApp gets a stub exit(), no terminal needed.
         // Wrap in ThemeProvider so previews pick up the active theme.
-        const output = await renderStatic(
-          React.createElement(ThemeProvider, { theme }, React.createElement(Comp)),
-          { width, height },
-        )
+        const output = await renderStatic(React.createElement(ThemeProvider, { theme }, React.createElement(Comp)), {
+          width,
+          height,
+        })
         if (!cancelled) setLines(output.split("\n"))
         return undefined
       })
@@ -482,7 +482,10 @@ function Viewer({ examples }: { examples: Example[] }) {
           </Text>
           <Spacer />
           <Text color="$muted">
-            theme: <Text color="$primary" bold>{theme.name}</Text>
+            theme:{" "}
+            <Text color="$primary" bold>
+              {theme.name}
+            </Text>
           </Text>
         </Box>
 
@@ -495,7 +498,9 @@ function Viewer({ examples }: { examples: Example[] }) {
             {/* Info banner */}
             <Box paddingX={1} flexDirection="column">
               <Text wrap="truncate">
-                <Text bold color="$text">{selected.name}</Text>
+                <Text bold color="$text">
+                  {selected.name}
+                </Text>
                 <Text color="$muted"> — {selected.description}</Text>
               </Text>
               {selected.features && selected.features.length > 0 && (
@@ -532,11 +537,8 @@ function Viewer({ examples }: { examples: Example[] }) {
         {/* Bottom bar */}
         <Box paddingX={1}>
           <Text color="$muted">
-            <Text bold>j</Text>/<Text bold>k</Text> navigate{" "}
-            <Text bold>Tab</Text> {tab === "view" ? "source" : "view"}{" "}
-            <Text bold>Enter</Text> {runLabel}{" "}
-            <Text bold>t</Text> theme{" "}
-            <Text bold>q</Text> quit
+            <Text bold>j</Text>/<Text bold>k</Text> navigate <Text bold>Tab</Text> {tab === "view" ? "source" : "view"}{" "}
+            <Text bold>Enter</Text> {runLabel} <Text bold>t</Text> theme <Text bold>q</Text> quit
           </Text>
         </Box>
       </Box>

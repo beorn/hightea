@@ -607,7 +607,9 @@ export class TerminalBuffer {
     if (trap && x === trap.x && y === trap.y) {
       const char = cell.char ?? " "
       const stack = new Error().stack?.split("\n").slice(1, 6).join("\n") ?? ""
-      trap.log.push(`  char="${char}" fg=${cell.fg ?? "null"} bg=${cell.bg ?? "null"} dim=${cell.attrs?.dim} ul=${cell.attrs?.underline}\n${stack}`)
+      trap.log.push(
+        `  char="${char}" fg=${cell.fg ?? "null"} bg=${cell.bg ?? "null"} dim=${cell.attrs?.dim} ul=${cell.attrs?.underline}\n${stack}`,
+      )
     }
 
     this._dirtyRows[y] = 1
