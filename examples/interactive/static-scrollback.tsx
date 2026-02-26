@@ -1007,14 +1007,14 @@ function CodingAgent({ script, autoStart, fastMode }: {
         setExchanges((prev) => prev.map((ex) => ({ ...ex, frozen: true })))
         setCompacting(false)
         setPendingAdvance(true)
-      }, 3000)
+      }, fastMode ? 300 : 3000)
       return
     }
 
     const id = nextIdRef.current++
     setScriptIdx((i) => i + 1)
     startStreaming(entry, id)
-  }, [scriptIdx, done, streamPhase, script, startStreaming, setCompacting])
+  }, [scriptIdx, done, streamPhase, script, startStreaming, setCompacting, fastMode])
 
   /** Skip current streaming — jump to done. */
   const skipStreaming = useCallback(() => {
@@ -1036,8 +1036,8 @@ function CodingAgent({ script, autoStart, fastMode }: {
     setTimeout(() => {
       setCompacting(false)
       setPendingAdvance(true)
-    }, 3000)
-  }, [done, cancelStreaming, setCompacting])
+    }, fastMode ? 300 : 3000)
+  }, [done, cancelStreaming, setCompacting, fastMode])
 
   // Auto-continue after compaction
   useEffect(() => {
