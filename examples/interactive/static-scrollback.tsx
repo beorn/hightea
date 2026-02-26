@@ -801,28 +801,22 @@ function StatusBar({ exchanges, scriptLength, scriptIdx, autoMode, compacting, d
   const ctxColor = ctxPct > 80 ? "$error" : ctxPct > 50 ? "$warning" : "$primary"
   const ctxBar = "█".repeat(ctxFilled) + "░".repeat(CTX_W - ctxFilled)
 
+  // Build left and right as plain strings, pad with spaces to fill terminal width
+  let keys: string
+  if (compacting) keys = "compacting"
+  else if (done) keys = "q quit"
+  else if (autoMode) keys = `a stop  c compact  q quit${" auto"}`
+  else keys = "\u23CE next  a auto  c compact  q quit"
+
+  const left = `${elapsedStr}  ${keys}`
+  const right = `ctx ${ctxBar} ${ctxPct}% \u00B7 ${cost}`
+  const cols = process.stdout.columns ?? 120
+  const pad = Math.max(1, cols - 2 - left.length - right.length) // -2 for paddingX
+
   return (
-    <Box paddingX={1}>
-      <Text>
-        <Text color="$muted" dim>ctx </Text>
-        <Text color={ctxColor}>{ctxBar}</Text>
-        <Text color="$muted" dim> {ctxPct}%</Text>
-        {"  "}
-        <Text color="$primary">{elapsedStr}</Text>
-        <Text color="$muted" dim> · {cost}</Text>
-        {autoMode && <Text bold color="$warning"> auto</Text>}
-        {"  "}
-        {compacting ? (
-          <Text color="$warning" bold dimColor={!pulse}>compacting</Text>
-        ) : done ? (
-          <Text color="$muted"><Text bold>q</Text> quit</Text>
-        ) : autoMode ? (
-          <Text color="$muted"><Text bold>a</Text> stop <Text bold>c</Text> compact <Text bold>q</Text> quit</Text>
-        ) : (
-          <Text color="$muted"><Text bold>⏎</Text> next <Text bold>a</Text> auto <Text bold>c</Text> compact <Text bold>q</Text> quit</Text>
-        )}
-      </Text>
-    </Box>
+    <Text color="$muted" dim>
+      {" "}<Text color="$primary">{elapsedStr}</Text>{"  "}{keys}{" ".repeat(pad)}{right}{" "}
+    </Text>
   )
 }
 
@@ -830,11 +824,8 @@ function StatusBar({ exchanges, scriptLength, scriptIdx, autoMode, compacting, d
 // Main App
 // ============================================================================
 
-/** How many live turns to keep in the dynamic area before freezing to scrollback.
- * Keep this low enough that the dynamic area fits within a single terminal screen
- * (header + N exchanges + status ≤ terminal rows). Agent exchanges with tool calls
- * can be 15+ lines, so 2 is safe for 40-row terminals. */
-const MAX_LIVE_TURNS = 2
+/** How many live turns to keep in the dynamic area before freezing to scrollback. */
+const MAX_LIVE_TURNS = 4
 
 /** Streaming phases: thinking → streaming text → tool calls → done */
 type StreamPhase = "thinking" | "streaming" | "tools" | "done"
@@ -854,7 +845,7 @@ function CodingAgent({ script, autoStart, fastMode }: {
   const setCompacting = useCallback((v: boolean) => { compactingRef.current = v; _setCompacting(v) }, [])
   const [pendingAdvance, setPendingAdvance] = useState(false)
 
-  // Track terminal height for full-terminal layout (enables proper scrollback)
+  // Terminal dimensions (track resize for height={termRows} pin)
   const [termRows, setTermRows] = useState(process.stdout.rows ?? 40)
   useEffect(() => {
     const onResize = () => setTermRows(process.stdout.rows ?? 40)
@@ -1080,18 +1071,28 @@ function CodingAgent({ script, autoStart, fastMode }: {
 
   return (
     <Box flexDirection="column" height={termRows}>
-      {/* Header */}
+      {/* Header — title + feature bullets */}
       <Box flexDirection="column" paddingX={1}>
         <Text bold>Static Scrollback</Text>
         {frozenCount > 0 ? (
           <Text color="$muted" dim>{"\u2191"} {frozenCount} in scrollback (Cmd+{"\u2191"}/{"\u2193"} to navigate)</Text>
         ) : (
-          <Text color="$muted" dim>useScrollback + inline mode + OSC 8 links + OSC 133 markers + $token theming</Text>
+          <>
+            <Text> </Text>
+            <Text>Coding agent simulation showcasing inkx rendering features:</Text>
+            <Text> {"\u2022"} useScrollback() — frozen turns become real terminal scrollback</Text>
+            <Text> {"\u2022"} renderStringSync() — JSX rendered to styled ANSI strings</Text>
+            <Text> {"\u2022"} mode: "inline" — no alt screen, content flows with terminal</Text>
+            <Text> {"\u2022"} OSC 8 hyperlinks — clickable file paths and URLs in scrollback</Text>
+            <Text> {"\u2022"} OSC 133 markers — Cmd+{"\u2191"}/{"\u2193"} to jump between exchanges</Text>
+            <Text> {"\u2022"} $token theme colors — semantic color tokens resolved at render</Text>
+          </>
         )}
       </Box>
 
-      {/* Active exchanges — fills available space */}
+      {/* Content area — fills available space between header and status bar */}
       <Box flexDirection="column" flexGrow={1} gap={1} overflow="hidden">
+        {/* Active exchanges */}
         {!compacting &&
           activeExchanges.map((ex, i) => {
             const isLatest = i === activeExchanges.length - 1
@@ -1118,12 +1119,12 @@ function CodingAgent({ script, autoStart, fastMode }: {
         {/* Done message */}
         {done && (
           <Box flexDirection="column" borderStyle="round" borderColor="$success" paddingX={1}>
-            <Text color="$success" bold>✓ Session complete</Text>
+            <Text color="$success" bold>{"\u2713"} Session complete</Text>
             <Text color="$muted">
               Scroll up to review — colors, borders, and hyperlinks preserved in scrollback.
             </Text>
             <Text color="$muted" dim>
-              Try <Text bold color="$primary">Cmd+↑</Text>/<Text bold color="$primary">Cmd+↓</Text> to jump between exchanges.
+              Try <Text bold color="$primary">Cmd+{"\u2191"}</Text>/<Text bold color="$primary">Cmd+{"\u2193"}</Text> to jump between exchanges.
             </Text>
           </Box>
         )}

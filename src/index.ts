@@ -435,6 +435,42 @@ export { detectTerminalCaps, type TerminalCaps } from "./terminal-caps.js"
 // Text sizing protocol (OSC 66) — PUA character width control
 export { textSized, isPrivateUseArea, isTextSizingLikelySupported, detectTextSizingSupport } from "./text-sizing.js"
 
+// CSI 6n cursor position query
+export { queryCursorPosition, queryCursorFromStdio } from "./cursor-query.js"
+
+// OSC 10/11/12 terminal color queries
+export {
+  queryForegroundColor,
+  queryBackgroundColor,
+  queryCursorColor,
+  setForegroundColor,
+  setBackgroundColor,
+  setCursorColor,
+  resetForegroundColor,
+  resetBackgroundColor,
+  resetCursorColor,
+  detectColorScheme,
+} from "./terminal-colors.js"
+
+// DA1/DA2/DA3 + XTVERSION device attribute queries
+export {
+  queryPrimaryDA,
+  querySecondaryDA,
+  queryTertiaryDA,
+  queryTerminalVersion,
+  queryDeviceAttributes,
+  type DeviceAttributes,
+} from "./device-attrs.js"
+
+// Focus reporting (CSI ?1004h)
+export { enableFocusReporting, disableFocusReporting, parseFocusEvent } from "./focus-reporting.js"
+
+// DECRQM mode query
+export { queryMode, queryModes, DecMode } from "./mode-query.js"
+
+// CSI 14t/18t pixel and text area size queries
+export { queryTextAreaPixels, queryTextAreaSize, queryCellSize } from "./pixel-size.js"
+
 // Layout engine types
 export type { LayoutEngine, LayoutNode, LayoutConstants, MeasureFunc, MeasureMode } from "./layout-engine.js"
 
