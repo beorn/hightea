@@ -601,6 +601,9 @@ class InkxInstance {
     stdin.removeAllListeners("readable")
     stdin.removeAllListeners("data")
     stdin.destroy()
+    // Unref stdin so it doesn't keep the event loop alive after unmount.
+    // Without this, the process hangs after exit() in inline mode.
+    if (typeof stdin.unref === "function") stdin.unref()
 
     if (this.fiberRoot) {
       reconciler.updateContainer(null, this.fiberRoot, null, () => {})

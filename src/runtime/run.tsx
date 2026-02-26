@@ -639,95 +639,155 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
   // Event Loop
   // ========================================================================
 
+  /**
+   * Process a single event — run its handler (state mutation only).
+   * Returns true to continue, false to exit.
+   */
+  function processEvent(event: Event & { parsedKey?: Key; input?: string }): boolean {
+    // Handle key events with parsed key
+    if (event.type === "key" && "parsedKey" in event) {
+      const { input, parsedKey } = event as { input: string; parsedKey: Key }
+
+      // Focus system: dispatch key event to focused node first
+      let focusHandled = false
+      if (focusManager.activeElement) {
+        const keyEvent = createKeyEvent(input, parsedKey, focusManager.activeElement)
+        dispatchKeyEvent(keyEvent)
+
+        if (keyEvent.propagationStopped || keyEvent.defaultPrevented) {
+          focusHandled = true
+        }
+
+        // Default focus navigation (Tab, Shift+Tab, Enter, Escape, arrows) if not handled
+        if (!focusHandled) {
+          const root = getContainerRoot(container)
+          focusHandled = handleFocusNavigation(parsedKey, focusManager, root)
+        }
+      }
+
+      // Fall through to app's useInput handlers
+      if (!focusHandled) {
+        for (const handler of inputHandlers) {
+          const result = handler(input, parsedKey)
+          if (result === "exit") {
+            return false
+          }
+        }
+      }
+    }
+
+    // Handle mouse events with DOM-level dispatch
+    if (event.type === "mouse") {
+      const mouseData = event as {
+        x: number
+        y: number
+        button: number
+        action: string
+        delta?: number
+        shift: boolean
+        meta: boolean
+        ctrl: boolean
+      }
+
+      const root = getContainerRoot(container)
+
+      processMouseEvent(
+        mouseEventState,
+        {
+          button: mouseData.button,
+          x: mouseData.x,
+          y: mouseData.y,
+          action: mouseData.action as "down" | "up" | "move" | "wheel",
+          delta: mouseData.delta,
+          shift: mouseData.shift,
+          meta: mouseData.meta,
+          ctrl: mouseData.ctrl,
+        },
+        root,
+      )
+    }
+
+    // Handle paste events
+    if (event.type === "paste") {
+      const { content } = event as { content: string }
+      for (const handler of pasteHandlers) {
+        handler(content)
+      }
+    }
+
+    return true
+  }
+
   const eventLoop = async () => {
     // Merge keyboard and runtime events
     const keyboardEvents = createKeyboardSource()
     const runtimeEvents = runtime.events()
     const allEvents = merge(keyboardEvents, runtimeEvents)
 
+    // Event coalescing: pump events into a queue, drain all pending
+    // events before rendering. This batches auto-repeat keys (e.g.,
+    // holding 'j') so multiple state mutations share one render pass.
+    const eventQueue: (Event & { parsedKey?: Key; input?: string })[] = []
+    let eventQueueResolve: (() => void) | null = null
+
+    // Pump events from async iterable into the shared queue
+    const pumpEvents = async () => {
+      try {
+        for await (const event of takeUntil(allEvents, signal)) {
+          eventQueue.push(event as Event & { parsedKey?: Key; input?: string })
+          if (eventQueueResolve) {
+            const resolve = eventQueueResolve
+            eventQueueResolve = null
+            resolve()
+          }
+          if (shouldExit) break
+        }
+      } finally {
+        // Signal end of events
+        if (eventQueueResolve) {
+          const resolve = eventQueueResolve
+          eventQueueResolve = null
+          resolve()
+        }
+      }
+    }
+
+    // Start pump in background
+    pumpEvents().catch(console.error)
+
     try {
-      for await (const event of takeUntil(allEvents, signal)) {
-        if (shouldExit) break
+      while (!shouldExit && !signal.aborted) {
+        // Wait for at least one event
+        if (eventQueue.length === 0) {
+          await new Promise<void>((resolve) => {
+            eventQueueResolve = resolve
+            signal.addEventListener("abort", () => resolve(), { once: true })
+          })
+        }
 
-        // Handle key events with parsed key
-        if (event.type === "key" && "parsedKey" in event) {
-          const { input, parsedKey } = event as unknown as {
-            input: string
-            parsedKey: Key
-          }
+        if (shouldExit || signal.aborted) break
+        if (eventQueue.length === 0) continue
 
-          // Focus system: dispatch key event to focused node first
-          let focusHandled = false
-          if (focusManager.activeElement) {
-            const keyEvent = createKeyEvent(input, parsedKey, focusManager.activeElement)
-            dispatchKeyEvent(keyEvent)
+        // Yield to microtask queue so the pump can push any additional
+        // pending events before we drain. Without this, the first event
+        // after idle always processes solo (1-event batch), even when
+        // auto-repeat has queued multiple events in the term provider.
+        await Promise.resolve()
 
-            if (keyEvent.propagationStopped || keyEvent.defaultPrevented) {
-              focusHandled = true
-            }
-
-            // Default focus navigation (Tab, Shift+Tab, Enter, Escape, arrows) if not handled
-            if (!focusHandled) {
-              const root = getContainerRoot(container)
-              focusHandled = handleFocusNavigation(parsedKey, focusManager, root)
-            }
-          }
-
-          // Fall through to app's useInput handlers
-          if (!focusHandled) {
-            for (const handler of inputHandlers) {
-              const result = handler(input, parsedKey)
-              if (result === "exit") {
-                exit()
-                break
-              }
-            }
+        // Drain all pending events — run handlers without rendering
+        const batch = eventQueue.splice(0)
+        for (const event of batch) {
+          if (shouldExit) break
+          if (!processEvent(event)) {
+            exit()
+            break
           }
         }
 
-        // Handle mouse events with DOM-level dispatch
-        if (event.type === "mouse") {
-          const mouseData = event as {
-            x: number
-            y: number
-            button: number
-            action: string
-            delta?: number
-            shift: boolean
-            meta: boolean
-            ctrl: boolean
-          }
-
-          const root = getContainerRoot(container)
-
-          processMouseEvent(
-            mouseEventState,
-            {
-              button: mouseData.button,
-              x: mouseData.x,
-              y: mouseData.y,
-              action: mouseData.action as "down" | "up" | "move" | "wheel",
-              delta: mouseData.delta,
-              shift: mouseData.shift,
-              meta: mouseData.meta,
-              ctrl: mouseData.ctrl,
-            },
-            root,
-          )
+        // Schedule a single render for the entire batch
+        if (!shouldExit) {
+          scheduleRender()
         }
-
-        // Handle paste events
-        if (event.type === "paste") {
-          const { content } = event as { content: string }
-          for (const handler of pasteHandlers) {
-            handler(content)
-          }
-        }
-
-        // Schedule batched render after any event
-        scheduleRender()
-
-        if (shouldExit) break
       }
     } finally {
       // Cleanup

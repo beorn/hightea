@@ -554,34 +554,22 @@ function ScrollbackExchange({ exchange }: { exchange: Exchange }): JSX.Element {
     )
   }
 
-  if (exchange.role === "user") {
-    return (
-      <Box paddingX={1}>
-        <Text dim>
-          <Text bold color="$primary">{"❯ "}</Text>
-          {exchange.content}
-        </Text>
-      </Box>
-    )
-  }
+  const isUser = exchange.role === "user"
+  const outlineColor = isUser ? "$primary" : "$success"
 
-  // Agent — dimmed, compact, left-bar for scrollback
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="bold"
-      borderColor="$muted"
-      borderLeft
-      borderRight={false}
-      borderTop={false}
-      borderBottom={false}
-      paddingLeft={1}
-    >
+    <Box flexDirection="column" borderStyle="round" borderColor={outlineColor} paddingX={1} dimColor>
+      <Text dim>
+        <Text bold color={outlineColor}>
+          {isUser ? "❯" : "◆"} {isUser ? "You" : "Agent"}
+        </Text>
+        {tokenBadge && <Text color="$muted">{tokenBadge}</Text>}
+      </Text>
       <Text dim>{exchange.content}</Text>
       {exchange.toolCalls?.map((call, i) => (
         <Box key={i} flexDirection="column">
           <Text dim>
-            <Text color={TOOL_COLORS[call.tool] ?? "gray"} bold>{"▸ "}{call.tool}</Text>
+            <Text color={TOOL_COLORS[call.tool] ?? "gray"} bold>{"✓ "}{call.tool}</Text>
             {" "}
             <Link href={`file://${call.args}`} dim>{call.args}</Link>
           </Text>
@@ -708,14 +696,16 @@ function ExchangeView({ exchange, streamPhase, revealFraction, pulse }: {
 }): JSX.Element {
   if (exchange.role === "system") {
     return (
-      <Box paddingX={1}>
+      <Box borderStyle="round" borderColor="$warning" paddingX={1}>
         <Text color="$warning" italic>{exchange.content}</Text>
       </Box>
     )
   }
 
   const isUser = exchange.role === "user"
-  const outlineColor = "$success"
+  const outlineColor = isUser ? "$primary" : "$success"
+  const icon = isUser ? "❯" : "◆"
+  const name = isUser ? "You" : "Agent"
 
   // Token badge for agent exchanges
   const tokenBadge = exchange.tokens && !isUser && streamPhase === "done"
@@ -728,36 +718,26 @@ function ExchangeView({ exchange, streamPhase, revealFraction, pulse }: {
     ? toolCalls.length
     : 0
 
-  if (isUser) {
-    return (
-      <Box paddingX={1}>
-        <Text>
-          <Text bold color="$primary">{"❯ "}</Text>
-          {exchange.content}
-        </Text>
-      </Box>
-    )
-  }
-
-  // Agent exchange — compact left-bar style
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="bold"
-      borderColor={outlineColor}
-      borderLeft
-      borderRight={false}
-      borderTop={false}
-      borderBottom={false}
-      paddingLeft={1}
-    >
+    <Box flexDirection="column" borderStyle="round" borderColor={outlineColor} paddingX={1}>
+      {/* Header: icon + name + token badge */}
+      <Text>
+        <Text bold color={outlineColor}>
+          <Text dimColor={!isUser && !pulse && streamPhase !== "done"}>{icon}</Text> {name}
+        </Text>
+        {tokenBadge && <Text color="$muted" dim>{tokenBadge}</Text>}
+      </Text>
+
+      {/* User content */}
+      {isUser && <Text>{exchange.content}</Text>}
+
       {/* Thinking block */}
-      {exchange.thinking && (streamPhase === "thinking" || streamPhase === "streaming") && (
+      {!isUser && exchange.thinking && (streamPhase === "thinking" || streamPhase === "streaming") && (
         <ThinkingBlock text={exchange.thinking} done={streamPhase !== "thinking"} />
       )}
 
-      {/* Content */}
-      {(streamPhase === "streaming" || streamPhase === "tools" || streamPhase === "done") && (
+      {/* Agent content */}
+      {!isUser && (streamPhase === "streaming" || streamPhase === "tools" || streamPhase === "done") && (
         <StreamingText
           fullText={exchange.content}
           revealFraction={streamPhase === "streaming" ? revealFraction : 1}
@@ -767,7 +747,7 @@ function ExchangeView({ exchange, streamPhase, revealFraction, pulse }: {
 
       {/* Tool calls */}
       {toolRevealCount > 0 && (
-        <Box flexDirection="column">
+        <Box flexDirection="column" marginTop={1}>
           {toolCalls.map((call, i) => (
             <ToolCallBlock
               key={i}
@@ -783,9 +763,6 @@ function ExchangeView({ exchange, streamPhase, revealFraction, pulse }: {
           ))}
         </Box>
       )}
-
-      {/* Token badge at the end */}
-      {tokenBadge ? <Text color="$muted" dim>{tokenBadge}</Text> : null}
     </Box>
   )
 }
@@ -816,29 +793,40 @@ function StatusBar({ exchanges, scriptLength, scriptIdx, autoMode, compacting, d
   const ctxColor = ctxPct > 80 ? "$error" : ctxPct > 50 ? "$warning" : "$primary"
   const ctxBar = "█".repeat(ctxFilled) + "░".repeat(CTX_W - ctxFilled)
 
-  // Progress bar
+  // Progress
   const progress = Math.min(scriptIdx, scriptLength)
-  const progressPct = scriptLength > 0 ? progress / scriptLength : 0
-  const PRG_W = 15
-  const prgFilled = Math.round(progressPct * PRG_W)
-  const prgBar = "█".repeat(prgFilled) + "░".repeat(PRG_W - prgFilled)
 
   return (
-    <Box paddingX={1}>
+    <Box flexDirection="column" paddingX={1}>
+      {/* Row 1: context bar | model | progress */}
       <Text>
-        <Text color="$primary">{elapsedStr}</Text>
-        <Text color="$muted" dim> · {formatTokens(totalTokens)} tokens · {cost}</Text>
-        {autoMode && <Text bold color="$warning"> · auto</Text>}
-        <Text color="$muted" dim> · ctx </Text>
+        <Text color="$muted" dim>ctx </Text>
         <Text color={ctxColor}>{ctxBar}</Text>
         <Text color="$muted" dim> {ctxPct}%</Text>
+        {"  "}
+        <Text color="$muted" dim>{MODEL_NAME}</Text>
+        {"  "}
+        {compacting ? (
+          <Text color="$warning" bold dimColor={!pulse}>compacting</Text>
+        ) : done ? (
+          <Text color="$success" bold>done</Text>
+        ) : (
+          <Text color="$muted" dim>{progress}/{scriptLength}</Text>
+        )}
+      </Text>
+
+      {/* Row 2: elapsed · tokens · cost | help keys */}
+      <Text>
+        <Text color="$primary">{elapsedStr}</Text>
+        <Text color="$muted" dim> · {formatTokens(totalTokens)} · {cost}</Text>
+        {autoMode && <Text bold color="$warning"> auto</Text>}
         {"  "}
         {done ? (
           <Text color="$muted"><Text bold>q</Text> quit</Text>
         ) : autoMode ? (
-          <Text color="$muted"><Text bold>a</Text> stop  <Text bold>c</Text> compact  <Text bold>q</Text> quit</Text>
+          <Text color="$muted"><Text bold>a</Text> stop · <Text bold>c</Text> compact · <Text bold>q</Text> quit</Text>
         ) : (
-          <Text color="$muted"><Text bold>⏎</Text> next  <Text bold>a</Text> auto  <Text bold>c</Text> compact  <Text bold>q</Text> quit</Text>
+          <Text color="$muted"><Text bold>⏎</Text> next · <Text bold>a</Text> auto · <Text bold>c</Text> compact · <Text bold>q</Text> quit</Text>
         )}
       </Text>
     </Box>
@@ -1087,7 +1075,7 @@ function CodingAgent({ script, autoStart, fastMode }: {
   const activeExchanges = exchanges.slice(frozenCount)
 
   return (
-    <Box flexDirection="column" overflow="hidden">
+    <Box flexDirection="column" gap={1} overflow="hidden">
       {/* Header + scrollback marker */}
       <Box flexDirection="column" paddingX={1}>
         <Text bold color="$primary">inkx</Text>
@@ -1115,18 +1103,23 @@ function CodingAgent({ script, autoStart, fastMode }: {
 
       {/* Compaction in progress */}
       {compacting && (
-        <Box paddingX={1}>
+        <Box borderStyle="round" borderColor="$warning" paddingX={1}>
           <Text color="$warning">
-            <Spinner type="arc" /> Compacting...
+            <Spinner type="arc" /> Compacting context... freezing all turns to scrollback.
           </Text>
         </Box>
       )}
 
       {/* Done message */}
       {done && (
-        <Box paddingX={1}>
-          <Text color="$success" bold>✓ Done</Text>
-          <Text color="$muted" dim> — scroll up to review (Cmd+↑/↓ to navigate)</Text>
+        <Box flexDirection="column" borderStyle="round" borderColor="$success" paddingX={1}>
+          <Text color="$success" bold>✓ Session complete</Text>
+          <Text color="$muted">
+            Scroll up to review — colors, borders, and hyperlinks preserved in scrollback.
+          </Text>
+          <Text color="$muted" dim>
+            Try <Text bold color="$primary">Cmd+↑</Text>/<Text bold color="$primary">Cmd+↓</Text> to jump between exchanges.
+          </Text>
         </Box>
       )}
 
@@ -1164,6 +1157,8 @@ async function main() {
     { mode: "inline" },
   )
   await app.waitUntilExit()
+  // Explicit exit — inkx's unmount doesn't fully release all event loop references yet
+  process.exit(0)
 }
 
 if (import.meta.main) {

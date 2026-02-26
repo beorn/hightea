@@ -970,7 +970,15 @@ function changesToAnsi(
           }
           output += "\r\n"
         } else if (cursorY >= 0 && y === cursorY && x > cursorX) {
-          // Same row, forward: use CUF (Cursor Forward) for small jumps
+          // Same row, forward: use CUF (Cursor Forward) for small jumps.
+          // Reset bg before CUF to prevent background color bleeding into
+          // skipped cells. Some terminals (e.g., Ghostty) may apply the
+          // current bg to cells traversed by CUF, causing visual artifacts
+          // when bg transitions from undefined→color (km-tui.col-header-dup).
+          if (currentStyle && currentStyle.bg !== null) {
+            output += "\x1b[0m"
+            currentStyle = null
+          }
           const dx = x - cursorX
           output += dx === 1 ? "\x1b[C" : `\x1b[${dx}C`
         } else if (cursorY >= 0 && y > cursorY && x === 0) {
