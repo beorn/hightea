@@ -558,14 +558,16 @@ function ScrollbackExchange({ exchange }: { exchange: Exchange }): JSX.Element {
   const outlineColor = isUser ? "$primary" : "$success"
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor={outlineColor} paddingX={1} dimColor>
+    <Box flexDirection="column" borderStyle="round" borderColor={outlineColor} paddingX={1} dimColor overflow="hidden">
       <Text dim>
         <Text bold color={outlineColor}>
           {isUser ? "❯" : "◆"} {isUser ? "You" : "Agent"}
         </Text>
         {tokenBadge && <Text color="$muted">{tokenBadge}</Text>}
       </Text>
+      <Text> </Text>
       <Text dim>{exchange.content}</Text>
+      <Text> </Text>
       {exchange.toolCalls?.map((call, i) => (
         <Box key={i} flexDirection="column">
           <Text dim>
@@ -719,7 +721,7 @@ function ExchangeView({ exchange, streamPhase, revealFraction, pulse }: {
     : 0
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor={outlineColor} paddingX={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor={outlineColor} paddingX={1} overflow="hidden">
       {/* Header: icon + name + token badge */}
       <Text>
         <Text bold color={outlineColor}>
@@ -727,6 +729,9 @@ function ExchangeView({ exchange, streamPhase, revealFraction, pulse }: {
         </Text>
         {tokenBadge && <Text color="$muted" dim>{tokenBadge}</Text>}
       </Text>
+
+      {/* Blank line before content */}
+      <Text> </Text>
 
       {/* User content */}
       {isUser && <Text>{exchange.content}</Text>}
@@ -745,9 +750,12 @@ function ExchangeView({ exchange, streamPhase, revealFraction, pulse }: {
         />
       )}
 
+      {/* Blank line after content (before tool calls or end) */}
+      <Text> </Text>
+
       {/* Tool calls */}
       {toolRevealCount > 0 && (
-        <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection="column">
           {toolCalls.map((call, i) => (
             <ToolCallBlock
               key={i}
@@ -837,8 +845,9 @@ function StatusBar({ exchanges, scriptLength, scriptIdx, autoMode, compacting, d
 // Main App
 // ============================================================================
 
-/** How many live turns to keep in the dynamic area before freezing to scrollback. */
-const MAX_LIVE_TURNS = 8
+/** How many live turns to keep in the dynamic area before freezing to scrollback.
+ * Dynamic based on terminal height — each exchange with tools is ~12-15 lines. */
+const MAX_LIVE_TURNS = Math.max(2, Math.floor(((process.stdout.rows ?? 24) - 6) / 12))
 
 /** Streaming phases: thinking → streaming text → tool calls → done */
 type StreamPhase = "thinking" | "streaming" | "tools" | "done"
@@ -1075,7 +1084,7 @@ function CodingAgent({ script, autoStart, fastMode }: {
   const activeExchanges = exchanges.slice(frozenCount)
 
   return (
-    <Box flexDirection="column" gap={1} overflow="hidden">
+    <Box flexDirection="column" gap={1} overflow="hidden" height={process.stdout.rows ?? 24}>
       {/* Header + scrollback marker */}
       <Box flexDirection="column" paddingX={1}>
         <Text bold color="$primary">inkx</Text>
