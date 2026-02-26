@@ -302,11 +302,13 @@ function HorizontalVirtualListInner<T>(
   const overflowBefore = displayScrollOffset
   const overflowAfter = Math.max(0, items.length - displayScrollOffset - visibleCount)
 
-  // Always render indicators when configured (prevents layout shift).
-  // The renderer receives hiddenCount and decides visual treatment.
+  // Only render overflow indicators when there are actually hidden items in that direction.
+  // Space is still reserved via indicatorReserved/effectiveViewport to prevent layout shift;
+  // when an indicator is not shown, an empty spacer of the same width fills its slot.
   const hasCustomIndicator = renderOverflowIndicator != null
-  const showLeftIndicator = hasCustomIndicator || overflowIndicator === true
-  const showRightIndicator = hasCustomIndicator || overflowIndicator === true
+  const showIndicators = hasCustomIndicator || overflowIndicator === true
+  const showLeftIndicator = showIndicators && overflowBefore > 0
+  const showRightIndicator = showIndicators && overflowAfter > 0
 
   return (
     <Box flexDirection="row" width={width} height={height}>
@@ -321,6 +323,10 @@ function HorizontalVirtualListInner<T>(
             </Text>
           </Box>
         ))}
+      {/* Reserve indicator space when configured but not showing (prevents layout shift) */}
+      {showIndicators && !showLeftIndicator && overflowIndicatorWidth > 0 && (
+        <Box width={overflowIndicatorWidth} flexShrink={0} />
+      )}
 
       {/* Overflow container — clips items that extend beyond the viewport */}
       <Box flexGrow={1} flexDirection="row" overflow="hidden">
@@ -352,6 +358,10 @@ function HorizontalVirtualListInner<T>(
             </Text>
           </Box>
         ))}
+      {/* Reserve indicator space when configured but not showing (prevents layout shift) */}
+      {showIndicators && !showRightIndicator && overflowIndicatorWidth > 0 && (
+        <Box width={overflowIndicatorWidth} flexShrink={0} />
+      )}
     </Box>
   )
 }

@@ -56,6 +56,7 @@ export interface KeybindingDef {
   key: string
   commandId: string
   ctrl?: boolean
+  alt?: boolean
   opt?: boolean
   shift?: boolean
   cmd?: boolean
@@ -176,8 +177,7 @@ function getKeysForCommand(commandId: string, keybindings?: KeybindingDef[]): re
       const parts: string[] = []
       if (kb.cmd) parts.push("Cmd")
       if (kb.ctrl) parts.push("Ctrl")
-      if (kb.opt) parts.push("Opt")
-      // alt removed — macOS uses opt (⌥)
+      if (kb.alt || kb.opt) parts.push("Alt")
       if (kb.shift) parts.push("Shift")
       parts.push(kb.key)
       return parts.join("+")
