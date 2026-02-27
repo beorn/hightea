@@ -1072,7 +1072,7 @@ function CodingAgent({
     if (streamPhase !== "done") return
 
     const nextEntry = script[scriptIdx]
-    if (nextEntry && nextEntry.role === "user" && !fastMode) {
+    if (nextEntry?.role === "user" && !fastMode) {
       // Simulate typing the next user message char-by-char
       const fullMsg = nextEntry.content
       let charIdx = 0
@@ -1304,7 +1304,6 @@ async function main() {
   // Clear scrollback buffer after exit — the frozen items served their demo
   // purpose; clean up so the user's terminal isn't cluttered with demo output.
   process.stdout.write("\x1b[3J\x1b[2J\x1b[H")
-  process.exit(0) // Workaround for km-inkx.event-loop-hang
 }
 
 if (import.meta.main) {

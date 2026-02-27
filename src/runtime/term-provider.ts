@@ -151,6 +151,9 @@ export function createTermProvider(
   const controller = new AbortController()
   const signal = controller.signal
 
+  // Shared stdin cleanup — set by events(), callable from dispose as safety net
+  let stdinCleanup: (() => void) | null = null
+
   // Resize handler
   const onResize = () => {
     state = {
@@ -230,9 +233,19 @@ export function createTermProvider(
         }
       }
 
-      // Subscribe
+      // Subscribe — track the cleanup function for use by both finally and dispose
       stdin.on("data", onChunk)
       stdout.on("resize", onResizeEvent)
+      stdinCleanup = () => {
+        stdin.off("data", onChunk)
+        stdout.off("resize", onResizeEvent)
+        if (stdin.isTTY) {
+          stdin.setRawMode(false)
+        }
+        // Always pause stdin — on("data") unconditionally sets readableFlowing=true,
+        // so we must unconditionally pause to release the event loop reference.
+        stdin.pause()
+      }
 
       try {
         while (!disposed && !signal.aborted) {
@@ -253,13 +266,10 @@ export function createTermProvider(
           }
         }
       } finally {
-        // Cleanup
-        stdin.off("data", onChunk)
-        stdout.off("resize", onResizeEvent)
-
-        if (stdin.isTTY) {
-          stdin.setRawMode(false)
-          stdin.pause()
+        if (stdinCleanup) {
+          const fn = stdinCleanup
+          stdinCleanup = null
+          fn()
         }
       }
     },
@@ -276,6 +286,14 @@ export function createTermProvider(
 
       // Clear listeners
       listeners.clear()
+
+      // Safety net: clean up stdin in case events() generator's finally
+      // hasn't run yet (e.g., async .return() propagation is delayed)
+      if (stdinCleanup) {
+        const fn = stdinCleanup
+        stdinCleanup = null
+        fn()
+      }
     },
   }
 }

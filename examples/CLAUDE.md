@@ -29,8 +29,6 @@
 
 6. **Streaming feels real.** For coding agent demos: thinking spinner (1-2s) → word-by-word text reveal → tool call spinner → output. Use `setInterval` at 50ms with 8-12% fraction increments.
 
-7. **Clean exit.** Call `process.exit(0)` after `waitUntilExit()` until the event loop hang is fixed (see `km-inkx.event-loop-hang`).
-
 ### Scrollback Pattern
 
 Use `ScrollbackList` (or `ScrollbackView`) — they handle terminal height, footer pinning, and overflow automatically:
@@ -77,6 +75,3 @@ Use semantic `$token` colors instead of hardcoded values:
 4. **Width**: Test at 80 and 120 columns
 5. **Fast mode**: `--fast` flag should skip all animation for quick validation
 
-## Known Issues
-
-- **Event loop hang**: `render()` unmount doesn't fully release all event loop references. Use `process.exit(0)` after `waitUntilExit()` as a workaround. Tracked in `km-inkx.event-loop-hang`.

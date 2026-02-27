@@ -172,7 +172,6 @@ async function main() {
   )
 
   await handle.waitUntilExit()
-  process.exit(0)
 
   console.log("\nFinal state:", handle.store.getState().todos.length, "todos")
 }
