@@ -10,6 +10,7 @@ export {
   type CellChange,
   type BorderChars,
   type ExecuteRenderOptions,
+  type PipelineConfig,
   // Phase functions
   measurePhase,
   layoutPhase,

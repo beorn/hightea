@@ -30,6 +30,8 @@ import { createLogger } from "@beorn/logger"
 import type { TerminalBuffer } from "../buffer.js"
 import type { CursorState } from "../hooks/useCursor.js"
 import type { InkxNode } from "../types.js"
+import { runWithMeasurer, type Measurer } from "../unicode.js"
+import type { OutputPhaseFn } from "./output-phase.js"
 
 const log = createLogger("inkx:pipeline")
 const baseLog = createLogger("inkx")
@@ -104,6 +106,17 @@ export interface ExecuteRenderOptions {
 }
 
 /**
+ * Pipeline configuration from withRender().
+ * Carries term-scoped width measurer and output phase.
+ */
+export interface PipelineConfig {
+  /** Width measurer scoped to terminal capabilities */
+  readonly measurer: Measurer
+  /** Output phase function scoped to terminal capabilities */
+  readonly outputPhaseFn: OutputPhaseFn
+}
+
+/**
  * Execute the full render pipeline.
  *
  * @param root The root InkxNode
@@ -111,6 +124,7 @@ export interface ExecuteRenderOptions {
  * @param height Terminal height
  * @param prevBuffer Previous buffer for diffing (null on first render)
  * @param options Render options
+ * @param config Optional pipeline config from withRender()
  * @returns Object with ANSI output and current buffer
  */
 export function executeRender(
@@ -119,6 +133,22 @@ export function executeRender(
   height: number,
   prevBuffer: TerminalBuffer | null,
   options: ExecuteRenderOptions | "fullscreen" | "inline" = "fullscreen",
+  config?: PipelineConfig,
+): { output: string; buffer: TerminalBuffer } {
+  if (config?.measurer) {
+    return runWithMeasurer(config.measurer, () => executeRenderCore(root, width, height, prevBuffer, options, config))
+  }
+  return executeRenderCore(root, width, height, prevBuffer, options, config)
+}
+
+/** Internal: runs the full pipeline. */
+function executeRenderCore(
+  root: InkxNode,
+  width: number,
+  height: number,
+  prevBuffer: TerminalBuffer | null,
+  options: ExecuteRenderOptions | "fullscreen" | "inline" = "fullscreen",
+  config?: PipelineConfig,
 ): { output: string; buffer: TerminalBuffer } {
   // Normalize options (string shorthand for mode)
   const opts: ExecuteRenderOptions = typeof options === "string" ? { mode: options } : options
@@ -203,7 +233,8 @@ export function executeRender(
   {
     using outputSpan = render.span("output")
     const t4 = performance.now()
-    output = outputPhase(prevBuffer, buffer, mode, scrollbackOffset, termRows, cursorPos)
+    const outputFn = config?.outputPhaseFn ?? outputPhase
+    output = outputFn(prevBuffer, buffer, mode, scrollbackOffset, termRows, cursorPos)
     tOutput = performance.now() - t4
     outputSpan.spanData.bytes = output.length
     log.debug?.(`output: ${tOutput.toFixed(2)}ms (${output.length} bytes)`)

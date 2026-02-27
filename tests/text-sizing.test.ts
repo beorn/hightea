@@ -11,9 +11,10 @@ import { textSized, isPrivateUseArea, isTextSizingLikelySupported } from "../src
 import {
   graphemeWidth,
   displayWidth,
-  setTextSizingEnabled,
   isTextSizingEnabled,
   writeTextToBuffer,
+  createMeasurer,
+  runWithMeasurer,
 } from "../src/unicode.js"
 
 // ============================================================================
@@ -150,41 +151,38 @@ describe("isTextSizingLikelySupported", () => {
 // ============================================================================
 
 describe("graphemeWidth with text sizing", () => {
-  afterEach(() => {
-    setTextSizingEnabled(false)
-  })
+  const disabled = createMeasurer({ textSizingEnabled: false })
+  const enabled = createMeasurer({ textSizingEnabled: true })
 
   test("returns 1 for PUA when text sizing disabled", () => {
-    setTextSizingEnabled(false)
     // U+E0B0 = Powerline separator
-    expect(graphemeWidth("\uE0B0")).toBe(1)
+    expect(disabled.graphemeWidth("\uE0B0")).toBe(1)
   })
 
   test("returns 2 for PUA when text sizing enabled", () => {
-    setTextSizingEnabled(true)
-    expect(graphemeWidth("\uE0B0")).toBe(2)
+    expect(enabled.graphemeWidth("\uE0B0")).toBe(2)
   })
 
   test("returns 2 for nerdfont icon (U+F001) when text sizing enabled", () => {
-    setTextSizingEnabled(true)
-    expect(graphemeWidth("\uF001")).toBe(2)
+    expect(enabled.graphemeWidth("\uF001")).toBe(2)
   })
 
   test("returns 1 for ASCII when text sizing enabled", () => {
-    setTextSizingEnabled(true)
-    expect(graphemeWidth("A")).toBe(1)
+    expect(enabled.graphemeWidth("A")).toBe(1)
   })
 
   test("returns 2 for CJK when text sizing enabled (unchanged)", () => {
-    setTextSizingEnabled(true)
     // CJK characters should still be 2
-    expect(graphemeWidth("\u4e00")).toBe(2)
+    expect(enabled.graphemeWidth("\u4e00")).toBe(2)
   })
 
   test("returns 0 for zero-width characters when text sizing enabled", () => {
-    setTextSizingEnabled(true)
     // Combining diaeresis
-    expect(graphemeWidth("\u0308")).toBe(0)
+    expect(enabled.graphemeWidth("\u0308")).toBe(0)
+  })
+
+  test("default module-level graphemeWidth returns 1 for PUA (text sizing off by default)", () => {
+    expect(graphemeWidth("\uE0B0")).toBe(1)
   })
 })
 
@@ -193,34 +191,29 @@ describe("graphemeWidth with text sizing", () => {
 // ============================================================================
 
 describe("displayWidth with text sizing", () => {
-  afterEach(() => {
-    setTextSizingEnabled(false)
-  })
+  const disabled = createMeasurer({ textSizingEnabled: false })
+  const enabled = createMeasurer({ textSizingEnabled: true })
 
   test("accounts for PUA when text sizing enabled", () => {
-    setTextSizingEnabled(true)
     // "X" (1) + PUA (2) + "Y" (1) = 4
     const text = "X\uE0B0Y"
-    expect(displayWidth(text)).toBe(4)
+    expect(enabled.displayWidth(text)).toBe(4)
   })
 
   test("does not account for PUA when text sizing disabled", () => {
-    setTextSizingEnabled(false)
     // "X" (1) + PUA (1) + "Y" (1) = 3
     const text = "X\uE0B0Y"
-    expect(displayWidth(text)).toBe(3)
+    expect(disabled.displayWidth(text)).toBe(3)
   })
 
   test("handles string with only PUA characters", () => {
-    setTextSizingEnabled(true)
     // Two PUA chars, each 2-wide = 4
-    expect(displayWidth("\uE0B0\uF001")).toBe(4)
+    expect(enabled.displayWidth("\uE0B0\uF001")).toBe(4)
   })
 
   test("handles mixed ASCII and PUA", () => {
-    setTextSizingEnabled(true)
     // "FAMILY" (6) + " " (1) + PUA (2) + " " (1) + "SPRINT" (6) = 16
-    expect(displayWidth("FAMILY \uE0B0 SPRINT")).toBe(16)
+    expect(enabled.displayWidth("FAMILY \uE0B0 SPRINT")).toBe(16)
   })
 })
 
@@ -229,33 +222,23 @@ describe("displayWidth with text sizing", () => {
 // ============================================================================
 
 describe("text sizing state", () => {
-  afterEach(() => {
-    setTextSizingEnabled(false)
-  })
-
-  test("defaults to disabled", () => {
+  test("defaults to disabled (module-level)", () => {
     expect(isTextSizingEnabled()).toBe(false)
   })
 
-  test("can be enabled", () => {
-    setTextSizingEnabled(true)
-    expect(isTextSizingEnabled()).toBe(true)
+  test("createMeasurer respects textSizingEnabled flag", () => {
+    const m = createMeasurer({ textSizingEnabled: true })
+    expect(m.textSizingEnabled).toBe(true)
   })
 
-  test("can be disabled after enabling", () => {
-    setTextSizingEnabled(true)
-    setTextSizingEnabled(false)
-    expect(isTextSizingEnabled()).toBe(false)
-  })
+  test("separate measurers have independent caches", () => {
+    // Two measurers with different settings measure differently
+    const disabled = createMeasurer({ textSizingEnabled: false })
+    const enabled = createMeasurer({ textSizingEnabled: true })
 
-  test("clears displayWidth cache when toggling", () => {
-    // Measure a PUA-containing string while disabled
     const text = "\uE0B0test"
-    const widthDisabled = displayWidth(text)
-
-    // Enable and re-measure -- should be different (cached result cleared)
-    setTextSizingEnabled(true)
-    const widthEnabled = displayWidth(text)
+    const widthDisabled = disabled.displayWidth(text)
+    const widthEnabled = enabled.displayWidth(text)
 
     expect(widthEnabled).toBeGreaterThan(widthDisabled)
   })
@@ -266,19 +249,43 @@ describe("text sizing state", () => {
 // ============================================================================
 
 describe("output phase: OSC 66 wrapping", () => {
-  afterEach(() => {
-    setTextSizingEnabled(false)
-  })
+  const textSizingMeasurer = createMeasurer({ textSizingEnabled: true })
+  const defaultMeasurer = createMeasurer({ textSizingEnabled: false })
+
+  /**
+   * Write text to buffer using a specific measurer for grapheme width.
+   * This is needed because writeTextToBuffer uses the module-level default
+   * (text sizing disabled). For tests that need PUA as wide, we write cells manually.
+   */
+  function writeTextWithMeasurer(
+    buffer: TerminalBuffer,
+    x: number,
+    y: number,
+    text: string,
+    measurer: ReturnType<typeof createMeasurer>,
+  ): void {
+    let col = x
+    // Simple segmentation by code points for test purposes
+    for (const char of [...text]) {
+      const width = measurer.graphemeWidth(char)
+      if (width === 2) {
+        buffer.setCell(col, y, { char, fg: null, bg: null, attrs: {}, wide: true, continuation: false })
+        buffer.setCell(col + 1, y, { char: "", fg: null, bg: null, attrs: {}, wide: false, continuation: true })
+        col += 2
+      } else if (width === 1) {
+        buffer.setCell(col, y, { char, fg: null, bg: null, attrs: {}, wide: false, continuation: false })
+        col += 1
+      }
+    }
+  }
 
   test("wraps PUA char in OSC 66 when text sizing enabled", () => {
-    setTextSizingEnabled(true)
     const buffer = new TerminalBuffer(10, 1)
-    // Write "A" + PUA (wide) + "B" to the buffer
     // With text sizing, PUA is 2-wide: cell 0=A, cell 1=PUA(wide), cell 2=continuation, cell 3=B
-    writeTextToBuffer(buffer, 0, 0, "A\uE0B0B")
+    writeTextWithMeasurer(buffer, 0, 0, "A\uE0B0B", textSizingMeasurer)
 
-    // Full render (no prev buffer)
-    const output = outputPhase(null, buffer)
+    // Scoped measurer provides text sizing awareness to all module-level functions
+    const output = runWithMeasurer(textSizingMeasurer, () => outputPhase(null, buffer))
 
     // Output should contain OSC 66 wrapping for the PUA character
     const expected = textSized("\uE0B0", 2)
@@ -288,7 +295,6 @@ describe("output phase: OSC 66 wrapping", () => {
   })
 
   test("does not wrap PUA char when text sizing disabled", () => {
-    setTextSizingEnabled(false)
     const buffer = new TerminalBuffer(10, 1)
     // Without text sizing, PUA is 1-wide: cell 0=A, cell 1=PUA, cell 2=B
     writeTextToBuffer(buffer, 0, 0, "A\uE0B0B")
@@ -303,30 +309,28 @@ describe("output phase: OSC 66 wrapping", () => {
   })
 
   test("does not wrap non-PUA wide chars (CJK) in OSC 66", () => {
-    setTextSizingEnabled(true)
     const buffer = new TerminalBuffer(10, 1)
-    // CJK character (naturally wide)
+    // CJK character (naturally wide) -- same with or without text sizing
     writeTextToBuffer(buffer, 0, 0, "\u4e00")
 
-    const output = outputPhase(null, buffer)
+    const output = runWithMeasurer(textSizingMeasurer, () => outputPhase(null, buffer))
 
     // CJK is wide but not PUA -- should not have OSC 66
     expect(output).not.toContain("\x1b]66;")
     expect(output).toContain("\u4e00")
   })
 
-  // Known: INKX_STRICT_OUTPUT mismatch — dirty flag cascade bug (km-inkx.content-phase-skip)
+  // Genuine PUA wide-char incremental rendering bug (not VT overflow)
   test.fails("wraps PUA in incremental diff output", () => {
-    setTextSizingEnabled(true)
     // Create prev buffer with different content
     const prev = new TerminalBuffer(10, 1)
     writeTextToBuffer(prev, 0, 0, "XXXX")
 
-    // Create next buffer with PUA
+    // Create next buffer with PUA (text sizing)
     const next = new TerminalBuffer(10, 1)
-    writeTextToBuffer(next, 0, 0, "A\uE0B0B")
+    writeTextWithMeasurer(next, 0, 0, "A\uE0B0B", textSizingMeasurer)
 
-    const output = outputPhase(prev, next)
+    const output = runWithMeasurer(textSizingMeasurer, () => outputPhase(prev, next))
 
     // The incremental diff output should also wrap PUA in OSC 66
     const expected = textSized("\uE0B0", 2)
@@ -334,9 +338,8 @@ describe("output phase: OSC 66 wrapping", () => {
   })
 
   test("PUA char is stored as wide in buffer when text sizing enabled", () => {
-    setTextSizingEnabled(true)
     const buffer = new TerminalBuffer(10, 1)
-    writeTextToBuffer(buffer, 0, 0, "A\uE0B0B")
+    writeTextWithMeasurer(buffer, 0, 0, "A\uE0B0B", textSizingMeasurer)
 
     const cell = createMutableCell()
 

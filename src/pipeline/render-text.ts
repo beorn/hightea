@@ -24,10 +24,12 @@ import {
   graphemeWidth,
   hasAnsi,
   parseAnsiText,
+  sliceByWidth,
+  sliceByWidthFromEnd,
   splitGraphemes,
   wrapText,
 } from "../unicode.js"
-import { getTextStyle, getTextWidth, parseColor, sliceByWidth, sliceByWidthFromEnd } from "./render-helpers.js"
+import { getTextStyle, getTextWidth, parseColor } from "./render-helpers.js"
 
 // ============================================================================
 // Background Conflict Detection

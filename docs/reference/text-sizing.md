@@ -39,16 +39,23 @@ await run(<App />, { textSizing: true })
 ### Programmatic Control
 
 ```typescript
-import { setTextSizingEnabled, isTextSizingEnabled } from "inkx"
+import { createMeasurer, runWithMeasurer, isTextSizingEnabled } from "inkx"
 
-// Enable manually (e.g., after your own detection)
-setTextSizingEnabled(true)
+// Create a measurer with text sizing enabled
+const measurer = createMeasurer({ textSizingEnabled: true })
 
-// Check current state
-console.log(isTextSizingEnabled()) // true
+// Use the measurer for width calculations
+measurer.graphemeWidth("\uE0B0") // 2 (PUA treated as double-width)
+measurer.displayWidth("icon\uE0B0text") // accounts for PUA width
 
-// Disable on cleanup
-setTextSizingEnabled(false)
+// Scope a measurer for pipeline operations (output phase, etc.)
+runWithMeasurer(measurer, () => {
+  // All module-level functions (graphemeWidth, displayWidth, etc.)
+  // use this measurer within the callback
+})
+
+// Check current state (module-level default)
+console.log(isTextSizingEnabled()) // false (default)
 ```
 
 ## Terminal Support
@@ -94,19 +101,23 @@ Fast synchronous check based on `TERM_PROGRAM` and `TERM_PROGRAM_VERSION` enviro
 
 Definitive detection using cursor position reports. Sends an OSC 66 test sequence and checks if the cursor advanced by the expected amount.
 
-### `setTextSizingEnabled(enabled: boolean): void`
+### `createMeasurer(opts: { textSizingEnabled: boolean }): Measurer`
 
-Enable or disable text sizing mode globally. When enabled:
+Create a measurer instance with the given text sizing configuration. When `textSizingEnabled` is true:
 
-- `graphemeWidth()` returns 2 for PUA characters
-- `displayWidth()` accounts for PUA width
-- The output phase wraps PUA characters in OSC 66 sequences
+- `measurer.graphemeWidth()` returns 2 for PUA characters
+- `measurer.displayWidth()` accounts for PUA width
+- Used with `runWithMeasurer()` to scope the output phase for OSC 66 wrapping
 
-Clears the display width cache when toggled.
+Each measurer has its own independent width cache.
+
+### `runWithMeasurer(measurer: Measurer, fn: () => T): T`
+
+Run a function with a scoped measurer. All module-level width functions (`graphemeWidth`, `displayWidth`, etc.) use the provided measurer within the callback. This is how the output phase and other pipeline stages get text sizing awareness without threading measurer arguments.
 
 ### `isTextSizingEnabled(): boolean`
 
-Check if text sizing mode is currently active.
+Check if text sizing mode is currently active at the module level (default measurer).
 
 ## How It Works Internally
 

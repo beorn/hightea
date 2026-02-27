@@ -5,17 +5,16 @@
  * - Color parsing (parseColor)
  * - Border character definitions (getBorderChars)
  * - Style extraction (getTextStyle)
- * - Text width utilities (getTextWidth, sliceByWidth, sliceByWidthFromEnd)
+ * - Text width utilities (getTextWidth)
  *
  * Re-exports layout helpers from helpers.ts:
  * - getPadding, getBorderSize
  */
 
-import sliceAnsi from "slice-ansi"
 import type { Color, Style, UnderlineStyle } from "../buffer.js"
 import { getActiveTheme, resolveThemeColor } from "../theme-defs.js"
 import type { BoxProps, TextProps } from "../types.js"
-import { displayWidthAnsi, graphemeWidth, hasAnsi, splitGraphemes } from "../unicode.js"
+import { displayWidthAnsi } from "../unicode.js"
 import type { BorderChars } from "./types.js"
 
 // Re-export shared layout helpers
@@ -209,82 +208,4 @@ export function getTextStyle(props: TextProps): Style {
  */
 export function getTextWidth(text: string): number {
   return displayWidthAnsi(text)
-}
-
-/**
- * OSC 8 hyperlink pattern: \x1b]8;;URL(\x1b\\ | \x07) for open/close.
- * The slice-ansi library doesn't understand OSC sequences and corrupts them
- * by misinterpreting the OSC bytes as ANSI SGR codes. We strip OSC 8 before
- * passing to slice-ansi. Hyperlinks are re-added downstream by parseAnsiText
- * in the rendering pipeline (which properly handles OSC 8).
- */
-const OSC8_RE = /\x1b\]8;;[^\x07\x1b]*(?:\x07|\x1b\\)/g
-
-/**
- * Strip OSC 8 hyperlink sequences from text.
- * slice-ansi doesn't handle OSC sequences — it treats the OSC 8 bytes as
- * ANSI SGR codes, corrupting the output. We strip them before slicing and
- * rely on the downstream rendering pipeline (parseAnsiText) which properly
- * handles OSC 8 from the original unsliced text.
- */
-function stripOsc8(text: string): string {
-  return text.replace(OSC8_RE, "")
-}
-
-/**
- * Slice text by display width (from start).
- * Uses slice-ansi for ANSI-aware slicing, falls back to grapheme segmentation for plain text.
- */
-export function sliceByWidth(text: string, maxWidth: number): string {
-  // Use slice-ansi for ANSI-aware slicing (handles SGR escape codes correctly)
-  if (hasAnsi(text)) {
-    // Strip OSC 8 hyperlinks before slicing — slice-ansi corrupts them
-    return sliceAnsi(stripOsc8(text), 0, maxWidth)
-  }
-
-  // Plain text: use grapheme segmentation
-  let width = 0
-  let result = ""
-  const graphemes = splitGraphemes(text)
-
-  for (const grapheme of graphemes) {
-    const gWidth = graphemeWidth(grapheme)
-    if (width + gWidth > maxWidth) break
-    result += grapheme
-    width += gWidth
-  }
-
-  return result
-}
-
-/**
- * Slice text by display width (from end).
- * Uses slice-ansi for ANSI-aware slicing, falls back to grapheme segmentation for plain text.
- */
-export function sliceByWidthFromEnd(text: string, maxWidth: number): string {
-  const totalWidth = displayWidthAnsi(text)
-  if (totalWidth <= maxWidth) return text
-
-  // Use slice-ansi for ANSI-aware slicing
-  if (hasAnsi(text)) {
-    // Strip OSC 8 hyperlinks before slicing — slice-ansi corrupts them
-    const cleaned = stripOsc8(text)
-    const cleanedWidth = displayWidthAnsi(cleaned)
-    const startIndex = cleanedWidth - maxWidth
-    return sliceAnsi(cleaned, startIndex)
-  }
-
-  // Plain text: use grapheme segmentation
-  const graphemes = splitGraphemes(text)
-  let width = 0
-  let startIdx = graphemes.length
-
-  for (let i = graphemes.length - 1; i >= 0; i--) {
-    const gWidth = graphemeWidth(graphemes[i]!)
-    if (width + gWidth > maxWidth) break
-    width += gWidth
-    startIdx = i
-  }
-
-  return graphemes.slice(startIdx).join("")
 }

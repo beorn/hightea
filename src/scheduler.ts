@@ -26,7 +26,7 @@ import {
 import { getCursorState } from "./hooks/useCursor.js"
 import { copyToClipboard as copyToClipboardImpl } from "./clipboard.js"
 import { ANSI, notify as notifyTerminal } from "./output.js"
-import { executeRender } from "./pipeline.js"
+import { executeRender, type PipelineConfig } from "./pipeline.js"
 import type { InkxNode } from "./types.js"
 
 const log = createLogger("inkx:scheduler")
@@ -98,6 +98,8 @@ export interface SchedulerOptions {
   nonTTYMode?: NonTTYMode
   /** Slow frame warning threshold in ms (default: 50). Set to 0 to disable. */
   slowFrameThreshold?: number
+  /** Pipeline configuration (caps-scoped measurer + output phase) */
+  pipelineConfig?: PipelineConfig
 }
 
 export interface RenderStats {
@@ -143,6 +145,7 @@ export class RenderScheduler {
   private minFrameTime: number
   private slowFrameThreshold: number
   private mode: "fullscreen" | "inline"
+  private pipelineConfig?: PipelineConfig
   private nonTTYMode: ResolvedMode
   private outputTransformer: (content: string, prevLineCount: number) => string
   private log: Logger
@@ -199,6 +202,7 @@ export class RenderScheduler {
     this.minFrameTime = options.minFrameTime ?? 16
     this.slowFrameThreshold = options.slowFrameThreshold ?? 50
     this.mode = options.mode ?? "fullscreen"
+    this.pipelineConfig = options.pipelineConfig
     this.log = createLogger("inkx:scheduler") as unknown as Logger
 
     // Resolve non-TTY mode based on environment
@@ -470,7 +474,7 @@ export class RenderScheduler {
         scrollbackOffset,
         termRows: this.mode === "inline" ? (this.stdout.rows ?? 24) : undefined,
         cursorPos: inlineCursor,
-      })
+      }, this.pipelineConfig)
 
       // Transform output based on non-TTY mode
       let transformedOutput: string
@@ -545,10 +549,17 @@ export class RenderScheduler {
       const strictMode = strictEnv && strictEnv !== "0" && strictEnv !== "false"
       if (strictMode && this.stats.renderCount > 0) {
         const renderNum = this.stats.renderCount + 1
-        const { buffer: freshBuffer } = executeRender(this.root, width, height, null, {
-          mode: this.mode === "fullscreen" ? "fullscreen" : "inline",
-          skipLayoutNotifications: true,
-        })
+        const { buffer: freshBuffer } = executeRender(
+          this.root,
+          width,
+          height,
+          null,
+          {
+            mode: this.mode === "fullscreen" ? "fullscreen" : "inline",
+            skipLayoutNotifications: true,
+          },
+          this.pipelineConfig,
+        )
         let found = false
         for (let y = 0; y < buffer.height && !found; y++) {
           for (let x = 0; x < buffer.width && !found; x++) {

@@ -50,6 +50,7 @@ import { AppContext, FocusManagerContext, StdoutContext, TermContext } from "../
 import { createFocusManager } from "../focus-manager.js"
 import { createFocusEvent, dispatchFocusEvent } from "../focus-events.js"
 import { executeRender } from "../pipeline/index.js"
+import { createPipeline } from "../measurer.js"
 import { IncrementalRenderMismatchError } from "../scheduler.js"
 import { createContainer, createFiberRoot, getContainerRoot, reconciler } from "../reconciler.js"
 import { map, merge, takeUntil } from "../streams/index.js"
@@ -183,6 +184,12 @@ export interface AppRunOptions {
   onResume?: () => void
   /** Called on Ctrl+C. Return false to prevent exit. */
   onInterrupt?: () => boolean | void
+  /**
+   * Terminal capabilities for width measurement and output suppression.
+   * When provided, configures the render pipeline to use these caps
+   * (scoped width measurer + output phase). Typically from term.caps.
+   */
+  caps?: import("../terminal-caps.js").TerminalCaps
   /** Providers and plain values to inject */
   [key: string]: unknown
 }
@@ -406,6 +413,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     onSuspend: onSuspendHook,
     onResume: onResumeHook,
     onInterrupt: onInterruptHook,
+    caps: capsOption,
     ...injectValues
   } = options
 
@@ -639,6 +647,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   let kittyFlags = KittyFlags.DISAMBIGUATE
   let mouseEnabled = false
 
+  // Create pipeline config from caps (scoped width measurer + output phase)
+  const pipelineConfig = capsOption ? createPipeline({ caps: capsOption }) : undefined
+
   // Focus manager (tree-based focus system) with event dispatch wiring
   const focusManager = createFocusManager({
     onFocusChange(oldNode, newNode, _origin) {
@@ -818,6 +829,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       dims.cols,
       dims.rows,
       wasIncremental ? _prevTermBuffer : null,
+      undefined,
+      pipelineConfig,
     )
     if (!_noIncremental) _prevTermBuffer = termBuffer
     const pipelineMs = performance.now() - pipelineStart
@@ -828,10 +841,17 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     const strictEnv =
       typeof process !== "undefined" && (process.env?.INKX_STRICT || process.env?.INKX_CHECK_INCREMENTAL)
     if (strictEnv && strictEnv !== "0" && strictEnv !== "false" && wasIncremental) {
-      const { buffer: freshBuffer } = executeRender(rootNode, dims.cols, dims.rows, null, {
-        skipLayoutNotifications: true,
-        skipScrollStateUpdates: true,
-      })
+      const { buffer: freshBuffer } = executeRender(
+        rootNode,
+        dims.cols,
+        dims.rows,
+        null,
+        {
+          skipLayoutNotifications: true,
+          skipScrollStateUpdates: true,
+        },
+        pipelineConfig,
+      )
       const { cellEquals, bufferToText } =
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         require("../buffer.js") as typeof import("../buffer.js")
@@ -845,10 +865,17 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             const trap = { x, y, log: [] as string[] }
             ;(globalThis as any).__inkx_write_trap = trap
             try {
-              executeRender(rootNode, dims.cols, dims.rows, null, {
-                skipLayoutNotifications: true,
-                skipScrollStateUpdates: true,
-              })
+              executeRender(
+                rootNode,
+                dims.cols,
+                dims.rows,
+                null,
+                {
+                  skipLayoutNotifications: true,
+                  skipScrollStateUpdates: true,
+                },
+                pipelineConfig,
+              )
             } catch {
               // ignore
             }

@@ -31,7 +31,7 @@ import { createTerm } from "chalkx"
 import { bufferToStyledText, bufferToText, type TerminalBuffer } from "./buffer.js"
 import { AppContext, StdoutContext, TermContext } from "./context.js"
 import { isLayoutEngineInitialized } from "./layout-engine.js"
-import { executeRender } from "./pipeline.js"
+import { executeRender, type PipelineConfig } from "./pipeline.js"
 import { createContainer, getContainerRoot } from "./reconciler.js"
 import { stringReconciler } from "./reconciler/string-reconciler.js"
 
@@ -60,6 +60,13 @@ export interface RenderStringOptions {
    * Default: false (includes ANSI styling)
    */
   plain?: boolean
+
+  /**
+   * Pipeline configuration (scoped width measurer + output phase).
+   * When provided, the render pipeline uses these for width measurement
+   * and output generation instead of the global defaults.
+   */
+  pipelineConfig?: PipelineConfig
 }
 
 // ============================================================================
@@ -126,7 +133,7 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
     throw new Error("Layout engine not initialized. Use renderString() (async) or initialize with setLayoutEngine().")
   }
 
-  const { width = 80, height = 24, plain = false } = options
+  const { width = 80, height = 24, plain = false, pipelineConfig } = options
 
   // Track whether React committed new work (from layout notifications etc.)
   let hadReactCommit = false
@@ -206,7 +213,7 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
     withActEnvironment(() => {
       act(() => {
         const root = getContainerRoot(container)
-        const result = executeRender(root, width, height, null)
+        const result = executeRender(root, width, height, null, undefined, pipelineConfig)
         buffer = result.buffer
       })
       if (!hadReactCommit) {

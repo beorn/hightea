@@ -34,6 +34,7 @@ import { createFocusManager, type FocusManager } from "../focus-manager.js"
 import { createFocusEvent, createKeyEvent, dispatchFocusEvent, dispatchKeyEvent } from "../focus-events.js"
 import { findByTestID } from "../focus-queries.js"
 import { executeRender } from "../pipeline/index.js"
+import { createPipeline } from "../measurer.js"
 import { createContainer, createFiberRoot, getContainerRoot, reconciler } from "../reconciler.js"
 import { merge, takeUntil } from "../streams/index.js"
 import { createBuffer } from "./create-buffer.js"
@@ -48,7 +49,6 @@ import { enableBracketedPaste, disableBracketedPaste } from "../bracketed-paste.
 import { enableKittyKeyboard, disableKittyKeyboard, KittyFlags, enableMouse, disableMouse } from "../output.js"
 import { detectKittyFromStdio } from "../kitty-detect.js"
 import { isTextSizingLikelySupported } from "../text-sizing.js"
-import { setTextSizingEnabled } from "../unicode.js"
 import { ensureLayoutEngine } from "./layout.js"
 import {
   captureTerminalState,
@@ -112,6 +112,13 @@ export interface RunOptions {
    * - `false`/undefined: disabled (default)
    */
   textSizing?: boolean | "auto"
+  /**
+   * Terminal capabilities for width measurement and output suppression.
+   * When provided, configures the render pipeline to use these caps
+   * (scoped width measurer + output phase). Typically from term.caps
+   * (auto-detected) or manual override.
+   */
+  caps?: import("../terminal-caps.js").TerminalCaps
   /**
    * Handle Ctrl+Z by suspending the process (save terminal state,
    * send SIGTSTP, restore on SIGCONT). Default: true
@@ -314,6 +321,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     kitty: kittyOption,
     mouse: mouseOption = false,
     textSizing: textSizingOption,
+    caps: capsOption,
     mode: modeOption = "fullscreen",
     suspendOnCtrlZ: suspendOption = true,
     exitOnCtrlC: exitOnCtrlCOption = true,
@@ -352,8 +360,17 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
   let kittyEnabled = false
   let kittyFlags = KittyFlags.DISAMBIGUATE
   let mouseEnabled = false
-  let textSizingWasEnabled = false
   let bracketedPasteEnabled = false
+
+  // Resolve textSizing from caps + option
+  const textSizingEnabled =
+    textSizingOption === true ||
+    (textSizingOption === "auto" && (capsOption?.textSizingSupported ?? isTextSizingLikelySupported()))
+
+  // Create pipeline config from caps (scoped width measurer + output phase)
+  const pipelineConfig = capsOption
+    ? createPipeline({ caps: { ...capsOption, textSizingSupported: textSizingEnabled } })
+    : undefined
 
   // Focus manager (tree-based focus system) with event dispatch wiring
   const focusManager = createFocusManager({
@@ -399,7 +416,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     const dims = runtime.getDims()
     // Inline mode: use NaN height so layout engine auto-sizes to content
     const height = modeOption === "inline" ? NaN : dims.rows
-    const { buffer: termBuffer } = executeRender(rootNode, dims.cols, height, null)
+    const { buffer: termBuffer } = executeRender(rootNode, dims.cols, height, null, undefined, pipelineConfig)
 
     return createBuffer(termBuffer, rootNode)
   }
@@ -683,12 +700,6 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
       mouseEnabled = true
     }
 
-    // Text sizing protocol (OSC 66) for PUA characters
-    if (textSizingOption === true || (textSizingOption === "auto" && isTextSizingLikelySupported())) {
-      setTextSizingEnabled(true)
-      textSizingWasEnabled = true
-    }
-
     // Bracketed paste mode
     enableBracketedPaste(stdout)
     bracketedPasteEnabled = true
@@ -867,7 +878,6 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
         disableBracketedPaste(stdout)
         if (mouseEnabled) stdout.write(disableMouse())
         if (kittyEnabled) stdout.write(disableKittyKeyboard())
-        if (textSizingWasEnabled) setTextSizingEnabled(false)
         stdout.write("\x1b[?25h\x1b[0m\n")
       }
       exitResolve()

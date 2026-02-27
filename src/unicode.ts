@@ -12,6 +12,7 @@
  */
 
 import { BG_OVERRIDE_CODE } from "chalkx"
+import sliceAnsi from "slice-ansi"
 import stringWidth from "string-width"
 import { type Cell, type Style, type TerminalBuffer, type UnderlineStyle, createMutableCell } from "./buffer.js"
 import { isPrivateUseArea } from "./text-sizing.js"
@@ -78,48 +79,222 @@ const displayWidthCache = new DisplayWidthCache(10000)
 // ============================================================================
 
 /**
- * Global flag: when true, text-presentation emoji (⚠, ☑, ⭐) are
- * measured as 2-wide. Modern terminals (Ghostty, iTerm, Kitty) render
- * these at emoji width (2 cells). Terminal.app renders 1 cell.
- * Defaults to true (modern terminal assumption).
+ * Default text-presentation emoji width: true (modern terminal assumption).
+ * Modern terminals (Ghostty, iTerm, Kitty) render text-presentation emoji
+ * as 2-wide. Terminal.app renders them as 1-wide.
  */
-let _textEmojiWide = true
+const DEFAULT_TEXT_EMOJI_WIDE = true
 
 /**
- * Set whether text-presentation emoji should be measured as 2-wide.
- * Call with false for terminals like Terminal.app that render them as 1-wide.
- * Clears the displayWidth cache since widths change.
+ * Default text sizing mode: false.
+ * When enabled via a Measurer, PUA characters are treated as 2-wide.
  */
-export function setTextEmojiWide(wide: boolean): void {
-  if (_textEmojiWide === wide) return
-  _textEmojiWide = wide
-  displayWidthCache.clear()
-  textPresentationEmojiCache.clear()
+const DEFAULT_TEXT_SIZING_ENABLED = false
+
+// ============================================================================
+// Scoped Measurer (pipeline execution context)
+// ============================================================================
+
+/**
+ * Active measurer for the current pipeline execution.
+ * Set by runWithMeasurer() during executeRender, restored after.
+ * When null, module-level functions use the lazy default measurer.
+ */
+let _scopedMeasurer: WidthMeasurer | null = null
+
+/**
+ * Run a function with a specific measurer as the active scope.
+ * Module-level convenience functions (graphemeWidth, displayWidth, etc.)
+ * will use this measurer instead of the lazy default for the duration.
+ */
+export function runWithMeasurer<T>(measurer: WidthMeasurer, fn: () => T): T {
+  const prev = _scopedMeasurer
+  _scopedMeasurer = measurer
+  try {
+    return fn()
+  } finally {
+    _scopedMeasurer = prev
+  }
 }
 
 /**
- * Global flag: when true, PUA characters are treated as 2-wide because
- * OSC 66 will tell the terminal to render them in 2 cells.
+ * @deprecated Use createWidthMeasurer() with { textEmojiWide } instead.
+ * Kept for backward compatibility but is a no-op.
  */
-let _textSizingEnabled = false
+export function setTextEmojiWide(_wide: boolean): void {
+  // No-op: use createWidthMeasurer() with { textEmojiWide } instead
+}
 
 /**
- * Enable or disable text sizing mode.
- * When enabled, PUA characters (nerdfont icons) are measured as 2-wide
- * and wrapped in OSC 66 sequences on output.
- * Clears the displayWidth cache since widths change.
+ * @deprecated Use createWidthMeasurer() with { textSizingEnabled } instead.
+ * Kept for backward compatibility but is a no-op.
  */
-export function setTextSizingEnabled(enabled: boolean): void {
-  if (_textSizingEnabled === enabled) return
-  _textSizingEnabled = enabled
-  displayWidthCache.clear()
+export function setTextSizingEnabled(_enabled: boolean): void {
+  // No-op: use createWidthMeasurer() with { textSizingEnabled } instead
 }
 
 /**
  * Check if text sizing mode is currently enabled.
+ * Returns the default (false) since globals have been removed.
+ * Use measurer.textSizingEnabled for scoped queries.
  */
 export function isTextSizingEnabled(): boolean {
-  return _textSizingEnabled
+  if (_scopedMeasurer) return _scopedMeasurer.textSizingEnabled
+  return DEFAULT_TEXT_SIZING_ENABLED
+}
+
+// ============================================================================
+// Width Measurer (per-term instance, no globals)
+// ============================================================================
+
+/**
+ * Width measurement functions scoped to specific terminal capabilities.
+ * Created by createWidthMeasurer() from TerminalCaps.
+ */
+export interface Measurer {
+  readonly textEmojiWide: boolean
+  readonly textSizingEnabled: boolean
+  displayWidth(text: string): number
+  displayWidthAnsi(text: string): number
+  graphemeWidth(grapheme: string): number
+  wrapText(text: string, width: number, trim?: boolean, hard?: boolean): string[]
+  sliceByWidth(text: string, maxWidth: number): string
+  sliceByWidthFromEnd(text: string, maxWidth: number): string
+}
+
+/** Backward-compatible alias for Measurer. */
+export type WidthMeasurer = Measurer
+
+/**
+ * Strip OSC 8 hyperlink sequences before passing to slice-ansi.
+ * slice-ansi doesn't understand OSC sequences and corrupts them.
+ */
+const OSC8_RE = /\x1b\]8;;[^\x07\x1b]*(?:\x07|\x1b\\)/g
+function stripOsc8ForSlice(text: string): string {
+  return text.replace(OSC8_RE, "")
+}
+
+/**
+ * Create a width measurer scoped to terminal capabilities.
+ * Each measurer has its own caches (no shared global state).
+ */
+export function createWidthMeasurer(caps: { textEmojiWide?: boolean; textSizingEnabled?: boolean } = {}): Measurer {
+  const textEmojiWide = caps.textEmojiWide ?? true
+  const textSizingEnabled = caps.textSizingEnabled ?? false
+  const cache = new DisplayWidthCache(10000)
+
+  function measuredGraphemeWidth(grapheme: string): number {
+    const width = stringWidth(grapheme)
+    if (width !== 1) return width
+    if (textEmojiWide && isTextPresentationEmoji(grapheme)) return 2
+    if (textSizingEnabled) {
+      const cp = grapheme.codePointAt(0)
+      if (cp !== undefined && isPrivateUseArea(cp)) return 2
+    }
+    return width
+  }
+
+  function measuredDisplayWidth(text: string): number {
+    const cached = cache.get(text)
+    if (cached !== undefined) return cached
+
+    let width: number
+    const needsSlowPath = MAY_CONTAIN_TEXT_EMOJI.test(text) || (textSizingEnabled && MAY_CONTAIN_PUA.test(text))
+    if (!needsSlowPath) {
+      width = stringWidth(text)
+    } else {
+      const stripped = stripAnsi(text)
+      width = 0
+      for (const grapheme of splitGraphemes(stripped)) {
+        width += measuredGraphemeWidth(grapheme)
+      }
+    }
+    cache.set(text, width)
+    return width
+  }
+
+  function measuredDisplayWidthAnsi(text: string): number {
+    return measuredDisplayWidth(stripAnsi(text))
+  }
+
+  function measuredSliceByWidth(text: string, maxWidth: number): string {
+    if (hasAnsi(text)) {
+      return sliceAnsi(stripOsc8ForSlice(text), 0, maxWidth)
+    }
+    let width = 0
+    let result = ""
+    const graphemes = splitGraphemes(text)
+    for (const grapheme of graphemes) {
+      const gWidth = measuredGraphemeWidth(grapheme)
+      if (width + gWidth > maxWidth) break
+      result += grapheme
+      width += gWidth
+    }
+    return result
+  }
+
+  function measuredSliceByWidthFromEnd(text: string, maxWidth: number): string {
+    const totalWidth = measuredDisplayWidthAnsi(text)
+    if (totalWidth <= maxWidth) return text
+    if (hasAnsi(text)) {
+      const cleaned = stripOsc8ForSlice(text)
+      const cleanedWidth = measuredDisplayWidthAnsi(cleaned)
+      const startIndex = cleanedWidth - maxWidth
+      return sliceAnsi(cleaned, startIndex)
+    }
+    const graphemes = splitGraphemes(text)
+    let width = 0
+    let startIdx = graphemes.length
+    for (let i = graphemes.length - 1; i >= 0; i--) {
+      const gWidth = measuredGraphemeWidth(graphemes[i]!)
+      if (width + gWidth > maxWidth) break
+      width += gWidth
+      startIdx = i
+    }
+    return graphemes.slice(startIdx).join("")
+  }
+
+  function measuredWrapText(text: string, width: number, trim?: boolean, hard?: boolean): string[] {
+    return wrapTextWithMeasurer(text, width, measurer, trim ?? false, hard ?? false)
+  }
+
+  const measurer: Measurer = {
+    textEmojiWide,
+    textSizingEnabled,
+    displayWidth: measuredDisplayWidth,
+    displayWidthAnsi: measuredDisplayWidthAnsi,
+    graphemeWidth: measuredGraphemeWidth,
+    wrapText: measuredWrapText,
+    sliceByWidth: measuredSliceByWidth,
+    sliceByWidthFromEnd: measuredSliceByWidthFromEnd,
+  }
+
+  return measurer
+}
+
+/** Alias for createWidthMeasurer. */
+export const createMeasurer = createWidthMeasurer
+
+// ============================================================================
+// Default Measurer (lazy singleton for module-level convenience functions)
+// ============================================================================
+
+let _defaultMeasurer: Measurer | undefined
+
+/** Get the default measurer (lazy init, uses default caps). */
+function getDefaultMeasurer(): Measurer {
+  if (!_defaultMeasurer) {
+    _defaultMeasurer = createWidthMeasurer()
+  }
+  return _defaultMeasurer
+}
+
+/**
+ * @deprecated Use createWidthMeasurer() and pass the measurer explicitly.
+ * Kept as a no-op for backward compatibility.
+ */
+export function withMeasurer<T>(_measurer: WidthMeasurer, fn: () => T): T {
+  return fn()
 }
 
 /**
@@ -274,6 +449,7 @@ const MAY_CONTAIN_PUA = /[\uE000-\uF8FF]/
  * Results are cached for performance.
  */
 export function displayWidth(text: string): number {
+  if (_scopedMeasurer) return _scopedMeasurer.displayWidth(text)
   // Check cache first
   const cached = displayWidthCache.get(text)
   if (cached !== undefined) {
@@ -281,9 +457,9 @@ export function displayWidth(text: string): number {
   }
 
   let width: number
-  // Fast path: if text cannot contain text-presentation emoji (or PUA when text
-  // sizing is enabled), use string-width directly
-  const needsSlowPath = MAY_CONTAIN_TEXT_EMOJI.test(text) || (_textSizingEnabled && MAY_CONTAIN_PUA.test(text))
+  // Fast path: if text cannot contain text-presentation emoji, use string-width directly.
+  // Default measurer does not enable text sizing, so PUA check uses the constant default.
+  const needsSlowPath = MAY_CONTAIN_TEXT_EMOJI.test(text) || (DEFAULT_TEXT_SIZING_ENABLED && MAY_CONTAIN_PUA.test(text))
   if (!needsSlowPath) {
     width = stringWidth(text)
   } else {
@@ -312,16 +488,16 @@ export function displayWidth(text: string): number {
  * column, leading to truncation or overlap.
  */
 export function graphemeWidth(grapheme: string): number {
+  if (_scopedMeasurer) return _scopedMeasurer.graphemeWidth(grapheme)
   const width = stringWidth(grapheme)
   // If string-width already says 2 (or 0), trust it
   if (width !== 1) return width
   // Check if this is a text-presentation emoji that terminals render wide.
-  // Only override to 2 when the terminal actually renders them wide (_textEmojiWide).
-  // Terminal.app renders these as 1 cell; modern terminals render 2 cells.
-  if (_textEmojiWide && isTextPresentationEmoji(grapheme)) return 2
-  // When text sizing is enabled, PUA characters are treated as 2-wide
-  // because we'll use OSC 66 to tell the terminal to render them as 2-wide
-  if (_textSizingEnabled) {
+  // Uses DEFAULT_TEXT_EMOJI_WIDE (true) — assumes modern terminal.
+  if (DEFAULT_TEXT_EMOJI_WIDE && isTextPresentationEmoji(grapheme)) return 2
+  // Default module-level function does not enable text sizing.
+  // Scoped measurers handle PUA via their own graphemeWidth.
+  if (DEFAULT_TEXT_SIZING_ENABLED) {
     const cp = grapheme.codePointAt(0)
     if (cp !== undefined && isPrivateUseArea(cp)) return 2
   }
@@ -493,21 +669,24 @@ function isWordBoundary(grapheme: string): boolean {
  * operator (like +, =, *, /, etc.) followed by another space. Breaking before
  * such operators looks bad — e.g. "$12k\n+ $400" — so we suppress the break
  * point to keep the operator with its left operand.
+ *
+ * Accepts an explicit graphemeWidth function so it works with both the
+ * module-level default and per-measurer instances.
  */
-function isBreakBeforeOperator(graphemes: string[], spaceIndex: number): boolean {
+function isBreakBeforeOperatorWith(graphemes: string[], spaceIndex: number, gWidthFn: (g: string) => number): boolean {
   // Look for pattern: [current space] [operator] [space]
   // spaceIndex is the index of the current space in the graphemes array
   let j = spaceIndex + 1
   // Skip any zero-width characters (ANSI escapes)
-  while (j < graphemes.length && graphemeWidth(graphemes[j]!) === 0) j++
+  while (j < graphemes.length && gWidthFn(graphemes[j]!) === 0) j++
   if (j >= graphemes.length) return false
   const nextChar = graphemes[j]!
   // Must be a single visible character that is not alphanumeric or space
-  if (graphemeWidth(nextChar) !== 1) return false
+  if (gWidthFn(nextChar) !== 1) return false
   if (/^[a-zA-Z0-9\s]$/.test(nextChar)) return false
   // Check that it's followed by a space (it's an infix operator, not a prefix)
   let k = j + 1
-  while (k < graphemes.length && graphemeWidth(graphemes[k]!) === 0) k++
+  while (k < graphemes.length && gWidthFn(graphemes[k]!) === 0) k++
   if (k >= graphemes.length) return false
   return graphemes[k] === " "
 }
@@ -594,9 +773,26 @@ function splitGraphemesAnsiAware(text: string): string[] {
  * @returns Array of wrapped lines
  */
 export function wrapText(text: string, width: number, preserveNewlines = true, trim = false): string[] {
+  return wrapTextWithMeasurer(text, width, _scopedMeasurer ?? undefined, trim, false, preserveNewlines)
+}
+
+/**
+ * Internal: wrap text using an explicit measurer for grapheme width calculations.
+ * When measurer is undefined, falls back to the module-level graphemeWidth.
+ */
+function wrapTextWithMeasurer(
+  text: string,
+  width: number,
+  measurer: Measurer | undefined,
+  trim = false,
+  _hard = false,
+  preserveNewlines = true,
+): string[] {
   if (width <= 0) {
     return []
   }
+
+  const gWidthFn = measurer ? measurer.graphemeWidth.bind(measurer) : graphemeWidth
 
   const lines: string[] = []
 
@@ -625,7 +821,7 @@ export function wrapText(text: string, width: number, preserveNewlines = true, t
 
     for (let i = 0; i < graphemes.length; i++) {
       const grapheme = graphemes[i]!
-      const gWidth = graphemeWidth(grapheme)
+      const gWidth = gWidthFn(grapheme)
 
       // Handle zero-width characters
       if (gWidth === 0) {
@@ -647,7 +843,7 @@ export function wrapText(text: string, width: number, preserveNewlines = true, t
           currentWidth += gWidth
           // Suppress break point if the next word is a lone operator (e.g. "+", "=")
           // to avoid orphaning operators at the start of the next line.
-          if (grapheme !== " " || !isBreakBeforeOperator(graphemes, i)) {
+          if (grapheme !== " " || !isBreakBeforeOperatorWith(graphemes, i, gWidthFn)) {
             lastBreakIndex = currentLine.length
             lastBreakWidth = currentWidth
             lastBreakGraphemeIndex = i + 1
@@ -724,7 +920,21 @@ export function wrapText(text: string, width: number, preserveNewlines = true, t
 }
 
 /**
- * Slice a string by display width.
+ * Slice text by display width (from start).
+ * Returns the first `maxWidth` columns of text.
+ * Uses the default measurer for width calculations.
+ * Handles both ANSI-styled and plain text.
+ *
+ * @param text - The text to slice
+ * @param maxWidth - Maximum display width to keep from the start
+ * @returns Sliced string from the start
+ */
+export function sliceByWidth(text: string, maxWidth: number): string {
+  return (_scopedMeasurer ?? getDefaultMeasurer()).sliceByWidth(text, maxWidth)
+}
+
+/**
+ * Slice a string by display width range.
  * Like string.slice() but works with display columns.
  *
  * @param text - The text to slice
@@ -732,7 +942,7 @@ export function wrapText(text: string, width: number, preserveNewlines = true, t
  * @param end - End display column (exclusive)
  * @returns Sliced string
  */
-export function sliceByWidth(text: string, start: number, end?: number): string {
+export function sliceByWidthRange(text: string, start: number, end?: number): string {
   const graphemes = splitGraphemes(text)
   let result = ""
   let currentCol = 0
@@ -758,6 +968,19 @@ export function sliceByWidth(text: string, start: number, end?: number): string 
   }
 
   return result
+}
+
+/**
+ * Slice text by display width from the end.
+ * Returns the last `maxWidth` columns of text.
+ * Uses the default measurer for width calculations.
+ *
+ * @param text - The text to slice
+ * @param maxWidth - Maximum display width to keep from the end
+ * @returns Sliced string from the end
+ */
+export function sliceByWidthFromEnd(text: string, maxWidth: number): string {
+  return (_scopedMeasurer ?? getDefaultMeasurer()).sliceByWidthFromEnd(text, maxWidth)
 }
 
 // ============================================================================

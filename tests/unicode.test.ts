@@ -25,7 +25,7 @@ import {
   normalizeText,
   padText,
   parseAnsiText,
-  sliceByWidth,
+  sliceByWidthRange,
   splitGraphemes,
   stripAnsi,
   truncateAnsi,
@@ -422,14 +422,14 @@ describe("Unicode", () => {
     })
   })
 
-  describe("sliceByWidth", () => {
+  describe("sliceByWidthRange", () => {
     test.each([
       ["hello", 1, 4, "ell"],
       ["한국어", 0, 4, "한국"],
       ["hello", 0, 3, "hel"],
       ["hello", 2, undefined, "llo"],
-    ])('sliceByWidth("%s", %d, %s) = "%s"', (text, start, end, expected) => {
-      expect(sliceByWidth(text, start, end)).toBe(expected)
+    ])('sliceByWidthRange("%s", %d, %s) = "%s"', (text, start, end, expected) => {
+      expect(sliceByWidthRange(text, start, end)).toBe(expected)
     })
   })
 
@@ -630,8 +630,8 @@ describe("Unicode", () => {
         ["中文测试", 0, 4, "中文", 4],
         ["中文测试", 2, 6, "文测", 4],
         ["A中B文", 1, 4, "中B", undefined],
-      ])('sliceByWidth("%s", %d, %d) = "%s"', (text, start, end, expected, expectedWidth) => {
-        const result = sliceByWidth(text, start, end)
+      ])('sliceByWidthRange("%s", %d, %d) = "%s"', (text, start, end, expected, expectedWidth) => {
+        const result = sliceByWidthRange(text, start, end)
         expect(result).toBe(expected)
         if (expectedWidth !== undefined) {
           expect(displayWidth(result)).toBe(expectedWidth)
@@ -889,17 +889,17 @@ describe("Unicode", () => {
 
     describe("Emoji in slice scenarios", () => {
       test("slices emoji by width", () => {
-        const result = sliceByWidth("😀🎉🔥", 0, 4)
+        const result = sliceByWidthRange("😀🎉🔥", 0, 4)
         expect(displayWidth(result)).toBeLessThanOrEqual(4)
       })
 
       test("slices from middle of emoji string", () => {
-        const result = sliceByWidth("😀🎉🔥", 2, 4)
+        const result = sliceByWidthRange("😀🎉🔥", 2, 4)
         expect(result).toBe("🎉")
       })
 
       test("slices mixed emoji and ASCII", () => {
-        const result = sliceByWidth("A😀B", 1, 3)
+        const result = sliceByWidthRange("A😀B", 1, 3)
         expect(result).toBe("😀")
       })
     })

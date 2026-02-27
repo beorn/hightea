@@ -1,6 +1,6 @@
 # Terminal Capabilities Reference
 
-This document explains terminal capabilities, the `@beorn/term` and `@beorn/tui` packages, and how to choose the right render strategy.
+This document explains terminal capabilities, the `chalkx` and `inkx` packages, and how to choose the right render strategy.
 
 ## The Two Core Capabilities
 
@@ -174,7 +174,7 @@ This is how Ink handles the same problem.
 ## Creating a Term
 
 ```ts
-import { createTerm } from "@beorn/term"
+import { createTerm } from "chalkx"
 
 // Default (process.stdout/stdin) - Disposable
 using term = createTerm()
@@ -218,8 +218,8 @@ term.dispose() // or let `using` handle it
 ### Detect Before Rendering
 
 ```ts
-import { createTerm } from '@beorn/term'
-import { render, renderString } from '@beorn/tui'
+import { createTerm } from 'chalkx'
+import { render, renderString } from 'inkx'
 
 using term = createTerm()
 
@@ -239,7 +239,7 @@ if (term.hasCursor() && term.hasInput()) {
 ### Adaptive Components
 
 ```tsx
-import { useTerm, Box, Text } from "@beorn/tui"
+import { useTerm, Box, Text } from "inkx"
 
 function StatusLine({ status }: { status: string }) {
   const term = useTerm()
@@ -258,8 +258,8 @@ function StatusLine({ status }: { status: string }) {
 ### Console Component
 
 ```tsx
-import { createTerm } from "@beorn/term"
-import { render, Console, Box, Text } from "@beorn/tui"
+import { createTerm } from "chalkx"
+import { render, Console, Box, Text } from "inkx"
 
 using term = createTerm()
 
@@ -277,8 +277,8 @@ console.log("This shows in <Console />")
 ### Test Reporter Pattern
 
 ```tsx
-import { createTerm } from "@beorn/term"
-import { render, renderString, Console, Box } from "@beorn/tui"
+import { createTerm } from "chalkx"
+import { render, renderString, Console, Box } from "inkx"
 
 class Reporter {
   private term = createTerm()

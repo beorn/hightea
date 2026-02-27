@@ -444,13 +444,19 @@ export { OSC133 } from "./osc-markers.js"
 export { detectKittySupport, detectKittyFromStdio, type KittyDetectResult } from "./kitty-detect.js"
 
 // Terminal capability detection
-export { detectTerminalCaps, type TerminalCaps } from "./terminal-caps.js"
+export { detectTerminalCaps, defaultCaps, type TerminalCaps } from "./terminal-caps.js"
 
 // Terminal capability visual test
 export { runTermtest, TERMTEST_SECTIONS, type TermtestSection, type TermtestOptions } from "./termtest.js"
 
 // Output-phase capability configuration (suppress unsupported SGR codes)
-export { setOutputCaps } from "./pipeline/output-phase.js"
+export { setOutputCaps, createOutputPhase, type OutputPhaseFn, type OutputCaps } from "./pipeline/output-phase.js"
+
+// Pipeline configuration
+export { type PipelineConfig } from "./pipeline/index.js"
+
+// withRender plugin
+export { withRender, type RenderTerm } from "./with-render.js"
 
 // Text sizing protocol (OSC 66) — PUA character width control
 export { textSized, isPrivateUseArea, isTextSizingLikelySupported, detectTextSizingSupport } from "./text-sizing.js"
@@ -650,6 +656,8 @@ export {
   padText,
   constrainText,
   sliceByWidth,
+  sliceByWidthRange,
+  sliceByWidthFromEnd,
   // ANSI handling
   hasAnsi,
   parseAnsiText,
@@ -683,6 +691,12 @@ export {
 } from "./unicode.js"
 
 export type { StyledSegment } from "./unicode.js"
+
+// Width measurer factory
+export { createWidthMeasurer, createMeasurer, runWithMeasurer, type Measurer, type WidthMeasurer } from "./unicode.js"
+
+// Measurer composition (term + measurement)
+export { withMeasurer, createPipeline, type MeasuredTerm } from "./measurer.js"
 
 // =============================================================================
 // Text Cursor Utilities

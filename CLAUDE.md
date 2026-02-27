@@ -709,11 +709,23 @@ import { parseHotkey, matchHotkey } from "inkx"
 import { enableInspector, disableInspector, inspectTree, inspectFrame, autoEnableInspector } from "inkx"
 
 // Terminal capabilities detection
-import { detectTerminalCaps, type TerminalCaps } from "inkx"
+import { detectTerminalCaps, defaultCaps, type TerminalCaps } from "inkx"
 
 // Text sizing protocol (OSC 66) -- PUA character width control
 import { textSized, isPrivateUseArea, isTextSizingLikelySupported, detectTextSizingSupport } from "inkx"
-import { setTextSizingEnabled, isTextSizingEnabled } from "inkx"
+import { isTextSizingEnabled } from "inkx"
+
+// Width measurer factory (replaces setTextEmojiWide/setTextSizingEnabled globals)
+import { createMeasurer, createWidthMeasurer, runWithMeasurer, type Measurer, type WidthMeasurer } from "inkx"
+
+// Measurer composition (term + measurement)
+import { withMeasurer, createPipeline, type MeasuredTerm } from "inkx"
+
+// withRender plugin (term + measurer + render pipeline)
+import { withRender, type RenderTerm } from "inkx"
+
+// Pipeline configuration (replaces setOutputCaps global)
+import { createOutputPhase, type OutputPhaseFn, type OutputCaps, type PipelineConfig } from "inkx"
 
 // Virtualization engine
 import { useVirtualizer } from "inkx"

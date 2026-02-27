@@ -32,7 +32,7 @@ import type { TerminalCaps } from "../terminal-caps.js"
 
 /**
  * Active terminal capabilities for output generation.
- * Set via setOutputCaps() from the runtime when capabilities are known.
+ * Set by the scoped output phase returned from createOutputPhase().
  * Defaults assume full support (safe for modern terminals).
  */
 let _caps: Pick<TerminalCaps, "underlineStyles" | "underlineColor" | "colorLevel"> = {
@@ -41,14 +41,59 @@ let _caps: Pick<TerminalCaps, "underlineStyles" | "underlineColor" | "colorLevel
   colorLevel: "truecolor",
 }
 
-/** Configure output-phase capabilities from the detected terminal profile. */
+/**
+ * @deprecated Use createOutputPhase(caps) instead. This is a no-op.
+ */
 export function setOutputCaps(
-  caps: Partial<Pick<TerminalCaps, "underlineStyles" | "underlineColor" | "colorLevel">>,
+  _caps: Partial<Pick<TerminalCaps, "underlineStyles" | "underlineColor" | "colorLevel">>,
 ): void {
-  _caps = { ..._caps, ...caps }
-  // Invalidate caches when caps change
-  sgrCache.clear()
-  transitionCache.clear()
+  // No-op: use createOutputPhase(caps) instead
+}
+
+// ============================================================================
+// Output Phase Factory (per-term instance, no globals)
+// ============================================================================
+
+/** Output-phase capabilities type. */
+export type OutputCaps = Pick<TerminalCaps, "underlineStyles" | "underlineColor" | "colorLevel">
+
+/** Output phase function signature. */
+export type OutputPhaseFn = (
+  prev: TerminalBuffer | null,
+  next: TerminalBuffer,
+  mode?: "fullscreen" | "inline",
+  scrollbackOffset?: number,
+  termRows?: number,
+) => string
+
+/**
+ * Create a scoped output phase that uses specific terminal capabilities.
+ * Measurer scoping is handled by runWithMeasurer() in the pipeline.
+ *
+ * @param caps - Terminal capabilities for SGR code generation
+ */
+export function createOutputPhase(caps: Partial<OutputCaps>): OutputPhaseFn {
+  const closedCaps: OutputCaps = {
+    underlineStyles: caps.underlineStyles ?? true,
+    underlineColor: caps.underlineColor ?? true,
+    colorLevel: caps.colorLevel ?? "truecolor",
+  }
+
+  return function scopedOutputPhase(
+    prev: TerminalBuffer | null,
+    next: TerminalBuffer,
+    mode: "fullscreen" | "inline" = "fullscreen",
+    scrollbackOffset = 0,
+    termRows?: number,
+  ): string {
+    const prevCaps = _caps
+    _caps = closedCaps
+    try {
+      return outputPhase(prev, next, mode, scrollbackOffset, termRows)
+    } finally {
+      _caps = prevCaps
+    }
+  }
 }
 // These use getters so they can be set after module load (e.g., in test files).
 // INKX_STRICT enables buffer + output checks (per-frame).
