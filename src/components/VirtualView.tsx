@@ -84,6 +84,9 @@ export interface VirtualViewProps<T> {
   onEndReached?: () => void
   /** How many items from the end to trigger onEndReached. Default: 5 */
   onEndReachedThreshold?: number
+
+  /** Content rendered after all items inside the scroll container (e.g., hidden count indicator) */
+  listFooter?: React.ReactNode
 }
 
 export interface VirtualViewHandle {
@@ -130,6 +133,7 @@ function VirtualViewInner<T>(
     onWheel,
     onEndReached,
     onEndReachedThreshold,
+    listFooter,
   }: VirtualViewProps<T>,
   ref: React.ForwardedRef<VirtualViewHandle>,
 ): React.ReactElement {
@@ -213,6 +217,9 @@ function VirtualViewInner<T>(
           </React.Fragment>
         )
       })}
+
+      {/* Footer content (e.g., filter hidden count) */}
+      {listFooter}
 
       {/* Trailing placeholder for virtual height */}
       {trailingHeight > 0 && <Box height={trailingHeight} flexShrink={0} />}

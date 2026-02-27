@@ -111,6 +111,9 @@ export interface VirtualListProps<T> {
   onEndReached?: () => void
   /** How many items from the end to trigger onEndReached. Default: 5 */
   onEndReachedThreshold?: number
+
+  /** Content rendered after all items inside the scroll container */
+  listFooter?: React.ReactNode
 }
 
 export interface VirtualListHandle {
@@ -175,6 +178,7 @@ function VirtualListInner<T>(
     onSelect,
     onEndReached,
     onEndReachedThreshold,
+    listFooter,
   }: VirtualListProps<T>,
   ref: React.ForwardedRef<VirtualListHandle>,
 ): React.ReactElement {
@@ -303,6 +307,7 @@ function VirtualListInner<T>(
       onWheel={onWheel}
       onEndReached={onEndReached}
       onEndReachedThreshold={onEndReachedThreshold}
+      listFooter={listFooter}
     />
   )
 }
