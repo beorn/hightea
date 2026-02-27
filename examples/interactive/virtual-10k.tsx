@@ -434,6 +434,7 @@ async function main() {
     </ExampleBanner>,
   )
   await handle.waitUntilExit()
+  process.exit(0)
 }
 
 if (import.meta.main) {

@@ -37,7 +37,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react"
-import { Box, Text, Link, Spinner, ScrollbackList, useScrollbackItem } from "../../src/index.js"
+import { Box, Text, Link, Spinner, ScrollbackList, useScrollbackItem, ReadlineInput } from "../../src/index.js"
 import { run, useInput, useExit, type Key } from "../../src/runtime/run.js"
 import type { ExampleMeta } from "../_banner.js"
 
@@ -831,27 +831,22 @@ function StatusBar({
   const ctxColor = ctxPct > 80 ? "$error" : ctxPct > 50 ? "$warning" : "$primary"
   const ctxBar = "\u2588".repeat(ctxFilled) + "\u2591".repeat(CTX_W - ctxFilled)
 
-  // Build left and right as plain strings, pad with spaces to fill terminal width
+  // Build key hints
   let keys: string
   if (compacting) keys = "compacting"
   else if (done) keys = "q quit"
   else if (autoMode) keys = `a stop  c clear+scroll  q quit${" auto"}`
   else keys = "\u23CE next  a auto  c clear+scroll  q quit"
 
-  const left = `${elapsedStr}  ${keys}`
-  const right = `ctx ${ctxBar} ${ctxPct}% \u00B7 ${cost}`
-  const cols = process.stdout.columns ?? 120
-  const pad = Math.max(1, cols - 2 - left.length - right.length) // -2 for paddingX
-
   return (
-    <Text color="$muted" dim>
-      {" "}
-      <Text color="$primary">{elapsedStr}</Text>
-      {"  "}
-      {keys}
-      {" ".repeat(pad)}
-      {right}{" "}
-    </Text>
+    <Box justifyContent="space-between" paddingX={1}>
+      <Text color="$muted" dim>
+        <Text color="$primary">{elapsedStr}</Text>{"  "}{keys}
+      </Text>
+      <Text color="$muted" dim>
+        ctx <Text color={ctxColor}>{ctxBar}</Text> {ctxPct}% {"\u00B7"} {cost}
+      </Text>
+    </Box>
   )
 }
 
@@ -860,7 +855,7 @@ function StatusBar({
 // ============================================================================
 
 /** How many live turns to keep in the dynamic area before freezing to scrollback. */
-const MAX_LIVE_TURNS = 6
+const MAX_LIVE_TURNS = 18
 
 /** Streaming phases: thinking -> streaming text -> tool calls -> done */
 type StreamPhase = "thinking" | "streaming" | "tools" | "done"
@@ -893,7 +888,11 @@ function CodingAgent({
   const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const revealTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inputTypingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const nextIdRef = useRef(0)
+
+  // Input box state — simulates char-by-char typing in auto mode
+  const [inputText, setInputText] = useState("")
 
   /** Cancel all streaming timers. */
   const cancelStreaming = useCallback(() => {
@@ -904,6 +903,10 @@ function CodingAgent({
     if (revealTimerRef.current) {
       clearInterval(revealTimerRef.current)
       revealTimerRef.current = null
+    }
+    if (inputTypingTimerRef.current) {
+      clearInterval(inputTypingTimerRef.current)
+      inputTypingTimerRef.current = null
     }
   }, [])
 
@@ -1063,16 +1066,47 @@ function CodingAgent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Auto-advance when streaming finishes
+  // Auto-advance when streaming finishes — type out next user message char-by-char
   useEffect(() => {
     if (!autoMode || done || compacting) return
     if (streamPhase !== "done") return
 
+    const nextEntry = script[scriptIdx]
+    if (nextEntry && nextEntry.role === "user" && !fastMode) {
+      // Simulate typing the next user message char-by-char
+      const fullMsg = nextEntry.content
+      let charIdx = 0
+      setInputText("")
+      inputTypingTimerRef.current = setInterval(() => {
+        charIdx++
+        if (charIdx >= fullMsg.length) {
+          setInputText(fullMsg)
+          if (inputTypingTimerRef.current) clearInterval(inputTypingTimerRef.current)
+          inputTypingTimerRef.current = null
+          // Brief pause after typing completes, then advance
+          autoTimerRef.current = setTimeout(() => {
+            setInputText("")
+            advance()
+          }, 300)
+        } else {
+          setInputText(fullMsg.slice(0, charIdx))
+        }
+      }, 30)
+      return () => {
+        if (inputTypingTimerRef.current) {
+          clearInterval(inputTypingTimerRef.current)
+          inputTypingTimerRef.current = null
+        }
+        if (autoTimerRef.current) clearTimeout(autoTimerRef.current)
+      }
+    }
+
+    // Non-user entries or fast mode: advance after a brief delay
     autoTimerRef.current = setTimeout(advance, 400)
     return () => {
       if (autoTimerRef.current) clearTimeout(autoTimerRef.current)
     }
-  }, [autoMode, done, compacting, streamPhase, scriptIdx, advance])
+  }, [autoMode, done, compacting, streamPhase, scriptIdx, advance, script, fastMode])
 
   // Auto-exit when done in auto mode
   useEffect(() => {
@@ -1161,9 +1195,20 @@ function CodingAgent({
         isFrozen={(ex) => ex.frozen}
         markers={true}
         footer={
-          <StatusBar exchanges={exchanges} autoMode={autoMode} compacting={compacting} done={done} elapsed={elapsed} />
+          <Box flexDirection="column">
+            <Box borderStyle="round" borderColor={streamPhase !== "done" ? "$warning" : "$primary"} paddingX={1}>
+              {streamPhase !== "done" ? (
+                <Text color="$warning" italic>Agent is thinking...</Text>
+              ) : done ? (
+                <Text color="$success">Session complete</Text>
+              ) : (
+                <ReadlineInput value={inputText} prompt={"\u276F "} isActive={!autoMode} />
+              )}
+            </Box>
+            <StatusBar exchanges={exchanges} autoMode={autoMode} compacting={compacting} done={done} elapsed={elapsed} />
+          </Box>
         }
-        footerHeight={1}
+        footerHeight={4}
       >
         {(exchange, index) => {
           const isLatest = index === exchanges.length - 1
@@ -1226,16 +1271,7 @@ function CodingAgent({
                 />
               )}
 
-              {/* Input prompt — always visible when waiting for user action */}
-              {isLatest && !compacting && !done && streamPhase === "done" && !autoMode && (
-                <Box borderStyle="round" borderColor="$primary" paddingX={1}>
-                  <Text>
-                    <Text bold color="$primary">
-                      {"\u276F"} You
-                    </Text>
-                  </Text>
-                </Box>
-              )}
+              {/* Input prompt moved to footer — see footer prop on ScrollbackList */}
             </Box>
           )
         }}
@@ -1256,6 +1292,10 @@ async function main() {
 
   const script = isStress ? generateStressScript() : SCRIPT
 
+  // NOTE: Inline mode may exhibit a "jump up" during frame transitions due to
+  // cursor offset calculation in the output phase. The main fix was applied in
+  // prior commits (simplify inline mode, fix cursor offset). If content still
+  // jumps, investigate inlineFullRender() scrollbackOffset tracking.
   const mode = args.includes("--fullscreen") ? "fullscreen" : "inline"
   using handle = await run(<CodingAgent script={script} autoStart={isAuto} fastMode={isFast} />, {
     mode: mode as "inline" | "fullscreen",

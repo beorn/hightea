@@ -274,6 +274,7 @@ async function main() {
     term,
   )
   await waitUntilExit()
+  process.exit(0)
 }
 
 if (import.meta.main) {
