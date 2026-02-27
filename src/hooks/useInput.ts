@@ -3,11 +3,14 @@
  *
  * Handles keyboard input parsing and provides a clean API for responding to key presses.
  * Compatible with Ink's useInput API.
+ *
+ * Throws if called outside a runtime (run(), render(), createApp()). If your component
+ * needs to work without input, don't call useInput — check the context yourself first.
  */
 
 import { createLogger } from "@beorn/logger"
 import { useContext, useEffect, useRef } from "react"
-import { EventsContext, InputContext, StdinContext } from "../context.js"
+import { InputContext, StdinContext } from "../context.js"
 import { type Key, parseKey } from "../keys.js"
 
 const log = createLogger("inkx:useInput")
@@ -52,6 +55,10 @@ export interface UseInputOptions {
 /**
  * Hook for handling user input.
  *
+ * Throws if InputContext is not provided (i.e., outside a runtime).
+ * If your component needs to work in both interactive and static modes,
+ * conditionally call useInput based on your own context check.
+ *
  * @example
  * ```tsx
  * function MyComponent() {
@@ -69,9 +76,15 @@ export interface UseInputOptions {
  * ```
  */
 export function useInput(inputHandler: InputHandler, options: UseInputOptions = {}): void {
-  const events = useContext(EventsContext)
   const stdinContext = useContext(StdinContext)
   const inputContext = useContext(InputContext)
+
+  if (!inputContext) {
+    throw new Error(
+      "useInput: no InputContext found. useInput requires a runtime (run(), render(), or createApp()). " +
+        "If rendering statically, don't call useInput.",
+    )
+  }
 
   const { isActive = true, onPaste } = options
 
@@ -84,48 +97,23 @@ export function useInput(inputHandler: InputHandler, options: UseInputOptions = 
   const onPasteRef = useRef(onPaste)
   onPasteRef.current = onPaste
 
-  // Static mode check: when events is null, we're in static rendering mode
-  // In this mode, useInput becomes a no-op (no raw mode, no event subscription)
-  const isStaticMode = events === null
-
-  log.debug?.(
-    `useInput called: isActive=${isActive}, isStaticMode=${isStaticMode}, events=${!!events}, stdinContext=${!!stdinContext}, isRawModeSupported=${stdinContext?.isRawModeSupported}`,
-  )
-
-  // Set raw mode when active (only if stdin is a TTY and not in static mode)
+  // Set raw mode when active (only if stdin is a TTY)
   useEffect(() => {
-    // No-op in static mode
-    if (isStaticMode) {
-      log.debug?.("useInput effect: static mode, skipping raw mode setup")
-      return
-    }
-
-    log.debug?.(
-      `useInput effect: isActive=${isActive}, stdinContext=${!!stdinContext}, isRawModeSupported=${stdinContext?.isRawModeSupported}`,
-    )
     if (!isActive || !stdinContext || !stdinContext.isRawModeSupported) {
-      log.debug?.("useInput effect: skipping raw mode setup")
       return
     }
 
-    // Only set raw mode if stdin is a TTY - avoids crash in non-interactive contexts
-    log.debug?.("useInput effect: setting raw mode true")
+    log.debug?.("useInput: setting raw mode true")
     stdinContext.setRawMode(true)
     return () => {
-      log.debug?.("useInput effect cleanup: setting raw mode false")
+      log.debug?.("useInput: setting raw mode false")
       stdinContext.setRawMode(false)
     }
-  }, [isActive, isStaticMode, stdinContext])
+  }, [isActive, stdinContext])
 
   // Listen for input events via InputContext
   useEffect(() => {
-    // No-op in static mode
-    if (isStaticMode) {
-      log.debug?.("useInput effect: static mode, skipping input subscription")
-      return
-    }
-
-    if (!isActive || !inputContext) {
+    if (!isActive) {
       return
     }
 
@@ -152,5 +140,5 @@ export function useInput(inputHandler: InputHandler, options: UseInputOptions = 
       inputContext.eventEmitter.removeListener("input", handleData)
       inputContext.eventEmitter.removeListener("paste", handlePaste)
     }
-  }, [isActive, isStaticMode, inputContext])
+  }, [isActive, inputContext])
 }
