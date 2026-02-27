@@ -248,9 +248,10 @@ describe("Inline mode: termRows capping", () => {
     const buf = new TerminalBuffer(10, 10)
     fillBuffer(buf, 5) // A..E on rows 0-4
 
-    // termRows=8 — plenty of room, all 5 lines should render
+    // termRows=8 — plenty of room, all 5 lines should render immediately
     const output = outputPhase(null, buf, "inline", 0, 8)
     const lines = visibleLines(output)
+    expect(lines).toHaveLength(5)
     expect(lines).toContain("A")
     expect(lines).toContain("E")
   })
@@ -263,8 +264,8 @@ describe("Inline mode: termRows capping", () => {
     const output = outputPhase(null, buf, "inline", 0, 6)
     const lines = visibleLines(output)
 
-    // Should have at most 6 content lines
-    expect(lines.length).toBeLessThanOrEqual(6)
+    // Must output exactly 6 lines (capped at termRows), not fewer (gradual growth)
+    expect(lines).toHaveLength(6)
   })
 
   test("bottom of buffer shown when content exceeds termRows (footer visible)", () => {
@@ -361,6 +362,10 @@ describe("Inline mode: multi-frame stability at terminal boundary", () => {
     const ups1 = extractCursorUp(out1)
     expect(ups1).toHaveLength(0) // First render, no cursor-up
 
+    // All 4 lines must render immediately (no gradual growth)
+    const lines1 = visibleLines(out1)
+    expect(lines1).toHaveLength(4)
+
     // Frame 2: 6 lines (exactly fills terminal)
     const frame2 = new TerminalBuffer(10, 20)
     fillBuffer(frame2, 6) // A..F
@@ -368,6 +373,10 @@ describe("Inline mode: multi-frame stability at terminal boundary", () => {
     const out2 = outputPhase(frame1, frame2, "inline", 0, termRows)
     const ups2 = extractCursorUp(out2)
     expect(ups2).toContain(3) // cursor-up = min(4,6)-1 = 3
+
+    // All 6 lines must render (fits exactly in terminal)
+    const lines2 = visibleLines(out2)
+    expect(lines2).toHaveLength(6)
 
     // Frame 3: 8 lines (exceeds terminal — this is where the "jump" used to happen)
     const frame3 = new TerminalBuffer(10, 20)
@@ -378,9 +387,9 @@ describe("Inline mode: multi-frame stability at terminal boundary", () => {
     // Previous output was 6 lines (capped at termRows=6), so cursor-up = 5
     expect(ups3).toContain(5)
 
-    // Output should be capped at 6 lines (termRows)
+    // Output must be exactly 6 lines (capped at termRows), not fewer
     const lines3 = visibleLines(out3)
-    expect(lines3.length).toBeLessThanOrEqual(termRows)
+    expect(lines3).toHaveLength(termRows)
 
     // Should show bottom of buffer (footer): C..H, not A..F
     expect(lines3).toContain("H")
@@ -395,8 +404,9 @@ describe("Inline mode: multi-frame stability at terminal boundary", () => {
     // Previous output was capped at 6, cursor-up = 5 (stable)
     expect(ups4).toContain(5)
 
-    // Still showing bottom 6 lines: E..J
+    // Still exactly 6 lines, showing bottom: E..J
     const lines4 = visibleLines(out4)
+    expect(lines4).toHaveLength(termRows)
     expect(lines4).toContain("J")
     expect(lines4).not.toContain("A")
   })
