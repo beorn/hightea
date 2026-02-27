@@ -37,20 +37,8 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react"
-import {
-  render,
-  Box,
-  Text,
-  Link,
-  Spinner,
-  ScrollbackList,
-  useScrollbackItem,
-  useInput,
-  useApp,
-  createTerm,
-  type Key,
-} from "../../src/index.js"
-import { appendFileSync } from "node:fs"
+import { Box, Text, Link, Spinner, ScrollbackList, useScrollbackItem } from "../../src/index.js"
+import { run, useInput, useExit, type Key } from "../../src/runtime/run.js"
 import type { ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -282,7 +270,7 @@ const SCRIPT: ScriptEntry[] = [
   {
     role: "system",
     content:
-      "\u{1F4E6} Compaction: clearing dynamic area. Scrollback preserved above \u2014 scroll up to review previous exchanges.",
+      "\u{1F4E6} Context compaction: conversation history frozen to scrollback. Scroll up to review.",
   },
   {
     role: "agent",
@@ -847,8 +835,8 @@ function StatusBar({
   let keys: string
   if (compacting) keys = "compacting"
   else if (done) keys = "q quit"
-  else if (autoMode) keys = `a stop  c compact  q quit${" auto"}`
-  else keys = "\u23CE next  a auto  c compact  q quit"
+  else if (autoMode) keys = `a stop  c clear+scroll  q quit${" auto"}`
+  else keys = "\u23CE next  a auto  c clear+scroll  q quit"
 
   const left = `${elapsedStr}  ${keys}`
   const right = `ctx ${ctxBar} ${ctxPct}% \u00B7 ${cost}`
@@ -886,7 +874,7 @@ function CodingAgent({
   autoStart: boolean
   fastMode: boolean
 }): JSX.Element {
-  const { exit } = useApp()
+  const exit = useExit()
   const [exchanges, setExchanges] = useState<Exchange[]>([])
   const [scriptIdx, setScriptIdx] = useState(0)
   const [done, setDone] = useState(false)
@@ -1001,6 +989,32 @@ function CodingAgent({
     [fastMode, cancelStreaming],
   )
 
+  const compact = useCallback(() => {
+    if (done || compactingRef.current) return
+    cancelStreaming()
+    setStreamPhase("done")
+    setRevealFraction(1)
+    setCompacting(true)
+    setExchanges((prev) => prev.map((ex) => ({ ...ex, frozen: true })))
+
+    setTimeout(
+      () => {
+        setCompacting(false)
+        setPendingAdvance(true)
+      },
+      fastMode ? 300 : 3000,
+    )
+  }, [done, cancelStreaming, setCompacting, fastMode])
+
+  /** Skip current streaming — jump to done. */
+  const skipStreaming = useCallback(() => {
+    if (streamPhase === "done") return false
+    cancelStreaming()
+    setStreamPhase("done")
+    setRevealFraction(1)
+    return true
+  }, [streamPhase, cancelStreaming])
+
   /** Advance to the next script entry. */
   const advance = useCallback(() => {
     if (done || compactingRef.current) return
@@ -1030,32 +1044,6 @@ function CodingAgent({
     setScriptIdx((i) => i + 1)
     startStreaming(entry, id)
   }, [scriptIdx, done, streamPhase, script, startStreaming, compact, fastMode])
-
-  /** Skip current streaming — jump to done. */
-  const skipStreaming = useCallback(() => {
-    if (streamPhase === "done") return false
-    cancelStreaming()
-    setStreamPhase("done")
-    setRevealFraction(1)
-    return true
-  }, [streamPhase, cancelStreaming])
-
-  const compact = useCallback(() => {
-    if (done || compactingRef.current) return
-    cancelStreaming()
-    setStreamPhase("done")
-    setRevealFraction(1)
-    setCompacting(true)
-    setExchanges((prev) => prev.map((ex) => ({ ...ex, frozen: true })))
-
-    setTimeout(
-      () => {
-        setCompacting(false)
-        setPendingAdvance(true)
-      },
-      fastMode ? 300 : 3000,
-    )
-  }, [done, cancelStreaming, setCompacting, fastMode])
 
   // Auto-continue after compaction
   useEffect(() => {
@@ -1100,10 +1088,7 @@ function CodingAgent({
   }, [compact, done])
 
   useInput((input: string, key: Key) => {
-    if (input === "q" || key.escape) {
-      exit()
-      return
-    }
+    if (input === "q" || key.escape) return "exit"
     if (key.return && !autoMode) {
       if (skipStreaming()) return
       advance()
@@ -1138,9 +1123,10 @@ function CodingAgent({
   const frozenCount = exchanges.filter((ex) => ex.frozen).length
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" paddingX={1}>
       {/* Header — always visible, renders on frame 1 */}
-      <Box flexDirection="column" paddingX={1}>
+      <Box flexDirection="column">
+        <Text> </Text>
         <Text bold>Static Scrollback</Text>
         {frozenCount > 0 ? (
           <Text color="$muted" dim>
@@ -1161,6 +1147,7 @@ function CodingAgent({
             <Text> {"\u2022"} $token theme colors — semantic color tokens</Text>
           </>
         )}
+        <Text> </Text>
       </Box>
 
       <ScrollbackList
@@ -1180,9 +1167,22 @@ function CodingAgent({
             <Box flexDirection="column">
               {/* Compaction overlay */}
               {compacting && isLatest && (
-                <Box borderStyle="round" borderColor="$warning" paddingX={1}>
-                  <Text color="$warning">
-                    <Spinner type="arc" /> Compacting context... freezing all turns to scrollback.
+                <Box flexDirection="column" borderStyle="round" borderColor="$warning" paddingX={1}>
+                  <Text color="$warning" bold>
+                    <Spinner type="arc" /> Compacting context
+                  </Text>
+                  <Text> </Text>
+                  <Text color="$muted">
+                    All exchanges are being frozen into terminal scrollback. The dynamic
+                  </Text>
+                  <Text color="$muted">
+                    area below will clear, but everything above is preserved — scroll up
+                  </Text>
+                  <Text color="$muted">
+                    to review. This simulates how Claude Code reclaims context window
+                  </Text>
+                  <Text color="$muted">
+                    space while keeping your conversation history accessible.
                   </Text>
                 </Box>
               )}
@@ -1220,6 +1220,17 @@ function CodingAgent({
                   isLatest={isLatest}
                 />
               )}
+
+              {/* Input prompt — always visible when waiting for user action */}
+              {isLatest && !compacting && !done && streamPhase === "done" && !autoMode && (
+                <Box borderStyle="round" borderColor="$primary" paddingX={1}>
+                  <Text>
+                    <Text bold color="$primary">
+                      {"\u276F"} You
+                    </Text>
+                  </Text>
+                </Box>
+              )}
             </Box>
           )
         }}
@@ -1240,23 +1251,12 @@ async function main() {
 
   const script = isStress ? generateStressScript() : SCRIPT
 
-  // Redirect all console output to a log file so it doesn't interfere with inline mode.
-  const logFile = "/tmp/inkx-demo.log"
-  for (const method of ["log", "warn", "error", "debug", "info"] as const) {
-    console[method] = (...args: unknown[]) => {
-      try {
-        appendFileSync(logFile, `[${method}] ${args.map(String).join(" ")}\n`)
-      } catch {}
-    }
-  }
-
-  using term = createTerm()
-  using app = await render(<CodingAgent script={script} autoStart={isAuto} fastMode={isFast} />, term, {
-    mode: "inline",
+  const mode = args.includes("--fullscreen") ? "fullscreen" : "inline"
+  using handle = await run(<CodingAgent script={script} autoStart={isAuto} fastMode={isFast} />, {
+    mode: mode as "inline" | "fullscreen",
   })
-  await app.waitUntilExit()
-  // Explicit exit — inkx's unmount doesn't fully release all event loop references yet
-  process.exit(0)
+  await handle.waitUntilExit()
+  process.exit(0) // Workaround for km-inkx.event-loop-hang
 }
 
 if (import.meta.main) {

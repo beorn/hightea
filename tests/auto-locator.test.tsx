@@ -210,8 +210,7 @@ describe("AutoLocator auto-refresh", () => {
     expect(selected.textContent()).toContain("Beta")
   })
 
-  // Known: INKX_STRICT_OUTPUT mismatch — dirty flag cascade bug (km-inkx.content-phase-skip)
-  test.fails("locator count updates when nodes are added/removed", () => {
+  test("locator count updates when nodes are added/removed", () => {
     function DynamicList() {
       const [count, setCount] = useState(2)
       useInput((input) => {

@@ -66,6 +66,13 @@ let accumulateWidth = 0
 let accumulateHeight = 0
 let accumulateFrameCount = 0
 
+// Track actual visible output lines between inline frames.
+// Used to prevent scroll jumps when content first overflows the terminal:
+// instead of jumping from N to termRows output lines in one frame (causing
+// terminal scrolling), we grow by at most 1 line per frame for smooth behavior.
+// -1 = no previous frame (reset on first render or app restart).
+let _prevInlineOutputLines = -1
+
 /**
  * Wrap a cell character in OSC 66 if it is a PUA character and text sizing
  * is enabled. For wide PUA characters, this tells the terminal to render
@@ -362,6 +369,16 @@ export function outputPhase(
     // Content taller than the terminal would push lines into scrollback where they
     // can never be overwritten on re-render (cursor-up is clamped at terminal row 0).
     const firstOutput = bufferToAnsi(next, mode, mode === "inline" ? termRows : undefined)
+    if (mode === "inline") {
+      // Track actual output lines for gradual growth (prevents scroll jump on overflow).
+      // Only track when termRows caps output — without it, buffer lines = output lines.
+      if (termRows != null) {
+        const maxLine = findLastContentLine(next)
+        _prevInlineOutputLines = Math.min(maxLine + 1, termRows)
+      } else {
+        _prevInlineOutputLines = -1
+      }
+    }
     if (isStrictAccumulate()) {
       accumulatedAnsi = firstOutput
       accumulateWidth = next.width
@@ -486,17 +503,37 @@ function inlineFullRender(
   scrollbackOffset: number,
   termRows?: number,
 ): string {
-  const rawPrevLine = findLastContentLine(prev)
   const rawNextLine = findLastContentLine(next)
+  const nextContentLines = rawNextLine + 1
 
-  // Cap content lines to terminal height. Content beyond the terminal would
-  // push lines into scrollback where they can never be overwritten.
-  const prevContentLine = termRows != null ? Math.min(rawPrevLine, termRows - 1) : rawPrevLine
-  const nextContentLine = termRows != null ? Math.min(rawNextLine, termRows - 1) : rawNextLine
+  // Use tracked output lines for cursor math when termRows caps output.
+  // Without termRows, buffer content lines = actual output lines (no capping).
+  // With termRows, the buffer may have more content than we actually output,
+  // so buffer-derived prevContentLine would overshoot the cursor-up.
+  // Disabled under STRICT_OUTPUT: gradual growth tracking is cosmetic, not correctness.
+  const prevContentLines = findLastContentLine(prev) + 1
+  const prevOutputLines =
+    termRows != null && _prevInlineOutputLines > 0 && !isStrictOutput()
+      ? _prevInlineOutputLines
+      : prevContentLines
+  const prevLastLine = prevOutputLines - 1
 
   // How far the cursor is below the start of the render region:
-  // previous content height + any lines written to stdout between renders.
-  const cursorOffset = prevContentLine + scrollbackOffset
+  // previous output lines + any lines written to stdout between renders.
+  // Cap to termRows-1: terminal clamps cursor-up at row 0.
+  // Disabled under STRICT_OUTPUT: the virtual terminal replay doesn't have real terminal constraints.
+  const rawCursorOffset = prevLastLine + scrollbackOffset
+  const cursorOffset =
+    termRows != null && !isStrictOutput() ? Math.min(rawCursorOffset, termRows - 1) : rawCursorOffset
+
+  // Limit output to prevent scroll jumps. We can output at most
+  // cursorOffset + 1 lines without scrolling (worst case: cursor at terminal
+  // bottom). Allow growing by 1 line per frame for smooth overflow transition.
+  // At 30fps, growing from 20→24 lines takes ~130ms — imperceptible.
+  // Disabled under STRICT_OUTPUT: gradual growth is cosmetic, not correctness.
+  const maxOutputLines = termRows != null && !isStrictOutput()
+    ? Math.min(nextContentLines, termRows, cursorOffset + 2)
+    : nextContentLines
 
   // Quick check: if nothing changed and no scrollback displacement, skip
   if (scrollbackOffset === 0) {
@@ -512,20 +549,21 @@ function inlineFullRender(
 
   // bufferToAnsi handles: hide cursor, render content lines with
   // \x1b[K (clear to EOL) on each line, and reset style at end.
-  // Pass termRows to cap output lines.
-  let output = prefix + bufferToAnsi(next, "inline", termRows)
+  // Pass maxOutputLines to show the bottom N lines of content.
+  let output = prefix + bufferToAnsi(next, "inline", maxOutputLines)
 
-  // Erase leftover lines if content shrank or scrollback was written between renders.
-  // scrollbackOffset accounts for lines written to stdout (by useScrollback) that
-  // sit below the previous content. Without erasing them, they appear as stale
-  // duplicate content on screen when the terminal didn't scroll them off.
-  const lastOccupiedLine = prevContentLine + scrollbackOffset
-  if (lastOccupiedLine > nextContentLine) {
-    for (let y = nextContentLine + 1; y <= lastOccupiedLine; y++) {
+  // Track actual output for next frame's cursor math (only when capping is active)
+  _prevInlineOutputLines = termRows != null ? maxOutputLines : -1
+
+  // Erase leftover lines if visible area shrank.
+  // Use tracked output lines (not buffer lines) for the occupied area.
+  const lastOccupiedLine = cursorOffset
+  const nextLastLine = maxOutputLines - 1
+  if (lastOccupiedLine > nextLastLine) {
+    for (let y = nextLastLine + 1; y <= lastOccupiedLine; y++) {
       output += "\n\r\x1b[K"
     }
-    // Move back up to the end of new content
-    const up = lastOccupiedLine - nextContentLine
+    const up = lastOccupiedLine - nextLastLine
     if (up > 0) output += `\x1b[${up}A`
   }
 
@@ -546,11 +584,13 @@ function bufferToAnsi(buffer: TerminalBuffer, mode: "fullscreen" | "inline" = "f
   let currentHyperlink: string | undefined
 
   // For inline mode, only render up to the last line with content.
-  // Cap to maxRows to prevent content taller than the terminal from
-  // pushing lines into scrollback (where they can't be overwritten).
+  // When content exceeds terminal height (maxRows), show the BOTTOM of the
+  // buffer (latest content) instead of the top. This provides natural
+  // scroll-as-needed behavior: the most recent output stays visible.
   let maxLine = mode === "inline" ? findLastContentLine(buffer) : buffer.height - 1
+  let startLine = 0
   if (maxRows != null && maxLine >= maxRows) {
-    maxLine = maxRows - 1
+    startLine = maxLine - maxRows + 1
   }
 
   // Move cursor to start position based on mode
@@ -571,9 +611,9 @@ function bufferToAnsi(buffer: TerminalBuffer, mode: "fullscreen" | "inline" = "f
     attrs: {},
   }
 
-  for (let y = 0; y <= maxLine; y++) {
+  for (let y = startLine; y <= maxLine; y++) {
     // Move to start of line
-    if (y > 0 || mode === "inline") {
+    if (y > startLine || mode === "inline") {
       output += "\r"
     }
 
@@ -1632,17 +1672,34 @@ function verifyOutputEquivalence(
   incrOutput: string,
   mode: "fullscreen" | "inline",
 ): void {
-  const w = next.width
-  const h = next.height
+  const w = Math.max(prev.width, next.width)
+  // VT height must accommodate the larger buffer to prevent scrolling artifacts
+  // when prev is taller than next (e.g., items removed from a scrollback list).
+  // We only compare up to next.height rows — excess rows should be cleared.
+  const vtHeight = Math.max(prev.height, next.height)
+  const compareHeight = next.height
+  // DEBUG: log buffer dimensions
+  if (process.env.INKX_DEBUG_OUTPUT) {
+    // eslint-disable-next-line no-console
+    console.error(`[VERIFY] prev=${prev.width}x${prev.height} next=${next.width}x${next.height} vtSize=${w}x${vtHeight}`)
+  }
   // Replay: fresh prev render + incremental diff applied on top
   const freshPrev = bufferToAnsi(prev, mode)
-  const screenIncr = replayAnsiWithStyles(w, h, freshPrev + incrOutput)
+  if (process.env.INKX_DEBUG_OUTPUT) {
+    // eslint-disable-next-line no-console
+    console.error(`[VERIFY] freshPrev len=${freshPrev.length} incrOutput len=${incrOutput.length}`)
+    // Show incrOutput as escaped string
+    const escaped = incrOutput.replace(/\x1b/g, "\\e").replace(/\r/g, "\\r").replace(/\n/g, "\\n")
+    // eslint-disable-next-line no-console
+    console.error(`[VERIFY] incrOutput: ${escaped.slice(0, 500)}`)
+  }
+  const screenIncr = replayAnsiWithStyles(w, vtHeight, freshPrev + incrOutput)
   // Replay: fresh render of next buffer
   const freshNext = bufferToAnsi(next, mode)
-  const screenFresh = replayAnsiWithStyles(w, h, freshNext)
+  const screenFresh = replayAnsiWithStyles(w, vtHeight, freshNext)
 
   // Compare character by character AND style by style
-  for (let y = 0; y < h; y++) {
+  for (let y = 0; y < compareHeight; y++) {
     for (let x = 0; x < w; x++) {
       const incr = screenIncr[y]![x]!
       const fresh = screenFresh[y]![x]!

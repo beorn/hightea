@@ -77,8 +77,7 @@ describe("React 19 Compatibility (km-a1xb)", () => {
       expect(frame).toContain("Second")
     })
 
-    // Known: INKX_STRICT_OUTPUT mismatch — dirty flag cascade bug (km-inkx.content-phase-skip)
-    test.fails("conditional rendering works", () => {
+    test("conditional rendering works", () => {
       function Conditional({ show }: { show: boolean }) {
         return (
           <Box>

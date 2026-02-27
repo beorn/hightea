@@ -297,8 +297,7 @@ describe("Long-running app memory patterns", () => {
     app.unmount()
   })
 
-  // Known: INKX_STRICT_OUTPUT mismatch — dirty flag cascade bug (km-inkx.content-phase-skip)
-  test.fails("rerender cycles do not accumulate nodes", { timeout: 15000 }, () => {
+  test("rerender cycles do not accumulate nodes", { timeout: 15000 }, () => {
     const render = createRenderer()
 
     function DynamicList({ count }: { count: number }) {
@@ -367,8 +366,7 @@ describe("Long-running app memory patterns", () => {
 // ============================================================================
 
 describe("Yoga node cleanup", () => {
-  // Known: INKX_STRICT_OUTPUT mismatch — dirty flag cascade bug (km-inkx.content-phase-skip)
-  test.fails("removed nodes are freed (basic case)", () => {
+  test("removed nodes are freed (basic case)", () => {
     const render = createRenderer()
 
     function RemovableChild({ show }: { show: boolean }) {
@@ -394,7 +392,7 @@ describe("Yoga node cleanup", () => {
     app.unmount()
   })
 
-  test.fails("rapid child addition/removal frees nodes properly", () => {
+  test("rapid child addition/removal frees nodes properly", () => {
     const render = createRenderer()
 
     function TogglingChildren({ items }: { items: string[] }) {
@@ -509,7 +507,7 @@ describe("Yoga node cleanup", () => {
 // ============================================================================
 
 describe("Memory tracking", () => {
-  test.fails("heap usage stays bounded during intensive operations", { timeout: 30000 }, () => {
+  test("heap usage stays bounded during intensive operations", { timeout: 30000 }, () => {
     // Note: This is a heuristic test - exact memory behavior depends on GC
     const render = createRenderer()
 

@@ -158,8 +158,7 @@ describe("Bug: Text content overwriting", () => {
     expect(stripAnsi(frame2)).not.toContain("World")
   })
 
-  // Known: INKX_STRICT_OUTPUT mismatch — dirty flag cascade bug (km-inkx.content-phase-skip)
-  test.fails("multi-line content should clear properly on resize", () => {
+  test("multi-line content should clear properly on resize", () => {
     function MultiLine({ lines }: { lines: string[] }) {
       return (
         <Box flexDirection="column">
