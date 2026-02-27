@@ -507,9 +507,9 @@ describe("generateTheme", () => {
     expect(theme.name).toBe("dark-yellow")
     expect(theme.dark).toBe(true)
     expect(theme.primary).toBe("yellow")
-    expect(theme.link).toBe("yellowBright")
+    expect(theme.link).toBe("blueBright")
     expect(theme.control).toBe("yellow")
-    expect(theme.selected).toBe("cyan") // warm primary → cyan selection
+    expect(theme.selected).toBe("yellow") // selected = primary
     expect(theme.selectedfg).toBe("black")
     expect(theme.focusring).toBe("blueBright") // dark → blueBright
     expect(theme.text).toBe("whiteBright")
@@ -517,7 +517,7 @@ describe("generateTheme", () => {
     expect(theme.text3).toBe("gray")
     expect(theme.text4).toBe("gray")
     expect(theme.bg).toBe("")
-    expect(theme.raisedbg).toBe("black")
+    expect(theme.raisedbg).toBe("blackBright")
     expect(theme.separator).toBe("gray")
     expect(theme.error).toBe("redBright")
     expect(theme.warning).toBe("yellow") // same as primary
@@ -531,7 +531,7 @@ describe("generateTheme", () => {
     expect(theme.dark).toBe(false)
     expect(theme.primary).toBe("blue")
     expect(theme.link).toBe("blueBright")
-    expect(theme.selected).toBe("yellow") // cool primary → yellow selection
+    expect(theme.selected).toBe("blue") // selected = primary
     expect(theme.focusring).toBe("blue") // light → blue
     expect(theme.text).toBe("black")
     expect(theme.text2).toBe("blackBright")
@@ -540,17 +540,10 @@ describe("generateTheme", () => {
     expect(theme.success).toBe("green")
   })
 
-  test("warm primaries get cyan selection", () => {
-    for (const primary of ["yellow", "red", "magenta", "green", "white"] as const) {
+  test("selected always matches primary", () => {
+    for (const primary of ["yellow", "red", "magenta", "green", "white", "cyan", "blue"] as const) {
       const theme = generateTheme(primary, true)
-      expect(theme.selected).toBe("cyan")
-    }
-  })
-
-  test("cool primaries get yellow selection", () => {
-    for (const primary of ["cyan", "blue"] as const) {
-      const theme = generateTheme(primary, true)
-      expect(theme.selected).toBe("yellow")
+      expect(theme.selected).toBe(primary)
     }
   })
 

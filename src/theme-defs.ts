@@ -115,10 +115,10 @@ export const ansi16DarkTheme: Theme = {
   dark: true,
 
   primary: "yellow",
-  link: "yellowBright",
+  link: "blueBright",
   control: "yellow",
 
-  selected: "cyan",
+  selected: "yellow",
   selectedfg: "black",
   focusring: "blueBright",
 
@@ -128,7 +128,7 @@ export const ansi16DarkTheme: Theme = {
   text4: "gray",
 
   bg: "",
-  raisedbg: "black",
+  raisedbg: "blackBright",
   separator: "gray",
 
   error: "redBright",
@@ -367,10 +367,10 @@ export function generateTheme(primary: AnsiPrimary, dark: boolean): Theme {
     dark,
 
     primary,
-    link: brightVariant[primary],
+    link: "blueBright",
     control: primary,
 
-    selected: warmPrimaries.has(primary) ? "cyan" : "yellow",
+    selected: primary,
     selectedfg: "black",
     focusring: dark ? "blueBright" : "blue",
 
@@ -380,7 +380,7 @@ export function generateTheme(primary: AnsiPrimary, dark: boolean): Theme {
     text4: "gray",
 
     bg: "",
-    raisedbg: dark ? "black" : "white",
+    raisedbg: dark ? "blackBright" : "white",
     separator: "gray",
 
     error: dark ? "redBright" : "red",
