@@ -1,8 +1,8 @@
 /**
  * TextInput Component
  *
- * Simple single-line text input with cursor display.
- * For full readline features (kill ring, word movement), use ReadlineInput.
+ * Full readline-style single-line text input with kill ring, word movement, and
+ * all standard shortcuts. Built on useReadline hook.
  *
  * Usage:
  * ```tsx
@@ -10,14 +10,28 @@
  * <TextInput
  *   value={value}
  *   onChange={setValue}
+ *   onSubmit={(val) => console.log('Submitted:', val)}
  *   placeholder="Type here..."
  * />
  * ```
+ *
+ * Supported shortcuts:
+ * - Ctrl+A/E: Beginning/end of line
+ * - Ctrl+B/F, Left/Right: Move cursor
+ * - Alt+B/F: Move by word
+ * - Ctrl+W, Alt+Backspace: Delete word backwards (kill)
+ * - Alt+D: Delete word forwards (kill)
+ * - Ctrl+U/K: Delete to beginning/end (kill)
+ * - Ctrl+Y: Yank (paste)
+ * - Alt+Y: Cycle kill ring
+ * - Ctrl+T: Transpose characters
  */
-import { useState, useCallback, useImperativeHandle, useRef, forwardRef } from "react"
-import { useInput } from "../hooks/index.js"
+import { useCallback, useImperativeHandle, forwardRef, useState, useEffect } from "react"
 import { Box } from "./Box.js"
 import { Text } from "./Text.js"
+import { useReadline } from "./useReadline.js"
+import { useFocusable } from "../hooks/useFocusable.js"
+import { useCursor } from "../hooks/useCursor.js"
 
 // =============================================================================
 // Types
@@ -32,9 +46,11 @@ export interface TextInputProps {
   onChange?: (value: string) => void
   /** Called when Enter is pressed */
   onSubmit?: (value: string) => void
+  /** Called on Ctrl+D with empty input */
+  onEOF?: () => void
   /** Placeholder text when empty */
   placeholder?: string
-  /** Whether input is focused/active */
+  /** Whether input is focused/active (overrides focus system) */
   isActive?: boolean
   /** Prompt prefix (e.g., "$ " or "> ") */
   prompt?: string
@@ -42,23 +58,30 @@ export interface TextInputProps {
   promptColor?: string
   /** Text color */
   color?: string
-  /** Cursor color (default: inverse) */
-  cursorColor?: string
+  /** Cursor style: 'block' (inverse) or 'underline' */
+  cursorStyle?: "block" | "underline"
   /** Show underline below input */
   showUnderline?: boolean
   /** Underline width (default: 40) */
   underlineWidth?: number
   /** Mask character for passwords */
   mask?: string
+  /** Test ID for focus system identification */
+  testID?: string
+  /** Use the real terminal cursor instead of inverse-text fake cursor.
+   *  Useful in inline mode where the terminal has one visible cursor. */
+  realCursor?: boolean
 }
 
 export interface TextInputHandle {
-  /** Focus the input */
-  focus: () => void
   /** Clear the input */
   clear: () => void
   /** Get current value */
   getValue: () => string
+  /** Set value programmatically */
+  setValue: (value: string) => void
+  /** Get kill ring contents */
+  getKillRing: () => string[]
 }
 
 // =============================================================================
@@ -71,159 +94,104 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
     defaultValue = "",
     onChange,
     onSubmit,
+    onEOF,
     placeholder = "",
-    isActive = true,
+    isActive: isActiveProp,
     prompt = "",
     promptColor = "yellow",
     color,
-    cursorColor,
+    cursorStyle = "block",
     showUnderline = false,
     underlineWidth = 40,
     mask,
+    testID,
+    realCursor = false,
   },
   ref,
 ) {
-  // Support both controlled and uncontrolled modes
-  const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue)
-  const [cursor, setCursor] = useState(defaultValue.length)
+  // Focus system integration: prop overrides hook.
+  // When testID is set, the component participates in the focus tree and
+  // isActive derives from focus state. Without testID, default to true
+  // for backward compatibility.
+  const { focused } = useFocusable()
+  const isActive = isActiveProp ?? (testID ? focused : true)
 
+  // Track whether we're in controlled mode
   const isControlled = controlledValue !== undefined
-  const value = isControlled ? controlledValue : uncontrolledValue
 
-  // Mutable ref for synchronous reads in the event handler.
-  // Without this, rapid keypresses between React renders all read the same
-  // stale closure state and overwrite each other.
-  const stateRef = useRef({ value, cursor })
-  stateRef.current.value = value
-  stateRef.current.cursor = cursor
+  // Use readline hook
+  const readline = useReadline({
+    initialValue: isControlled ? (controlledValue ?? "") : defaultValue,
+    onChange: useCallback(
+      (newValue: string) => {
+        onChange?.(newValue)
+      },
+      [onChange],
+    ),
+    isActive,
+    handleEnter: !!onSubmit,
+    onSubmit,
+    onEOF,
+  })
 
-  const updateValue = useCallback(
-    (newValue: string, newCursor: number) => {
-      // Update ref synchronously so the next event in the same batch sees fresh state
-      stateRef.current.value = newValue
-      stateRef.current.cursor = newCursor
+  // Sync controlled value to readline
+  const [lastControlledValue, setLastControlledValue] = useState(controlledValue)
+  useEffect(() => {
+    if (isControlled && controlledValue !== lastControlledValue) {
+      readline.setValue(controlledValue ?? "")
+      setLastControlledValue(controlledValue)
+    }
+  }, [isControlled, controlledValue, lastControlledValue, readline])
 
-      if (!isControlled) {
-        setUncontrolledValue(newValue)
-      }
-      setCursor(newCursor)
-      onChange?.(newValue)
-    },
-    [isControlled, onChange],
-  )
+  // Handle Enter separately for onSubmit
+  const { value, cursor, clear, setValue, killRing } = readline
 
   // Imperative handle for parent control
   useImperativeHandle(ref, () => ({
-    focus: () => {
-      // No-op in TUI - focus is managed by isActive prop
-    },
-    clear: () => {
-      updateValue("", 0)
-    },
+    clear,
     getValue: () => value,
+    setValue,
+    getKillRing: () => killRing,
   }))
-
-  // Basic input handling
-  useInput(
-    (input, key) => {
-      // Read fresh state from mutable ref — NOT from render closure.
-      // Multiple events between renders all see the latest value/cursor.
-      const { value, cursor } = stateRef.current
-
-      // Submit on Enter
-      if (key.return) {
-        onSubmit?.(value)
-        return
-      }
-
-      // Cursor movement
-      if (key.leftArrow || (key.ctrl && input === "b")) {
-        if (cursor > 0) {
-          stateRef.current.cursor = cursor - 1
-          setCursor(cursor - 1)
-        }
-        return
-      }
-      if (key.rightArrow || (key.ctrl && input === "f")) {
-        if (cursor < value.length) {
-          stateRef.current.cursor = cursor + 1
-          setCursor(cursor + 1)
-        }
-        return
-      }
-
-      // Home/End
-      if (key.ctrl && input === "a") {
-        stateRef.current.cursor = 0
-        setCursor(0)
-        return
-      }
-      if (key.ctrl && input === "e") {
-        stateRef.current.cursor = value.length
-        setCursor(value.length)
-        return
-      }
-
-      // Backspace
-      if (key.backspace || key.delete) {
-        if (cursor > 0) {
-          const newValue = value.slice(0, cursor - 1) + value.slice(cursor)
-          updateValue(newValue, cursor - 1)
-        }
-        return
-      }
-
-      // Ctrl+K: Delete to end
-      if (key.ctrl && input === "k") {
-        const newValue = value.slice(0, cursor)
-        updateValue(newValue, cursor)
-        return
-      }
-
-      // Ctrl+U: Delete to beginning
-      if (key.ctrl && input === "u") {
-        const newValue = value.slice(cursor)
-        updateValue(newValue, 0)
-        return
-      }
-
-      // Regular character input
-      if (input.length === 1 && input >= " ") {
-        const newValue = value.slice(0, cursor) + input + value.slice(cursor)
-        updateValue(newValue, cursor + 1)
-      }
-    },
-    { isActive },
-  )
 
   // Compute display value (with optional mask)
   const displayValue = mask ? mask.repeat(value.length) : value
-  const beforeCursor = displayValue.slice(0, cursor)
-  const atCursor = displayValue[cursor] ?? " "
-  const afterCursor = displayValue.slice(cursor + 1)
+  const displayBeforeCursor = displayValue.slice(0, cursor)
+  const displayAtCursor = displayValue[cursor] ?? " "
+  const displayAfterCursor = displayValue.slice(cursor + 1)
   const showPlaceholder = !value && placeholder
 
+  // Position the real terminal cursor when realCursor is enabled.
+  // The cursor column accounts for the prompt prefix and text before cursor.
+  const useFakeCursor = !realCursor
+  const cursorEl = !(isActive && useFakeCursor)
+    ? <Text>{displayAtCursor}</Text>
+    : cursorStyle === "underline"
+      ? <Text underline>{displayAtCursor}</Text>
+      : <Text inverse>{displayAtCursor}</Text>
+  useCursor({
+    col: prompt.length + displayBeforeCursor.length,
+    row: 0,
+    visible: realCursor && isActive,
+  })
+
   return (
-    <Box flexDirection="column">
+    <Box focusable testID={testID} flexDirection="column">
       <Text color={color}>
         {prompt && <Text color={promptColor}>{prompt}</Text>}
         {showPlaceholder ? (
           <Text dimColor>{placeholder}</Text>
         ) : (
           <>
-            <Text>{beforeCursor}</Text>
-            {isActive && (
-              <Text inverse={!cursorColor} color={cursorColor}>
-                {atCursor}
-              </Text>
-            )}
-            {!isActive && <Text>{atCursor}</Text>}
-            <Text>{afterCursor}</Text>
+            <Text>{displayBeforeCursor}</Text>
+            {cursorEl}
+            <Text>{displayAfterCursor}</Text>
           </>
         )}
-        {showPlaceholder && isActive && <Text inverse> </Text>}
+        {showPlaceholder && isActive && useFakeCursor && (cursorStyle === "block" ? <Text inverse> </Text> : <Text underline> </Text>)}
       </Text>
       {showUnderline && <Text dimColor>{"─".repeat(underlineWidth)}</Text>}
     </Box>
   )
 })
+

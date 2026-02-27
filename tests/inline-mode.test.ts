@@ -12,6 +12,7 @@
 
 import { describe, expect, test } from "vitest"
 import { TerminalBuffer } from "../src/buffer.js"
+import type { CursorState } from "../src/hooks/useCursor.js"
 import { outputPhase } from "../src/pipeline/output-phase.js"
 
 // ============================================================================
@@ -33,6 +34,47 @@ function countEraseEOL(output: string): number {
 function extractCursorDown(output: string): number[] {
   const matches = [...output.matchAll(/\x1b\[(\d+)B/g)]
   return matches.map((m) => parseInt(m[1]!, 10))
+}
+
+/** Extract cursor right (ESC[nC) sequences */
+function extractCursorRight(output: string): number[] {
+  const matches = [...output.matchAll(/\x1b\[(\d+)C/g)]
+  return matches.map((m) => parseInt(m[1]!, 10))
+}
+
+/** Check if output ends with cursor show (ESC[?25h) */
+function endsWithCursorShow(output: string): boolean {
+  return output.endsWith("\x1b[?25h")
+}
+
+/** Check if output ends with cursor hide (ESC[?25l) */
+function endsWithCursorHide(output: string): boolean {
+  return output.endsWith("\x1b[?25l")
+}
+
+/**
+ * Extract the cursor positioning suffix from inline output.
+ * After all content, the suffix contains: cursor-up + \r + cursor-right + cursor-show
+ * Returns { upDelta, rightDelta } or null if no positioning found.
+ */
+function extractCursorSuffix(output: string): { upDelta: number; rightDelta: number } | null {
+  // The suffix is the part after the last \x1b[K (end of content)
+  const lastK = output.lastIndexOf("\x1b[K")
+  if (lastK < 0) return null
+  const suffix = output.slice(lastK + 3) // skip past \x1b[K
+
+  // Parse cursor-up
+  const upMatch = suffix.match(/\x1b\[(\d+)A/)
+  const upDelta = upMatch ? parseInt(upMatch[1]!, 10) : 0
+
+  // Parse cursor-right
+  const rightMatch = suffix.match(/\x1b\[(\d+)C/)
+  const rightDelta = rightMatch ? parseInt(rightMatch[1]!, 10) : 0
+
+  // Check for \r (column reset)
+  if (!suffix.includes("\r")) return null
+
+  return { upDelta, rightDelta }
 }
 
 // ============================================================================
@@ -449,5 +491,148 @@ describe("Inline mode: multi-frame stability at terminal boundary", () => {
     expect(ups[0]).toBe(6) // rawCursorOffset (strict mode, uncapped)
     // Leftover erasure generates a second cursor-up when cursorOffset > maxOutputLines-1
     expect(ups.length).toBeGreaterThanOrEqual(1)
+  })
+})
+
+// ============================================================================
+// Tests: Real terminal cursor positioning via useCursor() in inline mode
+// ============================================================================
+
+describe("Inline mode: cursor positioning via cursorPos", () => {
+  test("first render positions cursor at useCursor location", () => {
+    const buf = new TerminalBuffer(20, 10)
+    fillBuffer(buf, 4) // A..D on rows 0-3
+
+    const cursorPos: CursorState = { x: 5, y: 1, visible: true }
+    const output = outputPhase(null, buf, "inline", 0, undefined, cursorPos)
+
+    // Output should end with cursor-show
+    expect(endsWithCursorShow(output)).toBe(true)
+
+    // The cursor suffix should position at row 1, col 5.
+    // After rendering 4 lines, terminal cursor is at row 3 (last content line).
+    // Need to move up 2 (from row 3 to row 1), then \r to col 0, then right 5.
+    const suffix = extractCursorSuffix(output)
+    expect(suffix).not.toBeNull()
+    expect(suffix!.upDelta).toBe(2) // 3 - 1 = 2
+    expect(suffix!.rightDelta).toBe(5)
+  })
+
+  test("subsequent render positions cursor correctly", () => {
+    const prev = new TerminalBuffer(20, 10)
+    fillBuffer(prev, 4)
+
+    const next = new TerminalBuffer(20, 10)
+    fillBuffer(next, 4, "a")
+
+    const cursorPos: CursorState = { x: 3, y: 2, visible: true }
+    const output = outputPhase(prev, next, "inline", 0, undefined, cursorPos)
+
+    // After rendering 4 lines, cursor at row 3.
+    // Need to go up 1 (from row 3 to row 2), then right 3.
+    const suffix = extractCursorSuffix(output)
+    expect(suffix).not.toBeNull()
+    expect(suffix!.upDelta).toBe(1) // 3 - 2 = 1
+    expect(suffix!.rightDelta).toBe(3)
+    expect(endsWithCursorShow(output)).toBe(true)
+  })
+
+  test("cursor at last row produces no cursor-up in suffix", () => {
+    const buf = new TerminalBuffer(20, 10)
+    fillBuffer(buf, 3) // A..C on rows 0-2
+
+    // Cursor on the last content line (row 2)
+    const cursorPos: CursorState = { x: 7, y: 2, visible: true }
+    const output = outputPhase(null, buf, "inline", 0, undefined, cursorPos)
+
+    // Suffix should have no cursor-up (already on the right row), just \r + right
+    const suffix = extractCursorSuffix(output)
+    expect(suffix).not.toBeNull()
+    expect(suffix!.upDelta).toBe(0) // no movement needed
+    expect(suffix!.rightDelta).toBe(7)
+  })
+
+  test("cursor at column 0 produces no cursor-right", () => {
+    const buf = new TerminalBuffer(20, 10)
+    fillBuffer(buf, 3)
+
+    const cursorPos: CursorState = { x: 0, y: 0, visible: true }
+    const output = outputPhase(null, buf, "inline", 0, undefined, cursorPos)
+
+    const suffix = extractCursorSuffix(output)
+    expect(suffix).not.toBeNull()
+    expect(suffix!.upDelta).toBe(2) // from row 2 to row 0
+    expect(suffix!.rightDelta).toBe(0) // column 0
+  })
+
+  test("invisible cursor hides terminal cursor", () => {
+    const buf = new TerminalBuffer(20, 10)
+    fillBuffer(buf, 3)
+
+    const cursorPos: CursorState = { x: 5, y: 1, visible: false }
+    const output = outputPhase(null, buf, "inline", 0, undefined, cursorPos)
+
+    // Should end with cursor hide, not show
+    expect(endsWithCursorHide(output)).toBe(true)
+    expect(endsWithCursorShow(output)).toBe(false)
+  })
+
+  test("null cursorPos hides cursor", () => {
+    const buf = new TerminalBuffer(20, 10)
+    fillBuffer(buf, 3)
+
+    // No cursor state — cursor hidden (no component claimed it)
+    const output = outputPhase(null, buf, "inline")
+
+    expect(endsWithCursorHide(output)).toBe(true)
+  })
+
+  test("cursor outside visible area when termRows caps output", () => {
+    const buf = new TerminalBuffer(20, 20)
+    fillBuffer(buf, 15) // A..O on rows 0-14
+
+    // termRows=5 means only rows 10-14 are visible (bottom 5 lines).
+    // Cursor at row 2 is outside the visible area.
+    const cursorPos: CursorState = { x: 3, y: 2, visible: true }
+    const output = outputPhase(null, buf, "inline", 0, 5, cursorPos)
+
+    // Cursor is above the visible area — should be hidden
+    expect(endsWithCursorHide(output)).toBe(true)
+  })
+
+  test("cursor within visible area when termRows caps output", () => {
+    const buf = new TerminalBuffer(20, 20)
+    fillBuffer(buf, 15) // A..O on rows 0-14
+
+    // termRows=5 means only rows 10-14 are visible.
+    // Cursor at row 12 is within the visible area (visible row index 2).
+    const cursorPos: CursorState = { x: 4, y: 12, visible: true }
+    const output = outputPhase(null, buf, "inline", 0, 5, cursorPos)
+
+    // Cursor should be positioned within the visible output
+    const suffix = extractCursorSuffix(output)
+    expect(suffix).not.toBeNull()
+    // Last visible row is 4 (index in visible area), cursor is at visible row 2.
+    // upDelta = 4 - 2 = 2
+    expect(suffix!.upDelta).toBe(2)
+    expect(suffix!.rightDelta).toBe(4)
+    expect(endsWithCursorShow(output)).toBe(true)
+  })
+
+  test("cursor positioning works with content shrink", () => {
+    // Previous: 5 lines
+    const prev = new TerminalBuffer(20, 10)
+    fillBuffer(prev, 5)
+
+    // Next: 3 lines (shrunk)
+    const next = new TerminalBuffer(20, 10)
+    fillBuffer(next, 3, "x")
+
+    const cursorPos: CursorState = { x: 2, y: 1, visible: true }
+    const output = outputPhase(prev, next, "inline", 0, undefined, cursorPos)
+
+    // After rendering 3 lines and erasing leftover, cursor repositioning happens.
+    // The output should show the cursor.
+    expect(endsWithCursorShow(output)).toBe(true)
   })
 })

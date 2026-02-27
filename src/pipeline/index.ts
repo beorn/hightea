@@ -28,6 +28,7 @@
 
 import { createLogger } from "@beorn/logger"
 import type { TerminalBuffer } from "../buffer.js"
+import type { CursorState } from "../hooks/useCursor.js"
 import type { InkxNode } from "../types.js"
 
 const log = createLogger("inkx:pipeline")
@@ -93,6 +94,13 @@ export interface ExecuteRenderOptions {
    * because cursor-up can't reach lines that scrolled off screen.
    */
   termRows?: number
+
+  /**
+   * Cursor position from useCursor() (inline mode only).
+   * When provided, the output phase positions the real terminal cursor
+   * at this location instead of leaving it at the end of content.
+   */
+  cursorPos?: CursorState | null
 }
 
 /**
@@ -120,6 +128,7 @@ export function executeRender(
     skipScrollStateUpdates = false,
     scrollbackOffset = 0,
     termRows,
+    cursorPos,
   } = opts
   const start = performance.now()
 
@@ -194,7 +203,7 @@ export function executeRender(
   {
     using outputSpan = render.span("output")
     const t4 = performance.now()
-    output = outputPhase(prevBuffer, buffer, mode, scrollbackOffset, termRows)
+    output = outputPhase(prevBuffer, buffer, mode, scrollbackOffset, termRows, cursorPos)
     tOutput = performance.now() - t4
     outputSpan.spanData.bytes = output.length
     log.debug?.(`output: ${tOutput.toFixed(2)}ms (${output.length} bytes)`)

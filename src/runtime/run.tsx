@@ -856,6 +856,11 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
         }
       }
     } finally {
+      // Unmount React tree so useEffect cleanup functions fire
+      // (clears intervals, timeouts, subscriptions in components)
+      reconciler.updateContainerSync(null, fiberRoot, null, () => {})
+      reconciler.flushSyncWork()
+
       // Cleanup
       runtime[Symbol.dispose]()
       if (!headless) {

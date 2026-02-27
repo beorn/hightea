@@ -462,10 +462,14 @@ export class RenderScheduler {
       // Run render pipeline
       const scrollbackOffset = this.scrollbackOffset
       this.scrollbackOffset = 0 // Consume the offset
+      // For inline mode, pass cursor state into the pipeline so the output
+      // phase can position the real terminal cursor at the useCursor() location.
+      const inlineCursor = this.mode === "inline" ? getCursorState() : undefined
       const { output, buffer } = executeRender(this.root, width, height, this.prevBuffer, {
         mode: this.mode,
         scrollbackOffset,
         termRows: this.mode === "inline" ? (this.stdout.rows ?? 24) : undefined,
+        cursorPos: inlineCursor,
       })
 
       // Transform output based on non-TTY mode

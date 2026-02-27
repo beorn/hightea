@@ -37,7 +37,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react"
-import { Box, Text, Link, Spinner, ScrollbackList, useScrollbackItem, ReadlineInput } from "../../src/index.js"
+import { Box, Text, Link, Spinner, ScrollbackList, useScrollbackItem, TextInput } from "../../src/index.js"
 import { run, useInput, useExit, type Key } from "../../src/runtime/run.js"
 import type { ExampleMeta } from "../_banner.js"
 
@@ -1115,6 +1115,12 @@ function CodingAgent({
     return () => clearTimeout(timer)
   }, [autoMode, done, exit])
 
+  // Clean up streaming timers on unmount — if user presses q while streaming,
+  // revealTimerRef (setInterval) would otherwise run forever.
+  useEffect(() => {
+    return () => cancelStreaming()
+  }, [cancelStreaming])
+
   // Auto-compact on terminal resize
   useEffect(() => {
     const onResize = () => {
@@ -1202,7 +1208,7 @@ function CodingAgent({
               ) : done ? (
                 <Text color="$success">Session complete</Text>
               ) : (
-                <ReadlineInput value={inputText} prompt={"\u276F "} isActive={!autoMode} />
+                <TextInput value={inputText} prompt={"\u276F "} isActive={!autoMode} realCursor />
               )}
             </Box>
             <StatusBar exchanges={exchanges} autoMode={autoMode} compacting={compacting} done={done} elapsed={elapsed} />
@@ -1301,9 +1307,6 @@ async function main() {
     mode: mode as "inline" | "fullscreen",
   })
   await handle.waitUntilExit()
-  // Clear scrollback buffer after exit — the frozen items served their demo
-  // purpose; clean up so the user's terminal isn't cluttered with demo output.
-  process.stdout.write("\x1b[3J\x1b[2J\x1b[H")
 }
 
 if (import.meta.main) {

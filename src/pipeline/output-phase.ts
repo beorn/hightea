@@ -15,6 +15,7 @@ import {
   hasActiveAttrs,
   styleEquals,
 } from "../buffer.js"
+import type { CursorState } from "../hooks/useCursor.js"
 import { IncrementalRenderMismatchError } from "../scheduler.js"
 import { isPrivateUseArea, textSized } from "../text-sizing.js"
 import { graphemeWidth, isTextSizingEnabled } from "../unicode.js"
@@ -357,6 +358,7 @@ export function outputPhase(
   mode: "fullscreen" | "inline" = "fullscreen",
   scrollbackOffset = 0,
   termRows?: number,
+  cursorPos?: CursorState | null,
 ): string {
   // First render: output entire buffer
   if (!prev) {
@@ -364,6 +366,10 @@ export function outputPhase(
     // Content taller than the terminal would push lines into scrollback where they
     // can never be overwritten on re-render (cursor-up is clamped at terminal row 0).
     const firstOutput = bufferToAnsi(next, mode, mode === "inline" ? termRows : undefined)
+    // For inline first render, append cursor positioning
+    if (mode === "inline") {
+      return firstOutput + inlineCursorSuffix(cursorPos ?? null, next, termRows)
+    }
     if (isStrictAccumulate()) {
       accumulatedAnsi = firstOutput
       accumulateWidth = next.width
@@ -378,7 +384,7 @@ export function outputPhase(
   // and it avoids complex cursor/scrollback offset tracking that's fragile
   // with external stdout.write() calls (e.g., useScrollback).
   if (mode === "inline") {
-    return inlineFullRender(prev, next, scrollbackOffset, termRows)
+    return inlineFullRender(prev, next, scrollbackOffset, termRows, cursorPos)
   }
 
   // INKX_FULL_RENDER: bypass incremental diff, always render full buffer.
@@ -471,6 +477,64 @@ function findLastContentLine(buffer: TerminalBuffer): number {
 }
 
 /**
+ * Compute the ANSI suffix that positions the real terminal cursor for inline mode.
+ *
+ * After inline rendering, the terminal cursor sits at the end of the last
+ * content line. If a component used useCursor(), we move the cursor to
+ * that position (relative to the rendered output). Otherwise we just show
+ * the cursor at its current position.
+ *
+ * @param cursorPos The cursor state from useCursor() (or null if none)
+ * @param buffer The rendered buffer
+ * @param termRows Terminal height cap (may limit visible rows)
+ */
+function inlineCursorSuffix(
+  cursorPos: CursorState | null | undefined,
+  buffer: TerminalBuffer,
+  termRows?: number,
+): string {
+  if (!cursorPos?.visible) {
+    // No active cursor — hide it
+    return "\x1b[?25l"
+  }
+
+  // Determine the visible row range (same logic as bufferToAnsi for inline)
+  const lastContentLine = findLastContentLine(buffer)
+  const maxLine = lastContentLine
+  let startLine = 0
+  const maxOutputLines = termRows != null ? Math.min(lastContentLine + 1, termRows) : lastContentLine + 1
+  if (termRows != null && maxLine >= termRows) {
+    startLine = maxLine - termRows + 1
+  }
+
+  // Convert absolute buffer cursor position to visible row index
+  const visibleRow = cursorPos.y - startLine
+  if (visibleRow < 0 || visibleRow >= maxOutputLines) {
+    // Cursor is outside the visible area (scrolled off) — hide it
+    return "\x1b[?25l"
+  }
+
+  // After rendering, the terminal cursor is at the end of the last output line.
+  // The last output line is at visible row (maxOutputLines - 1).
+  const currentRow = maxOutputLines - 1
+  const rowDelta = currentRow - visibleRow
+
+  let suffix = ""
+  // Move up to the correct row
+  if (rowDelta > 0) {
+    suffix += `\x1b[${rowDelta}A`
+  }
+  // Move to column 0, then right to the correct column
+  suffix += "\r"
+  if (cursorPos.x > 0) {
+    suffix += `\x1b[${cursorPos.x}C`
+  }
+  // Show cursor
+  suffix += "\x1b[?25h"
+  return suffix
+}
+
+/**
  * Full re-render for inline mode.
  *
  * Moves cursor to the start of the render region, writes the entire
@@ -487,6 +551,7 @@ function inlineFullRender(
   next: TerminalBuffer,
   scrollbackOffset: number,
   termRows?: number,
+  cursorPos?: CursorState | null,
 ): string {
   const nextContentLines = findLastContentLine(next) + 1
   const prevContentLines = findLastContentLine(prev) + 1
@@ -536,8 +601,10 @@ function inlineFullRender(
     if (up > 0) output += `\x1b[${up}A`
   }
 
-  // Show cursor (bufferToAnsi hides it for inline mode)
-  output += "\x1b[?25h"
+  // Position the real terminal cursor and show it.
+  // If a component called useCursor(), place the cursor there.
+  // Otherwise, just show it at the current position (end of content).
+  output += inlineCursorSuffix(cursorPos ?? null, next, termRows)
   return output
 }
 

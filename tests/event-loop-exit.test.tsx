@@ -98,4 +98,28 @@ describe("event loop cleanup", () => {
     expect(result.timedOut, `process hung (event loop not released)\n${result.stderr}`).toBe(false)
     expect(result.exitCode).toBe(0)
   })
+
+  // Component with setInterval — useEffect cleanup must fire on unmount
+  // to clear the timer. Without React tree unmount, the interval keeps
+  // the event loop alive and the process hangs.
+  it("run() with useEffect timers — process exits after unmount", async () => {
+    const result = await runScript(`
+      import React, { useState, useEffect } from "react";
+      import { Text } from "./src/index.js";
+      import { run } from "./src/runtime/run.js";
+      function App() {
+        const [count, setCount] = useState(0);
+        useEffect(() => {
+          const timer = setInterval(() => setCount(c => c + 1), 100);
+          return () => clearInterval(timer);
+        }, []);
+        return React.createElement(Text, null, "count: " + count);
+      }
+      const handle = await run(React.createElement(App), { cols: 80, rows: 24 });
+      handle.unmount();
+      await handle.waitUntilExit();
+    `)
+    expect(result.timedOut, `process hung — useEffect cleanup didn't fire\n${result.stderr}`).toBe(false)
+    expect(result.exitCode).toBe(0)
+  })
 })
