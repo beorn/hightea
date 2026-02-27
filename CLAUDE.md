@@ -27,6 +27,8 @@ await run(<App />)
 
 inkx's core innovation is **two-phase rendering with synchronous layout feedback** - components know their size during render, not after.
 
+**State machine principle**: Every interactive subsystem is a pure `(action, state) → [state, effects]` function. `readline-ops.ts` is the seed — shared character editing logic used by both TextInput and TextArea. This evolves into `textEditUpdate` (Phase 1), then textily (rich text) and docily (document model). See [km/docs/design/tea-state-machines.md](../../docs/design/tea-state-machines.md).
+
 - [docs/deep-dives/architecture.md](docs/deep-dives/architecture.md) - Layer diagram, RenderAdapter interface
 - [docs/guides/getting-started.md](docs/guides/getting-started.md) - First app tutorial
 - [docs/guides/runtime-layers.md](docs/guides/runtime-layers.md) - Runtime architecture deep-dive (createApp, createRuntime, createStore)
@@ -191,6 +193,10 @@ await app.run(<App />)
 ## Components
 
 See [docs/reference/components.md](docs/reference/components.md) for full reference. Key components: Box, Text, Screen, ScrollbackView, VirtualView, VirtualList, Static, Console, TextInput, ReadlineInput, TextArea, Link, Transform, Image, Spinner, ProgressBar, SelectList, Table, Badge, Divider.
+
+### Input Cursor Convention
+
+TextInput and TextArea use the real terminal cursor when focused, and a fake cursor (inverse/underline text) when unfocused. This matches standard TUI conventions (vim, emacs, htop). The `useCursor()` hook positions the hardware cursor; `cursorStyle` prop controls the unfocused fake cursor appearance (`"block"` or `"underline"`).
 
 ### Box Outline Props
 
@@ -646,7 +652,7 @@ import { Screen, ScrollbackView, VirtualView } from "inkx"
 import { Spinner, ProgressBar, SelectList, Table, Badge, Divider } from "inkx"
 
 // Input components
-import { TextInput, ReadlineInput, useReadline } from "inkx"
+import { TextInput, useReadline } from "inkx"
 
 // Hooks
 import { useContentRect, useScreenRect, useInput, useApp, useTerm } from "inkx"
