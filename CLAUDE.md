@@ -27,7 +27,7 @@ await run(<App />)
 
 inkx's core innovation is **two-phase rendering with synchronous layout feedback** - components know their size during render, not after.
 
-**State machine principle**: Every interactive subsystem is a pure `(action, state) → [state, effects]` function. `readline-ops.ts` is the seed — shared character editing logic used by both TextInput and TextArea. This evolves into `textEditUpdate` (Phase 1), then textily (rich text) and docily (document model). See [km/docs/design/tea-state-machines.md](../../docs/design/tea-state-machines.md).
+**State machine principle**: Every interactive subsystem is a pure `(state, op) → [state, effects]` function. `readline-ops.ts` is the seed — shared character editing logic used by both TextInput and TextArea. This evolves into `PlainText.apply()` (Phase 1), then SlateJS integration (Phase 3, per-node body editing) and `Editor.apply()` (Phase 4, document tree). See [km/docs/design/tea-state-machines.md](../../docs/design/tea-state-machines.md).
 
 - [docs/deep-dives/architecture.md](docs/deep-dives/architecture.md) - Layer diagram, RenderAdapter interface
 - [docs/guides/getting-started.md](docs/guides/getting-started.md) - First app tutorial
