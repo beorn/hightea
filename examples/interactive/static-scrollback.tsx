@@ -1178,11 +1178,6 @@ function CodingAgent({
       compact()
       return
     }
-    // Fast-complete when Enter pressed during streaming (TextInput is inactive)
-    if (key.return && streamPhase !== "done") {
-      skipStreaming()
-      return
-    }
   })
 
   // Pulse animation for live icons
