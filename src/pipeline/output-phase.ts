@@ -1341,8 +1341,9 @@ function replayAnsi(width: number, height: number, ansi: string): string[][] {
         }
         // Skip SGR (m), DEC modes (h/l), etc.
       } else if (ansi[i + 1] === "]") {
-        // OSC: skip to ST (\x1b\\) or BEL (\x07)
+        // OSC: extract payload
         i += 2
+        let oscPayload = ""
         while (i < ansi.length) {
           if (ansi[i] === "\x1b" && ansi[i + 1] === "\\") {
             i += 2
@@ -1352,7 +1353,21 @@ function replayAnsi(width: number, height: number, ansi: string): string[][] {
             i++
             break
           }
+          oscPayload += ansi[i]
           i++
+        }
+        // OSC 66: text sizing — format is "66;w=N;TEXT"
+        if (oscPayload.startsWith("66;")) {
+          const semiIdx = oscPayload.indexOf(";", 3)
+          if (semiIdx !== -1) {
+            const text = oscPayload.slice(semiIdx + 1)
+            const widthParam = oscPayload.slice(3, semiIdx)
+            const declaredWidth = widthParam.startsWith("w=") ? parseInt(widthParam.slice(2)) || 1 : 1
+            if (cy < height && cx < width) {
+              screen[cy]![cx] = text
+              cx += declaredWidth
+            }
+          }
         }
       } else if (ansi[i + 1] === ">") {
         // DCS or private sequence: skip
@@ -1633,8 +1648,9 @@ export function replayAnsiWithStyles(width: number, height: number, ansi: string
         }
         // Skip DEC modes (h/l), etc.
       } else if (ansi[i + 1] === "]") {
-        // OSC: skip to ST (\x1b\\) or BEL (\x07)
+        // OSC: extract payload and check for OSC 66 (text sizing)
         i += 2
+        let oscPayload = ""
         while (i < ansi.length) {
           if (ansi[i] === "\x1b" && ansi[i + 1] === "\\") {
             i += 2
@@ -1644,8 +1660,49 @@ export function replayAnsiWithStyles(width: number, height: number, ansi: string
             i++
             break
           }
+          oscPayload += ansi[i]
           i++
         }
+        // OSC 66: text sizing — format is "66;w=N;TEXT"
+        // Extract TEXT and process it as a character with the declared width
+        if (oscPayload.startsWith("66;")) {
+          const semiIdx = oscPayload.indexOf(";", 3)
+          if (semiIdx !== -1) {
+            const text = oscPayload.slice(semiIdx + 1)
+            const widthParam = oscPayload.slice(3, semiIdx)
+            const declaredWidth = widthParam.startsWith("w=") ? parseInt(widthParam.slice(2)) || 1 : 1
+            if (cy < height && cx < width) {
+              const cell = screen[cy]![cx]!
+              cell.char = text
+              cell.fg = sgr.fg
+              cell.bg = sgr.bg
+              cell.bold = sgr.bold
+              cell.dim = sgr.dim
+              cell.italic = sgr.italic
+              cell.underline = sgr.underline
+              cell.blink = sgr.blink
+              cell.inverse = sgr.inverse
+              cell.hidden = sgr.hidden
+              cell.strikethrough = sgr.strikethrough
+              if (declaredWidth > 1 && cx + 1 < width) {
+                const cont = screen[cy]![cx + 1]!
+                cont.char = " "
+                cont.fg = null
+                cont.bg = sgr.bg
+                cont.bold = false
+                cont.dim = false
+                cont.italic = false
+                cont.underline = false
+                cont.blink = false
+                cont.inverse = false
+                cont.hidden = false
+                cont.strikethrough = false
+              }
+              cx += declaredWidth
+            }
+          }
+        }
+        // Other OSC sequences (8=hyperlinks, etc.) are skipped
       } else if (ansi[i + 1] === ">") {
         i += 2
         while (i < ansi.length && ansi[i] !== "\x1b") i++
@@ -1783,13 +1840,21 @@ function verifyOutputEquivalence(
   const freshNext = bufferToAnsi(next, mode)
   const screenFresh = replayAnsiWithStyles(w, vtHeight, freshNext)
 
-  // Dump wide cells and continuation cells on each row for mismatch diagnosis
+  // Dump wide cells, continuation cells, and width-mismatch cells for diagnosis
   const _dumpRowWideCells = (buf: TerminalBuffer, row: number): string => {
     const parts: string[] = []
     for (let cx = 0; cx < buf.width; cx++) {
       const c = buf.getCell(cx, row)
-      if (c.wide) parts.push(`W@${cx}:'${c.char}'(gw=${graphemeWidth(c.char)})`)
+      const cp = c.char ? [...c.char].map(ch => 'U+' + (ch.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, '0')).join(',') : 'empty'
+      if (c.wide) parts.push(`W@${cx}:${cp}(gw=${graphemeWidth(c.char)})`)
       if (c.continuation) parts.push(`C@${cx}`)
+      // Flag cells where written char width differs from buffer expectation
+      const charToWrite = c.char || " "
+      const vtWidth = graphemeWidth(charToWrite)
+      const bufWidth = c.wide ? 2 : 1
+      if (!c.continuation && vtWidth !== bufWidth) {
+        parts.push(`MISMATCH@${cx}:${cp}(vtW=${vtWidth},bufW=${bufWidth})`)
+      }
     }
     return parts.join(" ")
   }

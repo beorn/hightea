@@ -157,15 +157,10 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
   const displayAfterCursor = displayValue.slice(cursor + 1)
   const showPlaceholder = !value && placeholder
 
-  // When active: real terminal cursor at cursor position, plain text rendering.
-  // When inactive: fake cursor (inverse/underline) for visual feedback.
-  const cursorEl = isActive ? (
-    <Text>{displayAtCursor}</Text>
-  ) : cursorStyle === "underline" ? (
-    <Text underline>{displayAtCursor}</Text>
-  ) : (
-    <Text inverse>{displayAtCursor}</Text>
-  )
+  // Always show visual cursor (inverse/underline). When active, the hardware
+  // cursor is also positioned via useCursor() for terminal blink support.
+  const cursorEl =
+    cursorStyle === "underline" ? <Text underline>{displayAtCursor}</Text> : <Text inverse>{displayAtCursor}</Text>
   useCursor({
     col: prompt.length + displayBeforeCursor.length,
     row: 0,

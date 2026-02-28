@@ -734,15 +734,28 @@ function ExchangeItem({
   }
 
   const isUser = exchange.role === "user"
-  const outlineColor = isUser ? "$primary" : "$success"
-  const icon = isUser ? "\u276F" : "\u25C6"
-  const name = isUser ? "You" : "Agent"
+
+  // User messages: simple blue > prefix, no border
+  if (isUser) {
+    return (
+      <Box paddingX={1}>
+        <Text>
+          <Text bold color="$primary">{"\u276F"} </Text>
+          {exchange.content}
+        </Text>
+      </Box>
+    )
+  }
+
+  const outlineColor = "$success"
+  const icon = "\u25C6"
+  const name = "Agent"
   const phase = isLatest ? streamPhase : "done"
   const fraction = isLatest ? revealFraction : 1
 
   // Token badge for agent exchanges
   const tokenBadge =
-    exchange.tokens && !isUser && phase === "done" ? ` ${formatTokens(exchange.tokens.output)} tokens` : ""
+    exchange.tokens && phase === "done" ? ` ${formatTokens(exchange.tokens.output)} tokens` : ""
 
   // Tool call phases
   const toolCalls = exchange.toolCalls ?? []
@@ -753,7 +766,7 @@ function ExchangeItem({
       {/* Header: icon + name + token badge */}
       <Text>
         <Text bold color={outlineColor}>
-          <Text dimColor={!isUser && !pulse && phase !== "done"}>{icon}</Text> {name}
+          <Text dimColor={!pulse && phase !== "done"}>{icon}</Text> {name}
         </Text>
         {tokenBadge && (
           <Text color="$muted" dim>
@@ -765,16 +778,13 @@ function ExchangeItem({
       {/* Blank line before content */}
       <Text> </Text>
 
-      {/* User content */}
-      {isUser && <Text>{exchange.content}</Text>}
-
       {/* Thinking block */}
-      {!isUser && exchange.thinking && (phase === "thinking" || phase === "streaming") && (
+      {exchange.thinking && (phase === "thinking" || phase === "streaming") && (
         <ThinkingBlock text={exchange.thinking} done={phase !== "thinking"} />
       )}
 
       {/* Agent content */}
-      {!isUser && (phase === "streaming" || phase === "tools" || phase === "done") && (
+      {(phase === "streaming" || phase === "tools" || phase === "done") && (
         <StreamingText
           fullText={exchange.content}
           revealFraction={phase === "streaming" ? fraction : 1}
@@ -1235,9 +1245,8 @@ function CodingAgent({
         footer={
           <Box flexDirection="column">
             <Box
-              borderStyle="round"
-              borderColor={streamPhase !== "done" ? "$warning" : done ? "$success" : "$primary"}
-              paddingX={1}
+              outlineStyle="round"
+              outlineColor={streamPhase !== "done" ? "$warning" : done ? "$success" : "$focusring"}
             >
               <TextInput
                 value={inputText}
