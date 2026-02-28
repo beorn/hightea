@@ -5,7 +5,7 @@
  * to the terminal. This wires together:
  * - Yoga (layout engine)
  * - React reconciler
- * - Context providers (App, Stdin, Stdout, Input)
+ * - Context providers (RuntimeContext, Stdout)
  * - Render scheduler (batching and diffing)
  *
  * Compatible with Ink's render API.
@@ -18,7 +18,13 @@ import { type Term, createTerm } from "chalkx"
 import React, { useCallback, useMemo, useRef, type ReactElement, type ReactNode } from "react"
 
 const log = createLogger("inkx:render")
-import { AppContext, EventsContext, InputContext, StdinContext, StdoutContext, TermContext } from "./context.js"
+import {
+  RuntimeContext,
+  type RuntimeContextValue,
+  StdoutContext,
+  TermContext,
+} from "./context.js"
+import { parseKey } from "./keys.js"
 import { type LayoutEngineType, isLayoutEngineInitialized } from "./layout-engine.js"
 import { enableBracketedPaste, disableBracketedPaste, parseBracketedPaste } from "./bracketed-paste.js"
 import {
@@ -356,21 +362,6 @@ function InkxApp({
     [stdin, isRawModeSupported, handleReadable],
   )
 
-  // Context values
-  const appContextValue = useMemo(
-    () => ({ exit: handleExit, pause: onPause, resume: onResume }),
-    [handleExit, onPause, onResume],
-  )
-
-  const stdinContextValue = useMemo(
-    () => ({
-      stdin,
-      isRawModeSupported,
-      setRawMode,
-    }),
-    [stdin, isRawModeSupported, setRawMode],
-  )
-
   const stdoutContextValue = useMemo(
     () => ({
       stdout,
@@ -380,22 +371,42 @@ function InkxApp({
     [stdout, onScrollback],
   )
 
-  const inputContextValue = useMemo(
+  // RuntimeContext — typed event bus bridging from the existing EventEmitter
+  const runtimeContextValue = useMemo<RuntimeContextValue>(
     () => ({
-      eventEmitter,
-      exitOnCtrlC,
+      on(event, handler) {
+        if (event === "input") {
+          const wrapped = (data: string | Buffer) => {
+            const [input, key] = parseKey(data)
+            ;(handler as (input: string, key: import("./keys.js").Key) => void)(input, key)
+          }
+          eventEmitter.on("input", wrapped)
+          return () => {
+            eventEmitter.removeListener("input", wrapped)
+          }
+        }
+        if (event === "paste") {
+          eventEmitter.on("paste", handler)
+          return () => {
+            eventEmitter.removeListener("paste", handler)
+          }
+        }
+        return () => {} // Unknown event — no-op cleanup
+      },
+      emit() {
+        // render() runtime doesn't support view → runtime events
+      },
+      exit: handleExit,
+      pause: onPause,
+      resume: onResume,
     }),
-    [eventEmitter, exitOnCtrlC],
+    [eventEmitter, handleExit, onPause, onResume],
   )
 
   return (
-    <AppContext.Provider value={appContextValue}>
-      <StdinContext.Provider value={stdinContextValue}>
-        <StdoutContext.Provider value={stdoutContextValue}>
-          <InputContext.Provider value={inputContextValue}>{children}</InputContext.Provider>
-        </StdoutContext.Provider>
-      </StdinContext.Provider>
-    </AppContext.Provider>
+    <StdoutContext.Provider value={stdoutContextValue}>
+      <RuntimeContext.Provider value={runtimeContextValue}>{children}</RuntimeContext.Provider>
+    </StdoutContext.Provider>
   )
 }
 
@@ -862,7 +873,7 @@ async function renderImpl(
   // Wrap element with TermContext and EventsContext
   const wrappedElement = (
     <TermContext.Provider value={term}>
-      <EventsContext.Provider value={resolved.events}>{element}</EventsContext.Provider>
+      {element}
     </TermContext.Provider>
   )
 
@@ -875,7 +886,7 @@ async function renderImpl(
   const rerender = (newElement: ReactNode) =>
     instance.rerender(
       <TermContext.Provider value={term}>
-        <EventsContext.Provider value={resolved.events}>{newElement}</EventsContext.Provider>
+        {newElement}
       </TermContext.Provider>,
     )
 
@@ -904,7 +915,7 @@ async function renderStaticImpl(element: ReactElement, term: Term, resolved: Res
   // Wrap element with contexts for static rendering
   const wrappedElement = (
     <TermContext.Provider value={term}>
-      <EventsContext.Provider value={null}>{element}</EventsContext.Provider>
+      {element}
     </TermContext.Provider>
   )
 
@@ -927,7 +938,7 @@ async function renderStaticImpl(element: ReactElement, term: Term, resolved: Res
     rerender: (newElement: ReactNode) => {
       const newWrapped = (
         <TermContext.Provider value={term}>
-          <EventsContext.Provider value={null}>{newElement}</EventsContext.Provider>
+          {newElement}
         </TermContext.Provider>
       )
       lastFrame = renderStringSync(newWrapped as ReactElement, {
@@ -1003,7 +1014,7 @@ export function renderSync(element: ReactElement, termOrDef?: Term | TermDef, op
   if (resolved.isStatic) {
     const wrappedElement = (
       <TermContext.Provider value={term}>
-        <EventsContext.Provider value={null}>{element}</EventsContext.Provider>
+        {element}
       </TermContext.Provider>
     )
     const lastFrame = renderStringSync(wrappedElement, {
@@ -1057,7 +1068,7 @@ export function renderSync(element: ReactElement, termOrDef?: Term | TermDef, op
   // Wrap element with contexts
   const wrappedElement = (
     <TermContext.Provider value={term}>
-      <EventsContext.Provider value={resolved.events}>{element}</EventsContext.Provider>
+      {element}
     </TermContext.Provider>
   )
 
@@ -1068,7 +1079,7 @@ export function renderSync(element: ReactElement, termOrDef?: Term | TermDef, op
   const rerender = (newElement: ReactNode) =>
     instance!.rerender(
       <TermContext.Provider value={term}>
-        <EventsContext.Provider value={resolved.events}>{newElement}</EventsContext.Provider>
+        {newElement}
       </TermContext.Provider>,
     )
 

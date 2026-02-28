@@ -1,19 +1,16 @@
 /**
  * Inkx useInput Hook
  *
- * Handles keyboard input parsing and provides a clean API for responding to key presses.
+ * Handles keyboard input via the unified RuntimeContext.
  * Compatible with Ink's useInput API.
  *
- * Throws if called outside a runtime (run(), render(), createApp()). If your component
- * needs to work without input, don't call useInput — check the context yourself first.
+ * Throws if called outside a runtime (run(), render(), createApp(), test renderer).
+ * Use useRuntime() for components that need to work in both static and interactive modes.
  */
 
-import { createLogger } from "@beorn/logger"
 import { useContext, useEffect, useRef } from "react"
-import { InputContext, StdinContext } from "../context.js"
-import { type Key, parseKey } from "../keys.js"
-
-const log = createLogger("inkx:useInput")
+import { RuntimeContext } from "../context.js"
+import type { Key } from "../keys.js"
 
 // ============================================================================
 // Types
@@ -24,7 +21,6 @@ export type { Key } from "../keys.js"
 
 /**
  * Input handler callback type.
- * Unlike the runtime InputHandler, this does not support "exit" returns.
  */
 export type InputHandler = (input: string, key: Key) => void
 
@@ -55,9 +51,8 @@ export interface UseInputOptions {
 /**
  * Hook for handling user input.
  *
- * Throws if InputContext is not provided (i.e., outside a runtime).
- * If your component needs to work in both interactive and static modes,
- * conditionally call useInput based on your own context check.
+ * Throws if RuntimeContext is not provided (i.e., outside a runtime).
+ * Use useRuntime() for components that work in both interactive and static modes.
  *
  * @example
  * ```tsx
@@ -76,12 +71,18 @@ export interface UseInputOptions {
  * ```
  */
 export function useInput(inputHandler: InputHandler, options: UseInputOptions = {}): void {
-  const stdinContext = useContext(StdinContext)
-  const inputContext = useContext(InputContext)
+  const rt = useContext(RuntimeContext)
+
+  if (!rt) {
+    throw new Error(
+      "useInput requires a runtime (run/render/createApp/test renderer). " +
+        "Use useRuntime() for components that work in both static and interactive modes.",
+    )
+  }
 
   const { isActive = true, onPaste } = options
 
-  // Stable ref for the handler — avoids tearing down/recreating the event
+  // Stable ref for the handler — avoids tearing down/recreating the
   // subscription on every render. Without this, rapid keystrokes between
   // effect cleanup and setup are lost.
   const handlerRef = useRef(inputHandler)
@@ -90,48 +91,21 @@ export function useInput(inputHandler: InputHandler, options: UseInputOptions = 
   const onPasteRef = useRef(onPaste)
   onPasteRef.current = onPaste
 
-  // Set raw mode when active (only if stdin is a TTY)
+  // Subscribe to input events via RuntimeContext
   useEffect(() => {
-    if (!isActive || !stdinContext || !stdinContext.isRawModeSupported) {
-      return
-    }
+    if (!isActive) return
 
-    log.debug?.("useInput: setting raw mode true")
-    stdinContext.setRawMode(true)
-    return () => {
-      log.debug?.("useInput: setting raw mode false")
-      stdinContext.setRawMode(false)
-    }
-  }, [isActive, stdinContext])
-
-  // Listen for input events via InputContext
-  useEffect(() => {
-    if (!isActive || !inputContext) {
-      return
-    }
-
-    const handleData = (data: string | Buffer) => {
-      const [input, key] = parseKey(data)
-
-      // Handle Ctrl+C exit
-      if (input === "c" && key.ctrl && inputContext.exitOnCtrlC) {
-        return // Let the app handle exit
-      }
-
+    return rt.on("input", (input: string, key: Key) => {
       handlerRef.current(input, key)
-    }
+    })
+  }, [isActive, rt])
 
-    inputContext.eventEmitter.on("input", handleData)
+  // Subscribe to paste events via RuntimeContext
+  useEffect(() => {
+    if (!isActive) return
 
-    // Subscribe to paste events if onPaste callback is provided
-    const handlePaste = (text: string) => {
+    return rt.on("paste", (text: string) => {
       onPasteRef.current?.(text)
-    }
-    inputContext.eventEmitter.on("paste", handlePaste)
-
-    return () => {
-      inputContext.eventEmitter.removeListener("input", handleData)
-      inputContext.eventEmitter.removeListener("paste", handlePaste)
-    }
-  }, [isActive, inputContext])
+    })
+  }, [isActive, rt])
 }

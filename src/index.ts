@@ -248,7 +248,6 @@ export { useInput } from "./hooks/useInput.js"
 export { useApp } from "./hooks/useApp.js"
 
 export { useStdout } from "./hooks/useStdout.js"
-export { useStdin } from "./hooks/useStdin.js"
 export { useFocusManager } from "./hooks/useFocusManager.js"
 
 // Focus system (tree-based)
@@ -314,8 +313,12 @@ export type { ScrollbackItemContext } from "./hooks/useScrollbackItem.js"
  */
 export { useTransition, useDeferredValue, useId } from "react"
 
+// Runtime hook
+export { useRuntime } from "./hooks/useRuntime.js"
+
 // Contexts for advanced usage (usually hooks are preferred)
-export { TermContext, EventsContext, FocusManagerContext } from "./context.js"
+export { TermContext, FocusManagerContext, RuntimeContext } from "./context.js"
+export type { RuntimeContextValue, BaseRuntimeEvents } from "./context.js"
 
 // Theming
 export { ThemeProvider, useTheme } from "./contexts/ThemeContext.js"
@@ -555,7 +558,6 @@ export { keyToName, keyToModifiers, parseHotkey, matchHotkey, parseKeypress, par
 export type { ParsedKeypress, ParsedHotkey } from "./keys.js"
 export type { UseAppResult } from "./hooks/useApp.js"
 export type { UseStdoutResult } from "./hooks/useStdout.js"
-export type { UseStdinResult } from "./hooks/useStdin.js"
 export type { UseFocusManagerResult } from "./hooks/useFocusManager.js"
 export type { RenderOptions, Instance, RenderMode, NonTTYMode } from "./render.js"
 export type { MeasureElementOutput } from "./measureElement.js"

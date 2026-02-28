@@ -46,7 +46,7 @@ import React, { createContext, useContext, useEffect, useRef, type ReactElement 
 import { type StateCreator, type StoreApi, createStore } from "zustand"
 
 import { createTerm } from "chalkx"
-import { AppContext, FocusManagerContext, StdoutContext, TermContext } from "../context.js"
+import { FocusManagerContext, RuntimeContext, type RuntimeContextValue, StdoutContext, TermContext } from "../context.js"
 import { createFocusManager } from "../focus-manager.js"
 import { createFocusEvent, dispatchFocusEvent } from "../focus-events.js"
 import { executeRender } from "../pipeline/index.js"
@@ -711,18 +711,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     }
   }
 
-  // Exit/pause/resume - mutable ref so AppContext always sees latest values.
-  // Object literal captures values at creation time, so we use a mutable
-  // object whose properties are updated in-place after assignment.
-  const appContextRef: {
-    exit: () => void
-    pause?: () => void
-    resume?: () => void
-  } = {
-    exit: () => {},
-    pause: undefined,
-    resume: undefined,
-  }
   let exit: () => void
 
   // Create InkxNode container
@@ -750,16 +738,47 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // Create mock term
   const mockTerm = createTerm({ color: "truecolor" })
 
+  // RuntimeContext input listeners — allows components using hooks/useInput
+  // (TextInput, TextArea, SelectList etc.) to work inside createApp apps.
+  const runtimeInputListeners = new Set<(input: string, key: Key) => void>()
+  const runtimePasteListeners = new Set<(text: string) => void>()
+
+  // Typed event bus — supports view → runtime events via emit()
+  const runtimeEventListeners = new Map<string, Set<Function>>()
+  runtimeEventListeners.set("input", runtimeInputListeners as unknown as Set<Function>)
+  runtimeEventListeners.set("paste", runtimePasteListeners as unknown as Set<Function>)
+
+  const runtimeContextValue: RuntimeContextValue = {
+    on(event, handler) {
+      let listeners = runtimeEventListeners.get(event)
+      if (!listeners) {
+        listeners = new Set()
+        runtimeEventListeners.set(event, listeners)
+      }
+      listeners.add(handler)
+      return () => listeners!.delete(handler)
+    },
+    emit(event, ...args) {
+      const listeners = runtimeEventListeners.get(event)
+      if (listeners) {
+        for (const listener of listeners) {
+          listener(...args)
+        }
+      }
+    },
+    exit: () => exit(),
+  }
+
   // Wrap element with all required providers
   const wrappedElement = (
     <TermContext.Provider value={mockTerm}>
-      <AppContext.Provider value={appContextRef}>
-        <StdoutContext.Provider value={{ stdout: mockStdout, write: () => {} }}>
-          <FocusManagerContext.Provider value={focusManager}>
+      <StdoutContext.Provider value={{ stdout: mockStdout, write: () => {} }}>
+        <FocusManagerContext.Provider value={focusManager}>
+          <RuntimeContext.Provider value={runtimeContextValue}>
             <StoreContext.Provider value={store as StoreApi<unknown>}>{element}</StoreContext.Provider>
-          </FocusManagerContext.Provider>
-        </StdoutContext.Provider>
-      </AppContext.Provider>
+          </RuntimeContext.Provider>
+        </FocusManagerContext.Provider>
+      </StdoutContext.Provider>
     </TermContext.Provider>
   )
 
@@ -1027,12 +1046,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   }
 
   // Assign pause/resume now that doRender and runtime are available.
-  // Update appContextRef in-place so useApp() sees the latest values.
+  // Update runtimeContextValue in-place so useApp()/useRuntime() sees the latest values.
   if (!headless) {
-    appContextRef.pause = () => {
+    runtimeContextValue.pause = () => {
       renderPaused = true
     }
-    appContextRef.resume = () => {
+    runtimeContextValue.resume = () => {
       renderPaused = false
       // Reset diff state so next render outputs a full frame.
       // The screen was cleared when entering console mode, so
@@ -1071,7 +1090,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     cleanup()
     exitResolve()
   }
-  appContextRef.exit = exit
+  runtimeContextValue.exit = exit
 
   // Frame listeners for async iteration
   let frameResolve: ((buffer: Buffer) => void) | null = null
@@ -1245,6 +1264,19 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
     // Run all handlers — state mutations batch naturally in Zustand
     for (const event of events) {
+      // Bridge key/paste events to RuntimeContext listeners (useInput consumers)
+      if (event.type === "term:key") {
+        const { input, key: parsedKey } = event.data as { input: string; key: Key }
+        for (const listener of runtimeInputListeners) {
+          listener(input, parsedKey)
+        }
+      } else if (event.type === "term:paste") {
+        const { text } = event.data as { text: string }
+        for (const listener of runtimePasteListeners) {
+          listener(text)
+        }
+      }
+
       const result = runEventHandler(event)
       if (result === false) {
         isRendering = false
@@ -1442,6 +1474,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // Convert named keys to ANSI bytes (Kitty protocol when enabled)
       const ansiKey = useKittyMode ? keyToKittyAnsi(rawKey) : keyToAnsi(rawKey)
       const [input, parsedKey] = parseKey(ansiKey)
+
+      // Bridge to RuntimeContext listeners (useInput consumers)
+      for (const listener of runtimeInputListeners) {
+        listener(input, parsedKey)
+      }
 
       // Suppress subscription renders — flush loop below handles everything.
       inEventHandler = true

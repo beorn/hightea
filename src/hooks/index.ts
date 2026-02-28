@@ -10,12 +10,14 @@ export { useContentRect, useContentRectCallback, useScreenRect, type Rect } from
 // Input
 export { useInput, type Key, type InputHandler, type UseInputOptions } from "./useInput.js"
 
+// Runtime
+export { useRuntime } from "./useRuntime.js"
+
 // App
 export { useApp, type UseAppResult } from "./useApp.js"
 
 // Stdio
 export { useStdout, type UseStdoutResult } from "./useStdout.js"
-export { useStdin, type UseStdinResult } from "./useStdin.js"
 
 // Focus (tree-based system)
 export { useFocusable, type UseFocusableResult } from "./useFocusable.js"

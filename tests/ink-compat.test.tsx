@@ -46,7 +46,6 @@ import {
   useContentRect,
   useFocusManager,
   useInput,
-  useStdin,
   useStdout,
 } from "../src/index.js"
 
@@ -96,10 +95,6 @@ describe("Ink API Compatibility", () => {
 
     test("useStdout hook exists and is a function", () => {
       expect(typeof useStdout).toBe("function")
-    })
-
-    test("useStdin hook exists and is a function", () => {
-      expect(typeof useStdin).toBe("function")
     })
 
     test("useFocusManager hook exists and is a function", () => {

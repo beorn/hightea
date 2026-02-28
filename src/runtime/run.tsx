@@ -29,12 +29,10 @@ import process from "node:process"
 import { createContext, useContext, useEffect, type ReactElement } from "react"
 
 import { createTerm } from "chalkx"
-import { EventEmitter } from "node:events"
 import {
-  AppContext,
-  EventsContext,
   FocusManagerContext,
-  InputContext as SharedInputContext,
+  RuntimeContext,
+  type RuntimeContextValue,
   StdoutContext,
   TermContext,
 } from "../context.js"
@@ -165,12 +163,13 @@ export interface RunHandle {
 // Contexts
 // ============================================================================
 
-interface RuntimeContextValue {
+/** Internal context for run()'s own runtime handle + exit. */
+interface RunInternalContextValue {
   runtime: Runtime
   exit: () => void
 }
 
-const RuntimeContext = createContext<RuntimeContextValue | null>(null)
+const RunInternalContext = createContext<RunInternalContextValue | null>(null)
 
 interface InputContextValue {
   subscribe: (handler: InputHandler) => () => void
@@ -218,7 +217,7 @@ export function useInput(handler: InputHandler): void {
  * Hook for programmatic exit.
  */
 export function useExit(): () => void {
-  const ctx = useContext(RuntimeContext)
+  const ctx = useContext(RunInternalContext)
   if (!ctx) throw new Error("useExit must be used within run()")
   return ctx.exit
 }
@@ -613,18 +612,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     },
   }
 
-  // Shared input context — bridges run()'s input system to hooks/useInput.ts.
-  // Components like TextInput/TextArea use the hooks version of useInput which
-  // subscribes to this eventEmitter. Without this bridge, those components are
-  // silently disabled in run() apps.
-  const sharedInputEmitter = new EventEmitter()
-  const sharedInputContextValue = { eventEmitter: sharedInputEmitter, exitOnCtrlC: false }
-
-  // Dummy non-null sentinel so hooks/useInput.ts doesn't enter "static mode".
-  // The actual value is never iterated — hooks useInput only checks !== null.
-  const dummyEvents: AsyncIterable<never> = { [Symbol.asyncIterator]: () => ({ next: () => new Promise(() => {}) }) }
-
-  // Paste context value
+  // Paste context value (run()'s own hook system)
   const pasteContextValue: PasteContextValue = {
     subscribe(handler: PasteHandler) {
       pasteHandlers.add(handler)
@@ -632,9 +620,31 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     },
   }
 
-  // Runtime context value
-  const runtimeContextValue: RuntimeContextValue = {
+  // Internal runtime context (for useExit)
+  const runInternalContextValue: RunInternalContextValue = {
     runtime,
+    exit,
+  }
+
+  // RuntimeContext — typed event bus bridging from run()'s handler Sets
+  const unifiedRuntimeValue: RuntimeContextValue = {
+    on(event, handler) {
+      if (event === "input") {
+        const wrapped: InputHandler = (input, key) => {
+          ;(handler as (input: string, key: import("../keys.js").Key) => void)(input, key)
+        }
+        inputHandlers.add(wrapped)
+        return () => inputHandlers.delete(wrapped)
+      }
+      if (event === "paste") {
+        pasteHandlers.add(handler as (text: string) => void)
+        return () => pasteHandlers.delete(handler as (text: string) => void)
+      }
+      return () => {} // Unknown event — no-op cleanup
+    },
+    emit() {
+      // run() runtime doesn't support view → runtime events yet
+    },
     exit,
   }
 
@@ -666,29 +676,23 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
   // Wrap element with all required providers
   const wrappedElement = (
     <TermContext.Provider value={mockTerm}>
-      <AppContext.Provider value={{ exit }}>
-        <StdoutContext.Provider
-          value={{
-            stdout: mockStdout,
-            write: () => {},
-            notifyScrollback: (lines: number) => runtime.addScrollbackLines(lines),
-          }}
-        >
-          <FocusManagerContext.Provider value={focusManager}>
-            <RuntimeContext.Provider value={runtimeContextValue}>
+      <StdoutContext.Provider
+        value={{
+          stdout: mockStdout,
+          write: () => {},
+          notifyScrollback: (lines: number) => runtime.addScrollbackLines(lines),
+        }}
+      >
+        <FocusManagerContext.Provider value={focusManager}>
+          <RunInternalContext.Provider value={runInternalContextValue}>
+            <RuntimeContext.Provider value={unifiedRuntimeValue}>
               <PasteContext.Provider value={pasteContextValue}>
-                <InputContext.Provider value={inputContextValue}>
-                  <EventsContext.Provider value={dummyEvents}>
-                    <SharedInputContext.Provider value={sharedInputContextValue}>
-                      {element}
-                    </SharedInputContext.Provider>
-                  </EventsContext.Provider>
-                </InputContext.Provider>
+                <InputContext.Provider value={inputContextValue}>{element}</InputContext.Provider>
               </PasteContext.Provider>
             </RuntimeContext.Provider>
-          </FocusManagerContext.Provider>
-        </StdoutContext.Provider>
-      </AppContext.Provider>
+          </RunInternalContext.Provider>
+        </FocusManagerContext.Provider>
+      </StdoutContext.Provider>
     </TermContext.Provider>
   )
 
@@ -749,12 +753,6 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     // Handle key events with parsed key
     if (event.type === "key" && "parsedKey" in event) {
       const { input, parsedKey } = event as { input: string; parsedKey: Key; key?: string }
-
-      // Bridge to hooks/useInput.ts: emit raw key data so components using
-      // the hooks version of useInput (TextInput, TextArea) receive input.
-      if ("key" in event) {
-        sharedInputEmitter.emit("input", (event as { key: string }).key)
-      }
 
       // Focus system: dispatch key event to focused node first
       let focusHandled = false
@@ -818,7 +816,6 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     // Handle paste events
     if (event.type === "paste") {
       const { content } = event as { content: string }
-      sharedInputEmitter.emit("paste", content)
       for (const handler of pasteHandlers) {
         handler(content)
       }

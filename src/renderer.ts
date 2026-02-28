@@ -13,7 +13,13 @@ import { EventEmitter } from "node:events"
 import React, { type ReactElement, type ReactNode, act } from "react"
 import { type App, buildApp } from "./app.js"
 import { type TerminalBuffer, cellEquals } from "./buffer.js"
-import { AppContext, EventsContext, FocusManagerContext, InputContext, StdoutContext, TermContext } from "./context.js"
+import {
+  FocusManagerContext,
+  RuntimeContext,
+  type RuntimeContextValue,
+  StdoutContext,
+  TermContext,
+} from "./context.js"
 import { createFocusManager } from "./focus-manager.js"
 import {
   type LayoutEngine,
@@ -27,7 +33,7 @@ import { createContainer, createFiberRoot, getContainerRoot, reconciler } from "
 import { createTerm } from "chalkx"
 import { bufferToText } from "./buffer.js"
 import { buildMismatchContext, formatMismatchContext } from "./debug-mismatch.js"
-import { keyToAnsi, splitRawInput } from "./keys.js"
+import { keyToAnsi, parseKey, splitRawInput } from "./keys.js"
 import { IncrementalRenderMismatchError } from "./scheduler.js"
 import { debugTree } from "./testing/debug.js"
 
@@ -312,15 +318,35 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   // Create mock term
   const mockTerm = createTerm({ color: "truecolor" })
 
-  // Mock events for interactive mode (signals to useInput that input is enabled)
-  const mockEvents: AsyncIterable<import("./types.js").Event> = {
-    [Symbol.asyncIterator]: () => ({
-      next: () => new Promise<IteratorResult<import("./types.js").Event>>(() => {}),
-    }),
-  }
-
   // Focus manager (tree-based focus system)
   const focusManager = createFocusManager()
+
+  // RuntimeContext — typed event bus bridging from test renderer's inputEmitter
+  const runtimeValue: RuntimeContextValue = {
+    on(event, handler) {
+      if (event === "input") {
+        const wrapped = (data: string | Buffer) => {
+          const [input, key] = parseKey(data)
+          ;(handler as (input: string, key: import("./keys.js").Key) => void)(input, key)
+        }
+        instance.inputEmitter.on("input", wrapped)
+        return () => {
+          instance.inputEmitter.removeListener("input", wrapped)
+        }
+      }
+      if (event === "paste") {
+        instance.inputEmitter.on("paste", handler)
+        return () => {
+          instance.inputEmitter.removeListener("paste", handler)
+        }
+      }
+      return () => {} // Unknown event — no-op cleanup
+    },
+    emit() {
+      // Test renderer doesn't support view → runtime events
+    },
+    exit: handleExit,
+  }
 
   // Wrap element with contexts
   function wrapWithContexts(el: ReactElement): ReactElement {
@@ -328,29 +354,12 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       TermContext.Provider,
       { value: mockTerm },
       React.createElement(
-        EventsContext.Provider,
-        { value: mockEvents },
+        StdoutContext.Provider,
+        { value: { stdout: mockStdout, write: () => {} } },
         React.createElement(
-          AppContext.Provider,
-          { value: { exit: handleExit } },
-          React.createElement(
-            StdoutContext.Provider,
-            { value: { stdout: mockStdout, write: () => {} } },
-            React.createElement(
-              FocusManagerContext.Provider,
-              { value: focusManager },
-              React.createElement(
-                InputContext.Provider,
-                {
-                  value: {
-                    eventEmitter: instance.inputEmitter,
-                    exitOnCtrlC: false,
-                  },
-                },
-                el,
-              ),
-            ),
-          ),
+          FocusManagerContext.Provider,
+          { value: focusManager },
+          React.createElement(RuntimeContext.Provider, { value: runtimeValue }, el),
         ),
       ),
     )

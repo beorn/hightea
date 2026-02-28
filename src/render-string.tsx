@@ -29,7 +29,7 @@ import React, { type ReactElement, act } from "react"
 import { createTerm } from "chalkx"
 
 import { bufferToStyledText, bufferToText, type TerminalBuffer } from "./buffer.js"
-import { AppContext, StdoutContext, TermContext } from "./context.js"
+import { StdoutContext, TermContext } from "./context.js"
 import { isLayoutEngineInitialized } from "./layout-engine.js"
 import { executeRender, type PipelineConfig } from "./pipeline.js"
 import { createContainer, getContainerRoot } from "./reconciler.js"
@@ -176,22 +176,14 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
     TermContext.Provider,
     { value: mockTerm },
     React.createElement(
-      AppContext.Provider,
+      StdoutContext.Provider,
       {
         value: {
-          exit: () => {}, // No-op for static render
+          stdout: mockStdout,
+          write: () => {},
         },
       },
-      React.createElement(
-        StdoutContext.Provider,
-        {
-          value: {
-            stdout: mockStdout,
-            write: () => {},
-          },
-        },
-        element,
-      ),
+      element,
     ),
   )
 

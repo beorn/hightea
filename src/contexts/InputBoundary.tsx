@@ -36,9 +36,9 @@
 import { EventEmitter } from "node:events"
 import type React from "react"
 import { useCallback, useId, useLayoutEffect, useMemo, useRef } from "react"
-import { InputContext } from "../context.js"
+import { RuntimeContext, type RuntimeContextValue } from "../context.js"
 import type { Key } from "../hooks/useInput.js"
-import { keyToAnsi, keyToName } from "../keys.js"
+import { keyToAnsi, keyToName, parseKey } from "../keys.js"
 import { InputLayerProvider, useInputLayer } from "./InputLayerContext.js"
 
 // =============================================================================
@@ -63,7 +63,7 @@ export interface InputBoundaryProps {
 /**
  * Reconstruct raw terminal data from parsed (input, key) pair.
  * This allows forwarding input from the parent layer stack to the
- * isolated child's InputContext event emitter.
+ * isolated child's RuntimeContext event emitter.
  */
 function toRawData(input: string, key: Key): string {
   const name = keyToName(key)
@@ -115,15 +115,6 @@ export function InputBoundary({
   }
   const emitter = emitterRef.current
 
-  // InputContext value for the isolated scope
-  const inputContextValue = useMemo(
-    () => ({
-      eventEmitter: emitter,
-      exitOnCtrlC: false,
-    }),
-    [emitter],
-  )
-
   // Register a consuming layer in the parent when active.
   // This layer intercepts ALL input and forwards to the isolated emitter.
   const activeRef = useRef(active)
@@ -160,6 +151,36 @@ export function InputBoundary({
   const layerId = useId()
   useInputLayer(`input-boundary-${layerId}`, handler)
 
+  // RuntimeContext — typed event bus for the isolated scope
+  const runtimeContextValue = useMemo<RuntimeContextValue>(
+    () => ({
+      on(event, handler) {
+        if (event === "input") {
+          const wrapped = (data: string | Buffer) => {
+            const [input, key] = parseKey(data)
+            ;(handler as (input: string, key: import("../keys.js").Key) => void)(input, key)
+          }
+          emitter.on("input", wrapped)
+          return () => {
+            emitter.removeListener("input", wrapped)
+          }
+        }
+        if (event === "paste") {
+          emitter.on("paste", handler)
+          return () => {
+            emitter.removeListener("paste", handler)
+          }
+        }
+        return () => {} // Unknown event — no-op cleanup
+      },
+      emit() {
+        // InputBoundary doesn't support view → runtime events
+      },
+      exit: () => {}, // InputBoundary doesn't control app exit
+    }),
+    [emitter],
+  )
+
   // Clean up emitter on unmount
   useLayoutEffect(() => {
     return () => {
@@ -168,8 +189,8 @@ export function InputBoundary({
   }, [emitter])
 
   return (
-    <InputContext.Provider value={inputContextValue}>
+    <RuntimeContext.Provider value={runtimeContextValue}>
       <InputLayerProvider>{children}</InputLayerProvider>
-    </InputContext.Provider>
+    </RuntimeContext.Provider>
   )
 }

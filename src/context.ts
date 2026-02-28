@@ -3,17 +3,16 @@
  *
  * Provides contexts for:
  * - TermContext: Access to Term instance (for styling/detection)
- * - EventsContext: Access to event stream (for useInput and other hooks)
  * - NodeContext: Access to the current InkxNode (for useContentRect)
- * - AppContext: App-level controls (exit, etc.)
- * - StdioContext: Access to stdin/stdout
+ * - RuntimeContext: Unified input/app controls (replaces Events/Input/Stdin/App contexts)
+ * - StdoutContext: Access to stdout
  */
 
-import type { EventEmitter } from "node:events"
 import type { Term } from "chalkx"
 import { createContext } from "react"
 import type { FocusManager } from "./focus-manager.js"
-import type { Event, InkxNode } from "./types.js"
+import type { Key } from "./keys.js"
+import type { InkxNode } from "./types.js"
 
 // ============================================================================
 // Term Context
@@ -24,33 +23,6 @@ import type { Event, InkxNode } from "./types.js"
  * Used by useTerm() hook to access terminal capabilities and styling.
  */
 export const TermContext = createContext<Term | null>(null)
-
-// ============================================================================
-// Events Context
-// ============================================================================
-
-/**
- * Context that provides access to the event stream.
- *
- * Events drive interactive mode. When events are present, the render loop
- * runs until exit() is called. When events are absent (null), the render
- * completes when the UI is stable (static mode).
- *
- * Hooks like useInput() subscribe to this context to receive keyboard events.
- * In static mode (events = null), these hooks become no-ops.
- *
- * @example
- * ```tsx
- * // In a component:
- * const events = useContext(EventsContext)
- * if (events) {
- *   // Interactive mode - can subscribe to events
- * } else {
- *   // Static mode - no events available
- * }
- * ```
- */
-export const EventsContext = createContext<AsyncIterable<Event> | null>(null)
 
 // ============================================================================
 // Node Context
@@ -64,25 +36,6 @@ export const EventsContext = createContext<AsyncIterable<Event> | null>(null)
  * with its corresponding InkxNode.
  */
 export const NodeContext = createContext<InkxNode | null>(null)
-
-// ============================================================================
-// App Context
-// ============================================================================
-
-export interface AppContextValue {
-  /** Exit the application with optional error */
-  exit: (error?: Error) => void
-  /** Pause rendering output (for screen switching). Input still works. */
-  pause?: () => void
-  /** Resume rendering after pause. Forces a full redraw. */
-  resume?: () => void
-}
-
-/**
- * Context for app-level controls.
- * Used by useApp() hook.
- */
-export const AppContext = createContext<AppContextValue | null>(null)
 
 // ============================================================================
 // Stdio Context
@@ -108,40 +61,69 @@ export interface StdoutContextValue {
 export const StdoutContext = createContext<StdoutContextValue | null>(null)
 
 // ============================================================================
-// Stdin Context
+// Runtime Context (typed bidirectional event bus — TEA)
 // ============================================================================
 
-export interface StdinContextValue {
-  /** Standard input stream */
-  stdin: NodeJS.ReadStream
-  /** Whether raw mode is supported */
-  isRawModeSupported: boolean
-  /** Set raw mode on stdin */
-  setRawMode: (value: boolean) => void
+/**
+ * Base events every runtime provides.
+ * Apps extend this to add custom events (e.g., BoardEvents adds "op").
+ */
+export interface BaseRuntimeEvents {
+  /** Keyboard input: [parsedInput, keyMetadata] */
+  input: [input: string, key: Key]
+  /** Bracketed paste: [pastedText] */
+  paste: [text: string]
 }
 
 /**
- * Context for stdin access.
- * Used by useStdin() hook.
+ * Extract handler function type from an event map entry.
  */
-export const StdinContext = createContext<StdinContextValue | null>(null)
+type EventHandler<Args extends unknown[]> = (...args: Args) => void
 
-// ============================================================================
-// Input Context
-// ============================================================================
-
-export interface InputContextValue {
-  /** Event emitter for input events */
-  eventEmitter: EventEmitter
-  /** Whether to exit on Ctrl+C */
-  exitOnCtrlC: boolean
+/**
+ * Typed bidirectional event bus + app lifecycle controls.
+ *
+ * Replaces EventsContext, InputContext, StdinContext, and AppContext with
+ * a single typed interface. Components never see stdin or raw mode.
+ *
+ * Generic parameter E extends BaseRuntimeEvents — all runtimes provide
+ * at least "input" and "paste" events. Apps can extend with custom events:
+ *
+ * ```tsx
+ * interface BoardEvents extends BaseRuntimeEvents {
+ *   op: [BoardOp]
+ * }
+ * const rt = useRuntime<BoardEvents>()
+ * rt?.on("input", handler)              // runtime → view
+ * rt?.emit("op", { type: "cursor_down" }) // view → runtime
+ * ```
+ *
+ * Present in interactive mode (run/render/createApp/test renderer).
+ * Absent (null) in static mode (renderStatic).
+ */
+export interface RuntimeContextValue<E extends BaseRuntimeEvents = BaseRuntimeEvents> {
+  /** Subscribe to a typed event. Returns cleanup function. */
+  on<K extends string & keyof E>(event: K, handler: EventHandler<E[K] extends unknown[] ? E[K] : never>): () => void
+  /** Emit a typed event (view → runtime). */
+  emit<K extends string & keyof E>(event: K, ...args: E[K] extends unknown[] ? E[K] : never): void
+  /** Exit the application with optional error. */
+  exit: (error?: Error) => void
+  /** Pause rendering output (for screen switching). */
+  pause?: () => void
+  /** Resume rendering after pause. */
+  resume?: () => void
 }
 
 /**
- * Context for input handling.
- * Used by useInput() hook.
+ * Context that provides the typed runtime event bus.
+ *
+ * When non-null: interactive mode — useInput works, components can subscribe
+ * to events via rt.on() and emit via rt.emit().
+ *
+ * When null: static mode — useInput throws (by design), use useRuntime()
+ * for components that need to work in both modes.
  */
-export const InputContext = createContext<InputContextValue | null>(null)
+export const RuntimeContext = createContext<RuntimeContextValue | null>(null)
 
 // ============================================================================
 // Focus Manager Context (tree-based focus system)

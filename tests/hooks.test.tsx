@@ -4,14 +4,13 @@
  * Tests for public hook APIs:
  * - useContentRect: Returns computed layout dimensions
  * - useFocusManager: Focus management controls
- * - useStdin: Access to stdin stream
  * - useStdout: Access to stdout stream
  */
 
 import React from "react"
 import { describe, expect, test } from "vitest"
-import { NodeContext, StdinContext, StdoutContext } from "../src/context.ts"
-import { Text, useContentRect, useFocusManager, useStdin, useStdout } from "../src/index.ts"
+import { NodeContext, StdoutContext } from "../src/context.ts"
+import { Text, useContentRect, useFocusManager, useStdout } from "../src/index.ts"
 import { createRenderer } from "inkx/testing"
 import type { InkxNode } from "../src/types.ts"
 
@@ -283,152 +282,6 @@ describe("useFocusManager", () => {
     // disableFocus is a no-op function in the new system
     expect(typeof disableRef).toBe("function")
     expect(() => disableRef!()).not.toThrow()
-  })
-})
-
-// ============================================================================
-// useStdin Tests
-// ============================================================================
-
-describe("useStdin", () => {
-  test("throws error when used outside Inkx application", () => {
-    function InvalidUsage() {
-      useStdin()
-      return <Text>Should not render</Text>
-    }
-
-    expect(() => {
-      render(<InvalidUsage />)
-    }).toThrow("useStdin must be used within an Inkx application")
-  })
-
-  test("returns stdin, isRawModeSupported, and setRawMode", () => {
-    let result: ReturnType<typeof useStdin> | null = null
-
-    // Create mock stdin context
-    const mockStdinContext = {
-      stdin: process.stdin,
-      isRawModeSupported: false,
-      setRawMode: () => {},
-    }
-
-    function StdinCapture() {
-      result = useStdin()
-      return <Text>Stdin</Text>
-    }
-
-    render(
-      <StdinContext.Provider value={mockStdinContext}>
-        <StdinCapture />
-      </StdinContext.Provider>,
-    )
-
-    expect(result).not.toBeNull()
-    expect(result).toHaveProperty("stdin")
-    expect(result).toHaveProperty("isRawModeSupported")
-    expect(result).toHaveProperty("setRawMode")
-    expect(typeof result!.setRawMode).toBe("function")
-  })
-
-  test("isRawModeSupported reflects context value (false)", () => {
-    let isSupported = true // Initialize to opposite value
-
-    const mockStdinContext = {
-      stdin: process.stdin,
-      isRawModeSupported: false,
-      setRawMode: () => {},
-    }
-
-    function CheckRawMode() {
-      const { isRawModeSupported } = useStdin()
-      isSupported = isRawModeSupported
-      return <Text>Check</Text>
-    }
-
-    render(
-      <StdinContext.Provider value={mockStdinContext}>
-        <CheckRawMode />
-      </StdinContext.Provider>,
-    )
-
-    expect(isSupported).toBe(false)
-  })
-
-  test("isRawModeSupported reflects context value (true)", () => {
-    let isSupported = false // Initialize to opposite value
-
-    const mockStdinContext = {
-      stdin: process.stdin,
-      isRawModeSupported: true,
-      setRawMode: () => {},
-    }
-
-    function CheckRawMode() {
-      const { isRawModeSupported } = useStdin()
-      isSupported = isRawModeSupported
-      return <Text>Check</Text>
-    }
-
-    render(
-      <StdinContext.Provider value={mockStdinContext}>
-        <CheckRawMode />
-      </StdinContext.Provider>,
-    )
-
-    expect(isSupported).toBe(true)
-  })
-
-  test("setRawMode calls context setRawMode", () => {
-    let rawModeValue = false
-
-    const mockStdinContext = {
-      stdin: process.stdin,
-      isRawModeSupported: true,
-      setRawMode: (value: boolean) => {
-        rawModeValue = value
-      },
-    }
-
-    function SetRawMode() {
-      const { setRawMode } = useStdin()
-      React.useEffect(() => {
-        setRawMode(true)
-      }, [setRawMode])
-      return <Text>Set Raw</Text>
-    }
-
-    render(
-      <StdinContext.Provider value={mockStdinContext}>
-        <SetRawMode />
-      </StdinContext.Provider>,
-    )
-
-    expect(rawModeValue).toBe(true)
-  })
-
-  test("stdin stream is available from context", () => {
-    let stdinStream: NodeJS.ReadStream | undefined
-
-    const mockStdinContext = {
-      stdin: process.stdin,
-      isRawModeSupported: false,
-      setRawMode: () => {},
-    }
-
-    function GetStdin() {
-      const { stdin } = useStdin()
-      stdinStream = stdin
-      return <Text>Stream</Text>
-    }
-
-    render(
-      <StdinContext.Provider value={mockStdinContext}>
-        <GetStdin />
-      </StdinContext.Provider>,
-    )
-
-    expect(stdinStream).toBeDefined()
-    expect(stdinStream).toBe(process.stdin)
   })
 })
 

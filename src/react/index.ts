@@ -43,6 +43,8 @@ export type { UseAppResult } from "../hooks/useApp.js"
 export { useInput } from "../hooks/useInput.js"
 export type { Key, InputHandler, UseInputOptions } from "../hooks/useInput.js"
 
+export { useRuntime } from "../hooks/useRuntime.js"
+
 export { useTerm } from "../hooks/useTerm.js"
 
 export { useConsole } from "../hooks/useConsole.js"
@@ -61,7 +63,8 @@ export type { UseEditContextOptions, UseEditContextResult, EditTarget } from "..
 // Contexts
 // =============================================================================
 
-export { FocusManagerContext, TermContext, EventsContext } from "../context.js"
+export { FocusManagerContext, TermContext, RuntimeContext } from "../context.js"
+export type { RuntimeContextValue, BaseRuntimeEvents } from "../context.js"
 
 // =============================================================================
 // Runtime (Layer 2 + 3)

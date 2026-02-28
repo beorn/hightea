@@ -51,9 +51,8 @@ import { Box, Text, useContentRect, type Rect } from "../src/index.js"
 import { createRenderer } from "inkx/testing"
 import { reconciler, createContainer, createFiberRoot, getContainerRoot } from "../src/reconciler.js"
 import { executeRender } from "../src/pipeline/index.js"
-import { AppContext, StdoutContext, TermContext, InputContext, EventsContext } from "../src/context.js"
+import { StdoutContext, TermContext } from "../src/context.js"
 import { createTerm } from "chalkx"
-import { EventEmitter } from "node:events"
 import { bufferToText, cellEquals } from "../src/buffer.js"
 
 const render = createRenderer({ cols: 60, rows: 20 })
@@ -168,38 +167,15 @@ function createProductionSimulator(element: React.ReactElement, cols = 60, rows 
   } as unknown as NodeJS.WriteStream
 
   const mockTerm = createTerm({ level: 3, columns: cols })
-  const inputEmitter = new EventEmitter()
-  const mockEvents: AsyncIterable<any> = {
-    [Symbol.asyncIterator]: () => ({
-      next: () => new Promise(() => {}),
-    }),
-  }
 
   function wrapElement(el: React.ReactElement) {
     return React.createElement(
       TermContext.Provider,
       { value: mockTerm },
       React.createElement(
-        EventsContext.Provider,
-        { value: mockEvents },
-        React.createElement(
-          AppContext.Provider,
-          { value: { exit: () => {} } },
-          React.createElement(
-            StdoutContext.Provider,
-            { value: { stdout: mockStdout, write: () => {} } },
-            React.createElement(
-              InputContext.Provider,
-              {
-                value: {
-                  eventEmitter: inputEmitter,
-                  exitOnCtrlC: false,
-                },
-              },
-              el,
-            ),
-          ),
-        ),
+        StdoutContext.Provider,
+        { value: { stdout: mockStdout, write: () => {} } },
+        el,
       ),
     )
   }

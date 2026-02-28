@@ -8,7 +8,7 @@
 import { createTerm } from "chalkx"
 import React, { type ReactElement } from "react"
 import { bufferToStyledText, bufferToText } from "../buffer.js"
-import { AppContext, StdoutContext, TermContext } from "../context.js"
+import { StdoutContext, TermContext } from "../context.js"
 import { ensureDefaultLayoutEngine, isLayoutEngineInitialized } from "../layout-engine.js"
 import { executeRender } from "../pipeline/index.js"
 import { createContainer, createFiberRoot, getContainerRoot, reconciler } from "../reconciler.js"
@@ -89,22 +89,14 @@ export function layout(element: ReactElement, dims: Dims, options: LayoutOptions
     TermContext.Provider,
     { value: mockTerm },
     React.createElement(
-      AppContext.Provider,
+      StdoutContext.Provider,
       {
         value: {
-          exit: () => {}, // No-op for static render
+          stdout: mockStdout,
+          write: () => {},
         },
       },
-      React.createElement(
-        StdoutContext.Provider,
-        {
-          value: {
-            stdout: mockStdout,
-            write: () => {},
-          },
-        },
-        element,
-      ),
+      element,
     ),
   )
 

@@ -57,9 +57,6 @@ export type { UseAppResult } from "./hooks/useApp.js"
 export { useStdout } from "./hooks/useStdout.js"
 export type { UseStdoutResult } from "./hooks/useStdout.js"
 
-export { useStdin } from "./hooks/useStdin.js"
-export type { UseStdinResult } from "./hooks/useStdin.js"
-
 // Ink-compatible focus hooks
 export { useFocus, useInkFocusManager as useFocusManager } from "./hooks/ink-compat.js"
 export type { UseFocusOptions, UseFocusResult, InkUseFocusManagerResult } from "./hooks/ink-compat.js"
