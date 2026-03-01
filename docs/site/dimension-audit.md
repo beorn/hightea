@@ -74,7 +74,7 @@ width={Math.floor(termWidth / 2)}
 height={Math.floor(contentHeight / 2)}
 ```
 
-**Purpose:** Center the project picker modal on screen.
+**Purpose:** Center the item picker modal on screen.
 
 **Can use flexbox?** **Yes, partially**
 
@@ -84,7 +84,7 @@ height={Math.floor(contentHeight / 2)}
 
 ```tsx
 <Box position="absolute" width="100%" height="100%" justifyContent="center" alignItems="center">
-  <ProjectPicker width={Math.floor(termWidth / 2)} height={Math.floor(contentHeight / 2)} />
+  <ItemPicker width={Math.floor(termWidth / 2)} height={Math.floor(contentHeight / 2)} />
 </Box>
 ```
 
@@ -176,7 +176,7 @@ const marginTop = Math.floor((height - boxHeight) / 2)
 
 ---
 
-## ProjectPicker.tsx
+## ItemPicker.tsx
 
 ### 10. Max visible items (Line 196)
 
@@ -270,7 +270,7 @@ export function estimateTreeNodeHeight(...): number {
 
 ### Should Refactor (Priority 1)
 
-1. **Modal centering** (HelpOverlay, ProjectPicker, NewItemDialog): Replace manual margin calculations with flexbox centering containers.
+1. **Modal centering** (HelpOverlay, ItemPicker, NewItemDialog): Replace manual margin calculations with flexbox centering containers.
 
 ### Investigate (Priority 2)
 
@@ -280,7 +280,7 @@ export function estimateTreeNodeHeight(...): number {
 
 - `contentHeight` calculations for virtualization
 - Content truncation logic in DetailPane
-- Max visible items in ProjectPicker
+- Max visible items in ItemPicker
 - Tree node height estimation
 - Loading placeholder dimensions
 - Fixed `height={1}` with `flexShrink={0}` for headers

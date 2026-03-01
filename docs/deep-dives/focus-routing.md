@@ -101,7 +101,7 @@ const commandId = resolveKeybinding(key, modifiers, context)
 `useInputLayer` remains appropriate for exactly two cases:
 
 1. **App root bridge**: The single base-level handler that receives raw keys and feeds them to the command system
-2. **Dialog navigation**: Dialogs (search, project picker) that handle a small set of nav keys (Enter, Escape, arrows) before the command system sees them
+2. **Dialog navigation**: Dialogs (search, item picker) that handle a small set of nav keys (Enter, Escape, arrows) before the command system sees them
 
 Components should **never** use `useInputLayer` for:
 
