@@ -192,7 +192,7 @@ await app.run(<App />)
 
 ## Components
 
-See [docs/reference/components.md](docs/reference/components.md) for full reference. Key components: Box, Text, Screen, ScrollbackView, VirtualView, VirtualList, Static, Console, TextInput, ReadlineInput, TextArea, Link, Transform, Image, Spinner, ProgressBar, SelectList, Table, Badge, Divider.
+See [docs/reference/components.md](docs/reference/components.md) for full reference. Key components: Box, Text, Screen, ScrollbackView, VirtualView, VirtualList, Static, Console, TextInput, TextArea, CursorLine, ModalDialog, PickerDialog, PickerList, Toggle, Button, Link, Transform, Image, Spinner, ProgressBar, SelectList, Table, Badge, Divider.
 
 ### Input Cursor Convention
 

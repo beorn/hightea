@@ -29,6 +29,7 @@ import { Box } from "./Box.js"
 import { Text } from "./Text.js"
 import { CursorLine } from "./CursorLine.js"
 import { ModalDialog } from "./ModalDialog.js"
+import { PickerList } from "./PickerList.js"
 import { useReadline } from "./useReadline.js"
 
 // =============================================================================
@@ -138,12 +139,8 @@ export function PickerDialog<T>({
     setSelectedIndex(clampedIndex)
   }
 
-  // Scroll offset: center the selected item in the visible window
+  // Effective max visible for page navigation step size
   const effectiveMaxVisible = Math.min(maxVisible, items.length)
-  const scrollOffset =
-    items.length > effectiveMaxVisible
-      ? Math.max(0, Math.min(clampedIndex - Math.floor(effectiveMaxVisible / 2), items.length - effectiveMaxVisible))
-      : 0
 
   // Navigation handler (separate from readline text editing)
   useInput(
@@ -179,9 +176,6 @@ export function PickerDialog<T>({
     { isActive },
   )
 
-  // Visible items slice
-  const visibleItems = items.slice(scrollOffset, scrollOffset + effectiveMaxVisible)
-
   // Show placeholder when input is empty
   const showPlaceholder = !readline.value && placeholder
 
@@ -200,18 +194,15 @@ export function PickerDialog<T>({
         <Text dimColor>{"─".repeat(40)}</Text>
       </Box>
 
-      {/* Result list */}
-      <Box flexDirection="column" flexGrow={1} flexShrink={1} overflow="hidden">
-        {items.length === 0 ? (
-          <Text dimColor>{emptyMessage}</Text>
-        ) : (
-          visibleItems.map((item, i) => {
-            const actualIndex = scrollOffset + i
-            const isSelected = actualIndex === clampedIndex
-            return <React.Fragment key={keyExtractor(item)}>{renderItem(item, isSelected)}</React.Fragment>
-          })
-        )}
-      </Box>
+      {/* Result list (delegated to PickerList) */}
+      <PickerList
+        items={items}
+        selectedIndex={clampedIndex}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        emptyMessage={emptyMessage}
+        maxVisible={maxVisible}
+      />
     </ModalDialog>
   )
 }

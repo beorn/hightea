@@ -48,6 +48,9 @@ export type { ModalDialogProps } from "./ModalDialog.js"
 export { PickerDialog } from "./PickerDialog.js"
 export type { PickerDialogProps } from "./PickerDialog.js"
 
+export { PickerList } from "./PickerList.js"
+export type { PickerListProps } from "./PickerList.js"
+
 // Focusable Controls
 export { Toggle } from "./Toggle.js"
 export type { ToggleProps } from "./Toggle.js"
