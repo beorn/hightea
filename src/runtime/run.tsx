@@ -557,7 +557,11 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
           }
         } finally {
           if (stdin.isTTY) {
-            stdin.setRawMode(false)
+            // Only pause here — setRawMode(false) is deferred to the event
+            // loop's finally block so it runs AFTER terminal restore sequences
+            // (bracketed paste, mouse, kitty, cursor show). This prevents a
+            // race where disabling raw mode before writing those sequences
+            // leaves the terminal in a broken state.
             stdin.pause()
           }
         }
@@ -880,19 +884,26 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
         // auto-repeat has queued multiple events in the term provider.
         await Promise.resolve()
 
-        // Drain all pending events — run handlers without rendering
-        const batch = eventQueue.splice(0)
-        for (const event of batch) {
-          if (shouldExit) break
-          if (!processEvent(event)) {
-            exit()
-            break
+        // Drain events in capped batches. Each event triggers ~3 setState
+        // cascades (useReadline + onChange + useEffect sync). React's
+        // NESTED_UPDATE_LIMIT is 50, so 16 × 3 = 48 stays safely under.
+        // Synchronous doRender() after each batch calls flushSyncWork(),
+        // resetting React's update counter before the next batch.
+        const MAX_BATCH = 16
+        while (eventQueue.length > 0 && !shouldExit) {
+          const batch = eventQueue.splice(0, MAX_BATCH)
+          for (const event of batch) {
+            if (shouldExit) break
+            if (!processEvent(event)) {
+              exit()
+              break
+            }
           }
-        }
 
-        // Schedule a single render for the entire batch
-        if (!shouldExit) {
-          scheduleRender()
+          if (!shouldExit) {
+            currentBuffer = doRender()
+            runtime.render(currentBuffer)
+          }
         }
       }
     } finally {
@@ -908,6 +919,12 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
         if (mouseEnabled) stdout.write(disableMouse())
         if (kittyEnabled) stdout.write(disableKittyKeyboard())
         stdout.write("\x1b[?25h\x1b[0m\n")
+      }
+      // Restore raw mode LAST — after all terminal escape sequences have
+      // been written. The keyboard source's finally only pauses stdin;
+      // we disable raw mode here to avoid the race condition.
+      if (stdin.isTTY && (stdin as NodeJS.ReadStream).isRaw) {
+        stdin.setRawMode(false)
       }
       exitResolve()
     }

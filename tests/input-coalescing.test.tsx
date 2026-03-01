@@ -6,6 +6,7 @@
  * pasted sequences, fast typing).
  */
 
+import { EventEmitter } from "node:events"
 import React, { useState } from "react"
 import { describe, expect, it } from "vitest"
 import { Box, Text } from "../src/index.js"
@@ -195,6 +196,110 @@ describe("input coalescing — run() Layer 2", () => {
     await handle.press("c")
 
     expect(keys).toEqual(["a", "b", "c"])
+
+    handle.unmount()
+  })
+})
+
+// ============================================================================
+// Rapid typing: event queue drain with batched rendering
+// ============================================================================
+
+/** Create a mock stdin EventEmitter that looks like a TTY */
+function createMockTtyStdin() {
+  const stdin = new EventEmitter() as NodeJS.ReadStream & {
+    isTTY: boolean
+    isRaw: boolean
+    setRawMode: (mode: boolean) => void
+    resume: () => void
+    pause: () => void
+    setEncoding: (enc: string) => void
+  }
+  stdin.isTTY = true
+  stdin.isRaw = false
+  stdin.setRawMode = (mode: boolean) => {
+    stdin.isRaw = mode
+  }
+  stdin.resume = () => {}
+  stdin.pause = () => {}
+  stdin.setEncoding = () => {}
+  return stdin
+}
+
+describe("rapid typing — event queue batch cap", () => {
+  it("100 rapid keystrokes do not crash (no Maximum update depth exceeded)", async () => {
+    const mockStdin = createMockTtyStdin()
+    const inputs: string[] = []
+
+    function App() {
+      const [text, setText] = useState("")
+
+      useInput((input) => {
+        inputs.push(input)
+        setText((t) => t + input)
+      })
+
+      return <Text>Text: {text}</Text>
+    }
+
+    const handle = await run(<App />, {
+      cols: 120,
+      rows: 10,
+      stdin: mockStdin as any,
+    })
+
+    // Emit 100 characters in a single 'data' event (simulates buffered rapid typing).
+    // Before the batch cap fix, this would trigger ~300 setState calls
+    // (3 per event × 100 events) in a single flushSyncWork(), exceeding
+    // React's NESTED_UPDATE_LIMIT of 50.
+    const chars = "abcdefghij".repeat(10) // 100 characters
+    mockStdin.emit("data", chars)
+
+    // Wait for event loop to drain all batches
+    await new Promise((r) => setTimeout(r, 50))
+
+    // All 100 characters should have been processed
+    expect(inputs).toHaveLength(100)
+    expect(inputs.join("")).toBe(chars)
+
+    // Final render should contain all characters
+    expect(handle.text).toContain(chars)
+
+    handle.unmount()
+  })
+
+  it("50 characters across multiple data events all process correctly", async () => {
+    const mockStdin = createMockTtyStdin()
+    const inputs: string[] = []
+
+    function App() {
+      const [count, setCount] = useState(0)
+
+      useInput((input) => {
+        inputs.push(input)
+        setCount((c) => c + 1)
+      })
+
+      return <Text>Count: {count}</Text>
+    }
+
+    const handle = await run(<App />, {
+      cols: 40,
+      rows: 10,
+      stdin: mockStdin as any,
+    })
+
+    // Emit 5 bursts of 10 chars, spaced by microtask yields so the
+    // keyboard source can register its next 'data' listener between bursts.
+    for (let i = 0; i < 5; i++) {
+      mockStdin.emit("data", "aaaaaaaaaa") // 10 'a' chars
+      await new Promise((r) => setTimeout(r, 5))
+    }
+
+    await new Promise((r) => setTimeout(r, 50))
+
+    expect(inputs).toHaveLength(50)
+    expect(handle.text).toContain("Count: 50")
 
     handle.unmount()
   })
