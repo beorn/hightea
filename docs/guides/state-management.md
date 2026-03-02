@@ -14,7 +14,9 @@ inkx's state management is a thin integration layer over established libraries, 
 | Store container | [Zustand](https://github.com/pmndrs/zustand) | Store identity, middleware pipeline, React integration |
 | App lifecycle | inkx `createApp()` | Terminal I/O, key routing, effect dispatch, exit handling |
 
-`createApp()` creates a Zustand store whose state fields are Preact signals. inkx adds middleware that intercepts `Effect[]` returns from domain functions and routes them to declared effect runners. Everything else — the signal reactivity, the store subscription model, the React hooks — comes from the underlying libraries.
+`createApp()` creates a Zustand store whose state fields are Preact signals. Zustand provides the outer shell — store identity, middleware pipeline, and React context (`useApp()`). Signals provide the inner reactivity — components read `.value` and automatically re-render when values change. inkx adds middleware that intercepts `Effect[]` returns from domain functions and routes them to declared effect runners. Everything else — the signal reactivity, the store subscription model, the React hooks — comes from the underlying libraries.
+
+`createApp()` returns more than just the store — it bundles terminal I/O, key routing, effect dispatch, and exit handling into a single `app.run(<Component />)` call. Components access the store via `useApp()`, which returns the object your factory created (signals, computed values, methods).
 
 ## The Levels
 
@@ -350,6 +352,59 @@ const Search = {
 Machines compose via dispatch effects — no machine imports another. `Dialog.confirm()` says "dispatch addItem" as a data object; the effect runner routes it to the right domain function.
 
 Each machine is independently testable. Communication is through serializable effect objects. A full-scale application might have 5-10 machines covering board navigation, text editing, dialogs, search, and undo/redo — all pure functions operating on signals, composing through effects.
+
+### Combining state within a store
+
+All machines share a single `createApp()` store. Each machine owns its slice of signal state — the store factory wires them together:
+
+```tsx
+const app = createApp(
+  () => {
+    // Each machine gets its own signals
+    const boardState = { cursor: signal(0), items: signal<Item[]>([]) }
+    const dialogState = { open: signal(false), value: signal("") }
+    const searchState = { query: signal(""), results: signal<string[]>([]) }
+
+    return {
+      // Expose signals for components
+      ...boardState,
+      dialog: dialogState,
+      search: searchState,
+
+      // Methods delegate to domain functions
+      moveCursor: (d: number) => Board.moveCursor(boardState, d),
+      fold: (id: string) => Board.fold(boardState, id),
+      openDialog: (kind: string) => Dialog.open(dialogState, kind),
+      confirmDialog: () => Dialog.confirm(dialogState),
+      setQuery: (q: string) => Search.setQuery(searchState, q),
+      submitSearch: () => Search.submit(searchState),
+    }
+  },
+  {
+    effects: {
+      dispatch: (effect) => { /* route to the right domain function */ },
+      persist: async (effect) => { /* save to disk */ },
+    },
+    key(input, key, { store }) {
+      if (input === "/") store.openDialog("search")
+      if (input === "j") store.moveCursor(1)
+      if (input === "q") return "exit"
+    },
+  },
+)
+```
+
+Components pick what they need — they only re-render when the signals they read change:
+
+```tsx
+function SearchBar() {
+  const { search } = useApp()
+  // Only re-renders when query or results change — cursor moves don't affect it
+  return <Text>Search: {search.query.value} ({search.results.value.length} results)</Text>
+}
+```
+
+One store, multiple machines, fine-grained subscriptions. No prop drilling, no selector boilerplate, no unnecessary re-renders.
 
 ## Prior Art
 
