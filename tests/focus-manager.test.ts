@@ -593,3 +593,115 @@ describe("scope-aware focusNext/focusPrev", () => {
     expect(fm.activeId).toBe("s2a")
   })
 })
+
+// ============================================================================
+// Peer Scope Activation (WPF FocusScope model)
+// ============================================================================
+
+describe("activateScope", () => {
+  function buildScopedTree() {
+    const root = fakeNode("root", { focusable: false })
+    const pane1 = fakeNode("pane1", { focusable: false, parent: root, focusScope: true })
+    const p1a = fakeNode("p1a", { parent: pane1 })
+    const p1b = fakeNode("p1b", { parent: pane1 })
+    const pane2 = fakeNode("pane2", { focusable: false, parent: root, focusScope: true })
+    const p2a = fakeNode("p2a", { parent: pane2 })
+    const p2b = fakeNode("p2b", { parent: pane2 })
+    return { root, pane1, p1a, p1b, pane2, p2a, p2b }
+  }
+
+  it("sets activeScopeId", () => {
+    const fm = createFocusManager()
+    const { root } = buildScopedTree()
+
+    expect(fm.activeScopeId).toBeNull()
+    fm.activateScope("pane1", root)
+    expect(fm.activeScopeId).toBe("pane1")
+  })
+
+  it("focuses first focusable in scope when no memory", () => {
+    const fm = createFocusManager()
+    const { root } = buildScopedTree()
+
+    fm.activateScope("pane1", root)
+    expect(fm.activeId).toBe("p1a")
+  })
+
+  it("saves focus in outgoing scope memory on switch", () => {
+    const fm = createFocusManager()
+    const { root, p1b } = buildScopedTree()
+
+    fm.activateScope("pane1", root)
+    fm.focus(p1b) // Move focus to p1b within pane1
+
+    fm.activateScope("pane2", root)
+    expect(fm.activeId).toBe("p2a") // Focused first element in pane2
+    expect(fm.scopeMemory["pane1"]).toBe("p1b") // pane1's last focus was saved
+  })
+
+  it("restores remembered focus when switching back", () => {
+    const fm = createFocusManager()
+    const { root, p1b } = buildScopedTree()
+
+    fm.activateScope("pane1", root)
+    fm.focus(p1b) // Move focus to p1b within pane1
+
+    fm.activateScope("pane2", root)
+    expect(fm.activeId).toBe("p2a")
+
+    fm.activateScope("pane1", root)
+    expect(fm.activeId).toBe("p1b") // Restored from memory
+  })
+
+  it("appears in snapshot", () => {
+    const fm = createFocusManager()
+    const { root } = buildScopedTree()
+
+    fm.activateScope("pane1", root)
+    const snap = fm.getSnapshot()
+    expect(snap.activeScopeId).toBe("pane1")
+  })
+
+  it("notifies subscribers", () => {
+    const fm = createFocusManager()
+    const { root } = buildScopedTree()
+    const listener = vi.fn()
+    fm.subscribe(listener)
+
+    fm.activateScope("pane1", root)
+    expect(listener).toHaveBeenCalled()
+  })
+
+  it("handles switching between multiple scopes repeatedly", () => {
+    const fm = createFocusManager()
+    const { root, p1b, p2b } = buildScopedTree()
+
+    // Focus p1b in pane1
+    fm.activateScope("pane1", root)
+    fm.focus(p1b)
+
+    // Focus p2b in pane2
+    fm.activateScope("pane2", root)
+    fm.focus(p2b)
+
+    // Back to pane1 — should restore p1b
+    fm.activateScope("pane1", root)
+    expect(fm.activeId).toBe("p1b")
+
+    // Back to pane2 — should restore p2b
+    fm.activateScope("pane2", root)
+    expect(fm.activeId).toBe("p2b")
+  })
+
+  it("activating same scope is a no-op on focus", () => {
+    const fm = createFocusManager()
+    const { root, p1b } = buildScopedTree()
+
+    fm.activateScope("pane1", root)
+    fm.focus(p1b)
+
+    // Re-activate same scope — focus should stay on p1b
+    fm.activateScope("pane1", root)
+    expect(fm.activeId).toBe("p1b")
+  })
+})

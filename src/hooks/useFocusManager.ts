@@ -19,6 +19,8 @@ export interface UseFocusManagerResult {
   activeElement: InkxNode | null
   /** testID of the currently focused node */
   activeId: string | null
+  /** The currently active peer scope ID */
+  activeScopeId: string | null
   /** Focus a specific node or node by testID */
   focus: (nodeOrId: InkxNode | string) => void
   /** Focus the next focusable element in tab order */
@@ -27,6 +29,8 @@ export interface UseFocusManagerResult {
   focusPrev: () => void
   /** Clear focus */
   blur: () => void
+  /** Activate a peer focus scope (WPF FocusScope model) */
+  activateScope: (scopeId: string) => void
   /** Enable focus management (no-op, kept for Ink API compatibility) */
   enableFocus: () => void
   /** Disable focus management (no-op, kept for Ink API compatibility) */
@@ -125,16 +129,27 @@ export function useFocusManager(): UseFocusManagerResult {
     fm.blur()
   }, [fm])
 
+  const activateScope = useCallback(
+    (scopeId: string) => {
+      if (!fm) return
+      const root = getRoot()
+      if (root) fm.activateScope(scopeId, root)
+    },
+    [fm, getRoot],
+  )
+
   const noOp = useCallback(() => {}, [])
 
   if (fm) {
     return {
       activeElement: fm.activeElement,
       activeId: snapshot?.activeId ?? null,
+      activeScopeId: snapshot?.activeScopeId ?? null,
       focus,
       focusNext,
       focusPrev,
       blur,
+      activateScope,
       enableFocus: noOp,
       disableFocus: noOp,
       focusPrevious: focusPrev,
@@ -145,10 +160,12 @@ export function useFocusManager(): UseFocusManagerResult {
   return {
     activeElement: null,
     activeId: null,
+    activeScopeId: null,
     focus: noOp as (nodeOrId: InkxNode | string) => void,
     focusNext: noOp,
     focusPrev: noOp,
     blur: noOp,
+    activateScope: noOp as (scopeId: string) => void,
     enableFocus: noOp,
     disableFocus: noOp,
     focusPrevious: noOp,

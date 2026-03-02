@@ -83,6 +83,22 @@ export function getTabOrder(root: InkxNode, scope?: InkxNode): InkxNode[] {
 }
 
 /**
+ * Walk up from a node to find the nearest ancestor (or self) with focusScope prop.
+ * Returns the testID of the enclosing scope, or null if none found.
+ */
+export function findEnclosingScope(node: InkxNode): string | null {
+  let current: InkxNode | null = node
+  while (current) {
+    if (isFocusScope(current)) {
+      const props = current.props as Record<string, unknown>
+      return typeof props.testID === "string" ? props.testID : null
+    }
+    current = current.parent
+  }
+  return null
+}
+
+/**
  * Find a node by testID in the subtree rooted at root.
  * DFS, returns the first match.
  */

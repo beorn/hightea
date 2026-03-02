@@ -56,6 +56,10 @@ export function createHandlerContext<S>(
       const root = getContainerRoot(container)
       focusManager.focusById(testID, root, "programmatic")
     },
+    activateScope(scopeId: string) {
+      const root = getContainerRoot(container)
+      focusManager.activateScope(scopeId, root)
+    },
     getFocusPath() {
       const root = getContainerRoot(container)
       return focusManager.getFocusPath(root)

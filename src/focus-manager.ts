@@ -41,6 +41,8 @@ export interface FocusSnapshot {
   previousId: string | null
   focusOrigin: FocusOrigin | null
   scopeStack: readonly string[]
+  /** The currently active peer scope (WPF FocusScope model) */
+  activeScopeId: string | null
 }
 
 export interface FocusManagerOptions {
@@ -75,6 +77,15 @@ export interface FocusManager {
   enterScope(scopeId: string): void
   /** Pop the current focus scope */
   exitScope(): void
+
+  /** The currently active peer scope ID (WPF FocusScope model) */
+  readonly activeScopeId: string | null
+  /**
+   * Activate a peer focus scope. Saves current focus in the old scope's memory,
+   * switches to the new scope, and restores the remembered focus (or focuses
+   * the first focusable element in the scope subtree).
+   */
+  activateScope(scopeId: string, root: InkxNode): void
 
   /** Get the testID path from focused node to root */
   getFocusPath(root: InkxNode): string[]
@@ -113,6 +124,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
   let focusOrigin: FocusOrigin | null = null
   const scopeStack: string[] = []
   const scopeMemory: Record<string, string> = {}
+  let activeScopeId: string | null = null
 
   // Subscriber management
   const listeners = new Set<() => void>()
@@ -215,6 +227,34 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
 
     // Restore focus to the remembered element in the parent scope
     // (Caller is responsible for providing root to restore if needed)
+    notify()
+  }
+
+  // ---- Peer scope activation (WPF FocusScope model) ----
+
+  function activateScope(scopeId: string, root: InkxNode): void {
+    // Save current focus in the outgoing scope's memory
+    if (activeScopeId && activeId) {
+      scopeMemory[activeScopeId] = activeId
+    }
+
+    // Switch scope
+    activeScopeId = scopeId
+
+    // Restore focus: remembered element, or first focusable in scope
+    const remembered = scopeMemory[scopeId]
+    if (remembered) {
+      focusById(remembered, root, "programmatic")
+    } else {
+      const scopeNode = findByTestID(root, scopeId)
+      if (scopeNode) {
+        const order = getTabOrder(root, scopeNode)
+        if (order.length > 0) {
+          focus(order[0]!, "programmatic")
+        }
+      }
+    }
+
     notify()
   }
 
@@ -341,6 +381,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
         previousId,
         focusOrigin,
         scopeStack: [...scopeStack],
+        activeScopeId,
       }
     }
     return snapshot
@@ -370,6 +411,9 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     get scopeMemory() {
       return scopeMemory as Readonly<Record<string, string>>
     },
+    get activeScopeId() {
+      return activeScopeId
+    },
 
     focus,
     focusById,
@@ -377,6 +421,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
 
     enterScope,
     exitScope,
+    activateScope,
 
     getFocusPath,
     hasFocusWithin,

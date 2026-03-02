@@ -127,6 +127,8 @@ export interface EventHandlerContext<S> {
   focusManager: import("../focus-manager.js").FocusManager
   /** Convenience: focus a node by testID */
   focus(testID: string): void
+  /** Activate a peer focus scope (saves/restores focus per scope) */
+  activateScope(scopeId: string): void
   /** Get the focus path from focused node to root */
   getFocusPath(): string[]
 }

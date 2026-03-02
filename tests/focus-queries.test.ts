@@ -8,6 +8,7 @@
 import { describe, expect, it } from "vitest"
 import {
   findByTestID,
+  findEnclosingScope,
   findFocusableAncestor,
   findSpatialTarget,
   getExplicitFocusLink,
@@ -284,5 +285,42 @@ describe("getExplicitFocusLink", () => {
     ;(node.props as Record<string, unknown>).nextFocusDown = 42
 
     expect(getExplicitFocusLink(node, "down")).toBeNull()
+  })
+})
+
+// ============================================================================
+// findEnclosingScope
+// ============================================================================
+
+describe("findEnclosingScope", () => {
+  it("returns testID of the nearest focusScope ancestor", () => {
+    const root = fakeNode("root", { focusable: false })
+    const scope = fakeNode("pane1", { parent: root, focusable: false, focusScope: true })
+    const child = fakeNode("item", { parent: scope })
+
+    expect(findEnclosingScope(child)).toBe("pane1")
+  })
+
+  it("returns testID if the node itself is a focusScope", () => {
+    const root = fakeNode("root", { focusable: false })
+    const scope = fakeNode("pane1", { parent: root, focusable: false, focusScope: true })
+
+    expect(findEnclosingScope(scope)).toBe("pane1")
+  })
+
+  it("returns null when no focusScope ancestor exists", () => {
+    const root = fakeNode("root", { focusable: false })
+    const child = fakeNode("item", { parent: root })
+
+    expect(findEnclosingScope(child)).toBeNull()
+  })
+
+  it("returns the nearest scope (not a more distant one)", () => {
+    const root = fakeNode("root", { focusable: false })
+    const outer = fakeNode("outer", { parent: root, focusable: false, focusScope: true })
+    const inner = fakeNode("inner", { parent: outer, focusable: false, focusScope: true })
+    const child = fakeNode("item", { parent: inner })
+
+    expect(findEnclosingScope(child)).toBe("inner")
   })
 })

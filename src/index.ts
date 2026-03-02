@@ -264,6 +264,7 @@ export type {
 } from "./focus-manager.js"
 export {
   findFocusableAncestor,
+  findEnclosingScope,
   getTabOrder,
   findByTestID,
   findSpatialTarget,
