@@ -159,11 +159,13 @@ let accumulateFrameCount = 0
 interface InlineCursorState {
   /** Row within render region after last inline frame's cursor suffix. -1 = unknown. */
   prevCursorRow: number
+  /** Total output lines rendered in last frame. Used to clear old content on resize. */
+  prevOutputLines: number
 }
 
 /** Create fresh inline cursor state (unknown position → first call falls back to full render). */
 function createInlineCursorState(): InlineCursorState {
-  return { prevCursorRow: -1 }
+  return { prevCursorRow: -1, prevOutputLines: 0 }
 }
 
 /**
@@ -184,6 +186,7 @@ function updateInlineCursorRow(
     // Cursor hidden: cursor stays at end of last content line
     state.prevCursorRow = maxOutputLines - 1
   }
+  state.prevOutputLines = maxOutputLines
 }
 
 /**
@@ -495,8 +498,20 @@ export function outputPhase(
       const firstMaxOutput = termRows != null ? Math.min(firstContentLines, termRows) : firstContentLines
       let firstStartLine = 0
       if (termRows != null && firstContentLines > termRows) firstStartLine = firstContentLines - termRows
+
+      // Resize/invalidation: prev=null but we've rendered before (cursor tracking active).
+      // Move cursor to the top of the previous render region and clear to end of screen,
+      // otherwise new content appends below stale content → visible duplication.
+      let prefix = ""
+      if (inlineState.prevCursorRow >= 0) {
+        if (inlineState.prevCursorRow > 0) {
+          prefix += `\x1b[${inlineState.prevCursorRow}A`
+        }
+        prefix += "\r\x1b[J" // column 0, clear from cursor to end of screen
+      }
+
       updateInlineCursorRow(inlineState, cursorPos, firstMaxOutput, firstStartLine)
-      return firstOutput + inlineCursorSuffix(cursorPos ?? null, next, termRows)
+      return prefix + firstOutput + inlineCursorSuffix(cursorPos ?? null, next, termRows)
     }
     if (isStrictAccumulate()) {
       accumulatedAnsi = firstOutput

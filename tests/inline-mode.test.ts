@@ -815,3 +815,117 @@ describe("Inline mode: incremental rendering", () => {
     expect(endsWithCursorHide(out)).toBe(true)
   })
 })
+
+// ============================================================================
+// Tests: Resize (buffer invalidation) clears old content
+// ============================================================================
+
+/** Check if output contains clear-to-end-of-screen (ESC[J) */
+function containsClearToEndOfScreen(output: string): boolean {
+  return output.includes("\x1b[J")
+}
+
+describe("Inline mode: resize clears old content before re-render", () => {
+  test("resize (prev=null after prior render) clears screen before re-rendering", () => {
+    const render = createOutputPhase({})
+
+    // Frame 1: initial render (5 lines)
+    const buf1 = new TerminalBuffer(20, 10)
+    fillBuffer(buf1, 5) // A..E
+    render(null, buf1, "inline")
+
+    // Frame 2: simulate resize — pass null as prev (runtime.invalidate())
+    // but with different buffer dimensions
+    const buf2 = new TerminalBuffer(30, 10) // wider
+    fillBuffer(buf2, 5, "a") // a..e
+
+    const out = render(null, buf2, "inline")
+
+    // Must contain cursor-up (to reach top of previous render) + clear-to-end-of-screen
+    // Without this, new content appends below old content → duplication
+    const ups = extractCursorUp(out)
+    expect(ups.length).toBeGreaterThanOrEqual(1)
+    expect(containsClearToEndOfScreen(out)).toBe(true)
+
+    // Must still contain the new content
+    expect(out).toContain("a")
+  })
+
+  test("resize with termRows clears before re-rendering", () => {
+    const render = createOutputPhase({})
+    const termRows = 10
+
+    // Frame 1: initial render with termRows
+    const buf1 = new TerminalBuffer(40, 20)
+    fillBuffer(buf1, 8) // A..H
+    render(null, buf1, "inline", 0, termRows)
+
+    // Frame 2: resize — wider terminal, null prev
+    const buf2 = new TerminalBuffer(60, 20)
+    fillBuffer(buf2, 8, "a")
+    const out = render(null, buf2, "inline", 0, termRows)
+
+    expect(containsClearToEndOfScreen(out)).toBe(true)
+    expect(out).toContain("a")
+  })
+
+  test("true first render (no prior frames) does NOT add cursor-up or clear", () => {
+    const render = createOutputPhase({})
+
+    // Very first render — no cursor tracking state yet
+    const buf = new TerminalBuffer(20, 10)
+    fillBuffer(buf, 3)
+
+    const out = render(null, buf, "inline")
+
+    // First render should NOT have cursor-up (nothing to clear)
+    const ups = extractCursorUp(out)
+    expect(ups.length).toBe(0)
+    expect(containsClearToEndOfScreen(out)).toBe(false)
+  })
+
+  test("resize then normal render works correctly", () => {
+    const render = createOutputPhase({})
+
+    // Frame 1: initial
+    const buf1 = new TerminalBuffer(20, 10)
+    fillBuffer(buf1, 4) // A..D
+    render(null, buf1, "inline")
+
+    // Frame 2: resize (null prev)
+    const buf2 = new TerminalBuffer(30, 10)
+    fillBuffer(buf2, 4, "a")
+    const resizeOut = render(null, buf2, "inline")
+    expect(containsClearToEndOfScreen(resizeOut)).toBe(true)
+
+    // Frame 3: normal incremental render (prev = buf2)
+    const buf3 = new TerminalBuffer(30, 10)
+    fillBuffer(buf3, 4, "a")
+    buf3.setCell(0, 0, { char: "Z" })
+    const incrOut = render(buf2, buf3, "inline")
+
+    // Incremental should work — small output, no full clear
+    expect(incrOut).toContain("Z")
+    expect(incrOut.length).toBeLessThan(200)
+  })
+
+  test("resize with cursorPos clears and repositions cursor", () => {
+    const render = createOutputPhase({})
+    const cursorPos: CursorState = { x: 5, y: 1, visible: true }
+
+    // Frame 1: initial with cursor
+    const buf1 = new TerminalBuffer(20, 10)
+    fillBuffer(buf1, 4)
+    render(null, buf1, "inline", 0, undefined, cursorPos)
+
+    // Frame 2: resize with cursor
+    const buf2 = new TerminalBuffer(30, 10)
+    fillBuffer(buf2, 4, "a")
+    const out = render(null, buf2, "inline", 0, undefined, cursorPos)
+
+    // Should clear old content
+    expect(containsClearToEndOfScreen(out)).toBe(true)
+    // Should end with cursor show (cursor is visible)
+    expect(endsWithCursorShow(out)).toBe(true)
+  })
+})
