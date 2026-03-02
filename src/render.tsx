@@ -15,7 +15,7 @@ import { EventEmitter } from "node:events"
 import process from "node:process"
 import { createLogger } from "@beorn/logger"
 import { type Term, createTerm } from "chalkx"
-import React, { useCallback, useMemo, useRef, type ReactElement, type ReactNode } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, type ReactElement, type ReactNode } from "react"
 
 const log = createLogger("inkx:render")
 import { RuntimeContext, type RuntimeContextValue, StdoutContext, TermContext } from "./context.js"
@@ -397,6 +397,14 @@ function InkxApp({
     }),
     [eventEmitter, handleExit, onPause, onResume],
   )
+
+  // Auto-enable raw mode when stdin is a TTY so useInput receives events.
+  // Without this, the event loop drains and the process exits immediately.
+  useEffect(() => {
+    if (!isRawModeSupported) return
+    setRawMode(true)
+    return () => setRawMode(false)
+  }, [isRawModeSupported, setRawMode])
 
   return (
     <StdoutContext.Provider value={stdoutContextValue}>

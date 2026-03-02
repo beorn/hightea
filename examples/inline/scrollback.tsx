@@ -10,7 +10,8 @@
  */
 
 import React, { useState, useCallback } from "react"
-import { render, Box, Text, Divider, VirtualList, useInput, useApp, createTerm, type Key } from "../../src/index.js"
+import { Box, Text, Divider, VirtualList, useInput, type Key } from "../../src/index.js"
+import { run, useExit } from "../../src/runtime/run.js"
 import { useScrollback } from "../../src/hooks/useScrollback.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
@@ -47,7 +48,7 @@ function evaluate(expr: string): string {
 // =============================================================================
 
 export function Repl() {
-  const { exit } = useApp()
+  const exit = useExit()
   const [results, setResults] = useState<Result[]>([])
   const [input, setInput] = useState("")
   const [cursor, setCursor] = useState(0)
@@ -171,15 +172,12 @@ export function Repl() {
 // =============================================================================
 
 async function main() {
-  using term = createTerm()
-  const { waitUntilExit } = await render(
+  await run(
     <ExampleBanner meta={meta} controls="Type expr + Enter  Esc/q quit">
       <Repl />
     </ExampleBanner>,
-    term,
     { mode: "inline" },
   )
-  await waitUntilExit()
 }
 
 if (import.meta.main) {
