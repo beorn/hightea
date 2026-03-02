@@ -4,11 +4,23 @@
 
 inkx supports a progression of state management approaches. Most apps never need to go beyond Level 2. Each level builds on the previous — the concepts carry forward, and you can mix levels within a single app.
 
+### What inkx composes
+
+inkx's state management is a thin integration layer over established libraries, not a from-scratch framework:
+
+| Concern | Library | What it does |
+|---------|---------|--------------|
+| Reactive primitives | [`@preact/signals-core`](https://github.com/preactjs/signals) | `signal()`, `computed()`, `.value`, auto-tracking |
+| Store container | [Zustand](https://github.com/pmndrs/zustand) | Store identity, middleware pipeline, React integration |
+| App lifecycle | inkx `createApp()` | Terminal I/O, key routing, effect dispatch, exit handling |
+
+`createApp()` creates a Zustand store whose state fields are Preact signals. inkx adds middleware that intercepts `Effect[]` returns from domain functions and routes them to declared effect runners. Everything else — the signal reactivity, the store subscription model, the React hooks — comes from the underlying libraries.
+
 ## The Levels
 
 ```
 Level 1: Component State     useState/useReducer              — local, per-component
-Level 2: Shared State        createApp + set/get              — shared, centralized
+Level 2: Shared State        createApp + signal/computed      — shared, reactive
 Level 3: Pure Transitions    createApp + domain functions     — structured, testable
 Level 4: Effects as Data     createApp + [state, effects]     — pure, serializable, replayable
 ```
@@ -41,37 +53,43 @@ Good for single-component apps, prototypes, and simple tools where state is loca
 
 **The problem**: Multiple components need the same state. You're passing props through layers that don't use them. Key handling is scattered across components instead of centralized.
 
-**The solution**: `createApp()` provides shared state across all components. Components subscribe to individual slices via `useApp(selector)` — only the ones that read a changed field re-render. Key handling moves to one place.
-
-This is equivalent to Zustand's `create()` + `useStore(selector)` pattern, or Redux's `useSelector()` — but `createApp` integrates the store with the app lifecycle (input, exit, effects) so you don't wire them separately.
+**The solution**: `createApp()` provides shared state across all components. State lives in signals (`signal()` and `computed()` from [`@preact/signals-core`](https://github.com/preactjs/signals)) — components that read a signal re-render only when that signal changes. Key handling moves to one place.
 
 ```tsx
 import { createApp, useApp } from "inkx/runtime"
+import { signal, computed } from "@preact/signals-core"
 
 const app = createApp(
-  () => (set, get) => ({
-    cursor: 0,
-    items: ["first", "second", "third"],
-    moveCursor: (d: number) =>
-      set((s) => ({ cursor: Math.max(0, Math.min(s.cursor + d, s.items.length - 1)) })),
-  }),
+  () => {
+    const cursor = signal(0)
+    const items = signal(["first", "second", "third"])
+    const currentItem = computed(() => items.value[cursor.value])
+
+    return {
+      cursor,
+      items,
+      currentItem,
+      moveCursor(delta: number) {
+        cursor.value = clamp(cursor.value + delta, 0, items.value.length - 1)
+      },
+    }
+  },
   {
-    key: (input, key, { get }) => {
-      if (input === "j") get().moveCursor(1)
-      if (input === "k") get().moveCursor(-1)
+    key(input, key, { store }) {
+      if (input === "j") store.moveCursor(1)
+      if (input === "k") store.moveCursor(-1)
       if (input === "q") return "exit"
     },
   },
 )
 
 function ItemList() {
-  const items = useApp((s) => s.items)
-  const cursor = useApp((s) => s.cursor)
+  const { cursor, items } = useApp()
   return (
     <Box flexDirection="column">
-      {items.map((item, i) => (
-        <Text key={item} color={i === cursor ? "cyan" : undefined}>
-          {i === cursor ? "> " : "  "}
+      {items.value.map((item, i) => (
+        <Text key={item} color={cursor.value === i ? "cyan" : undefined}>
+          {cursor.value === i ? "> " : "  "}
           {item}
         </Text>
       ))}
@@ -82,77 +100,88 @@ function ItemList() {
 await app.run(<ItemList />)
 ```
 
-Good for most interactive TUI apps — dashboards, file browsers, list views, dialogs. State is shared but the transitions are simple enough to express as `set()` calls.
+`signal()` creates reactive state. `computed()` derives from other signals — `currentItem` recomputes only when `cursor` or `items` change. Components read `.value` and automatically subscribe — no selectors, no `connect()`. This is the same model as SolidJS, Vue 3, and the [TC39 Signals proposal](https://github.com/tc39/proposal-signals).
+
+Good for most interactive TUI apps — dashboards, file browsers, list views, dialogs.
 
 ### Level 3: Pure Transitions
 
-**The problem**: State transitions get complex — multiple fields updated together, conditional logic in `set()` callbacks, no clear record of *what happened*. You can't test state logic without mounting React components.
+**The problem**: State transitions get complex — multiple fields updated together, conditional logic scattered across methods, no clear record of *what happened*. You can't test state logic without the store.
 
-**The solution**: Extract transitions into pure domain functions. The store shape stays the same — methods still call `set()` — but now they delegate to pure functions you can test by calling directly. No React, no mocks, no async.
+**The solution**: Extract transitions into domain functions. The store shape stays the same — signals, computed, methods — but methods now delegate to functions you can test by calling directly.
 
 ```tsx
 import { createApp, useApp } from "inkx/runtime"
+import { signal, computed, type Signal } from "@preact/signals-core"
 
 interface State {
-  cursor: number
-  items: { text: string; done: boolean }[]
+  cursor: Signal<number>
+  items: Signal<{ text: string; done: boolean }[]>
 }
 
-// Pure domain logic — testable without the store
+// Domain logic — testable without the store
 const TodoList = {
-  moveCursor: (s: State, delta: number): State =>
-    ({ ...s, cursor: clamp(s.cursor + delta, 0, s.items.length - 1) }),
-
-  toggleDone: (s: State, index: number): State =>
-    ({ ...s, items: s.items.map((item, i) =>
+  moveCursor(s: State, delta: number) {
+    s.cursor.value = clamp(s.cursor.value + delta, 0, s.items.value.length - 1)
+  },
+  toggleDone(s: State, index: number) {
+    s.items.value = s.items.value.map((item, i) =>
       i === index ? { ...item, done: !item.done } : item
-    ) }),
-
-  addItem: (s: State, text: string): State =>
-    ({ ...s, items: [...s.items, { text, done: false }] }),
+    )
+  },
+  addItem(s: State, text: string) {
+    s.items.value = [...s.items.value, { text, done: false }]
+  },
 }
 
 const app = createApp(
-  () => (set, get) => ({
-    cursor: 0,
-    items: [] as { text: string; done: boolean }[],
-    moveCursor: (d: number) => set(s => TodoList.moveCursor(s, d)),
-    toggleDone: (i: number) => set(s => TodoList.toggleDone(s, i)),
-    addItem: (t: string) => set(s => TodoList.addItem(s, t)),
-  }),
+  () => {
+    const cursor = signal(0)
+    const items = signal<{ text: string; done: boolean }[]>([])
+    const state = { cursor, items }
+
+    return {
+      cursor,
+      items,
+      currentItem: computed(() => items.value[cursor.value]),
+      doneCount: computed(() => items.value.filter(i => i.done).length),
+      moveCursor: (d: number) => TodoList.moveCursor(state, d),
+      toggleDone: (i: number) => TodoList.toggleDone(state, i),
+      addItem: (t: string) => TodoList.addItem(state, t),
+    }
+  },
   {
-    key: (input, key, { get }) => {
-      if (input === "j") get().moveCursor(1)
-      if (input === "k") get().moveCursor(-1)
-      if (input === "x") get().toggleDone(get().cursor)
+    key(input, key, { store }) {
+      if (input === "j") store.moveCursor(1)
+      if (input === "k") store.moveCursor(-1)
+      if (input === "x") store.toggleDone(store.cursor.value)
       if (input === "q") return "exit"
     },
   },
 )
 ```
 
-Testing is trivial — call the pure function, check the result:
+Testing is direct — create fresh signals, call the function, check the result:
 
 ```tsx
 test("moveCursor clamps at bottom", () => {
-  const state = { cursor: 2, items: [{ text: "a" }, { text: "b" }, { text: "c" }] }
-  expect(TodoList.moveCursor(state, 1).cursor).toBe(2) // clamped
+  const s = { cursor: signal(2), items: signal([{ text: "a" }, { text: "b" }, { text: "c" }]) }
+  TodoList.moveCursor(s, 1)
+  expect(s.cursor.value).toBe(2) // clamped
 })
 ```
 
-No React, no mocks, no async. The store methods are thin wrappers — all logic lives in the domain functions.
-
-This is the same idea as Redux reducers (`(state, action) → state`) but without the `switch`/`case` boilerplate, action type constants, or dispatch ceremony. The domain functions are just functions — call them with state in, get state out.
+No React, no store, no mocks. The store methods are thin wrappers — all logic lives in the domain functions.
 
 Good for apps with structured state transitions. This is the sweet spot for most complex TUI apps.
 
 ### Level 4: Effects as Data
 
-**The problem**: Side effects (file I/O, HTTP, timers, toasts) are tangled into your store methods. You can test that state changed, but not that a save was triggered or a notification was sent — not without mocking the world. Undo/redo requires snapshotting because transitions aren't invertible. Collaborative editing requires serializable operations, but your effects are function calls.
+**The problem**: Side effects (file I/O, HTTP, timers, toasts) are tangled into your store methods. You can test that state changed, but not that a save was triggered or a notification was sent — not without mocking the world. Undo/redo requires snapshotting. Collaborative editing requires serializable operations, but your effects are function calls.
 
-**The solution**: Domain functions return `[state, effects]` instead of just `state`. Effects are data objects describing what should happen — the runtime executes them. The domain function never touches I/O, making it a true pure function. Effect runners are swappable: production runners do real I/O, test runners collect and assert, replay runners skip I/O. This unlocks undo/redo, AI automation, and platform portability (same domain functions in terminal and browser).
+**The solution**: Domain functions return effects alongside state mutations. Effects are data objects describing what should happen — the runtime executes them. The domain function never touches I/O, making it testable and replayable. Effect runners are swappable: production runners do real I/O, test runners collect and assert.
 
-This is the Elm Architecture: `update : Msg -> Model -> (Model, Cmd Msg)`. Also implemented by redux-loop and Hyperapp v2. inkx detects the tuple via `Array.isArray` — return plain state when there are no effects, return `[state, effects]` when there are. No wrapper types, no special constructors.
+This is the Elm Architecture: `update : Msg -> Model -> (Model, Cmd Msg)`. Also implemented by redux-loop and Hyperapp v2.
 
 ```tsx
 type Effect =
@@ -160,141 +189,128 @@ type Effect =
   | { type: "toast"; message: string }
 
 const TodoList = {
-  // No effects needed — return state directly (Level 3 style)
-  moveCursor: (s: State, delta: number): State =>
-    ({ ...s, cursor: clamp(s.cursor + delta, 0, s.items.length - 1) }),
+  // No effects — same as Level 3
+  moveCursor(s: State, delta: number) {
+    s.cursor.value = clamp(s.cursor.value + delta, 0, s.items.value.length - 1)
+  },
 
-  // Effects needed — return [state, effects] tuple
-  toggleDone: (s: State, index: number): [State, Effect[]] => {
-    const items = s.items.map((item, i) =>
+  // Returns effects as data
+  toggleDone(s: State, index: number): Effect[] {
+    s.items.value = s.items.value.map((item, i) =>
       i === index ? { ...item, done: !item.done } : item
     )
     return [
-      { ...s, items },
-      [
-        { type: "persist", data: items },
-        { type: "toast", message: `Marked ${items[index].text} as done` },
-      ],
+      { type: "persist", data: s.items.value },
+      { type: "toast", message: `Marked ${s.items.value[index].text} as done` },
     ]
   },
 
-  addItem: (s: State, text: string): [State, Effect[]] => [
-    { ...s, items: [...s.items, { text, done: false }] },
-    [{ type: "persist", data: [...s.items, { text, done: false }] }],
-  ],
+  addItem(s: State, text: string): Effect[] {
+    s.items.value = [...s.items.value, { text, done: false }]
+    return [{ type: "persist", data: s.items.value }]
+  },
 }
 
 const app = createApp(
-  () => (set, get) => ({
-    cursor: 0,
-    items: [] as Item[],
-    moveCursor: (d: number) => set(s => TodoList.moveCursor(s, d)),
-    toggleDone: (i: number) => set(s => TodoList.toggleDone(s, i)),
-    addItem: (t: string) => set(s => TodoList.addItem(s, t)),
-  }),
+  () => {
+    const cursor = signal(0)
+    const items = signal<Item[]>([])
+    const state = { cursor, items }
+
+    return {
+      cursor,
+      items,
+      currentItem: computed(() => items.value[cursor.value]),
+      doneCount: computed(() => items.value.filter(i => i.done).length),
+      moveCursor: (d: number) => TodoList.moveCursor(state, d),
+      toggleDone: (i: number) => TodoList.toggleDone(state, i),
+      addItem: (t: string) => TodoList.addItem(state, t),
+    }
+  },
   {
     effects: {
       persist: async (effect) => { await fs.writeFile("data.json", JSON.stringify(effect.data)) },
       toast: (effect) => { showToast(effect.message) },
     },
-    key: (input, key, { get }) => {
-      if (input === "j") get().moveCursor(1)
-      if (input === "x") get().toggleDone(get().cursor)
+    key(input, key, { store }) {
+      if (input === "j") store.moveCursor(1)
+      if (input === "x") store.toggleDone(store.cursor.value)
       if (input === "q") return "exit"
     },
   },
 )
 ```
 
-The store methods look identical to Level 3 — `set(s => TodoList.toggleDone(s, i))`. The `set()` middleware detects the `[state, effects]` tuple automatically and routes effects to the declared runners.
+The store looks identical to Level 3. The only change is that some domain functions now return `Effect[]` — `createApp` intercepts the return and routes effects to the declared runners.
 
 Assert on what the domain function *says should happen*, not on whether it happened:
 
 ```tsx
 test("toggleDone persists and toasts", () => {
-  const state = { cursor: 0, items: [{ text: "Buy milk", done: false }] }
-  const [next, effects] = TodoList.toggleDone(state, 0)
+  const s = { cursor: signal(0), items: signal([{ text: "Buy milk", done: false }]) }
+  const effects = TodoList.toggleDone(s, 0)
 
-  expect(next.items[0].done).toBe(true)
+  expect(s.items.value[0].done).toBe(true)
   expect(effects).toContainEqual({ type: "persist", data: expect.any(Array) })
   expect(effects).toContainEqual({ type: "toast", message: "Marked Buy milk as done" })
 })
 ```
 
-No mocks. No I/O. No async. No `collect()` helper needed — the domain function already returns the tuple.
+No mocks. No I/O. No async.
 
-**The upgrade is per-function, not per-app.** Within a single domain object, some functions return plain state (Level 3) and others return `[state, effects]` (Level 4). You don't rewrite everything — you upgrade individual functions as they need effects.
+**The upgrade is per-function, not per-app.** Within a single domain object, some functions return nothing (Level 3) and others return `Effect[]` (Level 4). You upgrade individual functions as they need effects.
 
-### Reactive Subscriptions
+### Scaling with Signals
 
-At Levels 2-3, `useApp(selector)` re-evaluates every selector on every state change — components bail out if their slice didn't change, but the check is O(selectors). This is fine for dozens of subscribers but breaks down at scale (1000+ list items each subscribing to cursor position).
+At small scale, a few signals in a store is all you need. At large scale (1000+ items, tree views, document editors), you want per-entity signals so that editing one node doesn't re-render others.
 
-For large state trees, Level 4 pairs with `Reactive<T>` — a signal primitive that notifies only when a specific value changes:
+The pattern: `Map<string, Signal<T>>` for per-entity reactive state, `computed()` for derived views:
 
 ```tsx
-import { Reactive, useReactive } from "inkx"
+import { signal, computed, type Signal } from "@preact/signals-core"
 
-// State fields that need granular subscriptions are Reactive<T>
-interface State {
-  cursor: Reactive<number>
-  items: Reactive<Item[]>
-  folds: Map<string, Reactive<boolean>>
-}
+// Per-entity signals — editing one node doesn't touch others
+const nodes = new Map<string, Signal<NodeData>>()
+const cursor = signal<string>("node-1")
+const folds = new Map<string, Signal<boolean>>()
 
-// Domain functions write directly to reactive fields
-const Board = {
-  moveCursor: (s: State, delta: number) => {
-    s.cursor.value = clamp(s.cursor.value + delta, 0, s.items.value.length - 1)
+// Derived — recomputes only when its specific dependencies change
+const currentNode = computed(() => nodes.get(cursor.value)?.value)
+const visibleCount = computed(() => {
+  let count = 0
+  for (const [id, folded] of folds) if (!folded.value) count++
+  return count
+})
+```
+
+Inside a store, the same pattern:
+
+```tsx
+const app = createApp(
+  () => {
+    const cursor = signal<string>("root")
+    const nodes = new Map<string, Signal<NodeData>>()
+    const folds = new Map<string, Signal<boolean>>()
+
+    return {
+      cursor,
+      nodes,
+      folds,
+      currentNode: computed(() => nodes.get(cursor.value)?.value),
+      visibleCount: computed(() => [...folds.values()].filter(f => !f.value).length),
+      moveTo(nodeId: string) { cursor.value = nodeId },
+      toggleFold(nodeId: string) {
+        const f = folds.get(nodeId)
+        if (f) f.value = !f.value
+      },
+    }
   },
-}
-
-// Components subscribe to individual signals — O(1) per change
-function ListItem({ index }: { index: number }) {
-  const cursor = useReactive(state.cursor)
-  const items = useReactive(state.items)
-  const isCurrent = cursor === index
-
-  return (
-    <Text color={isCurrent ? "cyan" : undefined}>
-      {isCurrent ? "> " : "  "}{items[index].text}
-    </Text>
-  )
-}
+)
 ```
 
-Cursor move: 1 signal notifies, all mounted `ListItem` components re-evaluate `cursor === index`, only the 2 that changed (old and new) re-render. With `VirtualList` limiting mounted items to ~30-50 visible, this is O(visible) not O(total).
+Cursor move: `cursor` signal notifies, `currentNode` recomputes, components reading `currentNode` re-render. Components reading other nodes — unaffected. With `VirtualList` limiting mounted components to ~30-50 visible items, this is O(visible) not O(total).
 
-#### Derived Reactive State
-
-Reactive values can depend on other reactive values. A `Derived<T>` recomputes when any of its dependencies change — like a spreadsheet cell formula:
-
-```tsx
-import { Reactive, Derived, useReactive } from "inkx"
-
-const cursor = Reactive(0)
-const items = Reactive([{ text: "Buy milk", done: false }, { text: "Write docs", done: true }])
-
-// Derived values — recompute only when dependencies change
-const currentItem = Derived(() => items.value[cursor.value])
-const doneCount = Derived(() => items.value.filter(i => i.done).length)
-const progress = Derived(() => `${doneCount.value}/${items.value.length}`)
-
-function StatusBar() {
-  const text = useReactive(progress)      // re-renders when progress string changes
-  return <Text>Progress: {text}</Text>
-}
-
-function CurrentItemView() {
-  const item = useReactive(currentItem)    // re-renders when cursor moves OR current item changes
-  return <Text bold>{item.text}</Text>
-}
-```
-
-`Derived` tracks which reactive values were read during computation. When `cursor.value` changes, `currentItem` recomputes (it reads `cursor`), but `doneCount` doesn't (it only reads `items`). When `items.value` changes, both recompute. This is the same model as SolidJS `createMemo` or Vue `computed`.
-
-`Reactive<T>` replaces the need for Jotai atoms, Zustand selectors, or Redux's `useSelector` at this scale. It's equivalent to SolidJS signals or Vue refs, but integrated with React via `useSyncExternalStore`.
-
-**You don't need Reactive<T> for most apps.** `useApp(selector)` is simpler and works well up to hundreds of subscribers. Reach for `Reactive<T>` when you have per-entity state with 1000+ potential subscribers — typically virtualized lists, tree views, or document editors.
+**You don't need per-entity signals for most apps.** A few top-level signals in the store handles dozens of components fine. Reach for `Map<string, Signal<T>>` when you have per-entity state with many concurrent subscribers — typically virtualized lists, tree views, or document editors.
 
 ## When to Use Each Level
 
@@ -312,70 +328,44 @@ function CurrentItemView() {
 Level 4 domain objects are just functions — you can structure them however you like. For complex apps, a useful pattern is decomposing into independent state machines that communicate through effects:
 
 ```tsx
-// Each domain is a pure object with the same pattern
 const Board = {
-  moveCursor: (s: BoardState, delta: number): BoardState => ...,
-  fold: (s: BoardState, nodeId: string): [BoardState, Effect[]] => ...,
+  moveCursor(s: BoardState, delta: number) { ... },
+  fold(s: BoardState, nodeId: string): Effect[] { ... },
 }
 
 const Dialog = {
-  open: (s: DialogState, kind: string): DialogState => ...,
-  confirm: (s: DialogState): [DialogState, Effect[]] =>
-    [{ ...s, open: false }, [{ type: "dispatch", op: "addItem", text: s.value }]],
+  open(s: DialogState, kind: string) { ... },
+  confirm(s: DialogState): Effect[] {
+    s.open.value = false
+    return [{ type: "dispatch", op: "addItem", text: s.value.value }]
+  },
 }
 
 const Search = {
-  setQuery: (s: SearchState, query: string): SearchState => ...,
-  submit: (s: SearchState): [SearchState, Effect[]] => ...,
+  setQuery(s: SearchState, query: string) { ... },
+  submit(s: SearchState): Effect[] { ... },
 }
 ```
 
 Machines compose via dispatch effects — no machine imports another. `Dialog.confirm()` says "dispatch addItem" as a data object; the effect runner routes it to the right domain function.
 
-Each machine is independently testable. Communication is through serializable effect objects.
-
-## km: A Complete Level 4 Application
-
-[km](https://github.com/beorn/km) is a full-featured TUI workspace built on inkx. It demonstrates the complete Level 4 architecture at scale — every subsystem is a pure `(state, op) → [state, effects]` function (km calls these "noun-singletons" with an `.apply()` convention, following the SlateJS pattern):
-
-- **Board navigation**: `Board.apply(state, op) → [state, effects]` — cursor movement, folding, zoom, multi-select
-- **Text editing**: `PlainText.apply(state, op) → [state, effects]` — readline-style character editing, kill ring via effects
-- **Dialogs**: `Dialog.apply(state, op) → [state, effects]` — search, create item, filter — all dispatch results to board
-- **Undo/redo**: `withHistory` plugin wraps `.apply()` — records invertible operations, replays them for undo
-- **Command system**: Maps keys → semantic operations → dispatches to the right machine
-- **Platform portable**: Same `.apply()` functions work in terminal (inkx) and browser (React DOM)
-
-The top-level store delegates to domain machines:
-
-```tsx
-const app = createApp(
-  () => (set, get) => ({
-    board: Board.init(),
-    text: PlainText.init(),
-    insertText: (char: string) => set(s => PlainText.apply(s.text, { type: "insert", char })),
-    cursorDown: () => set(s => Board.apply(s.board, { type: "cursor_down" })),
-  }),
-  { effects: { persist: ..., toast: ... } },
-)
-```
-
-Each `.apply()` returns `State | [State, Effect[]]` — the `set()` middleware handles both shapes. The progression was gradual — km started at Level 2, moved transition logic to Level 3, then migrated effects to data (Level 4) one function at a time.
+Each machine is independently testable. Communication is through serializable effect objects. A full-scale application might have 5-10 machines covering board navigation, text editing, dialogs, search, and undo/redo — all pure functions operating on signals, composing through effects.
 
 ## Prior Art
 
 | System | Level | Approach |
 |--------|-------|----------|
 | React useState | 1 | Component-local state |
-| Zustand | 2-3 | Shared store with selectors, `set/get`, pure functions |
-| Redux | 3 | `(state, action) → state` — same concept, more ceremony |
-| Elm | 4 | `update : Msg -> Model -> (Model, Cmd Msg)` — the original |
+| Zustand | 2 | Shared store with selectors (`useStore(s => s.field)`) |
+| `@preact/signals-core` | 2-4 | `signal()` / `computed()` / `.value` — **inkx's reactive foundation** |
+| SolidJS | 2-4 | `createSignal()` / `createMemo()` / fine-grained reactivity |
+| Vue 3 | 2-4 | `ref()` / `computed()` / fine-grained reactivity |
+| TC39 Signals (Stage 1) | — | `Signal.State()` / `Signal.Computed()` — emerging standard |
+| Elm | 4 | `update : Msg -> Model -> (Model, Cmd Msg)` — the original effects-as-data |
 | redux-loop | 4 | Reducer returns [state, effects] — Elm Architecture for Redux |
 | Hyperapp v2 | 4 | Optional tuple return (same Array.isArray detection) |
-| SolidJS signals | — | Fine-grained reactivity (equivalent to `Reactive<T>`) |
-| Vue refs | — | Fine-grained reactivity (equivalent to `Reactive<T>`) |
 | inkx createStore | 4 | Non-React TEA container: `(msg, model) → [model, effects]` (see [Runtime Layers](runtime-layers.md)) |
 
 ## See Also
 
 - [Runtime Layers](runtime-layers.md) — createRuntime, createStore, run, createApp API reference
-- [km TEA State Machines](../../../docs/design/tea-state-machines.md) — full architecture for a Level 4 app
