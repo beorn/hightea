@@ -225,6 +225,27 @@ function contrastFg(bg: string): string {
 | `raisedbg`   | `lighten(bg, 5%)` (dark) or `darken(bg, 3%)` (light) |
 | `separator`  | `withOpacity(text, bg, 0.20)`                        |
 
+## Per-Subtree Theme Override
+
+Use the `theme` prop on `Box` to override `$token` resolution for an entire subtree:
+
+```tsx
+const dimmedTheme: Theme = { ...baseTheme, selected: "gray", selectedfg: "white" }
+
+<Box theme={dimmedTheme}>
+  {/* All $selected references here resolve to "gray" */}
+  <Text color="$selected">dimmed</Text>
+</Box>
+<Text color="$selected">normal</Text>
+```
+
+This works like CSS custom properties — the nearest ancestor `Box` with a `theme` prop
+determines token resolution for its descendants. Nested `theme` props cascade (innermost wins).
+When `theme` is `undefined`, tokens resolve against the root `ThemeProvider` theme.
+
+The override happens during the content phase tree walk (no React re-renders). Cost is ~2ns
+per `getActiveTheme()` call — negligible.
+
 ## useTheme() Hook
 
 Read the current theme from any component:
