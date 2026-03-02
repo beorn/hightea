@@ -119,18 +119,9 @@ export interface PipelineConfig {
 /**
  * Execute the full render pipeline.
  *
- * prevBuffer is required to force callers to think about incremental rendering.
- * Pass null on the first render; pass the previous buffer on subsequent renders.
- * Forgetting to pass prevBuffer silently disables incremental rendering (20-30ms
- * per frame instead of <1ms) — making it required catches this at compile time.
- *
- * @param root The root InkxNode
- * @param width Terminal width
- * @param height Terminal height
- * @param prevBuffer Previous buffer for incremental rendering (null on first render)
- * @param options Render options
- * @param config Optional pipeline config from withRender()
- * @returns Object with ANSI output and current buffer
+ * Pass null for prevBuffer on the first render; pass the returned buffer on
+ * subsequent renders to enable incremental content rendering (<1ms vs 20-30ms).
+ * INKX_DEV=1 warns at runtime if prevBuffer is null after the first frame.
  */
 export function executeRender(
   root: InkxNode,
@@ -167,11 +158,9 @@ function executeRenderCore(
     termRows,
     cursorPos,
   } = opts
-  // Dev warning: if prevBuffer is null but root has been rendered before
-  // (prevLayout exists), incremental rendering is disabled. This is usually
-  // a bug — the caller forgot to track and pass the previous buffer.
-  // Intentional null (INKX_STRICT fresh render, static/one-shot) passes
-  // skipLayoutNotifications which suppresses this warning.
+  // Dev warning: prevBuffer null after first render means incremental is disabled.
+  // Intentional null (INKX_STRICT, static/one-shot) passes skipLayoutNotifications.
+  // console.warn (not @beorn/logger) — must fire regardless of logger config.
   if (
     process?.env?.INKX_DEV &&
     prevBuffer === null &&

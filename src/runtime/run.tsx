@@ -412,54 +412,26 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
   let currentBuffer: Buffer
   let prevTermBuffer: TerminalBuffer | null = null
 
-  // Helper to render and get text
+  // Reconcile React state, run render pipeline, return Buffer for output.
   function doRender(): Buffer {
     const _t0 = performance.now()
-
-    // Commit React changes to InkxNode tree
     reconciler.updateContainerSync(wrappedElement, fiberRoot, null, () => {})
     reconciler.flushSyncWork()
-
     const _t1 = performance.now()
 
-    // Get the InkxNode tree root
     const rootNode = getContainerRoot(container)
-
-    // Execute render pipeline
     const dims = runtime.getDims()
-    // Inline mode: use NaN height so layout engine auto-sizes to content
     const height = modeOption === "inline" ? NaN : dims.rows
-    // Pass prevTermBuffer for incremental content rendering — without this,
-    // contentPhase renders ALL nodes from scratch every frame (20-30ms).
-    // With it, only dirty nodes re-render (<1ms for typing).
     const { buffer: termBuffer } = executeRender(rootNode, dims.cols, height, prevTermBuffer, undefined, pipelineConfig)
     prevTermBuffer = termBuffer
-
     const _t2 = performance.now()
+
     const buf = createBuffer(termBuffer, rootNode)
     const _t3 = performance.now()
 
     if (process.env.INKX_PROFILE_RENDER) {
-      const react = (_t1 - _t0).toFixed(1)
-      const pipeline = (_t2 - _t1).toFixed(1)
-      const buffer = (_t3 - _t2).toFixed(1)
-      const total = (_t3 - _t0).toFixed(1)
-      // Per-phase breakdown from executeRender (exposed on globalThis)
-      const phases = (globalThis as any).__inkx_last_pipeline
-      if (phases) {
-        const m = phases.measure.toFixed(1)
-        const l = phases.layout.toFixed(1)
-        const s = phases.scroll.toFixed(1)
-        const c = phases.content.toFixed(1)
-        const o = phases.output.toFixed(1)
-        process.stderr.write(
-          `[render] react=${react}ms pipeline=${pipeline}ms (measure=${m} layout=${l} scroll=${s} content=${c} output=${o}) buffer=${buffer}ms total=${total}ms\n`,
-        )
-      } else {
-        process.stderr.write(`[render] react=${react}ms pipeline=${pipeline}ms buffer=${buffer}ms total=${total}ms\n`)
-      }
+      logRenderProfile(_t0, _t1, _t2, _t3)
     }
-
     return buf
   }
 
@@ -478,6 +450,27 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
       runtime.render(currentBuffer)
       renderScheduled = false
     })
+  }
+
+  /** INKX_PROFILE_RENDER: per-phase timing to stderr */
+  function logRenderProfile(t0: number, t1: number, t2: number, t3: number): void {
+    const react = (t1 - t0).toFixed(1)
+    const pipeline = (t2 - t1).toFixed(1)
+    const buffer = (t3 - t2).toFixed(1)
+    const total = (t3 - t0).toFixed(1)
+    const phases = (globalThis as any).__inkx_last_pipeline
+    if (phases) {
+      const m = phases.measure.toFixed(1)
+      const l = phases.layout.toFixed(1)
+      const s = phases.scroll.toFixed(1)
+      const c = phases.content.toFixed(1)
+      const o = phases.output.toFixed(1)
+      process.stderr.write(
+        `[render] react=${react}ms pipeline=${pipeline}ms (measure=${m} layout=${l} scroll=${s} content=${c} output=${o}) buffer=${buffer}ms total=${total}ms\n`,
+      )
+    } else {
+      process.stderr.write(`[render] react=${react}ms pipeline=${pipeline}ms buffer=${buffer}ms total=${total}ms\n`)
+    }
   }
 
   // ========================================================================
@@ -860,11 +853,13 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
       }
     }
 
-    // Handle resize events — invalidate prevTermBuffer so the next render
-    // does a full content pass (dimension mismatch = stale buffer).
+    // Handle resize events — invalidate buffers and repaint immediately.
+    // Without scheduleRender(), a resize with no pending key events would
+    // leave stale content on screen until the user's next keystroke.
     if (event.type === "resize") {
       prevTermBuffer = null
       runtime.invalidate()
+      scheduleRender()
     }
 
     return true
