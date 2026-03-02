@@ -14,7 +14,12 @@ inkx's state management is a thin integration layer over established libraries, 
 | Store container | [Zustand](https://github.com/pmndrs/zustand) | Store identity, middleware pipeline, React integration |
 | App lifecycle | inkx `createApp()` | Terminal I/O, key routing, effect dispatch, exit handling |
 
-`createApp()` creates a Zustand store whose state fields are Preact signals. Zustand provides the outer shell — store identity, middleware pipeline, and React context (`useApp()`). Signals provide the inner reactivity — components read `.value` and automatically re-render when values change. inkx adds middleware that intercepts `Effect[]` returns from domain functions and routes them to declared effect runners. Everything else — the signal reactivity, the store subscription model, the React hooks — comes from the underlying libraries.
+`createApp()` creates a Zustand store whose state fields are Preact signals. inkx bridges the two with a middleware that uses `effect()` from `@preact/signals-core` to watch all signals in the store — when any signal's `.value` changes, the middleware notifies Zustand's subscribers. This means both subscription models work:
+
+- **Signal subscriptions**: Components read `.value` directly — fine-grained, automatic
+- **Zustand subscriptions**: `useApp(s => s.cursor.value)` — selector-based, familiar
+
+inkx adds a second middleware that intercepts `Effect[]` returns from domain functions and routes them to declared effect runners. Everything else — the signal reactivity, the store subscription model, the React hooks — comes from the underlying libraries.
 
 `createApp()` returns more than just the store — it bundles terminal I/O, key routing, effect dispatch, and exit handling into a single `app.run(<Component />)` call. Components access the store via `useApp()`, which returns the object your factory created (signals, computed values, methods).
 
