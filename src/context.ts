@@ -52,6 +52,12 @@ export interface StdoutContextValue {
    * inline mode cursor positioning accounts for the displacement.
    */
   notifyScrollback?: (lines: number) => void
+  /**
+   * Reset inline cursor state in the output phase.
+   * Used by useScrollback on resize to clear cursor tracking before
+   * re-emitting frozen items at the new width.
+   */
+  resetInlineCursor?: () => void
 }
 
 /**

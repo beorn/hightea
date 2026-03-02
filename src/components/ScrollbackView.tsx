@@ -191,6 +191,7 @@ export function ScrollbackView<T>({
     render: renderFrozen,
     stdout,
     markers,
+    width: effectiveWidth,
   })
 
   // Clean up snapshot refs for items that have been flushed to scrollback

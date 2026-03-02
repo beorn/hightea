@@ -58,14 +58,18 @@ export function setOutputCaps(
 export type OutputCaps = Pick<TerminalCaps, "underlineStyles" | "underlineColor" | "colorLevel">
 
 /** Output phase function signature. */
-export type OutputPhaseFn = (
-  prev: TerminalBuffer | null,
-  next: TerminalBuffer,
-  mode?: "fullscreen" | "inline",
-  scrollbackOffset?: number,
-  termRows?: number,
-  cursorPos?: CursorState | null,
-) => string
+export interface OutputPhaseFn {
+  (
+    prev: TerminalBuffer | null,
+    next: TerminalBuffer,
+    mode?: "fullscreen" | "inline",
+    scrollbackOffset?: number,
+    termRows?: number,
+    cursorPos?: CursorState | null,
+  ): string
+  /** Reset inline cursor state. Used by useScrollback to clear cursor tracking on resize. */
+  resetInlineState?: () => void
+}
 
 // ============================================================================
 // Output Phase Measurer (module-local, avoids dual-module-loading issues)
@@ -111,7 +115,7 @@ export function createOutputPhase(caps: Partial<OutputCaps>, measurer?: OutputMe
   // Each createOutputPhase() call gets its own state, eliminating module-level globals.
   const inlineState = createInlineCursorState()
 
-  return function scopedOutputPhase(
+  const fn: OutputPhaseFn = function scopedOutputPhase(
     prev: TerminalBuffer | null,
     next: TerminalBuffer,
     mode: "fullscreen" | "inline" = "fullscreen",
@@ -130,6 +134,13 @@ export function createOutputPhase(caps: Partial<OutputCaps>, measurer?: OutputMe
       _outputMeasurer = prevMeasurer
     }
   }
+
+  fn.resetInlineState = () => {
+    Object.assign(inlineState, createInlineCursorState())
+    inlineState.forceFirstRender = true
+  }
+
+  return fn
 }
 // These use getters so they can be set after module load (e.g., in test files).
 // INKX_STRICT enables buffer + output checks (per-frame).
@@ -163,11 +174,14 @@ interface InlineCursorState {
   prevOutputLines: number
   /** Previous frame's buffer — used for incremental rendering when runtime invalidates (resize). */
   prevBuffer: TerminalBuffer | null
+  /** When true, the next inline render treats prev as null (first-render path).
+   *  Set by resetInlineState() after useScrollback clears and re-emits frozen items. */
+  forceFirstRender: boolean
 }
 
 /** Create fresh inline cursor state (unknown position → first call falls back to full render). */
 function createInlineCursorState(): InlineCursorState {
-  return { prevCursorRow: -1, prevOutputLines: 0, prevBuffer: null }
+  return { prevCursorRow: -1, prevOutputLines: 0, prevBuffer: null, forceFirstRender: false }
 }
 
 /**
@@ -488,6 +502,14 @@ export function outputPhase(
   // Instance-scoped state (via createOutputPhase) enables incremental across frames.
   const inlineState = _inlineState ?? createInlineCursorState()
 
+  // After resetInlineState (e.g., useScrollback cleared and re-emitted frozen items),
+  // treat the next render as a first render. The cursor is at a known position
+  // (right after the re-emitted frozen items) and prev is stale.
+  if (mode === "inline" && inlineState.forceFirstRender) {
+    inlineState.forceFirstRender = false
+    prev = null // may already be null (runtime.invalidate on resize), consume flag regardless
+  }
+
   // First render: output entire buffer
   if (!prev) {
     // Inline mode resize optimization: if the runtime invalidated prevBuffer (resize)
@@ -514,12 +536,14 @@ export function outputPhase(
       let firstStartLine = 0
       if (termRows != null && firstContentLines > termRows) firstStartLine = firstContentLines - termRows
 
-      // Resize/invalidation: prev=null but we've rendered before (cursor tracking active).
-      // Clear only the area we previously rendered — not the entire terminal.
-      // Using termRows would wipe scrollback content that isn't ours.
+      // Resize: clear the entire visible screen and re-render.
+      // Terminal reflow is unpredictable — lines wrap differently based on content,
+      // unicode, wrap points. Rather than guessing cursor-up distances, overshoot:
+      // ESC[nA is clamped at row 0 of the visible screen (can't touch scrollback),
+      // so using termRows is safe. Frozen scrollback content above is preserved.
       let prefix = ""
       if (inlineState.prevCursorRow >= 0) {
-        const clearDistance = Math.max(inlineState.prevCursorRow, inlineState.prevOutputLines - 1)
+        const clearDistance = termRows ?? Math.max(inlineState.prevCursorRow, inlineState.prevOutputLines - 1)
         if (clearDistance > 0) {
           prefix += `\x1b[${clearDistance}A`
         }

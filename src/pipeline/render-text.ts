@@ -1048,6 +1048,7 @@ export function renderText(
   scrollOffset = 0,
   clipBounds?: { top: number; bottom: number; left?: number; right?: number },
   inheritedBg?: Color,
+  inheritedFg?: Color,
 ): void {
   const { x, width, height } = layout
   let { y } = layout
@@ -1090,8 +1091,12 @@ export function renderText(
   // (not embedded as ANSI codes) to survive text wrapping correctly.
   const { text, bgSegments } = collectTextWithBg(node, {}, 0, maxDisplayWidth)
 
-  // Get style for this Text node
+  // Get style for this Text node.
+  // Inherit foreground from nearest ancestor Box with color prop (CSS semantics).
   const style = getTextStyle(props)
+  if (style.fg === null && inheritedFg !== undefined) {
+    style.fg = inheritedFg
+  }
 
   // Handle wrapping/truncation
   let lines = formatTextLines(text, width, props.wrap)

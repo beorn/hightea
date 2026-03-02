@@ -378,15 +378,32 @@ import { useScrollback } from "inkx"
 const frozenCount = useScrollback(items, {
   frozen: (item) => item.complete,
   render: (item) => `  ✓ ${item.title}`,
+  width: terminalWidth,
 })
 ```
 
-| Option   | Type                                  | Description                               |
-| -------- | ------------------------------------- | ----------------------------------------- |
-| `frozen` | `(item: T, index: number) => boolean` | Predicate for frozen items                |
-| `render` | `(item: T, index: number) => string`  | Render item to string for stdout          |
-| `stdout` | `{ write(data: string): boolean }`    | Output stream (default: `process.stdout`) |
+| Option    | Type                                    | Description                               |
+| --------- | --------------------------------------- | ----------------------------------------- |
+| `frozen`  | `(item: T, index: number) => boolean`   | Predicate for frozen items                |
+| `render`  | `(item: T, index: number) => string`    | Render item to string for stdout          |
+| `stdout`  | `{ write(data: string): boolean }`      | Output stream (default: `process.stdout`) |
+| `markers` | `boolean \| ScrollbackMarkerCallbacks`  | OSC 133 semantic markers for terminal navigation |
+| `width`   | `number`                                | Terminal width — enables resize re-emission |
 
 Returns the current frozen count (contiguous prefix length).
 
 **Requires inline mode** — scrollback only exists in the normal screen buffer.
+
+### Resize Re-emission
+
+When `width` is provided and changes, useScrollback clears the visible screen and re-emits all frozen items at the new width. This is necessary because the output phase clears the entire visible screen on resize, which would otherwise wipe visible frozen items.
+
+This is O(1) on normal frames (width unchanged) and O(N) renderStringSync on resize (infrequent).
+
+### DECAWM Handling
+
+All stdout writes use `\r\n` instead of bare `\n` to cancel the terminal's pending-wrap state. When a line fills exactly the terminal width, the cursor enters pending-wrap; a bare `\n` would cause a double line advance. `\r` cancels pending-wrap by moving to column 0 first.
+
+### OSC 133 Markers
+
+When `markers: true`, each frozen item is bracketed with OSC 133 prompt/command markers, enabling terminal navigation (Cmd+Up/Down in iTerm2, Kitty, WezTerm, Ghostty). Custom marker callbacks are also supported for per-item control.

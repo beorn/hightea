@@ -520,12 +520,14 @@ function renderNodeToBuffer(
     renderBox(node, buffer, layout, props, clipBounds, scrollOffset, skipBgFill)
   } else if (node.type === "inkx-text") {
     if (_instrumentEnabled) _contentPhaseStats.textNodes++
-    // Pass inherited bg from nearest ancestor with backgroundColor.
-    // This decouples text bg inheritance from buffer state, which is critical
+    // Pass inherited bg/fg from nearest ancestor with backgroundColor/color.
+    // This decouples text inheritance from buffer state, which is critical
     // for incremental rendering: getCellBg on a cloned buffer may return stale
     // bg at positions outside the parent's bg-filled region (overflow text).
+    // Foreground inheritance matches CSS semantics: Box color cascades to Text children.
     const textInheritedBg = findInheritedBg(node).color
-    renderText(node, buffer, layout, props, scrollOffset, clipBounds, textInheritedBg)
+    const textInheritedFg = findInheritedFg(node)
+    renderText(node, buffer, layout, props, scrollOffset, clipBounds, textInheritedBg, textInheritedFg)
   }
 
   // Render children
@@ -1108,6 +1110,21 @@ function findInheritedBg(node: InkxNode): InheritedBgResult {
     current = current.parent
   }
   return { color: null, ancestorRect: null }
+}
+
+/**
+ * Find the nearest ancestor Box with a `color` prop and return the parsed color.
+ * Implements CSS-style foreground color inheritance: Text children without an
+ * explicit `color` prop inherit from the nearest Box ancestor that sets one.
+ */
+function findInheritedFg(node: InkxNode): Color {
+  let current = node.parent
+  while (current) {
+    const fg = (current.props as BoxProps).color
+    if (fg) return parseColor(fg)
+    current = current.parent
+  }
+  return null
 }
 
 /**

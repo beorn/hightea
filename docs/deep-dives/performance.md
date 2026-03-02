@@ -64,6 +64,7 @@ inkx's five-phase render pipeline (measure, layout, content, output, buffer) con
 | 5.6 | **Optimized ANSI output**                   | Relative cursor moves (`CUF`/`CUD`) for small jumps, `\r\n` for next-line-column-0. Style coalescing emits SGR only on transitions. Dimension-aware diffing for size mismatches.                                                                                     |
 | 5.7 | **Wide character atomic diff**              | Wide char + continuation cell treated as a single atomic unit during cell-level diff. Orphaned continuation cells (main cell unchanged) trigger re-emit of the main cell from the buffer. Eliminates previous full-row fallback for rows containing wide characters. |
 | 5.8 | **Inline incremental rendering**            | Instance-scoped cursor tracking in `createOutputPhase()` closure enables buffer diffing for inline mode. Uses relative cursor positioning (`CUU`/`CUD`/`\r`/`CUF`) instead of absolute. Falls back to full render when guard conditions fail (scrollback, resize, height change). 28-192x fewer bytes vs full re-render. |
+| 5.9 | **Scrollback resize re-emission** | On terminal resize, useScrollback re-renders frozen items at the new width and re-emits all to stdout. Necessary because the output phase clears the visible screen on resize, wiping visible frozen items. Resets output phase cursor tracking so the next render uses the first-render path. O(1) on normal frames, O(N) on resize (infrequent). |
 
 ### 6. Buffer
 
@@ -109,6 +110,19 @@ In fullscreen mode, `diffBuffers` + `changesToAnsi` emit only changed cells (~21
 | 50 rows, 1 change | 6,324 bytes | 33 bytes | 192x |
 
 Benchmarks: `tests/inline-output.bench.ts`, `examples/interactive/inline-bench.tsx`.
+
+### Scrollback Resize Re-emission
+
+Frozen items in terminal scrollback are rendered at a specific width. When the terminal resizes, the output phase clears the entire visible screen before rendering live content — wiping any frozen items that are visible. `useScrollback` re-emits all frozen items on every width change:
+
+1. Store the rendered string for each frozen item when it's written to stdout
+2. On width change, re-render each item via the `render()` callback at the new width
+3. Clear visible screen and re-emit all frozen items at the new width
+4. Reset the output phase's cursor tracking so the next render uses the first-render path (no clear prefix)
+
+Re-emission always happens on width change because the output phase would otherwise wipe visible frozen items. The cost is O(N) `renderStringSync` on resize (infrequent). Normal frames are O(1) (width unchanged → skip).
+
+Tests: `tests/scrollback-resize.test.tsx`.
 
 ## Investigated and Rejected
 

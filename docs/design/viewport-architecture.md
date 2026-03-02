@@ -225,16 +225,34 @@ A live component may span both screen and scrollback (it's tall enough that its 
 
 This is the key performance insight: most updates to a tall item (like a streaming response) append at the bottom (screen portion), so the scrollback portion rarely changes. Only structural changes (editing earlier content) trigger the expensive path.
 
-## Resize Strategy: Nuke-and-Redraw
+## Resize Strategy: Scrollback Re-emission
 
-When the terminal resizes (especially width changes), content in scrollback is at the old width. The terminal won't reflow it. Our options:
+When the terminal resizes (especially width changes), frozen items in scrollback were rendered at the old width and the terminal's reflow is unpredictable. The output phase clears the entire visible screen before rendering live content, which wipes any frozen items that are visible. `useScrollback` re-emits all frozen items on every width change.
 
-1. **Leave it** — scrollback has wrong-width content, live area reflows correctly. Ugly but functional.
-2. **Nuke-and-redraw** — `CSI 3J` clears scrollback, then re-render all retained items at new width.
+### How it works
 
-We choose (2) for correctness. `CSI 3J` is supported by all modern terminals (xterm, Ghostty, Kitty, WezTerm, iTerm2, GNOME Terminal). The cost is proportional to the number of retained (virtualized) items, but resizes are infrequent.
+1. When items freeze, store their rendered strings (what was written to stdout)
+2. On width change, re-render each frozen item via the `render()` callback at the new width
+3. Clear visible screen and re-emit all frozen items at the new width
+4. Reset the output phase cursor tracking so the next render uses the first-render path
 
-For ScrollbackView with a `maxHistory` of 5,000 lines, a resize reprints at most 5,000 lines — fast enough to be imperceptible.
+Re-emission always happens on width change because the output phase would otherwise wipe visible frozen items. The cost is O(N) `renderStringSync` on resize (infrequent). Normal frames are O(1) (width unchanged → skip).
+
+### Sequence
+
+```
+useLayoutEffect detects width change:
+  1. Re-render frozen items at new width
+  2. resetInlineCursor() → output phase forgets cursor position
+  3. stdout: CSI 9999A + CR + CSI J → clear visible screen
+  4. stdout: re-rendered frozen items → new scrollback
+  5. notifyScrollback(totalLines) → output phase tracks displacement
+  6. Update stored strings
+  7. Output phase sees reset state → first-render path (no clear prefix)
+  8. Live content appears below frozen items
+```
+
+The `useLayoutEffect` fires BEFORE the pipeline generates live content, ensuring frozen items are re-emitted to stdout before the live area is drawn.
 
 ## Trade-off Matrix
 
@@ -263,14 +281,22 @@ ScrollbackView uses DECSTBM (scroll regions) to pin a footer/status bar at the b
 3. Issue `CSI S` (scroll up) within the region for the live content area
 4. Update status bar on the excluded bottom row via cursor positioning
 
+## Implemented Optimizations
+
+1. **OSC 8 hyperlinks in scrollback**: Frozen content preserves clickable links (file paths, URLs) that remain functional in terminal scrollback. The render pipeline generates OSC 8 sequences, and `\r\n` normalization in useScrollback doesn't corrupt them.
+
+2. **OSC 133 semantic markers**: `useScrollback({ markers: true })` emits shell integration marks around each frozen item, enabling "jump to previous item" (Cmd+Up/Down) in iTerm2, Kitty, WezTerm, and Ghostty. Custom marker callbacks provide per-item control.
+
+3. **Content-change detection on resize**: See "Resize Strategy" above — avoids unnecessary re-emission when content is identical at both widths.
+
+4. **DECAWM pending-wrap handling**: All stdout writes use `\r\n` instead of bare `\n` to prevent double line advance when content fills exactly the terminal width.
+
+5. **Inline incremental rendering**: The output phase diffs buffers and emits only changed cells using relative cursor positioning, achieving 28-192x reduction in bytes per keystroke compared to full re-render.
+
 ## Open Questions (Future Work)
 
 1. **Scroll position detection**: No terminal protocol exists to detect whether the user has scrolled up. This means the app can't show "you've scrolled away, new content below" indicators. A future terminal protocol extension could solve this.
 
-2. **OSC 8 hyperlinks in scrollback**: Frozen content could include clickable links (file paths, URLs) that remain functional in scrollback. Worth implementing.
-
-3. **iTerm2/Kitty semantic marks**: Emitting shell integration marks (OSC 133) around each item would enable "jump to previous item" in supporting terminals.
-
-4. **React `<Activity>`/`<Offscreen>`**: If React ships this, it could provide a "paused" state that preserves hook state without rendering. Worth revisiting if it proves useful for terminal UIs.
+2. **React `<Activity>`/`<Offscreen>`**: If React ships this, it could provide a "paused" state that preserves hook state without rendering. Worth revisiting if it proves useful for terminal UIs.
 
 5. **Streaming items that scroll off**: A long streaming response scrolls its top into scrollback while the bottom is still live. The tall-item optimization handles this, but the UX of having partially-frozen content is worth studying further.

@@ -858,7 +858,7 @@ describe("Inline mode: resize clears old content before re-render", () => {
     expect(out).toContain("a")
   })
 
-  test("resize with termRows clears before re-rendering", () => {
+  test("resize with termRows clears entire visible screen", () => {
     const render = createOutputPhase({})
     const termRows = 10
 
@@ -873,11 +873,11 @@ describe("Inline mode: resize clears old content before re-render", () => {
     fillBuffer(buf2, 8, "a")
     const out = render(null, buf2, "inline", 0, termRows)
 
-    // Cursor-up distance = max(prevCursorRow=7, prevOutputLines-1=7) = 7
-    // Only clears what we rendered, not the full terminal
+    // On resize with termRows, uses termRows (10) as clearDistance
+    // ESC[nA clamps at row 0, so overshooting is safe
     const ups = extractCursorUp(out)
     expect(ups.length).toBeGreaterThanOrEqual(1)
-    expect(ups[0]).toBe(7)
+    expect(ups[0]).toBe(10)
     expect(containsClearToEndOfScreen(out)).toBe(true)
     expect(out).toContain("a")
   })
@@ -975,27 +975,47 @@ describe("Inline mode: resize clears old content before re-render", () => {
     expect(out).toContain("a")
   })
 
-  test("resize wide→narrow: only clears what we rendered, not full terminal", () => {
+  test("resize wide→narrow: uses termRows for full visible screen clear", () => {
     const render = createOutputPhase({})
     const termRows = 30
 
-    // Frame 1: render 5 lines with large termRows
+    // Frame 1: render 5 lines at 80 cols
     const buf1 = new TerminalBuffer(80, 40)
     fillBuffer(buf1, 5) // A..E
     render(null, buf1, "inline", 0, termRows)
     // State: prevCursorRow=4, prevOutputLines=5
 
-    // Frame 2: resize narrower (different buffer dims → clear path)
+    // Frame 2: resize to 40 cols (half width)
     const buf2 = new TerminalBuffer(40, 40)
     fillBuffer(buf2, 5, "a")
     const out = render(null, buf2, "inline", 0, termRows)
 
-    // Cursor-up distance = max(prevCursorRow=4, prevOutputLines-1=4) = 4
-    // Only clears the 5 lines we rendered, not the full 30-row terminal
+    // On resize, uses termRows (30) as clearDistance — not the stale prevOutputLines.
+    // ESC[nA is clamped at terminal row 0, so overshooting is safe.
+    // This handles terminal reflow without guessing wrap behavior.
     const ups = extractCursorUp(out)
-    expect(ups[0]).toBe(4)
+    expect(ups[0]).toBe(30)
     expect(containsClearToEndOfScreen(out)).toBe(true)
     expect(out).toContain("a")
+  })
+
+  test("resize without termRows: falls back to prevOutputLines", () => {
+    const render = createOutputPhase({})
+
+    // Frame 1: render 4 lines (no termRows)
+    const buf1 = new TerminalBuffer(120, 30)
+    fillBuffer(buf1, 4) // A..D
+    render(null, buf1, "inline")
+    // State: prevCursorRow=3, prevOutputLines=4
+
+    // Frame 2: resize (no termRows → falls back to max(prevCursorRow, prevOutputLines-1))
+    const buf2 = new TerminalBuffer(40, 30)
+    fillBuffer(buf2, 4, "a")
+    const out = render(null, buf2, "inline")
+
+    const ups = extractCursorUp(out)
+    expect(ups[0]).toBe(3) // max(3, 3) = 3
+    expect(containsClearToEndOfScreen(out)).toBe(true)
   })
 
   test("multi-line content with cursor at top: cursor-up covers all content", () => {
@@ -1118,11 +1138,11 @@ describe("Inline mode: resize buffer content after clear", () => {
     expect(out2).toContain("NEW-Footer")
   })
 
-  test("resize with different dims: clears only our render area", () => {
+  test("resize with termRows: clears entire visible screen", () => {
     const render = createOutputPhase({})
     const termRows = 20
 
-    // Frame 1: 3 lines of content in a 20-row terminal
+    // Frame 1: 3 lines of content at 40 cols
     const buf1 = new TerminalBuffer(40, 30)
     writeStr(buf1, 0, 0, "Line-A")
     writeStr(buf1, 0, 1, "Line-B")
@@ -1130,17 +1150,16 @@ describe("Inline mode: resize buffer content after clear", () => {
     render(null, buf1, "inline", 0, termRows)
     // State: prevCursorRow=2, prevOutputLines=3
 
-    // Frame 2: resize (narrower — different buffer width triggers clear path)
+    // Frame 2: resize narrower — uses termRows as clearDistance
     const buf2 = new TerminalBuffer(20, 30)
     writeStr(buf2, 0, 0, "X-Line-A")
     writeStr(buf2, 0, 1, "X-Line-B")
     writeStr(buf2, 0, 2, "X-Line-C")
     const out2 = render(null, buf2, "inline", 0, termRows)
 
-    // clearDistance = max(prevCursorRow=2, prevOutputLines-1=2) = 2
-    // Only clears our 3 lines, not the full 20-row terminal
+    // With termRows=20, clearDistance=20 (overshoots but safe — ESC[nA clamps)
     const ups = extractCursorUp(out2)
-    expect(ups[0]).toBe(2)
+    expect(ups[0]).toBe(20)
     expect(containsClearToEndOfScreen(out2)).toBe(true)
     expect(out2).toContain("X-Line-A")
     expect(out2).toContain("X-Line-C")
