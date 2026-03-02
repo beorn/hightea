@@ -296,17 +296,33 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     }
   }
 
-  // Create mock stdout
+  // Create mock stdout with mutable dimensions and event support (for resize)
+  const stdoutEmitter = new EventEmitter()
   const mockStdout = {
     columns: instance.columns,
     rows: instance.rows,
     write: () => true,
     isTTY: true,
-    on: () => mockStdout,
-    off: () => mockStdout,
-    once: () => mockStdout,
-    removeListener: () => mockStdout,
-    addListener: () => mockStdout,
+    on: (event: string, listener: (...args: unknown[]) => void) => {
+      stdoutEmitter.on(event, listener)
+      return mockStdout
+    },
+    off: (event: string, listener: (...args: unknown[]) => void) => {
+      stdoutEmitter.off(event, listener)
+      return mockStdout
+    },
+    once: (event: string, listener: (...args: unknown[]) => void) => {
+      stdoutEmitter.once(event, listener)
+      return mockStdout
+    },
+    removeListener: (event: string, listener: (...args: unknown[]) => void) => {
+      stdoutEmitter.removeListener(event, listener)
+      return mockStdout
+    },
+    addListener: (event: string, listener: (...args: unknown[]) => void) => {
+      stdoutEmitter.addListener(event, listener)
+      return mockStdout
+    },
   } as unknown as NodeJS.WriteStream
 
   // Create mock term
@@ -714,6 +730,25 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     instance.frames.push(newFrame)
   }
 
+  // Resize: update dimensions, clear prevBuffer, re-render (matches scheduler resize behavior)
+  const resizeFn = (newCols: number, newRows: number) => {
+    if (!instance.mounted) {
+      throw new Error("Cannot resize after unmount")
+    }
+    instance.columns = newCols
+    instance.rows = newRows
+    mockStdout.columns = newCols
+    mockStdout.rows = newRows
+    // Clear prevBuffer to force full redraw (matches scheduler.setupResizeListener)
+    instance.prevBuffer = null
+    // Re-render at new dimensions
+    const newFrame = doRender()
+    instance.frames.push(newFrame)
+    if (debug) {
+      console.log("[inkx] Resize:", newCols, "x", newRows)
+    }
+  }
+
   // Build unified App instance
   return buildApp({
     getContainer,
@@ -732,6 +767,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     rows: rows,
     kittyMode,
     actAndRender: actAndRenderFn,
+    resize: resizeFn,
     focusManager,
   })
 }

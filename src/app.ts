@@ -81,6 +81,9 @@ export interface App {
   /** Simulate a mouse wheel event at (x, y) with delta (-1=up, +1=down) */
   wheel(x: number, y: number, delta: number): Promise<this>
 
+  /** Resize the virtual terminal and re-render. Only available in test renderer. */
+  resize(cols: number, rows: number): void
+
   /** Wait until app exits */
   run(): Promise<void>
 
@@ -211,6 +214,9 @@ export interface AppOptions {
   /** Wrap a callback in act() + doRender() for the test renderer. Ensures React state updates from mouse handlers are flushed. */
   actAndRender?: (fn: () => void) => void
 
+  /** Resize the virtual terminal (test renderer only). */
+  resize?: (cols: number, rows: number) => void
+
   /** Focus manager instance for focus system */
   focusManager?: FocusManager
 }
@@ -236,6 +242,7 @@ export function buildApp(options: AppOptions): App {
     rows,
     kittyMode = false,
     actAndRender,
+    resize: resizeFn,
     focusManager: fm,
   } = options
 
@@ -360,6 +367,13 @@ export function buildApp(options: AppOptions): App {
       }
       await Promise.resolve()
       return app
+    },
+
+    resize(cols: number, rows: number): void {
+      if (!resizeFn) {
+        throw new Error("resize() is only available in test renderer")
+      }
+      resizeFn(cols, rows)
     },
 
     async run(): Promise<void> {

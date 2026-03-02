@@ -396,6 +396,7 @@ test("renders and handles input", async () => {
 | `app.click(x, y, opts?)`       | `Promise`      | Simulate mouse click at coordinates  |
 | `app.doubleClick(x, y, opts?)` | `Promise`      | Simulate double-click at coordinates |
 | `app.wheel(x, y, delta)`       | `Promise`      | Simulate wheel scroll at coordinates |
+| `app.resize(cols, rows)`       | `void`         | Resize virtual terminal and re-render (test only) |
 | `app.getByTestId(id)`          | `Locator`      | Find by testID prop                  |
 | `app.getByText(text)`          | `Locator`      | Find by text content                 |
 | `app.locator(sel)`             | `Locator`      | CSS-style attribute selector         |
