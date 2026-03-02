@@ -40,16 +40,18 @@ inkx adds a second middleware that intercepts `Effect[]` returns from domain fun
 
 Each level makes one more thing visible to the system — another level of indirection, another thing that becomes inspectable, testable, and composable:
 
-```
-Level 1: Component State      — nothing visible to the system
-Level 2: Shared State         — system sees state (shared, reactive)
-Level 3: Operations as Data   — system sees what you DO (serializable, replayable)
-Level 4: Effects as Data      — system sees what HAPPENS (testable, swappable)
-```
+| Level | What becomes visible | What you can now do |
+|-------|---------------------|---------------------|
+| **1 — Component** | — | Local state, no abstractions |
+| **2 — Shared** | State | Share across components, observe, derive, centralized keys |
+| **3 — Ops as Data** | Operations | Undo/redo, replay, AI automation, collaboration, logging |
+| **4 — Effects as Data** | Side effects | Testable I/O, swappable runners, serializable effects |
+
+Most apps never need to go beyond Level 2.
 
 ### Level 1: Component State
 
-State lives in individual components. No coordination overhead, no abstractions — just React.
+State lives in individual components. No coordination overhead — just React.
 
 ```tsx
 import { run, useInput } from "inkx/runtime"
@@ -69,17 +71,11 @@ function Counter() {
 await run(<Counter />)
 ```
 
-**What you gain**: Simplest possible. No abstractions, no learning curve.
-
-**What's invisible**: State is local — can't share, observe, or derive across components.
-
-Good for single-component apps, prototypes, and simple tools where state is self-contained.
+Good for single-component apps, prototypes, and simple tools.
 
 ### Level 2: Shared State
 
-**The problem**: Multiple components need the same state. You're passing props through layers that don't use them. Key handling is scattered across components instead of centralized.
-
-**The solution**: `createApp()` provides shared state across all components, with centralized key handling.
+`createApp()` provides shared state across all components, with centralized key handling.
 
 ```tsx
 import { createApp, useApp } from "inkx/runtime"
@@ -118,10 +114,6 @@ function ItemList() {
 
 await app.run(<ItemList />)
 ```
-
-**What you gain**: Shared state, centralized key handling, components subscribe to slices.
-
-**What's invisible**: Operations — the system can't see what happened, only that state changed. No undo, no replay, no automation.
 
 **Alternatives**: React Context + `useReducer`, prop drilling, Redux. inkx uses Zustand under the hood, so you get its middleware ecosystem and `useApp(selector)` for free.
 
@@ -190,9 +182,7 @@ Good for most interactive TUI apps — dashboards, file browsers, list views, di
 
 ### Level 3: Operations as Data
 
-**The problem**: The system can't see what operations your app performs — it only sees that state changed. You can't undo, replay, log, or expose operations to AI. State transitions are function calls that happen and are gone.
-
-**The solution**: Operations become plain objects — just JSON. A discriminator field (`op`) identifies what to do; the remaining fields are the parameters. No classes, no closures. This is the same shape as Redux actions, Elm messages, and event sourcing events. We call them **ops**.
+Operations become plain objects — just JSON. A discriminator field (`op`) identifies what to do; the remaining fields are the parameters. No classes, no closures. Same shape as Redux actions, Elm messages, and event sourcing events. We call them **ops**.
 
 Domain functions take a params object instead of positional args. This single change — `delta` becomes `{ delta }` — makes operations serializable:
 
@@ -281,19 +271,11 @@ test("apply dispatches to named functions", () => {
 })
 ```
 
-**What you gain**: Undo/redo (record ops, replay or invert). AI automation (ops as tool call results). Collaboration (send ops over the wire). Logging (serialize what happened). Time-travel debugging (replay any sequence).
-
-**What's invisible**: Effects — side effects (I/O, network, toasts) are still imperative. Can't test what effects were triggered without mocking.
-
 **Alternatives**: Redux actions + reducers (switch/case dispatch — same shape, more ceremony). Elm messages. Event sourcing events. The Command pattern. All are the same idea: make operations into plain serializable objects.
-
-Good for apps that need undo/redo, operation logging, AI automation, or collaborative editing.
 
 ### Level 4: Effects as Data
 
-**The problem**: Side effects (file I/O, HTTP, timers, toasts) are tangled into your domain functions or store methods. You can test that state changed, but not that a save was triggered or a notification was sent — not without mocking the world.
-
-**The solution**: Domain functions return effects as plain objects — the same shape as ops. A discriminator field (`effect`) identifies what should happen; the remaining fields are the parameters. The runtime dispatches them to declared effect runners. The domain function never touches I/O.
+Domain functions return effects as plain objects — the same shape as ops. A discriminator field (`effect`) identifies what should happen; the remaining fields are the parameters. The runtime dispatches them to declared effect runners. The domain function never touches I/O.
 
 ```tsx
 type Effect =
@@ -377,11 +359,7 @@ No mocks. No I/O. No async.
 
 **The upgrade is per-function, not per-app.** Within a single domain object, some functions return nothing (Level 3) and others return `Effect[]` (Level 4). You upgrade individual functions as they need effects.
 
-**What you gain**: Testable I/O (assert on effect data, not mocked calls). Swappable runners (production vs test). Serializable side effects (log, replay). Composable effects (batch, dedupe).
-
 **Alternatives**: Promises/thunks (simpler but opaque — can't inspect, can't replay, can't swap runners). Dependency injection (testable but requires wiring). Mocking (fragile, couples tests to implementation). The Elm Architecture and redux-loop use this same pattern.
-
-Good for apps with complex I/O, undo/redo, or where you need testable side effects.
 
 ### Scaling with Signals
 
@@ -443,15 +421,6 @@ removeNode(nodeId: string) {
 ```
 
 **You don't need per-entity signals for most apps.** A few top-level signals in the store handles dozens of components fine. Reach for `Map<string, Signal<T>>` when you have per-entity state with many concurrent subscribers — typically virtualized lists, tree views, or document editors.
-
-## When to Use Each Level
-
-| Need | Level |
-|------|-------|
-| One component, simple state | 1 — Component |
-| Multiple components share state | 2 — Shared |
-| Undo/redo, replay, AI automation, collaboration | 3 — Operations as Data |
-| Testable side effects, swappable I/O runners | 4 — Effects as Data |
 
 ## Composing Machines
 
