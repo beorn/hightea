@@ -161,11 +161,13 @@ interface InlineCursorState {
   prevCursorRow: number
   /** Total output lines rendered in last frame. Used to clear old content on resize. */
   prevOutputLines: number
+  /** Previous frame's buffer — used for incremental rendering when runtime invalidates (resize). */
+  prevBuffer: TerminalBuffer | null
 }
 
 /** Create fresh inline cursor state (unknown position → first call falls back to full render). */
 function createInlineCursorState(): InlineCursorState {
-  return { prevCursorRow: -1, prevOutputLines: 0 }
+  return { prevCursorRow: -1, prevOutputLines: 0, prevBuffer: null }
 }
 
 /**
@@ -488,6 +490,19 @@ export function outputPhase(
 
   // First render: output entire buffer
   if (!prev) {
+    // Inline mode resize optimization: if the runtime invalidated prevBuffer (resize)
+    // but we have a stored buffer with matching dimensions, use incremental rendering
+    // instead of clear+full render. This avoids wiping content when the buffer is unchanged
+    // (e.g., content narrower than both old and new terminal widths).
+    if (mode === "inline" && inlineState.prevBuffer && inlineState.prevCursorRow >= 0) {
+      const stored = inlineState.prevBuffer
+      if (stored.width === next.width && stored.height === next.height) {
+        // Dimensions match — use incremental rendering (skip clear entirely)
+        inlineState.prevBuffer = next
+        return inlineIncrementalRender(inlineState, stored, next, scrollbackOffset, termRows, cursorPos)
+      }
+    }
+
     // In inline mode, cap output to terminal height to prevent scrollback corruption.
     // Content taller than the terminal would push lines into scrollback where they
     // can never be overwritten on re-render (cursor-up is clamped at terminal row 0).
@@ -500,16 +515,18 @@ export function outputPhase(
       if (termRows != null && firstContentLines > termRows) firstStartLine = firstContentLines - termRows
 
       // Resize/invalidation: prev=null but we've rendered before (cursor tracking active).
-      // Move cursor to the top of the previous render region and clear to end of screen,
-      // otherwise new content appends below stale content → visible duplication.
+      // Clear only the area we previously rendered — not the entire terminal.
+      // Using termRows would wipe scrollback content that isn't ours.
       let prefix = ""
       if (inlineState.prevCursorRow >= 0) {
-        if (inlineState.prevCursorRow > 0) {
-          prefix += `\x1b[${inlineState.prevCursorRow}A`
+        const clearDistance = Math.max(inlineState.prevCursorRow, inlineState.prevOutputLines - 1)
+        if (clearDistance > 0) {
+          prefix += `\x1b[${clearDistance}A`
         }
         prefix += "\r\x1b[J" // column 0, clear from cursor to end of screen
       }
 
+      inlineState.prevBuffer = next
       updateInlineCursorRow(inlineState, cursorPos, firstMaxOutput, firstStartLine)
       return prefix + firstOutput + inlineCursorSuffix(cursorPos ?? null, next, termRows)
     }
@@ -524,6 +541,7 @@ export function outputPhase(
 
   // Inline mode: use incremental rendering when safe, fall back to full render.
   if (mode === "inline") {
+    inlineState.prevBuffer = next
     return inlineIncrementalRender(inlineState, prev, next, scrollbackOffset, termRows, cursorPos)
   }
 

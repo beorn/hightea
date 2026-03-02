@@ -21,6 +21,7 @@
  * ```
  */
 
+import { createOutputPhase } from "../pipeline/output-phase.js"
 import { takeUntil } from "../streams/index.js"
 import { diff } from "./diff.js"
 import type { Buffer, Dims, Event, Runtime, RuntimeOptions } from "./types.js"
@@ -121,7 +122,12 @@ function createEventChannel(signal: AbortSignal): EventChannel {
  * @returns Runtime instance implementing Symbol.dispose
  */
 export function createRuntime(options: RuntimeOptions): Runtime {
-  const { target, signal: externalSignal, mode = "fullscreen", outputPhaseFn } = options
+  const { target, signal: externalSignal, mode = "fullscreen" } = options
+
+  // Inline mode needs persistent cursor tracking across frames.
+  // If no outputPhaseFn provided, create one so prevCursorRow/prevOutputLines
+  // persist between renders (bare diff() creates fresh state each call).
+  const outputPhaseFn = options.outputPhaseFn ?? (mode === "inline" ? createOutputPhase({}) : undefined)
 
   // Internal abort controller for cleanup
   const controller = new AbortController()

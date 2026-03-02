@@ -833,6 +833,7 @@ describe("Inline mode: resize clears old content before re-render", () => {
     const buf1 = new TerminalBuffer(20, 10)
     fillBuffer(buf1, 5) // A..E
     render(null, buf1, "inline")
+    // State: prevCursorRow=4, prevOutputLines=5
 
     // Frame 2: simulate resize — pass null as prev (runtime.invalidate())
     // but with different buffer dimensions
@@ -841,10 +842,10 @@ describe("Inline mode: resize clears old content before re-render", () => {
 
     const out = render(null, buf2, "inline")
 
-    // Must contain cursor-up (to reach top of previous render) + clear-to-end-of-screen
-    // Without this, new content appends below old content → duplication
+    // Cursor-up distance = max(prevCursorRow=4, prevOutputLines-1=4) = 4
     const ups = extractCursorUp(out)
     expect(ups.length).toBeGreaterThanOrEqual(1)
+    expect(ups[0]).toBe(4)
     expect(containsClearToEndOfScreen(out)).toBe(true)
 
     // Must still contain the new content
@@ -859,12 +860,18 @@ describe("Inline mode: resize clears old content before re-render", () => {
     const buf1 = new TerminalBuffer(40, 20)
     fillBuffer(buf1, 8) // A..H
     render(null, buf1, "inline", 0, termRows)
+    // State: prevCursorRow=7, prevOutputLines=8
 
     // Frame 2: resize — wider terminal, null prev
     const buf2 = new TerminalBuffer(60, 20)
     fillBuffer(buf2, 8, "a")
     const out = render(null, buf2, "inline", 0, termRows)
 
+    // Cursor-up distance = max(prevCursorRow=7, prevOutputLines-1=7) = 7
+    // Only clears what we rendered, not the full terminal
+    const ups = extractCursorUp(out)
+    expect(ups.length).toBeGreaterThanOrEqual(1)
+    expect(ups[0]).toBe(7)
     expect(containsClearToEndOfScreen(out)).toBe(true)
     expect(out).toContain("a")
   })
@@ -891,11 +898,16 @@ describe("Inline mode: resize clears old content before re-render", () => {
     const buf1 = new TerminalBuffer(20, 10)
     fillBuffer(buf1, 4) // A..D
     render(null, buf1, "inline")
+    // State: prevCursorRow=3, prevOutputLines=4
 
     // Frame 2: resize (null prev)
     const buf2 = new TerminalBuffer(30, 10)
     fillBuffer(buf2, 4, "a")
     const resizeOut = render(null, buf2, "inline")
+
+    // Cursor-up distance = max(prevCursorRow=3, prevOutputLines-1=3, 0) = 3
+    const ups = extractCursorUp(resizeOut)
+    expect(ups[0]).toBe(3)
     expect(containsClearToEndOfScreen(resizeOut)).toBe(true)
 
     // Frame 3: normal incremental render (prev = buf2)
@@ -913,19 +925,218 @@ describe("Inline mode: resize clears old content before re-render", () => {
     const render = createOutputPhase({})
     const cursorPos: CursorState = { x: 5, y: 1, visible: true }
 
-    // Frame 1: initial with cursor
+    // Frame 1: initial with cursor at y=1
     const buf1 = new TerminalBuffer(20, 10)
     fillBuffer(buf1, 4)
     render(null, buf1, "inline", 0, undefined, cursorPos)
+    // State: prevCursorRow=1, prevOutputLines=4
 
     // Frame 2: resize with cursor
     const buf2 = new TerminalBuffer(30, 10)
     fillBuffer(buf2, 4, "a")
     const out = render(null, buf2, "inline", 0, undefined, cursorPos)
 
-    // Should clear old content
+    // Cursor-up distance = max(prevCursorRow=1, prevOutputLines-1=3, 0) = 3
+    const ups = extractCursorUp(out)
+    // The prefix cursor-up should cover all previously rendered content
+    expect(ups.length).toBeGreaterThanOrEqual(1)
+    expect(ups[0]).toBe(3)
     expect(containsClearToEndOfScreen(out)).toBe(true)
     // Should end with cursor show (cursor is visible)
     expect(endsWithCursorShow(out)).toBe(true)
+  })
+
+  test("resize narrow→wide: cursor-up uses prevOutputLines when > prevCursorRow", () => {
+    const render = createOutputPhase({})
+    const cursorPos: CursorState = { x: 2, y: 3, visible: true }
+
+    // Frame 1: render 10 lines with cursor at y=3
+    const buf1 = new TerminalBuffer(40, 20)
+    fillBuffer(buf1, 10) // A..J
+    render(null, buf1, "inline", 0, undefined, cursorPos)
+    // State: prevCursorRow=3, prevOutputLines=10
+
+    // Frame 2: resize wider (narrow→wide)
+    const buf2 = new TerminalBuffer(80, 20)
+    fillBuffer(buf2, 10, "a")
+    const out = render(null, buf2, "inline", 0, undefined, cursorPos)
+
+    // Cursor-up distance = max(prevCursorRow=3, prevOutputLines-1=9, 0) = 9
+    // This covers all 10 previously rendered lines, not just the 4 above cursor
+    const ups = extractCursorUp(out)
+    expect(ups[0]).toBe(9)
+    expect(containsClearToEndOfScreen(out)).toBe(true)
+    expect(out).toContain("a")
+  })
+
+  test("resize wide→narrow: only clears what we rendered, not full terminal", () => {
+    const render = createOutputPhase({})
+    const termRows = 30
+
+    // Frame 1: render 5 lines with large termRows
+    const buf1 = new TerminalBuffer(80, 40)
+    fillBuffer(buf1, 5) // A..E
+    render(null, buf1, "inline", 0, termRows)
+    // State: prevCursorRow=4, prevOutputLines=5
+
+    // Frame 2: resize narrower (different buffer dims → clear path)
+    const buf2 = new TerminalBuffer(40, 40)
+    fillBuffer(buf2, 5, "a")
+    const out = render(null, buf2, "inline", 0, termRows)
+
+    // Cursor-up distance = max(prevCursorRow=4, prevOutputLines-1=4) = 4
+    // Only clears the 5 lines we rendered, not the full 30-row terminal
+    const ups = extractCursorUp(out)
+    expect(ups[0]).toBe(4)
+    expect(containsClearToEndOfScreen(out)).toBe(true)
+    expect(out).toContain("a")
+  })
+
+  test("multi-line content with cursor at top: cursor-up covers all content", () => {
+    const render = createOutputPhase({})
+    const cursorPos: CursorState = { x: 0, y: 0, visible: true }
+
+    // Frame 1: render 20 lines with cursor at y=0 (top)
+    const buf1 = new TerminalBuffer(40, 30)
+    fillBuffer(buf1, 20) // 20 content lines
+    render(null, buf1, "inline", 0, undefined, cursorPos)
+    // State: prevCursorRow=0, prevOutputLines=20
+
+    // Frame 2: resize
+    const buf2 = new TerminalBuffer(60, 30)
+    fillBuffer(buf2, 20, "a")
+    const out = render(null, buf2, "inline", 0, undefined, cursorPos)
+
+    // Cursor-up distance = max(prevCursorRow=0, prevOutputLines-1=19, 0) = 19
+    // Even though cursor was at top, we still go up by 19 to cover all content
+    const ups = extractCursorUp(out)
+    expect(ups[0]).toBe(19)
+    expect(containsClearToEndOfScreen(out)).toBe(true)
+    expect(out).toContain("a")
+  })
+
+  test("resize with same buffer dimensions: uses incremental rendering, no clear", () => {
+    const render = createOutputPhase({})
+
+    // Frame 1: initial render (5 lines)
+    const buf1 = new TerminalBuffer(40, 10)
+    fillBuffer(buf1, 5) // A..E
+    render(null, buf1, "inline")
+    // State: prevCursorRow=4, prevOutputLines=5, prevBuffer=buf1
+
+    // Frame 2: resize with same buffer dimensions but different content
+    // (e.g., terminal font size changed, or content narrower than both widths)
+    const buf2 = new TerminalBuffer(40, 10) // same dims!
+    fillBuffer(buf2, 5, "a") // a..e
+
+    const out = render(null, buf2, "inline")
+
+    // Same buffer dimensions → incremental rendering, NO clear-to-end-of-screen
+    expect(containsClearToEndOfScreen(out)).toBe(false)
+
+    // Content is still updated (incremental diff finds changes)
+    expect(out).toContain("a")
+    // Output is small (incremental, not full re-render)
+    expect(out.length).toBeLessThan(300)
+  })
+
+  test("resize with same dims and identical content: produces empty output", () => {
+    const render = createOutputPhase({})
+
+    // Frame 1: initial render
+    const buf1 = new TerminalBuffer(40, 10)
+    fillBuffer(buf1, 3) // A..C
+    render(null, buf1, "inline")
+
+    // Frame 2: resize but buffer is identical (same dims, same content)
+    const buf2 = new TerminalBuffer(40, 10)
+    fillBuffer(buf2, 3) // A..C — same content
+
+    const out = render(null, buf2, "inline")
+
+    // Identical buffer → incremental diff finds zero changes → empty output
+    expect(out).toBe("")
+  })
+})
+
+// ============================================================================
+// Tests: Resize buffer content verification
+// ============================================================================
+
+describe("Inline mode: resize buffer content after clear", () => {
+  /** Write a string into a buffer row starting at column x */
+  function writeStr(buf: TerminalBuffer, x: number, y: number, str: string): void {
+    for (let i = 0; i < str.length; i++) {
+      buf.setCell(x + i, y, { char: str[i]! })
+    }
+  }
+
+  test("resize output contains: cursor-up, clear, then fresh content only", () => {
+    const render = createOutputPhase({})
+
+    // Frame 1: render "Header", "Body-1", "Body-2", "Footer" (4 lines)
+    const buf1 = new TerminalBuffer(30, 10)
+    writeStr(buf1, 0, 0, "Header")
+    writeStr(buf1, 0, 1, "Body-1")
+    writeStr(buf1, 0, 2, "Body-2")
+    writeStr(buf1, 0, 3, "Footer")
+    const out1 = render(null, buf1, "inline")
+
+    // Verify first render contains all 4 lines
+    expect(out1).toContain("Header")
+    expect(out1).toContain("Body-1")
+    expect(out1).toContain("Body-2")
+    expect(out1).toContain("Footer")
+    // No cursor-up on first render
+    expect(extractCursorUp(out1)).toHaveLength(0)
+
+    // Frame 2: resize (wider terminal) — different content
+    const buf2 = new TerminalBuffer(50, 10) // wider
+    writeStr(buf2, 0, 0, "NEW-Header")
+    writeStr(buf2, 0, 1, "NEW-Body-1")
+    writeStr(buf2, 0, 2, "NEW-Body-2")
+    writeStr(buf2, 0, 3, "NEW-Footer")
+    const out2 = render(null, buf2, "inline")
+
+    // Output structure must be: cursor-up(3) + \r + clear-to-end + new content
+    // State after frame 1: prevCursorRow=3, prevOutputLines=4
+    // clearDistance = max(3, 3, 0) = 3
+    const ups = extractCursorUp(out2)
+    expect(ups[0]).toBe(3) // goes up 3 rows from cursor position (row 3 → row 0)
+    expect(containsClearToEndOfScreen(out2)).toBe(true)
+
+    // New content present
+    expect(out2).toContain("NEW-Header")
+    expect(out2).toContain("NEW-Body-1")
+    expect(out2).toContain("NEW-Body-2")
+    expect(out2).toContain("NEW-Footer")
+  })
+
+  test("resize with different dims: clears only our render area", () => {
+    const render = createOutputPhase({})
+    const termRows = 20
+
+    // Frame 1: 3 lines of content in a 20-row terminal
+    const buf1 = new TerminalBuffer(40, 30)
+    writeStr(buf1, 0, 0, "Line-A")
+    writeStr(buf1, 0, 1, "Line-B")
+    writeStr(buf1, 0, 2, "Line-C")
+    render(null, buf1, "inline", 0, termRows)
+    // State: prevCursorRow=2, prevOutputLines=3
+
+    // Frame 2: resize (narrower — different buffer width triggers clear path)
+    const buf2 = new TerminalBuffer(20, 30)
+    writeStr(buf2, 0, 0, "X-Line-A")
+    writeStr(buf2, 0, 1, "X-Line-B")
+    writeStr(buf2, 0, 2, "X-Line-C")
+    const out2 = render(null, buf2, "inline", 0, termRows)
+
+    // clearDistance = max(prevCursorRow=2, prevOutputLines-1=2) = 2
+    // Only clears our 3 lines, not the full 20-row terminal
+    const ups = extractCursorUp(out2)
+    expect(ups[0]).toBe(2)
+    expect(containsClearToEndOfScreen(out2)).toBe(true)
+    expect(out2).toContain("X-Line-A")
+    expect(out2).toContain("X-Line-C")
   })
 })

@@ -9,7 +9,7 @@
 import { EventEmitter } from "node:events"
 import React, { useState } from "react"
 import { describe, expect, it } from "vitest"
-import { Box, Text } from "../src/index.js"
+import { Box, Text, defaultCaps } from "../src/index.js"
 import { createRenderer } from "inkx/testing"
 import { run, useInput } from "../src/runtime/index.js"
 import { keyToAnsi } from "../src/keys.js"
@@ -395,6 +395,264 @@ describe("rapid typing — event queue batch cap", () => {
 
     expect(inputs).toHaveLength(50)
     expect(handle.text).toContain("Count: 50")
+
+    handle.unmount()
+  })
+})
+
+// ============================================================================
+// Inline mode resize — full pipeline
+// ============================================================================
+
+/** Create a mock stdout that captures all write() calls */
+function createCapturingStdout(cols = 80, rows = 24) {
+  const writes: string[] = []
+  const emitter = new EventEmitter()
+  const stdout = Object.assign(emitter, {
+    columns: cols,
+    rows,
+    isTTY: true,
+    write(data: string | Buffer) {
+      writes.push(typeof data === "string" ? data : data.toString())
+      return true
+    },
+  }) as any
+  return { stdout, writes }
+}
+
+describe("inline mode resize — full pipeline", () => {
+  it("multi-line resize clears all content", async () => {
+    const mockStdin = createMockTtyStdin()
+    const { stdout, writes } = createCapturingStdout(40, 24)
+
+    function App() {
+      return (
+        <Box flexDirection="column">
+          <Text>Line 1</Text>
+          <Text>Line 2</Text>
+          <Text>Line 3</Text>
+          <Text>Line 4</Text>
+          <Text>Line 5</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, {
+      stdin: mockStdin as any,
+      stdout,
+      mode: "inline",
+      caps: defaultCaps(),
+    })
+
+    // Capture initial render writes count
+    const preResizeWriteCount = writes.length
+
+    // Simulate resize
+    stdout.columns = 60
+    stdout.rows = 24
+    stdout.emit("resize")
+    await new Promise((r) => setTimeout(r, 50))
+
+    // Find writes after resize
+    const resizeWrites = writes.slice(preResizeWriteCount).join("")
+
+    // Must contain cursor-up to cover at least the content height AND clear-to-end
+    const cursorUpMatch = resizeWrites.match(/\x1b\[(\d+)A/g)
+    expect(cursorUpMatch).not.toBeNull()
+    expect(resizeWrites).toContain("\x1b[J") // clear to end of screen
+
+    // Fresh content must be present
+    expect(handle.text).toContain("Line 1")
+    expect(handle.text).toContain("Line 5")
+
+    handle.unmount()
+  })
+
+  it("narrow→wide resize renders correctly without duplication", async () => {
+    const mockStdin = createMockTtyStdin()
+    const { stdout, writes } = createCapturingStdout(40, 24)
+
+    function App() {
+      const [count, setCount] = useState(0)
+
+      useInput((input) => {
+        if (input === "j") setCount((c) => c + 1)
+      })
+
+      return (
+        <Box flexDirection="column">
+          <Text>Header</Text>
+          <Text>Count: {count}</Text>
+          <Text>Footer</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, {
+      stdin: mockStdin as any,
+      stdout,
+      mode: "inline",
+      caps: defaultCaps(),
+    })
+
+    expect(handle.text).toContain("Count: 0")
+
+    // Resize: 40→80 cols (narrow→wide)
+    stdout.columns = 80
+    stdout.emit("resize")
+    await new Promise((r) => setTimeout(r, 50))
+
+    // Content should be correct after resize
+    expect(handle.text).toContain("Header")
+    expect(handle.text).toContain("Count: 0")
+    expect(handle.text).toContain("Footer")
+
+    handle.unmount()
+  })
+
+  it("wide→narrow resize renders correctly", async () => {
+    const mockStdin = createMockTtyStdin()
+    const { stdout, writes } = createCapturingStdout(80, 24)
+
+    function App() {
+      return (
+        <Box flexDirection="column">
+          <Text>AAAA BBBB CCCC</Text>
+          <Text>DDDD EEEE FFFF</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, {
+      stdin: mockStdin as any,
+      stdout,
+      mode: "inline",
+      caps: defaultCaps(),
+    })
+
+    // Resize: 80→40 cols (wide→narrow, triggers reflow)
+    stdout.columns = 40
+    stdout.emit("resize")
+    await new Promise((r) => setTimeout(r, 50))
+
+    // Content should be present and correct
+    expect(handle.text).toContain("AAAA BBBB CCCC")
+    expect(handle.text).toContain("DDDD EEEE FFFF")
+
+    handle.unmount()
+  })
+
+  it("sequential resizes produce clean output each time", async () => {
+    const mockStdin = createMockTtyStdin()
+    const { stdout, writes } = createCapturingStdout(60, 20)
+
+    function App() {
+      return (
+        <Box flexDirection="column">
+          <Text>Title</Text>
+          <Text>Body</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, {
+      stdin: mockStdin as any,
+      stdout,
+      mode: "inline",
+      caps: defaultCaps(),
+    })
+
+    // Three sequential resizes
+    for (const cols of [80, 40, 100]) {
+      stdout.columns = cols
+      stdout.emit("resize")
+      await new Promise((r) => setTimeout(r, 50))
+
+      expect(handle.text).toContain("Title")
+      expect(handle.text).toContain("Body")
+    }
+
+    handle.unmount()
+  })
+
+  it("resize preserves React state", async () => {
+    const mockStdin = createMockTtyStdin()
+    const { stdout } = createCapturingStdout(60, 20)
+
+    function App() {
+      const [text, setText] = useState("")
+
+      useInput((input) => {
+        setText((t) => t + input)
+      })
+
+      return <Text>Input: [{text}]</Text>
+    }
+
+    const handle = await run(<App />, {
+      stdin: mockStdin as any,
+      stdout,
+      mode: "inline",
+      caps: defaultCaps(),
+    })
+
+    // Type some text
+    mockStdin.emit("data", "hello")
+    await new Promise((r) => setTimeout(r, 30))
+    expect(handle.text).toContain("Input: [hello]")
+
+    // Resize
+    stdout.columns = 100
+    stdout.emit("resize")
+    await new Promise((r) => setTimeout(r, 50))
+
+    // Text state should be preserved after resize
+    expect(handle.text).toContain("Input: [hello]")
+
+    handle.unmount()
+  })
+
+  it("post-resize incremental rendering works", async () => {
+    const mockStdin = createMockTtyStdin()
+    const { stdout } = createCapturingStdout(60, 20)
+
+    function App() {
+      const [text, setText] = useState("")
+
+      useInput((input) => {
+        setText((t) => t + input)
+      })
+
+      return (
+        <Box flexDirection="column">
+          <Text>Header</Text>
+          <Text>Input: {text}</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, {
+      stdin: mockStdin as any,
+      stdout,
+      mode: "inline",
+      caps: defaultCaps(),
+    })
+
+    // Resize first
+    stdout.columns = 80
+    stdout.emit("resize")
+    await new Promise((r) => setTimeout(r, 50))
+
+    // Type after resize — incremental rendering should resume
+    mockStdin.emit("data", "x")
+    await new Promise((r) => setTimeout(r, 30))
+
+    expect(handle.text).toContain("Input: x")
+
+    // Check that incremental rendering is active
+    const pipeline = (globalThis as any).__inkx_last_pipeline
+    expect(pipeline).toBeDefined()
+    expect(pipeline.incremental).toBe(true)
 
     handle.unmount()
   })
