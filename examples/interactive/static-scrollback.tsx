@@ -1247,16 +1247,9 @@ function CodingAgent({
     }
   }, [exchanges, done, compact])
 
-  // Auto-compact on terminal resize
-  useEffect(() => {
-    const onResize = () => {
-      if (!compactingRef.current && !done) compact()
-    }
-    process.stdout.on("resize", onResize)
-    return () => {
-      process.stdout.off("resize", onResize)
-    }
-  }, [compact, done])
+  // Terminal resize: no special handling needed.
+  // useScrollback's resize path re-emits frozen items at the new width,
+  // and the layout engine re-renders live content automatically.
 
   // Pre-fill input with next scripted user message in manual mode.
   // Guard: skip before first advance (exchanges empty) to avoid pre-filling with
@@ -1392,15 +1385,12 @@ function CodingAgent({
             <Box flexDirection="column">
               {/* Compaction overlay */}
               {compacting && isLatest && (
-                <Box flexDirection="column" borderStyle="round" borderColor="$warning" paddingX={1}>
+                <Box flexDirection="column" borderStyle="round" borderColor="$warning" paddingX={1} overflow="hidden">
                   <Text color="$warning" bold>
                     <Spinner type="arc" /> Compacting context
                   </Text>
                   <Text> </Text>
-                  <Text color="$muted">All exchanges are being frozen into terminal scrollback. The dynamic</Text>
-                  <Text color="$muted">area below will clear, but everything above is preserved — scroll up</Text>
-                  <Text color="$muted">to review. This simulates how Claude Code reclaims context window</Text>
-                  <Text color="$muted">space while keeping your conversation history accessible.</Text>
+                  <Text color="$muted">Freezing exchanges into terminal scrollback. Scroll up to review.</Text>
                 </Box>
               )}
 
