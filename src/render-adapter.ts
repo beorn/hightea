@@ -125,6 +125,13 @@ export interface RenderAdapter {
 // Global Adapter Management
 // ============================================================================
 
+// NOTE: currentAdapter is intentionally a module-level singleton, not threaded
+// through PipelineContext. Unlike the width measurer (which varies per terminal
+// and needs per-render scoping), the render adapter defines the render *target*
+// (terminal vs canvas) and is set exactly once at startup. It never changes for
+// the lifetime of the process. Threading it through every pipeline function
+// would add significant plumbing for zero benefit -- there's no concurrency
+// or per-instance variation to protect against.
 let currentAdapter: RenderAdapter | null = null
 
 /**
