@@ -12,7 +12,7 @@
 import { describe, expect, test } from "vitest"
 import { TerminalBuffer } from "../src/buffer.js"
 import { createOutputPhase } from "../src/pipeline/output-phase.js"
-import { createTerminalFixture } from "viterm"
+import { createTerminalFixture } from "@termless/test"
 
 // ============================================================================
 // Helpers

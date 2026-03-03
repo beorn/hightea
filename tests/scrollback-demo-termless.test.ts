@@ -13,7 +13,7 @@
 
 import { writeFileSync, mkdirSync } from "fs"
 import { describe, test, expect } from "vitest"
-import { createTerminalFixture } from "viterm"
+import { createTerminalFixture } from "@termless/test"
 
 const OUT_DIR = "/tmp/scrollback-demo"
 const COLS = 100

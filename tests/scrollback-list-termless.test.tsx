@@ -13,7 +13,7 @@ import React, { useEffect } from "react"
 import { describe, expect, test } from "vitest"
 import { Box, Text, ScrollbackList, useScrollbackItem } from "../src/index.js"
 import { createRenderer, stripAnsi } from "inkx/testing"
-import { createTerminalFixture } from "viterm"
+import { createTerminalFixture } from "@termless/test"
 
 // ============================================================================
 // Types & Helpers

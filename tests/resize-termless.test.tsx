@@ -17,7 +17,7 @@ import { Box, Text } from "../src/index.js"
 import { outputPhase } from "../src/pipeline/output-phase.js"
 import { enterAlternateScreen } from "../src/output.js"
 import { createRenderer } from "inkx/testing"
-import { createTerminalFixture } from "viterm"
+import { createTerminalFixture } from "@termless/test"
 
 // ============================================================================
 // Helpers

@@ -441,7 +441,7 @@ describe("scrollback width: boxes must not exceed terminal width", () => {
     expect(violations, `renderStringSync lines exceeding ${COLS} columns:\n${violations.join("\n")}`).toHaveLength(0)
   })
 
-  test("inline mode bufferToAnsi does not produce lines exceeding terminal width", () => {
+  test("inline mode bufferToAnsi does not produce lines exceeding terminal width", async () => {
     const render = createRenderer({ cols: COLS, rows: 40 })
 
     function ExchangeView() {
@@ -489,7 +489,7 @@ describe("scrollback width: boxes must not exceed terminal width", () => {
     const buffer = app.lastBuffer()!
 
     // Import outputPhase to test inline mode specifically
-    const { outputPhase } = require("../src/pipeline/output-phase.js")
+    const { outputPhase } = await import("../src/pipeline/output-phase.js")
     const inlineOutput: string = outputPhase(null, buffer, "inline")
 
     // Strip ANSI and measure each line
