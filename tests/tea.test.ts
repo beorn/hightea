@@ -1,5 +1,7 @@
+import React from "react"
 import { describe, expect, test, vi } from "vitest"
 import { createStore } from "zustand"
+import { createApp } from "../src/runtime/create-app.js"
 import { tea, collect, type TeaResult, type EffectRunners, type TeaReducer } from "../src/tea/index.js"
 
 // --- Fixtures ---
@@ -86,8 +88,8 @@ describe("tea()", () => {
       const saved: unknown[] = []
 
       const runners: EffectRunners<MyEffect, CounterWithEffectsOp> = {
-        log: (e) => logged.push(e.msg),
-        save: (e) => saved.push(e.data),
+        log: (e) => { logged.push(e.msg) },
+        save: (e) => { saved.push(e.data) },
       }
 
       const store = createStore(tea({ count: 5 }, counterWithEffectsReducer, { runners }))
@@ -102,7 +104,7 @@ describe("tea()", () => {
     test("mixed: plain state ops produce no effects", () => {
       const logged: string[] = []
       const runners: EffectRunners<MyEffect, CounterWithEffectsOp> = {
-        log: (e) => logged.push(e.msg),
+        log: (e) => { logged.push(e.msg) },
       }
 
       const store = createStore(tea({ count: 0 }, counterWithEffectsReducer, { runners }))
@@ -181,7 +183,7 @@ describe("tea()", () => {
     })
 
     test("initial state available immediately", () => {
-      const store = createStore(tea({ count: 42, label: "hello" }, counterReducer as TeaReducer<{ count: number; label: string }, CounterOp>))
+      const store = createStore(tea({ count: 42, label: "hello" }, counterReducer as unknown as TeaReducer<{ count: number; label: string }, CounterOp>))
       expect(store.getState().count).toBe(42)
       expect(store.getState().label).toBe("hello")
     })
@@ -233,5 +235,112 @@ describe("collect()", () => {
       counterWithEffectsReducer({ count: 0 }, { type: "delayed_increment", ms: 500 }),
     )
     expect(effects).toContainEqual(delayed(500, { type: "increment" }))
+  })
+})
+
+// --- createApp + tea() integration ---
+
+describe("createApp + tea() integration", () => {
+  test("EventHandlerContext has dispatch for tea stores", async () => {
+    let capturedDispatch: unknown = undefined
+
+    const app = createApp(
+      () => tea({ count: 0 }, counterReducer),
+      {
+        "term:key": (_data, ctx) => {
+          capturedDispatch = ctx.dispatch
+        },
+      },
+    )
+
+    const handle = await app.run(React.createElement("text", null, "test"), {
+      cols: 40,
+      rows: 10,
+    })
+
+    await handle.press("j")
+
+    expect(capturedDispatch).toBeTypeOf("function")
+    handle.unmount()
+  })
+
+  test("ctx.dispatch updates store state", async () => {
+    const app = createApp(
+      () => tea({ count: 0 }, counterReducer),
+      {
+        "term:key": (data: unknown, ctx) => {
+          const { input } = data as { input: string }
+          if (input === "j") ctx.dispatch!({ type: "increment" })
+          if (input === "k") ctx.dispatch!({ type: "add", amount: 5 })
+          if (input === "q") return "exit"
+        },
+      },
+    )
+
+    const handle = await app.run(React.createElement("text", null, "test"), {
+      cols: 40,
+      rows: 10,
+    })
+
+    await handle.press("j")
+    expect(handle.store.getState().count).toBe(1)
+
+    await handle.press("k")
+    expect(handle.store.getState().count).toBe(6)
+
+    handle.unmount()
+  })
+
+  test("ctx.dispatch runs effect runners", async () => {
+    const logged: string[] = []
+
+    const runners: EffectRunners<MyEffect, CounterWithEffectsOp> = {
+      log: (e) => { logged.push(e.msg) },
+      save: () => {},
+    }
+
+    const app = createApp(
+      () => tea({ count: 0 }, counterWithEffectsReducer, { runners }),
+      {
+        "term:key": (data: unknown, ctx) => {
+          const { input } = data as { input: string }
+          if (input === "s") ctx.dispatch!({ type: "save" })
+        },
+      },
+    )
+
+    const handle = await app.run(React.createElement("text", null, "test"), {
+      cols: 40,
+      rows: 10,
+    })
+
+    await handle.press("s")
+    expect(logged).toEqual(["saved"])
+
+    handle.unmount()
+  })
+
+  test("ctx.dispatch is undefined for non-tea stores", async () => {
+    let capturedDispatch: unknown = "not-set"
+
+    type PlainStore = Record<string, unknown> & { count: number; inc: () => void }
+    const app = createApp<Record<string, unknown>, PlainStore>(
+      () => (set) => ({ count: 0, inc: () => set((s) => ({ ...s, count: s.count + 1 })) }),
+      {
+        "term:key": (_data: unknown, ctx) => {
+          capturedDispatch = ctx.dispatch
+        },
+      },
+    )
+
+    const handle = await app.run(React.createElement("text", null, "test"), {
+      cols: 40,
+      rows: 10,
+    })
+
+    await handle.press("j")
+    expect(capturedDispatch).toBeUndefined()
+
+    handle.unmount()
   })
 })

@@ -42,12 +42,19 @@ export interface NamespacedEvent {
 /**
  * Build the EventHandlerContext passed to user-defined event handlers.
  * Shared by runEventHandler() and press().
+ *
+ * When the store was created with `tea()` middleware, `dispatch` is
+ * automatically wired from the store state.
  */
 export function createHandlerContext<S>(
   store: StoreApi<S>,
   focusManager: FocusManager,
   container: Container,
 ): EventHandlerContext<S> {
+  // Detect tea() middleware: store state has a dispatch function
+  const state = store.getState() as Record<string, unknown>
+  const teaDispatch = typeof state.dispatch === "function" ? state.dispatch : undefined
+
   return {
     set: store.setState,
     get: store.getState,
@@ -64,6 +71,7 @@ export function createHandlerContext<S>(
       const root = getContainerRoot(container)
       return focusManager.getFocusPath(root)
     },
+    dispatch: teaDispatch as EventHandlerContext<S>["dispatch"],
   }
 }
 

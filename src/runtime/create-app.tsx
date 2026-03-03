@@ -120,6 +120,9 @@ function isBasicProvider(value: unknown): value is {
 
 /**
  * Event handler context passed to handlers.
+ *
+ * When the store uses `tea()` middleware, `dispatch` is available with the
+ * correct Op type inferred from the store. For non-tea stores it's `undefined`.
  */
 export interface EventHandlerContext<S> {
   set: StoreApi<S>["setState"]
@@ -132,6 +135,14 @@ export interface EventHandlerContext<S> {
   activateScope(scopeId: string): void
   /** Get the focus path from focused node to root */
   getFocusPath(): string[]
+  /**
+   * Dispatch an operation through the tea() reducer.
+   *
+   * Available when the store was created with `tea()` middleware from `inkx/tea`.
+   * Type-safe: the Op type is inferred from the store's TeaSlice.
+   * For non-tea stores, this is `undefined`.
+   */
+  dispatch?: "dispatch" extends keyof S ? S["dispatch"] : undefined
 }
 
 /**
