@@ -266,6 +266,8 @@ const TodoList = {
 }
 ```
 
+The `switch` in `.apply()` is the type safety bridge — TypeScript's discriminated union narrowing ensures that when `op.op` is `"moveCursor"`, the params are `{ delta: number }`. You get full type checking on both sides: callers construct a `TodoOp` (compile error if `delta` is missing), and the switch ensures exhaustive handling (compile error if you add an op variant but forget to handle it). No `any`, no runtime type checks — the union does all the work.
+
 The store exposes both calling conventions — direct methods for everyday code, `.apply()` for when you need the data:
 
 ```tsx
@@ -580,11 +582,32 @@ This guide pieces these ideas into a single incremental progression for React: y
 
 ---
 
+## Trade-offs: When Data Goes Too Far
+
+The progression from functions to data is not free. Each level buys something real — but it also costs something real.
+
+**When plain functions are fine.** At Levels 1 and 2, `store.toggleDone()` is a direct function call. It's simple, debuggable, and the call stack tells you exactly what happened. If you don't need undo, logging, replay, AI automation, or mock-free testing — stay here. Most dashboards, list views, and CRUD apps never need more. The guide's "walls" are real requirements, not aspirations; if you haven't hit the wall, don't climb it.
+
+**The costs of making everything data.** Once you move to Level 3+:
+
+- **Verbosity.** A one-line `store.toggleDone()` becomes a union variant (`{ op: "toggleDone", index: number }`), a case in `apply()`, and a wrapper method. Three places to maintain instead of one. For an app with 5 operations this is fine; for 50, it's a lot of boilerplate.
+- **Indirection.** When something goes wrong, the stack trace goes through `apply()` → `switch` → handler instead of directly to the function. You lose some "click to navigate" convenience in your editor. Naming your ops well (and keeping slices small) mitigates this.
+- **Type ceremony.** Discriminated unions are powerful but verbose. Every new operation means updating the union type, adding a switch case, and wiring the convenience method. TypeScript's `never` exhaustiveness check helps catch missed cases — but you're paying in keystrokes.
+- **Debugging the dispatcher.** When you log `{ op: "moveCursor", delta: 1 }`, you see *what* happened but not *why* the code decided to dispatch it. The dispatch site might be in a key handler, an effect runner, or another machine's effect. Good naming and tooling (Redux DevTools) help, but there's inherently more indirection to trace.
+
+**When to use functions inside data.** Even at Level 4-5, not everything needs to be data. Effect *runners* are functions — they take effect descriptions and do real I/O. Computed values (`doneCount`) are functions. React components are functions. The boundary is: **crossing module boundaries** (between slices, between domain and I/O) should be data; **within a module** (the implementation of a single op handler), use whatever's clearest. `s.items.value.map(...)` inside `toggleDone` is a normal function call, and it should stay that way.
+
+**The honest rule of thumb**: if you can't name a specific benefit you'd get from making something data (undo? replay? testing without mocks?), keep it as a function call. The progression is opt-in at every level — and opting out is a valid choice.
+
+---
+
 ## The Takeaway
 
 You don't choose a state management library. You choose how visible your state transitions are.
 
-The more visible they are — the easier your app is to test, debug, automate, and scale. React doesn't force you into any of this. But you can grow into it, one level at a time, and you never have to adopt more than you need.
+**The Elm Architecture (TEA)** is the formal name for what Levels 3+4 build: `update(msg, model) → (newModel, effects)`. Every state change is an explicit message (op). Every side effect is a return value, not a hidden call. The domain is a pure function from input to output. Elm the language enforces this from line one; this guide shows you can arrive there incrementally in React, adopting each piece only when a real requirement demands it.
+
+The more visible your transitions are — the easier your app is to test, debug, automate, and scale. But visibility has a cost: verbosity, indirection, and ceremony. The right level is the one where the benefits you actually use outweigh the boilerplate you actually write. React doesn't force you into any of this. You grow into it one level at a time, and you never have to adopt more than you need.
 
 ## See Also
 
