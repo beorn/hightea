@@ -174,79 +174,120 @@ batch(() => {
 // → single Zustand notification, single re-render
 ```
 
-## Extracting Domain Functions
+## "I Want Undo"
 
-The store is getting complex. Pull transition logic into a domain object so you can test it without React, without a store, without mocks:
+Your todo list works. Now you want undo/redo. The problem: `store.toggleDone()` mutates state and is gone — you can't record what happened, replay it, or reverse it.
+
+The fix is to make operations into data — plain JSON objects the system can see. This means pulling logic out of the store into a domain object with params-object style functions and an `.apply()` dispatcher:
 
 ```tsx
+type TodoOp =
+  | { op: "moveCursor"; delta: number }
+  | { op: "toggleDone"; index: number }
+
 const TodoList = {
-  moveCursor(s: State, delta: number) {
+  moveCursor(s: State, { delta }: { delta: number }) {
     s.cursor.value = clamp(s.cursor.value + delta, 0, s.items.value.length - 1)
   },
-  toggleDone(s: State, index: number) {
+  toggleDone(s: State, { index }: { index: number }) {
     s.items.value = s.items.value.map((item, i) =>
       i === index ? { ...item, done: !item.done } : item
     )
   },
-}
 
-test("moveCursor clamps at bottom", () => {
-  const s = {
-    cursor: signal(2),
-    items: signal([{ text: "a", done: false }, { text: "b", done: false }, { text: "c", done: false }]),
-  }
-  TodoList.moveCursor(s, 1)
-  expect(s.cursor.value).toBe(2) // clamped
-})
+  apply(s: State, op: TodoOp) {
+    const { op: name, ...params } = op
+    return (TodoList as any)[name](s, params)
+  },
+}
 ```
 
-The domain functions mutate signals but perform no I/O — deterministic, fully testable. Think Immer reducers: pure from the outside, internally mutative.
-
-The store becomes a thin shell that wires domain functions to keys:
+Now every user action is a serializable object — `{ op: "toggleDone", index: 2 }` — that you can record in a stack, replay from the beginning, or send over the wire. The store becomes a thin shell:
 
 ```tsx
 const app = createApp(
   () => {
-    const state = {
-      cursor: signal(0),
-      items: signal<Item[]>([...]),
-    }
+    const state = { cursor: signal(0), items: signal<Item[]>([...]) }
     return {
       ...state,
       doneCount: computed(() => state.items.value.filter(i => i.done).length),
-      moveCursor: (d: number) => TodoList.moveCursor(state, d),
-      toggleDone: () => TodoList.toggleDone(state, state.cursor.value),
+      apply: (op: TodoOp) => TodoList.apply(state, op),
     }
   },
   {
     key(input, key, { store }) {
-      if (input === "j") store.moveCursor(1)
-      if (input === "k") store.moveCursor(-1)
-      if (input === "x") store.toggleDone()
+      if (input === "j") store.apply({ op: "moveCursor", delta: 1 })
+      if (input === "k") store.apply({ op: "moveCursor", delta: -1 })
+      if (input === "x") store.apply({ op: "toggleDone", index: store.cursor.value })
       if (input === "q") return "exit"
     },
   },
 )
 ```
 
-This is where most apps stop. The next two levels add structure for undo/redo and testable I/O — see [Operations and Effects as Data](as-data-patterns.md) for the full pattern. The short version:
+Beyond undo, this unlocks replay, logging (`JSON.stringify(op)`), AI automation (ops as tool call results), and collaboration (send ops over the wire).
 
-**Level 3 — Ops as data**: Change `moveCursor(s, delta)` to `moveCursor(s, { delta })` — params objects instead of positional args. Add an `.apply(state, { op: "moveCursor", delta: 1 })` dispatcher. Operations become serializable JSON, enabling undo/redo, replay, logging, and AI automation.
+See [Operations and Effects as Data](as-data-patterns.md) for the full pattern and prior art.
 
-**Level 4 — Effects as data**: Domain functions return `Effect[]` — plain objects like `{ effect: "persist", data: items }`. inkx's effects middleware intercepts these returns and routes them to declared runners:
+## "I Want to Ship to Terminal and Web"
+
+Your app has I/O — saving to disk, showing notifications, fetching data. The domain logic is the same on both platforms, but the I/O is different: `fs.writeFile` on terminal, `localStorage` on web, and nothing during tests.
+
+The fix is the same trick: make effects into data. Instead of *doing* I/O, domain functions *describe* what should happen:
+
+```tsx
+type Effect =
+  | { effect: "persist"; data: unknown }
+  | { effect: "toast"; message: string }
+
+const TodoList = {
+  moveCursor(s: State, { delta }: { delta: number }) {
+    s.cursor.value = clamp(s.cursor.value + delta, 0, s.items.value.length - 1)
+  },
+
+  toggleDone(s: State, { index }: { index: number }): Effect[] {
+    s.items.value = s.items.value.map((item, i) =>
+      i === index ? { ...item, done: !item.done } : item
+    )
+    return [
+      { effect: "persist", data: s.items.value },
+      { effect: "toast", message: `Toggled ${s.items.value[index].text}` },
+    ]
+  },
+
+  apply(s: State, op: TodoOp) { ... },
+}
+```
+
+inkx's effects middleware intercepts these returns and routes them to declared runners — swap the runners per platform:
 
 ```tsx
 const app = createApp(
   () => { ... },
   {
     effects: {
+      // Terminal: write to disk
       persist: async ({ data }) => { await fs.writeFile("data.json", JSON.stringify(data)) },
       toast: ({ message }) => { showToast(message) },
+      // Web: same domain logic, different runners
+      // persist: async ({ data }) => { localStorage.setItem("data", JSON.stringify(data)) },
     },
     key(input, key, { store }) { ... },
   },
 )
 ```
+
+Tests assert on what the function *says should happen* — no mocks, no I/O, no async:
+
+```tsx
+test("toggleDone persists and toasts", () => {
+  const s = { cursor: signal(0), items: signal([{ text: "Buy milk", done: false }]) }
+  const effects = TodoList.toggleDone(s, { index: 0 })
+  expect(effects).toContainEqual({ effect: "persist", data: expect.any(Array) })
+})
+```
+
+See [Operations and Effects as Data](as-data-patterns.md) for the full pattern and prior art.
 
 ## Scaling
 
