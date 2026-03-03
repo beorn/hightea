@@ -24,7 +24,8 @@ Tutorials, walkthroughs, and migration paths.
 | Document                                                  | Description                                                  |
 | --------------------------------------------------------- | ------------------------------------------------------------ |
 | [Getting Started](guides/getting-started.md)              | First app tutorial, basic input, layout feedback             |
-| [State Management](guides/state-management.md)            | Four levels: Component → Shared → Actions → Pure (effects)  |
+| [State Management](guides/state-management.md)            | createApp, useApp, signals, reactivity, effects middleware   |
+| [Ops & Effects as Data](guides/as-data-patterns.md)       | Framework-agnostic: serializable ops, testable effects       |
 | [Runtime Layers](guides/runtime-layers.md)                | createApp, createRuntime, createStore, streams, tick sources |
 | [Migration from Ink](guides/migration.md)                 | Drop-in migration guide                                      |
 | [Migration from legacy inkx](guides/runtime-migration.md) | Migrating to inkx/runtime API                                |
