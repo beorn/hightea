@@ -13,9 +13,7 @@ import React, { useEffect } from "react"
 import { describe, expect, test } from "vitest"
 import { Box, Text, ScrollbackList, useScrollbackItem } from "../src/index.js"
 import { createRenderer, stripAnsi } from "inkx/testing"
-import { createTerminal } from "termless"
-import { createXtermBackend } from "termless-xtermjs"
-import "viterm/matchers"
+import { createTerminalFixture } from "viterm"
 
 // ============================================================================
 // Types & Helpers
@@ -70,8 +68,7 @@ function createMockStdout(cols = 80) {
 }
 
 function createTestTerminal(cols: number, rows: number) {
-  return createTerminal({
-    backend: createXtermBackend({ cols, rows }),
+  return createTerminalFixture({
     cols,
     rows,
     scrollbackLimit: 1000,
@@ -140,7 +137,6 @@ describe("frozen item border integrity → termless", () => {
       }
     }
 
-    term.close()
   })
 
   test("multiple frozen bordered items all have right borders", () => {
@@ -188,7 +184,6 @@ describe("frozen item border integrity → termless", () => {
     expect(term.buffer).toContainText("Agent 2")
     expect(term.buffer).toContainText("Agent 3")
 
-    term.close()
   })
 
   test("frozen item border width matches terminal width", () => {
@@ -226,7 +221,6 @@ describe("frozen item border integrity → termless", () => {
     // Border width: ╭ + dashes + ╮ should be COLS (or COLS-based)
     expect(topBorderRow.length).toBeGreaterThanOrEqual(COLS - 2) // At least close to full width
 
-    term.close()
   })
 })
 
@@ -288,7 +282,6 @@ describe("high-count frozen items → termless", () => {
       }
     }
 
-    term.close()
   })
 
   test("compaction: all items freeze at once preserves borders", () => {
@@ -366,7 +359,6 @@ describe("high-count frozen items → termless", () => {
       }
     }
 
-    term.close()
   })
 })
 

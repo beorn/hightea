@@ -13,9 +13,7 @@ import { describe, expect, test } from "vitest"
 import { TerminalBuffer } from "../src/buffer.js"
 import { outputPhase } from "../src/pipeline/output-phase.js"
 import { enterAlternateScreen } from "../src/output.js"
-import { createTerminal } from "termless"
-import { createXtermBackend } from "termless-xtermjs"
-import "viterm/matchers"
+import { createTerminalFixture } from "viterm"
 
 // ============================================================================
 // Helpers
@@ -35,8 +33,7 @@ function makeBuffer(width: number, height: number, lines: string[]): TerminalBuf
 
 /** Create a termless terminal and enter alternate screen for fullscreen testing. */
 function createTestTerminal(cols: number, rows: number) {
-  const term = createTerminal({
-    backend: createXtermBackend({ cols, rows }),
+  const term = createTerminalFixture({
     cols,
     rows,
     scrollbackLimit: 0,
@@ -58,7 +55,7 @@ describe("single cell change produces correct output", () => {
     term.feed(ansi)
 
     expect(term.screen).toContainText("Hello World")
-    term.close()
+
   })
 
   test("diff render updates changed content", () => {
@@ -78,7 +75,7 @@ describe("single cell change produces correct output", () => {
     expect(term.screen).toContainText("Hello Earth")
     // "World" should no longer appear
     expect(term.screen.getText()).not.toContain("World")
-    term.close()
+
   })
 })
 
@@ -105,7 +102,7 @@ describe("style changes render correctly", () => {
     expect(term.cell(0, 1)).toBeBold()
     expect(term.cell(0, 2)).toBeBold()
     expect(term.cell(0, 3)).toBeBold()
-    term.close()
+
   })
 
   test("colored text renders with correct foreground color", () => {
@@ -125,7 +122,7 @@ describe("style changes render correctly", () => {
     expect(term.cell(0, 0)).toHaveFg({ r: 255, g: 0, b: 0 })
     expect(term.cell(0, 1)).toHaveFg({ r: 255, g: 0, b: 0 })
     expect(term.cell(0, 2)).toHaveFg({ r: 255, g: 0, b: 0 })
-    term.close()
+
   })
 })
 
@@ -161,7 +158,7 @@ describe("multi-row diff correctness", () => {
     expect(term.screen).toContainText("Line 4")
     // Old line 3 should be gone
     expect(term.screen.getText()).not.toContain("Line 3")
-    term.close()
+
   })
 })
 
@@ -183,7 +180,7 @@ describe("wide characters", () => {
 
     expect(term.cell(0, 0)).toBeWide()
     expect(term.screen).toContainText("\u4e2d")
-    term.close()
+
   })
 })
 
@@ -207,7 +204,7 @@ describe("true-color values survive round-trip", () => {
     expect(term.screen).toContainText("X")
     expect(term.cell(0, 0)).toHaveFg(fgColor)
     expect(term.cell(0, 0)).toHaveBg(bgColor)
-    term.close()
+
   })
 
   test("multiple cells with different true colors", () => {
@@ -224,6 +221,6 @@ describe("true-color values survive round-trip", () => {
     expect(term.cell(0, 0)).toHaveFg({ r: 255, g: 0, b: 0 })
     expect(term.cell(0, 1)).toHaveFg({ r: 0, g: 255, b: 0 })
     expect(term.cell(0, 2)).toHaveFg({ r: 0, g: 0, b: 255 })
-    term.close()
+
   })
 })

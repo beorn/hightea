@@ -12,9 +12,7 @@
 import { describe, expect, test } from "vitest"
 import { TerminalBuffer } from "../src/buffer.js"
 import { createOutputPhase } from "../src/pipeline/output-phase.js"
-import { createTerminal } from "termless"
-import { createXtermBackend } from "termless-xtermjs"
-import "viterm/matchers"
+import { createTerminalFixture } from "viterm"
 
 // ============================================================================
 // Helpers
@@ -34,8 +32,7 @@ function makeBuffer(width: number, height: number, lines: string[]): TerminalBuf
 
 /** Create a termless terminal for inline mode testing. */
 function createTestTerminal(cols: number, rows: number) {
-  return createTerminal({
-    backend: createXtermBackend({ cols, rows }),
+  return createTerminalFixture({
     cols,
     rows,
     scrollbackLimit: 1000,
@@ -57,7 +54,7 @@ describe("inline output → termless verification", () => {
 
     expect(term.screen).toContainText("Hello World")
     expect(term.screen).toContainText("Second line")
-    term.close()
+
   })
 
   test("incremental inline render updates changed content", () => {
@@ -77,7 +74,7 @@ describe("inline output → termless verification", () => {
 
     expect(term.screen).toContainText("Line A")
     expect(term.screen).toContainText("Line C")
-    term.close()
+
   })
 })
 
@@ -109,7 +106,7 @@ describe("scrollback promotion → termless verification", () => {
     // Both should be visible — frozen in scrollback or on screen, live on screen
     expect(term.screen).toContainText("Item 2")
     expect(term.screen).toContainText("Status bar")
-    term.close()
+
   })
 
   test("no jump-up: cursor stays at correct position after promotion", () => {
@@ -143,7 +140,7 @@ describe("scrollback promotion → termless verification", () => {
     const cursor = term.getCursor()
     expect(cursor.y).toBeGreaterThan(0)
 
-    term.close()
+
   })
 
   test("no blank lines after promotion (the jump-up bug)", () => {
@@ -181,7 +178,7 @@ describe("scrollback promotion → termless verification", () => {
       expect(term.screen).toContainText(line)
     }
 
-    term.close()
+
   })
 
   test("multiple sequential promotions work correctly", () => {
@@ -212,7 +209,7 @@ describe("scrollback promotion → termless verification", () => {
     expect(term.screen).toContainText("C")
     expect(term.screen).toContainText("D updated")
 
-    term.close()
+
   })
 
   test("promotion near terminal bottom doesn't overflow", () => {
@@ -239,7 +236,7 @@ describe("scrollback promotion → termless verification", () => {
     const sb = term.getScrollback()
     expect(sb.totalLines).toBeGreaterThanOrEqual(6)
 
-    term.close()
+
   })
 })
 
@@ -274,7 +271,7 @@ describe("content changes after promotion → termless", () => {
     expect(hasStaleD).toBe(false)
     expect(hasStaleE).toBe(false)
 
-    term.close()
+
   })
 })
 
@@ -312,7 +309,7 @@ describe("resize during promotion → termless", () => {
     expect(term.screen).toContainText("Gamma")
     expect(term.screen).toContainText("Epsilon")
 
-    term.close()
+
   })
 })
 
@@ -343,7 +340,7 @@ describe("content height exceeding terminal rows → termless", () => {
     expect(term.scrollback).toContainText("Line 1")
     expect(term.scrollback).toContainText("Line 2")
 
-    term.close()
+
   })
 })
 
@@ -373,7 +370,7 @@ describe("cursor position after promotion → termless", () => {
     expect(cursor.y).toBeGreaterThanOrEqual(0)
     expect(cursor.y).toBeLessThan(ROWS)
 
-    term.close()
+
   })
 })
 
@@ -412,6 +409,6 @@ describe("styled content in scrollback → termless", () => {
     const viewportText = term.screen.getText()
     expect(viewportText).toContain("plain line 7")
 
-    term.close()
+
   })
 })

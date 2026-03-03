@@ -21,9 +21,7 @@ import { Box, Text } from "../src/index.js"
 import { outputPhase } from "../src/pipeline/output-phase.js"
 import { enterAlternateScreen } from "../src/output.js"
 import { createRenderer } from "inkx/testing"
-import { createTerminal } from "termless"
-import { createXtermBackend } from "termless-xtermjs"
-import "viterm/matchers"
+import { createTerminalFixture } from "viterm"
 
 // ============================================================================
 // Helpers
@@ -31,8 +29,7 @@ import "viterm/matchers"
 
 /** Create a termless terminal in alternate screen mode for fullscreen testing. */
 function createTestTerminal(cols: number, rows: number) {
-  const term = createTerminal({
-    backend: createXtermBackend({ cols, rows }),
+  const term = createTerminalFixture({
     cols,
     rows,
     scrollbackLimit: 0,
@@ -79,7 +76,7 @@ describe("simple text change", () => {
     // Specifically check no partial overwrite artifact like "Horld"
     expect(term.screen.getText()).not.toContain("Horld")
 
-    term.close()
+
   })
 })
 
@@ -123,7 +120,7 @@ describe("color change", () => {
       expect(term.cell(0, c)).toHaveFg({ r: 0, g: 0, b: 255 })
     }
 
-    term.close()
+
   })
 })
 
@@ -164,7 +161,7 @@ describe("text shortening", () => {
     expect(term.screen.getText()).not.toContain("World")
     expect(term.screen.getText()).not.toContain("Hello")
 
-    term.close()
+
   })
 })
 
@@ -202,7 +199,7 @@ describe("text lengthening", () => {
 
     expect(term.screen).toContainText("Hello World")
 
-    term.close()
+
   })
 })
 
@@ -247,7 +244,7 @@ describe("multi-line update", () => {
     expect(term.screen).toContainText("Line C: footer")
     expect(term.screen.getText()).not.toContain("original")
 
-    term.close()
+
   })
 })
 
@@ -290,7 +287,7 @@ describe("style change without text change", () => {
       expect(term.cell(0, c)).toBeBold()
     }
 
-    term.close()
+
   })
 
   test("change foreground color without changing text content", () => {
@@ -325,7 +322,7 @@ describe("style change without text change", () => {
       expect(term.cell(0, c)).toHaveFg({ r: 0, g: 170, b: 0 })
     }
 
-    term.close()
+
   })
 })
 
@@ -370,7 +367,7 @@ describe("background color transitions", () => {
       expect(term.cell(0, c)).toHaveBg({ r: 0, g: 255, b: 0 })
     }
 
-    term.close()
+
   })
 })
 
@@ -419,7 +416,7 @@ describe("multiple sequential diffs", () => {
     expect(term.screen.getText()).not.toContain("Beta")
     expect(term.screen.getText()).not.toContain("Alpha")
 
-    term.close()
+
   })
 })
 
@@ -473,7 +470,7 @@ describe("complex multi-line diffs with styles", () => {
     expect(term.cell(0, 0)).toHaveFg({ r: 0, g: 0, b: 255 })
     expect(term.screen).toContainText("Footer always")
 
-    term.close()
+
   })
 })
 
@@ -529,8 +526,7 @@ describe("incremental diff matches fresh render", () => {
       expect(incrRow.getText()).toBe(freshRow.getText())
     }
 
-    termIncr.close()
-    termFresh.close()
+
   })
 })
 
@@ -583,6 +579,6 @@ describe("React component with conditional rendering", () => {
     expect(term.screen).toContainText("Middle section")
     expect(term.screen).toContainText("Bottom")
 
-    term.close()
+
   })
 })

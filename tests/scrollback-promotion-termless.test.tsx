@@ -22,9 +22,7 @@ import { describe, expect, test } from "vitest"
 import { Box, Text, renderString } from "../src/index.js"
 import { TerminalBuffer } from "../src/buffer.js"
 import { createOutputPhase } from "../src/pipeline/output-phase.js"
-import { createTerminal } from "termless"
-import { createXtermBackend } from "termless-xtermjs"
-import "viterm/matchers"
+import { createTerminalFixture } from "viterm"
 
 // ============================================================================
 // Helpers
@@ -67,8 +65,7 @@ function makeLiveBuffer(width: number, height: number, lines: string[]): Termina
 }
 
 function createTestTerminal(cols: number, rows: number) {
-  return createTerminal({
-    backend: createXtermBackend({ cols, rows }),
+  return createTerminalFixture({
     cols,
     rows,
     scrollbackLimit: 1000,
@@ -126,7 +123,7 @@ describe("scrollback promotion → border integrity", () => {
       }
     }
 
-    term.close()
+
   })
 
   test("3 frozen items all preserve right borders through promotion", async () => {
@@ -171,7 +168,7 @@ describe("scrollback promotion → border integrity", () => {
       }
     }
 
-    term.close()
+
   })
 
   test("8 frozen items overflow beyond terminal rows, all borders intact in scrollback", async () => {
@@ -226,7 +223,7 @@ describe("scrollback promotion → border integrity", () => {
       }
     }
 
-    term.close()
+
   })
 })
 
@@ -279,7 +276,7 @@ describe("scrollback promotion → progressive freezing", () => {
       }
     }
 
-    term.close()
+
   })
 })
 
@@ -361,7 +358,7 @@ describe("scrollback promotion → compaction (jump up)", () => {
       }
     }
 
-    term.close()
+
   })
 
   test("subsequent renders after compaction are positioned correctly (no jump-up)", async () => {
@@ -420,7 +417,7 @@ describe("scrollback promotion → compaction (jump up)", () => {
     // Old live content should NOT remain in viewport (it was overwritten)
     expect(viewport2).not.toContain("New live content")
 
-    term.close()
+
   })
 
   test("compaction with many items overflowing terminal preserves all borders", async () => {
@@ -470,6 +467,6 @@ describe("scrollback promotion → compaction (jump up)", () => {
     // Footer should be visible in viewport
     expect(term.screen).toContainText("Footer: done")
 
-    term.close()
+
   })
 })

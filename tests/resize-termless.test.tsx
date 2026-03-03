@@ -17,17 +17,14 @@ import { Box, Text } from "../src/index.js"
 import { outputPhase } from "../src/pipeline/output-phase.js"
 import { enterAlternateScreen } from "../src/output.js"
 import { createRenderer } from "inkx/testing"
-import { createTerminal } from "termless"
-import { createXtermBackend } from "termless-xtermjs"
-import "viterm/matchers"
+import { createTerminalFixture } from "viterm"
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
 function createTestTerminal(cols: number, rows: number) {
-  const term = createTerminal({
-    backend: createXtermBackend({ cols, rows }),
+  const term = createTerminalFixture({
     cols,
     rows,
     scrollbackLimit: 0,
@@ -43,7 +40,7 @@ function renderResizeAndVerify(opts: {
   newCols: number
   newRows: number
   component: (props: { cols: number; rows: number }) => React.ReactElement
-  verify: (term: ReturnType<typeof createTerminal>) => void
+  verify: (term: ReturnType<typeof createTerminalFixture>) => void
 }) {
   const { initialCols, initialRows, newCols, newRows, component: Component, verify } = opts
   const render = createRenderer({ cols: initialCols, rows: initialRows })
@@ -64,7 +61,6 @@ function renderResizeAndVerify(opts: {
   term.feed(ansi)
 
   verify(term)
-  term.close()
 }
 
 // ============================================================================
@@ -157,8 +153,6 @@ describe("resize: width contraction", () => {
     expect(row0.length).toBeLessThanOrEqual(40)
     expect(row0).toContain("A")
 
-    term.close()
-    termSmall.close()
   })
 })
 
@@ -278,8 +272,6 @@ describe("resize: multiple sequential resizes", () => {
     term.feed(outputPhase(null, finalBuf, "fullscreen"))
 
     expect(term.screen).toContainText("Size: 50x8")
-
-    term.close()
   })
 })
 
@@ -330,9 +322,6 @@ describe("resize: incremental diff after resize", () => {
 
     expect(term2.screen).toContainText("After resize")
     expect(term2.screen.getText()).not.toContain("Before resize")
-
-    term.close()
-    term2.close()
   })
 })
 

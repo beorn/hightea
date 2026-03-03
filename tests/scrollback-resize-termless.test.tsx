@@ -19,9 +19,7 @@ import { EventEmitter } from "events"
 import { describe, expect, test } from "vitest"
 import { Box, Text, ScrollbackList, useScrollbackItem } from "../src/index.js"
 import { createRenderer, stripAnsi } from "inkx/testing"
-import { createTerminal } from "termless"
-import { createXtermBackend } from "termless-xtermjs"
-import "viterm/matchers"
+import { createTerminalFixture } from "viterm"
 
 // ============================================================================
 // Types & Helpers
@@ -91,8 +89,7 @@ function createResizableStdout(cols = 80) {
 }
 
 function createTestTerminal(cols: number, rows: number) {
-  return createTerminal({
-    backend: createXtermBackend({ cols, rows }),
+  return createTerminalFixture({
     cols,
     rows,
     scrollbackLimit: 1000,
@@ -226,7 +223,7 @@ describe("resize: frozen items re-render at new width → termless", () => {
       const { topCount, borderWidth } = assertBorderInvariants(term.getText(), `initial@${WIDE}`)
       expect(topCount).toBe(3)
       expect(borderWidth).toBe(WIDE)
-      term.close()
+
     }
 
     const writesBeforeResize = writes.length
@@ -255,7 +252,7 @@ describe("resize: frozen items re-render at new width → termless", () => {
       const { topCount, borderWidth } = assertBorderInvariants(text, `resized@${NARROW}`)
       expect(topCount).toBe(3)
       expect(borderWidth).toBe(NARROW)
-      term.close()
+
     }
   })
 
@@ -289,7 +286,7 @@ describe("resize: frozen items re-render at new width → termless", () => {
       const { topCount, borderWidth } = assertBorderInvariants(term.getText(), `initial@${NARROW}`)
       expect(topCount).toBe(2)
       expect(borderWidth).toBe(NARROW)
-      term.close()
+
     }
 
     const writesBeforeResize = writes.length
@@ -317,7 +314,7 @@ describe("resize: frozen items re-render at new width → termless", () => {
       expect(topCount).toBe(2)
       // KEY: borders must fill the NEW wider width, not stay at old narrow width
       expect(borderWidth).toBe(WIDE)
-      term.close()
+
     }
   })
 })
@@ -363,7 +360,7 @@ describe("stress: many items + many resize cycles → termless", () => {
       const term = feedToTerminal(writes, INITIAL_WIDTH, 200)
       const { topCount } = assertBorderInvariants(term.getText(), `initial@${INITIAL_WIDTH}`)
       expect(topCount).toBe(10)
-      term.close()
+
     }
 
     // 8 resize cycles: alternating shrink and grow
@@ -401,7 +398,7 @@ describe("stress: many items + many resize cycles → termless", () => {
       // INVARIANT 2: borders fill the new width
       expect(borderWidth).toBe(newWidth)
 
-      term.close()
+
     }
   })
 
@@ -452,7 +449,7 @@ describe("stress: many items + many resize cycles → termless", () => {
     // Feed all writes to a large terminal to see full scrollback
     const term = feedToTerminal(writes, 120, 500)
     const fullText = term.getText()
-    term.close()
+
 
     // Count occurrences of each item's unique identifier
     for (let i = 1; i <= 5; i++) {
@@ -504,7 +501,7 @@ describe("freeze + resize simultaneously → termless", () => {
       const { topCount, borderWidth } = assertBorderInvariants(term.getText(), `phase1@${WIDTH_A}`)
       expect(topCount).toBe(2)
       expect(borderWidth).toBe(WIDTH_A)
-      term.close()
+
     }
 
     const writesAfterPhase1 = writes.length
@@ -539,7 +536,7 @@ describe("freeze + resize simultaneously → termless", () => {
     const { topCount, borderWidth } = assertBorderInvariants(text, `phase2@${WIDTH_B}`)
     expect(topCount).toBe(3)
     expect(borderWidth).toBe(WIDTH_B)
-    term.close()
+
   })
 })
 
@@ -594,7 +591,7 @@ describe("content preservation across resize → termless", () => {
     expect(term.buffer).toContainText("Agent 2")
     expect(term.buffer).toContainText("Critical info: hello world")
 
-    term.close()
+
   })
 
   test("frozen and live items have same width after resize", () => {

@@ -12,9 +12,7 @@
 import { describe, expect, test } from "vitest"
 import { TerminalBuffer } from "../src/buffer.js"
 import { createOutputPhase } from "../src/pipeline/output-phase.js"
-import { createTerminal } from "termless"
-import { createXtermBackend } from "termless-xtermjs"
-import "viterm/matchers"
+import { createTerminalFixture } from "viterm"
 
 // ============================================================================
 // Helpers
@@ -34,8 +32,7 @@ function makeBuffer(width: number, height: number, lines: string[]): TerminalBuf
 
 /** Create a termless terminal for inline mode testing. */
 function createTestTerminal(cols: number, rows: number) {
-  return createTerminal({
-    backend: createXtermBackend({ cols, rows }),
+  return createTerminalFixture({
     cols,
     rows,
     scrollbackLimit: 1000,
@@ -77,7 +74,7 @@ describe("content shrink erases correctly", () => {
     expect(hasLine4).toBe(false)
     expect(hasLine5).toBe(false)
 
-    term.close()
+
   })
 })
 
@@ -111,7 +108,7 @@ describe("scrollback offset handling", () => {
     // Updated content should be visible
     expect(term.screen).toContainText("Items: 10")
 
-    term.close()
+
   })
 })
 
@@ -147,7 +144,7 @@ describe("height capping (termRows)", () => {
     const hasHeader = viewportLines.some((l) => l === "Header row")
     expect(hasHeader).toBe(false)
 
-    term.close()
+
   })
 })
 
@@ -209,6 +206,6 @@ describe("multi-frame incremental consistency", () => {
       expect(isCurrentContent).toBe(true)
     }
 
-    term.close()
+
   })
 })

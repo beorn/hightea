@@ -13,8 +13,7 @@
 
 import { writeFileSync, mkdirSync } from "fs"
 import { describe, test, expect } from "vitest"
-import { createTerminal } from "termless"
-import { createXtermBackend } from "termless-xtermjs"
+import { createTerminalFixture } from "viterm"
 
 const OUT_DIR = "/tmp/scrollback-demo"
 const COLS = 100
@@ -63,8 +62,7 @@ describe("scrollback demo visual regression", () => {
   test("press Enter 10 times then resize — generates screenshots", async () => {
     mkdirSync(OUT_DIR, { recursive: true })
 
-    const term = createTerminal({
-      backend: createXtermBackend({ cols: COLS, rows: ROWS }),
+    const term = createTerminalFixture({
       cols: COLS,
       rows: ROWS,
       scrollbackLimit: 1000,
@@ -132,9 +130,6 @@ describe("scrollback demo visual regression", () => {
         allBorderFailures.push({ step: label, failures })
       }
     }
-
-    // Cleanup
-    await term.close()
 
     // Write border failure report to file (avoid console.log which fails in strict vitest)
     if (allBorderFailures.length > 0) {
