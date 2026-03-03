@@ -950,7 +950,7 @@ function DemoFooter({
 // ============================================================================
 
 /** How many live turns to keep in the dynamic area before freezing to scrollback. */
-const MAX_LIVE_TURNS = 20
+const MAX_LIVE_TURNS = 3
 
 /** Streaming phases: thinking -> streaming text -> tool calls -> done */
 type StreamPhase = "thinking" | "streaming" | "tools" | "done"

@@ -17,7 +17,7 @@
  * (Cmd+Up/Cmd+Down in iTerm2, Kitty, WezTerm, Ghostty).
  */
 
-import { useContext, useEffect, useLayoutEffect, useRef } from "react"
+import { useContext, useLayoutEffect, useRef } from "react"
 import { StdoutContext } from "../context.js"
 import { OSC133 } from "../osc-markers.js"
 
@@ -109,8 +109,12 @@ export function useScrollback<T>(items: T[], options: UseScrollbackOptions<T>): 
   const frozenCountRef = useRef(frozenCount)
   frozenCountRef.current = frozenCount
 
-  // Normal freeze path: write newly frozen items to scrollback
-  useEffect(() => {
+  // Normal freeze path: write newly frozen items to scrollback.
+  // MUST be useLayoutEffect so frozen items are written to stdout BEFORE the
+  // output phase renders live content. With useEffect, frozen items would be
+  // written AFTER the output phase — appearing below live content, then erased
+  // as "leftover" lines on the next frame.
+  useLayoutEffect(() => {
     const prev = prevFrozenCountRef.current
     if (frozenCount > prev) {
       // Write newly frozen items to scrollback
@@ -202,8 +206,8 @@ export function useScrollback<T>(items: T[], options: UseScrollbackOptions<T>): 
     // 5. Update stored strings
     renderedStringsRef.current = newStrings
 
-    // 6. Sync prevFrozenCountRef so the freeze useEffect (which runs AFTER
-    //    this useLayoutEffect) doesn't re-write items we just emitted.
+    // 6. Sync prevFrozenCountRef so the freeze useLayoutEffect doesn't
+    //    re-write items we just emitted.
     //    This prevents double-writes when resize + compact happen in the same frame.
     prevFrozenCountRef.current = currentFrozenCount
   }, [width, stdout, stdoutCtx])
