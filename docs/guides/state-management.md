@@ -227,6 +227,8 @@ const app = createApp(
 
 Beyond undo, this unlocks replay, logging (`JSON.stringify(op)`), AI automation (ops as tool call results), and collaboration (send ops over the wire).
 
+**A note on robustness**: the example above uses `{ op: "toggleDone", index: 2 }` — but indices are fragile. If you replay ops after items were reordered, or two clients send ops concurrently, index 2 might point to the wrong item. Prefer identity-based ops: `{ op: "toggleDone", id: "abc123" }`. An op that says "toggle item abc123" works regardless of ordering — apply it twice and the item toggles twice, apply it out of order and it still finds the right item. This makes ops safe for undo (replaying after other edits), collaboration (concurrent ops from multiple users), and offline sync (merging ops that happened independently). See [Designing Robust Ops](as-data-patterns.md#designing-robust-ops) for more.
+
 See [Operations and Effects as Data](as-data-patterns.md) for the full pattern and prior art.
 
 ## "I Want to Ship to Terminal and Web"

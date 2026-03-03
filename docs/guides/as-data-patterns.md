@@ -76,6 +76,35 @@ Ops are just JSON — plain objects with a discriminator and named params. Same 
 - **Collaboration**: Send ops over the wire to other clients
 - **Time-travel**: Replay any sequence from an initial state
 
+### Designing Robust Ops
+
+The examples above use index-based ops: `{ op: "toggleDone", index: 2 }`. This works for undo within a single session, but breaks as soon as ops need to survive reordering — undo after other edits, concurrent ops from multiple users, or offline sync. If someone inserts an item at index 1, your `index: 2` now points to the wrong item.
+
+**Prefer identity-based ops**: `{ op: "toggleDone", id: "abc123" }`. An op that says "toggle item abc123" works regardless of what order it arrives in. This is the same principle behind CRDTs (Conflict-free Replicated Data Types) — operations that commute (produce the same result regardless of order) are safe for concurrent and distributed use.
+
+```typescript
+// Fragile — depends on ordering
+type FragileOp = { op: "toggleDone"; index: number }
+
+// Robust — works regardless of order
+type RobustOp = { op: "toggleDone"; id: string }
+
+// Even better — idempotent (applying twice = applying once)
+type IdempotentOp = { op: "setDone"; id: string; done: boolean }
+```
+
+The spectrum from fragile to robust:
+
+| Op style | Undo | Concurrent edits | Offline sync |
+|----------|------|-------------------|-------------|
+| `index: 2` | Fragile | Breaks | Breaks |
+| `id: "abc"` + toggle | Works | Works | Applies twice = toggled twice |
+| `id: "abc"` + `done: true` | Works | Works | Applies twice = same result (idempotent) |
+
+The last form — `{ op: "setDone", id: "abc", done: true }` — is fully idempotent: applying it any number of times produces the same state. This is the gold standard for ops that may be replayed or delivered more than once.
+
+You don't need to start here. Index-based ops are fine for simple undo in a single session. But when you add collaboration, offline sync, or AI automation (where ops may arrive out of order), design your ops to be identity-based and ideally idempotent.
+
 ## Effects as Data
 
 Domain functions that do I/O are hard to test — you need mocks, stubs, and async. The same trick works: instead of *doing* the side effect, *describe* it as data.
