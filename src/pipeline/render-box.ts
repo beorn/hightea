@@ -12,7 +12,7 @@ import type { BoxProps, InkxNode, Rect } from "../types.js"
 import { getPadding } from "./helpers.js"
 import { getBorderChars, getBorderSize, parseColor } from "./render-helpers.js"
 import { renderTextLine } from "./render-text.js"
-import type { PipelineContext } from "./types.js"
+import type { NodeRenderState, PipelineContext } from "./types.js"
 
 // ============================================================================
 // Box Rendering
@@ -26,10 +26,10 @@ export function renderBox(
   buffer: TerminalBuffer,
   layout: Rect,
   props: BoxProps,
-  clipBounds?: { top: number; bottom: number; left?: number; right?: number },
-  scrollOffset = 0,
+  nodeState: NodeRenderState,
   skipBgFill = false,
 ): void {
+  const { scrollOffset, clipBounds } = nodeState
   const { x, width, height } = layout
   // Apply scroll offset to y position
   const y = layout.y - scrollOffset

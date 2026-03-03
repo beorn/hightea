@@ -22,7 +22,7 @@ import { parseColor } from "./render-helpers.js"
 import { clearBgConflictWarnings, renderText, setBgConflictMode } from "./render-text.js"
 import { pushContextTheme, popContextTheme } from "../theme-defs.js"
 import type { Theme } from "../theme-defs.js"
-import type { PipelineContext } from "./types.js"
+import type { ClipBounds, NodeRenderState, PipelineContext } from "./types.js"
 
 /**
  * Render all nodes to a terminal buffer.
@@ -57,7 +57,7 @@ export function contentPhase(root: InkxNode, prevBuffer?: TerminalBuffer | null,
   const tClone = _instrumentEnabled ? performance.now() - t0 : 0
 
   const t1 = _instrumentEnabled ? performance.now() : 0
-  renderNodeToBuffer(root, buffer, 0, undefined, !!hasPrevBuffer, false, ctx)
+  renderNodeToBuffer(root, buffer, { scrollOffset: 0, clipBounds: undefined, hasPrevBuffer: !!hasPrevBuffer, ancestorCleared: false }, ctx)
   const tRender = _instrumentEnabled ? performance.now() - t1 : 0
 
   if (_instrumentEnabled) {
@@ -195,8 +195,6 @@ function _getNodeDepth(node: InkxNode): number {
 // Re-export for consumers who need to clear bg conflict warnings
 export { clearBgConflictWarnings, setBgConflictMode }
 
-type ClipBounds = { top: number; bottom: number; left?: number; right?: number }
-
 // ============================================================================
 // Core Rendering
 // ============================================================================
@@ -207,16 +205,10 @@ type ClipBounds = { top: number; bottom: number; left?: number; right?: number }
 function renderNodeToBuffer(
   node: InkxNode,
   buffer: TerminalBuffer,
-  scrollOffset = 0,
-  clipBounds?: ClipBounds,
-  hasPrevBuffer = false,
-  /** True when an ancestor already cleared this node's region (pixels were erased).
-   *  Separate from hasPrevBuffer because scroll containers pass childHasPrev=false
-   *  but the buffer is still a clone with stale pixels — the parent's clear handled
-   *  its own region, but descendants may still need to clear their sub-regions. */
-  ancestorCleared = false,
+  nodeState: NodeRenderState,
   ctx?: PipelineContext,
 ): void {
+  const { scrollOffset, clipBounds, hasPrevBuffer, ancestorCleared } = nodeState
   if (_instrumentEnabled) _contentPhaseStats.nodesVisited++
   const layout = node.contentRect
   if (!layout) return
@@ -519,7 +511,7 @@ function renderNodeToBuffer(
   // Render based on node type
   if (node.type === "inkx-box") {
     if (_instrumentEnabled) _contentPhaseStats.boxNodes++
-    renderBox(node, buffer, layout, props, clipBounds, scrollOffset, skipBgFill)
+    renderBox(node, buffer, layout, props, nodeState, skipBgFill)
   } else if (node.type === "inkx-text") {
     if (_instrumentEnabled) _contentPhaseStats.textNodes++
     // Pass inherited bg/fg from nearest ancestor with backgroundColor/color.
@@ -529,7 +521,7 @@ function renderNodeToBuffer(
     // Foreground inheritance matches CSS semantics: Box color cascades to Text children.
     const textInheritedBg = findInheritedBg(node).color
     const textInheritedFg = findInheritedFg(node)
-    renderText(node, buffer, layout, props, scrollOffset, clipBounds, textInheritedBg, textInheritedFg, ctx)
+    renderText(node, buffer, layout, props, nodeState, textInheritedBg, textInheritedFg, ctx)
   }
 
   // Render children
@@ -538,11 +530,9 @@ function renderNodeToBuffer(
       node,
       buffer,
       props,
-      clipBounds,
-      hasPrevBuffer,
+      nodeState,
       parentRegionCleared,
       parentRegionChanged,
-      ancestorCleared,
       ctx,
     )
 
@@ -554,14 +544,11 @@ function renderNodeToBuffer(
     renderNormalChildren(
       node,
       buffer,
-      scrollOffset,
       props,
-      clipBounds,
-      hasPrevBuffer,
+      nodeState,
       childPositionChanged,
       parentRegionCleared,
       parentRegionChanged,
-      ancestorCleared,
       ctx,
     )
   }
@@ -592,13 +579,12 @@ function renderScrollContainerChildren(
   node: InkxNode,
   buffer: TerminalBuffer,
   props: BoxProps,
-  clipBounds?: ClipBounds,
-  hasPrevBuffer = false,
+  nodeState: NodeRenderState,
   parentRegionCleared = false,
   parentRegionChanged = false,
-  ancestorCleared = false,
   ctx?: PipelineContext,
 ): void {
+  const { clipBounds, hasPrevBuffer, ancestorCleared } = nodeState
   const layout = node.contentRect
   const ss = node.scrollState
   if (!layout || !ss) return
@@ -796,7 +782,7 @@ function renderScrollContainerChildren(
     }
 
     // Render visible children with scroll offset applied.
-    renderNodeToBuffer(child, buffer, ss.offset, childClipBounds, thisChildHasPrev, thisChildAncestorCleared, ctx)
+    renderNodeToBuffer(child, buffer, { scrollOffset: ss.offset, clipBounds: childClipBounds, hasPrevBuffer: thisChildHasPrev, ancestorCleared: thisChildAncestorCleared }, ctx)
   }
 
   // Second pass: render sticky children at their computed positions
@@ -824,7 +810,7 @@ function renderScrollContainerChildren(
       // Stale bg from previous frames is handled by the first-pass overlap
       // forcing above, which ensures correct bg is in the buffer before sticky
       // Text nodes inherit it via getCellBg (render-text.ts:600).
-      renderNodeToBuffer(child, buffer, stickyScrollOffset, childClipBounds, false, false, ctx)
+      renderNodeToBuffer(child, buffer, { scrollOffset: stickyScrollOffset, clipBounds: childClipBounds, hasPrevBuffer: false, ancestorCleared: false }, ctx)
     }
   }
 }
@@ -835,16 +821,14 @@ function renderScrollContainerChildren(
 function renderNormalChildren(
   node: InkxNode,
   buffer: TerminalBuffer,
-  scrollOffset: number,
   props: BoxProps,
-  clipBounds?: ClipBounds,
-  hasPrevBuffer = false,
+  nodeState: NodeRenderState,
   childPositionChanged = false,
   parentRegionCleared = false,
   parentRegionChanged = false,
-  ancestorCleared = false,
   ctx?: PipelineContext,
 ): void {
+  const { scrollOffset, clipBounds, hasPrevBuffer, ancestorCleared } = nodeState
   const layout = node.contentRect
   if (!layout) return
 
@@ -931,7 +915,7 @@ function renderNormalChildren(
       continue // Skip — rendered in second pass
     }
 
-    renderNodeToBuffer(child, buffer, scrollOffset, effectiveClipBounds, childHasPrev, childAncestorCleared, ctx)
+    renderNodeToBuffer(child, buffer, { scrollOffset, clipBounds: effectiveClipBounds, hasPrevBuffer: childHasPrev, ancestorCleared: childAncestorCleared }, ctx)
   }
 
   // Second pass: render sticky children at their computed positions.
@@ -953,7 +937,7 @@ function renderNormalChildren(
       // the buffer at sticky positions has first-pass content (not "cleared").
       // Using ancestorCleared=true would cause transparent spacer Boxes to clear
       // their region, wiping overlapping sticky headers rendered earlier in this pass.
-      renderNodeToBuffer(child, buffer, stickyScrollOffset, effectiveClipBounds, false, false, ctx)
+      renderNodeToBuffer(child, buffer, { scrollOffset: stickyScrollOffset, clipBounds: effectiveClipBounds, hasPrevBuffer: false, ancestorCleared: false }, ctx)
     }
   }
 
@@ -976,7 +960,7 @@ function renderNormalChildren(
       //
       // - ancestorCleared=false: prevents transparent descendants from clearing
       //   their regions, which would also wipe first-pass content.
-      renderNodeToBuffer(child, buffer, scrollOffset, effectiveClipBounds, false, false, ctx)
+      renderNodeToBuffer(child, buffer, { scrollOffset, clipBounds: effectiveClipBounds, hasPrevBuffer: false, ancestorCleared: false }, ctx)
     }
   }
 }

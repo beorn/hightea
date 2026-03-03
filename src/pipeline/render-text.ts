@@ -30,7 +30,7 @@ import {
   wrapText,
 } from "../unicode.js"
 import { getTextStyle, getTextWidth, parseColor } from "./render-helpers.js"
-import type { PipelineContext } from "./types.js"
+import type { NodeRenderState, PipelineContext } from "./types.js"
 
 // ============================================================================
 // Background Conflict Detection
@@ -1066,12 +1066,12 @@ export function renderText(
   buffer: TerminalBuffer,
   layout: { x: number; y: number; width: number; height: number },
   props: TextProps,
-  scrollOffset = 0,
-  clipBounds?: { top: number; bottom: number; left?: number; right?: number },
+  nodeState: NodeRenderState,
   inheritedBg?: Color,
   inheritedFg?: Color,
   ctx?: PipelineContext,
 ): void {
+  const { scrollOffset, clipBounds } = nodeState
   const { x, width, height } = layout
   let { y } = layout
 
