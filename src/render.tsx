@@ -19,6 +19,7 @@ import React, { useCallback, useEffect, useMemo, useRef, type ReactElement, type
 
 const log = createLogger("inkx:render")
 import { RuntimeContext, type RuntimeContextValue, StdoutContext, TermContext } from "./context.js"
+import { createCursorStore, CursorProvider, type CursorStore } from "./hooks/useCursor.js"
 import { parseKey } from "./keys.js"
 import { type LayoutEngineType, isLayoutEngineInitialized } from "./layout-engine.js"
 import { enableBracketedPaste, disableBracketedPaste, parseBracketedPaste } from "./bracketed-paste.js"
@@ -430,6 +431,7 @@ class InkxInstance {
   private readonly nonTTYMode: NonTTYMode
 
   private scheduler: RenderScheduler | null = null
+  private cursorStore: CursorStore
   private container: ReturnType<typeof createContainer> | null = null
   private fiberRoot: any = null
   private lastElement: ReactNode = null
@@ -475,6 +477,9 @@ class InkxInstance {
       enableBracketedPaste(this.stdout)
     }
 
+    // Per-instance cursor state (replaces module-level globals)
+    this.cursorStore = createCursorStore()
+
     // Set up container
     this.container = createContainer(() => {
       this.scheduler?.scheduleRender()
@@ -490,6 +495,7 @@ class InkxInstance {
       debug: this.debug,
       mode: this.mode,
       nonTTYMode: this.nonTTYMode,
+      cursorAccessors: this.cursorStore.accessors,
     })
 
     // Set up resize listener
@@ -512,17 +518,19 @@ class InkxInstance {
     this.lastElement = element
 
     const tree = (
-      <InkxApp
-        stdin={this.stdin}
-        stdout={this.stdout}
-        exitOnCtrlC={this.exitOnCtrlC}
-        onExit={this.handleExit}
-        onPause={this.pause}
-        onResume={this.resume}
-        onScrollback={this.handleScrollback}
-      >
-        {element}
-      </InkxApp>
+      <CursorProvider store={this.cursorStore}>
+        <InkxApp
+          stdin={this.stdin}
+          stdout={this.stdout}
+          exitOnCtrlC={this.exitOnCtrlC}
+          onExit={this.handleExit}
+          onPause={this.pause}
+          onResume={this.resume}
+          onScrollback={this.handleScrollback}
+        >
+          {element}
+        </InkxApp>
+      </CursorProvider>
     )
 
     // Use synchronous update to ensure React commits the work immediately

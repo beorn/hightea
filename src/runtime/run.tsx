@@ -37,6 +37,7 @@ import {
   TermContext,
 } from "../context.js"
 import { createFocusManager, type FocusManager } from "../focus-manager.js"
+import { createCursorStore, CursorProvider } from "../hooks/useCursor.js"
 import { createFocusEvent, createKeyEvent, dispatchFocusEvent, dispatchKeyEvent } from "../focus-events.js"
 import { findByTestID } from "../focus-queries.js"
 import { executeRender } from "../pipeline/index.js"
@@ -394,6 +395,9 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     },
   })
 
+  // Per-instance cursor state (replaces module-level globals)
+  const cursorStore = createCursorStore()
+
   // Mouse event processor for DOM-level dispatch (with click-to-focus)
   const mouseEventState = createMouseEventProcessor({ focusManager })
 
@@ -705,28 +709,30 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 
   // Wrap element with all required providers
   const wrappedElement = (
-    <TermContext.Provider value={mockTerm}>
-      <StdoutContext.Provider
-        value={{
-          stdout: mockStdout,
-          write: () => {},
-          notifyScrollback: (lines: number) => runtime.addScrollbackLines(lines),
-          resetInlineCursor: () => runtime.resetInlineCursor(),
-          getInlineCursorRow: () => runtime.getInlineCursorRow(),
-          promoteScrollback: (content: string, lines: number) => runtime.promoteScrollback(content, lines),
-        }}
-      >
-        <FocusManagerContext.Provider value={focusManager}>
-          <RunInternalContext.Provider value={runInternalContextValue}>
-            <RuntimeContext.Provider value={unifiedRuntimeValue}>
-              <PasteContext.Provider value={pasteContextValue}>
-                <InputContext.Provider value={inputContextValue}>{element}</InputContext.Provider>
-              </PasteContext.Provider>
-            </RuntimeContext.Provider>
-          </RunInternalContext.Provider>
-        </FocusManagerContext.Provider>
-      </StdoutContext.Provider>
-    </TermContext.Provider>
+    <CursorProvider store={cursorStore}>
+      <TermContext.Provider value={mockTerm}>
+        <StdoutContext.Provider
+          value={{
+            stdout: mockStdout,
+            write: () => {},
+            notifyScrollback: (lines: number) => runtime.addScrollbackLines(lines),
+            resetInlineCursor: () => runtime.resetInlineCursor(),
+            getInlineCursorRow: () => runtime.getInlineCursorRow(),
+            promoteScrollback: (content: string, lines: number) => runtime.promoteScrollback(content, lines),
+          }}
+        >
+          <FocusManagerContext.Provider value={focusManager}>
+            <RunInternalContext.Provider value={runInternalContextValue}>
+              <RuntimeContext.Provider value={unifiedRuntimeValue}>
+                <PasteContext.Provider value={pasteContextValue}>
+                  <InputContext.Provider value={inputContextValue}>{element}</InputContext.Provider>
+                </PasteContext.Provider>
+              </RuntimeContext.Provider>
+            </RunInternalContext.Provider>
+          </FocusManagerContext.Provider>
+        </StdoutContext.Provider>
+      </TermContext.Provider>
+    </CursorProvider>
   )
 
   // Initial render (synchronous, not batched)

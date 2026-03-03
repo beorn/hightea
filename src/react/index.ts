@@ -49,8 +49,8 @@ export { useTerm } from "../hooks/useTerm.js"
 
 export { useConsole } from "../hooks/useConsole.js"
 
-export { useCursor, resetCursorState, getCursorState, subscribeCursor } from "../hooks/useCursor.js"
-export type { CursorPosition, CursorState } from "../hooks/useCursor.js"
+export { useCursor, resetCursorState, getCursorState, subscribeCursor, createCursorStore, CursorProvider } from "../hooks/useCursor.js"
+export type { CursorPosition, CursorState, CursorAccessors, CursorStore } from "../hooks/useCursor.js"
 
 // =============================================================================
 // Edit Context Hook

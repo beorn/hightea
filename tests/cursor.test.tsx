@@ -1,15 +1,15 @@
 /**
  * Tests for useCursor hook.
  *
- * Verifies that useCursor sets global cursor state with correct
+ * Verifies that useCursor sets per-instance cursor state with correct
  * absolute terminal positions derived from component screen rects.
  */
 
 import React, { useCallback } from "react"
-import { describe, expect, test, beforeEach } from "vitest"
+import { describe, expect, test } from "vitest"
 import { Box, Text, useScreenRectCallback } from "../src/index.js"
 import { createRenderer } from "inkx/testing"
-import { useCursor, resetCursorState, getCursorState } from "../src/hooks/useCursor.js"
+import { useCursor } from "../src/hooks/useCursor.js"
 
 const render = createRenderer({ cols: 80, rows: 24 })
 
@@ -49,14 +49,10 @@ function CursorProbe({
 // ============================================================================
 
 describe("useCursor", () => {
-  beforeEach(() => {
-    resetCursorState()
-  })
-
   test("sets cursor state when visible", () => {
     let captured: { x: number; y: number } | null = null
 
-    render(
+    const app = render(
       <Box>
         <CursorProbe
           col={0}
@@ -71,7 +67,7 @@ describe("useCursor", () => {
     )
 
     expect(captured).not.toBeNull()
-    const state = getCursorState()
+    const state = app.getCursorState()
     expect(state).not.toBeNull()
     expect(state!.visible).toBe(true)
     expect(state!.x).toBe(captured!.x)
@@ -81,7 +77,7 @@ describe("useCursor", () => {
   test("cursor position includes col/row offset", () => {
     let baseRect: { x: number; y: number } | null = null
 
-    render(
+    const app = render(
       <Box>
         <CursorProbe
           col={5}
@@ -96,7 +92,7 @@ describe("useCursor", () => {
     )
 
     expect(baseRect).not.toBeNull()
-    const state = getCursorState()
+    const state = app.getCursorState()
     expect(state).not.toBeNull()
     expect(state!.x).toBe(baseRect!.x + 5)
     expect(state!.y).toBe(baseRect!.y + 2)
@@ -105,7 +101,7 @@ describe("useCursor", () => {
   test("cursor col+row offset stacks with screen position", () => {
     let baseRect: { x: number; y: number } | null = null
 
-    render(
+    const app = render(
       <Box flexDirection="column">
         <Box height={5}>
           <Text>spacer</Text>
@@ -128,7 +124,7 @@ describe("useCursor", () => {
     // The probe's Box is below a 5-high Box
     expect(baseRect!.y).toBeGreaterThanOrEqual(5)
 
-    const state = getCursorState()
+    const state = app.getCursorState()
     expect(state).not.toBeNull()
     // col and row offsets are added to screen position
     expect(state!.x).toBe(baseRect!.x + 7)
@@ -138,7 +134,7 @@ describe("useCursor", () => {
   test("cursor offset by sibling box height", () => {
     let baseRect: { x: number; y: number } | null = null
 
-    render(
+    const app = render(
       <Box flexDirection="column">
         <Box height={3}>
           <Text>top</Text>
@@ -160,25 +156,25 @@ describe("useCursor", () => {
     expect(baseRect).not.toBeNull()
     // The probe's Box is below a 3-high Box
     expect(baseRect!.y).toBeGreaterThanOrEqual(3)
-    const state = getCursorState()
+    const state = app.getCursorState()
     expect(state).not.toBeNull()
     expect(state!.y).toBe(baseRect!.y)
   })
 
   test("hides cursor when visible=false", () => {
-    render(
+    const app = render(
       <Box>
         <CursorProbe col={0} row={0} visible={false} />
         <Text>hidden</Text>
       </Box>,
     )
 
-    const state = getCursorState()
+    const state = app.getCursorState()
     expect(state).toBeNull()
   })
 
   test("last writer wins when multiple cursors are active", () => {
-    render(
+    const app = render(
       <Box flexDirection="column">
         <Box>
           <CursorProbe col={1} row={0} visible={true} />
@@ -192,7 +188,7 @@ describe("useCursor", () => {
     )
 
     // Both set cursor state; the last one to fire wins.
-    const state = getCursorState()
+    const state = app.getCursorState()
     expect(state).not.toBeNull()
     expect(state!.visible).toBe(true)
   })

@@ -23,7 +23,7 @@ import {
   resolveNonTTYMode,
   stripAnsi,
 } from "./non-tty.js"
-import { getCursorState } from "./hooks/useCursor.js"
+import { getCursorState as globalGetCursorState, type CursorAccessors } from "./hooks/useCursor.js"
 import { copyToClipboard as copyToClipboardImpl } from "./clipboard.js"
 import { ANSI, notify as notifyTerminal } from "./output.js"
 import { executeRender, type PipelineConfig } from "./pipeline.js"
@@ -100,6 +100,8 @@ export interface SchedulerOptions {
   slowFrameThreshold?: number
   /** Pipeline configuration (caps-scoped measurer + output phase) */
   pipelineConfig?: PipelineConfig
+  /** Per-instance cursor accessors. Falls back to module-level globals if not provided. */
+  cursorAccessors?: CursorAccessors
 }
 
 export interface RenderStats {
@@ -146,6 +148,7 @@ export class RenderScheduler {
   private slowFrameThreshold: number
   private mode: "fullscreen" | "inline"
   private pipelineConfig?: PipelineConfig
+  private getCursorState: () => import("./hooks/useCursor.js").CursorState | null
   private nonTTYMode: ResolvedMode
   private outputTransformer: (content: string, prevLineCount: number) => string
   private log: Logger
@@ -203,6 +206,7 @@ export class RenderScheduler {
     this.slowFrameThreshold = options.slowFrameThreshold ?? 50
     this.mode = options.mode ?? "fullscreen"
     this.pipelineConfig = options.pipelineConfig
+    this.getCursorState = options.cursorAccessors?.getCursorState ?? globalGetCursorState
     this.log = createLogger("inkx:scheduler") as unknown as Logger
 
     // Resolve non-TTY mode based on environment
@@ -468,7 +472,7 @@ export class RenderScheduler {
       this.scrollbackOffset = 0 // Consume the offset
       // For inline mode, pass cursor state into the pipeline so the output
       // phase can position the real terminal cursor at the useCursor() location.
-      const inlineCursor = this.mode === "inline" ? getCursorState() : undefined
+      const inlineCursor = this.mode === "inline" ? this.getCursorState() : undefined
       const { output, buffer } = executeRender(
         this.root,
         width,
@@ -503,7 +507,7 @@ export class RenderScheduler {
       // at the right spot after painting.
       let cursorSuffix = ""
       if (this.nonTTYMode === "tty") {
-        const cursor = getCursorState()
+        const cursor = this.getCursorState()
         if (cursor?.visible) {
           cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + ANSI.CURSOR_SHOW
         } else {

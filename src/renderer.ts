@@ -27,6 +27,7 @@ import { createContainer, createFiberRoot, getContainerRoot, reconciler } from "
 import { createTerm } from "chalkx"
 import { bufferToText } from "./buffer.js"
 import { buildMismatchContext, formatMismatchContext } from "./debug-mismatch.js"
+import { createCursorStore, CursorProvider } from "./hooks/useCursor.js"
 import { keyToAnsi, parseKey, splitRawInput } from "./keys.js"
 import { IncrementalRenderMismatchError } from "./scheduler.js"
 import { debugTree } from "./testing/debug.js"
@@ -331,6 +332,9 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   // Focus manager (tree-based focus system)
   const focusManager = createFocusManager()
 
+  // Per-instance cursor state (replaces module-level globals)
+  const cursorStore = createCursorStore()
+
   // RuntimeContext — typed event bus bridging from test renderer's inputEmitter
   const runtimeValue: RuntimeContextValue = {
     on(event, handler) {
@@ -361,15 +365,19 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   // Wrap element with contexts
   function wrapWithContexts(el: ReactElement): ReactElement {
     return React.createElement(
-      TermContext.Provider,
-      { value: mockTerm },
+      CursorProvider,
+      { store: cursorStore },
       React.createElement(
-        StdoutContext.Provider,
-        { value: { stdout: mockStdout, write: () => {} } },
+        TermContext.Provider,
+        { value: mockTerm },
         React.createElement(
-          FocusManagerContext.Provider,
-          { value: focusManager },
-          React.createElement(RuntimeContext.Provider, { value: runtimeValue }, el),
+          StdoutContext.Provider,
+          { value: { stdout: mockStdout, write: () => {} } },
+          React.createElement(
+            FocusManagerContext.Provider,
+            { value: focusManager },
+            React.createElement(RuntimeContext.Provider, { value: runtimeValue }, el),
+          ),
         ),
       ),
     )
@@ -772,6 +780,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     actAndRender: actAndRenderFn,
     resize: resizeFn,
     focusManager,
+    getCursorState: cursorStore.accessors.getCursorState,
   })
 }
 

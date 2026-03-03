@@ -54,6 +54,7 @@ import {
   TermContext,
 } from "../context.js"
 import { createFocusManager } from "../focus-manager.js"
+import { createCursorStore, CursorProvider } from "../hooks/useCursor.js"
 import { createFocusEvent, dispatchFocusEvent } from "../focus-events.js"
 import { executeRender } from "../pipeline/index.js"
 import { createPipeline } from "../measurer.js"
@@ -693,6 +694,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     },
   })
 
+  // Per-instance cursor state (replaces module-level globals)
+  const cursorStore = createCursorStore()
+
   // Mouse event processor for DOM-level dispatch (with click-to-focus)
   const mouseEventState = createMouseEventProcessor({ focusManager })
 
@@ -798,15 +802,17 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
   // Wrap element with all required providers
   const wrappedElement = (
-    <TermContext.Provider value={mockTerm}>
-      <StdoutContext.Provider value={{ stdout: mockStdout, write: () => {} }}>
-        <FocusManagerContext.Provider value={focusManager}>
-          <RuntimeContext.Provider value={runtimeContextValue}>
-            <StoreContext.Provider value={store as StoreApi<unknown>}>{element}</StoreContext.Provider>
-          </RuntimeContext.Provider>
-        </FocusManagerContext.Provider>
-      </StdoutContext.Provider>
-    </TermContext.Provider>
+    <CursorProvider store={cursorStore}>
+      <TermContext.Provider value={mockTerm}>
+        <StdoutContext.Provider value={{ stdout: mockStdout, write: () => {} }}>
+          <FocusManagerContext.Provider value={focusManager}>
+            <RuntimeContext.Provider value={runtimeContextValue}>
+              <StoreContext.Provider value={store as StoreApi<unknown>}>{element}</StoreContext.Provider>
+            </RuntimeContext.Provider>
+          </FocusManagerContext.Provider>
+        </StdoutContext.Provider>
+      </TermContext.Provider>
+    </CursorProvider>
   )
 
   // Performance instrumentation — count renders per event

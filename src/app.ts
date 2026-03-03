@@ -162,6 +162,11 @@ export interface App {
 
   /** Direct access to the FocusManager instance */
   readonly focusManager: FocusManager
+
+  // === Cursor State ===
+
+  /** Get the current cursor state for this inkx instance (per-instance, not global). */
+  getCursorState(): import("./hooks/useCursor.js").CursorState | null
 }
 
 /**
@@ -219,6 +224,9 @@ export interface AppOptions {
 
   /** Focus manager instance for focus system */
   focusManager?: FocusManager
+
+  /** Per-instance cursor state accessor */
+  getCursorState?: () => import("./hooks/useCursor.js").CursorState | null
 }
 
 /**
@@ -508,6 +516,10 @@ export function buildApp(options: AppOptions): App {
         throw new Error("FocusManager not available — pass focusManager to buildApp()")
       }
       return fm
+    },
+
+    getCursorState() {
+      return options.getCursorState?.() ?? null
     },
   }
 
