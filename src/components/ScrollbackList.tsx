@@ -65,7 +65,7 @@ export interface ScrollbackListProps<T> {
   isFrozen?: (item: T, index: number) => boolean
   /** Optional footer pinned at the bottom of the terminal. */
   footer?: ReactNode
-  /** Height of the footer in rows. Default: 1. */
+  /** @deprecated Footer now auto-sizes to content. This prop is ignored. */
   footerHeight?: number
   /** OSC 133 marker configuration, forwarded to useScrollback. */
   markers?: boolean | ScrollbackMarkerCallbacks<T>

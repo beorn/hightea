@@ -42,7 +42,6 @@ function App() {
       isFrozen={(item) => item.done}
       markers={true}
       footer={<StatusBar />}
-      footerHeight={1}
     >
       {(item) => <ItemView item={item} />}
     </ScrollbackList>

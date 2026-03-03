@@ -63,7 +63,7 @@ export interface ScrollbackViewProps<T> {
   isFrozen?: (item: T, index: number) => boolean
   /** Optional footer pinned at the bottom of the terminal. */
   footer?: ReactNode
-  /** Height of the footer in rows. Default: 1. */
+  /** @deprecated Footer now auto-sizes to content. This prop is ignored. */
   footerHeight?: number
   /**
    * Maximum lines to retain in dynamic scrollback before promoting to static.
@@ -113,7 +113,7 @@ export function ScrollbackView<T>({
   keyExtractor,
   isFrozen: isFrozenProp,
   footer,
-  footerHeight = 1,
+  footerHeight: _footerHeight,
   maxHistory: _maxHistory = 10000,
   markers,
   width,
@@ -339,9 +339,9 @@ export function ScrollbackView<T>({
         ))}
       </inkx-box>
 
-      {/* Footer pinned at bottom */}
+      {/* Footer pinned at bottom — auto-sizes to content */}
       {footer != null && (
-        <inkx-box flexDirection="column" height={footerHeight} flexShrink={0}>
+        <inkx-box flexDirection="column" flexShrink={0}>
           {footer}
         </inkx-box>
       )}
