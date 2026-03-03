@@ -457,6 +457,135 @@ describe("border width consistency between frozen and live", () => {
 })
 
 // ============================================================================
+// Parent padding: frozen items match live width and position
+// ============================================================================
+
+describe("parent padding: frozen items match live layout", () => {
+  test("frozen items have left-padding matching parent paddingX", () => {
+    const COLS = 60
+    const { stdout, writes } = createMockStdout(COLS)
+    const render = createRenderer({ cols: COLS, rows: 24 })
+
+    // Phase 1: All live (so layout info is computed before freezing)
+    const items1 = mkItems(
+      ["1", "First item", false],
+      ["2", "Second item", false],
+    )
+
+    const app = render(
+      <Box paddingX={1}>
+        <ScrollbackList
+          items={items1}
+          keyExtractor={(t) => t.id}
+          stdout={stdout}
+        >
+          {(item) => <BorderedItem item={item} />}
+        </ScrollbackList>
+      </Box>,
+    )
+
+    // No frozen items yet — no writes to stdout
+    expect(writes.length).toBe(0)
+
+    // Get live border top-line width (includes padding)
+    const liveLines = app.text.split("\n")
+    const liveBorderLine = liveLines.find((l) => l.includes("╭"))
+    expect(liveBorderLine).toBeDefined()
+    const liveBorderWidth = liveBorderLine!.trimEnd().length
+
+    // Phase 2: Freeze first item
+    const items2 = mkItems(
+      ["1", "First item", true],
+      ["2", "Second item", false],
+    )
+
+    app.rerender(
+      <Box paddingX={1}>
+        <ScrollbackList
+          items={items2}
+          keyExtractor={(t) => t.id}
+          stdout={stdout}
+          isFrozen={(t) => t.frozen}
+        >
+          {(item) => <BorderedItem item={item} />}
+        </ScrollbackList>
+      </Box>,
+    )
+
+    // Item 1 should be frozen and written to stdout
+    expect(writes.length).toBeGreaterThan(0)
+
+    const frozenPlain = stripAnsi(writes.join(""))
+    const frozenLines = frozenPlain.split("\n").filter((l) => l.trim().length > 0)
+
+    // Each frozen line should start with a space (left-padding from parent paddingX=1)
+    for (const line of frozenLines) {
+      expect(line.startsWith(" ")).toBe(true)
+    }
+
+    // Frozen border width should match live border width
+    const frozenBorderLine = frozenLines.find((l) => l.includes("╭"))
+    expect(frozenBorderLine).toBeDefined()
+    const frozenBorderWidth = frozenBorderLine!.trimEnd().length
+    expect(frozenBorderWidth).toBe(liveBorderWidth)
+  })
+
+  test("frozen items without parent padding have no left-padding", () => {
+    const COLS = 60
+    const { stdout, writes } = createMockStdout(COLS)
+    const render = createRenderer({ cols: COLS, rows: 24 })
+
+    // Phase 1: All live (no parent padding)
+    const items1 = mkItems(
+      ["1", "First item", false],
+      ["2", "Second item", false],
+    )
+
+    const app = render(
+      <ScrollbackList
+        items={items1}
+        keyExtractor={(t) => t.id}
+        stdout={stdout}
+        width={COLS}
+      >
+        {(item) => <BorderedItem item={item} />}
+      </ScrollbackList>,
+    )
+
+    expect(writes.length).toBe(0)
+
+    // Phase 2: Freeze first item
+    const items2 = mkItems(
+      ["1", "First item", true],
+      ["2", "Second item", false],
+    )
+
+    app.rerender(
+      <ScrollbackList
+        items={items2}
+        keyExtractor={(t) => t.id}
+        stdout={stdout}
+        isFrozen={(t) => t.frozen}
+        width={COLS}
+      >
+        {(item) => <BorderedItem item={item} />}
+      </ScrollbackList>,
+    )
+
+    // Item 1 should be frozen
+    expect(writes.length).toBeGreaterThan(0)
+
+    const frozenPlain = stripAnsi(writes.join(""))
+    const frozenLines = frozenPlain.split("\n").filter((l) => l.trim().length > 0)
+
+    // Without parent padding, frozen lines should start with border character
+    const borderLine = frozenLines.find((l) => l.includes("╭"))
+    expect(borderLine).toBeDefined()
+    expect(borderLine!.startsWith("╭")).toBe(true)
+  })
+})
+
+// ============================================================================
 // Freeze transition: no visual artifacts
 // ============================================================================
 

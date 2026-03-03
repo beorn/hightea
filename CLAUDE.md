@@ -35,6 +35,10 @@ inkx's core innovation is **two-phase rendering with synchronous layout feedback
 - [docs/guides/runtime-layers.md](docs/guides/runtime-layers.md) - Runtime architecture deep-dive (createApp, createRuntime, createStore)
 - [docs/deep-dives/internals.md](docs/deep-dives/internals.md) - Reconciler implementation
 
+## Terminology
+
+Terminal buffer model terminology is defined in the [termless terminal model](../beorn-termless/docs/terminal-model.md). inkx uses `(x, y)` column-first coordinates (CSS/DOM convention), while termless uses `(row, col)` row-first (terminal convention). Both are correct for their domains — don't unify.
+
 ## Runtime Layers
 
 | Layer | Entry Point       | Best For                        | State Management                   |

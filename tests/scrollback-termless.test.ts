@@ -55,8 +55,8 @@ describe("inline output → termless verification", () => {
     const ansi = outputPhase(null, buf, "inline", 0, 10)
     term.feed(ansi)
 
-    expect(term).toContainText("Hello World")
-    expect(term).toContainText("Second line")
+    expect(term.screen).toContainText("Hello World")
+    expect(term.screen).toContainText("Second line")
     term.close()
   })
 
@@ -68,15 +68,15 @@ describe("inline output → termless verification", () => {
     const ansi1 = outputPhase(null, buf1, "inline", 0, 10)
     term.feed(ansi1)
 
-    expect(term).toContainText("Line A")
-    expect(term).toContainText("Line B")
+    expect(term.screen).toContainText("Line A")
+    expect(term.screen).toContainText("Line B")
 
     const buf2 = makeBuffer(40, 10, ["Line A", "Line C"])
     const ansi2 = outputPhase(buf1, buf2, "inline", 0, 10)
     term.feed(ansi2)
 
-    expect(term).toContainText("Line A")
-    expect(term).toContainText("Line C")
+    expect(term.screen).toContainText("Line A")
+    expect(term.screen).toContainText("Line C")
     term.close()
   })
 })
@@ -94,9 +94,9 @@ describe("scrollback promotion → termless verification", () => {
     const buf1 = makeBuffer(40, 10, ["Item 1", "Item 2", "Status bar"])
     const ansi1 = outputPhase(null, buf1, "inline", 0, 10)
     term.feed(ansi1)
-    expect(term).toContainText("Item 1")
-    expect(term).toContainText("Item 2")
-    expect(term).toContainText("Status bar")
+    expect(term.screen).toContainText("Item 1")
+    expect(term.screen).toContainText("Item 2")
+    expect(term.screen).toContainText("Status bar")
 
     // Frame 2: promote Item 1 to scrollback, live content = Item 2 + Status bar
     const frozenContent = "Item 1\x1b[K\r\n"
@@ -107,8 +107,8 @@ describe("scrollback promotion → termless verification", () => {
     term.feed(ansi2)
 
     // Both should be visible — frozen in scrollback or on screen, live on screen
-    expect(term).toContainText("Item 2")
-    expect(term).toContainText("Status bar")
+    expect(term.screen).toContainText("Item 2")
+    expect(term.screen).toContainText("Status bar")
     term.close()
   })
 
@@ -123,7 +123,7 @@ describe("scrollback promotion → termless verification", () => {
     term.feed(ansi1)
 
     for (const line of lines1) {
-      expect(term).toContainText(line)
+      expect(term.screen).toContainText(line)
     }
 
     // Frame 2: promote Task 1 + Task 2, live = Task 3, Task 4, Footer
@@ -135,9 +135,9 @@ describe("scrollback promotion → termless verification", () => {
     term.feed(ansi2)
 
     // Verify: live content is visible and correct
-    expect(term).toContainText("Task 3")
-    expect(term).toContainText("Task 4")
-    expect(term).toContainText("Footer")
+    expect(term.screen).toContainText("Task 3")
+    expect(term.screen).toContainText("Task 4")
+    expect(term.screen).toContainText("Footer")
 
     // Cursor should NOT be at row 0 (that would mean it "jumped up")
     const cursor = term.getCursor()
@@ -167,7 +167,7 @@ describe("scrollback promotion → termless verification", () => {
 
     // The terminal text should NOT have large blank gaps
     // Get all visible lines and check for content
-    const text = term.getText()
+    const text = term.buffer.getText()
     const visibleLines = text.split("\n")
 
     // Count non-empty lines in the viewport
@@ -178,7 +178,7 @@ describe("scrollback promotion → termless verification", () => {
 
     // All live lines should be present
     for (const line of liveLines) {
-      expect(term).toContainText(line)
+      expect(term.screen).toContainText(line)
     }
 
     term.close()
@@ -196,21 +196,21 @@ describe("scrollback promotion → termless verification", () => {
     outputPhase.promoteScrollback!("A\x1b[K\r\n", 1)
     const buf2 = makeBuffer(40, 10, ["B", "C", "D"])
     term.feed(outputPhase(buf1, buf2, "inline", 0, 10))
-    expect(term).toContainText("B")
-    expect(term).toContainText("C")
-    expect(term).toContainText("D")
+    expect(term.screen).toContainText("B")
+    expect(term.screen).toContainText("C")
+    expect(term.screen).toContainText("D")
 
     // Frame 3: normal incremental (no promotion) — should still work
     const buf3 = makeBuffer(40, 10, ["B", "C", "D updated"])
     term.feed(outputPhase(buf2, buf3, "inline", 0, 10))
-    expect(term).toContainText("D updated")
+    expect(term.screen).toContainText("D updated")
 
     // Frame 4: freeze B
     outputPhase.promoteScrollback!("B\x1b[K\r\n", 1)
     const buf4 = makeBuffer(40, 10, ["C", "D updated"])
     term.feed(outputPhase(buf3, buf4, "inline", 0, 10))
-    expect(term).toContainText("C")
-    expect(term).toContainText("D updated")
+    expect(term.screen).toContainText("C")
+    expect(term.screen).toContainText("D updated")
 
     term.close()
   })
@@ -231,8 +231,8 @@ describe("scrollback promotion → termless verification", () => {
     term.feed(outputPhase(buf1, buf2, "inline", 0, 6))
 
     // Should still show live content correctly
-    expect(term).toContainText("L4")
-    expect(term).toContainText("L5")
+    expect(term.screen).toContainText("L4")
+    expect(term.screen).toContainText("L5")
 
     // Scrollback should have grown (frozen content pushed into scrollback
     // if total exceeds terminal height)
@@ -261,11 +261,11 @@ describe("content changes after promotion → termless", () => {
     const buf2 = makeBuffer(40, 10, ["B", "C"])
     term.feed(outputPhase(buf1, buf2, "inline", 0, 10))
 
-    expect(term).toContainText("B")
-    expect(term).toContainText("C")
+    expect(term.screen).toContainText("B")
+    expect(term.screen).toContainText("C")
 
     // D and E should be erased — they shouldn't appear in the viewport
-    const text = term.getText()
+    const text = term.buffer.getText()
     // D and E were on rows 3-4 originally but should be cleared now
     // The visible content should be: frozen A (maybe in scrollback) + live B, C
     const visibleLines = text.split("\n").map((l) => l.trim())
@@ -290,8 +290,8 @@ describe("resize during promotion → termless", () => {
     // Frame 1: render 4 lines of content
     const buf1 = makeBuffer(40, 10, ["Alpha", "Beta", "Gamma", "Delta"])
     term.feed(outputPhase(null, buf1, "inline", 0, 10))
-    expect(term).toContainText("Alpha")
-    expect(term).toContainText("Delta")
+    expect(term.screen).toContainText("Alpha")
+    expect(term.screen).toContainText("Delta")
 
     // Frame 2: promote Alpha to scrollback
     outputPhase.promoteScrollback!("Alpha\x1b[K\r\n", 1)
@@ -308,9 +308,9 @@ describe("resize during promotion → termless", () => {
     term.feed(outputPhase2(null, buf3, "inline", 0, 8))
 
     // Verify new content is visible after resize
-    expect(term).toContainText("Beta")
-    expect(term).toContainText("Gamma")
-    expect(term).toContainText("Epsilon")
+    expect(term.screen).toContainText("Beta")
+    expect(term.screen).toContainText("Gamma")
+    expect(term.screen).toContainText("Epsilon")
 
     term.close()
   })
@@ -332,7 +332,7 @@ describe("content height exceeding terminal rows → termless", () => {
     }
 
     // The viewport (4 rows) should show the bottom lines
-    const viewportText = term.getViewportText()
+    const viewportText = term.screen.getText()
     expect(viewportText).toContain("Line 7")
 
     // Top lines should have been pushed into scrollback
@@ -340,8 +340,8 @@ describe("content height exceeding terminal rows → termless", () => {
     expect(scrollback.totalLines).toBeGreaterThan(4)
 
     // Early lines should be in scrollback above the viewport
-    expect(term).toHaveTextInScrollback("Line 1")
-    expect(term).toHaveTextInScrollback("Line 2")
+    expect(term.scrollback).toContainText("Line 1")
+    expect(term.scrollback).toContainText("Line 2")
 
     term.close()
   })
@@ -405,11 +405,11 @@ describe("styled content in scrollback → termless", () => {
     }
 
     // The styled text should still be present in scrollback (text content preserved)
-    expect(term).toHaveTextInScrollback("IMPORTANT")
-    expect(term).toHaveTextInScrollback("status ok")
+    expect(term.scrollback).toContainText("IMPORTANT")
+    expect(term.scrollback).toContainText("status ok")
 
     // The viewport should show the most recent lines
-    const viewportText = term.getViewportText()
+    const viewportText = term.screen.getText()
     expect(viewportText).toContain("plain line 7")
 
     term.close()

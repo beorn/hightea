@@ -34,11 +34,12 @@
  * ```
  */
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react"
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react"
 import type { ScrollbackMarkerCallbacks } from "../hooks/useScrollback.js"
 import { useScrollback } from "../hooks/useScrollback.js"
 import { renderStringSync } from "../render-string.js"
 import { ScrollbackItemProvider } from "../hooks/useScrollbackItem.js"
+import type { InkxNode } from "../types.js"
 
 // ============================================================================
 // Types
@@ -137,6 +138,39 @@ export function ScrollbackView<T>({
 
   const effectiveWidth = width ?? termWidth
 
+  // Track the outer node's actual layout width and x-offset.
+  // When the component is inside a parent with padding/borders, the layout
+  // engine gives us a narrower width than the terminal. Frozen items must be
+  // rendered at this width (not terminal width) to match live items.
+  const outerNodeRef = useRef<InkxNode | null>(null)
+  const [layoutInfo, setLayoutInfo] = useState<{ width: number; x: number } | null>(null)
+
+  useLayoutEffect(() => {
+    const node = outerNodeRef.current
+    if (!node) return
+
+    const update = () => {
+      const rect = node.contentRect
+      if (rect && rect.width > 0) {
+        setLayoutInfo((prev) => {
+          if (prev && prev.width === rect.width && prev.x === rect.x) return prev
+          return { width: rect.width, x: rect.x }
+        })
+      }
+    }
+
+    update()
+    node.layoutSubscribers.add(update)
+    return () => {
+      node.layoutSubscribers.delete(update)
+    }
+  }, [])
+
+  // For frozen rendering: prefer layout width (accounts for parent padding/borders),
+  // fall back to explicit width prop, then terminal width.
+  const frozenWidth = width ?? (layoutInfo && layoutInfo.width > 0 ? layoutInfo.width : termWidth)
+  const frozenLeftPad = layoutInfo?.x ?? 0
+
   // Resolve render function: renderItem takes precedence over children
   const render = renderItem ?? children
   if (!render) {
@@ -181,6 +215,9 @@ export function ScrollbackView<T>({
   )
 
   // Render callback for useScrollback: render frozen item to string.
+  // Uses frozenWidth (layout-aware) instead of effectiveWidth (terminal-based)
+  // to match the width that live items get from the layout engine.
+  // Prepends left-padding to align frozen output with the parent's position.
   const renderFrozen = useCallback(
     (item: T, index: number): string => {
       const key = keyExtractor(item, index)
@@ -193,12 +230,20 @@ export function ScrollbackView<T>({
         </ScrollbackItemProvider>
       )
       try {
-        return renderStringSync(element, { width: effectiveWidth, plain: false })
+        let text = renderStringSync(element, { width: frozenWidth, plain: false })
+        // Add left-padding to match the parent's layout position.
+        // Without this, frozen items start at column 0 while live items
+        // are indented by the parent's padding.
+        if (frozenLeftPad > 0) {
+          const pad = " ".repeat(frozenLeftPad)
+          text = text.split("\n").map((line) => pad + line).join("\n")
+        }
+        return text
       } catch {
         return `[frozen item ${index}]`
       }
     },
-    [render, keyExtractor, effectiveWidth],
+    [render, keyExtractor, frozenWidth, frozenLeftPad],
   )
 
   // Use the underlying useScrollback hook to manage stdout writes
@@ -259,7 +304,7 @@ export function ScrollbackView<T>({
 
   // Render live items with memoized wrappers
   return (
-    <inkx-box flexDirection="column">
+    <inkx-box ref={outerNodeRef} flexDirection="column">
       {/* Content area: live (unfrozen) items */}
       <inkx-box flexDirection="column">
         {liveItems.map(({ item, index, key }) => (

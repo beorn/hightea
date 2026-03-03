@@ -56,8 +56,8 @@ describe("content shrink erases correctly", () => {
     const ansi1 = outputPhase(null, buf1, "inline", 0, 10)
     term.feed(ansi1)
 
-    expect(term).toContainText("Line 1")
-    expect(term).toContainText("Line 5")
+    expect(term.screen).toContainText("Line 1")
+    expect(term.screen).toContainText("Line 5")
 
     // Frame 2: render only 3 lines (content shrinks)
     const buf2 = makeBuffer(40, 10, ["Line 1", "Line 2", "Line 3"])
@@ -65,12 +65,12 @@ describe("content shrink erases correctly", () => {
     term.feed(ansi2)
 
     // Lines 1-3 should be present
-    expect(term).toContainText("Line 1")
-    expect(term).toContainText("Line 2")
-    expect(term).toContainText("Line 3")
+    expect(term.screen).toContainText("Line 1")
+    expect(term.screen).toContainText("Line 2")
+    expect(term.screen).toContainText("Line 3")
 
     // Lines 4-5 should be erased from the viewport
-    const viewportText = term.getViewportText()
+    const viewportText = term.screen.getText()
     const viewportLines = viewportText.split("\n").map((l) => l.trim())
     const hasLine4 = viewportLines.some((l) => l === "Line 4")
     const hasLine5 = viewportLines.some((l) => l === "Line 5")
@@ -95,8 +95,8 @@ describe("scrollback offset handling", () => {
     const ansi1 = outputPhase(null, buf1, "inline", 0, 10)
     term.feed(ansi1)
 
-    expect(term).toContainText("Status: OK")
-    expect(term).toContainText("Items: 5")
+    expect(term.screen).toContainText("Status: OK")
+    expect(term.screen).toContainText("Items: 5")
 
     // Simulate external output between frames (e.g., console.log)
     // This pushes the cursor down by 2 lines
@@ -109,7 +109,7 @@ describe("scrollback offset handling", () => {
     term.feed(ansi2)
 
     // Updated content should be visible
-    expect(term).toContainText("Items: 10")
+    expect(term.screen).toContainText("Items: 10")
 
     term.close()
   })
@@ -139,10 +139,10 @@ describe("height capping (termRows)", () => {
 
     // With termRows=4, the output phase caps to the BOTTOM of the buffer.
     // Footer should be visible since it's the last line.
-    expect(term).toContainText("Footer bar")
+    expect(term.screen).toContainText("Footer bar")
 
     // Header should NOT be in the viewport (it's at the top, beyond the cap)
-    const viewportText = term.getViewportText()
+    const viewportText = term.screen.getText()
     const viewportLines = viewportText.split("\n").map((l) => l.trim())
     const hasHeader = viewportLines.some((l) => l === "Header row")
     expect(hasHeader).toBe(false)
@@ -165,20 +165,20 @@ describe("multi-frame incremental consistency", () => {
     const ansi1 = outputPhase(null, buf1, "inline", 0, 10)
     term.feed(ansi1)
 
-    expect(term).toContainText("Alpha")
-    expect(term).toContainText("Beta")
-    expect(term).toContainText("Gamma")
+    expect(term.screen).toContainText("Alpha")
+    expect(term.screen).toContainText("Beta")
+    expect(term.screen).toContainText("Gamma")
 
     // Frame 2: change line 2
     const buf2 = makeBuffer(40, 10, ["Alpha", "Beta-v2", "Gamma"])
     const ansi2 = outputPhase(buf1, buf2, "inline", 0, 10)
     term.feed(ansi2)
 
-    expect(term).toContainText("Alpha")
-    expect(term).toContainText("Beta-v2")
-    expect(term).toContainText("Gamma")
+    expect(term.screen).toContainText("Alpha")
+    expect(term.screen).toContainText("Beta-v2")
+    expect(term.screen).toContainText("Gamma")
     // Old value should be gone
-    const text2 = term.getViewportText()
+    const text2 = term.screen.getText()
     expect(text2).not.toContain("Beta\n") // "Beta" without suffix should not be a standalone line
 
     // Frame 3: change line 3
@@ -186,21 +186,21 @@ describe("multi-frame incremental consistency", () => {
     const ansi3 = outputPhase(buf2, buf3, "inline", 0, 10)
     term.feed(ansi3)
 
-    expect(term).toContainText("Alpha")
-    expect(term).toContainText("Beta-v2")
-    expect(term).toContainText("Gamma-v2")
+    expect(term.screen).toContainText("Alpha")
+    expect(term.screen).toContainText("Beta-v2")
+    expect(term.screen).toContainText("Gamma-v2")
 
     // Frame 4: change all lines
     const buf4 = makeBuffer(40, 10, ["Alpha-v2", "Beta-v3", "Gamma-v3"])
     const ansi4 = outputPhase(buf3, buf4, "inline", 0, 10)
     term.feed(ansi4)
 
-    expect(term).toContainText("Alpha-v2")
-    expect(term).toContainText("Beta-v3")
-    expect(term).toContainText("Gamma-v3")
+    expect(term.screen).toContainText("Alpha-v2")
+    expect(term.screen).toContainText("Beta-v3")
+    expect(term.screen).toContainText("Gamma-v3")
 
     // Verify no stale content from previous frames in viewport
-    const finalText = term.getViewportText()
+    const finalText = term.screen.getText()
     const lines = finalText.split("\n").map((l) => l.trim()).filter((l) => l.length > 0)
     // Only the 3 current lines should have content
     for (const line of lines) {

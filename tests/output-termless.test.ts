@@ -57,7 +57,7 @@ describe("single cell change produces correct output", () => {
     const ansi = outputPhase(null, buf)
     term.feed(ansi)
 
-    expect(term).toContainText("Hello World")
+    expect(term.screen).toContainText("Hello World")
     term.close()
   })
 
@@ -68,17 +68,16 @@ describe("single cell change produces correct output", () => {
     const buf1 = makeBuffer(40, 10, ["Hello World"])
     const ansi1 = outputPhase(null, buf1)
     term.feed(ansi1)
-    expect(term).toContainText("Hello World")
+    expect(term.screen).toContainText("Hello World")
 
     // Diff render: "World" -> "Earth"
     const buf2 = makeBuffer(40, 10, ["Hello Earth"])
     const ansi2 = outputPhase(buf1, buf2)
     term.feed(ansi2)
 
-    expect(term).toContainText("Hello Earth")
+    expect(term.screen).toContainText("Hello Earth")
     // "World" should no longer appear
-    const text = term.getText()
-    expect(text).not.toContain("World")
+    expect(term.screen.getText()).not.toContain("World")
     term.close()
   })
 })
@@ -101,11 +100,11 @@ describe("style changes render correctly", () => {
     const ansi = outputPhase(null, buf)
     term.feed(ansi)
 
-    expect(term).toContainText("Bold")
-    expect(term).toBeBoldAt(0, 0)
-    expect(term).toBeBoldAt(0, 1)
-    expect(term).toBeBoldAt(0, 2)
-    expect(term).toBeBoldAt(0, 3)
+    expect(term.screen).toContainText("Bold")
+    expect(term.cell(0, 0)).toBeBold()
+    expect(term.cell(0, 1)).toBeBold()
+    expect(term.cell(0, 2)).toBeBold()
+    expect(term.cell(0, 3)).toBeBold()
     term.close()
   })
 
@@ -122,10 +121,10 @@ describe("style changes render correctly", () => {
     const ansi = outputPhase(null, buf)
     term.feed(ansi)
 
-    expect(term).toContainText("Red")
-    expect(term).toHaveFgColor(0, 0, { r: 255, g: 0, b: 0 })
-    expect(term).toHaveFgColor(0, 1, { r: 255, g: 0, b: 0 })
-    expect(term).toHaveFgColor(0, 2, { r: 255, g: 0, b: 0 })
+    expect(term.screen).toContainText("Red")
+    expect(term.cell(0, 0)).toHaveFg({ r: 255, g: 0, b: 0 })
+    expect(term.cell(0, 1)).toHaveFg({ r: 255, g: 0, b: 0 })
+    expect(term.cell(0, 2)).toHaveFg({ r: 255, g: 0, b: 0 })
     term.close()
   })
 })
@@ -145,7 +144,7 @@ describe("multi-row diff correctness", () => {
     term.feed(ansi1)
 
     for (const line of lines) {
-      expect(term).toContainText(line)
+      expect(term.screen).toContainText(line)
     }
 
     // Change only line 3
@@ -155,14 +154,13 @@ describe("multi-row diff correctness", () => {
     term.feed(ansi2)
 
     // Verify all 5 lines are correct
-    expect(term).toContainText("Line 0")
-    expect(term).toContainText("Line 1")
-    expect(term).toContainText("Line 2")
-    expect(term).toContainText("CHANGED")
-    expect(term).toContainText("Line 4")
+    expect(term.screen).toContainText("Line 0")
+    expect(term.screen).toContainText("Line 1")
+    expect(term.screen).toContainText("Line 2")
+    expect(term.screen).toContainText("CHANGED")
+    expect(term.screen).toContainText("Line 4")
     // Old line 3 should be gone
-    const text = term.getText()
-    expect(text).not.toContain("Line 3")
+    expect(term.screen.getText()).not.toContain("Line 3")
     term.close()
   })
 })
@@ -183,8 +181,8 @@ describe("wide characters", () => {
     const ansi = outputPhase(null, buf)
     term.feed(ansi)
 
-    expect(term).toBeWideAt(0, 0)
-    expect(term).toContainText("\u4e2d")
+    expect(term.cell(0, 0)).toBeWide()
+    expect(term.screen).toContainText("\u4e2d")
     term.close()
   })
 })
@@ -206,9 +204,9 @@ describe("true-color values survive round-trip", () => {
     const ansi = outputPhase(null, buf)
     term.feed(ansi)
 
-    expect(term).toContainText("X")
-    expect(term).toHaveFgColor(0, 0, fgColor)
-    expect(term).toHaveBgColor(0, 0, bgColor)
+    expect(term.screen).toContainText("X")
+    expect(term.cell(0, 0)).toHaveFg(fgColor)
+    expect(term.cell(0, 0)).toHaveBg(bgColor)
     term.close()
   })
 
@@ -223,9 +221,9 @@ describe("true-color values survive round-trip", () => {
     const ansi = outputPhase(null, buf)
     term.feed(ansi)
 
-    expect(term).toHaveFgColor(0, 0, { r: 255, g: 0, b: 0 })
-    expect(term).toHaveFgColor(0, 1, { r: 0, g: 255, b: 0 })
-    expect(term).toHaveFgColor(0, 2, { r: 0, g: 0, b: 255 })
+    expect(term.cell(0, 0)).toHaveFg({ r: 255, g: 0, b: 0 })
+    expect(term.cell(0, 1)).toHaveFg({ r: 0, g: 255, b: 0 })
+    expect(term.cell(0, 2)).toHaveFg({ r: 0, g: 0, b: 255 })
     term.close()
   })
 })

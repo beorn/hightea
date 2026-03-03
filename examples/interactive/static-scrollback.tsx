@@ -1418,17 +1418,15 @@ function CodingAgent({
               )}
 
               {/* The exchange itself */}
-              {!compacting && (
-                <ExchangeItem
-                  exchange={exchange}
-                  streamPhase={streamPhase}
-                  revealFraction={revealFraction}
-                  pulse={pulse}
-                  isLatest={isLatest}
-                  isFirstInGroup={isFirstInGroup}
-                  isLastInGroup={isLastInGroup}
-                />
-              )}
+              <ExchangeItem
+                exchange={exchange}
+                streamPhase={streamPhase}
+                revealFraction={revealFraction}
+                pulse={pulse}
+                isLatest={isLatest}
+                isFirstInGroup={isFirstInGroup}
+                isLastInGroup={isLastInGroup}
+              />
 
               {/* Input prompt moved to footer — see footer prop on ScrollbackList */}
             </Box>
