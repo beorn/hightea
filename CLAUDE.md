@@ -252,15 +252,17 @@ inkx provides a theming system based on React context and semantic color tokens.
 ```tsx
 import { ThemeProvider, defaultDarkTheme, useTheme } from "inkx"
 ;<ThemeProvider theme={defaultDarkTheme}>
-  <Box borderColor="$border">
+  <Box borderStyle="single">
     <Text color="$primary">Hello</Text>
   </Box>
 </ThemeProvider>
 ```
 
-Any color prop starting with `$` is resolved against the active theme (e.g. `color="$primary"`, `borderColor="$border"`). Two built-in themes: `defaultDarkTheme` and `defaultLightTheme` (Nord-inspired). Use `resolveThemeColor(color, theme)` for programmatic resolution.
+Any color prop starting with `$` is resolved against the active theme (e.g. `color="$primary"`, `backgroundColor="$raisedbg"`). Four built-in themes (dark/light x ANSI16/truecolor). Borders default to `$separator` when style is set without explicit color. Use `resolveThemeColor(color, theme)` for programmatic resolution, `generateTheme(primary, dark)` to derive all tokens from one primary color.
 
-Token reference: `$primary`, `$accent`, `$error`, `$warning`, `$success`, `$surface`, `$background`, `$text`, `$muted`, `$border`.
+**19 semantic tokens**: `$primary`, `$link`, `$control`, `$selected`, `$selectedfg`, `$focusring`, `$text`, `$text2`, `$text3`, `$text4`, `$bg`, `$raisedbg`, `$separator`, `$chromebg`, `$chromefg`, `$error`, `$warning`, `$success` + **16 palette colors** `$color0`–`$color15`.
+
+Backward-compat aliases: `$accent`→`$primary`, `$muted`→`$text2`, `$surface`→`$raisedbg`, `$background`→`$bg`, `$border`→`$separator`.
 
 ## Layout Hooks
 

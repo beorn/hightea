@@ -138,12 +138,26 @@ export function ScrollbackView<T>({
 
   const effectiveWidth = width ?? termWidth
 
-  // Track the outer node's actual layout width and x-offset.
+  // Track the outer node's layout to derive horizontal padding.
+  //
   // When the component is inside a parent with padding/borders, the layout
-  // engine gives us a narrower width than the terminal. Frozen items must be
-  // rendered at this width (not terminal width) to match live items.
+  // engine gives a narrower width. Frozen items must be rendered at this
+  // narrower width to match live items.
+  //
+  // Key insight: horizontal padding (in columns) is STABLE across resize.
+  // paddingX=1 always means 2 columns of padding whether the terminal is
+  // 80 or 60 cols wide. So we store padding as a stable offset and compute
+  // frozenWidth = effectiveWidth - hPadding on every render. This avoids
+  // the stale-layoutInfo problem where resize triggers a re-emit before
+  // the layout engine has recomputed at the new width.
   const outerNodeRef = useRef<InkxNode | null>(null)
   const [layoutInfo, setLayoutInfo] = useState<{ width: number; x: number } | null>(null)
+
+  // Horizontal padding: total left+right padding from parent containers.
+  // Updated only when layoutInfo changes (at which point effectiveWidth and
+  // layoutInfo.width are consistent — both computed at the same terminal width).
+  const hPaddingRef = useRef(0)
+  const prevLayoutInfoRef = useRef<{ width: number; x: number } | null>(null)
 
   useLayoutEffect(() => {
     const node = outerNodeRef.current
@@ -166,9 +180,22 @@ export function ScrollbackView<T>({
     }
   }, [])
 
-  // For frozen rendering: prefer layout width (accounts for parent padding/borders),
-  // fall back to explicit width prop, then terminal width.
-  const frozenWidth = width ?? (layoutInfo && layoutInfo.width > 0 ? layoutInfo.width : termWidth)
+  // Update hPadding only when layoutInfo changes (not on every render).
+  // When layoutInfo changes, the layout engine just ran, so effectiveWidth
+  // and layoutInfo.width are consistent — safe to compute the delta.
+  if (layoutInfo !== prevLayoutInfoRef.current) {
+    prevLayoutInfoRef.current = layoutInfo
+    if (layoutInfo && layoutInfo.width > 0 && width === undefined) {
+      const padding = effectiveWidth - layoutInfo.width
+      if (padding >= 0) hPaddingRef.current = padding
+    }
+  }
+
+  // Frozen rendering width: terminal width minus stable horizontal padding.
+  // This is correct even during resize (before layout recomputes) because
+  // hPadding is stable — it was computed from the previous layout and doesn't
+  // change when the terminal resizes.
+  const frozenWidth = width ?? Math.max(1, effectiveWidth - hPaddingRef.current)
   const frozenLeftPad = layoutInfo?.x ?? 0
 
   // Resolve render function: renderItem takes precedence over children
