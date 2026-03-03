@@ -16,8 +16,8 @@ keypress → store.apply(op) → domain logic → [new state, effects] → effec
 |-------|---------------------|-------------|
 | **1 — Local** | Starting out | Just React |
 | **2 — Shared** | Two components need the same state | Centralized store, selective re-renders |
-| **3 — Ops as Data** | You want undo, logging, or AI automation | Serializable operations |
-| **4 — Effects as Data** | You want tests without mocks | Pure domain logic, swappable I/O |
+| **3 — Ops as Data** *(Redux's insight)* | You want undo, logging, or AI automation | Serializable operations |
+| **4 — Effects as Data** *(Elm's insight)* | You want tests without mocks | Pure domain logic, swappable I/O |
 | **5 — Composition** | Multiple independent concerns | State machines that talk through data |
 
 Most apps stop at Level 2. Signals (fine-grained reactivity) are orthogonal — they optimize re-renders at any level.
@@ -204,7 +204,7 @@ Signals are orthogonal to the levels — you can use them at Level 2 or Level 5.
 
 ---
 
-## Level 3: Ops as Data
+## Level 3: Ops as Data — Redux's Insight
 
 Your todo list works. A user toggles an item, realizes it was wrong, and reaches for Ctrl+Z. Nothing happens — because `store.toggleDone()` is a function call. It mutated state and vanished. There's no record of what happened, nothing to reverse, nothing to replay.
 
@@ -348,7 +348,7 @@ You don't need to start here. Index-based is fine for simple undo. But when you 
 
 ---
 
-## Level 4: Effects as Data
+## Level 4: Effects as Data — Elm's Insight
 
 Your todo list saves to disk, shows toast notifications, and fetches from an API. You write tests for the domain logic, but they're slow and brittle — every test needs a fake filesystem, a mock toast service, and a stub HTTP client. You spend more time maintaining test infrastructure than writing actual tests.
 
