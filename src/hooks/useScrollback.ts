@@ -16,6 +16,10 @@
  *
  * Supports optional OSC 133 semantic markers for terminal prompt navigation
  * (Cmd+Up/Cmd+Down in iTerm2, Kitty, WezTerm, Ghostty).
+ *
+ * NOTE: DECSTBM scroll regions CANNOT be used here. Lines that scroll out
+ * of a DECSTBM region are discarded — they never enter terminal scrollback.
+ * All scrollback management must be done via explicit stdout.write() calls.
  */
 
 import { useContext, useLayoutEffect, useRef } from "react"

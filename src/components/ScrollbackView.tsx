@@ -105,6 +105,12 @@ function getTermCols(): number {
  * This is the native-scrollback counterpart to VirtualView. Where
  * VirtualView keeps everything in the React tree, ScrollbackView commits
  * completed items to the terminal's scrollback buffer.
+ *
+ * NOTE: DO NOT use DECSTBM scroll regions to pin the footer. Lines scrolled
+ * out of a DECSTBM region are DISCARDED by the terminal — they never enter
+ * scrollback history. This has been confirmed across multiple terminals
+ * (xterm, iTerm2, Ghostty, etc.) and is a fundamental terminal limitation.
+ * The footer is pinned purely via flex layout (flexShrink={0}).
  */
 export function ScrollbackView<T>({
   items,

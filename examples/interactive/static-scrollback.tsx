@@ -774,25 +774,27 @@ function ExchangeItem({
         )}
       </Text>
 
-      {/* Blank line before content */}
-      <Text> </Text>
-
       {/* Thinking block */}
       {exchange.thinking && (phase === "thinking" || phase === "streaming") && (
-        <ThinkingBlock text={exchange.thinking} done={phase !== "thinking"} />
+        <>
+          <Text> </Text>
+          <ThinkingBlock text={exchange.thinking} done={phase !== "thinking"} />
+        </>
       )}
 
       {/* Agent content */}
       {(phase === "streaming" || phase === "tools" || phase === "done") && (
-        <StreamingText
-          fullText={exchange.content}
-          revealFraction={phase === "streaming" ? fraction : 1}
-          showCursor={phase === "streaming" && fraction < 1}
-        />
+        <>
+          {/* Blank line before content (only when content exists) */}
+          {!exchange.thinking && <Text> </Text>}
+          <StreamingText
+            fullText={exchange.content}
+            revealFraction={phase === "streaming" ? fraction : 1}
+            showCursor={phase === "streaming" && fraction < 1}
+          />
+          <Text> </Text>
+        </>
       )}
-
-      {/* Blank line after content (before tool calls or end) */}
-      <Text> </Text>
 
       {/* Tool calls */}
       {toolRevealCount > 0 && (
@@ -1372,7 +1374,6 @@ function CodingAgent({
             frozenCount={frozenCount}
           />
         }
-        footerHeight={4}
       >
         {(exchange, index) => {
           const isLatest = index === exchanges.length - 1

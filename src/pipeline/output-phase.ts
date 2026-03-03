@@ -199,6 +199,10 @@ export function createOutputPhase(
   fn.resetInlineState = () => {
     Object.assign(inlineState, createInlineCursorState());
     inlineState.forceFirstRender = true;
+    // Clear any queued promotion — the resize handler re-emits all frozen items
+    // directly, so any pending promotion from the freeze effect is redundant.
+    // Without this, freeze+resize in the same frame causes duplicate frozen content.
+    pendingPromotion = null;
   };
 
   fn.getInlineCursorRow = () => inlineState.prevCursorRow;
