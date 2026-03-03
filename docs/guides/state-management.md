@@ -235,7 +235,7 @@ store.apply({ op: "moveCursor", delta: 1 })       // as data (serializable)
 
 Both conventions produce the same serializable operation. `store.moveCursor({ delta: 1 })` routes through `.apply()` internally, so undo/replay/logging captures it either way.
 
-### Slice up State
+### Slicing up State
 
 Pull the logic out of the store into a **slice** — a plain TypeScript object that owns a piece of state and the operations on it (same idea as Redux Toolkit's [`createSlice`](https://redux-toolkit.js.org/api/createSlice), but without the framework). Each function takes state and a params object, and `.apply()` dispatches by name:
 
