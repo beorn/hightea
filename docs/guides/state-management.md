@@ -2,43 +2,7 @@
 
 > Start simple. Add structure when complexity demands it. Each level makes one more thing visible to the system.
 
-inkx supports a progression of state management approaches. Most apps never need to go beyond Level 2. Each level builds on the previous — the concepts carry forward, and you can mix levels within a single app.
-
-### What inkx composes
-
-inkx's state management is a thin integration layer over established libraries, not a from-scratch framework:
-
-| Concern | Library | What it does |
-|---------|---------|--------------|
-| Reactive primitives | [`@preact/signals-core`](https://github.com/preactjs/signals) | `signal()`, `computed()`, `.value`, auto-tracking (optional) |
-| Store container | [Zustand](https://github.com/pmndrs/zustand) | Store identity, middleware pipeline, React integration |
-| App lifecycle | inkx `createApp()` | Terminal I/O, key routing, effect dispatch, exit handling |
-
-`createApp()` creates a Zustand store with centralized key handling and effect dispatch. State can be plain values (Zustand's `set/get`) or Preact signals for fine-grained reactivity — your choice at any level. When using signals, inkx bridges the two with a middleware that uses `effect()` from `@preact/signals-core` to watch all signals in the store — when any signal's `.value` changes, the middleware notifies Zustand's subscribers. This means both subscription models work:
-
-- **Signal subscriptions**: Components read `.value` directly — fine-grained, automatic
-- **Zustand subscriptions**: `useApp(s => s.cursor.value)` — selector-based, familiar
-
-When updating multiple signals at once, wrap them in `batch()` from `@preact/signals-core` so the bridge fires once rather than per-signal:
-
-```tsx
-import { batch } from "@preact/signals-core"
-
-batch(() => {
-  cursor.value = 0
-  items.value = newItems
-  filter.value = ""
-})
-// → single Zustand notification, single re-render
-```
-
-inkx adds a second middleware that intercepts `Effect[]` returns from domain functions and routes them to declared effect runners. Everything else — the signal reactivity, the store subscription model, the React hooks — comes from the underlying libraries.
-
-`createApp()` returns more than just the store — it bundles terminal I/O, key routing, effect dispatch, and exit handling into a single `app.run(<Component />)` call. Components access the store via `useApp()`, which returns the object your factory created. Prefer `useApp(s => s.cursor.value)` (selector extracting a primitive) over bare `useApp()` — selectors let Zustand skip re-renders when unrelated state changes.
-
-## The Levels
-
-Each level makes one more thing visible to the system — another level of indirection, another thing that becomes inspectable, testable, and composable:
+inkx supports four levels of state management. Each level builds on the previous — the concepts carry forward, and you can mix levels within a single app. Under the hood, inkx composes [Zustand](https://github.com/pmndrs/zustand) (store + React integration) with optional [Preact Signals](https://github.com/preactjs/signals) (fine-grained reactivity) — see the [Appendix](#what-inkx-composes) for details.
 
 | Level | What becomes visible | What you can now do |
 |-------|---------------------|---------------------|
@@ -75,7 +39,7 @@ Good for single-component apps, prototypes, and simple tools.
 
 ### Level 2: Shared State
 
-`createApp()` provides shared state across all components, with centralized key handling.
+`createApp()` gives you a [Zustand](https://github.com/pmndrs/zustand) store shared across all components, with centralized key handling and effect dispatch. Components access the store via `useApp()`. It also bundles terminal I/O, exit handling, and key routing into a single `app.run(<Component />)` call.
 
 ```tsx
 import { createApp, useApp } from "inkx/runtime"
@@ -115,13 +79,11 @@ function ItemList() {
 await app.run(<ItemList />)
 ```
 
-**Alternatives**: React Context + `useReducer`, prop drilling, Redux. inkx uses Zustand under the hood, so you get its middleware ecosystem and `useApp(selector)` for free.
-
 #### Signals for fine-grained reactivity
 
 Zustand re-renders a component when its selector returns a different value — `useApp(s => s.cursor)` re-renders on every cursor change, but not on item changes. This works well, but every component must specify exactly which state it reads, and Zustand diffs the selector result on every store update.
 
-Signals flip this: components that read a signal's `.value` automatically subscribe to just that signal — no selectors needed, no diffing. For apps with many components or frequent updates, this is more efficient:
+Signals flip this: components that read a signal's `.value` automatically subscribe to just that signal — no selectors needed, no diffing. For apps with many components or frequent updates, this is more efficient. Signals use [`@preact/signals-core`](https://github.com/preactjs/signals) — the same model as SolidJS, Vue 3, and the [TC39 Signals proposal](https://github.com/tc39/proposal-signals).
 
 ```tsx
 import { createApp, useApp } from "inkx/runtime"
@@ -152,7 +114,20 @@ const app = createApp(
 )
 ```
 
-`signal()` creates reactive state. `computed()` derives from other signals — `currentItem` recomputes only when `cursor` or `items` change. This is the same model as SolidJS, Vue 3, and the [TC39 Signals proposal](https://github.com/tc39/proposal-signals).
+`signal()` creates reactive state. `computed()` derives from other signals — `currentItem` recomputes only when `cursor` or `items` change.
+
+inkx bridges signals and Zustand with a middleware — when any signal's `.value` changes, Zustand subscribers are notified. Both subscription models work: signal `.value` reads (automatic) and `useApp(s => s.cursor.value)` selectors (familiar). When updating multiple signals at once, wrap them in `batch()` so the bridge fires once:
+
+```tsx
+import { batch } from "@preact/signals-core"
+
+batch(() => {
+  cursor.value = 0
+  items.value = newItems
+  filter.value = ""
+})
+// → single Zustand notification, single re-render
+```
 
 #### Extracting domain functions
 
@@ -273,8 +248,6 @@ test("apply dispatches to named functions", () => {
 })
 ```
 
-**Alternatives**: Redux actions + reducers (switch/case dispatch — same shape, more ceremony). Elm messages. Event sourcing events. The Command pattern. All are the same idea: make operations into plain serializable objects.
-
 ### Level 4: Effects as Data
 
 Domain functions return effects as plain objects — the same shape as ops. A discriminator field (`effect`) identifies what should happen; the remaining fields are the parameters. The runtime dispatches them to declared effect runners. The domain function never touches I/O.
@@ -360,8 +333,6 @@ test("toggleDone persists and toasts", () => {
 No mocks. No I/O. No async.
 
 **The upgrade is per-function, not per-app.** Within a single domain object, some functions return nothing (Level 3) and others return `Effect[]` (Level 4). You upgrade individual functions as they need effects.
-
-**Alternatives**: Promises/thunks (simpler but opaque — can't inspect, can't replay, can't swap runners). Dependency injection (testable but requires wiring). Mocking (fragile, couples tests to implementation). The Elm Architecture and redux-loop use this same pattern.
 
 ### Scaling with Signals
 
@@ -501,22 +472,40 @@ function SearchBar() {
 
 One store, multiple machines, fine-grained subscriptions. No prop drilling, no selector boilerplate, no unnecessary re-renders.
 
-## Prior Art
+## Appendix
+
+### What inkx composes
+
+inkx's state management is a thin integration layer, not a from-scratch framework:
+
+| Concern | Library | Role |
+|---------|---------|------|
+| Reactive primitives | [`@preact/signals-core`](https://github.com/preactjs/signals) | `signal()`, `computed()`, `.value` — fine-grained reactivity (optional) |
+| Store container | [Zustand](https://github.com/pmndrs/zustand) | Store identity, middleware, `useApp(selector)` React integration |
+| App lifecycle | inkx `createApp()` | Terminal I/O, key routing, effect dispatch, exit handling |
+
+`createApp()` creates a Zustand store and adds two middlewares: one that bridges signals to Zustand subscribers (so both subscription models work), and one that intercepts `Effect[]` returns and routes them to declared effect runners. Everything else — signal reactivity, store subscriptions, React hooks — comes from the underlying libraries.
+
+### Alternatives by level
+
+| Level | Alternatives |
+|-------|-------------|
+| 2 — Shared | React Context + `useReducer`, prop drilling, Redux |
+| 3 — Ops as Data | Redux actions + switch/case reducers, Elm messages, event sourcing events, Command pattern |
+| 4 — Effects as Data | Promises/thunks (opaque), dependency injection (wiring), mocking (fragile), Elm `Cmd`, redux-loop |
+
+### Prior art
 
 | System | Level | Approach |
 |--------|-------|----------|
 | React useState | 1 | Component-local state |
-| Zustand | 2 | Shared store with selectors (`useStore(s => s.field)`) |
-| `@preact/signals-core` | 2+ | `signal()` / `computed()` / `.value` — fine-grained reactivity (optional at any level) |
-| SolidJS | 2+ | `createSignal()` / `createMemo()` / fine-grained reactivity |
-| Vue 3 | 2+ | `ref()` / `computed()` / fine-grained reactivity |
-| TC39 Signals (Stage 1) | — | `Signal.State()` / `Signal.Computed()` — emerging standard |
-| Redux | 3 | `dispatch(action)` + reducer — same serializable ops, switch/case dispatch |
-| Event sourcing | 3 | Events are plain objects — store, replay, project |
-| Elm | 3-4 | `update : Msg -> Model -> (Model, Cmd Msg)` — the original ops + effects as data |
-| redux-loop | 4 | Reducer returns [state, effects] — Elm Architecture for Redux |
-| Hyperapp v2 | 4 | Optional tuple return (same Array.isArray detection) |
-| inkx createStore | 4 | Non-React TEA container: `(msg, model) → [model, effects]` (see [Runtime Layers](runtime-layers.md)) |
+| Zustand | 2 | Shared store with selectors |
+| SolidJS / Vue 3 | 2+ | Fine-grained signals reactivity |
+| Redux | 3 | `dispatch(action)` + reducer |
+| Event sourcing | 3 | Events as plain objects — store, replay, project |
+| Elm | 3-4 | `update : Msg -> Model -> (Model, Cmd Msg)` |
+| redux-loop / Hyperapp v2 | 4 | Reducer returns `[state, effects]` |
+| inkx `createStore` | 4 | Non-React TEA container (see [Runtime Layers](runtime-layers.md)) |
 
 ## See Also
 
