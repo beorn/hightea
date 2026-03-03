@@ -1269,4 +1269,78 @@ describe("Inline mode: scrollback preservation", () => {
     const erasures = countLeftoverErasures(out2)
     expect(erasures).toBe(3)
   })
+
+  test("full-screen scroll: no leftover erasure when frozen items fill vacated space", () => {
+    // Terminal has 10 rows, render fills all 10 lines.
+    // 3 items freeze → terminal scrolls 3 rows, frozen items occupy rows 7-9.
+    // New render is 7 lines (rows 0-6). No stale content between render and frozen.
+    const termRows = 10
+    const prev = new TerminalBuffer(10, 10)
+    fillBuffer(prev, 10) // A..J — fills terminal
+
+    const next = new TerminalBuffer(10, 10)
+    fillBuffer(next, 7, "a") // 7 live items after 3 froze
+
+    const output = outputPhase(prev, next, "inline", 3, termRows)
+    const erasures = countLeftoverErasures(output)
+    // Terminal scrolled 3: old render lines 0-2 went to scrollback,
+    // frozen items fill rows 7-9. No gap to erase.
+    expect(erasures).toBe(0)
+  })
+
+  test("partial scroll: erases only the gap between render and frozen items", () => {
+    // Terminal has 10 rows, render was 8 lines (rows 0-7).
+    // 5 items freeze → cursor goes from row 7 to row 12, terminal scrolls 3.
+    // After scroll: old render at rows 0-4, frozen at rows 5-9.
+    // New render is 2 lines → erase old render rows 2-4 (3 lines).
+    const termRows = 10
+    const prev = new TerminalBuffer(10, 10)
+    fillBuffer(prev, 8) // A..H
+
+    const next = new TerminalBuffer(10, 10)
+    fillBuffer(next, 2, "x") // 2 live items
+
+    // scrollbackOffset=5, rawCursorOffset=7+5=12, capped to 9, overshoot=3
+    // lastOccupiedLine = 7 - 3 = 4, nextLastLine = 1
+    // Erase rows 2, 3, 4 → 3 erasures (NOT 5 which would hit frozen items)
+    const output = outputPhase(prev, next, "inline", 5, termRows)
+    const erasures = countLeftoverErasures(output)
+    expect(erasures).toBe(3)
+  })
+
+  test("no scroll: erases stale render lines but not frozen items below", () => {
+    // Terminal has 24 rows, render was 5 lines (rows 0-4).
+    // 3 items freeze → cursor at row 7, no scroll (plenty of room).
+    // Frozen items at rows 5-7. New render is 2 lines.
+    // Erase rows 2-4 (3 lines of stale render). Frozen at 5-7 untouched.
+    const termRows = 24
+    const prev = new TerminalBuffer(10, 10)
+    fillBuffer(prev, 5) // A..E
+
+    const next = new TerminalBuffer(10, 10)
+    fillBuffer(next, 2, "x") // 2 live items
+
+    // scrollbackOffset=3, rawCursorOffset=4+3=7, capped to min(7,23)=7, overshoot=0
+    // lastOccupiedLine = 4 - 0 = 4, nextLastLine = 1
+    // Erase rows 2, 3, 4 → 3 erasures
+    const output = outputPhase(prev, next, "inline", 3, termRows)
+    const erasures = countLeftoverErasures(output)
+    expect(erasures).toBe(3)
+  })
+
+  test("full-screen identical shrink: frozen items exactly fill vacated rows", () => {
+    // Common case: N items freeze, render shrinks by exactly N.
+    // Screen was full (10 lines on 10-row terminal).
+    // 4 freeze → 6 live lines + 4 frozen lines = 10 rows. No gap.
+    const termRows = 10
+    const prev = new TerminalBuffer(10, 10)
+    fillBuffer(prev, 10) // fills terminal
+
+    const next = new TerminalBuffer(10, 10)
+    fillBuffer(next, 6, "a") // 6 live after 4 froze
+
+    const output = outputPhase(prev, next, "inline", 4, termRows)
+    const erasures = countLeftoverErasures(output)
+    expect(erasures).toBe(0) // frozen items exactly fill the gap
+  })
 })

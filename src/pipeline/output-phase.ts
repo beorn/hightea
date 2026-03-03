@@ -848,10 +848,15 @@ function inlineFullRender(
   let output = prefix + bufferToAnsi(next, "inline", maxOutputLines)
 
   // Erase leftover lines if visible area shrank.
-  // Use prevOutputLines (the output phase's own lines) instead of cursorOffset
-  // (which includes scrollbackOffset). Lines beyond prevOutputLines contain
-  // frozen items written by useScrollback — those must NOT be erased.
-  const lastOccupiedLine = prevOutputLines - 1
+  // Account for terminal scroll: when useScrollback writes frozen items and the
+  // cursor overflows the terminal, the terminal scrolls up. The scroll amount
+  // equals how far rawCursorOffset exceeds termRows-1 (the terminal's last row).
+  // That many old render lines were pushed into scrollback and no longer need
+  // erasing. The remaining visible old render lines end at lastOccupiedLine.
+  // Lines beyond that contain frozen items — those must NOT be erased.
+  // Note: computed from terminal geometry, independent of strict-output cursor bypass.
+  const terminalScroll = termRows != null ? Math.max(0, rawCursorOffset - (termRows - 1)) : 0
+  const lastOccupiedLine = Math.max(prevOutputLines - 1 - terminalScroll, 0)
   const nextLastLine = maxOutputLines - 1
   if (lastOccupiedLine > nextLastLine) {
     for (let y = nextLastLine + 1; y <= lastOccupiedLine; y++) {
