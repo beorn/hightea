@@ -213,7 +213,17 @@ store.apply({ op: "moveCursor", delta: 1 })
 store.apply({ op: "toggleDone", index: 2 })
 ```
 
-These are just JSON. `JSON.stringify()` them into a log, push them onto an undo stack, send them over the wire.
+These are just JSON — plain objects you can inspect, store, and manipulate. Once operations are data, a whole class of problems becomes trivial:
+
+- **Undo/redo** — push ops onto a stack, pop to undo
+- **Time-travel debugging** — record every op, scrub back and forth through app history like [Redux DevTools](https://github.com/reduxjs/redux-devtools)
+- **Logging & audit trails** — `JSON.stringify(op)` — see exactly what the user did, when, in what order
+- **Bug reproduction** — save an op sequence from production, replay it locally to reproduce the exact bug
+- **AI automation** — ops are structured data — an LLM can drive your app by emitting ops
+- **Collaboration** — send ops over the wire to other clients
+- **Testing** — assert on what ops were produced, not on internal state mutations
+
+None of this is possible when operations are function calls that vanish after execution.
 
 This requires one refactor: function arguments change from positional to named objects, so the params double as the operation payload. `moveCursor(1)` can't self-describe what "1" means; `moveCursor({ delta: 1 })` can — it's the op payload minus the `op` tag:
 
@@ -277,14 +287,7 @@ const app = createApp(
 )
 ```
 
-**What this unlocks**:
-- **Undo/redo** — record ops in a stack, replay or invert them
-- **Logging** — `JSON.stringify(op)` — see exactly what the user did
-- **AI automation** — ops are tool call results — an LLM can drive your app
-- **Collaboration** — send ops over the wire to other clients
-- **Time-travel** — replay any sequence from an initial state
-
-Here's what undo actually looks like — it's just an array and a pointer:
+Now let's make good on the first promise — undo. It's just an array and a pointer:
 
 ```tsx
 const undoStack: TodoOp[] = []
