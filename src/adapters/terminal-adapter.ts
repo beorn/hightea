@@ -16,7 +16,7 @@ import type {
   TextMeasureStyle,
   TextMeasurer,
 } from "../render-adapter.js"
-import { displayWidth } from "../unicode.js"
+import { type Measurer, displayWidth } from "../unicode.js"
 
 // ============================================================================
 // Border Characters
@@ -85,15 +85,21 @@ const BORDER_CHARS: Record<string, BorderChars> = {
 // Terminal Measurer
 // ============================================================================
 
-export const terminalMeasurer: TextMeasurer = {
-  measureText(text: string, _style?: TextMeasureStyle): TextMeasureResult {
-    return { width: displayWidth(text), height: 1 }
-  },
-
-  getLineHeight(_style?: TextMeasureStyle): number {
-    return 1
-  },
+/** Create a terminal text measurer, optionally using an explicit width measurer. */
+export function createTerminalMeasurer(measurer?: Measurer): TextMeasurer {
+  const dw = measurer ? measurer.displayWidth.bind(measurer) : displayWidth
+  return {
+    measureText(text: string, _style?: TextMeasureStyle): TextMeasureResult {
+      return { width: dw(text), height: 1 }
+    },
+    getLineHeight(_style?: TextMeasureStyle): number {
+      return 1
+    },
+  }
 }
+
+/** Default terminal measurer (uses module-level displayWidth / scoped measurer). */
+export const terminalMeasurer: TextMeasurer = createTerminalMeasurer()
 
 // ============================================================================
 // Terminal Render Buffer
@@ -104,9 +110,11 @@ export const terminalMeasurer: TextMeasurer = {
  */
 export class TerminalRenderBuffer implements RenderBuffer {
   private buffer: TerminalBuffer
+  private dw: (text: string) => number
 
-  constructor(width: number, height: number) {
+  constructor(width: number, height: number, measurer?: Measurer) {
     this.buffer = new TerminalBuffer(width, height)
+    this.dw = measurer ? measurer.displayWidth.bind(measurer) : displayWidth
   }
 
   get width(): number {
@@ -143,7 +151,7 @@ export class TerminalRenderBuffer implements RenderBuffer {
     let col = x
     for (const char of text) {
       if (!this.buffer.inBounds(col, y)) break
-      const charWidth = displayWidth(char)
+      const charWidth = this.dw(char)
       this.buffer.setCell(col, y, {
         char,
         ...cellStyle,

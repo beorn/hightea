@@ -32,7 +32,7 @@
  */
 
 import React, { type JSX, type ReactNode, useMemo, Children, isValidElement, cloneElement } from "react"
-import { displayWidth } from "../unicode.js"
+import { type Measurer, displayWidth } from "../unicode.js"
 
 /** Maximum fill width in columns. Covers ultrawide terminals (8K at 5px font ≈ 1500 cols). */
 const MAX_FILL_COLS = 500
@@ -40,6 +40,8 @@ const MAX_FILL_COLS = 500
 export interface FillProps {
   /** Content to repeat (typically a styled Text element or plain string) */
   children: ReactNode
+  /** Optional explicit measurer for width calculation (avoids module-level global) */
+  measurer?: Measurer
 }
 
 /**
@@ -84,17 +86,19 @@ function renderWithText(children: ReactNode, text: string): JSX.Element {
  * Parent Box **must** use `flexBasis={0}` so the long text doesn't inflate
  * the flex minimum size; it gets truncated to the allocated width.
  */
-export function Fill({ children }: FillProps): JSX.Element {
+export function Fill({ children, measurer }: FillProps): JSX.Element {
   const repeatedText = useMemo(() => {
     const pattern = extractText(children)
     if (!pattern) return null
 
-    const unitWidth = displayWidth(pattern)
+    // Use explicit measurer when available, fall back to module-level convenience function
+    const dw = measurer ? measurer.displayWidth.bind(measurer) : displayWidth
+    const unitWidth = dw(pattern)
     if (unitWidth <= 0) return null
 
     const count = Math.ceil(MAX_FILL_COLS / unitWidth)
     return pattern.repeat(count)
-  }, [children])
+  }, [children, measurer])
 
   if (!repeatedText) return <>{children}</>
   return renderWithText(children, repeatedText)

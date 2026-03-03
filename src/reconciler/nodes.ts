@@ -6,7 +6,7 @@
 
 import { type LayoutNode, getConstants, getLayoutEngine } from "../layout-engine.js"
 import { type BoxProps, type InkxNode, type InkxNodeType, type TextProps, rectEqual } from "../types.js"
-import { displayWidth, wrapText } from "../unicode.js"
+import { type Measurer, displayWidth, wrapText } from "../unicode.js"
 
 // Profiling counters for measure function performance analysis (dev only)
 export const measureStats = {
@@ -29,7 +29,7 @@ export const measureStats = {
 /**
  * Create a new InkxNode with a fresh layout node.
  */
-export function createNode(type: InkxNodeType, props: BoxProps | TextProps | Record<string, unknown>): InkxNode {
+export function createNode(type: InkxNodeType, props: BoxProps | TextProps | Record<string, unknown>, measurer?: Measurer): InkxNode {
   const layoutNode = getLayoutEngine().createNode()
 
   const node: InkxNode = {
@@ -136,19 +136,23 @@ export function createNode(type: InkxNodeType, props: BoxProps | TextProps | Rec
       let totalHeight = 0
       let actualWidth = 0
 
+      // Use explicit measurer when available, fall back to module-level convenience functions
+      const dw = measurer ? measurer.displayWidth.bind(measurer) : displayWidth
+      const wt = measurer ? measurer.wrapText.bind(measurer) : wrapText
+
       for (const line of lines) {
         measureStats.displayWidthCalls++
-        const lineWidth = displayWidth(line)
+        const lineWidth = dw(line)
         if (isTruncate || lineWidth <= maxWidth) {
           // Truncated text always takes 1 line per source line
           totalHeight += 1
           actualWidth = Math.max(actualWidth, isTruncate ? Math.min(lineWidth, maxWidth) : lineWidth)
         } else {
           // Use same word-aware wrapping as render phase for accurate height
-          const wrapped = wrapText(line, maxWidth, false, true)
+          const wrapped = wt(line, maxWidth, false, true)
           totalHeight += wrapped.length
           for (const wl of wrapped) {
-            actualWidth = Math.max(actualWidth, displayWidth(wl))
+            actualWidth = Math.max(actualWidth, dw(wl))
           }
         }
       }

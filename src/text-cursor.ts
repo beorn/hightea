@@ -21,7 +21,7 @@
  * // next = 12 (moved to row 1, col 3 → "foo"[3] = end)
  * ```
  */
-import { wrapText } from "./unicode.js"
+import { type Measurer, wrapText } from "./unicode.js"
 
 // =============================================================================
 // Types
@@ -44,9 +44,9 @@ export interface WrappedLine {
  * Uses wrapText() from unicode.ts — the same function the render pipeline
  * uses — so cursor positions always match what's displayed on screen.
  */
-export function cursorToRowCol(text: string, cursor: number, wrapWidth: number): { row: number; col: number } {
+export function cursorToRowCol(text: string, cursor: number, wrapWidth: number, measurer?: Measurer): { row: number; col: number } {
   if (wrapWidth <= 0) return { row: 0, col: 0 }
-  return cursorToRowColFromLines(getWrappedLines(text, wrapWidth), cursor)
+  return cursorToRowColFromLines(getWrappedLines(text, wrapWidth, measurer), cursor)
 }
 
 /** Internal: compute row/col from pre-computed wrapped lines. */
@@ -72,19 +72,21 @@ function cursorToRowColFromLines(lines: WrappedLine[], cursor: number): { row: n
  * used to convert a (row, col) back to a flat cursor position:
  * `flatOffset = lines[row].startOffset + col`
  */
-export function getWrappedLines(text: string, wrapWidth: number): WrappedLine[] {
+export function getWrappedLines(text: string, wrapWidth: number, measurer?: Measurer): WrappedLine[] {
   if (wrapWidth <= 0) return [{ line: "", startOffset: 0 }]
 
   const logicalLines = text.split("\n")
   const result: WrappedLine[] = []
   let offset = 0
+  // Use explicit measurer when available, fall back to module-level convenience function
+  const wt = measurer ? measurer.wrapText.bind(measurer) : wrapText
 
   for (let li = 0; li < logicalLines.length; li++) {
     const line = logicalLines[li]!
     // Use trim=true to match the renderer's wrapping behavior.
     // The renderer uses wrapText(text, width, true, true), so cursor math
     // must produce the same visual lines to keep positions synchronized.
-    const wrapped = wrapText(line, wrapWidth, false, true)
+    const wrapped = wt(line, wrapWidth, false, true)
     const lines = wrapped.length === 0 ? [""] : wrapped
 
     for (const wLine of lines) {
@@ -113,8 +115,8 @@ export function getWrappedLines(text: string, wrapWidth: number): WrappedLine[] 
  * Clamps col to the line length if the target column exceeds it
  * (important for stickyX behavior on short lines).
  */
-export function rowColToCursor(text: string, row: number, col: number, wrapWidth: number): number {
-  const lines = getWrappedLines(text, wrapWidth)
+export function rowColToCursor(text: string, row: number, col: number, wrapWidth: number, measurer?: Measurer): number {
+  const lines = getWrappedLines(text, wrapWidth, measurer)
   if (row < 0) return 0
   if (row >= lines.length) return text.length
   const line = lines[row]!
@@ -132,10 +134,10 @@ export function rowColToCursor(text: string, row: number, col: number, wrapWidth
  *   stay at this column. Pass the col from the original position before
  *   the first vertical move in a sequence.
  */
-export function cursorMoveUp(text: string, cursor: number, wrapWidth: number, stickyX?: number): number | null {
+export function cursorMoveUp(text: string, cursor: number, wrapWidth: number, stickyX?: number, measurer?: Measurer): number | null {
   if (wrapWidth <= 0) return cursor > 0 ? 0 : null
 
-  const lines = getWrappedLines(text, wrapWidth)
+  const lines = getWrappedLines(text, wrapWidth, measurer)
   const { row, col } = cursorToRowColFromLines(lines, cursor)
 
   if (row === 0) return null // at first visual line — boundary
@@ -159,10 +161,10 @@ export function cursorMoveUp(text: string, cursor: number, wrapWidth: number, st
  *
  * @param stickyX - Preferred column position for vertical movement.
  */
-export function cursorMoveDown(text: string, cursor: number, wrapWidth: number, stickyX?: number): number | null {
+export function cursorMoveDown(text: string, cursor: number, wrapWidth: number, stickyX?: number, measurer?: Measurer): number | null {
   if (wrapWidth <= 0) return cursor < text.length ? text.length : null
 
-  const lines = getWrappedLines(text, wrapWidth)
+  const lines = getWrappedLines(text, wrapWidth, measurer)
   const { row, col } = cursorToRowColFromLines(lines, cursor)
 
   if (row >= lines.length - 1) return null // at last visual line — boundary
@@ -182,6 +184,6 @@ export function cursorMoveDown(text: string, cursor: number, wrapWidth: number, 
 /**
  * Count total visual lines after word wrapping.
  */
-export function countVisualLines(text: string, wrapWidth: number): number {
-  return getWrappedLines(text, wrapWidth).length
+export function countVisualLines(text: string, wrapWidth: number, measurer?: Measurer): number {
+  return getWrappedLines(text, wrapWidth, measurer).length
 }
