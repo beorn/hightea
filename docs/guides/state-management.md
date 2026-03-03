@@ -1,19 +1,24 @@
 # State Management
 
-> Start simple. Add structure when complexity demands it.
+> Five levels of React state management — from `useState` to composable state machines.
 
-This guide describes state management patterns for interactive applications. The patterns are general — ops as data and effects as data work in any framework. Where inkx adds specific tooling, it's noted inline.
+This guide describes a progression for managing state in React applications. Each level solves a real problem the previous level can't handle. You adopt levels incrementally — per-function, not per-app — and most apps never need to go past Level 2.
 
-| Level | What you get |
-|-------|-------------|
-| **1 — Component** | Local state, no abstractions |
-| **2 — Shared** | Shared store, centralized keys (+ optional signals for fine-grained reactivity) |
-| **3 — Ops as Data** | Undo/redo, replay, AI automation |
-| **4 — Effects as Data** | Testable I/O without mocks, swappable runners |
+The patterns are general. Ops as data, effects as data, and composable state machines work in any React framework. [inkx](https://github.com/nicktomlin/inkx) provides tooling that makes each transition seamless — noted inline where relevant.
 
-Most apps only need Level 2.
+| Level | You need it when... | What you get |
+|-------|---------------------|-------------|
+| **1 — Local** | Starting out | Just React |
+| **2 — Shared** | Two components need the same state | Centralized store, selective re-renders |
+| **3 — Ops as Data** | You want undo, logging, or AI automation | Serializable operations |
+| **4 — Effects as Data** | You want tests without mocks | Pure domain logic, swappable I/O |
+| **5 — Composition** | Multiple independent concerns | State machines that talk through data |
 
-## Your First App (Level 1)
+Signals (fine-grained reactivity) are orthogonal — they optimize re-renders at any level.
+
+---
+
+## Level 1: Local State
 
 A counter. State lives in the component — just React.
 
@@ -38,13 +43,17 @@ await run(<Counter />)
 
 `useState` is standard React. `useInput` is inkx's keyboard hook; `run` starts the app and manages terminal I/O.
 
-This works until a second component needs the same state.
+**The wall**: A second component needs the same state.
 
-## Sharing State (Level 2)
+---
+
+## Level 2: Shared Store
 
 The counter grows into a todo list. A sidebar shows the count of done items while the main view shows the list. Both need the same data.
 
-The standard approach is a shared store with centralized key handling. `createApp()` wraps a [Zustand](https://github.com/pmndrs/zustand) store — the double-arrow `() => (set, get) => ({...})` is Zustand's [state creator](https://zustand.docs.pmnd.rs/guides/updating-state) pattern, where `set` merges new state and `get` reads current state:
+The standard solution is a shared store. [Zustand](https://github.com/pmndrs/zustand) is the best fit for React — lightweight, hook-based, no boilerplate. You put state and actions in one object, and components subscribe to the slices they care about.
+
+The double-arrow `() => (set, get) => ({...})` is Zustand's [state creator](https://zustand.docs.pmnd.rs/guides/updating-state) pattern — `set` merges new state, `get` reads current state:
 
 ```tsx
 import { createApp, useApp } from "inkx/runtime"
@@ -72,7 +81,6 @@ const app = createApp(
     },
   }),
   {
-    // key() receives each keypress. Return "exit" to shut down the app.
     key(input, key, { store }) {
       if (input === "j") store.moveCursor(1)
       if (input === "k") store.moveCursor(-1)
@@ -118,19 +126,22 @@ await app.run(
 
 This is enough for most apps — dashboards, file browsers, list views, dialogs.
 
-**What inkx adds**: `createApp()` is a Zustand middleware that bundles the store with centralized key handling, terminal I/O, and exit handling into a single `app.run(<Component />)` call. `useApp(selector)` is a thin wrapper around Zustand's `useStore`. Without inkx, you'd wire Zustand, keyboard input, and lifecycle yourself — the store pattern is the same.
+> **Why Zustand over React Context?** Context re-renders every consumer when *any* part of the context changes. Zustand only re-renders components whose selected slice actually changed. For apps with frequent updates (cursor movement, typing), this difference is night and day.
+
+> **inkx**: `createApp()` is a Zustand middleware that bundles the store with centralized key handling, terminal I/O, and exit handling into a single `app.run(<Component />)` call. Without inkx, you'd wire Zustand, keyboard input, and lifecycle yourself — the store pattern is the same.
+
+**The wall**: You want undo/redo. But `store.toggleDone()` mutates state and is gone — there's no record of what happened.
 
 ### Scaling with Signals
 
-As your app grows, selectors start to show their cost. Zustand runs *every* selector on *every* store update — if you have 100 `<Row>` components each with `useApp(s => s.rows.get(id))`, that's 100 selector calls every time the cursor moves, even though only 2 rows actually need to re-render.
+As your app grows, selectors show their cost. Zustand runs *every* selector on *every* store update — 100 `<Row>` components each with `useApp(s => s.rows.get(id))` means 100 selector calls when the cursor moves, even though only 2 rows changed.
 
-[Signals](https://github.com/tc39/proposal-signals) flip this. Instead of declaring what you read (selectors), components just read `.value` and automatically subscribe to exactly what they touched — no diffing, no linear scan. This is the same model as SolidJS and Vue 3. inkx uses [Preact's implementation](https://github.com/preactjs/signals) (`@preact/signals-core`).
+[Signals](https://github.com/tc39/proposal-signals) (TC39 proposal, stage 1) flip this. Components read `.value` and automatically subscribe to exactly what they touched — no diffing, no linear scan. Same model as SolidJS and Vue 3. We use [Preact's implementation](https://github.com/preactjs/signals) (`@preact/signals-core`).
 
-With signals, the factory returns a plain object — signals *are* the reactive state, so you don't need Zustand's `set()` to trigger updates:
+With signals, the factory returns a plain object — signals *are* the reactive state, so you don't need Zustand's `set()`:
 
 ```tsx
-import { createApp, useApp } from "inkx/runtime"
-import { signal, computed } from "@preact/signals-core"
+import { signal, computed, batch } from "@preact/signals-core"
 
 const app = createApp(
   () => {
@@ -168,35 +179,37 @@ const app = createApp(
 )
 ```
 
-`signal()` creates reactive state. `computed()` derives from other signals — `doneCount` recomputes only when `items` changes, not when cursor moves. When updating multiple signals at once, wrap in `batch()` so subscribers are notified once:
+`signal()` creates reactive state. `computed()` derives from signals — `doneCount` recomputes only when `items` changes, not on cursor moves. `batch()` groups multiple signal writes into a single notification:
 
 ```tsx
-import { batch } from "@preact/signals-core"
-
 batch(() => {
   cursor.value = 0
   items.value = newItems
   filter.value = ""
 })
-// → single notification, single re-render
+// → one notification, one re-render
 ```
 
-**What inkx adds**: A bridge middleware that connects signals to Zustand — when any signal's `.value` changes, Zustand subscribers are also notified. This is why we use `@preact/signals-core` (not `-react`): inkx's bridge handles the React integration. Both subscription models work side by side: signal `.value` reads (automatic, fine-grained) and `useApp(s => s.cursor.value)` selectors (familiar).
+Signals are orthogonal to the levels — you can use them at Level 2 or Level 5. They're a performance optimization, not a conceptual shift. If your app doesn't have performance issues with selectors, skip them.
 
-## "I Want Undo" (Level 3)
+> **inkx**: A bridge middleware connects signals to Zustand — when any signal's `.value` changes, Zustand subscribers are also notified. This is why we use `@preact/signals-core` (not `-react`): inkx's bridge handles the React integration.
 
-Your todo list works. Now you want undo/redo. The problem: `store.toggleDone()` mutates state and is gone — you can't record what happened, replay it, or reverse it.
+---
 
-The fix: make operations visible by turning them into data. This requires a small refactor: function arguments change from positional (`moveCursor(1)`) to named objects (`moveCursor({ delta: 1 })`) so the params double as a serializable operation payload. Then add a `store.apply()` that takes a plain object describing the operation:
+## Level 3: Ops as Data
+
+Your todo list works. Now you want undo/redo, logging, or AI automation. The problem: `store.toggleDone()` is a function call — it happens and it's gone. You can't record it, replay it, or reverse it.
+
+**The fix**: make operations visible by turning them into data. Instead of calling functions that mutate state, call functions that produce a serializable description of *what happened*:
 
 ```tsx
 store.apply({ op: "moveCursor", delta: 1 })
 store.apply({ op: "toggleDone", index: 2 })
 ```
 
-These are just JSON — `JSON.stringify()` them into a log, record them in an undo stack, send them over the wire.
+These are just JSON. `JSON.stringify()` them into a log, push them onto an undo stack, send them over the wire.
 
-One constraint: **function arguments must be named params objects** so the params double as the operation payload. `moveCursor(1)` can't self-describe what "1" means; `moveCursor({ delta: 1 })` can — and it's the op payload minus the `op` tag:
+This requires one refactor: function arguments change from positional to named objects, so the params double as the operation payload. `moveCursor(1)` can't self-describe what "1" means; `moveCursor({ delta: 1 })` can — it's the op payload minus the `op` tag:
 
 ```tsx
 // These are equivalent — both produce { op: "moveCursor", delta: 1 }:
@@ -204,9 +217,11 @@ store.moveCursor({ delta: 1 })                    // direct (type-safe)
 store.apply({ op: "moveCursor", delta: 1 })       // as data (serializable)
 ```
 
-Both calling conventions produce the same serializable operation — `store.moveCursor({ delta: 1 })` routes through `.apply()` internally, so undo/replay/logging captures it either way.
+Both conventions produce the same serializable operation. `store.moveCursor({ delta: 1 })` routes through `.apply()` internally, so undo/replay/logging captures it either way.
 
-To implement this, pull the logic into a domain object. Each function takes a params object (matching the op fields), and `.apply()` dispatches by name:
+### The Domain Object
+
+Pull the logic out of the store into a **domain object** — a plain TypeScript object where each function takes state and a params object, and `.apply()` dispatches by name:
 
 ```tsx
 type TodoOp =
@@ -247,7 +262,6 @@ const app = createApp(
   },
   {
     key(input, key, { store }) {
-      // Both styles work — use whichever fits:
       if (input === "j") store.moveCursor({ delta: 1 })
       if (input === "k") store.moveCursor({ delta: -1 })
       if (input === "x") store.apply({ op: "toggleDone", index: store.cursor.value })
@@ -257,20 +271,22 @@ const app = createApp(
 )
 ```
 
-**What this enables**:
-- **Undo/redo**: Record ops in a stack, replay or invert them
-- **Logging**: `JSON.stringify(op)` — see exactly what happened
-- **AI automation**: Ops are tool call results — an AI can drive your app
-- **Collaboration**: Send ops over the wire to other clients
-- **Time-travel**: Replay any sequence from an initial state
+**What this unlocks**:
+- **Undo/redo** — record ops in a stack, replay or invert them
+- **Logging** — `JSON.stringify(op)` — see exactly what the user did
+- **AI automation** — ops are tool call results — an LLM can drive your app
+- **Collaboration** — send ops over the wire to other clients
+- **Time-travel** — replay any sequence from an initial state
 
-Level 3 is a pure pattern — no inkx-specific tooling needed. The domain object, op types, and `.apply()` dispatcher are plain TypeScript.
+This is a pure pattern — no framework tooling needed. The domain object, op types, and `.apply()` dispatcher are plain TypeScript.
+
+**The wall**: Your app does I/O — saving to disk, showing notifications, fetching data. Testing domain logic requires mocking all of it.
 
 ### Designing Robust Ops
 
-The examples above use index-based ops: `{ op: "toggleDone", index: 2 }`. This works for undo within a single session, but breaks as soon as ops need to survive reordering — undo after other edits, concurrent ops from multiple users, or offline sync. If someone inserts an item at index 1, your `index: 2` now points to the wrong item.
+The examples use index-based ops: `{ op: "toggleDone", index: 2 }`. This works for single-session undo but breaks when ops need to survive reordering — undo after other edits, concurrent users, or offline sync. If someone inserts at index 1, your `index: 2` now points to the wrong item.
 
-**Prefer identity-based ops**: `{ op: "toggleDone", id: "abc123" }`. An op that says "toggle item abc123" works regardless of what order it arrives in. This is the same principle behind CRDTs (Conflict-free Replicated Data Types) — operations that commute (produce the same result regardless of order) are safe for concurrent and distributed use.
+**Prefer identity-based ops**: `{ op: "toggleDone", id: "abc123" }`. This is the same principle behind CRDTs — operations that commute (same result regardless of order) are safe for concurrent use.
 
 ```typescript
 // Fragile — depends on ordering
@@ -279,27 +295,25 @@ type FragileOp = { op: "toggleDone"; index: number }
 // Robust — works regardless of order
 type RobustOp = { op: "toggleDone"; id: string }
 
-// Even better — idempotent (applying twice = applying once)
+// Gold standard — idempotent (applying twice = applying once)
 type IdempotentOp = { op: "setDone"; id: string; done: boolean }
 ```
 
-The spectrum from fragile to robust:
-
-| Op style | Undo | Concurrent edits | Offline sync |
-|----------|------|-------------------|-------------|
+| Op style | Undo | Concurrent | Offline sync |
+|----------|------|------------|-------------|
 | `index: 2` | Fragile | Breaks | Breaks |
-| `id: "abc"` + toggle | Works | Works | Applies twice = toggled twice |
-| `id: "abc"` + `done: true` | Works | Works | Applies twice = same result (idempotent) |
+| `id: "abc"` + toggle | Works | Works | Double-toggle risk |
+| `id: "abc"` + `done: true` | Works | Works | Idempotent |
 
-The last form — `{ op: "setDone", id: "abc", done: true }` — is fully idempotent: applying it any number of times produces the same state. This is the gold standard for ops that may be replayed or delivered more than once.
+You don't need to start here. Index-based is fine for simple undo. But when you add collaboration, offline sync, or AI automation — design identity-based, ideally idempotent.
 
-You don't need to start here. Index-based ops are fine for simple undo in a single session. But when you add collaboration, offline sync, or AI automation (where ops may arrive out of order), design your ops to be identity-based and ideally idempotent.
+---
 
-## "I Want Tests Without Mocks" (Level 4)
+## Level 4: Effects as Data
 
-Your app has I/O — saving to disk, showing notifications, fetching data. You could abstract the I/O behind an interface and swap implementations (dependency injection). That works for platform portability, but your tests still need to set up fakes, and you can't inspect what the function *intended* to do — only what the fake recorded.
+Your app does I/O — saving to disk, showing toasts, fetching data. You could abstract the I/O behind an interface and swap implementations (dependency injection). That gives you platform portability, but your tests still need to construct fakes, wire them in, call the function, then inspect what the fake recorded.
 
-The fix is the same trick as Level 3: make effects into data. Instead of *doing* I/O, domain functions *describe* what should happen. Tests assert on what the function *says* — no mocks, no I/O, no async. The only change from Level 3: functions that need I/O return an `Effect[]`:
+**The fix** is the same trick as Level 3: make effects into data. Instead of *doing* I/O, domain functions *describe* what should happen. The only change: functions that need I/O return an `Effect[]`:
 
 ```tsx
 type Effect =
@@ -307,12 +321,12 @@ type Effect =
   | { effect: "toast"; message: string }
 
 const TodoList = {
-  // No effects — same as before:
+  // Pure — same as before:
   moveCursor(s: State, { delta }: { delta: number }) {
     s.cursor.value = clamp(s.cursor.value + delta, 0, s.items.value.length - 1)
   },
 
-  // Returns effects as data — this is what changed:
+  // Returns effects as data:
   toggleDone(s: State, { index }: { index: number }): Effect[] {
     s.items.value = s.items.value.map((item, i) =>
       i === index ? { ...item, done: !item.done } : item
@@ -327,7 +341,7 @@ const TodoList = {
 }
 ```
 
-Same shape as ops — discriminator (`effect`) + named params. This is where the payoff comes: tests assert on what the function *says should happen* — no mocks, no fakes, no I/O, no async:
+Same shape as ops — discriminator (`effect`) + named params. Here's the payoff — tests assert on what the function *says should happen*:
 
 ```tsx
 test("toggleDone persists and toasts", () => {
@@ -338,16 +352,15 @@ test("toggleDone persists and toasts", () => {
 })
 ```
 
-Compare this with the DI approach: you'd need a `FakePersistenceService`, wire it through a constructor, call the function, then inspect what the fake recorded. Here you just check what the function returned. The domain logic is pure — the test is three lines.
+No mocks. No fakes. No I/O. No async. Compare with DI: you'd need a `FakePersistenceService`, wire it through a constructor, call the function, then inspect what the fake recorded. Here you just check what the function returned.
 
-The runtime dispatches effects to actual runners. Swap them per platform:
+The runtime dispatches effects to actual runners — swap them per platform:
 
 ```tsx
 const app = createApp(
   () => { ... },
   {
     effects: {
-      // Terminal: write to disk
       persist: async ({ data }) => { await fs.writeFile("data.json", JSON.stringify(data)) },
       toast: ({ message }) => { showToast(message) },
       // Web: same domain logic, different runners
@@ -358,15 +371,19 @@ const app = createApp(
 )
 ```
 
-**The upgrade is per-function, not per-app.** Some functions return nothing, others return `Effect[]`. You upgrade individual functions as they need effects.
+**The upgrade is per-function, not per-app.** Functions that don't need I/O stay unchanged. You upgrade individual functions as they need effects.
 
-**What inkx adds**: The `effects` option in `createApp()` intercepts effect arrays returned from `.apply()` and routes them to declared runners automatically. Without inkx, you'd write a thin dispatcher yourself — the pattern is the same.
+> **inkx**: The `effects` option in `createApp()` intercepts effect arrays returned from `.apply()` and routes them to declared runners automatically. Without inkx, you'd write a thin dispatcher — the pattern is the same.
 
-## Composing Domain Objects
+**The wall**: Your app has a board, a search dialog, a settings panel. They all live in one domain object and it's getting unwieldy.
 
-As your app grows, you'll have multiple areas of concern — a board, a search dialog, a settings panel. Each is a domain object (like `TodoList` above) with its own state, ops, and `.apply()`. We call this combination a **state machine**: a domain object + the state it operates on + a set of ops it accepts.
+---
 
-The key rule: no domain object imports another. They communicate through dispatch effects — the same data-as-effects pattern from Level 4:
+## Level 5: Composing State Machines
+
+Each area of concern becomes its own domain object with its own state, ops, and `.apply()`. We call this combination a **state machine** — a domain object + the state it operates on + the set of ops it accepts.
+
+The key rule: **no state machine imports another**. They communicate through dispatch effects — the same pattern from Level 4:
 
 ```typescript
 const Board = {
@@ -385,7 +402,7 @@ const Dialog = {
 }
 ```
 
-`Dialog.confirm()` says "dispatch addItem to board" as a data object. The effect runner routes it:
+`Dialog.confirm()` doesn't call Board directly. It returns `{ effect: "dispatch", target: "board", op: "addItem" }` — a data object. The effect runner routes it:
 
 ```tsx
 const app = createApp(
@@ -400,21 +417,15 @@ const app = createApp(
       search: (op: SearchOp) => Search.apply(searchState, op),
     }
 
-    return {
-      ...boardState,
-      dialog: dialogState,
-      search: searchState,
-      ...machines,
-    }
+    return { ...boardState, dialog: dialogState, search: searchState, ...machines }
   },
   {
     effects: {
       dispatch: ({ target, op, ...params }, { store }) => {
-        // Route to the named machine
         const apply = (store as any)[target]
         if (apply) return apply({ op, ...params })
       },
-      persist: async ({ data }) => { /* save to disk */ },
+      persist: async ({ data }) => { /* ... */ },
     },
     key(input, key, { store }) {
       if (input === "/") store.dialog({ op: "open", kind: "search" })
@@ -425,9 +436,9 @@ const app = createApp(
 )
 ```
 
-Each domain object is independently testable — call `Dialog.confirm(state)` and assert on the returned effects without touching Board at all. Communication is through serializable effect objects, which you can log, replay, or intercept.
+Each state machine is independently testable — `Dialog.confirm(state)` returns effects you can assert on without touching Board. Communication is through serializable effect objects you can log, replay, or intercept.
 
-Components pick what they need — they only re-render when the signals they read change. (`useApp()` without a selector returns the whole store object, but since `search.query` is a signal, only components that read `.value` subscribe to changes.)
+Components pick what they need:
 
 ```tsx
 function SearchBar() {
@@ -436,48 +447,50 @@ function SearchBar() {
 }
 ```
 
+---
+
 ## Scaling
 
-For most apps, a few top-level signals in the store is all you need. At scale (1,000+ items), two techniques help:
+At scale (1,000+ items), two techniques apply at any level:
 
-**Per-entity signals** — `Map<string, Signal<T>>` gives each item its own signal. Edit one item → only that item's subscribers re-render:
+**Per-entity signals** — `Map<string, Signal<T>>` gives each item its own signal. Edit one item → 1 re-render:
 
 ```tsx
-const app = createApp(
-  () => {
-    const cursor = signal<string>("item-0")
-    const items = new Map<string, Signal<ItemData>>()
+const cursor = signal<string>("item-0")
+const items = new Map<string, Signal<ItemData>>()
 
-    return {
-      cursor,
-      items,
-      currentItem: computed(() => items.get(cursor.value)?.value),
-      updateItem(id: string, data: ItemData) {
-        const s = items.get(id)
-        if (s) s.value = data  // only this item's subscribers re-render
-      },
-      removeItem(id: string) {
-        items.delete(id)  // clean up — stale signals keep being watched
-      },
-    }
+return {
+  cursor,
+  items,
+  currentItem: computed(() => items.get(cursor.value)?.value),
+  updateItem(id: string, data: ItemData) {
+    const s = items.get(id)
+    if (s) s.value = data  // only this item's subscribers re-render
   },
-)
+  removeItem(id: string) {
+    items.delete(id)  // clean up — stale signals leak memory
+  },
+}
 ```
 
-**VirtualList** — only mount the ~50 visible items. Combined with per-entity signals: edit one item → 1 re-render. Move cursor → 2 re-renders. O(visible), not O(total).
+**VirtualList** — only mount the ~50 visible rows. Combined with per-entity signals: edit one item → 1 re-render. Move cursor → 2 re-renders. O(visible), not O(total).
+
+---
 
 ## Prior Art
 
-The ops-as-data and effects-as-data patterns have been independently discovered many times:
+These patterns have been independently discovered many times:
 
 | System | What it makes data | Approach |
 |--------|-------------------|----------|
 | Redux | Operations | `dispatch(action)` + reducer |
-| Event sourcing | Operations | Events as plain objects — store, replay, project |
 | Elm | Ops + effects | `update : Msg -> Model -> (Model, Cmd Msg)` |
+| Event sourcing | Operations | Events as plain objects — store, replay, project |
 | redux-loop | Effects | Reducer returns `[state, effects]` |
 | Hyperapp v2 | Effects | Optional tuple return from actions |
 | Command pattern | Operations | Encapsulate request as object |
+
+The progression in this guide pieces them together into a single, incremental system: start with React, add a store when you need shared state, make ops serializable when you need undo, make effects serializable when you need testability, and compose state machines when you need modularity. Each step is optional and per-function.
 
 ## See Also
 
