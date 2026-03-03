@@ -30,22 +30,11 @@ import {
   wrapText,
 } from "../unicode.js"
 import { getTextStyle, getTextWidth, parseColor } from "./render-helpers.js"
-import type { NodeRenderState, PipelineContext } from "./types.js"
+import type { BgConflictMode, NodeRenderState, PipelineContext } from "./types.js"
 
 // ============================================================================
 // Background Conflict Detection
 // ============================================================================
-
-/**
- * Background conflict detection mode.
- * Set via INKX_BG_CONFLICT env var: 'ignore' | 'warn' | 'throw'
- * Default: 'throw'
- *
- * - ignore: no detection (for performance or when you know what you're doing)
- * - warn: log warning once per unique conflict (deduplicated)
- * - throw: throw Error immediately (catches programming errors in dev)
- */
-type BgConflictMode = "ignore" | "warn" | "throw"
 
 /** Cached bg conflict mode. Read from env once at module load. */
 let bgConflictMode: BgConflictMode = (() => {
@@ -821,8 +810,8 @@ function renderAnsiTextLineReturn(
     // Detect background conflict: chalk.bg* overwrites existing inkx background
     // Check both: 1) Text's own backgroundColor, 2) Parent Box's bg already in buffer
     // Skip if segment has bgOverride flag (explicit opt-out via chalkx.bgOverride)
-    const bgConflictMode = getBgConflictMode()
-    if (bgConflictMode !== "ignore" && !segment.bgOverride && segment.bg !== undefined && segment.bg !== null) {
+    const effectiveBgConflictMode = ctx?.bgConflictMode ?? getBgConflictMode()
+    if (effectiveBgConflictMode !== "ignore" && !segment.bgOverride && segment.bg !== undefined && segment.bg !== null) {
       // Check if there's an existing background (from Text prop or parent Box fill)
       const existingBufBg = col < buffer.width ? buffer.getCellBg(col, y) : null
       const hasExistingBg = baseStyle.bg !== null || existingBufBg !== null
@@ -831,13 +820,14 @@ function renderAnsiTextLineReturn(
         const preview = segment.text.slice(0, 30)
         const msg = `[inkx] Background conflict: chalk.bg* on text that already has inkx background. Chalk bg will override only text characters, causing visual gaps in padding. Use chalkx.bgOverride() to suppress if intentional. Text: "${preview}${segment.text.length > 30 ? "..." : ""}"`
 
-        if (bgConflictMode === "throw") {
+        if (effectiveBgConflictMode === "throw") {
           throw new Error(msg)
         }
         // 'warn' mode - deduplicate
+        const effectiveWarnedBgConflicts = ctx?.warnedBgConflicts ?? warnedBgConflicts
         const key = `${JSON.stringify(existingBufBg)}-${segment.bg}-${preview}`
-        if (!warnedBgConflicts.has(key)) {
-          warnedBgConflicts.add(key)
+        if (!effectiveWarnedBgConflicts.has(key)) {
+          effectiveWarnedBgConflicts.add(key)
           console.warn(msg)
         }
       }

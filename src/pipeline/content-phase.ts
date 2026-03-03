@@ -22,7 +22,7 @@ import { parseColor } from "./render-helpers.js"
 import { clearBgConflictWarnings, renderText, setBgConflictMode } from "./render-text.js"
 import { pushContextTheme, popContextTheme } from "../theme-defs.js"
 import type { Theme } from "../theme-defs.js"
-import type { ClipBounds, NodeRenderState, PipelineContext } from "./types.js"
+import type { ClipBounds, ContentPhaseStats, NodeRenderState, NodeTraceEntry, PipelineContext } from "./types.js"
 
 /**
  * Render all nodes to a terminal buffer.
@@ -37,53 +37,59 @@ export function contentPhase(root: InkxNode, prevBuffer?: TerminalBuffer | null,
     throw new Error("contentPhase called before layout phase")
   }
 
+  // Resolve instrumentation from ctx (if provided) or module-level globals
+  const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
+  const stats = ctx?.stats ?? _contentPhaseStats
+  const nodeTrace = ctx?.nodeTrace ?? _nodeTrace
+  const nodeTraceEnabled = ctx?.nodeTraceEnabled ?? _nodeTraceEnabled
+
   // Clone prevBuffer if same dimensions, else create fresh
   const hasPrevBuffer = prevBuffer && prevBuffer.width === layout.width && prevBuffer.height === layout.height
 
-  if (_instrumentEnabled) {
+  if (instrumentEnabled) {
     _contentPhaseCallCount++
-    _contentPhaseStats._prevBufferNull = prevBuffer == null ? 1 : 0
-    _contentPhaseStats._prevBufferDimMismatch = prevBuffer && !hasPrevBuffer ? 1 : 0
-    _contentPhaseStats._hasPrevBuffer = hasPrevBuffer ? 1 : 0
-    _contentPhaseStats._layoutW = layout.width
-    _contentPhaseStats._layoutH = layout.height
-    _contentPhaseStats._prevW = prevBuffer?.width ?? 0
-    _contentPhaseStats._prevH = prevBuffer?.height ?? 0
-    _contentPhaseStats._callCount = _contentPhaseCallCount
+    stats._prevBufferNull = prevBuffer == null ? 1 : 0
+    stats._prevBufferDimMismatch = prevBuffer && !hasPrevBuffer ? 1 : 0
+    stats._hasPrevBuffer = hasPrevBuffer ? 1 : 0
+    stats._layoutW = layout.width
+    stats._layoutH = layout.height
+    stats._prevW = prevBuffer?.width ?? 0
+    stats._prevH = prevBuffer?.height ?? 0
+    stats._callCount = _contentPhaseCallCount
   }
 
-  const t0 = _instrumentEnabled ? performance.now() : 0
+  const t0 = instrumentEnabled ? performance.now() : 0
   const buffer = hasPrevBuffer ? prevBuffer.clone() : new TerminalBuffer(layout.width, layout.height)
-  const tClone = _instrumentEnabled ? performance.now() - t0 : 0
+  const tClone = instrumentEnabled ? performance.now() - t0 : 0
 
-  const t1 = _instrumentEnabled ? performance.now() : 0
+  const t1 = instrumentEnabled ? performance.now() : 0
   renderNodeToBuffer(root, buffer, { scrollOffset: 0, clipBounds: undefined, hasPrevBuffer: !!hasPrevBuffer, ancestorCleared: false }, ctx)
-  const tRender = _instrumentEnabled ? performance.now() - t1 : 0
+  const tRender = instrumentEnabled ? performance.now() - t1 : 0
 
-  if (_instrumentEnabled) {
+  if (instrumentEnabled) {
     // Expose sub-phase timing for profiling
     const snap = {
       clone: tClone,
       render: tRender,
-      ...structuredClone(_contentPhaseStats),
+      ...structuredClone(stats),
     }
     ;(globalThis as any).__inkx_content_detail = snap
     const arr = ((globalThis as any).__inkx_content_all ??= [] as (typeof snap)[])
     arr.push(snap)
-    for (const key of Object.keys(_contentPhaseStats) as (keyof typeof _contentPhaseStats)[]) {
-      ;(_contentPhaseStats as any)[key] = 0
+    for (const key of Object.keys(stats) as (keyof ContentPhaseStats)[]) {
+      ;(stats as any)[key] = 0
     }
-    _contentPhaseStats.cascadeMinDepth = 999
-    _contentPhaseStats.cascadeNodes = ""
-    _contentPhaseStats.scrollClearReason = ""
-    _contentPhaseStats.normalRepaintReason = ""
+    stats.cascadeMinDepth = 999
+    stats.cascadeNodes = ""
+    stats.scrollClearReason = ""
+    stats.normalRepaintReason = ""
   }
 
   // Export node trace for INKX_STRICT diagnosis
-  if (_nodeTraceEnabled && _nodeTrace.length > 0) {
+  if (nodeTraceEnabled && nodeTrace.length > 0) {
     const traceArr = ((globalThis as any).__inkx_node_trace ??= [] as NodeTraceEntry[][])
-    traceArr.push([..._nodeTrace])
-    _nodeTrace.length = 0
+    traceArr.push([...nodeTrace])
+    nodeTrace.length = 0
   }
 
   // Sync prevLayout after content phase to prevent staleness on subsequent frames.
@@ -119,14 +125,13 @@ const _instrumentEnabled =
   !!(process.env?.INKX_STRICT || process.env?.INKX_CHECK_INCREMENTAL || process.env?.INKX_INSTRUMENT)
 
 /** Mutable stats counters — reset after each contentPhase call */
-const _contentPhaseStats = {
+const _contentPhaseStats: ContentPhaseStats = {
   nodesVisited: 0,
   nodesRendered: 0,
   nodesSkipped: 0,
   textNodes: 0,
   boxNodes: 0,
   clearOps: 0,
-  // Per-flag breakdown: why nodes weren't skipped
   noPrevBuffer: 0,
   flagContentDirty: 0,
   flagPaintDirty: 0,
@@ -134,17 +139,13 @@ const _contentPhaseStats = {
   flagSubtreeDirty: 0,
   flagChildrenDirty: 0,
   flagChildPositionChanged: 0,
-  // Scroll container diagnostics
   scrollContainerCount: 0,
   scrollViewportCleared: 0,
-  scrollClearReason: "" as string,
-  // Normal container diagnostics
+  scrollClearReason: "",
   normalChildrenRepaint: 0,
-  normalRepaintReason: "" as string,
-  // Cascade diagnostics: shallowest node with parentRegionChanged=true
+  normalRepaintReason: "",
   cascadeMinDepth: 999,
-  cascadeNodes: "" as string, // "type:id@depth" of cascade sources
-  // Top-level prevBuffer diagnostics
+  cascadeNodes: "",
   _prevBufferNull: 0,
   _prevBufferDimMismatch: 0,
   _hasPrevBuffer: 0,
@@ -157,26 +158,7 @@ const _contentPhaseStats = {
 
 let _contentPhaseCallCount = 0
 
-/** Per-node trace entries (populated when INKX_STRICT is set) */
-interface NodeTraceEntry {
-  id: string
-  type: string
-  depth: number
-  rect: string
-  prevLayout: string
-  hasPrev: boolean
-  ancestorCleared: boolean
-  flags: string
-  decision: string
-  layoutChanged: boolean
-  contentAreaAffected?: boolean
-  parentRegionCleared?: boolean
-  parentRegionChanged?: boolean
-  childHasPrev?: boolean
-  childAncestorCleared?: boolean
-  skipBgFill?: boolean
-  bgColor?: string
-}
+/** Module-level node trace (fallback when ctx.nodeTrace is not provided) */
 const _nodeTrace: NodeTraceEntry[] = []
 const _nodeTraceEnabled =
   typeof process !== "undefined" && !!(process.env?.INKX_STRICT || process.env?.INKX_CHECK_INCREMENTAL)
@@ -209,7 +191,12 @@ function renderNodeToBuffer(
   ctx?: PipelineContext,
 ): void {
   const { scrollOffset, clipBounds, hasPrevBuffer, ancestorCleared } = nodeState
-  if (_instrumentEnabled) _contentPhaseStats.nodesVisited++
+  // Resolve instrumentation from ctx or module globals
+  const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
+  const stats = ctx?.stats ?? _contentPhaseStats
+  const nodeTrace = ctx?.nodeTrace ?? _nodeTrace
+  const nodeTraceEnabled = ctx?.nodeTraceEnabled ?? _nodeTraceEnabled
+  if (instrumentEnabled) stats.nodesVisited++
   const layout = node.contentRect
   if (!layout) return
 
@@ -288,14 +275,14 @@ function renderNodeToBuffer(
     !childPositionChanged
 
   // Node ID for tracing (only trace named nodes to keep compact)
-  const _nodeId = _instrumentEnabled ? ((props.id as string | undefined) ?? "") : ""
-  const _traceThis = _instrumentEnabled && _nodeTraceEnabled && _nodeId
+  const _nodeId = instrumentEnabled ? ((props.id as string | undefined) ?? "") : ""
+  const _traceThis = instrumentEnabled && nodeTraceEnabled && _nodeId
 
   if (skipFastPath) {
-    if (_instrumentEnabled) {
-      _contentPhaseStats.nodesSkipped++
+    if (instrumentEnabled) {
+      stats.nodesSkipped++
       if (_traceThis) {
-        _nodeTrace.push({
+        nodeTrace.push({
           id: _nodeId,
           type: node.type,
           depth: _getNodeDepth(node),
@@ -314,15 +301,15 @@ function renderNodeToBuffer(
     clearDirtyFlags(node)
     return
   }
-  if (_instrumentEnabled) {
-    _contentPhaseStats.nodesRendered++
-    if (!hasPrevBuffer) _contentPhaseStats.noPrevBuffer++
-    if (node.contentDirty) _contentPhaseStats.flagContentDirty++
-    if (node.paintDirty) _contentPhaseStats.flagPaintDirty++
-    if (layoutChanged) _contentPhaseStats.flagLayoutChanged++
-    if (node.subtreeDirty) _contentPhaseStats.flagSubtreeDirty++
-    if (node.childrenDirty) _contentPhaseStats.flagChildrenDirty++
-    if (childPositionChanged) _contentPhaseStats.flagChildPositionChanged++
+  if (instrumentEnabled) {
+    stats.nodesRendered++
+    if (!hasPrevBuffer) stats.noPrevBuffer++
+    if (node.contentDirty) stats.flagContentDirty++
+    if (node.paintDirty) stats.flagPaintDirty++
+    if (layoutChanged) stats.flagLayoutChanged++
+    if (node.subtreeDirty) stats.flagSubtreeDirty++
+    if (node.childrenDirty) stats.flagChildrenDirty++
+    if (childPositionChanged) stats.flagChildPositionChanged++
   }
 
   // Push per-subtree theme override (if this Box has a theme prop).
@@ -437,7 +424,7 @@ function renderNodeToBuffer(
   const parentRegionChanged = (hasPrevBuffer || ancestorCleared) && (contentAreaAffected || subtreeDirtyWithBg)
 
   // DIAG: Per-node trace and cascade tracking (gated on instrumentation)
-  if (_instrumentEnabled) {
+  if (instrumentEnabled) {
     if (_traceThis) {
       const flagStr = [
         node.contentDirty && "C",
@@ -452,7 +439,7 @@ function renderNodeToBuffer(
       const childrenNeedRepaint_ = node.childrenDirty || childPositionChanged || parentRegionChanged
       const childHasPrev_ = childrenNeedRepaint_ ? false : hasPrevBuffer
       const childAncestorCleared_ = parentRegionCleared || ancestorCleared
-      _nodeTrace.push({
+      nodeTrace.push({
         id: _nodeId,
         type: node.type,
         depth: _getNodeDepth(node),
@@ -476,8 +463,8 @@ function renderNodeToBuffer(
     }
     if (parentRegionChanged && node.children.length > 0) {
       const depth = _getNodeDepth(node)
-      if (depth < _contentPhaseStats.cascadeMinDepth) {
-        _contentPhaseStats.cascadeMinDepth = depth
+      if (depth < stats.cascadeMinDepth) {
+        stats.cascadeMinDepth = depth
       }
       const id = (node.props as Record<string, unknown>).id ?? node.type
       const flags = [
@@ -490,12 +477,12 @@ function renderNodeToBuffer(
         .filter(Boolean)
         .join("")
       const entry = `${id}@${depth}[${flags}:${node.children.length}ch]`
-      _contentPhaseStats.cascadeNodes += (_contentPhaseStats.cascadeNodes ? " " : "") + entry
+      stats.cascadeNodes += (stats.cascadeNodes ? " " : "") + entry
     }
   }
 
   if (parentRegionCleared) {
-    if (_instrumentEnabled) _contentPhaseStats.clearOps++
+    if (instrumentEnabled) stats.clearOps++
     clearNodeRegion(node, buffer, layout, scrollOffset, clipBounds, layoutChanged)
   } else if (layoutChanged && node.prevLayout) {
     // Even when parentRegionCleared is false, a shrinking node needs its excess
@@ -510,10 +497,10 @@ function renderNodeToBuffer(
 
   // Render based on node type
   if (node.type === "inkx-box") {
-    if (_instrumentEnabled) _contentPhaseStats.boxNodes++
+    if (instrumentEnabled) stats.boxNodes++
     renderBox(node, buffer, layout, props, nodeState, skipBgFill)
   } else if (node.type === "inkx-text") {
-    if (_instrumentEnabled) _contentPhaseStats.textNodes++
+    if (instrumentEnabled) stats.textNodes++
     // Pass inherited bg/fg from nearest ancestor with backgroundColor/color.
     // This decouples text inheritance from buffer state, which is critical
     // for incremental rendering: getCellBg on a cloned buffer may return stale
@@ -585,6 +572,9 @@ function renderScrollContainerChildren(
   ctx?: PipelineContext,
 ): void {
   const { clipBounds, hasPrevBuffer, ancestorCleared } = nodeState
+  // Resolve instrumentation from ctx or module globals
+  const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
+  const stats = ctx?.stats ?? _contentPhaseStats
   const layout = node.contentRect
   const ss = node.scrollState
   if (!layout || !ss) return
@@ -637,10 +627,10 @@ function renderScrollContainerChildren(
     !scrollOnly &&
     (scrollOffsetChanged || node.childrenDirty || parentRegionChanged || visibleRangeChanged)
 
-  if (_instrumentEnabled) {
-    _contentPhaseStats.scrollContainerCount++
+  if (instrumentEnabled) {
+    stats.scrollContainerCount++
     if (needsViewportClear || scrollOnly) {
-      _contentPhaseStats.scrollViewportCleared++
+      stats.scrollViewportCleared++
       const reasons: string[] = []
       if (scrollOnly) reasons.push("SHIFT")
       if (scrollOffsetChanged) reasons.push(`scrollOffset(${ss.prevOffset}->${ss.offset})`)
@@ -649,7 +639,7 @@ function renderScrollContainerChildren(
       reasons.push(
         `vp=${ss.viewportHeight} content=${ss.contentHeight} vis=${ss.firstVisibleChild}-${ss.lastVisibleChild}`,
       )
-      _contentPhaseStats.scrollClearReason = reasons.join("+")
+      stats.scrollClearReason = reasons.join("+")
     }
   }
 
@@ -829,6 +819,9 @@ function renderNormalChildren(
   ctx?: PipelineContext,
 ): void {
   const { scrollOffset, clipBounds, hasPrevBuffer, ancestorCleared } = nodeState
+  // Resolve instrumentation from ctx or module globals
+  const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
+  const stats = ctx?.stats ?? _contentPhaseStats
   const layout = node.contentRect
   if (!layout) return
 
@@ -866,13 +859,13 @@ function renderNormalChildren(
   // Force children to re-render when parent's region was modified on a clone,
   // children were restructured, or sibling positions shifted.
   const childrenNeedRepaint = node.childrenDirty || childPositionChanged || parentRegionChanged
-  if (_instrumentEnabled && childrenNeedRepaint && hasPrevBuffer) {
-    _contentPhaseStats.normalChildrenRepaint++
+  if (instrumentEnabled && childrenNeedRepaint && hasPrevBuffer) {
+    stats.normalChildrenRepaint++
     const reasons: string[] = []
     if (node.childrenDirty) reasons.push("childrenDirty")
     if (childPositionChanged) reasons.push("childPositionChanged")
     if (parentRegionChanged) reasons.push("parentRegionChanged")
-    _contentPhaseStats.normalRepaintReason = reasons.join("+")
+    stats.normalRepaintReason = reasons.join("+")
   }
   let childHasPrev = childrenNeedRepaint ? false : hasPrevBuffer
   // childAncestorCleared: tells descendants that STALE pixels exist in the buffer.

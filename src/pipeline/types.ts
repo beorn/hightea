@@ -12,10 +12,89 @@ import type { Measurer } from "../unicode.js"
  * globals (e.g., `_scopedMeasurer` + `runWithMeasurer()`). Threading context
  * explicitly eliminates save/restore patterns and makes the pipeline pure.
  *
- * Phase 1: measurer only. Phase 2: NodeRenderState for per-node params.
+ * Phase 1: measurer only.
+ * Phase 2: NodeRenderState for per-node params.
+ * Phase 3: instrumentation/diagnostics fields (optional — fall back to
+ *   module-level globals when absent for backward compat).
  */
 export interface PipelineContext {
   readonly measurer: Measurer
+  // Phase 3: instrumentation (all optional for backward compat)
+  readonly instrumentEnabled?: boolean
+  readonly stats?: ContentPhaseStats
+  readonly nodeTrace?: NodeTraceEntry[]
+  readonly nodeTraceEnabled?: boolean
+  readonly bgConflictMode?: BgConflictMode
+  readonly warnedBgConflicts?: Set<string>
+}
+
+/**
+ * Background conflict detection mode.
+ * Set via INKX_BG_CONFLICT env var: 'ignore' | 'warn' | 'throw'
+ */
+export type BgConflictMode = "ignore" | "warn" | "throw"
+
+/**
+ * Per-node trace entry for INKX_STRICT diagnosis.
+ */
+export interface NodeTraceEntry {
+  id: string
+  type: string
+  depth: number
+  rect: string
+  prevLayout: string
+  hasPrev: boolean
+  ancestorCleared: boolean
+  flags: string
+  decision: string
+  layoutChanged: boolean
+  contentAreaAffected?: boolean
+  parentRegionCleared?: boolean
+  parentRegionChanged?: boolean
+  childHasPrev?: boolean
+  childAncestorCleared?: boolean
+  skipBgFill?: boolean
+  bgColor?: string
+}
+
+/**
+ * Mutable stats counters for content phase instrumentation.
+ * Reset after each contentPhase call.
+ */
+export interface ContentPhaseStats {
+  nodesVisited: number
+  nodesRendered: number
+  nodesSkipped: number
+  textNodes: number
+  boxNodes: number
+  clearOps: number
+  // Per-flag breakdown: why nodes weren't skipped
+  noPrevBuffer: number
+  flagContentDirty: number
+  flagPaintDirty: number
+  flagLayoutChanged: number
+  flagSubtreeDirty: number
+  flagChildrenDirty: number
+  flagChildPositionChanged: number
+  // Scroll container diagnostics
+  scrollContainerCount: number
+  scrollViewportCleared: number
+  scrollClearReason: string
+  // Normal container diagnostics
+  normalChildrenRepaint: number
+  normalRepaintReason: string
+  // Cascade diagnostics
+  cascadeMinDepth: number
+  cascadeNodes: string
+  // Top-level prevBuffer diagnostics
+  _prevBufferNull: number
+  _prevBufferDimMismatch: number
+  _hasPrevBuffer: number
+  _layoutW: number
+  _layoutH: number
+  _prevW: number
+  _prevH: number
+  _callCount: number
 }
 
 /**

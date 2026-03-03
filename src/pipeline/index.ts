@@ -38,7 +38,7 @@ const log = createLogger("inkx:pipeline")
 const baseLog = createLogger("inkx")
 
 // Re-export types
-export type { CellChange, BorderChars, PipelineContext } from "./types.js"
+export type { CellChange, BorderChars, PipelineContext, NodeRenderState, ClipBounds, ContentPhaseStats, NodeTraceEntry, BgConflictMode } from "./types.js"
 
 // Re-export phase functions
 export { measurePhase } from "./measure-phase.js"
