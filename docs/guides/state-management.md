@@ -16,9 +16,9 @@ keypress → store.apply(op) → domain logic → [new state, effects] → effec
 |-------|---------------------|-------------|
 | **1 — Local** | Starting out | Just React |
 | **2 — Shared** | Multiple components need the same state, or prop drilling is painful | Centralized store, selective re-renders |
-| **3 — Ops as Data** *(Redux's insight)* | You want undo, logging, middleware, collaboration, AI automation, or replay | Serializable operations |
-| **4 — Effects as Data** *(Elm's insight)* | You want pure domain logic, tests without mocks, cross-platform portability, or auditable I/O | Deterministic functions, swappable runners |
-| **5 — Composition** | Multiple concerns stepping on each other, or teams working on the same store | State machines that talk through data |
+| **3 — Ops as Data** *(Redux's insight)* | Undo, collaboration, or automation | Serializable operations |
+| **4 — Effects as Data** *(Elm's insight)* | Pure logic, testable I/O | Deterministic functions, swappable runners |
+| **5 — Composition** | Independent modules | State machines that talk through data |
 
 Most apps stop at Level 2. [Signals](#appendix-a-scaling-with-signals) (fine-grained reactivity) are orthogonal — they optimize re-renders at any level.
 
@@ -49,7 +49,7 @@ await run(<Counter />)
 
 `useState` is standard React. `useInput` is inkx's keyboard hook; `run` starts the app and manages terminal I/O.
 
-**The wall**: A second component needs the same state. Or every state change re-renders half the tree. Or you're threading props five levels deep and every intermediate component has to know about data it doesn't use.
+**The wall**: A second component needs the same state — and threading it through five levels of props means every intermediate component has to know about data it doesn't use.
 
 ---
 
@@ -140,15 +140,15 @@ This is enough for most apps — dashboards, file browsers, list views, dialogs.
 
 As your app grows, selectors show their cost — Zustand runs *every* selector on *every* store update, even when only one slice changed. [Signals](#appendix-a-scaling-with-signals) solve this with fine-grained subscriptions: components read `.value` and automatically subscribe to exactly what they touched. Signals are a performance optimization, not a conceptual shift — skip them unless you have performance issues.
 
-State is shared and renders are efficient. But the transitions themselves are still invisible — `store.toggleDone()` is a function call that mutates state and vanishes.
+State is shared and renders are efficient. But the transitions themselves are still invisible.
 
-**The wall**: You want undo/redo — but there's no record of what happened, nothing to reverse, nothing to replay. Or you're debugging a weird state and wish you could see *what sequence of actions* led here. Or you want multiple independent concerns (analytics, error tracking, persistence) to react to the same user action without coupling them together. Or you want an AI agent to drive the UI, but there's no structured API — just opaque function calls. Or you want to serialize the entire action history for bug reports, SSR hydration, or session replay.
+**The wall**: You want undo. But `store.toggleDone()` is a function call — it mutated state and vanished. There's nothing to reverse, nothing to send to another client, nothing to replay.
 
 ---
 
 ## Level 3: Ops as Data — Redux's Insight
 
-In Level 2, `store.toggleDone()` directly changed state and disappeared — there was no lasting record of that change. A user reaches for Ctrl/Cmd+Z and nothing happens. A bug report says "the list got into a weird state" and you have no event log to inspect. You want analytics, error tracking, and persistence to all react when a todo is toggled — but they're coupled to the toggle function. You want to automate the UI from a script or AI, but there's no structured vocabulary of actions — just ad-hoc function calls.
+In Level 2, store methods are function calls that mutate and disappear. There's no lasting record — no event log, no action vocabulary, no data to intercept. The problem isn't any single missing feature; it's that transitions are invisible by design.
 
 **The fix**: make operations visible by turning them into data. Instead of calling functions that mutate state, call functions that produce a serializable description of *what happened*:
 
@@ -160,14 +160,11 @@ store.apply({ op: "toggleDone", index: 2 })
 These are just JSON — plain objects you can inspect, store, and manipulate. Once operations are data, a whole class of problems becomes trivial:
 
 - **Undo/redo** — push ops onto a stack, pop to undo
-- **Time-travel debugging** — record every op, scrub back and forth through app history like [Redux DevTools](https://github.com/reduxjs/redux-devtools)
-- **Logging & audit trails** — `JSON.stringify(op)` — see exactly what the user did, when, in what order
-- **Bug reproduction** — save an op sequence from production, replay it locally to reproduce the exact bug
-- **Middleware & cross-cutting concerns** — analytics, error tracking, auth checks, persistence all observe the same op stream without coupling to individual handlers
-- **AI automation** — ops are structured data — an LLM can drive your app by emitting ops
-- **Collaboration** — send ops over the wire to other clients; ops are the natural unit of real-time sync
-- **Predictability** — all state changes flow through one code path (`apply`), so there's exactly one place to trace, intercept, or validate transitions
-- **Serialization** — persist the entire action history, hydrate state from a snapshot, or send a session recording as a bug report
+- **Collaboration** — send ops over the wire; they're the natural unit of real-time sync
+- **Time-travel debugging** — record every op, scrub through history like [Redux DevTools](https://github.com/reduxjs/redux-devtools)
+- **Logging & bug reproduction** — `JSON.stringify(op)` gives an audit trail; save the sequence from production, replay locally
+- **Middleware** — analytics, error tracking, persistence all observe the same op stream without coupling to handlers
+- **AI automation** — ops are structured data an LLM can emit to drive your app
 - **Testing** — assert on what ops were produced, not on internal state mutations
 
 None of this is possible when operations are function calls that vanish after execution. This is the key mental shift: you're no longer *calling behavior* — you're *describing intent*. The store becomes a deterministic interpreter that processes descriptions, not a bag of functions that performs actions.
@@ -271,13 +268,13 @@ The examples above use index-based ops (`toggleDone, index: 2`), which work for 
 
 Behavior is data now — serializable, reversible, replayable. But our domain functions still perform I/O directly: saving to disk, showing notifications, fetching from APIs.
 
-**The wall**: You can't read a function and know what it does — `toggleDone` might save to disk, show a toast, or fire a network request, and you won't know without tracing through the implementation. Testing requires mocking every service it touches. You want the same domain logic on terminal, web, and server — but I/O is hardcoded. You refactor a handler and a side effect fires unexpectedly because it was buried three calls deep. You can't audit what I/O a module can trigger without reading every line.
+**The wall**: You want to test `toggleDone` — but it calls `fs.writeFile()` and `showToast()` directly. You need mocks for everything.
 
 ---
 
 ## Level 4: Effects as Data — Elm's Insight
 
-In Level 3, we made state transitions visible. But functions like `toggleDone` still directly call `fs.writeFile()` and `showToast()` — you can't read the function signature and know what I/O it performs. Tests need a fake filesystem, a mock toast service, and a stub HTTP client. You want to run the same logic in a browser, but it's calling Node's `fs`. You refactor a handler and a toast fires unexpectedly because the effect was buried in a helper. In a large codebase, you can't audit what I/O a module can trigger without reading every line of every function it calls.
+In Level 3, we made state transitions visible — but functions still perform I/O directly. The function signature doesn't tell you what side effects it has. You can't swap runners per platform, can't audit I/O from types, can't test without faking every service.
 
 **The fix** is the same trick as Level 3: make effects into data. Instead of *doing* I/O, domain functions *describe* what should happen. The only change: functions that need I/O return an `Effect[]`:
 
@@ -369,13 +366,13 @@ Notice the throughline: **every level turns something invisible into data**. Lev
 
 > **inkx**: The `effects` option in `createApp()` intercepts effect arrays returned from `.apply()` and routes them to declared runners automatically. inkx also provides a standalone TEA store (`createStore()` from `inkx/store`) with plugin composition — see [Runtime Layers](runtime-layers.md).
 
-**The wall**: Your app has a board, a search dialog, a settings panel — and they all live in one slice. Adding a search feature means touching the board's state shape. Two developers can't work on dialog and board without merge conflicts. A bug in settings breaks the cursor because they share the same `apply()`. The slice is 400 lines and growing.
+**The wall**: Your single slice is 400 lines. A search feature change breaks the cursor because they share state and a single `apply()`.
 
 ---
 
 ## Level 5: Composing State Machines
 
-Up to now, all your ops and effects live in a single slice. Your app has a board, a search dialog, and a settings panel — and they keep stepping on each other. Adding search means modifying the board's op union. Two developers can't iterate on dialog and board independently. A bug fix in one area breaks another because they share state and a single `apply()`.
+Up to now, everything lives in one slice. That worked when the app was small, but now board, dialog, and search are entangled — different concerns sharing state, competing for the same `apply()`, impossible to develop or test independently.
 
 **The fix:** Each area of concern becomes its own slice with its own state, ops, and `.apply()`. We call this combination a **state machine** — a slice + the state it operates on + the set of ops it accepts. (Not a formal statechart[^statecharts] with explicit states and guards — just a self-contained module with well-defined transitions. If your interactions grow complex enough to need the formalism, [XState](https://xstate.js.org/) provides it.)
 
@@ -492,7 +489,7 @@ This guide pieces these ideas into a single incremental progression for React: y
 
 The progression from functions to data is not free. Each level buys something real — but it also costs something real.
 
-**When plain functions are fine.** At Levels 1 and 2, `store.toggleDone()` is a direct function call. It's simple, debuggable, and the call stack tells you exactly what happened. If you don't need undo, logging, replay, AI automation, or mock-free testing — stay here. Most dashboards, list views, and CRUD apps never need more. The guide's "walls" are real requirements, not aspirations; if you haven't hit the wall, don't climb it.
+**When plain functions are fine.** At Levels 1 and 2, `store.toggleDone()` is a direct function call. It's simple, debuggable, and the call stack tells you exactly what happened. If you haven't hit one of these walls, stay here. Most dashboards, list views, and CRUD apps never need more. The guide's "walls" are real requirements, not aspirations; if you haven't hit the wall, don't climb it.
 
 **The costs of making everything data.** Once you move to Level 3+:
 

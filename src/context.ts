@@ -58,6 +58,11 @@ export interface StdoutContextValue {
    * re-emitting frozen items at the new width.
    */
   resetInlineCursor?: () => void
+  /**
+   * Get inline cursor row relative to render region start. -1 if unknown.
+   * Used by useScrollback to position frozen items at the render region start.
+   */
+  getInlineCursorRow?: () => number
 }
 
 /**

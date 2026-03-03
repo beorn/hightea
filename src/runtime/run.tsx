@@ -712,6 +712,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
           write: () => {},
           notifyScrollback: (lines: number) => runtime.addScrollbackLines(lines),
           resetInlineCursor: () => runtime.resetInlineCursor(),
+          getInlineCursorRow: () => runtime.getInlineCursorRow(),
         }}
       >
         <FocusManagerContext.Provider value={focusManager}>

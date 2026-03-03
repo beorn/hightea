@@ -69,6 +69,8 @@ export interface OutputPhaseFn {
   ): string
   /** Reset inline cursor state. Used by useScrollback to clear cursor tracking on resize. */
   resetInlineState?: () => void
+  /** Get the current inline cursor row (relative to render region start). -1 if unknown. */
+  getInlineCursorRow?: () => number
 }
 
 // ============================================================================
@@ -139,6 +141,8 @@ export function createOutputPhase(caps: Partial<OutputCaps>, measurer?: OutputMe
     Object.assign(inlineState, createInlineCursorState())
     inlineState.forceFirstRender = true
   }
+
+  fn.getInlineCursorRow = () => inlineState.prevCursorRow
 
   return fn
 }

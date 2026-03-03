@@ -276,6 +276,11 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       fn?.resetInlineState?.()
     },
 
+    getInlineCursorRow(): number {
+      const fn = outputPhaseFn as { getInlineCursorRow?: () => number } | undefined
+      return fn?.getInlineCursorRow?.() ?? -1
+    },
+
     getDims(): Dims {
       return target.getDims()
     },

@@ -116,6 +116,9 @@ export interface Runtime {
    *  Called by useScrollback before re-emitting frozen items on resize. */
   resetInlineCursor(): void
 
+  /** Get inline cursor row relative to render region start. -1 if unknown. */
+  getInlineCursorRow(): number
+
   /** Get current dimensions */
   getDims(): Dims
 

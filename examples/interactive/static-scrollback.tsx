@@ -1247,14 +1247,16 @@ function CodingAgent({
     }
   }, [compact, done])
 
-  // Pre-fill input with next scripted user message in manual mode
+  // Pre-fill input with next scripted user message in manual mode.
+  // Guard: skip before first advance (exchanges empty) to avoid pre-filling with
+  // script[0] which advance() is about to consume — that creates a duplicate.
   useEffect(() => {
-    if (autoMode || done || streamPhase !== "done") return
+    if (autoMode || done || streamPhase !== "done" || exchanges.length === 0) return
     const nextEntry = script[scriptIdx]
     if (nextEntry?.role === "user" && !footerControlRef.current.getText()) {
       footerControlRef.current.setText(nextEntry.content)
     }
-  }, [autoMode, done, streamPhase, scriptIdx, script])
+  }, [autoMode, done, streamPhase, scriptIdx, script, exchanges.length])
 
   /** Handle Enter from TextInput — submit user text or advance script. */
   const handleSubmit = useCallback(
