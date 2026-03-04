@@ -243,12 +243,12 @@ Re-emission always happens on width change because the output phase would otherw
 ```
 useLayoutEffect detects width change:
   1. Re-render frozen items at new width
-  2. resetInlineCursor() → output phase forgets cursor position
-  3. stdout: CSI 9999A + CR + CSI J → clear visible screen
-  4. stdout: re-rendered frozen items → new scrollback
-  5. notifyScrollback(totalLines) → output phase tracks displacement
+  2. resetInlineCursor() → output phase forgets cursor position, forceFirstRender=true
+  3. stdout: ED3+CUP+ED2 → clear scrollback + screen
+  4. stdout: re-rendered frozen items → new scrollback baseline
+  5. Do NOT call notifyScrollback — re-emitted items are the baseline, not displacement
   6. Update stored strings
-  7. Output phase sees reset state → first-render path (no clear prefix)
+  7. Output phase sees forceFirstRender=true → first-render path (no cursor-up prefix)
   8. Live content appears below frozen items
 ```
 
@@ -299,4 +299,4 @@ ScrollbackView uses DECSTBM (scroll regions) to pin a footer/status bar at the b
 
 2. **React `<Activity>`/`<Offscreen>`**: If React ships this, it could provide a "paused" state that preserves hook state without rendering. Worth revisiting if it proves useful for terminal UIs.
 
-5. **Streaming items that scroll off**: A long streaming response scrolls its top into scrollback while the bottom is still live. The tall-item optimization handles this, but the UX of having partially-frozen content is worth studying further.
+3. **Streaming items that scroll off**: A long streaming response scrolls its top into scrollback while the bottom is still live. The tall-item optimization handles this, but the UX of having partially-frozen content is worth studying further.

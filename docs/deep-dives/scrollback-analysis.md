@@ -76,7 +76,7 @@ const frozenCount = useScrollback(exchanges, {
 1. Computes contiguous frozen prefix count
 2. When frozen count increases, renders newly frozen items via `renderStringSync()` (styled JSX → ANSI string)
 3. Writes directly to stdout (bypasses render pipeline)
-4. Notifies scheduler via `notifyScrollback(linesWritten)` for cursor offset tracking
+4. Notifies scheduler via `notifyScrollback(linesWritten)` for cursor offset tracking (initial freeze only — NOT called during resize)
 5. Returns frozen count so app can skip frozen items in live render
 
 ### What useScrollback Gives Us
