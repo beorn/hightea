@@ -515,16 +515,31 @@ function formatCost(inputTokens: number, outputTokens: number): string {
   return `$${cost.toFixed(2)}`
 }
 
-function computeCumulativeTokens(exchanges: Exchange[]): { input: number; output: number } {
+/**
+ * Compute token stats for display and compaction.
+ *
+ * Token values in the script are CUMULATIVE — each exchange's `input` represents
+ * the total context consumed at that point. So:
+ * - `currentContext`: the LAST exchange's input tokens (= current context window usage)
+ * - `totalCost`: sum of all (input + output) for cost calculation (each API call costs)
+ */
+function computeCumulativeTokens(exchanges: Exchange[]): {
+  input: number
+  output: number
+  currentContext: number
+} {
   let input = 0
   let output = 0
+  let currentContext = 0
   for (const ex of exchanges) {
     if (ex.tokens) {
       input += ex.tokens.input
       output += ex.tokens.output
+      // Context = last exchange's cumulative input (not the sum)
+      if (ex.tokens.input > currentContext) currentContext = ex.tokens.input
     }
   }
-  return { input, output }
+  return { input, output, currentContext }
 }
 
 // ============================================================================
@@ -829,25 +844,24 @@ function StatusBar({
   frozenCount?: number
 }): JSX.Element {
   const cumulative = computeCumulativeTokens(exchanges)
-  const totalTokens = cumulative.input + cumulative.output
   const cost = formatCost(cumulative.input, cumulative.output)
   const minutes = Math.floor(elapsed / 60)
   const seconds = elapsed % 60
   const elapsedStr = `${minutes}:${seconds.toString().padStart(2, "0")}`
 
-  // Context bar
+  // Context bar — uses currentContext (the actual context window usage)
   const CTX_W = 20
-  const ctxFrac = Math.min(totalTokens / CONTEXT_WINDOW, 1)
+  const ctxFrac = Math.min(cumulative.currentContext / CONTEXT_WINDOW, 1)
   const ctxFilled = Math.round(ctxFrac * CTX_W)
   const ctxPct = Math.round(ctxFrac * 100)
   const ctxColor = ctxPct > 80 ? "$error" : ctxPct > 50 ? "$warning" : "$primary"
   const ctxBar = "\u2588".repeat(ctxFilled) + "\u2591".repeat(CTX_W - ctxFilled)
 
-  // Build key hints
+  // Build key hints — keep compact to avoid overflow
   let keys: string
-  if (compacting) keys = "compacting"
+  if (compacting) keys = "compacting..."
   else if (done) keys = "esc quit"
-  else if (autoMode) keys = "tab stop  ^L clear  esc quit  auto"
+  else if (autoMode) keys = "tab stop  ^L clear  esc quit"
   else keys = "\u23CE send  tab auto  ^L clear  esc quit"
 
   return (
@@ -859,12 +873,12 @@ function StatusBar({
         {frozenCount > 0 && (
           <>
             {"  "}
-            <Text color="$muted">{"\u2191"} {frozenCount} in scrollback (Cmd+{"\u2191"}/{"\u2193"})</Text>
+            <Text color="$muted">{"\u2191"}{frozenCount} in scrollback</Text>
           </>
         )}
       </Text>
       <Text color="$muted" dim>
-        ctx <Text color={ctxColor}>{ctxBar}</Text> {ctxPct}% {"\u00B7"} {cost}
+        ctx <Text color={ctxColor}>{ctxBar}</Text> {ctxPct}%{"\u00B7"}{cost}
       </Text>
     </Box>
   )
@@ -1239,16 +1253,15 @@ function CodingAgent({
     return () => cancelStreaming()
   }, [cancelStreaming])
 
-  // Auto-compact when ACTIVE (non-frozen) tokens reach 95% of context window.
-  // Only count active exchanges — frozen ones are already in scrollback and
-  // don't consume context. Without this filter, after the first compact the
-  // total never decreases and every new exchange re-triggers compaction.
+  // Auto-compact when the current context reaches 95% of the context window.
+  // Token values are cumulative — each exchange's input is the total context at
+  // that point. So we use the MAX input token value (= current context size),
+  // not the SUM of all exchanges.
   useEffect(() => {
     if (done || compactingRef.current) return
     const active = exchanges.filter((ex) => !ex.frozen)
     const cumulative = computeCumulativeTokens(active)
-    const total = cumulative.input + cumulative.output
-    if (total >= CONTEXT_WINDOW * 0.95) {
+    if (cumulative.currentContext >= CONTEXT_WINDOW * 0.95) {
       compact()
     }
   }, [exchanges, done, compact])

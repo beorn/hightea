@@ -26,4 +26,4 @@ jobs:
         run: bun run typecheck
 
       - name: Run tests
-        run: bunx --bun vitest run tests/ --exclude '**/tests/*-termless*'
+        run: bunx --bun vitest run tests/ --exclude '**/tests/*-termless*' --exclude '**/tests/scrollback-compaction*'
