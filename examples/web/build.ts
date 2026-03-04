@@ -58,6 +58,29 @@ if (typeof globalThis.process === "undefined") {
 }
 `
 
+// Plugin to stub Node.js built-in modules that can't be resolved in browsers.
+// Using `external` leaves bare `import "child_process"` in the output, which
+// browsers can't resolve (they require relative paths). This plugin replaces
+// the import with an inline empty module instead.
+const nodeStubPlugin: import("bun").BunPlugin = {
+  name: "node-stub",
+  setup(build) {
+    const stubs: Record<string, string> = {
+      child_process: "export function spawnSync() { return { status: 1, stdout: '', stderr: '' } }",
+    }
+    for (const mod of Object.keys(stubs)) {
+      build.onResolve({ filter: new RegExp(`^${mod}$`) }, (args) => ({
+        path: args.path,
+        namespace: "node-stub",
+      }))
+      build.onLoad({ filter: new RegExp(`^${mod}$`), namespace: "node-stub" }, (args) => ({
+        contents: stubs[args.path]!,
+        loader: "js",
+      }))
+    }
+  },
+}
+
 // Shared build options for all browser targets.
 // External: packages not needed in browser builds.
 // yoga-wasm-web is an optional layout engine (WASM, not needed for demos).
@@ -71,7 +94,8 @@ const sharedOptions = {
   sourcemap: "external" as const,
   define: browserDefines,
   banner: processShim,
-  external: ["yoga-wasm-web", "ws", "child_process"],
+  external: ["yoga-wasm-web", "ws"],
+  plugins: [nodeStubPlugin],
 }
 
 // =============================================================================
