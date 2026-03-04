@@ -1,16 +1,15 @@
 /**
  * Tests for inline mode scrollback resize re-emission.
  *
- * When the terminal width changes, frozen items in scrollback may need
- * re-rendering if they wrap differently at the new width. useScrollback
- * detects this by comparing stored rendered strings with re-rendered strings
- * and re-emits all frozen items when content changes.
+ * When the terminal width changes, useScrollback clears the entire terminal
+ * (scrollback + screen via ED3 + ED2) and re-emits ALL frozen items at the
+ * new width. This eliminates drift from terminal reflow guessing.
  *
  * Covers:
  * 1. Resize re-emits when content wraps differently at new width
- * 2. Resize skips re-emission when content is identical at both widths
+ * 2. Resize re-emits even when content is identical at both widths
  * 3. No re-emission when there are no frozen items
- * 4. Clear sequence is correct (cursor up + erase)
+ * 4. Clear sequence is correct (ED3 + ED2)
  * 5. resetInlineCursor is called before re-emission
  * 6. notifyScrollback is called with correct line count after re-emission
  * 7. Normal scrollback still works after resize
@@ -28,10 +27,10 @@ import { createRenderer } from "inkx/testing"
 // ANSI constants (readable names for escape sequences)
 // ============================================================================
 
-/** Move cursor up 9999 rows (clamped at row 0 of visible screen) */
-const CURSOR_UP_MAX = "\x1b[9999A"
-/** Erase from cursor to end of screen */
-const ERASE_BELOW = "\x1b[J"
+/** ED3 — Erase Saved Lines (clear scrollback buffer) */
+const CLEAR_SCROLLBACK = "\x1b[3J"
+/** ED2 — Erase entire screen */
+const CLEAR_SCREEN = "\x1b[2J"
 
 // ============================================================================
 // Helpers
@@ -159,8 +158,8 @@ describe("useScrollback resize re-emission", () => {
 
     // The clear sequence should be in the writes
     const allOutput = writes.join("")
-    expect(allOutput).toContain(CURSOR_UP_MAX)
-    expect(allOutput).toContain(ERASE_BELOW)
+    expect(allOutput).toContain(CLEAR_SCROLLBACK)
+    expect(allOutput).toContain(CLEAR_SCREEN)
   })
 
   test("re-emits even when content is identical at both widths", () => {
@@ -207,9 +206,9 @@ describe("useScrollback resize re-emission", () => {
     expect(notifyScrollback).toHaveBeenCalledTimes(2) // once on freeze, once on resize
 
     // The re-emitted content should include the clear sequence and the item
-    const resizeWrites = writes.slice(-2) // clear + item
-    const clearWrite = resizeWrites.find((w) => w.includes("\x1b[J"))
-    expect(clearWrite).toBeDefined()
+    const allOutput = writes.join("")
+    expect(allOutput).toContain(CLEAR_SCROLLBACK)
+    expect(allOutput).toContain(CLEAR_SCREEN)
   })
 
   test("skips when there are no frozen items", () => {
@@ -301,7 +300,8 @@ describe("useScrollback resize re-emission", () => {
 
     // Should have clear + re-emitted all 3 items
     const allOutput = writes.join("")
-    expect(allOutput).toContain(CURSOR_UP_MAX)
+    expect(allOutput).toContain(CLEAR_SCROLLBACK)
+    expect(allOutput).toContain(CLEAR_SCREEN)
     expect(allOutput).toContain("[1] Short")
     expect(allOutput).toContain("[2]")
     expect(allOutput).toContain("[3]")

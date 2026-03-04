@@ -647,7 +647,7 @@ describe("content preservation across resize → termless", () => {
     )
 
     // Get resized frozen border width
-    // Strip \r (from clear sequence \x1b[9999A\r\x1b[J) before measuring
+    // Strip \r (from clear sequence) before measuring
     const resizeWrites = writes.slice(writesBeforeResize)
     const resizedFrozenPlain = stripAnsi(resizeWrites.join("")).replace(/\r/g, "")
     const resizedFrozenBorderLine = resizedFrozenPlain.split("\n").find((l) => l.includes("╭"))

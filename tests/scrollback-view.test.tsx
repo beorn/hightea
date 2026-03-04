@@ -325,9 +325,9 @@ describe("ScrollbackView", () => {
     // Should have re-emitted frozen items after resize
     expect(writes.length).toBeGreaterThan(initialWriteCount)
 
-    // The re-emission should include the clear sequence
+    // The re-emission should include the clear sequence (ED3 + ED2)
     const allOutput = writes.join("")
-    expect(allOutput).toContain("\x1b[9999A") // cursor up max
-    expect(allOutput).toContain("\x1b[J") // erase below
+    expect(allOutput).toContain("\x1b[3J") // clear scrollback (ED3)
+    expect(allOutput).toContain("\x1b[2J") // clear screen (ED2)
   })
 })
