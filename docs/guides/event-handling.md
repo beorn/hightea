@@ -25,16 +25,13 @@ Under the hood, `run()` is sugar over `pipe()` with sensible defaults. The kerne
 
 ```tsx
 // Simple: batteries included
-await run(store, <App />, { mouse: true, kitty: true })
+await run(store, <App />)
 
 // Equivalent to:
 const app = pipe(
   createApp(store),               // kernel: event loop + state
   withReact(<App />),             // rendering: React reconciler + virtual buffer
-  withTerminal(process, {         // ALL terminal I/O: stdin→events, stdout→output, lifecycle, protocols
-    mouse: true,
-    kitty: true,
-  }),
+  withTerminal(process),          // ALL terminal I/O: stdin→events, stdout→output, lifecycle, protocols
   withFocus(),                    // processing: Tab/Shift+Tab, focus scopes
   withDomEvents(),                // processing: dispatch to component tree
 )
@@ -309,9 +306,7 @@ You compose them with `pipe()`:
 const app = pipe(
   createApp(store),                 // kernel: event loop + state
   withReact(<Board />),             // rendering: React + virtual buffer
-  withTerminal(process, {           // terminal: stdin→events, stdout→output, lifecycle, protocols
-    mouse: true, kitty: true,
-  }),
+  withTerminal(process),              // terminal: stdin→events, stdout→output, lifecycle, protocols
   withFocus(),                      // processing: Tab navigation, focus scopes
   withDomEvents(),                  // processing: dispatch to component tree
   withCommands(opts),               // processing: resolve to named commands
@@ -546,7 +541,7 @@ Every built-in behavior is a plugin. `run()` composes them for you; `pipe()` let
 |--------|------|-------------|
 | `withTerminal(process, opts?)` | Source + Output + Protocol | **All terminal I/O in one plugin.** stdin → typed events (`term:key`, `term:mouse`, `term:paste`). stdout → alternate screen, raw mode, incremental diff output. SIGWINCH → `term:resize`. Lifecycle (Ctrl+Z suspend/resume, Ctrl+C exit). Protocols (SGR mouse, Kitty keyboard, bracketed paste) controlled via options. |
 
-Options: `{ mouse?: boolean, kitty?: boolean | KittyFlags, paste?: boolean, onSuspend?, onResume?, onInterrupt? }`
+Mouse, Kitty keyboard, and bracketed paste are **on by default** — no configuration needed. Options for disabling or customizing: `{ mouse?: boolean, kitty?: boolean | KittyFlags, paste?: boolean, onSuspend?, onResume?, onInterrupt? }`
 
 Internally, `withTerminal` composes the lower-level concerns (input parsing, output rendering, resize handling, protocol negotiation, lifecycle management). You never need to think about them separately unless you're building something exotic like a multiplexer or test harness.
 
@@ -573,14 +568,7 @@ function run(store, element, options = {}) {
   return pipe(
     createApp(store),
     withReact(element),
-    withTerminal(process, {
-      mouse: options.mouse,
-      kitty: options.kitty,
-      paste: options.paste,
-      onSuspend: options.onSuspend,
-      onResume: options.onResume,
-      onInterrupt: options.onInterrupt,
-    }),
+    withTerminal(process, options),  // mouse, kitty, paste all on by default
     withFocus(),
     withDomEvents(),
   ).run()
