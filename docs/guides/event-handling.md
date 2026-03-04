@@ -31,13 +31,11 @@ await run(store, <App />, { mouse: true, kitty: true })
 const app = pipe(
   createApp(store),               // kernel: event loop + state
   withReact(<App />),             // rendering: React reconciler + virtual buffer
-  withOutput(stdout),             // terminal: alternate screen, raw mode, diff output
-  withTerminal(stdin),            // source: stdin → key/mouse/paste events
-  withResize(stdout),             // source: SIGWINCH → resize events
-  withLifecycle(),                // processing: Ctrl+Z suspend, Ctrl+C exit
+  withTerminal(process, {         // ALL terminal I/O: stdin→events, stdout→output, lifecycle, protocols
+    mouse: true,
+    kitty: true,
+  }),
   withFocus(),                    // processing: Tab/Shift+Tab, focus scopes
-  withMouse(),                    // protocol: enable SGR mouse tracking
-  withKitty(),                    // protocol: enable Kitty keyboard
   withDomEvents(),                // processing: dispatch to component tree
 )
 await app.run()
@@ -46,8 +44,7 @@ await app.run()
 const app = pipe(
   createApp(store),
   withReact(<Board />),
-  withOutput(stdout),
-  withTerminal(stdin),
+  withTerminal(process),
   withDomEvents(),
   withCommands(registry),
   withKeybindings(bindings),
@@ -312,12 +309,10 @@ You compose them with `pipe()`:
 const app = pipe(
   createApp(store),                 // kernel: event loop + state
   withReact(<Board />),             // rendering: React + virtual buffer
-  withOutput(stdout),               // terminal: alternate screen, diff output
-  withTerminal(stdin),              // source: stdin → key/mouse/paste events
-  withResize(stdout),               // source: SIGWINCH → resize events
-  withLifecycle(),                  // processing: Ctrl+Z/Ctrl+C
+  withTerminal(process, {           // terminal: stdin→events, stdout→output, lifecycle, protocols
+    mouse: true, kitty: true,
+  }),
   withFocus(),                      // processing: Tab navigation, focus scopes
-  withMouse(),                      // protocol: SGR mouse tracking
   withDomEvents(),                  // processing: dispatch to component tree
   withCommands(opts),               // processing: resolve to named commands
   withKeybindings(bindings),        // API: press() → keybinding resolution
@@ -366,8 +361,7 @@ Stack it:
 const app = pipe(
   createApp(store),
   withReact(<Board />),
-  withOutput(stdout),
-  withTerminal(stdin),
+  withTerminal(process),
   withDomEvents(),
   withVimModes(),       // intercepts before commands
   withCommands(opts),
@@ -495,10 +489,7 @@ Step back and look at what you have. Every extension — from mouse handling to 
 pipe(
   createApp(store)                 kernel: event loop + state
   ├─ withReact(<View />)           rendering: React + virtual buffer
-  ├─ withOutput(stdout)            terminal: alternate screen, diff output
-  ├─ withTerminal(stdin)           source: raw bytes → typed events
-  ├─ withResize(stdout)            source: SIGWINCH → resize events
-  ├─ withLifecycle()               processing: Ctrl+Z/Ctrl+C
+  ├─ withTerminal(process)         terminal: stdin→events, stdout→output, lifecycle, protocols
   ├─ withFocus()                   processing: Tab navigation, focus scopes
   ├─ withDomEvents()               processing: dispatch to components
   ├─ withVimModes()                processing: modal key routing
@@ -548,31 +539,24 @@ Every built-in behavior is a plugin. `run()` composes them for you; `pipe()` let
 | Plugin | Role | What it does |
 |--------|------|-------------|
 | `withReact(<El />)` | Rendering | React reconciler + virtual buffer. Mounts the element, renders into a `TerminalBuffer`, re-renders reactively on store changes. |
-| `withOutput(stdout)` | Terminal | Alternate screen, raw mode, cursor management, incremental diff output. Converts buffer to ANSI and writes to stdout. |
 
-### Event Sources
+### Terminal I/O
 
 | Plugin | Role | What it does |
 |--------|------|-------------|
-| `withTerminal(stdin)` | Source | Parses raw stdin bytes into typed events: `term:key`, `term:mouse`, `term:paste`. Handles ANSI sequences, SGR mouse, Kitty keyboard, bracketed paste. |
-| `withResize(stdout)` | Source | Listens for SIGWINCH → emits `term:resize` with new `cols`/`rows`. |
+| `withTerminal(process, opts?)` | Source + Output + Protocol | **All terminal I/O in one plugin.** stdin → typed events (`term:key`, `term:mouse`, `term:paste`). stdout → alternate screen, raw mode, incremental diff output. SIGWINCH → `term:resize`. Lifecycle (Ctrl+Z suspend/resume, Ctrl+C exit). Protocols (SGR mouse, Kitty keyboard, bracketed paste) controlled via options. |
+
+Options: `{ mouse?: boolean, kitty?: boolean | KittyFlags, paste?: boolean, onSuspend?, onResume?, onInterrupt? }`
+
+Internally, `withTerminal` composes the lower-level concerns (input parsing, output rendering, resize handling, protocol negotiation, lifecycle management). You never need to think about them separately unless you're building something exotic like a multiplexer or test harness.
 
 ### Event Processing
 
 | Plugin | Role | What it does |
 |--------|------|-------------|
-| `withLifecycle(opts?)` | Processing | Intercepts Ctrl+Z (suspend/resume) and Ctrl+C (exit). Saves/restores terminal state across suspend. Hooks: `onSuspend`, `onResume`, `onInterrupt`. |
 | `withFocus()` | Processing | Focus manager: Tab/Shift+Tab navigation, Enter to enter scope, Escape to exit. Dispatches `onKeyDown`/`onKeyDownCapture` through focus tree (capture → target → bubble). |
 | `withDomEvents()` | Processing | DOM-like event dispatch for mouse: hit testing via `screenRect`, bubbling through ancestors. `onClick`, `onDoubleClick`, `onMouseDown`, `onMouseUp`, `onMouseMove`, `onMouseEnter`, `onMouseLeave`, `onWheel`. |
 | `withCommands(opts)` | Processing + API | Resolves key and mouse events to named commands via a binding table. Adds `.cmd` proxy for programmatic invocation. Adds `.getState()` for introspection. |
-
-### Protocol
-
-| Plugin | Role | What it does |
-|--------|------|-------------|
-| `withMouse()` | Protocol | Enables SGR mouse tracking (mode 1006). Disables on cleanup. |
-| `withKitty(flags?)` | Protocol | Enables Kitty keyboard protocol. Detects support, enables with flags, disables on cleanup. |
-| `withPaste()` | Protocol | Enables bracketed paste mode. |
 
 ### Testing / Automation
 
@@ -589,18 +573,15 @@ function run(store, element, options = {}) {
   return pipe(
     createApp(store),
     withReact(element),
-    withOutput(options.stdout ?? process.stdout),
-    withTerminal(options.stdin ?? process.stdin),
-    withResize(options.stdout ?? process.stdout),
-    withLifecycle({
+    withTerminal(process, {
+      mouse: options.mouse,
+      kitty: options.kitty,
+      paste: options.paste,
       onSuspend: options.onSuspend,
       onResume: options.onResume,
       onInterrupt: options.onInterrupt,
     }),
     withFocus(),
-    options.mouse && withMouse(),
-    options.kitty && withKitty(options.kitty === true ? undefined : options.kitty),
-    options.paste !== false && withPaste(),
     withDomEvents(),
   ).run()
 }
