@@ -203,17 +203,17 @@ See [docs/reference/components.md](docs/reference/components.md) for full refere
 
 Higher-level pre-styled components using `$token` semantic colors. Import from `inkx`:
 
-| Component | Description |
-| --- | --- |
-| `ErrorBoundary` | React error boundary with `resetKeys` prop for auto-reset, function `fallback` support |
-| `Form` / `FormField` | Form layout with label, description, error message slots |
-| `Toast` / `useToast()` | Toast notifications with auto-dismiss, severity levels |
-| `CommandPalette` | Fuzzy-search command palette (Ctrl+K / Cmd+K pattern) |
-| `TreeView` | Expandable/collapsible tree with keyboard navigation |
-| `Breadcrumb` | Path breadcrumb with separator customization |
-| `Tabs` / `TabList` / `Tab` / `TabPanel` | Tabbed interface with keyboard navigation |
-| `Tooltip` | Contextual tooltip overlay |
-| `Skeleton` | Loading placeholder with configurable width/lines |
+| Component                               | Description                                                                            |
+| --------------------------------------- | -------------------------------------------------------------------------------------- |
+| `ErrorBoundary`                         | React error boundary with `resetKeys` prop for auto-reset, function `fallback` support |
+| `Form` / `FormField`                    | Form layout with label, description, error message slots                               |
+| `Toast` / `useToast()`                  | Toast notifications with auto-dismiss, severity levels                                 |
+| `CommandPalette`                        | Fuzzy-search command palette (Ctrl+K / Cmd+K pattern)                                  |
+| `TreeView`                              | Expandable/collapsible tree with keyboard navigation                                   |
+| `Breadcrumb`                            | Path breadcrumb with separator customization                                           |
+| `Tabs` / `TabList` / `Tab` / `TabPanel` | Tabbed interface with keyboard navigation                                              |
+| `Tooltip`                               | Contextual tooltip overlay                                                             |
+| `Skeleton`                              | Loading placeholder with configurable width/lines                                      |
 
 ### Input Cursor Convention
 

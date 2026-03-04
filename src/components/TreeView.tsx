@@ -159,7 +159,7 @@ export function TreeView({
       // Expand / toggle
       if (key.return || key.rightArrow) {
         const item = flatItems[cursorIndex]
-        if (item && item.node.children && item.node.children.length > 0) {
+        if (item?.node?.children && item.node.children.length > 0) {
           if (!expanded.has(item.node.id)) {
             toggleNode(item.node.id)
           } else if (key.return) {
