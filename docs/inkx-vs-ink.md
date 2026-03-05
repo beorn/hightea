@@ -121,14 +121,14 @@ _Performance: Apple M1 Max, Bun 1.3.9, Feb 2026. Run: `bun run bench:compare`_
 | Cold render (1 component)             | 165 µs        | 271 µs                  | inkx 1.6x faster      |
 | Cold render (1000 components)         | 463 ms        | 541 ms                  | inkx 1.2x faster      |
 | Full React rerender (1000 components) | 630 ms        | 20.7 ms                 | Ink 30x faster        |
-| **Typical interactive update**        | **169 µs**    | **20.7 ms**             | **inkx 200x+ faster** |
+| **Typical interactive update**        | **169 µs**    | **20.7 ms**             | **inkx 100x+ faster** |
 | Layout (50-node kanban)               | 57 µs (Flexx) | 136 µs (Yoga NAPI)      | Flexx 2.4x faster     |
 | Terminal resize (1000 nodes)          | 21 µs         | Full re-render          | —                     |
 | Buffer diff (80x24, 10% changed)      | 34 µs         | N/A (row-based strings) | —                     |
 
 **Understanding the rerender row:** When the _entire_ component tree re-renders from scratch (e.g., replacing the root element), Ink is 30x faster because its output is just string concatenation. inkx runs a 5-phase pipeline (measure → layout → content → output) after React reconciliation — that's the cost of layout feedback. But this scenario almost never happens in real apps.
 
-**The row that matters — "typical interactive update":** When a user presses a key (cursor move, scroll, toggle), only the changed nodes need updating. inkx has per-node dirty tracking that bypasses React entirely — 169 µs for 1000 nodes. Ink must re-render the full React tree for _any_ state change — 20.7 ms. In practice, inkx is **200x+ faster** for the updates that actually happen during interactive use.
+**The row that matters — "typical interactive update":** When a user presses a key (cursor move, scroll, toggle), only the changed nodes need updating. inkx has per-node dirty tracking that bypasses React entirely — 169 µs for 1000 nodes. Ink must re-render the full React tree for _any_ state change — 20.7 ms. In practice, inkx is **100x+ faster** for the updates that actually happen during interactive use.
 
 **Native dependencies:** inkx with Flexx requires zero native dependencies (pure JS/TS). Ink requires Yoga NAPI, a native C++ addon that must be compiled per-platform.
 
@@ -348,7 +348,7 @@ These aren't theoretical differences. Production Ink-based CLIs have hit several
 
 - **Memory**: Claude Code (Anthropic's CLI, built on Ink) reported [120+ GB memory usage](https://github.com/anthropics/claude-code/issues/4953) from Yoga WASM linear memory growth, crashing every 30-60 minutes. Versions 2.1.47–2.1.50 each fixed WASM memory leaks. inkx's pure-TS layout eliminates this entire bug category.
 - **Flicker**: Ink's approach of [clearing the entire terminal](https://github.com/vadimdemedes/ink/issues/359) on each render causes visible flicker, especially in tmux. A [Hacker News discussion](https://news.ycombinator.com/item?id=46844822) noted that Ink "literally clears the entire terminal including scrollback buffer on each full render." inkx's dirty tracking and DEC 2026 synchronized updates produce flicker-free output.
-- **Performance**: Developers have noted ["rough edges in rendering performance"](https://www.libhunt.com/posts/1476376-claude-opus-4-6) with Ink-based tools. inkx's 200x+ faster interactive updates (dirty tracking vs full re-render) directly address this.
+- **Performance**: Developers have noted ["rough edges in rendering performance"](https://www.libhunt.com/posts/1476376-claude-opus-4-6) with Ink-based tools. inkx's 100x+ faster interactive updates (dirty tracking vs full re-render) directly address this.
 - **Missing capabilities**: Production CLIs lack mouse support, customizable keybindings, focus management, and modern terminal protocol support — all built into inkx.
 
 ---

@@ -17,14 +17,7 @@ import { Spinner, ProgressBar, MultiProgress } from "@hightea/ui/cli"
 import { Spinner, ProgressBar, Tasks, Task, useProgress, ProgressProvider } from "@hightea/ui/react"
 
 // Wrappers - ergonomic async pattern adapters
-import {
-  withSpinner,
-  withProgress,
-  wrapGenerator,
-  wrapEmitter,
-  withSelect,
-  withTextInput,
-} from "@hightea/ui/wrappers"
+import { withSpinner, withProgress, wrapGenerator, wrapEmitter, withSelect, withTextInput } from "@hightea/ui/wrappers"
 
 // Progress - declarative steps API (recommended for multi-step operations)
 import { steps, step } from "@hightea/ui/progress"
@@ -272,8 +265,8 @@ await withCursor(false, async () => {
 
 ## Sub-Export Summary
 
-| Export                    | Use Case                             |
-| ------------------------- | ------------------------------------ |
+| Export                 | Use Case                             |
+| ---------------------- | ------------------------------------ |
 | `@hightea/ui`          | CLI components + wrappers (no React) |
 | `@hightea/ui/cli`      | Direct stdout spinners/progress bars |
 | `@hightea/ui/react`    | React components for inkx apps       |

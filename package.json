@@ -2,9 +2,6 @@
   "name": "@hightea/term",
   "version": "0.1.0",
   "description": "React rendering where components know their size — terminal, canvas, and DOM targets",
-  "workspaces": [
-    "packages/*"
-  ],
   "keywords": [
     "cli",
     "components",
@@ -27,6 +24,9 @@
     "type": "git",
     "url": "https://github.com/beorn/hightea.git"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "type": "module",
   "sideEffects": false,
   "main": "src/index.ts",
@@ -141,8 +141,8 @@
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
   },
   "dependencies": {
-    "decant": "github:beorn/decant",
     "@hightea/ansi": "workspace:*",
+    "decant": "github:beorn/decant",
     "react-reconciler": "^0.33.0",
     "slice-ansi": "^7.1.2",
     "string-width": "^8.0.0",
@@ -150,7 +150,6 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "flexture": "github:beorn/flexture",
     "@termless/core": "github:beorn/termless",
     "@types/bun": "^1.1.0",
     "@types/react": "^19.0.0",
@@ -158,6 +157,7 @@
     "@xterm/xterm": "^6.0.0",
     "chalk": "^5.6.2",
     "fast-check": "^4.5.3",
+    "flexture": "github:beorn/flexture",
     "mitata": "^0.1.11",
     "playwright": "^1.58.2",
     "react": "^19.0.0",

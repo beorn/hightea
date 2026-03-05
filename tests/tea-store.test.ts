@@ -21,7 +21,14 @@ import {
   dispatch as dispatchEffect,
   none,
 } from "@hightea/term/core"
-import { type StoreApi, type StoreConfig, createStore, defaultInit, inkxUpdate, withFocusManagement } from "@hightea/term/store"
+import {
+  type StoreApi,
+  type StoreConfig,
+  createStore,
+  defaultInit,
+  inkxUpdate,
+  withFocusManagement,
+} from "@hightea/term/store"
 
 // =============================================================================
 // Helpers
@@ -640,7 +647,8 @@ describe("inkx/core — exports", () => {
   })
 
   test("re-exports focus events", async () => {
-    const { createKeyEvent, createFocusEvent, dispatchKeyEvent, dispatchFocusEvent } = await import("@hightea/term/core")
+    const { createKeyEvent, createFocusEvent, dispatchKeyEvent, dispatchFocusEvent } =
+      await import("@hightea/term/core")
     expect(typeof createKeyEvent).toBe("function")
     expect(typeof createFocusEvent).toBe("function")
     expect(typeof dispatchKeyEvent).toBe("function")

@@ -35,14 +35,14 @@
       "import": "../../src/react/index.ts"
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "react-reconciler": "^0.33.0",
     "zustand": "^5.0.11"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }

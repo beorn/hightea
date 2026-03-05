@@ -110,7 +110,7 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 ### inkx
 
 - **Two-phase rendering with layout feedback**: Components know their dimensions during render via `useContentRect()` -- the only React-based TUI framework where this works synchronously.
-- **Per-node dirty tracking**: Interactive updates (keystroke, scroll) take ~169 us for 1000 nodes vs Ink's 20.7 ms full re-render -- 200x+ faster for the updates that matter.
+- **Per-node dirty tracking**: Interactive updates (keystroke, scroll) take ~169 us for 1000 nodes vs Ink's 20.7 ms full re-render -- 100x+ faster for the updates that matter.
 - **Driver pattern for AI automation**: Composable plugins (`withCommands` + `withKeybindings` + `withDiagnostics`) expose the full command surface for programmatic control, introspection, and testing.
 
 ### Ink

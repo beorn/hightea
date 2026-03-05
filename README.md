@@ -1,7 +1,7 @@
 # inkx
 
 **TUI framework for modern terminals.**
-Ink-compatible but [200x+ faster](docs/deep-dives/performance.md). React 19, every terminal protocol, pure TypeScript.
+Ink-compatible but [100x+ faster](docs/deep-dives/performance.md). React 19, every terminal protocol, pure TypeScript.
 
 [![npm version](https://img.shields.io/npm/v/inkx.svg)](https://www.npmjs.com/package/inkx)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -50,7 +50,7 @@ await run(<App />)
 
 **Every modern terminal protocol.** [Kitty keyboard](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) (all 5 flags including Cmd/Super), SGR mouse (click, drag, scroll with DOM-style event bubbling), inline images (Kitty graphics + Sixel), OSC 52 clipboard (works over SSH), OSC 8 hyperlinks, DECSTBM scroll regions, synchronized updates (flicker-free in tmux/Zellij), and bracketed paste. All built-in, all auto-detected, all with graceful fallback.
 
-**[200x+ faster interactive updates.](docs/deep-dives/performance.md)** Per-node dirty tracking with 7 independent dirty flags per node. When a user presses a key, only changed nodes re-render — [169us for 1000 nodes vs Ink's 20.7ms](docs/deep-dives/performance.md#incremental-rendering). Buffer diffing emits only changed cells, reducing terminal I/O by 90%+.
+**[100x+ faster interactive updates.](docs/deep-dives/performance.md)** Per-node dirty tracking with 7 independent dirty flags per node. When a user presses a key, only changed nodes re-render — [169us for 1000 nodes vs Ink's 20.7ms](docs/deep-dives/performance.md#incremental-rendering). Buffer diffing emits only changed cells, reducing terminal I/O by 90%+.
 
 **Scrollable containers — just work.** `overflow="scroll"` with `scrollTo`, hardware-accelerated DECSTBM scroll regions, and VirtualList for huge datasets. [Ink's #1 feature request](https://github.com/vadimdemedes/ink/issues/222) since 2019, solved.
 
@@ -95,7 +95,7 @@ Each wraps the one below. Choose the right paradigm per use case — all three i
 
 ## Trade-offs
 
-inkx optimizes for interactive apps where parts of the UI update frequently. For workloads that re-render the entire component tree from scratch (not typical for interactive CLIs), Ink's simpler reconciliation is [~30x faster](docs/benchmarks.md). inkx's five-phase pipeline is the cost of layout feedback — and the reason interactive updates are [200x+ faster](docs/benchmarks.md). See [detailed comparison](docs/inkx-vs-ink.md).
+inkx optimizes for interactive apps where parts of the UI update frequently. For workloads that re-render the entire component tree from scratch (not typical for interactive CLIs), Ink's simpler reconciliation is [~30x faster](docs/benchmarks.md). inkx's five-phase pipeline is the cost of layout feedback — and the reason interactive updates are [100x+ faster](docs/benchmarks.md). See [detailed comparison](docs/inkx-vs-ink.md).
 
 ## Ink Compatibility
 
