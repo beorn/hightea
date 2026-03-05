@@ -45,6 +45,12 @@ const browserDefines: Record<string, string> = {
 // The `define` map above handles static process.env.KEY references, but
 // process.stdout/stdin/stderr and process.env[dynamic] need a real object.
 const processShim = `
+// Polyfill Symbol.dispose for Safari and older browsers that lack
+// TC39 Explicit Resource Management. Bun's __using helper uses a
+// polyfilled __dispose, but property definitions like [Symbol.dispose]
+// need the global symbol to exist.
+Symbol.dispose ??= Symbol.for("Symbol.dispose");
+Symbol.asyncDispose ??= Symbol.for("Symbol.asyncDispose");
 if (typeof globalThis.process === "undefined") {
   globalThis.process = {
     env: { NODE_ENV: "production" },
