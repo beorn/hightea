@@ -1,8 +1,6 @@
 # Runtime Layers Reference
 
-> The runtime layers are what make "sipping TEA" possible — each layer adds capability without forcing you to adopt more than you need.
-
-inkx's runtime is organized in layers, each building on the one below. For a quick tutorial, see [Getting Started](getting-started.md). For the graduated paths through state and events, see [State Management](state-management.md) and [Event Handling](event-handling.md).
+inkx's runtime is organized in layers, each building on the one below — the infrastructure that makes the graduated path possible. For a quick tutorial, see [Getting Started](getting-started.md). For the graduated paths through state and events, see [State Management](state-management.md) and [Event Handling](event-handling.md).
 
 ## Architecture
 

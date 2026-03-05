@@ -1,7 +1,5 @@
 # Event Handling
 
-> Start simple, sip some TEA, or go full TEA. Begin with `useInput` and a callback. Graduate to composable plugins when you need them. Every step is additive — you never rewrite, you grow.
-
 Most TUI frameworks force a choice: simple callbacks that don't scale, or a full architecture you adopt all at once. inkx gives you a graduated path where each level builds on the last. Your first app is five lines. Your complex app — with vim modes, AI automation, customizable keybindings, and file watchers — uses the same primitives, just composed differently.
 
 The payoff at the end of the path: **all state in one model**, all changes through one `update` function, all I/O through composable plugins. The entire app becomes inspectable, serializable, replayable, and testable — from headless unit tests to AI-driven automation. You get there incrementally, one sip at a time.

@@ -1,8 +1,6 @@
 # Getting Started with inkx/runtime
 
-> Start simple, sip some TEA, or go full TEA. This tutorial is the "start simple" part — five lines to a working app.
-
-inkx/runtime is a layered TUI framework built on React. Write terminal apps the same way you write web apps — with components, hooks, and state. When you're ready to grow, the [State Management](state-management.md) and [Event Handling](event-handling.md) guides show how each level builds on the last.
+This is the "start simple" part — five lines to a working app. inkx/runtime is a layered TUI framework built on React. Write terminal apps the same way you write web apps — with components, hooks, and state. When you outgrow `useState`, the [State Management](state-management.md) and [Event Handling](event-handling.md) guides show how to graduate without rewriting.
 
 ## Your First App
 

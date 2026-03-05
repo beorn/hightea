@@ -1,5 +1,9 @@
 # inkx Documentation
 
+> Start simple, sip some TEA, or go full TEA.
+
+inkx is a React-based TUI framework with a graduated architecture. Your first app is five lines. When you need shared state, undo, testable I/O, or composable plugins — each level builds on the last. You never rewrite; you grow.
+
 ## Where to Start
 
 - **New to inkx?** Start with [Getting Started](guides/getting-started.md) -- build your first app in 5 minutes
@@ -25,6 +29,7 @@ Tutorials, walkthroughs, and migration paths.
 | --------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | [Getting Started](guides/getting-started.md)              | First app tutorial, basic input, layout feedback                                  |
 | [State Management](guides/state-management.md)            | General patterns + inkx tooling: store, signals, createSlice, ops/effects as data |
+| [Event Handling](guides/event-handling.md)                 | Composable event plugins, commands, sources, and the input pipeline               |
 | [Runtime Layers](guides/runtime-layers.md)                | createApp, createRuntime, createStore, streams, tick sources                      |
 | [Migration from Ink](guides/migration.md)                 | Drop-in migration guide                                                           |
 | [Migration from legacy inkx](guides/runtime-migration.md) | Migrating to inkx/runtime API                                                     |

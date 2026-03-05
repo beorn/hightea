@@ -1,7 +1,5 @@
 # State Management
 
-> Start simple, sip some TEA, or go full TEA. Begin with `useState`. Graduate to composable state machines when you need them. Every step is additive — you never rewrite, you grow.
-
 Your first inkx app uses `useState` and `useInput`. That's enough for a counter, a file browser, a simple list. Then your TUI grows — shared state across panes, undo, testable I/O, independent modules — and each requirement tempts you to reach for a new library or rewrite from scratch.
 
 This guide shows a different path. Each level builds on the last with minimal changes. inkx provides tooling at each step — `createApp`, `createSlice`, effect runners, plugin composition — so the transition is mechanical, not architectural. You never rewrite; you graduate.
