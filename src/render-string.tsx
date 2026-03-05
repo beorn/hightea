@@ -26,7 +26,7 @@
 
 import React, { type ReactElement, act } from "react"
 
-import { createTerm } from "@hightea/chalk"
+import { createTerm } from "@hightea/ansi"
 
 import { bufferToStyledText, bufferToText, type TerminalBuffer } from "./buffer.js"
 import { StdoutContext, TermContext } from "./context.js"

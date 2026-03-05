@@ -1,4 +1,4 @@
-import type { Term } from "@hightea/chalk"
+import type { Term } from "@hightea/ansi"
 import { useContext } from "react"
 import { TermContext } from "../context.js"
 

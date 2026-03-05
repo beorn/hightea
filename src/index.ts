@@ -392,7 +392,7 @@ export type { Theme, AnsiPrimary, DetectThemeOptions } from "swatch"
 // =============================================================================
 
 // Term primitives (so consumers don't need to import from chalkx directly)
-export { createTerm, term, patchConsole } from "@hightea/chalk"
+export { createTerm, term, patchConsole } from "@hightea/ansi"
 export type {
   Term,
   StyleChain,
@@ -401,7 +401,7 @@ export type {
   ConsoleStats,
   ColorLevel,
   ConsoleEntry,
-} from "@hightea/chalk"
+} from "@hightea/ansi"
 
 // Hit Registry (mouse support)
 export {

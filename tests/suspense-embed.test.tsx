@@ -41,7 +41,7 @@ import { createRenderer } from "@hightea/term/testing"
 import { reconciler, createContainer, createFiberRoot, getContainerRoot } from "../src/reconciler.js"
 import { executeRender } from "../src/pipeline/index.js"
 import { StdoutContext, TermContext } from "../src/context.js"
-import { createTerm } from "@hightea/chalk"
+import { createTerm } from "@hightea/ansi"
 import { bufferToText, cellEquals, type TerminalBuffer } from "../src/buffer.js"
 import type { InkxNode } from "../src/types.js"
 

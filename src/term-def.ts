@@ -5,7 +5,7 @@
  * Handles auto-detection of events from stdin, dimension defaults, etc.
  */
 
-import type { ColorLevel, Term } from "@hightea/chalk"
+import type { ColorLevel, Term } from "@hightea/ansi"
 import type { Event, TermDef } from "./types.js"
 
 // ============================================================================

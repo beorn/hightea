@@ -75,5 +75,5 @@ export type { MeasureElementOutput } from "./measureElement.js"
 // Term primitives (so consumers don't need chalkx directly)
 // =============================================================================
 
-export { createTerm, term } from "@hightea/chalk"
-export type { Term } from "@hightea/chalk"
+export { createTerm, term } from "@hightea/ansi"
+export type { Term } from "@hightea/ansi"

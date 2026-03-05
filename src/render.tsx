@@ -14,7 +14,7 @@
 import { EventEmitter } from "node:events"
 import process from "node:process"
 import { createLogger } from "decant"
-import { type Term, createTerm } from "@hightea/chalk"
+import { type Term, createTerm } from "@hightea/ansi"
 import React, { useCallback, useEffect, useMemo, useRef, type ReactElement, type ReactNode } from "react"
 
 const log = createLogger("inkx:render")

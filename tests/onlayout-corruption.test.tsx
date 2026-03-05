@@ -52,7 +52,7 @@ import { createRenderer } from "@hightea/term/testing"
 import { reconciler, createContainer, createFiberRoot, getContainerRoot } from "../src/reconciler.js"
 import { executeRender } from "../src/pipeline/index.js"
 import { StdoutContext, TermContext } from "../src/context.js"
-import { createTerm } from "@hightea/chalk"
+import { createTerm } from "@hightea/ansi"
 import { bufferToText, cellEquals } from "../src/buffer.js"
 
 const render = createRenderer({ cols: 60, rows: 20 })

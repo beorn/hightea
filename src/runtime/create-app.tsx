@@ -45,7 +45,7 @@ import process from "node:process"
 import React, { createContext, useContext, useEffect, useRef, type ReactElement } from "react"
 import { type StateCreator, type StoreApi, createStore } from "zustand"
 
-import { createTerm } from "@hightea/chalk"
+import { createTerm } from "@hightea/ansi"
 import {
   FocusManagerContext,
   RuntimeContext,

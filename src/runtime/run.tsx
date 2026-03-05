@@ -28,7 +28,7 @@
 import process from "node:process"
 import { createContext, useContext, useEffect, type ReactElement } from "react"
 
-import { createTerm } from "@hightea/chalk"
+import { createTerm } from "@hightea/ansi"
 import {
   FocusManagerContext,
   RuntimeContext,

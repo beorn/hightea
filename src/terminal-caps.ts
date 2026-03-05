@@ -5,4 +5,4 @@
  * This module re-exports for backward compatibility.
  */
 
-export { detectTerminalCaps, defaultCaps, type TerminalCaps } from "@hightea/chalk"
+export { detectTerminalCaps, defaultCaps, type TerminalCaps } from "@hightea/ansi"

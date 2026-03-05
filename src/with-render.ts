@@ -10,7 +10,7 @@
  *   const html = await term.renderStatic(<Report />)
  */
 
-import type { Term } from "@hightea/chalk"
+import type { Term } from "@hightea/ansi"
 import type { ReactElement } from "react"
 import type { TerminalBuffer } from "./buffer.js"
 import { createPipeline, type MeasuredTerm } from "./measurer.js"

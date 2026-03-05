@@ -1,4 +1,4 @@
-import type { ConsoleEntry, PatchedConsole } from "@hightea/chalk"
+import type { ConsoleEntry, PatchedConsole } from "@hightea/ansi"
 import type { ReactElement, ReactNode } from "react"
 import { useConsole } from "../hooks/useConsole.js"
 import { Box } from "./Box.js"

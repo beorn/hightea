@@ -543,7 +543,7 @@ export interface EventSource {
 
 // ColorLevel is re-exported from chalkx in index.ts
 // Import here for use in TermDef
-import type { ColorLevel } from "@hightea/chalk"
+import type { ColorLevel } from "@hightea/ansi"
 
 /**
  * Minimal surface for configuring render().

@@ -142,7 +142,7 @@
   },
   "dependencies": {
     "decant": "github:beorn/logger",
-    "@hightea/chalk": "github:beorn/chalkx",
+    "@hightea/ansi": "github:beorn/chalkx",
     "react-reconciler": "^0.33.0",
     "slice-ansi": "^7.1.2",
     "string-width": "^8.0.0",

@@ -5,7 +5,7 @@
  * This is Layer 0 - no runtime, no events, just pure rendering.
  */
 
-import { createTerm } from "@hightea/chalk"
+import { createTerm } from "@hightea/ansi"
 import React, { type ReactElement } from "react"
 import { bufferToStyledText, bufferToText } from "../buffer.js"
 import { StdoutContext, TermContext } from "../context.js"

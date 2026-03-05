@@ -1,4 +1,4 @@
-import type { ConsoleEntry, PatchedConsole } from "@hightea/chalk"
+import type { ConsoleEntry, PatchedConsole } from "@hightea/ansi"
 import { useEffect, useState } from "react"
 
 /**
