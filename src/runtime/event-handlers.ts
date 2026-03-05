@@ -17,7 +17,7 @@ import { findByTestID } from "../focus-queries.js"
 import { type MouseEventProcessorState, processMouseEvent, hitTest } from "../mouse-events.js"
 import type { Container } from "../reconciler.js"
 import { getContainerRoot } from "../reconciler.js"
-import type { InkxNode } from "../types.js"
+import type { TeaNode } from "../types.js"
 import type { Key } from "./keys.js"
 import type { EventHandler, EventHandlerContext, EventHandlers } from "./create-app.js"
 
@@ -160,7 +160,7 @@ export function handleFocusNavigation(
 export function dispatchMouseEventToTree(
   event: NamespacedEvent,
   mouseEventState: MouseEventProcessorState,
-  root: InkxNode,
+  root: TeaNode,
 ): void {
   if (event.event !== "mouse" || !event.data) return
 

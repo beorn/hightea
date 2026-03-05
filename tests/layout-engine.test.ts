@@ -5,12 +5,12 @@
  * isLayoutEngineInitialized, getConstants, and ensureDefaultLayoutEngine.
  * Also tests the LayoutNode interface contract and engine API surface.
  *
- * Note: The adapter-level tests (Yoga vs Flexx, interchangeability) live in
+ * Note: The adapter-level tests (Yoga vs Flexture, interchangeability) live in
  * layout-engines.test.ts. These tests focus on the abstraction layer itself.
  */
 
 import { beforeEach, describe, expect, it } from "vitest"
-import { createFlexxZeroEngine } from "../src/adapters/flexx-zero-adapter.js"
+import { createFlextureZeroEngine } from "../src/adapters/flexture-zero-adapter.js"
 import { initYogaEngine } from "../src/adapters/yoga-adapter.js"
 import {
   type LayoutEngine,
@@ -28,8 +28,8 @@ import {
 
 describe("Layout Engine Abstraction", () => {
   describe("setLayoutEngine / getLayoutEngine", () => {
-    it("sets and retrieves the flexx engine", () => {
-      const engine = createFlexxZeroEngine()
+    it("sets and retrieves the flexture engine", () => {
+      const engine = createFlextureZeroEngine()
       setLayoutEngine(engine)
 
       expect(getLayoutEngine()).toBe(engine)
@@ -43,23 +43,23 @@ describe("Layout Engine Abstraction", () => {
     })
 
     it("swapping engines changes what getLayoutEngine returns", async () => {
-      const flexx = createFlexxZeroEngine()
+      const flexture = createFlextureZeroEngine()
       const yoga = await initYogaEngine()
 
-      setLayoutEngine(flexx)
-      expect(getLayoutEngine().name).toBe("flexx-zero")
+      setLayoutEngine(flexture)
+      expect(getLayoutEngine().name).toBe("flexture-zero")
 
       setLayoutEngine(yoga)
       expect(getLayoutEngine().name).toBe("yoga")
 
-      setLayoutEngine(flexx)
-      expect(getLayoutEngine().name).toBe("flexx-zero")
+      setLayoutEngine(flexture)
+      expect(getLayoutEngine().name).toBe("flexture-zero")
     })
   })
 
   describe("isLayoutEngineInitialized", () => {
     it("returns true after setLayoutEngine", () => {
-      setLayoutEngine(createFlexxZeroEngine())
+      setLayoutEngine(createFlextureZeroEngine())
       expect(isLayoutEngineInitialized()).toBe(true)
     })
 
@@ -70,7 +70,7 @@ describe("Layout Engine Abstraction", () => {
 
   describe("getConstants", () => {
     it("returns constants from current engine", () => {
-      const engine = createFlexxZeroEngine()
+      const engine = createFlextureZeroEngine()
       setLayoutEngine(engine)
 
       const constants = getConstants()
@@ -78,7 +78,7 @@ describe("Layout Engine Abstraction", () => {
     })
 
     it("has all required flex direction constants", () => {
-      setLayoutEngine(createFlexxZeroEngine())
+      setLayoutEngine(createFlextureZeroEngine())
       const c = getConstants()
 
       expect(c.FLEX_DIRECTION_ROW).toBeDefined()
@@ -88,7 +88,7 @@ describe("Layout Engine Abstraction", () => {
     })
 
     it("has all required alignment constants", () => {
-      setLayoutEngine(createFlexxZeroEngine())
+      setLayoutEngine(createFlextureZeroEngine())
       const c = getConstants()
 
       expect(c.ALIGN_AUTO).toBeDefined()
@@ -102,7 +102,7 @@ describe("Layout Engine Abstraction", () => {
     })
 
     it("has all required justify constants", () => {
-      setLayoutEngine(createFlexxZeroEngine())
+      setLayoutEngine(createFlextureZeroEngine())
       const c = getConstants()
 
       expect(c.JUSTIFY_FLEX_START).toBeDefined()
@@ -114,7 +114,7 @@ describe("Layout Engine Abstraction", () => {
     })
 
     it("has all required edge constants", () => {
-      setLayoutEngine(createFlexxZeroEngine())
+      setLayoutEngine(createFlextureZeroEngine())
       const c = getConstants()
 
       expect(c.EDGE_LEFT).toBeDefined()
@@ -127,7 +127,7 @@ describe("Layout Engine Abstraction", () => {
     })
 
     it("has display, position, overflow, direction constants", () => {
-      setLayoutEngine(createFlexxZeroEngine())
+      setLayoutEngine(createFlextureZeroEngine())
       const c = getConstants()
 
       expect(c.DISPLAY_FLEX).toBeDefined()
@@ -141,7 +141,7 @@ describe("Layout Engine Abstraction", () => {
     })
 
     it("has measure mode constants", () => {
-      setLayoutEngine(createFlexxZeroEngine())
+      setLayoutEngine(createFlextureZeroEngine())
       const c = getConstants()
 
       expect(c.MEASURE_MODE_UNDEFINED).toBeDefined()
@@ -150,7 +150,7 @@ describe("Layout Engine Abstraction", () => {
     })
 
     it("constants are the same object on repeated calls", () => {
-      const engine = createFlexxZeroEngine()
+      const engine = createFlextureZeroEngine()
       setLayoutEngine(engine)
 
       const c1 = getConstants()
@@ -165,12 +165,12 @@ describe("Layout Engine Abstraction", () => {
 
   describe("ensureDefaultLayoutEngine", () => {
     it("does not overwrite an already-initialized engine", async () => {
-      const engine = createFlexxZeroEngine()
+      const engine = createFlextureZeroEngine()
       setLayoutEngine(engine)
 
       await ensureDefaultLayoutEngine("yoga")
 
-      // Should still be the flexx engine we set — yoga should NOT have been loaded
+      // Should still be the flexture engine we set — yoga should NOT have been loaded
       expect(getLayoutEngine()).toBe(engine)
     })
 
@@ -178,7 +178,7 @@ describe("Layout Engine Abstraction", () => {
       const yoga = await initYogaEngine()
       setLayoutEngine(yoga)
 
-      await ensureDefaultLayoutEngine("flexx")
+      await ensureDefaultLayoutEngine("flexture")
 
       // Should still be yoga
       expect(getLayoutEngine().name).toBe("yoga")
@@ -191,7 +191,7 @@ describe("Layout Engine Abstraction", () => {
 
   describe("LayoutEngine API contract", () => {
     const engines: Array<{ label: string; getEngine: () => Promise<LayoutEngine> }> = [
-      { label: "flexx", getEngine: async () => createFlexxZeroEngine() },
+      { label: "flexture", getEngine: async () => createFlextureZeroEngine() },
       { label: "yoga", getEngine: async () => await initYogaEngine() },
     ]
 
@@ -497,13 +497,13 @@ describe("Layout Engine Abstraction", () => {
 
   describe("constants consistency across engines", () => {
     it("both engines define the same constant keys", async () => {
-      const flexx = createFlexxZeroEngine()
+      const flexture = createFlextureZeroEngine()
       const yoga = await initYogaEngine()
 
-      const flexxKeys = Object.keys(flexx.constants).sort()
+      const flextureKeys = Object.keys(flexture.constants).sort()
       const yogaKeys = Object.keys(yoga.constants).sort()
 
-      expect(flexxKeys).toEqual(yogaKeys)
+      expect(flextureKeys).toEqual(yogaKeys)
     })
   })
 })

@@ -1,6 +1,6 @@
 # Terminal Lifecycle
 
-inkx handles terminal lifecycle events (suspend/resume, interrupt) automatically. When stdin is in raw mode, Ctrl+Z and Ctrl+C don't generate OS signals (SIGTSTP/SIGINT). inkx intercepts the raw bytes and manages the full terminal state save/restore cycle.
+hightea handles terminal lifecycle events (suspend/resume, interrupt) automatically. When stdin is in raw mode, Ctrl+Z and Ctrl+C don't generate OS signals (SIGTSTP/SIGINT). hightea intercepts the raw bytes and manages the full terminal state save/restore cycle.
 
 ## Quick Start
 
@@ -72,7 +72,7 @@ await run(<App />, {
 
 ## Low-Level API
 
-For custom lifecycle management (e.g., framework integrations), the building blocks are exported from `inkx/runtime`:
+For custom lifecycle management (e.g., framework integrations), the building blocks are exported from `hightea/runtime`:
 
 ```tsx
 import {

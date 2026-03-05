@@ -25,7 +25,7 @@ await run(<App />)
 
 ## Architecture
 
-inkx's core innovation is **two-phase rendering with synchronous layout feedback** - components know their size during render, not after.
+hightea's core innovation is **two-phase rendering with synchronous layout feedback** - components know their size during render, not after.
 
 **State machine principle**: Every interactive subsystem is a pure `(state, op) → [state, effects]` function. `readline-ops.ts` is the seed — shared character editing logic used by both TextInput and TextArea. This evolves into `PlainText.apply()` (Phase 1), then SlateJS integration (Phase 3, per-node body editing) and `Tree.apply()` (Phase 4, document tree). See [km/docs/design/tea-state-machines.md](../../docs/design/tea-state-machines.md).
 
@@ -37,7 +37,7 @@ inkx's core innovation is **two-phase rendering with synchronous layout feedback
 
 ## Terminology
 
-Terminal buffer model terminology is defined in the [termless terminal model](../termless/docs/terminal-model.md). inkx uses `(x, y)` column-first coordinates (CSS/DOM convention), while termless uses `(row, col)` row-first (terminal convention). Both are correct for their domains — don't unify.
+Terminal buffer model terminology is defined in the [termless terminal model](../termless/docs/terminal-model.md). hightea uses `(x, y)` column-first coordinates (CSS/DOM convention), while termless uses `(row, col)` row-first (terminal convention). Both are correct for their domains — don't unify.
 
 ## Runtime Layers
 
@@ -50,7 +50,7 @@ Terminal buffer model terminology is defined in the [termless terminal model](..
 
 ### Layer 1.5: createStore() — TEA (The Elm Architecture)
 
-A pure state container with effects, following the Elm pattern. No React dependency — lives in `inkx/core` and `inkx/store`.
+A pure state container with effects, following the Elm pattern. No React dependency — lives in `hightea/core` and `hightea/store`.
 
 ```tsx
 import { createStore, inkxUpdate, defaultInit, withFocusManagement } from "@hightea/term/store"
@@ -133,7 +133,7 @@ await run(<Counter />)
 
 ### Terminal Lifecycle (Suspend/Resume)
 
-Both `run()` and `createApp().run()` handle Ctrl+Z (suspend) and Ctrl+C (interrupt) by default. When stdin is in raw mode, these keys don't generate OS signals -- inkx intercepts the raw bytes and manages the full terminal state save/restore cycle.
+Both `run()` and `createApp().run()` handle Ctrl+Z (suspend) and Ctrl+C (interrupt) by default. When stdin is in raw mode, these keys don't generate OS signals -- hightea intercepts the raw bytes and manages the full terminal state save/restore cycle.
 
 ```tsx
 // Defaults: suspendOnCtrlZ=true, exitOnCtrlC=true
@@ -167,7 +167,7 @@ await run(<App />, { suspendOnCtrlZ: false, exitOnCtrlC: false })
 - Bracketed paste mode
 - Full screen clear + synthetic resize on resume
 
-**Exports** (from `inkx/runtime`): `captureTerminalState`, `restoreTerminalState`, `resumeTerminalState`, `performSuspend`, `CTRL_C`, `CTRL_Z`, `TerminalLifecycleOptions`, `TerminalState`.
+**Exports** (from `hightea/runtime`): `captureTerminalState`, `restoreTerminalState`, `resumeTerminalState`, `performSuspend`, `CTRL_C`, `CTRL_Z`, `TerminalLifecycleOptions`, `TerminalState`.
 
 ### Layer 3: createApp() with Zustand
 
@@ -201,7 +201,7 @@ See [docs/reference/components.md](docs/reference/components.md) for full refere
 
 ### shadcn-style Components
 
-Higher-level pre-styled components using `$token` semantic colors. Import from `inkx`:
+Higher-level pre-styled components using `$token` semantic colors. Import from `hightea`:
 
 | Component                               | Description                                                                            |
 | --------------------------------------- | -------------------------------------------------------------------------------------- |
@@ -263,7 +263,7 @@ Renders images via Kitty graphics or Sixel protocol, with text fallback. Auto-de
 
 ## Theming
 
-inkx provides a theming system based on React context and semantic color tokens. See [docs/reference/theming.md](docs/reference/theming.md) for full details.
+hightea provides a theming system based on React context and semantic color tokens. See [docs/reference/theming.md](docs/reference/theming.md) for full details.
 
 ```tsx
 import { ThemeProvider, defaultDarkTheme, useTheme } from "@hightea/term"
@@ -440,9 +440,9 @@ test("renders and handles input", async () => {
 
 ## Kitty Keyboard Protocol
 
-inkx supports the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) for unambiguous key identification. This enables modifiers that legacy ANSI cannot represent (Cmd ⌘, Hyper ✦) and event type reporting (press/repeat/release).
+hightea supports the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) for unambiguous key identification. This enables modifiers that legacy ANSI cannot represent (Cmd ⌘, Hyper ✦) and event type reporting (press/repeat/release).
 
-**Protocol control** (exported from `inkx`):
+**Protocol control** (exported from `hightea`):
 
 | Function                      | Description                                       |
 | ----------------------------- | ------------------------------------------------- |
@@ -465,21 +465,21 @@ inkx supports the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyb
 | `numLock`        | `boolean`     | NumLock is active (Kitty modifier bit 7)                           |
 | `associatedText` | `string`      | Decoded text from Kitty `REPORT_TEXT` mode                         |
 
-**Protocol detection** (exported from `inkx`):
+**Protocol detection** (exported from `hightea`):
 
 | Function                                        | Description                           |
 | ----------------------------------------------- | ------------------------------------- |
 | `detectKittySupport(write, read, timeout?)`     | Low-level: send query, parse response |
 | `detectKittyFromStdio(stdout, stdin, timeout?)` | Convenience: detect using real stdio  |
 
-**Auto-enable**: Pass `kitty: true` to `run()` — inkx sends the query, enables the protocol if supported, and disables on cleanup.
+**Auto-enable**: Pass `kitty: true` to `run()` — hightea sends the query, enables the protocol if supported, and disables on cleanup.
 
 ```tsx
 await run(<App />, { kitty: true }) // Auto-detect and enable
 await run(<App />, { kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS }) // Specific flags
 ```
 
-**Testing**: Use `keyToKittyAnsi(key)` (from `inkx/testing`) to generate Kitty ANSI sequences, and `kittyMode: true` on `createRenderer` / `createApp` to route `press()` through Kitty encoding.
+**Testing**: Use `keyToKittyAnsi(key)` (from `hightea/testing`) to generate Kitty ANSI sequences, and `kittyMode: true` on `createRenderer` / `createApp` to route `press()` through Kitty encoding.
 
 ```tsx
 import { keyToKittyAnsi } from "@hightea/term/testing"
@@ -513,9 +513,9 @@ All modifier aliases: `ctrl`/`control`/`⌃`, `shift`/`⇧`, `alt`/`opt`/`option
 
 ## Mouse Events (SGR Protocol)
 
-inkx supports SGR mouse tracking (mode 1006) for click, drag, and scroll events.
+hightea supports SGR mouse tracking (mode 1006) for click, drag, and scroll events.
 
-**Parsing** (exported from `inkx`):
+**Parsing** (exported from `hightea`):
 
 | Function                    | Description                                      |
 | --------------------------- | ------------------------------------------------ |
@@ -535,7 +535,7 @@ inkx supports SGR mouse tracking (mode 1006) for click, drag, and scroll events.
 | `meta`   | `boolean` | ⌥ Alt/Meta was held                      |
 | `ctrl`   | `boolean` | ⌃ Ctrl was held                          |
 
-**Runtime**: Pass `mouse: true` to `run()` — inkx enables SGR tracking and dispatches mouse events.
+**Runtime**: Pass `mouse: true` to `run()` — hightea enables SGR tracking and dispatches mouse events.
 
 ```tsx
 await run(<App />, { mouse: true })
@@ -581,7 +581,7 @@ See [docs/reference/input-features.md](docs/reference/input-features.md) for com
 
 ## Focus System (Tree-Based)
 
-inkx provides a tree-based focus system that operates directly on the InkxNode render tree. Focus is managed by a standalone `FocusManager` (no React dependency) with React hooks for component integration.
+hightea provides a tree-based focus system that operates directly on the InkxNode render tree. Focus is managed by a standalone `FocusManager` (no React dependency) with React hooks for component integration.
 
 ### Props (on Box)
 
@@ -658,16 +658,16 @@ The `run()` and `createApp()` runtimes wire this automatically.
 
 ## Layout Engine
 
-inkx supports multiple layout engines:
+hightea supports multiple layout engines:
 
 | Engine            | Description                                                |
 | ----------------- | ---------------------------------------------------------- |
-| `flexx` (default) | Zero-allocation Flexx, optimized for high-frequency layout |
+| `flexture` (default) | Zero-allocation Flexture, optimized for high-frequency layout |
 | `yoga`            | Facebook's WASM-based flexbox (most mature)                |
 
 ```tsx
 await render(<App />, term, { layoutEngine: "yoga" })
-// Or: INKX_ENGINE=yoga bun run app.ts
+// Or: HIGHTEA_ENGINE=yoga bun run app.ts
 ```
 
 ## Imports
@@ -897,30 +897,30 @@ await app.press("ArrowUp")
 
 | Variable                   | Effect                                                                         |
 | -------------------------- | ------------------------------------------------------------------------------ |
-| `INKX_STRICT=1`            | Compare incremental vs fresh render every frame (crashes on mismatch)          |
-| `INKX_STRICT_OUTPUT=1`     | Verify output ANSI matches fresh render (catches output-phase bugs)            |
-| `INKX_CHECK_INCREMENTAL=1` | Same as STRICT but logs instead of crashing                                    |
-| `INKX_INSTRUMENT=1`        | Content-phase counters on `globalThis.__inkx_content_detail`                   |
-| `INKX_DEV=1`               | Enable inspector + warn on missing prevBuffer (incremental rendering disabled) |
-| `INKX_PROFILE_RENDER=1`    | Per-phase pipeline timing to stderr (measure, layout, scroll, content, output) |
-| `DEBUG=inkx:*`             | Debug output for inkx pipeline                                                 |
-| `DEBUG_LOG=/tmp/inkx.log`  | Redirect debug to file (required for TUI — terminal is captured)               |
+| `HIGHTEA_STRICT=1`            | Compare incremental vs fresh render every frame (crashes on mismatch)          |
+| `HIGHTEA_STRICT_OUTPUT=1`     | Verify output ANSI matches fresh render (catches output-phase bugs)            |
+| `HIGHTEA_CHECK_INCREMENTAL=1` | Same as STRICT but logs instead of crashing                                    |
+| `HIGHTEA_INSTRUMENT=1`        | Content-phase counters on `globalThis.__hightea_content_detail`                   |
+| `HIGHTEA_DEV=1`               | Enable inspector + warn on missing prevBuffer (incremental rendering disabled) |
+| `HIGHTEA_PROFILE_RENDER=1`    | Per-phase pipeline timing to stderr (measure, layout, scroll, content, output) |
+| `DEBUG=hightea:*`             | Debug output for hightea pipeline                                                 |
+| `DEBUG_LOG=/tmp/hightea.log`  | Redirect debug to file (required for TUI — terminal is captured)               |
 
 ### Runtime Debug
 
 ```bash
 # Enable incremental vs fresh render comparison
-INKX_STRICT=1 bun km view /path/to/vault
+HIGHTEA_STRICT=1 bun km view /path/to/vault
 
 # Verify output phase correctness (catches ANSI generation bugs)
-INKX_STRICT_OUTPUT=1 bun km view /path/to/vault
+HIGHTEA_STRICT_OUTPUT=1 bun km view /path/to/vault
 
 # Write debug output to file
-DEBUG=inkx:* DEBUG_LOG=/tmp/inkx.log bun km view /path
-tail -f /tmp/inkx.log
+DEBUG=hightea:* DEBUG_LOG=/tmp/hightea.log bun km view /path
+tail -f /tmp/hightea.log
 
 # Content-phase instrumentation (skip/render counts)
-INKX_INSTRUMENT=1 DEBUG_LOG=/tmp/km.log bun km view /path
+HIGHTEA_INSTRUMENT=1 DEBUG_LOG=/tmp/km.log bun km view /path
 ```
 
 ### Test Debug
@@ -933,7 +933,7 @@ console.log(app.ansi) // With colors
 
 ## Plugin Composition (withCommands, withKeybindings, withDiagnostics)
 
-inkx provides SlateJS-style plugins for extending app functionality. These compose together for testing and AI automation.
+hightea provides SlateJS-style plugins for extending app functionality. These compose together for testing and AI automation.
 
 ### withCommands - Command System
 
@@ -995,7 +995,7 @@ const driver = withDiagnostics(createBoardDriver(repo, rootId), {
   checkStability: true, // Verify cursor moves don't change content
   checkReplay: true, // Verify ANSI replay produces correct result
   captureOnFailure: true, // Save screenshot on diagnostic failure
-  screenshotDir: "/tmp/inkx-diagnostics", // Default directory
+  screenshotDir: "/tmp/hightea-diagnostics", // Default directory
 })
 
 // Commands now run invariant checks automatically
@@ -1055,7 +1055,7 @@ function createBoardDriver(repo: Repo, rootId: string) {
 10. **Transform component**: Ink-compatible, applies per-line string transform to children
 11. **Theming**: `ThemeProvider` + semantic `$token` color props (dark/light built-in)
 12. **Animation hooks**: `useAnimation`, `useAnimatedTransition`, `useInterval` with easing presets
-13. **Inspector**: `enableInspector()` / `INKX_DEV=1` for render stats, tree dumps, dirty flags
+13. **Inspector**: `enableInspector()` / `HIGHTEA_DEV=1` for render stats, tree dumps, dirty flags
 14. **Terminal caps detection**: `detectTerminalCaps()` for synchronous env-based capability detection
 
 ## Documentation
@@ -1072,8 +1072,8 @@ to capture numbers.
 | [docs/guides/getting-started.md](docs/guides/getting-started.md)                   | First app tutorial, basic input, layout feedback                                                                             |
 | [docs/guides/state-management.md](docs/guides/state-management.md)                 | createApp, useApp, createSlice, selectors vs signals, effects middleware                                                     |
 | [docs/guides/runtime-layers.md](docs/guides/runtime-layers.md)                     | createApp, createRuntime, createStore, streams, tick sources                                                                 |
-| [docs/guides/migration.md](docs/guides/migration.md)                               | Ink to inkx migration guide                                                                                                  |
-| [docs/guides/runtime-migration.md](docs/guides/runtime-migration.md)               | Legacy inkx to inkx/runtime migration                                                                                        |
+| [docs/guides/migration.md](docs/guides/migration.md)                               | Ink to hightea migration guide                                                                                                  |
+| [docs/guides/runtime-migration.md](docs/guides/runtime-migration.md)               | Legacy hightea to hightea/runtime migration                                                                                        |
 | **Reference**                                                                      |                                                                                                                              |
 | [docs/reference/components.md](docs/reference/components.md)                       | Box, Text, VirtualList, Console, Image, Transform, Spinner, ProgressBar, SelectList, Table, Badge, Divider, inputs           |
 | [docs/reference/hooks.md](docs/reference/hooks.md)                                 | useContentRect, useScreenRect, useInput, usePaste, useApp, useAnimation, useAnimatedTransition, useInterval, useScrollRegion |
@@ -1096,7 +1096,7 @@ to capture numbers.
 | [docs/deep-dives/focus-routing.md](docs/deep-dives/focus-routing.md)               | Focus-based input routing pattern                                                                                            |
 | **Top Level**                                                                      |                                                                                                                              |
 | [docs/testing.md](docs/testing.md)                                                 | Testing strategy, locators, and API                                                                                          |
-| [docs/inkx-vs-ink.md](docs/inkx-vs-ink.md)                                         | Detailed feature/performance comparison with Ink                                                                             |
+| [docs/hightea-vs-ink.md](docs/hightea-vs-ink.md)                                         | Detailed feature/performance comparison with Ink                                                                             |
 | [docs/benchmarks.md](docs/benchmarks.md)                                           | Raw benchmark tables and data                                                                                                |
 | [docs/comparison.md](docs/comparison.md)                                           | Cross-framework comparison (BubbleTea, Textual, etc.)                                                                        |
 | [docs/troubleshooting.md](docs/troubleshooting.md)                                 | Common issues and debugging                                                                                                  |

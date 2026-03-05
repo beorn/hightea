@@ -1,11 +1,11 @@
 ---
 title: Live Demo
-description: inkx rendered in the browser via xterm.js
+description: hightea rendered in the browser via xterm.js
 ---
 
 # Live Demo
 
-An inkx React component rendered in the browser via xterm.js — the same ANSI output you'd see in a real terminal.
+An hightea React component rendered in the browser via xterm.js — the same ANSI output you'd see in a real terminal.
 
 <script setup>
 import LiveDemo from '../.vitepress/components/LiveDemo.vue'
@@ -15,7 +15,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 ## How It Works
 
-inkx's `RenderAdapter` interface abstracts the rendering target. The same component tree runs through the same layout engine (Flexx) and render pipeline. The xterm adapter writes ANSI escape sequences to an xterm.js terminal emulator running in the browser.
+hightea's `RenderAdapter` interface abstracts the rendering target. The same component tree runs through the same layout engine (Flexture) and render pipeline. The xterm adapter writes ANSI escape sequences to an xterm.js terminal emulator running in the browser.
 
 ### The Component
 
@@ -28,7 +28,7 @@ function App() {
     <Box flexDirection="column" padding={1}>
       <Box borderStyle="single" borderColor="cyan" padding={1}>
         <Text bold color="cyan">
-          inkx Rendering
+          hightea Rendering
         </Text>
         <Text color="green">
           Size: {width} x {height}

@@ -207,7 +207,7 @@ async function benchmark(itemCount: number, label: string) {
   const max = times[times.length - 1]!
 
   // Pipeline breakdown from last frame
-  const pipeline = (globalThis as any).__inkx_last_pipeline
+  const pipeline = (globalThis as any).__hightea_last_pipeline
   const pipelineStr = pipeline
     ? Object.entries(pipeline)
         .filter(([, v]) => typeof v === "number" && (v as number) > 0.05)

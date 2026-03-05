@@ -10,17 +10,17 @@ import {
   formatMismatchContext,
   getNodeDebugInfo,
 } from "../src/debug-mismatch.js"
-import type { InkxNode, Rect } from "../src/types.js"
+import type { TeaNode, Rect } from "../src/types.js"
 
 // Helper to create a minimal mock node
 function mockNode(
   id: string,
   screenRect: Rect | null,
-  children: InkxNode[] = [],
-  parent: InkxNode | null = null,
-): InkxNode {
-  const node: InkxNode = {
-    type: "inkx-box",
+  children: TeaNode[] = [],
+  parent: TeaNode | null = null,
+): TeaNode {
+  const node: TeaNode = {
+    type: "hightea-box",
     props: { id },
     children,
     parent,
@@ -98,7 +98,7 @@ describe("getNodeDebugInfo", () => {
     const info = getNodeDebugInfo(node)
 
     expect(info.id).toBe("test-node")
-    expect(info.type).toBe("inkx-box")
+    expect(info.type).toBe("hightea-box")
     expect(info.dirtyFlags.contentDirty).toBe(true)
     expect(info.dirtyFlags.paintDirty).toBe(false)
     expect(info.layout.layoutChanged).toBe(true) // y changed

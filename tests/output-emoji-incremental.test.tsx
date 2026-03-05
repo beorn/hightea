@@ -2,7 +2,7 @@
  * Incremental rendering tests with emoji content.
  *
  * Exercises the full pipeline: content-phase writes emoji to buffer,
- * output-phase diffs buffers and emits changesToAnsi, INKX_STRICT verifies
+ * output-phase diffs buffers and emits changesToAnsi, HIGHTEA_STRICT verifies
  * that incremental output matches fresh render.
  *
  * This catches issues where:
@@ -16,10 +16,10 @@ import { createRenderer } from "@hightea/term/testing"
 import { Box, Text } from "@hightea/term"
 
 beforeEach(() => {
-  process.env.INKX_STRICT = "1"
+  process.env.HIGHTEA_STRICT = "1"
 })
 afterEach(() => {
-  delete process.env.INKX_STRICT
+  delete process.env.HIGHTEA_STRICT
 })
 
 describe("incremental rendering with emoji", () => {
@@ -42,7 +42,7 @@ describe("incremental rendering with emoji", () => {
     const app = render(<App selected={0} />)
     expect(app.text).toContain("Running")
 
-    // Each rerender triggers incremental diff — INKX_STRICT verifies
+    // Each rerender triggers incremental diff — HIGHTEA_STRICT verifies
     app.rerender(<App selected={1} />)
     expect(app.text).toContain("Coding")
 

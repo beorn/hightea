@@ -8,13 +8,13 @@
 - **Underlines**: curly, dotted, dashed, double styles; underline color (RGB); styled underline combos
 - **Hyperlinks**: OSC 8 hyperlink generation, link text display
 - **Utilities**: ANSI regex matching (SGR, OSC 8, extended), `stripAnsi()`, `displayLength()` with wide chars and ANSI codes
-- **Integration**: all exports accessible from main index, term API basics, bgOverride for inkx compatibility
+- **Integration**: all exports accessible from main index, term API basics, bgOverride for hightea compatibility
 
 ## What NOT to Test Here
 
 - Chalk library internals — tests build on chalk's API
 - Terminal rendering — tests verify ANSI sequence generation, not visual output
-- inkx integration — that's inkx tests
+- hightea integration — that's hightea tests
 
 ## Patterns
 

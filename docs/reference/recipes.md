@@ -1,6 +1,6 @@
 # Recipes
 
-Common patterns for building inkx apps.
+Common patterns for building hightea apps.
 
 ## Modal Dialog
 

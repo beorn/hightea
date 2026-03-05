@@ -50,7 +50,7 @@ export default defineConfig({
           items: [
             { text: "Getting Started", link: "/guide/getting-started" },
             { text: "Installation", link: "/guide/installation" },
-            { text: "Why Hightea?", link: "/guide/why-inkx" },
+            { text: "Why Hightea?", link: "/guide/why-hightea" },
           ],
         },
         {

@@ -8,7 +8,7 @@
 import { useCallback, useContext, useSyncExternalStore } from "react"
 import { FocusManagerContext, NodeContext } from "../context.js"
 import type { FocusSnapshot } from "../focus-manager.js"
-import type { InkxNode } from "../types.js"
+import type { TeaNode } from "../types.js"
 
 // ============================================================================
 // Types
@@ -16,13 +16,13 @@ import type { InkxNode } from "../types.js"
 
 export interface UseFocusManagerResult {
   /** Currently focused node (null if nothing focused) */
-  activeElement: InkxNode | null
+  activeElement: TeaNode | null
   /** testID of the currently focused node */
   activeId: string | null
   /** The currently active peer scope ID */
   activeScopeId: string | null
   /** Focus a specific node or node by testID */
-  focus: (nodeOrId: InkxNode | string) => void
+  focus: (nodeOrId: TeaNode | string) => void
   /** Focus the next focusable element in tab order */
   focusNext: () => void
   /** Focus the previous focusable element in tab order */
@@ -88,7 +88,7 @@ export function useFocusManager(): UseFocusManagerResult {
   const snapshot: FocusSnapshot | null = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
   // Helper: get the render tree root from the current node
-  const getRoot = useCallback((): InkxNode | null => {
+  const getRoot = useCallback((): TeaNode | null => {
     if (!node) return null
     let root = node
     while (root.parent) {
@@ -98,7 +98,7 @@ export function useFocusManager(): UseFocusManagerResult {
   }, [node])
 
   const focus = useCallback(
-    (nodeOrId: InkxNode | string) => {
+    (nodeOrId: TeaNode | string) => {
       if (!fm) return
       if (typeof nodeOrId === "string") {
         const root = getRoot()
@@ -161,7 +161,7 @@ export function useFocusManager(): UseFocusManagerResult {
     activeElement: null,
     activeId: null,
     activeScopeId: null,
-    focus: noOp as (nodeOrId: InkxNode | string) => void,
+    focus: noOp as (nodeOrId: TeaNode | string) => void,
     focusNext: noOp,
     focusPrev: noOp,
     blur: noOp,

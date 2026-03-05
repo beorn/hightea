@@ -49,7 +49,7 @@ import { createRuntime } from "./create-runtime.js"
 import { type InputHandler, type Key, parseKey } from "./keys.js"
 import { splitRawInput } from "../keys.js"
 import type { TerminalBuffer } from "../buffer.js"
-import type { InkxNode, Rect } from "../types.js"
+import type { TeaNode, Rect } from "../types.js"
 import { parseBracketedPaste } from "../bracketed-paste.js"
 import { isMouseSequence, parseMouseSequence } from "../mouse.js"
 import { createMouseEventProcessor, processMouseEvent } from "../mouse-events.js"
@@ -255,8 +255,8 @@ export function usePaste(handler: PasteHandler): void {
 function handleFocusNavigation(
   parsedKey: Key,
   focusManager: FocusManager,
-  root: InkxNode,
-  layoutFn?: (node: InkxNode) => Rect | null,
+  root: TeaNode,
+  layoutFn?: (node: TeaNode) => Rect | null,
 ): boolean {
   if (parsedKey.tab && !parsedKey.shift) {
     focusManager.focusNext(root)
@@ -426,7 +426,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     const buf = createBuffer(termBuffer, rootNode)
     const _t3 = performance.now()
 
-    if (process.env.INKX_PROFILE_RENDER) {
+    if (process.env.HIGHTEA_PROFILE_RENDER) {
       logRenderProfile(_t0, _t1, _t2, _t3)
     }
     return buf
@@ -449,13 +449,13 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     })
   }
 
-  /** INKX_PROFILE_RENDER: per-phase timing to stderr */
+  /** HIGHTEA_PROFILE_RENDER: per-phase timing to stderr */
   function logRenderProfile(t0: number, t1: number, t2: number, t3: number): void {
     const react = (t1 - t0).toFixed(1)
     const pipeline = (t2 - t1).toFixed(1)
     const buffer = (t3 - t2).toFixed(1)
     const total = (t3 - t0).toFixed(1)
-    const phases = (globalThis as any).__inkx_last_pipeline
+    const phases = (globalThis as any).__hightea_last_pipeline
     if (phases) {
       const m = phases.measure.toFixed(1)
       const l = phases.layout.toFixed(1)

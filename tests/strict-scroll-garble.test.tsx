@@ -1,5 +1,5 @@
 /**
- * Minimal reproduction for INKX_STRICT garble in scroll containers.
+ * Minimal reproduction for HIGHTEA_STRICT garble in scroll containers.
  *
  * Bug: km-inkx.garble-incremental
  *
@@ -13,10 +13,10 @@ import React, { useState } from "react"
 import { Box, Text } from "../src/index.js"
 
 beforeEach(() => {
-  process.env.INKX_STRICT = "1"
+  process.env.HIGHTEA_STRICT = "1"
 })
 afterEach(() => {
-  delete process.env.INKX_STRICT
+  delete process.env.HIGHTEA_STRICT
 })
 
 function ScrollBoard({ selectedCol }: { selectedCol: number }) {
@@ -48,7 +48,7 @@ function ScrollBoard({ selectedCol }: { selectedCol: number }) {
   )
 }
 
-describe("INKX_STRICT scroll container garble", () => {
+describe("HIGHTEA_STRICT scroll container garble", () => {
   test("scroll container with many items - cursor move triggers garble", async () => {
     const cols = 80
     const rows = 20
@@ -60,7 +60,7 @@ describe("INKX_STRICT scroll container garble", () => {
     // Re-render with a change (simulates cursor move)
     app.rerender(<ScrollBoard selectedCol={1} />)
     expect(app.text).toContain("Column B")
-    // INKX_STRICT auto-checks incremental vs fresh after this render
+    // HIGHTEA_STRICT auto-checks incremental vs fresh after this render
   })
 
   test("large scroll container - multiple rerenders", () => {
@@ -93,7 +93,7 @@ describe("INKX_STRICT scroll container garble", () => {
     for (let i = 1; i <= 5; i++) {
       app.rerender(<App step={i} />)
       expect(app.text).toContain(`Step ${i}`)
-      // INKX_STRICT auto-checks on each render
+      // HIGHTEA_STRICT auto-checks on each render
     }
   })
 
@@ -177,7 +177,7 @@ describe("INKX_STRICT scroll container garble", () => {
 
     for (const cursor of moves) {
       app.rerender(<Board cursor={cursor} />)
-      // INKX_STRICT auto-checks
+      // HIGHTEA_STRICT auto-checks
     }
   })
 
@@ -223,7 +223,7 @@ describe("INKX_STRICT scroll container garble", () => {
     // Simulate cursor moves
     for (let i = 1; i <= 5; i++) {
       app.rerender(<NestedBoard cursor={i} />)
-      // INKX_STRICT auto-checks
+      // HIGHTEA_STRICT auto-checks
     }
   })
 })

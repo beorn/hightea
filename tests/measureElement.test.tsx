@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, test } from "vitest"
-import { type InkxNode, measureElement } from "../src/index.js"
+import { type TeaNode, measureElement } from "../src/index.js"
 
 // Helper to create a mock layout node that returns specific values
 function createMockLayoutNode(width: number, height: number) {
@@ -69,10 +69,10 @@ function createTestNode(options: {
     height: number
   } | null
   layoutNode?: ReturnType<typeof createMockLayoutNode> | null
-}): InkxNode {
+}): TeaNode {
   const layout = options.contentRect ?? null
   return {
-    type: "inkx-box",
+    type: "hightea-box",
     props: {},
     children: [],
     parent: null,
@@ -225,9 +225,9 @@ describe("measureElement", () => {
   })
 
   describe("different node types", () => {
-    test("works with inkx-box nodes", () => {
-      const node: InkxNode = {
-        type: "inkx-box",
+    test("works with hightea-box nodes", () => {
+      const node: TeaNode = {
+        type: "hightea-box",
         props: {},
         children: [],
         parent: null,
@@ -246,9 +246,9 @@ describe("measureElement", () => {
       expect(result.height).toBe(24)
     })
 
-    test("works with inkx-text nodes", () => {
-      const node: InkxNode = {
-        type: "inkx-text",
+    test("works with hightea-text nodes", () => {
+      const node: TeaNode = {
+        type: "hightea-text",
         props: {},
         children: [],
         parent: null,
@@ -268,9 +268,9 @@ describe("measureElement", () => {
       expect(result.height).toBe(1)
     })
 
-    test("works with inkx-root nodes", () => {
-      const node: InkxNode = {
-        type: "inkx-root",
+    test("works with hightea-root nodes", () => {
+      const node: TeaNode = {
+        type: "hightea-root",
         props: {},
         children: [],
         parent: null,

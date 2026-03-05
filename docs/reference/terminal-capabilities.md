@@ -1,6 +1,6 @@
 # Terminal Capabilities Reference
 
-This document explains terminal capabilities, the `chalkx` and `inkx` packages, and how to choose the right render strategy.
+This document explains terminal capabilities, the `chalkx` and `hightea` packages, and how to choose the right render strategy.
 
 ## The Two Core Capabilities
 
@@ -154,7 +154,7 @@ const output: string = renderString(<Summary />, { width: 80, plain: true })
 
 ## Console Patching
 
-When using `inline` or `fullscreen` modes, external console.log calls would corrupt the display. inkx can intercept these:
+When using `inline` or `fullscreen` modes, external console.log calls would corrupt the display. hightea can intercept these:
 
 ```ts
 await render(<App />, { patchConsole: true })
@@ -334,7 +334,7 @@ term.dispose()
 
 ## Synchronized Update Mode (DEC 2026)
 
-inkx automatically wraps all terminal output with **Synchronized Update Mode** sequences (`CSI ? 2026 h` / `CSI ? 2026 l`). This tells the terminal to batch output and paint atomically, preventing visual tearing during rapid screen updates.
+hightea automatically wraps all terminal output with **Synchronized Update Mode** sequences (`CSI ? 2026 h` / `CSI ? 2026 l`). This tells the terminal to batch output and paint atomically, preventing visual tearing during rapid screen updates.
 
 ### How It Works
 
@@ -368,7 +368,7 @@ Terminals that don't support it **safely ignore** the sequences — they pass th
 Sync update is enabled by default. To disable:
 
 ```bash
-INKX_SYNC_UPDATE=0 bun km view /path
+HIGHTEA_SYNC_UPDATE=0 bun km view /path
 ```
 
 Only applies in TTY mode. Non-TTY modes (line-by-line, static, plain) skip sync wrapping.
@@ -384,7 +384,7 @@ Response: CSI ? 2026 ; <value> $ y
 
 Where `value` is: 0=unknown, 1=set, 2=reset, 3=permanent set, 4=permanent reset.
 
-inkx does not currently query support — it always emits the sequences since unsupported terminals ignore them harmlessly.
+hightea does not currently query support — it always emits the sequences since unsupported terminals ignore them harmlessly.
 
 ## Kitty Keyboard Protocol
 
@@ -409,12 +409,12 @@ await run(<App />, {
 
 When `kitty: true`:
 
-1. inkx calls `detectKittyFromStdio()` to query the terminal
+1. hightea calls `detectKittyFromStdio()` to query the terminal
 2. If the terminal responds with `CSI ? flags u`, the protocol is supported
-3. inkx enables with `KittyFlags.DISAMBIGUATE` (flag 1)
-4. On app exit, inkx sends `CSI < u` to restore the previous keyboard mode
+3. hightea enables with `KittyFlags.DISAMBIGUATE` (flag 1)
+4. On app exit, hightea sends `CSI < u` to restore the previous keyboard mode
 
-When `kitty: <number>`, inkx skips detection and enables with the specified flags directly.
+When `kitty: <number>`, hightea skips detection and enables with the specified flags directly.
 
 ### Protocol Detection
 
@@ -540,7 +540,7 @@ Unsupported terminals ignore the enable sequence — no error, no side effects.
 
 ## Mouse Protocol (SGR 1006)
 
-inkx supports SGR mouse tracking for click, drag, scroll, and motion events.
+hightea supports SGR mouse tracking for click, drag, scroll, and motion events.
 
 ### Auto-Enable/Disable
 
@@ -551,7 +551,7 @@ await run(<App />, { mouse: true })
 await run(<App />, { kitty: true, mouse: true })
 ```
 
-inkx enables three mouse modes together:
+hightea enables three mouse modes together:
 
 | Mode            | Sequence     | Description                           |
 | --------------- | ------------ | ------------------------------------- |
@@ -609,7 +609,7 @@ The runtime handles mouse parsing automatically — mouse sequences are dispatch
 
 ## OSC 52 Clipboard
 
-inkx provides clipboard access via the OSC 52 terminal protocol. This works across SSH sessions — the clipboard operation is handled by the local terminal, not the remote host.
+hightea provides clipboard access via the OSC 52 terminal protocol. This works across SSH sessions — the clipboard operation is handled by the local terminal, not the remote host.
 
 ### Protocol
 
@@ -700,7 +700,7 @@ if (result) {
 
 ### Runtime Integration
 
-The `run()` runtime automatically enables bracketed paste mode. Use the `usePaste` hook (from `inkx/runtime`) to receive paste events:
+The `run()` runtime automatically enables bracketed paste mode. Use the `usePaste` hook (from `hightea/runtime`) to receive paste events:
 
 ```tsx
 import { usePaste } from "@hightea/term/runtime"
@@ -731,17 +731,17 @@ useInput(handler, { onPaste: (text) => handlePaste(text) })
 
 ## Terminal Notifications
 
-inkx provides a notification API that auto-detects the terminal and sends notifications using the best available method.
+hightea provides a notification API that auto-detects the terminal and sends notifications using the best available method.
 
 ```tsx
 import { notify, notifyITerm2, notifyKitty, BEL } from "@hightea/term"
 
 // Auto-detect terminal and send notification
-notify(process.stdout, "Build complete", { title: "inkx" })
+notify(process.stdout, "Build complete", { title: "hightea" })
 
 // Terminal-specific functions
 notifyITerm2("Build complete") // OSC 9 (iTerm2)
-notifyKitty("Build complete", { title: "inkx" }) // OSC 99 (Kitty)
+notifyKitty("Build complete", { title: "hightea" }) // OSC 99 (Kitty)
 ```
 
 | Function       | Protocol | Description                                         |

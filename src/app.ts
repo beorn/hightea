@@ -35,7 +35,7 @@ import type { ParsedMouse } from "./mouse.js"
 import { createMouseEventProcessor, processMouseEvent } from "./mouse-events.js"
 import type { FocusManager } from "./focus-manager.js"
 import { pointInRect } from "./tree-utils.js"
-import type { InkxNode } from "./types.js"
+import type { TeaNode } from "./types.js"
 
 /**
  * App interface - unified return type from render()
@@ -50,7 +50,7 @@ export interface App {
   readonly ansi: string
 
   /** Get node at content coordinates */
-  nodeAt(x: number, y: number): InkxNode | null
+  nodeAt(x: number, y: number): TeaNode | null
 
   /** Get locator by testID attribute */
   getByTestId(id: string): AutoLocator
@@ -150,7 +150,7 @@ export interface App {
   lastFrameText(): string | undefined
 
   /** Get container root node (internal - use app.locator() instead) */
-  getContainer(): InkxNode
+  getContainer(): TeaNode
 
   // === Focus System ===
 
@@ -174,7 +174,7 @@ export interface App {
  */
 export interface AppOptions {
   /** Function to get current container root */
-  getContainer: () => InkxNode
+  getContainer: () => TeaNode
 
   /** Function to get current buffer */
   getBuffer: () => TerminalBuffer | null
@@ -284,7 +284,7 @@ export function buildApp(options: AppOptions): App {
       return buffer ? bufferToStyledText(buffer) : ""
     },
 
-    nodeAt(x: number, y: number): InkxNode | null {
+    nodeAt(x: number, y: number): TeaNode | null {
       const root = getContainer()
       return findNodeAtContentPosition(root, x, y)
     },
@@ -490,7 +490,7 @@ export function buildApp(options: AppOptions): App {
       return buffer ? bufferToText(buffer) : undefined
     },
 
-    getContainer(): InkxNode {
+    getContainer(): TeaNode {
       return getContainer()
     },
 
@@ -529,7 +529,7 @@ export function buildApp(options: AppOptions): App {
 /**
  * Find node at content coordinates (not screen coordinates)
  */
-function findNodeAtContentPosition(node: InkxNode, x: number, y: number): InkxNode | null {
+function findNodeAtContentPosition(node: TeaNode, x: number, y: number): TeaNode | null {
   const rect = node.contentRect
   if (!rect) return null
 

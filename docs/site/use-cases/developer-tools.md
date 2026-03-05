@@ -1,19 +1,19 @@
 ---
-title: Building Developer Tools with inkx
-description: Build terminal REPLs, log viewers, and debuggers with virtual lists, command palettes, and Playwright-style testing using inkx.
+title: Building Developer Tools with hightea
+description: Build terminal REPLs, log viewers, and debuggers with virtual lists, command palettes, and Playwright-style testing using hightea.
 ---
 
 <script setup>
 import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 </script>
 
-# Building Developer Tools with inkx
+# Building Developer Tools with hightea
 
-Terminal-based developer tools -- REPLs, log viewers, debuggers, profilers -- demand fast rendering of large data streams, responsive keyboard shortcuts, and composable UI panels. inkx provides the primitives to build these tools as React components with real layout feedback, virtualized scrolling, and a testable command system.
+Terminal-based developer tools -- REPLs, log viewers, debuggers, profilers -- demand fast rendering of large data streams, responsive keyboard shortcuts, and composable UI panels. hightea provides the primitives to build these tools as React components with real layout feedback, virtualized scrolling, and a testable command system.
 
-Unlike browser-based dev tools, terminal tools run where your code runs. They start instantly, consume minimal resources, and integrate directly with stdin/stdout pipelines. inkx makes building them practical by handling the hard parts: efficient rendering of thousands of lines, keyboard protocol support across terminals, and deterministic testing without a real terminal.
+Unlike browser-based dev tools, terminal tools run where your code runs. They start instantly, consume minimal resources, and integrate directly with stdin/stdout pipelines. hightea makes building them practical by handling the hard parts: efficient rendering of thousands of lines, keyboard protocol support across terminals, and deterministic testing without a real terminal.
 
-<LiveDemo xtermSrc="/inkx/examples/showcase.html?demo=dev-tools" :height="400" />
+<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=dev-tools" :height="400" />
 
 ## Key Benefits
 
@@ -101,7 +101,7 @@ Press `i`, `w`, or `e` to add log entries at different severity levels. Use `j`/
 
 ## Testing Your Dev Tool
 
-inkx ships with a Playwright-style testing API. Verify rendering and keyboard interaction without a real terminal:
+hightea ships with a Playwright-style testing API. Verify rendering and keyboard interaction without a real terminal:
 
 ```tsx
 import { createRenderer } from "@hightea/term/testing"
@@ -128,13 +128,13 @@ test("log viewer navigates entries", async () => {
 })
 ```
 
-## What inkx Adds
+## What hightea Adds
 
-Developer tools need to handle large datasets, complex shortcuts, and automated testing. inkx ships the building blocks: `VirtualList` renders thousands of log lines with constant memory, the command system wires shortcuts to actions declaratively with introspection for free, and the Playwright-style testing API (`createRenderer`, `press()`, `getByTestId`) lets you write automated tests without custom harnesses.
+Developer tools need to handle large datasets, complex shortcuts, and automated testing. hightea ships the building blocks: `VirtualList` renders thousands of log lines with constant memory, the command system wires shortcuts to actions declaratively with introspection for free, and the Playwright-style testing API (`createRenderer`, `press()`, `getByTestId`) lets you write automated tests without custom harnesses.
 
 ## Get Started
 
-Install inkx and build your first developer tool:
+Install hightea and build your first developer tool:
 
 ```bash
 bun add @hightea/term

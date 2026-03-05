@@ -30,12 +30,12 @@ export interface PipelineContext {
 
 /**
  * Background conflict detection mode.
- * Set via INKX_BG_CONFLICT env var: 'ignore' | 'warn' | 'throw'
+ * Set via HIGHTEA_BG_CONFLICT env var: 'ignore' | 'warn' | 'throw'
  */
 export type BgConflictMode = "ignore" | "warn" | "throw"
 
 /**
- * Per-node trace entry for INKX_STRICT diagnosis.
+ * Per-node trace entry for HIGHTEA_STRICT diagnosis.
  */
 export interface NodeTraceEntry {
   id: string

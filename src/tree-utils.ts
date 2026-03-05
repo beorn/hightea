@@ -4,14 +4,14 @@
  * Functions used by both focus-events.ts and mouse-events.ts.
  */
 
-import type { InkxNode, Rect } from "./types.js"
+import type { TeaNode, Rect } from "./types.js"
 
 /**
  * Collect the ancestor path from target to root (inclusive).
  */
-export function getAncestorPath(node: InkxNode): InkxNode[] {
-  const path: InkxNode[] = []
-  let current: InkxNode | null = node
+export function getAncestorPath(node: TeaNode): TeaNode[] {
+  const path: TeaNode[] = []
+  let current: TeaNode | null = node
   while (current) {
     path.push(current)
     current = current.parent

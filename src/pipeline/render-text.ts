@@ -17,7 +17,7 @@ import {
   type UnderlineStyle,
   createMutableCell,
 } from "../buffer.js"
-import type { InkxNode, TextProps } from "../types.js"
+import type { TeaNode, TextProps } from "../types.js"
 import {
   type StyledSegment,
   ensureEmojiPresentation,
@@ -38,7 +38,7 @@ import type { BgConflictMode, NodeRenderState, PipelineContext } from "./types.j
 
 /** Cached bg conflict mode. Read from env once at module load. */
 let bgConflictMode: BgConflictMode = (() => {
-  const env = process.env.INKX_BG_CONFLICT?.toLowerCase()
+  const env = process.env.HIGHTEA_BG_CONFLICT?.toLowerCase()
   if (env === "ignore" || env === "warn" || env === "throw") return env
   return "throw" // default - fail fast on programming errors
 })()
@@ -185,7 +185,7 @@ function applyTextStyleAnsi(text: string, childStyle: StyleContext, parentStyle:
  * @param node - The node to collect text from
  * @param parentContext - The inherited style context from parent (used for restoration)
  */
-export function collectTextContent(node: InkxNode, parentContext: StyleContext = {}): string {
+export function collectTextContent(node: TeaNode, parentContext: StyleContext = {}): string {
   // If this node has direct text content, return it
   if (node.textContent !== undefined) {
     return node.textContent
@@ -195,7 +195,7 @@ export function collectTextContent(node: InkxNode, parentContext: StyleContext =
   let result = ""
   for (const child of node.children) {
     // If child is a Text node (virtual/nested) with style props, apply ANSI codes
-    if (child.type === "inkx-text" && child.props && !child.layoutNode) {
+    if (child.type === "hightea-text" && child.props && !child.layoutNode) {
       const childProps = child.props as TextProps
       // Merge child props with parent context to get effective child style
       const childContext = mergeStyleContext(parentContext, childProps)
@@ -246,7 +246,7 @@ interface TextWithBg {
  * Collect plain text content from a node tree (no ANSI codes).
  * Used to compute DOM-level truncation budget before ANSI serialization.
  */
-function collectPlainText(node: InkxNode): string {
+function collectPlainText(node: TeaNode): string {
   if (node.textContent !== undefined) return node.textContent
   let result = ""
   for (const child of node.children) {
@@ -272,7 +272,7 @@ function collectPlainText(node: InkxNode): string {
  *   Uses getTextWidth (ANSI-aware) so pre-styled leaf text is handled correctly.
  */
 function collectTextWithBg(
-  node: InkxNode,
+  node: TeaNode,
   parentContext: StyleContext = {},
   offset = 0,
   maxDisplayWidth?: number,
@@ -309,7 +309,7 @@ function collectTextWithBg(
     // Compute remaining budget for this child
     const childBudget = maxDisplayWidth !== undefined ? maxDisplayWidth - displayWidthCollected : undefined
 
-    if (child.type === "inkx-text" && child.props && !child.layoutNode) {
+    if (child.type === "hightea-text" && child.props && !child.layoutNode) {
       const childProps = child.props as TextProps
       const childContext = mergeStyleContext(parentContext, childProps)
 
@@ -1057,7 +1057,7 @@ function ansiColorToColor(code: number): Color {
  * See km-inkx.bg-bleed for details.
  */
 export function renderText(
-  node: InkxNode,
+  node: TeaNode,
   buffer: TerminalBuffer,
   layout: { x: number; y: number; width: number; height: number },
   props: TextProps,

@@ -15,7 +15,7 @@ import type { ReactElement } from "react"
 import type { TerminalBuffer } from "./buffer.js"
 import { createPipeline, type MeasuredTerm } from "./measurer.js"
 import { executeRender, type ExecuteRenderOptions, type PipelineConfig } from "./pipeline/index.js"
-import type { InkxNode } from "./types.js"
+import type { TeaNode } from "./types.js"
 
 /**
  * Extended Term with render pipeline capabilities.
@@ -29,7 +29,7 @@ export interface RenderTerm extends MeasuredTerm {
    * Run the full render pipeline.
    */
   render(
-    root: InkxNode,
+    root: TeaNode,
     width: number,
     height: number,
     prevBuffer: TerminalBuffer | null,
@@ -56,7 +56,7 @@ export function withRender(term: Term): RenderTerm {
   const { measurer } = pipelineConfig
 
   function renderPipeline(
-    root: InkxNode,
+    root: TeaNode,
     width: number,
     height: number,
     prevBuffer: TerminalBuffer | null,

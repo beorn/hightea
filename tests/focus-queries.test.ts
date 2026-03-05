@@ -14,7 +14,7 @@ import {
   getExplicitFocusLink,
   getTabOrder,
 } from "../src/focus-queries.js"
-import type { InkxNode, Rect } from "../src/types.js"
+import type { TeaNode, Rect } from "../src/types.js"
 
 // ============================================================================
 // Helpers
@@ -26,23 +26,23 @@ function fakeNode(
     focusable?: boolean
     focusScope?: boolean
     display?: string
-    parent?: InkxNode
+    parent?: TeaNode
     screenRect?: Rect
   } = {},
-): InkxNode {
+): TeaNode {
   const node = {
-    type: "inkx-box" as const,
+    type: "hightea-box" as const,
     props: {
       testID,
       ...(opts.focusable !== undefined ? { focusable: opts.focusable } : {}),
       ...(opts.focusScope ? { focusScope: true } : {}),
       ...(opts.display ? { display: opts.display } : {}),
     },
-    children: [] as InkxNode[],
+    children: [] as TeaNode[],
     parent: opts.parent ?? null,
     layoutNode: null,
     screenRect: opts.screenRect ?? null,
-  } as unknown as InkxNode
+  } as unknown as TeaNode
   if (opts.parent) {
     opts.parent.children.push(node)
   }
@@ -198,7 +198,7 @@ describe("findByTestID", () => {
 // ============================================================================
 
 describe("findSpatialTarget", () => {
-  function layoutFn(node: InkxNode): Rect | null {
+  function layoutFn(node: TeaNode): Rect | null {
     return node.screenRect
   }
 

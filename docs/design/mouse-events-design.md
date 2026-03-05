@@ -73,7 +73,7 @@ interface InkxWheelEvent extends InkxMouseEvent {
 
 ### Hit Test Implementation
 
-inkx already has `screenRect` on every node. The hit test walks the tree:
+hightea already has `screenRect` on every node. The hit test walks the tree:
 
 ```typescript
 function hitTest(root: InkxNode, x: number, y: number): InkxNode | null {
@@ -182,7 +182,7 @@ function DetailPane({ content }: DetailPaneProps) {
 
 ## Migration from km-tui
 
-| Current (km-tui manual)                | New (inkx DOM events)                   |
+| Current (km-tui manual)                | New (hightea DOM events)                   |
 | -------------------------------------- | --------------------------------------- |
 | `resolveMouseToNode(ctx, x, y)`        | `<Box onClick={(e) => ...}>`            |
 | `resolveMouseToColumn(ctx, x)`         | `<Box onClick={(e) => ...}>` on column  |
@@ -281,7 +281,7 @@ Links are first-class elements, like HTML `<a href="...">`. The mouse event syst
 ### The `<Link>` Component
 
 ```tsx
-// In inkx — mirrors HTML's <a> tag
+// In hightea — mirrors HTML's <a> tag
 <Link href="https://example.com">click here</Link>
 <Link href="file:///path/to/doc.pdf">open doc</Link>
 <Link href="km://node/abc123">Project Alpha</Link>
@@ -391,7 +391,7 @@ The km-tui app registers a `km://` handler at startup. All internal navigation g
 
 ### Integration with Mouse Events
 
-Links are regular inkx elements with:
+Links are regular hightea elements with:
 
 - `screenRect` from the layout pipeline (automatic hit testing)
 - Default `onClick` that dispatches to scheme handlers
@@ -402,7 +402,7 @@ No special hit registry or manual coordinate resolution. The render tree IS the 
 
 ### Implementation with Existing Infrastructure
 
-inkx already has:
+hightea already has:
 
 - OSC 8 hyperlink support in buffer cells (parseAnsiText, render-text, output-phase)
 - `hyperlink` field on Cell and FullCell types

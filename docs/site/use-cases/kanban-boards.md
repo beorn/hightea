@@ -1,6 +1,6 @@
 ---
-title: Building Kanban Boards with inkx
-description: Build terminal kanban boards with multi-column layout, spatial focus navigation, scrollable columns, and mouse support using inkx.
+title: Building Kanban Boards with hightea
+description: Build terminal kanban boards with multi-column layout, spatial focus navigation, scrollable columns, and mouse support using hightea.
 ---
 
 <script setup>
@@ -9,19 +9,19 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 # Kanban & Project Boards
 
-Terminal-based kanban boards need multi-column layouts that adapt to the terminal width, independent scrolling per column, two-axis keyboard navigation, and ideally mouse support for quick card selection. inkx provides all of these as built-in primitives, not manual abstractions you wire together yourself.
+Terminal-based kanban boards need multi-column layouts that adapt to the terminal width, independent scrolling per column, two-axis keyboard navigation, and ideally mouse support for quick card selection. hightea provides all of these as built-in primitives, not manual abstractions you wire together yourself.
 
-Other terminal UI frameworks either lack scrollable containers entirely (Ink), require imperative resize callbacks (BubbleTea, Ratatui), or use CSS-like styling that doesn't map naturally to React components (Textual). inkx gives you flexbox layout with `Box`, layout-aware components via `useContentRect()`, and `overflow="scroll"` that just works -- the same mental model as building a web app, but for the terminal.
+Other terminal UI frameworks either lack scrollable containers entirely (Ink), require imperative resize callbacks (BubbleTea, Ratatui), or use CSS-like styling that doesn't map naturally to React components (Textual). hightea gives you flexbox layout with `Box`, layout-aware components via `useContentRect()`, and `overflow="scroll"` that just works -- the same mental model as building a web app, but for the terminal.
 
-<LiveDemo xtermSrc="/inkx/examples/showcase.html?demo=kanban" :height="400" />
+<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=kanban" :height="400" />
 
 ## Key Benefits
 
 - **Multi-column layout** -- Flexbox `Box` components with `flexGrow={1}` create equal-width columns that automatically redistribute when the terminal resizes. No manual width arithmetic or resize event handlers.
 
-- **Focus system** -- Tree-based spatial navigation lets users press Left/Right to move between columns and Up/Down within them. Mark any `Box` as `focusable`, add `autoFocus` to the default card, and inkx handles Tab cycling and `useFocusWithin` for column-level focus indicators.
+- **Focus system** -- Tree-based spatial navigation lets users press Left/Right to move between columns and Up/Down within them. Mark any `Box` as `focusable`, add `autoFocus` to the default card, and hightea handles Tab cycling and `useFocusWithin` for column-level focus indicators.
 
-- **Scrollable columns** -- Each column gets `overflow="scroll"` with its own `scrollTo` index. inkx measures all children with Yoga, determines which are visible, and only renders content for visible cards. No height estimation or virtualization config.
+- **Scrollable columns** -- Each column gets `overflow="scroll"` with its own `scrollTo` index. hightea measures all children with Yoga, determines which are visible, and only renders content for visible cards. No height estimation or virtualization config.
 
 - **Mouse support** -- SGR mouse protocol gives you `onClick` and `onDoubleClick` props on card components for editing, `onWheel` for per-column scrolling, and automatic click-to-focus so users can click a card in any column to jump directly to it.
 
@@ -159,7 +159,7 @@ Run it with `bun app.tsx` or `npx tsx app.tsx`.
 
 ## Adding Focus and Mouse Support
 
-The example above uses manual cursor state for simplicity. For a production board, use inkx's focus system to get click-to-focus, Tab navigation, and focus-aware styling for free:
+The example above uses manual cursor state for simplicity. For a production board, use hightea's focus system to get click-to-focus, Tab navigation, and focus-aware styling for free:
 
 ```tsx
 function FocusableCard({ card }: { card: Card }) {
@@ -215,13 +215,13 @@ await run(<App />, { mouse: true })
 
 Cards respond to `onClick`, `onDoubleClick` (to open a detail view), and columns respond to `onWheel` for trackpad or mouse scrolling -- all with DOM-style event bubbling and `stopPropagation()`.
 
-## What inkx Adds
+## What hightea Adds
 
-Building a kanban board in most TUI frameworks means writing your own focus tree, scroll management, and mouse handling. inkx provides all three: a tree-based focus system for spatial navigation between columns, `overflow="scroll"` for independent column scrolling, and DOM-style mouse events (`onClick`, `onWheel`, click-to-focus) for natural card interaction. Together, these save hundreds of lines of infrastructure code.
+Building a kanban board in most TUI frameworks means writing your own focus tree, scroll management, and mouse handling. hightea provides all three: a tree-based focus system for spatial navigation between columns, `overflow="scroll"` for independent column scrolling, and DOM-style mouse events (`onClick`, `onWheel`, click-to-focus) for natural card interaction. Together, these save hundreds of lines of infrastructure code.
 
 ## Next Steps
 
-- [Getting Started](/guide/getting-started) -- Install inkx and build your first app
+- [Getting Started](/guide/getting-started) -- Install hightea and build your first app
 - [Kanban Example](/examples/kanban) -- Full source with card tags, drag preview, and architecture notes
 - [Focus Hooks](/api/use-focus) -- Tree-based focus system API reference
 - [Scrolling Guide](/guide/scrolling) -- Deep dive into `overflow="scroll"` and `scrollTo`

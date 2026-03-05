@@ -1,6 +1,6 @@
 ---
-title: Building CLI Wizards & Setup Tools with inkx
-description: Build interactive CLI wizards with multi-step forms, selection lists, progress bars, and focus scopes using inkx.
+title: Building CLI Wizards & Setup Tools with hightea
+description: Build interactive CLI wizards with multi-step forms, selection lists, progress bars, and focus scopes using hightea.
 ---
 
 <script setup>
@@ -9,13 +9,13 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 # CLI Wizards & Setup Tools
 
-Interactive CLI wizards guide users through multi-step configuration, installation, or setup flows. They combine selection prompts, text inputs, progress feedback, and branching logic into a single terminal experience. inkx provides the building blocks for all of this as first-class React components, so you can compose wizard steps the same way you compose any React UI.
+Interactive CLI wizards guide users through multi-step configuration, installation, or setup flows. They combine selection prompts, text inputs, progress feedback, and branching logic into a single terminal experience. hightea provides the building blocks for all of this as first-class React components, so you can compose wizard steps the same way you compose any React UI.
 
-<LiveDemo xtermSrc="/inkx/examples/showcase.html?demo=cli-wizard" :height="400" />
+<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=cli-wizard" :height="400" />
 
-## Why inkx
+## Why hightea
 
-Most terminal UI libraries force you to chain sequential `readline` prompts or shell out to separate prompt utilities. inkx takes a different approach: each wizard step is a React component with its own state, and transitions between steps are just state changes. You get full control over layout, focus, and rendering without leaving the React model.
+Most terminal UI libraries force you to chain sequential `readline` prompts or shell out to separate prompt utilities. hightea takes a different approach: each wizard step is a React component with its own state, and transitions between steps are just state changes. You get full control over layout, focus, and rendering without leaving the React model.
 
 ## Key Benefits
 
@@ -132,10 +132,10 @@ await run(<Wizard />)
 
 Run it with `bun wizard.tsx` or `npx tsx wizard.tsx`.
 
-## What inkx Adds
+## What hightea Adds
 
-Most TUI frameworks require third-party packages for selection lists, progress bars, and spinners. inkx ships all wizard primitives as first-party components with consistent APIs: `SelectList` handles single and multi-select with keyboard navigation, `ProgressBar` and `Spinner` provide visual feedback, and focus scopes isolate Tab navigation per wizard step. One framework, no plugin constellation.
+Most TUI frameworks require third-party packages for selection lists, progress bars, and spinners. hightea ships all wizard primitives as first-party components with consistent APIs: `SelectList` handles single and multi-select with keyboard navigation, `ProgressBar` and `Spinner` provide visual feedback, and focus scopes isolate Tab navigation per wizard step. One framework, no plugin constellation.
 
 ## Next Steps
 
-Ready to build your own CLI wizard? Start with the [Getting Started guide](/guide/getting-started) to set up inkx, then explore the [Components guide](/guide/components) for SelectList, TextInput, ProgressBar, and Spinner.
+Ready to build your own CLI wizard? Start with the [Getting Started guide](/guide/getting-started) to set up hightea, then explore the [Components guide](/guide/components) for SelectList, TextInput, ProgressBar, and Spinner.

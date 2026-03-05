@@ -1,14 +1,14 @@
-# inkx Architecture
+# hightea Architecture
 
 > **The core innovation isn't "terminal rendering" — it's two-phase rendering with synchronous layout feedback.**
 
-This document describes inkx's higher-level architecture and identifies where its patterns can add value beyond terminals.
+This document describes hightea's higher-level architecture and identifies where its patterns can add value beyond terminals.
 
 ## The Core Innovation
 
-inkx solves a universal problem across React renderers: **components can't know their size during render**.
+hightea solves a universal problem across React renderers: **components can't know their size during render**.
 
-| Problem                                | React DOM               | React Native      | inkx            |
+| Problem                                | React DOM               | React Native      | hightea            |
 | -------------------------------------- | ----------------------- | ----------------- | --------------- |
 | Component knows its size during render | No                      | No                | **Yes**         |
 | Layout-dependent content               | Effect + ResizeObserver | onLayout callback | **Synchronous** |
@@ -22,15 +22,15 @@ This pattern has precedent:
 - **CSS Container Queries**: Browsers added containment APIs (2022+) to enable this pattern declaratively
 - **Facebook's Litho/ComponentKit**: Off-main-thread layout calculation for mobile (~35% scroll improvement)
 
-The existence of these solutions validates the need. inkx brings this pattern to React with a pluggable architecture.
+The existence of these solutions validates the need. hightea brings this pattern to React with a pluggable architecture.
 
 ## Layer Architecture
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│                         @inkx/core                                 │
+│                         @hightea/core                                 │
 │  ├── React reconciler (InkxNode tree)                             │
-│  ├── Layout engine interface (pluggable: Yoga, Flexx, custom)     │
+│  ├── Layout engine interface (pluggable: Yoga, Flexture, custom)     │
 │  ├── Two-phase pipeline (measure → layout → render)               │
 │  ├── Hooks: useContentRect(), useScreenRect()                     │
 │  └── Style system (merging, layering, category-based)             │
@@ -39,7 +39,7 @@ The existence of these solutions validates the need. inkx brings this pattern to
                        RenderAdapter interface
                                 ↓
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   @inkx/term    │  │  @inkx/canvas   │  │  @inkx/native   │
+│   @hightea/term    │  │  @hightea/canvas   │  │  @hightea/native   │
 │   (current)     │  │   (future)      │  │   (future)      │
 │                 │  │                 │  │                 │
 │   Terminal      │  │   Canvas 2D     │  │   React Native  │
@@ -52,10 +52,10 @@ The existence of these solutions validates the need. inkx brings this pattern to
 
 ### What's Portable (~60% of current codebase)
 
-**@inkx/core** contains everything that doesn't depend on the render target:
+**@hightea/core** contains everything that doesn't depend on the render target:
 
 1. **React Reconciler** - Custom host config that builds InkxNode tree
-2. **Layout Engine Abstraction** - Interface supporting Yoga, Flexx, or custom engines
+2. **Layout Engine Abstraction** - Interface supporting Yoga, Flexture, or custom engines
 3. **Two-Phase Pipeline Orchestration** - Measure → Layout → Content render sequence
 4. **Layout Hooks** - `useContentRect()`, `useScreenRect()` implementation
 5. **Style System** - Category-based merging (container, text, decorations, emphasis)
@@ -68,7 +68,7 @@ Each render adapter handles:
 2. **Buffer Management** - Creating and managing output buffers
 3. **Content Writing** - Writing styled content to buffers
 4. **Output Flushing** - Sending buffer to output (terminal, canvas, native view)
-5. **Input Events** - Translating platform events to inkx events
+5. **Input Events** - Translating platform events to hightea events
 
 ## RenderAdapter Interface
 
@@ -192,7 +192,7 @@ Would follow the same `RenderAdapter` interface when implemented.
 
 ## The Two-Phase Pipeline
 
-inkx's core innovation is separating **structure** from **content**:
+hightea's core innovation is separating **structure** from **content**:
 
 ```
 Phase 0: RECONCILIATION
@@ -253,7 +253,7 @@ function BadComponent() {
 
 ### Solution: Containment Rules
 
-inkx follows similar principles to CSS Container Queries:
+hightea follows similar principles to CSS Container Queries:
 
 1. **Layout dimensions are read-only during render** - Components observe dimensions, they don't reactively resize based on them
 2. **Content adapts to size, not vice versa** - Truncation, scrolling, responsive content selection
@@ -294,7 +294,7 @@ function Oscillating() {
 
 ## Layout Engine Abstraction
 
-inkx supports pluggable layout engines through a common interface:
+hightea supports pluggable layout engines through a common interface:
 
 ```typescript
 interface LayoutEngine {
@@ -328,7 +328,7 @@ interface ComputedLayout {
 
 | Engine              | Bundle Size | Speed       | Notes                         |
 | ------------------- | ----------- | ----------- | ----------------------------- |
-| **Flexx** (default) | 7 KB gzip   | 2.5x faster | Pure JS, synchronous init     |
+| **Flexture** (default) | 7 KB gzip   | 2.5x faster | Pure JS, synchronous init     |
 | **Yoga**            | 38 KB gzip  | Baseline    | WASM, async init, RTL support |
 
 ## Package Decomposition (Future)
@@ -336,26 +336,26 @@ interface ComputedLayout {
 The architecture supports splitting into separate packages:
 
 ```
-@inkx/core          (~60% of code)
+@hightea/core          (~60% of code)
 ├── React reconciler
 ├── Layout engine interface
 ├── Two-phase pipeline
 ├── Hooks (useContentRect, etc.)
 └── Style system
 
-@inkx/term          (current, production)
+@hightea/term          (current, production)
 ├── TerminalBuffer (character cells)
 ├── ANSI code generation
 ├── Unicode/cell width handling
 └── stdin event parsing
 
-@inkx/canvas        (future)
+@hightea/canvas        (future)
 ├── Canvas 2D / WebGL buffer
 ├── Pixel-based text measurement
-├── DOM event → inkx event translation
+├── DOM event → hightea event translation
 └── requestAnimationFrame integration
 
-@inkx/native        (future, high value)
+@hightea/native        (future, high value)
 ├── Integration with React Native's Yoga
 ├── Native text measurement
 ├── Touch event handling

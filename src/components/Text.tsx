@@ -4,14 +4,14 @@
  * The primitive for rendering text content in Inkx. Text supports styling
  * (colors, bold, italic, etc.) and text wrapping/truncation modes.
  *
- * Text renders to an 'inkx-text' host element that the reconciler converts
+ * Text renders to an 'hightea-text' host element that the reconciler converts
  * to an InkxNode containing the text content.
  *
  * Supports forwardRef for imperative access to the underlying node.
  */
 
 import { type ForwardedRef, type JSX, type ReactNode, forwardRef } from "react"
-import type { InkxNode, TextProps as TextPropsType } from "../types.js"
+import type { TeaNode, TextProps as TextPropsType } from "../types.js"
 
 // ============================================================================
 // Props
@@ -27,7 +27,7 @@ export interface TextProps extends TextPropsType {
  */
 export interface TextHandle {
   /** Get the underlying InkxNode */
-  getNode(): InkxNode | null
+  getNode(): TeaNode | null
 }
 
 // ============================================================================
@@ -76,8 +76,8 @@ export const Text = forwardRef(function Text(props: TextProps, ref: ForwardedRef
   // The reconciler's getPublicInstance will return the InkxNode
   // We wrap it in a TextHandle for type safety
   return (
-    <inkx-text
-      ref={(node: InkxNode | null) => {
+    <hightea-text
+      ref={(node: TeaNode | null) => {
         // Handle both callback refs and RefObjects
         if (typeof ref === "function") {
           ref(node ? { getNode: () => node } : null)
@@ -88,6 +88,6 @@ export const Text = forwardRef(function Text(props: TextProps, ref: ForwardedRef
       {...styleProps}
     >
       {children}
-    </inkx-text>
+    </hightea-text>
   )
 })

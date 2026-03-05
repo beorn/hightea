@@ -12,7 +12,7 @@ interface Props {
   meta: ExampleMeta
   /** Short controls legend, e.g. "j/k navigate  q quit" */
   controls?: string
-  /** Override theme (from viewer). Falls back to INKX_THEME env var. */
+  /** Override theme (from viewer). Falls back to HIGHTEA_THEME env var. */
   theme?: Theme
   children: React.ReactNode
 }
@@ -22,7 +22,7 @@ interface Props {
  * Wraps children in ThemeProvider for consistent theming.
  */
 export function ExampleBanner({ meta, controls, theme, children }: Props) {
-  const resolvedTheme = theme ?? getThemeByName(process.env.INKX_THEME)
+  const resolvedTheme = theme ?? getThemeByName(process.env.HIGHTEA_THEME)
 
   return (
     <ThemeProvider theme={resolvedTheme}>

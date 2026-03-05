@@ -958,7 +958,7 @@ function createViewerApp(root: HTMLElement): void {
   })
 
   // Signal ready to parent
-  window.parent.postMessage({ type: "inkx-ready" }, "*")
+  window.parent.postMessage({ type: "hightea-ready" }, "*")
 
   // Expose for debugging
   ;(window as any).inkxViewer = { term, allDemos, selectDemo }

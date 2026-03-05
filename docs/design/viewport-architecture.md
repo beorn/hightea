@@ -1,6 +1,6 @@
 # Viewport Architecture
 
-How inkx manages fullscreen apps, scrollback-based apps, and virtualized scrolling — using composable root components with a shared virtualization engine.
+How hightea manages fullscreen apps, scrollback-based apps, and virtualized scrolling — using composable root components with a shared virtualization engine.
 
 ## Mental Model
 
@@ -8,7 +8,7 @@ A terminal has two regions: the **screen** (the visible grid) and the **scrollba
 
 History ⊃ Screen. The screen is always the bottom N rows of history.
 
-inkx manages three zones:
+hightea manages three zones:
 
 ```
 ┌─────────────────────┐
@@ -16,7 +16,7 @@ inkx manages three zones:
 │  (terminal owns it)  │
 ├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┤  ← static boundary
 │  Scrollback/dynamic  │  ← virtualized, data retained
-│  (inkx tracks it)    │
+│  (hightea tracks it)    │
 ├─────────────────────┤
 │  Screen/live         │  ← mounted React components
 │                      │
@@ -126,10 +126,10 @@ The scrollback buffer has two zones — **dynamic** and **static**:
 ```
 ┌─────────────────────┐
 │  Static scrollback   │  ← rendered final, data dropped
-│  (terminal owns it)  │     inkx no longer tracks these items
+│  (terminal owns it)  │     hightea no longer tracks these items
 ├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┤  ← static boundary
 │  Dynamic scrollback  │  ← virtualized, data retained
-│  (inkx tracks it)    │     can re-render on resize
+│  (hightea tracks it)    │     can re-render on resize
 ├─────────────────────┤
 │  Screen (live)       │  ← mounted React components
 │                      │     normal rendering
@@ -144,7 +144,7 @@ The component is mounted in the React tree, rendering normally. It participates 
 
 ### Virtualized (Dynamic Scrollback)
 
-The component has scrolled out of the visible area into the **dynamic** section of scrollback. inkx:
+The component has scrolled out of the visible area into the **dynamic** section of scrollback. hightea:
 
 1. Renders it to a string snapshot
 2. Commits the snapshot to terminal scrollback (ScrollbackView) or unmounts it (VirtualView)
@@ -155,7 +155,7 @@ The item can be re-mounted if it scrolls back into view (VirtualView) or re-rend
 
 ### Static (Static Scrollback)
 
-The item crosses the static boundary and becomes **rendered final**. Data is dropped — the string snapshot may still exist in the terminal's scrollback buffer, but inkx no longer tracks it. This happens when items age past `maxHistory` (in terminal lines) or when `viewport.compact()` is called.
+The item crosses the static boundary and becomes **rendered final**. Data is dropped — the string snapshot may still exist in the terminal's scrollback buffer, but hightea no longer tracks it. This happens when items age past `maxHistory` (in terminal lines) or when `viewport.compact()` is called.
 
 ### No Paused State
 

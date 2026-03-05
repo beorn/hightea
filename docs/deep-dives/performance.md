@@ -1,8 +1,8 @@
-# inkx Performance
+# hightea Performance
 
-Technical deep dive into inkx's rendering pipeline optimizations. This document explains _how_ inkx achieves its performance characteristics.
+Technical deep dive into hightea's rendering pipeline optimizations. This document explains _how_ hightea achieves its performance characteristics.
 
-For raw benchmark numbers, see [benchmarks.md](../benchmarks.md). For the head-to-head Ink comparison with context and code examples, see [inkx vs Ink](../inkx-vs-ink.md).
+For raw benchmark numbers, see [benchmarks.md](../benchmarks.md). For the head-to-head Ink comparison with context and code examples, see [hightea vs Ink](../hightea-vs-ink.md).
 
 ## Key Insights
 
@@ -20,7 +20,7 @@ For raw benchmark numbers, see [benchmarks.md](../benchmarks.md). For the head-t
 
 ## Optimizations by Phase
 
-inkx's five-phase render pipeline (measure, layout, content, output, buffer) contains 21 optimizations across 7 categories.
+hightea's five-phase render pipeline (measure, layout, content, output, buffer) contains 21 optimizations across 7 categories.
 
 ### 1. Reconciler
 
@@ -141,7 +141,7 @@ Tests: `tests/scrollback-resize.test.tsx`.
 ```bash
 cd vendor/hightea
 bun run bench           # Internal benchmarks
-bun run bench:compare   # Head-to-head inkx vs Ink 6
+bun run bench:compare   # Head-to-head hightea vs Ink 6
 ```
 
 ### Profile Specific Phases

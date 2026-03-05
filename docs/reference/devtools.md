@@ -1,6 +1,6 @@
 # React DevTools Integration
 
-inkx supports connecting to the [React DevTools](https://react.dev/learn/react-developer-tools) standalone app for debugging TUI component trees.
+hightea supports connecting to the [React DevTools](https://react.dev/learn/react-developer-tools) standalone app for debugging TUI component trees.
 
 ## Quick Start
 
@@ -16,7 +16,7 @@ inkx supports connecting to the [React DevTools](https://react.dev/learn/react-d
    npx react-devtools
    ```
 
-3. Run your inkx app with the `DEBUG_DEVTOOLS=1` env var:
+3. Run your hightea app with the `DEBUG_DEVTOOLS=1` env var:
 
    ```bash
    DEBUG_DEVTOOLS=1 bun run app.ts
@@ -55,14 +55,14 @@ if (isDevToolsConnected()) {
 
 ### Auto-connect via environment variable
 
-When `DEBUG_DEVTOOLS=1` (or `DEBUG_DEVTOOLS=true`) is set, inkx automatically calls `connectDevTools()` during render initialization. No code changes needed.
+When `DEBUG_DEVTOOLS=1` (or `DEBUG_DEVTOOLS=true`) is set, hightea automatically calls `connectDevTools()` during render initialization. No code changes needed.
 
 ## How It Works
 
 - `connectDevTools()` lazy-loads `react-devtools-core` so there is zero impact on production bundles
 - WebSocket polyfill (`ws`) is loaded automatically for Node.js environments
-- Component filters hide inkx internals (host components and `InkxApp`) from the DevTools tree, so you see only your application components
-- The inkx reconciler injects renderer info so DevTools can identify it
+- Component filters hide hightea internals (host components and `InkxApp`) from the DevTools tree, so you see only your application components
+- The hightea reconciler injects renderer info so DevTools can identify it
 
 ## Requirements
 
@@ -84,7 +84,7 @@ All are optional peer dependencies. If not installed, `connectDevTools()` return
 
 **Component tree is cluttered with internal nodes:**
 
-- inkx configures component filters automatically. If you still see noise, check that the DevTools "Component Filters" settings include host components (type 7) and `InkxApp`.
+- hightea configures component filters automatically. If you still see noise, check that the DevTools "Component Filters" settings include host components (type 7) and `InkxApp`.
 
 **Performance impact:**
 

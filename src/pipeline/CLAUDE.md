@@ -1,6 +1,6 @@
 # Pipeline Internals
 
-Read this before modifying content-phase.ts, render-text.ts, render-box.ts, or layout-phase.ts. These files implement incremental rendering -- the most complex and bug-prone part of inkx.
+Read this before modifying content-phase.ts, render-text.ts, render-box.ts, or layout-phase.ts. These files implement incremental rendering -- the most complex and bug-prone part of hightea.
 
 ## Pipeline Overview
 
@@ -65,7 +65,7 @@ If `hasPrevBuffer` is false (first render or dimension change), nothing is skipp
 
 ### Key Invariant
 
-**Incremental render must produce identical output to a fresh render.** `INKX_STRICT=1` verifies this by running both and comparing cell-by-cell. Every content-phase change must be validated against this invariant.
+**Incremental render must produce identical output to a fresh render.** `HIGHTEA_STRICT=1` verifies this by running both and comparing cell-by-cell. Every content-phase change must be validated against this invariant.
 
 ## The hasPrevBuffer / ancestorCleared Cascade
 
@@ -259,13 +259,13 @@ When a node shrinks, the excess area (old bounds minus new bounds) is also clear
 
 ```bash
 # Verify incremental vs fresh render equivalence
-INKX_STRICT=1 bun km view /path
+HIGHTEA_STRICT=1 bun km view /path
 
 # Write pipeline debug output
-DEBUG=inkx:* DEBUG_LOG=/tmp/inkx.log bun km view /path
+DEBUG=hightea:* DEBUG_LOG=/tmp/hightea.log bun km view /path
 
-# Enable instrumentation counters (exposed on globalThis.__inkx_content_detail)
-INKX_INSTRUMENT=1 bun km view /path
+# Enable instrumentation counters (exposed on globalThis.__hightea_content_detail)
+HIGHTEA_INSTRUMENT=1 bun km view /path
 ```
 
 The content phase has extensive instrumentation gated on `_instrumentEnabled` -- node visit/skip/render counts, cascade diagnostics, scroll container tier decisions, and per-node trace entries.
@@ -318,7 +318,7 @@ Returns `ChangesResult { output: string, finalY: number }` — the final cursor 
 
 ### Verification
 
-- `INKX_STRICT_OUTPUT=1` verifies incremental ANSI output produces the same terminal state as a fresh render
+- `HIGHTEA_STRICT_OUTPUT=1` verifies incremental ANSI output produces the same terminal state as a fresh render
 - Inline incremental tests in `tests/inline-mode.test.ts` (9 tests covering guard conditions, cursor positioning, multi-frame consistency)
 - Vitest benchmarks in `tests/inline-output.bench.ts`
 
@@ -339,7 +339,7 @@ Returns `ChangesResult { output: string, finalY: number }` — the final cursor 
 
 ### The Big 4 Content-Phase Bugs
 
-`INKX_STRICT=1` revealed 402 mismatches across the content phase. Reduced to 47 (88%) by fixing four categories:
+`HIGHTEA_STRICT=1` revealed 402 mismatches across the content phase. Reduced to 47 (88%) by fixing four categories:
 
 1. **Dirty flag propagation failures** — Layout-phase changes weren't propagating `subtreeDirty` to ancestors. Added `markLayoutAncestorDirty()` helper. Without it, ~200 nodes would re-render on every border color change due to misusing `needsOwnRepaint` where `contentAreaAffected` was needed.
 
@@ -373,7 +373,7 @@ Fix: Added `rowExtrasEquals()` to buffer.ts that checks all Map-based data (true
 
 Also fixed latent width-indexing bug: `rowMetadataEquals`/`rowCharsEquals` used `this.width`-based indexing for both buffers, wrong when widths differ (e.g., during resize). Now uses separate `otherStart = y * other.width`.
 
-**Key insight**: INKX_STRICT only verifies buffer content (content phase). It cannot detect output phase bugs where the buffer is correct but ANSI generation is wrong. Use `INKX_STRICT_OUTPUT` or `INKX_STRICT_ACCUMULATE` for output phase bugs.
+**Key insight**: HIGHTEA_STRICT only verifies buffer content (content phase). It cannot detect output phase bugs where the buffer is correct but ANSI generation is wrong. Use `HIGHTEA_STRICT_OUTPUT` or `HIGHTEA_STRICT_ACCUMULATE` for output phase bugs.
 
 ### Output Phase: CJK Wide Char Cursor Drift (2026-02-25)
 
@@ -385,9 +385,9 @@ Two fixes applied to `output-phase.ts`:
 
 2. **`diffBuffers` wide→narrow transition**: When prev buffer has `wide=true` at X and next doesn't, explicitly add X+1 to the change pool. Without this, the terminal retains the second half of the wide char at X+1 (which the buffer shows as "unchanged" since both prev and next are ' ').
 
-**Root cause**: Various buffer operations (`clearNodeRegion`, `renderBox` bg fill, scroll viewport clear) use `buffer.fill()` which defaults `continuation=false`. If these operations overlap with a wide char's continuation cell, the continuation flag is erased. INKX_STRICT doesn't catch this because both fresh and incremental renders produce the same corrupted buffer — use INKX_STRICT_OUTPUT for output-level verification.
+**Root cause**: Various buffer operations (`clearNodeRegion`, `renderBox` bg fill, scroll viewport clear) use `buffer.fill()` which defaults `continuation=false`. If these operations overlap with a wide char's continuation cell, the continuation flag is erased. HIGHTEA_STRICT doesn't catch this because both fresh and incremental renders produce the same corrupted buffer — use HIGHTEA_STRICT_OUTPUT for output-level verification.
 
-**INKX_STRICT_OUTPUT now enabled in CI** (`vitest/setup.ts`) after this fix — 3382 vendor + 2090 TUI tests pass with it.
+**HIGHTEA_STRICT_OUTPUT now enabled in CI** (`vitest/setup.ts`) after this fix — 3382 vendor + 2090 TUI tests pass with it.
 
 ### Text Background Bleed (BgSegment)
 
@@ -404,20 +404,20 @@ Fix: `BgSegment` tracking in `render-text.ts` strips ANSI bg from text content a
 | Pre-clearing only current sticky positions    | Old positions also have stale bg in the buffer                                 | Clear entire viewport to `null` bg                                                          |
 | `hasPrevBuffer=false` without clearing buffer | Text reads stale bg via `getCellBg` regardless of hasPrevBuffer flag           | Clear viewport first, then set `hasPrevBuffer=false`                                        |
 | `ancestorCleared=true` for sticky second pass | Transparent spacer Boxes clear their region, wiping overlapping sticky content | Use `ancestorCleared=false` — matches fresh render semantics                                |
-| Blaming the terminal emulator                 | If 3 terminals show the same glitch, it's your code                            | Use `withDiagnostics` + `INKX_STRICT=1` first                                               |
+| Blaming the terminal emulator                 | If 3 terminals show the same glitch, it's your code                            | Use `withDiagnostics` + `HIGHTEA_STRICT=1` first                                               |
 | Hand-rolling VirtualTerminal tests            | Too simple to catch real app complexity                                        | Use `withDiagnostics(createBoardDriver(...))`                                               |
 | Reading code paths without a failing test     | Wastes 20+ turns on theorizing                                                 | Write failing test first, THEN trace code                                                   |
 | Row pre-check: only packed metadata + chars   | Misses true-color Map diffs (fgColors/bgColors) when both cells have TC flag   | Always include `rowExtrasEquals()` in the row pre-check                                     |
 
 ## Effective Strategies (Priority Order)
 
-1. **`INKX_STRICT=1`** — Run the app or tests. Catches any incremental vs fresh render divergence immediately. Always start here.
+1. **`HIGHTEA_STRICT=1`** — Run the app or tests. Catches any incremental vs fresh render divergence immediately. Always start here.
 
 2. **Write a failing fuzz seed test** — If fuzz found it, extract the seed. If user-reported, construct a `withDiagnostics(createBoardDriver(...))` test with the minimal reproduction steps.
 
 3. **Read the mismatch error output** — The enhanced error includes cell values, node path, dirty flags, scroll context, and fast-path analysis. This tells you exactly which node diverged and why it was skipped.
 
-4. **`INKX_INSTRUMENT=1`** — Exposes skip/render counts, cascade depth, scroll tier decisions on `globalThis.__inkx_content_detail`. Useful for understanding whether too many or too few nodes rendered.
+4. **`HIGHTEA_INSTRUMENT=1`** — Exposes skip/render counts, cascade depth, scroll tier decisions on `globalThis.__hightea_content_detail`. Useful for understanding whether too many or too few nodes rendered.
 
 5. **Check the five critical formulas** — `layoutChanged`, `contentAreaAffected`, `parentRegionCleared`, `skipBgFill`, `parentRegionChanged` in `renderNodeToBuffer`. If any is wrong, the cascade propagates errors to the entire subtree.
 
@@ -434,12 +434,12 @@ Fix: `BgSegment` tracking in `render-text.ts` strips ANSI bg from text content a
 | Scroll glitch (content jumps/disappears)          | Scroll tier selection; Tier 1 unsafe with sticky; Tier 3 needs `stickyForceRefresh`               |
 | Children blank after parent changes               | `parentRegionChanged` → `childHasPrev=false`; is viewport clear setting `childHasPrev` correctly? |
 | Absolute child disappears                         | Two-pass rendering order; absolute children need `ancestorCleared=false` in second pass           |
-| Content correct initially, wrong after navigation | Incremental rendering bug; `INKX_STRICT=1` will catch it                                          |
+| Content correct initially, wrong after navigation | Incremental rendering bug; `HIGHTEA_STRICT=1` will catch it                                          |
 | Colors wrong but characters correct (garble)      | Output phase: `diffBuffers` row pre-check skipping true-color Map diffs; check `rowExtrasEquals`  |
 | Text bg different from parent Box bg              | `getCellBg` reading stale buffer; check if region was cleared to correct bg                       |
 | Flickering on every render                        | Check `layoutChangedThisFrame` flag; verify `syncPrevLayout` runs at end of content phase         |
 | Stale overlay pixels after shrink (black area)    | `clearExcessArea` not called; check `parentRegionCleared` + `forceRepaint` interaction            |
-| CJK/wide char garble, text shifts right           | `bufferToAnsi` cursor drift: wide char without continuation at col+1. Run `INKX_STRICT_OUTPUT=1`  |
+| CJK/wide char garble, text shifts right           | `bufferToAnsi` cursor drift: wide char without continuation at col+1. Run `HIGHTEA_STRICT_OUTPUT=1`  |
 
 ## Quick Regression Test Template
 
@@ -477,7 +477,7 @@ describe("regression: <brief description>", () => {
     // Step 2: Trigger the state change that caused the mismatch
     app.rerender(<App state={1} />)
 
-    // Step 3: Verify the content is correct (INKX_STRICT auto-checks buffer)
+    // Step 3: Verify the content is correct (HIGHTEA_STRICT auto-checks buffer)
     expect(app.text).toContain("Content 1")
   })
 })

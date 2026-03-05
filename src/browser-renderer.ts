@@ -7,7 +7,7 @@
  */
 
 import type { ReactElement } from "react"
-import { createFlexxZeroEngine } from "./adapters/flexx-zero-adapter.js"
+import { createFlextureZeroEngine } from "./adapters/flexture-zero-adapter.js"
 import { setLayoutEngine } from "./layout-engine.js"
 import { executeRenderAdapter } from "./pipeline/index.js"
 import { createContainer, createFiberRoot, getContainerRoot, reconciler } from "./reconciler.js"
@@ -54,7 +54,7 @@ let initialized = false
 export function initBrowserRenderer<TConfig>(factory: BrowserAdapterFactory<TConfig>, config: TConfig): void {
   if (initialized) return
 
-  setLayoutEngine(createFlexxZeroEngine())
+  setLayoutEngine(createFlextureZeroEngine())
   setRenderAdapter(factory.createAdapter(config))
 
   initialized = true

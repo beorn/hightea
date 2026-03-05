@@ -43,7 +43,7 @@ import { executeRender } from "../src/pipeline/index.js"
 import { StdoutContext, TermContext } from "../src/context.js"
 import { createTerm } from "@hightea/ansi"
 import { bufferToText, cellEquals, type TerminalBuffer } from "../src/buffer.js"
-import type { InkxNode } from "../src/types.js"
+import type { TeaNode } from "../src/types.js"
 
 // ============================================================================
 // Test Helpers
@@ -103,7 +103,7 @@ function findMismatches(inc: TerminalBuffer, fresh: TerminalBuffer): string[] {
 /**
  * Walk the node tree and find a node by predicate.
  */
-function findNode(root: InkxNode, predicate: (node: InkxNode) => boolean): InkxNode | null {
+function findNode(root: TeaNode, predicate: (node: TeaNode) => boolean): TeaNode | null {
   if (predicate(root)) return root
   for (const child of root.children) {
     const found = findNode(child, predicate)
@@ -115,9 +115,9 @@ function findNode(root: InkxNode, predicate: (node: InkxNode) => boolean): InkxN
 /**
  * Walk the node tree and find all nodes matching a predicate.
  */
-function findNodes(root: InkxNode, predicate: (node: InkxNode) => boolean): InkxNode[] {
-  const result: InkxNode[] = []
-  function walk(node: InkxNode) {
+function findNodes(root: TeaNode, predicate: (node: TeaNode) => boolean): TeaNode[] {
+  const result: TeaNode[] = []
+  function walk(node: TeaNode) {
     if (predicate(node)) result.push(node)
     for (const child of node.children) walk(child)
   }
@@ -130,14 +130,14 @@ function findNodes(root: InkxNode, predicate: (node: InkxNode) => boolean): Inkx
  * and markSubtreeDirty (walk up ancestors setting subtreeDirty).
  * This is the EXACT logic from host-config.ts lines 562-569.
  */
-function simulateHideInstance(node: InkxNode) {
+function simulateHideInstance(node: TeaNode) {
   node.hidden = true
   node.contentDirty = true
   if (node.parent) {
     node.parent.contentDirty = true
   }
   // markSubtreeDirty: walk up setting subtreeDirty
-  let ancestor: InkxNode | null = node
+  let ancestor: TeaNode | null = node
   while (ancestor && !ancestor.subtreeDirty) {
     ancestor.subtreeDirty = true
     ancestor = ancestor.parent
@@ -149,13 +149,13 @@ function simulateHideInstance(node: InkxNode) {
  * and markSubtreeDirty.
  * This is the EXACT logic from host-config.ts lines 576-583.
  */
-function simulateUnhideInstance(node: InkxNode) {
+function simulateUnhideInstance(node: TeaNode) {
   node.hidden = false
   node.contentDirty = true
   if (node.parent) {
     node.parent.contentDirty = true
   }
-  let ancestor: InkxNode | null = node
+  let ancestor: TeaNode | null = node
   while (ancestor && !ancestor.subtreeDirty) {
     ancestor.subtreeDirty = true
     ancestor = ancestor.parent

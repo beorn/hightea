@@ -17,7 +17,7 @@ import { createLogger } from "decant"
 import { type Term, createTerm } from "@hightea/ansi"
 import React, { useCallback, useEffect, useMemo, useRef, type ReactElement, type ReactNode } from "react"
 
-const log = createLogger("inkx:render")
+const log = createLogger("hightea:render")
 import { RuntimeContext, type RuntimeContextValue, StdoutContext, TermContext } from "./context.js"
 import { createCursorStore, CursorProvider, type CursorStore } from "./hooks/useCursor.js"
 import { parseKey } from "./keys.js"
@@ -95,8 +95,8 @@ export interface RenderOptions {
    */
   nonTTYMode?: NonTTYMode
   /**
-   * Layout engine to use (default: 'flexx', or INKX_ENGINE env var)
-   * - 'flexx': Pure JS, synchronous, smaller bundle
+   * Layout engine to use (default: 'flexture', or HIGHTEA_ENGINE env var)
+   * - 'flexture': Pure JS, synchronous, smaller bundle
    * - 'yoga': Facebook's WASM-based flexbox (more mature)
    */
   layoutEngine?: LayoutEngineType
@@ -187,7 +187,7 @@ const instances = new Map<NodeJS.WriteStream, InkxInstance>()
 
 /**
  * Initialize layout engine if not already initialized.
- * @param engineType - 'flexx' or 'yoga'. Falls back to INKX_ENGINE env, then 'flexx'.
+ * @param engineType - 'flexture' or 'yoga'. Falls back to HIGHTEA_ENGINE env, then 'flexture'.
  */
 async function ensureLayoutEngineInitialized(engineType?: LayoutEngineType): Promise<void> {
   if (isLayoutEngineInitialized()) {
@@ -1123,6 +1123,6 @@ export { setLayoutEngine, isLayoutEngineInitialized, type LayoutEngineType } fro
 // Re-export adapters for custom engine initialization
 export { createYogaEngine, initYogaEngine, YogaLayoutEngine } from "./adapters/yoga-adapter.js"
 export {
-  createFlexxZeroEngine as createFlexxEngine,
-  FlexxZeroLayoutEngine as FlexxLayoutEngine,
-} from "./adapters/flexx-zero-adapter.js"
+  createFlextureZeroEngine as createFlextureEngine,
+  FlextureZeroLayoutEngine as FlextureLayoutEngine,
+} from "./adapters/flexture-zero-adapter.js"

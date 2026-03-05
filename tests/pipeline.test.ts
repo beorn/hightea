@@ -25,7 +25,7 @@ import {
   scrollPhase,
   setBgConflictMode,
 } from "../src/pipeline.js"
-import { type BoxProps, type ComputedLayout, type InkxNode, type TextProps, rectEqual } from "../src/types.js"
+import { type BoxProps, type ComputedLayout, type TeaNode, type TextProps, rectEqual } from "../src/types.js"
 
 // Initialize layout engine before tests run
 let layoutEngine: LayoutEngine
@@ -42,7 +42,7 @@ beforeAll(async () => {
 type Rect = { x: number; y: number; width: number; height: number }
 
 /** Mark a node as clean (not needing re-render) with optional prevLayout sync */
-function markNodeClean(node: InkxNode, syncPrevLayout = true): void {
+function markNodeClean(node: TeaNode, syncPrevLayout = true): void {
   node.contentDirty = false
   node.paintDirty = false
   node.subtreeDirty = false
@@ -52,7 +52,7 @@ function markNodeClean(node: InkxNode, syncPrevLayout = true): void {
 }
 
 /** Mark a node as dirty (needing re-render) */
-function markNodeDirty(node: InkxNode): void {
+function markNodeDirty(node: TeaNode): void {
   node.contentDirty = true
   node.paintDirty = true
   node.subtreeDirty = true
@@ -61,7 +61,7 @@ function markNodeDirty(node: InkxNode): void {
 }
 
 /** Mark a node as having only dirty descendants (subtreeDirty but not contentDirty) */
-function markSubtreeOnlyDirty(node: InkxNode, syncPrevLayout = true): void {
+function markSubtreeOnlyDirty(node: TeaNode, syncPrevLayout = true): void {
   node.contentDirty = false
   node.paintDirty = false
   node.subtreeDirty = true
@@ -71,23 +71,23 @@ function markSubtreeOnlyDirty(node: InkxNode, syncPrevLayout = true): void {
 }
 
 /** Set layout on a node (contentRect) */
-function setNodeLayout(node: InkxNode, layout: Rect): void {
+function setNodeLayout(node: TeaNode, layout: Rect): void {
   node.contentRect = layout
 }
 
 /** Helper to create mock InkxNode */
 async function createMockNode(
-  type: InkxNode["type"],
+  type: TeaNode["type"],
   props: BoxProps | TextProps,
-  children: InkxNode[] = [],
+  children: TeaNode[] = [],
   textContent?: string,
-): Promise<InkxNode> {
+): Promise<TeaNode> {
   const engine = getLayoutEngine()
   const c = getConstants()
   const layoutNode = engine.createNode()
 
   // Apply props to layout node
-  if (type === "inkx-box" || type === "inkx-text") {
+  if (type === "hightea-box" || type === "hightea-text") {
     const boxProps = props as BoxProps
     if (typeof boxProps.width === "number") layoutNode.setWidth(boxProps.width)
     if (typeof boxProps.height === "number") {
@@ -104,7 +104,7 @@ async function createMockNode(
     }
   }
 
-  const node: InkxNode = {
+  const node: TeaNode = {
     type,
     props,
     children,
@@ -134,9 +134,9 @@ async function createMockNode(
 }
 
 /** Helper to create raw text node (no layout node) */
-function createRawTextNode(text: string): InkxNode {
+function createRawTextNode(text: string): TeaNode {
   return {
-    type: "inkx-text",
+    type: "hightea-text",
     props: {},
     children: [],
     parent: null,
@@ -155,24 +155,24 @@ function createRawTextNode(text: string): InkxNode {
 }
 
 /** Create a simple box with layout set */
-async function createBoxWithLayout(props: BoxProps, layout: Rect, children: InkxNode[] = []): Promise<InkxNode> {
-  const node = await createMockNode("inkx-box", props, children)
+async function createBoxWithLayout(props: BoxProps, layout: Rect, children: TeaNode[] = []): Promise<TeaNode> {
+  const node = await createMockNode("hightea-box", props, children)
   setNodeLayout(node, layout)
   return node
 }
 
 /** Create a text node with layout set */
-async function createTextWithLayout(text: string, layout: Rect, props: TextProps = {}): Promise<InkxNode> {
-  const node = await createMockNode("inkx-text", props, [], text)
+async function createTextWithLayout(text: string, layout: Rect, props: TextProps = {}): Promise<TeaNode> {
+  const node = await createMockNode("hightea-text", props, [], text)
   setNodeLayout(node, layout)
   return node
 }
 
 /** Create N sequential box items (height 1 each, stacking vertically) */
-async function createSequentialItems(count: number, width = 10, startY = 0): Promise<InkxNode[]> {
-  const items: InkxNode[] = []
+async function createSequentialItems(count: number, width = 10, startY = 0): Promise<TeaNode[]> {
+  const items: TeaNode[] = []
   for (let i = 0; i < count; i++) {
-    const item = await createMockNode("inkx-box", { height: 1 })
+    const item = await createMockNode("hightea-box", { height: 1 })
     item.contentRect = { x: 0, y: startY + i, width, height: 1 }
     items.push(item)
   }
@@ -211,8 +211,8 @@ describe("Pipeline", () => {
   describe("measurePhase", () => {
     test("processes fit-content nodes", async () => {
       // Create a box with fit-content width containing text
-      const textNode = await createMockNode("inkx-text", {}, [], "Hello")
-      const root = await createMockNode("inkx-box", { width: "fit-content" as unknown as number }, [textNode])
+      const textNode = await createMockNode("hightea-text", {}, [], "Hello")
+      const root = await createMockNode("hightea-box", { width: "fit-content" as unknown as number }, [textNode])
 
       // Should not throw
       measurePhase(root)
@@ -220,7 +220,7 @@ describe("Pipeline", () => {
 
     test("skips nodes without layoutNode", async () => {
       const rawText = createRawTextNode("Hello")
-      const root = await createMockNode("inkx-box", { width: 20, height: 5 }, [rawText])
+      const root = await createMockNode("hightea-box", { width: 20, height: 5 }, [rawText])
 
       // Should not throw even though rawText has no layoutNode
       measurePhase(root)
@@ -229,7 +229,7 @@ describe("Pipeline", () => {
 
   describe("layoutPhase", () => {
     test("calculates layout for root node", async () => {
-      const root = await createMockNode("inkx-box", { width: 80, height: 24 })
+      const root = await createMockNode("hightea-box", { width: 80, height: 24 })
       root.layoutDirty = true
 
       layoutPhase(root, 80, 24)
@@ -240,8 +240,8 @@ describe("Pipeline", () => {
     })
 
     test("propagates layout to children", async () => {
-      const child = await createMockNode("inkx-box", { width: 20, height: 5 })
-      const root = await createMockNode("inkx-box", { width: 80, height: 24 }, [child])
+      const child = await createMockNode("hightea-box", { width: 20, height: 5 })
+      const root = await createMockNode("hightea-box", { width: 80, height: 24 }, [child])
       root.layoutDirty = true
 
       layoutPhase(root, 80, 24)
@@ -251,7 +251,7 @@ describe("Pipeline", () => {
     })
 
     test("skips when no dirty nodes", async () => {
-      const root = await createMockNode("inkx-box", { width: 80, height: 24 })
+      const root = await createMockNode("hightea-box", { width: 80, height: 24 })
       root.layoutDirty = false
       setNodeLayout(root, { x: 0, y: 0, width: 80, height: 24 })
 
@@ -264,7 +264,7 @@ describe("Pipeline", () => {
 
     test("handles virtual text nodes (no layoutNode)", async () => {
       const rawText = createRawTextNode("Hello")
-      const root = await createMockNode("inkx-box", { width: 80, height: 24 }, [rawText])
+      const root = await createMockNode("hightea-box", { width: 80, height: 24 }, [rawText])
       root.layoutDirty = true
 
       layoutPhase(root, 80, 24)
@@ -276,7 +276,7 @@ describe("Pipeline", () => {
 
   describe("contentPhase", () => {
     test("returns buffer with correct dimensions", async () => {
-      const root = await createMockNode("inkx-box", { width: 40, height: 10 })
+      const root = await createMockNode("hightea-box", { width: 40, height: 10 })
       setNodeLayout(root, { x: 0, y: 0, width: 40, height: 10 })
 
       const buffer = contentPhase(root)
@@ -286,17 +286,17 @@ describe("Pipeline", () => {
     })
 
     test("throws if layout not computed", async () => {
-      const root = await createMockNode("inkx-box", { width: 40, height: 10 })
+      const root = await createMockNode("hightea-box", { width: 40, height: 10 })
       // contentRect left as null to test error case
 
       expect(() => contentPhase(root)).toThrow("contentPhase called before layout phase")
     })
 
     test("renders text content", async () => {
-      const textNode = await createMockNode("inkx-text", { color: "red" }, [], "Hello")
+      const textNode = await createMockNode("hightea-text", { color: "red" }, [], "Hello")
       setNodeLayout(textNode, { x: 0, y: 0, width: 10, height: 1 })
 
-      const root = await createMockNode("inkx-box", { width: 40, height: 10 }, [textNode])
+      const root = await createMockNode("hightea-box", { width: 40, height: 10 }, [textNode])
       setNodeLayout(root, { x: 0, y: 0, width: 40, height: 10 })
 
       const buffer = contentPhase(root)
@@ -306,7 +306,7 @@ describe("Pipeline", () => {
     })
 
     test("renders box with border", async () => {
-      const root = await createMockNode("inkx-box", {
+      const root = await createMockNode("hightea-box", {
         width: 10,
         height: 3,
         borderStyle: "single",
@@ -347,7 +347,7 @@ describe("Pipeline", () => {
     test("creates fresh buffer when dimensions differ", async () => {
       const { TerminalBuffer: TB } = await import("../src/buffer.js")
 
-      const root = await createMockNode("inkx-box", { width: 40, height: 10 })
+      const root = await createMockNode("hightea-box", { width: 40, height: 10 })
       setNodeLayout(root, { x: 0, y: 0, width: 40, height: 10 })
 
       // Create prevBuffer with different dimensions
@@ -442,8 +442,8 @@ describe("Pipeline", () => {
       const { hostConfig } = await import("../src/reconciler/host-config.js")
       const { createNode } = await import("../src/reconciler/nodes.js")
 
-      const parent = createNode("inkx-box", {})
-      const child = createNode("inkx-box", {})
+      const parent = createNode("hightea-box", {})
+      const child = createNode("hightea-box", {})
 
       // Initially both have subtreeDirty = true from creation
       parent.subtreeDirty = false
@@ -1317,7 +1317,7 @@ describe("Pipeline", () => {
 
   describe("executeRender", () => {
     test("runs full pipeline", async () => {
-      const root = await createMockNode("inkx-box", { width: 20, height: 5 })
+      const root = await createMockNode("hightea-box", { width: 20, height: 5 })
       root.layoutDirty = true
 
       const { output, buffer } = executeRender(root, 20, 5, null)
@@ -1329,7 +1329,7 @@ describe("Pipeline", () => {
     })
 
     test("diffs against previous buffer", async () => {
-      const root = await createMockNode("inkx-box", { width: 20, height: 5 })
+      const root = await createMockNode("hightea-box", { width: 20, height: 5 })
       root.layoutDirty = true
 
       const { buffer: buffer1 } = executeRender(root, 20, 5, null)

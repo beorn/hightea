@@ -1,6 +1,6 @@
 # Plugin Composition
 
-inkx provides SlateJS-style plugins for extending app functionality. Plugins compose together to create "drivers" for automated testing and AI interaction.
+hightea provides SlateJS-style plugins for extending app functionality. Plugins compose together to create "drivers" for automated testing and AI interaction.
 
 ## withCommands
 
@@ -52,7 +52,7 @@ await app.press("x")
 
 ## withDiagnostics
 
-Adds buffer and rendering invariant checks after command execution. Imported from `inkx/toolbelt`.
+Adds buffer and rendering invariant checks after command execution. Imported from `hightea/toolbelt`.
 
 ```tsx
 import { withDiagnostics } from "@hightea/term/toolbelt"
@@ -62,7 +62,7 @@ const driver = withDiagnostics(app, {
   checkStability: true, // Verify cursor moves don't change content
   checkReplay: true, // Verify ANSI replay produces correct result
   captureOnFailure: true, // Save screenshot on diagnostic failure
-  screenshotDir: "/tmp/inkx-diagnostics",
+  screenshotDir: "/tmp/hightea-diagnostics",
 })
 
 // Commands now run invariant checks automatically

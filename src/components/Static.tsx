@@ -40,8 +40,8 @@ export interface StaticProps<T> {
  */
 export function Static<T>({ items, children, style }: StaticProps<T>): JSX.Element {
   return (
-    <inkx-box flexDirection="column" {...style}>
+    <hightea-box flexDirection="column" {...style}>
       {items.map((item, index) => children(item, index))}
-    </inkx-box>
+    </hightea-box>
   )
 }

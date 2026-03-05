@@ -1,6 +1,6 @@
-# inkx Maximum Roadmap
+# hightea Maximum Roadmap
 
-This document outlines the maximum vision for inkx — not a commitment, but an exploration of where the two-phase rendering pattern could add value.
+This document outlines the maximum vision for hightea — not a commitment, but an exploration of where the two-phase rendering pattern could add value.
 
 ## Value Analysis Summary
 
@@ -23,7 +23,7 @@ The foundation. Everything here is production-ready.
 | ANSI output with diffing             | ✅ Complete |
 | Keyboard input (stdin)               | ✅ Complete |
 | Yoga layout engine                   | ✅ Complete |
-| Flexx layout engine (2.5x faster)    | ✅ Complete |
+| Flexture layout engine (2.5x faster)    | ✅ Complete |
 | `overflow="scroll"`                  | ✅ Complete |
 | Unicode/emoji/CJK handling           | ✅ Complete |
 | Style layering (preserve underlines) | ✅ Complete |
@@ -70,8 +70,8 @@ function TextInput() {
 
 | Adapter   | Status      | Entry Point   | Demo                        |
 | --------- | ----------- | ------------- | --------------------------- |
-| Canvas 2D | ✅ Complete | `inkx/canvas` | `examples/canvas-test.html` |
-| DOM       | ✅ Complete | `inkx/dom`    | `examples/dom-test.html`    |
+| Canvas 2D | ✅ Complete | `hightea/canvas` | `examples/canvas-test.html` |
+| DOM       | ✅ Complete | `hightea/dom`    | `examples/dom-test.html`    |
 | WebGL     | 🔮 Future   | -             | -                           |
 
 ### Quick Start
@@ -103,11 +103,11 @@ Based on research into [xterm.js renderer architecture](https://github.com/xterm
 1. **Simpler than React Native** - No native bridge, just DOM APIs
 2. **Validates decomposition** - Proves the adapter interface works
 3. **Real use cases** - Games, data viz, design tools, dashboards
-4. **No CSS dependency** - inkx layout replaces browser layout entirely
+4. **No CSS dependency** - hightea layout replaces browser layout entirely
 
 ### Use Cases
 
-| Application        | Why inkx Helps                            |
+| Application        | Why hightea Helps                            |
 | ------------------ | ----------------------------------------- |
 | Canvas games       | Layout feedback during render, not after  |
 | Data visualization | Complex responsive layouts without CSS    |
@@ -142,10 +142,10 @@ function CanvasComponent() {
 }
 ```
 
-### What inkx-for-Canvas Would Look Like
+### What hightea-for-Canvas Would Look Like
 
 ```tsx
-import { render, Box, Canvas, useContentRect } from "@inkx/canvas"
+import { render, Box, Canvas, useContentRect } from "@hightea/canvas"
 
 function App() {
   return (
@@ -167,7 +167,7 @@ render(<App />, document.getElementById("root"))
 
 ### Implementation Scope
 
-| Component        | Reusable from @inkx/core   | Canvas-Specific   |
+| Component        | Reusable from @hightea/core   | Canvas-Specific   |
 | ---------------- | -------------------------- | ----------------- |
 | Reconciler       | ✅ 100%                    | -                 |
 | Layout engine    | ✅ 100%                    | -                 |
@@ -176,9 +176,9 @@ render(<App />, document.getElementById("root"))
 | Buffer           | -                          | OffscreenCanvas   |
 | Text measurement | -                          | ctx.measureText() |
 | Output           | -                          | Canvas draw calls |
-| Events           | -                          | DOM events → inkx |
+| Events           | -                          | DOM events → hightea |
 
-**Estimate**: ~30% of inkx codebase is directly reusable.
+**Estimate**: ~30% of hightea codebase is directly reusable.
 
 ## Tier 4: React Native (High Value)
 
@@ -210,10 +210,10 @@ React Native's biggest pain point is virtualized lists:
 | FlashList (Shopify)   | Recycling + estimation | Still needs height estimates |
 | Manual virtualization | DIY measurement        | Significant complexity       |
 
-### How inkx Could Help
+### How hightea Could Help
 
 ```tsx
-// inkx approach: Know heights before render
+// hightea approach: Know heights before render
 function List({ items }) {
   return (
     <Box overflow="scroll" scrollTo={selectedIdx}>
@@ -260,7 +260,7 @@ Both compute layout off-main-thread, then render only visible components.
 
 | Approach           | Description                                    | Feasibility               |
 | ------------------ | ---------------------------------------------- | ------------------------- |
-| Fork RN Renderer   | Replace RN's reconciler with inkx-style        | High effort, full control |
+| Fork RN Renderer   | Replace RN's reconciler with hightea-style        | High effort, full control |
 | Yoga Wrapper       | Wrap Yoga calls to expose dimensions           | Medium effort, may work   |
 | Fabric Integration | Leverage new architecture's synchronous layout | Medium effort, best path  |
 | Library Layer      | Build on top of RN (limited)                   | Low effort, limited value |
@@ -276,13 +276,13 @@ Both compute layout off-main-thread, then render only visible components.
 
 ### Recommendation
 
-**Start with Fabric investigation.** React Native's new architecture (Fabric) has synchronous layout capabilities that might enable inkx's pattern without a full reconciler replacement.
+**Start with Fabric investigation.** React Native's new architecture (Fabric) has synchronous layout capabilities that might enable hightea's pattern without a full reconciler replacement.
 
 ## Tier 5: Browser DOM (Research Only)
 
 **Lowest value** for most applications — CSS already handles layout well.
 
-### Where inkx Pattern Might Help
+### Where hightea Pattern Might Help
 
 | Use Case                 | Why                             | Caveat                          |
 | ------------------------ | ------------------------------- | ------------------------------- |
@@ -292,7 +292,7 @@ Both compute layout off-main-thread, then render only visible components.
 
 ### Why CSS Is Usually Better
 
-| Aspect                | CSS                       | inkx-for-DOM        |
+| Aspect                | CSS                       | hightea-for-DOM        |
 | --------------------- | ------------------------- | ------------------- |
 | Text rendering        | Sophisticated, native     | Would need custom   |
 | Accessibility         | Browser handles a11y tree | Manual work         |
@@ -301,9 +301,9 @@ Both compute layout off-main-thread, then render only visible components.
 
 ### Recommendation
 
-**Don't pursue @inkx/dom as a general solution.** Consider only for:
+**Don't pursue @hightea/dom as a general solution.** Consider only for:
 
-- Embedding inkx canvas regions in DOM apps
+- Embedding hightea canvas regions in DOM apps
 - Very specific custom layout needs
 
 ## Tier 6: Specialized Targets (Speculative)
@@ -318,7 +318,7 @@ Both compute layout off-main-thread, then render only visible components.
 ### PDF Generation Example
 
 ```tsx
-import { renderToPdf, Box, Text, Table } from "@inkx/pdf"
+import { renderToPdf, Box, Text, Table } from "@hightea/pdf"
 
 const pdf = await renderToPdf(
   <Box flexDirection="column" padding={20}>
@@ -339,7 +339,7 @@ Based on O3 deep research analysis, the recommended path:
 
 ```
 1. Canvas Prototype (validates architecture)
-   ├── Build @inkx/canvas adapter
+   ├── Build @hightea/canvas adapter
    ├── Measure perf vs browser layout
    ├── Test with real use cases (data viz, games)
    └── Decision: proceed with RN or not
@@ -354,7 +354,7 @@ Based on O3 deep research analysis, the recommended path:
    └── Based on prototype results, commit to one target
 ```
 
-## Web Comparison: What Does inkx Replace?
+## Web Comparison: What Does hightea Replace?
 
 ### The Web Stack Today
 
@@ -382,11 +382,11 @@ Paint/Composite
 | Responsive components    | CSS media queries, container queries      | Low        |
 | Custom layout algorithm  | Roll your own, no React integration       | Very High  |
 
-### Where inkx-for-Web Would Replace
+### Where hightea-for-Web Would Replace
 
-| Layer            | Browser                    | inkx-for-Web              |
+| Layer            | Browser                    | hightea-for-Web              |
 | ---------------- | -------------------------- | ------------------------- |
-| Layout Engine    | CSS (browser-native)       | Yoga/Flexx/custom         |
+| Layout Engine    | CSS (browser-native)       | Yoga/Flexture/custom         |
 | Layout Timing    | Async (post-render)        | Sync (pre-content)        |
 | Size Queries     | ResizeObserver (effect)    | useContentRect() (render) |
 | Text Measurement | `getComputedStyle`, canvas | Custom measurer           |

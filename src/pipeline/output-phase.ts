@@ -3,7 +3,7 @@
  *
  * Diff two buffers and produce minimal ANSI output.
  *
- * Debug: Set INKX_DEBUG_OUTPUT=1 to log diff changes and ANSI sequences.
+ * Debug: Set HIGHTEA_DEBUG_OUTPUT=1 to log diff changes and ANSI sequences.
  */
 
 import {
@@ -21,8 +21,8 @@ import { isPrivateUseArea, textSized } from "../text-sizing.js"
 import { graphemeWidth, isTextSizingEnabled } from "../unicode.js"
 import type { CellChange } from "./types.js"
 
-const DEBUG_OUTPUT = !!process.env.INKX_DEBUG_OUTPUT
-const FULL_RENDER = !!process.env.INKX_FULL_RENDER
+const DEBUG_OUTPUT = !!process.env.HIGHTEA_DEBUG_OUTPUT
+const FULL_RENDER = !!process.env.HIGHTEA_FULL_RENDER
 
 // ============================================================================
 // Terminal Capability Flags (suppress unsupported SGR codes)
@@ -141,7 +141,7 @@ export function createOutputPhase(caps: Partial<OutputCaps>, measurer?: OutputMe
   // Each createOutputPhase() call gets its own state, eliminating module-level globals.
   const inlineState = createInlineCursorState()
 
-  // Instance-scoped accumulated ANSI state for INKX_STRICT_ACCUMULATE verification.
+  // Instance-scoped accumulated ANSI state for HIGHTEA_STRICT_ACCUMULATE verification.
   // Tracks per-instance verification state rather than using module-level globals.
   const accState = {
     accumulatedAnsi: "",
@@ -266,19 +266,19 @@ function handleScrollbackPromotion(
 }
 
 // These use getters so they can be set after module load (e.g., in test files).
-// INKX_STRICT enables buffer + output checks (per-frame).
-// INKX_STRICT_OUTPUT=0 explicitly disables output checking even when INKX_STRICT is set.
-// INKX_STRICT_ACCUMULATE is separate — it replays ALL frames (O(N²)) and is opt-in only.
+// HIGHTEA_STRICT enables buffer + output checks (per-frame).
+// HIGHTEA_STRICT_OUTPUT=0 explicitly disables output checking even when HIGHTEA_STRICT is set.
+// HIGHTEA_STRICT_ACCUMULATE is separate — it replays ALL frames (O(N²)) and is opt-in only.
 function isStrictOutput(): boolean {
-  const outputEnv = process.env.INKX_STRICT_OUTPUT
+  const outputEnv = process.env.HIGHTEA_STRICT_OUTPUT
   if (outputEnv === "0" || outputEnv === "false") return false
-  return !!outputEnv || !!process.env.INKX_STRICT
+  return !!outputEnv || !!process.env.HIGHTEA_STRICT
 }
 function isStrictAccumulate(): boolean {
-  return !!process.env.INKX_STRICT_ACCUMULATE
+  return !!process.env.HIGHTEA_STRICT_ACCUMULATE
 }
 
-/** Per-instance state for INKX_STRICT_ACCUMULATE verification. */
+/** Per-instance state for HIGHTEA_STRICT_ACCUMULATE verification. */
 interface AccumulateState {
   accumulatedAnsi: string
   accumulateWidth: number
@@ -703,7 +703,7 @@ export function outputPhase(
     return inlineIncrementalRender(inlineState, prev, next, scrollbackOffset, termRows, cursorPos, ctx)
   }
 
-  // INKX_FULL_RENDER: bypass incremental diff, always render full buffer.
+  // HIGHTEA_FULL_RENDER: bypass incremental diff, always render full buffer.
   // Use to diagnose garbled rendering — if FULL_RENDER fixes it, the bug
   // is in changesToAnsi (diff → ANSI serialization).
   if (FULL_RENDER) {
@@ -715,7 +715,7 @@ export function outputPhase(
 
   if (DEBUG_OUTPUT) {
     // eslint-disable-next-line no-console
-    console.error(`[INKX_DEBUG_OUTPUT] diffBuffers: ${count} changes`)
+    console.error(`[HIGHTEA_DEBUG_OUTPUT] diffBuffers: ${count} changes`)
     const debugLimit = Math.min(count, 10)
     for (let i = 0; i < debugLimit; i++) {
       const change = pool[i]!
@@ -744,18 +744,18 @@ export function outputPhase(
     const bytes = Buffer.byteLength(incrOutput)
     try {
       const fs = require("fs")
-      fs.appendFileSync("/tmp/inkx-sizes.log", `changesToAnsi: ${count} changes, ${bytes} bytes\n`)
+      fs.appendFileSync("/tmp/hightea-sizes.log", `changesToAnsi: ${count} changes, ${bytes} bytes\n`)
     } catch {}
   }
 
-  // INKX_STRICT_OUTPUT: verify that the incremental ANSI output produces the
+  // HIGHTEA_STRICT_OUTPUT: verify that the incremental ANSI output produces the
   // same visible terminal state as a fresh render. Catches bugs in changesToAnsi
-  // that INKX_STRICT (buffer-level check) cannot detect.
+  // that HIGHTEA_STRICT (buffer-level check) cannot detect.
   if (isStrictOutput()) {
     verifyOutputEquivalence(prev, next, incrOutput, mode, ctx)
   }
 
-  // INKX_STRICT_ACCUMULATE: verify that the accumulated output from ALL frames
+  // HIGHTEA_STRICT_ACCUMULATE: verify that the accumulated output from ALL frames
   // produces the same terminal state as a fresh render of the current buffer.
   // Catches compounding errors that per-frame verification misses.
   if (isStrictAccumulate()) {
@@ -1683,7 +1683,7 @@ function styleToAnsi(style: Style, ctx: OutputContext = defaultContext): string 
 }
 
 // =============================================================================
-// INKX_STRICT_OUTPUT: ANSI output verification via virtual terminal replay
+// HIGHTEA_STRICT_OUTPUT: ANSI output verification via virtual terminal replay
 // =============================================================================
 
 // ============================================================================
@@ -2126,7 +2126,7 @@ function verifyOutputEquivalence(
   const vtHeight = Math.max(prev.height, next.height)
   const compareHeight = next.height
   // DEBUG: log buffer dimensions
-  if (process.env.INKX_DEBUG_OUTPUT) {
+  if (process.env.HIGHTEA_DEBUG_OUTPUT) {
     // eslint-disable-next-line no-console
     console.error(
       `[VERIFY] prev=${prev.width}x${prev.height} next=${next.width}x${next.height} vtSize=${w}x${vtHeight}`,
@@ -2134,7 +2134,7 @@ function verifyOutputEquivalence(
   }
   // Replay: fresh prev render + incremental diff applied on top
   const freshPrev = bufferToAnsi(prev, mode, ctx)
-  if (process.env.INKX_DEBUG_OUTPUT) {
+  if (process.env.HIGHTEA_DEBUG_OUTPUT) {
     // eslint-disable-next-line no-console
     console.error(`[VERIFY] freshPrev len=${freshPrev.length} incrOutput len=${incrOutput.length}`)
     // Show incrOutput as escaped string
@@ -2201,7 +2201,7 @@ function verifyOutputEquivalence(
           )
         }
         const msg =
-          `INKX_STRICT_OUTPUT char mismatch at (${x},${y}): ` +
+          `HIGHTEA_STRICT_OUTPUT char mismatch at (${x},${y}): ` +
           `incremental='${incr.char}' fresh='${fresh.char}'\n` +
           `  prev buffer cell: char='${prevCell.char}' bg=${prevCell.bg} wide=${prevCell.wide} cont=${prevCell.continuation}\n` +
           `  next buffer cell: char='${nextCell.char}' bg=${nextCell.bg} wide=${nextCell.wide} cont=${nextCell.continuation}\n` +
@@ -2230,7 +2230,7 @@ function verifyOutputEquivalence(
 
       if (diffs.length > 0) {
         const msg =
-          `INKX_STRICT_OUTPUT style mismatch at (${x},${y}) char='${incr.char}': ` +
+          `HIGHTEA_STRICT_OUTPUT style mismatch at (${x},${y}) char='${incr.char}': ` +
           diffs.join(", ") +
           `\n  incremental: fg=${formatColor(incr.fg)} bg=${formatColor(incr.bg)} bold=${incr.bold} dim=${incr.dim}` +
           `\n  fresh:       fg=${formatColor(fresh.fg)} bg=${formatColor(fresh.bg)} bold=${fresh.bold} dim=${fresh.dim}`
@@ -2268,7 +2268,7 @@ function verifyAccumulatedOutput(
 
       if (accum.char !== fresh.char) {
         const msg =
-          `INKX_STRICT_ACCUMULATE char mismatch at (${x},${y}) after ${accState.accumulateFrameCount} frames: ` +
+          `HIGHTEA_STRICT_ACCUMULATE char mismatch at (${x},${y}) after ${accState.accumulateFrameCount} frames: ` +
           `accumulated='${accum.char}' fresh='${fresh.char}'`
         // eslint-disable-next-line no-console
         console.error(msg)
@@ -2288,7 +2288,7 @@ function verifyAccumulatedOutput(
 
       if (diffs.length > 0) {
         const msg =
-          `INKX_STRICT_ACCUMULATE style mismatch at (${x},${y}) char='${accum.char}' after ${accState.accumulateFrameCount} frames: ` +
+          `HIGHTEA_STRICT_ACCUMULATE style mismatch at (${x},${y}) char='${accum.char}' after ${accState.accumulateFrameCount} frames: ` +
           diffs.join(", ")
         // eslint-disable-next-line no-console
         console.error(msg)

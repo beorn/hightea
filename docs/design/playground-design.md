@@ -9,7 +9,7 @@ Design document for a full interactive playground where users can write JSX and 
 1. Users paste or write JSX in a code editor
 2. Output renders to a canvas in real time (sub-second feedback)
 3. No local install required (runs entirely in the browser)
-4. Demonstrates inkx's multi-target architecture (same components, different renderers)
+4. Demonstrates hightea's multi-target architecture (same components, different renderers)
 
 ## Architecture
 
@@ -18,7 +18,7 @@ Design document for a full interactive playground where users can write JSX and 
 |     Monaco Editor         |     |     Canvas Output         |
 |                           |     |                           |
 |  function App() {         |     |  +-------------------+   |
-|    return (               |     |  | inkx Canvas       |   |
+|    return (               |     |  | hightea Canvas       |   |
 |      <Box border="single">| --> |  | Rendering         |   |
 |        <Text>Hello</Text> |     |  |                   |   |
 |      </Box>               |     |  +-------------------+   |
@@ -37,7 +37,7 @@ Design document for a full interactive playground where users can write JSX and 
                     +--------------+          |
                     | React        |----------+
                     | Reconciler   |
-                    | + Flexx      |
+                    | + Flexture      |
                     +--------------+
 ```
 
@@ -46,7 +46,7 @@ Design document for a full interactive playground where users can write JSX and 
 1. **Edit**: User modifies JSX in Monaco Editor
 2. **Transpile**: Sucrase converts JSX to plain JS (fast, no Babel overhead)
 3. **Evaluate**: `new Function()` creates the component from transpiled code
-4. **Render**: inkx's React reconciler + Flexx layout + Canvas adapter render to OffscreenCanvas
+4. **Render**: hightea's React reconciler + Flexture layout + Canvas adapter render to OffscreenCanvas
 5. **Display**: OffscreenCanvas drawn to visible `<canvas>` element
 
 ### Why Sucrase (Not Babel)
@@ -68,9 +68,9 @@ Sucrase is purpose-built for development transforms. It strips types and convert
 | Build tool       | Vite          | Fast HMR, ESM-native, simple config         |
 | Code editor      | Monaco Editor | VSCode engine, TypeScript intellisense, JSX |
 | JSX transpiler   | Sucrase       | Fast, small, browser-compatible             |
-| UI framework     | React         | Already a dependency of inkx                |
-| Layout engine    | Flexx         | Pure JS, synchronous init, no WASM          |
-| Canvas rendering | inkx/canvas   | The whole point                             |
+| UI framework     | React         | Already a dependency of hightea                |
+| Layout engine    | Flexture         | Pure JS, synchronous init, no WASM          |
+| Canvas rendering | hightea/canvas   | The whole point                             |
 
 ## Project Structure
 
@@ -83,7 +83,7 @@ playground/
     Preview.tsx       -- Canvas output with error boundary
     presets.ts        -- Built-in example components
     transpile.ts      -- Sucrase wrapper with error handling
-    evaluate.ts       -- Safe eval with React + inkx in scope
+    evaluate.ts       -- Safe eval with React + hightea in scope
   vite.config.ts      -- Build configuration
   package.json        -- Dependencies
 ```
@@ -93,7 +93,7 @@ playground/
 Monaco provides:
 
 - JSX syntax highlighting
-- TypeScript type checking (with inkx `.d.ts` loaded)
+- TypeScript type checking (with hightea `.d.ts` loaded)
 - Auto-completion for `<Box>`, `<Text>`, `useContentRect()`, etc.
 - Error markers from transpilation failures
 
@@ -105,8 +105,8 @@ function Editor({ value, onChange }) {
   const editorRef = useRef(null)
 
   useEffect(() => {
-    // Load inkx type definitions for intellisense
-    monaco.languages.typescript.typescriptDefaults.addExtraLib(inkxTypeDefs, "inkx.d.ts")
+    // Load hightea type definitions for intellisense
+    monaco.languages.typescript.typescriptDefaults.addExtraLib(inkxTypeDefs, "hightea.d.ts")
   }, [])
 
   return <div ref={editorRef} style={{ height: "100%" }} />
@@ -115,7 +115,7 @@ function Editor({ value, onChange }) {
 
 ## Safe Evaluation
 
-User code runs in a sandboxed scope with only React and inkx exports available:
+User code runs in a sandboxed scope with only React and hightea exports available:
 
 ```tsx
 // evaluate.ts (sketch)
@@ -158,7 +158,7 @@ const debouncedRender = useMemo(
       const js = transpile(code) // Sucrase JSX -> JS
       const Comp = evaluate(js) // new Function -> React.FC
       if (Comp) {
-        instance.rerender(<Comp />) // inkx canvas render
+        instance.rerender(<Comp />) // hightea canvas render
       }
     }, 150),
   [instance],
@@ -202,7 +202,7 @@ Pros: Free hosting, custom domain, automatic deploys via CI.
 Create a template repository that opens directly in the browser IDE:
 
 ```
-https://stackblitz.com/github/user/inkx-playground
+https://stackblitz.com/github/user/hightea-playground
 ```
 
 Pros: Zero-install, users can fork and modify, full IDE experience.
@@ -235,7 +235,7 @@ Estimated scope: ~500 lines of new code, plus build configuration.
 Encode the editor content in the URL hash (base64 or LZ-compressed) so users can share playground links:
 
 ```
-https://inkx-playground.example.com/#code=ZnVuY3Rpb24gQXBwKCkg...
+https://hightea-playground.example.com/#code=ZnVuY3Rpb24gQXBwKCkg...
 ```
 
 ### Phase 4: Dual Output
@@ -246,7 +246,7 @@ Show both Canvas and DOM adapter output side by side, demonstrating that the sam
 
 | Component     | Size (gzip) |
 | ------------- | ----------- |
-| inkx + React  | ~90 KB      |
+| hightea + React  | ~90 KB      |
 | Monaco Editor | ~800 KB     |
 | Sucrase       | ~40 KB      |
 | Playground UI | ~5 KB       |

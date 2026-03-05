@@ -5,7 +5,7 @@
 - Node.js 18+ or Bun 1.0+
 - React 18+
 
-## Install inkx
+## Install hightea
 
 ::: code-group
 
@@ -29,7 +29,7 @@ pnpm add @hightea/term
 
 ## TypeScript Support
 
-inkx includes TypeScript definitions out of the box. No additional `@types` packages needed.
+hightea includes TypeScript definitions out of the box. No additional `@types` packages needed.
 
 ```json
 // tsconfig.json
@@ -45,7 +45,7 @@ inkx includes TypeScript definitions out of the box. No additional `@types` pack
 
 ## Running Your App
 
-inkx apps are just TypeScript/JavaScript files. Run them directly:
+hightea apps are just TypeScript/JavaScript files. Run them directly:
 
 ::: code-group
 
@@ -63,9 +63,9 @@ npx ts-node --esm app.tsx
 
 :::
 
-## Testing inkx Apps
+## Testing hightea Apps
 
-inkx includes a testing library with auto-cleanup between renders:
+hightea includes a testing library with auto-cleanup between renders:
 
 ```tsx
 import { createRenderer } from "@hightea/term/testing"

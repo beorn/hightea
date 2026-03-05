@@ -4,9 +4,9 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 # Scrolling
 
-inkx makes scrolling effortless. Just render your content and let inkx handle the rest.
+hightea makes scrolling effortless. Just render your content and let hightea handle the rest.
 
-<LiveDemo xtermSrc="/inkx/examples/showcase.html?demo=scroll" :height="300" />
+<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=scroll" :height="300" />
 
 ## Basic Usage
 
@@ -28,7 +28,7 @@ function App() {
 }
 ```
 
-inkx will:
+hightea will:
 
 - Measure all 100 children
 - Determine which fit in the viewport
@@ -69,7 +69,7 @@ The selected item will be centered in the viewport when possible.
 
 ## Variable Height Items
 
-inkx handles variable heights automatically:
+hightea handles variable heights automatically:
 
 ```tsx
 function TaskList({ tasks, selectedIndex }) {
@@ -100,11 +100,11 @@ function TaskRow({ task, isSelected }) {
 }
 ```
 
-**No height estimation needed.** inkx uses Yoga to measure each item's actual height.
+**No height estimation needed.** hightea uses Yoga to measure each item's actual height.
 
 ## How It Works
 
-inkx uses a **measure-then-render** approach:
+hightea uses a **measure-then-render** approach:
 
 ```
 1. React creates all child elements
@@ -114,7 +114,7 @@ inkx uses a **measure-then-render** approach:
 5. Paint visible content to terminal
 ```
 
-**Key insight**: Yoga layout is extremely fast. The expensive part is building terminal strings. inkx skips that for non-visible items.
+**Key insight**: Yoga layout is extremely fast. The expensive part is building terminal strings. hightea skips that for non-visible items.
 
 ### Performance
 
@@ -158,7 +158,7 @@ If users can't reasonably navigate 10,000 items, scrolling isn't the answer.
 />
 ```
 
-**inkx**: Just render everything
+**hightea**: Just render everything
 
 ```tsx
 // It just works

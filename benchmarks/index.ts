@@ -9,7 +9,7 @@ import { initYogaEngine } from "../src/adapters/yoga-adapter.js"
 import { TerminalBuffer, cellEquals, createMutableCell, styleEquals } from "../src/buffer.js"
 import { getLayoutEngine, setLayoutEngine } from "../src/layout-engine.js"
 import { contentPhase, executeRender, layoutPhase, measurePhase, outputPhase } from "../src/pipeline.js"
-import type { BoxProps, InkxNode, TextProps } from "../src/types.js"
+import type { BoxProps, TeaNode, TextProps } from "../src/types.js"
 import { displayWidth, parseAnsiText, splitGraphemes, stripAnsi } from "../src/unicode.js"
 
 // Initialize layout engine
@@ -18,15 +18,15 @@ setLayoutEngine(layoutEngine)
 
 // Helper to create mock InkxNode
 function createMockNode(
-  type: InkxNode["type"],
+  type: TeaNode["type"],
   props: BoxProps | TextProps,
-  children: InkxNode[] = [],
+  children: TeaNode[] = [],
   textContent?: string,
-): InkxNode {
+): TeaNode {
   const engine = getLayoutEngine()
   const layoutNode = engine.createNode()
 
-  if (type === "inkx-box" || type === "inkx-text") {
+  if (type === "hightea-box" || type === "hightea-text") {
     const boxProps = props as BoxProps
     if (typeof boxProps.width === "number") layoutNode.setWidth(boxProps.width)
     if (typeof boxProps.height === "number") {
@@ -34,7 +34,7 @@ function createMockNode(
     }
   }
 
-  const node: InkxNode = {
+  const node: TeaNode = {
     type,
     props,
     children,
@@ -171,7 +171,7 @@ group("Unicode", () => {
 
 group("Pipeline Phases", () => {
   // Simple tree
-  const simpleRoot = createMockNode("inkx-box", { width: 80, height: 24 })
+  const simpleRoot = createMockNode("hightea-box", { width: 80, height: 24 })
   simpleRoot.layoutDirty = true
 
   bench("measurePhase (simple)", () => {
@@ -192,12 +192,12 @@ group("Pipeline Phases", () => {
   })
 
   // Complex tree with 100 children
-  const children: InkxNode[] = []
+  const children: TeaNode[] = []
   for (let i = 0; i < 100; i++) {
-    const child = createMockNode("inkx-text", {}, [], `Item ${i}: Some text content here`)
+    const child = createMockNode("hightea-text", {}, [], `Item ${i}: Some text content here`)
     children.push(child)
   }
-  const complexRoot = createMockNode("inkx-box", { width: 80, height: 24 }, children)
+  const complexRoot = createMockNode("hightea-box", { width: 80, height: 24 }, children)
   complexRoot.layoutDirty = true
   layoutPhase(complexRoot, 80, 24)
 
@@ -263,7 +263,7 @@ group("Output Phase (Diff)", () => {
 // ============================================================================
 
 group("Full Pipeline", () => {
-  const simpleRoot = createMockNode("inkx-box", { width: 80, height: 24 })
+  const simpleRoot = createMockNode("hightea-box", { width: 80, height: 24 })
 
   bench("executeRender (simple, first)", () => {
     simpleRoot.layoutDirty = true
@@ -280,12 +280,12 @@ group("Full Pipeline", () => {
   })
 
   // Complex tree
-  const children: InkxNode[] = []
+  const children: TeaNode[] = []
   for (let i = 0; i < 50; i++) {
-    const child = createMockNode("inkx-text", { color: "red" }, [], `Line ${i}: Content`)
+    const child = createMockNode("hightea-text", { color: "red" }, [], `Line ${i}: Content`)
     children.push(child)
   }
-  const complexRoot = createMockNode("inkx-box", { width: 120, height: 40 }, children)
+  const complexRoot = createMockNode("hightea-box", { width: 120, height: 40 }, children)
 
   bench("executeRender (50 items, first)", () => {
     complexRoot.layoutDirty = true

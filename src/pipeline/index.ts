@@ -29,12 +29,12 @@
 import { createLogger } from "decant"
 import type { TerminalBuffer } from "../buffer.js"
 import type { CursorState } from "../hooks/useCursor.js"
-import type { InkxNode } from "../types.js"
+import type { TeaNode } from "../types.js"
 import { runWithMeasurer, type Measurer } from "../unicode.js"
 import type { OutputPhaseFn } from "./output-phase.js"
 import type { PipelineContext } from "./types.js"
 
-const log = createLogger("inkx:pipeline")
+const log = createLogger("hightea:pipeline")
 const baseLog = createLogger("@hightea/term")
 
 // Re-export types
@@ -93,7 +93,7 @@ export interface ExecuteRenderOptions {
 
   /**
    * Skip scroll state updates.
-   * Use for fresh render comparisons (INKX_STRICT) to avoid mutating state.
+   * Use for fresh render comparisons (HIGHTEA_STRICT) to avoid mutating state.
    * Default: false
    */
   skipScrollStateUpdates?: boolean
@@ -138,10 +138,10 @@ export interface PipelineConfig {
  *
  * Pass null for prevBuffer on the first render; pass the returned buffer on
  * subsequent renders to enable incremental content rendering (<1ms vs 20-30ms).
- * INKX_DEV=1 warns at runtime if prevBuffer is null after the first frame.
+ * HIGHTEA_DEV=1 warns at runtime if prevBuffer is null after the first frame.
  */
 export function executeRender(
-  root: InkxNode,
+  root: TeaNode,
   width: number,
   height: number,
   prevBuffer: TerminalBuffer | null,
@@ -165,7 +165,7 @@ export function executeRender(
 
 /** Internal: runs the full pipeline. */
 function executeRenderCore(
-  root: InkxNode,
+  root: TeaNode,
   width: number,
   height: number,
   prevBuffer: TerminalBuffer | null,
@@ -184,11 +184,11 @@ function executeRenderCore(
     cursorPos,
   } = opts
   // Dev warning: prevBuffer null after first render means incremental is disabled.
-  // Intentional null (INKX_STRICT, static/one-shot) passes skipLayoutNotifications.
+  // Intentional null (HIGHTEA_STRICT, static/one-shot) passes skipLayoutNotifications.
   // console.warn (not decant) — must fire regardless of logger config.
-  if (process?.env?.INKX_DEV && prevBuffer === null && root.prevLayout !== null && !skipLayoutNotifications) {
+  if (process?.env?.HIGHTEA_DEV && prevBuffer === null && root.prevLayout !== null && !skipLayoutNotifications) {
     console.warn(
-      "[inkx] executeRender called with prevBuffer=null on frame 2+ — " +
+      "[hightea] executeRender called with prevBuffer=null on frame 2+ — " +
         "incremental content rendering is disabled (full render every frame). " +
         "Track the returned buffer and pass it as prevBuffer on subsequent renders.",
     )
@@ -281,7 +281,7 @@ function executeRenderCore(
   log.debug?.(`total pipeline: ${total.toFixed(2)}ms`)
 
   // Expose phase timing and render count for benchmarking and diagnostics
-  ;(globalThis as any).__inkx_last_pipeline = {
+  ;(globalThis as any).__hightea_last_pipeline = {
     measure: tMeasure,
     layout: tLayout,
     scroll: tScroll,
@@ -292,7 +292,7 @@ function executeRenderCore(
     total,
     incremental: prevBuffer !== null,
   }
-  ;(globalThis as any).__inkx_render_count = ((globalThis as any).__inkx_render_count ?? 0) + 1
+  ;(globalThis as any).__hightea_render_count = ((globalThis as any).__hightea_render_count ?? 0) + 1
 
   return { output, buffer }
 }
@@ -317,7 +317,7 @@ import { type RenderBuffer, getRenderAdapter, hasRenderAdapter } from "../render
  * @returns Object with output (if any) and current buffer
  */
 export function executeRenderAdapter(
-  root: InkxNode,
+  root: TeaNode,
   width: number,
   height: number,
   prevBuffer: RenderBuffer | null,

@@ -1,10 +1,10 @@
 # Layout Engine
 
-inkx uses a pluggable layout engine architecture. It supports [Flexx](https://github.com/beorn/flexx) (pure JavaScript, recommended) and [Yoga](https://yogalayout.dev/) (Facebook's WASM-based flexbox implementation).
+hightea uses a pluggable layout engine architecture. It supports [Flexture](https://github.com/beorn/flexture) (pure JavaScript, recommended) and [Yoga](https://yogalayout.dev/) (Facebook's WASM-based flexbox implementation).
 
 ## Quick Start
 
-For most apps, you don't need to configure anything. inkx auto-initializes the default layout engine when you call `render()`:
+For most apps, you don't need to configure anything. hightea auto-initializes the default layout engine when you call `render()`:
 
 ```tsx
 import { render, Box, Text, createTerm } from "@hightea/term"
@@ -14,33 +14,33 @@ using term = createTerm()
 await render(<App />, term)
 ```
 
-## Flexx (Recommended)
+## Flexture (Recommended)
 
-Flexx is a pure JavaScript layout engine with a Yoga-compatible API. It's the recommended choice because:
+Flexture is a pure JavaScript layout engine with a Yoga-compatible API. It's the recommended choice because:
 
 - **No WASM** - Works everywhere, no binary dependencies
 - **Smaller bundle** - ~30KB vs ~170KB for Yoga
 - **Synchronous initialization** - No async dance needed
 - **Better for testing** - Deterministic, no platform-specific WASM behavior
 
-### Explicit Flexx Setup
+### Explicit Flexture Setup
 
-If you want to explicitly set up Flexx (not usually necessary):
+If you want to explicitly set up Flexture (not usually necessary):
 
 ```tsx
 import { render, setLayoutEngine, createFlexxEngine, Box, Text } from "@hightea/term"
 
-// Initialize Flexx (synchronous - no await needed)
+// Initialize Flexture (synchronous - no await needed)
 setLayoutEngine(createFlexxEngine())
 
-// Now render uses Flexx for layout
+// Now render uses Flexture for layout
 using term = createTerm()
 await render(<App />, term)
 ```
 
-### Using renderSync with Flexx
+### Using renderSync with Flexture
 
-Since Flexx doesn't require async initialization, you can use `renderSync()`:
+Since Flexture doesn't require async initialization, you can use `renderSync()`:
 
 ```tsx
 import { renderSync, setLayoutEngine, createFlexxEngine } from "@hightea/term"
@@ -105,7 +105,7 @@ setLayoutEngine(engine)
 function createFlexxEngine(): FlexxLayoutEngine
 ```
 
-Creates a Flexx layout engine. Unlike Yoga, this is synchronous:
+Creates a Flexture layout engine. Unlike Yoga, this is synchronous:
 
 ```tsx
 import { setLayoutEngine, createFlexxEngine } from "@hightea/term"
@@ -131,7 +131,7 @@ if (!isLayoutEngineInitialized()) {
 
 ## Engine Comparison
 
-| Feature             | Yoga (WASM)              | Flexx (Pure JS)       |
+| Feature             | Yoga (WASM)              | Flexture (Pure JS)       |
 | ------------------- | ------------------------ | --------------------- |
 | Initialization      | Async (WASM loading)     | Sync                  |
 | Performance         | Faster for large trees   | Good for small-medium |
@@ -145,12 +145,12 @@ if (!isLayoutEngineInitialized()) {
 - **Precise flexbox behavior** - Yoga is the reference implementation
 - **Production apps** - Battle-tested at Facebook scale
 
-### When to Use Flexx
+### When to Use Flexture
 
 - **Quick prototypes** - No async initialization dance
 - **Simple layouts** - Performance difference is negligible
 - **WASM-restricted environments** - Some serverless/edge runtimes
-- **Bundle size concerns** - Flexx is significantly smaller
+- **Bundle size concerns** - Flexture is significantly smaller
 
 ## Performance Characteristics
 
@@ -158,7 +158,7 @@ if (!isLayoutEngineInitialized()) {
 
 Both engines implement the same flexbox algorithm. The difference is in execution:
 
-| Tree Size | Yoga   | Flexx  |
+| Tree Size | Yoga   | Flexture  |
 | --------- | ------ | ------ |
 | 10 nodes  | ~0.1ms | ~0.2ms |
 | 100 nodes | ~1ms   | ~3ms   |
@@ -169,7 +169,7 @@ For typical TUI apps (10-50 nodes), both engines are effectively instant.
 ### Memory
 
 - **Yoga**: Uses WASM linear memory, very efficient
-- **Flexx**: Uses JavaScript objects, slightly higher GC pressure
+- **Flexture**: Uses JavaScript objects, slightly higher GC pressure
 
 ## Custom Layout Engines
 
@@ -233,7 +233,7 @@ interface LayoutConstants {
 }
 ```
 
-See the [Flexx adapter source](https://github.com/beorn/hightea/blob/main/src/adapters/flexx-adapter.ts) for a complete example.
+See the [Flexture adapter source](https://github.com/beorn/hightea/blob/main/src/adapters/flexture-adapter.ts) for a complete example.
 
 ### Example: Minimal Custom Engine
 
@@ -320,7 +320,7 @@ renderSync(term, <App />)
 
 ### WASM loading fails
 
-If Yoga WASM fails to load, try Flexx as a fallback:
+If Yoga WASM fails to load, try Flexture as a fallback:
 
 ```tsx
 import { render, setLayoutEngine, createFlexxEngine, isLayoutEngineInitialized } from "@hightea/term"
@@ -331,7 +331,7 @@ try {
   await render(<App />, term)
 } catch (e) {
   if (!isLayoutEngineInitialized()) {
-    console.warn("Falling back to Flexx engine")
+    console.warn("Falling back to Flexture engine")
     setLayoutEngine(createFlexxEngine())
     renderSync(term, <App />)
   } else {

@@ -43,7 +43,7 @@ export interface TransformProps {
 /**
  * Transform applies a string transform to rendered text output.
  *
- * Works by passing `internal_transform` to the underlying `inkx-text` host
+ * Works by passing `internal_transform` to the underlying `hightea-text` host
  * element, which the render pipeline applies to each formatted line.
  */
 export function Transform({ transform, children }: TransformProps): JSX.Element | null {
@@ -51,5 +51,5 @@ export function Transform({ transform, children }: TransformProps): JSX.Element 
     return null
   }
 
-  return <inkx-text internal_transform={transform}>{children}</inkx-text>
+  return <hightea-text internal_transform={transform}>{children}</hightea-text>
 }

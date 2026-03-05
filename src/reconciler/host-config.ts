@@ -8,7 +8,7 @@
 
 import { createContext } from "react"
 import { DefaultEventPriority, DiscreteEventPriority, NoEventPriority } from "react-reconciler/constants.js"
-import type { BoxProps, InkxNode, InkxNodeType, TextProps } from "../types.js"
+import type { BoxProps, TeaNode, TeaNodeType, TextProps } from "../types.js"
 import { contentPropsChanged, layoutPropsChanged, propsEqual } from "./helpers.js"
 import { applyBoxProps, createNode, createVirtualTextNode } from "./nodes.js"
 
@@ -20,7 +20,7 @@ import { applyBoxProps, createNode, createVirtualTextNode } from "./nodes.js"
  * Mark this node and all ancestors as having dirty content/layout.
  * Used to enable fast-path subtree skipping in contentPhase.
  */
-function markSubtreeDirty(node: InkxNode | null): void {
+function markSubtreeDirty(node: TeaNode | null): void {
   while (node && !node.subtreeDirty) {
     node.subtreeDirty = true
     node = node.parent
@@ -36,9 +36,9 @@ function markSubtreeDirty(node: InkxNode | null): void {
  *
  * No-op when the node already has a layoutNode (normal path handles it).
  */
-function markLayoutAncestorDirty(node: InkxNode): void {
+function markLayoutAncestorDirty(node: TeaNode): void {
   if (node.layoutNode) return
-  let ancestor: InkxNode | null = node.parent
+  let ancestor: TeaNode | null = node.parent
   while (ancestor && !ancestor.layoutNode) {
     ancestor = ancestor.parent
   }
@@ -58,7 +58,7 @@ function markLayoutAncestorDirty(node: InkxNode): void {
  * Container type - the root of our Inkx tree
  */
 export interface Container {
-  root: InkxNode
+  root: TeaNode
   onRender: () => void
 }
 
@@ -122,9 +122,9 @@ export const hostConfig = {
     return { isInsideText: false }
   },
 
-  getChildHostContext(parentHostContext: HostContext, type: InkxNodeType): HostContext {
+  getChildHostContext(parentHostContext: HostContext, type: TeaNodeType): HostContext {
     // Once inside a text node, stay inside
-    const isInsideText = parentHostContext.isInsideText || type === "inkx-text"
+    const isInsideText = parentHostContext.isInsideText || type === "hightea-text"
     if (isInsideText === parentHostContext.isInsideText) {
       return parentHostContext
     }
@@ -133,23 +133,23 @@ export const hostConfig = {
 
   // Instance creation
   createInstance(
-    type: InkxNodeType,
+    type: TeaNodeType,
     props: BoxProps | TextProps,
     _rootContainer: unknown,
     hostContext: HostContext,
-  ): InkxNode {
+  ): TeaNode {
     // Nested text nodes become "virtual" - no layout node
-    if (type === "inkx-text" && hostContext.isInsideText) {
+    if (type === "hightea-text" && hostContext.isInsideText) {
       return createVirtualTextNode(props as TextProps)
     }
     return createNode(type, props)
   },
 
-  createTextInstance(text: string): InkxNode {
+  createTextInstance(text: string): TeaNode {
     // Raw text nodes don't have layout nodes - they're just data nodes
-    // Their content is rendered by their parent inkx-text element
-    const node: InkxNode = {
-      type: "inkx-text",
+    // Their content is rendered by their parent hightea-text element
+    const node: TeaNode = {
+      type: "hightea-text",
       props: { children: text } as TextProps,
       children: [],
       parent: null,
@@ -173,7 +173,7 @@ export const hostConfig = {
   },
 
   // Tree operations
-  appendChild(parentInstance: InkxNode, child: InkxNode) {
+  appendChild(parentInstance: TeaNode, child: TeaNode) {
     // React calls appendChild to move an existing child during keyed reorder.
     // Remove from old position first to avoid duplicating in the children array.
     const existingIndex = parentInstance.children.indexOf(child)
@@ -199,7 +199,7 @@ export const hostConfig = {
     markSubtreeDirty(parentInstance)
   },
 
-  appendInitialChild(parentInstance: InkxNode, child: InkxNode) {
+  appendInitialChild(parentInstance: TeaNode, child: TeaNode) {
     child.parent = parentInstance
     parentInstance.children.push(child)
     // Only add to layout tree if both nodes have layout nodes
@@ -209,7 +209,7 @@ export const hostConfig = {
     }
   },
 
-  appendChildToContainer(container: Container, child: InkxNode) {
+  appendChildToContainer(container: Container, child: TeaNode) {
     // Remove from old position if already a child (keyed reorder)
     const existingIndex = container.root.children.indexOf(child)
     if (existingIndex !== -1) {
@@ -231,7 +231,7 @@ export const hostConfig = {
     markSubtreeDirty(container.root)
   },
 
-  removeChild(parentInstance: InkxNode, child: InkxNode) {
+  removeChild(parentInstance: TeaNode, child: TeaNode) {
     const index = parentInstance.children.indexOf(child)
     if (index !== -1) {
       parentInstance.children.splice(index, 1)
@@ -249,7 +249,7 @@ export const hostConfig = {
     }
   },
 
-  removeChildFromContainer(container: Container, child: InkxNode) {
+  removeChildFromContainer(container: Container, child: TeaNode) {
     const index = container.root.children.indexOf(child)
     if (index !== -1) {
       container.root.children.splice(index, 1)
@@ -266,7 +266,7 @@ export const hostConfig = {
     }
   },
 
-  insertBefore(parentInstance: InkxNode, child: InkxNode, beforeChild: InkxNode) {
+  insertBefore(parentInstance: TeaNode, child: TeaNode, beforeChild: TeaNode) {
     // React calls insertBefore to move an existing child during keyed reorder.
     // Remove from old position first to avoid duplicating in the children array.
     const existingIndex = parentInstance.children.indexOf(child)
@@ -294,7 +294,7 @@ export const hostConfig = {
     }
   },
 
-  insertInContainerBefore(container: Container, child: InkxNode, beforeChild: InkxNode) {
+  insertInContainerBefore(container: Container, child: TeaNode, beforeChild: TeaNode) {
     // Remove from old position if already a child (keyed reorder)
     const existingIndex = container.root.children.indexOf(child)
     if (existingIndex !== -1) {
@@ -321,8 +321,8 @@ export const hostConfig = {
 
   // Updates
   prepareUpdate(
-    _instance: InkxNode,
-    _type: InkxNodeType,
+    _instance: TeaNode,
+    _type: TeaNodeType,
     oldProps: BoxProps | TextProps,
     newProps: BoxProps | TextProps,
   ): boolean | null {
@@ -334,8 +334,8 @@ export const hostConfig = {
   // commitUpdate(instance, updatePayload, type, oldProps, newProps) to
   // commitUpdate(instance, type, oldProps, newProps, finishedWork)
   commitUpdate(
-    instance: InkxNode,
-    _type: InkxNodeType,
+    instance: TeaNode,
+    _type: TeaNodeType,
     oldProps: BoxProps | TextProps,
     newProps: BoxProps | TextProps,
     _finishedWork: unknown,
@@ -423,7 +423,7 @@ export const hostConfig = {
     }
   },
 
-  commitTextUpdate(textInstance: InkxNode, _oldText: string, newText: string) {
+  commitTextUpdate(textInstance: TeaNode, _oldText: string, newText: string) {
     textInstance.textContent = newText
     textInstance.props = { children: newText } as TextProps
     textInstance.contentDirty = true
@@ -449,7 +449,7 @@ export const hostConfig = {
   },
 
   // Misc
-  getPublicInstance(instance: InkxNode) {
+  getPublicInstance(instance: TeaNode) {
     return instance
   },
 
@@ -573,7 +573,7 @@ export const hostConfig = {
    * Hide an instance during Suspense.
    * Called when React needs to hide content while showing a fallback.
    */
-  hideInstance(instance: InkxNode) {
+  hideInstance(instance: TeaNode) {
     instance.hidden = true
     instance.contentDirty = true
     // Mark parent dirty to trigger re-render
@@ -587,7 +587,7 @@ export const hostConfig = {
    * Unhide an instance after Suspense resolves.
    * Called when the suspended content is ready to show.
    */
-  unhideInstance(instance: InkxNode, _props: BoxProps | TextProps) {
+  unhideInstance(instance: TeaNode, _props: BoxProps | TextProps) {
     instance.hidden = false
     instance.contentDirty = true
     // Mark parent dirty to trigger re-render
@@ -600,7 +600,7 @@ export const hostConfig = {
   /**
    * Hide a text instance during Suspense.
    */
-  hideTextInstance(textInstance: InkxNode) {
+  hideTextInstance(textInstance: TeaNode) {
     textInstance.hidden = true
     textInstance.contentDirty = true
     if (textInstance.parent) {
@@ -612,7 +612,7 @@ export const hostConfig = {
   /**
    * Unhide a text instance after Suspense resolves.
    */
-  unhideTextInstance(textInstance: InkxNode, _text: string) {
+  unhideTextInstance(textInstance: TeaNode, _text: string) {
     textInstance.hidden = false
     textInstance.contentDirty = true
     if (textInstance.parent) {

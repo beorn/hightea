@@ -455,9 +455,9 @@ export {
   createYogaEngine,
   initYogaEngine,
   YogaLayoutEngine,
-  // Flexx adapter
-  createFlexxEngine,
-  FlexxLayoutEngine,
+  // Flexture adapter
+  createFlextureEngine,
+  FlextureLayoutEngine,
 } from "./render.js"
 export { renderString, renderStringSync, type RenderStringOptions } from "./render-string.js"
 export { measureElement } from "./measureElement.js"
@@ -614,7 +614,7 @@ export type { UseFocusManagerResult } from "./hooks/useFocusManager.js"
 export type { RenderOptions, Instance, RenderMode, NonTTYMode } from "./render.js"
 export type { MeasureElementOutput } from "./measureElement.js"
 export type {
-  InkxNode,
+  TeaNode,
   // Event types
   Event,
   KeyEvent,
@@ -690,10 +690,10 @@ export { connectDevTools, isDevToolsConnected } from "./devtools.js"
  * ```ts
  * // Manual
  * import { enableInspector } from '@hightea/term';
- * enableInspector({ logFile: '/tmp/inkx-inspector.log' });
+ * enableInspector({ logFile: '/tmp/hightea-inspector.log' });
  *
- * // Or use env var: INKX_DEV=1 bun run app.ts
- * // With log file: INKX_DEV=1 INKX_DEV_LOG=/tmp/inkx.log bun run app.ts
+ * // Or use env var: HIGHTEA_DEV=1 bun run app.ts
+ * // With log file: HIGHTEA_DEV=1 HIGHTEA_DEV_LOG=/tmp/hightea.log bun run app.ts
  * ```
  */
 export {

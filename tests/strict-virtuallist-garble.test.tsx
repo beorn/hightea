@@ -1,5 +1,5 @@
 /**
- * Test INKX_STRICT with VirtualList — reproduces garble from km board.
+ * Test HIGHTEA_STRICT with VirtualList — reproduces garble from km board.
  *
  * VirtualList dynamically mounts/unmounts items, creating new nodes with
  * prevLayout=null that may cause doFreshRender to produce different output.
@@ -12,13 +12,13 @@ import React from "react"
 import { Box, Text, VirtualList } from "../src/index.js"
 
 beforeEach(() => {
-  process.env.INKX_STRICT = "1"
+  process.env.HIGHTEA_STRICT = "1"
 })
 afterEach(() => {
-  delete process.env.INKX_STRICT
+  delete process.env.HIGHTEA_STRICT
 })
 
-describe("INKX_STRICT VirtualList garble", () => {
+describe("HIGHTEA_STRICT VirtualList garble", () => {
   test("VirtualList with many items - scroll changes", () => {
     const cols = 60
     const rows = 20

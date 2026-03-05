@@ -4,9 +4,9 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 # Components
 
-inkx provides the same components as Ink, with some enhancements.
+hightea provides the same components as Ink, with some enhancements.
 
-<LiveDemo xtermSrc="/inkx/examples/showcase.html?demo=text-input" :height="250" />
+<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=text-input" :height="250" />
 
 ## Box
 
@@ -20,7 +20,7 @@ import { Box, Text } from "@hightea/term"
 </Box>
 ```
 
-### New in inkx: Scrolling
+### New in hightea: Scrolling
 
 Use `overflow="scroll"` with `scrollTo` for automatic scrolling:
 
@@ -56,8 +56,8 @@ See [Scrolling Guide](/guide/scrolling) for details.
 | `minHeight`      | `number`                                                                      | -              | Minimum height                             |
 | `borderStyle`    | `"single" \| "double" \| "round" \| "bold" \| "classic"`                      | -              | Border style                               |
 | `borderColor`    | `string`                                                                      | -              | Border color                               |
-| `overflow`       | `"visible" \| "hidden" \| "scroll"`                                           | `"visible"`    | **inkx only**: Overflow behavior           |
-| `scrollTo`       | `number`                                                                      | -              | **inkx only**: Child index to keep visible |
+| `overflow`       | `"visible" \| "hidden" \| "scroll"`                                           | `"visible"`    | **hightea only**: Overflow behavior           |
+| `scrollTo`       | `number`                                                                      | -              | **hightea only**: Child index to keep visible |
 
 ## Text
 
@@ -74,7 +74,7 @@ import chalk from "chalk";
 <Text>{chalk.red.bold("Error!")}</Text>
 ```
 
-### New in inkx: Auto-Truncation
+### New in hightea: Auto-Truncation
 
 Text automatically truncates to fit available width:
 

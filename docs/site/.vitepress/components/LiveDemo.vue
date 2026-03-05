@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted } from "vue"
 
 const props = defineProps({
-  xtermSrc: { type: String, default: "/inkx/examples/xterm.html" },
+  xtermSrc: { type: String, default: "/examples/xterm.html" },
   height: { type: Number, default: 500 },
 })
 
@@ -11,7 +11,7 @@ const showBuildHint = ref(false)
 let timeout = null
 
 function onMessage(event) {
-  if (event.data?.type === "inkx-ready") {
+  if (event.data?.type === "hightea-ready") {
     showBuildHint.value = false
     if (timeout) {
       clearTimeout(timeout)
@@ -37,7 +37,7 @@ onUnmounted(() => {
   const iframe = iframeRef.value
   if (iframe) {
     try {
-      iframe.contentWindow?.postMessage({ type: "inkx-cleanup" }, "*")
+      iframe.contentWindow?.postMessage({ type: "hightea-cleanup" }, "*")
     } catch (_) {
       // Cross-origin or already destroyed — ignore
     }
@@ -66,7 +66,7 @@ onUnmounted(() => {
           :src="xtermSrc"
           class="live-demo-iframe"
           frameborder="0"
-          title="inkx Terminal render target demo"
+          title="Hightea Terminal render target demo"
           loading="lazy"
           tabindex="0"
           @error="() => {}"

@@ -1,8 +1,8 @@
 # useContentRect
 
-**inkx only** - Returns the computed dimensions of the component's container.
+**hightea only** - Returns the computed dimensions of the component's container.
 
-This is the key addition in inkx. Components can query their actual size instead of manually threading width props.
+This is the key addition in hightea. Components can query their actual size instead of manually threading width props.
 
 ::: info Note
 `useLayout` is a deprecated alias for `useContentRect`. Both work identically, but prefer `useContentRect` for new code.
@@ -207,10 +207,10 @@ function Content({ width }) {
 }
 ```
 
-**inkx**: Just ask for dimensions where needed.
+**hightea**: Just ask for dimensions where needed.
 
 ```tsx
-// inkx: Components know their size
+// hightea: Components know their size
 function App() {
   return (
     <Box borderStyle="single">

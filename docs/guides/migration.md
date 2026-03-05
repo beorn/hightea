@@ -1,17 +1,17 @@
-# inkx Migration Guide
+# hightea Migration Guide
 
 ## Overview
 
-This guide helps you migrate from Ink to inkx. Most apps require only an import change, but there are behavioral differences to be aware of.
+This guide helps you migrate from Ink to hightea. Most apps require only an import change, but there are behavioral differences to be aware of.
 
 ---
 
 ## Quick Start
 
-### Step 1: Install inkx
+### Step 1: Install hightea
 
 ```bash
-# Replace ink with inkx
+# Replace ink with hightea
 bun remove ink ink-testing-library
 bun add @hightea/term
 ```
@@ -67,10 +67,10 @@ function Card({ width }: { width: number }) {
 <Card width={availableWidth - padding * 2} />
 ```
 
-**inkx**: Components can ask for their size.
+**hightea**: Components can ask for their size.
 
 ```typescript
-// inkx: Components know their size
+// hightea: Components know their size
 function Card() {
   const { width } = useContentRect();
   return <Text>{truncate(title, width)}</Text>;
@@ -92,10 +92,10 @@ function Card() {
 // Output: "This is a very long text that overflows" (broken layout)
 ```
 
-**inkx**: Text truncates to fit.
+**hightea**: Text truncates to fit.
 
 ```typescript
-// inkx: Text truncates automatically
+// hightea: Text truncates automatically
 <Box width={10}>
   <Text>This is a very long text that overflows</Text>
 </Box>
@@ -113,7 +113,7 @@ function Card() {
 
 **Ink**: Components render once with final output.
 
-**inkx**: Components using `useContentRect()` render twice:
+**hightea**: Components using `useContentRect()` render twice:
 
 1. First render: dimensions are `{ width: 0, height: 0 }`
 2. Second render: dimensions are correct
@@ -151,16 +151,16 @@ function Header() {
 />
 ```
 
-**inkx**: Just render everything. inkx handles the rest.
+**hightea**: Just render everything. hightea handles the rest.
 
 ```typescript
-// inkx: No virtualization config needed
+// hightea: No virtualization config needed
 <Box overflow="scroll" scrollTo={selectedIdx}>
   {items.map((item) => <Card key={item.id} item={item} />)}
 </Box>
 ```
 
-inkx measures all children via Yoga (fast), then only renders content for visible ones (skipping the expensive part). No height estimation needed.
+hightea measures all children via Yoga (fast), then only renders content for visible ones (skipping the expensive part). No height estimation needed.
 
 **Migration**: Replace custom virtualization components with `overflow="scroll"`.
 
@@ -175,10 +175,10 @@ const { width } = measureElement(ref.current)
 // Need to manually trigger re-render if you want to use width
 ```
 
-**inkx**: `measureElement()` works for compatibility, but `useContentRect()` is simpler.
+**hightea**: `measureElement()` works for compatibility, but `useContentRect()` is simpler.
 
 ```typescript
-// inkx: Just use the hook
+// hightea: Just use the hook
 const { width } = useContentRect()
 // Automatically re-renders with correct dimensions
 ```
@@ -193,7 +193,7 @@ const { width } = useContentRect()
 
 These behaviors differ by design:
 
-| Behavior                | Ink       | inkx      | Reason                       |
+| Behavior                | Ink       | hightea      | Reason                       |
 | ----------------------- | --------- | --------- | ---------------------------- |
 | Text overflow           | Overflows | Truncates | Better default for TUIs      |
 | First render dimensions | N/A       | Zeros     | Required for layout feedback |
@@ -205,7 +205,7 @@ These might cause issues in rare cases:
 
 | Issue                   | Symptoms                | Workaround                                 |
 | ----------------------- | ----------------------- | ------------------------------------------ |
-| Rapid re-renders        | Flicker on fast updates | inkx coalesces frames; usually not visible |
+| Rapid re-renders        | Flicker on fast updates | hightea coalesces frames; usually not visible |
 | Very deep nesting       | Slower layout           | Flatten component tree if possible         |
 | Custom reconciler usage | Breaks                  | Not supported; use standard components     |
 
@@ -217,10 +217,10 @@ A codemod will be available to automate common migrations:
 
 ```bash
 # Future: Auto-migrate
-npx inkx-codemod ./src
+npx hightea-codemod ./src
 
 # What it does:
-# 1. Updates imports from 'ink' to 'inkx'
+# 1. Updates imports from 'ink' to 'hightea'
 # 2. Replaces measureElement() with useContentRect()
 # 3. Adds wrap={false} where overflow was intentional
 # 4. Warns about potential issues
@@ -247,7 +247,7 @@ diff before.txt after.txt
 
 ### 2. Run Your Test Suite
 
-If you have tests using ink-testing-library, update to inkx/testing:
+If you have tests using ink-testing-library, update to hightea/testing:
 
 ```typescript
 import { createRenderer } from '@hightea/term/testing';
@@ -274,23 +274,23 @@ grep -r "height={" src/
 
 ## FAQ
 
-### Q: Can I use Ink and inkx in the same project?
+### Q: Can I use Ink and hightea in the same project?
 
 **A**: No. They both try to control the terminal. Pick one.
 
-### Q: Will inkx track Ink's updates?
+### Q: Will hightea track Ink's updates?
 
-**A**: inkx targets Ink 4.x API. We'll add new Ink features if they're useful, but we're not a fork—we're a compatible reimplementation.
+**A**: hightea targets Ink 4.x API. We'll add new Ink features if they're useful, but we're not a fork—we're a compatible reimplementation.
 
 ### Q: What about ink-\* community packages?
 
 **A**: Most should work unchanged. If they use Ink internals, they may need updates. File an issue if you find incompatibilities.
 
-### Q: Is inkx faster than Ink?
+### Q: Is hightea faster than Ink?
 
-**A**: Similar performance for most apps. inkx may be slightly slower on first render (two-phase), but faster on updates (smarter diffing). Benchmark your specific app.
+**A**: Similar performance for most apps. hightea may be slightly slower on first render (two-phase), but faster on updates (smarter diffing). Benchmark your specific app.
 
-### Q: Can I contribute to inkx?
+### Q: Can I contribute to hightea?
 
 **A**: Yes! See [internals.md](../deep-dives/internals.md) for architecture details.
 

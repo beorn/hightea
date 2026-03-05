@@ -173,7 +173,7 @@ describe("useScrollback", () => {
 
   test("incremental freezing writes only new items", () => {
     // Test the logic of useScrollback by rendering with progressively frozen items.
-    // We use separate renders to avoid incremental diff issues with INKX_STRICT.
+    // We use separate renders to avoid incremental diff issues with HIGHTEA_STRICT.
     const stdoutWrites: string[] = []
     const mockStdout = {
       write(data: string) {

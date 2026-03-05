@@ -1,4 +1,4 @@
-# inkx-ui Tests
+# hightea-ui Tests
 
 **Layer 1 — UI Components**: Progress indicators, input widgets, display components, and async wrappers for TUI apps.
 
@@ -11,12 +11,12 @@
 - **Wrappers**: withSpinner (promise resolution), withProgress (callback-based), wrapGenerator, wrapEmitter/waitForEvent
 - **Declarative steps**: `steps()` definition parsing, label generation (camelCase to title), step execution
 - **ETA utilities**: calculateETA, formatETA, createETATracker with sample buffers
-- **Dotz streaming**: incremental report rendering via store flush (uses `inkx` render)
+- **Dotz streaming**: incremental report rendering via store flush (uses `hightea` render)
 
 ## What NOT to Test Here
 
 - Actual terminal rendering / ANSI output — most tests capture/suppress stdout
-- inkx framework internals — that's @hightea/term
+- hightea framework internals — that's @hightea/term
 - Real async operations — wrappers are tested with resolved promises
 
 ## Patterns
@@ -44,7 +44,7 @@ test("withSpinner resolves with promise result", async () => {
 ## Ad-Hoc Testing
 
 ```bash
-bun vitest run vendor/hightea/packages/ui/tests/                    # All inkx-ui tests
+bun vitest run vendor/hightea/packages/ui/tests/                    # All hightea-ui tests
 bun vitest run vendor/hightea/packages/ui/tests/spinner.test.ts     # Spinner tests
 bun vitest run vendor/hightea/packages/ui/tests/select.test.ts      # Select component
 bun vitest run vendor/hightea/packages/ui/tests/declarative-steps.test.ts  # Steps API
@@ -52,7 +52,7 @@ bun vitest run vendor/hightea/packages/ui/tests/declarative-steps.test.ts  # Ste
 
 ## Efficiency
 
-Fast tests (~100ms). CLI component tests are slightly heavier due to stdout capture. React component tests only verify element creation (no full render). The `dotz-streaming` test uses `inkx` render which adds ~200ms.
+Fast tests (~100ms). CLI component tests are slightly heavier due to stdout capture. React component tests only verify element creation (no full render). The `dotz-streaming` test uses `hightea` render which adds ~200ms.
 
 ## See Also
 

@@ -8,9 +8,9 @@
  *   cd /Users/beorn/Code/pim/km && bun run vendor/hightea/benchmarks/ink-comparison/run.ts
  */
 
-// Ensure INKX_STRICT is disabled — it adds a fresh render comparison on every render
-delete process.env.INKX_STRICT
-delete process.env.INKX_CHECK_INCREMENTAL
+// Ensure HIGHTEA_STRICT is disabled — it adds a fresh render comparison on every render
+delete process.env.HIGHTEA_STRICT
+delete process.env.HIGHTEA_CHECK_INCREMENTAL
 
 import { bench, group, run } from "mitata"
 import React from "react"
@@ -18,9 +18,9 @@ import { createRenderer } from "../../src/testing/index.js"
 import { TerminalBuffer } from "../../src/buffer.js"
 import { executeRender, layoutPhase, contentPhase, outputPhase } from "../../src/pipeline.js"
 import { getLayoutEngine, setLayoutEngine } from "../../src/layout-engine.js"
-import { createFlexxZeroEngine } from "../../src/adapters/flexx-zero-adapter.js"
+import { createFlextureZeroEngine } from "../../src/adapters/flexture-zero-adapter.js"
 import { initYogaEngine } from "../../src/adapters/yoga-adapter.js"
-import type { InkxNode, BoxProps, TextProps } from "../../src/types.js"
+import type { TeaNode, BoxProps, TextProps } from "../../src/types.js"
 import { Box, Text } from "../../src/index.js"
 import { render as renderDirect } from "../../src/renderer.js"
 
@@ -28,9 +28,9 @@ import { render as renderDirect } from "../../src/renderer.js"
 // Setup
 // ============================================================================
 
-// Initialize with Flexx (default engine)
-const flexxEngine = createFlexxZeroEngine()
-setLayoutEngine(flexxEngine)
+// Initialize with Flexture (default engine)
+const flextureEngine = createFlextureZeroEngine()
+setLayoutEngine(flextureEngine)
 
 const render80x24 = createRenderer({ cols: 80, rows: 24 })
 const render120x40 = createRenderer({ cols: 120, rows: 40 })
@@ -40,15 +40,15 @@ const render120x40 = createRenderer({ cols: 120, rows: 40 })
 // ============================================================================
 
 function createMockNode(
-  type: InkxNode["type"],
+  type: TeaNode["type"],
   props: BoxProps | TextProps,
-  children: InkxNode[] = [],
+  children: TeaNode[] = [],
   textContent?: string,
-): InkxNode {
+): TeaNode {
   const engine = getLayoutEngine()
   const layoutNode = engine.createNode()
 
-  if (type === "inkx-box" || type === "inkx-text") {
+  if (type === "hightea-box" || type === "hightea-text") {
     const boxProps = props as BoxProps
     if (typeof boxProps.width === "number") layoutNode.setWidth(boxProps.width)
     if (typeof boxProps.height === "number") {
@@ -56,7 +56,7 @@ function createMockNode(
     }
   }
 
-  const node: InkxNode = {
+  const node: TeaNode = {
     type,
     props,
     children,
@@ -83,11 +83,11 @@ function createMockNode(
 }
 
 function createTree(childCount: number, cols: number, rows: number) {
-  const children: InkxNode[] = []
+  const children: TeaNode[] = []
   for (let i = 0; i < childCount; i++) {
-    children.push(createMockNode("inkx-text", {}, [], `Item ${i}: Example text content`))
+    children.push(createMockNode("hightea-text", {}, [], `Item ${i}: Example text content`))
   }
-  return createMockNode("inkx-box", { width: cols, height: rows }, children)
+  return createMockNode("hightea-box", { width: cols, height: rows }, children)
 }
 
 // ============================================================================
@@ -301,27 +301,27 @@ group("Resize (re-layout)", () => {
 })
 
 // ============================================================================
-// 5. Layout Engine Comparison: Flexx vs Yoga
+// 5. Layout Engine Comparison: Flexture vs Yoga
 // ============================================================================
 
-group("Layout Engine: Flexx vs Yoga", () => {
-  // Flexx benchmarks (already active)
-  bench("Flexx: 100 nodes layout", () => {
+group("Layout Engine: Flexture vs Yoga", () => {
+  // Flexture benchmarks (already active)
+  bench("Flexture: 100 nodes layout", () => {
     const root = createTree(100, 80, 24)
     layoutPhase(root, 80, 24)
   })
 
-  bench("Flexx: 50-node kanban layout", () => {
+  bench("Flexture: 50-node kanban layout", () => {
     // 3 columns with ~17 items each
-    const cols: InkxNode[] = []
+    const cols: TeaNode[] = []
     for (let c = 0; c < 3; c++) {
-      const items: InkxNode[] = []
+      const items: TeaNode[] = []
       for (let i = 0; i < 17; i++) {
-        items.push(createMockNode("inkx-text", {}, [], `Card ${c}-${i}: Task text`))
+        items.push(createMockNode("hightea-text", {}, [], `Card ${c}-${i}: Task text`))
       }
-      cols.push(createMockNode("inkx-box", { flexGrow: 1 }, items))
+      cols.push(createMockNode("hightea-box", { flexGrow: 1 }, items))
     }
-    const root = createMockNode("inkx-box", { width: 120, height: 40 }, cols)
+    const root = createMockNode("hightea-box", { width: 120, height: 40 }, cols)
     layoutPhase(root, 120, 40)
   })
 })
@@ -338,21 +338,21 @@ group("Layout Engine: Yoga", () => {
   })
 
   bench("Yoga: 50-node kanban layout", () => {
-    const cols: InkxNode[] = []
+    const cols: TeaNode[] = []
     for (let c = 0; c < 3; c++) {
-      const items: InkxNode[] = []
+      const items: TeaNode[] = []
       for (let i = 0; i < 17; i++) {
-        items.push(createMockNode("inkx-text", {}, [], `Card ${c}-${i}: Task text`))
+        items.push(createMockNode("hightea-text", {}, [], `Card ${c}-${i}: Task text`))
       }
-      cols.push(createMockNode("inkx-box", { flexGrow: 1 }, items))
+      cols.push(createMockNode("hightea-box", { flexGrow: 1 }, items))
     }
-    const root = createMockNode("inkx-box", { width: 120, height: 40 }, cols)
+    const root = createMockNode("hightea-box", { width: 120, height: 40 }, cols)
     layoutPhase(root, 120, 40)
   })
 })
 
-// Restore Flexx as default
-setLayoutEngine(flexxEngine)
+// Restore Flexture as default
+setLayoutEngine(flextureEngine)
 
 // ============================================================================
 // 6. Memory: Heap size for rendered app snapshots
@@ -379,7 +379,7 @@ group("Memory (heap snapshot)", () => {
 
 console.log("inkx Comparison Benchmark Suite")
 console.log("================================")
-console.log(`Layout engine: Flexx (default) + Yoga comparison`)
+console.log(`Layout engine: Flexture (default) + Yoga comparison`)
 console.log(`Platform: ${process.platform} ${process.arch}`)
 console.log()
 
@@ -394,8 +394,8 @@ console.log("(approximate gzipped sizes)")
 console.log()
 console.log("| Package         | Size (gzip) | Notes                    |")
 console.log("| --------------- | ----------- | ------------------------ |")
-console.log("| inkx + Flexx    | ~45 KB      | Pure JS layout engine    |")
+console.log("| inkx + Flexture    | ~45 KB      | Pure JS layout engine    |")
 console.log("| inkx + Yoga     | ~76 KB      | WASM layout engine       |")
-console.log("| ink             | ~52 KB      | Yoga-only, no Flexx opt  |")
+console.log("| ink             | ~52 KB      | Yoga-only, no Flexture opt  |")
 console.log()
 console.log("Note: ink numbers from npm bundle analysis. inkx numbers from local build.")

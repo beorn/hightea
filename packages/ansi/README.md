@@ -49,19 +49,19 @@ const unsubscribe = patched.subscribe(() => {
 })
 ```
 
-### Using with inkx
+### Using with hightea
 
-If you're building a TUI app with [inkx](https://github.com/beorn/hightea), import term primitives from `inkx` directly - it re-exports everything from chalkx:
+If you're building a TUI app with [hightea](https://github.com/beorn/hightea), import term primitives from `hightea` directly - it re-exports everything from chalkx:
 
 ```typescript
-// Preferred for inkx apps - one import source
+// Preferred for hightea apps - one import source
 import { render, Box, Text, createTerm, patchConsole } from "@hightea/term"
 
 // Only import from chalkx for extended ANSI features not re-exported
 import { curlyUnderline, hyperlink, bgOverride } from "@hightea/ansi"
 ```
 
-For CLI tools, scripts, or non-inkx projects, import directly from chalkx.
+For CLI tools, scripts, or non-hightea projects, import directly from chalkx.
 
 ### Default Term for Simple Scripts
 
@@ -135,7 +135,7 @@ Unsupported terminals gracefully fall back to regular underlines.
 - **Extended underline styles** - curly (wavy), dotted, dashed, double
 - **Independent underline color** - set underline color separately from text color
 - **Hyperlinks** - clickable OSC 8 terminal hyperlinks
-- **inkx compatibility** - `bgOverride()` for safe chalk bg usage with inkx
+- **hightea compatibility** - `bgOverride()` for safe chalk bg usage with hightea
 - **Graceful fallback** - degrades to regular underlines on unsupported terminals
 - **ANSI utilities** - `stripAnsi()`, `displayLength()`
 
@@ -147,9 +147,9 @@ bun add @hightea/ansi
 npm install @hightea/ansi
 ```
 
-## inkx Background Override
+## hightea Background Override
 
-When using chalk with [inkx](https://github.com/beorn/hightea), mixing chalk backgrounds with inkx `backgroundColor` props causes visual artifacts. Use `bgOverride()` to explicitly allow this:
+When using chalk with [hightea](https://github.com/beorn/hightea), mixing chalk backgrounds with hightea `backgroundColor` props causes visual artifacts. Use `bgOverride()` to explicitly allow this:
 
 ```tsx
 import { bgOverride, chalk } from "@hightea/ansi"
@@ -159,7 +159,7 @@ import { Box, Text } from "@hightea/term"
 </Box>
 ```
 
-Control detection via `INKX_BG_CONFLICT` env var: `throw` (default), `warn`, or `ignore`.
+Control detection via `HIGHTEA_BG_CONFLICT` env var: `throw` (default), `warn`, or `ignore`.
 
 ## Terminal Support
 
@@ -239,9 +239,9 @@ bun ./src/storybook.ts
 
 | Project                                 | Description                                     |
 | --------------------------------------- | ----------------------------------------------- |
-| [inkx](https://github.com/beorn/hightea)   | React terminal UI framework (re-exports chalkx) |
+| [hightea](https://github.com/beorn/hightea)   | React terminal UI framework (re-exports chalkx) |
 | [chalk](https://github.com/chalk/chalk) | Industry-standard terminal styling              |
-| [Flexx](https://github.com/beorn/flexx) | Pure JS flexbox layout engine                   |
+| [Flexture](https://github.com/beorn/flexture) | Pure JS flexbox layout engine                   |
 
 ## License
 

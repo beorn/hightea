@@ -1,6 +1,6 @@
 # Scrollback Analysis: Interactivity in Inline Mode
 
-> **Bead**: km-inkx.scrollback-analysis
+> **Bead**: km-hightea.scrollback-analysis
 > **Date**: 2026-02-25
 
 ## The Core Question
@@ -37,7 +37,7 @@ Terminal emulators handle this differently:
 
 **Critical insight**: When the user scrolls up and the app writes new output at the cursor position (bottom of viewport), the terminal updates the viewport content at the bottom BUT does not force the user's view to scroll down. The user sees stale content until they scroll back.
 
-## inkx Inline Mode Architecture
+## hightea Inline Mode Architecture
 
 ### How It Works Now
 
@@ -123,7 +123,7 @@ const frozenCount = useScrollback(exchanges, {
 
 Claude Code's inline mode has known issues:
 
-| Issue                                                   | Claude Code                                            | inkx with useScrollback                                                   |
+| Issue                                                   | Claude Code                                            | hightea with useScrollback                                                   |
 | ------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------- |
 | Scrollback contains stale TUI frames                    | ✅ Problem — every viewport redraw pushes stale frames | ✅ **Solved** — frozen content is rendered once as clean text             |
 | Auto-scroll to top when output arrives during scroll-up | ✅ Problem (issue #10769)                              | ✅ **Solved** — live area stays at cursor, user's viewport is undisturbed |
@@ -147,7 +147,7 @@ This is essentially what useScrollback does natively — but at the framework le
 
 | Framework                | Mode                 | Scrollback                     | Scroll Detection | Live Updates        |
 | ------------------------ | -------------------- | ------------------------------ | ---------------- | ------------------- |
-| **inkx (useScrollback)** | Inline               | Clean frozen content           | No               | Yes, small viewport |
+| **hightea (useScrollback)** | Inline               | Clean frozen content           | No               | Yes, small viewport |
 | **Claude Code**          | Inline               | Stale frames                   | No               | Yes, full viewport  |
 | **pi-tui**               | Inline               | Line-by-line native            | No               | Yes, differential   |
 | **BubbleTea**            | Alt screen (default) | None                           | N/A              | Full screen         |
@@ -185,7 +185,7 @@ Textual's inline mode anchors the frame to the bottom. Uses cursor repositioning
 
 ### 3. User Scrolls Up During Live Content
 
-**Current behavior**: inkx keeps rendering at the cursor position. The user's viewport is undisturbed (Ghostty default). When the user presses a key, the terminal scrolls back to the bottom.
+**Current behavior**: hightea keeps rendering at the cursor position. The user's viewport is undisturbed (Ghostty default). When the user presses a key, the terminal scrolls back to the bottom.
 
 **The problem**: The user can't see live updates while scrolled up. They might miss important progress.
 
@@ -215,7 +215,7 @@ The `renderExchangeToJSX` function uses `process.stdout.columns || 80` for width
 2. **Consider adding**: A "session complete — press q to quit, scroll up to review" message when done, to encourage the user to explore the scrollback.
 3. **Consider adding**: Visual bell on compaction events if the user might be scrolled up.
 
-### For inkx Framework
+### For hightea Framework
 
 1. **Document the pattern**: useScrollback + inline mode is the recommended way to build Claude Code-style apps. Document the tradeoffs clearly.
 2. **Consider**: An optional `scroll-to-bottom` hint that apps can emit (e.g., via OSC) for terminals that support it.
@@ -233,7 +233,7 @@ The layout engine and buffer are **correct** — every line is exactly `cols` vi
 2. Trim trailing whitespace before the last column
 3. Reorder `\x1b[K` before the final character
 
-See bead `km-inkx.inline-autowrap` for tracking.
+See bead `km-hightea.inline-autowrap` for tracking.
 
 ### Enriching Scrollback Content
 

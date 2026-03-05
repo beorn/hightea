@@ -24,7 +24,7 @@ import {
 import { createFocusManager } from "../src/focus-manager.js"
 import { findByTestID, getTabOrder } from "../src/focus-queries.js"
 import { emptyKey, type Key } from "../src/keys.js"
-import type { InkxNode, Rect } from "../src/types.js"
+import type { TeaNode, Rect } from "../src/types.js"
 
 // ============================================================================
 // Helpers
@@ -35,7 +35,7 @@ function fakeNode(
   opts: {
     focusable?: boolean
     focusScope?: boolean
-    parent?: InkxNode
+    parent?: TeaNode
     screenRect?: Rect
     onFocus?: (e: InkxFocusEvent) => void
     onBlur?: (e: InkxFocusEvent) => void
@@ -44,9 +44,9 @@ function fakeNode(
     nextFocusRight?: string
     nextFocusDown?: string
   } = {},
-): InkxNode {
+): TeaNode {
   const node = {
-    type: "inkx-box" as const,
+    type: "hightea-box" as const,
     props: {
       testID,
       ...(opts.focusable !== undefined ? { focusable: opts.focusable } : {}),
@@ -58,11 +58,11 @@ function fakeNode(
       ...(opts.nextFocusRight ? { nextFocusRight: opts.nextFocusRight } : {}),
       ...(opts.nextFocusDown ? { nextFocusDown: opts.nextFocusDown } : {}),
     },
-    children: [] as InkxNode[],
+    children: [] as TeaNode[],
     parent: opts.parent ?? null,
     layoutNode: null,
     screenRect: opts.screenRect ?? null,
-  } as unknown as InkxNode
+  } as unknown as TeaNode
   if (opts.parent) {
     opts.parent.children.push(node)
   }
@@ -181,7 +181,7 @@ describe("focusScope trapping", () => {
 // ============================================================================
 
 describe("Arrow key spatial navigation", () => {
-  function layoutFn(node: InkxNode): Rect | null {
+  function layoutFn(node: TeaNode): Rect | null {
     return node.screenRect
   }
 

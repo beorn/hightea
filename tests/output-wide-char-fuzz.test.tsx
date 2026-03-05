@@ -8,7 +8,7 @@
  * - Accumulated drift across multiple incremental renders
  *
  * All verification uses replayAnsiWithStyles (the same virtual terminal used
- * by INKX_STRICT_OUTPUT) which correctly handles wide char cursor advancement.
+ * by HIGHTEA_STRICT_OUTPUT) which correctly handles wide char cursor advancement.
  */
 import { describe, test, expect } from "vitest"
 import { TerminalBuffer } from "../src/buffer.js"
@@ -557,7 +557,7 @@ describe("Component-level: CJK text with incremental rendering", () => {
     // Navigate cursor through all cards (12 positions)
     for (let i = 1; i < 12; i++) {
       app.rerender(<Board cursor={i} />)
-      // Each rerender triggers an incremental diff — INKX_STRICT_OUTPUT
+      // Each rerender triggers an incremental diff — HIGHTEA_STRICT_OUTPUT
       // verifies the ANSI output matches fresh render
       expect(app.text).toContain(headers[Math.floor(i / 3)]!)
     }
@@ -590,7 +590,7 @@ describe("Component-level: CJK text with incremental rendering", () => {
     for (let i = 1; i <= 12; i++) {
       app.rerender(<App lang={i} />)
     }
-    // If cursor drift occurred, INKX_STRICT_OUTPUT would have thrown
+    // If cursor drift occurred, HIGHTEA_STRICT_OUTPUT would have thrown
     expect(app.text).toContain("Status: 12")
   })
 

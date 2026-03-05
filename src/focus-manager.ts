@@ -7,7 +7,7 @@
  * Replaces the flat focus list in context.ts (FocusContext with focusables Map).
  */
 
-import type { InkxNode, Rect } from "./types.js"
+import type { TeaNode, Rect } from "./types.js"
 import {
   findByTestID,
   findFocusableAncestor,
@@ -31,8 +31,8 @@ export type FocusOrigin = "keyboard" | "mouse" | "programmatic"
  * @param origin - How focus was acquired
  */
 export type FocusChangeCallback = (
-  oldNode: InkxNode | null,
-  newNode: InkxNode | null,
+  oldNode: TeaNode | null,
+  newNode: TeaNode | null,
   origin: FocusOrigin | null,
 ) => void
 
@@ -52,11 +52,11 @@ export interface FocusManagerOptions {
 
 export interface FocusManager {
   /** Currently focused node */
-  readonly activeElement: InkxNode | null
+  readonly activeElement: TeaNode | null
   /** testID of the currently focused node */
   readonly activeId: string | null
   /** Previously focused node */
-  readonly previousElement: InkxNode | null
+  readonly previousElement: TeaNode | null
   /** testID of the previously focused node */
   readonly previousId: string | null
   /** How focus was most recently acquired */
@@ -67,9 +67,9 @@ export interface FocusManager {
   readonly scopeMemory: Readonly<Record<string, string>>
 
   /** Focus a specific node */
-  focus(node: InkxNode, origin?: FocusOrigin): void
+  focus(node: TeaNode, origin?: FocusOrigin): void
   /** Focus a node by testID (requires root for tree search) */
-  focusById(id: string, root: InkxNode, origin?: FocusOrigin): void
+  focusById(id: string, root: TeaNode, origin?: FocusOrigin): void
   /** Clear focus */
   blur(): void
 
@@ -85,22 +85,22 @@ export interface FocusManager {
    * switches to the new scope, and restores the remembered focus (or focuses
    * the first focusable element in the scope subtree).
    */
-  activateScope(scopeId: string, root: InkxNode): void
+  activateScope(scopeId: string, root: TeaNode): void
 
   /** Get the testID path from focused node to root */
-  getFocusPath(root: InkxNode): string[]
+  getFocusPath(root: TeaNode): string[]
   /** Check if a subtree rooted at testID contains the focused node */
-  hasFocusWithin(root: InkxNode, testID: string): boolean
+  hasFocusWithin(root: TeaNode, testID: string): boolean
 
   /** Focus the next focusable node in tab order */
-  focusNext(root: InkxNode, scope?: InkxNode): void
+  focusNext(root: TeaNode, scope?: TeaNode): void
   /** Focus the previous focusable node in tab order */
-  focusPrev(root: InkxNode, scope?: InkxNode): void
+  focusPrev(root: TeaNode, scope?: TeaNode): void
   /** Focus in a spatial direction (up/down/left/right) */
   focusDirection(
-    root: InkxNode,
+    root: TeaNode,
     direction: "up" | "down" | "left" | "right",
-    layoutFn?: (node: InkxNode) => Rect | null,
+    layoutFn?: (node: TeaNode) => Rect | null,
   ): void
 
   /** Subscribe for React integration (useSyncExternalStore) */
@@ -117,9 +117,9 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
   const onFocusChange = options?.onFocusChange
 
   // Internal state
-  let activeElement: InkxNode | null = null
+  let activeElement: TeaNode | null = null
   let activeId: string | null = null
-  let previousElement: InkxNode | null = null
+  let previousElement: TeaNode | null = null
   let previousId: string | null = null
   let focusOrigin: FocusOrigin | null = null
   const scopeStack: string[] = []
@@ -137,14 +137,14 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     }
   }
 
-  function getTestID(node: InkxNode): string | null {
+  function getTestID(node: TeaNode): string | null {
     const props = node.props as Record<string, unknown>
     return typeof props.testID === "string" ? props.testID : null
   }
 
   // ---- Focus operations ----
 
-  function focus(node: InkxNode, origin: FocusOrigin = "programmatic"): void {
+  function focus(node: TeaNode, origin: FocusOrigin = "programmatic"): void {
     // Skip if already focused on this node
     if (activeElement === node) {
       // Still update origin if different
@@ -173,7 +173,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     onFocusChange?.(oldElement, node, origin)
   }
 
-  function focusById(id: string, root: InkxNode, origin: FocusOrigin = "programmatic"): void {
+  function focusById(id: string, root: TeaNode, origin: FocusOrigin = "programmatic"): void {
     const node = findByTestID(root, id)
     if (node) {
       // Walk up to the nearest focusable ancestor if the found node isn't focusable
@@ -232,7 +232,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
 
   // ---- Peer scope activation (WPF FocusScope model) ----
 
-  function activateScope(scopeId: string, root: InkxNode): void {
+  function activateScope(scopeId: string, root: TeaNode): void {
     // Save current focus in the outgoing scope's memory
     if (activeScopeId && activeId) {
       scopeMemory[activeScopeId] = activeId
@@ -260,11 +260,11 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
 
   // ---- Tree queries ----
 
-  function getFocusPath(root: InkxNode): string[] {
+  function getFocusPath(root: TeaNode): string[] {
     if (!activeElement) return []
 
     const path: string[] = []
-    let current: InkxNode | null = activeElement
+    let current: TeaNode | null = activeElement
     while (current && current !== root.parent) {
       const id = getTestID(current)
       if (id) path.push(id)
@@ -273,7 +273,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     return path
   }
 
-  function hasFocusWithin(root: InkxNode, testID: string): boolean {
+  function hasFocusWithin(root: TeaNode, testID: string): boolean {
     if (!activeElement) return false
 
     // Find the node with the given testID
@@ -281,7 +281,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     if (!target) return false
 
     // Walk up from activeElement to see if we pass through target
-    let current: InkxNode | null = activeElement
+    let current: TeaNode | null = activeElement
     while (current) {
       if (current === target) return true
       current = current.parent
@@ -296,7 +296,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
    * If an explicit scope is provided, use it. Otherwise, if the scopeStack
    * is non-empty, find the topmost scope node in the tree by testID.
    */
-  function resolveScope(root: InkxNode, explicitScope?: InkxNode): InkxNode | undefined {
+  function resolveScope(root: TeaNode, explicitScope?: TeaNode): TeaNode | undefined {
     if (explicitScope) return explicitScope
 
     if (scopeStack.length > 0) {
@@ -308,7 +308,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     return undefined
   }
 
-  function focusNext(root: InkxNode, scope?: InkxNode): void {
+  function focusNext(root: TeaNode, scope?: TeaNode): void {
     const effectiveScope = resolveScope(root, scope)
     const order = getTabOrder(root, effectiveScope)
     if (order.length === 0) return
@@ -325,7 +325,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     focus(order[nextIndex]!, "keyboard")
   }
 
-  function focusPrev(root: InkxNode, scope?: InkxNode): void {
+  function focusPrev(root: TeaNode, scope?: TeaNode): void {
     const effectiveScope = resolveScope(root, scope)
     const order = getTabOrder(root, effectiveScope)
     if (order.length === 0) return
@@ -343,9 +343,9 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
   }
 
   function focusDirection(
-    root: InkxNode,
+    root: TeaNode,
     direction: "up" | "down" | "left" | "right",
-    layoutFn?: (node: InkxNode) => Rect | null,
+    layoutFn?: (node: TeaNode) => Rect | null,
   ): void {
     if (!activeElement) return
 
@@ -358,7 +358,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
 
     // Fall back to spatial navigation
     const candidates = getTabOrder(root)
-    const resolvedLayoutFn = layoutFn ?? ((node: InkxNode) => node.screenRect)
+    const resolvedLayoutFn = layoutFn ?? ((node: TeaNode) => node.screenRect)
     const target = findSpatialTarget(activeElement, direction, candidates, resolvedLayoutFn)
     if (target) {
       focus(target, "keyboard")

@@ -11,7 +11,7 @@
  */
 
 import { type RenderBuffer, type RenderStyle, getRenderAdapter, hasRenderAdapter } from "../render-adapter.js"
-import type { BoxProps, InkxNode, Rect, TextProps } from "../types.js"
+import type { BoxProps, TeaNode, Rect, TextProps } from "../types.js"
 import { getBorderSize, getPadding } from "./helpers.js"
 
 // ============================================================================
@@ -24,7 +24,7 @@ import { getBorderSize, getPadding } from "./helpers.js"
  * @param root The root InkxNode
  * @returns A RenderBuffer with the rendered content
  */
-export function contentPhaseAdapter(root: InkxNode): RenderBuffer {
+export function contentPhaseAdapter(root: TeaNode): RenderBuffer {
   if (!hasRenderAdapter()) {
     throw new Error("contentPhaseAdapter called without a render adapter set")
   }
@@ -49,7 +49,7 @@ export function contentPhaseAdapter(root: InkxNode): RenderBuffer {
  * Render a single node to the buffer.
  */
 function renderNodeToBuffer(
-  node: InkxNode,
+  node: TeaNode,
   buffer: RenderBuffer,
   scrollOffset = 0,
   clipBounds?: { top: number; bottom: number },
@@ -72,14 +72,14 @@ function renderNodeToBuffer(
   const isScrollContainer = props.overflow === "scroll" && node.scrollState
 
   // Render based on node type
-  if (node.type === "inkx-box") {
+  if (node.type === "hightea-box") {
     renderBox(node, buffer, layout, props, clipBounds, scrollOffset)
 
     // Scroll indicators
     if (isScrollContainer && node.scrollState) {
       renderScrollIndicators(node, buffer, layout, props, node.scrollState)
     }
-  } else if (node.type === "inkx-text") {
+  } else if (node.type === "hightea-text") {
     renderText(node, buffer, layout, props, scrollOffset, clipBounds)
   }
 
@@ -91,7 +91,7 @@ function renderNodeToBuffer(
   }
 
   // Render outline AFTER children — outline overlaps content at edges
-  if (node.type === "inkx-box" && props.outlineStyle) {
+  if (node.type === "hightea-box" && props.outlineStyle) {
     const { x, width, height } = layout
     const outlineY = layout.y - scrollOffset
     renderOutlineAdapter(buffer, x, outlineY, width, height, props, clipBounds)
@@ -109,7 +109,7 @@ function renderNodeToBuffer(
  * Render a Box node.
  */
 function renderBox(
-  _node: InkxNode,
+  _node: TeaNode,
   buffer: RenderBuffer,
   layout: Rect,
   props: BoxProps,
@@ -314,7 +314,7 @@ function renderOutlineAdapter(
  * Walk the parent chain to find the nearest ancestor Box with backgroundColor.
  * Mirrors findInheritedBg() in content-phase.ts.
  */
-function findAncestorBg(node: InkxNode): string | undefined {
+function findAncestorBg(node: TeaNode): string | undefined {
   let current = node.parent
   while (current) {
     const bg = (current.props as BoxProps).backgroundColor
@@ -328,7 +328,7 @@ function findAncestorBg(node: InkxNode): string | undefined {
  * Render a Text node.
  */
 function renderText(
-  node: InkxNode,
+  node: TeaNode,
   buffer: RenderBuffer,
   layout: Rect,
   props: TextProps,
@@ -376,7 +376,7 @@ function renderText(
 /**
  * Collect text content from a node and its children.
  */
-function collectTextContent(node: InkxNode): string {
+function collectTextContent(node: TeaNode): string {
   // Raw text nodes have textContent set directly
   if (node.isRawText && node.textContent !== undefined) {
     return node.textContent
@@ -410,7 +410,7 @@ interface ScrollState {
  * Render scroll indicators for a scrollable container.
  */
 function renderScrollIndicators(
-  _node: InkxNode,
+  _node: TeaNode,
   buffer: RenderBuffer,
   layout: Rect,
   props: BoxProps,
@@ -451,7 +451,7 @@ function renderScrollIndicators(
  * Render children of a scroll container.
  */
 function renderScrollContainerChildren(
-  node: InkxNode,
+  node: TeaNode,
   buffer: RenderBuffer,
   props: BoxProps,
   clipBounds?: { top: number; bottom: number },
@@ -503,7 +503,7 @@ function renderScrollContainerChildren(
  * Render children of a normal container.
  */
 function renderNormalChildren(
-  node: InkxNode,
+  node: TeaNode,
   buffer: RenderBuffer,
   scrollOffset: number,
   props: BoxProps,

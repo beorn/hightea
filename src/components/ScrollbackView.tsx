@@ -49,7 +49,7 @@ import type { ScrollbackMarkerCallbacks } from "../hooks/useScrollback.js"
 import { useScrollback } from "../hooks/useScrollback.js"
 import { renderStringSync } from "../render-string.js"
 import { ScrollbackItemProvider } from "../hooks/useScrollbackItem.js"
-import type { InkxNode } from "../types.js"
+import type { TeaNode } from "../types.js"
 
 // ============================================================================
 // Types
@@ -168,7 +168,7 @@ export function ScrollbackView<T>({
   // frozenWidth = effectiveWidth - hPadding on every render. This avoids
   // the stale-layoutInfo problem where resize triggers a re-emit before
   // the layout engine has recomputed at the new width.
-  const outerNodeRef = useRef<InkxNode | null>(null)
+  const outerNodeRef = useRef<TeaNode | null>(null)
   const [layoutInfo, setLayoutInfo] = useState<{ width: number; x: number } | null>(null)
 
   // Horizontal padding: total left+right padding from parent containers.
@@ -352,21 +352,21 @@ export function ScrollbackView<T>({
 
   // Render live items with memoized wrappers
   return (
-    <inkx-box ref={outerNodeRef} flexDirection="column">
+    <hightea-box ref={outerNodeRef} flexDirection="column">
       {/* Content area: live (unfrozen) items */}
-      <inkx-box flexDirection="column">
+      <hightea-box flexDirection="column">
         {liveItems.map(({ item, index, key }) => (
           <MemoItem key={key} item={item} index={index} freeze={getFreeze(key)} renderFn={render} />
         ))}
-      </inkx-box>
+      </hightea-box>
 
       {/* Footer pinned at bottom — auto-sizes to content */}
       {footer != null && (
-        <inkx-box flexDirection="column" flexShrink={0}>
+        <hightea-box flexDirection="column" flexShrink={0}>
           {footer}
-        </inkx-box>
+        </hightea-box>
       )}
-    </inkx-box>
+    </hightea-box>
   )
 }
 

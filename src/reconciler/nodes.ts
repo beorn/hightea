@@ -5,7 +5,7 @@
  */
 
 import { type LayoutNode, getConstants, getLayoutEngine } from "../layout-engine.js"
-import { type BoxProps, type InkxNode, type InkxNodeType, type TextProps, rectEqual } from "../types.js"
+import { type BoxProps, type TeaNode, type TeaNodeType, type TextProps, rectEqual } from "../types.js"
 import { type Measurer, displayWidth, wrapText } from "../unicode.js"
 
 // Profiling counters for measure function performance analysis (dev only)
@@ -30,13 +30,13 @@ export const measureStats = {
  * Create a new InkxNode with a fresh layout node.
  */
 export function createNode(
-  type: InkxNodeType,
+  type: TeaNodeType,
   props: BoxProps | TextProps | Record<string, unknown>,
   measurer?: Measurer,
-): InkxNode {
+): TeaNode {
   const layoutNode = getLayoutEngine().createNode()
 
-  const node: InkxNode = {
+  const node: TeaNode = {
     type,
     props,
     children: [],
@@ -57,13 +57,13 @@ export function createNode(
   }
 
   // Apply initial flexbox props to layout node
-  if (type === "inkx-box") {
+  if (type === "hightea-box") {
     applyBoxProps(layoutNode, props as BoxProps)
   }
 
   // Set up measure function for text nodes
   // This tells the layout engine how to calculate the text's intrinsic size
-  if (type === "inkx-text") {
+  if (type === "hightea-text") {
     // Cache for measure results - avoid recalculating if text and constraints unchanged
     // Cache multiple (width, widthMode) -> result entries since layout calls measure with different widths
     let cachedText: string | null = null
@@ -72,10 +72,10 @@ export function createNode(
     layoutNode.setMeasureFunc((width, widthMode, height, heightMode) => {
       measureStats.calls++
       // @ts-expect-error - temporary debug
-      if (globalThis.__inkx_debug_measure) {
+      if (globalThis.__hightea_debug_measure) {
         const text = collectNodeTextContent(node)
         // @ts-expect-error - temporary debug
-        globalThis.__inkx_debug_measure_log?.push({ text: text.slice(0, 40), width, widthMode, height, heightMode })
+        globalThis.__hightea_debug_measure_log?.push({ text: text.slice(0, 40), width, widthMode, height, heightMode })
       }
 
       // Fast path: check if we have a cached result for this exact constraint
@@ -188,7 +188,7 @@ export function createNode(
 /**
  * Collect text content from a node and its children (for measure function).
  */
-function collectNodeTextContent(node: InkxNode): string {
+function collectNodeTextContent(node: TeaNode): string {
   if (node.textContent !== undefined) {
     return node.textContent
   }
@@ -202,8 +202,8 @@ function collectNodeTextContent(node: InkxNode): string {
 /**
  * Create the root node for the Inkx tree.
  */
-export function createRootNode(): InkxNode {
-  return createNode("inkx-root", {})
+export function createRootNode(): TeaNode {
+  return createNode("hightea-root", {})
 }
 
 /**
@@ -211,9 +211,9 @@ export function createRootNode(): InkxNode {
  * Virtual text nodes don't have layout nodes and don't participate in layout.
  * They're used when Text is nested inside another Text.
  */
-export function createVirtualTextNode(props: TextProps): InkxNode {
+export function createVirtualTextNode(props: TextProps): TeaNode {
   return {
-    type: "inkx-text",
+    type: "hightea-text",
     props,
     children: [],
     parent: null,
@@ -486,7 +486,7 @@ function justifyToConstant(justify: string): number {
 /**
  * Calculate layout for the entire tree starting from root.
  */
-export function calculateLayout(root: InkxNode, width: number, height: number): void {
+export function calculateLayout(root: TeaNode, width: number, height: number): void {
   const c = getConstants()
   if (!root.layoutNode) {
     throw new Error("Root node must have a layout node")
@@ -499,7 +499,7 @@ export function calculateLayout(root: InkxNode, width: number, height: number): 
 /**
  * Propagate computed layout from layout nodes to InkxNodes.
  */
-function propagateLayout(node: InkxNode, parentX: number, parentY: number): void {
+function propagateLayout(node: TeaNode, parentX: number, parentY: number): void {
   // Save previous layout for change detection
   node.prevLayout = node.contentRect
 
@@ -537,7 +537,7 @@ function propagateLayout(node: InkxNode, parentX: number, parentY: number): void
 /**
  * Notify all layout subscribers of layout changes.
  */
-function notifyLayoutSubscribers(node: InkxNode): void {
+function notifyLayoutSubscribers(node: TeaNode): void {
   if (!rectEqual(node.prevLayout, node.contentRect)) {
     for (const subscriber of node.layoutSubscribers) {
       subscriber()

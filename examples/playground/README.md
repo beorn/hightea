@@ -1,6 +1,6 @@
-# inkx Canvas Playground
+# hightea Canvas Playground
 
-Interactive browser demo of inkx's Canvas 2D adapter. Renders React components to an HTML5 `<canvas>` element using the same layout engine and rendering pipeline as the terminal adapter.
+Interactive browser demo of hightea's Canvas 2D adapter. Renders React components to an HTML5 `<canvas>` element using the same layout engine and rendering pipeline as the terminal adapter.
 
 ## Quick Start
 
@@ -33,13 +33,13 @@ Resize the browser window to see layouts recompute. The canvas size is shown in 
 
 ## Architecture
 
-The playground uses the same rendering pipeline as inkx's terminal mode:
+The playground uses the same rendering pipeline as hightea's terminal mode:
 
 ```
 React JSX
   |  React reconciler builds InkxNode tree
   v
-Flexx layout engine (pure JS flexbox)
+Flexture layout engine (pure JS flexbox)
   |  Computes { x, y, width, height } for every node
   v
 Canvas adapter (CanvasRenderBuffer)
@@ -64,6 +64,6 @@ A static HTML page cannot bundle a JSX transpiler. For a full live-editing exper
 - **Vite** for dev server and HMR
 - **Monaco Editor** for JSX editing with TypeScript intellisense
 - **Sucrase** (in-browser) for JSX transpilation
-- **inkx/canvas** for rendering the user's components
+- **hightea/canvas** for rendering the user's components
 
 Deployment targets: GitHub Pages (static export), StackBlitz (zero-install), or self-hosted.

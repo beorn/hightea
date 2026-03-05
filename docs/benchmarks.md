@@ -1,14 +1,14 @@
-# inkx Benchmarks
+# hightea Benchmarks
 
-Raw benchmark data for inkx performance. All numbers from Apple M1 Max, macOS, Bun 1.3.9, February 2026.
+Raw benchmark data for hightea performance. All numbers from Apple M1 Max, macOS, Bun 1.3.9, February 2026.
 
-Reproduce with `bun run bench` (internal) or `bun run bench:compare` (inkx vs Ink). See [benchmark suite README](../benchmarks/ink-comparison/README.md) for Ink comparison methodology.
+Reproduce with `bun run bench` (internal) or `bun run bench:compare` (hightea vs Ink). See [benchmark suite README](../benchmarks/ink-comparison/README.md) for Ink comparison methodology.
 
-For technical explanations of these optimizations, see [Performance Deep Dive](deep-dives/performance.md). For the head-to-head Ink comparison with context and code examples, see [inkx vs Ink](inkx-vs-ink.md).
+For technical explanations of these optimizations, see [Performance Deep Dive](deep-dives/performance.md). For the head-to-head Ink comparison with context and code examples, see [hightea vs Ink](hightea-vs-ink.md).
 
 ---
 
-## inkx Internal Benchmarks
+## hightea Internal Benchmarks
 
 ### Full Pipeline
 
@@ -27,8 +27,8 @@ Diff renders are 6-8x faster than first renders thanks to incremental rendering.
 | ----------------------------- | ----- | --------------------------------- |
 | `measurePhase (simple)`       | 4ns   | Cached, no dirty nodes            |
 | `measurePhase (100 children)` | 523ns | Selective traversal               |
-| `layoutPhase (simple)`        | 442ns | Flexx layout                      |
-| `layoutPhase (100 children)`  | 24us  | Flexx layout                      |
+| `layoutPhase (simple)`        | 442ns | Flexture layout                      |
+| `layoutPhase (100 children)`  | 24us  | Flexture layout                      |
 | `contentPhase (simple)`       | 1.7us | Incremental clone + dirty skip    |
 | `contentPhase (100 children)` | 3.4us | Incremental clone + dirty skip    |
 | `outputPhase (no changes)`    | 7.5us | Dirty bounding box skips all rows |
@@ -50,51 +50,51 @@ Diff renders are 6-8x faster than first renders thanks to incremental rendering.
 
 ---
 
-## inkx vs Ink Benchmarks
+## hightea vs Ink Benchmarks
 
 ### Typical Frame Update (Interactive)
 
 When a user presses a key (cursor move, selection change, typing), this is what each framework does to update the screen:
 
-| Nodes | inkx (dirty-tracking) | Ink 6 (full re-render) | Ratio      |
+| Nodes | hightea (dirty-tracking) | Ink 6 (full re-render) | Ratio      |
 | ----- | --------------------- | ---------------------- | ---------- |
-| 100   | 18us                  | 2.1ms                  | inkx ~117x |
-| 1000  | 101us                 | 19.9ms                 | inkx ~197x |
+| 100   | 18us                  | 2.1ms                  | hightea ~117x |
+| 1000  | 101us                 | 19.9ms                 | hightea ~197x |
 
-inkx tracks which nodes changed and only re-renders the dirty subtree -- no React reconciliation needed. Ink has no incremental mode, so every frame update triggers a full React re-render of the entire tree. The gap grows with tree size because inkx's cost is proportional to the _change_ while Ink's cost is proportional to the _tree_.
+hightea tracks which nodes changed and only re-renders the dirty subtree -- no React reconciliation needed. Ink has no incremental mode, so every frame update triggers a full React re-render of the entire tree. The gap grows with tree size because hightea's cost is proportional to the _change_ while Ink's cost is proportional to the _tree_.
 
 ### First Render (Full Pipeline)
 
-| Components | inkx (Flexx) | Ink 6 (Yoga NAPI) | Ratio     |
+| Components | hightea (Flexture) | Ink 6 (Yoga NAPI) | Ratio     |
 | ---------- | ------------ | ----------------- | --------- |
-| 1          | 169 us       | 257 us            | inkx 1.5x |
-| 100        | 44.2 ms      | 50.5 ms           | inkx 1.1x |
-| 1000       | 446 ms       | 546 ms            | inkx 1.2x |
+| 1          | 169 us       | 257 us            | hightea 1.5x |
+| 100        | 44.2 ms      | 50.5 ms           | hightea 1.1x |
+| 1000       | 446 ms       | 546 ms            | hightea 1.2x |
 
 Both include React reconciliation. First-render performance is similar -- the incremental machinery doesn't help here.
 
 ### Full Pipeline (React Reconciliation + Layout + Output)
 
-| Components             | inkx (Flexx) | Ink 6 (Yoga NAPI) | Faster    |
+| Components             | hightea (Flexture) | Ink 6 (Yoga NAPI) | Faster    |
 | ---------------------- | ------------ | ----------------- | --------- |
-| 1 Box+Text (80x24)     | 165 us       | 271 us            | inkx 1.6x |
-| 100 Box+Text (80x24)   | 45.0 ms      | 49.4 ms           | inkx 1.1x |
-| 1000 Box+Text (120x40) | 463 ms       | 541 ms            | inkx 1.2x |
+| 1 Box+Text (80x24)     | 165 us       | 271 us            | hightea 1.6x |
+| 100 Box+Text (80x24)   | 45.0 ms      | 49.4 ms           | hightea 1.1x |
+| 1000 Box+Text (120x40) | 463 ms       | 541 ms            | hightea 1.2x |
 
-inkx uses `createRenderer()` (headless). Ink uses `render()` with mock stdout + unmount per iteration.
+hightea uses `createRenderer()` (headless). Ink uses `render()` with mock stdout + unmount per iteration.
 
 ### React Rerender (Apples-to-Apples)
 
 Both trigger full React reconciliation via `app.rerender()`:
 
-| Components             | inkx    | Ink 6   | Faster  |
+| Components             | hightea    | Ink 6   | Faster  |
 | ---------------------- | ------- | ------- | ------- |
 | 100 Box+Text (80x24)   | 64.3 ms | 2.3 ms  | Ink 28x |
 | 1000 Box+Text (120x40) | 630 ms  | 20.7 ms | Ink 30x |
 
-Ink is faster because it writes directly to a string buffer. inkx runs the 5-phase pipeline after reconciliation.
+Ink is faster because it writes directly to a string buffer. hightea runs the 5-phase pipeline after reconciliation.
 
-### inkx Dirty-Tracking Update (No Ink Equivalent)
+### hightea Dirty-Tracking Update (No Ink Equivalent)
 
 Per-node dirty tracking bypasses React entirely:
 
@@ -123,12 +123,12 @@ Packed Uint32Array cell comparison with cursor-movement optimization.
 
 ### Pure Layout (No React)
 
-| Benchmark             | Flexx (JS) | Yoga WASM | Yoga NAPI (C++) |
+| Benchmark             | Flexture (JS) | Yoga WASM | Yoga NAPI (C++) |
 | --------------------- | ---------- | --------- | --------------- |
 | 100 nodes flat list   | 90 us      | 84 us     | 234 us          |
 | 50-node kanban (3col) | 54 us      | 61 us     | 154 us          |
 
-Flexx (pure JS, 7KB) is 2.6x faster than Yoga NAPI for flat layouts. Matches Yoga WASM for kanban. Both significantly faster than Yoga NAPI (C++) due to NAPI bridge overhead.
+Flexture (pure JS, 7KB) is 2.6x faster than Yoga NAPI for flat layouts. Matches Yoga WASM for kanban. Both significantly faster than Yoga NAPI (C++) due to NAPI bridge overhead.
 
 ### Resize (Layout Only)
 
@@ -144,24 +144,24 @@ Flexx (pure JS, 7KB) is 2.6x faster than Yoga NAPI for flat layouts. Matches Yog
 
 | Package      | Size (gzip) |
 | ------------ | ----------- |
-| inkx + Flexx | ~45 KB      |
-| inkx + Yoga  | ~76 KB      |
+| hightea + Flexture | ~45 KB      |
+| hightea + Yoga  | ~76 KB      |
 | Ink          | ~52 KB      |
 
 ---
 
 ## Summary Table
 
-| Scenario                              | inkx          | Ink                     |                       |
+| Scenario                              | hightea          | Ink                     |                       |
 | ------------------------------------- | ------------- | ----------------------- | --------------------- |
-| Cold render (1 component)             | 165 us        | 271 us                  | inkx 1.6x faster      |
-| Cold render (1000 components)         | 463 ms        | 541 ms                  | inkx 1.2x faster      |
+| Cold render (1 component)             | 165 us        | 271 us                  | hightea 1.6x faster      |
+| Cold render (1000 components)         | 463 ms        | 541 ms                  | hightea 1.2x faster      |
 | Full React rerender (1000 components) | 630 ms        | 20.7 ms                 | Ink 30x faster        |
-| **Typical interactive update**        | **169 us**    | **20.7 ms**             | **inkx 100x+ faster** |
-| Layout (50-node kanban)               | 57 us (Flexx) | 136 us (Yoga NAPI)      | Flexx 2.4x faster     |
+| **Typical interactive update**        | **169 us**    | **20.7 ms**             | **hightea 100x+ faster** |
+| Layout (50-node kanban)               | 57 us (Flexture) | 136 us (Yoga NAPI)      | Flexture 2.4x faster     |
 | Terminal resize (1000 nodes)          | 21 us         | Full re-render          | --                    |
 | Buffer diff (80x24, 10% changed)      | 34 us         | N/A (row-based strings) | --                    |
 
-**Understanding the rerender row:** When the _entire_ component tree re-renders from scratch (e.g., replacing the root element), Ink is 30x faster because its output is just string concatenation. inkx runs a 5-phase pipeline (measure, layout, content, output) after React reconciliation -- that's the cost of layout feedback. But this scenario almost never happens in real apps.
+**Understanding the rerender row:** When the _entire_ component tree re-renders from scratch (e.g., replacing the root element), Ink is 30x faster because its output is just string concatenation. hightea runs a 5-phase pipeline (measure, layout, content, output) after React reconciliation -- that's the cost of layout feedback. But this scenario almost never happens in real apps.
 
-**The row that matters -- "typical interactive update":** When a user presses a key (cursor move, scroll, toggle), only the changed nodes need updating. inkx has per-node dirty tracking that bypasses React entirely -- 169 us for 1000 nodes. Ink must re-render the full React tree for _any_ state change -- 20.7 ms. In practice, inkx is **100x+ faster** for the updates that actually happen during interactive use.
+**The row that matters -- "typical interactive update":** When a user presses a key (cursor move, scroll, toggle), only the changed nodes need updating. hightea has per-node dirty tracking that bypasses React entirely -- 169 us for 1000 nodes. Ink must re-render the full React tree for _any_ state change -- 20.7 ms. In practice, hightea is **100x+ faster** for the updates that actually happen during interactive use.

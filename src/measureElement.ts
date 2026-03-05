@@ -35,7 +35,7 @@
  * ```
  */
 
-import type { InkxNode } from "./types.js"
+import type { TeaNode } from "./types.js"
 
 /**
  * Output from measureElement.
@@ -56,7 +56,7 @@ export interface MeasureElementOutput {
  * Note: Returns { width: 0, height: 0 } if the element hasn't been laid out yet.
  * For automatic re-rendering on dimension changes, use the useContentRect() hook instead.
  */
-export function measureElement(node: InkxNode): MeasureElementOutput {
+export function measureElement(node: TeaNode): MeasureElementOutput {
   // Prefer contentRect (set by inkx pipeline after layout phase)
   // This is the canonical source of truth after a render
   if (node.contentRect) {

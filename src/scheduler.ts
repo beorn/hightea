@@ -27,9 +27,9 @@ import { getCursorState as globalGetCursorState, type CursorAccessors } from "./
 import { copyToClipboard as copyToClipboardImpl } from "./clipboard.js"
 import { ANSI, notify as notifyTerminal } from "./output.js"
 import { executeRender, type PipelineConfig } from "./pipeline.js"
-import type { InkxNode } from "./types.js"
+import type { TeaNode } from "./types.js"
 
-const log = createLogger("inkx:scheduler")
+const log = createLogger("hightea:scheduler")
 
 /**
  * Whether synchronized update mode (DEC 2026) is enabled.
@@ -39,18 +39,18 @@ const log = createLogger("inkx:scheduler")
  * corruption. Works correctly in Kitty. Full renders (bufferToAnsi) work
  * fine with sync — only incremental diff output (changesToAnsi) triggers it.
  *
- * Set INKX_SYNC_UPDATE=1 to force-enable (e.g., for testing in Kitty).
+ * Set HIGHTEA_SYNC_UPDATE=1 to force-enable (e.g., for testing in Kitty).
  * TODO: Re-enable by default once the Ghostty bug is fixed.
  * See: https://github.com/ghostty-org/ghostty/discussions/11002
  */
-const SYNC_UPDATE_ENABLED = process.env.INKX_SYNC_UPDATE === "1" || process.env.INKX_SYNC_UPDATE === "true"
+const SYNC_UPDATE_ENABLED = process.env.HIGHTEA_SYNC_UPDATE === "1" || process.env.HIGHTEA_SYNC_UPDATE === "true"
 
 // ============================================================================
 // Errors
 // ============================================================================
 
 /**
- * Error thrown when INKX_CHECK_INCREMENTAL detects a mismatch.
+ * Error thrown when HIGHTEA_CHECK_INCREMENTAL detects a mismatch.
  * This error should NOT be caught by general error handlers - it indicates
  * a bug in incremental rendering that needs to be fixed.
  */
@@ -79,7 +79,7 @@ export interface SchedulerOptions {
   /** stdout stream for writing output */
   stdout: NodeJS.WriteStream
   /** Root Inkx node */
-  root: InkxNode
+  root: TeaNode
   /** Debug mode - logs render timing */
   debug?: boolean
   /** Minimum time between frames in ms (default: 16 for ~60fps) */
@@ -142,7 +142,7 @@ export interface RenderStats {
  */
 export class RenderScheduler {
   private stdout: NodeJS.WriteStream
-  private root: InkxNode
+  private root: TeaNode
   private debugMode: boolean
   private minFrameTime: number
   private slowFrameThreshold: number
@@ -207,7 +207,7 @@ export class RenderScheduler {
     this.mode = options.mode ?? "fullscreen"
     this.pipelineConfig = options.pipelineConfig
     this.getCursorState = options.cursorAccessors?.getCursorState ?? globalGetCursorState
-    this.log = createLogger("inkx:scheduler") as unknown as Logger
+    this.log = createLogger("hightea:scheduler") as unknown as Logger
 
     // Resolve non-TTY mode based on environment
     this.nonTTYMode = resolveNonTTYMode({
@@ -538,7 +538,7 @@ export class RenderScheduler {
         }
 
         // Capture raw ANSI output to file for debugging garbled rendering
-        const captureFile = process.env.INKX_CAPTURE_OUTPUT
+        const captureFile = process.env.HIGHTEA_CAPTURE_OUTPUT
         if (captureFile) {
           const fs = require("fs")
           fs.appendFileSync(
@@ -555,8 +555,8 @@ export class RenderScheduler {
       // Save buffer for next diff
       this.prevBuffer = buffer
 
-      // INKX_STRICT or INKX_CHECK_INCREMENTAL: compare incremental render against fresh render
-      const strictEnv = process.env.INKX_STRICT || process.env.INKX_CHECK_INCREMENTAL
+      // HIGHTEA_STRICT or HIGHTEA_CHECK_INCREMENTAL: compare incremental render against fresh render
+      const strictEnv = process.env.HIGHTEA_STRICT || process.env.HIGHTEA_CHECK_INCREMENTAL
       const strictMode = strictEnv && strictEnv !== "0" && strictEnv !== "false"
       if (strictMode && this.stats.renderCount > 0) {
         const renderNum = this.stats.renderCount + 1
@@ -598,7 +598,7 @@ export class RenderScheduler {
           }
         }
         if (!found && process.env.DEBUG_LOG) {
-          appendFileSync(process.env.DEBUG_LOG, `INKX_CHECK_INCREMENTAL: render #${renderNum} OK\n`)
+          appendFileSync(process.env.DEBUG_LOG, `HIGHTEA_CHECK_INCREMENTAL: render #${renderNum} OK\n`)
         }
       }
 
@@ -715,7 +715,7 @@ export function createScheduler(options: SchedulerOptions): RenderScheduler {
  *
  * Does not batch or diff - just runs the pipeline and returns ANSI output.
  */
-export function renderToString(root: InkxNode, width: number, height: number): string {
+export function renderToString(root: TeaNode, width: number, height: number): string {
   const { output } = executeRender(root, width, height, null)
   return output
 }

@@ -45,7 +45,7 @@ if (!ShowcaseComponent) {
     const instance = renderToXterm(<ShowcaseComponent />, term)
 
     // Signal to parent (LiveDemo.vue) that the demo loaded successfully
-    window.parent.postMessage({ type: "inkx-ready" }, "*")
+    window.parent.postMessage({ type: "hightea-ready" }, "*")
 
     // Wire keyboard input to showcase components
     term.onData((data) => emitInput(data))
@@ -69,7 +69,7 @@ if (!ShowcaseComponent) {
 
     // Clean up when parent frame navigates away (VitePress SPA navigation)
     window.addEventListener("message", (event) => {
-      if (event.data?.type === "inkx-cleanup") {
+      if (event.data?.type === "hightea-cleanup") {
         instance.unmount()
         term.dispose()
       }

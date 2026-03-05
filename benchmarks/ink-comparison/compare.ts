@@ -93,7 +93,7 @@ function get(map: Map<string, BenchResult>, name: string): number {
 
 console.log()
 console.log("═══════════════════════════════════════════════════════════════════════════")
-console.log("  inkx (Flexx) vs Ink 6 (Yoga native)  —  Head-to-Head Comparison")
+console.log("  inkx (Flexture) vs Ink 6 (Yoga native)  —  Head-to-Head Comparison")
 console.log("═══════════════════════════════════════════════════════════════════════════")
 
 // Section 1: Full pipeline (React → layout → output)
@@ -140,25 +140,25 @@ console.log("  mock stdout + unmount per iteration. Both include React reconcili
 console.log()
 console.log("Layout engine only (no React, no rendering)")
 console.log("─────────────────────────────────────────────────────────────────────")
-console.log(`${"".padEnd(W.l)}  ${"Flexx".padStart(W.v)}  ${"Yoga WASM".padStart(W.v)}  ${"Yoga NAPI".padStart(W.r)}`)
+console.log(`${"".padEnd(W.l)}  ${"Flexture".padStart(W.v)}  ${"Yoga WASM".padStart(W.v)}  ${"Yoga NAPI".padStart(W.r)}`)
 
 const layoutComps = [
   {
     label: "100 nodes",
-    flexx: "Flexx: 100 nodes layout",
+    flexture: "Flexture: 100 nodes layout",
     yogaW: "Yoga: 100 nodes layout",
     yogaN: "Yoga native: 100 nodes layout",
   },
   {
     label: "50-node kanban",
-    flexx: "Flexx: 50-node kanban layout",
+    flexture: "Flexture: 50-node kanban layout",
     yogaW: "Yoga: 50-node kanban layout",
     yogaN: "Yoga native: 50-node kanban layout",
   },
 ]
 
 for (const cmp of layoutComps) {
-  const f = get(inkxMap, cmp.flexx)
+  const f = get(inkxMap, cmp.flexture)
   const yw = get(inkxMap, cmp.yogaW)
   const yn = get(inkMap, cmp.yogaN)
   console.log(
@@ -167,7 +167,7 @@ for (const cmp of layoutComps) {
 }
 
 console.log()
-console.log("  Flexx = pure JS (7 KB). Yoga WASM = yoga-wasm-web. Yoga NAPI = yoga-layout (C++).")
+console.log("  Flexture = pure JS (7 KB). Yoga WASM = yoga-wasm-web. Yoga NAPI = yoga-layout (C++).")
 
 // Section 3: React re-render (apples-to-apples)
 console.log()
@@ -244,4 +244,4 @@ if (inkxHeap && inkHeap) {
 console.log()
 console.log("─────────────────────────────────────────────────────────────────────")
 console.log("Platform: Apple M1 Max, Bun 1.3.9, macOS")
-console.log("inkx: Flexx layout (pure JS). Ink 6.6.0: yoga-layout 3.2.1 (native).")
+console.log("hightea: Flexture layout (pure JS). Ink 6.6.0: yoga-layout 3.2.1 (native).")

@@ -3,7 +3,7 @@
  *
  * Three bugs fixed in the reconciler when dynamically adding/removing borders:
  *
- * Bug 1 (applyBoxProps): Border widths in Yoga/Flexx weren't reset to 0 when
+ * Bug 1 (applyBoxProps): Border widths in Yoga/Flexture weren't reset to 0 when
  * borderStyle was removed. The layout engine retained stale border widths,
  * causing content area to shrink even without a visible border.
  *
@@ -12,7 +12,7 @@
  * borderStyle changes, and bgDirty wasn't set for border removal, so the
  * content phase skipped clearing the old border region.
  *
- * Bug 3 (applySpacing): Padding/margin values in Yoga/Flexx weren't reset
+ * Bug 3 (applySpacing): Padding/margin values in Yoga/Flexture weren't reset
  * when props were removed. Switching from {paddingLeft: 1} to {borderStyle}
  * retained both border=1 AND padding=1, doubling the inset.
  */

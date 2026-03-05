@@ -26,7 +26,7 @@ Three steps (create term, render, wait) for the most common case. The `using` ke
 
 ### 2. Two divergent render APIs
 
-inkx has two separate render implementations:
+hightea has two separate render implementations:
 
 - **`render.tsx`** (old): `render(element, term?, options?)` -- async, returns `Instance` with `rerender/unmount/waitUntilExit`. Used by `storybook.tsx` and legacy apps.
 - **`renderer.ts`** (new): `render(element, options?)` -- sync, returns `App` with locators, `press()`, `text`, `ansi`. Used by testing and the headless pipeline.
@@ -59,7 +59,7 @@ There is no single place to configure an app's terminal environment.
 
 ## Proposed API
 
-### Core: `inkx.render()` as universal entry point
+### Core: `hightea.render()` as universal entry point
 
 Inspired by `ReactDOM.createRoot(container).render(<App />)`, but adapted for terminal UI where the "container" is an abstract render target (terminal, test buffer, or parent region).
 
@@ -109,8 +109,8 @@ interface RootOptions {
   alternateScreen?: boolean
   /** Enable exit on Ctrl+C. Default: true */
   exitOnCtrlC?: boolean
-  /** Layout engine. Default: 'flexx' */
-  layoutEngine?: "flexx" | "yoga"
+  /** Layout engine. Default: 'flexture' */
+  layoutEngine?: "flexture" | "yoga"
   /** Abort signal for external cleanup */
   signal?: AbortSignal
 }
@@ -121,10 +121,10 @@ interface RootOptions {
 #### Pattern 1: Simple interactive app
 
 ```tsx
-import inkx from "@hightea/term"
+import hightea from "@hightea/term"
 
 // Auto-creates term, enters alternate screen, handles cleanup
-using root = await inkx.createRoot()
+using root = await hightea.createRoot()
 root.render(<App />)
 await root.waitUntilExit()
 ```
@@ -132,13 +132,13 @@ await root.waitUntilExit()
 Or the one-liner:
 
 ```tsx
-await inkx.run(<App />)
+await hightea.run(<App />)
 ```
 
 #### Pattern 2: Static/headless render
 
 ```tsx
-const root = inkx.createRoot({ cols: 80, rows: 24 })
+const root = hightea.createRoot({ cols: 80, rows: 24 })
 root.render(<Summary stats={stats} />)
 console.log(root.text)
 root.unmount()
@@ -147,7 +147,7 @@ root.unmount()
 #### Pattern 3: Nested mounting
 
 ```tsx
-using root = await inkx.createRoot()
+using root = await hightea.createRoot()
 root.render(<Layout />)
 
 // Mount independent sub-trees into layout regions
@@ -177,15 +177,15 @@ The test renderer already has the right ergonomics. No changes needed -- it retu
 
 ### Comparison with DOM API
 
-| DOM (React 18)                         | inkx (proposed)                            |
+| DOM (React 18)                         | hightea (proposed)                            |
 | -------------------------------------- | ------------------------------------------ |
-| `const root = createRoot(container)`   | `const root = await inkx.createRoot()`     |
+| `const root = createRoot(container)`   | `const root = await hightea.createRoot()`     |
 | `root.render(<App />)`                 | `root.render(<App />)`                     |
 | `root.unmount()`                       | `root.unmount()`                           |
 | `createRoot(childDiv).render(<Sub />)` | `root.createRoot(locator).render(<Sub />)` |
 | `createPortal(children, container)`    | (nested root is the equivalent)            |
 
-Key difference: DOM has a physical `container` (HTMLElement). inkx has an abstract render target -- either a terminal (the "document") or a region identified by an `AutoLocator`. The locator's `boundingBox()` defines the nested root's dimensions and position.
+Key difference: DOM has a physical `container` (HTMLElement). hightea has an abstract render target -- either a terminal (the "document") or a region identified by an `AutoLocator`. The locator's `boundingBox()` defines the nested root's dimensions and position.
 
 ### Relation to existing layers
 
@@ -193,13 +193,13 @@ This proposal does **not** replace the runtime layers. Instead, it provides a be
 
 | Layer | Current                            | Proposed                                    |
 | ----- | ---------------------------------- | ------------------------------------------- |
-| 0     | `render()` in `render.tsx` (old)   | `inkx.createRoot()` + `root.render()`       |
+| 0     | `render()` in `render.tsx` (old)   | `hightea.createRoot()` + `root.render()`       |
 | 0     | `render()` in `renderer.ts` (test) | unchanged -- already good ergonomics        |
 | 1     | `createRuntime()`                  | unchanged -- low-level, max control         |
-| 2     | `run()` (hooks)                    | `inkx.run()` wrapping `createRoot()`        |
+| 2     | `run()` (hooks)                    | `hightea.run()` wrapping `createRoot()`        |
 | 3     | `createApp()` (Zustand)            | unchanged -- uses `createRoot()` internally |
 
-The key insight is that `inkx.createRoot()` unifies the old `render.tsx` and `renderer.ts` behind a single interface (`InkxRoot`), while the runtime layers continue to provide their ergonomic patterns on top.
+The key insight is that `hightea.createRoot()` unifies the old `render.tsx` and `renderer.ts` behind a single interface (`InkxRoot`), while the runtime layers continue to provide their ergonomic patterns on top.
 
 ## Nested Mounting: How It Works
 
@@ -249,17 +249,17 @@ The parent root's render pipeline composites child root buffers into the final o
 
 ### Phase 1: Unified InkxRoot interface (non-breaking)
 
-Add `inkx.createRoot()` as a new entry point alongside existing APIs. It wraps the existing `InkxInstance` internally but returns the unified `InkxRoot` interface. No existing code needs to change.
+Add `hightea.createRoot()` as a new entry point alongside existing APIs. It wraps the existing `InkxInstance` internally but returns the unified `InkxRoot` interface. No existing code needs to change.
 
 ```typescript
-// New entry point (src/inkx.ts)
-export const inkx = {
+// New entry point (src/hightea.ts)
+export const hightea = {
   async createRoot(options?: RootOptions): Promise<InkxRoot> {
     // Internally: ensureLayoutEngine() + createTerm() + new InkxInstance()
     // Returns InkxRoot wrapping the instance + App capabilities
   },
   async run(element: ReactElement, options?: RootOptions): Promise<void> {
-    using root = await inkx.createRoot(options)
+    using root = await hightea.createRoot(options)
     root.render(element)
     await root.waitUntilExit()
   },
@@ -289,11 +289,11 @@ This is the most complex phase and can be deferred until the unified root is sta
 
 ### Phase 4: Deprecate old render API
 
-Once `inkx.createRoot()` is stable and the runtime layers use it internally:
+Once `hightea.createRoot()` is stable and the runtime layers use it internally:
 
 - Deprecate `render()` from `render.tsx` (keep working, emit deprecation warning)
 - `renderer.ts` render stays as-is (it is the headless/test path)
-- Update CLAUDE.md and docs to show `inkx.createRoot()` as the primary API
+- Update CLAUDE.md and docs to show `hightea.createRoot()` as the primary API
 
 ## Implementation Notes
 
@@ -362,6 +362,6 @@ Child roots render independently but composite synchronously with the parent. Th
 
 2. **How does focus transfer between nested roots?** Options: (a) explicit API (`parentRoot.focus(childRoot)`), (b) automatic based on Tab/Shift-Tab cycling, (c) delegated to application code via keybindings. Recommendation: (a) with (c) as the common pattern.
 
-3. **Should `inkx.createRoot()` be sync or async?** It needs to init the layout engine (async). Options: (a) always async, (b) sync if engine already initialized, throw otherwise, (c) separate `await inkx.init()` then sync `createRoot()`. Recommendation: (a) for simplicity -- the one-time engine init cost is negligible.
+3. **Should `hightea.createRoot()` be sync or async?** It needs to init the layout engine (async). Options: (a) always async, (b) sync if engine already initialized, throw otherwise, (c) separate `await hightea.init()` then sync `createRoot()`. Recommendation: (a) for simplicity -- the one-time engine init cost is negligible.
 
 4. **How to handle child root overflow?** If a child root's content exceeds its bounding box: (a) clip at boundary (like CSS `overflow: hidden`), (b) scroll within region, (c) error. Recommendation: (a) clip by default, (b) opt-in scroll via props.

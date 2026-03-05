@@ -18,10 +18,10 @@ import { createApp, useApp } from "../../src/runtime/index.js"
 // Enable incremental comparison check — throws IncrementalRenderMismatchError
 // if incremental and fresh renders produce different cell values.
 beforeEach(() => {
-  process.env.INKX_CHECK_INCREMENTAL = "1"
+  process.env.HIGHTEA_CHECK_INCREMENTAL = "1"
 })
 afterEach(() => {
-  delete process.env.INKX_CHECK_INCREMENTAL
+  delete process.env.HIGHTEA_CHECK_INCREMENTAL
 })
 
 describe("ancestorCleared propagation through backgroundColor nodes", () => {
@@ -75,7 +75,7 @@ describe("ancestorCleared propagation through backgroundColor nodes", () => {
     expect(handle.text).toContain("VIEW")
 
     // Standalone store change (case 3): triggers incremental render
-    // with prevBuffer. INKX_CHECK_INCREMENTAL compares against fresh.
+    // with prevBuffer. HIGHTEA_CHECK_INCREMENTAL compares against fresh.
     await new Promise<void>((resolve) => {
       queueMicrotask(() => {
         handle.store.getState().setCount(1)

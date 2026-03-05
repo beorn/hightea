@@ -22,7 +22,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react"
 import { createLogger } from "decant"
 
-const log = createLogger("inkx:position-registry")
+const log = createLogger("hightea:position-registry")
 
 // =============================================================================
 // Types

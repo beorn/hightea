@@ -6,7 +6,7 @@ This document describes the design for `useCursor()` - a hook for managing termi
 
 Terminal applications with text input (editors, input fields, command lines) need precise control over the cursor. Unlike web browsers where the cursor is managed automatically by `<input>` elements, terminal UIs must explicitly position and style the cursor.
 
-inkx provides two approaches to cursor display:
+hightea provides two approaches to cursor display:
 
 1. **Rendered cursor** - A character (like `_` or `|`) rendered as part of the UI
 2. **Terminal cursor** - The actual blinking cursor controlled via ANSI escape sequences

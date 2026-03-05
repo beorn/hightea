@@ -16,10 +16,10 @@ import { createApp, useApp } from "../../src/runtime/index.js"
 
 // Enable incremental comparison check for these tests
 beforeEach(() => {
-  process.env.INKX_CHECK_INCREMENTAL = "1"
+  process.env.HIGHTEA_CHECK_INCREMENTAL = "1"
 })
 afterEach(() => {
-  delete process.env.INKX_CHECK_INCREMENTAL
+  delete process.env.HIGHTEA_CHECK_INCREMENTAL
 })
 
 describe("Incremental rendering with createApp store re-renders", () => {
@@ -82,7 +82,7 @@ describe("Incremental rendering with createApp store re-renders", () => {
 
     // Trigger store update: logCount 0 → 1
     // This re-renders BottomBar text only. TopBar must be preserved.
-    // INKX_CHECK_INCREMENTAL will throw if incremental ≠ fresh.
+    // HIGHTEA_CHECK_INCREMENTAL will throw if incremental ≠ fresh.
     await handle.press("l")
 
     expect(handle.text).toContain("💬1")
@@ -221,7 +221,7 @@ describe("Incremental rendering with createApp store re-renders", () => {
     expect(handle.text).toContain("░░░")
 
     // Transition to full board — tree restructure, childrenDirty on parent
-    // INKX_CHECK_INCREMENTAL will catch any mismatch
+    // HIGHTEA_CHECK_INCREMENTAL will catch any mismatch
     await handle.press("r")
 
     expect(handle.text).toContain("Board: My Project")

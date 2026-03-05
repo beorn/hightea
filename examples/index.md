@@ -1,6 +1,6 @@
-# inkx Examples
+# hightea Examples
 
-Interactive examples demonstrating inkx features. Organized by category.
+Interactive examples demonstrating hightea features. Organized by category.
 
 ## Running Examples
 

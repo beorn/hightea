@@ -8,7 +8,7 @@
  */
 
 import type { Color, Style, TerminalBuffer } from "../buffer.js"
-import type { BoxProps, InkxNode, Rect } from "../types.js"
+import type { BoxProps, TeaNode, Rect } from "../types.js"
 import { getPadding } from "./helpers.js"
 import { getBorderChars, getBorderSize, parseColor } from "./render-helpers.js"
 import { renderTextLine } from "./render-text.js"
@@ -22,7 +22,7 @@ import type { NodeRenderState, PipelineContext } from "./types.js"
  * Render a Box node.
  */
 export function renderBox(
-  _node: InkxNode,
+  _node: TeaNode,
   buffer: TerminalBuffer,
   layout: Rect,
   props: BoxProps,
@@ -255,11 +255,11 @@ export function renderOutline(
  * Uses ▲N for items hidden above, ▼N for items hidden below.
  */
 export function renderScrollIndicators(
-  _node: InkxNode,
+  _node: TeaNode,
   buffer: TerminalBuffer,
   layout: Rect,
   props: BoxProps,
-  ss: NonNullable<InkxNode["scrollState"]>,
+  ss: NonNullable<TeaNode["scrollState"]>,
   ctx?: PipelineContext,
 ): void {
   const border = props.borderStyle ? getBorderSize(props) : { top: 0, bottom: 0, left: 0, right: 0 }

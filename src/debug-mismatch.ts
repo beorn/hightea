@@ -1,7 +1,7 @@
 /**
  * Debug utilities for incremental render mismatch diagnostics.
  *
- * When INKX_STRICT detects a mismatch between incremental and fresh renders,
+ * When HIGHTEA_STRICT detects a mismatch between incremental and fresh renders,
  * these utilities help identify the root cause by providing:
  * - Node attribution (which node owns the mismatched cell)
  * - Dirty flag state (what flags were set before render)
@@ -10,7 +10,7 @@
  */
 
 import type { Cell } from "./buffer.js"
-import type { BoxProps, InkxNode, Rect, TextProps } from "./types.js"
+import type { BoxProps, TeaNode, Rect, TextProps } from "./types.js"
 
 // ============================================================================
 // Types
@@ -20,7 +20,7 @@ import type { BoxProps, InkxNode, Rect, TextProps } from "./types.js"
 export interface NodeDebugInfo {
   /** Node ID (if set via props.id) */
   id: string | undefined
-  /** Node type (inkx-box, inkx-text, inkx-root) */
+  /** Node type (hightea-box, hightea-text, hightea-root) */
   type: string
   /** Path from root to this node (IDs or indices) */
   path: string
@@ -89,10 +89,10 @@ export interface MismatchDebugContext {
 /**
  * Find the innermost node at a screen position.
  */
-export function findNodeAtPosition(root: InkxNode, x: number, y: number): InkxNode | null {
-  let result: InkxNode | null = null
+export function findNodeAtPosition(root: TeaNode, x: number, y: number): TeaNode | null {
+  let result: TeaNode | null = null
 
-  function visit(node: InkxNode): void {
+  function visit(node: TeaNode): void {
     const rect = node.screenRect
     if (!rect) return
 
@@ -115,10 +115,10 @@ export function findNodeAtPosition(root: InkxNode, x: number, y: number): InkxNo
  * Find all nodes whose screenRect contains the given position.
  * Returns nodes from root to innermost (outermost first).
  */
-export function findAllContainingNodes(root: InkxNode, x: number, y: number): InkxNode[] {
-  const result: InkxNode[] = []
+export function findAllContainingNodes(root: TeaNode, x: number, y: number): TeaNode[] {
+  const result: TeaNode[] = []
 
-  function visit(node: InkxNode): void {
+  function visit(node: TeaNode): void {
     const rect = node.screenRect
     if (!rect) return
 
@@ -137,9 +137,9 @@ export function findAllContainingNodes(root: InkxNode, x: number, y: number): In
 /**
  * Get the path from root to a node (for identification).
  */
-function getNodePath(node: InkxNode): string {
+function getNodePath(node: TeaNode): string {
   const parts: string[] = []
-  let current: InkxNode | null = node
+  let current: TeaNode | null = node
 
   while (current) {
     const props = current.props as BoxProps & TextProps
@@ -169,7 +169,7 @@ function rectChanged(a: Rect | null, b: Rect | null): boolean {
 /**
  * Extract debug info from a node.
  */
-export function getNodeDebugInfo(node: InkxNode): NodeDebugInfo {
+export function getNodeDebugInfo(node: TeaNode): NodeDebugInfo {
   const props = node.props as BoxProps & TextProps
 
   // Get child index within parent
@@ -218,8 +218,8 @@ export function getNodeDebugInfo(node: InkxNode): NodeDebugInfo {
 /**
  * Find scroll container ancestors for a node.
  */
-function findScrollAncestors(node: InkxNode): InkxNode[] {
-  const result: InkxNode[] = []
+function findScrollAncestors(node: TeaNode): TeaNode[] {
+  const result: TeaNode[] = []
   let current = node.parent
 
   while (current) {
@@ -235,7 +235,7 @@ function findScrollAncestors(node: InkxNode): InkxNode[] {
 /**
  * Analyze why a node might have been incorrectly skipped by fast-path.
  */
-function analyzeFastPath(node: InkxNode | null, scrollAncestors: InkxNode[]): string[] {
+function analyzeFastPath(node: TeaNode | null, scrollAncestors: TeaNode[]): string[] {
   const analysis: string[] = []
 
   if (!node) {
@@ -322,7 +322,7 @@ function analyzeFastPath(node: InkxNode | null, scrollAncestors: InkxNode[]): st
  * Build full mismatch debug context.
  */
 export function buildMismatchContext(
-  root: InkxNode,
+  root: TeaNode,
   x: number,
   y: number,
   incrementalCell: Cell,
@@ -354,7 +354,7 @@ export function formatMismatchContext(ctx: MismatchDebugContext): string {
   const lines: string[] = []
 
   // Header
-  lines.push(`INKX_CHECK_INCREMENTAL: MISMATCH at (${ctx.position.x}, ${ctx.position.y}) on render #${ctx.renderNum}`)
+  lines.push(`HIGHTEA_CHECK_INCREMENTAL: MISMATCH at (${ctx.position.x}, ${ctx.position.y}) on render #${ctx.renderNum}`)
   lines.push("")
 
   // Cell values

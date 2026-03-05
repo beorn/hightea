@@ -11,7 +11,7 @@
 
 import type { Key } from "./keys.js"
 import { getAncestorPath } from "./tree-utils.js"
-import type { InkxNode } from "./types.js"
+import type { TeaNode } from "./types.js"
 
 // ============================================================================
 // Event Types
@@ -34,9 +34,9 @@ export interface InkxKeyEvent {
   /** Kitty event type: 1=press, 2=repeat, 3=release */
   eventType?: 1 | 2 | 3
   /** Deepest focusable node that received this event */
-  target: InkxNode
+  target: TeaNode
   /** Node whose handler is currently firing (changes during capture/bubble) */
-  currentTarget: InkxNode
+  currentTarget: TeaNode
   /** Stop event from propagating further */
   stopPropagation(): void
   /** Prevent default behavior */
@@ -54,13 +54,13 @@ export interface InkxKeyEvent {
  */
 export interface InkxFocusEvent {
   /** The node gaining or losing focus */
-  target: InkxNode
+  target: TeaNode
   /** The other node involved (losing focus on 'focus', gaining on 'blur') */
-  relatedTarget: InkxNode | null
+  relatedTarget: TeaNode | null
   /** Event type */
   type: "focus" | "blur"
   /** Node whose handler is currently firing (changes during bubble) */
-  currentTarget: InkxNode
+  currentTarget: TeaNode
   /** Stop event from bubbling to parent nodes */
   stopPropagation(): void
   /** Whether stopPropagation() was called */
@@ -105,7 +105,7 @@ export interface FocusEventProps {
 /**
  * Create a synthetic keyboard event.
  */
-export function createKeyEvent(input: string, key: Key, target: InkxNode): InkxKeyEvent {
+export function createKeyEvent(input: string, key: Key, target: TeaNode): InkxKeyEvent {
   let propagationStopped = false
   let defaultPrevented = false
 
@@ -141,8 +141,8 @@ export function createKeyEvent(input: string, key: Key, target: InkxNode): InkxK
  */
 export function createFocusEvent(
   type: "focus" | "blur",
-  target: InkxNode,
-  relatedTarget: InkxNode | null,
+  target: TeaNode,
+  relatedTarget: TeaNode | null,
 ): InkxFocusEvent {
   let propagationStopped = false
 
@@ -180,7 +180,7 @@ export function createFocusEvent(
  */
 export function dispatchKeyEvent(event: InkxKeyEvent, dispatch?: (msg: unknown) => void): void {
   const path = getAncestorPath(event.target)
-  const mutableEvent = event as { currentTarget: InkxNode }
+  const mutableEvent = event as { currentTarget: TeaNode }
 
   // Capture phase: root → target (reversed path, excluding target)
   for (let i = path.length - 1; i > 0; i--) {
@@ -227,7 +227,7 @@ export function dispatchKeyEvent(event: InkxKeyEvent, dispatch?: (msg: unknown) 
 export function dispatchFocusEvent(event: InkxFocusEvent): void {
   const handlerProp = event.type === "focus" ? "onFocus" : "onBlur"
   const path = getAncestorPath(event.target)
-  const mutableEvent = event as { currentTarget: InkxNode }
+  const mutableEvent = event as { currentTarget: TeaNode }
 
   for (const node of path) {
     if (event.propagationStopped) break

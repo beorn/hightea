@@ -43,7 +43,7 @@ export function rectEqual(a: Rect | null, b: Rect | null): boolean {
 /**
  * Inkx node types - the primitive elements in the render tree.
  */
-export type InkxNodeType = "inkx-root" | "inkx-box" | "inkx-text"
+export type TeaNodeType = "hightea-root" | "hightea-box" | "hightea-text"
 
 /**
  * Flexbox properties that can be applied to Box nodes.
@@ -235,18 +235,18 @@ export interface TextProps extends StyleProps, TestProps, MouseEventProps {
  * - Subscribers that get notified when layout changes
  * - Dirty flags for incremental updates
  */
-export interface InkxNode {
+export interface TeaNode {
   /** Node type */
-  type: InkxNodeType
+  type: TeaNodeType
 
   /** Props passed to this node */
   props: BoxProps | TextProps | Record<string, unknown>
 
   /** Child nodes */
-  children: InkxNode[]
+  children: TeaNode[]
 
   /** Parent node (null for root) */
-  parent: InkxNode | null
+  parent: TeaNode | null
 
   /** The layout node for layout calculation (null for raw text nodes) */
   layoutNode: LayoutNode | null

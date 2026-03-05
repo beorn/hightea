@@ -4,7 +4,7 @@
  * Regression for km-tui.edit-display: text typed during inline editing doesn't
  * display because incremental rendering misses the update.
  *
- * Root cause: Virtual text children (inkx-text nodes without layoutNode) get
+ * Root cause: Virtual text children (hightea-text nodes without layoutNode) get
  * dirty flags on creation but these flags are NEVER cleared by the content
  * phase. renderNodeToBuffer returns early for no-layout nodes (line 199) and
  * clearDirtyFlags only recurses into children with layoutNode.
@@ -22,10 +22,10 @@ import { createApp, useApp } from "../../src/runtime/index.js"
 
 // Enable incremental comparison check
 beforeEach(() => {
-  process.env.INKX_CHECK_INCREMENTAL = "1"
+  process.env.HIGHTEA_CHECK_INCREMENTAL = "1"
 })
 afterEach(() => {
-  delete process.env.INKX_CHECK_INCREMENTAL
+  delete process.env.HIGHTEA_CHECK_INCREMENTAL
 })
 
 describe("virtual text dirty flag clearing", () => {

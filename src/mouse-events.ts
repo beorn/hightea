@@ -13,7 +13,7 @@ import type { FocusManager } from "./focus-manager.js"
 import { findFocusableAncestor } from "./focus-queries.js"
 import type { ParsedMouse } from "./mouse.js"
 import { getAncestorPath, pointInRect } from "./tree-utils.js"
-import type { InkxNode } from "./types.js"
+import type { TeaNode } from "./types.js"
 
 // ============================================================================
 // Event Types
@@ -35,9 +35,9 @@ export interface InkxMouseEvent {
   metaKey: boolean
   shiftKey: boolean
   /** Deepest node under cursor */
-  target: InkxNode
+  target: TeaNode
   /** Node whose handler is currently firing (changes during bubble) */
-  currentTarget: InkxNode
+  currentTarget: TeaNode
   /** Event type */
   type: "click" | "dblclick" | "mousedown" | "mouseup" | "mousemove" | "mouseenter" | "mouseleave" | "wheel"
   /** Stop event from bubbling to parent nodes */
@@ -88,7 +88,7 @@ export function createMouseEvent(
   type: InkxMouseEvent["type"],
   x: number,
   y: number,
-  target: InkxNode,
+  target: TeaNode,
   parsed: ParsedMouse,
 ): InkxMouseEvent {
   let propagationStopped = false
@@ -124,7 +124,7 @@ export function createMouseEvent(
 /**
  * Create a synthetic wheel event.
  */
-export function createWheelEvent(x: number, y: number, target: InkxNode, parsed: ParsedMouse): InkxWheelEvent {
+export function createWheelEvent(x: number, y: number, target: TeaNode, parsed: ParsedMouse): InkxWheelEvent {
   const base = createMouseEvent("wheel", x, y, target, parsed) as InkxWheelEvent
   base.deltaY = parsed.delta ?? 0
   base.deltaX = 0
@@ -140,7 +140,7 @@ export function createWheelEvent(x: number, y: number, target: InkxNode, parsed:
  * Uses reverse child order (last sibling wins = highest z-order, like DOM).
  * Respects overflow:hidden clipping.
  */
-export function hitTest(node: InkxNode, x: number, y: number): InkxNode | null {
+export function hitTest(node: TeaNode, x: number, y: number): TeaNode | null {
   const rect = node.screenRect
   if (!rect) return null
 
@@ -208,7 +208,7 @@ export function dispatchMouseEvent(event: InkxMouseEvent): void {
       | ((e: InkxMouseEvent) => void)
       | undefined
     if (handler) {
-      const mutableEvent = event as { currentTarget: InkxNode }
+      const mutableEvent = event as { currentTarget: TeaNode }
       mutableEvent.currentTarget = event.target
       handler(event)
     }
@@ -222,7 +222,7 @@ export function dispatchMouseEvent(event: InkxMouseEvent): void {
 
     const handler = (node.props as Record<string, unknown>)[handlerProp] as ((e: InkxMouseEvent) => void) | undefined
     if (handler) {
-      const mutableEvent = event as { currentTarget: InkxNode }
+      const mutableEvent = event as { currentTarget: TeaNode }
       mutableEvent.currentTarget = node
       handler(event)
     }
@@ -298,9 +298,9 @@ export function checkDoubleClick(
  * and mouseenter on nodes in nextPath not in prevPath.
  */
 export function computeEnterLeave(
-  prevPath: InkxNode[],
-  nextPath: InkxNode[],
-): { entered: InkxNode[]; left: InkxNode[] } {
+  prevPath: TeaNode[],
+  nextPath: TeaNode[],
+): { entered: TeaNode[]; left: TeaNode[] } {
   const prevSet = new Set(prevPath)
   const nextSet = new Set(nextPath)
 
@@ -329,9 +329,9 @@ export interface MouseEventProcessorOptions {
 export interface MouseEventProcessorState {
   doubleClick: DoubleClickState
   /** Previous hover path (for enter/leave tracking) */
-  hoverPath: InkxNode[]
+  hoverPath: TeaNode[]
   /** Whether the left button is currently down (for click detection) */
-  mouseDownTarget: InkxNode | null
+  mouseDownTarget: TeaNode | null
   /** Optional focus manager for click-to-focus */
   focusManager?: FocusManager
 }
@@ -355,7 +355,7 @@ export function createMouseEventProcessor(options?: MouseEventProcessorOptions):
  * - mousemove + mouseenter/mouseleave
  * - wheel
  */
-export function processMouseEvent(state: MouseEventProcessorState, parsed: ParsedMouse, root: InkxNode): void {
+export function processMouseEvent(state: MouseEventProcessorState, parsed: ParsedMouse, root: TeaNode): void {
   const { x, y, action } = parsed
   const target = hitTest(root, x, y)
   if (!target) return

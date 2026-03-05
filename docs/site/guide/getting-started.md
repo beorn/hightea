@@ -4,7 +4,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 # Getting Started
 
-inkx is a terminal UI framework for React that lets components know their computed dimensions. It's a drop-in replacement for Ink with one key addition: the `useContentRect()` hook.
+hightea is a terminal UI framework for React that lets components know their computed dimensions. It's a drop-in replacement for Ink with one key addition: the `useContentRect()` hook.
 
 ## Installation
 
@@ -28,7 +28,7 @@ pnpm add @hightea/term
 
 :::
 
-<LiveDemo xtermSrc="/inkx/examples/showcase.html?demo=layout-feedback" :height="250" />
+<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=layout-feedback" :height="250" />
 
 ## Your First App
 
@@ -40,7 +40,7 @@ import { Box, Text, render, createTerm } from "@hightea/term"
 function App() {
   return (
     <Box borderStyle="round" padding={1}>
-      <Text>Hello from inkx!</Text>
+      <Text>Hello from hightea!</Text>
     </Box>
   )
 }
@@ -56,11 +56,11 @@ bun app.tsx
 # or: npx tsx app.tsx
 ```
 
-You should see a rounded box with "Hello from inkx!" inside.
+You should see a rounded box with "Hello from hightea!" inside.
 
 ## Using Layout Feedback
 
-The key feature of inkx is `useContentRect()`. Components can query their computed dimensions:
+The key feature of hightea is `useContentRect()`. Components can query their computed dimensions:
 
 ```tsx
 import { Box, Text, render, useContentRect, createTerm } from "@hightea/term"
@@ -94,7 +94,7 @@ Each `SizedBox` will display its actual computed dimensions. No prop threading n
 
 ## Scrollable Lists
 
-inkx handles scrolling automatically. Just use `overflow="scroll"`:
+hightea handles scrolling automatically. Just use `overflow="scroll"`:
 
 ```tsx
 import { Box, Text, render, useInput, createTerm } from "@hightea/term"
@@ -125,7 +125,7 @@ using term = createTerm()
 await render(<App />, term)
 ```
 
-inkx measures all children, calculates which are visible, and only renders content for visible items. No height estimation or virtualization config needed.
+hightea measures all children, calculates which are visible, and only renders content for visible items. No height estimation or virtualization config needed.
 
 ## Next Steps
 

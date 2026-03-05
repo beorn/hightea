@@ -16,7 +16,7 @@ A scrollable task list with variable-height items and keyboard navigation.
 ```
   Tasks (7 items)
 +------------------------------------------+
-| [ ] Research inkx documentation          |
+| [ ] Research hightea documentation          |
 |     - Read the API docs                  |
 |     - Try the examples                   |
 | [x] Install dependencies                 |
@@ -31,7 +31,7 @@ A scrollable task list with variable-height items and keyboard navigation.
 ## Running the Example
 
 ```bash
-cd inkx
+cd hightea
 bun run examples/task-list/app.tsx
 ```
 
@@ -59,7 +59,7 @@ interface Task {
 const initialTasks: Task[] = [
   {
     id: "1",
-    title: "Research inkx documentation",
+    title: "Research hightea documentation",
     done: false,
     subtasks: [
       { id: "1a", title: "Read the API docs", done: true },
@@ -271,7 +271,7 @@ function TaskRow({ task, isSelected }: { task: Task; isSelected: boolean }) {
 }
 ```
 
-inkx measures each task's actual height. No height estimation needed.
+hightea measures each task's actual height. No height estimation needed.
 
 ### Selection Styling
 
@@ -316,7 +316,7 @@ const truncatedTitle = task.title.length > titleWidth ? task.title.slice(0, titl
 
 The available width comes from `useContentRect()`.
 
-## Key inkx Features Used
+## Key hightea Features Used
 
 | Feature             | Usage                                         |
 | ------------------- | --------------------------------------------- |
@@ -328,7 +328,7 @@ The available width comes from `useContentRect()`.
 
 ## How Scrolling Works
 
-inkx handles variable-height scrolling automatically:
+hightea handles variable-height scrolling automatically:
 
 1. **Yoga measures all items** - Each task (with its subtasks) gets measured
 2. **Calculate visible range** - Based on `scrollTo` and container height

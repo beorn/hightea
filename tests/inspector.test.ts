@@ -8,14 +8,14 @@ import {
   autoEnableInspector,
 } from "../src/inspector.js"
 import type { RenderStats } from "../src/scheduler.js"
-import type { InkxNode } from "../src/types.js"
+import type { TeaNode } from "../src/types.js"
 import { Writable } from "node:stream"
 
 afterEach(() => {
   disableInspector()
   // Clean up env vars
-  delete process.env.INKX_DEV
-  delete process.env.INKX_DEV_LOG
+  delete process.env.HIGHTEA_DEV
+  delete process.env.HIGHTEA_DEV_LOG
 })
 
 describe("inspector", () => {
@@ -68,8 +68,8 @@ describe("inspector", () => {
   })
 
   test("inspectTree dumps component tree", () => {
-    const child: InkxNode = {
-      type: "inkx-text",
+    const child: TeaNode = {
+      type: "hightea-text",
       props: { testID: "greeting" },
       children: [],
       parent: null,
@@ -88,8 +88,8 @@ describe("inspector", () => {
       textContent: "Hello world",
     }
 
-    const root: InkxNode = {
-      type: "inkx-root",
+    const root: TeaNode = {
+      type: "hightea-root",
       props: {},
       children: [child],
       parent: null,
@@ -110,18 +110,18 @@ describe("inspector", () => {
 
     const output = inspectTree(root)
 
-    expect(output).toContain("inkx-root")
+    expect(output).toContain("hightea-root")
     expect(output).toContain("[0,0 80x24]")
     expect(output).toContain("dirty=[subtree]")
-    expect(output).toContain("inkx-text #greeting")
+    expect(output).toContain("hightea-text #greeting")
     expect(output).toContain("[1,2 20x1]")
     expect(output).toContain("dirty=[content]")
     expect(output).toContain('"Hello world"')
   })
 
   test("inspectTree respects depth limit", () => {
-    const deep: InkxNode = {
-      type: "inkx-text",
+    const deep: TeaNode = {
+      type: "hightea-text",
       props: {},
       children: [],
       parent: null,
@@ -140,8 +140,8 @@ describe("inspector", () => {
       textContent: "deep",
     }
 
-    const mid: InkxNode = {
-      type: "inkx-box",
+    const mid: TeaNode = {
+      type: "hightea-box",
       props: {},
       children: [deep],
       parent: null,
@@ -160,8 +160,8 @@ describe("inspector", () => {
     }
     deep.parent = mid
 
-    const root: InkxNode = {
-      type: "inkx-root",
+    const root: TeaNode = {
+      type: "hightea-root",
       props: {},
       children: [mid],
       parent: null,
@@ -182,14 +182,14 @@ describe("inspector", () => {
 
     // Depth 1 should show root + mid, but not deep
     const output = inspectTree(root, { depth: 1 })
-    expect(output).toContain("inkx-root")
-    expect(output).toContain("inkx-box")
-    expect(output).not.toContain("inkx-text")
+    expect(output).toContain("hightea-root")
+    expect(output).toContain("hightea-box")
+    expect(output).not.toContain("hightea-text")
   })
 
   test("inspectTree hides layout when showLayout is false", () => {
-    const root: InkxNode = {
-      type: "inkx-root",
+    const root: TeaNode = {
+      type: "hightea-root",
       props: {},
       children: [],
       parent: null,
@@ -208,25 +208,25 @@ describe("inspector", () => {
     }
 
     const output = inspectTree(root, { showLayout: false })
-    expect(output).toBe("inkx-root")
+    expect(output).toBe("hightea-root")
     expect(output).not.toContain("[")
   })
 
-  test("autoEnableInspector enables when INKX_DEV=1", () => {
-    process.env.INKX_DEV = "1"
+  test("autoEnableInspector enables when HIGHTEA_DEV=1", () => {
+    process.env.HIGHTEA_DEV = "1"
     autoEnableInspector()
     expect(isInspectorEnabled()).toBe(true)
   })
 
-  test("autoEnableInspector does nothing when INKX_DEV is unset", () => {
-    delete process.env.INKX_DEV
+  test("autoEnableInspector does nothing when HIGHTEA_DEV is unset", () => {
+    delete process.env.HIGHTEA_DEV
     autoEnableInspector()
     expect(isInspectorEnabled()).toBe(false)
   })
 
   test("inspectTree truncates long text content", () => {
-    const node: InkxNode = {
-      type: "inkx-text",
+    const node: TeaNode = {
+      type: "hightea-text",
       props: {},
       children: [],
       parent: null,

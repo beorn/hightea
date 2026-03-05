@@ -1,6 +1,6 @@
-# inkx-ui
+# hightea-ui
 
-> UI components for Ink/inkx TUI apps - spinners, progress bars, and more
+> UI components for Ink/hightea TUI apps - spinners, progress bars, and more
 
 [![npm version](https://img.shields.io/npm/v/@hightea/ui.svg)](https://www.npmjs.com/package/@hightea/ui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -15,7 +15,7 @@
 - **Progress bars** - With percentage, ETA, and custom formats
 - **Multi-task** - listr2-style concurrent task display
 - **Wrappers** - Ergonomic APIs for promises, callbacks, generators, and EventEmitters
-- **React components** - For inkx/Ink TUI apps
+- **React components** - For hightea/Ink TUI apps
 - **Zero dependencies** - Only chalk for colors (peer dep for React)
 - **TypeScript** - Full type definitions included
 

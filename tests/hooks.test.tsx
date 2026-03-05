@@ -12,7 +12,7 @@ import { describe, expect, test } from "vitest"
 import { NodeContext, StdoutContext } from "../src/context.ts"
 import { Text, useContentRect, useFocusManager, useStdout } from "../src/index.ts"
 import { createRenderer } from "@hightea/term/testing"
-import type { InkxNode } from "../src/types.ts"
+import type { TeaNode } from "../src/types.ts"
 
 const render = createRenderer()
 
@@ -23,9 +23,9 @@ const render = createRenderer()
 /**
  * Create a mock InkxNode for testing useContentRect
  */
-function createMockInkxNode(layout: { x: number; y: number; width: number; height: number }): InkxNode {
+function createMockTeaNode(layout: { x: number; y: number; width: number; height: number }): TeaNode {
   return {
-    type: "inkx-box",
+    type: "hightea-box",
     props: {},
     children: [],
     parent: null,
@@ -69,7 +69,7 @@ describe("useContentRect", () => {
       x: number
       y: number
     } | null = null
-    const mockNode = createMockInkxNode({ x: 10, y: 5, width: 40, height: 20 })
+    const mockNode = createMockTeaNode({ x: 10, y: 5, width: 40, height: 20 })
 
     function LayoutCapture() {
       const layout = useContentRect()
@@ -101,8 +101,8 @@ describe("useContentRect", () => {
       x: number
       y: number
     } | null = null
-    const mockNode: InkxNode = {
-      type: "inkx-box",
+    const mockNode: TeaNode = {
+      type: "hightea-box",
       props: {},
       children: [],
       parent: null,
@@ -141,7 +141,7 @@ describe("useContentRect", () => {
       x: number
       y: number
     } | null = null
-    const mockNode = createMockInkxNode({ x: 1, y: 2, width: 3, height: 4 })
+    const mockNode = createMockTeaNode({ x: 1, y: 2, width: 3, height: 4 })
 
     function LayoutCapture() {
       const layout = useContentRect()

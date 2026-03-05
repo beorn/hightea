@@ -1,10 +1,10 @@
 # Hooks
 
-inkx provides the same hooks as Ink, plus layout feedback hooks.
+hightea provides the same hooks as Ink, plus layout feedback hooks.
 
 ## useContentRect
 
-**inkx only** - The key addition. Returns the computed dimensions of the component's container.
+**hightea only** - The key addition. Returns the computed dimensions of the component's container.
 
 ```tsx
 import { Box, Text, useContentRect } from "@hightea/term"
@@ -57,7 +57,7 @@ In practice, both renders happen before the first paint, so this is usually invi
 
 ## useTerm
 
-**inkx only** - Access the Term instance for terminal capabilities and styling.
+**hightea only** - Access the Term instance for terminal capabilities and styling.
 
 ```tsx
 import { useTerm } from "@hightea/term"

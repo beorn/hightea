@@ -22,7 +22,7 @@ import {
 } from "../src/mouse-events.js"
 import { createFocusManager } from "../src/focus-manager.js"
 import { Link } from "../src/components/Link.js"
-import type { InkxNode } from "../src/types.js"
+import type { TeaNode } from "../src/types.js"
 import { createRenderer } from "@hightea/term/testing"
 
 // ============================================================================
@@ -31,7 +31,7 @@ import { createRenderer } from "@hightea/term/testing"
 
 describe("createMouseEvent", () => {
   it("creates event with correct fields", () => {
-    const fakeNode = { props: {}, children: [], parent: null } as unknown as InkxNode
+    const fakeNode = { props: {}, children: [], parent: null } as unknown as TeaNode
     const parsed = { button: 0, x: 5, y: 10, action: "down" as const, shift: true, meta: false, ctrl: false }
     const event = createMouseEvent("click", 5, 10, fakeNode, parsed)
 
@@ -48,7 +48,7 @@ describe("createMouseEvent", () => {
   })
 
   it("stopPropagation works", () => {
-    const fakeNode = { props: {}, children: [], parent: null } as unknown as InkxNode
+    const fakeNode = { props: {}, children: [], parent: null } as unknown as TeaNode
     const parsed = { button: 0, x: 0, y: 0, action: "down" as const, shift: false, meta: false, ctrl: false }
     const event = createMouseEvent("click", 0, 0, fakeNode, parsed)
 
@@ -58,7 +58,7 @@ describe("createMouseEvent", () => {
   })
 
   it("preventDefault works", () => {
-    const fakeNode = { props: {}, children: [], parent: null } as unknown as InkxNode
+    const fakeNode = { props: {}, children: [], parent: null } as unknown as TeaNode
     const parsed = { button: 0, x: 0, y: 0, action: "down" as const, shift: false, meta: false, ctrl: false }
     const event = createMouseEvent("click", 0, 0, fakeNode, parsed)
 
@@ -70,7 +70,7 @@ describe("createMouseEvent", () => {
 
 describe("createWheelEvent", () => {
   it("creates wheel event with deltaY", () => {
-    const fakeNode = { props: {}, children: [], parent: null } as unknown as InkxNode
+    const fakeNode = { props: {}, children: [], parent: null } as unknown as TeaNode
     const parsed = {
       button: 0,
       x: 5,
@@ -141,9 +141,9 @@ describe("checkDoubleClick", () => {
 
 describe("computeEnterLeave", () => {
   it("computes entered and left nodes", () => {
-    const a = { props: {} } as unknown as InkxNode
-    const b = { props: {} } as unknown as InkxNode
-    const c = { props: {} } as unknown as InkxNode
+    const a = { props: {} } as unknown as TeaNode
+    const b = { props: {} } as unknown as TeaNode
+    const c = { props: {} } as unknown as TeaNode
 
     const { entered, left } = computeEnterLeave([a, b], [b, c])
     expect(entered).toEqual([c])
@@ -151,14 +151,14 @@ describe("computeEnterLeave", () => {
   })
 
   it("handles empty prev path (initial hover)", () => {
-    const a = { props: {} } as unknown as InkxNode
+    const a = { props: {} } as unknown as TeaNode
     const { entered, left } = computeEnterLeave([], [a])
     expect(entered).toEqual([a])
     expect(left).toEqual([])
   })
 
   it("handles empty next path (mouse leaves all)", () => {
-    const a = { props: {} } as unknown as InkxNode
+    const a = { props: {} } as unknown as TeaNode
     const { entered, left } = computeEnterLeave([a], [])
     expect(entered).toEqual([])
     expect(left).toEqual([a])
@@ -171,7 +171,7 @@ describe("computeEnterLeave", () => {
 
 describe("hitTest", () => {
   it("returns null for node with no screenRect", () => {
-    const node = { screenRect: null, children: [], props: {} } as unknown as InkxNode
+    const node = { screenRect: null, children: [], props: {} } as unknown as TeaNode
     expect(hitTest(node, 0, 0)).toBeNull()
   })
 
@@ -180,7 +180,7 @@ describe("hitTest", () => {
       screenRect: { x: 0, y: 0, width: 10, height: 5 },
       children: [],
       props: {},
-    } as unknown as InkxNode
+    } as unknown as TeaNode
     expect(hitTest(node, 5, 3)).toBe(node)
   })
 
@@ -189,7 +189,7 @@ describe("hitTest", () => {
       screenRect: { x: 0, y: 0, width: 10, height: 5 },
       children: [],
       props: {},
-    } as unknown as InkxNode
+    } as unknown as TeaNode
     expect(hitTest(node, 15, 3)).toBeNull()
   })
 
@@ -198,14 +198,14 @@ describe("hitTest", () => {
       screenRect: { x: 2, y: 1, width: 4, height: 2 },
       children: [],
       props: {},
-      parent: null as unknown as InkxNode,
-    } as unknown as InkxNode
+      parent: null as unknown as TeaNode,
+    } as unknown as TeaNode
 
     const parent = {
       screenRect: { x: 0, y: 0, width: 10, height: 5 },
       children: [child],
       props: {},
-    } as unknown as InkxNode
+    } as unknown as TeaNode
     child.parent = parent
 
     expect(hitTest(parent, 3, 1)).toBe(child)
@@ -216,19 +216,19 @@ describe("hitTest", () => {
       screenRect: { x: 2, y: 1, width: 4, height: 2 },
       children: [],
       props: {},
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     const child2 = {
       screenRect: { x: 2, y: 1, width: 4, height: 2 }, // Same position
       children: [],
       props: {},
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     const parent = {
       screenRect: { x: 0, y: 0, width: 10, height: 5 },
       children: [child1, child2],
       props: {},
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     // child2 is last, so it wins
     expect(hitTest(parent, 3, 1)).toBe(child2)
@@ -239,13 +239,13 @@ describe("hitTest", () => {
       screenRect: { x: 15, y: 0, width: 4, height: 2 }, // Outside parent
       children: [],
       props: {},
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     const parent = {
       screenRect: { x: 0, y: 0, width: 10, height: 5 },
       children: [child],
       props: { overflow: "hidden" },
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     // Point at (15, 0) is inside child but outside parent with overflow:hidden
     // hitTest won't even enter parent since point is outside its rect
@@ -266,14 +266,14 @@ describe("dispatchMouseEvent", () => {
       parent: null,
       children: [],
       screenRect: { x: 0, y: 0, width: 20, height: 10 },
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     const child = {
       props: { onClick: () => log.push("child") },
       parent: root,
       children: [],
       screenRect: { x: 2, y: 2, width: 5, height: 3 },
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     root.children = [child]
 
@@ -292,7 +292,7 @@ describe("dispatchMouseEvent", () => {
       parent: null,
       children: [],
       screenRect: { x: 0, y: 0, width: 20, height: 10 },
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     const child = {
       props: {
@@ -304,7 +304,7 @@ describe("dispatchMouseEvent", () => {
       parent: root,
       children: [],
       screenRect: { x: 2, y: 2, width: 5, height: 3 },
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     root.children = [child]
 
@@ -322,13 +322,13 @@ describe("dispatchMouseEvent", () => {
       props: { onMouseEnter: () => log.push("root") },
       parent: null,
       children: [],
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     const child = {
       props: { onMouseEnter: () => log.push("child") },
       parent: root,
       children: [],
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     root.children = [child]
 
@@ -347,13 +347,13 @@ describe("dispatchMouseEvent", () => {
       props: { onMouseLeave: () => log.push("root") },
       parent: null,
       children: [],
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     const child = {
       props: { onMouseLeave: () => log.push("child") },
       parent: root,
       children: [],
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     root.children = [child]
 
@@ -381,7 +381,7 @@ describe("processMouseEvent", () => {
         onMouseUp: () => log.push("up"),
       },
       parent: null,
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     const state = createMouseEventProcessor()
     const down = { button: 0, x: 5, y: 2, action: "down" as const, shift: false, meta: false, ctrl: false }
@@ -405,7 +405,7 @@ describe("processMouseEvent", () => {
         onMouseUp: () => log.push("up"),
       },
       parent: null,
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     const state = createMouseEventProcessor()
     processMouseEvent(
@@ -432,7 +432,7 @@ describe("processMouseEvent", () => {
         onWheel: (e: InkxWheelEvent) => log.push(e.deltaY),
       },
       parent: null,
-    } as unknown as InkxNode
+    } as unknown as TeaNode
 
     const state = createMouseEventProcessor()
     processMouseEvent(
@@ -646,8 +646,8 @@ describe("processMouseEvent with focusManager", () => {
     const fm = createFocusManager()
 
     // Build a tree: root > focusableBox > textChild
-    const root: InkxNode = {
-      type: "inkx-root",
+    const root: TeaNode = {
+      type: "hightea-root",
       props: {},
       children: [],
       parent: null,
@@ -665,8 +665,8 @@ describe("processMouseEvent with focusManager", () => {
       layoutSubscribers: new Set(),
     }
 
-    const focusableBox: InkxNode = {
-      type: "inkx-box",
+    const focusableBox: TeaNode = {
+      type: "hightea-box",
       props: { focusable: true, testID: "panel" },
       children: [],
       parent: root,
@@ -684,8 +684,8 @@ describe("processMouseEvent with focusManager", () => {
       layoutSubscribers: new Set(),
     }
 
-    const textChild: InkxNode = {
-      type: "inkx-text",
+    const textChild: TeaNode = {
+      type: "hightea-text",
       props: {},
       children: [],
       parent: focusableBox,
@@ -718,8 +718,8 @@ describe("processMouseEvent with focusManager", () => {
   it("does not focus when no focusable ancestor exists", () => {
     const fm = createFocusManager()
 
-    const root: InkxNode = {
-      type: "inkx-root",
+    const root: TeaNode = {
+      type: "hightea-root",
       props: {},
       children: [],
       parent: null,
@@ -745,8 +745,8 @@ describe("processMouseEvent with focusManager", () => {
   })
 
   it("works without focusManager (backward compatible)", () => {
-    const root: InkxNode = {
-      type: "inkx-root",
+    const root: TeaNode = {
+      type: "hightea-root",
       props: {},
       children: [],
       parent: null,

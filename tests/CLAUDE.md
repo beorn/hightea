@@ -1,4 +1,4 @@
-# inkx Tests
+# hightea Tests
 
 **Layer 0 — TUI Rendering Framework**: React-based terminal UI with incremental rendering, layout feedback, and full input pipeline.
 
@@ -19,11 +19,11 @@
 
 - km-specific command behavior — that's km-commands/km-tui
 - Board state logic — that's km-board
-- Layout engine internals — that's flexture (inkx tests layout _integration_)
+- Layout engine internals — that's flexture (hightea tests layout _integration_)
 
 ## Helpers
 
-- `setup.ts`: re-exports `createRenderer`, `normalizeFrame`, `stripAnsi`, `waitFor` from `inkx/testing`; adds `expectFrame()` matcher
+- `setup.ts`: re-exports `createRenderer`, `normalizeFrame`, `stripAnsi`, `waitFor` from `hightea/testing`; adds `expectFrame()` matcher
 - `createRenderer({ cols, rows })`: creates virtual terminal for component rendering
 - `app.press(key)` / `app.click(x, y)`: Playwright-style input simulation
 - `app.locator(selector)` / `app.getByTestId(id)`: auto-refreshing element queries
@@ -62,7 +62,7 @@ test("scroll offset marks container dirty", async () => {
 ## Ad-Hoc Testing
 
 ```bash
-bun vitest run vendor/hightea/tests/                    # All inkx tests (~60s)
+bun vitest run vendor/hightea/tests/                    # All hightea tests (~60s)
 bun vitest run vendor/hightea/tests/buffer.test.ts      # Specific file
 bun vitest run vendor/hightea/tests/ -t "scroll dirty"  # By test name
 bun vitest run vendor/hightea/tests/pipeline/           # Pipeline subdirectory

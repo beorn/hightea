@@ -79,11 +79,11 @@ describe("scroll dirty flags", () => {
     expect(incrementalText.trim()).toBe(freshText.trim())
   })
 
-  test("INKX_STRICT catches mismatches in test renderer", async () => {
+  test("HIGHTEA_STRICT catches mismatches in test renderer", async () => {
     // This test verifies the test renderer now checks on every render
-    // like the scheduler does when INKX_STRICT is set.
+    // like the scheduler does when HIGHTEA_STRICT is set.
     // The actual check happens inside doRender() - this test just
-    // confirms the mechanism works by running with INKX_STRICT and
+    // confirms the mechanism works by running with HIGHTEA_STRICT and
     // ensuring no error is thrown (because the fix is in place).
 
     function Counter({ count }: { count: number }) {

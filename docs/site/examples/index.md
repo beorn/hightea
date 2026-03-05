@@ -1,9 +1,9 @@
 # Examples
 
-Learn inkx by example. Each example demonstrates a specific pattern and can be run directly.
+Learn hightea by example. Each example demonstrates a specific pattern and can be run directly.
 
 ::: tip Live Demo
-See inkx [running in the browser](/examples/live-demo) via xterm.js — the same React components, the same layout engine.
+See hightea [running in the browser](/examples/live-demo) via xterm.js — the same React components, the same layout engine.
 :::
 
 ## Running Examples
@@ -12,7 +12,7 @@ Clone the repository and run any example:
 
 ```bash
 git clone https://github.com/beorn/hightea
-cd inkx
+cd hightea
 bun install
 bun run examples/dashboard/app.tsx
 ```
@@ -62,7 +62,7 @@ A scrollable task list with variable-height items and keyboard navigation.
 ```
   Processing (3)
 +-----------------------------------------+
-| [ ] Research inkx documentation         |
+| [ ] Research hightea documentation         |
 |     - Read the API docs                 |
 |     - Try the examples                  |
 | [x] Install dependencies                |

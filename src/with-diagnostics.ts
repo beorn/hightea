@@ -10,7 +10,7 @@
  *
  * The two approaches are complementary:
  *
- * 1. **`sendInput()` level** (in renderer.ts) — Already has `INKX_CHECK_INCREMENTAL`
+ * 1. **`sendInput()` level** (in renderer.ts) — Already has `HIGHTEA_CHECK_INCREMENTAL`
  *    which catches ALL inputs regardless of how they arrive (raw key presses,
  *    type(), press(), etc.). This is the right place for incremental render checks.
  *
@@ -20,7 +20,7 @@
  *    which could wrap sendInput with awareness of what input was sent.
  *
  * This plugin focuses on the command-aware checks. For comprehensive incremental
- * render checking, use `INKX_STRICT=1` environment variable which enables all checks.
+ * render checking, use `HIGHTEA_STRICT=1` environment variable which enables all checks.
  *
  * @example
  * ```typescript
@@ -45,7 +45,7 @@ import { join } from "node:path"
 import { type Color, type TerminalBuffer, colorEquals } from "./buffer.js"
 import { outputPhase } from "./pipeline/index.js"
 import { compareBuffers, formatMismatch } from "./testing/compare-buffers.js"
-import type { BoxProps, InkxNode } from "./types.js"
+import type { BoxProps, TeaNode } from "./types.js"
 import type { AppWithCommands, Cmd, Command } from "./with-commands.js"
 
 // =============================================================================
@@ -65,7 +65,7 @@ export interface DiagnosticOptions {
   skipLines?: number[]
   /** Capture screenshot on failure (default: false) */
   captureOnFailure?: boolean
-  /** Directory for failure screenshots (default: /tmp/inkx-diagnostics) */
+  /** Directory for failure screenshots (default: /tmp/hightea-diagnostics) */
   screenshotDir?: string
 }
 
@@ -612,7 +612,7 @@ const CURSOR_COMMANDS = new Set([
 // =============================================================================
 
 /**
- * Parse INKX_STABILITY_SKIP_LINES environment variable.
+ * Parse HIGHTEA_STABILITY_SKIP_LINES environment variable.
  * Format: comma-separated integers, e.g., "0,-1"
  */
 function parseSkipLines(env?: string): number[] {
@@ -672,14 +672,14 @@ function compareText(before: string, after: string, skipLines: number[]): TextMi
  * - Children don't overflow parent bounds (1px tolerance for rounding)
  *   - Skips overflow check for nodes with overflow:hidden/scroll (they intentionally clip)
  */
-export function checkLayoutInvariants(node: InkxNode): string[] {
+export function checkLayoutInvariants(node: TeaNode): string[] {
   const violations: string[] = []
   walkLayout(node, null, violations)
   return violations
 }
 
 function walkLayout(
-  node: InkxNode,
+  node: TeaNode,
   parentRect: {
     x: number
     y: number
@@ -767,9 +767,9 @@ export function withDiagnostics<T extends AppWithCommands>(app: T, options: Diag
     checkStability = true,
     checkReplay = true,
     checkLayout = true,
-    skipLines = parseSkipLines(process.env.INKX_STABILITY_SKIP_LINES),
+    skipLines = parseSkipLines(process.env.HIGHTEA_STABILITY_SKIP_LINES),
     captureOnFailure = false,
-    screenshotDir = "/tmp/inkx-diagnostics",
+    screenshotDir = "/tmp/hightea-diagnostics",
   } = options
 
   // If all checks are explicitly disabled, return app unchanged
@@ -829,7 +829,7 @@ export function withDiagnostics<T extends AppWithCommands>(app: T, options: Diag
                   : "(no fresh buffer)"
                 const screenshotPath = await captureFailureScreenshot(command.id, "incremental")
                 throw new Error(
-                  `INKX_DIAGNOSTIC: Incremental/fresh mismatch after ${command.id}\n` +
+                  `HIGHTEA_DIAGNOSTIC: Incremental/fresh mismatch after ${command.id}\n` +
                     formatMismatch(mismatch, {
                       key: command.id,
                       incrementalText,
@@ -854,7 +854,7 @@ export function withDiagnostics<T extends AppWithCommands>(app: T, options: Diag
           if (mismatch) {
             const screenshotPath = await captureFailureScreenshot(command.id, "stability")
             throw new Error(
-              `INKX_DIAGNOSTIC: Content changed after cursor move ${command.id}\n` +
+              `HIGHTEA_DIAGNOSTIC: Content changed after cursor move ${command.id}\n` +
                 `  Line ${mismatch.line}: "${mismatch.before}" → "${mismatch.after}"` +
                 (screenshotPath ? `\n  Screenshot saved: ${screenshotPath}` : ""),
             )
@@ -884,7 +884,7 @@ export function withDiagnostics<T extends AppWithCommands>(app: T, options: Diag
                 .join("\n")
               const screenshotPath = await captureFailureScreenshot(command.id, "replay")
               throw new Error(
-                `INKX_DIAGNOSTIC: ANSI replay mismatch after ${command.id}\n` +
+                `HIGHTEA_DIAGNOSTIC: ANSI replay mismatch after ${command.id}\n` +
                   `  ${mismatches.length} cells differ:\n${details}` +
                   (mismatches.length > 5 ? `\n  ... and ${mismatches.length - 5} more` : "") +
                   (screenshotPath ? `\n  Screenshot saved: ${screenshotPath}` : ""),
@@ -898,7 +898,7 @@ export function withDiagnostics<T extends AppWithCommands>(app: T, options: Diag
               const details = first5.map((m) => `  (${m.x},${m.y}) char="${m.char}": ${m.diffs.join(", ")}`).join("\n")
               const screenshotPath = await captureFailureScreenshot(command.id, "replay-style")
               throw new Error(
-                `INKX_DIAGNOSTIC: ANSI replay style mismatch after ${command.id}\n` +
+                `HIGHTEA_DIAGNOSTIC: ANSI replay style mismatch after ${command.id}\n` +
                   `  ${styleMismatches.length} cells have style differences:\n${details}` +
                   (styleMismatches.length > 5 ? `\n  ... and ${styleMismatches.length - 5} more` : "") +
                   (screenshotPath ? `\n  Screenshot saved: ${screenshotPath}` : ""),
@@ -918,7 +918,7 @@ export function withDiagnostics<T extends AppWithCommands>(app: T, options: Diag
               .join("\n")
             const screenshotPath = await captureFailureScreenshot(command.id, "layout")
             throw new Error(
-              `INKX_DIAGNOSTIC: Layout invariant violation after ${command.id}\n` +
+              `HIGHTEA_DIAGNOSTIC: Layout invariant violation after ${command.id}\n` +
                 `  ${violations.length} violation(s):\n${details}` +
                 (violations.length > 10 ? `\n  ... and ${violations.length - 10} more` : "") +
                 (screenshotPath ? `\n  Screenshot saved: ${screenshotPath}` : ""),

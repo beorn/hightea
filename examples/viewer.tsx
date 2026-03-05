@@ -416,7 +416,7 @@ function Viewer({ examples }: { examples: Example[] }) {
       const file = new URL(example.file, import.meta.url).pathname
       const proc = Bun.spawn(["bun", "run", file], {
         stdio: ["inherit", "inherit", "inherit"],
-        env: { ...process.env, INKX_THEME: theme.name },
+        env: { ...process.env, HIGHTEA_THEME: theme.name },
       })
       void proc.exited.then(() => process.exit(0))
     },

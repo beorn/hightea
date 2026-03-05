@@ -1,6 +1,6 @@
 # Runtime Layers Reference
 
-inkx's runtime is organized in layers, each building on the one below — the infrastructure that makes the graduated path possible. For a quick tutorial, see [Getting Started](getting-started.md). For the graduated paths through state and events, see [State Management](state-management.md) and [Event Handling](event-handling.md).
+hightea's runtime is organized in layers, each building on the one below — the infrastructure that makes the graduated path possible. For a quick tutorial, see [Getting Started](getting-started.md). For the graduated paths through state and events, see [State Management](state-management.md) and [Event Handling](event-handling.md).
 
 ## Architecture
 
@@ -221,7 +221,7 @@ function update(msg: AppMsg, model: AppModel): [AppModel, Effect[]] {
     case "add-item":
       return [{ ...model, items: [...model.items, msg.text] }, [none]]
     default:
-      // Delegate unhandled messages to the base inkx update
+      // Delegate unhandled messages to the base hightea update
       return inkxUpdate(msg, model)
   }
 }

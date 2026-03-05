@@ -6,7 +6,7 @@ Pure functions for mapping between flat character offsets and visual (row, col) 
 
 Terminal text editors face a fundamental alignment problem: the cursor position in the underlying text (a flat offset) doesn't correspond to what the user sees on screen after word wrapping. A character at offset 45 might be on visual line 3, column 5 -- but only if you use the _same_ wrapping algorithm as the renderer.
 
-The text-cursor module solves this by using `wrapText()` from `unicode.ts` internally -- the same function the inkx rendering pipeline uses, with matching `trim=true` behavior. This guarantees cursor positions always match what's displayed on screen. The trim parameter is critical: the renderer trims trailing spaces at word-wrap break points and leading spaces on continuation lines. Without matching trim behavior, cursor offsets drift from visual positions on wrapped text.
+The text-cursor module solves this by using `wrapText()` from `unicode.ts` internally -- the same function the hightea rendering pipeline uses, with matching `trim=true` behavior. This guarantees cursor positions always match what's displayed on screen. The trim parameter is critical: the renderer trims trailing spaces at word-wrap break points and leading spaces on continuation lines. Without matching trim behavior, cursor offsets drift from visual positions on wrapped text.
 
 ## Architecture
 
@@ -23,7 +23,7 @@ Each layer builds on the one below. Layer 0 has no state, no hooks, no React dep
 
 ## API Reference
 
-All functions are exported from `inkx`:
+All functions are exported from `hightea`:
 
 ```ts
 import { cursorToRowCol, getWrappedLines, rowColToCursor, cursorMoveUp, cursorMoveDown, countVisualLines } from "@hightea/term"

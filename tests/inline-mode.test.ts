@@ -383,8 +383,8 @@ describe("Inline mode: cursor offset with termRows", () => {
 
     // First cursor-up positions to render start:
     // rawCursorOffset = 6, but capped to termRows-1 = 4 at runtime.
-    // INKX_STRICT_OUTPUT mode leaves it uncapped (6).
-    const isStrict = !!process.env.INKX_STRICT_OUTPUT || !!process.env.INKX_STRICT
+    // HIGHTEA_STRICT_OUTPUT mode leaves it uncapped (6).
+    const isStrict = !!process.env.HIGHTEA_STRICT_OUTPUT || !!process.env.HIGHTEA_STRICT
     expect(ups[0]).toBe(isStrict ? 6 : 4)
     // Leftover erasure generates a second cursor-up when cursorOffset > maxOutputLines-1
     expect(ups.length).toBeGreaterThanOrEqual(1)
@@ -492,8 +492,8 @@ describe("Inline mode: multi-frame stability at terminal boundary", () => {
 
     // First cursor-up positions to render start:
     // rawCursorOffset = 6, but capped to termRows-1 = 4 at runtime.
-    // INKX_STRICT_OUTPUT mode leaves it uncapped (6).
-    const isStrict = !!process.env.INKX_STRICT_OUTPUT || !!process.env.INKX_STRICT
+    // HIGHTEA_STRICT_OUTPUT mode leaves it uncapped (6).
+    const isStrict = !!process.env.HIGHTEA_STRICT_OUTPUT || !!process.env.HIGHTEA_STRICT
     expect(ups[0]).toBe(isStrict ? 6 : 4)
     // Leftover erasure generates a second cursor-up when cursorOffset > maxOutputLines-1
     expect(ups.length).toBeGreaterThanOrEqual(1)

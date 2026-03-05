@@ -4,7 +4,7 @@
  * Handle fit-content nodes by measuring their intrinsic content size.
  */
 
-import type { BoxProps, InkxNode } from "../types.js"
+import type { BoxProps, TeaNode } from "../types.js"
 import { displayWidthAnsi } from "../unicode.js"
 import { getBorderSize, getPadding } from "./helpers.js"
 import type { PipelineContext } from "./types.js"
@@ -15,7 +15,7 @@ import type { PipelineContext } from "./types.js"
  * Traverses the tree and for any node with width="fit-content" or
  * height="fit-content", measures the content and sets the Yoga constraint.
  */
-export function measurePhase(root: InkxNode, ctx?: PipelineContext): void {
+export function measurePhase(root: TeaNode, ctx?: PipelineContext): void {
   traverseTree(root, (node) => {
     // Skip nodes without Yoga (raw text nodes)
     if (!node.layoutNode) return
@@ -42,7 +42,7 @@ export function measurePhase(root: InkxNode, ctx?: PipelineContext): void {
  * For box nodes: recursively measures children based on flex direction.
  */
 function measureIntrinsicSize(
-  node: InkxNode,
+  node: TeaNode,
   ctx?: PipelineContext,
 ): {
   width: number
@@ -55,7 +55,7 @@ function measureIntrinsicSize(
     return { width: 0, height: 0 }
   }
 
-  if (node.type === "inkx-text") {
+  if (node.type === "hightea-text") {
     const text = collectTextContent(node)
     const lines = text.split("\n")
     const width = Math.max(...lines.map((line) => getTextWidth(line, ctx)))
@@ -101,7 +101,7 @@ function measureIntrinsicSize(
 /**
  * Traverse tree in depth-first order.
  */
-function traverseTree(node: InkxNode, callback: (node: InkxNode) => void): void {
+function traverseTree(node: TeaNode, callback: (node: TeaNode) => void): void {
   callback(node)
   for (const child of node.children) {
     traverseTree(child, callback)
@@ -121,7 +121,7 @@ function getTextWidth(text: string, ctx?: PipelineContext): number {
  * Collect text content from a node and its children.
  * Used for measuring Text nodes that have nested Text children.
  */
-function collectTextContent(node: InkxNode): string {
+function collectTextContent(node: TeaNode): string {
   if (node.textContent !== undefined) {
     return node.textContent
   }

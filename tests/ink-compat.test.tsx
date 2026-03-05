@@ -20,7 +20,7 @@ import {
   // Types (these should not throw when imported)
   type BoxProps,
   type ComputedLayout,
-  type InkxNode,
+  type TeaNode,
   type InputHandler,
   type Instance,
   type Key,

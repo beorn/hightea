@@ -1,6 +1,6 @@
 ---
-title: Building Data Explorers & Tables with inkx
-description: Build terminal data explorers with sortable tables, virtual lists, responsive layouts, and real-time filtering using inkx.
+title: Building Data Explorers & Tables with hightea
+description: Build terminal data explorers with sortable tables, virtual lists, responsive layouts, and real-time filtering using hightea.
 ---
 
 <script setup>
@@ -9,9 +9,9 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 # Data Explorers & Tables
 
-Terminal data explorers need to handle thousands of rows, resize gracefully across terminal widths, and respond instantly to search queries. inkx provides the primitives that make this straightforward: a `Table` component with column alignment, `VirtualList` for constant-memory rendering of massive datasets, `useContentRect()` for responsive column sizing, and `TextInput` for real-time filtering.
+Terminal data explorers need to handle thousands of rows, resize gracefully across terminal widths, and respond instantly to search queries. hightea provides the primitives that make this straightforward: a `Table` component with column alignment, `VirtualList` for constant-memory rendering of massive datasets, `useContentRect()` for responsive column sizing, and `TextInput` for real-time filtering.
 
-<LiveDemo xtermSrc="/inkx/examples/showcase.html?demo=data-explorer" :height="400" />
+<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=data-explorer" :height="400" />
 
 ## Key Benefits
 
@@ -23,7 +23,7 @@ Terminal data explorers need to handle thousands of rows, resize gracefully acro
 
 - **TextInput for search and filtering** -- Combine `TextInput` with `useDeferredValue` and `useTransition` from React 19 to build responsive filter interfaces. The input stays snappy while expensive filtering runs at lower priority, keeping the UI non-blocking even with large datasets.
 
-- **Inline images** -- Display thumbnails directly in table rows using the `Image` component. inkx auto-detects Kitty graphics or Sixel protocol support and falls back to text placeholders in unsupported terminals.
+- **Inline images** -- Display thumbnails directly in table rows using the `Image` component. hightea auto-detects Kitty graphics or Sixel protocol support and falls back to text placeholders in unsupported terminals.
 
 ## Example: Process Explorer
 
@@ -115,13 +115,13 @@ For datasets larger than a few hundred rows, wrap the table body in a `VirtualLi
 />
 ```
 
-## What inkx Adds
+## What hightea Adds
 
-Data explorers need responsive tables, large dataset handling, and non-blocking search. inkx ships these as first-party components: `Table` handles column alignment and headers, `VirtualList` renders large datasets with constant memory, `useContentRect()` gives responsive column widths without prop threading, and React 19 support unlocks `useDeferredValue` and `useTransition` for keeping filter UIs responsive under load.
+Data explorers need responsive tables, large dataset handling, and non-blocking search. hightea ships these as first-party components: `Table` handles column alignment and headers, `VirtualList` renders large datasets with constant memory, `useContentRect()` gives responsive column widths without prop threading, and React 19 support unlocks `useDeferredValue` and `useTransition` for keeping filter UIs responsive under load.
 
 ## Get Started
 
-Install inkx and build your first data explorer in minutes:
+Install hightea and build your first data explorer in minutes:
 
 ```bash
 bun add @hightea/term react flexture

@@ -53,7 +53,7 @@ describe("forwardRef Support", () => {
     expect(typeof capturedHandle?.getScreenRect).toBe("function")
   })
 
-  test("BoxHandle.getNode returns the InkxNode", () => {
+  test("BoxHandle.getNode returns the TeaNode", () => {
     let node: ReturnType<BoxHandle["getNode"]> = null
 
     function TestComponent() {
@@ -73,7 +73,7 @@ describe("forwardRef Support", () => {
     render(<TestComponent />)
 
     expect(node).not.toBeNull()
-    expect(node?.type).toBe("inkx-box")
+    expect(node?.type).toBe("hightea-box")
     expect(node?.props.id).toBe("test-box")
   })
 
@@ -125,7 +125,7 @@ describe("forwardRef Support", () => {
     expect(typeof capturedHandle?.getNode).toBe("function")
   })
 
-  test("TextHandle.getNode returns the InkxNode", () => {
+  test("TextHandle.getNode returns the TeaNode", () => {
     let node: ReturnType<TextHandle["getNode"]> = null
 
     function TestComponent() {
@@ -145,7 +145,7 @@ describe("forwardRef Support", () => {
     render(<TestComponent />)
 
     expect(node).not.toBeNull()
-    expect(node?.type).toBe("inkx-text")
+    expect(node?.type).toBe("hightea-text")
   })
 })
 
@@ -555,6 +555,6 @@ describe("Combined React Patterns", () => {
     expect(app.text).toContain("My Card")
     expect(app.text).toContain("Card content")
     expect(capturedHandle).not.toBeNull()
-    expect(capturedHandle?.getNode()?.type).toBe("inkx-box")
+    expect(capturedHandle?.getNode()?.type).toBe("hightea-box")
   })
 })

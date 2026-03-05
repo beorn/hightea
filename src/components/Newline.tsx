@@ -24,5 +24,5 @@ export interface NewlineProps {
  * ```
  */
 export function Newline({ count = 1 }: NewlineProps): JSX.Element {
-  return <inkx-text>{"\n".repeat(count)}</inkx-text>
+  return <hightea-text>{"\n".repeat(count)}</hightea-text>
 }

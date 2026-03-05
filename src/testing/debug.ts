@@ -11,13 +11,13 @@
  * const { getContainer } = render(<MyComponent />)
  * console.log(debugTree(getContainer()))
  * // Output:
- * // <inkx-root [0,0 80×24]>
- * //   <inkx-box testID="main" [0,0 80×24]>
- * //     <inkx-text "Hello World" [0,0 11×1]>
+ * // <hightea-root [0,0 80×24]>
+ * //   <hightea-box testID="main" [0,0 80×24]>
+ * //     <hightea-text "Hello World" [0,0 11×1]>
  * ```
  */
 
-import type { InkxNode } from "../types.js"
+import type { TeaNode } from "../types.js"
 
 export interface DebugTreeOptions {
   /** Maximum depth to traverse (default: unlimited) */
@@ -35,7 +35,7 @@ export interface DebugTreeOptions {
  * @param options - Display options
  * @returns Formatted tree string
  */
-export function debugTree(node: InkxNode, options: DebugTreeOptions = {}): string {
+export function debugTree(node: TeaNode, options: DebugTreeOptions = {}): string {
   const { depth = Number.POSITIVE_INFINITY, showRects = true, showText = true } = options
   const lines: string[] = []
 
@@ -52,7 +52,7 @@ export function debugTree(node: InkxNode, options: DebugTreeOptions = {}): strin
     }
   }
 
-  function walk(n: InkxNode, indent: number, currentDepth: number): void {
+  function walk(n: TeaNode, indent: number, currentDepth: number): void {
     if (currentDepth > depth) return
 
     // Build props string (exclude children and internal props)

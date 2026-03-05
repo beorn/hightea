@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest"
 import { Box, Text } from "../src/index.js"
 /**
- * Comprehensive tests for flexx nested Box bug (km-flexx-improve.11)
+ * Comprehensive tests for flexture nested Box bug (km-flexture-improve.11)
  *
  * Bug: When a column-direction container has fixed height (e.g., height=20)
  * and contains a child with flexShrink=0, that child should size to its content.
@@ -15,7 +15,7 @@ import { createRenderer } from "@hightea/term/testing"
 
 const render = createRenderer({ cols: 80, rows: 24 })
 
-describe("flexx nested Box bug (km-flexx-improve.11)", () => {
+describe("flexture nested Box bug (km-flexture-improve.11)", () => {
   describe("1. Minimal reproduction", () => {
     test("row containing Box>Text expands unexpectedly", () => {
       // Simplest case that triggers the bug:

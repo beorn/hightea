@@ -1,7 +1,7 @@
 /**
  * Layout Engine Abstraction
  *
- * Provides a pluggable interface for layout engines (Yoga, Flexx, etc.)
+ * Provides a pluggable interface for layout engines (Yoga, Flexture, etc.)
  * This allows inkx to use different layout backends without code changes.
  */
 
@@ -123,7 +123,7 @@ export type MeasureModeValue = number & { readonly __brand: "MeasureMode" }
 
 /**
  * Constants for layout configuration.
- * These are the same across Yoga and Flexx.
+ * These are the same across Yoga and Flexture.
  * Uses branded types for compile-time safety.
  */
 export interface LayoutConstants {
@@ -196,7 +196,7 @@ export interface LayoutConstants {
 
 /**
  * Abstract layout engine interface.
- * Implementations can wrap Yoga, Flexx, or other layout engines.
+ * Implementations can wrap Yoga, Flexture, or other layout engines.
  */
 export interface LayoutEngine {
   /** Create a new layout node */
@@ -229,7 +229,7 @@ export function setLayoutEngine(engine: LayoutEngine): void {
  */
 export function getLayoutEngine(): LayoutEngine {
   if (!layoutEngine) {
-    throw new Error("Layout engine not initialized. Call setLayoutEngine() or initYoga()/initFlexx() first.")
+    throw new Error("Layout engine not initialized. Call setLayoutEngine() or initYoga()/initFlexture() first.")
   }
   return layoutEngine
 }
@@ -256,32 +256,32 @@ export function getConstants(): LayoutConstants {
 /**
  * Layout engine type for configuration.
  *
- * - 'flexx': Zero-allocation Flexx (default, optimized for high-frequency layout)
- * - 'flexx-classic': Classic Flexx algorithm (for debugging/compatibility)
+ * - 'flexture': Zero-allocation Flexture (default, optimized for high-frequency layout)
+ * - 'flexture-classic': Classic Flexture algorithm (for debugging/compatibility)
  * - 'yoga': Facebook's WASM-based flexbox (most mature)
  */
-export type LayoutEngineType = "flexx" | "yoga"
+export type LayoutEngineType = "flexture" | "yoga"
 
 /**
  * Initialize the layout engine if not already set.
  *
- * @param engineType - 'flexx', 'flexx-classic', or 'yoga'. If not provided, checks
- *                     INKX_ENGINE env var, then defaults to 'flexx'.
+ * @param engineType - 'flexture', 'flexture-classic', or 'yoga'. If not provided, checks
+ *                     HIGHTEA_ENGINE env var, then defaults to 'flexture'.
  */
 export async function ensureDefaultLayoutEngine(engineType?: LayoutEngineType): Promise<void> {
   if (isLayoutEngineInitialized()) {
     return
   }
 
-  // Resolve engine type: option → env → 'flexx'
-  const resolved = engineType ?? (process.env.INKX_ENGINE?.toLowerCase() as LayoutEngineType) ?? "flexx"
+  // Resolve engine type: option → env → 'flexture'
+  const resolved = engineType ?? (process.env.HIGHTEA_ENGINE?.toLowerCase() as LayoutEngineType) ?? "flexture"
 
   if (resolved === "yoga") {
     const { initYogaEngine } = await import("./adapters/yoga-adapter.js")
     setLayoutEngine(await initYogaEngine())
   } else {
-    // 'flexx' (default) uses zero-allocation engine
-    const { createFlexxZeroEngine } = await import("./adapters/flexx-zero-adapter.js")
-    setLayoutEngine(createFlexxZeroEngine())
+    // 'flexture' (default) uses zero-allocation engine
+    const { createFlextureZeroEngine } = await import("./adapters/flexture-zero-adapter.js")
+    setLayoutEngine(createFlextureZeroEngine())
   }
 }

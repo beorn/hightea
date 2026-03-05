@@ -3,7 +3,7 @@
  */
 
 import type { TerminalBuffer } from "../buffer.js"
-import type { InkxNode } from "../types.js"
+import type { TeaNode } from "../types.js"
 
 /**
  * Dimensions for rendering.
@@ -27,7 +27,7 @@ export interface Buffer {
   /** Styled output with ANSI escape codes */
   readonly ansi: string
   /** Internal node tree for locator queries */
-  readonly nodes: InkxNode
+  readonly nodes: TeaNode
   /** Raw terminal buffer for diffing */
   readonly _buffer: TerminalBuffer
 }

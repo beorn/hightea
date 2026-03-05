@@ -167,9 +167,9 @@ export function Image({
   // If no protocol or no image data, render fallback text
   if (!activeProtocol || !pngData) {
     return (
-      <inkx-box width={effectiveWidth} height={effectiveHeight}>
-        <inkx-text>{fallback}</inkx-text>
-      </inkx-box>
+      <hightea-box width={effectiveWidth} height={effectiveHeight}>
+        <hightea-text>{fallback}</hightea-text>
+      </hightea-box>
     )
   }
 
@@ -180,8 +180,8 @@ export function Image({
   const spaceContent = Array.from({ length: Math.max(0, effectiveHeight) }, () => spaceLine).join("\n")
 
   return (
-    <inkx-box width={effectiveWidth} height={effectiveHeight}>
-      <inkx-text>{spaceContent}</inkx-text>
-    </inkx-box>
+    <hightea-box width={effectiveWidth} height={effectiveHeight}>
+      <hightea-text>{spaceContent}</hightea-text>
+    </hightea-box>
   )
 }

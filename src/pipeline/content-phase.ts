@@ -15,7 +15,7 @@
 
 import type { Color } from "../buffer.js"
 import { TerminalBuffer } from "../buffer.js"
-import type { BoxProps, InkxNode, TextProps } from "../types.js"
+import type { BoxProps, TeaNode, TextProps } from "../types.js"
 import { getBorderSize, getPadding } from "./helpers.js"
 import { renderBox, renderOutline, renderScrollIndicators } from "./render-box.js"
 import { parseColor } from "./render-helpers.js"
@@ -32,7 +32,7 @@ import type { ClipBounds, ContentPhaseStats, NodeRenderState, NodeTraceEntry, Pi
  * @returns A TerminalBuffer with the rendered content
  */
 export function contentPhase(
-  root: InkxNode,
+  root: TeaNode,
   prevBuffer?: TerminalBuffer | null,
   ctx?: PipelineContext,
 ): TerminalBuffer {
@@ -82,8 +82,8 @@ export function contentPhase(
       render: tRender,
       ...structuredClone(stats),
     }
-    ;(globalThis as any).__inkx_content_detail = snap
-    const arr = ((globalThis as any).__inkx_content_all ??= [] as (typeof snap)[])
+    ;(globalThis as any).__hightea_content_detail = snap
+    const arr = ((globalThis as any).__hightea_content_all ??= [] as (typeof snap)[])
     arr.push(snap)
     for (const key of Object.keys(stats) as (keyof ContentPhaseStats)[]) {
       ;(stats as any)[key] = 0
@@ -94,9 +94,9 @@ export function contentPhase(
     stats.normalRepaintReason = ""
   }
 
-  // Export node trace for INKX_STRICT diagnosis
+  // Export node trace for HIGHTEA_STRICT diagnosis
   if (nodeTraceEnabled && nodeTrace.length > 0) {
-    const traceArr = ((globalThis as any).__inkx_node_trace ??= [] as NodeTraceEntry[][])
+    const traceArr = ((globalThis as any).__hightea_node_trace ??= [] as NodeTraceEntry[][])
     traceArr.push([...nodeTrace])
     nodeTrace.length = 0
   }
@@ -121,17 +121,17 @@ export function contentPhase(
  *    has null/stale prevLayout while fresh has synced prevLayout, causing
  *    different cascade behavior (layoutChanged true vs false).
  */
-function syncPrevLayout(node: InkxNode): void {
+function syncPrevLayout(node: TeaNode): void {
   node.prevLayout = node.contentRect
   for (const child of node.children) {
     syncPrevLayout(child)
   }
 }
 
-/** Instrumentation enabled when INKX_STRICT, INKX_CHECK_INCREMENTAL, or INKX_INSTRUMENT is set */
+/** Instrumentation enabled when HIGHTEA_STRICT, HIGHTEA_CHECK_INCREMENTAL, or HIGHTEA_INSTRUMENT is set */
 const _instrumentEnabled =
   typeof process !== "undefined" &&
-  !!(process.env?.INKX_STRICT || process.env?.INKX_CHECK_INCREMENTAL || process.env?.INKX_INSTRUMENT)
+  !!(process.env?.HIGHTEA_STRICT || process.env?.HIGHTEA_CHECK_INCREMENTAL || process.env?.HIGHTEA_INSTRUMENT)
 
 /** Mutable stats counters — reset after each contentPhase call */
 const _contentPhaseStats: ContentPhaseStats = {
@@ -170,12 +170,12 @@ let _contentPhaseCallCount = 0
 /** Module-level node trace (fallback when ctx.nodeTrace is not provided) */
 const _nodeTrace: NodeTraceEntry[] = []
 const _nodeTraceEnabled =
-  typeof process !== "undefined" && !!(process.env?.INKX_STRICT || process.env?.INKX_CHECK_INCREMENTAL)
+  typeof process !== "undefined" && !!(process.env?.HIGHTEA_STRICT || process.env?.HIGHTEA_CHECK_INCREMENTAL)
 
 /** DIAG: compute node depth in tree */
-function _getNodeDepth(node: InkxNode): number {
+function _getNodeDepth(node: TeaNode): number {
   let depth = 0
-  let n: InkxNode | null = node.parent
+  let n: TeaNode | null = node.parent
   while (n) {
     depth++
     n = n.parent
@@ -194,7 +194,7 @@ export { clearBgConflictWarnings, setBgConflictMode }
  * Render a single node to the buffer.
  */
 function renderNodeToBuffer(
-  node: InkxNode,
+  node: TeaNode,
   buffer: TerminalBuffer,
   nodeState: NodeRenderState,
   ctx?: PipelineContext,
@@ -210,7 +210,7 @@ function renderNodeToBuffer(
   if (!layout) return
 
   // Skip nodes without Yoga (raw text and virtual text nodes)
-  // Their content is rendered by their parent inkx-text via collectTextContent()
+  // Their content is rendered by their parent hightea-text via collectTextContent()
   if (!node.layoutNode) {
     // Clear dirty flags so markSubtreeDirty() can propagate future updates.
     // Without this, virtual text children keep stale subtreeDirty=true from
@@ -273,7 +273,7 @@ function renderNodeToBuffer(
 
   // FAST PATH: Skip unchanged subtrees when we have a valid previous buffer.
   // The cloned buffer already has correct pixels for clean nodes.
-  // INKX_STRICT=1 verifies this by comparing incremental vs fresh renders.
+  // HIGHTEA_STRICT=1 verifies this by comparing incremental vs fresh renders.
   const skipFastPath =
     hasPrevBuffer &&
     !node.contentDirty &&
@@ -357,7 +357,7 @@ function renderNodeToBuffer(
   // Uses bgDirty (set by reconciler when backgroundColor specifically changes) rather
   // than checking current props.backgroundColor — catches bg removal (cyan → undefined)
   // where current value is falsy but stale pixels must still be cleared.
-  const textPaintDirty = node.type === "inkx-text" && node.paintDirty
+  const textPaintDirty = node.type === "hightea-text" && node.paintDirty
 
   // absoluteChildMutated: an absolute child had its children added/removed/reordered,
   // or its layout changed. In the two-pass rendering model (normal-flow first, absolute
@@ -506,13 +506,13 @@ function renderNodeToBuffer(
 
   // Compute inherited bg once for boxes — used by border and outline rendering
   // to preserve parent backgrounds on border cells (prevents transparent holes).
-  const boxInheritedBg = node.type === "inkx-box" && !props.backgroundColor ? findInheritedBg(node).color : undefined
+  const boxInheritedBg = node.type === "hightea-box" && !props.backgroundColor ? findInheritedBg(node).color : undefined
 
   // Render based on node type
-  if (node.type === "inkx-box") {
+  if (node.type === "hightea-box") {
     if (instrumentEnabled) stats.boxNodes++
     renderBox(node, buffer, layout, props, nodeState, skipBgFill, boxInheritedBg)
-  } else if (node.type === "inkx-text") {
+  } else if (node.type === "hightea-text") {
     if (instrumentEnabled) stats.textNodes++
     // Pass inherited bg/fg from nearest ancestor with backgroundColor/color.
     // This decouples text inheritance from buffer state, which is critical
@@ -546,7 +546,7 @@ function renderNodeToBuffer(
   }
 
   // Render outline AFTER children — outline overlaps content at edges
-  if (node.type === "inkx-box" && props.outlineStyle) {
+  if (node.type === "hightea-box" && props.outlineStyle) {
     const { x, width, height } = layout
     const y = layout.y - scrollOffset
     renderOutline(buffer, x, y, width, height, props, clipBounds, boxInheritedBg)
@@ -568,7 +568,7 @@ function renderNodeToBuffer(
  * Render children of a scroll container with proper clipping and offset.
  */
 function renderScrollContainerChildren(
-  node: InkxNode,
+  node: TeaNode,
   buffer: TerminalBuffer,
   props: BoxProps,
   nodeState: NodeRenderState,
@@ -829,7 +829,7 @@ function renderScrollContainerChildren(
  * Render children of a normal (non-scroll) container.
  */
 function renderNormalChildren(
-  node: InkxNode,
+  node: TeaNode,
   buffer: TerminalBuffer,
   props: BoxProps,
   nodeState: NodeRenderState,
@@ -1010,7 +1010,7 @@ function renderNormalChildren(
 /**
  * Clear dirty flags on a subtree that was skipped during incremental rendering.
  */
-function clearDirtyFlags(node: InkxNode): void {
+function clearDirtyFlags(node: TeaNode): void {
   node.contentDirty = false
   node.paintDirty = false
   node.bgDirty = false
@@ -1035,7 +1035,7 @@ function clearDirtyFlags(node: InkxNode): void {
  * after the parent renders, otherwise stale subtreeDirty blocks
  * markSubtreeDirty() propagation on future updates.
  */
-function clearVirtualTextFlags(node: InkxNode): void {
+function clearVirtualTextFlags(node: TeaNode): void {
   node.contentDirty = false
   node.paintDirty = false
   node.bgDirty = false
@@ -1052,7 +1052,7 @@ function clearVirtualTextFlags(node: InkxNode): void {
  * Checked even when subtreeDirty=true because subtreeDirty only means
  * descendants are dirty, not that this container's gap regions need clearing.
  */
-function hasChildPositionChanged(node: InkxNode): boolean {
+function hasChildPositionChanged(node: TeaNode): boolean {
   for (const child of node.children) {
     if (child.contentRect && child.prevLayout) {
       if (child.contentRect.x !== child.prevLayout.x || child.contentRect.y !== child.prevLayout.y) {
@@ -1068,7 +1068,7 @@ function hasChildPositionChanged(node: InkxNode): boolean {
  * then intersecting with parent clip bounds.
  */
 function computeChildClipBounds(
-  layout: NonNullable<InkxNode["contentRect"]>,
+  layout: NonNullable<TeaNode["contentRect"]>,
   props: BoxProps,
   parentClip: ClipBounds | undefined,
   scrollOffset = 0,
@@ -1125,7 +1125,7 @@ interface InheritedBgResult {
  * ancestor's bounds - not just the immediate parent. Otherwise the inherited
  * color can bleed into sibling areas that should have different backgrounds.
  */
-function findInheritedBg(node: InkxNode): InheritedBgResult {
+function findInheritedBg(node: TeaNode): InheritedBgResult {
   let current = node.parent
   while (current) {
     const bg = (current.props as BoxProps).backgroundColor
@@ -1145,7 +1145,7 @@ function findInheritedBg(node: InkxNode): InheritedBgResult {
  * Implements CSS-style foreground color inheritance: Text children without an
  * explicit `color` prop inherit from the nearest Box ancestor that sets one.
  */
-function findInheritedFg(node: InkxNode): Color {
+function findInheritedFg(node: TeaNode): Color {
   let current = node.parent
   while (current) {
     const fg = (current.props as BoxProps).color
@@ -1163,9 +1163,9 @@ function findInheritedFg(node: InkxNode): Color {
  * colored ancestor's bounds (prevents bg color bleeding into siblings).
  */
 function clearNodeRegion(
-  node: InkxNode,
+  node: TeaNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<InkxNode["contentRect"]>,
+  layout: NonNullable<TeaNode["contentRect"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
   layoutChanged: boolean,
@@ -1240,9 +1240,9 @@ function clearNodeRegion(
  * content area will extend into the parent's border row, overwriting border chars.
  */
 function clearExcessArea(
-  node: InkxNode,
+  node: TeaNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<InkxNode["contentRect"]>,
+  layout: NonNullable<TeaNode["contentRect"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
   layoutChanged: boolean,

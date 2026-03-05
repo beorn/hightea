@@ -1,7 +1,7 @@
 /**
  * Wide Terminal Cursor Drift Reproduction Test
  *
- * Bug: At wide terminal widths (204+ columns), INKX_STRICT_OUTPUT detects
+ * Bug: At wide terminal widths (204+ columns), HIGHTEA_STRICT_OUTPUT detects
  * a mismatch at (204,5) with incremental='│' fresh=' '. The incremental
  * render is shifted right ~2 positions vs the fresh render.
  *
@@ -17,14 +17,14 @@
  *
  * Results:
  * - Output phase (changesToAnsi, bufferToAnsi) handles wide columns correctly.
- *   All raw TerminalBuffer tests pass with INKX_STRICT_OUTPUT=1 at cols 200-250.
+ *   All raw TerminalBuffer tests pass with HIGHTEA_STRICT_OUTPUT=1 at cols 200-250.
  * - createOutputPhase caps swapping works correctly during verification.
  * - Content phase has an unrelated dirty-flag propagation bug with
  *   conditionally-styled column headers at wide widths (headers not re-rendered
- *   when inverse prop changes). This manifests as an INKX_CHECK_INCREMENTAL
- *   mismatch, NOT INKX_STRICT_OUTPUT. See the "content phase" describe block.
+ *   when inverse prop changes). This manifests as an HIGHTEA_CHECK_INCREMENTAL
+ *   mismatch, NOT HIGHTEA_STRICT_OUTPUT. See the "content phase" describe block.
  *
- * The original INKX_STRICT_OUTPUT cursor drift bug may require the actual
+ * The original HIGHTEA_STRICT_OUTPUT cursor drift bug may require the actual
  * km-tui board component (with its specific outline/scroll/sticky structure)
  * to reproduce. The simplified board layouts here don't trigger it.
  */
@@ -42,10 +42,10 @@ import { compareBuffers, formatMismatch } from "@hightea/term/testing"
 
 describe("wide terminal output phase", () => {
   beforeEach(() => {
-    process.env.INKX_STRICT_OUTPUT = "1"
+    process.env.HIGHTEA_STRICT_OUTPUT = "1"
   })
   afterEach(() => {
-    delete process.env.INKX_STRICT_OUTPUT
+    delete process.env.HIGHTEA_STRICT_OUTPUT
   })
 
   test("createOutputPhase caps are active during verification", () => {
@@ -144,7 +144,7 @@ describe("wide terminal output phase", () => {
       })
     }
 
-    // INKX_STRICT_OUTPUT will verify equivalence
+    // HIGHTEA_STRICT_OUTPUT will verify equivalence
     const output = outputPhase(prev, next)
     expect(output.length).toBeGreaterThan(0)
   })
@@ -378,10 +378,10 @@ describe("wide terminal output phase", () => {
 
 describe("wide terminal content phase (board layout)", () => {
   beforeEach(() => {
-    process.env.INKX_STRICT_OUTPUT = "1"
+    process.env.HIGHTEA_STRICT_OUTPUT = "1"
   })
   afterEach(() => {
-    delete process.env.INKX_STRICT_OUTPUT
+    delete process.env.HIGHTEA_STRICT_OUTPUT
   })
 
   // Simple card without conditional styling in header (avoids dirty flag bug)

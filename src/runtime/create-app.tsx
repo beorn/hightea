@@ -144,7 +144,7 @@ export interface EventHandlerContext<S> {
    */
   dispatch?: "dispatch" extends keyof S ? S["dispatch"] : undefined
   /** Hit-test the render tree at (x, y). Returns the deepest InkxNode at that point, or null. */
-  hitTest(x: number, y: number): import("../types.js").InkxNode | null
+  hitTest(x: number, y: number): import("../types.js").TeaNode | null
 }
 
 /**
@@ -565,9 +565,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   let inEventHandler = false // True during processEvent/press — suppresses subscription renders
 
   // ========================================================================
-  // ANSI Trace: INKX_TRACE=1 logs all stdout writes with decoded sequences
+  // ANSI Trace: HIGHTEA_TRACE=1 logs all stdout writes with decoded sequences
   // ========================================================================
-  const _ansiTrace = !headless && process.env?.INKX_TRACE === "1"
+  const _ansiTrace = !headless && process.env?.HIGHTEA_TRACE === "1"
 
   let _traceSeq = 0
   const _traceStart = performance.now()
@@ -577,7 +577,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     const fs =
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       require("node:fs") as typeof import("node:fs")
-    fs.writeFileSync("/tmp/inkx-trace.log", `=== INKX TRACE START ===\n`)
+    fs.writeFileSync("/tmp/hightea-trace.log", `=== HIGHTEA TRACE START ===\n`)
 
     _origStdoutWrite = stdout.write.bind(stdout) as typeof stdout.write
 
@@ -624,7 +624,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       const preview =
         decoded.length > 400 ? decoded.slice(0, 200) + ` ...[${decoded.length}ch]... ` + decoded.slice(-100) : decoded
       fs.appendFileSync(
-        "/tmp/inkx-trace.log",
+        "/tmp/hightea-trace.log",
         `[${String(seq).padStart(4, "0")}] +${ms}ms (${str.length}b): ${preview}\n`,
       )
       return (_origStdoutWrite as Function).call(this, chunk, ...args)
@@ -648,7 +648,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           if (_perfLog) {
             // eslint-disable-next-line @typescript-eslint/no-require-imports
             require("node:fs").appendFileSync(
-              "/tmp/inkx-perf.log",
+              "/tmp/hightea-perf.log",
               `TARGET.write: ${frame.length} bytes (paused=${renderPaused})\n`,
             )
           }
@@ -831,12 +831,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // Performance instrumentation — count renders per event
   let _renderCount = 0
   let _eventStart = 0
-  const _perfLog = typeof process !== "undefined" && process.env?.DEBUG?.includes("inkx:perf")
+  const _perfLog = typeof process !== "undefined" && process.env?.DEBUG?.includes("hightea:perf")
 
   // Incremental rendering — store previous pipeline buffer for diffing.
   // Without this, every render walks the entire node tree from scratch.
-  // Set INKX_NO_INCREMENTAL=1 to disable (for debugging blank screen issues).
-  const _noIncremental = process.env?.INKX_NO_INCREMENTAL === "1"
+  // Set HIGHTEA_NO_INCREMENTAL=1 to disable (for debugging blank screen issues).
+  const _noIncremental = process.env?.HIGHTEA_NO_INCREMENTAL === "1"
   let _prevTermBuffer: import("../buffer.js").TerminalBuffer | null = null
 
   // Helper to render and get text
@@ -845,7 +845,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     if (_ansiTrace) {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       require("node:fs").appendFileSync(
-        "/tmp/inkx-trace.log",
+        "/tmp/hightea-trace.log",
         `--- doRender #${_renderCount} (prev=${_prevTermBuffer ? "yes" : "null"}, incremental=${!_noIncremental && !!_prevTermBuffer}) ---\n`,
       )
     }
@@ -870,8 +870,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     }
 
     // Clear diagnostic arrays before the render so we capture only this render's data
-    ;(globalThis as any).__inkx_content_all = undefined
-    ;(globalThis as any).__inkx_node_trace = undefined
+    ;(globalThis as any).__hightea_content_all = undefined
+    ;(globalThis as any).__hightea_node_trace = undefined
 
     // Early return: if reconciliation produced no dirty flags on the tree,
     // skip the pipeline entirely. This avoids cloning _prevTermBuffer (which
@@ -900,11 +900,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     if (!_noIncremental) _prevTermBuffer = termBuffer
     const pipelineMs = performance.now() - pipelineStart
 
-    // INKX_CHECK_INCREMENTAL: compare incremental render against fresh render.
+    // HIGHTEA_CHECK_INCREMENTAL: compare incremental render against fresh render.
     // createApp bypasses Scheduler/Renderer which have this check built-in,
     // so we add it here to catch incremental rendering bugs at runtime.
     const strictEnv =
-      typeof process !== "undefined" && (process.env?.INKX_STRICT || process.env?.INKX_CHECK_INCREMENTAL)
+      typeof process !== "undefined" && (process.env?.HIGHTEA_STRICT || process.env?.HIGHTEA_CHECK_INCREMENTAL)
     if (strictEnv && strictEnv !== "0" && strictEnv !== "false" && wasIncremental) {
       const { buffer: freshBuffer } = executeRender(
         rootNode,
@@ -928,7 +928,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             // Re-run fresh render with write trap to capture what writes to the mismatched cell
             let trapInfo = ""
             const trap = { x, y, log: [] as string[] }
-            ;(globalThis as any).__inkx_write_trap = trap
+            ;(globalThis as any).__hightea_write_trap = trap
             try {
               executeRender(
                 rootNode,
@@ -944,7 +944,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             } catch {
               // ignore
             }
-            ;(globalThis as any).__inkx_write_trap = null
+            ;(globalThis as any).__hightea_write_trap = null
             if (trap.log.length > 0) {
               trapInfo = `\nWRITE TRAP (${trap.log.length} writes to (${x},${y})):\n${trap.log.join("\n")}\n`
             } else {
@@ -955,7 +955,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             const cellStr = (c: typeof a) =>
               `char=${JSON.stringify(c.char)} fg=${c.fg} bg=${c.bg} ulColor=${c.underlineColor} wide=${c.wide} cont=${c.continuation} attrs={bold=${c.attrs.bold},dim=${c.attrs.dim},italic=${c.attrs.italic},ul=${c.attrs.underline},ulStyle=${c.attrs.underlineStyle},blink=${c.attrs.blink},inv=${c.attrs.inverse},hidden=${c.attrs.hidden},strike=${c.attrs.strikethrough}}`
             // Dump content phase stats for diagnosis
-            const contentAll = (globalThis as any).__inkx_content_all as unknown[]
+            const contentAll = (globalThis as any).__hightea_content_all as unknown[]
             const statsStr = contentAll
               ? `\n--- content phase stats (${contentAll.length} calls) ---\n` +
                 contentAll
@@ -973,13 +973,13 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
                   .join("\n")
               : ""
             const msg =
-              `INKX_CHECK_INCREMENTAL (createApp): MISMATCH at (${x}, ${y}) on render #${_renderCount}\n` +
+              `HIGHTEA_CHECK_INCREMENTAL (createApp): MISMATCH at (${x}, ${y}) on render #${_renderCount}\n` +
               `  incremental: ${cellStr(a)}\n` +
               `  fresh:       ${cellStr(b)}` +
               statsStr +
               // Per-node trace
               (() => {
-                const traces = (globalThis as any).__inkx_node_trace as unknown[][] | undefined
+                const traces = (globalThis as any).__hightea_node_trace as unknown[][] | undefined
                 if (!traces || traces.length === 0) return ""
                 let out = "\n--- node trace ---"
                 for (let ti = 0; ti < traces.length; ti++) {
@@ -998,7 +998,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
               trapInfo +
               `\n--- incremental ---\n${incText}\n--- fresh ---\n${freshText}`
             // eslint-disable-next-line @typescript-eslint/no-require-imports
-            require("node:fs").appendFileSync("/tmp/inkx-perf.log", msg + "\n")
+            require("node:fs").appendFileSync("/tmp/hightea-perf.log", msg + "\n")
             // Also throw to make it visible
             throw new IncrementalRenderMismatchError(msg)
           }
@@ -1007,8 +1007,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       if (_perfLog) {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         require("node:fs").appendFileSync(
-          "/tmp/inkx-perf.log",
-          `INKX_CHECK_INCREMENTAL (createApp): render #${_renderCount} OK\n`,
+          "/tmp/hightea-perf.log",
+          `HIGHTEA_CHECK_INCREMENTAL (createApp): render #${_renderCount} OK\n`,
         )
       }
     }
@@ -1016,8 +1016,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     const buf = createBuffer(termBuffer, rootNode)
     if (_perfLog) {
       const renderDuration = performance.now() - renderStart
-      const phases = (globalThis as any).__inkx_last_pipeline
-      const detail = (globalThis as any).__inkx_content_detail
+      const phases = (globalThis as any).__hightea_last_pipeline
+      const detail = (globalThis as any).__hightea_content_detail
       const phaseStr = phases
         ? ` [measure=${phases.measure.toFixed(1)} layout=${phases.layout.toFixed(1)} content=${phases.content.toFixed(1)} output=${phases.output.toFixed(1)}]`
         : ""
@@ -1026,7 +1026,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         : ""
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       require("node:fs").appendFileSync(
-        "/tmp/inkx-perf.log",
+        "/tmp/hightea-perf.log",
         `doRender #${_renderCount}: ${renderDuration.toFixed(1)}ms (reconcile=${reconcileMs.toFixed(1)}ms pipeline=${pipelineMs.toFixed(1)}ms ${dims.cols}x${dims.rows})${phaseStr}${detailStr}\n`,
       )
     }
@@ -1036,7 +1036,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // Initial render
   if (_ansiTrace) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require("node:fs").appendFileSync("/tmp/inkx-trace.log", "=== INITIAL RENDER ===\n")
+    require("node:fs").appendFileSync("/tmp/hightea-trace.log", "=== INITIAL RENDER ===\n")
   }
   currentBuffer = doRender()
 
@@ -1044,7 +1044,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   if (!headless) {
     if (_ansiTrace) {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require("node:fs").appendFileSync("/tmp/inkx-trace.log", "=== ALT SCREEN + CLEAR ===\n")
+      require("node:fs").appendFileSync("/tmp/hightea-trace.log", "=== ALT SCREEN + CLEAR ===\n")
     }
     if (alternateScreen) stdout.write("\x1b[?1049h")
     stdout.write("\x1b[2J\x1b[H\x1b[?25l")
@@ -1080,13 +1080,13 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   }
   if (_ansiTrace) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require("node:fs").appendFileSync("/tmp/inkx-trace.log", "=== RUNTIME.RENDER (initial) ===\n")
+    require("node:fs").appendFileSync("/tmp/hightea-trace.log", "=== RUNTIME.RENDER (initial) ===\n")
   }
   runtime.render(currentBuffer)
   if (_perfLog) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     require("node:fs").appendFileSync(
-      "/tmp/inkx-perf.log",
+      "/tmp/hightea-perf.log",
       `STARTUP: initial render done (render #${_renderCount}, incremental=${!_noIncremental})\n`,
     )
   }
@@ -1169,7 +1169,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       const stack = new Error().stack?.split("\n").slice(1, 5).join("\n") ?? ""
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       require("node:fs").appendFileSync(
-        "/tmp/inkx-trace.log",
+        "/tmp/hightea-trace.log",
         `=== SUBSCRIPTION (case ${_case}, render #${_renderCount + 1}) ===\n${stack}\n`,
       )
     }
@@ -1189,7 +1189,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             if (_perfLog) {
               // eslint-disable-next-line @typescript-eslint/no-require-imports
               require("node:fs").appendFileSync(
-                "/tmp/inkx-perf.log",
+                "/tmp/hightea-perf.log",
                 `SUBSCRIPTION: deferred microtask render (case 2, render #${_renderCount + 1})\n`,
               )
             }
@@ -1208,7 +1208,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     if (_perfLog) {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       require("node:fs").appendFileSync(
-        "/tmp/inkx-perf.log",
+        "/tmp/hightea-perf.log",
         `SUBSCRIPTION: immediate render (case 3, render #${_renderCount + 1})\n`,
       )
     }
@@ -1405,7 +1405,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       const totalMs = performance.now() - _eventStart
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       require("node:fs").appendFileSync(
-        "/tmp/inkx-perf.log",
+        "/tmp/hightea-perf.log",
         `EVENT batch(${events.length} ${events[0]?.type}): ${totalMs.toFixed(1)}ms total, ${_renderCount} doRender() calls, runtime.render=${runtimeMs.toFixed(1)}ms\n---\n`,
       )
     }

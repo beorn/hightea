@@ -1,12 +1,12 @@
-# inkx
+# hightea
 
 **TUI framework for modern terminals.**
 Ink-compatible but [100x+ faster](docs/deep-dives/performance.md). React 19, every terminal protocol, pure TypeScript.
 
-[![npm version](https://img.shields.io/npm/v/inkx.svg)](https://www.npmjs.com/package/inkx)
+[![npm version](https://img.shields.io/npm/v/hightea.svg)](https://www.npmjs.com/package/hightea)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-**Unique to inkx** — Reactive layout · scrollable containers · per-node dirty tracking · Elm + React + Zustand · three render targets · no WASM
+**Unique to hightea** — Reactive layout · scrollable containers · per-node dirty tracking · Elm + React + Zustand · three render targets · no WASM
 
 **Terminal protocols** — Kitty keyboard · SGR mouse · inline images · clipboard over SSH · hyperlinks · synchronized output
 
@@ -44,7 +44,7 @@ function App() {
 await run(<App />)
 ```
 
-## Why inkx?
+## Why hightea?
 
 **Components that know their size.** `useContentRect()` gives every component its rendered width and height — synchronously, during render. No prop drilling, no second pass, no ResizeObserver. This is [Ink's oldest open issue](https://github.com/vadimdemedes/ink/issues/5) (2016), solved.
 
@@ -54,11 +54,11 @@ await run(<App />)
 
 **Scrollable containers — just work.** `overflow="scroll"` with `scrollTo`, hardware-accelerated DECSTBM scroll regions, and VirtualList for huge datasets. [Ink's #1 feature request](https://github.com/vadimdemedes/ink/issues/222) since 2019, solved.
 
-**Three render targets.** Terminal, Canvas 2D, and DOM. Same React components, same layout engine — different output. See the [live demo](https://beorn.github.io/inkx/examples/live-demo).
+**Three render targets.** Terminal, Canvas 2D, and DOM. Same React components, same layout engine — different output. See the [live demo](https://beorn.github.io/hightea/examples/live-demo).
 
 ## Accessible to Agents
 
-inkx is designed to be driven by AI agents, not just humans:
+hightea is designed to be driven by AI agents, not just humans:
 
 - **Command introspection** — every action has an ID, name, help text, and keybindings. An agent can list all available commands and invoke them by name.
 - **Programmatic screenshots** — `app.screenshot()` renders the buffer to PNG. No TTY server, no external processes.
@@ -95,7 +95,7 @@ Each wraps the one below. Choose the right paradigm per use case — all three i
 
 ## Trade-offs
 
-inkx optimizes for interactive apps where parts of the UI update frequently. For workloads that re-render the entire component tree from scratch (not typical for interactive CLIs), Ink's simpler reconciliation is [~30x faster](docs/benchmarks.md). inkx's five-phase pipeline is the cost of layout feedback — and the reason interactive updates are [100x+ faster](docs/benchmarks.md). See [detailed comparison](docs/inkx-vs-ink.md).
+hightea optimizes for interactive apps where parts of the UI update frequently. For workloads that re-render the entire component tree from scratch (not typical for interactive CLIs), Ink's simpler reconciliation is [~30x faster](docs/benchmarks.md). hightea's five-phase pipeline is the cost of layout feedback — and the reason interactive updates are [100x+ faster](docs/benchmarks.md). See [detailed comparison](docs/hightea-vs-ink.md).
 
 ## Ink Compatibility
 
@@ -105,7 +105,7 @@ Drop-in replacement for [Ink](https://github.com/vadimdemedes/ink). Same compone
 // Before (Ink)
 import { render, Box, Text, useInput, useApp } from "ink"
 
-// After (inkx)
+// After (hightea)
 import { render, Box, Text, useApp } from "@hightea/term"
 import { useInput } from "@hightea/term/runtime"
 ```
@@ -121,7 +121,7 @@ Actively developed and used in production ([km](https://github.com/beorn/km), a 
 | Core components (Box, Text, VirtualList, inputs)   | Stable     |
 | Hooks (useContentRect, useInput, useApp, useTerm)  | Stable     |
 | React reconciler (React 19)                        | Stable     |
-| Flexx layout engine                                | Stable     |
+| Flexture layout engine                                | Stable     |
 | Plugin system (commands, keybindings, diagnostics) | Stable     |
 | Terminal target                                    | Production |
 | Canvas / DOM targets                               | Prototype  |
@@ -138,11 +138,11 @@ bun run examples/textarea/index.tsx       # Multi-line text input
 bun run examples/scrollback/index.tsx     # Scrollback mode (frozen items)
 ```
 
-See [examples/index.md](examples/index.md) for descriptions and the [live demo](https://beorn.github.io/inkx/examples/live-demo) running in the browser via xterm.js.
+See [examples/index.md](examples/index.md) for descriptions and the [live demo](https://beorn.github.io/hightea/examples/live-demo) running in the browser via xterm.js.
 
 ## Documentation
 
-Full docs at **[beorn.github.io/inkx](https://beorn.github.io/inkx/)**
+Full docs at **[beorn.github.io/hightea](https://beorn.github.io/hightea/)**
 
 | Document                                          | Description                                    |
 | ------------------------------------------------- | ---------------------------------------------- |
@@ -154,16 +154,16 @@ Full docs at **[beorn.github.io/inkx](https://beorn.github.io/inkx/)**
 | [Testing](docs/testing.md)                        | Strategy, locators, withDiagnostics            |
 | [Performance](docs/deep-dives/performance.md)     | Optimization techniques and profiling          |
 | [Benchmarks](docs/benchmarks.md)                  | Raw benchmark tables and data                  |
-| [inkx vs Ink](docs/inkx-vs-ink.md)                | Feature and performance comparison with Ink    |
+| [hightea vs Ink](docs/hightea-vs-ink.md)                | Feature and performance comparison with Ink    |
 | [Plugins](docs/reference/plugins.md)              | withCommands, withKeybindings, withDiagnostics |
-| [Migration](docs/guides/migration.md)             | Ink -> inkx guide                              |
+| [Migration](docs/guides/migration.md)             | Ink -> hightea guide                              |
 
 ## Related Projects
 
 | Project                                    | Role                                            |
 | ------------------------------------------ | ----------------------------------------------- |
 | [Ink](https://github.com/vadimdemedes/ink) | API compatibility target                        |
-| [Flexx](https://github.com/beorn/flexx)    | Default layout engine (2.5x faster, 5x smaller) |
+| [Flexture](https://github.com/beorn/flexture)    | Default layout engine (2.5x faster, 5x smaller) |
 | [Yoga](https://yogalayout.dev/)            | Optional layout engine (WASM)                   |
 
 ## License

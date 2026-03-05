@@ -12,7 +12,7 @@ import type { Term } from "@hightea/ansi"
 import { createContext } from "react"
 import type { FocusManager } from "./focus-manager.js"
 import type { Key } from "./keys.js"
-import type { InkxNode } from "./types.js"
+import type { TeaNode } from "./types.js"
 
 // ============================================================================
 // Term Context
@@ -35,7 +35,7 @@ export const TermContext = createContext<Term | null>(null)
  * Each Box component wraps its children in a NodeContext.Provider
  * with its corresponding InkxNode.
  */
-export const NodeContext = createContext<InkxNode | null>(null)
+export const NodeContext = createContext<TeaNode | null>(null)
 
 // ============================================================================
 // Stdio Context

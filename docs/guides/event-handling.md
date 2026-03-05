@@ -1,10 +1,10 @@
 # Event Handling
 
-Most TUI frameworks force a choice: simple callbacks that don't scale, or a full architecture you adopt all at once. inkx gives you a graduated path where each level builds on the last. Your first app is five lines. Your complex app — with vim modes, AI automation, customizable keybindings, and file watchers — uses the same primitives, just composed differently.
+Most TUI frameworks force a choice: simple callbacks that don't scale, or a full architecture you adopt all at once. hightea gives you a graduated path where each level builds on the last. Your first app is five lines. Your complex app — with vim modes, AI automation, customizable keybindings, and file watchers — uses the same primitives, just composed differently.
 
 The payoff at the end of the path: **all state in one model**, all changes through one `update` function, all I/O through composable plugins. The entire app becomes inspectable, serializable, replayable, and testable — from headless unit tests to AI-driven automation.
 
-| Level                      | You need it when...               | What inkx provides                                                  |
+| Level                      | You need it when...               | What hightea provides                                                  |
 | -------------------------- | --------------------------------- | ------------------------------------------------------------------- |
 | **1 — Callbacks**          | Starting out                      | `useInput` — just a function                                        |
 | **2 — Component Handlers** | Clicks, per-component keys        | `withDomEvents()` — React-style `onClick`/`onKeyDown` with bubbling |
@@ -52,7 +52,7 @@ This is enough for dashboards, simple lists, and anything where one handler can 
 
 The counter grows into an interactive board. You need click targets, hover effects, and keyboard handlers on specific components — not a single global callback for everything.
 
-The `withDomEvents()` plugin adds React-style event handlers to inkx components. Events bubble up the tree, components can stop propagation, and hit testing maps mouse coordinates to nodes:
+The `withDomEvents()` plugin adds React-style event handlers to hightea components. Events bubble up the tree, components can stop propagation, and hit testing maps mouse coordinates to nodes:
 
 ```tsx
 import { createApp, useApp } from "@hightea/term/runtime"
@@ -457,7 +457,7 @@ function withFileWatcher(path: string) {
 
 ### Three mechanisms for event sources
 
-Not all sources need to be app plugins. inkx provides three mechanisms, each for a different lifecycle:
+Not all sources need to be app plugins. hightea provides three mechanisms, each for a different lifecycle:
 
 | Mechanism            | Lifecycle                           | Use when...                                       |
 | -------------------- | ----------------------------------- | ------------------------------------------------- |
@@ -678,7 +678,7 @@ Because all state lives in the model, all changes flow through `update`, and all
 
 ### Effect combinators
 
-Effects are data — plain objects returned from `update`. The kernel runs them. inkx provides combinators for common async patterns:
+Effects are data — plain objects returned from `update`. The kernel runs them. hightea provides combinators for common async patterns:
 
 ```tsx
 import { none, batch, dispatch, debounce, throttle } from "@hightea/term/core"
@@ -864,7 +864,7 @@ The composable plugin model draws from several traditions:
 
 The key insight from SlateJS: the editor (or app) is a plain object with overridable methods. Plugins don't use a special registration API — they just override methods and capture the originals via closure. This makes every plugin independently testable and composable without framework support.
 
-The contrast from Lexical and ProseMirror: more structured plugin models are easier to reason about and debug, at the cost of flexibility. inkx takes the SlateJS path (maximum flexibility) but mitigates with clear conventions, good defaults via `run()`, and dev tooling (`withDiagnostics`).
+The contrast from Lexical and ProseMirror: more structured plugin models are easier to reason about and debug, at the cost of flexibility. hightea takes the SlateJS path (maximum flexibility) but mitigates with clear conventions, good defaults via `run()`, and dev tooling (`withDiagnostics`).
 
 ---
 

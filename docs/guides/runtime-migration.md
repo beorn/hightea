@@ -1,10 +1,10 @@
-# Migration Guide: inkx → inkx/runtime
+# Migration Guide: hightea → hightea/runtime
 
-This guide explains how to migrate from the legacy inkx API to the new inkx/runtime.
+This guide explains how to migrate from the legacy hightea API to the new hightea/runtime.
 
 ## Why Migrate?
 
-The new `inkx/runtime` API provides:
+The new `hightea/runtime` API provides:
 
 - **AsyncIterable-first architecture** - Composable event streams
 - **Layered design** - Pick the abstraction level you need
@@ -14,7 +14,7 @@ The new `inkx/runtime` API provides:
 
 ## Import Changes
 
-| Old (inkx)                        | New (inkx/runtime)                        |
+| Old (hightea)                        | New (hightea/runtime)                        |
 | --------------------------------- | ----------------------------------------- |
 | `import { render } from '@hightea/term'`   | `import { run } from '@hightea/term/runtime'`      |
 | `import { useInput } from '@hightea/term'` | `import { useInput } from '@hightea/term/runtime'` |
@@ -185,15 +185,15 @@ function Card() {
 
 ## Deprecated APIs
 
-The following from the old inkx API are **deprecated** and will be removed:
+The following from the old hightea API are **deprecated** and will be removed:
 
 | Deprecated           | Replacement                                |
 | -------------------- | ------------------------------------------ |
-| `render()`           | `run()` from inkx/runtime                  |
-| `useInput` from inkx | `useInput` from inkx/runtime               |
+| `render()`           | `run()` from hightea/runtime                  |
+| `useInput` from hightea | `useInput` from hightea/runtime               |
 | `useApp()` for exit  | `useExit()` or `return 'exit'`             |
 | `RenderScheduler`    | Built into `run()` with automatic batching |
 
 ## Future
 
-The legacy `inkx` API will be removed in the next major version. The `inkx/runtime` API is the only recommended path for new development.
+The legacy `hightea` API will be removed in the next major version. The `hightea/runtime` API is the only recommended path for new development.

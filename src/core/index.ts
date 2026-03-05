@@ -213,4 +213,4 @@ export type { Slice, SliceWithInit, InferOp } from "./slice.js"
 // Shared Types (pure)
 // =============================================================================
 
-export type { InkxNode, Rect } from "../types.js"
+export type { TeaNode, Rect } from "../types.js"

@@ -16,7 +16,7 @@
  */
 
 import type { Cell, TerminalBuffer } from "./buffer.js"
-import type { InkxNode } from "./types.js"
+import type { TeaNode } from "./types.js"
 
 /**
  * BoundTerm interface - terminal with node awareness
@@ -26,7 +26,7 @@ export interface BoundTerm {
   cell(x: number, y: number): Cell
 
   /** Get node at screen coordinates */
-  nodeAt(x: number, y: number): InkxNode | null
+  nodeAt(x: number, y: number): TeaNode | null
 
   /** Get visible text (plain, no ANSI) */
   readonly text: string
@@ -42,13 +42,13 @@ export interface BoundTerm {
 /**
  * Create a BoundTerm from a buffer and root node getter
  */
-export function createBoundTerm(buffer: TerminalBuffer, getRoot: () => InkxNode, getText: () => string): BoundTerm {
+export function createBoundTerm(buffer: TerminalBuffer, getRoot: () => TeaNode, getText: () => string): BoundTerm {
   return {
     cell(x: number, y: number): Cell {
       return buffer.getCell(x, y)
     },
 
-    nodeAt(x: number, y: number): InkxNode | null {
+    nodeAt(x: number, y: number): TeaNode | null {
       const root = getRoot()
       return findNodeAtScreenPosition(root, x, y)
     },
@@ -74,7 +74,7 @@ export function createBoundTerm(buffer: TerminalBuffer, getRoot: () => InkxNode,
 /**
  * Find the deepest node at the given screen coordinates
  */
-function findNodeAtScreenPosition(node: InkxNode, x: number, y: number): InkxNode | null {
+function findNodeAtScreenPosition(node: TeaNode, x: number, y: number): TeaNode | null {
   const rect = node.screenRect
   if (!rect) return null
 

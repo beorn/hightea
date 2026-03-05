@@ -261,10 +261,10 @@ describe("incremental content rendering — run() Layer 2", () => {
     mockStdin.emit("data", "x")
     await new Promise((r) => setTimeout(r, 30))
 
-    // Verify incremental rendering is active — __inkx_last_pipeline.incremental
+    // Verify incremental rendering is active — __hightea_last_pipeline.incremental
     // is true when prevBuffer was passed to executeRender (not null).
     // Without prevBuffer tracking, this would be false on every frame.
-    const pipeline = (globalThis as any).__inkx_last_pipeline
+    const pipeline = (globalThis as any).__hightea_last_pipeline
     expect(pipeline).toBeDefined()
     expect(pipeline.incremental).toBe(true)
 
@@ -650,7 +650,7 @@ describe("inline mode resize — full pipeline", () => {
     expect(handle.text).toContain("Input: x")
 
     // Check that incremental rendering is active
-    const pipeline = (globalThis as any).__inkx_last_pipeline
+    const pipeline = (globalThis as any).__hightea_last_pipeline
     expect(pipeline).toBeDefined()
     expect(pipeline.incremental).toBe(true)
 

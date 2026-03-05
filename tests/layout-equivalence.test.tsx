@@ -1,13 +1,13 @@
 /**
  * Layout Engine Equivalence Tests (km-zofe)
  *
- * Verifies that Yoga and Flexx layout engines produce equivalent results
+ * Verifies that Yoga and Flexture layout engines produce equivalent results
  * for the same component trees. This ensures that components render
  * identically regardless of which layout engine is used.
  *
  * Tests marked with `.skip` have known differences between engines.
  * These serve as documentation of divergent behavior and regression tests
- * for when Flexx compatibility improves.
+ * for when Flexture compatibility improves.
  *
  * NOTE: These tests are skipped in CI because yoga-wasm-web behaves
  * differently on Linux runners vs local macOS development.
@@ -18,7 +18,7 @@ import { beforeAll, describe, expect, test } from "vitest"
 // Skip in CI - Yoga WASM has platform-specific behavior on Linux runners
 const isCI = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true"
 import type React from "react"
-import { createFlexxZeroEngine } from "../src/adapters/flexx-zero-adapter.js"
+import { createFlextureZeroEngine } from "../src/adapters/flexture-zero-adapter.js"
 import { initYogaEngine } from "../src/adapters/yoga-adapter.js"
 import { Box, Text } from "../src/index.js"
 import type { LayoutEngine } from "../src/layout-engine.js"
@@ -29,11 +29,11 @@ import { createRenderer, normalizeFrame } from "@hightea/term/testing"
 // ============================================================================
 
 let yogaEngine: LayoutEngine
-let flexxEngine: LayoutEngine
+let flextureEngine: LayoutEngine
 
 beforeAll(async () => {
   yogaEngine = await initYogaEngine()
-  flexxEngine = createFlexxZeroEngine()
+  flextureEngine = createFlextureZeroEngine()
 })
 
 /**
@@ -52,20 +52,20 @@ function renderWithBothEngines(element: React.ReactElement, options: { columns?:
   const yogaResult = yogaRender(element)
   const yogaFrame = yogaResult.lastFrame()
 
-  // Render with Flexx
-  const flexxRender = createRenderer({
-    layoutEngine: flexxEngine,
+  // Render with Flexture
+  const flextureRender = createRenderer({
+    layoutEngine: flextureEngine,
     cols: columns,
     rows,
   })
-  const flexxResult = flexxRender(element)
-  const flexxFrame = flexxResult.lastFrame()
+  const flextureResult = flextureRender(element)
+  const flextureFrame = flextureResult.lastFrame()
 
   return {
     yogaFrame,
-    flexxFrame,
+    flextureFrame,
     yogaNormalized: yogaFrame ? normalizeFrame(yogaFrame) : "",
-    flexxNormalized: flexxFrame ? normalizeFrame(flexxFrame) : "",
+    flextureNormalized: flextureFrame ? normalizeFrame(flextureFrame) : "",
   }
 }
 
@@ -73,16 +73,16 @@ function renderWithBothEngines(element: React.ReactElement, options: { columns?:
  * Assert that both engines produce identical normalized output.
  */
 function expectEquivalent(element: React.ReactElement, options: { columns?: number; rows?: number } = {}) {
-  const { yogaNormalized, flexxNormalized, yogaFrame, flexxFrame } = renderWithBothEngines(element, options)
+  const { yogaNormalized, flextureNormalized, yogaFrame, flextureFrame } = renderWithBothEngines(element, options)
 
-  if (yogaNormalized !== flexxNormalized) {
+  if (yogaNormalized !== flextureNormalized) {
     console.log("=== Yoga Frame ===")
     console.log(yogaFrame)
-    console.log("=== Flexx Frame ===")
-    console.log(flexxFrame)
+    console.log("=== Flexture Frame ===")
+    console.log(flextureFrame)
   }
 
-  expect(yogaNormalized).toBe(flexxNormalized)
+  expect(yogaNormalized).toBe(flextureNormalized)
 }
 
 /**
@@ -90,10 +90,10 @@ function expectEquivalent(element: React.ReactElement, options: { columns?: numb
  * Used to verify both engines work for a test case, even if outputs differ.
  */
 function expectBothRender(element: React.ReactElement, options: { columns?: number; rows?: number } = {}) {
-  const { yogaNormalized, flexxNormalized } = renderWithBothEngines(element, options)
+  const { yogaNormalized, flextureNormalized } = renderWithBothEngines(element, options)
 
   expect(yogaNormalized.length).toBeGreaterThan(0)
-  expect(flexxNormalized.length).toBeGreaterThan(0)
+  expect(flextureNormalized.length).toBeGreaterThan(0)
 }
 
 // ============================================================================
@@ -591,7 +591,7 @@ describe.skipIf(isCI)("Layout Engine Equivalence (km-zofe)", () => {
       expectBothRender(element, { columns: 30, rows: 10 })
 
       // Document the specific difference
-      const { yogaNormalized, flexxNormalized } = renderWithBothEngines(element, {
+      const { yogaNormalized, flextureNormalized } = renderWithBothEngines(element, {
         columns: 30,
         rows: 10,
       })
@@ -601,13 +601,13 @@ describe.skipIf(isCI)("Layout Engine Equivalence (km-zofe)", () => {
       expect(yogaNormalized).toContain("Line 2")
       expect(yogaNormalized).toContain("Line 3")
 
-      // Flexx now shows all lines too (bug fixed)
-      expect(flexxNormalized).toContain("Line 1")
-      expect(flexxNormalized).toContain("Line 2")
-      expect(flexxNormalized).toContain("Line 3")
+      // Flexture now shows all lines too (bug fixed)
+      expect(flextureNormalized).toContain("Line 1")
+      expect(flextureNormalized).toContain("Line 2")
+      expect(flextureNormalized).toContain("Line 3")
     })
 
-    // Skip: Different text wrapping behavior - Flexx layout is correct,
+    // Skip: Different text wrapping behavior - Flexture layout is correct,
     // but text rendering differs when text overflows its container
     test.skip("flexShrink with text overflow - different wrapping behavior", () => {
       const element = (

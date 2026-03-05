@@ -1,6 +1,6 @@
-# Getting Started with inkx/runtime
+# Getting Started with hightea/runtime
 
-This is the "start simple" part — five lines to a working app. inkx/runtime is a layered TUI framework built on React. Write terminal apps the same way you write web apps — with components, hooks, and state. When you outgrow `useState`, the [State Management](state-management.md) and [Event Handling](event-handling.md) guides show how to graduate without rewriting.
+This is the "start simple" part — five lines to a working app. hightea/runtime is a layered TUI framework built on React. Write terminal apps the same way you write web apps — with components, hooks, and state. When you outgrow `useState`, the [State Management](state-management.md) and [Event Handling](event-handling.md) guides show how to graduate without rewriting.
 
 ## Your First App
 
@@ -120,7 +120,7 @@ useInput(handleInput)
 
 ### Layout Feedback
 
-Components can know their size during render -- inkx's core innovation:
+Components can know their size during render -- hightea's core innovation:
 
 ```typescript
 import { useContentRect } from '@hightea/term';
@@ -256,9 +256,9 @@ handle.unmount();
 
 ## Migration from Ink
 
-inkx/runtime is compatible with existing inkx components. Key differences:
+hightea/runtime is compatible with existing hightea components. Key differences:
 
-| Ink                    | inkx/runtime                                |
+| Ink                    | hightea/runtime                                |
 | ---------------------- | ------------------------------------------- |
 | `useInput(input, key)` | `useInput(input, key)` (same signature!)    |
 | `useApp().exit()`      | `return 'exit'` from handler or `useExit()` |

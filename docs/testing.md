@@ -1,10 +1,10 @@
 # Testing
 
-## Testing Your inkx App
+## Testing Your hightea App
 
 ### Setup
 
-inkx works with Vitest out of the box. Add to your `vitest.config.ts`:
+hightea works with Vitest out of the box. Add to your `vitest.config.ts`:
 
 ```typescript
 import { defineConfig } from "vitest/config"
@@ -121,7 +121,7 @@ console.log(app.text) // Print plain text
 
 ### Real Terminal Verification with @termless/test
 
-For testing that your inkx app renders correctly through a real terminal emulator -- verifying colors, cursor position, scrollback, terminal modes, and cross-terminal compatibility -- use [@termless/test](https://github.com/beorn/termless). It feeds your inkx ANSI output through actual terminal backends (xterm.js, Ghostty, Alacritty, etc.) and provides composable matchers for the full terminal state:
+For testing that your hightea app renders correctly through a real terminal emulator -- verifying colors, cursor position, scrollback, terminal modes, and cross-terminal compatibility -- use [@termless/test](https://github.com/beorn/termless). It feeds your hightea ANSI output through actual terminal backends (xterm.js, Ghostty, Alacritty, etc.) and provides composable matchers for the full terminal state:
 
 ```typescript
 import { createTerminal } from "@termless/core"
@@ -130,7 +130,7 @@ import "@termless/test/matchers"
 
 test("renders correct colors through real terminal", () => {
   const term = createTerminal({ backend: createXtermBackend(), cols: 80, rows: 24 })
-  term.feed(app.ansi) // Feed inkx output into terminal emulator
+  term.feed(app.ansi) // Feed hightea output into terminal emulator
 
   expect(term.cell(0, 0)).toHaveFg("#ff0000")
   expect(term.cell(0, 0)).toBeBold()
@@ -143,11 +143,11 @@ test("renders correct colors through real terminal", () => {
 
 ---
 
-## inkx Internal Test Infrastructure
+## hightea Internal Test Infrastructure
 
 ## Philosophy
 
-Since inkx targets API compatibility with Ink and Chalk, we have a **golden specification**: their existing test suites. Rather than writing tests from scratch, we leverage their tests as our compatibility contract.
+Since hightea targets API compatibility with Ink and Chalk, we have a **golden specification**: their existing test suites. Rather than writing tests from scratch, we leverage their tests as our compatibility contract.
 
 **Core principle**: If Ink's tests pass, we're compatible. If they don't, we know exactly what's broken.
 
@@ -156,7 +156,7 @@ Since inkx targets API compatibility with Ink and Chalk, we have a **golden spec
 ## 1. Test Suite Architecture
 
 ```
-inkx/
+hightea/
 ├── tests/
 │   ├── compat/                 # Compatibility tests (from Ink/Chalk)
 │   │   ├── ink/               # Ink test suite (adapted)
@@ -184,7 +184,7 @@ inkx/
 │   │   ├── diff.bench.ts
 │   │   └── memory.bench.ts
 │   │
-│   └── unit/                  # inkx-specific unit tests
+│   └── unit/                  # hightea-specific unit tests
 │       ├── layout-hook.test.ts
 │       ├── two-phase.test.ts
 │       └── ...
@@ -266,7 +266,7 @@ cp -r /tmp/ink/test/* tests/compat/ink/
 
 # Adapt imports
 find tests/compat/ink -name "*.tsx" -exec sed -i '' \
-  's/from '\''ink'\''/from '\''inkx'\''/g' {} \;
+  's/from '\''ink'\''/from '\''hightea'\''/g' {} \;
 ```
 
 ### 2.3 Track Compatibility Progress
@@ -342,7 +342,7 @@ test('nested styles close correctly', () => {
 For maximum confidence, run the **original** Ink/Chalk tests:
 
 ```bash
-# Create test harness that aliases inkx → ink
+# Create test harness that aliases hightea → ink
 mkdir -p node_modules/ink
 echo 'export * from "@hightea/term";' > node_modules/ink/index.js
 
@@ -359,7 +359,7 @@ cd /tmp/chalk && npm test
 
 ### 3.1 Snapshot-Based Visual Testing
 
-Use inkx testing API with text snapshots:
+Use hightea testing API with text snapshots:
 
 ```typescript
 // tests/visual/visual.test.ts
@@ -451,11 +451,11 @@ test("interactive app works end-to-end", async () => {
 Create a visual diff utility for manual inspection:
 
 ```bash
-# Compare inkx output vs Ink output side-by-side
+# Compare hightea output vs Ink output side-by-side
 bun run visual-diff tests/fixtures/complex-layout.tsx
 
 ┌─────────────────────────────────────┬─────────────────────────────────────┐
-│ Ink (reference)                     │ inkx (current)                      │
+│ Ink (reference)                     │ hightea (current)                      │
 ├─────────────────────────────────────┼─────────────────────────────────────┤
 │ ┌────────────────────────────────┐  │ ┌────────────────────────────────┐  │
 │ │ Header                         │  │ │ Header                         │  │
@@ -481,14 +481,14 @@ import { ComplexLayout } from './fixtures/complex-layout';
 
 group('Initial render', () => {
   bench('Ink', () => inkRender(<ComplexLayout />));
-  bench('inkx', () => inkxRender(<ComplexLayout />));
+  bench('hightea', () => inkxRender(<ComplexLayout />));
 });
 
 group('Re-render (state change)', () => {
   // Setup: render once, then benchmark updates
   const { rerender } = inkxRender(<ComplexLayout count={0} />);
 
-  bench('inkx rerender', () => {
+  bench('hightea rerender', () => {
     rerender(<ComplexLayout count={Math.random()} />);
   });
 });
@@ -567,7 +567,7 @@ async function recordMetrics() {
 
 ### 5.1 @hightea/term/testing
 
-inkx provides a Playwright-inspired testing API with **auto-refreshing locators**:
+hightea provides a Playwright-inspired testing API with **auto-refreshing locators**:
 
 ```typescript
 import { createRenderer } from '@hightea/term/testing';
@@ -798,7 +798,7 @@ bun run dev:visual
 
 # Opens split-pane terminal:
 # Left: Ink rendering
-# Right: inkx rendering
+# Right: hightea rendering
 # Bottom: Diff status
 ```
 
@@ -825,7 +825,7 @@ Create a live dashboard showing test status:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  inkx Compatibility Dashboard                                       v0.1.0  │
+│  hightea Compatibility Dashboard                                       v0.1.0  │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  Ink API Compatibility                                                      │
@@ -846,9 +846,9 @@ Create a live dashboard showing test status:
 │  Performance vs Ink                                                         │
 │  ═══════════════════════════════════════════════════════════════════════   │
 │                                                                             │
-│  Initial Render    [█████████░░░░░░░░░░░]  0.9x  (inkx: 4.5ms, Ink: 5ms)   │
-│  Re-render         [████████████████████]  1.2x  (inkx: 1.5ms, Ink: 1.8ms) │
-│  Memory            [██████████████░░░░░░]  1.1x  (inkx: 11MB, Ink: 10MB)   │
+│  Initial Render    [█████████░░░░░░░░░░░]  0.9x  (hightea: 4.5ms, Ink: 5ms)   │
+│  Re-render         [████████████████████]  1.2x  (hightea: 1.5ms, Ink: 1.8ms) │
+│  Memory            [██████████████░░░░░░]  1.1x  (hightea: 11MB, Ink: 10MB)   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1165,7 +1165,7 @@ describe('Long-running stability', () => {
 
 ## 9. Auto-Refreshing Locators
 
-inkx provides Playwright-inspired locators that **auto-refresh on every access**, eliminating stale reference bugs.
+hightea provides Playwright-inspired locators that **auto-refresh on every access**, eliminating stale reference bugs.
 
 ### 9.1 Quick Start
 

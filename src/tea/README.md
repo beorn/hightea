@@ -1,4 +1,4 @@
-# inkx/tea
+# hightea/tea
 
 Zustand middleware for TEA (The Elm Architecture) effects-as-data pattern.
 
@@ -13,7 +13,7 @@ import { tea, collect } from "@hightea/term/tea"
 import type { TeaResult, TeaReducer, EffectRunners, TeaSlice, EffectLike } from "@hightea/term/tea"
 ```
 
-Not a standalone package. Exported as a sub-path from inkx.
+Not a standalone package. Exported as a sub-path from hightea.
 
 ## Quick Start
 

@@ -11,7 +11,7 @@
 
 // @ts-expect-error - react-reconciler has no type declarations
 import Reconciler from "react-reconciler"
-import type { InkxNode } from "../types.js"
+import type { TeaNode } from "../types.js"
 import { type Container, hostConfig } from "./host-config.js"
 import { createRootNode } from "./nodes.js"
 
@@ -57,6 +57,6 @@ export function createFiberRoot(container: Container) {
 /**
  * Get the root InkxNode from a container.
  */
-export function getContainerRoot(container: Container): InkxNode {
+export function getContainerRoot(container: Container): TeaNode {
   return container.root
 }

@@ -405,7 +405,7 @@ describe("App frames tracking", () => {
 // ============================================================================
 
 describe("App getContainer", () => {
-  test("getContainer returns the root InkxNode", () => {
+  test("getContainer returns the root TeaNode", () => {
     const app = render(
       <Box testID="root">
         <Text>Child</Text>
@@ -414,7 +414,7 @@ describe("App getContainer", () => {
 
     const root = app.getContainer()
     expect(root).toBeDefined()
-    expect(root.type).toBe("inkx-root")
+    expect(root.type).toBe("hightea-root")
     expect(root.children.length).toBeGreaterThan(0)
   })
 })

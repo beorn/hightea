@@ -6,7 +6,7 @@
  * When board content changes (e.g., typing in search dialog), absolute-positioned
  * dialog elements with unchanged React content don't get repainted. All dirty flags
  * are false on the dialog's title node, so the incremental fast-path skips it.
- * INKX_STRICT=1 confirms: IncrementalRenderMismatchError at the dialog title position.
+ * HIGHTEA_STRICT=1 confirms: IncrementalRenderMismatchError at the dialog title position.
  *
  * Root cause hypothesis: content-phase.ts renderNormalChildren uses anySiblingWasDirty
  * to force-repaint absolute children that come AFTER dirty siblings. But this misses:

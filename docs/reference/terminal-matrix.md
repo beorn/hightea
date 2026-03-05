@@ -1,6 +1,6 @@
 # Terminal Compatibility Matrix
 
-Comprehensive reference of terminal emulator feature support as detected by inkx.
+Comprehensive reference of terminal emulator feature support as detected by hightea.
 
 ## Capability Matrix
 
@@ -112,7 +112,7 @@ Comprehensive reference of terminal emulator feature support as detected by inkx
 
 ## Detection Method
 
-inkx detects capabilities synchronously from environment variables at startup:
+hightea detects capabilities synchronously from environment variables at startup:
 
 | Variable       | Purpose                                               |
 | -------------- | ----------------------------------------------------- |

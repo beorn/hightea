@@ -602,8 +602,8 @@ export class TerminalBuffer {
       return
     }
 
-    // Write trap for INKX_STRICT mismatch diagnosis
-    const trap = (globalThis as any).__inkx_write_trap
+    // Write trap for HIGHTEA_STRICT mismatch diagnosis
+    const trap = (globalThis as any).__hightea_write_trap
     if (trap && x === trap.x && y === trap.y) {
       const char = cell.char ?? " "
       const stack = new Error().stack?.split("\n").slice(1, 6).join("\n") ?? ""

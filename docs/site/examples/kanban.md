@@ -29,7 +29,7 @@ A multi-column kanban board with independent scroll regions.
 ## Running the Example
 
 ```bash
-cd inkx
+cd hightea
 bun run examples/kanban/app.tsx
 ```
 
@@ -491,7 +491,7 @@ The selected card has inverted colors:
 >
 ```
 
-## Key inkx Features Used
+## Key hightea Features Used
 
 | Feature             | Usage                                    |
 | ------------------- | ---------------------------------------- |
@@ -523,7 +523,7 @@ This makes moving cards a simple filter/concat operation.
 
 ### Scroll Independence
 
-Each `CardList` component has its own `overflow="scroll"`. inkx handles multiple scroll regions on the same screen automatically - no coordination needed.
+Each `CardList` component has its own `overflow="scroll"`. hightea handles multiple scroll regions on the same screen automatically - no coordination needed.
 
 ### Empty State
 

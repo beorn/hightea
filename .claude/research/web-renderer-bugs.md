@@ -168,7 +168,7 @@ All methods use character coordinates.
 
 ### 2. Layout Phase Produces Character Dimensions
 
-The layout engine (Flexx) computes layout in **character cells**. From `examples/web/xterm-app.tsx`:
+The layout engine (Flexture) computes layout in **character cells**. From `examples/web/xterm-app.tsx`:
 
 ```typescript
 function SizeDisplay() {
@@ -201,9 +201,9 @@ The fix requires treating `x` and `y` as **character indices**, not pixel coordi
 
 The adapters were added or significantly modified in:
 
-1. `c3489bd` (2024-10-XX) - "feat(inkx): add RenderAdapter abstraction for multi-target rendering"
+1. `c3489bd` (2024-10-XX) - "feat(hightea): add RenderAdapter abstraction for multi-target rendering"
 2. `2d7acea` (2024-11-XX) - "feat(web): add DOM adapter for accessible web rendering"
-3. `40d6454` (2024-11-XX) - "feat(web): add real inkx demos for Canvas and DOM adapters"
+3. `40d6454` (2024-11-XX) - "feat(web): add real hightea demos for Canvas and DOM adapters"
 
 At the time of these commits, the coordinate system semantic **was not clarified in code**. The interface `RenderAdapter` uses `(x: number, y: number)` without specifying whether these are characters or pixels. This led both implementations to assume pixels.
 

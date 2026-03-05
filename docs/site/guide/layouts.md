@@ -112,7 +112,7 @@ function Column({ items, selectedIndex }) {
 - `overflow="scroll"` enables virtual scrolling
 - `scrollTo={selectedIndex}` keeps the selected item visible
 - `flexGrow={1}` makes the scrollable area fill available space
-- No height prop needed - inkx calculates it from the flexbox layout
+- No height prop needed - hightea calculates it from the flexbox layout
 
 ## Step 4: Scroll Indicators with Filled Backgrounds
 
@@ -133,7 +133,7 @@ function ScrollIndicator({ direction }: { direction: "left" | "right" }) {
 **Key points:**
 
 - `flexGrow={1}` fills available vertical space
-- `backgroundColor="gray"` fills the entire computed area (inkx feature)
+- `backgroundColor="gray"` fills the entire computed area (hightea feature)
 - `justifyContent="center"` centers the arrow vertically
 - No height calculation or Array.from() loops needed
 

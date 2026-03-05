@@ -7,7 +7,7 @@
 
 import { describe, expect, it, vi } from "vitest"
 import { createFocusManager, type FocusManager } from "../src/focus-manager.js"
-import type { InkxNode } from "../src/types.js"
+import type { TeaNode } from "../src/types.js"
 
 // ============================================================================
 // Helpers
@@ -15,16 +15,16 @@ import type { InkxNode } from "../src/types.js"
 
 function fakeNode(
   testID: string,
-  opts: { focusable?: boolean; parent?: InkxNode; focusScope?: boolean } = {},
-): InkxNode {
+  opts: { focusable?: boolean; parent?: TeaNode; focusScope?: boolean } = {},
+): TeaNode {
   const node = {
-    type: "inkx-box" as const,
+    type: "hightea-box" as const,
     props: {
       testID,
       focusable: opts.focusable ?? true,
       ...(opts.focusScope ? { focusScope: true } : {}),
     },
-    children: [] as InkxNode[],
+    children: [] as TeaNode[],
     parent: opts.parent ?? null,
     layoutNode: null,
     layoutDirty: false,
@@ -34,14 +34,14 @@ function fakeNode(
     subtreeDirty: false,
     screenRect: null,
     layoutSubscribers: new Set(),
-  } as unknown as InkxNode
+  } as unknown as TeaNode
   if (opts.parent) {
     opts.parent.children.push(node)
   }
   return node
 }
 
-function buildTree(): { root: InkxNode; a: InkxNode; b: InkxNode; c: InkxNode } {
+function buildTree(): { root: TeaNode; a: TeaNode; b: TeaNode; c: TeaNode } {
   const root = fakeNode("root", { focusable: false })
   const a = fakeNode("a", { parent: root })
   const b = fakeNode("b", { parent: root })

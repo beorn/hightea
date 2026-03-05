@@ -138,7 +138,7 @@ describe("app.resize()", () => {
     expect(app.text).toContain("Content")
   })
 
-  test("INKX_STRICT: fresh render matches after resize", () => {
+  test("HIGHTEA_STRICT: fresh render matches after resize", () => {
     const render = createRenderer({ cols: 40, rows: 5, incremental: true })
 
     const app = render(

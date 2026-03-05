@@ -13,10 +13,10 @@
  *   bun examples/inline-nontty.tsx | cat
  *
  *   # Force plain text mode
- *   INKX_NONTTY=plain bun examples/inline-nontty.tsx
+ *   HIGHTEA_NONTTY=plain bun examples/inline-nontty.tsx
  *
  *   # Force line-by-line mode
- *   INKX_NONTTY=line-by-line bun examples/inline-nontty.tsx
+ *   HIGHTEA_NONTTY=line-by-line bun examples/inline-nontty.tsx
  */
 
 import React, { useEffect, useState } from "react"
@@ -74,7 +74,7 @@ function ProgressExample() {
 
 async function main() {
   // Determine non-TTY mode from environment
-  const envMode = process.env.INKX_NONTTY as NonTTYMode | undefined
+  const envMode = process.env.HIGHTEA_NONTTY as NonTTYMode | undefined
   const nonTTYMode = envMode || "auto"
 
   console.log(`Non-TTY mode: ${nonTTYMode}`)

@@ -27,7 +27,7 @@
  * ```
  */
 
-import type { InkxNode, Rect } from "../types.ts"
+import type { TeaNode, Rect } from "../types.ts"
 
 /**
  * Locator interface - lazy reference to nodes matching a query
@@ -46,8 +46,8 @@ export interface InkxLocator {
   nth(index: number): InkxLocator
 
   // Resolution (actually finds nodes)
-  resolve(): InkxNode | null
-  resolveAll(): InkxNode[]
+  resolve(): TeaNode | null
+  resolveAll(): TeaNode[]
   count(): number
 
   // Utilities
@@ -58,12 +58,12 @@ export interface InkxLocator {
 }
 
 // Query predicate type
-type NodePredicate = (node: InkxNode) => boolean
+type NodePredicate = (node: TeaNode) => boolean
 
 /**
  * Create a locator rooted at the given container node
  */
-export function createLocator(root: InkxNode): InkxLocator {
+export function createLocator(root: TeaNode): InkxLocator {
   return new LocatorImpl(root, [])
 }
 
@@ -72,7 +72,7 @@ export function createLocator(root: InkxNode): InkxLocator {
  */
 class LocatorImpl implements InkxLocator {
   constructor(
-    private root: InkxNode,
+    private root: TeaNode,
     private predicates: NodePredicate[],
     private indexSelector?: { type: "first" | "last" | "nth"; index?: number },
   ) {}
@@ -84,15 +84,15 @@ class LocatorImpl implements InkxLocator {
       const content = getNodeTextContent(node)
       if (!content) return false
 
-      // Only match if this node directly contains text or is an inkx-text
-      // Skip inkx-box and inkx-root which contain text via children
-      if (node.type !== "inkx-text") {
+      // Only match if this node directly contains text or is an hightea-text
+      // Skip hightea-box and hightea-root which contain text via children
+      if (node.type !== "hightea-text") {
         return false
       }
 
       // Skip raw text nodes if their parent also matches (match parent Text instead)
       // This prevents matching both the Text component AND its raw text child
-      if (node.isRawText && node.parent?.type === "inkx-text") {
+      if (node.isRawText && node.parent?.type === "hightea-text") {
         return false
       }
 
@@ -135,7 +135,7 @@ class LocatorImpl implements InkxLocator {
     })
   }
 
-  resolve(): InkxNode | null {
+  resolve(): TeaNode | null {
     const nodes = this.resolveAll()
     if (this.indexSelector) {
       switch (this.indexSelector.type) {
@@ -150,13 +150,13 @@ class LocatorImpl implements InkxLocator {
     return nodes[0] ?? null
   }
 
-  resolveAll(): InkxNode[] {
+  resolveAll(): TeaNode[] {
     if (this.predicates.length === 0) {
       // No predicates - return root's children (or root if querying root)
       return [this.root]
     }
 
-    const matches: InkxNode[] = []
+    const matches: TeaNode[] = []
     walkTree(this.root, (node) => {
       if (this.predicates.every((p) => p(node))) {
         matches.push(node)
@@ -199,7 +199,7 @@ class LocatorImpl implements InkxLocator {
 /**
  * Walk tree depth-first, calling visitor for each node
  */
-function walkTree(node: InkxNode, visitor: (node: InkxNode) => void): void {
+function walkTree(node: TeaNode, visitor: (node: TeaNode) => void): void {
   visitor(node)
   for (const child of node.children) {
     walkTree(child, visitor)
@@ -209,7 +209,7 @@ function walkTree(node: InkxNode, visitor: (node: InkxNode) => void): void {
 /**
  * Get text content of a node (concatenated from all text descendants)
  */
-function getNodeTextContent(node: InkxNode): string {
+function getNodeTextContent(node: TeaNode): string {
   // Raw text nodes have textContent set directly
   if (node.textContent !== undefined) {
     return node.textContent
@@ -221,7 +221,7 @@ function getNodeTextContent(node: InkxNode): string {
 /**
  * Get a prop value from node
  */
-function getNodeProp(node: InkxNode, name: string): string | undefined {
+function getNodeProp(node: TeaNode, name: string): string | undefined {
   const props = node.props as Record<string, unknown>
   const value = props[name]
   if (value === undefined || value === null) return undefined
@@ -312,7 +312,7 @@ function parseSingleSelector(selector: string): NodePredicate | null {
   const idMatch = remaining.match(/^#([a-zA-Z0-9_-]+)/)
   if (idMatch) {
     const id = idMatch[1]!
-    parts.push((node: InkxNode) => getNodeProp(node, "id") === id)
+    parts.push((node: TeaNode) => getNodeProp(node, "id") === id)
     // Remove ID from selector string
     remaining = remaining.slice(idMatch[0].length)
   }
@@ -325,10 +325,10 @@ function parseSingleSelector(selector: string): NodePredicate | null {
 
     if (value === undefined) {
       // Presence check [attr] - value group didn't match
-      parts.push((node: InkxNode) => getNodeProp(node, attr) !== undefined)
+      parts.push((node: TeaNode) => getNodeProp(node, attr) !== undefined)
     } else {
       // Value check [attr="value"] - value group matched
-      parts.push((node: InkxNode) => {
+      parts.push((node: TeaNode) => {
         const nodeValue = getNodeProp(node, attr)
         if (nodeValue === undefined) return false
         switch (op) {
@@ -351,7 +351,7 @@ function parseSingleSelector(selector: string): NodePredicate | null {
   if (parts.length === 0) return null
 
   // Compound selector - all parts must match
-  return (node: InkxNode) => parts.every((pred) => pred(node))
+  return (node: TeaNode) => parts.every((pred) => pred(node))
 }
 
 /**
@@ -367,7 +367,7 @@ function parseChildCombinator(selector: string): NodePredicate | null {
 
   if (!parentPred || !childPred) return null
 
-  return (node: InkxNode) => {
+  return (node: TeaNode) => {
     if (!childPred(node)) return false
     // Check if parent matches
     return node.parent !== null && parentPred(node.parent)
@@ -387,7 +387,7 @@ function parseAdjacentSiblingCombinator(selector: string): NodePredicate | null 
 
   if (!prevPred || !nextPred) return null
 
-  return (node: InkxNode) => {
+  return (node: TeaNode) => {
     if (!nextPred(node)) return false
     if (!node.parent) return false
 
@@ -415,7 +415,7 @@ function parseDescendantCombinator(selector: string): NodePredicate | null {
 
   if (!ancestorPred || !descendantPred) return null
 
-  return (node: InkxNode) => {
+  return (node: TeaNode) => {
     if (!descendantPred(node)) return false
 
     // Walk up the tree to find ancestor

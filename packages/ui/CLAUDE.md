@@ -1,6 +1,6 @@
-# inkx-ui - Progress Indicators and UI Components
+# hightea-ui - Progress Indicators and UI Components
 
-UI components for Ink/inkx TUI apps. Spinners, progress bars, multi-task displays, and ergonomic async wrappers.
+UI components for Ink/hightea TUI apps. Spinners, progress bars, multi-task displays, and ergonomic async wrappers.
 
 ## Imports
 
@@ -13,7 +13,7 @@ import { Spinner, ProgressBar, MultiProgress, withSpinner, withProgress } from "
 // CLI mode - direct stdout usage, no React
 import { Spinner, ProgressBar, MultiProgress } from "@hightea/ui/cli"
 
-// React components - for inkx/Ink TUI apps
+// React components - for hightea/Ink TUI apps
 import { Spinner, ProgressBar, Tasks, Task, useProgress, ProgressProvider } from "@hightea/ui/react"
 
 // Wrappers - ergonomic async pattern adapters
@@ -269,7 +269,7 @@ await withCursor(false, async () => {
 | ---------------------- | ------------------------------------ |
 | `@hightea/ui`          | CLI components + wrappers (no React) |
 | `@hightea/ui/cli`      | Direct stdout spinners/progress bars |
-| `@hightea/ui/react`    | React components for inkx apps       |
+| `@hightea/ui/react`    | React components for hightea apps       |
 | `@hightea/ui/wrappers` | Async pattern adapters               |
 | `@hightea/ui/progress` | Declarative steps API                |
 | `@hightea/ui/input`    | React input components               |

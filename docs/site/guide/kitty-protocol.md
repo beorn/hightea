@@ -1,6 +1,6 @@
 # Kitty Keyboard Protocol Support
 
-This document outlines the research and implementation plan for adding Kitty keyboard protocol support to inkx (issue km-ax55).
+This document outlines the research and implementation plan for adding Kitty keyboard protocol support to hightea (issue km-ax55).
 
 ## What is the Kitty Keyboard Protocol?
 
@@ -42,7 +42,7 @@ Enhancement flags (binary bitmask):
 | 0b1000  | 8     | **Report all keys as escape codes** - Even plain letters                |
 | 0b10000 | 16    | **Report associated text** - Include Unicode text for the key           |
 
-For inkx, flags `1` (disambiguate) and `2` (event types) are the most valuable.
+For hightea, flags `1` (disambiguate) and `2` (event types) are the most valuable.
 
 ### Key Encoding Format
 
@@ -186,7 +186,7 @@ If the terminal doesn't respond to `CSI ? u`, it will respond to `CSI c` (device
 2. If you get `CSI ? <n> u` before `CSI ? <attrs> c`, protocol is supported
 3. If you only get device attributes, protocol is not supported
 
-## Implementation Plan for inkx
+## Implementation Plan for hightea
 
 ### Phase 1: Protocol Detection and Opt-in
 

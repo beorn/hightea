@@ -1,6 +1,6 @@
 # Input Features
 
-inkx provides best-in-class terminal input handling: full Kitty keyboard protocol support, SGR mouse events, macOS modifier symbols, and hotkey parsing with unambiguous key identification.
+hightea provides best-in-class terminal input handling: full Kitty keyboard protocol support, SGR mouse events, macOS modifier symbols, and hotkey parsing with unambiguous key identification.
 
 ## Keyboard Input
 
@@ -24,7 +24,7 @@ useInput((input, key) => {
 
 ### Kitty Keyboard Protocol
 
-The [Kitty protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) eliminates legacy ambiguities. inkx supports the full specification.
+The [Kitty protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) eliminates legacy ambiguities. hightea supports the full specification.
 
 **What it enables:**
 
@@ -157,7 +157,7 @@ Unsupported terminals safely ignore the protocol sequences.
 
 ### SGR Mouse Protocol (Mode 1006)
 
-inkx supports SGR mouse tracking for click, drag, scroll, and motion events with modifier detection.
+hightea supports SGR mouse tracking for click, drag, scroll, and motion events with modifier detection.
 
 #### Enabling in Your App
 
@@ -222,7 +222,7 @@ SGR button field encoding:
 
 SGR mouse format: `CSI < button;x;y M` (press/motion) or `CSI < button;x;y m` (release).
 
-inkx enables three mouse modes for comprehensive tracking:
+hightea enables three mouse modes for comprehensive tracking:
 
 | Mode            | Code         | Description                           |
 | --------------- | ------------ | ------------------------------------- |

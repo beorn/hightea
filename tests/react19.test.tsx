@@ -18,7 +18,7 @@ import { describe, expect, test } from "vitest"
 import { NodeContext } from "../src/context.ts"
 import { Box, Text, useContentRect, useInput } from "../src/index.ts"
 import { createRenderer, stripAnsi } from "@hightea/term/testing"
-import type { InkxNode } from "../src/types.ts"
+import type { TeaNode } from "../src/types.ts"
 
 // ============================================================================
 // Test Setup
@@ -29,9 +29,9 @@ const render = createRenderer()
 /**
  * Create a mock InkxNode for testing useContentRect
  */
-function createMockInkxNode(layout: { x: number; y: number; width: number; height: number }): InkxNode {
+function createMockTeaNode(layout: { x: number; y: number; width: number; height: number }): TeaNode {
   return {
-    type: "inkx-box",
+    type: "hightea-box",
     props: {},
     children: [],
     parent: null,
@@ -148,7 +148,7 @@ describe("React 19 Compatibility (km-a1xb)", () => {
         x: number
         y: number
       } | null = null
-      const mockNode = createMockInkxNode({
+      const mockNode = createMockTeaNode({
         x: 10,
         y: 5,
         width: 40,

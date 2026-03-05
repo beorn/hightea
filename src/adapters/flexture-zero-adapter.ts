@@ -1,7 +1,7 @@
 /**
- * Flexx Layout Engine Adapter
+ * Flexture Layout Engine Adapter
  *
- * Wraps Flexx to implement the LayoutEngine interface.
+ * Wraps Flexture to implement the LayoutEngine interface.
  * Uses the default zero-allocation algorithm from flexture.
  */
 
@@ -29,7 +29,7 @@ import {
   FLEX_DIRECTION_COLUMN_REVERSE,
   FLEX_DIRECTION_ROW,
   FLEX_DIRECTION_ROW_REVERSE,
-  Node as FlexxNode,
+  Node as FlextureNode,
   GUTTER_ALL,
   JUSTIFY_CENTER,
   JUSTIFY_FLEX_END,
@@ -70,34 +70,34 @@ import type {
 } from "../layout-engine.js"
 
 // ============================================================================
-// Flexx Zero Node Adapter
+// Flexture Zero Node Adapter
 // ============================================================================
 
 /**
- * Wraps a Flexx zero-alloc node to implement LayoutNode interface.
- * Since Flexx already has a Yoga-compatible API, this is mostly delegation.
+ * Wraps a Flexture zero-alloc node to implement LayoutNode interface.
+ * Since Flexture already has a Yoga-compatible API, this is mostly delegation.
  */
-class FlexxZeroNodeAdapter implements LayoutNode {
-  private node: FlexxNode
+class FlextureZeroNodeAdapter implements LayoutNode {
+  private node: FlextureNode
 
-  constructor(node: FlexxNode) {
+  constructor(node: FlextureNode) {
     this.node = node
   }
 
-  /** Get the underlying Flexx node (for tree operations) */
-  getFlexxNode(): FlexxNode {
+  /** Get the underlying Flexture node (for tree operations) */
+  getFlextureNode(): FlextureNode {
     return this.node
   }
 
   // Tree operations
   insertChild(child: LayoutNode, index: number): void {
-    const flexxChild = (child as FlexxZeroNodeAdapter).getFlexxNode()
-    this.node.insertChild(flexxChild, index)
+    const flextureChild = (child as FlextureZeroNodeAdapter).getFlextureNode()
+    this.node.insertChild(flextureChild, index)
   }
 
   removeChild(child: LayoutNode): void {
-    const flexxChild = (child as FlexxZeroNodeAdapter).getFlexxNode()
-    this.node.removeChild(flexxChild)
+    const flextureChild = (child as FlextureZeroNodeAdapter).getFlextureNode()
+    this.node.removeChild(flextureChild)
   }
 
   free(): void {
@@ -251,16 +251,16 @@ class FlexxZeroNodeAdapter implements LayoutNode {
 }
 
 // ============================================================================
-// Flexx Zero Layout Engine
+// Flexture Zero Layout Engine
 // ============================================================================
 
 /**
- * Layout engine implementation using Flexx zero-allocation variant.
+ * Layout engine implementation using Flexture zero-allocation variant.
  * Optimized for high-frequency layout with reduced GC pressure.
  */
-export class FlexxZeroLayoutEngine implements LayoutEngine {
+export class FlextureZeroLayoutEngine implements LayoutEngine {
   private _constants: LayoutConstants = {
-    // Flex Direction (cast from Flexx's plain numbers to branded types)
+    // Flex Direction (cast from Flexture's plain numbers to branded types)
     FLEX_DIRECTION_COLUMN: FLEX_DIRECTION_COLUMN as FlexDirectionValue,
     FLEX_DIRECTION_COLUMN_REVERSE: FLEX_DIRECTION_COLUMN_REVERSE as FlexDirectionValue,
     FLEX_DIRECTION_ROW: FLEX_DIRECTION_ROW as FlexDirectionValue,
@@ -324,7 +324,7 @@ export class FlexxZeroLayoutEngine implements LayoutEngine {
   }
 
   createNode(): LayoutNode {
-    return new FlexxZeroNodeAdapter(FlexxNode.create())
+    return new FlextureZeroNodeAdapter(FlextureNode.create())
   }
 
   get constants(): LayoutConstants {
@@ -332,7 +332,7 @@ export class FlexxZeroLayoutEngine implements LayoutEngine {
   }
 
   get name(): string {
-    return "flexx-zero"
+    return "flexture-zero"
   }
 }
 
@@ -341,9 +341,9 @@ export class FlexxZeroLayoutEngine implements LayoutEngine {
 // ============================================================================
 
 /**
- * Create a Flexx zero-allocation layout engine.
- * Unlike Yoga, Flexx doesn't require async initialization.
+ * Create a Flexture zero-allocation layout engine.
+ * Unlike Yoga, Flexture doesn't require async initialization.
  */
-export function createFlexxZeroEngine(): FlexxZeroLayoutEngine {
-  return new FlexxZeroLayoutEngine()
+export function createFlextureZeroEngine(): FlextureZeroLayoutEngine {
+  return new FlextureZeroLayoutEngine()
 }

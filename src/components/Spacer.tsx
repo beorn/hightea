@@ -28,5 +28,5 @@ import type { JSX } from "react"
  * ```
  */
 export function Spacer(): JSX.Element {
-  return <inkx-box flexGrow={1} />
+  return <hightea-box flexGrow={1} />
 }

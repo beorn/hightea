@@ -1,8 +1,8 @@
 /**
- * Property-Based Layout Tests: Flexx vs Yoga
+ * Property-Based Layout Tests: Flexture vs Yoga
  *
  * Uses fast-check to generate random flex configurations and compare
- * computed layouts between Flexx and Yoga engines.
+ * computed layouts between Flexture and Yoga engines.
  *
  * This catches edge cases and subtle differences between the engines
  * that hand-written tests might miss.
@@ -10,7 +10,7 @@
 
 import * as fc from "fast-check"
 import { beforeAll, describe, expect, test } from "vitest"
-import { createFlexxZeroEngine } from "../src/adapters/flexx-zero-adapter.js"
+import { createFlextureZeroEngine } from "../src/adapters/flexture-zero-adapter.js"
 import { initYogaEngine } from "../src/adapters/yoga-adapter.js"
 import type { LayoutConstants, LayoutEngine, LayoutNode } from "../src/layout-engine.js"
 
@@ -22,11 +22,11 @@ const isCI = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true"
 // ============================================================================
 
 let yogaEngine: LayoutEngine
-let flexxEngine: LayoutEngine
+let flextureEngine: LayoutEngine
 
 beforeAll(async () => {
   yogaEngine = await initYogaEngine()
-  flexxEngine = createFlexxZeroEngine()
+  flextureEngine = createFlextureZeroEngine()
 })
 
 // ============================================================================
@@ -335,29 +335,29 @@ function buildAndCollect(
 /**
  * Compare two layout arrays and return differences
  */
-function compareLayouts(yogaLayouts: LayoutResult[], flexxLayouts: LayoutResult[], tolerance = 0.001): string[] {
+function compareLayouts(yogaLayouts: LayoutResult[], flextureLayouts: LayoutResult[], tolerance = 0.001): string[] {
   const diffs: string[] = []
 
-  if (yogaLayouts.length !== flexxLayouts.length) {
-    diffs.push(`Node count mismatch: Yoga=${yogaLayouts.length}, Flexx=${flexxLayouts.length}`)
+  if (yogaLayouts.length !== flextureLayouts.length) {
+    diffs.push(`Node count mismatch: Yoga=${yogaLayouts.length}, Flexture=${flextureLayouts.length}`)
     return diffs
   }
 
   for (let i = 0; i < yogaLayouts.length; i++) {
     const y = yogaLayouts[i]
-    const f = flexxLayouts[i]
+    const f = flextureLayouts[i]
 
     if (Math.abs(y.left - f.left) > tolerance) {
-      diffs.push(`Node ${i}: left differs - Yoga=${y.left}, Flexx=${f.left}`)
+      diffs.push(`Node ${i}: left differs - Yoga=${y.left}, Flexture=${f.left}`)
     }
     if (Math.abs(y.top - f.top) > tolerance) {
-      diffs.push(`Node ${i}: top differs - Yoga=${y.top}, Flexx=${f.top}`)
+      diffs.push(`Node ${i}: top differs - Yoga=${y.top}, Flexture=${f.top}`)
     }
     if (Math.abs(y.width - f.width) > tolerance) {
-      diffs.push(`Node ${i}: width differs - Yoga=${y.width}, Flexx=${f.width}`)
+      diffs.push(`Node ${i}: width differs - Yoga=${y.width}, Flexture=${f.width}`)
     }
     if (Math.abs(y.height - f.height) > tolerance) {
-      diffs.push(`Node ${i}: height differs - Yoga=${y.height}, Flexx=${f.height}`)
+      diffs.push(`Node ${i}: height differs - Yoga=${y.height}, Flexture=${f.height}`)
     }
   }
 
@@ -368,7 +368,7 @@ function compareLayouts(yogaLayouts: LayoutResult[], flexxLayouts: LayoutResult[
 // Property Tests
 // ============================================================================
 
-describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
+describe.skipIf(isCI)("Layout Property Tests: Flexture vs Yoga", () => {
   // Container dimensions for tests
   const containerWidth = 80
   const containerHeight = 40
@@ -378,14 +378,14 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
       fc.assert(
         fc.property(dimensionArb, dimensionArb, (width, height) => {
           const yc = yogaEngine.constants
-          const fc = flexxEngine.constants
+          const fc = flextureEngine.constants
 
           const yNode = yogaEngine.createNode()
           yNode.setWidth(width)
           yNode.setHeight(height)
           yNode.calculateLayout(containerWidth, containerHeight, yc.DIRECTION_LTR)
 
-          const fNode = flexxEngine.createNode()
+          const fNode = flextureEngine.createNode()
           fNode.setWidth(width)
           fNode.setHeight(height)
           fNode.calculateLayout(containerWidth, containerHeight, fc.DIRECTION_LTR)
@@ -407,9 +407,9 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
       fc.assert(
         fc.property(flexGrowArb, flexDirectionArb(yogaEngine.constants), (grow, direction) => {
           const yc = yogaEngine.constants
-          const fConst = flexxEngine.constants
+          const fConst = flextureEngine.constants
 
-          // Map direction from yoga constants to flexx constants
+          // Map direction from yoga constants to flexture constants
           // They should have the same values, but let's be safe
           const directionMap: Record<number, number> = {
             [yc.FLEX_DIRECTION_ROW]: fConst.FLEX_DIRECTION_ROW,
@@ -429,13 +429,13 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
           yRoot.insertChild(yChild, 0)
           yRoot.calculateLayout(containerWidth, containerHeight, yc.DIRECTION_LTR)
 
-          // Flexx
-          const fRoot = flexxEngine.createNode()
+          // Flexture
+          const fRoot = flextureEngine.createNode()
           fRoot.setWidth(containerWidth)
           fRoot.setHeight(containerHeight)
           fRoot.setFlexDirection(directionMap[direction])
 
-          const fChild = flexxEngine.createNode()
+          const fChild = flextureEngine.createNode()
           fChild.setFlexGrow(grow)
           fRoot.insertChild(fChild, 0)
           fRoot.calculateLayout(containerWidth, containerHeight, fConst.DIRECTION_LTR)
@@ -463,7 +463,7 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
           flexDirectionArb(yogaEngine.constants),
           (grow1, grow2, direction) => {
             const yc = yogaEngine.constants
-            const fConst = flexxEngine.constants
+            const fConst = flextureEngine.constants
 
             const directionMap: Record<number, number> = {
               [yc.FLEX_DIRECTION_ROW]: fConst.FLEX_DIRECTION_ROW,
@@ -486,15 +486,15 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
             yRoot.insertChild(yChild2, 1)
             yRoot.calculateLayout(containerWidth, containerHeight, yc.DIRECTION_LTR)
 
-            // Flexx
-            const fRoot = flexxEngine.createNode()
+            // Flexture
+            const fRoot = flextureEngine.createNode()
             fRoot.setWidth(containerWidth)
             fRoot.setHeight(containerHeight)
             fRoot.setFlexDirection(directionMap[direction])
 
-            const fChild1 = flexxEngine.createNode()
+            const fChild1 = flextureEngine.createNode()
             fChild1.setFlexGrow(grow1)
-            const fChild2 = flexxEngine.createNode()
+            const fChild2 = flextureEngine.createNode()
             fChild2.setFlexGrow(grow2)
             fRoot.insertChild(fChild1, 0)
             fRoot.insertChild(fChild2, 1)
@@ -525,7 +525,7 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
           flexDirectionArb(yogaEngine.constants),
           (fixedSize, grow, direction) => {
             const yc = yogaEngine.constants
-            const fConst = flexxEngine.constants
+            const fConst = flextureEngine.constants
 
             const directionMap: Record<number, number> = {
               [yc.FLEX_DIRECTION_ROW]: fConst.FLEX_DIRECTION_ROW,
@@ -556,20 +556,20 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
             yRoot.insertChild(yFlex, 1)
             yRoot.calculateLayout(containerWidth, containerHeight, yc.DIRECTION_LTR)
 
-            // Flexx
-            const fRoot = flexxEngine.createNode()
+            // Flexture
+            const fRoot = flextureEngine.createNode()
             fRoot.setWidth(containerWidth)
             fRoot.setHeight(containerHeight)
             fRoot.setFlexDirection(directionMap[direction])
 
-            const fFixed = flexxEngine.createNode()
+            const fFixed = flextureEngine.createNode()
             if (isRow) {
               fFixed.setWidth(fixedSize)
             } else {
               fFixed.setHeight(fixedSize)
             }
 
-            const fFlex = flexxEngine.createNode()
+            const fFlex = flextureEngine.createNode()
             fFlex.setFlexGrow(grow)
 
             fRoot.insertChild(fFixed, 0)
@@ -603,7 +603,7 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
       fc.assert(
         fc.property(paddingArb, flexDirectionArb(yogaEngine.constants), (padding, direction) => {
           const yc = yogaEngine.constants
-          const fConst = flexxEngine.constants
+          const fConst = flextureEngine.constants
 
           const directionMap: Record<number, number> = {
             [yc.FLEX_DIRECTION_ROW]: fConst.FLEX_DIRECTION_ROW,
@@ -624,14 +624,14 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
           yRoot.insertChild(yChild, 0)
           yRoot.calculateLayout(containerWidth, containerHeight, yc.DIRECTION_LTR)
 
-          // Flexx
-          const fRoot = flexxEngine.createNode()
+          // Flexture
+          const fRoot = flextureEngine.createNode()
           fRoot.setWidth(containerWidth)
           fRoot.setHeight(containerHeight)
           fRoot.setFlexDirection(directionMap[direction])
           fRoot.setPadding(fConst.EDGE_ALL, padding)
 
-          const fChild = flexxEngine.createNode()
+          const fChild = flextureEngine.createNode()
           fChild.setFlexGrow(1)
           fRoot.insertChild(fChild, 0)
           fRoot.calculateLayout(containerWidth, containerHeight, fConst.DIRECTION_LTR)
@@ -656,7 +656,7 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
       fc.assert(
         fc.property(gapArb, flexDirectionArb(yogaEngine.constants), (gap, direction) => {
           const yc = yogaEngine.constants
-          const fConst = flexxEngine.constants
+          const fConst = flextureEngine.constants
 
           const directionMap: Record<number, number> = {
             [yc.FLEX_DIRECTION_ROW]: fConst.FLEX_DIRECTION_ROW,
@@ -680,16 +680,16 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
           yRoot.insertChild(yChild2, 1)
           yRoot.calculateLayout(containerWidth, containerHeight, yc.DIRECTION_LTR)
 
-          // Flexx
-          const fRoot = flexxEngine.createNode()
+          // Flexture
+          const fRoot = flextureEngine.createNode()
           fRoot.setWidth(containerWidth)
           fRoot.setHeight(containerHeight)
           fRoot.setFlexDirection(directionMap[direction])
           fRoot.setGap(fConst.GUTTER_ALL, gap)
 
-          const fChild1 = flexxEngine.createNode()
+          const fChild1 = flextureEngine.createNode()
           fChild1.setFlexGrow(1)
-          const fChild2 = flexxEngine.createNode()
+          const fChild2 = flextureEngine.createNode()
           fChild2.setFlexGrow(1)
           fRoot.insertChild(fChild1, 0)
           fRoot.insertChild(fChild2, 1)
@@ -724,7 +724,7 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
           flexDirectionArb(yogaEngine.constants),
           (justify, direction) => {
             const yc = yogaEngine.constants
-            const fConst = flexxEngine.constants
+            const fConst = flextureEngine.constants
 
             const directionMap: Record<number, number> = {
               [yc.FLEX_DIRECTION_ROW]: fConst.FLEX_DIRECTION_ROW,
@@ -755,14 +755,14 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
             yRoot.insertChild(yChild, 0)
             yRoot.calculateLayout(containerWidth, containerHeight, yc.DIRECTION_LTR)
 
-            // Flexx
-            const fRoot = flexxEngine.createNode()
+            // Flexture
+            const fRoot = flextureEngine.createNode()
             fRoot.setWidth(containerWidth)
             fRoot.setHeight(containerHeight)
             fRoot.setFlexDirection(directionMap[direction])
             fRoot.setJustifyContent(justifyMap[justify])
 
-            const fChild = flexxEngine.createNode()
+            const fChild = flextureEngine.createNode()
             fChild.setWidth(20)
             fChild.setHeight(10)
             fRoot.insertChild(fChild, 0)
@@ -787,7 +787,7 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
       fc.assert(
         fc.property(alignItemsArb(yogaEngine.constants), flexDirectionArb(yogaEngine.constants), (align, direction) => {
           const yc = yogaEngine.constants
-          const fConst = flexxEngine.constants
+          const fConst = flextureEngine.constants
 
           const directionMap: Record<number, number> = {
             [yc.FLEX_DIRECTION_ROW]: fConst.FLEX_DIRECTION_ROW,
@@ -816,14 +816,14 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
           yRoot.insertChild(yChild, 0)
           yRoot.calculateLayout(containerWidth, containerHeight, yc.DIRECTION_LTR)
 
-          // Flexx
-          const fRoot = flexxEngine.createNode()
+          // Flexture
+          const fRoot = flextureEngine.createNode()
           fRoot.setWidth(containerWidth)
           fRoot.setHeight(containerHeight)
           fRoot.setFlexDirection(directionMap[direction])
           fRoot.setAlignItems(alignMap[align])
 
-          const fChild = flexxEngine.createNode()
+          const fChild = flextureEngine.createNode()
           fChild.setWidth(20)
           fChild.setHeight(10)
           fRoot.insertChild(fChild, 0)
@@ -850,15 +850,15 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
     /**
      * Generator for simpler node styles that avoid known edge cases.
      *
-     * Known differences between Yoga and Flexx:
+     * Known differences between Yoga and Flexture:
      * - reverse flex directions (ROW_REVERSE, COLUMN_REVERSE) with flexGrow
      * - min/max constraints with certain sibling configurations
      * - padding combined with certain alignments
      * - alignSelf in nested containers
      * - explicit width + flexGrow on parent affects grandchild layout differently
-     *   (Yoga: grandchild uses grown width; Flexx: grandchild uses original width)
+     *   (Yoga: grandchild uses grown width; Flexture: grandchild uses original width)
      * - ALIGN_STRETCH with mixed-dimension siblings (Yoga stretches to sibling,
-     *   Flexx may not stretch items without cross-axis dimension)
+     *   Flexture may not stretch items without cross-axis dimension)
      */
     function simpleNodeStyleArb(c: LayoutConstants): fc.Arbitrary<NodeStyle> {
       // Use oneof to either have explicit dimensions OR flexGrow, not both
@@ -927,7 +927,7 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
       fc.assert(
         fc.property(simpleTreeArb(yc, 2, 3), (treeSpec) => {
           const yResult = buildAndCollect(yogaEngine, treeSpec, containerWidth, containerHeight)
-          const fResult = buildAndCollect(flexxEngine, treeSpec, containerWidth, containerHeight)
+          const fResult = buildAndCollect(flextureEngine, treeSpec, containerWidth, containerHeight)
 
           const diffs = compareLayouts(yResult.layouts, fResult.layouts)
 
@@ -946,7 +946,7 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
       fc.assert(
         fc.property(simpleTreeArb(yc, 3, 3), (treeSpec) => {
           const yResult = buildAndCollect(yogaEngine, treeSpec, containerWidth, containerHeight)
-          const fResult = buildAndCollect(flexxEngine, treeSpec, containerWidth, containerHeight)
+          const fResult = buildAndCollect(flextureEngine, treeSpec, containerWidth, containerHeight)
 
           const diffs = compareLayouts(yResult.layouts, fResult.layouts)
 
@@ -965,7 +965,7 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
   // ========================================================================
 
   describe("Full random trees - Known Differences", () => {
-    // These tests document edge cases where Yoga and Flexx produce
+    // These tests document edge cases where Yoga and Flexture produce
     // different results. Skipped by default but useful for debugging.
     // Counterexamples found:
     // - maxHeight with padding and certain flex directions
@@ -978,7 +978,7 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
       fc.assert(
         fc.property(treeArb(yc, 2, 3), (treeSpec) => {
           const yResult = buildAndCollect(yogaEngine, treeSpec, containerWidth, containerHeight)
-          const fResult = buildAndCollect(flexxEngine, treeSpec, containerWidth, containerHeight)
+          const fResult = buildAndCollect(flextureEngine, treeSpec, containerWidth, containerHeight)
 
           const diffs = compareLayouts(yResult.layouts, fResult.layouts)
 
@@ -1002,7 +1002,7 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
       fc.assert(
         fc.property(treeArb(yc, 3, 4), (treeSpec) => {
           const yResult = buildAndCollect(yogaEngine, treeSpec, containerWidth, containerHeight)
-          const fResult = buildAndCollect(flexxEngine, treeSpec, containerWidth, containerHeight)
+          const fResult = buildAndCollect(flextureEngine, treeSpec, containerWidth, containerHeight)
 
           const diffs = compareLayouts(yResult.layouts, fResult.layouts)
 
@@ -1021,7 +1021,7 @@ describe.skipIf(isCI)("Layout Property Tests: Flexx vs Yoga", () => {
       fc.assert(
         fc.property(treeArb(yc, 4, 5), (treeSpec) => {
           const yResult = buildAndCollect(yogaEngine, treeSpec, containerWidth, containerHeight)
-          const fResult = buildAndCollect(flexxEngine, treeSpec, containerWidth, containerHeight)
+          const fResult = buildAndCollect(flextureEngine, treeSpec, containerWidth, containerHeight)
 
           const diffs = compareLayouts(yResult.layouts, fResult.layouts)
 

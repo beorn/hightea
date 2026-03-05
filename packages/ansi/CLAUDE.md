@@ -2,9 +2,9 @@
 
 Core terminal abstraction with Disposable pattern support plus extended ANSI features (curly underlines, hyperlinks).
 
-**Note:** If you're building a TUI with `inkx`, import term primitives from `inkx`:
+**Note:** If you're building a TUI with `hightea`, import term primitives from `hightea`:
 
-- **From inkx:** `createTerm`, `term`, `patchConsole`, `Term`, `StyleChain`, `PatchedConsole`, `ColorLevel`, `ConsoleEntry`
+- **From hightea:** `createTerm`, `term`, `patchConsole`, `Term`, `StyleChain`, `PatchedConsole`, `ColorLevel`, `ConsoleEntry`
 - **From chalkx only:** `curlyUnderline`, `hyperlink`, `bgOverride`, `displayLength`, `styledUnderline`, `underlineColor`, detection functions
 
 ## Imports

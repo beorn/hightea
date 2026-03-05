@@ -1,7 +1,7 @@
 /**
  * InkxLocator Tests
  *
- * Tests for Playwright-inspired DOM queries on InkxNode tree.
+ * Tests for Playwright-inspired DOM queries on TeaNode tree.
  */
 
 import React from "react"
@@ -314,7 +314,7 @@ describe("InkxLocator", () => {
       const locator = createLocator(app.getContainer())
       const node = locator.getByTestId("target").resolve()
       expect(node).not.toBeNull()
-      expect(node!.type).toBe("inkx-text")
+      expect(node!.type).toBe("hightea-text")
     })
 
     test("resolveAll returns array of nodes", () => {

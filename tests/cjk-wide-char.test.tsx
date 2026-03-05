@@ -2,7 +2,7 @@
  * Test CJK wide character rendering — buffer integrity and ANSI output.
  *
  * Bug: Wide char at col X sets continuation at col X+1, but adjacent container
- * clears col X+1 → bufferToAnsi cursor drifts. Verified by INKX_STRICT_OUTPUT.
+ * clears col X+1 → bufferToAnsi cursor drifts. Verified by HIGHTEA_STRICT_OUTPUT.
  */
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@hightea/term/testing"
@@ -78,7 +78,7 @@ describe("CJK wide character rendering", () => {
     expect(app.text).toContain("廈門大廈")
     expect(app.text).toContain("> selected")
 
-    // Trigger incremental render — INKX_STRICT checks buffer equality
+    // Trigger incremental render — HIGHTEA_STRICT checks buffer equality
     app.rerender(<App selected={1} />)
     expect(app.text).toContain("清理報表")
   })

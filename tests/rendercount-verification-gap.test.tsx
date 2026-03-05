@@ -4,7 +4,7 @@ import { describe, test, expect } from "vitest"
  * INKX _renderCount Verification Gap Bug Documentation
  *
  * This test documents a critical bug in vendor/hightea/src/runtime/create-app.tsx
- * where INKX_STRICT incremental rendering verification was never triggered for
+ * where HIGHTEA_STRICT incremental rendering verification was never triggered for
  * single-doRender events (which is most navigation).
  *
  * === ROOT CAUSE ===
@@ -18,8 +18,8 @@ import { describe, test, expect } from "vitest"
  *      → Line 744: _renderCount++
  *      → After this: _renderCount = 1
  *
- *   3. After doRender, INKX_STRICT check at line ~805:
- *      → if (INKX_STRICT && _renderCount > 1) { verify incremental rendering }
+ *   3. After doRender, HIGHTEA_STRICT check at line ~805:
+ *      → if (HIGHTEA_STRICT && _renderCount > 1) { verify incremental rendering }
  *      → Evaluates: 1 > 1 = false
  *      → Check SKIPPED!
  *
@@ -27,7 +27,7 @@ import { describe, test, expect } from "vitest"
  *
  * Most user interactions (arrow keys, scrolling, selection) trigger a single
  * doRender per event batch. These events NEVER had their incremental rendering
- * verified, even with INKX_STRICT=1 enabled.
+ * verified, even with HIGHTEA_STRICT=1 enabled.
  *
  * Content-phase bugs in incremental rendering (dirty flag misses, delta bugs)
  * went undetected during normal navigation, but WERE caught by:
@@ -62,7 +62,7 @@ describe("_renderCount verification gap (documented bug)", () => {
     // After single doRender:
     expect(_renderCount).toBe(1)
 
-    // Line ~805: INKX_STRICT verification check
+    // Line ~805: HIGHTEA_STRICT verification check
     const shouldVerify = _renderCount > 1
     expect(shouldVerify).toBe(false)
 
@@ -121,7 +121,7 @@ describe("_renderCount verification gap (documented bug)", () => {
     // It has a different verification mechanism that DOES catch bugs.
 
     // Therefore:
-    // ✗ TUI tests with INKX_STRICT=1: missed single-doRender content bugs
+    // ✗ TUI tests with HIGHTEA_STRICT=1: missed single-doRender content bugs
     // ✓ Fold/unfold: caught (Case 3 standalone render)
     // ✓ createRenderer: caught (different path)
 

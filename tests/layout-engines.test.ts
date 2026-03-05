@@ -1,12 +1,12 @@
 /**
  * Layout Engine Tests
  *
- * Tests that verify both Yoga and Flexx layout engines work correctly
+ * Tests that verify both Yoga and Flexture layout engines work correctly
  * and produce consistent results.
  */
 
 import { beforeEach, describe, expect, test } from "vitest"
-import { createFlexxZeroEngine } from "../src/adapters/flexx-zero-adapter.js"
+import { createFlextureZeroEngine } from "../src/adapters/flexture-zero-adapter.js"
 import { initYogaEngine } from "../src/adapters/yoga-adapter.js"
 import {
   type LayoutEngine,
@@ -127,7 +127,7 @@ describe("Layout Engines", () => {
     let engine: LayoutEngine
 
     beforeEach(() => {
-      engine = createFlexxZeroEngine()
+      engine = createFlextureZeroEngine()
       setLayoutEngine(engine)
     })
 
@@ -225,14 +225,14 @@ describe("Layout Engines", () => {
     })
 
     test("exposes correct engine name", () => {
-      expect(engine.name).toBe("flexx-zero")
+      expect(engine.name).toBe("flexture-zero")
     })
   })
 
   describe("Engine Interchangeability", () => {
     test("both engines produce same layout for simple box", async () => {
       const yogaEngine = await initYogaEngine()
-      const flexxEngine = createFlexxZeroEngine()
+      const flextureEngine = createFlextureZeroEngine()
 
       // Create same layout with Yoga
       setLayoutEngine(yogaEngine)
@@ -249,16 +249,16 @@ describe("Layout Engines", () => {
 
       yRoot.calculateLayout(80, 24, yc.DIRECTION_LTR)
 
-      // Create same layout with Flexx
-      setLayoutEngine(flexxEngine)
-      const fc = flexxEngine.constants
-      const fRoot = flexxEngine.createNode()
+      // Create same layout with Flexture
+      setLayoutEngine(flextureEngine)
+      const fc = flextureEngine.constants
+      const fRoot = flextureEngine.createNode()
       fRoot.setWidth(80)
       fRoot.setHeight(24)
       fRoot.setFlexDirection(fc.FLEX_DIRECTION_COLUMN)
       fRoot.setPadding(fc.EDGE_ALL, 2)
 
-      const fChild = flexxEngine.createNode()
+      const fChild = flextureEngine.createNode()
       fChild.setHeight(10)
       fRoot.insertChild(fChild, 0)
 
@@ -278,13 +278,13 @@ describe("Layout Engines", () => {
 
     test("global setLayoutEngine/getLayoutEngine works", async () => {
       const yogaEngine = await initYogaEngine()
-      const flexxEngine = createFlexxZeroEngine()
+      const flextureEngine = createFlextureZeroEngine()
 
       setLayoutEngine(yogaEngine)
       expect(getLayoutEngine().name).toBe("yoga")
 
-      setLayoutEngine(flexxEngine)
-      expect(getLayoutEngine().name).toBe("flexx-zero")
+      setLayoutEngine(flextureEngine)
+      expect(getLayoutEngine().name).toBe("flexture-zero")
 
       // Switch back to yoga for other tests
       setLayoutEngine(yogaEngine)

@@ -6,20 +6,20 @@
  * tab order, spatial navigation targets, and explicit focus links.
  */
 
-import type { InkxNode, Rect } from "./types.js"
+import type { TeaNode, Rect } from "./types.js"
 
 // ============================================================================
 // Focusable Detection
 // ============================================================================
 
 /** Check if a node has the focusable prop set to true (or truthy). */
-function isFocusable(node: InkxNode): boolean {
+function isFocusable(node: TeaNode): boolean {
   const props = node.props as Record<string, unknown>
   return Boolean(props.focusable) && props.display !== "none"
 }
 
 /** Check if a node creates a focus scope (isolated Tab cycle). */
-function isFocusScope(node: InkxNode): boolean {
+function isFocusScope(node: TeaNode): boolean {
   const props = node.props as Record<string, unknown>
   return Boolean(props.focusScope)
 }
@@ -32,8 +32,8 @@ function isFocusScope(node: InkxNode): boolean {
  * Walk up from node to nearest ancestor (or self) with focusable prop.
  * Useful for mouse clicks — find the focusable target from a deep text node.
  */
-export function findFocusableAncestor(node: InkxNode): InkxNode | null {
-  let current: InkxNode | null = node
+export function findFocusableAncestor(node: TeaNode): TeaNode | null {
+  let current: TeaNode | null = node
   while (current) {
     if (isFocusable(current)) return current
     current = current.parent
@@ -49,11 +49,11 @@ export function findFocusableAncestor(node: InkxNode): InkxNode | null {
  * skipped (they belong to a different scope), unless that scope IS the
  * provided scope node.
  */
-export function getTabOrder(root: InkxNode, scope?: InkxNode): InkxNode[] {
-  const result: InkxNode[] = []
+export function getTabOrder(root: TeaNode, scope?: TeaNode): TeaNode[] {
+  const result: TeaNode[] = []
   const walkRoot = scope ?? root
 
-  function walk(node: InkxNode): void {
+  function walk(node: TeaNode): void {
     // Skip nodes with display: none
     const props = node.props as Record<string, unknown>
     if (props.display === "none") return
@@ -86,8 +86,8 @@ export function getTabOrder(root: InkxNode, scope?: InkxNode): InkxNode[] {
  * Walk up from a node to find the nearest ancestor (or self) with focusScope prop.
  * Returns the testID of the enclosing scope, or null if none found.
  */
-export function findEnclosingScope(node: InkxNode): string | null {
-  let current: InkxNode | null = node
+export function findEnclosingScope(node: TeaNode): string | null {
+  let current: TeaNode | null = node
   while (current) {
     if (isFocusScope(current)) {
       const props = current.props as Record<string, unknown>
@@ -102,7 +102,7 @@ export function findEnclosingScope(node: InkxNode): string | null {
  * Find a node by testID in the subtree rooted at root.
  * DFS, returns the first match.
  */
-export function findByTestID(root: InkxNode, testID: string): InkxNode | null {
+export function findByTestID(root: TeaNode, testID: string): TeaNode | null {
   const props = root.props as Record<string, unknown>
   if (props.testID === testID) return root
 
@@ -183,17 +183,17 @@ function distance(a: { cx: number; cy: number }, b: { cx: number; cy: number }):
  * @param layoutFn - Function to get screen rect for a node (null if not laid out)
  */
 export function findSpatialTarget(
-  from: InkxNode,
+  from: TeaNode,
   direction: "up" | "down" | "left" | "right",
-  candidates: InkxNode[],
-  layoutFn: (node: InkxNode) => Rect | null,
-): InkxNode | null {
+  candidates: TeaNode[],
+  layoutFn: (node: TeaNode) => Rect | null,
+): TeaNode | null {
   const sourceRect = layoutFn(from)
   if (!sourceRect) return null
 
   const source = rectCenter(sourceRect)
 
-  let best: InkxNode | null = null
+  let best: TeaNode | null = null
   let bestDist = Infinity
 
   for (const candidate of candidates) {
@@ -230,7 +230,7 @@ export function findSpatialTarget(
  * @param direction - Direction string: "up", "down", "left", "right"
  * @returns The testID of the explicit target, or null
  */
-export function getExplicitFocusLink(node: InkxNode, direction: string): string | null {
+export function getExplicitFocusLink(node: TeaNode, direction: string): string | null {
   const props = node.props as Record<string, unknown>
   // Props follow the pattern: nextFocusUp, nextFocusDown, nextFocusLeft, nextFocusRight
   const propName = `nextFocus${direction.charAt(0).toUpperCase()}${direction.slice(1)}`

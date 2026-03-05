@@ -16,7 +16,7 @@
 
 ### Incremental rendering mismatches
 
-- Run with `INKX_STRICT=1` to compare incremental vs fresh render output on every frame.
+- Run with `HIGHTEA_STRICT=1` to compare incremental vs fresh render output on every frame.
 - If a mismatch is found, file a bug with the minimal reproduction.
 - Use `withDiagnostics({ checkIncremental: true })` in tests to catch these automatically.
 
@@ -28,14 +28,14 @@
 
 ### Layout oscillation / infinite loops
 
-- inkx has built-in containment for `useContentRect` (see [containment.md](deep-dives/containment.md)).
+- hightea has built-in containment for `useContentRect` (see [containment.md](deep-dives/containment.md)).
 - If you see oscillation, check for circular dependencies in layout — e.g., a component that changes its size based on `useContentRect` in a way that triggers another layout.
 - Avoid setting `width` or `height` dynamically based on `useContentRect` of the same Box.
 
 ### Flickering in tmux / Zellij
 
-- inkx uses Synchronized Update Mode (DEC 2026) by default, which prevents flicker. Verify your multiplexer version supports it (tmux 3.2+).
-- To disable sync updates for debugging: `INKX_SYNC_UPDATE=0`.
+- hightea uses Synchronized Update Mode (DEC 2026) by default, which prevents flicker. Verify your multiplexer version supports it (tmux 3.2+).
+- To disable sync updates for debugging: `HIGHTEA_SYNC_UPDATE=0`.
 
 ### Colors not appearing
 
@@ -49,22 +49,22 @@
 - Check that your terminal supports it (Ghostty, Kitty, WezTerm, foot — see [terminal-capabilities.md](reference/terminal-capabilities.md)).
 - iTerm2 and Terminal.app do not support the Kitty protocol.
 
-### Flexx vs Yoga layout differences
+### Flexture vs Yoga layout differences
 
-If you migrated from Ink (which uses Yoga), some layout behaviors differ with Flexx:
+If you migrated from Ink (which uses Yoga), some layout behaviors differ with Flexture:
 
-- **Percentage widths**: Flexx resolves `width="50%"` against the parent's content area. Yoga resolves against the parent's total width including padding. If your layout is off by a few cells, check padding on the parent.
-- **Default `flexShrink`**: Both default to 1, but Flexx may clamp earlier on zero-width children. If a child collapses unexpectedly, set `flexShrink={0}` explicitly.
-- **`flexBasis="auto"`**: Yoga uses the intrinsic content size. Flexx does the same but measures text differently for multi-line content. If text wraps unexpectedly, set an explicit `width`.
-- **Gap**: Flexx supports `gap`, `rowGap`, `columnGap` the same as Yoga. If gaps don't appear, verify `flexDirection` is set (gap only applies between flex children along the main axis).
+- **Percentage widths**: Flexture resolves `width="50%"` against the parent's content area. Yoga resolves against the parent's total width including padding. If your layout is off by a few cells, check padding on the parent.
+- **Default `flexShrink`**: Both default to 1, but Flexture may clamp earlier on zero-width children. If a child collapses unexpectedly, set `flexShrink={0}` explicitly.
+- **`flexBasis="auto"`**: Yoga uses the intrinsic content size. Flexture does the same but measures text differently for multi-line content. If text wraps unexpectedly, set an explicit `width`.
+- **Gap**: Flexture supports `gap`, `rowGap`, `columnGap` the same as Yoga. If gaps don't appear, verify `flexDirection` is set (gap only applies between flex children along the main axis).
 
-Switch engines to isolate: `INKX_ENGINE=yoga bun run app.ts`
+Switch engines to isolate: `HIGHTEA_ENGINE=yoga bun run app.ts`
 
 ### Focus routing debugging
 
 If focus isn't moving where expected:
 
-1. **Enable inspector**: `INKX_DEV=1` to visualize the focus tree and see which nodes are `focusable`.
+1. **Enable inspector**: `HIGHTEA_DEV=1` to visualize the focus tree and see which nodes are `focusable`.
 2. **Check `focusable` prop**: Only `<Box focusable>` nodes participate in focus. Text nodes cannot receive focus.
 3. **Verify `testID`**: Spatial navigation overrides (`nextFocusUp`, `nextFocusDown`, etc.) reference nodes by `testID`. Missing or mismatched IDs are silently ignored.
 4. **Scope boundaries**: If Tab doesn't leave a subtree, a parent has `focusScope` which restricts cycling to that subtree. Remove or restructure the scope.
@@ -94,11 +94,11 @@ VirtualList shows blank rows when:
 
 ```bash
 # Enable incremental vs fresh render comparison
-INKX_STRICT=1 bun run app.ts
+HIGHTEA_STRICT=1 bun run app.ts
 
 # Write debug output to file
-DEBUG=inkx:* DEBUG_LOG=/tmp/inkx.log bun run app.ts
-tail -f /tmp/inkx.log
+DEBUG=hightea:* DEBUG_LOG=/tmp/hightea.log bun run app.ts
+tail -f /tmp/hightea.log
 ```
 
 ### Test Debug

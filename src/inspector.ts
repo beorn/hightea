@@ -1,7 +1,7 @@
 /**
  * inkx Inspector — Debug introspection for rendering pipeline.
  *
- * Activate with INKX_DEV=1 env var or by calling enableInspector().
+ * Activate with HIGHTEA_DEV=1 env var or by calling enableInspector().
  * Outputs debug info to stderr or a log file (never to the TUI stdout).
  *
  * Features:
@@ -17,7 +17,7 @@
 
 import type { createWriteStream as createWriteStreamType } from "node:fs"
 import type { RenderStats } from "./scheduler.js"
-import type { InkxNode } from "./types.js"
+import type { TeaNode } from "./types.js"
 
 // =============================================================================
 // Types
@@ -91,12 +91,12 @@ export function inspectFrame(stats: RenderStats): void {
  * Walks the InkxNode tree and formats each node with its type, testID,
  * layout rect, and dirty flags.
  */
-export function inspectTree(rootNode: InkxNode, options?: { depth?: number; showLayout?: boolean }): string {
+export function inspectTree(rootNode: TeaNode, options?: { depth?: number; showLayout?: boolean }): string {
   const maxDepth = options?.depth ?? 10
   const showLayout = options?.showLayout ?? true
   const lines: string[] = []
 
-  function walk(node: InkxNode, indent: number): void {
+  function walk(node: TeaNode, indent: number): void {
     if (indent > maxDepth) return
 
     const prefix = "  ".repeat(indent)
@@ -143,13 +143,13 @@ export function inspectTree(rootNode: InkxNode, options?: { depth?: number; show
 }
 
 /**
- * Auto-enable if INKX_DEV=1 is set.
+ * Auto-enable if HIGHTEA_DEV=1 is set.
  *
  * Call this at startup to respect the environment variable convention.
  */
 export function autoEnableInspector(): void {
-  if (process.env.INKX_DEV === "1" || process.env.INKX_DEV === "true") {
-    const logFile = process.env.INKX_DEV_LOG
+  if (process.env.HIGHTEA_DEV === "1" || process.env.HIGHTEA_DEV === "true") {
+    const logFile = process.env.HIGHTEA_DEV_LOG
     enableInspector(logFile ? { logFile } : undefined)
   }
 }

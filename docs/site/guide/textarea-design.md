@@ -1,6 +1,6 @@
 # TextArea Component Design
 
-This document specifies the design for a multi-line text input component for inkx. Implementation will follow.
+This document specifies the design for a multi-line text input component for hightea. Implementation will follow.
 
 ## Overview
 
@@ -32,7 +32,7 @@ Single-line input is sufficient for simple prompts, but many applications need:
 - **Note taking** - Free-form text entry
 - **Configuration editors** - Multi-line config values
 
-Ink users have requested this ([#676](https://github.com/vadimdemedes/ink/issues/676)) but Ink's architecture makes it difficult. inkx's `useContentRect()` provides the dimension awareness needed to implement TextArea properly.
+Ink users have requested this ([#676](https://github.com/vadimdemedes/ink/issues/676)) but Ink's architecture makes it difficult. hightea's `useContentRect()` provides the dimension awareness needed to implement TextArea properly.
 
 ### Challenges in Terminal
 
@@ -654,7 +654,7 @@ This allows building custom TextArea variants while reusing the core logic.
 
 ## Integration with useContentRect
 
-TextArea benefits from inkx's `useContentRect()`:
+TextArea benefits from hightea's `useContentRect()`:
 
 ```tsx
 function TextArea({ value, onChange, height = 3 }: TextAreaProps) {

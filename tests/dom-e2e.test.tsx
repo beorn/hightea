@@ -10,7 +10,7 @@
 import React, { useState, useEffect } from "react"
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
 import { createDOMAdapter } from "../src/adapters/dom-adapter.js"
-import { createFlexxZeroEngine } from "../src/adapters/flexx-zero-adapter.js"
+import { createFlextureZeroEngine } from "../src/adapters/flexture-zero-adapter.js"
 import { Box, DOMRenderBuffer, Text, initDOMRenderer, renderDOMOnce, useContentRect } from "../src/dom/index.js"
 import { isLayoutEngineInitialized, setLayoutEngine } from "../src/layout-engine.js"
 import { hasRenderAdapter, setRenderAdapter } from "../src/render-adapter.js"
@@ -21,7 +21,7 @@ const hasDOM = typeof document !== "undefined"
 describe.skipIf(!hasDOM)("DOM E2E - React Rendering", () => {
   beforeEach(() => {
     if (!isLayoutEngineInitialized()) {
-      setLayoutEngine(createFlexxZeroEngine())
+      setLayoutEngine(createFlextureZeroEngine())
     }
     setRenderAdapter(createDOMAdapter({ fontSize: 14 }))
   })
@@ -121,7 +121,7 @@ describe.skipIf(!hasDOM)("DOM E2E - React Rendering", () => {
 describe.skipIf(!hasDOM)("DOM E2E - useContentRect", () => {
   beforeEach(() => {
     if (!isLayoutEngineInitialized()) {
-      setLayoutEngine(createFlexxZeroEngine())
+      setLayoutEngine(createFlextureZeroEngine())
     }
     setRenderAdapter(createDOMAdapter({ fontSize: 14 }))
   })
@@ -197,7 +197,7 @@ describe.skipIf(!hasDOM)("DOM E2E - useContentRect", () => {
 describe.skipIf(!hasDOM)("DOM E2E - Accessibility Features", () => {
   beforeEach(() => {
     if (!isLayoutEngineInitialized()) {
-      setLayoutEngine(createFlexxZeroEngine())
+      setLayoutEngine(createFlextureZeroEngine())
     }
     setRenderAdapter(createDOMAdapter({ fontSize: 14 }))
   })
@@ -243,7 +243,7 @@ describe.skipIf(!hasDOM)("DOM E2E - Accessibility Features", () => {
 describe.skipIf(!hasDOM)("DOM E2E - Layout Engine Integration", () => {
   beforeEach(() => {
     if (!isLayoutEngineInitialized()) {
-      setLayoutEngine(createFlexxZeroEngine())
+      setLayoutEngine(createFlextureZeroEngine())
     }
     setRenderAdapter(createDOMAdapter({ fontSize: 14 }))
   })
@@ -335,7 +335,7 @@ describe.skipIf(!hasDOM)("DOM E2E - Layout Engine Integration", () => {
 describe.skipIf(!hasDOM)("DOM E2E - Edge Cases", () => {
   beforeEach(() => {
     if (!isLayoutEngineInitialized()) {
-      setLayoutEngine(createFlexxZeroEngine())
+      setLayoutEngine(createFlextureZeroEngine())
     }
     setRenderAdapter(createDOMAdapter({ fontSize: 14 }))
   })

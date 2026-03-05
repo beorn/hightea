@@ -9,7 +9,7 @@ import { EventEmitter } from "node:events"
 import { afterEach, describe, expect, test } from "vitest"
 import { ensureEngine } from "../src/renderer.js"
 import { IncrementalRenderMismatchError, RenderScheduler, createScheduler, renderToString } from "../src/scheduler.js"
-import type { InkxNode } from "../src/types.js"
+import type { TeaNode } from "../src/types.js"
 
 // Initialize layout engine before all tests
 await ensureEngine()
@@ -59,14 +59,14 @@ const { createNode } = await import("../src/reconciler/nodes.js")
 /**
  * Create a minimal InkxNode root with a text child.
  */
-function createTextRoot(text: string): InkxNode {
+function createTextRoot(text: string): TeaNode {
   const root = createRootNode()
-  const textNode = createNode("inkx-text", {})
+  const textNode = createNode("hightea-text", {})
   // Add raw text content as a child (mimics how reconciler creates text children)
   const rawText = {
-    type: "inkx-text" as const,
+    type: "hightea-text" as const,
     props: {},
-    children: [] as InkxNode[],
+    children: [] as TeaNode[],
     parent: textNode,
     layoutNode: null,
     contentRect: null,
@@ -82,7 +82,7 @@ function createTextRoot(text: string): InkxNode {
     childrenDirty: true,
     layoutSubscribers: new Set(),
     rawText: text,
-  } as InkxNode & { rawText: string }
+  } as TeaNode & { rawText: string }
 
   textNode.children.push(rawText)
   rawText.parent = textNode

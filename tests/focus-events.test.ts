@@ -18,17 +18,17 @@ import {
   type InkxKeyEvent,
 } from "../src/focus-events.js"
 import { emptyKey, type Key } from "../src/keys.js"
-import type { InkxNode } from "../src/types.js"
+import type { TeaNode } from "../src/types.js"
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
-function fakeNode(name: string, props: Record<string, unknown> = {}, parent: InkxNode | null = null): InkxNode {
+function fakeNode(name: string, props: Record<string, unknown> = {}, parent: TeaNode | null = null): TeaNode {
   const node = {
-    type: "inkx-box" as const,
+    type: "hightea-box" as const,
     props: { testID: name, ...props },
-    children: [] as InkxNode[],
+    children: [] as TeaNode[],
     parent,
     layoutNode: null,
     layoutDirty: false,
@@ -38,7 +38,7 @@ function fakeNode(name: string, props: Record<string, unknown> = {}, parent: Ink
     subtreeDirty: false,
     screenRect: null,
     layoutSubscribers: new Set(),
-  } as unknown as InkxNode
+  } as unknown as TeaNode
   if (parent) {
     parent.children.push(node)
   }
@@ -280,7 +280,7 @@ describe("dispatchKeyEvent", () => {
   })
 
   it("currentTarget changes during traversal", () => {
-    const targets: InkxNode[] = []
+    const targets: TeaNode[] = []
 
     const root = fakeNode("root", {
       onKeyDown: (e: InkxKeyEvent) => targets.push(e.currentTarget),
@@ -375,7 +375,7 @@ describe("dispatchFocusEvent", () => {
   })
 
   it("currentTarget changes during bubbling", () => {
-    const targets: InkxNode[] = []
+    const targets: TeaNode[] = []
 
     const root = fakeNode("root", {
       onFocus: (e: InkxFocusEvent) => targets.push(e.currentTarget),

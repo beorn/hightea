@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Independent underline color (RGB, 256-color)
 - Combined style + color with `styledUnderline()`
 - OSC 8 terminal hyperlinks
-- `bgOverride()` for safe chalk background usage with inkx
+- `bgOverride()` for safe chalk background usage with hightea
 - Graceful fallback to regular underlines on unsupported terminals
 - `stripAnsi()` and `displayLength()` utilities
 - Default `term` export for simple scripts

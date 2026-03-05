@@ -5,7 +5,7 @@
  * other Box or Text components. It supports all standard flexbox properties,
  * dimensions, spacing, and borders.
  *
- * Box renders to an 'inkx-box' host element that the reconciler converts to an
+ * Box renders to an 'hightea-box' host element that the reconciler converts to an
  * InkxNode with an associated Yoga layout node.
  *
  * Box provides NodeContext to its children, enabling useContentRect/useScreenRect hooks.
@@ -23,7 +23,7 @@ import {
   useState,
 } from "react"
 import { NodeContext } from "../context.js"
-import type { BoxProps as BoxPropsType, InkxNode, Rect } from "../types.js"
+import type { BoxProps as BoxPropsType, TeaNode, Rect } from "../types.js"
 
 // ============================================================================
 // Props
@@ -39,7 +39,7 @@ export interface BoxProps extends BoxPropsType {
  */
 export interface BoxHandle {
   /** Get the underlying InkxNode */
-  getNode(): InkxNode | null
+  getNode(): TeaNode | null
   /** Get the current content-relative layout rect */
   getContentRect(): Rect | null
   /** Get the current screen-relative layout rect */
@@ -88,8 +88,8 @@ export interface BoxHandle {
  */
 export const Box = forwardRef(function Box(props: BoxProps, ref: ForwardedRef<BoxHandle>): JSX.Element {
   const { children, onLayout, ...restProps } = props
-  const nodeRef = useRef<InkxNode | null>(null)
-  const [node, setNode] = useState<InkxNode | null>(null)
+  const nodeRef = useRef<TeaNode | null>(null)
+  const [node, setNode] = useState<TeaNode | null>(null)
 
   // Track the last layout we reported to onLayout to avoid duplicate calls
   const lastReportedLayout = useRef<Rect | null>(null)
@@ -149,11 +149,11 @@ export const Box = forwardRef(function Box(props: BoxProps, ref: ForwardedRef<Bo
     [],
   )
 
-  // Render inkx-box with ref, wrap children in NodeContext
+  // Render hightea-box with ref, wrap children in NodeContext
   // The reconciler creates an InkxNode, ref gives us access to it
   return (
-    <inkx-box ref={nodeRef} {...restProps}>
+    <hightea-box ref={nodeRef} {...restProps}>
       <NodeContext.Provider value={node}>{children}</NodeContext.Provider>
-    </inkx-box>
+    </hightea-box>
   )
 })

@@ -33,7 +33,7 @@ A multi-pane dashboard demonstrating responsive layouts with `useContentRect()`.
 ## Running the Example
 
 ```bash
-cd inkx
+cd hightea
 bun run examples/dashboard/app.tsx
 ```
 
@@ -310,7 +310,7 @@ The "Recent Items" section uses `overflow="scroll"`:
 
 Add more items to `recentItems` and they'll scroll automatically.
 
-## Key inkx Features Used
+## Key hightea Features Used
 
 | Feature             | Usage                                                                |
 | ------------------- | -------------------------------------------------------------------- |

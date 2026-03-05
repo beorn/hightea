@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: "inkx"
+  name: "hightea"
   text: "React for modern terminals"
   tagline: "Layout feedback, every terminal protocol, React + Elm architectures, 100x+ faster incremental renders. Zero native dependencies."
   actions:
@@ -23,7 +23,7 @@ features:
   - icon: "\u26A1"
     title: 100x+ Faster*
     details: "Per-node dirty tracking with 7 independent flags -- 100x+ faster on incremental renders. Only changed nodes re-render."
-    link: /guide/why-inkx#incremental-rendering
+    link: /guide/why-hightea#incremental-rendering
     linkText: "* See benchmarks"
   - icon: "\U0001F9E9"
     title: Three Architectures
@@ -45,7 +45,7 @@ features:
 ## Explore the Examples
 
 <div class="viewer-wrapper">
-  <iframe src="/inkx/examples/viewer.html" class="viewer-iframe" frameborder="0" title="inkx Interactive Examples" loading="lazy" />
+  <iframe src="/hightea/examples/viewer.html" class="viewer-iframe" frameborder="0" title="hightea Interactive Examples" loading="lazy" />
 </div>
 
 ## Build Any Terminal App

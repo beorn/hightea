@@ -1,6 +1,6 @@
-# inkx Internals: How the Reconciler Works
+# hightea Internals: How the Reconciler Works
 
-This document explains inkx's architecture for contributors. Read this if you want to understand how layout feedback actually works.
+This document explains hightea's architecture for contributors. Read this if you want to understand how layout feedback actually works.
 
 ---
 
@@ -21,18 +21,18 @@ The problem: Components execute (return JSX) **before** Yoga calculates layout. 
 
 ---
 
-## inkx's Solution: Deferred Content Rendering
+## hightea's Solution: Deferred Content Rendering
 
-inkx separates **structure** from **content**:
+hightea separates **structure** from **content**:
 
 ```
 React.render(<App />)
   → React calls component functions
   → Components return STRUCTURE (layout constraints)
-  → inkx builds Yoga tree
+  → hightea builds Yoga tree
   → Yoga.calculateLayout()
-  → inkx calls CONTENT CALLBACKS with dimensions
-  → inkx writes to terminal
+  → hightea calls CONTENT CALLBACKS with dimensions
+  → hightea writes to terminal
 ```
 
 The key insight: React components don't render terminal content directly. They declare layout constraints and register callbacks that render content later.
@@ -375,7 +375,7 @@ const NodeContext = createContext<InkxNode | null>(null)
 
 function useInkxNode(): InkxNode {
   const node = useContext(NodeContext)
-  if (!node) throw new Error("useContentRect must be used within inkx")
+  if (!node) throw new Error("useContentRect must be used within hightea")
   return node
 }
 
@@ -566,7 +566,7 @@ function runPipeline(root: InkxNode) {
     prevBuffer = buffer
   } catch (error) {
     // Don't crash the app on render errors
-    console.error("inkx render error:", error)
+    console.error("hightea render error:", error)
 
     // Try to show error in terminal
     process.stdout.write("\x1b[0m\x1b[31mRender error (see console)\x1b[0m")
@@ -625,7 +625,7 @@ test("diff emits minimal changes", () => {
 
 ## Suspense Support (hideInstance/unhideInstance)
 
-React Suspense requires the renderer to hide and unhide subtrees when components suspend. inkx implements this via the `hideInstance` and `unhideInstance` host config methods.
+React Suspense requires the renderer to hide and unhide subtrees when components suspend. hightea implements this via the `hideInstance` and `unhideInstance` host config methods.
 
 ### How Suspension Works
 

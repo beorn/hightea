@@ -1,8 +1,8 @@
-# inkx Documentation
+# hightea Documentation
 
 > Start simple, sip some TEA (The Elm Architecture), or go full TEA.
 
-inkx is a React-based TUI framework with a graduated architecture. Your first app is five lines. When you need shared state, undo, testable I/O, or composable plugins — each level builds on the last. You never rewrite; you grow.
+hightea is a React-based TUI framework with a graduated architecture. Your first app is five lines. When you need shared state, undo, testable I/O, or composable plugins — each level builds on the last. You never rewrite; you grow.
 
 ```tsx
 import { run, useInput } from "@hightea/term/runtime"
@@ -23,8 +23,8 @@ await run(<Counter />)
 
 ## Where to Start
 
-- **New to inkx?** Start with [Getting Started](guides/getting-started.md) -- build your first app in 5 minutes
-- **Migrating from Ink?** Read [inkx vs Ink](inkx-vs-ink.md) and [Migration Guide](guides/migration.md)
+- **New to hightea?** Start with [Getting Started](guides/getting-started.md) -- build your first app in 5 minutes
+- **Migrating from Ink?** Read [hightea vs Ink](hightea-vs-ink.md) and [Migration Guide](guides/migration.md)
 - **Building an app?** [Components](reference/components.md) + [Hooks](reference/hooks.md) + [Input Features](reference/input-features.md)
 - **Testing?** [Testing](testing.md) + [Plugins](reference/plugins.md) (withCommands, withDiagnostics)
 - **Understanding internals?** [Architecture](deep-dives/architecture.md) → [Internals](deep-dives/internals.md) → [Performance](deep-dives/performance.md)
@@ -47,11 +47,11 @@ Tutorials, walkthroughs, and migration paths.
 | Document                                                  | Description                                                                       |
 | --------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | [Getting Started](guides/getting-started.md)              | First app tutorial, basic input, layout feedback                                  |
-| [State Management](guides/state-management.md)            | General patterns + inkx tooling: store, signals, createSlice, ops/effects as data |
+| [State Management](guides/state-management.md)            | General patterns + hightea tooling: store, signals, createSlice, ops/effects as data |
 | [Event Handling](guides/event-handling.md)                | Composable event plugins, commands, sources, and the input pipeline               |
 | [Runtime Layers](guides/runtime-layers.md)                | createApp, createRuntime, createStore, streams, tick sources                      |
 | [Migration from Ink](guides/migration.md)                 | Drop-in migration guide                                                           |
-| [Migration from legacy inkx](guides/runtime-migration.md) | Migrating to inkx/runtime API                                                     |
+| [Migration from legacy hightea](guides/runtime-migration.md) | Migrating to hightea/runtime API                                                     |
 
 ## Reference
 
@@ -70,7 +70,7 @@ API documentation for components, hooks, and subsystems.
 | [Terminal Capabilities](reference/terminal-capabilities.md) | Detection, render modes, protocols                                   |
 | [Text Sizing (OSC 66)](reference/text-sizing.md)            | PUA character width control for nerdfont/powerline icons             |
 | [Terminal Lifecycle](reference/lifecycle.md)                | Suspend/resume (Ctrl+Z), interrupt (Ctrl+C), state save/restore      |
-| [Recipes](reference/recipes.md)                             | Common patterns for building inkx apps                               |
+| [Recipes](reference/recipes.md)                             | Common patterns for building hightea apps                               |
 | [React DevTools](reference/devtools.md)                     | Connect React DevTools standalone for component tree inspection      |
 
 ## Deep Dives
@@ -104,7 +104,7 @@ Cross-cutting docs that don't fit a single category.
 | Document                              | Description                                                                |
 | ------------------------------------- | -------------------------------------------------------------------------- |
 | [Testing](testing.md)                 | Testing strategy, createRenderer, locators, withDiagnostics                |
-| [inkx vs Ink](inkx-vs-ink.md)         | Detailed feature/performance comparison with Ink                           |
+| [hightea vs Ink](hightea-vs-ink.md)         | Detailed feature/performance comparison with Ink                           |
 | [Benchmarks](benchmarks.md)           | Raw benchmark tables and data                                              |
 | [Comparison](comparison.md)           | Cross-framework comparison (BubbleTea, Textual, Notcurses, FTXUI, blessed) |
 | [Troubleshooting](troubleshooting.md) | Common issues and debugging                                                |

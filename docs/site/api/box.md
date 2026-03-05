@@ -119,12 +119,12 @@ import { Box } from "@hightea/term"
 | `inverse`         | `boolean` | `false` | Swap foreground/background colors                |
 
 ::: tip Box vs Text backgroundColor
-Unlike Ink, inkx's Box supports `backgroundColor` directly. The background fills
+Unlike Ink, hightea's Box supports `backgroundColor` directly. The background fills
 the entire computed layout area, so you don't need Text elements with spaces to
 create filled regions.
 :::
 
-### Overflow (inkx Only)
+### Overflow (hightea Only)
 
 | Prop       | Type                                | Default     | Description                                           |
 | ---------- | ----------------------------------- | ----------- | ----------------------------------------------------- |

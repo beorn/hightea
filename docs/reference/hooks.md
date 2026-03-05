@@ -13,7 +13,7 @@ function ResponsiveCard() {
 }
 ```
 
-This is inkx's core innovation — components know their size _during_ render, not after.
+This is hightea's core innovation — components know their size _during_ render, not after.
 
 ## useScreenRect
 
@@ -233,7 +233,7 @@ function Navigation() {
 | `enableFocus`   | `() => void`           | No-op (kept for Ink API compatibility) |
 | `disableFocus`  | `() => void`           | No-op (kept for Ink API compatibility) |
 
-For new code, prefer `useFocusManager()` which returns the full inkx focus manager API.
+For new code, prefer `useFocusManager()` which returns the full hightea focus manager API.
 
 ## usePaste
 

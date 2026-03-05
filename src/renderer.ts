@@ -72,7 +72,7 @@ function pruneAndCountActiveRenders(): number {
 function assertLayoutEngine(): void {
   if (!isLayoutEngineInitialized()) {
     throw new Error(
-      "inkx: Layout engine not initialized. " +
+      "hightea: Layout engine not initialized. " +
         "Call `await ensureEngine()` before render(), or use the testing module " +
         "which initializes it automatically via top-level await.",
     )
@@ -188,7 +188,7 @@ interface RenderInstance {
   inputEmitter: EventEmitter
   debug: boolean
   incremental: boolean
-  /** Render count for INKX_STRICT checking (skip first render) */
+  /** Render count for HIGHTEA_STRICT checking (skip first render) */
   renderCount: number
   /** Use production-like single-pass layout (no stabilization loop) */
   singlePassLayout: boolean
@@ -247,7 +247,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   const liveCount = pruneAndCountActiveRenders()
   if (liveCount >= ACTIVE_RENDER_LEAK_THRESHOLD) {
     throw new Error(
-      `inkx: ${liveCount} active render instances without unmount(). ` +
+      `hightea: ${liveCount} active render instances without unmount(). ` +
         "This is a render leak. Use createRenderer() for auto-cleanup, " +
         "or call unmount() when done with each render.",
     )
@@ -383,9 +383,9 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     )
   }
 
-  // Check INKX_STRICT for automatic incremental checking (like scheduler does)
+  // Check HIGHTEA_STRICT for automatic incremental checking (like scheduler does)
   // Note: "0" and "false" are treated as disabled
-  const strictEnv = process.env.INKX_STRICT || process.env.INKX_CHECK_INCREMENTAL
+  const strictEnv = process.env.HIGHTEA_STRICT || process.env.HIGHTEA_CHECK_INCREMENTAL
   const strictMode = incremental && strictEnv && strictEnv !== "0" && strictEnv !== "false"
 
   // Render function that executes the pipeline.
@@ -502,7 +502,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       }
     }
 
-    // INKX_STRICT: Compare incremental vs fresh on every render (like scheduler)
+    // HIGHTEA_STRICT: Compare incremental vs fresh on every render (like scheduler)
     // Skip first render (nothing to compare against)
     if (strictMode && instance.renderCount > 1) {
       const root = getContainerRoot(instance.container)
@@ -515,13 +515,13 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
             // Re-run fresh render with write trap to capture what writes here
             let trapInfo = ""
             const trap = { x, y, log: [] as string[] }
-            ;(globalThis as any).__inkx_write_trap = trap
+            ;(globalThis as any).__hightea_write_trap = trap
             try {
               doFreshRender()
             } catch {
               // ignore
             }
-            ;(globalThis as any).__inkx_write_trap = null
+            ;(globalThis as any).__hightea_write_trap = null
             if (trap.log.length > 0) {
               trapInfo = `\nWRITE TRAP (${trap.log.length} writes to (${x},${y})):\n${trap.log.join("\n")}\n`
             } else {
@@ -597,7 +597,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     }
     if (instance.rendering) {
       throw new Error(
-        "inkx: Re-entrant render detected. " +
+        "hightea: Re-entrant render detected. " +
           "Cannot call press()/stdin.write() from inside a React render or effect. " +
           "Use setTimeout or an event handler instead.",
       )
@@ -619,7 +619,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       instance.rendering = false
     }
     const t1 = performance.now()
-    // doRender() handles INKX_STRICT checking internally
+    // doRender() handles HIGHTEA_STRICT checking internally
     let newFrame = doRender()
 
     // In single-pass mode, flush effects after doRender() — matching
@@ -654,10 +654,10 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     const t2 = performance.now()
     instance.frames.push(newFrame)
     if (debug) {
-      console.log("[inkx] stdin.write:", newFrame)
+      console.log("[hightea] stdin.write:", newFrame)
     }
     // Expose timing on global for benchmarking
-    ;(globalThis as any).__inkx_last_timing = {
+    ;(globalThis as any).__hightea_last_timing = {
       actMs: t1 - t0,
       renderMs: t2 - t1,
     }
@@ -669,7 +669,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     }
     if (instance.rendering) {
       throw new Error(
-        "inkx: Re-entrant render detected. " + "Cannot call rerender() from inside a React render or effect.",
+        "hightea: Re-entrant render detected. " + "Cannot call rerender() from inside a React render or effect.",
       )
     }
     instance.rendering = true
