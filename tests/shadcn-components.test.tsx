@@ -20,7 +20,7 @@ import { Breadcrumb } from "../src/components/Breadcrumb.js"
 import { Tabs, TabList, Tab, TabPanel } from "../src/components/Tabs.js"
 import { Tooltip } from "../src/components/Tooltip.js"
 import { Skeleton } from "../src/components/Skeleton.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 // =============================================================================
 // Form + FormField

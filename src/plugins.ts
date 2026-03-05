@@ -2,7 +2,7 @@
  * inkx/plugins -- SlateJS-style plugin composition for command systems.
  *
  * ```tsx
- * import { withCommands, withKeybindings } from 'inkx/plugins'
+ * import { withCommands, withKeybindings } from '@hightea/term/plugins'
  *
  * const app = withKeybindings(withCommands(render(<Board />), cmdOpts), kbOpts)
  * await app.cmd.down()       // Direct command invocation

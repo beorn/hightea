@@ -7,9 +7,9 @@
  */
 import React, { useState } from "react"
 import { describe, expect, test } from "vitest"
-import { createRenderer } from "inkx/testing"
-import { Box, Text, useInput } from "inkx"
-import { useContentRect } from "inkx"
+import { createRenderer } from "@hightea/term/testing"
+import { Box, Text, useInput } from "@hightea/term"
+import { useContentRect } from "@hightea/term"
 
 describe("singlePassLayout", () => {
   test("renders correctly with default (no singlePassLayout)", () => {

@@ -11,7 +11,7 @@ import React from "react"
 import { describe, expect, test } from "vitest"
 import { NodeContext, StdoutContext } from "../src/context.ts"
 import { Text, useContentRect, useFocusManager, useStdout } from "../src/index.ts"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 import type { InkxNode } from "../src/types.ts"
 
 const render = createRenderer()

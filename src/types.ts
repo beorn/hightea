@@ -198,7 +198,7 @@ export interface BoxProps extends FlexboxProps, StyleProps, TestProps, MouseEven
    * Override theme for this subtree — $token colors resolve against this theme.
    * Pushed onto the context theme stack during content phase tree walk.
    */
-  theme?: import("themex").Theme
+  theme?: import("swatch").Theme
 
   /** CSS pointer-events equivalent. "none" makes this node and its subtree invisible to hit testing. */
   pointerEvents?: "auto" | "none"
@@ -543,7 +543,7 @@ export interface EventSource {
 
 // ColorLevel is re-exported from chalkx in index.ts
 // Import here for use in TermDef
-import type { ColorLevel } from "chalkx"
+import type { ColorLevel } from "@hightea/chalk"
 
 /**
  * Minimal surface for configuring render().

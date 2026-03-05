@@ -13,7 +13,7 @@ import React, { useState } from "react"
 import { describe, expect, test } from "vitest"
 import { Box, Text, Link, renderStringSync, useInput, OSC133 } from "../src/index.js"
 import { useScrollback } from "../src/hooks/useScrollback.js"
-import { createRenderer, stripAnsi } from "inkx/testing"
+import { createRenderer, stripAnsi } from "@hightea/term/testing"
 
 // ============================================================================
 // renderStringSync width constraints

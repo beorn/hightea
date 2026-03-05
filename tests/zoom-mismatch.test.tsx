@@ -17,7 +17,7 @@ import React, { useState } from "react"
 import { describe, expect, test } from "vitest"
 import { Box, Text, Link } from "../src/index.js"
 import { bufferToText, cellEquals } from "../src/buffer.js"
-import { createRenderer, compareBuffers, formatMismatch } from "inkx/testing"
+import { createRenderer, compareBuffers, formatMismatch } from "@hightea/term/testing"
 
 const render = createRenderer({ cols: 60, rows: 20, incremental: true })
 

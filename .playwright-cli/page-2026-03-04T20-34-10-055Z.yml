@@ -1,0 +1,296 @@
+- generic [ref=e3]:
+    - link "Skip to content" [ref=e4] [cursor=pointer]:
+        - /url: "#VPContent"
+    - banner:
+        - generic:
+            - generic:
+                - generic:
+                    - link "inkx" [ref=e6] [cursor=pointer]:
+                        - /url: /inkx/
+                        - generic [ref=e7]: inkx
+                    - generic [ref=e8]:
+                        - button "Search" [ref=e11] [cursor=pointer]:
+                            - generic [ref=e14]: Search
+                            - generic [ref=e15]:
+                                - generic [ref=e16]: ⌘
+                                - generic [ref=e17]: K
+                        - navigation "Main Navigation" [ref=e18]:
+                            - generic [ref=e19]: Main Navigation
+                            - link "Guide" [ref=e20] [cursor=pointer]:
+                                - /url: /inkx/guide/getting-started.html
+                                - generic [ref=e21]: Guide
+                            - link "API" [ref=e22] [cursor=pointer]:
+                                - /url: /inkx/api/box.html
+                                - generic [ref=e23]: API
+                            - button "Examples" [ref=e25] [cursor=pointer]:
+                                - generic [ref=e27]: Examples
+                            - button "Links" [ref=e30] [cursor=pointer]:
+                                - generic [ref=e32]: Links
+                        - switch [ref=e35] [cursor=pointer]
+                        - link "github" [ref=e41] [cursor=pointer]:
+                            - /url: https://github.com/beorn/inkx
+    - complementary [ref=e43]:
+        - navigation "Sidebar Navigation" [ref=e45]:
+            - generic [ref=e46]: Sidebar Navigation
+            - generic [ref=e48]:
+                - button "Examples toggle section" [ref=e49] [cursor=pointer]:
+                    - heading "Examples" [level=2] [ref=e51]
+                    - button "toggle section" [ref=e52]
+                - generic [ref=e54]:
+                    - link "Live Demo" [ref=e58] [cursor=pointer]:
+                        - /url: /inkx/examples/live-demo.html
+                        - paragraph [ref=e59]: Live Demo
+                    - link "Dashboard" [ref=e63] [cursor=pointer]:
+                        - /url: /inkx/examples/dashboard.html
+                        - paragraph [ref=e64]: Dashboard
+                    - link "Task List" [ref=e68] [cursor=pointer]:
+                        - /url: /inkx/examples/task-list.html
+                        - paragraph [ref=e69]: Task List
+                    - link "Kanban Board" [ref=e73] [cursor=pointer]:
+                        - /url: /inkx/examples/kanban.html
+                        - paragraph [ref=e74]: Kanban Board
+            - generic [ref=e76]:
+                - button "Use Cases" [ref=e77]:
+                    - heading "Use Cases" [level=2] [ref=e79]
+                - generic [ref=e80]:
+                    - link "AI Assistants & Chat" [ref=e84] [cursor=pointer]:
+                        - /url: /inkx/use-cases/ai-assistants.html
+                        - paragraph [ref=e85]: AI Assistants & Chat
+                    - link "Dashboards & Monitoring" [ref=e89] [cursor=pointer]:
+                        - /url: /inkx/use-cases/dashboards.html
+                        - paragraph [ref=e90]: Dashboards & Monitoring
+                    - link "Kanban & Project Boards" [ref=e94] [cursor=pointer]:
+                        - /url: /inkx/use-cases/kanban-boards.html
+                        - paragraph [ref=e95]: Kanban & Project Boards
+                    - link "CLI Wizards & Setup" [ref=e99] [cursor=pointer]:
+                        - /url: /inkx/use-cases/cli-wizards.html
+                        - paragraph [ref=e100]: CLI Wizards & Setup
+                    - link "Developer Tools" [ref=e104] [cursor=pointer]:
+                        - /url: /inkx/use-cases/developer-tools.html
+                        - paragraph [ref=e105]: Developer Tools
+                    - link "Data Explorers & Tables" [ref=e109] [cursor=pointer]:
+                        - /url: /inkx/use-cases/data-explorers.html
+                        - paragraph [ref=e110]: Data Explorers & Tables
+    - generic [ref=e121]:
+        - main [ref=e122]:
+            - generic [ref=e124]:
+                - heading "Building Developer Tools with inkx Permalink to \"Building Developer Tools with inkx\"" [level=1] [ref=e125]:
+                    - text: Building Developer Tools with inkx
+                    - link "Permalink to \"Building Developer Tools with inkx\"" [ref=e126] [cursor=pointer]:
+                        - /url: "#building-developer-tools-with-inkx"
+                        - text: "#"
+                - paragraph [ref=e127]: Terminal-based developer tools -- REPLs, log viewers, debuggers, profilers -- demand fast rendering of large data streams, responsive keyboard shortcuts, and composable UI panels. inkx provides the primitives to build these tools as React components with real layout feedback, virtualized scrolling, and a testable command system.
+                - paragraph [ref=e128]: "Unlike browser-based dev tools, terminal tools run where your code runs. They start instantly, consume minimal resources, and integrate directly with stdin/stdout pipelines. inkx makes building them practical by handling the hard parts: efficient rendering of thousands of lines, keyboard protocol support across terminals, and deterministic testing without a real terminal."
+                - heading "Key Benefits Permalink to \"Key Benefits\"" [level=2] [ref=e129]:
+                    - text: Key Benefits
+                    - link "Permalink to \"Key Benefits\"" [ref=e130] [cursor=pointer]:
+                        - /url: "#key-benefits"
+                        - text: "#"
+                - list [ref=e131]:
+                    - listitem [ref=e132]:
+                        - paragraph [ref=e133]:
+                            - strong [ref=e134]: Console component
+                            - text: "-- Captures"
+                            - code [ref=e135]: console.log
+                            - text: ","
+                            - code [ref=e136]: console.error
+                            - text: ", and"
+                            - code [ref=e137]: console.warn
+                            - text: output via
+                            - code [ref=e138]: patchConsole()
+                            - text: and renders it within your TUI layout. Display captured output side-by-side with other panels instead of losing it to raw stdout. Supports custom rendering via a render prop for color-coded log levels.
+                    - listitem [ref=e139]:
+                        - paragraph [ref=e140]:
+                            - strong [ref=e141]: VirtualList
+                            - text: "-- Renders thousands of log lines, stack frames, or profiler entries with O(1) scroll performance. Only items within the visible viewport (plus configurable overscan) are mounted as React elements. Variable item heights, virtualized row prefixes, and overflow indicators are built in."
+                    - listitem [ref=e142]:
+                        - paragraph [ref=e143]:
+                            - strong [ref=e144]: Scrollback buffer
+                            - text: "-- Log viewers and REPLs produce unbounded output."
+                            - code [ref=e145]: overflow="scroll"
+                            - text: containers grow as content arrives, track the viewport position, and let users scroll back through the full history with keyboard or mouse. The buffer retains all content — no manual ring buffer or viewport management needed.
+                    - listitem [ref=e146]:
+                        - paragraph [ref=e147]:
+                            - strong [ref=e148]: Hotkey parsing
+                            - text: "-- Define keyboard shortcuts using macOS modifier symbols:"
+                            - code [ref=e149]: parseHotkey("⌘K")
+                            - text: ","
+                            - code [ref=e150]: matchHotkey(hotkey, key)
+                            - text: . Supports all modifier combinations including Ctrl, Shift, Alt/Option, Cmd/Super, and Hyper via the Kitty keyboard protocol. Build professional shortcut systems without manual key code parsing.
+                    - listitem [ref=e151]:
+                        - paragraph [ref=e152]:
+                            - strong [ref=e153]: Plugin composition
+                            - text: "--"
+                            - code [ref=e154]: withCommands
+                            - text: gives your tool a command registry with metadata (name, description, bound keys) and a
+                            - code [ref=e155]: cmd
+                            - text: proxy for direct invocation.
+                            - code [ref=e156]: withKeybindings
+                            - text: routes key presses to commands via context-aware binding resolution. Together they provide a command palette and customizable shortcuts with zero boilerplate.
+                    - listitem [ref=e157]:
+                        - paragraph [ref=e158]:
+                            - strong [ref=e159]: Playwright-style testing
+                            - text: "--"
+                            - code [ref=e160]: createRenderer
+                            - text: returns an app handle with
+                            - code [ref=e161]: press()
+                            - text: ","
+                            - code [ref=e162]: getByTestId()
+                            - text: ","
+                            - code [ref=e163]: locator()
+                            - text: ", and"
+                            - code [ref=e164]: text
+                            - text: for automated testing of your dev tool. Write fast, deterministic tests that verify both rendering output and keyboard interaction without spawning a real terminal.
+                - heading "Code Example Permalink to \"Code Example\"" [level=2] [ref=e165]:
+                    - text: Code Example
+                    - link "Permalink to \"Code Example\"" [ref=e166] [cursor=pointer]:
+                        - /url: "#code-example"
+                        - text: "#"
+                - paragraph [ref=e167]: "A log viewer with captured console output, a virtualized log list, and keyboard navigation:"
+                - generic [ref=e168]:
+                    - button "Copy Code" [ref=e169] [cursor=pointer]
+                    - generic [ref=e170]: tsx
+                    - code [ref=e172]:
+                        - generic [ref=e173]: 'import { useState, useCallback } from "react"'
+                        - generic [ref=e174]: 'import { Box, Text, VirtualList, Console, patchConsole } from "inkx"'
+                        - generic [ref=e175]: 'import { run, useInput } from "inkx/runtime"'
+                        - generic [ref=e176]: "interface LogEntry {"
+                        - generic [ref=e177]: "time: string"
+                        - generic [ref=e178]: 'level: "info" | "warn" | "error"'
+                        - generic [ref=e179]: "message: string"
+                        - generic [ref=e180]: "}"
+                        - generic [ref=e181]: "function LogViewer() {"
+                        - generic [ref=e182]: const [logs, setLogs] = useState<LogEntry[]>([])
+                        - generic [ref=e183]: const [selected, setSelected] = useState(0)
+                        - generic [ref=e184]: const [patched] = useState(() => patchConsole(console))
+                        - generic [ref=e185]: // Simulate incoming log entries
+                        - generic [ref=e186]: 'const addLog = useCallback((level: LogEntry["level"], message: string) => {'
+                        - generic [ref=e187]: const time = new Date().toISOString().slice(11, 23)
+                        - generic [ref=e188]: "setLogs((prev) => [...prev, { time, level, message }])"
+                        - generic [ref=e189]: "}, [])"
+                        - generic [ref=e190]: "useInput((input, key) => {"
+                        - generic [ref=e191]: 'if (input === "j" || key.downArrow) {'
+                        - generic [ref=e192]: setSelected((s) => Math.min(s + 1, logs.length - 1))
+                        - generic [ref=e193]: "}"
+                        - generic [ref=e194]: 'if (input === "k" || key.upArrow) {'
+                        - generic [ref=e195]: setSelected((s) => Math.max(s - 1, 0))
+                        - generic [ref=e196]: "}"
+                        - generic [ref=e197]: 'if (input === "i") addLog("info", `Request handled in ${(Math.random() * 100) | 0}ms`)'
+                        - generic [ref=e198]: if (input === "w") addLog("warn", "Connection pool near capacity")
+                        - generic [ref=e199]: if (input === "e") addLog("error", "Timeout after 30s on /api/data")
+                        - generic [ref=e200]: if (input === "q") return "exit"
+                        - generic [ref=e201]: "})"
+                        - generic [ref=e202]: 'const levelColor = (level: string) => (level === "error" ? "red" : level === "warn" ? "yellow" : "green")'
+                        - generic [ref=e203]: return (
+                        - generic [ref=e204]: <Box flexDirection="row" width="100%" height="100%">
+                        - generic [ref=e205]: '<Box flexDirection="column" flexGrow={2} borderStyle="single">'
+                        - generic [ref=e206]: "<Text bold> Log Entries ({logs.length}) </Text>"
+                        - generic [ref=e207]: <VirtualList
+                        - generic [ref=e208]: "items={logs}"
+                        - generic [ref=e209]: "height={18}"
+                        - generic [ref=e210]: "itemHeight={1}"
+                        - generic [ref=e211]: "scrollTo={selected}"
+                        - generic [ref=e212]: "renderItem={(entry, index) => ("
+                        - generic [ref=e213]: "<Text key={index} inverse={index === selected} color={levelColor(entry.level)}>"
+                        - generic [ref=e214]: "{entry.time} [{entry.level.toUpperCase().padEnd(5)}] {entry.message}"
+                        - generic [ref=e215]: </Text>
+                        - generic [ref=e216]: ")}"
+                        - generic [ref=e217]: />
+                        - generic [ref=e218]: </Box>
+                        - generic [ref=e219]: '<Box flexDirection="column" flexGrow={1} borderStyle="single">'
+                        - generic [ref=e220]: <Text bold> Console Output </Text>
+                        - generic [ref=e221]: "<Console console={patched} />"
+                        - generic [ref=e222]: </Box>
+                        - generic [ref=e223]: </Box>
+                        - generic [ref=e224]: )
+                        - generic [ref=e225]: "}"
+                        - generic [ref=e226]: await run(<LogViewer />)
+                - paragraph [ref=e227]:
+                    - text: Press
+                    - code [ref=e228]: i
+                    - text: ","
+                    - code [ref=e229]: w
+                    - text: ", or"
+                    - code [ref=e230]: e
+                    - text: to add log entries at different severity levels. Use
+                    - code [ref=e231]: j
+                    - text: /
+                    - code [ref=e232]: k
+                    - text: or arrow keys to scroll through the virtualized list. Press
+                    - code [ref=e233]: q
+                    - text: to exit. Console output from
+                    - code [ref=e234]: console.log()
+                    - text: calls appears in the right panel, captured by the
+                    - code [ref=e235]: Console
+                    - text: component.
+                - heading "Testing Your Dev Tool Permalink to \"Testing Your Dev Tool\"" [level=2] [ref=e236]:
+                    - text: Testing Your Dev Tool
+                    - link "Permalink to \"Testing Your Dev Tool\"" [ref=e237] [cursor=pointer]:
+                        - /url: "#testing-your-dev-tool"
+                        - text: "#"
+                - paragraph [ref=e238]: "inkx ships with a Playwright-style testing API. Verify rendering and keyboard interaction without a real terminal:"
+                - generic [ref=e239]:
+                    - button "Copy Code" [ref=e240] [cursor=pointer]
+                    - generic [ref=e241]: tsx
+                    - code [ref=e243]:
+                        - generic [ref=e244]: 'import { createRenderer } from "inkx/testing"'
+                        - generic [ref=e245]: 'import { expect, test } from "vitest"'
+                        - generic [ref=e246]: "const render = createRenderer({ cols: 100, rows: 24 })"
+                        - generic [ref=e247]: 'test("log viewer navigates entries", async () => {'
+                        - generic [ref=e248]: const app = render(<LogViewer />)
+                        - generic [ref=e249]: // Add some entries
+                        - generic [ref=e250]: await app.press("i")
+                        - generic [ref=e251]: await app.press("e")
+                        - generic [ref=e252]: await app.press("w")
+                        - generic [ref=e253]: expect(app.text).toContain("INFO")
+                        - generic [ref=e254]: expect(app.text).toContain("ERROR")
+                        - generic [ref=e255]: // Navigate down
+                        - generic [ref=e256]: await app.press("j")
+                        - generic [ref=e257]: await app.press("j")
+                        - generic [ref=e258]: expect(app.text).toContain("WARN")
+                        - generic [ref=e259]: "})"
+                - heading "What inkx Adds Permalink to \"What inkx Adds\"" [level=2] [ref=e260]:
+                    - text: What inkx Adds
+                    - link "Permalink to \"What inkx Adds\"" [ref=e261] [cursor=pointer]:
+                        - /url: "#what-inkx-adds"
+                        - text: "#"
+                - paragraph [ref=e262]:
+                    - text: "Developer tools need to handle large datasets, complex shortcuts, and automated testing. inkx ships the building blocks:"
+                    - code [ref=e263]: VirtualList
+                    - text: renders thousands of log lines with constant memory, the command system wires shortcuts to actions declaratively with introspection for free, and the Playwright-style testing API (
+                    - code [ref=e264]: createRenderer
+                    - text: ","
+                    - code [ref=e265]: press()
+                    - text: ","
+                    - code [ref=e266]: getByTestId
+                    - text: ) lets you write automated tests without custom harnesses.
+                - heading "Get Started Permalink to \"Get Started\"" [level=2] [ref=e267]:
+                    - text: Get Started
+                    - link "Permalink to \"Get Started\"" [ref=e268] [cursor=pointer]:
+                        - /url: "#get-started"
+                        - text: "#"
+                - paragraph [ref=e269]: "Install inkx and build your first developer tool:"
+                - generic [ref=e270]:
+                    - button "Copy Code" [ref=e271] [cursor=pointer]
+                    - generic [ref=e272]: bash
+                    - code [ref=e274]:
+                        - generic [ref=e275]: bun add inkx
+                - paragraph [ref=e276]:
+                    - text: Follow the
+                    - link "Getting Started guide" [ref=e277] [cursor=pointer]:
+                        - /url: /inkx/guide/getting-started.html
+                    - text: to set up your project, then explore the
+                    - link "Components reference" [ref=e278] [cursor=pointer]:
+                        - /url: /inkx/guide/components.html
+                    - text: for the full API.
+        - contentinfo [ref=e279]:
+            - navigation "Pager" [ref=e280]:
+                - generic [ref=e281]: Pager
+                - link "Previous page CLI Wizards & Setup" [ref=e283] [cursor=pointer]:
+                    - /url: /inkx/use-cases/cli-wizards.html
+                    - generic [ref=e284]: Previous page
+                    - generic [ref=e285]: CLI Wizards & Setup
+                - link "Next page Data Explorers & Tables" [ref=e287] [cursor=pointer]:
+                    - /url: /inkx/use-cases/data-explorers.html
+                    - generic [ref=e288]: Next page
+                    - generic [ref=e289]: Data Explorers & Tables

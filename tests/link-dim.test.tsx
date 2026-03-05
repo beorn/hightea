@@ -6,7 +6,7 @@
 import React from "react"
 import { describe, expect, test } from "vitest"
 import { Link } from "../src/components/Link.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 describe("Link dim prop", () => {
   const render = createRenderer({ cols: 40, rows: 3 })

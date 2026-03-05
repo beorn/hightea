@@ -12,8 +12,8 @@
  */
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import React, { useState } from "react"
-import { createRenderer } from "inkx/testing"
-import { Box, Text } from "inkx"
+import { createRenderer } from "@hightea/term/testing"
+import { Box, Text } from "@hightea/term"
 
 beforeEach(() => {
   process.env.INKX_STRICT = "1"

@@ -25,7 +25,7 @@
 import React from "react"
 import { describe, expect, test } from "vitest"
 import { Box, Text, Transform } from "../src"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 describe("Transform", () => {
   // -------------------------------------------------------------------

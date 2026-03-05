@@ -10,7 +10,7 @@
  *
  * @example
  * ```tsx
- * import { renderString, Box, Text } from 'inkx'
+ * import { renderString, Box, Text } from '@hightea/term'
  *
  * // Basic usage
  * const output = renderString(<Summary stats={stats} />)
@@ -26,7 +26,7 @@
 
 import React, { type ReactElement, act } from "react"
 
-import { createTerm } from "chalkx"
+import { createTerm } from "@hightea/chalk"
 
 import { bufferToStyledText, bufferToText, type TerminalBuffer } from "./buffer.js"
 import { StdoutContext, TermContext } from "./context.js"

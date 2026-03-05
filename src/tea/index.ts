@@ -8,7 +8,7 @@
  * @example
  * ```ts
  * import { createStore } from "zustand"
- * import { tea, collect } from "inkx/tea"
+ * import { tea, collect } from "@hightea/term/tea"
  *
  * // Define effects as plain data
  * const log = (msg: string) => ({ type: "log" as const, msg })

@@ -11,7 +11,7 @@
  * - Combining characters: Diacritics, emoji modifiers that take 0 columns
  */
 
-import { BG_OVERRIDE_CODE } from "chalkx"
+import { BG_OVERRIDE_CODE } from "@hightea/chalk"
 import sliceAnsi from "slice-ansi"
 import stringWidth from "string-width"
 import { type Cell, type Style, type TerminalBuffer, type UnderlineStyle, createMutableCell } from "./buffer.js"

@@ -9,7 +9,7 @@ import React, { useState } from "react"
 import { describe, expect, test } from "vitest"
 import { Box, Text, useApp, useInput } from "../src/index.js"
 import { useContentRect } from "../src/index.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 import { ensureEngine } from "../src/renderer.js"
 
 // Initialize layout engine

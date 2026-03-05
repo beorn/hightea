@@ -7,7 +7,7 @@ import { describe, expect, test } from "vitest"
 import { Text } from "../src/components/Text.js"
 import { Box } from "../src/components/Box.js"
 import { Screen } from "../src/components/Screen.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 const render = createRenderer({ cols: 80, rows: 24 })
 

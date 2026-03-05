@@ -17,7 +17,7 @@ import React, { Suspense, StrictMode, useState, useEffect, useTransition, useDef
 import { describe, expect, test } from "vitest"
 import { NodeContext } from "../src/context.ts"
 import { Box, Text, useContentRect, useInput } from "../src/index.ts"
-import { createRenderer, stripAnsi } from "inkx/testing"
+import { createRenderer, stripAnsi } from "@hightea/term/testing"
 import type { InkxNode } from "../src/types.ts"
 
 // ============================================================================

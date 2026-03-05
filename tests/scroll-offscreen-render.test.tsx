@@ -15,7 +15,7 @@
 import React from "react"
 import { describe, expect, test } from "vitest"
 import { Box, Text } from "../src/index.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 describe("scroll offscreen render", () => {
   test("content scrolled into view renders correctly (basic)", () => {

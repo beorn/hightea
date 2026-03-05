@@ -13,7 +13,7 @@
  */
 
 import { appendFileSync } from "node:fs"
-import { type Logger, createLogger } from "@beorn/logger"
+import { type Logger, createLogger } from "decant"
 import { type TerminalBuffer, bufferToText, cellEquals } from "./buffer.js"
 import { buildMismatchContext, formatMismatchContext } from "./debug-mismatch.js"
 import {

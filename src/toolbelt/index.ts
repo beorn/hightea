@@ -14,7 +14,7 @@
  *   IncrementalRenderMismatchError,
  *   compareBuffers,
  *   formatMismatch,
- * } from 'inkx/toolbelt';
+ * } from '@hightea/term/toolbelt';
  *
  * // All checks enabled by default when plugin is used
  * const driver = withDiagnostics(createBoardDriver(repo, rootId));

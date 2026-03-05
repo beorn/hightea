@@ -10,16 +10,16 @@
  *
  * ```tsx
  * // Components and hooks
- * import { Box, Text, useContentRect, useInput, useApp, render, createTerm, term } from 'inkx'
+ * import { Box, Text, useContentRect, useInput, useApp, render, createTerm, term } from '@hightea/term'
  *
  * // Testing utilities
- * import { createRenderer, createLocator } from 'inkx/testing'
+ * import { createRenderer, createLocator } from '@hightea/term/testing'
  * ```
  *
  * ## Quick Example
  *
  * ```tsx
- * import { render, Box, Text, useInput, useApp, createTerm } from 'inkx'
+ * import { render, Box, Text, useInput, useApp, createTerm } from '@hightea/term'
  *
  * function App() {
  *   const { exit } = useApp()
@@ -37,7 +37,7 @@
  * Static rendering (no terminal needed):
  *
  * ```tsx
- * import { render, Box, Text } from 'inkx'
+ * import { render, Box, Text } from '@hightea/term'
  *
  * // Renders once and returns when stable
  * await render(<Box><Text>Hello</Text></Box>)
@@ -58,7 +58,7 @@
  *
  * @example
  * ```tsx
- * import { Box, Text } from 'inkx';
+ * import { Box, Text } from '@hightea/term';
  *
  * <Box flexDirection="row" gap={2}>
  *   <Box width={10}><Text>Left</Text></Box>
@@ -91,7 +91,7 @@ export {
  *
  * @example
  * ```tsx
- * import { Text } from 'inkx';
+ * import { Text } from '@hightea/term';
  * import chalk from 'chalk';
  *
  * <Text>Plain text</Text>
@@ -126,7 +126,7 @@ export type { VirtualViewProps, VirtualViewHandle } from "./components/VirtualVi
  *
  * @example
  * ```tsx
- * import { ErrorBoundary, Box, Text } from 'inkx';
+ * import { ErrorBoundary, Box, Text } from '@hightea/term';
  *
  * <ErrorBoundary fallback={<Text color="red">Error!</Text>}>
  *   <MyComponent />
@@ -248,7 +248,7 @@ export type { SixelImageData } from "./image/sixel-encoder.js"
  *
  * @example
  * ```tsx
- * import { useContentRect, Box, Text } from 'inkx';
+ * import { useContentRect, Box, Text } from '@hightea/term';
  *
  * function ResponsiveCard() {
  *   // Components know their size - no width prop threading needed
@@ -264,7 +264,7 @@ export { useContentRect, useContentRectCallback, useScreenRect, useScreenRectCal
  *
  * @example
  * ```tsx
- * import { useInput } from 'inkx';
+ * import { useInput } from '@hightea/term';
  *
  * useInput((input, key) => {
  *   if (input === 'q') exit();
@@ -280,7 +280,7 @@ export { useInput } from "./hooks/useInput.js"
  *
  * @example
  * ```tsx
- * import { useApp } from 'inkx';
+ * import { useApp } from '@hightea/term';
  *
  * const { exit } = useApp();
  * exit();  // Clean exit
@@ -341,7 +341,7 @@ export type { ScrollbackItemContext } from "./hooks/useScrollbackItem.js"
  *
  * @example
  * ```tsx
- * import { useTransition, useDeferredValue } from 'inkx';
+ * import { useTransition, useDeferredValue } from '@hightea/term';
  *
  * function Search() {
  *   const [query, setQuery] = useState('');
@@ -384,15 +384,15 @@ export {
   generateTheme,
   detectTheme,
   deriveTheme,
-} from "themex"
-export type { Theme, AnsiPrimary, DetectThemeOptions } from "themex"
+} from "swatch"
+export type { Theme, AnsiPrimary, DetectThemeOptions } from "swatch"
 
 // =============================================================================
 // Re-exports from chalkx
 // =============================================================================
 
 // Term primitives (so consumers don't need to import from chalkx directly)
-export { createTerm, term, patchConsole } from "chalkx"
+export { createTerm, term, patchConsole } from "@hightea/chalk"
 export type {
   Term,
   StyleChain,
@@ -401,7 +401,7 @@ export type {
   ConsoleStats,
   ColorLevel,
   ConsoleEntry,
-} from "chalkx"
+} from "@hightea/chalk"
 
 // Hit Registry (mouse support)
 export {
@@ -426,7 +426,7 @@ export {
  *
  * @example
  * ```tsx
- * import { render, Box, Text, createTerm } from 'inkx';
+ * import { render, Box, Text, createTerm } from '@hightea/term';
  *
  * // Interactive render with Term
  * using term = createTerm();
@@ -438,7 +438,7 @@ export {
  * await render(<Report />, { width: 120 });
  *
  * // Sync render (layout engine must be initialized)
- * import { renderSync, initYogaEngine, setLayoutEngine, createTerm } from 'inkx';
+ * import { renderSync, initYogaEngine, setLayoutEngine, createTerm } from '@hightea/term';
  * const engine = await initYogaEngine();
  * setLayoutEngine(engine);
  * using term = createTerm();
@@ -668,7 +668,7 @@ export type { NonTTYOptions, ResolvedNonTTYMode } from "./non-tty.js"
  * @example
  * ```ts
  * // Manual connection
- * import { connectDevTools } from 'inkx';
+ * import { connectDevTools } from '@hightea/term';
  * await connectDevTools();
  *
  * // Or use env var: DEBUG_DEVTOOLS=1 bun run app.ts
@@ -689,7 +689,7 @@ export { connectDevTools, isDevToolsConnected } from "./devtools.js"
  * @example
  * ```ts
  * // Manual
- * import { enableInspector } from 'inkx';
+ * import { enableInspector } from '@hightea/term';
  * enableInspector({ logFile: '/tmp/inkx-inspector.log' });
  *
  * // Or use env var: INKX_DEV=1 bun run app.ts
@@ -780,7 +780,7 @@ export { withMeasurer, createPipeline, type MeasuredTerm } from "./measurer.js"
  *
  * @example
  * ```ts
- * import { cursorToRowCol, cursorMoveDown } from 'inkx'
+ * import { cursorToRowCol, cursorMoveDown } from '@hightea/term'
  *
  * const { row, col } = cursorToRowCol("hello world", 5, 8)
  * const next = cursorMoveDown("hello world\nfoo", 3, 8)
@@ -806,7 +806,7 @@ export type { WrappedLine } from "./text-cursor.js"
  *
  * @example
  * ```ts
- * import { createTermEditContext, applyTextOp, invertTextOp } from 'inkx'
+ * import { createTermEditContext, applyTextOp, invertTextOp } from '@hightea/term'
  *
  * using ctx = createTermEditContext({ text: "hello", wrapWidth: 40 })
  * ctx.onTextUpdate((op) => undoStack.push(op))
@@ -835,7 +835,7 @@ export type { UseEditContextOptions, UseEditContextResult, EditTarget } from "./
  *
  * @example
  * ```tsx
- * import { calcEdgeBasedScrollOffset } from 'inkx';
+ * import { calcEdgeBasedScrollOffset } from '@hightea/term';
  *
  * const newOffset = calcEdgeBasedScrollOffset(
  *   selectedIndex,
@@ -868,7 +868,7 @@ export type { ScrollRegionConfig } from "./scroll-region.js"
  *
  * @example
  * ```tsx
- * import { withCommands, withKeybindings, render } from 'inkx';
+ * import { withCommands, withKeybindings, render } from '@hightea/term';
  *
  * const app = withKeybindings(withCommands(render(<Board />), {
  *   registry: commandRegistry,
@@ -901,7 +901,7 @@ export type {
 export { withKeybindings } from "./with-keybindings.js"
 export type { WithKeybindingsOptions, KeybindingContext, ExtendedKeybindingDef } from "./with-keybindings.js"
 
-// Diagnostic tools - prefer importing from 'inkx/toolbelt' for new code
+// Diagnostic tools - prefer importing from '@hightea/term/toolbelt' for new code
 export { withDiagnostics, VirtualTerminal } from "./with-diagnostics.js"
 export type { DiagnosticOptions } from "./with-diagnostics.js"
 
@@ -920,7 +920,7 @@ export { IncrementalRenderMismatchError } from "./scheduler.js"
  *
  * @example
  * ```tsx
- * import { InputLayerProvider, useInputLayer } from 'inkx';
+ * import { InputLayerProvider, useInputLayer } from '@hightea/term';
  *
  * function App() {
  *   return (
@@ -971,7 +971,7 @@ export type { InputBoundaryProps } from "./contexts/InputBoundary.js"
  *
  * @example
  * ```tsx
- * import { PositionRegistryProvider, GridCell, usePositionRegistry } from 'inkx';
+ * import { PositionRegistryProvider, GridCell, usePositionRegistry } from '@hightea/term';
  *
  * <PositionRegistryProvider>
  *   {columns.map((col, i) => (
@@ -999,7 +999,7 @@ export type { GridCellProps } from "./components/GridCell.js"
  *
  * @example
  * ```tsx
- * import { useAnimation, easings } from 'inkx';
+ * import { useAnimation, easings } from '@hightea/term';
  *
  * function FadeIn() {
  *   const { value } = useAnimation({ duration: 300, easing: "easeOut" });

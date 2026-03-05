@@ -26,7 +26,7 @@ import { TerminalBuffer } from "../src/buffer.js"
 import { outputPhase } from "../src/pipeline/output-phase.js"
 import { enterAlternateScreen } from "../src/output.js"
 import { Box, Text } from "../src/index.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 import { createTerminalFixture } from "@termless/test"
 
 // ============================================================================

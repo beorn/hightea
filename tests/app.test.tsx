@@ -9,7 +9,7 @@
 import React, { useEffect, useState } from "react"
 import { describe, expect, test } from "vitest"
 import { Box, Text, useApp, useInput, type Key } from "../src/index.ts"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 const render = createRenderer({ cols: 80, rows: 24 })
 

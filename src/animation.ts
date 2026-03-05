@@ -2,7 +2,7 @@
  * inkx/animation -- Smooth terminal UI animations at ~30fps.
  *
  * ```tsx
- * import { useAnimation, easings } from 'inkx/animation'
+ * import { useAnimation, easings } from '@hightea/term/animation'
  *
  * function FadeIn() {
  *   const { value } = useAnimation({ duration: 300, easing: "easeOut" })

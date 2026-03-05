@@ -20,7 +20,7 @@
  */
 
 import { createContext, useContext, useMemo, type ReactNode } from "react"
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 
 const log = createLogger("inkx:position-registry")
 

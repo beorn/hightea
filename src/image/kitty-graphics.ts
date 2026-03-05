@@ -45,7 +45,7 @@ export interface KittyImageOptions {
  * @example
  * ```ts
  * import { readFileSync } from "fs"
- * import { encodeKittyImage } from "inkx"
+ * import { encodeKittyImage } from "@hightea/term"
  *
  * const png = readFileSync("photo.png")
  * const seq = encodeKittyImage(png, { width: 40, height: 20 })

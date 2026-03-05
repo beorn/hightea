@@ -7,7 +7,7 @@ import React, { useState } from "react"
  */
 import { describe, expect, it } from "vitest"
 import { Box, type Key, Text, useInput } from "../src/index.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 // Simplified Dashboard component for testing
 function TestDashboard() {

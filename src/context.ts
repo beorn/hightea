@@ -8,7 +8,7 @@
  * - StdoutContext: Access to stdout
  */
 
-import type { Term } from "chalkx"
+import type { Term } from "@hightea/chalk"
 import { createContext } from "react"
 import type { FocusManager } from "./focus-manager.js"
 import type { Key } from "./keys.js"

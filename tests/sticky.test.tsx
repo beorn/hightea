@@ -14,7 +14,7 @@
 import React from "react"
 import { describe, expect, test } from "vitest"
 import { Box, Text } from "../src/index.ts"
-import { bufferToText, createRenderer } from "inkx/testing"
+import { bufferToText, createRenderer } from "@hightea/term/testing"
 
 const render = createRenderer({ cols: 40, rows: 24 })
 

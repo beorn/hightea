@@ -37,11 +37,11 @@
 import React, { Suspense, act } from "react"
 import { describe, expect, it } from "vitest"
 import { Box, Text } from "../src/index.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 import { reconciler, createContainer, createFiberRoot, getContainerRoot } from "../src/reconciler.js"
 import { executeRender } from "../src/pipeline/index.js"
 import { StdoutContext, TermContext } from "../src/context.js"
-import { createTerm } from "chalkx"
+import { createTerm } from "@hightea/chalk"
 import { bufferToText, cellEquals, type TerminalBuffer } from "../src/buffer.js"
 import type { InkxNode } from "../src/types.js"
 

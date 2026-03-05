@@ -5,7 +5,7 @@
  * Run in any terminal to visually verify what it supports.
  *
  * Usage:
- *   import { runTermtest } from "inkx"
+ *   import { runTermtest } from "@hightea/term"
  *   runTermtest()                    // all sections
  *   runTermtest({ sections: ["emoji", "colors"] })  // specific sections
  *

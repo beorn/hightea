@@ -10,7 +10,7 @@ import React, { useState } from "react"
  */
 import { describe, expect, it } from "vitest"
 import { Box, type Key, Text, useInput } from "../src/index.js"
-import { createRenderer, normalizeFrame } from "inkx/testing"
+import { createRenderer, normalizeFrame } from "@hightea/term/testing"
 
 // ============================================================================
 // Bug km-r0nz: Columns view vertical spacing inconsistency

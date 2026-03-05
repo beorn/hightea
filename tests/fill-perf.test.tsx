@@ -6,8 +6,8 @@
  */
 import React from "react"
 import { describe, test, expect } from "vitest"
-import { createRenderer } from "inkx/testing"
-import { Box, Text, Fill } from "inkx"
+import { createRenderer } from "@hightea/term/testing"
+import { Box, Text, Fill } from "@hightea/term"
 
 const render = createRenderer({ cols: 60, rows: 20 })
 

@@ -11,7 +11,7 @@
  *
  * @example
  * ```ts
- * import { createTermEditContext } from 'inkx'
+ * import { createTermEditContext } from '@hightea/term'
  *
  * using ctx = createTermEditContext({ text: "hello world", wrapWidth: 40 })
  * ctx.onTextUpdate((op) => undoStack.push(op))

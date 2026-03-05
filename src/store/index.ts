@@ -179,8 +179,8 @@ export function defaultInit(): [InkxModel, Effect[]] {
  *
  * @example
  * ```ts
- * import { createStore, withFocusManagement, inkxUpdate } from 'inkx/store'
- * import { compose } from 'inkx/core'
+ * import { createStore, withFocusManagement, inkxUpdate } from '@hightea/term/store'
+ * import { compose } from '@hightea/term/core'
  *
  * const store = createStore({
  *   init: () => [{ focus: { activeId: null, ... }, count: 0 }, []],

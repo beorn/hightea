@@ -1,7 +1,10 @@
 {
-  "name": "inkx",
+  "name": "@hightea/term",
   "version": "0.1.0",
   "description": "React rendering where components know their size — terminal, canvas, and DOM targets",
+  "workspaces": [
+    "packages/*"
+  ],
   "keywords": [
     "cli",
     "components",
@@ -138,16 +141,16 @@
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
   },
   "dependencies": {
-    "@beorn/logger": "github:beorn/logger",
-    "chalkx": "github:beorn/chalkx",
+    "decant": "github:beorn/logger",
+    "@hightea/chalk": "github:beorn/chalkx",
     "react-reconciler": "^0.33.0",
     "slice-ansi": "^7.1.2",
     "string-width": "^8.0.0",
-    "themex": "github:beorn/themex",
+    "swatch": "github:beorn/themex",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "@beorn/flexx": "github:beorn/flexx",
+    "flexture": "github:beorn/flexx",
     "@termless/core": "github:beorn/termless",
     "@types/bun": "^1.1.0",
     "@types/react": "^19.0.0",
@@ -165,13 +168,13 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "peerDependencies": {
-    "@beorn/flexx": "github:beorn/flexx",
+    "flexture": "github:beorn/flexx",
     "react": "^18.0.0 || ^19.0.0",
     "react-devtools-core": ">=4.0.0",
     "yoga-wasm-web": "^0.3.3"
   },
   "peerDependenciesMeta": {
-    "@beorn/flexx": {
+    "flexture": {
       "optional": true
     },
     "react-devtools-core": {

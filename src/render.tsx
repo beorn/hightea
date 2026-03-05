@@ -13,8 +13,8 @@
 
 import { EventEmitter } from "node:events"
 import process from "node:process"
-import { createLogger } from "@beorn/logger"
-import { type Term, createTerm } from "chalkx"
+import { createLogger } from "decant"
+import { type Term, createTerm } from "@hightea/chalk"
 import React, { useCallback, useEffect, useMemo, useRef, type ReactElement, type ReactNode } from "react"
 
 const log = createLogger("inkx:render")
@@ -741,7 +741,7 @@ class InkxInstance {
  *
  * @example Interactive rendering with Term
  * ```tsx
- * import { render, Box, Text, createTerm } from 'inkx';
+ * import { render, Box, Text, createTerm } from '@hightea/term';
  *
  * using term = createTerm();
  * const { waitUntilExit } = await render(<App />, term);
@@ -750,7 +750,7 @@ class InkxInstance {
  *
  * @example Static rendering (no terminal needed)
  * ```tsx
- * import { render, Box, Text } from 'inkx';
+ * import { render, Box, Text } from '@hightea/term';
  *
  * // Renders once, returns when stable
  * const { lastFrame } = await render(<Summary stats={stats} />);
@@ -762,7 +762,7 @@ class InkxInstance {
  *
  * @example Interactive with TermDef
  * ```tsx
- * import { render, Box, Text } from 'inkx';
+ * import { render, Box, Text } from '@hightea/term';
  *
  * await render(<App />, {
  *   stdin: process.stdin,
@@ -964,7 +964,7 @@ async function renderStaticImpl(element: ReactElement, term: Term, resolved: Res
  *
  * @example
  * ```tsx
- * import { renderSync, Box, Text, initYogaEngine, setLayoutEngine, createTerm } from 'inkx';
+ * import { renderSync, Box, Text, initYogaEngine, setLayoutEngine, createTerm } from '@hightea/term';
  *
  * const engine = await initYogaEngine();
  * setLayoutEngine(engine);
@@ -1090,7 +1090,7 @@ export function renderSync(element: ReactElement, termOrDef?: Term | TermDef, op
  *
  * @example
  * ```tsx
- * import { renderStatic, Box, Text } from 'inkx';
+ * import { renderStatic, Box, Text } from '@hightea/term';
  *
  * // Render a summary to stdout
  * await renderStatic(<Summary stats={stats} />);

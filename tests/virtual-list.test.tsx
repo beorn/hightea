@@ -8,7 +8,7 @@ import React from "react"
 import { beforeAll, describe, expect, test } from "vitest"
 import { Box, Text, VirtualList, type VirtualListHandle } from "../src/index.js"
 import { initYogaEngine, setLayoutEngine } from "../src/render.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 // Initialize layout engine before tests
 beforeAll(async () => {

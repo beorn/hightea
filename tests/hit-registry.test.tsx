@@ -21,7 +21,7 @@ import {
   useHitRegistry,
 } from "../src/hit-registry.ts"
 import { Box, Text } from "../src/index.ts"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 const render = createRenderer()
 

@@ -16,7 +16,7 @@
  *
  * @example
  * ```tsx
- * import { keyToAnsi } from 'inkx/testing'
+ * import { keyToAnsi } from '@hightea/term/testing'
  *
  * // Convert key names to ANSI
  * keyToAnsi('Enter')       // '\r'

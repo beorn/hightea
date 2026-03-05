@@ -7,7 +7,7 @@
  * ## Import Syntax
  *
  * ```tsx
- * import { createRenderer, bufferToText, stripAnsi } from 'inkx/testing';
+ * import { createRenderer, bufferToText, stripAnsi } from '@hightea/term/testing';
  * ```
  *
  * ## Auto-cleanup
@@ -19,8 +19,8 @@
  *
  * @example
  * ```tsx
- * import { createRenderer } from 'inkx/testing';
- * import { Text, Box } from 'inkx';
+ * import { createRenderer } from '@hightea/term/testing';
+ * import { Text, Box } from '@hightea/term';
  *
  * const render = createRenderer({ cols: 80, rows: 24 });
  *

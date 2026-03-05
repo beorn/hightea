@@ -57,7 +57,7 @@ const DEMO_METADATA: Record<string, DemoMeta> = {
     category: "Showcases",
     features: ["Box", "Text", "borderStyle", "flexDirection", "useInput", "useEffect", "setInterval"],
     source: `import React, { useState, useEffect } from "react"
-import { Box, Text, useInput } from "inkx"
+import { Box, Text, useInput } from "@hightea/term"
 
 function DashboardShowcase() {
   const [tick, setTick] = useState(0)
@@ -106,7 +106,7 @@ function DashboardShowcase() {
     category: "Showcases",
     features: ["Box", "Text", "outlineStyle", "flexDirection", "wrap"],
     source: `import React from "react"
-import { Box, Text } from "inkx"
+import { Box, Text } from "@hightea/term"
 
 function ToolBlock({ tool, label, children }) {
   const color = tool === "Read" ? "#89b4fa"
@@ -147,7 +147,7 @@ function CodingAgent() {
     category: "Showcases",
     features: ["Box", "Text", "borderStyle", "flexGrow", "useInput", "useState"],
     source: `import React, { useState } from "react"
-import { Box, Text, useInput } from "inkx"
+import { Box, Text, useInput } from "@hightea/term"
 
 const COLUMNS = [
   { title: "To Do", color: "red", cards: [
@@ -199,7 +199,7 @@ function KanbanShowcase() {
     category: "Showcases",
     features: ["Box", "Text", "useInput", "useState", "Fragment"],
     source: `import React, { useState } from "react"
-import { Box, Text, useInput } from "inkx"
+import { Box, Text, useInput } from "@hightea/term"
 
 const STEPS = [
   { label: "Project name", type: "text", answer: "my-app" },
@@ -250,7 +250,7 @@ function CLIWizardShowcase() {
     category: "Showcases",
     features: ["Box", "Text", "backgroundColor", "flexDirection", "useInput", "useEffect"],
     source: `import React, { useState, useEffect } from "react"
-import { Box, Text, useInput } from "inkx"
+import { Box, Text, useInput } from "@hightea/term"
 
 const PROCESSES = [
   { id: "1024", name: "web-server", status: "running", cpu: 67 },
@@ -304,7 +304,7 @@ function DataExplorerShowcase() {
     category: "Showcases",
     features: ["Box", "Text", "borderStyle", "useInput", "useState", "wrap"],
     source: `import React, { useState } from "react"
-import { Box, Text, useInput } from "inkx"
+import { Box, Text, useInput } from "@hightea/term"
 
 const LOGS = [
   { time: "14:23:01", level: "INFO", message: "Server started on port 3000" },
@@ -355,7 +355,7 @@ function DevToolsShowcase() {
     category: "Showcases",
     features: ["Box", "Text", "borderStyle", "useInput"],
     source: `import React, { useState } from "react"
-import { Box, Text, useInput } from "inkx"
+import { Box, Text, useInput } from "@hightea/term"
 
 function ScrollShowcase() {
   const [scrollPos, setScrollPos] = useState(0)
@@ -389,7 +389,7 @@ function ScrollShowcase() {
     category: "Showcases",
     features: ["Box", "Text", "useContentRect", "justifyContent", "alignItems"],
     source: `import React from "react"
-import { Box, Text, useContentRect } from "inkx"
+import { Box, Text, useContentRect } from "@hightea/term"
 
 function LayoutFeedbackShowcase() {
   const { width, height } = useContentRect()
@@ -416,7 +416,7 @@ function LayoutFeedbackShowcase() {
     category: "Showcases",
     features: ["Box", "Text", "borderStyle", "useInput"],
     source: `import React, { useState } from "react"
-import { Box, Text, useInput } from "inkx"
+import { Box, Text, useInput } from "@hightea/term"
 
 function FocusShowcase() {
   const [focused, setFocused] = useState(0)
@@ -454,7 +454,7 @@ function FocusShowcase() {
     category: "Showcases",
     features: ["Box", "Text", "borderStyle", "useInput"],
     source: `import React, { useState } from "react"
-import { Box, Text, useInput } from "inkx"
+import { Box, Text, useInput } from "@hightea/term"
 
 function TextInputShowcase() {
   const [text, setText] = useState("")

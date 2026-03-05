@@ -2,7 +2,7 @@
  * inkx/focus -- Tree-based focus management system.
  *
  * ```tsx
- * import { useFocusable, createFocusManager, InputLayerProvider, useInputLayer } from 'inkx/focus'
+ * import { useFocusable, createFocusManager, InputLayerProvider, useInputLayer } from '@hightea/term/focus'
  * ```
  *
  * @packageDocumentation

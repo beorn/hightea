@@ -25,7 +25,7 @@ import React from "react"
 import { describe, expect, test } from "vitest"
 import { Box, Text } from "../src/index.js"
 import { bufferToText } from "../src/buffer.js"
-import { createRenderer, compareBuffers, formatMismatch } from "inkx/testing"
+import { createRenderer, compareBuffers, formatMismatch } from "@hightea/term/testing"
 
 const render = createRenderer({ incremental: true })
 

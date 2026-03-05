@@ -6,7 +6,7 @@
  *
  * @example
  * ```tsx
- * import { measureElement, Box } from 'inkx';
+ * import { measureElement, Box } from '@hightea/term';
  * import { useRef, useEffect, useState } from 'react';
  *
  * function MyComponent() {

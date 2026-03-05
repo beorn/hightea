@@ -6,7 +6,7 @@
  *
  * @example
  * ```tsx
- * import { debugTree } from 'inkx/testing'
+ * import { debugTree } from '@hightea/term/testing'
  *
  * const { getContainer } = render(<MyComponent />)
  * console.log(debugTree(getContainer()))

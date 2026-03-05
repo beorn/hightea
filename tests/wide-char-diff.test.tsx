@@ -18,7 +18,7 @@ import { describe, expect, test } from "vitest"
 import { TerminalBuffer, bufferToText, createMutableCell } from "../src/buffer.js"
 import { Box, Text, useInput } from "../src/index.js"
 import { outputPhase } from "../src/pipeline/output-phase.js"
-import { createRenderer, compareBuffers, formatMismatch } from "inkx/testing"
+import { createRenderer, compareBuffers, formatMismatch } from "@hightea/term/testing"
 
 // ============================================================================
 // Low-level buffer diff tests (output-phase directly)

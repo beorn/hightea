@@ -8,7 +8,7 @@ import React, { useEffect } from "react"
 import { describe, expect, test } from "vitest"
 import { Text, useScrollbackItem, OSC133 } from "../src/index.js"
 import { ScrollbackView } from "../src/components/ScrollbackView.js"
-import { createRenderer, stripAnsi } from "inkx/testing"
+import { createRenderer, stripAnsi } from "@hightea/term/testing"
 
 // ============================================================================
 // Types & Helpers

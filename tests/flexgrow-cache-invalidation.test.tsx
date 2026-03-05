@@ -7,7 +7,7 @@
  */
 import { describe, expect, test } from "vitest"
 import { Box, Text } from "../src/index.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 describe("flexGrow cache invalidation", () => {
   const render = createRenderer({ cols: 80, rows: 3 })

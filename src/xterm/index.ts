@@ -10,7 +10,7 @@
  * @example
  * ```tsx
  * import { Terminal } from "@xterm/xterm"
- * import { renderToXterm, Box, Text, useContentRect } from 'inkx/xterm';
+ * import { renderToXterm, Box, Text, useContentRect } from '@hightea/term/xterm';
  *
  * function App() {
  *   const { width, height } = useContentRect();

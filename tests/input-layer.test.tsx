@@ -17,7 +17,7 @@ import React, { useState, useCallback } from "react"
 import { describe, expect, test } from "vitest"
 import { InputLayerProvider, useInputLayer, useInputLayerContext } from "../src/contexts/InputLayerContext.tsx"
 import { Box, Text } from "../src/index.ts"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 // ============================================================================
 // Test Components

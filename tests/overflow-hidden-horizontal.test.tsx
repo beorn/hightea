@@ -5,7 +5,7 @@
  * truncated to the parent Box's width, not the Text's intrinsic width.
  */
 import { describe, expect, test } from "vitest"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 import React from "react"
 
 const { Box, Text } = await import("../src/index.js")

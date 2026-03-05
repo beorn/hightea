@@ -4,7 +4,7 @@
  * Run Yoga layout calculation and propagate dimensions to all nodes.
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { measureStats } from "../reconciler/nodes.js"
 import { type BoxProps, type InkxNode, type Rect, rectEqual } from "../types.js"
 import { getBorderSize, getPadding } from "./helpers.js"

@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest"
-import { createRenderer } from "inkx/testing"
-import { Box, Text } from "inkx"
+import { createRenderer } from "@hightea/term/testing"
+import { Box, Text } from "@hightea/term"
 import React from "react"
 
 describe("border rendering with borderBottom=false", () => {

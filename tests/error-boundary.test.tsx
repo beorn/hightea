@@ -9,7 +9,7 @@ import React, { useState } from "react"
 import { describe, expect, test, vi } from "vitest"
 import { Box, Text, useInput } from "../src/index.js"
 import { ErrorBoundary } from "../src/components/ErrorBoundary.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 // =============================================================================
 // Test Helpers

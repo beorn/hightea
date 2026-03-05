@@ -34,7 +34,7 @@ import { Box, Text } from "../src/index.js"
 import { createRenderer } from "../tests/setup.js"
 import { outputPhase, createOutputPhase } from "../src/pipeline/output-phase.js"
 import { TerminalBuffer, bufferToText } from "../src/buffer.js"
-import { compareBuffers, formatMismatch } from "inkx/testing"
+import { compareBuffers, formatMismatch } from "@hightea/term/testing"
 
 // ============================================================================
 // Output Phase: Direct buffer tests (all pass, confirming no cursor drift)

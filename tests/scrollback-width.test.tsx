@@ -13,7 +13,7 @@
  */
 import { describe, expect, test } from "vitest"
 import { Box, Text } from "../src/index.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 import { renderStringSync } from "../src/render-string.js"
 
 // stripAnsi to measure visible width — strips ALL ANSI escape sequences and control chars

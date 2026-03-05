@@ -7,7 +7,7 @@
 import React from "react"
 import { describe, expect, test } from "vitest"
 import { Box, Text } from "../src/components/index.ts"
-import { createLocator, createRenderer } from "inkx/testing"
+import { createLocator, createRenderer } from "@hightea/term/testing"
 
 // Test renderer factory
 const render = createRenderer({ cols: 80, rows: 24 })

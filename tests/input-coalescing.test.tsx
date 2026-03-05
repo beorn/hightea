@@ -10,7 +10,7 @@ import { EventEmitter } from "node:events"
 import React, { useState } from "react"
 import { describe, expect, it } from "vitest"
 import { Box, Text, defaultCaps } from "../src/index.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 import { run, useInput } from "../src/runtime/index.js"
 import { keyToAnsi } from "../src/keys.js"
 

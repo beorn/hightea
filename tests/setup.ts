@@ -8,10 +8,10 @@
 import { expect } from "vitest"
 
 // Re-export utilities from the testing module
-export { createRenderer, normalizeFrame, stripAnsi, waitFor } from "inkx/testing"
+export { createRenderer, normalizeFrame, stripAnsi, waitFor } from "@hightea/term/testing"
 
 // Import for local use
-import { normalizeFrame } from "inkx/testing"
+import { normalizeFrame } from "@hightea/term/testing"
 
 /**
  * Create a matcher for frame content that ignores ANSI codes.

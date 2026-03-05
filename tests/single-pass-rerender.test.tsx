@@ -6,9 +6,9 @@
  */
 import React, { useState } from "react"
 import { describe, expect, test } from "vitest"
-import { createRenderer, bufferToText } from "inkx/testing"
-import { compareBuffers, formatMismatch } from "inkx/toolbelt"
-import { Box, Text, useInput } from "inkx"
+import { createRenderer, bufferToText } from "@hightea/term/testing"
+import { compareBuffers, formatMismatch } from "@hightea/term/toolbelt"
+import { Box, Text, useInput } from "@hightea/term"
 
 describe("single-pass incremental correctness", () => {
   test("text update: incremental matches fresh after rerender", async () => {

@@ -10,7 +10,7 @@ import React from "react"
 import { describe, expect, it, vi } from "vitest"
 import { Box, Text, withCommands } from "../src/index.js"
 import type { CommandDef, CommandRegistryLike, KeybindingDef } from "../src/with-commands.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 const render = createRenderer({ cols: 40, rows: 10 })
 

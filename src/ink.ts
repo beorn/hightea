@@ -9,7 +9,7 @@
  * import { Box, Text, render, useInput, useApp } from 'ink'
  *
  * // After:
- * import { Box, Text, render, useInput, useApp } from 'inkx/ink'
+ * import { Box, Text, render, useInput, useApp } from '@hightea/term/ink'
  * ```
  *
  * For inkx-specific features (layout feedback, focus system, plugins, etc.),
@@ -75,5 +75,5 @@ export type { MeasureElementOutput } from "./measureElement.js"
 // Term primitives (so consumers don't need chalkx directly)
 // =============================================================================
 
-export { createTerm, term } from "chalkx"
-export type { Term } from "chalkx"
+export { createTerm, term } from "@hightea/chalk"
+export type { Term } from "@hightea/chalk"

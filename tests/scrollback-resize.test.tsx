@@ -21,7 +21,7 @@ import { describe, expect, test, vi } from "vitest"
 import { Box, Text, renderStringSync } from "../src/index.js"
 import { StdoutContext, type StdoutContextValue } from "../src/context.js"
 import { useScrollback } from "../src/hooks/useScrollback.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 // ============================================================================
 // ANSI constants (readable names for escape sequences)

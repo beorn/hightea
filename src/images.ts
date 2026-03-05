@@ -2,7 +2,7 @@
  * inkx/images -- Image rendering via Kitty graphics and Sixel protocol.
  *
  * ```tsx
- * import { Image } from 'inkx/images'
+ * import { Image } from '@hightea/term/images'
  *
  * <Image src={pngBuffer} width={40} height={15} fallback="[image]" />
  * ```

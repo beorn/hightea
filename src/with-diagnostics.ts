@@ -24,7 +24,7 @@
  *
  * @example
  * ```typescript
- * import { withDiagnostics } from 'inkx/toolbelt';
+ * import { withDiagnostics } from '@hightea/term/toolbelt';
  *
  * // All checks enabled by default when you call withDiagnostics()
  * const driver = withDiagnostics(createBoardDriver(repo, rootId));

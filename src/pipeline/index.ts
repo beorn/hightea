@@ -26,7 +26,7 @@
  *   Emit minimal ANSI sequences for changes
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import type { TerminalBuffer } from "../buffer.js"
 import type { CursorState } from "../hooks/useCursor.js"
 import type { InkxNode } from "../types.js"
@@ -35,7 +35,7 @@ import type { OutputPhaseFn } from "./output-phase.js"
 import type { PipelineContext } from "./types.js"
 
 const log = createLogger("inkx:pipeline")
-const baseLog = createLogger("inkx")
+const baseLog = createLogger("@hightea/term")
 
 // Re-export types
 export type {

@@ -10,7 +10,7 @@ import React, { useState } from "react"
  */
 import { describe, expect, test } from "vitest"
 import { Box, type Key, Text, useInput } from "../src/index.ts"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 // ============================================================================
 // Test Component: Simple keystroke capture

@@ -7,8 +7,8 @@
 
 import { describe, it, expect, vi } from "vitest"
 import React, { useState } from "react"
-import { createRenderer } from "inkx/testing"
-import { Text, Box } from "inkx"
+import { createRenderer } from "@hightea/term/testing"
+import { Text, Box } from "@hightea/term"
 
 // ============================================================================
 // run() Layer 2 — Ctrl+C triggers exit
@@ -42,7 +42,7 @@ describe("run() lifecycle", () => {
 describe("lifecycle options type check", () => {
   it("RunOptions accepts lifecycle options", async () => {
     // This is a compile-time check — if the types are wrong, this won't compile
-    const _opts: import("inkx/runtime").RunOptions = {
+    const _opts: import("@hightea/term/runtime").RunOptions = {
       suspendOnCtrlZ: true,
       exitOnCtrlC: false,
       onSuspend: () => false,
@@ -56,7 +56,7 @@ describe("lifecycle options type check", () => {
   })
 
   it("AppRunOptions accepts lifecycle options", async () => {
-    const _opts: import("inkx/runtime").AppRunOptions = {
+    const _opts: import("@hightea/term/runtime").AppRunOptions = {
       suspendOnCtrlZ: true,
       exitOnCtrlC: true,
       onSuspend: () => {},

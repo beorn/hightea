@@ -9,7 +9,7 @@
  *
  * @example
  * ```ts
- * import { applyTextOp, invertTextOp, mergeTextOps } from 'inkx'
+ * import { applyTextOp, invertTextOp, mergeTextOps } from '@hightea/term'
  *
  * const op: TextOp = { type: "insert", offset: 5, text: "hello" }
  * const result = applyTextOp("world", op)  // "worlhellod"

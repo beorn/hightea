@@ -20,24 +20,24 @@ const ROOT = resolve(import.meta.dirname, "..")
 // Key = public import path, value = source file relative to ROOT.
 const ENTRY_POINTS: Record<string, string> = {
   inkx: "src/index.ts",
-  "inkx/ink": "src/ink.ts",
-  "inkx/layout": "src/layout.ts",
-  "inkx/components": "src/components.ts",
-  "inkx/focus": "src/focus.ts",
-  "inkx/input": "src/input.ts",
-  "inkx/theme": "src/theme.ts",
-  "inkx/animation": "src/animation.ts",
-  "inkx/images": "src/images.ts",
-  "inkx/plugins": "src/plugins.ts",
-  "inkx/testing": "src/testing/index.tsx",
-  "inkx/runtime": "src/runtime/index.ts",
-  "inkx/canvas": "src/canvas/index.ts",
-  "inkx/dom": "src/dom/index.ts",
-  "inkx/scroll-utils": "src/scroll-utils.ts",
-  "inkx/toolbelt": "src/toolbelt/index.ts",
-  "inkx/core": "src/core/index.ts",
-  "inkx/store": "src/store/index.ts",
-  "inkx/react": "src/react/index.ts",
+  "@hightea/term/ink": "src/ink.ts",
+  "@hightea/term/layout": "src/layout.ts",
+  "@hightea/term/components": "src/components.ts",
+  "@hightea/term/focus": "src/focus.ts",
+  "@hightea/term/input": "src/input.ts",
+  "@hightea/term/theme": "src/theme.ts",
+  "@hightea/term/animation": "src/animation.ts",
+  "@hightea/term/images": "src/images.ts",
+  "@hightea/term/plugins": "src/plugins.ts",
+  "@hightea/term/testing": "src/testing/index.tsx",
+  "@hightea/term/runtime": "src/runtime/index.ts",
+  "@hightea/term/canvas": "src/canvas/index.ts",
+  "@hightea/term/dom": "src/dom/index.ts",
+  "@hightea/term/scroll-utils": "src/scroll-utils.ts",
+  "@hightea/term/toolbelt": "src/toolbelt/index.ts",
+  "@hightea/term/core": "src/core/index.ts",
+  "@hightea/term/store": "src/store/index.ts",
+  "@hightea/term/react": "src/react/index.ts",
 }
 
 // Peer / optional deps that consumers provide — excluded from the bundle.
@@ -166,7 +166,7 @@ async function main() {
 
     // Summary row for the full bundle.
     const full = measurements.find((m) => m.name === "inkx")
-    const ink = measurements.find((m) => m.name === "inkx/ink")
+    const ink = measurements.find((m) => m.name === "@hightea/term/ink")
     if (full && ink && full.rawBytes > 0 && ink.rawBytes > 0) {
       const savings = (((full.gzipBytes - ink.gzipBytes) / full.gzipBytes) * 100).toFixed(0)
       lines.push("")

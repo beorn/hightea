@@ -6,7 +6,7 @@
  *
  * @example
  * ```tsx
- * import { createApp, useApp, createTermProvider } from 'inkx/runtime'
+ * import { createApp, useApp, createTermProvider } from '@hightea/term/runtime'
  *
  * const app = createApp(
  *   // Store factory
@@ -45,7 +45,7 @@ import process from "node:process"
 import React, { createContext, useContext, useEffect, useRef, type ReactElement } from "react"
 import { type StateCreator, type StoreApi, createStore } from "zustand"
 
-import { createTerm } from "chalkx"
+import { createTerm } from "@hightea/chalk"
 import {
   FocusManagerContext,
   RuntimeContext,

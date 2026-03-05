@@ -5,7 +5,7 @@
  * own size during render, not after.
  *
  * ```tsx
- * import { useContentRect, useScreenRect } from 'inkx/layout'
+ * import { useContentRect, useScreenRect } from '@hightea/term/layout'
  *
  * function ResponsiveCard() {
  *   const { width, height } = useContentRect()

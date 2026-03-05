@@ -49,7 +49,7 @@ import {
   useStdout,
 } from "../src/index.js"
 
-import { createRenderer, stripAnsi } from "inkx/testing"
+import { createRenderer, stripAnsi } from "@hightea/term/testing"
 
 const testRender = createRenderer()
 

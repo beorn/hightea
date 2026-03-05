@@ -4,7 +4,7 @@
  */
 import { describe, expect, test } from "vitest"
 import { Box, Text, displayWidth } from "../src/index.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 describe("Text truncation with explicit parent width", () => {
   const render = createRenderer({ cols: 80, rows: 5 })

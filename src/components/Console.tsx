@@ -1,4 +1,4 @@
-import type { ConsoleEntry, PatchedConsole } from "chalkx"
+import type { ConsoleEntry, PatchedConsole } from "@hightea/chalk"
 import type { ReactElement, ReactNode } from "react"
 import { useConsole } from "../hooks/useConsole.js"
 import { Box } from "./Box.js"
@@ -42,8 +42,8 @@ function formatArgs(args: unknown[]): string {
  *
  * @example Default rendering
  * ```tsx
- * import { Console } from 'inkx'
- * import { patchConsole } from 'chalkx'
+ * import { Console } from '@hightea/term'
+ * import { patchConsole } from '@hightea/chalk'
  *
  * using patched = patchConsole(console)
  * <Console console={patched} />

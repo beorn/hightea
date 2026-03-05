@@ -101,7 +101,7 @@ export function runWithDiscreteEvent(fn: () => void): void {
  */
 export const hostConfig = {
   // Renderer identity (used by React DevTools to identify this renderer)
-  rendererPackageName: "inkx",
+  rendererPackageName: "@hightea/term",
   rendererVersion: "0.0.1",
 
   // Feature flags

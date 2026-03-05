@@ -48,7 +48,7 @@ import {
   WRAP_NO_WRAP,
   WRAP_WRAP,
   WRAP_WRAP_REVERSE,
-} from "@beorn/flexx"
+} from "flexture"
 
 import type {
   AlignValue,

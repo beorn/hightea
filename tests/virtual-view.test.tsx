@@ -10,7 +10,7 @@ import { Text } from "../src/index.js"
 import { Box } from "../src/components/Box.js"
 import { VirtualView } from "../src/components/VirtualView.js"
 import { initYogaEngine, setLayoutEngine } from "../src/render.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 // Initialize layout engine before tests
 beforeAll(async () => {

@@ -20,8 +20,8 @@ import { getBorderSize, getPadding } from "./helpers.js"
 import { renderBox, renderOutline, renderScrollIndicators } from "./render-box.js"
 import { parseColor } from "./render-helpers.js"
 import { clearBgConflictWarnings, renderText, setBgConflictMode } from "./render-text.js"
-import { pushContextTheme, popContextTheme } from "themex"
-import type { Theme } from "themex"
+import { pushContextTheme, popContextTheme } from "swatch"
+import type { Theme } from "swatch"
 import type { ClipBounds, ContentPhaseStats, NodeRenderState, NodeTraceEntry, PipelineContext } from "./types.js"
 
 /**

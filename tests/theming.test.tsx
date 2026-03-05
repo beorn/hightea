@@ -23,7 +23,7 @@ import {
   generateTheme,
   type Theme,
 } from "../src/theme.js"
-import { createRenderer, stripAnsi } from "inkx/testing"
+import { createRenderer, stripAnsi } from "@hightea/term/testing"
 
 const render = createRenderer({ cols: 60, rows: 10 })
 

@@ -2,7 +2,7 @@
  * inkx/theme -- Theming system with semantic color tokens.
  *
  * ```tsx
- * import { ThemeProvider, useTheme, defaultDarkTheme } from 'inkx/theme'
+ * import { ThemeProvider, useTheme, defaultDarkTheme } from '@hightea/term/theme'
  *
  * <ThemeProvider theme={defaultDarkTheme}>
  *   <Box borderStyle="single">
@@ -32,5 +32,5 @@ export {
   generateTheme,
   detectTheme,
   deriveTheme,
-} from "themex"
-export type { Theme, ColorPalette, AnsiPrimary, DetectThemeOptions } from "themex"
+} from "swatch"
+export type { Theme, ColorPalette, AnsiPrimary, DetectThemeOptions } from "swatch"

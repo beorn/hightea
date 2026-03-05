@@ -5,7 +5,7 @@
  * This is Layer 0 - no runtime, no events, just pure rendering.
  */
 
-import { createTerm } from "chalkx"
+import { createTerm } from "@hightea/chalk"
 import React, { type ReactElement } from "react"
 import { bufferToStyledText, bufferToText } from "../buffer.js"
 import { StdoutContext, TermContext } from "../context.js"
@@ -47,7 +47,7 @@ export async function ensureLayoutEngine(): Promise<void> {
  *
  * @example
  * ```typescript
- * import { layout, ensureLayoutEngine } from 'inkx/runtime'
+ * import { layout, ensureLayoutEngine } from '@hightea/term/runtime'
  *
  * await ensureLayoutEngine()
  * const buffer = layout(<Text>Hello</Text>, { cols: 80, rows: 24 })

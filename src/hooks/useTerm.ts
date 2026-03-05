@@ -1,4 +1,4 @@
-import type { Term } from "chalkx"
+import type { Term } from "@hightea/chalk"
 import { useContext } from "react"
 import { TermContext } from "../context.js"
 
@@ -8,7 +8,7 @@ import { TermContext } from "../context.js"
  *
  * @example
  * ```tsx
- * import { useTerm, Box, Text } from 'inkx'
+ * import { useTerm, Box, Text } from '@hightea/term'
  *
  * function ColoredOutput() {
  *   const term = useTerm()

@@ -15,7 +15,7 @@
 import { describe, expect, test } from "vitest"
 import { Box, Text } from "../src/components/index.js"
 import { countLines, isTTY, resolveNonTTYMode, stripAnsi, toLineByLineOutput, toPlainOutput } from "../src/non-tty.js"
-import { createRenderer, normalizeFrame } from "inkx/testing"
+import { createRenderer, normalizeFrame } from "@hightea/term/testing"
 
 // Single shared render instance (required pattern for inkx tests)
 const render = createRenderer()

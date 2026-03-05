@@ -1,4 +1,4 @@
-import type { ConsoleEntry, PatchedConsole } from "chalkx"
+import type { ConsoleEntry, PatchedConsole } from "@hightea/chalk"
 import { useEffect, useState } from "react"
 
 /**
@@ -8,8 +8,8 @@ import { useEffect, useState } from "react"
  *
  * @example
  * ```tsx
- * import { useConsole, Box, Text } from 'inkx'
- * import { patchConsole } from 'chalkx'
+ * import { useConsole, Box, Text } from '@hightea/term'
+ * import { patchConsole } from '@hightea/chalk'
  *
  * function ConsoleViewer({ patched }: { patched: PatchedConsole }) {
  *   const entries = useConsole(patched)

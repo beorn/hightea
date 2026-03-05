@@ -20,8 +20,8 @@ import {
   compose,
   dispatch as dispatchEffect,
   none,
-} from "inkx/core"
-import { type StoreApi, type StoreConfig, createStore, defaultInit, inkxUpdate, withFocusManagement } from "inkx/store"
+} from "@hightea/term/core"
+import { type StoreApi, type StoreConfig, createStore, defaultInit, inkxUpdate, withFocusManagement } from "@hightea/term/store"
 
 // =============================================================================
 // Helpers
@@ -635,12 +635,12 @@ describe("re-entrant dispatch", () => {
 
 describe("inkx/core — exports", () => {
   test("re-exports focus manager", async () => {
-    const { createFocusManager } = await import("inkx/core")
+    const { createFocusManager } = await import("@hightea/term/core")
     expect(typeof createFocusManager).toBe("function")
   })
 
   test("re-exports focus events", async () => {
-    const { createKeyEvent, createFocusEvent, dispatchKeyEvent, dispatchFocusEvent } = await import("inkx/core")
+    const { createKeyEvent, createFocusEvent, dispatchKeyEvent, dispatchFocusEvent } = await import("@hightea/term/core")
     expect(typeof createKeyEvent).toBe("function")
     expect(typeof createFocusEvent).toBe("function")
     expect(typeof dispatchKeyEvent).toBe("function")
@@ -649,7 +649,7 @@ describe("inkx/core — exports", () => {
 
   test("re-exports focus queries", async () => {
     const { findFocusableAncestor, getTabOrder, findByTestID, findSpatialTarget, getExplicitFocusLink } =
-      await import("inkx/core")
+      await import("@hightea/term/core")
     expect(typeof findFocusableAncestor).toBe("function")
     expect(typeof getTabOrder).toBe("function")
     expect(typeof findByTestID).toBe("function")
@@ -658,7 +658,7 @@ describe("inkx/core — exports", () => {
   })
 
   test("re-exports compose and effect constructors", async () => {
-    const { compose, none, batch, dispatch } = await import("inkx/core")
+    const { compose, none, batch, dispatch } = await import("@hightea/term/core")
     expect(typeof compose).toBe("function")
     expect(none).toEqual({ type: "none" })
     expect(typeof batch).toBe("function")
@@ -668,55 +668,55 @@ describe("inkx/core — exports", () => {
 
 describe("inkx/store — exports", () => {
   test("exports createStore", async () => {
-    const { createStore } = await import("inkx/store")
+    const { createStore } = await import("@hightea/term/store")
     expect(typeof createStore).toBe("function")
   })
 
   test("exports inkxUpdate and defaultInit", async () => {
-    const { inkxUpdate, defaultInit } = await import("inkx/store")
+    const { inkxUpdate, defaultInit } = await import("@hightea/term/store")
     expect(typeof inkxUpdate).toBe("function")
     expect(typeof defaultInit).toBe("function")
   })
 
   test("exports withFocusManagement", async () => {
-    const { withFocusManagement } = await import("inkx/store")
+    const { withFocusManagement } = await import("@hightea/term/store")
     expect(typeof withFocusManagement).toBe("function")
   })
 })
 
 describe("inkx/react — exports", () => {
   test("exports focus hooks", async () => {
-    const { useFocusable, useFocusWithin, useFocusManager } = await import("inkx/react")
+    const { useFocusable, useFocusWithin, useFocusManager } = await import("@hightea/term/react")
     expect(typeof useFocusable).toBe("function")
     expect(typeof useFocusWithin).toBe("function")
     expect(typeof useFocusManager).toBe("function")
   })
 
   test("exports layout hooks", async () => {
-    const { useContentRect, useScreenRect } = await import("inkx/react")
+    const { useContentRect, useScreenRect } = await import("@hightea/term/react")
     expect(typeof useContentRect).toBe("function")
     expect(typeof useScreenRect).toBe("function")
   })
 
   test("exports app hooks", async () => {
-    const { useApp, useInput, useTerm } = await import("inkx/react")
+    const { useApp, useInput, useTerm } = await import("@hightea/term/react")
     expect(typeof useApp).toBe("function")
     expect(typeof useInput).toBe("function")
     expect(typeof useTerm).toBe("function")
   })
 
   test("exports FocusManagerContext", async () => {
-    const { FocusManagerContext } = await import("inkx/react")
+    const { FocusManagerContext } = await import("@hightea/term/react")
     expect(FocusManagerContext).toBeDefined()
   })
 
   test("exports runtime run()", async () => {
-    const { run } = await import("inkx/react")
+    const { run } = await import("@hightea/term/react")
     expect(typeof run).toBe("function")
   })
 
   test("exports createApp()", async () => {
-    const { createApp } = await import("inkx/react")
+    const { createApp } = await import("@hightea/term/react")
     expect(typeof createApp).toBe("function")
   })
 })

@@ -5,7 +5,7 @@
  * Bridges chalkx Term with inkx measurement capabilities.
  */
 
-import type { Term, TerminalCaps } from "chalkx"
+import type { Term, TerminalCaps } from "@hightea/chalk"
 import { createWidthMeasurer, type Measurer } from "./unicode.js"
 import { createOutputPhase } from "./pipeline/output-phase.js"
 import type { PipelineConfig } from "./pipeline/index.js"

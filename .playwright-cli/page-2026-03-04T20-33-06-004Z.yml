@@ -1,0 +1,516 @@
+- generic [ref=e3]:
+    - link "Skip to content" [ref=e4] [cursor=pointer]:
+        - /url: "#VPContent"
+    - banner:
+        - generic:
+            - generic:
+                - generic:
+                    - link "inkx" [ref=e6] [cursor=pointer]:
+                        - /url: /inkx/
+                        - generic [ref=e7]: inkx
+                    - generic [ref=e8]:
+                        - button "Search" [ref=e11] [cursor=pointer]:
+                            - generic [ref=e14]: Search
+                            - generic [ref=e15]:
+                                - generic [ref=e16]: ⌘
+                                - generic [ref=e17]: K
+                        - navigation "Main Navigation" [ref=e18]:
+                            - generic [ref=e19]: Main Navigation
+                            - link "Guide" [ref=e20] [cursor=pointer]:
+                                - /url: /inkx/guide/getting-started.html
+                                - generic [ref=e21]: Guide
+                            - link "API" [ref=e22] [cursor=pointer]:
+                                - /url: /inkx/api/box.html
+                                - generic [ref=e23]: API
+                            - button "Examples" [ref=e25] [cursor=pointer]:
+                                - generic [ref=e27]: Examples
+                            - button "Links" [ref=e30] [cursor=pointer]:
+                                - generic [ref=e32]: Links
+                        - switch [ref=e35] [cursor=pointer]
+                        - link "github" [ref=e41] [cursor=pointer]:
+                            - /url: https://github.com/beorn/inkx
+    - complementary [ref=e43]:
+        - navigation "Sidebar Navigation" [ref=e45]:
+            - generic [ref=e46]: Sidebar Navigation
+            - generic [ref=e48]:
+                - button "Examples" [ref=e49]:
+                    - heading "Examples" [level=2] [ref=e51]
+                - generic [ref=e52]:
+                    - link "Overview" [ref=e56] [cursor=pointer]:
+                        - /url: /inkx/examples/
+                        - paragraph [ref=e57]: Overview
+                    - link "Live Demo" [ref=e61] [cursor=pointer]:
+                        - /url: /inkx/examples/live-demo.html
+                        - paragraph [ref=e62]: Live Demo
+                    - link "Dashboard" [ref=e66] [cursor=pointer]:
+                        - /url: /inkx/examples/dashboard.html
+                        - paragraph [ref=e67]: Dashboard
+                    - link "Task List" [ref=e71] [cursor=pointer]:
+                        - /url: /inkx/examples/task-list.html
+                        - paragraph [ref=e72]: Task List
+                    - link "Kanban Board" [ref=e76] [cursor=pointer]:
+                        - /url: /inkx/examples/kanban.html
+                        - paragraph [ref=e77]: Kanban Board
+            - generic [ref=e79]:
+                - button "Use Cases toggle section" [ref=e80] [cursor=pointer]:
+                    - heading "Use Cases" [level=2] [ref=e82]
+                    - button "toggle section" [ref=e83]
+                - generic [ref=e85]:
+                    - link "AI Assistants & Chat" [ref=e89] [cursor=pointer]:
+                        - /url: /inkx/use-cases/ai-assistants.html
+                        - paragraph [ref=e90]: AI Assistants & Chat
+                    - link "Dashboards & Monitoring" [ref=e94] [cursor=pointer]:
+                        - /url: /inkx/use-cases/dashboards.html
+                        - paragraph [ref=e95]: Dashboards & Monitoring
+                    - link "Kanban & Project Boards" [ref=e99] [cursor=pointer]:
+                        - /url: /inkx/use-cases/kanban-boards.html
+                        - paragraph [ref=e100]: Kanban & Project Boards
+                    - link "CLI Wizards & Setup" [ref=e104] [cursor=pointer]:
+                        - /url: /inkx/use-cases/cli-wizards.html
+                        - paragraph [ref=e105]: CLI Wizards & Setup
+                    - link "Developer Tools" [ref=e109] [cursor=pointer]:
+                        - /url: /inkx/use-cases/developer-tools.html
+                        - paragraph [ref=e110]: Developer Tools
+                    - link "Data Explorers & Tables" [ref=e114] [cursor=pointer]:
+                        - /url: /inkx/use-cases/data-explorers.html
+                        - paragraph [ref=e115]: Data Explorers & Tables
+    - generic [ref=e126]:
+        - main [ref=e127]:
+            - generic [ref=e129]:
+                - heading "Dashboard Example Permalink to \"Dashboard Example\"" [level=1] [ref=e130]:
+                    - text: Dashboard Example
+                    - link "Permalink to \"Dashboard Example\"" [ref=e131] [cursor=pointer]:
+                        - /url: "#dashboard-example"
+                        - text: "#"
+                - paragraph [ref=e132]:
+                    - text: A multi-pane dashboard demonstrating responsive layouts with
+                    - code [ref=e133]: useContentRect()
+                    - text: .
+                - navigation [ref=e134]:
+                    - list [ref=e135]:
+                        - listitem [ref=e136]:
+                            - link "What It Demonstrates" [ref=e137] [cursor=pointer]:
+                                - /url: "#what-it-demonstrates"
+                        - listitem [ref=e138]:
+                            - link "Screenshot" [ref=e139] [cursor=pointer]:
+                                - /url: "#screenshot"
+                        - listitem [ref=e140]:
+                            - link "Running the Example" [ref=e141] [cursor=pointer]:
+                                - /url: "#running-the-example"
+                        - listitem [ref=e142]:
+                            - link "Full Source Code" [ref=e143] [cursor=pointer]:
+                                - /url: "#full-source-code"
+                        - listitem [ref=e144]:
+                            - link "Code Walkthrough" [ref=e145] [cursor=pointer]:
+                                - /url: "#code-walkthrough"
+                            - list [ref=e146]:
+                                - listitem [ref=e147]:
+                                    - link "Responsive Layout" [ref=e148] [cursor=pointer]:
+                                        - /url: "#responsive-layout"
+                                - listitem [ref=e149]:
+                                    - link "Proportional Sizing" [ref=e150] [cursor=pointer]:
+                                        - /url: "#proportional-sizing"
+                                - listitem [ref=e151]:
+                                    - link "Dynamic Progress Bars" [ref=e152] [cursor=pointer]:
+                                        - /url: "#dynamic-progress-bars"
+                                - listitem [ref=e153]:
+                                    - link "Text Truncation" [ref=e154] [cursor=pointer]:
+                                        - /url: "#text-truncation"
+                                - listitem [ref=e155]:
+                                    - link "Scrollable List" [ref=e156] [cursor=pointer]:
+                                        - /url: "#scrollable-list"
+                        - listitem [ref=e157]:
+                            - link "Key inkx Features Used" [ref=e158] [cursor=pointer]:
+                                - /url: "#key-inkx-features-used"
+                        - listitem [ref=e159]:
+                            - link "Exercises" [ref=e160] [cursor=pointer]:
+                                - /url: "#exercises"
+                - heading "What It Demonstrates Permalink to \"What It Demonstrates\"" [level=2] [ref=e161]:
+                    - text: What It Demonstrates
+                    - link "Permalink to \"What It Demonstrates\"" [ref=e162] [cursor=pointer]:
+                        - /url: "#what-it-demonstrates"
+                        - text: "#"
+                - list [ref=e163]:
+                    - listitem [ref=e164]:
+                        - strong [ref=e165]: Multi-pane layouts
+                        - text: using flexbox with
+                        - code [ref=e166]: flexGrow
+                    - listitem [ref=e167]:
+                        - strong [ref=e168]: Responsive breakpoints
+                        - text: that adapt to terminal width
+                    - listitem [ref=e169]:
+                        - strong [ref=e170]:
+                            - code [ref=e171]: useContentRect()
+                            - text: usage
+                        - text: for proportional sizing and text truncation
+                    - listitem [ref=e172]:
+                        - strong [ref=e173]: Nested layout
+                        - text: with borders and padding
+                - heading "Screenshot Permalink to \"Screenshot\"" [level=2] [ref=e174]:
+                    - text: Screenshot
+                    - link "Permalink to \"Screenshot\"" [ref=e175] [cursor=pointer]:
+                        - /url: "#screenshot"
+                        - text: "#"
+                - generic [ref=e176]:
+                    - button "Copy Code" [ref=e177] [cursor=pointer]
+                    - code [ref=e179]:
+                        - generic [ref=e180]: +------------------+---------------------+
+                        - generic [ref=e181]: "| System Stats | Activity Feed |"
+                        - generic [ref=e182]: "| | |"
+                        - generic [ref=e183]: "| CPU: [==== ] | 12:01 User login |"
+                        - generic [ref=e184]: "| Memory: [===== ]| 12:00 Build passed |"
+                        - generic [ref=e185]: "| Disk: [== ]| 11:58 PR #42 merged |"
+                        - generic [ref=e186]: "| | 11:55 Deploy done |"
+                        - generic [ref=e187]: +------------------+---------------------+
+                        - generic [ref=e188]: "| Recent Items |"
+                        - generic [ref=e189]: "| |"
+                        - generic [ref=e190]: "| > project-alpha 2 hours ago |"
+                        - generic [ref=e191]: "| report-q4.pdf Yesterday |"
+                        - generic [ref=e192]: "| config.json 3 days ago |"
+                        - generic [ref=e193]: +----------------------------------------+
+                - heading "Running the Example Permalink to \"Running the Example\"" [level=2] [ref=e194]:
+                    - text: Running the Example
+                    - link "Permalink to \"Running the Example\"" [ref=e195] [cursor=pointer]:
+                        - /url: "#running-the-example"
+                        - text: "#"
+                - generic [ref=e196]:
+                    - button "Copy Code" [ref=e197] [cursor=pointer]
+                    - generic [ref=e198]: bash
+                    - code [ref=e200]:
+                        - generic [ref=e201]: cd inkx
+                        - generic [ref=e202]: bun run examples/dashboard/app.tsx
+                - heading "Full Source Code Permalink to \"Full Source Code\"" [level=2] [ref=e203]:
+                    - text: Full Source Code
+                    - link "Permalink to \"Full Source Code\"" [ref=e204] [cursor=pointer]:
+                        - /url: "#full-source-code"
+                        - text: "#"
+                - generic [ref=e205]:
+                    - generic [ref=e206]:
+                        - radio "app.tsx" [checked]
+                        - generic [ref=e207] [cursor=pointer]: app.tsx
+                    - generic [ref=e209]:
+                        - button "Copy Code" [ref=e210] [cursor=pointer]
+                        - generic [ref=e211]: tsx
+                        - code [ref=e213]:
+                            - generic [ref=e214]: 'import { Box, Text, render, useContentRect, useInput, useApp, createTerm } from "inkx"'
+                            - generic [ref=e215]: 'import { useState } from "react"'
+                            - generic [ref=e216]: // Sample data
+                            - generic [ref=e217]: const stats = [
+                            - generic [ref=e218]: '{ label: "CPU", value: 45 },'
+                            - generic [ref=e219]: '{ label: "Memory", value: 62 },'
+                            - generic [ref=e220]: '{ label: "Disk", value: 28 },'
+                            - generic [ref=e221]: "]"
+                            - generic [ref=e222]: const activities = [
+                            - generic [ref=e223]: '{ time: "12:01", message: "User logged in" },'
+                            - generic [ref=e224]: '{ time: "12:00", message: "Build passed" },'
+                            - generic [ref=e225]: '{ time: "11:58", message: "PR #42 merged" },'
+                            - generic [ref=e226]: '{ time: "11:55", message: "Deploy completed" },'
+                            - generic [ref=e227]: '{ time: "11:50", message: "Tests started" },'
+                            - generic [ref=e228]: "]"
+                            - generic [ref=e229]: const recentItems = [
+                            - generic [ref=e230]: '{ name: "project-alpha", date: "2 hours ago" },'
+                            - generic [ref=e231]: '{ name: "report-q4.pdf", date: "Yesterday" },'
+                            - generic [ref=e232]: '{ name: "config.json", date: "3 days ago" },'
+                            - generic [ref=e233]: '{ name: "notes.md", date: "Last week" },'
+                            - generic [ref=e234]: "]"
+                            - generic [ref=e235]: "function App() {"
+                            - generic [ref=e236]: "const { exit } = useApp()"
+                            - generic [ref=e237]: "useInput((input, key) => {"
+                            - generic [ref=e238]: 'if (input === "q" || key.escape) {'
+                            - generic [ref=e239]: exit()
+                            - generic [ref=e240]: "}"
+                            - generic [ref=e241]: "})"
+                            - generic [ref=e242]: return (
+                            - generic [ref=e243]: <Box flexDirection="column" width="100%" height="100%">
+                            - generic [ref=e244]: <TopSection />
+                            - generic [ref=e245]: <BottomSection />
+                            - generic [ref=e246]: <StatusBar />
+                            - generic [ref=e247]: </Box>
+                            - generic [ref=e248]: )
+                            - generic [ref=e249]: "}"
+                            - generic [ref=e250]: "function TopSection() {"
+                            - generic [ref=e251]: "const { width } = useContentRect()"
+                            - generic [ref=e252]: "// Responsive: stack vertically on narrow terminals"
+                            - generic [ref=e253]: const isNarrow = width < 60
+                            - generic [ref=e254]: return (
+                            - generic [ref=e255]: '<Box flexDirection={isNarrow ? "column" : "row"} flexGrow={1}>'
+                            - generic [ref=e256]: <StatsPane />
+                            - generic [ref=e257]: <ActivityPane />
+                            - generic [ref=e258]: </Box>
+                            - generic [ref=e259]: )
+                            - generic [ref=e260]: "}"
+                            - generic [ref=e261]: "function StatsPane() {"
+                            - generic [ref=e262]: return (
+                            - generic [ref=e263]: '<Box flexDirection="column" flexGrow={1} borderStyle="single" paddingX={1}>'
+                            - generic [ref=e264]: <Text bold>System Stats</Text>
+                            - generic [ref=e265]: <Text> </Text>
+                            - generic [ref=e266]: "{stats.map((stat) => ("
+                            - generic [ref=e267]: "<StatRow key={stat.label} label={stat.label} value={stat.value} />"
+                            - generic [ref=e268]: "))}"
+                            - generic [ref=e269]: </Box>
+                            - generic [ref=e270]: )
+                            - generic [ref=e271]: "}"
+                            - generic [ref=e272]: "function StatRow({ label, value }: { label: string; value: number }) {"
+                            - generic [ref=e273]: "const { width } = useContentRect()"
+                            - generic [ref=e274]: // Calculate bar width based on available space
+                            - generic [ref=e275]: // Account for label (8 chars) + spacing
+                            - generic [ref=e276]: const barWidth = Math.max(0, width - 12)
+                            - generic [ref=e277]: const filledWidth = Math.floor((barWidth * value) / 100)
+                            - generic [ref=e278]: const emptyWidth = barWidth - filledWidth
+                            - generic [ref=e279]: const bar = "=".repeat(filledWidth) + " ".repeat(emptyWidth)
+                            - generic [ref=e280]: return (
+                            - generic [ref=e281]: <Text>
+                            - generic [ref=e282]: "{label.padEnd(8)} [{bar}]"
+                            - generic [ref=e283]: </Text>
+                            - generic [ref=e284]: )
+                            - generic [ref=e285]: "}"
+                            - generic [ref=e286]: "function ActivityPane() {"
+                            - generic [ref=e287]: return (
+                            - generic [ref=e288]: '<Box flexDirection="column" flexGrow={2} borderStyle="single" paddingX={1}>'
+                            - generic [ref=e289]: <Text bold>Activity Feed</Text>
+                            - generic [ref=e290]: <Text> </Text>
+                            - generic [ref=e291]: "{activities.map((activity, i) => ("
+                            - generic [ref=e292]: "<ActivityRow key={i} time={activity.time} message={activity.message} />"
+                            - generic [ref=e293]: "))}"
+                            - generic [ref=e294]: </Box>
+                            - generic [ref=e295]: )
+                            - generic [ref=e296]: "}"
+                            - generic [ref=e297]: "function ActivityRow({ time, message }: { time: string; message: string }) {"
+                            - generic [ref=e298]: "const { width } = useContentRect()"
+                            - generic [ref=e299]: // Truncate message to fit available width
+                            - generic [ref=e300]: const timeWidth = 6 // "12:01 "
+                            - generic [ref=e301]: const maxMessageWidth = Math.max(0, width - timeWidth)
+                            - generic [ref=e302]: 'const truncatedMessage = message.length > maxMessageWidth ? message.slice(0, maxMessageWidth - 1) + "..." : message'
+                            - generic [ref=e303]: return (
+                            - generic [ref=e304]: <Text>
+                            - generic [ref=e305]: "<Text dimColor>{time}</Text> {truncatedMessage}"
+                            - generic [ref=e306]: </Text>
+                            - generic [ref=e307]: )
+                            - generic [ref=e308]: "}"
+                            - generic [ref=e309]: "function BottomSection() {"
+                            - generic [ref=e310]: const [selected, setSelected] = useState(0)
+                            - generic [ref=e311]: "useInput((input, key) => {"
+                            - generic [ref=e312]: "if (key.downArrow) {"
+                            - generic [ref=e313]: setSelected((s) => Math.min(s + 1, recentItems.length - 1))
+                            - generic [ref=e314]: "}"
+                            - generic [ref=e315]: "if (key.upArrow) {"
+                            - generic [ref=e316]: setSelected((s) => Math.max(s - 1, 0))
+                            - generic [ref=e317]: "}"
+                            - generic [ref=e318]: "})"
+                            - generic [ref=e319]: return (
+                            - generic [ref=e320]: '<Box flexDirection="column" height={8} borderStyle="single" paddingX={1}>'
+                            - generic [ref=e321]: <Text bold>Recent Items</Text>
+                            - generic [ref=e322]: <Text> </Text>
+                            - generic [ref=e323]: '<Box flexDirection="column" overflow="scroll" scrollTo={selected}>'
+                            - generic [ref=e324]: "{recentItems.map((item, i) => ("
+                            - generic [ref=e325]: "<RecentItemRow key={item.name} name={item.name} date={item.date} isSelected={i === selected} />"
+                            - generic [ref=e326]: "))}"
+                            - generic [ref=e327]: </Box>
+                            - generic [ref=e328]: </Box>
+                            - generic [ref=e329]: )
+                            - generic [ref=e330]: "}"
+                            - generic [ref=e331]: "function RecentItemRow({ name, date, isSelected }: { name: string; date: string; isSelected: boolean }) {"
+                            - generic [ref=e332]: "const { width } = useContentRect()"
+                            - generic [ref=e333]: // Calculate space for name, leaving room for date
+                            - generic [ref=e334]: const dateWidth = date.length + 2
+                            - generic [ref=e335]: const nameWidth = Math.max(0, width - dateWidth - 2)
+                            - generic [ref=e336]: 'const truncatedName = name.length > nameWidth ? name.slice(0, nameWidth - 1) + "..." : name'
+                            - generic [ref=e337]: const padding = " ".repeat(Math.max(0, nameWidth - truncatedName.length))
+                            - generic [ref=e338]: 'const prefix = isSelected ? "> " : " "'
+                            - generic [ref=e339]: return (
+                            - generic [ref=e340]: "<Text inverse={isSelected}>"
+                            - generic [ref=e341]: "{prefix}"
+                            - generic [ref=e342]: "{truncatedName}"
+                            - generic [ref=e343]: "{padding}"
+                            - generic [ref=e344]: "<Text dimColor>{date}</Text>"
+                            - generic [ref=e345]: </Text>
+                            - generic [ref=e346]: )
+                            - generic [ref=e347]: "}"
+                            - generic [ref=e348]: "function StatusBar() {"
+                            - generic [ref=e349]: return (
+                            - generic [ref=e350]: "<Box paddingX={1}>"
+                            - generic [ref=e351]: <Text dimColor>Press q to quit | Arrow keys to navigate</Text>
+                            - generic [ref=e352]: </Box>
+                            - generic [ref=e353]: )
+                            - generic [ref=e354]: "}"
+                            - generic [ref=e355]: using term = createTerm()
+                            - generic [ref=e356]: await render(<App />, term)
+                - heading "Code Walkthrough Permalink to \"Code Walkthrough\"" [level=2] [ref=e357]:
+                    - text: Code Walkthrough
+                    - link "Permalink to \"Code Walkthrough\"" [ref=e358] [cursor=pointer]:
+                        - /url: "#code-walkthrough"
+                        - text: "#"
+                - heading "Responsive Layout Permalink to \"Responsive Layout\"" [level=3] [ref=e359]:
+                    - text: Responsive Layout
+                    - link "Permalink to \"Responsive Layout\"" [ref=e360] [cursor=pointer]:
+                        - /url: "#responsive-layout"
+                        - text: "#"
+                - paragraph [ref=e361]:
+                    - text: The
+                    - code [ref=e362]: TopSection
+                    - text: component uses
+                    - code [ref=e363]: useContentRect()
+                    - text: "to detect narrow terminals:"
+                - generic [ref=e364]:
+                    - button "Copy Code" [ref=e365] [cursor=pointer]
+                    - generic [ref=e366]: tsx
+                    - code [ref=e368]:
+                        - generic [ref=e369]: "function TopSection() {"
+                        - generic [ref=e370]: "const { width } = useContentRect()"
+                        - generic [ref=e371]: const isNarrow = width < 60
+                        - generic [ref=e372]: return (
+                        - generic [ref=e373]: '<Box flexDirection={isNarrow ? "column" : "row"}>'
+                        - generic [ref=e374]: <StatsPane />
+                        - generic [ref=e375]: <ActivityPane />
+                        - generic [ref=e376]: </Box>
+                        - generic [ref=e377]: )
+                        - generic [ref=e378]: "}"
+                - paragraph [ref=e379]: On narrow terminals (< 60 chars), the stats and activity panes stack vertically instead of side-by-side.
+                - heading "Proportional Sizing Permalink to \"Proportional Sizing\"" [level=3] [ref=e380]:
+                    - text: Proportional Sizing
+                    - link "Permalink to \"Proportional Sizing\"" [ref=e381] [cursor=pointer]:
+                        - /url: "#proportional-sizing"
+                        - text: "#"
+                - paragraph [ref=e382]:
+                    - text: The two top panes use
+                    - code [ref=e383]: flexGrow
+                    - text: "for proportional sizing:"
+                - generic [ref=e384]:
+                    - button "Copy Code" [ref=e385] [cursor=pointer]
+                    - generic [ref=e386]: tsx
+                    - code [ref=e388]:
+                        - generic [ref=e389]: "<StatsPane /> // flexGrow={1} - takes 1/3 of space"
+                        - generic [ref=e390]: "<ActivityPane /> // flexGrow={2} - takes 2/3 of space"
+                - paragraph [ref=e391]: No width calculations needed. Yoga handles the math.
+                - heading "Dynamic Progress Bars Permalink to \"Dynamic Progress Bars\"" [level=3] [ref=e392]:
+                    - text: Dynamic Progress Bars
+                    - link "Permalink to \"Dynamic Progress Bars\"" [ref=e393] [cursor=pointer]:
+                        - /url: "#dynamic-progress-bars"
+                        - text: "#"
+                - paragraph [ref=e394]:
+                    - text: The
+                    - code [ref=e395]: StatRow
+                    - text: "component builds progress bars that fill available space:"
+                - generic [ref=e396]:
+                    - button "Copy Code" [ref=e397] [cursor=pointer]
+                    - generic [ref=e398]: tsx
+                    - code [ref=e400]:
+                        - generic [ref=e401]: "function StatRow({ label, value }: { label: string; value: number }) {"
+                        - generic [ref=e402]: "const { width } = useContentRect()"
+                        - generic [ref=e403]: const barWidth = Math.max(0, width - 12) // Account for label
+                        - generic [ref=e404]: const filledWidth = Math.floor((barWidth * value) / 100)
+                        - generic [ref=e405]: const emptyWidth = barWidth - filledWidth
+                        - generic [ref=e406]: const bar = "=".repeat(filledWidth) + " ".repeat(emptyWidth)
+                        - generic [ref=e407]: return (
+                        - generic [ref=e408]: <Text>
+                        - generic [ref=e409]: "{label.padEnd(8)} [{bar}]"
+                        - generic [ref=e410]: </Text>
+                        - generic [ref=e411]: )
+                        - generic [ref=e412]: "}"
+                - paragraph [ref=e413]: The bar automatically resizes when the terminal is resized.
+                - heading "Text Truncation Permalink to \"Text Truncation\"" [level=3] [ref=e414]:
+                    - text: Text Truncation
+                    - link "Permalink to \"Text Truncation\"" [ref=e415] [cursor=pointer]:
+                        - /url: "#text-truncation"
+                        - text: "#"
+                - paragraph [ref=e416]:
+                    - text: The
+                    - code [ref=e417]: ActivityRow
+                    - text: "component truncates long messages:"
+                - generic [ref=e418]:
+                    - button "Copy Code" [ref=e419] [cursor=pointer]
+                    - generic [ref=e420]: tsx
+                    - code [ref=e422]:
+                        - generic [ref=e423]: "function ActivityRow({ time, message }: { time: string; message: string }) {"
+                        - generic [ref=e424]: "const { width } = useContentRect()"
+                        - generic [ref=e425]: const maxMessageWidth = Math.max(0, width - 6)
+                        - generic [ref=e426]: 'const truncatedMessage = message.length > maxMessageWidth ? message.slice(0, maxMessageWidth - 1) + "..." : message'
+                        - generic [ref=e427]: return (
+                        - generic [ref=e428]: <Text>
+                        - generic [ref=e429]: "<Text dimColor>{time}</Text> {truncatedMessage}"
+                        - generic [ref=e430]: </Text>
+                        - generic [ref=e431]: )
+                        - generic [ref=e432]: "}"
+                - paragraph [ref=e433]: No overflow, no layout bugs.
+                - heading "Scrollable List Permalink to \"Scrollable List\"" [level=3] [ref=e434]:
+                    - text: Scrollable List
+                    - link "Permalink to \"Scrollable List\"" [ref=e435] [cursor=pointer]:
+                        - /url: "#scrollable-list"
+                        - text: "#"
+                - paragraph [ref=e436]:
+                    - text: The "Recent Items" section uses
+                    - code [ref=e437]: overflow="scroll"
+                    - text: ":"
+                - generic [ref=e438]:
+                    - button "Copy Code" [ref=e439] [cursor=pointer]
+                    - generic [ref=e440]: tsx
+                    - code [ref=e442]:
+                        - generic [ref=e443]: '<Box flexDirection="column" overflow="scroll" scrollTo={selected}>'
+                        - generic [ref=e444]: "{recentItems.map((item, i) => ("
+                        - generic [ref=e445]: "<RecentItemRow key={item.name} isSelected={i === selected} /* ... */ />"
+                        - generic [ref=e446]: "))}"
+                        - generic [ref=e447]: </Box>
+                - paragraph [ref=e448]:
+                    - text: Add more items to
+                    - code [ref=e449]: recentItems
+                    - text: and they'll scroll automatically.
+                - heading "Key inkx Features Used Permalink to \"Key inkx Features Used\"" [level=2] [ref=e450]:
+                    - text: Key inkx Features Used
+                    - link "Permalink to \"Key inkx Features Used\"" [ref=e451] [cursor=pointer]:
+                        - /url: "#key-inkx-features-used"
+                        - text: "#"
+                - table [ref=e452]:
+                    - rowgroup [ref=e453]:
+                        - row "Feature Usage" [ref=e454]:
+                            - columnheader "Feature" [ref=e455]
+                            - columnheader "Usage" [ref=e456]
+                    - rowgroup [ref=e457]:
+                        - row "useContentRect() Get dimensions for responsive layout, progress bars, text truncation" [ref=e458]:
+                            - cell "useContentRect()" [ref=e459]:
+                                - code [ref=e460]: useContentRect()
+                            - cell "Get dimensions for responsive layout, progress bars, text truncation" [ref=e461]
+                        - row "overflow=\"scroll\" Scrollable recent items list" [ref=e462]:
+                            - cell "overflow=\"scroll\"" [ref=e463]:
+                                - code [ref=e464]: overflow="scroll"
+                            - cell "Scrollable recent items list" [ref=e465]
+                        - 'row "scrollTo={index} Keep selected item visible" [ref=e466]':
+                            - 'cell "scrollTo={index}" [ref=e467]':
+                                - code [ref=e468]: "scrollTo={index}"
+                            - cell "Keep selected item visible" [ref=e469]
+                        - row "flexGrow Proportional pane sizing" [ref=e470]:
+                            - cell "flexGrow" [ref=e471]:
+                                - code [ref=e472]: flexGrow
+                            - cell "Proportional pane sizing" [ref=e473]
+                        - row "useInput() Keyboard navigation" [ref=e474]:
+                            - cell "useInput()" [ref=e475]:
+                                - code [ref=e476]: useInput()
+                            - cell "Keyboard navigation" [ref=e477]
+                - heading "Exercises Permalink to \"Exercises\"" [level=2] [ref=e478]:
+                    - text: Exercises
+                    - link "Permalink to \"Exercises\"" [ref=e479] [cursor=pointer]:
+                        - /url: "#exercises"
+                        - text: "#"
+                - list [ref=e480]:
+                    - listitem [ref=e481]:
+                        - strong [ref=e482]: Add a third pane
+                        - text: '- Add a "Notifications" pane to the top section'
+                    - listitem [ref=e483]:
+                        - strong [ref=e484]: Make stats scrollable
+                        - text: "- Add more stats and make the stats pane scroll"
+                    - listitem [ref=e485]:
+                        - strong [ref=e486]: Add timestamps
+                        - text: "- Show relative timestamps that update every second"
+                    - listitem [ref=e487]:
+                        - strong [ref=e488]: Add color coding
+                        - text: "- Color progress bars red/yellow/green based on value"
+        - contentinfo [ref=e489]:
+            - navigation "Pager" [ref=e490]:
+                - generic [ref=e491]: Pager
+                - link "Previous page Live Demo" [ref=e493] [cursor=pointer]:
+                    - /url: /inkx/examples/live-demo.html
+                    - generic [ref=e494]: Previous page
+                    - generic [ref=e495]: Live Demo
+                - link "Next page Task List" [ref=e497] [cursor=pointer]:
+                    - /url: /inkx/examples/task-list.html
+                    - generic [ref=e498]: Next page
+                    - generic [ref=e499]: Task List

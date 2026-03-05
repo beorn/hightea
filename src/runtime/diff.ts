@@ -23,7 +23,7 @@ export type DiffMode = "fullscreen" | "inline"
  *
  * @example
  * ```typescript
- * import { diff, layout } from 'inkx/runtime'
+ * import { diff, layout } from '@hightea/term/runtime'
  *
  * const prev = layout(<Text>Hello</Text>, dims)
  * const next = layout(<Text>World</Text>, dims)

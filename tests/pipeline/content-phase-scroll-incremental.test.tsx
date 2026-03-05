@@ -13,7 +13,7 @@
 import React, { useState } from "react"
 import { describe, expect, test } from "vitest"
 import { Box, Text, useInput } from "../../src/index.js"
-import { createRenderer, stripAnsi } from "inkx/testing"
+import { createRenderer, stripAnsi } from "@hightea/term/testing"
 
 describe("Scroll container incremental rendering", () => {
   const render = createRenderer({ cols: 40, rows: 20 })

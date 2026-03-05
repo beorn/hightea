@@ -6,7 +6,7 @@
  *
  * @example
  * ```tsx
- * import { renderToCanvas, Box, Text, useContentRect } from 'inkx/canvas';
+ * import { renderToCanvas, Box, Text, useContentRect } from '@hightea/term/canvas';
  *
  * function App() {
  *   const { width, height } = useContentRect();

@@ -7,7 +7,7 @@
  *
  * @example
  * ```tsx
- * import { ThemeProvider, defaultDarkTheme } from 'inkx'
+ * import { ThemeProvider, defaultDarkTheme } from '@hightea/term'
  *
  * <ThemeProvider theme={defaultDarkTheme}>
  *   <App />
@@ -16,7 +16,7 @@
  */
 
 import React, { createContext, useContext } from "react"
-import { defaultDarkTheme, setActiveTheme, type Theme } from "themex"
+import { defaultDarkTheme, setActiveTheme, type Theme } from "swatch"
 
 // ============================================================================
 // Context

@@ -12,7 +12,7 @@
  *
  * @example
  * ```tsx
- * import { renderToDOM, Box, Text, useContentRect } from 'inkx/dom';
+ * import { renderToDOM, Box, Text, useContentRect } from '@hightea/term/dom';
  *
  * function App() {
  *   const { width, height } = useContentRect();

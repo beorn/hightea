@@ -8,8 +8,8 @@
  * Fix: skip zero-height children from hidden counts entirely.
  */
 import { describe, test, expect } from "vitest"
-import { createRenderer } from "inkx/testing"
-import { Box, Text, VirtualList } from "inkx"
+import { createRenderer } from "@hightea/term/testing"
+import { Box, Text, VirtualList } from "@hightea/term"
 import React from "react"
 
 describe("overflow indicator: no spurious ▲ for zero-height children", () => {

@@ -9,7 +9,7 @@
  *
  * @example
  * ```tsx
- * import { Transform, Text } from 'inkx'
+ * import { Transform, Text } from '@hightea/term'
  *
  * // Uppercase all text
  * <Transform transform={output => output.toUpperCase()}>

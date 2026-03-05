@@ -17,7 +17,7 @@ import { Suspense, startTransition, useCallback, useDeferredValue, useState } fr
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
 import { Box, Text } from "../src/index.js"
 import { run, useInput } from "../src/runtime/run.tsx"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 const render = createRenderer({ cols: 60, rows: 20 })
 

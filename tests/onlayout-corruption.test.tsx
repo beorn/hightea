@@ -48,11 +48,11 @@
 import React, { useState, act } from "react"
 import { describe, expect, it } from "vitest"
 import { Box, Text, useContentRect, type Rect } from "../src/index.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 import { reconciler, createContainer, createFiberRoot, getContainerRoot } from "../src/reconciler.js"
 import { executeRender } from "../src/pipeline/index.js"
 import { StdoutContext, TermContext } from "../src/context.js"
-import { createTerm } from "chalkx"
+import { createTerm } from "@hightea/chalk"
 import { bufferToText, cellEquals } from "../src/buffer.js"
 
 const render = createRenderer({ cols: 60, rows: 20 })

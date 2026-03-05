@@ -11,7 +11,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react"
 import { describe, expect, test } from "vitest"
 import { Box, Text, TextInput, ScrollbackList } from "../src/index.js"
-import { createRenderer, stripAnsi } from "inkx/testing"
+import { createRenderer, stripAnsi } from "@hightea/term/testing"
 import { createTerminalFixture } from "@termless/test"
 
 // ============================================================================

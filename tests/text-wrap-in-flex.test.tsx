@@ -5,7 +5,7 @@
  * the row and parent containers don't grow to accommodate the extra lines.
  */
 import { describe, expect, test } from "vitest"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 import React from "react"
 
 const { Box, Text } = await import("../src/index.js")

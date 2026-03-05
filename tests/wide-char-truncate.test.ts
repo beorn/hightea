@@ -15,7 +15,7 @@ import { createElement } from "react"
 import { describe, expect, test } from "vitest"
 import { TerminalBuffer } from "../src/buffer.js"
 import { Box, Text } from "../src/index.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 import {
   displayWidth,
   ensureEmojiPresentation,

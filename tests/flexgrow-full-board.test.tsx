@@ -3,7 +3,7 @@
  */
 import { describe, expect, test } from "vitest"
 import { Box, Text } from "../src/index.js"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 describe("flexGrow full board simulation", () => {
   test("complete board structure with COLUMNS VIEW", () => {

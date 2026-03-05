@@ -30,7 +30,7 @@ let connected = false
  *
  * @example
  * ```ts
- * import { connectDevTools } from 'inkx';
+ * import { connectDevTools } from '@hightea/term';
  * await connectDevTools();
  * // Now open React DevTools standalone to inspect the component tree
  * ```

@@ -5,8 +5,8 @@
  * clears col X+1 → bufferToAnsi cursor drifts. Verified by INKX_STRICT_OUTPUT.
  */
 import { describe, test, expect } from "vitest"
-import { createRenderer } from "inkx/testing"
-import { Box, Text, TerminalBuffer } from "inkx"
+import { createRenderer } from "@hightea/term/testing"
+import { Box, Text, TerminalBuffer } from "@hightea/term"
 
 describe("CJK wide character rendering", () => {
   test("wide char has continuation cell in adjacent column layout", async () => {

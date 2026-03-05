@@ -13,7 +13,7 @@
  * @example
  * ```tsx
  * import { readFileSync } from "fs"
- * import { Image } from "inkx"
+ * import { Image } from "@hightea/term"
  *
  * const png = readFileSync("photo.png")
  * <Image src={png} width={40} height={20} />

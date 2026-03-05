@@ -24,7 +24,7 @@ import {
 import { executeRender } from "./pipeline.js"
 import { createContainer, createFiberRoot, getContainerRoot, reconciler } from "./reconciler.js"
 
-import { createTerm } from "chalkx"
+import { createTerm } from "@hightea/chalk"
 import { bufferToText } from "./buffer.js"
 import { buildMismatchContext, formatMismatchContext } from "./debug-mismatch.js"
 import { createCursorStore, CursorProvider } from "./hooks/useCursor.js"

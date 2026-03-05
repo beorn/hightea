@@ -12,7 +12,7 @@
  *
  * @example
  * ```ts
- * import { cursorToRowCol, cursorMoveDown } from 'inkx'
+ * import { cursorToRowCol, cursorMoveDown } from '@hightea/term'
  *
  * const { row, col } = cursorToRowCol("hello world", 5, 8)
  * // row=0, col=5 (fits in 8-wide line)

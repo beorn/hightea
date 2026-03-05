@@ -5,7 +5,7 @@
 import React, { useEffect } from "react"
 import { describe, expect, test } from "vitest"
 import { Text, ScrollbackList, useScrollbackItem, OSC133 } from "../src/index.js"
-import { createRenderer, stripAnsi } from "inkx/testing"
+import { createRenderer, stripAnsi } from "@hightea/term/testing"
 
 // ============================================================================
 // Types & Helpers

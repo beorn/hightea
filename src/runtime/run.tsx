@@ -7,7 +7,7 @@
  *
  * @example
  * ```tsx
- * import { run, useInput } from 'inkx/runtime'
+ * import { run, useInput } from '@hightea/term/runtime'
  *
  * function Counter() {
  *   const [count, setCount] = useState(0)
@@ -28,7 +28,7 @@
 import process from "node:process"
 import { createContext, useContext, useEffect, type ReactElement } from "react"
 
-import { createTerm } from "chalkx"
+import { createTerm } from "@hightea/chalk"
 import {
   FocusManagerContext,
   RuntimeContext,

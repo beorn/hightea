@@ -9,7 +9,7 @@
  *
  * @example
  * ```tsx
- * import { HorizontalVirtualList } from 'inkx';
+ * import { HorizontalVirtualList } from '@hightea/term';
  *
  * <HorizontalVirtualList
  *   items={columns}

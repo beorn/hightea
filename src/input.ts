@@ -5,7 +5,7 @@
  * OSC 52 clipboard, and key parsing utilities.
  *
  * ```tsx
- * import { parseMouseSequence, enableKittyKeyboard, copyToClipboard } from 'inkx/input'
+ * import { parseMouseSequence, enableKittyKeyboard, copyToClipboard } from '@hightea/term/input'
  * ```
  *
  * @packageDocumentation

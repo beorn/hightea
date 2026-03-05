@@ -1,0 +1,310 @@
+- generic [ref=e3]:
+    - link "Skip to content" [ref=e4] [cursor=pointer]:
+        - /url: "#VPContent"
+    - banner:
+        - generic:
+            - generic:
+                - generic:
+                    - link "inkx" [ref=e6] [cursor=pointer]:
+                        - /url: /inkx/
+                        - generic [ref=e7]: inkx
+                    - generic [ref=e8]:
+                        - button "Search" [ref=e11] [cursor=pointer]:
+                            - generic [ref=e14]: Search
+                            - generic [ref=e15]:
+                                - generic [ref=e16]: ⌘
+                                - generic [ref=e17]: K
+                        - navigation "Main Navigation" [ref=e18]:
+                            - generic [ref=e19]: Main Navigation
+                            - link "Guide" [ref=e20] [cursor=pointer]:
+                                - /url: /inkx/guide/getting-started.html
+                                - generic [ref=e21]: Guide
+                            - link "API" [ref=e22] [cursor=pointer]:
+                                - /url: /inkx/api/box.html
+                                - generic [ref=e23]: API
+                            - button "Examples" [ref=e25] [cursor=pointer]:
+                                - generic [ref=e27]: Examples
+                            - button "Links" [ref=e30] [cursor=pointer]:
+                                - generic [ref=e32]: Links
+                        - switch [ref=e35] [cursor=pointer]
+                        - link "github" [ref=e41] [cursor=pointer]:
+                            - /url: https://github.com/beorn/inkx
+    - complementary [ref=e43]:
+        - navigation "Sidebar Navigation" [ref=e45]:
+            - generic [ref=e46]: Sidebar Navigation
+            - generic [ref=e48]:
+                - button "Examples toggle section" [ref=e49] [cursor=pointer]:
+                    - heading "Examples" [level=2] [ref=e51]
+                    - button "toggle section" [ref=e52]
+                - generic [ref=e54]:
+                    - link "Live Demo" [ref=e58] [cursor=pointer]:
+                        - /url: /inkx/examples/live-demo.html
+                        - paragraph [ref=e59]: Live Demo
+                    - link "Dashboard" [ref=e63] [cursor=pointer]:
+                        - /url: /inkx/examples/dashboard.html
+                        - paragraph [ref=e64]: Dashboard
+                    - link "Task List" [ref=e68] [cursor=pointer]:
+                        - /url: /inkx/examples/task-list.html
+                        - paragraph [ref=e69]: Task List
+                    - link "Kanban Board" [ref=e73] [cursor=pointer]:
+                        - /url: /inkx/examples/kanban.html
+                        - paragraph [ref=e74]: Kanban Board
+            - generic [ref=e76]:
+                - button "Use Cases" [ref=e77]:
+                    - heading "Use Cases" [level=2] [ref=e79]
+                - generic [ref=e80]:
+                    - link "AI Assistants & Chat" [ref=e84] [cursor=pointer]:
+                        - /url: /inkx/use-cases/ai-assistants.html
+                        - paragraph [ref=e85]: AI Assistants & Chat
+                    - link "Dashboards & Monitoring" [ref=e89] [cursor=pointer]:
+                        - /url: /inkx/use-cases/dashboards.html
+                        - paragraph [ref=e90]: Dashboards & Monitoring
+                    - link "Kanban & Project Boards" [ref=e94] [cursor=pointer]:
+                        - /url: /inkx/use-cases/kanban-boards.html
+                        - paragraph [ref=e95]: Kanban & Project Boards
+                    - link "CLI Wizards & Setup" [ref=e99] [cursor=pointer]:
+                        - /url: /inkx/use-cases/cli-wizards.html
+                        - paragraph [ref=e100]: CLI Wizards & Setup
+                    - link "Developer Tools" [ref=e104] [cursor=pointer]:
+                        - /url: /inkx/use-cases/developer-tools.html
+                        - paragraph [ref=e105]: Developer Tools
+                    - link "Data Explorers & Tables" [ref=e109] [cursor=pointer]:
+                        - /url: /inkx/use-cases/data-explorers.html
+                        - paragraph [ref=e110]: Data Explorers & Tables
+    - generic [ref=e121]:
+        - main [ref=e122]:
+            - generic [ref=e124]:
+                - heading "Dashboards & Monitoring Permalink to \"Dashboards & Monitoring\"" [level=1] [ref=e125]:
+                    - text: Dashboards & Monitoring
+                    - link "Permalink to \"Dashboards & Monitoring\"" [ref=e126] [cursor=pointer]:
+                        - /url: "#dashboards-monitoring"
+                        - text: "#"
+                - paragraph [ref=e127]: Terminal dashboards are one of the most natural fits for inkx. A dashboard is a set of panels competing for screen space, each displaying different data that updates at different rates. The hard part is making panels responsive to the terminal size, updating frequently without flicker, and keeping the layout consistent across different terminal widths.
+                - paragraph [ref=e128]: inkx solves all three problems out of the box. Components query their own dimensions, the incremental renderer only repaints changed cells, and flexbox layout handles the space allocation.
+                - heading "Key Benefits Permalink to \"Key Benefits\"" [level=2] [ref=e129]:
+                    - text: Key Benefits
+                    - link "Permalink to \"Key Benefits\"" [ref=e130] [cursor=pointer]:
+                        - /url: "#key-benefits"
+                        - text: "#"
+                - list [ref=e131]:
+                    - listitem [ref=e132]:
+                        - paragraph [ref=e133]:
+                            - strong [ref=e134]: Layout feedback
+                            - text: "--"
+                            - code [ref=e135]: useContentRect()
+                            - text: gives each panel its computed dimensions. Progress bars, sparklines, and data tables size themselves to fill available space. No manual width calculations, no prop threading.
+                    - listitem [ref=e136]:
+                        - paragraph [ref=e137]:
+                            - strong [ref=e138]: Multi-pane layouts
+                            - text: "-- Flexbox via"
+                            - code [ref=e139]: Box
+                            - text: with
+                            - code [ref=e140]: flexDirection
+                            - text: ","
+                            - code [ref=e141]: flexGrow
+                            - text: ", and percentage widths lets you compose arbitrary panel arrangements. Nest layouts freely: a sidebar next to a main area, each containing stacked sub-panels."
+                    - listitem [ref=e142]:
+                        - paragraph [ref=e143]:
+                            - strong [ref=e144]: Real-time updates
+                            - text: "-- inkx's incremental renderer tracks dirty flags per node. When one metric changes in a 1000-node dashboard, only that cell repaints — 169us per update vs 20.7ms for a full re-render ("
+                            - link "benchmarks" [ref=e145] [cursor=pointer]:
+                                - /url: /inkx/guide/why-inkx.html#performance
+                            - text: ). Smooth 30fps data refreshes without saturating the terminal.
+                    - listitem [ref=e146]:
+                        - paragraph [ref=e147]:
+                            - strong [ref=e148]: Theming
+                            - text: "--"
+                            - code [ref=e149]: ThemeProvider
+                            - text: with semantic
+                            - code [ref=e150]: $token
+                            - text: colors (
+                            - code [ref=e151]: $primary
+                            - text: ","
+                            - code [ref=e152]: $success
+                            - text: ","
+                            - code [ref=e153]: $error
+                            - text: ","
+                            - code [ref=e154]: $muted
+                            - text: ","
+                            - code [ref=e155]: $border
+                            - text: ) gives your dashboard a consistent look. Switch between
+                            - code [ref=e156]: defaultDarkTheme
+                            - text: and
+                            - code [ref=e157]: defaultLightTheme
+                            - text: or define custom palettes.
+                    - listitem [ref=e158]:
+                        - paragraph [ref=e159]:
+                            - strong [ref=e160]: Scrollback buffer
+                            - text: "-- Log panels and event feeds grow over time."
+                            - code [ref=e161]: overflow="scroll"
+                            - text: "containers handle this natively: content accumulates, the viewport follows the latest entry, and users can scroll back through full history. No manual ring buffer or viewport tracking."
+                    - listitem [ref=e162]:
+                        - paragraph [ref=e163]:
+                            - strong [ref=e164]: Synchronized output
+                            - text: "-- DEC 2026 synchronized updates wrap each frame in atomic begin/end markers. Terminals that support the protocol (tmux, Zellij, Ghostty, WezTerm, kitty) paint the entire frame at once, eliminating the partial-repaint flicker that plagues fast-updating dashboards."
+                - heading "Code Example Permalink to \"Code Example\"" [level=2] [ref=e165]:
+                    - text: Code Example
+                    - link "Permalink to \"Code Example\"" [ref=e166] [cursor=pointer]:
+                        - /url: "#code-example"
+                        - text: "#"
+                - paragraph [ref=e167]: A complete multi-pane dashboard with responsive layout, live-updating metrics, and progress bars that resize to fill available space.
+                - generic [ref=e168]:
+                    - button "Copy Code" [ref=e169] [cursor=pointer]
+                    - generic [ref=e170]: tsx
+                    - code [ref=e172]:
+                        - generic [ref=e173]: 'import { Box, Text, useContentRect, ThemeProvider, defaultDarkTheme } from "inkx"'
+                        - generic [ref=e174]: 'import { run, useInput, type Key } from "inkx/runtime"'
+                        - generic [ref=e175]: 'import { useInterval } from "inkx"'
+                        - generic [ref=e176]: 'import { useState } from "react"'
+                        - generic [ref=e177]: "function App() {"
+                        - generic [ref=e178]: "useInput((input: string, key: Key) => {"
+                        - generic [ref=e179]: if (input === "q" || key.escape) return "exit"
+                        - generic [ref=e180]: "})"
+                        - generic [ref=e181]: return (
+                        - generic [ref=e182]: "<ThemeProvider theme={defaultDarkTheme}>"
+                        - generic [ref=e183]: <Box flexDirection="column" width="100%" height="100%">
+                        - generic [ref=e184]: <TopPanels />
+                        - generic [ref=e185]: <LogPanel />
+                        - generic [ref=e186]: <StatusBar />
+                        - generic [ref=e187]: </Box>
+                        - generic [ref=e188]: </ThemeProvider>
+                        - generic [ref=e189]: )
+                        - generic [ref=e190]: "}"
+                        - generic [ref=e191]: "function TopPanels() {"
+                        - generic [ref=e192]: "const { width } = useContentRect()"
+                        - generic [ref=e193]: const isNarrow = width < 60
+                        - generic [ref=e194]: return (
+                        - generic [ref=e195]: '<Box flexDirection={isNarrow ? "column" : "row"} flexGrow={1}>'
+                        - generic [ref=e196]: <MetricsPanel />
+                        - generic [ref=e197]: <EventsPanel />
+                        - generic [ref=e198]: </Box>
+                        - generic [ref=e199]: )
+                        - generic [ref=e200]: "}"
+                        - generic [ref=e201]: "function MetricsPanel() {"
+                        - generic [ref=e202]: const [metrics, setMetrics] = useState([
+                        - generic [ref=e203]: '{ label: "CPU", value: 42 },'
+                        - generic [ref=e204]: '{ label: "Memory", value: 67 },'
+                        - generic [ref=e205]: '{ label: "Disk", value: 23 },'
+                        - generic [ref=e206]: '{ label: "Network", value: 15 },'
+                        - generic [ref=e207]: "])"
+                        - generic [ref=e208]: "useInterval(() => {"
+                        - generic [ref=e209]: setMetrics((prev) =>
+                        - generic [ref=e210]: "prev.map((m) => ({"
+                        - generic [ref=e211]: ...m,
+                        - generic [ref=e212]: "value: Math.max(0, Math.min(100, m.value + Math.floor(Math.random() * 11) - 5)),"
+                        - generic [ref=e213]: "})),"
+                        - generic [ref=e214]: )
+                        - generic [ref=e215]: "}, 1000)"
+                        - generic [ref=e216]: return (
+                        - generic [ref=e217]: '<Box flexDirection="column" flexGrow={1} borderStyle="single" borderColor="$border" paddingX={1}>'
+                        - generic [ref=e218]: <Text bold color="$primary">
+                        - generic [ref=e219]: System Metrics
+                        - generic [ref=e220]: </Text>
+                        - generic [ref=e221]: <Text> </Text>
+                        - generic [ref=e222]: "{metrics.map((m) => ("
+                        - generic [ref=e223]: "<MetricBar key={m.label} label={m.label} value={m.value} />"
+                        - generic [ref=e224]: "))}"
+                        - generic [ref=e225]: </Box>
+                        - generic [ref=e226]: )
+                        - generic [ref=e227]: "}"
+                        - generic [ref=e228]: "function MetricBar({ label, value }: { label: string; value: number }) {"
+                        - generic [ref=e229]: "const { width } = useContentRect()"
+                        - generic [ref=e230]: const barWidth = Math.max(0, width - 16)
+                        - generic [ref=e231]: const filled = Math.floor((barWidth * value) / 100)
+                        - generic [ref=e232]: const empty = barWidth - filled
+                        - generic [ref=e233]: 'const color = value > 80 ? "$error" : value > 60 ? "$warning" : "$success"'
+                        - generic [ref=e234]: return (
+                        - generic [ref=e235]: <Text>
+                        - generic [ref=e236]: '{label.padEnd(8)} <Text color={color}>{"█".repeat(filled)}</Text>'
+                        - generic [ref=e237]: '<Text color="$muted">{"░".repeat(empty)}</Text>'
+                        - generic [ref=e238]: "<Text> {String(value).padStart(3)}%</Text>"
+                        - generic [ref=e239]: </Text>
+                        - generic [ref=e240]: )
+                        - generic [ref=e241]: "}"
+                        - generic [ref=e242]: "function EventsPanel() {"
+                        - generic [ref=e243]: const [events, setEvents] = useState([
+                        - generic [ref=e244]: '{ time: "14:32", msg: "Deploy v2.4.1 complete" },'
+                        - generic [ref=e245]: '{ time: "14:30", msg: "Health check passed" },'
+                        - generic [ref=e246]: '{ time: "14:28", msg: "Build #847 succeeded" },'
+                        - generic [ref=e247]: '{ time: "14:25", msg: "PR #192 merged" },'
+                        - generic [ref=e248]: "])"
+                        - generic [ref=e249]: "useInterval(() => {"
+                        - generic [ref=e250]: const now = new Date()
+                        - generic [ref=e251]: 'const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, "0")}`'
+                        - generic [ref=e252]: const msgs = ["Request spike detected", "Cache cleared", "Backup complete", "New deploy queued"]
+                        - generic [ref=e253]: const msg = msgs[Math.floor(Math.random() * msgs.length)]
+                        - generic [ref=e254]: "setEvents((prev) => [{ time, msg }, ...prev.slice(0, 7)])"
+                        - generic [ref=e255]: "}, 3000)"
+                        - generic [ref=e256]: return (
+                        - generic [ref=e257]: '<Box flexDirection="column" flexGrow={2} borderStyle="single" borderColor="$border" paddingX={1}>'
+                        - generic [ref=e258]: <Text bold color="$primary">
+                        - generic [ref=e259]: Events
+                        - generic [ref=e260]: </Text>
+                        - generic [ref=e261]: <Text> </Text>
+                        - generic [ref=e262]: "{events.map((e, i) => ("
+                        - generic [ref=e263]: "<Text key={i}>"
+                        - generic [ref=e264]: '<Text color="$muted">{e.time}</Text> {e.msg}'
+                        - generic [ref=e265]: </Text>
+                        - generic [ref=e266]: "))}"
+                        - generic [ref=e267]: </Box>
+                        - generic [ref=e268]: )
+                        - generic [ref=e269]: "}"
+                        - generic [ref=e270]: "function LogPanel() {"
+                        - generic [ref=e271]: const [logs] = useState([
+                        - generic [ref=e272]: '"[INFO] Server listening on :8080",'
+                        - generic [ref=e273]: '"[INFO] Connected to database",'
+                        - generic [ref=e274]: '"[WARN] Slow query detected (420ms)",'
+                        - generic [ref=e275]: '"[INFO] Cache warmed: 1,247 entries",'
+                        - generic [ref=e276]: "])"
+                        - generic [ref=e277]: return (
+                        - generic [ref=e278]: '<Box flexDirection="column" height={6} borderStyle="single" borderColor="$border" paddingX={1}>'
+                        - generic [ref=e279]: <Text bold color="$primary">
+                        - generic [ref=e280]: Logs
+                        - generic [ref=e281]: </Text>
+                        - generic [ref=e282]: "{logs.map((line, i) => ("
+                        - generic [ref=e283]: '<Text key={i} color={line.includes("[WARN]") ? "$warning" : "$muted"}>'
+                        - generic [ref=e284]: "{line}"
+                        - generic [ref=e285]: </Text>
+                        - generic [ref=e286]: "))}"
+                        - generic [ref=e287]: </Box>
+                        - generic [ref=e288]: )
+                        - generic [ref=e289]: "}"
+                        - generic [ref=e290]: "function StatusBar() {"
+                        - generic [ref=e291]: return (
+                        - generic [ref=e292]: "<Box paddingX={1}>"
+                        - generic [ref=e293]: <Text color="$muted">Press q to quit</Text>
+                        - generic [ref=e294]: </Box>
+                        - generic [ref=e295]: )
+                        - generic [ref=e296]: "}"
+                        - generic [ref=e297]: await run(<App />)
+                - heading "What inkx Adds Permalink to \"What inkx Adds\"" [level=2] [ref=e298]:
+                    - text: What inkx Adds
+                    - link "Permalink to \"What inkx Adds\"" [ref=e299] [cursor=pointer]:
+                        - /url: "#what-inkx-adds"
+                        - text: "#"
+                - paragraph [ref=e300]:
+                    - text: Traditional TUI frameworks require manual width calculations for responsive panels. inkx's layout feedback lets components query their own dimensions — size progress bars, truncate text, and set responsive breakpoints without prop threading. The theming system provides consistent color tokens. Incremental rendering (200x+ faster than full-screen rewrites —
+                    - link "benchmarks" [ref=e301] [cursor=pointer]:
+                        - /url: /inkx/guide/why-inkx.html#performance
+                    - text: ) eliminates visible flicker in dashboards that update multiple times per second. And synchronized output ensures multiplexers like tmux show complete frames.
+                - heading "Get Started Permalink to \"Get Started\"" [level=2] [ref=e302]:
+                    - text: Get Started
+                    - link "Permalink to \"Get Started\"" [ref=e303] [cursor=pointer]:
+                        - /url: "#get-started"
+                        - text: "#"
+                - paragraph [ref=e304]:
+                    - text: Ready to build your own dashboard? Follow the
+                    - link "Getting Started guide" [ref=e305] [cursor=pointer]:
+                        - /url: /inkx/guide/getting-started.html
+                    - text: to install inkx and render your first component, then come back here and adapt the example above.
+        - contentinfo [ref=e306]:
+            - navigation "Pager" [ref=e307]:
+                - generic [ref=e308]: Pager
+                - link "Previous page AI Assistants & Chat" [ref=e310] [cursor=pointer]:
+                    - /url: /inkx/use-cases/ai-assistants.html
+                    - generic [ref=e311]: Previous page
+                    - generic [ref=e312]: AI Assistants & Chat
+                - link "Next page Kanban & Project Boards" [ref=e314] [cursor=pointer]:
+                    - /url: /inkx/use-cases/kanban-boards.html
+                    - generic [ref=e315]: Next page
+                    - generic [ref=e316]: Kanban & Project Boards

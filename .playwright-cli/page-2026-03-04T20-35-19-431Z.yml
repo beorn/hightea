@@ -1,0 +1,268 @@
+- generic [ref=e3]:
+    - link "Skip to content" [ref=e4] [cursor=pointer]:
+        - /url: "#VPContent"
+    - banner:
+        - generic:
+            - generic:
+                - generic:
+                    - link "termless" [ref=e6] [cursor=pointer]:
+                        - /url: /termless/
+                        - generic [ref=e7]: termless
+                    - generic [ref=e8]:
+                        - button "Search" [ref=e11] [cursor=pointer]:
+                            - generic [ref=e14]: Search
+                            - generic [ref=e15]:
+                                - generic [ref=e16]: ⌘
+                                - generic [ref=e17]: K
+                        - navigation "Main Navigation" [ref=e18]:
+                            - generic [ref=e19]: Main Navigation
+                            - link "Guide" [ref=e20] [cursor=pointer]:
+                                - /url: /termless/guide/getting-started.html
+                                - generic [ref=e21]: Guide
+                            - link "API" [ref=e22] [cursor=pointer]:
+                                - /url: /termless/api/terminal.html
+                                - generic [ref=e23]: API
+                            - button "Advanced" [ref=e25] [cursor=pointer]:
+                                - generic [ref=e27]: Advanced
+                            - button "Links" [ref=e30] [cursor=pointer]:
+                                - generic [ref=e32]: Links
+                        - switch "Switch to dark theme" [ref=e35] [cursor=pointer]
+                        - link "github" [ref=e41] [cursor=pointer]:
+                            - /url: https://github.com/beorn/termless
+    - generic [ref=e44]:
+        - generic [ref=e47]:
+            - heading "termless Headless terminal testing" [level=1] [ref=e48]:
+                - generic [ref=e49]: termless
+                - generic [ref=e50]: Headless terminal testing
+            - paragraph [ref=e51]: Like Playwright, but for terminal apps. Write tests once, run against any backend. ~1ms per test.
+            - generic [ref=e52]:
+                - link "Get Started" [ref=e54] [cursor=pointer]:
+                    - /url: /termless/guide/getting-started.html
+                - link "View on GitHub" [ref=e56] [cursor=pointer]:
+                    - /url: https://github.com/beorn/termless
+        - generic [ref=e59]:
+            - article [ref=e62]:
+                - generic [ref=e63]: 🔍
+                - heading "Terminal Internals" [level=2] [ref=e64]
+                - paragraph [ref=e65]: Access scrollback, cursor state, cell colors, terminal modes, alt screen, resize behavior — everything that's invisible to string matching.
+            - article [ref=e68]:
+                - generic [ref=e69]: 🌐
+                - heading "Cross-Terminal Conformance" [level=2] [ref=e70]
+                - paragraph [ref=e71]: Run the same tests against 6 backends. Find where xterm.js and Ghostty disagree on emoji width, color palettes, key encoding, and scroll behavior.
+            - article [ref=e74]:
+                - generic [ref=e75]: ⚡
+                - heading "Fast" [level=2] [ref=e76]
+                - paragraph [ref=e77]: Pure in-process terminal emulation. ~1ms per test, not ~100ms. No Chromium, no subprocesses, no flakiness.
+            - article [ref=e80]:
+                - generic [ref=e81]: 🔍
+                - heading "Composable Selectors" [level=2] [ref=e82]
+                - paragraph [ref=e83]: screen, scrollback, buffer, viewport, row, cell, range. Separate WHERE to look from WHAT to assert. 21+ matchers for text, style, cursor, modes.
+            - article [ref=e86]:
+                - generic [ref=e87]: 🖼️
+                - heading "SVG Screenshots" [level=2] [ref=e88]
+                - paragraph [ref=e89]: Generate terminal screenshots as SVG. No Chromium, no native dependencies. Colors, bold, italic, cursor — all rendered.
+            - article [ref=e92]:
+                - generic [ref=e93]: 🔧
+                - heading "CLI + MCP" [level=2] [ref=e94]
+                - paragraph [ref=e95]: termless capture for scripts, termless mcp for AI agents. Automate terminal interaction from the command line.
+        - generic [ref=e98]:
+            - heading "Quick Start Permalink to \"Quick Start\"" [level=2] [ref=e99]:
+                - text: Quick Start
+                - link "Permalink to \"Quick Start\"" [ref=e100] [cursor=pointer]:
+                    - /url: "#quick-start"
+                    - text: "#"
+            - generic [ref=e101]:
+                - button "Copy Code" [ref=e102] [cursor=pointer]
+                - generic [ref=e103]: bash
+                - code [ref=e105]:
+                    - generic [ref=e106]: bun add -d @termless/test
+            - generic [ref=e107]:
+                - button "Copy Code" [ref=e108] [cursor=pointer]
+                - generic [ref=e109]: typescript
+                - code [ref=e111]:
+                    - generic [ref=e112]: 'import { test, expect } from "vitest"'
+                    - generic [ref=e113]: 'import { createTerminalFixture } from "@termless/test"'
+                    - generic [ref=e114]: // ANSI helpers — real apps use inkx or chalk, these are just for test data
+                    - generic [ref=e115]: "const BOLD = (s: string) => `\\x1b[1m${s}\\x1b[0m`"
+                    - generic [ref=e116]: "const GREEN = (s: string) => `\\x1b[38;2;0;255;0m${s}\\x1b[0m`"
+                    - generic [ref=e117]: 'test("inspect what string matching can''t see", () => {'
+                    - generic [ref=e118]: "const term = createTerminalFixture({ cols: 40, rows: 3 })"
+                    - generic [ref=e119]: // Simulate a build pipeline — 4 lines overflow a 3-row terminal
+                    - generic [ref=e120]: "term.feed(\"Step 1: install\\r\\n\")"
+                    - generic [ref=e121]: "term.feed(`Step 2: ${GREEN(\"build ok\")}\\r\\n`)"
+                    - generic [ref=e122]: "term.feed(`Step 3: ${BOLD(\"test\")}\\r\\n`)"
+                    - generic [ref=e123]: 'term.feed("Step 4: deploy")'
+                    - generic [ref=e124]: // Region selectors — screen, scrollback, buffer
+                    - generic [ref=e125]: expect(term.scrollback).toContainText("install") // scrolled off, still in history
+                    - generic [ref=e126]: expect(term.screen).toContainText("deploy") // visible area
+                    - generic [ref=e127]: expect(term.buffer).toContainText("install") // everything (scrollback + screen)
+                    - generic [ref=e128]: 'expect(term.row(0)).toHaveText("Step 2: build ok") // specific row'
+                    - generic [ref=e129]: // Cell styles — colors that getText() can't see
+                    - generic [ref=e130]: expect(term.cell(0, 8)).toHaveFg("#00ff00") // "build ok" is green
+                    - generic [ref=e131]: expect(term.cell(1, 8)).toBeBold() // "test" is bold
+                    - generic [ref=e132]: // Scroll up, then assert on viewport
+                    - generic [ref=e133]: term.backend.scrollViewport(1)
+                    - generic [ref=e134]: expect(term.viewport).toContainText("install")
+                    - generic [ref=e135]: // Resize — verify content survives
+                    - generic [ref=e136]: term.resize(20, 3)
+                    - generic [ref=e137]: expect(term.screen).toContainText("deploy")
+                    - generic [ref=e138]: "})"
+            - heading "Why Not Just Assert on Strings? Permalink to \"Why Not Just Assert on Strings?\"" [level=2] [ref=e139]:
+                - text: Why Not Just Assert on Strings?
+                - link "Permalink to \"Why Not Just Assert on Strings?\"" [ref=e140] [cursor=pointer]:
+                    - /url: "#why-not-just-assert-on-strings"
+                    - text: "#"
+            - paragraph [ref=e141]: "String assertions on terminal output break constantly:"
+            - list [ref=e142]:
+                - listitem [ref=e143]:
+                    - strong [ref=e144]: ANSI codes
+                    - text: make string matching fragile (
+                    - code [ref=e145]: \x1b[1m
+                    - text: litters your test)
+                - listitem [ref=e146]:
+                    - strong [ref=e147]: Trailing whitespace
+                    - text: differs between terminals and runs
+                - listitem [ref=e148]:
+                    - strong [ref=e149]: Wide characters
+                    - text: (emoji, CJK) occupy 2 columns but 1 string position
+                - listitem [ref=e150]:
+                    - strong [ref=e151]: Colors
+                    - text: are invisible in
+                    - code [ref=e152]: getText()
+                    - text: — a red error looks the same as a green success
+            - paragraph [ref=e153]:
+                - text: termless gives you
+                - strong [ref=e154]: structured access
+                - text: "to the terminal buffer. Assert on what matters:"
+            - generic [ref=e155]:
+                - button "Copy Code" [ref=e156] [cursor=pointer]
+                - generic [ref=e157]: typescript
+                - code [ref=e159]:
+                    - generic [ref=e160]: // Instead of fragile string matching...
+                    - generic [ref=e161]: expect(output).toContain("\x1b[1;31mError\x1b[0m")
+                    - generic [ref=e162]: // ...assert on terminal state
+                    - generic [ref=e163]: expect(term.screen).toContainText("Error")
+                    - generic [ref=e164]: expect(term.cell(0, 0)).toBeBold()
+                    - generic [ref=e165]: expect(term.cell(0, 0)).toHaveFg("#ff0000")
+                    - generic [ref=e166]: expect(term).toBeInMode("altScreen")
+                    - generic [ref=e167]: expect(term).toHaveTitle("my-app")
+            - heading "Packages Permalink to \"Packages\"" [level=2] [ref=e168]:
+                - text: Packages
+                - link "Permalink to \"Packages\"" [ref=e169] [cursor=pointer]:
+                    - /url: "#packages"
+                    - text: "#"
+            - table [ref=e170]:
+                - rowgroup [ref=e171]:
+                    - row "Package Description" [ref=e172]:
+                        - columnheader "Package" [ref=e173]
+                        - columnheader "Description" [ref=e174]
+                - rowgroup [ref=e175]:
+                    - 'row "termless Core: Terminal API, PTY, SVG screenshots, key mapping, region views" [ref=e176]':
+                        - cell "termless" [ref=e177]:
+                            - code [ref=e178]: termless
+                        - 'cell "Core: Terminal API, PTY, SVG screenshots, key mapping, region views" [ref=e179]'
+                    - row "@termless/xtermjs xterm.js backend via @xterm/headless" [ref=e180]:
+                        - cell "@termless/xtermjs" [ref=e181]:
+                            - code [ref=e182]: "@termless/xtermjs"
+                        - cell "xterm.js backend via @xterm/headless" [ref=e183]:
+                            - text: xterm.js backend via
+                            - code [ref=e184]: "@xterm/headless"
+                    - row "@termless/ghostty Ghostty backend via ghostty-web WASM" [ref=e185]:
+                        - cell "@termless/ghostty" [ref=e186]:
+                            - code [ref=e187]: "@termless/ghostty"
+                        - cell "Ghostty backend via ghostty-web WASM" [ref=e188]:
+                            - text: Ghostty backend via
+                            - code [ref=e189]: ghostty-web
+                            - text: WASM
+                    - row "@termless/vt100 Pure TypeScript VT100 emulator, zero native deps" [ref=e190]:
+                        - cell "@termless/vt100" [ref=e191]:
+                            - code [ref=e192]: "@termless/vt100"
+                        - cell "Pure TypeScript VT100 emulator, zero native deps" [ref=e193]
+                    - row "@termless/alacritty Alacritty backend via alacritty_terminal (napi-rs)" [ref=e194]:
+                        - cell "@termless/alacritty" [ref=e195]:
+                            - code [ref=e196]: "@termless/alacritty"
+                        - cell "Alacritty backend via alacritty_terminal (napi-rs)" [ref=e197]:
+                            - text: Alacritty backend via
+                            - code [ref=e198]: alacritty_terminal
+                            - text: (napi-rs)
+                    - row "@termless/wezterm WezTerm backend via wezterm-term (napi-rs)" [ref=e199]:
+                        - cell "@termless/wezterm" [ref=e200]:
+                            - code [ref=e201]: "@termless/wezterm"
+                        - cell "WezTerm backend via wezterm-term (napi-rs)" [ref=e202]:
+                            - text: WezTerm backend via
+                            - code [ref=e203]: wezterm-term
+                            - text: (napi-rs)
+                    - row "@termless/peekaboo OS-level terminal automation (xterm.js + real app)" [ref=e204]:
+                        - cell "@termless/peekaboo" [ref=e205]:
+                            - code [ref=e206]: "@termless/peekaboo"
+                        - cell "OS-level terminal automation (xterm.js + real app)" [ref=e207]
+                    - 'row "@termless/test Vitest integration: 25+ matchers, fixtures, snapshot serializer" [ref=e208]':
+                        - cell "@termless/test" [ref=e209]:
+                            - code [ref=e210]: "@termless/test"
+                        - 'cell "Vitest integration: 25+ matchers, fixtures, snapshot serializer" [ref=e211]'
+                    - row "@termless/cli CLI tools + MCP server for AI agents" [ref=e212]:
+                        - cell "@termless/cli" [ref=e213]:
+                            - code [ref=e214]: "@termless/cli"
+                        - cell "CLI tools + MCP server for AI agents" [ref=e215]
+            - heading "How It Compares Permalink to \"How It Compares\"" [level=2] [ref=e216]:
+                - text: How It Compares
+                - link "Permalink to \"How It Compares\"" [ref=e217] [cursor=pointer]:
+                    - /url: "#how-it-compares"
+                    - text: "#"
+            - table [ref=e218]:
+                - rowgroup [ref=e219]:
+                    - row "Feature termless Manual string testing Playwright" [ref=e220]:
+                        - columnheader "Feature" [ref=e221]
+                        - columnheader "termless" [ref=e222]
+                        - columnheader "Manual string testing" [ref=e223]
+                        - columnheader "Playwright" [ref=e224]
+                - rowgroup [ref=e225]:
+                    - row "Speed ~1ms/test ~1ms/test ~100ms+/test" [ref=e226]:
+                        - cell "Speed" [ref=e227]
+                        - cell "~1ms/test" [ref=e228]
+                        - cell "~1ms/test" [ref=e229]
+                        - cell "~100ms+/test" [ref=e230]
+                    - row "Terminal internals Scrollback, cursor, modes, cell attrs None N/A" [ref=e231]:
+                        - cell "Terminal internals" [ref=e232]
+                        - cell "Scrollback, cursor, modes, cell attrs" [ref=e233]
+                        - cell "None" [ref=e234]
+                        - cell "N/A" [ref=e235]
+                    - row "ANSI awareness Full (colors, bold, cursor) None N/A" [ref=e236]:
+                        - cell "ANSI awareness" [ref=e237]
+                        - cell "Full (colors, bold, cursor)" [ref=e238]
+                        - cell "None" [ref=e239]
+                        - cell "N/A" [ref=e240]
+                    - row "Multi-backend 6 terminal emulators N/A 3 browsers" [ref=e241]:
+                        - cell "Multi-backend" [ref=e242]
+                        - cell "6 terminal emulators" [ref=e243]
+                        - cell "N/A" [ref=e244]
+                        - cell "3 browsers" [ref=e245]
+                    - row "Protocol capabilities Kitty, sixel, OSC 8, reflow None N/A" [ref=e246]:
+                        - cell "Protocol capabilities" [ref=e247]
+                        - cell "Kitty, sixel, OSC 8, reflow" [ref=e248]
+                        - cell "None" [ref=e249]
+                        - cell "N/A" [ref=e250]
+                    - row "Wide char support Cell-level width tracking Broken N/A" [ref=e251]:
+                        - cell "Wide char support" [ref=e252]
+                        - cell "Cell-level width tracking" [ref=e253]
+                        - cell "Broken" [ref=e254]
+                        - cell "N/A" [ref=e255]
+                    - row "Screenshots SVG (no deps) None PNG (Chromium)" [ref=e256]:
+                        - cell "Screenshots" [ref=e257]
+                        - cell "SVG (no deps)" [ref=e258]
+                        - cell "None" [ref=e259]
+                        - cell "PNG (Chromium)" [ref=e260]
+                    - row "PTY support Spawn real processes Manual N/A" [ref=e261]:
+                        - cell "PTY support" [ref=e262]
+                        - cell "Spawn real processes" [ref=e263]
+                        - cell "Manual" [ref=e264]
+                        - cell "N/A" [ref=e265]
+                    - row "AI integration MCP server None None" [ref=e266]:
+                        - cell "AI integration" [ref=e267]
+                        - cell "MCP server" [ref=e268]
+                        - cell "None" [ref=e269]
+                        - cell "None" [ref=e270]
+    - contentinfo [ref=e271]:
+        - generic [ref=e272]:
+            - paragraph [ref=e273]: Released under the MIT License.
+            - paragraph [ref=e274]: Copyright © 2025-present
