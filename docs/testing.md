@@ -22,7 +22,7 @@ export default defineConfig({
 Use `createRenderer` to get a `render` function scoped to your terminal size:
 
 ```typescript
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 const render = createRenderer({ cols: 80, rows: 24 })
 ```
@@ -32,8 +32,8 @@ Each call to `render()` automatically unmounts the previous render — no manual
 ### Component Tests
 
 ```typescript
-import { createRenderer } from "inkx/testing"
-import { Box, Text } from "inkx"
+import { createRenderer } from "@hightea/term/testing"
+import { Box, Text } from "@hightea/term"
 
 const render = createRenderer({ cols: 80, rows: 24 })
 
@@ -101,7 +101,7 @@ test("cursor moves", async () => {
 For rendering bug tests, use `withDiagnostics` to verify incremental rendering correctness:
 
 ```typescript
-import { withDiagnostics } from "inkx/toolbelt"
+import { withDiagnostics } from "@hightea/term/toolbelt"
 
 const driver = withDiagnostics(app, {
   checkIncremental: true,
@@ -322,7 +322,7 @@ Chalk tests are simpler - pure ANSI output assertions:
 // tests/compat/chalk/chalk.test.ts
 import { test, expect } from 'bun:test';
 import chalk from 'chalk';
-import { Text, renderToString } from 'inkx';
+import { Text, renderToString } from '@hightea/term';
 
 test('chalk.red produces correct ANSI', () => {
   const output = renderToString(<Text>{chalk.red('foo')}</Text>);
@@ -344,7 +344,7 @@ For maximum confidence, run the **original** Ink/Chalk tests:
 ```bash
 # Create test harness that aliases inkx → ink
 mkdir -p node_modules/ink
-echo 'export * from "inkx";' > node_modules/ink/index.js
+echo 'export * from "@hightea/term";' > node_modules/ink/index.js
 
 # Run Ink's original tests
 cd /tmp/ink && npm test
@@ -363,8 +363,8 @@ Use inkx testing API with text snapshots:
 
 ```typescript
 // tests/visual/visual.test.ts
-import { createRenderer } from 'inkx/testing';
-import { Box, Text } from 'inkx';
+import { createRenderer } from '@hightea/term/testing';
+import { Box, Text } from '@hightea/term';
 
 const render = createRenderer({ cols: 80, rows: 24 });
 
@@ -476,7 +476,7 @@ bun run visual-diff tests/fixtures/complex-layout.tsx
 // tests/perf/render.bench.ts
 import { bench, group, run } from 'mitata';
 import { render as inkRender } from 'ink';
-import { render as inkxRender } from 'inkx';
+import { render as inkxRender } from '@hightea/term';
 import { ComplexLayout } from './fixtures/complex-layout';
 
 group('Initial render', () => {
@@ -570,8 +570,8 @@ async function recordMetrics() {
 inkx provides a Playwright-inspired testing API with **auto-refreshing locators**:
 
 ```typescript
-import { createRenderer } from 'inkx/testing';
-import { Box, Text } from 'inkx';
+import { createRenderer } from '@hightea/term/testing';
+import { Box, Text } from '@hightea/term';
 
 const render = createRenderer({ cols: 80, rows: 24 });
 
@@ -663,7 +663,7 @@ test("⌘S saves", async () => {
 To test mouse interactions, write SGR mouse sequences directly to the app's stdin:
 
 ```typescript
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 test("handles left click", async () => {
   const app = render(<MyComponent />)
@@ -863,8 +863,8 @@ Terminal Unicode handling is complex. Test comprehensively:
 
 ```typescript
 // tests/unicode/unicode.test.ts
-import { createRenderer } from 'inkx/testing';
-import { Box, Text } from 'inkx';
+import { createRenderer } from '@hightea/term/testing';
+import { Box, Text } from '@hightea/term';
 
 const render = createRenderer({ cols: 80, rows: 24 });
 
@@ -958,7 +958,7 @@ Long-running TUI apps must not leak:
 
 ```typescript
 // tests/memory/memory.test.ts
-import { render } from 'inkx';
+import { render } from '@hightea/term';
 
 describe('Memory management', () => {
   test('no leak on rapid re-renders', async () => {
@@ -1170,8 +1170,8 @@ inkx provides Playwright-inspired locators that **auto-refresh on every access**
 ### 9.1 Quick Start
 
 ```typescript
-import { createRenderer } from "inkx/testing";
-import { Box, Text } from "inkx";
+import { createRenderer } from "@hightea/term/testing";
+import { Box, Text } from "@hightea/term";
 
 const render = createRenderer({ cols: 80, rows: 24 });
 

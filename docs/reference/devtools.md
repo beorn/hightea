@@ -33,7 +33,7 @@ Manually connect to React DevTools. Returns `true` on success, `false` on failur
 Safe to call multiple times; subsequent calls are no-ops.
 
 ```ts
-import { connectDevTools } from "inkx"
+import { connectDevTools } from "@hightea/term"
 
 const connected = await connectDevTools()
 if (connected) {
@@ -46,7 +46,7 @@ if (connected) {
 Check whether DevTools are currently connected.
 
 ```ts
-import { isDevToolsConnected } from "inkx"
+import { isDevToolsConnected } from "@hightea/term"
 
 if (isDevToolsConnected()) {
   // DevTools are active

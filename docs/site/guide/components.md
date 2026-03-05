@@ -13,7 +13,7 @@ inkx provides the same components as Ink, with some enhancements.
 The primary layout component. Uses Yoga (flexbox) for layout.
 
 ```tsx
-import { Box, Text } from "inkx"
+import { Box, Text } from "@hightea/term"
 ;<Box flexDirection="row" justifyContent="space-between">
   <Text>Left</Text>
   <Text>Right</Text>
@@ -64,7 +64,7 @@ See [Scrolling Guide](/guide/scrolling) for details.
 Renders text with styling. Supports Chalk strings.
 
 ```tsx
-import { Text } from "inkx";
+import { Text } from "@hightea/term";
 import chalk from "chalk";
 
 // Basic styling
@@ -106,7 +106,7 @@ Opt out with `wrap={false}` if you need overflow behavior.
 Renders a newline character.
 
 ```tsx
-import { Newline, Text } from "inkx";
+import { Newline, Text } from "@hightea/term";
 
 <Text>Line 1</Text>
 <Newline />
@@ -118,7 +118,7 @@ import { Newline, Text } from "inkx";
 Flexible space that expands to fill available room.
 
 ```tsx
-import { Box, Spacer, Text } from "inkx"
+import { Box, Spacer, Text } from "@hightea/term"
 ;<Box>
   <Text>Left</Text>
   <Spacer />
@@ -131,7 +131,7 @@ import { Box, Spacer, Text } from "inkx"
 Renders content that won't be updated. Useful for logs or output that scrolls up.
 
 ```tsx
-import { Static, Box, Text } from "inkx"
+import { Static, Box, Text } from "@hightea/term"
 
 function App() {
   const [logs, setLogs] = useState<string[]>([])

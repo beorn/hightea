@@ -16,9 +16,9 @@ The new `inkx/runtime` API provides:
 
 | Old (inkx)                        | New (inkx/runtime)                        |
 | --------------------------------- | ----------------------------------------- |
-| `import { render } from 'inkx'`   | `import { run } from 'inkx/runtime'`      |
-| `import { useInput } from 'inkx'` | `import { useInput } from 'inkx/runtime'` |
-| `import { useApp } from 'inkx'`   | `import { useExit } from 'inkx/runtime'`  |
+| `import { render } from '@hightea/term'`   | `import { run } from '@hightea/term/runtime'`      |
+| `import { useInput } from '@hightea/term'` | `import { useInput } from '@hightea/term/runtime'` |
+| `import { useApp } from '@hightea/term'`   | `import { useExit } from '@hightea/term/runtime'`  |
 
 ## useInput Signature
 
@@ -72,7 +72,7 @@ Choose based on your needs:
 **Before:**
 
 ```tsx
-import { render, useInput, useApp } from "inkx"
+import { render, useInput, useApp } from "@hightea/term"
 
 function App() {
   const [count, setCount] = useState(0)
@@ -93,7 +93,7 @@ await render(<App />)
 **After:**
 
 ```tsx
-import { run, useInput } from "inkx/runtime"
+import { run, useInput } from "@hightea/term/runtime"
 
 function App() {
   const [count, setCount] = useState(0)
@@ -115,7 +115,7 @@ await run(<App />)
 **Before:**
 
 ```tsx
-import { render, useInput } from "inkx"
+import { render, useInput } from "@hightea/term"
 // Manual prop drilling for state
 
 function App({ items, cursor, onMove }) {
@@ -132,7 +132,7 @@ function App({ items, cursor, onMove }) {
 **After:**
 
 ```tsx
-import { createApp, useApp, type Key } from "inkx/runtime"
+import { createApp, useApp, type Key } from "@hightea/term/runtime"
 
 const app = createApp(
   () => (set) => ({
@@ -172,7 +172,7 @@ Box, Text, and other components work identically:
 
 ```tsx
 // Same in both APIs
-import { Box, Text } from "inkx"
+import { Box, Text } from "@hightea/term"
 
 function Card() {
   return (

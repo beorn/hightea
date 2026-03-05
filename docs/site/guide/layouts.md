@@ -163,7 +163,7 @@ function ColumnSeparator() {
 Putting it all together:
 
 ```tsx
-import { render, Box, Text, useInput, useApp, createTerm } from "inkx"
+import { render, Box, Text, useInput, useApp, createTerm } from "@hightea/term"
 import { useState } from "react"
 
 function ScrollIndicator({ direction }) {

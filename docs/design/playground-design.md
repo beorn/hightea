@@ -120,7 +120,7 @@ User code runs in a sandboxed scope with only React and inkx exports available:
 ```tsx
 // evaluate.ts (sketch)
 import React from "react"
-import { Box, Text, useContentRect, useScreenRect } from "inkx/canvas"
+import { Box, Text, useContentRect, useScreenRect } from "@hightea/term/canvas"
 
 const scope = { React, Box, Text, useContentRect, useScreenRect }
 

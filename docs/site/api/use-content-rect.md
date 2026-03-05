@@ -11,10 +11,10 @@ This is the key addition in inkx. Components can query their actual size instead
 ## Import
 
 ```tsx
-import { useContentRect } from "inkx"
+import { useContentRect } from "@hightea/term"
 
 // Deprecated alias (still works)
-import { useLayout } from "inkx"
+import { useLayout } from "@hightea/term"
 ```
 
 ## Usage

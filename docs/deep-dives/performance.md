@@ -147,7 +147,7 @@ bun run bench:compare   # Head-to-head inkx vs Ink 6
 ### Profile Specific Phases
 
 ```typescript
-import { measurePhase, layoutPhase, contentPhase, outputPhase } from "inkx/pipeline"
+import { measurePhase, layoutPhase, contentPhase, outputPhase } from "@hightea/term/pipeline"
 
 const start = performance.now()
 measurePhase(root)

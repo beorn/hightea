@@ -32,8 +32,8 @@ Terminal-based AI assistants have unique UI requirements: streaming output that 
 A complete working chat interface in under 50 lines. Messages scroll automatically, the input field stays pinned at the bottom, and the user can send messages with Enter.
 
 ```tsx
-import { Box, Text, TextInput, useContentRect } from "inkx"
-import { run, useInput } from "inkx/runtime"
+import { Box, Text, TextInput, useContentRect } from "@hightea/term"
+import { run, useInput } from "@hightea/term/runtime"
 import { useState } from "react"
 
 interface Message {
@@ -98,7 +98,7 @@ To add streaming, replace the echo stub with an async generator that appends tok
 For AI-driven applications where an agent needs to discover and execute actions, wrap the app with `withCommands`:
 
 ```tsx
-import { withCommands } from "inkx"
+import { withCommands } from "@hightea/term"
 
 const app = withCommands(render(<Chat />), {
   registry: commandRegistry,

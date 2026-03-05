@@ -111,13 +111,13 @@ await driver.cmd.down() // Throws with screenshot path if any check fails
 
 ### CLAUDE.md as the AI-readable API reference
 
-inkx ships with a [CLAUDE.md](https://github.com/beorn/inkx/blob/main/CLAUDE.md) -- a structured reference document designed for LLM consumption. It contains the complete API surface (imports, component props, hook signatures, common patterns, anti-patterns) in a format that Claude Code, Cursor, and other AI coding tools can ingest directly.
+inkx ships with a [CLAUDE.md](https://github.com/beorn/hightea/blob/main/CLAUDE.md) -- a structured reference document designed for LLM consumption. It contains the complete API surface (imports, component props, hook signatures, common patterns, anti-patterns) in a format that Claude Code, Cursor, and other AI coding tools can ingest directly.
 
 This isn't documentation written for humans and then fed to an AI. It's a parallel artifact: the same API, organized for how LLMs read code. Quick start, import paths, testing API, debugging flags -- all in one file, optimized for context window efficiency.
 
 When an AI assistant works on an inkx codebase, it reads `CLAUDE.md` and immediately knows:
 
-- How to import components (`import { Box, Text } from "inkx"`)
+- How to import components (`import { Box, Text } from "@hightea/term"`)
 - How to write tests (`createRenderer` + Playwright-style locators)
 - What patterns to avoid (mixing chalk backgrounds with Box backgroundColor)
 - How to debug issues (`INKX_STRICT=1`, `DEBUG=inkx:*`)
@@ -191,8 +191,8 @@ inkx is API-compatible with Ink. Same `Box`, `Text`, `useInput`, `useApp`, `Stat
 import { render, Box, Text, useInput, useApp } from "ink"
 
 // After (inkx)
-import { render, Box, Text, useApp } from "inkx"
-import { useInput } from "inkx/runtime"
+import { render, Box, Text, useApp } from "@hightea/term"
+import { useInput } from "@hightea/term/runtime"
 ```
 
 What you gain:
@@ -210,7 +210,7 @@ What you gain:
 inkx includes a headless renderer with Playwright-inspired locators:
 
 ```tsx
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 const render = createRenderer({ cols: 80, rows: 24 })
 
@@ -237,8 +237,8 @@ bun add inkx react @beorn/flexx
 ```
 
 ```tsx
-import { run, useInput } from "inkx/runtime"
-import { Box, Text, useContentRect } from "inkx"
+import { run, useInput } from "@hightea/term/runtime"
+import { Box, Text, useContentRect } from "@hightea/term"
 
 function App() {
   const { width } = useContentRect()
@@ -269,8 +269,8 @@ The core architecture (reconciler, layout hooks, five-phase pipeline) is solid a
 
 If you're building terminal UIs for AI tools and you want components that know their size, scrollable containers that handle variable-length output, and a command system that AI agents can introspect -- give inkx a look.
 
-- [GitHub](https://github.com/beorn/inkx)
+- [GitHub](https://github.com/beorn/hightea)
 - [npm](https://www.npmjs.com/package/inkx)
-- [Documentation](https://github.com/beorn/inkx/tree/main/docs)
-- [inkx vs Ink](https://github.com/beorn/inkx/blob/main/docs/inkx-vs-ink.md)
-- [CLAUDE.md](https://github.com/beorn/inkx/blob/main/CLAUDE.md) (the AI-readable reference)
+- [Documentation](https://github.com/beorn/hightea/tree/main/docs)
+- [inkx vs Ink](https://github.com/beorn/hightea/blob/main/docs/inkx-vs-ink.md)
+- [CLAUDE.md](https://github.com/beorn/hightea/blob/main/CLAUDE.md) (the AI-readable reference)

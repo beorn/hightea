@@ -11,7 +11,7 @@ Design proposal for a simplified, DOM-inspired render API with nested mounting.
 The `render.tsx` API requires manual Term creation and teardown:
 
 ```tsx
-import { render, createTerm } from "inkx"
+import { render, createTerm } from "@hightea/term"
 
 using term = createTerm()
 const instance = await render(<App />, term, {
@@ -121,7 +121,7 @@ interface RootOptions {
 #### Pattern 1: Simple interactive app
 
 ```tsx
-import inkx from "inkx"
+import inkx from "@hightea/term"
 
 // Auto-creates term, enters alternate screen, handles cleanup
 using root = await inkx.createRoot()
@@ -165,7 +165,7 @@ headerRoot.render(<DifferentStatusBar />)
 #### Pattern 4: Testing (unchanged)
 
 ```tsx
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 const render = createRenderer({ cols: 80, rows: 24 })
 const app = render(<Counter />)

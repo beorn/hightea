@@ -7,7 +7,7 @@ inkx provides the same hooks as Ink, plus layout feedback hooks.
 **inkx only** - The key addition. Returns the computed dimensions of the component's container.
 
 ```tsx
-import { Box, Text, useContentRect } from "inkx"
+import { Box, Text, useContentRect } from "@hightea/term"
 
 function SizedBox() {
   const { width, height, x, y } = useContentRect()
@@ -60,7 +60,7 @@ In practice, both renders happen before the first paint, so this is usually invi
 **inkx only** - Access the Term instance for terminal capabilities and styling.
 
 ```tsx
-import { useTerm } from "inkx"
+import { useTerm } from "@hightea/term"
 
 function ColoredOutput() {
   const term = useTerm()
@@ -92,7 +92,7 @@ Returns the `Term` instance passed to `render()`. Provides:
 Handle keyboard input.
 
 ```tsx
-import { useInput } from "inkx"
+import { useInput } from "@hightea/term"
 
 function App() {
   const [count, setCount] = useState(0)
@@ -138,7 +138,7 @@ useInput(
 Access app-level controls.
 
 ```tsx
-import { useApp } from "inkx"
+import { useApp } from "@hightea/term"
 
 function App() {
   const { exit } = useApp()
@@ -162,7 +162,7 @@ function App() {
 Access stdout stream and dimensions.
 
 ```tsx
-import { useStdout } from "inkx"
+import { useStdout } from "@hightea/term"
 
 function App() {
   const { stdout, write } = useStdout()
@@ -187,7 +187,7 @@ function App() {
 Returns focus state for the nearest focusable ancestor. The component must be rendered inside a `<Box focusable>` with a `testID`.
 
 ```tsx
-import { useFocusable, Box, Text } from "inkx"
+import { useFocusable, Box, Text } from "@hightea/term"
 
 function FocusableItem({ label }: { label: string }) {
   const { focused } = useFocusable()
@@ -216,7 +216,7 @@ Focus behavior is configured via Box props: `focusable`, `autoFocus`, `focusScop
 Returns whether any descendant of the specified Box (by `testID`) has focus.
 
 ```tsx
-import { useFocusWithin } from "inkx"
+import { useFocusWithin } from "@hightea/term"
 
 function Sidebar() {
   const hasFocus = useFocusWithin("sidebar")
@@ -235,7 +235,7 @@ function Sidebar() {
 Access the focus manager for programmatic focus control.
 
 ```tsx
-import { useFocusManager } from "inkx"
+import { useFocusManager } from "@hightea/term"
 
 function App() {
   const { activeId, focusNext, focusPrev, focus, blur } = useFocusManager()

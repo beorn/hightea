@@ -31,8 +31,8 @@ A complete data explorer with search filtering, a sortable table, and responsive
 
 ```tsx
 import { useState, useDeferredValue } from "react"
-import { Box, Text, Table, TextInput, useContentRect } from "inkx"
-import { run, useInput } from "inkx/runtime"
+import { Box, Text, Table, TextInput, useContentRect } from "@hightea/term"
+import { run, useInput } from "@hightea/term/runtime"
 
 // Sample data -- replace with your own data source
 const processes = Array.from({ length: 500 }, (_, i) => ({

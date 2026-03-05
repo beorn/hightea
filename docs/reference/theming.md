@@ -9,7 +9,7 @@ full 24-bit truecolor — using the same token vocabulary.
 Wrap your app in `ThemeProvider` with a theme object:
 
 ```tsx
-import { ThemeProvider, ansi16DarkTheme, Box, Text } from "inkx"
+import { ThemeProvider, ansi16DarkTheme, Box, Text } from "@hightea/term"
 
 function App() {
   return (
@@ -133,7 +133,7 @@ mathematical:
 Generate a complete ANSI 16 theme from a primary color:
 
 ```tsx
-import { generateTheme } from "inkx"
+import { generateTheme } from "@hightea/term"
 
 const theme = generateTheme("cyan", true) // primary=cyan, dark=true
 const light = generateTheme("blue", false) // primary=blue, light mode
@@ -154,7 +154,7 @@ Available primaries: `yellow`, `cyan`, `magenta`, `green`, `red`, `blue`, `white
 Implement the `Theme` interface:
 
 ```tsx
-import { type Theme, ThemeProvider } from "inkx"
+import { type Theme, ThemeProvider } from "@hightea/term"
 
 const myTheme: Theme = {
   name: "my-theme",
@@ -257,7 +257,7 @@ per `getActiveTheme()` call — negligible.
 Read the current theme from any component:
 
 ```tsx
-import { useTheme } from "inkx"
+import { useTheme } from "@hightea/term"
 
 function StatusLine() {
   const theme = useTheme()
@@ -272,7 +272,7 @@ Returns `ansi16DarkTheme` when no `ThemeProvider` is present.
 For advanced use cases, resolve tokens programmatically:
 
 ```tsx
-import { resolveThemeColor, useTheme } from "inkx"
+import { resolveThemeColor, useTheme } from "@hightea/term"
 
 function CustomComponent({ highlight }: { highlight?: string }) {
   const theme = useTheme()
@@ -307,7 +307,7 @@ These aliases allow gradual migration. New code should use the v2 token names.
 Select by name at runtime:
 
 ```tsx
-import { getThemeByName } from "inkx"
+import { getThemeByName } from "@hightea/term"
 
 const theme = getThemeByName("dark-ansi16") // or "dark-truecolor", "light-ansi16", etc.
 ```

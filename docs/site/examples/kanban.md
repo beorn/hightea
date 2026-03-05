@@ -38,7 +38,7 @@ bun run examples/kanban/app.tsx
 ::: code-group
 
 ```tsx [app.tsx]
-import { Box, Text, render, useContentRect, useInput, useApp, createTerm } from "inkx"
+import { Box, Text, render, useContentRect, useInput, useApp, createTerm } from "@hightea/term"
 import { useState } from "react"
 
 interface Card {

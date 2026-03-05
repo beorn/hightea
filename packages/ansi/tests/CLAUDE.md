@@ -37,9 +37,9 @@ test("detects support via TERM=xterm-ghostty", () => {
 ## Ad-Hoc Testing
 
 ```bash
-bun vitest run vendor/beorn-chalkx/tests/                  # All chalkx tests
-bun vitest run vendor/beorn-chalkx/tests/detection.test.ts # Terminal detection
-bun vitest run vendor/beorn-chalkx/tests/utils.test.ts     # ANSI utilities
+bun vitest run vendor/hightea/packages/ansi/tests/                  # All chalkx tests
+bun vitest run vendor/hightea/packages/ansi/tests/detection.test.ts # Terminal detection
+bun vitest run vendor/hightea/packages/ansi/tests/utils.test.ts     # ANSI utilities
 ```
 
 ## Efficiency

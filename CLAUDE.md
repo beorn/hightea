@@ -1,12 +1,12 @@
-# inkx - Terminal UI React Framework
+# Hightea - Terminal UI React Framework
 
 React-based terminal UI framework with layout feedback. Ink-compatible API with components that know their size.
 
 ## Quick Start
 
 ```tsx
-import { run, useInput } from "inkx/runtime"
-import { Box, Text } from "inkx"
+import { run, useInput } from "@hightea/term/runtime"
+import { Box, Text } from "@hightea/term"
 
 function App() {
   const [count, setCount] = useState(0)
@@ -37,7 +37,7 @@ inkx's core innovation is **two-phase rendering with synchronous layout feedback
 
 ## Terminology
 
-Terminal buffer model terminology is defined in the [termless terminal model](../beorn-termless/docs/terminal-model.md). inkx uses `(x, y)` column-first coordinates (CSS/DOM convention), while termless uses `(row, col)` row-first (terminal convention). Both are correct for their domains — don't unify.
+Terminal buffer model terminology is defined in the [termless terminal model](../termless/docs/terminal-model.md). inkx uses `(x, y)` column-first coordinates (CSS/DOM convention), while termless uses `(row, col)` row-first (terminal convention). Both are correct for their domains — don't unify.
 
 ## Runtime Layers
 
@@ -53,8 +53,8 @@ Terminal buffer model terminology is defined in the [termless terminal model](..
 A pure state container with effects, following the Elm pattern. No React dependency — lives in `inkx/core` and `inkx/store`.
 
 ```tsx
-import { createStore, inkxUpdate, defaultInit, withFocusManagement } from "inkx/store"
-import { type Effect, none, batch, dispatch, compose, type Plugin } from "inkx/core"
+import { createStore, inkxUpdate, defaultInit, withFocusManagement } from "@hightea/term/store"
+import { type Effect, none, batch, dispatch, compose, type Plugin } from "@hightea/term/core"
 
 // Define your model (extends InkxModel with focus state)
 interface MyModel extends InkxModel {
@@ -114,8 +114,8 @@ const update = compose(logging, withFocusManagement())(baseUpdate)
 ### Layer 2: run() (Recommended)
 
 ```tsx
-import { run, useInput, type Key } from "inkx/runtime"
-import { Text } from "inkx"
+import { run, useInput, type Key } from "@hightea/term/runtime"
+import { Text } from "@hightea/term"
 
 function Counter() {
   const [count, setCount] = useState(0)
@@ -172,7 +172,7 @@ await run(<App />, { suspendOnCtrlZ: false, exitOnCtrlC: false })
 ### Layer 3: createApp() with Zustand
 
 ```tsx
-import { createApp, useApp, type Key } from "inkx/runtime"
+import { createApp, useApp, type Key } from "@hightea/term/runtime"
 
 const app = createApp(
   () => (set, get) => ({
@@ -266,7 +266,7 @@ Renders images via Kitty graphics or Sixel protocol, with text fallback. Auto-de
 inkx provides a theming system based on React context and semantic color tokens. See [docs/reference/theming.md](docs/reference/theming.md) for full details.
 
 ```tsx
-import { ThemeProvider, defaultDarkTheme, useTheme } from "inkx"
+import { ThemeProvider, defaultDarkTheme, useTheme } from "@hightea/term"
 ;<ThemeProvider theme={defaultDarkTheme}>
   <Box borderStyle="single">
     <Text color="$primary">Hello</Text>
@@ -305,7 +305,7 @@ See [docs/reference/hooks.md](docs/reference/hooks.md) for all hooks.
 Receives bracketed paste events in the `run()` runtime:
 
 ```tsx
-import { usePaste } from "inkx/runtime"
+import { usePaste } from "@hightea/term/runtime"
 
 usePaste((text) => {
   insertText(text)
@@ -321,7 +321,7 @@ useInput(handler, { onPaste: (text) => insertText(text) })
 ## Animation Hooks
 
 ```tsx
-import { useAnimation, useAnimatedTransition, useInterval, easings } from "inkx"
+import { useAnimation, useAnimatedTransition, useInterval, easings } from "@hightea/term"
 
 // Animate 0→1 over 300ms with easing
 const { value, isAnimating, reset } = useAnimation({ duration: 300, easing: "easeOut" })
@@ -399,7 +399,7 @@ The hook silently no-ops without `InputLayerProvider` — ensure test harnesses 
 ## Testing
 
 ```tsx
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 const render = createRenderer({ cols: 80, rows: 24 }) // or { kittyMode: true } for Super/Hyper
 
@@ -482,7 +482,7 @@ await run(<App />, { kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS }
 **Testing**: Use `keyToKittyAnsi(key)` (from `inkx/testing`) to generate Kitty ANSI sequences, and `kittyMode: true` on `createRenderer` / `createApp` to route `press()` through Kitty encoding.
 
 ```tsx
-import { keyToKittyAnsi } from "inkx/testing"
+import { keyToKittyAnsi } from "@hightea/term/testing"
 
 keyToKittyAnsi("Super+j") // '\x1b[106;9u'
 keyToKittyAnsi("Hyper+Control+x") // '\x1b[120;21u'
@@ -501,7 +501,7 @@ Hotkey strings accept macOS symbols as modifier prefixes — no `+` separator ne
 | ✦      | Hyper       | `key.hyper` |
 
 ```tsx
-import { parseHotkey, matchHotkey } from "inkx"
+import { parseHotkey, matchHotkey } from "@hightea/term"
 
 parseHotkey("⌘j") // { key: 'j', super: true, ... }
 parseHotkey("⌃⇧a") // { key: 'a', ctrl: true, shift: true, ... }
@@ -602,7 +602,7 @@ inkx provides a tree-based focus system that operates directly on the InkxNode r
 ### Hooks
 
 ```tsx
-import { useFocusable, useFocusWithin } from "inkx"
+import { useFocusable, useFocusWithin } from "@hightea/term"
 
 // Make a component focusable
 function Panel() {
@@ -629,7 +629,7 @@ function Sidebar() {
 ### FocusManager API (standalone, no React)
 
 ```tsx
-import { createFocusManager } from "inkx"
+import { createFocusManager } from "@hightea/term"
 
 const fm = createFocusManager()
 fm.focus(node, "programmatic") // Focus a node
@@ -674,129 +674,129 @@ await render(<App />, term, { layoutEngine: "yoga" })
 
 ```tsx
 // Runtime (recommended for new apps)
-import { run, useInput, useExit, type Key } from "inkx/runtime"
-import { createApp, useApp } from "inkx/runtime"
+import { run, useInput, useExit, type Key } from "@hightea/term/runtime"
+import { createApp, useApp } from "@hightea/term/runtime"
 
 // Terminal lifecycle (suspend/resume, interrupt)
-import { captureTerminalState, restoreTerminalState, resumeTerminalState, performSuspend } from "inkx/runtime"
-import { CTRL_C, CTRL_Z, type TerminalLifecycleOptions, type TerminalState } from "inkx/runtime"
+import { captureTerminalState, restoreTerminalState, resumeTerminalState, performSuspend } from "@hightea/term/runtime"
+import { CTRL_C, CTRL_Z, type TerminalLifecycleOptions, type TerminalState } from "@hightea/term/runtime"
 
 // Components
-import { Box, Text, Link, Newline, Spacer, Static, Console, VirtualList, Transform, Image } from "inkx"
-import { Screen, ScrollbackView, VirtualView } from "inkx"
-import { Spinner, ProgressBar, SelectList, Table, Badge, Divider } from "inkx"
+import { Box, Text, Link, Newline, Spacer, Static, Console, VirtualList, Transform, Image } from "@hightea/term"
+import { Screen, ScrollbackView, VirtualView } from "@hightea/term"
+import { Spinner, ProgressBar, SelectList, Table, Badge, Divider } from "@hightea/term"
 
 // Input components
-import { TextInput, useReadline } from "inkx"
+import { TextInput, useReadline } from "@hightea/term"
 
 // Hooks
-import { useContentRect, useScreenRect, useInput, useApp, useTerm } from "inkx"
+import { useContentRect, useScreenRect, useInput, useApp, useTerm } from "@hightea/term"
 
 // Theming
-import { ThemeProvider, useTheme, defaultDarkTheme, defaultLightTheme, resolveThemeColor } from "inkx"
-import type { Theme } from "inkx"
+import { ThemeProvider, useTheme, defaultDarkTheme, defaultLightTheme, resolveThemeColor } from "@hightea/term"
+import type { Theme } from "@hightea/term"
 
 // Animation
-import { useAnimation, useAnimatedTransition, useInterval, easings, resolveEasing } from "inkx"
-import type { EasingFn, EasingName, UseAnimationOptions, UseAnimationResult } from "inkx"
+import { useAnimation, useAnimatedTransition, useInterval, easings, resolveEasing } from "@hightea/term"
+import type { EasingFn, EasingName, UseAnimationOptions, UseAnimationResult } from "@hightea/term"
 
 // Focus system (tree-based)
-import { useFocusable, useFocusWithin } from "inkx"
-import { createFocusManager, type FocusManager } from "inkx"
-import { FocusManagerContext } from "inkx"
+import { useFocusable, useFocusWithin } from "@hightea/term"
+import { createFocusManager, type FocusManager } from "@hightea/term"
+import { FocusManagerContext } from "@hightea/term"
 
 // Input layer stack (for dialogs/modals)
-import { InputLayerProvider, useInputLayer } from "inkx"
+import { InputLayerProvider, useInputLayer } from "@hightea/term"
 
 // Text cursor utilities (Layer 0)
-import { cursorToRowCol, getWrappedLines, rowColToCursor, cursorMoveUp, cursorMoveDown, countVisualLines } from "inkx"
-import type { WrappedLine } from "inkx"
+import { cursorToRowCol, getWrappedLines, rowColToCursor, cursorMoveUp, cursorMoveDown, countVisualLines } from "@hightea/term"
+import type { WrappedLine } from "@hightea/term"
 
 // Kitty keyboard protocol
-import { KittyFlags, enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard } from "inkx"
-import { detectKittySupport, detectKittyFromStdio } from "inkx"
+import { KittyFlags, enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard } from "@hightea/term"
+import { detectKittySupport, detectKittyFromStdio } from "@hightea/term"
 
 // Mouse events (SGR protocol)
-import { parseMouseSequence, isMouseSequence, type ParsedMouse } from "inkx"
-import { enableMouse, disableMouse } from "inkx"
+import { parseMouseSequence, isMouseSequence, type ParsedMouse } from "@hightea/term"
+import { enableMouse, disableMouse } from "@hightea/term"
 
 // Bracketed paste
-import { enableBracketedPaste, disableBracketedPaste, parseBracketedPaste, PASTE_START, PASTE_END } from "inkx"
+import { enableBracketedPaste, disableBracketedPaste, parseBracketedPaste, PASTE_START, PASTE_END } from "@hightea/term"
 
 // Clipboard (OSC 52)
-import { copyToClipboard, requestClipboard, parseClipboardResponse } from "inkx"
+import { copyToClipboard, requestClipboard, parseClipboardResponse } from "@hightea/term"
 
 // Window title (OSC 0/2)
-import { setWindowTitle, setWindowAndIconTitle, resetWindowTitle } from "inkx"
+import { setWindowTitle, setWindowAndIconTitle, resetWindowTitle } from "@hightea/term"
 
 // Palette colors (OSC 4)
-import { queryPaletteColor, setPaletteColor, parsePaletteResponse, queryMultiplePaletteColors } from "inkx"
+import { queryPaletteColor, setPaletteColor, parsePaletteResponse, queryMultiplePaletteColors } from "@hightea/term"
 
 // Image rendering
-import { Image, encodeKittyImage, deleteKittyImage, isKittyGraphicsSupported } from "inkx"
-import { encodeSixel, isSixelSupported } from "inkx"
+import { Image, encodeKittyImage, deleteKittyImage, isKittyGraphicsSupported } from "@hightea/term"
+import { encodeSixel, isSixelSupported } from "@hightea/term"
 
 // Paste hook (runtime only)
-import { usePaste } from "inkx/runtime"
+import { usePaste } from "@hightea/term/runtime"
 
 // Mouse events (DOM-level)
-import { hitTest, processMouseEvent, createMouseEventProcessor } from "inkx"
-import type { InkxMouseEvent, InkxWheelEvent, MouseEventProps, MouseEventProcessorOptions } from "inkx"
+import { hitTest, processMouseEvent, createMouseEventProcessor } from "@hightea/term"
+import type { InkxMouseEvent, InkxWheelEvent, MouseEventProps, MouseEventProcessorOptions } from "@hightea/term"
 
 // Hotkey parsing (supports macOS symbols ⌘⌥⌃⇧✦)
-import { parseHotkey, matchHotkey } from "inkx"
+import { parseHotkey, matchHotkey } from "@hightea/term"
 
 // Inspector
-import { enableInspector, disableInspector, inspectTree, inspectFrame, autoEnableInspector } from "inkx"
+import { enableInspector, disableInspector, inspectTree, inspectFrame, autoEnableInspector } from "@hightea/term"
 
 // Terminal capabilities detection
-import { detectTerminalCaps, defaultCaps, type TerminalCaps } from "inkx"
+import { detectTerminalCaps, defaultCaps, type TerminalCaps } from "@hightea/term"
 
 // Text sizing protocol (OSC 66) -- PUA character width control
-import { textSized, isPrivateUseArea, isTextSizingLikelySupported, detectTextSizingSupport } from "inkx"
-import { isTextSizingEnabled } from "inkx"
+import { textSized, isPrivateUseArea, isTextSizingLikelySupported, detectTextSizingSupport } from "@hightea/term"
+import { isTextSizingEnabled } from "@hightea/term"
 
 // Width measurer factory (replaces setTextEmojiWide/setTextSizingEnabled globals)
-import { createMeasurer, createWidthMeasurer, runWithMeasurer, type Measurer, type WidthMeasurer } from "inkx"
+import { createMeasurer, createWidthMeasurer, runWithMeasurer, type Measurer, type WidthMeasurer } from "@hightea/term"
 
 // Measurer composition (term + measurement)
-import { withMeasurer, createPipeline, type MeasuredTerm } from "inkx"
+import { withMeasurer, createPipeline, type MeasuredTerm } from "@hightea/term"
 
 // withRender plugin (term + measurer + render pipeline)
-import { withRender, type RenderTerm } from "inkx"
+import { withRender, type RenderTerm } from "@hightea/term"
 
 // Pipeline configuration (replaces setOutputCaps global)
-import { createOutputPhase, type OutputPhaseFn, type OutputCaps, type PipelineConfig } from "inkx"
+import { createOutputPhase, type OutputPhaseFn, type OutputCaps, type PipelineConfig } from "@hightea/term"
 
 // Virtualization engine
-import { useVirtualizer } from "inkx"
+import { useVirtualizer } from "@hightea/term"
 
 // Scroll regions (DECSTBM)
-import { setScrollRegion, resetScrollRegion, scrollUp, scrollDown, supportsScrollRegions } from "inkx"
-import { useScrollRegion } from "inkx/hooks" // Hook (not in main entry)
+import { setScrollRegion, resetScrollRegion, scrollUp, scrollDown, supportsScrollRegions } from "@hightea/term"
+import { useScrollRegion } from "@hightea/term/hooks" // Hook (not in main entry)
 
 // Render functions
-import { render, renderStatic, renderString } from "inkx"
+import { render, renderStatic, renderString } from "@hightea/term"
 
 // Testing
-import { createRenderer, keyToAnsi, keyToKittyAnsi, debugTree } from "inkx/testing"
+import { createRenderer, keyToAnsi, keyToKittyAnsi, debugTree } from "@hightea/term/testing"
 
 // TEA store (The Elm Architecture)
-import { createStore, inkxUpdate, defaultInit, withFocusManagement, type StoreConfig, type StoreApi } from "inkx/store"
+import { createStore, inkxUpdate, defaultInit, withFocusManagement, type StoreConfig, type StoreApi } from "@hightea/term/store"
 
 // Core types and effect constructors (pure, no React)
-import { type InkxModel, type InkxMsg, type Effect, type Plugin, none, batch, dispatch, compose } from "inkx/core"
+import { type InkxModel, type InkxMsg, type Effect, type Plugin, none, batch, dispatch, compose } from "@hightea/term/core"
 
 // Slices (ops-as-data helper)
-import { createSlice } from "inkx/core"
-import type { Slice, SliceWithInit, InferOp } from "inkx/core"
+import { createSlice } from "@hightea/term/core"
+import type { Slice, SliceWithInit, InferOp } from "@hightea/term/core"
 
 // TEA Zustand middleware (effects-as-data for Zustand stores)
-import { tea, collect } from "inkx/tea"
-import type { TeaResult, TeaReducer, EffectRunners, TeaSlice, EffectLike } from "inkx/tea"
+import { tea, collect } from "@hightea/term/tea"
+import type { TeaResult, TeaReducer, EffectRunners, TeaSlice, EffectLike } from "@hightea/term/tea"
 
 // Term primitives (re-exported from chalkx)
-import { createTerm, patchConsole, type Term, type StyleChain } from "inkx"
+import { createTerm, patchConsole, type Term, type StyleChain } from "@hightea/term"
 ```
 
 ## Common Patterns
@@ -804,7 +804,7 @@ import { createTerm, patchConsole, type Term, type StyleChain } from "inkx"
 ### Basic Interactive App
 
 ```tsx
-import { render, Box, Text, useInput, useApp, createTerm } from "inkx"
+import { render, Box, Text, useInput, useApp, createTerm } from "@hightea/term"
 
 function App() {
   const { exit } = useApp()
@@ -824,7 +824,7 @@ await render(<App />, term)
 ### Static Rendering (No Terminal)
 
 ```tsx
-import { renderStatic } from "inkx"
+import { renderStatic } from "@hightea/term"
 
 const output = await renderStatic(<Summary stats={stats} />)
 console.log(output)
@@ -836,7 +836,7 @@ const plain = await renderStatic(<Report />, { plain: true })
 ### Console Capture
 
 ```tsx
-import { render, Console, patchConsole } from "inkx"
+import { render, Console, patchConsole } from "@hightea/term"
 
 function App({ console: patched }) {
   return (
@@ -940,7 +940,7 @@ inkx provides SlateJS-style plugins for extending app functionality. These compo
 Adds a `cmd` object for direct command invocation with metadata:
 
 ```tsx
-import { withCommands } from "inkx"
+import { withCommands } from "@hightea/term"
 
 const app = withCommands(render(<Board />), {
   registry: commandRegistry,
@@ -969,7 +969,7 @@ app.getState() // { screen, commands, focus }
 Routes `press()` calls to commands via keybinding lookup:
 
 ```tsx
-import { withKeybindings } from "inkx"
+import { withKeybindings } from "@hightea/term"
 
 const app = withKeybindings(withCommands(render(<Board />), cmdOpts), {
   bindings: defaultKeybindings,
@@ -988,7 +988,7 @@ await app.press("x")
 Adds buffer and rendering checks after command execution:
 
 ```tsx
-import { withDiagnostics } from "inkx/toolbelt"
+import { withDiagnostics } from "@hightea/term/toolbelt"
 
 const driver = withDiagnostics(createBoardDriver(repo, rootId), {
   checkIncremental: true, // Verify incremental vs fresh render

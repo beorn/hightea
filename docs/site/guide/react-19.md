@@ -49,7 +49,7 @@ All standard React hooks work correctly:
 
 ```tsx
 import { useState, useEffect, useTransition, useDeferredValue } from "react"
-import { Box, Text, useInput, useContentRect } from "inkx"
+import { Box, Text, useInput, useContentRect } from "@hightea/term"
 
 function App() {
   const [count, setCount] = useState(0)
@@ -84,7 +84,7 @@ Suspense boundaries work for lazy loading and data fetching patterns:
 
 ```tsx
 import { Suspense, lazy } from "react"
-import { Box, Text } from "inkx"
+import { Box, Text } from "@hightea/term"
 
 const HeavyComponent = lazy(() => import("./HeavyComponent"))
 
@@ -107,7 +107,7 @@ StrictMode works correctly with inkx. Double-rendering in development mode (for 
 
 ```tsx
 import { StrictMode } from "react"
-import { Box, Text, render, createTerm } from "inkx"
+import { Box, Text, render, createTerm } from "@hightea/term"
 
 function App() {
   return (
@@ -164,7 +164,7 @@ function SearchResults() {
 The inkx testing library is configured for React 19's act() requirements:
 
 ```tsx
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 
 const render = createRenderer()
 

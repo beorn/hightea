@@ -22,8 +22,8 @@ This guide is the companion to [State Management](state-management.md). State ma
 You're building a counter. One component, one handler. `useInput` gives you every keypress as a string — do what you want with it.
 
 ```tsx
-import { run, useInput } from "inkx/runtime"
-import { Text } from "inkx"
+import { run, useInput } from "@hightea/term/runtime"
+import { Text } from "@hightea/term"
 
 function Counter() {
   const [count, setCount] = useState(0)
@@ -55,8 +55,8 @@ The counter grows into an interactive board. You need click targets, hover effec
 The `withDomEvents()` plugin adds React-style event handlers to inkx components. Events bubble up the tree, components can stop propagation, and hit testing maps mouse coordinates to nodes:
 
 ```tsx
-import { createApp, useApp } from "inkx/runtime"
-import { Box, Text } from "inkx"
+import { createApp, useApp } from "@hightea/term/runtime"
+import { Box, Text } from "@hightea/term"
 
 function ItemList() {
   const items = useApp((s) => s.items)
@@ -80,7 +80,7 @@ function ItemList() {
 Enable it with a plugin — one line:
 
 ```tsx
-import { pipe, withDomEvents } from "inkx/runtime"
+import { pipe, withDomEvents } from "@hightea/term/runtime"
 
 const app = pipe(createApp(store), withReact(<Board />), withDomEvents())
 ```
@@ -179,7 +179,7 @@ In Level 2, event handlers are function calls that execute and vanish. There's n
 **The fix**: turn input into named, serializable commands. Instead of `if (input === "j") moveCursor(1)`, declare that `j` maps to the command `cursor_down`, and `cursor_down` produces the action `{ op: "moveCursor", delta: 1 }`. The mapping is data; the action is data; everything between keypress and state change is visible and customizable.
 
 ```tsx
-import { pipe, withDomEvents, withCommands } from "inkx/runtime"
+import { pipe, withDomEvents, withCommands } from "@hightea/term/runtime"
 
 const registry = createCommandRegistry({
   cursor_down: {
@@ -681,7 +681,7 @@ Because all state lives in the model, all changes flow through `update`, and all
 Effects are data — plain objects returned from `update`. The kernel runs them. inkx provides combinators for common async patterns:
 
 ```tsx
-import { none, batch, dispatch, debounce, throttle } from "inkx/core"
+import { none, batch, dispatch, debounce, throttle } from "@hightea/term/core"
 
 function update(msg: AppEvent, model: Model): [Model, Effect[]] {
   switch (msg.type) {

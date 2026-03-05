@@ -35,7 +35,7 @@ pnpm add inkx
 Create a file called `app.tsx`:
 
 ```tsx
-import { Box, Text, render, createTerm } from "inkx"
+import { Box, Text, render, createTerm } from "@hightea/term"
 
 function App() {
   return (
@@ -63,7 +63,7 @@ You should see a rounded box with "Hello from inkx!" inside.
 The key feature of inkx is `useContentRect()`. Components can query their computed dimensions:
 
 ```tsx
-import { Box, Text, render, useContentRect, createTerm } from "inkx"
+import { Box, Text, render, useContentRect, createTerm } from "@hightea/term"
 
 function SizedBox() {
   const { width, height } = useContentRect()
@@ -97,7 +97,7 @@ Each `SizedBox` will display its actual computed dimensions. No prop threading n
 inkx handles scrolling automatically. Just use `overflow="scroll"`:
 
 ```tsx
-import { Box, Text, render, useInput, createTerm } from "inkx"
+import { Box, Text, render, useInput, createTerm } from "@hightea/term"
 import { useState } from "react"
 
 const items = Array.from({ length: 100 }, (_, i) => `Item ${i + 1}`)

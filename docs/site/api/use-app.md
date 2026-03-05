@@ -5,7 +5,7 @@ Access app-level controls like exiting the application.
 ## Import
 
 ```tsx
-import { useApp } from "inkx"
+import { useApp } from "@hightea/term"
 ```
 
 ## Usage

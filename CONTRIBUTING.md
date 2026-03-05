@@ -13,7 +13,7 @@ Thank you for your interest in contributing to inkx! This guide covers everythin
 
 ```bash
 # Clone the repository
-git clone https://github.com/beorn/inkx.git
+git clone https://github.com/beorn/hightea.git
 cd inkx
 
 # Install dependencies
@@ -76,8 +76,8 @@ bun run test:fast
 inkx provides a testing library with auto-cleanup between renders:
 
 ```tsx
-import { createRenderer } from "inkx/testing"
-import { Box, Text } from "inkx"
+import { createRenderer } from "@hightea/term/testing"
+import { Box, Text } from "@hightea/term"
 
 // Create a render function (default: 80 columns, 24 rows)
 const render = createRenderer()
@@ -125,7 +125,7 @@ test("wide render", () => {
 ### Testing Utilities
 
 ```tsx
-import { createRenderer, stripAnsi, normalizeFrame, waitFor } from "inkx/testing"
+import { createRenderer, stripAnsi, normalizeFrame, waitFor } from "@hightea/term/testing"
 
 // Strip ANSI codes for easier assertions
 const plainText = stripAnsi("\u001B[32mGreen\u001B[39m")
@@ -309,7 +309,7 @@ inkx/
 
 ## Getting Help
 
-- Check existing [issues](https://github.com/beorn/inkx/issues)
+- Check existing [issues](https://github.com/beorn/hightea/issues)
 - Read the [documentation](docs/)
 - Look at [examples](examples/) for usage patterns
 

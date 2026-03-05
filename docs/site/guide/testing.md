@@ -43,8 +43,8 @@ The `createRenderer` function provides an ink-testing-library compatible API for
 ### Basic Usage
 
 ```tsx
-import { createRenderer } from "inkx/testing"
-import { Text } from "inkx"
+import { createRenderer } from "@hightea/term/testing"
+import { Text } from "@hightea/term"
 
 const render = createRenderer()
 
@@ -79,7 +79,7 @@ Use `stdin.write()` to simulate keyboard input:
 
 ```tsx
 import { useState } from "react"
-import { Box, Text, useInput } from "inkx"
+import { Box, Text, useInput } from "@hightea/term"
 
 function Counter() {
   const [count, setCount] = useState(0)
@@ -190,7 +190,7 @@ clear()
 Remove ANSI escape codes for easier assertions:
 
 ```tsx
-import { stripAnsi } from "inkx/testing"
+import { stripAnsi } from "@hightea/term/testing"
 
 const { lastFrame } = render(<Text color="red">Hello</Text>)
 const text = stripAnsi(lastFrame()!)
@@ -202,7 +202,7 @@ expect(text).toBe("Hello")
 Strip ANSI codes and normalize whitespace:
 
 ```tsx
-import { normalizeFrame } from "inkx/testing"
+import { normalizeFrame } from "@hightea/term/testing"
 
 const { lastFrame } = render(<MyComponent />)
 const normalized = normalizeFrame(lastFrame()!)
@@ -214,7 +214,7 @@ const normalized = normalizeFrame(lastFrame()!)
 Wait for async conditions:
 
 ```tsx
-import { waitFor } from "inkx/testing"
+import { waitFor } from "@hightea/term/testing"
 
 test("async update", async () => {
   const { lastFrame } = render(<AsyncComponent />)
@@ -233,7 +233,7 @@ test("async update", async () => {
 ### Testing Focus Management
 
 ```tsx
-import { useFocusable } from "inkx"
+import { useFocusable } from "@hightea/term"
 
 function FocusableItem({ testID }: { testID: string }) {
   const { focused } = useFocusable()
@@ -262,7 +262,7 @@ test("focus navigation", () => {
 ### Testing Layout Dimensions
 
 ```tsx
-import { useContentRect, NodeContext } from "inkx"
+import { useContentRect, NodeContext } from "@hightea/term"
 
 function LayoutCapture({ onLayout }: { onLayout: (l: any) => void }) {
   const layout = useContentRect()

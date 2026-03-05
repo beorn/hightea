@@ -19,7 +19,7 @@
 
 - km-specific command behavior — that's km-commands/km-tui
 - Board state logic — that's km-board
-- Layout engine internals — that's beorn-flexx (inkx tests layout _integration_)
+- Layout engine internals — that's flexture (inkx tests layout _integration_)
 
 ## Helpers
 
@@ -31,7 +31,7 @@
 ## Patterns
 
 ```typescript
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 import { Box, Text } from "../src/index.js"
 
 const render = createRenderer({ cols: 40, rows: 10 })

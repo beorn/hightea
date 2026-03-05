@@ -37,7 +37,7 @@ export default defineConfig({
       {
         text: "Links",
         items: [
-          { text: "GitHub", link: "https://github.com/beorn/inkx" },
+          { text: "GitHub", link: "https://github.com/beorn/hightea" },
           { text: "npm", link: "https://www.npmjs.com/package/inkx" },
         ],
       },
@@ -195,7 +195,7 @@ export default defineConfig({
       ],
     },
 
-    socialLinks: [{ icon: "github", link: "https://github.com/beorn/inkx" }],
+    socialLinks: [{ icon: "github", link: "https://github.com/beorn/hightea" }],
 
     outline: { level: [2, 3] },
 

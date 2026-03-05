@@ -504,7 +504,7 @@ useEffect(() => {
 
 ```tsx
 import { useState, useEffect, useMemo } from "react"
-import { Box, Text, useFocusable, useCursor, useInput, useContentRect } from "inkx"
+import { Box, Text, useFocusable, useCursor, useInput, useContentRect } from "@hightea/term"
 
 interface TextInputProps {
   value: string

@@ -20,7 +20,7 @@ inkx's `RenderAdapter` interface abstracts the rendering target. The same compon
 ### The Component
 
 ```tsx
-import { Box, Text, useContentRect } from "inkx"
+import { Box, Text, useContentRect } from "@hightea/term"
 
 function App() {
   const { width, height } = useContentRect()

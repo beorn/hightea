@@ -5,7 +5,7 @@ Access the stdout stream for terminal dimensions and direct output.
 ## Import
 
 ```tsx
-import { useStdout } from "inkx"
+import { useStdout } from "@hightea/term"
 ```
 
 ## Usage

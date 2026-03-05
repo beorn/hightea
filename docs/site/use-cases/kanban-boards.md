@@ -32,8 +32,8 @@ Other terminal UI frameworks either lack scrollable containers entirely (Ink), r
 A complete 3-column kanban board with keyboard navigation, card movement between columns, and independent column scrolling:
 
 ```tsx
-import { Box, Text, useContentRect, useFocusable, useFocusWithin } from "inkx"
-import { run, useInput } from "inkx/runtime"
+import { Box, Text, useContentRect, useFocusable, useFocusWithin } from "@hightea/term"
+import { run, useInput } from "@hightea/term/runtime"
 import { useState } from "react"
 
 type Card = { id: string; title: string }

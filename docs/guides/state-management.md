@@ -24,8 +24,8 @@ You're building a counter. One component, one piece of state. This is React at i
 
 ```tsx
 import { useState } from "react"
-import { run, useInput } from "inkx/runtime"
-import { Text } from "inkx"
+import { run, useInput } from "@hightea/term/runtime"
+import { Text } from "@hightea/term"
 
 function Counter() {
   const [count, setCount] = useState(0)
@@ -56,8 +56,8 @@ The standard solution is a shared store. [Zustand](https://github.com/pmndrs/zus
 The double-arrow `() => (set, get) => ({...})` is Zustand's [state creator](https://zustand.docs.pmnd.rs/guides/updating-state) pattern — `set` merges new state, `get` reads current state:
 
 ```tsx
-import { createApp, useApp } from "inkx/runtime"
-import { Box, Text } from "inkx"
+import { createApp, useApp } from "@hightea/term/runtime"
+import { Box, Text } from "@hightea/term"
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, max))
 
@@ -198,7 +198,7 @@ The `switch` is the type safety bridge — when `op.op` is `"moveCursor"`, TypeS
 inkx provides `createSlice` to eliminate the union and the switch — you write only the handlers:
 
 ```tsx
-import { createSlice } from "inkx/core"
+import { createSlice } from "@hightea/term/core"
 
 const TodoList = createSlice(
   () => ({ cursor: signal(0), items: signal<Item[]>([...]) }),

@@ -35,8 +35,8 @@ A log viewer with captured console output, a virtualized log list, and keyboard 
 
 ```tsx
 import { useState, useCallback } from "react"
-import { Box, Text, VirtualList, Console, patchConsole } from "inkx"
-import { run, useInput } from "inkx/runtime"
+import { Box, Text, VirtualList, Console, patchConsole } from "@hightea/term"
+import { run, useInput } from "@hightea/term/runtime"
 
 interface LogEntry {
   time: string
@@ -104,7 +104,7 @@ Press `i`, `w`, or `e` to add log entries at different severity levels. Use `j`/
 inkx ships with a Playwright-style testing API. Verify rendering and keyboard interaction without a real terminal:
 
 ```tsx
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 import { expect, test } from "vitest"
 
 const render = createRenderer({ cols: 100, rows: 24 })

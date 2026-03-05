@@ -20,10 +20,10 @@ bun add inkx
 
 ```diff
 - import { Box, Text, render, useInput, useApp } from 'ink';
-+ import { Box, Text, render, useInput, useApp, createTerm } from 'inkx';
++ import { Box, Text, render, useInput, useApp, createTerm } from '@hightea/term';
 
 - import { render } from 'ink-testing-library';
-+ import { createRenderer } from 'inkx/testing';
++ import { createRenderer } from '@hightea/term/testing';
 ```
 
 ### Step 3: Run Tests
@@ -250,7 +250,7 @@ diff before.txt after.txt
 If you have tests using ink-testing-library, update to inkx/testing:
 
 ```typescript
-import { createRenderer } from 'inkx/testing';
+import { createRenderer } from '@hightea/term/testing';
 
 const render = createRenderer({ cols: 80, rows: 24 });
 

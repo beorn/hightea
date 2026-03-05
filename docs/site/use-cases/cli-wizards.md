@@ -35,8 +35,8 @@ A complete multi-step wizard using `run()`, `SelectList`, `TextInput`, and `Prog
 
 ```tsx
 import { useState, useEffect } from "react"
-import { run, useInput } from "inkx/runtime"
-import { Box, Text, SelectList, TextInput, ProgressBar } from "inkx"
+import { run, useInput } from "@hightea/term/runtime"
+import { Box, Text, SelectList, TextInput, ProgressBar } from "@hightea/term"
 
 type Step = "select" | "name" | "install" | "done"
 

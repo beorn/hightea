@@ -447,8 +447,8 @@ When a fuzz test or user report identifies a rendering bug, use this template to
 
 ```typescript
 import { describe, test, expect } from "vitest"
-import { createRenderer } from "inkx/testing"
-import { Box, Text } from "inkx"
+import { createRenderer } from "@hightea/term/testing"
+import { Box, Text } from "@hightea/term"
 
 describe("regression: <brief description>", () => {
   test("fuzz seed <N> - <what broke>", async () => {
@@ -489,7 +489,7 @@ For `withDiagnostics` driver tests (full app):
 import { describe, test } from "vitest"
 import { createBoardDriver } from "@km/tui/driver.ts"
 import { createFakeRepo } from "@km/storage"
-import { withDiagnostics } from "inkx"
+import { withDiagnostics } from "@hightea/term"
 import { item } from "@km/tui/tests/helpers/board-test.ts"
 
 describe("regression: <brief description>", () => {

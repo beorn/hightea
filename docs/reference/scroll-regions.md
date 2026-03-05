@@ -18,7 +18,7 @@ both CPU work and visual tearing.
 ## Utility Functions
 
 ```ts
-import { setScrollRegion, resetScrollRegion, scrollUp, scrollDown, moveCursor, supportsScrollRegions } from "inkx"
+import { setScrollRegion, resetScrollRegion, scrollUp, scrollDown, moveCursor, supportsScrollRegions } from "@hightea/term"
 ```
 
 | Function                               | Description                           |
@@ -33,7 +33,7 @@ import { setScrollRegion, resetScrollRegion, scrollUp, scrollDown, moveCursor, s
 ## useScrollRegion Hook
 
 ```ts
-import { useScrollRegion } from "inkx/hooks"
+import { useScrollRegion } from "@hightea/term/hooks"
 ```
 
 Tracks scroll offset changes and emits DECSTBM sequences automatically.

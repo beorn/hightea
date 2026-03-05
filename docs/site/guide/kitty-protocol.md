@@ -335,7 +335,7 @@ const caps = detectTerminalCaps()
 ### Basic Usage (Auto-detection)
 
 ```tsx
-import { render, useInput } from "inkx"
+import { render, useInput } from "@hightea/term"
 
 function App() {
   useInput((input, key) => {

@@ -5,7 +5,7 @@
 Returns the content area dimensions (excluding padding and borders) of the nearest Box ancestor.
 
 ```tsx
-import { useContentRect } from "inkx"
+import { useContentRect } from "@hightea/term"
 
 function ResponsiveCard() {
   const { width, height, x, y } = useContentRect()
@@ -20,7 +20,7 @@ This is inkx's core innovation — components know their size _during_ render, n
 Returns the absolute screen position and dimensions.
 
 ```tsx
-import { useScreenRect } from "inkx"
+import { useScreenRect } from "@hightea/term"
 
 function Tooltip() {
   const { x, y, width, height } = useScreenRect()
@@ -33,7 +33,7 @@ function Tooltip() {
 Registers a keyboard input handler. Return `"exit"` to exit the app.
 
 ```tsx
-import { useInput, type Key } from "inkx/runtime"
+import { useInput, type Key } from "@hightea/term/runtime"
 
 function App() {
   useInput((input: string, key: Key) => {
@@ -82,7 +82,7 @@ interface Key {
 **Modifier symbols**: Use macOS symbols in `parseHotkey()` for concise hotkey definitions:
 
 ```tsx
-import { parseHotkey, matchHotkey } from "inkx"
+import { parseHotkey, matchHotkey } from "@hightea/term"
 
 const save = parseHotkey("⌘s")
 const palette = parseHotkey("⌃⇧p")
@@ -101,7 +101,7 @@ See [Input Features](input-features.md) for the full modifier reference, mouse e
 Access app-level controls:
 
 ```tsx
-import { useApp } from "inkx"
+import { useApp } from "@hightea/term"
 
 function App() {
   const { exit } = useApp()
@@ -123,7 +123,7 @@ const cursor = useApp((s) => s.cursor)
 Access terminal capabilities and styling:
 
 ```tsx
-import { useTerm } from "inkx"
+import { useTerm } from "@hightea/term"
 
 function StatusLine() {
   const term = useTerm()
@@ -144,7 +144,7 @@ Makes a component focusable within the tree-based focus system. Reads focus stat
 The component must have a `testID` prop and `focusable` on its Box ancestor. Optionally set `autoFocus` for initial focus on mount.
 
 ```tsx
-import { useFocusable } from "inkx"
+import { useFocusable } from "@hightea/term"
 
 function FocusablePanel() {
   const { focused, focus, blur, focusOrigin } = useFocusable()
@@ -168,7 +168,7 @@ function FocusablePanel() {
 Returns `true` if focus is anywhere within a subtree. Walks from the focused node up to check if it passes through the given `testID`.
 
 ```tsx
-import { useFocusWithin } from "inkx"
+import { useFocusWithin } from "@hightea/term"
 
 function Sidebar() {
   const hasFocus = useFocusWithin("sidebar")
@@ -186,7 +186,7 @@ function Sidebar() {
 Ink-compatible wrapper around `useFocusable`. Returns `{ isFocused }` instead of `{ focused }`.
 
 ```tsx
-import { useFocus } from "inkx"
+import { useFocus } from "@hightea/term"
 
 function FocusableItem() {
   const { isFocused } = useFocus()
@@ -211,7 +211,7 @@ For new code, prefer `useFocusable()` which returns richer state (`focused`, `fo
 Ink-compatible wrapper around `useFocusManager`. Provides the same API shape as Ink's `useFocusManager`.
 
 ```tsx
-import { useInkFocusManager } from "inkx"
+import { useInkFocusManager } from "@hightea/term"
 
 function Navigation() {
   const { focusNext, focusPrevious } = useInkFocusManager()
@@ -240,7 +240,7 @@ For new code, prefer `useFocusManager()` which returns the full inkx focus manag
 Receives bracketed paste events. Only available in the `run()` runtime (Layer 2).
 
 ```tsx
-import { usePaste } from "inkx/runtime"
+import { usePaste } from "@hightea/term/runtime"
 
 function Editor() {
   usePaste((text) => {
@@ -256,7 +256,7 @@ The handler receives the full pasted text as a single string, rather than indivi
 For the `render()` API (Layer 1), use the `onPaste` option on `useInput` instead:
 
 ```tsx
-import { useInput } from "inkx"
+import { useInput } from "@hightea/term"
 
 useInput(handler, {
   onPaste: (text) => insertText(text),
@@ -268,7 +268,7 @@ useInput(handler, {
 Drive a 0-to-1 animation over a duration with easing. Targets ~30fps (33ms interval) since terminals don't benefit from higher refresh rates.
 
 ```tsx
-import { useAnimation } from "inkx"
+import { useAnimation } from "@hightea/term"
 
 function FadeIn({ children }) {
   const { value, isAnimating, reset } = useAnimation({
@@ -300,7 +300,7 @@ function FadeIn({ children }) {
 Smoothly interpolate between numeric values. When the target changes, animates from the current position to the new target. If the target changes mid-animation, restarts from the current interpolated position.
 
 ```tsx
-import { useAnimatedTransition } from "inkx"
+import { useAnimatedTransition } from "@hightea/term"
 
 function ScrollOffset({ target }) {
   const smooth = useAnimatedTransition(target, { duration: 200, easing: "easeOut" })
@@ -321,7 +321,7 @@ Returns the current interpolated `number`. On first render, returns the target v
 Run a callback on a fixed interval. Uses a ref for the callback to avoid stale closures (Dan Abramov's pattern). The callback is NOT called on mount -- only on subsequent ticks.
 
 ```tsx
-import { useInterval } from "inkx"
+import { useInterval } from "@hightea/term"
 
 function Clock() {
   const [time, setTime] = useState(Date.now())
@@ -341,7 +341,7 @@ function Clock() {
 Terminal scroll region optimization hook. When scroll offset changes, uses DECSTBM to natively shift content instead of re-rendering the entire area. See [Scroll Region Optimization](scroll-regions.md) for full details.
 
 ```tsx
-import { useScrollRegion } from "inkx/hooks"
+import { useScrollRegion } from "@hightea/term/hooks"
 
 function ScrollableArea({ items, scrollOffset }) {
   const { isActive, scrollDelta } = useScrollRegion({
@@ -373,7 +373,7 @@ Push frozen items to terminal scrollback. Tracks a contiguous frozen prefix — 
 Pair with VirtualList's `virtualized` prop for the complete experience.
 
 ```tsx
-import { useScrollback } from "inkx"
+import { useScrollback } from "@hightea/term"
 
 const frozenCount = useScrollback(items, {
   frozen: (item) => item.complete,

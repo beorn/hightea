@@ -34,9 +34,9 @@ inkx solves all three problems out of the box. Components query their own dimens
 A complete multi-pane dashboard with responsive layout, live-updating metrics, and progress bars that resize to fill available space.
 
 ```tsx
-import { Box, Text, useContentRect, ThemeProvider, defaultDarkTheme } from "inkx"
-import { run, useInput, type Key } from "inkx/runtime"
-import { useInterval } from "inkx"
+import { Box, Text, useContentRect, ThemeProvider, defaultDarkTheme } from "@hightea/term"
+import { run, useInput, type Key } from "@hightea/term/runtime"
+import { useInterval } from "@hightea/term"
 import { useState } from "react"
 
 function App() {

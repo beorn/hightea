@@ -7,7 +7,7 @@ inkx provides SlateJS-style plugins for extending app functionality. Plugins com
 Adds a `cmd` object for direct command invocation with metadata.
 
 ```tsx
-import { withCommands } from "inkx"
+import { withCommands } from "@hightea/term"
 
 const app = withCommands(render(<Board />), {
   registry: commandRegistry,
@@ -36,7 +36,7 @@ app.getState() // { screen, commands, focus }
 Routes `press()` calls to commands via keybinding lookup. Wraps a `withCommands`-enhanced app.
 
 ```tsx
-import { withKeybindings } from "inkx"
+import { withKeybindings } from "@hightea/term"
 
 const app = withKeybindings(withCommands(render(<Board />), cmdOpts), {
   bindings: defaultKeybindings,
@@ -55,7 +55,7 @@ await app.press("x")
 Adds buffer and rendering invariant checks after command execution. Imported from `inkx/toolbelt`.
 
 ```tsx
-import { withDiagnostics } from "inkx/toolbelt"
+import { withDiagnostics } from "@hightea/term/toolbelt"
 
 const driver = withDiagnostics(app, {
   checkIncremental: true, // Verify incremental vs fresh render match

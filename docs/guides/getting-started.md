@@ -7,8 +7,8 @@ This is the "start simple" part — five lines to a working app. inkx/runtime is
 The fastest way to build an interactive terminal app is `run()`:
 
 ```typescript
-import { run, useInput } from 'inkx/runtime';
-import { Text } from 'inkx';
+import { run, useInput } from '@hightea/term/runtime';
+import { Text } from '@hightea/term';
 import { useState } from 'react';
 
 function Counter() {
@@ -47,7 +47,7 @@ That's a complete, working TUI app. `run()` handles terminal setup, keyboard inp
 Use `useInput` to handle keyboard events. Return `'exit'` from the handler to quit the app.
 
 ```typescript
-import { run, useInput, type Key } from "inkx/runtime"
+import { run, useInput, type Key } from "@hightea/term/runtime"
 
 useInput((input: string, key: Key) => {
   // Regular characters
@@ -123,7 +123,7 @@ useInput(handleInput)
 Components can know their size during render -- inkx's core innovation:
 
 ```typescript
-import { useContentRect } from 'inkx';
+import { useContentRect } from '@hightea/term';
 
 function ResponsivePanel() {
   const { width, height } = useContentRect();
@@ -142,7 +142,7 @@ function ResponsivePanel() {
 Access terminal info and styling with `useTerm`:
 
 ```typescript
-import { useTerm } from 'inkx';
+import { useTerm } from '@hightea/term';
 
 function StatusLine() {
   const term = useTerm();
@@ -161,8 +161,8 @@ function StatusLine() {
 Putting hooks together into a real app:
 
 ```typescript
-import { run, useInput, useExit, type Key } from 'inkx/runtime';
-import { Box, Text, useContentRect } from 'inkx';
+import { run, useInput, useExit, type Key } from '@hightea/term/runtime';
+import { Box, Text, useContentRect } from '@hightea/term';
 import { useState, useCallback } from 'react';
 
 function App() {
@@ -212,8 +212,8 @@ interface RunHandle {
 Enable Cmd ⌘, Hyper ✦ modifiers and mouse tracking via `run()` options:
 
 ```typescript
-import { run, useInput } from "inkx/runtime"
-import { KittyFlags } from "inkx"
+import { run, useInput } from "@hightea/term/runtime"
+import { KittyFlags } from "@hightea/term"
 
 function App() {
   useInput((input, key) => {

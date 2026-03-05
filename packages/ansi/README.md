@@ -51,11 +51,11 @@ const unsubscribe = patched.subscribe(() => {
 
 ### Using with inkx
 
-If you're building a TUI app with [inkx](https://github.com/beorn/inkx), import term primitives from `inkx` directly - it re-exports everything from chalkx:
+If you're building a TUI app with [inkx](https://github.com/beorn/hightea), import term primitives from `inkx` directly - it re-exports everything from chalkx:
 
 ```typescript
 // Preferred for inkx apps - one import source
-import { render, Box, Text, createTerm, patchConsole } from "inkx"
+import { render, Box, Text, createTerm, patchConsole } from "@hightea/term"
 
 // Only import from chalkx for extended ANSI features not re-exported
 import { curlyUnderline, hyperlink, bgOverride } from "@beorn/chalkx"
@@ -149,11 +149,11 @@ npm install @beorn/chalkx
 
 ## inkx Background Override
 
-When using chalk with [inkx](https://github.com/beorn/inkx), mixing chalk backgrounds with inkx `backgroundColor` props causes visual artifacts. Use `bgOverride()` to explicitly allow this:
+When using chalk with [inkx](https://github.com/beorn/hightea), mixing chalk backgrounds with inkx `backgroundColor` props causes visual artifacts. Use `bgOverride()` to explicitly allow this:
 
 ```tsx
 import { bgOverride, chalk } from "@beorn/chalkx"
-import { Box, Text } from "inkx"
+import { Box, Text } from "@hightea/term"
 ;<Box backgroundColor="cyan">
   <Text>{bgOverride(chalk.bgBlack("text"))}</Text>
 </Box>
@@ -239,7 +239,7 @@ bun ./src/storybook.ts
 
 | Project                                 | Description                                     |
 | --------------------------------------- | ----------------------------------------------- |
-| [inkx](https://github.com/beorn/inkx)   | React terminal UI framework (re-exports chalkx) |
+| [inkx](https://github.com/beorn/hightea)   | React terminal UI framework (re-exports chalkx) |
 | [chalk](https://github.com/chalk/chalk) | Industry-standard terminal styling              |
 | [Flexx](https://github.com/beorn/flexx) | Pure JS flexbox layout engine                   |
 

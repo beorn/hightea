@@ -11,7 +11,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/beorn/inkx
+      link: https://github.com/beorn/hightea
 
 features:
   - icon: "\U0001F4D0"
@@ -81,8 +81,8 @@ bun add inkx react @beorn/flexx
 ```
 
 ```tsx
-import { Box, Text, useContentRect } from "inkx"
-import { run, useInput } from "inkx/runtime"
+import { Box, Text, useContentRect } from "@hightea/term"
+import { run, useInput } from "@hightea/term/runtime"
 
 function App() {
   const { width } = useContentRect() // Components know their size!

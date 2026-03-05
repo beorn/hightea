@@ -11,7 +11,7 @@ See inkx [running in the browser](/examples/live-demo) via xterm.js — the same
 Clone the repository and run any example:
 
 ```bash
-git clone https://github.com/beorn/inkx
+git clone https://github.com/beorn/hightea
 cd inkx
 bun install
 bun run examples/dashboard/app.tsx

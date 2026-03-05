@@ -13,7 +13,7 @@ inkx makes scrolling effortless. Just render your content and let inkx handle th
 Add `overflow="scroll"` to any Box:
 
 ```tsx
-import { Box, Text } from "inkx"
+import { Box, Text } from "@hightea/term"
 
 const items = Array.from({ length: 100 }, (_, i) => `Item ${i + 1}`)
 
@@ -40,7 +40,7 @@ inkx will:
 Use `scrollTo` to keep a specific item visible:
 
 ```tsx
-import { Box, Text, useInput } from "inkx"
+import { Box, Text, useInput } from "@hightea/term"
 import { useState } from "react"
 
 const items = Array.from({ length: 100 }, (_, i) => `Item ${i + 1}`)

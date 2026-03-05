@@ -5,7 +5,7 @@ Handle keyboard input in your app.
 ## Import
 
 ```tsx
-import { useInput } from "inkx"
+import { useInput } from "@hightea/term"
 ```
 
 ## Usage

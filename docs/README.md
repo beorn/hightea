@@ -5,8 +5,8 @@
 inkx is a React-based TUI framework with a graduated architecture. Your first app is five lines. When you need shared state, undo, testable I/O, or composable plugins — each level builds on the last. You never rewrite; you grow.
 
 ```tsx
-import { run, useInput } from "inkx/runtime"
-import { Text } from "inkx"
+import { run, useInput } from "@hightea/term/runtime"
+import { Text } from "@hightea/term"
 
 function Counter() {
   const [count, setCount] = useState(0)

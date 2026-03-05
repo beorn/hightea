@@ -9,8 +9,8 @@ add effects-as-data when you need side effects (Level 4).
 ## Install
 
 ```ts
-import { tea, collect } from "inkx/tea"
-import type { TeaResult, TeaReducer, EffectRunners, TeaSlice, EffectLike } from "inkx/tea"
+import { tea, collect } from "@hightea/term/tea"
+import type { TeaResult, TeaReducer, EffectRunners, TeaSlice, EffectLike } from "@hightea/term/tea"
 ```
 
 Not a standalone package. Exported as a sub-path from inkx.
@@ -22,7 +22,7 @@ Level 3 — ops as data. The reducer takes state and an operation, returns new s
 
 ```ts
 import { createStore } from "zustand"
-import { tea } from "inkx/tea"
+import { tea } from "@hightea/term/tea"
 
 interface State {
   count: number
@@ -57,7 +57,7 @@ on a per-case basis.
 
 ```ts
 import { createStore } from "zustand"
-import { tea, type TeaResult, type EffectRunners } from "inkx/tea"
+import { tea, type TeaResult, type EffectRunners } from "@hightea/term/tea"
 
 // Effects are plain objects with a `type` discriminant
 const log = (msg: string) => ({ type: "log" as const, msg })
@@ -165,7 +165,7 @@ the return value so assertions work uniformly whether the reducer returned plain
 or a tuple.
 
 ```ts
-import { collect } from "inkx/tea"
+import { collect } from "@hightea/term/tea"
 
 const initial: State = { count: 0 }
 

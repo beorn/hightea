@@ -20,8 +20,8 @@ bun add inkx react @beorn/flexx
 
 ```tsx
 import { useState } from "react"
-import { run, useInput } from "inkx/runtime"
-import { Box, Text, useContentRect } from "inkx"
+import { run, useInput } from "@hightea/term/runtime"
+import { Box, Text, useContentRect } from "@hightea/term"
 
 function App() {
   const { width } = useContentRect()
@@ -106,8 +106,8 @@ Drop-in replacement for [Ink](https://github.com/vadimdemedes/ink). Same compone
 import { render, Box, Text, useInput, useApp } from "ink"
 
 // After (inkx)
-import { render, Box, Text, useApp } from "inkx"
-import { useInput } from "inkx/runtime"
+import { render, Box, Text, useApp } from "@hightea/term"
+import { useInput } from "@hightea/term/runtime"
 ```
 
 See [migration guide](docs/guides/migration.md) for details.

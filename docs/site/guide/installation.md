@@ -68,8 +68,8 @@ npx ts-node --esm app.tsx
 inkx includes a testing library with auto-cleanup between renders:
 
 ```tsx
-import { createRenderer } from "inkx/testing"
-import { Text } from "inkx"
+import { createRenderer } from "@hightea/term/testing"
+import { Text } from "@hightea/term"
 
 const render = createRenderer()
 

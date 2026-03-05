@@ -5,7 +5,7 @@ Renders newline characters for vertical spacing in text content.
 ## Import
 
 ```tsx
-import { Newline } from "inkx"
+import { Newline } from "@hightea/term"
 ```
 
 ## Usage

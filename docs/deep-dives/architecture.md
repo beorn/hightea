@@ -148,7 +148,7 @@ const terminalAdapter: RenderAdapter = {
 **File:** `src/adapters/canvas-adapter.ts`
 
 ```typescript
-import { createCanvasAdapter, renderToCanvas } from 'inkx/canvas';
+import { createCanvasAdapter, renderToCanvas } from '@hightea/term/canvas';
 
 // Create adapter with configuration
 const adapter = createCanvasAdapter({
@@ -178,7 +178,7 @@ Advantages over Canvas:
 - CSS integration and DevTools inspection
 
 ```typescript
-import { createDOMAdapter, renderToDOM } from 'inkx/dom';
+import { createDOMAdapter, renderToDOM } from '@hightea/term/dom';
 
 // Line-based DOM rendering (following xterm.js pattern)
 const container = document.getElementById('app');

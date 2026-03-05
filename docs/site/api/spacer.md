@@ -5,7 +5,7 @@ A flexible space that expands to fill available space in its parent container.
 ## Import
 
 ```tsx
-import { Spacer } from "inkx"
+import { Spacer } from "@hightea/term"
 ```
 
 ## Usage

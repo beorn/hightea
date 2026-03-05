@@ -2,7 +2,7 @@
 
 [Ink](https://github.com/vadimdemedes/ink) (2017) brought React to the terminal. ~1.3M npm weekly downloads (Feb 2026), 50+ community components, used by Gatsby, Prisma, Terraform CDK, Shopify CLI, and many more. Mature, stable, well-documented.
 
-[inkx](https://github.com/beorn/inkx) (2025) started as a ground-up reimplementation of Ink's rendering with two-phase rendering — components know their dimensions during render, not after. It has since grown into a broader app framework with runtime layers, state management integration, command/keybinding systems, and plugin composition. This makes a direct 1:1 comparison somewhat apples-to-oranges: Ink is a focused React renderer, while inkx is closer to a full terminal app toolkit.
+[inkx](https://github.com/beorn/hightea) (2025) started as a ground-up reimplementation of Ink's rendering with two-phase rendering — components know their dimensions during render, not after. It has since grown into a broader app framework with runtime layers, state management integration, command/keybinding systems, and plugin composition. This makes a direct 1:1 comparison somewhat apples-to-oranges: Ink is a focused React renderer, while inkx is closer to a full terminal app toolkit.
 
 > For how inkx compares to terminal UI frameworks beyond Ink (BubbleTea, Textual, Notcurses, FTXUI, blessed), see [comparison.md](comparison.md).
 
@@ -196,7 +196,7 @@ inkx supports pluggable layout engines with the same flexbox API:
 | RTL direction      | Supported       | Supported   |
 | Baseline alignment | Not supported   | Supported   |
 
-Both are fast enough for 60fps terminal UIs. Flexx is 5x smaller with comparable performance. See [Flexx vs Yoga](../../beorn-flexx/docs/yoga-comparison.md) for details.
+Both are fast enough for 60fps terminal UIs. Flexx is 5x smaller with comparable performance. See [Flexx vs Yoga](../../flexture/docs/yoga-comparison.md) for details.
 
 Note: Ink 6 uses Yoga NAPI (native C++), which is ~2x slower than both Flexx and Yoga WASM due to JS↔C++ bridge overhead.
 

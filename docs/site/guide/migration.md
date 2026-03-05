@@ -16,7 +16,7 @@ bun add inkx inkx-testing-library
 
 ```diff
 - import { Box, Text, render, useInput, useApp } from 'ink';
-+ import { Box, Text, render, useInput, useApp, createTerm } from 'inkx';
++ import { Box, Text, render, useInput, useApp, createTerm } from '@hightea/term';
 
 - import { render } from 'ink-testing-library';
 + import { render } from 'inkx-testing-library';

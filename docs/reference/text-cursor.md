@@ -26,8 +26,8 @@ Each layer builds on the one below. Layer 0 has no state, no hooks, no React dep
 All functions are exported from `inkx`:
 
 ```ts
-import { cursorToRowCol, getWrappedLines, rowColToCursor, cursorMoveUp, cursorMoveDown, countVisualLines } from "inkx"
-import type { WrappedLine } from "inkx"
+import { cursorToRowCol, getWrappedLines, rowColToCursor, cursorMoveUp, cursorMoveDown, countVisualLines } from "@hightea/term"
+import type { WrappedLine } from "@hightea/term"
 ```
 
 ---
@@ -207,7 +207,7 @@ The text-cursor functions accept `stickyX` but don't store it -- the caller mana
 Use text-cursor functions with your own state (Slate, Zustand, or plain React state):
 
 ```ts
-import { cursorToRowCol, cursorMoveDown, cursorMoveUp, countVisualLines } from "inkx"
+import { cursorToRowCol, cursorMoveDown, cursorMoveUp, countVisualLines } from "@hightea/term"
 
 // In your state manager or hook:
 function handleArrowDown(text: string, cursor: number, width: number, stickyX: number) {

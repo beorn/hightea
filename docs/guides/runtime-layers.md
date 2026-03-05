@@ -36,8 +36,8 @@ Use `createApp()` when you have:
 - Complex state logic that benefits from centralized updates
 
 ```typescript
-import { createApp, useApp, type Key } from 'inkx/runtime';
-import { Box, Text } from 'inkx';
+import { createApp, useApp, type Key } from '@hightea/term/runtime';
+import { Box, Text } from '@hightea/term';
 
 // Define the app with store factory and event handlers
 const app = createApp(
@@ -122,8 +122,8 @@ interface AppHandle<S> {
 For Elm-style architecture, custom event loops, or integration with external event sources, `createRuntime()` gives you full control over the render loop. This is the escape hatch -- most apps don't need it.
 
 ```typescript
-import { createRuntime, layout, ensureLayoutEngine, merge } from 'inkx/runtime';
-import { Text } from 'inkx';
+import { createRuntime, layout, ensureLayoutEngine, merge } from '@hightea/term/runtime';
+import { Text } from '@hightea/term';
 
 // Initialize layout engine once
 await ensureLayoutEngine();
@@ -202,8 +202,8 @@ controller.abort() // Cancels the effect
 Between `createRuntime()` and the React layers sits a pure **TEA (The Elm Architecture) store**. It has no React dependency — use it for Elm-style apps or as the state backbone under React components.
 
 ```typescript
-import { createStore, inkxUpdate, defaultInit, withFocusManagement } from "inkx/store"
-import { type Effect, type InkxModel, type InkxMsg, none, batch, dispatch, compose } from "inkx/core"
+import { createStore, inkxUpdate, defaultInit, withFocusManagement } from "@hightea/term/store"
+import { type Effect, type InkxModel, type InkxMsg, none, batch, dispatch, compose } from "@hightea/term/core"
 
 // Extend the base model with your state
 interface AppModel extends InkxModel {
@@ -271,7 +271,7 @@ function update(msg: AppMsg, model: AppModel): [AppModel, Effect[]] {
 Plugins wrap the update function, adding behavior before/after/around it:
 
 ```typescript
-import { type Plugin, compose } from "inkx/core"
+import { type Plugin, compose } from "@hightea/term/core"
 
 // Logging plugin
 const logging: Plugin<AppModel, AppMsg> = (inner) => (msg, model) => {
@@ -310,7 +310,7 @@ for await (const event of merge(keyboardEvents, runtime.events())) {
 All layers use AsyncIterable streams. Compose them with helpers:
 
 ```typescript
-import { merge, map, filter, takeUntil, throttle } from "inkx/runtime"
+import { merge, map, filter, takeUntil, throttle } from "@hightea/term/runtime"
 
 // Merge multiple sources
 const events = merge(keyboardEvents, timerEvents)
@@ -333,7 +333,7 @@ const throttled = throttle(mouseMoves, 16) // ~60fps
 For animations and periodic updates:
 
 ```typescript
-import { createTick, createFrameTick, createAdaptiveTick } from "inkx/runtime"
+import { createTick, createFrameTick, createAdaptiveTick } from "@hightea/term/runtime"
 
 // Fixed interval
 const everySecond = createTick(1000)

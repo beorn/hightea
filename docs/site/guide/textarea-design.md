@@ -12,7 +12,7 @@ TextArea provides multi-line text editing in terminal applications. It combines:
 - Optional text selection
 
 ```tsx
-import { TextArea } from "inkx"
+import { TextArea } from "@hightea/term"
 
 function App() {
   const [value, setValue] = useState("")

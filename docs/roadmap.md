@@ -78,12 +78,12 @@ function TextInput() {
 
 ```tsx
 // Canvas rendering (pixel-based)
-import { renderToCanvas, Box, Text } from "inkx/canvas"
+import { renderToCanvas, Box, Text } from "@hightea/term/canvas"
 const canvas = document.getElementById("canvas")
 renderToCanvas(<App />, canvas, { fontSize: 14 })
 
 // DOM rendering (accessible, text-selectable)
-import { renderToDOM, Box, Text } from "inkx/dom"
+import { renderToDOM, Box, Text } from "@hightea/term/dom"
 const container = document.getElementById("app")
 renderToDOM(<App />, container, { fontSize: 14 })
 ```

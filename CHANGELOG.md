@@ -78,4 +78,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Buffer-level cellEquals for 3.3x faster "no changes" diffing
 - Drop-in Ink compatibility with migration guide
 
-[0.1.0]: https://github.com/beorn/inkx/releases/tag/v0.1.0
+[0.1.0]: https://github.com/beorn/hightea/releases/tag/v0.1.0

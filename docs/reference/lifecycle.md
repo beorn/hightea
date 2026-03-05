@@ -84,7 +84,7 @@ import {
   CTRL_Z,
   type TerminalLifecycleOptions,
   type TerminalState,
-} from "inkx/runtime"
+} from "@hightea/term/runtime"
 
 // Capture current state
 const state = captureTerminalState({

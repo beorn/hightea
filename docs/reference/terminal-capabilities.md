@@ -219,7 +219,7 @@ term.dispose() // or let `using` handle it
 
 ```ts
 import { createTerm } from 'chalkx'
-import { render, renderString } from 'inkx'
+import { render, renderString } from '@hightea/term'
 
 using term = createTerm()
 
@@ -239,7 +239,7 @@ if (term.hasCursor() && term.hasInput()) {
 ### Adaptive Components
 
 ```tsx
-import { useTerm, Box, Text } from "inkx"
+import { useTerm, Box, Text } from "@hightea/term"
 
 function StatusLine({ status }: { status: string }) {
   const term = useTerm()
@@ -259,7 +259,7 @@ function StatusLine({ status }: { status: string }) {
 
 ```tsx
 import { createTerm } from "chalkx"
-import { render, Console, Box, Text } from "inkx"
+import { render, Console, Box, Text } from "@hightea/term"
 
 using term = createTerm()
 
@@ -278,7 +278,7 @@ console.log("This shows in <Console />")
 
 ```tsx
 import { createTerm } from "chalkx"
-import { render, renderString, Console, Box } from "inkx"
+import { render, renderString, Console, Box } from "@hightea/term"
 
 class Reporter {
   private term = createTerm()
@@ -395,8 +395,8 @@ The [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/
 The recommended way to use the Kitty protocol is through the `run()` options:
 
 ```typescript
-import { run } from "inkx/runtime"
-import { KittyFlags } from "inkx"
+import { run } from "@hightea/term/runtime"
+import { KittyFlags } from "@hightea/term"
 
 // Auto-detect: sends CSI ? u, enables if terminal responds
 await run(<App />, { kitty: true })
@@ -421,7 +421,7 @@ When `kitty: <number>`, inkx skips detection and enables with the specified flag
 For manual detection outside of `run()`:
 
 ```typescript
-import { detectKittyFromStdio, detectKittySupport, type KittyDetectResult } from "inkx"
+import { detectKittyFromStdio, detectKittySupport, type KittyDetectResult } from "@hightea/term"
 
 // Convenience: uses real stdin/stdout
 const result = await detectKittyFromStdio(process.stdout, process.stdin, 200)
@@ -442,7 +442,7 @@ The `buffered` field contains any non-response data read during detection (user 
 Manual control functions (auto-enable handles these for you):
 
 ```typescript
-import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard, KittyFlags } from "inkx"
+import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard, KittyFlags } from "@hightea/term"
 
 // Enable with default flags (disambiguate only)
 stdout.write(enableKittyKeyboard())
@@ -573,7 +573,7 @@ Column and row are 1-indexed in the protocol, parsed to 0-indexed by `parseMouse
 ### Parsing
 
 ```typescript
-import { parseMouseSequence, isMouseSequence, type ParsedMouse } from "inkx"
+import { parseMouseSequence, isMouseSequence, type ParsedMouse } from "@hightea/term"
 
 // Quick check
 if (isMouseSequence(rawInput)) {
@@ -624,7 +624,7 @@ Text is base64-encoded in the escape sequence. Terminals support both BEL (`\x07
 ### API
 
 ```tsx
-import { copyToClipboard, requestClipboard, parseClipboardResponse } from "inkx"
+import { copyToClipboard, requestClipboard, parseClipboardResponse } from "@hightea/term"
 
 // Copy text to system clipboard
 copyToClipboard(process.stdout, "Hello, clipboard!")
@@ -677,7 +677,7 @@ Paste end:    CSI 201 ~         (ESC [ 201 ~)
 ### API
 
 ```tsx
-import { enableBracketedPaste, disableBracketedPaste, parseBracketedPaste, PASTE_START, PASTE_END } from "inkx"
+import { enableBracketedPaste, disableBracketedPaste, parseBracketedPaste, PASTE_START, PASTE_END } from "@hightea/term"
 
 // Enable/disable (the run() runtime handles this automatically)
 enableBracketedPaste(process.stdout)
@@ -703,7 +703,7 @@ if (result) {
 The `run()` runtime automatically enables bracketed paste mode. Use the `usePaste` hook (from `inkx/runtime`) to receive paste events:
 
 ```tsx
-import { usePaste } from "inkx/runtime"
+import { usePaste } from "@hightea/term/runtime"
 
 usePaste((text) => {
   insertText(text)
@@ -734,7 +734,7 @@ useInput(handler, { onPaste: (text) => handlePaste(text) })
 inkx provides a notification API that auto-detects the terminal and sends notifications using the best available method.
 
 ```tsx
-import { notify, notifyITerm2, notifyKitty, BEL } from "inkx"
+import { notify, notifyITerm2, notifyKitty, BEL } from "@hightea/term"
 
 // Auto-detect terminal and send notification
 notify(process.stdout, "Build complete", { title: "inkx" })
