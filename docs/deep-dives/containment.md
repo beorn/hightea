@@ -285,7 +285,7 @@ To keep your components safe from layout feedback loops:
 
 ## Comparison with CSS Containment
 
-| Aspect               | CSS Container Queries                      | hightea                               |
+| Aspect               | CSS Container Queries                      | hightea                            |
 | -------------------- | ------------------------------------------ | ---------------------------------- |
 | Prevention mechanism | Static containment rules (`contain: size`) | Bounded iteration loop (max 5)     |
 | Cycle detection      | Compile-time (containment is declarative)  | Runtime (hadReactCommit flag)      |

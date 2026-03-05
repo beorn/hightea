@@ -26,7 +26,14 @@ Each layer builds on the one below. Layer 0 has no state, no hooks, no React dep
 All functions are exported from `hightea`:
 
 ```ts
-import { cursorToRowCol, getWrappedLines, rowColToCursor, cursorMoveUp, cursorMoveDown, countVisualLines } from "@hightea/term"
+import {
+  cursorToRowCol,
+  getWrappedLines,
+  rowColToCursor,
+  cursorMoveUp,
+  cursorMoveDown,
+  countVisualLines,
+} from "@hightea/term"
 import type { WrappedLine } from "@hightea/term"
 ```
 

@@ -54,7 +54,7 @@ await run(<App />)
 
 **Scrollable containers — just work.** `overflow="scroll"` with `scrollTo`, hardware-accelerated DECSTBM scroll regions, and VirtualList for huge datasets. [Ink's #1 feature request](https://github.com/vadimdemedes/ink/issues/222) since 2019, solved.
 
-**Three render targets.** Terminal, Canvas 2D, and DOM. Same React components, same layout engine — different output. See the [live demo](https://beorn.github.io/hightea/examples/live-demo).
+**Three render targets.** Terminal, Canvas 2D, and DOM. Same React components, same layout engine — different output. See the [live demo](https://hightea.dev/examples/live-demo).
 
 ## Accessible to Agents
 
@@ -121,7 +121,7 @@ Actively developed and used in production ([km](https://github.com/beorn/km), a 
 | Core components (Box, Text, VirtualList, inputs)   | Stable     |
 | Hooks (useContentRect, useInput, useApp, useTerm)  | Stable     |
 | React reconciler (React 19)                        | Stable     |
-| Flexture layout engine                                | Stable     |
+| Flexture layout engine                             | Stable     |
 | Plugin system (commands, keybindings, diagnostics) | Stable     |
 | Terminal target                                    | Production |
 | Canvas / DOM targets                               | Prototype  |
@@ -138,11 +138,11 @@ bun run examples/textarea/index.tsx       # Multi-line text input
 bun run examples/scrollback/index.tsx     # Scrollback mode (frozen items)
 ```
 
-See [examples/index.md](examples/index.md) for descriptions and the [live demo](https://beorn.github.io/hightea/examples/live-demo) running in the browser via xterm.js.
+See [examples/index.md](examples/index.md) for descriptions and the [live demo](https://hightea.dev/examples/live-demo) running in the browser via xterm.js.
 
 ## Documentation
 
-Full docs at **[beorn.github.io/hightea](https://beorn.github.io/hightea/)**
+Full docs at **[hightea.dev](https://hightea.dev/)**
 
 | Document                                          | Description                                    |
 | ------------------------------------------------- | ---------------------------------------------- |
@@ -154,17 +154,17 @@ Full docs at **[beorn.github.io/hightea](https://beorn.github.io/hightea/)**
 | [Testing](docs/testing.md)                        | Strategy, locators, withDiagnostics            |
 | [Performance](docs/deep-dives/performance.md)     | Optimization techniques and profiling          |
 | [Benchmarks](docs/benchmarks.md)                  | Raw benchmark tables and data                  |
-| [hightea vs Ink](docs/hightea-vs-ink.md)                | Feature and performance comparison with Ink    |
+| [hightea vs Ink](docs/hightea-vs-ink.md)          | Feature and performance comparison with Ink    |
 | [Plugins](docs/reference/plugins.md)              | withCommands, withKeybindings, withDiagnostics |
-| [Migration](docs/guides/migration.md)             | Ink -> hightea guide                              |
+| [Migration](docs/guides/migration.md)             | Ink -> hightea guide                           |
 
 ## Related Projects
 
-| Project                                    | Role                                            |
-| ------------------------------------------ | ----------------------------------------------- |
-| [Ink](https://github.com/vadimdemedes/ink) | API compatibility target                        |
-| [Flexture](https://github.com/beorn/flexture)    | Default layout engine (2.5x faster, 5x smaller) |
-| [Yoga](https://yogalayout.dev/)            | Optional layout engine (WASM)                   |
+| Project                                       | Role                                            |
+| --------------------------------------------- | ----------------------------------------------- |
+| [Ink](https://github.com/vadimdemedes/ink)    | API compatibility target                        |
+| [Flexture](https://github.com/beorn/flexture) | Default layout engine (2.5x faster, 5x smaller) |
+| [Yoga](https://yogalayout.dev/)               | Optional layout engine (WASM)                   |
 
 ## License
 

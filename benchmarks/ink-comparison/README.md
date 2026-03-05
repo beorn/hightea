@@ -31,29 +31,29 @@ These benchmarks compare hightea to Ink 6.6.0 to help users understand performan
 
 ### Full Pipeline: React reconciliation → layout → string output
 
-| Workload               | hightea (Flexture) | Ink 6 (Yoga NAPI) | Ratio     |
-| ---------------------- | ------------ | ----------------- | --------- |
-| 1 Box+Text (80×24)     | 172 µs       | 269 µs            | hightea 1.6x |
-| 100 Box+Text (80×24)   | 45.9 ms      | 49.7 ms           | hightea 1.1x |
-| 1000 Box+Text (120×40) | 443 ms       | 544 ms            | hightea 1.2x |
+| Workload               | hightea (Flexture) | Ink 6 (Yoga NAPI) | Ratio        |
+| ---------------------- | ------------------ | ----------------- | ------------ |
+| 1 Box+Text (80×24)     | 172 µs             | 269 µs            | hightea 1.6x |
+| 100 Box+Text (80×24)   | 45.9 ms            | 49.7 ms           | hightea 1.1x |
+| 1000 Box+Text (120×40) | 443 ms             | 544 ms            | hightea 1.2x |
 
 Note: hightea uses `createRenderer()` (headless, no stdout). Ink uses `render()` with mock stdout + unmount per iteration, which includes additional lifecycle overhead. Both include React reconciliation.
 
 ### Layout Engine (pure layout, no React)
 
 | Workload       | Flexture (JS, 7KB) | Yoga WASM | Yoga NAPI (C++) |
-| -------------- | --------------- | --------- | --------------- |
-| 100 nodes      | 87 µs           | 88 µs     | 200 µs          |
-| 50-node kanban | 62 µs           | 58 µs     | 136 µs          |
+| -------------- | ------------------ | --------- | --------------- |
+| 100 nodes      | 87 µs              | 88 µs     | 200 µs          |
+| 50-node kanban | 62 µs              | 58 µs     | 136 µs          |
 
 Flexture and Yoga WASM are ~2× faster than Yoga NAPI. The NAPI bridge overhead dominates.
 
 ### Re-render / Diff (update performance)
 
-| Scenario                    | Time    |
-| --------------------------- | ------- |
-| ink rerender 100 Box+Text   | 2.3 ms  |
-| ink rerender 1000 Box+Text  | 20.4 ms |
+| Scenario                       | Time    |
+| ------------------------------ | ------- |
+| ink rerender 100 Box+Text      | 2.3 ms  |
+| ink rerender 1000 Box+Text     | 20.4 ms |
 | hightea diff render 100 nodes  | 45 µs   |
 | hightea diff render 1000 nodes | 164 µs  |
 
@@ -67,11 +67,11 @@ Roughly equivalent: hightea 43.4 ms vs ink 49.6 ms for 100 Box+Text heap delta.
 
 ## Architectural Differences
 
-| Aspect             | hightea                                     | Ink 6                          |
+| Aspect             | hightea                                  | Ink 6                          |
 | ------------------ | ---------------------------------------- | ------------------------------ |
 | Layout feedback    | Two-phase render, components know size   | Single-phase, no size feedback |
 | Diff algorithm     | Cell-level with packed integer fast-path | Row-based string comparison    |
-| Layout engine      | Flexture (default) or Yoga WASM             | Yoga NAPI only                 |
+| Layout engine      | Flexture (default) or Yoga WASM          | Yoga NAPI only                 |
 | Incremental render | Dirty tracking per-node                  | Full tree re-render            |
 | Text truncation    | Auto-truncate during content phase       | Manual, per-component          |
 

@@ -13,7 +13,7 @@ Terminal-based developer tools -- REPLs, log viewers, debuggers, profilers -- de
 
 Unlike browser-based dev tools, terminal tools run where your code runs. They start instantly, consume minimal resources, and integrate directly with stdin/stdout pipelines. hightea makes building them practical by handling the hard parts: efficient rendering of thousands of lines, keyboard protocol support across terminals, and deterministic testing without a real terminal.
 
-<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=dev-tools" :height="400" />
+<LiveDemo xtermSrc="/examples/showcase.html?demo=dev-tools" :height="400" />
 
 ## Key Benefits
 

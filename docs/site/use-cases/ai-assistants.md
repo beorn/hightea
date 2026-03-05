@@ -11,7 +11,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 Terminal-based AI assistants have unique UI requirements: streaming output that grows unpredictably, long conversation history that must scroll, multi-line code pasting, and the ability for AI agents to discover and invoke actions programmatically. hightea handles all of these out of the box.
 
-<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=coding-agent" :height="500" />
+<LiveDemo xtermSrc="/examples/showcase.html?demo=coding-agent" :height="500" />
 
 ## Key Benefits
 

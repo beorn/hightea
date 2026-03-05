@@ -177,9 +177,9 @@ The test renderer already has the right ergonomics. No changes needed -- it retu
 
 ### Comparison with DOM API
 
-| DOM (React 18)                         | hightea (proposed)                            |
+| DOM (React 18)                         | hightea (proposed)                         |
 | -------------------------------------- | ------------------------------------------ |
-| `const root = createRoot(container)`   | `const root = await hightea.createRoot()`     |
+| `const root = createRoot(container)`   | `const root = await hightea.createRoot()`  |
 | `root.render(<App />)`                 | `root.render(<App />)`                     |
 | `root.unmount()`                       | `root.unmount()`                           |
 | `createRoot(childDiv).render(<Sub />)` | `root.createRoot(locator).render(<Sub />)` |
@@ -193,10 +193,10 @@ This proposal does **not** replace the runtime layers. Instead, it provides a be
 
 | Layer | Current                            | Proposed                                    |
 | ----- | ---------------------------------- | ------------------------------------------- |
-| 0     | `render()` in `render.tsx` (old)   | `hightea.createRoot()` + `root.render()`       |
+| 0     | `render()` in `render.tsx` (old)   | `hightea.createRoot()` + `root.render()`    |
 | 0     | `render()` in `renderer.ts` (test) | unchanged -- already good ergonomics        |
 | 1     | `createRuntime()`                  | unchanged -- low-level, max control         |
-| 2     | `run()` (hooks)                    | `hightea.run()` wrapping `createRoot()`        |
+| 2     | `run()` (hooks)                    | `hightea.run()` wrapping `createRoot()`     |
 | 3     | `createApp()` (Zustand)            | unchanged -- uses `createRoot()` internally |
 
 The key insight is that `hightea.createRoot()` unifies the old `render.tsx` and `renderer.ts` behind a single interface (`InkxRoot`), while the runtime layers continue to provide their ergonomic patterns on top.

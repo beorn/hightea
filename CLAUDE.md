@@ -660,10 +660,10 @@ The `run()` and `createApp()` runtimes wire this automatically.
 
 hightea supports multiple layout engines:
 
-| Engine            | Description                                                |
-| ----------------- | ---------------------------------------------------------- |
+| Engine               | Description                                                   |
+| -------------------- | ------------------------------------------------------------- |
 | `flexture` (default) | Zero-allocation Flexture, optimized for high-frequency layout |
-| `yoga`            | Facebook's WASM-based flexbox (most mature)                |
+| `yoga`               | Facebook's WASM-based flexbox (most mature)                   |
 
 ```tsx
 await render(<App />, term, { layoutEngine: "yoga" })
@@ -709,7 +709,14 @@ import { FocusManagerContext } from "@hightea/term"
 import { InputLayerProvider, useInputLayer } from "@hightea/term"
 
 // Text cursor utilities (Layer 0)
-import { cursorToRowCol, getWrappedLines, rowColToCursor, cursorMoveUp, cursorMoveDown, countVisualLines } from "@hightea/term"
+import {
+  cursorToRowCol,
+  getWrappedLines,
+  rowColToCursor,
+  cursorMoveUp,
+  cursorMoveDown,
+  countVisualLines,
+} from "@hightea/term"
 import type { WrappedLine } from "@hightea/term"
 
 // Kitty keyboard protocol
@@ -782,10 +789,26 @@ import { render, renderStatic, renderString } from "@hightea/term"
 import { createRenderer, keyToAnsi, keyToKittyAnsi, debugTree } from "@hightea/term/testing"
 
 // TEA store (The Elm Architecture)
-import { createStore, inkxUpdate, defaultInit, withFocusManagement, type StoreConfig, type StoreApi } from "@hightea/term/store"
+import {
+  createStore,
+  inkxUpdate,
+  defaultInit,
+  withFocusManagement,
+  type StoreConfig,
+  type StoreApi,
+} from "@hightea/term/store"
 
 // Core types and effect constructors (pure, no React)
-import { type InkxModel, type InkxMsg, type Effect, type Plugin, none, batch, dispatch, compose } from "@hightea/term/core"
+import {
+  type InkxModel,
+  type InkxMsg,
+  type Effect,
+  type Plugin,
+  none,
+  batch,
+  dispatch,
+  compose,
+} from "@hightea/term/core"
 
 // Slices (ops-as-data helper)
 import { createSlice } from "@hightea/term/core"
@@ -895,15 +918,15 @@ await app.press("ArrowUp")
 
 ### Environment Variables
 
-| Variable                   | Effect                                                                         |
-| -------------------------- | ------------------------------------------------------------------------------ |
+| Variable                      | Effect                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------ |
 | `HIGHTEA_STRICT=1`            | Compare incremental vs fresh render every frame (crashes on mismatch)          |
 | `HIGHTEA_STRICT_OUTPUT=1`     | Verify output ANSI matches fresh render (catches output-phase bugs)            |
 | `HIGHTEA_CHECK_INCREMENTAL=1` | Same as STRICT but logs instead of crashing                                    |
-| `HIGHTEA_INSTRUMENT=1`        | Content-phase counters on `globalThis.__hightea_content_detail`                   |
+| `HIGHTEA_INSTRUMENT=1`        | Content-phase counters on `globalThis.__hightea_content_detail`                |
 | `HIGHTEA_DEV=1`               | Enable inspector + warn on missing prevBuffer (incremental rendering disabled) |
 | `HIGHTEA_PROFILE_RENDER=1`    | Per-phase pipeline timing to stderr (measure, layout, scroll, content, output) |
-| `DEBUG=hightea:*`             | Debug output for hightea pipeline                                                 |
+| `DEBUG=hightea:*`             | Debug output for hightea pipeline                                              |
 | `DEBUG_LOG=/tmp/hightea.log`  | Redirect debug to file (required for TUI — terminal is captured)               |
 
 ### Runtime Debug
@@ -1072,8 +1095,8 @@ to capture numbers.
 | [docs/guides/getting-started.md](docs/guides/getting-started.md)                   | First app tutorial, basic input, layout feedback                                                                             |
 | [docs/guides/state-management.md](docs/guides/state-management.md)                 | createApp, useApp, createSlice, selectors vs signals, effects middleware                                                     |
 | [docs/guides/runtime-layers.md](docs/guides/runtime-layers.md)                     | createApp, createRuntime, createStore, streams, tick sources                                                                 |
-| [docs/guides/migration.md](docs/guides/migration.md)                               | Ink to hightea migration guide                                                                                                  |
-| [docs/guides/runtime-migration.md](docs/guides/runtime-migration.md)               | Legacy hightea to hightea/runtime migration                                                                                        |
+| [docs/guides/migration.md](docs/guides/migration.md)                               | Ink to hightea migration guide                                                                                               |
+| [docs/guides/runtime-migration.md](docs/guides/runtime-migration.md)               | Legacy hightea to hightea/runtime migration                                                                                  |
 | **Reference**                                                                      |                                                                                                                              |
 | [docs/reference/components.md](docs/reference/components.md)                       | Box, Text, VirtualList, Console, Image, Transform, Spinner, ProgressBar, SelectList, Table, Badge, Divider, inputs           |
 | [docs/reference/hooks.md](docs/reference/hooks.md)                                 | useContentRect, useScreenRect, useInput, usePaste, useApp, useAnimation, useAnimatedTransition, useInterval, useScrollRegion |
@@ -1096,7 +1119,7 @@ to capture numbers.
 | [docs/deep-dives/focus-routing.md](docs/deep-dives/focus-routing.md)               | Focus-based input routing pattern                                                                                            |
 | **Top Level**                                                                      |                                                                                                                              |
 | [docs/testing.md](docs/testing.md)                                                 | Testing strategy, locators, and API                                                                                          |
-| [docs/hightea-vs-ink.md](docs/hightea-vs-ink.md)                                         | Detailed feature/performance comparison with Ink                                                                             |
+| [docs/hightea-vs-ink.md](docs/hightea-vs-ink.md)                                   | Detailed feature/performance comparison with Ink                                                                             |
 | [docs/benchmarks.md](docs/benchmarks.md)                                           | Raw benchmark tables and data                                                                                                |
 | [docs/comparison.md](docs/comparison.md)                                           | Cross-framework comparison (BubbleTea, Textual, etc.)                                                                        |
 | [docs/troubleshooting.md](docs/troubleshooting.md)                                 | Common issues and debugging                                                                                                  |

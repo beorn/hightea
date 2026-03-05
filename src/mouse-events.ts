@@ -297,10 +297,7 @@ export function checkDoubleClick(
  * Mirrors the DOM spec: fire mouseleave on nodes in prevPath not in nextPath,
  * and mouseenter on nodes in nextPath not in prevPath.
  */
-export function computeEnterLeave(
-  prevPath: TeaNode[],
-  nextPath: TeaNode[],
-): { entered: TeaNode[]; left: TeaNode[] } {
+export function computeEnterLeave(prevPath: TeaNode[], nextPath: TeaNode[]): { entered: TeaNode[]; left: TeaNode[] } {
   const prevSet = new Set(prevPath)
   const nextSet = new Set(nextPath)
 

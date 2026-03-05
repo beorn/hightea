@@ -11,7 +11,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 Interactive CLI wizards guide users through multi-step configuration, installation, or setup flows. They combine selection prompts, text inputs, progress feedback, and branching logic into a single terminal experience. hightea provides the building blocks for all of this as first-class React components, so you can compose wizard steps the same way you compose any React UI.
 
-<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=cli-wizard" :height="400" />
+<LiveDemo xtermSrc="/examples/showcase.html?demo=cli-wizard" :height="400" />
 
 ## Why hightea
 

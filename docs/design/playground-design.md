@@ -63,14 +63,14 @@ Sucrase is purpose-built for development transforms. It strips types and convert
 
 ## Tech Stack
 
-| Component        | Choice        | Rationale                                   |
-| ---------------- | ------------- | ------------------------------------------- |
-| Build tool       | Vite          | Fast HMR, ESM-native, simple config         |
-| Code editor      | Monaco Editor | VSCode engine, TypeScript intellisense, JSX |
-| JSX transpiler   | Sucrase       | Fast, small, browser-compatible             |
-| UI framework     | React         | Already a dependency of hightea                |
-| Layout engine    | Flexture         | Pure JS, synchronous init, no WASM          |
-| Canvas rendering | hightea/canvas   | The whole point                             |
+| Component        | Choice         | Rationale                                   |
+| ---------------- | -------------- | ------------------------------------------- |
+| Build tool       | Vite           | Fast HMR, ESM-native, simple config         |
+| Code editor      | Monaco Editor  | VSCode engine, TypeScript intellisense, JSX |
+| JSX transpiler   | Sucrase        | Fast, small, browser-compatible             |
+| UI framework     | React          | Already a dependency of hightea             |
+| Layout engine    | Flexture       | Pure JS, synchronous init, no WASM          |
+| Canvas rendering | hightea/canvas | The whole point                             |
 
 ## Project Structure
 
@@ -244,13 +244,13 @@ Show both Canvas and DOM adapter output side by side, demonstrating that the sam
 
 ## Size Budget
 
-| Component     | Size (gzip) |
-| ------------- | ----------- |
-| hightea + React  | ~90 KB      |
-| Monaco Editor | ~800 KB     |
-| Sucrase       | ~40 KB      |
-| Playground UI | ~5 KB       |
-| **Total**     | **~935 KB** |
+| Component       | Size (gzip) |
+| --------------- | ----------- |
+| hightea + React | ~90 KB      |
+| Monaco Editor   | ~800 KB     |
+| Sucrase         | ~40 KB      |
+| Playground UI   | ~5 KB       |
+| **Total**       | **~935 KB** |
 
 Monaco dominates. For a lighter alternative, consider CodeMirror 6 (~150 KB) with a JSX mode, reducing total to ~285 KB. The tradeoff is less TypeScript intellisense.
 

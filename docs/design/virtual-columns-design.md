@@ -179,17 +179,17 @@ These replace `findCardAtYVisual` and `getCardMidY` from `card-positions.ts`.
 
 ### What stays in hightea vs what stays in km-tui
 
-| Concern                                            | Location                                           | Rationale                                         |
-| -------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------- |
+| Concern                                            | Location                                              | Rationale                                         |
+| -------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------- |
 | `PositionRegistry` (context + hook)                | hightea                                               | Generic — any 2D grid app needs position tracking |
 | `GridCell` (auto-registering wrapper)              | hightea                                               | Generic convenience component                     |
 | `useGridPosition` (hook)                           | hightea                                               | For apps that don't want the wrapper              |
 | `findCrossAxisTarget` / `getItemMidY`              | hightea                                               | Pure functions, reusable navigation logic         |
 | `stickyY` / `stickyX` state                        | hightea (inside PositionRegistry)                     | Core to cross-axis navigation UX                  |
-| Column scroll offset calculation                   | hightea (already exists: `calcEdgeBasedScrollOffset`) | Already in hightea                                   |
-| Column width calculation                           | km-tui (`board-layout.ts`)                         | App-specific (indicator widths, separator counts) |
-| `ScrollTrackingVirtualList`                        | km-tui                                             | App-specific (CursorStore integration)            |
-| View-specific rendering (Board, ColumnsView, etc.) | km-tui                                             | App-level layout decisions                        |
+| Column scroll offset calculation                   | hightea (already exists: `calcEdgeBasedScrollOffset`) | Already in hightea                                |
+| Column width calculation                           | km-tui (`board-layout.ts`)                            | App-specific (indicator widths, separator counts) |
+| `ScrollTrackingVirtualList`                        | km-tui                                                | App-specific (CursorStore integration)            |
+| View-specific rendering (Board, ColumnsView, etc.) | km-tui                                                | App-level layout decisions                        |
 
 ### How HorizontalVirtualList + VirtualList compose
 

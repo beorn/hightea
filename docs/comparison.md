@@ -10,7 +10,7 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 
 ## Rendering
 
-| Feature                                   | hightea                                                   | Ink                           | BubbleTea        | Textual               | Notcurses                 | FTXUI           | blessed   |
+| Feature                                   | hightea                                                | Ink                           | BubbleTea        | Textual               | Notcurses                 | FTXUI           | blessed   |
 | ----------------------------------------- | ------------------------------------------------------ | ----------------------------- | ---------------- | --------------------- | ------------------------- | --------------- | --------- |
 | Incremental rendering (dirty tracking)    | ⚡ Per-node dirty flags [^1]                           | ❌ Full repaint               | ❌ Full repaint  | ✅ Dirty widgets      | ⚡ Damage map per ncplane | ❌ Full repaint | 🔶 Manual |
 | Style transition cache (minimal SGR diff) | ⚡ Interned styles + cached SGR transitions [^2]       | ❌                            | ❌               | 🔶                    | ✅                        | ❌              | ❌        |
@@ -30,7 +30,7 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 
 ## Terminal Protocols
 
-| Feature                 | hightea                                        | Ink                     | BubbleTea                     | Textual       | Notcurses | FTXUI | blessed |
+| Feature                 | hightea                                     | Ink                     | BubbleTea                     | Textual       | Notcurses | FTXUI | blessed |
 | ----------------------- | ------------------------------------------- | ----------------------- | ----------------------------- | ------------- | --------- | ----- | ------- |
 | Kitty keyboard protocol | ⚡ Full spec: all 5 flags, auto-detect [^4] | ❌ [^5]                 | 🔶 v2 alpha                   | ❌            | ❌        | ❌    | ❌      |
 | Bracketed paste mode    | ✅ `usePaste` hook, auto-enable             | ❌                      | ✅ Default since v0.26        | ✅            | 🔶        | ❌    | ❌      |
@@ -50,9 +50,9 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 
 ## Layout & Components
 
-| Feature                                      | hightea                                                          | Ink                             | BubbleTea                            | Textual                        | Notcurses               | FTXUI              | blessed                  |
+| Feature                                      | hightea                                                       | Ink                             | BubbleTea                            | Textual                        | Notcurses               | FTXUI              | blessed                  |
 | -------------------------------------------- | ------------------------------------------------------------- | ------------------------------- | ------------------------------------ | ------------------------------ | ----------------------- | ------------------ | ------------------------ |
-| Layout engine                                | ⚡ Flexbox (Flexture 7KB pure JS or Yoga) [^6]                   | Flexbox (Yoga NAPI, native C++) | Manual                               | ⚡ CSS subset (grid + flexbox) | Manual ncplane stacking | Flexbox-like (C++) | Manual                   |
+| Layout engine                                | ⚡ Flexbox (Flexture 7KB pure JS or Yoga) [^6]                | Flexbox (Yoga NAPI, native C++) | Manual                               | ⚡ CSS subset (grid + flexbox) | Manual ncplane stacking | Flexbox-like (C++) | Manual                   |
 | React/component model                        | ⚡ React 19, JSX, hooks                                       | ✅ React 18, JSX, hooks         | Elm architecture (Model-Update-View) | Widget classes                 | C structs               | C++ components     | Event emitter objects    |
 | Layout feedback (components know their size) | ⚡ `useContentRect()` / `useScreenRect()` — synchronous [^7]  | ❌ Open since 2016 (#5)         | ❌                                   | ✅ `size` property on widgets  | 🔶 ncplane dimensions   | 🔶                 | 🔶                       |
 | Virtual list / lazy rendering                | ✅ `VirtualList` component                                    | ❌                              | 🔧 `list` Bubble                     | ✅ Built-in `ListView`         | ❌                      | ❌                 | ✅ `List`                |
@@ -69,7 +69,7 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 
 ## Developer Experience
 
-| Feature                             | hightea                                                      | Ink                      | BubbleTea                   | Textual                            | Notcurses | FTXUI    | blessed             |
+| Feature                             | hightea                                                   | Ink                      | BubbleTea                   | Textual                            | Notcurses | FTXUI    | blessed             |
 | ----------------------------------- | --------------------------------------------------------- | ------------------------ | --------------------------- | ---------------------------------- | --------- | -------- | ------------------- |
 | Testing utilities (headless render) | ⚡ Playwright-style locators, auto-refreshing [^8]        | ✅ `ink-testing-library` | 🔧 `teatest`                | ✅ Pilot (async testing)           | ❌        | ❌       | ❌                  |
 | Hot reload                          | 🔶 Via Bun/Node watch mode                                | 🔶 Via bundler           | ❌                          | ✅ CSS hot reload                  | ❌        | ❌       | ❌                  |
@@ -87,7 +87,7 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 
 ## Architecture
 
-| Feature                 | hightea                                                   | Ink                                       | BubbleTea                          | Textual                               | Notcurses                | FTXUI                    | blessed                |
+| Feature                 | hightea                                                | Ink                                       | BubbleTea                          | Textual                               | Notcurses                | FTXUI                    | blessed                |
 | ----------------------- | ------------------------------------------------------ | ----------------------------------------- | ---------------------------------- | ------------------------------------- | ------------------------ | ------------------------ | ---------------------- |
 | Rendering model         | Retained (React tree + dirty tracking)                 | Retained (React tree, full repaint)       | Immediate (Model-Update-View)      | Retained (widget tree)                | Retained (ncplane stack) | Immediate                | Retained (widget tree) |
 | State management        | React hooks or Zustand store                           | React hooks                               | Elm-style (Model + Update + Cmd)   | Reactive attributes + message passing | Manual                   | Component state          | Event emitter          |

@@ -28,7 +28,7 @@ pnpm add @hightea/term
 
 :::
 
-<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=layout-feedback" :height="250" />
+<LiveDemo xtermSrc="/examples/showcase.html?demo=layout-feedback" :height="250" />
 
 ## Your First App
 

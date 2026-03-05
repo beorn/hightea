@@ -6,7 +6,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 hightea provides the same components as Ink, with some enhancements.
 
-<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=text-input" :height="250" />
+<LiveDemo xtermSrc="/examples/showcase.html?demo=text-input" :height="250" />
 
 ## Box
 
@@ -38,24 +38,24 @@ See [Scrolling Guide](/guide/scrolling) for details.
 
 ### Props
 
-| Prop             | Type                                                                          | Default        | Description                                |
-| ---------------- | ----------------------------------------------------------------------------- | -------------- | ------------------------------------------ |
-| `flexDirection`  | `"row" \| "column" \| "row-reverse" \| "column-reverse"`                      | `"row"`        | Main axis direction                        |
-| `flexGrow`       | `number`                                                                      | `0`            | Grow factor                                |
-| `flexShrink`     | `number`                                                                      | `1`            | Shrink factor                              |
-| `flexBasis`      | `number \| string`                                                            | -              | Initial size                               |
-| `justifyContent` | `"flex-start" \| "flex-end" \| "center" \| "space-between" \| "space-around"` | `"flex-start"` | Main axis alignment                        |
-| `alignItems`     | `"flex-start" \| "flex-end" \| "center" \| "stretch"`                         | `"stretch"`    | Cross axis alignment                       |
-| `padding`        | `number`                                                                      | `0`            | Padding on all sides                       |
-| `paddingX`       | `number`                                                                      | `0`            | Horizontal padding                         |
-| `paddingY`       | `number`                                                                      | `0`            | Vertical padding                           |
-| `margin`         | `number`                                                                      | `0`            | Margin on all sides                        |
-| `width`          | `number \| string`                                                            | -              | Fixed or percentage width                  |
-| `height`         | `number \| string`                                                            | -              | Fixed or percentage height                 |
-| `minWidth`       | `number`                                                                      | -              | Minimum width                              |
-| `minHeight`      | `number`                                                                      | -              | Minimum height                             |
-| `borderStyle`    | `"single" \| "double" \| "round" \| "bold" \| "classic"`                      | -              | Border style                               |
-| `borderColor`    | `string`                                                                      | -              | Border color                               |
+| Prop             | Type                                                                          | Default        | Description                                   |
+| ---------------- | ----------------------------------------------------------------------------- | -------------- | --------------------------------------------- |
+| `flexDirection`  | `"row" \| "column" \| "row-reverse" \| "column-reverse"`                      | `"row"`        | Main axis direction                           |
+| `flexGrow`       | `number`                                                                      | `0`            | Grow factor                                   |
+| `flexShrink`     | `number`                                                                      | `1`            | Shrink factor                                 |
+| `flexBasis`      | `number \| string`                                                            | -              | Initial size                                  |
+| `justifyContent` | `"flex-start" \| "flex-end" \| "center" \| "space-between" \| "space-around"` | `"flex-start"` | Main axis alignment                           |
+| `alignItems`     | `"flex-start" \| "flex-end" \| "center" \| "stretch"`                         | `"stretch"`    | Cross axis alignment                          |
+| `padding`        | `number`                                                                      | `0`            | Padding on all sides                          |
+| `paddingX`       | `number`                                                                      | `0`            | Horizontal padding                            |
+| `paddingY`       | `number`                                                                      | `0`            | Vertical padding                              |
+| `margin`         | `number`                                                                      | `0`            | Margin on all sides                           |
+| `width`          | `number \| string`                                                            | -              | Fixed or percentage width                     |
+| `height`         | `number \| string`                                                            | -              | Fixed or percentage height                    |
+| `minWidth`       | `number`                                                                      | -              | Minimum width                                 |
+| `minHeight`      | `number`                                                                      | -              | Minimum height                                |
+| `borderStyle`    | `"single" \| "double" \| "round" \| "bold" \| "classic"`                      | -              | Border style                                  |
+| `borderColor`    | `string`                                                                      | -              | Border color                                  |
 | `overflow`       | `"visible" \| "hidden" \| "scroll"`                                           | `"visible"`    | **hightea only**: Overflow behavior           |
 | `scrollTo`       | `number`                                                                      | -              | **hightea only**: Child index to keep visible |
 

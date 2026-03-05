@@ -354,7 +354,9 @@ export function formatMismatchContext(ctx: MismatchDebugContext): string {
   const lines: string[] = []
 
   // Header
-  lines.push(`HIGHTEA_CHECK_INCREMENTAL: MISMATCH at (${ctx.position.x}, ${ctx.position.y}) on render #${ctx.renderNum}`)
+  lines.push(
+    `HIGHTEA_CHECK_INCREMENTAL: MISMATCH at (${ctx.position.x}, ${ctx.position.y}) on render #${ctx.renderNum}`,
+  )
   lines.push("")
 
   // Cell values

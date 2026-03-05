@@ -14,8 +14,8 @@ The new `hightea/runtime` API provides:
 
 ## Import Changes
 
-| Old (hightea)                        | New (hightea/runtime)                        |
-| --------------------------------- | ----------------------------------------- |
+| Old (hightea)                              | New (hightea/runtime)                              |
+| ------------------------------------------ | -------------------------------------------------- |
 | `import { render } from '@hightea/term'`   | `import { run } from '@hightea/term/runtime'`      |
 | `import { useInput } from '@hightea/term'` | `import { useInput } from '@hightea/term/runtime'` |
 | `import { useApp } from '@hightea/term'`   | `import { useExit } from '@hightea/term/runtime'`  |
@@ -187,12 +187,12 @@ function Card() {
 
 The following from the old hightea API are **deprecated** and will be removed:
 
-| Deprecated           | Replacement                                |
-| -------------------- | ------------------------------------------ |
-| `render()`           | `run()` from hightea/runtime                  |
-| `useInput` from hightea | `useInput` from hightea/runtime               |
-| `useApp()` for exit  | `useExit()` or `return 'exit'`             |
-| `RenderScheduler`    | Built into `run()` with automatic batching |
+| Deprecated              | Replacement                                |
+| ----------------------- | ------------------------------------------ |
+| `render()`              | `run()` from hightea/runtime               |
+| `useInput` from hightea | `useInput` from hightea/runtime            |
+| `useApp()` for exit     | `useExit()` or `return 'exit'`             |
+| `RenderScheduler`       | Built into `run()` with automatic batching |
 
 ## Future
 

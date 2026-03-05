@@ -237,10 +237,10 @@ bun ./src/storybook.ts
 
 ## Related Projects
 
-| Project                                 | Description                                     |
-| --------------------------------------- | ----------------------------------------------- |
+| Project                                       | Description                                     |
+| --------------------------------------------- | ----------------------------------------------- |
 | [hightea](https://github.com/beorn/hightea)   | React terminal UI framework (re-exports chalkx) |
-| [chalk](https://github.com/chalk/chalk) | Industry-standard terminal styling              |
+| [chalk](https://github.com/chalk/chalk)       | Industry-standard terminal styling              |
 | [Flexture](https://github.com/beorn/flexture) | Pure JS flexbox layout engine                   |
 
 ## License

@@ -207,7 +207,7 @@ const { width } = useContentRect()
 
 ### By Design
 
-| Behavior                | Ink       | hightea      | Reason                       |
+| Behavior                | Ink       | hightea   | Reason                       |
 | ----------------------- | --------- | --------- | ---------------------------- |
 | Text overflow           | Overflows | Truncates | Better default               |
 | First render dimensions | N/A       | Zeros     | Required for layout feedback |
@@ -215,11 +215,11 @@ const { width } = useContentRect()
 
 ### Edge Cases
 
-| Issue             | Symptoms      | Workaround                          |
-| ----------------- | ------------- | ----------------------------------- |
+| Issue             | Symptoms      | Workaround                             |
+| ----------------- | ------------- | -------------------------------------- |
 | Rapid re-renders  | Flicker       | hightea coalesces frames; usually fine |
-| Deep nesting      | Slower layout | Flatten tree if possible            |
-| Custom reconciler | Breaks        | Not supported                       |
+| Deep nesting      | Slower layout | Flatten tree if possible               |
+| Custom reconciler | Breaks        | Not supported                          |
 
 ## Removing Width Prop Threading
 

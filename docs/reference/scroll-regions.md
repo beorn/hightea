@@ -18,7 +18,14 @@ both CPU work and visual tearing.
 ## Utility Functions
 
 ```ts
-import { setScrollRegion, resetScrollRegion, scrollUp, scrollDown, moveCursor, supportsScrollRegions } from "@hightea/term"
+import {
+  setScrollRegion,
+  resetScrollRegion,
+  scrollUp,
+  scrollDown,
+  moveCursor,
+  supportsScrollRegions,
+} from "@hightea/term"
 ```
 
 | Function                               | Description                           |

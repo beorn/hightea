@@ -13,7 +13,7 @@ Terminal dashboards are one of the most natural fits for hightea. A dashboard is
 
 hightea solves all three problems out of the box. Components query their own dimensions, the incremental renderer only repaints changed cells, and flexbox layout handles the space allocation.
 
-<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=dashboard" :height="400" />
+<LiveDemo xtermSrc="/examples/showcase.html?demo=dashboard" :height="400" />
 
 ## Key Benefits
 

@@ -158,25 +158,25 @@ Real numbers on Apple M1 Max, Bun 1.3.9 (February 2026). Reproducible via `bun r
 
 **The number that matters -- typical interactive update:**
 
-| Scenario                        | hightea       | Ink     |                       |
-| ------------------------------- | ---------- | ------- | --------------------- |
+| Scenario                        | hightea    | Ink     |                          |
+| ------------------------------- | ---------- | ------- | ------------------------ |
 | User presses a key (1000 nodes) | **169 us** | 20.7 ms | **hightea 100x+ faster** |
 
 When a user presses `j` to move a cursor, hightea's dirty tracking updates only the changed nodes -- bypassing React entirely. Ink must re-render the full React tree for any state change.
 
 **Full pipeline (cold render):**
 
-| Components   | hightea (Flexture) | Ink (Yoga NAPI) |                  |
-| ------------ | ------------ | --------------- | ---------------- |
-| 1 Box+Text   | 165 us       | 271 us          | hightea 1.6x faster |
-| 100 Box+Text | 45.0 ms      | 49.4 ms         | hightea 1.1x faster |
+| Components   | hightea (Flexture) | Ink (Yoga NAPI) |                     |
+| ------------ | ------------------ | --------------- | ------------------- |
+| 1 Box+Text   | 165 us             | 271 us          | hightea 1.6x faster |
+| 100 Box+Text | 45.0 ms            | 49.4 ms         | hightea 1.1x faster |
 
 **Layout engine (pure layout, no React):**
 
 | Benchmark      | Flexture (JS) | Yoga WASM | Yoga NAPI (C++) |
-| -------------- | ---------- | --------- | --------------- |
-| 100 nodes flat | 85 us      | 88 us     | 197 us          |
-| 50-node kanban | 57 us      | 54 us     | 136 us          |
+| -------------- | ------------- | --------- | --------------- |
+| 100 nodes flat | 85 us         | 88 us     | 197 us          |
+| 50-node kanban | 57 us         | 54 us     | 136 us          |
 
 [Flexture](https://github.com/beorn/flexture), hightea's default layout engine, is a 7 KB (gzipped) pure JavaScript flexbox implementation -- no native dependencies, no WASM. It matches Yoga's correctness on the flexbox subset that terminal UIs need, at 2.4x the speed of Yoga NAPI.
 

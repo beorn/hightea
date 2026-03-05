@@ -193,7 +193,7 @@ const { width } = useContentRect()
 
 These behaviors differ by design:
 
-| Behavior                | Ink       | hightea      | Reason                       |
+| Behavior                | Ink       | hightea   | Reason                       |
 | ----------------------- | --------- | --------- | ---------------------------- |
 | Text overflow           | Overflows | Truncates | Better default for TUIs      |
 | First render dimensions | N/A       | Zeros     | Required for layout feedback |
@@ -203,11 +203,11 @@ These behaviors differ by design:
 
 These might cause issues in rare cases:
 
-| Issue                   | Symptoms                | Workaround                                 |
-| ----------------------- | ----------------------- | ------------------------------------------ |
+| Issue                   | Symptoms                | Workaround                                    |
+| ----------------------- | ----------------------- | --------------------------------------------- |
 | Rapid re-renders        | Flicker on fast updates | hightea coalesces frames; usually not visible |
-| Very deep nesting       | Slower layout           | Flatten component tree if possible         |
-| Custom reconciler usage | Breaks                  | Not supported; use standard components     |
+| Very deep nesting       | Slower layout           | Flatten component tree if possible            |
+| Custom reconciler usage | Breaks                  | Not supported; use standard components        |
 
 ---
 

@@ -135,12 +135,12 @@ These are explicitly excluded from the 1.0 stability guarantee:
 
 | Feature                     | Status       | Entry Point         | Notes                             |
 | --------------------------- | ------------ | ------------------- | --------------------------------- |
-| Canvas 2D adapter           | Experimental | `hightea/canvas`       | API may change without major bump |
-| DOM adapter                 | Experimental | `hightea/dom`          | API may change without major bump |
+| Canvas 2D adapter           | Experimental | `hightea/canvas`    | API may change without major bump |
+| DOM adapter                 | Experimental | `hightea/dom`       | API may change without major bump |
 | WebGL adapter               | Future       | --                  | Not started                       |
 | React Native target         | Future       | --                  | Not started                       |
 | PDF/Email generation        | Future       | --                  | Not started                       |
-| `useScrollRegion` (DECSTBM) | Experimental | `hightea/hooks`        | May stabilize in 1.x              |
+| `useScrollRegion` (DECSTBM) | Experimental | `hightea/hooks`     | May stabilize in 1.x              |
 | React DevTools integration  | Experimental | `enableInspector()` | Debug-only, API may change        |
 
 Experimental entry points are available but carry no stability guarantee. They can have breaking changes in minor versions (1.1, 1.2) with documentation.

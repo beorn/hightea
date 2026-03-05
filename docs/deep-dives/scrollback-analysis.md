@@ -123,7 +123,7 @@ const frozenCount = useScrollback(exchanges, {
 
 Claude Code's inline mode has known issues:
 
-| Issue                                                   | Claude Code                                            | hightea with useScrollback                                                   |
+| Issue                                                   | Claude Code                                            | hightea with useScrollback                                                |
 | ------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------- |
 | Scrollback contains stale TUI frames                    | ✅ Problem — every viewport redraw pushes stale frames | ✅ **Solved** — frozen content is rendered once as clean text             |
 | Auto-scroll to top when output arrives during scroll-up | ✅ Problem (issue #10769)                              | ✅ **Solved** — live area stays at cursor, user's viewport is undisturbed |
@@ -145,15 +145,15 @@ This is essentially what useScrollback does natively — but at the framework le
 
 ## Framework Comparison
 
-| Framework                | Mode                 | Scrollback                     | Scroll Detection | Live Updates        |
-| ------------------------ | -------------------- | ------------------------------ | ---------------- | ------------------- |
+| Framework                   | Mode                 | Scrollback                     | Scroll Detection | Live Updates        |
+| --------------------------- | -------------------- | ------------------------------ | ---------------- | ------------------- |
 | **hightea (useScrollback)** | Inline               | Clean frozen content           | No               | Yes, small viewport |
-| **Claude Code**          | Inline               | Stale frames                   | No               | Yes, full viewport  |
-| **pi-tui**               | Inline               | Line-by-line native            | No               | Yes, differential   |
-| **BubbleTea**            | Alt screen (default) | None                           | N/A              | Full screen         |
-| **Textual**              | Both                 | Inline: partial                | No               | Yes                 |
-| **Ratatui**              | Alt screen           | Optional via `insert_before()` | N/A              | Full screen         |
-| **Blessed**              | Alt screen           | None (configurable in widgets) | N/A              | Full screen         |
+| **Claude Code**             | Inline               | Stale frames                   | No               | Yes, full viewport  |
+| **pi-tui**                  | Inline               | Line-by-line native            | No               | Yes, differential   |
+| **BubbleTea**               | Alt screen (default) | None                           | N/A              | Full screen         |
+| **Textual**                 | Both                 | Inline: partial                | No               | Yes                 |
+| **Ratatui**                 | Alt screen           | Optional via `insert_before()` | N/A              | Full screen         |
+| **Blessed**                 | Alt screen           | None (configurable in widgets) | N/A              | Full screen         |
 
 ### pi-tui (Gold Standard for Inline)
 

@@ -8,7 +8,7 @@ This document describes hightea's higher-level architecture and identifies where
 
 hightea solves a universal problem across React renderers: **components can't know their size during render**.
 
-| Problem                                | React DOM               | React Native      | hightea            |
+| Problem                                | React DOM               | React Native      | hightea         |
 | -------------------------------------- | ----------------------- | ----------------- | --------------- |
 | Component knows its size during render | No                      | No                | **Yes**         |
 | Layout-dependent content               | Effect + ResizeObserver | onLayout callback | **Synchronous** |
@@ -326,10 +326,10 @@ interface ComputedLayout {
 
 ### Current Engines
 
-| Engine              | Bundle Size | Speed       | Notes                         |
-| ------------------- | ----------- | ----------- | ----------------------------- |
+| Engine                 | Bundle Size | Speed       | Notes                         |
+| ---------------------- | ----------- | ----------- | ----------------------------- |
 | **Flexture** (default) | 7 KB gzip   | 2.5x faster | Pure JS, synchronous init     |
-| **Yoga**            | 38 KB gzip  | Baseline    | WASM, async init, RTL support |
+| **Yoga**               | 38 KB gzip  | Baseline    | WASM, async init, RTL support |
 
 ## Package Decomposition (Future)
 

@@ -13,7 +13,7 @@ Terminal-based kanban boards need multi-column layouts that adapt to the termina
 
 Other terminal UI frameworks either lack scrollable containers entirely (Ink), require imperative resize callbacks (BubbleTea, Ratatui), or use CSS-like styling that doesn't map naturally to React components (Textual). hightea gives you flexbox layout with `Box`, layout-aware components via `useContentRect()`, and `overflow="scroll"` that just works -- the same mental model as building a web app, but for the terminal.
 
-<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=kanban" :height="400" />
+<LiveDemo xtermSrc="/examples/showcase.html?demo=kanban" :height="400" />
 
 ## Key Benefits
 

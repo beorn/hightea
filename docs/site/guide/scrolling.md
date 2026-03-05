@@ -6,7 +6,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 hightea makes scrolling effortless. Just render your content and let hightea handle the rest.
 
-<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=scroll" :height="300" />
+<LiveDemo xtermSrc="/examples/showcase.html?demo=scroll" :height="300" />
 
 ## Basic Usage
 

@@ -13,10 +13,7 @@ import type { TeaNode } from "../src/types.js"
 // Helpers
 // ============================================================================
 
-function fakeNode(
-  testID: string,
-  opts: { focusable?: boolean; parent?: TeaNode; focusScope?: boolean } = {},
-): TeaNode {
+function fakeNode(testID: string, opts: { focusable?: boolean; parent?: TeaNode; focusScope?: boolean } = {}): TeaNode {
   const node = {
     type: "hightea-box" as const,
     props: {

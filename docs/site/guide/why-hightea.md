@@ -96,7 +96,7 @@ This is a breaking API change. Ink's maintainer has shown no interest in major a
 
 ## hightea vs Ink Comparison
 
-| Feature           | Ink                        | hightea                       |
+| Feature           | Ink                        | hightea                    |
 | ----------------- | -------------------------- | -------------------------- |
 | Layout feedback   | ❌ Must thread width props | ✅ `useContentRect()` hook |
 | Text truncation   | ❌ Overflows container     | ✅ Auto-truncates          |

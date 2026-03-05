@@ -140,7 +140,9 @@ console.log("  mock stdout + unmount per iteration. Both include React reconcili
 console.log()
 console.log("Layout engine only (no React, no rendering)")
 console.log("─────────────────────────────────────────────────────────────────────")
-console.log(`${"".padEnd(W.l)}  ${"Flexture".padStart(W.v)}  ${"Yoga WASM".padStart(W.v)}  ${"Yoga NAPI".padStart(W.r)}`)
+console.log(
+  `${"".padEnd(W.l)}  ${"Flexture".padStart(W.v)}  ${"Yoga WASM".padStart(W.v)}  ${"Yoga NAPI".padStart(W.r)}`,
+)
 
 const layoutComps = [
   {

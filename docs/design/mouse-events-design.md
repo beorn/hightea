@@ -182,7 +182,7 @@ function DetailPane({ content }: DetailPaneProps) {
 
 ## Migration from km-tui
 
-| Current (km-tui manual)                | New (hightea DOM events)                   |
+| Current (km-tui manual)                | New (hightea DOM events)                |
 | -------------------------------------- | --------------------------------------- |
 | `resolveMouseToNode(ctx, x, y)`        | `<Box onClick={(e) => ...}>`            |
 | `resolveMouseToColumn(ctx, x)`         | `<Box onClick={(e) => ...}>` on column  |

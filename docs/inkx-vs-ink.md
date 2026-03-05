@@ -37,10 +37,10 @@ _Performance: Apple M1 Max, Bun 1.3.9, Feb 2026. Run: `bun run bench:compare`_
 
 ### Runtime Stability
 
-| Feature                     | hightea                                                             | Ink                                                                              |
+| Feature                     | hightea                                                          | Ink                                                                              |
 | --------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| **Memory in long sessions** | Constant — Flexture uses normal JS GC                               | Grows monotonically — Yoga WASM linear memory cannot shrink without module reset |
-| **Layout caching**          | Flexture fingerprints + caches unchanged subtrees                   | Full tree recomputation on every pass                                            |
+| **Memory in long sessions** | Constant — Flexture uses normal JS GC                            | Grows monotonically — Yoga WASM linear memory cannot shrink without module reset |
+| **Layout caching**          | Flexture fingerprints + caches unchanged subtrees                | Full tree recomputation on every pass                                            |
 | **Initialization**          | Synchronous — pure TypeScript import                             | Async WASM loading (Yoga) or native compilation (Yoga NAPI)                      |
 | **Native dependencies**     | None — pure JS/TS                                                | Yoga NAPI: C++ addon per platform; Yoga WASM: binary blob                        |
 | **Streaming output perf**   | Dirty tracking + buffer diff — only changed cells emit           | Full-screen repaint on every state change                                        |
@@ -58,25 +58,25 @@ _Performance: Apple M1 Max, Bun 1.3.9, Feb 2026. Run: `bun run bench:compare`_
 
 ### Architecture & Rendering
 
-| Feature                   | hightea                                                                                    | Ink                                                                                                                                    |
-| ------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| React version             | 19                                                                                      | 18                                                                                                                                     |
-| **Layout feedback**       | `useContentRect()` / `useScreenRect()`                                                  | None — thread width props manually ([#5](https://github.com/vadimdemedes/ink/issues/5), open since 2016)                               |
-| **Scrollable containers** | `overflow="scroll"` with auto-measurement                                               | Third-party or manual ([#222](https://github.com/vadimdemedes/ink/issues/222), [#765](https://github.com/vadimdemedes/ink/issues/765)) |
-| **Text truncation**       | Auto, ANSI-aware                                                                        | Manual per-component ([#584](https://github.com/vadimdemedes/ink/issues/584))                                                          |
+| Feature                   | hightea                                                                                       | Ink                                                                                                                                    |
+| ------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| React version             | 19                                                                                            | 18                                                                                                                                     |
+| **Layout feedback**       | `useContentRect()` / `useScreenRect()`                                                        | None — thread width props manually ([#5](https://github.com/vadimdemedes/ink/issues/5), open since 2016)                               |
+| **Scrollable containers** | `overflow="scroll"` with auto-measurement                                                     | Third-party or manual ([#222](https://github.com/vadimdemedes/ink/issues/222), [#765](https://github.com/vadimdemedes/ink/issues/765)) |
+| **Text truncation**       | Auto, ANSI-aware                                                                              | Manual per-component ([#584](https://github.com/vadimdemedes/ink/issues/584))                                                          |
 | Layout engines            | [Flexture](https://github.com/beorn/flexture) (7 KB, pure JS) or Yoga (WASM) — no native deps | Yoga NAPI (native C++ addon)                                                                                                           |
-| Incremental rendering     | Per-node dirty tracking                                                                 | Full re-render ([PR #836](https://github.com/vadimdemedes/ink/pull/836) exploring)                                                     |
-| Render targets            | Terminal, Canvas, DOM                                                                   | Terminal only                                                                                                                          |
-| Static rendering          | `renderStatic()`                                                                        | `Static` component                                                                                                                     |
-| CJK/IME sync              | DEC 2026 synchronized update (automatic)                                                | In progress ([#759](https://github.com/vadimdemedes/ink/issues/759), [PR #846](https://github.com/vadimdemedes/ink/pull/846))          |
-| Non-TTY fallback          | `renderStatic()`                                                                        | [PR #854](https://github.com/vadimdemedes/ink/pull/854)                                                                                |
-| Concurrent React          | Not yet                                                                                 | [PR #850](https://github.com/vadimdemedes/ink/pull/850) exploring                                                                      |
-| **Box outline**           | `outlineStyle` — CSS outline equivalent, no layout impact                               | None                                                                                                                                   |
-| **Transform component**   | `<Transform>` — per-line string transform (Ink-compatible)                              | `<Transform>` — same API                                                                                                               |
+| Incremental rendering     | Per-node dirty tracking                                                                       | Full re-render ([PR #836](https://github.com/vadimdemedes/ink/pull/836) exploring)                                                     |
+| Render targets            | Terminal, Canvas, DOM                                                                         | Terminal only                                                                                                                          |
+| Static rendering          | `renderStatic()`                                                                              | `Static` component                                                                                                                     |
+| CJK/IME sync              | DEC 2026 synchronized update (automatic)                                                      | In progress ([#759](https://github.com/vadimdemedes/ink/issues/759), [PR #846](https://github.com/vadimdemedes/ink/pull/846))          |
+| Non-TTY fallback          | `renderStatic()`                                                                              | [PR #854](https://github.com/vadimdemedes/ink/pull/854)                                                                                |
+| Concurrent React          | Not yet                                                                                       | [PR #850](https://github.com/vadimdemedes/ink/pull/850) exploring                                                                      |
+| **Box outline**           | `outlineStyle` — CSS outline equivalent, no layout impact                                     | None                                                                                                                                   |
+| **Transform component**   | `<Transform>` — per-line string transform (Ink-compatible)                                    | `<Transform>` — same API                                                                                                               |
 
 ### Input & Interaction
 
-| Feature                 | hightea                                                              | Ink                                                                            |
+| Feature                 | hightea                                                           | Ink                                                                            |
 | ----------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | Input handling          | `InputLayerProvider` stack (DOM-style bubbling, modal isolation)  | `useInput` only (flat, no isolation)                                           |
 | Kitty keyboard protocol | Full spec: ⌘/✦ modifiers, press/repeat/release, auto-detect       | [PR #852](https://github.com/vadimdemedes/ink/pull/852) in review              |
@@ -99,7 +99,7 @@ _Performance: Apple M1 Max, Bun 1.3.9, Feb 2026. Run: `bun run bench:compare`_
 
 ### Developer Experience
 
-| Feature            | hightea                                                    | Ink                                         |
+| Feature            | hightea                                                 | Ink                                         |
 | ------------------ | ------------------------------------------------------- | ------------------------------------------- |
 | React version      | 19                                                      | 18                                          |
 | TypeScript         | Native, strict mode                                     | TS support                                  |
@@ -111,20 +111,20 @@ _Performance: Apple M1 Max, Bun 1.3.9, Feb 2026. Run: `bun run bench:compare`_
 | Render targets     | Terminal, Canvas 2D, DOM                                | Terminal only                               |
 | Stream helpers     | AsyncIterable: merge, map, filter, throttle, debounce   | None                                        |
 | Community          | New                                                     | 50+ components, ~1.3M npm weekly (Feb 2026) |
-| Bundle (gzip)      | ~45 KB (Flexture) / ~76 KB (Yoga)                          | ~52 KB                                      |
+| Bundle (gzip)      | ~45 KB (Flexture) / ~76 KB (Yoga)                       | ~52 KB                                      |
 | Maintenance        | Active development                                      | Maintenance mode                            |
 
 ### Performance
 
-| Scenario                              | hightea          | Ink                     |                       |
-| ------------------------------------- | ------------- | ----------------------- | --------------------- |
-| Cold render (1 component)             | 165 µs        | 271 µs                  | hightea 1.6x faster      |
-| Cold render (1000 components)         | 463 ms        | 541 ms                  | hightea 1.2x faster      |
-| Full React rerender (1000 components) | 630 ms        | 20.7 ms                 | Ink 30x faster        |
-| **Typical interactive update**        | **169 µs**    | **20.7 ms**             | **hightea 100x+ faster** |
+| Scenario                              | hightea          | Ink                     |                          |
+| ------------------------------------- | ---------------- | ----------------------- | ------------------------ |
+| Cold render (1 component)             | 165 µs           | 271 µs                  | hightea 1.6x faster      |
+| Cold render (1000 components)         | 463 ms           | 541 ms                  | hightea 1.2x faster      |
+| Full React rerender (1000 components) | 630 ms           | 20.7 ms                 | Ink 30x faster           |
+| **Typical interactive update**        | **169 µs**       | **20.7 ms**             | **hightea 100x+ faster** |
 | Layout (50-node kanban)               | 57 µs (Flexture) | 136 µs (Yoga NAPI)      | Flexture 2.4x faster     |
-| Terminal resize (1000 nodes)          | 21 µs         | Full re-render          | —                     |
-| Buffer diff (80x24, 10% changed)      | 34 µs         | N/A (row-based strings) | —                     |
+| Terminal resize (1000 nodes)          | 21 µs            | Full re-render          | —                        |
+| Buffer diff (80x24, 10% changed)      | 34 µs            | N/A (row-based strings) | —                        |
 
 **Understanding the rerender row:** When the _entire_ component tree re-renders from scratch (e.g., replacing the root element), Ink is 30x faster because its output is just string concatenation. hightea runs a 5-phase pipeline (measure → layout → content → output) after React reconciliation — that's the cost of layout feedback. But this scenario almost never happens in real apps.
 
@@ -187,14 +187,14 @@ Terminal multiplexers (tmux, Zellij) can misinterpret frame boundaries during IM
 hightea supports pluggable layout engines with the same flexbox API:
 
 |                    | Flexture (default) | Yoga (WASM) |
-| ------------------ | --------------- | ----------- |
-| Size (gzip)        | 7 KB            | 38 KB       |
-| Language           | Pure JS         | C++ → WASM  |
-| Initialization     | Synchronous     | Async       |
-| 100-node layout    | 85 µs           | 88 µs       |
-| 50-node kanban     | 57 µs           | 54 µs       |
-| RTL direction      | Supported       | Supported   |
-| Baseline alignment | Not supported   | Supported   |
+| ------------------ | ------------------ | ----------- |
+| Size (gzip)        | 7 KB               | 38 KB       |
+| Language           | Pure JS            | C++ → WASM  |
+| Initialization     | Synchronous        | Async       |
+| 100-node layout    | 85 µs              | 88 µs       |
+| 50-node kanban     | 57 µs              | 54 µs       |
+| RTL direction      | Supported          | Supported   |
+| Baseline alignment | Not supported      | Supported   |
 
 Both are fast enough for 60fps terminal UIs. Flexture is 5x smaller with comparable performance. See [Flexture vs Yoga](../../flexture/docs/yoga-comparison.md) for details.
 
@@ -253,7 +253,7 @@ One-shot question → answer → exit.
 
 Tested scenarios derived from common Ink issues:
 
-| Scenario                                            | hightea Test                                              | Ink Issue                                               |
+| Scenario                                            | hightea Test                                           | Ink Issue                                               |
 | --------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------- |
 | CJK character rendering (Chinese, Japanese, Korean) | `ime.test.tsx`                                         | [#759](https://github.com/vadimdemedes/ink/issues/759)  |
 | Double-width character alignment                    | `ime.test.tsx`, `wide-char-truncate.test.ts`           | [#759](https://github.com/vadimdemedes/ink/issues/759)  |
@@ -275,11 +275,11 @@ _Apple M1 Max, Bun 1.3.9, Feb 2026. Reproduce: `bun run bench:compare`_
 
 ### Full Pipeline (React Reconciliation + Layout + Output)
 
-| Components             | hightea (Flexture) | Ink 6 (Yoga NAPI) | Faster    |
-| ---------------------- | ------------ | ----------------- | --------- |
-| 1 Box+Text (80x24)     | 165 µs       | 271 µs            | hightea 1.6x |
-| 100 Box+Text (80x24)   | 45.0 ms      | 49.4 ms           | hightea 1.1x |
-| 1000 Box+Text (120x40) | 463 ms       | 541 ms            | hightea 1.2x |
+| Components             | hightea (Flexture) | Ink 6 (Yoga NAPI) | Faster       |
+| ---------------------- | ------------------ | ----------------- | ------------ |
+| 1 Box+Text (80x24)     | 165 µs             | 271 µs            | hightea 1.6x |
+| 100 Box+Text (80x24)   | 45.0 ms            | 49.4 ms           | hightea 1.1x |
+| 1000 Box+Text (120x40) | 463 ms             | 541 ms            | hightea 1.2x |
 
 hightea uses `createRenderer()` (headless). Ink uses `render()` with mock stdout + unmount per iteration.
 
@@ -287,7 +287,7 @@ hightea uses `createRenderer()` (headless). Ink uses `render()` with mock stdout
 
 Both trigger full React reconciliation via `app.rerender()`:
 
-| Components             | hightea    | Ink 6   | Faster  |
+| Components             | hightea | Ink 6   | Faster  |
 | ---------------------- | ------- | ------- | ------- |
 | 100 Box+Text (80x24)   | 64.3 ms | 2.3 ms  | Ink 28x |
 | 1000 Box+Text (120x40) | 630 ms  | 20.7 ms | Ink 30x |
@@ -320,9 +320,9 @@ Packed Uint32Array cell comparison with cursor-movement optimization.
 ### Layout Engine (Pure Layout, No React)
 
 | Benchmark      | Flexture (JS) | Yoga WASM | Yoga NAPI (C++) |
-| -------------- | ---------- | --------- | --------------- |
-| 100 nodes flat | 85 µs      | 88 µs     | 197 µs          |
-| 50-node kanban | 57 µs      | 54 µs     | 136 µs          |
+| -------------- | ------------- | --------- | --------------- |
+| 100 nodes flat | 85 µs         | 88 µs     | 197 µs          |
+| 50-node kanban | 57 µs         | 54 µs     | 136 µs          |
 
 ### Resize (Layout Only)
 
@@ -334,11 +334,11 @@ Packed Uint32Array cell comparison with cursor-movement optimization.
 
 ### Bundle Size
 
-| Package      | Size (gzip) |
-| ------------ | ----------- |
+| Package            | Size (gzip) |
+| ------------------ | ----------- |
 | hightea + Flexture | ~45 KB      |
-| hightea + Yoga  | ~76 KB      |
-| Ink          | ~52 KB      |
+| hightea + Yoga     | ~76 KB      |
+| Ink                | ~52 KB      |
 
 ---
 

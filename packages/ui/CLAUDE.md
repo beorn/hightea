@@ -269,7 +269,7 @@ await withCursor(false, async () => {
 | ---------------------- | ------------------------------------ |
 | `@hightea/ui`          | CLI components + wrappers (no React) |
 | `@hightea/ui/cli`      | Direct stdout spinners/progress bars |
-| `@hightea/ui/react`    | React components for hightea apps       |
+| `@hightea/ui/react`    | React components for hightea apps    |
 | `@hightea/ui/wrappers` | Async pattern adapters               |
 | `@hightea/ui/progress` | Declarative steps API                |
 | `@hightea/ui/input`    | React input components               |

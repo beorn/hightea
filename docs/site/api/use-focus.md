@@ -6,7 +6,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 Tree-based focus system hooks for managing focus state and navigation.
 
-<LiveDemo xtermSrc="/hightea/examples/showcase.html?demo=focus" :height="250" />
+<LiveDemo xtermSrc="/examples/showcase.html?demo=focus" :height="250" />
 
 ## Import
 
