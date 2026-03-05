@@ -21,13 +21,13 @@ bun add @hightea/term
 + import { render } from '@hightea/term/testing';
 ```
 
-That's it. `render(<App />)` works exactly like Ink — no term parameter needed, returns synchronously:
+That's it. `render(<App />)` works without any term parameter — just add `await`:
 
 ```tsx
 // Ink
 const { unmount, waitUntilExit } = render(<App />)
 
-// hightea — identical
+// hightea — just add await
 const { unmount, waitUntilExit } = await render(<App />)
 ```
 

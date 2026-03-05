@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide helps you migrate from Ink to hightea. Most apps require only an import change, but there are behavioral differences to be aware of.
+hightea is a drop-in replacement for Ink. Change your imports, and your app works.
 
 ---
 
@@ -11,7 +11,6 @@ This guide helps you migrate from Ink to hightea. Most apps require only an impo
 ### Step 1: Install hightea
 
 ```bash
-# Replace ink with hightea
 bun remove ink ink-testing-library
 bun add @hightea/term
 ```
@@ -26,32 +25,42 @@ bun add @hightea/term
 + import { createRenderer } from '@hightea/term/testing';
 ```
 
+That's it. `render(<App />)` works without any term parameter — just add `await`:
+
+```typescript
+// Ink
+const { unmount, waitUntilExit } = render(<App />)
+
+// hightea — just add await
+const { unmount, waitUntilExit } = await render(<App />)
+```
+
 ### Step 3: Run Tests
 
 ```bash
 bun test
 ```
 
-Most apps should work at this point — `render(<App />)` works without changes. Read on for known differences.
+Most apps should work at this point. Read on for known differences.
 
-### Optional: Explicit Terminal Control
+### Advanced: Explicit Terminal Control
 
-For production apps, you can create a term explicitly for more control:
+For production apps that need more control, you can create a term explicitly:
 
 ```typescript
 import { render, createTerm } from '@hightea/term';
 
 using term = createTerm();
-await render(<App />, term);
+const { unmount, waitUntilExit } = await render(<App />, term);
 ```
 
 **Why use `createTerm()`?**
 
-- **Different term types for different contexts**: production, testing, CI — each can use a different term configuration (colors, dimensions, capabilities).
-- **Better testing**: Create mock terms that capture output, simulate different terminal sizes, or disable colors.
-- **Explicit cleanup**: The `using` keyword (TC39 Explicit Resource Management) automatically cleans up the terminal when the scope exits — restoring cursor, raw mode, and alternate screen.
+- **Different contexts**: Swap term configurations for production, testing, or CI (colors, dimensions, capabilities).
+- **Better testing**: Mock terms that capture output, simulate terminal sizes, or disable colors.
+- **Explicit cleanup**: The `using` keyword (TC39 Explicit Resource Management) automatically restores cursor, raw mode, and alternate screen when the scope exits.
 
-Without `createTerm()`, hightea creates a default term internally. This is fine for simple apps and matches Ink's API exactly.
+Without `createTerm()`, hightea creates a default term internally — matching Ink's behavior exactly.
 
 ---
 
@@ -63,7 +72,7 @@ These APIs are 100% compatible:
 | -------------- | ------------------------------------------------------------------------ |
 | **Components** | `<Box>`, `<Text>`, `<Newline>`, `<Spacer>`, `<Static>`                   |
 | **Hooks**      | `useInput()`, `useApp()`, `useStdout()`                                  |
-| **Render**     | `render()`, `render(element, options)`                                   |
+| **Render**     | `render(<App />)` — no term parameter needed                             |
 | **Styling**    | All Chalk styles work unchanged                                          |
 | **Flexbox**    | All flexbox props (direction, justify, align, wrap, grow, shrink, basis) |
 | **Borders**    | All border styles (single, double, round, bold, etc.)                    |
