@@ -548,7 +548,7 @@ You don't choose a state management library. You choose how visible your state t
 
 The more visible your transitions are — the easier your app is to test, debug, automate, and scale. But visibility has a cost: verbosity, indirection, and ceremony. The right level is the one where the benefits you actually use outweigh the boilerplate you actually write. React doesn't force you into any of this. You grow into it one level at a time, and you never have to adopt more than you need.
 
-This guide covers the state side of the equation. For the event side — how input becomes data and flows through composable plugins — see [Event Handling](event-handling.md). Together they form the full picture: start simple, sip some TEA, or go full TEA.
+This guide covers the state side of the equation. For the event side — how input becomes data and flows through composable plugins — see [Event Handling](event-handling.md). Together they form the full picture: events → commands → ops → state → effects → screen.
 
 ## See Also
 

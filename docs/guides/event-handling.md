@@ -2,62 +2,18 @@
 
 Most TUI frameworks force a choice: simple callbacks that don't scale, or a full architecture you adopt all at once. inkx gives you a graduated path where each level builds on the last. Your first app is five lines. Your complex app — with vim modes, AI automation, customizable keybindings, and file watchers — uses the same primitives, just composed differently.
 
-The payoff at the end of the path: **all state in one model**, all changes through one `update` function, all I/O through composable plugins. The entire app becomes inspectable, serializable, replayable, and testable — from headless unit tests to AI-driven automation. You get there incrementally, one sip at a time.
+The payoff at the end of the path: **all state in one model**, all changes through one `update` function, all I/O through composable plugins. The entire app becomes inspectable, serializable, replayable, and testable — from headless unit tests to AI-driven automation.
 
-| Level | You need it when... | What inkx provides |
-|-------|--------------------|--------------------|
-| **1 — Callbacks** | Starting out | `useInput` — just a function |
-| **2 — Component Handlers** | Clicks, per-component keys | `withDomEvents()` — React-style `onClick`/`onKeyDown` with bubbling |
-| **3 — Commands** | Undo, replay, AI automation | `withCommands()` — key/mouse → named serializable actions |
-| **4 — App Plugins** | Vim modes, chords, custom sources | Slice + plugin — state in the model, reactions via subscribe |
+| Level                      | You need it when...               | What inkx provides                                                  |
+| -------------------------- | --------------------------------- | ------------------------------------------------------------------- |
+| **1 — Callbacks**          | Starting out                      | `useInput` — just a function                                        |
+| **2 — Component Handlers** | Clicks, per-component keys        | `withDomEvents()` — React-style `onClick`/`onKeyDown` with bubbling |
+| **3 — Commands**           | Undo, replay, AI automation       | `withCommands()` — key/mouse → named serializable actions           |
+| **4 — App Plugins**        | Vim modes, chords, custom sources | Slice + plugin — state in the model, reactions via subscribe        |
 
 Most simple apps stop at Level 1. Apps with mouse interaction reach Level 2. Complex TUIs with customizable keybindings and AI automation land at Level 3. Level 4 is for custom event processing, sources, and protocols — but by then you're writing pure functions that compose, not framework boilerplate.
 
 This guide is the companion to [State Management](state-management.md). State management answers "how do I organize my data?"; event handling answers "how do I respond to the world?". They meet at commands — where input becomes data, and the app becomes a pure pipeline from events to state to screen.
-
-### The kernel and defaults
-
-Under the hood, `run()` is sugar over `pipe()` with sensible defaults. The kernel — `createApp(store)` — is just a typed event loop: `update`, `dispatch`, `run`. Everything else is plugins.
-
-```tsx
-// Simple: batteries included
-await run(store, <App />)
-
-// Equivalent to:
-const app = pipe(
-  createApp(store),               // kernel: event loop + state
-  withReact(<App />),             // rendering: React reconciler + virtual buffer
-  withTerminal(process),          // ALL terminal I/O: stdin→events, stdout→output, lifecycle, protocols
-  withFocus(),                    // processing: Tab/Shift+Tab, focus scopes
-  withDomEvents(),                // processing: dispatch to component tree
-)
-await app.run()
-
-// Power user: pick exactly what you need
-const app = pipe(
-  createApp(store),
-  withReact(<Board />),
-  withTerminal(process),
-  withDomEvents(),
-  withCommands(registry),
-  withKeybindings(bindings),
-  withDiagnostics(),
-)
-```
-
-This means you can also run **without** certain plugins:
-
-```tsx
-// Headless testing — no terminal, no rendering, just state + commands
-const app = pipe(createApp(store), withCommands(registry))
-app.dispatch({ type: "term:key", data: { input: "j", key: parseKey("j") } })
-
-// Static rendering — render once, output, exit
-const app = pipe(createApp(store), withStaticRender(<Report />))
-
-// Replay — feed recorded events instead of stdin
-const app = pipe(createApp(store), withReact(<Board />), withReplaySource(recording))
-```
 
 ---
 
@@ -109,13 +65,10 @@ function ItemList() {
   return (
     <Box flexDirection="column">
       {items.map((item, i) => (
-        <Box
-          key={item.id}
-          onClick={() => store.setCursor(i)}
-          onDoubleClick={() => store.startEdit(i)}
-        >
+        <Box key={item.id} onClick={() => store.setCursor(i)} onDoubleClick={() => store.startEdit(i)}>
           <Text color={i === cursor ? "cyan" : undefined}>
-            {i === cursor ? "> " : "  "}{item.text}
+            {i === cursor ? "> " : "  "}
+            {item.text}
           </Text>
         </Box>
       ))}
@@ -129,11 +82,7 @@ Enable it with a plugin — one line:
 ```tsx
 import { pipe, withDomEvents } from "inkx/runtime"
 
-const app = pipe(
-  createApp(store),
-  withReact(<Board />),
-  withDomEvents(),
-)
+const app = pipe(createApp(store), withReact(<Board />), withDomEvents())
 ```
 
 ### How it works
@@ -146,34 +95,80 @@ const app = pipe(
 If a component calls `event.stopPropagation()`, the event is consumed — the base handler never sees it. Unhandled events pass through to whatever is next in the pipeline.
 
 ```tsx
-<Box onKeyDown={(e) => {
-  if (e.key.escape) {
-    closeDialog()
-    e.stopPropagation()  // don't let Escape reach the parent
-  }
-}}>
+<Box
+  onKeyDown={(e) => {
+    if (e.key.escape) {
+      closeDialog()
+      e.stopPropagation() // don't let Escape reach the parent
+    }
+  }}
+>
   <TextInput value={query} onChange={setQuery} />
 </Box>
 ```
 
 ### Available event handler props
 
-| Prop | Event Type | Bubbles |
-|------|-----------|---------|
-| `onClick` | `InkxMouseEvent` | Yes |
-| `onDoubleClick` | `InkxMouseEvent` | Yes |
-| `onMouseDown` | `InkxMouseEvent` | Yes |
-| `onMouseUp` | `InkxMouseEvent` | Yes |
-| `onMouseMove` | `InkxMouseEvent` | Yes |
-| `onMouseEnter` | `InkxMouseEvent` | No |
-| `onMouseLeave` | `InkxMouseEvent` | No |
-| `onWheel` | `InkxWheelEvent` | Yes |
-| `onKeyDown` | `InkxKeyEvent` | Yes |
-| `onKeyDownCapture` | `InkxKeyEvent` | Yes (capture phase) |
+| Prop               | Event Type       | Bubbles             |
+| ------------------ | ---------------- | ------------------- |
+| `onClick`          | `InkxMouseEvent` | Yes                 |
+| `onDoubleClick`    | `InkxMouseEvent` | Yes                 |
+| `onMouseDown`      | `InkxMouseEvent` | Yes                 |
+| `onMouseUp`        | `InkxMouseEvent` | Yes                 |
+| `onMouseMove`      | `InkxMouseEvent` | Yes                 |
+| `onMouseEnter`     | `InkxMouseEvent` | No                  |
+| `onMouseLeave`     | `InkxMouseEvent` | No                  |
+| `onWheel`          | `InkxWheelEvent` | Yes                 |
+| `onKeyDown`        | `InkxKeyEvent`   | Yes                 |
+| `onKeyDownCapture` | `InkxKeyEvent`   | Yes (capture phase) |
 
 Component handlers are familiar to React developers, spatial (you click on things), and compositional (events bubble through the tree). This is enough for most interactive UIs.
 
 **The wall**: You want customizable keybindings. But `onClick={() => selectCard()}` is a function call — there's no data to serialize, no name to show in a command palette, no binding to remap. The user can't change "j means down" without editing code.
+
+### The kernel and defaults
+
+Under the hood, `run()` is sugar over `pipe()` with sensible defaults. The kernel — `createApp(store)` — is just a typed event loop: `update`, `dispatch`, `run`. Everything else is plugins.
+
+```tsx
+// Simple: batteries included
+await run(store, <App />)
+
+// Equivalent to:
+const app = pipe(
+  createApp(store), // kernel: event loop + state
+  withReact(<App />), // rendering: React reconciler + virtual buffer
+  withTerminal(process), // ALL terminal I/O: stdin→events, stdout→output, lifecycle, protocols
+  withFocus(), // processing: Tab/Shift+Tab, focus scopes
+  withDomEvents(), // processing: dispatch to component tree
+)
+await app.run()
+
+// Power user: pick exactly what you need
+const app = pipe(
+  createApp(store),
+  withReact(<Board />),
+  withTerminal(process),
+  withDomEvents(),
+  withCommands(registry),
+  withKeybindings(bindings),
+  withDiagnostics(),
+)
+```
+
+This means you can also run **without** certain plugins:
+
+```tsx
+// Headless testing — no terminal, no rendering, just state + commands
+const app = pipe(createApp(store), withCommands(registry))
+app.dispatch({ type: "term:key", data: { input: "j", key: parseKey("j") } })
+
+// Static rendering — render once, output, exit
+const app = pipe(createApp(store), withStaticRender(<Report />))
+
+// Replay — feed recorded events instead of stdin
+const app = pipe(createApp(store), withReact(<Board />), withReplaySource(recording))
+```
 
 ---
 
@@ -260,8 +255,8 @@ This is the natural pattern for complex apps: `TextInput` handles its own keys v
 const app = pipe(
   createApp(store),
   withReact(<Board />),
-  withDomEvents(),      // component handlers fire first
-  withCommands(opts),   // unhandled events resolve to commands
+  withDomEvents(), // component handlers fire first
+  withCommands(opts), // unhandled events resolve to commands
 )
 ```
 
@@ -272,15 +267,15 @@ The `withKeybindings` and `withDiagnostics` plugins extend the app's external AP
 ```tsx
 const driver = pipe(
   app,
-  withKeybindings(bindings),  // press("j") → resolves keybinding → command
-  withDiagnostics(),          // adds render invariant checks after each command
+  withKeybindings(bindings), // press("j") → resolves keybinding → command
+  withDiagnostics(), // adds render invariant checks after each command
 )
 
 // AI or test can:
-driver.cmd.all()              // list available commands
+driver.cmd.all() // list available commands
 await driver.cmd.cursor_down() // execute by name
-driver.getState()             // inspect state
-await driver.screenshot()     // capture screen
+driver.getState() // inspect state
+await driver.screenshot() // capture screen
 ```
 
 This is the same app — just with more capabilities layered on. [State Management Level 3](state-management.md#level-3-ops-as-data--reduxs-insight) (ops as data) meets event handling Level 3 (commands). Together they make the entire app automatable: commands describe input, ops describe state changes, both are serializable data.
@@ -290,6 +285,8 @@ This is the same app — just with more capabilities layered on. [State Manageme
 ---
 
 ## Level 4: App Plugins
+
+> **Note:** This level describes the planned plugin architecture. The `pipe()` composition API, slice-based plugins, and typed dispatch shown below are design targets — the individual plugins (`withDomEvents`, `withCommands`, etc.) are implemented, but the unified composition model is still taking shape.
 
 Every extension in this guide — `withDomEvents`, `withCommands`, `withKeybindings`, `withDiagnostics` — is the same thing: an app plugin. A function that takes an app and returns an enhanced app.
 
@@ -303,14 +300,14 @@ You compose them with `pipe()`:
 
 ```tsx
 const app = pipe(
-  createApp(store),                 // kernel: event loop + state
-  withReact(<Board />),             // rendering: React + virtual buffer
-  withTerminal(process),              // terminal: stdin→events, stdout→output, lifecycle, protocols
-  withFocus(),                      // processing: Tab navigation, focus scopes
-  withDomEvents(),                  // processing: dispatch to component tree
-  withCommands(opts),               // processing: resolve to named commands
-  withKeybindings(bindings),        // API: press() → keybinding resolution
-  withDiagnostics(),                // API: render invariant checks
+  createApp(store), // kernel: event loop + state
+  withReact(<Board />), // rendering: React + virtual buffer
+  withTerminal(process), // terminal: stdin→events, stdout→output, lifecycle, protocols
+  withFocus(), // processing: Tab navigation, focus scopes
+  withDomEvents(), // processing: dispatch to component tree
+  withCommands(opts), // processing: resolve to named commands
+  withKeybindings(bindings), // API: press() → keybinding resolution
+  withDiagnostics(), // API: render invariant checks
 )
 ```
 
@@ -323,8 +320,7 @@ function withTerminal(proc: NodeJS.Process) {
   return {
     // Slice: pure (msg, sliceState) → sliceState — handles state transitions
     slice: (msg: AppEvent, term: TermState): TermState => {
-      if (msg.type === "term:resize")
-        return { ...term, cols: msg.data.cols, rows: msg.data.rows }
+      if (msg.type === "term:resize") return { ...term, cols: msg.data.cols, rows: msg.data.rows }
       return term
     },
 
@@ -334,7 +330,10 @@ function withTerminal(proc: NodeJS.Process) {
       app.events = () => [...events(), terminalInput(proc.stdin), resizeStream(proc.stdout)]
 
       // I/O reaction: write to stdout when buffer changes
-      app.subscribe(s => s.renderBuffer, (buf) => diffAndWrite(proc.stdout, buf))
+      app.subscribe(
+        (s) => s.renderBuffer,
+        (buf) => diffAndWrite(proc.stdout, buf),
+      )
 
       return app
     },
@@ -351,10 +350,16 @@ Plugins react to model changes via `app.subscribe`. The app collects subscriptio
 ```tsx
 plugin: (app) => {
   // I/O: no state change
-  app.subscribe(s => s.focus.activeId, (id) => scrollIntoView(id))
+  app.subscribe(
+    (s) => s.focus.activeId,
+    (id) => scrollIntoView(id),
+  )
 
   // Dispatch: goes through update, which may change state
-  app.subscribe(s => s.term.rows, () => app.dispatch.focus.revalidate())
+  app.subscribe(
+    (s) => s.term.rows,
+    () => app.dispatch.focus.revalidate(),
+  )
 
   return app
 }
@@ -391,10 +396,8 @@ function withVimModes() {
   return {
     slice: (msg: AppEvent, vim: VimState): VimState => {
       if (msg.type !== "term:key") return vim
-      if (vim.mode === "normal" && msg.data.input === "i")
-        return { ...vim, mode: "insert" }
-      if (vim.mode === "insert" && msg.data.key.escape)
-        return { ...vim, mode: "normal" }
+      if (vim.mode === "normal" && msg.data.input === "i") return { ...vim, mode: "insert" }
+      if (vim.mode === "insert" && msg.data.key.escape) return { ...vim, mode: "normal" }
       return vim
     },
 
@@ -456,11 +459,11 @@ function withFileWatcher(path: string) {
 
 Not all sources need to be app plugins. inkx provides three mechanisms, each for a different lifecycle:
 
-| Mechanism | Lifecycle | Use when... |
-|-----------|----------|-------------|
-| **App plugins** | Static — created once at app setup | Always-on sources: stdin, resize, timers |
+| Mechanism            | Lifecycle                           | Use when...                                       |
+| -------------------- | ----------------------------------- | ------------------------------------------------- |
+| **App plugins**      | Static — created once at app setup  | Always-on sources: stdin, resize, timers          |
 | **React components** | Reactive — mount/unmount with state | Conditional sources: file watchers, network polls |
-| **Effects** | One-shot — triggered by update | Request/response: fetch, save, notifications |
+| **Effects**          | One-shot — triggered by update      | Request/response: fetch, save, notifications      |
 
 React components are the most natural way to add reactive sources — they mount when state says so and clean up automatically:
 
@@ -469,22 +472,22 @@ function FileWatcher({ path }: { path: string }) {
   const dispatch = useDispatch()
 
   useEffect(() => {
-    const watcher = watch(path, (ev) =>
-      dispatch({ type: "fs:change", data: ev })
-    )
+    const watcher = watch(path, (ev) => dispatch({ type: "fs:change", data: ev }))
     return () => watcher.close()
   }, [path])
 
-  return null  // renderless
+  return null // renderless
 }
 
 // In your view — declarative, reactive
 function App() {
   const vaultPath = useApp((s) => s.vaultPath)
-  return <>
-    <Board />
-    {vaultPath && <FileWatcher path={vaultPath} />}
-  </>
+  return (
+    <>
+      <Board />
+      {vaultPath && <FileWatcher path={vaultPath} />}
+    </>
+  )
 }
 ```
 
@@ -496,15 +499,14 @@ All event types flow through a single `EventMap` — the contract between source
 
 ```tsx
 interface EventMap {
-  "term:key":    { input: string; key: Key }
-  "term:mouse":  ParsedMouse
-  "term:paste":  { text: string }
+  "term:key": { input: string; key: Key }
+  "term:mouse": ParsedMouse
+  "term:paste": { text: string }
   "term:resize": { cols: number; rows: number }
 }
 
 // Derived discriminated union — narrows in switch
-type AppEvent<K extends keyof EventMap = keyof EventMap> =
-  K extends K ? { type: K; data: EventMap[K] } : never
+type AppEvent<K extends keyof EventMap = keyof EventMap> = K extends K ? { type: K; data: EventMap[K] } : never
 ```
 
 Sources are typed against the map — they can only produce events they declare:
@@ -527,9 +529,12 @@ TypeScript narrows automatically in update:
 ```tsx
 function update(msg: AppEvent<keyof MyEventMap>, model: Model) {
   switch (msg.type) {
-    case "term:key":   msg.data.input    // string
-    case "fs:change":  msg.data.path     // string
-    case "timer:tick": msg.data.now      // number
+    case "term:key":
+      msg.data.input // string
+    case "fs:change":
+      msg.data.path // string
+    case "timer:tick":
+      msg.data.now // number
   }
 }
 ```
@@ -569,18 +574,18 @@ using app = pipe(
 
 Three roles, one type:
 
-| Role | What it does | How |
-|------|-------------|-----|
-| **Source** | Produces events | Overrides `app.events` |
-| **Processor** | Transforms/consumes events | Wraps `app.update` |
-| **Reactor** | Responds to model changes | `app.subscribe` (I/O or dispatch) |
-| **Driver** | Enhances external API | `app.press`, `app.cmd`, etc. |
+| Role          | What it does               | How                               |
+| ------------- | -------------------------- | --------------------------------- |
+| **Source**    | Produces events            | Overrides `app.events`            |
+| **Processor** | Transforms/consumes events | Wraps `app.update`                |
+| **Reactor**   | Responds to model changes  | `app.subscribe` (I/O or dispatch) |
+| **Driver**    | Enhances external API      | `app.press`, `app.cmd`, etc.      |
 
 A single plugin can fill multiple roles — `withCommands` wraps `update` (processing) AND adds `.cmd` (API). `withTerminal` adds sources AND subscribes to render buffer (reactor). There's no taxonomy to learn; it's just functions enriching an object.
 
-### Sipping TEA
+### Incremental adoption
 
-The architecture supports incremental adoption of [The Elm Architecture](https://guide.elm-lang.org/architecture/) — you don't have to drink the whole pot at once.
+The architecture supports incremental adoption of [The Elm Architecture](https://guide.elm-lang.org/architecture/) — you don't have to adopt it all at once.
 
 1. **`useState`** — state in components. Quick to start, hard to test, impossible to replay.
 2. **Shared store** — state in Zustand. Components share state, but handlers are still imperative `set()` calls.
@@ -596,12 +601,12 @@ The payoff at step 5: **snapshot** any moment, **replay** any session, **time-tr
 
 This guide is the input side of the same architecture described in [State Management](state-management.md):
 
-| State Management | Event Handling |
-|-----------------|---------------|
-| Level 2: Shared store | Level 1: useInput callbacks |
-| Level 3: Ops as data | Level 3: Commands (input as data) |
-| Level 4: Effects as data | Level 4: Typed event sources |
-| Level 5: Composition | Level 4: Plugin composition |
+| State Management         | Event Handling                    |
+| ------------------------ | --------------------------------- |
+| Level 2: Shared store    | Level 1: useInput callbacks       |
+| Level 3: Ops as data     | Level 3: Commands (input as data) |
+| Level 4: Effects as data | Level 4: Typed event sources      |
+| Level 5: Composition     | Level 4: Plugin composition       |
 
 They meet at Level 3 — commands produce ops, ops describe state changes, both are serializable data. Together they make the entire app a pure pipeline from input to output: events → commands → ops → state → effects → I/O.
 
@@ -613,20 +618,20 @@ Every built-in behavior is a plugin. `run()` composes them for you; `pipe()` let
 
 ### Kernel
 
-| Plugin | Role | What it does |
-|--------|------|-------------|
+| Plugin             | Role   | What it does                                                                                |
+| ------------------ | ------ | ------------------------------------------------------------------------------------------- |
 | `createApp(store)` | Kernel | Typed event loop: `update`, `dispatch`, `events`, `run`. No rendering, no terminal, no I/O. |
 
 ### Rendering
 
-| Plugin | Role | What it does |
-|--------|------|-------------|
+| Plugin              | Role      | What it does                                                                                                                    |
+| ------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `withReact(<El />)` | Rendering | React reconciler + virtual buffer. Mounts the element, renders into a `TerminalBuffer`, re-renders reactively on store changes. |
 
 ### Terminal I/O
 
-| Plugin | Role | What it does |
-|--------|------|-------------|
+| Plugin                         | Role                       | What it does                                                                                                                                                                                                                                                                                                              |
+| ------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `withTerminal(process, opts?)` | Source + Output + Protocol | **All terminal I/O in one plugin.** stdin → typed events (`term:key`, `term:mouse`, `term:paste`). stdout → alternate screen, raw mode, incremental diff output. SIGWINCH → `term:resize`. Lifecycle (Ctrl+Z suspend/resume, Ctrl+C exit). Protocols (SGR mouse, Kitty keyboard, bracketed paste) controlled via options. |
 
 Mouse, Kitty keyboard, and bracketed paste are **on by default** — no configuration needed. Options for disabling or customizing: `{ mouse?: boolean, kitty?: boolean | KittyFlags, paste?: boolean, onSuspend?, onResume?, onInterrupt? }`
@@ -635,18 +640,18 @@ Internally, `withTerminal` composes the lower-level concerns (input parsing, out
 
 ### Event Processing
 
-| Plugin | Role | What it does |
-|--------|------|-------------|
-| `withFocus()` | Processing | Focus manager: Tab/Shift+Tab navigation, Enter to enter scope, Escape to exit. Dispatches `onKeyDown`/`onKeyDownCapture` through focus tree (capture → target → bubble). |
-| `withDomEvents()` | Processing | DOM-like event dispatch for mouse: hit testing via `screenRect`, bubbling through ancestors. `onClick`, `onDoubleClick`, `onMouseDown`, `onMouseUp`, `onMouseMove`, `onMouseEnter`, `onMouseLeave`, `onWheel`. |
-| `withCommands(opts)` | Processing + API | Resolves key and mouse events to named commands via a binding table. Adds `.cmd` proxy for programmatic invocation. Adds `.getState()` for introspection. |
+| Plugin               | Role             | What it does                                                                                                                                                                                                   |
+| -------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `withFocus()`        | Processing       | Focus manager: Tab/Shift+Tab navigation, Enter to enter scope, Escape to exit. Dispatches `onKeyDown`/`onKeyDownCapture` through focus tree (capture → target → bubble).                                       |
+| `withDomEvents()`    | Processing       | DOM-like event dispatch for mouse: hit testing via `screenRect`, bubbling through ancestors. `onClick`, `onDoubleClick`, `onMouseDown`, `onMouseUp`, `onMouseMove`, `onMouseEnter`, `onMouseLeave`, `onWheel`. |
+| `withCommands(opts)` | Processing + API | Resolves key and mouse events to named commands via a binding table. Adds `.cmd` proxy for programmatic invocation. Adds `.getState()` for introspection.                                                      |
 
 ### Testing / Automation
 
-| Plugin | Role | What it does |
-|--------|------|-------------|
-| `withKeybindings(bindings)` | API | Intercepts `press()` to resolve keybindings → commands before passing through. `press("j")` becomes `cmd.cursor_down()`. |
-| `withDiagnostics(opts?)` | API | Adds render invariant checks after each command: incremental vs fresh render, stability, replay, layout. Captures screenshots on failure. |
+| Plugin                      | Role | What it does                                                                                                                              |
+| --------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `withKeybindings(bindings)` | API  | Intercepts `press()` to resolve keybindings → commands before passing through. `press("j")` becomes `cmd.cursor_down()`.                  |
+| `withDiagnostics(opts?)`    | API  | Adds render invariant checks after each command: incremental vs fresh render, stability, replay, layout. Captures screenshots on failure. |
 
 ### How `run()` composes them
 
@@ -656,7 +661,7 @@ function run(store, element, options = {}) {
   return pipe(
     createApp(store),
     withReact(element),
-    withTerminal(process, options),  // mouse, kitty, paste all on by default
+    withTerminal(process, options), // mouse, kitty, paste all on by default
     withFocus(),
     withDomEvents(),
   ).run()
@@ -703,14 +708,14 @@ function update(msg: AppEvent, model: Model): [Model, Effect[]] {
 }
 ```
 
-| Combinator | What it does |
-|-----------|-------------|
-| `none` | No-op (placeholder) |
-| `batch(e1, e2, ...)` | Multiple effects, flattened |
-| `dispatch(msg)` | Queue another message |
+| Combinator                 | What it does                                    |
+| -------------------------- | ----------------------------------------------- |
+| `none`                     | No-op (placeholder)                             |
+| `batch(e1, e2, ...)`       | Multiple effects, flattened                     |
+| `dispatch(msg)`            | Queue another message                           |
 | `debounce(id, ms, effect)` | Cancel previous with same id, wait ms, then run |
-| `throttle(id, ms, effect)` | Run at most once per ms window |
-| `delay(ms, effect)` | Run effect after ms |
+| `throttle(id, ms, effect)` | Run at most once per ms window                  |
+| `delay(ms, effect)`        | Run effect after ms                             |
 
 Because effects are data, the kernel can inspect, log, and replay them. `debounce("search", ...)` with an id means the kernel tracks active timers — cancel-and-restart is automatic.
 
@@ -728,8 +733,8 @@ function withLogging(): AppPlugin {
         console.log({
           msg: msg.type,
           data: msg.data,
-          changed: diff(model, newModel),   // only the fields that changed
-          effects: effects.map(e => e.type ?? e.effect),
+          changed: diff(model, newModel), // only the fields that changed
+          effects: effects.map((e) => e.type ?? e.effect),
         })
         return [newModel, effects]
       }
@@ -765,30 +770,33 @@ Since slices are pure `(msg, state) → state`, undo is a generic plugin that re
 function withUndo<M extends { undo: UndoState }>(opts?: { maxHistory?: number }): AppPlugin {
   return {
     slice: (msg: AppEvent, undo: UndoState): UndoState => {
-      if (msg.type === "undo:push") return {
-        past: [...undo.past.slice(-(opts?.maxHistory ?? 100) + 1), msg.data.snapshot],
-        future: [],
-      }
-      if (msg.type === "undo:undo" && undo.past.length > 0) return {
-        past: undo.past.slice(0, -1),
-        future: [...undo.future, msg.data.current],
-      }
-      if (msg.type === "undo:redo" && undo.future.length > 0) return {
-        past: [...undo.past, msg.data.current],
-        future: undo.future.slice(0, -1),
-      }
+      if (msg.type === "undo:push")
+        return {
+          past: [...undo.past.slice(-(opts?.maxHistory ?? 100) + 1), msg.data.snapshot],
+          future: [],
+        }
+      if (msg.type === "undo:undo" && undo.past.length > 0)
+        return {
+          past: undo.past.slice(0, -1),
+          future: [...undo.future, msg.data.current],
+        }
+      if (msg.type === "undo:redo" && undo.future.length > 0)
+        return {
+          past: [...undo.past, msg.data.current],
+          future: undo.future.slice(0, -1),
+        }
       return undo
     },
 
     plugin: (app) => {
       // After each user action, snapshot the model for undo
       app.subscribe(
-        s => s,
+        (s) => s,
         (model, prevModel) => {
           if (isUserAction(model.lastMsg)) {
             app.dispatch.undo.push({ snapshot: prevModel })
           }
-        }
+        },
       )
 
       // Expose convenience API
@@ -823,9 +831,12 @@ Undo is just the user-facing version. The same infrastructure enables full time-
 ```tsx
 // Record
 const history: Array<{ msg: AppEvent; model: Model }> = []
-app.subscribe(s => s, (model) => {
-  history.push({ msg: model.lastMsg, model: structuredClone(model) })
-})
+app.subscribe(
+  (s) => s,
+  (model) => {
+    history.push({ msg: model.lastMsg, model: structuredClone(model) })
+  },
+)
 
 // Replay to any point
 function replayTo(index: number) {
@@ -833,7 +844,7 @@ function replayTo(index: number) {
 }
 ```
 
-This is the payoff of "sipping TEA" all the way: every moment is a snapshot, every transition is data, every session is replayable.
+This is the payoff of the full architecture: every moment is a snapshot, every transition is data, every session is replayable.
 
 ---
 
@@ -841,15 +852,15 @@ This is the payoff of "sipping TEA" all the way: every moment is a snapshot, eve
 
 The composable plugin model draws from several traditions:
 
-| System | Pattern | Similarity |
-|--------|---------|------------|
-| **[SlateJS](https://docs.slatejs.org/)** | `withHistory(withReact(createEditor()))` | Same `(editor) => editor` plugin shape — override methods via closure |
-| **[Lexical](https://lexical.dev/)** (Facebook) | Command registration + listeners | Plugins declare what they handle rather than wrapping everything |
-| **[ProseMirror](https://prosemirror.net/)** | Structured plugin hooks | `handleKeyDown`, `decorations`, transaction filters — declarative, less free-form |
-| **[Express](https://expressjs.com/)** / **[Koa](https://koajs.com/)** | `app.use(middleware)` | Onion model — last registered = outermost wrapper |
-| **[Redux](https://redux.js.org/)** middleware | `(store) => (next) => (action) => result` | `(inner) => wrapped` composition |
-| **[Elm](https://guide.elm-lang.org/)** subscriptions | `subscriptions : Model -> Sub Msg` | Declarative event sources (we use React components instead) |
-| **DOM Events** | `addEventListener`, capture/bubble | `withDomEvents()` implements this for terminal UI |
+| System                                                                | Pattern                                   | Similarity                                                                        |
+| --------------------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------- |
+| **[SlateJS](https://docs.slatejs.org/)**                              | `withHistory(withReact(createEditor()))`  | Same `(editor) => editor` plugin shape — override methods via closure             |
+| **[Lexical](https://lexical.dev/)** (Facebook)                        | Command registration + listeners          | Plugins declare what they handle rather than wrapping everything                  |
+| **[ProseMirror](https://prosemirror.net/)**                           | Structured plugin hooks                   | `handleKeyDown`, `decorations`, transaction filters — declarative, less free-form |
+| **[Express](https://expressjs.com/)** / **[Koa](https://koajs.com/)** | `app.use(middleware)`                     | Onion model — last registered = outermost wrapper                                 |
+| **[Redux](https://redux.js.org/)** middleware                         | `(store) => (next) => (action) => result` | `(inner) => wrapped` composition                                                  |
+| **[Elm](https://guide.elm-lang.org/)** subscriptions                  | `subscriptions : Model -> Sub Msg`        | Declarative event sources (we use React components instead)                       |
+| **DOM Events**                                                        | `addEventListener`, capture/bubble        | `withDomEvents()` implements this for terminal UI                                 |
 
 The key insight from SlateJS: the editor (or app) is a plain object with overridable methods. Plugins don't use a special registration API — they just override methods and capture the originals via closure. This makes every plugin independently testable and composable without framework support.
 

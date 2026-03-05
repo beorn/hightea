@@ -3,6 +3,9 @@
  *
  * Implements the RenderAdapter interface for browser DOM output.
  * Uses a line-based approach: one <div> per row, <span> elements for styled text runs.
+ * The layout engine operates in cell units (columns x rows). This adapter
+ * converts cell coordinates to pixel coordinates when rendering to the DOM,
+ * using charWidth (fontSize * 0.6) and cellHeight (fontSize * lineHeight).
  *
  * Advantages over Canvas:
  * - Native text selection and copying
@@ -128,52 +131,21 @@ function resolveColor(color: string | undefined, fallback: string): string {
 // DOM Measurer
 // ============================================================================
 
-function createDOMMeasurer(config: Required<DOMAdapterConfig>): TextMeasurer {
-  // Use a hidden span for measurement
-  let measureElement: HTMLSpanElement | null = null
-
-  function getMeasureElement(): HTMLSpanElement {
-    if (!measureElement && typeof document !== "undefined") {
-      measureElement = document.createElement("span")
-      measureElement.style.cssText = `
-				position: absolute;
-				visibility: hidden;
-				white-space: pre;
-				font-family: ${config.fontFamily};
-				font-size: ${config.fontSize}px;
-			`
-      document.body.appendChild(measureElement)
-    }
-    return measureElement!
-  }
-
+function createDOMMeasurer(_config: Required<DOMAdapterConfig>): TextMeasurer {
+  // The layout engine operates in cell units (columns x rows), matching the
+  // terminal convention. For monospace fonts, text width = character count
+  // and line height = 1 row.
   return {
-    measureText(text: string, style?: TextMeasureStyle): TextMeasureResult {
-      if (typeof document === "undefined") {
-        // Fallback for non-browser: estimate based on character count
-        const charWidth = config.fontSize * 0.6
-        return {
-          width: text.length * charWidth,
-          height: config.fontSize * config.lineHeight,
-        }
-      }
-
-      const el = getMeasureElement()
-      const weight = style?.bold ? "bold" : "normal"
-      const fontStyle = style?.italic ? "italic" : "normal"
-      el.style.fontWeight = weight
-      el.style.fontStyle = fontStyle
-      el.textContent = text
-
+    measureText(text: string, _style?: TextMeasureStyle): TextMeasureResult {
+      // For monospace fonts, width is simply the character count (one cell per char)
       return {
-        width: el.offsetWidth,
-        height: el.offsetHeight || config.fontSize * config.lineHeight,
+        width: text.length,
+        height: 1,
       }
     },
 
-    getLineHeight(style?: TextMeasureStyle): number {
-      const fontSize = style?.fontSize ?? config.fontSize
-      return fontSize * config.lineHeight
+    getLineHeight(_style?: TextMeasureStyle): number {
+      return 1
     },
   }
 }
@@ -200,6 +172,10 @@ export class DOMRenderBuffer implements RenderBuffer {
   private lines: Map<number, TextRun[]>
   private backgrounds: Map<string, { x: number; y: number; w: number; h: number; color: string }>
 
+  // Cell-to-pixel conversion factors
+  private readonly charWidth: number
+  private readonly cellHeight: number
+
   // Container element (set when flushing)
   private container: HTMLElement | null = null
 
@@ -209,6 +185,11 @@ export class DOMRenderBuffer implements RenderBuffer {
     this.config = config
     this.lines = new Map()
     this.backgrounds = new Map()
+
+    // Compute cell dimensions for coordinate conversion.
+    // Width/height are in cell units (cols/rows); rendering converts to pixels.
+    this.charWidth = config.fontSize * 0.6
+    this.cellHeight = config.fontSize * config.lineHeight
   }
 
   /**
@@ -255,6 +236,8 @@ export class DOMRenderBuffer implements RenderBuffer {
 
   /**
    * Render the buffer to the container element.
+   * Coordinates in the buffer are in cell units (cols/rows).
+   * This method converts them to pixel coordinates for DOM positioning.
    */
   render(): void {
     if (!this.container) {
@@ -262,7 +245,12 @@ export class DOMRenderBuffer implements RenderBuffer {
     }
 
     const container = this.container
-    const lineHeight = this.config.fontSize * this.config.lineHeight
+    const cw = this.charWidth
+    const ch = this.cellHeight
+
+    // Container dimensions in pixels (convert cell units back to pixels)
+    const containerWidthPx = this.width * cw
+    const containerHeightPx = this.height * ch
 
     // Clear previous content
     container.innerHTML = ""
@@ -277,26 +265,26 @@ export class DOMRenderBuffer implements RenderBuffer {
 			color: ${this.config.foregroundColor};
 			white-space: pre;
 			overflow: hidden;
-			width: ${this.width}px;
-			height: ${this.height}px;
+			width: ${containerWidthPx}px;
+			height: ${containerHeightPx}px;
 		`
 
-    // Render background rectangles
+    // Render background rectangles (convert cell coords to pixels)
     for (const bg of this.backgrounds.values()) {
       const bgDiv = document.createElement("div")
       bgDiv.className = `${this.config.classPrefix}-bg`
       bgDiv.style.cssText = `
 				position: absolute;
-				left: ${bg.x}px;
-				top: ${bg.y}px;
-				width: ${bg.w}px;
-				height: ${bg.h}px;
+				left: ${bg.x * cw}px;
+				top: ${bg.y * ch}px;
+				width: ${bg.w * cw}px;
+				height: ${bg.h * ch}px;
 				background-color: ${bg.color};
 			`
       container.appendChild(bgDiv)
     }
 
-    // Render text lines
+    // Render text lines (convert cell coords to pixels)
     const sortedLines = Array.from(this.lines.entries()).sort((a, b) => a[0] - b[0])
 
     for (const [y, runs] of sortedLines) {
@@ -305,8 +293,8 @@ export class DOMRenderBuffer implements RenderBuffer {
       lineDiv.style.cssText = `
 				position: absolute;
 				left: 0;
-				top: ${y}px;
-				height: ${lineHeight}px;
+				top: ${y * ch}px;
+				height: ${ch}px;
 				white-space: pre;
 			`
 
@@ -318,8 +306,8 @@ export class DOMRenderBuffer implements RenderBuffer {
         span.className = `${this.config.classPrefix}-text`
         span.textContent = run.text
 
-        // Apply styles
-        const styles: string[] = [`position: absolute`, `left: ${run.x}px`]
+        // Apply styles (convert cell x to pixel x)
+        const styles: string[] = [`position: absolute`, `left: ${run.x * cw}px`]
 
         if (run.style.fg) {
           styles.push(`color: ${resolveColor(run.style.fg, this.config.foregroundColor)}`)

@@ -26,6 +26,18 @@ function Counter() {
 await run(<Counter />);
 ```
 
+Run it and you'll see:
+
+```
+Count: 0 (j/k to change, q to quit)
+```
+
+Press `j` a few times:
+
+```
+Count: 3 (j/k to change, q to quit)
+```
+
 That's a complete, working TUI app. `run()` handles terminal setup, keyboard input, rendering, and cleanup. You write React components.
 
 ## Building with run()
@@ -252,9 +264,11 @@ inkx/runtime is compatible with existing inkx components. Key differences:
 | `useApp().exit()`      | `return 'exit'` from handler or `useExit()` |
 | Props for callbacks    | Store actions (createApp)                   |
 
-## Next Steps
+## What's Next
 
-1. Try the examples: `bun examples/run-counter.tsx`
-2. For deeper understanding of inkx's runtime architecture, see [runtime-layers.md](runtime-layers.md)
-3. Read the source: `src/runtime/` has all implementations
-4. Build something: Start with `run()`, upgrade to `createApp()` if needed
+When your app outgrows `useState` and `useInput`, the two companion guides show how to graduate without rewriting:
+
+- [State Management](state-management.md) — shared store, ops as data, effects as data, composable state machines
+- [Event Handling](event-handling.md) — component handlers, commands, composable plugins, custom event sources
+
+You can also explore the [Components](../reference/components.md) and [Hooks](../reference/hooks.md) references, or dive into [Architecture](../deep-dives/architecture.md) for the five-phase pipeline internals.

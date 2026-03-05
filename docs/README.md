@@ -1,8 +1,25 @@
 # inkx Documentation
 
-> Start simple, sip some TEA, or go full TEA.
+> Start simple, sip some TEA (The Elm Architecture), or go full TEA.
 
 inkx is a React-based TUI framework with a graduated architecture. Your first app is five lines. When you need shared state, undo, testable I/O, or composable plugins — each level builds on the last. You never rewrite; you grow.
+
+```tsx
+import { run, useInput } from "inkx/runtime"
+import { Text } from "inkx"
+
+function Counter() {
+  const [count, setCount] = useState(0)
+  useInput((input) => {
+    if (input === "j") setCount((c) => c + 1)
+    if (input === "k") setCount((c) => c - 1)
+    if (input === "q") return "exit"
+  })
+  return <Text>Count: {count} (j/k to change, q to quit)</Text>
+}
+
+await run(<Counter />)
+```
 
 ## Where to Start
 
@@ -17,9 +34,11 @@ inkx is a React-based TUI framework with a graduated architecture. Your first ap
 ## Suggested Reading Order
 
 1. [Getting Started](guides/getting-started.md) -- first app, input handling, layout feedback
-2. [Components](reference/components.md) -- Box, Text, VirtualList, Console, inputs
-3. [Hooks](reference/hooks.md) -- useContentRect, useInput, useApp, animations
-4. [Architecture](deep-dives/architecture.md) -- five-phase pipeline, RenderAdapter
+2. [State Management](guides/state-management.md) -- graduated state: useState → shared store → ops as data → TEA
+3. [Event Handling](guides/event-handling.md) -- graduated input: callbacks → component handlers → commands → plugins
+4. [Components](reference/components.md) -- Box, Text, VirtualList, Console, inputs
+5. [Hooks](reference/hooks.md) -- useContentRect, useInput, useApp, animations
+6. [Architecture](deep-dives/architecture.md) -- five-phase pipeline, RenderAdapter
 
 ## Guides
 
@@ -29,7 +48,7 @@ Tutorials, walkthroughs, and migration paths.
 | --------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | [Getting Started](guides/getting-started.md)              | First app tutorial, basic input, layout feedback                                  |
 | [State Management](guides/state-management.md)            | General patterns + inkx tooling: store, signals, createSlice, ops/effects as data |
-| [Event Handling](guides/event-handling.md)                 | Composable event plugins, commands, sources, and the input pipeline               |
+| [Event Handling](guides/event-handling.md)                | Composable event plugins, commands, sources, and the input pipeline               |
 | [Runtime Layers](guides/runtime-layers.md)                | createApp, createRuntime, createStore, streams, tick sources                      |
 | [Migration from Ink](guides/migration.md)                 | Drop-in migration guide                                                           |
 | [Migration from legacy inkx](guides/runtime-migration.md) | Migrating to inkx/runtime API                                                     |
