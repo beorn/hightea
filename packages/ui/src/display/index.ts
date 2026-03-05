@@ -1,0 +1,13 @@
+/**
+ * Display components for inkx/Ink TUI apps
+ *
+ * These are read-only display components (no input handling).
+ *
+ * @example
+ * ```tsx
+ * import { Table } from "@beorn/inkx-ui/display";
+ * ```
+ */
+
+export { Table } from "./Table.js"
+export type { TableColumn, TableProps } from "../types.js"

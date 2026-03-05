@@ -17,15 +17,15 @@
     "terminal",
     "tui"
   ],
-  "homepage": "https://github.com/beorn/inkx#readme",
+  "homepage": "https://hightea.dev",
   "bugs": {
-    "url": "https://github.com/beorn/inkx/issues"
+    "url": "https://github.com/beorn/hightea/issues"
   },
   "license": "MIT",
   "author": "beorn",
   "repository": {
     "type": "git",
-    "url": "https://github.com/beorn/inkx.git"
+    "url": "https://github.com/beorn/hightea.git"
   },
   "type": "module",
   "sideEffects": false,
@@ -141,16 +141,16 @@
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
   },
   "dependencies": {
-    "decant": "github:beorn/logger",
-    "@hightea/ansi": "github:beorn/chalkx",
+    "decant": "github:beorn/decant",
+    "@hightea/ansi": "workspace:*",
     "react-reconciler": "^0.33.0",
     "slice-ansi": "^7.1.2",
     "string-width": "^8.0.0",
-    "swatch": "github:beorn/themex",
+    "swatch": "github:beorn/swatch",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "flexture": "github:beorn/flexx",
+    "flexture": "github:beorn/flexture",
     "@termless/core": "github:beorn/termless",
     "@types/bun": "^1.1.0",
     "@types/react": "^19.0.0",
@@ -168,7 +168,7 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "peerDependencies": {
-    "flexture": "github:beorn/flexx",
+    "flexture": "github:beorn/flexture",
     "react": "^18.0.0 || ^19.0.0",
     "react-devtools-core": ">=4.0.0",
     "yoga-wasm-web": "^0.3.3"
