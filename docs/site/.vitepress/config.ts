@@ -11,16 +11,16 @@ export default defineConfig({
     ],
   },
 
-  title: "inkx",
+  title: "Hightea",
   description:
-    "React for modern terminals — layout feedback, every terminal protocol, 200x+ faster incremental renders",
-  base: "/inkx/",
+    "React for modern terminals — layout feedback, every terminal protocol, 100x+ faster incremental renders",
+  base: "/",
 
-  head: [["link", { rel: "icon", type: "image/svg+xml", href: "/inkx/logo.svg" }]],
+  head: [["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }]],
 
   themeConfig: {
     logo: "/logo.svg",
-    siteTitle: "inkx",
+    siteTitle: "Hightea",
 
     nav: [
       { text: "Guide", link: "/guide/getting-started" },
@@ -38,7 +38,7 @@ export default defineConfig({
         text: "Links",
         items: [
           { text: "GitHub", link: "https://github.com/beorn/hightea" },
-          { text: "npm", link: "https://www.npmjs.com/package/inkx" },
+          { text: "npm", link: "https://www.npmjs.com/package/@hightea/term" },
         ],
       },
     ],
@@ -50,7 +50,7 @@ export default defineConfig({
           items: [
             { text: "Getting Started", link: "/guide/getting-started" },
             { text: "Installation", link: "/guide/installation" },
-            { text: "Why inkx?", link: "/guide/why-inkx" },
+            { text: "Why Hightea?", link: "/guide/why-inkx" },
           ],
         },
         {
