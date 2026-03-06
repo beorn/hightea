@@ -1,6 +1,6 @@
 # Runtime Layers Reference
 
-hightea's runtime is organized in layers, each building on the one below — the infrastructure that makes the graduated path possible. For a quick tutorial, see [Getting Started](getting-started.md). For the graduated paths through state and events, see [State Management](state-management.md) and [Event Handling](event-handling.md).
+hightea's runtime is organized in layers, each building on the one below — the infrastructure that makes the graduated path possible. For a quick tutorial, see [Getting Started](getting-started.md). For the graduated progression through state and events, see [Building an App](building-an-app.md).
 
 ## Architecture
 

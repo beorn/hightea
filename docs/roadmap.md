@@ -413,16 +413,16 @@ Paint/Composite
 
 ## Plugin Composition Architecture
 
-Status tracking for the plugin system described in [Event Handling Level 4](guides/event-handling.md#level-4-app-plugins).
+Status tracking for the plugin system described in [Building an App — Level 4](guides/building-an-app.md#level-4-pure-functions).
 
 | Feature                                                | Guide Reference                                            | Status      |
 | ------------------------------------------------------ | ---------------------------------------------------------- | ----------- |
-| Individual plugins (withDomEvents, withCommands, etc.) | Event Handling L2-3                                        | Implemented |
-| createApp() + centralized key handler                  | State Management L2                                        | Implemented |
-| Unified pipe() composition                             | Event Handling L4                                          | Planned     |
-| Typed dispatch proxy                                   | Event Handling L4                                          | Planned     |
-| app.subscribe() with selector reactions                | Event Handling L4                                          | Planned     |
-| Plugin-scoped cleanup via DisposableStack              | Event Handling L4                                          | Planned     |
+| Individual plugins (withDomEvents, withCommands, etc.) | Building an App L2-3                                       | Implemented |
+| createApp() + centralized key handler                  | Building an App L2                                         | Implemented |
+| Unified pipe() composition                             | Building an App L4                                         | Planned     |
+| Typed dispatch proxy                                   | Building an App L4                                         | Planned     |
+| app.subscribe() with selector reactions                | Building an App L4                                         | Planned     |
+| Plugin-scoped cleanup via DisposableStack              | Building an App L4                                         | Planned     |
 | Effect combinators (debounce, throttle, delay)         | [Architecture Enables](deep-dives/architecture-enables.md) | Planned     |
 
 ## See Also

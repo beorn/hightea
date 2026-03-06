@@ -2,7 +2,7 @@
 
 Because all state lives in the model, all changes flow through `update`, and all effects are data, a set of powerful capabilities fall out naturally.
 
-This document extracts the advanced architectural capabilities from the [Event Handling](../guides/event-handling.md) guide. For the core plugin model and graduated levels, see that guide.
+This document extracts the advanced architectural capabilities from the plugin architecture. For the graduated progression, see [Building an App](../guides/building-an-app.md). For the plugin API reference, see [Event Handling](../guides/event-handling.md).
 
 ## Effect Combinators
 
@@ -176,6 +176,7 @@ This is the payoff of the full architecture: every moment is a snapshot, every t
 
 ## See Also
 
-- [Event Handling](../guides/event-handling.md) — the core plugin model and graduated levels
-- [State Management](../guides/state-management.md) — ops as data, effects as data
+- [Building an App](../guides/building-an-app.md) — graduated progression from Counter to full TEA
+- [Event Handling](../guides/event-handling.md) — plugin API reference
+- [State Management](../guides/state-management.md) — ops and effects API reference
 - [Runtime Layers](../guides/runtime-layers.md) — createStore, plugin composition API

@@ -86,5 +86,6 @@ return {
 
 ## See Also
 
-- [State Management](../guides/state-management.md) — the guide that introduces signals at Level 2
+- [Building an App](../guides/building-an-app.md) — the guide that introduces shared stores at Level 2
+- [State Management](../guides/state-management.md) — createApp, createSlice API reference
 - [Hooks Reference](hooks.md) — useApp, useContentRect
