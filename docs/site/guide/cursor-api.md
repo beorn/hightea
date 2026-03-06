@@ -15,10 +15,10 @@ The `useCursor()` hook manages the terminal cursor using position-based coordina
 
 ```tsx
 useCursor({
-  col: cursorCol,    // Column offset within component
-  row: cursorRow,    // Row offset within component
+  col: cursorCol, // Column offset within component
+  row: cursorRow, // Row offset within component
   visible: isFocused, // Show/hide cursor
-  shape: "bar",      // Optional: "block" | "underline" | "bar" | "default"
+  shape: "bar", // Optional: "block" | "underline" | "bar" | "default"
 })
 ```
 
@@ -311,7 +311,7 @@ useCursor({
   col: cursorCol,
   row: cursorRow,
   visible: true,
-  shape: "bar",  // "block" | "underline" | "bar" | "default"
+  shape: "bar", // "block" | "underline" | "bar" | "default"
 })
 ```
 

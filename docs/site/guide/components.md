@@ -160,7 +160,6 @@ Single-line text input with full readline shortcuts (Ctrl+A/E, Ctrl+K/U, Alt+B/F
 
 ```tsx
 import { TextInput } from "@hightea/term"
-
 ;<TextInput value={text} onChange={setText} onSubmit={handleSubmit} placeholder="Type here..." prompt="> " />
 ```
 
@@ -171,7 +170,7 @@ Multi-line text editing with cursor navigation, line wrapping, and text selectio
 ```tsx
 import { TextArea } from "@hightea/term"
 
-<TextArea
+;<TextArea
   value={text}
   onChange={setText}
   height={5}
@@ -182,21 +181,21 @@ import { TextArea } from "@hightea/term"
 />
 ```
 
-| Prop           | Type                                          | Default          | Description                                     |
-| -------------- | --------------------------------------------- | ---------------- | ----------------------------------------------- |
-| `value`        | `string`                                      | -                | Current value (controlled)                      |
-| `defaultValue` | `string`                                      | -                | Initial value (uncontrolled)                    |
-| `onChange`     | `(value: string) => void`                     | -                | Called when value changes                       |
-| `onSubmit`     | `(value: string) => void`                     | -                | Called on submit key press                      |
-| `submitKey`    | `"ctrl+enter" \| "enter" \| "meta+enter"`     | `"ctrl+enter"`   | Key combo to trigger submit                     |
-| `height`       | `number`                                      | **required**     | Visible height in rows                          |
-| `placeholder`  | `string`                                      | -                | Placeholder text when empty                     |
-| `isActive`     | `boolean`                                     | -                | Override focus system                           |
-| `cursorStyle`  | `"block" \| "underline"`                      | `"block"`        | Unfocused cursor style                          |
-| `scrollMargin` | `number`                                      | `1`              | Context lines above/below cursor when scrolling |
-| `disabled`     | `boolean`                                     | `false`          | Ignore input and dim text                       |
-| `maxLength`    | `number`                                      | -                | Maximum character count                         |
-| `testID`       | `string`                                      | -                | Test ID for focus system                        |
+| Prop           | Type                                      | Default        | Description                                     |
+| -------------- | ----------------------------------------- | -------------- | ----------------------------------------------- |
+| `value`        | `string`                                  | -              | Current value (controlled)                      |
+| `defaultValue` | `string`                                  | -              | Initial value (uncontrolled)                    |
+| `onChange`     | `(value: string) => void`                 | -              | Called when value changes                       |
+| `onSubmit`     | `(value: string) => void`                 | -              | Called on submit key press                      |
+| `submitKey`    | `"ctrl+enter" \| "enter" \| "meta+enter"` | `"ctrl+enter"` | Key combo to trigger submit                     |
+| `height`       | `number`                                  | **required**   | Visible height in rows                          |
+| `placeholder`  | `string`                                  | -              | Placeholder text when empty                     |
+| `isActive`     | `boolean`                                 | -              | Override focus system                           |
+| `cursorStyle`  | `"block" \| "underline"`                  | `"block"`      | Unfocused cursor style                          |
+| `scrollMargin` | `number`                                  | `1`            | Context lines above/below cursor when scrolling |
+| `disabled`     | `boolean`                                 | `false`        | Ignore input and dim text                       |
+| `maxLength`    | `number`                                  | -              | Maximum character count                         |
+| `testID`       | `string`                                  | -              | Test ID for focus system                        |
 
 Features: Shift+Arrow selection, Ctrl+A select all, Ctrl+Home/End document navigation, word-wise movement (Ctrl+Arrow), readline shortcuts (Ctrl+K/U/Y), column memory for vertical movement.
 
@@ -206,7 +205,6 @@ Single-select list with keyboard navigation (arrow keys, j/k, Home/End), disable
 
 ```tsx
 import { SelectList } from "@hightea/term"
-
 ;<SelectList
   items={[
     { label: "React", value: "react" },

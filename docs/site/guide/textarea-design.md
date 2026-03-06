@@ -9,7 +9,7 @@ TextArea provides multi-line text editing in terminal applications. It combines:
 - Multi-line text input with cursor navigation
 - Line wrapping behavior
 - Vertical scrolling when content exceeds visible area
-- Optional text selection
+- Text selection (always enabled)
 
 ```tsx
 import { TextArea } from "@hightea/term"
@@ -111,7 +111,7 @@ Note: `submitKey="enter"` means Enter submits, Shift+Enter inserts newline. This
 ```tsx
 const [code, setCode] = useState("")
 
-;<TextArea value={code} onChange={setCode} height={10} selection={true} submitKey="ctrl+enter" />
+;<TextArea value={code} onChange={setCode} height={10} submitKey="ctrl+enter" />
 ```
 
 ## Visual Design
@@ -211,17 +211,12 @@ Cursor at column 7 is before "界" (not between bytes of "世")
 
 ### Cursor vs Selection
 
-When `selection={false}` (default):
-
-- Only cursor position tracked
-- Arrow keys move cursor
-- No way to select text
-
-When `selection={true}`:
+TextArea always supports text selection:
 
 - Track both anchor and cursor
 - Shift+arrows extend selection
 - Selection is `{ anchor: CursorPosition, cursor: CursorPosition }`
+- When no selection is active, `selectionAnchor` is `null`
 
 ### Cursor Movement
 
@@ -238,7 +233,7 @@ When `selection={true}`:
 | Ctrl+Left  | Move to previous word boundary    |
 | Ctrl+Right | Move to next word boundary        |
 
-With `selection={true}`, add Shift to extend selection.
+Add Shift to any navigation key to extend selection.
 
 ### Column Memory
 
@@ -457,7 +452,7 @@ function deleteForward(value: string, cursor: CursorPosition): { value: string; 
 
 ## Selection Operations
 
-When `selection={true}`:
+Selection is always available:
 
 ### Extend Selection
 
@@ -522,7 +517,7 @@ function selectAll(value: string): Selection {
 | Page Up    | Scroll up one screen   |
 | Page Down  | Scroll down one screen |
 
-### Selection (when enabled)
+### Selection
 
 | Key            | Action               |
 | -------------- | -------------------- |
@@ -536,11 +531,11 @@ function selectAll(value: string): Selection {
 
 The `submitKey` prop controls Enter behavior:
 
-| submitKey      | Enter   | Shift+Enter | Ctrl+Enter   |
-| -------------- | ------- | ----------- | ------------ |
-| `"enter"`      | Submit  | Newline     | Newline      |
-| `"ctrl+enter"` | Newline | Newline     | Submit       |
-| `"meta+enter"` | Newline | Newline     | Newline      |
+| submitKey      | Enter   | Shift+Enter | Ctrl+Enter |
+| -------------- | ------- | ----------- | ---------- |
+| `"enter"`      | Submit  | Newline     | Newline    |
+| `"ctrl+enter"` | Newline | Newline     | Submit     |
+| `"meta+enter"` | Newline | Newline     | Newline    |
 
 Note: `meta+enter` requires the [Kitty keyboard protocol](/guide/kitty-protocol) since legacy ANSI cannot encode Meta+Enter. The terminal sends `CSI 13;3u` which hightea parses into `key.return + key.meta`.
 
@@ -616,7 +611,6 @@ TextArea can be built with a custom hook for flexibility:
 interface UseTextAreaOptions {
   value: string
   onChange: (value: string) => void
-  selection?: boolean
   onSubmit?: (value: string) => void
   submitKey?: "ctrl+enter" | "meta+enter" | "enter"
 }
@@ -793,6 +787,7 @@ All core phases are implemented and shipped:
 - **Phase 3** (shipped): Text selection — Shift+Arrow, Shift+Home/End, Ctrl+A (select all), delete/replace selection on type
 
 Remaining planned features:
+
 - Clipboard (OSC 52)
 - Undo/redo
 - IME improvements

@@ -58,6 +58,7 @@ test("scroll offset marks container dirty", async () => {
 - `runtime/` — Runtime layer tests (run, createApp, createStore)
 - `streams/` — AsyncIterable stream helper tests
 - `terminal-compat/` — Terminal emulator compatibility tests
+- `web/` — Playwright browser tests for xterm.js showcase demos (run via `bun run test:showcase`)
 
 ## Ad-Hoc Testing
 

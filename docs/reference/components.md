@@ -328,19 +328,25 @@ const [value, setValue] = useState("")
 />
 ```
 
-| Prop           | Type                      | Description                          |
-| -------------- | ------------------------- | ------------------------------------ |
-| `value`        | `string`                  | Current value (controlled)           |
-| `defaultValue` | `string`                  | Initial value (uncontrolled)         |
-| `onChange`     | `(value: string) => void` | Called when value changes            |
-| `onSubmit`     | `(value: string) => void` | Called on submit                     |
-| `submitKey`    | `"ctrl+enter" \| "enter"` | Submit key (default: `"ctrl+enter"`) |
-| `placeholder`  | `string`                  | Placeholder text when empty          |
-| `isActive`     | `boolean`                 | Whether input is focused             |
-| `height`       | `number`                  | Visible height in rows (required)    |
-| `cursorStyle`  | `"block" \| "underline"`  | Cursor style (default: `"block"`)    |
+| Prop           | Type                                      | Default        | Description                                       |
+| -------------- | ----------------------------------------- | -------------- | ------------------------------------------------- |
+| `value`        | `string`                                  | -              | Current value (controlled)                        |
+| `defaultValue` | `string`                                  | `""`           | Initial value (uncontrolled)                      |
+| `onChange`     | `(value: string) => void`                 | -              | Called when value changes                         |
+| `onSubmit`     | `(value: string) => void`                 | -              | Called on submit                                  |
+| `submitKey`    | `"ctrl+enter" \| "enter" \| "meta+enter"` | `"ctrl+enter"` | Key combo to trigger submit                       |
+| `placeholder`  | `string`                                  | `""`           | Placeholder text when empty                       |
+| `isActive`     | `boolean`                                 | -              | Whether input is focused (overrides focus system) |
+| `height`       | `number`                                  | -              | Visible height in rows (required)                 |
+| `cursorStyle`  | `"block" \| "underline"`                  | `"block"`      | Cursor style when unfocused                       |
+| `scrollMargin` | `number`                                  | `1`            | Context lines above/below cursor when scrolling   |
+| `disabled`     | `boolean`                                 | `false`        | When true, ignore all input and dim text          |
+| `maxLength`    | `number`                                  | -              | Maximum number of characters allowed              |
+| `testID`       | `string`                                  | -              | Test ID for focus system identification           |
 
-Keyboard shortcuts: Arrow keys, Home/End, Ctrl+A/E (line start/end), Ctrl+K/U (kill line), PageUp/PageDown, Backspace/Delete.
+Text selection is always enabled — use Shift+Arrow, Ctrl+Shift+Arrow (word-wise), Shift+Home/End, and Ctrl+A (select all). Typing or deleting with an active selection replaces the selected text.
+
+Keyboard shortcuts: Arrow keys, Home/End, Ctrl+Home/End (document start/end), Ctrl+A/E (line start/end), Alt+B/F (word movement), Ctrl+K/U (kill line), Ctrl+Y (yank), PageUp/PageDown, Backspace/Delete.
 
 ## Link
 

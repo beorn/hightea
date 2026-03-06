@@ -219,7 +219,7 @@ Higher-level pre-styled components using `$token` semantic colors. Import from `
 
 ### Input Cursor Convention
 
-TextInput and TextArea use the real terminal cursor when focused, and a fake cursor (inverse/underline text) when unfocused. This matches standard TUI conventions (vim, emacs, htop). The `useCursor()` hook positions the hardware cursor; `cursorStyle` prop controls the unfocused fake cursor appearance (`"block"` or `"underline"`).
+TextInput and TextArea use the real terminal cursor when focused, and a fake cursor (inverse/underline text) when unfocused. This matches standard TUI conventions (vim, emacs, htop). The `useCursor()` hook positions the hardware cursor and accepts an optional `shape` parameter (`"block" | "underline" | "bar"`) for DECSCUSR cursor style control; `cursorStyle` prop controls the unfocused fake cursor appearance (`"block"` or `"underline"`). TextArea has built-in text selection (Shift+Arrow, Ctrl+A, etc.) — no opt-in prop needed.
 
 ### Box Outline Props
 
@@ -757,6 +757,9 @@ import { parseHotkey, matchHotkey } from "@hightea/term"
 
 // Inspector
 import { enableInspector, disableInspector, inspectTree, inspectFrame, autoEnableInspector } from "@hightea/term"
+
+// Cursor styles (DECSCUSR)
+import { setCursorStyle, resetCursorStyle, type CursorShape } from "@hightea/term"
 
 // Terminal capabilities detection
 import { detectTerminalCaps, defaultCaps, type TerminalCaps } from "@hightea/term"

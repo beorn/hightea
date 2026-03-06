@@ -225,8 +225,8 @@ When the protocol is active, the `Key` object includes additional fields:
 import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard, KittyFlags } from "@hightea/term"
 
 enableKittyKeyboard(KittyFlags.DISAMBIGUATE) // CSI > flags u
-disableKittyKeyboard()                        // CSI < u (pop stack)
-queryKittyKeyboard()                          // CSI ? u (detect support)
+disableKittyKeyboard() // CSI < u (pop stack)
+queryKittyKeyboard() // CSI ? u (detect support)
 ```
 
 ### Detection
@@ -410,8 +410,8 @@ test("Super+j triggers action", async () => {
 })
 
 // Generate raw sequences for direct stdin writing
-keyToKittyAnsi("Super+j")      // '\x1b[106;9u'
-keyToKittyAnsi("Meta+Enter")   // '\x1b[13;3u'
+keyToKittyAnsi("Super+j") // '\x1b[106;9u'
+keyToKittyAnsi("Meta+Enter") // '\x1b[13;3u'
 ```
 
 ## References

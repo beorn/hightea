@@ -16,11 +16,11 @@ function render(element: ReactElement, term?: Term | TermDef, options?: RenderOp
 
 ### Parameters
 
-| Parameter | Type                 | Description                            |
-| --------- | -------------------- | -------------------------------------- |
-| `element` | `ReactElement`       | React element to render                |
-| `term`    | `Term \| TermDef`    | Terminal instance from `createTerm()`  |
-| `options` | `RenderOptions`      | Optional render configuration          |
+| Parameter | Type              | Description                           |
+| --------- | ----------------- | ------------------------------------- |
+| `element` | `ReactElement`    | React element to render               |
+| `term`    | `Term \| TermDef` | Terminal instance from `createTerm()` |
+| `options` | `RenderOptions`   | Optional render configuration         |
 
 ### Options
 
