@@ -60,8 +60,8 @@ Box supports tree-based focus management via the following props:
 
 Box and Text support DOM-compatible mouse events:
 
-| Prop            | Event Type       | Bubbles |
-| --------------- | ---------------- | ------- |
+| Prop            | Event Type          | Bubbles |
+| --------------- | ------------------- | ------- |
 | `onClick`       | `HighteaMouseEvent` | Yes     |
 | `onDoubleClick` | `HighteaMouseEvent` | Yes     |
 | `onMouseDown`   | `HighteaMouseEvent` | Yes     |
@@ -73,8 +73,8 @@ Box and Text support DOM-compatible mouse events:
 
 ### Focus Event Props
 
-| Prop               | Event Type       | Description                        |
-| ------------------ | ---------------- | ---------------------------------- |
+| Prop               | Event Type          | Description                        |
+| ------------------ | ------------------- | ---------------------------------- |
 | `onFocus`          | `HighteaFocusEvent` | Called when this node gains focus  |
 | `onBlur`           | `HighteaFocusEvent` | Called when this node loses focus  |
 | `onKeyDown`        | `HighteaKeyEvent`   | Called on key down (bubble phase)  |
@@ -360,14 +360,14 @@ import { Link } from "@hightea/term"
 <Link href="km://node/abc123" onClick={(e) => navigate(e)}>Internal Link</Link>
 ```
 
-| Prop        | Type                              | Description                                       |
-| ----------- | --------------------------------- | ------------------------------------------------- |
-| `href`      | `string`                          | URL (http/https, or custom scheme)                |
-| `children`  | `ReactNode`                       | Link text content                                 |
-| `color`     | `string`                          | Text color (default: `"blue"`)                    |
-| `underline` | `boolean`                         | Underline the link (default: `true`)              |
+| Prop        | Type                                 | Description                                       |
+| ----------- | ------------------------------------ | ------------------------------------------------- |
+| `href`      | `string`                             | URL (http/https, or custom scheme)                |
+| `children`  | `ReactNode`                          | Link text content                                 |
+| `color`     | `string`                             | Text color (default: `"blue"`)                    |
+| `underline` | `boolean`                            | Underline the link (default: `true`)              |
 | `onClick`   | `(event: HighteaMouseEvent) => void` | Click handler (preventDefault to skip navigation) |
-| `testID`    | `string`                          | Test ID for locator queries                       |
+| `testID`    | `string`                             | Test ID for locator queries                       |
 
 ## Transform
 

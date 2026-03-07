@@ -48,7 +48,8 @@ export async function connectDevTools(): Promise<boolean> {
       } catch {
         // ws not available -- devtools won't be able to connect
         console.warn(
-          "hightea devtools: WebSocket polyfill (ws) not available. " + "Install ws for DevTools support: bun add -d ws",
+          "hightea devtools: WebSocket polyfill (ws) not available. " +
+            "Install ws for DevTools support: bun add -d ws",
         )
         return false
       }

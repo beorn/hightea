@@ -1,5 +1,5 @@
 {
-  "name": "inkx-ink-comparison",
+  "name": "hightea-ink-comparison",
   "private": true,
   "description": "Head-to-head benchmark: hightea vs ink",
   "dependencies": {

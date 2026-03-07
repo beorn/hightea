@@ -136,7 +136,10 @@ export function withFocusManagement<Model extends HighteaModel, Msg extends High
  * Returns the model unchanged with no effects for any unhandled message.
  * Compose with plugins to add behavior.
  */
-export function highteaUpdate<Model extends HighteaModel, Msg extends HighteaMsg>(_msg: Msg, model: Model): [Model, Effect[]] {
+export function highteaUpdate<Model extends HighteaModel, Msg extends HighteaMsg>(
+  _msg: Msg,
+  model: Model,
+): [Model, Effect[]] {
   return [model, [none]]
 }
 

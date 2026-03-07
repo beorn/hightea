@@ -4,7 +4,7 @@ How does ansi compare to other terminal styling libraries?
 
 ## Feature Matrix
 
-| Feature                 | chalk | ansis | picocolors | colorette | kleur | ansi        |
+| Feature                 | chalk | ansis | picocolors | colorette | kleur | ansi          |
 | ----------------------- | ----- | ----- | ---------- | --------- | ----- | ------------- |
 | **Colors**              |
 | Basic colors (16)       | ✓     | ✓     | ✓          | ✓         | ✓     | ✓ (via chalk) |
@@ -56,7 +56,7 @@ ansis focuses on **performance** and API ergonomics but hasn't added extended un
 | kleur      | ~4 KB       | 0            |
 | ansis      | ~3 KB       | 0            |
 | chalk      | ~5 KB       | 0            |
-| ansi     | ~4 KB       | 1 (chalk)    |
+| ansi       | ~4 KB       | 1 (chalk)    |
 
 ansi adds minimal overhead (~4 KB) on top of chalk.
 

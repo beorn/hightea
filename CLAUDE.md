@@ -562,8 +562,8 @@ Components can receive mouse events via React DOM-compatible props:
 
 **Event handler props** (on `BoxProps` and `TextProps`):
 
-| Prop            | Event Type       | Bubbles |
-| --------------- | ---------------- | ------- |
+| Prop            | Event Type          | Bubbles |
+| --------------- | ------------------- | ------- |
 | `onClick`       | `HighteaMouseEvent` | Yes     |
 | `onDoubleClick` | `HighteaMouseEvent` | Yes     |
 | `onMouseDown`   | `HighteaMouseEvent` | Yes     |

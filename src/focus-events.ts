@@ -186,7 +186,9 @@ export function dispatchKeyEvent(event: HighteaKeyEvent, dispatch?: (msg: unknow
   for (let i = path.length - 1; i > 0; i--) {
     if (event.propagationStopped) return
     const node = path[i]!
-    const handler = (node.props as Record<string, unknown>).onKeyDownCapture as ((e: HighteaKeyEvent) => void) | undefined
+    const handler = (node.props as Record<string, unknown>).onKeyDownCapture as
+      | ((e: HighteaKeyEvent) => void)
+      | undefined
     if (handler) {
       mutableEvent.currentTarget = node
       handler(event)

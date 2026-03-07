@@ -1260,8 +1260,8 @@ expect(sidebar.boundingBox()?.width).toBe(20) // 20 chars wide
 | `last()`             | `AutoLocator`         | Last matching element                  |
 | `nth(index)`         | `AutoLocator`         | Element at index                       |
 | `filter(options)`    | `AutoLocator`         | Filter matches                         |
-| `resolve()`          | `HighteaNode \| null`    | Get first matching node                |
-| `resolveAll()`       | `HighteaNode[]`          | Get all matching nodes                 |
+| `resolve()`          | `HighteaNode \| null` | Get first matching node                |
+| `resolveAll()`       | `HighteaNode[]`       | Get all matching nodes                 |
 | `count()`            | `number`              | Count matches                          |
 | `textContent()`      | `string`              | Get text content                       |
 | `getAttribute(name)` | `string \| undefined` | Get attribute value                    |

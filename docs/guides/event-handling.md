@@ -36,8 +36,8 @@ const app = pipe(createApp(store), withReact(<Board />), withDomEvents())
 
 ### Available event handler props
 
-| Prop               | Event Type       | Bubbles             |
-| ------------------ | ---------------- | ------------------- |
+| Prop               | Event Type          | Bubbles             |
+| ------------------ | ------------------- | ------------------- |
 | `onClick`          | `HighteaMouseEvent` | Yes                 |
 | `onDoubleClick`    | `HighteaMouseEvent` | Yes                 |
 | `onMouseDown`      | `HighteaMouseEvent` | Yes                 |

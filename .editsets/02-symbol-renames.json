@@ -9,12 +9,7 @@
       "refId": "5ab1fbb6",
       "file": "src/mouse-events.ts",
       "line": 58,
-      "range": [
-        58,
-        41,
-        58,
-        55
-      ],
+      "range": [58, 41, 58, 55],
       "preview": "export interface InkxWheelEvent extends InkxMouseEvent { // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -33,12 +28,7 @@
       "refId": "6fa987c3",
       "file": "src/mouse-events.ts",
       "line": 70,
-      "range": [
-        70,
-        21,
-        70,
-        35
-      ],
+      "range": [70, 21, 70, 35],
       "preview": "onClick?: (event: InkxMouseEvent) => void // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -57,12 +47,7 @@
       "refId": "bee4907c",
       "file": "src/mouse-events.ts",
       "line": 71,
-      "range": [
-        71,
-        27,
-        71,
-        41
-      ],
+      "range": [71, 27, 71, 41],
       "preview": "onDoubleClick?: (event: InkxMouseEvent) => void // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -81,12 +66,7 @@
       "refId": "6c94e50e",
       "file": "src/mouse-events.ts",
       "line": 72,
-      "range": [
-        72,
-        25,
-        72,
-        39
-      ],
+      "range": [72, 25, 72, 39],
       "preview": "onMouseDown?: (event: InkxMouseEvent) => void // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -105,12 +85,7 @@
       "refId": "62e2e9c1",
       "file": "src/mouse-events.ts",
       "line": 73,
-      "range": [
-        73,
-        23,
-        73,
-        37
-      ],
+      "range": [73, 23, 73, 37],
       "preview": "onMouseUp?: (event: InkxMouseEvent) => void // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -129,12 +104,7 @@
       "refId": "5e30b1ca",
       "file": "src/mouse-events.ts",
       "line": 74,
-      "range": [
-        74,
-        25,
-        74,
-        39
-      ],
+      "range": [74, 25, 74, 39],
       "preview": "onMouseMove?: (event: InkxMouseEvent) => void // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -153,12 +123,7 @@
       "refId": "4bdd003a",
       "file": "src/mouse-events.ts",
       "line": 75,
-      "range": [
-        75,
-        26,
-        75,
-        40
-      ],
+      "range": [75, 26, 75, 40],
       "preview": "onMouseEnter?: (event: InkxMouseEvent) => void // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -177,12 +142,7 @@
       "refId": "85a7b379",
       "file": "src/mouse-events.ts",
       "line": 76,
-      "range": [
-        76,
-        26,
-        76,
-        40
-      ],
+      "range": [76, 26, 76, 40],
       "preview": "onMouseLeave?: (event: InkxMouseEvent) => void // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -201,12 +161,7 @@
       "refId": "915f4811",
       "file": "src/mouse-events.ts",
       "line": 88,
-      "range": [
-        88,
-        9,
-        88,
-        23
-      ],
+      "range": [88, 9, 88, 23],
       "preview": "type: InkxMouseEvent[\"type\"], // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -225,12 +180,7 @@
       "refId": "45c1084a",
       "file": "src/mouse-events.ts",
       "line": 93,
-      "range": [
-        93,
-        4,
-        93,
-        18
-      ],
+      "range": [93, 4, 93, 18],
       "preview": "): InkxMouseEvent { // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -249,12 +199,7 @@
       "refId": "48465723",
       "file": "src/mouse-events.ts",
       "line": 198,
-      "range": [
-        198,
-        43,
-        198,
-        57
-      ],
+      "range": [198, 43, 198, 57],
       "preview": "export function dispatchMouseEvent(event: InkxMouseEvent): void { // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -273,12 +218,7 @@
       "refId": "ee704eac",
       "file": "src/mouse-events.ts",
       "line": 208,
-      "range": [
-        208,
-        14,
-        208,
-        28
-      ],
+      "range": [208, 14, 208, 28],
       "preview": "| ((e: InkxMouseEvent) => void) // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -297,12 +237,7 @@
       "refId": "949617b0",
       "file": "src/mouse-events.ts",
       "line": 223,
-      "range": [
-        223,
-        82,
-        223,
-        96
-      ],
+      "range": [223, 82, 223, 96],
       "preview": "const handler = (node.props as Record<string, unknown>)[handlerProp] as ((e: InkxMouseEvent) => void) | undefined // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -321,12 +256,7 @@
       "refId": "f3f4aa2c",
       "file": "src/components/Link.tsx",
       "line": 17,
-      "range": [
-        17,
-        15,
-        17,
-        29
-      ],
+      "range": [17, 15, 17, 29],
       "preview": "import type { InkxMouseEvent } from \"../mouse-events.js\" // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "6ff8b940b7db",
       "selected": true,
@@ -345,12 +275,7 @@
       "refId": "ec8cefe2",
       "file": "src/components/Link.tsx",
       "line": 48,
-      "range": [
-        48,
-        21,
-        48,
-        35
-      ],
+      "range": [48, 21, 48, 35],
       "preview": "onClick?: (event: InkxMouseEvent) => void // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "6ff8b940b7db",
       "selected": true,
@@ -369,12 +294,7 @@
       "refId": "c8831724",
       "file": "src/index.ts",
       "line": 650,
-      "range": [
-        650,
-        8,
-        650,
-        22
-      ],
+      "range": [650, 8, 650, 22],
       "preview": "type InkxMouseEvent, // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "60de674e2c9e",
       "selected": true,
@@ -393,12 +313,7 @@
       "refId": "b3e1744b",
       "file": "src/input.ts",
       "line": 34,
-      "range": [
-        34,
-        8,
-        34,
-        22
-      ],
+      "range": [34, 8, 34, 22],
       "preview": "type InkxMouseEvent, // InkxMouseEvent → HighteaMouseEvent",
       "checksum": "add3fcd26bbe",
       "selected": true,
@@ -417,12 +332,7 @@
       "refId": "d42d13a4",
       "file": "src/testing/locator.ts",
       "line": 37,
-      "range": [
-        37,
-        37,
-        37,
-        48
-      ],
+      "range": [37, 37, 37, 48],
       "preview": "getByText(text: string | RegExp): InkxLocator // InkxLocator → HighteaLocator",
       "checksum": "65d4ad46d999",
       "selected": true,
@@ -441,12 +351,7 @@
       "refId": "19378fdd",
       "file": "src/testing/locator.ts",
       "line": 38,
-      "range": [
-        38,
-        28,
-        38,
-        39
-      ],
+      "range": [38, 28, 38, 39],
       "preview": "getByTestId(id: string): InkxLocator // InkxLocator → HighteaLocator",
       "checksum": "65d4ad46d999",
       "selected": true,
@@ -465,12 +370,7 @@
       "refId": "93bd8fad",
       "file": "src/testing/locator.ts",
       "line": 41,
-      "range": [
-        41,
-        30,
-        41,
-        41
-      ],
+      "range": [41, 30, 41, 41],
       "preview": "locator(selector: string): InkxLocator // InkxLocator → HighteaLocator",
       "checksum": "65d4ad46d999",
       "selected": true,
@@ -489,12 +389,7 @@
       "refId": "44c24832",
       "file": "src/testing/locator.ts",
       "line": 44,
-      "range": [
-        44,
-        12,
-        44,
-        23
-      ],
+      "range": [44, 12, 44, 23],
       "preview": "first(): InkxLocator // InkxLocator → HighteaLocator",
       "checksum": "65d4ad46d999",
       "selected": true,
@@ -513,12 +408,7 @@
       "refId": "2d0508cd",
       "file": "src/testing/locator.ts",
       "line": 45,
-      "range": [
-        45,
-        11,
-        45,
-        22
-      ],
+      "range": [45, 11, 45, 22],
       "preview": "last(): InkxLocator // InkxLocator → HighteaLocator",
       "checksum": "65d4ad46d999",
       "selected": true,
@@ -537,12 +427,7 @@
       "refId": "d5b0e10f",
       "file": "src/testing/locator.ts",
       "line": 46,
-      "range": [
-        46,
-        23,
-        46,
-        34
-      ],
+      "range": [46, 23, 46, 34],
       "preview": "nth(index: number): InkxLocator // InkxLocator → HighteaLocator",
       "checksum": "65d4ad46d999",
       "selected": true,
@@ -561,12 +446,7 @@
       "refId": "aeeeabb6",
       "file": "src/testing/locator.ts",
       "line": 66,
-      "range": [
-        66,
-        47,
-        66,
-        58
-      ],
+      "range": [66, 47, 66, 58],
       "preview": "export function createLocator(root: TeaNode): InkxLocator { // InkxLocator → HighteaLocator",
       "checksum": "65d4ad46d999",
       "selected": true,
@@ -585,12 +465,7 @@
       "refId": "61052371",
       "file": "src/testing/locator.ts",
       "line": 73,
-      "range": [
-        73,
-        30,
-        73,
-        41
-      ],
+      "range": [73, 30, 73, 41],
       "preview": "class LocatorImpl implements InkxLocator { // InkxLocator → HighteaLocator",
       "checksum": "65d4ad46d999",
       "selected": true,
@@ -609,12 +484,7 @@
       "refId": "8ee2a31d",
       "file": "src/testing/locator.ts",
       "line": 80,
-      "range": [
-        80,
-        37,
-        80,
-        48
-      ],
+      "range": [80, 37, 80, 48],
       "preview": "getByText(text: string | RegExp): InkxLocator { // InkxLocator → HighteaLocator",
       "checksum": "65d4ad46d999",
       "selected": true,
@@ -633,12 +503,7 @@
       "refId": "e040221b",
       "file": "src/testing/locator.ts",
       "line": 107,
-      "range": [
-        107,
-        28,
-        107,
-        39
-      ],
+      "range": [107, 28, 107, 39],
       "preview": "getByTestId(id: string): InkxLocator { // InkxLocator → HighteaLocator",
       "checksum": "65d4ad46d999",
       "selected": true,
@@ -657,12 +522,7 @@
       "refId": "df18f307",
       "file": "src/testing/locator.ts",
       "line": 114,
-      "range": [
-        114,
-        30,
-        114,
-        41
-      ],
+      "range": [114, 30, 114, 41],
       "preview": "locator(selector: string): InkxLocator { // InkxLocator → HighteaLocator",
       "checksum": "65d4ad46d999",
       "selected": true,
@@ -681,12 +541,7 @@
       "refId": "1b4874b1",
       "file": "src/testing/locator.ts",
       "line": 123,
-      "range": [
-        123,
-        12,
-        123,
-        23
-      ],
+      "range": [123, 12, 123, 23],
       "preview": "first(): InkxLocator { // InkxLocator → HighteaLocator",
       "checksum": "65d4ad46d999",
       "selected": true,
@@ -705,12 +560,7 @@
       "refId": "05939bc3",
       "file": "src/testing/locator.ts",
       "line": 127,
-      "range": [
-        127,
-        11,
-        127,
-        22
-      ],
+      "range": [127, 11, 127, 22],
       "preview": "last(): InkxLocator { // InkxLocator → HighteaLocator",
       "checksum": "65d4ad46d999",
       "selected": true,
@@ -729,12 +579,7 @@
       "refId": "cb1dacc8",
       "file": "src/testing/locator.ts",
       "line": 131,
-      "range": [
-        131,
-        23,
-        131,
-        34
-      ],
+      "range": [131, 23, 131, 34],
       "preview": "nth(index: number): InkxLocator { // InkxLocator → HighteaLocator",
       "checksum": "65d4ad46d999",
       "selected": true,
@@ -753,12 +598,7 @@
       "refId": "d7f8e3e6",
       "file": "src/testing/index.tsx",
       "line": 96,
-      "range": [
-        96,
-        30,
-        96,
-        41
-      ],
+      "range": [96, 30, 96, 41],
       "preview": "export { createLocator, type InkxLocator } from \"./locator.js\" // InkxLocator → HighteaLocator",
       "checksum": "3c697fdb57f6",
       "selected": true,
@@ -777,12 +617,7 @@
       "refId": "9e7696f2",
       "file": "src/focus-events.ts",
       "line": 94,
-      "range": [
-        94,
-        23,
-        94,
-        35
-      ],
+      "range": [94, 23, 94, 35],
       "preview": "onKeyDown?: (event: InkxKeyEvent, dispatch?: (msg: unknown) => void) => void // InkxKeyEvent → HighteaKeyEvent",
       "checksum": "4614ca31c4d4",
       "selected": true,
@@ -801,12 +636,7 @@
       "refId": "086c0ce5",
       "file": "src/focus-events.ts",
       "line": 96,
-      "range": [
-        96,
-        21,
-        96,
-        33
-      ],
+      "range": [96, 21, 96, 33],
       "preview": "onKeyUp?: (event: InkxKeyEvent, dispatch?: (msg: unknown) => void) => void // InkxKeyEvent → HighteaKeyEvent",
       "checksum": "4614ca31c4d4",
       "selected": true,
@@ -825,12 +655,7 @@
       "refId": "a7ddd481",
       "file": "src/focus-events.ts",
       "line": 98,
-      "range": [
-        98,
-        30,
-        98,
-        42
-      ],
+      "range": [98, 30, 98, 42],
       "preview": "onKeyDownCapture?: (event: InkxKeyEvent) => void // InkxKeyEvent → HighteaKeyEvent",
       "checksum": "4614ca31c4d4",
       "selected": true,
@@ -849,12 +674,7 @@
       "refId": "f639c096",
       "file": "src/focus-events.ts",
       "line": 108,
-      "range": [
-        108,
-        75,
-        108,
-        87
-      ],
+      "range": [108, 75, 108, 87],
       "preview": "export function createKeyEvent(input: string, key: Key, target: TeaNode): InkxKeyEvent { // InkxKeyEvent → HighteaKeyEvent",
       "checksum": "4614ca31c4d4",
       "selected": true,
@@ -873,12 +693,7 @@
       "refId": "123c3dc8",
       "file": "src/focus-events.ts",
       "line": 181,
-      "range": [
-        181,
-        41,
-        181,
-        53
-      ],
+      "range": [181, 41, 181, 53],
       "preview": "export function dispatchKeyEvent(event: InkxKeyEvent, dispatch?: (msg: unknown) => void): void { // InkxKeyEvent → HighteaKeyEvent",
       "checksum": "4614ca31c4d4",
       "selected": true,
@@ -897,12 +712,7 @@
       "refId": "42fb4a90",
       "file": "src/focus-events.ts",
       "line": 189,
-      "range": [
-        189,
-        86,
-        189,
-        98
-      ],
+      "range": [189, 86, 189, 98],
       "preview": "const handler = (node.props as Record<string, unknown>).onKeyDownCapture as ((e: InkxKeyEvent) => void) | undefined // InkxKeyEvent → HighteaKeyEvent",
       "checksum": "4614ca31c4d4",
       "selected": true,
@@ -921,12 +731,7 @@
       "refId": "5b45da9e",
       "file": "src/focus-events.ts",
       "line": 201,
-      "range": [
-        201,
-        14,
-        201,
-        26
-      ],
+      "range": [201, 14, 201, 26],
       "preview": "| ((e: InkxKeyEvent, d?: (msg: unknown) => void) => void) // InkxKeyEvent → HighteaKeyEvent",
       "checksum": "4614ca31c4d4",
       "selected": true,
@@ -945,12 +750,7 @@
       "refId": "dff8a94f",
       "file": "src/focus-events.ts",
       "line": 213,
-      "range": [
-        213,
-        14,
-        213,
-        26
-      ],
+      "range": [213, 14, 213, 26],
       "preview": "| ((e: InkxKeyEvent, d?: (msg: unknown) => void) => void) // InkxKeyEvent → HighteaKeyEvent",
       "checksum": "4614ca31c4d4",
       "selected": true,
@@ -969,12 +769,7 @@
       "refId": "72a9a84d",
       "file": "src/focus.ts",
       "line": 41,
-      "range": [
-        41,
-        15,
-        41,
-        27
-      ],
+      "range": [41, 15, 41, 27],
       "preview": "export type { InkxKeyEvent, InkxFocusEvent, FocusEventProps } from \"./focus-events.js\" // InkxKeyEvent → HighteaKeyEvent",
       "checksum": "368a9ce9ecec",
       "selected": true,
@@ -993,12 +788,7 @@
       "refId": "7faf4d6b",
       "file": "src/index.ts",
       "line": 313,
-      "range": [
-        313,
-        15,
-        313,
-        27
-      ],
+      "range": [313, 15, 313, 27],
       "preview": "export type { InkxKeyEvent, InkxFocusEvent, FocusEventProps } from \"./focus-events.js\" // InkxKeyEvent → HighteaKeyEvent",
       "checksum": "60de674e2c9e",
       "selected": true,
@@ -1017,12 +807,7 @@
       "refId": "6838aed9",
       "file": "src/core/index.ts",
       "line": 191,
-      "range": [
-        191,
-        15,
-        191,
-        27
-      ],
+      "range": [191, 15, 191, 27],
       "preview": "export type { InkxKeyEvent, InkxFocusEvent, FocusEventProps } from \"../focus-events.js\" // InkxKeyEvent → HighteaKeyEvent",
       "checksum": "aeb55daff3d7",
       "selected": true,
@@ -1041,12 +826,7 @@
       "refId": "1952738e",
       "file": "src/core/index.ts",
       "line": 89,
-      "range": [
-        89,
-        105,
-        89,
-        112
-      ],
+      "range": [89, 105, 89, 112],
       "preview": "export type Effect = { type: \"none\" } | { type: \"batch\"; effects: Effect[] } | { type: \"dispatch\"; msg: InkxMsg } // InkxMsg → HighteaMsg",
       "checksum": "aeb55daff3d7",
       "selected": true,
@@ -1065,12 +845,7 @@
       "refId": "72a237a6",
       "file": "src/core/index.ts",
       "line": 126,
-      "range": [
-        126,
-        31,
-        126,
-        38
-      ],
+      "range": [126, 31, 126, 38],
       "preview": "export function dispatch(msg: InkxMsg): Effect { // InkxMsg → HighteaMsg",
       "checksum": "aeb55daff3d7",
       "selected": true,
@@ -1089,12 +864,7 @@
       "refId": "1c38387c",
       "file": "src/store/index.ts",
       "line": 19,
-      "range": [
-        19,
-        34,
-        19,
-        41
-      ],
+      "range": [19, 34, 19, 41],
       "preview": "import type { Effect, InkxModel, InkxMsg, Plugin } from \"../core/index.js\" // InkxMsg → HighteaMsg",
       "checksum": "87fd7a7c590f",
       "selected": true,
@@ -1113,12 +883,7 @@
       "refId": "5c94224c",
       "file": "src/store/index.ts",
       "line": 29,
-      "range": [
-        29,
-        67,
-        29,
-        74
-      ],
+      "range": [29, 67, 29, 74],
       "preview": "export interface StoreConfig<Model extends InkxModel, Msg extends InkxMsg> { // InkxMsg → HighteaMsg",
       "checksum": "87fd7a7c590f",
       "selected": true,
@@ -1137,12 +902,7 @@
       "refId": "9b5a4cb0",
       "file": "src/store/index.ts",
       "line": 39,
-      "range": [
-        39,
-        64,
-        39,
-        71
-      ],
+      "range": [39, 64, 39, 71],
       "preview": "export interface StoreApi<Model extends InkxModel, Msg extends InkxMsg> { // InkxMsg → HighteaMsg",
       "checksum": "87fd7a7c590f",
       "selected": true,
@@ -1161,12 +921,7 @@
       "refId": "a9cc5702",
       "file": "src/store/index.ts",
       "line": 62,
-      "range": [
-        62,
-        74,
-        62,
-        81
-      ],
+      "range": [62, 74, 62, 81],
       "preview": "export function withFocusManagement<Model extends InkxModel, Msg extends InkxMsg>(): Plugin<Model, Msg> { // InkxMsg → HighteaMsg",
       "checksum": "87fd7a7c590f",
       "selected": true,
@@ -1185,12 +940,7 @@
       "refId": "80df8042",
       "file": "src/store/index.ts",
       "line": 66,
-      "range": [
-        66,
-        41,
-        66,
-        48
-      ],
+      "range": [66, 41, 66, 48],
       "preview": "const focusMsg = msg as Extract<InkxMsg, { type: \"focus\" }> // InkxMsg → HighteaMsg",
       "checksum": "87fd7a7c590f",
       "selected": true,
@@ -1209,12 +959,7 @@
       "refId": "1c252155",
       "file": "src/store/index.ts",
       "line": 101,
-      "range": [
-        101,
-        41,
-        101,
-        48
-      ],
+      "range": [101, 41, 101, 48],
       "preview": "const scopeMsg = msg as Extract<InkxMsg, { type: \"scope-enter\" }> // InkxMsg → HighteaMsg",
       "checksum": "87fd7a7c590f",
       "selected": true,
@@ -1233,12 +978,7 @@
       "refId": "e3145b88",
       "file": "src/store/index.ts",
       "line": 139,
-      "range": [
-        139,
-        65,
-        139,
-        72
-      ],
+      "range": [139, 65, 139, 72],
       "preview": "export function inkxUpdate<Model extends InkxModel, Msg extends InkxMsg>(_msg: Msg, model: Model): [Model, Effect[]] { // InkxMsg → HighteaMsg",
       "checksum": "87fd7a7c590f",
       "selected": true,
@@ -1257,12 +997,7 @@
       "refId": "4a9c8c8d",
       "file": "src/store/index.ts",
       "line": 194,
-      "range": [
-        194,
-        66,
-        194,
-        73
-      ],
+      "range": [194, 66, 194, 73],
       "preview": "export function createStore<Model extends InkxModel, Msg extends InkxMsg>( // InkxMsg → HighteaMsg",
       "checksum": "87fd7a7c590f",
       "selected": true,
@@ -1281,12 +1016,7 @@
       "refId": "b3f35a35",
       "file": "src/focus-events.ts",
       "line": 90,
-      "range": [
-        90,
-        21,
-        90,
-        35
-      ],
+      "range": [90, 21, 90, 35],
       "preview": "onFocus?: (event: InkxFocusEvent) => void // InkxFocusEvent → HighteaFocusEvent",
       "checksum": "4614ca31c4d4",
       "selected": true,
@@ -1305,12 +1035,7 @@
       "refId": "24cb21d7",
       "file": "src/focus-events.ts",
       "line": 92,
-      "range": [
-        92,
-        20,
-        92,
-        34
-      ],
+      "range": [92, 20, 92, 34],
       "preview": "onBlur?: (event: InkxFocusEvent) => void // InkxFocusEvent → HighteaFocusEvent",
       "checksum": "4614ca31c4d4",
       "selected": true,
@@ -1329,12 +1054,7 @@
       "refId": "d4eb0c9e",
       "file": "src/focus-events.ts",
       "line": 146,
-      "range": [
-        146,
-        4,
-        146,
-        18
-      ],
+      "range": [146, 4, 146, 18],
       "preview": "): InkxFocusEvent { // InkxFocusEvent → HighteaFocusEvent",
       "checksum": "4614ca31c4d4",
       "selected": true,
@@ -1353,12 +1073,7 @@
       "refId": "3ab03f64",
       "file": "src/focus-events.ts",
       "line": 227,
-      "range": [
-        227,
-        43,
-        227,
-        57
-      ],
+      "range": [227, 43, 227, 57],
       "preview": "export function dispatchFocusEvent(event: InkxFocusEvent): void { // InkxFocusEvent → HighteaFocusEvent",
       "checksum": "4614ca31c4d4",
       "selected": true,
@@ -1377,12 +1092,7 @@
       "refId": "3c816da8",
       "file": "src/focus-events.ts",
       "line": 235,
-      "range": [
-        235,
-        82,
-        235,
-        96
-      ],
+      "range": [235, 82, 235, 96],
       "preview": "const handler = (node.props as Record<string, unknown>)[handlerProp] as ((e: InkxFocusEvent) => void) | undefined // InkxFocusEvent → HighteaFocusEvent",
       "checksum": "4614ca31c4d4",
       "selected": true,
@@ -1401,12 +1111,7 @@
       "refId": "05c9eb18",
       "file": "src/focus.ts",
       "line": 41,
-      "range": [
-        41,
-        29,
-        41,
-        43
-      ],
+      "range": [41, 29, 41, 43],
       "preview": "export type { InkxKeyEvent, InkxFocusEvent, FocusEventProps } from \"./focus-events.js\" // InkxFocusEvent → HighteaFocusEvent",
       "checksum": "368a9ce9ecec",
       "selected": true,
@@ -1425,12 +1130,7 @@
       "refId": "48732e77",
       "file": "src/index.ts",
       "line": 313,
-      "range": [
-        313,
-        29,
-        313,
-        43
-      ],
+      "range": [313, 29, 313, 43],
       "preview": "export type { InkxKeyEvent, InkxFocusEvent, FocusEventProps } from \"./focus-events.js\" // InkxFocusEvent → HighteaFocusEvent",
       "checksum": "60de674e2c9e",
       "selected": true,
@@ -1449,12 +1149,7 @@
       "refId": "6e3fd206",
       "file": "src/core/index.ts",
       "line": 191,
-      "range": [
-        191,
-        29,
-        191,
-        43
-      ],
+      "range": [191, 29, 191, 43],
       "preview": "export type { InkxKeyEvent, InkxFocusEvent, FocusEventProps } from \"../focus-events.js\" // InkxFocusEvent → HighteaFocusEvent",
       "checksum": "aeb55daff3d7",
       "selected": true,
@@ -1473,12 +1168,7 @@
       "refId": "bb0b0257",
       "file": "src/store/index.ts",
       "line": 19,
-      "range": [
-        19,
-        23,
-        19,
-        32
-      ],
+      "range": [19, 23, 19, 32],
       "preview": "import type { Effect, InkxModel, InkxMsg, Plugin } from \"../core/index.js\" // InkxModel → HighteaModel",
       "checksum": "87fd7a7c590f",
       "selected": true,
@@ -1497,12 +1187,7 @@
       "refId": "3d416bbb",
       "file": "src/store/index.ts",
       "line": 29,
-      "range": [
-        29,
-        44,
-        29,
-        53
-      ],
+      "range": [29, 44, 29, 53],
       "preview": "export interface StoreConfig<Model extends InkxModel, Msg extends InkxMsg> { // InkxModel → HighteaModel",
       "checksum": "87fd7a7c590f",
       "selected": true,
@@ -1521,12 +1206,7 @@
       "refId": "80546e9f",
       "file": "src/store/index.ts",
       "line": 39,
-      "range": [
-        39,
-        41,
-        39,
-        50
-      ],
+      "range": [39, 41, 39, 50],
       "preview": "export interface StoreApi<Model extends InkxModel, Msg extends InkxMsg> { // InkxModel → HighteaModel",
       "checksum": "87fd7a7c590f",
       "selected": true,
@@ -1545,12 +1225,7 @@
       "refId": "77768227",
       "file": "src/store/index.ts",
       "line": 62,
-      "range": [
-        62,
-        51,
-        62,
-        60
-      ],
+      "range": [62, 51, 62, 60],
       "preview": "export function withFocusManagement<Model extends InkxModel, Msg extends InkxMsg>(): Plugin<Model, Msg> { // InkxModel → HighteaModel",
       "checksum": "87fd7a7c590f",
       "selected": true,
@@ -1569,12 +1244,7 @@
       "refId": "e88d2fd4",
       "file": "src/store/index.ts",
       "line": 139,
-      "range": [
-        139,
-        42,
-        139,
-        51
-      ],
+      "range": [139, 42, 139, 51],
       "preview": "export function inkxUpdate<Model extends InkxModel, Msg extends InkxMsg>(_msg: Msg, model: Model): [Model, Effect[]] { // InkxModel → HighteaModel",
       "checksum": "87fd7a7c590f",
       "selected": true,
@@ -1593,12 +1263,7 @@
       "refId": "fc9b2bb8",
       "file": "src/store/index.ts",
       "line": 150,
-      "range": [
-        150,
-        33,
-        150,
-        42
-      ],
+      "range": [150, 33, 150, 42],
       "preview": "export function defaultInit(): [InkxModel, Effect[]] { // InkxModel → HighteaModel",
       "checksum": "87fd7a7c590f",
       "selected": true,
@@ -1617,12 +1282,7 @@
       "refId": "cc6caa72",
       "file": "src/store/index.ts",
       "line": 194,
-      "range": [
-        194,
-        43,
-        194,
-        52
-      ],
+      "range": [194, 43, 194, 52],
       "preview": "export function createStore<Model extends InkxModel, Msg extends InkxMsg>( // InkxModel → HighteaModel",
       "checksum": "87fd7a7c590f",
       "selected": true,
@@ -1641,12 +1301,7 @@
       "refId": "b8b4f5da",
       "file": "src/mouse-events.ts",
       "line": 77,
-      "range": [
-        77,
-        21,
-        77,
-        35
-      ],
+      "range": [77, 21, 77, 35],
       "preview": "onWheel?: (event: InkxWheelEvent) => void // InkxWheelEvent → HighteaWheelEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -1665,12 +1320,7 @@
       "refId": "d4da6078",
       "file": "src/mouse-events.ts",
       "line": 127,
-      "range": [
-        127,
-        95,
-        127,
-        109
-      ],
+      "range": [127, 95, 127, 109],
       "preview": "export function createWheelEvent(x: number, y: number, target: TeaNode, parsed: ParsedMouse): InkxWheelEvent { // InkxWheelEvent → HighteaWheelEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -1689,12 +1339,7 @@
       "refId": "b5248445",
       "file": "src/mouse-events.ts",
       "line": 128,
-      "range": [
-        128,
-        67,
-        128,
-        81
-      ],
+      "range": [128, 67, 128, 81],
       "preview": "const base = createMouseEvent(\"wheel\", x, y, target, parsed) as InkxWheelEvent // InkxWheelEvent → HighteaWheelEvent",
       "checksum": "e5aef999b7ed",
       "selected": true,
@@ -1713,12 +1358,7 @@
       "refId": "30b50627",
       "file": "src/index.ts",
       "line": 651,
-      "range": [
-        651,
-        8,
-        651,
-        22
-      ],
+      "range": [651, 8, 651, 22],
       "preview": "type InkxWheelEvent, // InkxWheelEvent → HighteaWheelEvent",
       "checksum": "60de674e2c9e",
       "selected": true,
@@ -1737,12 +1377,7 @@
       "refId": "4cd4e61f",
       "file": "src/input.ts",
       "line": 35,
-      "range": [
-        35,
-        8,
-        35,
-        22
-      ],
+      "range": [35, 8, 35, 22],
       "preview": "type InkxWheelEvent, // InkxWheelEvent → HighteaWheelEvent",
       "checksum": "add3fcd26bbe",
       "selected": true,
@@ -1761,12 +1396,7 @@
       "refId": "18976cbf",
       "file": "src/render.tsx",
       "line": 182,
-      "range": [
-        182,
-        47,
-        182,
-        59
-      ],
+      "range": [182, 47, 182, 59],
       "preview": "const instances = new Map<NodeJS.WriteStream, InkxInstance>() // InkxInstance → HighteaInstance",
       "checksum": "301d4ea36d32",
       "selected": true,
@@ -1785,12 +1415,7 @@
       "refId": "cbf09efe",
       "file": "src/render.tsx",
       "line": 424,
-      "range": [
-        424,
-        7,
-        424,
-        19
-      ],
+      "range": [424, 7, 424, 19],
       "preview": "class InkxInstance { // InkxInstance → HighteaInstance",
       "checksum": "301d4ea36d32",
       "selected": true,
@@ -1809,12 +1434,7 @@
       "refId": "56eac968",
       "file": "src/render.tsx",
       "line": 879,
-      "range": [
-        879,
-        20,
-        879,
-        32
-      ],
+      "range": [879, 20, 879, 32],
       "preview": "instance = new InkxInstance(resolvedOptions) // InkxInstance → HighteaInstance",
       "checksum": "301d4ea36d32",
       "selected": true,
@@ -1833,12 +1453,7 @@
       "refId": "378a53a4",
       "file": "src/render.tsx",
       "line": 1055,
-      "range": [
-        1055,
-        20,
-        1055,
-        32
-      ],
+      "range": [1055, 20, 1055, 32],
       "preview": "instance = new InkxInstance(resolvedOptions) // InkxInstance → HighteaInstance",
       "checksum": "301d4ea36d32",
       "selected": true,
@@ -1857,12 +1472,7 @@
       "refId": "c87ed7fe",
       "file": "src/render.tsx",
       "line": 522,
-      "range": [
-        522,
-        10,
-        522,
-        17
-      ],
+      "range": [522, 10, 522, 17],
       "preview": "<InkxApp // InkxApp → HighteaApp",
       "checksum": "301d4ea36d32",
       "selected": true,
@@ -1881,60 +1491,33 @@
       "refId": "1e114dfa",
       "file": "src/render.tsx",
       "line": 532,
-      "range": [
-        532,
-        11,
-        532,
-        18
-      ],
+      "range": [532, 11, 532, 18],
       "preview": "</InkxApp> // InkxApp → HighteaApp",
       "checksum": "301d4ea36d32",
       "selected": true,
       "kind": "decl",
       "scope": "render",
-      "ctx": [
-        "          >",
-        "            {element}",
-        "►         </InkxApp>",
-        "        </CursorProvider>",
-        "      )"
-      ],
+      "ctx": ["          >", "            {element}", "►         </InkxApp>", "        </CursorProvider>", "      )"],
       "replace": null
     },
     {
       "refId": "71e9df70",
       "file": "/Users/beorn/Code/pim/km/vendor/swatch/src/detect.ts",
       "line": 118,
-      "range": [
-        118,
-        27,
-        118,
-        34
-      ],
+      "range": [118, 27, 118, 34],
       "preview": "const hightea = await getInkx() // getInkx → getHightea",
       "checksum": "2351bf1a5bdc",
       "selected": true,
       "kind": "call",
       "scope": "detectTerminalPalette",
-      "ctx": [
-        "        })",
-        "  ",
-        "►     const hightea = await getInkx()",
-        "  ",
-        "      // Query bg and fg first"
-      ],
+      "ctx": ["        })", "  ", "►     const hightea = await getInkx()", "  ", "      // Query bg and fg first"],
       "replace": null
     },
     {
       "refId": "e68cee65",
       "file": "src/runtime/index.ts",
       "line": 83,
-      "range": [
-        83,
-        23,
-        83,
-        33
-      ],
+      "range": [83, 23, 83, 33],
       "preview": "export { createStore, inkxUpdate, defaultInit, withFocusManagement } from \"../store/index.js\" // inkxUpdate → highteaUpdate",
       "checksum": "07b3575295b1",
       "selected": true,
