@@ -26,11 +26,16 @@ coverage/
 /tmp/
 
 # Benchmark results (keep in separate branch)
-benchmarks/results/
+tests/benchmarks/results/
 
 # Playwright
 test-results/
 playwright-report/
+.playwright-cli/
+
+# Refactoring artifacts
+editset.json
+.editsets/
 
 # Beads archive
 .beads.archived/
