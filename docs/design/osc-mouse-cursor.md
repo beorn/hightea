@@ -17,6 +17,7 @@ This provides visual affordance similar to web CSS `cursor` property, improving 
 OSC 22 format: `ESC ] 22 ; cursor-name ST`
 
 Where `cursor-name` is one of the X11/CSS cursor names:
+
 - `default` — standard arrow
 - `text` — I-beam for text selection
 - `pointer` — pointing hand for clickable elements
@@ -29,6 +30,7 @@ Where `cursor-name` is one of the X11/CSS cursor names:
 **Supported by**: Ghostty (full), Kitty (>=0.33), foot, WezTerm (partial). Not supported by iTerm2, Terminal.app, or most older terminals. Unsupported terminals safely ignore the sequence.
 
 **Stack/pop**: Some terminals support push/pop semantics:
+
 - `ESC ] 22 ; cursor-name ST` — push cursor
 - `ESC ] 22 ; ST` — pop cursor (restore previous)
 
@@ -47,15 +49,7 @@ export function resetMouseCursor(): string {
   return `\x1b]22;default\x07`
 }
 
-export type MouseCursorShape =
-  | "default"
-  | "text"
-  | "pointer"
-  | "crosshair"
-  | "move"
-  | "not-allowed"
-  | "wait"
-  | "help"
+export type MouseCursorShape = "default" | "text" | "pointer" | "crosshair" | "move" | "not-allowed" | "wait" | "help"
 ```
 
 ### Layer 2: Component prop (`cursor` on Box)
@@ -85,37 +79,41 @@ The `processMouseEvent()` function already tracks hover state via `mouseenter`/`
 
 Components should set sensible defaults without requiring explicit props:
 
-| Component | Default cursor |
-|-----------|---------------|
-| TextInput | `text` |
-| TextArea | `text` |
-| Button | `pointer` |
-| Link | `pointer` |
-| Toggle | `pointer` |
-| SelectList items | `pointer` |
-| Everything else | `default` (inherited) |
+| Component        | Default cursor        |
+| ---------------- | --------------------- |
+| TextInput        | `text`                |
+| TextArea         | `text`                |
+| Button           | `pointer`             |
+| Link             | `pointer`             |
+| Toggle           | `pointer`             |
+| SelectList items | `pointer`             |
+| Everything else  | `default` (inherited) |
 
 This can be implemented by having these components set `cursor` on their root Box, which the hit-test cursor resolution would pick up automatically.
 
 ## Implementation Plan
 
 ### Phase 1: Escape sequences
+
 - Add `setMouseCursor()`, `resetMouseCursor()`, and `MouseCursorShape` type to `@silvery/term/output`.
 - Export from `@silvery/react`.
 - No component integration yet — apps can call directly.
 
 ### Phase 2: `cursor` prop on Box
+
 - Add `cursor?: MouseCursorShape` to `BoxProps`.
 - Store it on the `TeaNode` props (no special reconciler handling needed).
 - No automatic emission yet.
 
 ### Phase 3: Mouse processor integration
+
 - Extend `MouseEventProcessorState` with `currentCursor: MouseCursorShape`.
 - In `processMouseEvent()` on `move` events, resolve the cursor from the hit target's ancestor chain.
 - If changed, write `setMouseCursor()` to stdout.
 - On cleanup (app exit), emit `resetMouseCursor()`.
 
 ### Phase 4: Component defaults
+
 - Add `cursor="text"` to TextInput and TextArea root boxes.
 - Add `cursor="pointer"` to Button, Link, Toggle.
 - No changes needed for components that should use `default`.

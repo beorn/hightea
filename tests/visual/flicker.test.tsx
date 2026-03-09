@@ -17,19 +17,9 @@
 
 import React, { useState } from "react"
 import { describe, test, expect } from "vitest"
-import {
-  createRenderer,
-  render,
-  normalizeFrame,
-  bufferToText,
-} from "@silvery/test"
+import { createRenderer, render, normalizeFrame, bufferToText } from "@silvery/test"
 import { Box, Text, useContentRect } from "@silvery/react"
-import {
-  SimpleBox,
-  ComplexLayout,
-  ResponsiveBox,
-  ChalkStyledContent,
-} from "../fixtures/index.tsx"
+import { SimpleBox, ComplexLayout, ResponsiveBox, ChalkStyledContent } from "../fixtures/index.tsx"
 
 // ============================================================================
 // useContentRect Stabilization
@@ -40,11 +30,7 @@ describe("flicker: useContentRect stabilization", () => {
     /** Component that displays its dimensions via useContentRect. */
     function SizedPanel() {
       const { width, height } = useContentRect()
-      return React.createElement(
-        Text,
-        { testID: "dims" },
-        `Panel: ${width}x${height}`,
-      )
+      return React.createElement(Text, { testID: "dims" }, `Panel: ${width}x${height}`)
     }
 
     const r = createRenderer({ cols: 80, rows: 24 })
@@ -52,16 +38,8 @@ describe("flicker: useContentRect stabilization", () => {
       React.createElement(
         Box,
         { flexDirection: "row" },
-        React.createElement(
-          Box,
-          { width: 30, borderStyle: "single" },
-          React.createElement(SizedPanel),
-        ),
-        React.createElement(
-          Box,
-          { flexGrow: 1 },
-          React.createElement(Text, null, "Main"),
-        ),
+        React.createElement(Box, { width: 30, borderStyle: "single" }, React.createElement(SizedPanel)),
+        React.createElement(Box, { flexGrow: 1 }, React.createElement(Text, null, "Main")),
       ),
     )
 
@@ -80,11 +58,7 @@ describe("flicker: useContentRect stabilization", () => {
       return React.createElement(
         Box,
         { testID: "container" },
-        React.createElement(
-          Text,
-          { testID: "size" },
-          `W=${width} H=${height}`,
-        ),
+        React.createElement(Text, { testID: "size" }, `W=${width} H=${height}`),
       )
     }
 
@@ -149,11 +123,7 @@ describe("flicker: state change coalescing", () => {
     function CounterApp() {
       const [count, setCount] = useState(0)
 
-      return React.createElement(
-        Box,
-        null,
-        React.createElement(Text, null, `Count: ${count}`),
-      )
+      return React.createElement(Box, null, React.createElement(Text, null, `Count: ${count}`))
     }
 
     const app = r(React.createElement(CounterApp))

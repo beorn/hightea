@@ -12,8 +12,8 @@ Consider a component that uses `useContentRect()` to read its own dimensions:
 
 ```tsx
 function Header() {
-  const { width } = useContentRect();
-  return <Text>{"=".repeat(width)}</Text>;
+  const { width } = useContentRect()
+  return <Text>{"=".repeat(width)}</Text>
 }
 ```
 
@@ -92,25 +92,25 @@ The most common pattern: use dimensions to decide _what content to show_, withou
 ```tsx
 // SAFE: Reading width to truncate text
 function Breadcrumb({ path }: { path: string }) {
-  const { width } = useContentRect();
-  const display = path.length > width ? "..." + path.slice(-(width - 3)) : path;
-  return <Text>{display}</Text>;
+  const { width } = useContentRect()
+  const display = path.length > width ? "..." + path.slice(-(width - 3)) : path
+  return <Text>{display}</Text>
 }
 ```
 
 ```tsx
 // SAFE: Reading width to repeat a character
 function Divider() {
-  const { width } = useContentRect();
-  return <Text dim>{"─".repeat(width)}</Text>;
+  const { width } = useContentRect()
+  return <Text dim>{"─".repeat(width)}</Text>
 }
 ```
 
 ```tsx
 // SAFE: Reading dimensions to choose between layouts
 function Sidebar({ items }: { items: Item[] }) {
-  const { width } = useContentRect();
-  const compact = width < 30;
+  const { width } = useContentRect()
+  const compact = width < 30
 
   return (
     <Box flexDirection="column">
@@ -118,7 +118,7 @@ function Sidebar({ items }: { items: Item[] }) {
         <Text key={item.id}>{compact ? item.short : item.full}</Text>
       ))}
     </Box>
-  );
+  )
 }
 ```
 
@@ -133,11 +133,11 @@ function Panel({ onLayoutChange }: { onLayoutChange: (rect: Rect) => void }) {
     <Box borderStyle="single" flexGrow={1} onLayout={onLayoutChange}>
       <Text>Panel content</Text>
     </Box>
-  );
+  )
 }
 
 function Dashboard() {
-  const [panelSize, setPanelSize] = useState<Rect | null>(null);
+  const [panelSize, setPanelSize] = useState<Rect | null>(null)
   return (
     <Box flexDirection="column">
       <Panel onLayoutChange={setPanelSize} />
@@ -147,7 +147,7 @@ function Dashboard() {
         </Text>
       )}
     </Box>
-  );
+  )
 }
 ```
 
@@ -158,12 +158,12 @@ For components that appear many times (list items, cards), use the callback vari
 ```tsx
 // SAFE: No re-render, just registers position
 function Card({ id, onPosition }: { id: string; onPosition: (id: string, rect: Rect) => void }) {
-  useContentRectCallback((rect) => onPosition(id, rect));
+  useContentRectCallback((rect) => onPosition(id, rect))
   return (
     <Box>
       <Text>{id}</Text>
     </Box>
-  );
+  )
 }
 ```
 
@@ -178,14 +178,14 @@ These patterns risk infinite loops or wasted iterations because the component ch
 ```tsx
 // DANGEROUS: Reading width to set width -- potential infinite loop
 function BadComponent() {
-  const { width } = useContentRect();
+  const { width } = useContentRect()
   // This changes the component's own layout, which changes its size,
   // which triggers another useContentRect update, which changes layout...
   return (
     <Box width={width > 40 ? 30 : 50}>
       <Text>Content</Text>
     </Box>
-  );
+  )
 }
 ```
 
@@ -196,8 +196,8 @@ If `width` starts at 0 (first render), the box gets `width: 50`. After layout, `
 ```tsx
 // DANGEROUS: Adding children changes layout, which changes size
 function BadList() {
-  const { height } = useContentRect();
-  const itemCount = Math.floor(height / 2);
+  const { height } = useContentRect()
+  const itemCount = Math.floor(height / 2)
 
   return (
     <Box flexDirection="column" flexGrow={1}>
@@ -205,7 +205,7 @@ function BadList() {
         <Text key={i}>Item {i}</Text>
       ))}
     </Box>
-  );
+  )
 }
 ```
 
@@ -216,12 +216,12 @@ This is only dangerous if the number of children affects the container's height 
 ```tsx
 // DANGEROUS: Changing flex ratio changes layout, which changes size
 function BadSplit() {
-  const { width } = useContentRect();
+  const { width } = useContentRect()
   return (
     <Box flexGrow={width > 40 ? 2 : 1}>
       <Text>Content</Text>
     </Box>
-  );
+  )
 }
 ```
 
@@ -243,19 +243,19 @@ The test renderer (`render()` in `renderer.ts`) uses the same feedback loop:
 
 ```typescript
 function doRender(): string {
-  const MAX_LAYOUT_ITERATIONS = 5;
+  const MAX_LAYOUT_ITERATIONS = 5
 
   for (let iteration = 0; iteration < MAX_LAYOUT_ITERATIONS; iteration++) {
-    hadReactCommit = false;
+    hadReactCommit = false
 
     withActEnvironment(() => {
       act(() => {
-        const root = getContainerRoot(instance.container);
-        executeRender(root, columns, rows, prevBuffer);
-      });
-    });
+        const root = getContainerRoot(instance.container)
+        executeRender(root, columns, rows, prevBuffer)
+      })
+    })
 
-    if (!hadReactCommit) break;
+    if (!hadReactCommit) break
   }
   // ...
 }

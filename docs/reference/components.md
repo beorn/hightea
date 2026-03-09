@@ -212,12 +212,7 @@ Fullscreen root component. Claims the full terminal dimensions for flexbox layou
 Native scrollback root component. Items flow vertically and transition through Live → Virtualized → Static as they scroll off-screen. Uses `useScrollbackItem()` for per-item lifecycle control.
 
 ```tsx
-<ScrollbackView
-  items={tasks}
-  keyExtractor={(t) => t.id}
-  isFrozen={(t) => t.done}
-  footer={<Text>Status bar</Text>}
->
+<ScrollbackView items={tasks} keyExtractor={(t) => t.id} isFrozen={(t) => t.done} footer={<Text>Status bar</Text>}>
   {(task) => <TaskItem task={task} />}
 </ScrollbackView>
 ```
@@ -279,7 +274,7 @@ const { range, scrollToItem, getKey } = useVirtualizer({
   viewportHeight: 20,
   scrollTo: selectedIndex,
   overscan: 5,
-});
+})
 ```
 
 ## Console
@@ -287,7 +282,7 @@ const { range, scrollToItem, getKey } = useVirtualizer({
 Captures `console.log` / `console.error` output and renders it as a component.
 
 ```tsx
-import { render, Console, patchConsole } from "@silvery/term";
+import { render, Console, patchConsole } from "@silvery/term"
 
 function App({ console: patched }) {
   return (
@@ -295,11 +290,11 @@ function App({ console: patched }) {
       <Console console={patched} />
       <Text>Status: running</Text>
     </Box>
-  );
+  )
 }
 
-using patched = patchConsole(console);
-await render(<App console={patched} />, term);
+using patched = patchConsole(console)
+await render(<App console={patched} />, term)
 ```
 
 ## TextInput
@@ -307,13 +302,13 @@ await render(<App console={patched} />, term);
 Basic text input with onChange/onSubmit:
 
 ```tsx
-import { TextInput } from "@silvery/term";
-<TextInput
+import { TextInput } from "@silvery/term"
+;<TextInput
   value={query}
   onChange={setQuery}
   onSubmit={(value) => console.log("Submitted:", value)}
   placeholder="type here..."
-/>;
+/>
 ```
 
 ## TextArea
@@ -429,7 +424,7 @@ The component operates in two phases: during layout it renders a Box that reserv
 **Protocol detection helpers:**
 
 ```tsx
-import { isKittyGraphicsSupported, isSixelSupported } from "@silvery/term";
+import { isKittyGraphicsSupported, isSixelSupported } from "@silvery/term"
 
 if (isKittyGraphicsSupported()) {
   /* Kitty graphics available */
@@ -442,12 +437,12 @@ if (isSixelSupported()) {
 **Low-level encoding functions:**
 
 ```tsx
-import { encodeKittyImage, deleteKittyImage } from "@silvery/term";
-import { encodeSixel } from "@silvery/term";
+import { encodeKittyImage, deleteKittyImage } from "@silvery/term"
+import { encodeSixel } from "@silvery/term"
 
-const kittySeq = encodeKittyImage(pngBuffer, { id: 1, cols: 40, rows: 15 });
-const deleteSeq = deleteKittyImage(1);
-const sixelSeq = encodeSixel({ pixels, width: 320, height: 240 });
+const kittySeq = encodeKittyImage(pngBuffer, { id: 1, cols: 40, rows: 15 })
+const deleteSeq = deleteKittyImage(1)
+const sixelSeq = encodeSixel({ pixels, width: 320, height: 240 })
 ```
 
 ## Spinner
@@ -523,8 +518,8 @@ Keyboard: `j`/`Down` to move down, `k`/`Up` to move up, `Enter` to select, `Ctrl
 A data table with headers, column alignment, and auto-sized columns.
 
 ```tsx
-import { Table } from "@silvery/term";
-<Table
+import { Table } from "@silvery/term"
+;<Table
   columns={[
     { header: "Name", key: "name" },
     { header: "Age", key: "age", align: "right" },
@@ -533,7 +528,7 @@ import { Table } from "@silvery/term";
     { name: "Alice", age: 30 },
     { name: "Bob", age: 25 },
   ]}
-/>;
+/>
 ```
 
 | Prop         | Type                                          | Description                                             |

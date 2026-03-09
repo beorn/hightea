@@ -18,8 +18,8 @@ Components query their own dimensions with `useContentRect()`. No width prop dri
 
 ```tsx
 function Responsive() {
-  const { width } = useContentRect();
-  return width > 60 ? <FullLayout /> : <CompactLayout />;
+  const { width } = useContentRect()
+  return width > 60 ? <FullLayout /> : <CompactLayout />
 }
 ```
 
@@ -72,15 +72,15 @@ bun add silvery react
 ```
 
 ```tsx
-import { run, Box, Text, useInput } from "silvery";
+import { run, Box, Text, useInput } from "silvery"
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(0)
 
   useInput((input) => {
-    if (input === "j") setCount((c) => c + 1);
-    if (input === "q") return "exit";
-  });
+    if (input === "j") setCount((c) => c + 1)
+    if (input === "q") return "exit"
+  })
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -88,10 +88,10 @@ function App() {
       <Text>Count: {count}</Text>
       <Text dimColor>j = increment, q = quit</Text>
     </Box>
-  );
+  )
 }
 
-await run(<App />);
+await run(<App />)
 ```
 
 ## Ecosystem

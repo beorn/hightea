@@ -150,10 +150,7 @@ export function splitIntoSegments(
     if (from >= to) continue
 
     // Check if this segment is within the selection
-    const isSelected =
-      selection !== null &&
-      from >= selection.start &&
-      to <= selection.end
+    const isSelected = selection !== null && from >= selection.start && to <= selection.end
 
     // Merge styles from all overlapping decorations (later wins for conflicts)
     const mergedStyle: DecorationStyle = {}

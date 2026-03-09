@@ -21,27 +21,28 @@ Validates the silvery migration guide (`docs/guides/migration.md`) against real-
 
 ### Ink APIs Used
 
-| API | Type | Files | silvery/ink | Notes |
-|-----|------|-------|-------------|-------|
-| `Box` | Component | 15+ | Yes | Flexbox layout containers throughout |
-| `Text` | Component | 15+ | Yes | Text rendering with color, bold, etc. |
-| `Static` | Component | 1 | Yes | `ConcurrentOutput.tsx` — preserving log history |
-| `useInput` | Hook | 3 | Yes | Keyboard input for prompts, selection |
-| `useApp` | Hook | 2 | Yes | Exit handling (`AutocompletePrompt`, abort signal) |
-| `useStdin` | Hook | 1 | Yes | Raw mode check in exit-on-ctrl-c hook |
-| `useStdout` | Hook | 2 | Yes | Terminal dimensions for responsive layout |
-| `measureElement` | Function | 1 | Yes | `PromptLayout.tsx` — measuring prompt height |
-| `render` | Function | 1 | Yes | Aliased as `inkRender` in `ui.tsx` |
-| `Key` | Type | 2 | Yes | Keyboard key type annotation |
-| `RenderOptions` | Type | 2 | Yes | Render configuration |
-| `TextProps` | Type | 1 | Yes | Extending Text component props |
-| `DOMElement` | Type | 2 | Partial | Used for `measureElement` ref typing. silvery uses different internal node types but `measureElement` accepts refs. |
+| API              | Type      | Files | silvery/ink | Notes                                                                                                               |
+| ---------------- | --------- | ----- | ----------- | ------------------------------------------------------------------------------------------------------------------- |
+| `Box`            | Component | 15+   | Yes         | Flexbox layout containers throughout                                                                                |
+| `Text`           | Component | 15+   | Yes         | Text rendering with color, bold, etc.                                                                               |
+| `Static`         | Component | 1     | Yes         | `ConcurrentOutput.tsx` — preserving log history                                                                     |
+| `useInput`       | Hook      | 3     | Yes         | Keyboard input for prompts, selection                                                                               |
+| `useApp`         | Hook      | 2     | Yes         | Exit handling (`AutocompletePrompt`, abort signal)                                                                  |
+| `useStdin`       | Hook      | 1     | Yes         | Raw mode check in exit-on-ctrl-c hook                                                                               |
+| `useStdout`      | Hook      | 2     | Yes         | Terminal dimensions for responsive layout                                                                           |
+| `measureElement` | Function  | 1     | Yes         | `PromptLayout.tsx` — measuring prompt height                                                                        |
+| `render`         | Function  | 1     | Yes         | Aliased as `inkRender` in `ui.tsx`                                                                                  |
+| `Key`            | Type      | 2     | Yes         | Keyboard key type annotation                                                                                        |
+| `RenderOptions`  | Type      | 2     | Yes         | Render configuration                                                                                                |
+| `TextProps`      | Type      | 1     | Yes         | Extending Text component props                                                                                      |
+| `DOMElement`     | Type      | 2     | Partial     | Used for `measureElement` ref typing. silvery uses different internal node types but `measureElement` accepts refs. |
 
 ### Public API Re-export
 
 Shopify wraps Ink in a public API module (`cli-kit/src/public/node/ink.ts`):
+
 ```ts
-export {Box, Text, Static, useInput, useStdin, useStdout, measureElement} from 'ink'
+export { Box, Text, Static, useInput, useStdin, useStdout, measureElement } from "ink"
 ```
 
 This is exactly the subset that `silvery/ink` exports.
@@ -53,6 +54,7 @@ This is exactly the subset that `silvery/ink` exports.
 All 13 Ink APIs used by Shopify CLI are exported by `silvery/ink`. The only edge case is `DOMElement` type — silvery uses `BoxHandle` for refs, but `measureElement` accepts the same ref pattern. Shopify's usage (`useRef<DOMElement>(null)`) would need the type changed to `BoxHandle`, but the runtime behavior is identical.
 
 **Migration steps:**
+
 1. `bun remove ink` / `bun add silvery`
 2. Replace `from 'ink'` with `from 'silvery/ink'`
 3. Change `DOMElement` refs to `BoxHandle` (2 files)
@@ -68,14 +70,14 @@ All 13 Ink APIs used by Shopify CLI are exported by `silvery/ink`. The only edge
 
 ### Ink APIs Used
 
-| API | Type | Files | silvery/ink | Notes |
-|-----|------|-------|-------------|-------|
-| `Box` | Component | 3+ | Yes | Layout: `flexDirection`, `marginTop`, `height`, `flexGrow` |
-| `Text` | Component | 3+ | Yes | With `wrap="truncate"` prop |
-| `Static` | Component | 1 | Yes | Preserving completed log messages |
-| `useStdout` | Hook | 1 | Yes | Terminal dimensions + resize events |
-| `render` | Function | 1 | Yes | Entry point rendering |
-| `Spinner` | Component | via ink-spinner | N/A | Third-party `ink-spinner@4.0.3` |
+| API         | Type      | Files           | silvery/ink | Notes                                                      |
+| ----------- | --------- | --------------- | ----------- | ---------------------------------------------------------- |
+| `Box`       | Component | 3+              | Yes         | Layout: `flexDirection`, `marginTop`, `height`, `flexGrow` |
+| `Text`      | Component | 3+              | Yes         | With `wrap="truncate"` prop                                |
+| `Static`    | Component | 1               | Yes         | Preserving completed log messages                          |
+| `useStdout` | Hook      | 1               | Yes         | Terminal dimensions + resize events                        |
+| `render`    | Function  | 1               | Yes         | Entry point rendering                                      |
+| `Spinner`   | Component | via ink-spinner | N/A         | Third-party `ink-spinner@4.0.3`                            |
 
 ### Community Packages
 
@@ -96,6 +98,7 @@ All 13 Ink APIs used by Shopify CLI are exported by `silvery/ink`. The only edge
 All core Ink APIs used by Gatsby CLI are covered. The only dependency needing attention is `ink-spinner`, which has a trivial silvery equivalent (`@silvery/ui` exports `<Spinner>`).
 
 **Migration steps:**
+
 1. `bun remove ink ink-spinner` / `bun add silvery`
 2. Replace `from 'ink'` with `from 'silvery/ink'`
 3. Replace `ink-spinner` with `import { Spinner } from '@silvery/ui'` (same `<Spinner>` API)
@@ -112,22 +115,22 @@ All core Ink APIs used by Gatsby CLI are covered. The only dependency needing at
 
 ### Ink APIs Used
 
-| API | Type | Files | silvery/ink | Notes |
-|-----|------|-------|-------------|-------|
-| `Box` | Component | 5+ | Yes | Layout containers |
-| `Text` | Component | 5+ | Yes | Status output, summaries |
-| `render` | Function | 1+ | Yes | Entry point |
-| `useInput` | Hook | via ink-select-input | N/A | Through community package |
+| API        | Type      | Files                | silvery/ink | Notes                     |
+| ---------- | --------- | -------------------- | ----------- | ------------------------- |
+| `Box`      | Component | 5+                   | Yes         | Layout containers         |
+| `Text`     | Component | 5+                   | Yes         | Status output, summaries  |
+| `render`   | Function  | 1+                   | Yes         | Entry point               |
+| `useInput` | Hook      | via ink-select-input | N/A         | Through community package |
 
 ### Community Packages
 
-| Package | Version | Purpose | silvery Equivalent |
-|---------|---------|---------|-------------------|
-| `ink-select-input` | 4.2.2 | Selection lists | `@silvery/ui` `<SelectList>` |
-| `ink-table` | 3.1.0 | Tabular output | `@silvery/ui` `<Table>` |
-| `ink-spinner` | 4.0.3 | Loading indicators | `@silvery/ui` `<Spinner>` |
-| `ink-testing-library` | 2.1.0 | Test utilities | `@silvery/test` `createRenderer` |
-| `ink-use-stdout-dimensions` | 1.0.5 | Terminal size | `useStdout()` or `useContentRect()` |
+| Package                     | Version | Purpose            | silvery Equivalent                  |
+| --------------------------- | ------- | ------------------ | ----------------------------------- |
+| `ink-select-input`          | 4.2.2   | Selection lists    | `@silvery/ui` `<SelectList>`        |
+| `ink-table`                 | 3.1.0   | Tabular output     | `@silvery/ui` `<Table>`             |
+| `ink-spinner`               | 4.0.3   | Loading indicators | `@silvery/ui` `<Spinner>`           |
+| `ink-testing-library`       | 2.1.0   | Test utilities     | `@silvery/test` `createRenderer`    |
+| `ink-use-stdout-dimensions` | 1.0.5   | Terminal size      | `useStdout()` or `useContentRect()` |
 
 ### Key Patterns
 
@@ -150,6 +153,7 @@ Core Ink APIs (`Box`, `Text`, `render`) are fully covered. The challenge is 5 co
 - `ink-use-stdout-dimensions` -> `useStdout()` built-in (no extra package needed)
 
 **Migration steps:**
+
 1. `bun remove ink ink-select-input ink-table ink-spinner ink-testing-library ink-use-stdout-dimensions`
 2. `bun add silvery`
 3. Replace `from 'ink'` with `from 'silvery/ink'`
@@ -162,21 +166,21 @@ Core Ink APIs (`Box`, `Text`, `render`) are fully covered. The challenge is 5 co
 
 ### Core Ink APIs Across All 3 Apps
 
-| API | Shopify | Gatsby | CDKTF | silvery/ink |
-|-----|---------|--------|-------|-------------|
-| `Box` | Yes | Yes | Yes | **Covered** |
-| `Text` | Yes | Yes | Yes | **Covered** |
-| `Static` | Yes | Yes | - | **Covered** |
-| `render` | Yes | Yes | Yes | **Covered** |
-| `useInput` | Yes | - | (indirect) | **Covered** |
-| `useApp` | Yes | - | - | **Covered** |
-| `useStdin` | Yes | - | - | **Covered** |
-| `useStdout` | Yes | Yes | (indirect) | **Covered** |
-| `measureElement` | Yes | - | - | **Covered** |
-| `Key` (type) | Yes | - | - | **Covered** |
-| `RenderOptions` (type) | Yes | - | - | **Covered** |
-| `TextProps` (type) | Yes | - | - | **Covered** |
-| `DOMElement` (type) | Yes | - | - | **Partial** (use `BoxHandle`) |
+| API                    | Shopify | Gatsby | CDKTF      | silvery/ink                   |
+| ---------------------- | ------- | ------ | ---------- | ----------------------------- |
+| `Box`                  | Yes     | Yes    | Yes        | **Covered**                   |
+| `Text`                 | Yes     | Yes    | Yes        | **Covered**                   |
+| `Static`               | Yes     | Yes    | -          | **Covered**                   |
+| `render`               | Yes     | Yes    | Yes        | **Covered**                   |
+| `useInput`             | Yes     | -      | (indirect) | **Covered**                   |
+| `useApp`               | Yes     | -      | -          | **Covered**                   |
+| `useStdin`             | Yes     | -      | -          | **Covered**                   |
+| `useStdout`            | Yes     | Yes    | (indirect) | **Covered**                   |
+| `measureElement`       | Yes     | -      | -          | **Covered**                   |
+| `Key` (type)           | Yes     | -      | -          | **Covered**                   |
+| `RenderOptions` (type) | Yes     | -      | -          | **Covered**                   |
+| `TextProps` (type)     | Yes     | -      | -          | **Covered**                   |
+| `DOMElement` (type)    | Yes     | -      | -          | **Partial** (use `BoxHandle`) |
 
 ### Ink APIs NOT Used by Any of These Apps
 
@@ -195,13 +199,13 @@ These Ink 6 APIs exist but none of the 3 apps use them:
 
 The biggest migration challenge is the Ink community ecosystem (~50 packages). Of the community packages used by these apps:
 
-| ink-\* Package | silvery Built-in Equivalent |
-|----------------|---------------------------|
-| `ink-spinner` | `@silvery/ui` `<Spinner>` |
-| `ink-select-input` | `@silvery/ui` `<SelectList>` |
-| `ink-table` | `@silvery/ui` `<Table>` |
-| `ink-testing-library` | `@silvery/test` `createRenderer` |
-| `ink-use-stdout-dimensions` | `useStdout()` (built-in) |
+| ink-\* Package              | silvery Built-in Equivalent      |
+| --------------------------- | -------------------------------- |
+| `ink-spinner`               | `@silvery/ui` `<Spinner>`        |
+| `ink-select-input`          | `@silvery/ui` `<SelectList>`     |
+| `ink-table`                 | `@silvery/ui` `<Table>`          |
+| `ink-testing-library`       | `@silvery/test` `createRenderer` |
+| `ink-use-stdout-dimensions` | `useStdout()` (built-in)         |
 
 silvery's `@silvery/ui` package includes 23+ components that cover most of the popular `ink-*` community packages, plus additional components not available in the Ink ecosystem (TextArea, ModalDialog, CommandPalette, Image, etc.).
 

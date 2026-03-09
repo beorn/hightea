@@ -11,14 +11,14 @@
  * - getPadding, getBorderSize
  */
 
-import type { Color, Style, UnderlineStyle } from "../buffer";
-import { getActiveTheme, resolveThemeColor } from "@silvery/theme";
-import type { BoxProps, TextProps } from "@silvery/tea/types";
-import { displayWidthAnsi } from "../unicode";
-import type { BorderChars, PipelineContext } from "./types";
+import type { Color, Style, UnderlineStyle } from "../buffer"
+import { getActiveTheme, resolveThemeColor } from "@silvery/theme"
+import type { BoxProps, TextProps } from "@silvery/tea/types"
+import { displayWidthAnsi } from "../unicode"
+import type { BorderChars, PipelineContext } from "./types"
 
 // Re-export shared layout helpers
-export { getBorderSize, getPadding } from "./helpers";
+export { getBorderSize, getPadding } from "./helpers"
 
 // ============================================================================
 // Color Parsing
@@ -44,7 +44,7 @@ const namedColors: Record<string, number> = {
   magentaBright: 13,
   cyanBright: 14,
   whiteBright: 15,
-};
+}
 
 /**
  * Parse color string to Color type.
@@ -53,43 +53,43 @@ const namedColors: Record<string, number> = {
 export function parseColor(color: string): Color {
   // Resolve $token colors against the active theme
   if (color.startsWith("$")) {
-    const resolved = resolveThemeColor(color, getActiveTheme());
-    if (resolved && resolved !== color) return parseColor(resolved);
-    return null;
+    const resolved = resolveThemeColor(color, getActiveTheme())
+    if (resolved && resolved !== color) return parseColor(resolved)
+    return null
   }
 
   if (color in namedColors) {
-    return namedColors[color as keyof typeof namedColors]!;
+    return namedColors[color as keyof typeof namedColors]!
   }
 
   // Hex color
   if (color.startsWith("#")) {
-    const hex = color.slice(1);
+    const hex = color.slice(1)
     if (hex.length === 3) {
-      const r = Number.parseInt(hex[0]! + hex[0]!, 16);
-      const g = Number.parseInt(hex[1]! + hex[1]!, 16);
-      const b = Number.parseInt(hex[2]! + hex[2]!, 16);
-      return { r, g, b };
+      const r = Number.parseInt(hex[0]! + hex[0]!, 16)
+      const g = Number.parseInt(hex[1]! + hex[1]!, 16)
+      const b = Number.parseInt(hex[2]! + hex[2]!, 16)
+      return { r, g, b }
     }
     if (hex.length === 6) {
-      const r = Number.parseInt(hex.slice(0, 2), 16);
-      const g = Number.parseInt(hex.slice(2, 4), 16);
-      const b = Number.parseInt(hex.slice(4, 6), 16);
-      return { r, g, b };
+      const r = Number.parseInt(hex.slice(0, 2), 16)
+      const g = Number.parseInt(hex.slice(2, 4), 16)
+      const b = Number.parseInt(hex.slice(4, 6), 16)
+      return { r, g, b }
     }
   }
 
   // rgb(r,g,b)
-  const rgbMatch = color.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
+  const rgbMatch = color.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i)
   if (rgbMatch) {
     return {
       r: Number.parseInt(rgbMatch[1]!, 10),
       g: Number.parseInt(rgbMatch[2]!, 10),
       b: Number.parseInt(rgbMatch[3]!, 10),
-    };
+    }
   }
 
-  return null;
+  return null
 }
 
 // ============================================================================
@@ -157,13 +157,13 @@ const borders: Record<NonNullable<BoxProps["borderStyle"]>, BorderChars> = {
     horizontal: "-",
     vertical: "|",
   },
-};
+}
 
 /**
  * Get border characters for a style.
  */
 export function getBorderChars(style: BoxProps["borderStyle"]): BorderChars {
-  return borders[style ?? "single"];
+  return borders[style ?? "single"]
 }
 
 // ============================================================================
@@ -175,11 +175,11 @@ export function getBorderChars(style: BoxProps["borderStyle"]): BorderChars {
  */
 export function getTextStyle(props: TextProps): Style {
   // Determine underline style: underlineStyle takes precedence over underline boolean
-  let underlineStyle: UnderlineStyle | undefined;
+  let underlineStyle: UnderlineStyle | undefined
   if (props.underlineStyle !== undefined) {
-    underlineStyle = props.underlineStyle;
+    underlineStyle = props.underlineStyle
   } else if (props.underline) {
-    underlineStyle = "single";
+    underlineStyle = "single"
   }
 
   return {
@@ -195,7 +195,7 @@ export function getTextStyle(props: TextProps): Style {
       strikethrough: props.strikethrough,
       inverse: props.inverse,
     },
-  };
+  }
 }
 
 // ============================================================================
@@ -211,6 +211,6 @@ export function getTextStyle(props: TextProps): Style {
  * displayWidthAnsi (which reads the scoped measurer or default).
  */
 export function getTextWidth(text: string, ctx?: PipelineContext): number {
-  if (ctx) return ctx.measurer.displayWidthAnsi(text);
-  return displayWidthAnsi(text);
+  if (ctx) return ctx.measurer.displayWidthAnsi(text)
+  return displayWidthAnsi(text)
 }

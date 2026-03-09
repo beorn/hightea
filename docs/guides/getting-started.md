@@ -47,27 +47,27 @@ That's a complete, working TUI app. `run()` handles terminal setup, keyboard inp
 Use `useInput` to handle keyboard events. Return `'exit'` from the handler to quit the app.
 
 ```typescript
-import { run, useInput, type Key } from "@silvery/term/runtime";
+import { run, useInput, type Key } from "@silvery/term/runtime"
 
 useInput((input: string, key: Key) => {
   // Regular characters
-  if (input === "a") doSomething();
+  if (input === "a") doSomething()
 
   // Special keys
-  if (key.return) submit();
-  if (key.escape) cancel();
-  if (key.tab) nextField();
+  if (key.return) submit()
+  if (key.escape) cancel()
+  if (key.tab) nextField()
 
   // Arrow keys
-  if (key.upArrow) moveCursor(-1);
-  if (key.downArrow) moveCursor(1);
+  if (key.upArrow) moveCursor(-1)
+  if (key.downArrow) moveCursor(1)
 
   // Modifiers
-  if (key.ctrl && input === "c") return "exit";
+  if (key.ctrl && input === "c") return "exit"
 
   // Text input
-  if (input.length === 1) addChar(input);
-});
+  if (input.length === 1) addChar(input)
+})
 ```
 
 The `Key` object provides booleans for special keys and modifiers:
@@ -75,31 +75,31 @@ The `Key` object provides booleans for special keys and modifiers:
 ```typescript
 interface Key {
   // Navigation
-  upArrow: boolean;
-  downArrow: boolean;
-  leftArrow: boolean;
-  rightArrow: boolean;
-  pageDown: boolean;
-  pageUp: boolean;
-  home: boolean;
-  end: boolean;
+  upArrow: boolean
+  downArrow: boolean
+  leftArrow: boolean
+  rightArrow: boolean
+  pageDown: boolean
+  pageUp: boolean
+  home: boolean
+  end: boolean
 
   // Action keys
-  return: boolean; // Enter key
-  escape: boolean;
-  tab: boolean;
-  backspace: boolean;
-  delete: boolean;
+  return: boolean // Enter key
+  escape: boolean
+  tab: boolean
+  backspace: boolean
+  delete: boolean
 
   // Modifiers
-  ctrl: boolean; // ⌃ Ctrl
-  shift: boolean; // ⇧ Shift
-  meta: boolean; // ⌥ Opt/Alt
-  super: boolean; // ⌘ Cmd/Super (requires Kitty protocol)
-  hyper: boolean; // ✦ Hyper (requires Kitty protocol)
+  ctrl: boolean // ⌃ Ctrl
+  shift: boolean // ⇧ Shift
+  meta: boolean // ⌥ Opt/Alt
+  super: boolean // ⌘ Cmd/Super (requires Kitty protocol)
+  hyper: boolean // ✦ Hyper (requires Kitty protocol)
 
   // Kitty protocol extensions
-  eventType?: 1 | 2 | 3; // 1=press, 2=repeat, 3=release (requires REPORT_EVENTS)
+  eventType?: 1 | 2 | 3 // 1=press, 2=repeat, 3=release (requires REPORT_EVENTS)
 }
 ```
 
@@ -108,14 +108,14 @@ Wrap handlers in `useCallback` when they depend on state to prevent unnecessary 
 ```typescript
 const handleInput = useCallback(
   (input: string, key: Key) => {
-    if (input === "j" || key.downArrow) setCursor((c) => Math.min(c + 1, items.length - 1));
-    if (input === "k" || key.upArrow) setCursor((c) => Math.max(c - 1, 0));
-    if (input === "q") return "exit";
+    if (input === "j" || key.downArrow) setCursor((c) => Math.min(c + 1, items.length - 1))
+    if (input === "k" || key.upArrow) setCursor((c) => Math.max(c - 1, 0))
+    if (input === "q") return "exit"
   },
   [items.length],
-);
+)
 
-useInput(handleInput);
+useInput(handleInput)
 ```
 
 ### Layout Feedback
@@ -200,10 +200,10 @@ await handle.waitUntilExit();
 
 ```typescript
 interface RunHandle {
-  text: string; // Current rendered text (no ANSI)
-  waitUntilExit(): Promise<void>;
-  unmount(): void;
-  press(key: string): Promise<void>; // For testing
+  text: string // Current rendered text (no ANSI)
+  waitUntilExit(): Promise<void>
+  unmount(): void
+  press(key: string): Promise<void> // For testing
 }
 ```
 

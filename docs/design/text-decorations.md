@@ -106,6 +106,7 @@ const ta = useTextArea({
 ### Rendering Changes
 
 The TextArea rendering currently handles two style modes per line:
+
 1. Normal text (plain or with cursor)
 2. Selection (inverse)
 
@@ -160,6 +161,7 @@ Segments:
 ### 1. Segment splitting complexity
 
 Multiple overlapping decorations and selection create a complex segmentation problem. The algorithm must:
+
 - Collect all boundary points (decoration starts, ends, selection start, end)
 - Sort and deduplicate them
 - For each segment, determine the combined style by stacking applicable decorations
@@ -169,6 +171,7 @@ This is O(n log n) where n = number of boundary points, which is fine for typica
 ### 2. Performance with many decorations
 
 For syntax highlighting, there could be hundreds of decorations. The current TextArea re-renders all visible lines on every value change. With decorations, we need to:
+
 - Memoize the segment computation per line (if decorations haven't changed, reuse)
 - Consider a "decoration set" data structure that supports efficient position mapping after edits
 
@@ -177,6 +180,7 @@ For the initial implementation, simple array-of-decorations is sufficient. Optim
 ### 3. Interaction with selection
 
 Selection highlighting currently uses `<Text inverse>`. Decorations might also want to use `inverse`. Rules:
+
 - Selection always wins over decorations (standard text editor behavior)
 - Within selected text, decoration colors are ignored (all selected text looks the same)
 - Outside selection, decorations compose: later decorations override earlier for conflicting props

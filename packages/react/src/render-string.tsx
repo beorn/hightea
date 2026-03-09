@@ -24,16 +24,16 @@
  * ```
  */
 
-import React, { type ReactElement, act } from "react";
+import React, { type ReactElement, act } from "react"
 
-import { createTerm } from "@silvery/term/ansi";
+import { createTerm } from "@silvery/term/ansi"
 
-import { bufferToStyledText, bufferToText, type TerminalBuffer } from "@silvery/term/buffer";
-import { StdoutContext, TermContext } from "./context";
-import { isLayoutEngineInitialized } from "@silvery/term/layout-engine";
-import { executeRender, type PipelineConfig } from "@silvery/term/pipeline";
-import { createContainer, getContainerRoot } from "./reconciler";
-import { stringReconciler } from "./reconciler/string-reconciler";
+import { bufferToStyledText, bufferToText, type TerminalBuffer } from "@silvery/term/buffer"
+import { StdoutContext, TermContext } from "./context"
+import { isLayoutEngineInitialized } from "@silvery/term/layout-engine"
+import { executeRender, type PipelineConfig } from "@silvery/term/pipeline"
+import { createContainer, getContainerRoot } from "./reconciler"
+import { stringReconciler } from "./reconciler/string-reconciler"
 
 // ============================================================================
 // Types
@@ -47,26 +47,26 @@ export interface RenderStringOptions {
    * Width in columns for layout calculations.
    * Default: 80
    */
-  width?: number;
+  width?: number
 
   /**
    * Height in rows for layout calculations.
    * Default: 24
    */
-  height?: number;
+  height?: number
 
   /**
    * Strip ANSI codes for plain text output.
    * Default: false (includes ANSI styling)
    */
-  plain?: boolean;
+  plain?: boolean
 
   /**
    * Pipeline configuration (scoped width measurer + output phase).
    * When provided, the render pipeline uses these for width measurement
    * and output generation instead of the global defaults.
    */
-  pipelineConfig?: PipelineConfig;
+  pipelineConfig?: PipelineConfig
 }
 
 // ============================================================================
@@ -74,16 +74,16 @@ export interface RenderStringOptions {
 // ============================================================================
 
 // Track if we've initialized to avoid redundant imports
-let engineInitialized = false;
+let engineInitialized = false
 
 async function ensureLayoutEngine(): Promise<void> {
   if (engineInitialized || isLayoutEngineInitialized()) {
-    return;
+    return
   }
   // Use centralized default engine initialization
-  const { ensureDefaultLayoutEngine } = await import("@silvery/term/layout-engine");
-  await ensureDefaultLayoutEngine();
-  engineInitialized = true;
+  const { ensureDefaultLayoutEngine } = await import("@silvery/term/layout-engine")
+  await ensureDefaultLayoutEngine()
+  engineInitialized = true
 }
 
 // ============================================================================
@@ -106,12 +106,9 @@ async function ensureLayoutEngine(): Promise<void> {
  * console.log(output)
  * ```
  */
-export async function renderString(
-  element: ReactElement,
-  options: RenderStringOptions = {},
-): Promise<string> {
-  await ensureLayoutEngine();
-  return renderStringSync(element, options);
+export async function renderString(element: ReactElement, options: RenderStringOptions = {}): Promise<string> {
+  await ensureLayoutEngine()
+  return renderStringSync(element, options)
 }
 
 /**
@@ -133,18 +130,16 @@ export async function renderString(
  */
 export function renderStringSync(element: ReactElement, options: RenderStringOptions = {}): string {
   if (!isLayoutEngineInitialized()) {
-    throw new Error(
-      "Layout engine not initialized. Use renderString() (async) or initialize with setLayoutEngine().",
-    );
+    throw new Error("Layout engine not initialized. Use renderString() (async) or initialize with setLayoutEngine().")
   }
 
-  const { width = 80, height = 24, plain = false, pipelineConfig } = options;
+  const { width = 80, height = 24, plain = false, pipelineConfig } = options
 
   // Track whether React committed new work (from layout notifications etc.)
-  let hadReactCommit = false;
+  let hadReactCommit = false
   const container = createContainer(() => {
-    hadReactCommit = true;
-  });
+    hadReactCommit = true
+  })
 
   // Create fiber root using the dedicated string reconciler (not the main one)
   const fiberRoot = stringReconciler.createContainer(
@@ -158,7 +153,7 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
     () => {}, // onCaughtError
     () => {}, // onRecoverableError
     null, // onDefaultTransitionIndicator
-  );
+  )
 
   // Create minimal mock stdout for components that use useStdout
   const mockStdout = {
@@ -171,10 +166,10 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
     once: () => mockStdout,
     removeListener: () => mockStdout,
     addListener: () => mockStdout,
-  } as unknown as NodeJS.WriteStream;
+  } as unknown as NodeJS.WriteStream
 
   // Create mock term for components that use useTerm()
-  const mockTerm = createTerm({ color: plain ? null : "truecolor" });
+  const mockTerm = createTerm({ color: plain ? null : "truecolor" })
 
   // Wrap with minimal contexts (no input handling needed)
   const wrapped = React.createElement(
@@ -190,47 +185,47 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
       },
       element,
     ),
-  );
+  )
 
   // Mount the React tree inside act() so layout feedback works
   withActEnvironment(() => {
     act(() => {
-      stringReconciler.updateContainerSync(wrapped, fiberRoot, null, null);
-      stringReconciler.flushSyncWork();
-    });
-  });
+      stringReconciler.updateContainerSync(wrapped, fiberRoot, null, null)
+      stringReconciler.flushSyncWork()
+    })
+  })
 
   // Layout stabilization loop: run the pipeline, flush React work from
   // layout notifications (useContentRect forceUpdate etc.), repeat until stable.
   // This matches the test renderer's multi-pass approach.
-  let buffer!: TerminalBuffer;
-  const MAX_ITERATIONS = 5;
+  let buffer!: TerminalBuffer
+  const MAX_ITERATIONS = 5
   for (let i = 0; i < MAX_ITERATIONS; i++) {
-    hadReactCommit = false;
+    hadReactCommit = false
     withActEnvironment(() => {
       act(() => {
-        const root = getContainerRoot(container);
-        const result = executeRender(root, width, height, null, undefined, pipelineConfig);
-        buffer = result.buffer;
-      });
+        const root = getContainerRoot(container)
+        const result = executeRender(root, width, height, null, undefined, pipelineConfig)
+        buffer = result.buffer
+      })
       if (!hadReactCommit) {
         act(() => {
-          stringReconciler.flushSyncWork();
-        });
+          stringReconciler.flushSyncWork()
+        })
       }
-    });
-    if (!hadReactCommit) break;
+    })
+    if (!hadReactCommit) break
   }
 
   // Unmount (cleanup)
   withActEnvironment(() => {
     act(() => {
-      stringReconciler.updateContainerSync(null, fiberRoot, null, null);
-      stringReconciler.flushSyncWork();
-    });
-  });
+      stringReconciler.updateContainerSync(null, fiberRoot, null, null)
+      stringReconciler.flushSyncWork()
+    })
+  })
 
-  return plain ? bufferToText(buffer) : bufferToStyledText(buffer);
+  return plain ? bufferToText(buffer) : bufferToStyledText(buffer)
 }
 
 // ============================================================================
@@ -242,11 +237,11 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
  * This ensures act() captures forceUpdate/setState from layout notifications.
  */
 function withActEnvironment(fn: () => void): void {
-  const prev = (globalThis as any).IS_REACT_ACT_ENVIRONMENT;
-  (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  const prev = (globalThis as any).IS_REACT_ACT_ENVIRONMENT
+  ;(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true
   try {
-    fn();
+    fn()
   } finally {
-    (globalThis as any).IS_REACT_ACT_ENVIRONMENT = prev;
+    ;(globalThis as any).IS_REACT_ACT_ENVIRONMENT = prev
   }
 }

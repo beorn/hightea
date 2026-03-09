@@ -147,11 +147,11 @@ bun run bench:compare   # Head-to-head Silvery vs Ink 6
 ### Profile Specific Phases
 
 ```typescript
-import { measurePhase, layoutPhase, contentPhase, outputPhase } from "@silvery/term/pipeline";
+import { measurePhase, layoutPhase, contentPhase, outputPhase } from "@silvery/term/pipeline"
 
-const start = performance.now();
-measurePhase(root);
-console.log("measure:", performance.now() - start);
+const start = performance.now()
+measurePhase(root)
+console.log("measure:", performance.now() - start)
 ```
 
 ### Memory Profiling
