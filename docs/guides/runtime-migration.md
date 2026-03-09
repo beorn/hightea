@@ -1,6 +1,6 @@
-# Migration Guide: silvery → silvery/runtime
+# Migration Guide: Silvery → silvery/runtime
 
-This guide explains how to migrate from the legacy silvery API to the new silvery/runtime.
+This guide explains how to migrate from the legacy Silvery API to the new silvery/runtime.
 
 ## Why Migrate?
 
@@ -14,7 +14,7 @@ The new `silvery/runtime` API provides:
 
 ## Import Changes
 
-| Old (silvery)                              | New (silvery/runtime)                              |
+| Old (Silvery)                              | New (silvery/runtime)                              |
 | ------------------------------------------ | -------------------------------------------------- |
 | `import { render } from '@silvery/term'`   | `import { run } from '@silvery/term/runtime'`      |
 | `import { useInput } from '@silvery/term'` | `import { useInput } from '@silvery/term/runtime'` |
@@ -185,12 +185,12 @@ function Card() {
 
 ## Deprecated APIs
 
-The following from the old silvery API are **deprecated** and will be removed:
+The following from the old Silvery API are **deprecated** and will be removed:
 
 | Deprecated              | Replacement                                |
 | ----------------------- | ------------------------------------------ |
 | `render()`              | `run()` from silvery/runtime               |
-| `useInput` from silvery | `useInput` from silvery/runtime            |
+| `useInput` from Silvery | `useInput` from silvery/runtime            |
 | `useApp()` for exit     | `useExit()` or `return 'exit'`             |
 | `RenderScheduler`       | Built into `run()` with automatic batching |
 

@@ -1,6 +1,6 @@
 # Theming
 
-silvery provides a modern, progressively enhanced theme system with semantic color
+Silvery provides a modern, progressively enhanced theme system with semantic color
 tokens. Themes work across terminal capability tiers — from ANSI 16 colors to
 full 24-bit truecolor — using the same token vocabulary.
 

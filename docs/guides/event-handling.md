@@ -1,6 +1,6 @@
 # Event Handling
 
-> This page documents silvery's event handling APIs. For the guided progression from callbacks to composable plugins, see [Building an App](building-an-app.md).
+> This page documents Silvery's event handling APIs. For the guided progression from callbacks to composable plugins, see [Building an App](building-an-app.md).
 
 ---
 

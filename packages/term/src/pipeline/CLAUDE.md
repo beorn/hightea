@@ -1,6 +1,6 @@
 # Pipeline Internals
 
-Read this before modifying content-phase.ts, render-text.ts, render-box.ts, or layout-phase.ts. These files implement incremental rendering -- the most complex and bug-prone part of silvery.
+Read this before modifying content-phase.ts, render-text.ts, render-box.ts, or layout-phase.ts. These files implement incremental rendering -- the most complex and bug-prone part of Silvery.
 
 ## Pipeline Overview
 

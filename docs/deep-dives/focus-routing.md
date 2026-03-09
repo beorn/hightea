@@ -1,6 +1,6 @@
 # Focus-Based Input Routing
 
-Prescribed pattern for command-driven apps built on silvery. Routes all keyboard input through a centralized command/keybinding system using context predicates instead of per-component key handlers.
+Prescribed pattern for command-driven apps built on Silvery. Routes all keyboard input through a centralized command/keybinding system using context predicates instead of per-component key handlers.
 
 ## Problem
 

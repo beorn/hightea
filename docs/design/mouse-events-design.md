@@ -73,7 +73,7 @@ interface SilveryWheelEvent extends SilveryMouseEvent {
 
 ### Hit Test Implementation
 
-silvery already has `screenRect` on every node. The hit test walks the tree:
+Silvery already has `screenRect` on every node. The hit test walks the tree:
 
 ```typescript
 function hitTest(root: SilveryNode, x: number, y: number): SilveryNode | null {
@@ -182,7 +182,7 @@ function DetailPane({ content }: DetailPaneProps) {
 
 ## Migration from km-tui
 
-| Current (km-tui manual)                | New (silvery DOM events)                |
+| Current (km-tui manual)                | New (Silvery DOM events)                |
 | -------------------------------------- | --------------------------------------- |
 | `resolveMouseToNode(ctx, x, y)`        | `<Box onClick={(e) => ...}>`            |
 | `resolveMouseToColumn(ctx, x)`         | `<Box onClick={(e) => ...}>` on column  |
@@ -391,7 +391,7 @@ The km-tui app registers a `km://` handler at startup. All internal navigation g
 
 ### Integration with Mouse Events
 
-Links are regular silvery elements with:
+Links are regular Silvery elements with:
 
 - `screenRect` from the layout pipeline (automatic hit testing)
 - Default `onClick` that dispatches to scheme handlers
@@ -402,7 +402,7 @@ No special hit registry or manual coordinate resolution. The render tree IS the 
 
 ### Implementation with Existing Infrastructure
 
-silvery already has:
+Silvery already has:
 
 - OSC 8 hyperlink support in buffer cells (parseAnsiText, render-text, output-phase)
 - `hyperlink` field on Cell and FullCell types

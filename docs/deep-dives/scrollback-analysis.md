@@ -1,6 +1,6 @@
 # Scrollback Analysis: Interactivity in Inline Mode
 
-> **Bead**: km-silvery.scrollback-analysis
+> **Bead**: km-Silvery.scrollback-analysis
 > **Date**: 2026-02-25
 
 ## The Core Question
@@ -123,7 +123,7 @@ const frozenCount = useScrollback(exchanges, {
 
 Claude Code's inline mode has known issues:
 
-| Issue                                                   | Claude Code                                            | silvery with useScrollback                                                |
+| Issue                                                   | Claude Code                                            | Silvery with useScrollback                                                |
 | ------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------- |
 | Scrollback contains stale TUI frames                    | ✅ Problem — every viewport redraw pushes stale frames | ✅ **Solved** — frozen content is rendered once as clean text             |
 | Auto-scroll to top when output arrives during scroll-up | ✅ Problem (issue #10769)                              | ✅ **Solved** — live area stays at cursor, user's viewport is undisturbed |
@@ -147,7 +147,7 @@ This is essentially what useScrollback does natively — but at the framework le
 
 | Framework                   | Mode                 | Scrollback                     | Scroll Detection | Live Updates        |
 | --------------------------- | -------------------- | ------------------------------ | ---------------- | ------------------- |
-| **silvery (useScrollback)** | Inline               | Clean frozen content           | No               | Yes, small viewport |
+| **Silvery (useScrollback)** | Inline               | Clean frozen content           | No               | Yes, small viewport |
 | **Claude Code**             | Inline               | Stale frames                   | No               | Yes, full viewport  |
 | **pi-tui**                  | Inline               | Line-by-line native            | No               | Yes, differential   |
 | **BubbleTea**               | Alt screen (default) | None                           | N/A              | Full screen         |
@@ -185,7 +185,7 @@ Textual's inline mode anchors the frame to the bottom. Uses cursor repositioning
 
 ### 3. User Scrolls Up During Live Content
 
-**Current behavior**: silvery keeps rendering at the cursor position. The user's viewport is undisturbed (Ghostty default). When the user presses a key, the terminal scrolls back to the bottom.
+**Current behavior**: Silvery keeps rendering at the cursor position. The user's viewport is undisturbed (Ghostty default). When the user presses a key, the terminal scrolls back to the bottom.
 
 **The problem**: The user can't see live updates while scrolled up. They might miss important progress.
 
@@ -215,7 +215,7 @@ The `renderExchangeToJSX` function uses `process.stdout.columns || 80` for width
 2. **Consider adding**: A "session complete — press q to quit, scroll up to review" message when done, to encourage the user to explore the scrollback.
 3. **Consider adding**: Visual bell on compaction events if the user might be scrolled up.
 
-### For silvery Framework
+### For Silvery Framework
 
 1. **Document the pattern**: useScrollback + inline mode is the recommended way to build Claude Code-style apps. Document the tradeoffs clearly.
 2. **Consider**: An optional `scroll-to-bottom` hint that apps can emit (e.g., via OSC) for terminals that support it.

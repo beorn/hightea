@@ -1,10 +1,10 @@
 # Migration from Ink
 
-silvery is a drop-in replacement for Ink. Change your imports, and your app works.
+Silvery is a drop-in replacement for Ink. Change your imports, and your app works.
 
 ## Quick Start
 
-### Step 1: Install silvery
+### Step 1: Install Silvery
 
 ```bash
 bun remove ink ink-testing-library
@@ -56,10 +56,10 @@ const { unmount, waitUntilExit } = await render(<App />, term)
 - **Better testing**: Mock terms that capture output, simulate terminal sizes, or disable colors.
 - **Explicit cleanup**: The `using` keyword (TC39 Explicit Resource Management) automatically restores cursor, raw mode, and alternate screen when the scope exits.
 
-Without `createTerm()`, silvery creates a default term internally — matching Ink's behavior exactly.
+Without `createTerm()`, Silvery creates a default term internally — matching Ink's behavior exactly.
 
 ::: tip Why is render() async?
-`render()` returns a handle synchronously (like Ink), but `await`-ing it waits for layout engine initialization. With Flexture (the default), this is near-instant — just a dynamic `import()`. With Yoga, it's a genuine WASM compilation step. For fully synchronous rendering, use `renderSync()` after initializing the engine manually. Most apps should just `await render(<App />)`.
+`render()` returns a handle synchronously (like Ink), but `await`-ing it waits for layout engine initialization. With Flexily (the default), this is near-instant — just a dynamic `import()`. With Yoga, it's a genuine WASM compilation step. For fully synchronous rendering, use `renderSync()` after initializing the engine manually. Most apps should just `await render(<App />)`.
 :::
 
 ## What Works Identically
@@ -90,7 +90,7 @@ function Card({ width }: { width: number }) {
 ;<Card width={availableWidth - padding * 2} />
 ```
 
-**silvery**: Components can ask for their size.
+**Silvery**: Components can ask for their size.
 
 ```tsx
 // silvery: Just ask
@@ -114,7 +114,7 @@ function Card() {
 // Output: "This is a very long text" (overflows)
 ```
 
-**silvery**: Text wraps to fit its container by default (word-aware wrapping).
+**Silvery**: Text wraps to fit its container by default (word-aware wrapping).
 
 ```tsx
 // silvery: Text wraps to container width
@@ -142,7 +142,7 @@ You can also truncate with an ellipsis instead of wrapping:
 
 **Ink**: Components render once with final output.
 
-**silvery**: Components using `useContentRect()` render twice. First render has `{ width: 0, height: 0 }`, second has actual values.
+**Silvery**: Components using `useContentRect()` render twice. First render has `{ width: 0, height: 0 }`, second has actual values.
 
 ```tsx
 function Header() {
@@ -177,7 +177,7 @@ function Header() {
 />
 ```
 
-**silvery**: Just render everything.
+**Silvery**: Just render everything.
 
 ```tsx
 // silvery: No config needed
@@ -200,7 +200,7 @@ const { width } = measureElement(ref.current)
 // Need manual re-render to use width
 ```
 
-**silvery**: `measureElement()` works for compatibility, but `useContentRect()` is simpler.
+**Silvery**: `measureElement()` works for compatibility, but `useContentRect()` is simpler.
 
 ```tsx
 const { width } = useContentRect()
@@ -211,7 +211,7 @@ const { width } = useContentRect()
 
 **Ink**: `useLayout` (if available)
 
-**silvery**: `useContentRect()` is preferred. `useLayout` is a deprecated alias.
+**Silvery**: `useContentRect()` is preferred. `useLayout` is a deprecated alias.
 
 ```diff
 - const { width } = useLayout();
@@ -222,7 +222,7 @@ const { width } = useContentRect()
 
 ### By Design
 
-| Behavior                | Ink       | silvery | Reason                       |
+| Behavior                | Ink       | Silvery | Reason                       |
 | ----------------------- | --------- | ------- | ---------------------------- |
 | Text overflow           | Overflows | Wraps   | Better default               |
 | First render dimensions | N/A       | Zeros   | Required for layout feedback |
@@ -232,7 +232,7 @@ const { width } = useContentRect()
 
 | Issue             | Symptoms      | Workaround                             |
 | ----------------- | ------------- | -------------------------------------- |
-| Rapid re-renders  | Flicker       | silvery coalesces frames; usually fine |
+| Rapid re-renders  | Flicker       | Silvery coalesces frames; usually fine |
 | Deep nesting      | Slower layout | Flatten tree if possible               |
 | Custom reconciler | Breaks        | Not supported                          |
 
@@ -265,7 +265,7 @@ function Column({ width, items }) {
 }
 ```
 
-### After (silvery)
+### After (Silvery)
 
 ```tsx
 function Board() {

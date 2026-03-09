@@ -2,7 +2,7 @@
 
 > Start simple, sip some TEA (The Elm Architecture), or go full TEA.
 
-silvery is a React-based TUI framework with a graduated architecture. Your first app is five lines. When you need shared state, undo, testable I/O, or composable plugins — each level builds on the last. You never rewrite; you grow. The unifying idea: every level turns something invisible into data — state transitions, side effects, event processing — making it loggable, testable, replayable, and portable.
+Silvery is a React-based TUI framework with a graduated architecture. Your first app is five lines. When you need shared state, undo, testable I/O, or composable plugins — each level builds on the last. You never rewrite; you grow. The unifying idea: every level turns something invisible into data — state transitions, side effects, event processing — making it loggable, testable, replayable, and portable.
 
 ```tsx
 import { run, useInput } from "@silvery/term/runtime"
@@ -23,8 +23,8 @@ await run(<Counter />)
 
 ## Where to Start
 
-- **New to silvery?** Start with [Getting Started](guides/getting-started.md) -- build your first app in 5 minutes
-- **Migrating from Ink?** Read [silvery vs Ink](silvery-vs-ink.md) and [Migration Guide](guides/migration.md)
+- **New to Silvery?** Start with [Getting Started](guides/getting-started.md) -- build your first app in 5 minutes
+- **Migrating from Ink?** Read [Silvery vs Ink](Silvery-vs-ink.md) and [Migration Guide](guides/migration.md)
 - **Building an app?** [Components](reference/components.md) + [Hooks](reference/hooks.md) + [Input Features](reference/input-features.md)
 - **Testing?** [Testing](testing.md) + [Plugins](reference/plugins.md) (withCommands, withDiagnostics)
 - **Understanding internals?** [Architecture](deep-dives/architecture.md) → [Internals](deep-dives/internals.md) → [Performance](deep-dives/performance.md)
@@ -52,7 +52,7 @@ Tutorials, walkthroughs, and migration paths.
 | [Event Handling](guides/event-handling.md)                   | API reference: withDomEvents, withCommands, plugins, event sources          |
 | [Runtime Layers](guides/runtime-layers.md)                   | createApp, createRuntime, createStore, streams, tick sources                |
 | [Migration from Ink](guides/migration.md)                    | Drop-in migration guide                                                     |
-| [Migration from legacy silvery](guides/runtime-migration.md) | Migrating to silvery/runtime API                                            |
+| [Migration from legacy Silvery](guides/runtime-migration.md) | Migrating to silvery/runtime API                                            |
 
 ## Reference
 
@@ -73,7 +73,7 @@ API documentation for components, hooks, and subsystems.
 | [Terminal Lifecycle](reference/lifecycle.md)                | Suspend/resume (Ctrl+Z), interrupt (Ctrl+C), state save/restore      |
 | [Signals](reference/signals.md)                             | Fine-grained reactivity with @preact/signals-core                    |
 | [Robust Ops](reference/robust-ops.md)                       | Identity-based, idempotent ops for collaboration and sync            |
-| [Recipes](reference/recipes.md)                             | Common patterns for building silvery apps                            |
+| [Recipes](reference/recipes.md)                             | Common patterns for building Silvery apps                            |
 | [React DevTools](reference/devtools.md)                     | Connect React DevTools standalone for component tree inspection      |
 
 ## Deep Dives
@@ -108,7 +108,7 @@ Cross-cutting docs that don't fit a single category.
 | Document                              | Description                                                                |
 | ------------------------------------- | -------------------------------------------------------------------------- |
 | [Testing](testing.md)                 | Testing strategy, createRenderer, locators, withDiagnostics                |
-| [silvery vs Ink](silvery-vs-ink.md)   | Detailed feature/performance comparison with Ink                           |
+| [Silvery vs Ink](Silvery-vs-ink.md)   | Detailed feature/performance comparison with Ink                           |
 | [Benchmarks](benchmarks.md)           | Raw benchmark tables and data                                              |
 | [Comparison](comparison.md)           | Cross-framework comparison (BubbleTea, Textual, Notcurses, FTXUI, blessed) |
 | [Troubleshooting](troubleshooting.md) | Common issues and debugging                                                |

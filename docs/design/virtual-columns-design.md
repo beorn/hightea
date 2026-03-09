@@ -13,7 +13,7 @@ Apps rendering 2D grids (e.g. km-tui's kanban Board) need:
 3. **Position tracking** — know where each rendered item is on screen (x, y, width, height)
 4. **Cross-axis navigation** — move between columns at a consistent Y position ("stickyY")
 
-silvery already provides `VirtualList` (vertical) and `HorizontalVirtualList` (horizontal), but these are independent components with no shared position awareness. Currently km-tui bridges them with app-level code spread across four files:
+Silvery already provides `VirtualList` (vertical) and `HorizontalVirtualList` (horizontal), but these are independent components with no shared position awareness. Currently km-tui bridges them with app-level code spread across four files:
 
 | File                | Responsibility                                                                           | Lines |
 | ------------------- | ---------------------------------------------------------------------------------------- | ----- |
@@ -177,16 +177,16 @@ function getItemMidY(registry: PositionRegistry, sectionIndex: number, itemIndex
 
 These replace `findCardAtYVisual` and `getCardMidY` from `card-positions.ts`.
 
-### What stays in silvery vs what stays in km-tui
+### What stays in Silvery vs what stays in km-tui
 
 | Concern                                            | Location                                              | Rationale                                         |
 | -------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------- |
-| `PositionRegistry` (context + hook)                | silvery                                               | Generic — any 2D grid app needs position tracking |
-| `GridCell` (auto-registering wrapper)              | silvery                                               | Generic convenience component                     |
-| `useGridPosition` (hook)                           | silvery                                               | For apps that don't want the wrapper              |
-| `findCrossAxisTarget` / `getItemMidY`              | silvery                                               | Pure functions, reusable navigation logic         |
-| `stickyY` / `stickyX` state                        | silvery (inside PositionRegistry)                     | Core to cross-axis navigation UX                  |
-| Column scroll offset calculation                   | silvery (already exists: `calcEdgeBasedScrollOffset`) | Already in silvery                                |
+| `PositionRegistry` (context + hook)                | Silvery                                               | Generic — any 2D grid app needs position tracking |
+| `GridCell` (auto-registering wrapper)              | Silvery                                               | Generic convenience component                     |
+| `useGridPosition` (hook)                           | Silvery                                               | For apps that don't want the wrapper              |
+| `findCrossAxisTarget` / `getItemMidY`              | Silvery                                               | Pure functions, reusable navigation logic         |
+| `stickyY` / `stickyX` state                        | Silvery (inside PositionRegistry)                     | Core to cross-axis navigation UX                  |
+| Column scroll offset calculation                   | Silvery (already exists: `calcEdgeBasedScrollOffset`) | Already in Silvery                                |
 | Column width calculation                           | km-tui (`board-layout.ts`)                            | App-specific (indicator widths, separator counts) |
 | `ScrollTrackingVirtualList`                        | km-tui                                                | App-specific (CursorStore integration)            |
 | View-specific rendering (Board, ColumnsView, etc.) | km-tui                                                | App-level layout decisions                        |
@@ -257,15 +257,15 @@ Alternatively, apps can call `registry.updateHead(sectionIndex, itemIndex, headY
 
 ## Migration Path
 
-### Phase 1: Extract PositionRegistry to silvery (non-breaking)
+### Phase 1: Extract PositionRegistry to Silvery (non-breaking)
 
-1. Create `src/hooks/usePositionRegistry.ts` in silvery with the `PositionRegistry` interface
-2. Create `src/components/GridCell.tsx` in silvery
+1. Create `src/hooks/usePositionRegistry.ts` in Silvery with the `PositionRegistry` interface
+2. Create `src/components/GridCell.tsx` in Silvery
 3. Create `src/navigation/cross-axis.ts` with `findCrossAxisTarget`, `getItemMidY`
 4. Export from `silvery` main entry point
 5. km-tui continues using its own `LayoutRegistry` — no changes yet
 
-### Phase 2: Migrate km-tui to silvery primitives (incremental)
+### Phase 2: Migrate km-tui to Silvery primitives (incremental)
 
 1. Wrap Board root with `<PositionRegistryProvider>`
 2. Replace `CardLayoutRegistrar` with `GridCell` in `CardColumn.tsx`
@@ -282,7 +282,7 @@ Each phase is independently shippable and testable. Phase 1 has zero risk (addit
 
 ## Test Strategy
 
-### Unit tests (in silvery)
+### Unit tests (in Silvery)
 
 1. **PositionRegistry lifecycle**: register, unregister, clear. Verify no stale entries after unmount.
 2. **findCrossAxisTarget**: Given positions in two sections, verify correct target for various stickyY values. Edge cases: empty section, single item, all items below/above target.
@@ -333,13 +333,13 @@ export { calcEdgeBasedScrollOffset } from "./scroll-utils"
 
 **Chosen: Composable primitives.** A monolithic `VirtualGrid` would be easier to use for the simple case but harder to customize. km-tui has four view modes with different column layouts, headers, separators, and item renderers. A component-level API would need dozens of render props to cover all variations. Composable hooks + a thin wrapper component give the same safety guarantees (auto-cleanup) with full flexibility.
 
-### Position registry in silvery vs km-tui
+### Position registry in Silvery vs km-tui
 
-**Chosen: silvery.** The registry is generic infrastructure for any 2D virtualized layout. Keeping it in km-tui means every future silvery consumer must reinvent it. The stickyY/stickyX navigation pattern is terminal-UI-specific but universally useful for keyboard-driven grid navigation.
+**Chosen: Silvery.** The registry is generic infrastructure for any 2D virtualized layout. Keeping it in km-tui means every future Silvery consumer must reinvent it. The stickyY/stickyX navigation pattern is terminal-UI-specific but universally useful for keyboard-driven grid navigation.
 
 ### Keying by (sectionIndex, itemIndex) vs node ID
 
-**Chosen: (sectionIndex, itemIndex).** This matches how virtualization works — items are identified by their position in the grid, not by domain-specific IDs. The registry also stores node IDs for reverse lookup, but the primary key is positional. This avoids coupling silvery to any particular data model.
+**Chosen: (sectionIndex, itemIndex).** This matches how virtualization works — items are identified by their position in the grid, not by domain-specific IDs. The registry also stores node IDs for reverse lookup, but the primary key is positional. This avoids coupling Silvery to any particular data model.
 
 ### Head measurement (for stickyY)
 

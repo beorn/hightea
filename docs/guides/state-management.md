@@ -1,6 +1,6 @@
 # State Management
 
-> This page documents silvery's state management APIs. For the guided progression from `useState` to TEA, see [Building an App](building-an-app.md).
+> This page documents Silvery's state management APIs. For the guided progression from `useState` to TEA, see [Building an App](building-an-app.md).
 
 ---
 

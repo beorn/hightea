@@ -56,7 +56,7 @@ batch(() => {
 
 Signals are orthogonal to the levels — you can use them at Level 2 or Level 5. They're a performance optimization, not a conceptual shift. If your app doesn't have performance issues with selectors, skip them.
 
-> **Silvery:** A bridge middleware connects signals to Zustand — when any signal's `.value` changes, Zustand subscribers are also notified. This is why we use `@preact/signals-core` (not `-react`): silvery's bridge handles the React integration.
+> **Silvery:** A bridge middleware connects signals to Zustand — when any signal's `.value` changes, Zustand subscribers are also notified. This is why we use `@preact/signals-core` (not `-react`): Silvery's bridge handles the React integration.
 
 ## Scaling to Thousands of Items
 

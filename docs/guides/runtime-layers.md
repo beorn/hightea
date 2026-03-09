@@ -1,6 +1,6 @@
 # Runtime Layers Reference
 
-silvery's runtime is organized in layers, each building on the one below — the infrastructure that makes the graduated path possible. For a quick tutorial, see [Getting Started](getting-started.md). For the graduated progression through state and events, see [Building an App](building-an-app.md).
+Silvery's runtime is organized in layers, each building on the one below — the infrastructure that makes the graduated path possible. For a quick tutorial, see [Getting Started](getting-started.md). For the graduated progression through state and events, see [Building an App](building-an-app.md).
 
 ## Architecture
 

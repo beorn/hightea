@@ -494,7 +494,7 @@ The selected card has inverted colors:
 >
 ```
 
-## Key silvery Features Used
+## Key Silvery Features Used
 
 | Feature             | Usage                                    |
 | ------------------- | ---------------------------------------- |
@@ -505,9 +505,9 @@ The selected card has inverted colors:
 | `useInput()`        | Two-axis keyboard navigation             |
 | Variable heights    | Cards with tags are taller               |
 
-### Why silvery for Kanban Boards
+### Why Silvery for Kanban Boards
 
-- **Focus system** -- Tree-based spatial navigation lets users press Left/Right to move between columns and Up/Down within them. Mark any `Box` as `focusable`, add `autoFocus` to the default card, and silvery handles Tab cycling and `useFocusWithin` for column-level focus indicators.
+- **Focus system** -- Tree-based spatial navigation lets users press Left/Right to move between columns and Up/Down within them. Mark any `Box` as `focusable`, add `autoFocus` to the default card, and Silvery handles Tab cycling and `useFocusWithin` for column-level focus indicators.
 
 - **Mouse support** -- SGR mouse protocol gives you `onClick` and `onDoubleClick` props on card components, `onWheel` for per-column scrolling, and automatic click-to-focus so users can click a card in any column to jump directly to it.
 
@@ -534,7 +534,7 @@ This makes moving cards a simple filter/concat operation.
 
 ### Scroll Independence
 
-Each `CardList` component has its own `overflow="scroll"`. silvery handles multiple scroll regions on the same screen automatically - no coordination needed.
+Each `CardList` component has its own `overflow="scroll"`. Silvery handles multiple scroll regions on the same screen automatically - no coordination needed.
 
 ### Empty State
 

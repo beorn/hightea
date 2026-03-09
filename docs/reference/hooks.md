@@ -13,7 +13,7 @@ function ResponsiveCard() {
 }
 ```
 
-This is silvery's core innovation — components know their size _during_ render, not after.
+This is Silvery's core innovation — components know their size _during_ render, not after.
 
 ## useScreenRect
 
@@ -233,7 +233,7 @@ function Navigation() {
 | `enableFocus`   | `() => void`           | No-op (kept for Ink API compatibility) |
 | `disableFocus`  | `() => void`           | No-op (kept for Ink API compatibility) |
 
-For new code, prefer `useFocusManager()` which returns the full silvery focus manager API.
+For new code, prefer `useFocusManager()` which returns the full Silvery focus manager API.
 
 ## usePaste
 

@@ -27,7 +27,7 @@ function render(element: ReactElement, term?: Term | TermDef, options?: RenderOp
 | Option            | Type      | Default | Description                                             |
 | ----------------- | --------- | ------- | ------------------------------------------------------- |
 | `exitOnCtrlC`     | `boolean` | `true`  | Exit the app when Ctrl+C is pressed                     |
-| `patchConsole`    | `boolean` | `true`  | Patch console methods to work with silvery output       |
+| `patchConsole`    | `boolean` | `true`  | Patch console methods to work with Silvery output       |
 | `debug`           | `boolean` | `false` | Enable verbose debug logging                            |
 | `alternateScreen` | `boolean` | `false` | Use alternate screen buffer (restores terminal on exit) |
 

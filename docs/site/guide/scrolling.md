@@ -4,7 +4,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 # Scrolling
 
-silvery makes scrolling effortless. Just render your content and let silvery handle the rest.
+Silvery makes scrolling effortless. Just render your content and let Silvery handle the rest.
 
 <LiveDemo xtermSrc="/examples/showcase.html?demo=scroll" :height="300" />
 
@@ -28,7 +28,7 @@ function App() {
 }
 ```
 
-silvery will:
+Silvery will:
 
 - Measure all 100 children
 - Determine which fit in the viewport
@@ -69,7 +69,7 @@ The selected item will be centered in the viewport when possible.
 
 ## Variable Height Items
 
-silvery handles variable heights automatically:
+Silvery handles variable heights automatically:
 
 ```tsx
 function TaskList({ tasks, selectedIndex }) {
@@ -100,11 +100,11 @@ function TaskRow({ task, isSelected }) {
 }
 ```
 
-**No height estimation needed.** silvery uses Yoga to measure each item's actual height.
+**No height estimation needed.** Silvery uses Yoga to measure each item's actual height.
 
 ## How It Works
 
-silvery uses a **measure-then-render** approach:
+Silvery uses a **measure-then-render** approach:
 
 ```
 1. React creates all child elements
@@ -114,7 +114,7 @@ silvery uses a **measure-then-render** approach:
 5. Paint visible content to terminal
 ```
 
-**Key insight**: Yoga layout is extremely fast. The expensive part is building terminal strings. silvery skips that for non-visible items.
+**Key insight**: Yoga layout is extremely fast. The expensive part is building terminal strings. Silvery skips that for non-visible items.
 
 ### Performance
 
@@ -158,7 +158,7 @@ If users can't reasonably navigate 10,000 items, scrolling isn't the answer.
 />
 ```
 
-**silvery**: Just render everything
+**Silvery**: Just render everything
 
 ```tsx
 // It just works

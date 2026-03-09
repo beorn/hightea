@@ -1,6 +1,6 @@
 # Terminal Compatibility Matrix
 
-Comprehensive reference of terminal emulator feature support as detected by silvery.
+Comprehensive reference of terminal emulator feature support as detected by Silvery.
 
 ## Capability Matrix
 
@@ -112,7 +112,7 @@ Comprehensive reference of terminal emulator feature support as detected by silv
 
 ## Detection Method
 
-silvery detects capabilities synchronously from environment variables at startup:
+Silvery detects capabilities synchronously from environment variables at startup:
 
 | Variable       | Purpose                                               |
 | -------------- | ----------------------------------------------------- |

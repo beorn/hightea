@@ -1,6 +1,6 @@
 # Silvery Internals: How the Reconciler Works
 
-This document explains silvery's architecture for contributors. Read this if you want to understand how layout feedback actually works.
+This document explains Silvery's architecture for contributors. Read this if you want to understand how layout feedback actually works.
 
 ---
 
@@ -23,7 +23,7 @@ The problem: Components execute (return JSX) **before** Yoga calculates layout. 
 
 ## Silvery's Solution: Deferred Content Rendering
 
-silvery separates **structure** from **content**:
+Silvery separates **structure** from **content**:
 
 ```
 React.render(<App />)
@@ -625,7 +625,7 @@ test("diff emits minimal changes", () => {
 
 ## Suspense Support (hideInstance/unhideInstance)
 
-React Suspense requires the renderer to hide and unhide subtrees when components suspend. silvery implements this via the `hideInstance` and `unhideInstance` host config methods.
+React Suspense requires the renderer to hide and unhide subtrees when components suspend. Silvery implements this via the `hideInstance` and `unhideInstance` host config methods.
 
 ### How Suspension Works
 

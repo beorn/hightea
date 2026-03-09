@@ -102,5 +102,5 @@ function DebugComponent() {
 
 - The `stdout` object is the standard Node.js `WriteStream`
 - Use `stdout.columns` and `stdout.rows` for terminal dimensions
-- The `write` function bypasses silvery rendering and writes directly to the terminal
-- Direct writes may interfere with silvery's output - use sparingly
+- The `write` function bypasses Silvery rendering and writes directly to the terminal
+- Direct writes may interfere with Silvery's output - use sparingly

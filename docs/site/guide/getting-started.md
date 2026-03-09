@@ -4,7 +4,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 # Getting Started
 
-silvery is a terminal UI framework for React that lets components know their computed dimensions. It's a drop-in replacement for Ink with one key addition: the `useContentRect()` hook.
+Silvery is a terminal UI framework for React that lets components know their computed dimensions. It's a drop-in replacement for Ink with one key addition: the `useContentRect()` hook.
 
 ## Installation
 
@@ -56,11 +56,11 @@ bun app.tsx
 # or: npx tsx app.tsx
 ```
 
-You should see a rounded box with "Hello from silvery!" inside.
+You should see a rounded box with "Hello from Silvery!" inside.
 
 ## Using Layout Feedback
 
-The key feature of silvery is `useContentRect()`. Components can query their computed dimensions:
+The key feature of Silvery is `useContentRect()`. Components can query their computed dimensions:
 
 ```tsx
 import { Box, Text, render, useContentRect, createTerm } from "@silvery/term"
@@ -94,7 +94,7 @@ Each `SizedBox` will display its actual computed dimensions. No prop threading n
 
 ## Scrollable Lists
 
-silvery handles scrolling automatically. Just use `overflow="scroll"`:
+Silvery handles scrolling automatically. Just use `overflow="scroll"`:
 
 ```tsx
 import { Box, Text, render, useInput, createTerm } from "@silvery/term"
@@ -125,7 +125,7 @@ using term = createTerm()
 await render(<App />, term)
 ```
 
-silvery measures all children, calculates which are visible, and only renders content for visible items. No height estimation or virtualization config needed.
+Silvery measures all children, calculates which are visible, and only renders content for visible items. No height estimation or virtualization config needed.
 
 ## Next Steps
 

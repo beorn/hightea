@@ -1,6 +1,6 @@
 # Viewport Architecture
 
-How silvery manages fullscreen apps, scrollback-based apps, and virtualized scrolling — using composable root components with a shared virtualization engine.
+How Silvery manages fullscreen apps, scrollback-based apps, and virtualized scrolling — using composable root components with a shared virtualization engine.
 
 ## Mental Model
 
@@ -8,7 +8,7 @@ A terminal has two regions: the **screen** (the visible grid) and the **scrollba
 
 History ⊃ Screen. The screen is always the bottom N rows of history.
 
-silvery manages three zones:
+Silvery manages three zones:
 
 ```
 ┌─────────────────────┐
@@ -144,7 +144,7 @@ The component is mounted in the React tree, rendering normally. It participates 
 
 ### Virtualized (Dynamic Scrollback)
 
-The component has scrolled out of the visible area into the **dynamic** section of scrollback. silvery:
+The component has scrolled out of the visible area into the **dynamic** section of scrollback. Silvery:
 
 1. Renders it to a string snapshot
 2. Commits the snapshot to terminal scrollback (ScrollbackView) or unmounts it (VirtualView)
@@ -155,7 +155,7 @@ The item can be re-mounted if it scrolls back into view (VirtualView) or re-rend
 
 ### Static (Static Scrollback)
 
-The item crosses the static boundary and becomes **rendered final**. Data is dropped — the string snapshot may still exist in the terminal's scrollback buffer, but silvery no longer tracks it. This happens when items age past `maxHistory` (in terminal lines) or when `viewport.compact()` is called.
+The item crosses the static boundary and becomes **rendered final**. Data is dropped — the string snapshot may still exist in the terminal's scrollback buffer, but Silvery no longer tracks it. This happens when items age past `maxHistory` (in terminal lines) or when `viewport.compact()` is called.
 
 ### No Paused State
 

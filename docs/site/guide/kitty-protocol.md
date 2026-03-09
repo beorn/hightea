@@ -1,6 +1,6 @@
 # Kitty Keyboard Protocol Support
 
-silvery fully supports the Kitty keyboard protocol for unambiguous key identification, modifier detection, and key event types.
+Silvery fully supports the Kitty keyboard protocol for unambiguous key identification, modifier detection, and key event types.
 
 ## What is the Kitty Keyboard Protocol?
 
@@ -42,7 +42,7 @@ Enhancement flags (binary bitmask):
 | 0b1000  | 8     | **Report all keys as escape codes** - Even plain letters                |
 | 0b10000 | 16    | **Report associated text** - Include Unicode text for the key           |
 
-For silvery, flags `1` (disambiguate) and `2` (event types) are the most valuable.
+For Silvery, flags `1` (disambiguate) and `2` (event types) are the most valuable.
 
 ### Key Encoding Format
 
@@ -186,7 +186,7 @@ If the terminal doesn't respond to `CSI ? u`, it will respond to `CSI c` (device
 2. If you get `CSI ? <n> u` before `CSI ? <attrs> c`, protocol is supported
 3. If you only get device attributes, protocol is not supported
 
-## Usage in silvery
+## Usage in Silvery
 
 ### Enabling the Protocol
 
@@ -202,7 +202,7 @@ import { KittyFlags } from "@silvery/term"
 await run(<App />, { kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS })
 ```
 
-silvery handles the full lifecycle: query support, enable on startup, disable on exit (including crash/SIGINT).
+Silvery handles the full lifecycle: query support, enable on startup, disable on exit (including crash/SIGINT).
 
 ### Enhanced Key Fields
 

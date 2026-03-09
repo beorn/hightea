@@ -1,6 +1,6 @@
 # Recipes
 
-Common patterns for building silvery apps.
+Common patterns for building Silvery apps.
 
 ## Modal Dialog
 

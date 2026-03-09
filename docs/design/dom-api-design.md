@@ -26,7 +26,7 @@ Three steps (create term, render, wait) for the most common case. The `using` ke
 
 ### 2. Two divergent render APIs
 
-silvery has two separate render implementations:
+Silvery has two separate render implementations:
 
 - **`render.tsx`** (old): `render(element, term?, options?)` -- async, returns `Instance` with `rerender/unmount/waitUntilExit`. Used by `storybook.tsx` and legacy apps.
 - **`renderer.ts`** (new): `render(element, options?)` -- sync, returns `App` with locators, `press()`, `text`, `ansi`. Used by testing and the headless pipeline.
@@ -109,8 +109,8 @@ interface RootOptions {
   alternateScreen?: boolean
   /** Enable exit on Ctrl+C. Default: true */
   exitOnCtrlC?: boolean
-  /** Layout engine. Default: 'flexture' */
-  layoutEngine?: "flexture" | "yoga"
+  /** Layout engine. Default: 'flexily' */
+  layoutEngine?: "flexily" | "yoga"
   /** Abort signal for external cleanup */
   signal?: AbortSignal
 }
@@ -177,7 +177,7 @@ The test renderer already has the right ergonomics. No changes needed -- it retu
 
 ### Comparison with DOM API
 
-| DOM (React 18)                         | silvery (proposed)                         |
+| DOM (React 18)                         | Silvery (proposed)                         |
 | -------------------------------------- | ------------------------------------------ |
 | `const root = createRoot(container)`   | `const root = await silvery.createRoot()`  |
 | `root.render(<App />)`                 | `root.render(<App />)`                     |
@@ -185,7 +185,7 @@ The test renderer already has the right ergonomics. No changes needed -- it retu
 | `createRoot(childDiv).render(<Sub />)` | `root.createRoot(locator).render(<Sub />)` |
 | `createPortal(children, container)`    | (nested root is the equivalent)            |
 
-Key difference: DOM has a physical `container` (HTMLElement). silvery has an abstract render target -- either a terminal (the "document") or a region identified by an `AutoLocator`. The locator's `boundingBox()` defines the nested root's dimensions and position.
+Key difference: DOM has a physical `container` (HTMLElement). Silvery has an abstract render target -- either a terminal (the "document") or a region identified by an `AutoLocator`. The locator's `boundingBox()` defines the nested root's dimensions and position.
 
 ### Relation to existing layers
 

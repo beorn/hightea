@@ -1,6 +1,6 @@
-# Contributing to silvery
+# Contributing to Silvery
 
-Thank you for your interest in contributing to silvery! This guide covers everything you need to get started.
+Thank you for your interest in contributing to Silvery! This guide covers everything you need to get started.
 
 ## Development Setup
 
@@ -73,7 +73,7 @@ bun run test:fast
 
 ### Using createRenderer
 
-silvery provides a testing library with auto-cleanup between renders:
+Silvery provides a testing library with auto-cleanup between renders:
 
 ```tsx
 import { createRenderer } from "@silvery/term/testing"

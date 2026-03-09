@@ -2,13 +2,13 @@
 
 > **The core innovation isn't "terminal rendering" — it's two-phase rendering with synchronous layout feedback.**
 
-This document describes silvery's higher-level architecture and identifies where its patterns can add value beyond terminals.
+This document describes Silvery's higher-level architecture and identifies where its patterns can add value beyond terminals.
 
 ## The Core Innovation
 
-silvery solves a universal problem across React renderers: **components can't know their size during render**.
+Silvery solves a universal problem across React renderers: **components can't know their size during render**.
 
-| Problem                                | React DOM               | React Native      | silvery         |
+| Problem                                | React DOM               | React Native      | Silvery         |
 | -------------------------------------- | ----------------------- | ----------------- | --------------- |
 | Component knows its size during render | No                      | No                | **Yes**         |
 | Layout-dependent content               | Effect + ResizeObserver | onLayout callback | **Synchronous** |
@@ -22,7 +22,7 @@ This pattern has precedent:
 - **CSS Container Queries**: Browsers added containment APIs (2022+) to enable this pattern declaratively
 - **Facebook's Litho/ComponentKit**: Off-main-thread layout calculation for mobile (~35% scroll improvement)
 
-The existence of these solutions validates the need. silvery brings this pattern to React with a pluggable architecture.
+The existence of these solutions validates the need. Silvery brings this pattern to React with a pluggable architecture.
 
 ## Layer Architecture
 
@@ -30,7 +30,7 @@ The existence of these solutions validates the need. silvery brings this pattern
 ┌────────────────────────────────────────────────────────────────────┐
 │                         @silvery/core                                 │
 │  ├── React reconciler (SilveryNode tree)                             │
-│  ├── Layout engine interface (pluggable: Yoga, Flexture, custom)     │
+│  ├── Layout engine interface (pluggable: Yoga, Flexily, custom)     │
 │  ├── Two-phase pipeline (measure → layout → render)               │
 │  ├── Hooks: useContentRect(), useScreenRect()                     │
 │  └── Style system (merging, layering, category-based)             │
@@ -55,7 +55,7 @@ The existence of these solutions validates the need. silvery brings this pattern
 **@silvery/core** contains everything that doesn't depend on the render target:
 
 1. **React Reconciler** - Custom host config that builds SilveryNode tree
-2. **Layout Engine Abstraction** - Interface supporting Yoga, Flexture, or custom engines
+2. **Layout Engine Abstraction** - Interface supporting Yoga, Flexily, or custom engines
 3. **Two-Phase Pipeline Orchestration** - Measure → Layout → Content render sequence
 4. **Layout Hooks** - `useContentRect()`, `useScreenRect()` implementation
 5. **Style System** - Category-based merging (container, text, decorations, emphasis)
@@ -68,7 +68,7 @@ Each render adapter handles:
 2. **Buffer Management** - Creating and managing output buffers
 3. **Content Writing** - Writing styled content to buffers
 4. **Output Flushing** - Sending buffer to output (terminal, canvas, native view)
-5. **Input Events** - Translating platform events to silvery events
+5. **Input Events** - Translating platform events to Silvery events
 
 ## RenderAdapter Interface
 
@@ -192,7 +192,7 @@ Would follow the same `RenderAdapter` interface when implemented.
 
 ## The Two-Phase Pipeline
 
-silvery's core innovation is separating **structure** from **content**:
+Silvery's core innovation is separating **structure** from **content**:
 
 ```
 Phase 0: RECONCILIATION
@@ -253,7 +253,7 @@ function BadComponent() {
 
 ### Solution: Containment Rules
 
-silvery follows similar principles to CSS Container Queries:
+Silvery follows similar principles to CSS Container Queries:
 
 1. **Layout dimensions are read-only during render** - Components observe dimensions, they don't reactively resize based on them
 2. **Content adapts to size, not vice versa** - Truncation, scrolling, responsive content selection
@@ -294,7 +294,7 @@ function Oscillating() {
 
 ## Layout Engine Abstraction
 
-silvery supports pluggable layout engines through a common interface:
+Silvery supports pluggable layout engines through a common interface:
 
 ```typescript
 interface LayoutEngine {
@@ -328,7 +328,7 @@ interface ComputedLayout {
 
 | Engine                 | Bundle Size | Speed       | Notes                         |
 | ---------------------- | ----------- | ----------- | ----------------------------- |
-| **Flexture** (default) | 7 KB gzip   | 2.5x faster | Pure JS, synchronous init     |
+| **Flexily** (default) | 7 KB gzip   | 2.5x faster | Pure JS, synchronous init     |
 | **Yoga**               | 38 KB gzip  | Baseline    | WASM, async init, RTL support |
 
 ## Package Decomposition (Future)

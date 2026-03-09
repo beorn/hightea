@@ -1,6 +1,6 @@
 # React 19 Compatibility
 
-silvery is fully compatible with React 19. This guide covers React 19 specific features and how they work with silvery.
+Silvery is fully compatible with React 19. This guide covers React 19 specific features and how they work with Silvery.
 
 ## Version Requirements
 
@@ -15,11 +15,11 @@ silvery is fully compatible with React 19. This guide covers React 19 specific f
 }
 ```
 
-silvery supports both React 18 and React 19 as peer dependencies. The `react-reconciler` version 0.33+ includes the necessary APIs for React 19 compatibility.
+Silvery supports both React 18 and React 19 as peer dependencies. The `react-reconciler` version 0.33+ includes the necessary APIs for React 19 compatibility.
 
 ## Reconciler Configuration
 
-silvery uses `react-reconciler` to integrate with React's rendering system. For React 19 (reconciler 0.33+), the following host config methods are required:
+Silvery uses `react-reconciler` to integrate with React's rendering system. For React 19 (reconciler 0.33+), the following host config methods are required:
 
 ```typescript
 // Update priority management (required for 0.33+)
@@ -39,7 +39,7 @@ HostTransitionContext: Context<null>
 shouldAttemptEagerTransition(): boolean
 ```
 
-These are all implemented in silvery's reconciler, ensuring compatibility with React 19's concurrent features.
+These are all implemented in Silvery's reconciler, ensuring compatibility with React 19's concurrent features.
 
 ## Supported React 19 Features
 
@@ -103,7 +103,7 @@ Terminal UIs typically don't benefit as much from Suspense as web apps, but it's
 
 ### StrictMode
 
-StrictMode works correctly with silvery. Double-rendering in development mode (for detecting side effects) doesn't cause output issues:
+StrictMode works correctly with Silvery. Double-rendering in development mode (for detecting side effects) doesn't cause output issues:
 
 ```tsx
 import { StrictMode } from "react"
@@ -128,7 +128,7 @@ await render(
 
 ### Concurrent Rendering
 
-silvery supports React's concurrent rendering features. The reconciler properly handles:
+Silvery supports React's concurrent rendering features. The reconciler properly handles:
 
 - **useTransition**: For non-blocking state updates
 - **useDeferredValue**: For deferring expensive re-renders
@@ -161,7 +161,7 @@ function SearchResults() {
 
 ## Testing with React 19
 
-The silvery testing library is configured for React 19's act() requirements:
+The Silvery testing library is configured for React 19's act() requirements:
 
 ```tsx
 import { createRenderer } from "@silvery/term/testing"
@@ -182,10 +182,10 @@ The testing environment automatically:
 
 ## Migration from React 18
 
-If upgrading from React 18, no changes to your silvery code are required. The transition is seamless:
+If upgrading from React 18, no changes to your Silvery code are required. The transition is seamless:
 
 1. Update React to version 19
-2. silvery automatically uses the appropriate reconciler APIs
+2. Silvery automatically uses the appropriate reconciler APIs
 3. All existing code continues to work
 
 ## Known Limitations
@@ -220,7 +220,7 @@ bun pm ls react
 
 ### Console Warnings About Deprecated APIs
 
-silvery's reconciler implementation uses the modern 0.33+ API. If you see deprecation warnings, they're likely from other dependencies. Check that all dependencies are up to date.
+Silvery's reconciler implementation uses the modern 0.33+ API. If you see deprecation warnings, they're likely from other dependencies. Check that all dependencies are up to date.
 
 ### StrictMode Double Effects
 

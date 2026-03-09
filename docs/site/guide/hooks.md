@@ -1,10 +1,10 @@
 # Hooks
 
-silvery provides the same hooks as Ink, plus layout feedback hooks.
+Silvery provides the same hooks as Ink, plus layout feedback hooks.
 
 ## useContentRect
 
-**silvery only** - The key addition. Returns the computed dimensions of the component's container.
+**Silvery only** - The key addition. Returns the computed dimensions of the component's container.
 
 ```tsx
 import { Box, Text, useContentRect } from "@silvery/term"
@@ -57,7 +57,7 @@ In practice, both renders happen before the first paint, so this is usually invi
 
 ## useTerm
 
-**silvery only** - Access the Term instance for terminal capabilities and styling.
+**Silvery only** - Access the Term instance for terminal capabilities and styling.
 
 ```tsx
 import { useTerm } from "@silvery/term"

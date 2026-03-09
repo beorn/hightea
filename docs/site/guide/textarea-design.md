@@ -1,6 +1,6 @@
 # TextArea Component Design
 
-This document describes the TextArea component in silvery. The core component is implemented and shipped, with some advanced features still planned.
+This document describes the TextArea component in Silvery. The core component is implemented and shipped, with some advanced features still planned.
 
 ## Overview
 
@@ -32,7 +32,7 @@ Single-line input is sufficient for simple prompts, but many applications need:
 - **Note taking** - Free-form text entry
 - **Configuration editors** - Multi-line config values
 
-Ink users have requested this ([#676](https://github.com/vadimdemedes/ink/issues/676)) but Ink's architecture makes it difficult. silvery's `useContentRect()` provides the dimension awareness needed to implement TextArea properly.
+Ink users have requested this ([#676](https://github.com/vadimdemedes/ink/issues/676)) but Ink's architecture makes it difficult. Silvery's `useContentRect()` provides the dimension awareness needed to implement TextArea properly.
 
 ### Challenges in Terminal
 
@@ -537,7 +537,7 @@ The `submitKey` prop controls Enter behavior:
 | `"ctrl+enter"` | Newline | Newline     | Submit     |
 | `"meta+enter"` | Newline | Newline     | Newline    |
 
-Note: `meta+enter` requires the [Kitty keyboard protocol](/guide/kitty-protocol) since legacy ANSI cannot encode Meta+Enter. The terminal sends `CSI 13;3u` which silvery parses into `key.return + key.meta`.
+Note: `meta+enter` requires the [Kitty keyboard protocol](/guide/kitty-protocol) since legacy ANSI cannot encode Meta+Enter. The terminal sends `CSI 13;3u` which Silvery parses into `key.return + key.meta`.
 
 ## CJK and Unicode Handling
 
@@ -642,7 +642,7 @@ This allows building custom TextArea variants while reusing the core logic.
 
 ## Integration with useContentRect
 
-TextArea benefits from silvery's `useContentRect()`:
+TextArea benefits from Silvery's `useContentRect()`:
 
 ```tsx
 function TextArea({ value, onChange, height = 3 }: TextAreaProps) {

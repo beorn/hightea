@@ -13,7 +13,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 # Data Explorers & Tables
 
-Terminal data explorers need to handle thousands of rows, resize gracefully across terminal widths, and respond instantly to search queries. silvery provides the primitives that make this straightforward: a `Table` component with column alignment, `VirtualList` for constant-memory rendering of massive datasets, `useContentRect()` for responsive column sizing, and `TextInput` for real-time filtering.
+Terminal data explorers need to handle thousands of rows, resize gracefully across terminal widths, and respond instantly to search queries. Silvery provides the primitives that make this straightforward: a `Table` component with column alignment, `VirtualList` for constant-memory rendering of massive datasets, `useContentRect()` for responsive column sizing, and `TextInput` for real-time filtering.
 
 <LiveDemo xtermSrc="/examples/showcase.html?demo=data-explorer" :height="400" />
 
@@ -27,7 +27,7 @@ Terminal data explorers need to handle thousands of rows, resize gracefully acro
 
 - **TextInput for search and filtering** -- Combine `TextInput` with `useDeferredValue` and `useTransition` from React 19 to build responsive filter interfaces. The input stays snappy while expensive filtering runs at lower priority, keeping the UI non-blocking even with large datasets.
 
-- **Inline images** -- Display thumbnails directly in table rows using the `Image` component. silvery auto-detects Kitty graphics or Sixel protocol support and falls back to text placeholders in unsupported terminals.
+- **Inline images** -- Display thumbnails directly in table rows using the `Image` component. Silvery auto-detects Kitty graphics or Sixel protocol support and falls back to text placeholders in unsupported terminals.
 
 ## Example: Process Explorer
 
@@ -119,16 +119,16 @@ For datasets larger than a few hundred rows, wrap the table body in a `VirtualLi
 />
 ```
 
-## What silvery Adds
+## What Silvery Adds
 
-Data explorers need responsive tables, large dataset handling, and non-blocking search. silvery ships these as first-party components: `Table` handles column alignment and headers, `VirtualList` renders large datasets with constant memory, `useContentRect()` gives responsive column widths without prop threading, and React 19 support unlocks `useDeferredValue` and `useTransition` for keeping filter UIs responsive under load.
+Data explorers need responsive tables, large dataset handling, and non-blocking search. Silvery ships these as first-party components: `Table` handles column alignment and headers, `VirtualList` renders large datasets with constant memory, `useContentRect()` gives responsive column widths without prop threading, and React 19 support unlocks `useDeferredValue` and `useTransition` for keeping filter UIs responsive under load.
 
 ## Get Started
 
-Install silvery and build your first data explorer in minutes:
+Install Silvery and build your first data explorer in minutes:
 
 ```bash
-bun add @silvery/term react flexture
+bun add @silvery/term react flexily
 ```
 
 Follow the [Getting Started guide](/guide/getting-started) for a full walkthrough, or explore the [Components](/guide/components) reference.

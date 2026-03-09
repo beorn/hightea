@@ -13,11 +13,11 @@ next:
 import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 </script>
 
-# Building Developer Tools with silvery
+# Building Developer Tools with Silvery
 
-Terminal-based developer tools -- REPLs, log viewers, debuggers, profilers -- demand fast rendering of large data streams, responsive keyboard shortcuts, and composable UI panels. silvery provides the primitives to build these tools as React components with real layout feedback, virtualized scrolling, and a testable command system.
+Terminal-based developer tools -- REPLs, log viewers, debuggers, profilers -- demand fast rendering of large data streams, responsive keyboard shortcuts, and composable UI panels. Silvery provides the primitives to build these tools as React components with real layout feedback, virtualized scrolling, and a testable command system.
 
-Unlike browser-based dev tools, terminal tools run where your code runs. They start instantly, consume minimal resources, and integrate directly with stdin/stdout pipelines. silvery makes building them practical by handling the hard parts: efficient rendering of thousands of lines, keyboard protocol support across terminals, and deterministic testing without a real terminal.
+Unlike browser-based dev tools, terminal tools run where your code runs. They start instantly, consume minimal resources, and integrate directly with stdin/stdout pipelines. Silvery makes building them practical by handling the hard parts: efficient rendering of thousands of lines, keyboard protocol support across terminals, and deterministic testing without a real terminal.
 
 <LiveDemo xtermSrc="/examples/showcase.html?demo=dev-tools" :height="400" />
 
@@ -107,7 +107,7 @@ Press `i`, `w`, or `e` to add log entries at different severity levels. Use `j`/
 
 ## Testing Your Dev Tool
 
-silvery ships with a Playwright-style testing API. Verify rendering and keyboard interaction without a real terminal:
+Silvery ships with a Playwright-style testing API. Verify rendering and keyboard interaction without a real terminal:
 
 ```tsx
 import { createRenderer } from "@silvery/term/testing"
@@ -134,13 +134,13 @@ test("log viewer navigates entries", async () => {
 })
 ```
 
-## What silvery Adds
+## What Silvery Adds
 
-Developer tools need to handle large datasets, complex shortcuts, and automated testing. silvery ships the building blocks: `VirtualList` renders thousands of log lines with constant memory, the command system wires shortcuts to actions declaratively with introspection for free, and the Playwright-style testing API (`createRenderer`, `press()`, `getByTestId`) lets you write automated tests without custom harnesses.
+Developer tools need to handle large datasets, complex shortcuts, and automated testing. Silvery ships the building blocks: `VirtualList` renders thousands of log lines with constant memory, the command system wires shortcuts to actions declaratively with introspection for free, and the Playwright-style testing API (`createRenderer`, `press()`, `getByTestId`) lets you write automated tests without custom harnesses.
 
 ## Get Started
 
-Install silvery and build your first developer tool:
+Install Silvery and build your first developer tool:
 
 ```bash
 bun add @silvery/term

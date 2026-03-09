@@ -4,7 +4,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 # Components
 
-silvery provides the same components as Ink, with some enhancements.
+Silvery provides the same components as Ink, with some enhancements.
 
 <LiveDemo xtermSrc="/examples/showcase.html?demo=text-input" :height="250" />
 
@@ -20,7 +20,7 @@ import { Box, Text } from "@silvery/term"
 </Box>
 ```
 
-### New in silvery: Scrolling
+### New in Silvery: Scrolling
 
 Use `overflow="scroll"` with `scrollTo` for automatic scrolling:
 
@@ -56,8 +56,8 @@ See [Scrolling Guide](/guide/scrolling) for details.
 | `minHeight`      | `number`                                                                      | -              | Minimum height                                |
 | `borderStyle`    | `"single" \| "double" \| "round" \| "bold" \| "classic"`                      | -              | Border style                                  |
 | `borderColor`    | `string`                                                                      | -              | Border color                                  |
-| `overflow`       | `"visible" \| "hidden" \| "scroll"`                                           | `"visible"`    | **silvery only**: Overflow behavior           |
-| `scrollTo`       | `number`                                                                      | -              | **silvery only**: Child index to keep visible |
+| `overflow`       | `"visible" \| "hidden" \| "scroll"`                                           | `"visible"`    | **Silvery only**: Overflow behavior           |
+| `scrollTo`       | `number`                                                                      | -              | **Silvery only**: Child index to keep visible |
 
 ## Text
 
@@ -74,7 +74,7 @@ import chalk from "chalk";
 <Text>{chalk.red.bold("Error!")}</Text>
 ```
 
-### New in silvery: Auto-Truncation
+### New in Silvery: Auto-Truncation
 
 Text automatically truncates to fit available width:
 
@@ -256,7 +256,7 @@ These components use the theming system — wrap your app in `ThemeProvider` wit
 
 ## @silvery/ui — Progress & Input Package
 
-`@silvery/ui` is a separate package with progress indicators and ergonomic async wrappers. It works both as standalone CLI output (no React) and as React components inside silvery apps.
+`@silvery/ui` is a separate package with progress indicators and ergonomic async wrappers. It works both as standalone CLI output (no React) and as React components inside Silvery apps.
 
 ```bash
 bun add @silvery/ui

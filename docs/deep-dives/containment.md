@@ -1,8 +1,8 @@
 # Layout Containment: Preventing Feedback Loops
 
-When a component reads its own size and uses that to change its content, a potential infinite loop exists: the content changes layout, the layout changes size, the size changes content, and so on. silvery prevents this with a bounded feedback loop in its render pipeline, similar to how CSS containment rules prevent infinite relayout with Container Queries.
+When a component reads its own size and uses that to change its content, a potential infinite loop exists: the content changes layout, the layout changes size, the size changes content, and so on. Silvery prevents this with a bounded feedback loop in its render pipeline, similar to how CSS containment rules prevent infinite relayout with Container Queries.
 
-This document explains the problem, how silvery solves it, and what patterns are safe or dangerous.
+This document explains the problem, how Silvery solves it, and what patterns are safe or dangerous.
 
 ---
 
@@ -32,11 +32,11 @@ This is the same fundamental problem that CSS Container Queries face. Browsers s
 
 ---
 
-## How silvery Solves It
+## How Silvery Solves It
 
 ### The Layout Feedback Loop
 
-silvery's render pipeline has a feedback loop in its `doRender()` function (in `renderer.ts`). After each pipeline execution, it checks whether React committed new work from layout notifications. If so, it re-runs the pipeline, up to a maximum number of iterations:
+Silvery's render pipeline has a feedback loop in its `doRender()` function (in `renderer.ts`). After each pipeline execution, it checks whether React committed new work from layout notifications. If so, it re-runs the pipeline, up to a maximum number of iterations:
 
 ```
 for iteration in 0..MAX_LAYOUT_ITERATIONS:
@@ -53,7 +53,7 @@ for iteration in 0..MAX_LAYOUT_ITERATIONS:
         break   // Layout is stable, done
 ```
 
-`MAX_LAYOUT_ITERATIONS` is 5. This means silvery allows up to 5 rounds of layout-then-React-update before it stops iterating. In practice, well-behaved components stabilize in 2 iterations (first render with `0x0`, second render with real dimensions).
+`MAX_LAYOUT_ITERATIONS` is 5. This means Silvery allows up to 5 rounds of layout-then-React-update before it stops iterating. In practice, well-behaved components stabilize in 2 iterations (first render with `0x0`, second render with real dimensions).
 
 ### How Stability Detection Works
 
@@ -229,13 +229,13 @@ function BadSplit() {
 
 ## How Infinite Loops Are Stopped
 
-When a component does oscillate, silvery stops after `MAX_LAYOUT_ITERATIONS` (currently 5). The last iteration's output is used. This means:
+When a component does oscillate, Silvery stops after `MAX_LAYOUT_ITERATIONS` (currently 5). The last iteration's output is used. This means:
 
 - The component will render with whatever dimensions the 5th iteration produced.
 - There is no error or warning -- the system silently stabilizes by capping iterations.
 - The output may be inconsistent (the component's state may not match its actual dimensions).
 
-This is analogous to how browsers handle Container Query cycles: the spec mandates a single layout pass, and containment rules prevent the cycle from even starting. In silvery, containment is enforced by the iteration cap rather than static rules.
+This is analogous to how browsers handle Container Query cycles: the spec mandates a single layout pass, and containment rules prevent the cycle from even starting. In Silvery, containment is enforced by the iteration cap rather than static rules.
 
 ### In the test renderer
 
@@ -285,7 +285,7 @@ To keep your components safe from layout feedback loops:
 
 ## Comparison with CSS Containment
 
-| Aspect               | CSS Container Queries                      | silvery                            |
+| Aspect               | CSS Container Queries                      | Silvery                            |
 | -------------------- | ------------------------------------------ | ---------------------------------- |
 | Prevention mechanism | Static containment rules (`contain: size`) | Bounded iteration loop (max 5)     |
 | Cycle detection      | Compile-time (containment is declarative)  | Runtime (hadReactCommit flag)      |
@@ -293,4 +293,4 @@ To keep your components safe from layout feedback loops:
 | Developer feedback   | DevTools warnings                          | None (silent convergence)          |
 | Typical iterations   | 1 (containment prevents re-layout)         | 2 (first render + layout feedback) |
 
-The key difference: CSS containment prevents cycles statically by ensuring a container's size can't depend on its children's queries. silvery allows the dependency but bounds the iteration count. This is more flexible (any pattern that converges is allowed) but less predictable (oscillating patterns silently produce arbitrary results).
+The key difference: CSS containment prevents cycles statically by ensuring a container's size can't depend on its children's queries. Silvery allows the dependency but bounds the iteration count. This is more flexible (any pattern that converges is allowed) but less predictable (oscillating patterns silently produce arbitrary results).

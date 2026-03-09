@@ -2,7 +2,7 @@
 
 ## Overview
 
-silvery is a drop-in replacement for Ink. Change your imports, and your app works.
+Silvery is a drop-in replacement for Ink. Change your imports, and your app works.
 
 ---
 
@@ -95,7 +95,7 @@ function Card({ width }: { width: number }) {
 <Card width={availableWidth - padding * 2} />
 ```
 
-**silvery**: Components can ask for their size.
+**Silvery**: Components can ask for their size.
 
 ```typescript
 // silvery: Components know their size
@@ -120,7 +120,7 @@ function Card() {
 // Output: "This is a very long text that overflows" (broken layout)
 ```
 
-**silvery**: Text wraps to fit its container by default (word-aware wrapping).
+**Silvery**: Text wraps to fit its container by default (word-aware wrapping).
 
 ```typescript
 // silvery: Text wraps to container width
@@ -149,7 +149,7 @@ You can also truncate with an ellipsis instead of wrapping:
 
 **Ink**: Components render once with final output.
 
-**silvery**: Components using `useContentRect()` render twice:
+**Silvery**: Components using `useContentRect()` render twice:
 
 1. First render: dimensions are `{ width: 0, height: 0 }`
 2. Second render: dimensions are correct
@@ -187,7 +187,7 @@ function Header() {
 />
 ```
 
-**silvery**: Just render everything. silvery handles the rest.
+**Silvery**: Just render everything. Silvery handles the rest.
 
 ```typescript
 // silvery: No virtualization config needed
@@ -196,7 +196,7 @@ function Header() {
 </Box>
 ```
 
-silvery measures all children via Yoga (fast), then only renders content for visible ones (skipping the expensive part). No height estimation needed.
+Silvery measures all children via Yoga (fast), then only renders content for visible ones (skipping the expensive part). No height estimation needed.
 
 **Migration**: Replace custom virtualization components with `overflow="scroll"`.
 
@@ -211,7 +211,7 @@ const { width } = measureElement(ref.current)
 // Need to manually trigger re-render if you want to use width
 ```
 
-**silvery**: `measureElement()` works for compatibility, but `useContentRect()` is simpler.
+**Silvery**: `measureElement()` works for compatibility, but `useContentRect()` is simpler.
 
 ```typescript
 // silvery: Just use the hook
@@ -229,7 +229,7 @@ const { width } = useContentRect()
 
 These behaviors differ by design:
 
-| Behavior                | Ink       | silvery | Reason                       |
+| Behavior                | Ink       | Silvery | Reason                       |
 | ----------------------- | --------- | ------- | ---------------------------- |
 | Text overflow           | Overflows | Wraps   | Better default for TUIs      |
 | First render dimensions | N/A       | Zeros   | Required for layout feedback |
@@ -241,7 +241,7 @@ These might cause issues in rare cases:
 
 | Issue                   | Symptoms                | Workaround                                    |
 | ----------------------- | ----------------------- | --------------------------------------------- |
-| Rapid re-renders        | Flicker on fast updates | silvery coalesces frames; usually not visible |
+| Rapid re-renders        | Flicker on fast updates | Silvery coalesces frames; usually not visible |
 | Very deep nesting       | Slower layout           | Flatten component tree if possible            |
 | Custom reconciler usage | Breaks                  | Not supported; use standard components        |
 
@@ -310,23 +310,23 @@ grep -r "height={" src/
 
 ## FAQ
 
-### Q: Can I use Ink and silvery in the same project?
+### Q: Can I use Ink and Silvery in the same project?
 
 **A**: No. They both try to control the terminal. Pick one.
 
-### Q: Will silvery track Ink's updates?
+### Q: Will Silvery track Ink's updates?
 
-**A**: silvery targets Ink 4.x API. We'll add new Ink features if they're useful, but we're not a fork—we're a compatible reimplementation.
+**A**: Silvery targets Ink 4.x API. We'll add new Ink features if they're useful, but we're not a fork—we're a compatible reimplementation.
 
 ### Q: What about ink-\* community packages?
 
 **A**: Most should work unchanged. If they use Ink internals, they may need updates. File an issue if you find incompatibilities.
 
-### Q: Is silvery faster than Ink?
+### Q: Is Silvery faster than Ink?
 
-**A**: Similar performance for most apps. silvery may be slightly slower on first render (two-phase), but faster on updates (smarter diffing). Benchmark your specific app.
+**A**: Similar performance for most apps. Silvery may be slightly slower on first render (two-phase), but faster on updates (smarter diffing). Benchmark your specific app.
 
-### Q: Can I contribute to silvery?
+### Q: Can I contribute to Silvery?
 
 **A**: Yes! See [internals.md](../deep-dives/internals.md) for architecture details.
 

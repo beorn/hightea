@@ -151,7 +151,7 @@ await app.run(
 
 ### Component event handlers
 
-The `withDomEvents()` plugin adds React-style event handlers to silvery components. Events bubble up the tree, components can stop propagation, and hit testing maps mouse coordinates to nodes:
+The `withDomEvents()` plugin adds React-style event handlers to Silvery components. Events bubble up the tree, components can stop propagation, and hit testing maps mouse coordinates to nodes:
 
 ```tsx
 import { pipe, withDomEvents } from "@silvery/term/runtime"
@@ -187,7 +187,7 @@ State is shared and renders are efficient. Clicks resolve to components and even
 
 ## Level 3: Everything is Data
 
-This is the level where silvery's architecture clicks. Two invisible things become data at once — because they're the same insight applied to two domains.
+This is the level where Silvery's architecture clicks. Two invisible things become data at once — because they're the same insight applied to two domains.
 
 ### State side: ops as data
 
@@ -206,7 +206,7 @@ These are just JSON — plain objects you can inspect, store, and manipulate. On
 - **AI automation** — ops are structured data an LLM can emit
 - **Testing** — assert on what ops were produced, not on internal state mutations
 
-silvery provides `createSlice` — you write only the handlers, it infers the op union from your handler names and parameter types:
+Silvery provides `createSlice` — you write only the handlers, it infers the op union from your handler names and parameter types:
 
 ```tsx
 import { createSlice } from "@silvery/term/core"
@@ -471,7 +471,7 @@ Mode lives **in the model**, not in a closure — so it's inspectable, serializa
 
 ### Three mechanisms for event sources
 
-Not all sources need to be app plugins. silvery provides three mechanisms:
+Not all sources need to be app plugins. Silvery provides three mechanisms:
 
 | Mechanism            | Lifecycle                           | Use when...                                       |
 | -------------------- | ----------------------------------- | ------------------------------------------------- |
@@ -612,7 +612,7 @@ The progression from functions to data is not free. Each level buys something re
 
 **When to use functions inside data.** Even at Level 4-5, not everything needs to be data. Effect _runners_ are functions. Computed values are functions. React components are functions. The boundary: **crossing module boundaries** (between slices, between domain and I/O) should be data; **within a module** (the implementation of a single op handler), use whatever's clearest.
 
-**How silvery minimizes the costs:**
+**How Silvery minimizes the costs:**
 
 - **Wiring** — `createApp()` handles the store-to-effects-to-runners pipeline. Declare effect runners once.
 - **Composition** — `createStore()` with plugin composition adds cross-cutting concerns without per-op boilerplate.
@@ -635,7 +635,7 @@ The core ideas — making operations, effects, and events into data — have bee
 | **[SlateJS](https://docs.slatejs.org/)**                      | Event plugins                 | `withHistory(withReact(createEditor()))` — same `(editor) => editor` plugin shape.               |
 | [ProseMirror](https://prosemirror.net/)                       | Event plugins                 | Structured plugin hooks — more constrained, easier to reason about.                              |
 | [Express](https://expressjs.com/) / [Koa](https://koajs.com/) | Event middleware              | `app.use(middleware)` — onion model composition.                                                 |
-| **silvery**                                                   | All of the above              | `createSlice` + `tea()` for state; `pipe()` + plugins for events. Incremental adoption.          |
+| **Silvery**                                                   | All of the above              | `createSlice` + `tea()` for state; `pipe()` + plugins for events. Incremental adoption.          |
 
 Redux got Level 3 right but stopped there. redux-loop completed the TEA shape. SlateJS pioneered the plugin-by-override model. This guide pieces these ideas into a single incremental progression for React.
 
@@ -647,7 +647,7 @@ You don't choose a framework. You choose how visible your app's behavior is.
 
 At Level 1, keypresses enter callbacks and state changes happen inside components — both invisible. At Level 5, every event has a type, every action has a name, every state change is an op, every side effect is a return value, every plugin is a composable function. The entire pipeline is inspectable data: events → commands → ops → state → effects → screen.
 
-The more visible your behavior is — the easier your app is to test, debug, automate, customize, and scale. But visibility has a cost: verbosity, indirection, and ceremony. The right level is the one where the benefits you actually use outweigh the boilerplate you actually write. silvery doesn't force you into any of this. You grow into it one level at a time.
+The more visible your behavior is — the easier your app is to test, debug, automate, customize, and scale. But visibility has a cost: verbosity, indirection, and ceremony. The right level is the one where the benefits you actually use outweigh the boilerplate you actually write. Silvery doesn't force you into any of this. You grow into it one level at a time.
 
 ## See Also
 

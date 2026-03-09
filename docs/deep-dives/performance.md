@@ -1,8 +1,8 @@
 # Silvery Performance
 
-Technical deep dive into silvery's rendering pipeline optimizations. This document explains _how_ silvery achieves its performance characteristics.
+Technical deep dive into Silvery's rendering pipeline optimizations. This document explains _how_ Silvery achieves its performance characteristics.
 
-For raw benchmark numbers, see [benchmarks.md](../benchmarks.md). For the head-to-head Ink comparison with context and code examples, see [silvery vs Ink](../silvery-vs-ink.md).
+For raw benchmark numbers, see [benchmarks.md](../benchmarks.md). For the head-to-head Ink comparison with context and code examples, see [Silvery vs Ink](../Silvery-vs-ink.md).
 
 ## Key Insights
 
@@ -20,7 +20,7 @@ For raw benchmark numbers, see [benchmarks.md](../benchmarks.md). For the head-t
 
 ## Optimizations by Phase
 
-silvery's five-phase render pipeline (measure, layout, content, output, buffer) contains 21 optimizations across 7 categories.
+Silvery's five-phase render pipeline (measure, layout, content, output, buffer) contains 21 optimizations across 7 categories.
 
 ### 1. Reconciler
 

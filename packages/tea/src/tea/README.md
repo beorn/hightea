@@ -13,7 +13,7 @@ import { tea, collect } from "@silvery/term/tea"
 import type { TeaResult, TeaReducer, EffectRunners, TeaSlice, EffectLike } from "@silvery/term/tea"
 ```
 
-Not a standalone package. Exported as a sub-path from silvery.
+Not a standalone package. Exported as a sub-path from Silvery.
 
 ## Quick Start
 

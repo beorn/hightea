@@ -120,7 +120,7 @@ useInput(handleInput)
 
 ### Layout Feedback
 
-Components can know their size during render -- silvery's core innovation:
+Components can know their size during render -- Silvery's core innovation:
 
 ```typescript
 import { useContentRect } from '@silvery/term';
@@ -256,7 +256,7 @@ handle.unmount();
 
 ## Migration from Ink
 
-silvery/runtime is compatible with existing silvery components. Key differences:
+silvery/runtime is compatible with existing Silvery components. Key differences:
 
 | Ink                    | silvery/runtime                             |
 | ---------------------- | ------------------------------------------- |

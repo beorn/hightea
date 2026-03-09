@@ -5,7 +5,7 @@
 - Node.js 18+ or Bun 1.0+
 - React 18+
 
-## Install silvery
+## Install Silvery
 
 ::: code-group
 
@@ -29,7 +29,7 @@ pnpm add @silvery/term
 
 ## TypeScript Support
 
-silvery includes TypeScript definitions out of the box. No additional `@types` packages needed.
+Silvery includes TypeScript definitions out of the box. No additional `@types` packages needed.
 
 ```json
 // tsconfig.json
@@ -45,7 +45,7 @@ silvery includes TypeScript definitions out of the box. No additional `@types` p
 
 ## Running Your App
 
-silvery apps are just TypeScript/JavaScript files. Run them directly:
+Silvery apps are just TypeScript/JavaScript files. Run them directly:
 
 ::: code-group
 
@@ -63,9 +63,9 @@ npx ts-node --esm app.tsx
 
 :::
 
-## Testing silvery Apps
+## Testing Silvery Apps
 
-silvery includes a testing library with auto-cleanup between renders:
+Silvery includes a testing library with auto-cleanup between renders:
 
 ```tsx
 import { createRenderer } from "@silvery/term/testing"

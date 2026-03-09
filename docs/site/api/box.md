@@ -119,12 +119,12 @@ import { Box } from "@silvery/term"
 | `inverse`         | `boolean` | `false` | Swap foreground/background colors                |
 
 ::: tip Box vs Text backgroundColor
-Unlike Ink, silvery's Box supports `backgroundColor` directly. The background fills
+Unlike Ink, Silvery's Box supports `backgroundColor` directly. The background fills
 the entire computed layout area, so you don't need Text elements with spaces to
 create filled regions.
 :::
 
-### Overflow (silvery Only)
+### Overflow (Silvery Only)
 
 | Prop       | Type                                | Default     | Description                                           |
 | ---------- | ----------------------------------- | ----------- | ----------------------------------------------------- |

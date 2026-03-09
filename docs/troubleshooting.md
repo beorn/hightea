@@ -28,13 +28,13 @@
 
 ### Layout oscillation / infinite loops
 
-- silvery has built-in containment for `useContentRect` (see [containment.md](deep-dives/containment.md)).
+- Silvery has built-in containment for `useContentRect` (see [containment.md](deep-dives/containment.md)).
 - If you see oscillation, check for circular dependencies in layout — e.g., a component that changes its size based on `useContentRect` in a way that triggers another layout.
 - Avoid setting `width` or `height` dynamically based on `useContentRect` of the same Box.
 
 ### Flickering in tmux / Zellij
 
-- silvery uses Synchronized Update Mode (DEC 2026) by default, which prevents flicker. Verify your multiplexer version supports it (tmux 3.2+).
+- Silvery uses Synchronized Update Mode (DEC 2026) by default, which prevents flicker. Verify your multiplexer version supports it (tmux 3.2+).
 - To disable sync updates for debugging: `SILVERY_SYNC_UPDATE=0`.
 
 ### Colors not appearing
@@ -49,14 +49,14 @@
 - Check that your terminal supports it (Ghostty, Kitty, WezTerm, foot — see [terminal-capabilities.md](reference/terminal-capabilities.md)).
 - iTerm2 and Terminal.app do not support the Kitty protocol.
 
-### Flexture vs Yoga layout differences
+### Flexily vs Yoga layout differences
 
-If you migrated from Ink (which uses Yoga), some layout behaviors differ with Flexture:
+If you migrated from Ink (which uses Yoga), some layout behaviors differ with Flexily:
 
-- **Percentage widths**: Flexture resolves `width="50%"` against the parent's content area. Yoga resolves against the parent's total width including padding. If your layout is off by a few cells, check padding on the parent.
-- **Default `flexShrink`**: Both default to 1, but Flexture may clamp earlier on zero-width children. If a child collapses unexpectedly, set `flexShrink={0}` explicitly.
-- **`flexBasis="auto"`**: Yoga uses the intrinsic content size. Flexture does the same but measures text differently for multi-line content. If text wraps unexpectedly, set an explicit `width`.
-- **Gap**: Flexture supports `gap`, `rowGap`, `columnGap` the same as Yoga. If gaps don't appear, verify `flexDirection` is set (gap only applies between flex children along the main axis).
+- **Percentage widths**: Flexily resolves `width="50%"` against the parent's content area. Yoga resolves against the parent's total width including padding. If your layout is off by a few cells, check padding on the parent.
+- **Default `flexShrink`**: Both default to 1, but Flexily may clamp earlier on zero-width children. If a child collapses unexpectedly, set `flexShrink={0}` explicitly.
+- **`flexBasis="auto"`**: Yoga uses the intrinsic content size. Flexily does the same but measures text differently for multi-line content. If text wraps unexpectedly, set an explicit `width`.
+- **Gap**: Flexily supports `gap`, `rowGap`, `columnGap` the same as Yoga. If gaps don't appear, verify `flexDirection` is set (gap only applies between flex children along the main axis).
 
 Switch engines to isolate: `SILVERY_ENGINE=yoga bun run app.ts`
 

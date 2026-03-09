@@ -154,7 +154,7 @@ const output: string = renderString(<Summary />, { width: 80, plain: true })
 
 ## Console Patching
 
-When using `inline` or `fullscreen` modes, external console.log calls would corrupt the display. silvery can intercept these:
+When using `inline` or `fullscreen` modes, external console.log calls would corrupt the display. Silvery can intercept these:
 
 ```ts
 await render(<App />, { patchConsole: true })
@@ -334,7 +334,7 @@ term.dispose()
 
 ## Synchronized Update Mode (DEC 2026)
 
-silvery automatically wraps all terminal output with **Synchronized Update Mode** sequences (`CSI ? 2026 h` / `CSI ? 2026 l`). This tells the terminal to batch output and paint atomically, preventing visual tearing during rapid screen updates.
+Silvery automatically wraps all terminal output with **Synchronized Update Mode** sequences (`CSI ? 2026 h` / `CSI ? 2026 l`). This tells the terminal to batch output and paint atomically, preventing visual tearing during rapid screen updates.
 
 ### How It Works
 
@@ -384,7 +384,7 @@ Response: CSI ? 2026 ; <value> $ y
 
 Where `value` is: 0=unknown, 1=set, 2=reset, 3=permanent set, 4=permanent reset.
 
-silvery does not currently query support — it always emits the sequences since unsupported terminals ignore them harmlessly.
+Silvery does not currently query support — it always emits the sequences since unsupported terminals ignore them harmlessly.
 
 ## Kitty Keyboard Protocol
 
@@ -409,12 +409,12 @@ await run(<App />, {
 
 When `kitty: true`:
 
-1. silvery calls `detectKittyFromStdio()` to query the terminal
+1. Silvery calls `detectKittyFromStdio()` to query the terminal
 2. If the terminal responds with `CSI ? flags u`, the protocol is supported
-3. silvery enables with `KittyFlags.DISAMBIGUATE` (flag 1)
-4. On app exit, silvery sends `CSI < u` to restore the previous keyboard mode
+3. Silvery enables with `KittyFlags.DISAMBIGUATE` (flag 1)
+4. On app exit, Silvery sends `CSI < u` to restore the previous keyboard mode
 
-When `kitty: <number>`, silvery skips detection and enables with the specified flags directly.
+When `kitty: <number>`, Silvery skips detection and enables with the specified flags directly.
 
 ### Protocol Detection
 
@@ -540,7 +540,7 @@ Unsupported terminals ignore the enable sequence — no error, no side effects.
 
 ## Mouse Protocol (SGR 1006)
 
-silvery supports SGR mouse tracking for click, drag, scroll, and motion events.
+Silvery supports SGR mouse tracking for click, drag, scroll, and motion events.
 
 ### Auto-Enable/Disable
 
@@ -551,7 +551,7 @@ await run(<App />, { mouse: true })
 await run(<App />, { kitty: true, mouse: true })
 ```
 
-silvery enables three mouse modes together:
+Silvery enables three mouse modes together:
 
 | Mode            | Sequence     | Description                           |
 | --------------- | ------------ | ------------------------------------- |
@@ -609,7 +609,7 @@ The runtime handles mouse parsing automatically — mouse sequences are dispatch
 
 ## OSC 52 Clipboard
 
-silvery provides clipboard access via the OSC 52 terminal protocol. This works across SSH sessions — the clipboard operation is handled by the local terminal, not the remote host.
+Silvery provides clipboard access via the OSC 52 terminal protocol. This works across SSH sessions — the clipboard operation is handled by the local terminal, not the remote host.
 
 ### Protocol
 
@@ -731,7 +731,7 @@ useInput(handler, { onPaste: (text) => handlePaste(text) })
 
 ## Terminal Notifications
 
-silvery provides a notification API that auto-detects the terminal and sends notifications using the best available method.
+Silvery provides a notification API that auto-detects the terminal and sends notifications using the best available method.
 
 ```tsx
 import { notify, notifyITerm2, notifyKitty, BEL } from "@silvery/term"

@@ -2,7 +2,7 @@
 
 A feature comparison of major terminal UI frameworks across languages and ecosystems. Covers rendering, terminal protocols, layout, components, developer experience, and architecture. Values reflect the state of each framework as of early 2026.
 
-> For an in-depth silvery vs Ink analysis with code examples, benchmarks, and migration guidance, see [silvery-vs-ink.md](silvery-vs-ink.md).
+> For an in-depth Silvery vs Ink analysis with code examples, benchmarks, and migration guidance, see [silvery-vs-ink.md](Silvery-vs-ink.md).
 
 **Legend:** ✅ Full support (built-in, documented) | ⚡ Best-in-class | 🔶 Partial support | ❌ Not supported | 🔧 Community/plugin
 
@@ -30,7 +30,7 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 
 ## Terminal Protocols
 
-| Feature                 | silvery                                     | Ink                     | BubbleTea                     | Textual       | Notcurses | FTXUI | blessed |
+| Feature                 | Silvery                                     | Ink                     | BubbleTea                     | Textual       | Notcurses | FTXUI | blessed |
 | ----------------------- | ------------------------------------------- | ----------------------- | ----------------------------- | ------------- | --------- | ----- | ------- |
 | Kitty keyboard protocol | ⚡ Full spec: all 5 flags, auto-detect [^4] | ❌ [^5]                 | 🔶 v2 alpha                   | ❌            | ❌        | ❌    | ❌      |
 | Bracketed paste mode    | ✅ `usePaste` hook, auto-enable             | ❌                      | ✅ Default since v0.26        | ✅            | 🔶        | ❌    | ❌      |
@@ -42,7 +42,7 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 | Kitty graphics protocol | ✅ Auto-detect with fallback                | ❌                      | 🔧 `x/cellbuf`                | ❌            | ⚡        | ❌    | ❌      |
 | Alternate screen        | ✅                                          | ✅                      | ✅                            | ✅            | ✅        | ✅    | ✅      |
 
-[^4]: silvery supports all Kitty flags: `DISAMBIGUATE`, `REPORT_EVENTS` (press/repeat/release), `REPORT_ALTERNATE`, `REPORT_ALL_KEYS`, `REPORT_TEXT`. Detects Cmd/Super and Hyper modifiers, CapsLock/NumLock. Auto-detects terminal support via `CSI ? u` query.
+[^4]: Silvery supports all Kitty flags: `DISAMBIGUATE`, `REPORT_EVENTS` (press/repeat/release), `REPORT_ALTERNATE`, `REPORT_ALL_KEYS`, `REPORT_TEXT`. Detects Cmd/Super and Hyper modifiers, CapsLock/NumLock. Auto-detects terminal support via `CSI ? u` query.
 
 [^5]: Ink has a PR (#852) for Kitty keyboard support in review but not merged.
 
@@ -50,9 +50,9 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 
 ## Layout & Components
 
-| Feature                                      | silvery                                                       | Ink                             | BubbleTea                            | Textual                        | Notcurses               | FTXUI              | blessed                  |
+| Feature                                      | Silvery                                                       | Ink                             | BubbleTea                            | Textual                        | Notcurses               | FTXUI              | blessed                  |
 | -------------------------------------------- | ------------------------------------------------------------- | ------------------------------- | ------------------------------------ | ------------------------------ | ----------------------- | ------------------ | ------------------------ |
-| Layout engine                                | ⚡ Flexbox (Flexture 7KB pure JS or Yoga) [^6]                | Flexbox (Yoga NAPI, native C++) | Manual                               | ⚡ CSS subset (grid + flexbox) | Manual ncplane stacking | Flexbox-like (C++) | Manual                   |
+| Layout engine                                | ⚡ Flexbox (Flexily 7KB pure JS or Yoga) [^6]                | Flexbox (Yoga NAPI, native C++) | Manual                               | ⚡ CSS subset (grid + flexbox) | Manual ncplane stacking | Flexbox-like (C++) | Manual                   |
 | React/component model                        | ⚡ React 19, JSX, hooks                                       | ✅ React 18, JSX, hooks         | Elm architecture (Model-Update-View) | Widget classes                 | C structs               | C++ components     | Event emitter objects    |
 | Layout feedback (components know their size) | ⚡ `useContentRect()` / `useScreenRect()` — synchronous [^7]  | ❌ Open since 2016 (#5)         | ❌                                   | ✅ `size` property on widgets  | 🔶 ncplane dimensions   | 🔶                 | 🔶                       |
 | Virtual list / lazy rendering                | ✅ `VirtualList` component                                    | ❌                              | 🔧 `list` Bubble                     | ✅ Built-in `ListView`         | ❌                      | ❌                 | ✅ `List`                |
@@ -61,15 +61,15 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 | Scroll containers                            | ✅ `overflow="scroll"` with auto-measurement                  | ❌ Open since 2019 (#222)       | 🔧 `viewport` Bubble                 | ✅ `ScrollableContainer`       | ✅ ncplane scrolling    | ✅                 | ✅                       |
 | Theming / CSS                                | ✅ ThemeProvider + semantic tokens                            | 🔶 Style props                  | ❌                                   | ⚡ CSS files + live reload     | ❌                      | 🔶                 | 🔶                       |
 
-[^6]: silvery's Flexture layout engine is pure JavaScript (7 KB gzipped) with zero native dependencies. It matches Yoga WASM performance and is 2.4x faster than Yoga NAPI. Layout results are cached via fingerprinting, so unchanged subtrees skip recomputation entirely.
+[^6]: Silvery's Flexily layout engine is pure JavaScript (7 KB gzipped) with zero native dependencies. It matches Yoga WASM performance and is 2.4x faster than Yoga NAPI. Layout results are cached via fingerprinting, so unchanged subtrees skip recomputation entirely.
 
-[^7]: silvery's core innovation: two-phase rendering runs layout before components render, so `useContentRect()` returns actual dimensions synchronously during render, not via a post-render callback. This eliminates an entire category of bugs around "width is 0 on first render."
+[^7]: Silvery's core innovation: two-phase rendering runs layout before components render, so `useContentRect()` returns actual dimensions synchronously during render, not via a post-render callback. This eliminates an entire category of bugs around "width is 0 on first render."
 
 ---
 
 ## Developer Experience
 
-| Feature                             | silvery                                                   | Ink                      | BubbleTea                   | Textual                            | Notcurses | FTXUI    | blessed             |
+| Feature                             | Silvery                                                   | Ink                      | BubbleTea                   | Textual                            | Notcurses | FTXUI    | blessed             |
 | ----------------------------------- | --------------------------------------------------------- | ------------------------ | --------------------------- | ---------------------------------- | --------- | -------- | ------------------- |
 | Testing utilities (headless render) | ⚡ Playwright-style locators, auto-refreshing [^8]        | ✅ `ink-testing-library` | 🔧 `teatest`                | ✅ Pilot (async testing)           | ❌        | ❌       | ❌                  |
 | Hot reload                          | 🔶 Via Bun/Node watch mode                                | 🔶 Via bundler           | ❌                          | ✅ CSS hot reload                  | ❌        | ❌       | ❌                  |
@@ -79,7 +79,7 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 | TypeScript support                  | ⚡ Native, strict mode                                    | ✅                       | ❌ (Go)                     | ❌ (Python, typed)                 | ❌ (C)    | ❌ (C++) | 🔶 `@types/blessed` |
 | Screenshots (buffer to image)       | ✅ `bufferToHTML()` + Playwright                          | ❌                       | ❌                          | ✅ SVG export                      | ❌        | ❌       | ❌                  |
 
-[^8]: silvery's `createRenderer` provides auto-refreshing locators (same locator object always queries fresh tree state), `getByTestId`/`getByText`/CSS attribute selectors, bounding box assertions, and Playwright-style `press()` input. Locators never go stale.
+[^8]: Silvery's `createRenderer` provides auto-refreshing locators (same locator object always queries fresh tree state), `getByTestId`/`getByText`/CSS attribute selectors, bounding box assertions, and Playwright-style `press()` input. Locators never go stale.
 
 [^9]: The driver pattern composes `withCommands` + `withKeybindings` + `withDiagnostics` to expose all commands as callable functions with metadata (ID, name, help, keybindings). An AI agent can list available commands, inspect screen state, execute actions, and capture screenshots -- all programmatically.
 
@@ -87,7 +87,7 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 
 ## Architecture
 
-| Feature                 | silvery                                                | Ink                                       | BubbleTea                          | Textual                               | Notcurses                | FTXUI                    | blessed                |
+| Feature                 | Silvery                                                | Ink                                       | BubbleTea                          | Textual                               | Notcurses                | FTXUI                    | blessed                |
 | ----------------------- | ------------------------------------------------------ | ----------------------------------------- | ---------------------------------- | ------------------------------------- | ------------------------ | ------------------------ | ---------------------- |
 | Rendering model         | Retained (React tree + dirty tracking)                 | Retained (React tree, full repaint)       | Immediate (Model-Update-View)      | Retained (widget tree)                | Retained (ncplane stack) | Immediate                | Retained (widget tree) |
 | State management        | React hooks or Zustand store                           | React hooks                               | Elm-style (Model + Update + Cmd)   | Reactive attributes + message passing | Manual                   | Component state          | Event emitter          |

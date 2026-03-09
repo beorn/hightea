@@ -4,7 +4,7 @@ import ShowcaseGallery from '../.vitepress/components/ShowcaseGallery.vue'
 
 # Examples
 
-Explore all silvery showcases interactively. Click a demo to load it — keyboard input works inside the terminal.
+Explore all Silvery showcases interactively. Click a demo to load it — keyboard input works inside the terminal.
 
 <ShowcaseGallery />
 

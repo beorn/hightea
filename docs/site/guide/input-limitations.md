@@ -1,6 +1,6 @@
 # Input Handling Limitations
 
-Terminal input handling is fundamentally constrained by how terminals communicate with applications. This page documents the known limitations when using `useInput()` in silvery.
+Terminal input handling is fundamentally constrained by how terminals communicate with applications. This page documents the known limitations when using `useInput()` in Silvery.
 
 ## Keyboard Protocol Limitations
 
@@ -34,10 +34,10 @@ useInput((input, key) => {
 
 ### Kitty Keyboard Protocol
 
-The [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) solves these ambiguities by encoding modifier state explicitly. silvery fully supports this protocol:
+The [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) solves these ambiguities by encoding modifier state explicitly. Silvery fully supports this protocol:
 
 - Supported terminals: Kitty, WezTerm, foot, Ghostty, Alacritty, iTerm2, rio
-- Enable with `kitty: true` in `run()` — silvery auto-detects support and falls back gracefully
+- Enable with `kitty: true` in `run()` — Silvery auto-detects support and falls back gracefully
 - When active, Tab vs Ctrl+I, Enter vs Ctrl+M, and all modifier combinations are fully distinguishable
 
 See [Kitty Protocol](/guide/kitty-protocol) for details.
@@ -65,7 +65,7 @@ When typing with an IME, a composition window shows candidate characters. In ter
 
 ### Synchronized Update Mode
 
-silvery uses Synchronized Update Mode (SUM) to reduce flicker:
+Silvery uses Synchronized Update Mode (SUM) to reduce flicker:
 
 ```
 \x1b[?2026h  // Begin synchronized update
@@ -86,7 +86,7 @@ This helps with IME flicker, but:
 
 ## Terminal-Specific Behavior
 
-Different terminals send different escape sequences for the same keys. silvery handles the most common variants, but edge cases exist.
+Different terminals send different escape sequences for the same keys. Silvery handles the most common variants, but edge cases exist.
 
 ### Function Key Variations
 
@@ -98,7 +98,7 @@ Function keys F1-F12 have multiple encodings:
 | xterm ([~style) | `\x1b[11~` | `\x1b[15~` |
 | Cygwin/libuv    | `\x1b[[A`  | `\x1b[[E`  |
 
-silvery recognizes all these variants, but some obscure terminals may use others.
+Silvery recognizes all these variants, but some obscure terminals may use others.
 
 ### Navigation Key Variations
 
@@ -131,7 +131,7 @@ The Meta (Alt on PC, Option on Mac) key behavior varies:
 - **iTerm2**: Configurable - can send `Esc+<key>` or special characters
 - **Linux terminals**: Usually send `Esc+<key>`
 
-silvery detects meta when it receives `\x1b` followed by a character:
+Silvery detects meta when it receives `\x1b` followed by a character:
 
 ```tsx
 useInput((input, key) => {
@@ -258,7 +258,7 @@ function HelpScreen() {
 
 ## Enhanced Protocol Support
 
-silvery ships with full support for modern terminal protocols that resolve the limitations above:
+Silvery ships with full support for modern terminal protocols that resolve the limitations above:
 
 1. **Kitty keyboard protocol** — Enables full modifier detection (Ctrl+Shift, Super, Hyper), key release events, and unambiguous key identification. Pass `kitty: true` to `run()`. See [Kitty Protocol](/guide/kitty-protocol).
 2. **Bracketed paste mode** — Distinguishes pasted text from typed input. Built into the runtime with `usePaste()` hook.

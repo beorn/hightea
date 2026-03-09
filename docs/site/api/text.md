@@ -88,7 +88,7 @@ import { Text } from "@silvery/term"
 
 ## Text Wrapping
 
-By default, Text truncates at the container boundary (silvery improvement over Ink).
+By default, Text truncates at the container boundary (Silvery improvement over Ink).
 
 ### Truncation Modes
 
@@ -144,7 +144,7 @@ Text elements can be nested, with child styles properly overriding and then rest
 // Output: white "W", red "R", blue "B", red "R", white "W"
 ```
 
-This is an silvery improvement over Ink. Nested styles use a push/pop mechanism that properly restores parent styles after each nested element.
+This is an Silvery improvement over Ink. Nested styles use a push/pop mechanism that properly restores parent styles after each nested element.
 
 ## Chalk Compatibility
 

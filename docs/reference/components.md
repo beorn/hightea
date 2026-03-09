@@ -350,7 +350,7 @@ Keyboard shortcuts: Arrow keys, Home/End, Ctrl+Home/End (document start/end), Ct
 
 ## Link
 
-Renders a terminal hyperlink using OSC 8 escape sequences. In supporting terminals (iTerm2, Ghostty, Kitty, etc.), the text is clickable. Also registers an `onClick` handler for mouse-driven interaction within silvery.
+Renders a terminal hyperlink using OSC 8 escape sequences. In supporting terminals (iTerm2, Ghostty, Kitty, etc.), the text is clickable. Also registers an `onClick` handler for mouse-driven interaction within Silvery.
 
 ```tsx
 import { Link } from "@silvery/term"

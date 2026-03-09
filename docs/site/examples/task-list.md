@@ -288,7 +288,7 @@ function TaskRow({ task, isSelected }: { task: Task; isSelected: boolean }) {
 }
 ```
 
-silvery measures each task's actual height. No height estimation needed.
+Silvery measures each task's actual height. No height estimation needed.
 
 ### Selection Styling
 
@@ -333,7 +333,7 @@ const truncatedTitle = task.title.length > titleWidth ? task.title.slice(0, titl
 
 The available width comes from `useContentRect()`.
 
-## Key silvery Features Used
+## Key Silvery Features Used
 
 | Feature             | Usage                                         |
 | ------------------- | --------------------------------------------- |
@@ -345,7 +345,7 @@ The available width comes from `useContentRect()`.
 
 ## How Scrolling Works
 
-silvery handles variable-height scrolling automatically:
+Silvery handles variable-height scrolling automatically:
 
 1. **Yoga measures all items** - Each task (with its subtasks) gets measured
 2. **Calculate visible range** - Based on `scrollTo` and container height

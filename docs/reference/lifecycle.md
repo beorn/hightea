@@ -1,6 +1,6 @@
 # Terminal Lifecycle
 
-silvery handles terminal lifecycle events (suspend/resume, interrupt) automatically. When stdin is in raw mode, Ctrl+Z and Ctrl+C don't generate OS signals (SIGTSTP/SIGINT). silvery intercepts the raw bytes and manages the full terminal state save/restore cycle.
+Silvery handles terminal lifecycle events (suspend/resume, interrupt) automatically. When stdin is in raw mode, Ctrl+Z and Ctrl+C don't generate OS signals (SIGTSTP/SIGINT). Silvery intercepts the raw bytes and manages the full terminal state save/restore cycle.
 
 ## Quick Start
 

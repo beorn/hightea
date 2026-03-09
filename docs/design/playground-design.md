@@ -9,7 +9,7 @@ Design document for a full interactive playground where users can write JSX and 
 1. Users paste or write JSX in a code editor
 2. Output renders to a canvas in real time (sub-second feedback)
 3. No local install required (runs entirely in the browser)
-4. Demonstrates silvery's multi-target architecture (same components, different renderers)
+4. Demonstrates Silvery's multi-target architecture (same components, different renderers)
 
 ## Architecture
 
@@ -37,7 +37,7 @@ Design document for a full interactive playground where users can write JSX and 
                     +--------------+          |
                     | React        |----------+
                     | Reconciler   |
-                    | + Flexture      |
+                    | + Flexily      |
                     +--------------+
 ```
 
@@ -46,7 +46,7 @@ Design document for a full interactive playground where users can write JSX and 
 1. **Edit**: User modifies JSX in Monaco Editor
 2. **Transpile**: Sucrase converts JSX to plain JS (fast, no Babel overhead)
 3. **Evaluate**: `new Function()` creates the component from transpiled code
-4. **Render**: silvery's React reconciler + Flexture layout + Canvas adapter render to OffscreenCanvas
+4. **Render**: Silvery's React reconciler + Flexily layout + Canvas adapter render to OffscreenCanvas
 5. **Display**: OffscreenCanvas drawn to visible `<canvas>` element
 
 ### Why Sucrase (Not Babel)
@@ -68,8 +68,8 @@ Sucrase is purpose-built for development transforms. It strips types and convert
 | Build tool       | Vite           | Fast HMR, ESM-native, simple config         |
 | Code editor      | Monaco Editor  | VSCode engine, TypeScript intellisense, JSX |
 | JSX transpiler   | Sucrase        | Fast, small, browser-compatible             |
-| UI framework     | React          | Already a dependency of silvery             |
-| Layout engine    | Flexture       | Pure JS, synchronous init, no WASM          |
+| UI framework     | React          | Already a dependency of Silvery             |
+| Layout engine    | Flexily       | Pure JS, synchronous init, no WASM          |
 | Canvas rendering | silvery/canvas | The whole point                             |
 
 ## Project Structure
@@ -93,7 +93,7 @@ playground/
 Monaco provides:
 
 - JSX syntax highlighting
-- TypeScript type checking (with silvery `.d.ts` loaded)
+- TypeScript type checking (with Silvery `.d.ts` loaded)
 - Auto-completion for `<Box>`, `<Text>`, `useContentRect()`, etc.
 - Error markers from transpilation failures
 
@@ -115,7 +115,7 @@ function Editor({ value, onChange }) {
 
 ## Safe Evaluation
 
-User code runs in a sandboxed scope with only React and silvery exports available:
+User code runs in a sandboxed scope with only React and Silvery exports available:
 
 ```tsx
 // evaluate.ts (sketch)
@@ -246,7 +246,7 @@ Show both Canvas and DOM adapter output side by side, demonstrating that the sam
 
 | Component       | Size (gzip) |
 | --------------- | ----------- |
-| silvery + React | ~90 KB      |
+| Silvery + React | ~90 KB      |
 | Monaco Editor   | ~800 KB     |
 | Sucrase         | ~40 KB      |
 | Playground UI   | ~5 KB       |
