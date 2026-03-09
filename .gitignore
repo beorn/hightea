@@ -3,3 +3,6 @@ dist/
 *.tsbuildinfo
 .DS_Store
 editset.json
+examples/web/viewer-registry.ts
+examples/web/dist/
+examples/playground/dist/

@@ -172,7 +172,7 @@ Box, Text, and other components work identically:
 
 ```tsx
 // Same in both APIs
-import { Box, Text } from "@silvery/term"
+import { Box, Text } from "silvery"
 
 function Card() {
   return (
