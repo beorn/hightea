@@ -29,13 +29,16 @@
       "types": "./src/pipeline/index.ts",
       "import": "./src/pipeline/index.ts"
     },
+    "./ansi": {
+      "types": "./src/ansi/index.ts",
+      "import": "./src/ansi/index.ts"
+    },
     "./*": {
       "types": "./src/*",
       "import": "./src/*"
     }
   },
   "dependencies": {
-    "@silvery/ansi": "workspace:*",
     "@silvery/react": "workspace:*",
     "@silvery/tea": "workspace:*",
     "@silvery/test": "workspace:*",

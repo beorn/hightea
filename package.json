@@ -55,7 +55,10 @@
     "changeset": "changeset",
     "version": "changeset version",
     "release": "changeset publish",
-    "theme": "bun packages/theme/src/cli.ts"
+    "theme": "bun packages/theme/src/cli.ts",
+    "compat": "bun scripts/compat-check.ts",
+    "compat:ink": "bun scripts/compat-check.ts ink",
+    "compat:chalk": "bun scripts/compat-check.ts chalk"
   },
   "dependencies": {
     "chalk": "^5.6.2",

@@ -36,19 +36,19 @@ Typed function + `.label` for introspection:
 
 ```ts
 interface WhenPredicate {
-  (ctx: KeybindingContext): boolean
-  label: string
+  (ctx: KeybindingContext): boolean;
+  label: string;
 }
 
 function when(label: string, fn: (ctx: KeybindingContext) => boolean): WhenPredicate {
-  return Object.assign(fn, { label })
+  return Object.assign(fn, { label });
 }
 
 // Compose predicates
-const textInputFocused = when("textInputFocused", (ctx) => ctx.textInputFocused)
-const isInDetailPane = when("isInDetailPane", (ctx) => ctx.isInDetailPane)
-const notTextInput = not(textInputFocused)
-const inMoveAndNotEditing = and(inMoveMode, notTextInput)
+const textInputFocused = when("textInputFocused", (ctx) => ctx.textInputFocused);
+const isInDetailPane = when("isInDetailPane", (ctx) => ctx.isInDetailPane);
+const notTextInput = not(textInputFocused);
+const inMoveAndNotEditing = and(inMoveMode, notTextInput);
 ```
 
 ### Text Input via TextEditTarget
@@ -57,18 +57,18 @@ Components that accept text input register a `TextEditTarget` interface on mount
 
 ```ts
 interface TextEditTarget {
-  insertChar(char: string): void
-  deleteBackward(): void
-  deleteForward(): void
-  cursorLeft(): void
-  cursorRight(): void
-  cursorStart(): void
-  cursorEnd(): void
-  deleteWord(): void
-  deleteToStart(): void
-  deleteToEnd(): void
-  confirm(): void
-  cancel(): void
+  insertChar(char: string): void;
+  deleteBackward(): void;
+  deleteForward(): void;
+  cursorLeft(): void;
+  cursorRight(): void;
+  cursorStart(): void;
+  cursorEnd(): void;
+  deleteWord(): void;
+  deleteToStart(): void;
+  deleteToEnd(): void;
+  confirm(): void;
+  cancel(): void;
 }
 ```
 
@@ -90,10 +90,10 @@ if (textInputFocused && isPrintable(input) && !hasModifiers) {
   return {
     commandId: "text.insert",
     actions: { type: "TEXT_INSERT", char: input },
-  }
+  };
 }
 // Only THEN resolve keybindings
-const commandId = resolveKeybinding(key, modifiers, context)
+const commandId = resolveKeybinding(key, modifiers, context);
 ```
 
 ## Where useInputLayer Is Still Used

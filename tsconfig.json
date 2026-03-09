@@ -17,7 +17,7 @@
       "@silvery/*": ["./packages/*/src"],
       "@silvery/react/*": ["./packages/react/src/*"],
       "@silvery/term/*": ["./packages/term/src/*"],
-      "@silvery/ansi/*": ["./packages/ansi/src/*"],
+      "@silvery/ansi/*": ["./packages/term/src/ansi/*"],
       "@silvery/theme/*": ["./packages/theme/src/*"],
       "@silvery/tea/*": ["./packages/tea/src/*"],
       "@silvery/ui/*": ["./packages/ui/src/*"],

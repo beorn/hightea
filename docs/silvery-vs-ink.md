@@ -145,13 +145,13 @@ Silvery runs layout first, then components render with actual dimensions:
 ```tsx
 // Ink: width props must cascade through the entire tree
 function Card({ width }: { width: number }) {
-  return <Text>{truncate(title, width)}</Text>
+  return <Text>{truncate(title, width)}</Text>;
 }
 
 // Silvery: components query their own dimensions
 function Card() {
-  const { width } = useContentRect()
-  return <Text>{truncate(title, width)}</Text>
+  const { width } = useContentRect();
+  return <Text>{truncate(title, width)}</Text>;
 }
 ```
 

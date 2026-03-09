@@ -11,8 +11,8 @@
  * - Background elements (z-index 0) are lowest priority
  */
 
-import { createContext, useContext, useEffect, useRef } from "react"
-import type { Rect } from "@silvery/tea/types"
+import { createContext, useContext, useEffect, useRef } from "react";
+import type { Rect } from "@silvery/tea/types";
 
 // ============================================================================
 // Types
@@ -24,19 +24,19 @@ import type { Rect } from "@silvery/tea/types"
  */
 export interface HitTarget {
   /** The type of element that was clicked */
-  type: "node" | "fold-toggle" | "link" | "column-header" | "scroll-area" | "button"
+  type: "node" | "fold-toggle" | "link" | "column-header" | "scroll-area" | "button";
   /** Column index (for column-header, or items within a column) */
-  colIndex?: number
+  colIndex?: number;
   /** Card index within a column */
-  cardIndex?: number
+  cardIndex?: number;
   /** Sub-item index within a card (e.g., checklist items) */
-  subIndex?: number
+  subIndex?: number;
   /** Node ID for node-specific targets */
-  nodeId?: string
+  nodeId?: string;
   /** URL for link targets */
-  linkUrl?: string
+  linkUrl?: string;
   /** Custom action identifier */
-  action?: string
+  action?: string;
 }
 
 /**
@@ -44,17 +44,17 @@ export interface HitTarget {
  */
 export interface HitRegion {
   /** X position on screen (0-indexed column) */
-  x: number
+  x: number;
   /** Y position on screen (0-indexed row) */
-  y: number
+  y: number;
   /** Width in columns */
-  width: number
+  width: number;
   /** Height in rows */
-  height: number
+  height: number;
   /** The target to return when this region is clicked */
-  target: HitTarget
+  target: HitTarget;
   /** Z-index for layering (higher values are on top) */
-  zIndex: number
+  zIndex: number;
 }
 
 // ============================================================================
@@ -84,7 +84,7 @@ export interface HitRegion {
  * ```
  */
 export class HitRegistry {
-  private regions = new Map<string, HitRegion>()
+  private regions = new Map<string, HitRegion>();
 
   /**
    * Register a hit region with a unique ID.
@@ -93,7 +93,7 @@ export class HitRegistry {
    * @param region - The region definition including position, size, target, and z-index
    */
   register(id: string, region: HitRegion): void {
-    this.regions.set(id, region)
+    this.regions.set(id, region);
   }
 
   /**
@@ -102,7 +102,7 @@ export class HitRegistry {
    * @param id - The ID used when registering the region
    */
   unregister(id: string): void {
-    this.regions.delete(id)
+    this.regions.delete(id);
   }
 
   /**
@@ -110,7 +110,7 @@ export class HitRegistry {
    * Useful when the UI is completely redrawn.
    */
   clear(): void {
-    this.regions.clear()
+    this.regions.clear();
   }
 
   /**
@@ -118,7 +118,7 @@ export class HitRegistry {
    * Useful for debugging.
    */
   get size(): number {
-    return this.regions.size
+    return this.regions.size;
   }
 
   /**
@@ -129,7 +129,7 @@ export class HitRegistry {
    * @returns The target of the highest z-index region containing the point, or null if none
    */
   hitTest(screenX: number, screenY: number): HitTarget | null {
-    let bestMatch: HitRegion | null = null
+    let bestMatch: HitRegion | null = null;
 
     for (const region of this.regions.values()) {
       // Check if point is within region bounds
@@ -141,12 +141,12 @@ export class HitRegistry {
       ) {
         // Keep the highest z-index match
         if (!bestMatch || region.zIndex > bestMatch.zIndex) {
-          bestMatch = region
+          bestMatch = region;
         }
       }
     }
 
-    return bestMatch?.target ?? null
+    return bestMatch?.target ?? null;
   }
 
   /**
@@ -158,7 +158,7 @@ export class HitRegistry {
    * @returns Array of matching regions, sorted by z-index descending
    */
   hitTestAll(screenX: number, screenY: number): HitRegion[] {
-    const matches: HitRegion[] = []
+    const matches: HitRegion[] = [];
 
     for (const region of this.regions.values()) {
       if (
@@ -167,19 +167,19 @@ export class HitRegistry {
         screenY >= region.y &&
         screenY < region.y + region.height
       ) {
-        matches.push(region)
+        matches.push(region);
       }
     }
 
     // Sort by z-index descending (highest first)
-    return matches.sort((a, b) => b.zIndex - a.zIndex)
+    return matches.sort((a, b) => b.zIndex - a.zIndex);
   }
 
   /**
    * Debug helper: get all registered regions.
    */
   getAllRegions(): Map<string, HitRegion> {
-    return new Map(this.regions)
+    return new Map(this.regions);
   }
 }
 
@@ -191,7 +191,7 @@ export class HitRegistry {
  * Context for accessing the HitRegistry.
  * Components use this to register their hit regions.
  */
-export const HitRegistryContext = createContext<HitRegistry | null>(null)
+export const HitRegistryContext = createContext<HitRegistry | null>(null);
 
 // ============================================================================
 // Hooks
@@ -200,16 +200,16 @@ export const HitRegistryContext = createContext<HitRegistry | null>(null)
 /**
  * Generate a unique ID for hit region registration.
  */
-let hitRegionIdCounter = 0
+let hitRegionIdCounter = 0;
 function generateHitRegionId(): string {
-  return `hit-${++hitRegionIdCounter}`
+  return `hit-${++hitRegionIdCounter}`;
 }
 
 /**
  * Reset the ID counter (useful for testing).
  */
 export function resetHitRegionIdCounter(): void {
-  hitRegionIdCounter = 0
+  hitRegionIdCounter = 0;
 }
 
 /**
@@ -218,7 +218,7 @@ export function resetHitRegionIdCounter(): void {
  * @returns The HitRegistry instance, or null if not in a HitRegistryContext
  */
 export function useHitRegistry(): HitRegistry | null {
-  return useContext(HitRegistryContext)
+  return useContext(HitRegistryContext);
 }
 
 /**
@@ -247,25 +247,30 @@ export function useHitRegistry(): HitRegistry | null {
  * }
  * ```
  */
-export function useHitRegion(target: HitTarget, rect: Rect | null, zIndex = 0, enabled = true): void {
-  const registry = useContext(HitRegistryContext)
-  const idRef = useRef<string | null>(null)
+export function useHitRegion(
+  target: HitTarget,
+  rect: Rect | null,
+  zIndex = 0,
+  enabled = true,
+): void {
+  const registry = useContext(HitRegistryContext);
+  const idRef = useRef<string | null>(null);
 
   // Generate stable ID on first use
   if (idRef.current === null) {
-    idRef.current = generateHitRegionId()
+    idRef.current = generateHitRegionId();
   }
 
   useEffect(() => {
     if (!registry || !rect || !enabled) {
       // Clean up if disabled or no registry
       if (idRef.current && registry) {
-        registry.unregister(idRef.current)
+        registry.unregister(idRef.current);
       }
-      return
+      return;
     }
 
-    const id = idRef.current!
+    const id = idRef.current!;
 
     // Register the region
     registry.register(id, {
@@ -275,13 +280,13 @@ export function useHitRegion(target: HitTarget, rect: Rect | null, zIndex = 0, e
       height: rect.height,
       target,
       zIndex,
-    })
+    });
 
     // Cleanup on unmount or when dependencies change
     return () => {
-      registry.unregister(id)
-    }
-  }, [registry, rect?.x, rect?.y, rect?.width, rect?.height, target, zIndex, enabled])
+      registry.unregister(id);
+    };
+  }, [registry, rect?.x, rect?.y, rect?.width, rect?.height, target, zIndex, enabled]);
 }
 
 /**
@@ -309,32 +314,36 @@ export function useHitRegion(target: HitTarget, rect: Rect | null, zIndex = 0, e
  * }
  * ```
  */
-export function useHitRegionCallback(target: HitTarget, zIndex = 0, enabled = true): (rect: Rect) => void {
-  const registry = useContext(HitRegistryContext)
-  const idRef = useRef<string | null>(null)
+export function useHitRegionCallback(
+  target: HitTarget,
+  zIndex = 0,
+  enabled = true,
+): (rect: Rect) => void {
+  const registry = useContext(HitRegistryContext);
+  const idRef = useRef<string | null>(null);
 
   // Generate stable ID on first use
   if (idRef.current === null) {
-    idRef.current = generateHitRegionId()
+    idRef.current = generateHitRegionId();
   }
 
   // Cleanup on unmount
   useEffect(() => {
-    const id = idRef.current
+    const id = idRef.current;
     return () => {
       if (id && registry) {
-        registry.unregister(id)
+        registry.unregister(id);
       }
-    }
-  }, [registry])
+    };
+  }, [registry]);
 
   // Return callback that updates the region
   return (rect: Rect) => {
     if (!registry || !enabled) {
       if (idRef.current && registry) {
-        registry.unregister(idRef.current)
+        registry.unregister(idRef.current);
       }
-      return
+      return;
     }
 
     registry.register(idRef.current!, {
@@ -344,8 +353,8 @@ export function useHitRegionCallback(target: HitTarget, zIndex = 0, enabled = tr
       height: rect.height,
       target,
       zIndex,
-    })
-  }
+    });
+  };
 }
 
 // ============================================================================
@@ -374,4 +383,4 @@ export const Z_INDEX = {
   DROPDOWN: 150,
   /** Tooltips */
   TOOLTIP: 200,
-} as const
+} as const;

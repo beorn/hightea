@@ -39,7 +39,6 @@
     }
   },
   "dependencies": {
-    "@silvery/ansi": "workspace:*",
     "@silvery/react": "workspace:*",
     "@silvery/term": "workspace:*",
     "@silvery/test": "workspace:*"

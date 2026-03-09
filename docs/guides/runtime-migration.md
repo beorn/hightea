@@ -27,10 +27,10 @@ The `useInput` signature is the same as the original Ink:
 ```typescript
 // Both old and new use this signature:
 useInput((input: string, key: Key) => {
-  if (input === "q") return "exit"
-  if (key.upArrow) moveCursor(-1)
-  if (key.ctrl && input === "c") return "exit"
-})
+  if (input === "q") return "exit";
+  if (key.upArrow) moveCursor(-1);
+  if (key.ctrl && input === "c") return "exit";
+});
 ```
 
 The `Key` object contains:
@@ -50,9 +50,9 @@ The `Key` object contains:
 Or use the `useExit()` hook for imperative exit:
 
 ```typescript
-const exit = useExit()
+const exit = useExit();
 // Later...
-exit()
+exit();
 ```
 
 ## Layer Selection
@@ -72,42 +72,42 @@ Choose based on your needs:
 **Before:**
 
 ```tsx
-import { render, useInput, useApp } from "@silvery/term"
+import { render, useInput, useApp } from "@silvery/term";
 
 function App() {
-  const [count, setCount] = useState(0)
-  const { exit } = useApp()
+  const [count, setCount] = useState(0);
+  const { exit } = useApp();
 
   useInput((input, key) => {
-    if (input === "j") setCount((c) => c + 1)
-    if (key.upArrow) setCount((c) => c + 1)
-    if (input === "q") exit()
-  })
+    if (input === "j") setCount((c) => c + 1);
+    if (key.upArrow) setCount((c) => c + 1);
+    if (input === "q") exit();
+  });
 
-  return <Text>Count: {count}</Text>
+  return <Text>Count: {count}</Text>;
 }
 
-await render(<App />)
+await render(<App />);
 ```
 
 **After:**
 
 ```tsx
-import { run, useInput } from "@silvery/term/runtime"
+import { run, useInput } from "@silvery/term/runtime";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
 
   useInput((input, key) => {
-    if (input === "j") setCount((c) => c + 1)
-    if (key.upArrow) setCount((c) => c + 1)
-    if (input === "q") return "exit" // Return 'exit' instead of calling exit()
-  })
+    if (input === "j") setCount((c) => c + 1);
+    if (key.upArrow) setCount((c) => c + 1);
+    if (input === "q") return "exit"; // Return 'exit' instead of calling exit()
+  });
 
-  return <Text>Count: {count}</Text>
+  return <Text>Count: {count}</Text>;
 }
 
-await run(<App />)
+await run(<App />);
 ```
 
 ### Complex App (Layer 3)
@@ -115,15 +115,15 @@ await run(<App />)
 **Before:**
 
 ```tsx
-import { render, useInput } from "@silvery/term"
+import { render, useInput } from "@silvery/term";
 // Manual prop drilling for state
 
 function App({ items, cursor, onMove }) {
   useInput((input) => {
-    if (input === "j") onMove(1)
-    if (input === "k") onMove(-1)
-  })
-  return <List items={items} cursor={cursor} />
+    if (input === "j") onMove(1);
+    if (input === "k") onMove(-1);
+  });
+  return <List items={items} cursor={cursor} />;
 }
 
 // State management outside component tree
@@ -132,7 +132,7 @@ function App({ items, cursor, onMove }) {
 **After:**
 
 ```tsx
-import { createApp, useApp, type Key } from "@silvery/term/runtime"
+import { createApp, useApp, type Key } from "@silvery/term/runtime";
 
 const app = createApp(
   () => (set) => ({
@@ -142,20 +142,20 @@ const app = createApp(
   }),
   {
     key: (input, key, { get }) => {
-      if (input === "j" || key.downArrow) get().moveCursor(1)
-      if (input === "k" || key.upArrow) get().moveCursor(-1)
-      if (input === "q") return "exit"
+      if (input === "j" || key.downArrow) get().moveCursor(1);
+      if (input === "k" || key.upArrow) get().moveCursor(-1);
+      if (input === "q") return "exit";
     },
   },
-)
+);
 
 function App() {
-  const items = useApp((s) => s.items) // Fine-grained subscription
-  const cursor = useApp((s) => s.cursor) // Only re-renders when these change
-  return <List items={items} cursor={cursor} />
+  const items = useApp((s) => s.items); // Fine-grained subscription
+  const cursor = useApp((s) => s.cursor); // Only re-renders when these change
+  return <List items={items} cursor={cursor} />;
 }
 
-await app.run(<App />)
+await app.run(<App />);
 ```
 
 ## Testing
@@ -172,14 +172,14 @@ Box, Text, and other components work identically:
 
 ```tsx
 // Same in both APIs
-import { Box, Text } from "@silvery/term"
+import { Box, Text } from "@silvery/term";
 
 function Card() {
   return (
     <Box borderStyle="round" padding={1}>
       <Text bold>Title</Text>
     </Box>
-  )
+  );
 }
 ```
 

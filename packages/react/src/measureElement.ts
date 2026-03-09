@@ -35,16 +35,16 @@
  * ```
  */
 
-import type { TeaNode } from "@silvery/tea/types"
+import type { TeaNode } from "@silvery/tea/types";
 
 /**
  * Output from measureElement.
  */
 export interface MeasureElementOutput {
   /** Element width in terminal columns */
-  width: number
+  width: number;
   /** Element height in terminal rows */
-  height: number
+  height: number;
 }
 
 /**
@@ -63,17 +63,17 @@ export function measureElement(node: TeaNode): MeasureElementOutput {
     return {
       width: node.contentRect.width,
       height: node.contentRect.height,
-    }
+    };
   }
 
   // Fall back to layoutNode for backward compatibility
   // (handles case where measureElement is called before silvery pipeline runs)
-  const width = node.layoutNode?.getComputedWidth() ?? 0
-  const height = node.layoutNode?.getComputedHeight() ?? 0
+  const width = node.layoutNode?.getComputedWidth() ?? 0;
+  const height = node.layoutNode?.getComputedHeight() ?? 0;
 
   return {
     // Handle NaN from Yoga (returned before calculateLayout is called)
     width: Number.isNaN(width) ? 0 : width,
     height: Number.isNaN(height) ? 0 : height,
-  }
+  };
 }

@@ -15,8 +15,8 @@
     }
   },
   "dependencies": {
-    "@silvery/ansi": "workspace:*",
     "@silvery/react": "workspace:*",
+    "@silvery/term": "workspace:*",
     "@silvery/ui": "workspace:*",
     "chalk": "^5.6.2"
   }

@@ -11,35 +11,41 @@
 // Buffer
 // =============================================================================
 
-export type { TerminalBuffer, Color } from "./buffer"
-export { colorEquals } from "./buffer"
+export type { TerminalBuffer, Color } from "./buffer";
+export { colorEquals } from "./buffer";
 
 // =============================================================================
 // Pipeline
 // =============================================================================
 
-export { executeRender, type PipelineConfig, type ExecuteRenderOptions } from "./pipeline"
+export { executeRender, type PipelineConfig, type ExecuteRenderOptions } from "./pipeline";
 export {
   outputPhase,
   setOutputCaps,
   createOutputPhase,
   type OutputPhaseFn,
   type OutputCaps,
-} from "./pipeline/output-phase"
-export type { PipelineContext } from "./pipeline/types"
+} from "./pipeline/output-phase";
+export type { PipelineContext } from "./pipeline/types";
 
 // =============================================================================
 // App Types
 // =============================================================================
 
-export type { App } from "./app"
-export type { BoundTerm } from "./bound-term"
+export type { App } from "./app";
+export type { BoundTerm } from "./bound-term";
 
 // =============================================================================
 // Layout Engine
 // =============================================================================
 
-export type { LayoutEngine, LayoutNode, LayoutConstants, MeasureFunc, MeasureMode } from "./layout-engine"
+export type {
+  LayoutEngine,
+  LayoutNode,
+  LayoutConstants,
+  MeasureFunc,
+  MeasureMode,
+} from "./layout-engine";
 
 // =============================================================================
 // Render Adapter
@@ -51,7 +57,7 @@ export {
   hasRenderAdapter,
   getTextMeasurer,
   ensureRenderAdapterInitialized,
-} from "./render-adapter"
+} from "./render-adapter";
 export type {
   RenderAdapter,
   RenderBuffer,
@@ -60,15 +66,15 @@ export type {
   TextMeasureResult,
   TextMeasureStyle,
   BorderChars,
-} from "./render-adapter"
+} from "./render-adapter";
 
 // Canvas adapter
-export { createCanvasAdapter, CanvasRenderBuffer } from "./adapters/canvas-adapter"
-export type { CanvasAdapterConfig } from "./adapters/canvas-adapter"
+export { createCanvasAdapter, CanvasRenderBuffer } from "./adapters/canvas-adapter";
+export type { CanvasAdapterConfig } from "./adapters/canvas-adapter";
 
 // DOM adapter
-export { createDOMAdapter, DOMRenderBuffer, injectDOMStyles } from "./adapters/dom-adapter"
-export type { DOMAdapterConfig } from "./adapters/dom-adapter"
+export { createDOMAdapter, DOMRenderBuffer, injectDOMStyles } from "./adapters/dom-adapter";
+export type { DOMAdapterConfig } from "./adapters/dom-adapter";
 
 // =============================================================================
 // ANSI Escape Sequences / Output
@@ -92,8 +98,10 @@ export {
   resetWindowTitle,
   setCursorStyle,
   resetCursorStyle,
-} from "./output"
-export type { CursorShape } from "./output"
+  setMouseCursorShape,
+  resetMouseCursorShape,
+} from "./output";
+export type { CursorShape, MouseCursorShape } from "./output";
 
 // =============================================================================
 // Bracketed Paste
@@ -105,56 +113,71 @@ export {
   parseBracketedPaste,
   PASTE_START,
   PASTE_END,
-} from "./bracketed-paste"
-export type { BracketedPasteResult } from "./bracketed-paste"
+} from "./bracketed-paste";
+export type { BracketedPasteResult } from "./bracketed-paste";
 
 // =============================================================================
 // OSC 52 Clipboard
 // =============================================================================
 
-export { copyToClipboard, requestClipboard, parseClipboardResponse } from "./clipboard"
+export { copyToClipboard, requestClipboard, parseClipboardResponse } from "./clipboard";
 
 // =============================================================================
 // OSC 4 Palette Color Query/Set
 // =============================================================================
 
-export { queryPaletteColor, setPaletteColor, parsePaletteResponse, queryMultiplePaletteColors } from "./osc-palette"
+export {
+  queryPaletteColor,
+  setPaletteColor,
+  parsePaletteResponse,
+  queryMultiplePaletteColors,
+} from "./osc-palette";
 
 // =============================================================================
 // OSC 133 Semantic Prompt Markers
 // =============================================================================
 
-export { OSC133 } from "./osc-markers"
+export { OSC133 } from "./osc-markers";
 
 // =============================================================================
 // Kitty Protocol Detection
 // =============================================================================
 
-export { detectKittySupport, detectKittyFromStdio, type KittyDetectResult } from "./kitty-detect"
+export { detectKittySupport, detectKittyFromStdio, type KittyDetectResult } from "./kitty-detect";
 
 // =============================================================================
 // Terminal Capability Detection
 // =============================================================================
 
-export { detectTerminalCaps, defaultCaps, type TerminalCaps } from "./terminal-caps"
+export { detectTerminalCaps, defaultCaps, type TerminalCaps } from "./terminal-caps";
 
 // =============================================================================
 // Terminal Capability Visual Test
 // =============================================================================
 
-export { runTermtest, TERMTEST_SECTIONS, type TermtestSection, type TermtestOptions } from "./termtest"
+export {
+  runTermtest,
+  TERMTEST_SECTIONS,
+  type TermtestSection,
+  type TermtestOptions,
+} from "./termtest";
 
 // =============================================================================
 // Text Sizing (OSC 66)
 // =============================================================================
 
-export { textSized, isPrivateUseArea, isTextSizingLikelySupported, detectTextSizingSupport } from "./text-sizing"
+export {
+  textSized,
+  isPrivateUseArea,
+  isTextSizingLikelySupported,
+  detectTextSizingSupport,
+} from "./text-sizing";
 
 // =============================================================================
 // CSI 6n Cursor Position Query
 // =============================================================================
 
-export { queryCursorPosition, queryCursorFromStdio } from "./cursor-query"
+export { queryCursorPosition, queryCursorFromStdio } from "./cursor-query";
 
 // =============================================================================
 // OSC 10/11/12 Terminal Color Queries
@@ -171,7 +194,7 @@ export {
   resetBackgroundColor,
   resetCursorColor,
   detectColorScheme,
-} from "./terminal-colors"
+} from "./terminal-colors";
 
 // =============================================================================
 // DA1/DA2/DA3 + XTVERSION Device Attribute Queries
@@ -184,31 +207,38 @@ export {
   queryTerminalVersion,
   queryDeviceAttributes,
   type DeviceAttributes,
-} from "./device-attrs"
+} from "./device-attrs";
 
 // =============================================================================
 // Focus Reporting
 // =============================================================================
 
-export { enableFocusReporting, disableFocusReporting, parseFocusEvent } from "./focus-reporting"
+export { enableFocusReporting, disableFocusReporting, parseFocusEvent } from "./focus-reporting";
 
 // =============================================================================
 // DECRQM Mode Query
 // =============================================================================
 
-export { queryMode, queryModes, DecMode } from "./mode-query"
+export { queryMode, queryModes, DecMode } from "./mode-query";
 
 // =============================================================================
 // CSI 14t/18t Pixel and Text Area Size
 // =============================================================================
 
-export { queryTextAreaPixels, queryTextAreaSize, queryCellSize } from "./pixel-size"
+export { queryTextAreaPixels, queryTextAreaSize, queryCellSize } from "./pixel-size";
 
 // =============================================================================
 // TermDef Resolution
 // =============================================================================
 
-export { resolveTermDef, resolveFromTerm, isTerm, isTermDef, createInputEvents, type ResolvedTermDef } from "./term-def"
+export {
+  resolveTermDef,
+  resolveFromTerm,
+  isTerm,
+  isTermDef,
+  createInputEvents,
+  type ResolvedTermDef,
+} from "./term-def";
 
 // =============================================================================
 // Hit Registry (Mouse Support)
@@ -222,14 +252,14 @@ export {
   useHitRegionCallback,
   resetHitRegionIdCounter,
   Z_INDEX,
-} from "./hit-registry"
-export type { HitTarget, HitRegion } from "./hit-registry"
+} from "./hit-registry";
+export type { HitTarget, HitRegion } from "./hit-registry";
 
 // =============================================================================
 // Mouse Parsing (SGR mode 1006)
 // =============================================================================
 
-export { parseMouseSequence, isMouseSequence, type ParsedMouse } from "./mouse"
+export { parseMouseSequence, isMouseSequence, type ParsedMouse } from "./mouse";
 
 // =============================================================================
 // Mouse Events (DOM-level)
@@ -250,20 +280,20 @@ export {
   type MouseEventProps,
   type MouseEventProcessorOptions,
   type MouseEventProcessorState,
-} from "./mouse-events"
+} from "./mouse-events";
 
 // =============================================================================
 // Non-TTY Utilities
 // =============================================================================
 
-export { isTTY, resolveNonTTYMode, stripAnsi } from "./non-tty"
-export type { NonTTYOptions, ResolvedNonTTYMode } from "./non-tty"
+export { isTTY, resolveNonTTYMode, stripAnsi } from "./non-tty";
+export type { NonTTYOptions, ResolvedNonTTYMode } from "./non-tty";
 
 // =============================================================================
 // DevTools
 // =============================================================================
 
-export { connectDevTools, isDevToolsConnected } from "./devtools"
+export { connectDevTools, isDevToolsConnected } from "./devtools";
 
 // =============================================================================
 // Inspector
@@ -276,8 +306,8 @@ export {
   inspectTree,
   inspectFrame,
   autoEnableInspector,
-} from "./inspector"
-export type { InspectorOptions } from "./inspector"
+} from "./inspector";
+export type { InspectorOptions } from "./inspector";
 
 // =============================================================================
 // Unicode Text Utilities
@@ -326,23 +356,29 @@ export {
   // Utilities
   normalizeText,
   getFirstCodePoint,
-} from "./unicode"
-export type { StyledSegment } from "./unicode"
+} from "./unicode";
+export type { StyledSegment } from "./unicode";
 
 // Width measurer factory
-export { createWidthMeasurer, createMeasurer, runWithMeasurer, type Measurer, type WidthMeasurer } from "./unicode"
+export {
+  createWidthMeasurer,
+  createMeasurer,
+  runWithMeasurer,
+  type Measurer,
+  type WidthMeasurer,
+} from "./unicode";
 
 // Measurer composition (term + measurement)
-export { withMeasurer, createPipeline, type MeasuredTerm } from "./measurer"
+export { withMeasurer, createPipeline, type MeasuredTerm } from "./measurer";
 
 // withRender plugin
-export { withRender, type RenderTerm } from "@silvery/tea/with-render"
+export { withRender, type RenderTerm } from "@silvery/tea/with-render";
 
 // =============================================================================
 // Scroll Utilities
 // =============================================================================
 
-export { calcEdgeBasedScrollOffset } from "./scroll-utils"
+export { calcEdgeBasedScrollOffset } from "./scroll-utils";
 
 // Scroll Region Optimization (DECSTBM)
 export {
@@ -352,14 +388,14 @@ export {
   scrollDown,
   moveCursor,
   supportsScrollRegions,
-} from "./scroll-region"
-export type { ScrollRegionConfig } from "./scroll-region"
+} from "./scroll-region";
+export type { ScrollRegionConfig } from "./scroll-region";
 
 // =============================================================================
 // Pane Manager
 // =============================================================================
 
-export type { LayoutNode as SplitLayoutNode } from "./pane-manager"
+export type { LayoutNode as SplitLayoutNode } from "./pane-manager";
 export {
   createLeaf,
   splitPane,
@@ -369,10 +405,80 @@ export {
   resizeSplit,
   swapPanes,
   getTabOrder as getSplitTabOrder,
-} from "./pane-manager"
+} from "./pane-manager";
 
 // =============================================================================
 // Scheduler
 // =============================================================================
 
-export { IncrementalRenderMismatchError } from "./scheduler"
+export { IncrementalRenderMismatchError } from "./scheduler";
+
+// =============================================================================
+// ANSI Primitives (merged from @silvery/ansi)
+// =============================================================================
+
+// Term factory and lazy instance
+export { createTerm, term } from "./ansi/index";
+export type { Term, StyleChain } from "./ansi/index";
+
+// Console patching
+export { patchConsole } from "./ansi/index";
+export type { PatchedConsole, PatchConsoleOptions, ConsoleStats } from "./ansi/index";
+
+// Types
+export type {
+  UnderlineStyle,
+  RGB,
+  ColorLevel,
+  Color as AnsiColor,
+  AnsiColorName,
+  StyleOptions,
+  ConsoleMethod,
+  ConsoleEntry,
+  CreateTermOptions,
+} from "./ansi/index";
+
+// Detection
+export {
+  detectCursor,
+  detectInput,
+  detectColor,
+  detectUnicode,
+  detectExtendedUnderline,
+} from "./ansi/index";
+
+// Utilities
+export { ANSI_REGEX, displayLength } from "./ansi/index";
+
+// Underline functions
+export {
+  underline as ansiUnderline,
+  curlyUnderline,
+  dottedUnderline,
+  dashedUnderline,
+  doubleUnderline,
+  underlineColor,
+  styledUnderline,
+} from "./ansi/index";
+
+// Hyperlinks
+export { hyperlink } from "./ansi/index";
+
+// ANSI control helpers (re-exported as ansi* to avoid conflicts with term's own)
+export {
+  enterAltScreen,
+  leaveAltScreen,
+  clearScreen,
+  clearLine,
+  cursorTo,
+  cursorHome,
+  cursorHide,
+  cursorShow,
+  cursorStyle as ansiCursorStyle,
+  setTitle,
+  enableSyncUpdate,
+  disableSyncUpdate,
+} from "./ansi/index";
+
+// Background override
+export { BG_OVERRIDE_CODE, bgOverride } from "./ansi/index";

@@ -13,11 +13,11 @@ Silvery provides the same components as Ink, with some enhancements.
 The primary layout component. Uses Yoga (flexbox) for layout.
 
 ```tsx
-import { Box, Text } from "silvery"
-;<Box flexDirection="row" justifyContent="space-between">
+import { Box, Text } from "silvery";
+<Box flexDirection="row" justifyContent="space-between">
   <Text>Left</Text>
   <Text>Right</Text>
-</Box>
+</Box>;
 ```
 
 ### New in Silvery: Scrolling
@@ -118,12 +118,12 @@ import { Newline, Text } from "silvery";
 Flexible space that expands to fill available room.
 
 ```tsx
-import { Box, Spacer, Text } from "silvery"
-;<Box>
+import { Box, Spacer, Text } from "silvery";
+<Box>
   <Text>Left</Text>
   <Spacer />
   <Text>Right</Text>
-</Box>
+</Box>;
 ```
 
 ## Static
@@ -131,17 +131,17 @@ import { Box, Spacer, Text } from "silvery"
 Renders content that won't be updated. Useful for logs or output that scrolls up.
 
 ```tsx
-import { Static, Box, Text } from "silvery"
+import { Static, Box, Text } from "silvery";
 
 function App() {
-  const [logs, setLogs] = useState<string[]>([])
+  const [logs, setLogs] = useState<string[]>([]);
 
   return (
     <Box flexDirection="column">
       <Static items={logs}>{(log, i) => <Text key={i}>{log}</Text>}</Static>
       <Text>Current status...</Text>
     </Box>
-  )
+  );
 }
 ```
 
@@ -159,8 +159,14 @@ function App() {
 Single-line text input with full readline shortcuts (Ctrl+A/E, Ctrl+K/U, Alt+B/F, Ctrl+Y with kill ring).
 
 ```tsx
-import { TextInput } from "silvery"
-;<TextInput value={text} onChange={setText} onSubmit={handleSubmit} placeholder="Type here..." prompt="> " />
+import { TextInput } from "silvery";
+<TextInput
+  value={text}
+  onChange={setText}
+  onSubmit={handleSubmit}
+  placeholder="Type here..."
+  prompt="> "
+/>;
 ```
 
 ### TextArea
@@ -168,8 +174,8 @@ import { TextInput } from "silvery"
 Multi-line text editing with cursor navigation, line wrapping, and text selection.
 
 ```tsx
-import { TextArea } from "silvery"
-;<TextArea
+import { TextArea } from "silvery";
+<TextArea
   value={text}
   onChange={setText}
   height={5}
@@ -177,7 +183,7 @@ import { TextArea } from "silvery"
   submitKey="ctrl+enter"
   onSubmit={handleSubmit}
   scrollMargin={1}
-/>
+/>;
 ```
 
 | Prop           | Type                                      | Default        | Description                                     |
@@ -203,15 +209,15 @@ Features: Shift+Arrow selection, Ctrl+A select all, Ctrl+Home/End document navig
 Single-select list with keyboard navigation (arrow keys, j/k, Home/End), disabled item support, and `maxVisible` for scroll windowing.
 
 ```tsx
-import { SelectList } from "silvery"
-;<SelectList
+import { SelectList } from "silvery";
+<SelectList
   items={[
     { label: "React", value: "react" },
     { label: "Vue", value: "vue" },
     { label: "Svelte", value: "svelte" },
   ]}
   onSelect={(item) => console.log(item.value)}
-/>
+/>;
 ```
 
 ### Toggle, Button
@@ -265,35 +271,35 @@ bun add @silvery/ui
 **CLI mode** (direct stdout, no React):
 
 ```ts
-import { Spinner, ProgressBar, MultiProgress } from "@silvery/ui/cli"
+import { Spinner, ProgressBar, MultiProgress } from "@silvery/ui/cli";
 
-const stop = Spinner.start("Loading...")
-await doWork()
-stop()
+const stop = Spinner.start("Loading...");
+await doWork();
+stop();
 ```
 
 **Wrappers** (ergonomic async adapters):
 
 ```ts
-import { withSpinner, withProgress } from "@silvery/ui/wrappers"
+import { withSpinner, withProgress } from "@silvery/ui/wrappers";
 
-const data = await withSpinner(fetchData(), "Loading data...")
+const data = await withSpinner(fetchData(), "Loading data...");
 ```
 
 **Declarative steps**:
 
 ```ts
-import { steps } from "@silvery/ui/progress"
+import { steps } from "@silvery/ui/progress";
 
-const loader = steps({ loadModules, parseConfig, validate })
-await loader.run({ clear: true })
+const loader = steps({ loadModules, parseConfig, validate });
+await loader.run({ clear: true });
 ```
 
 **React components** (for Silvery/Ink apps):
 
 ```tsx
-import { Spinner, ProgressBar, Tasks, Task } from "@silvery/ui/react"
-import { TextInput, Select } from "@silvery/ui/input"
+import { Spinner, ProgressBar, Tasks, Task } from "@silvery/ui/react";
+import { TextInput, Select } from "@silvery/ui/input";
 ```
 
 See the [@silvery/ui README](https://github.com/beorn/silvery/tree/main/packages/ui) for full documentation.

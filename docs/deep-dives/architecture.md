@@ -79,44 +79,44 @@ The abstraction boundary between core and targets:
 ```typescript
 interface RenderAdapter {
   /** Adapter name for debugging */
-  name: string
+  name: string;
 
   /** Text measurement for this adapter */
-  measurer: TextMeasurer
+  measurer: TextMeasurer;
 
   /** Create a buffer for rendering */
-  createBuffer(width: number, height: number): RenderBuffer
+  createBuffer(width: number, height: number): RenderBuffer;
 
   /** Flush the buffer to output (returns ANSI string for terminal, void for canvas) */
-  flush(buffer: RenderBuffer, prevBuffer: RenderBuffer | null): string | void
+  flush(buffer: RenderBuffer, prevBuffer: RenderBuffer | null): string | void;
 
   /** Get border characters for the given style */
-  getBorderChars(style: string): BorderChars
+  getBorderChars(style: string): BorderChars;
 }
 
 interface TextMeasurer {
   /** Measure text dimensions (cells for terminal, pixels for canvas) */
-  measureText(text: string, style?: TextMeasureStyle): { width: number; height: number }
+  measureText(text: string, style?: TextMeasureStyle): { width: number; height: number };
 
   /** Get line height for the given style */
-  getLineHeight(style?: TextMeasureStyle): number
+  getLineHeight(style?: TextMeasureStyle): number;
 }
 
 interface RenderBuffer {
-  readonly width: number
-  readonly height: number
+  readonly width: number;
+  readonly height: number;
 
   /** Fill a rectangle with a style */
-  fillRect(x: number, y: number, width: number, height: number, style: RenderStyle): void
+  fillRect(x: number, y: number, width: number, height: number, style: RenderStyle): void;
 
   /** Draw text at a position */
-  drawText(x: number, y: number, text: string, style: RenderStyle): void
+  drawText(x: number, y: number, text: string, style: RenderStyle): void;
 
   /** Draw a single character at a position */
-  drawChar(x: number, y: number, char: string, style: RenderStyle): void
+  drawChar(x: number, y: number, char: string, style: RenderStyle): void;
 
   /** Check if coordinates are within bounds */
-  inBounds(x: number, y: number): boolean
+  inBounds(x: number, y: number): boolean;
 }
 ```
 
@@ -140,7 +140,7 @@ const terminalAdapter: RenderAdapter = {
   flush: (buf, prev) => diffToAnsi(prev, buf),
 
   getBorderChars: (style) => BORDER_CHARS[style] ?? BORDER_CHARS.single,
-}
+};
 ```
 
 ### Canvas Adapter ✅ Implemented
@@ -241,13 +241,13 @@ A critical design constraint: components that adjust their size based on `conten
 ```tsx
 // DANGER: This could loop forever
 function BadComponent() {
-  const { width } = useContentRect()
-  const style = width > 50 ? { width: 40 } : { width: 60 }
+  const { width } = useContentRect();
+  const style = width > 50 ? { width: 40 } : { width: 60 };
   return (
     <Box {...style}>
       <Text>Content</Text>
     </Box>
-  )
+  );
 }
 ```
 
@@ -264,21 +264,21 @@ Silvery follows similar principles to CSS Container Queries:
 ```tsx
 // OK: Content adapts to size
 function Card() {
-  const { width } = useContentRect()
-  return <Text>{truncate(title, width)}</Text>
+  const { width } = useContentRect();
+  return <Text>{truncate(title, width)}</Text>;
 }
 
 // OK: Conditional rendering based on size
 function Sidebar() {
-  const { width } = useContentRect()
-  return width > 30 ? <FullNav /> : <IconNav />
+  const { width } = useContentRect();
+  return width > 30 ? <FullNav /> : <IconNav />;
 }
 
 // OK: Scroll position based on size
 function List() {
-  const { height } = useContentRect()
-  const visibleCount = Math.floor(height / itemHeight)
-  return <Items visible={visibleCount} />
+  const { height } = useContentRect();
+  const visibleCount = Math.floor(height / itemHeight);
+  return <Items visible={visibleCount} />;
 }
 ```
 
@@ -287,8 +287,8 @@ function List() {
 ```tsx
 // BAD: Size depends on size
 function Oscillating() {
-  const { width } = useContentRect()
-  return <Box width={width > 50 ? 40 : 60}>...</Box>
+  const { width } = useContentRect();
+  return <Box width={width > 50 ? 40 : 60}>...</Box>;
 }
 ```
 
@@ -299,28 +299,28 @@ Silvery supports pluggable layout engines through a common interface:
 ```typescript
 interface LayoutEngine {
   // Node management
-  createNode(): LayoutNode
-  freeNode(node: LayoutNode): void
+  createNode(): LayoutNode;
+  freeNode(node: LayoutNode): void;
 
   // Tree structure
-  appendChild(parent: LayoutNode, child: LayoutNode): void
-  removeChild(parent: LayoutNode, child: LayoutNode): void
+  appendChild(parent: LayoutNode, child: LayoutNode): void;
+  removeChild(parent: LayoutNode, child: LayoutNode): void;
 
   // Style application
-  setStyle(node: LayoutNode, style: LayoutStyle): void
+  setStyle(node: LayoutNode, style: LayoutStyle): void;
 
   // Layout calculation
-  calculateLayout(root: LayoutNode, width: number, height: number): void
+  calculateLayout(root: LayoutNode, width: number, height: number): void;
 
   // Result extraction
-  getComputedLayout(node: LayoutNode): ComputedLayout
+  getComputedLayout(node: LayoutNode): ComputedLayout;
 }
 
 interface ComputedLayout {
-  x: number
-  y: number
-  width: number
-  height: number
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 ```
 

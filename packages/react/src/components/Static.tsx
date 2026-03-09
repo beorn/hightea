@@ -6,15 +6,15 @@
  * visible after being rendered.
  */
 
-import type { JSX, ReactNode } from "react"
+import type { JSX, ReactNode } from "react";
 
 export interface StaticProps<T> {
   /** Items to render */
-  items: T[]
+  items: T[];
   /** Render function for each item */
-  children: (item: T, index: number) => ReactNode
+  children: (item: T, index: number) => ReactNode;
   /** Style to apply to the container */
-  style?: Record<string, unknown>
+  style?: Record<string, unknown>;
 }
 
 /**
@@ -43,5 +43,5 @@ export function Static<T>({ items, children, style }: StaticProps<T>): JSX.Eleme
     <silvery-box flexDirection="column" {...style}>
       {items.map((item, index) => children(item, index))}
     </silvery-box>
-  )
+  );
 }
