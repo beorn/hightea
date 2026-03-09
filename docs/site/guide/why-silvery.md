@@ -9,14 +9,14 @@ In Ink, React renders _before_ layout runs. Components never learn their dimensi
 ```tsx
 // Ink: width props cascade everywhere
 function Board({ width }: { width: number }) {
-  const colWidth = Math.floor((width - 2) / 3);
+  const colWidth = Math.floor((width - 2) / 3)
   return (
     <Box flexDirection="row">
       <Column width={colWidth} items={todo} />
       <Column width={colWidth} items={doing} />
       <Column width={colWidth} items={done} />
     </Box>
-  );
+  )
 }
 ```
 
@@ -29,8 +29,8 @@ Silvery runs layout first, then lets components render with actual dimensions:
 ```tsx
 // Silvery: No width props needed
 function Card({ item }: { item: Item }) {
-  const { width } = useContentRect(); // Just ask
-  return <Text>{truncate(item.title, width - 4)}</Text>;
+  const { width } = useContentRect() // Just ask
+  return <Text>{truncate(item.title, width - 4)}</Text>
 }
 ```
 
@@ -49,4 +49,4 @@ Beyond layout feedback, Silvery provides:
 
 If you know Ink, you already know Silvery — `Box`, `Text`, `useInput`, `render()` all work the same way. See the [migration guide](/guide/migration) for the 5-minute switch.
 
-For the full feature-by-feature comparison with benchmarks, see [Silvery vs Ink](/silvery-vs-ink).
+For the full feature-by-feature comparison with benchmarks, see [Silvery vs Ink](/guide/migration).

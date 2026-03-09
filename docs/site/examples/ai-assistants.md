@@ -25,7 +25,7 @@ Terminal-based AI assistants have unique UI requirements: streaming output that 
 
 **Command introspection for AI agents.** The `withCommands` plugin exposes every action with an ID, name, description, and keybindings. Calling `cmd.all()` returns a structured list of everything the app can do. An AI agent can read this to decide which actions to invoke, turning the TUI into a programmable interface rather than a purely visual one.
 
-**Streaming-friendly incremental rendering.** When an LLM streams tokens, only the message being appended changes. Silvery tracks dirty flags per node and re-renders only what changed — 169us per update versus 20.7ms for a full-screen repaint ([benchmarks](/guide/why-Silvery#performance)). At 50 tokens per second, that is the difference between smooth scrolling and visible flicker.
+**Streaming-friendly incremental rendering.** When an LLM streams tokens, only the message being appended changes. Silvery tracks dirty flags per node and re-renders only what changed — 169us per update versus 20.7ms for a full-screen repaint ([benchmarks](/guide/why-silvery#performance)). At 50 tokens per second, that is the difference between smooth scrolling and visible flicker.
 
 **Bracketed paste for code snippets.** The `usePaste` hook receives multi-line pasted text as a single event instead of individual keystrokes. Users can paste code blocks, stack traces, or configuration files directly into the input area without the app interpreting each line as a separate command.
 
@@ -38,40 +38,34 @@ Terminal-based AI assistants have unique UI requirements: streaming output that 
 A complete working chat interface in under 50 lines. Messages scroll automatically, the input field stays pinned at the bottom, and the user can send messages with Enter.
 
 ```tsx
-import { Box, Text, TextInput, useContentRect } from "silvery";
-import { run, useInput } from "@silvery/term/runtime";
-import { useState } from "react";
+import { Box, Text, TextInput, useContentRect } from "silvery"
+import { run, useInput } from "@silvery/term/runtime"
+import { useState } from "react"
 
 interface Message {
-  role: "user" | "assistant";
-  content: string;
+  role: "user" | "assistant"
+  content: string
 }
 
 function Chat() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const { height } = useContentRect();
+  const [messages, setMessages] = useState<Message[]>([])
+  const [input, setInput] = useState("")
+  const { height } = useContentRect()
 
   async function send(text: string) {
-    if (!text.trim()) return;
-    setInput("");
-    const userMsg: Message = { role: "user", content: text };
-    setMessages((prev) => [...prev, userMsg]);
+    if (!text.trim()) return
+    setInput("")
+    const userMsg: Message = { role: "user", content: text }
+    setMessages((prev) => [...prev, userMsg])
 
     // Replace with your LLM call — response streams in via setMessages
-    const reply: Message = { role: "assistant", content: `Echo: ${text}` };
-    setMessages((prev) => [...prev, reply]);
+    const reply: Message = { role: "assistant", content: `Echo: ${text}` }
+    setMessages((prev) => [...prev, reply])
   }
 
   return (
     <Box flexDirection="column" width="100%" height="100%">
-      <Box
-        flexDirection="column"
-        flexGrow={1}
-        overflow="scroll"
-        scrollTo={messages.length - 1}
-        paddingX={1}
-      >
+      <Box flexDirection="column" flexGrow={1} overflow="scroll" scrollTo={messages.length - 1} paddingX={1}>
         {messages.map((msg, i) => (
           <Text key={i} color={msg.role === "user" ? "cyan" : "white"}>
             {msg.role === "user" ? "> " : "  "}
@@ -90,10 +84,10 @@ function Chat() {
         />
       </Box>
     </Box>
-  );
+  )
 }
 
-await run(<Chat />);
+await run(<Chat />)
 ```
 
 This gives you:
@@ -110,23 +104,23 @@ To add streaming, replace the echo stub with an async generator that appends tok
 For AI-driven applications where an agent needs to discover and execute actions, wrap the app with `withCommands`:
 
 ```tsx
-import { withCommands } from "silvery";
+import { withCommands } from "silvery"
 
 const app = withCommands(render(<Chat />), {
   registry: commandRegistry,
   getContext: () => appContext,
   handleAction: (action) => dispatch(action),
   getKeybindings: () => keybindings,
-});
+})
 
 // An AI agent can enumerate all available actions
-const commands = app.cmd.all();
+const commands = app.cmd.all()
 // [{ id: "send_message", name: "Send", keys: ["Enter"], ... },
 //  { id: "clear_history", name: "Clear", keys: ["Ctrl+L"], ... },
 //  { id: "toggle_model", name: "Switch Model", keys: ["Ctrl+M"], ... }]
 
 // And invoke them directly
-await app.cmd.send_message();
+await app.cmd.send_message()
 ```
 
 This turns the TUI from a visual interface into a structured API. The agent does not need to simulate keystrokes -- it calls commands by name and reads the screen state through `app.text` or `app.getState()`.
