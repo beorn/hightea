@@ -68,7 +68,7 @@ Command introspection, programmatic screenshots, scrollable streaming output. Sh
 ## Quick start
 
 ```bash
-bun add silvery react
+npm install silvery react
 ```
 
 ```tsx

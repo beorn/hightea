@@ -82,9 +82,25 @@ features:
 
 ## Quick Start
 
-```bash
+::: code-group
+
+```bash [npm]
+npm install silvery react
+```
+
+```bash [bun]
 bun add silvery react
 ```
+
+```bash [pnpm]
+pnpm add silvery react
+```
+
+```bash [yarn]
+yarn add silvery react
+```
+
+:::
 
 ```tsx
 import { useState } from "react"
