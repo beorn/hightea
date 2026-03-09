@@ -15,21 +15,21 @@ hero:
 
 features:
   - icon: "\U0001F504"
-    title: Drop-in Ink Replacement
-    details: "Same Box/Text/useInput API you already know. Migrate gradually -- swap the import, keep your components. No rewrite required."
+    title: Familiar API
+    details: "If you know Ink, you know silvery -- same Box/Text/useInput patterns. Plus silvery/ink and silvery/chalk compat layers for effortless migration."
     link: /guide/migration
     linkText: Migration guide
   - icon: "\u26A1"
-    title: 100x+ Faster*
-    details: "Per-node dirty tracking with 7 independent flags -- 100x+ faster on incremental renders. Only changed nodes re-render."
+    title: Fast Incremental Rendering
+    details: "Per-node dirty tracking with 7 independent flags. 28-192x fewer bytes on typical incremental updates. Only changed nodes re-render."
     link: /guide/why-silvery#incremental-rendering
     linkText: "* See benchmarks"
   - icon: "\U0001F4D0"
     title: Layout Feedback
-    details: "Components query their own dimensions via useContentRect(). No width prop drilling. Ink's oldest open issue (2016), solved."
+    details: "Components query their own dimensions via useContentRect(). No width prop drilling needed."
   - icon: "\U0001F5C4\uFE0F"
     title: Scrollable Containers
-    details: 'overflow="scroll" with scrollTo just works. No manual virtualization. Ink''s #1 feature request since 2019, solved.'
+    details: 'overflow="scroll" with scrollTo just works. No manual virtualization needed.'
   - icon: "\U0001F4E6"
     title: 23+ Components
     details: "Box, Text, VirtualList, TextArea, SelectList, Table, Image, Spinner, ProgressBar, and more. Built-in scrolling, focus, and input handling."
@@ -38,7 +38,7 @@ features:
     details: "Terminal today, Canvas and DOM tomorrow. Write once, render to any target -- same React components across environments."
   - icon: "\U0001F9E9"
     title: TEA State Machines
-    details: "Optional Elm-style reducers alongside React hooks and Zustand stores. Pure (action, state) functions for testing, replay, and undo."
+    details: "Optional Elm Architecture (TEA) reducers alongside React hooks. Pure (action, state) → [state, effects] functions for testing, replay, and undo."
   - icon: "\U0001F6AB"
     title: Zero Dependencies
     details: "Pure TypeScript. No WASM, no C++, no memory leaks. Runs on Node, Bun, and Deno."
@@ -72,7 +72,7 @@ features:
 <div class="features-list">
 
 - **23+ components** -- Box, Text, VirtualList, TextArea, SelectList, Table, Image, Spinner, ProgressBar, and more
-- **Scrollable containers** -- `overflow="scroll"` with `scrollTo` just works. No manual virtualization. Ink's #1 feature request since 2019.
+- **Scrollable containers** -- `overflow="scroll"` with `scrollTo` just works. No manual virtualization.
 - **Three architectures** -- React hooks, Elm-style reducers, or Zustand stores. Choose per use case -- all three in one framework.
 - **Built for AI** -- Command introspection for agents, programmatic screenshots, scrollable streaming output. CLAUDE.md ships with the package.
 - **Input system** -- Input layer stack (DOM-style event bubbling), tree-based focus with spatial navigation, command system with keybinding resolution
@@ -83,7 +83,7 @@ features:
 ## Quick Start
 
 ```bash
-bun add @silvery/term react flexture
+bun add silvery react
 ```
 
 ```tsx
@@ -110,6 +110,14 @@ function App() {
 
 await run(<App />)
 ```
+
+## Ecosystem
+
+Silvery is part of a family of terminal-focused libraries:
+
+- **[termless](https://termless.dev)** -- Headless terminal testing, like Playwright for terminal apps
+- **[flexily](https://github.com/beorn/flexily)** -- Pure JS flexbox layout engine (Yoga-compatible, 2.5x faster, zero WASM)
+- **[loggily](https://github.com/beorn/loggily)** -- Debug + structured logging + tracing in one library
 
 <style>
 .viewer-wrapper {

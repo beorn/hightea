@@ -2,37 +2,19 @@
 
 **The shiny new renderer** — polished terminal UIs in React.
 
-Silvery is a drop-in replacement for [Ink](https://github.com/vadimdemedes/ink) and [Chalk](https://github.com/chalk/chalk) that's dramatically faster, has more features, and fixes long-standing limitations. If you're building terminal UIs with React, silvery gives you everything Ink promised — and delivers.
+Silvery builds on the foundation that [Ink](https://github.com/vadimdemedes/ink) and [Chalk](https://github.com/chalk/chalk) established, taking React-based terminal UIs further with faster rendering, more components, and capabilities that weren't possible before.
 
-## Why silvery?
+If you know Ink, you already know silvery — the core API (`Box`, `Text`, `useInput`, `render`) is intentionally familiar. Silvery also ships `silvery/ink` and `silvery/chalk` compatibility layers for zero-effort migration of existing apps.
 
-### Drop-in Ink/Chalk replacement
+## What's new
 
-Migrate incrementally. `silvery/ink` and `silvery/chalk` are compatibility layers that let you switch with minimal changes, then adopt new features at your own pace.
+### Fast incremental rendering
 
-```bash
-# Before
-bun add ink chalk
-# After
-bun add silvery react
-```
+Per-node dirty tracking with 7 independent flags. Only changed nodes re-render — 28-192x fewer bytes on typical incremental updates.
 
-```tsx
-// Compatibility imports (works immediately)
-import { render, Box, Text } from "silvery/ink"
-import chalk from "silvery/chalk"
+### Layout feedback
 
-// Or use silvery directly
-import { run, Box, Text } from "silvery"
-```
-
-### 100x+ faster incremental renders
-
-Per-node dirty tracking with 7 independent flags. Only changed nodes re-render. On typical UIs, silvery produces 28-192x fewer bytes than a full re-render.
-
-### Layout feedback (Ink's #1 missing feature)
-
-Components can query their own dimensions with `useContentRect()`. No width prop drilling. This was Ink's oldest open issue (2016) — silvery solves it.
+Components query their own dimensions with `useContentRect()`. No width prop drilling needed.
 
 ```tsx
 function Responsive() {
@@ -41,9 +23,9 @@ function Responsive() {
 }
 ```
 
-### Scrollable containers (Ink's #1 feature request)
+### Scrollable containers
 
-`overflow="scroll"` with `scrollTo()` just works. No manual virtualization needed. Ink users have requested this since 2019.
+`overflow="scroll"` with `scrollTo()` just works. No manual virtualization.
 
 ```tsx
 <Box height={10} overflow="scroll">
@@ -51,7 +33,7 @@ function Responsive() {
 </Box>
 ```
 
-### Every terminal protocol
+### Modern terminal protocols
 
 Kitty keyboard, SGR mouse, images (sixel + kitty), clipboard, hyperlinks, synchronized updates, cursor styles — all built-in, all auto-detected.
 
@@ -59,13 +41,13 @@ Kitty keyboard, SGR mouse, images (sixel + kitty), clipboard, hyperlinks, synchr
 
 Box, Text, VirtualList, TextArea, SelectList, Table, Image, Spinner, ProgressBar, and more. Plus a complete theming system with 45 built-in color palettes.
 
-### TEA state machines (optional)
+### [TEA](https://guide.elm-lang.org/architecture/) state machines (optional)
 
-For complex interactive UIs, silvery includes Elm-style `(action, state) -> [state, effects]` reducers alongside standard React hooks. Choose the right paradigm per component — or mix them.
+[The Elm Architecture](https://guide.elm-lang.org/architecture/) (TEA) models UI as pure `(action, state) -> [state, effects]` functions — making components testable, replayable, and easy to reason about. Use alongside standard React hooks, or mix both in the same app.
 
 ### Built for AI agents
 
-Command introspection for AI agents, programmatic screenshots, scrollable streaming output. Ship a `CLAUDE.md` with your CLI and let AI operate it.
+Command introspection, programmatic screenshots, scrollable streaming output. Ship a `CLAUDE.md` with your CLI and let AI operate it.
 
 ## Packages
 
@@ -109,6 +91,16 @@ function App() {
 
 await run(<App />)
 ```
+
+## Ecosystem
+
+Silvery is part of a family of terminal-focused libraries:
+
+| Project | What |
+| --- | --- |
+| [termless](https://termless.dev) | Headless terminal testing — like Playwright for terminal apps |
+| [flexily](https://github.com/beorn/flexily) | Pure JS flexbox layout engine — Yoga-compatible, 2.5x faster, zero WASM |
+| [loggily](https://github.com/beorn/loggily) | Debug + structured logging + tracing in one library |
 
 ## Documentation
 
