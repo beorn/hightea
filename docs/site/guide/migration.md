@@ -27,7 +27,7 @@ That's it. `render(<App />)` works without any term parameter — just add `awai
 // Ink
 const { unmount, waitUntilExit } = render(<App />)
 
-// silvery — just add await
+// Silvery — just add await
 const { unmount, waitUntilExit } = await render(<App />)
 ```
 
@@ -93,7 +93,7 @@ function Card({ width }: { width: number }) {
 **Silvery**: Components can ask for their size.
 
 ```tsx
-// silvery: Just ask
+// Silvery: Just ask
 function Card() {
   const { width } = useContentRect()
   return <Text>{truncate(title, width)}</Text>
@@ -117,7 +117,7 @@ function Card() {
 **Silvery**: Text wraps to fit its container by default (word-aware wrapping).
 
 ```tsx
-// silvery: Text wraps to container width
+// Silvery: Text wraps to container width
 <Box width={10}>
   <Text>This is a very long text</Text>
 </Box>
@@ -180,7 +180,7 @@ function Header() {
 **Silvery**: Just render everything.
 
 ```tsx
-// silvery: No config needed
+// Silvery: No config needed
 <Box overflow="scroll" scrollTo={selectedIdx}>
   {items.map((item) => (
     <Card key={item.id} item={item} />

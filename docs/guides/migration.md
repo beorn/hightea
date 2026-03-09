@@ -31,7 +31,7 @@ That's it. `render(<App />)` works without any term parameter — just add `awai
 // Ink
 const { unmount, waitUntilExit } = render(<App />)
 
-// silvery — just add await
+// Silvery — just add await
 const { unmount, waitUntilExit } = await render(<App />)
 ```
 
@@ -98,7 +98,7 @@ function Card({ width }: { width: number }) {
 **Silvery**: Components can ask for their size.
 
 ```typescript
-// silvery: Components know their size
+// Silvery: Components know their size
 function Card() {
   const { width } = useContentRect();
   return <Text>{truncate(title, width)}</Text>;
@@ -123,7 +123,7 @@ function Card() {
 **Silvery**: Text wraps to fit its container by default (word-aware wrapping).
 
 ```typescript
-// silvery: Text wraps to container width
+// Silvery: Text wraps to container width
 <Box width={10}>
   <Text>This is a very long text that overflows</Text>
 </Box>
@@ -190,7 +190,7 @@ function Header() {
 **Silvery**: Just render everything. Silvery handles the rest.
 
 ```typescript
-// silvery: No virtualization config needed
+// Silvery: No virtualization config needed
 <Box overflow="scroll" scrollTo={selectedIdx}>
   {items.map((item) => <Card key={item.id} item={item} />)}
 </Box>
@@ -214,7 +214,7 @@ const { width } = measureElement(ref.current)
 **Silvery**: `measureElement()` works for compatibility, but `useContentRect()` is simpler.
 
 ```typescript
-// silvery: Just use the hook
+// Silvery: Just use the hook
 const { width } = useContentRect()
 // Automatically re-renders with correct dimensions
 ```

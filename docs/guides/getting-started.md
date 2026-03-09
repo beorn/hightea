@@ -1,6 +1,6 @@
-# Getting Started with silvery/runtime
+# Getting Started with `silvery/runtime`
 
-This is the "start simple" part — five lines to a working app. silvery/runtime is a layered TUI framework built on React. Write terminal apps the same way you write web apps — with components, hooks, and state. When you outgrow `useState`, [Building an App](building-an-app.md) shows how to graduate without rewriting. The core idea: each level you adopt turns something that was hidden — state transitions, side effects, user intent — into visible, inspectable data. You only pay for what you need.
+This is the "start simple" part — five lines to a working app. `silvery/runtime` is a layered TUI framework built on React. Write terminal apps the same way you write web apps — with components, hooks, and state. When you outgrow `useState`, [Building an App](building-an-app.md) shows how to graduate without rewriting. The core idea: each level you adopt turns something that was hidden — state transitions, side effects, user intent — into visible, inspectable data. You only pay for what you need.
 
 ## Your First App
 
@@ -256,9 +256,9 @@ handle.unmount();
 
 ## Migration from Ink
 
-silvery/runtime is compatible with existing Silvery components. Key differences:
+`silvery/runtime` is compatible with existing Silvery components. Key differences:
 
-| Ink                    | silvery/runtime                             |
+| Ink                    | `silvery/runtime`                           |
 | ---------------------- | ------------------------------------------- |
 | `useInput(input, key)` | `useInput(input, key)` (same signature!)    |
 | `useApp().exit()`      | `return 'exit'` from handler or `useExit()` |

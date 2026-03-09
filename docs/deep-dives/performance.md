@@ -141,7 +141,7 @@ Tests: `tests/scrollback-resize.test.tsx`.
 ```bash
 cd vendor/silvery
 bun run bench           # Internal benchmarks
-bun run bench:compare   # Head-to-head silvery vs Ink 6
+bun run bench:compare   # Head-to-head Silvery vs Ink 6
 ```
 
 ### Profile Specific Phases

@@ -221,7 +221,7 @@ function update(msg: AppMsg, model: AppModel): [AppModel, Effect[]] {
     case "add-item":
       return [{ ...model, items: [...model.items, msg.text] }, [none]]
     default:
-      // Delegate unhandled messages to the base silvery update
+      // Delegate unhandled messages to the base Silvery update
       return silveryUpdate(msg, model)
   }
 }

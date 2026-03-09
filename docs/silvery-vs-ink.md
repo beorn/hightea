@@ -148,7 +148,7 @@ function Card({ width }: { width: number }) {
   return <Text>{truncate(title, width)}</Text>
 }
 
-// silvery: components query their own dimensions
+// Silvery: components query their own dimensions
 function Card() {
   const { width } = useContentRect()
   return <Text>{truncate(title, width)}</Text>
@@ -170,7 +170,7 @@ Ink's #1 feature request ([#222](https://github.com/vadimdemedes/ink/issues/222)
   renderItem={(item) => <Card item={item} />}
 />
 
-// silvery: render everything, let the framework handle overflow
+// Silvery: render everything, let the framework handle overflow
 <Box overflow="scroll" scrollTo={selectedIdx}>
   {items.map(item => <Card key={item.id} item={item} />)}
 </Box>

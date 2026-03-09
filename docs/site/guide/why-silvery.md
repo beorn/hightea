@@ -47,7 +47,7 @@ Silvery uses two-phase rendering:
 Components can query their size via `useContentRect()`:
 
 ```tsx
-// silvery: No width props needed
+// Silvery: No width props needed
 function Board() {
   return (
     <Box flexDirection="row">

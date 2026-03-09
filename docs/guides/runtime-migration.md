@@ -1,6 +1,6 @@
-# Migration Guide: Silvery → silvery/runtime
+# Migration Guide: Silvery → `silvery/runtime`
 
-This guide explains how to migrate from the legacy Silvery API to the new silvery/runtime.
+This guide explains how to migrate from the legacy Silvery API to the new `silvery/runtime`.
 
 ## Why Migrate?
 
