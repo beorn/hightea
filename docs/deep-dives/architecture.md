@@ -27,27 +27,26 @@ The existence of these solutions validates the need. Silvery brings this pattern
 ## Layer Architecture
 
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│                         @silvery/core                                 │
-│  ├── React reconciler (SilveryNode tree)                             │
-│  ├── Layout engine interface (pluggable: Yoga, Flexily, custom)     │
-│  ├── Two-phase pipeline (measure → layout → render)               │
-│  ├── Hooks: useContentRect(), useScreenRect()                     │
-│  └── Style system (merging, layering, category-based)             │
-└────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                        @silvery/core                             │
+│  ├── React reconciler (SilveryNode tree)                         │
+│  ├── Layout engine interface (pluggable: Yoga, Flexily, custom)  │
+│  ├── Two-phase pipeline (measure → layout → render)              │
+│  ├── Hooks: useContentRect(), useScreenRect()                    │
+│  └── Style system (merging, layering, category-based)            │
+└──────────────────────────────────────────────────────────────────┘
                                 ↓
                        RenderAdapter interface
                                 ↓
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   @silvery/term    │  │  @silvery/canvas   │  │  @silvery/native   │
-│   (current)     │  │   (future)      │  │   (future)      │
-│                 │  │                 │  │                 │
-│   Terminal      │  │   Canvas 2D     │  │   React Native  │
-│   character     │  │   or WebGL      │  │   native views  │
-│   grid          │  │   pixel buffer  │  │                 │
-│                 │  │                 │  │                 │
-│   ANSI output   │  │   Draw calls    │  │   Bridge calls  │
-└─────────────────┴──┴─────────────────┴──┴─────────────────┘
+┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────────────┐
+│   @silvery/term      │  │   @silvery/canvas    │  │   @silvery/native    │
+│   (current)          │  │   (future)           │  │   (future)           │
+│                      │  │                      │  │                      │
+│   Terminal           │  │   Canvas 2D          │  │   React Native       │
+│   character grid     │  │   or WebGL           │  │   native views       │
+│                      │  │   pixel buffer       │  │                      │
+│   ANSI output        │  │   Draw calls         │  │   Bridge calls       │
+└──────────────────────┴──┴──────────────────────┴──┴──────────────────────┘
 ```
 
 ### What's Portable (~60% of current codebase)

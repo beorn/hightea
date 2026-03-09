@@ -12,16 +12,16 @@ This guide walks through building a typical TUI application layout with:
 A board-style layout like this:
 
 ```
-┌────────────────────────────────────────────────┐
-│ Top Bar (fixed height)                         │
-├────────────────────────────────────────────────┤
-│ ‹ │ Column 1      │ Column 2      │ Column 3 │ ›│
-│   │ Card 1        │ Card A        │ Card X   │  │
-│   │ Card 2        │ Card B        │ Card Y   │  │
-│   │ Card 3        │ ...           │ ...      │  │
-├────────────────────────────────────────────────┤
-│ Bottom Bar (fixed height)                      │
-└────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│ Top Bar (fixed height)                           │
+├──────────────────────────────────────────────────┤
+│ ‹ │ Column 1      │ Column 2      │ Column 3 │ › │
+│   │ Card 1        │ Card A        │ Card X   │   │
+│   │ Card 2        │ Card B        │ Card Y   │   │
+│   │ Card 3        │ ...           │ ...      │   │
+├──────────────────────────────────────────────────┤
+│ Bottom Bar (fixed height)                        │
+└──────────────────────────────────────────────────┘
 ```
 
 ## Step 1: Fixed Bars with Flexible Content

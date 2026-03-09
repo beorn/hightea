@@ -5,22 +5,22 @@ Silvery's runtime is organized in layers, each building on the one below — the
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  createApp().run()                                           │
-│           Zustand store, flattened providers, useApp         │
-├─────────────────────────────────────────────────────────────┤
-│  run()  ← Start here                                        │
-│           React components, useInput, useState               │
-├─────────────────────────────────────────────────────────────┤
-│  createStore()                                               │
-│           TEA: (msg, model) → [model, effects]               │
-├─────────────────────────────────────────────────────────────┤
-│  createRuntime()                                             │
-│           events(), render(), schedule(), user-driven loop   │
-├─────────────────────────────────────────────────────────────┤
-│  layout() / diff()                                           │
+┌───────────────────────────────────────────────────────────────┐
+│  createApp().run()                                            │
+│           Zustand store, flattened providers, useApp          │
+├───────────────────────────────────────────────────────────────┤
+│  run()  ← Start here                                          │
+│           React components, useInput, useState                │
+├───────────────────────────────────────────────────────────────┤
+│  createStore()                                                │
+│           TEA: (msg, model) → [model, effects]                │
+├───────────────────────────────────────────────────────────────┤
+│  createRuntime()                                              │
+│           events(), render(), schedule(), user-driven loop    │
+├───────────────────────────────────────────────────────────────┤
+│  layout() / diff()                                            │
 │           Pure functions, static output                       │
-└─────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────────────────────────┘
 ```
 
 Each layer builds on the one below. `run()` uses `createRuntime()` internally; `createApp()` uses `run()` internally.

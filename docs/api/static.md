@@ -53,7 +53,7 @@ Output (logs scroll up, status bar stays at bottom):
 [2024-01-15T10:30:01.000Z] Loading configuration
 [2024-01-15T10:30:02.000Z] Connected to server
 ┌─────────────────────────────────┐
-│ Current status: processing...  │
+│ Current status: processing...   │
 └─────────────────────────────────┘
 ```
 
