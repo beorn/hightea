@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "Silvery"
-  text: "The shiny new renderer"
-  tagline: "Polished terminal UIs in React"
+  text: "Polished terminal UIs in React"
+  tagline: "A React framework for building terminal applications — fast, complete, and familiar"
   actions:
     - theme: brand
       text: Get Started
@@ -34,8 +34,10 @@ features:
     title: 23+ Components
     details: "Box, Text, VirtualList, TextArea, SelectList, Table, Image, Spinner, ProgressBar, and more. Built-in scrolling, focus, and input handling."
   - icon: "\U0001F310"
-    title: Cross-Render (Future)
-    details: "Terminal today, Canvas and DOM tomorrow. Write once, render to any target -- same React components across environments."
+    title: Beyond the Terminal
+    details: "Terminal today, Canvas and DOM tomorrow. The architecture separates rendering targets from the component model — same React components, different outputs."
+    link: /roadmap
+    linkText: See the roadmap
   - icon: "\U0001F9E9"
     title: TEA State Machines
     details: "Optional Elm Architecture (TEA) reducers alongside React hooks. Pure (action, state) → [state, effects] functions for testing, replay, and undo."

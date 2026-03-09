@@ -1,10 +1,10 @@
-# silvery
+# Silvery
 
-**The shiny new renderer** — polished terminal UIs in React.
+**Polished terminal UIs in React.**
 
-Silvery builds on the foundation that [Ink](https://github.com/vadimdemedes/ink) and [Chalk](https://github.com/chalk/chalk) established, taking React-based terminal UIs further with faster rendering, more components, and capabilities that weren't possible before.
+Silvery is a React framework for building terminal applications — reconciler, layout engine, components, theming, and state management in one cohesive package. It builds on the foundation that [Ink](https://github.com/vadimdemedes/ink) and [Chalk](https://github.com/chalk/chalk) established, taking React-based terminal UIs further with faster rendering, more components, and capabilities that weren't possible before.
 
-If you know Ink, you already know silvery — the core API (`Box`, `Text`, `useInput`, `render`) is intentionally familiar. Silvery also ships `silvery/ink` and `silvery/chalk` compatibility layers for zero-effort migration of existing apps.
+If you know Ink, you already know Silvery — the core API (`Box`, `Text`, `useInput`, `render`) is intentionally familiar. Silvery also ships `silvery/ink` and `silvery/chalk` compatibility layers for zero-effort migration of existing apps.
 
 ## What's new
 
@@ -101,6 +101,10 @@ Silvery is part of a family of terminal-focused libraries:
 | [termless](https://termless.dev) | Headless terminal testing — like Playwright for terminal apps |
 | [flexily](https://github.com/beorn/flexily) | Pure JS flexbox layout engine — Yoga-compatible, 2.5x faster, zero WASM |
 | [loggily](https://github.com/beorn/loggily) | Debug + structured logging + tracing in one library |
+
+## Vision
+
+Silvery starts with the terminal but aims further. The architecture separates rendering targets from the component model, opening the door to Canvas, DOM, and other backends — same React components, different outputs. See the [roadmap](docs/roadmap.md) for what's ahead.
 
 ## Documentation
 
