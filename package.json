@@ -49,6 +49,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint . && oxfmt --check .",
     "fix": "oxlint --fix . && oxfmt --write .",
+    "docs:dev": "vitepress dev docs/site",
+    "docs:build": "vitepress build docs/site",
+    "docs:preview": "vitepress preview docs/site",
     "changeset": "changeset",
     "version": "changeset version",
     "release": "changeset publish"
@@ -74,6 +77,8 @@
     "playwright": "^1.58.2",
     "react": "^19.0.0",
     "typescript": "^5.5.0",
+    "vitepress": "^1.5.0",
+    "vitepress-plugin-llms": "^1.0.0",
     "vitest": "^4.0.18",
     "yoga-wasm-web": "^0.3.3"
   },
