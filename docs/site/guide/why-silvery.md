@@ -94,7 +94,7 @@ Fixing this requires:
 
 This is a breaking API change. Ink's maintainer has shown no interest in major architecture changes - and that's understandable. Ink is stable, widely used, and works for its target use case.
 
-## silvery vs Ink Comparison
+## Silvery vs Ink Comparison
 
 | Feature           | Ink                        | silvery                    |
 | ----------------- | -------------------------- | -------------------------- |

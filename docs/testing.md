@@ -143,7 +143,7 @@ test("renders correct colors through real terminal", () => {
 
 ---
 
-## silvery Internal Test Infrastructure
+## Silvery Internal Test Infrastructure
 
 ## Philosophy
 
@@ -184,7 +184,7 @@ silvery/
 │   │   ├── diff.bench.ts
 │   │   └── memory.bench.ts
 │   │
-│   └── unit/                  # silvery-specific unit tests
+│   └── unit/                  # Silvery-specific unit tests
 │       ├── layout-hook.test.ts
 │       ├── two-phase.test.ts
 │       └── ...

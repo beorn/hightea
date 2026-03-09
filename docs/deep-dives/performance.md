@@ -1,4 +1,4 @@
-# silvery Performance
+# Silvery Performance
 
 Technical deep dive into silvery's rendering pipeline optimizations. This document explains _how_ silvery achieves its performance characteristics.
 

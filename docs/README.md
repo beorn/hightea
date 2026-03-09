@@ -1,4 +1,4 @@
-# silvery Documentation
+# Silvery Documentation
 
 > Start simple, sip some TEA (The Elm Architecture), or go full TEA.
 

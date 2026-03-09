@@ -1,4 +1,4 @@
-# silvery Internals: How the Reconciler Works
+# Silvery Internals: How the Reconciler Works
 
 This document explains silvery's architecture for contributors. Read this if you want to understand how layout feedback actually works.
 
@@ -21,7 +21,7 @@ The problem: Components execute (return JSX) **before** Yoga calculates layout. 
 
 ---
 
-## silvery's Solution: Deferred Content Rendering
+## Silvery's Solution: Deferred Content Rendering
 
 silvery separates **structure** from **content**:
 

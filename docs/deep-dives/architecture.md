@@ -1,4 +1,4 @@
-# silvery Architecture
+# Silvery Architecture
 
 > **The core innovation isn't "terminal rendering" — it's two-phase rendering with synchronous layout feedback.**
 

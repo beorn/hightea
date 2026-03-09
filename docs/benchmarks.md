@@ -1,4 +1,4 @@
-# silvery Benchmarks
+# Silvery Benchmarks
 
 Raw benchmark data for silvery performance. All numbers from Apple M1 Max, macOS, Bun 1.3.9, February 2026.
 
@@ -8,7 +8,7 @@ For technical explanations of these optimizations, see [Performance Deep Dive](d
 
 ---
 
-## silvery Internal Benchmarks
+## Silvery Internal Benchmarks
 
 ### Full Pipeline
 
@@ -50,7 +50,7 @@ Diff renders are 6-8x faster than first renders thanks to incremental rendering.
 
 ---
 
-## silvery vs Ink Benchmarks
+## Silvery vs Ink Benchmarks
 
 ### Typical Frame Update (Interactive)
 
@@ -94,7 +94,7 @@ Both trigger full React reconciliation via `app.rerender()`:
 
 Ink is faster because it writes directly to a string buffer. silvery runs the 5-phase pipeline after reconciliation.
 
-### silvery Dirty-Tracking Update (No Ink Equivalent)
+### Silvery Dirty-Tracking Update (No Ink Equivalent)
 
 Per-node dirty tracking bypasses React entirely:
 

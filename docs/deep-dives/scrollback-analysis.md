@@ -37,7 +37,7 @@ Terminal emulators handle this differently:
 
 **Critical insight**: When the user scrolls up and the app writes new output at the cursor position (bottom of viewport), the terminal updates the viewport content at the bottom BUT does not force the user's view to scroll down. The user sees stale content until they scroll back.
 
-## silvery Inline Mode Architecture
+## Silvery Inline Mode Architecture
 
 ### How It Works Now
 

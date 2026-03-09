@@ -1,4 +1,4 @@
-# silvery vs Ink
+# Silvery vs Ink
 
 [Ink](https://github.com/vadimdemedes/ink) (2017) brought React to the terminal. ~1.3M npm weekly downloads (Feb 2026), 50+ community components, used by Gatsby, Prisma, Terraform CDK, Shopify CLI, and many more. Mature, stable, well-documented.
 
@@ -294,7 +294,7 @@ Both trigger full React reconciliation via `app.rerender()`:
 
 Ink is faster because it writes directly to a string buffer. silvery runs the 5-phase pipeline after reconciliation.
 
-### silvery Dirty-Tracking Update (No Ink Equivalent)
+### Silvery Dirty-Tracking Update (No Ink Equivalent)
 
 Per-node dirty tracking bypasses React entirely:
 

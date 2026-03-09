@@ -1,4 +1,4 @@
-# silvery: React Terminal UIs Where Components Know Their Size
+# Silvery: React Terminal UIs Where Components Know Their Size
 
 React components have never been able to know their own dimensions during render. In the DOM, you reach for `ResizeObserver` and accept a layout jank flash. In React Native, you guess at `FlatList` item heights and hope the scroll doesn't stutter. In terminal UIs built with [Ink](https://github.com/vadimdemedes/ink), you thread `width` props through every level of the component tree.
 

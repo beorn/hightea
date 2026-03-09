@@ -1,4 +1,4 @@
-# silvery v1.0 Roadmap
+# Silvery v1.0 Roadmap
 
 Current version: **0.1.0**
 

@@ -1,4 +1,4 @@
-# silvery: Next-Generation Terminal UI Renderer
+# Silvery: Next-Generation Terminal UI Renderer
 
 > **Historical Document** — This was the original design RFC for silvery (early 2025).
 > Many details (naming, layout engine, hook names) have changed since implementation.

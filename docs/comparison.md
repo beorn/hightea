@@ -107,7 +107,7 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 
 > Performance claims below are summary figures. See [benchmarks.md](benchmarks.md) for full benchmark data and [performance.md](deep-dives/performance.md) for optimization details.
 
-### silvery
+### Silvery
 
 - **Two-phase rendering with layout feedback**: Components know their dimensions during render via `useContentRect()` -- the only React-based TUI framework where this works synchronously.
 - **Per-node dirty tracking**: Interactive updates (keystroke, scroll) take ~169 us for 1000 nodes vs Ink's 20.7 ms full re-render -- 100x+ faster for the updates that matter.

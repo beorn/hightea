@@ -1,4 +1,4 @@
-# silvery Migration Guide
+# Silvery Migration Guide
 
 ## Overview
 
