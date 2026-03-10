@@ -24,6 +24,7 @@ export default defineConfig({
 
     nav: [
       { text: "Getting Started", link: "/getting-started/quick-start" },
+      { text: "The Silvery Way", link: "/guide/the-silvery-way" },
       { text: "Guides", link: "/guides/terminal-apps" },
       { text: "Reference", link: "/reference/components-hooks" },
       {
@@ -161,6 +162,10 @@ export default defineConfig({
         },
       ],
       "/guide/": [
+        {
+          text: "Philosophy",
+          items: [{ text: "The Silvery Way", link: "/guide/the-silvery-way" }],
+        },
         {
           text: "Guide (Legacy)",
           collapsed: true,
