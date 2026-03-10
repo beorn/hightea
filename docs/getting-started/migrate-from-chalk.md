@@ -61,8 +61,35 @@ import { Text } from "silvery"
 ## Why Switch?
 
 - **Zero dependencies** -- Silvery's chalk compat is built-in, no extra package needed
+- **ANSI-aware compositing** -- Pre-styled text composes correctly with layout and styles (see below)
 - **Consistent theming** -- Use `$token` colors from `@silvery/theme` alongside chalk-style strings
 - **Tree-shakeable** -- Only the styles you use end up in your bundle
+
+## ANSI-Aware Compositing
+
+Most terminal frameworks pass ANSI escape sequences through as opaque strings. This breaks when styled text meets layout — clipping mid-sequence corrupts terminal state, backgrounds don't cascade through styled text, and incremental rendering can't diff styled regions.
+
+Silvery parses all ANSI sequences (from chalk, kleur, picocolors, or raw escapes) into structured cell properties, then reconstructs optimal output during rendering. This means pre-styled text participates fully in layout, composition, and diffing:
+
+```tsx
+import chalk from "silvery/chalk"
+
+// Chalk styles compose with Silvery's component styles
+<Box backgroundColor="blue">
+  <Text bold>{chalk.red("error")} and {chalk.yellow("warning")}</Text>
+</Box>
+// Result: "error" is red+bold on blue, "warning" is yellow+bold on blue
+// The blue background cascades through chalk-styled text automatically
+
+// Styles merge at the cell level — no leaked resets, no conflicts
+<Text color="cyan" underline>
+  {chalk.bold("bold+cyan+underline")} just cyan+underline
+</Text>
+```
+
+With raw passthrough (Ink, blessed), the same code produces broken output — chalk's reset sequences (`\x1b[39m`) clear the parent's background, clipping truncates mid-escape-sequence, and unchanged styled text gets re-emitted every frame.
+
+See [Smart ANSI Layering](/guide/ansi-layering) for the full architecture.
 
 ## Using Theme Colors Instead
 

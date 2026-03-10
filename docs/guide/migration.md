@@ -255,14 +255,6 @@ Silvery and Ink/Chalk produce visually identical terminal output but different b
 
 Missing a package mapping? [File an issue](https://github.com/beorn/silvery/issues) or contribute a component.
 
-### Edge Cases
-
-| Issue             | Symptoms      | Workaround                             |
-| ----------------- | ------------- | -------------------------------------- |
-| Rapid re-renders  | Flicker       | Silvery coalesces frames; usually fine |
-| Deep nesting      | Slower layout | Flatten tree if possible               |
-| Custom reconciler | Breaks        | Not supported                          |
-
 ## Migrating Tests
 
 If you used `ink-testing-library`:

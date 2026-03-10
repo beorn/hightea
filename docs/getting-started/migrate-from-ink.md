@@ -228,14 +228,6 @@ const { width } = useContentRect()
 | First render dimensions | N/A       | Zeros   | Required for responsive layout |
 | Internal APIs           | Exposed   | Hidden  | Not public API               |
 
-### Edge Cases
-
-| Issue             | Symptoms      | Workaround                             |
-| ----------------- | ------------- | -------------------------------------- |
-| Rapid re-renders  | Flicker       | Silvery coalesces frames; usually fine |
-| Deep nesting      | Slower layout | Flatten tree if possible               |
-| Custom reconciler | Breaks        | Not supported                          |
-
 ## Removing Width Prop Threading
 
 After migrating, you can simplify your code by removing manual width calculations:
