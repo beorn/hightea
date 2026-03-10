@@ -51,6 +51,21 @@ function markLayoutAncestorDirty(node: TeaNode): void {
 }
 
 // ============================================================================
+// Dev Warnings
+// ============================================================================
+
+/**
+ * Track whether we've already warned about Box-inside-Text
+ * to avoid spamming the console on every re-render.
+ */
+let hasWarnedBoxInsideText = false
+
+/** Reset the warning flag (for testing). */
+export function _resetBoxInsideTextWarning(): void {
+  hasWarnedBoxInsideText = false
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -138,6 +153,17 @@ export const hostConfig = {
     _rootContainer: unknown,
     hostContext: HostContext,
   ): TeaNode {
+    // Warn when a Box is nested inside a Text (block inside inline)
+    if (
+      type === "silvery-box" &&
+      hostContext.isInsideText &&
+      process.env.NODE_ENV !== "production" &&
+      !hasWarnedBoxInsideText
+    ) {
+      hasWarnedBoxInsideText = true
+      console.warn("Warning: <Box> cannot be nested inside <Text>. This produces undefined layout behavior.")
+    }
+
     // Nested text nodes become "virtual" - no layout node
     if (type === "silvery-text" && hostContext.isInsideText) {
       return createVirtualTextNode(props as TextProps)
