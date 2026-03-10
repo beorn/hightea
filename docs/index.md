@@ -10,6 +10,9 @@ hero:
       text: Get Started
       link: /getting-started/quick-start
     - theme: alt
+      text: The Silvery Way
+      link: /guide/the-silvery-way
+    - theme: alt
       text: View on GitHub
       link: https://github.com/beorn/silvery
 
