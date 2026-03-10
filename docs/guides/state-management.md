@@ -41,8 +41,8 @@ Components access the store via `useApp(selector)`. Zustand tracks which slice e
 
 ```tsx
 function TodoList() {
-  const cursor = useApp((s) => s.cursor)
-  const items = useApp((s) => s.items)
+  const cursor = useApp((s) => s.cursor);
+  const items = useApp((s) => s.items);
   // only re-renders when cursor or items change
 }
 ```
@@ -85,22 +85,22 @@ The store wires in via `.create()`:
 ```tsx
 const app = createApp(
   () => {
-    const { state, apply } = TodoList.create()
+    const { state, apply } = TodoList.create();
     return {
       ...state,
       doneCount: computed(() => state.items.value.filter((i) => i.done).length),
       apply,
-    }
+    };
   },
   {
     key(input, key, { store }) {
-      if (input === "j") store.apply({ op: "moveCursor", delta: 1 })
-      if (input === "k") store.apply({ op: "moveCursor", delta: -1 })
-      if (input === "x") store.apply({ op: "toggleDone", index: store.cursor.value })
-      if (input === "q") return "exit"
+      if (input === "j") store.apply({ op: "moveCursor", delta: 1 });
+      if (input === "k") store.apply({ op: "moveCursor", delta: -1 });
+      if (input === "x") store.apply({ op: "toggleDone", index: store.cursor.value });
+      if (input === "q") return "exit";
     },
   },
-)
+);
 ```
 
 ### Undo pattern
@@ -111,26 +111,26 @@ Define an `inverse` function — TypeScript's exhaustive narrowing ensures every
 function inverse(op: TodoOp): TodoOp {
   switch (op.op) {
     case "moveCursor":
-      return { op: "moveCursor", delta: -op.delta }
+      return { op: "moveCursor", delta: -op.delta };
     case "toggleDone":
-      return op // toggling is its own inverse
+      return op; // toggling is its own inverse
   }
 }
 
-const undoStack: TodoOp[] = []
-const redoStack: TodoOp[] = []
+const undoStack: TodoOp[] = [];
+const redoStack: TodoOp[] = [];
 
 function applyWithUndo(op: TodoOp) {
-  undoStack.push(inverse(op))
-  TodoList.apply(state, op)
-  redoStack.length = 0
+  undoStack.push(inverse(op));
+  TodoList.apply(state, op);
+  redoStack.length = 0;
 }
 
 function undo() {
-  const op = undoStack.pop()
-  if (!op) return
-  redoStack.push(inverse(op))
-  TodoList.apply(state, op)
+  const op = undoStack.pop();
+  if (!op) return;
+  redoStack.push(inverse(op));
+  TodoList.apply(state, op);
 }
 ```
 
@@ -158,98 +158,202 @@ const TodoList = {
 
 For identity-based ops that survive reordering and concurrency, see [Designing Robust Ops](../reference/robust-ops.md).
 
-## `tea()` — Zustand TEA Middleware
+## Effects as Data — `createEffects()`
 
-Functions that need I/O return an `Effect[]` instead of performing side effects directly:
-
-```tsx
-toggleDone(s, { index }: { index: number }): Effect[] {
-  s.items.value = s.items.value.map((item, i) =>
-    i === index ? { ...item, done: !item.done } : item
-  )
-  return [
-    { effect: "persist", data: s.items.value },
-    { effect: "toast", message: `Toggled ${s.items.value[index].text}` },
-  ]
-}
-```
-
-Tests assert on returned effects — no mocks, no fakes:
+`createEffects()` defines your effect vocabulary in one place — types, builders, and runners all inferred from a single definition:
 
 ```tsx
-test("toggleDone persists and toasts", () => {
-  const s = { cursor: signal(0), items: signal([{ text: "Buy milk", done: false }]) }
-  const effects = TodoList.toggleDone(s, { index: 0 })
-  expect(effects).toContainEqual({ effect: "persist", data: expect.any(Array) })
-  expect(effects).toContainEqual({ effect: "toast", message: "Toggled Buy milk" })
+import { createEffects } from "@silvery/tea"
+
+const fx = createEffects({
+  persist: async ({ data }: { data: unknown }) => {
+    await fs.writeFile("data.json", JSON.stringify(data))
+  },
+  toast: ({ message }: { message: string }) => {
+    showToast(message)
+  },
 })
 ```
 
-The `effects` option in `createApp()` intercepts effect arrays returned from `.apply()` and routes them to declared runners:
+The `Effect` union is inferred from the runner param types — no manual type declaration:
 
 ```tsx
-const app = createApp(
-  () => { ... },
+type Effect = typeof fx.Effect
+// { type: "persist"; data: unknown } | { type: "toast"; message: string }
+```
+
+Each key on `fx` doubles as a typed builder:
+
+```tsx
+fx.persist({ data: items })   // → { type: "persist", data: items }
+fx.toast({ message: "hi" })   // → { type: "toast", message: "hi" }
+fx.nope({ bad: true })        // compile error — no "nope" effect defined
+```
+
+### Using with `createSlice`
+
+Handlers return `typeof fx.Effect[]`. Mix freely — pure state updates return nothing, effectful ones return the array:
+
+```tsx
+const TodoList = createSlice(
+  () => ({ cursor: signal(0), items: signal<Item[]>([...]) }),
   {
-    effects: {
-      persist: async ({ data }) => { await fs.writeFile("data.json", JSON.stringify(data)) },
-      toast: ({ message }) => { showToast(message) },
+    moveCursor(s, { delta }: { delta: number }) {
+      s.cursor.value = clamp(s.cursor.value + delta, 0, s.items.value.length - 1)
+    },
+    toggleDone(s, { index }: { index: number }): typeof fx.Effect[] {
+      s.items.value = s.items.value.map((item, i) =>
+        i === index ? { ...item, done: !item.done } : item
+      )
+      return [
+        fx.persist({ data: s.items.value }),
+        fx.toast({ message: `Toggled ${s.items.value[index].text}` }),
+      ]
     },
   },
 )
 ```
 
-### Dispatch-back pattern
+### Wiring into `createApp`
 
-For async results that need to re-enter the domain:
+Pass `fx` directly — `createApp` uses the same object as the runner map:
 
 ```tsx
-type Effect =
-  | { effect: "persist"; data: unknown }
-  | { effect: "fetch"; url: string; onSuccess: TodoOp }
-
-loadItems(s: State): Effect[] {
-  return [{ effect: "fetch", url: "/api/items", onSuccess: { op: "setItems" } }]
-}
-
-effects: {
-  fetch: async ({ url, onSuccess }, { store }) => {
-    const data = await fetch(url).then(r => r.json())
-    store.apply({ ...onSuccess, data })
+const app = createApp(
+  () => {
+    const { state, apply } = TodoList.create()
+    return { ...state, apply }
   },
+  { effects: fx },
+)
+```
+
+### Dispatch-back pattern
+
+For async results that re-enter the domain, runners receive `dispatch` as a second argument:
+
+```tsx
+const fx = createEffects({
+  persist: async ({ data }: { data: unknown }) => {
+    await fs.writeFile("data.json", JSON.stringify(data))
+  },
+  fetch: async ({ url, onSuccess }: { url: string; onSuccess: TodoOp }, dispatch) => {
+    const data = await fetch(url).then((r) => r.json())
+    dispatch({ ...onSuccess, data })
+  },
+})
+
+// Handler:
+loadItems(s: State): typeof fx.Effect[] {
+  return [fx.fetch({ url: "/api/items", onSuccess: { op: "setItems" } })]
 }
 ```
 
-The fetch result re-enters the domain through `apply()`, so it shows up in logs, undo history, and time-travel debugging.
+The fetch result re-enters the domain through `dispatch()`, so it shows up in logs, undo history, and time-travel debugging.
 
-### `collect()` for testing
+### Testing
 
-`tea()` provides `collect()` to capture effects in tests without running them. See [Runtime Layers](/guide/runtime-layers) for the full API.
+Handlers are pure — call them directly, assert on returned effects. The builders double as expected-value constructors:
+
+```tsx
+test("toggleDone persists and toasts", () => {
+  const s = { cursor: signal(0), items: signal([{ text: "Buy milk", done: false }]) }
+  const effects = TodoList.toggleDone(s, { index: 0 })
+  expect(effects).toContainEqual(fx.persist({ data: expect.any(Array) }))
+  expect(effects).toContainEqual(fx.toast({ message: "Toggled Buy milk" }))
+})
+```
+
+No mocks, no fakes, no async. `collect()` normalizes results for reducers that mix pure and effectful cases — see [Runtime Layers](/guide/runtime-layers).
 
 ## `createStore()` — Standalone TEA Store
 
 For apps that don't need `createApp`'s Zustand integration, `createStore()` provides a standalone TEA store with plugin composition:
 
 ```tsx
-import { createStore } from "@silvery/term/store"
+import { createStore } from "@silvery/term/store";
 
 const store = createStore(initialState, update, {
-  effects: { persist, toast },
+  effects: fx,
   plugins: [withUndo(), withLogging()],
-})
+});
 ```
 
-Plugin composition via `compose(withFocusManagement(), withUndo())(update)` adds cross-cutting concerns without touching individual machines.
+Plugin composition via `compose(withFocusManagement(), withUndo())(update)` adds cross-cutting concerns without touching individual machines. The same `fx` from `createEffects()` works here — one definition, multiple wiring points.
 
 See [Runtime Layers](/guide/runtime-layers) for the full API.
 
-## Appendix A: Scaling with Signals
+## Appendix A: Under the Hood — It's Just Objects
 
-Signals (fine-grained reactivity via `@preact/signals-core`) are orthogonal to the levels — they optimize re-renders at any level by replacing selector-based subscriptions with automatic dependency tracking. Combined with per-entity signals and VirtualList, they scale to thousands of items.
+There's no magic behind `createSlice` or `createEffects`. Ops and effects are plain JSON objects. `createSlice` generates a discriminated union and a dispatch function from your handler map. `createEffects` generates builder functions that stamp `{ type: key, ...params }` and stores the runners for later lookup. That's it.
 
-See [Scaling with Signals](../reference/signals.md) for the full guide.
+You can build the same thing by hand:
 
-## Appendix B: Designing Robust Ops
+```tsx
+// An op is a plain object with a discriminant
+const op = { op: "moveCursor", delta: 1 }
+
+// An effect is a plain object with a discriminant
+const effect = { type: "persist", data: [1, 2, 3] }
+
+// A handler is a pure function: (state, op) → state, or → [state, effects]
+function update(state, op) {
+  if (op.op === "increment") return { ...state, count: state.count + 1 }
+  if (op.op === "save") return [state, [{ type: "persist", data: state }]]
+  return state
+}
+
+// A runner is a function that performs the side effect
+const runners = {
+  persist: ({ data }) => fs.writeFile("data.json", JSON.stringify(data)),
+}
+
+// A store is anything that holds state and dispatches ops
+function createStore(state, update, runners) {
+  return {
+    dispatch(op) {
+      const result = update(state, op)
+      const [next, effects] = Array.isArray(result) ? result : [result, []]
+      state = next
+      for (const e of effects) runners[e.type]?.(e)
+    },
+    getState: () => state,
+  }
+}
+```
+
+Everything Silvery provides — `createSlice`, `createEffects`, `tea()`, `createApp` — is convenience and type safety layered on top of this. The underlying data is always plain serializable objects, so you can:
+
+- **Log and replay**: ops and effects are JSON — write them to a file, replay them later
+- **Send over the wire**: ops work as WebSocket messages, HTTP payloads, or IPC
+- **Integrate with other state managers**: feed ops into Redux, MobX, or your own store
+- **Build custom tooling**: time-travel debuggers, AI agents, test harnesses — anything that can read JSON can drive your app
+- **Swap runners per environment**: production hits the real API, tests collect effects, replays skip I/O entirely
+
+The abstractions earn their keep through type inference and boilerplate reduction, but they never lock you in. If `createEffects` doesn't fit your setup, write your own builders. If `createSlice` is too opinionated, hand-roll the union. The protocol is the objects, not the library.
+
+## Appendix B: Scaling with Signals
+
+You've already seen signals throughout this guide — `createSlice` state factories return them:
+
+```tsx
+const TodoList = createSlice(
+  () => ({
+    cursor: signal(0),
+    items: signal<Item[]>([...]),
+    doneCount: computed(() => items.value.filter((i) => i.done).length),
+  }),
+  { ... },
+)
+```
+
+`signal()` is the store state. `computed()` is derived state that sits on top — `doneCount` recomputes only when `items` changes, not on cursor moves. Components read `.value` and automatically subscribe to exactly what they touched. No selectors, no `useApp(s => s.foo)`, no manual subscription management.
+
+This is ergonomic by design: Silvery bridges signals to Zustand under the hood, so you write `.value` and reactivity just works — from store definition through to component re-renders. Combined with per-entity signals (`Map<string, Signal<T>>`) and `VirtualList`, this scales to thousands of items with O(visible) re-renders.
+
+See [Scaling with Signals](../reference/signals.md) for per-entity patterns, batching, and VirtualList integration.
+
+## Appendix C: Designing Robust Ops
 
 Index-based ops (`toggleDone, index: 2`) work for single-session undo but break under reordering, concurrency, or offline sync. Prefer identity-based, ideally idempotent ops for collaboration and AI automation.
 

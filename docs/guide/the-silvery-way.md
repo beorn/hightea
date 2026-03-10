@@ -1,6 +1,6 @@
 # The Silvery Way
 
-*How to build the shiniest Silvery apps*
+_How to build the shiniest Silvery apps_
 
 Silver tarnishes when you don't take care of it. So does your code. These are the principles that keep Silvery apps **shiny** — and the anti-patterns that let them go **tarnished**.
 
@@ -30,17 +30,17 @@ All themed. All mouse-aware. All keyboard-navigable out of the box — saving yo
 
 ```tsx
 // Manual cursor tracking — loses j/k wrapping, mouse, scroll, selection theming
-const [cursor, setCursor] = useState(0)
+const [cursor, setCursor] = useState(0);
 useInput((input) => {
-  if (input === "j") setCursor((c) => Math.min(c + 1, items.length - 1))
-  if (input === "k") setCursor((c) => Math.max(c - 1, 0))
-})
+  if (input === "j") setCursor((c) => Math.min(c + 1, items.length - 1));
+  if (input === "k") setCursor((c) => Math.max(c - 1, 0));
+});
 
 // Manual text handling — no Ctrl+A/E/K/U/W, no Alt+B/F, no kill ring, no clipboard
 useInput((input, key) => {
-  if (key.backspace) setText((t) => t.slice(0, -1))
-  else if (!key.ctrl) setText((t) => t + input)
-})
+  if (key.backspace) setText((t) => t.slice(0, -1));
+  else if (!key.ctrl) setText((t) => t + input);
+});
 ```
 
 You'll spend a week reimplementing what [`SelectList`](/guides/components#selectlist) and [`TextInput`](/guides/components#textinput) give you in one line.
@@ -122,9 +122,11 @@ If you're doing arithmetic with widths, you're fighting the layout engine instea
 
 ```tsx
 // Manual slicing — wrong heights, no indicators, no variable-height items
-const visible = items.slice(scrollOffset, scrollOffset + pageSize)
+const visible = items.slice(scrollOffset, scrollOffset + pageSize);
 // ... 40 lines of offset tracking, boundary clamping, page-up/page-down ...
-{scrollOffset > 0 && <Text color="gray">▲ {scrollOffset} more</Text>}
+{
+  scrollOffset > 0 && <Text color="gray">▲ {scrollOffset} more</Text>;
+}
 ```
 
 Manual scroll offset tracking is the #1 source of off-by-one bugs in terminal apps. Let the framework handle it.
@@ -141,20 +143,20 @@ Manual scroll offset tracking is the #1 source of off-by-one bugs in terminal ap
 ```tsx
 // Calling useFocus() registers this component in the focus tree
 function SearchBox() {
-  const { isFocused } = useFocus() // isFocused can be used for styling
-  return <TextInput value={query} onChange={setQuery} />
+  const { isFocused } = useFocus(); // isFocused can be used for styling
+  return <TextInput value={query} onChange={setQuery} />;
 }
 
 // Input layer stack — modals automatically consume input
 <ModalDialog title="Delete?" onClose={close}>
   {/* No guards needed — background input is automatically blocked */}
   <Text>This cannot be undone.</Text>
-</ModalDialog>
+</ModalDialog>;
 
 // Programmatic focus navigation
-focusNext()   // Tab-like cycling
-focusPrev()   // Shift-Tab
-setFocus(id)  // Jump to specific component
+focusNext(); // Tab-like cycling
+focusPrev(); // Shift-Tab
+setFocus(id); // Jump to specific component
 ```
 
 :::
@@ -215,10 +217,10 @@ agent.executeCommand("file.save")
 ```tsx
 // Anonymous handlers — can't list, can't replay, can't automate
 useInput((input, key) => {
-  if (key.ctrl && input === "s") save()
-  if (key.ctrl && input === "o") open()
-  if (key.ctrl && input === "b") toggleSidebar()
-})
+  if (key.ctrl && input === "s") save();
+  if (key.ctrl && input === "o") open();
+  if (key.ctrl && input === "b") toggleSidebar();
+});
 // AI agent forced to simulate keypresses
 // No way to list available actions
 // No command palette possible
@@ -281,15 +283,15 @@ Classes encourage hidden state and rigid hierarchies. Factory functions return p
 
 ```tsx
 // Composable plugins via pipe() — no inheritance hierarchy
-const app = pipe(baseApp, withFocus(), withDomEvents(), withCommands(opts))
+const app = pipe(baseApp, withFocus(), withDomEvents(), withCommands(opts));
 
 // Explicit dependencies — no hidden globals
 function createEditor({ storage, parser }) {
-  return { open, save, close }
+  return { open, save, close };
 }
 
 // Easy to test — just pass mock deps
-const editor = createEditor({ storage: mockStorage, parser: mockParser })
+const editor = createEditor({ storage: mockStorage, parser: mockParser });
 ```
 
 :::
@@ -300,13 +302,13 @@ const editor = createEditor({ storage: mockStorage, parser: mockParser })
 // Class hierarchy — rigid, hard to test, hard to compose
 class MyApp extends BaseApp {
   constructor() {
-    super()  // What does this do? Who knows
-    this.state = {}  // Hidden mutable state
+    super(); // What does this do? Who knows
+    this.state = {}; // Hidden mutable state
   }
 }
 
 // Global singletons — untestable, can't run two instances
-const app = GlobalApp.getInstance()
+const app = GlobalApp.getInstance();
 ```
 
 Composition scales. Inheritance doesn't.
@@ -322,8 +324,8 @@ Composition scales. Inheritance doesn't.
 
 ```tsx
 // Automatic cleanup — terminal restored on any exit (success, error, Ctrl+C)
-using term = createTerm()
-await render(<App />, term)
+using term = createTerm();
+await render(<App />, term);
 // term is disposed when it goes out of scope — always
 ```
 
@@ -333,11 +335,11 @@ await render(<App />, term)
 
 ```tsx
 // Manual cleanup — forgotten in error paths, Ctrl+C leaves terminal broken
-const term = createTerm()
+const term = createTerm();
 try {
-  await render(<App />, term)
+  await render(<App />, term);
 } finally {
-  term.dispose()  // Forgot this path? Terminal stays in raw mode
+  term.dispose(); // Forgot this path? Terminal stays in raw mode
 }
 ```
 
@@ -348,62 +350,62 @@ try {
 
 ## 9. Relax and Sip Some TEA
 
-You don't chug TEA — you sip it. [`@silvery/tea`](/reference/packages) is a gradual path, not a rewrite. Start with `useState` — that's fine for simple components. When state gets shared, move to Zustand (`createApp`). When you need testable side effects, return `[state, effects]` from your reducer instead of calling `fetch` inline. Each sip makes your app more testable, replayable, and composable — but you take them one at a time, when the complexity justifies it.
+You don't chug TEA — you sip it. [`@silvery/tea`](/reference/packages) is a gradual path, not a rewrite. Start with `useState` — that's fine for simple components. When state gets shared, move to `createSlice`. When you need testable side effects, return `Effect[]` from your handlers instead of calling `fetch` inline. Each sip makes your app more testable, replayable, and composable — but you take them one at a time, when the complexity justifies it.
 
 ::: tip ✨ Shiny — sip by sip
 
-Same counter, four levels. Each step changes only one thing — the rest stays the same.
+Same counter, three levels. Each sip changes only what the handlers *do* — the API stays the same from sip 2 onward.
 
 ```tsx
 // Sip 1: useState — local state, component-scoped
 function Counter() {
-  const [count, setCount] = useState(0)
-  return <Text>{count}</Text>
+  const [count, setCount] = useState(0);
+  return <Text>{count}</Text>;
 }
 // ✓ Simple. Perfect for local UI state (form fields, toggles, hover).
 // ✗ Can't share state across components. Can't serialize actions.
 
-// Sip 2: createApp — shared store, selective re-renders
-const app = createApp(() => (set, get) => ({
-  count: 0,
-  increment() { set((s) => ({ count: s.count + 1 })) },
-  save() { fetch("/api", { body: JSON.stringify(get()) }) },  // I/O in methods
-}))
-function Counter() {
-  const count = useApp((s) => s.count)  // only re-renders when count changes
-  return <Text>{count}</Text>
-}
-// ✓ Shared state. Selective re-renders. Centralized key handling.
-// ✗ Methods are opaque — can't log, replay, or test what actions were fired.
-
-// Sip 3: createSlice — same store, but actions become serializable data
-const Counter = createSlice(
-  () => ({ count: signal(0) }),
-  {
-    increment(s) { s.count.value += 1 },
-    save(s) { fetch("/api", { body: JSON.stringify({ count: s.count.value }) }) },
+// Sip 2: createSlice — shared store, named actions
+const counter = createSlice(() => ({ count: signal(0) }), {
+  increment(s) {
+    s.count.value += 1;
   },
-)
+  save(s) {
+    fetch("/api", { body: JSON.stringify({ count: s.count.value }) });
+  },
+});
+function Counter() {
+  const count = counter.use((s) => s.count.value);
+  return <Text>{count}</Text>;
+}
+// signal() = reactive state. Components read .value and auto-subscribe.
+// computed() adds derived state on top (e.g., doneCount, filtered lists).
 // store.apply({ op: "increment" })  — serializable, loggable, replayable
 // No switch/case — createSlice infers the op union from your handler names.
-// ✓ Actions are data. Undo is trivial. AI agents can invoke by name.
-// ✗ Side effects (save) still live in handlers — can't test them.
+// Undo/redo: ops are already data — record them and replay in reverse.
+// ✓ Shared state. Named actions. Selective re-renders. Undo/redo.
+// ✗ Side effects (save) still live in handlers — can't test without mocking.
 
-// Sip 4: effects as data — handlers return Effect[], runners execute them
-const Counter = createSlice(
-  () => ({ count: signal(0) }),
-  {
-    increment(s) { s.count.value += 1 },
-    save(s): Effect[] {                                        // only this changes
-      return [{ effect: "http", url: "/api", body: { count: s.count.value } }]
-    },
+// Sip 3: effects as data — createEffects() defines types + builders + runners
+const fx = createEffects({
+  http: async ({ url, body }: { url: string; body: unknown }) => {
+    await fetch(url, { method: "POST", body: JSON.stringify(body) });
   },
-)
+});
+
+const counter = createSlice(() => ({ count: signal(0) }), {
+  increment(s) {
+    s.count.value += 1;
+  },
+  save(s): typeof fx.Effect[] {
+    return [fx.http({ url: "/api", body: { count: s.count.value } })];
+    //      ^^ typed builder — wrong keys or params = compile error
+  },
+});
 // Test: just call the handler — no mocks, no fetch, no async
-const s = { count: signal(5) }
-const effects = Counter.save(s)
-expect(effects).toContainEqual({ effect: "http", url: "/api", body: { count: 5 } })
-// ✓ Everything is data. Pure, testable, replayable, swappable.
+const effects = counter.save({ count: signal(5) });
+expect(effects).toContainEqual(fx.http({ url: "/api", body: { count: 5 } }));
+// ✓ Everything is data. Type-safe. Pure, testable, replayable, swappable.
 ```
 
 Most apps live at sip 2. That's fine — each sip is independently useful, and you move to the next only when you feel the pain the current level can't solve. The [state management guide](/guides/state-management) walks through each transition in detail.
@@ -414,21 +416,21 @@ Most apps live at sip 2. That's fine — each sip is independently useful, and y
 ```tsx
 // Mixing I/O into state logic — can't test, can't replay, can't swap environments
 async function handleSave() {
-  setLoading(true)
+  setLoading(true);
   try {
-    await fetch("/api", { method: "POST", body: JSON.stringify(data) })
-    setData(null)
+    await fetch("/api", { method: "POST", body: JSON.stringify(data) });
+    setData(null);
   } catch (e) {
-    setError(e.message)
+    setError(e.message);
   } finally {
-    setLoading(false)
+    setLoading(false);
   }
 }
 // To test this, you need to mock fetch, mock setState, and hope the
 // error paths work. With TEA, you just call the reducer and check the output.
 ```
 
-`useState` isn't tarnished — mixing I/O into state updates is. When you find yourself mocking `fetch` to test state logic, it's time for the next sip.
+`useState` isn't tarnished — mixing I/O into state updates is. When you find yourself mocking `fetch` to test state logic, it's time for sip 3.
 :::
 
 → [State management guide](/guides/state-management) — the full journey from `useState` to effects-as-data, one sip at a time
@@ -441,24 +443,24 @@ async function handleSave() {
 
 ```tsx
 // Headless rendering with Playwright-style locators
-const app = createRenderer(<MyList items={items} />)
+const app = createRenderer(<MyList items={items} />);
 
-app.press("j")
-app.press("j")
-expect(app.text).toContain("▶ Third item")  // What the user sees
+app.press("j");
+app.press("j");
+expect(app.text).toContain("▶ Third item"); // What the user sees
 
 // Full buffer assertions — catches rendering bugs
-expect(app.getByText("Third item")).toHaveStyle({ inverse: true })
+expect(app.getByText("Third item")).toHaveStyle({ inverse: true });
 
 // Resize the virtual terminal — test responsive layouts
-app.resize(40, 10)  // narrow terminal
-expect(app.text).not.toContain("Sidebar")  // collapsed at small widths
-app.resize(120, 40)  // wide terminal
-expect(app.text).toContain("Sidebar")  // visible again
+app.resize(40, 10); // narrow terminal
+expect(app.text).not.toContain("Sidebar"); // collapsed at small widths
+app.resize(120, 40); // wide terminal
+expect(app.text).toContain("Sidebar"); // visible again
 
 // Inspect the scrollback buffer — chat apps, logs, streaming output
 // Content that scrolled off-screen is still in the buffer
-expect(app.scrollback).toContain("Message from 10 minutes ago")
+expect(app.scrollback).toContain("Message from 10 minutes ago");
 ```
 
 Things you can't easily test any other way: terminal resize behavior, scrollback buffer contents, incremental rendering correctness.
@@ -468,11 +470,11 @@ Things you can't easily test any other way: terminal resize behavior, scrollback
 
 ```tsx
 // State-only test — passes even if rendering is broken
-expect(store.getState().selectedIndex).toBe(2)
+expect(store.getState().selectedIndex).toBe(2);
 // Screen could show index 0 selected. Test still passes.
 
 // Snapshot of ANSI strings — brittle, unreadable diffs
-expect(output).toMatchInlineSnapshot(`"\u001b[1m\u001b[34m..."`)
+expect(output).toMatchInlineSnapshot(`"\u001b[1m\u001b[34m..."`);
 
 // Manual resize testing — drag the terminal corner, squint at the output
 // "Looks fine to me" — until it doesn't, and you can't reproduce the bug
@@ -496,7 +498,7 @@ Manual visual testing is slow, unrepeatable, and doesn't catch regressions. If y
 6. **Use semantic theme colors** — `$tokens`, not hardcoded values
 7. **Compose with factory functions** — `pipe()`, not class hierarchies
 8. **Clean up with `using`** — one keyword, zero leaks
-9. **Sip some TEA** — gradually: useState → Zustand → ops as data → effects as data
+9. **Sip some TEA** — gradually: useState → createSlice → effects as data
 10. **Test what the user sees** — render the buffer, not just the state
 
 Keep it shiny. ✨
