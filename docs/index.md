@@ -151,15 +151,14 @@ Silvery is part of a family of terminal-focused libraries:
 <style>
 .alpha-banner {
   position: fixed;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 100;
+  top: var(--vp-nav-height, 64px);
+  right: 32px;
+  z-index: 30;
   background: var(--vp-c-warning-soft);
   color: var(--vp-c-warning-1);
-  padding: 4px 16px;
-  border-radius: 0 0 8px 8px;
-  font-size: 0.8em;
+  padding: 3px 12px;
+  border-radius: 0 0 6px 6px;
+  font-size: 0.75em;
   font-weight: 500;
   pointer-events: none;
 }

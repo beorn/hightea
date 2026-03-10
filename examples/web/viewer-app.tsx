@@ -102,9 +102,9 @@ function DashboardShowcase() {
   },
   "coding-agent": {
     name: "Coding Agent",
-    description: "Claude Code-style coding agent with tool calls, code diffs, and streaming output.",
+    description: "Multi-turn coding agent with streaming text, thinking blocks, tool calls with syntax-highlighted diffs, and live token/cost tracking.",
     category: "Showcases",
-    features: ["Box", "Text", "outlineStyle", "flexDirection", "wrap"],
+    features: ["useInput", "useEffect", "streaming", "borderStyle", "justifyContent", "overflow"],
     source: `import React from "react"
 import { Box, Text } from "@silvery/term"
 
@@ -674,9 +674,9 @@ function createViewerApp(root: HTMLElement): void {
     .vw-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
     .vw-term-wrap { flex: 1; position: relative; overflow: hidden; padding: 4px; }
     .vw-term-wrap .xterm { height: 100% !important; }
-    .vw-info { padding: 12px 16px 8px; border-top: 1px solid #313244; }
-    .vw-info-name { font-size: 16px; font-weight: 600; color: #cdd6f4; margin-bottom: 4px; }
-    .vw-info-desc { font-size: 13px; color: #a6adc8; margin-bottom: 8px; }
+    .vw-info { padding: 8px 16px 6px; border-top: 1px solid #313244; }
+    .vw-info-name { font-size: 14px; font-weight: 600; color: #cdd6f4; margin-bottom: 2px; display: inline; }
+    .vw-info-desc { font-size: 12px; color: #6c7086; margin-bottom: 4px; display: inline; margin-left: 8px; }
     .vw-badges { display: flex; flex-wrap: wrap; gap: 4px; }
     .vw-badge { font-size: 11px; padding: 1px 8px; border-radius: 8px; background: rgba(137, 180, 250, 0.12); color: #89b4fa; }
     .vw-keyhints { font-size: 11px; color: #6c7086; margin-top: 6px; }
