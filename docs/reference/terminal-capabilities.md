@@ -1,5 +1,7 @@
 # Terminal Capabilities Reference
 
+_Terminal protocol support last verified: 2026-03._
+
 This document explains terminal capabilities, the `ansi` and `silvery` packages, and how to choose the right render strategy.
 
 ## The Two Core Capabilities
@@ -392,29 +394,35 @@ The [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/
 
 ### Auto-Enable/Disable
 
-The recommended way to use the Kitty protocol is through the `run()` options:
+`run()` **auto-detects** Kitty protocol support and enables it by default on supported terminals (Ghostty, Kitty, WezTerm, foot). No configuration needed:
 
 ```typescript
 import { run } from "@silvery/term/runtime"
+
+// Kitty protocol is auto-enabled — ⌘ and ✦ modifiers just work
+await run(<App />)
+```
+
+To opt out or use specific flags:
+
+```typescript
 import { KittyFlags } from "@silvery/term"
 
-// Auto-detect: sends CSI ? u, enables if terminal responds
-await run(<App />, { kitty: true })
+// Disable Kitty protocol (legacy ANSI only)
+await run(<App />, { kitty: false })
 
-// Specific flags (skips detection, always enables)
+// Specific flags (key release events, associated text, etc.)
 await run(<App />, {
   kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS
 })
 ```
 
-When `kitty: true`:
+When Kitty protocol is enabled (auto-detected or explicit):
 
-1. Silvery calls `detectKittyFromStdio()` to query the terminal
-2. If the terminal responds with `CSI ? flags u`, the protocol is supported
-3. Silvery enables with `KittyFlags.DISAMBIGUATE` (flag 1)
-4. On app exit, Silvery sends `CSI < u` to restore the previous keyboard mode
+1. Silvery enables with `KittyFlags.DISAMBIGUATE` (flag 1)
+2. On app exit, Silvery sends `CSI < u` to restore the previous keyboard mode
 
-When `kitty: <number>`, Silvery skips detection and enables with the specified flags directly.
+When `kitty: <number>`, Silvery enables with the specified flags directly.
 
 ### Protocol Detection
 
@@ -442,7 +450,12 @@ The `buffered` field contains any non-response data read during detection (user 
 Manual control functions (auto-enable handles these for you):
 
 ```typescript
-import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard, KittyFlags } from "@silvery/term"
+import {
+  enableKittyKeyboard,
+  disableKittyKeyboard,
+  queryKittyKeyboard,
+  KittyFlags,
+} from "@silvery/term"
 
 // Enable with default flags (disambiguate only)
 stdout.write(enableKittyKeyboard())
@@ -544,11 +557,14 @@ Silvery supports SGR mouse tracking for click, drag, scroll, and motion events.
 
 ### Auto-Enable/Disable
 
-```typescript
-await run(<App />, { mouse: true })
+Mouse tracking is **enabled by default** in `run()`. When active, the terminal captures mouse events and native text selection (copy/paste) requires holding Shift (or Option on macOS in some terminals).
 
-// Combine with Kitty for full input support
-await run(<App />, { kitty: true, mouse: true })
+```typescript
+// Mouse is on by default — click, scroll, and drag events just work
+await run(<App />)
+
+// Disable to restore native copy/paste behavior
+await run(<App />, { mouse: false })
 ```
 
 Silvery enables three mouse modes together:
@@ -677,7 +693,13 @@ Paste end:    CSI 201 ~         (ESC [ 201 ~)
 ### API
 
 ```tsx
-import { enableBracketedPaste, disableBracketedPaste, parseBracketedPaste, PASTE_START, PASTE_END } from "@silvery/term"
+import {
+  enableBracketedPaste,
+  disableBracketedPaste,
+  parseBracketedPaste,
+  PASTE_START,
+  PASTE_END,
+} from "@silvery/term"
 
 // Enable/disable (the run() runtime handles this automatically)
 enableBracketedPaste(process.stdout)
@@ -788,9 +810,14 @@ Key capability names:
 
 The text sizing protocol (OSC 66) lets the app specify how many cells a character should occupy. This solves the measurement/rendering mismatch for Private Use Area (PUA) characters (nerdfont icons, powerline symbols) that are measured as 1-cell but rendered as 2-cell by modern terminals.
 
+Text sizing is **auto-enabled by default** in `run()` on supported terminals:
+
 ```tsx
-// Auto-detect and enable
-await run(<App />, { textSizing: "auto" })
+// Text sizing is on by default (auto-detected)
+await run(<App />)
+
+// Force disable
+await run(<App />, { textSizing: false })
 ```
 
 See [text-sizing.md](text-sizing.md) for full documentation.

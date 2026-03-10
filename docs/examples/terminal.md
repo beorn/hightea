@@ -5,7 +5,7 @@ prev:
   text: Scrollback
   link: /examples/scrollback
 next:
-  text: AI Chat
+  text: AI Coding Agent
   link: /examples/ai-chat
 ---
 

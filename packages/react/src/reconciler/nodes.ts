@@ -5,7 +5,13 @@
  */
 
 import { type LayoutNode, getConstants, getLayoutEngine } from "@silvery/term/layout-engine"
-import { type BoxProps, type TeaNode, type TeaNodeType, type TextProps, rectEqual } from "@silvery/tea/types"
+import {
+  type BoxProps,
+  type TeaNode,
+  type TeaNodeType,
+  type TextProps,
+  rectEqual,
+} from "@silvery/tea/types"
 import { type Measurer, displayWidth, wrapText } from "@silvery/term/unicode"
 
 // Import from shared module (lives in @silvery/term to keep barrel React-free)
@@ -119,7 +125,8 @@ export function createNode(
       // Calculate text dimensions
       const lines = text.split("\n")
       // Treat NaN width the same as unconstrained (can happen with auto-sized parents)
-      const maxWidth = widthMode === "undefined" || Number.isNaN(width) ? Number.POSITIVE_INFINITY : width
+      const maxWidth =
+        widthMode === "undefined" || Number.isNaN(width) ? Number.POSITIVE_INFINITY : width
 
       // Check if text will be truncated (not wrapped) — affects height calculation
       const { wrap } = node.props as TextProps
@@ -147,7 +154,10 @@ export function createNode(
         if (isTruncate || lineWidth <= maxWidth) {
           // Truncated text always takes 1 line per source line
           totalHeight += 1
-          actualWidth = Math.max(actualWidth, isTruncate ? Math.min(lineWidth, maxWidth) : lineWidth)
+          actualWidth = Math.max(
+            actualWidth,
+            isTruncate ? Math.min(lineWidth, maxWidth) : lineWidth,
+          )
         } else {
           // Use same word-aware wrapping as render phase for accurate height
           const wrapped = wt(line, maxWidth, false, true)
@@ -247,7 +257,8 @@ export function createVirtualTextNode(props: TextProps): TeaNode {
 export function applyBoxProps(layoutNode: LayoutNode, props: BoxProps, oldProps?: BoxProps): void {
   const c = getConstants()
   // Helper: true when a prop was set in oldProps but not in newProps (prop removed on rerender)
-  const wasRemoved = (prop: keyof BoxProps): boolean => oldProps?.[prop] !== undefined && props[prop] === undefined
+  const wasRemoved = (prop: keyof BoxProps): boolean =>
+    oldProps?.[prop] !== undefined && props[prop] === undefined
 
   // Dimensions
   if (props.width !== undefined) {
@@ -490,7 +501,10 @@ export function applyBoxProps(layoutNode: LayoutNode, props: BoxProps, oldProps?
  */
 function applySpacing(layoutNode: LayoutNode, type: "padding" | "margin", props: BoxProps): void {
   const c = getConstants()
-  const set = type === "padding" ? layoutNode.setPadding.bind(layoutNode) : layoutNode.setMargin.bind(layoutNode)
+  const set =
+    type === "padding"
+      ? layoutNode.setPadding.bind(layoutNode)
+      : layoutNode.setMargin.bind(layoutNode)
 
   const all = props[type] as number | undefined
   const x = props[`${type}X` as keyof BoxProps] as number | undefined
@@ -514,7 +528,11 @@ function applySpacing(layoutNode: LayoutNode, type: "padding" | "margin", props:
  * Apply a position offset (top/left/bottom/right) to a layout node.
  * Supports both numeric (absolute) and percentage string values.
  */
-function applyPositionOffset(layoutNode: LayoutNode, edge: number, value: number | string | undefined): void {
+function applyPositionOffset(
+  layoutNode: LayoutNode,
+  edge: number,
+  value: number | string | undefined,
+): void {
   if (value === undefined) return
   if (typeof value === "string" && value.endsWith("%")) {
     layoutNode.setPositionPercent(edge, Number.parseFloat(value))

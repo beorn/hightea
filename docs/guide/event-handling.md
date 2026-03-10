@@ -52,7 +52,13 @@ const app = pipe(createApp(store), withReact(<Board />), withDomEvents())
 Turns input into named, serializable commands. Keys and clicks resolve to commands; commands produce actions.
 
 ```tsx
-import { pipe, withDomEvents, withCommands, withReact, createCommandRegistry } from "@silvery/tea/plugins"
+import {
+  pipe,
+  withDomEvents,
+  withCommands,
+  withReact,
+  createCommandRegistry,
+} from "@silvery/tea/plugins"
 
 const registry = createCommandRegistry({
   cursor_down: {
@@ -228,7 +234,9 @@ interface EventMap {
   "term:resize": { cols: number; rows: number }
 }
 
-type AppEvent<K extends keyof EventMap = keyof EventMap> = K extends K ? { type: K; data: EventMap[K] } : never
+type AppEvent<K extends keyof EventMap = keyof EventMap> = K extends K
+  ? { type: K; data: EventMap[K] }
+  : never
 ```
 
 Sources are typed against the map:

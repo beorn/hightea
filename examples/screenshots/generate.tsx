@@ -41,13 +41,13 @@ const OUTPUT_DIR = resolve(dirname(import.meta.path), "../../docs/images")
 function ProgressBar({ percent, width = 24 }: { percent: number; width?: number }): JSX.Element {
   const filled = Math.round((percent / 100) * width)
   const empty = width - filled
-  const dot = filled < width ? "\u2578" : ""
-  const filledBar = "\u2501".repeat(Math.max(0, filled - (dot ? 1 : 0)))
-  const emptyBar = "\u2500".repeat(Math.max(0, empty - (dot ? 0 : 0)))
+  const dot = filled < width ? "╸" : ""
+  const filledBar = "━".repeat(Math.max(0, filled - (dot ? 1 : 0)))
+  const emptyBar = "─".repeat(Math.max(0, empty - (dot ? 0 : 0)))
   return (
     <Text>
-      <Text color="green">{filledBar}</Text>
-      <Text color="green">{dot}</Text>
+      <Text color="$success">{filledBar}</Text>
+      <Text color="$success">{dot}</Text>
       <Text dim>{emptyBar}</Text>
     </Text>
   )
@@ -57,14 +57,20 @@ function DashboardScreenshot(): JSX.Element {
   return (
     <Box flexDirection="column" padding={1}>
       <Box marginBottom={1}>
-        <Text bold color="yellow">
+        <Text bold color="$warning">
           Dashboard
         </Text>
       </Box>
 
       <Box flexGrow={1} flexDirection="row" gap={1}>
         {/* System Stats pane (selected) */}
-        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$primary" padding={1}>
+        <Box
+          flexDirection="column"
+          flexGrow={1}
+          borderStyle="round"
+          borderColor="$primary"
+          padding={1}
+        >
           <Box marginBottom={1}>
             <Text bold color="$primary">
               System Stats
@@ -108,9 +114,15 @@ function DashboardScreenshot(): JSX.Element {
         </Box>
 
         {/* Recent Activity pane */}
-        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border" padding={1}>
+        <Box
+          flexDirection="column"
+          flexGrow={1}
+          borderStyle="round"
+          borderColor="$border"
+          padding={1}
+        >
           <Box marginBottom={1}>
-            <Text bold color="white">
+            <Text bold>
               Recent Activity
             </Text>
           </Box>
@@ -124,9 +136,15 @@ function DashboardScreenshot(): JSX.Element {
         </Box>
 
         {/* Project Progress pane */}
-        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border" padding={1}>
+        <Box
+          flexDirection="column"
+          flexGrow={1}
+          borderStyle="round"
+          borderColor="$border"
+          padding={1}
+        >
           <Box marginBottom={1}>
-            <Text bold color="white">
+            <Text bold>
               Project Progress
             </Text>
           </Box>
@@ -203,12 +221,12 @@ function TaskListScreenshot(): JSX.Element {
   const cursor = 2
 
   const priorityLabels = { high: "P1", medium: "P2", low: "P3" }
-  const priorityColors = { high: "red", medium: "yellow", low: "green" }
+  const priorityColors = { high: "$error", medium: "$warning", low: "$success" }
 
   return (
     <Box flexDirection="column" padding={1}>
       <Box marginBottom={1}>
-        <Text bold color="yellow">
+        <Text bold color="$warning">
           Task List
         </Text>
         <Text dim>
@@ -226,7 +244,7 @@ function TaskListScreenshot(): JSX.Element {
         paddingX={1}
       >
         {tasks.map((task, index) => {
-          const checkbox = task.completed ? "\u2611" : "\u2610"
+          const checkbox = task.completed ? "☑" : "☐"
           const isSelected = index === cursor
           const showSeparator = index < tasks.length - 1
           const label = priorityLabels[task.priority]
@@ -337,19 +355,19 @@ function KanbanScreenshot(): JSX.Element {
   ]
 
   const tagColors: Record<string, string> = {
-    frontend: "cyan",
-    backend: "magenta",
-    design: "yellow",
-    devops: "green",
-    docs: "blue",
-    ux: "white",
-    security: "red",
+    frontend: "$info",
+    backend: "$accent",
+    design: "$warning",
+    devops: "$success",
+    docs: "$primary",
+    ux: "$muted",
+    security: "$error",
   }
 
   return (
     <Box flexDirection="column" padding={1}>
       <Box marginBottom={1}>
-        <Text bold color="yellow">
+        <Text bold color="$warning">
           Kanban Board
         </Text>
       </Box>
@@ -364,7 +382,7 @@ function KanbanScreenshot(): JSX.Element {
             borderColor={col.isSelected ? "$primary" : "$border"}
           >
             <Box backgroundColor={col.isSelected ? "$primary" : undefined} paddingX={1}>
-              <Text bold color={col.isSelected ? "black" : "white"}>
+              <Text bold color={col.isSelected ? "black" : undefined}>
                 {col.title}
               </Text>
               <Text color={col.isSelected ? "black" : "$muted"}> ({col.cards.length})</Text>
@@ -388,7 +406,7 @@ function KanbanScreenshot(): JSX.Element {
                   )}
                   <Box gap={1}>
                     {card.tags.map((tag) => (
-                      <Text key={tag} color={tagColors[tag] ?? "gray"} dim>
+                      <Text key={tag} color={tagColors[tag] ?? "$muted"} dim>
                         #{tag}
                       </Text>
                     ))}
@@ -425,7 +443,15 @@ function KanbanScreenshot(): JSX.Element {
 
 // --- 4. Layout Feedback -----------------------------------------------------
 
-function LayoutPane({ title, color, grow = 1 }: { title: string; color: string; grow?: number }): JSX.Element {
+function LayoutPane({
+  title,
+  color,
+  grow = 1,
+}: {
+  title: string
+  color: string
+  grow?: number
+}): JSX.Element {
   const rect = useContentRect()
   return (
     <Box flexGrow={grow} borderStyle="round" borderColor={color} padding={1} flexDirection="column">
@@ -445,15 +471,15 @@ function LayoutFeedbackScreenshot(): JSX.Element {
   return (
     <Box flexDirection="column" padding={1}>
       <Box marginBottom={1}>
-        <Text bold color="yellow">
+        <Text bold color="$warning">
           Layout Feedback Demo
         </Text>
       </Box>
 
       <Box flexDirection="row" gap={1} height={8}>
-        <LayoutPane title="Sidebar" color="green" grow={1} />
-        <LayoutPane title="Main Content" color="blue" grow={2} />
-        <LayoutPane title="Detail" color="cyan" grow={1} />
+        <LayoutPane title="Sidebar" color="$success" grow={1} />
+        <LayoutPane title="Main Content" color="$primary" grow={2} />
+        <LayoutPane title="Detail" color="$info" grow={1} />
       </Box>
 
       <Box marginTop={1} borderStyle="single" borderColor="$border" padding={1}>

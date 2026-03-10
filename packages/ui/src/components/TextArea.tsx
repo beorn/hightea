@@ -80,6 +80,12 @@ export interface TextAreaProps {
   disabled?: boolean
   /** Maximum number of characters allowed */
   maxLength?: number
+  /** Border style (e.g., "round", "single") — wraps input in bordered Box */
+  borderStyle?: string
+  /** Border color when unfocused (default: "$border") */
+  borderColor?: string
+  /** Border color when focused (default: "$focusborder") */
+  focusBorderColor?: string
   /** Test ID for focus system identification */
   testID?: string
 }
@@ -116,6 +122,9 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
     scrollMargin = 1,
     disabled,
     maxLength,
+    borderStyle: borderStyleProp,
+    borderColor: borderColorProp = "$border",
+    focusBorderColor = "$focusborder",
     testID,
   },
   ref,
@@ -164,16 +173,39 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
 
   const showPlaceholder = !ta.value && placeholder
 
+  const borderProps = borderStyleProp
+    ? {
+        borderStyle: borderStyleProp as any,
+        borderColor: isActive ? focusBorderColor : borderColorProp,
+        paddingX: 1 as const,
+      }
+    : {}
+
   if (showPlaceholder) {
     return (
-      <Box focusable testID={testID} flexDirection="column" height={height} justifyContent="center" alignItems="center">
+      <Box
+        focusable
+        testID={testID}
+        flexDirection="column"
+        height={height}
+        justifyContent="center"
+        alignItems="center"
+        {...borderProps}
+      >
         <Text dimColor>{placeholder}</Text>
       </Box>
     )
   }
 
   return (
-    <Box focusable testID={testID} key={ta.scrollOffset} flexDirection="column" height={height}>
+    <Box
+      focusable
+      testID={testID}
+      key={ta.scrollOffset}
+      flexDirection="column"
+      height={height}
+      {...borderProps}
+    >
       {ta.visibleLines.map((wl, i) => {
         const absoluteRow = ta.scrollOffset + i
         const isCursorRow = absoluteRow === ta.cursorRow
@@ -181,7 +213,8 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
         const lineEnd = lineStart + wl.line.length
 
         // Check if this line has any selection overlap
-        const hasSelectionOnLine = ta.selection && lineStart < ta.selection.end && lineEnd > ta.selection.start
+        const hasSelectionOnLine =
+          ta.selection && lineStart < ta.selection.end && lineEnd > ta.selection.start
 
         if (disabled) {
           return (
@@ -203,7 +236,9 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
           return (
             <Text key={absoluteRow}>
               {before}
-              <Text inverse>{selected || (selEnd === wl.line.length && isCursorRow ? " " : "")}</Text>
+              <Text inverse>
+                {selected || (selEnd === wl.line.length && isCursorRow ? " " : "")}
+              </Text>
               {after}
             </Text>
           )

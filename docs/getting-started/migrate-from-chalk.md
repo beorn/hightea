@@ -29,8 +29,8 @@ yarn add silvery
 ### Step 2: Update Imports
 
 ```diff
-- import chalk from 'chalk';
-+ import chalk from 'silvery/chalk';
+- import chalk from 'chalk'
++ import chalk from 'silvery/chalk'
 ```
 
 The `silvery/chalk` module provides a Chalk-compatible API. Your existing chalk-styled strings work unchanged inside Silvery's `<Text>` component:
@@ -103,7 +103,7 @@ import { presetTheme } from "@silvery/theme"
 <Text color="$error">Error!</Text>
 
 // Instead of chalk.dim("secondary text")
-<Text color="$mutedfg">Secondary text</Text>
+<Text color="$muted">Secondary text</Text>
 ```
 
 Theme tokens adapt to the active palette -- your app looks correct in any theme without changing color values.

@@ -169,7 +169,7 @@ export function TabList({ children }: TabListProps): React.ReactElement {
  * Individual tab trigger.
  *
  * Renders the tab label with active/inactive styling. Active tab is bold
- * with `$primary` color; inactive tabs use `$mutedfg`.
+ * with `$primary` color; inactive tabs use `$muted`.
  */
 export function Tab({ value, children }: TabProps): React.ReactElement {
   const { activeValue, registerTab } = useTabsContext()
@@ -182,7 +182,7 @@ export function Tab({ value, children }: TabProps): React.ReactElement {
 
   return (
     <Box>
-      <Text color={isActive ? "$primary" : "$mutedfg"} bold={isActive} underline={isActive}>
+      <Text color={isActive ? "$primary" : "$muted"} bold={isActive} underline={isActive}>
         {children}
       </Text>
     </Box>

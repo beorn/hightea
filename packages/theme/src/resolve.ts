@@ -1,9 +1,9 @@
 /**
  * Token resolution — resolves `$token` strings against a Theme.
  *
- * All theme property names are lowercase, no hyphens (e.g. `surfacefg`).
- * Hyphens in token strings are stripped for lookup: `$surface-fg` → `surfacefg`.
- * This allows both `$surfacefg` and `$surface-fg` to resolve identically.
+ * All theme property names are lowercase, no hyphens (e.g. `surfacebg`).
+ * Hyphens in token strings are stripped for lookup: `$surface-bg` → `surfacebg`.
+ * This allows both `$surfacebg` and `$surface-bg` to resolve identically.
  */
 
 import type { Theme } from "./types"
@@ -15,9 +15,9 @@ type ThemeColorKey = Exclude<keyof Theme, "name" | "palette">
  * Resolve a color value — if it starts with `$`, look up the token in the theme.
  *
  * Supports:
- * - Named tokens: `$primary`, `$fg`, `$border`, etc.
- * - Compound tokens: `$surfacefg`, `$mutedfg`, `$disabledfg`, etc.
- * - Hyphenated tokens (compat): `$surface-fg` → strips hyphens → `surfacefg`
+ * - Named tokens: `$primary`, `$fg`, `$border`, `$muted`, etc.
+ * - Compound tokens: `$surfacebg`, `$mutedbg`, `$disabledfg`, etc.
+ * - Hyphenated tokens: `$surface-bg` → strips hyphens → `surfacebg`
  * - Palette colors: `$color0` through `$color15`
  *
  * Returns `undefined` for `undefined` input. Non-`$` strings pass through unchanged.
@@ -37,7 +37,7 @@ export function resolveThemeColor(color: string | undefined, theme: Theme): stri
     }
   }
 
-  // Strip hyphens for lookup (supports both $surfacefg and $surface-fg)
+  // Strip hyphens for lookup (supports both $surfacebg and $surface-bg)
   const key = token.replace(/-/g, "") as ThemeColorKey
   const val = theme[key]
   return typeof val === "string" ? val : color

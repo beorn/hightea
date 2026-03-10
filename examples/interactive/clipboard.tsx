@@ -49,24 +49,32 @@ const items = [
   },
 ]
 
-const allItems = items.flatMap((group) => group.values.map((value) => ({ category: group.category, value })))
+const allItems = items.flatMap((group) =>
+  group.values.map((value) => ({ category: group.category, value })),
+)
 
 // ============================================================================
 // Components
 // ============================================================================
 
-function ListItem({ item, isSelected }: { item: (typeof allItems)[0]; isSelected: boolean }): JSX.Element {
+function ListItem({
+  item,
+  isSelected,
+}: {
+  item: (typeof allItems)[0]
+  isSelected: boolean
+}): JSX.Element {
   return (
     <Box paddingX={1}>
       <Text
-        color={isSelected ? "black" : "white"}
+        color={isSelected ? "$bg" : undefined}
         backgroundColor={isSelected ? "$primary" : undefined}
         bold={isSelected}
       >
         {isSelected ? " > " : "   "}
         {item.value}
       </Text>
-      <Text dim color="gray">
+      <Text dim color="$muted">
         {" "}
         ({item.category})
       </Text>
@@ -74,7 +82,13 @@ function ListItem({ item, isSelected }: { item: (typeof allItems)[0]; isSelected
   )
 }
 
-function StatusBar({ lastCopied, lastPasted }: { lastCopied: string | null; lastPasted: string | null }): JSX.Element {
+function StatusBar({
+  lastCopied,
+  lastPasted,
+}: {
+  lastCopied: string | null
+  lastPasted: string | null
+}): JSX.Element {
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="$border" paddingX={1}>
       <Box gap={1}>
@@ -90,7 +104,7 @@ function StatusBar({ lastCopied, lastPasted }: { lastCopied: string | null; last
       <Box gap={1}>
         <Text dim>Pasted:</Text>
         {lastPasted ? (
-          <Text color="yellow">{lastPasted}</Text>
+          <Text color="$warning">{lastPasted}</Text>
         ) : (
           <Text dim italic>
             nothing yet
@@ -160,7 +174,11 @@ export function ClipboardDemo(): JSX.Element {
         </Box>
         <Box flexDirection="column" overflow="scroll" scrollTo={selectedIndex} height={10}>
           {allItems.map((item, index) => (
-            <ListItem key={`${item.category}-${item.value}`} item={item} isSelected={index === selectedIndex} />
+            <ListItem
+              key={`${item.category}-${item.value}`}
+              item={item}
+              isSelected={index === selectedIndex}
+            />
           ))}
         </Box>
       </Box>

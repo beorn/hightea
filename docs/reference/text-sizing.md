@@ -136,4 +136,4 @@ When text sizing is enabled:
 
 3. **Output**: When generating ANSI output, PUA characters in wide cells are wrapped in `ESC]66;w=2;...BEL` so the terminal renders them at the correct width.
 
-The protocol is opt-in and disabled by default, so existing behavior is unchanged for terminals that do not support OSC 66.
+`run()` auto-enables text sizing on supported terminals (Kitty 0.40+, Ghostty). Unsupported terminals ignore the sequences harmlessly.

@@ -2,7 +2,7 @@
 title: Testing — Headless Renderer & Playwright-Style Locators
 description: Test Silvery TUI applications with the headless renderer, Playwright-style locators, press() simulation, and snapshot testing.
 prev:
-  text: AI Chat
+  text: AI Coding Agent
   link: /examples/ai-chat
 next: false
 ---

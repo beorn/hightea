@@ -37,12 +37,20 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react"
-import { Box, Text, Link, Spinner, ScrollbackList, useScrollbackItem, TextInput } from "../../src/index.js"
-import { run, useInput, useExit, type Key } from "../../src/runtime/run.js"
+import {
+  Box,
+  Text,
+  Link,
+  Spinner,
+  ScrollbackList,
+  useScrollbackItem,
+  TextInput,
+} from "../../src/index.js"
+import { run, useInput, useExit, type Key } from "@silvery/term/runtime"
 import type { ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
-  name: "Static Scrollback",
+  name: "AI Coding Agent",
   description: "Coding agent showcase — ScrollbackList, streaming, context tracking",
   features: [
     "ScrollbackList",
@@ -93,7 +101,7 @@ const TOOL_COLORS: Record<string, string> = {
   Edit: "$warning",
   Bash: "$error",
   Write: "$accent",
-  Glob: "$muted-fg",
+  Glob: "$muted",
   Grep: "$success",
 }
 
@@ -145,7 +153,8 @@ const SCRIPT: ScriptEntry[] = [
     role: "agent",
     thinking:
       "Found it \u2014 decoded.exp is in seconds (Unix timestamp) but Date.now() returns milliseconds. Every token appears expired because exp (e.g. 1700000000) is always less than Date.now() (e.g. 1700000000000). I need to divide Date.now() by 1000, and change the throw to a refresh call.",
-    content: "Found it. The expiry check compares seconds (jwt.exp) to milliseconds (Date.now()). Fixing now.",
+    content:
+      "Found it. The expiry check compares seconds (jwt.exp) to milliseconds (Date.now()). Fixing now.",
     toolCalls: [
       {
         tool: "Edit",
@@ -264,7 +273,8 @@ const SCRIPT: ScriptEntry[] = [
   },
   {
     role: "agent",
-    content: "Rate limiting added: 5 attempts per minute per IP on the login endpoint. All 15 tests pass.",
+    content:
+      "Rate limiting added: 5 attempts per minute per IP on the login endpoint. All 15 tests pass.",
     tokens: { input: 8468, output: 156 },
   },
   {
@@ -547,7 +557,15 @@ function computeCumulativeTokens(exchanges: Exchange[]): {
 // ============================================================================
 
 /** Render a line with auto-linked URLs. */
-function LinkifiedLine({ text, dim, color }: { text: string; dim?: boolean; color?: string }): JSX.Element {
+function LinkifiedLine({
+  text,
+  dim,
+  color,
+}: {
+  text: string
+  dim?: boolean
+  color?: string
+}): JSX.Element {
   const parts: JSX.Element[] = []
   let lastIndex = 0
   let match: RegExpExecArray | null
@@ -590,7 +608,7 @@ function LinkifiedLine({ text, dim, color }: { text: string; dim?: boolean; colo
 function ThinkingBlock({ text, done }: { text: string; done: boolean }): JSX.Element {
   return (
     <Box flexDirection="column" paddingLeft={2}>
-      <Text color="$muted" dim italic>
+      <Text color="$muted" italic>
         {done ? (
           "\u25B8 "
         ) : (
@@ -601,7 +619,7 @@ function ThinkingBlock({ text, done }: { text: string; done: boolean }): JSX.Ele
         thinking
       </Text>
       {!done && (
-        <Text color="$muted" dim wrap="truncate">
+        <Text color="$muted" wrap="truncate">
           {"    "}
           {text}
         </Text>
@@ -611,7 +629,13 @@ function ThinkingBlock({ text, done }: { text: string; done: boolean }): JSX.Ele
 }
 
 /** Tool call with lifecycle: spinner -> output -> checkmark. */
-function ToolCallBlock({ call, phase }: { call: ToolCall; phase: "pending" | "running" | "done" }): JSX.Element {
+function ToolCallBlock({
+  call,
+  phase,
+}: {
+  call: ToolCall
+  phase: "pending" | "running" | "done"
+}): JSX.Element {
   const color = TOOL_COLORS[call.tool] ?? "gray"
   const icon = TOOL_ICONS[call.tool] ?? "\u25B8"
 
@@ -625,7 +649,7 @@ function ToolCallBlock({ call, phase }: { call: ToolCall; phase: "pending" | "ru
         ) : phase === "done" ? (
           <Text color="$success">{"\u2713 "}</Text>
         ) : (
-          <Text color="$muted" dim>
+          <Text color="$muted">
             {"\u25CB "}
           </Text>
         )}
@@ -769,7 +793,8 @@ function ExchangeItem({
   const fraction = isLatest ? revealFraction : 1
 
   // Token badge for agent exchanges
-  const tokenBadge = exchange.tokens && phase === "done" ? ` ${formatTokens(exchange.tokens.output)} tokens` : ""
+  const tokenBadge =
+    exchange.tokens && phase === "done" ? ` ${formatTokens(exchange.tokens.output)} tokens` : ""
 
   // Tool call phases
   const toolCalls = exchange.toolCalls ?? []
@@ -783,7 +808,7 @@ function ExchangeItem({
           <Text dimColor={!pulse && phase !== "done"}>{icon}</Text> {name}
         </Text>
         {tokenBadge && (
-          <Text color="$muted" dim>
+          <Text color="$muted">
             {tokenBadge}
           </Text>
         )}
@@ -869,7 +894,7 @@ function StatusBar({
 
   return (
     <Box flexDirection="row" justifyContent="space-between" paddingX={1}>
-      <Text color="$muted" dim>
+      <Text color="$muted">
         <Text color="$primary">{elapsedStr}</Text>
         {"  "}
         {keys}
@@ -883,7 +908,7 @@ function StatusBar({
           </>
         )}
       </Text>
-      <Text color="$muted" dim>
+      <Text color="$muted">
         context <Text color={ctxColor}>{ctxBar}</Text>{" "}
         <Text color={ctxPct > 100 ? "$error" : undefined}>{ctxPct}%</Text>
         {"  "}
@@ -946,7 +971,10 @@ function DemoFooter({
   const startRef = useRef(Date.now())
   const [elapsed, setElapsed] = useState(0)
   useEffect(() => {
-    const timer = setInterval(() => setElapsed(Math.floor((Date.now() - startRef.current) / 1000)), 1000)
+    const timer = setInterval(
+      () => setElapsed(Math.floor((Date.now() - startRef.current) / 1000)),
+      1000,
+    )
     return () => clearInterval(timer)
   }, [])
 
@@ -1425,12 +1453,20 @@ function CodingAgent({
             <Box flexDirection="column">
               {/* Compaction overlay */}
               {compacting && isLatest && (
-                <Box flexDirection="column" borderStyle="round" borderColor="$warning" paddingX={1} overflow="hidden">
+                <Box
+                  flexDirection="column"
+                  borderStyle="round"
+                  borderColor="$warning"
+                  paddingX={1}
+                  overflow="hidden"
+                >
                   <Text color="$warning" bold>
                     <Spinner type="arc" /> Compacting context
                   </Text>
                   <Text> </Text>
-                  <Text color="$muted">Freezing exchanges into terminal scrollback. Scroll up to review.</Text>
+                  <Text color="$muted">
+                    Freezing exchanges into terminal scrollback. Scroll up to review.
+                  </Text>
                 </Box>
               )}
 
@@ -1443,7 +1479,7 @@ function CodingAgent({
                   <Text color="$muted">
                     Scroll up to review — colors, borders, and hyperlinks preserved in scrollback.
                   </Text>
-                  <Text color="$muted" dim>
+                  <Text color="$muted">
                     Try{" "}
                     <Text bold color="$primary">
                       Cmd+{"\u2191"}
@@ -1481,7 +1517,7 @@ function CodingAgent({
 // Main
 // ============================================================================
 
-async function main() {
+export async function main() {
   const args = process.argv.slice(2)
   const isStress = args.includes("--stress")
   const isAuto = args.includes("--auto")

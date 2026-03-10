@@ -19,6 +19,7 @@ type Focusable = { id: string; isActive: boolean }
 
 export type InkFocusContextValue = {
   activeId: string | undefined
+  isFocusEnabled: boolean
   add: (id: string, options: { autoFocus: boolean }) => void
   remove: (id: string) => void
   activate: (id: string) => void
@@ -28,10 +29,12 @@ export type InkFocusContextValue = {
   focusNext: () => void
   focusPrevious: () => void
   focus: (id: string) => void
+  blur: () => void
 }
 
 export const InkFocusContext = createContext<InkFocusContextValue>({
   activeId: undefined,
+  isFocusEnabled: true,
   add() {},
   remove() {},
   activate() {},
@@ -41,6 +44,7 @@ export const InkFocusContext = createContext<InkFocusContextValue>({
   focusNext() {},
   focusPrevious() {},
   focus() {},
+  blur() {},
 })
 
 /**
@@ -60,7 +64,10 @@ export function InkFocusProvider({
   const focusablesCountRef = React.useRef(0)
 
   const findNextFocusable = useCallback(
-    (currentFocusables: Focusable[], currentActiveFocusId: string | undefined): string | undefined => {
+    (
+      currentFocusables: Focusable[],
+      currentActiveFocusId: string | undefined,
+    ): string | undefined => {
       const activeIndex = currentFocusables.findIndex((f) => f.id === currentActiveFocusId)
       for (let i = activeIndex + 1; i < currentFocusables.length; i++) {
         if (currentFocusables[i]?.isActive) return currentFocusables[i]!.id
@@ -71,7 +78,10 @@ export function InkFocusProvider({
   )
 
   const findPreviousFocusable = useCallback(
-    (currentFocusables: Focusable[], currentActiveFocusId: string | undefined): string | undefined => {
+    (
+      currentFocusables: Focusable[],
+      currentActiveFocusId: string | undefined,
+    ): string | undefined => {
       const activeIndex = currentFocusables.findIndex((f) => f.id === currentActiveFocusId)
       for (let i = activeIndex - 1; i >= 0; i--) {
         if (currentFocusables[i]?.isActive) return currentFocusables[i]!.id
@@ -117,6 +127,10 @@ export function InkFocusProvider({
       }
       return currentFocusables
     })
+  }, [])
+
+  const blur = useCallback((): void => {
+    setActiveFocusId(undefined)
   }, [])
 
   const addFocusable = useCallback((id: string, { autoFocus }: { autoFocus: boolean }): void => {
@@ -182,6 +196,7 @@ export function InkFocusProvider({
   const contextValue = useMemo(
     () => ({
       activeId: activeFocusId,
+      isFocusEnabled,
       add: addFocusable,
       remove: removeFocusable,
       activate: activateFocusable,
@@ -191,9 +206,11 @@ export function InkFocusProvider({
       focusNext,
       focusPrevious,
       focus,
+      blur,
     }),
     [
       activeFocusId,
+      isFocusEnabled,
       addFocusable,
       removeFocusable,
       activateFocusable,
@@ -203,6 +220,7 @@ export function InkFocusProvider({
       focusNext,
       focusPrevious,
       focus,
+      blur,
     ],
   )
 

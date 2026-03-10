@@ -1,6 +1,6 @@
 # TUI Framework Comparison
 
-A feature comparison of major terminal UI frameworks across languages and ecosystems. Covers rendering, terminal protocols, layout, components, developer experience, and architecture. Values reflect the state of each framework as of early 2026.
+A feature comparison of major terminal UI frameworks across languages and ecosystems. Covers rendering, terminal protocols, layout, components, developer experience, and architecture. Values reflect the state of each framework as of 2026-03.
 
 > For an in-depth Silvery vs Ink analysis with code examples, benchmarks, and migration guidance, see [silvery-vs-ink.md](silvery-vs-ink.md).
 
@@ -24,7 +24,7 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 
 [^2]: With ~15-50 unique styles per TUI, Silvery caches all (oldStyle, newStyle) SGR transition strings (~2,500 possible pairs), eliminating per-cell string building.
 
-[^3]: Ink has a PR exploring synchronized updates (#846) but it is not yet merged.
+[^3]: Ink has a PR exploring synchronized updates (#846) but it is not yet merged (as of 2026-03).
 
 ## Terminal Protocols
 
@@ -42,7 +42,7 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 
 [^4]: Silvery supports all Kitty flags: `DISAMBIGUATE`, `REPORT_EVENTS` (press/repeat/release), `REPORT_ALTERNATE`, `REPORT_ALL_KEYS`, `REPORT_TEXT`. Detects Cmd/Super and Hyper modifiers, CapsLock/NumLock. Auto-detects terminal support via `CSI ? u` query.
 
-[^5]: Ink has a PR (#852) for Kitty keyboard support in review but not merged.
+[^5]: Ink has a PR (#852) for Kitty keyboard support in review but not merged (as of 2026-03).
 
 ## Layout & Components
 

@@ -4,7 +4,7 @@
 
 ## Problem
 
-Overlay elements (modal dialogs, dropdowns, tooltips) need opaque backgrounds to cover the content beneath them. Currently, components like `ModalDialog` hardcode `backgroundColor="$surface"` which works but:
+Overlay elements (modal dialogs, dropdowns, tooltips) need opaque backgrounds to cover the content beneath them. Currently, components like `ModalDialog` hardcode `backgroundColor="$surface-bg"` which works but:
 
 1. **Hardcodes a specific token** — `$surface` is slightly elevated from `$bg`, but overlays might want to use the terminal's actual default background, which is whatever the user configured in their terminal emulator (not necessarily any theme token).
 2. **Cannot reference "terminal default background"** — The terminal's background is not a color value Silvery knows at render time unless OSC 11 detection was performed. The `$bg` theme token is a _derived_ approximation, not the real terminal background.
@@ -12,7 +12,7 @@ Overlay elements (modal dialogs, dropdowns, tooltips) need opaque backgrounds to
 
 ## Current State
 
-- `ModalDialog` uses `backgroundColor="$surface"` (hardcoded in the component).
+- `ModalDialog` uses `backgroundColor="$surface-bg"` (hardcoded in the component).
 - `$bg` and `$surface` are theme tokens resolved via `resolveThemeColor()`.
 - The terminal's true background is the ANSI "default background" — `\x1b[49m`. This is special: it means "whatever the terminal's configured background is", which might be transparent, an image, or a gradient. No hex color can replicate this.
 - The rendering pipeline uses `backgroundColor` in the content phase to fill cells with a specific color. An empty/undefined `backgroundColor` means "transparent" (inherit from parent or terminal default).
@@ -79,7 +79,7 @@ Add `elevation={0|1|2|3}` to Box, which maps to theme tokens (`$bg`, `$surface`,
    - This is different from "no background" (transparent) — it actively resets to default.
 
 3. **Update ModalDialog default**:
-   - Change from `backgroundColor="$surface"` to `backgroundColor="$surface"` (keep current behavior, but document `$default` as an option).
+   - Change from `backgroundColor="$surface-bg"` to `backgroundColor="$surface-bg"` (keep current behavior, but document `$default` as an option).
    - Applications can override: `<ModalDialog borderColor="$border" backgroundColor="$default">`.
 
 ### Key Challenges

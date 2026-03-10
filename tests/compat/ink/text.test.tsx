@@ -134,6 +134,47 @@ test("preserve SGR color sequences in text", () => {
   expect(stripAnsi(output)).toBe("green normal")
 })
 
+test("preserve OSC hyperlink sequences in text", () => {
+  const output = renderText("\u001B]8;;https://example.com\u0007link\u001B]8;;\u0007")
+  expect(output.includes("\u001B]8;;")).toBe(true)
+  expect(stripAnsi(output)).toBe("link")
+})
+
+test("preserve OSC hyperlink sequences with ST terminator in text", () => {
+  const output = renderText("\u001B]8;;https://example.com\u001B\\link\u001B]8;;\u001B\\")
+  expect(output.includes("\u001B]8;;")).toBe(true)
+  expect(output.includes("\u001B\\")).toBe(true)
+  expect(stripAnsi(output)).toBe("link")
+})
+
+test("preserve C1 OSC sequences in text", () => {
+  const input = "\u009D8;;https://example.com\u0007link\u009D8;;\u0007"
+  const output = renderText(input)
+  expect(output.includes("\u009D8;;https://example.com")).toBe(true)
+  expect(output.includes("\u009D8;;\u0007")).toBe(true)
+  expect(output).toBe(input)
+})
+
+test("preserve C1 OSC hyperlink sequences with ST terminator in text", () => {
+  const input = "\u009D8;;https://example.com\u001B\\link\u009D8;;\u001B\\"
+  const output = renderText(input)
+  expect(output.includes("\u009D8;;https://example.com")).toBe(true)
+  expect(output.includes("\u001B\\")).toBe(true)
+})
+
+test("preserve SGR sequences with colon parameters", () => {
+  const output = renderText("A\u001B[38:2::255:100:0mcolor\u001B[0mB")
+  expect(output.includes("\u001B[38:2::255:100:0m")).toBe(true)
+  expect(stripAnsi(output)).toBe("AcolorB")
+})
+
+test("preserve SGR sequences around stripped SOS control strings", () => {
+  const output = renderText("A\u001B[32mgreen\u001B[0m\u001BXpayload\u001B\\B")
+  expect(output.includes("\u001B[")).toBe(true)
+  expect(output.includes("payload")).toBe(false)
+  expect(stripAnsi(output)).toBe("AgreenB")
+})
+
 // Async tests
 test("<Text> with undefined children - async", async () => {
   const output = await renderToStringAsync(<Text />)

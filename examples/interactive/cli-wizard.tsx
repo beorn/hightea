@@ -61,7 +61,11 @@ const FRAMEWORKS: SelectOption[] = [
   { label: "Vue        — The progressive JavaScript framework", value: "vue" },
   { label: "Svelte     — Cybernetically enhanced web apps", value: "svelte" },
   { label: "Solid      — Simple and performant reactivity", value: "solid" },
-  { label: "Angular    — Platform for building web applications", value: "angular", disabled: true },
+  {
+    label: "Angular    — Platform for building web applications",
+    value: "angular",
+    disabled: true,
+  },
 ]
 
 const INSTALL_STEPS = [
@@ -152,7 +156,13 @@ function NameStep({
 }
 
 /** Step 3: Installation progress */
-function InstallStep({ progress, stepIndex }: { progress: number; stepIndex: number }): JSX.Element {
+function InstallStep({
+  progress,
+  stepIndex,
+}: {
+  progress: number
+  stepIndex: number
+}): JSX.Element {
   const currentStep = INSTALL_STEPS[Math.min(stepIndex, INSTALL_STEPS.length - 1)]!
 
   return (
@@ -175,7 +185,13 @@ function InstallStep({ progress, stepIndex }: { progress: number; stepIndex: num
 }
 
 /** Step 4: Completion summary */
-function DoneStep({ framework, projectName }: { framework: string; projectName: string }): JSX.Element {
+function DoneStep({
+  framework,
+  projectName,
+}: {
+  framework: string
+  projectName: string
+}): JSX.Element {
   return (
     <Box flexDirection="column" paddingX={1}>
       <Box marginBottom={1}>
@@ -184,7 +200,13 @@ function DoneStep({ framework, projectName }: { framework: string; projectName: 
         </Text>
       </Box>
 
-      <Box flexDirection="column" borderStyle="round" borderColor="$success" paddingX={2} paddingY={1}>
+      <Box
+        flexDirection="column"
+        borderStyle="round"
+        borderColor="$success"
+        paddingX={2}
+        paddingY={1}
+      >
         <Box>
           <Text color="$muted">Framework: </Text>
           <Text bold>{framework}</Text>
@@ -283,7 +305,8 @@ export function CliWizard(): JSX.Element {
   // Map progress to step index for display
   const installStepIndex = Math.floor(state.progress * (INSTALL_STEPS.length - 1))
 
-  const stepNumber = state.step === "framework" ? 0 : state.step === "name" ? 1 : state.step === "installing" ? 2 : 3
+  const stepNumber =
+    state.step === "framework" ? 0 : state.step === "name" ? 1 : state.step === "installing" ? 2 : 3
 
   return (
     <Box flexDirection="column" flexGrow={1}>
@@ -307,7 +330,9 @@ export function CliWizard(): JSX.Element {
         />
       )}
 
-      {state.step === "installing" && <InstallStep progress={state.progress} stepIndex={installStepIndex} />}
+      {state.step === "installing" && (
+        <InstallStep progress={state.progress} stepIndex={installStepIndex} />
+      )}
 
       {state.step === "done" && state.framework && (
         <DoneStep framework={state.framework} projectName={state.projectName} />

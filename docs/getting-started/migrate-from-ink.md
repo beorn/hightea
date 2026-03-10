@@ -14,11 +14,11 @@ bun add silvery
 ### Step 2: Update Imports
 
 ```diff
-- import { Box, Text, render, useInput, useApp } from 'ink';
-+ import { Box, Text, render, useInput, useApp } from 'silvery';
+- import { Box, Text, render, useInput, useApp } from 'ink'
++ import { Box, Text, render, useInput, useApp } from 'silvery'
 
-- import { render } from 'ink-testing-library';
-+ import { render } from '@silvery/test';
+- import { render } from 'ink-testing-library'
++ import { render } from '@silvery/test'
 ```
 
 That's it. `render(<App />)` works without any term parameter — just add `await`:
@@ -248,20 +248,20 @@ const { width } = useContentRect()
 **Silvery**: `useContentRect()` is preferred. `useLayout` is a deprecated alias.
 
 ```diff
-- const { width } = useLayout();
-+ const { width } = useContentRect();
+- const { width } = useLayout()
++ const { width } = useContentRect()
 ```
 
 ## Known Incompatibilities
 
 ### By Design
 
-| Behavior                | Ink                  | Silvery              | Reason                           |
-| ----------------------- | -------------------- | -------------------- | -------------------------------- |
-| Default `flexDirection` | `column`             | `row`                | W3C CSS spec compliance          |
-| Text overflow           | Overflows            | Wraps                | Better default                   |
-| First render dimensions | N/A                  | Zeros                | Required for responsive layout   |
-| Internal APIs           | Exposed              | Hidden               | Not public API                   |
+| Behavior                | Ink       | Silvery | Reason                         |
+| ----------------------- | --------- | ------- | ------------------------------ |
+| Default `flexDirection` | `column`  | `row`   | W3C CSS spec compliance        |
+| Text overflow           | Overflows | Wraps   | Better default                 |
+| First render dimensions | N/A       | Zeros   | Required for responsive layout |
+| Internal APIs           | Exposed   | Hidden  | Not public API                 |
 
 ### Layout Engine Differences
 

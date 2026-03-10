@@ -90,7 +90,7 @@ setLayoutEngine(createYogaEngine(yoga))
 function initYogaEngine(): Promise<YogaLayoutEngine>
 ```
 
-Initializes Yoga using `yoga-wasm-web/auto` and returns a ready-to-use engine. This is what `render()` uses internally:
+Initializes Yoga using `yoga-wasm-web/auto` and returns a ready-to-use engine. Useful when you want Yoga without managing the Yoga instance yourself:
 
 ```tsx
 import { setLayoutEngine, initYogaEngine } from "silvery"
@@ -308,7 +308,7 @@ This error means you called `renderSync()` without setting up an engine first:
 using term = createTerm()
 renderSync(term, <App />) // Error!
 
-// Right - use async render (auto-initializes Yoga)
+// Right - use async render (auto-initializes Flexily)
 using term = createTerm()
 await render(<App />, term)
 

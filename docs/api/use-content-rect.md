@@ -45,7 +45,7 @@ function SizedBox() {
 On the first render, dimensions are `{ width: 0, height: 0, x: 0, y: 0 }`. This happens because:
 
 1. **First render**: React renders component structure
-2. **Layout phase**: Yoga computes dimensions
+2. **Layout phase**: Layout engine computes dimensions
 3. **Second render**: Components re-render with actual dimensions
 
 Both renders happen before the first terminal paint, so this is usually invisible.

@@ -179,7 +179,11 @@ const REACT_KEYWORDS = new Set([
 ])
 
 function highlightLine(line: string): React.ReactNode {
-  if (line.trimStart().startsWith("//") || line.trimStart().startsWith("*") || line.trimStart().startsWith("/*")) {
+  if (
+    line.trimStart().startsWith("//") ||
+    line.trimStart().startsWith("*") ||
+    line.trimStart().startsWith("/*")
+  ) {
     return (
       <Text dim color="gray">
         {line}
@@ -231,7 +235,15 @@ function highlightLine(line: string): React.ReactNode {
 // Components
 // =============================================================================
 
-function Sidebar({ examples, cursor, theme }: { examples: Example[]; cursor: number; theme: Theme }) {
+function Sidebar({
+  examples,
+  cursor,
+  theme,
+}: {
+  examples: Example[]
+  cursor: number
+  theme: Theme
+}) {
   const { groups, scrollToChild } = useMemo(() => {
     const result: {
       category: string
@@ -274,7 +286,11 @@ function Sidebar({ examples, cursor, theme }: { examples: Example[]; cursor: num
           {group.items.map(({ example, globalIdx }) => {
             const selected = globalIdx === cursor
             return (
-              <Box key={example.name} paddingX={1} backgroundColor={selected ? "$primary" : undefined}>
+              <Box
+                key={example.name}
+                paddingX={1}
+                backgroundColor={selected ? "$primary" : undefined}
+              >
                 <Text color={selected ? "$text" : "$text"} bold={selected} wrap="truncate">
                   {selected ? "\u25B8 " : "  "}
                   {example.name}
@@ -327,10 +343,13 @@ function Preview({ example, theme }: { example: Example; theme: Theme }) {
         // Render in sandboxed static mode — useInput becomes a no-op,
         // useApp gets a stub exit(), no terminal needed.
         // Wrap in ThemeProvider so previews pick up the active theme.
-        const output = await renderStatic(React.createElement(ThemeProvider, { theme }, React.createElement(Comp)), {
-          width,
-          height,
-        })
+        const output = await renderStatic(
+          React.createElement(ThemeProvider, { theme }, React.createElement(Comp)),
+          {
+            width,
+            height,
+          },
+        )
         if (!cancelled) setLines(output.split("\n"))
         return undefined
       })
@@ -355,7 +374,11 @@ function Preview({ example, theme }: { example: Example; theme: Theme }) {
   )
 
   if (error === "no-component") {
-    return renderLines(["", " No live preview — uses non-React API.", " Press Enter to run standalone."])
+    return renderLines([
+      "",
+      " No live preview — uses non-React API.",
+      " Press Enter to run standalone.",
+    ])
   }
 
   if (error) {
@@ -466,7 +489,8 @@ function Viewer({ examples }: { examples: Example[] }) {
     )
   }
 
-  const runLabel = selected.category === "Inline" || selected.category === "Runtime" ? "run" : "run interactive"
+  const runLabel =
+    selected.category === "Inline" || selected.category === "Runtime" ? "run" : "run interactive"
 
   return (
     <ThemeProvider theme={theme}>
@@ -494,7 +518,13 @@ function Viewer({ examples }: { examples: Example[] }) {
           <Sidebar examples={examples} cursor={cursor} theme={theme} />
 
           {/* Content area with tabs */}
-          <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border" overflow="hidden">
+          <Box
+            flexDirection="column"
+            flexGrow={1}
+            borderStyle="round"
+            borderColor="$border"
+            overflow="hidden"
+          >
             {/* Info banner */}
             <Box paddingX={1} flexDirection="column">
               <Text wrap="truncate">
@@ -537,8 +567,9 @@ function Viewer({ examples }: { examples: Example[] }) {
         {/* Bottom bar */}
         <Box paddingX={1}>
           <Text color="$muted">
-            <Text bold>j</Text>/<Text bold>k</Text> navigate <Text bold>Tab</Text> {tab === "view" ? "source" : "view"}{" "}
-            <Text bold>Enter</Text> {runLabel} <Text bold>t</Text> theme <Text bold>q</Text> quit
+            <Text bold>j</Text>/<Text bold>k</Text> navigate <Text bold>Tab</Text>{" "}
+            {tab === "view" ? "source" : "view"} <Text bold>Enter</Text> {runLabel}{" "}
+            <Text bold>t</Text> theme <Text bold>q</Text> quit
           </Text>
         </Box>
       </Box>

@@ -93,6 +93,22 @@ export interface RenderStringOptions {
    * content-area empty lines).
    */
   onContentHeight?: (height: number) => void
+
+  /**
+   * Always use styled output (bufferToStyledText) even when plain=true.
+   * Default: false
+   *
+   * When true, the output includes ANSI codes from embedded sequences in text
+   * content (SGR, OSC hyperlinks) even though the mock term has no color
+   * support (plain=true). This is needed for Ink compatibility: Ink passes
+   * embedded ANSI sequences through regardless of chalk's color level, but
+   * silvery's plain mode would strip them via bufferToText.
+   *
+   * The `plain` flag still controls whether the mock term has color support,
+   * which determines whether Text component style props (color, bold, etc.)
+   * produce style attributes in the buffer.
+   */
+  alwaysStyled?: boolean
 }
 
 // ============================================================================
@@ -132,7 +148,10 @@ async function ensureLayoutEngine(): Promise<void> {
  * console.log(output)
  * ```
  */
-export async function renderString(element: ReactElement, options: RenderStringOptions = {}): Promise<string> {
+export async function renderString(
+  element: ReactElement,
+  options: RenderStringOptions = {},
+): Promise<string> {
   await ensureLayoutEngine()
   return renderStringSync(element, options)
 }
@@ -156,7 +175,9 @@ export async function renderString(element: ReactElement, options: RenderStringO
  */
 export function renderStringSync(element: ReactElement, options: RenderStringOptions = {}): string {
   if (!isLayoutEngineInitialized()) {
-    throw new Error("Layout engine not initialized. Use renderString() (async) or initialize with setLayoutEngine().")
+    throw new Error(
+      "Layout engine not initialized. Use renderString() (async) or initialize with setLayoutEngine().",
+    )
   }
 
   const {
@@ -167,6 +188,7 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
     trimTrailingWhitespace = true,
     trimEmptyLines = true,
     onContentHeight,
+    alwaysStyled = false,
   } = options
 
   // Track whether React committed new work (from layout notifications etc.)
@@ -266,7 +288,7 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
     })
   })
 
-  return plain
+  return plain && !alwaysStyled
     ? bufferToText(buffer, { trimTrailingWhitespace, trimEmptyLines })
     : bufferToStyledText(buffer, { trimTrailingWhitespace, trimEmptyLines })
 }

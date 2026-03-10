@@ -27,12 +27,13 @@
  * ```
  */
 
-import { useContext, useEffect, type ReactElement } from "react"
+import { useContext, useEffect, useRef, type ReactElement } from "react"
 
 import { RuntimeContext } from "@silvery/react/context"
 import { createApp } from "./create-app"
 import type { Key, InputHandler } from "./keys"
 import type { Term } from "../ansi/term"
+import { detectTerminalCaps } from "../terminal-caps"
 
 // Re-export types from keys.ts
 export type { Key, InputHandler } from "./keys"
@@ -43,6 +44,15 @@ export type { Key, InputHandler } from "./keys"
 
 /**
  * Options for run().
+ *
+ * run() auto-detects terminal capabilities and enables features by default.
+ * Pass explicit values to override. For the full list of capabilities detected,
+ * see {@link detectTerminalCaps} in terminal-caps.ts.
+ *
+ * **Mouse tracking note:** When `mouse` is enabled (the default), the terminal
+ * captures mouse events and native text selection (copy/paste) requires holding
+ * Shift (or Option on macOS in some terminals). Set `mouse: false` to restore
+ * native copy/paste behavior.
  */
 export interface RunOptions {
   /** Terminal dimensions (default: from process.stdout) */
@@ -55,15 +65,19 @@ export interface RunOptions {
   /** Abort signal for external cleanup */
   signal?: AbortSignal
   /**
-   * Enable Kitty keyboard protocol.
-   * - `true`: auto-detect and enable with DISAMBIGUATE flag (1)
+   * Enable Kitty keyboard protocol for unambiguous key identification
+   * (Cmd ⌘, Hyper ✦ modifiers, key release events).
+   * - `true`: enable with DISAMBIGUATE flag (1)
    * - number: enable with specific KittyFlags bitfield
-   * - `false`/undefined: don't enable (default)
+   * - `false`: don't enable
+   * - Default: auto-detected from terminal (enabled for Ghostty, Kitty, WezTerm, foot)
    */
   kitty?: boolean | number
   /**
-   * Enable SGR mouse tracking (mode 1006).
-   * Default: false
+   * Enable SGR mouse tracking (mode 1006) for click, scroll, and drag events.
+   * When enabled, native text selection requires holding Shift (or Option on macOS).
+   * Set to `false` to restore native copy/paste behavior.
+   * Default: true
    */
   mouse?: boolean
   /**
@@ -72,13 +86,22 @@ export interface RunOptions {
   mode?: "fullscreen" | "inline"
   /**
    * Enable Kitty text sizing protocol (OSC 66) for PUA characters.
+   * Ensures nerdfont/powerline icons are measured and rendered at the correct width.
    * - `true`: force enable
-   * - `"auto"`: enable if terminal likely supports it
-   * - `false`/undefined: disabled (default)
+   * - `"auto"`: enable if terminal supports it (Kitty 0.40+, Ghostty)
+   * - `false`: disabled
+   * - Default: "auto"
    */
   textSizing?: boolean | "auto"
   /**
+   * Enable terminal focus reporting (CSI ?1004h).
+   * Dispatches 'term:focus' events with `{ focused: boolean }`.
+   * Default: true
+   */
+  focusReporting?: boolean
+  /**
    * Terminal capabilities for width measurement and output suppression.
+   * Default: auto-detected via detectTerminalCaps()
    */
   caps?: import("../terminal-caps.js").TerminalCaps
   /**
@@ -138,13 +161,19 @@ export type PasteHandler = (text: string) => void
 export function useInput(handler: InputHandler): void {
   const rt = useContext(RuntimeContext)
 
+  // Stable ref for the handler — avoids tearing down/recreating the
+  // subscription on every render. Without this, rapid keystrokes between
+  // effect cleanup and setup are lost (e.g., Ctrl+D twice, Escape).
+  const handlerRef = useRef(handler)
+  handlerRef.current = handler
+
   useEffect(() => {
     if (!rt) return
     return rt.on("input", (input: string, key: Key) => {
-      const result = handler(input, key)
+      const result = handlerRef.current(input, key)
       if (result === "exit") rt.exit()
     })
-  }, [rt, handler])
+  }, [rt])
 }
 
 /**
@@ -162,10 +191,16 @@ export function useExit(): () => void {
 export function usePaste(handler: PasteHandler): void {
   const rt = useContext(RuntimeContext)
 
+  // Stable ref — same pattern as useInput to avoid lost paste events.
+  const handlerRef = useRef(handler)
+  handlerRef.current = handler
+
   useEffect(() => {
     if (!rt) return
-    return rt.on("paste", handler)
-  }, [rt, handler])
+    return rt.on("paste", (text: string) => {
+      handlerRef.current(text)
+    })
+  }, [rt])
 }
 
 // ============================================================================
@@ -184,10 +219,14 @@ export function usePaste(handler: PasteHandler): void {
  */
 export async function run(element: ReactElement, term: Term): Promise<RunHandle>
 export async function run(element: ReactElement, options?: RunOptions): Promise<RunHandle>
-export async function run(element: ReactElement, optionsOrTerm: RunOptions | Term = {}): Promise<RunHandle> {
-  // Term path: pass Term as provider + its streams
+export async function run(
+  element: ReactElement,
+  optionsOrTerm: RunOptions | Term = {},
+): Promise<RunHandle> {
+  // Term path: pass Term as provider + its streams, auto-enable from Term caps
   if (isTerm(optionsOrTerm)) {
     const term = optionsOrTerm as Term
+    const caps = term.caps ?? detectTerminalCaps()
     const app = createApp(() => () => ({}))
     const handle = await app.run(element, {
       term,
@@ -195,18 +234,28 @@ export async function run(element: ReactElement, optionsOrTerm: RunOptions | Ter
       stdin: term.stdin,
       cols: term.cols ?? undefined,
       rows: term.rows ?? undefined,
-      caps: term.caps,
+      caps,
       alternateScreen: true,
+      kitty: caps.kittyKeyboard,
+      mouse: true,
+      focusReporting: true,
+      textSizing: "auto",
     })
     return wrapHandle(handle)
   }
 
-  // Options path: map RunOptions to AppRunOptions
+  // Options path: auto-detect caps and derive defaults
   const { mode, ...rest } = optionsOrTerm as RunOptions
+  const caps = rest.caps ?? detectTerminalCaps()
   const app = createApp(() => () => ({}))
   const handle = await app.run(element, {
     ...rest,
+    caps,
     alternateScreen: mode !== "inline",
+    kitty: rest.kitty ?? caps.kittyKeyboard,
+    mouse: rest.mouse ?? true,
+    focusReporting: rest.focusReporting ?? true,
+    textSizing: rest.textSizing ?? "auto",
   })
   return wrapHandle(handle)
 }

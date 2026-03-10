@@ -46,22 +46,22 @@ examples/
 
 ## Interactive
 
-| Example       | File                            | Description                                      |
-| ------------- | ------------------------------- | ------------------------------------------------ |
-| AI Chat       | `interactive/ai-chat.tsx`       | Chat UI with VirtualList and streaming responses |
-| Todo App      | `interactive/app-todo.tsx`      | Layer 3: `createApp()` with Zustand store        |
-| Async Data    | `interactive/async-data.tsx`    | Suspense boundaries with `use()` hook            |
-| Kanban        | `interactive/kanban.tsx`        | Multi-column kanban with card movement           |
-| Layout Ref    | `interactive/layout-ref.tsx`    | `forwardRef` + `onLayout` callbacks              |
-| Scroll        | `interactive/scroll.tsx`        | Basic scrollable list                            |
-| Search Filter | `interactive/search-filter.tsx` | React concurrent features (`useDeferredValue`)   |
-| Task List     | `interactive/task-list.tsx`     | VirtualList with variable-height items           |
-| TextArea      | `interactive/textarea.tsx`      | Multi-line text input component                  |
-| Virtual 10K   | `interactive/virtual-10k.tsx`   | VirtualList with 10,000 items                    |
-| Clipboard     | `interactive/clipboard.tsx`     | OSC 52 clipboard copy/paste across sessions      |
-| Paste Demo    | `interactive/paste-demo.tsx`    | Bracketed paste mode — paste as single event     |
-| Outline       | `interactive/outline.tsx`       | Outline vs border side-by-side comparison        |
-| Transform     | `interactive/transform.tsx`     | Text post-processing with Transform component    |
+| Example         | File                            | Description                                    |
+| --------------- | ------------------------------- | ---------------------------------------------- |
+| AI Coding Agent | `interactive/ai-chat.tsx`       | Coding agent with streaming, tool calls        |
+| Todo App        | `interactive/app-todo.tsx`      | Layer 3: `createApp()` with Zustand store      |
+| Async Data      | `interactive/async-data.tsx`    | Suspense boundaries with `use()` hook          |
+| Kanban          | `interactive/kanban.tsx`        | Multi-column kanban with card movement         |
+| Layout Ref      | `interactive/layout-ref.tsx`    | `forwardRef` + `onLayout` callbacks            |
+| Scroll          | `interactive/scroll.tsx`        | Basic scrollable list                          |
+| Search Filter   | `interactive/search-filter.tsx` | React concurrent features (`useDeferredValue`) |
+| Task List       | `interactive/task-list.tsx`     | VirtualList with variable-height items         |
+| TextArea        | `interactive/textarea.tsx`      | Multi-line text input component                |
+| Virtual 10K     | `interactive/virtual-10k.tsx`   | VirtualList with 10,000 items                  |
+| Clipboard       | `interactive/clipboard.tsx`     | OSC 52 clipboard copy/paste across sessions    |
+| Paste Demo      | `interactive/paste-demo.tsx`    | Bracketed paste mode — paste as single event   |
+| Outline         | `interactive/outline.tsx`       | Outline vs border side-by-side comparison      |
+| Transform       | `interactive/transform.tsx`     | Text post-processing with Transform component  |
 
 ## Kitty Protocol
 

@@ -66,6 +66,12 @@ export interface TextInputProps {
   underlineWidth?: number
   /** Mask character for passwords */
   mask?: string
+  /** Border style (e.g., "round", "single") — wraps input in bordered Box */
+  borderStyle?: string
+  /** Border color when unfocused (default: "$border") */
+  borderColor?: string
+  /** Border color when focused (default: "$focusborder") */
+  focusBorderColor?: string
   /** Test ID for focus system identification */
   testID?: string
 }
@@ -101,6 +107,9 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
     showUnderline = false,
     underlineWidth = 40,
     mask,
+    borderStyle: borderStyleProp,
+    borderColor: borderColorProp = "$border",
+    focusBorderColor = "$focusborder",
     testID,
   },
   ref,
@@ -160,30 +169,62 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
   // Always show visual cursor (inverse/underline). When active, the hardware
   // cursor is also positioned via useCursor() for terminal blink support.
   const cursorEl =
-    cursorStyle === "underline" ? <Text underline>{displayAtCursor}</Text> : <Text inverse>{displayAtCursor}</Text>
+    cursorStyle === "underline" ? (
+      <Text underline>{displayAtCursor}</Text>
+    ) : (
+      <Text inverse>{displayAtCursor}</Text>
+    )
   useCursor({
     col: prompt.length + displayBeforeCursor.length,
     row: 0,
     visible: isActive,
   })
 
+  const inputContent = (
+    <Text color={color}>
+      {prompt && <Text color={promptColor}>{prompt}</Text>}
+      {showPlaceholder ? (
+        <>
+          {cursorStyle === "underline" ? (
+            <Text underline dimColor>
+              {placeholder[0]}
+            </Text>
+          ) : (
+            <Text inverse dimColor>
+              {placeholder[0]}
+            </Text>
+          )}
+          <Text dimColor>{placeholder.slice(1)}</Text>
+        </>
+      ) : (
+        <>
+          <Text>{displayBeforeCursor}</Text>
+          {cursorEl}
+          <Text>{displayAfterCursor}</Text>
+        </>
+      )}
+    </Text>
+  )
+
+  if (borderStyleProp) {
+    return (
+      <Box
+        focusable
+        testID={testID}
+        flexDirection="column"
+        borderStyle={borderStyleProp as any}
+        borderColor={isActive ? focusBorderColor : borderColorProp}
+        paddingX={1}
+      >
+        {inputContent}
+        {showUnderline && <Text dimColor>{"─".repeat(underlineWidth)}</Text>}
+      </Box>
+    )
+  }
+
   return (
     <Box focusable testID={testID} flexDirection="column">
-      <Text color={color}>
-        {prompt && <Text color={promptColor}>{prompt}</Text>}
-        {showPlaceholder ? (
-          <>
-            {cursorEl}
-            <Text dimColor>{placeholder}</Text>
-          </>
-        ) : (
-          <>
-            <Text>{displayBeforeCursor}</Text>
-            {cursorEl}
-            <Text>{displayAfterCursor}</Text>
-          </>
-        )}
-      </Text>
+      {inputContent}
       {showUnderline && <Text dimColor>{"─".repeat(underlineWidth)}</Text>}
     </Box>
   )

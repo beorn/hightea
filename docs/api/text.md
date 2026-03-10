@@ -151,7 +151,7 @@ This is an Silvery improvement over Ink. Nested styles use a push/pop mechanism 
 Text preserves Chalk ANSI escape codes:
 
 ```tsx
-import chalk from "chalk";
+import chalk from "chalk"
 
 <Text>
   {chalk.red("Red")} and {chalk.blue.bold("bold blue")}

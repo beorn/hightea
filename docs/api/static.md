@@ -27,10 +27,10 @@ import { Static } from "silvery"
 ### Log Output
 
 ```tsx
-const [logs, setLogs] = useState<string[]>([]);
+const [logs, setLogs] = useState<string[]>([])
 
 function addLog(message: string) {
-  setLogs(prev => [...prev, `[${new Date().toISOString()}] ${message}`]);
+  setLogs(prev => [...prev, `[${new Date().toISOString()}] ${message}`])
 }
 
 // Logs appear above and scroll up as new ones are added
@@ -61,12 +61,12 @@ Output (logs scroll up, status bar stays at bottom):
 
 ```tsx
 interface BuildStep {
-  name: string;
-  status: "success" | "error";
-  duration: number;
+  name: string
+  status: "success" | "error"
+  duration: number
 }
 
-const [completedSteps, setCompletedSteps] = useState<BuildStep[]>([]);
+const [completedSteps, setCompletedSteps] = useState<BuildStep[]>([])
 
 <Static items={completedSteps}>
   {(step, index) => (
@@ -95,11 +95,11 @@ Building: Running tests...
 
 ```tsx
 interface OutputLine {
-  type: "stdout" | "stderr";
-  text: string;
+  type: "stdout" | "stderr"
+  text: string
 }
 
-const [output, setOutput] = useState<OutputLine[]>([]);
+const [output, setOutput] = useState<OutputLine[]>([])
 
 <Static items={output}>
   {(line, index) => (

@@ -37,7 +37,7 @@ useInput((input, key) => {
 The [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) solves these ambiguities by encoding modifier state explicitly. Silvery fully supports this protocol:
 
 - Supported terminals: Kitty, WezTerm, foot, Ghostty, Alacritty, iTerm2, rio
-- Enable with `kitty: true` in `run()` — Silvery auto-detects support and falls back gracefully
+- Auto-enabled by `run()` on supported terminals — falls back gracefully on others
 - When active, Tab vs Ctrl+I, Enter vs Ctrl+M, and all modifier combinations are fully distinguishable
 
 See [Kitty Protocol](/guide/kitty-protocol) for details.
@@ -260,9 +260,9 @@ function HelpScreen() {
 
 Silvery ships with full support for modern terminal protocols that resolve the limitations above:
 
-1. **Kitty keyboard protocol** — Enables full modifier detection (Ctrl+Shift, Super, Hyper), key release events, and unambiguous key identification. Pass `kitty: true` to `run()`. See [Kitty Protocol](/guide/kitty-protocol).
+1. **Kitty keyboard protocol** — Enables full modifier detection (Ctrl+Shift, Super, Hyper), key release events, and unambiguous key identification. Auto-enabled by `run()`. See [Kitty Protocol](/guide/kitty-protocol).
 2. **Bracketed paste mode** — Distinguishes pasted text from typed input. Built into the runtime with `usePaste()` hook.
-3. **Mouse input** — Click, drag, and scroll events via SGR protocol (mode 1006). Pass `mouse: true` to `run()`. Components receive DOM-style `onClick`, `onWheel`, etc.
-4. **Focus events** — Detect when the terminal gains/loses focus via the focus system and `useFocusable()` hook.
+3. **Mouse input** — Click, drag, and scroll events via SGR protocol (mode 1006). Auto-enabled by `run()`. Set `mouse: false` to restore native copy/paste. Components receive DOM-style `onClick`, `onWheel`, etc.
+4. **Focus events** — Detect when the terminal gains/loses focus via the focus system and `useFocusable()` hook. Auto-enabled by `run()`.
 
-All features are opt-in and gracefully degrade in unsupported terminals.
+All features are auto-enabled by `run()` and gracefully degrade in unsupported terminals. Pass `false` to opt out.

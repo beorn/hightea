@@ -46,7 +46,7 @@ export interface BreadcrumbProps {
  *
  * Renders items separated by a configurable separator character.
  * The last item is rendered in bold `$fg` as the current location;
- * preceding items are rendered in `$mutedfg`.
+ * preceding items are rendered in `$muted`.
  */
 export function Breadcrumb({ items, separator = "/" }: BreadcrumbProps): React.ReactElement {
   if (items.length === 0) {
@@ -61,7 +61,7 @@ export function Breadcrumb({ items, separator = "/" }: BreadcrumbProps): React.R
         return (
           <React.Fragment key={i}>
             {i > 0 && <Text color="$disabledfg"> {separator} </Text>}
-            <Text color={isLast ? "$fg" : "$mutedfg"} bold={isLast}>
+            <Text color={isLast ? "$fg" : "$muted"} bold={isLast}>
               {item.label}
             </Text>
           </React.Fragment>

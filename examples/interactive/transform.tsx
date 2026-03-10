@@ -14,7 +14,16 @@
  */
 
 import React, { useState } from "react"
-import { render, Box, Text, Transform, useInput, useApp, createTerm, type Key } from "../../src/index.js"
+import {
+  render,
+  Box,
+  Text,
+  Transform,
+  useInput,
+  useApp,
+  createTerm,
+  type Key,
+} from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -132,7 +141,7 @@ function TransformSelector({
         return (
           <Box key={t.name} paddingX={1}>
             <Text
-              color={isSelected ? "black" : "white"}
+              color={isSelected ? "$bg" : undefined}
               backgroundColor={isSelected ? "$primary" : undefined}
               bold={isSelected}
             >
@@ -204,7 +213,7 @@ export function TransformDemo(): JSX.Element {
 
       {/* Side-by-side comparison */}
       <Box flexDirection="row" gap={1}>
-        <TextPanel title="Original" titleColor="white">
+        <TextPanel title="Original" titleColor="$muted">
           <Box flexDirection="column">
             {sampleLines.map((line, i) => (
               <Text key={i}>{line || " "}</Text>
@@ -212,7 +221,7 @@ export function TransformDemo(): JSX.Element {
           </Box>
         </TextPanel>
 
-        <TextPanel title={`${current.name}`} titleColor="yellow">
+        <TextPanel title={`${current.name}`} titleColor="$warning">
           <Transform transform={current.fn}>
             <Text>{sampleLines.join("\n")}</Text>
           </Transform>

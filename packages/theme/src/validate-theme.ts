@@ -7,15 +7,23 @@
 
 /** All 33 required semantic token keys on Theme (excludes `name` and `palette`). */
 export const THEME_TOKEN_KEYS: readonly string[] = [
-  // 14 pairs (28 tokens)
+  // Root pair
   "bg",
   "fg",
-  "surface",
-  "surfacefg",
-  "popover",
-  "popoverfg",
+  // 6 surface pairs (base = text, *bg = background)
   "muted",
-  "mutedfg",
+  "mutedbg",
+  "surface",
+  "surfacebg",
+  "popover",
+  "popoverbg",
+  "inverse",
+  "inversebg",
+  "cursor",
+  "cursorbg",
+  "selection",
+  "selectionbg",
+  // 7 accent pairs (base = area bg, *fg = text on area)
   "primary",
   "primaryfg",
   "secondary",
@@ -30,12 +38,6 @@ export const THEME_TOKEN_KEYS: readonly string[] = [
   "successfg",
   "info",
   "infofg",
-  "selection",
-  "selectionfg",
-  "inverse",
-  "inversefg",
-  "cursor",
-  "cursorfg",
   // 5 standalone tokens
   "border",
   "inputborder",

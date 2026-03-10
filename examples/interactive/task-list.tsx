@@ -76,9 +76,9 @@ function generateTasks(count: number): Task[] {
 
 function PriorityBadge({ priority }: { priority: "high" | "medium" | "low" }): JSX.Element {
   const colors = {
-    high: "red",
-    medium: "yellow",
-    low: "green",
+    high: "$error",
+    medium: "$warning",
+    low: "$success",
   }
   const symbols = {
     high: "!!!",
@@ -227,7 +227,9 @@ export function TaskList(): JSX.Element {
     }
     if (input === " ") {
       // Toggle completion
-      setTasks((prev) => prev.map((task, idx) => (idx === cursor ? { ...task, completed: !task.completed } : task)))
+      setTasks((prev) =>
+        prev.map((task, idx) => (idx === cursor ? { ...task, completed: !task.completed } : task)),
+      )
     }
     if (key.return || input === "e") {
       // Toggle expand/collapse subtasks
@@ -269,7 +271,12 @@ export function TaskList(): JSX.Element {
         })}
       </Box>
 
-      <StatusBar tasks={tasks} cursor={cursor} scrollOffset={scrollOffset} visibleCount={visibleCount} />
+      <StatusBar
+        tasks={tasks}
+        cursor={cursor}
+        scrollOffset={scrollOffset}
+        visibleCount={visibleCount}
+      />
     </Box>
   )
 }

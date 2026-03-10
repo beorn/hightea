@@ -169,14 +169,14 @@ await render(<ColoredOutput />, term)
 
 ## Synchronous Variant
 
-For cases where Yoga is already initialized, use `renderSync`:
+For cases where the layout engine is already initialized, use `renderSync`:
 
 ```tsx
 import { render, renderSync, Text, createTerm } from "silvery"
 
 using term = createTerm()
 
-// Initialize Yoga with first render
+// Initialize layout engine with first render
 await render(<Text>Loading...</Text>, term)
 
 // Subsequent renders can be synchronous
@@ -185,7 +185,7 @@ const instance = renderSync(<Text>Ready!</Text>, term)
 
 ## Notes
 
-- `render()` is async because it initializes the Yoga layout engine on first call
+- `render()` is async because it initializes the layout engine (Flexily by default) on first call
 - The `term` parameter is required - use `createTerm()` to create one
 - Use `using term = createTerm()` for automatic cleanup with explicit resource management
 - Use `alternateScreen: true` for full-screen apps to restore terminal state on exit

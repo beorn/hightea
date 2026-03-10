@@ -92,13 +92,17 @@ export function CommandPalette({
   const filtered = useMemo(() => {
     if (!query) return commands
     return commands.filter(
-      (cmd) => fuzzyMatch(query, cmd.name) || (cmd.description && fuzzyMatch(query, cmd.description)),
+      (cmd) =>
+        fuzzyMatch(query, cmd.name) || (cmd.description && fuzzyMatch(query, cmd.description)),
     )
   }, [commands, query])
 
   const visible = filtered.slice(0, maxVisible)
 
-  const clampIndex = useCallback((idx: number) => Math.max(0, Math.min(idx, filtered.length - 1)), [filtered.length])
+  const clampIndex = useCallback(
+    (idx: number) => Math.max(0, Math.min(idx, filtered.length - 1)),
+    [filtered.length],
+  )
 
   useInput(
     (input, key) => {
@@ -147,7 +151,13 @@ export function CommandPalette({
   )
 
   return (
-    <Box flexDirection="column" borderStyle="single" borderColor="$border" backgroundColor="$surface" paddingX={1}>
+    <Box
+      flexDirection="column"
+      borderStyle="single"
+      borderColor="$border"
+      backgroundColor="$surface-bg"
+      paddingX={1}
+    >
       {/* Search input */}
       <Box>
         <Text color="$primary" bold>
@@ -169,7 +179,7 @@ export function CommandPalette({
               <Text inverse={isSelected} color={isSelected ? "$primary" : "$fg"}>
                 {isSelected ? ">" : " "} {cmd.name}
               </Text>
-              {cmd.description && <Text color="$mutedfg">{cmd.description}</Text>}
+              {cmd.description && <Text color="$muted">{cmd.description}</Text>}
               {cmd.shortcut && (
                 <Text color="$disabledfg" bold>
                   {cmd.shortcut}
@@ -180,7 +190,9 @@ export function CommandPalette({
         })
       )}
       {/* Status */}
-      {filtered.length > maxVisible && <Text color="$disabledfg">{filtered.length - maxVisible} more...</Text>}
+      {filtered.length > maxVisible && (
+        <Text color="$disabledfg">{filtered.length - maxVisible} more...</Text>
+      )}
     </Box>
   )
 }

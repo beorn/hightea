@@ -40,10 +40,13 @@ The [Kitty protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) elimina
 import { run } from "@silvery/term/runtime"
 import { KittyFlags } from "@silvery/term"
 
-// Auto-detect: query terminal, enable if supported, disable on cleanup
-await run(<App />, { kitty: true })
+// Auto-enabled by default — ⌘ and ✦ modifiers just work
+await run(<App />)
 
-// Specific flags for advanced features
+// Opt out if needed
+await run(<App />, { kitty: false })
+
+// Specific flags for advanced features (key release, associated text)
 await run(<App />, {
   kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS,
 })
@@ -121,7 +124,12 @@ const result = await detectKittySupport(
 For manual protocol management (auto-enable handles this for you):
 
 ```tsx
-import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard, KittyFlags } from "@silvery/term"
+import {
+  enableKittyKeyboard,
+  disableKittyKeyboard,
+  queryKittyKeyboard,
+  KittyFlags,
+} from "@silvery/term"
 
 stdout.write(enableKittyKeyboard(KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS))
 // ... app runs ...
@@ -161,11 +169,14 @@ Silvery supports SGR mouse tracking for click, drag, scroll, and motion events w
 
 #### Enabling in Your App
 
-```tsx
-await run(<App />, { mouse: true })
+Mouse tracking is enabled by default in `run()`. When active, native text selection (copy/paste) requires holding Shift (or Option on macOS).
 
-// Combine with Kitty for full input support
-await run(<App />, { kitty: true, mouse: true })
+```tsx
+// Mouse is on by default
+await run(<App />)
+
+// Disable to restore native copy/paste behavior
+await run(<App />, { mouse: false })
 ```
 
 #### Mouse Event Handling
@@ -318,17 +329,17 @@ Lowercase names require `+`: `cmd+j`, `ctrl+shift+a`, `hyper+cmd+x`.
 
 ## Runtime Options
 
-Both `run()` and `createApp().run()` accept input protocol options:
+`run()` auto-detects and enables input protocols by default. `createApp().run()` requires explicit options.
 
 ```tsx
-interface RunOptions {
-  kitty?: boolean | number // true = auto-detect, number = specific KittyFlags
-  mouse?: boolean // true = enable SGR mouse tracking
-  // ... other options
-}
+// run() — auto-enabled, opt out if needed
+await run(<App />, { kitty: false, mouse: false })
+
+// createApp().run() — explicit
+await app.run(<App />, { kitty: true, mouse: true })
 ```
 
-When `kitty: true`, the runtime:
+When Kitty is enabled (auto-detected or explicit), the runtime:
 
 1. Sends `CSI ? u` to query terminal support
 2. If supported, enables with `KittyFlags.DISAMBIGUATE`

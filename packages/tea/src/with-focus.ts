@@ -29,7 +29,12 @@
 
 import type { App } from "@silvery/term/app"
 import { createFocusManager, type FocusManager, type FocusManagerOptions } from "./focus-manager"
-import { createFocusEvent, createKeyEvent, dispatchFocusEvent, dispatchKeyEvent } from "./focus-events"
+import {
+  createFocusEvent,
+  createKeyEvent,
+  dispatchFocusEvent,
+  dispatchKeyEvent,
+} from "./focus-events"
 import { parseHotkey, parseKey } from "./keys"
 
 // =============================================================================
@@ -76,11 +81,7 @@ export type AppWithFocus = App & {
  */
 export function withFocus(options: WithFocusOptions = {}): (app: App) => AppWithFocus {
   return (app: App): AppWithFocus => {
-    const {
-      handleTab = true,
-      handleEscape = true,
-      dispatchKeyEvents = true,
-    } = options
+    const { handleTab = true, handleEscape = true, dispatchKeyEvents = true } = options
 
     // Create or reuse focus manager
     const fm =

@@ -100,7 +100,7 @@ function TaskRow({ task, isSelected }) {
 }
 ```
 
-**No height estimation needed.** Silvery uses Yoga to measure each item's actual height.
+**No height estimation needed.** Silvery uses its layout engine to measure each item's actual height.
 
 ## How It Works
 
@@ -108,21 +108,21 @@ Silvery uses a **measure-then-render** approach:
 
 ```
 1. React creates all child elements
-2. Yoga measures all children (fast - ~1ms for 500 items)
+2. Layout engine measures all children (fast - ~1ms for 500 items)
 3. Calculate scroll position from scrollTo prop
 4. Render content ONLY for visible children
 5. Paint visible content to terminal
 ```
 
-**Key insight**: Yoga layout is extremely fast. The expensive part is building terminal strings. Silvery skips that for non-visible items.
+**Key insight**: Layout is extremely fast. The expensive part is building terminal strings. Silvery skips that for non-visible items.
 
 ### Performance
 
-| List Size  | Yoga Layout | Content Render    | Total |
-| ---------- | ----------- | ----------------- | ----- |
-| 100 items  | <1ms        | ~1ms (20 visible) | ~2ms  |
-| 500 items  | ~1ms        | ~1ms (20 visible) | ~2ms  |
-| 1000 items | ~2ms        | ~1ms (20 visible) | ~3ms  |
+| List Size  | Layout | Content Render    | Total |
+| ---------- | ------ | ----------------- | ----- |
+| 100 items  | <1ms   | ~1ms (20 visible) | ~2ms  |
+| 500 items  | ~1ms   | ~1ms (20 visible) | ~2ms  |
+| 1000 items | ~2ms   | ~1ms (20 visible) | ~3ms  |
 
 ## overflow="hidden"
 
@@ -136,7 +136,7 @@ Use `overflow="hidden"` to clip without scroll indicators:
 
 ## When NOT to Use Scrolling
 
-For truly massive lists (10,000+ items), even Yoga layout becomes noticeable. At that scale:
+For truly massive lists (10,000+ items), even layout becomes noticeable. At that scale:
 
 - **Paginate** instead of scrolling
 - **Filter/search** to reduce the list

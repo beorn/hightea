@@ -42,7 +42,7 @@ export interface TooltipProps {
  * Contextual tooltip that appears below its children.
  *
  * Renders inline below the target element when `show` is true.
- * Tooltip text is rendered in `$mutedfg` with dimColor for subtlety.
+ * Tooltip text is rendered in `$muted` with dimColor for subtlety.
  */
 export function Tooltip({ content, show = false, children }: TooltipProps): React.ReactElement {
   return (
@@ -50,7 +50,7 @@ export function Tooltip({ content, show = false, children }: TooltipProps): Reac
       {children}
       {show && (
         <Box>
-          <Text color="$mutedfg" dimColor>
+          <Text color="$muted" dimColor>
             {content}
           </Text>
         </Box>

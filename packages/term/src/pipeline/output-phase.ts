@@ -125,7 +125,10 @@ function outputTextSizingEnabled(ctx: OutputContext): boolean {
  * @param caps - Terminal capabilities for SGR code generation
  * @param measurer - Width measurer for graphemeWidth/textSizingEnabled (avoids dual-module-loading issues)
  */
-export function createOutputPhase(caps: Partial<OutputCaps>, measurer?: OutputMeasurer): OutputPhaseFn {
+export function createOutputPhase(
+  caps: Partial<OutputCaps>,
+  measurer?: OutputMeasurer,
+): OutputPhaseFn {
   // Instance-scoped context — caps, measurer, and caches are all per-instance.
   // No module-level globals are read or modified.
   const ctx: OutputContext = {
@@ -176,7 +179,17 @@ export function createOutputPhase(caps: Partial<OutputCaps>, measurer?: OutputMe
         ctx,
       )
     }
-    return outputPhase(prev, next, mode, scrollbackOffset, termRows, cursorPos, inlineState, ctx, accState)
+    return outputPhase(
+      prev,
+      next,
+      mode,
+      scrollbackOffset,
+      termRows,
+      cursorPos,
+      inlineState,
+      ctx,
+      accState,
+    )
   }
 
   fn.resetInlineState = () => {
@@ -337,7 +350,8 @@ function updateInlineCursorRow(
 ): void {
   if (cursorPos?.visible) {
     const visibleRow = cursorPos.y - startLine
-    state.prevCursorRow = visibleRow >= 0 && visibleRow < maxOutputLines ? visibleRow : maxOutputLines - 1
+    state.prevCursorRow =
+      visibleRow >= 0 && visibleRow < maxOutputLines ? visibleRow : maxOutputLines - 1
   } else {
     // Cursor hidden: cursor stays at end of last content line
     state.prevCursorRow = maxOutputLines - 1
@@ -570,7 +584,9 @@ function styleTransition(oldStyle: Style | null, newStyle: Style, ctx: OutputCon
     } else if (typeof newStyle.underlineColor === "number") {
       codes.push(`58;5;${newStyle.underlineColor}`)
     } else {
-      codes.push(`58;2;${newStyle.underlineColor.r};${newStyle.underlineColor.g};${newStyle.underlineColor.b}`)
+      codes.push(
+        `58;2;${newStyle.underlineColor.r};${newStyle.underlineColor.g};${newStyle.underlineColor.b}`,
+      )
     }
   }
 
@@ -659,7 +675,15 @@ export function outputPhase(
       if (stored.width === next.width && stored.height === next.height) {
         // Dimensions match — use incremental rendering (skip clear entirely)
         inlineState.prevBuffer = next
-        return inlineIncrementalRender(inlineState, stored, next, scrollbackOffset, termRows, cursorPos, ctx)
+        return inlineIncrementalRender(
+          inlineState,
+          stored,
+          next,
+          scrollbackOffset,
+          termRows,
+          cursorPos,
+          ctx,
+        )
       }
     }
 
@@ -670,9 +694,11 @@ export function outputPhase(
     // For inline first render, append cursor positioning and initialize tracking
     if (mode === "inline") {
       const firstContentLines = findLastContentLine(next) + 1
-      const firstMaxOutput = termRows != null ? Math.min(firstContentLines, termRows) : firstContentLines
+      const firstMaxOutput =
+        termRows != null ? Math.min(firstContentLines, termRows) : firstContentLines
       let firstStartLine = 0
-      if (termRows != null && firstContentLines > termRows) firstStartLine = firstContentLines - termRows
+      if (termRows != null && firstContentLines > termRows)
+        firstStartLine = firstContentLines - termRows
 
       // Resize: clear the entire visible screen and re-render.
       // Terminal reflow is unpredictable — lines wrap differently based on content,
@@ -681,7 +707,8 @@ export function outputPhase(
       // so using termRows is safe. Frozen scrollback content above is preserved.
       let prefix = ""
       if (inlineState.prevCursorRow >= 0) {
-        const clearDistance = termRows ?? Math.max(inlineState.prevCursorRow, inlineState.prevOutputLines - 1)
+        const clearDistance =
+          termRows ?? Math.max(inlineState.prevCursorRow, inlineState.prevOutputLines - 1)
         if (clearDistance > 0) {
           prefix += `\x1b[${clearDistance}A`
         }
@@ -704,7 +731,15 @@ export function outputPhase(
   // Inline mode: use incremental rendering when safe, fall back to full render.
   if (mode === "inline") {
     inlineState.prevBuffer = next
-    return inlineIncrementalRender(inlineState, prev, next, scrollbackOffset, termRows, cursorPos, ctx)
+    return inlineIncrementalRender(
+      inlineState,
+      prev,
+      next,
+      scrollbackOffset,
+      termRows,
+      cursorPos,
+      ctx,
+    )
   }
 
   // SILVERY_FULL_RENDER: bypass incremental diff, always render full buffer.
@@ -748,7 +783,10 @@ export function outputPhase(
     const bytes = Buffer.byteLength(incrOutput)
     try {
       const fs = require("fs")
-      fs.appendFileSync("/tmp/silvery-sizes.log", `changesToAnsi: ${count} changes, ${bytes} bytes\n`)
+      fs.appendFileSync(
+        "/tmp/silvery-sizes.log",
+        `changesToAnsi: ${count} changes, ${bytes} bytes\n`,
+      )
     } catch {}
   }
 
@@ -822,7 +860,8 @@ function inlineCursorSuffix(
   const lastContentLine = findLastContentLine(buffer)
   const maxLine = lastContentLine
   let startLine = 0
-  const maxOutputLines = termRows != null ? Math.min(lastContentLine + 1, termRows) : lastContentLine + 1
+  const maxOutputLines =
+    termRows != null ? Math.min(lastContentLine + 1, termRows) : lastContentLine + 1
   if (termRows != null && maxLine >= termRows) {
     startLine = maxLine - termRows + 1
   }
@@ -874,7 +913,12 @@ function inlineIncrementalRender(
   ctx: OutputContext = defaultContext,
 ): string {
   // Guard: fall back to full render for complex cases
-  if (scrollbackOffset > 0 || prev.width !== next.width || prev.height !== next.height || state.prevCursorRow < 0) {
+  if (
+    scrollbackOffset > 0 ||
+    prev.width !== next.width ||
+    prev.height !== next.height ||
+    state.prevCursorRow < 0
+  ) {
     return inlineFullRender(state, prev, next, scrollbackOffset, termRows, cursorPos, ctx)
   }
 
@@ -949,17 +993,33 @@ function inlineFullRender(
   ctx: OutputContext = defaultContext,
 ): string {
   const nextContentLines = findLastContentLine(next) + 1
-  const prevContentLines = findLastContentLine(prev) + 1
 
-  // Previous frame may have capped output at termRows.
-  // Use actual output lines for cursor offset, not buffer content lines.
-  const prevOutputLines = termRows != null ? Math.min(prevContentLines, termRows) : prevContentLines
+  // Use tracked state from the previous frame for cursor position and output height.
+  // state.prevCursorRow tracks where the terminal cursor actually is (row within render
+  // region), and state.prevOutputLines tracks how many lines the previous frame rendered.
+  // Re-deriving from the prev buffer can disagree (e.g., when cursor was positioned at a
+  // visible row via useCursor, not at the bottom), causing the cursor-up to overshoot
+  // and leaving orphan lines below the content ("inline-bleed").
+  // Fall back to prev-buffer derivation only when cursor tracking is uninitialized.
+  let prevOutputLines: number
+  let cursorRowInRegion: number
+  if (state.prevCursorRow >= 0) {
+    prevOutputLines = state.prevOutputLines
+    cursorRowInRegion = state.prevCursorRow
+  } else {
+    const prevContentLines = findLastContentLine(prev) + 1
+    prevOutputLines = termRows != null ? Math.min(prevContentLines, termRows) : prevContentLines
+    cursorRowInRegion = prevOutputLines - 1
+  }
 
   // How far the cursor is below the start of the render region:
-  // previous OUTPUT lines + any lines written to stdout between renders.
+  // tracked cursor row + any lines written to stdout between renders.
   // Cap to termRows-1: terminal clamps cursor-up at row 0.
-  const rawCursorOffset = prevOutputLines - 1 + scrollbackOffset
-  const cursorOffset = termRows != null && !isStrictOutput() ? Math.min(rawCursorOffset, termRows - 1) : rawCursorOffset
+  const rawCursorOffset = cursorRowInRegion + scrollbackOffset
+  const cursorOffset =
+    termRows != null && !isStrictOutput()
+      ? Math.min(rawCursorOffset, termRows - 1)
+      : rawCursorOffset
 
   // Cap output at terminal height to prevent scrollback corruption.
   // Content taller than the terminal pushes lines into scrollback where
@@ -1286,7 +1346,12 @@ function diffBuffers(prev: TerminalBuffer, next: TerminalBuffer): DiffResult {
     // scrollRegion() that didn't actually change content.
     // NOTE: rowExtrasEquals is essential — rowMetadataEquals only checks packed
     // flags (e.g., "has true color fg"), not the actual RGB values in the Maps.
-    if (next.rowMetadataEquals(y, prev) && next.rowCharsEquals(y, prev) && next.rowExtrasEquals(y, prev)) continue
+    if (
+      next.rowMetadataEquals(y, prev) &&
+      next.rowCharsEquals(y, prev) &&
+      next.rowExtrasEquals(y, prev)
+    )
+      continue
 
     for (let x = 0; x < width; x++) {
       // Use buffer's optimized cellEquals which compares packed metadata first
@@ -1702,7 +1767,11 @@ function styleToAnsi(style: Style, ctx: OutputContext = defaultContext): string 
   if (style.attrs.strikethrough) result += "\x1b[9m"
 
   // Append underline color if specified (SGR 58) — skip for limited terminals
-  if (ctx.caps.underlineColor && style.underlineColor !== null && style.underlineColor !== undefined) {
+  if (
+    ctx.caps.underlineColor &&
+    style.underlineColor !== null &&
+    style.underlineColor !== undefined
+  ) {
     if (typeof style.underlineColor === "number") {
       result += `\x1b[58;5;${style.underlineColor}m`
     } else {
@@ -1930,7 +1999,10 @@ export function replayAnsiWithStyles(
         let params = ""
         while (
           i < ansi.length &&
-          ((ansi[i]! >= "0" && ansi[i]! <= "9") || ansi[i] === ";" || ansi[i] === "?" || ansi[i] === ":")
+          ((ansi[i]! >= "0" && ansi[i]! <= "9") ||
+            ansi[i] === ";" ||
+            ansi[i] === "?" ||
+            ansi[i] === ":")
         ) {
           params += ansi[i]
           i++
@@ -2007,7 +2079,9 @@ export function replayAnsiWithStyles(
           if (semiIdx !== -1) {
             const text = oscPayload.slice(semiIdx + 1)
             const widthParam = oscPayload.slice(3, semiIdx)
-            const declaredWidth = widthParam.startsWith("w=") ? parseInt(widthParam.slice(2)) || 1 : 1
+            const declaredWidth = widthParam.startsWith("w=")
+              ? parseInt(widthParam.slice(2)) || 1
+              : 1
             if (cy < height && cx < width) {
               const cell = screen[cy]![cx]!
               cell.char = text
@@ -2183,7 +2257,11 @@ function verifyOutputEquivalence(
     for (let cx = 0; cx < buf.width; cx++) {
       const c = buf.getCell(cx, row)
       const cp = c.char
-        ? [...c.char].map((ch) => "U+" + (ch.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, "0")).join(",")
+        ? [...c.char]
+            .map(
+              (ch) => "U+" + (ch.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, "0"),
+            )
+            .join(",")
         : "empty"
       if (c.wide) parts.push(`W@${cx}:${cp}(gw=${outputGraphemeWidth(c.char, ctx)})`)
       if (c.continuation) parts.push(`C@${cx}`)
@@ -2192,7 +2270,9 @@ function verifyOutputEquivalence(
       const vtWidth = outputGraphemeWidth(charToWrite, ctx)
       const bufWidth = c.wide ? 2 : 1
       if (!c.continuation && vtWidth !== bufWidth) {
-        parts.push(`MISMATCH@${cx}:${cp}(vtW=${vtWidth},bufW=${bufWidth},tse=${outputTextSizingEnabled(ctx)})`)
+        parts.push(
+          `MISMATCH@${cx}:${cp}(vtW=${vtWidth},bufW=${bufWidth},tse=${outputTextSizingEnabled(ctx)})`,
+        )
       }
     }
     return parts.join(" ")
@@ -2249,12 +2329,15 @@ function verifyOutputEquivalence(
 
       // Check styles
       const diffs: string[] = []
-      if (!sgrColorEquals(incr.fg, fresh.fg)) diffs.push(`fg: ${formatColor(incr.fg)} vs ${formatColor(fresh.fg)}`)
-      if (!sgrColorEquals(incr.bg, fresh.bg)) diffs.push(`bg: ${formatColor(incr.bg)} vs ${formatColor(fresh.bg)}`)
+      if (!sgrColorEquals(incr.fg, fresh.fg))
+        diffs.push(`fg: ${formatColor(incr.fg)} vs ${formatColor(fresh.fg)}`)
+      if (!sgrColorEquals(incr.bg, fresh.bg))
+        diffs.push(`bg: ${formatColor(incr.bg)} vs ${formatColor(fresh.bg)}`)
       if (incr.bold !== fresh.bold) diffs.push(`bold: ${incr.bold} vs ${fresh.bold}`)
       if (incr.dim !== fresh.dim) diffs.push(`dim: ${incr.dim} vs ${fresh.dim}`)
       if (incr.italic !== fresh.italic) diffs.push(`italic: ${incr.italic} vs ${fresh.italic}`)
-      if (incr.underline !== fresh.underline) diffs.push(`underline: ${incr.underline} vs ${fresh.underline}`)
+      if (incr.underline !== fresh.underline)
+        diffs.push(`underline: ${incr.underline} vs ${fresh.underline}`)
       if (incr.inverse !== fresh.inverse) diffs.push(`inverse: ${incr.inverse} vs ${fresh.inverse}`)
       if (incr.strikethrough !== fresh.strikethrough)
         diffs.push(`strikethrough: ${incr.strikethrough} vs ${fresh.strikethrough}`)
@@ -2307,13 +2390,17 @@ function verifyAccumulatedOutput(
       }
 
       const diffs: string[] = []
-      if (!sgrColorEquals(accum.fg, fresh.fg)) diffs.push(`fg: ${formatColor(accum.fg)} vs ${formatColor(fresh.fg)}`)
-      if (!sgrColorEquals(accum.bg, fresh.bg)) diffs.push(`bg: ${formatColor(accum.bg)} vs ${formatColor(fresh.bg)}`)
+      if (!sgrColorEquals(accum.fg, fresh.fg))
+        diffs.push(`fg: ${formatColor(accum.fg)} vs ${formatColor(fresh.fg)}`)
+      if (!sgrColorEquals(accum.bg, fresh.bg))
+        diffs.push(`bg: ${formatColor(accum.bg)} vs ${formatColor(fresh.bg)}`)
       if (accum.bold !== fresh.bold) diffs.push(`bold: ${accum.bold} vs ${fresh.bold}`)
       if (accum.dim !== fresh.dim) diffs.push(`dim: ${accum.dim} vs ${fresh.dim}`)
       if (accum.italic !== fresh.italic) diffs.push(`italic: ${accum.italic} vs ${fresh.italic}`)
-      if (accum.underline !== fresh.underline) diffs.push(`underline: ${accum.underline} vs ${fresh.underline}`)
-      if (accum.inverse !== fresh.inverse) diffs.push(`inverse: ${accum.inverse} vs ${fresh.inverse}`)
+      if (accum.underline !== fresh.underline)
+        diffs.push(`underline: ${accum.underline} vs ${fresh.underline}`)
+      if (accum.inverse !== fresh.inverse)
+        diffs.push(`inverse: ${accum.inverse} vs ${fresh.inverse}`)
       if (accum.strikethrough !== fresh.strikethrough)
         diffs.push(`strikethrough: ${accum.strikethrough} vs ${fresh.strikethrough}`)
 

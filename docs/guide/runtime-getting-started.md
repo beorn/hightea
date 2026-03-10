@@ -7,25 +7,25 @@ This is the "start simple" part — five lines to a working app. `silvery/runtim
 Create a terminal with `createTerm()`, then pass it to `run()`:
 
 ```typescript
-import { createTerm } from 'silvery';
-import { run, useInput } from '@silvery/term/runtime';
-import { Text } from '@silvery/term';
-import { useState } from 'react';
+import { createTerm } from 'silvery'
+import { run, useInput } from '@silvery/term/runtime'
+import { Text } from '@silvery/term'
+import { useState } from 'react'
 
 function Counter() {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(0)
 
   useInput((input, key) => {
-    if (input === 'j' || key.downArrow) setCount(c => c + 1);
-    if (input === 'k' || key.upArrow) setCount(c => c - 1);
-    if (input === 'q') return 'exit';
-  });
+    if (input === 'j' || key.downArrow) setCount(c => c + 1)
+    if (input === 'k' || key.upArrow) setCount(c => c - 1)
+    if (input === 'q') return 'exit'
+  })
 
-  return <Text>Count: {count} (j/k to change, q to quit)</Text>;
+  return <Text>Count: {count} (j/k to change, q to quit)</Text>
 }
 
-using term = createTerm();
-await run(<Counter />, term);
+using term = createTerm()
+await run(<Counter />, term)
 ```
 
 Run it and you'll see:
@@ -41,6 +41,16 @@ Count: 3 (j/k to change, q to quit)
 ```
 
 That's a complete, working TUI app. `run()` handles terminal setup, keyboard input, rendering, and cleanup. You write React components.
+
+`run()` auto-detects your terminal and enables the best available features:
+
+- **Kitty keyboard protocol** — enabled on Ghostty, Kitty, WezTerm, foot (Cmd ⌘ and Hyper ✦ modifiers, unambiguous key IDs)
+- **Mouse tracking** — click, scroll, and drag events (set `mouse: false` to restore native copy/paste)
+- **Focus reporting** — terminal focus/blur events
+- **Text sizing** — correct width for nerdfont/powerline icons (Kitty 0.40+, Ghostty)
+- **Alternate screen** — clean slate, restored on exit
+
+See [Terminal Capabilities](../reference/terminal-capabilities.md) for the full protocol reference.
 
 ## Building with run()
 
@@ -125,17 +135,17 @@ useInput(handleInput)
 Components can know their size during render:
 
 ```typescript
-import { useContentRect } from '@silvery/term';
+import { useContentRect } from '@silvery/term'
 
 function ResponsivePanel() {
-  const { width, height } = useContentRect();
+  const { width, height } = useContentRect()
 
   return (
     <Box flexDirection="column">
       <Text>Panel is {width}x{height}</Text>
       {height > 10 && <Text>Extra content when tall enough</Text>}
     </Box>
-  );
+  )
 }
 ```
 
@@ -144,17 +154,17 @@ function ResponsivePanel() {
 Access terminal info and styling with `useTerm`:
 
 ```typescript
-import { useTerm } from '@silvery/term';
+import { useTerm } from '@silvery/term'
 
 function StatusLine() {
-  const term = useTerm();
+  const term = useTerm()
 
   return (
     <Text>
       {term.hasColor() ? term.green('OK') : 'OK'}
       {` ${term.cols}x${term.rows}`}
     </Text>
-  );
+  )
 }
 ```
 
@@ -163,22 +173,22 @@ function StatusLine() {
 Putting hooks together into a real app:
 
 ```typescript
-import { run, useInput, useExit, type Key } from '@silvery/term/runtime';
-import { Box, Text, useContentRect } from '@silvery/term';
-import { useState, useCallback } from 'react';
+import { run, useInput, useExit, type Key } from '@silvery/term/runtime'
+import { Box, Text, useContentRect } from '@silvery/term'
+import { useState, useCallback } from 'react'
 
 function App() {
-  const [items, setItems] = useState(['Apple', 'Banana', 'Cherry']);
-  const [cursor, setCursor] = useState(0);
-  const { width } = useContentRect();
+  const [items, setItems] = useState(['Apple', 'Banana', 'Cherry'])
+  const [cursor, setCursor] = useState(0)
+  const { width } = useContentRect()
 
   const handleInput = useCallback((input: string, key: Key) => {
-    if (input === 'j' || key.downArrow) setCursor(c => Math.min(c + 1, items.length - 1));
-    if (input === 'k' || key.upArrow) setCursor(c => Math.max(c - 1, 0));
-    if (input === 'q') return 'exit';
-  }, [items.length]);
+    if (input === 'j' || key.downArrow) setCursor(c => Math.min(c + 1, items.length - 1))
+    if (input === 'k' || key.upArrow) setCursor(c => Math.max(c - 1, 0))
+    if (input === 'q') return 'exit'
+  }, [items.length])
 
-  useInput(handleInput);
+  useInput(handleInput)
 
   return (
     <Box flexDirection="column">
@@ -189,11 +199,11 @@ function App() {
         </Text>
       ))}
     </Box>
-  );
+  )
 }
 
-const handle = await run(<App />);
-await handle.waitUntilExit();
+const handle = await run(<App />)
+await handle.waitUntilExit()
 ```
 
 ### RunHandle API
@@ -211,11 +221,10 @@ interface RunHandle {
 
 ### Advanced Input: Kitty Protocol and Mouse
 
-Enable Cmd ⌘, Hyper ✦ modifiers and mouse tracking via `run()` options:
+Kitty keyboard protocol and mouse tracking are **enabled by default** — `run()` auto-detects your terminal. Cmd ⌘ and Hyper ✦ modifiers work out of the box on supported terminals (Ghostty, Kitty, WezTerm, foot):
 
 ```typescript
 import { run, useInput } from "@silvery/term/runtime"
-import { KittyFlags } from "@silvery/term"
 
 function App() {
   useInput((input, key) => {
@@ -228,9 +237,25 @@ function App() {
   return <Text>Press ⌘S to save</Text>
 }
 
+await run(<App />)
+```
+
+To opt out of specific features:
+
+```typescript
 await run(<App />, {
-  kitty: true,   // Auto-detect Kitty protocol, enable ⌘/✦ modifiers
-  mouse: true,   // Enable mouse click/scroll/drag events
+  mouse: false,   // Restore native terminal copy/paste
+  kitty: false,   // Disable Kitty protocol (legacy ANSI only)
+})
+```
+
+For advanced Kitty flags (key release events, associated text):
+
+```typescript
+import { KittyFlags } from "@silvery/term"
+
+await run(<App />, {
+  kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS,
 })
 ```
 
@@ -274,18 +299,18 @@ All layers support testing without a real terminal:
 
 ```typescript
 // run()
-const handle = await run(<Counter />, { cols: 80, rows: 24 });
-expect(handle.text).toContain('Count: 0');
-await handle.press('j');
-expect(handle.text).toContain('Count: 1');
-handle.unmount();
+const handle = await run(<Counter />, { cols: 80, rows: 24 })
+expect(handle.text).toContain('Count: 0')
+await handle.press('j')
+expect(handle.text).toContain('Count: 1')
+handle.unmount()
 
 // createApp()
-const handle = await app.run(<App />, { cols: 80, rows: 24 });
-expect(handle.store.getState().count).toBe(0);
-await handle.press('j');
-expect(handle.store.getState().count).toBe(1);
-handle.unmount();
+const handle = await app.run(<App />, { cols: 80, rows: 24 })
+expect(handle.store.getState().count).toBe(0)
+await handle.press('j')
+expect(handle.store.getState().count).toBe(1)
+handle.unmount()
 ```
 
 ## Migration from Ink

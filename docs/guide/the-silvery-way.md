@@ -242,7 +242,7 @@ Keybindings are a UI detail. Commands are the API. Build on commands; bind keys 
 <Text color="$primary">Selected item</Text>
 <Text color="$success">✓ Saved</Text>
 <Text color="$error">✗ Failed</Text>
-<Text color="$muted-fg">Last modified 2h ago</Text>
+<Text color="$muted">Last modified 2h ago</Text>
 <Box borderColor="$border" borderStyle="round" />
 
 // 33 tokens: $primary, $secondary, $success, $warning, $error,
@@ -250,7 +250,7 @@ Keybindings are a UI detail. Commands are the API. Build on commands; bind keys 
 
 // Status indicators: shape + color (colorblind-safe)
 <Text color="$success">✓</Text>   // done
-<Text color="$muted-fg">○</Text>     // pending
+<Text color="$muted">○</Text>     // pending
 <Text color="$error">✗</Text>     // failed
 ```
 

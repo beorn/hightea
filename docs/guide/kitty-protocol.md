@@ -190,19 +190,23 @@ If the terminal doesn't respond to `CSI ? u`, it will respond to `CSI c` (device
 
 ### Enabling the Protocol
 
-Pass `kitty: true` to `run()` for auto-detection and graceful fallback:
+`run()` auto-detects Kitty protocol support and enables it by default on supported terminals (Ghostty, Kitty, WezTerm, foot):
 
 ```tsx
 import { run } from "@silvery/term/runtime"
 
-await run(<App />, { kitty: true })
+// Auto-enabled — ⌘ and ✦ modifiers just work
+await run(<App />)
 
-// Or with specific flags:
+// Opt out if needed
+await run(<App />, { kitty: false })
+
+// Specific flags for advanced features:
 import { KittyFlags } from "silvery"
 await run(<App />, { kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS })
 ```
 
-Silvery handles the full lifecycle: query support, enable on startup, disable on exit (including crash/SIGINT).
+Silvery handles the full lifecycle: detect support, enable on startup, disable on exit (including crash/SIGINT).
 
 ### Enhanced Key Fields
 
@@ -297,8 +301,8 @@ await render(<Game />, {
 ```tsx
 function App() {
   const rt = useRuntime()
-  // Kitty support is detected at runtime startup via detectKittyFromStdio()
-  // The run() and createApp() runtimes handle this automatically with kitty: true
+  // Kitty support is auto-detected at startup — run() enables it by default
+  // on supported terminals (Ghostty, Kitty, WezTerm, foot)
 
   return (
     <Box flexDirection="column">

@@ -188,12 +188,12 @@ export function ToastItem({ toast }: ToastItemProps): React.ReactElement {
   const icon = VARIANT_ICONS[toast.variant]
 
   return (
-    <Box borderStyle="single" borderColor="$border" paddingX={1} backgroundColor="$surface">
+    <Box borderStyle="single" borderColor="$border" paddingX={1} backgroundColor="$surface-bg">
       <Text color={color} bold>
         [{icon}]
       </Text>
       <Text> {toast.title}</Text>
-      {toast.description && <Text color="$mutedfg"> {toast.description}</Text>}
+      {toast.description && <Text color="$muted"> {toast.description}</Text>}
     </Box>
   )
 }
@@ -203,7 +203,10 @@ export function ToastItem({ toast }: ToastItemProps): React.ReactElement {
  *
  * Place at the bottom of your layout to show toasts as they appear.
  */
-export function ToastContainer({ toasts, maxVisible = 5 }: ToastContainerProps): React.ReactElement {
+export function ToastContainer({
+  toasts,
+  maxVisible = 5,
+}: ToastContainerProps): React.ReactElement {
   const visible = toasts.slice(-maxVisible)
 
   return (

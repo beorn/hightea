@@ -124,7 +124,12 @@ export type AnsiColorName =
 /**
  * Semantic color token map (33 tokens + palette).
  *
- * Follows shadcn-style pairing: `$name` (area bg) + `$namefg` (text on area).
+ * Two pairing conventions:
+ *   Surface pairs: `$name` = text, `$name-bg` = background
+ *     (muted, surface, popover, inverse, cursor, selection)
+ *   Accent pairs: `$name` = area bg, `$name-fg` = text on area
+ *     (primary, secondary, accent, error, warning, success, info)
+ *
  * Components reference tokens with a `$` prefix (e.g. `color="$primary"`).
  * All property names are lowercase, no hyphens, no camelCase.
  */
@@ -132,23 +137,39 @@ export interface Theme {
   /** Human-readable theme name */
   name: string
 
-  // ── 14 pairs (area + text-on-area) ──────────────────────────────
+  // ── Root pair ───────────────────────────────────────────────────
   /** Default background */
   bg: string
   /** Default text */
   fg: string
-  /** Elevated content area background */
-  surface: string
-  /** Text on elevated surface */
-  surfacefg: string
-  /** Floating content background (popover, dropdown) */
-  popover: string
-  /** Text on floating content */
-  popoverfg: string
-  /** Muted area background (hover state) */
-  muted: string
+
+  // ── 6 surface pairs (base = text, *bg = background) ─────────────
   /** Secondary/muted text (~70% contrast) */
-  mutedfg: string
+  muted: string
+  /** Muted area background (hover state) */
+  mutedbg: string
+  /** Text on elevated surface */
+  surface: string
+  /** Elevated content area background */
+  surfacebg: string
+  /** Text on floating content */
+  popover: string
+  /** Floating content background (popover, dropdown) */
+  popoverbg: string
+  /** Text on chrome area */
+  inverse: string
+  /** Chrome area (status/title bar) */
+  inversebg: string
+  /** Text under cursor */
+  cursor: string
+  /** Cursor color */
+  cursorbg: string
+  /** Text on selected items */
+  selection: string
+  /** Selected items background */
+  selectionbg: string
+
+  // ── 7 accent pairs (base = area bg, *fg = text on area) ─────────
   /** Brand accent area */
   primary: string
   /** Text on primary accent area */
@@ -177,18 +198,6 @@ export interface Theme {
   info: string
   /** Text on info area */
   infofg: string
-  /** Selected items background */
-  selection: string
-  /** Text on selected items */
-  selectionfg: string
-  /** Chrome area (status/title bar) */
-  inverse: string
-  /** Text on chrome area */
-  inversefg: string
-  /** Cursor color */
-  cursor: string
-  /** Text under cursor */
-  cursorfg: string
 
   // ── 5 standalone tokens ─────────────────────────────────────────
   /** Structural dividers, borders */

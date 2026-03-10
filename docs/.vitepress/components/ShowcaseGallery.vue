@@ -5,7 +5,7 @@ const demos = [
   { id: "dashboard", name: "Dashboard", height: 500 },
   { id: "scroll", name: "Task List", height: 400 },
   { id: "kanban", name: "Kanban Board", height: 500 },
-  { id: "coding-agent", name: "AI Chat", height: 500 },
+  { id: "coding-agent", name: "AI Coding Agent", height: 500 },
   { id: "cli-wizard", name: "CLI Wizard", height: 400 },
   { id: "dev-tools", name: "Dev Tools", height: 500 },
   { id: "data-explorer", name: "Data Explorer", height: 500 },

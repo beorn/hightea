@@ -23,7 +23,7 @@
 
 import React, { useState, useCallback, useMemo } from "react"
 import { Box, Text, Divider, VirtualList, useContentRect } from "../../src/index.js"
-import { run, useInput, type Key } from "../../src/runtime/index.js"
+import { run, useInput, type Key } from "@silvery/term/runtime"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -148,35 +148,41 @@ const ALL_ITEMS = generateItems(TOTAL_ITEMS)
 // ============================================================================
 
 const PRIORITY_COLORS: Record<Item["priority"], string> = {
-  P0: "red",
-  P1: "yellow",
-  P2: "cyan",
-  P3: "gray",
+  P0: "$error",
+  P1: "$warning",
+  P2: "$info",
+  P3: "$muted",
 }
 
 const STATUS_ICONS: Record<Item["status"], string> = {
-  todo: "\u25cb",
-  "in-progress": "\u25d4",
-  done: "\u25cf",
-  blocked: "\u25a0",
+  todo: "○",
+  "in-progress": "◔",
+  done: "●",
+  blocked: "■",
 }
 
 const STATUS_COLORS: Record<Item["status"], string> = {
-  todo: "gray",
-  "in-progress": "yellow",
-  done: "green",
-  blocked: "red",
+  todo: "$muted",
+  "in-progress": "$warning",
+  done: "$success",
+  blocked: "$error",
 }
 
-function ProgressBar({ percent, width: barWidth }: { percent: number; width: number }): JSX.Element {
+function ProgressBar({
+  percent,
+  width: barWidth,
+}: {
+  percent: number
+  width: number
+}): JSX.Element {
   const effectiveWidth = Math.max(5, barWidth)
   const filled = Math.round((percent / 100) * effectiveWidth)
   const empty = effectiveWidth - filled
 
   return (
     <Text>
-      <Text color="green">{"\u2588".repeat(filled)}</Text>
-      <Text dim>{"\u2591".repeat(empty)}</Text>
+      <Text color="$success">{"█".repeat(filled)}</Text>
+      <Text dim>{"░".repeat(empty)}</Text>
     </Text>
   )
 }
@@ -201,12 +207,12 @@ function ItemRow({
           {item.priority}
         </Text>
         <Text> </Text>
-        <Text bold={isSelected} color={isSelected ? "white" : undefined}>
+        <Text bold={isSelected}>
           {item.title}
         </Text>
         <Text> </Text>
         {item.tags.map((tag) => (
-          <Text key={tag} dim color="cyan">
+          <Text key={tag} dim color="$info">
             {" "}
             #{tag}
           </Text>
@@ -224,7 +230,15 @@ function ItemRow({
   )
 }
 
-function ScrollIndicator({ current, total, width }: { current: number; total: number; width: number }): JSX.Element {
+function ScrollIndicator({
+  current,
+  total,
+  width,
+}: {
+  current: number
+  total: number
+  width: number
+}): JSX.Element {
   const percent = total > 0 ? Math.round(((current + 1) / total) * 100) : 0
 
   // Progress bar
@@ -240,8 +254,8 @@ function ScrollIndicator({ current, total, width }: { current: number; total: nu
       <Text dim>of</Text>
       <Text bold>{total.toLocaleString()}</Text>
       <Text>
-        <Text color="$primary">{"\u2588".repeat(filled)}</Text>
-        <Text dim>{"\u2591".repeat(empty)}</Text>
+        <Text color="$primary">{"█".repeat(filled)}</Text>
+        <Text dim>{"░".repeat(empty)}</Text>
       </Text>
       <Text bold color="$primary">
         {percent}%
@@ -275,25 +289,25 @@ function StatsBar({ items }: { items: Item[] }): JSX.Element {
 
   return (
     <Box gap={2} paddingX={1}>
-      <Text color="red" bold>
+      <Text color="$error" bold>
         P0:{stats.p0}
       </Text>
-      <Text color="yellow" bold>
+      <Text color="$warning" bold>
         P1:{stats.p1}
       </Text>
-      <Text color="cyan">P2:{stats.p2}</Text>
+      <Text color="$info">P2:{stats.p2}</Text>
       <Text dim>P3:{stats.p3}</Text>
       <Text dim>|</Text>
-      <Text color="gray">
+      <Text color="$muted">
         {STATUS_ICONS.todo} {stats.todo}
       </Text>
-      <Text color="yellow">
+      <Text color="$warning">
         {STATUS_ICONS["in-progress"]} {stats.inProg}
       </Text>
-      <Text color="green">
+      <Text color="$success">
         {STATUS_ICONS.done} {stats.done}
       </Text>
-      <Text color="red">
+      <Text color="$error">
         {STATUS_ICONS.blocked} {stats.blocked}
       </Text>
     </Box>
@@ -429,7 +443,10 @@ function VirtualBenchmark(): JSX.Element {
 
 async function main() {
   const handle = await run(
-    <ExampleBanner meta={meta} controls="j/k navigate  d/u half-page  g/G start/end  Enter detail  Esc/q quit">
+    <ExampleBanner
+      meta={meta}
+      controls="j/k navigate  d/u half-page  g/G start/end  Enter detail  Esc/q quit"
+    >
       <VirtualBenchmark />
     </ExampleBanner>,
   )

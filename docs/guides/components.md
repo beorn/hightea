@@ -10,7 +10,7 @@ Silvery provides layout, text, input, and display components for building termin
 
 ## Box
 
-The primary layout component. Uses Yoga (flexbox) for layout.
+The primary layout component. Uses CSS flexbox for layout.
 
 ```tsx
 import { Box, Text } from "silvery"
@@ -69,8 +69,8 @@ See [Scrolling Guide](/guide/scrolling) for details.
 Renders text with styling. Supports Chalk strings.
 
 ```tsx
-import { Text } from "silvery";
-import chalk from "chalk";
+import { Text } from "silvery"
+import chalk from "chalk"
 
 // Basic styling
 <Text color="green" bold>Success!</Text>
@@ -111,7 +111,7 @@ Opt out with `wrap={false}` if you need overflow behavior.
 Renders a newline character.
 
 ```tsx
-import { Newline, Text } from "silvery";
+import { Newline, Text } from "silvery"
 
 <Text>Line 1</Text>
 <Newline />
@@ -172,7 +172,15 @@ Single-line text input with full readline shortcuts (Ctrl+A/E, Ctrl+K/U, Alt+B/F
 import { TextInput } from "silvery"
 
 function MyInput() {
-  return <TextInput value={text} onChange={setText} onSubmit={handleSubmit} placeholder="Type here..." prompt="> " />
+  return (
+    <TextInput
+      value={text}
+      onChange={setText}
+      onSubmit={handleSubmit}
+      placeholder="Type here..."
+      prompt="> "
+    />
+  )
 }
 ```
 
@@ -275,7 +283,7 @@ Higher-level pre-styled components using `$token` semantic colors. Import from `
 | `ModalDialog`                           | Modal overlay with focus trapping                    |
 | `PickerDialog` / `PickerList`           | Selection dialog                                     |
 
-These components use the theming system — wrap your app in `ThemeProvider` with `defaultDarkTheme` or `defaultLightTheme` and the components will use semantic colors automatically. Any color prop starting with `$` is resolved against the active theme (e.g. `color="$primary"`, `backgroundColor="$surface"`).
+These components use the theming system — wrap your app in `ThemeProvider` with `defaultDarkTheme` or `defaultLightTheme` and the components will use semantic colors automatically. Any color prop starting with `$` is resolved against the active theme (e.g. `color="$primary"`, `backgroundColor="$surface-bg"`).
 
 ## @silvery/ui — Progress & Input Package
 

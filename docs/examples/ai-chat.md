@@ -1,6 +1,6 @@
 ---
-title: AI Chat — Streaming, Real-time Updates
-description: Build terminal-based AI assistants with scrollable output, streaming responses, command palettes, and Playwright-style testing using Silvery.
+title: AI Coding Agent — Streaming, Tool Calls, Real-time Updates
+description: Build terminal-based AI coding agents with scrollable output, streaming responses, tool call rendering, and Playwright-style testing using Silvery.
 prev:
   text: Terminal Protocols
   link: /examples/terminal
@@ -13,9 +13,9 @@ next:
 import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 </script>
 
-# AI Chat
+# AI Coding Agent
 
-Terminal-based AI assistants have unique UI requirements: streaming output that grows unpredictably, long conversation history that must scroll, multi-line code pasting, and the ability for AI agents to discover and invoke actions programmatically. Silvery handles all of these out of the box.
+Terminal-based AI coding agents have unique UI requirements: streaming output that grows unpredictably, tool call rendering with diff-style output, long conversation history that must scroll, and the ability for AI agents to discover and invoke actions programmatically. Silvery handles all of these out of the box.
 
 <LiveDemo xtermSrc="/examples/showcase.html?demo=coding-agent" :height="500" />
 
@@ -64,7 +64,13 @@ function Chat() {
 
   return (
     <Box flexDirection="column" width="100%" height="100%">
-      <Box flexDirection="column" flexGrow={1} overflow="scroll" scrollTo={messages.length - 1} paddingX={1}>
+      <Box
+        flexDirection="column"
+        flexGrow={1}
+        overflow="scroll"
+        scrollTo={messages.length - 1}
+        paddingX={1}
+      >
         {messages.map((msg, i) => (
           <Text key={i} color={msg.role === "user" ? "cyan" : "white"}>
             {msg.role === "user" ? "> " : "  "}
@@ -145,7 +151,9 @@ Update a message in-place as tokens arrive:
 const streamTokens = async (messageId: number, generator: AsyncGenerator<string>) => {
   for await (const token of generator) {
     setMessages((prev) =>
-      prev.map((m) => (m.id === messageId ? { ...m, content: m.content + token, streaming: true } : m)),
+      prev.map((m) =>
+        m.id === messageId ? { ...m, content: m.content + token, streaming: true } : m,
+      ),
     )
   }
 }

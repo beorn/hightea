@@ -139,9 +139,7 @@ function App() {
       height={15}
       itemHeight={1}
       interactive
-      renderItem={(item, index, meta) => (
-        <Text inverse={meta?.isSelected}> {item} </Text>
-      )}
+      renderItem={(item, index, meta) => <Text inverse={meta?.isSelected}> {item} </Text>}
       onSelect={(index) => console.log(`Selected: ${items[index]}`)}
     />
   )

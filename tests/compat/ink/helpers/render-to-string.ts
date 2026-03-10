@@ -6,10 +6,18 @@
  */
 import React from "react"
 import { renderStringSync } from "../../../../packages/react/src/render-string"
-import { ensureDefaultLayoutEngine, isLayoutEngineInitialized } from "../../../../packages/term/src/layout-engine"
+import {
+  ensureDefaultLayoutEngine,
+  isLayoutEngineInitialized,
+} from "../../../../packages/term/src/layout-engine"
 import { createTerm } from "../../../../packages/term/src/ansi"
 import { TermContext } from "../../../../packages/react/src/context"
-import { currentChalkLevel, stripSilveryVS16, toChalkCompat } from "../../../../packages/compat/src/ink"
+import {
+  currentChalkLevel,
+  stripSilveryVS16,
+  toChalkCompat,
+  restoreColonFormatSGR,
+} from "../../../../packages/compat/src/ink"
 import { stripAnsi } from "../../../../packages/term/src/unicode"
 
 type RenderToStringOptions = {
@@ -40,6 +48,10 @@ function doRender(node: React.JSX.Element, options?: RenderToStringOptions): str
     width: options?.columns ?? 100,
     height: bufferHeight,
     plain,
+    // Always use styled output to preserve embedded ANSI sequences (SGR, OSC
+    // hyperlinks) in text content. Ink passes these through regardless of
+    // chalk level; silvery's plain mode would strip them via bufferToText.
+    alwaysStyled: true,
     trimTrailingWhitespace: true,
     trimEmptyLines: false,
     onContentHeight: (h: number) => {
@@ -48,6 +60,7 @@ function doRender(node: React.JSX.Element, options?: RenderToStringOptions): str
   })
 
   output = stripSilveryVS16(output)
+  output = restoreColonFormatSGR(output)
 
   // Trim buffer padding rows using content height from layout
   if (layoutContentHeight > 0 && layoutContentHeight < bufferHeight) {
@@ -69,7 +82,10 @@ function doRender(node: React.JSX.Element, options?: RenderToStringOptions): str
 /**
  * Synchronous render to string (requires layout engine to be initialized).
  */
-export const renderToString = (node: React.JSX.Element, options?: RenderToStringOptions): string => {
+export const renderToString = (
+  node: React.JSX.Element,
+  options?: RenderToStringOptions,
+): string => {
   if (!isLayoutEngineInitialized()) {
     throw new Error("Layout engine not initialized. Call initLayoutEngine() in beforeAll().")
   }

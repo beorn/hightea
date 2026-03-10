@@ -53,6 +53,11 @@ async function runInkTests() {
   console.log("  Installing ink dependencies...")
   try {
     await $`cd ${INK_DIR} && npm install --ignore-scripts 2>&1`.quiet()
+    // Install yoga-wasm-web if SILVERY_ENGINE=yoga
+    if (process.env.SILVERY_ENGINE?.toLowerCase() === "yoga") {
+      console.log("  Installing yoga-wasm-web for Yoga engine...")
+      await $`cd ${INK_DIR} && npm install yoga-wasm-web 2>&1`.quiet()
+    }
   } catch {
     console.log("  Warning: npm install had issues, continuing anyway...")
   }
@@ -67,7 +72,18 @@ async function runInkTests() {
     outdir: INK_DIR,
     target: "node",
     format: "esm",
-    external: ["react", "chalk"],
+    // Externals: react/chalk are peer deps; playwright/playwright-core/electron/
+    // chromium-bidi are transitive deps from the monorepo; yoga-wasm-web is optional
+    external: [
+      "react",
+      "chalk",
+      "playwright",
+      "playwright-core",
+      "chromium-bidi",
+      "electron",
+      "yoga-wasm-web",
+      "yoga-wasm-web/auto",
+    ],
     naming: "silvery-ink.mjs",
   })
   if (!result.success) {
@@ -84,8 +100,11 @@ async function runInkTests() {
 export * from "${bundlePath}";
 
 // Default export (render) for compat
-import { render } from "${bundlePath}";
+import { render, initInkCompat } from "${bundlePath}";
 export default render;
+
+// Pre-initialize layout engine (supports SILVERY_ENGINE=yoga)
+await initInkCompat();
 `
   const shimPath = join(INK_DIR, "src/index.js")
   const origTsPath = join(INK_DIR, "src/index.ts")

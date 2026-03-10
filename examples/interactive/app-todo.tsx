@@ -24,7 +24,7 @@
 
 import React from "react"
 import { Box, Text } from "../../src/index.js"
-import { createApp, useApp } from "../../src/runtime/index.js"
+import { createApp, useApp } from "@silvery/term/runtime"
 import { pipe, withReact, withTerminal } from "@silvery/tea/plugins"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 

@@ -15,15 +15,25 @@ export function generateTheme(primary: AnsiPrimary, dark: boolean): Theme {
   return {
     name: `${dark ? "dark" : "light"}-${primary}`,
 
-    // ── Pairs ────────────────────────────────────────────────────
+    // ── Root pair ─────────────────────────────────────────────────
     bg: "",
     fg: dark ? "whiteBright" : "black",
-    surface: dark ? "black" : "white",
-    surfacefg: dark ? "whiteBright" : "black",
-    popover: dark ? "black" : "white",
-    popoverfg: dark ? "whiteBright" : "black",
-    muted: dark ? "black" : "white",
-    mutedfg: dark ? "white" : "blackBright",
+
+    // ── Surface pairs (base = text, *bg = background) ──────────
+    muted: dark ? "white" : "blackBright",
+    mutedbg: dark ? "black" : "white",
+    surface: dark ? "whiteBright" : "black",
+    surfacebg: dark ? "black" : "white",
+    popover: dark ? "whiteBright" : "black",
+    popoverbg: dark ? "black" : "white",
+    inverse: dark ? "black" : "whiteBright",
+    inversebg: dark ? "whiteBright" : "black",
+    cursor: "black",
+    cursorbg: primary,
+    selection: "black",
+    selectionbg: primary,
+
+    // ── Accent pairs (base = area bg, *fg = text on area) ──────
     primary,
     primaryfg: "black",
     secondary: primary,
@@ -38,12 +48,6 @@ export function generateTheme(primary: AnsiPrimary, dark: boolean): Theme {
     successfg: "black",
     info: dark ? "cyanBright" : "cyan",
     infofg: "black",
-    selection: primary,
-    selectionfg: "black",
-    inverse: dark ? "whiteBright" : "black",
-    inversefg: dark ? "black" : "whiteBright",
-    cursor: primary,
-    cursorfg: "black",
 
     // ── Standalone ───────────────────────────────────────────────
     border: "gray",

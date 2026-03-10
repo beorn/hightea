@@ -127,7 +127,15 @@ export function withDomEvents(options: WithDomEventsOptions = {}): <T extends Ap
           ): Promise<T> {
             const button = clickOptions?.button ?? 0
             const root = target.getContainer()
-            const parsed = { button, x, y, action: "down" as const, shift: false, meta: false, ctrl: false }
+            const parsed = {
+              button,
+              x,
+              y,
+              action: "down" as const,
+              shift: false,
+              meta: false,
+              ctrl: false,
+            }
             // First click
             processMouseEvent(mouseState, parsed, root)
             processMouseEvent(mouseState, { ...parsed, action: "up" }, root)

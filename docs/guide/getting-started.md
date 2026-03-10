@@ -129,6 +129,18 @@ await render(<App />, term)
 
 Silvery measures all children, calculates which are visible, and only renders content for visible items. No height estimation or virtualization config needed.
 
+## render() vs run()
+
+The examples above use `render()`, which gives you a React renderer with layout and scrolling. For interactive apps with keyboard input, use `run()` instead — it auto-detects your terminal and enables the best available features (Kitty keyboard protocol, mouse tracking, focus reporting, text sizing):
+
+```tsx
+import { run, useInput } from "@silvery/term/runtime"
+
+await run(<App />)  // Full terminal setup, keyboard, mouse — all auto-configured
+```
+
+See [Getting Started with silvery/runtime](runtime-getting-started.md) for the full guide.
+
 ## Next Steps
 
 - [Components](/guides/components) - Learn about Box, Text, and other components

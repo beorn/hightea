@@ -21,7 +21,7 @@ import {
   takeUntil,
   type Buffer,
   type Dims,
-} from "../../src/runtime/index.js"
+} from "@silvery/term/runtime"
 import type { ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {

@@ -6,19 +6,19 @@ This is a quick-reference index of all Silvery components and hooks. For detaile
 
 ### Layout
 
-| Component                      | Description                                       | API  |
-| ------------------------------ | ------------------------------------------------- | ---- |
-| [Box](/api/box)                | Flexbox container with borders, padding, overflow | Core |
-| [Spacer](/api/spacer)          | Flexible space that fills available room          | Core |
-| [Newline](/api/newline)        | Line break                                        | Core |
+| Component                       | Description                                       | API  |
+| ------------------------------- | ------------------------------------------------- | ---- |
+| [Box](/api/box)                 | Flexbox container with borders, padding, overflow | Core |
+| [Spacer](/api/spacer)           | Flexible space that fills available room          | Core |
+| [Newline](/api/newline)         | Line break                                        | Core |
 | [SplitView](/guides/components) | Resizable split panes                             | UI   |
 
 ### Text & Display
 
-| Component                      | Description                                    | API  |
-| ------------------------------ | ---------------------------------------------- | ---- |
-| [Text](/api/text)              | Styled text with color, bold, italic, wrapping | Core |
-| [Static](/api/static)          | Non-updating content (logs, completed items)   | Core |
+| Component                       | Description                                    | API  |
+| ------------------------------- | ---------------------------------------------- | ---- |
+| [Text](/api/text)               | Styled text with color, bold, italic, wrapping | Core |
+| [Static](/api/static)           | Non-updating content (logs, completed items)   | Core |
 | [Transform](/guides/components) | Per-line string transformation                 | Core |
 | [Badge](/guides/components)     | Styled label/tag                               | UI   |
 | [Divider](/guides/components)   | Horizontal rule                                | UI   |
@@ -27,8 +27,8 @@ This is a quick-reference index of all Silvery components and hooks. For detaile
 
 ### Input
 
-| Component                       | Description                                         | API |
-| ------------------------------- | --------------------------------------------------- | --- |
+| Component                        | Description                                         | API |
+| -------------------------------- | --------------------------------------------------- | --- |
 | [TextInput](/guides/components)  | Single-line text input with readline shortcuts      | UI  |
 | [TextArea](/guides/components)   | Multi-line text editor with cursor, selection, undo | UI  |
 | [SelectList](/guides/components) | Single-select list with keyboard navigation         | UI  |
@@ -37,8 +37,8 @@ This is a quick-reference index of all Silvery components and hooks. For detaile
 
 ### Data Display
 
-| Component                        | Description                        | API |
-| -------------------------------- | ---------------------------------- | --- |
+| Component                         | Description                        | API |
+| --------------------------------- | ---------------------------------- | --- |
 | [Table](/guides/components)       | Column-aligned table with headers  | UI  |
 | [VirtualList](/guides/components) | O(1) scroll for thousands of items | UI  |
 | [VirtualView](/guides/components) | Virtualized arbitrary content      | UI  |
@@ -46,8 +46,8 @@ This is a quick-reference index of all Silvery components and hooks. For detaile
 
 ### Feedback
 
-| Component                               | Description                                | API |
-| --------------------------------------- | ------------------------------------------ | --- |
+| Component                                | Description                                | API |
+| ---------------------------------------- | ------------------------------------------ | --- |
 | [Spinner](/guides/components)            | Animated spinner (dots, line, arc, bounce) | UI  |
 | [ProgressBar](/guides/components)        | Determinate and indeterminate progress     | UI  |
 | [Toast / useToast()](/guides/components) | Auto-dismiss notifications                 | UI  |
@@ -55,8 +55,8 @@ This is a quick-reference index of all Silvery components and hooks. For detaile
 
 ### Overlays & Navigation
 
-| Component                                            | Description                           | API |
-| ---------------------------------------------------- | ------------------------------------- | --- |
+| Component                                             | Description                           | API |
+| ----------------------------------------------------- | ------------------------------------- | --- |
 | [ModalDialog](/guides/components)                     | Modal overlay with focus trapping     | UI  |
 | [CommandPalette](/guides/components)                  | Fuzzy-search command palette (Ctrl+K) | UI  |
 | [PickerDialog / PickerList](/guides/components)       | Selection dialog                      | UI  |
@@ -66,9 +66,9 @@ This is a quick-reference index of all Silvery components and hooks. For detaile
 
 ### Layout Wrappers
 
-| Component                             | Description                            | API   |
-| ------------------------------------- | -------------------------------------- | ----- |
-| [ThemeProvider](/guides/theming)      | Theme context provider                 | Theme |
+| Component                              | Description                            | API   |
+| -------------------------------------- | -------------------------------------- | ----- |
+| [ThemeProvider](/guides/theming)       | Theme context provider                 | Theme |
 | [ErrorBoundary](/guides/components)    | React error boundary with reset        | UI    |
 | [Console](/guides/components)          | Captures `console.log` output          | UI    |
 | [Form / FormField](/guides/components) | Form layout with labels and validation | UI    |

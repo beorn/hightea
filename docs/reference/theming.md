@@ -30,7 +30,7 @@ Any color prop on `Box` or `Text` that starts with `$` resolves against the acti
 | Prop              | Components | Example                      |
 | ----------------- | ---------- | ---------------------------- |
 | `color`           | Box, Text  | `color="$primary"`           |
-| `backgroundColor` | Box, Text  | `backgroundColor="$surface"` |
+| `backgroundColor` | Box, Text  | `backgroundColor="$surface-bg"` |
 | `borderColor`     | Box        | `borderColor="$separator"`   |
 | `outlineColor`    | Box        | `outlineColor="$focusring"`  |
 

@@ -14,7 +14,13 @@
 import { BG_OVERRIDE_CODE } from "./ansi/index"
 import sliceAnsi from "slice-ansi"
 import stringWidth from "string-width"
-import { type Cell, type Style, type TerminalBuffer, type UnderlineStyle, createMutableCell } from "./buffer"
+import {
+  type Cell,
+  type Style,
+  type TerminalBuffer,
+  type UnderlineStyle,
+  createMutableCell,
+} from "./buffer"
 import { isPrivateUseArea } from "./text-sizing"
 
 // Re-export for consumers of silvery
@@ -178,7 +184,9 @@ function stripOsc8ForSlice(text: string): string {
  * Create a width measurer scoped to terminal capabilities.
  * Each measurer has its own caches (no shared global state).
  */
-export function createWidthMeasurer(caps: { textEmojiWide?: boolean; textSizingEnabled?: boolean } = {}): Measurer {
+export function createWidthMeasurer(
+  caps: { textEmojiWide?: boolean; textSizingEnabled?: boolean } = {},
+): Measurer {
   const textEmojiWide = caps.textEmojiWide ?? true
   const textSizingEnabled = caps.textSizingEnabled ?? false
   const cache = new DisplayWidthCache(10000)
@@ -199,7 +207,8 @@ export function createWidthMeasurer(caps: { textEmojiWide?: boolean; textSizingE
     if (cached !== undefined) return cached
 
     let width: number
-    const needsSlowPath = MAY_CONTAIN_TEXT_EMOJI.test(text) || (textSizingEnabled && MAY_CONTAIN_PUA.test(text))
+    const needsSlowPath =
+      MAY_CONTAIN_TEXT_EMOJI.test(text) || (textSizingEnabled && MAY_CONTAIN_PUA.test(text))
     if (!needsSlowPath) {
       width = stringWidth(text)
     } else {
@@ -459,7 +468,8 @@ export function displayWidth(text: string): number {
   let width: number
   // Fast path: if text cannot contain text-presentation emoji, use string-width directly.
   // Default measurer does not enable text sizing, so PUA check uses the constant default.
-  const needsSlowPath = MAY_CONTAIN_TEXT_EMOJI.test(text) || (DEFAULT_TEXT_SIZING_ENABLED && MAY_CONTAIN_PUA.test(text))
+  const needsSlowPath =
+    MAY_CONTAIN_TEXT_EMOJI.test(text) || (DEFAULT_TEXT_SIZING_ENABLED && MAY_CONTAIN_PUA.test(text))
   if (!needsSlowPath) {
     width = stringWidth(text)
   } else {
@@ -673,7 +683,11 @@ function isWordBoundary(grapheme: string): boolean {
  * Accepts an explicit graphemeWidth function so it works with both the
  * module-level default and per-measurer instances.
  */
-function isBreakBeforeOperatorWith(graphemes: string[], spaceIndex: number, gWidthFn: (g: string) => number): boolean {
+function isBreakBeforeOperatorWith(
+  graphemes: string[],
+  spaceIndex: number,
+  gWidthFn: (g: string) => number,
+): boolean {
   // Look for pattern: [current space] [operator] [space]
   // spaceIndex is the index of the current space in the graphemes array
   let j = spaceIndex + 1
@@ -772,8 +786,20 @@ function splitGraphemesAnsiAware(text: string): string[] {
  * @param trim - Trim trailing spaces on broken lines and skip leading spaces on continuation lines (useful for rendering)
  * @returns Array of wrapped lines
  */
-export function wrapText(text: string, width: number, preserveNewlines = true, trim = false): string[] {
-  return wrapTextWithMeasurer(text, width, _scopedMeasurer ?? undefined, trim, false, preserveNewlines)
+export function wrapText(
+  text: string,
+  width: number,
+  preserveNewlines = true,
+  trim = false,
+): string[] {
+  return wrapTextWithMeasurer(
+    text,
+    width,
+    _scopedMeasurer ?? undefined,
+    trim,
+    false,
+    preserveNewlines,
+  )
 }
 
 /**
@@ -830,7 +856,13 @@ function wrapTextWithMeasurer(
       }
 
       // In trim mode, skip leading spaces on continuation lines
-      if (trim && !isFirstLineOfParagraph && currentWidth === 0 && isWordBoundary(grapheme) && grapheme !== "-") {
+      if (
+        trim &&
+        !isFirstLineOfParagraph &&
+        currentWidth === 0 &&
+        isWordBoundary(grapheme) &&
+        grapheme !== "-"
+      ) {
         continue
       }
 
@@ -1142,8 +1174,10 @@ export function writeLinesToBuffer(
  */
 export function stripAnsi(text: string): string {
   return text
-    .replace(/\x1b\[[0-9;:?]*[A-Za-z]/g, "") // CSI sequences (including SGR with colons)
-    .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "") // OSC sequences
+    .replace(/\x1b\[[0-9;:?]*[A-Za-z]/g, "") // ESC CSI sequences (including SGR with colons)
+    .replace(/\x9b[0-9;:?]*[A-Za-z]/g, "") // C1 CSI sequences
+    .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "") // ESC OSC sequences
+    .replace(/\x9d[^\x07\x1b\x9c]*(?:\x07|\x1b\\|\x9c)/g, "") // C1 OSC sequences
     .replace(/\x1b[DME78]/g, "") // Single-char sequences
     .replace(/\x1b\(B/g, "") // Character set selection
 }
@@ -1203,6 +1237,16 @@ export interface StyledSegment {
    * Set when the segment is inside an OSC 8 hyperlink sequence.
    */
   hyperlink?: string
+  /**
+   * True when the foreground color was specified using colon-separated SGR
+   * (e.g., `38:2::255:100:0m` instead of `38;2;255;100;0m`).
+   * Used to preserve the original format in round-trip output.
+   */
+  colonFg?: boolean
+  /**
+   * True when the background color was specified using colon-separated SGR.
+   */
+  colonBg?: boolean
 }
 
 /**
@@ -1242,15 +1286,26 @@ export function parseAnsiText(text: string): StyledSegment[] {
   // Step 1: Strip non-SGR CSI sequences (cursor movement, erase, etc.) that would
   // otherwise leak through as literal text. SGR sequences end in 'm'; all
   // other CSI sequences (ending in A-L, H, J, K, S, T, etc.) are stripped.
+  // Handles both ESC-based CSI (\x1b[) and C1 CSI (\x9b).
   // This must happen BEFORE OSC 8 processing so hyperlink position tracking
   // is based on the cleaned text (no position drift from stripped sequences).
-  const sanitizedText = text.replace(/\x1b\[[0-9;:]*[A-LN-Za-ln-z@`]/g, "")
+  const sanitizedText = text
+    .replace(/\x1b\[[0-9;:]*[A-LN-Za-ln-z@`]/g, "")
+    .replace(/\x9b[0-9;:]*[A-LN-Za-ln-z@`]/g, "")
 
   // Step 2: Strip OSC 8 hyperlink sequences and build a position-to-URL map.
   // OSC 8 format: \x1b]8;;URL(\x1b\\ | \x07) for open, \x1b]8;;(\x1b\\ | \x07) for close.
+  // Also handles C1 OSC (\x9d) form: \x9d8;;URL(\x1b\\ | \x07 | \x9c)
   // We strip these from the text before SGR parsing and track which character
   // positions map to which hyperlink URL.
-  const oscPattern = /\x1b\]8;;([^\x07\x1b]*)(?:\x07|\x1b\\)/g
+  //
+  // Hyperlink format metadata is encoded in the URL using control char prefixes:
+  //   \x01c1b\x02  = C1 OSC intro + BEL terminator
+  //   \x01c1s\x02  = C1 OSC intro + ST terminator
+  //   \x01e7b\x02  = ESC OSC intro + BEL terminator
+  //   (no prefix)  = ESC OSC intro + ST terminator (default)
+  // bufferToStyledText reads these prefixes to emit the original format.
+  const oscPattern = /(?:\x1b\]|\x9d)8;;([^\x07\x1b\x9c]*)(?:\x07|\x1b\\|\x9c)/g
   let currentHyperlink: string | undefined
   // Map from character index in cleaned text to hyperlink URL
   const hyperlinkRanges: Array<{ start: number; end: number; url: string }> = []
@@ -1264,20 +1319,41 @@ export function parseAnsiText(text: string): StyledSegment[] {
     cleaned += sanitizedText.slice(oscLastIndex, oscMatch.index)
     const url = oscMatch[1]!
 
+    // Detect format: C1 vs ESC intro, BEL vs ST terminator
+    const matchStr = oscMatch[0]
+    const isC1 = matchStr.charCodeAt(0) === 0x9d
+    const lastChar = matchStr.charCodeAt(matchStr.length - 1)
+    const isBel = lastChar === 0x07
+    const isSt9c = lastChar === 0x9c
+
     if (url === "") {
-      // Close hyperlink
+      // Close hyperlink — format prefix matches the open sequence
       if (currentHyperlink && rangeStart >= 0) {
         hyperlinkRanges.push({ start: rangeStart, end: cleaned.length, url: currentHyperlink })
       }
       currentHyperlink = undefined
       rangeStart = -1
     } else {
-      // Open hyperlink
+      // Open hyperlink — encode format metadata in URL prefix
       if (currentHyperlink && rangeStart >= 0) {
         // Close previous unclosed hyperlink
         hyperlinkRanges.push({ start: rangeStart, end: cleaned.length, url: currentHyperlink })
       }
-      currentHyperlink = url
+      // Encode hyperlink format as a prefix on the URL:
+      //   \x01c1b\x02 = C1 intro + BEL terminator
+      //   \x01c1s\x02 = C1 intro + ST terminator (ESC \ or C1 ST \x9c)
+      //   \x01e7b\x02 = ESC intro + BEL terminator
+      //   no prefix   = ESC intro + ST terminator (default)
+      let encodedUrl = url
+      if (isC1 && (isBel || isSt9c)) {
+        encodedUrl = `\x01c1b\x02${url}`
+      } else if (isC1) {
+        encodedUrl = `\x01c1s\x02${url}`
+      } else if (isBel) {
+        encodedUrl = `\x01e7b\x02${url}`
+      }
+      // else: ESC + ST = default, no prefix needed
+      currentHyperlink = encodedUrl
       rangeStart = cleaned.length
     }
 
@@ -1294,7 +1370,8 @@ export function parseAnsiText(text: string): StyledSegment[] {
   const processText = hyperlinkRanges.length > 0 ? cleaned : sanitizedText
 
   // Extended pattern: matches SGR with semicolons AND colons (for 4:x, 58:2::r:g:b)
-  const ansiPattern = /\x1b\[([0-9;:]*)m/g
+  // Handles both ESC-based CSI (\x1b[) and C1 CSI (\x9b)
+  const ansiPattern = /(?:\x1b\[|\x9b)([0-9;:]*)m/g
 
   let currentStyle: Omit<StyledSegment, "text"> = {}
   let lastIndex = 0
@@ -1378,27 +1455,32 @@ export function parseAnsiText(text: string): StyledSegment[] {
             const r = subparts[3] ?? subparts[2] ?? 0
             const g = subparts[4] ?? subparts[3] ?? 0
             const b = subparts[5] ?? subparts[4] ?? 0
-            currentStyle.underlineColor = 0x1000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff)
+            currentStyle.underlineColor =
+              0x1000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff)
           }
         } else if (mainCode === 38) {
-          // SGR 38:2::r:g:b or 38:5:N format
+          // SGR 38:2::r:g:b or 38:5:N format (colon-separated)
           if (subparts[1] === 5 && subparts[2] !== undefined) {
             currentStyle.fg = subparts[2]
+            currentStyle.colonFg = true
           } else if (subparts[1] === 2) {
             const r = subparts[3] ?? subparts[2] ?? 0
             const g = subparts[4] ?? subparts[3] ?? 0
             const b = subparts[5] ?? subparts[4] ?? 0
             currentStyle.fg = 0x1000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff)
+            currentStyle.colonFg = true
           }
         } else if (mainCode === 48) {
-          // SGR 48:2::r:g:b or 48:5:N format
+          // SGR 48:2::r:g:b or 48:5:N format (colon-separated)
           if (subparts[1] === 5 && subparts[2] !== undefined) {
             currentStyle.bg = subparts[2]
+            currentStyle.colonBg = true
           } else if (subparts[1] === 2) {
             const r = subparts[3] ?? subparts[2] ?? 0
             const g = subparts[4] ?? subparts[3] ?? 0
             const b = subparts[5] ?? subparts[4] ?? 0
             currentStyle.bg = 0x1000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff)
+            currentStyle.colonBg = true
           }
         }
         continue
@@ -1455,14 +1537,19 @@ export function parseAnsiText(text: string): StyledSegment[] {
           break
         case 38: {
           // Extended color: 38;5;N (256 color) or 38;2;r;g;b (true color)
+          // Semicolon-separated — clear colonFg flag
           const nextParams = params.slice(i + 1).map(Number)
+          currentStyle.colonFg = undefined
           if (nextParams[0] === 5 && nextParams[1] !== undefined) {
             currentStyle.fg = nextParams[1]
             i += 2
           } else if (nextParams[0] === 2 && nextParams[3] !== undefined) {
             // True color - store as RGB values packed
             currentStyle.fg =
-              0x1000000 | ((nextParams[1]! & 0xff) << 16) | ((nextParams[2]! & 0xff) << 8) | (nextParams[3]! & 0xff)
+              0x1000000 |
+              ((nextParams[1]! & 0xff) << 16) |
+              ((nextParams[2]! & 0xff) << 8) |
+              (nextParams[3]! & 0xff)
             i += 4
           }
           break
@@ -1482,14 +1569,19 @@ export function parseAnsiText(text: string): StyledSegment[] {
           break
         case 48: {
           // Extended color: 48;5;N (256 color) or 48;2;r;g;b (true color)
+          // Semicolon-separated — clear colonBg flag
           const nextParams = params.slice(i + 1).map(Number)
+          currentStyle.colonBg = undefined
           if (nextParams[0] === 5 && nextParams[1] !== undefined) {
             currentStyle.bg = nextParams[1]
             i += 2
           } else if (nextParams[0] === 2 && nextParams[3] !== undefined) {
             // True color - store as RGB values packed
             currentStyle.bg =
-              0x1000000 | ((nextParams[1]! & 0xff) << 16) | ((nextParams[2]! & 0xff) << 8) | (nextParams[3]! & 0xff)
+              0x1000000 |
+              ((nextParams[1]! & 0xff) << 16) |
+              ((nextParams[2]! & 0xff) << 8) |
+              (nextParams[3]! & 0xff)
             i += 4
           }
           break
@@ -1506,7 +1598,10 @@ export function parseAnsiText(text: string): StyledSegment[] {
           } else if (nextParams[0] === 2 && nextParams[3] !== undefined) {
             // True color - store as RGB values packed
             currentStyle.underlineColor =
-              0x1000000 | ((nextParams[1]! & 0xff) << 16) | ((nextParams[2]! & 0xff) << 8) | (nextParams[3]! & 0xff)
+              0x1000000 |
+              ((nextParams[1]! & 0xff) << 16) |
+              ((nextParams[2]! & 0xff) << 8) |
+              (nextParams[3]! & 0xff)
             i += 4
           }
           break
@@ -1580,10 +1675,15 @@ export function parseAnsiText(text: string): StyledSegment[] {
   return segments
 }
 
-const ANSI_TEST_REGEX = /\x1b(?:\[[0-9;]*[A-Za-z]|\])/
+const ANSI_TEST_REGEX = /\x1b(?:\[[0-9;:]*[A-Za-z]|\])|\x9b[\x30-\x3f]*[\x40-\x7e]|\x9d/
 
 /**
  * Check if text contains ANSI escape sequences (SGR or OSC).
+ * Detects both ESC-based (7-bit) and C1 (8-bit) forms:
+ * - ESC [ params final (CSI)
+ * - ESC ] (OSC)
+ * - U+009B params final (C1 CSI)
+ * - U+009D (C1 OSC)
  */
 export function hasAnsi(text: string): boolean {
   // Use a non-global regex for testing to avoid lastIndex issues

@@ -25,15 +25,36 @@ if (!ShowcaseComponent) {
   const termContainer = document.getElementById("terminal") as HTMLElement
   if (termContainer) {
     const term = new Terminal({
-      cursorBlink: false,
+      cursorBlink: true,
       convertEol: true,
       cols: 80,
       rows: 24,
       fontFamily: "'Cascadia Code', 'Fira Code', 'JetBrains Mono', Menlo, monospace",
       fontSize: 14,
       theme: {
-        background: "#1a1a2e",
-        foreground: "#eee",
+        // Catppuccin Mocha palette — matches @silvery/theme's catppuccinMocha
+        background: "#1E1E2E",
+        foreground: "#CDD6F4",
+        cursor: "#CDD6F4",
+        cursorAccent: "#1E1E2E",
+        selectionBackground: "#6C7086",
+        selectionForeground: "#CDD6F4",
+        black: "#11111B",
+        red: "#F38BA8",
+        green: "#A6E3A1",
+        yellow: "#F9E2AF",
+        blue: "#89B4FA",
+        magenta: "#CBA6F7",
+        cyan: "#94E2D5",
+        white: "#A6ADC8",
+        brightBlack: "#313244",
+        brightRed: "#FAB387",
+        brightGreen: "#BEF0B7",
+        brightYellow: "#FFF0CD",
+        brightBlue: "#A7C9FF",
+        brightMagenta: "#F5C2E7",
+        brightCyan: "#AFF0E4",
+        brightWhite: "#CDD6F4",
       },
     })
 

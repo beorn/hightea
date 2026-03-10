@@ -11,7 +11,12 @@ import { deriveTheme } from "../derive"
 import type { Theme, ColorPalette } from "../types"
 
 // ── Re-export all palette definitions ──────────────────────────────
-export { catppuccinMocha, catppuccinFrappe, catppuccinMacchiato, catppuccinLatte } from "./catppuccin"
+export {
+  catppuccinMocha,
+  catppuccinFrappe,
+  catppuccinMacchiato,
+  catppuccinLatte,
+} from "./catppuccin"
 export { nord } from "./nord"
 export { dracula } from "./dracula"
 export { solarizedDark, solarizedLight } from "./solarized"
@@ -36,7 +41,12 @@ export { edgeDark, edgeLight } from "./edge"
 export { modusVivendi, modusOperandi } from "./modus"
 
 // ── Import for registry ────────────────────────────────────────────
-import { catppuccinMocha, catppuccinFrappe, catppuccinMacchiato, catppuccinLatte } from "./catppuccin"
+import {
+  catppuccinMocha,
+  catppuccinFrappe,
+  catppuccinMacchiato,
+  catppuccinLatte,
+} from "./catppuccin"
 import { nord } from "./nord"
 import { dracula } from "./dracula"
 import { solarizedDark, solarizedLight } from "./solarized"
@@ -69,12 +79,18 @@ export const ansi16DarkTheme: Theme = {
   name: "dark-ansi16",
   bg: "",
   fg: "whiteBright",
-  surface: "black",
-  surfacefg: "whiteBright",
-  popover: "black",
-  popoverfg: "whiteBright",
-  muted: "black",
-  mutedfg: "white",
+  muted: "white",
+  mutedbg: "black",
+  surface: "whiteBright",
+  surfacebg: "black",
+  popover: "whiteBright",
+  popoverbg: "black",
+  inverse: "black",
+  inversebg: "whiteBright",
+  cursor: "black",
+  cursorbg: "yellow",
+  selection: "black",
+  selectionbg: "yellow",
   primary: "yellow",
   primaryfg: "black",
   secondary: "yellow",
@@ -89,12 +105,6 @@ export const ansi16DarkTheme: Theme = {
   successfg: "black",
   info: "cyanBright",
   infofg: "black",
-  selection: "yellow",
-  selectionfg: "black",
-  inverse: "whiteBright",
-  inversefg: "black",
-  cursor: "yellow",
-  cursorfg: "black",
   border: "gray",
   inputborder: "gray",
   focusborder: "blueBright",
@@ -125,12 +135,18 @@ export const ansi16LightTheme: Theme = {
   name: "light-ansi16",
   bg: "",
   fg: "black",
-  surface: "white",
-  surfacefg: "black",
-  popover: "white",
-  popoverfg: "black",
-  muted: "white",
-  mutedfg: "blackBright",
+  muted: "blackBright",
+  mutedbg: "white",
+  surface: "black",
+  surfacebg: "white",
+  popover: "black",
+  popoverbg: "white",
+  inverse: "whiteBright",
+  inversebg: "black",
+  cursor: "black",
+  cursorbg: "blue",
+  selection: "black",
+  selectionbg: "cyan",
   primary: "blue",
   primaryfg: "black",
   secondary: "blue",
@@ -145,12 +161,6 @@ export const ansi16LightTheme: Theme = {
   successfg: "black",
   info: "cyan",
   infofg: "black",
-  selection: "cyan",
-  selectionfg: "black",
-  inverse: "black",
-  inversefg: "whiteBright",
-  cursor: "blue",
-  cursorfg: "black",
   border: "gray",
   inputborder: "gray",
   focusborder: "blue",

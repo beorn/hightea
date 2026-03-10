@@ -4,24 +4,23 @@ Silvery provides compatibility layers for both Ink and Chalk, making migration s
 
 ## Compatibility Summary
 
-| Test suite | Pass rate | Notes |
-| --- | --- | --- |
-| Silvery's Ink compat tests | **162/162 (100%)** | Covers core APIs: Box, Text, hooks, render |
-| Ink's own test suite | **662/845 (78%)** | See breakdown below |
-| Chalk tests | **32/32 (100%)** | Full chalk API compatibility |
+| Test suite                                  | Pass rate         | Notes                          |
+| ------------------------------------------- | ----------------- | ------------------------------ |
+| Ink's own test suite (via `bun run compat`) | **188/262 (72%)** | Real Ink tests, Flexily engine |
+| Chalk's own test suite                      | **32/32 (100%)**  | Full Chalk API compatibility   |
 
-The 183 Ink test failures are primarily layout engine differences (53, [intentional CSS-spec divergences](/guide/silvery-vs-ink#flexily-vs-yoga-philosophy)), PTY/process test infrastructure (43), and unimplemented features like screen reader support (18). Most apps will not encounter these gaps. See [Silvery vs Ink](/guide/silvery-vs-ink#compatibility-at-a-glance) for the full breakdown.
+Compatibility is tested by cloning the real Ink and Chalk repos and running their original test suites against silvery's compat layer (`bun run compat`). The 74 Ink test failures are primarily PTY/process test infrastructure (43), layout edge cases, and unimplemented features like screen reader support. Most apps will not encounter these gaps. See [Silvery vs Ink](/guide/silvery-vs-ink#compatibility-at-a-glance) for the full breakdown.
 
 ## Ink Compatibility
 
 ### Import Mapping
 
 ```diff
-- import { Box, Text, render, useInput, useApp } from 'ink';
-+ import { Box, Text, render, useInput, useApp } from 'silvery';
+- import { Box, Text, render, useInput, useApp } from 'ink'
++ import { Box, Text, render, useInput, useApp } from 'silvery'
 
-- import { render } from 'ink-testing-library';
-+ import { render } from '@silvery/test';
+- import { render } from 'ink-testing-library'
++ import { render } from '@silvery/test'
 ```
 
 Or use the explicit compat layer:
@@ -109,8 +108,8 @@ All border styles work identically: `single`, `double`, `round`, `bold`, `classi
 ### Import Mapping
 
 ```diff
-- import chalk from 'chalk';
-+ import chalk from 'silvery/chalk';
+- import chalk from 'chalk'
++ import chalk from 'silvery/chalk'
 ```
 
 ### Feature Support
@@ -158,10 +157,10 @@ const app = pipe(
 )
 ```
 
-| Plugin | Ink API | Bridges to | Size |
-|--------|---------|------------|------|
-| `withInkCursor()` | `useCursor()` | silvery `CursorStore` | ~50 lines |
-| `withInkFocus()` | `useFocus()`, `useFocusManager()` | `InkFocusProvider` (flat list) | ~45 lines |
+| Plugin            | Ink API                           | Bridges to                     | Size      |
+| ----------------- | --------------------------------- | ------------------------------ | --------- |
+| `withInkCursor()` | `useCursor()`                     | silvery `CursorStore`          | ~50 lines |
+| `withInkFocus()`  | `useFocus()`, `useFocusManager()` | `InkFocusProvider` (flat list) | ~45 lines |
 
 Error handling is **not part of the compat layer** — silvery's built-in `SilveryErrorBoundary` wraps all apps automatically in `createApp()`.
 
@@ -169,13 +168,13 @@ Error handling is **not part of the compat layer** — silvery's built-in `Silve
 
 The two focus systems have fundamentally different designs:
 
-| | Ink Focus (`useFocus`) | Silvery Focus (`useFocusable`) |
-|---|---|---|
-| **Model** | Flat list of component-registered IDs | Tree of layout nodes with spatial awareness |
-| **Navigation** | Tab/Shift+Tab only | Tab, arrow keys (spatial), click-to-focus |
-| **Scoping** | None — all focusables in one global list | Focus scopes isolate regions (e.g., modal dialogs) |
-| **Registration** | Components call `add(id)` / `remove(id)` | Automatic from layout tree |
-| **Events** | None | DOM-style focus/blur with capture/target/bubble |
+|                  | Ink Focus (`useFocus`)                   | Silvery Focus (`useFocusable`)                     |
+| ---------------- | ---------------------------------------- | -------------------------------------------------- |
+| **Model**        | Flat list of component-registered IDs    | Tree of layout nodes with spatial awareness        |
+| **Navigation**   | Tab/Shift+Tab only                       | Tab, arrow keys (spatial), click-to-focus          |
+| **Scoping**      | None — all focusables in one global list | Focus scopes isolate regions (e.g., modal dialogs) |
+| **Registration** | Components call `add(id)` / `remove(id)` | Automatic from layout tree                         |
+| **Events**       | None                                     | DOM-style focus/blur with capture/target/bubble    |
 
 **For new code, use silvery's focus system.** The Ink compat focus exists for apps migrating from Ink that already use `useFocus()` / `useFocusManager()`.
 

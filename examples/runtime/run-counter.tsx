@@ -25,7 +25,7 @@
 
 import React, { useState, useCallback } from "react"
 import { Box, Text } from "../../src/index.js"
-import { run, useInput, type Key } from "../../src/runtime/index.js"
+import { run, useInput, type Key } from "@silvery/term/runtime"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {

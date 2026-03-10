@@ -175,13 +175,13 @@ describe("cursor-compat", () => {
     unmount()
   })
 
-  test("setCursorPosition(undefined) hides cursor", async () => {
+  test("setCursorPosition(undefined) does not emit cursor sequences", async () => {
     const stdout = createStdout()
     const stdin = createStdin()
 
     function ConditionalCursorApp() {
       const { setCursorPosition } = useCursor()
-      // Not calling setCursorPosition → cursor should remain hidden
+      // Not calling setCursorPosition → no cursor sequences emitted
       return (
         <Box>
           <Text>no cursor</Text>
@@ -193,11 +193,9 @@ describe("cursor-compat", () => {
     await delay(50)
 
     const output = stdout.getWrites().join("")
-    const lastShowIndex = output.lastIndexOf(showCursorEscape)
-    const lastHideIndex = output.lastIndexOf(hideCursorEscape)
-
-    // Last cursor visibility escape should be hide (or no show at all)
-    expect(lastHideIndex).toBeGreaterThan(lastShowIndex)
+    // No cursor sequences should be emitted when cursor was never shown
+    expect(output).not.toContain(showCursorEscape)
+    expect(output).not.toContain(hideCursorEscape)
     unmount()
   })
 })

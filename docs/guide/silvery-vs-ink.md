@@ -1,8 +1,10 @@
 # Silvery vs Ink
 
+_External project claims last verified: 2026-03._
+
 ## Why Silvery Exists
 
-Silvery started from a single frustration: **React terminal components can't know their own size during render.** In Ink, React renders first, then Yoga calculates layout — so components that need to adapt (truncate text, choose compact vs full layout, fit columns) must use post-render effects or prop drilling. This limitation ([Ink #5](https://github.com/vadimdemedes/ink/issues/5), open since 2016) cascades: no native scrolling, no automatic text truncation, no responsive layouts without workarounds.
+Silvery started from a single frustration: **React terminal components can't know their own size during render.** In Ink, React renders first, then Yoga calculates layout — so components that need to adapt (truncate text, choose compact vs full layout, fit columns) must use post-render effects or prop drilling. This limitation ([Ink #5](https://github.com/vadimdemedes/ink/issues/5), open since 2016, still open as of 2026-03) cascades: no native scrolling, no automatic text truncation, no responsive layouts without workarounds.
 
 Fixing it required a different rendering pipeline — layout first, then render — which meant building from scratch. The result is a **better renderer**: responsive layout, per-node incremental rendering, ANSI-aware compositing, native scrolling, pure TypeScript. On top of this core, optional framework layers provide input management, commands, mouse support, 30+ components, theming, and TEA state machines — use as much or as little as you need.
 
@@ -20,18 +22,18 @@ See [migration guide](/getting-started/migrate-from-ink) for switching from Ink.
 
 ## Compatibility at a Glance
 
-Silvery passes **162/162 of our Ink compatibility tests** (100%) and **78% of Ink's own test suite** (662/845). The 22% gap breaks down as:
+Silvery passes **188/262 of Ink's own test suite** (72%) when tested with the Flexily layout engine. Chalk compatibility is **32/32 (100%)**. These numbers come from cloning the real Ink and Chalk repos and running their original test suites against silvery's compat layer (`bun run compat`).
 
-| Category | Failures | Why |
-| --- | --- | --- |
-| Layout engine differences (Flexily vs Yoga) | 53 | [Intentional W3C divergences](#flexily-vs-yoga-philosophy) — not bugs |
-| PTY/process-spawn tests | 43 | Test infrastructure, not runtime behavior |
-| Screen reader / ARIA | 18 | Not yet implemented |
-| Cursor management | 13 | Partial implementation |
-| Compat layer gaps | 24 | Rendering edge cases |
-| Other (ANSI sanitization, Kitty, timeouts) | 20 | Mixed |
+The 74 Ink test failures break down as:
 
-**Most failures won't affect your app.** The largest category (53) comes from Flexily following the CSS spec where Yoga doesn't — if you prefer browser-standard behavior, these are features, not bugs. If you need exact Yoga layout parity, Silvery supports Yoga as a pluggable layout engine.
+| Category                  | Failures | Why                                                        |
+| ------------------------- | -------- | ---------------------------------------------------------- |
+| PTY/process-spawn tests   | ~43      | Test infrastructure, not runtime behavior                  |
+| Layout engine differences | ~10      | [Flexily vs Yoga divergences](#flexily-vs-yoga-philosophy) |
+| Screen reader / ARIA      | ~8       | Not yet implemented                                        |
+| Compat layer gaps         | ~13      | Rendering edge cases, cursor management                    |
+
+**Most failures won't affect your app.** The largest category (~43) is PTY/process-spawn test infrastructure that doesn't reflect runtime behavior. Layout differences come from Flexily following the W3C CSS spec where Yoga diverges — if you prefer browser-standard behavior, these are features, not bugs. If you need exact Yoga layout parity, Silvery supports Yoga as a pluggable layout engine.
 
 The compat layer is built as thin adapters (~50 lines each) that bridge Ink's APIs to silvery-native systems. `withInk()` composes `withInkCursor()` + `withInkFocus()` — you can use them individually or drop them as you adopt silvery-native APIs. See [compatibility reference](/reference/compatibility) for the full API mapping and [compat layer architecture](/reference/compatibility#compat-layer-architecture) for how the bridge works.
 
@@ -65,7 +67,7 @@ Both are React renderers at the core. The rendering architecture is the primary 
 
 | Feature                   | Silvery                                                                                                | Ink                                                                                                                                        |
 | ------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Responsive layout**     | `useContentRect()` / `useScreenRect()` -- synchronous, available during render                         | `useBoxMetrics()` -- post-layout via `useEffect`, returns 0x0 until first measure (added on master, post-v6.8.0; not yet released)         |
+| **Responsive layout**     | `useContentRect()` / `useScreenRect()` -- synchronous, available during render                         | `useBoxMetrics()` -- post-layout via `useEffect`, returns 0x0 until first measure (added on master, post-v6.8.0; not yet released as of 2026-03)         |
 | **Incremental rendering** | Per-node dirty tracking with 7 independent flags; cell-level buffer diff                               | Line-based diff (opt-in since v6.5.0); unchanged lines skipped, but any change rewrites entire line                                        |
 | **ANSI compositing**      | Cell-level buffer with proper style stacking; ANSI sequences composed, not passed through              | String concatenation; ANSI sequences emitted inline, no compositing layer                                                                  |
 | **Scrollable containers** | `overflow="scroll"` with `scrollTo` -- framework handles measurement and clipping                      | `overflow` supports `visible` and `hidden` only; scrolling requires manual virtualization                                                  |
@@ -78,7 +80,7 @@ Both are React renderers at the core. The rendering architecture is the primary 
 | **Memory profile**        | Constant -- Flexily uses normal JS GC                                                                  | Yoga WASM uses a linear memory heap that can grow over long sessions ([discussion](https://github.com/anthropics/claude-code/issues/4953)) |
 | **Layout caching**        | Flexily fingerprints + caches unchanged subtrees                                                       | Full tree recomputation on every layout pass                                                                                               |
 | **Synchronized output**   | DEC synchronized output (mode 2026) for flicker-free rendering in tmux/Zellij                          | None                                                                                                                                       |
-| **Bracketed paste**       | `usePaste` hook with automatic mode toggling                                                           | `usePaste` hook (added on master, post-v6.8.0)                                                                                             |
+| **Bracketed paste**       | `usePaste` hook with automatic mode toggling                                                           | `usePaste` hook (added on master, post-v6.8.0, as of 2026-03)                                                                                             |
 | **Initialization**        | Synchronous -- pure TypeScript import                                                                  | Async WASM loading                                                                                                                         |
 
 ### Interaction Model
@@ -230,7 +232,11 @@ Silvery implements SGR mouse protocol (mode 1006) with DOM-style event handling:
 
 ```tsx
 // Silvery: DOM-style mouse events
-<Box onClick={(e) => selectItem(e.target)} onMouseDown={(e) => startDrag(e)} onWheel={(e) => scroll(e.deltaY)}>
+<Box
+  onClick={(e) => selectItem(e.target)}
+  onMouseDown={(e) => startDrag(e)}
+  onWheel={(e) => scroll(e.deltaY)}
+>
   <Text>Click me</Text>
 </Box>
 ```
@@ -257,11 +263,11 @@ Both are fast enough for 60fps terminal UIs. Flexily is 5x smaller with comparab
 
 Flexily intentionally follows the **W3C CSS Flexbox specification** where Yoga diverges from it. These aren't bugs — they're design choices that make Flexily behave like browsers do:
 
-| Behavior | Flexily (CSS spec) | Yoga (Ink) | Why it matters |
-| --- | --- | --- | --- |
-| Default `flexDirection` | `row` | `column` | CSS §9.1: initial value is `row`. Ink chose `column` for document-flow convenience, but it surprises anyone coming from web CSS. |
+| Behavior                           | Flexily (CSS spec)         | Yoga (Ink)                   | Why it matters                                                                                                                                                                        |
+| ---------------------------------- | -------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Default `flexDirection`            | `row`                      | `column`                     | CSS §9.1: initial value is `row`. Ink chose `column` for document-flow convenience, but it surprises anyone coming from web CSS.                                                      |
 | `overflow:hidden` + `flexShrink:0` | Item shrinks to fit parent | Item expands to content size | CSS §4.5: overflow containers have `min-size: auto = 0`. Without this, an `overflow:hidden` child with 30 lines inside a height-10 parent computes as height 30 — defeating clipping. |
-| `alignContent` distribution | Matches browser behavior | Slightly different spacing | Minor differences in how cross-axis space is distributed across flex lines. |
+| `alignContent` distribution        | Matches browser behavior   | Slightly different spacing   | Minor differences in how cross-axis space is distributed across flex lines.                                                                                                           |
 
 **If you prefer browser-standard flexbox**, use Flexily (the default). **If you need exact Ink layout parity**, install Yoga and switch:
 
@@ -294,17 +300,17 @@ Silvery implements a comprehensive set of terminal protocols. This matters for c
 
 ### DEC Private Modes
 
-| Mode         | What                                        | Silvery | Ink |
-| ------------ | ------------------------------------------- | ------- | --- |
-| 25 (DECTCEM) | Cursor visibility                           | Yes     | Yes |
-| 1000 (X10)   | Basic mouse tracking                        | Yes     | No  |
-| 1002         | Button event tracking (press + drag)        | Yes     | No  |
-| 1004         | Focus in/out reporting                      | Yes     | No  |
-| 1006 (SGR)   | Extended mouse protocol (large coordinates) | Yes     | No  |
-| 1049         | Alternate screen buffer                     | Yes     | Yes |
-| 2004         | Bracketed paste mode                        | Yes     | Post-v6.8.0 |
-| 2026         | Synchronized output (flicker-free)          | Yes     | No  |
-| DECRPM       | Mode query (`CSI ? mode $ p`)               | Yes     | No  |
+| Mode         | What                                        | Silvery | Ink         |
+| ------------ | ------------------------------------------- | ------- | ----------- |
+| 25 (DECTCEM) | Cursor visibility                           | Yes     | Yes         |
+| 1000 (X10)   | Basic mouse tracking                        | Yes     | No          |
+| 1002         | Button event tracking (press + drag)        | Yes     | No          |
+| 1004         | Focus in/out reporting                      | Yes     | No          |
+| 1006 (SGR)   | Extended mouse protocol (large coordinates) | Yes     | No          |
+| 1049         | Alternate screen buffer                     | Yes     | Yes         |
+| 2004         | Bracketed paste mode                        | Yes     | Post-v6.8.0 (as of 2026-03) |
+| 2026         | Synchronized output (flicker-free)          | Yes     | No          |
+| DECRPM       | Mode query (`CSI ? mode $ p`)               | Yes     | No          |
 
 ### OSC Sequences
 
@@ -323,13 +329,13 @@ Silvery implements a comprehensive set of terminal protocols. This matters for c
 
 ### Keyboard & Input
 
-| Protocol           | What                                                          | Silvery | Ink        |
-| ------------------ | ------------------------------------------------------------- | ------- | ---------- |
-| Kitty keyboard     | All 5 flags (disambiguate, events, alternate, all keys, text) | Full    | Added on master (post-v6.8.0)  |
-| Modifier detection | Shift, Alt, Ctrl, Super/Cmd, Hyper, CapsLock, NumLock         | Full    | Basic      |
-| Key event types    | Press, repeat, release                                        | Full    | Press only |
-| Bracketed paste    | `usePaste` hook with auto-enable                              | Full    | `usePaste` hook (post-v6.8.0)  |
-| Focus reporting    | Focus in/out events                                           | Full    | None       |
+| Protocol           | What                                                          | Silvery | Ink                           |
+| ------------------ | ------------------------------------------------------------- | ------- | ----------------------------- |
+| Kitty keyboard     | All 5 flags (disambiguate, events, alternate, all keys, text) | Full    | Added on master (post-v6.8.0, as of 2026-03) |
+| Modifier detection | Shift, Alt, Ctrl, Super/Cmd, Hyper, CapsLock, NumLock         | Full    | Basic                         |
+| Key event types    | Press, repeat, release                                        | Full    | Press only                    |
+| Bracketed paste    | `usePaste` hook with auto-enable                              | Full    | `usePaste` hook (post-v6.8.0, as of 2026-03) |
+| Focus reporting    | Focus in/out events                                           | Full    | None                          |
 
 ### Graphics
 

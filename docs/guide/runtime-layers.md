@@ -55,8 +55,8 @@ Use `createApp()` when you have:
 - Complex state logic that benefits from centralized updates
 
 ```typescript
-import { createApp, useApp, type Key } from '@silvery/term/runtime';
-import { Box, Text } from '@silvery/term';
+import { createApp, useApp, type Key } from '@silvery/term/runtime'
+import { Box, Text } from '@silvery/term'
 
 // Define the app with store factory and event handlers
 const app = createApp(
@@ -77,18 +77,18 @@ const app = createApp(
   // Event handlers: handle keyboard at app level
   {
     key: (input, key, { get }) => {
-      if (input === 'j' || key.downArrow) get().moveCursor(1);
-      if (input === 'k' || key.upArrow) get().moveCursor(-1);
-      if (input === 'a') get().addItem(`Item ${Date.now()}`);
-      if (input === 'q') return 'exit';
+      if (input === 'j' || key.downArrow) get().moveCursor(1)
+      if (input === 'k' || key.upArrow) get().moveCursor(-1)
+      if (input === 'a') get().addItem(`Item ${Date.now()}`)
+      if (input === 'q') return 'exit'
     },
   }
-);
+)
 
 // Components use useApp for fine-grained subscriptions
 function ItemList() {
-  const items = useApp(s => s.items);
-  const cursor = useApp(s => s.cursor);
+  const items = useApp(s => s.items)
+  const cursor = useApp(s => s.cursor)
 
   return (
     <Box flexDirection="column">
@@ -98,7 +98,7 @@ function ItemList() {
         </Text>
       ))}
     </Box>
-  );
+  )
 }
 
 function App() {
@@ -107,21 +107,25 @@ function App() {
       <Text bold>My Items</Text>
       <ItemList />
     </Box>
-  );
+  )
 }
 
 // Run with injected values
-const handle = await app.run(<App />, { maxItems: 100 });
-await handle.waitUntilExit();
+const handle = await app.run(<App />, { maxItems: 100 })
+await handle.waitUntilExit()
 
 // Access final state
-console.log('Final items:', handle.store.getState().items);
+console.log('Final items:', handle.store.getState().items)
 ```
 
 ### Key Handler Signature (createApp)
 
 ```typescript
-type KeyHandler<S> = (input: string, key: Key, ctx: { set: SetState<S>; get: GetState<S> }) => void | "exit"
+type KeyHandler<S> = (
+  input: string,
+  key: Key,
+  ctx: { set: SetState<S>; get: GetState<S> },
+) => void | "exit"
 ```
 
 ### AppHandle API
@@ -141,21 +145,21 @@ interface AppHandle<S> {
 For Elm-style architecture, custom event loops, or integration with external event sources, `createRuntime()` gives you full control over the render loop. This is the escape hatch -- most apps don't need it.
 
 ```typescript
-import { createRuntime, layout, ensureLayoutEngine, merge } from '@silvery/term/runtime';
-import { Text } from '@silvery/term';
+import { createRuntime, layout, ensureLayoutEngine, merge } from '@silvery/term/runtime'
+import { Text } from '@silvery/term'
 
 // Initialize layout engine once
-await ensureLayoutEngine();
+await ensureLayoutEngine()
 
 // Create render target
 const target = {
   write: (frame: string) => process.stdout.write(frame),
   getDims: () => ({ cols: process.stdout.columns || 80, rows: process.stdout.rows || 24 }),
   onResize: (handler: (dims) => void) => {
-    process.stdout.on('resize', () => handler(target.getDims()));
-    return () => process.stdout.off('resize', handler);
+    process.stdout.on('resize', () => handler(target.getDims()))
+    return () => process.stdout.off('resize', handler)
   },
-};
+}
 
 // State
 interface State { count: number; shouldExit: boolean }
@@ -163,34 +167,34 @@ interface State { count: number; shouldExit: boolean }
 // Pure reducer
 function reducer(state: State, event: Event): State {
   if (event.type === 'key') {
-    if (event.key === 'j') return { ...state, count: state.count + 1 };
-    if (event.key === 'k') return { ...state, count: state.count - 1 };
-    if (event.key === 'q') return { ...state, shouldExit: true };
+    if (event.key === 'j') return { ...state, count: state.count + 1 }
+    if (event.key === 'k') return { ...state, count: state.count - 1 }
+    if (event.key === 'q') return { ...state, shouldExit: true }
   }
-  return state;
+  return state
 }
 
 // Pure view
 function view(state: State) {
-  return <Text>Count: {state.count}</Text>;
+  return <Text>Count: {state.count}</Text>
 }
 
 // Event loop
-using runtime = createRuntime({ target });
+using runtime = createRuntime({ target })
 
-let state: State = { count: 0, shouldExit: false };
+let state: State = { count: 0, shouldExit: false }
 
 // Merge keyboard events with runtime events (resize, effects)
 const keyboardEvents = createKeyboardSource();  // Your implementation
-const allEvents = merge(keyboardEvents, runtime.events());
+const allEvents = merge(keyboardEvents, runtime.events())
 
 for await (const event of allEvents) {
-  state = reducer(state, event);
+  state = reducer(state, event)
 
-  const buffer = layout(view(state), runtime.getDims());
-  runtime.render(buffer);
+  const buffer = layout(view(state), runtime.getDims())
+  runtime.render(buffer)
 
-  if (state.shouldExit) break;
+  if (state.shouldExit) break
 }
 ```
 
@@ -222,7 +226,15 @@ Between `createRuntime()` and the React layers sits a pure **TEA (The Elm Archit
 
 ```typescript
 import { createStore, silveryUpdate, defaultInit, withFocusManagement } from "@silvery/term/store"
-import { type Effect, type SilveryModel, type SilveryMsg, none, batch, dispatch, compose } from "@silvery/term/core"
+import {
+  type Effect,
+  type SilveryModel,
+  type SilveryMsg,
+  none,
+  batch,
+  dispatch,
+  compose,
+} from "@silvery/term/core"
 
 // Extend the base model with your state
 interface AppModel extends SilveryModel {

@@ -13,7 +13,7 @@ import { THEME_TOKEN_KEYS } from "./validate-theme"
  *
  * Token names are kebab-cased with a `--` prefix:
  *   - `bg` → `--bg`
- *   - `surfacefg` → `--surfacefg`
+ *   - `surfacebg` → `--surfacebg`
  *   - `disabledfg` → `--disabledfg`
  *   - Palette entries: `--color0` through `--color15`
  *

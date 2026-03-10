@@ -25,7 +25,7 @@
 
 import React from "react"
 import { Box, Text } from "../../src/index.js"
-import { createApp, useApp } from "../../src/runtime/index.js"
+import { createApp, useApp } from "@silvery/term/runtime"
 import { pipe, withReact, withTerminal } from "@silvery/tea/plugins"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
@@ -114,7 +114,10 @@ const baseApp = createApp<Record<string, unknown>, State>(
 
   // Event handlers: 'provider:event' → handler
   {
-    "term:key": (data: unknown, { get, set }: { get: () => State; set: (fn: (s: State) => Partial<State>) => void }) => {
+    "term:key": (
+      data: unknown,
+      { get, set }: { get: () => State; set: (fn: (s: State) => Partial<State>) => void },
+    ) => {
       const { input: k, key } = data as { input: string; key: { escape: boolean } }
       const { items, cursor, nextId } = get()
 
@@ -130,7 +133,9 @@ const baseApp = createApp<Record<string, unknown>, State>(
         case " ":
         case "x":
           set(() => ({
-            items: items.map((item, i) => (i === cursor ? { ...item, selected: !item.selected } : item)),
+            items: items.map((item, i) =>
+              i === cursor ? { ...item, selected: !item.selected } : item,
+            ),
           }))
           break
         case "a":

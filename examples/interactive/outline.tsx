@@ -15,7 +15,16 @@
  */
 
 import React, { useState } from "react"
-import { render, Box, Text, useInput, useApp, useContentRect, createTerm, type Key } from "../../src/index.js"
+import {
+  render,
+  Box,
+  Text,
+  useInput,
+  useApp,
+  useContentRect,
+  createTerm,
+  type Key,
+} from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -59,13 +68,24 @@ function ContentWithSize({ label }: { label: string }): JSX.Element {
   )
 }
 
-function BorderPanel({ style, highlight }: { style: StyleVariant; highlight: boolean }): JSX.Element {
+function BorderPanel({
+  style,
+  highlight,
+}: {
+  style: StyleVariant
+  highlight: boolean
+}): JSX.Element {
   return (
     <Box flexDirection="column" flexGrow={1} gap={1}>
-      <Text bold color={highlight ? "$primary" : "white"}>
+      <Text bold color={highlight ? "$primary" : undefined}>
         borderStyle="{style}"
       </Text>
-      <Box borderStyle={style} borderColor={highlight ? "$primary" : "$border"} width={30} height={9}>
+      <Box
+        borderStyle={style}
+        borderColor={highlight ? "$primary" : "$border"}
+        width={30}
+        height={9}
+      >
         <ContentWithSize label="Border Box" />
       </Box>
       <Text dim>Border adds to layout.</Text>
@@ -74,13 +94,24 @@ function BorderPanel({ style, highlight }: { style: StyleVariant; highlight: boo
   )
 }
 
-function OutlinePanel({ style, highlight }: { style: StyleVariant; highlight: boolean }): JSX.Element {
+function OutlinePanel({
+  style,
+  highlight,
+}: {
+  style: StyleVariant
+  highlight: boolean
+}): JSX.Element {
   return (
     <Box flexDirection="column" flexGrow={1} gap={1}>
-      <Text bold color={highlight ? "$warning" : "white"}>
+      <Text bold color={highlight ? "$warning" : undefined}>
         outlineStyle="{style}"
       </Text>
-      <Box outlineStyle={style} outlineColor={highlight ? "$warning" : "$border"} width={30} height={9}>
+      <Box
+        outlineStyle={style}
+        outlineColor={highlight ? "$warning" : "$border"}
+        width={30}
+        height={9}
+      >
         <ContentWithSize label="Outline Box" />
       </Box>
       <Text dim>Outline overlaps content.</Text>

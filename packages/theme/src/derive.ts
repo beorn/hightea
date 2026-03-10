@@ -21,7 +21,10 @@ import type { ColorPalette, Theme } from "./types"
  * @param palette - The 22-color terminal palette
  * @param mode - "truecolor" (default) for rich derivation, "ansi16" for direct aliases
  */
-export function deriveTheme(palette: ColorPalette, mode: "ansi16" | "truecolor" = "truecolor"): Theme {
+export function deriveTheme(
+  palette: ColorPalette,
+  mode: "ansi16" | "truecolor" = "truecolor",
+): Theme {
   if (mode === "ansi16") return deriveAnsi16Theme(palette)
   return deriveTruecolorTheme(palette)
 }
@@ -33,15 +36,25 @@ function deriveTruecolorTheme(p: ColorPalette): Theme {
   return {
     name: p.name ?? (dark ? "derived-dark" : "derived-light"),
 
-    // ── Pairs ────────────────────────────────────────────────────
+    // ── Root pair ─────────────────────────────────────────────────
     bg: p.background,
     fg: p.foreground,
-    surface: blend(p.background, p.foreground, 0.05),
-    surfacefg: p.foreground,
-    popover: blend(p.background, p.foreground, 0.08),
-    popoverfg: p.foreground,
-    muted: blend(p.background, p.foreground, 0.04),
-    mutedfg: blend(p.foreground, p.background, 0.7),
+
+    // ── Surface pairs (base = text, *bg = background) ──────────
+    muted: blend(p.foreground, p.background, 0.7),
+    mutedbg: blend(p.background, p.foreground, 0.04),
+    surface: p.foreground,
+    surfacebg: blend(p.background, p.foreground, 0.05),
+    popover: p.foreground,
+    popoverbg: blend(p.background, p.foreground, 0.08),
+    inverse: contrastFg(blend(p.foreground, p.background, 0.1)),
+    inversebg: blend(p.foreground, p.background, 0.1),
+    cursor: p.cursorText,
+    cursorbg: p.cursorColor,
+    selection: p.selectionForeground,
+    selectionbg: p.selectionBackground,
+
+    // ── Accent pairs (base = area bg, *fg = text on area) ──────
     primary: primaryColor,
     primaryfg: contrastFg(primaryColor),
     secondary: desaturate(primaryColor, 0.4),
@@ -56,12 +69,6 @@ function deriveTruecolorTheme(p: ColorPalette): Theme {
     successfg: contrastFg(p.green),
     info: p.cyan,
     infofg: contrastFg(p.cyan),
-    selection: p.selectionBackground,
-    selectionfg: p.selectionForeground,
-    inverse: blend(p.foreground, p.background, 0.1),
-    inversefg: contrastFg(blend(p.foreground, p.background, 0.1)),
-    cursor: p.cursorColor,
-    cursorfg: p.cursorText,
 
     // ── Standalone ───────────────────────────────────────────────
     border: blend(p.background, p.foreground, 0.15),
@@ -99,15 +106,25 @@ function deriveAnsi16Theme(p: ColorPalette): Theme {
   return {
     name: p.name ?? (dark ? "derived-ansi16-dark" : "derived-ansi16-light"),
 
-    // ── Pairs (direct aliases, no blending) ──────────────────────
+    // ── Root pair ─────────────────────────────────────────────────
     bg: p.background,
     fg: p.foreground,
-    surface: p.black,
-    surfacefg: p.foreground,
-    popover: p.black,
-    popoverfg: p.foreground,
-    muted: p.black,
-    mutedfg: p.white,
+
+    // ── Surface pairs (base = text, *bg = background) ──────────
+    muted: p.white,
+    mutedbg: p.black,
+    surface: p.foreground,
+    surfacebg: p.black,
+    popover: p.foreground,
+    popoverbg: p.black,
+    inverse: p.black,
+    inversebg: p.brightWhite,
+    cursor: p.cursorText,
+    cursorbg: p.cursorColor,
+    selection: p.selectionForeground,
+    selectionbg: p.selectionBackground,
+
+    // ── Accent pairs (base = area bg, *fg = text on area) ──────
     primary: primaryColor,
     primaryfg: p.black,
     secondary: p.magenta,
@@ -122,12 +139,6 @@ function deriveAnsi16Theme(p: ColorPalette): Theme {
     successfg: p.black,
     info: p.cyan,
     infofg: p.black,
-    selection: p.selectionBackground,
-    selectionfg: p.selectionForeground,
-    inverse: p.brightWhite,
-    inversefg: p.black,
-    cursor: p.cursorColor,
-    cursorfg: p.cursorText,
 
     // ── Standalone ───────────────────────────────────────────────
     border: p.brightBlack,

@@ -9,7 +9,13 @@
 
 import React from "react"
 import { Box, Text } from "../../src/index.js"
-import { createRuntime, ensureLayoutEngine, layout, type Dims, type RenderTarget } from "../../src/runtime/index.js"
+import {
+  createRuntime,
+  ensureLayoutEngine,
+  layout,
+  type Dims,
+  type RenderTarget,
+} from "@silvery/term/runtime"
 import type { ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {

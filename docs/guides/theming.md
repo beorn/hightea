@@ -15,7 +15,7 @@ function App() {
   return (
     <Box borderStyle="single">
       <Text color="$primary">Accent text</Text>
-      <Text color="$mutedfg">Secondary text</Text>
+      <Text color="$muted">Secondary text</Text>
       <Text color="$error">Error state</Text>
     </Box>
   )
@@ -126,7 +126,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <Box borderStyle="single">
         <Text color="$primary">Primary accent</Text>
-        <Text color="$mutedfg">Secondary text</Text>
+        <Text color="$muted">Secondary text</Text>
         <Text color="$error">Error state</Text>
       </Box>
     </ThemeProvider>
@@ -221,14 +221,24 @@ Object.assign(element.style, vars)
 
 ## Design Tokens
 
-Silvery's theme system uses [design tokens](https://tr.designtokens.org/format/) -- named values that represent visual decisions. The 33 tokens in a Theme follow a consistent naming pattern. Each area has a background token and a foreground (`fg`) token:
+Silvery's theme system uses [design tokens](https://tr.designtokens.org/format/) -- named values that represent visual decisions. The 33 tokens in a Theme follow two pairing conventions:
+
+**Surface pairs** — base name = text color, `*bg` = background:
+
+| Token Pair                      | Purpose                                |
+| ------------------------------- | -------------------------------------- |
+| `bg` / `fg`                     | Default background and text            |
+| `surfacebg` / `surface`         | Elevated content areas                 |
+| `popoverbg` / `popover`         | Floating content (dropdowns, tooltips) |
+| `mutedbg` / `muted`             | Hover states, secondary text           |
+| `selectionbg` / `selection`     | Selected items                         |
+| `inversebg` / `inverse`         | Chrome (title/status bars)             |
+| `cursorbg` / `cursor`           | Text cursor                            |
+
+**Accent pairs** — base name = area background, `*fg` = text on that area:
 
 | Token Pair                  | Purpose                                |
 | --------------------------- | -------------------------------------- |
-| `bg` / `fg`                 | Default background and text            |
-| `surface` / `surfacefg`     | Elevated content areas                 |
-| `popover` / `popoverfg`     | Floating content (dropdowns, tooltips) |
-| `muted` / `mutedfg`         | Hover states, secondary text           |
 | `primary` / `primaryfg`     | Brand accent                           |
 | `secondary` / `secondaryfg` | Alternate accent                       |
 | `accent` / `accentfg`       | Attention/pop accent                   |
@@ -236,9 +246,6 @@ Silvery's theme system uses [design tokens](https://tr.designtokens.org/format/)
 | `warning` / `warningfg`     | Caution states                         |
 | `success` / `successfg`     | Positive states                        |
 | `info` / `infofg`           | Neutral information                    |
-| `selection` / `selectionfg` | Selected items                         |
-| `inverse` / `inversefg`     | Chrome (title/status bars)             |
-| `cursor` / `cursorfg`       | Text cursor                            |
 
 Plus 5 standalone tokens: `border`, `inputborder`, `focusborder`, `link`, `disabledfg`.
 

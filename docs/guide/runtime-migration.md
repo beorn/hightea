@@ -195,16 +195,13 @@ instance.unmount()
 ```tsx
 import { run } from "@silvery/term/runtime"
 
-const handle = await run(<App />, {
-  terminal: term,
-  mouse: true,
-})
+const handle = await run(<App />, term)
 
 // Cleanup
 handle.unmount()
 ```
 
-With `run()`, input handling moves into the component tree via `useInput()` and the focus system -- no manual event bus needed. Mouse events and focus are handled automatically by the runtime.
+With `run()`, input handling moves into the component tree via `useInput()` and the focus system -- no manual event bus needed. Mouse events, Kitty keyboard protocol, focus reporting, and text sizing are auto-enabled by default.
 
 ## Components Stay the Same
 

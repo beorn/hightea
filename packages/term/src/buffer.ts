@@ -1293,7 +1293,8 @@ export function bufferToText(
       // Smart trim: use content edge to preserve styled trailing spaces
       // while removing unstyled buffer padding.
       const trimmed = line.trimEnd()
-      line = trimmed.length >= contentEdgeStrOffset ? trimmed : line.substring(0, contentEdgeStrOffset)
+      line =
+        trimmed.length >= contentEdgeStrOffset ? trimmed : line.substring(0, contentEdgeStrOffset)
     }
     lines.push(line)
   }
@@ -1367,10 +1368,11 @@ export function bufferToStyledText(
       const cellHyperlink = cell.hyperlink
       if (cellHyperlink !== currentHyperlink) {
         if (currentHyperlink) {
-          line += "\x1b]8;;\x1b\\" // Close previous hyperlink
+          // Close previous hyperlink using the same format as the open
+          line += emitHyperlinkClose(currentHyperlink)
         }
         if (cellHyperlink) {
-          line += `\x1b]8;;${cellHyperlink}\x1b\\` // Open new hyperlink
+          line += emitHyperlinkOpen(cellHyperlink)
         }
         currentHyperlink = cellHyperlink
       }
@@ -1392,7 +1394,7 @@ export function bufferToStyledText(
 
     // Close any open hyperlink at end of line
     if (currentHyperlink) {
-      line += "\x1b]8;;\x1b\\"
+      line += emitHyperlinkClose(currentHyperlink)
       currentHyperlink = undefined
     }
 
@@ -1425,6 +1427,60 @@ export function bufferToStyledText(
 }
 
 // ============================================================================
+// Hyperlink Format Helpers
+// ============================================================================
+
+/**
+ * Decode hyperlink format metadata from URL prefix.
+ * parseAnsiText encodes the original OSC format (C1 vs ESC, BEL vs ST)
+ * as a prefix: \x01<tag>\x02<url>
+ *
+ * Tags:
+ *   c1b = C1 OSC (\x9d) + BEL (\x07) terminator
+ *   c1s = C1 OSC (\x9d) + ST (\x1b\\) terminator
+ *   e7b = ESC OSC (\x1b]) + BEL (\x07) terminator
+ *   (no prefix) = ESC OSC + ST (default)
+ */
+function decodeHyperlinkFormat(encoded: string): {
+  url: string
+  oscIntro: string
+  oscClose: string
+  closeIntro: string
+  closeTerminator: string
+} {
+  if (encoded.charCodeAt(0) === 1) {
+    const sepIdx = encoded.indexOf("\x02")
+    if (sepIdx > 0) {
+      const tag = encoded.slice(1, sepIdx)
+      const url = encoded.slice(sepIdx + 1)
+      if (tag === "c1b") {
+        return { url, oscIntro: "\x9d", oscClose: "\x9d", closeIntro: "\x9d", closeTerminator: "\x07" }
+      }
+      if (tag === "c1s") {
+        return { url, oscIntro: "\x9d", oscClose: "\x9d", closeIntro: "\x9d", closeTerminator: "\x1b\\" }
+      }
+      if (tag === "e7b") {
+        return { url, oscIntro: "\x1b]", oscClose: "\x1b]", closeIntro: "\x1b]", closeTerminator: "\x07" }
+      }
+    }
+  }
+  // Default: ESC OSC + ST
+  return { url: encoded, oscIntro: "\x1b]", oscClose: "\x1b]", closeIntro: "\x1b]", closeTerminator: "\x1b\\" }
+}
+
+/** Emit OSC 8 hyperlink open sequence, respecting format metadata in URL. */
+function emitHyperlinkOpen(encoded: string): string {
+  const fmt = decodeHyperlinkFormat(encoded)
+  return `${fmt.oscIntro}8;;${fmt.url}${fmt.closeTerminator}`
+}
+
+/** Emit OSC 8 hyperlink close sequence, respecting format metadata in URL. */
+function emitHyperlinkClose(encoded: string): string {
+  const fmt = decodeHyperlinkFormat(encoded)
+  return `${fmt.closeIntro}8;;${fmt.closeTerminator}`
+}
+
+// ============================================================================
 // xterm-256 Color Palette
 // ============================================================================
 
@@ -1433,9 +1489,27 @@ const XTERM_256_PALETTE: string[] = (() => {
   const palette: string[] = new Array(256)
 
   // Colors 0-7: standard colors
-  const standard = ["#000000", "#cd0000", "#00cd00", "#cdcd00", "#0000ee", "#cd00cd", "#00cdcd", "#e5e5e5"]
+  const standard = [
+    "#000000",
+    "#cd0000",
+    "#00cd00",
+    "#cdcd00",
+    "#0000ee",
+    "#cd00cd",
+    "#00cdcd",
+    "#e5e5e5",
+  ]
   // Colors 8-15: bright colors
-  const bright = ["#7f7f7f", "#ff0000", "#00ff00", "#ffff00", "#5c5cff", "#ff00ff", "#00ffff", "#ffffff"]
+  const bright = [
+    "#7f7f7f",
+    "#ff0000",
+    "#00ff00",
+    "#ffff00",
+    "#5c5cff",
+    "#ff00ff",
+    "#00ffff",
+    "#ffffff",
+  ]
   for (let i = 0; i < 8; i++) {
     palette[i] = standard[i]!
     palette[i + 8] = bright[i]!
@@ -1448,7 +1522,10 @@ const XTERM_256_PALETTE: string[] = (() => {
     const g = cubeValues[Math.floor((i % 36) / 6)]!
     const b = cubeValues[i % 6]!
     palette[16 + i] =
-      "#" + r.toString(16).padStart(2, "0") + g.toString(16).padStart(2, "0") + b.toString(16).padStart(2, "0")
+      "#" +
+      r.toString(16).padStart(2, "0") +
+      g.toString(16).padStart(2, "0") +
+      b.toString(16).padStart(2, "0")
   }
 
   // Colors 232-255: grayscale ramp
@@ -1629,7 +1706,11 @@ function styleToCSSProperties(style: Style, defaultFg: string, defaultBg: string
 /** Escape special HTML characters. */
 function escapeHTML(str: string): string {
   if (str === " " || str.length === 0) return str
-  return str.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;")
+  return str
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
 }
 
 /**

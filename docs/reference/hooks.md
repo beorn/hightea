@@ -70,7 +70,7 @@ interface Key {
   shift: boolean // ⇧ Shift
   meta: boolean // ⌥ Opt/Alt
 
-  // Modifiers — require Kitty protocol (pass kitty: true to run())
+  // Modifiers — require Kitty protocol (auto-enabled by run() on supported terminals)
   super: boolean // ⌘ Cmd/Super
   hyper: boolean // ✦ Hyper
 

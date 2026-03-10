@@ -18,7 +18,7 @@ Explore Silvery's features through focused examples. Each page teaches a specifi
 | [Tables & Data](/examples/tables)        | Data exploration and filtering  | Table, VirtualList, useContentRect()   |
 | [Scrollback](/examples/scrollback)       | Dynamic inline mode (unique)    | ScrollbackList, ScrollbackView         |
 | [Terminal Protocols](/examples/terminal) | Kitty keyboard, mouse, images   | Image, Canvas, parseHotkey()           |
-| [AI Chat](/examples/ai-chat)             | Streaming and real-time updates | VirtualList, TextInput, withCommands   |
+| [AI Coding Agent](/examples/ai-chat)     | Streaming and real-time updates | VirtualList, TextInput, tool calls     |
 | [Testing](/examples/testing)             | Headless testing API            | createRenderer, press(), getByText()   |
 
 ## Running Examples
@@ -43,13 +43,13 @@ bun examples/layout/dashboard.tsx
 
 Start with the example closest to your use case:
 
-| Use Case                  | Start With                         |
-| ------------------------- | ---------------------------------- |
-| Interactive form / wizard | [Forms & Input](/examples/forms)   |
-| Data table with search    | [Tables & Data](/examples/tables)  |
-| Multi-pane dashboard      | [Layout](/examples/layout)         |
-| Chat / streaming UI       | [AI Chat](/examples/ai-chat)       |
-| CLI tool with scrollback  | [Scrollback](/examples/scrollback) |
+| Use Case                  | Start With                           |
+| ------------------------- | ------------------------------------ |
+| Interactive form / wizard | [Forms & Input](/examples/forms)     |
+| Data table with search    | [Tables & Data](/examples/tables)    |
+| Multi-pane dashboard      | [Layout](/examples/layout)           |
+| Chat / streaming UI       | [AI Coding Agent](/examples/ai-chat) |
+| CLI tool with scrollback  | [Scrollback](/examples/scrollback)   |
 
 All examples follow the same patterns:
 

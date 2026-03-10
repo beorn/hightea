@@ -23,7 +23,15 @@
  * @packageDocumentation
  */
 
-import React, { useContext, useCallback, useState, useEffect, useLayoutEffect, useMemo, useRef } from "react"
+import React, {
+  useContext,
+  useCallback,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react"
 import { StdoutContext, TermContext } from "@silvery/react/context"
 import { bufferToStyledText, bufferToText, type TerminalBuffer } from "@silvery/term/buffer"
 import { stripAnsi } from "@silvery/term/unicode"
@@ -33,6 +41,7 @@ import { createCursorStore, CursorProvider, type CursorStore } from "@silvery/re
 import { SilveryErrorBoundary } from "@silvery/react/error-boundary"
 import { InkCursorStoreCtx } from "./with-ink-cursor"
 import { InkFocusContext, InkFocusProvider } from "./with-ink-focus"
+import { useInput as silveryUseInput } from "@silvery/react/hooks/useInput"
 
 /**
  * Get chalk's current color level at render time.
@@ -143,7 +152,11 @@ export function stripSilveryVS16(input: string): string {
 // Components (Ink-compatible)
 // =============================================================================
 
-import { Box as SilveryBox, type BoxProps as SilveryBoxProps, type BoxHandle } from "@silvery/react/components/Box"
+import {
+  Box as SilveryBox,
+  type BoxProps as SilveryBoxProps,
+  type BoxHandle,
+} from "@silvery/react/components/Box"
 export type { BoxHandle } from "@silvery/react/components/Box"
 
 /**
@@ -166,7 +179,8 @@ export type BoxProps = SilveryBoxProps
 export const Box = React.forwardRef<BoxHandle, BoxProps>(function InkBox(props, ref) {
   // Map Ink's per-axis overflow props to silvery's unified overflow
   const { overflowX, overflowY, ...rest } = props as any
-  const overflow = rest.overflow ?? (overflowX === "hidden" || overflowY === "hidden" ? "hidden" : undefined)
+  const overflow =
+    rest.overflow ?? (overflowX === "hidden" || overflowY === "hidden" ? "hidden" : undefined)
 
   return React.createElement(SilveryBox, {
     flexDirection: "column",
@@ -183,7 +197,10 @@ export const Box = React.forwardRef<BoxHandle, BoxProps>(function InkBox(props, 
 
 import { Text as SilveryText } from "@silvery/react/components/Text"
 export type { TextProps, TextHandle } from "@silvery/react/components/Text"
-import type { TextProps as SilveryTextProps, TextHandle as SilveryTextHandle } from "@silvery/react/components/Text"
+import type {
+  TextProps as SilveryTextProps,
+  TextHandle as SilveryTextHandle,
+} from "@silvery/react/components/Text"
 
 /**
  * Ink-compatible Text component.
@@ -196,16 +213,30 @@ import type { TextProps as SilveryTextProps, TextHandle as SilveryTextHandle } f
  *
  * This matches Ink's text sanitization behavior from sanitize-ansi.ts.
  */
-export const Text = React.forwardRef<SilveryTextHandle, SilveryTextProps>(function InkText(props, ref) {
-  const sanitizedChildren = sanitizeChildren(props.children)
-  return React.createElement(SilveryText, {
-    ...props,
-    color: convertColor(props.color),
-    backgroundColor: convertColor(props.backgroundColor),
-    ref,
-    children: sanitizedChildren,
-  })
-})
+export const Text = React.forwardRef<SilveryTextHandle, SilveryTextProps>(
+  function InkText(props, ref) {
+    const sanitizedChildren = sanitizeChildren(props.children)
+    // When chalk has no color support (FORCE_COLOR=0), strip style props to match
+    // Ink behavior. Ink uses chalk to apply styles, so chalk.level=0 means no
+    // styles are applied. But embedded ANSI sequences in text content are preserved.
+    const hasColors = currentChalkLevel() > 0
+    const passProps = hasColors
+      ? {
+          ...props,
+          color: convertColor(props.color),
+          backgroundColor: convertColor(props.backgroundColor),
+          ref,
+          children: sanitizedChildren,
+        }
+      : {
+          // Only pass layout-affecting props, not visual style props
+          wrap: props.wrap,
+          ref,
+          children: sanitizedChildren,
+        }
+    return React.createElement(SilveryText, passProps)
+  },
+)
 
 /** Recursively sanitize string children, preserving React elements. */
 function sanitizeChildren(children: React.ReactNode): React.ReactNode {
@@ -666,6 +697,76 @@ function getControlStringC1(ch: string): ControlStringInfo | undefined {
   }
 }
 
+// =============================================================================
+// Colon-format SGR tracking
+// =============================================================================
+
+/**
+ * Module-level set of colon→semicolon SGR replacements.
+ * Populated by sanitizeAnsi when it encounters colon-separated SGR (e.g., 38:2::R:G:B).
+ * Consumed by restoreColonFormatSGR to convert semicolon output back to colon format.
+ *
+ * This is safe because rendering is synchronous: sanitize → render → output in one call.
+ */
+const colonFormatReplacements: Array<{ semicolonForm: string; colonForm: string }> = []
+
+/**
+ * Detect colon-format SGR sequences in text and register replacements.
+ * Called during sanitizeAnsi when preserving SGR sequences.
+ *
+ * Converts colon-separated parameters to their semicolon equivalents:
+ *   \x1b[38:2::255:100:0m → replacement: \x1b[38;2;255;100;0m → \x1b[38:2::255:100:0m
+ */
+function registerColonFormatSGR(sgrSequence: string): void {
+  // Check if params contain colons (not just semicolons)
+  // Extract params between [ and m
+  const paramsMatch = sgrSequence.match(/\x1b\[([0-9;:]+)m/)
+  if (!paramsMatch) return
+
+  const rawParams = paramsMatch[1]!
+  if (!rawParams.includes(":")) return
+
+  // Build the semicolon equivalent by replacing colons with semicolons
+  // and removing empty slots (e.g., 38:2::255:100:0 → 38;2;0;255;100;0)
+  // Actually, we need to match what bufferToStyledText would produce.
+  // For 38:2::R:G:B, parseAnsiText produces fg = packed RGB.
+  // bufferToStyledText emits 38;2;R;G;B (just the RGB values, no colorspace ID).
+  // So 38:2::255:100:0 → semicolonForm = 38;2;255;100;0
+  // The mapping is: find the R;G;B values and construct the semicolon form.
+
+  // Parse colon-separated 38:2::R:G:B or 48:2::R:G:B
+  const parts = rawParams.split(";")
+  for (const part of parts) {
+    if (!part.includes(":")) continue
+    const subs = part.split(":")
+    const code = Number(subs[0])
+    if ((code === 38 || code === 48) && Number(subs[1]) === 2) {
+      // True color colon format: code:2::R:G:B or code:2:R:G:B
+      // Extract R, G, B (skip empty colorspace ID)
+      const nums = subs.map((s) => (s === "" ? 0 : Number(s)))
+      const r = nums[3] ?? nums[2] ?? 0
+      const g = nums[4] ?? nums[3] ?? 0
+      const b = nums[5] ?? nums[4] ?? 0
+      const semicolonForm = `\x1b[${code};2;${r};${g};${b}m`
+      colonFormatReplacements.push({ semicolonForm, colonForm: `\x1b[${part}m` })
+    }
+  }
+}
+
+/**
+ * Restore colon-format SGR sequences in output.
+ * Replaces semicolon-format sequences that were originally colon-format.
+ */
+export function restoreColonFormatSGR(output: string): string {
+  if (colonFormatReplacements.length === 0) return output
+  let result = output
+  for (const { semicolonForm, colonForm } of colonFormatReplacements) {
+    result = result.replaceAll(semicolonForm, colonForm)
+  }
+  colonFormatReplacements.length = 0
+  return result
+}
+
 /**
  * Sanitize ANSI sequences in text content.
  *
@@ -712,7 +813,10 @@ function sanitizeAnsi(text: string): string {
         if (i > textStart) output += text.slice(textStart, i)
         // Only keep SGR: final='m', no intermediates, params are digits/colons/semicolons
         if (csi.final === "m" && csi.intermediates === "" && sgrParamsRegex.test(csi.params)) {
-          output += text.slice(i, csi.end)
+          const sgrSeq = text.slice(i, csi.end)
+          output += sgrSeq
+          // Track colon-format SGR for round-trip restoration
+          registerColonFormatSGR(sgrSeq)
         }
         // Otherwise strip (cursor movement etc.)
         i = csi.end
@@ -921,8 +1025,12 @@ interface InkInstance extends Instance {
  * When no custom stdout (real terminal): delegates to renderSync() which
  * creates a full SilveryInstance with scheduler.
  */
-export function render(element: import("react").ReactNode, options?: Record<string, unknown>): InkInstance {
-  // Ensure layout engine is initialized (sync, using flexily)
+export function render(
+  element: import("react").ReactNode,
+  options?: Record<string, unknown>,
+): InkInstance {
+  // Ensure layout engine is initialized synchronously.
+  // For Yoga, call initInkCompat() before render() to async-init the engine.
   if (!isLayoutEngineInitialized()) {
     setLayoutEngine(createFlexilyZeroEngine())
   }
@@ -938,6 +1046,21 @@ export function render(element: import("react").ReactNode, options?: Record<stri
 
     // Per-instance cursor store for Ink's useCursor hook
     const cursorStore = createCursorStore()
+    let cursorWasShown = false
+
+    // Bridge component: uses silvery's useInput to forward Tab/Shift+Tab/Escape
+    // to Ink's InkFocusContext. This sits inside both RuntimeContext (for useInput)
+    // and InkFocusProvider (for focus context access).
+    function InkFocusBridge({ children }: { children: React.ReactNode }) {
+      const focusCtx = useContext(InkFocusContext)
+      silveryUseInput((_input, key) => {
+        if (!focusCtx.isFocusEnabled) return
+        if (key.tab && !key.shift) focusCtx.focusNext()
+        else if (key.tab && key.shift) focusCtx.focusPrevious()
+        else if (key.escape) focusCtx.blur()
+      })
+      return React.createElement(React.Fragment, null, children)
+    }
 
     // Ink-specific root wrapper: error boundary + focus system + cursor store
     function wrapWithInkProviders(el: import("react").ReactElement): import("react").ReactElement {
@@ -950,7 +1073,7 @@ export function render(element: import("react").ReactNode, options?: Record<stri
           React.createElement(
             InkCursorStoreCtx.Provider,
             { value: cursorStore },
-            React.createElement(InkFocusProvider, null, el),
+            React.createElement(InkFocusProvider, null, React.createElement(InkFocusBridge, null, el)),
           ),
         ),
       )
@@ -967,28 +1090,28 @@ export function render(element: import("react").ReactNode, options?: Record<stri
 
       output = stripSilveryVS16(output)
 
-      // Strip trailing empty lines
-      const lines = output.split("\n")
-      while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop()
-      output = lines.join("\n")
-
       const result = plain ? output : toChalkCompat(output)
 
-      // Cursor escape sequences (matches Ink's cli-cursor behavior)
-      let cursorEsc = ""
+      // Cursor: only emit sequences when useCursor() is actively used.
+      // Ink hides the cursor once at startup via cli-cursor, not per-frame.
+      // We track transitions: emit show when cursor becomes visible, hide when it was visible and now isn't.
       const cursorState = cursorStore.accessors.getCursorState()
       if (cursorState?.visible) {
-        cursorEsc += cursorState.x === 0 ? "\x1b[G" : `\x1b[${cursorState.x + 1}G`
+        let cursorEsc = cursorState.x === 0 ? "\x1b[G" : `\x1b[${cursorState.x + 1}G`
         if (cursorState.y > 0) {
           const rowsUp = result.split("\n").length - 1 - cursorState.y
           if (rowsUp > 0) cursorEsc += `\x1b[${rowsUp}A`
         }
         cursorEsc += "\x1b[?25h"
+        cursorWasShown = true
+        stdout.write(result + cursorEsc)
+      } else if (cursorWasShown) {
+        // Cursor was visible but now isn't — emit hide sequence
+        cursorWasShown = false
+        stdout.write(result + "\x1b[?25l")
       } else {
-        cursorEsc += "\x1b[?25l"
+        stdout.write(result)
       }
-
-      stdout.write(result + cursorEsc)
     }
 
     // Delegate to silvery's test renderer with wrapRoot for Ink contexts
@@ -1093,7 +1216,9 @@ function needsLayoutRecalculation(node: any): boolean {
  * This bridges the timing gap between Ink (Yoga runs during commit, so
  * effects see layout) and silvery (layout runs in a separate pipeline pass).
  */
-export function measureElement(nodeOrHandle: any): import("@silvery/react/measureElement").MeasureElementOutput {
+export function measureElement(
+  nodeOrHandle: any,
+): import("@silvery/react/measureElement").MeasureElementOutput {
   // Resolve BoxHandle → TeaNode
   const node = typeof nodeOrHandle?.getNode === "function" ? nodeOrHandle.getNode() : nodeOrHandle
   if (!node) return { width: 0, height: 0 }
@@ -1141,8 +1266,26 @@ export function useStderr() {
 // =============================================================================
 
 import { renderStringSync } from "@silvery/react/render-string"
-import { isLayoutEngineInitialized, setLayoutEngine } from "@silvery/term/layout-engine"
+import {
+  isLayoutEngineInitialized,
+  setLayoutEngine,
+  ensureDefaultLayoutEngine,
+} from "@silvery/term/layout-engine"
 import { createFlexilyZeroEngine } from "@silvery/term/adapters/flexily-zero-adapter"
+
+/**
+ * Pre-initialize the compat layer with a specific layout engine.
+ * Call before render() to use Yoga (which requires async WASM loading):
+ *
+ *   await initInkCompat("yoga");
+ *   render(<App />, { stdout });
+ *
+ * Without this, render() defaults to Flexily (synchronous).
+ * Also respects SILVERY_ENGINE env var.
+ */
+export async function initInkCompat(engine?: "flexily" | "yoga"): Promise<void> {
+  await ensureDefaultLayoutEngine(engine)
+}
 
 /**
  * Ink-compatible renderToString.

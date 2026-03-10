@@ -1,5 +1,7 @@
 # Terminal Compatibility Matrix
 
+_Terminal capabilities last verified: 2026-03._
+
 Comprehensive reference of terminal emulator feature support as detected by Silvery.
 
 ## Capability Matrix

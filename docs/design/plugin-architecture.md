@@ -49,25 +49,25 @@ Later plugins wrap earlier ones — `withInk()` wraps `withTerminal()` which wra
 
 ### Core (silvery)
 
-| Plugin | What | Package |
-|--------|------|---------|
-| `withReact(<Element />)` | Mounts React element tree | `@silvery/tea` |
-| `withTerminal(process)` | Terminal I/O (stdin/stdout, raw mode, alternate screen) | `@silvery/tea` |
-| `withFocus()` | Tree-based focus management (scopes, spatial nav) | `@silvery/tea` |
-| `withDomEvents()` | DOM-style event dispatch (capture/target/bubble) | `@silvery/tea` |
-| `withCommands(opts)` | Named commands with keybindings and introspection | `@silvery/tea` |
-| `withKeybindings(opts)` | Configurable keybinding resolution | `@silvery/tea` |
-| `withDiagnostics()` | Render invariant checking | `@silvery/tea` |
+| Plugin                   | What                                                    | Package        |
+| ------------------------ | ------------------------------------------------------- | -------------- |
+| `withReact(<Element />)` | Mounts React element tree                               | `@silvery/tea` |
+| `withTerminal(process)`  | Terminal I/O (stdin/stdout, raw mode, alternate screen) | `@silvery/tea` |
+| `withFocus()`            | Tree-based focus management (scopes, spatial nav)       | `@silvery/tea` |
+| `withDomEvents()`        | DOM-style event dispatch (capture/target/bubble)        | `@silvery/tea` |
+| `withCommands(opts)`     | Named commands with keybindings and introspection       | `@silvery/tea` |
+| `withKeybindings(opts)`  | Configurable keybinding resolution                      | `@silvery/tea` |
+| `withDiagnostics()`      | Render invariant checking                               | `@silvery/tea` |
 
 ### Ink Compatibility (`@silvery/compat`)
 
 The Ink compat layer is decomposed into composable plugins:
 
-| Plugin | What | Lines |
-|--------|------|-------|
-| `withInkCursor()` | Bridges Ink's `useCursor` to silvery's `CursorStore` | ~50 |
-| `withInkFocus()` | Provides Ink's flat-list focus (`useFocus`/`useFocusManager`) | ~45 |
-| `withInk()` | Composes `withInkCursor()` + `withInkFocus()` | ~10 |
+| Plugin            | What                                                          | Lines |
+| ----------------- | ------------------------------------------------------------- | ----- |
+| `withInkCursor()` | Bridges Ink's `useCursor` to silvery's `CursorStore`          | ~50   |
+| `withInkFocus()`  | Provides Ink's flat-list focus (`useFocus`/`useFocusManager`) | ~45   |
+| `withInk()`       | Composes `withInkCursor()` + `withInkFocus()`                 | ~10   |
 
 `withInk()` is the convenience plugin — it applies both adapters in one call. For fine-grained control, use the individual plugins:
 
