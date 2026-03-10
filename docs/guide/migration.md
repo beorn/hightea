@@ -224,9 +224,35 @@ const { width } = useContentRect()
 
 | Behavior                | Ink       | Silvery | Reason                       |
 | ----------------------- | --------- | ------- | ---------------------------- |
+| Default flexDirection   | row       | column  | silvery/ink compat handles this |
 | Text overflow           | Overflows | Wraps   | Better default               |
 | First render dimensions | N/A       | Zeros   | Required for layout feedback |
 | Internal APIs           | Exposed   | Hidden  | Not public API               |
+
+::: tip Default Flex Direction
+Ink defaults `<Box>` to `flexDirection="row"`. Silvery defaults to `"column"`. The `silvery/ink` compat import handles this automatically — Box defaults to row in compat mode. If you import from `silvery` directly, add explicit `flexDirection="row"` where needed.
+:::
+
+### ANSI Encoding Differences
+
+Silvery and Ink/Chalk produce visually identical terminal output but different byte sequences. Silvery uses full SGR reset (`\x1b[0m`) instead of per-attribute closes (`\x1b[39m`, `\x1b[22m`).
+
+**Impact**: Test assertions that compare exact ANSI strings will fail. Use `stripAnsi()` for content assertions instead:
+
+```diff
+- expect(lastFrame()).toBe(chalk.green('hello'))
++ expect(stripAnsi(lastFrame())).toBe('hello')
+```
+
+### Community Package Mapping
+
+| Ink Package           | Silvery Equivalent          |
+| --------------------- | --------------------------- |
+| `ink-spinner`         | `@silvery/ui` `Spinner`     |
+| `ink-select-input`    | `@silvery/ui` `SelectList`  |
+| `ink-text-input`      | `@silvery/ui` `TextInput`   |
+| `ink-table`           | `@silvery/ui` `Table`       |
+| `ink-testing-library` | `@silvery/test`             |
 
 ### Edge Cases
 
