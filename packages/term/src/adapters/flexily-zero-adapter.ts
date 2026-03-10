@@ -226,8 +226,19 @@ class FlexilyZeroNodeAdapter implements LayoutNode {
   setPositionType(positionType: number): void {
     this.node.setPositionType(positionType)
   }
+  setPosition(edge: number, value: number): void {
+    this.node.setPosition(edge, value)
+  }
+  setPositionPercent(edge: number, value: number): void {
+    this.node.setPositionPercent(edge, value)
+  }
   setOverflow(overflow: number): void {
     this.node.setOverflow(overflow)
+  }
+
+  // Aspect Ratio
+  setAspectRatio(value: number): void {
+    this.node.setAspectRatio(value)
   }
 
   // Layout calculation

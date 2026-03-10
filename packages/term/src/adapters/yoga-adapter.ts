@@ -212,9 +212,22 @@ class YogaNodeAdapter implements LayoutNode {
     // LayoutEngine uses plain numbers; Yoga uses branded PositionType type
     this.node.setPositionType(positionType as PositionType)
   }
+  setPosition(edge: number, value: number): void {
+    // LayoutEngine uses plain numbers; Yoga uses branded Edge type
+    this.node.setPosition(edge as Edge, value)
+  }
+  setPositionPercent(edge: number, value: number): void {
+    // LayoutEngine uses plain numbers; Yoga uses branded Edge type
+    this.node.setPositionPercent(edge as Edge, value)
+  }
   setOverflow(overflow: number): void {
     // LayoutEngine uses plain numbers; Yoga uses branded Overflow type
     this.node.setOverflow(overflow as Overflow)
+  }
+
+  // Aspect Ratio
+  setAspectRatio(value: number): void {
+    this.node.setAspectRatio(value)
   }
 
   // Layout calculation

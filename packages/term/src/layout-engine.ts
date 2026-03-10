@@ -85,7 +85,12 @@ export interface LayoutNode {
   // Display & Position
   setDisplay(display: number): void
   setPositionType(positionType: number): void
+  setPosition(edge: number, value: number): void
+  setPositionPercent(edge: number, value: number): void
   setOverflow(overflow: number): void
+
+  // Aspect Ratio
+  setAspectRatio(value: number): void
 
   // Layout calculation
   calculateLayout(width: number, height: number, direction?: number): void

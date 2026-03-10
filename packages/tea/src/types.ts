@@ -90,10 +90,19 @@ export interface FlexboxProps {
   // Position
   position?: "relative" | "absolute" | "sticky"
 
+  // Position offsets (used with position='absolute' or position='relative')
+  top?: number | string
+  left?: number | string
+  bottom?: number | string
+  right?: number | string
+
   // Sticky offsets (only used when position='sticky')
   // The element will "stick" when it reaches this offset from the container edge
   stickyTop?: number
   stickyBottom?: number
+
+  // Aspect ratio
+  aspectRatio?: number
 
   // Display
   display?: "flex" | "none"

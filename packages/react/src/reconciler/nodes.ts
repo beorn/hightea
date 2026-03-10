@@ -416,6 +416,17 @@ export function applyBoxProps(layoutNode: LayoutNode, props: BoxProps, oldProps?
     layoutNode.setPositionType(c.POSITION_TYPE_RELATIVE)
   }
 
+  // Position offsets (top, left, bottom, right)
+  applyPositionOffset(layoutNode, c.EDGE_TOP, props.top)
+  applyPositionOffset(layoutNode, c.EDGE_LEFT, props.left)
+  applyPositionOffset(layoutNode, c.EDGE_BOTTOM, props.bottom)
+  applyPositionOffset(layoutNode, c.EDGE_RIGHT, props.right)
+
+  // Aspect ratio
+  if (props.aspectRatio !== undefined) {
+    layoutNode.setAspectRatio(props.aspectRatio)
+  }
+
   // Overflow
   if (props.overflow !== undefined) {
     if (props.overflow === "hidden") {
@@ -484,6 +495,23 @@ function applySpacing(layoutNode: LayoutNode, type: "padding" | "margin", props:
   set(c.EDGE_BOTTOM, bottom ?? yy ?? all ?? 0)
   set(c.EDGE_LEFT, left ?? x ?? all ?? 0)
   set(c.EDGE_RIGHT, right ?? x ?? all ?? 0)
+}
+
+/**
+ * Apply a position offset (top/left/bottom/right) to a layout node.
+ * Supports both numeric (absolute) and percentage string values.
+ */
+function applyPositionOffset(
+  layoutNode: LayoutNode,
+  edge: number,
+  value: number | string | undefined,
+): void {
+  if (value === undefined) return
+  if (typeof value === "string" && value.endsWith("%")) {
+    layoutNode.setPositionPercent(edge, Number.parseFloat(value))
+  } else if (typeof value === "number") {
+    layoutNode.setPosition(edge, value)
+  }
 }
 
 /**
