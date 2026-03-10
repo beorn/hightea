@@ -167,7 +167,7 @@ export default defineConfig({
           items: [{ text: "The Silvery Way", link: "/guide/the-silvery-way" }],
         },
         {
-          text: "Guide (Legacy)",
+          text: "Overview",
           collapsed: true,
           items: [
             { text: "Getting Started", link: "/guide/getting-started" },
