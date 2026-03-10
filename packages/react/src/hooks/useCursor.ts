@@ -13,9 +13,17 @@
  * (backward compatibility / deprecation path).
  */
 
-import React, { createContext, useCallback, useContext, useEffect, useRef, type ReactNode } from "react"
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type ReactNode,
+} from "react"
 import type { CursorShape } from "@silvery/term/output"
-import { useScreenRectCallback } from "./useLayout"
+import { useScreenRectCallback, type Rect } from "./useLayout"
 
 // ============================================================================
 // Types
@@ -164,6 +172,7 @@ export function useCursor(position: CursorPosition): void {
   const shapeRef = useRef(shape)
   const setRef = useRef(set)
   const getRef = useRef(get)
+  const lastRectRef = useRef<Rect | null>(null)
   colRef.current = col
   rowRef.current = row
   visibleRef.current = visible
@@ -175,6 +184,7 @@ export function useCursor(position: CursorPosition): void {
   // the component's screen position changes.
   useScreenRectCallback(
     useCallback((rect) => {
+      lastRectRef.current = rect
       if (!visibleRef.current) {
         return
       }
@@ -186,6 +196,21 @@ export function useCursor(position: CursorPosition): void {
       })
     }, []),
   )
+
+  // When col/row/shape change without a layout change, update cursor
+  // position from the last known screen rect. This handles the common case
+  // where typing moves the cursor within a component but the component's
+  // layout position stays the same (e.g., TextInput cursor moves on keystroke).
+  useLayoutEffect(() => {
+    const rect = lastRectRef.current
+    if (!rect || !visible) return
+    set({
+      x: rect.x + col,
+      y: rect.y + row,
+      visible: true,
+      shape,
+    })
+  }, [col, row, shape, visible, set])
 
   // On unmount or when visible becomes false, clear cursor state
   useEffect(() => {
