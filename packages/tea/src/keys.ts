@@ -395,68 +395,159 @@ const KITTY_RE = /^\x1b\[(\d+)(?::(\d+))?(?::(\d+))?(?:;(\d+)(?::(\d+))?(?:;([\d
 /** Matches xterm modifyOtherKeys format: CSI 27 ; modifier ; keycode ~ */
 const MODIFY_OTHER_KEYS_RE = /^\x1b\[27;(\d+);(\d+)~$/
 
+/**
+ * Kitty-enhanced special key sequences:
+ * CSI number ; modifiers : eventType {letter|~}
+ * These are legacy CSI sequences enhanced with the :eventType field.
+ * Examples: \x1b[1;1:1A (up arrow press), \x1b[3;1:3~ (delete release)
+ */
+const KITTY_SPECIAL_RE = /^\x1b\[(\d+);(\d+):(\d+)([A-Za-z~])$/
+
+/** Letter-terminated special key names (CSI 1 ; mods letter) */
+const KITTY_SPECIAL_LETTER_KEYS: Record<string, string> = {
+  A: "up",
+  B: "down",
+  C: "right",
+  D: "left",
+  E: "clear",
+  F: "end",
+  H: "home",
+  P: "f1",
+  Q: "f2",
+  R: "f3",
+  S: "f4",
+}
+
+/** Number-terminated special key names (CSI number ; mods ~) */
+const KITTY_SPECIAL_NUMBER_KEYS: Record<number, string> = {
+  2: "insert",
+  3: "delete",
+  5: "pageup",
+  6: "pagedown",
+  7: "home",
+  8: "end",
+  11: "f1",
+  12: "f2",
+  13: "f3",
+  14: "f4",
+  15: "f5",
+  17: "f6",
+  18: "f7",
+  19: "f8",
+  20: "f9",
+  21: "f10",
+  23: "f11",
+  24: "f12",
+}
+
+/** Valid Unicode codepoint range, excluding surrogates */
+function isValidCodepoint(cp: number): boolean {
+  return cp >= 0 && cp <= 0x10_ffff && !(cp >= 0xd8_00 && cp <= 0xdf_ff)
+}
+
+/** Safely convert codepoint to string, returning '?' for invalid values */
+function safeFromCodePoint(cp: number): string {
+  return isValidCodepoint(cp) ? String.fromCodePoint(cp) : "?"
+}
+
 /** Maps Kitty codepoints to key names for non-printable/functional keys */
 const KITTY_CODEPOINT_MAP: Record<number, string> = {
   // Standard control keys
+  8: "backspace",
   9: "tab",
   13: "return",
   27: "escape",
-  127: "backspace",
-  // Function keys F1-F12
-  57376: "f1",
-  57377: "f2",
-  57378: "f3",
-  57379: "f4",
-  57380: "f5",
-  57381: "f6",
-  57382: "f7",
-  57383: "f8",
-  57384: "f9",
-  57385: "f10",
-  57386: "f11",
-  57387: "f12",
-  // Function keys F13-F35
-  57388: "f13",
-  57389: "f14",
-  57390: "f15",
-  57391: "f16",
-  57392: "f17",
-  57393: "f18",
-  57394: "f19",
-  57395: "f20",
-  57396: "f21",
-  57397: "f22",
-  57398: "f23",
-  57399: "f24",
-  57400: "f25",
-  57401: "f26",
-  57402: "f27",
-  57403: "f28",
-  57404: "f29",
-  57405: "f30",
-  57406: "f31",
-  57407: "f32",
-  57408: "f33",
-  57409: "f34",
-  57410: "f35",
-  // Navigation keys
-  57352: "insert",
-  57353: "delete",
-  57354: "home", // not in legacy sequences
-  57355: "end",
-  57356: "pageup",
-  57357: "pagedown",
-  57358: "up",
-  57359: "down",
-  57360: "left",
-  57361: "right",
+  127: "delete",
+  // Function keys F13-F35 (F1-F12 use legacy CSI sequences in Kitty mode)
+  57376: "f13",
+  57377: "f14",
+  57378: "f15",
+  57379: "f16",
+  57380: "f17",
+  57381: "f18",
+  57382: "f19",
+  57383: "f20",
+  57384: "f21",
+  57385: "f22",
+  57386: "f23",
+  57387: "f24",
+  57388: "f25",
+  57389: "f26",
+  57390: "f27",
+  57391: "f28",
+  57392: "f29",
+  57393: "f30",
+  57394: "f31",
+  57395: "f32",
+  57396: "f33",
+  57397: "f34",
+  57398: "f35",
   // Lock/misc keys
-  57412: "capslock",
-  57413: "scrolllock",
-  57414: "numlock",
-  57415: "printscreen",
-  57416: "pause",
-  57417: "menu",
+  57358: "capslock",
+  57359: "scrolllock",
+  57360: "numlock",
+  57361: "printscreen",
+  57362: "pause",
+  57363: "menu",
+  // Keypad keys
+  57399: "kp0",
+  57400: "kp1",
+  57401: "kp2",
+  57402: "kp3",
+  57403: "kp4",
+  57404: "kp5",
+  57405: "kp6",
+  57406: "kp7",
+  57407: "kp8",
+  57408: "kp9",
+  57409: "kpdecimal",
+  57410: "kpdivide",
+  57411: "kpmultiply",
+  57412: "kpsubtract",
+  57413: "kpadd",
+  57414: "kpenter",
+  57415: "kpequal",
+  57416: "kpseparator",
+  57417: "kpleft",
+  57418: "kpright",
+  57419: "kpup",
+  57420: "kpdown",
+  57421: "kppageup",
+  57422: "kppagedown",
+  57423: "kphome",
+  57424: "kpend",
+  57425: "kpinsert",
+  57426: "kpdelete",
+  57427: "kpbegin",
+  // Media keys
+  57428: "mediaplay",
+  57429: "mediapause",
+  57430: "mediaplaypause",
+  57431: "mediareverse",
+  57432: "mediastop",
+  57433: "mediafastforward",
+  57434: "mediarewind",
+  57435: "mediatracknext",
+  57436: "mediatrackprevious",
+  57437: "mediarecord",
+  57438: "lowervolume",
+  57439: "raisevolume",
+  57440: "mutevolume",
+  // Modifier-only keys
+  57441: "leftshift",
+  57442: "leftcontrol",
+  57443: "leftalt",
+  57444: "leftsuper",
+  57445: "lefthyper",
+  57446: "leftmeta",
+  57447: "rightshift",
+  57448: "rightcontrol",
+  57449: "rightalt",
+  57450: "rightsuper",
+  57451: "righthyper",
+  57452: "rightmeta",
+  57453: "isoLevel3Shift",
+  57454: "isoLevel5Shift",
 }
 
 /** Lookup a Kitty codepoint to a key name */
@@ -489,7 +580,24 @@ export interface ParsedKeypress {
   /** Decoded text from Kitty REPORT_TEXT mode. */
   associatedText?: string
   sequence: string
+  /** Raw input string, identical to sequence for most keys. */
+  raw?: string
   code?: string
+  /** Whether this key was parsed from the Kitty keyboard protocol. */
+  isKittyProtocol?: boolean
+  /**
+   * Whether this key represents printable text input.
+   * When false, the key is a control/function/modifier key that should not
+   * produce text input (e.g., arrows, function keys, capslock, media keys).
+   * Only set by the kitty protocol parser.
+   */
+  isPrintable?: boolean
+  /**
+   * Text associated with the key.
+   * For printable kitty keys, defaults to the character from the codepoint.
+   * When REPORT_TEXT flag is active, contains the decoded text-as-codepoints.
+   */
+  text?: string
 }
 
 /**
@@ -565,26 +673,70 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
     // Try Kitty keyboard protocol first (CSI codepoint ; modifiers u)
     // Must be checked before FN_KEY_RE because 'u' matches [a-zA-Z]
     const kittyParts = KITTY_RE.exec(input)
+    // Kitty-enhanced special keys: CSI number ; modifiers : eventType {letter|~}
+    const kittySpecialParts = !kittyParts && KITTY_SPECIAL_RE.exec(input)
     // xterm modifyOtherKeys format: CSI 27 ; modifier ; keycode ~
     // Sent by Ghostty, xterm, and others for modified keys like Ctrl+Enter
-    const modifyOtherKeysParts = !kittyParts && MODIFY_OTHER_KEYS_RE.exec(input)
-    if (kittyParts || modifyOtherKeysParts) {
+    const modifyOtherKeysParts = !kittyParts && !kittySpecialParts && MODIFY_OTHER_KEYS_RE.exec(input)
+
+    if (kittySpecialParts) {
+      // Kitty-enhanced special key: CSI number ; modifiers : eventType {letter|~}
+      const number = Number(kittySpecialParts[1])
+      const modifier = Math.max(0, Number(kittySpecialParts[2]) - 1)
+      const eventType = Number(kittySpecialParts[3])
+      const terminator = kittySpecialParts[4]!
+
+      const name =
+        terminator === "~" ? KITTY_SPECIAL_NUMBER_KEYS[number] : KITTY_SPECIAL_LETTER_KEYS[terminator]
+
+      key.isKittyProtocol = true
+      key.isPrintable = false
+      key.raw = input
+      key.name = name ?? ""
+
+      key.shift = !!(modifier & 1)
+      key.option = !!(modifier & 2) // alt
+      key.ctrl = !!(modifier & 4)
+      key.super = !!(modifier & 8)
+      key.hyper = !!(modifier & 16)
+      key.meta = !!(modifier & 32)
+      key.capsLock = !!(modifier & 64)
+      key.numLock = !!(modifier & 128)
+
+      if (eventType >= 1 && eventType <= 3) {
+        key.eventType = eventType as 1 | 2 | 3
+      }
+    } else if (kittyParts || modifyOtherKeysParts) {
       let codepoint: number
       let modifier: number
       if (kittyParts) {
         codepoint = Number(kittyParts[1])
-        modifier = (Number(kittyParts[4] || 1) - 1) as number
+        modifier = Math.max(0, Number(kittyParts[4] || 1) - 1)
       } else {
         const mokParts = modifyOtherKeysParts as RegExpExecArray
-        modifier = (Number(mokParts[1]) - 1) as number
+        modifier = Math.max(0, Number(mokParts[1]) - 1)
         codepoint = Number(mokParts[2])
       }
 
+      // Mark as kitty protocol
+      if (kittyParts) {
+        key.isKittyProtocol = true
+        key.raw = input
+
+        // Handle invalid codepoints (above U+10FFFF or surrogates)
+        if (!isValidCodepoint(codepoint)) {
+          key.name = ""
+          key.isPrintable = false
+          return key
+        }
+      }
+
       key.shift = !!(modifier & 1)
-      key.meta = !!(modifier & 2) // alt
+      key.option = !!(modifier & 2) // alt (in kitty protocol, bit 2 = alt/option)
       key.ctrl = !!(modifier & 4)
       key.super = !!(modifier & 8) // super (Cmd on macOS)
       key.hyper = !!(modifier & 16) // hyper
+      key.meta = !!(modifier & 32) // meta (kitty distinguishes meta from alt)
       key.capsLock = !!(modifier & 64)
       key.numLock = !!(modifier & 128)
 
@@ -605,27 +757,62 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
       }
 
       // Text-as-codepoints (group 6) — requires REPORT_TEXT flag
+      let textFromProtocol: string | undefined
       if (kittyParts?.[6]) {
-        key.associatedText = kittyParts[6]
+        textFromProtocol = kittyParts[6]
           .split(":")
-          .map((cp) => String.fromCodePoint(Number(cp)))
+          .map((cp) => safeFromCodePoint(Number(cp)))
           .join("")
+        key.associatedText = textFromProtocol
+        key.text = textFromProtocol
       }
 
-      // Map codepoint to key name
-      const mapped = kittyCodepointToName(codepoint)
-      if (mapped) {
-        key.name = mapped
-      } else if (codepoint >= 32 && codepoint <= 126) {
-        // Printable ASCII
-        key.name = String.fromCharCode(codepoint).toLowerCase()
-        if (codepoint >= 65 && codepoint <= 90) {
-          key.shift = true
-          key.name = String.fromCharCode(codepoint + 32)
-        }
+      // Map codepoint to key name and determine printability
+      if (codepoint === 32) {
+        key.name = "space"
+        key.isPrintable = true
+      } else if (codepoint === 13) {
+        key.name = "return"
+        key.isPrintable = true
       } else {
-        key.name = String.fromCharCode(codepoint)
+        const mapped = kittyCodepointToName(codepoint)
+        if (mapped) {
+          key.name = mapped
+          key.isPrintable = false
+        } else if (codepoint >= 1 && codepoint <= 26) {
+          // Ctrl+letter comes as codepoint 1-26
+          key.name = String.fromCodePoint(codepoint + 96) // 'a' is 97
+          key.isPrintable = false
+        } else if (codepoint >= 32 && codepoint <= 126) {
+          // Printable ASCII
+          key.name = String.fromCharCode(codepoint).toLowerCase()
+          if (codepoint >= 65 && codepoint <= 90) {
+            key.shift = true
+            key.name = String.fromCharCode(codepoint + 32)
+          }
+          key.isPrintable = true
+        } else if (isValidCodepoint(codepoint)) {
+          key.name = safeFromCodePoint(codepoint)
+          key.isPrintable = true
+        } else {
+          key.name = ""
+          key.isPrintable = false
+        }
       }
+
+      // Default text to the character from the codepoint when not explicitly
+      // provided by the protocol, so keys like space and return produce their
+      // expected text input (' ' and '\r' respectively).
+      if (kittyParts && key.isPrintable && !textFromProtocol) {
+        key.text = safeFromCodePoint(codepoint)
+      }
+    } else if (KITTY_RE.test(input)) {
+      // Matched kitty pattern but was rejected (e.g., invalid codepoint in the
+      // parseKittyKeypress path above returned early). Return safe empty keypress.
+      key.isKittyProtocol = true
+      key.isPrintable = false
+      key.raw = input
+      return key
     } else {
       let parts = META_KEY_CODE_RE.exec(input)
       if (parts) {
@@ -892,41 +1079,52 @@ for (const [cp, name] of Object.entries(KITTY_CODEPOINT_MAP)) {
   NAME_TO_KITTY_CODEPOINT[name] = Number(cp)
 }
 
-/** Playwright-style key name → Kitty key name for special keys */
-const PLAYWRIGHT_TO_KITTY_NAME: Record<string, string> = {
-  Enter: "return",
-  ArrowUp: "up",
-  ArrowDown: "down",
-  ArrowLeft: "left",
-  ArrowRight: "right",
-  Escape: "escape",
-  Backspace: "backspace",
-  Tab: "tab",
-  Delete: "delete",
-  Insert: "insert",
-  Home: "home",
-  End: "end",
-  PageUp: "pageup",
-  PageDown: "pagedown",
-  F1: "f1",
-  F2: "f2",
-  F3: "f3",
-  F4: "f4",
-  F5: "f5",
-  F6: "f6",
-  F7: "f7",
-  F8: "f8",
-  F9: "f9",
-  F10: "f10",
-  F11: "f11",
-  F12: "f12",
+/** Playwright-style key name → CSI u codepoint for keys using CSI u format */
+const PLAYWRIGHT_TO_KITTY_CSI_U: Record<string, number> = {
+  Enter: 13,
+  Escape: 27,
+  Backspace: 127,
+  Tab: 9,
+  Space: 32,
+}
+
+/** Playwright-style key name → Kitty enhanced special key suffix (letter-terminated) */
+const PLAYWRIGHT_TO_KITTY_SPECIAL_LETTER: Record<string, string> = {
+  ArrowUp: "A",
+  ArrowDown: "B",
+  ArrowRight: "C",
+  ArrowLeft: "D",
+  Home: "H",
+  End: "F",
+  F1: "P",
+  F2: "Q",
+  F3: "R",
+  F4: "S",
+}
+
+/** Playwright-style key name → Kitty enhanced special key number (tilde-terminated) */
+const PLAYWRIGHT_TO_KITTY_SPECIAL_TILDE: Record<string, number> = {
+  Insert: 2,
+  Delete: 3,
+  PageUp: 5,
+  PageDown: 6,
+  F5: 15,
+  F6: 17,
+  F7: 18,
+  F8: 19,
+  F9: 20,
+  F10: 21,
+  F11: 23,
+  F12: 24,
 }
 
 /**
  * Convert a Playwright-style key string to a Kitty keyboard protocol ANSI sequence.
  *
- * Format: CSI codepoint ; modifiers u
- * Where modifiers = 1 + bitfield (shift=1, alt=2, ctrl=4, super=8)
+ * Uses the appropriate Kitty format for each key type:
+ * - Regular keys: CSI codepoint ; modifiers u
+ * - Arrow/nav keys: CSI 1 ; modifiers letter (enhanced special key format)
+ * - Tilde keys: CSI number ; modifiers ~ (enhanced special key format)
  *
  * @example
  * ```tsx
@@ -934,7 +1132,7 @@ const PLAYWRIGHT_TO_KITTY_NAME: Record<string, string> = {
  * keyToKittyAnsi('Enter')        // '\x1b[13u'
  * keyToKittyAnsi('Control+c')    // '\x1b[99;5u'     (ctrl = 4, modifier = 5)
  * keyToKittyAnsi('Shift+Enter')  // '\x1b[13;2u'     (shift = 1, modifier = 2)
- * keyToKittyAnsi('ArrowUp')      // '\x1b[57358u'
+ * keyToKittyAnsi('ArrowUp')      // '\x1b[1;1A'      (enhanced special key)
  * ```
  */
 export function keyToKittyAnsi(key: string): string {
@@ -950,32 +1148,47 @@ export function keyToKittyAnsi(key: string): string {
   if (modifiers.includes("Super")) mod |= 8
   if (modifiers.includes("Hyper")) mod |= 16
 
-  // Resolve codepoint
-  let codepoint: number
+  // Check for letter-terminated special keys (arrow keys, home, end, F1-F4)
+  const specialLetter = PLAYWRIGHT_TO_KITTY_SPECIAL_LETTER[mainKey]
+  if (specialLetter) {
+    return `\x1b[1;${mod + 1}${specialLetter}`
+  }
 
-  // Check Playwright-style names first (ArrowUp → up → codepoint)
-  const kittyName = PLAYWRIGHT_TO_KITTY_NAME[mainKey]
-  if (kittyName) {
-    codepoint = NAME_TO_KITTY_CODEPOINT[kittyName]!
-  } else if (mainKey.length === 1) {
-    // Single character — use its Unicode codepoint
-    codepoint = mainKey.charCodeAt(0)
-  } else {
-    // Try lowercase as direct kitty name (e.g., "return", "escape")
-    const cp = NAME_TO_KITTY_CODEPOINT[mainKey.toLowerCase()]
-    if (cp !== undefined) {
-      codepoint = cp
-    } else {
-      // Fallback: return as-is (not a kitty key)
-      return keyToAnsi(key)
+  // Check for tilde-terminated special keys (insert, delete, pageup, F5-F12)
+  const specialNumber = PLAYWRIGHT_TO_KITTY_SPECIAL_TILDE[mainKey]
+  if (specialNumber !== undefined) {
+    return `\x1b[${specialNumber};${mod + 1}~`
+  }
+
+  // Check CSI u format keys
+  const csiUCodepoint = PLAYWRIGHT_TO_KITTY_CSI_U[mainKey]
+  if (csiUCodepoint !== undefined) {
+    if (mod > 0) {
+      return `\x1b[${csiUCodepoint};${mod + 1}u`
     }
+    return `\x1b[${csiUCodepoint}u`
   }
 
-  // Format: CSI codepoint ; modifiers u (modifiers omitted when 0)
-  if (mod > 0) {
-    return `\x1b[${codepoint};${mod + 1}u`
+  // Single character — use Unicode codepoint in CSI u format
+  if (mainKey.length === 1) {
+    const codepoint = mainKey.charCodeAt(0)
+    if (mod > 0) {
+      return `\x1b[${codepoint};${mod + 1}u`
+    }
+    return `\x1b[${codepoint}u`
   }
-  return `\x1b[${codepoint}u`
+
+  // Try lowercase as direct kitty name (e.g., "return", "escape")
+  const cp = NAME_TO_KITTY_CODEPOINT[mainKey.toLowerCase()]
+  if (cp !== undefined) {
+    if (mod > 0) {
+      return `\x1b[${cp};${mod + 1}u`
+    }
+    return `\x1b[${cp}u`
+  }
+
+  // Fallback: return as-is (not a kitty key)
+  return keyToAnsi(key)
 }
 
 // ============================================================================
