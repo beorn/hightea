@@ -263,7 +263,11 @@ Flexily intentionally follows the **W3C CSS Flexbox specification** where Yoga d
 | `overflow:hidden` + `flexShrink:0` | Item shrinks to fit parent | Item expands to content size | CSS §4.5: overflow containers have `min-size: auto = 0`. Without this, an `overflow:hidden` child with 30 lines inside a height-10 parent computes as height 30 — defeating clipping. |
 | `alignContent` distribution | Matches browser behavior | Slightly different spacing | Minor differences in how cross-axis space is distributed across flex lines. |
 
-**If you prefer browser-standard flexbox**, use Flexily (the default). **If you need exact Ink layout parity**, switch to Yoga:
+**If you prefer browser-standard flexbox**, use Flexily (the default). **If you need exact Ink layout parity**, install Yoga and switch:
+
+```bash
+bun add yoga-wasm-web
+```
 
 ```tsx
 import { render } from "silvery"
@@ -271,7 +275,7 @@ import { render } from "silvery"
 await render(<App />, { layoutEngine: "yoga" })
 ```
 
-Or set the `SILVERY_ENGINE=yoga` environment variable to switch globally without code changes.
+Or set `SILVERY_ENGINE=yoga` to switch globally without code changes.
 
 Most Ink apps use simple layouts (`flexDirection="column"`, padding, borders) that work identically in both engines. The differences surface with advanced flexbox features like `flexWrap`, `alignContent`, and percentage-based `flexBasis`.
 

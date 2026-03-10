@@ -267,7 +267,11 @@ const { width } = useContentRect()
 
 If your Ink app uses advanced flexbox features (`flexWrap`, `alignContent`, percentage `flexBasis`, absolute positioning with offsets), the default Flexily layout engine may produce slightly different results than Yoga. This is because Flexily follows the CSS spec where Yoga diverges — see [Flexily vs Yoga Philosophy](/guide/silvery-vs-ink#flexily-vs-yoga-philosophy).
 
-**For exact Ink layout parity**, use Yoga as the layout engine:
+**For exact Ink layout parity**, install Yoga and switch the layout engine:
+
+```bash
+bun add yoga-wasm-web
+```
 
 ```tsx
 import { render } from "silvery"
@@ -275,7 +279,7 @@ import { render } from "silvery"
 await render(<App />, { layoutEngine: "yoga" })
 ```
 
-Or set the `SILVERY_ENGINE=yoga` environment variable to switch globally without code changes.
+Or set `SILVERY_ENGINE=yoga` to switch globally without code changes.
 
 Most Ink apps use simple layouts that work identically in both engines.
 
@@ -336,6 +340,31 @@ function Card({ item }) {
   // Use width only where actually needed
 }
 ```
+
+## The Compat Layer
+
+If you're using Silvery's runtime (`pipe()` + `createApp()`), the Ink compat layer is a composable plugin:
+
+```tsx
+import { pipe, createApp, withReact, withTerminal, withInk } from "@silvery/tea/plugins"
+
+const app = pipe(
+  createApp(store),
+  withReact(<App />),
+  withTerminal(process),
+  withInk(), // enables Ink's useFocus, useFocusManager, useCursor
+)
+await app.run()
+```
+
+`withInk()` composes two thin adapters: `withInkCursor()` (bridges Ink's `useCursor` to silvery's `CursorStore`) and `withInkFocus()` (provides Ink's flat-list focus system). You can use them individually:
+
+```tsx
+// Only need Ink cursor compat, not focus
+const app = pipe(createApp(store), withReact(<App />), withTerminal(process), withInkCursor())
+```
+
+As you adopt silvery-native APIs (`useFocusable()` instead of `useFocus()`, silvery's `useCursor()` instead of Ink's), you can drop the adapters one by one. See [Compat Layer Architecture](/reference/compatibility#compat-layer-architecture) for details.
 
 ## Getting Help
 
