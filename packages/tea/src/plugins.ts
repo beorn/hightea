@@ -98,7 +98,7 @@ export type { DiagnosticOptions } from "./with-diagnostics"
 // withInk — Ink compatibility layer (from @silvery/compat)
 // =============================================================================
 
-export { withInk, createInkWrapRoot } from "@silvery/compat/with-ink"
+export { withInk } from "@silvery/compat/with-ink"
 export type { WithInkOptions, AppWithInk } from "@silvery/compat/with-ink"
 
 // Scheduler errors (for catching incremental render mismatches)

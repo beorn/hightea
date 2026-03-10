@@ -4,26 +4,14 @@
  * Wraps a React element tree with Ink-specific providers (error boundary,
  * focus system, cursor store) via the `.Root` component pattern.
  *
- * Two usage modes:
- *
- * 1. **pipe() composition** — App-level plugin for the silvery plugin system:
- *    ```tsx
- *    const app = pipe(
- *      createApp(store),
- *      withReact(<App />),
- *      withTerminal(process),
- *      withInk(),
- *    )
- *    ```
- *
- * 2. **Test renderer** — Pass `createInkWrapRoot()` as `wrapRoot` option:
- *    ```tsx
- *    const app = render(<App />, {
- *      cols: 80,
- *      rows: 24,
- *      wrapRoot: createInkWrapRoot(),
- *    })
- *    ```
+ * ```tsx
+ * const app = pipe(
+ *   createApp(store),
+ *   withReact(<App />),
+ *   withTerminal(process),
+ *   withInk(),
+ * )
+ * ```
  *
  * @packageDocumentation
  */
@@ -329,26 +317,10 @@ class InkErrorBoundary extends Component<InkErrorBoundaryProps, InkErrorBoundary
 // =============================================================================
 
 /**
- * Create a `wrapRoot` function that wraps a React element tree with
- * Ink-specific providers (CursorProvider, InkCursorStoreCtx, InkFocusProvider,
- * InkErrorBoundary).
- *
- * Use this directly with silvery's test renderer `render()`:
- *
- * ```tsx
- * import { createInkWrapRoot } from '@silvery/compat/with-ink'
- *
- * const app = render(<App />, {
- *   cols: 80,
- *   rows: 24,
- *   wrapRoot: createInkWrapRoot(),
- * })
- * ```
- *
- * @param options - Optional cursor store, input emitter, and error handler
- * @returns A `wrapRoot` function `(element) => wrappedElement`
+ * Internal: create a wrapping function for Ink providers.
+ * Used by `withInk()` to build the InkRoot component.
  */
-export function createInkWrapRoot(
+function createInkWrapRoot(
   options: WithInkOptions = {},
 ): (element: ReactElement) => ReactElement {
   const cursorStore = options.cursorStore ?? createCursorStore()
@@ -387,8 +359,6 @@ interface RunnableApp {
  * App enhanced with Ink compatibility layer.
  */
 export interface AppWithInk {
-  /** The Ink wrapRoot function applied by this plugin */
-  readonly inkWrapRoot: (element: ReactElement) => ReactElement
   /** Root component that wraps the element tree with Ink providers */
   readonly Root: React.ComponentType<{ children: React.ReactNode }>
 }
@@ -437,7 +407,6 @@ export function withInk<T extends RunnableApp>(
     const originalRun = app.run
 
     return Object.assign(Object.create(app), {
-      inkWrapRoot: wrapRoot,
       Root: InkRoot,
       run(...args: unknown[]) {
         // Inject Root into run options so createApp() can use it

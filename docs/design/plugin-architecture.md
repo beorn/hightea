@@ -139,7 +139,7 @@ const app = pipe(
 )
 
 // Test renderer — wrapRoot still works for direct usage:
-render(<App />, { wrapRoot: createInkWrapRoot() })
+render(<App />, { wrapRoot: (el) => <InkProviders>{el}</InkProviders> })
 ```
 
 ## Alternatives Considered
