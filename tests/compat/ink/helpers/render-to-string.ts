@@ -1,11 +1,16 @@
 /**
  * Ink-compatible renderToString helper using silvery's renderStringSync.
  *
- * silvery's buffer output wraps content with SGR reset (\x1b[0m) at start/end.
- * Ink does not do this, so we strip the leading/trailing resets to match Ink's output.
+ * Applies ANSI conversion (silvery → chalk format), VS16 stripping,
+ * content height trimming, and empty fragment detection to match Ink output.
  */
-import { renderStringSync } from "@silvery/react/render-string"
-import { ensureDefaultLayoutEngine, isLayoutEngineInitialized } from "@silvery/term/layout-engine"
+import React from "react"
+import { renderStringSync } from "../../../../packages/react/src/render-string"
+import { ensureDefaultLayoutEngine, isLayoutEngineInitialized } from "../../../../packages/term/src/layout-engine"
+import { createTerm } from "../../../../packages/term/src/ansi"
+import { TermContext } from "../../../../packages/react/src/context"
+import { currentChalkLevel, stripSilveryVS16, toChalkCompat } from "../../../../packages/compat/src/ink"
+import { stripAnsi } from "../../../../packages/term/src/unicode"
 
 type RenderToStringOptions = {
   columns?: number
@@ -22,16 +27,43 @@ async function ensureEngine(): Promise<void> {
   engineReady = true
 }
 
-/**
- * Strip the leading/trailing SGR reset that silvery adds to buffer output.
- * This makes output match Ink's renderToString behavior.
- */
-function stripBufferResets(s: string): string {
-  // silvery wraps output with \x1b[0m at start and end
-  let result = s
-  if (result.startsWith("\x1b[0m")) result = result.slice(4)
-  if (result.endsWith("\x1b[0m")) result = result.slice(0, -4)
-  return result
+function doRender(node: React.JSX.Element, options?: RenderToStringOptions): string {
+  const chalkHasColors = currentChalkLevel() > 0
+  const colorLevel = chalkHasColors ? ("truecolor" as const) : null
+  const term = createTerm({ color: colorLevel })
+  const plain = term.hasColor() === null
+  const wrapped = React.createElement(TermContext.Provider, { value: term }, node)
+
+  const bufferHeight = 24
+  let layoutContentHeight = 0
+  let output = renderStringSync(wrapped as React.ReactElement, {
+    width: options?.columns ?? 100,
+    height: bufferHeight,
+    plain,
+    trimTrailingWhitespace: true,
+    trimEmptyLines: false,
+    onContentHeight: (h: number) => {
+      layoutContentHeight = h
+    },
+  })
+
+  output = stripSilveryVS16(output)
+
+  // Trim buffer padding rows using content height from layout
+  if (layoutContentHeight > 0 && layoutContentHeight < bufferHeight) {
+    const lines = output.split("\n")
+    output = lines.slice(0, layoutContentHeight).join("\n")
+  } else {
+    // Fall back: strip trailing empty lines (content height unknown or fills buffer)
+    const lines = output.split("\n")
+    while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop()
+    output = lines.join("\n")
+  }
+
+  // Empty fragment → empty string (strip ANSI to detect styled-but-empty output)
+  if (stripAnsi(output).trim() === "") return ""
+
+  return plain ? output : toChalkCompat(output)
 }
 
 /**
@@ -41,11 +73,7 @@ export const renderToString = (node: React.JSX.Element, options?: RenderToString
   if (!isLayoutEngineInitialized()) {
     throw new Error("Layout engine not initialized. Call initLayoutEngine() in beforeAll().")
   }
-  return stripBufferResets(
-    renderStringSync(node, {
-      width: options?.columns ?? 100,
-    }),
-  )
+  return doRender(node, options)
 }
 
 /**
@@ -56,11 +84,7 @@ export const renderToStringAsync = async (
   options?: RenderToStringOptions,
 ): Promise<string> => {
   await ensureEngine()
-  return stripBufferResets(
-    renderStringSync(node, {
-      width: options?.columns ?? 100,
-    }),
-  )
+  return doRender(node, options)
 }
 
 /**

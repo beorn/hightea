@@ -5,7 +5,7 @@
 import React from "react"
 import { test, expect, beforeAll } from "vitest"
 import chalk from "chalk"
-import { stripAnsi } from "../../../packages/ansi/src/utils"
+import { stripAnsi } from "../../../packages/term/src/ansi/utils"
 import { Box, Text } from "../../../packages/compat/src/ink"
 import { renderToString, renderToStringAsync, initLayoutEngine } from "./helpers/render-to-string"
 

@@ -10,13 +10,13 @@ Every cell in the terminal buffer stores structured style data:
 
 ```typescript
 interface Cell {
-  char: string         // The grapheme at this position
-  fg: Color            // Foreground color (256-color index, RGB, or null)
-  bg: Color            // Background color (separate from fg)
+  char: string // The grapheme at this position
+  fg: Color // Foreground color (256-color index, RGB, or null)
+  bg: Color // Background color (separate from fg)
   underlineColor: Color // Independent underline color (SGR 58)
-  attrs: CellAttrs     // bold, dim, italic, underline, strikethrough, etc.
-  wide: boolean        // CJK/emoji double-width flag
-  hyperlink?: string   // OSC 8 hyperlink URL
+  attrs: CellAttrs // bold, dim, italic, underline, strikethrough, etc.
+  wide: boolean // CJK/emoji double-width flag
+  hyperlink?: string // OSC 8 hyperlink URL
 }
 ```
 
@@ -38,7 +38,7 @@ Pre-styled text (chalk, kleur, etc.) composes with silvery's style props automat
 import chalk from "chalk"
 
 // chalk.red applies to "red", silvery blue applies to "and blue"
-<Text color="blue">{chalk.red("red")} and blue</Text>
+;<Text color="blue">{chalk.red("red")} and blue</Text>
 ```
 
 The parser extracts chalk's red SGR into the cell's `fg` property for "red", then silvery's `color="blue"` sets `fg` for "and blue". No reset codes leak between them.
@@ -85,11 +85,11 @@ The overlay's cells replace the background's cells at their positions. No manual
 
 Diff rendering only re-emits changed cells. Pre-styled text participates fully in the diff -- if chalk-styled text did not change between frames, zero bytes are emitted for those cells.
 
-| Scenario | Full Render | Incremental | Reduction |
-|---|---|---|---|
-| 10 rows, 1 cell changed | 1,196 bytes | 42 bytes | 28x |
-| 30 rows, 1 cell changed | 3,540 bytes | 33 bytes | 107x |
-| 50 rows, 1 cell changed | 6,324 bytes | 33 bytes | 192x |
+| Scenario                | Full Render | Incremental | Reduction |
+| ----------------------- | ----------- | ----------- | --------- |
+| 10 rows, 1 cell changed | 1,196 bytes | 42 bytes    | 28x       |
+| 30 rows, 1 cell changed | 3,540 bytes | 33 bytes    | 107x      |
+| 50 rows, 1 cell changed | 6,324 bytes | 33 bytes    | 192x      |
 
 This works because the diff operates on structured cells, not raw ANSI strings. Two cells with the same fg, bg, attrs, and character are equal regardless of how many different ANSI code sequences could produce the same visual result.
 
@@ -127,15 +127,15 @@ The parser extracts OSC 8 URLs into the cell's `hyperlink` property. The output 
 
 Some terminal libraries pass ANSI sequences through unchanged. This preserves the exact byte sequence the author wrote, but breaks composition.
 
-| Capability | Raw Passthrough | Cell-Buffer (Silvery) |
-|---|---|---|
-| Pre-styled text fidelity | Exact bytes preserved | Full fidelity via structured styles |
-| Style composition | Broken -- nested sequences conflict | Automatic -- cell properties merge |
-| Background cascade | Manual -- each component manages resets | Automatic -- inherited from render tree |
-| Incremental diff | Broken -- can't diff opaque sequences | Full participation -- cells are comparable |
-| Overflow clipping | Broken -- clipping mid-sequence corrupts state | Clean -- clip at cell boundary |
-| Cursor positioning | Fragile -- escape sequences shift positions | Correct -- chars and escapes are separated |
-| Hyperlinks | Opaque -- can't combine with other styles | First-class -- compose with everything |
-| Output size | Verbose -- redundant resets and codes | Minimal -- cached transitions, canonical form |
+| Capability               | Raw Passthrough                                | Cell-Buffer (Silvery)                         |
+| ------------------------ | ---------------------------------------------- | --------------------------------------------- |
+| Pre-styled text fidelity | Exact bytes preserved                          | Full fidelity via structured styles           |
+| Style composition        | Broken -- nested sequences conflict            | Automatic -- cell properties merge            |
+| Background cascade       | Manual -- each component manages resets        | Automatic -- inherited from render tree       |
+| Incremental diff         | Broken -- can't diff opaque sequences          | Full participation -- cells are comparable    |
+| Overflow clipping        | Broken -- clipping mid-sequence corrupts state | Clean -- clip at cell boundary                |
+| Cursor positioning       | Fragile -- escape sequences shift positions    | Correct -- chars and escapes are separated    |
+| Hyperlinks               | Opaque -- can't combine with other styles      | First-class -- compose with everything        |
+| Output size              | Verbose -- redundant resets and codes          | Minimal -- cached transitions, canonical form |
 
 The cell-buffer approach means silvery can accept text styled by any library (chalk, kleur, picocolors, raw ANSI) and produce correct, minimal, composable output. The pre-styled text is not degraded -- it is elevated into a structured representation that enables features impossible with raw passthrough.

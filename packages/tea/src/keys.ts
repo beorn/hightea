@@ -686,8 +686,7 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
       const eventType = Number(kittySpecialParts[3])
       const terminator = kittySpecialParts[4]!
 
-      const name =
-        terminator === "~" ? KITTY_SPECIAL_NUMBER_KEYS[number] : KITTY_SPECIAL_LETTER_KEYS[terminator]
+      const name = terminator === "~" ? KITTY_SPECIAL_NUMBER_KEYS[number] : KITTY_SPECIAL_LETTER_KEYS[terminator]
 
       key.isKittyProtocol = true
       key.isPrintable = false

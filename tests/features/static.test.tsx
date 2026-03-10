@@ -4,7 +4,7 @@
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Box, Text } from "silvery"
-import { Static } from "@silvery/compat/ink"
+import { Static } from "../../packages/compat/src/ink"
 
 const render = createRenderer({ cols: 80, rows: 10 })
 
@@ -12,9 +12,7 @@ describe("Static", () => {
   test("renders items above dynamic content", () => {
     const app = render(
       <Box flexDirection="column">
-        <Static items={["A", "B", "C"]}>
-          {item => <Text key={item}>{item}</Text>}
-        </Static>
+        <Static items={["A", "B", "C"]}>{(item) => <Text key={item}>{item}</Text>}</Static>
         <Text>X</Text>
       </Box>,
     )
@@ -22,11 +20,7 @@ describe("Static", () => {
   })
 
   test("renders items in order", () => {
-    const app = render(
-      <Static items={["first", "second", "third"]}>
-        {item => <Text key={item}>{item}</Text>}
-      </Static>,
-    )
+    const app = render(<Static items={["first", "second", "third"]}>{(item) => <Text key={item}>{item}</Text>}</Static>)
     expect(app.text).toBe("first\nsecond\nthird")
   })
 
@@ -40,9 +34,7 @@ describe("Static", () => {
 
     const app = render(
       <Box flexDirection="column">
-        <Static items={["A", "B"]}>
-          {item => <TrackingItem key={item} item={item} />}
-        </Static>
+        <Static items={["A", "B"]}>{(item) => <TrackingItem key={item} item={item} />}</Static>
         <Text>dynamic</Text>
       </Box>,
     )
@@ -54,9 +46,7 @@ describe("Static", () => {
     // Add a new item - only "C" should be rendered, not A and B
     app.rerender(
       <Box flexDirection="column">
-        <Static items={["A", "B", "C"]}>
-          {item => <TrackingItem key={item} item={item} />}
-        </Static>
+        <Static items={["A", "B", "C"]}>{(item) => <TrackingItem key={item} item={item} />}</Static>
         <Text>dynamic</Text>
       </Box>,
     )

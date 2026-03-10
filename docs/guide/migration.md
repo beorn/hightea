@@ -149,7 +149,7 @@ If your component does math with width/height (like `"=".repeat(width)`), add a 
 ```tsx
 function Header() {
   const { width } = useContentRect()
-  if (width === 0) return null  // Skip first layout pass
+  if (width === 0) return null // Skip first layout pass
   return <Text>{"=".repeat(width)}</Text>
 }
 ```
@@ -202,7 +202,7 @@ return <Box ref={ref}>...</Box>
 ```tsx
 // Silvery
 const { width } = useContentRect()
-return <Box>...</Box>  // No ref needed
+return <Box>...</Box> // No ref needed
 ```
 
 ### 6. Hook Naming
@@ -220,12 +220,12 @@ return <Box>...</Box>  // No ref needed
 
 ### By Design
 
-| Behavior                | Ink       | Silvery | Reason                          |
-| ----------------------- | --------- | ------- | ------------------------------- |
-| Default flexDirection   | row       | row     | Now aligned with CSS/Ink        |
-| Text overflow           | Overflows | Wraps   | Better default                  |
-| First render dimensions | N/A       | Zeros   | Required for layout feedback    |
-| Internal APIs           | Exposed   | Hidden  | Not public API                  |
+| Behavior                | Ink       | Silvery | Reason                       |
+| ----------------------- | --------- | ------- | ---------------------------- |
+| Default flexDirection   | row       | row     | Now aligned with CSS/Ink     |
+| Text overflow           | Overflows | Wraps   | Better default               |
+| First render dimensions | N/A       | Zeros   | Required for layout feedback |
+| Internal APIs           | Exposed   | Hidden  | Not public API               |
 
 ::: tip Default Flex Direction
 Both Ink and Silvery default `<Box>` to `flexDirection="row"`, matching the W3C CSS spec.

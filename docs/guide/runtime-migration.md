@@ -11,14 +11,16 @@ The new `silvery/runtime` API provides:
 - **Better testing** - All layers testable without a terminal
 - **Zustand integration** - Fine-grained subscriptions for complex apps
 - **Rich Key parsing** - Arrow keys, modifiers, special keys out of the box
+- **Unified API for Node.js and browser** - Same `run()` call with `{ terminal }` for xterm.js
 
 ## Import Changes
 
-| Old (Silvery)                              | New (silvery/runtime)                              |
-| ------------------------------------------ | -------------------------------------------------- |
-| `import { render } from '@silvery/term'`   | `import { run } from '@silvery/term/runtime'`      |
-| `import { useInput } from '@silvery/term'` | `import { useInput } from '@silvery/term/runtime'` |
-| `import { useApp } from '@silvery/term'`   | `import { useExit } from '@silvery/term/runtime'`  |
+| Old (Silvery)                                         | New (silvery/runtime)                              |
+| ----------------------------------------------------- | -------------------------------------------------- |
+| `import { render } from '@silvery/term'`              | `import { run } from '@silvery/term/runtime'`      |
+| `import { useInput } from '@silvery/term'`            | `import { useInput } from '@silvery/term/runtime'` |
+| `import { useApp } from '@silvery/term'`              | `import { useExit } from '@silvery/term/runtime'`  |
+| `import { renderToXterm } from '@silvery/term/xterm'` | `import { run } from '@silvery/term/runtime'`      |
 
 ## useInput Signature
 
@@ -166,6 +168,44 @@ await app.run(<App />)
 | Complex setup                 | `const handle = await run(<App />)` |
 | Manual unmount                | `handle.unmount()`                  |
 
+## Browser Rendering (xterm.js)
+
+**Before:**
+
+```tsx
+import { renderToXterm } from "@silvery/term/xterm"
+
+const instance = renderToXterm(<App />, term, {
+  input: {
+    onKey: (data) => handleKey(data),
+    onMouse: ({ x, y, button }) => handleMouse(x, y, button),
+    onFocus: (focused) => handleFocus(focused),
+  },
+})
+
+// Resize
+instance.resize(term.cols, term.rows)
+
+// Cleanup
+instance.unmount()
+```
+
+**After:**
+
+```tsx
+import { run } from "@silvery/term/runtime"
+
+const handle = await run(<App />, {
+  terminal: term,
+  mouse: true,
+})
+
+// Cleanup
+handle.unmount()
+```
+
+With `run()`, input handling moves into the component tree via `useInput()` and the focus system -- no manual event bus needed. Mouse events and focus are handled automatically by the runtime.
+
 ## Components Stay the Same
 
 Box, Text, and other components work identically:
@@ -187,12 +227,13 @@ function Card() {
 
 The following from the old Silvery API are **deprecated** and will be removed:
 
-| Deprecated              | Replacement                                |
-| ----------------------- | ------------------------------------------ |
-| `render()`              | `run()` from silvery/runtime               |
-| `useInput` from Silvery | `useInput` from silvery/runtime            |
-| `useApp()` for exit     | `useExit()` or `return 'exit'`             |
-| `RenderScheduler`       | Built into `run()` with automatic batching |
+| Deprecated              | Replacement                                             |
+| ----------------------- | ------------------------------------------------------- |
+| `render()`              | `run()` from silvery/runtime                            |
+| `renderToXterm()`       | `run(<App />, { terminal: term })` from silvery/runtime |
+| `useInput` from Silvery | `useInput` from silvery/runtime                         |
+| `useApp()` for exit     | `useExit()` or `return 'exit'`                          |
+| `RenderScheduler`       | Built into `run()` with automatic batching              |
 
 ## Future
 

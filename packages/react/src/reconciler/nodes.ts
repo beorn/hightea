@@ -198,9 +198,14 @@ function collectNodeTextContent(node: TeaNode): string {
 
 /**
  * Create the root node for the Silvery tree.
+ * Root is always column (document flow is top-to-bottom), regardless of
+ * flexily's default flexDirection.
  */
 export function createRootNode(): TeaNode {
-  return createNode("silvery-root", {})
+  const node = createNode("silvery-root", {})
+  const c = getConstants()
+  node.layoutNode.setFlexDirection(c.FLEX_DIRECTION_COLUMN)
+  return node
 }
 
 /**
@@ -242,8 +247,7 @@ export function createVirtualTextNode(props: TextProps): TeaNode {
 export function applyBoxProps(layoutNode: LayoutNode, props: BoxProps, oldProps?: BoxProps): void {
   const c = getConstants()
   // Helper: true when a prop was set in oldProps but not in newProps (prop removed on rerender)
-  const wasRemoved = (prop: keyof BoxProps): boolean =>
-    oldProps !== undefined && oldProps[prop] !== undefined && props[prop] === undefined
+  const wasRemoved = (prop: keyof BoxProps): boolean => oldProps?.[prop] !== undefined && props[prop] === undefined
 
   // Dimensions
   if (props.width !== undefined) {
@@ -346,9 +350,9 @@ export function applyBoxProps(layoutNode: LayoutNode, props: BoxProps, oldProps?
       "row-reverse": c.FLEX_DIRECTION_ROW_REVERSE,
       "column-reverse": c.FLEX_DIRECTION_COLUMN_REVERSE,
     }
-    layoutNode.setFlexDirection(directionMap[props.flexDirection] ?? c.FLEX_DIRECTION_COLUMN)
+    layoutNode.setFlexDirection(directionMap[props.flexDirection] ?? c.FLEX_DIRECTION_ROW)
   } else if (wasRemoved("flexDirection")) {
-    layoutNode.setFlexDirection(c.FLEX_DIRECTION_COLUMN)
+    layoutNode.setFlexDirection(c.FLEX_DIRECTION_ROW)
   }
 
   // Flex wrap
@@ -501,11 +505,7 @@ function applySpacing(layoutNode: LayoutNode, type: "padding" | "margin", props:
  * Apply a position offset (top/left/bottom/right) to a layout node.
  * Supports both numeric (absolute) and percentage string values.
  */
-function applyPositionOffset(
-  layoutNode: LayoutNode,
-  edge: number,
-  value: number | string | undefined,
-): void {
+function applyPositionOffset(layoutNode: LayoutNode, edge: number, value: number | string | undefined): void {
   if (value === undefined) return
   if (typeof value === "string" && value.endsWith("%")) {
     layoutNode.setPositionPercent(edge, Number.parseFloat(value))

@@ -120,6 +120,25 @@ export interface RenderOptions {
    * Use this to make tests exercise the same rendering pipeline as production.
    */
   singlePassLayout?: boolean
+  /**
+   * Auto-render on async React commits (e.g., setTimeout → setState).
+   *
+   * When true, the renderer schedules a microtask re-render whenever React
+   * commits new work outside of explicit render/sendInput/rerender calls.
+   * This enables test components with async state updates to produce new
+   * frames automatically.
+   *
+   * Default: false (renderer only renders on explicit triggers).
+   */
+  autoRender?: boolean
+  /**
+   * Callback fired after each frame render.
+   *
+   * Called with the frame output string and the underlying TerminalBuffer.
+   * Fires after initial render, sendInput, rerender, and (if autoRender)
+   * async state changes.
+   */
+  onFrame?: (frame: string, buffer: TerminalBuffer) => void
 }
 
 /**
@@ -203,7 +222,7 @@ interface RenderInstance {
 function isStore(arg: unknown): arg is Store {
   // Store has cols and rows as required (not optional) properties.
   // RenderOptions has them as optional. Disambiguate by checking for
-  // RenderOptions-only traits: layoutEngine, debug, incremental, singlePassLayout.
+  // RenderOptions-only traits.
   if (arg === null || typeof arg !== "object") return false
   const obj = arg as Record<string, unknown>
   return (
@@ -212,7 +231,10 @@ function isStore(arg: unknown): arg is Store {
     !("layoutEngine" in obj) &&
     !("debug" in obj) &&
     !("incremental" in obj) &&
-    !("singlePassLayout" in obj)
+    !("singlePassLayout" in obj) &&
+    !("autoRender" in obj) &&
+    !("onFrame" in obj) &&
+    !("kittyMode" in obj)
   )
 }
 
@@ -248,6 +270,8 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   const incremental = storeMode ? true : (optsOrStore.incremental ?? true)
   const singlePassLayout = storeMode ? false : (optsOrStore.singlePassLayout ?? false)
   const kittyMode = storeMode ? false : (optsOrStore.kittyMode ?? false)
+  const autoRender = storeMode ? false : (optsOrStore.autoRender ?? false)
+  const onFrame = storeMode ? undefined : optsOrStore.onFrame
 
   // Guard: detect render leaks (absurd number of active instances)
   const liveCount = pruneAndCountActiveRenders()
@@ -285,8 +309,28 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
 
   // Track whether React committed new work (from layout notifications etc.)
   let hadReactCommit = false
+  let autoRenderScheduled = false
+  let inRenderCycle = false // true during doRender() and explicit operations
   instance.container = createContainer(() => {
     hadReactCommit = true
+    // Auto-render: schedule a microtask re-render on async React commits
+    // (e.g., setTimeout → setState). Skipped during explicit render operations
+    // (rendering=true or inRenderCycle=true) since those call doRender() themselves.
+    if (autoRender && !instance.rendering && !inRenderCycle && !autoRenderScheduled && instance.mounted) {
+      autoRenderScheduled = true
+      queueMicrotask(() => {
+        autoRenderScheduled = false
+        if (!instance.mounted || instance.rendering || inRenderCycle) return
+        inRenderCycle = true
+        try {
+          const newFrame = doRender()
+          instance.frames.push(newFrame)
+          onFrame?.(newFrame, instance.prevBuffer!)
+        } finally {
+          inRenderCycle = false
+        }
+      })
+    }
   })
 
   instance.fiberRoot = createFiberRoot(instance.container)
@@ -588,6 +632,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   instance.singlePassLayout = savedSinglePass
 
   instance.frames.push(output)
+  onFrame?.(output, instance.prevBuffer!)
 
   if (debug) {
     console.log("[silvery] Initial render:", output)
@@ -686,6 +731,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
 
     const t2 = performance.now()
     instance.frames.push(newFrame)
+    onFrame?.(newFrame, instance.prevBuffer!)
     if (debug) {
       console.log("[silvery] stdin.write:", newFrame)
     }
@@ -718,6 +764,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     }
     const newFrame = doRender()
     instance.frames.push(newFrame)
+    onFrame?.(newFrame, instance.prevBuffer!)
     if (debug) {
       console.log("[silvery] Rerender:", newFrame)
     }
@@ -769,6 +816,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     })
     const newFrame = doRender()
     instance.frames.push(newFrame)
+    onFrame?.(newFrame, instance.prevBuffer!)
   }
 
   // Resize: update dimensions, clear prevBuffer, re-render (matches scheduler resize behavior)
@@ -788,6 +836,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     // Re-render at new dimensions
     const newFrame = doRender()
     instance.frames.push(newFrame)
+    onFrame?.(newFrame, instance.prevBuffer!)
     if (debug) {
       console.log("[silvery] Resize:", newCols, "x", newRows)
     }

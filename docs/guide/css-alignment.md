@@ -11,8 +11,12 @@ The [CSS Flexbox spec (W3C CR)](https://www.w3.org/TR/css-flexbox-1/#flex-shrink
 ```tsx
 // Silvery: items shrink by default (CSS spec behavior)
 <Box flexDirection="row" width={20}>
-  <Box width={15}><Text>Shrinks</Text></Box>
-  <Box width={15}><Text>Shrinks</Text></Box>
+  <Box width={15}>
+    <Text>Shrinks</Text>
+  </Box>
+  <Box width={15}>
+    <Text>Shrinks</Text>
+  </Box>
 </Box>
 // Both items shrink proportionally to fit 20 columns
 ```
@@ -22,8 +26,12 @@ Yoga (used by Ink and React Native) defaults `flexShrink` to `0`, meaning items 
 ```tsx
 // Ink/Yoga: items overflow by default (flexShrink: 0)
 <Box flexDirection="row" width={20}>
-  <Box width={15}><Text>Overflows</Text></Box>
-  <Box width={15}><Text>Overflows</Text></Box>
+  <Box width={15}>
+    <Text>Overflows</Text>
+  </Box>
+  <Box width={15}>
+    <Text>Overflows</Text>
+  </Box>
 </Box>
 // Total 30 columns in a 20-column container -- content clips
 ```
@@ -70,27 +78,27 @@ CSS defines three overflow values. Silvery supports all three:
 
 Ink supports only `visible` and `hidden`. Scrolling -- the [#1 feature request](https://github.com/vadimdemedes/ink/issues/222) since 2019 -- requires manual virtualization.
 
-## Intentional TUI Adaptations
+## CSS-Aligned Defaults
 
-### `flexDirection` Defaults to `column`
+### `flexDirection` Defaults to `row`
 
-CSS defaults `flex-direction` to `row` (horizontal). Silvery defaults to `column` (vertical). This is a conscious choice: terminals are portrait-oriented -- text flows top-to-bottom, and most TUI layouts stack elements vertically. The override is trivial:
+CSS defaults `flex-direction` to `row` (horizontal). Silvery follows the W3C CSS spec here:
 
 ```tsx
-// Vertical stack (silvery default -- no prop needed)
+// Horizontal row (silvery default -- no prop needed)
 <Box>
-  <Text>Top</Text>
-  <Text>Bottom</Text>
-</Box>
-
-// Horizontal row (explicit)
-<Box flexDirection="row">
   <Text>Left</Text>
   <Text>Right</Text>
 </Box>
+
+// Vertical stack (explicit)
+<Box flexDirection="column">
+  <Text>Top</Text>
+  <Text>Bottom</Text>
+</Box>
 ```
 
-Ink defaults to `row` because it inherited Yoga's web-oriented defaults. Silvery's Ink compatibility layer (`silvery/ink`) restores `row` as the default for migration.
+This aligns with both the CSS spec and Ink's behavior.
 
 ### Box-in-Text Nesting
 
@@ -98,24 +106,24 @@ CSS strictly separates block and inline formatting contexts. A `<div>` inside a 
 
 ## Comparison Table
 
-| Property | CSS Spec | Silvery | Ink/Yoga |
-|---|---|---|---|
-| `flexShrink` default | `1` | `1` | `0` |
-| `flexDirection` default | `row` | `column` (TUI adaptation) | `row` |
-| `overflow` values | `visible`, `hidden`, `scroll`, `auto` | `visible`, `hidden`, `scroll` | `visible`, `hidden` |
-| Auto min-size when `overflow: hidden` | `0` (CSS 4.5) | Follows spec | Inconsistent |
-| `position` values | `static`, `relative`, `absolute`, `fixed`, `sticky` | `relative`, `absolute`, `sticky` | `relative`, `absolute` |
-| `gap` | Supported | Supported | Not supported (Ink) |
-| `display: none` | Supported | Supported | Supported |
-| `flexWrap` | Supported | Supported | Supported |
-| `alignItems` / `justifyContent` | Supported | Supported | Supported |
+| Property                              | CSS Spec                                            | Silvery                          | Ink/Yoga               |
+| ------------------------------------- | --------------------------------------------------- | -------------------------------- | ---------------------- |
+| `flexShrink` default                  | `1`                                                 | `1`                              | `0`                    |
+| `flexDirection` default               | `row`                                               | `row`                            | `row`                  |
+| `overflow` values                     | `visible`, `hidden`, `scroll`, `auto`               | `visible`, `hidden`, `scroll`    | `visible`, `hidden`    |
+| Auto min-size when `overflow: hidden` | `0` (CSS 4.5)                                       | Follows spec                     | Inconsistent           |
+| `position` values                     | `static`, `relative`, `absolute`, `fixed`, `sticky` | `relative`, `absolute`, `sticky` | `relative`, `absolute` |
+| `gap`                                 | Supported                                           | Supported                        | Not supported (Ink)    |
+| `display: none`                       | Supported                                           | Supported                        | Supported              |
+| `flexWrap`                            | Supported                                           | Supported                        | Supported              |
+| `alignItems` / `justifyContent`       | Supported                                           | Supported                        | Supported              |
 
 ### Reading the Table
 
 - **Silvery matches CSS spec** on `flexShrink`, overflow behavior, and auto minimum sizing.
-- **Silvery adapts CSS** for terminals with `flexDirection: column` default and permissive nesting.
+- **Silvery matches CSS** on `flexDirection: row` default. The only TUI adaptation is permissive nesting.
 - **Ink/Yoga deviates from CSS** on `flexShrink` default (React Native convention), lacks scroll overflow, and does not support `gap`.
 
 ::: tip For Ink Migrators
-Import from `silvery/ink` to get Ink-compatible defaults (`flexDirection: row`, `flexShrink: 1`). When you are ready, switch to `silvery` imports and add explicit `flexDirection="row"` where needed.
+Import from `silvery/ink` to get Ink-compatible defaults (`flexShrink: 1`). Silvery and Ink now share the same `flexDirection: row` default.
 :::

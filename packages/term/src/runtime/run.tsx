@@ -60,6 +60,7 @@ import { isTextSizingLikelySupported } from "../text-sizing"
 import { ensureLayoutEngine } from "./layout"
 import { captureTerminalState, performSuspend, CTRL_C, CTRL_Z } from "./terminal-lifecycle"
 import type { Buffer, Dims, Event, RenderTarget, Runtime } from "./types"
+import type { XtermTerminal } from "../xterm/index.js"
 
 // Re-export types from keys.ts
 export type { Key, InputHandler } from "./keys"
@@ -136,6 +137,12 @@ export interface RunOptions {
   onResume?: () => void
   /** Called on Ctrl+C. Return false to prevent exit. */
   onInterrupt?: () => boolean | void
+  /**
+   * xterm.js terminal for browser rendering.
+   * When provided, run() uses the terminal for input/output instead of stdin/stdout.
+   * This enables the same API for both Node.js and browser environments.
+   */
+  terminal?: XtermTerminal
 }
 
 /**
@@ -325,7 +332,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     cols: explicitCols,
     rows: explicitRows,
     stdout: explicitStdout,
-    stdin = process.stdin,
+    stdin: explicitStdin,
     signal: externalSignal,
     kitty: kittyOption,
     mouse: mouseOption = false,
@@ -337,12 +344,17 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     onSuspend: onSuspendHook,
     onResume: onResumeHook,
     onInterrupt: onInterruptHook,
+    terminal: xtermTerminal,
   } = options
 
-  const headless = explicitCols != null && explicitRows != null && !explicitStdout
-  const cols = explicitCols ?? process.stdout.columns ?? 80
-  const rows = explicitRows ?? process.stdout.rows ?? 24
-  const stdout = explicitStdout ?? process.stdout
+  const xtermMode = !!xtermTerminal
+
+  // For xterm mode, don't use process.stdin/stdout
+  const stdin = xtermMode ? (null as unknown as NodeJS.ReadStream) : (explicitStdin ?? process.stdin)
+  const headless = !xtermMode && explicitCols != null && explicitRows != null && !explicitStdout
+  const cols = xtermMode ? xtermTerminal!.cols : (explicitCols ?? process.stdout.columns ?? 80)
+  const rows = xtermMode ? xtermTerminal!.rows : (explicitRows ?? process.stdout.rows ?? 24)
+  const stdout = xtermMode ? (null as unknown as NodeJS.WriteStream) : (explicitStdout ?? process.stdout)
 
   // Initialize layout engine
   await ensureLayoutEngine()
@@ -372,9 +384,10 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
   let bracketedPasteEnabled = false
 
   // Resolve textSizing from caps + option
+  // In xterm mode, isTextSizingLikelySupported() checks process/env which may not exist
   const textSizingEnabled =
     textSizingOption === true ||
-    (textSizingOption === "auto" && (capsOption?.textSizingSupported ?? isTextSizingLikelySupported()))
+    (textSizingOption === "auto" && (capsOption?.textSizingSupported ?? (!xtermMode && isTextSizingLikelySupported())))
 
   // Create pipeline config from caps (scoped width measurer + output phase)
   const pipelineConfig = capsOption
@@ -433,7 +446,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
     const buf = createBuffer(termBuffer, rootNode)
     const _t3 = performance.now()
 
-    if (process.env.SILVERY_PROFILE_RENDER) {
+    if (!xtermMode && process.env.SILVERY_PROFILE_RENDER) {
       logRenderProfile(_t0, _t1, _t2, _t3)
     }
     return buf
@@ -602,6 +615,94 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
   }
 
   // ========================================================================
+  // xterm.js Keyboard Input
+  // ========================================================================
+
+  /**
+   * Keyboard source for xterm.js terminals.
+   * Reads from terminal.onData() instead of Node.js stdin.
+   * No Ctrl+Z suspend or Ctrl+C exit handling — xterm.js runs in a browser context.
+   */
+  function createXtermKeyboardSource(): AsyncIterable<Event> {
+    return {
+      async *[Symbol.asyncIterator]() {
+        if (!xtermTerminal!.onData) return
+
+        const queue: string[] = []
+        let resolve: (() => void) | null = null
+
+        const disposable = xtermTerminal!.onData((data: string) => {
+          queue.push(data)
+          if (resolve) {
+            const r = resolve
+            resolve = null
+            r()
+          }
+        })
+
+        try {
+          while (!signal.aborted) {
+            if (queue.length === 0) {
+              await new Promise<void>((r) => {
+                resolve = r
+                signal.addEventListener("abort", () => r(), { once: true })
+              })
+            }
+            if (signal.aborted) break
+
+            while (queue.length > 0) {
+              const rawKey = queue.shift()!
+
+              // Check for bracketed paste
+              const pasteResult = parseBracketedPaste(rawKey)
+              if (pasteResult) {
+                yield { type: "paste" as const, content: pasteResult.content }
+                continue
+              }
+
+              for (const keyChunk of splitRawInput(rawKey)) {
+                if (isMouseSequence(keyChunk)) {
+                  const parsed = parseMouseSequence(keyChunk)
+                  if (parsed) {
+                    yield {
+                      type: "mouse" as const,
+                      button: parsed.button,
+                      x: parsed.x,
+                      y: parsed.y,
+                      action: parsed.action,
+                      delta: parsed.delta,
+                      shift: parsed.shift,
+                      meta: parsed.meta,
+                      ctrl: parsed.ctrl,
+                    }
+                    continue
+                  }
+                }
+
+                const [input, key] = parseKey(keyChunk)
+                yield {
+                  type: "key" as const,
+                  key: keyChunk,
+                  input,
+                  parsedKey: key,
+                  ctrl: key.ctrl,
+                  meta: key.meta,
+                  shift: key.shift,
+                  super: key.super,
+                  hyper: key.hyper,
+                  eventType: key.eventType,
+                }
+              }
+            }
+          }
+        } finally {
+          disposable.dispose()
+        }
+      },
+    }
+  }
+
+  // ========================================================================
   // Setup
   // ========================================================================
 
@@ -611,25 +712,36 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
         write() {},
         getDims: () => currentDims,
       }
-    : {
-        write(frame: string): void {
-          stdout.write(frame)
-        },
-        getDims(): Dims {
-          return currentDims
-        },
-        onResize(handler: (dims: Dims) => void): () => void {
-          const onResize = () => {
-            currentDims = {
-              cols: stdout.columns || 80,
-              rows: stdout.rows || 24,
+    : xtermMode
+      ? {
+          write(frame: string): void {
+            xtermTerminal!.write(frame)
+          },
+          getDims(): Dims {
+            return currentDims
+          },
+          // No onResize — xterm.js doesn't emit SIGWINCH.
+          // Caller handles resize via instance.resize() or terminal.resize().
+        }
+      : {
+          write(frame: string): void {
+            stdout.write(frame)
+          },
+          getDims(): Dims {
+            return currentDims
+          },
+          onResize(handler: (dims: Dims) => void): () => void {
+            const onResize = () => {
+              currentDims = {
+                cols: stdout.columns || 80,
+                rows: stdout.rows || 24,
+              }
+              handler(currentDims)
             }
-            handler(currentDims)
-          }
-          stdout.on("resize", onResize)
-          return () => stdout.off("resize", onResize)
-        },
-      }
+            stdout.on("resize", onResize)
+            return () => stdout.off("resize", onResize)
+          },
+        }
 
   // Create runtime
   const runtime = createRuntime({
@@ -766,7 +878,20 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
   currentBuffer = doRender()
 
   // Setup terminal: fullscreen clears screen, inline just hides cursor
-  if (!headless) {
+  if (xtermMode) {
+    // xterm.js terminal setup — no kitty keyboard, no bracketed paste (xterm.js handles these)
+    if (modeOption === "inline") {
+      xtermTerminal!.write("\x1b[?25l") // Hide cursor only
+    } else {
+      xtermTerminal!.write("\x1b[2J\x1b[H\x1b[?25l") // Clear screen + home + hide cursor
+    }
+
+    // Mouse tracking (SGR mode — xterm.js supports this)
+    if (mouseOption) {
+      xtermTerminal!.write(enableMouse())
+      mouseEnabled = true
+    }
+  } else if (!headless) {
     if (modeOption === "inline") {
       stdout.write("\x1b[?25l") // Hide cursor only
     } else {
@@ -911,7 +1036,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 
   const eventLoop = async () => {
     // Merge keyboard and runtime events
-    const keyboardEvents = createKeyboardSource()
+    const keyboardEvents = xtermMode ? createXtermKeyboardSource() : createKeyboardSource()
     const runtimeEvents = runtime.events()
     const allEvents = merge(keyboardEvents, runtimeEvents)
 
@@ -1004,7 +1129,11 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
 
         // Cleanup
         runtime[Symbol.dispose]()
-        if (!headless) {
+        if (xtermMode) {
+          // xterm.js cleanup: disable mouse if enabled, show cursor
+          if (mouseEnabled) xtermTerminal!.write(disableMouse())
+          xtermTerminal!.write("\x1b[?25h\x1b[0m\n")
+        } else if (!headless) {
           disableBracketedPaste(stdout)
           if (mouseEnabled) stdout.write(disableMouse())
           if (kittyEnabled) stdout.write(disableKittyKeyboard())
@@ -1014,7 +1143,7 @@ export async function run(element: ReactElement, options: RunOptions = {}): Prom
         // Always restore raw mode + resolve exit, even if React unmount
         // throws. Without this inner finally, an error in useEffect
         // cleanup would leave the terminal in raw mode.
-        if (stdin.isTTY && (stdin as NodeJS.ReadStream).isRaw) {
+        if (!xtermMode && stdin.isTTY && (stdin as NodeJS.ReadStream).isRaw) {
           stdin.setRawMode(false)
         }
         exitResolve()

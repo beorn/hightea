@@ -2,12 +2,29 @@
 
 Silvery's runtime is organized in layers, each building on the one below — the infrastructure that makes the graduated path possible. For a quick tutorial, see [Getting Started](getting-started.md). For the graduated progression through state and events, see [Building an App](building-an-app.md).
 
+## The Central Abstraction: Term
+
+`createTerm()` is the terminal abstraction at the heart of silvery. It wraps any terminal backend and provides everything the runtime needs — styling, capabilities, dimensions, I/O, and events:
+
+```typescript
+import { createTerm } from 'silvery'
+
+using term = createTerm()           // Node.js stdin/stdout
+await run(<App />, term)            // Pass to any runtime layer
+
+term.bold.red('hello')              // Styling (chalk-compatible)
+term.cols, term.rows                // Dimensions
+term.hasCursor(), term.hasColor()   // Capability detection
+```
+
+The same `Term` works across all layers — you create it once and pass it wherever you need a terminal.
+
 ## Architecture
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
 │  createApp().run()                                            │
-│           Zustand store, flattened providers, useApp          │
+│           Zustand store, providers { term, ... }, useApp      │
 ├───────────────────────────────────────────────────────────────┤
 │  run()  ← Start here                                          │
 │           React components, useInput, useState                │
@@ -24,6 +41,8 @@ Silvery's runtime is organized in layers, each building on the one below — the
 ```
 
 Each layer builds on the one below. `run()` uses `createRuntime()` internally; `createApp()` uses `run()` internally.
+
+All layers work in both Node.js and the browser — `createTerm()` abstracts the backend. See [Browser Rendering](runtime-getting-started.md#browser-rendering-xterm-js) for xterm.js usage.
 
 ## Layer 3: createApp()
 

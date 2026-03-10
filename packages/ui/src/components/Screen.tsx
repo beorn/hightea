@@ -34,7 +34,7 @@ import { Box } from "@silvery/react/components/Box"
 export interface ScreenProps {
   /** Children to render in the fullscreen area */
   children: ReactNode
-  /** Flex direction for layout. Default: "column" */
+  /** Flex direction for layout. Default: "column" (screens are typically vertical) */
   flexDirection?: "row" | "column" | "row-reverse" | "column-reverse"
 }
 

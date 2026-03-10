@@ -30,8 +30,8 @@ features:
     details: "VirtualList, TextArea, SelectList, Table, CommandPalette, ModalDialog, Tabs, TreeView, Image, Toast, Spinner, ProgressBar, SplitView, and more."
     link: /guides/components
     linkText: Browse components
-  - title: Zero Dependencies
-    details: "Pure TypeScript. No WASM, no C++. Runs on Node, Bun, and Deno. Constant memory in long sessions."
+  - title: Pure TypeScript
+    details: "No WASM, no C++, no native dependencies. Runs on Node, Bun, and Deno. Constant memory in long sessions."
   - title: Beyond the Terminal
     details: "Terminal today, Canvas 2D and DOM experimental. Same React components, different rendering backends. ~30% of the codebase is target-independent."
     link: /guides/future-targets

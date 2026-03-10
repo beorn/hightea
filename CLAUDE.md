@@ -2,6 +2,17 @@
 
 React framework for modern terminal UIs. Layout feedback, incremental rendering, multi-target (terminal, canvas, DOM).
 
+## Central Abstraction: Term
+
+`createTerm()` is the terminal abstraction. It wraps a terminal backend (Node.js stdin/stdout, xterm.js, headless) and provides styling, capabilities, dimensions, and I/O. You pass it to `run()` or `render()`:
+
+```typescript
+using term = createTerm()
+await render(<App />, term)  // or: await run(<App />, term)
+```
+
+The same pattern works for any backend. `Term` is a Provider — it has state (dims), events (keys, mouse, resize), output (writable), and styling (chainable ANSI via chalk). See `packages/term/src/ansi/term.ts` for the type and `packages/term/src/runtime/term-provider.ts` for the Provider implementation.
+
 ## Commands
 
 ```bash
@@ -43,12 +54,16 @@ The main `silvery` package re-exports `@silvery/react`. Users import from `silve
 
 ## Key Internals
 
-| File                                          | What                                          |
-| --------------------------------------------- | --------------------------------------------- |
-| `packages/term/src/pipeline/content-phase.ts` | Incremental rendering (most complex)          |
-| `packages/term/src/pipeline/output-phase.ts`  | Buffer diff, ANSI output generation           |
-| `packages/term/src/pipeline/layout-phase.ts`  | Layout, scroll, sticky, screen rects          |
-| `packages/term/src/pipeline/CLAUDE.md`        | Pipeline internals docs (read before editing) |
+| File                                          | What                                                 |
+| --------------------------------------------- | ---------------------------------------------------- |
+| `packages/term/src/ansi/term.ts`              | Term type and createTerm() — the central abstraction |
+| `packages/term/src/runtime/term-provider.ts`  | Terminal as Provider (state, events, input parsing)  |
+| `packages/term/src/runtime/run.tsx`           | Layer 2 entry point — run(<App />, term)             |
+| `packages/term/src/runtime/create-app.tsx`    | Layer 3 — multi-provider apps with zustand store     |
+| `packages/term/src/pipeline/content-phase.ts` | Incremental rendering (most complex)                 |
+| `packages/term/src/pipeline/output-phase.ts`  | Buffer diff, ANSI output generation                  |
+| `packages/term/src/pipeline/layout-phase.ts`  | Layout, scroll, sticky, screen rects                 |
+| `packages/term/src/pipeline/CLAUDE.md`        | Pipeline internals docs (read before editing)        |
 
 ## Documentation Site
 

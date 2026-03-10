@@ -145,7 +145,6 @@ describe("cursor-compat", () => {
     const writesAfterUnmount = stdout.getWrites().slice(writesBeforeEnter)
     const outputAfterUnmount = writesAfterUnmount.join("")
 
-
     const lastShowIndex = outputAfterUnmount.lastIndexOf(showCursorEscape)
     const lastHideIndex = outputAfterUnmount.lastIndexOf(hideCursorEscape)
 

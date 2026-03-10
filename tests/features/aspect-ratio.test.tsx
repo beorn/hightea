@@ -44,7 +44,7 @@ describe("aspectRatio", () => {
   test("aspectRatio with explicit width computes height", () => {
     const app = render(
       <Box width={20} height={10}>
-        <Box aspectRatio={2} width={10} id="ar" />
+        <Box aspectRatio={2} width={10} alignSelf="flex-start" id="ar" />
       </Box>,
     )
     const box = app.locator("#ar").boundingBox()

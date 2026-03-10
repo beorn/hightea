@@ -23,22 +23,14 @@
  * @packageDocumentation
  */
 
-import React, { Component, useContext, useCallback, useState, useEffect, useLayoutEffect, useMemo, useRef, act } from "react"
-import { StdoutContext, RuntimeContext, TermContext } from "@silvery/react/context"
-import type { RuntimeContextValue, StdoutContextValue } from "@silvery/react/context"
+import React, { Component, useContext, useCallback, useState, useEffect, useLayoutEffect, useMemo, useRef } from "react"
+import { StdoutContext, TermContext } from "@silvery/react/context"
+import { bufferToStyledText, bufferToText, type TerminalBuffer } from "@silvery/term/buffer"
+import { stripAnsi } from "@silvery/term/unicode"
 import { createTerm } from "@silvery/term/ansi"
 import { EventEmitter } from "node:events"
-import { parseKey } from "@silvery/tea/keys"
 import chalk from "chalk"
-import { createContainer, getContainerRoot } from "@silvery/react/reconciler"
-import { stringReconciler } from "@silvery/react/reconciler/string-reconciler"
-import { executeRender } from "@silvery/term/pipeline"
-import { bufferToStyledText, bufferToText, type TerminalBuffer } from "@silvery/term/buffer"
-import {
-  createCursorStore,
-  CursorProvider,
-  type CursorStore,
-} from "@silvery/react/hooks/useCursor"
+import { createCursorStore, CursorProvider, type CursorStore } from "@silvery/react/hooks/useCursor"
 
 // Context for passing cursor store to Ink compat useCursor hook.
 // This lets useCursor write directly to the store without going through
@@ -50,7 +42,8 @@ const InkCursorStoreCtx = React.createContext<CursorStore | null>(null)
  * Tests may set chalk.level programmatically (e.g., chalk.level = 3 for
  * background color tests). We sync our renderer's color behavior with chalk.
  */
-function currentChalkLevel(): number {
+/** @internal */
+export function currentChalkLevel(): number {
   return chalk?.level ?? 0
 }
 
@@ -118,7 +111,8 @@ function convertColor(color: string | undefined): string | undefined {
 const TEXT_PRES_REGEX = /^\p{Extended_Pictographic}$/u
 const EMOJI_PRES_REGEX = /^\p{Emoji_Presentation}$/u
 
-function stripSilveryVS16(input: string): string {
+/** @internal */
+export function stripSilveryVS16(input: string): string {
   // Fast path: no VS16 in the string
   if (!input.includes("\uFE0F")) return input
 
@@ -164,12 +158,12 @@ export type BoxProps = SilveryBoxProps
  * Ink-compatible Box component.
  *
  * Wraps silvery's Box with Ink's default flex properties:
- * - flexDirection: 'row' (silvery defaults to 'column')
  * - flexGrow: 0
  * - flexShrink: 1
  * - flexWrap: 'nowrap'
  *
  * These match Ink's Box.tsx line 83-88 defaults. User-provided props override.
+ * Note: flexDirection no longer needs overriding — silvery now defaults to 'row' (W3C CSS).
  */
 export const Box = React.forwardRef<BoxHandle, BoxProps>(function InkBox(props, ref) {
   // Map Ink's per-axis overflow props to silvery's unified overflow
@@ -177,7 +171,6 @@ export const Box = React.forwardRef<BoxHandle, BoxProps>(function InkBox(props, 
   const overflow = rest.overflow ?? (overflowX === "hidden" || overflowY === "hidden" ? "hidden" : undefined)
 
   return React.createElement(SilveryBox, {
-    flexDirection: "row" as const,
     flexGrow: 0,
     flexShrink: 1,
     ...rest,
@@ -651,7 +644,13 @@ const ZERO_METRICS: BoxMetrics = { width: 0, height: 0, left: 0, top: 0, hasMeas
  * Compare two BoxMetrics objects for equality.
  */
 function metricsEqual(a: BoxMetrics, b: BoxMetrics): boolean {
-  return a.width === b.width && a.height === b.height && a.left === b.left && a.top === b.top && a.hasMeasured === b.hasMeasured
+  return (
+    a.width === b.width &&
+    a.height === b.height &&
+    a.left === b.left &&
+    a.top === b.top &&
+    a.hasMeasured === b.hasMeasured
+  )
 }
 
 /**
@@ -1195,7 +1194,8 @@ function sgrResetCode(code: number): number | null {
  * per-attribute resets to match chalk's output format.
  * Also strips the leading reset that silvery prepends to unstyled text.
  */
-function toChalkCompat(input: string): string {
+/** @internal */
+export function toChalkCompat(input: string): string {
   let result = cleanupResets(silveryToChalkAnsi(input))
   // Strip leading reset at start of string (silvery adds this even for unstyled text)
   if (result.startsWith("\x1b[0m")) {
@@ -1314,6 +1314,7 @@ function convertBufferOutputToInkFormatSimple(input: string): string {
 // =============================================================================
 
 import { renderSync, type Instance } from "@silvery/react/render"
+import { render as silveryTestRender } from "@silvery/term/renderer"
 export type { RenderOptions, Instance } from "@silvery/react/render"
 
 /**
@@ -1433,10 +1434,8 @@ class InkErrorBoundary extends Component<InkErrorBoundaryProps, InkErrorBoundary
 /**
  * Ink-compatible render function.
  *
- * When a custom stdout is provided (fake/spy stdout from tests): renders
- * synchronously via renderStringSync and writes output in a single
- * stdout.write() call. This matches Ink's debug mode behavior where each
- * frame is a plain text write without cursor control sequences.
+ * When a custom stdout is provided (fake/spy stdout from tests): delegates to
+ * silvery's test renderer with autoRender + onFrame for Ink-compatible output.
  *
  * When no custom stdout (real terminal): delegates to renderSync() which
  * creates a full SilveryInstance with scheduler.
@@ -1450,345 +1449,109 @@ export function render(element: import("react").ReactNode, options?: Record<stri
   const stdout = options?.stdout as NodeJS.WriteStream | undefined
   const stdin = options?.stdin as NodeJS.ReadStream | undefined
 
-  // When custom stdout is provided (test mode): use simple sync rendering.
-  // This matches Ink's behavior where each render writes plain text output
-  // to stdout without cursor control sequences.
+  // When custom stdout is provided (test mode): delegate to silvery's test
+  // renderer with autoRender for async state changes and onFrame for stdout writes.
   if (stdout) {
-    // Detect color from chalk's current level to match Ink's behavior.
-    // Ink uses chalk for coloring, and tests may set chalk.level programmatically
-    // (e.g., chalk.level = 3 for background color tests). When chalk has colors
-    // enabled, our renderer must also produce colors to match chalk's output.
-    // When chalk.level is 0 (e.g., FORCE_COLOR=0), both chalk and our renderer
-    // produce plain text, so comparisons work.
     const chalkHasColors = currentChalkLevel() > 0
-    const colorLevel = chalkHasColors ? ("truecolor" as const) : null
-    const term = createTerm({
-      stdout: stdout as any,
-      color: colorLevel,
-    })
-    const plain = term.hasColor() === null
+    const plain = !chalkHasColors
 
-    let unmounted = false
-    // Per-instance cursor store for tracking cursor state
+    // Per-instance cursor store for Ink's useCursor hook
     const cursorStore = createCursorStore()
 
-    let exitResolve: (() => void) | null = null
-    let exitReject: ((error: Error) => void) | null = null
-    const exitPromise = new Promise<void>((resolve, reject) => {
-      exitResolve = resolve
-      exitReject = reject
+    // Wrap element with Ink-specific contexts (inside silvery's context wrapping)
+    function wrapElement(el: import("react").ReactNode): import("react").ReactElement {
+      let wrapped: import("react").ReactNode = React.createElement(InkErrorBoundary, null, el)
+      // Ink-compatible focus system with tab navigation
+      wrapped = React.createElement(InkFocusProvider, null, wrapped)
+      // Ink cursor store context (lets useCursor write directly to store)
+      wrapped = React.createElement(InkCursorStoreCtx.Provider, { value: cursorStore }, wrapped)
+      // Per-instance cursor isolation
+      wrapped = React.createElement(CursorProvider, { store: cursorStore }, wrapped)
+      return wrapped as import("react").ReactElement
+    }
+
+    /**
+     * Post-process a rendered buffer and write to stdout.
+     * Converts buffer to text, applies VS16 stripping, chalk compat, line trimming, and cursor emission.
+     */
+    function writeFrame(_frame: string, buffer: TerminalBuffer): void {
+      // Convert buffer to text (not the pipeline's ANSI diff output)
+      let output = plain
+        ? bufferToText(buffer, { trimTrailingWhitespace: true, trimEmptyLines: false })
+        : bufferToStyledText(buffer, { trimTrailingWhitespace: true, trimEmptyLines: false })
+
+      output = stripSilveryVS16(output)
+
+      // Strip trailing empty lines
+      const lines = output.split("\n")
+      while (lines.length > 0 && lines[lines.length - 1] === "") {
+        lines.pop()
+      }
+      output = lines.join("\n")
+
+      const result = plain ? output : toChalkCompat(output)
+
+      // Build cursor escape sequences (matches Ink's cli-cursor behavior).
+      // Append to content so stdout.get() returns everything in one write.
+      let cursorEsc = ""
+      const cursorState = cursorStore.accessors.getCursorState()
+      if (cursorState?.visible) {
+        const col = cursorState.x
+        cursorEsc += col === 0 ? "\x1b[G" : `\x1b[${col + 1}G`
+        if (cursorState.y > 0) {
+          const contentLines = result.split("\n").length
+          const rowsUp = contentLines - 1 - cursorState.y
+          if (rowsUp > 0) cursorEsc += `\x1b[${rowsUp}A`
+        }
+        cursorEsc += "\x1b[?25h"
+      } else {
+        cursorEsc += "\x1b[?25l"
+      }
+
+      stdout.write(result + cursorEsc)
+    }
+
+    // Use silvery's test renderer with autoRender for async state changes
+    const app = silveryTestRender(wrapElement(element), {
+      cols: (stdout as any).columns ?? 80,
+      rows: (stdout as any).rows ?? 24,
+      autoRender: true,
+      onFrame: writeFrame,
     })
 
-    // Set up input event emitter for stdin handling
-    const inputEmitter = new EventEmitter()
-    inputEmitter.setMaxListeners(100)
-
-    // Build runtime context for useApp/useInput
-    const runtimeCtx: RuntimeContextValue = {
-      on(event: string, handler: (...args: any[]) => void) {
-        if (event === "input") {
-          const wrapped = (data: string | Buffer) => {
-            const [input, key] = parseKey(data)
-            ;(handler as (input: string, key: any) => void)(input, key)
-          }
-          inputEmitter.on("input", wrapped)
-          return () => {
-            inputEmitter.removeListener("input", wrapped)
-          }
-        }
-        if (event === "paste") {
-          inputEmitter.on("paste", handler)
-          return () => {
-            inputEmitter.removeListener("paste", handler)
-          }
-        }
-        return () => {}
-      },
-      emit() {},
-      exit: (error?: Error) => {
-        if (unmounted) return
-        unmounted = true
-        if (error) {
-          exitReject?.(error)
-        } else {
-          exitResolve?.()
-        }
-      },
-    }
-
-    // Build stdout context
-    const stdoutCtx: StdoutContextValue = {
-      stdout,
-      write: (data: string) => stdout.write(data),
-    }
-
-    // Set up stdin input handling if stdin is provided.
-    // After emitting input, we flush React work and re-render the pipeline
-    // so that state changes from input (e.g., focus changes from Tab)
-    // produce visible output before the next test assertion.
+    // Bridge stdin to silvery's input handling (includes Tab/Shift+Tab focus cycling)
     if (stdin) {
       const onReadable = () => {
         let chunk: string | null
         while ((chunk = (stdin as any).read?.()) !== null && chunk !== undefined) {
-          inputEmitter.emit("input", chunk)
-        }
-        // After input is processed, schedule a flush + re-render.
-        // Use queueMicrotask to batch multiple chunks in one render.
-        if (!renderScheduled && !unmounted) {
-          renderScheduled = true
-          queueMicrotask(() => {
-            renderScheduled = false
-            if (!unmounted) {
-              flushAndRenderPipeline()
-            }
-          })
+          app.stdin.write(chunk)
         }
       }
       stdin.on("readable", onReadable)
     }
 
-    // Wrap element with contexts for useApp/useInput/useStdout/useFocus
-    let lastRenderError: Error | null = null
-
-    function wrapElement(el: import("react").ReactNode): import("react").ReactNode {
-      // Wrap user element in error boundary to catch render errors
-      let wrapped: import("react").ReactNode = React.createElement(
-        InkErrorBoundary,
-        {
-          onError: (error: Error) => {
-            lastRenderError = error
-          },
-        },
-        el,
-      )
-      // Ink-compatible focus system with tab navigation via inputEmitter
-      wrapped = React.createElement(InkFocusProvider, { inputEmitter }, wrapped)
-      // Ink cursor store context (lets useCursor write directly to store)
-      wrapped = React.createElement(InkCursorStoreCtx.Provider, { value: cursorStore }, wrapped)
-      // Per-instance cursor isolation (silvery's CursorProvider)
-      wrapped = React.createElement(CursorProvider, { store: cursorStore }, wrapped)
-      wrapped = React.createElement(TermContext.Provider, { value: term }, wrapped)
-      wrapped = React.createElement(StdoutContext.Provider, { value: stdoutCtx }, wrapped)
-      wrapped = React.createElement(RuntimeContext.Provider, { value: runtimeCtx }, wrapped)
-      return wrapped
-    }
-
-    // --- Persistent React tree for state preservation across rerenders ---
-    // Instead of calling renderStringSync (which creates/destroys the tree each time),
-    // we create the container and fiberRoot ONCE and update them on rerender.
-    let hadReactCommit = false
-    let renderScheduled = false
-    const container = createContainer(() => {
-      hadReactCommit = true
-      // Schedule a re-render when React commits new work (e.g., from state changes)
-      if (!renderScheduled && !unmounted) {
-        renderScheduled = true
-        queueMicrotask(() => {
-          renderScheduled = false
-          if (!unmounted) {
-            flushAndRenderPipeline()
-          }
-        })
-      }
-    })
-    const fiberRoot = stringReconciler.createContainer(
-      container,
-      1, // ConcurrentRoot
-      null, // hydrationCallbacks
-      false, // isStrictMode
-      null, // concurrentUpdatesByDefaultOverride
-      "", // identifierPrefix
-      () => {}, // onUncaughtError
-      () => {}, // onCaughtError
-      () => {}, // onRecoverableError
-      null, // onDefaultTransitionIndicator
-    )
-
-    /**
-     * Run a function with IS_REACT_ACT_ENVIRONMENT temporarily set to true.
-     * Ensures act() captures forceUpdate/setState from layout notifications.
-     */
-    function withActEnv(fn: () => void): void {
-      const prev = (globalThis as any).IS_REACT_ACT_ENVIRONMENT
-      ;(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true
-      try {
-        fn()
-      } finally {
-        ;(globalThis as any).IS_REACT_ACT_ENVIRONMENT = prev
-      }
-    }
-
-    /**
-     * Run the render pipeline and write output to stdout.
-     * Does NOT update the React tree — assumes it's already up to date.
-     */
-    function flushAndRenderPipeline(): string {
-      const width = (stdout as any).columns ?? 80
-      const bufferHeight = (stdout as any).rows ?? 24
-
-      // Layout stabilization loop.
-      // We interleave layout passes with React work flushes. The key ordering is:
-      //   1. Flush React work (commit pending state updates)
-      //   2. Run layout (executeRender — computes contentRect for all nodes)
-      //   3. Flush React work again (run effects that depend on layout data,
-      //      e.g., measureElement in useEffect/useLayoutEffect)
-      //   4. If new commits happened, loop
-      //
-      // This matches Ink's behavior where Yoga runs layout synchronously during
-      // React commit, so effects always see computed layout. silvery computes
-      // layout in a separate pipeline pass, so we flush effects after layout.
-      let buffer!: TerminalBuffer
-      let rootNode: ReturnType<typeof getContainerRoot> | undefined
-      const MAX_ITERATIONS = 5
-      for (let i = 0; i < MAX_ITERATIONS; i++) {
-        hadReactCommit = false
-        withActEnv(() => {
-          // Step 1: Flush any pending React work (commits tree, may run some effects)
-          act(() => {
-            stringReconciler.flushSyncWork()
-          })
-
-          // Step 2: Run layout pipeline (executeRender computes contentRect)
-          act(() => {
-            const root = getContainerRoot(container)
-            rootNode = root
-            const result = executeRender(root, width, bufferHeight, null, undefined, undefined)
-            buffer = result.buffer
-          })
-
-          // Step 3: Flush React work again to process effects that depend on
-          // layout data (e.g., useEffect calling measureElement after contentRect
-          // is populated). Also processes state updates from layout subscribers.
-          if (!hadReactCommit) {
-            act(() => {
-              stringReconciler.flushSyncWork()
-            })
-          }
-        })
-        if (!hadReactCommit) break
-      }
-
-      // Get content height from root node layout
-      const layoutContentHeight = rootNode?.contentRect?.height ?? 0
-
-      // Convert buffer to string
-      let output = plain
-        ? bufferToText(buffer, { trimTrailingWhitespace: true, trimEmptyLines: false })
-        : bufferToStyledText(buffer, { trimTrailingWhitespace: true, trimEmptyLines: false })
-
-      // Strip VS16 variation selectors that silvery adds for text-presentation emoji.
-      // Silvery's ensureEmojiPresentation adds VS16 to Extended_Pictographic chars
-      // that are NOT Emoji_Presentation (e.g., ✔ U+2714). Ink doesn't do this.
-      // Only strip VS16 after such chars — keep VS16 in user content (e.g., 🌡️, ⚠️).
-      output = stripSilveryVS16(output)
-
-      // Trim buffer padding rows using layout content height
-      if (layoutContentHeight > 0 && layoutContentHeight < bufferHeight) {
-        const lines = output.split("\n")
-        output = lines.slice(0, layoutContentHeight).join("\n")
-      } else {
-        // Fall back: strip trailing empty lines
-        const lines = output.split("\n")
-        while (lines.length > 0 && lines[lines.length - 1] === "") {
-          lines.pop()
-        }
-        output = lines.join("\n")
-      }
-      const result = plain ? output : toChalkCompat(output)
-      stdout.write(result)
-
-      // Emit cursor escape sequences based on cursor store state.
-      // This matches Ink's cli-cursor behavior where show/hide and positioning
-      // are written as separate stdout.write calls after the content.
-      const cursorState = cursorStore.accessors.getCursorState()
-      if (cursorState?.visible) {
-        // Position cursor: move to column (CSI <col+1> G)
-        // The Ink tests check for ansiEscapes.cursorTo(x) which uses ESC[<x+1>G
-        const col = cursorState.x
-        if (col === 0) {
-          stdout.write("\x1b[G")
-        } else {
-          stdout.write(`\x1b[${col + 1}G`)
-        }
-        // If cursor has a row offset, position row too
-        if (cursorState.y > 0) {
-          // Move cursor up to the correct row from the end of output
-          const contentLines = result.split("\n").length
-          const rowsUp = contentLines - 1 - cursorState.y
-          if (rowsUp > 0) {
-            stdout.write(`\x1b[${rowsUp}A`)
-          }
-        }
-        // Show cursor
-        stdout.write("\x1b[?25h")
-      } else {
-        // Hide cursor when no active cursor
-        stdout.write("\x1b[?25l")
-      }
-
-      return result
-    }
-
-    /**
-     * Render a frame: update the React tree with a new element, then run the pipeline.
-     */
-    function renderFrame(el: import("react").ReactNode): string {
-      const wrapped = wrapElement(el)
-
-      // Update the React tree (or mount initially)
-      withActEnv(() => {
-        act(() => {
-          stringReconciler.updateContainerSync(wrapped, fiberRoot, null, null)
-          stringReconciler.flushSyncWork()
-        })
-      })
-
-      return flushAndRenderPipeline()
-    }
-
-    // Initial render
-    let currentElement = element
-    renderFrame(currentElement)
-
-    // If an error was caught during render, reject the exit promise
-    if (lastRenderError) {
-      exitReject?.(lastRenderError)
-      // Prevent unhandled rejection by catching the promise
-      exitPromise.catch(() => {})
-    }
-
-    // Listen for resize events on stdout to re-render (like Ink does)
+    // Listen for resize events on stdout
     const onResize = () => {
-      if (!unmounted) {
-        renderFrame(currentElement)
-      }
+      app.resize((stdout as any).columns ?? 80, (stdout as any).rows ?? 24)
     }
     stdout.on("resize", onResize)
 
-    // Build instance with working rerender
+    let unmounted = false
     const instance: InkInstance = {
       rerender: (newElement: import("react").ReactNode) => {
         if (unmounted) return
-        currentElement = newElement
-        renderFrame(newElement)
+        app.rerender(wrapElement(newElement))
       },
       unmount: () => {
         if (unmounted) return
         unmounted = true
         stdout.off("resize", onResize)
-        // Unmount the React tree
-        withActEnv(() => {
-          act(() => {
-            stringReconciler.updateContainerSync(null, fiberRoot, null, null)
-            stringReconciler.flushSyncWork()
-          })
-        })
-        exitResolve?.()
+        app.unmount()
       },
       [Symbol.dispose]() {
         instance.unmount()
       },
-      waitUntilExit: () => exitPromise,
+      waitUntilExit: () => app.waitUntilExit(),
       waitUntilRenderFlush: () => Promise.resolve(),
       cleanup: () => {
         instance.unmount()
@@ -1860,7 +1623,7 @@ function needsLayoutRecalculation(node: any): boolean {
  */
 export function measureElement(nodeOrHandle: any): import("@silvery/react/measureElement").MeasureElementOutput {
   // Resolve BoxHandle → TeaNode
-  const node = (typeof nodeOrHandle?.getNode === "function") ? nodeOrHandle.getNode() : nodeOrHandle
+  const node = typeof nodeOrHandle?.getNode === "function" ? nodeOrHandle.getNode() : nodeOrHandle
   if (!node) return { width: 0, height: 0 }
 
   // If contentRect exists AND layout is not stale, use cached values
@@ -1954,15 +1717,13 @@ export function renderToString(
     const lines = output.split("\n")
     output = lines.slice(0, layoutContentHeight).join("\n")
   } else {
-    // Fall back: strip trailing empty lines (content height unknown)
+    // Fall back: strip trailing empty lines (content height unknown or fills buffer)
     const lines = output.split("\n")
-    while (lines.length > 0 && lines[lines.length - 1] === "") {
-      lines.pop()
-    }
+    while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop()
     output = lines.join("\n")
   }
-  // If result is only whitespace/newlines (empty fragment), return empty string
-  if (output.trim() === "") {
+  // If result is only whitespace/newlines/ANSI resets (empty fragment), return empty string
+  if (stripAnsi(output).trim() === "") {
     return ""
   }
   return plain ? output : toChalkCompat(output)
