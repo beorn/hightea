@@ -1,6 +1,6 @@
 # Getting Started with `silvery/runtime`
 
-This is the "start simple" part — five lines to a working app. `silvery/runtime` is a layered TUI framework built on React. Write terminal apps the same way you write web apps — with components, hooks, and state. When you outgrow `useState`, [Building an App](building-an-app.md) shows how to graduate without rewriting. The core idea: each level you adopt turns something that was hidden — state transitions, side effects, user intent — into visible, inspectable data. You only pay for what you need.
+This is the "start simple" part — five lines to a working app. `silvery/runtime` is a layered TUI framework built on React. Write terminal apps the same way you write web apps — with components, hooks, and state. When you outgrow `useState`, [Building an App](../guides/terminal-apps.md) shows how to graduate without rewriting. The core idea: each level you adopt turns something that was hidden — state transitions, side effects, user intent — into visible, inspectable data. You only pay for what you need.
 
 ## Your First App
 
@@ -302,6 +302,6 @@ handle.unmount();
 
 When your app outgrows `useState` and `useInput`, the progression guide shows how to grow without rewriting:
 
-- [Building an App](building-an-app.md) — from Counter to full TEA, one level at a time
+- [Building an App](../guides/terminal-apps.md) — from Counter to full TEA, one level at a time
 
-For API details, see [State Management](state-management.md) and [Event Handling](event-handling.md). You can also explore the [Components](../reference/components.md) and [Hooks](../reference/hooks.md) references.
+For API details, see [State Management](../guides/state-management.md) and [Event Handling](event-handling.md). You can also explore the [Components](../reference/components.md) and [Hooks](../reference/hooks.md) references.

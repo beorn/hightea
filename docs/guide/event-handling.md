@@ -1,6 +1,6 @@
 # Event Handling
 
-> This page documents Silvery's event handling APIs. For the guided progression from callbacks to composable plugins, see [Building an App](building-an-app.md).
+> This page documents Silvery's event handling APIs. For the guided progression from callbacks to composable plugins, see [Building an App](../guides/terminal-apps.md).
 
 ---
 
@@ -341,8 +341,8 @@ For the full API, see [Plugins Reference](../reference/plugins.md).
 
 ## See Also
 
-- [Building an App](building-an-app.md) — guided progression from callbacks to composable plugins
-- [State Management](state-management.md) — createApp, createSlice, tea() middleware, createStore
+- [Building an App](../guides/terminal-apps.md) — guided progression from callbacks to composable plugins
+- [State Management](../guides/state-management.md) — createApp, createSlice, tea() middleware, createStore
 - [Runtime Layers](runtime-layers.md) — createApp, createRuntime, createStore API reference
 - [Input Features](../reference/input-features.md) — keyboard, mouse, hotkeys, modifier symbols
 - [Plugins Reference](../reference/plugins.md) — withCommands, withKeybindings, withDiagnostics API

@@ -11,7 +11,7 @@ This is a quick-reference index of all Silvery components and hooks. For detaile
 | [Box](/api/box)                | Flexbox container with borders, padding, overflow | Core |
 | [Spacer](/api/spacer)          | Flexible space that fills available room          | Core |
 | [Newline](/api/newline)        | Line break                                        | Core |
-| [SplitView](/guide/components) | Resizable split panes                             | UI   |
+| [SplitView](/guides/components) | Resizable split panes                             | UI   |
 
 ### Text & Display
 
@@ -19,59 +19,59 @@ This is a quick-reference index of all Silvery components and hooks. For detaile
 | ------------------------------ | ---------------------------------------------- | ---- |
 | [Text](/api/text)              | Styled text with color, bold, italic, wrapping | Core |
 | [Static](/api/static)          | Non-updating content (logs, completed items)   | Core |
-| [Transform](/guide/components) | Per-line string transformation                 | Core |
-| [Badge](/guide/components)     | Styled label/tag                               | UI   |
-| [Divider](/guide/components)   | Horizontal rule                                | UI   |
-| [Link](/guide/components)      | OSC 8 hyperlink                                | UI   |
-| [Image](/guide/components)     | Kitty graphics / Sixel with text fallback      | UI   |
+| [Transform](/guides/components) | Per-line string transformation                 | Core |
+| [Badge](/guides/components)     | Styled label/tag                               | UI   |
+| [Divider](/guides/components)   | Horizontal rule                                | UI   |
+| [Link](/guides/components)      | OSC 8 hyperlink                                | UI   |
+| [Image](/guides/components)     | Kitty graphics / Sixel with text fallback      | UI   |
 
 ### Input
 
 | Component                       | Description                                         | API |
 | ------------------------------- | --------------------------------------------------- | --- |
-| [TextInput](/guide/components)  | Single-line text input with readline shortcuts      | UI  |
-| [TextArea](/guide/components)   | Multi-line text editor with cursor, selection, undo | UI  |
-| [SelectList](/guide/components) | Single-select list with keyboard navigation         | UI  |
-| [Toggle](/guide/components)     | Boolean toggle                                      | UI  |
-| [Button](/guide/components)     | Clickable button                                    | UI  |
+| [TextInput](/guides/components)  | Single-line text input with readline shortcuts      | UI  |
+| [TextArea](/guides/components)   | Multi-line text editor with cursor, selection, undo | UI  |
+| [SelectList](/guides/components) | Single-select list with keyboard navigation         | UI  |
+| [Toggle](/guides/components)     | Boolean toggle                                      | UI  |
+| [Button](/guides/components)     | Clickable button                                    | UI  |
 
 ### Data Display
 
 | Component                        | Description                        | API |
 | -------------------------------- | ---------------------------------- | --- |
-| [Table](/guide/components)       | Column-aligned table with headers  | UI  |
-| [VirtualList](/guide/components) | O(1) scroll for thousands of items | UI  |
-| [VirtualView](/guide/components) | Virtualized arbitrary content      | UI  |
-| [TreeView](/guide/components)    | Expandable/collapsible tree        | UI  |
+| [Table](/guides/components)       | Column-aligned table with headers  | UI  |
+| [VirtualList](/guides/components) | O(1) scroll for thousands of items | UI  |
+| [VirtualView](/guides/components) | Virtualized arbitrary content      | UI  |
+| [TreeView](/guides/components)    | Expandable/collapsible tree        | UI  |
 
 ### Feedback
 
 | Component                               | Description                                | API |
 | --------------------------------------- | ------------------------------------------ | --- |
-| [Spinner](/guide/components)            | Animated spinner (dots, line, arc, bounce) | UI  |
-| [ProgressBar](/guide/components)        | Determinate and indeterminate progress     | UI  |
-| [Toast / useToast()](/guide/components) | Auto-dismiss notifications                 | UI  |
-| [Skeleton](/guide/components)           | Loading placeholder                        | UI  |
+| [Spinner](/guides/components)            | Animated spinner (dots, line, arc, bounce) | UI  |
+| [ProgressBar](/guides/components)        | Determinate and indeterminate progress     | UI  |
+| [Toast / useToast()](/guides/components) | Auto-dismiss notifications                 | UI  |
+| [Skeleton](/guides/components)           | Loading placeholder                        | UI  |
 
 ### Overlays & Navigation
 
 | Component                                            | Description                           | API |
 | ---------------------------------------------------- | ------------------------------------- | --- |
-| [ModalDialog](/guide/components)                     | Modal overlay with focus trapping     | UI  |
-| [CommandPalette](/guide/components)                  | Fuzzy-search command palette (Ctrl+K) | UI  |
-| [PickerDialog / PickerList](/guide/components)       | Selection dialog                      | UI  |
-| [Tooltip](/guide/components)                         | Contextual tooltip overlay            | UI  |
-| [Tabs / TabList / Tab / TabPanel](/guide/components) | Tabbed interface                      | UI  |
-| [Breadcrumb](/guide/components)                      | Path breadcrumb with separators       | UI  |
+| [ModalDialog](/guides/components)                     | Modal overlay with focus trapping     | UI  |
+| [CommandPalette](/guides/components)                  | Fuzzy-search command palette (Ctrl+K) | UI  |
+| [PickerDialog / PickerList](/guides/components)       | Selection dialog                      | UI  |
+| [Tooltip](/guides/components)                         | Contextual tooltip overlay            | UI  |
+| [Tabs / TabList / Tab / TabPanel](/guides/components) | Tabbed interface                      | UI  |
+| [Breadcrumb](/guides/components)                      | Path breadcrumb with separators       | UI  |
 
 ### Layout Wrappers
 
 | Component                             | Description                            | API   |
 | ------------------------------------- | -------------------------------------- | ----- |
 | [ThemeProvider](/guides/theming)      | Theme context provider                 | Theme |
-| [ErrorBoundary](/guide/components)    | React error boundary with reset        | UI    |
-| [Console](/guide/components)          | Captures `console.log` output          | UI    |
-| [Form / FormField](/guide/components) | Form layout with labels and validation | UI    |
+| [ErrorBoundary](/guides/components)    | React error boundary with reset        | UI    |
+| [Console](/guides/components)          | Captures `console.log` output          | UI    |
+| [Form / FormField](/guides/components) | Form layout with labels and validation | UI    |
 
 ## Hooks
 

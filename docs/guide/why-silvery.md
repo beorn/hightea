@@ -33,7 +33,7 @@ Beyond responsive layout, the renderer provides:
 
 Optional packages extend the renderer into a full framework:
 
-- **30+ components** (`@silvery/ui`) — TextArea, VirtualList, Table, CommandPalette, and more ([component catalog](/guide/components))
+- **30+ components** (`@silvery/ui`) — TextArea, VirtualList, Table, CommandPalette, and more ([component catalog](/guides/components))
 - **Rich interaction** (`@silvery/term`) — mouse events, spatial focus navigation, command system with keybindings, input layer stack
 - **TEA state machines** (`@silvery/tea`) — pure `(action, state) → [state, effects]` for testing, replay, and undo
 - **Theming** (`@silvery/theme`) — 38 palettes with semantic color tokens
