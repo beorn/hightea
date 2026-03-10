@@ -39,7 +39,7 @@ export function emitInput(data: string): void {
     tab: data === "\t",
     backspace: data === "\x7f" || data === "\b",
   }
-  const input = data.length === 1 && data >= " " ? data : ""
+  const input = data.length === 1 && data >= " " && data < "\x7f" ? data : ""
   for (const cb of inputListeners) cb(input, key)
 }
 
