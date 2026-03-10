@@ -6,14 +6,16 @@ Silvery ships with a comprehensive theme system via `@silvery/theme`. It provide
 
 The theme system has a two-layer design:
 
-1. **ColorPalette** (22 colors) -- The universal terminal format: 16 ANSI colors + 6 special colors (foreground, background, cursor, selection). This is what palette generators produce.
+1. **Color Palette** (22 colors) -- The universal terminal format: 16 ANSI colors + 6 special colors (foreground, background, cursor, selection). This is what palette generators produce.
 2. **Theme** (33 tokens) -- Semantic UI tokens that components consume. Follows shadcn-style pairing: `$name` (area background) + `$namefg` (text on that area).
 
 The pipeline is straightforward:
 
 ```
-Palette generators --> ColorPalette (22) --> deriveTheme() --> Theme (33)
+Color palette --> ColorPalette (22) --> deriveTheme() --> Theme (33)
 ```
+
+You can enter this pipeline at any point: pick a built-in palette, generate one from a single color, or detect the terminal's own palette automatically.
 
 ## Quick Start
 
@@ -35,7 +37,7 @@ const theme = createTheme().bg("#2E3440").fg("#ECEFF4").primary("#EBCB8B").build
 Or use the convenience functions:
 
 ```typescript
-import { presetTheme, quickTheme, autoGenerateTheme } from "@silvery/theme"
+import { presetTheme, quickTheme, autoGenerateTheme, detectTheme } from "@silvery/theme"
 
 // Load a preset
 const nord = presetTheme("nord")
@@ -46,6 +48,9 @@ const custom = quickTheme("#E06C75", "light")
 
 // Full auto-generation from a single hex color
 const generated = autoGenerateTheme("#5E81AC", "dark")
+
+// Use the terminal's own palette (queries colors via OSC 4/10/11)
+const detected = await detectTheme()
 ```
 
 ## Using Themes in Components
@@ -145,6 +150,23 @@ const light = autoGenerateTheme("#E06C75", "light")
 ```
 
 The auto-generated theme uses the input color as the exact `primary` token, then derives everything else to be harmonious with it.
+
+## Terminal Palette Detection
+
+Instead of shipping a palette, you can read the terminal's actual colors at startup. `detectTheme()` queries the terminal via OSC 4 (ANSI colors), OSC 10 (foreground), and OSC 11 (background), then derives a full theme from whatever the terminal reports:
+
+```typescript
+import { detectTheme } from "@silvery/theme"
+
+// Queries the terminal's live colors — matches whatever theme the user has configured
+const theme = await detectTheme()
+
+// Provide a fallback palette for terminals that don't respond to OSC queries (CI, tmux, etc.)
+import { getPaletteByName } from "@silvery/theme"
+const theme = await detectTheme({ fallback: getPaletteByName("nord") })
+```
+
+This means the app automatically matches the user's terminal theme — Dracula users get Dracula colors, Solarized users get Solarized colors, with no configuration on your end. Dark/light mode is detected from the background luminance.
 
 ## Theme Builder
 
