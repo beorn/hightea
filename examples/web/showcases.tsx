@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react"
-import { Box, Text, Divider, useContentRect } from "../../packages/term/src/xterm/index.js"
+import { Box, Text, useContentRect } from "../../packages/term/src/xterm/index.js"
 
 // ============================================================================
 // Input Event Bus
@@ -340,432 +340,624 @@ function DashboardShowcase(): JSX.Element {
 // 2. CodingAgentShowcase — interactive coding agent demo
 // ============================================================================
 
-interface ToolCall {
+interface AgentToolCall {
   tool: string
-  label: string
-  lines?: string[]
-  diff?: { del: string; add: string }[]
+  args: string
+  output: string[]
 }
 
-interface Exchange {
-  prompt: string
-  text: string
-  tools: ToolCall[]
+interface AgentExchange {
+  id: number
+  role: "user" | "agent"
+  content: string
+  thinking?: string
+  toolCalls?: AgentToolCall[]
+  tokens?: { input: number; output: number }
 }
 
-/** Pool of random exchanges the agent can produce */
-const EXCHANGE_POOL: Exchange[] = [
+type AgentScriptEntry = Omit<AgentExchange, "id">
+
+// --- Constants ---
+
+const AGENT_MODEL = "claude-opus-4-6"
+const AGENT_INPUT_COST_PER_M = 15
+const AGENT_OUTPUT_COST_PER_M = 75
+const AGENT_CONTEXT_WINDOW = 200_000
+
+const AGENT_TOOL_ICONS: Record<string, string> = {
+  Read: "\u25B8",
+  Edit: "\u25B8",
+  Bash: "\u25B8",
+  Write: "\u25B8",
+  Glob: "\u25B8",
+  Grep: "\u25B8",
+}
+
+const AGENT_TOOL_COLORS: Record<string, string> = {
+  Read: "#89b4fa",
+  Edit: "#f9e2af",
+  Bash: "#a6e3a1",
+  Write: "#cba6f7",
+  Glob: "#6c7086",
+  Grep: "#94e2d5",
+}
+
+const AGENT_TOOL_BORDER_COLORS: Record<string, string> = {
+  Read: "#304060",
+  Edit: "#5a4520",
+  Bash: "#2a4a2a",
+  Write: "#3d2a5a",
+  Glob: "#3a3a3a",
+  Grep: "#2a4a4a",
+}
+
+// --- Script: realistic multi-turn coding conversation ---
+
+const AGENT_SCRIPT: AgentScriptEntry[] = [
   {
-    prompt: "Fix the login bug — expired tokens return null",
-    text: "Fixed! Expired tokens now refresh instead of returning null. All 3 auth tests pass.",
-    tools: [
-      {
-        tool: "Read",
-        label: "src/auth.ts",
-        lines: [
-          "47│ export async function validateToken(token: Token) {",
-          "48│   if (token.expired) return null  // ← bug",
-          "49│   return token",
-          "50│ }",
-        ],
-      },
-      {
-        tool: "Edit",
-        label: "src/auth.ts",
-        diff: [
-          {
-            del: "  if (token.expired) return null",
-            add: "  if (token.expired) return refreshToken(token)",
-          },
-        ],
-      },
-      {
-        tool: "Bash",
-        label: "bun test auth",
-        lines: ["✓ validates active tokens", "✓ refreshes expired tokens", "✓ rejects revoked tokens", "3 passed"],
-      },
-    ],
+    role: "user",
+    content: "Fix the login bug in auth.ts \u2014 expired tokens throw instead of refreshing.",
+    tokens: { input: 84, output: 0 },
   },
   {
-    prompt: "Add rate limiting to the API endpoints",
-    text: "Done. Added sliding window rate limiter — 100 req/min per IP with Redis backing.",
-    tools: [
+    role: "agent",
+    thinking:
+      "The user reports expired tokens throw instead of refreshing. This is likely in the token validation flow. I should read auth.ts to see the current expiry check logic.",
+    content: "Let me look at the auth module.",
+    toolCalls: [
       {
         tool: "Read",
-        label: "src/middleware/index.ts",
-        lines: [
-          " 1│ import express from 'express'",
-          " 2│ import cors from 'cors'",
-          " 3│ // No rate limiting configured",
-          " 4│ export const app = express()",
-        ],
-      },
-      {
-        tool: "Write",
-        label: "src/middleware/rate-limit.ts",
-        lines: [
-          " 1│ import { RateLimiterRedis } from 'rate-limiter-flexible'",
-          " 2│ import { redis } from '../db/redis.js'",
-          " 3│",
-          " 4│ const limiter = new RateLimiterRedis({",
-          " 5│   storeClient: redis,",
-          " 6│   keyPrefix: 'rl',",
-          " 7│   points: 100,       // requests",
-          " 8│   duration: 60,      // per 60 seconds",
-          " 9│   blockDuration: 60, // block for 60s when exceeded",
-          "10│ })",
-          "11│",
-          "12│ export async function rateLimit(req, res, next) {",
-          "13│   try {",
-          "14│     await limiter.consume(req.ip)",
-          "15│     next()",
-          "16│   } catch {",
-          "17│     res.status(429).json({ error: 'Too many requests' })",
-          "18│   }",
-          "19│ }",
-        ],
-      },
-      {
-        tool: "Edit",
-        label: "src/middleware/index.ts",
-        diff: [
-          {
-            del: "// No rate limiting configured",
-            add: "import { rateLimit } from './rate-limit.js'",
-          },
-          {
-            del: "export const app = express()",
-            add: "export const app = express()\napp.use(rateLimit)",
-          },
-        ],
-      },
-      {
-        tool: "Bash",
-        label: "bun test middleware",
-        lines: [
-          "✓ allows requests under limit",
-          "✓ blocks after 100 req/min",
-          "✓ resets after window expires",
-          "✓ returns 429 with JSON body",
-          "4 passed",
+        args: "src/auth.ts",
+        output: [
+          "export async function login(token: string) {",
+          "  const decoded = jwt.decode(token)",
+          "  if (decoded.exp < Date.now()) {",
+          '    throw new Error("Token expired")',
+          "  }",
+          "  return decoded.user",
+          "}",
         ],
       },
     ],
+    tokens: { input: 3694, output: 624 },
   },
   {
-    prompt: "Refactor the user service to use dependency injection",
-    text: "Refactored. UserService now accepts dependencies via constructor — easy to test with mocks.",
-    tools: [
-      {
-        tool: "Read",
-        label: "src/services/user.ts",
-        lines: [
-          " 1│ import { db } from '../db/connection.js'",
-          " 2│ import { mailer } from '../email/mailer.js'",
-          " 3│ import { logger } from '../utils/logger.js'",
-          " 4│",
-          " 5│ export async function createUser(data: UserInput) {",
-          " 6│   const user = await db.users.create(data)",
-          " 7│   await mailer.sendWelcome(user.email)",
-          " 8│   logger.info('User created', { id: user.id })",
-          " 9│   return user",
-          "10│ }",
-          "11│",
-          "12│ export async function getUser(id: string) {",
-          "13│   return db.users.findById(id)",
-          "14│ }",
-        ],
-      },
+    role: "agent",
+    thinking:
+      "Found it \u2014 decoded.exp is in seconds (Unix timestamp) but Date.now() returns milliseconds. Every token appears expired. I need to divide Date.now() by 1000.",
+    content: "Found it. The expiry check compares seconds to milliseconds. Fixing now.",
+    toolCalls: [
       {
         tool: "Edit",
-        label: "src/services/user.ts",
-        diff: [
-          { del: "import { db } from '../db/connection.js'", add: "interface UserServiceDeps {" },
-          {
-            del: "import { mailer } from '../email/mailer.js'",
-            add: "  db: Database; mailer: Mailer; logger: Logger",
-          },
-          {
-            del: "export async function createUser(data: UserInput) {",
-            add: "export function createUserService(deps: UserServiceDeps) {",
-          },
-        ],
-      },
-      {
-        tool: "Bash",
-        label: "bun test services/user",
-        lines: [
-          "✓ creates user with valid data",
-          "✓ sends welcome email",
-          "✓ logs user creation",
-          "✓ updates user email",
-          "✓ returns null for missing user",
-          "5 passed",
+        args: "src/auth.ts",
+        output: [
+          "  const decoded = jwt.decode(token)",
+          "- if (decoded.exp < Date.now()) {",
+          '-   throw new Error("Token expired")',
+          "+ if (decoded.exp < Date.now() / 1000) {",
+          "+   return refreshToken(token)",
+          "  }",
         ],
       },
     ],
+    tokens: { input: 4312, output: 574 },
   },
   {
-    prompt: "What's causing the memory leak in the WebSocket handler?",
-    text: "Found it — event listeners weren't being cleaned up on disconnect. Fixed with proper cleanup.",
-    tools: [
+    role: "agent",
+    content: "Running tests to verify the fix.",
+    toolCalls: [
       {
         tool: "Bash",
-        label: "node --inspect src/ws.ts",
-        lines: [
-          "Heap snapshot: 142 MB (growing)",
-          "Detached listeners: 847",
-          "Top retainer: WSHandler → EventEmitter → Array(847)",
-        ],
-      },
-      {
-        tool: "Read",
-        label: "src/ws/handler.ts",
-        lines: [
-          "23│ ws.on('message', (data) => {",
-          "24│   events.on('broadcast', (msg) => ws.send(msg)) // ← leak!",
-          "25│   processMessage(data)",
-          "26│ })",
-        ],
-      },
-      {
-        tool: "Edit",
-        label: "src/ws/handler.ts",
-        diff: [
-          { del: "ws.on('message', (data) => {", add: "const onBroadcast = (msg) => ws.send(msg)" },
-          {
-            del: "  events.on('broadcast', (msg) => ws.send(msg)) // ← leak!",
-            add: "events.on('broadcast', onBroadcast)\nws.on('message', (data) => {",
-          },
-          { del: "})", add: "})\nws.on('close', () => events.off('broadcast', onBroadcast))" },
-        ],
-      },
-      {
-        tool: "Bash",
-        label: "bun test ws --coverage",
-        lines: [
-          "✓ cleans up listeners on disconnect",
-          "✓ heap stable after 1000 connections",
-          "✓ broadcasts reach all clients",
-          "3 passed  |  coverage: 94%",
+        args: "bun test src/auth.test.ts",
+        output: [
+          "auth.test.ts",
+          "  \u2713 login with valid token (2ms)",
+          "  \u2713 login with expired token refreshes (3ms)",
+          "  \u2713 login with invalid token rejects (1ms)",
+          "",
+          "3 passed | 0 failed",
         ],
       },
     ],
+    tokens: { input: 4978, output: 312 },
+  },
+  {
+    role: "agent",
+    content:
+      "Fixed! The bug was comparing jwt.exp (seconds) with Date.now() (milliseconds). Expired tokens now refresh instead of throwing.",
+    tokens: { input: 5202, output: 178 },
+  },
+  {
+    role: "user",
+    content: "Nice. Can you also add rate limiting to the login endpoint?",
+    tokens: { input: 116, output: 0 },
+  },
+  {
+    role: "agent",
+    thinking:
+      "The user wants rate limiting on login. Let me check if there's existing rate limiting infrastructure before building from scratch.",
+    content: "I'll check what rate limiting infrastructure exists.",
+    toolCalls: [
+      {
+        tool: "Grep",
+        args: "rateLimit|rate-limit",
+        output: ["src/middleware/rate-limit.ts", "src/config.ts"],
+      },
+      {
+        tool: "Read",
+        args: "src/middleware/rate-limit.ts",
+        output: [
+          "import { RateLimiter } from '@lib/rate-limit'",
+          "",
+          "export function createLimiter(opts: { window: number; max: number }) {",
+          "  return new RateLimiter(opts)",
+          "}",
+        ],
+      },
+    ],
+    tokens: { input: 6490, output: 846 },
+  },
+  {
+    role: "agent",
+    thinking:
+      "Good \u2014 there's already a RateLimiter abstraction. I just need to create an instance with appropriate settings and wire it into the auth route.",
+    content: "Good, there's already a rate limiter. I'll wire it into the auth route.",
+    toolCalls: [
+      {
+        tool: "Edit",
+        args: "src/routes/auth.ts",
+        output: [
+          "+ import { createLimiter } from '../middleware/rate-limit'",
+          "+",
+          "+ const loginLimiter = createLimiter({ window: 60_000, max: 5 })",
+          "+",
+          "  router.post('/login', async (req, res) => {",
+          "+   const limited = await loginLimiter.check(req.ip)",
+          "+   if (limited) return res.status(429).json({ error: 'Too many attempts' })",
+          "    const { token } = req.body",
+        ],
+      },
+    ],
+    tokens: { input: 7782, output: 756 },
+  },
+  {
+    role: "agent",
+    content: "Running the full test suite.",
+    toolCalls: [
+      {
+        tool: "Bash",
+        args: "bun test",
+        output: [
+          "auth.test.ts ........... 3 passed",
+          "rate-limit.test.ts ..... 5 passed",
+          "routes/auth.test.ts .... 7 passed",
+          "",
+          "15 passed | 0 failed | 3 files",
+        ],
+      },
+    ],
+    tokens: { input: 8204, output: 334 },
+  },
+  {
+    role: "agent",
+    content: "Rate limiting added: 5 attempts per minute per IP on the login endpoint. All 15 tests pass.",
+    tokens: { input: 8468, output: 156 },
+  },
+  {
+    role: "user",
+    content: "Add a health check endpoint at /health that returns the service version.",
+    tokens: { input: 104, output: 0 },
+  },
+  {
+    role: "agent",
+    thinking: "Simple task \u2014 read the version from package.json and expose it on GET /health alongside uptime.",
+    content: "Simple addition \u2014 reading package.json for the version, then adding the route.",
+    toolCalls: [
+      {
+        tool: "Read",
+        args: "package.json",
+        output: ["{", '  "name": "auth-service",', '  "version": "2.4.1",', "  ...", "}"],
+      },
+      {
+        tool: "Edit",
+        args: "src/routes/health.ts",
+        output: [
+          "+ import { version } from '../../package.json'",
+          "+",
+          "+ router.get('/health', (req, res) => {",
+          "+   res.json({ status: 'ok', version, uptime: process.uptime() })",
+          "+ })",
+        ],
+      },
+    ],
+    tokens: { input: 21578, output: 468 },
+  },
+  {
+    role: "agent",
+    content: "Running final tests.",
+    toolCalls: [
+      {
+        tool: "Bash",
+        args: "bun test",
+        output: [
+          "auth.test.ts ........... 3 passed",
+          "rate-limit.test.ts ..... 5 passed",
+          "routes/auth.test.ts .... 7 passed",
+          "routes/health.test.ts .. 2 passed",
+          "",
+          "17 passed | 0 failed | 4 files",
+        ],
+      },
+    ],
+    tokens: { input: 22046, output: 290 },
+  },
+  {
+    role: "agent",
+    content:
+      "All done! Summary:\n\u2022 Fixed token expiry bug (seconds vs milliseconds)\n\u2022 Added rate limiting (5 req/min per IP)\n\u2022 Added /health endpoint (v2.4.1)\n\nAll 17 tests pass.",
+    tokens: { input: 22468, output: 224 },
   },
 ]
 
-let exchangeIdx = 0
+// --- Token helpers ---
 
-const TOOL_ICONS: Record<string, string> = {
-  Read: "📄",
-  Edit: "✏️",
-  Write: "📝",
-  Bash: "⚡",
+function agentFormatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+  return String(n)
 }
 
-const TOOL_COLORS: Record<string, string> = {
-  Read: "#89b4fa",
-  Edit: "#f9e2af",
-  Write: "#cba6f7",
-  Bash: "#a6e3a1",
+function agentFormatCost(inputTokens: number, outputTokens: number): string {
+  const cost = (inputTokens * AGENT_INPUT_COST_PER_M + outputTokens * AGENT_OUTPUT_COST_PER_M) / 1_000_000
+  if (cost < 0.01) return `$${cost.toFixed(4)}`
+  return `$${cost.toFixed(2)}`
 }
 
-const TOOL_BORDER_COLORS: Record<string, string> = {
-  Read: "#45475a",
-  Edit: "#5a4520",
-  Write: "#3d2a5a",
-  Bash: "#2a4a2a",
+function agentComputeTokens(exchanges: AgentExchange[]): {
+  input: number
+  output: number
+  currentContext: number
+} {
+  let input = 0
+  let output = 0
+  let currentContext = 0
+  for (const ex of exchanges) {
+    if (ex.tokens) {
+      input += ex.tokens.input
+      output += ex.tokens.output
+      if (ex.tokens.input > currentContext) currentContext = ex.tokens.input
+    }
+  }
+  return { input, output, currentContext }
 }
 
-function ToolCallBlock({ tc }: { tc: ToolCall }): JSX.Element {
-  const iconColor = TOOL_COLORS[tc.tool] ?? "#a6adc8"
-  const borderColor = TOOL_BORDER_COLORS[tc.tool] ?? "#45475a"
-  const icon = TOOL_ICONS[tc.tool] ?? ">"
+// --- Streaming phases ---
+
+type AgentStreamPhase = "thinking" | "streaming" | "tools" | "done"
+
+// --- Spinner ---
+
+const AGENT_SPINNER_FRAMES = ["\u2807", "\u2839", "\u2838", "\u283C", "\u2834", "\u2826", "\u2827", "\u2807", "\u280F"]
+
+function AgentSpinner(): JSX.Element {
+  const [frame, setFrame] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setFrame((f) => (f + 1) % AGENT_SPINNER_FRAMES.length), 80)
+    return () => clearInterval(id)
+  }, [])
+  return <Text color="#cba6f7">{AGENT_SPINNER_FRAMES[frame]}</Text>
+}
+
+// --- Thinking block ---
+
+function AgentThinkingBlock({ text, done }: { text: string; done: boolean }): JSX.Element {
   return (
-    <Box flexDirection="column" marginLeft={2}>
-      <Box borderStyle="round" borderColor={borderColor} flexDirection="column" paddingX={1}>
-        <Text>
-          <Text>{icon} </Text>
-          <Text bold color={iconColor}>
-            {tc.tool}
-          </Text>
-          <Text color="#6c7086"> </Text>
-          <Text color="#94e2d5" underline>
-            {tc.label}
-          </Text>
+    <Box flexDirection="column" paddingLeft={2}>
+      <Text color="#585b70" dim italic>
+        {done ? (
+          "\u25B8 "
+        ) : (
+          <>
+            <AgentSpinner />{" "}
+          </>
+        )}
+        thinking...
+      </Text>
+      {!done && (
+        <Text color="#585b70" dim wrap="truncate">
+          {"    "}
+          {text}
         </Text>
-        {tc.lines &&
-          tc.lines.map((line, i) => {
-            // Test results
-            if (line.startsWith("✓"))
+      )}
+    </Box>
+  )
+}
+
+// --- Tool call block ---
+
+function AgentToolCallBlock({
+  call,
+  phase,
+}: {
+  call: AgentToolCall
+  phase: "pending" | "running" | "done"
+}): JSX.Element {
+  const color = AGENT_TOOL_COLORS[call.tool] ?? "#a6adc8"
+  const borderColor = AGENT_TOOL_BORDER_COLORS[call.tool] ?? "#45475a"
+  const icon = AGENT_TOOL_ICONS[call.tool] ?? "\u25B8"
+
+  return (
+    <Box flexDirection="column">
+      <Text>
+        {phase === "running" ? (
+          <>
+            <AgentSpinner />{" "}
+          </>
+        ) : phase === "done" ? (
+          <Text color="#a6e3a1">{"\u2713 "}</Text>
+        ) : (
+          <Text color="#585b70" dim>
+            {"\u25CB "}
+          </Text>
+        )}
+        <Text color={color} bold>
+          {icon} {call.tool}
+        </Text>{" "}
+        <Text color="#94e2d5">{call.args}</Text>
+      </Text>
+      {phase === "done" && (
+        <Box
+          flexDirection="column"
+          borderStyle="single"
+          borderColor={borderColor}
+          borderLeft
+          borderRight={false}
+          borderTop={false}
+          borderBottom={false}
+          paddingLeft={1}
+          marginLeft={1}
+        >
+          {call.output.map((line, i) => {
+            if (line.startsWith("+"))
               return (
                 <Text key={i} color="#a6e3a1">
                   {line}
                 </Text>
               )
-            // Passed count
+            if (line.startsWith("-"))
+              return (
+                <Text key={i} color="#f38ba8">
+                  {line}
+                </Text>
+              )
+            if (line.startsWith("  \u2713") || line.startsWith("\u2713"))
+              return (
+                <Text key={i} color="#a6e3a1">
+                  {line}
+                </Text>
+              )
             if (line.includes("passed"))
               return (
                 <Text key={i} bold color="#a6e3a1">
                   {line}
                 </Text>
               )
-            // Heap/diagnostic data
-            if (line.includes(":")) {
-              const colonIdx = line.indexOf(":")
-              return (
-                <Text key={i}>
-                  <Text color="#89b4fa">{line.slice(0, colonIdx)}</Text>
-                  <Text color="#a6adc8">{line.slice(colonIdx)}</Text>
-                </Text>
-              )
-            }
-            // Line numbers in source
-            if (/^\s*\d+│/.test(line)) {
-              const match = line.match(/^(\s*\d+│)(.*)$/)
-              if (match) {
-                return (
-                  <Text key={i}>
-                    <Text color="#585b70">{match[1]}</Text>
-                    <Text color="#cdd6f4">{match[2]}</Text>
-                  </Text>
-                )
-              }
-            }
             return (
               <Text key={i} color="#a6adc8">
                 {line}
               </Text>
             )
           })}
-        {tc.diff &&
-          tc.diff.map((d, i) => (
-            <Box key={i} flexDirection="column">
-              <Text>
-                <Text bold color="#f38ba8">
-                  -{" "}
-                </Text>
-                <Text color="#f38ba8" strikethrough>
-                  {d.del}
-                </Text>
-              </Text>
-              <Text>
-                <Text bold color="#a6e3a1">
-                  +{" "}
-                </Text>
-                <Text color="#a6e3a1">{d.add}</Text>
-              </Text>
-            </Box>
-          ))}
-      </Box>
-    </Box>
-  )
-}
-
-/** Streaming text that reveals character by character */
-function StreamingText({ text, color, done }: { text: string; color: string; done: boolean }): JSX.Element {
-  const [charCount, setCharCount] = useState(done ? text.length : 0)
-
-  useEffect(() => {
-    if (done) {
-      setCharCount(text.length)
-      return
-    }
-    setCharCount(0)
-    const id = setInterval(() => {
-      setCharCount((c) => {
-        if (c >= text.length) return c
-        // Skip ahead through spaces for more natural feel
-        const next = text[c] === " " ? c + 2 : c + 1
-        return Math.min(next, text.length)
-      })
-    }, 40)
-    return () => clearInterval(id)
-  }, [text, done])
-
-  return (
-    <Text color={color} wrap="wrap">
-      {text.slice(0, charCount)}
-      {charCount < text.length && <Text color="#585b70">▋</Text>}
-    </Text>
-  )
-}
-
-const THINKING_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-const THINKING_MESSAGES = ["Analyzing code...", "Reading files...", "Searching codebase...", "Planning changes..."]
-
-/** Thinking spinner before agent responds */
-function ThinkingIndicator(): JSX.Element {
-  const [frame, setFrame] = useState(0)
-  const [msgIdx, setMsgIdx] = useState(0)
-
-  useEffect(() => {
-    const id = setInterval(() => setFrame((f) => (f + 1) % THINKING_FRAMES.length), 80)
-    return () => clearInterval(id)
-  }, [])
-
-  useEffect(() => {
-    const id = setInterval(() => setMsgIdx((m) => (m + 1) % THINKING_MESSAGES.length), 800)
-    return () => clearInterval(id)
-  }, [])
-
-  return (
-    <Box paddingX={1}>
-      <Text color="#cba6f7">{THINKING_FRAMES[frame]} </Text>
-      <Text color="#585b70" italic>
-        {THINKING_MESSAGES[msgIdx]}
-      </Text>
-    </Box>
-  )
-}
-
-/** One completed exchange (prompt + tools + summary) */
-function ExchangeBlock({
-  ex,
-  animatedTools,
-  isThinking,
-  isDone,
-}: {
-  ex: Exchange
-  animatedTools: number
-  isThinking?: boolean
-  isDone?: boolean
-}): JSX.Element {
-  return (
-    <Box flexDirection="column">
-      <Box paddingX={1}>
-        <Text color="#cba6f7" bold>
-          {"❯ "}
-        </Text>
-        <Text color="#cdd6f4" wrap="wrap">
-          {ex.prompt}
-        </Text>
-      </Box>
-      {isThinking && <ThinkingIndicator />}
-      {ex.tools.slice(0, animatedTools).map((tc, j) => (
-        <ToolCallBlock key={j} tc={tc} />
-      ))}
-      {animatedTools > ex.tools.length && (
-        <Box paddingX={1} marginTop={0}>
-          <Text color="#a6e3a1" bold>
-            {"✔ "}
-          </Text>
-          <StreamingText text={ex.text} color="#a6adc8" done={isDone ?? false} />
         </Box>
       )}
     </Box>
   )
 }
 
+// --- Streaming text (word-by-word) ---
+
+function AgentStreamingText({
+  fullText,
+  revealFraction,
+  showCursor,
+}: {
+  fullText: string
+  revealFraction: number
+  showCursor: boolean
+}): JSX.Element {
+  let text = fullText
+  if (revealFraction < 1) {
+    const words = fullText.split(/(\s+)/)
+    const totalWords = words.filter((w) => w.trim()).length
+    const revealWords = Math.ceil(totalWords * revealFraction)
+
+    let wordCount = 0
+    text = ""
+    for (const word of words) {
+      if (word.trim()) {
+        wordCount++
+        if (wordCount > revealWords) break
+      }
+      text += word
+    }
+  }
+
+  // Split on newlines to render as separate lines (Text doesn't handle \n as line breaks)
+  const lines = text.split("\n")
+  return (
+    <Box flexDirection="column">
+      {lines.map((line, i) => (
+        <Text key={i} wrap="wrap">
+          {line}
+          {showCursor && i === lines.length - 1 && <Text color="#89b4fa">{"\u258C"}</Text>}
+        </Text>
+      ))}
+    </Box>
+  )
+}
+
+// --- Context bar ---
+
+function AgentContextBar({ currentContext }: { currentContext: number }): JSX.Element {
+  const CTX_W = 12
+  const ctxFrac = currentContext / AGENT_CONTEXT_WINDOW
+  const ctxFilled = Math.round(Math.min(ctxFrac, 1) * CTX_W)
+  const ctxPct = Math.round(ctxFrac * 100)
+  const ctxColor = ctxPct > 80 ? "#f38ba8" : ctxPct > 50 ? "#f9e2af" : "#89b4fa"
+  return (
+    <Text color="#585b70">
+      <Text color={ctxColor}>{"\u2588".repeat(ctxFilled)}</Text>
+      <Text color="#313244">{"\u2591".repeat(CTX_W - ctxFilled)}</Text> {ctxPct}%
+    </Text>
+  )
+}
+
+// --- Exchange rendering ---
+
+function AgentExchangeView({
+  exchange,
+  streamPhase,
+  revealFraction,
+  isLatest,
+  cumTokens,
+}: {
+  exchange: AgentExchange
+  streamPhase: AgentStreamPhase
+  revealFraction: number
+  isLatest: boolean
+  cumTokens?: { input: number; output: number }
+}): JSX.Element {
+  const phase = isLatest ? streamPhase : "done"
+  const fraction = isLatest ? revealFraction : 1
+  const isUser = exchange.role === "user"
+
+  if (isUser) {
+    return (
+      <Box paddingX={1}>
+        <Text>
+          <Text bold color="#cba6f7">
+            {"\u276F"}{" "}
+          </Text>
+          <Text color="#cdd6f4" wrap="wrap">
+            {exchange.content}
+          </Text>
+        </Text>
+      </Box>
+    )
+  }
+
+  // Agent exchange
+  const toolCalls = exchange.toolCalls ?? []
+  const toolRevealCount = phase === "tools" || phase === "done" ? toolCalls.length : 0
+
+  return (
+    <Box flexDirection="column" paddingX={1}>
+      {/* Thinking block */}
+      {exchange.thinking && (phase === "thinking" || phase === "streaming") && (
+        <AgentThinkingBlock text={exchange.thinking} done={phase !== "thinking"} />
+      )}
+
+      {/* Agent content */}
+      {(phase === "streaming" || phase === "tools" || phase === "done") && (
+        <Box flexDirection="column">
+          <AgentStreamingText
+            fullText={exchange.content}
+            revealFraction={phase === "streaming" ? fraction : 1}
+            showCursor={phase === "streaming" && fraction < 1}
+          />
+        </Box>
+      )}
+
+      {/* Tool calls */}
+      {toolRevealCount > 0 && (
+        <Box flexDirection="column" marginTop={0}>
+          {toolCalls.map((call, i) => (
+            <AgentToolCallBlock
+              key={i}
+              call={call}
+              phase={phase === "done" ? "done" : i < toolRevealCount - 1 ? "done" : "running"}
+            />
+          ))}
+        </Box>
+      )}
+
+      {/* Completion indicator + token stats (only for final summary exchanges) */}
+      {phase === "done" && !exchange.toolCalls?.length && cumTokens && (
+        <Box marginTop={0}>
+          <Text dim color="#585b70">
+            {"  "}
+            {agentFormatTokens(cumTokens.input)} in {"\u00B7"} {agentFormatTokens(cumTokens.output)} out {"\u00B7"}{" "}
+            {agentFormatCost(cumTokens.input, cumTokens.output)}
+          </Text>
+        </Box>
+      )}
+    </Box>
+  )
+}
+
+// --- Status bar ---
+
+function AgentStatusBar({
+  exchanges,
+  hiddenCount,
+  isAnimating,
+  termFocused,
+}: {
+  exchanges: AgentExchange[]
+  hiddenCount: number
+  isAnimating: boolean
+  termFocused: boolean
+}): JSX.Element {
+  const cumulative = agentComputeTokens(exchanges)
+  const cost = agentFormatCost(cumulative.input, cumulative.output)
+
+  return (
+    <Box flexDirection="row" justifyContent="space-between">
+      <Text color="#585b70" dim>
+        <Text color="#cba6f7">{AGENT_MODEL}</Text>
+        {"  "}
+        {agentFormatTokens(cumulative.input)} in {"\u00B7"} {agentFormatTokens(cumulative.output)} out {"\u00B7"} {cost}
+        {hiddenCount > 0 && (
+          <>
+            {"  "}
+            <Text color="#45475a">
+              {"\u2191"}
+              {hiddenCount} more
+            </Text>
+          </>
+        )}
+      </Text>
+      <Text color="#585b70" dim>
+        <AgentContextBar currentContext={cumulative.currentContext} />
+        {"  "}
+        {isAnimating ? (
+          <Text color="#585b70">working...</Text>
+        ) : termFocused ? (
+          <Text color="#585b70">type a prompt {"\u23CE"}</Text>
+        ) : (
+          <Text color="#45475a">click to focus</Text>
+        )}
+      </Text>
+    </Box>
+  )
+}
+
+// --- Script index (module-level to persist across re-renders) ---
+let agentScriptIdx = 0
+
 function CodingAgentShowcase(): JSX.Element {
-  // Start empty — auto-animate the first exchange so users see activity immediately
-  const [exchanges, setExchanges] = useState<Exchange[]>([])
-  const [activeExchange, setActiveExchange] = useState<Exchange | null>(null)
-  const [animatedTools, setAnimatedTools] = useState(0)
-  const [isThinking, setIsThinking] = useState(false)
-  const [cursorVisible, setCursorVisible] = useState(true)
+  const [exchanges, setExchanges] = useState<AgentExchange[]>([])
   const [inputText, setInputText] = useState("")
+  const [cursorVisible, setCursorVisible] = useState(true)
   const termFocused = useTermFocused()
+
+  // Streaming state
+  const [streamPhase, setStreamPhase] = useState<AgentStreamPhase>("done")
+  const [revealFraction, setRevealFraction] = useState(1)
+  const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const revealTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const nextIdRef = useRef(0)
+  const scriptIdxRef = useRef(0)
 
   // Blink cursor
   useEffect(() => {
@@ -773,116 +965,211 @@ function CodingAgentShowcase(): JSX.Element {
     return () => clearInterval(id)
   }, [])
 
+  /** Cancel all streaming timers. */
+  const cancelStreaming = () => {
+    if (phaseTimerRef.current) {
+      clearTimeout(phaseTimerRef.current)
+      phaseTimerRef.current = null
+    }
+    if (revealTimerRef.current) {
+      clearInterval(revealTimerRef.current)
+      revealTimerRef.current = null
+    }
+  }
+
+  /** Start streaming an exchange through its phases. */
+  const startStreaming = (entry: AgentScriptEntry, id: number) => {
+    cancelStreaming()
+    const newExchange: AgentExchange = { ...entry, id }
+
+    // User messages: instant
+    if (entry.role === "user") {
+      setExchanges((prev) => [...prev, newExchange])
+      setStreamPhase("done")
+      setRevealFraction(1)
+      return
+    }
+
+    // Agent message: thinking -> streaming -> tools -> done
+    setExchanges((prev) => [...prev, newExchange])
+
+    if (entry.thinking) {
+      setStreamPhase("thinking")
+      setRevealFraction(0)
+      phaseTimerRef.current = setTimeout(() => {
+        setStreamPhase("streaming")
+        let frac = 0
+        revealTimerRef.current = setInterval(() => {
+          frac += 0.08
+          if (frac >= 1) {
+            frac = 1
+            if (revealTimerRef.current) clearInterval(revealTimerRef.current)
+            if (entry.toolCalls?.length) {
+              setStreamPhase("tools")
+              phaseTimerRef.current = setTimeout(() => setStreamPhase("done"), 600 * (entry.toolCalls?.length ?? 1))
+            } else {
+              setStreamPhase("done")
+            }
+          }
+          setRevealFraction(frac)
+        }, 50)
+      }, 1200)
+    } else {
+      setStreamPhase("streaming")
+      let frac = 0
+      revealTimerRef.current = setInterval(() => {
+        frac += 0.12
+        if (frac >= 1) {
+          frac = 1
+          if (revealTimerRef.current) clearInterval(revealTimerRef.current)
+          if (entry.toolCalls?.length) {
+            setStreamPhase("tools")
+            phaseTimerRef.current = setTimeout(() => setStreamPhase("done"), 600 * (entry.toolCalls?.length ?? 1))
+          } else {
+            setStreamPhase("done")
+          }
+        }
+        setRevealFraction(frac)
+      }, 50)
+    }
+  }
+
+  /** Advance to the next script entry. Returns true if there was something to advance. */
+  const advance = () => {
+    if (streamPhase !== "done") return false
+    if (scriptIdxRef.current >= AGENT_SCRIPT.length) return false
+
+    const entry = AGENT_SCRIPT[scriptIdxRef.current]!
+    const id = nextIdRef.current++
+    scriptIdxRef.current++
+    startStreaming(entry, id)
+
+    // Auto-chain: user entry -> immediately start following agent entry
+    if (entry.role === "user" && scriptIdxRef.current < AGENT_SCRIPT.length) {
+      const next = AGENT_SCRIPT[scriptIdxRef.current]!
+      if (next.role === "agent") {
+        const nextId = nextIdRef.current++
+        scriptIdxRef.current++
+        startStreaming(next, nextId)
+      }
+    }
+    return true
+  }
+
   // Auto-start the first exchange after a short delay
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsThinking(true)
-      setActiveExchange(EXCHANGE_POOL[0]!)
-    }, 1500)
+    const timer = setTimeout(() => advance(), 1000)
     return () => clearTimeout(timer)
   }, [])
 
-  // Thinking phase → then start tool animation
+  // Auto-advance: when streaming finishes and there are more entries, continue
   useEffect(() => {
-    if (!isThinking || !activeExchange) return
-    const timer = setTimeout(() => {
-      setIsThinking(false)
-      setAnimatedTools(1)
-    }, 1800)
+    if (streamPhase !== "done") return
+    if (scriptIdxRef.current >= AGENT_SCRIPT.length) return
+    const timer = setTimeout(() => advance(), 800)
     return () => clearTimeout(timer)
-  }, [isThinking, activeExchange])
+  }, [streamPhase])
 
-  // Animate tool calls for active exchange (starts after thinking)
+  // Cleanup on unmount
   useEffect(() => {
-    if (!activeExchange || isThinking || animatedTools === 0) return
-    const totalSteps = activeExchange.tools.length + 1 // tools + summary
-    if (animatedTools >= totalSteps) {
-      // Animation done — commit to history after streaming text finishes
-      const done = activeExchange
-      const timer = setTimeout(() => {
-        setExchanges((prev) => [...prev, done])
-        setActiveExchange(null)
-        setAnimatedTools(0)
-      }, 2000)
-      return () => clearTimeout(timer)
-    }
-    const delay = 1100
-    const timer = setTimeout(() => setAnimatedTools((c) => c + 1), delay)
-    return () => clearTimeout(timer)
-  }, [activeExchange, animatedTools, isThinking])
+    return () => cancelStreaming()
+  }, [])
 
-  // User types + Enter → start next exchange
+  // User types + Enter -> start next exchange (or skip streaming)
   useInput((input, key) => {
-    if (activeExchange) return // busy
-    if (key.return && inputText.length > 0) {
-      exchangeIdx = (exchangeIdx + 1) % EXCHANGE_POOL.length
-      const next = EXCHANGE_POOL[exchangeIdx]!
-      // Use user's typed text as prompt override
-      setActiveExchange({ ...next, prompt: inputText })
-      setIsThinking(true)
-      setAnimatedTools(0)
-      setInputText("")
-    } else if (key.backspace) {
+    if (key.return) {
+      if (streamPhase !== "done") {
+        // Skip current streaming
+        cancelStreaming()
+        setStreamPhase("done")
+        setRevealFraction(1)
+        return
+      }
+      if (inputText.length > 0) {
+        // Submit user text as custom exchange, then advance to next agent response
+        const id = nextIdRef.current++
+        const userExchange: AgentExchange = {
+          id,
+          role: "user",
+          content: inputText,
+          tokens: { input: inputText.length * 4, output: 0 },
+        }
+        setExchanges((prev) => [...prev, userExchange])
+        setInputText("")
+
+        // Skip past user entries in script to find next agent entry
+        while (scriptIdxRef.current < AGENT_SCRIPT.length && AGENT_SCRIPT[scriptIdxRef.current]!.role === "user") {
+          scriptIdxRef.current++
+        }
+        // Start the next agent entry
+        setTimeout(() => advance(), 150)
+      } else {
+        advance()
+      }
+      return
+    }
+    if (key.backspace) {
       setInputText((t) => t.slice(0, -1))
-    } else if (input && input >= " ") {
+      return
+    }
+    if (input && input >= " ") {
       setInputText((t) => t + input)
     }
   })
 
-  const isAnimating = activeExchange !== null
+  const isAnimating = streamPhase !== "done"
 
   // Show only the most recent exchanges — older ones "scroll off"
-  // When animating, hide completed to make room for the active exchange
-  const maxVisible = activeExchange ? 0 : 1
-  const visibleExchanges = exchanges.slice(-maxVisible || undefined).slice(-1)
-  const hiddenCount = exchanges.length - visibleExchanges.length
+  const maxVisible = isAnimating ? 3 : 4
+  const visibleExchanges = exchanges.slice(-maxVisible)
+  const hiddenCount = Math.max(0, exchanges.length - maxVisible)
+
+  // Cumulative token stats for the last agent exchange
+  const cumTokens = agentComputeTokens(exchanges)
 
   return (
     <Box flexDirection="column" padding={1} overflow="hidden">
-      {/* Header */}
-      <Box flexDirection="row" gap={1}>
-        <Text bold color="#cba6f7">
-          ●
-        </Text>
-        <Text dim color="#585b70">
-          ~/project
-        </Text>
-        {hiddenCount > 0 && (
-          <Text dim color="#45475a">
-            ↑ {hiddenCount} more
-          </Text>
-        )}
-      </Box>
-
       {/* Visible exchange history */}
       <Box flexDirection="column" flexGrow={1} overflow="hidden">
-        {visibleExchanges.map((ex, i) => (
-          <ExchangeBlock
-            key={exchanges.length - visibleExchanges.length + i}
-            ex={ex}
-            animatedTools={ex.tools.length + 1}
-            isDone
-          />
-        ))}
-
-        {/* Active exchange (animating) */}
-        {activeExchange && (
-          <Box flexDirection="column">
-            {visibleExchanges.length > 0 && <Divider />}
-            <ExchangeBlock ex={activeExchange} animatedTools={animatedTools} isThinking={isThinking} />
-            {!isThinking && animatedTools > 0 && animatedTools <= activeExchange.tools.length && (
-              <Box paddingX={1}>
-                <Text color="#cba6f7">{THINKING_FRAMES[Math.floor(Date.now() / 80) % THINKING_FRAMES.length]} </Text>
-                <Text color="#585b70">working...</Text>
-              </Box>
-            )}
+        {/* Welcome text when no exchanges yet */}
+        {exchanges.length === 0 && !isAnimating && (
+          <Box flexDirection="column" paddingX={1} marginTop={1}>
+            <Text color="#6c7086">Ready. Type a prompt and press Enter to see the agent work.</Text>
           </Box>
         )}
 
-        {/* Welcome text when no exchanges yet */}
-        {exchanges.length === 0 && !activeExchange && (
-          <Box flexDirection="column" paddingX={1} marginTop={1}>
-            <Text color="#6c7086">Ready. Type a prompt and press Enter to see the agent work.</Text>
+        {visibleExchanges.map((ex, i) => {
+          const globalIdx = exchanges.length - visibleExchanges.length + i
+          const isLatest = globalIdx === exchanges.length - 1
+          const prevEx = i > 0 ? visibleExchanges[i - 1] : null
+          const showSeparator = prevEx && (prevEx.role === "user" || ex.role === "user") && i > 0
+
+          return (
+            <Box key={ex.id} flexDirection="column">
+              {showSeparator && (
+                <Box paddingX={1}>
+                  <Text color="#313244">{"\u2500".repeat(40)}</Text>
+                </Box>
+              )}
+              <AgentExchangeView
+                exchange={ex}
+                streamPhase={streamPhase}
+                revealFraction={revealFraction}
+                isLatest={isLatest}
+                cumTokens={
+                  isLatest && streamPhase === "done" ? { input: cumTokens.input, output: cumTokens.output } : undefined
+                }
+              />
+            </Box>
+          )
+        })}
+
+        {/* Done indicator */}
+        {scriptIdxRef.current >= AGENT_SCRIPT.length && streamPhase === "done" && exchanges.length > 0 && (
+          <Box paddingX={1} marginTop={0}>
+            <Text color="#a6e3a1" bold>
+              {"\u2714"} Session complete
+            </Text>
           </Box>
         )}
       </Box>
@@ -895,15 +1182,21 @@ function CodingAgentShowcase(): JSX.Element {
         flexDirection="row"
       >
         <Text color="#cba6f7" bold>
-          {"❯ "}
+          {"\u276F"}{" "}
         </Text>
         <Text color={inputText ? "#cdd6f4" : "#585b70"} wrap="truncate">
           {inputText || (isAnimating ? "" : termFocused ? "type a prompt, then Enter..." : "click to focus")}
         </Text>
-        <Text color="#89b4fa">{!isAnimating && termFocused && cursorVisible ? "▋" : " "}</Text>
+        <Text color="#89b4fa">{!isAnimating && termFocused && cursorVisible ? "\u258B" : " "}</Text>
       </Box>
 
-      <KeyHints hints="type a prompt  Enter run" />
+      {/* Status bar */}
+      <AgentStatusBar
+        exchanges={exchanges}
+        hiddenCount={hiddenCount}
+        isAnimating={isAnimating}
+        termFocused={termFocused}
+      />
     </Box>
   )
 }
@@ -1898,7 +2191,12 @@ function TextInputShowcase(): JSX.Element {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Box flexDirection="row" borderStyle="round" borderColor={termFocused ? "#89b4fa" : "#313244"} paddingX={1}>
+      <Box
+        flexDirection="row"
+        borderStyle={termFocused ? "double" : "round"}
+        borderColor={termFocused ? "#89b4fa" : "#313244"}
+        paddingX={1}
+      >
         <Text color={termFocused ? "#89b4fa" : "#585b70"}>&gt; </Text>
         <Text color="#cdd6f4">{text}</Text>
         <Text color="#89b4fa">{termFocused ? "▋" : " "}</Text>

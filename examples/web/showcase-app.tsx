@@ -47,30 +47,25 @@ if (!ShowcaseComponent) {
     // Signal to parent (LiveDemo.vue) that the demo loaded successfully
     window.parent.postMessage({ type: "silvery-ready" }, "*")
 
-    // Wire keyboard input to showcase components
-    term.onData((data) => emitInput(data))
-
     // Enable mouse tracking (Normal + SGR mode)
     term.write("\x1b[?1000h\x1b[?1006h")
 
-    // Parse SGR mouse events and forward to emitMouse()
-    term.onBinary((data) => {
+    // Wire keyboard + mouse input to showcase components
+    // SGR mouse sequences arrive via onData (not onBinary) in xterm.js browser mode
+    term.onData((data) => {
       // SGR mouse format: \x1b[<btn;x;yM (press) or \x1b[<btn;x;ym (release)
-      const str =
-        typeof data === "string"
-          ? data
-          : new TextDecoder().decode(new Uint8Array([...data].map((c) => c.charCodeAt(0))))
-      const match = str.match(/\x1b\[<(\d+);(\d+);(\d+)([Mm])/)
-      if (match) {
-        const btn = parseInt(match[1]!, 10)
-        const x = parseInt(match[2]!, 10) - 1 // 1-indexed to 0-indexed
-        const y = parseInt(match[3]!, 10) - 1
-        const isPress = match[4] === "M"
-        // Only forward press events (button 0=left, 1=middle, 2=right)
+      const mouseMatch = data.match(/\x1b\[<(\d+);(\d+);(\d+)([Mm])/)
+      if (mouseMatch) {
+        const btn = parseInt(mouseMatch[1]!, 10)
+        const x = parseInt(mouseMatch[2]!, 10) - 1 // 1-indexed to 0-indexed
+        const y = parseInt(mouseMatch[3]!, 10) - 1
+        const isPress = mouseMatch[4] === "M"
         if (isPress && btn <= 2) {
           emitMouse(x, y, btn)
         }
+        return
       }
+      emitInput(data)
     })
 
     // Track terminal focus state for showcase cursor/outline
