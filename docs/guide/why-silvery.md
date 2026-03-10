@@ -42,8 +42,8 @@ Beyond layout feedback, Silvery provides:
 
 - **100x faster interactive updates** — per-node dirty tracking vs Ink's full-tree re-render
 - **Constant memory** — pure JS layout engine (Flexily) vs Yoga's monotonically growing WASM memory
-- **Modern input** — Kitty keyboard, SGR mouse, focus management, command system, keybindings
-- **23+ components** — TextArea, VirtualList, SelectList, Table, Image, Console, and more
+- **Modern input** — SGR mouse events, spatial focus navigation, command system, keybindings, input layer stack
+- **30+ components** — TextArea, VirtualList, SelectList, Table, CommandPalette, ModalDialog, Image, and more
 - **Zero native deps** — no C++ addons, no WASM blobs, runs on any JS runtime
 - **Flicker-free** — synchronized terminal updates, incremental buffer diff
 

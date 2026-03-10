@@ -22,7 +22,7 @@ bun run compat            # Run Ink/Chalk compatibility checks
 | ----------------- | ----------------- | ---------------------------------------------- |
 | `packages/term`   | `@silvery/term`   | Terminal runtime, ANSI output, pipeline        |
 | `packages/react`  | `@silvery/react`  | React reconciler and hooks                     |
-| `packages/ui`     | `@silvery/ui`     | Component library (23+ components)             |
+| `packages/ui`     | `@silvery/ui`     | Component library (30+ components)             |
 | `packages/tea`    | `@silvery/tea`    | TEA state machine store (zustand-based)        |
 | `packages/compat` | `@silvery/compat` | Ink/Chalk compatibility layers                 |
 | `packages/test`   | `@silvery/test`   | Testing utilities (virtual renderer, locators) |

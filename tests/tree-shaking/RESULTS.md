@@ -4,7 +4,7 @@ Generated 2026-03-09 by `bun vendor/silvery/tests/tree-shaking/verify.ts`.
 
 ## Method
 
-For each entry point, a minimal file importing a few exports is bundled with `bun build --bundle --target=node`. The output is checked for:
+For each entry point, a minimal file importing exports is bundled with `bun build --bundle --target=node`. The output is checked for:
 
 1. **Bundle size** (total bytes after bundling)
 2. **React leakage** (does React appear in bundles that should be React-free?)
@@ -12,35 +12,51 @@ For each entry point, a minimal file importing a few exports is bundled with `bu
 
 ## Results
 
-| Entry Point                 | Bundle Size | React?         | Reconciler?    | Status |
-| --------------------------- | ----------- | -------------- | -------------- | ------ |
-| `@silvery/ansi`             | 24.7 KB     | No             | No             | PASS   |
-| `@silvery/tea/core`         | 0.2 KB      | No             | No             | PASS   |
-| `@silvery/tea/store`        | 2.0 KB      | No             | No             | PASS   |
-| `@silvery/tea/tea`          | 0.7 KB      | No             | No             | PASS   |
-| `@silvery/tea/streams`      | 1.0 KB      | No             | No             | PASS   |
-| `@silvery/theme` (theme.ts) | 77.3 KB     | Yes (expected) | No             | PASS   |
-| `@silvery/react`            | 1008.9 KB   | Yes (expected) | Yes (expected) | PASS   |
-| `@silvery/term/runtime`     | 863.5 KB    | Yes (expected) | Yes (expected) | PASS   |
-| `@silvery/ui/cli`           | 22.9 KB     | No             | No             | PASS   |
-| `@silvery/ui/wrappers`      | 18.6 KB     | No             | No             | PASS   |
-| `silvery/chalk`             | 17.2 KB     | No             | No             | PASS   |
+| Entry Point                  | Bundle Size | React?         | Reconciler?    | Status |
+| ---------------------------- | ----------- | -------------- | -------------- | ------ |
+| `@silvery/term` (barrel)     | 378.5 KB    | No             | No             | PASS   |
+| `@silvery/term` (selective)  | 79.4 KB     | No             | No             | PASS   |
+| `@silvery/term/ansi`         | 24.7 KB     | No             | No             | PASS   |
+| `@silvery/term/hit-registry` | 42.6 KB     | Yes (expected) | No             | PASS   |
+| `@silvery/tea/core`          | 0.2 KB      | No             | No             | PASS   |
+| `@silvery/tea/store`         | 2.0 KB      | No             | No             | PASS   |
+| `@silvery/tea/tea`           | 0.7 KB      | No             | No             | PASS   |
+| `@silvery/tea/streams`       | 1.0 KB      | No             | No             | PASS   |
+| `@silvery/theme` (theme.ts)  | 77.3 KB     | Yes (expected) | No             | PASS   |
+| `@silvery/react`             | 994.1 KB    | Yes (expected) | Yes (expected) | PASS   |
+| `@silvery/term/runtime`      | 854.1 KB    | Yes (expected) | Yes (expected) | PASS   |
+| `@silvery/ui/cli`            | 22.9 KB     | No             | No             | PASS   |
+| `@silvery/ui/wrappers`       | 18.6 KB     | No             | No             | PASS   |
+| `silvery/chalk`              | 17.2 KB     | No             | No             | PASS   |
 
 ## Analysis
 
+### `@silvery/term` barrel is React-free
+
+The `@silvery/term` barrel no longer pulls React or react-reconciler. Consumers can `import { createTerm } from "@silvery/term"` without bundling 800KB of React.
+
+Key changes that made this possible:
+
+- **Hit registry split**: Pure logic (HitRegistry class, types, Z_INDEX) stays in barrel via `hit-registry-core.ts`. React hooks/context moved to `hit-registry.ts` (available via `@silvery/term/hit-registry`).
+- **withRender removed**: Re-export removed from barrel (available via `@silvery/tea/with-render`).
+- **DevTools removed**: `connectDevTools`/`isDevToolsConnected` removed from barrel (available via `@silvery/term/devtools`).
+- **measureStats relocated**: Moved from `@silvery/react/reconciler/nodes` to `@silvery/term/pipeline/measure-stats.ts`, breaking the React dependency chain from `layout-phase.ts`.
+- **IncrementalRenderMismatchError relocated**: Moved to `errors.ts` so `output-phase.ts` doesn't transitively import `scheduler.ts` (which needs React).
+- **Theme imports narrowed**: Pipeline files import from `@silvery/theme/state` and `@silvery/theme/resolve` instead of `@silvery/theme` barrel (which re-exports ThemeContext.tsx).
+
+Barrel size: 378.5 KB (namespace import) / 79.4 KB (selective). The difference is due to bundler including all reachable code for namespace imports even when unused.
+
 ### React-free packages work correctly
 
-The leaf packages (`@silvery/ansi`, `@silvery/tea/core`, `@silvery/tea/store`, `@silvery/tea/tea`, `@silvery/tea/streams`, `@silvery/ui/cli`, `@silvery/ui/wrappers`, `silvery/chalk`) all bundle without pulling in React. This confirms the package boundary design is working: pure-TypeScript packages don't accidentally depend on React.
+The leaf packages (`@silvery/term`, `@silvery/term/ansi`, `@silvery/tea/core`, `@silvery/tea/store`, `@silvery/tea/tea`, `@silvery/tea/streams`, `@silvery/ui/cli`, `@silvery/ui/wrappers`, `silvery/chalk`) all bundle without pulling in React.
+
+### `@silvery/term/hit-registry` correctly pulls React
+
+The hit-registry sub-path exports React hooks (`useHitRegion`, `useHitRegionCallback`) and context (`HitRegistryContext`), so React is expected.
 
 ### `@silvery/theme` pulls React
 
-`@silvery/theme/theme` (the main barrel) re-exports `ThemeProvider` and `useTheme` from `ThemeContext.tsx`, which imports React. To get a fully React-free theme import, consumers would need to import individual files via the wildcard (e.g., `@silvery/theme/resolve` for `resolveThemeColor`).
-
-**Potential improvement**: Split `@silvery/theme` exports into a React-free sub-path (e.g., `@silvery/theme/core` with just types, palettes, color utils, resolve) and keep React parts in the main entry or a `/react` sub-path.
-
-### `@silvery/react` and `@silvery/term/runtime` are large
-
-Both are ~860-1009 KB bundled, which is expected given they contain the full React reconciler, layout engine, render pipeline, and component library. The `@silvery/react` barrel re-exports from all other packages, so its bundle size represents the "everything included" cost.
+`@silvery/theme/theme` (the main barrel) re-exports `ThemeProvider` and `useTheme` from `ThemeContext.tsx`, which imports React. To get a fully React-free theme import, consumers should import individual files (e.g., `@silvery/theme/resolve` for `resolveThemeColor`).
 
 ### `@silvery/tea` sub-paths are well-isolated
 
@@ -48,4 +64,4 @@ Both are ~860-1009 KB bundled, which is expected given they contain the full Rea
 
 ## Conclusion
 
-Tree-shaking boundaries are healthy. All 11 tested entry points passed. The main concern is `@silvery/theme` dragging React for consumers who only want color utilities.
+All 14 tested entry points pass tree-shaking verification. The `@silvery/term` barrel is React-free, down from 798 KB (with React+reconciler) to 79-379 KB depending on import style.

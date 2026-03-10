@@ -30,7 +30,3 @@ export { useInputLayer, useInputLayerContext, type InputLayerHandler } from "./u
 // Scroll Region Optimization
 export { useScrollRegion } from "./useScrollRegion"
 export type { UseScrollRegionOptions, UseScrollRegionResult } from "./useScrollRegion"
-
-// Ink-compatible focus hooks
-export { useFocus, useInkFocusManager } from "./ink-compat"
-export type { UseFocusOptions, UseFocusResult, InkUseFocusManagerResult } from "./ink-compat"

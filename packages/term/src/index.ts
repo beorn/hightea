@@ -213,19 +213,15 @@ export { queryTextAreaPixels, queryTextAreaSize, queryCellSize } from "./pixel-s
 export { resolveTermDef, resolveFromTerm, isTerm, isTermDef, createInputEvents, type ResolvedTermDef } from "./term-def"
 
 // =============================================================================
-// Hit Registry (Mouse Support)
+// Hit Registry (Mouse Support) — React-free core only
 // =============================================================================
+//
+// The barrel exports only the pure core (class, types, constants).
+// React hooks and context are available via @silvery/term/hit-registry.
+//
 
-export {
-  HitRegistry,
-  HitRegistryContext,
-  useHitRegistry,
-  useHitRegion,
-  useHitRegionCallback,
-  resetHitRegionIdCounter,
-  Z_INDEX,
-} from "./hit-registry"
-export type { HitTarget, HitRegion } from "./hit-registry"
+export { HitRegistry, resetHitRegionIdCounter, Z_INDEX } from "./hit-registry-core"
+export type { HitTarget, HitRegion } from "./hit-registry-core"
 
 // =============================================================================
 // Mouse Parsing (SGR mode 1006)
@@ -262,10 +258,9 @@ export { isTTY, resolveNonTTYMode, stripAnsi } from "./non-tty"
 export type { NonTTYOptions, ResolvedNonTTYMode } from "./non-tty"
 
 // =============================================================================
-// DevTools
+// DevTools — available via @silvery/term/devtools (not re-exported here to
+// keep this barrel React-free; devtools imports the React reconciler)
 // =============================================================================
-
-export { connectDevTools, isDevToolsConnected } from "./devtools"
 
 // =============================================================================
 // Inspector
@@ -337,8 +332,8 @@ export { createWidthMeasurer, createMeasurer, runWithMeasurer, type Measurer, ty
 // Measurer composition (term + measurement)
 export { withMeasurer, createPipeline, type MeasuredTerm } from "./measurer"
 
-// withRender plugin
-export { withRender, type RenderTerm } from "@silvery/tea/with-render"
+// withRender plugin — available via @silvery/tea/with-render (not re-exported
+// here to keep this barrel React-free; withRender's renderStatic() pulls React)
 
 // =============================================================================
 // Scroll Utilities
@@ -377,7 +372,7 @@ export {
 // Scheduler
 // =============================================================================
 
-export { IncrementalRenderMismatchError } from "./scheduler"
+export { IncrementalRenderMismatchError } from "./errors"
 
 // =============================================================================
 // ANSI Primitives (merged from @silvery/ansi)

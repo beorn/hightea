@@ -16,7 +16,7 @@ import {
   styleEquals,
 } from "../buffer"
 import type { CursorState } from "@silvery/react/hooks/useCursor"
-import { IncrementalRenderMismatchError } from "../scheduler"
+import { IncrementalRenderMismatchError } from "../errors"
 import { isPrivateUseArea, textSized } from "../text-sizing"
 import { graphemeWidth, isTextSizingEnabled } from "../unicode"
 import type { CellChange } from "./types"

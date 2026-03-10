@@ -5,7 +5,7 @@
  */
 
 import { createLogger } from "loggily"
-import { measureStats } from "@silvery/react/reconciler/nodes"
+import { measureStats } from "./measure-stats"
 import { type BoxProps, type TeaNode, type Rect, rectEqual } from "@silvery/tea/types"
 import { getBorderSize, getPadding } from "./helpers"
 

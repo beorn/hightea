@@ -26,8 +26,8 @@ features:
     details: "Components query their own dimensions via useContentRect(). No width prop drilling needed."
   - title: Scrollable Containers
     details: 'overflow="scroll" with scrollTo just works. No manual virtualization needed.'
-  - title: 23+ Components
-    details: "Box, Text, VirtualList, TextArea, SelectList, Table, Image, Spinner, ProgressBar, and more. Built-in scrolling, focus, and input handling."
+  - title: 30+ Components
+    details: "VirtualList, TextArea, SelectList, Table, CommandPalette, ModalDialog, Tabs, TreeView, Image, Toast, Spinner, ProgressBar, SplitView, and more. Built-in scrolling, focus, and input handling."
   - title: Beyond the Terminal
     details: "Terminal today, Canvas and DOM tomorrow. The architecture separates rendering targets from the component model — same React components, different outputs."
     link: /roadmap
@@ -63,7 +63,7 @@ features:
 
 <div class="features-list">
 
-- **23+ components** -- Box, Text, VirtualList, TextArea, SelectList, Table, Image, Spinner, ProgressBar, and more
+- **30+ components** -- VirtualList, TextArea, SelectList, Table, CommandPalette, ModalDialog, Tabs, TreeView, Image, Toast, Spinner, ProgressBar, SplitView, and more
 - **Scrollable containers** -- `overflow="scroll"` with `scrollTo` just works. No manual virtualization.
 - **Three architectures** -- React hooks, Elm-style reducers, or Zustand stores. Choose per use case -- all three in one framework.
 - **Built for AI** -- Command introspection for agents, programmatic screenshots, scrollable streaming output. CLAUDE.md ships with the package.

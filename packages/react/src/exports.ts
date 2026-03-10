@@ -321,9 +321,6 @@ export { useFocusable } from "./hooks/useFocusable"
 export type { UseFocusableResult } from "./hooks/useFocusable"
 export { useFocusWithin } from "./hooks/useFocusWithin"
 
-// Ink-compatible focus hooks
-export { useFocus, useInkFocusManager } from "./hooks/ink-compat"
-export type { UseFocusOptions, UseFocusResult, InkUseFocusManagerResult } from "./hooks/ink-compat"
 export { useTerm } from "./hooks/useTerm"
 export { useConsole } from "./hooks/useConsole"
 export {

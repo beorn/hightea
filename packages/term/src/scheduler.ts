@@ -49,17 +49,8 @@ const SYNC_UPDATE_ENABLED = process.env.SILVERY_SYNC_UPDATE === "1" || process.e
 // Errors
 // ============================================================================
 
-/**
- * Error thrown when SILVERY_CHECK_INCREMENTAL detects a mismatch.
- * This error should NOT be caught by general error handlers - it indicates
- * a bug in incremental rendering that needs to be fixed.
- */
-export class IncrementalRenderMismatchError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = "IncrementalRenderMismatchError"
-  }
-}
+// Re-export from errors.ts (kept separate for React-free barrel imports)
+export { IncrementalRenderMismatchError } from "./errors"
 
 // ============================================================================
 // Types

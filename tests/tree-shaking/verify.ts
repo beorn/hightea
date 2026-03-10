@@ -33,14 +33,37 @@ interface EntryPoint {
 }
 
 const entries: EntryPoint[] = [
-  // --- Leaf packages (should NOT pull React) ---
+  // --- @silvery/term barrel and sub-paths (should NOT pull React) ---
   {
-    name: "@silvery/term (ansi)",
+    name: "@silvery/term (barrel)",
+    specifier: "@silvery/term",
+    importExpr: "* as term",
+    expectNoReact: true,
+    expectNoReconciler: true,
+  },
+  {
+    name: "@silvery/term (selective)",
     specifier: "@silvery/term",
     importExpr: "{ createTerm, detectColor, stripAnsi }",
     expectNoReact: true,
     expectNoReconciler: true,
   },
+  {
+    name: "@silvery/term/ansi",
+    specifier: "@silvery/term/ansi",
+    importExpr: "{ createTerm, detectColor }",
+    expectNoReact: true,
+    expectNoReconciler: true,
+  },
+  // --- @silvery/term sub-paths that legitimately need React ---
+  {
+    name: "@silvery/term/hit-registry",
+    specifier: "@silvery/term/hit-registry",
+    importExpr: "{ HitRegistry, useHitRegion, HitRegistryContext }",
+    expectNoReact: false, // React hooks and context
+    expectNoReconciler: true,
+  },
+  // --- @silvery/tea sub-paths (should NOT pull React) ---
   {
     name: "@silvery/tea/core",
     specifier: "@silvery/tea/core",
@@ -69,6 +92,7 @@ const entries: EntryPoint[] = [
     expectNoReact: true,
     expectNoReconciler: true,
   },
+  // --- @silvery/theme ---
   {
     name: "@silvery/theme (no React parts)",
     specifier: "@silvery/theme/theme",
@@ -77,8 +101,8 @@ const entries: EntryPoint[] = [
     expectNoReact: false,
     expectNoReconciler: true,
   },
+  // --- Packages that legitimately need React ---
   {
-    // --- Packages that legitimately need React ---
     name: "@silvery/react",
     specifier: "@silvery/react",
     importExpr: "{ Box, Text, render }",
@@ -93,6 +117,7 @@ const entries: EntryPoint[] = [
     expectNoReact: false,
     expectNoReconciler: false,
   },
+  // --- @silvery/ui ---
   {
     name: "@silvery/ui/cli",
     specifier: "@silvery/ui/cli",
@@ -107,6 +132,7 @@ const entries: EntryPoint[] = [
     expectNoReact: true,
     expectNoReconciler: true,
   },
+  // --- silvery/chalk ---
   {
     name: "silvery/chalk",
     specifier: "silvery/chalk",
@@ -140,10 +166,19 @@ async function verifyEntry(entry: EntryPoint, tmpDir: string): Promise<Result> {
     reconcilerViolation: false,
   }
 
-  const isDefault = !entry.importExpr.startsWith("{")
-  const importLine = isDefault
-    ? `import ${entry.importExpr} from "${entry.specifier}"`
-    : `import ${entry.importExpr} from "${entry.specifier}"`
+  const isNamespace = entry.importExpr.startsWith("* as ")
+  const isDefault = !entry.importExpr.startsWith("{") && !isNamespace
+  const importLine = `import ${entry.importExpr} from "${entry.specifier}"`
+
+  // Extract a usable identifier for console.log(typeof ...)
+  let useIdent: string
+  if (isNamespace) {
+    useIdent = entry.importExpr.replace("* as ", "")
+  } else if (isDefault) {
+    useIdent = entry.importExpr
+  } else {
+    useIdent = entry.importExpr.replace(/[{}]/g, "").split(",")[0]!.trim()
+  }
 
   const safeName = entry.name.replace(/[/@]/g, "_")
   // Write entry files INSIDE the silvery dir so workspace resolution works
@@ -153,10 +188,7 @@ async function verifyEntry(entry: EntryPoint, tmpDir: string): Promise<Result> {
 
   // Write a tiny entry that imports the specifier and uses exports
   // to prevent dead-code elimination from removing them entirely
-  await writeFile(
-    entryFile,
-    `${importLine}\nconsole.log(typeof ${isDefault ? entry.importExpr : entry.importExpr.replace(/[{}]/g, "").split(",")[0]!.trim()})\n`,
-  )
+  await writeFile(entryFile, `${importLine}\nconsole.log(typeof ${useIdent})\n`)
 
   try {
     const proc = Bun.spawn(["bun", "build", "--bundle", "--target=node", "--outfile", outFile, entryFile], {
@@ -176,14 +208,18 @@ async function verifyEntry(entry: EntryPoint, tmpDir: string): Promise<Result> {
     const bundleContent = await readFile(outFile, "utf-8")
     result.bundleSize = bundleContent.length
 
-    // Check for React presence (look for react-specific markers)
+    // Check for React presence (look for react-specific markers).
+    // We look for patterns unique to bundled React runtime — not just the
+    // word "react" (which appears in logger strings) or "createElement"
+    // (which is used by document.createElement in DOM adapters).
     result.hasReact =
-      bundleContent.includes("react") &&
-      (bundleContent.includes("createElement") ||
-        bundleContent.includes("__SECRET_INTERNALS") ||
-        bundleContent.includes("jsx") ||
-        bundleContent.includes("useEffect") ||
-        bundleContent.includes("useState"))
+      bundleContent.includes("__SECRET_INTERNALS") ||
+      bundleContent.includes("react_development") ||
+      bundleContent.includes("require_react") ||
+      // React hooks as function definitions (not just references in strings)
+      /\bfunction\s+useEffect\b/.test(bundleContent) ||
+      /\bfunction\s+useState\b/.test(bundleContent) ||
+      /\bReact\.createElement\b/.test(bundleContent)
 
     // Check for react-reconciler
     result.hasReconciler = bundleContent.includes("react-reconciler") || bundleContent.includes("createContainer")

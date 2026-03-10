@@ -10,8 +10,8 @@
  * - useFocusManager returns { focusNext, focusPrevious, focus(id) }
  */
 
-import { useFocusable } from "./useFocusable"
-import { useFocusManager as useSilveryFocusManager } from "./useFocusManager"
+import { useFocusable } from "@silvery/react/hooks/useFocusable"
+import { useFocusManager as useSilveryFocusManager } from "@silvery/react/hooks/useFocusManager"
 
 // ============================================================================
 // useFocus (ink-compatible)

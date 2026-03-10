@@ -4,7 +4,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 # Getting Started
 
-Silvery is a terminal UI framework for React that lets components know their computed dimensions. It's a drop-in replacement for Ink with one key addition: the `useContentRect()` hook.
+Silvery is a React framework for building terminal applications -- reconciler, layout engine, 30+ components, theming, and state management in one package. If you know Ink, the core API (`Box`, `Text`, `useInput`) is familiar. The key addition: `useContentRect()` lets components query their own dimensions during render.
 
 ## Installation
 

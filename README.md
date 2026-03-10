@@ -39,9 +39,9 @@ function Responsive() {
 
 Kitty keyboard, SGR mouse, images (sixel + kitty), clipboard, hyperlinks, synchronized updates, cursor styles — all built-in, all auto-detected.
 
-### 23+ components
+### 30+ components
 
-Box, Text, VirtualList, TextArea, SelectList, Table, Image, Spinner, ProgressBar, and more. Plus a complete theming system with 45 built-in color palettes.
+VirtualList, TextArea, SelectList, Table, CommandPalette, ModalDialog, Tabs, TreeView, Image, Toast, Spinner, ProgressBar, SplitView, and more. Plus a complete theming system with 45 built-in color palettes.
 
 ### [TEA](https://guide.elm-lang.org/architecture/) state machines (optional)
 
@@ -61,7 +61,7 @@ Command introspection, programmatic screenshots, scrollable streaming output. Sh
 | [`@silvery/ansi`](packages/ansi)     | ANSI styling (chalk replacement)                   |
 | [`@silvery/theme`](packages/theme)   | Theming with 45 built-in palettes                  |
 | [`@silvery/tea`](packages/tea)       | TEA state machine store                            |
-| [`@silvery/ui`](packages/ui)         | Component library (23+ components)                 |
+| [`@silvery/ui`](packages/ui)         | Component library (30+ components)                 |
 | [`@silvery/compat`](packages/compat) | Ink/Chalk compatibility layers (drop-in migration) |
 | [`@silvery/test`](packages/test)     | Testing utilities                                  |
 

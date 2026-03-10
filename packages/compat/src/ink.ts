@@ -53,8 +53,8 @@ export { useStdout } from "@silvery/react/hooks/useStdout"
 export type { UseStdoutResult } from "@silvery/react/hooks/useStdout"
 
 // Ink-compatible focus hooks
-export { useFocus, useInkFocusManager as useFocusManager } from "@silvery/react/hooks/ink-compat"
-export type { UseFocusOptions, UseFocusResult, InkUseFocusManagerResult } from "@silvery/react/hooks/ink-compat"
+export { useFocus, useInkFocusManager as useFocusManager } from "./ink-focus"
+export type { UseFocusOptions, UseFocusResult, InkUseFocusManagerResult } from "./ink-focus"
 
 // Ink-compatible useStdin stub
 import React, { useContext, useCallback, useState, useEffect, useMemo } from "react"

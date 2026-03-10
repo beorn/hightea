@@ -8,19 +8,10 @@ import { type LayoutNode, getConstants, getLayoutEngine } from "@silvery/term/la
 import { type BoxProps, type TeaNode, type TeaNodeType, type TextProps, rectEqual } from "@silvery/tea/types"
 import { type Measurer, displayWidth, wrapText } from "@silvery/term/unicode"
 
-// Profiling counters for measure function performance analysis (dev only)
-export const measureStats = {
-  calls: 0,
-  cacheHits: 0,
-  textCollects: 0,
-  displayWidthCalls: 0,
-  reset() {
-    this.calls = 0
-    this.cacheHits = 0
-    this.textCollects = 0
-    this.displayWidthCalls = 0
-  },
-}
+// Import from shared module (lives in @silvery/term to keep barrel React-free)
+// Re-exported for consumers that imported from here previously
+import { measureStats } from "@silvery/term/pipeline/measure-stats"
+export { measureStats }
 
 // ============================================================================
 // Node Creation
