@@ -60,6 +60,8 @@ bun app.tsx
 
 You should see a rounded box with "Hello from Silvery!" inside.
 
+> **Power users:** `render()` and `run()` are sugar over composable plugins. For full control over terminal I/O, focus, events, and commands, use `pipe()` — see [Building an App](/guides/terminal-apps).
+
 ## Responsive Layout
 
 Components can query their own dimensions during render — no prop drilling needed:

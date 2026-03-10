@@ -106,7 +106,37 @@ function App() {
 }
 ```
 
-### 2. Text Wraps by Default
+### 2. flexDirection Defaults to `row` (CSS spec)
+
+**Ink**: Box defaults to `flexDirection="column"` (non-standard, but convenient for document flow).
+
+**Silvery**: Box defaults to `flexDirection="row"` (W3C CSS spec). The root node and `<Screen>` still default to `column`.
+
+```tsx
+// Ink: children stack vertically by default
+<Box>
+  <Text>Line 1</Text>
+  <Text>Line 2</Text>
+</Box>
+// Output:
+// Line 1
+// Line 2
+
+// Silvery: children flow horizontally by default
+<Box>
+  <Text>Line 1</Text>
+  <Text>Line 2</Text>
+</Box>
+// Output: Line 1Line 2
+```
+
+**Migration**: Add `flexDirection="column"` to any `<Box>` that relies on Ink's vertical stacking default. The root element and `<Screen>` already default to `column`, so top-level layouts usually work without changes.
+
+::: tip Why not match Ink's default?
+Silvery follows the CSS spec so that flexbox knowledge from web development transfers directly. See [Flexily vs Yoga Philosophy](/guide/silvery-vs-ink#flexily-vs-yoga-philosophy) for the full rationale. If you prefer exact Ink layout behavior, you can [use Yoga as the layout engine](/guide/silvery-vs-ink#flexily-vs-yoga-philosophy).
+:::
+
+### 3. Text Wraps by Default
 
 **Ink**: Text overflows its container.
 
@@ -142,7 +172,7 @@ You can also truncate with an ellipsis instead of wrapping:
 
 **Migration**: If you rely on overflow, add `wrap={false}` to disable both wrapping and truncation.
 
-### 3. First Render Shows Zeros
+### 4. First Render Shows Zeros
 
 **Ink**: Components render once with final output.
 
@@ -167,7 +197,7 @@ function Header() {
 }
 ```
 
-### 4. Scrolling Just Works
+### 5. Scrolling Just Works
 
 **Ink**: Manual virtualization with height estimation.
 
@@ -194,7 +224,7 @@ function Header() {
 
 **Migration**: Replace virtualization components with `overflow="scroll"`.
 
-### 5. measureElement() -> useContentRect()
+### 6. measureElement() -> useContentRect()
 
 **Ink**: Use `measureElement()` after render.
 
@@ -211,7 +241,7 @@ const { width } = useContentRect()
 // Automatically re-renders with correct values
 ```
 
-### 6. Hook Naming
+### 7. Hook Naming
 
 **Ink**: `useLayout` (if available)
 
@@ -226,11 +256,27 @@ const { width } = useContentRect()
 
 ### By Design
 
-| Behavior                | Ink       | Silvery | Reason                         |
-| ----------------------- | --------- | ------- | ------------------------------ |
-| Text overflow           | Overflows | Wraps   | Better default                 |
-| First render dimensions | N/A       | Zeros   | Required for responsive layout |
-| Internal APIs           | Exposed   | Hidden  | Not public API                 |
+| Behavior                | Ink                  | Silvery              | Reason                           |
+| ----------------------- | -------------------- | -------------------- | -------------------------------- |
+| Default `flexDirection` | `column`             | `row`                | W3C CSS spec compliance          |
+| Text overflow           | Overflows            | Wraps                | Better default                   |
+| First render dimensions | N/A                  | Zeros                | Required for responsive layout   |
+| Internal APIs           | Exposed              | Hidden               | Not public API                   |
+
+### Layout Engine Differences
+
+If your Ink app uses advanced flexbox features (`flexWrap`, `alignContent`, percentage `flexBasis`, absolute positioning with offsets), the default Flexily layout engine may produce slightly different results than Yoga. This is because Flexily follows the CSS spec where Yoga diverges — see [Flexily vs Yoga Philosophy](/guide/silvery-vs-ink#flexily-vs-yoga-philosophy).
+
+**For exact Ink layout parity**, use Yoga as the layout engine:
+
+```tsx
+import { render } from "silvery"
+import { yoga } from "silvery/yoga"
+
+await render(<App />, { layoutEngine: yoga })
+```
+
+Most Ink apps use simple layouts that work identically in both engines.
 
 ## Removing Width Prop Threading
 

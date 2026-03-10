@@ -9,7 +9,7 @@
 Adds React-style event handlers to Silvery components. Events bubble up the tree, components can stop propagation, and hit testing maps mouse coordinates to nodes.
 
 ```tsx
-import { pipe, withDomEvents } from "@silvery/term/runtime"
+import { pipe, withDomEvents, withReact } from "@silvery/tea/plugins"
 
 const app = pipe(createApp(store), withReact(<Board />), withDomEvents())
 ```
@@ -56,7 +56,7 @@ const app = pipe(createApp(store), withReact(<Board />), withDomEvents())
 Turns input into named, serializable commands. Keys and clicks resolve to commands; commands produce actions.
 
 ```tsx
-import { pipe, withDomEvents, withCommands } from "@silvery/term/runtime"
+import { pipe, withDomEvents, withCommands, withReact, createCommandRegistry } from "@silvery/tea/plugins"
 
 const registry = createCommandRegistry({
   cursor_down: {
@@ -139,40 +139,31 @@ await driver.screenshot() // capture screen
 
 ## App Plugin Anatomy
 
-> **Status:** The individual plugins are implemented and in production use. The unified `pipe()` composition model is the architectural direction — some details may evolve.
-
 Every extension — `withDomEvents`, `withCommands`, `withKeybindings`, `withDiagnostics` — is an app plugin: a function that takes an app and returns an enhanced app.
 
 ```tsx
-type AppPlugin<M, Msg> = (app: App<M, Msg>) => App<M, Msg>
+import type { AppPlugin } from "@silvery/tea/plugins"
+
+type AppPlugin<A, B> = (app: A) => B
 ```
 
-A plugin has two parts: a **slice** (pure reducer for its state) and a **plugin function** (event wiring, subscriptions, API surface):
+A plugin is a function that takes an app and returns an enhanced version. It can wrap existing methods (like `press()` or `run()`), add new properties, or store configuration for the runtime:
 
 ```tsx
-function withTerminal(proc: NodeJS.Process) {
-  return {
-    slice: (msg: AppEvent, term: TermState): TermState => {
-      if (msg.type === "term:resize") return { ...term, cols: msg.data.cols, rows: msg.data.rows }
-      return term
-    },
+import { withTerminal } from "@silvery/tea/plugins"
 
-    plugin: (app) => {
-      const { events } = app
-      app.events = () => [...events(), terminalInput(proc.stdin), resizeStream(proc.stdout)]
-
-      app.subscribe(
-        (s) => s.renderBuffer,
-        (buf) => diffAndWrite(proc.stdout, buf),
-      )
-
-      return app
-    },
-  }
-}
+// withTerminal captures process streams and terminal options,
+// then wraps run() to inject them:
+const app = pipe(
+  createApp(store),
+  withReact(<Board />),
+  withTerminal(process, { mouse: true, kitty: true }),
+)
+// app.terminalOptions is now available
+// app.run() will configure stdin/stdout automatically
 ```
 
-The kernel composes all slices — every slice sees every message, no plugin can clobber another's state. Plugins wire events and react to model changes, but **never mutate the model directly**. All state changes flow through `update`.
+Plugins compose cleanly because each one wraps or extends the app object without mutating the original. The `pipe()` chain flows left-to-right, with each plugin seeing the result of the previous one.
 
 ### Subscriptions and cleanup
 

@@ -156,8 +156,26 @@ export {
 } from "./streams"
 
 // =============================================================================
-// Plugin Composition
+// Plugin Composition — pipe() and plugins
 // =============================================================================
+
+export { pipe } from "./pipe"
+export type { AppPlugin } from "./pipe"
+
+export { withReact } from "./with-react"
+export type { AppWithReact } from "./with-react"
+
+export { withTerminal } from "./with-terminal"
+export type { WithTerminalOptions, AppWithTerminal, ProcessLike } from "./with-terminal"
+
+export { withFocus } from "./with-focus"
+export type { WithFocusOptions, AppWithFocus } from "./with-focus"
+
+export { withDomEvents } from "./with-dom-events"
+export type { WithDomEventsOptions } from "./with-dom-events"
+
+export { createCommandRegistry } from "./create-command-registry"
+export type { CommandDefInput, CommandDefs } from "./create-command-registry"
 
 export { withCommands } from "./with-commands"
 export type {
@@ -182,7 +200,7 @@ export { withRender } from "./with-render"
 export type { RenderTerm } from "./with-render"
 
 // =============================================================================
-// Plugins
+// Plugins barrel (re-exports all of the above)
 // =============================================================================
 
 export { IncrementalRenderMismatchError } from "./plugins"

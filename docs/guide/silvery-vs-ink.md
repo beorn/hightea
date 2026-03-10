@@ -20,6 +20,25 @@ See [migration guide](migration.md) for switching from Ink.
 
 ---
 
+## Compatibility at a Glance
+
+Silvery passes **162/162 of our Ink compatibility tests** (100%) and **78% of Ink's own test suite** (662/845). The 22% gap breaks down as:
+
+| Category | Failures | Why |
+| --- | --- | --- |
+| Layout engine differences (Flexily vs Yoga) | 53 | [Intentional W3C divergences](#flexily-vs-yoga-philosophy) — not bugs |
+| PTY/process-spawn tests | 43 | Test infrastructure, not runtime behavior |
+| Screen reader / ARIA | 18 | Not yet implemented |
+| Cursor management | 13 | Partial implementation |
+| Compat layer gaps | 24 | Rendering edge cases |
+| Other (ANSI sanitization, Kitty, timeouts) | 20 | Mixed |
+
+**Most failures won't affect your app.** The largest category (53) comes from Flexily following the CSS spec where Yoga doesn't — if you prefer browser-standard behavior, these are features, not bugs. If you need exact Yoga layout parity, Silvery supports Yoga as a pluggable layout engine.
+
+See [compatibility reference](/reference/compatibility) for the full API mapping.
+
+---
+
 ## Shared Foundation
 
 Silvery and Ink share the same core ideas -- the migration path is intentionally short:
@@ -52,7 +71,7 @@ Both are React renderers at the core. The rendering architecture is the primary 
 
 | Feature                   | Silvery                                                                                                | Ink                                                                                                                                        |
 | ------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Responsive layout**     | `useContentRect()` / `useScreenRect()` -- synchronous, available during render                         | `useBoxMetrics()` -- post-layout via `useEffect`, returns 0x0 until first measure                                                          |
+| **Responsive layout**     | `useContentRect()` / `useScreenRect()` -- synchronous, available during render                         | `useBoxMetrics()` -- post-layout via `useEffect`, returns 0x0 until first measure (added on master, post-v6.8.0; not yet released)         |
 | **Incremental rendering** | Per-node dirty tracking with 7 independent flags; cell-level buffer diff                               | Line-based diff (opt-in since v6.5.0); unchanged lines skipped, but any change rewrites entire line                                        |
 | **ANSI compositing**      | Cell-level buffer with proper style stacking; ANSI sequences composed, not passed through              | String concatenation; ANSI sequences emitted inline, no compositing layer                                                                  |
 | **Scrollable containers** | `overflow="scroll"` with `scrollTo` -- framework handles measurement and clipping                      | `overflow` supports `visible` and `hidden` only; scrolling requires manual virtualization                                                  |
@@ -65,7 +84,7 @@ Both are React renderers at the core. The rendering architecture is the primary 
 | **Memory profile**        | Constant -- Flexily uses normal JS GC                                                                  | Yoga WASM uses a linear memory heap that can grow over long sessions ([discussion](https://github.com/anthropics/claude-code/issues/4953)) |
 | **Layout caching**        | Flexily fingerprints + caches unchanged subtrees                                                       | Full tree recomputation on every layout pass                                                                                               |
 | **Synchronized output**   | DEC synchronized output (mode 2026) for flicker-free rendering in tmux/Zellij                          | None                                                                                                                                       |
-| **Bracketed paste**       | `usePaste` hook with automatic mode toggling                                                           | None                                                                                                                                       |
+| **Bracketed paste**       | `usePaste` hook with automatic mode toggling                                                           | `usePaste` hook (added on master, post-v6.8.0)                                                                                             |
 | **Initialization**        | Synchronous -- pure TypeScript import                                                                  | Async WASM loading                                                                                                                         |
 
 ### Interaction Model
@@ -243,6 +262,27 @@ Silvery supports pluggable layout engines with the same flexbox API:
 | Baseline alignment | Not supported     | Supported   |
 
 Both are fast enough for 60fps terminal UIs. Flexily is 5x smaller with comparable performance. See the [Flexily docs](https://beorn.github.io/flexily) for details.
+
+### Flexily vs Yoga Philosophy
+
+Flexily intentionally follows the **W3C CSS Flexbox specification** where Yoga diverges from it. These aren't bugs — they're design choices that make Flexily behave like browsers do:
+
+| Behavior | Flexily (CSS spec) | Yoga (Ink) | Why it matters |
+| --- | --- | --- | --- |
+| Default `flexDirection` | `row` | `column` | CSS §9.1: initial value is `row`. Ink chose `column` for document-flow convenience, but it surprises anyone coming from web CSS. |
+| `overflow:hidden` + `flexShrink:0` | Item shrinks to fit parent | Item expands to content size | CSS §4.5: overflow containers have `min-size: auto = 0`. Without this, an `overflow:hidden` child with 30 lines inside a height-10 parent computes as height 30 — defeating clipping. |
+| `alignContent` distribution | Matches browser behavior | Slightly different spacing | Minor differences in how cross-axis space is distributed across flex lines. |
+
+**If you prefer browser-standard flexbox**, use Flexily (the default). **If you need exact Ink layout parity**, switch to Yoga:
+
+```tsx
+import { render } from "silvery"
+import { yoga } from "silvery/yoga"
+
+await render(<App />, { layoutEngine: yoga })
+```
+
+Most Ink apps use simple layouts (`flexDirection="column"`, padding, borders) that work identically in both engines. The differences surface with advanced flexbox features like `flexWrap`, `alignContent`, and percentage-based `flexBasis`.
 
 ---
 

@@ -2,11 +2,20 @@
  * Run Counter - Layer 2 Example
  *
  * Demonstrates run() with React hooks (useState, useEffect)
- * and useRuntimeInput for keyboard handling.
+ * and useInput for keyboard handling.
  *
  * This is the simplest way to build an interactive TUI app.
+ * Under the hood, run() creates a createApp() with an empty store
+ * and renders the element — it's sugar over the Layer 3 pipe() pattern:
  *
- * Usage: bun examples/run-counter.tsx
+ *   run(<App />)
+ *   // is equivalent to:
+ *   pipe(createApp(() => () => ({})), withReact(<App />), withTerminal(process)).run()
+ *
+ * Use run() when component-local state (useState) is sufficient.
+ * Use pipe() + createApp() when you need shared state (Zustand store).
+ *
+ * Usage: bun examples/runtime/run-counter.tsx
  *
  * Controls:
  *   j/k - Increment/decrement counter

@@ -105,17 +105,50 @@ function resolveKeybinding(
  * Intercepts `press()` and routes matching keys to commands.
  * Non-matching keys pass through to the original press handler.
  *
- * @example
+ * Supports two calling styles:
+ * - Direct: `withKeybindings(app, options)` — returns enhanced app immediately
+ * - Curried: `withKeybindings(options)` — returns a plugin for pipe() composition
+ *
+ * @example Direct
  * ```tsx
  * const app = withKeybindings(appWithCmd, {
  *   bindings: defaultKeybindings,
  *   getKeyContext: () => buildKeybindingContext(state),
  * })
+ * ```
  *
- * await app.press('j')  // Triggers cmd.down() if bound
+ * @example Curried (pipe)
+ * ```tsx
+ * const app = pipe(
+ *   baseApp,
+ *   withCommands(cmdOpts),
+ *   withKeybindings({
+ *     bindings: defaultKeybindings,
+ *     getKeyContext: () => buildKeybindingContext(state),
+ *   }),
+ * )
  * ```
  */
-export function withKeybindings<T extends AppWithCommands>(app: T, options: WithKeybindingsOptions): T {
+// Curried form: withKeybindings(options) => plugin
+export function withKeybindings(
+  options: WithKeybindingsOptions,
+): <T extends AppWithCommands>(app: T) => T
+// Direct form: withKeybindings(app, options) => enhancedApp
+export function withKeybindings<T extends AppWithCommands>(app: T, options: WithKeybindingsOptions): T
+export function withKeybindings<T extends AppWithCommands>(
+  appOrOptions: T | WithKeybindingsOptions,
+  maybeOptions?: WithKeybindingsOptions,
+): T | (<U extends AppWithCommands>(app: U) => U) {
+  // Curried form: first arg is options (no press/text/ansi = not an App)
+  if (maybeOptions === undefined) {
+    const options = appOrOptions as WithKeybindingsOptions
+    return <U extends AppWithCommands>(app: U) => applyKeybindings(app, options)
+  }
+  // Direct form: first arg is app
+  return applyKeybindings(appOrOptions as T, maybeOptions)
+}
+
+function applyKeybindings<T extends AppWithCommands>(app: T, options: WithKeybindingsOptions): T {
   const { bindings, getKeyContext } = options
   const originalPress = app.press.bind(app)
 

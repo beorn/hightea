@@ -284,8 +284,8 @@ Classes encourage hidden state. Factory functions return plain objects with expl
 using term = createTerm()
 await render(<App />, term)
 
-// Composable plugins — no inheritance hierarchy
-const app = withCommands(withKeybindings(withTheme(baseApp)))
+// Composable plugins via pipe() — no inheritance hierarchy
+const app = pipe(baseApp, withFocus(), withDomEvents(), withCommands(opts))
 
 // Explicit dependencies — no hidden globals
 function createEditor({ storage, parser }) {

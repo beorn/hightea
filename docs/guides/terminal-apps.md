@@ -154,7 +154,7 @@ await app.run(
 The `withDomEvents()` plugin adds React-style event handlers to Silvery components. Events bubble up the tree, components can stop propagation, and hit testing maps mouse coordinates to nodes:
 
 ```tsx
-import { pipe, withDomEvents } from "@silvery/term/runtime"
+import { pipe, withDomEvents, withReact } from "@silvery/tea/plugins"
 
 function ItemList() {
   const items = useApp((s) => s.items)
@@ -258,7 +258,7 @@ Meanwhile, event handlers have the same problem. `if (input === "j") moveCursor(
 **The fix**: turn input into named, serializable commands. Declare that `j` maps to the command `cursor_down`, and `cursor_down` produces the action `{ op: "moveCursor", delta: 1 }`:
 
 ```tsx
-import { pipe, withDomEvents, withCommands } from "@silvery/term/runtime"
+import { pipe, withDomEvents, withCommands, withReact, createCommandRegistry } from "@silvery/tea/plugins"
 
 const registry = createCommandRegistry({
   cursor_down: {
@@ -423,12 +423,17 @@ Step back: `apply(state, op) → [new state, effects]`. This is [The Elm Archite
 Every extension in this guide — `withDomEvents`, `withCommands`, `withKeybindings` — is the same thing: an app plugin. A function that takes an app and returns an enhanced app:
 
 ```tsx
-type AppPlugin<M, Msg> = (app: App<M, Msg>) => App<M, Msg>
+import type { AppPlugin } from "@silvery/tea/plugins"
+
+type AppPlugin<A, B> = (app: A) => B
 ```
 
-This is the [SlateJS](https://docs.slatejs.org/concepts/08-plugins) editor model: `withHistory(withReact(createEditor()))`. Each plugin overrides methods on the app — `update` for event processing, `events` for event sources. You compose them with `pipe()`:
+This is the [SlateJS](https://docs.slatejs.org/concepts/08-plugins) editor model: `withHistory(withReact(createEditor()))`. Each plugin overrides methods on the app — `press` for input interception, `click` for mouse dispatch. You compose them with `pipe()`:
 
 ```tsx
+import { pipe, withReact, withTerminal, withFocus, withDomEvents,
+         withCommands, withKeybindings, withDiagnostics } from "@silvery/tea/plugins"
+
 const app = pipe(
   createApp(store), // kernel: event loop + state
   withReact(<Board />), // rendering: React + virtual buffer

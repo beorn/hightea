@@ -2,6 +2,16 @@
 
 Silvery provides compatibility layers for both Ink and Chalk, making migration straightforward. This reference documents the complete API mapping.
 
+## Compatibility Summary
+
+| Test suite | Pass rate | Notes |
+| --- | --- | --- |
+| Silvery's Ink compat tests | **162/162 (100%)** | Covers core APIs: Box, Text, hooks, render |
+| Ink's own test suite | **662/845 (78%)** | See breakdown below |
+| Chalk tests | **32/32 (100%)** | Full chalk API compatibility |
+
+The 183 Ink test failures are primarily layout engine differences (53, [intentional CSS-spec divergences](/guide/silvery-vs-ink#flexily-vs-yoga-philosophy)), PTY/process test infrastructure (43), and unimplemented features like screen reader support (18). Most apps will not encounter these gaps. See [Silvery vs Ink](/guide/silvery-vs-ink#compatibility-at-a-glance) for the full breakdown.
+
 ## Ink Compatibility
 
 ### Import Mapping
@@ -61,10 +71,13 @@ const { unmount, waitUntilExit } = await render(<App />, term)
 
 | Behavior                | Ink                 | Silvery                       | Reason                         |
 | ----------------------- | ------------------- | ----------------------------- | ------------------------------ |
+| Default `flexDirection` | `column`            | `row`                         | W3C CSS spec compliance        |
 | Text overflow           | Overflows container | Wraps by default              | Better default                 |
 | First render dimensions | N/A                 | `{ width: 0, height: 0 }`     | Required for responsive layout |
 | `overflow` values       | `visible`, `hidden` | `visible`, `hidden`, `scroll` | Scrolling support              |
 | Internal APIs           | Exposed             | Hidden                        | Not public API                 |
+
+> **Layout engine note**: Silvery defaults to [Flexily](https://beorn.github.io/flexily), which follows the W3C CSS spec where Yoga diverges. For exact Ink layout parity (e.g., `flexWrap`, `alignContent`, percentage `flexBasis`), use Yoga as the layout engine. See [Flexily vs Yoga Philosophy](/guide/silvery-vs-ink#flexily-vs-yoga-philosophy).
 
 ### Flexbox Props
 

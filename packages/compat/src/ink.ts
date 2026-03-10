@@ -163,7 +163,9 @@ export type BoxProps = SilveryBoxProps
  * - flexWrap: 'nowrap'
  *
  * These match Ink's Box.tsx line 83-88 defaults. User-provided props override.
- * Note: flexDirection no longer needs overriding — silvery now defaults to 'row' (W3C CSS).
+ * Note: flexDirection is NOT overridden — silvery defaults to 'row' (W3C CSS spec),
+ * while Ink defaults to 'column'. This is an intentional divergence. Users migrating
+ * from Ink should add flexDirection="column" to any Box that relies on Ink's default.
  */
 export const Box = React.forwardRef<BoxHandle, BoxProps>(function InkBox(props, ref) {
   // Map Ink's per-axis overflow props to silvery's unified overflow

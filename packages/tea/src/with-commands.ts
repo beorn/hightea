@@ -203,19 +203,54 @@ function formatHelp<TContext, TAction>(
 /**
  * Add command system to an App.
  *
- * @example
+ * Supports two calling styles:
+ * - Direct: `withCommands(app, options)` — returns enhanced app immediately
+ * - Curried: `withCommands(options)` — returns a plugin for pipe() composition
+ *
+ * @example Direct
  * ```tsx
  * const app = withCommands(render(<Board />), {
  *   registry: commandRegistry,
  *   getContext: () => buildContext(state),
  *   handleAction: (action) => dispatch(action),
  * })
+ * ```
  *
- * await app.cmd.down()
- * console.log(app.cmd.down.help)
+ * @example Curried (pipe)
+ * ```tsx
+ * const app = pipe(
+ *   baseApp,
+ *   withCommands({
+ *     registry: commandRegistry,
+ *     getContext: () => buildContext(state),
+ *     handleAction: (action) => dispatch(action),
+ *   }),
+ * )
  * ```
  */
+// Curried form: withCommands(options) => plugin
 export function withCommands<TContext, TAction>(
+  options: WithCommandsOptions<TContext, TAction>,
+): (app: App) => AppWithCommands
+// Direct form: withCommands(app, options) => enhancedApp
+export function withCommands<TContext, TAction>(
+  app: App,
+  options: WithCommandsOptions<TContext, TAction>,
+): AppWithCommands
+export function withCommands<TContext, TAction>(
+  appOrOptions: App | WithCommandsOptions<TContext, TAction>,
+  maybeOptions?: WithCommandsOptions<TContext, TAction>,
+): AppWithCommands | ((app: App) => AppWithCommands) {
+  // Curried form: first arg is options (no press/text/ansi = not an App)
+  if (maybeOptions === undefined) {
+    const options = appOrOptions as WithCommandsOptions<TContext, TAction>
+    return (app: App) => applyCommands(app, options)
+  }
+  // Direct form: first arg is app
+  return applyCommands(appOrOptions as App, maybeOptions)
+}
+
+function applyCommands<TContext, TAction>(
   app: App,
   options: WithCommandsOptions<TContext, TAction>,
 ): AppWithCommands {

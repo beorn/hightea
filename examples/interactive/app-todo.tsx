@@ -1,13 +1,18 @@
 /**
  * App Todo - Layer 3 Example
  *
- * Demonstrates createApp() with Zustand store for
- * shared state and fine-grained subscriptions.
+ * Demonstrates pipe() composition with createApp(), withReact(), and
+ * withTerminal() — the canonical pattern for building full apps.
  *
- * This shows how to build apps with complex state
- * using the full power of Zustand.
+ * The plugin system separates concerns:
+ * - createApp()      — store + event handlers (what the app does)
+ * - withReact()      — element binding (what the app renders)
+ * - withTerminal()   — I/O binding (where the app runs)
  *
- * Usage: bun examples/app-todo.tsx
+ * pipe() composes them left-to-right: each plugin enhances the
+ * app object, wrapping run() so the final call needs no arguments.
+ *
+ * Usage: bun examples/interactive/app-todo.tsx
  *
  * Controls:
  *   j/k - Move cursor down/up
@@ -20,12 +25,13 @@
 import React from "react"
 import { Box, Text } from "../../src/index.js"
 import { createApp, useApp } from "../../src/runtime/index.js"
+import { pipe, withReact, withTerminal } from "@silvery/tea/plugins"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Todo App",
-  description: "Layer 3: createApp() with Zustand store for shared state",
-  features: ["createApp()", "Zustand store", "useApp()"],
+  description: "Layer 3: pipe() + createApp() + withReact() + withTerminal()",
+  features: ["pipe()", "createApp()", "withReact()", "withTerminal()"],
 }
 
 // ============================================================================
@@ -49,15 +55,54 @@ interface State {
 }
 
 // ============================================================================
-// Store
+// Components
 // ============================================================================
 
-const app = createApp<Record<string, unknown>, State>(
-  // Store factory
+function TodoItem({ todo, isCursor }: { todo: Todo; isCursor: boolean }) {
+  return (
+    <Box>
+      <Text color={isCursor ? "$primary" : undefined}>{isCursor ? "› " : "  "}</Text>
+      <Text color={todo.completed ? "$success" : undefined} strikethrough={todo.completed}>
+        {todo.completed ? "✓" : "○"} {todo.text}
+      </Text>
+    </Box>
+  )
+}
+
+function TodoList() {
+  const todos = useApp((s: State) => s.todos)
+  const cursor = useApp((s: State) => s.cursor)
+
+  return (
+    <Box flexDirection="column">
+      {todos.map((todo, i) => (
+        <TodoItem key={todo.id} todo={todo} isCursor={i === cursor} />
+      ))}
+      {todos.length === 0 && <Text dimColor>No todos. Press 'a' to add one.</Text>}
+    </Box>
+  )
+}
+
+function TodoApp() {
+  return (
+    <Box flexDirection="column" padding={1}>
+      <TodoList />
+      <Text> </Text>
+      <Text dimColor>j/k: move • x: toggle • a: add • d: delete • Esc/q: quit</Text>
+    </Box>
+  )
+}
+
+// ============================================================================
+// App — pipe() composition
+// ============================================================================
+
+// 1. createApp() defines the store and event handlers
+const baseApp = createApp<Record<string, unknown>, State>(
   () => (set, get) => ({
     todos: [
-      { id: 1, text: "Learn silvery-loop architecture", completed: true },
-      { id: 2, text: "Build an app with createApp()", completed: false },
+      { id: 1, text: "Learn silvery plugin composition", completed: true },
+      { id: 2, text: "Build an app with pipe()", completed: false },
       { id: 3, text: "Ship to production", completed: false },
     ],
     cursor: 0,
@@ -89,7 +134,6 @@ const app = createApp<Record<string, unknown>, State>(
       })),
   }),
 
-  // Event handlers
   {
     "term:key": (data: unknown, { get }: { get: () => State }) => {
       const { input: k, key } = data as {
@@ -121,55 +165,26 @@ const app = createApp<Record<string, unknown>, State>(
   },
 )
 
-// ============================================================================
-// Components
-// ============================================================================
-
-function TodoItem({ todo, isCursor }: { todo: Todo; isCursor: boolean }) {
-  return (
-    <Box>
-      <Text color={isCursor ? "$primary" : undefined}>{isCursor ? "› " : "  "}</Text>
-      <Text color={todo.completed ? "$success" : undefined} strikethrough={todo.completed}>
-        {todo.completed ? "✓" : "○"} {todo.text}
-      </Text>
-    </Box>
-  )
-}
-
-function TodoList() {
-  const todos = useApp((s: State) => s.todos)
-  const cursor = useApp((s: State) => s.cursor)
-
-  return (
-    <Box flexDirection="column">
-      {todos.map((todo, i) => (
-        <TodoItem key={todo.id} todo={todo} isCursor={i === cursor} />
-      ))}
-      {todos.length === 0 && <Text dimColor>No todos. Press 'a' to add one.</Text>}
-    </Box>
-  )
-}
-
-function App() {
-  return (
-    <Box flexDirection="column" padding={1}>
-      <TodoList />
-      <Text> </Text>
-      <Text dimColor>j/k: move • x: toggle • a: add • d: delete • Esc/q: quit</Text>
-    </Box>
-  )
-}
+// 2. pipe() composes plugins left-to-right:
+//    - withReact() binds the element, so run() needs no JSX argument
+//    - withTerminal() binds stdin/stdout, so run() needs no options
+const app = pipe(
+  baseApp,
+  withReact(
+    <ExampleBanner meta={meta} controls="j/k move  x toggle  a add  d delete  Esc/q quit">
+      <TodoApp />
+    </ExampleBanner>,
+  ),
+  withTerminal(process),
+)
 
 // ============================================================================
 // Main
 // ============================================================================
 
 async function main() {
-  const handle = await app.run(
-    <ExampleBanner meta={meta} controls="j/k move  x toggle  a add  d delete  Esc/q quit">
-      <App />
-    </ExampleBanner>,
-  )
+  // 3. run() needs no arguments — element and terminal are already bound
+  const handle = await app.run()
 
   await handle.waitUntilExit()
 

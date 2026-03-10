@@ -10,3 +10,5 @@
 
 export * as ink from "./ink"
 export * as chalk from "./chalk"
+export { withInk, createInkWrapRoot } from "./with-ink"
+export type { WithInkOptions, AppWithInk } from "./with-ink"

@@ -20,6 +20,10 @@
     "./chalk": {
       "types": "./src/chalk.ts",
       "import": "./src/chalk.ts"
+    },
+    "./with-ink": {
+      "types": "./src/with-ink.ts",
+      "import": "./src/with-ink.ts"
     }
   },
   "dependencies": {
