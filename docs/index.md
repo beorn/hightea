@@ -44,8 +44,6 @@ features:
     linkText: Learn more
 ---
 
-<p class="alpha-badge"><strong>Alpha</strong> — under heavy development. APIs may change.</p>
-
 ## Explore the Examples
 
 <div class="viewer-wrapper">
@@ -79,13 +77,13 @@ features:
 
 ## Optional Framework Layers
 
-<div class="features-list">
+<div class="framework-layers">
 
-- **30+ components** (`@silvery/ui`) -- TextArea, SelectList, Table, VirtualList, CommandPalette, ModalDialog, Tabs, TreeView, Toast, ProgressBar, and more
-- **Input system** (`@silvery/term`) -- Input layer stack (DOM-style event bubbling), tree-based focus with spatial navigation, mouse support, command system
-- **TEA state machines** (`@silvery/tea`) -- Pure `(action, state) → [state, effects]` reducers for testing, replay, and undo
-- **Theming** (`@silvery/theme`) -- 38 palettes, semantic color tokens, auto-detection
-- **Built for AI** -- Command introspection for agents, programmatic screenshots, scrollable streaming output
+- **`@silvery/ui`** — 30+ components -- TextArea, SelectList, Table, VirtualList, CommandPalette, ModalDialog, Tabs, TreeView, Toast, ProgressBar, and more
+- **`@silvery/term`** — Input system -- Input layer stack (DOM-style event bubbling), tree-based focus with spatial navigation, mouse support, command system
+- **`@silvery/tea`** — TEA state machines -- Pure `(action, state) → [state, effects]` reducers for testing, replay, and undo
+- **`@silvery/theme`** — Theming -- 38 palettes, semantic color tokens, auto-detection
+- **`@silvery/test`** — Built for AI -- Command introspection for agents, programmatic screenshots, scrollable streaming output
 
 </div>
 
@@ -172,14 +170,14 @@ Silvery is part of a family of terminal-focused libraries:
   margin: 0.35rem 0;
   line-height: 1.5;
 }
-.alpha-badge {
-  margin: -0.5rem auto 2rem;
-  padding: 0.3rem 1rem;
-  border-radius: 999px;
-  background: var(--vp-c-warning-soft);
-  color: var(--vp-c-warning-1);
-  font-size: 0.85rem;
-  text-align: center;
-  width: fit-content;
+.framework-layers {
+  margin: 0.5rem 0 1.5rem;
+}
+.framework-layers li {
+  margin: 0.35rem 0;
+  line-height: 1.5;
+}
+.framework-layers code {
+  font-size: 0.85em;
 }
 </style>
