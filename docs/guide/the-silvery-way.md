@@ -352,38 +352,34 @@ You don't chug TEA — you sip it. [`@silvery/tea`](/reference/packages) is a gr
 
 ::: tip ✨ Shiny — sip by sip
 
+Here's the full TEA for illustration — most apps won't go this far, and that's fine. The [state management guide](/guides/state-management) walks through each milestone in detail.
+
 ```tsx
-// Sip 1: useState — fine for local component state
-const [query, setQuery] = useState("")
-
-// Sip 2: Zustand store — shared state, selective re-renders
-const app = createApp(() => (set) => ({
-  cursor: 0,
-  moveCursor(delta) { set((s) => ({ cursor: s.cursor + delta })) },
-}))
-
-// Sip 3: ops as data — pure reducer, serializable actions
-function reducer(state: State, op: Op) {
-  switch (op.type) {
-    case "increment":
-      return { ...state, count: state.count + 1 }
-  }
-}
-const store = createStore(tea({ count: 0 }, reducer))
-
-// Sip 4: effects as data — side effects become testable, replayable
+// The full cup: a pure reducer that returns effects as data
 function reducer(state: State, op: Op): TeaResult<State, MyEffect> {
   switch (op.type) {
+    case "increment":
+      return { ...state, count: state.count + 1 }             // pure state update
     case "save":
-      return [state, [httpPost("/api", state), log("saved")]]
+      return [state, [httpPost("/api", state), log("saved")]]  // state + effects
   }
 }
-// Test without mocks — just call the pure function
+
+// Effect runners are declared separately — swap them for test/prod/replay
+const runners: EffectRunners<MyEffect, Op> = {
+  log: (e) => console.log(e.msg),
+  http: async (e, dispatch) => { /* fetch, then dispatch result back */ },
+}
+
+// Wire it up with Zustand
+const store = createStore(tea({ count: 0 }, reducer, { runners }))
+
+// Test: the reducer is a pure function — no mocks needed
 const [state, effects] = collect(reducer(initial, { type: "save" }))
 expect(effects).toContainEqual(httpPost("/api", initial))
 ```
 
-Each sip is independently useful. Most components never need sip 4 — and that's fine.
+**What you're seeing**: the reducer declares *what* should happen (pure data); runners decide *how* (swappable). `collect()` normalizes the return for testing. But remember — most components start at sip 1 (`useState`) or sip 2 (Zustand). You only reach for effects-as-data when you find yourself mocking `fetch` to test state logic.
 :::
 
 ::: danger 🩶 Tarnished — skipping straight to the hard stuff
@@ -408,7 +404,7 @@ async function handleSave() {
 `useState` isn't tarnished — mixing I/O into state updates is. When you find yourself mocking `fetch` to test state logic, it's time for the next sip.
 :::
 
-→ [State management guide](/guides/state-management)
+→ [State management guide](/guides/state-management) — the full journey from `useState` to effects-as-data, one sip at a time
 
 ## 10. Test Against What the User Sees
 
