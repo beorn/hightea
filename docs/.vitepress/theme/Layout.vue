@@ -8,7 +8,7 @@ const { frontmatter } = useData();
 
 <template>
   <Layout>
-    <template #home-hero-info-after>
+    <template #home-hero-info-before>
       <div v-if="frontmatter.layout === 'home'" class="alpha-banner">
         <strong>ALPHA VERSION</strong>
         <span>APIs may change</span>
@@ -18,7 +18,13 @@ const { frontmatter } = useData();
 </template>
 
 <style>
+.VPHero .container {
+  position: relative;
+}
 .alpha-banner {
+  position: absolute;
+  top: 0;
+  right: 0;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
@@ -28,7 +34,7 @@ const { frontmatter } = useData();
   border-radius: 8px;
   font-size: 0.8em;
   line-height: 1.5;
-  margin-top: 1.5rem;
+  pointer-events: none;
 }
 .alpha-banner strong {
   font-weight: 700;
