@@ -47,6 +47,7 @@ if (!ShowcaseComponent) {
         onMouse: ({ x, y, button }) => emitMouse(x, y, button),
         onFocus: (focused) => setTermFocused(focused),
       },
+      handleFocusCycling: false, // showcases handle Tab/Escape themselves
     })
 
     // Signal to parent (LiveDemo.vue) that the demo loaded successfully

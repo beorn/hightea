@@ -1,50 +1,57 @@
 /**
- * TextInputShowcase — live text echo with cursor and focus tracking
+ * TextInputShowcase — demonstrates the TextInput component
  *
- * Demonstrates text input handling, backspace/delete, escape to clear,
- * and terminal focus state affecting visual appearance.
+ * Full readline-style text editing with cursor movement, word operations,
+ * kill ring, and terminal focus state affecting visual appearance.
+ *
+ * This showcase demonstrates Silvery Way principle #1: Use the Built-in Components.
+ * TextInput handles Ctrl+A/E/K/U/W, Alt+B/F, kill ring, clipboard — all for free.
  */
 
 import React, { useState } from "react"
 import { Box, Text, useInput } from "@silvery/term/xterm/index.ts"
+import { TextInput } from "@silvery/ui/components/TextInput"
 import { useTermFocused, KeyHints } from "./shared.js"
 
 export function TextInputShowcase(): JSX.Element {
   const [text, setText] = useState("")
   const termFocused = useTermFocused()
 
-  useInput((input, key) => {
-    if (input) {
-      setText((t) => t + input)
-    }
-    if (key.backspace || key.delete) {
-      setText((t) => t.slice(0, -1))
-    }
-    if (key.escape) {
-      setText("")
-    }
+  useInput((_input, key) => {
+    if (key.escape) setText("")
   })
 
   return (
     <Box flexDirection="column" padding={1}>
       <Box
-        flexDirection="row"
+        flexDirection="column"
         borderStyle={termFocused ? "double" : "round"}
         borderColor={termFocused ? "#89b4fa" : "#313244"}
         paddingX={1}
         outlineStyle={termFocused ? "round" : undefined}
         outlineColor={termFocused ? "#45475a" : undefined}
       >
-        <Text color={termFocused ? "#89b4fa" : "#585b70"}>&gt; </Text>
-        <Text color="#cdd6f4">{text}</Text>
-        <Text color="#89b4fa">{termFocused ? "\u258B" : " "}</Text>
+        <TextInput
+          value={text}
+          onChange={setText}
+          prompt="> "
+          promptColor={termFocused ? "#89b4fa" : "#585b70"}
+          color="#cdd6f4"
+          isActive={termFocused}
+        />
       </Box>
 
       <Box marginTop={1} paddingX={1}>
         <Text color="#6c7086">Echo: {text || "(empty)"}</Text>
       </Box>
 
-      <KeyHints hints={termFocused ? "type text  Backspace/Del delete  Esc clear" : "click to focus"} />
+      <KeyHints
+        hints={
+          termFocused
+            ? "type text  Ctrl+A/E begin/end  Ctrl+K/U kill  Ctrl+W word  Esc clear"
+            : "click to focus"
+        }
+      />
     </Box>
   )
 }

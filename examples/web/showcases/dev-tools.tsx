@@ -3,10 +3,13 @@
  *
  * Filterable log viewer with live search, scroll, level coloring,
  * highlighted quoted strings, and underlined paths.
+ *
+ * Uses TextInput for the search box (Silvery Way principle #1).
  */
 
 import React, { useState } from "react"
 import { Box, Text, useInput } from "@silvery/term/xterm/index.ts"
+import { TextInput } from "@silvery/ui/components/TextInput"
 import { KeyHints } from "./shared.js"
 
 // --- Types ---
@@ -56,7 +59,7 @@ const levelBg: Record<string, string> = {
 function LogMessage({ text, query }: { text: string; query: string }): JSX.Element {
   // Split on quoted strings and paths
   const parts: JSX.Element[] = []
-  const regex = /("(?:[^"\\]|\\.)*")|(\/([\w./-]+))/g
+  const regex = /(\"(?:[^\"\\]|\\.)*\")|(\/([\w./-]+))/g
   let lastIndex = 0
   let match: RegExpExecArray | null
 
@@ -134,15 +137,8 @@ export function DevToolsShowcase(): JSX.Element {
   const [typedQuery, setTypedQuery] = useState("")
   const [scrollOffset, setScrollOffset] = useState(0)
 
-  useInput((input, key) => {
-    if (input) {
-      setTypedQuery((q) => q + input)
-      setScrollOffset(0)
-    }
-    if (key.backspace || key.delete) {
-      setTypedQuery((q) => q.slice(0, -1))
-      setScrollOffset(0)
-    }
+  // Scroll navigation and escape-to-clear (TextInput handles text editing)
+  useInput((_input, key) => {
     if (key.escape) {
       setTypedQuery("")
       setScrollOffset(0)
@@ -150,6 +146,11 @@ export function DevToolsShowcase(): JSX.Element {
     if (key.upArrow) setScrollOffset((o) => Math.max(0, o - 1))
     if (key.downArrow) setScrollOffset((o) => o + 1)
   })
+
+  const handleQueryChange = (newQuery: string) => {
+    setTypedQuery(newQuery)
+    setScrollOffset(0)
+  }
 
   const query = typedQuery.toLowerCase()
   const filtered = query
@@ -175,17 +176,22 @@ export function DevToolsShowcase(): JSX.Element {
         </Text>
       </Box>
 
-      {/* Search box */}
+      {/* Search box — TextInput handles readline shortcuts */}
       <Box
-        flexDirection="row"
+        flexDirection="column"
         borderStyle="round"
         borderColor={typedQuery ? "#f9e2af" : "#45475a"}
         paddingX={1}
         marginBottom={1}
       >
-        <Text color="#89dceb">/ </Text>
-        <Text color="#cdd6f4">{typedQuery}</Text>
-        <Text color="#89dceb">{"\u258B"}</Text>
+        <TextInput
+          value={typedQuery}
+          onChange={handleQueryChange}
+          prompt="/ "
+          promptColor="#89dceb"
+          color="#cdd6f4"
+          placeholder="type to filter..."
+        />
       </Box>
 
       {/* Log entries */}
@@ -203,7 +209,7 @@ export function DevToolsShowcase(): JSX.Element {
         ))}
       </Box>
 
-      <KeyHints hints="type to filter  Esc clear  \u2191\u2193 scroll" />
+      <KeyHints hints="type to filter  Esc clear  \u2191\u2193 scroll  Ctrl+A/E begin/end" />
     </Box>
   )
 }

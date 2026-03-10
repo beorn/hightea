@@ -898,6 +898,7 @@ function createViewerApp(root: HTMLElement): void {
           onMouse: ({ x, y, button }) => emitMouse(x, y, button),
           onFocus: (focused) => setTermFocused(focused),
         },
+        handleFocusCycling: false, // showcases handle Tab/Escape themselves
       })
     })
   }
