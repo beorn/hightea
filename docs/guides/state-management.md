@@ -1,10 +1,10 @@
 # State Management
 
-You don't chug TEA — you sip it. Start with `useState`. When state gets shared, move to `createApp`. When you need serializable actions, use `createSlice`. When side effects need testing, return effects as data. Each sip makes your app more testable, replayable, and composable — take them one at a time, when the complexity justifies it.
+Start with `useState` — standard React. When state gets shared across components, move to a store. When you need undo or replay, make state transitions into data. When side effects need testing, return them as data too. Each step makes your app more testable and composable — take them one at a time, when the complexity justifies it.
 
 For the full conceptual progression with both state management _and_ event handling evolving together, see [Terminal Apps](/guides/terminal-apps).
 
-## Sip 1: `useState` — Local State
+## `useState` — Local State
 
 Standard React. Perfect for local UI state — form fields, toggles, hover states, animation flags.
 
@@ -31,7 +31,7 @@ State lives inside a component. Input handling is a function call. Both invisibl
 
 **When to move on:** A second component needs the same state, and threading it through props means every intermediate component has to know about data it doesn't use.
 
-## Sip 2: `createApp()` — Shared State
+## `createApp()` — Shared State
 
 `createApp()` is a [Zustand](https://github.com/pmndrs/zustand) middleware that bundles the store with centralized key handling, terminal I/O, and exit handling into a single `app.run(<Component />)` call.
 
@@ -108,11 +108,13 @@ await app.run(
 
 > **Why Zustand over React Context?** Context re-renders every consumer when _any_ part changes. Zustand only re-renders components whose selected slice actually changed — critical for high-frequency updates like cursor movement and typing.
 >
-> **Why not `useReducer`?** React's `useReducer` is ops-as-data in disguise — `dispatch(action)` + a pure reducer. Solid for a single component tree, but no cross-component subscriptions and no selector — every dispatch re-renders every consumer. Zustand adds the subscription layer that makes it scale.
+> **Why not `useReducer`?** React's `useReducer` is dispatch + a pure reducer. Solid for a single component tree, but no cross-component subscriptions and no selector — every dispatch re-renders every consumer. Zustand adds the subscription layer that makes it scale.
+
+As your app grows, selectors show their cost — Zustand runs every selector on every store update. [Signals](../reference/signals.md) solve this: components read `.value` and automatically subscribe to exactly what they touched. You'll see signals in the later sections — `createSlice` uses them for state.
 
 **When to move on:** You want undo — but `store.toggleDone()` mutated state and vanished. You want customizable keybindings — but `onClick={() => selectCard()}` has no name to remap. Both problems have the same root: behavior is function calls that execute and disappear. You need to turn behavior into data.
 
-## Sip 3: `createSlice()` — Ops as Data
+## `createSlice()` — Actions as Data
 
 `createSlice` turns state transitions into serializable data. You write handlers; it infers the op union:
 
@@ -221,7 +223,7 @@ For identity-based ops that survive reordering and concurrency, see [Designing R
 
 **When to move on:** You want to test `toggleDone` — but it calls `fs.writeFile()` and `showToast()` directly. You need to make side effects visible.
 
-## Sip 4: Effects as Data — `createEffects()`
+## `createEffects()` — Side Effects as Data
 
 `createEffects()` defines your effect vocabulary in one place — types, builders, and runners all inferred from a single definition:
 
@@ -329,9 +331,11 @@ test("toggleDone persists and toasts", () => {
 
 No mocks, no fakes, no async. `collect()` normalizes results for reducers that mix pure and effectful cases — see [Runtime Layers](/guide/runtime-layers).
 
-## `createStore()` — Standalone TEA Store
+> **The pattern has a name.** If you've followed from `useState` to here, you've arrived at [The Elm Architecture](https://guide.elm-lang.org/architecture/) (TEA): every state change is a serializable action, every side effect is a return value, and the domain is a pure function. Elm enforces this at the language level; Silvery lets you grow into it one step at a time.
 
-For apps that don't need `createApp`'s Zustand integration, `createStore()` provides a standalone TEA store with plugin composition:
+## `createStore()` — Standalone Store
+
+For apps that don't need `createApp`'s Zustand integration, `createStore()` provides a standalone store with plugin composition:
 
 ```tsx
 import { createStore } from "@silvery/term/store"
