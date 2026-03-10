@@ -1120,7 +1120,9 @@ export function renderText(
 
   // Apply internal_transform if present (used by Transform component).
   // Transform is applied per-line after formatting, matching ink's behavior.
-  // The transform should not change dimensions of the output.
+  // The transform may change the length of each line (e.g., adding brackets
+  // or line numbers). We track whether a transform is active so the rendering
+  // loop can expand maxCol to accommodate the transformed content.
   const internalTransform = props.internal_transform
   if (internalTransform) {
     lines = lines.map((line, index) => internalTransform(line, index))
@@ -1142,10 +1144,13 @@ export function renderText(
     // containers. Without this, continuation cells outside the text node's
     // layout bounds become stale during incremental rendering.
     // Clip right edge to horizontal clip bounds (overflow:hidden containers).
+    // When internal_transform is active, expand maxCol to buffer width so the
+    // transformed text (which may be wider than the original layout) is not clipped.
+    const layoutRight = internalTransform ? buffer.width : x + width
     const maxCol =
       clipBounds && "right" in clipBounds && clipBounds.right !== undefined
-        ? Math.min(x + width, clipBounds.right)
-        : x + width
+        ? Math.min(layoutRight, clipBounds.right)
+        : layoutRight
     const endCol = renderTextLineReturn(buffer, x, lineY, line, style, maxCol, inheritedBg, ctx)
 
     // Clear remaining cells after text to end of layout width (clipped).
