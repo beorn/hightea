@@ -1,10 +1,32 @@
 # Theming
 
-Silvery ships with a comprehensive theme system via `@silvery/theme`. It provides 38 built-in palettes from popular theme systems, a builder API for custom themes, and auto-generation from a single color.
+You don't need to configure theming. Silvery auto-detects your terminal's color palette and generates a complete theme from it — your app automatically matches whatever theme the user has configured in their terminal (Dracula, Solarized, Nord, etc.). Use `$token` color props like `color="$primary"` and they resolve to the right colors everywhere.
 
-## Architecture
+If detection isn't available (CI, tmux, pipes), Silvery falls back to a sensible ANSI-16 dark theme that works on any terminal.
 
-Three layers, each optional depending on how much control you want:
+## Zero Configuration
+
+The simplest setup — no theme code at all:
+
+```tsx
+import { Box, Text } from "silvery"
+
+function App() {
+  return (
+    <Box borderStyle="single">
+      <Text color="$primary">Accent text</Text>
+      <Text color="$mutedfg">Secondary text</Text>
+      <Text color="$error">Error state</Text>
+    </Box>
+  )
+}
+```
+
+`$token` colors resolve against the active theme. Without any `ThemeProvider`, Silvery uses a built-in default. Non-`$` values pass through unchanged (`color="red"`, `color="#ff0000"`).
+
+## Taking Control
+
+When you want a specific look, you have three layers — each optional:
 
 ```
 1 color ──→ Color Palette (22) ──→ Theme (33 design tokens)
@@ -12,15 +34,13 @@ Three layers, each optional depending on how much control you want:
              preset or terminal      what components consume
 ```
 
-1. **Seed** (1 color) -- Optional starting point. A single hex color like `"#5E81AC"` is enough to auto-generate a full palette via HSL manipulation. Or skip this and pick a preset or detect the terminal's palette.
-2. **Color Palette** (22 colors) -- The universal terminal format: 16 ANSI colors + 6 special colors (foreground, background, cursor, selection). You can get one from a seed, a built-in preset (38 included), or the terminal's own colors via OSC queries.
-3. **Theme** (33 design tokens) -- What components actually consume. Derived from the palette via `deriveTheme()`. Follows shadcn-style pairing: `$name` (area background) + `$namefg` (text on that area).
+1. **Seed** (1 color) -- A single hex color like `"#5E81AC"` auto-generates a full palette via HSL manipulation.
+2. **Color Palette** (22 colors) -- 16 ANSI colors + 6 special colors (foreground, background, cursor, selection). From a seed, a built-in preset (38 included), or the terminal's own colors via OSC queries.
+3. **Theme** (33 design tokens) -- What components consume. Derived from the palette via `deriveTheme()`. Follows shadcn-style pairing: `$name` (area background) + `$namefg` (text on that area).
 
-You can enter at any layer: one color, a full palette, or a complete theme.
+Enter at any layer: one color, a full palette, or a complete theme.
 
-## Quick Start
-
-The fastest way to use a theme is with the builder API:
+### Builder API
 
 ```typescript
 import { createTheme } from "@silvery/theme"
@@ -35,7 +55,7 @@ const theme = createTheme().primary("#5E81AC").dark().build()
 const theme = createTheme().bg("#2E3440").fg("#ECEFF4").primary("#EBCB8B").build()
 ```
 
-Or use the convenience functions:
+### Convenience functions
 
 ```typescript
 import { presetTheme, quickTheme, autoGenerateTheme, detectTheme } from "@silvery/theme"
@@ -50,7 +70,8 @@ const custom = quickTheme("#E06C75", "light")
 // Full auto-generation from a single hex color
 const generated = autoGenerateTheme("#5E81AC", "dark")
 
-// Use the terminal's own palette (queries colors via OSC 4/10/11)
+// Explicit terminal detection (Silvery does this automatically,
+// but you can call it yourself for custom fallback logic)
 const detected = await detectTheme()
 ```
 
@@ -77,24 +98,22 @@ The auto-generated theme uses the input color as the exact `primary` token, then
 
 ## Terminal Palette Detection
 
-Instead of shipping a palette, you can read the terminal's actual colors at startup. `detectTheme()` queries the terminal via OSC 4 (ANSI colors), OSC 10 (foreground), and OSC 11 (background), then derives a full theme from whatever the terminal reports:
+Silvery reads the terminal's actual colors at startup via OSC 4 (ANSI colors), OSC 10 (foreground), and OSC 11 (background), then derives a full theme from whatever the terminal reports. This happens automatically — Dracula users get Dracula colors, Solarized users get Solarized colors, with no configuration on your end. Dark/light mode is detected from the background luminance.
+
+If you need explicit control over detection (e.g., custom fallback logic), call `detectTheme()` directly:
 
 ```typescript
-import { detectTheme } from "@silvery/theme"
+import { detectTheme, getPaletteByName } from "@silvery/theme"
 
-// Queries the terminal's live colors — matches whatever theme the user has configured
-const theme = await detectTheme()
-
-// Provide a fallback palette for terminals that don't respond to OSC queries (CI, tmux, etc.)
-import { getPaletteByName } from "@silvery/theme"
+// Explicit detection with a custom fallback for terminals that don't respond to OSC queries
 const theme = await detectTheme({ fallback: getPaletteByName("nord") })
 ```
 
-This means the app automatically matches the user's terminal theme — Dracula users get Dracula colors, Solarized users get Solarized colors, with no configuration on your end. Dark/light mode is detected from the background luminance.
+Supported terminals: Ghostty, Kitty, WezTerm, iTerm2, foot, Alacritty, xterm. Falls back gracefully in tmux, CI, and pipe environments.
 
 ## Using Themes in Components
 
-Wrap your app in `ThemeProvider` and reference tokens with the `$` prefix:
+To use a specific theme, wrap your app in `ThemeProvider`:
 
 ```tsx
 import { ThemeProvider, Box, Text } from "silvery"
@@ -115,7 +134,7 @@ function App() {
 }
 ```
 
-Any color prop starting with `$` resolves against the active theme. Non-`$` values pass through unchanged (`color="red"`, `color="#ff0000"`).
+Without `ThemeProvider`, the auto-detected or default theme is used — you only need this when you want to override.
 
 ## Theme Explorer
 

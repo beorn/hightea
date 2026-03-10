@@ -1,18 +1,54 @@
 # State Management
 
-> This page documents Silvery's state management APIs. For the guided progression from `useState` to TEA, see [Terminal Apps](/guides/terminal-apps).
+You don't chug TEA — you sip it. Start with `useState`. When state gets shared, move to `createApp`. When you need serializable actions, use `createSlice`. When side effects need testing, return effects as data. Each sip makes your app more testable, replayable, and composable — take them one at a time, when the complexity justifies it.
 
-## `createApp()` — Zustand Store
+For the full conceptual progression with both state management _and_ event handling evolving together, see [Terminal Apps](/guides/terminal-apps).
 
-`createApp()` is a Zustand middleware that bundles the store with centralized key handling, terminal I/O, and exit handling into a single `app.run(<Component />)` call.
+## Sip 1: `useState` — Local State
+
+Standard React. Perfect for local UI state — form fields, toggles, hover states, animation flags.
+
+```tsx
+import { useState } from "react"
+import { run, useInput } from "@silvery/term/runtime"
+import { Text } from "silvery"
+
+function Counter() {
+  const [count, setCount] = useState(0)
+
+  useInput((input) => {
+    if (input === "j") setCount((c) => c + 1)
+    if (input === "k") setCount((c) => c - 1)
+  })
+
+  return <Text>Count: {count}</Text>
+}
+
+await run(<Counter />)
+```
+
+State lives inside a component. Input handling is a function call. Both invisible to everything outside this component.
+
+**When to move on:** A second component needs the same state, and threading it through props means every intermediate component has to know about data it doesn't use.
+
+## Sip 2: `createApp()` — Shared State
+
+`createApp()` is a [Zustand](https://github.com/pmndrs/zustand) middleware that bundles the store with centralized key handling, terminal I/O, and exit handling into a single `app.run(<Component />)` call.
 
 ```tsx
 import { createApp, useApp } from "@silvery/term/runtime"
+import { Box, Text } from "silvery"
+
+const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, max))
 
 const app = createApp(
   () => (set, get) => ({
     cursor: 0,
-    items: [...],
+    items: [
+      { id: "1", text: "Buy milk", done: false },
+      { id: "2", text: "Write docs", done: true },
+      { id: "3", text: "Fix bug", done: false },
+    ],
     moveCursor(delta: number) {
       set((s) => ({ cursor: clamp(s.cursor + delta, 0, s.items.length - 1) }))
     },
@@ -41,19 +77,42 @@ Components access the store via `useApp(selector)`. Zustand tracks which slice e
 
 ```tsx
 function TodoList() {
-  const cursor = useApp((s) => s.cursor);
-  const items = useApp((s) => s.items);
-  // only re-renders when cursor or items change
+  const cursor = useApp((s) => s.cursor)
+  const items = useApp((s) => s.items)
+  return (
+    <Box flexDirection="column">
+      {items.map((item, i) => (
+        <Text key={item.id} color={cursor === i ? "cyan" : undefined}>
+          {cursor === i ? "> " : "  "}
+          {item.done ? "[x] " : "[ ] "}
+          {item.text}
+        </Text>
+      ))}
+    </Box>
+  )
 }
+
+function StatusBar() {
+  const items = useApp((s) => s.items)
+  const done = items.filter((i) => i.done).length
+  return <Text dimColor>{done}/{items.length} done</Text>
+}
+
+await app.run(
+  <Box flexDirection="column">
+    <TodoList />
+    <StatusBar />
+  </Box>,
+)
 ```
 
 > **Why Zustand over React Context?** Context re-renders every consumer when _any_ part changes. Zustand only re-renders components whose selected slice actually changed — critical for high-frequency updates like cursor movement and typing.
 >
 > **Why not `useReducer`?** React's `useReducer` is ops-as-data in disguise — `dispatch(action)` + a pure reducer. Solid for a single component tree, but no cross-component subscriptions and no selector — every dispatch re-renders every consumer. Zustand adds the subscription layer that makes it scale.
 
-As your app grows, selectors show their cost — Zustand runs every selector on every store update. If that becomes a bottleneck, [Signals](../reference/signals.md) give you fine-grained subscriptions. Skip them unless you have performance issues.
+**When to move on:** You want undo — but `store.toggleDone()` mutated state and vanished. You want customizable keybindings — but `onClick={() => selectCard()}` has no name to remap. Both problems have the same root: behavior is function calls that execute and disappear. You need to turn behavior into data.
 
-## `createSlice()` — Ops as Data
+## Sip 3: `createSlice()` — Ops as Data
 
 `createSlice` turns state transitions into serializable data. You write handlers; it infers the op union:
 
@@ -78,6 +137,8 @@ type TodoOp = typeof TodoList.Op
 // { op: "moveCursor"; delta: number } | { op: "toggleDone"; index: number }
 ```
 
+Once operations are data: **undo/redo** (push ops onto a stack, pop to undo), **collaboration** (send ops over the wire), **time-travel debugging** (record every op, scrub through history), **AI automation** (ops are structured data an LLM can emit), **testing** (assert on what ops were produced).
+
 ### Wiring into the store
 
 The store wires in via `.create()`:
@@ -85,22 +146,22 @@ The store wires in via `.create()`:
 ```tsx
 const app = createApp(
   () => {
-    const { state, apply } = TodoList.create();
+    const { state, apply } = TodoList.create()
     return {
       ...state,
       doneCount: computed(() => state.items.value.filter((i) => i.done).length),
       apply,
-    };
+    }
   },
   {
     key(input, key, { store }) {
-      if (input === "j") store.apply({ op: "moveCursor", delta: 1 });
-      if (input === "k") store.apply({ op: "moveCursor", delta: -1 });
-      if (input === "x") store.apply({ op: "toggleDone", index: store.cursor.value });
-      if (input === "q") return "exit";
+      if (input === "j") store.apply({ op: "moveCursor", delta: 1 })
+      if (input === "k") store.apply({ op: "moveCursor", delta: -1 })
+      if (input === "x") store.apply({ op: "toggleDone", index: store.cursor.value })
+      if (input === "q") return "exit"
     },
   },
-);
+)
 ```
 
 ### Undo pattern
@@ -111,26 +172,26 @@ Define an `inverse` function — TypeScript's exhaustive narrowing ensures every
 function inverse(op: TodoOp): TodoOp {
   switch (op.op) {
     case "moveCursor":
-      return { op: "moveCursor", delta: -op.delta };
+      return { op: "moveCursor", delta: -op.delta }
     case "toggleDone":
-      return op; // toggling is its own inverse
+      return op // toggling is its own inverse
   }
 }
 
-const undoStack: TodoOp[] = [];
-const redoStack: TodoOp[] = [];
+const undoStack: TodoOp[] = []
+const redoStack: TodoOp[] = []
 
 function applyWithUndo(op: TodoOp) {
-  undoStack.push(inverse(op));
-  TodoList.apply(state, op);
-  redoStack.length = 0;
+  undoStack.push(inverse(op))
+  TodoList.apply(state, op)
+  redoStack.length = 0
 }
 
 function undo() {
-  const op = undoStack.pop();
-  if (!op) return;
-  redoStack.push(inverse(op));
-  TodoList.apply(state, op);
+  const op = undoStack.pop()
+  if (!op) return
+  redoStack.push(inverse(op))
+  TodoList.apply(state, op)
 }
 ```
 
@@ -158,7 +219,9 @@ const TodoList = {
 
 For identity-based ops that survive reordering and concurrency, see [Designing Robust Ops](../reference/robust-ops.md).
 
-## Effects as Data — `createEffects()`
+**When to move on:** You want to test `toggleDone` — but it calls `fs.writeFile()` and `showToast()` directly. You need to make side effects visible.
+
+## Sip 4: Effects as Data — `createEffects()`
 
 `createEffects()` defines your effect vocabulary in one place — types, builders, and runners all inferred from a single definition:
 
@@ -185,9 +248,9 @@ type Effect = typeof fx.Effect
 Each key on `fx` doubles as a typed builder:
 
 ```tsx
-fx.persist({ data: items })   // → { type: "persist", data: items }
-fx.toast({ message: "hi" })   // → { type: "toast", message: "hi" }
-fx.nope({ bad: true })        // compile error — no "nope" effect defined
+fx.persist({ data: items }) // → { type: "persist", data: items }
+fx.toast({ message: "hi" }) // → { type: "toast", message: "hi" }
+fx.nope({ bad: true }) // compile error — no "nope" effect defined
 ```
 
 ### Using with `createSlice`
@@ -271,12 +334,12 @@ No mocks, no fakes, no async. `collect()` normalizes results for reducers that m
 For apps that don't need `createApp`'s Zustand integration, `createStore()` provides a standalone TEA store with plugin composition:
 
 ```tsx
-import { createStore } from "@silvery/term/store";
+import { createStore } from "@silvery/term/store"
 
 const store = createStore(initialState, update, {
   effects: fx,
   plugins: [withUndo(), withLogging()],
-});
+})
 ```
 
 Plugin composition via `compose(withFocusManagement(), withUndo())(update)` adds cross-cutting concerns without touching individual machines. The same `fx` from `createEffects()` works here — one definition, multiple wiring points.
