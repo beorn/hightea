@@ -1127,15 +1127,7 @@ function CLIWizardShowcase(): JSX.Element {
     answers: [],
   })
   const [done, setDone] = useState(false)
-  const [flashStep, setFlashStep] = useState(-1)
   const [textInput, setTextInput] = useState("")
-
-  // Flash animation when a step completes
-  useEffect(() => {
-    if (flashStep < 0) return
-    const timer = setTimeout(() => setFlashStep(-1), 400)
-    return () => clearTimeout(timer)
-  }, [flashStep])
 
   useInput((input, key) => {
     if (done) return
@@ -1168,7 +1160,6 @@ function CLIWizardShowcase(): JSX.Element {
         setTextInput("")
       }
       const newAnswers = [...state.answers, answer]
-      setFlashStep(state.step)
       if (state.step + 1 >= WIZARD_STEPS.length) {
         setDone(true)
         setState({ step: state.step + 1, cursor: 0, answers: newAnswers })
@@ -1254,14 +1245,13 @@ function CLIWizardShowcase(): JSX.Element {
         const isActive = i === state.step && !done
         const isPending = i > state.step
         const stepColor = STEP_COLORS[i % STEP_COLORS.length]!
-        const isFlashing = flashStep === i
 
         if (isDone) {
           return (
             <React.Fragment key={ws.label}>
               <Text>
-                <Text color={isFlashing ? "#f5e0dc" : "#a6e3a1"} bold>
-                  {isFlashing ? "★" : "✔"}
+                <Text color="#a6e3a1" bold>
+                  ✔
                 </Text>
                 <Text color="#a6adc8"> {ws.label}</Text>
                 <Text dim color="#585b70">
