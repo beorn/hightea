@@ -13,7 +13,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 # Dashboard Example
 
-A multi-pane dashboard demonstrating responsive layouts with `useContentRect()`.
+A multi-pane system monitor demonstrating flexbox layouts, tab navigation, and live-updating data.
 
 [[toc]]
 
@@ -23,24 +23,24 @@ A multi-pane dashboard demonstrating responsive layouts with `useContentRect()`.
 
 ## What It Demonstrates
 
-- **Multi-pane layouts** using flexbox with `flexGrow`
-- **Responsive breakpoints** that adapt to terminal width
-- **`useContentRect()` usage** for proportional sizing and text truncation
-- **Nested layout** with borders and padding
+- **Flexbox layouts** — proportional sizing with `flexGrow`, spacing with `gap` and `justifyContent`
+- **Tab navigation** — left/right arrows switch between panels
+- **Progress bars** — `flexGrow` sized proportionally to values (no manual width math)
+- **Scrollable list** — `overflow="scroll"` with `scrollTo` for keyboard navigation
 
 ## Running the Example
 
 ```bash
 cd silvery
-bun run examples/dashboard/app.tsx
+bun run examples/layout/dashboard.tsx
 ```
 
-## Full Source Code
+## Source Code
 
 ::: code-group
 
 ```tsx [app.tsx]
-import { Box, Text, render, useContentRect, useInput, useApp, createTerm } from "silvery"
+import { Box, Text, render, useInput, useApp, createTerm } from "silvery"
 import { useState } from "react"
 
 // Sample data
@@ -48,6 +48,7 @@ const stats = [
   { label: "CPU", value: 45 },
   { label: "Memory", value: 62 },
   { label: "Disk", value: 28 },
+  { label: "Network", value: 15 },
 ]
 
 const activities = [
@@ -56,6 +57,8 @@ const activities = [
   { time: "11:58", message: "PR #42 merged" },
   { time: "11:55", message: "Deploy completed" },
   { time: "11:50", message: "Tests started" },
+  { time: "11:45", message: "Branch created" },
+  { time: "11:40", message: "Issue assigned" },
 ]
 
 const recentItems = [
@@ -63,149 +66,109 @@ const recentItems = [
   { name: "report-q4.pdf", date: "Yesterday" },
   { name: "config.json", date: "3 days ago" },
   { name: "notes.md", date: "Last week" },
+  { name: "package.json", date: "2 weeks ago" },
+  { name: "README.md", date: "Last month" },
 ]
+
+const tabs = ["Stats", "Activity", "Recent"] as const
 
 function App() {
   const { exit } = useApp()
+  const [tab, setTab] = useState(0)
+  const [selected, setSelected] = useState(0)
 
   useInput((input, key) => {
-    if (input === "q" || key.escape) {
-      exit()
+    if (input === "q" || key.escape) exit()
+    if (key.leftArrow) setTab((t) => Math.max(0, t - 1))
+    if (key.rightArrow) setTab((t) => Math.min(tabs.length - 1, t + 1))
+    if (tab === 2) {
+      if (key.downArrow) setSelected((s) => Math.min(s + 1, recentItems.length - 1))
+      if (key.upArrow) setSelected((s) => Math.max(s - 1, 0))
     }
   })
 
   return (
     <Box flexDirection="column" width="100%" height="100%">
-      <TopSection />
-      <BottomSection />
-      <StatusBar />
+      <TabBar active={tab} />
+      <Box flexGrow={1} borderStyle="single" paddingX={1} paddingTop={1}>
+        {tab === 0 && <StatsPane />}
+        {tab === 1 && <ActivityPane />}
+        {tab === 2 && <RecentPane selected={selected} />}
+      </Box>
+      <Box paddingX={1}>
+        <Text dimColor>←→ tabs{tab === 2 ? "  ↑↓ select" : ""} q quit</Text>
+      </Box>
     </Box>
   )
 }
 
-function TopSection() {
-  const { width } = useContentRect()
-
-  // Responsive: stack vertically on narrow terminals
-  const isNarrow = width < 60
-
+function TabBar({ active }: { active: number }) {
   return (
-    <Box flexDirection={isNarrow ? "column" : "row"} flexGrow={1}>
-      <StatsPane />
-      <ActivityPane />
+    <Box flexDirection="row" gap={1} paddingX={1} marginBottom={0}>
+      {tabs.map((label, i) => (
+        <Text key={label} bold={i === active} inverse={i === active}>
+          {" "}
+          {label}{" "}
+        </Text>
+      ))}
     </Box>
   )
 }
 
 function StatsPane() {
   return (
-    <Box flexDirection="column" flexGrow={1} borderStyle="single" paddingX={1}>
-      <Text bold>System Stats</Text>
-      <Text> </Text>
+    <Box flexDirection="column" gap={1}>
       {stats.map((stat) => (
-        <StatRow key={stat.label} label={stat.label} value={stat.value} />
+        <Box key={stat.label} flexDirection="column">
+          <Box flexDirection="row" justifyContent="space-between">
+            <Text>{stat.label}</Text>
+            <Text bold>{stat.value}%</Text>
+          </Box>
+          <ProgressBar value={stat.value} />
+        </Box>
       ))}
     </Box>
   )
 }
 
-function StatRow({ label, value }: { label: string; value: number }) {
-  const { width } = useContentRect()
-
-  // Calculate bar width based on available space
-  // Account for label (8 chars) + spacing
-  const barWidth = Math.max(0, width - 12)
-  const filledWidth = Math.floor((barWidth * value) / 100)
-  const emptyWidth = barWidth - filledWidth
-
-  const bar = "=".repeat(filledWidth) + " ".repeat(emptyWidth)
-
+function ProgressBar({ value }: { value: number }) {
   return (
-    <Text>
-      {label.padEnd(8)} [{bar}]
-    </Text>
-  )
-}
-
-function ActivityPane() {
-  return (
-    <Box flexDirection="column" flexGrow={2} borderStyle="single" paddingX={1}>
-      <Text bold>Activity Feed</Text>
-      <Text> </Text>
-      {activities.map((activity, i) => (
-        <ActivityRow key={i} time={activity.time} message={activity.message} />
-      ))}
-    </Box>
-  )
-}
-
-function ActivityRow({ time, message }: { time: string; message: string }) {
-  const { width } = useContentRect()
-
-  // Truncate message to fit available width
-  const timeWidth = 6 // "12:01 "
-  const maxMessageWidth = Math.max(0, width - timeWidth)
-  const truncatedMessage = message.length > maxMessageWidth ? message.slice(0, maxMessageWidth - 1) + "..." : message
-
-  return (
-    <Text>
-      <Text dimColor>{time}</Text> {truncatedMessage}
-    </Text>
-  )
-}
-
-function BottomSection() {
-  const [selected, setSelected] = useState(0)
-
-  useInput((input, key) => {
-    if (key.downArrow) {
-      setSelected((s) => Math.min(s + 1, recentItems.length - 1))
-    }
-    if (key.upArrow) {
-      setSelected((s) => Math.max(s - 1, 0))
-    }
-  })
-
-  return (
-    <Box flexDirection="column" height={8} borderStyle="single" paddingX={1}>
-      <Text bold>Recent Items</Text>
-      <Text> </Text>
-      <Box flexDirection="column" overflow="scroll" scrollTo={selected}>
-        {recentItems.map((item, i) => (
-          <RecentItemRow key={item.name} name={item.name} date={item.date} isSelected={i === selected} />
-        ))}
+    <Box flexDirection="row">
+      <Box flexGrow={value}>
+        <Text color="green">{"█".repeat(50)}</Text>
+      </Box>
+      <Box flexGrow={100 - value}>
+        <Text dimColor>{"░".repeat(50)}</Text>
       </Box>
     </Box>
   )
 }
 
-function RecentItemRow({ name, date, isSelected }: { name: string; date: string; isSelected: boolean }) {
-  const { width } = useContentRect()
-
-  // Calculate space for name, leaving room for date
-  const dateWidth = date.length + 2
-  const nameWidth = Math.max(0, width - dateWidth - 2)
-
-  const truncatedName = name.length > nameWidth ? name.slice(0, nameWidth - 1) + "..." : name
-
-  const padding = " ".repeat(Math.max(0, nameWidth - truncatedName.length))
-
-  const prefix = isSelected ? "> " : "  "
-
+function ActivityPane() {
   return (
-    <Text inverse={isSelected}>
-      {prefix}
-      {truncatedName}
-      {padding}
-      <Text dimColor>{date}</Text>
-    </Text>
+    <Box flexDirection="column">
+      {activities.map((activity, i) => (
+        <Box key={i} flexDirection="row" gap={1}>
+          <Text dimColor>{activity.time}</Text>
+          <Text>{activity.message}</Text>
+        </Box>
+      ))}
+    </Box>
   )
 }
 
-function StatusBar() {
+function RecentPane({ selected }: { selected: number }) {
   return (
-    <Box paddingX={1}>
-      <Text dimColor>Press q to quit | Arrow keys to navigate</Text>
+    <Box flexDirection="column" flexGrow={1} overflow="scroll" scrollTo={selected}>
+      {recentItems.map((item, i) => (
+        <Box key={item.name} flexDirection="row" justifyContent="space-between">
+          <Text inverse={i === selected}>
+            {i === selected ? "> " : "  "}
+            {item.name}
+          </Text>
+          <Text dimColor>{item.date}</Text>
+        </Box>
+      ))}
     </Box>
   )
 }
@@ -216,119 +179,74 @@ await render(<App />, term)
 
 :::
 
-## Code Walkthrough
+## Key Patterns
 
-### Responsive Layout
+### Flex Progress Bars
 
-The `TopSection` component uses `useContentRect()` to detect narrow terminals:
+Instead of manually calculating bar widths with `useContentRect()`, use `flexGrow` proportionally:
 
 ```tsx
-function TopSection() {
-  const { width } = useContentRect()
-  const isNarrow = width < 60
-
+function ProgressBar({ value }: { value: number }) {
   return (
-    <Box flexDirection={isNarrow ? "column" : "row"}>
-      <StatsPane />
-      <ActivityPane />
+    <Box flexDirection="row">
+      <Box flexGrow={value}>
+        <Text color="green">{"█".repeat(50)}</Text>
+      </Box>
+      <Box flexGrow={100 - value}>
+        <Text dimColor>{"░".repeat(50)}</Text>
+      </Box>
     </Box>
   )
 }
 ```
 
-On narrow terminals (< 60 chars), the stats and activity panes stack vertically instead of side-by-side.
+The text is longer than the box — Silvery truncates it. `flexGrow` handles the proportions. No width math.
 
-### Proportional Sizing
+### Flex Spacing
 
-The two top panes use `flexGrow` for proportional sizing:
-
-```tsx
-<StatsPane />      // flexGrow={1} - takes 1/3 of space
-<ActivityPane />   // flexGrow={2} - takes 2/3 of space
-```
-
-No width calculations needed. Yoga handles the math.
-
-### Dynamic Progress Bars
-
-The `StatRow` component builds progress bars that fill available space:
+Use `justifyContent="space-between"` instead of manual padding calculations:
 
 ```tsx
-function StatRow({ label, value }: { label: string; value: number }) {
-  const { width } = useContentRect()
-
-  const barWidth = Math.max(0, width - 12) // Account for label
-  const filledWidth = Math.floor((barWidth * value) / 100)
-  const emptyWidth = barWidth - filledWidth
-
-  const bar = "=".repeat(filledWidth) + " ".repeat(emptyWidth)
-
-  return (
-    <Text>
-      {label.padEnd(8)} [{bar}]
-    </Text>
-  )
-}
-```
-
-The bar automatically resizes when the terminal is resized.
-
-### Text Truncation
-
-The `ActivityRow` component truncates long messages:
-
-```tsx
-function ActivityRow({ time, message }: { time: string; message: string }) {
-  const { width } = useContentRect()
-
-  const maxMessageWidth = Math.max(0, width - 6)
-  const truncatedMessage = message.length > maxMessageWidth ? message.slice(0, maxMessageWidth - 1) + "..." : message
-
-  return (
-    <Text>
-      <Text dimColor>{time}</Text> {truncatedMessage}
-    </Text>
-  )
-}
-```
-
-No overflow, no layout bugs.
-
-### Scrollable List
-
-The "Recent Items" section uses `overflow="scroll"`:
-
-```tsx
-<Box flexDirection="column" overflow="scroll" scrollTo={selected}>
-  {recentItems.map((item, i) => (
-    <RecentItemRow key={item.name} isSelected={i === selected} /* ... */ />
-  ))}
+<Box flexDirection="row" justifyContent="space-between">
+  <Text>{stat.label}</Text>
+  <Text bold>{stat.value}%</Text>
 </Box>
 ```
 
-Add more items to `recentItems` and they'll scroll automatically.
+### Tab Navigation
+
+Tabs give keyboard interaction meaning — each view has different content and controls:
+
+```tsx
+const [tab, setTab] = useState(0)
+useInput((input, key) => {
+  if (key.leftArrow) setTab((t) => Math.max(0, t - 1))
+  if (key.rightArrow) setTab((t) => Math.min(tabs.length - 1, t + 1))
+})
+```
 
 ## Key Silvery Features Used
 
-| Feature             | Usage                                                                |
-| ------------------- | -------------------------------------------------------------------- |
-| `useContentRect()`  | Get dimensions for responsive layout, progress bars, text truncation |
-| `overflow="scroll"` | Scrollable recent items list                                         |
-| `scrollTo={index}`  | Keep selected item visible                                           |
-| `flexGrow`          | Proportional pane sizing                                             |
-| `useInput()`        | Keyboard navigation                                                  |
+| Feature             | Usage                                       |
+| ------------------- | ------------------------------------------- |
+| `flexGrow`          | Proportional progress bars and panel sizing |
+| `justifyContent`    | Spacing between labels and values           |
+| `gap`               | Consistent spacing between items            |
+| `overflow="scroll"` | Scrollable recent items list                |
+| `scrollTo={index}`  | Keep selected item visible                  |
+| `useInput()`        | Tab switching and list navigation           |
 
 ### Why Silvery for Dashboards
 
-- **Real-time updates** -- Silvery's incremental renderer tracks dirty flags per node. When one metric changes in a large dashboard, only that cell repaints -- 169us per update vs 20.7ms for a full re-render ([benchmarks](/guide/silvery-vs-ink#performance)). Smooth 30fps data refreshes without saturating the terminal.
+- **Real-time updates** — Silvery's incremental renderer tracks dirty flags per node. When one metric changes, only that cell repaints — 169μs per update vs 20.7ms for a full re-render. Smooth 30fps data refreshes.
 
-- **Theming** -- `ThemeProvider` with semantic `$token` colors (`$primary`, `$success`, `$error`, `$muted`, `$border`) gives your dashboard a consistent look. Switch between `defaultDarkTheme` and `defaultLightTheme` or define custom palettes.
+- **Theming** — `ThemeProvider` with semantic `$token` colors gives your dashboard a consistent look.
 
-- **Synchronized output** -- DEC 2026 synchronized updates wrap each frame in atomic begin/end markers. Terminals that support the protocol (tmux, Zellij, Ghostty, WezTerm, kitty) paint the entire frame at once, eliminating partial-repaint flicker in fast-updating dashboards.
+- **Synchronized output** — DEC 2026 synchronized updates wrap each frame in atomic begin/end markers, eliminating partial-repaint flicker.
 
 ## Exercises
 
-1. **Add a third pane** - Add a "Notifications" pane to the top section
-2. **Make stats scrollable** - Add more stats and make the stats pane scroll
-3. **Add timestamps** - Show relative timestamps that update every second
-4. **Add color coding** - Color progress bars red/yellow/green based on value
+1. **Add a fourth tab** — Show a "Notifications" panel with badge counts
+2. **Color-code progress bars** — Red/yellow/green based on value thresholds
+3. **Live updates** — Use `useEffect` + `setInterval` to animate stat values
+4. **Responsive tabs** — Stack tabs vertically on narrow terminals using `useContentRect()`

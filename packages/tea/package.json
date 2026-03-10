@@ -9,6 +9,9 @@
     "url": "https://github.com/beorn/silvery.git",
     "directory": "packages/tea"
   },
+  "files": [
+    "src"
+  ],
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -37,6 +40,9 @@
       "types": "./src/*",
       "import": "./src/*"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@silvery/react": "workspace:*",

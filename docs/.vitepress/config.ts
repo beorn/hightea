@@ -39,6 +39,7 @@ export default defineConfig({
           { text: "Data Explorers & Tables", link: "/examples/data-explorers" },
         ],
       },
+      { text: "Themes", link: "/themes" },
       { text: "Blog", link: "/blog/" },
       {
         text: "Links",

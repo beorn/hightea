@@ -52,6 +52,7 @@ export interface TerminalState {
   kittyEnabled: boolean
   kittyFlags: number
   bracketedPaste: boolean
+  focusReporting: boolean
 }
 
 // ============================================================================
@@ -72,6 +73,7 @@ export function captureTerminalState(opts: {
   kittyFlags?: number
   bracketedPaste?: boolean
   rawMode?: boolean
+  focusReporting?: boolean
 }): TerminalState {
   return {
     rawMode: opts.rawMode ?? true,
@@ -81,6 +83,7 @@ export function captureTerminalState(opts: {
     kittyEnabled: opts.kitty ?? false,
     kittyFlags: opts.kittyFlags ?? 1,
     bracketedPaste: opts.bracketedPaste ?? false,
+    focusReporting: opts.focusReporting ?? false,
   }
 }
 
@@ -100,6 +103,7 @@ export function captureTerminalState(opts: {
 export function restoreTerminalState(stdout: NodeJS.WriteStream, stdin: NodeJS.ReadStream): void {
   const sequences = [
     "\x1b[0m", // Reset SGR attributes
+    "\x1b[?1004l", // Disable focus reporting
     disableMouse(), // Disable all mouse tracking modes
     disableKittyKeyboard(), // Pop Kitty keyboard protocol
     "\x1b[?2004l", // Disable bracketed paste
@@ -176,6 +180,10 @@ export function resumeTerminalState(state: TerminalState, stdout: NodeJS.WriteSt
 
   if (state.bracketedPaste) {
     sequences.push("\x1b[?2004h") // Enable bracketed paste
+  }
+
+  if (state.focusReporting) {
+    sequences.push("\x1b[?1004h") // Enable focus reporting
   }
 
   // Write all sequences

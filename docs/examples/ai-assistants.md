@@ -38,7 +38,7 @@ Terminal-based AI assistants have unique UI requirements: streaming output that 
 A complete working chat interface in under 50 lines. Messages scroll automatically, the input field stays pinned at the bottom, and the user can send messages with Enter.
 
 ```tsx
-import { Box, Text, TextInput, useContentRect } from "silvery"
+import { Box, Text, TextInput } from "silvery"
 import { run, useInput } from "@silvery/term/runtime"
 import { useState } from "react"
 
@@ -50,8 +50,6 @@ interface Message {
 function Chat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
-  const { height } = useContentRect()
-
   async function send(text: string) {
     if (!text.trim()) return
     setInput("")
@@ -95,7 +93,7 @@ This gives you:
 - A scrollable message history that grows as the conversation progresses
 - Automatic scroll-to-bottom when new messages arrive (`scrollTo={messages.length - 1}`)
 - A bordered input area with a prompt prefix and placeholder text
-- Layout feedback via `useContentRect()` -- the message area fills all available height
+- Flex layout -- `flexGrow={1}` makes the message area fill all available height
 
 To add streaming, replace the echo stub with an async generator that appends tokens to the latest message. Silvery will re-render only the changed text node on each token, keeping the update cost constant regardless of conversation length.
 

@@ -2124,16 +2124,18 @@ function selectPalette(name) {
 /* ── Gallery two-column layout ────────────────────────────────────── */
 .gallery-columns {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 320px 1fr;
   gap: 1.25rem;
   align-items: start;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .palette-list {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-height: 420px;
+  max-height: 600px;
   overflow-y: auto;
   border: 1px solid var(--vp-c-divider);
   border-radius: 8px;

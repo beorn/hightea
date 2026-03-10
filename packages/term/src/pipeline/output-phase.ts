@@ -19,7 +19,7 @@ import {
 import type { CursorState } from "@silvery/react/hooks/useCursor"
 import { IncrementalRenderMismatchError } from "../errors"
 import { isPrivateUseArea, textSized } from "../text-sizing"
-import { graphemeWidth, isTextSizingEnabled } from "../unicode"
+import { graphemeWidth, isTextSizingEnabled, isTextPresentationEmoji } from "../unicode"
 import type { CellChange } from "./types"
 
 const DEBUG_OUTPUT = !!process.env.SILVERY_DEBUG_OUTPUT
@@ -346,14 +346,21 @@ function updateInlineCursorRow(
 }
 
 /**
- * Wrap a cell character in OSC 66 if it is a PUA character and text sizing
- * is enabled. For wide PUA characters, this tells the terminal to render
- * the character in exactly 2 cells, matching the layout engine's measurement.
+ * Wrap a cell character in OSC 66 if text sizing is enabled and the character
+ * has width ambiguity. Covers:
+ * - PUA characters (nerdfont icons, powerline symbols)
+ * - Text-presentation emoji (e.g., warning sign, checkmark, airplane)
+ *
+ * OSC 66 tells the terminal to render the character in exactly `width` cells,
+ * matching the layout engine's measurement and eliminating misalignment.
  */
 function wrapTextSizing(char: string, wide: boolean, ctx: OutputContext): string {
   if (!wide || !outputTextSizingEnabled(ctx)) return char
   const cp = char.codePointAt(0)
   if (cp !== undefined && isPrivateUseArea(cp)) {
+    return textSized(char, 2)
+  }
+  if (isTextPresentationEmoji(char)) {
     return textSized(char, 2)
   }
   return char

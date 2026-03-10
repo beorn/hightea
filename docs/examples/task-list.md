@@ -24,7 +24,8 @@ A scrollable task list with variable-height items and keyboard navigation.
 ## What It Demonstrates
 
 - **Automatic scrolling** with `overflow="scroll"` and `scrollTo`
-- **Variable-height items** - tasks with subtasks render taller
+- **Variable-height items** — tasks with subtasks render taller
+- **Flex layout** — content fills available space, text truncates naturally
 - **Keyboard navigation** with `useInput()`
 - **Selection styling** with inverse colors
 
@@ -52,12 +53,12 @@ cd silvery
 bun run examples/task-list/app.tsx
 ```
 
-## Full Source Code
+## Source Code
 
 ::: code-group
 
 ```tsx [app.tsx]
-import { Box, Text, render, useContentRect, useInput, useApp, createTerm } from "silvery"
+import { Box, Text, render, useInput, useApp, createTerm } from "silvery"
 import { useState } from "react"
 
 interface Subtask {
@@ -147,7 +148,6 @@ function App() {
     }
 
     if (input === " " || key.return) {
-      // Toggle selected task
       setTasks((prev) => prev.map((task, i) => (i === selectedIndex ? { ...task, done: !task.done } : task)))
     }
   })
@@ -164,13 +164,10 @@ function App() {
 }
 
 function Header({ total, completed }: { total: number; completed: number }) {
-  const { width } = useContentRect()
-
   return (
-    <Box paddingX={1} marginBottom={1}>
+    <Box paddingX={1} marginBottom={1} gap={1}>
       <Text bold>Tasks</Text>
       <Text>
-        {" "}
         ({completed}/{total} done)
       </Text>
     </Box>
@@ -188,22 +185,16 @@ function TaskList({ tasks, selectedIndex }: { tasks: Task[]; selectedIndex: numb
 }
 
 function TaskRow({ task, isSelected }: { task: Task; isSelected: boolean }) {
-  const { width } = useContentRect()
-
   const checkbox = task.done ? "[x]" : "[ ]"
   const prefix = isSelected ? ">" : " "
 
-  // Calculate available width for title
-  // prefix (1) + space (1) + checkbox (3) + space (1) = 6 chars
-  const titleWidth = Math.max(0, width - 6)
-
-  const truncatedTitle = task.title.length > titleWidth ? task.title.slice(0, titleWidth - 1) + "..." : task.title
-
   return (
     <Box flexDirection="column">
-      <Text backgroundColor={isSelected ? "cyan" : undefined} color={isSelected ? "black" : undefined}>
-        {prefix} {checkbox} {truncatedTitle}
-      </Text>
+      <Box gap={1}>
+        <Text backgroundColor={isSelected ? "cyan" : undefined} color={isSelected ? "black" : undefined}>
+          {prefix} {checkbox} {task.title}
+        </Text>
+      </Box>
       {task.subtasks?.map((subtask) => (
         <SubtaskRow key={subtask.id} subtask={subtask} isParentSelected={isSelected} />
       ))}
@@ -212,15 +203,7 @@ function TaskRow({ task, isSelected }: { task: Task; isSelected: boolean }) {
 }
 
 function SubtaskRow({ subtask, isParentSelected }: { subtask: Subtask; isParentSelected: boolean }) {
-  const { width } = useContentRect()
-
   const checkbox = subtask.done ? "x" : " "
-
-  // Subtasks are indented: 4 spaces + "- [x] " = 10 chars
-  const titleWidth = Math.max(0, width - 10)
-
-  const truncatedTitle =
-    subtask.title.length > titleWidth ? subtask.title.slice(0, titleWidth - 1) + "..." : subtask.title
 
   return (
     <Text
@@ -228,7 +211,7 @@ function SubtaskRow({ subtask, isParentSelected }: { subtask: Subtask; isParentS
       backgroundColor={isParentSelected ? "cyan" : undefined}
       color={isParentSelected ? "black" : undefined}
     >
-      {"    "}- [{checkbox}] {truncatedTitle}
+      {"    "}- [{checkbox}] {subtask.title}
     </Text>
   )
 }
@@ -247,101 +230,53 @@ await render(<App />, term)
 
 :::
 
-## Code Walkthrough
+## Key Patterns
 
-### Scrollable Container
+### Scrollable Container with Auto-Follow
 
-The `TaskList` component wraps tasks in a scrollable container:
-
-```tsx
-function TaskList({ tasks, selectedIndex }: { tasks: Task[]; selectedIndex: number }) {
-  return (
-    <Box flexDirection="column" flexGrow={1} borderStyle="single" overflow="scroll" scrollTo={selectedIndex}>
-      {tasks.map((task, i) => (
-        <TaskRow key={task.id} task={task} isSelected={i === selectedIndex} />
-      ))}
-    </Box>
-  )
-}
-```
-
-Key props:
-
-- `overflow="scroll"` - enables scrolling
-- `scrollTo={selectedIndex}` - keeps selected item visible
-- `flexGrow={1}` - fills available vertical space
-
-### Variable Height Items
-
-Tasks with subtasks are taller than tasks without:
+The `overflow="scroll"` + `scrollTo` combo handles all scrolling automatically — Silvery measures each item's actual height and keeps the selected item visible:
 
 ```tsx
-function TaskRow({ task, isSelected }: { task: Task; isSelected: boolean }) {
-  return (
-    <Box flexDirection="column">
-      <Text>{/* main task line */}</Text>
-      {task.subtasks?.map((subtask) => (
-        <SubtaskRow key={subtask.id} subtask={subtask} />
-      ))}
-    </Box>
-  )
-}
+<Box flexDirection="column" flexGrow={1} borderStyle="single" overflow="scroll" scrollTo={selectedIndex}>
+  {tasks.map((task, i) => (
+    <TaskRow key={task.id} task={task} isSelected={i === selectedIndex} />
+  ))}
+</Box>
 ```
 
-Silvery measures each task's actual height. No height estimation needed.
+### Spacing with `gap`
 
-### Selection Styling
+Use `gap` on Box instead of manual `{" "}` spacers:
 
-Selected items use `backgroundColor="cyan"` and `color="black"`:
+```tsx
+<Box paddingX={1} marginBottom={1} gap={1}>
+  <Text bold>Tasks</Text>
+  <Text>
+    ({completed}/{total} done)
+  </Text>
+</Box>
+```
+
+### Selection Styling Across Parent and Children
+
+Selected state flows from task to subtasks, highlighting the entire group:
 
 ```tsx
 <Text backgroundColor={isSelected ? "cyan" : undefined} color={isSelected ? "black" : undefined}>
-  {prefix} {checkbox} {truncatedTitle}
+  {prefix} {checkbox} {task.title}
 </Text>
 ```
 
-The selection extends to subtasks when the parent task is selected.
-
-### Keyboard Navigation
-
-The `useInput` hook handles arrow keys and toggling:
-
-```tsx
-useInput((input, key) => {
-  if (key.downArrow) {
-    setSelectedIndex((i) => Math.min(i + 1, tasks.length - 1))
-  }
-
-  if (key.upArrow) {
-    setSelectedIndex((i) => Math.max(i - 1, 0))
-  }
-
-  if (input === " " || key.return) {
-    setTasks((prev) => prev.map((task, i) => (i === selectedIndex ? { ...task, done: !task.done } : task)))
-  }
-})
-```
-
-### Text Truncation
-
-Both tasks and subtasks truncate long titles:
-
-```tsx
-const titleWidth = Math.max(0, width - 6)
-const truncatedTitle = task.title.length > titleWidth ? task.title.slice(0, titleWidth - 1) + "..." : task.title
-```
-
-The available width comes from `useContentRect()`.
-
 ## Key Silvery Features Used
 
-| Feature             | Usage                                         |
-| ------------------- | --------------------------------------------- |
-| `overflow="scroll"` | Scrollable task list                          |
-| `scrollTo={index}`  | Keep selection visible as you navigate        |
-| `useContentRect()`  | Calculate available width for text truncation |
-| `useInput()`        | Arrow key navigation and task toggling        |
-| Variable heights    | Tasks with subtasks naturally expand          |
+| Feature             | Usage                                  |
+| ------------------- | -------------------------------------- |
+| `overflow="scroll"` | Scrollable task list                   |
+| `scrollTo={index}`  | Keep selection visible as you navigate |
+| `flexGrow={1}`      | List fills available vertical space    |
+| `gap={1}`           | Spacing between inline elements        |
+| `useInput()`        | Arrow key navigation and task toggling |
+| Variable heights    | Tasks with subtasks naturally expand   |
 
 ## How Scrolling Works
 

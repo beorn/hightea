@@ -76,6 +76,7 @@ import { parseKey, type Key } from "./keys"
 import { ensureLayoutEngine } from "./layout"
 import { createMouseEventProcessor } from "../mouse-events"
 import { enableKittyKeyboard, disableKittyKeyboard, KittyFlags, enableMouse, disableMouse } from "../output"
+import { enableFocusReporting, disableFocusReporting } from "../focus-reporting"
 import { detectKittyFromStdio } from "../kitty-detect"
 import { captureTerminalState, performSuspend, CTRL_C, CTRL_Z } from "./terminal-lifecycle"
 import { type TermProvider, createTermProvider } from "./term-provider"
@@ -217,6 +218,13 @@ export interface AppRunOptions {
    * - `false`/undefined: disabled (default)
    */
   textSizing?: boolean | "auto"
+  /**
+   * Enable terminal focus reporting (CSI ?1004h).
+   * When enabled, the terminal sends focus-in/focus-out events that are
+   * dispatched as 'term:focus' events with `{ focused: boolean }`.
+   * Default: false
+   */
+  focusReporting?: boolean
   /**
    * Terminal capabilities for width measurement and output suppression.
    * When provided, configures the render pipeline to use these caps
@@ -447,6 +455,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     onResume: onResumeHook,
     onInterrupt: onInterruptHook,
     textSizing: textSizingOption,
+    focusReporting: focusReportingOption = false,
     caps: capsOption,
     ...injectValues
   } = options
@@ -690,6 +699,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   let kittyEnabled = false
   let kittyFlags: number = KittyFlags.DISAMBIGUATE
   let mouseEnabled = false
+  let focusReportingEnabled = false
 
   // Focus manager (tree-based focus system) with event dispatch wiring
   const focusManager = createFocusManager({
@@ -746,6 +756,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
     // Restore cursor and leave alternate screen
     if (!headless) {
+      // Disable focus reporting before restoring terminal
+      if (focusReportingEnabled) disableFocusReporting((s) => stdout.write(s))
       // Disable mouse tracking before restoring terminal
       if (mouseEnabled) stdout.write(disableMouse())
       // Disable Kitty keyboard protocol before restoring terminal
@@ -1077,6 +1089,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       stdout.write(enableMouse())
       mouseEnabled = true
     }
+
+    // Focus reporting
+    if (focusReportingOption) {
+      enableFocusReporting((s) => stdout.write(s))
+      focusReportingEnabled = true
+    }
   }
   if (_ansiTrace) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -1280,6 +1298,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
               kittyFlags,
               bracketedPaste: true,
               rawMode: true,
+              focusReporting: focusReportingEnabled,
             })
             performSuspend(state, stdout, stdin, () => {
               // After resume, trigger a full re-render

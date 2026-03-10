@@ -1,8 +1,13 @@
 # Text Sizing Protocol (OSC 66)
 
-The text sizing protocol (OSC 66) lets the application tell the terminal exactly how many cells a character should occupy. This solves the long-standing measurement/rendering mismatch for Private Use Area (PUA) characters -- nerdfont icons and powerline symbols that `string-width` reports as 1-cell but terminals render as 2-cell.
+The text sizing protocol (OSC 66) lets the application tell the terminal exactly how many cells a character should occupy. This solves measurement/rendering mismatches for two categories of characters:
+
+1. **Private Use Area (PUA)** — nerdfont icons and powerline symbols that `string-width` reports as 1-cell but terminals render as 2-cell
+2. **Text-presentation emoji** — characters like warning sign, checkmark, airplane that have ambiguous width across terminals
 
 ## The Problem
+
+### PUA Characters
 
 Nerdfont icons (U+E000-U+F8FF) cause layout misalignment:
 
@@ -10,11 +15,13 @@ Nerdfont icons (U+E000-U+F8FF) cause layout misalignment:
 2. The terminal renders the icon as 2 cells wide (because the font's glyph is double-width)
 3. Text after the icon is placed at the wrong column, causing truncation
 
-Example: A column header "FAMILY SPRINT" (where is a nerdfont icon) gets truncated to "FAMILY SPRIN" because the layout engine allocates 1 cell for the icon but the terminal uses 2.
+### Text-Presentation Emoji
+
+Characters like `\u26A0` (warning sign), `\u2611` (checkmark), `\u2708` (airplane) are `Extended_Pictographic` but do NOT have the `Emoji_Presentation` property. Terminals render them as 2-wide emoji glyphs, but `string-width` reports them as 1 cell.
 
 ## The Solution
 
-With OSC 66, the app wraps PUA characters in a sequence that specifies the exact width:
+With OSC 66, the app wraps ambiguous-width characters in a sequence that specifies the exact width:
 
 ```
 ESC ] 66 ; w=2 ; <character> BEL

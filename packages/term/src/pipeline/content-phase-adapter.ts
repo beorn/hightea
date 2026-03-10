@@ -13,6 +13,7 @@
 import { type RenderBuffer, type RenderStyle, getRenderAdapter, hasRenderAdapter } from "../render-adapter"
 import type { BoxProps, TeaNode, Rect, TextProps } from "@silvery/tea/types"
 import { getBorderSize, getPadding } from "./helpers"
+import { displayWidth } from "../unicode"
 
 // ============================================================================
 // Main Entry Point
@@ -45,15 +46,15 @@ export function contentPhaseAdapter(root: TeaNode): RenderBuffer {
 // Node Rendering
 // ============================================================================
 
-/**
- * Render a single node to the buffer.
- */
-function renderNodeToBuffer(
-  node: TeaNode,
-  buffer: RenderBuffer,
-  scrollOffset = 0,
-  clipBounds?: { top: number; bottom: number },
-): void {
+/** Clip bounds for vertical and optional horizontal clipping. */
+interface ClipRect {
+  top: number
+  bottom: number
+  left?: number
+  right?: number
+}
+
+function renderNodeToBuffer(node: TeaNode, buffer: RenderBuffer, scrollOffset = 0, clipBounds?: ClipRect): void {
   const layout = node.contentRect
   if (!layout) return
 
@@ -113,15 +114,18 @@ function renderBox(
   buffer: RenderBuffer,
   layout: Rect,
   props: BoxProps,
-  clipBounds?: { top: number; bottom: number },
+  clipBounds?: ClipRect,
   scrollOffset = 0,
 ): void {
   const { x, width, height } = layout
   const y = layout.y - scrollOffset
 
   // Skip if completely outside clip bounds
-  if (clipBounds && (y + height <= clipBounds.top || y >= clipBounds.bottom)) {
-    return
+  if (clipBounds) {
+    if (y + height <= clipBounds.top || y >= clipBounds.bottom) return
+    if (clipBounds.left !== undefined && clipBounds.right !== undefined) {
+      if (x + width <= clipBounds.left || x >= clipBounds.right) return
+    }
   }
 
   // Fill background if set
@@ -131,8 +135,11 @@ function renderBox(
     if (clipBounds) {
       const clippedY = Math.max(y, clipBounds.top)
       const clippedHeight = Math.min(y + height, clipBounds.bottom) - clippedY
-      if (clippedHeight > 0) {
-        buffer.fillRect(x, clippedY, width, clippedHeight, style)
+      const clippedX = clipBounds.left !== undefined ? Math.max(x, clipBounds.left) : x
+      const clippedWidth =
+        clipBounds.right !== undefined ? Math.min(x + width, clipBounds.right) - clippedX : width - (clippedX - x)
+      if (clippedHeight > 0 && clippedWidth > 0) {
+        buffer.fillRect(clippedX, clippedY, clippedWidth, clippedHeight, style)
       }
     } else {
       buffer.fillRect(x, y, width, height, style)
@@ -155,7 +162,7 @@ function renderBorder(
   width: number,
   height: number,
   props: BoxProps,
-  clipBounds?: { top: number; bottom: number },
+  clipBounds?: ClipRect,
 ): void {
   const adapter = getRenderAdapter()
   const chars = adapter.getBorderChars(props.borderStyle ?? "single")
@@ -284,7 +291,7 @@ function renderOutlineAdapter(
   width: number,
   height: number,
   props: BoxProps,
-  clipBounds?: { top: number; bottom: number },
+  clipBounds?: ClipRect,
 ): void {
   const adapter = getRenderAdapter()
   const chars = adapter.getBorderChars(props.outlineStyle ?? "single")
@@ -362,9 +369,9 @@ function renderText(
   layout: Rect,
   props: TextProps,
   scrollOffset = 0,
-  clipBounds?: { top: number; bottom: number },
+  clipBounds?: ClipRect,
 ): void {
-  const { x } = layout
+  const { x, width: layoutWidth } = layout
   const y = layout.y - scrollOffset
 
   // Collect text content from children
@@ -393,13 +400,53 @@ function renderText(
     },
   }
 
-  // Simple text rendering - draw at position
-  // TODO: Handle wrapping, truncation for canvas (currently simple single-line)
+  // Skip if outside vertical clip bounds
   if (clipBounds && (y < clipBounds.top || y >= clipBounds.bottom)) {
-    return // Skip if outside clip bounds
+    return
   }
 
-  buffer.drawText(x, y, text, style)
+  // Determine the maximum column for text rendering.
+  // Clip to: (1) the node's own layout width, and (2) any horizontal clip bounds from overflow="hidden" ancestors.
+  let maxCol = x + layoutWidth
+  if (clipBounds?.right !== undefined) {
+    maxCol = Math.min(maxCol, clipBounds.right)
+  }
+
+  // Determine the starting column (horizontal clip from left)
+  let startCol = x
+  if (clipBounds?.left !== undefined) {
+    startCol = Math.max(startCol, clipBounds.left)
+  }
+
+  // Skip if entirely clipped horizontally
+  if (startCol >= maxCol) return
+
+  // Truncate text to fit within the available width
+  const truncated = truncateToWidth(text, maxCol - x)
+  if (!truncated) return
+
+  buffer.drawText(x, y, truncated, style)
+}
+
+/**
+ * Truncate text to fit within a given display width.
+ * Respects multi-column characters (CJK, emoji).
+ */
+function truncateToWidth(text: string, maxWidth: number): string {
+  if (maxWidth <= 0) return ""
+  const textWidth = displayWidth(text)
+  if (textWidth <= maxWidth) return text
+
+  // Need to truncate — iterate character by character
+  let width = 0
+  let end = 0
+  for (const char of text) {
+    const charWidth = displayWidth(char)
+    if (width + charWidth > maxWidth) break
+    width += charWidth
+    end += char.length
+  }
+  return text.slice(0, end)
 }
 
 /**
@@ -483,7 +530,7 @@ function renderScrollContainerChildren(
   node: TeaNode,
   buffer: RenderBuffer,
   props: BoxProps,
-  clipBounds?: { top: number; bottom: number },
+  clipBounds?: ClipRect,
 ): void {
   const layout = node.contentRect
   const ss = node.scrollState as ScrollState | undefined
@@ -492,15 +539,19 @@ function renderScrollContainerChildren(
   const border = props.borderStyle ? getBorderSize(props) : { top: 0, bottom: 0, left: 0, right: 0 }
   const padding = getPadding(props)
 
-  const nodeClip = {
+  const nodeClip: ClipRect = {
     top: layout.y + border.top + padding.top,
     bottom: layout.y + layout.height - border.bottom - padding.bottom,
+    left: layout.x + border.left + padding.left,
+    right: layout.x + layout.width - border.right - padding.right,
   }
 
-  const childClipBounds = clipBounds
+  const childClipBounds: ClipRect = clipBounds
     ? {
         top: Math.max(clipBounds.top, nodeClip.top),
         bottom: Math.min(clipBounds.bottom, nodeClip.bottom),
+        left: Math.max(clipBounds.left ?? nodeClip.left!, nodeClip.left!),
+        right: Math.min(clipBounds.right ?? nodeClip.right!, nodeClip.right!),
       }
     : nodeClip
 
@@ -536,7 +587,7 @@ function renderNormalChildren(
   buffer: RenderBuffer,
   scrollOffset: number,
   props: BoxProps,
-  clipBounds?: { top: number; bottom: number },
+  clipBounds?: ClipRect,
 ): void {
   const layout = node.contentRect
   if (!layout) return
@@ -549,15 +600,19 @@ function renderNormalChildren(
 
     // Adjust layout position by scrollOffset to get screen coordinates
     const adjustedY = layout.y - scrollOffset
-    const nodeClip = {
+    const nodeClip: ClipRect = {
       top: adjustedY + border.top + padding.top,
       bottom: adjustedY + layout.height - border.bottom - padding.bottom,
+      left: layout.x + border.left + padding.left,
+      right: layout.x + layout.width - border.right - padding.right,
     }
 
     effectiveClipBounds = clipBounds
       ? {
           top: Math.max(clipBounds.top, nodeClip.top),
           bottom: Math.min(clipBounds.bottom, nodeClip.bottom),
+          left: Math.max(clipBounds.left ?? nodeClip.left!, nodeClip.left!),
+          right: Math.min(clipBounds.right ?? nodeClip.right!, nodeClip.right!),
         }
       : nodeClip
   }

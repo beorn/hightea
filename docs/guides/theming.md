@@ -119,13 +119,11 @@ Any color prop starting with `$` resolves against the active theme. Non-`$` valu
 
 ## Theme Explorer
 
-Browse all 38 built-in palettes, preview how they look in a terminal, or generate a custom theme from any color.
+Browse all 38 built-in palettes and generate custom themes.
 
-<script setup>
-import ThemeExplorer from '../.vitepress/components/ThemeExplorer.vue'
-</script>
-
-<ThemeExplorer />
+::: tip Interactive Tool
+[Open Theme Explorer →](/themes) — full-width page with palette browser, terminal preview, and custom theme generator.
+:::
 
 ## Built-in Palettes
 

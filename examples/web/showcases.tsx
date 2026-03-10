@@ -22,6 +22,7 @@ interface KeyInfo {
   escape: boolean
   tab: boolean
   backspace: boolean
+  delete: boolean
 }
 
 type InputHandler = (input: string, key: KeyInfo) => void
@@ -39,6 +40,7 @@ export function emitInput(data: string): void {
     escape: data === "\x1b",
     tab: data === "\t",
     backspace: data === "\x7f" || data === "\b",
+    delete: data === "\x1b[3~",
   }
   const input = data.length === 1 && data >= " " && data < "\x7f" ? data : ""
   for (const cb of inputListeners) cb(input, key)
@@ -137,7 +139,6 @@ const gaugeColor = (v: number) => (v > 70 ? "#f38ba8" : v > 40 ? "#f9e2af" : "#a
 
 function DashboardShowcase(): JSX.Element {
   const [tick, setTick] = useState(0)
-  const [activePanel, setActivePanel] = useState(0)
   const [cpuHistory] = useState(() => Array.from({ length: 20 }, () => 20 + Math.floor(Math.random() * 40)))
   const [memHistory] = useState(() => Array.from({ length: 20 }, () => 40 + Math.floor(Math.random() * 30)))
 
@@ -158,11 +159,6 @@ function DashboardShowcase(): JSX.Element {
     }, 1200)
     return () => clearInterval(id)
   }, [])
-
-  useInput((_input, key) => {
-    if (key.leftArrow) setActivePanel((p) => Math.max(0, p - 1))
-    if (key.rightArrow) setActivePanel((p) => Math.min(2, p + 1))
-  })
 
   const cpu = cpuHistory[cpuHistory.length - 1]!
   const mem = memHistory[memHistory.length - 1]!
@@ -215,14 +211,8 @@ function DashboardShowcase(): JSX.Element {
       {/* Top row: Metrics + Services */}
       <Box flexDirection="row" gap={1}>
         {/* Metrics panel */}
-        <Box
-          flexDirection="column"
-          flexGrow={1}
-          borderStyle="round"
-          borderColor={activePanel === 0 ? "#89b4fa" : "#45475a"}
-          paddingX={1}
-        >
-          <Text bold color={activePanel === 0 ? "#89b4fa" : "#a6adc8"}>
+        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="#45475a" paddingX={1}>
+          <Text bold color="#a6adc8">
             CPU / Memory
           </Text>
           {/* Sparkline graphs */}
@@ -280,14 +270,8 @@ function DashboardShowcase(): JSX.Element {
         </Box>
 
         {/* Services panel */}
-        <Box
-          flexDirection="column"
-          flexGrow={1}
-          borderStyle="round"
-          borderColor={activePanel === 1 ? "#89b4fa" : "#45475a"}
-          paddingX={1}
-        >
-          <Text bold color={activePanel === 1 ? "#89b4fa" : "#a6adc8"}>
+        <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="#45475a" paddingX={1}>
+          <Text bold color="#a6adc8">
             Services
           </Text>
           {services.map((s) => (
@@ -308,13 +292,8 @@ function DashboardShowcase(): JSX.Element {
       </Box>
 
       {/* Bottom row: Events */}
-      <Box
-        flexDirection="column"
-        borderStyle="round"
-        borderColor={activePanel === 2 ? "#89b4fa" : "#45475a"}
-        paddingX={1}
-      >
-        <Text bold color={activePanel === 2 ? "#89b4fa" : "#a6adc8"}>
+      <Box flexDirection="column" borderStyle="round" borderColor="#45475a" paddingX={1}>
+        <Text bold color="#a6adc8">
           Events
         </Text>
         {visibleEvents.map((e, i) => (
@@ -332,7 +311,7 @@ function DashboardShowcase(): JSX.Element {
         ))}
       </Box>
 
-      <KeyHints hints="←→ panels" />
+      <KeyHints hints="q quit" />
     </Box>
   )
 }
@@ -1098,7 +1077,7 @@ function CodingAgentShowcase(): JSX.Element {
       }
       return
     }
-    if (key.backspace) {
+    if (key.backspace || key.delete) {
       setInputText((t) => t.slice(0, -1))
       return
     }
@@ -1287,11 +1266,11 @@ function KanbanShowcase(): JSX.Element {
               borderColor={isFocused ? "#89b4fa" : "#313244"}
             >
               {/* Column header */}
-              <Box paddingX={1} backgroundColor={column.headerBg}>
+              <Box paddingX={1} gap={1} backgroundColor={column.headerBg}>
                 <Text bold color={column.headerColor}>
                   {column.title}
                 </Text>
-                <Text color="#6c7086"> {column.cards.length}</Text>
+                <Text color="#6c7086">{column.cards.length}</Text>
               </Box>
 
               {/* Cards */}
@@ -1312,8 +1291,8 @@ function KanbanShowcase(): JSX.Element {
                         {c.title}
                       </Text>
                       <Box>
-                        <Box backgroundColor={c.tag.bg} paddingX={0}>
-                          <Text color={c.tag.color}> {c.tag.name} </Text>
+                        <Box backgroundColor={c.tag.bg} paddingX={1}>
+                          <Text color={c.tag.color}>{c.tag.name}</Text>
                         </Box>
                       </Box>
                     </Box>
@@ -1406,7 +1385,7 @@ function CLIWizardShowcase(): JSX.Element {
     }
 
     if (currentStep.type === "text") {
-      if (key.backspace) {
+      if (key.backspace || key.delete) {
         setTextInput((t) => t.slice(0, -1))
         return
       }
@@ -1663,7 +1642,7 @@ function CLIWizardShowcase(): JSX.Element {
         <Text color="#45475a">└</Text>
       )}
 
-      <KeyHints hints="↑↓ select  Enter confirm  Backspace delete" />
+      <KeyHints hints="↑↓ select  Enter confirm  Backspace/Del delete" />
     </Box>
   )
 }
@@ -1930,7 +1909,7 @@ function DevToolsShowcase(): JSX.Element {
       setTypedQuery((q) => q + input)
       setScrollOffset(0)
     }
-    if (key.backspace) {
+    if (key.backspace || key.delete) {
       setTypedQuery((q) => q.slice(0, -1))
       setScrollOffset(0)
     }
@@ -2001,57 +1980,35 @@ function DevToolsShowcase(): JSX.Element {
 // ============================================================================
 
 function ScrollShowcase(): JSX.Element {
-  const [scrollPos, setScrollPos] = useState(0)
   const [selectedIdx, setSelectedIdx] = useState(0)
-  const visibleCount = 10
 
   useInput((_input, key) => {
-    if (key.upArrow) {
-      setSelectedIdx((idx) => {
-        const newIdx = Math.max(0, idx - 1)
-        setScrollPos((p) => (newIdx < p ? newIdx : p))
-        return newIdx
-      })
-    }
-    if (key.downArrow) {
-      setSelectedIdx((idx) => {
-        const newIdx = Math.min(29, idx + 1)
-        setScrollPos((p) => (newIdx >= p + visibleCount ? newIdx - visibleCount + 1 : p))
-        return newIdx
-      })
-    }
-  })
-
-  // Click to select item
-  useMouseClick(({ y }) => {
-    // Header area: 1 padding + 1 border-top = row 2 is first item
-    const itemY = y - 2
-    if (itemY >= 0 && itemY < visibleCount) {
-      setSelectedIdx(scrollPos + itemY)
-    }
+    if (key.upArrow) setSelectedIdx((idx) => Math.max(0, idx - 1))
+    if (key.downArrow) setSelectedIdx((idx) => Math.min(29, idx + 1))
   })
 
   const items = Array.from({ length: 30 }, (_, i) => `Item ${i + 1}`)
-  const visible = items.slice(scrollPos, scrollPos + visibleCount)
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Box flexDirection="column" borderStyle="single" borderColor="#444">
-        {visible.map((item, i) => {
-          const globalIdx = scrollPos + i
-          const isSelected = globalIdx === selectedIdx
-          return (
-            <Box key={globalIdx} paddingX={1}>
-              <Text bold={isSelected} color={isSelected ? "cyan" : "white"}>
-                {isSelected ? "▸ " : "  "}
-                {item}
-              </Text>
-            </Box>
-          )
-        })}
+      <Box
+        flexDirection="column"
+        flexGrow={1}
+        borderStyle="single"
+        borderColor="#444"
+        overflow="scroll"
+        scrollTo={selectedIdx}
+      >
+        {items.map((item, i) => (
+          <Box key={i} paddingX={1}>
+            <Text bold={i === selectedIdx} color={i === selectedIdx ? "cyan" : "white"}>
+              {i === selectedIdx ? "▸ " : "  "}
+              {item}
+            </Text>
+          </Box>
+        ))}
       </Box>
-
-      <KeyHints hints="↑↓ navigate  click to select" />
+      <KeyHints hints="↑↓ navigate" />
     </Box>
   )
 }
@@ -2153,7 +2110,7 @@ function TextInputShowcase(): JSX.Element {
     if (input) {
       setText((t) => t + input)
     }
-    if (key.backspace) {
+    if (key.backspace || key.delete) {
       setText((t) => t.slice(0, -1))
     }
     if (key.escape) {
@@ -2168,6 +2125,8 @@ function TextInputShowcase(): JSX.Element {
         borderStyle={termFocused ? "double" : "round"}
         borderColor={termFocused ? "#89b4fa" : "#313244"}
         paddingX={1}
+        outlineStyle={termFocused ? "round" : undefined}
+        outlineColor={termFocused ? "#45475a" : undefined}
       >
         <Text color={termFocused ? "#89b4fa" : "#585b70"}>&gt; </Text>
         <Text color="#cdd6f4">{text}</Text>
@@ -2178,7 +2137,7 @@ function TextInputShowcase(): JSX.Element {
         <Text color="#6c7086">Echo: {text || "(empty)"}</Text>
       </Box>
 
-      <KeyHints hints={termFocused ? "type text  Backspace delete  Esc clear" : "click to focus"} />
+      <KeyHints hints={termFocused ? "type text  Backspace/Del delete  Esc clear" : "click to focus"} />
     </Box>
   )
 }
@@ -2293,7 +2252,7 @@ function ThemeExplorerShowcase(): JSX.Element {
   // Determine layout: 2-column if wide enough, 1-column otherwise
   const twoCol = (width || 80) >= 74
   const contentHeight = (height || 24) - 3 // padding + key hints
-  const cardsPerCol = twoCol ? Math.floor(contentHeight / 6) : Math.floor(contentHeight / 6)
+  const cardsPerCol = Math.floor(contentHeight / 6)
 
   // Scroll to keep selected visible
   const totalVisible = twoCol ? cardsPerCol * 2 : cardsPerCol

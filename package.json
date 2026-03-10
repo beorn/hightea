@@ -25,6 +25,9 @@
   "workspaces": [
     "packages/*"
   ],
+  "files": [
+    "src"
+  ],
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -41,6 +44,9 @@
       "types": "./packages/compat/src/chalk.ts",
       "import": "./packages/compat/src/chalk.ts"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "bun build src/index.ts --outdir dist --target node",

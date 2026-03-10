@@ -24,6 +24,7 @@
 import { type Key, parseKey } from "./keys"
 import { isMouseSequence, parseMouseSequence, type ParsedMouse } from "../mouse"
 import { parseBracketedPaste, enableBracketedPaste, disableBracketedPaste } from "../bracketed-paste"
+import { enableFocusReporting, disableFocusReporting, parseFocusEvent } from "../focus-reporting"
 import type { Dims, Provider, ProviderEvent } from "./types"
 
 // ============================================================================
@@ -125,6 +126,7 @@ export interface TermEvents {
   mouse: ParsedMouse
   paste: { text: string }
   resize: Dims
+  focus: { focused: boolean }
   [key: string]: unknown
 }
 
@@ -215,8 +217,14 @@ export function createTermProvider(
       let eventResolve: (() => void) | null = null
 
       // Single-key handler: parses one key sequence and enqueues an event.
-      // Mouse sequences are detected and parsed separately.
+      // Focus, mouse sequences are detected and parsed separately.
       const onKey = (raw: string) => {
+        // Focus events: CSI I (focus-in) / CSI O (focus-out)
+        const focusEvent = parseFocusEvent(raw)
+        if (focusEvent) {
+          queue.push({ type: "focus", data: { focused: focusEvent.type === "focus-in" } })
+          return
+        }
         if (isMouseSequence(raw)) {
           const parsed = parseMouseSequence(raw)
           if (parsed) {
@@ -284,9 +292,10 @@ export function createTermProvider(
         }
       }
 
-      // Enable bracketed paste so pasted text arrives as a single event
+      // Enable bracketed paste and focus reporting for TTY input
       if (stdin.isTTY) {
         enableBracketedPaste(stdout)
+        enableFocusReporting((data) => stdout.write(data))
       }
 
       // Subscribe — track the cleanup function for use by both finally and dispose
@@ -294,6 +303,7 @@ export function createTermProvider(
       stdout.on("resize", onResizeEvent)
       stdinCleanup = () => {
         if (stdin.isTTY) {
+          disableFocusReporting((data) => stdout.write(data))
           disableBracketedPaste(stdout)
         }
         stdin.off("data", onChunk)

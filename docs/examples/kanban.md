@@ -24,7 +24,7 @@ A multi-column kanban board with independent scroll regions.
 ## What It Demonstrates
 
 - **Multiple scroll regions** - Each column scrolls independently
-- **Column-based layouts** with proportional `flexGrow`
+- **Flex-based column layout** with proportional `flexGrow`
 - **Cross-column navigation** with arrow keys
 - **Moving items between columns**
 - **State management** for cursor position
@@ -36,12 +36,12 @@ cd silvery
 bun run examples/kanban/app.tsx
 ```
 
-## Full Source Code
+## Source Code
 
 ::: code-group
 
 ```tsx [app.tsx]
-import { Box, Text, render, useContentRect, useInput, useApp, createTerm } from "silvery"
+import { Box, Text, render, useInput, useApp, createTerm } from "silvery"
 import { useState } from "react"
 
 interface Card {
@@ -72,7 +72,7 @@ const initialColumns: Column[] = [
     id: "doing",
     name: "In Progress",
     cards: [
-      { id: "6", title: "Implement useContentRect hook", tags: ["dev"] },
+      { id: "6", title: "Implement scroll hook", tags: ["dev"] },
       { id: "7", title: "Scrolling component", tags: ["dev"] },
       { id: "8", title: "Write migration guide", tags: ["docs"] },
     ],
@@ -114,7 +114,6 @@ function App() {
     const currentColumn = columns[cursor.columnIndex]
     const maxCardIndex = Math.max(0, currentColumn.cards.length - 1)
 
-    // Vertical navigation (j/k or arrows)
     if (input === "j" || key.downArrow) {
       setCursor((c) => ({
         ...c,
@@ -129,7 +128,6 @@ function App() {
       }))
     }
 
-    // Horizontal navigation (h/l or arrows)
     if (input === "l" || key.rightArrow) {
       setCursor((c) => {
         const newColIndex = Math.min(c.columnIndex + 1, columns.length - 1)
@@ -152,12 +150,10 @@ function App() {
       })
     }
 
-    // Move card to next column
     if (input === "m" || key.return) {
       moveCardRight()
     }
 
-    // Move card to previous column
     if (input === "M") {
       moveCardLeft()
     }
@@ -184,7 +180,6 @@ function App() {
       }),
     )
 
-    // Adjust cursor if we removed the last card
     setCursor((c) => ({
       ...c,
       cardIndex: Math.min(c.cardIndex, Math.max(0, sourceCol.cards.length - 2)),
@@ -259,19 +254,12 @@ function KanbanColumn({
 }
 
 function ColumnHeader({ name, count, isSelected }: { name: string; count: number; isSelected: boolean }) {
-  const { width } = useContentRect()
-
-  // Truncate name if needed
-  const countStr = ` (${count})`
-  const maxNameWidth = Math.max(0, width - countStr.length)
-  const truncatedName = name.length > maxNameWidth ? name.slice(0, maxNameWidth - 1) + "..." : name
-
   return (
-    <Box paddingX={1} marginBottom={1}>
+    <Box flexDirection="row" justifyContent="space-between" paddingX={1} marginBottom={1}>
       <Text bold color={isSelected ? "cyan" : undefined}>
-        {truncatedName}
+        {name}
       </Text>
-      <Text dimColor>{countStr}</Text>
+      <Text dimColor>({count})</Text>
     </Box>
   )
 }
@@ -303,18 +291,11 @@ function CardList({ cards, selectedIndex }: { cards: Card[]; selectedIndex: numb
 }
 
 function CardRow({ card, isSelected }: { card: Card; isSelected: boolean }) {
-  const { width } = useContentRect()
-
-  const prefix = isSelected ? "> " : "  "
-  const titleWidth = Math.max(0, width - 2)
-
-  const truncatedTitle = card.title.length > titleWidth ? card.title.slice(0, titleWidth - 1) + "..." : card.title
-
   return (
     <Box flexDirection="column">
       <Text backgroundColor={isSelected ? "cyan" : undefined} color={isSelected ? "black" : undefined}>
-        {prefix}
-        {truncatedTitle}
+        {isSelected ? "> " : "  "}
+        {card.title}
       </Text>
       {card.tags && card.tags.length > 0 && <TagRow tags={card.tags} isSelected={isSelected} />}
     </Box>
@@ -323,14 +304,15 @@ function CardRow({ card, isSelected }: { card: Card; isSelected: boolean }) {
 
 function TagRow({ tags, isSelected }: { tags: string[]; isSelected: boolean }) {
   return (
-    <Text
-      dimColor={!isSelected}
-      backgroundColor={isSelected ? "cyan" : undefined}
-      color={isSelected ? "black" : undefined}
-    >
-      {"  "}
-      {tags.map((tag) => `[${tag}]`).join(" ")}
-    </Text>
+    <Box paddingLeft={2}>
+      <Text
+        dimColor={!isSelected}
+        backgroundColor={isSelected ? "cyan" : undefined}
+        color={isSelected ? "black" : undefined}
+      >
+        {tags.map((tag) => `[${tag}]`).join(" ")}
+      </Text>
+    </Box>
   )
 }
 
@@ -348,35 +330,11 @@ await render(<App />, term)
 
 :::
 
-## Code Walkthrough
+## Key Patterns
 
-### Independent Scroll Regions
+### Flex-based column layout
 
-Each column has its own scroll container:
-
-```tsx
-function CardList({ cards, selectedIndex }: { cards: Card[]; selectedIndex: number }) {
-  return (
-    <Box
-      flexDirection="column"
-      flexGrow={1}
-      overflow="scroll"
-      scrollTo={selectedIndex >= 0 ? selectedIndex : undefined}
-      paddingX={1}
-    >
-      {cards.map((card, i) => (
-        <CardRow key={card.id} card={card} isSelected={i === selectedIndex} />
-      ))}
-    </Box>
-  )
-}
-```
-
-Each column scrolls independently based on its own `selectedIndex`.
-
-### Column Layout
-
-Columns use `flexGrow={1}` to share space equally:
+Columns share space equally via `flexGrow`. The board is a horizontal flex container; each column grows to fill its share:
 
 ```tsx
 function Board({ columns, cursor }: { columns: Column[]; cursor: CursorPosition }) {
@@ -386,8 +344,8 @@ function Board({ columns, cursor }: { columns: Column[]; cursor: CursorPosition 
         <KanbanColumn
           key={column.id}
           column={column}
-          flexGrow={1} // Each column gets equal width
-          // ...
+          isSelected={colIndex === cursor.columnIndex}
+          selectedCardIndex={colIndex === cursor.columnIndex ? cursor.cardIndex : -1}
         />
       ))}
     </Box>
@@ -395,103 +353,46 @@ function Board({ columns, cursor }: { columns: Column[]; cursor: CursorPosition 
 }
 ```
 
-### Cursor State
+### Scrollable card list
 
-The cursor tracks both column and card position:
+Each column has its own scroll container. `scrollTo` keeps the selected card visible:
 
 ```tsx
-interface CursorPosition {
-  columnIndex: number
-  cardIndex: number
-}
-
-const [cursor, setCursor] = useState<CursorPosition>({
-  columnIndex: 0,
-  cardIndex: 0,
-})
+<Box
+  flexDirection="column"
+  flexGrow={1}
+  overflow="scroll"
+  scrollTo={selectedIndex >= 0 ? selectedIndex : undefined}
+  paddingX={1}
+>
+  {cards.map((card, i) => (
+    <CardRow key={card.id} card={card} isSelected={i === selectedIndex} />
+  ))}
+</Box>
 ```
 
-### Two-Axis Navigation
+### Multi-axis keyboard navigation
 
-Horizontal navigation moves between columns, vertical within a column:
+Horizontal moves between columns, vertical moves within. When switching columns, the card index is clamped to the new column's bounds:
 
 ```tsx
-// Horizontal: h/l or left/right arrows
 if (input === "l" || key.rightArrow) {
   setCursor((c) => {
     const newColIndex = Math.min(c.columnIndex + 1, columns.length - 1)
     const newColCards = columns[newColIndex].cards.length
     return {
       columnIndex: newColIndex,
-      // Clamp card index to new column's bounds
       cardIndex: Math.min(c.cardIndex, Math.max(0, newColCards - 1)),
     }
   })
 }
 
-// Vertical: j/k or up/down arrows
 if (input === "j" || key.downArrow) {
   setCursor((c) => ({
     ...c,
     cardIndex: Math.min(c.cardIndex + 1, maxCardIndex),
   }))
 }
-```
-
-### Moving Cards
-
-Cards move between columns while maintaining cursor validity:
-
-```tsx
-function moveCardRight() {
-  if (cursor.columnIndex >= columns.length - 1) return
-
-  const sourceCol = columns[cursor.columnIndex]
-  if (sourceCol.cards.length === 0) return
-
-  const card = sourceCol.cards[cursor.cardIndex]
-  const targetColIndex = cursor.columnIndex + 1
-
-  setColumns((cols) =>
-    cols.map((col, i) => {
-      if (i === cursor.columnIndex) {
-        // Remove from source
-        return { ...col, cards: col.cards.filter((c) => c.id !== card.id) }
-      }
-      if (i === targetColIndex) {
-        // Add to target
-        return { ...col, cards: [...col.cards, card] }
-      }
-      return col
-    }),
-  )
-
-  // Adjust cursor if we removed the last card
-  setCursor((c) => ({
-    ...c,
-    cardIndex: Math.min(c.cardIndex, Math.max(0, sourceCol.cards.length - 2)),
-  }))
-}
-```
-
-### Visual Focus Indicators
-
-The selected column has a colored border:
-
-```tsx
-<Box
-  borderStyle="single"
-  borderColor={isSelected ? "cyan" : undefined}
->
-```
-
-The selected card has inverted colors:
-
-```tsx
-<Text
-  backgroundColor={isSelected ? "cyan" : undefined}
-  color={isSelected ? "black" : undefined}
->
 ```
 
 ## Key Silvery Features Used
@@ -501,56 +402,9 @@ The selected card has inverted colors:
 | `overflow="scroll"` | Each column scrolls independently        |
 | `scrollTo={index}`  | Keep selected card visible in its column |
 | `flexGrow={1}`      | Equal-width columns                      |
-| `useContentRect()`  | Text truncation in cards and headers     |
+| `justifyContent`    | Space header name and count apart        |
 | `useInput()`        | Two-axis keyboard navigation             |
 | Variable heights    | Cards with tags are taller               |
-
-### Why Silvery for Kanban Boards
-
-- **Focus system** -- Tree-based spatial navigation lets users press Left/Right to move between columns and Up/Down within them. Mark any `Box` as `focusable`, add `autoFocus` to the default card, and Silvery handles Tab cycling and `useFocusWithin` for column-level focus indicators.
-
-- **Mouse support** -- SGR mouse protocol gives you `onClick` and `onDoubleClick` props on card components, `onWheel` for per-column scrolling, and automatic click-to-focus so users can click a card in any column to jump directly to it.
-
-- **Command system** -- `withCommands` assigns every board action (move card, create card, archive, filter) an ID with configurable keybindings. `withKeybindings` resolves keypresses to commands. You get a searchable command palette and AI-accessible action introspection for free.
-
-## Architecture Notes
-
-### State Shape
-
-The state is designed for easy updates:
-
-```tsx
-// Columns array - each column owns its cards
-const [columns, setColumns] = useState<Column[]>(initialColumns)
-
-// Cursor is separate - just indices
-const [cursor, setCursor] = useState<CursorPosition>({
-  columnIndex: 0,
-  cardIndex: 0,
-})
-```
-
-This makes moving cards a simple filter/concat operation.
-
-### Scroll Independence
-
-Each `CardList` component has its own `overflow="scroll"`. Silvery handles multiple scroll regions on the same screen automatically - no coordination needed.
-
-### Empty State
-
-Empty columns show a placeholder instead of an empty scroll container:
-
-```tsx
-if (cards.length === 0) {
-  return (
-    <Box paddingX={1}>
-      <Text dimColor italic>
-        No cards
-      </Text>
-    </Box>
-  )
-}
-```
 
 ## Exercises
 

@@ -356,7 +356,7 @@ const textPresentationEmojiCache = new Map<number, boolean>()
  * VS16 (U+FE0F). These characters are rendered as 2 columns in most
  * modern terminals despite string-width reporting width 1.
  */
-function isTextPresentationEmoji(grapheme: string): boolean {
+export function isTextPresentationEmoji(grapheme: string): boolean {
   const cp = grapheme.codePointAt(0)
   if (cp === undefined) return false
 

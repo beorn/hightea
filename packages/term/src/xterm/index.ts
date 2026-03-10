@@ -334,7 +334,12 @@ export function renderToXterm(
       currentBuffer = null
       terminal.write(CURSOR_HOME + CLEAR_SCREEN)
       options.onResize?.(cols, rows)
-      scheduleRender()
+      // Two passes: first pass calculates layout at new size and notifies
+      // useContentRect subscribers, second pass picks up the updated values.
+      // Without this, resize causes a flash of stale dimensions.
+      renderScheduled = false
+      doRender()
+      doRender()
     },
   }
 }
