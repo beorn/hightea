@@ -14,7 +14,7 @@ Fixing it required a different rendering pipeline — layout first, then render 
 
 > For how Silvery compares to terminal UI frameworks beyond Ink (BubbleTea, Textual, Notcurses, FTXUI, blessed), see [comparison.md](comparison.md).
 
-See [migration guide](migration.md) for switching from Ink.
+See [migration guide](/getting-started/migrate-from-ink) for switching from Ink.
 
 > Performance numbers in this document are from the **Ink comparison benchmark suite**. Reproduce with `bun run bench` for raw benchmark tables.
 
@@ -309,7 +309,7 @@ Silvery implements a comprehensive set of terminal protocols. This matters for c
 | 1004         | Focus in/out reporting                      | Yes     | No  |
 | 1006 (SGR)   | Extended mouse protocol (large coordinates) | Yes     | No  |
 | 1049         | Alternate screen buffer                     | Yes     | Yes |
-| 2004         | Bracketed paste mode                        | Yes     | No  |
+| 2004         | Bracketed paste mode                        | Yes     | Post-v6.8.0 |
 | 2026         | Synchronized output (flicker-free)          | Yes     | No  |
 | DECRPM       | Mode query (`CSI ? mode $ p`)               | Yes     | No  |
 
@@ -332,10 +332,10 @@ Silvery implements a comprehensive set of terminal protocols. This matters for c
 
 | Protocol           | What                                                          | Silvery | Ink        |
 | ------------------ | ------------------------------------------------------------- | ------- | ---------- |
-| Kitty keyboard     | All 5 flags (disambiguate, events, alternate, all keys, text) | Full    | None [^5]  |
+| Kitty keyboard     | All 5 flags (disambiguate, events, alternate, all keys, text) | Full    | Added on master (post-v6.8.0)  |
 | Modifier detection | Shift, Alt, Ctrl, Super/Cmd, Hyper, CapsLock, NumLock         | Full    | Basic      |
 | Key event types    | Press, repeat, release                                        | Full    | Press only |
-| Bracketed paste    | `usePaste` hook with auto-enable                              | Full    | None       |
+| Bracketed paste    | `usePaste` hook with auto-enable                              | Full    | `usePaste` hook (post-v6.8.0)  |
 | Focus reporting    | Focus in/out events                                           | Full    | None       |
 
 ### Graphics

@@ -210,7 +210,7 @@ export default defineConfig({
           text: "Migration",
           collapsed: true,
           items: [
-            { text: "From Ink", link: "/guide/migration" },
+            { text: "From Ink", link: "/getting-started/migrate-from-ink" },
             { text: "Runtime Migration", link: "/guide/runtime-migration" },
           ],
         },

@@ -133,5 +133,5 @@ Silvery measures all children, calculates which are visible, and only renders co
 
 - [Components](/guides/components) - Learn about Box, Text, and other components
 - [Hooks](/guide/hooks) - Deep dive into useContentRect, useInput, and more
-- [Migration from Ink](/guide/migration) - Switching from an existing Ink app
+- [Migration from Ink](/getting-started/migrate-from-ink) - Switching from an existing Ink app
 - [API Reference](/api/box) - Complete API documentation
