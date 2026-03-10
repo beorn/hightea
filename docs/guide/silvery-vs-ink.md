@@ -137,25 +137,25 @@ The core architectural difference. Ink renders components, then runs Yoga layout
 ```tsx
 // Ink: useBoxMetrics returns 0x0 on first render, updates via effect
 function Card() {
-  const ref = useRef(null);
-  const { width, hasMeasured } = useBoxMetrics(ref);
+  const ref = useRef(null)
+  const { width, hasMeasured } = useBoxMetrics(ref)
   if (!hasMeasured)
     return (
       <Box ref={ref}>
         <Text>Loading...</Text>
       </Box>
-    );
+    )
   return (
     <Box ref={ref}>
       <Text>{truncate(title, width)}</Text>
     </Box>
-  );
+  )
 }
 
 // Silvery: useContentRect returns actual dimensions immediately
 function Card() {
-  const { width } = useContentRect();
-  return <Text>{truncate(title, width)}</Text>;
+  const { width } = useContentRect()
+  return <Text>{truncate(title, width)}</Text>
 }
 ```
 
@@ -219,11 +219,7 @@ Silvery implements SGR mouse protocol (mode 1006) with DOM-style event handling:
 
 ```tsx
 // Silvery: DOM-style mouse events
-<Box
-  onClick={(e) => selectItem(e.target)}
-  onMouseDown={(e) => startDrag(e)}
-  onWheel={(e) => scroll(e.deltaY)}
->
+<Box onClick={(e) => selectItem(e.target)} onMouseDown={(e) => startDrag(e)} onWheel={(e) => scroll(e.deltaY)}>
   <Text>Click me</Text>
 </Box>
 ```

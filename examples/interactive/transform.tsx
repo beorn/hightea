@@ -13,24 +13,15 @@
  * Run: bun vendor/silvery/examples/interactive/transform.tsx
  */
 
-import React, { useState } from "react";
-import {
-  render,
-  Box,
-  Text,
-  Transform,
-  useInput,
-  useApp,
-  createTerm,
-  type Key,
-} from "../../src/index.js";
-import { ExampleBanner, type ExampleMeta } from "../_banner.js";
+import React, { useState } from "react"
+import { render, Box, Text, Transform, useInput, useApp, createTerm, type Key } from "../../src/index.js"
+import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Transform",
   description: "Text post-processing with the Transform component",
   features: ["Transform", "transform function", "side-by-side comparison"],
-};
+}
 
 // ============================================================================
 // Transforms
@@ -49,19 +40,19 @@ const leetMap: Record<string, string> = {
   O: "0",
   S: "5",
   T: "7",
-};
+}
 
 const rot13Char = (c: string): string => {
-  const code = c.charCodeAt(0);
-  if (code >= 65 && code <= 90) return String.fromCharCode(((code - 65 + 13) % 26) + 65);
-  if (code >= 97 && code <= 122) return String.fromCharCode(((code - 97 + 13) % 26) + 97);
-  return c;
-};
+  const code = c.charCodeAt(0)
+  if (code >= 65 && code <= 90) return String.fromCharCode(((code - 65 + 13) % 26) + 65)
+  if (code >= 97 && code <= 122) return String.fromCharCode(((code - 97 + 13) % 26) + 97)
+  return c
+}
 
 interface TransformDef {
-  name: string;
-  description: string;
-  fn: (line: string) => string;
+  name: string
+  description: string
+  fn: (line: string) => string
 }
 
 const transforms: TransformDef[] = [
@@ -108,7 +99,7 @@ const transforms: TransformDef[] = [
     description: "Replace spaces with middle dots for visibility",
     fn: (s: string) => s.replace(/ /g, "·"),
   },
-];
+]
 
 // ============================================================================
 // Sample Text
@@ -121,7 +112,7 @@ const sampleLines = [
   "",
   "Pack my box with five dozen",
   "liquor jugs and enjoy them.",
-];
+]
 
 // ============================================================================
 // Components
@@ -131,13 +122,13 @@ function TransformSelector({
   current,
   transforms: items,
 }: {
-  current: number;
-  transforms: TransformDef[];
+  current: number
+  transforms: TransformDef[]
 }): JSX.Element {
   return (
     <Box flexDirection="column" overflow="scroll" scrollTo={current} height={7}>
       {items.map((t, index) => {
-        const isSelected = index === current;
+        const isSelected = index === current
         return (
           <Box key={t.name} paddingX={1}>
             <Text
@@ -149,10 +140,10 @@ function TransformSelector({
               {t.name}
             </Text>
           </Box>
-        );
+        )
       })}
     </Box>
-  );
+  )
 }
 
 function TextPanel({
@@ -160,9 +151,9 @@ function TextPanel({
   titleColor,
   children,
 }: {
-  title: string;
-  titleColor: string;
-  children: React.ReactNode;
+  title: string
+  titleColor: string
+  children: React.ReactNode
 }): JSX.Element {
   return (
     <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border" paddingX={1}>
@@ -173,28 +164,28 @@ function TextPanel({
       </Box>
       {children}
     </Box>
-  );
+  )
 }
 
 export function TransformDemo(): JSX.Element {
-  const { exit } = useApp();
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const { exit } = useApp()
+  const [currentIndex, setCurrentIndex] = useState(0)
 
-  const current = transforms[currentIndex]!;
+  const current = transforms[currentIndex]!
 
   useInput((input: string, key: Key) => {
     if (input === "q" || key.escape) {
-      exit();
-      return;
+      exit()
+      return
     }
 
     if (key.upArrow || input === "k") {
-      setCurrentIndex((prev) => Math.max(0, prev - 1));
+      setCurrentIndex((prev) => Math.max(0, prev - 1))
     }
     if (key.downArrow || input === "j") {
-      setCurrentIndex((prev) => Math.min(transforms.length - 1, prev + 1));
+      setCurrentIndex((prev) => Math.min(transforms.length - 1, prev + 1))
     }
-  });
+  })
 
   return (
     <Box flexDirection="column" padding={1} gap={1}>
@@ -240,7 +231,7 @@ export function TransformDemo(): JSX.Element {
         quit
       </Text>
     </Box>
-  );
+  )
 }
 
 // ============================================================================
@@ -248,16 +239,16 @@ export function TransformDemo(): JSX.Element {
 // ============================================================================
 
 async function main() {
-  using term = createTerm();
+  using term = createTerm()
   const { waitUntilExit } = await render(
     <ExampleBanner meta={meta} controls="j/k select transform  Esc/q quit">
       <TransformDemo />
     </ExampleBanner>,
     term,
-  );
-  await waitUntilExit();
+  )
+  await waitUntilExit()
 }
 
 if (import.meta.main) {
-  main().catch(console.error);
+  main().catch(console.error)
 }

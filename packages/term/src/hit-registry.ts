@@ -15,25 +15,15 @@
  * React-free subset.
  */
 
-import { createContext, useContext, useEffect, useRef } from "react";
-import type { Rect } from "@silvery/tea/types";
+import { createContext, useContext, useEffect, useRef } from "react"
+import type { Rect } from "@silvery/tea/types"
 
 // Re-export everything from core
-export {
-  HitRegistry,
-  generateHitRegionId,
-  resetHitRegionIdCounter,
-  Z_INDEX,
-} from "./hit-registry-core";
-export type { HitTarget, HitRegion } from "./hit-registry-core";
+export { HitRegistry, generateHitRegionId, resetHitRegionIdCounter, Z_INDEX } from "./hit-registry-core"
+export type { HitTarget, HitRegion } from "./hit-registry-core"
 
 // Import for local use
-import {
-  type HitTarget,
-  type HitRegion,
-  HitRegistry,
-  generateHitRegionId,
-} from "./hit-registry-core";
+import { type HitTarget, type HitRegion, HitRegistry, generateHitRegionId } from "./hit-registry-core"
 
 // ============================================================================
 // React Context
@@ -43,7 +33,7 @@ import {
  * Context for accessing the HitRegistry.
  * Components use this to register their hit regions.
  */
-export const HitRegistryContext = createContext<HitRegistry | null>(null);
+export const HitRegistryContext = createContext<HitRegistry | null>(null)
 
 // ============================================================================
 // Hooks
@@ -55,7 +45,7 @@ export const HitRegistryContext = createContext<HitRegistry | null>(null);
  * @returns The HitRegistry instance, or null if not in a HitRegistryContext
  */
 export function useHitRegistry(): HitRegistry | null {
-  return useContext(HitRegistryContext);
+  return useContext(HitRegistryContext)
 }
 
 /**
@@ -84,30 +74,25 @@ export function useHitRegistry(): HitRegistry | null {
  * }
  * ```
  */
-export function useHitRegion(
-  target: HitTarget,
-  rect: Rect | null,
-  zIndex = 0,
-  enabled = true,
-): void {
-  const registry = useContext(HitRegistryContext);
-  const idRef = useRef<string | null>(null);
+export function useHitRegion(target: HitTarget, rect: Rect | null, zIndex = 0, enabled = true): void {
+  const registry = useContext(HitRegistryContext)
+  const idRef = useRef<string | null>(null)
 
   // Generate stable ID on first use
   if (idRef.current === null) {
-    idRef.current = generateHitRegionId();
+    idRef.current = generateHitRegionId()
   }
 
   useEffect(() => {
     if (!registry || !rect || !enabled) {
       // Clean up if disabled or no registry
       if (idRef.current && registry) {
-        registry.unregister(idRef.current);
+        registry.unregister(idRef.current)
       }
-      return;
+      return
     }
 
-    const id = idRef.current!;
+    const id = idRef.current!
 
     // Register the region
     registry.register(id, {
@@ -117,13 +102,13 @@ export function useHitRegion(
       height: rect.height,
       target,
       zIndex,
-    });
+    })
 
     // Cleanup on unmount or when dependencies change
     return () => {
-      registry.unregister(id);
-    };
-  }, [registry, rect?.x, rect?.y, rect?.width, rect?.height, target, zIndex, enabled]);
+      registry.unregister(id)
+    }
+  }, [registry, rect?.x, rect?.y, rect?.width, rect?.height, target, zIndex, enabled])
 }
 
 /**
@@ -151,36 +136,32 @@ export function useHitRegion(
  * }
  * ```
  */
-export function useHitRegionCallback(
-  target: HitTarget,
-  zIndex = 0,
-  enabled = true,
-): (rect: Rect) => void {
-  const registry = useContext(HitRegistryContext);
-  const idRef = useRef<string | null>(null);
+export function useHitRegionCallback(target: HitTarget, zIndex = 0, enabled = true): (rect: Rect) => void {
+  const registry = useContext(HitRegistryContext)
+  const idRef = useRef<string | null>(null)
 
   // Generate stable ID on first use
   if (idRef.current === null) {
-    idRef.current = generateHitRegionId();
+    idRef.current = generateHitRegionId()
   }
 
   // Cleanup on unmount
   useEffect(() => {
-    const id = idRef.current;
+    const id = idRef.current
     return () => {
       if (id && registry) {
-        registry.unregister(id);
+        registry.unregister(id)
       }
-    };
-  }, [registry]);
+    }
+  }, [registry])
 
   // Return callback that updates the region
   return (rect: Rect) => {
     if (!registry || !enabled) {
       if (idRef.current && registry) {
-        registry.unregister(idRef.current);
+        registry.unregister(idRef.current)
       }
-      return;
+      return
     }
 
     registry.register(idRef.current!, {
@@ -190,6 +171,6 @@ export function useHitRegionCallback(
       height: rect.height,
       target,
       zIndex,
-    });
-  };
+    })
+  }
 }

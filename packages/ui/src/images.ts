@@ -12,15 +12,11 @@
  * @packageDocumentation
  */
 
-export { Image } from "./image/Image";
-export type { ImageProps } from "./image/Image";
+export { Image } from "./image/Image"
+export type { ImageProps } from "./image/Image"
 
-export {
-  encodeKittyImage,
-  deleteKittyImage,
-  isKittyGraphicsSupported,
-} from "./image/kitty-graphics";
-export type { KittyImageOptions } from "./image/kitty-graphics";
+export { encodeKittyImage, deleteKittyImage, isKittyGraphicsSupported } from "./image/kitty-graphics"
+export type { KittyImageOptions } from "./image/kitty-graphics"
 
-export { encodeSixel, isSixelSupported } from "./image/sixel-encoder";
-export type { SixelImageData } from "./image/sixel-encoder";
+export { encodeSixel, isSixelSupported } from "./image/sixel-encoder"
+export type { SixelImageData } from "./image/sixel-encoder"

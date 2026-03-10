@@ -17,7 +17,7 @@ Silvery provides compatibility layers for both Ink and Chalk, making migration s
 Or use the explicit compat layer:
 
 ```tsx
-import { Box, Text, render } from "silvery/ink";
+import { Box, Text, render } from "silvery/ink"
 ```
 
 ### Component Compatibility
@@ -47,14 +47,14 @@ import { Box, Text, render } from "silvery/ink";
 
 ```tsx
 // Ink
-const { unmount, waitUntilExit } = render(<App />);
+const { unmount, waitUntilExit } = render(<App />)
 
 // Silvery -- just add await
-const { unmount, waitUntilExit } = await render(<App />);
+const { unmount, waitUntilExit } = await render(<App />)
 
 // Silvery -- with explicit terminal
-using term = createTerm();
-const { unmount, waitUntilExit } = await render(<App />, term);
+using term = createTerm()
+const { unmount, waitUntilExit } = await render(<App />, term)
 ```
 
 ### Behavior Differences

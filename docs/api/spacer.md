@@ -5,7 +5,7 @@ A flexible space that expands to fill available space in its parent container.
 ## Import
 
 ```tsx
-import { Spacer } from "silvery";
+import { Spacer } from "silvery"
 ```
 
 ## Usage
@@ -66,11 +66,11 @@ function Header({ title, status }: { title: string; status: string }) {
       <Spacer />
       <Text color="green">{status}</Text>
     </Box>
-  );
+  )
 }
 
 function App() {
-  return <Header title="My App" status="Connected" />;
+  return <Header title="My App" status="Connected" />
 }
 ```
 
