@@ -607,7 +607,7 @@ export interface ParsedKeypress {
 export function parseKeypress(s: string | Buffer): ParsedKeypress {
   let input: string
 
-  if (Buffer.isBuffer(s)) {
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer(s)) {
     if (s[0] !== undefined && s[0]! > 127 && s[1] === undefined) {
       const buf = Buffer.from(s)
       buf[0]! -= 128
@@ -616,7 +616,7 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
       input = s.toString()
     }
   } else {
-    input = s ?? ""
+    input = typeof s === "string" ? s ?? "" : String(s)
   }
 
   const key: ParsedKeypress = {
