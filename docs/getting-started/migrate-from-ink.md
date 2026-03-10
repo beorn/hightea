@@ -225,7 +225,7 @@ const { width } = useContentRect()
 | Behavior                | Ink       | Silvery | Reason                       |
 | ----------------------- | --------- | ------- | ---------------------------- |
 | Text overflow           | Overflows | Wraps   | Better default               |
-| First render dimensions | N/A       | Zeros   | Required for layout feedback |
+| First render dimensions | N/A       | Zeros   | Required for responsive layout |
 | Internal APIs           | Exposed   | Hidden  | Not public API               |
 
 ### Edge Cases

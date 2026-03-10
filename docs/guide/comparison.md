@@ -111,7 +111,7 @@ A feature comparison of major terminal UI frameworks across languages and ecosys
 
 ### Silvery
 
-- **Two-phase rendering with layout feedback**: Components know their dimensions during render via `useContentRect()` -- the only React-based TUI framework where this works synchronously.
+- **Two-phase rendering with responsive layout**: Components know their dimensions during render via `useContentRect()` -- the only React-based TUI framework where this works synchronously.
 - **Per-node dirty tracking**: Interactive updates (keystroke, scroll) skip unchanged nodes entirely, avoiding full re-renders. See [detailed benchmarks](/guide/silvery-vs-ink#performance) for comparison data.
 - **Driver pattern for AI automation**: Composable plugins (`withCommands` + `withKeybindings` + `withDiagnostics`) expose the full command surface for programmatic control, introspection, and testing.
 

@@ -23,7 +23,7 @@ No prop drilling, no post-render measurement, no `width: 0` on first paint. This
 
 ## What Else Comes With It
 
-Beyond layout feedback, Silvery provides a complete terminal app toolkit:
+Beyond responsive layout, Silvery provides a complete terminal app toolkit:
 
 - **Fast interactive updates** — per-node dirty tracking means only changed nodes re-render ([benchmarks](/guide/silvery-vs-ink#performance))
 - **Stable memory** — pure JavaScript layout engine with normal garbage collection

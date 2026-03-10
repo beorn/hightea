@@ -62,7 +62,7 @@ const { unmount, waitUntilExit } = await render(<App />, term)
 | Behavior                | Ink                 | Silvery                       | Reason                       |
 | ----------------------- | ------------------- | ----------------------------- | ---------------------------- |
 | Text overflow           | Overflows container | Wraps by default              | Better default               |
-| First render dimensions | N/A                 | `{ width: 0, height: 0 }`     | Required for layout feedback |
+| First render dimensions | N/A                 | `{ width: 0, height: 0 }`     | Required for responsive layout |
 | `overflow` values       | `visible`, `hidden` | `visible`, `hidden`, `scroll` | Scrolling support            |
 | Internal APIs           | Exposed             | Hidden                        | Not public API               |
 

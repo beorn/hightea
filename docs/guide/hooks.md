@@ -1,6 +1,6 @@
 # Hooks
 
-Silvery provides the same hooks as Ink, plus layout feedback hooks.
+Silvery provides the same hooks as Ink, plus responsive layout hooks.
 
 ## useContentRect
 

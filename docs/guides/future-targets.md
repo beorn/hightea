@@ -15,13 +15,13 @@ Silvery's architecture separates the component model from the rendering target. 
 
 ## Why Multi-Target Matters
 
-Silvery's core innovation is two-phase rendering with synchronous layout feedback -- components know their size during render via `useContentRect()`. This solves the "ResizeObserver dance" problem across all targets, not just terminals.
+Silvery's core innovation is two-phase rendering with synchronous responsive layout -- components know their size during render via `useContentRect()`. This solves the "ResizeObserver dance" problem across all targets, not just terminals.
 
 ### What Carries Over
 
 - **Reconciler** (100%) -- React component model, hooks, reconciliation
 - **Layout engine** (100%) -- Flexily flexbox computation
-- **`useContentRect()`** (100%) -- Synchronous layout feedback
+- **`useContentRect()`** (100%) -- Synchronous responsive layout
 - **Style system** (partial) -- Semantic tokens and theme infrastructure
 - **State management** (100%) -- TEA, Zustand, signals -- all target-independent
 

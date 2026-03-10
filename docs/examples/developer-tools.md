@@ -15,7 +15,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 # Building Developer Tools with Silvery
 
-Terminal-based developer tools -- REPLs, log viewers, debuggers, profilers -- demand fast rendering of large data streams, responsive keyboard shortcuts, and composable UI panels. Silvery provides the primitives to build these tools as React components with real layout feedback, virtualized scrolling, and a testable command system.
+Terminal-based developer tools -- REPLs, log viewers, debuggers, profilers -- demand fast rendering of large data streams, responsive keyboard shortcuts, and composable UI panels. Silvery provides the primitives to build these tools as React components with responsive layout, virtualized scrolling, and a testable command system.
 
 Unlike browser-based dev tools, terminal tools run where your code runs. They start instantly, consume minimal resources, and integrate directly with stdin/stdout pipelines. Silvery makes building them practical by handling the hard parts: efficient rendering of thousands of lines, keyboard protocol support across terminals, and deterministic testing without a real terminal.
 

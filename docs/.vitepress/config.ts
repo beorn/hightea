@@ -13,7 +13,7 @@ export default defineConfig({
 
   title: "Silvery",
   description:
-    "Silvery — Better Ink. A React framework for terminal UIs with layout feedback, scrollable containers, and 100x+ faster interactive updates.",
+    "Silvery — A React renderer for terminal UIs with responsive layouts, scrollable containers, and 100x+ faster interactive updates.",
   base: "/",
 
   head: [["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }]],

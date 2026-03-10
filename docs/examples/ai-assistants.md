@@ -127,7 +127,7 @@ This turns the TUI from a visual interface into a structured API. The agent does
 
 ## What Silvery Adds
 
-Most TUI frameworks leave you to build chat infrastructure from scratch. Silvery provides the primitives out of the box: scroll containers (`overflow="scroll"`) handle variable-length LLM output without manual viewport tracking, layout feedback via `useContentRect()` sizes message bubbles without threading width props, and the command system gives AI agents a programmatic API to discover and invoke actions.
+Most TUI frameworks leave you to build chat infrastructure from scratch. Silvery provides the primitives out of the box: scroll containers (`overflow="scroll"`) handle variable-length LLM output without manual viewport tracking, responsive layout via `useContentRect()` sizes message bubbles without threading width props, and the command system gives AI agents a programmatic API to discover and invoke actions.
 
 ## Get Started
 

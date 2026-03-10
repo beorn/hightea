@@ -168,7 +168,7 @@ _Apple M1 Max, Bun 1.3.9. Reproduce: `bun run bench:compare`_
 
 **Why the difference?** Interactive updates (cursor move, scroll, toggle) typically change one or two nodes. Silvery's per-node dirty tracking updates only those nodes — 169 us for a 1000-node tree. Traditional full-tree renderers re-render the entire React tree and run complete layout on every state change — 20.7 ms. For the updates that dominate interactive use, Silvery is ~100x faster.
 
-Full re-renders where the entire tree changes are comparable or faster in full-tree renderers (simpler string concatenation vs Silvery's 5-phase pipeline). That trade-off is inherent to supporting layout feedback, and full re-renders are rare in interactive apps.
+Full re-renders where the entire tree changes are comparable or faster in full-tree renderers (simpler string concatenation vs Silvery's 5-phase pipeline). That trade-off is inherent to supporting responsive layout, and full re-renders are rare in interactive apps.
 
 ## Documentation
 
