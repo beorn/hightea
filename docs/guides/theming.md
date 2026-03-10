@@ -4,18 +4,19 @@ Silvery ships with a comprehensive theme system via `@silvery/theme`. It provide
 
 ## Architecture
 
-The theme system has a two-layer design:
-
-1. **Color Palette** (22 colors) -- The universal terminal format: 16 ANSI colors + 6 special colors (foreground, background, cursor, selection). This is what palette generators produce.
-2. **Theme** (33 tokens) -- Semantic UI tokens that components consume. Follows shadcn-style pairing: `$name` (area background) + `$namefg` (text on that area).
-
-The pipeline is straightforward:
+Three layers, each optional depending on how much control you want:
 
 ```
-Color palette --> ColorPalette (22) --> deriveTheme() --> Theme (33)
+1 color ──→ Color Palette (22) ──→ Theme (33 design tokens)
+             ↑                       ↑
+             preset or terminal      what components consume
 ```
 
-You can enter this pipeline at any point: pick a built-in palette, generate one from a single color, or detect the terminal's own palette automatically.
+1. **Seed** (1 color) -- Optional starting point. A single hex color like `"#5E81AC"` is enough to auto-generate a full palette via HSL manipulation. Or skip this and pick a preset or detect the terminal's palette.
+2. **Color Palette** (22 colors) -- The universal terminal format: 16 ANSI colors + 6 special colors (foreground, background, cursor, selection). You can get one from a seed, a built-in preset (38 included), or the terminal's own colors via OSC queries.
+3. **Theme** (33 design tokens) -- What components actually consume. Derived from the palette via `deriveTheme()`. Follows shadcn-style pairing: `$name` (area background) + `$namefg` (text on that area).
+
+You can enter at any layer: one color, a full palette, or a complete theme.
 
 ## Quick Start
 
