@@ -23,7 +23,7 @@
  * @packageDocumentation
  */
 
-import React, { Component, useContext, useCallback, useState, useEffect, useMemo, useRef, act } from "react"
+import React, { Component, useContext, useCallback, useState, useEffect, useLayoutEffect, useMemo, useRef, act } from "react"
 import { StdoutContext, RuntimeContext, TermContext } from "@silvery/react/context"
 import type { RuntimeContextValue, StdoutContextValue } from "@silvery/react/context"
 import { createTerm } from "@silvery/term/ansi"
@@ -34,6 +34,16 @@ import { createContainer, getContainerRoot } from "@silvery/react/reconciler"
 import { stringReconciler } from "@silvery/react/reconciler/string-reconciler"
 import { executeRender } from "@silvery/term/pipeline"
 import { bufferToStyledText, bufferToText, type TerminalBuffer } from "@silvery/term/buffer"
+import {
+  createCursorStore,
+  CursorProvider,
+  type CursorStore,
+} from "@silvery/react/hooks/useCursor"
+
+// Context for passing cursor store to Ink compat useCursor hook.
+// This lets useCursor write directly to the store without going through
+// silvery's useCursor hook (which requires NodeContext for layout).
+const InkCursorStoreCtx = React.createContext<CursorStore | null>(null)
 
 /**
  * Get chalk's current color level at render time.
@@ -511,10 +521,41 @@ export function useStdin() {
 
 /**
  * Ink-compatible useCursor hook.
- * Returns setCursorPosition for IME support.
+ *
+ * Bridges Ink's imperative `setCursorPosition({ x, y })` API to silvery's
+ * cursor store. Writes directly to the per-instance CursorStore rather than
+ * going through silvery's useCursor hook (which needs NodeContext for layout
+ * coordinate translation — unnecessary here since Ink provides absolute coords).
+ *
+ * On unmount, clears cursor state (hides cursor).
  */
 export function useCursor() {
-  const setCursorPosition = useCallback((_position: { x: number; y: number } | undefined) => {}, [])
+  const store = useContext(InkCursorStoreCtx)
+
+  // Clear cursor state on unmount (useLayoutEffect for synchronous cleanup
+  // before the next render pipeline output is emitted)
+  useLayoutEffect(() => {
+    return () => {
+      store?.setCursorState(null)
+    }
+  }, [store])
+
+  const setCursorPosition = useCallback(
+    (position: { x: number; y: number } | undefined) => {
+      if (!store) return
+      if (position) {
+        store.setCursorState({
+          x: position.x,
+          y: position.y,
+          visible: true,
+        })
+      } else {
+        store.setCursorState(null)
+      }
+    },
+    [store],
+  )
+
   return { setCursorPosition }
 }
 
@@ -1428,6 +1469,9 @@ export function render(element: import("react").ReactNode, options?: Record<stri
     const plain = term.hasColor() === null
 
     let unmounted = false
+    // Per-instance cursor store for tracking cursor state
+    const cursorStore = createCursorStore()
+
     let exitResolve: (() => void) | null = null
     let exitReject: ((error: Error) => void) | null = null
     const exitPromise = new Promise<void>((resolve, reject) => {
@@ -1519,6 +1563,10 @@ export function render(element: import("react").ReactNode, options?: Record<stri
       )
       // Ink-compatible focus system with tab navigation via inputEmitter
       wrapped = React.createElement(InkFocusProvider, { inputEmitter }, wrapped)
+      // Ink cursor store context (lets useCursor write directly to store)
+      wrapped = React.createElement(InkCursorStoreCtx.Provider, { value: cursorStore }, wrapped)
+      // Per-instance cursor isolation (silvery's CursorProvider)
+      wrapped = React.createElement(CursorProvider, { store: cursorStore }, wrapped)
       wrapped = React.createElement(TermContext.Provider, { value: term }, wrapped)
       wrapped = React.createElement(StdoutContext.Provider, { value: stdoutCtx }, wrapped)
       wrapped = React.createElement(RuntimeContext.Provider, { value: runtimeCtx }, wrapped)
@@ -1648,6 +1696,36 @@ export function render(element: import("react").ReactNode, options?: Record<stri
       }
       const result = plain ? output : toChalkCompat(output)
       stdout.write(result)
+
+      // Emit cursor escape sequences based on cursor store state.
+      // This matches Ink's cli-cursor behavior where show/hide and positioning
+      // are written as separate stdout.write calls after the content.
+      const cursorState = cursorStore.accessors.getCursorState()
+      if (cursorState?.visible) {
+        // Position cursor: move to column (CSI <col+1> G)
+        // The Ink tests check for ansiEscapes.cursorTo(x) which uses ESC[<x+1>G
+        const col = cursorState.x
+        if (col === 0) {
+          stdout.write("\x1b[G")
+        } else {
+          stdout.write(`\x1b[${col + 1}G`)
+        }
+        // If cursor has a row offset, position row too
+        if (cursorState.y > 0) {
+          // Move cursor up to the correct row from the end of output
+          const contentLines = result.split("\n").length
+          const rowsUp = contentLines - 1 - cursorState.y
+          if (rowsUp > 0) {
+            stdout.write(`\x1b[${rowsUp}A`)
+          }
+        }
+        // Show cursor
+        stdout.write("\x1b[?25h")
+      } else {
+        // Hide cursor when no active cursor
+        stdout.write("\x1b[?25l")
+      }
+
       return result
     }
 
