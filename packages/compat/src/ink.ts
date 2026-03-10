@@ -23,19 +23,16 @@
  * @packageDocumentation
  */
 
-import React, { Component, useContext, useCallback, useState, useEffect, useLayoutEffect, useMemo, useRef } from "react"
+import React, { useContext, useCallback, useState, useEffect, useLayoutEffect, useMemo, useRef } from "react"
 import { StdoutContext, TermContext } from "@silvery/react/context"
 import { bufferToStyledText, bufferToText, type TerminalBuffer } from "@silvery/term/buffer"
 import { stripAnsi } from "@silvery/term/unicode"
 import { createTerm } from "@silvery/term/ansi"
-import { EventEmitter } from "node:events"
 import chalk from "chalk"
 import { createCursorStore, CursorProvider, type CursorStore } from "@silvery/react/hooks/useCursor"
-
-// Context for passing cursor store to Ink compat useCursor hook.
-// This lets useCursor write directly to the store without going through
-// silvery's useCursor hook (which requires NodeContext for layout).
-const InkCursorStoreCtx = React.createContext<CursorStore | null>(null)
+import { SilveryErrorBoundary } from "@silvery/react/error-boundary"
+import { InkCursorStoreCtx } from "./with-ink-cursor"
+import { InkFocusContext, InkFocusProvider } from "./with-ink-focus"
 
 /**
  * Get chalk's current color level at render time.
@@ -163,9 +160,8 @@ export type BoxProps = SilveryBoxProps
  * - flexWrap: 'nowrap'
  *
  * These match Ink's Box.tsx line 83-88 defaults. User-provided props override.
- * Note: flexDirection is NOT overridden — silvery defaults to 'row' (W3C CSS spec),
- * while Ink defaults to 'column'. This is an intentional divergence. Users migrating
- * from Ink should add flexDirection="column" to any Box that relies on Ink's default.
+ * flexDirection defaults to 'column' to match Ink's behavior (silvery's Box defaults
+ * to 'row' per W3C CSS spec, but Ink apps expect column).
  */
 export const Box = React.forwardRef<BoxHandle, BoxProps>(function InkBox(props, ref) {
   // Map Ink's per-axis overflow props to silvery's unified overflow
@@ -173,6 +169,7 @@ export const Box = React.forwardRef<BoxHandle, BoxProps>(function InkBox(props, 
   const overflow = rest.overflow ?? (overflowX === "hidden" || overflowY === "hidden" ? "hidden" : undefined)
 
   return React.createElement(SilveryBox, {
+    flexDirection: "column",
     flexGrow: 0,
     flexShrink: 1,
     ...rest,
@@ -241,42 +238,8 @@ export { useStdout } from "@silvery/react/hooks/useStdout"
 export type { UseStdoutResult } from "@silvery/react/hooks/useStdout"
 
 // =============================================================================
-// Ink-compatible Focus System
+// Ink-compatible Focus Hooks
 // =============================================================================
-
-// Ink's focus system is context-based with add/remove/focusNext/focusPrevious.
-// This is fundamentally different from silvery's tree-based FocusManager, so we
-// implement Ink's model directly for compat.
-
-import { createContext } from "react"
-
-type Focusable = { id: string; isActive: boolean }
-
-type InkFocusContextValue = {
-  activeId: string | undefined
-  add: (id: string, options: { autoFocus: boolean }) => void
-  remove: (id: string) => void
-  activate: (id: string) => void
-  deactivate: (id: string) => void
-  enableFocus: () => void
-  disableFocus: () => void
-  focusNext: () => void
-  focusPrevious: () => void
-  focus: (id: string) => void
-}
-
-const InkFocusContext = createContext<InkFocusContextValue>({
-  activeId: undefined,
-  add() {},
-  remove() {},
-  activate() {},
-  deactivate() {},
-  enableFocus() {},
-  disableFocus() {},
-  focusNext() {},
-  focusPrevious() {},
-  focus() {},
-})
 
 /**
  * Ink-compatible useFocus hook.
@@ -332,168 +295,6 @@ export function useFocusManager(): {
     focus: ctx.focus,
     activeId: ctx.activeId,
   }
-}
-
-/**
- * Ink-compatible FocusProvider component.
- * Manages focus state: list of focusables, active focus ID, tab navigation.
- */
-function InkFocusProvider({
-  children,
-  inputEmitter,
-}: {
-  children: import("react").ReactNode
-  inputEmitter?: EventEmitter
-}) {
-  const [isFocusEnabled, setIsFocusEnabled] = useState(true)
-  const [activeFocusId, setActiveFocusId] = useState<string | undefined>(undefined)
-  const [, setFocusables] = useState<Focusable[]>([])
-  const focusablesCountRef = React.useRef(0)
-
-  const findNextFocusable = useCallback(
-    (currentFocusables: Focusable[], currentActiveFocusId: string | undefined): string | undefined => {
-      const activeIndex = currentFocusables.findIndex((f) => f.id === currentActiveFocusId)
-      for (let i = activeIndex + 1; i < currentFocusables.length; i++) {
-        if (currentFocusables[i]?.isActive) return currentFocusables[i]!.id
-      }
-      return undefined
-    },
-    [],
-  )
-
-  const findPreviousFocusable = useCallback(
-    (currentFocusables: Focusable[], currentActiveFocusId: string | undefined): string | undefined => {
-      const activeIndex = currentFocusables.findIndex((f) => f.id === currentActiveFocusId)
-      for (let i = activeIndex - 1; i >= 0; i--) {
-        if (currentFocusables[i]?.isActive) return currentFocusables[i]!.id
-      }
-      return undefined
-    },
-    [],
-  )
-
-  const focusNext = useCallback((): void => {
-    setFocusables((currentFocusables) => {
-      setActiveFocusId((currentActiveFocusId) => {
-        const firstFocusableId = currentFocusables.find((f) => f.isActive)?.id
-        const nextFocusableId = findNextFocusable(currentFocusables, currentActiveFocusId)
-        return nextFocusableId ?? firstFocusableId
-      })
-      return currentFocusables
-    })
-  }, [findNextFocusable])
-
-  const focusPrevious = useCallback((): void => {
-    setFocusables((currentFocusables) => {
-      setActiveFocusId((currentActiveFocusId) => {
-        const lastFocusableId = currentFocusables.findLast((f) => f.isActive)?.id
-        const previousFocusableId = findPreviousFocusable(currentFocusables, currentActiveFocusId)
-        return previousFocusableId ?? lastFocusableId
-      })
-      return currentFocusables
-    })
-  }, [findPreviousFocusable])
-
-  const enableFocus = useCallback((): void => {
-    setIsFocusEnabled(true)
-  }, [])
-  const disableFocus = useCallback((): void => {
-    setIsFocusEnabled(false)
-  }, [])
-
-  const focus = useCallback((id: string): void => {
-    setFocusables((currentFocusables) => {
-      if (currentFocusables.some((f) => f.id === id)) {
-        setActiveFocusId(id)
-      }
-      return currentFocusables
-    })
-  }, [])
-
-  const addFocusable = useCallback((id: string, { autoFocus }: { autoFocus: boolean }): void => {
-    setFocusables((currentFocusables) => {
-      focusablesCountRef.current = currentFocusables.length + 1
-      return [...currentFocusables, { id, isActive: true }]
-    })
-    if (autoFocus) {
-      setActiveFocusId((currentActiveFocusId) => {
-        if (!currentActiveFocusId) return id
-        return currentActiveFocusId
-      })
-    }
-  }, [])
-
-  const removeFocusable = useCallback((id: string): void => {
-    setActiveFocusId((currentActiveFocusId) => {
-      if (currentActiveFocusId === id) return undefined
-      return currentActiveFocusId
-    })
-    setFocusables((currentFocusables) => {
-      const filtered = currentFocusables.filter((f) => f.id !== id)
-      focusablesCountRef.current = filtered.length
-      return filtered
-    })
-  }, [])
-
-  const activateFocusable = useCallback((id: string): void => {
-    setFocusables((currentFocusables) => currentFocusables.map((f) => (f.id === id ? { ...f, isActive: true } : f)))
-  }, [])
-
-  const deactivateFocusable = useCallback((id: string): void => {
-    setActiveFocusId((currentActiveFocusId) => {
-      if (currentActiveFocusId === id) return undefined
-      return currentActiveFocusId
-    })
-    setFocusables((currentFocusables) => currentFocusables.map((f) => (f.id === id ? { ...f, isActive: false } : f)))
-  }, [])
-
-  // Tab/Shift+Tab/Esc focus navigation via inputEmitter
-  useEffect(() => {
-    if (!inputEmitter) return
-    const tab = "\t"
-    const shiftTab = "\x1b[Z"
-    const escape = "\x1b"
-    const handleInput = (data: string | Buffer) => {
-      const input = typeof data === "string" ? data : data.toString()
-      if (!isFocusEnabled || focusablesCountRef.current === 0) return
-      if (input === tab) focusNext()
-      else if (input === shiftTab) focusPrevious()
-      else if (input === escape) setActiveFocusId(undefined)
-    }
-    inputEmitter.on("input", handleInput)
-    return () => {
-      inputEmitter.removeListener("input", handleInput)
-    }
-  }, [isFocusEnabled, focusNext, focusPrevious, inputEmitter])
-
-  const contextValue = useMemo(
-    () => ({
-      activeId: activeFocusId,
-      add: addFocusable,
-      remove: removeFocusable,
-      activate: activateFocusable,
-      deactivate: deactivateFocusable,
-      enableFocus,
-      disableFocus,
-      focusNext,
-      focusPrevious,
-      focus,
-    }),
-    [
-      activeFocusId,
-      addFocusable,
-      removeFocusable,
-      activateFocusable,
-      deactivateFocusable,
-      enableFocus,
-      disableFocus,
-      focusNext,
-      focusPrevious,
-      focus,
-    ],
-  )
-
-  return React.createElement(InkFocusContext.Provider, { value: contextValue }, children)
 }
 
 export type UseFocusOptions = { isActive?: boolean; autoFocus?: boolean; id?: string }
@@ -1112,110 +913,6 @@ interface InkInstance extends Instance {
 }
 
 /**
- * Error boundary for Ink compat.
- * Catches render errors and displays them like Ink does.
- */
-interface InkErrorBoundaryProps {
-  children: React.ReactNode
-  onError?: (error: Error) => void
-}
-
-interface InkErrorBoundaryState {
-  error: Error | null
-}
-
-class InkErrorBoundary extends Component<InkErrorBoundaryProps, InkErrorBoundaryState> {
-  state: InkErrorBoundaryState = { error: null }
-
-  static getDerivedStateFromError(error: Error): InkErrorBoundaryState {
-    return { error }
-  }
-
-  componentDidCatch(error: Error) {
-    this.props.onError?.(error)
-  }
-
-  render() {
-    if (this.state.error) {
-      // Render error display matching Ink's format exactly
-      const err = this.state.error
-      const stack = err.stack ?? ""
-
-      // Extract stack frames
-      const frames = stack
-        .split("\n")
-        .filter((line) => line.match(/^\s+at\s/))
-        .map((line) => line.trim())
-
-      // Extract file:line from first frame
-      const firstFrame = frames[0] ?? ""
-      const fileMatch = firstFrame.match(/\((.+)\)$/) ?? firstFrame.match(/at (.+)$/)
-      const rawLocation = fileMatch?.[1] ?? ""
-
-      // Make path relative (strip CWD prefix, handle /private on macOS)
-      let location = rawLocation
-      const cwd = process.cwd()
-      for (const prefix of [cwd, `/private${cwd}`]) {
-        if (location.startsWith(`${prefix}/`)) {
-          location = location.slice(prefix.length + 1)
-          break
-        }
-      }
-
-      // Build source context
-      let sourceLines: string[] = []
-      if (rawLocation) {
-        const locParts = rawLocation.match(/(.+):(\d+):(\d+)/)
-        if (locParts) {
-          const filePath = locParts[1]!
-          const lineNum = Number.parseInt(locParts[2]!, 10)
-          try {
-            const fs = require("node:fs")
-            const source = fs.readFileSync(filePath, "utf8") as string
-            const allLines = source.split("\n")
-            const start = Math.max(0, lineNum - 4)
-            const end = Math.min(allLines.length, lineNum + 4)
-            for (let i = start; i < end; i++) {
-              sourceLines.push(` ${String(i + 1).padStart(String(end).length)}: ${allLines[i]}`)
-            }
-          } catch {
-            // Can't read source
-          }
-        }
-      }
-
-      // Build stack trace in Ink format: " - FunctionName (file:line:col)"
-      const traceLines = frames.map((f) => {
-        const m = f.match(/at (.+)/)
-        if (!m) return ` - ${f}`
-        const content = m[1]!
-        // Make paths relative in trace lines too
-        let traceEntry = content
-        const cwd2 = process.cwd()
-        for (const prefix of [cwd2, `/private${cwd2}`]) {
-          traceEntry = traceEntry.split(`${prefix}/`).join("")
-        }
-        return ` - ${traceEntry}`
-      })
-
-      const output: string[] = ["", `  ERROR  ${err.message}`, ""]
-      if (location) {
-        output.push(` ${location}`)
-        output.push("")
-      }
-      if (sourceLines.length > 0) {
-        output.push(...sourceLines)
-        output.push("")
-      }
-      output.push(...traceLines)
-
-      return React.createElement("silvery-box", null, React.createElement("silvery-text", null, output.join("\n")))
-    }
-    return this.props.children
-  }
-}
-
-/**
  * Ink-compatible render function.
  *
  * When a custom stdout is provided (fake/spy stdout from tests): delegates to
@@ -1243,14 +940,18 @@ export function render(element: import("react").ReactNode, options?: Record<stri
     const cursorStore = createCursorStore()
 
     // Ink-specific root wrapper: error boundary + focus system + cursor store
-    function withInk(el: import("react").ReactElement): import("react").ReactElement {
+    function wrapWithInkProviders(el: import("react").ReactElement): import("react").ReactElement {
       return React.createElement(
-        CursorProvider,
-        { store: cursorStore },
+        SilveryErrorBoundary,
+        null,
         React.createElement(
-          InkCursorStoreCtx.Provider,
-          { value: cursorStore },
-          React.createElement(InkFocusProvider, null, React.createElement(InkErrorBoundary, null, el)),
+          CursorProvider,
+          { store: cursorStore },
+          React.createElement(
+            InkCursorStoreCtx.Provider,
+            { value: cursorStore },
+            React.createElement(InkFocusProvider, null, el),
+          ),
         ),
       )
     }
@@ -1297,7 +998,7 @@ export function render(element: import("react").ReactNode, options?: Record<stri
       rows: (stdout as any).rows ?? 24,
       autoRender: true,
       onFrame: writeFrame,
-      wrapRoot: withInk,
+      wrapRoot: wrapWithInkProviders,
       stdin: stdin as NodeJS.ReadStream | undefined,
     })
 

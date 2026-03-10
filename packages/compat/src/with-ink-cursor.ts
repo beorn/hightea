@@ -1,14 +1,28 @@
 /**
  * withInkCursor() — Thin adapter bridging Ink's useCursor to silvery's CursorStore.
  *
- * Provides InkCursorStoreCtx so Ink's useCursor hook can write to silvery's
- * hardware cursor system. ~20 lines — just context plumbing.
+ * Canonical home for InkCursorStoreCtx. Consumed by ink.ts (useCursor hook).
  *
  * @packageDocumentation
  */
-import React, { Fragment } from "react"
+import React, { createContext, Fragment } from "react"
 import { createCursorStore, CursorProvider, type CursorStore } from "@silvery/react/hooks/useCursor"
-import { InkCursorStoreCtx } from "./with-ink"
+import type { RunnableApp } from "./with-ink"
+
+// =============================================================================
+// Ink Cursor Store Context
+// =============================================================================
+
+/**
+ * Context for passing cursor store to Ink compat useCursor hook.
+ * This lets useCursor write directly to the store without going through
+ * silvery's useCursor hook (which requires NodeContext for layout).
+ */
+export const InkCursorStoreCtx = createContext<CursorStore | null>(null)
+
+// =============================================================================
+// withInkCursor — App-level plugin for pipe() composition
+// =============================================================================
 
 export interface WithInkCursorOptions {
   cursorStore?: CursorStore
@@ -16,12 +30,6 @@ export interface WithInkCursorOptions {
 
 export interface AppWithInkCursor {
   readonly Root: React.ComponentType<{ children: React.ReactNode }>
-}
-
-interface RunnableApp {
-  run(...args: unknown[]): unknown
-  Root?: React.ComponentType<{ children: React.ReactNode }>
-  [key: string]: unknown
 }
 
 export function withInkCursor<T extends RunnableApp>(
