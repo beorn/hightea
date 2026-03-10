@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "Silvery"
   text: "Polished Terminal UIs in React"
-  tagline: "A React framework for building terminal applications — responsive layouts, scrollable containers, and lightning-fast interactive updates"
+  tagline: "A React renderer for terminal applications — responsive layouts, scrollable containers, and lightning-fast incremental updates. Optional framework layers add 30+ components, theming, and TEA state machines."
   actions:
     - theme: brand
       text: Get Started
@@ -67,16 +67,26 @@ features:
 
 </div>
 
-## What's Inside
+## The Renderer
 
 <div class="features-list">
 
-- **30+ components** -- TextArea, SelectList, Table, VirtualList, CommandPalette, ModalDialog, Tabs, TreeView, Toast, ProgressBar, and more
+- **Responsive layout** -- `useContentRect()` returns actual dimensions during render. No prop drilling, no post-render effects.
 - **Scrollable containers** -- `overflow="scroll"` with `scrollTo` just works. No manual virtualization.
-- **Three architectures** -- React hooks, Elm-style reducers, or Zustand stores. Choose per use case -- all three in one framework.
+- **Incremental rendering** -- Per-node dirty tracking. Only changed nodes re-render. Cell-level ANSI-aware compositing.
+- **Pure TypeScript** -- No WASM, no C++, no native dependencies. Runs on Node, Bun, and Deno.
+
+</div>
+
+## Optional Framework Layers
+
+<div class="features-list">
+
+- **30+ components** (`@silvery/ui`) -- TextArea, SelectList, Table, VirtualList, CommandPalette, ModalDialog, Tabs, TreeView, Toast, ProgressBar, and more
+- **Input system** (`@silvery/term`) -- Input layer stack (DOM-style event bubbling), tree-based focus with spatial navigation, mouse support, command system
+- **TEA state machines** (`@silvery/tea`) -- Pure `(action, state) → [state, effects]` reducers for testing, replay, and undo
+- **Theming** (`@silvery/theme`) -- 38 palettes, semantic color tokens, auto-detection
 - **Built for AI** -- Command introspection for agents, programmatic screenshots, scrollable streaming output
-- **Input system** -- Input layer stack (DOM-style event bubbling), tree-based focus with spatial navigation, command system with keybinding resolution
-- **Zero native deps** -- Pure TypeScript. No WASM, no C++. Runs on Node, Bun, and Deno.
 
 </div>
 

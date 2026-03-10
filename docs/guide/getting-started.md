@@ -4,7 +4,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 # Getting Started
 
-Silvery is a React framework for terminal applications with layout feedback, 30+ components, and built-in scrolling. If you've used other React terminal frameworks, the API is familiar — `Box`, `Text`, `useInput` work the same way. The key addition: `useContentRect()` lets components query their own dimensions during render.
+Silvery is a React renderer for terminal applications. If you've used other React terminal renderers, the API is familiar — `Box`, `Text`, `useInput` work the same way. The key additions: `useContentRect()` lets components query their own dimensions during render, `overflow="scroll"` enables native scrolling, and only changed nodes re-render. Optional packages add 30+ components, theming, and TEA state machines.
 
 ## Installation
 
@@ -60,9 +60,9 @@ bun app.tsx
 
 You should see a rounded box with "Hello from Silvery!" inside.
 
-## Using Layout Feedback
+## Responsive Layout
 
-The key feature of Silvery is `useContentRect()`. Components can query their computed dimensions:
+The key feature of Silvery's renderer is `useContentRect()`. Components can query their computed dimensions:
 
 ```tsx
 import { Box, Text, render, useContentRect, createTerm } from "silvery"

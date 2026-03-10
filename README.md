@@ -1,12 +1,12 @@
 # Silvery
 
-**A React framework for building terminal applications.**
+**A React renderer for terminal applications.** Use it as a renderer, or add optional framework layers for a complete toolkit.
 
-Silvery is the only React terminal framework where components know their own dimensions during render. This single architectural change unlocks responsive layouts without prop drilling, native scrollable containers, and automatic text truncation — things that weren't possible in existing frameworks.
+Silvery is the only React terminal renderer where components know their own dimensions during render. This single architectural change unlocks responsive layouts without prop drilling, native scrollable containers, and automatic text truncation — things that weren't possible in existing renderers.
 
-Beyond layout feedback, Silvery provides a DOM-style input layer stack with modal isolation, spatial focus navigation, mouse support, and a command/keybinding system. Only changed nodes re-render.
+The renderer also provides per-node incremental rendering (only changed nodes update), ANSI-aware cell compositing, and synchronized output. Pure TypeScript, no WASM, no native dependencies.
 
-It ships 30+ built-in components, a theme engine with 38 palettes, and built-in TEA state machines for testable, replayable UI logic alongside React hooks. Pure TypeScript, no WASM, no native dependencies.
+**Optional framework layers** add what you need: `@silvery/ui` (30+ components), `@silvery/tea` (TEA state machines), `@silvery/theme` (38 palettes), input layering, mouse support, and commands. Use as much or as little as you want.
 
 ```
 npm install silvery react
@@ -41,7 +41,7 @@ using term = createTerm()
 await render(<App />, term).run()
 ```
 
-## Key Capabilities
+## Renderer
 
 ### Responsive layout
 
@@ -69,6 +69,12 @@ function Responsive() {
 ### Per-node dirty tracking
 
 Seven independent dirty flags per node. When a user presses a key, only the affected nodes re-render -- bypassing React reconciliation entirely for unchanged subtrees. Typical interactive updates complete in ~170 microseconds for 1000 nodes, compared to full-tree re-renders.
+
+### Multi-target rendering
+
+Terminal today, Canvas 2D and DOM experimental. Same React components, different rendering backends.
+
+## Framework Layers (Optional)
 
 ### Input layer stack
 
@@ -110,15 +116,11 @@ TextArea, TextInput, VirtualList, SelectList, Table, CommandPalette, ModalDialog
 
 ### Theme system
 
-`@silvery/theme` with 45 built-in palettes and semantic color tokens (`$primary`, `$error`, `$border`, etc.) that adapt automatically.
+`@silvery/theme` with 38 built-in palettes and semantic color tokens (`$primary`, `$error`, `$border`, etc.) that adapt automatically.
 
 ### TEA state machines
 
 Optional [Elm Architecture](https://guide.elm-lang.org/architecture/) alongside React hooks. Pure `(action, state) -> [state, effects]` functions for testable, replayable, undoable UI logic.
-
-### Multi-target rendering
-
-Terminal today, Canvas 2D and DOM experimental. Same React components, different rendering backends.
 
 ## Packages
 
