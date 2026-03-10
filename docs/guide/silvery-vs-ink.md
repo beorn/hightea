@@ -246,6 +246,80 @@ Both are fast enough for 60fps terminal UIs. Flexily is 5x smaller with comparab
 
 ---
 
+## Terminal Protocol Coverage
+
+Silvery implements a comprehensive set of terminal protocols. This matters for cross-terminal compatibility, modern features (images, clipboard, extended keyboard), and correct rendering in multiplexers like tmux and Zellij.
+
+### Escape Sequences
+
+| Category | Protocol | Silvery | Ink |
+| --- | --- | --- | --- |
+| **SGR Styling** | 16/256/Truecolor, bold, italic, dim, underline, strikethrough, inverse | Full | Full |
+| **Extended Underlines** | ISO 8613-6: single, double, curly, dotted, dashed + underline color (SGR 58/59) | Full | None |
+| **Cursor Control** | CUP, CUU/D/F/B, EL, ED, DECSCUSR (block/underline/bar cursors) | Full | Partial |
+| **Scroll Regions** | DECSTBM (set/reset), SU/SD (scroll up/down) | Full | None |
+
+### DEC Private Modes
+
+| Mode | What | Silvery | Ink |
+| --- | --- | --- | --- |
+| 25 (DECTCEM) | Cursor visibility | Yes | Yes |
+| 1000 (X10) | Basic mouse tracking | Yes | No |
+| 1002 | Button event tracking (press + drag) | Yes | No |
+| 1004 | Focus in/out reporting | Yes | No |
+| 1006 (SGR) | Extended mouse protocol (large coordinates) | Yes | No |
+| 1049 | Alternate screen buffer | Yes | Yes |
+| 2004 | Bracketed paste mode | Yes | No |
+| 2026 | Synchronized output (flicker-free) | Yes | No |
+| DECRPM | Mode query (`CSI ? mode $ p`) | Yes | No |
+
+### OSC Sequences
+
+| OSC | What | Silvery | Ink |
+| --- | --- | --- | --- |
+| 0/2 | Window title | Yes | No |
+| 4 | Palette color query/set | Yes | No |
+| 7 | Directory reporting (shell integration) | Yes | No |
+| 8 | Hyperlinks (clickable URLs) | Yes | No |
+| 9 | iTerm2 notifications | Yes | No |
+| 22 | Mouse cursor shape (pointer, text, crosshair, etc.) | Yes | No |
+| 52 | Clipboard access (copy/paste over SSH) | Yes | No |
+| 66 | Text sizing protocol (Kitty v0.40+, Ghostty) | Yes | No |
+| 99 | Kitty notifications | Yes | No |
+| 133 | Semantic prompt markers (shell integration) | Yes | No |
+
+### Keyboard & Input
+
+| Protocol | What | Silvery | Ink |
+| --- | --- | --- | --- |
+| Kitty keyboard | All 5 flags (disambiguate, events, alternate, all keys, text) | Full | None [^5] |
+| Modifier detection | Shift, Alt, Ctrl, Super/Cmd, Hyper, CapsLock, NumLock | Full | Basic |
+| Key event types | Press, repeat, release | Full | Press only |
+| Bracketed paste | `usePaste` hook with auto-enable | Full | None |
+| Focus reporting | Focus in/out events | Full | None |
+
+### Graphics
+
+| Protocol | What | Silvery | Ink |
+| --- | --- | --- | --- |
+| Kitty graphics | PNG transmission with chunking, ID-based management | Full | None |
+| Sixel | RGBA-to-Sixel encoder with color quantization | Full | None |
+| Auto-detect | Try Kitty, fall back to Sixel, fall back to text placeholder | Yes | N/A |
+
+### Terminal Queries
+
+| Query | What | Silvery | Ink |
+| --- | --- | --- | --- |
+| CPR (DSR 6) | Cursor position | Yes | No |
+| CSI 14t | Pixel dimensions | Yes | No |
+| CSI 18t | Text area size (rows/cols) | Yes | No |
+| DA1/DA2/DA3 | Device attributes | Yes | No |
+| XTVERSION | Terminal identification | Yes | No |
+
+Silvery uses these queries at startup for capability detection — automatically enabling Kitty keyboard, SGR mouse, synchronized output, and other features based on what the terminal supports.
+
+---
+
 ## When to Choose What
 
 ### Choose Ink when:
