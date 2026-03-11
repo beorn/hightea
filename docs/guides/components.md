@@ -258,7 +258,7 @@ Simple interactive primitives for boolean toggles and clickable buttons.
 | `Table`       | Column-aligned table with header, per-column alignment     |
 | `Badge`       | Styled label/tag                                           |
 | `Divider`     | Horizontal rule                                            |
-| `VirtualList` | O(1) scroll for thousands of items (fixed/variable height) |
+| `VirtualList` | O(1) scroll for thousands of items — see [List Components](/guide/scrolling#list-components) |
 | `VirtualView` | Virtualized arbitrary content                              |
 | `Console`     | Captures `console.log` output via `patchConsole()`         |
 | `Transform`   | Per-line string transformation on children                 |

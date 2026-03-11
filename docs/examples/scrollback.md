@@ -19,6 +19,8 @@ Silvery is the only TUI framework with a dynamic scrollback system. Instead of t
 
 <LiveDemo xtermSrc="/examples/showcase.html?demo=scroll" :height="400" />
 
+ScrollbackList is part of Silvery's [list component family](/guide/scrolling#list-components) — see the scrolling guide for how it relates to `overflow="scroll"` and `VirtualList`.
+
 ## Why This Matters
 
 Most TUI frameworks force you to choose: alternate screen (full-screen, no history) or raw stdout (scrollback, no interactivity). Silvery's inline mode gives you both: interactive rendering with layout, keyboard input, and live updates — that also becomes part of your terminal history.

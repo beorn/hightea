@@ -134,15 +134,75 @@ Use `overflow="hidden"` to clip without scroll indicators:
 </Box>
 ```
 
-## When NOT to Use Scrolling
+## List Components
 
-For truly massive lists (10,000+ items), even layout becomes noticeable. At that scale:
+Silvery has three ways to render scrollable lists. They form a progression — start with `overflow="scroll"` and reach for the others when your use case demands it.
 
-- **Paginate** instead of scrolling
-- **Filter/search** to reduce the list
-- This is a **UX problem**, not a rendering problem
+### Box overflow="scroll" — The Default
 
-If users can't reasonably navigate 10,000 items, scrolling isn't the answer.
+What this page covers. Render all your children, let the layout engine handle the rest. Works great for lists up to ~1000 items.
+
+```tsx
+<Box flexDirection="column" overflow="scroll" scrollTo={selected}>
+  {items.map((item, i) => <Row key={item.id} item={item} />)}
+</Box>
+```
+
+### VirtualList — Large Lists
+
+For 1000+ items, layout itself becomes noticeable. [`VirtualList`](/guides/components#display-components) skips React rendering entirely for off-screen items — O(visible) regardless of list size. Same `scrollTo` pattern, plus an `interactive` mode with built-in keyboard navigation (j/k, arrows, PgUp/PgDn, Home/End):
+
+```tsx
+import { VirtualList } from "silvery"
+
+<VirtualList
+  items={items}
+  height={20}
+  itemHeight={1}
+  scrollTo={selected}
+  renderItem={(item, i) => <Row item={item} />}
+/>
+
+// Or with built-in keyboard navigation:
+<VirtualList
+  items={items}
+  height={20}
+  itemHeight={1}
+  interactive
+  onSelect={(i) => openItem(items[i])}
+  renderItem={(item, i, meta) => (
+    <Text>{meta?.isSelected ? "> " : "  "}{item.name}</Text>
+  )}
+/>
+```
+
+### ScrollbackList — Streaming / Inline Mode
+
+For lists where items complete over time — task runners, test output, chat messages. Completed items freeze into terminal scrollback and become part of the terminal history. Only works with [inline mode](/examples/scrollback).
+
+```tsx
+import { ScrollbackList } from "silvery"
+
+<ScrollbackList
+  items={tasks}
+  keyExtractor={(t) => t.id}
+  isFrozen={(t) => t.done}
+  footer={<StatusBar />}
+>
+  {(task) => <TaskRow task={task} />}
+</ScrollbackList>
+```
+
+### Which One?
+
+| | overflow="scroll" | VirtualList | ScrollbackList |
+|---|---|---|---|
+| **List size** | Up to ~1000 | Any size | Any size |
+| **Rendering** | All children created, visible ones rendered | Only visible items created | Active items rendered, frozen items in scrollback |
+| **Screen mode** | Fullscreen or inline | Fullscreen | Inline only |
+| **Height** | Set on Box | `height` prop | Auto-sized |
+| **Keyboard** | Manual (`useInput`) | Built-in (`interactive`) or manual (`scrollTo`) | Manual |
+| **Use case** | General scrolling | Large data sets, file lists, logs | Task runners, REPLs, chat, CI output |
 
 ## Comparison with Ink
 
