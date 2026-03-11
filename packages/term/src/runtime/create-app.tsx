@@ -797,6 +797,15 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     if (cleanedUp) return
     cleanedUp = true
 
+    // Unmount React tree first — this runs effect cleanups (clears intervals,
+    // cancels subscriptions) before we tear down the infrastructure.
+    try {
+      reconciler.updateContainerSync(null, fiberRoot, null, () => {})
+      reconciler.flushSyncWork()
+    } catch {
+      // Ignore — component tree may already be partially torn down
+    }
+
     // Unsubscribe from store
     if (storeUnsubscribeFn) {
       storeUnsubscribeFn()
@@ -1375,6 +1384,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     _renderCount = 0
     _eventStart = performance.now()
 
+
+
     // Intercept lifecycle keys (Ctrl+Z, Ctrl+C) BEFORE they reach app handlers.
     // These must be handled at the runtime level, not by individual components.
     if (!headless) {
@@ -1439,6 +1450,13 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         for (const listener of runtimePasteListeners) {
           listener(text)
         }
+      }
+
+      // If a listener called exit() (e.g., useInput handler returned "exit"),
+      // stop processing events immediately — don't render or flush.
+      if (shouldExit) {
+        inEventHandler = false
+        return null
       }
 
       const result = runEventHandler(event)
