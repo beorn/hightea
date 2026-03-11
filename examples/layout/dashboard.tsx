@@ -9,7 +9,7 @@
  */
 
 import React, { useState } from "react"
-import { render, Box, Text, useInput, useApp, createTerm, type Key } from "../../src/index.js"
+import { render, Box, Text, Kbd, Muted, useInput, useApp, createTerm, type Key } from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -151,7 +151,10 @@ export function Dashboard(): JSX.Element {
         {tab === 1 && <ActivityPane />}
         {tab === 2 && <RecentPane selected={selected} />}
       </Box>
-      <Text dim> h/l tabs{tab === 2 ? "  j/k select" : ""} Esc/q quit</Text>
+      <Muted>
+        {" "}
+        <Kbd>h/l</Kbd> tabs{tab === 2 ? <>{" "}<Kbd>j/k</Kbd> select</> : ""} <Kbd>Esc/q</Kbd> quit
+      </Muted>
     </Box>
   )
 }

@@ -32,6 +32,9 @@ import {
   useInput,
   useApp,
   createTerm,
+  H1,
+  Kbd,
+  Muted,
   type Key,
 } from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
@@ -322,9 +325,7 @@ export function DevTools(): JSX.Element {
       {/* Header */}
       <Box paddingX={1} justifyContent="space-between">
         <Box gap={2}>
-          <Text bold color="$primary">
-            Log Viewer
-          </Text>
+          <H1>Log Viewer</H1>
           <LevelCounts entries={entries} />
         </Box>
         <Box gap={1}>
@@ -352,28 +353,18 @@ export function DevTools(): JSX.Element {
 
       {/* Help bar */}
       <Box paddingX={1} justifyContent="space-between">
-        <Text dim>
-          <Text bold dim>
-            j/k
-          </Text>{" "}
+        <Muted>
+          <Kbd>j/k</Kbd>{" "}
           navigate{" "}
-          <Text bold dim>
-            g/G
-          </Text>{" "}
+          <Kbd>g/G</Kbd>{" "}
           start/end{" "}
-          <Text bold dim>
-            d/i/w/e
-          </Text>{" "}
+          <Kbd>d/i/w/e</Kbd>{" "}
           add log{" "}
-          <Text bold dim>
-            c
-          </Text>{" "}
+          <Kbd>c</Kbd>{" "}
           clear{" "}
-          <Text bold dim>
-            Esc/q
-          </Text>{" "}
+          <Kbd>Esc/q</Kbd>{" "}
           quit
-        </Text>
+        </Muted>
       </Box>
     </Box>
   )

@@ -994,7 +994,7 @@ function DemoFooter({
         borderStyle="round"
         prompt={"\u276F "}
         placeholder={
-          ctrlDPending ? "Press Ctrl-D again to exit" : done ? "Session complete" : "Type a message or press tab"
+          ctrlDPending ? "Press Ctrl-D again to exit" : "Type a message or press Tab"
         }
         isActive={!done}
       />
@@ -1054,6 +1054,9 @@ export function CodingAgent({
   const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputTypingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const nextIdRef = useRef(0)
+
+  // Track whether user has gone off-script (Tab or custom text) — stops pre-filling
+  const offScriptRef = useRef(false)
 
   // Stable ref to latest advance() — avoids stale closure in setTimeout callbacks
   const advanceRef = useRef<() => void>(() => {})
@@ -1201,12 +1204,9 @@ export function CodingAgent({
     if (streamPhase !== "done") return // Still streaming
 
     if (scriptIdx >= script.length) {
-      // Final compaction: freeze everything before showing "done"
-      if (!compactingRef.current && exchanges.some((ex) => !ex.frozen)) {
-        compact()
-        return
-      }
-      setDone(true)
+      // Script exhausted — DON'T set done. User can keep going with Tab
+      // to inject random turns or type their own messages. Session only
+      // ends on explicit exit (Esc, Ctrl+D).
       return
     }
 
@@ -1255,9 +1255,11 @@ export function CodingAgent({
     advance()
   }, [pendingAdvance, advance])
 
-  // Auto-advance on mount
+  // Show intro briefly, then auto-advance on mount after a delay
+  // so the intro text (exchanges.length === 0 guard) is visible.
   useEffect(() => {
-    advance()
+    const timer = setTimeout(() => advance(), fastMode ? 0 : 1500)
+    return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -1296,6 +1298,12 @@ export function CodingAgent({
       }
     }
 
+    // Script exhausted in auto mode: set done and exit
+    if (!nextEntry && scriptIdx >= script.length) {
+      setDone(true)
+      return
+    }
+
     // Non-user entries or fast mode: advance after a brief delay
     autoTimerRef.current = setTimeout(advance, 400)
     return () => {
@@ -1318,16 +1326,10 @@ export function CodingAgent({
         if (autoTimerRef.current) clearTimeout(autoTimerRef.current)
       }
     }
-    // If all entries consumed, auto-advance to trigger final compaction/done
-    if (!nextEntry && scriptIdx >= script.length && exchanges.length > 0) {
-      autoTimerRef.current = setTimeout(() => advanceRef.current(), fastMode ? 100 : 400)
-      return () => {
-        if (autoTimerRef.current) clearTimeout(autoTimerRef.current)
-      }
-    }
+    // Script exhausted: no auto-advance. User can Tab for random turns.
   }, [autoMode, done, compacting, streamPhase, scriptIdx, script, fastMode, exchanges.length])
 
-  // Auto-exit when done in auto mode
+  // Auto-exit when done in auto mode (only set by --auto flag's exit timer)
   useEffect(() => {
     if (!autoMode || !done) return
     const timer = setTimeout(exit, 1000)
@@ -1361,8 +1363,10 @@ export function CodingAgent({
   // Pre-fill input with next scripted user message in manual mode.
   // Guard: skip before first advance (exchanges empty) to avoid pre-filling with
   // script[0] which advance() is about to consume — that creates a duplicate.
+  // Also skip if user has gone off-script (Tab or custom text).
   useEffect(() => {
     if (autoMode || done || streamPhase !== "done" || exchanges.length === 0) return
+    if (offScriptRef.current) return
     const nextEntry = script[scriptIdx]
     if (nextEntry?.role === "user" && !footerControlRef.current.getText()) {
       footerControlRef.current.setText(nextEntry.content)
@@ -1391,19 +1395,28 @@ export function CodingAgent({
         setExchanges((prev) => [...prev, userExchange])
         // Note: DemoFooter clears inputText after calling onSubmit
 
-        // Skip past any user entries in the script to find the next agent entry
-        let nextIdx = scriptIdx
-        while (nextIdx < script.length && script[nextIdx]!.role === "user") {
-          nextIdx++
+        // If script still has entries, skip to next agent entry
+        if (scriptIdx < script.length) {
+          let nextIdx = scriptIdx
+          while (nextIdx < script.length && script[nextIdx]!.role === "user") {
+            nextIdx++
+          }
+          setScriptIdx(nextIdx)
+          // Continue with the next agent entry after a brief pause
+          setTimeout(() => advanceRef.current(), 150)
+        } else {
+          // Script exhausted — inject a random agent response
+          offScriptRef.current = true
+          const resp = RANDOM_AGENT_RESPONSES[Math.floor(Math.random() * RANDOM_AGENT_RESPONSES.length)]!
+          setTimeout(() => {
+            const agentId = nextIdRef.current++
+            startStreaming(resp, agentId)
+          }, 150)
         }
-        setScriptIdx(nextIdx)
-
-        // Continue with the next agent entry after a brief pause
-        setTimeout(() => advanceRef.current(), 150)
       }
       // Empty text: do nothing — agent advances automatically on timer
     },
-    [streamPhase, skipStreaming, done, scriptIdx, script],
+    [streamPhase, skipStreaming, done, scriptIdx, script, startStreaming],
   )
 
   const lastCtrlDRef = useRef(0)
@@ -1424,24 +1437,18 @@ export function CodingAgent({
       setCtrlDPending(false)
     }
     if (key.tab) {
-      // Inject a random user command + agent response
       if (done || compacting) return
-      const cmd = RANDOM_USER_COMMANDS[Math.floor(Math.random() * RANDOM_USER_COMMANDS.length)]!
-      const resp = RANDOM_AGENT_RESPONSES[Math.floor(Math.random() * RANDOM_AGENT_RESPONSES.length)]!
-      const userId = nextIdRef.current++
-      const userExchange: Exchange = {
-        id: userId,
-        role: "user",
-        content: cmd,
-        tokens: { input: cmd.length * 4, output: 0 },
-        frozen: false,
+      offScriptRef.current = true
+      const currentText = footerControlRef.current.getText()
+      if (currentText.trim()) {
+        // Non-empty input: Tab acts like Enter — submit the text
+        handleSubmit(currentText)
+        footerControlRef.current.setText("")
+      } else {
+        // Empty input: fill with random text for the user to review/submit
+        const cmd = RANDOM_USER_COMMANDS[Math.floor(Math.random() * RANDOM_USER_COMMANDS.length)]!
+        footerControlRef.current.setText(cmd)
       }
-      setExchanges((prev) => [...prev, userExchange])
-      // Start streaming the agent response after a brief pause
-      setTimeout(() => {
-        const agentId = nextIdRef.current++
-        startStreaming(resp, agentId)
-      }, 150)
       return
     }
     if (key.ctrl && input === "l") {
@@ -1523,25 +1530,14 @@ export function CodingAgent({
                 </Box>
               )}
 
-              {/* Done message */}
-              {done && isLatest && (
+              {/* Done message — only in auto mode */}
+              {done && autoStart && isLatest && (
                 <Box flexDirection="column" borderStyle="round" borderColor="$success" paddingX={1}>
                   <Text color="$success" bold>
                     {"\u2713"} Session complete
                   </Text>
                   <Text color="$muted">
                     Scroll up to review — colors, borders, and hyperlinks preserved in scrollback.
-                  </Text>
-                  <Text color="$muted">
-                    Try{" "}
-                    <Text bold color="$primary">
-                      Cmd+{"\u2191"}
-                    </Text>
-                    /
-                    <Text bold color="$primary">
-                      Cmd+{"\u2193"}
-                    </Text>{" "}
-                    to jump between exchanges.
                   </Text>
                 </Box>
               )}

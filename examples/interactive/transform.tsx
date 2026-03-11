@@ -14,7 +14,7 @@
  */
 
 import React, { useState } from "react"
-import { render, Box, Text, Transform, useInput, useApp, createTerm, type Key } from "../../src/index.js"
+import { render, Box, Text, Kbd, Muted, Transform, useInput, useApp, createTerm, type Key } from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -219,17 +219,10 @@ export function TransformDemo(): JSX.Element {
         </TextPanel>
       </Box>
 
-      <Text dim>
+      <Muted>
         {" "}
-        <Text bold dim>
-          j/k
-        </Text>{" "}
-        select transform{" "}
-        <Text bold dim>
-          Esc/q
-        </Text>{" "}
-        quit
-      </Text>
+        <Kbd>j/k</Kbd> select transform <Kbd>Esc/q</Kbd> quit
+      </Muted>
     </Box>
   )
 }

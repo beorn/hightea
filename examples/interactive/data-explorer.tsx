@@ -31,6 +31,9 @@ import {
   useInput,
   useApp,
   createTerm,
+  Kbd,
+  Muted,
+  Lead,
   type Key,
 } from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
@@ -446,7 +449,7 @@ export function DataExplorer(): JSX.Element {
             filter: <Text bold>{query}</Text> (backspace to clear, / to edit)
           </Text>
         ) : (
-          <Text dim>Press / to search</Text>
+          <Muted>Press <Kbd>/</Kbd> to search</Muted>
         )}
       </Box>
 
@@ -462,37 +465,27 @@ export function DataExplorer(): JSX.Element {
           <ProcessListArea processes={filtered} cursor={effectiveCursor} width={width} />
         ) : (
           <Box paddingX={1} justifyContent="center">
-            <Text dim italic>
+            <Lead>
               No processes match &quot;{deferredQuery}&quot;
-            </Text>
+            </Lead>
           </Box>
         )}
       </Box>
 
       {/* Scroll indicator + help */}
       <Box paddingX={1} justifyContent="space-between">
-        <Text dim>
-          <Text bold dim>
-            j/k
-          </Text>{" "}
+        <Muted>
+          <Kbd>j/k</Kbd>{" "}
           navigate{" "}
-          <Text bold dim>
-            d/u
-          </Text>{" "}
+          <Kbd>d/u</Kbd>{" "}
           half-page{" "}
-          <Text bold dim>
-            g/G
-          </Text>{" "}
+          <Kbd>g/G</Kbd>{" "}
           start/end{" "}
-          <Text bold dim>
-            /
-          </Text>{" "}
+          <Kbd>/</Kbd>{" "}
           search{" "}
-          <Text bold dim>
-            Esc/q
-          </Text>{" "}
+          <Kbd>Esc/q</Kbd>{" "}
           quit
-        </Text>
+        </Muted>
         <Text color="$muted">
           {effectiveCursor + 1}/{filtered.length}
         </Text>

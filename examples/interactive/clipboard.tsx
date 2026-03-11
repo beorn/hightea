@@ -19,6 +19,9 @@ import {
   render,
   Box,
   Text,
+  Kbd,
+  Muted,
+  Lead,
   useInput,
   useApp,
   useStdout,
@@ -78,23 +81,19 @@ function StatusBar({ lastCopied, lastPasted }: { lastCopied: string | null; last
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="$border" paddingX={1}>
       <Box gap={1}>
-        <Text dim>Copied:</Text>
+        <Muted>Copied:</Muted>
         {lastCopied ? (
           <Text color="$success">{lastCopied}</Text>
         ) : (
-          <Text dim italic>
-            nothing yet
-          </Text>
+          <Lead>nothing yet</Lead>
         )}
       </Box>
       <Box gap={1}>
-        <Text dim>Pasted:</Text>
+        <Muted>Pasted:</Muted>
         {lastPasted ? (
           <Text color="$warning">{lastPasted}</Text>
         ) : (
-          <Text dim italic>
-            nothing yet
-          </Text>
+          <Lead>nothing yet</Lead>
         )}
       </Box>
     </Box>
@@ -167,25 +166,10 @@ export function ClipboardDemo(): JSX.Element {
 
       <StatusBar lastCopied={lastCopied} lastPasted={lastPasted} />
 
-      <Text dim>
+      <Muted>
         {" "}
-        <Text bold dim>
-          j/k
-        </Text>{" "}
-        navigate{" "}
-        <Text bold dim>
-          c
-        </Text>{" "}
-        copy{" "}
-        <Text bold dim>
-          v
-        </Text>{" "}
-        paste{" "}
-        <Text bold dim>
-          Esc/q
-        </Text>{" "}
-        quit
-      </Text>
+        <Kbd>j/k</Kbd> navigate <Kbd>c</Kbd> copy <Kbd>v</Kbd> paste <Kbd>Esc/q</Kbd> quit
+      </Muted>
     </Box>
   )
 }

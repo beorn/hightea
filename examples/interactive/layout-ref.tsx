@@ -8,7 +8,7 @@
  */
 
 import React, { useRef, useState, useEffect } from "react"
-import { render, Box, Text, useInput, useApp, createTerm, type BoxHandle, type Key } from "../../src/index.js"
+import { render, Box, Text, Kbd, Muted, useInput, useApp, createTerm, type BoxHandle, type Key } from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -82,7 +82,7 @@ function ImperativeAccessDemo() {
       <Text bold color="magenta">
         Imperative Access (BoxHandle)
       </Text>
-      <Text dim>Press 'i' to inspect this box</Text>
+      <Muted>Press 'i' to inspect this box</Muted>
       <Box marginTop={1}>
         <Text>{info}</Text>
       </Box>
@@ -149,17 +149,10 @@ export function LayoutRefApp(): JSX.Element {
         <ImperativeAccessDemo />
       </Box>
 
-      <Text dim>
+      <Muted>
         {" "}
-        <Text bold dim>
-          i
-        </Text>{" "}
-        inspect{" "}
-        <Text bold dim>
-          Esc/q
-        </Text>{" "}
-        quit
-      </Text>
+        <Kbd>i</Kbd> inspect <Kbd>Esc/q</Kbd> quit
+      </Muted>
     </Box>
   )
 }

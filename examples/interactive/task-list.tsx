@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useMemo } from "react"
-import { render, Box, Text, useInput, useApp, createTerm, type Key } from "../../src/index.js"
+import { render, Box, Text, Kbd, Muted, useInput, useApp, createTerm, type Key } from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -151,29 +151,14 @@ function StatusBar({
 
   return (
     <Box justifyContent="space-between">
-      <Text dim>
+      <Muted>
         {" "}
-        <Text bold dim>
-          j/k
-        </Text>{" "}
-        navigate{" "}
-        <Text bold dim>
-          space
-        </Text>{" "}
-        toggle{" "}
-        <Text bold dim>
-          enter
-        </Text>{" "}
-        expand{" "}
-        <Text bold dim>
-          Esc/q
-        </Text>{" "}
-        quit
-      </Text>
-      <Text dim>
+        <Kbd>j/k</Kbd> navigate <Kbd>space</Kbd> toggle <Kbd>enter</Kbd> expand <Kbd>Esc/q</Kbd> quit
+      </Muted>
+      <Muted>
         {" "}
         <Text bold>{completed}</Text>/{total} ({percent}%) | {cursor + 1}/{total}{" "}
-      </Text>
+      </Muted>
     </Box>
   )
 }

@@ -15,7 +15,7 @@
  */
 
 import React, { useState } from "react"
-import { render, Box, Text, useInput, useApp, createTerm, type Key } from "../../src/index.js"
+import { render, Box, Text, Kbd, Muted, Lead, useInput, useApp, createTerm, type Key } from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -50,7 +50,7 @@ function PasteIndicator(): JSX.Element {
       <Text color="$success" bold>
         ENABLED
       </Text>
-      <Text dim>(bracketed paste is automatic with render())</Text>
+      <Muted>(bracketed paste is automatic with render())</Muted>
     </Box>
   )
 }
@@ -91,13 +91,9 @@ function PasteEventCard({ event, isLatest }: { event: PasteEvent; isLatest: bool
 function EmptyState(): JSX.Element {
   return (
     <Box flexDirection="column" padding={2} alignItems="center">
-      <Text dim>No paste events yet.</Text>
-      <Text dim italic>
-        Try pasting some text from your clipboard!
-      </Text>
-      <Text dim italic>
-        (Cmd+V on macOS, Ctrl+Shift+V on Linux)
-      </Text>
+      <Muted>No paste events yet.</Muted>
+      <Lead>Try pasting some text from your clipboard!</Lead>
+      <Lead>(Cmd+V on macOS, Ctrl+Shift+V on Linux)</Lead>
     </Box>
   )
 }
@@ -165,21 +161,10 @@ export function PasteDemo(): JSX.Element {
         )}
       </Box>
 
-      <Text dim>
+      <Muted>
         {" "}
-        <Text bold dim>
-          Paste text
-        </Text>{" "}
-        to see events{" "}
-        <Text bold dim>
-          x
-        </Text>{" "}
-        clear{" "}
-        <Text bold dim>
-          Esc/q
-        </Text>{" "}
-        quit
-      </Text>
+        <Kbd>Paste text</Kbd> to see events <Kbd>x</Kbd> clear <Kbd>Esc/q</Kbd> quit
+      </Muted>
     </Box>
   )
 }

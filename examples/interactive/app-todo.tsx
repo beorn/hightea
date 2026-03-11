@@ -23,7 +23,7 @@
  */
 
 import React from "react"
-import { Box, Text } from "../../src/index.js"
+import { Box, Text, Muted, Kbd } from "../../src/index.js"
 import { createApp, useApp } from "@silvery/term/runtime"
 import { pipe, withReact, withTerminal } from "@silvery/tea/plugins"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
@@ -78,7 +78,7 @@ function TodoList() {
       {todos.map((todo, i) => (
         <TodoItem key={todo.id} todo={todo} isCursor={i === cursor} />
       ))}
-      {todos.length === 0 && <Text dimColor>No todos. Press 'a' to add one.</Text>}
+      {todos.length === 0 && <Muted>No todos. Press 'a' to add one.</Muted>}
     </Box>
   )
 }
@@ -88,7 +88,7 @@ function TodoApp() {
     <Box flexDirection="column" padding={1}>
       <TodoList />
       <Text> </Text>
-      <Text dimColor>j/k: move • x: toggle • a: add • d: delete • Esc/q: quit</Text>
+      <Muted><Kbd>j/k</Kbd> move  <Kbd>x</Kbd> toggle  <Kbd>a</Kbd> add  <Kbd>d</Kbd> delete  <Kbd>Esc/q</Kbd> quit</Muted>
     </Box>
   )
 }

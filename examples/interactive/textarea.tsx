@@ -10,7 +10,7 @@
  */
 
 import React, { useState } from "react"
-import { render, Box, Text, TextArea, useInput, useApp, createTerm, type Key } from "../../src/index.js"
+import { render, Box, Text, Muted, TextArea, useInput, useApp, createTerm, type Key } from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -72,9 +72,9 @@ export function NoteEditor(): JSX.Element {
       </Box>
 
       <Box marginTop={1}>
-        <Text dim>
+        <Muted>
           {notes.length} note{notes.length !== 1 ? "s" : ""} submitted
-        </Text>
+        </Muted>
       </Box>
     </Box>
   )

@@ -19,7 +19,7 @@
  */
 
 import React from "react"
-import { Box, Text, useContentRect } from "../../src/index.js"
+import { Box, Text, Kbd, Muted, useContentRect } from "../../src/index.js"
 import { run, useInput, type Key } from "@silvery/term/runtime"
 import { useCallback } from "react"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
@@ -271,13 +271,10 @@ function LiveResize(): JSX.Element {
 
       {/* Footer */}
       <Box justifyContent="space-between" paddingX={1}>
-        <Text dim>Resize your terminal to see the layout reflow</Text>
-        <Text dim>
-          <Text bold dim>
-            Esc/q
-          </Text>{" "}
-          quit
-        </Text>
+        <Muted>Resize your terminal to see the layout reflow</Muted>
+        <Muted>
+          <Kbd>Esc/q</Kbd> quit
+        </Muted>
       </Box>
     </Box>
   )

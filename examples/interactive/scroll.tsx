@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from "react"
-import { Box, Text, render, useInput, useApp, createTerm, type Key } from "../../src/index.js"
+import { Box, Text, Kbd, Muted, render, useInput, useApp, createTerm, type Key } from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -57,17 +57,10 @@ export function ScrollExample() {
         ))}
       </Box>
 
-      <Text dim>
+      <Muted>
         {" "}
-        <Text bold dim>
-          j/k
-        </Text>{" "}
-        navigate{" "}
-        <Text bold dim>
-          Esc/q
-        </Text>{" "}
-        quit | Selected: {selectedIndex + 1}/{items.length}
-      </Text>
+        <Kbd>j/k</Kbd> navigate <Kbd>Esc/q</Kbd> quit | Selected: {selectedIndex + 1}/{items.length}
+      </Muted>
     </Box>
   )
 }

@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useDeferredValue, useTransition } from "react"
-import { render, Box, Text, useInput, useApp, createTerm, type Key } from "../../src/index.js"
+import { render, Box, Text, Kbd, Muted, Strong, Lead, useInput, useApp, createTerm, type Key } from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -132,9 +132,9 @@ const items: Item[] = [
 function SearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <Box>
-      <Text bold color="$primary">
+      <Strong color="$primary">
         Search:{" "}
-      </Text>
+      </Strong>
       <Text>{value}</Text>
       <Text dim>|</Text>
     </Box>
@@ -155,10 +155,10 @@ function FilteredList({ query, isPending }: { query: string; isPending: boolean 
   return (
     <Box flexDirection="column" marginTop={1}>
       <Box marginBottom={1}>
-        <Text dim>
+        <Muted>
           {filtered.length} results
           {isPending && " (filtering...)"}
-        </Text>
+        </Muted>
       </Box>
       {filtered.map((item) => (
         <Box key={item.id} marginBottom={1}>
@@ -168,9 +168,7 @@ function FilteredList({ query, isPending }: { query: string; isPending: boolean 
         </Box>
       ))}
       {filtered.length === 0 && (
-        <Text dim italic>
-          No matches found
-        </Text>
+        <Lead>No matches found</Lead>
       )}
     </Box>
   )
@@ -218,17 +216,10 @@ export function SearchApp(): JSX.Element {
         <FilteredList query={deferredQuery} isPending={isPending} />
       </Box>
 
-      <Text dim>
+      <Muted>
         {" "}
-        <Text bold dim>
-          type
-        </Text>{" "}
-        to search{" "}
-        <Text bold dim>
-          Esc/q
-        </Text>{" "}
-        quit
-      </Text>
+        <Kbd>type</Kbd> to search <Kbd>Esc/q</Kbd> quit
+      </Muted>
     </Box>
   )
 }

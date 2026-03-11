@@ -15,7 +15,7 @@
  */
 
 import React, { useState } from "react"
-import { render, Box, Text, useInput, useApp, useContentRect, createTerm, type Key } from "../../src/index.js"
+import { render, Box, Text, Kbd, Muted, useInput, useApp, useContentRect, createTerm, type Key } from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -68,8 +68,8 @@ function BorderPanel({ style, highlight }: { style: StyleVariant; highlight: boo
       <Box borderStyle={style} borderColor={highlight ? "$primary" : "$border"} width={30} height={9}>
         <ContentWithSize label="Border Box" />
       </Box>
-      <Text dim>Border adds to layout.</Text>
-      <Text dim>Content is pushed inward.</Text>
+      <Muted>Border adds to layout.</Muted>
+      <Muted>Content is pushed inward.</Muted>
     </Box>
   )
 }
@@ -83,8 +83,8 @@ function OutlinePanel({ style, highlight }: { style: StyleVariant; highlight: bo
       <Box outlineStyle={style} outlineColor={highlight ? "$warning" : "$border"} width={30} height={9}>
         <ContentWithSize label="Outline Box" />
       </Box>
-      <Text dim>Outline overlaps content.</Text>
-      <Text dim>No layout impact at all.</Text>
+      <Muted>Outline overlaps content.</Muted>
+      <Muted>No layout impact at all.</Muted>
     </Box>
   )
 }
@@ -132,21 +132,10 @@ export function OutlineDemo(): JSX.Element {
         <OutlinePanel style={currentStyle} highlight={focusedSide === "outline"} />
       </Box>
 
-      <Text dim>
+      <Muted>
         {" "}
-        <Text bold dim>
-          Tab
-        </Text>{" "}
-        toggle focus{" "}
-        <Text bold dim>
-          h/l
-        </Text>{" "}
-        change style{" "}
-        <Text bold dim>
-          Esc/q
-        </Text>{" "}
-        quit
-      </Text>
+        <Kbd>Tab</Kbd> toggle focus <Kbd>h/l</Kbd> change style <Kbd>Esc/q</Kbd> quit
+      </Muted>
     </Box>
   )
 }

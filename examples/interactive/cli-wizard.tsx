@@ -28,6 +28,11 @@ import {
   useInput,
   useApp,
   createTerm,
+  H1,
+  Muted,
+  Lead,
+  Kbd,
+  Code,
   type Key,
   type SelectOption,
 } from "../../src/index.js"
@@ -107,15 +112,11 @@ function FrameworkStep({ onSelect }: { onSelect: (option: SelectOption) => void 
   return (
     <Box flexDirection="column" paddingX={1}>
       <Box marginBottom={1}>
-        <Text bold color="$primary">
-          ? Select a framework:
-        </Text>
+        <H1>? Select a framework:</H1>
       </Box>
       <SelectList items={FRAMEWORKS} onSelect={onSelect} />
       <Box marginTop={1}>
-        <Text dim italic>
-          (Angular is coming soon)
-        </Text>
+        <Lead>(Angular is coming soon)</Lead>
       </Box>
     </Box>
   )
@@ -136,20 +137,16 @@ function NameStep({
   return (
     <Box flexDirection="column" paddingX={1}>
       <Box marginBottom={1}>
-        <Text bold color="$primary">
-          ? Project name
-        </Text>
-        <Text color="$muted"> ({framework})</Text>
-        <Text bold color="$primary">
-          :
-        </Text>
+        <H1>? Project name</H1>
+        <Muted> ({framework})</Muted>
+        <H1>:</H1>
       </Box>
       <Box>
         <Text color="$muted">{"\u276f "}</Text>
         <TextInput value={value} onChange={onChange} onSubmit={onSubmit} prompt="" />
       </Box>
       <Box marginTop={1}>
-        <Text dim>Press Enter to confirm</Text>
+        <Muted>Press Enter to confirm</Muted>
       </Box>
     </Box>
   )
@@ -183,41 +180,33 @@ function DoneStep({ framework, projectName }: { framework: string; projectName: 
   return (
     <Box flexDirection="column" paddingX={1}>
       <Box marginBottom={1}>
-        <Text bold color="$success">
-          {"\u2714"} Project created successfully!
-        </Text>
+        <H1 color="$success">{"\u2714"} Project created successfully!</H1>
       </Box>
 
       <Box flexDirection="column" borderStyle="round" borderColor="$success" paddingX={2} paddingY={1}>
         <Box>
-          <Text color="$muted">Framework: </Text>
+          <Muted>Framework: </Muted>
           <Text bold>{framework}</Text>
         </Box>
         <Box>
-          <Text color="$muted">Project: </Text>
+          <Muted>Project: </Muted>
           <Text bold>{projectName}</Text>
         </Box>
         <Box>
-          <Text color="$muted">Location: </Text>
+          <Muted>Location: </Muted>
           <Text bold>./{projectName}/</Text>
         </Box>
       </Box>
 
       <Box flexDirection="column" marginTop={1}>
-        <Text color="$muted">Get started:</Text>
-        <Text bold color="$primary">
-          {"  "}cd {projectName}
-        </Text>
-        <Text bold color="$primary">
-          {"  "}bun install
-        </Text>
-        <Text bold color="$primary">
-          {"  "}bun dev
-        </Text>
+        <Muted>Get started:</Muted>
+        <Code>{"  "}cd {projectName}</Code>
+        <Code>{"  "}bun install</Code>
+        <Code>{"  "}bun dev</Code>
       </Box>
 
       <Box marginTop={1}>
-        <Text dim>Press q or Esc to exit</Text>
+        <Muted>Press <Kbd>q</Kbd> or <Kbd>Esc</Kbd> to exit</Muted>
       </Box>
     </Box>
   )
@@ -292,10 +281,8 @@ export function CliWizard(): JSX.Element {
   return (
     <Box flexDirection="column" flexGrow={1}>
       <Box borderStyle="single" borderColor="$primary" paddingX={2} marginBottom={1}>
-        <Text bold color="$primary">
-          create-app
-        </Text>
-        <Text color="$muted"> v1.0.0</Text>
+        <H1>create-app</H1>
+        <Muted> v1.0.0</Muted>
       </Box>
 
       <StepIndicator current={stepNumber} total={4} />

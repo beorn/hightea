@@ -1,5 +1,5 @@
 import React from "react"
-import { Box, Text, ThemeProvider, getThemeByName, type Theme } from "../src/index.js"
+import { Box, Text, Strong, Muted, ThemeProvider, getThemeByName, type Theme } from "../src/index.js"
 
 export interface ExampleMeta {
   name: string
@@ -32,25 +32,23 @@ export function ExampleBanner({ meta, controls, theme, children }: Props) {
           <Text dim color="$warning">
             {"▸ silvery"}
           </Text>
-          <Text bold color="$text">
-            {meta.name}
-          </Text>
-          <Text color="$muted">— {meta.description}</Text>
+          <Strong>{meta.name}</Strong>
+          <Muted>— {meta.description}</Muted>
         </Box>
         {meta.features && meta.features.length > 0 && (
           <Box paddingX={1}>
-            <Text color="$muted">
+            <Muted>
               {"  "}
               {meta.features.join(" · ")}
-            </Text>
+            </Muted>
           </Box>
         )}
         {controls && (
           <Box paddingX={1}>
-            <Text color="$muted">
+            <Muted>
               {"  "}
               {controls}
-            </Text>
+            </Muted>
           </Box>
         )}
         {children}

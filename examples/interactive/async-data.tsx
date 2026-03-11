@@ -8,7 +8,7 @@
  */
 
 import React, { Suspense, useState, use } from "react"
-import { render, Box, Text, useInput, useApp, createTerm, ErrorBoundary, type Key } from "../../src/index.js"
+import { render, Box, Text, Kbd, Muted, useInput, useApp, createTerm, ErrorBoundary, type Key } from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -174,17 +174,10 @@ export function AsyncDataApp(): JSX.Element {
         </ErrorBoundary>
       </Box>
 
-      <Text dim>
+      <Muted>
         {" "}
-        <Text bold dim>
-          r
-        </Text>{" "}
-        refresh{" "}
-        <Text bold dim>
-          Esc/q
-        </Text>{" "}
-        quit
-      </Text>
+        <Kbd>r</Kbd> refresh <Kbd>Esc/q</Kbd> quit
+      </Muted>
     </Box>
   )
 }

@@ -22,7 +22,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react"
-import { Box, Text, Divider, VirtualList, useContentRect } from "../../src/index.js"
+import { Box, Text, Kbd, Muted, Divider, VirtualList, useContentRect } from "../../src/index.js"
 import { run, useInput, type Key } from "@silvery/term/runtime"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
@@ -394,28 +394,10 @@ function VirtualBenchmark(): JSX.Element {
 
       {/* Help */}
       <Box paddingX={1} justifyContent="center">
-        <Text dim>
-          <Text bold dim>
-            j/k
-          </Text>{" "}
-          navigate{" "}
-          <Text bold dim>
-            d/u
-          </Text>{" "}
-          half-page{" "}
-          <Text bold dim>
-            g/G
-          </Text>{" "}
-          start/end{" "}
-          <Text bold dim>
-            Enter
-          </Text>{" "}
-          detail{" "}
-          <Text bold dim>
-            Esc/q
-          </Text>{" "}
-          quit
-        </Text>
+        <Muted>
+          <Kbd>j/k</Kbd> navigate <Kbd>d/u</Kbd> half-page <Kbd>g/G</Kbd> start/end <Kbd>Enter</Kbd> detail{" "}
+          <Kbd>Esc/q</Kbd> quit
+        </Muted>
       </Box>
     </Box>
   )
