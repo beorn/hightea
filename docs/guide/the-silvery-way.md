@@ -2,7 +2,7 @@
 
 _How to build the shiniest Silvery apps_
 
-Silver tarnishes when you don't take care of it. So does your code. These are the principles that keep Silvery apps **shiny** — and the anti-patterns that let them go **tarnished**.
+Silver tarnishes when you don't take care of it. So does your code. These are the principles that keep Silvery apps **shiny** (best practices) — and the anti-patterns that let them go **tarnished** (common pitfalls).
 
 Each principle is something people get wrong. If you're coming from Ink, Blessed, or raw ANSI — we've all been there. These patterns are natural starting points, but Silvery gives you better tools. If you're already doing the shiny thing, skip ahead.
 
@@ -348,7 +348,7 @@ try {
 
 → [render()](/api/render) · [Lifecycle](/reference/lifecycle)
 
-## 9. Relax and Sip Some TEA
+## 9. Adopt TEA Gradually
 
 [`@silvery/tea`](/reference/packages) is a gradual path, not a rewrite. Start with `useState` — that's fine for simple components. When state gets shared, move to `createSlice`. When you need testable side effects, return `Effect[]` from your handlers instead of calling `fetch` inline. Each sip makes your app more testable, replayable, and composable — but you take them one at a time, when the complexity justifies it.
 
@@ -498,7 +498,7 @@ Manual visual testing is slow, unrepeatable, and doesn't catch regressions. If y
 6. **Use semantic theme colors** — `$tokens`, not hardcoded values
 7. **Compose with factory functions** — `pipe()`, not class hierarchies
 8. **Clean up with `using`** — one keyword, zero leaks
-9. **Relax and sip some TEA** — gradually: useState → createSlice → effects as data
+9. **Adopt TEA gradually** — useState → createSlice → effects as data, one step at a time
 10. **Test what the user sees** — render the buffer, not just the state
 
 Keep it shiny. ✨

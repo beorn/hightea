@@ -112,7 +112,7 @@ await app.run(
 
 As your app grows, selectors show their cost — Zustand runs every selector on every store update. [Signals](../reference/signals.md) solve this: components read `.value` and automatically subscribe to exactly what they touched. You'll see signals in the later sections — `createSlice` uses them for state.
 
-**When to move on:** You want undo — but `store.toggleDone()` mutated state and vanished. You want customizable keybindings — but `onClick={() => selectCard()}` has no name to remap. Both problems have the same root: behavior is function calls that execute and disappear. You need to turn behavior into data.
+**When to move on:** Picture this: your todo app grows a sidebar, a detail pane, and a command palette — all needing to toggle, move, and delete items. You add `store.toggleDone()`, `store.deleteTodo()`, `store.moveTodo()`. Now you want undo — but each method mutated state and vanished, leaving no trace to reverse. You want an AI agent to drive the UI — but it can’t call your methods, it needs structured data it can emit. You want customizable keybindings — but `key === "x" && store.toggleDone()` has no name to remap. All three problems have the same root: **behavior is function calls that execute and disappear**. You need to turn behavior into data — and the good news is your `createApp` code stays exactly as-is. `createSlice` wraps around what you have; you add a layer, you don’t rewrite.
 
 ## `createSlice()` — Actions as Data
 
