@@ -80,9 +80,10 @@ export interface RunOptions {
   kitty?: boolean | number
   /**
    * Enable SGR mouse tracking (mode 1006) for click, scroll, and drag events.
-   * When enabled, native text selection requires holding Shift (or Option on macOS).
-   * Set to `false` to restore native copy/paste behavior.
-   * Default: true
+   * When enabled, native text selection requires holding Shift (or Option on macOS)
+   * and native terminal scrolling is disabled.
+   * Default: `true` in fullscreen mode, `false` in inline mode (where content
+   * lives in terminal scrollback and natural scrolling is expected).
    */
   mouse?: boolean
   /**
@@ -276,7 +277,7 @@ export async function run(
     caps,
     alternateScreen: mode !== "inline",
     kitty: rest.kitty ?? caps.kittyKeyboard,
-    mouse: rest.mouse ?? true,
+    mouse: rest.mouse ?? mode !== "inline",
     focusReporting: rest.focusReporting ?? true,
     textSizing: rest.textSizing ?? "auto",
   })
