@@ -173,8 +173,7 @@ export type BoxProps = SilveryBoxProps
  * - flexWrap: 'nowrap'
  *
  * These match Ink's Box.tsx line 83-88 defaults. User-provided props override.
- * flexDirection defaults to 'column' to match Ink's behavior (silvery's Box defaults
- * to 'row' per W3C CSS spec, but Ink apps expect column).
+ * flexDirection defaults to 'row' to match Ink's behavior (Ink Box.tsx line 85).
  */
 export const Box = React.forwardRef<BoxHandle, BoxProps>(function InkBox(props, ref) {
   // Map Ink's per-axis overflow props to silvery's unified overflow
@@ -183,7 +182,7 @@ export const Box = React.forwardRef<BoxHandle, BoxProps>(function InkBox(props, 
     rest.overflow ?? (overflowX === "hidden" || overflowY === "hidden" ? "hidden" : undefined)
 
   return React.createElement(SilveryBox, {
-    flexDirection: "column",
+    flexDirection: "row",
     flexGrow: 0,
     flexShrink: 1,
     ...rest,
@@ -1037,6 +1036,31 @@ export function render(
 
   const stdout = options?.stdout as NodeJS.WriteStream | undefined
   const stdin = options?.stdin as NodeJS.ReadStream | undefined
+  const isScreenReaderEnabled = (options?.isScreenReaderEnabled as boolean) ?? false
+
+  // Screen reader mode: walk the React element tree to produce accessible text
+  if (isScreenReaderEnabled && stdout) {
+    const screenReaderOutput = renderScreenReaderOutput(element)
+    stdout.write(screenReaderOutput)
+    let unmounted = false
+    const instance: InkInstance = {
+      rerender: (newElement: import("react").ReactNode) => {
+        if (unmounted) return
+        const output = renderScreenReaderOutput(newElement)
+        stdout.write(output)
+      },
+      unmount: () => { unmounted = true },
+      [Symbol.dispose]() { instance.unmount() },
+      waitUntilExit: () => Promise.resolve(),
+      waitUntilRenderFlush: () => Promise.resolve(),
+      cleanup: () => { instance.unmount() },
+      clear: () => {},
+      flush: () => {},
+      pause: () => {},
+      resume: () => {},
+    }
+    return instance
+  }
 
   // When custom stdout is provided (test mode): delegate to silvery's test
   // renderer with autoRender for async state changes and onFrame for stdout writes.
@@ -1095,7 +1119,9 @@ export function render(
       // Cursor: only emit sequences when useCursor() is actively used.
       // Ink hides the cursor once at startup via cli-cursor, not per-frame.
       // We track transitions: emit show when cursor becomes visible, hide when it was visible and now isn't.
+      // When cursor was previously shown, hide it before writing the frame to prevent visual jumping.
       const cursorState = cursorStore.accessors.getCursorState()
+      const hidePrefix = cursorWasShown ? "\x1b[?25l" : ""
       if (cursorState?.visible) {
         let cursorEsc = cursorState.x === 0 ? "\x1b[G" : `\x1b[${cursorState.x + 1}G`
         if (cursorState.y > 0) {
@@ -1104,11 +1130,11 @@ export function render(
         }
         cursorEsc += "\x1b[?25h"
         cursorWasShown = true
-        stdout.write(result + cursorEsc)
+        stdout.write(hidePrefix + result + cursorEsc)
       } else if (cursorWasShown) {
         // Cursor was visible but now isn't — emit hide sequence
         cursorWasShown = false
-        stdout.write(result + "\x1b[?25l")
+        stdout.write(hidePrefix + result)
       } else {
         stdout.write(result)
       }

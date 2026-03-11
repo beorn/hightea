@@ -533,7 +533,11 @@ function applyPositionOffset(
   edge: number,
   value: number | string | undefined,
 ): void {
-  if (value === undefined) return
+  if (value === undefined) {
+    // Unset stale position offset when prop is removed on rerender
+    layoutNode.setPosition(edge, NaN)
+    return
+  }
   if (typeof value === "string" && value.endsWith("%")) {
     layoutNode.setPositionPercent(edge, Number.parseFloat(value))
   } else if (typeof value === "number") {

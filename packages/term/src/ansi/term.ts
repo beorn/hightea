@@ -44,7 +44,8 @@ export type { TermState, TermEvents } from "../runtime/term-provider"
 /**
  * ANSI escape code pattern for stripping.
  */
-const ANSI_REGEX = /\x1b\[[0-9;:]*m|\x1b\]8;;[^\x1b]*\x1b\\/g
+const ANSI_REGEX =
+  /\x1b\[[0-9;:]*m|\x9b[0-9;:]*m|\x1b\]8;;[^\x07\x1b]*(?:\x07|\x1b\\)|\x9d8;;[^\x07\x1b\x9c]*(?:\x07|\x1b\\|\x9c)/g
 
 /**
  * Strip all ANSI escape codes from a string.

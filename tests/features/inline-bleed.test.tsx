@@ -6,20 +6,175 @@
  * area. Without proper erasure, each freeze/advance cycle leaves residual lines
  * from previous renders ("inline bleed").
  *
- * These tests verify at two levels:
- *   1. Output phase (createOutputPhase + promoteScrollback): ANSI output contains
- *      erase sequences (\x1b[K) for orphan lines when content shrinks.
- *   2. Virtual terminal (vt100 backend): the terminal screen state after applying
- *      the ANSI output has no stale text below the active content.
+ * Tests use a minimal VT-like screen simulator that interprets the ANSI output
+ * from createOutputPhase() and checks the resulting screen state.
  */
 
 import { describe, test, expect } from "vitest"
 import { createBuffer, type TerminalBuffer } from "@silvery/term/buffer"
 import { createOutputPhase } from "@silvery/term/pipeline/output-phase"
-import { createVt100Backend } from "@termless/vt100"
 
 // ============================================================================
-// Helpers
+// Minimal VT Screen Simulator
+// ============================================================================
+
+/**
+ * Minimal terminal screen that interprets ANSI output from the inline output phase.
+ *
+ * Supports: cursor movement (CUU, CUD, CUF, CUB, CUP), carriage return,
+ * newline, erase-to-end-of-line (EL), erase-to-end-of-screen (ED),
+ * cursor show/hide. Does NOT need SGR parsing — we only care about
+ * text placement and erasure.
+ */
+function createScreen(cols: number, rows: number) {
+  const cells: string[][] = Array.from({ length: rows }, () => Array(cols).fill(" "))
+  let cursorX = 0
+  let cursorY = 0
+
+  function feed(ansi: string): void {
+    let i = 0
+    while (i < ansi.length) {
+      if (ansi[i] === "\x1b") {
+        // ESC sequence
+        if (ansi[i + 1] === "[") {
+          // CSI sequence: ESC [ (optional '?' or '>' prefix) params final-byte
+          let j = i + 2
+          let isPrivate = false
+          // Skip DEC private mode prefix (? or >)
+          if (j < ansi.length && (ansi[j] === "?" || ansi[j] === ">")) {
+            isPrivate = true
+            j++
+          }
+          // Collect parameter bytes (digits and semicolons)
+          let params = ""
+          while (j < ansi.length && ((ansi[j]! >= "0" && ansi[j]! <= "9") || ansi[j] === ";")) {
+            params += ansi[j]
+            j++
+          }
+          const cmd = ansi[j]
+          j++
+          const paramParts = params.split(";")
+          const n = paramParts[0] ? parseInt(paramParts[0], 10) : 1
+
+          if (isPrivate) {
+            // DEC private mode sequences — ignore (cursor show/hide, etc.)
+            i = j
+            continue
+          }
+
+          switch (cmd) {
+            case "A": // CUU - cursor up
+              cursorY = Math.max(0, cursorY - n)
+              break
+            case "B": // CUD - cursor down
+              cursorY = Math.min(rows - 1, cursorY + n)
+              break
+            case "C": // CUF - cursor forward
+              cursorX = Math.min(cols - 1, cursorX + n)
+              break
+            case "D": // CUB - cursor back
+              cursorX = Math.max(0, cursorX - n)
+              break
+            case "H": {
+              // CUP - cursor position
+              cursorY = Math.max(0, (parseInt(paramParts[0] || "1", 10) - 1))
+              cursorX = Math.max(0, (parseInt(paramParts[1] || "1", 10) - 1))
+              break
+            }
+            case "J": // ED - erase display
+              if (params === "" || params === "0") {
+                // Erase from cursor to end of screen
+                for (let x = cursorX; x < cols; x++) cells[cursorY]![x] = " "
+                for (let y = cursorY + 1; y < rows; y++) {
+                  for (let x = 0; x < cols; x++) cells[y]![x] = " "
+                }
+              } else if (params === "2") {
+                // Erase entire screen
+                for (let y = 0; y < rows; y++) {
+                  for (let x = 0; x < cols; x++) cells[y]![x] = " "
+                }
+              } else if (params === "3") {
+                // Erase scrollback (no-op)
+              }
+              break
+            case "K": // EL - erase in line
+              if (params === "" || params === "0") {
+                for (let x = cursorX; x < cols; x++) cells[cursorY]![x] = " "
+              }
+              break
+            case "m": // SGR - style (ignore)
+              break
+            default:
+              // Unknown CSI — skip
+              break
+          }
+          i = j
+        } else if (ansi[i + 1] === "]") {
+          // OSC sequence — skip to ST (\x1b\\) or BEL (\x07)
+          let j = i + 2
+          while (j < ansi.length) {
+            if (ansi[j] === "\x07") {
+              j++
+              break
+            }
+            if (ansi[j] === "\x1b" && ansi[j + 1] === "\\") {
+              j += 2
+              break
+            }
+            j++
+          }
+          i = j
+        } else {
+          i += 2 // Unknown ESC sequence
+        }
+      } else if (ansi[i] === "\r") {
+        cursorX = 0
+        i++
+      } else if (ansi[i] === "\n") {
+        cursorY++
+        if (cursorY >= rows) {
+          // Scroll: shift all rows up by 1, bottom row becomes empty
+          cells.shift()
+          cells.push(Array(cols).fill(" "))
+          cursorY = rows - 1
+        }
+        i++
+      } else {
+        // Regular character — write at cursor position
+        if (cursorX < cols && cursorY < rows) {
+          cells[cursorY]![cursorX] = ansi[i]!
+          cursorX++
+          if (cursorX >= cols) {
+            // Line wrap: do NOT auto-advance to next line here.
+            // Real terminals enter "pending wrap" state — the cursor stays at
+            // cols-1 until the next character or newline. For our purposes,
+            // clamping to cols-1 is sufficient.
+            cursorX = cols - 1
+          }
+        }
+        i++
+      }
+    }
+  }
+
+  function getLines(): string[] {
+    return cells.map((row) => row.join("").trimEnd())
+  }
+
+  /** Get non-empty lines (trim trailing empty lines). */
+  function getNonEmptyLines(): string[] {
+    const lines = getLines()
+    while (lines.length > 0 && lines[lines.length - 1] === "") {
+      lines.pop()
+    }
+    return lines
+  }
+
+  return { feed, getLines, getNonEmptyLines }
+}
+
+// ============================================================================
+// Buffer Helpers
 // ============================================================================
 
 /** Write a line of text into a buffer at the given row. */
@@ -38,37 +193,6 @@ function bufferWithLines(width: number, height: number, lines: string[]): Termin
   return buf
 }
 
-/**
- * Feed ANSI output to a VT100 terminal emulator and return the visible text.
- * Returns an array of trimmed lines (no trailing whitespace).
- */
-function feedToVt100(
-  ansi: string,
-  cols: number,
-  rows: number,
-  existingBackend?: ReturnType<typeof createVt100Backend>,
-): { backend: ReturnType<typeof createVt100Backend>; lines: string[] } {
-  const backend = existingBackend ?? createVt100Backend({ cols, rows })
-  backend.feed(new TextEncoder().encode(ansi))
-  const text = backend.getText()
-  const lines = text.split("\n").map((l) => l.trimEnd())
-  return { backend, lines }
-}
-
-/**
- * Get the non-empty lines from a VT100 backend's visible screen.
- * Filters out completely empty lines at the bottom.
- */
-function getNonEmptyLines(backend: ReturnType<typeof createVt100Backend>): string[] {
-  const text = backend.getText()
-  const lines = text.split("\n").map((l) => l.trimEnd())
-  // Trim trailing empty lines
-  while (lines.length > 0 && lines[lines.length - 1] === "") {
-    lines.pop()
-  }
-  return lines
-}
-
 // ============================================================================
 // Tests
 // ============================================================================
@@ -78,8 +202,9 @@ describe("inline bleed: stale lines after scrollback promotion", () => {
     const COLS = 40
     const ROWS = 10
     const outputPhase = createOutputPhase({})
+    const screen = createScreen(COLS, ROWS)
 
-    // Frame 1: Initial render with 5 lines of content
+    // Frame 1: 5 lines of content
     const buf1 = bufferWithLines(COLS, ROWS, [
       "Item 1",
       "Item 2",
@@ -88,38 +213,27 @@ describe("inline bleed: stale lines after scrollback promotion", () => {
       "Footer",
     ])
     const frame1 = outputPhase(null, buf1, "inline", 0, ROWS)
+    screen.feed(frame1)
+    expect(screen.getNonEmptyLines()).toEqual([
+      "Item 1",
+      "Item 2",
+      "Item 3",
+      "Item 4",
+      "Footer",
+    ])
 
-    // Verify initial render via VT100
-    const { backend } = feedToVt100(frame1, COLS, ROWS)
-    const initialLines = getNonEmptyLines(backend)
-    expect(initialLines).toEqual(["Item 1", "Item 2", "Item 3", "Item 4", "Footer"])
-
-    // Frame 2: Freeze "Item 1" — promote it to scrollback.
-    // Live content now has 4 lines (Items 2-4 + Footer), but the frozen line
-    // is written by promoteScrollback as a separate prefix.
+    // Frame 2: Freeze "Item 1" — promote to scrollback.
+    // Live content shrinks: 4 lines (Items 2-4 + Footer).
     const frozenContent = "Item 1\x1b[K\r\n"
-    const frozenLineCount = 1
-    outputPhase.promoteScrollback!(frozenContent, frozenLineCount)
+    outputPhase.promoteScrollback!(frozenContent, 1)
 
-    // The live buffer now has only 4 items (Item 2 through Footer)
     const buf2 = bufferWithLines(COLS, ROWS, ["Item 2", "Item 3", "Item 4", "Footer"])
     const frame2 = outputPhase(buf1, buf2, "inline", 0, ROWS)
+    screen.feed(frame2)
 
-    // Feed frame2 to the same VT100 backend
-    backend.feed(new TextEncoder().encode(frame2))
-    const afterFreeze = getNonEmptyLines(backend)
-
-    // The terminal should show:
-    //   Line 0: "Item 1"  (frozen content, overwritten in-place)
-    //   Line 1: "Item 2"  (live)
-    //   Line 2: "Item 3"  (live)
-    //   Line 3: "Item 4"  (live)
-    //   Line 4: "Footer"  (live)
-    //   Line 5+: EMPTY (no stale content)
-    //
-    // Without the fix, line 5 would still contain "Footer" from the previous
-    // frame (5 lines of live content → 4 lines, orphan at position 5).
-    expect(afterFreeze.length).toBeLessThanOrEqual(5)
+    const afterFreeze = screen.getNonEmptyLines()
+    // Expected: frozen "Item 1" + live Items 2-4 + Footer = 5 lines.
+    // No stale content on line 5 (was "Footer" from previous render).
     expect(afterFreeze).toEqual(["Item 1", "Item 2", "Item 3", "Item 4", "Footer"])
   })
 
@@ -127,34 +241,35 @@ describe("inline bleed: stale lines after scrollback promotion", () => {
     const COLS = 40
     const ROWS = 15
     const outputPhase = createOutputPhase({})
+    const screen = createScreen(COLS, ROWS)
 
     // Frame 1: 6 items
     const lines1 = ["Task A", "Task B", "Task C", "Task D", "Task E", "Status"]
     const buf1 = bufferWithLines(COLS, ROWS, lines1)
-    const frame1 = outputPhase(null, buf1, "inline", 0, ROWS)
-
-    const { backend } = feedToVt100(frame1, COLS, ROWS)
-    expect(getNonEmptyLines(backend)).toEqual(lines1)
+    screen.feed(outputPhase(null, buf1, "inline", 0, ROWS))
+    expect(screen.getNonEmptyLines()).toEqual(lines1)
 
     // Freeze cycle 1: freeze Task A
     outputPhase.promoteScrollback!("Task A\x1b[K\r\n", 1)
     const buf2 = bufferWithLines(COLS, ROWS, ["Task B", "Task C", "Task D", "Task E", "Status"])
-    const frame2 = outputPhase(buf1, buf2, "inline", 0, ROWS)
-    backend.feed(new TextEncoder().encode(frame2))
+    screen.feed(outputPhase(buf1, buf2, "inline", 0, ROWS))
 
-    let visibleLines = getNonEmptyLines(backend)
-    expect(visibleLines).toEqual(["Task A", "Task B", "Task C", "Task D", "Task E", "Status"])
+    expect(screen.getNonEmptyLines()).toEqual([
+      "Task A",
+      "Task B",
+      "Task C",
+      "Task D",
+      "Task E",
+      "Status",
+    ])
 
     // Freeze cycle 2: freeze Task B
     outputPhase.promoteScrollback!("Task B\x1b[K\r\n", 1)
     const buf3 = bufferWithLines(COLS, ROWS, ["Task C", "Task D", "Task E", "Status"])
-    const frame3 = outputPhase(buf2, buf3, "inline", 0, ROWS)
-    backend.feed(new TextEncoder().encode(frame3))
+    screen.feed(outputPhase(buf2, buf3, "inline", 0, ROWS))
 
-    visibleLines = getNonEmptyLines(backend)
-    // Should be: Task A (frozen1), Task B (frozen2), Task C, Task D, Task E, Status
-    // And NO stale lines after Status
-    expect(visibleLines).toEqual([
+    const afterCycle2 = screen.getNonEmptyLines()
+    expect(afterCycle2).toEqual([
       "Task A",
       "Task B",
       "Task C",
@@ -166,13 +281,11 @@ describe("inline bleed: stale lines after scrollback promotion", () => {
     // Freeze cycle 3: freeze Task C
     outputPhase.promoteScrollback!("Task C\x1b[K\r\n", 1)
     const buf4 = bufferWithLines(COLS, ROWS, ["Task D", "Task E", "Status"])
-    const frame4 = outputPhase(buf3, buf4, "inline", 0, ROWS)
-    backend.feed(new TextEncoder().encode(frame4))
+    screen.feed(outputPhase(buf3, buf4, "inline", 0, ROWS))
 
-    visibleLines = getNonEmptyLines(backend)
-    // Total occupied: 3 frozen + 3 live = 6 lines
-    // No stale lines below
-    expect(visibleLines).toEqual([
+    const afterCycle3 = screen.getNonEmptyLines()
+    // Total: 3 frozen + 3 live = 6 lines. No stale lines below.
+    expect(afterCycle3).toEqual([
       "Task A",
       "Task B",
       "Task C",
@@ -182,54 +295,13 @@ describe("inline bleed: stale lines after scrollback promotion", () => {
     ])
   })
 
-  test("ANSI output contains erase sequences for orphan lines", () => {
-    const COLS = 40
-    const ROWS = 10
-    const outputPhase = createOutputPhase({})
-
-    // Frame 1: 4 lines
-    const buf1 = bufferWithLines(COLS, ROWS, ["Line A", "Line B", "Line C", "Line D"])
-    outputPhase(null, buf1, "inline", 0, ROWS)
-
-    // Freeze Line A: live content shrinks from 4 to 3 lines
-    outputPhase.promoteScrollback!("Line A\x1b[K\r\n", 1)
-    const buf2 = bufferWithLines(COLS, ROWS, ["Line B", "Line C", "Line D"])
-    const frame2 = outputPhase(buf1, buf2, "inline", 0, ROWS)
-
-    // The promotion writes 1 frozen + 3 live = 4 lines total.
-    // Previous frame was 4 lines. So there should be no orphan (4 == 4).
-    // No extra erase needed in this case.
-
-    // Now freeze Line B: live content shrinks from 3 to 2 lines
-    outputPhase.promoteScrollback!("Line B\x1b[K\r\n", 1)
-    const buf3 = bufferWithLines(COLS, ROWS, ["Line C", "Line D"])
-    const frame3 = outputPhase(buf2, buf3, "inline", 0, ROWS)
-
-    // The promotion writes 1 frozen + 2 live = 3 lines total.
-    // Previous "prevOutputLines" was 3 (the live content from previous frame).
-    // So oldTotalLines=3, nextLastLine=1+2-1=2, lastOccupied=3-1=2.
-    // 2 > 2 is false, so no erasure. But the actual terminal occupied 4 lines
-    // (frozen1 + frozen2 + live2). The 4th line from the first frame's render
-    // may still be present. This is the potential bug scenario.
-    //
-    // The test verifies the terminal state is correct regardless of the
-    // internal accounting.
-
-    const { backend } = feedToVt100("", COLS, ROWS)
-    // Replay all frames on a fresh terminal
-    backend.feed(new TextEncoder().encode(outputPhase(null, buf1, "inline", 0, ROWS)))
-
-    // Actually, we need to use a single output phase instance. Let me redo this.
-    // (The test above already covers this via VT100 verification.)
-    expect(frame3).toBeDefined()
-  })
-
   test("content shrinking without promotion erases orphan lines", () => {
     const COLS = 40
     const ROWS = 10
     const outputPhase = createOutputPhase({})
+    const screen = createScreen(COLS, ROWS)
 
-    // Frame 1: 5 lines of content
+    // Frame 1: 5 lines
     const buf1 = bufferWithLines(COLS, ROWS, [
       "Alpha",
       "Bravo",
@@ -237,17 +309,15 @@ describe("inline bleed: stale lines after scrollback promotion", () => {
       "Delta",
       "Echo",
     ])
-    const frame1 = outputPhase(null, buf1, "inline", 0, ROWS)
-    const { backend } = feedToVt100(frame1, COLS, ROWS)
-    expect(getNonEmptyLines(backend)).toEqual(["Alpha", "Bravo", "Charlie", "Delta", "Echo"])
+    screen.feed(outputPhase(null, buf1, "inline", 0, ROWS))
+    expect(screen.getNonEmptyLines()).toEqual(["Alpha", "Bravo", "Charlie", "Delta", "Echo"])
 
-    // Frame 2: Content shrinks to 3 lines (no scrollback promotion, just fewer items)
+    // Frame 2: Shrinks to 3 lines (no scrollback, just fewer items)
     const buf2 = bufferWithLines(COLS, ROWS, ["Alpha", "Bravo", "Charlie"])
-    const frame2 = outputPhase(buf1, buf2, "inline", 0, ROWS)
-    backend.feed(new TextEncoder().encode(frame2))
+    screen.feed(outputPhase(buf1, buf2, "inline", 0, ROWS))
 
-    const afterShrink = getNonEmptyLines(backend)
-    // Lines 3-4 ("Delta", "Echo") should be erased
+    const afterShrink = screen.getNonEmptyLines()
+    // "Delta" and "Echo" should be erased
     expect(afterShrink).toEqual(["Alpha", "Bravo", "Charlie"])
   })
 
@@ -255,25 +325,24 @@ describe("inline bleed: stale lines after scrollback promotion", () => {
     const COLS = 40
     const ROWS = 10
     const outputPhase = createOutputPhase({})
+    const screen = createScreen(COLS, ROWS)
 
     // Frame 1: 4 lines
     const buf1 = bufferWithLines(COLS, ROWS, ["One", "Two", "Three", "Four"])
-    const frame1 = outputPhase(null, buf1, "inline", 0, ROWS)
-    const { backend } = feedToVt100(frame1, COLS, ROWS)
+    screen.feed(outputPhase(null, buf1, "inline", 0, ROWS))
 
     // Frame 2: Only 1 line
     const buf2 = bufferWithLines(COLS, ROWS, ["Only"])
-    const frame2 = outputPhase(buf1, buf2, "inline", 0, ROWS)
-    backend.feed(new TextEncoder().encode(frame2))
+    screen.feed(outputPhase(buf1, buf2, "inline", 0, ROWS))
 
-    const afterShrink = getNonEmptyLines(backend)
-    expect(afterShrink).toEqual(["Only"])
+    expect(screen.getNonEmptyLines()).toEqual(["Only"])
   })
 
   test("freeze + subsequent shrink does not leave double-orphan", () => {
     const COLS = 40
     const ROWS = 12
     const outputPhase = createOutputPhase({})
+    const screen = createScreen(COLS, ROWS)
 
     // Frame 1: 5 live items
     const buf1 = bufferWithLines(COLS, ROWS, [
@@ -283,34 +352,32 @@ describe("inline bleed: stale lines after scrollback promotion", () => {
       "Item 4",
       "Item 5",
     ])
-    const frame1 = outputPhase(null, buf1, "inline", 0, ROWS)
-    const { backend } = feedToVt100(frame1, COLS, ROWS)
-    expect(getNonEmptyLines(backend)).toHaveLength(5)
+    screen.feed(outputPhase(null, buf1, "inline", 0, ROWS))
+    expect(screen.getNonEmptyLines()).toHaveLength(5)
 
-    // Frame 2: Freeze Item 1, and also remove Item 5 (net content shrinks by 1)
+    // Frame 2: Freeze Item 1 AND remove Item 5 (net shrink by 1)
     outputPhase.promoteScrollback!("Item 1\x1b[K\r\n", 1)
     const buf2 = bufferWithLines(COLS, ROWS, ["Item 2", "Item 3", "Item 4"])
-    const frame2 = outputPhase(buf1, buf2, "inline", 0, ROWS)
-    backend.feed(new TextEncoder().encode(frame2))
+    screen.feed(outputPhase(buf1, buf2, "inline", 0, ROWS))
 
-    const afterFreezeAndShrink = getNonEmptyLines(backend)
-    // Total visible: 1 frozen ("Item 1") + 3 live = 4 lines
-    // Old total was 5 lines, so 1 orphan line should be erased
+    const afterFreezeAndShrink = screen.getNonEmptyLines()
+    // Total visible: 1 frozen + 3 live = 4 lines
+    // Was 5 lines, so 1 orphan line should be erased
     expect(afterFreezeAndShrink).toEqual(["Item 1", "Item 2", "Item 3", "Item 4"])
   })
 
-  test("rapid freeze cycles (every item frozen) leaves clean terminal", () => {
+  test("rapid freeze cycles: all items frozen one by one", () => {
     const COLS = 40
     const ROWS = 10
     const outputPhase = createOutputPhase({})
+    const screen = createScreen(COLS, ROWS)
 
     const allItems = ["A", "B", "C", "D", "E"]
 
     // Frame 1: All 5 items live
     let prevBuf = bufferWithLines(COLS, ROWS, allItems)
-    const frame1 = outputPhase(null, prevBuf, "inline", 0, ROWS)
-    const { backend } = feedToVt100(frame1, COLS, ROWS)
-    expect(getNonEmptyLines(backend)).toEqual(allItems)
+    screen.feed(outputPhase(null, prevBuf, "inline", 0, ROWS))
+    expect(screen.getNonEmptyLines()).toEqual(allItems)
 
     // Freeze items one at a time
     for (let i = 0; i < allItems.length; i++) {
@@ -318,15 +385,148 @@ describe("inline bleed: stale lines after scrollback promotion", () => {
       outputPhase.promoteScrollback!(`${frozenItem}\x1b[K\r\n`, 1)
 
       const remaining = allItems.slice(i + 1)
-      const nextBuf = bufferWithLines(COLS, ROWS, remaining.length > 0 ? remaining : [""])
+      // When all items are frozen, the live buffer has no content (empty first line)
+      const nextBuf = bufferWithLines(
+        COLS,
+        ROWS,
+        remaining.length > 0 ? remaining : [],
+      )
       const frame = outputPhase(prevBuf, nextBuf, "inline", 0, ROWS)
-      backend.feed(new TextEncoder().encode(frame))
+      screen.feed(frame)
       prevBuf = nextBuf
 
-      const visible = getNonEmptyLines(backend)
-      // Frozen items at top + remaining live items, no stale lines
-      const expected = [...allItems.slice(0, i + 1), ...remaining].filter(Boolean)
+      const visible = screen.getNonEmptyLines()
+      // All frozen items should be visible, plus remaining live items
+      const expected = [...allItems.slice(0, i + 1), ...remaining]
       expect(visible).toEqual(expected)
     }
+  })
+
+  test("promotion followed by normal render that shrinks content", () => {
+    const COLS = 40
+    const ROWS = 10
+    const outputPhase = createOutputPhase({})
+    const screen = createScreen(COLS, ROWS)
+
+    // Frame 1: 5 lines
+    const buf1 = bufferWithLines(COLS, ROWS, [
+      "Item 1",
+      "Item 2",
+      "Item 3",
+      "Item 4",
+      "Item 5",
+    ])
+    screen.feed(outputPhase(null, buf1, "inline", 0, ROWS))
+    expect(screen.getNonEmptyLines()).toHaveLength(5)
+
+    // Frame 2: Freeze Item 1 via promoteScrollback (live content: 4 items)
+    outputPhase.promoteScrollback!("Item 1\x1b[K\r\n", 1)
+    const buf2 = bufferWithLines(COLS, ROWS, ["Item 2", "Item 3", "Item 4", "Item 5"])
+    screen.feed(outputPhase(buf1, buf2, "inline", 0, ROWS))
+    expect(screen.getNonEmptyLines()).toEqual([
+      "Item 1",
+      "Item 2",
+      "Item 3",
+      "Item 4",
+      "Item 5",
+    ])
+
+    // Frame 3: Normal re-render (no promotion) where content shrinks.
+    // This simulates a state update removing an item AFTER the freeze cycle.
+    // The output phase should use inlineFullRender (content height changed)
+    // and properly erase the orphan line.
+    const buf3 = bufferWithLines(COLS, ROWS, ["Item 2", "Item 3", "Item 4"])
+    screen.feed(outputPhase(buf2, buf3, "inline", 0, ROWS))
+
+    const afterShrink = screen.getNonEmptyLines()
+    // Frozen "Item 1" at row 0, live rows 1-3 with Items 2-4.
+    // Row 4 (old "Item 5") should be erased.
+    expect(afterShrink).toEqual(["Item 1", "Item 2", "Item 3", "Item 4"])
+  })
+
+  test("cursor positioned mid-content does not cause bleed on shrink", () => {
+    const COLS = 40
+    const ROWS = 10
+    const outputPhase = createOutputPhase({})
+    const screen = createScreen(COLS, ROWS)
+
+    // Frame 1: 5 lines with cursor on row 2 (not at bottom)
+    const buf1 = bufferWithLines(COLS, ROWS, [
+      "Line 0",
+      "Line 1",
+      "Line 2",
+      "Line 3",
+      "Line 4",
+    ])
+    const cursorPos = { x: 3, y: 2, visible: true }
+    screen.feed(outputPhase(null, buf1, "inline", 0, ROWS, cursorPos))
+    expect(screen.getNonEmptyLines()).toHaveLength(5)
+
+    // Frame 2: Content shrinks to 3 lines, cursor still at row 1
+    const buf2 = bufferWithLines(COLS, ROWS, ["Line 0", "Line 1", "Line 2"])
+    const cursorPos2 = { x: 3, y: 1, visible: true }
+    screen.feed(outputPhase(buf1, buf2, "inline", 0, ROWS, cursorPos2))
+
+    const afterShrink = screen.getNonEmptyLines()
+    // Lines 3-4 should be erased despite cursor being at row 1 (not bottom)
+    expect(afterShrink).toEqual(["Line 0", "Line 1", "Line 2"])
+  })
+
+  test("multiple promotions with varying content sizes", () => {
+    const COLS = 40
+    const ROWS = 12
+    const outputPhase = createOutputPhase({})
+    const screen = createScreen(COLS, ROWS)
+
+    // Frame 1: 6 items
+    const buf1 = bufferWithLines(COLS, ROWS, [
+      "Job 1",
+      "Job 2",
+      "Job 3",
+      "Job 4",
+      "Job 5",
+      "Spinner",
+    ])
+    screen.feed(outputPhase(null, buf1, "inline", 0, ROWS))
+    expect(screen.getNonEmptyLines()).toHaveLength(6)
+
+    // Freeze Job 1, add Job 6 (content stays same size)
+    outputPhase.promoteScrollback!("Job 1\x1b[K\r\n", 1)
+    const buf2 = bufferWithLines(COLS, ROWS, [
+      "Job 2",
+      "Job 3",
+      "Job 4",
+      "Job 5",
+      "Job 6",
+      "Spinner",
+    ])
+    screen.feed(outputPhase(buf1, buf2, "inline", 0, ROWS))
+    expect(screen.getNonEmptyLines()).toEqual([
+      "Job 1",
+      "Job 2",
+      "Job 3",
+      "Job 4",
+      "Job 5",
+      "Job 6",
+      "Spinner",
+    ])
+
+    // Freeze Jobs 2 and 3 simultaneously, Job 6 also done (net shrink by 1)
+    outputPhase.promoteScrollback!("Job 2\x1b[K\r\nJob 3\x1b[K\r\n", 2)
+    const buf3 = bufferWithLines(COLS, ROWS, ["Job 4", "Job 5", "Spinner"])
+    screen.feed(outputPhase(buf2, buf3, "inline", 0, ROWS))
+
+    const afterBulkFreeze = screen.getNonEmptyLines()
+    // Frozen: Job 1, Job 2, Job 3. Live: Job 4, Job 5, Spinner = 6 total.
+    // Was 7 lines (1 frozen + 6 live), now 6 (3 frozen + 3 live).
+    // The orphan line (old "Spinner" at row 6) should be erased.
+    expect(afterBulkFreeze).toEqual([
+      "Job 1",
+      "Job 2",
+      "Job 3",
+      "Job 4",
+      "Job 5",
+      "Spinner",
+    ])
   })
 })
