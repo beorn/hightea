@@ -33,6 +33,280 @@ Deeper issue: **state management is coupled to the runtime.** `createApp` bundle
 
 **The litmus test:** Someone building a React DOM app should be able to `npm install @silvery/tea` and use `createModel` + signals without touching terminal rendering.
 
+## Core Concepts
+
+Three things compose to make a Silvery app:
+
+```
+Term ──── the terminal (I/O, dimensions, capabilities, styling, events)
+App ───── the runtime  (event loop, commands, plugins — state-agnostic)
+Model ─── the state    (actions, effects, signals — framework-agnostic)
+```
+
+**A Term** is a terminal. It knows its dimensions, what it can render (color, unicode, cursor), and how to write output. If it has stdin, it can produce events (keys, mouse, resize). `createTerm()` builds one from `process.stdin`/`stdout`, or headless for testing.
+
+**An App** is an event loop that connects a term to React components. It routes input to commands, manages lifecycle (alt screen, raw mode, cleanup), and runs plugins (keybindings, focus, DOM events). It doesn't own state — it dispatches to whatever store you give it (or none).
+
+**A Model** is a state machine. It bundles reactive state, named actions (ops-as-data), and effect definitions. Framework-agnostic — works with Silvery, React DOM, or vanilla JS. Optional — you can use Zustand, Jotai, or just `useState` instead.
+
+### How they compose
+
+```
+                    ┌─────────────────────────────────────────┐
+                    │               your code                 │
+                    │                                         │
+                    │   Model ──→ state + actions + effects   │
+                    │     │         (@silvery/tea, optional)   │
+                    │     │                                    │
+                    │     ▼                                    │
+render(<App />)     │   App ────→ commands + plugins           │
+run(<App />)  ──────│     │         (@silvery/term, optional)  │
+createApp().run()   │     │                                    │
+                    │     ▼                                    │
+                    │   Term ───→ I/O + dims + events          │
+                    │               (@silvery/term)            │
+                    └─────────────────────────────────────────┘
+```
+
+Each layer is optional except Term:
+
+| You need | You use | Example |
+|----------|---------|---------|
+| Static output | `render()` | CLI tool, print and exit |
+| Interactive + local state | `run()` | Simple app, `useState` + `useInput` |
+| Shared state + commands | `createApp().run()` | Multi-component app with any store |
+| Ops-as-data, effects, undo | `createApp({ model }).run()` | Full TEA app with `@silvery/tea` |
+
+The simplest app is one line. The most complex app uses all three concepts. You never rewrite — you add layers.
+
+## Rendering and Running
+
+There's one runtime system. The different entry points are layers of convenience on top of it.
+
+### `render()` — One-shot rendering
+
+Renders a React element. Always returns the output as a string. If the term has `.write`, also writes to it. Sync, no event loop.
+
+```tsx
+import { render } from "silvery"
+
+// Default — renders to stdout, returns string
+const output = render(<App />)
+
+// Custom terminal
+const output = render(<App />, term)
+
+// String only — fixed width, no terminal (testing, screenshots)
+const output = render(<App />, { width: 80 })
+```
+
+One function. No `renderSync`, no `renderStatic`, no `renderToString`. Pass a term (writes to it), pass `{ width }` (string only), or pass nothing (default stdout). `createTerm()` is only needed for reuse or custom streams — not the happy path.
+
+### `run()` — Interactive rendering
+
+Renders with an event loop. Components use `useInput()` for keyboard handling and `useState` for local state. This is `createApp().run()` with zero config.
+
+```tsx
+import { run, useInput } from "@silvery/term/runtime"
+
+function Counter() {
+  const [count, setCount] = useState(0)
+  useInput((input) => {
+    if (input === "j") setCount((c) => c + 1)
+    if (input === "q") return "exit"
+  })
+  return <Text>Count: {count}</Text>
+}
+
+await run(<Counter />)
+```
+
+### `createApp().run()` — Full runtime
+
+Adds shared state, commands, plugins. State-agnostic — bring `@silvery/tea`, Zustand, or anything else.
+
+```tsx
+import { createApp } from "@silvery/term/runtime"
+
+const app = createApp({
+  model: Todo,           // optional — any store, or none
+  commands: { ... },     // optional — named intents
+})
+
+await app.run(<TodoView />)
+```
+
+With plugins:
+
+```tsx
+const app = pipe(
+  createApp({ model: Todo, commands }),
+  withKeybindings({ j: "cursor_down", x: "toggle_done" }),
+  withFocus(),
+)
+
+await app.run(<TodoView />)
+```
+
+### Summary
+
+| Entry point | Returns | Event loop | Input | State |
+|-------------|---------|-----------|-------|-------|
+| `render(el, term?)` | `string` | No | No | No |
+| `run(el)` | `Promise` | Yes | `useInput()` | `useState` |
+| `createApp(config).run(el)` | `Promise` | Yes | Commands + keybindings | Any store |
+
+`run()` is sugar. `createApp()` is the real API. The sip progression moves you from one to the other without switching systems.
+
+## `Term` — The Terminal Abstraction
+
+`createTerm()` is the single entry point. It returns a `Term` — everything the runtime needs to interact with a terminal, in one object.
+
+### Creation
+
+Most users never call `createTerm()` — `render()` and `run()` create one internally from their arguments. But when you need a term explicitly:
+
+```tsx
+// ── Implicit (render/run create the term for you) ──
+
+render(<App />)                    // → createTerm() from process.stdout
+render(<App />, { width: 80 })     // → createTerm({ cols: 80, rows: 24 }) headless
+run(<App />)                       // → createTerm() with event loop
+
+// ── Explicit (when you need control) ──
+
+// Default — auto-detect everything from process.stdin/stdout
+using term = createTerm()
+
+// Custom streams — e.g. for testing, subprocesses, PTYs
+using term = createTerm({ stdout: pty.output, stdin: pty.input })
+
+// Headless — no I/O, fixed dimensions (unit tests, string rendering)
+const term = createTerm({ cols: 80, rows: 24 })
+
+// Override capabilities — e.g. force color in CI
+using term = createTerm({ color: "truecolor", unicode: true })
+
+// Override terminal caps — e.g. force kitty protocol
+using term = createTerm({ caps: { kittyKeyboard: true, mouse: "sgr" } })
+
+// Reuse across renders
+using term = createTerm()
+render(<Header />, term)
+render(<Body />, term)
+render(<Footer />, term)
+```
+
+Under the hood, `createTerm()` does:
+
+```
+createTerm(options?)
+  │
+  ├─ Has cols+rows but no stdout? → Headless term
+  │   └─ Fixed dims, no I/O, no events, styling still works
+  │
+  └─ Otherwise → Node term
+      ├─ Resolve stdout/stdin (default: process.stdout/stdin)
+      ├─ Detect capabilities (cached once):
+      │   ├─ hasCursor — stdout.isTTY
+      │   ├─ hasInput — stdin.isTTY + raw mode support
+      │   ├─ hasColor — TERM, COLORTERM, CI env detection → basic/256/truecolor
+      │   ├─ hasUnicode — locale / TERM_PROGRAM detection
+      │   └─ caps — kitty keyboard, mouse protocol, focus reporting, etc.
+      ├─ Create Chalk instance (color level from detection)
+      ├─ Build style Proxy (term.bold.red → chainable chalk calls)
+      └─ Lazy Provider (created on first getState/subscribe/events call):
+            └─ createTermProvider(stdin, stdout, { cols, rows })
+                ├─ Resize listener on stdout
+                ├─ Raw mode + input parser on stdin
+                └─ Emits: key, mouse, resize, paste, focus events
+```
+
+### Shape
+
+```typescript
+interface Term {
+  // Dimensions
+  readonly cols: number | undefined
+  readonly rows: number | undefined
+
+  // I/O (present on real terminals, absent on headless)
+  write?(str: string): void
+  writeLine?(str: string): void
+  readonly stdout?: NodeJS.WriteStream
+  readonly stdin?: NodeJS.ReadStream
+
+  // Detection
+  hasCursor(): boolean
+  hasInput(): boolean
+  hasColor(): ColorLevel | null
+  hasUnicode(): boolean
+  readonly caps: TerminalCaps | undefined
+
+  // Provider — state + events (lazy, created on first access)
+  getState(): { cols: number; rows: number }
+  subscribe(listener: (state) => void): () => void
+  events(): AsyncIterable<KeyEvent | MouseEvent | ResizeEvent | PasteEvent>
+
+  // Styling — chainable ANSI (term.bold.red("text"))
+  (text: string): string
+  readonly bold: Term
+  readonly red: Term
+  // ... all chalk styles via Proxy
+
+  // Lifecycle
+  [Symbol.dispose](): void
+}
+```
+
+### Duck typing
+
+Consumers take only what they need. Nothing checks `instanceof Term` — it's all structural:
+
+```typescript
+// render() needs dims + optional write
+render(<App />, term)
+//              ↑ uses: cols, rows, write?
+
+// run() needs dims + events + write
+run(<App />, term)
+//           ↑ uses: cols, rows, write, events()
+
+// A component just reads dims from context
+function Status() {
+  const { cols } = useTerm()  // from React context, injected by render/run
+  return <Text>Width: {cols}</Text>
+}
+
+// Styling works standalone — no terminal needed
+import { createTerm } from "silvery"
+const style = createTerm({ cols: 80, rows: 24 })
+console.log(style.bold.red("error"))
+```
+
+### Composability
+
+The Provider interface (`getState` / `subscribe` / `events`) is the composition point. `Term` lazily creates a `TermProvider` internally — the event stream that parses raw stdin into typed key, mouse, resize, and paste events.
+
+```
+createTerm()
+  ├── Detection: hasCursor, hasInput, hasColor, hasUnicode (cached)
+  ├── Styling: Proxy → Chalk (chainable ANSI)
+  ├── I/O: write(), writeLine() → stdout
+  └── Provider (lazy, on first getState/subscribe/events call)
+        └── createTermProvider(stdin, stdout)
+              ├── getState() → { cols, rows }
+              ├── subscribe() → resize notifications
+              └── events() → AsyncIterable<key | mouse | resize | paste>
+```
+
+This means:
+- **Styling-only usage** (`term.bold.red(...)`) never creates the Provider — no event listeners, no raw mode
+- **Testing** uses a headless term — same shape, no I/O, fixed dims
+- **Custom backends** (xterm.js, canvas) implement the same structural interface — `render()` and `run()` work unchanged
+
+The runtime never checks what kind of term it got. It calls `.write()` if present, reads `.cols`/`.rows` for layout, iterates `.events()` for input. Duck typing all the way down.
+
 ## `@silvery/tea` — The State Library
 
 ### Model
@@ -252,32 +526,42 @@ This hook works with any React renderer — Silvery, React DOM, React Native.
 
 ### Multiple models
 
-Models compose by namespace. They never import each other:
+Models compose by namespace. Cross-model communication uses op builders — each model exposes `.ops` for creating serializable dispatch effects:
 
 ```typescript
-const board = Board.create()
-const dialog = Dialog.create()
-const search = Search.create()
-
-// Cross-model communication via dispatch effects
+// Cross-model communication via op builders
 const Dialog = createModel({
   // ...
   actions: {
     confirm(s) {
       s.open.value = false
-      return [{ type: "dispatch", target: "board", op: "addItem", text: s.value.value }]
+      return [Board.ops.addItem({ text: s.value.value })]
+      // → { type: "dispatch", model: "board", op: "addItem", text: "..." }
     },
   },
 })
 ```
 
-The `dispatch` effect is data — it describes intent without importing the target model. The host (e.g. `createApp`) wires up the routing.
+`Board.ops.addItem(...)` creates a dispatch effect — serializable data that the runtime routes to the target model. Dialog imports Board's _type_ (for autocomplete and type checking) but never its instance. The runtime wires the routing:
+
+```typescript
+const app = createApp({
+  models: {
+    board: Board,    // ← runtime registers "board" as the namespace
+    dialog: Dialog,
+    search: Search,
+  },
+  // ...
+})
+```
+
+When Dialog returns `Board.ops.addItem(...)`, the runtime looks up "board" in the models map and calls `board.apply({ op: "addItem", text: "..." })`. Each model is testable in isolation — the dispatch effects are just data you can assert on.
 
 ## `createApp` — The Runtime Host
 
-`createApp` is about **runtime composition**: how input reaches your app and how your app reaches the terminal. It's state-agnostic.
+`createApp` is about **runtime composition**: how input reaches your app and how your app reaches the terminal. It's state-agnostic — see [Rendering and Running](#rendering-and-running) for the full entry point overview.
 
-### With `@silvery/tea` model (recommended path)
+### With `@silvery/tea` model
 
 ```typescript
 import { createApp } from "@silvery/term/runtime"
@@ -303,33 +587,51 @@ await app.run(<TodoView />)
 
 `createApp` recognizes a `@silvery/tea` model and wires up `apply`, effect routing, and state access automatically. Commands are part of `createApp` because they bridge input to state — they need both.
 
-### With Zustand (user's choice)
+### With Zustand
+
+Same todo app, same behavior — just wired differently:
 
 ```typescript
 import { create } from "zustand"
 
-const useStore = create((set) => ({
-  count: 0,
-  increment: () => set((s) => ({ count: s.count + 1 })),
+const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, max))
+
+const useStore = create((set, get) => ({
+  cursor: 0,
+  items: [
+    { id: "1", text: "Buy milk", done: false },
+    { id: "2", text: "Write docs", done: true },
+  ],
+  moveCursor: (delta: number) =>
+    set((s) => ({ cursor: clamp(s.cursor + delta, 0, s.items.length - 1) })),
+  toggleDone: (index: number) =>
+    set((s) => ({
+      items: s.items.map((item, i) => (i === index ? { ...item, done: !item.done } : item)),
+    })),
 }))
 
 const app = createApp({
-  events: {
-    key(input) {
-      if (input === "j") useStore.getState().increment()
-      if (input === "q") return "exit"
+  store: {
+    apply: (op) => useStore.getState()[op.op]?.(op),
+    getState: () => useStore.getState(),
+  },
+
+  commands: {
+    cursor_down: {
+      name: "Move Down",
+      action: () => ({ op: "moveCursor", delta: 1 }),
+    },
+    toggle_done: {
+      name: "Toggle Done",
+      action: (ctx) => ({ op: "toggleDone", index: ctx.state.cursor }),
     },
   },
 })
 
-await app.run(<Counter />)
+await app.run(<TodoView />)
 ```
 
-### With plain useState (simplest)
-
-```tsx
-await run(<Counter />)  // no createApp needed
-```
+The difference: Zustand gives you shared reactive state. You get commands and keybindings for free via `createApp`. But state changes are function calls — no undo, no replay, no serializable history. To add those, you'd reach for `@silvery/tea`.
 
 ### With multiple models
 
@@ -647,7 +949,8 @@ Three layers, loosely coupled:
 | keybindings in `createApp` | `withKeybindings()` plugin | UI concern, not state or runtime |
 | `tea(state, reducer, { runners })` | Removed — internal bridge no longer needed | `createApp` integrates with models directly |
 | `createStore(config)` | Stays — framework-free TEA store | Niche but real use case |
-| `run(element)` | Stays — sip 1, no state management | The floor |
+| `render()` / `renderSync()` / `renderStatic()` | `render(el, term?)` — one function, returns string, writes to term if writable | Four variants → one |
+| `run(element)` | Stays — sugar for `createApp().run(element)` | Simplest entry point |
 | `pipe()` + plugins | Stays — unchanged | Already clean |
 | `useApp(selector)` | `useModel(model, selector)` | Works with any React renderer |
 
@@ -779,6 +1082,60 @@ const app = createApp({
 ```
 
 The protocol is opt-in. It exists so that `commands` and `keybindings` can dispatch to your store — if you don't use commands, you don't need it.
+
+## How Silvery Compares
+
+Every TUI framework answers three questions: how do you talk to the terminal, how do you manage state, and how do you render? They differ in which parts they couple together.
+
+### The landscape
+
+| | Terminal | State | Rendering | Events | Composition |
+|---|---------|-------|-----------|--------|-------------|
+| **Ink** | Hidden | React hooks (`useState`) | Coupled to state (React) | `useInput()` hooks | React components |
+| **Bubbletea** | Hidden | Enforced TEA (Model/Update/View) | Decoupled (View is pure string) | Message dispatch | Functions + Cmds |
+| **Ratatui** | Explicit (`Terminal`) | BYO | Fully decoupled (immediate mode) | Manual event loop | Widget trait |
+| **Textual** | Hidden | Reactive (auto re-render) | Coupled (watchable props) | Message queue + bubbling | Widget hierarchy + CSS |
+| **Blessed** | Explicit (`Screen`) | Mutable widget state | Coupled (dirty flags) | Event emitters | DOM-like tree |
+| **Silvery** | Explicit (`Term`) | BYO (tea, Zustand, useState) | Decoupled | Commands + plugins | React components + models |
+
+### What each gets right
+
+**Bubbletea** nails the state model. Every state change is a message (serializable data). Side effects are Cmds (data, not function calls). View is a pure function. But it has no terminal abstraction — `tea.Program` hides everything. And composition is awkward — nested models require manual message forwarding.
+
+**Ratatui** nails decoupling. Terminal is explicit, state is yours, widgets are stateless render functions. But the developer writes the entire event loop by hand — no framework help.
+
+**Ink** nails the developer experience for simple apps. `render(<App />)` just works. But terminal is invisible (can't swap backends), state is React-only (no ops-as-data, no undo), and there's no command system.
+
+**Textual** nails the widget system. CSS styling, event bubbling, reactive properties. But it couples state to rendering (watchable properties auto-trigger re-render) and the message system is stringly-typed.
+
+### Where Silvery sits
+
+Silvery takes the best of each:
+
+| From | Silvery takes |
+|------|--------------|
+| **Bubbletea** | Ops-as-data, effects-as-data, pure state machines (`@silvery/tea`) |
+| **Ratatui** | Explicit terminal abstraction (`Term`), state decoupled from rendering |
+| **Ink** | React components, `render()` / `run()` simplicity, hooks |
+| **Textual** | Semantic theming (`$primary`, `$muted-fg`), component library |
+
+The key difference: **Silvery separates all three layers and lets you adopt them independently.**
+
+- Bubbletea enforces TEA for all state. Silvery makes it optional (`@silvery/tea` is one sip, not the floor).
+- Ink hides the terminal. Silvery exposes it (`Term`) so you can swap backends (terminal, xterm.js, canvas, headless).
+- Ratatui gives you nothing for state or events. Silvery provides commands, keybindings, and plugins when you want them.
+- Textual couples rendering to state. Silvery keeps them separate — React handles rendering, your store (any store) handles state.
+
+```
+         Bubbletea          Silvery              Ink
+         ─────────          ───────              ───
+State:   Enforced TEA  →    Optional TEA    →    React only
+Terminal: Hidden        →    Explicit (Term) →    Hidden
+Events:  Messages       →    Commands+plugins →   useInput hooks
+Render:  Pure strings   →    React components →   React components
+```
+
+Silvery's architecture is closest to Ratatui's philosophy (explicit terminal, decoupled state, BYO everything) but with React's developer experience (components, hooks, `render()`) and Bubbletea's state discipline (available when you want it).
 
 ## Open Questions
 
