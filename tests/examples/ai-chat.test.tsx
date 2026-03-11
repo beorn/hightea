@@ -104,7 +104,8 @@ describe("ai-chat example (in-process termless)", { timeout: 10000 }, () => {
       // Box drawing chars survive scrollback promotion
       expect(scrollbackText).toContain("╭")
       expect(scrollbackText).toContain("│")
-      // NOTE: ╰ missing = known inline rendering bug (scrollback promotion truncation)
+      // NOTE: ╰ missing at this point — known inline rendering bug (scrollback promotion truncation)
+      // The last promoted box's bottom border gets cut off. Full boxes promoted earlier do have ╰.
       // Uncomment when fixed: expect(scrollbackText).toContain("╰")
     }
     assertNoOverlappingBorders(term.screen!)

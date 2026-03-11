@@ -315,6 +315,12 @@ export interface Term extends Disposable, StyleChain {
    * Provides getText(), getLines(), containsText() for assertions.
    */
   readonly scrollback?: TermScreen
+
+  /**
+   * Resize the terminal emulator. Only available when created with a terminal backend.
+   * Resizes the underlying emulator and triggers a re-render in the app.
+   */
+  resize?(cols: number, rows: number): void
 }
 
 // =============================================================================
@@ -547,6 +553,13 @@ function createBackendTerm(emulator: TermEmulator): Term {
 
   const chalkInstance = new Chalk({ level: 3 }) // Emulators support truecolor
 
+  // Subscriber support for resize notifications
+  const listeners = new Set<(state: TermState) => void>()
+
+  // Event queue for resize events (consumed by events() async generator)
+  const eventQueue: ProviderEvent<TermEvents>[] = []
+  let eventResolve: (() => void) | null = null
+
   const termBase = {
     hasCursor: () => true,
     hasInput: () => false,
@@ -558,12 +571,36 @@ function createBackendTerm(emulator: TermEmulator): Term {
     write: (str: string) => emulator.feed(str),
     writeLine: (str: string) => emulator.feed(str + "\n"),
     getState: (): TermState => ({ cols: emulator.cols, rows: emulator.rows }),
-    subscribe: (): (() => void) => () => {},
+    subscribe: (listener: (state: TermState) => void): (() => void) => {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
     async *events(): AsyncIterable<ProviderEvent<TermEvents>> {
       if (disposed) return
-      await new Promise<void>((resolve) => {
-        controller.signal.addEventListener("abort", () => resolve(), { once: true })
-      })
+      while (!disposed && !controller.signal.aborted) {
+        if (eventQueue.length === 0) {
+          await new Promise<void>((resolve) => {
+            eventResolve = resolve
+            controller.signal.addEventListener("abort", () => resolve(), { once: true })
+          })
+        }
+        if (disposed || controller.signal.aborted) break
+        while (eventQueue.length > 0) {
+          yield eventQueue.shift()!
+        }
+      }
+    },
+    /** Resize the emulator and notify listeners/events */
+    resize: (cols: number, rows: number) => {
+      emulator.resize(cols, rows)
+      const state: TermState = { cols, rows }
+      listeners.forEach((l) => l(state))
+      eventQueue.push({ type: "resize", data: { cols, rows } })
+      if (eventResolve) {
+        const resolve = eventResolve
+        eventResolve = null
+        resolve()
+      }
     },
     stripAnsi,
     // Store emulator for run() to detect and auto-wire writable
@@ -572,6 +609,7 @@ function createBackendTerm(emulator: TermEmulator): Term {
       if (disposed) return
       disposed = true
       controller.abort()
+      listeners.clear()
       emulator.close().catch(() => {})
     },
   }

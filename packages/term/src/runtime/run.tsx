@@ -242,6 +242,8 @@ export async function run(
         writable: { write: (s: string) => emulator.feed(s) },
         cols: term.cols ?? 80,
         rows: term.rows ?? 24,
+        // Wire resize: term.subscribe() fires when term.resize() is called
+        onResize: (handler) => term.subscribe((state) => handler(state)),
       })
       return wrapHandle(handle)
     }

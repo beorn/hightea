@@ -69,6 +69,29 @@ describe("run() with createTermless()", () => {
     handle.unmount()
   })
 
+  test("term.resize() triggers re-render at new dimensions", async () => {
+    using term = createTermless({ cols: 40, rows: 10 })
+    const handle = await run(<Counter />, term)
+
+    expect(term.screen).toContainText("Counter")
+    const initialText = term.screen!.getText()
+
+    // Resize to wider terminal
+    term.resize!(80, 10)
+    // Wait for re-render
+    await new Promise((r) => setTimeout(r, 50))
+
+    expect(term.screen).toContainText("Counter")
+    expect(term.screen).toContainText("Count: 0")
+    // Box should be wider at 80 cols
+    const resizedText = term.screen!.getText()
+    const initialBoxLine = initialText.split("\n").find((l) => l.includes("╭"))!
+    const resizedBoxLine = resizedText.split("\n").find((l) => l.includes("╭"))!
+    expect(resizedBoxLine.length).toBeGreaterThan(initialBoxLine.length)
+
+    handle.unmount()
+  })
+
   test("exit via useInput return", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
     const handle = await run(<Counter />, term)

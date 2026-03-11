@@ -190,6 +190,12 @@ export interface AppRunOptions {
    * Requires cols and rows. Input via handle.press().
    */
   writable?: { write(data: string): void }
+  /**
+   * Subscribe to resize events in headless mode.
+   * Called with a handler that should be invoked when dimensions change.
+   * Returns an unsubscribe function.
+   */
+  onResize?: (handler: (dims: { cols: number; rows: number }) => void) => () => void
   /** Abort signal for external cleanup */
   signal?: AbortSignal
   /** Enter alternate screen buffer (clean slate, restore on exit). Default: false */
@@ -482,6 +488,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     caps: capsOption,
     Root: RootComponent,
     writable: explicitWritable,
+    onResize: explicitOnResize,
     ...injectValues
   } = options
 
@@ -516,15 +523,24 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // Create term provider if not provided
   let termProvider: TermProvider | null = null
   if (!("term" in injectValues) || !isFullProvider(injectValues.term)) {
-    // In headless mode, provide mock streams so termProvider doesn't touch real stdin/stdout
+    // In headless mode, provide mock streams so termProvider doesn't touch real stdin/stdout.
+    // When onResize is provided, the mock supports resize events so the term provider
+    // picks up dimension changes and triggers re-renders through the event loop.
+    const resizeListeners = new Set<() => void>()
     const termStdout = headless
       ? ({
           columns: cols,
           rows,
           write: () => true,
           isTTY: false,
-          on: () => termStdout,
-          off: () => termStdout,
+          on(event: string, handler: () => void) {
+            if (event === "resize") resizeListeners.add(handler)
+            return termStdout
+          },
+          off(event: string, handler: () => void) {
+            if (event === "resize") resizeListeners.delete(handler)
+            return termStdout
+          },
         } as unknown as NodeJS.WriteStream)
       : stdout
     const termStdin = headless
@@ -541,6 +557,22 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     termProvider = createTermProvider(termStdin, termStdout, { cols, rows })
     providers.term = termProvider as unknown as Provider<unknown, Record<string, unknown>>
     providerCleanups.push(() => termProvider![Symbol.dispose]())
+
+    // Wire onResize to the mock termStdout so the term provider sees resize events.
+    // This updates:
+    // 1. currentDims — so getDims() returns correct values for doRender()
+    // 2. mock termStdout columns/rows — so the term provider reads correct dimensions
+    // 3. mock termStdout resize listeners — triggers term:resize through the provider's
+    //    event stream → event loop → doRender()
+    if (headless && explicitOnResize) {
+      const unsub = explicitOnResize((dims) => {
+        currentDims = dims
+        ;(termStdout as { columns: number; rows: number }).columns = dims.cols
+        ;(termStdout as { columns: number; rows: number }).rows = dims.rows
+        for (const listener of resizeListeners) listener()
+      })
+      providerCleanups.push(unsub)
+    }
   }
 
   // Categorize injected values
