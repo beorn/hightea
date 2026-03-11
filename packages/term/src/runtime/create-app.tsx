@@ -712,7 +712,14 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     : undefined
 
   // Create runtime (pass scoped output phase to ensure measurer/caps are threaded)
-  const runtime = createRuntime({ target, signal, outputPhaseFn: pipelineConfig?.outputPhaseFn })
+  // mode must match alternateScreen: inline apps (alternateScreen=false) need
+  // inline output phase rendering (relative cursor) + scrollback offset tracking.
+  const runtime = createRuntime({
+    target,
+    signal,
+    mode: alternateScreen ? "fullscreen" : "inline",
+    outputPhaseFn: pipelineConfig?.outputPhaseFn,
+  })
 
   // Cleanup state
   let cleanedUp = false
