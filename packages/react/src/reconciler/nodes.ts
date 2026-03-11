@@ -210,7 +210,7 @@ function collectNodeTextContent(node: TeaNode): string {
     let childText = collectNodeTextContent(child)
     // Apply internal_transform from virtual text nodes (nested Transform components),
     // matching Ink's squashTextNodes which calls childNode.internal_transform(nodeText, index)
-    if (childText.length > 0 && child.props && (child.props as any).internal_transform) {
+    if (childText.length > 0 && (child.props as any).internal_transform) {
       childText = (child.props as any).internal_transform(childText, i)
     }
     result += childText

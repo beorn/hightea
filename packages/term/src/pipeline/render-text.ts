@@ -267,7 +267,7 @@ function collectPlainText(node: TeaNode): string {
   for (let i = 0; i < node.children.length; i++) {
     const child = node.children[i]!
     let childText = collectPlainText(child)
-    if (childText.length > 0 && child.props && (child.props as any).internal_transform) {
+    if (childText.length > 0 && (child.props as any).internal_transform) {
       childText = (child.props as any).internal_transform(childText, i)
     }
     result += childText
