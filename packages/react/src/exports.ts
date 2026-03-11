@@ -326,7 +326,7 @@ export { useFocusable } from "./hooks/useFocusable"
 export type { UseFocusableResult } from "./hooks/useFocusable"
 export { useFocusWithin } from "./hooks/useFocusWithin"
 
-export { useTerm } from "./hooks/useTerm"
+export { useTerm, shallow } from "./hooks/useTerm"
 export { useWindowSize } from "./hooks/useWindowSize"
 export { useConsole } from "./hooks/useConsole"
 export {
@@ -470,6 +470,10 @@ export {
 } from "./render"
 export { renderString, renderStringSync, type RenderStringOptions } from "./render-string"
 export { measureElement } from "./measureElement"
+
+// Accessibility (screen reader mode)
+export { renderScreenReaderOutput } from "./accessibility"
+export type { AriaState } from "./accessibility"
 
 // TermDef resolution utilities
 export {

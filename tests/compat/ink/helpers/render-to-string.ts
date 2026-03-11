@@ -9,7 +9,7 @@ import { renderStringSync } from "../../../../packages/react/src/render-string"
 import { ensureDefaultLayoutEngine, isLayoutEngineInitialized } from "../../../../packages/term/src/layout-engine"
 import { createTerm } from "../../../../packages/term/src/ansi"
 import { TermContext } from "../../../../packages/react/src/context"
-import { currentChalkLevel, toChalkCompat, restoreColonFormatSGR } from "../../../../packages/compat/src/ink"
+import { currentChalkLevel, restoreColonFormatSGR } from "../../../../packages/compat/src/ink"
 import { stripAnsi } from "../../../../packages/term/src/unicode"
 import chalk, { supportsColor } from "chalk"
 
@@ -72,7 +72,7 @@ function doRender(node: React.JSX.Element, options?: RenderToStringOptions): str
   // Empty fragment → empty string (strip ANSI to detect styled-but-empty output)
   if (stripAnsi(output).trim() === "") return ""
 
-  return plain ? output : toChalkCompat(output)
+  return output
 }
 
 /**

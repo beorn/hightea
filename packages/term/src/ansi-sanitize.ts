@@ -412,3 +412,98 @@ export function sanitizeAnsi(text: string): string {
 
   return result
 }
+
+// =============================================================================
+// Colon-format SGR round-trip tracking
+// =============================================================================
+
+/**
+ * A colon→semicolon SGR replacement pair.
+ */
+export interface ColonSGRReplacement {
+  semicolonForm: string
+  colonForm: string
+}
+
+/**
+ * Detect colon-format SGR sequences in an SGR token and return replacement pairs.
+ *
+ * Terminals use colon-separated parameters (e.g., `38:2::255:100:0`) for true color,
+ * but silvery's pipeline normalizes to semicolons (`38;2;255;100;0`). This function
+ * extracts the mapping so the original colon format can be restored after rendering.
+ *
+ * @param sgrSequence - A CSI SGR sequence (must end with 'm')
+ * @returns Array of replacement pairs, empty if no colon-format params found
+ */
+export function extractColonSGRReplacements(sgrSequence: string): ColonSGRReplacement[] {
+  const paramsMatch = sgrSequence.match(/\x1b\[([0-9;:]+)m/)
+  if (!paramsMatch) return []
+
+  const rawParams = paramsMatch[1]!
+  if (!rawParams.includes(":")) return []
+
+  const replacements: ColonSGRReplacement[] = []
+  const parts = rawParams.split(";")
+  for (const part of parts) {
+    if (!part.includes(":")) continue
+    const subs = part.split(":")
+    const code = Number(subs[0])
+    if ((code === 38 || code === 48) && Number(subs[1]) === 2) {
+      // True color colon format: code:2::R:G:B or code:2:R:G:B
+      // Extract R, G, B (skip empty colorspace ID)
+      const nums = subs.map((s) => (s === "" ? 0 : Number(s)))
+      const r = nums[3] ?? nums[2] ?? 0
+      const g = nums[4] ?? nums[3] ?? 0
+      const b = nums[5] ?? nums[4] ?? 0
+      const semicolonForm = `\x1b[${code};2;${r};${g};${b}m`
+      replacements.push({ semicolonForm, colonForm: `\x1b[${part}m` })
+    }
+  }
+  return replacements
+}
+
+/**
+ * Create a colon-format SGR tracker for round-trip preservation.
+ *
+ * Rendering is synchronous: sanitize → render → output in one call. The tracker
+ * accumulates colon→semicolon mappings during sanitization, then `restore()` applies
+ * them to the rendered output.
+ *
+ * @example
+ * ```ts
+ * const tracker = createColonSGRTracker()
+ * // During sanitization, register SGR tokens:
+ * tracker.register(sgrToken)
+ * // After rendering, restore original colon format:
+ * output = tracker.restore(output)
+ * // Optionally clear for reuse:
+ * tracker.clear()
+ * ```
+ */
+export function createColonSGRTracker(): {
+  register: (sgrSequence: string) => void
+  restore: (output: string) => string
+  clear: () => void
+} {
+  const replacements: ColonSGRReplacement[] = []
+
+  return {
+    register(sgrSequence: string): void {
+      const found = extractColonSGRReplacements(sgrSequence)
+      for (const r of found) replacements.push(r)
+    },
+
+    restore(output: string): string {
+      if (replacements.length === 0) return output
+      let result = output
+      for (const { semicolonForm, colonForm } of replacements) {
+        result = result.replaceAll(semicolonForm, colonForm)
+      }
+      return result
+    },
+
+    clear(): void {
+      replacements.length = 0
+    },
+  }
+}

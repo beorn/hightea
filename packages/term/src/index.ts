@@ -74,8 +74,8 @@ export type { DOMAdapterConfig } from "./adapters/dom-adapter"
 // ANSI Sanitizer
 // =============================================================================
 
-export { sanitizeAnsi, tokenizeAnsi } from "./ansi-sanitize"
-export type { AnsiToken } from "./ansi-sanitize"
+export { sanitizeAnsi, tokenizeAnsi, extractColonSGRReplacements, createColonSGRTracker } from "./ansi-sanitize"
+export type { AnsiToken, ColonSGRReplacement } from "./ansi-sanitize"
 
 // =============================================================================
 // ANSI Escape Sequences / Output

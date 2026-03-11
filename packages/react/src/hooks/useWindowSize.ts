@@ -1,9 +1,11 @@
-import { useCallback, useSyncExternalStore } from "react"
-import { useTerm } from "./useTerm"
+import { shallow, useTerm } from "./useTerm"
 
 /**
  * Hook to get the current terminal window size.
  * Re-renders when the terminal is resized.
+ *
+ * Uses term.getState() which always returns defined values (defaults to 80x24),
+ * unlike term.cols/rows which may be undefined for non-TTY streams.
  *
  * @example
  * ```tsx
@@ -16,19 +18,8 @@ import { useTerm } from "./useTerm"
  * ```
  */
 export function useWindowSize(): { columns: number; rows: number } {
-  const term = useTerm()
-
-  const subscribe = useCallback((listener: () => void) => term.subscribe(listener), [term])
-
-  const getSnapshot = useCallback(() => {
-    const { cols, rows } = term.getState()
-    return `${cols}x${rows}`
-  }, [term])
-
-  // useSyncExternalStore needs a stable snapshot for identity comparison.
-  // We serialize to a string so resizes trigger re-renders.
-  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
-  const [columns, rows] = snapshot.split("x").map(Number)
-
-  return { columns, rows }
+  return useTerm((t) => {
+    const s = t.getState()
+    return { columns: s.cols, rows: s.rows }
+  }, shallow)
 }
