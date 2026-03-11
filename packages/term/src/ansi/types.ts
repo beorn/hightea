@@ -170,17 +170,8 @@ export interface TermScreen {
 }
 
 /**
- * A terminal emulator backend — duck-type matching termless Terminal.
+ * A terminal emulator — duck-type matching termless Terminal.
  * Accepts ANSI output, provides screen/scrollback for inspection.
- *
- * Pass to createTerm() for in-process terminal emulation:
- * ```ts
- * import { createTerminal } from "@termless/core"
- * import { createXtermBackend } from "@termless/xtermjs"
- *
- * const emulator = createTerminal({ backend: createXtermBackend(), cols: 80, rows: 24 })
- * using term = createTerm(emulator)
- * ```
  */
 export interface TermEmulator {
   readonly cols: number
@@ -190,4 +181,22 @@ export interface TermEmulator {
   feed(data: Uint8Array | string): void
   resize(cols: number, rows: number): void
   close(): Promise<void>
+}
+
+/**
+ * A terminal emulator backend — duck-type matching termless TerminalBackend.
+ * Raw backend that needs initialization. Pass to createTerm(backend, { cols, rows }).
+ *
+ * @example
+ * ```ts
+ * import { createXtermBackend } from "@termless/xtermjs"
+ * using term = createTerm(createXtermBackend(), { cols: 80, rows: 24 })
+ * ```
+ */
+export interface TermEmulatorBackend {
+  readonly name: string
+  init(opts: { cols: number; rows: number; scrollbackLimit?: number }): void
+  destroy(): void
+  feed(data: Uint8Array): void
+  resize(cols: number, rows: number): void
 }

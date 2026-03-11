@@ -74,6 +74,7 @@ export type {
   ConsoleEntry,
   CreateTermOptions,
   TermEmulator,
+  TermEmulatorBackend,
   TermScreen,
 } from "./types"
 

@@ -84,13 +84,12 @@ Factory functions, `using` cleanup, no classes, no globals. ESM imports only. Ty
 `createTerm()` accepts a termless emulator for full ANSI testing — renders go through the real pipeline and a real terminal emulator (xterm.js), not stripped text:
 
 ```tsx
-import { createTerminal } from "@termless/core"
 import { createXtermBackend } from "@termless/xtermjs"
 import "@termless/test/matchers"
 import { createTerm } from "@silvery/term"
 import { run } from "@silvery/term/runtime"
 
-using term = createTerm(createTerminal({ backend: createXtermBackend(), cols: 80, rows: 24 }))
+using term = createTerm(createXtermBackend(), { cols: 80, rows: 24 })
 const handle = await run(<App />, term)
 
 expect(term.screen).toContainText("Hello")   // termless screen assertion
@@ -98,12 +97,12 @@ await handle.press("j")                       // input via handle
 expect(term.screen).toContainText("Count: 1")
 ```
 
-`createTerm(emulator)` creates a Term backed by a termless terminal emulator. When passed to `run()`, it auto-wires headless mode with ANSI output routing to the emulator. The Term exposes `screen` and `scrollback` from the emulator for assertions.
+`createTerm(backend, dims)` creates a Term backed by a termless terminal emulator. When passed to `run()`, it auto-wires headless mode with ANSI output routing to the emulator. The Term exposes `screen` and `scrollback` from the emulator for assertions.
 
 Three kinds of Term:
 - `createTerm()` — Node.js terminal (real stdin/stdout)
 - `createTerm({ cols, rows })` — Headless (no output)
-- `createTerm(emulator)` — Terminal emulator (real ANSI processing, screen/scrollback)
+- `createTerm(backend, { cols, rows })` — Terminal emulator (real ANSI processing, screen/scrollback)
 
 Use `@silvery/test` + `createRenderer()` for fast stripped-text tests; use `createTerm(emulator)` when you need to verify ANSI output, box drawing, colors, or cursor positioning.
 

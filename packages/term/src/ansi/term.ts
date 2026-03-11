@@ -22,7 +22,14 @@
  */
 
 import { Chalk, type ChalkInstance } from "chalk"
-import type { ColorLevel, CreateTermOptions, TermEmulator, TermScreen, TerminalCaps } from "./types"
+import type {
+  ColorLevel,
+  CreateTermOptions,
+  TermEmulator,
+  TermEmulatorBackend,
+  TermScreen,
+  TerminalCaps,
+} from "./types"
 import {
   defaultCaps,
   detectColor,
@@ -321,7 +328,8 @@ export interface Term extends Disposable, StyleChain {
  * - `createTerm()` — Node.js terminal (auto-detect from process.stdin/stdout)
  * - `createTerm({ stdout, stdin, ... })` — Node.js with custom streams/overrides
  * - `createTerm({ cols, rows })` — Headless for testing (no I/O, fixed dims)
- * - `createTerm(emulator)` — Terminal emulator backend (termless) for testing
+ * - `createTerm(backend, { cols, rows })` — Terminal emulator backend (termless) for testing
+ * - `createTerm(emulator)` — Pre-created termless Terminal
  *
  * Detection results are cached at creation time for consistency.
  *
@@ -335,8 +343,7 @@ export interface Term extends Disposable, StyleChain {
  * const term = createTerm({ cols: 80, rows: 24 })
  *
  * // Terminal emulator (termless) for full ANSI testing
- * const emulator = createTerminal({ backend: createXtermBackend(), cols: 80, rows: 24 })
- * using term = createTerm(emulator)
+ * using term = createTerm(createXtermBackend(), { cols: 80, rows: 24 })
  * await run(<App />, term)
  * expect(term.screen).toContainText("Hello")
  *
@@ -346,26 +353,43 @@ export interface Term extends Disposable, StyleChain {
  */
 export function createTerm(options?: CreateTermOptions): Term
 export function createTerm(dims: { cols: number; rows: number }): Term
+export function createTerm(backend: TermEmulatorBackend, dims: { cols: number; rows: number }): Term
 export function createTerm(emulator: TermEmulator): Term
 export function createTerm(
-  optionsOrDimsOrEmulator?: CreateTermOptions | { cols: number; rows: number } | TermEmulator,
+  first?: CreateTermOptions | { cols: number; rows: number } | TermEmulator | TermEmulatorBackend,
+  second?: { cols: number; rows: number },
 ): Term {
-  // Detect terminal emulator (termless): has feed + screen
-  if (optionsOrDimsOrEmulator && isTermEmulator(optionsOrDimsOrEmulator)) {
-    return createBackendTerm(optionsOrDimsOrEmulator as TermEmulator)
+  // Two-arg: createTerm(backend, { cols, rows }) — raw backend + dims
+  if (second && first && isTermBackend(first)) {
+    const { createTerminal } = require("@termless/core") as {
+      createTerminal: (opts: { backend: TermEmulatorBackend; cols: number; rows: number }) => TermEmulator
+    }
+    const emulator = createTerminal({ backend: first as TermEmulatorBackend, ...second })
+    return createBackendTerm(emulator)
+  }
+  // Detect terminal emulator (termless Terminal): has feed + screen
+  if (first && isTermEmulator(first)) {
+    return createBackendTerm(first as TermEmulator)
   }
   // Detect headless dims: has cols + rows but no stdout/stdin/color/caps
-  if (optionsOrDimsOrEmulator && isHeadlessDims(optionsOrDimsOrEmulator)) {
-    return createHeadlessTerm(optionsOrDimsOrEmulator as { cols: number; rows: number })
+  if (first && isHeadlessDims(first)) {
+    return createHeadlessTerm(first as { cols: number; rows: number })
   }
-  return createNodeTerm((optionsOrDimsOrEmulator as CreateTermOptions) ?? {})
+  return createNodeTerm((first as CreateTermOptions) ?? {})
 }
 
-/** Detect terminal emulator: has feed() + screen */
+/** Detect terminal emulator (termless Terminal): has feed() + screen */
 function isTermEmulator(obj: unknown): obj is TermEmulator {
   if (typeof obj !== "object" || obj === null) return false
   const o = obj as Record<string, unknown>
   return typeof o.feed === "function" && typeof o.screen === "object" && o.screen !== null
+}
+
+/** Detect terminal emulator backend (termless TerminalBackend): has init() + name */
+function isTermBackend(obj: unknown): obj is TermEmulatorBackend {
+  if (typeof obj !== "object" || obj === null) return false
+  const o = obj as Record<string, unknown>
+  return typeof o.init === "function" && typeof o.name === "string" && typeof o.destroy === "function"
 }
 
 /** Detect headless dims: has cols and rows numbers, no stdout */

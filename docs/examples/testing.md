@@ -221,14 +221,13 @@ test("scroll follows selection", async () => {
 `createRenderer()` strips ANSI and gives you plain text — fast and simple for most tests. When you need to verify actual terminal output (box drawing characters, colors, cursor positioning), use `createTerm()` with a termless emulator:
 
 ```tsx
-import { createTerminal } from "@termless/core"
 import { createXtermBackend } from "@termless/xtermjs"
 import "@termless/test/matchers"
 import { createTerm } from "@silvery/term"
 import { run } from "@silvery/term/runtime"
 
 test("renders box borders correctly", async () => {
-  using term = createTerm(createTerminal({ backend: createXtermBackend(), cols: 40, rows: 10 }))
+  using term = createTerm(createXtermBackend(), { cols: 40, rows: 10 })
   const handle = await run(<MyApp />, term)
 
   // termless assertions — full ANSI fidelity
@@ -243,7 +242,7 @@ test("renders box borders correctly", async () => {
 })
 ```
 
-`createTerm(emulator)` creates a silvery Term backed by a real terminal emulator (xterm.js). When passed to `run()`, it auto-wires headless mode and routes all ANSI output through the render pipeline to the emulator. Input comes from `handle.press()`. This gives you:
+`createTerm(backend, dims)` creates a silvery Term backed by a real terminal emulator. When passed to `run()`, it auto-wires headless mode and routes all ANSI output through the render pipeline to the emulator. Input comes from `handle.press()`. This gives you:
 
 - **Real ANSI output** — borders, colors, cursor movement, everything the user sees
 - **In-process** — no PTY subprocess, no timing issues, millisecond-fast
