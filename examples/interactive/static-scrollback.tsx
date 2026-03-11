@@ -810,7 +810,7 @@ function ExchangeItem({
     <Box flexDirection="column" borderStyle="round" borderColor={outlineColor} paddingX={1}>
       {/* Header: icon + name + token badge */}
       <Text>
-        <Text bold color={outlineColor}>
+        <Text bold color="$success">
           <Text dimColor={!pulse && phase !== "done"}>{icon}</Text> {name}
         </Text>
         {tokenBadge && <Text color="$muted">{tokenBadge}</Text>}
