@@ -85,7 +85,7 @@ interface Exchange {
 }
 
 /** Script entry — exchange data before id/frozen are assigned. */
-type ScriptEntry = Omit<Exchange, "id" | "frozen">
+export type ScriptEntry = Omit<Exchange, "id" | "frozen">
 
 // ============================================================================
 // Constants
@@ -121,7 +121,7 @@ const URL_RE = /https?:\/\/[^\s)]+/g
 // Script — Realistic coding agent story with thinking + tokens
 // ============================================================================
 
-const SCRIPT: ScriptEntry[] = [
+export const SCRIPT: ScriptEntry[] = [
   {
     role: "user",
     content: "Fix the login bug in auth.ts \u2014 expired tokens throw instead of refreshing.",
@@ -1022,7 +1022,7 @@ const MAX_LIVE_TURNS = 3
 /** Streaming phases: thinking -> streaming text -> tool calls -> done */
 type StreamPhase = "thinking" | "streaming" | "tools" | "done"
 
-function CodingAgent({
+export function CodingAgent({
   script,
   autoStart,
   fastMode,

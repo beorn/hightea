@@ -1,17 +1,16 @@
 /**
- * run() with terminal emulator — render into a termless backend via createTerm().
+ * run() with terminal emulator — render into a termless backend via createTermless().
  *
- * Verifies that createTerm(backend, dims) creates a Term that routes ANSI output
+ * Verifies that createTermless() creates a Term that routes ANSI output
  * to a real terminal emulator, and that handle.press() drives interaction.
  */
 
 import React, { useState } from "react"
 import { describe, test, expect } from "vitest"
-import { createXtermBackend } from "@termless/xtermjs"
+import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
 import { Box, Text } from "../../src/index.js"
 import { run, useInput } from "../../packages/term/src/runtime/run"
-import { createTerm } from "../../packages/term/src/ansi/term"
 
 // ============================================================================
 // Test Component
@@ -38,9 +37,9 @@ function Counter() {
 // Tests
 // ============================================================================
 
-describe("run() with createTerm(backend, dims)", () => {
+describe("run() with createTermless()", () => {
   test("renders into termless terminal", async () => {
-    using term = createTerm(createXtermBackend(), { cols: 40, rows: 10 })
+    using term = createTermless({ cols: 40, rows: 10 })
     const handle = await run(<Counter />, term)
 
     expect(term.screen).toContainText("Counter")
@@ -53,7 +52,7 @@ describe("run() with createTerm(backend, dims)", () => {
   })
 
   test("handle.press() triggers re-render into termless", async () => {
-    using term = createTerm(createXtermBackend(), { cols: 40, rows: 10 })
+    using term = createTermless({ cols: 40, rows: 10 })
     const handle = await run(<Counter />, term)
 
     expect(term.screen).toContainText("Count: 0")
@@ -71,7 +70,7 @@ describe("run() with createTerm(backend, dims)", () => {
   })
 
   test("exit via useInput return", async () => {
-    using term = createTerm(createXtermBackend(), { cols: 40, rows: 10 })
+    using term = createTermless({ cols: 40, rows: 10 })
     const handle = await run(<Counter />, term)
 
     expect(term.screen).toContainText("Count: 0")

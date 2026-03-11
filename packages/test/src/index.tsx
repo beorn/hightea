@@ -133,6 +133,45 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
 await ensureDefaultLayoutEngine()
 
 // ============================================================================
+// Termless — in-process terminal emulation for full ANSI testing
+// ============================================================================
+
+import { createTerm, type Term } from "@silvery/term"
+
+/**
+ * Create a Term backed by a termless xterm.js emulator for full ANSI testing.
+ *
+ * Convenience wrapper around `createTerm(createXtermBackend(), dims)` that
+ * handles the xterm.js backend import. Use with `run()` to render components
+ * into a real terminal emulator in-process — no PTY, no timing issues.
+ *
+ * @example
+ * ```tsx
+ * import { createTermless } from "@silvery/test"
+ * import { run } from "@silvery/term/runtime"
+ * import "@termless/test/matchers"
+ *
+ * test("renders correctly", async () => {
+ *   using term = createTermless({ cols: 80, rows: 24 })
+ *   const handle = await run(<App />, term)
+ *
+ *   expect(term.screen).toContainText("Hello")
+ *   await handle.press("j")
+ *   expect(term.screen).toContainText("Count: 1")
+ *
+ *   handle.unmount()
+ * })
+ * ```
+ */
+export function createTermless(dims: { cols: number; rows: number } = { cols: 80, rows: 24 }): Term {
+  // Lazy import — only loads xterm.js when createTermless is called
+  const { createXtermBackend } = require("@termless/xtermjs") as {
+    createXtermBackend: () => import("@silvery/term").TermEmulatorBackend
+  }
+  return createTerm(createXtermBackend(), dims)
+}
+
+// ============================================================================
 // Utility Functions
 // ============================================================================
 
