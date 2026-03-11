@@ -79,31 +79,33 @@ VitePress docs at `docs/` — deployed to silvery.dev via GitHub Pages.
 
 Factory functions, `using` cleanup, no classes, no globals. ESM imports only. TypeScript strict mode.
 
-## Testing with `writable` (termless bridge)
+## Testing with termless
 
-`run()` accepts a `writable` option for full ANSI testing via termless — renders go through the real pipeline and terminal emulator, not stripped text:
+`createTerm()` accepts a termless emulator for full ANSI testing — renders go through the real pipeline and a real terminal emulator (xterm.js), not stripped text:
 
 ```tsx
 import { createTerminal } from "@termless/core"
 import { createXtermBackend } from "@termless/xtermjs"
 import "@termless/test/matchers"
+import { createTerm } from "@silvery/term"
+import { run } from "@silvery/term/runtime"
 
-const term = createTerminal({ backend: createXtermBackend(), cols: 80, rows: 24 })
-const handle = await run(<App />, {
-  writable: { write: (s) => term.feed(s) },
-  cols: 80,
-  rows: 24,
-})
+using term = createTerm(createTerminal({ backend: createXtermBackend(), cols: 80, rows: 24 }))
+const handle = await run(<App />, term)
 
-expect(term.screen).toContainText("Hello")  // termless assertion
-await handle.press("j")                      // input via handle
+expect(term.screen).toContainText("Hello")   // termless screen assertion
+await handle.press("j")                       // input via handle
 expect(term.screen).toContainText("Count: 1")
-
-handle.unmount()
-await term.close()
 ```
 
-`writable` triggers headless mode (mock streams, no terminal setup) but routes ANSI output to the sink instead of nowhere. Use `@silvery/test` + `createRenderer()` for fast stripped-text tests; use `writable` + termless when you need to verify ANSI output, box drawing, colors, or cursor positioning.
+`createTerm(emulator)` creates a Term backed by a termless terminal emulator. When passed to `run()`, it auto-wires headless mode with ANSI output routing to the emulator. The Term exposes `screen` and `scrollback` from the emulator for assertions.
+
+Three kinds of Term:
+- `createTerm()` — Node.js terminal (real stdin/stdout)
+- `createTerm({ cols, rows })` — Headless (no output)
+- `createTerm(emulator)` — Terminal emulator (real ANSI processing, screen/scrollback)
+
+Use `@silvery/test` + `createRenderer()` for fast stripped-text tests; use `createTerm(emulator)` when you need to verify ANSI output, box drawing, colors, or cursor positioning.
 
 ## Debugging
 

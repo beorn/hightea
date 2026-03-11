@@ -216,23 +216,20 @@ test("scroll follows selection", async () => {
 | `app.locator()`     | CSS-like element queries                  |
 | Snapshot testing    | Visual regression via `toMatchSnapshot()` |
 
-## Full ANSI Testing with `writable`
+## Full ANSI Testing with termless
 
-`createRenderer()` strips ANSI and gives you plain text — fast and simple for most tests. When you need to verify actual terminal output (box drawing characters, colors, cursor positioning), use `run()` with the `writable` option to bridge into a real terminal emulator via [termless](https://github.com/nicktomlin/termless):
+`createRenderer()` strips ANSI and gives you plain text — fast and simple for most tests. When you need to verify actual terminal output (box drawing characters, colors, cursor positioning), use `createTerm()` with a termless emulator:
 
 ```tsx
 import { createTerminal } from "@termless/core"
 import { createXtermBackend } from "@termless/xtermjs"
 import "@termless/test/matchers"
-import { run, useInput } from "@silvery/term/runtime"
+import { createTerm } from "@silvery/term"
+import { run } from "@silvery/term/runtime"
 
 test("renders box borders correctly", async () => {
-  const term = createTerminal({ backend: createXtermBackend(), cols: 40, rows: 10 })
-  const handle = await run(<MyApp />, {
-    writable: { write: (s) => term.feed(s) },
-    cols: 40,
-    rows: 10,
-  })
+  using term = createTerm(createTerminal({ backend: createXtermBackend(), cols: 40, rows: 10 }))
+  const handle = await run(<MyApp />, term)
 
   // termless assertions — full ANSI fidelity
   expect(term.screen).toContainText("Hello")
@@ -243,17 +240,17 @@ test("renders box borders correctly", async () => {
   expect(term.screen).toContainText("Count: 1")
 
   handle.unmount()
-  await term.close()
 })
 ```
 
-The `writable` option puts silvery in headless mode (no real stdin/stdout, no terminal setup) but routes all ANSI output through the render pipeline to your sink. Input comes from `handle.press()`. This gives you:
+`createTerm(emulator)` creates a silvery Term backed by a real terminal emulator (xterm.js). When passed to `run()`, it auto-wires headless mode and routes all ANSI output through the render pipeline to the emulator. Input comes from `handle.press()`. This gives you:
 
 - **Real ANSI output** — borders, colors, cursor movement, everything the user sees
 - **In-process** — no PTY subprocess, no timing issues, millisecond-fast
 - **termless assertions** — `toContainText()`, region selectors, scrollback inspection
+- **One object** — `term.screen` and `term.scrollback` for assertions, cleanup via `using`
 
-Use `createRenderer()` for most tests. Use `writable` + termless when ANSI fidelity matters.
+Use `createRenderer()` for most tests. Use `createTerm(emulator)` when ANSI fidelity matters.
 
 ## Best Practices
 
