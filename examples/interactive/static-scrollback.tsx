@@ -106,6 +106,39 @@ const TOOL_ICONS: Record<string, string> = {
   Grep: "\u{1F50E}",
 }
 
+/** Random user commands for Tab-to-inject feature. */
+const RANDOM_USER_COMMANDS = [
+  "Can you add unit tests for the auth module?",
+  "Refactor the database queries to use prepared statements.",
+  "Add TypeScript strict mode and fix any errors.",
+  "Set up CI/CD with GitHub Actions.",
+  "The search feature is slow \u2014 can you optimize it?",
+  "Add dark mode support to the UI.",
+  "We need input validation on the registration form.",
+  "Create a migration script for the new schema.",
+  "Add WebSocket support for real-time updates.",
+  "The CSV export is broken \u2014 dates are wrong.",
+]
+
+/** Random agent responses for Tab-injected turns. */
+const RANDOM_AGENT_RESPONSES: ScriptEntry[] = [
+  {
+    role: "agent",
+    thinking: "Let me analyze the codebase to understand the current structure.",
+    content: "I'll look at the relevant files and make the changes.",
+    toolCalls: [
+      { tool: "Read", args: "src/index.ts", output: ['export function main() { /* ... */ }'] },
+      { tool: "Edit", args: "src/index.ts", output: ["+  // Updated implementation"] },
+    ],
+    tokens: { input: 12400, output: 890 },
+  },
+  {
+    role: "agent",
+    content: "Done! I've made the changes and verified everything works.",
+    tokens: { input: 15200, output: 340 },
+  },
+]
+
 /** Regex matching https/http URLs in output text. */
 const URL_RE = /https?:\/\/[^\s)]+/g
 
@@ -760,7 +793,7 @@ function ExchangeItem({
     )
   }
 
-  const outlineColor = "$success"
+  const outlineColor = "$muted"
   const icon = "\u25C6"
   const name = "Agent"
   const phase = isLatest ? streamPhase : "done"
@@ -824,7 +857,6 @@ function ExchangeItem({
 /** Status bar — single compact row. */
 function StatusBar({
   exchanges,
-  autoMode,
   compacting,
   done,
   elapsed,
@@ -833,7 +865,6 @@ function StatusBar({
   ctrlDPending = false,
 }: {
   exchanges: Exchange[]
-  autoMode: boolean
   compacting: boolean
   done: boolean
   elapsed: number
@@ -861,8 +892,7 @@ function StatusBar({
   if (ctrlDPending) keys = "Ctrl-D again to exit"
   else if (compacting) keys = "compacting..."
   else if (done) keys = "esc quit"
-  else if (autoMode) keys = "tab manual  esc quit"
-  else keys = "tab auto  esc quit"
+  else keys = "tab generate  esc quit"
 
   return (
     <Box flexDirection="row" justifyContent="space-between" paddingX={1}>
@@ -879,7 +909,7 @@ function StatusBar({
               {"\u2191"}
               {frozenCount} in scrollback
             </Text>
-            {"  \u2502  "}
+            {"  "}
           </>
         )}
         ctx <Text color={ctxColor}>{ctxBar}</Text> <Text color={ctxPct > 100 ? "$error" : undefined}>{ctxPct}%</Text>
@@ -912,7 +942,6 @@ function DemoFooter({
   controlRef,
   onSubmit,
   streamPhase,
-  autoMode,
   done,
   compacting,
   exchanges,
@@ -923,7 +952,6 @@ function DemoFooter({
   controlRef: React.RefObject<FooterControl>
   onSubmit: (text: string) => void
   streamPhase: StreamPhase
-  autoMode: boolean
   done: boolean
   compacting: boolean
   exchanges: Exchange[]
@@ -975,12 +1003,11 @@ function DemoFooter({
                   ? "Session complete"
                   : ""
           }
-          isActive={!autoMode && !done}
+          isActive={!done}
         />
       </Box>
       <StatusBar
         exchanges={exchanges}
-        autoMode={autoMode}
         compacting={compacting}
         done={done}
         elapsed={elapsed}
@@ -1015,7 +1042,7 @@ export function CodingAgent({
   const [exchanges, setExchanges] = useState<Exchange[]>([])
   const [scriptIdx, setScriptIdx] = useState(0)
   const [done, setDone] = useState(false)
-  const [autoMode, setAutoMode] = useState(autoStart)
+  const autoMode = autoStart
   const [compacting, _setCompacting] = useState(false)
   const compactingRef = useRef(false)
   const setCompacting = useCallback((v: boolean) => {
@@ -1405,7 +1432,24 @@ export function CodingAgent({
       setCtrlDPending(false)
     }
     if (key.tab) {
-      setAutoMode((m) => !m)
+      // Inject a random user command + agent response
+      if (done || compacting) return
+      const cmd = RANDOM_USER_COMMANDS[Math.floor(Math.random() * RANDOM_USER_COMMANDS.length)]!
+      const resp = RANDOM_AGENT_RESPONSES[Math.floor(Math.random() * RANDOM_AGENT_RESPONSES.length)]!
+      const userId = nextIdRef.current++
+      const userExchange: Exchange = {
+        id: userId,
+        role: "user",
+        content: cmd,
+        tokens: { input: cmd.length * 4, output: 0 },
+        frozen: false,
+      }
+      setExchanges((prev) => [...prev, userExchange])
+      // Start streaming the agent response after a brief pause
+      setTimeout(() => {
+        const agentId = nextIdRef.current++
+        startStreaming(resp, agentId)
+      }, 150)
       return
     }
     if (key.ctrl && input === "l") {
@@ -1458,7 +1502,6 @@ export function CodingAgent({
             controlRef={footerControlRef}
             onSubmit={handleSubmit}
             streamPhase={streamPhase}
-            autoMode={autoMode}
             done={done}
             compacting={compacting}
             exchanges={exchanges}

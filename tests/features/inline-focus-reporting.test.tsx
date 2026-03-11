@@ -9,7 +9,10 @@
  * also causes the input box to jitter up/down as the leaked text adds an
  * extra line.
  *
- * Fix: inline mode defaults focusReporting to false (same as mouse).
+ * Two fixes:
+ * 1. Removed unconditional enableFocusReporting() from TermProvider
+ * 2. Inline mode defaults focusReporting to false (timing gap between
+ *    enableFocusReporting and TermProvider stdin setup causes leaks)
  */
 
 import React from "react"
@@ -122,7 +125,11 @@ describe("inline mode focus reporting default", () => {
       mouse: false,
     })
 
-    // Should NOT enable focus reporting in inline mode
+    // Focus reporting disabled in inline mode: enableFocusReporting() runs
+    // before the TermProvider's stdin listener is set up (events() generator
+    // starts async). Focus events arriving during this gap leak to screen
+    // as "[[I" text. In fullscreen mode, the alternate screen absorbs stray
+    // output; in inline mode, it's visible.
     expect(stdout.output).not.toContain(FOCUS_ENABLE)
     handle.unmount()
   })
