@@ -27,6 +27,7 @@ import { createOutputPhase } from "@silvery/term/pipeline/output-phase"
  */
 function createScreen(cols: number, rows: number) {
   const cells: string[][] = Array.from({ length: rows }, () => Array(cols).fill(" "))
+  const scrollbackLines: string[] = []
   let cursorX = 0
   let cursorY = 0
 
@@ -132,7 +133,8 @@ function createScreen(cols: number, rows: number) {
       } else if (ansi[i] === "\n") {
         cursorY++
         if (cursorY >= rows) {
-          // Scroll: shift all rows up by 1, bottom row becomes empty
+          // Scroll: save top row to scrollback, shift up, bottom row becomes empty
+          scrollbackLines.push(cells[0]!.join("").trimEnd())
           cells.shift()
           cells.push(Array(cols).fill(" "))
           cursorY = rows - 1
@@ -170,7 +172,12 @@ function createScreen(cols: number, rows: number) {
     return { x: cursorX, y: cursorY }
   }
 
-  return { feed, getLines, getNonEmptyLines, getCursor }
+  /** Get non-empty scrollback lines. */
+  function getScrollbackLines(): string[] {
+    return scrollbackLines.filter((l) => l !== "")
+  }
+
+  return { feed, getLines, getNonEmptyLines, getCursor, getScrollbackLines }
 }
 
 // ============================================================================
@@ -399,11 +406,13 @@ describe("inline jump: content height changes between frames", () => {
     const buf2 = bufferWithLines(COLS, ROWS, ["User: how?", "AI: ..."])
     screen.feed(outputPhase(buf1, buf2, "inline", 0, ROWS))
 
-    // Frozen exchange 1 + live exchange 2
-    expect(screen.getNonEmptyLines()).toEqual([
+    // Frozen exchange 1 enters scrollback; live exchange 2 on screen
+    expect(screen.getScrollbackLines()).toEqual([
       "User: hello",
       "AI: world",
       "---",
+    ])
+    expect(screen.getNonEmptyLines()).toEqual([
       "User: how?",
       "AI: ...",
     ])
@@ -417,11 +426,13 @@ describe("inline jump: content height changes between frames", () => {
     ])
     screen.feed(outputPhase(buf2, buf3, "inline", 0, ROWS))
 
-    // Frozen content preserved + new live content correct
-    expect(screen.getNonEmptyLines()).toEqual([
+    // Frozen content in scrollback + new live content on screen
+    expect(screen.getScrollbackLines()).toEqual([
       "User: hello",
       "AI: world",
       "---",
+    ])
+    expect(screen.getNonEmptyLines()).toEqual([
       "User: how?",
       "AI: Let me explain...",
       "AI: First point",

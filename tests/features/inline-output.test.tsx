@@ -27,6 +27,7 @@ import { createOutputPhase, outputPhase } from "@silvery/term/pipeline/output-ph
  */
 function createScreen(cols: number, rows: number) {
   const cells: string[][] = Array.from({ length: rows }, () => Array(cols).fill(" "))
+  const scrollbackLines: string[] = []
   let cursorX = 0
   let cursorY = 0
 
@@ -116,6 +117,7 @@ function createScreen(cols: number, rows: number) {
       } else if (ansi[i] === "\n") {
         cursorY++
         if (cursorY >= rows) {
+          scrollbackLines.push(cells[0]!.join("").trimEnd())
           cells.shift()
           cells.push(Array(cols).fill(" "))
           cursorY = rows - 1
@@ -146,7 +148,12 @@ function createScreen(cols: number, rows: number) {
     return { x: cursorX, y: cursorY }
   }
 
-  return { feed, getLines, getNonEmptyLines, getCursor }
+  /** Get non-empty scrollback lines. */
+  function getScrollbackLines(): string[] {
+    return scrollbackLines.filter((l) => l !== "")
+  }
+
+  return { feed, getLines, getNonEmptyLines, getCursor, getScrollbackLines }
 }
 
 // ============================================================================
@@ -369,7 +376,7 @@ describe("inline: content shrinking", () => {
 // ============================================================================
 
 describe("inline: scrollback promotion", () => {
-  test("single freeze cycle erases orphan lines", () => {
+  test("single freeze cycle: frozen content enters scrollback", () => {
     const COLS = 40, ROWS = 10
     const op = createOutputPhase({})
     const screen = createScreen(COLS, ROWS)
@@ -382,10 +389,12 @@ describe("inline: scrollback promotion", () => {
     const buf2 = bufferWithLines(COLS, ROWS, ["Item 2", "Item 3", "Item 4", "Footer"])
     screen.feed(op(buf1, buf2, "inline", 0, ROWS))
 
-    expect(screen.getNonEmptyLines()).toEqual(["Item 1", "Item 2", "Item 3", "Item 4", "Footer"])
+    // Frozen Item 1 enters scrollback. Screen shows only live content.
+    expect(screen.getNonEmptyLines()).toEqual(["Item 2", "Item 3", "Item 4", "Footer"])
+    expect(screen.getScrollbackLines()).toContain("Item 1")
   })
 
-  test("multiple sequential freeze cycles", () => {
+  test("multiple sequential freeze cycles: each enters scrollback", () => {
     const COLS = 40, ROWS = 15
     const op = createOutputPhase({})
     const screen = createScreen(COLS, ROWS)
@@ -394,19 +403,21 @@ describe("inline: scrollback promotion", () => {
     let prev = bufferWithLines(COLS, ROWS, lines)
     screen.feed(op(null, prev, "inline", 0, ROWS))
 
-    // Freeze one at a time
+    // Freeze one at a time — each enters scrollback
     for (let i = 0; i < 3; i++) {
       const frozen = lines[i]!
       op.promoteScrollback!(`${frozen}\x1b[K\r\n`, 1)
       const remaining = lines.slice(i + 1)
       const next = bufferWithLines(COLS, ROWS, remaining)
       screen.feed(op(prev, next, "inline", 0, ROWS))
-      expect(screen.getNonEmptyLines()).toEqual(lines.slice(0, i + 1).concat(remaining))
+      // Screen shows only remaining live items
+      expect(screen.getNonEmptyLines()).toEqual(remaining)
+      expect(screen.getScrollbackLines()).toContain(frozen)
       prev = next
     }
   })
 
-  test("bulk freeze: multiple items frozen simultaneously", () => {
+  test("bulk freeze: multiple items enter scrollback simultaneously", () => {
     const COLS = 40, ROWS = 12
     const op = createOutputPhase({})
     const screen = createScreen(COLS, ROWS)
@@ -414,12 +425,14 @@ describe("inline: scrollback promotion", () => {
     const buf1 = bufferWithLines(COLS, ROWS, ["J1", "J2", "J3", "J4", "J5", "Spin"])
     screen.feed(op(null, buf1, "inline", 0, ROWS))
 
-    // Freeze J1 + J2 simultaneously
+    // Freeze J1 + J2 simultaneously → both enter scrollback
     op.promoteScrollback!("J1\x1b[K\r\nJ2\x1b[K\r\n", 2)
     const buf2 = bufferWithLines(COLS, ROWS, ["J3", "J4", "J5", "Spin"])
     screen.feed(op(buf1, buf2, "inline", 0, ROWS))
 
-    expect(screen.getNonEmptyLines()).toEqual(["J1", "J2", "J3", "J4", "J5", "Spin"])
+    expect(screen.getNonEmptyLines()).toEqual(["J3", "J4", "J5", "Spin"])
+    expect(screen.getScrollbackLines()).toContain("J1")
+    expect(screen.getScrollbackLines()).toContain("J2")
   })
 
   test("freeze + content shrink simultaneously", () => {
@@ -430,12 +443,13 @@ describe("inline: scrollback promotion", () => {
     const buf1 = bufferWithLines(COLS, ROWS, ["I1", "I2", "I3", "I4", "I5"])
     screen.feed(op(null, buf1, "inline", 0, ROWS))
 
-    // Freeze I1 AND remove I5 (net shrink by 1)
+    // Freeze I1 AND remove I5 → I1 enters scrollback, live: I2-I4
     op.promoteScrollback!("I1\x1b[K\r\n", 1)
     const buf2 = bufferWithLines(COLS, ROWS, ["I2", "I3", "I4"])
     screen.feed(op(buf1, buf2, "inline", 0, ROWS))
 
-    expect(screen.getNonEmptyLines()).toEqual(["I1", "I2", "I3", "I4"])
+    expect(screen.getNonEmptyLines()).toEqual(["I2", "I3", "I4"])
+    expect(screen.getScrollbackLines()).toContain("I1")
   })
 
   test("freeze + content growth simultaneously", () => {
@@ -446,15 +460,16 @@ describe("inline: scrollback promotion", () => {
     const buf1 = bufferWithLines(COLS, ROWS, ["A", "B", "C", "Status"])
     screen.feed(op(null, buf1, "inline", 0, ROWS))
 
-    // Freeze A, add D (content stays same size)
+    // Freeze A → scrollback, add D (live content grows)
     op.promoteScrollback!("A\x1b[K\r\n", 1)
     const buf2 = bufferWithLines(COLS, ROWS, ["B", "C", "D", "Status"])
     screen.feed(op(buf1, buf2, "inline", 0, ROWS))
 
-    expect(screen.getNonEmptyLines()).toEqual(["A", "B", "C", "D", "Status"])
+    expect(screen.getNonEmptyLines()).toEqual(["B", "C", "D", "Status"])
+    expect(screen.getScrollbackLines()).toContain("A")
   })
 
-  test("freeze all items one by one", () => {
+  test("freeze all items one by one: each enters scrollback", () => {
     const COLS = 40, ROWS = 10
     const op = createOutputPhase({})
     const screen = createScreen(COLS, ROWS)
@@ -470,8 +485,9 @@ describe("inline: scrollback promotion", () => {
       screen.feed(op(prev, next, "inline", 0, ROWS))
       prev = next
 
-      const expected = [...allItems.slice(0, i + 1), ...remaining]
-      expect(screen.getNonEmptyLines()).toEqual(expected)
+      // Screen shows only remaining live items
+      expect(screen.getNonEmptyLines()).toEqual(remaining)
+      expect(screen.getScrollbackLines()).toContain(allItems[i])
     }
   })
 
@@ -484,16 +500,17 @@ describe("inline: scrollback promotion", () => {
     const buf1 = bufferWithLines(COLS, ROWS, ["I1", "I2", "I3", "I4", "I5"])
     screen.feed(op(null, buf1, "inline", 0, ROWS))
 
-    // Frame 2: freeze I1
+    // Frame 2: freeze I1 → scrollback
     op.promoteScrollback!("I1\x1b[K\r\n", 1)
     const buf2 = bufferWithLines(COLS, ROWS, ["I2", "I3", "I4", "I5"])
     screen.feed(op(buf1, buf2, "inline", 0, ROWS))
+    expect(screen.getScrollbackLines()).toContain("I1")
 
     // Frame 3: normal shrink (no promotion), remove I5
     const buf3 = bufferWithLines(COLS, ROWS, ["I2", "I3", "I4"])
     screen.feed(op(buf2, buf3, "inline", 0, ROWS))
 
-    expect(screen.getNonEmptyLines()).toEqual(["I1", "I2", "I3", "I4"])
+    expect(screen.getNonEmptyLines()).toEqual(["I2", "I3", "I4"])
   })
 })
 
@@ -746,7 +763,7 @@ describe("inline: multi-frame scenarios", () => {
     screen.feed(op(null, prev, "inline", 0, ROWS))
     expect(screen.getNonEmptyLines()).toHaveLength(4)
 
-    // Frame 2: react done → freeze, lodash installing
+    // Frame 2: react done → freeze → scrollback
     op.promoteScrollback!("  react: done\x1b[K\r\n", 1)
     let next = bufferWithLines(COLS, ROWS, [
       "Installing packages...",
@@ -756,11 +773,10 @@ describe("inline: multi-frame scenarios", () => {
     screen.feed(op(prev, next, "inline", 0, ROWS))
     prev = next
 
-    const afterReact = screen.getNonEmptyLines()
-    expect(afterReact).toContain("  react: done")
-    expect(afterReact).toContain("  lodash: installing...")
+    expect(screen.getScrollbackLines()).toContain("  react: done")
+    expect(screen.getNonEmptyLines()).toContain("  lodash: installing...")
 
-    // Frame 3: lodash done → freeze
+    // Frame 3: lodash done → freeze → scrollback
     op.promoteScrollback!("  lodash: done\x1b[K\r\n", 1)
     next = bufferWithLines(COLS, ROWS, [
       "Installing packages...",
@@ -769,21 +785,16 @@ describe("inline: multi-frame scenarios", () => {
     screen.feed(op(prev, next, "inline", 0, ROWS))
     prev = next
 
-    const afterLodash = screen.getNonEmptyLines()
-    expect(afterLodash).toContain("  react: done")
-    expect(afterLodash).toContain("  lodash: done")
-    expect(afterLodash).toContain("  chalk: installing...")
+    expect(screen.getScrollbackLines()).toContain("  lodash: done")
+    expect(screen.getNonEmptyLines()).toContain("  chalk: installing...")
 
-    // Frame 4: chalk done → freeze, show summary
+    // Frame 4: chalk done → freeze → scrollback, show summary
     op.promoteScrollback!("  chalk: done\x1b[K\r\n", 1)
     next = bufferWithLines(COLS, ROWS, ["All packages installed!"])
     screen.feed(op(prev, next, "inline", 0, ROWS))
 
-    const final = screen.getNonEmptyLines()
-    expect(final).toContain("  react: done")
-    expect(final).toContain("  lodash: done")
-    expect(final).toContain("  chalk: done")
-    expect(final).toContain("All packages installed!")
+    expect(screen.getScrollbackLines()).toContain("  chalk: done")
+    expect(screen.getNonEmptyLines()).toContain("All packages installed!")
   })
 
   test("chat interface: messages freeze as new ones arrive", () => {
@@ -795,25 +806,22 @@ describe("inline: multi-frame scenarios", () => {
     let prev = bufferWithLines(COLS, ROWS, ["User: Hello", "> "])
     screen.feed(op(null, prev, "inline", 0, ROWS))
 
-    // Frame 2: AI responds, user message freezes
+    // Frame 2: AI responds, user message freezes → scrollback
     op.promoteScrollback!("User: Hello\x1b[K\r\n", 1)
     let next = bufferWithLines(COLS, ROWS, ["AI: Hi there!", "> "])
     screen.feed(op(prev, next, "inline", 0, ROWS))
     prev = next
 
-    // Frame 3: AI response freezes, user types new message
+    expect(screen.getScrollbackLines()).toContain("User: Hello")
+
+    // Frame 3: AI response freezes → scrollback, user types new message
     op.promoteScrollback!("AI: Hi there!\x1b[K\r\n", 1)
     next = bufferWithLines(COLS, ROWS, ["User: How are you?", "> "])
     screen.feed(op(prev, next, "inline", 0, ROWS))
     prev = next
 
-    const lines = screen.getNonEmptyLines()
-    expect(lines).toEqual([
-      "User: Hello",
-      "AI: Hi there!",
-      "User: How are you?",
-      ">",
-    ])
+    expect(screen.getScrollbackLines()).toContain("AI: Hi there!")
+    expect(screen.getNonEmptyLines()).toEqual(["User: How are you?", ">"])
   })
 
   test("spinner animation: rapid updates without freezing", () => {
@@ -940,6 +948,8 @@ describe("inline: edge cases", () => {
     const buf2 = bufferWithLines(COLS, ROWS, ["Body 1", "Body 2", "Footer"])
     screen.feed(op(buf1, buf2, "inline", 0, ROWS))
 
-    expect(screen.getNonEmptyLines()).toEqual(["H1", "H2", "Body 1", "Body 2", "Footer"])
+    // Frozen content enters scrollback; live content stays on screen
+    expect(screen.getScrollbackLines()).toEqual(["H1", "H2"])
+    expect(screen.getNonEmptyLines()).toEqual(["Body 1", "Body 2", "Footer"])
   })
 })
