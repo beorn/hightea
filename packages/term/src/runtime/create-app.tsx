@@ -90,7 +90,7 @@ import {
 } from "../output"
 import { enableFocusReporting, disableFocusReporting } from "../focus-reporting"
 import { detectKittyFromStdio } from "../kitty-detect"
-import { captureTerminalState, performSuspend, CTRL_C, CTRL_Z } from "./terminal-lifecycle"
+import { captureTerminalState, performSuspend } from "./terminal-lifecycle"
 import { type TermProvider, createTermProvider } from "./term-provider"
 import type { Buffer, Dims, Provider, RenderTarget } from "./types"
 
@@ -1383,8 +1383,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         if (event.type !== "term:key") continue
         const data = event.data as { input: string; key: Key }
 
-        // Ctrl+Z: suspend
-        if (data.input === CTRL_Z && suspendOption) {
+        // Ctrl+Z: suspend (parseKey returns input="z" with key.ctrl=true)
+        if (data.input === "z" && data.key.ctrl && suspendOption) {
           const prevented = onSuspendHook?.() === false
           if (!prevented) {
             // Remove this event from the batch
@@ -1409,8 +1409,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           }
         }
 
-        // Ctrl+C: exit
-        if (data.input === CTRL_C && exitOnCtrlCOption) {
+        // Ctrl+C: exit (parseKey returns input="c" with key.ctrl=true)
+        if (data.input === "c" && data.key.ctrl && exitOnCtrlCOption) {
           const prevented = onInterruptHook?.() === false
           if (!prevented) {
             exit()
@@ -1638,6 +1638,17 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // Convert named keys to ANSI bytes (Kitty protocol when enabled)
       const ansiKey = useKittyMode ? keyToKittyAnsi(rawKey) : keyToAnsi(rawKey)
       const [input, parsedKey] = parseKey(ansiKey)
+
+      // Intercept lifecycle keys (Ctrl+C) — same as processEventBatch but for
+      // headless/press() path. parseKey returns input="c" with key.ctrl=true
+      // for Ctrl+C (not the raw "\x03" byte).
+      if (input === "c" && parsedKey.ctrl && exitOnCtrlCOption) {
+        const prevented = onInterruptHook?.() === false
+        if (!prevented) {
+          exit()
+          return
+        }
+      }
 
       // Bridge to RuntimeContext listeners (useInput consumers)
       for (const listener of runtimeInputListeners) {
