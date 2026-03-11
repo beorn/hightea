@@ -996,11 +996,9 @@ function DemoFooter({
         placeholder={
           ctrlDPending
             ? "Press Ctrl-D again to exit"
-            : streamPhase !== "done"
-              ? "\u23CE skip"
-              : done
-                ? "Session complete"
-                : "Type a message or press tab"
+            : done
+              ? "Session complete"
+              : "Type a message or press tab"
         }
         isActive={!done}
       />
