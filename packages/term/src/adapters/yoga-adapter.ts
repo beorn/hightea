@@ -306,6 +306,8 @@ export class YogaLayoutEngine implements LayoutEngine {
       EDGE_ALL: yoga.EDGE_ALL as unknown as EdgeValue,
 
       // Gutter
+      GUTTER_COLUMN: yoga.GUTTER_COLUMN as unknown as GutterValue,
+      GUTTER_ROW: yoga.GUTTER_ROW as unknown as GutterValue,
       GUTTER_ALL: yoga.GUTTER_ALL as unknown as GutterValue,
 
       // Display
@@ -313,6 +315,7 @@ export class YogaLayoutEngine implements LayoutEngine {
       DISPLAY_NONE: yoga.DISPLAY_NONE as unknown as DisplayValue,
 
       // Position Type
+      POSITION_TYPE_STATIC: yoga.POSITION_TYPE_STATIC as unknown as PositionTypeValue,
       POSITION_TYPE_RELATIVE: yoga.POSITION_TYPE_RELATIVE as unknown as PositionTypeValue,
       POSITION_TYPE_ABSOLUTE: yoga.POSITION_TYPE_ABSOLUTE as unknown as PositionTypeValue,
 

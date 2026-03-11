@@ -31,8 +31,8 @@ export interface SilveryKeyEvent {
   shift: boolean
   super: boolean
   hyper: boolean
-  /** Kitty event type: 1=press, 2=repeat, 3=release */
-  eventType?: 1 | 2 | 3
+  /** Kitty event type */
+  eventType?: "press" | "repeat" | "release"
   /** Deepest focusable node that received this event */
   target: TeaNode
   /** Node whose handler is currently firing (changes during capture/bubble) */

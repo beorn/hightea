@@ -417,6 +417,18 @@ export function applyBoxProps(layoutNode: LayoutNode, props: BoxProps, oldProps?
     layoutNode.setGap(c.GUTTER_ALL, 0)
   }
 
+  if (props.columnGap !== undefined) {
+    layoutNode.setGap(c.GUTTER_COLUMN, props.columnGap)
+  } else if (wasRemoved("columnGap")) {
+    layoutNode.setGap(c.GUTTER_COLUMN, 0)
+  }
+
+  if (props.rowGap !== undefined) {
+    layoutNode.setGap(c.GUTTER_ROW, props.rowGap)
+  } else if (wasRemoved("rowGap")) {
+    layoutNode.setGap(c.GUTTER_ROW, 0)
+  }
+
   // Display
   if (props.display !== undefined) {
     layoutNode.setDisplay(props.display === "none" ? c.DISPLAY_NONE : c.DISPLAY_FLEX)
@@ -453,15 +465,18 @@ export function applyBoxProps(layoutNode: LayoutNode, props: BoxProps, oldProps?
   }
 
   // Overflow
-  if (props.overflow !== undefined) {
-    if (props.overflow === "hidden") {
+  // Derive effective overflow: explicit overflow takes precedence, then per-axis (hidden if either axis is hidden)
+  const effectiveOverflow =
+    props.overflow ?? (props.overflowX === "hidden" || props.overflowY === "hidden" ? "hidden" : undefined)
+  if (effectiveOverflow !== undefined) {
+    if (effectiveOverflow === "hidden") {
       layoutNode.setOverflow(c.OVERFLOW_HIDDEN)
-    } else if (props.overflow === "scroll") {
+    } else if (effectiveOverflow === "scroll") {
       layoutNode.setOverflow(c.OVERFLOW_SCROLL)
     } else {
       layoutNode.setOverflow(c.OVERFLOW_VISIBLE)
     }
-  } else if (wasRemoved("overflow")) {
+  } else if (wasRemoved("overflow") || wasRemoved("overflowX") || wasRemoved("overflowY")) {
     layoutNode.setOverflow(c.OVERFLOW_VISIBLE)
   }
 

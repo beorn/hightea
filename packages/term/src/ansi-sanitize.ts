@@ -159,6 +159,39 @@ export function tokenizeAnsi(text: string): AnsiToken[] {
         continue
       }
 
+      // ESC sequences with intermediate bytes:
+      // ESC I... F where I is 0x20–0x2F (intermediate), F is 0x30–0x7E (final)
+      // Examples: ESC # 8 (DECALN), ESC ( B (G0 charset)
+      // If no valid final byte follows, consume to end of string (fail-safe
+      // to prevent payload leaks from malformed sequences).
+      if (next >= 0x20 && next <= 0x2f) {
+        const start = i
+        i += 2 // skip ESC + first intermediate
+        // Consume additional intermediate bytes
+        while (i < len) {
+          const c = text.charCodeAt(i)
+          if (c < 0x20 || c > 0x2f) break
+          i++
+        }
+        // Consume final byte (0x30–0x7E) if present
+        if (i < len) {
+          const c = text.charCodeAt(i)
+          if (c >= 0x30 && c <= 0x7e) {
+            i++
+            tokens.push({ type: "esc", value: text.slice(start, i) })
+          } else {
+            // No valid final byte — malformed sequence, consume to end of string
+            i = len
+            tokens.push({ type: "esc", value: text.slice(start, i) })
+          }
+        } else {
+          // Incomplete (at end of string) — consume what we have
+          tokens.push({ type: "esc", value: text.slice(start, i) })
+        }
+        textStart = i
+        continue
+      }
+
       // Simple two-byte escape sequence: ESC + byte (0x30–0x7E)
       // 0x30–0x3F: Fp (private use, e.g. ESC 7 = DECSC, ESC 8 = DECRC)
       // 0x40–0x5F: Fe (C1 equivalents, e.g. ESC D = IND, ESC M = RI)
@@ -226,12 +259,18 @@ function consumeCSI(text: string, i: number, len: number): number {
 
 /**
  * Find the String Terminator (ST) for DCS, PM, APC, SOS sequences.
- * ST is ESC + '\\' (0x5C). Returns index after the ST.
+ * ST is ESC + '\\' (0x5C) or C1 ST (0x9C). Returns index after the ST.
  * If no ST found, returns end of string (consuming the malformed sequence).
  */
 function findST(text: string, i: number, len: number): number {
   while (i < len) {
-    if (text.charCodeAt(i) === ESC && i + 1 < len && text.charCodeAt(i + 1) === 0x5c) {
+    const code = text.charCodeAt(i)
+    // C1 ST (0x9C)
+    if (code === 0x9c) {
+      return i + 1
+    }
+    // ESC + '\' (7-bit ST)
+    if (code === ESC && i + 1 < len && text.charCodeAt(i + 1) === 0x5c) {
       return i + 2 // past ESC + '\'
     }
     i++
@@ -241,7 +280,7 @@ function findST(text: string, i: number, len: number): number {
 
 /**
  * Find the end of an OSC sequence.
- * OSC is terminated by ST (ESC + '\\') or BEL (0x07).
+ * OSC is terminated by ST (ESC + '\\'), C1 ST (0x9C), or BEL (0x07).
  * Returns index after the terminator.
  */
 function findOSCEnd(text: string, i: number, len: number): number {
@@ -249,6 +288,10 @@ function findOSCEnd(text: string, i: number, len: number): number {
     const code = text.charCodeAt(i)
     // BEL terminator
     if (code === 0x07) {
+      return i + 1
+    }
+    // C1 ST (0x9C)
+    if (code === 0x9c) {
       return i + 1
     }
     // ST terminator (ESC + '\')
@@ -291,11 +334,16 @@ function isCSISGR(value: string): boolean {
     start = 1
   }
 
-  // Everything between start and the final 'm' must be parameter bytes (0x30–0x3F).
-  // If any intermediate byte (0x20–0x2F) is present, it's not a pure SGR.
+  // Everything between start and the final 'm' must be standard parameter bytes:
+  // digits (0x30–0x39), semicolons (0x3B), colons (0x3A).
+  // Private-use parameter prefixes (<, =, >, ? at 0x3C–0x3F) indicate non-SGR.
+  // Intermediate bytes (0x20–0x2F) also indicate non-SGR.
   for (let i = start; i < value.length - 1; i++) {
     const c = value.charCodeAt(i)
-    if (c < 0x30 || c > 0x3f) {
+    // Allow: digits 0-9 (0x30-0x39), colon (0x3A), semicolon (0x3B)
+    // Reject: < = > ? (0x3C-0x3F) — private-use parameter prefixes
+    // Reject: anything outside 0x30-0x3B (intermediates, etc.)
+    if (c < 0x30 || c > 0x3b) {
       return false
     }
   }

@@ -17,7 +17,14 @@ import { type Term, createTerm } from "@silvery/term/ansi"
 import React, { useCallback, useEffect, useMemo, useRef, type ReactElement, type ReactNode } from "react"
 
 const log = createLogger("silvery:render")
-import { FocusManagerContext, RuntimeContext, type RuntimeContextValue, StdoutContext, TermContext } from "./context"
+import {
+  FocusManagerContext,
+  RuntimeContext,
+  type RuntimeContextValue,
+  StdoutContext,
+  StderrContext,
+  TermContext,
+} from "./context"
 import { createCursorStore, CursorProvider, type CursorStore } from "./hooks/useCursor"
 import { createFocusManager } from "@silvery/tea/focus-manager"
 import { parseKey } from "@silvery/tea/keys"
@@ -429,9 +436,18 @@ function SilveryApp({
 
   return (
     <StdoutContext.Provider value={stdoutContextValue}>
-      <FocusManagerContext.Provider value={focusManager}>
-        <RuntimeContext.Provider value={runtimeContextValue}>{children}</RuntimeContext.Provider>
-      </FocusManagerContext.Provider>
+      <StderrContext.Provider
+        value={{
+          stderr: process.stderr,
+          write: (data: string) => {
+            process.stderr.write(data)
+          },
+        }}
+      >
+        <FocusManagerContext.Provider value={focusManager}>
+          <RuntimeContext.Provider value={runtimeContextValue}>{children}</RuntimeContext.Provider>
+        </FocusManagerContext.Provider>
+      </StderrContext.Provider>
     </StdoutContext.Provider>
   )
 }

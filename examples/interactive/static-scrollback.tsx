@@ -870,20 +870,19 @@ function StatusBar({
         <Text color="$primary">{elapsedStr}</Text>
         {"  "}
         {keys}
+        {"  "}
+      </Text>
+      <Text color="$muted" wrap="truncate">
         {frozenCount > 0 && (
           <>
-            {"  "}
             <Text color="$muted">
               {"\u2191"}
               {frozenCount} in scrollback
             </Text>
+            {"  \u2502  "}
           </>
         )}
-        {"  "}
-      </Text>
-      <Text color="$muted" wrap="truncate">
-        context <Text color={ctxColor}>{ctxBar}</Text>{" "}
-        <Text color={ctxPct > 100 ? "$error" : undefined}>{ctxPct}%</Text>
+        ctx <Text color={ctxColor}>{ctxBar}</Text> <Text color={ctxPct > 100 ? "$error" : undefined}>{ctxPct}%</Text>
         {"  "}
         {cost}
       </Text>
@@ -967,7 +966,15 @@ function DemoFooter({
           onSubmit={handleSubmit}
           prompt={"\u276F "}
           promptColor="$focusborder"
-          placeholder={streamPhase !== "done" ? "\u23CE skip" : done ? "Session complete" : ""}
+          placeholder={
+            ctrlDPending
+              ? "Press Ctrl-D again to exit"
+              : streamPhase !== "done"
+                ? "\u23CE skip"
+                : done
+                  ? "Session complete"
+                  : ""
+          }
           isActive={!autoMode && !done}
         />
       </Box>
@@ -1196,10 +1203,10 @@ export function CodingAgent({
     setScriptIdx((i) => i + 1)
     startStreaming(entry, id)
 
-    // Auto-chain: after processing any entry, chain through all consecutive
-    // agent entries. This makes the demo feel like a real AI agent working —
-    // agent turns advance automatically, only user turns pause for input.
-    {
+    // Auto-chain: after processing any entry in fast mode, chain through all
+    // consecutive agent entries synchronously. In non-fast mode, the auto-advance
+    // effect (below) handles this with timers so streaming animation plays.
+    if (fastMode) {
       let chainIdx = scriptIdx + 1
       while (chainIdx < script.length && script[chainIdx]!.role !== "user") {
         const chainEntry = script[chainIdx]!
@@ -1208,8 +1215,18 @@ export function CodingAgent({
         startStreaming(chainEntry, chainId)
         chainIdx++
       }
+    } else if (entry.role === "user") {
+      // Non-fast mode: still auto-chain from user to the FIRST agent entry
+      // so one Enter press sends message AND starts agent response
+      const nextIdx = scriptIdx + 1
+      if (nextIdx < script.length && script[nextIdx]!.role === "agent") {
+        const nextEntry = script[nextIdx]!
+        const nextId = nextIdRef.current++
+        setScriptIdx((i) => i + 1)
+        startStreaming(nextEntry, nextId)
+      }
     }
-  }, [scriptIdx, done, streamPhase, script, startStreaming, compact, fastMode])
+  }, [scriptIdx, done, streamPhase, script, startStreaming, compact, fastMode, exchanges])
   advanceRef.current = advance
 
   // Auto-continue after compaction
@@ -1404,14 +1421,15 @@ export function CodingAgent({
     return () => clearInterval(timer)
   }, [])
 
-  // Count frozen for header display
+  // Count frozen for status display
   const frozenCount = exchanges.filter((ex) => ex.frozen).length
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      {/* Header — only shown before any items are frozen.
-       *  Once frozen, the header would appear between frozen entries in scrollback. */}
-      {frozenCount === 0 && (
+      {/* Header — only shown before any exchanges exist.
+       *  Hidden as soon as the first exchange appears (not tied to frozen state)
+       *  to avoid a visual jump when items first freeze. */}
+      {exchanges.length === 0 && (
         <Box flexDirection="column">
           <Text> </Text>
           <Text bold>Static Scrollback</Text>

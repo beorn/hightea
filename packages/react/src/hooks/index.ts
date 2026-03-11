@@ -18,6 +18,7 @@ export { useApp, type UseAppResult } from "./useApp"
 
 // Stdio
 export { useStdout, type UseStdoutResult } from "./useStdout"
+export { useStderr, type UseStderrResult } from "./useStderr"
 
 // Focus (tree-based system)
 export { useFocusable, type UseFocusableResult } from "./useFocusable"

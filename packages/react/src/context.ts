@@ -6,6 +6,7 @@
  * - NodeContext: Access to the current SilveryNode (for useContentRect)
  * - RuntimeContext: Unified input/app controls (replaces Events/Input/Stdin/App contexts)
  * - StdoutContext: Access to stdout
+ * - StderrContext: Access to stderr
  */
 
 import type { Term } from "@silvery/term/ansi"
@@ -77,6 +78,19 @@ export interface StdoutContextValue {
  * Used by useStdout() hook.
  */
 export const StdoutContext = createContext<StdoutContextValue | null>(null)
+
+export interface StderrContextValue {
+  /** Standard error stream */
+  stderr: NodeJS.WriteStream
+  /** Write to stderr */
+  write: (data: string) => void
+}
+
+/**
+ * Context for stderr access.
+ * Used by useStderr() hook.
+ */
+export const StderrContext = createContext<StderrContextValue | null>(null)
 
 // ============================================================================
 // Runtime Context (typed bidirectional event bus — TEA)

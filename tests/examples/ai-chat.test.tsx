@@ -47,60 +47,54 @@ function assertNoOverlappingBorders(screen: TermScreen) {
   }
 }
 
+/** Wait for renders to settle. */
+const settle = (ms = 300) => new Promise((r) => setTimeout(r, ms))
+
 // ============================================================================
 // Tests — in-process, sequential advances
 // ============================================================================
 
-describe("ai-chat example (in-process termless)", { timeout: 10000 }, () => {
+describe("ai-chat example (in-process termless)", { timeout: 15000 }, () => {
   let term: Term
   let handle: RunHandle
 
   beforeAll(async () => {
     term = createTermless({ cols: 120, rows: 40 })
     handle = await run(<CodingAgent script={SCRIPT} autoStart={false} fastMode={true} />, term)
+    // Wait for mount advance + fastMode auto-chain to settle
+    await settle()
   })
 
   afterAll(() => {
     handle?.unmount()
   })
 
-  test("initial render: header, first exchange, status bar", () => {
-    expect(term.screen).toContainText("Static Scrollback")
-    expect(term.screen).toContainText("Fix the login bug")
-    expect(term.screen).toContainText("context")
+  test("initial render: first exchanges visible, status bar", () => {
+    // With fastMode=true, mount advance() chains through user[0] + agent[1-4],
+    // stopping at user[5]. Header is hidden once exchanges exist.
+    // Earlier entries may be frozen into scrollback (MAX_LIVE_TURNS=3).
+    const screenText = term.screen!.getText()
+    // Last agent entry content should be on screen
+    expect(screenText).toContain("Fixed")
+    expect(screenText).toContain("ctx")
   })
 
-  test("Enter 1: agent reads auth.ts", async () => {
+  test("Enter 1: rate limiting turn, no overlapping borders", async () => {
+    // Submits pre-filled "Nice. Can you also add rate limiting?" then
+    // fastMode chains through all agent entries (Grep, Edit, Bash, summary).
     await handle.press("Enter")
+    await settle()
 
-    expect(term.screen).toContainText("Read src/auth.ts")
-    expect(term.screen).toContainText("auth module")
-    expect(term.screen).toContainText("context")
-  })
-
-  test("Enter 2: agent edits, no overlapping borders", async () => {
-    await handle.press("Enter")
-
-    expect(term.screen).toContainText("Edit src/auth.ts")
+    expect(term.screen).toContainText("rate limit")
+    expect(term.screen).toContainText("ctx")
     assertNoOverlappingBorders(term.screen!)
   })
 
-  test("Enter 3: footer persists, no overlapping borders", async () => {
+  test("Enter 2: i18n turn, box chars preserved", async () => {
     await handle.press("Enter")
-
-    expect(term.screen).toContainText("bun test")
-    expect(term.screen).toContainText("context")
-    assertNoOverlappingBorders(term.screen!)
-  })
-
-  test("Enter 4: content accumulates, box chars preserved", async () => {
-    await handle.press("Enter")
-
-    expect(term.screen).toContainText("rate limiting")
+    await settle()
 
     // Box drawing chars survive whether on-screen or in scrollback.
-    // Without forced padding, promoted content stays on-screen until
-    // natural terminal scrolling pushes it into scrollback.
     const screenText = term.screen!.getText()
     const scrollbackText = term.scrollback!.getText()
     const allText = scrollbackText + screenText
@@ -110,10 +104,11 @@ describe("ai-chat example (in-process termless)", { timeout: 10000 }, () => {
     assertNoOverlappingBorders(term.screen!)
   })
 
-  test("Enter 5: still clean rendering", async () => {
+  test("Enter 3: still clean rendering", async () => {
     await handle.press("Enter")
+    await settle()
 
-    expect(term.screen).toContainText("context")
+    expect(term.screen).toContainText("ctx")
     assertNoOverlappingBorders(term.screen!)
   })
 
@@ -121,11 +116,11 @@ describe("ai-chat example (in-process termless)", { timeout: 10000 }, () => {
     // Resize from 120x40 to 80x24
     term.resize!(80, 24)
     // Wait for re-render at new dimensions
-    await new Promise((r) => setTimeout(r, 50))
+    await settle(50)
 
     expect(term.cols).toBe(80)
     expect(term.rows).toBe(24)
-    expect(term.screen).toContainText("context")
+    expect(term.screen).toContainText("ctx")
     expect(term.screen!.getText()).toContain("│")
     assertNoOverlappingBorders(term.screen!)
   })

@@ -29,7 +29,7 @@ import React, { type ReactElement, act } from "react"
 import { createTerm } from "@silvery/term/ansi"
 
 import { bufferToStyledText, bufferToText, type TerminalBuffer } from "@silvery/term/buffer"
-import { StdoutContext, TermContext } from "./context"
+import { StdoutContext, StderrContext, TermContext } from "./context"
 import { isLayoutEngineInitialized } from "@silvery/term/layout-engine"
 import { executeRender, type PipelineConfig } from "@silvery/term/pipeline"
 import { createContainer, getContainerRoot } from "./reconciler"
@@ -234,7 +234,18 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
           write: () => {},
         },
       },
-      element,
+      React.createElement(
+        StderrContext.Provider,
+        {
+          value: {
+            stderr: process.stderr,
+            write: (data: string) => {
+              process.stderr.write(data)
+            },
+          },
+        },
+        element,
+      ),
     ),
   )
 

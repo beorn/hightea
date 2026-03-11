@@ -39,6 +39,8 @@ export const LAYOUT_PROPS = new Set([
   "marginLeft",
   "marginRight",
   "gap",
+  "columnGap",
+  "rowGap",
   "borderStyle",
   "borderTop",
   "borderBottom",
@@ -52,6 +54,8 @@ export const LAYOUT_PROPS = new Set([
   "right",
   "aspectRatio",
   "overflow",
+  "overflowX",
+  "overflowY",
   // Note: scrollTo intentionally excluded - it doesn't affect layout dimensions,
   // only scroll offset which is handled in scrollPhase (reads props.scrollTo directly)
 ])

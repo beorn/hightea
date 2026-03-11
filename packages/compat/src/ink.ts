@@ -24,7 +24,6 @@
  */
 
 import React, {
-  Component,
   createContext,
   useContext,
   useCallback,
@@ -34,8 +33,7 @@ import React, {
   useMemo,
   useRef,
 } from "react"
-import * as fs from "node:fs"
-import { StdoutContext, TermContext } from "@silvery/react/context"
+import { StdoutContext, StderrContext, TermContext } from "@silvery/react/context"
 import { bufferToStyledText, bufferToText, type TerminalBuffer } from "@silvery/term/buffer"
 import { stripAnsi } from "@silvery/term/unicode"
 import { tokenizeAnsi as tokenizeAnsiEsc } from "@silvery/term/ansi-sanitize"
@@ -51,204 +49,8 @@ import EventEmitter from "node:events"
 import { Buffer } from "node:buffer"
 
 // =============================================================================
-// Ink-Compatible Error Boundary
-// =============================================================================
-
-interface InkErrorBoundaryProps {
-  children?: React.ReactNode
-  onError?: (error: Error) => void
-}
-
-interface InkErrorBoundaryState {
-  error: Error | null
-}
-
-/**
- * Parse a stack line to extract function name, file, line, column.
- * Handles both `at Foo (file:line:col)` and `at file:line:col` formats.
- */
-function parseStackLine(line: string): { function?: string; file?: string; line?: number; column?: number } | null {
-  const trimmed = line.trim()
-  if (!trimmed.startsWith("at ")) return null
-
-  const rest = trimmed.slice(3)
-  // Match: functionName (file:line:col)
-  const match1 = rest.match(/^(.+?)\s+\((.+?):(\d+):(\d+)\)$/)
-  if (match1) {
-    return { function: match1[1], file: match1[2], line: Number(match1[3]), column: Number(match1[4]) }
-  }
-  // Match: file:line:col (no function name)
-  const match2 = rest.match(/^(.+?):(\d+):(\d+)$/)
-  if (match2) {
-    return { file: match2[1], line: Number(match2[2]), column: Number(match2[3]) }
-  }
-  return null
-}
-
-/**
- * Clean up file path by removing cwd prefix and file:// protocol.
- */
-function cleanupPath(filePath: string | undefined): string | undefined {
-  if (!filePath) return filePath
-  let p = filePath
-  const cwdPath = process.cwd()
-  // Remove file:// protocol
-  p = p.replace(/^file:\/\//, "")
-  // Remove cwd prefix
-  for (const prefix of [cwdPath, `/private${cwdPath}`]) {
-    if (p.startsWith(`${prefix}/`)) {
-      p = p.slice(prefix.length + 1)
-      break
-    }
-  }
-  return p
-}
-
-/**
- * Get source code excerpt around a line number (±3 lines).
- */
-function getCodeExcerpt(filePath: string, line: number): Array<{ line: number; value: string }> | null {
-  try {
-    if (!fs.existsSync(filePath)) return null
-    const source = fs.readFileSync(filePath, "utf8")
-    const lines = source.split("\n")
-    const start = Math.max(0, line - 4)
-    const end = Math.min(lines.length, line + 3)
-    const result: Array<{ line: number; value: string }> = []
-    for (let i = start; i < end; i++) {
-      result.push({ line: i + 1, value: lines[i] ?? "" })
-    }
-    return result
-  } catch {
-    return null
-  }
-}
-
-/**
- * Ink-compatible error boundary.
- * Catches render errors and displays them with source location and code excerpt,
- * matching Ink's ErrorOverview component output format.
- */
-class InkErrorBoundary extends Component<InkErrorBoundaryProps, InkErrorBoundaryState> {
-  override state: InkErrorBoundaryState = { error: null }
-
-  static getDerivedStateFromError(error: Error): InkErrorBoundaryState {
-    return { error }
-  }
-
-  override componentDidCatch(error: Error) {
-    this.props.onError?.(error)
-  }
-
-  override render() {
-    if (this.state.error) {
-      const err = this.state.error
-      const stack = err.stack ? err.stack.split("\n").slice(1) : []
-      const origin = stack.length > 0 ? parseStackLine(stack[0]!) : null
-      const filePath = cleanupPath(origin?.file)
-
-      // Get source code excerpt
-      let excerpt: Array<{ line: number; value: string }> | null = null
-      let lineWidth = 0
-      if (filePath && origin?.line) {
-        excerpt = getCodeExcerpt(filePath, origin.line)
-        if (excerpt) {
-          for (const { line } of excerpt) {
-            lineWidth = Math.max(lineWidth, String(line).length)
-          }
-        }
-      }
-
-      // Build the error display using silvery host elements (Box/Text)
-      // Format: padding=1 column layout with ERROR label, location, code, and stack
-      const children: React.ReactNode[] = []
-
-      // ERROR label + message
-      children.push(
-        React.createElement(
-          "silvery-box",
-          { key: "header" },
-          React.createElement("silvery-text", { backgroundColor: "red", color: "white" }, " ERROR "),
-          React.createElement("silvery-text", {}, ` ${err.message}`),
-        ),
-      )
-
-      // File location
-      if (filePath && origin) {
-        children.push(
-          React.createElement(
-            "silvery-box",
-            { key: "location", marginTop: 1 },
-            React.createElement("silvery-text", { dimColor: true }, `${filePath}:${origin.line}:${origin.column}`),
-          ),
-        )
-      }
-
-      // Source code excerpt
-      if (excerpt && origin) {
-        const codeLines = excerpt.map(({ line, value }) => {
-          const lineNum = String(line).padStart(lineWidth, " ")
-          return React.createElement(
-            "silvery-box",
-            { key: `code-${line}` },
-            React.createElement(
-              "silvery-text",
-              {
-                dimColor: line !== origin.line,
-                backgroundColor: line === origin.line ? "red" : undefined,
-                color: line === origin.line ? "white" : undefined,
-              },
-              `${lineNum}:`,
-            ),
-            React.createElement(
-              "silvery-text",
-              {
-                backgroundColor: line === origin.line ? "red" : undefined,
-                color: line === origin.line ? "white" : undefined,
-              },
-              ` ${value}`,
-            ),
-          )
-        })
-        children.push(
-          React.createElement("silvery-box", { key: "code", marginTop: 1, flexDirection: "column" }, ...codeLines),
-        )
-      }
-
-      // Stack trace
-      if (stack.length > 0) {
-        const stackLines = stack.map((line, i) => {
-          const parsed = parseStackLine(line)
-          if (!parsed) {
-            return React.createElement(
-              "silvery-box",
-              { key: `stack-${i}` },
-              React.createElement("silvery-text", { dimColor: true }, `- ${line.trim()}`),
-            )
-          }
-          const cleanFile = cleanupPath(parsed.file)
-          return React.createElement(
-            "silvery-box",
-            { key: `stack-${i}` },
-            React.createElement("silvery-text", { dimColor: true }, "- "),
-            React.createElement("silvery-text", { dimColor: true, bold: true }, parsed.function ?? ""),
-            React.createElement(
-              "silvery-text",
-              { dimColor: true, color: "gray" },
-              ` (${cleanFile ?? ""}:${parsed.line}:${parsed.column})`,
-            ),
-          )
-        })
-        children.push(
-          React.createElement("silvery-box", { key: "stack", marginTop: 1, flexDirection: "column" }, ...stackLines),
-        )
-      }
-
-      return React.createElement("silvery-box", { flexDirection: "column", padding: 1 }, ...children)
-    }
-    return this.props.children
-  }
-}
+// Error boundary: uses SilveryErrorBoundary from @silvery/react (rich display with
+// source excerpts, stack traces). The compat layer's InkErrorBoundary was merged upstream.
 
 /**
  * Get chalk's current color level at render time.
@@ -379,19 +181,19 @@ export type BoxProps = SilveryBoxProps
  * flexDirection defaults to 'row' to match Ink's behavior (Ink Box.tsx line 85).
  */
 export const Box = React.forwardRef<BoxHandle, BoxProps>(function InkBox(props, ref) {
-  // Map Ink's per-axis overflow props to silvery's unified overflow
-  const { overflowX, overflowY, ...rest } = props as any
-  const overflow = rest.overflow ?? (overflowX === "hidden" || overflowY === "hidden" ? "hidden" : undefined)
-
+  // When chalk has no color support, strip visual style props to match Ink behavior.
+  // Ink uses chalk internally for border/background colors, so chalk.level=0 means
+  // no styles are applied. But embedded ANSI in text content is still preserved.
+  const hasColors = currentChalkLevel() > 0
   return React.createElement(SilveryBox, {
     flexDirection: "row",
     flexGrow: 0,
     flexShrink: 1,
-    ...rest,
-    overflow,
-    color: convertColor(rest.color),
-    backgroundColor: convertColor(rest.backgroundColor),
-    borderColor: convertColor(rest.borderColor),
+    ...props,
+    color: hasColors ? convertColor((props as any).color) : undefined,
+    backgroundColor: hasColors ? convertColor((props as any).backgroundColor) : undefined,
+    borderColor: hasColors ? convertColor((props as any).borderColor) : undefined,
+    borderDimColor: hasColors ? (props as any).borderDimColor : undefined,
     ref,
   })
 })
@@ -560,43 +362,9 @@ export function Static<T>({
 // Hooks (Ink-compatible)
 // =============================================================================
 
-import type { Key as SilveryKey, UseInputOptions } from "@silvery/react/hooks/useInput"
-
-/**
- * Ink-compatible Key type with string eventType.
- */
-export interface Key extends Omit<SilveryKey, "eventType"> {
-  eventType?: "press" | "repeat" | "release"
-}
-
-export type InputHandler = (input: string, key: Key) => void
-
-export type { UseInputOptions }
-
-/** Map numeric eventType (1/2/3) to Ink's string format. */
-function mapEventType(et: 1 | 2 | 3 | undefined): "press" | "repeat" | "release" | undefined {
-  if (et === 1) return "press"
-  if (et === 2) return "repeat"
-  if (et === 3) return "release"
-  return undefined
-}
-
-/**
- * Ink-compatible useInput hook.
- *
- * Wraps silvery's useInput to produce Ink-compatible Key objects:
- * - eventType: maps from numeric (1/2/3) to string ('press'/'repeat'/'release')
- * - capsLock/numLock: passed through from silvery's Key
- */
-export function useInput(handler: InputHandler, options?: UseInputOptions): void {
-  silveryUseInput((input: string, silveryKey: SilveryKey) => {
-    const inkKey: Key = {
-      ...silveryKey,
-      eventType: mapEventType(silveryKey.eventType),
-    }
-    handler(input, inkKey)
-  }, options)
-}
+// Silvery's Key type now uses string eventType ("press" | "repeat" | "release"),
+// matching Ink's convention — no wrapper needed, just re-export.
+export { useInput, type Key, type InputHandler, type UseInputOptions } from "@silvery/react/hooks/useInput"
 
 export { useApp } from "@silvery/react/hooks/useApp"
 export type { UseAppResult } from "@silvery/react/hooks/useApp"
@@ -862,61 +630,10 @@ export function useCursor() {
 }
 
 /**
- * Get terminal rows with fallback chain: stdout.rows -> env LINES -> default 24.
- */
-function getTerminalRows(stdout: NodeJS.WriteStream): number {
-  const rows = (stdout as any).rows
-  if (rows != null && rows > 0) return rows
-  // Fall back to LINES env var (used by terminal-size and POSIX)
-  const envLines = process.env.LINES
-  if (envLines) {
-    const parsed = Number.parseInt(envLines, 10)
-    if (parsed > 0) return parsed
-  }
-  return 24
-}
-
-/**
- * Get terminal columns with fallback chain: stdout.columns -> env COLUMNS -> default 80.
- */
-function getTerminalColumns(stdout: NodeJS.WriteStream): number {
-  if (stdout.columns > 0) return stdout.columns
-  // Fall back to COLUMNS env var
-  const envCols = process.env.COLUMNS
-  if (envCols) {
-    const parsed = Number.parseInt(envCols, 10)
-    if (parsed > 0) return parsed
-  }
-  return 80
-}
-
-/**
  * Ink-compatible useWindowSize hook.
- * Returns current terminal dimensions.
+ * Re-exported from @silvery/react.
  */
-export function useWindowSize() {
-  const ctx = useContext(StdoutContext)
-  const stdout = ctx?.stdout ?? process.stdout
-  const [size, setSize] = useState(() => ({
-    columns: getTerminalColumns(stdout),
-    rows: getTerminalRows(stdout),
-  }))
-
-  useEffect(() => {
-    const onResize = () => {
-      setSize({
-        columns: getTerminalColumns(stdout),
-        rows: getTerminalRows(stdout),
-      })
-    }
-    stdout.on("resize", onResize)
-    return () => {
-      stdout.off("resize", onResize)
-    }
-  }, [stdout])
-
-  return size
-}
+export { useWindowSize } from "@silvery/react/hooks/useWindowSize"
 
 /**
  * Extract the TeaNode from a ref that may point to a BoxHandle or a TeaNode.
@@ -1120,6 +837,11 @@ function registerColonFormatSGR(sgrSequence: string): void {
 /**
  * Restore colon-format SGR sequences in output.
  * Replaces semicolon-format sequences that were originally colon-format.
+ *
+ * Note: does NOT clear the replacements array — the render() path may call
+ * processBuffer multiple times (handleBufferReady + writeFrame), and each
+ * call needs access to the same replacements. Replacements are naturally
+ * replaced when sanitizeAnsi re-populates them on the next render cycle.
  */
 export function restoreColonFormatSGR(output: string): string {
   if (colonFormatReplacements.length === 0) return output
@@ -1127,7 +849,6 @@ export function restoreColonFormatSGR(output: string): string {
   for (const { semicolonForm, colonForm } of colonFormatReplacements) {
     result = result.replaceAll(semicolonForm, colonForm)
   }
-  colonFormatReplacements.length = 0
   return result
 }
 
@@ -1150,16 +871,17 @@ function sanitizeAnsi(text: string): string {
         result += token.value
         break
       case "csi":
-        // Only keep SGR sequences (final byte 'm')
-        if (token.value.charCodeAt(token.value.length - 1) === 0x6d) {
+        // Only keep SGR sequences: final byte 'm', no intermediate bytes,
+        // no private-use parameter prefixes (<, =, >, ?)
+        if (isCompatCSISGR(token.value)) {
           result += token.value
           registerColonFormatSGR(token.value)
         }
         break
       case "osc":
-        // Only keep OSC 8 (hyperlinks): ESC]8;... or \x9D8;...
-        // Strip other OSC sequences (window title, etc.)
-        if (isOSC8(token.value)) {
+        // Only keep properly terminated OSC 8 (hyperlinks).
+        // Strip unterminated OSC (no BEL/ST terminator) to prevent payload leaks.
+        if (isOSC8(token.value) && isOSCTerminated(token.value)) {
           result += token.value
         }
         break
@@ -1168,6 +890,49 @@ function sanitizeAnsi(text: string): string {
   }
 
   return result
+}
+
+/**
+ * Check if a CSI sequence is a proper SGR (Select Graphic Rendition).
+ *
+ * SGR sequences have the form: CSI <params> m
+ * where params contain only digits (0-9), semicolons (;), and colons (:).
+ * Private-use parameter prefixes (<, =, >, ?) indicate non-SGR.
+ * Intermediate bytes (space, !, etc.) indicate non-SGR.
+ */
+function isCompatCSISGR(value: string): boolean {
+  // Must end with 'm'
+  if (value.length < 2 || value.charCodeAt(value.length - 1) !== 0x6d) {
+    return false
+  }
+  // Find start of parameters (skip ESC[ or C1 CSI 0x9B)
+  const start = value.charCodeAt(0) === 0x1b ? 2 : 1
+  // Everything between start and final 'm' must be digits/semicolons/colons only
+  for (let i = start; i < value.length - 1; i++) {
+    const c = value.charCodeAt(i)
+    // Allow: digits 0-9 (0x30-0x39), colon (0x3A), semicolon (0x3B)
+    // Reject: < = > ? (0x3C-0x3F) — private-use prefixes
+    // Reject: anything outside 0x30-0x3B (intermediates, etc.)
+    if (c < 0x30 || c > 0x3b) {
+      return false
+    }
+  }
+  return true
+}
+
+/** Check if an OSC sequence is properly terminated (BEL or ST). */
+function isOSCTerminated(value: string): boolean {
+  if (value.length === 0) return false
+  const last = value.charCodeAt(value.length - 1)
+  // BEL terminator (0x07)
+  if (last === 0x07) return true
+  // C1 ST terminator (0x9C)
+  if (last === 0x9c) return true
+  // 7-bit ST: ESC + '\' — check last two chars
+  if (value.length >= 2 && last === 0x5c && value.charCodeAt(value.length - 2) === 0x1b) {
+    return true
+  }
+  return false
 }
 
 /** Check if an OSC token is OSC 8 (hyperlink). */
@@ -1314,8 +1079,11 @@ export function render(element: import("react").ReactNode, options?: Record<stri
   // When custom stdout is provided (test mode): delegate to silvery's test
   // renderer with autoRender for async state changes and onFrame for stdout writes.
   if (stdout) {
-    const chalkHasColors = currentChalkLevel() > 0
-    const plain = !chalkHasColors
+    // Always render with color (plain=false) so that embedded ANSI sequences in
+    // text children are preserved. Ink preserves embedded ANSI even when chalk has
+    // no color support. The Text component already strips style props when chalk
+    // has no colors, so only chalk-applied styles are affected.
+    const plain = false
 
     // Alternate screen: enter on mount, exit on unmount.
     // Ink requires all three: alternateScreen=true, interactive mode, and stdout.isTTY.
@@ -1332,8 +1100,38 @@ export function render(element: import("react").ReactNode, options?: Record<stri
     const stderr = options?.stderr as NodeJS.WriteStream | undefined
     const debug = (options?.debug as boolean) ?? false
 
-    // Per-instance stdin state for raw mode tracking
-    const stdinState = createInkStdinState((stdin ?? process.stdin) as NodeJS.ReadStream)
+    // Per-instance stdin state for raw mode tracking and paste event bridging
+    const stdinState = createInkStdinState((stdin ?? process.stdin) as NodeJS.ReadStream, stdout)
+
+    // Kitty keyboard protocol support (test renderer path)
+    const kittyKeyboardOpts = options?.kittyKeyboard as KittyKeyboardOptions | undefined
+    let kittyProtocolEnabled = false
+    let cancelKittyDetection: (() => void) | undefined
+
+    function enableKittyProtocol(flags: KittyFlagName[]): void {
+      stdout.write(`\x1b[>${resolveFlags(flags)}u`)
+      kittyProtocolEnabled = true
+    }
+
+    if (kittyKeyboardOpts) {
+      const mode = kittyKeyboardOpts.mode ?? "auto"
+      const flags: KittyFlagName[] = kittyKeyboardOpts.flags ?? ["disambiguateEscapeCodes"]
+
+      if (mode === "enabled") {
+        if ((stdin as any)?.isTTY && (stdout as any)?.isTTY) {
+          enableKittyProtocol(flags)
+        }
+      } else if (mode === "auto") {
+        if ((stdin as any)?.isTTY && (stdout as any)?.isTTY) {
+          cancelKittyDetection = initKittyAutoDetection(
+            (stdin ?? process.stdin) as NodeJS.ReadStream,
+            stdout,
+            flags,
+            enableKittyProtocol,
+          )
+        }
+      }
+    }
 
     // Per-instance cursor store for Ink's useCursor hook
     const cursorStore = createCursorStore()
@@ -1361,6 +1159,10 @@ export function render(element: import("react").ReactNode, options?: Record<stri
       let output = bufferToStyledText(buffer, { trimTrailingWhitespace: true, trimEmptyLines: true })
       output = stripSilveryVS16(output)
       output = toChalkCompat(output)
+      // Restore colon-format SGR sequences that were registered during sanitization.
+      // silvery's pipeline converts colon-format (38:2::R:G:B) to semicolon-format
+      // (38;2;R;G;B) during rendering. This converts them back to match Ink's behavior.
+      output = restoreColonFormatSGR(output)
       return plain ? stripAnsi(output) : output
     }
 
@@ -1439,11 +1241,11 @@ export function render(element: import("react").ReactNode, options?: Record<stri
     function wrapWithInkProviders(el: import("react").ReactElement): import("react").ReactElement {
       // Override StdoutContext with Ink-compatible write that supports debug mode
       const stdoutCtxValue = { stdout, write: writeToStdout }
-      // Provide stderr context for useStderr hook
+      // Provide stderr context for useStderr hook (via silvery core StderrContext)
       const stderrCtxValue = { stderr: stderr ?? process.stderr, write: writeToStderr }
 
       return React.createElement(
-        InkErrorBoundary,
+        SilveryErrorBoundary,
         null,
         React.createElement(
           InkStaticStoreCtx.Provider,
@@ -1461,7 +1263,7 @@ export function render(element: import("react").ReactNode, options?: Record<stri
                   StdoutContext.Provider,
                   { value: stdoutCtxValue },
                   React.createElement(
-                    InkStderrCtx.Provider,
+                    StderrContext.Provider,
                     { value: stderrCtxValue },
                     React.createElement(InkFocusProvider, null, React.createElement(InkFocusBridge, null, el)),
                   ),
@@ -1568,6 +1370,14 @@ export function render(element: import("react").ReactNode, options?: Record<stri
       unmount: () => {
         if (unmounted) return
         unmounted = true
+        if (cancelKittyDetection) {
+          cancelKittyDetection()
+          cancelKittyDetection = undefined
+        }
+        if (kittyProtocolEnabled) {
+          stdout.write("\x1b[<u")
+          kittyProtocolEnabled = false
+        }
         exitAlternateScreen()
         stdout.off("resize", onResize)
         app.unmount()
@@ -1610,9 +1420,10 @@ export function render(element: import("react").ReactNode, options?: Record<stri
 
   // Always provide stdout and stdin for the interactive path
   // so renderSync creates a full interactive instance (not static mode)
+  const resolvedStdout = (stdout ?? process.stdout) as NodeJS.WriteStream
   const resolvedStdin = (stdin ?? process.stdin) as NodeJS.ReadStream
   const termDef: Record<string, unknown> = {
-    stdout: stdout ?? process.stdout,
+    stdout: resolvedStdout,
     stdin: resolvedStdin,
   }
 
@@ -1627,7 +1438,39 @@ export function render(element: import("react").ReactNode, options?: Record<stri
     resolvedStdin.setRawMode(true)
   }
 
-  const silveryInstance = renderSync(element as any, termDef as any, inkOptions as any)
+  // Per-instance stdin state for raw mode tracking and paste event bridging
+  const interactiveStdinState = createInkStdinState(resolvedStdin, resolvedStdout)
+
+  // Kitty keyboard protocol support
+  const kittyKeyboardOpts = options?.kittyKeyboard as KittyKeyboardOptions | undefined
+  let kittyProtocolEnabled = false
+  let cancelKittyDetection: (() => void) | undefined
+
+  function enableKittyProtocol(flags: KittyFlagName[]): void {
+    resolvedStdout.write(`\x1b[>${resolveFlags(flags)}u`)
+    kittyProtocolEnabled = true
+  }
+
+  if (kittyKeyboardOpts) {
+    const mode = kittyKeyboardOpts.mode ?? "auto"
+    const flags: KittyFlagName[] = kittyKeyboardOpts.flags ?? ["disambiguateEscapeCodes"]
+
+    if (mode === "enabled") {
+      if (resolvedStdin.isTTY && resolvedStdout.isTTY) {
+        enableKittyProtocol(flags)
+      }
+    } else if (mode === "auto") {
+      if (resolvedStdin.isTTY && resolvedStdout.isTTY) {
+        // Auto-detect kitty keyboard support by querying the terminal
+        cancelKittyDetection = initKittyAutoDetection(resolvedStdin, resolvedStdout, flags, enableKittyProtocol)
+      }
+    }
+  }
+
+  // Wrap element with InkStdinCtx.Provider so usePaste can access setBracketedPasteMode
+  const wrappedElement = React.createElement(InkStdinCtx.Provider, { value: interactiveStdinState }, element)
+
+  const silveryInstance = renderSync(wrappedElement as any, termDef as any, inkOptions as any)
 
   // Wrap with Ink-specific methods
   const instance: InkInstance = {
@@ -1637,6 +1480,21 @@ export function render(element: import("react").ReactNode, options?: Record<stri
       silveryInstance.unmount()
     },
   }
+
+  // Override unmount to clean up kitty protocol
+  const origUnmount = instance.unmount
+  instance.unmount = () => {
+    if (cancelKittyDetection) {
+      cancelKittyDetection()
+      cancelKittyDetection = undefined
+    }
+    if (kittyProtocolEnabled) {
+      resolvedStdout.write("\x1b[<u")
+      kittyProtocolEnabled = false
+    }
+    origUnmount()
+  }
+
   return instance
 }
 
@@ -1698,31 +1556,10 @@ export function measureElement(nodeOrHandle: any): import("@silvery/react/measur
 }
 
 // =============================================================================
-// Ink Stderr Context (for test-mode render with custom stderr)
+// Ink Stderr — re-exported from silvery core
 // =============================================================================
 
-interface InkStderrContextValue {
-  stderr: NodeJS.WriteStream
-  write: (data: string) => void
-}
-
-const InkStderrCtx = createContext<InkStderrContextValue | null>(null)
-
-/**
- * Ink-compatible useStderr hook.
- * When used inside compat render() with a custom stderr, returns that stderr.
- * Otherwise falls back to process.stderr.
- */
-export function useStderr() {
-  const ctx = useContext(InkStderrCtx)
-  if (ctx) return ctx
-  return {
-    stderr: process.stderr,
-    write: (data: string) => {
-      process.stderr.write(data)
-    },
-  }
-}
+export { useStderr } from "@silvery/react/hooks/useStderr"
 
 // =============================================================================
 // renderToString (Ink-compatible)
@@ -1770,7 +1607,11 @@ export function renderToString(
   const chalkHasColors = currentChalkLevel() > 0
   const colorLevel = chalkHasColors ? ("truecolor" as const) : null
   const term = createTerm({ color: colorLevel })
-  const plain = term.hasColor() === null
+  // Always render with color enabled (plain=false) so that embedded ANSI sequences
+  // in text children are preserved in the buffer output. Ink preserves embedded ANSI
+  // even when chalk has no color support — only chalk-applied style props are skipped
+  // (which the Text component already handles by stripping style props when !chalkHasColors).
+  const plain = false
   // Create a static store for the Static component to populate during renderStringSync
   const staticStore: InkStaticStore = { renderedCount: 0, fullStaticOutput: "" }
   const wrapped = React.createElement(
@@ -1813,7 +1654,12 @@ export function renderToString(
     return ""
   }
   // Prepend static output if present (Ink writes fullStaticOutput + dynamicOutput)
-  const dynamicOutput = plain ? output : toChalkCompat(output)
+  let dynamicOutput = toChalkCompat(output)
+  // Restore colon-format SGR sequences (e.g., 38:2::R:G:B) that silvery converted
+  // to semicolon-format during rendering
+  dynamicOutput = restoreColonFormatSGR(dynamicOutput)
+  // Clear for renderToString (synchronous, single-use)
+  colonFormatReplacements.length = 0
   if (staticStore.fullStaticOutput) {
     return staticStore.fullStaticOutput + dynamicOutput
   }
@@ -1999,3 +1845,168 @@ export type DOMElement = any
 
 export { createTerm, term } from "@silvery/term/ansi"
 export type { Term } from "@silvery/term/ansi"
+
+// =============================================================================
+// Kitty Keyboard Protocol
+// =============================================================================
+
+/**
+ * Kitty keyboard protocol flags.
+ * @see https://sw.kovidgoyal.net/kitty/keyboard-protocol/
+ */
+export const kittyFlags = {
+  disambiguateEscapeCodes: 1,
+  reportEventTypes: 2,
+  reportAlternateKeys: 4,
+  reportAllKeysAsEscapeCodes: 8,
+  reportAssociatedText: 16,
+} as const
+
+/** Valid flag names for the kitty keyboard protocol. */
+export type KittyFlagName = keyof typeof kittyFlags
+
+/** Converts an array of flag names to the corresponding bitmask value. */
+export function resolveFlags(flags: KittyFlagName[]): number {
+  let result = 0
+  for (const flag of flags) {
+    result |= kittyFlags[flag]
+  }
+  return result
+}
+
+/**
+ * Kitty keyboard modifier bits.
+ * Used in the modifier parameter of CSI u sequences.
+ * Note: The actual modifier value is (modifiers - 1) as per the protocol.
+ */
+export const kittyModifiers = {
+  shift: 1,
+  alt: 2,
+  ctrl: 4,
+  super: 8,
+  hyper: 16,
+  meta: 32,
+  capsLock: 64,
+  numLock: 128,
+} as const
+
+/** Options for configuring kitty keyboard protocol. */
+export type KittyKeyboardOptions = {
+  mode?: "auto" | "enabled" | "disabled"
+  flags?: KittyFlagName[]
+}
+
+// =============================================================================
+// Kitty Auto-Detection
+// =============================================================================
+
+const KITTY_QUERY_ESC = 0x1b
+const KITTY_QUERY_BRACKET = 0x5b
+const KITTY_QUERY_QUESTION = 0x3f
+const KITTY_QUERY_U = 0x75
+const DIGIT_0 = 0x30
+const DIGIT_9 = 0x39
+
+function isDigitByte(byte: number): boolean {
+  return byte >= DIGIT_0 && byte <= DIGIT_9
+}
+
+type KittyQueryMatch = { state: "complete"; endIndex: number } | { state: "partial" }
+
+function matchKittyQueryResponse(buffer: number[], startIndex: number): KittyQueryMatch | undefined {
+  if (
+    buffer[startIndex] !== KITTY_QUERY_ESC ||
+    buffer[startIndex + 1] !== KITTY_QUERY_BRACKET ||
+    buffer[startIndex + 2] !== KITTY_QUERY_QUESTION
+  ) {
+    return undefined
+  }
+  let index = startIndex + 3
+  const digitsStart = index
+  while (index < buffer.length && isDigitByte(buffer[index]!)) {
+    index++
+  }
+  if (index === digitsStart) return undefined
+  if (index === buffer.length) return { state: "partial" }
+  if (buffer[index] === KITTY_QUERY_U) return { state: "complete", endIndex: index }
+  return undefined
+}
+
+function hasCompleteKittyQueryResponse(buffer: number[]): boolean {
+  for (let i = 0; i < buffer.length; i++) {
+    const match = matchKittyQueryResponse(buffer, i)
+    if (match?.state === "complete") return true
+  }
+  return false
+}
+
+function stripKittyQueryResponsesAndTrailingPartial(buffer: number[]): number[] {
+  const kept: number[] = []
+  let index = 0
+  while (index < buffer.length) {
+    const match = matchKittyQueryResponse(buffer, index)
+    if (match?.state === "complete") {
+      index = match.endIndex + 1
+      continue
+    }
+    if (match?.state === "partial") break
+    kept.push(buffer[index]!)
+    index++
+  }
+  return kept
+}
+
+/**
+ * Initialize kitty keyboard auto-detection.
+ * Queries the terminal for support, listens for the response, and enables the protocol if supported.
+ * Returns a cleanup function to cancel the detection.
+ */
+function initKittyAutoDetection(
+  stdin: NodeJS.ReadStream,
+  stdout: NodeJS.WriteStream,
+  flags: KittyFlagName[],
+  onEnable: (flags: KittyFlagName[]) => void,
+): () => void {
+  let responseBuffer: number[] = []
+  let cleaned = false
+  let unmounted = false
+
+  const cleanup = (): void => {
+    if (cleaned) return
+    cleaned = true
+    clearTimeout(timer)
+    stdin.removeListener("data", onData)
+
+    // Re-emit any buffered data that wasn't the protocol response
+    const remaining = stripKittyQueryResponsesAndTrailingPartial(responseBuffer)
+    responseBuffer = []
+    if (remaining.length > 0) {
+      stdin.unshift(Buffer.from(remaining))
+    }
+  }
+
+  const onData = (data: Uint8Array | string): void => {
+    const chunk = typeof data === "string" ? Buffer.from(data) : data
+    for (const byte of chunk) {
+      responseBuffer.push(byte)
+    }
+
+    if (hasCompleteKittyQueryResponse(responseBuffer)) {
+      cleanup()
+      if (!unmounted) {
+        onEnable(flags)
+      }
+    }
+  }
+
+  // Attach listener before writing the query so synchronous responses are not missed
+  stdin.on("data", onData)
+  const timer = setTimeout(cleanup, 200)
+
+  stdout.write("\x1b[?u")
+
+  return () => {
+    unmounted = true
+    cleanup()
+  }
+}

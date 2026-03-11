@@ -300,6 +300,7 @@ export { useInput } from "./hooks/useInput"
 export { useApp } from "./hooks/useApp"
 
 export { useStdout } from "./hooks/useStdout"
+export { useStderr } from "./hooks/useStderr"
 export { useFocusManager } from "./hooks/useFocusManager"
 
 // Focus system (tree-based)
@@ -326,6 +327,7 @@ export type { UseFocusableResult } from "./hooks/useFocusable"
 export { useFocusWithin } from "./hooks/useFocusWithin"
 
 export { useTerm } from "./hooks/useTerm"
+export { useWindowSize } from "./hooks/useWindowSize"
 export { useConsole } from "./hooks/useConsole"
 export {
   useCursor,
@@ -374,7 +376,7 @@ export { useTransition, useDeferredValue, useId } from "react"
 export { useRuntime } from "./hooks/useRuntime"
 
 // Contexts for advanced usage (usually hooks are preferred)
-export { TermContext, FocusManagerContext, RuntimeContext } from "./context"
+export { TermContext, FocusManagerContext, RuntimeContext, StderrContext } from "./context"
 export type { RuntimeContextValue, BaseRuntimeEvents } from "./context"
 
 // Theming
@@ -645,6 +647,7 @@ export {
 export type { ParsedKeypress, ParsedHotkey } from "@silvery/tea/keys"
 export type { UseAppResult } from "./hooks/useApp"
 export type { UseStdoutResult } from "./hooks/useStdout"
+export type { UseStderrResult } from "./hooks/useStderr"
 export type { UseFocusManagerResult } from "./hooks/useFocusManager"
 export type { RenderOptions, Instance, RenderMode, NonTTYMode } from "./render"
 export type { MeasureElementOutput } from "./measureElement"

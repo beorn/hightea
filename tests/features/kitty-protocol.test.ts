@@ -217,19 +217,19 @@ describe("kitty protocol - event types", () => {
   test("press event", () => {
     const result = parseKeypress(kittyKey(97, 1, 1))
     expect(result.name).toBe("a")
-    expect(result.eventType).toBe(1)
+    expect(result.eventType).toBe("press")
   })
 
   test("repeat event", () => {
     const result = parseKeypress(kittyKey(97, 1, 2))
     expect(result.name).toBe("a")
-    expect(result.eventType).toBe(2)
+    expect(result.eventType).toBe("repeat")
   })
 
   test("release event", () => {
     const result = parseKeypress(kittyKey(97, 1, 3))
     expect(result.name).toBe("a")
-    expect(result.eventType).toBe(3)
+    expect(result.eventType).toBe("release")
   })
 })
 
@@ -300,25 +300,25 @@ describe("kitty protocol - enhanced special keys", () => {
     // Up arrow press: CSI 1;1:1 A
     const up = parseKeypress("\x1b[1;1:1A")
     expect(up.name).toBe("up")
-    expect(up.eventType).toBe(1)
+    expect(up.eventType).toBe("press")
     expect(up.isKittyProtocol).toBe(true)
 
     // Down arrow release: CSI 1;1:3 B
     const down = parseKeypress("\x1b[1;1:3B")
     expect(down.name).toBe("down")
-    expect(down.eventType).toBe(3)
+    expect(down.eventType).toBe("release")
     expect(down.isKittyProtocol).toBe(true)
 
     // Right arrow repeat: CSI 1;1:2 C
     const right = parseKeypress("\x1b[1;1:2C")
     expect(right.name).toBe("right")
-    expect(right.eventType).toBe(2)
+    expect(right.eventType).toBe("repeat")
     expect(right.isKittyProtocol).toBe(true)
 
     // Left arrow: CSI 1;1:1 D
     const left = parseKeypress("\x1b[1;1:1D")
     expect(left.name).toBe("left")
-    expect(left.eventType).toBe(1)
+    expect(left.eventType).toBe("press")
     expect(left.isKittyProtocol).toBe(true)
   })
 
@@ -327,19 +327,19 @@ describe("kitty protocol - enhanced special keys", () => {
     const result = parseKeypress("\x1b[1;5:1A")
     expect(result.name).toBe("up")
     expect(result.ctrl).toBe(true)
-    expect(result.eventType).toBe(1)
+    expect(result.eventType).toBe("press")
     expect(result.isKittyProtocol).toBe(true)
   })
 
   test("home and end keys", () => {
     const home = parseKeypress("\x1b[1;1:1H")
     expect(home.name).toBe("home")
-    expect(home.eventType).toBe(1)
+    expect(home.eventType).toBe("press")
     expect(home.isKittyProtocol).toBe(true)
 
     const end = parseKeypress("\x1b[1;1:1F")
     expect(end.name).toBe("end")
-    expect(end.eventType).toBe(1)
+    expect(end.eventType).toBe("press")
     expect(end.isKittyProtocol).toBe(true)
   })
 
@@ -347,7 +347,7 @@ describe("kitty protocol - enhanced special keys", () => {
     // Delete: CSI 3;1:1 ~
     const del = parseKeypress("\x1b[3;1:1~")
     expect(del.name).toBe("delete")
-    expect(del.eventType).toBe(1)
+    expect(del.eventType).toBe("press")
     expect(del.isKittyProtocol).toBe(true)
 
     // Insert: CSI 2;1:1 ~
@@ -371,7 +371,7 @@ describe("kitty protocol - enhanced special keys", () => {
     const result = parseKeypress("\x1b[3;2:1~")
     expect(result.name).toBe("delete")
     expect(result.shift).toBe(true)
-    expect(result.eventType).toBe(1)
+    expect(result.eventType).toBe("press")
     expect(result.isKittyProtocol).toBe(true)
   })
 })

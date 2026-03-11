@@ -172,6 +172,8 @@ export interface LayoutConstants {
   EDGE_ALL: EdgeValue
 
   // Gutter
+  GUTTER_COLUMN: GutterValue
+  GUTTER_ROW: GutterValue
   GUTTER_ALL: GutterValue
 
   // Display
@@ -179,6 +181,7 @@ export interface LayoutConstants {
   DISPLAY_NONE: DisplayValue
 
   // Position Type
+  POSITION_TYPE_STATIC: PositionTypeValue
   POSITION_TYPE_RELATIVE: PositionTypeValue
   POSITION_TYPE_ABSOLUTE: PositionTypeValue
 

@@ -235,7 +235,7 @@ describe("inline bleed: stale lines after scrollback promotion", () => {
     expect(screen.getNonEmptyLines()).toEqual(["Item 1", "Item 2", "Item 3", "Item 4", "Footer"])
   })
 
-  test("multiple freeze cycles: each frozen item enters scrollback", () => {
+  test("multiple freeze cycles: frozen items accumulate on-screen", () => {
     const COLS = 40
     const ROWS = 15
     const outputPhase = createOutputPhase({})
@@ -254,19 +254,19 @@ describe("inline bleed: stale lines after scrollback promotion", () => {
 
     expect(screen.getNonEmptyLines()).toEqual(["Task A", "Task B", "Task C", "Task D", "Task E", "Status"])
 
-    // Freeze cycle 2: freeze Task B — next render overwrites frozen Task A, frozen Task B stays on-screen
+    // Freeze cycle 2: freeze Task B — frozen Task A persists, Task B added above live content
     outputPhase.promoteScrollback!("Task B\x1b[K\r\n", 1)
     const buf3 = bufferWithLines(COLS, ROWS, ["Task C", "Task D", "Task E", "Status"])
     screen.feed(outputPhase(buf2, buf3, "inline", 0, ROWS))
 
-    expect(screen.getNonEmptyLines()).toEqual(["Task B", "Task C", "Task D", "Task E", "Status"])
+    expect(screen.getNonEmptyLines()).toEqual(["Task A", "Task B", "Task C", "Task D", "Task E", "Status"])
 
-    // Freeze cycle 3: freeze Task C — next render overwrites frozen Task B, frozen Task C stays on-screen
+    // Freeze cycle 3: freeze Task C — all frozen items accumulate
     outputPhase.promoteScrollback!("Task C\x1b[K\r\n", 1)
     const buf4 = bufferWithLines(COLS, ROWS, ["Task D", "Task E", "Status"])
     screen.feed(outputPhase(buf3, buf4, "inline", 0, ROWS))
 
-    expect(screen.getNonEmptyLines()).toEqual(["Task C", "Task D", "Task E", "Status"])
+    expect(screen.getNonEmptyLines()).toEqual(["Task A", "Task B", "Task C", "Task D", "Task E", "Status"])
   })
 
   test("content shrinking without promotion erases orphan lines", () => {
@@ -326,7 +326,7 @@ describe("inline bleed: stale lines after scrollback promotion", () => {
     expect(screen.getNonEmptyLines()).toEqual(["Item 1", "Item 2", "Item 3", "Item 4"])
   })
 
-  test("rapid freeze cycles: each frozen item enters scrollback", () => {
+  test("rapid freeze cycles: frozen items accumulate on-screen", () => {
     const COLS = 40
     const ROWS = 10
     const outputPhase = createOutputPhase({})
@@ -339,21 +339,22 @@ describe("inline bleed: stale lines after scrollback promotion", () => {
     screen.feed(outputPhase(null, prevBuf, "inline", 0, ROWS))
     expect(screen.getNonEmptyLines()).toEqual(allItems)
 
-    // Freeze items one at a time
+    // Freeze items one at a time — frozen items accumulate on-screen
+    const frozenSoFar: string[] = []
     for (let i = 0; i < allItems.length; i++) {
       const frozenItem = allItems[i]!
+      frozenSoFar.push(frozenItem)
       outputPhase.promoteScrollback!(`${frozenItem}\x1b[K\r\n`, 1)
 
       const remaining = allItems.slice(i + 1)
-      // When all items are frozen, the live buffer has no content (empty first line)
       const nextBuf = bufferWithLines(COLS, ROWS, remaining.length > 0 ? remaining : [])
       const frame = outputPhase(prevBuf, nextBuf, "inline", 0, ROWS)
       screen.feed(frame)
       prevBuf = nextBuf
 
-      // Frozen item stays on-screen; next render frame would overwrite it.
+      // All frozen items accumulate above live content
       const visible = screen.getNonEmptyLines()
-      expect(visible).toEqual([frozenItem, ...remaining])
+      expect(visible).toEqual([...frozenSoFar, ...remaining])
     }
   })
 
@@ -378,12 +379,13 @@ describe("inline bleed: stale lines after scrollback promotion", () => {
     // Frame 3: Normal re-render (no promotion) where content shrinks.
     // This simulates a state update removing an item AFTER the freeze cycle.
     // Frozen Item 1 stays on-screen (no new promotion to clear it).
+    // With the cursor tracking fix, orphan lines are properly erased.
     const buf3 = bufferWithLines(COLS, ROWS, ["Item 2", "Item 3", "Item 4"])
     screen.feed(outputPhase(buf2, buf3, "inline", 0, ROWS))
 
-    // Frozen Item 1 persists on-screen. Incremental diff updates at frozen offset,
-    // leaving artifacts from the previous frame that haven't been overwritten yet.
-    expect(screen.getNonEmptyLines()).toEqual(["Item 1", "Item 2", "Item 3", "", "Item 5"])
+    // Frozen Item 1 persists at row 0. Live content updated (3 lines).
+    // Orphan Item 5 properly erased by shrink handling.
+    expect(screen.getNonEmptyLines()).toEqual(["Item 1", "Item 2", "Item 3", "Item 4"])
   })
 
   test("cursor positioned mid-content does not cause bleed on shrink", () => {
@@ -427,12 +429,12 @@ describe("inline bleed: stale lines after scrollback promotion", () => {
     expect(screen.getNonEmptyLines()).toEqual(["Job 1", "Job 2", "Job 3", "Job 4", "Job 5", "Job 6", "Spinner"])
 
     // Freeze Jobs 2 and 3 simultaneously, Job 6 also done (net shrink by 1)
-    // This render overwrites frozen Job 1 from previous cycle.
+    // Frozen Job 1 from previous cycle persists (cursor tracking is live-only).
     outputPhase.promoteScrollback!("Job 2\x1b[K\r\nJob 3\x1b[K\r\n", 2)
     const buf3 = bufferWithLines(COLS, ROWS, ["Job 4", "Job 5", "Spinner"])
     screen.feed(outputPhase(buf2, buf3, "inline", 0, ROWS))
 
-    // Frozen Jobs 2, 3 stay on-screen. Previous frozen Job 1 overwritten.
-    expect(screen.getNonEmptyLines()).toEqual(["Job 2", "Job 3", "Job 4", "Job 5", "Spinner"])
+    // All frozen content accumulates: Job 1 (cycle 1) + Jobs 2,3 (cycle 2) + live
+    expect(screen.getNonEmptyLines()).toEqual(["Job 1", "Job 2", "Job 3", "Job 4", "Job 5", "Spinner"])
   })
 })

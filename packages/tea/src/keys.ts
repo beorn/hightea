@@ -74,8 +74,8 @@ export interface Key {
   capsLock: boolean
   /** NumLock is active. Requires Kitty protocol. */
   numLock: boolean
-  /** Kitty event type: 1=press, 2=repeat, 3=release. Only set with Kitty flag 2 (report events). */
-  eventType?: 1 | 2 | 3
+  /** Kitty event type. Only set with Kitty flag 2 (report events). */
+  eventType?: "press" | "repeat" | "release"
 }
 
 /**
@@ -558,6 +558,14 @@ function kittyCodepointToName(cp: number): string | undefined {
   return KITTY_CODEPOINT_MAP[cp]
 }
 
+/** Convert numeric Kitty event type (1/2/3) to string. */
+function numericToEventType(n: number): "press" | "repeat" | "release" | undefined {
+  if (n === 1) return "press"
+  if (n === 2) return "repeat"
+  if (n === 3) return "release"
+  return undefined
+}
+
 // ============================================================================
 // Key Parsing
 // ============================================================================
@@ -570,8 +578,8 @@ export interface ParsedKeypress {
   option: boolean
   super: boolean
   hyper: boolean
-  /** Kitty event type: 1=press, 2=repeat, 3=release. Only set with Kitty flag 2 (report events). */
-  eventType?: 1 | 2 | 3
+  /** Kitty event type. Only set with Kitty flag 2 (report events). */
+  eventType?: "press" | "repeat" | "release"
   /** The character when Shift is held. From Kitty shifted_codepoint. */
   shiftedKey?: string
   /** The key on a standard US layout (for non-Latin keyboards). From Kitty base_layout_key. */
@@ -705,8 +713,9 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
       key.capsLock = !!(modifier & 64)
       key.numLock = !!(modifier & 128)
 
-      if (eventType >= 1 && eventType <= 3) {
-        key.eventType = eventType as 1 | 2 | 3
+      const eventTypeStr = numericToEventType(eventType)
+      if (eventTypeStr) {
+        key.eventType = eventTypeStr
       }
     } else if (kittyParts || modifyOtherKeysParts) {
       let codepoint: number
@@ -744,8 +753,8 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
 
       // Event type from Kitty protocol (group 5): 1=press, 2=repeat, 3=release
       if (kittyParts?.[5]) {
-        const et = Number(kittyParts[5]) as 1 | 2 | 3
-        if (et >= 1 && et <= 3) key.eventType = et
+        const et = numericToEventType(Number(kittyParts[5]))
+        if (et) key.eventType = et
       }
 
       // Shifted codepoint (group 2)

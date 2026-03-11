@@ -423,15 +423,20 @@ describe("inline: scrollback promotion", () => {
     let prev = bufferWithLines(COLS, ROWS, lines)
     screen.feed(op(null, prev, "inline", 0, ROWS))
 
-    // Freeze one at a time — frozen content stays on-screen per frame
+    // Freeze one at a time — frozen content accumulates on-screen.
+    // After the cursor tracking fix (5604a40), prevCursorRow tracks only live
+    // content, so previous frozen lines are not overwritten by subsequent cycles.
+    // All frozen lines accumulate above the live content.
+    const frozenSoFar: string[] = []
     for (let i = 0; i < 3; i++) {
       const frozen = lines[i]!
+      frozenSoFar.push(frozen)
       op.promoteScrollback!(`${frozen}\x1b[K\r\n`, 1)
       const remaining = lines.slice(i + 1)
       const next = bufferWithLines(COLS, ROWS, remaining)
       screen.feed(op(prev, next, "inline", 0, ROWS))
-      // Frozen item is still on-screen (prepended to live content)
-      expect(screen.getNonEmptyLines()).toEqual([frozen, ...remaining])
+      // All frozen items accumulate on-screen above live content
+      expect(screen.getNonEmptyLines()).toEqual([...frozenSoFar, ...remaining])
       prev = next
     }
   })
@@ -497,15 +502,18 @@ describe("inline: scrollback promotion", () => {
     let prev = bufferWithLines(COLS, ROWS, allItems)
     screen.feed(op(null, prev, "inline", 0, ROWS))
 
+    // Frozen items accumulate on-screen (cursor tracking only covers live content)
+    const frozenSoFar: string[] = []
     for (let i = 0; i < allItems.length; i++) {
+      frozenSoFar.push(allItems[i]!)
       op.promoteScrollback!(`${allItems[i]}\x1b[K\r\n`, 1)
       const remaining = allItems.slice(i + 1)
       const next = bufferWithLines(COLS, ROWS, remaining.length > 0 ? remaining : [])
       screen.feed(op(prev, next, "inline", 0, ROWS))
       prev = next
 
-      // Frozen item stays on-screen (prepended to live content)
-      expect(screen.getNonEmptyLines()).toEqual([allItems[i], ...remaining])
+      // All frozen items accumulate above live content
+      expect(screen.getNonEmptyLines()).toEqual([...frozenSoFar, ...remaining])
     }
   })
 
@@ -526,13 +534,13 @@ describe("inline: scrollback promotion", () => {
     expect(screen.getNonEmptyLines()).toEqual(["I1", "I2", "I3", "I4", "I5"])
 
     // Frame 3: normal shrink (no promotion), remove I5.
-    // The frozen I1 at row 0 persists; incremental diff operates on its
-    // tracked area which is offset by the frozen line.
+    // The frozen I1 at row 0 persists; incremental diff operates on the
+    // live content area only (cursor tracking doesn't include frozen lines).
     const buf3 = bufferWithLines(COLS, ROWS, ["I2", "I3", "I4"])
     screen.feed(op(buf2, buf3, "inline", 0, ROWS))
 
-    // Frozen I1 still on row 0, live content updated, stale I5 remains at row 4
-    expect(screen.getNonEmptyLines()).toEqual(["I1", "I2", "I3", "", "I5"])
+    // Frozen I1 still on row 0, live content updated, orphan I5 erased
+    expect(screen.getNonEmptyLines()).toEqual(["I1", "I2", "I3", "I4"])
   })
 })
 

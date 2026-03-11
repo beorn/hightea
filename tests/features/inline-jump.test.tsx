@@ -353,16 +353,17 @@ describe("inline jump: content height changes between frames", () => {
     ])
     screen.feed(outputPhase(buf2, buf3, "inline", 0, ROWS))
 
-    // After scrollback promotion, frozen content stays on-screen. Subsequent
-    // renders overwrite it via incremental diff (partial cell overwrites visible
-    // in the VT simulator due to offset shift after promotion).
+    // After the cursor tracking fix (5604a40), the incremental render operates
+    // correctly within the live content area. Frozen content stays above.
     expect(screen.getScrollbackLines()).toEqual([])
     expect(screen.getNonEmptyLines()).toEqual([
       "User: hello",
-      "AI: Letlme explain...",
+      "AI: world",
+      "---",
+      "User: how?",
+      "AI: Let me explain...",
       "AI: First point",
-      "AI:rSecond point",
-      "AI: ...",
+      "AI: Second point",
     ])
   })
 

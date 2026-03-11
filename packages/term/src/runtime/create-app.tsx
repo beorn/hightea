@@ -51,6 +51,7 @@ import {
   RuntimeContext,
   type RuntimeContextValue,
   StdoutContext,
+  StderrContext,
   TermContext,
 } from "@silvery/react/context"
 import { SilveryErrorBoundary } from "@silvery/react/error-boundary"
@@ -908,13 +909,22 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
               getInlineCursorRow: () => runtime.getInlineCursorRow(),
             }}
           >
-            <FocusManagerContext.Provider value={focusManager}>
-              <RuntimeContext.Provider value={runtimeContextValue}>
-                <Root>
-                  <StoreContext.Provider value={store as StoreApi<unknown>}>{element}</StoreContext.Provider>
-                </Root>
-              </RuntimeContext.Provider>
-            </FocusManagerContext.Provider>
+            <StderrContext.Provider
+              value={{
+                stderr: process.stderr,
+                write: (data: string) => {
+                  process.stderr.write(data)
+                },
+              }}
+            >
+              <FocusManagerContext.Provider value={focusManager}>
+                <RuntimeContext.Provider value={runtimeContextValue}>
+                  <Root>
+                    <StoreContext.Provider value={store as StoreApi<unknown>}>{element}</StoreContext.Provider>
+                  </Root>
+                </RuntimeContext.Provider>
+              </FocusManagerContext.Provider>
+            </StderrContext.Provider>
           </StdoutContext.Provider>
         </TermContext.Provider>
       </CursorProvider>

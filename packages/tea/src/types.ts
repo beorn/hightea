@@ -86,9 +86,11 @@ export interface FlexboxProps {
   marginX?: number
   marginY?: number
   gap?: number
+  columnGap?: number
+  rowGap?: number
 
   // Position
-  position?: "relative" | "absolute" | "sticky"
+  position?: "relative" | "absolute" | "sticky" | "static"
 
   // Position offsets (used with position='absolute' or position='relative')
   top?: number | string
@@ -109,6 +111,8 @@ export interface FlexboxProps {
 
   // Overflow
   overflow?: "visible" | "hidden" | "scroll"
+  overflowX?: "visible" | "hidden"
+  overflowY?: "visible" | "hidden"
 
   // Scroll control (only used when overflow='scroll')
   /** Child index to ensure visible (edge-based: only scrolls if off-screen) */
@@ -457,8 +461,8 @@ export interface KeyEvent {
   super?: boolean
   /** Hyper modifier was held. Requires Kitty protocol. */
   hyper?: boolean
-  /** Kitty event type: 1=press, 2=repeat, 3=release. Requires Kitty flag 2. */
-  eventType?: 1 | 2 | 3
+  /** Kitty event type. Requires Kitty flag 2. */
+  eventType?: "press" | "repeat" | "release"
   /** CapsLock is active. Kitty modifier bit 6. */
   capsLock?: boolean
   /** NumLock is active. Kitty modifier bit 7. */

@@ -8,7 +8,7 @@
 import { createTerm } from "../ansi/index"
 import React, { type ReactElement } from "react"
 import { bufferToStyledText, bufferToText } from "../buffer"
-import { StdoutContext, TermContext } from "@silvery/react/context"
+import { StdoutContext, StderrContext, TermContext } from "@silvery/react/context"
 import { ensureDefaultLayoutEngine, isLayoutEngineInitialized } from "../layout-engine"
 import { executeRender } from "../pipeline"
 import { createContainer, createFiberRoot, getContainerRoot, reconciler } from "@silvery/react/reconciler"
@@ -96,7 +96,18 @@ export function layout(element: ReactElement, dims: Dims, options: LayoutOptions
           write: () => {},
         },
       },
-      element,
+      React.createElement(
+        StderrContext.Provider,
+        {
+          value: {
+            stderr: process.stderr,
+            write: (data: string) => {
+              process.stderr.write(data)
+            },
+          },
+        },
+        element,
+      ),
     ),
   )
 

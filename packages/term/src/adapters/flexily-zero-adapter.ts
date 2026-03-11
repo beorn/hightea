@@ -32,6 +32,8 @@ import {
   FLEX_DIRECTION_ROW_REVERSE,
   Node as FlexilyNode,
   GUTTER_ALL,
+  GUTTER_COLUMN,
+  GUTTER_ROW,
   JUSTIFY_CENTER,
   JUSTIFY_FLEX_END,
   JUSTIFY_FLEX_START,
@@ -46,6 +48,7 @@ import {
   OVERFLOW_VISIBLE,
   POSITION_TYPE_ABSOLUTE,
   POSITION_TYPE_RELATIVE,
+  POSITION_TYPE_STATIC,
   WRAP_NO_WRAP,
   WRAP_WRAP,
   WRAP_WRAP_REVERSE,
@@ -312,6 +315,8 @@ export class FlexilyZeroLayoutEngine implements LayoutEngine {
     EDGE_ALL: EDGE_ALL as EdgeValue,
 
     // Gutter
+    GUTTER_COLUMN: GUTTER_COLUMN as GutterValue,
+    GUTTER_ROW: GUTTER_ROW as GutterValue,
     GUTTER_ALL: GUTTER_ALL as GutterValue,
 
     // Display
@@ -319,6 +324,7 @@ export class FlexilyZeroLayoutEngine implements LayoutEngine {
     DISPLAY_NONE: DISPLAY_NONE as DisplayValue,
 
     // Position Type
+    POSITION_TYPE_STATIC: POSITION_TYPE_STATIC as PositionTypeValue,
     POSITION_TYPE_RELATIVE: POSITION_TYPE_RELATIVE as PositionTypeValue,
     POSITION_TYPE_ABSOLUTE: POSITION_TYPE_ABSOLUTE as PositionTypeValue,
 

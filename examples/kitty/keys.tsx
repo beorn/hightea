@@ -41,11 +41,7 @@ export const meta: ExampleMeta = {
   features: ["parseKeypress()", "detectKittySupport()", "⌘ ⌥ ⌃ ⇧ ✦ symbols", "KittyFlags"],
 }
 
-const EVENT_TYPES: Record<number, string> = {
-  1: "press",
-  2: "repeat",
-  3: "release",
-}
+// eventType is already a string ("press" | "repeat" | "release")
 
 interface KeyEvent {
   index: number
@@ -206,8 +202,7 @@ function KeyDetails({ event }: { event: KeyEvent }): JSX.Element {
       {parsed.eventType && (
         <Box marginTop={1}>
           <Text>
-            <Text bold>Event type:</Text>{" "}
-            <Text color="magenta">{EVENT_TYPES[parsed.eventType] ?? String(parsed.eventType)}</Text>
+            <Text bold>Event type:</Text> <Text color="magenta">{parsed.eventType}</Text>
           </Text>
         </Box>
       )}
@@ -281,7 +276,7 @@ function formatEventSummary(event: KeyEvent): string {
   if (parsed.super) parts.push("⌘")
   if (parsed.hyper) parts.push("✦")
   parts.push(parsed.name || JSON.stringify(event.input))
-  if (parsed.eventType) parts.push(`(${EVENT_TYPES[parsed.eventType]})`)
+  if (parsed.eventType) parts.push(`(${parsed.eventType})`)
   return parts.join("")
 }
 

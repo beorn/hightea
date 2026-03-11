@@ -31,7 +31,7 @@ features and implementation gaps in the compat layer.
 | 6   | Compat layer rendering bugs               | 24       | Fix in compat layer                             | Small-Medium |
 | 7   | Kitty keyboard protocol (missing feature) | 8        | Implement kitty protocol detection/mode         | Medium       |
 | 8   | Timeouts (cascading from other failures)  | 5        | Fix underlying issues                           | N/A          |
-| 9   | Unexpected passes (test marking issue)    | 3        | Remove `.failing()` marks in Ink tests          | Trivial      |
+| 9   | Unexpected passes (test marking issue)    | 1        | Remove `.failing()` marks in Ink tests          | Trivial      |
 |     | **Unique failures**                       | **~174** |                                                 |              |
 
 Note: Some failures overlap (e.g., timeout failures cascade from earlier test hangs).
@@ -551,16 +551,15 @@ hangs.
 
 ---
 
-## Category 9: Unexpected Passes — 3
+## Category 9: Unexpected Passes — 1
 
 These are tests marked `.failing()` in Ink's test suite that now pass with silvery:
 
-- `flex-justify-content › row - align two text nodes with equal space around them`
 - `flex-justify-content › column - align two text nodes with equal space around them`
-- `width-height › set min width in percent`
 
-These are Ink/Yoga bugs that Flexily gets right. The `.failing()` marks should be
-removed if running against silvery.
+These are Ink/Yoga bugs that Flexily gets right. The `.failing()` marks are patched
+out by `compat-check.ts` for the 2 that silvery passes (row space-around and min
+width percent). The column variant still needs investigation.
 
 ---
 
