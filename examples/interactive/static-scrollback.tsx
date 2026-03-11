@@ -673,7 +673,7 @@ function ToolCallBlock({ call, phase }: { call: ToolCall; phase: "pending" | "ru
         <Box
           flexDirection="column"
           borderStyle="bold"
-          borderColor="$success"
+          borderColor="$border"
           borderLeft
           borderRight={false}
           borderTop={false}
@@ -793,7 +793,7 @@ function ExchangeItem({
     )
   }
 
-  const outlineColor = "$muted"
+  const outlineColor = "$border"
   const icon = "\u25C6"
   const name = "Agent"
   const phase = isLatest ? streamPhase : "done"
