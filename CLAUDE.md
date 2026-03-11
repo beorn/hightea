@@ -79,6 +79,32 @@ VitePress docs at `docs/` — deployed to silvery.dev via GitHub Pages.
 
 Factory functions, `using` cleanup, no classes, no globals. ESM imports only. TypeScript strict mode.
 
+## Testing with `writable` (termless bridge)
+
+`run()` accepts a `writable` option for full ANSI testing via termless — renders go through the real pipeline and terminal emulator, not stripped text:
+
+```tsx
+import { createTerminal } from "@termless/core"
+import { createXtermBackend } from "@termless/xtermjs"
+import "@termless/test/matchers"
+
+const term = createTerminal({ backend: createXtermBackend(), cols: 80, rows: 24 })
+const handle = await run(<App />, {
+  writable: { write: (s) => term.feed(s) },
+  cols: 80,
+  rows: 24,
+})
+
+expect(term.screen).toContainText("Hello")  // termless assertion
+await handle.press("j")                      // input via handle
+expect(term.screen).toContainText("Count: 1")
+
+handle.unmount()
+await term.close()
+```
+
+`writable` triggers headless mode (mock streams, no terminal setup) but routes ANSI output to the sink instead of nowhere. Use `@silvery/test` + `createRenderer()` for fast stripped-text tests; use `writable` + termless when you need to verify ANSI output, box drawing, colors, or cursor positioning.
+
 ## Debugging
 
 ```bash
