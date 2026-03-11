@@ -185,6 +185,11 @@ export interface AppRunOptions {
   stdout?: NodeJS.WriteStream
   /** Standard input (default: process.stdin) */
   stdin?: NodeJS.ReadStream
+  /**
+   * Plain writable sink for ANSI output. Headless mode with active output.
+   * Requires cols and rows. Input via handle.press().
+   */
+  writable?: { write(data: string): void }
   /** Abort signal for external cleanup */
   signal?: AbortSignal
   /** Enter alternate screen buffer (clean slate, restore on exit). Default: false */
@@ -476,10 +481,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     focusReporting: focusReportingOption = false,
     caps: capsOption,
     Root: RootComponent,
+    writable: explicitWritable,
     ...injectValues
   } = options
 
-  const headless = explicitCols != null && explicitRows != null && !explicitStdout
+  const headless = (explicitCols != null && explicitRows != null && !explicitStdout) || explicitWritable != null
   const cols = explicitCols ?? process.stdout.columns ?? 80
   const rows = explicitRows ?? process.stdout.rows ?? 24
   const stdout = explicitStdout ?? process.stdout
@@ -670,7 +676,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // Create render target
   const target: RenderTarget = headless
     ? {
-        write() {},
+        write(frame: string) {
+          if (explicitWritable) explicitWritable.write(frame)
+        },
         getDims: () => currentDims,
       }
     : {
@@ -1656,6 +1664,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         flushCount++
       }
       inEventHandler = false
+      runtime.render(currentBuffer)
     },
 
     [Symbol.asyncIterator](): AsyncIterator<Buffer> {

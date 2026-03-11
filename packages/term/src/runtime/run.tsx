@@ -62,6 +62,11 @@ export interface RunOptions {
   stdout?: NodeJS.WriteStream
   /** Standard input (default: process.stdin) */
   stdin?: NodeJS.ReadStream
+  /**
+   * Plain writable sink for ANSI output. Headless mode with active output.
+   * Requires cols and rows. Input via handle.press().
+   */
+  writable?: { write(data: string): void }
   /** Abort signal for external cleanup */
   signal?: AbortSignal
   /**
