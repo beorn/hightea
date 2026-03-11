@@ -1,6 +1,8 @@
 # Semantic Color Tokens
 
-Which `$token` to use for which element. Scan for your element type, get the answer.
+_How to color the shiniest Silvery apps_
+
+Colors tarnish fast. A hardcoded `"red"` here, a `"$success"` where you meant "brand emphasis" there — suddenly your UI is a patchwork of misused tokens that breaks on every theme. These guidelines keep your colors **shiny**.
 
 ## The #1 Rule: Don't Specify Colors
 
@@ -9,191 +11,251 @@ Most Silvery components already use the correct semantic colors by default. **Th
 | Component | What's automatic | You just set |
 | --- | --- | --- |
 | `<Text>` | `$fg` text color | Nothing — it's the default |
-| `<TextInput>` | `$inputborder` → `$focusborder` on focus, `$control` prompt, cursor | `borderStyle` to enable borders |
-| `<TextArea>` | `$inputborder` → `$focusborder` on focus | `borderStyle` to enable borders |
-| `<ModalDialog>` | `$surfacebg` background, `$border` border, `$primary` title | Nothing — all automatic |
-| `<CommandPalette>` | `$surfacebg` background, `$border` border | Nothing |
-| `<Toast>` | `$surfacebg` background, `$border` border | Nothing |
+| `<TextInput>` | `$inputborder` → `$focusborder` on focus, `$control` prompt, cursor | `borderStyle` to opt into borders |
+| `<TextArea>` | `$inputborder` → `$focusborder` on focus | `borderStyle` to opt into borders |
+| `<ModalDialog>` | `$surfacebg` bg, `$border` border, `$primary` title | Nothing — all automatic |
+| `<CommandPalette>` | `$surfacebg` bg, `$border` border | Nothing |
+| `<Toast>` | `$surfacebg` bg, `$border` border | Nothing |
 | `<SelectList>` | `inverse` for selection, `dimColor` for disabled | Nothing |
-| `<Badge>` | Variant-based: `$success`, `$error`, `$warning`, `$primary` | `variant` name |
+| `<Badge>` | Variant colors: `$success`, `$error`, `$warning`, `$primary` | `variant` name |
 | `<ErrorBoundary>` | `$error` border | Nothing |
 | `<Divider>` | `dimColor` for line character | Nothing |
 | `<ProgressBar>` | `dimColor` for empty portion | `color` for filled portion |
 | `<Spinner>` | `$fg` | Nothing |
 | `<Button>` | `inverse` when focused/active | Nothing |
 
-**If you're writing `color="$something"` on a standard component, ask yourself: should the component handle this automatically?** If yes, fix the component — don't patch it at the call site.
-
+::: tip Shiny
 ```tsx
-// ✅ The Silvery Way — let components handle their own colors
 <ModalDialog title="Confirm">         // auto: $surfacebg, $border, $primary title
   <Text>Are you sure?</Text>          // auto: $fg
 </ModalDialog>
 
 <TextInput borderStyle="round" />     // auto: $inputborder → $focusborder on focus
+```
+:::
 
-// ❌ Fighting the framework
+::: danger Tarnished
+```tsx
+// Rebuilding what the component already does
 <Box backgroundColor="$surfacebg" borderColor="$border" borderStyle="round">
   <Text color="$primary" bold>Confirm</Text>
   <Text color="$fg">Are you sure?</Text>
   <TextInput borderColor={focused ? "$focusborder" : "$inputborder"} />
 </Box>
 ```
+:::
+
+::: warning Smell: `color="$fg"` or `borderColor="$border"`
+If you're explicitly writing the default value, you're adding noise. Remove it — the default is correct.
+:::
+
+::: warning Smell: `borderColor={focused ? ... : ...}`
+If you're implementing focus color switching manually, the component should handle it. Use `borderStyle` on the component and let it manage focus states.
+:::
 
 ## When You Do Need Colors
 
-Only specify colors when you're building custom UI that doesn't map to a standard component, or when you need status/accent emphasis on text.
+Only specify colors when building custom UI that doesn't map to a standard component, or when adding status/accent emphasis to text. The rest of this guide covers those cases.
 
-## Quick Reference
+## Text Hierarchy
 
-### Text Hierarchy
+Four levels, used in order of prominence:
 
-| Token          | Use for                                     | Example                                            |
-| -------------- | ------------------------------------------- | -------------------------------------------------- |
-| `$fg`          | Primary content — body text, labels, values | `<Text>File saved</Text>`                          |
-| `$muted`       | Secondary — descriptions, metadata, hints   | `<Text color="$muted">3 items</Text>`              |
-| `$disabledfg`  | Disabled text, placeholders (~50% contrast) | `<Text color="$disabledfg">No results</Text>`      |
-| `$primary`     | Headings, active indicators, brand emphasis | `<Text color="$primary" bold>Settings</Text>`      |
-| `$link`        | Hyperlinks, references                      | `<Link href={url}>docs</Link>`                     |
-| `$control`     | Interactive chrome — prompts, shortcuts     | `<Text color="$control">❯</Text>`                  |
+| Token         | Use for                                     |
+| ------------- | ------------------------------------------- |
+| `$primary`    | Headings, active indicators, brand emphasis |
+| `$fg`         | Primary content — body text, labels, values |
+| `$muted`      | Secondary — descriptions, metadata, hints   |
+| `$disabledfg` | Disabled text, placeholders                 |
 
-**Rule of thumb**: If it's the main content, use `$fg` (the default — you don't need to specify it). If it's supporting info, use `$muted`. If it's inactive, use `$disabledfg`. If it needs to draw the eye, use `$primary`.
+Plus two special-purpose text tokens:
 
+| Token      | Use for                                  |
+| ---------- | ---------------------------------------- |
+| `$link`    | Hyperlinks, references                   |
+| `$control` | Interactive chrome — prompts, shortcuts  |
+
+::: tip Shiny
 ```tsx
-// ✅ Correct hierarchy
-<Text bold color="$primary">Project Name</Text>        // heading
-<Text>Build succeeded in 2.3s</Text>                    // body ($fg default)
-<Text color="$muted">src/index.ts • 142 lines</Text>   // metadata
-<Text color="$disabledfg">No changes</Text>             // inactive
+<Text bold color="$primary">Project Name</Text>        // heading — draws the eye
+<Text>Build succeeded in 2.3s</Text>                    // body — $fg is the default
+<Text color="$muted">src/index.ts • 142 lines</Text>   // metadata — de-emphasized
+<Text color="$disabledfg">No changes</Text>             // inactive — clearly disabled
+```
+A clear visual hierarchy: the heading pops, the body is readable, the metadata recedes, the disabled text fades.
+:::
 
-// ❌ Wrong
+::: danger Tarnished
+```tsx
 <Text color="$primary">src/index.ts • 142 lines</Text> // metadata isn't primary
 <Text color="$muted">Build failed!</Text>               // important info shouldn't be muted
-<Text color="$success">Project Name</Text>              // success implies completion, not branding
-<Text color="red">Error message</Text>                  // hardcoded color — use $error
+<Text color="$success">Project Name</Text>              // success ≠ branding
+<Text color="red">Error message</Text>                  // hardcoded color
 ```
+:::
 
-### Borders
+::: warning Smell: Everything is `$primary`
+If three or more sibling elements all use `$primary`, nothing stands out. Only headings and key indicators get `$primary` — everything else should be `$fg` or `$muted`.
+:::
 
-| Token          | Use for                                     | Example                                            |
-| -------------- | ------------------------------------------- | -------------------------------------------------- |
-| `$border`      | Structural dividers, panel outlines, rules  | `<Box borderStyle="single">`                       |
-| `$inputborder` | Input/button borders (unfocused)            | `<TextInput borderStyle="round">`                  |
-| `$focusborder` | Focus rings on active inputs (always blue)  | Automatic when `borderStyle` set on TextInput      |
-| `$focusring`   | Keyboard focus outline on any element       | `<Box outlineColor="$focusring">`                  |
+::: warning Smell: `color="red"` or `color="#A3BE8C"`
+Hardcoded colors break on theme changes and can't adapt to terminal capabilities. Always use a `$token`.
+:::
 
-**Border hierarchy**: structural `$border` → interactive `$inputborder` → focused `$focusborder`.
+## Borders
 
-Components with `borderStyle` automatically use `$inputborder` when unfocused and `$focusborder` when focused. You rarely need to set these explicitly.
+Three tiers, from structural to interactive:
 
+| Token          | Use for                                    | Applied by |
+| -------------- | ------------------------------------------ | --- |
+| `$border`      | Structural dividers, panel outlines, rules | Box (automatic default) |
+| `$inputborder` | Input/button borders (unfocused)           | TextInput/TextArea (automatic) |
+| `$focusborder` | Focus rings on active inputs               | TextInput/TextArea (automatic) |
+
+Plus the outline token:
+
+| Token        | Use for                              |
+| ------------ | ------------------------------------ |
+| `$focusring` | Keyboard focus outline on any element |
+
+::: tip Shiny
 ```tsx
-// ✅ Let components handle focus states
-<TextInput borderStyle="round" />  // auto: $inputborder → $focusborder on focus
+<TextInput borderStyle="round" />       // auto: $inputborder → $focusborder on focus
 
-// ✅ Structural borders
-<Box borderStyle="single">         // uses $border by default (structural, not interactive)
+<Box borderStyle="single">              // structural — auto $border
   <Text>Panel content</Text>
 </Box>
-
-// ❌ Hardcoding focus state
-<Box borderColor={focused ? "blue" : "gray"}>  // use component defaults instead
 ```
+Set `borderStyle`, get correct colors for free.
+:::
 
-### Surfaces & Backgrounds
-
-| Token        | Use for                                     | Pair with       |
-| ------------ | ------------------------------------------- | ---------------- |
-| `$bg`        | Default app background                      | `$fg`            |
-| `$surfacebg` | Elevated panels, dialogs, cards             | `$surface`       |
-| `$popoverbg` | Floating content — tooltips, dropdowns      | `$popover`       |
-| `$inversebg` | Chrome areas — status bars, title bars      | `$inverse`       |
-| `$mutedbg`   | Hover highlights, subtle emphasis           | `$fg` (readable) |
-
-**Always pair**: When you set a background token, use its matching text token for content on that surface.
-
+::: danger Tarnished
 ```tsx
-// ✅ Correct pairing
+<Box borderColor={focused ? "blue" : "gray"} borderStyle="round">
+  <TextInput />
+</Box>
+```
+Manual focus handling with hardcoded colors — breaks on every theme.
+:::
+
+## Surfaces & Backgrounds
+
+Each surface has a paired text token. **Always use the pair together.**
+
+| Background   | Text token   | Use for                               |
+| ------------ | ------------ | ------------------------------------- |
+| `$bg`        | `$fg`        | Default app background                |
+| `$surfacebg` | `$surface`   | Elevated panels, dialogs, cards       |
+| `$popoverbg` | `$popover`   | Floating content — tooltips, dropdowns |
+| `$inversebg` | `$inverse`   | Chrome areas — status bars, title bars |
+| `$mutedbg`   | `$fg`        | Hover highlights, subtle emphasis     |
+
+::: tip Shiny
+```tsx
+// Elevated panel — correct pair
 <Box backgroundColor="$surfacebg">
   <Text color="$surface">Dialog content</Text>
 </Box>
 
-// ✅ Status bar
+// Status bar — inverted pair
 <Box backgroundColor="$inversebg">
   <Text color="$inverse">main • 3 files changed</Text>
 </Box>
+```
+:::
 
-// ❌ Mismatched pair — $fg may not contrast on $surfacebg
+::: danger Tarnished
+```tsx
+// Mismatched — $fg may not contrast on $surfacebg
 <Box backgroundColor="$surfacebg">
-  <Text>Content</Text>  // $fg on $surfacebg — might be low contrast
+  <Text>Content</Text>
 </Box>
 ```
+:::
 
-### Status Colors
+::: warning Smell: `backgroundColor` without a matching text color
+Every `$*bg` token has a corresponding text token. If you set a background but don't set the text color, you're gambling on contrast.
+:::
 
-| Token      | Use for                          | Pair with      | Icon convention  |
-| ---------- | -------------------------------- | -------------- | ---------------- |
-| `$success` | Completion, positive outcomes    | `$successfg`   | ✓ ✔ ◆            |
-| `$warning` | Caution, pending, unsaved        | `$warningfg`   | ⚠ △              |
-| `$error`   | Errors, destructive, failures    | `$errorfg`     | ✗ ✘ ●            |
-| `$info`    | Neutral notices, tips            | `$infofg`      | ℹ ○              |
+## Status Colors
 
-**As text on default background**: use the base token (`$success`, `$error`, etc.) — they're designed to be visible on `$bg`.
+| Token      | Meaning                       | Icon convention |
+| ---------- | ----------------------------- | --------------- |
+| `$success` | Completion, positive outcomes | ✓ ✔ ◆          |
+| `$warning` | Caution, pending, unsaved     | ⚠ △             |
+| `$error`   | Errors, destructive, failures | ✗ ✘ ●          |
+| `$info`    | Neutral notices, tips         | ℹ ○             |
 
-**As filled backgrounds**: use the base token for the background and `*fg` for text on it.
+**As text on default background**: use the base token directly — they're designed to be visible on `$bg`.
 
+**As filled backgrounds**: use the base token for bg, `*fg` for text on it.
+
+::: tip Shiny
 ```tsx
-// ✅ Status text on default background
+// Status text — clear meaning with icon + color
 <Text color="$success">✓ Tests passed</Text>
 <Text color="$error">✗ Build failed</Text>
 <Text color="$warning">⚠ Unsaved changes</Text>
 
-// ✅ Filled status badge
+// Filled badge
 <Box backgroundColor="$error">
   <Text color="$errorfg">ERROR</Text>
 </Box>
-
-// ❌ Status color for non-status elements
-<Text color="$success">Agent</Text>        // not a completion — use $primary or $fg
-<Text color="$error">Delete</Text>         // button labels: fine, but add an icon too
-<Box borderColor="$success">               // structural border — use $border
 ```
+Every status color is paired with a label or icon — works even in monochrome.
+:::
 
-**Don't rely on color alone**: Always pair status colors with text labels or icons. Color-blind users and monochrome terminals need redundant signals.
-
-### Accent Pairs
-
-| Token        | Use for                                  |
-| ------------ | ---------------------------------------- |
-| `$primary`   | Brand accent, primary actions, headings  |
-| `$secondary` | Alternate accent, secondary actions      |
-| `$accent`    | Extra emphasis (not status, not brand)   |
-
-Each has a `*fg` pair for text on that background:
-
+::: danger Tarnished
 ```tsx
-// ✅ Primary action button
+<Text color="$success">Agent</Text>        // agent name ≠ success
+<Box outlineColor="$success">              // decorative border ≠ success
+<Box borderColor="$error">                 // structural border ≠ error state
+```
+Using status colors for decoration strips them of meaning. When everything is green, actual success signals disappear.
+:::
+
+::: warning Smell: Status color without a label or icon
+In 16-color mode, `$warning` and `$primary` may be the same yellow. Color-blind users can't distinguish red from green. Always pair status colors with text labels (✓, ✗, ⚠) or words ("Error:", "Done").
+:::
+
+::: warning Smell: `$success` or `$error` on a border
+Status tokens are for content that communicates status. Structural borders use `$border`. The only exception: `<ErrorBoundary>` uses `$error` for its border because the entire component represents an error state.
+:::
+
+## Accent Pairs
+
+| Token        | Use for                                 |
+| ------------ | --------------------------------------- |
+| `$primary`   | Brand accent, primary actions, headings |
+| `$secondary` | Alternate accent, secondary actions     |
+| `$accent`    | Extra emphasis (not status, not brand)  |
+
+Each has a `*fg` pair for text on that background.
+
+::: tip Shiny
+```tsx
 <Box backgroundColor="$primary">
   <Text color="$primaryfg">Submit</Text>
 </Box>
-
-// ✅ Secondary action
-<Box backgroundColor="$secondary">
-  <Text color="$secondaryfg">Cancel</Text>
-</Box>
 ```
+:::
 
-### Selection & Cursor
+::: warning Smell: More than 2-3 accent colors on screen
+If everything is colorful, nothing stands out. Use spacing, typography (bold, dim), and layout for hierarchy — not more colors.
+:::
 
-| Token          | Use for                              |
-| -------------- | ------------------------------------ |
-| `$selectionbg` | Selected item/text background        |
-| `$selection`   | Text on selected background          |
-| `$cursorbg`    | Cursor block color                   |
-| `$cursor`      | Text under cursor                    |
+## Selection & Cursor
 
-These are typically handled by the framework automatically. You rarely set them manually.
+| Token          | Use for                       |
+| -------------- | ----------------------------- |
+| `$selectionbg` | Selected item/text background |
+| `$selection`   | Text on selected background   |
+| `$cursorbg`    | Cursor block color            |
+| `$cursor`      | Text under cursor             |
 
-### Indexed Palette (`$color0`–`$color15`)
+These are handled by the framework automatically. You almost never set them manually.
+
+## Indexed Palette (`$color0`–`$color15`)
 
 For **categorization** — tags, calendar colors, chart series, syntax highlighting:
 
@@ -203,86 +265,46 @@ For **categorization** — tags, calendar colors, chart series, syntax highlight
 <Text color="$color5">docs</Text>     // purple tag
 ```
 
-Don't use palette colors for UI chrome or status — they're for data categorization only.
-
-## Anti-Patterns
-
-### Hardcoded colors
-
-```tsx
-// ❌ Never
-<Text color="red">Error</Text>
-<Text color="#A3BE8C">Done</Text>
-<Box borderColor="gray">
-
-// ✅ Always
-<Text color="$error">Error</Text>
-<Text color="$success">Done</Text>
-<Box borderStyle="single">           // default $border
-```
-
-### Using status colors for non-status purposes
-
-```tsx
-// ❌ Using $success just because you want green
-<Text color="$success">Agent</Text>           // agent name ≠ success
-<Box outlineColor="$success">                 // decorative border ≠ success
-
-// ✅ Use semantic meaning
-<Text bold color="$primary">Agent</Text>      // brand emphasis
-<Box borderStyle="round">                     // default structural border
-```
-
-### Over-coloring
-
-Limit your UI to 2-3 accent colors at a time. If everything is colorful, nothing stands out. Use spacing, typography (bold, dim), and layout instead of more colors.
-
-### Wrong text hierarchy
-
-```tsx
-// ❌ Everything the same weight
-<Text color="$primary">Name</Text>
-<Text color="$primary">Description</Text>
-<Text color="$primary">Timestamp</Text>
-
-// ✅ Clear hierarchy
-<Text color="$primary" bold>Name</Text>       // heading
-<Text>Description</Text>                       // body
-<Text color="$muted">2 minutes ago</Text>     // metadata
-```
-
-### Bypassing component defaults
-
-```tsx
-// ❌ Manual focus handling
-<Box borderColor={focused ? "$focusborder" : "$inputborder"}>
-  <TextInput />
-</Box>
-
-// ✅ Let TextInput handle it
-<TextInput borderStyle="round" />
-```
+::: warning Smell: Palette colors for UI chrome
+`$color0`–`$color15` are for data categorization only. UI borders, backgrounds, and status indicators use semantic tokens, not palette indices.
+:::
 
 ## Terminal-Specific Notes
 
 - **No transparency**: Every color is solid. Use `$mutedbg` for hover states instead of opacity overlays.
 - **dim attribute**: `$muted` may use ANSI dim in 16-color mode. Don't rely on muted text for critical information.
-- **16-color fallback**: Status colors may map to the same ANSI color (yellow for both `$primary` and `$warning` in dark mode). Always pair with text labels or icons.
-- **Progressive enhancement**: Same token vocabulary works across ANSI 16 → 256 → truecolor. The framework handles the mapping.
+- **16-color fallback**: Status colors may map to the same ANSI color (yellow for both `$primary` and `$warning`). Always pair with text labels or icons.
+- **Progressive enhancement**: Same token vocabulary works across ANSI 16 → 256 → truecolor. The framework handles mapping.
 
 ## Decision Flowchart
 
 **"What color should this element use?"**
 
-1. **Is it body text?** → `$fg` (default, don't specify)
-2. **Is it secondary/supporting?** → `$muted`
-3. **Is it disabled or placeholder?** → `$disabledfg`
-4. **Is it a heading or brand element?** → `$primary`
-5. **Is it a hyperlink?** → `$link`
-6. **Is it interactive chrome (prompt, shortcut)?** → `$control`
-7. **Does it indicate success/error/warning?** → `$success` / `$error` / `$warning`
-8. **Is it a structural border?** → default (don't specify — `$border` is automatic)
-9. **Is it an input border?** → use `borderStyle` on the component (auto `$inputborder` / `$focusborder`)
-10. **Is it a status/chrome bar?** → `$inversebg` + `$inverse`
-11. **Is it a data category (tag, label)?** → `$color0`–`$color15`
-12. **None of the above?** → You probably need `$fg` or `$muted`. If neither fits, your design may need a new token.
+1. **Is there a standard component for this?** → Use it. Don't specify colors.
+2. **Is it body text?** → `$fg` (default — don't specify)
+3. **Is it secondary/supporting?** → `$muted`
+4. **Is it disabled or placeholder?** → `$disabledfg`
+5. **Is it a heading or brand element?** → `$primary`
+6. **Is it a hyperlink?** → `$link`
+7. **Is it interactive chrome (prompt, shortcut)?** → `$control`
+8. **Does it indicate success/error/warning?** → `$success` / `$error` / `$warning` + icon
+9. **Is it a structural border?** → don't specify (`$border` is automatic)
+10. **Is it an input border?** → set `borderStyle` (auto `$inputborder` / `$focusborder`)
+11. **Is it an elevated surface?** → `$surfacebg` + `$surface` text
+12. **Is it a status/chrome bar?** → `$inversebg` + `$inverse`
+13. **Is it a data category (tag, label)?** → `$color0`–`$color15`
+14. **None of the above?** → You probably need `$fg` or `$muted`. If neither fits, your design may need a new token — add it to the theme, don't hardcode a color.
+
+## Smell Summary
+
+| Smell | What it means |
+| --- | --- |
+| `color="$fg"` | Writing the default — remove it |
+| `color="red"` or `"#hex"` | Hardcoded — use a `$token` |
+| `borderColor={focused ? ... : ...}` | Manual focus switching — let the component handle it |
+| `backgroundColor="$surfacebg"` without `color="$surface"` | Unpaired surface — add the matching text token |
+| Three siblings all `$primary` | Flat hierarchy — only headings get `$primary` |
+| `$success` or `$error` without icon/label | Color-only status — add redundant text signal |
+| `$success` on a border or background for decoration | Misused status — use `$border` or `$primary` |
+| `$color0`–`$color15` for UI chrome | Palette colors are for data, not chrome |
+| Manually specifying colors a component sets automatically | Fighting the framework — remove and trust defaults |
