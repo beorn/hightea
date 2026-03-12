@@ -1589,7 +1589,9 @@ export async function main() {
   const mode = args.includes("--fullscreen") ? "fullscreen" : "inline"
   using handle = await run(<CodingAgent script={script} autoStart={isAuto} fastMode={isFast} />, {
     mode: mode as "inline" | "fullscreen",
-    focusReporting: true,
+    // focusReporting disabled: causes ESC[I leak on startup (timing gap
+    // between enabling focus reporting and input parser being ready)
+    // focusReporting: true,
   })
   await handle.waitUntilExit()
 }
