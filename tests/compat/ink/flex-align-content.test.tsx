@@ -27,8 +27,7 @@ const renderWithAlignContent = (
 
 test("align content space-evenly", () => {
   const output = renderWithAlignContent("space-evenly")
-  // Ink upstream expects "\nAB\n\nCD\n\n" but also fails against real Ink (Yoga doesn't
-  // support ALIGN_SPACE_EVENLY well). Flexily now implements it correctly with
-  // edge-based rounding: free space 4 / 3 gaps = 1.333 → gaps round to [1, 2, 1].
-  expect(output).toBe("\nAB\n\n\nCD\n")
+  // Matches Ink upstream: floor rounding for measureFunc children
+  // Free space 4 / 3 gaps = 1.333 → line0 at floor(1.333)=1, line1 at floor(3.667)=3
+  expect(output).toBe("\nAB\n\nCD\n\n")
 })

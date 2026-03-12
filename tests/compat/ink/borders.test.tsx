@@ -80,9 +80,8 @@ test("single node - box with horizontal alignment", () => {
       <Text>Hello World</Text>
     </Box>,
   )
-  // Ink upstream expects boxen("   Hello World    ") but actual Ink output has
-  // 4 spaces before and 3 after (rounding difference: 7/2 = 3.5 → ceil vs floor)
-  expect(output).toBe(boxen("    Hello World   ", { borderStyle: "round" }))
+  // Matches Ink upstream: 3 spaces before, 4 after (floor rounding: 7/2 = 3.5 → 3)
+  expect(output).toBe(boxen("   Hello World    ", { borderStyle: "round" }))
 })
 
 test("single node - box with vertical alignment", () => {
@@ -91,10 +90,9 @@ test("single node - box with vertical alignment", () => {
       <Text>Hello World</Text>
     </Box>,
   )
-  // Ink upstream expects 8 empty rows before content, but actual Ink output has 9
-  // (rounding difference: 17/2 = 8.5 → ceil vs floor for cross-axis center)
+  // Matches Ink upstream: 8 blank rows before, 9 after (floor rounding for measureFunc)
   expect(output).toBe(
-    boxen("\n".repeat(9) + "Hello World" + "\n".repeat(8), {
+    boxen("\n".repeat(8) + "Hello World" + "\n".repeat(9), {
       borderStyle: "round",
     }),
   )
@@ -124,8 +122,8 @@ test("multiple nodes - box with horizontal alignment", () => {
       <Text>{"Hello "}World</Text>
     </Box>,
   )
-  // Same rounding difference as single node horizontal alignment
-  expect(output).toBe(boxen("    Hello World   ", { borderStyle: "round" }))
+  // Matches Ink upstream: 3 spaces before, 4 after (floor rounding for measureFunc)
+  expect(output).toBe(boxen("   Hello World    ", { borderStyle: "round" }))
 })
 
 test("multiple nodes - box with vertical alignment", () => {
@@ -134,9 +132,9 @@ test("multiple nodes - box with vertical alignment", () => {
       <Text>{"Hello "}World</Text>
     </Box>,
   )
-  // Same rounding difference as single node vertical alignment
+  // Matches Ink upstream: 8 blank rows before, 9 after (floor rounding for measureFunc)
   expect(output).toBe(
-    boxen("\n".repeat(9) + "Hello World" + "\n".repeat(8), {
+    boxen("\n".repeat(8) + "Hello World" + "\n".repeat(9), {
       borderStyle: "round",
     }),
   )
