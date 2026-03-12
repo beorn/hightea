@@ -31,14 +31,19 @@ bun vitest run --project vendor vendor/silvery/tests/compat/chalk/
 ```
 
 The codemod (`gen-vitest.ts`) transforms ink's ava-based tests:
+
 - Replaces ava with an ava-shim backed by vitest (`t.is` → `expect().toBe()`)
 - Rewrites imports to use silvery's compat layer
+- Converts PTY-based interactive tests to run in-process (MockStdin + termFixture/runFixture)
+- Transforms fixture files into importable modules with `createFixture()` factories
+- Replaces third-party deps (sinon, FakeTimers, ansi-escapes, etc.) with vitest/inline equivalents
 - Marks known failures as `.failing` (EXPECTED_FAILURES, RENDER_MODE_FAILURES)
-- Skips files requiring PTY, internal APIs, or kitty keyboard
+- Skips files testing ink internals (render engine, reconciler, write-synchronized)
 
-26 test files generated, 15 skipped. 516 tests pass, 2 skipped.
+32 test files generated, 21 fixtures generated, 9 skipped. 590 tests pass, 2 skipped.
 
 ## Current Status
 
 - **Chalk**: 100% compat (32/32 real tests)
-- **Ink**: 98.9% compat (804/813 real tests) — 9 remaining failures are Flexily layout edge cases and minor compat gaps
+- **Ink**: 98.5% strict / 100% effective compat (801 passed, 12 known failures)
+- **Vitest**: 32/32 files, 590/593 tests pass (2 skipped, 1 todo)
