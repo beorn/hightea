@@ -97,9 +97,10 @@ export function termFixture(fixture: FixtureSpec, cols = 100) {
     },
     get output() {
       const raw = stdout.getWrites().join("") + exitOutput.join("")
-      // Emulate PTY behavior: convert \n to \r\n (PTY line discipline).
-      // Only convert bare \n (not already preceded by \r).
-      return raw.replace(/(?<!\r)\n/g, "\r\n")
+      // Emulate PTY behavior:
+      // 1. Prepend \n to match PTY's initial cursor positioning output
+      // 2. Convert \n to \r\n (PTY line discipline)
+      return ("\n" + raw).replace(/(?<!\r)\n/g, "\r\n")
     },
     async waitForExit() {
       try {

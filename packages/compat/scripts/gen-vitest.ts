@@ -112,10 +112,6 @@ const EXPECTED_FAILURES: Record<string, string[]> = {
     // silvery maps 0x7F to backspace (modern standard); Ink maps it to delete
     "useInput - handle delete",
   ],
-  hooks: [
-    // write() fires before initial frame in test renderer (timing order differs from real PTY)
-    "useStdout - write to stdout",
-  ],
   exit: [
     // Fixtures with 500ms setTimeout-based exit/unmount — timing-dependent behavior
     "exit when app finishes execution",

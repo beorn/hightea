@@ -18,6 +18,7 @@ need node-pty which is a native dependency. So we use a two-layer approach:
   that silvery replaces entirely.
 
 **When Ink releases a new version:**
+
 1. Delete `/tmp/silvery-compat/` to re-clone
 2. Run `bun run compat` to see what changed in the upstream ava suite
 3. Run `bun packages/compat/scripts/gen-vitest.ts` to regenerate vitest tests
@@ -68,20 +69,20 @@ The codemod (`gen-vitest.ts`) transforms ink's ava-based tests to vitest:
 
 ### File classification
 
-| Category | Files | Handling |
-|----------|-------|----------|
-| Standard tests | 23 files | Direct ava→vitest transform |
-| PTY tests | 6 files (hooks-use-input, hooks-use-input-kitty, hooks-use-input-navigation, hooks-use-paste, hooks, exit) | Fixture + termFixture/runFixture in-process conversion |
+| Category       | Files                                                                                                                                        | Handling                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Standard tests | 23 files                                                                                                                                     | Direct ava→vitest transform                               |
+| PTY tests      | 6 files (hooks-use-input, hooks-use-input-kitty, hooks-use-input-navigation, hooks-use-paste, hooks, exit)                                   | Fixture + termFixture/runFixture in-process conversion    |
 | Internal files | 9 files (reconciler, render, write-synchronized, errors, log-update, measure-text, cursor-helpers, kitty-keyboard, alternate-screen-example) | Skipped — test ink engine internals that silvery replaces |
 
 ### Key helpers
 
-| File | Purpose |
-|------|---------|
-| `helpers/ava-shim.ts` | Ava→vitest bridge (`t.is` → `expect().toBe()`, `.failing` → `.fails()`) |
-| `helpers/create-stdout.ts` | Mock stdout with sinon-compatible spy properties |
-| `helpers/create-term.ts` | `termFixture()` and `runFixture()` — in-process PTY replacements |
-| `helpers/render-to-string.ts` | Layout engine init wrapper for renderToString tests |
+| File                          | Purpose                                                                 |
+| ----------------------------- | ----------------------------------------------------------------------- |
+| `helpers/ava-shim.ts`         | Ava→vitest bridge (`t.is` → `expect().toBe()`, `.failing` → `.fails()`) |
+| `helpers/create-stdout.ts`    | Mock stdout with sinon-compatible spy properties                        |
+| `helpers/create-term.ts`      | `termFixture()` and `runFixture()` — in-process PTY replacements        |
+| `helpers/render-to-string.ts` | Layout engine init wrapper for renderToString tests                     |
 
 ### Expected failures
 

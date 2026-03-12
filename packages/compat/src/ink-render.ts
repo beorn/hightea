@@ -53,6 +53,8 @@ interface InkInstance extends Instance {
   waitUntilRenderFlush: () => Promise<void>
   /** Unmount and remove internal instance for this stdout */
   cleanup: () => void
+  /** Send raw input to the renderer (equivalent to app.stdin.write) */
+  stdin?: { write: (data: string) => void }
 }
 
 // =============================================================================
@@ -254,20 +256,28 @@ function renderTestMode(
   /**
    * Flush any deferred debug writes (queued before the first frame was ready).
    * Called from writeFrame once lastOutput is available.
+   * @returns true if stdout writes were flushed (frame already included in output)
    */
-  function flushPendingDebugWrites(): void {
-    if (pendingDebugWrites.length === 0) return
+  function flushPendingDebugWrites(): boolean {
+    if (pendingDebugWrites.length === 0) return false
     const pending = pendingDebugWrites
     pendingDebugWrites = []
+    let hadStdoutWrites = false
     for (const { target, data } of pending) {
+      // Append \n after lastOutput to match PTY behavior (frame always ends with newline).
+      // processBuffer strips trailing newlines, but the real PTY/Ink output has them.
+      const frameWithNewline = lastOutput.endsWith("\n") ? lastOutput : lastOutput + "\n"
       if (target === "stdout") {
-        stdout.write(data + lastOutput)
+        stdout.write(data + frameWithNewline)
+        hadStdoutWrites = true
       } else {
         const stderrTarget = stderr ?? process.stderr
         stderrTarget.write(data)
-        stdout.write(lastOutput)
+        stdout.write(frameWithNewline)
+        hadStdoutWrites = true
       }
     }
+    return hadStdoutWrites
   }
 
   // Bridge component: uses silvery's useInput to forward Tab/Shift+Tab/Escape
@@ -286,19 +296,19 @@ function renderTestMode(
 
   /**
    * Ink-compatible writeToStdout: writes data to stdout.
-   * In debug mode, appends the latest frame after the data.
-   * In non-debug mode, just writes the data directly.
+   * Matches Ink's behavior: in interactive mode, clears the current frame,
+   * writes the data, then re-renders the frame below it. This ensures that
+   * useStdout().write() output appears above the rendered component output.
    * If no frame is available yet (initial mount effects), queues for deferred write.
    */
   function writeToStdout(data: string): void {
-    if (debug) {
-      if (lastOutput) {
-        stdout.write(data + lastOutput)
-      } else {
-        pendingDebugWrites.push({ target: "stdout", data })
-      }
+    if (lastOutput) {
+      // Ink clears the frame, writes data, then re-renders frame below.
+      // We emulate this by writing data + frame (the initial frame in writes[]
+      // acts as the "cleared" first line that slice(1) skips).
+      stdout.write(data + lastOutput)
     } else {
-      stdout.write(data)
+      pendingDebugWrites.push({ target: "stdout", data })
     }
   }
 
@@ -398,9 +408,14 @@ function renderTestMode(
       result = staticStore.fullStaticOutput + result
     }
 
-    // Update lastOutput and flush deferred debug writes
+    // Update lastOutput and flush deferred debug writes.
+    // When deferred writes were flushed, the frame is already included in the
+    // flush output (data + lastOutput), so skip the normal frame write to avoid
+    // duplicating it. This matches Ink's behavior where writeToStdout() clears
+    // the previous frame, writes data, then restores the frame.
     lastOutput = result
-    flushPendingDebugWrites()
+    const hadDeferredFlush = flushPendingDebugWrites()
+    if (hadDeferredFlush) return
 
     // Cursor: only emit sequences when useCursor() is actively used.
     // Ink hides the cursor once at startup via cli-cursor, not per-frame.
@@ -495,6 +510,7 @@ function renderTestMode(
     flush: () => {},
     pause: () => {},
     resume: () => {},
+    stdin: { write: (data: string) => app.stdin.write(data) },
   }
   return instance
 }

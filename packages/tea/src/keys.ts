@@ -659,6 +659,10 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
     // The actual Delete key sends \x1b[3~ (handled by CODE_TO_KEY).
     key.name = "backspace"
     key.meta = input.charAt(0) === "\x1b"
+  } else if (input === "\x1b\r") {
+    // Meta + Return (Alt+Enter / Option+Return on macOS)
+    key.name = "return"
+    key.meta = true
   } else if (input === "\x1b" || input === "\x1b\x1b") {
     key.name = "escape"
     key.meta = input.length === 2

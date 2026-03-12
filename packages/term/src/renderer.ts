@@ -35,6 +35,7 @@ import { bufferToText } from "./buffer.js"
 import { buildMismatchContext, formatMismatchContext } from "@silvery/test/debug-mismatch"
 import { createCursorStore, CursorProvider } from "@silvery/react/hooks/useCursor"
 import { keyToAnsi, parseKey, splitRawInput } from "@silvery/tea/keys"
+import { parseBracketedPaste } from "./bracketed-paste"
 import { IncrementalRenderMismatchError } from "./scheduler.js"
 import { debugTree } from "@silvery/test/debug"
 
@@ -730,42 +731,54 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     const t0 = performance.now()
     instance.rendering = true
     try {
-      // Split multi-character data into individual keypresses.
-      // This mirrors the production path (render.tsx handleReadable)
-      // where stdin.read() can return buffered characters.
-      withActEnvironment(() => {
-        for (const keypress of splitRawInput(data)) {
-          // Default Tab/Shift+Tab focus cycling and Escape blur.
-          // Matches production behavior in run.tsx and render.tsx.
-          // Tab events are consumed (not passed to useInput handlers).
-          // Each focus change runs in its own act() boundary so React
-          // commits the re-render before the next keypress or doRender().
-          const [, key] = parseKey(keypress)
-          if (key.tab && !key.shift) {
-            act(() => {
-              const root = getContainerRoot(instance.container)
-              focusManager.focusNext(root)
-            })
-            continue
-          }
-          if (key.tab && key.shift) {
-            act(() => {
-              const root = getContainerRoot(instance.container)
-              focusManager.focusPrev(root)
-            })
-            continue
-          }
-          if (key.escape && focusManager.activeElement) {
-            act(() => {
-              focusManager.blur()
-            })
-            continue
-          }
+      // Check for bracketed paste before splitting into individual keys.
+      // Paste content is delivered as a single "paste" event, not individual keystrokes.
+      // This mirrors the production path in term-provider.ts.
+      const pasteResult = parseBracketedPaste(data)
+      if (pasteResult) {
+        withActEnvironment(() => {
           act(() => {
-            instance.inputEmitter.emit("input", keypress)
+            instance.inputEmitter.emit("paste", pasteResult.content)
           })
-        }
-      })
+        })
+      } else {
+        // Split multi-character data into individual keypresses.
+        // This mirrors the production path (render.tsx handleReadable)
+        // where stdin.read() can return buffered characters.
+        withActEnvironment(() => {
+          for (const keypress of splitRawInput(data)) {
+            // Default Tab/Shift+Tab focus cycling and Escape blur.
+            // Matches production behavior in run.tsx and render.tsx.
+            // Tab events are consumed (not passed to useInput handlers).
+            // Each focus change runs in its own act() boundary so React
+            // commits the re-render before the next keypress or doRender().
+            const [, key] = parseKey(keypress)
+            if (key.tab && !key.shift) {
+              act(() => {
+                const root = getContainerRoot(instance.container)
+                focusManager.focusNext(root)
+              })
+              continue
+            }
+            if (key.tab && key.shift) {
+              act(() => {
+                const root = getContainerRoot(instance.container)
+                focusManager.focusPrev(root)
+              })
+              continue
+            }
+            if (key.escape && focusManager.activeElement) {
+              act(() => {
+                focusManager.blur()
+              })
+              continue
+            }
+            act(() => {
+              instance.inputEmitter.emit("input", keypress)
+            })
+          }
+        })
+      } // end else (non-paste input)
     } finally {
       instance.rendering = false
     }
