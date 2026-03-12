@@ -39,15 +39,7 @@ function splitTitleBody(content: string): { title: string; body: string } {
 // ============================================================================
 
 /** Render a line with auto-linked URLs. */
-function LinkifiedLine({
-  text,
-  dim,
-  color,
-}: {
-  text: string
-  dim?: boolean
-  color?: string
-}): JSX.Element {
+function LinkifiedLine({ text, dim, color }: { text: string; dim?: boolean; color?: string }): JSX.Element {
   const parts: JSX.Element[] = []
   let lastIndex = 0
   let match: RegExpExecArray | null
@@ -102,13 +94,7 @@ function ThinkingBlock({ text, done }: { text: string; done: boolean }): JSX.Ele
 }
 
 /** Tool call with lifecycle: spinner -> output -> checkmark. */
-function ToolCallBlock({
-  call,
-  phase,
-}: {
-  call: ToolCall
-  phase: "pending" | "running" | "done"
-}): JSX.Element {
+function ToolCallBlock({ call, phase }: { call: ToolCall; phase: "pending" | "running" | "done" }): JSX.Element {
   const color = TOOL_COLORS[call.tool] ?? "$muted"
 
   return (
@@ -238,10 +224,8 @@ export function ExchangeItem({
 
   // Metadata: token count + thought indicator
   const metaParts: string[] = []
-  if (exchange.tokens && phase === "done")
-    metaParts.push(`${formatTokens(exchange.tokens.output)} tokens`)
-  if (exchange.thinking && (phase === "done" || phase === "streaming"))
-    metaParts.push("thought for 1s")
+  if (exchange.tokens && phase === "done") metaParts.push(`${formatTokens(exchange.tokens.output)} tokens`)
+  if (exchange.thinking && (phase === "done" || phase === "streaming")) metaParts.push("thought for 1s")
   const metaStr = metaParts.length > 0 ? ` (${metaParts.join(" · ")})` : ""
 
   // Split content into title (first sentence) and body (rest)
@@ -349,8 +333,8 @@ export function StatusBar({
         {"  "}
         {keys}
       </Text>
-      <Text color="$muted" wrap="truncate">
-        ctx <Text color={ctxColor}>{ctxBar}</Text> {ctxPct}%{"  "}
+      <Text color={ctxPct > 80 ? ctxColor : "$muted"} wrap="truncate">
+        ctx {ctxBar} {ctxPct}%{"  "}
         {cost}
       </Text>
     </Box>
@@ -394,16 +378,11 @@ export function DemoFooter({
   const startRef = useRef(Date.now())
   const [elapsed, setElapsed] = useState(0)
   useEffect(() => {
-    const timer = setInterval(
-      () => setElapsed(Math.floor((Date.now() - startRef.current) / 1000)),
-      1000,
-    )
+    const timer = setInterval(() => setElapsed(Math.floor((Date.now() - startRef.current) / 1000)), 1000)
     return () => clearInterval(timer)
   }, [])
 
-  const [randomIdx, setRandomIdx] = useState(() =>
-    Math.floor(Math.random() * RANDOM_USER_COMMANDS.length),
-  )
+  const [randomIdx, setRandomIdx] = useState(() => Math.floor(Math.random() * RANDOM_USER_COMMANDS.length))
   const randomPlaceholder = RANDOM_USER_COMMANDS[randomIdx % RANDOM_USER_COMMANDS.length]!
   const effectiveMessage = nextMessage || randomPlaceholder
   const placeholder = !terminalFocused
