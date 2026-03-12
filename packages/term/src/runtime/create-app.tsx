@@ -892,11 +892,13 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // (TextInput, TextArea, SelectList etc.) to work inside createApp apps.
   const runtimeInputListeners = new Set<(input: string, key: Key) => void>()
   const runtimePasteListeners = new Set<(text: string) => void>()
+  const runtimeFocusListeners = new Set<(focused: boolean) => void>()
 
   // Typed event bus — supports view → runtime events via emit()
   const runtimeEventListeners = new Map<string, Set<Function>>()
   runtimeEventListeners.set("input", runtimeInputListeners as unknown as Set<Function>)
   runtimeEventListeners.set("paste", runtimePasteListeners as unknown as Set<Function>)
+  runtimeEventListeners.set("focus", runtimeFocusListeners as unknown as Set<Function>)
 
   const runtimeContextValue: RuntimeContextValue = {
     on(event, handler) {
@@ -1467,7 +1469,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
     // Run all handlers — state mutations batch naturally in Zustand
     for (const event of events) {
-      // Bridge key/paste events to RuntimeContext listeners (useInput consumers)
+      // Bridge key/paste/focus events to RuntimeContext listeners (useInput consumers)
       if (event.type === "term:key") {
         const { input, key: parsedKey } = event.data as { input: string; key: Key }
         for (const listener of runtimeInputListeners) {
@@ -1477,6 +1479,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         const { text } = event.data as { text: string }
         for (const listener of runtimePasteListeners) {
           listener(text)
+        }
+      } else if (event.type === "term:focus") {
+        const { focused } = event.data as { focused: boolean }
+        for (const listener of runtimeFocusListeners) {
+          listener(focused)
         }
       }
 

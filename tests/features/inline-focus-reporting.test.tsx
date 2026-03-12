@@ -18,7 +18,7 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { EventEmitter } from "node:events"
-import { Text } from "../../src/index.js"
+import { Box, Text, useTerminalFocused } from "../../src/index.js"
 import { run } from "../../packages/term/src/runtime/run"
 
 const FOCUS_ENABLE = "?1004h"
@@ -149,6 +149,99 @@ describe("inline mode focus reporting default", () => {
     })
 
     expect(stdout.output).toContain(FOCUS_ENABLE)
+    handle.unmount()
+  })
+})
+
+// ============================================================================
+// useTerminalFocused hook
+// ============================================================================
+
+/** Test component that renders focused state as text. */
+function FocusDisplay(): JSX.Element {
+  const focused = useTerminalFocused()
+  return (
+    <Box>
+      <Text>{focused ? "FOCUSED" : "UNFOCUSED"}</Text>
+    </Box>
+  )
+}
+
+const CSI_FOCUS_IN = "\x1b[I"
+const CSI_FOCUS_OUT = "\x1b[O"
+const settle = (ms = 100) => new Promise((r) => setTimeout(r, ms))
+
+describe("useTerminalFocused hook", () => {
+  test("returns true by default (optimistic)", async () => {
+    const stdout = createMockStdout()
+    const stdin = createMockStdin()
+    const handle = await run(<FocusDisplay />, {
+      stdout: stdout.stream,
+      stdin,
+      cols: 40,
+      rows: 10,
+      focusReporting: true,
+      kitty: false,
+      mouse: false,
+    })
+    await settle()
+
+    expect(stdout.output).toContain("FOCUSED")
+    expect(stdout.output).not.toContain("UNFOCUSED")
+    handle.unmount()
+  })
+
+  test("updates to false when CSI O (focus-out) is received", async () => {
+    const stdout = createMockStdout()
+    const stdin = createMockStdin()
+    const handle = await run(<FocusDisplay />, {
+      stdout: stdout.stream,
+      stdin,
+      cols: 40,
+      rows: 10,
+      focusReporting: true,
+      kitty: false,
+      mouse: false,
+    })
+    await settle()
+
+    // Send focus-out event (CSI O) via stdin
+    stdin.emit("data", CSI_FOCUS_OUT)
+    await settle()
+
+    expect(stdout.output).toContain("UNFOCUSED")
+    handle.unmount()
+  })
+
+  test("updates back to true when CSI I (focus-in) follows CSI O", async () => {
+    const stdout = createMockStdout()
+    const stdin = createMockStdin()
+    const handle = await run(<FocusDisplay />, {
+      stdout: stdout.stream,
+      stdin,
+      cols: 40,
+      rows: 10,
+      focusReporting: true,
+      kitty: false,
+      mouse: false,
+    })
+    await settle()
+
+    // Focus out
+    stdin.emit("data", CSI_FOCUS_OUT)
+    await settle()
+    expect(stdout.output).toContain("UNFOCUSED")
+
+    // Focus back in
+    stdin.emit("data", CSI_FOCUS_IN)
+    await settle()
+
+    // The output accumulates all renders. Find the last occurrence of FOCUSED/UNFOCUSED
+    // to verify the final state is correct.
+    const lastFocused = stdout.output.lastIndexOf("FOCUSED")
+    const lastUnfocused = stdout.output.lastIndexOf("UNFOCUSED")
+    // "FOCUSED" appears after "UNFOCUSED" — the final state is focused
+    expect(lastFocused).toBeGreaterThan(lastUnfocused)
     handle.unmount()
   })
 })

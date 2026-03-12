@@ -105,6 +105,8 @@ export interface BaseRuntimeEvents {
   input: [input: string, key: Key]
   /** Bracketed paste: [pastedText] */
   paste: [text: string]
+  /** Terminal window focus change: [isFocused] */
+  focus: [focused: boolean]
 }
 
 /**

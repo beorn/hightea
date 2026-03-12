@@ -37,7 +37,16 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react"
-import { Box, Text, Link, Spinner, ScrollbackList, useScrollbackItem, TextInput } from "../../src/index.js"
+import {
+  Box,
+  Text,
+  Link,
+  Spinner,
+  ScrollbackList,
+  useScrollbackItem,
+  TextInput,
+  useTerminalFocused,
+} from "../../src/index.js"
 import { run, useInput, useExit, type Key } from "@silvery/term/runtime"
 import type { ExampleMeta } from "../_banner.js"
 
@@ -909,7 +918,7 @@ function StatusBar({
               {"\u2191"}
               {frozenCount} in scrollback
             </Text>
-            {"  "}
+            {" \u2502 "}
           </>
         )}
         ctx <Text color={ctxColor}>{ctxBar}</Text> <Text color={ctxPct > 100 ? "$error" : undefined}>{ctxPct}%</Text>
@@ -959,6 +968,7 @@ function DemoFooter({
   contextBaseline?: number
   ctrlDPending?: boolean
 }): JSX.Element {
+  const terminalFocused = useTerminalFocused()
   const [inputText, setInputText] = useState("")
   const inputTextRef = useRef(inputText)
   inputTextRef.current = inputText
@@ -993,10 +1003,8 @@ function DemoFooter({
         onSubmit={handleSubmit}
         borderStyle="round"
         prompt={"\u276F "}
-        placeholder={
-          ctrlDPending ? "Press Ctrl-D again to exit" : "Type a message or press Tab"
-        }
-        isActive={!done}
+        placeholder={ctrlDPending ? "Press Ctrl-D again to exit" : "Type a message or press Tab"}
+        isActive={!done && terminalFocused}
       />
       <StatusBar
         exchanges={exchanges}
@@ -1581,6 +1589,7 @@ export async function main() {
   const mode = args.includes("--fullscreen") ? "fullscreen" : "inline"
   using handle = await run(<CodingAgent script={script} autoStart={isAuto} fastMode={isFast} />, {
     mode: mode as "inline" | "fullscreen",
+    focusReporting: true,
   })
   await handle.waitUntilExit()
 }

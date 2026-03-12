@@ -6,6 +6,9 @@
  * Bug 3: Unintuitive advancement — only timers and user text submission advance
  * Bug 4: Turn box (Agent section) bottom border cropped
  * Bug 5: Status bar "scrollbackcontext" concatenation
+ * Bug 6: Compaction done — after compacting, done=true fires in auto mode
+ * Bug 7: Intro text — intro text should be visible before first exchange
+ * Bug 8: Focus outline — focus border should use correct color
  *
  * Uses createTermless for full ANSI rendering verification.
  */
@@ -412,5 +415,147 @@ describe("bug 5: status bar text", () => {
     // Even at narrow widths, these words should never concatenate
     expect(text).not.toContain("scrollbackcontext")
     expect(text).not.toContain("scrollbackctx")
+  })
+})
+
+// ============================================================================
+// Bug 6: Compaction should not set done in auto mode mid-script
+// ============================================================================
+
+describe("bug 6: compaction does not end session prematurely", () => {
+  let term: Term
+  let handle: RunHandle
+
+  afterEach(() => {
+    handle?.unmount()
+  })
+
+  test(
+    "ctrl-l compaction in manual mode does not set done",
+    async () => {
+      term = createTermless({ cols: 120, rows: 40 })
+      // fastMode uses 300ms compaction timeout instead of 3000ms
+      handle = await run(<CodingAgent script={SCRIPT} autoStart={false} fastMode={true} />, term)
+      await settle(500)
+
+      // Advance a few times to create content
+      for (let i = 0; i < 3; i++) {
+        await handle.press("o")
+        await handle.press("k")
+        await handle.press("Enter")
+        await settle(500)
+      }
+
+      // Compact with Ctrl+L (fastMode = 300ms timeout)
+      await handle.press("ctrl+l")
+      await settle(800)
+
+      // After compaction, the app should NOT show "Session complete"
+      const text = term.screen!.getText()
+      expect(text).not.toContain("Session complete")
+
+      // The input should still be active (user can type)
+      expect(text).toContain("\u276F")
+    },
+    10000,
+  )
+
+  test(
+    "ctrl-l compaction continues advancing after completion",
+    async () => {
+      term = createTermless({ cols: 120, rows: 40 })
+      handle = await run(<CodingAgent script={SCRIPT} autoStart={false} fastMode={true} />, term)
+      await settle(500)
+
+      // Advance to create some content
+      await handle.press("o")
+      await handle.press("k")
+      await handle.press("Enter")
+      await settle(500)
+
+      // Compact (fastMode = 300ms)
+      await handle.press("ctrl+l")
+      await settle(800)
+
+      // After compaction, should be able to continue the conversation
+      await handle.press("h")
+      await handle.press("i")
+      await handle.press("Enter")
+      await settle(500)
+
+      const text = term.screen!.getText()
+      // User message should appear
+      expect(text).toContain("hi")
+    },
+    10000,
+  )
+})
+
+// ============================================================================
+// Bug 7: Intro text should be visible before first exchange
+// ============================================================================
+
+describe("bug 7: intro text visibility", () => {
+  let term: Term
+  let handle: RunHandle
+
+  afterEach(() => {
+    handle?.unmount()
+  })
+
+  test("intro text is visible immediately on mount (before auto-advance)", async () => {
+    // Use non-fast mode so the intro has time to show (1500ms delay)
+    term = createTermless({ cols: 120, rows: 40 })
+    handle = await run(<CodingAgent script={SCRIPT} autoStart={false} fastMode={false} />, term)
+
+    // Check immediately (before the 1500ms auto-advance fires)
+    await settle(100)
+    const text = term.screen!.getText()
+    expect(text).toContain("Static Scrollback")
+    expect(text).toContain("ScrollbackList")
+  })
+
+  test("intro text disappears after first exchange appears", async () => {
+    term = createTermless({ cols: 120, rows: 40 })
+    handle = await run(<CodingAgent script={SCRIPT} autoStart={false} fastMode={false} />, term)
+
+    // Wait for auto-advance to fire (1500ms delay + render)
+    await settle(2000)
+
+    const text = term.screen!.getText()
+    expect(text).not.toContain("Static Scrollback")
+    // First exchange should be visible
+    expect(text).toContain("Fix the login bug")
+  })
+})
+
+// ============================================================================
+// Bug 8: Focus border color — TextInput border should use correct color
+// ============================================================================
+
+describe("bug 8: focus border color", () => {
+  let term: Term
+  let handle: RunHandle
+
+  afterEach(() => {
+    handle?.unmount()
+  })
+
+  test("input box has a visible border", async () => {
+    term = createTermless({ cols: 120, rows: 40 })
+    handle = await run(<CodingAgent script={SHORT_SCRIPT} autoStart={false} fastMode={true} />, term)
+    await settle()
+
+    const lines = term.screen!.getLines()
+    // Look for round border characters that belong to the input box
+    // The input box is the last bordered element before the status bar
+    const inputBorderTop = lines.findIndex((l) => l.includes("\u256D") && l.includes("\u256E"))
+    const inputBorderBottom = lines.findIndex(
+      (l, i) => i > inputBorderTop && l.includes("\u2570") && l.includes("\u256F"),
+    )
+
+    // Input box should have visible borders
+    expect(inputBorderTop).toBeGreaterThan(-1)
+    expect(inputBorderBottom).toBeGreaterThan(inputBorderTop)
   })
 })

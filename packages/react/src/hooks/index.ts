@@ -28,6 +28,9 @@ export { useFocusManager, type UseFocusManagerResult } from "./useFocusManager"
 // Input Layer Stack
 export { useInputLayer, useInputLayerContext, type InputLayerHandler } from "./useInputLayer"
 
+// Terminal Focus
+export { useTerminalFocused } from "./useTerminalFocused"
+
 // Scroll Region Optimization
 export { useScrollRegion } from "./useScrollRegion"
 export type { UseScrollRegionOptions, UseScrollRegionResult } from "./useScrollRegion"

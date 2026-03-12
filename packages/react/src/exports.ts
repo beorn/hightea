@@ -347,6 +347,9 @@ export { useFocusable } from "./hooks/useFocusable"
 export type { UseFocusableResult } from "./hooks/useFocusable"
 export { useFocusWithin } from "./hooks/useFocusWithin"
 
+// Terminal focus state
+export { useTerminalFocused } from "./hooks/useTerminalFocused"
+
 export { useTerm, shallow } from "./hooks/useTerm"
 export { useWindowSize } from "./hooks/useWindowSize"
 export { useConsole } from "./hooks/useConsole"
