@@ -412,7 +412,9 @@ test("overflow - box intersecting with top left edge of overflow container", () 
   const output = renderToString(
     <Box width={4} height={4} overflow="hidden">
       <Box marginTop={-2} marginLeft={-2} width={4} height={4} flexShrink={0}>
-        <Text>AAAA{"\n"}BBBB{"\n"}CCCC{"\n"}DDDD</Text>
+        <Text>
+          AAAA{"\n"}BBBB{"\n"}CCCC{"\n"}DDDD
+        </Text>
       </Box>
     </Box>,
   )
@@ -423,7 +425,9 @@ test("overflow - box intersecting with top right edge of overflow container", ()
   const output = renderToString(
     <Box width={4} height={4} overflow="hidden">
       <Box marginTop={-2} marginLeft={2} width={4} height={4} flexShrink={0}>
-        <Text>AAAA{"\n"}BBBB{"\n"}CCCC{"\n"}DDDD</Text>
+        <Text>
+          AAAA{"\n"}BBBB{"\n"}CCCC{"\n"}DDDD
+        </Text>
       </Box>
     </Box>,
   )
@@ -434,7 +438,9 @@ test("overflow - box intersecting with bottom left edge of overflow container", 
   const output = renderToString(
     <Box width={4} height={4} overflow="hidden">
       <Box marginTop={2} marginLeft={-2} width={4} height={4} flexShrink={0}>
-        <Text>AAAA{"\n"}BBBB{"\n"}CCCC{"\n"}DDDD</Text>
+        <Text>
+          AAAA{"\n"}BBBB{"\n"}CCCC{"\n"}DDDD
+        </Text>
       </Box>
     </Box>,
   )
@@ -445,7 +451,9 @@ test("overflow - box intersecting with bottom right edge of overflow container",
   const output = renderToString(
     <Box width={4} height={4} overflow="hidden">
       <Box marginTop={2} marginLeft={2} width={4} height={4} flexShrink={0}>
-        <Text>AAAA{"\n"}BBBB{"\n"}CCCC{"\n"}DDDD</Text>
+        <Text>
+          AAAA{"\n"}BBBB{"\n"}CCCC{"\n"}DDDD
+        </Text>
       </Box>
     </Box>,
   )
@@ -462,11 +470,15 @@ test("nested overflow", () => {
       <Box width={4} height={4} overflow="hidden" flexDirection="column">
         <Box width={2} height={2} overflow="hidden">
           <Box width={4} height={4} flexShrink={0}>
-            <Text>AAAA{"\n"}BBBB{"\n"}CCCC{"\n"}DDDD</Text>
+            <Text>
+              AAAA{"\n"}BBBB{"\n"}CCCC{"\n"}DDDD
+            </Text>
           </Box>
         </Box>
         <Box width={4} height={3}>
-          <Text>XXXX{"\n"}YYYY{"\n"}ZZZZ</Text>
+          <Text>
+            XXXX{"\n"}YYYY{"\n"}ZZZZ
+          </Text>
         </Box>
       </Box>
     </Box>,
@@ -479,10 +491,7 @@ test("nested overflow", () => {
 // ============================================================================
 
 test.todo("out of bounds writes do not crash — buffer clips differently than boxen at boundary", () => {
-  const output = renderToString(
-    <Box width={12} height={10} borderStyle="round" />,
-    { columns: 10 },
-  )
+  const output = renderToString(<Box width={12} height={10} borderStyle="round" />, { columns: 10 })
 
   const expected = boxen("", {
     width: 12,
