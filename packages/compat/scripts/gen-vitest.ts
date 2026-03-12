@@ -85,7 +85,6 @@ const INTERNAL_FILES = new Set([
   "write-synchronized",
   "alternate-screen-example",
   "cursor-helpers",
-  "measure-text",
 ])
 
 // Files that need the kitty keyboard internals
@@ -343,6 +342,12 @@ function transform(code: string, fileName: string): string {
 
   // Handle @sinonjs/fake-timers
   out = out.replace(/import\s+FakeTimers.*from\s*['"]@sinonjs\/fake-timers['"];?\n?/g, "")
+
+  // Rewrite measure-text import to compat layer
+  out = out.replace(
+    /^import\s+(\w+)\s+from\s*['"]\.\.\/src\/measure-text(?:\.js)?['"];?/gm,
+    'import { measureText } from "../../../../packages/compat/src/ink-measure-text"',
+  )
 
   // Handle internal ink imports (non-index, e.g. ../src/measure-text.js)
   // Provide inline stubs for commonly used internal exports
