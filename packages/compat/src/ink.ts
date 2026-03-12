@@ -48,7 +48,7 @@ import { RuntimeContext } from "@silvery/react/context"
 import EventEmitter from "node:events"
 import { renderScreenReaderOutput } from "@silvery/react/accessibility"
 import { Buffer } from "node:buffer"
-import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard, KittyFlags } from "@silvery/term"
+import { KittyFlags, createKittyManager, type KittyManagerOptions } from "@silvery/term"
 
 // =============================================================================
 // Error boundary: uses SilveryErrorBoundary from @silvery/react (rich display with
@@ -982,7 +982,7 @@ export function render(element: import("react").ReactNode, options?: Record<stri
     const kittyManager = createKittyManager(
       (stdin ?? process.stdin) as NodeJS.ReadStream,
       stdout,
-      options?.kittyKeyboard as KittyKeyboardOptions | undefined,
+      resolveKittyManagerOptions(options?.kittyKeyboard as KittyKeyboardOptions | undefined),
     )
 
     // Per-instance cursor store for Ink's useCursor hook
@@ -1289,7 +1289,7 @@ export function render(element: import("react").ReactNode, options?: Record<stri
   const kittyManager = createKittyManager(
     resolvedStdin,
     resolvedStdout,
-    options?.kittyKeyboard as KittyKeyboardOptions | undefined,
+    resolveKittyManagerOptions(options?.kittyKeyboard as KittyKeyboardOptions | undefined),
   )
 
   // Wrap element with InkStdinCtx.Provider so usePaste can access setBracketedPasteMode
@@ -1557,121 +1557,16 @@ export type KittyKeyboardOptions = {
 }
 
 // =============================================================================
-// Kitty Protocol Manager — shared by renderSync and render paths
+// Kitty Protocol Manager — delegates to @silvery/term
 // =============================================================================
 
-/** Regex to match a Kitty keyboard query response: CSI ? <digits> u */
-const KITTY_RESPONSE_RE = /\x1b\[\?(\d+)u/
-
-interface KittyManager {
-  enabled: boolean
-  cleanup(): void
-}
-
-/**
- * Create a kitty protocol manager that handles setup and teardown.
- * Used by both renderSync (test renderer) and render (interactive) paths.
- *
- * Supports three modes:
- * - "enabled": enable immediately if stdin/stdout are TTYs
- * - "auto": probe the terminal for support, enable if detected
- * - "disabled" / undefined: do nothing
- */
-function createKittyManager(
-  stdin: NodeJS.ReadStream,
-  stdout: NodeJS.WriteStream,
+/** Convert Ink-compatible KittyKeyboardOptions to @silvery/term KittyManagerOptions. */
+function resolveKittyManagerOptions(
   opts: KittyKeyboardOptions | undefined,
-): KittyManager {
-  let enabled = false
-  let cancelDetection: (() => void) | undefined
-
-  function enable(flagBitmask: number): void {
-    stdout.write(enableKittyKeyboard(flagBitmask))
-    enabled = true
-  }
-
-  if (opts) {
-    const mode = opts.mode ?? "auto"
-    const flagBitmask = resolveFlags(opts.flags ?? ["disambiguateEscapeCodes"])
-    const isTTY = (stdin as any)?.isTTY && (stdout as any)?.isTTY
-
-    if (isTTY) {
-      if (mode === "enabled") {
-        enable(flagBitmask)
-      } else if (mode === "auto") {
-        cancelDetection = initKittyAutoDetection(stdin, stdout, flagBitmask, enable)
-      }
-    }
-  }
-
+): KittyManagerOptions | undefined {
+  if (!opts) return undefined
   return {
-    get enabled() {
-      return enabled
-    },
-    cleanup() {
-      if (cancelDetection) {
-        cancelDetection()
-        cancelDetection = undefined
-      }
-      if (enabled) {
-        stdout.write(disableKittyKeyboard())
-        enabled = false
-      }
-    },
-  }
-}
-
-/**
- * Initialize kitty keyboard auto-detection.
- * Queries the terminal for support, listens for the response, and enables the protocol if supported.
- * Returns a cleanup function to cancel the detection.
- *
- * Uses a synchronous event-based approach (not async) because render() must return synchronously.
- * Delegates to @silvery/term for escape sequences (queryKittyKeyboard, enableKittyKeyboard).
- */
-function initKittyAutoDetection(
-  stdin: NodeJS.ReadStream,
-  stdout: NodeJS.WriteStream,
-  flagBitmask: number,
-  onEnable: (flags: number) => void,
-): () => void {
-  let responseBuffer = ""
-  let cleaned = false
-  let unmounted = false
-
-  const cleanup = (): void => {
-    if (cleaned) return
-    cleaned = true
-    clearTimeout(timer)
-    stdin.removeListener("data", onData)
-
-    // Re-emit any buffered data that wasn't the protocol response
-    const remaining = responseBuffer.replace(KITTY_RESPONSE_RE, "")
-    responseBuffer = ""
-    if (remaining.length > 0) {
-      stdin.unshift(Buffer.from(remaining))
-    }
-  }
-
-  const onData = (data: Uint8Array | string): void => {
-    responseBuffer += typeof data === "string" ? data : data.toString()
-
-    if (KITTY_RESPONSE_RE.test(responseBuffer)) {
-      cleanup()
-      if (!unmounted) {
-        onEnable(flagBitmask)
-      }
-    }
-  }
-
-  // Attach listener before writing the query so synchronous responses are not missed
-  stdin.on("data", onData)
-  const timer = setTimeout(cleanup, 200)
-
-  stdout.write(queryKittyKeyboard())
-
-  return () => {
-    unmounted = true
-    cleanup()
+    mode: opts.mode,
+    flags: opts.flags ? resolveFlags(opts.flags) : undefined,
   }
 }

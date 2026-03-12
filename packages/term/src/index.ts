@@ -142,6 +142,12 @@ export { OSC133 } from "./osc-markers"
 export { detectKittySupport, detectKittyFromStdio, type KittyDetectResult } from "./kitty-detect"
 
 // =============================================================================
+// Kitty Protocol Manager
+// =============================================================================
+
+export { createKittyManager, type KittyManager, type KittyManagerOptions } from "./kitty-manager"
+
+// =============================================================================
 // Terminal Capability Detection
 // =============================================================================
 
