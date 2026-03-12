@@ -2,16 +2,30 @@
 
 How Silvery manages inline-mode content with a three-zone model: static scrollback, dynamic scrollback, and live screen.
 
+## Terminology
+
+Two parallel naming schemes — **item state** (what Silvery tracks) and **zone** (where content appears):
+
+| Item state      | Zone                                  | Meaning                                                    |
+| --------------- | ------------------------------------- | ---------------------------------------------------------- |
+| **mounted**     | **live screen**                       | React component in the tree. Normal rendering + hooks.     |
+| **virtualized** | **dynamic scrollback** (app-managed)  | Pre-rendered string cached. Data retained. Re-renderable.  |
+| **gone**        | **static scrollback** (terminal-managed) | Data dropped. Terminal owns the lines (until next ED3). |
+
+An item's state tracks its lifecycle in Silvery. A zone describes where content physically exists in the terminal. The two align: mounted items are on the live screen, virtualized items are in dynamic scrollback, gone items are in static scrollback.
+
+This maps directly to VirtualList: VirtualList keeps items in memory but only mounts visible ones. ScrollbackView does the same, but writes virtualized items as pre-rendered strings into terminal scrollback instead of dropping them entirely.
+
 ## The Problem
 
 Terminal scrollback is opaque. Once content scrolls off the visible screen, the terminal owns it — the application cannot query, modify, or selectively clear it. Most TUI frameworks avoid this by using the alternate screen buffer (no scrollback at all). Silvery's inline mode embraces scrollback, which creates a fundamental tension: the app wants to keep content up-to-date, but the terminal wants scrollback to be permanent.
 
-The current implementation treats dehydrated items as permanent: write once to stdout, remove from React tree, re-emit everything on resize. This works but has limitations:
+The current implementation treats virtualized items as permanent: write once to stdout, remove from React tree, re-emit everything on resize. This works but has limitations:
 
-- **No dynamic zone**: All dehydrated items are permanent. The app can't update items that have merely scrolled off-screen.
-- **Dehydration is a lifecycle event**: Once dehydrated, an item's React component is gone. The data is retained only for resize re-emission.
+- **No dynamic zone**: All virtualized items are permanent. The app can't update items that have merely scrolled off-screen.
+- **Virtualization is permanent**: Once virtualized, an item's React component is gone. The data is retained only for resize re-emission.
 - **Resize is nuclear**: ED3+ED2 clears ALL scrollback and re-emits everything from scratch.
-- **No viewport > screen**: Content can only be "live" (on-screen, in React tree) or "dehydrated" (in scrollback, not in React tree).
+- **No viewport > screen**: Content can only be "mounted" (on-screen, in React tree) or "virtualized" (in scrollback, not in React tree).
 
 ## The Three-Zone Model
 
@@ -19,16 +33,17 @@ The viewport is larger than the terminal screen. Content above the screen but wi
 
 ```
 ┌─────────────────────┐
-│  Static scrollback   │  Terminal owns it. Data dropped.
-│                      │  Silvery no longer tracks these items.
+│  Static scrollback   │  Terminal-managed. Items gone.
+│                      │  Silvery no longer tracks these.
+│                      │  Destroyed on next ED3 redraw.
 │                      │
 ├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┤  ← static boundary (maxHistory lines)
-│  Dynamic scrollback  │  App-managed. Data retained.
-│                      │  Pre-rendered (dehydrated) for fast redraw.
-│                      │  Clear + redraw when content changes.
+│  Dynamic scrollback  │  App-managed. Items virtualized.
+│                      │  Pre-rendered for fast redraw.
+│                      │  ED3 + re-emit when content changes.
 │                      │
 ├─────────────────────┤  ← screen top
-│  Screen / live       │  Mounted React components.
+│  Live screen         │  Items mounted (React components).
 │                      │  Normal rendering + incremental diff.
 │                      │
 │ ┌─────────────────┐ │
@@ -39,78 +54,78 @@ The viewport is larger than the terminal screen. Content above the screen but wi
 
 ### Static Scrollback
 
-Items above the static boundary. The terminal owns these lines. Silvery has dropped their data — it no longer tracks, re-renders, or references them. They exist in the terminal's scrollback buffer and are scrollable by the user, but the app cannot modify them.
+Items above the static boundary. The terminal owns these lines — until the next ED3 clears them. Silvery has dropped their data (state: **gone**). They exist in the terminal's scrollback buffer and are scrollable by the user, but the app cannot modify them and does not attempt to preserve them across redraws.
 
-The static boundary is controlled by `maxHistory` (in terminal lines). As items accumulate, the oldest ones cross the boundary and become static. Calling `compact()` forces the boundary down immediately.
+The static boundary is controlled by `maxHistory` (in terminal lines). As items accumulate, the oldest ones cross the boundary and become gone. Calling `compact()` forces the boundary down immediately.
 
 ### Dynamic Scrollback
 
-Items between the static boundary and the screen top. Silvery retains their data and pre-rendered strings. This is the key innovation: **dynamic scrollback is app-managed scrollback that lives in the terminal's scrollback buffer but can be re-rendered.**
+Items between the static boundary and the screen top (state: **virtualized**). Silvery retains their data and pre-rendered strings. This is the key innovation: **dynamic scrollback is app-managed content that can be re-rendered on demand.**
 
 When content in the dynamic zone changes (new items added, existing items updated, terminal resized):
 
-1. Clear from the dynamic scrollback boundary down (screen + visible dynamic content)
-2. Re-emit all dynamic items (fast — they're pre-rendered unless a re-render is needed)
+1. ED3: Clear all terminal scrollback (static items are gone — this is accepted)
+2. Re-emit all virtualized items (fast — they're pre-rendered strings)
 3. Render live screen content below
 
 This is cheap because pre-rendered items are just string writes — no React rendering, no layout, no diffing. Only items that actually changed need re-rendering.
 
-### Screen / Live
+**Tradeoff**: ED3 destroys static scrollback. Gone items are truly gone after a redraw — the user can no longer scroll up to see them. This is the fundamental cost of having a dynamic zone. The `maxHistory` setting controls how much content stays in the dynamic zone (re-emittable) vs. static (accepted as lost on next redraw).
 
-The visible terminal screen. Mounted React components with normal rendering, incremental diffing, and layout. The footer is pinned at the bottom via flex layout (not DECSTBM — scroll regions discard scrollback).
+### Live Screen
+
+The visible terminal screen (state: **mounted**). React components with normal rendering, incremental diffing, and layout. The footer is pinned at the bottom via flex layout (not DECSTBM — scroll regions discard scrollback).
 
 ## Item Lifecycle
 
 ```
-Live ──────→ Dehydrated ──────→ Static
-(mounted)    (pre-rendered,      (data dropped,
-              data retained)      terminal owns)
+Mounted ──────→ Virtualized ──────→ Gone
+(React tree)    (pre-rendered,       (data dropped,
+                 data retained)       terminal owns)
 ```
 
-### Live (Hydrated)
+### Mounted
 
-The component is mounted in the React tree. It participates in layout, receives props, and runs hooks. This is the normal React component lifecycle. Items are live when they're visible on the screen.
+The component is mounted in the React tree. It participates in layout, receives props, and runs hooks. This is the normal React component lifecycle. Items are mounted when they're visible on the screen.
 
-### Dehydrated (Dynamic Scrollback)
+### Virtualized
 
 The item has scrolled off the visible screen into dynamic scrollback. Silvery:
 
 1. Renders it to a string snapshot (pre-rendering)
 2. Removes it from the React tree
 3. Retains the item's data and pre-rendered string in memory
-4. Writes the pre-rendered string to terminal output as part of the dynamic scrollback zone
+4. Writes the pre-rendered string to terminal output as part of the dynamic zone
 
-**Dehydration is an optimization, not a permanent commitment.** A dehydrated item can be:
+**Virtualization is reversible.** A virtualized item can be:
 
-- **Rehydrated** at a new width on resize (rehydrate → re-dehydrate)
-- **Updated** if its data changes (rehydrate → re-render → re-dehydrate)
-- **Promoted** to static when it crosses the maxHistory boundary
+- **Re-mounted** at a new width on resize
+- **Updated** if its data changes (re-render → re-virtualize)
+- **Promoted** to gone when it crosses the maxHistory boundary
 
 The pre-rendered string is a cache. The data is the source of truth.
 
-#### Dehydration Thresholds
+#### Virtualization Resistance
 
-Not all items should be dehydrated at the same point. An item that is actively updating (e.g., streaming content, running tool calls) should remain hydrated longer than a completed item. Two thresholds control this:
+Not all items should be virtualized at the same point. An item that is actively updating (e.g., streaming content, running tool calls) should remain mounted longer than a completed item. Two thresholds control this:
 
-- **Auto-dehydrate**: Items scroll off the visible screen → dehydrated immediately. This is the default for completed items.
-- **Dehydration-resistant**: Items can declare themselves as actively changing. These remain hydrated until they're `maxDeferLines` past the screen top (default: ~50 lines). This prevents constant rehydrate/dehydrate churn for items that are still receiving updates.
+- **Auto-virtualize**: Completed items virtualize immediately when they scroll off the visible screen.
+- **Resist virtualization**: Actively-changing items remain mounted until they're `maxDeferLines` past the screen top (default: ~50 lines). This prevents constant mount/unmount churn for items still receiving updates.
 
-The `isFrozen` hint becomes `isSettled`: "This item is done changing — safe to dehydrate eagerly, even while still on-screen."
+The `isFrozen` hint becomes `isComplete`: "This item is done changing — safe to virtualize eagerly, even while still on-screen."
 
-### Static
+### Gone
 
-The item crosses the static boundary (maxHistory). Its data is dropped. The pre-rendered string may still exist in the terminal's scrollback buffer, but Silvery no longer tracks it.
+The item crosses the static boundary (maxHistory). Its data is dropped. The pre-rendered string may still exist in the terminal's scrollback buffer, but Silvery no longer tracks it. The next ED3 will destroy it.
 
-This is truly permanent — there is no way to modify or remove static content from terminal scrollback (except ED3, which clears ALL scrollback).
+## The Redraw
 
-## The "Clear To" Concept
-
-The key operation in dynamic scrollback is **clear-to**: clear from a specific boundary down to the bottom of the screen, then redraw everything below that boundary.
+The key operation in dynamic scrollback is a **full redraw**: clear all scrollback and the screen, then re-emit everything the app still tracks.
 
 ```
-Before:                          After clear-to(boundary):
+Before:                          After redraw:
 ┌──────────────────┐             ┌──────────────────┐
-│ Static           │             │ Static           │ (untouched)
+│ Static scrollback│             │ (destroyed by ED3)│
 ├ ─ ─ ─ ─ ─ ─ ─ ─ ┤             ├ ─ ─ ─ ─ ─ ─ ─ ─ ┤
 │ Dynamic item A   │             │ Dynamic item A'  │ ← re-emitted
 │ Dynamic item B   │             │ Dynamic item B'  │ ← re-emitted
@@ -122,21 +137,29 @@ Before:                          After clear-to(boundary):
 
 The sequence:
 
-1. Position cursor at the clear-to boundary (CUP to first dynamic line)
-2. Erase from cursor to end of screen (ED0: `\x1b[J`)
-3. Write all dynamic items (pre-rendered strings — fast)
+1. ED3 (`\x1b[3J`): Clear terminal scrollback buffer
+2. ED2 (`\x1b[2J`): Clear visible screen
+3. Write all virtualized items (pre-rendered strings — fast)
 4. Render live content below (normal React pipeline)
 
-**ED0 cannot affect terminal scrollback.** CUP coordinates are 1-based within the visible screen — the cursor can never be positioned into scrollback lines. ED0 erases from cursor to end of the visible screen only. Static items in scrollback are physically unreachable.
+**Static items are destroyed.** This is the accepted tradeoff. Gone items have already had their data dropped — Silvery can't re-emit them even if it wanted to. ED3 merely removes the stale terminal lines.
 
-**Known limitation**: The dynamic zone lives in the visible screen area, not in actual terminal scrollback. When a clear-to fires, the dynamic items are re-emitted into the visible screen area. If the dynamic zone grows larger than the screen, items at the top of the dynamic zone will scroll into terminal scrollback during re-emission — at which point they become effectively static (the app can no longer clear-to them). The `maxHeight` setting should be tuned with this in mind.
+### Why ED3 (Not ED0)?
 
-### When Clear-To Fires
+The earlier draft of this design proposed using CUP + ED0 to "clear from a boundary" without touching scrollback. This doesn't work:
 
-- **New item added**: New item pushes content up; clear-to and redraw
-- **Item updated**: Re-render the changed item; clear-to and redraw
-- **Terminal resize**: Re-render all dynamic items at new width; clear-to and redraw
-- **Compaction**: Move static boundary down; the cleared zone shrinks
+- **CUP can't reach scrollback.** CUP coordinates are 1-based within the visible screen. The cursor can never be positioned into scrollback lines.
+- **ED0 only affects the visible screen.** It erases from cursor to end of screen — scrollback is untouched.
+- **Dynamic items ARE in scrollback.** Once they scroll off the visible screen, they're in terminal scrollback and unreachable by CUP/ED0.
+
+The only way to update content that has scrolled into terminal scrollback is ED3 (nuke it all) + re-emit. This is what the current resize implementation already does.
+
+### When Redraw Fires
+
+- **New item added**: New item pushes content up; redraw
+- **Item updated**: Re-render the changed item; redraw
+- **Terminal resize**: Re-render all virtualized items at new width; redraw
+- **Compaction**: Move static boundary down; the dynamic zone shrinks
 
 ### Why Not Just Diff?
 
@@ -146,14 +169,14 @@ In fullscreen mode, the output phase diffs buffers cell-by-cell and emits minima
 - Content displacement (new items pushing everything up) means every cell's position changes
 - The pre-rendered strings ARE the output — there's nothing to diff against
 
-Clear-to-and-redraw is the correct primitive for dynamic scrollback. It's fast because pre-rendered items are just string writes (no React, no layout, no diffing).
+ED3 + re-emit is the correct primitive for dynamic scrollback. It's fast because pre-rendered items are just string writes (no React, no layout, no diffing).
 
-## Automatic Dehydration
+## Automatic Virtualization
 
-Items that scroll off the visible screen are automatically dehydrated. The app doesn't need to call `settle()` or set `isSettled` — scrolling past the screen top is sufficient.
+Items that scroll off the visible screen are automatically virtualized. The app doesn't need to call `complete()` or set `isComplete` — scrolling past the screen top is sufficient.
 
 ```tsx
-// This just works. Items dehydrate as they scroll off-screen.
+// This just works. Items virtualize as they scroll off-screen.
 <ScrollbackView maxHeight={500} footer={<StatusBar />}>
   {messages.map((m) => (
     <Message key={m.id} data={m} />
@@ -161,21 +184,21 @@ Items that scroll off the visible screen are automatically dehydrated. The app d
 </ScrollbackView>
 ```
 
-The `isSettled` prop and `settle()` callback are **hints** rather than requirements:
+The `isComplete` prop and `complete()` callback are **hints** rather than requirements:
 
-- `isSettled`: "This item will never change again — safe to pre-render immediately even while on-screen"
-- `settle()`: "I'm done — pre-render me now so clear+redraw is fast when I scroll off"
+- `isComplete`: "This item will never change again — safe to pre-render immediately even while on-screen"
+- `complete()`: "I'm done — pre-render me now so redraw is fast when I scroll off"
 
-Without either hint, items are pre-rendered when they scroll off-screen (slightly more work at dehydration time, but no app coordination needed).
+Without either hint, items are pre-rendered when they scroll off-screen (slightly more work at virtualization time, but no app coordination needed).
 
-### Dehydration Resistance
+### Resisting Virtualization
 
-Some items are actively changing — streaming text, running tool calls, updating progress. These items can resist automatic dehydration by declaring themselves as unsettled:
+Some items are actively changing — streaming text, running tool calls, updating progress. These items can resist automatic virtualization:
 
 ```tsx
 <ScrollbackView
   maxHeight={500}
-  isSettled={(item) => item.status === "complete"}
+  isComplete={(item) => item.status === "done"}
   maxDeferLines={50}
   footer={<StatusBar />}
 >
@@ -183,26 +206,26 @@ Some items are actively changing — streaming text, running tool calls, updatin
 </ScrollbackView>
 ```
 
-Unsettled items remain hydrated (mounted in React tree) until either:
+Incomplete items remain mounted (in React tree) until either:
 
-- They become settled (`isSettled` returns true) and scroll off-screen → immediate dehydration
-- They pass `maxDeferLines` lines above the screen top → forced dehydration regardless of settled state
+- They become complete (`isComplete` returns true) and scroll off-screen → immediate virtualization
+- They pass `maxDeferLines` lines above the screen top → forced virtualization regardless
 
-This prevents churn for items receiving rapid updates while still bounding memory usage. The `maxDeferLines` threshold ensures no item stays hydrated forever — even a perpetually-updating item will eventually be dehydrated when it's far enough off-screen that constant rehydration would be wasteful.
+This prevents churn for items receiving rapid updates while still bounding memory usage.
 
 ## Resize Strategy
 
 Resize changes the rendering width, which affects line wrapping and item heights. The strategy differs by zone:
 
-| Zone    | Resize behavior                                                         |
-| ------- | ----------------------------------------------------------------------- |
-| Static  | Nothing — terminal reflows it (imperfectly), silvery doesn't track it   |
-| Dynamic | Rehydrate → re-render at new width → re-dehydrate. Clear-to and redraw. |
-| Live    | Normal React re-render at new width                                     |
+| Zone               | Resize behavior                                                  |
+| ------------------ | ---------------------------------------------------------------- |
+| Static scrollback  | Destroyed by ED3. Terminal reflow was imperfect anyway.          |
+| Dynamic scrollback | Re-render at new width → re-virtualize. Full redraw.             |
+| Live screen        | Normal React re-render at new width                              |
 
-The dynamic zone re-render is O(N) `renderStringSync` calls, but N is bounded by `maxHistory` lines and the calls are fast (no React reconciliation, just string generation). Dehydration-resistant items that are still hydrated during resize go through normal React re-render.
+The dynamic zone re-render is O(N) `renderStringSync` calls, but N is bounded by `maxHistory` lines and the calls are fast (no React reconciliation, just string generation). Items still resisting virtualization go through normal React re-render.
 
-**No ED3 needed.** Dynamic scrollback doesn't need to nuke all terminal scrollback on resize — it only redraws its own zone. Static content above the boundary is left alone (the terminal's reflow is imperfect but acceptable for old content).
+**No selective clear needed.** Full ED3 + re-emit handles resize cleanly. Static content is destroyed (acceptable — the terminal's reflow was imperfect anyway).
 
 ## maxHeight and the Virtual Viewport
 
@@ -219,7 +242,7 @@ The dynamic zone re-render is O(N) `renderStringSync` calls, but N is bounded by
 </ScrollbackView>
 ```
 
-When dynamic scrollback exceeds `maxHeight`, the oldest items are promoted to static (data dropped, terminal owns them).
+When dynamic scrollback exceeds `maxHeight`, the oldest items are promoted to gone (data dropped, terminal owns them until next ED3).
 
 The total viewport is: `maxHeight + screen height`. This is the maximum content silvery can re-render on demand.
 
@@ -231,10 +254,10 @@ interface ScrollbackViewProps<T> {
   children: (item: T, index: number) => ReactNode
   keyExtractor: (item: T, index: number) => string | number
 
-  // Settlement hints (optional — auto-dehydrate works without these)
-  isSettled?: (item: T, index: number) => boolean
+  // Completion hints (optional — auto-virtualize works without these)
+  isComplete?: (item: T, index: number) => boolean
 
-  // How far past screen top unsettled items stay hydrated (lines). Default: 50
+  // How far past screen top incomplete items stay mounted (lines). Default: 50
   maxDeferLines?: number
 
   // Dynamic scrollback size (in terminal lines). Default: 500
@@ -250,15 +273,15 @@ interface ScrollbackViewProps<T> {
 
 ## Comparison with Current Implementation
 
-| Aspect               | Current                                       | Proposed                                                |
-| -------------------- | --------------------------------------------- | ------------------------------------------------------- |
-| Zones                | 2 (live, dehydrated)                          | 3 (live, dynamic, static)                               |
-| Dehydrate semantics  | Permanent (write to stdout, remove from tree) | Optimization (pre-render cache, data retained)          |
-| Resize               | ED3 nuke all scrollback + re-emit everything  | Clear-to dynamic boundary + re-render dynamic zone only |
-| Viewport             | = screen height                               | = maxHeight + screen height                             |
-| Auto-dehydrate       | No (app must set isFrozen or call freeze())   | Yes (scroll off screen = auto-dehydrate)                |
-| Dehydrate resistance | N/A                                           | isSettled + maxDeferLines for active items              |
-| Data lifetime        | Retained until static promotion               | Same, but static boundary is explicit (maxHistory)      |
+| Aspect                    | Current                                       | Proposed                                                |
+| ------------------------- | --------------------------------------------- | ------------------------------------------------------- |
+| Zones                     | 2 (live screen, dynamic scrollback)           | 3 (live screen, dynamic scrollback, static scrollback)  |
+| Virtualize semantics      | Permanent (write to stdout, remove from tree) | Reversible (pre-render cache, data retained)            |
+| Resize                    | ED3 + re-emit everything                      | ED3 + re-emit dynamic zone only (static items dropped)  |
+| Viewport                  | = screen height                               | = maxHeight + screen height                             |
+| Auto-virtualize           | No (app must set isFrozen or call freeze())   | Yes (scroll off screen = auto-virtualize)               |
+| Virtualization resistance | N/A                                           | isComplete + maxDeferLines for active items              |
+| Data lifetime             | Retained until gone                           | Same, but static boundary is explicit (maxHistory)      |
 
 ## DECSTBM: Why Not
 
@@ -271,27 +294,30 @@ This makes DECSTBM unsuitable for pinning footers in inline mode: content scroll
 ### Terminal Capabilities
 
 - **ED3 (`\x1b[3J`)**: Clears terminal scrollback buffer. Supported by Ghostty, iTerm2, xterm, Alacritty, WezTerm, Kitty, VTE terminals, Windows Terminal.
-- **ED0 (`\x1b[J`)**: Clears from cursor to end of screen. Universal support.
-- **CUP (`\x1b[H`)**: Cursor position. Universal.
+- **ED2 (`\x1b[2J`)**: Clears entire visible screen. Universal support.
+- **ED0 (`\x1b[J`)**: Clears from cursor to end of screen. Universal support. **Cannot reach scrollback** — CUP coordinates are screen-local.
+- **CUP (`\x1b[H`)**: Cursor position (1-based, visible screen only). Universal.
 - **`\r\n`**: Line endings for scrollback writes (avoids DECAWM double-advance).
 
 ### OSC 133 Semantic Markers
 
-Each dehydrated item in dynamic scrollback gets OSC 133 prompt markers, enabling Cmd+Up/Down navigation in supported terminals (iTerm2, Kitty, WezTerm, Ghostty).
+Each virtualized item in dynamic scrollback gets OSC 133 prompt markers, enabling Cmd+Up/Down navigation in supported terminals (iTerm2, Kitty, WezTerm, Ghostty).
 
 ### Content in Terminal Scrollback
 
-Pre-rendered strings written to dynamic scrollback include full ANSI styling: colors, bold, italic, borders, OSC 8 hyperlinks. When the user scrolls up in their terminal, they see fully styled content.
+Pre-rendered strings written to dynamic scrollback include full ANSI styling: colors, bold, italic, borders, OSC 8 hyperlinks. When the user scrolls up in their terminal, they see fully styled content — until the next ED3 redraw clears it.
 
 ## Open Questions
 
-1. **Tall items spanning zones**: An item may be tall enough that its top is in dynamic scrollback while its bottom is on-screen. How to handle this? Current approach: keep it hydrated until fully off-screen.
+1. **Tall items spanning zones**: An item may be tall enough that its top is in scrollback while its bottom is on-screen. How to handle this? Current approach: keep it mounted until fully off-screen.
 
 2. **Scroll position detection**: No terminal protocol exists to detect whether the user has scrolled up. The app can't show "new content below" indicators.
 
-3. **React `<Activity>`**: If React ships offscreen rendering, dehydrated items could potentially be "paused" instead of unmounted, preserving hook state.
+3. **React `<Activity>`**: If React ships offscreen rendering, virtualized items could potentially be "paused" instead of unmounted, preserving hook state.
 
-4. **maxDeferLines tuning**: The default of ~50 lines is a guess. Needs real-world measurement: too low causes churn for streaming items, too high wastes memory keeping many items hydrated. Should this be item-count-based or line-count-based?
+4. **maxDeferLines tuning**: The default of ~50 lines is a guess. Needs real-world measurement: too low causes churn for streaming items, too high wastes memory keeping many items mounted. Should this be item-count-based or line-count-based?
+
+5. **ED3 frequency**: Every redraw destroys static scrollback. If redraws are frequent (e.g., streaming updates), the user may never see content in scrollback because it's constantly being cleared. Should redraws be batched/debounced? Should there be a minimum interval between ED3 clears?
 
 ## Reference
 
