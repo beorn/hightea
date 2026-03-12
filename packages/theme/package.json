@@ -20,9 +20,13 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
+    "./ThemeContext": {
+      "types": "./src/ThemeContext.tsx",
+      "import": "./src/ThemeContext.tsx"
+    },
     "./*": {
-      "types": "./src/*",
-      "import": "./src/*"
+      "types": "./src/*.ts",
+      "import": "./src/*.ts"
     }
   },
   "publishConfig": {

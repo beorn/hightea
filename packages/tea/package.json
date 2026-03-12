@@ -40,10 +40,7 @@
       "types": "./src/plugins.ts",
       "import": "./src/plugins.ts"
     },
-    "./*": {
-      "types": "./src/*",
-      "import": "./src/*"
-    }
+    "./*": "./src/*.ts"
   },
   "publishConfig": {
     "access": "public"

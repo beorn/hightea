@@ -37,8 +37,8 @@
       "import": "./src/ansi/index.ts"
     },
     "./*": {
-      "types": "./src/*",
-      "import": "./src/*"
+      "types": "./src/*.ts",
+      "import": "./src/*.ts"
     }
   },
   "publishConfig": {

@@ -21,8 +21,8 @@
       "import": "./src/index.tsx"
     },
     "./*": {
-      "types": "./src/*",
-      "import": "./src/*"
+      "types": "./src/*.ts",
+      "import": "./src/*.ts"
     }
   },
   "publishConfig": {
