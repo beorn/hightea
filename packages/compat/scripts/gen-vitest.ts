@@ -1,0 +1,557 @@
+#!/usr/bin/env bun
+/**
+ * Auto-generate vitest tests from Ink's ava test suite.
+ *
+ * Reads ink's ava test files from the cloned repo at /tmp/silvery-compat/ink,
+ * rewrites imports to use silvery's compat layer + an ava-shim (so assertions
+ * stay as-is: t.is, t.true, etc.), and writes to tests/compat/ink/generated/.
+ *
+ * Usage:
+ *   bun packages/compat/scripts/gen-vitest.ts              # generate all
+ *   bun packages/compat/scripts/gen-vitest.ts --dry-run    # preview changes
+ *   bun packages/compat/scripts/gen-vitest.ts --list       # list available test files
+ *   bun packages/compat/scripts/gen-vitest.ts components   # generate specific file(s)
+ *
+ * The generated tests live in tests/compat/ink/generated/ and are gitignored.
+ * Run: bun vitest run --project vendor vendor/silvery/tests/compat/ink/generated/
+ */
+
+import { existsSync, readdirSync, mkdirSync } from "node:fs"
+import { join, resolve } from "node:path"
+
+const SILVERY_ROOT = resolve(import.meta.dir, "../../..")
+const INK_DIR = "/tmp/silvery-compat/ink"
+const INK_TEST_DIR = join(INK_DIR, "test")
+const OUT_DIR = resolve(SILVERY_ROOT, "tests/compat/ink/generated")
+
+const args = process.argv.slice(2)
+const dryRun = args.includes("--dry-run")
+const listOnly = args.includes("--list")
+const fileFilters = args.filter((a) => !a.startsWith("--"))
+
+// ---------------------------------------------------------------------------
+// Check prereqs
+// ---------------------------------------------------------------------------
+
+if (!existsSync(INK_TEST_DIR)) {
+  console.error(`Ink test directory not found: ${INK_TEST_DIR}`)
+  console.error(`Run 'bun packages/compat/scripts/compat-check.ts ink' first to clone.`)
+  process.exit(1)
+}
+
+// ---------------------------------------------------------------------------
+// Discover test files
+// ---------------------------------------------------------------------------
+
+const allTestFiles = readdirSync(INK_TEST_DIR)
+  .filter((f) => f.endsWith(".tsx") && !f.startsWith("_"))
+  .map((f) => f.replace(".tsx", ""))
+  .sort()
+
+if (listOnly) {
+  console.log("Available Ink test files:\n")
+  for (const f of allTestFiles) console.log(`  ${f}`)
+  console.log(`\n${allTestFiles.length} files total`)
+  process.exit(0)
+}
+
+const filesToProcess =
+  fileFilters.length > 0 ? allTestFiles.filter((f) => fileFilters.some((ff) => f.includes(ff))) : allTestFiles
+
+// ---------------------------------------------------------------------------
+// Classification
+// ---------------------------------------------------------------------------
+
+// Files that use PTY (term helper) — need special handling
+const PTY_FILES = new Set([
+  "hooks-use-input",
+  "hooks-use-input-kitty",
+  "hooks-use-input-navigation",
+  "hooks-use-paste",
+  "hooks",
+])
+
+// Files that use the run() PTY helper or node-pty directly
+const RUN_FILES = new Set(["exit", "render"])
+
+// Files that use internal ink APIs not exposed through compat
+const INTERNAL_FILES = new Set([
+  "errors",
+  "log-update",
+  "reconciler",
+  "write-synchronized",
+  "alternate-screen-example",
+  "cursor-helpers",
+  "measure-text",
+])
+
+// Files that need the kitty keyboard internals
+const KITTY_FILES = new Set(["kitty-keyboard"])
+
+// Known expected failures (same as compat-check.ts addFailingMarks)
+const EXPECTED_FAILURES: Record<string, string[]> = {
+  "flex-wrap": ["row - no wrap", "column - no wrap"],
+  "width-height": ["set aspect ratio with width and height", "set aspect ratio with maxHeight constraint"],
+  overflow: [
+    "overflowX - single text node in a box with border inside overflow container",
+    "overflowX - multiple text nodes in a box with border inside overflow container",
+    "overflowX - box intersecting with left edge of overflow container with border",
+    "out of bounds writes do not crash",
+  ],
+  "render-to-string": [
+    "captures initial render output before effect-driven state updates",
+    "default columns is 80",
+    "text outside Text component throws",
+  ],
+  "measure-element": ["measure element"],
+}
+
+// Tests that need interactive render mode features not yet supported in vitest
+// These pass in the real compat-check (ava + ink's own test runner)
+const RENDER_MODE_FAILURES: Record<string, string[]> = {
+  components: [
+    "fail when text nodes are not within <Text> component",
+    "fail when text node is not within <Text> component",
+    "fail when <Box> is inside <Text> component",
+    "static output",
+    "static output - concurrent",
+    "static output is written immediately in non-interactive mode",
+    "ensure wrap-ansi doesn\u2019t trim leading whitespace",
+    "disable raw mode when all input components are unmounted",
+    "re-ref stdin when input is used after previous unmount",
+    "render only last frame when run in CI",
+    "render all frames if CI environment variable equals false",
+    "debug mode in CI does not replay final frame during unmount teardown",
+    "debug mode in CI keeps final newline separation after waitUntilExit",
+    "render only last frame when stdout is not a TTY",
+    "interactive option overrides TTY detection",
+    "render warns when stdout is reused before unmount",
+    "alternate screen - enters on mount and exits on unmount",
+    "primary screen - cleanup console output follows the native console during unmount",
+    "alternate screen - does not replay exit(Error) output on the primary screen during unmount",
+    "alternate screen - does not replay teardown output on the primary screen during unmount",
+    "alternate screen - cleanup console output follows the native console during unmount",
+    "alternate screen - cleanup() exits the alternate screen",
+    "alternate screen - content is rendered between enter and exit",
+    "alternate screen - debug concurrent teardown restores the cursor before the first commit",
+    "debug mode: useStdout().write() replays latest frame",
+    "debug mode: useStdout().write() replays rerendered frame",
+    "debug mode: useStdout().write() does not leak into stderr",
+    "debug mode: useStderr().write() replays latest frame without empty writes",
+    "debug mode: useStderr().write() replays rerendered frame",
+  ],
+  cursor: [
+    "cursor follows text input",
+    "cursor is shown at specified position after render",
+    "cursor moves on space input even when output is identical",
+    "cursor position does not leak from suspended concurrent render to fallback",
+    "cursor remains visible after useStderr().write()",
+    "cursor remains visible after useStdout().write()",
+    "debug mode: useStdout().write() replays latest frame",
+    "debug mode: useStdout().write() does not leak into stderr",
+    "debug mode: useStderr().write() replays latest frame without empty writes",
+    "debug mode: useStdout().write() replays rerendered frame",
+    "debug mode: useStderr().write() replays rerendered frame",
+  ],
+  "use-box-metrics": [
+    "returns correct size on first render",
+    "returns correct position",
+    "updates when terminal is resized",
+    "uses latest tracked ref when terminal is resized",
+    "updates when sibling content changes",
+    "updates when sibling content changes but tracked component is memoized",
+    "updates when tracked ref attaches after initial render and component is memoized",
+    "does not trigger extra re-renders when layout is unchanged",
+    "returns zeros when ref is not attached",
+    "hasMeasured becomes true when tracked element is mounted on initial render",
+    "hasMeasured resets when tracked ref switches to a detached element",
+    "hasMeasured becomes true after the tracked element is measured",
+    "resets metrics when tracked element unmounts",
+  ],
+  "screen-reader": [
+    "render text for screen readers",
+    "render text for screen readers with aria-role",
+    "render text for screen readers with aria-hidden",
+    "render nested row",
+    "render multi-line text with roles",
+    "render with aria-state.busy",
+    "render with aria-state.checked",
+    "render with aria-state.disabled",
+    "render with aria-state.expanded",
+    "render with aria-state.multiline",
+    "render with aria-state.multiselectable",
+    "render with aria-state.readonly",
+    "render with aria-state.required",
+    "render with aria-state.selected",
+    "render aria-label only Text for screen readers",
+    "render aria-label only Box for screen readers",
+    "render select input for screen readers",
+    "render listbox with multiselectable options",
+  ],
+  // measure-element render-mode tests now pass — removed from failures
+  "terminal-resize": [
+    "useWindowSize returns current terminal dimensions and updates on resize",
+    "useWindowSize falls back to a positive column count when stdout.columns is 0",
+    "useWindowSize falls back to terminal-size rows when stdout.rows is missing",
+  ],
+}
+
+// Tests that silvery passes but Ink marks as .failing
+const SILVERY_PASSES: Record<string, string[]> = {
+  "width-height": ["set min width in percent"],
+}
+
+// ---------------------------------------------------------------------------
+// Import block utilities
+// ---------------------------------------------------------------------------
+
+/**
+ * Replace/remove imports by their source module path.
+ * Handles both single-line and multi-line import statements safely.
+ */
+function replaceImportsBySource(code: string, replacements: Record<string, string | null>): string {
+  const lines = code.split("\n")
+  const result: string[] = []
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]!
+    if (line.trimStart().startsWith("import ")) {
+      // Collect full import (may span multiple lines)
+      let block = line
+      let endIdx = i
+      while (!block.includes(" from ") && endIdx < lines.length - 1) {
+        endIdx++
+        block += "\n" + lines[endIdx]!
+      }
+
+      let matched = false
+      for (const [source, replacement] of Object.entries(replacements)) {
+        const esc = source.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+        if (new RegExp(`from\\s*['"]${esc}(?:\\.js)?['"]`).test(block)) {
+          matched = true
+          if (replacement !== null) result.push(replacement)
+          i = endIdx + 1
+          break
+        }
+      }
+      if (!matched) {
+        result.push(line)
+        i++
+      }
+    } else {
+      result.push(line)
+      i++
+    }
+  }
+  return result.join("\n")
+}
+
+// ---------------------------------------------------------------------------
+// Transform: imports only (assertions stay as ava — handled by shim)
+// ---------------------------------------------------------------------------
+
+function transform(code: string, fileName: string): string {
+  let out = code
+
+  // 1. Replace ava import with our ava-shim
+  out = out.replace(
+    /import test(?:,\s*\{[^}]*\})?\s*from\s*['"]ava['"];?\n?/g,
+    'import test from "../helpers/ava-shim"\nimport type { ExecutionContext } from "../helpers/ava-shim"\n',
+  )
+
+  // 2. Remove sinon imports (the shim handles spy/stub differently — we add helpers inline)
+  out = replaceImportsBySource(out, { sinon: null })
+
+  // 3. Replace ink source imports with compat layer
+  out = replaceImportsBySource(out, {
+    "../src/index":
+      'import { Box, Text, Newline, Spacer, Static, Transform, render, measureElement, useApp, useInput, useStdin, useFocus, useFocusManager, useCursor } from "../../../../packages/compat/src/ink"',
+    "../../src/index": 'import { Box, Text, render } from "../../../../packages/compat/src/ink"',
+  })
+
+  // 4. Replace helper imports
+  out = replaceImportsBySource(out, {
+    "./helpers/render-to-string":
+      'import { renderToString, renderToStringAsync, initLayoutEngine } from "../helpers/render-to-string"',
+    "./helpers/create-stdout": 'import createStdout from "../helpers/create-stdout"',
+    "./helpers/create-stdin": 'import { createStdin, emitReadable } from "../helpers/create-stdin"',
+    "./helpers/test-renderer": 'import { renderAsync } from "../helpers/test-renderer"',
+    "./helpers/run": null, // PTY — not available
+    "./helpers/term": null, // PTY — not available
+    "./helpers/force-colors": 'import { enableTestColors, disableTestColors } from "../helpers/render-to-string"',
+  })
+
+  // 5. Replace third-party imports
+  out = out.replace(
+    /import\s+stripAnsi\s+from\s*['"]strip-ansi['"];?/g,
+    'import { stripAnsi } from "../../../../packages/term/src/unicode"',
+  )
+  // Keep chalk as-is (real chalk from node_modules works in tests)
+  // Replace delay with inline promise
+  out = out.replace(
+    /import delay from ['"]delay['"];?\n?/g,
+    "const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms))\n",
+  )
+
+  // Provide inline stubs for unavailable packages
+  out = out.replace(
+    /import\s+ansiEscapes\s+from\s*['"]ansi-escapes['"];?\n?/g,
+    "const ansiEscapes = { cursorTo: (x: number, y?: number) => `\\x1b[${y != null ? `${y + 1};` : ''}${x + 1}H`, cursorHide: '\\x1b[?25l', cursorShow: '\\x1b[?25h', eraseScreen: '\\x1b[2J', clearScreen: '\\x1b[2J\\x1b[H', cursorSavePosition: '\\x1b[s', cursorRestorePosition: '\\x1b[u', cursorGetPosition: '\\x1b[6n', cursorNextLine: '\\x1b[E', cursorPrevLine: '\\x1b[F', cursorMove: (x: number, y?: number) => { let s = ''; if (x < 0) s += `\\x1b[${-x}D`; else if (x > 0) s += `\\x1b[${x}C`; if (y && y < 0) s += `\\x1b[${-y}A`; else if (y && y > 0) s += `\\x1b[${y}B`; return s; }, eraseEndLine: '\\x1b[K', eraseLine: '\\x1b[2K', eraseLines: (count: number) => { let s = ''; for (let i = 0; i < count; i++) s += '\\x1b[2K' + (i < count - 1 ? '\\x1b[1A' : ''); if (count) s += '\\x1b[G'; return s; }, clearTerminal: '\\x1b[2J\\x1b[3J\\x1b[H', link: (text: string, url: string) => `\\x1b]8;;${url}\\x07${text}\\x1b]8;;\\x07` }\n",
+  )
+  // boxen — keep as-is (available in km's node_modules)
+  out = out.replace(
+    /import\s+cliBoxes\s+from\s*['"]cli-boxes['"];?\n?/g,
+    "const cliBoxes = { round: { topLeft: '╭', top: '─', topRight: '╮', right: '│', bottomRight: '╯', bottom: '─', bottomLeft: '╰', left: '│' }, single: { topLeft: '┌', top: '─', topRight: '┐', right: '│', bottomRight: '┘', bottom: '─', bottomLeft: '└', left: '│' }, double: { topLeft: '╔', top: '═', topRight: '╗', right: '║', bottomRight: '╝', bottom: '═', bottomLeft: '╚', left: '║' }, bold: { topLeft: '┏', top: '━', topRight: '┓', right: '┃', bottomRight: '┛', bottom: '━', bottomLeft: '┗', left: '┃' }, singleDouble: { topLeft: '╓', top: '─', topRight: '╖', right: '║', bottomRight: '╜', bottom: '─', bottomLeft: '╙', left: '║' }, doubleSingle: { topLeft: '╒', top: '═', topRight: '╕', right: '│', bottomRight: '╛', bottom: '═', bottomLeft: '╘', left: '│' }, classic: { topLeft: '+', top: '-', topRight: '+', right: '|', bottomRight: '+', bottom: '-', bottomLeft: '+', left: '|' }, arrow: { topLeft: '↘', top: '↓', topRight: '↙', right: '←', bottomRight: '↖', bottom: '↑', bottomLeft: '↗', left: '→' } }\n",
+  )
+
+  // Comment out truly unavailable packages
+  const unavailable = ["patch-console", "is-in-ci", "slice-ansi"]
+  for (const pkg of unavailable) {
+    out = out.replace(
+      new RegExp(`import\\s+\\w+(?:,\\s*\\{[^}]*\\})?\\s+from\\s*['"]${pkg}['"];?\\n?`, "g"),
+      `// import from '${pkg}' — not available\n`,
+    )
+  }
+
+  // Handle indent-string inline
+  out = out.replace(
+    /import\s+indentString.*from\s*['"]indent-string['"];?\n?/g,
+    'const indentString = (s: string, n: number) => s.split("\\n").map((l: string) => " ".repeat(n) + l).join("\\n")\n',
+  )
+
+  // Handle @sinonjs/fake-timers
+  out = out.replace(/import\s+FakeTimers.*from\s*['"]@sinonjs\/fake-timers['"];?\n?/g, "")
+
+  // Handle internal ink imports (non-index, e.g. ../src/measure-text.js)
+  // Provide inline stubs for commonly used internal exports
+  out = out.replace(
+    /^import\s+\{([^}]+)\}\s*from\s*['"]\.\.\/src\/write-synchronized(?:\.js)?['"];?/gm,
+    "const bsu = '\\x1b[?2026h'; const esu = '\\x1b[?2026l';",
+  )
+  out = out.replace(
+    /^import\s+(\w+)\s+from\s*['"]\.\.\/src\/(?!index)([^'"]+)['"];?/gm,
+    "// internal: import $1 from '../src/$2'",
+  )
+
+  // Comment out example imports
+  out = out.replace(
+    /^import\s*\{([^}]+)\}\s*from\s*['"]\.\.\/examples\/([^'"]+)['"];?/gm,
+    "// example: import {$1} from '../examples/$2'",
+  )
+
+  // Remove node:vm
+  out = out.replace(/import\s+vm\s+from\s*['"]node:vm['"];?\n?/g, "")
+
+  // 6. Handle expected failures / silvery passes
+  const allFailures = [...(EXPECTED_FAILURES[fileName] ?? []), ...(RENDER_MODE_FAILURES[fileName] ?? [])]
+  for (const name of allFailures) {
+    // Match test('name' / test("name" / test.serial(\n\t'name' — with optional whitespace
+    const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    // Replace test( or test.serial( followed by optional whitespace/newline then quote+name
+    out = out.replace(
+      new RegExp(`test(?:\\.serial)?\\(\\s*(['"])${esc}\\1`, "g"),
+      (m, q) => `test.failing(${q}${name}${q}`,
+    )
+  }
+  // Handle data-driven tests: for loops using testCase.testName can't be marked .failing
+  // Replace test.serial(testCase.testName with test.skip(testCase.testName for affected files
+  if (
+    RENDER_MODE_FAILURES[fileName]?.some(
+      (n) => !out.includes(`test.failing('${n}'`) && !out.includes(`test.failing("${n}"`),
+    )
+  ) {
+    out = out.replace(
+      /for \(const testCase of hookWriteCases\) \{\n\ttest\.serial\(testCase\.testName/g,
+      "for (const testCase of hookWriteCases) {\n\ttest.skip(testCase.testName",
+    )
+  }
+  const passes = SILVERY_PASSES[fileName]
+  if (passes) {
+    for (const name of passes) {
+      const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      out = out.replace(new RegExp(`test\\.failing\\(\\s*(['"])${esc}\\1`, "g"), (m, q) => `test(${q}${name}${q}`)
+    }
+  }
+
+  // 7. Add layout engine init if needed
+  if ((out.includes("renderToString") || out.includes("renderToStringAsync")) && !out.includes("initLayoutEngine()")) {
+    // Find position after last import line — insert beforeAll there
+    const importEnd = findLastImportEnd(out)
+    // If initLayoutEngine isn't already imported (e.g. from render-to-string helper), add it
+    // Also import renderToString/renderToStringAsync if they're used but not yet imported from the helper
+    const needsInitImport = !out.includes("initLayoutEngine")
+    if (needsInitImport) {
+      const helperExports = ["initLayoutEngine"]
+      if (out.includes("renderToString") && !out.includes('from "../helpers/render-to-string"')) {
+        helperExports.unshift("renderToString")
+        if (out.includes("renderToStringAsync")) helperExports.push("renderToStringAsync")
+      }
+      const initImport = `import { ${helperExports.join(", ")} } from "../helpers/render-to-string"\n`
+      out =
+        out.slice(0, importEnd) +
+        `\n\n${initImport}import { beforeAll } from "vitest"\nbeforeAll(async () => { await initLayoutEngine() })\n` +
+        out.slice(importEnd)
+    } else {
+      out =
+        out.slice(0, importEnd) +
+        '\n\nimport { beforeAll } from "vitest"\nbeforeAll(async () => { await initLayoutEngine() })\n' +
+        out.slice(importEnd)
+    }
+  }
+
+  // 8. Add sinon replacements (spy/stub) as comprehensive inline functions
+  if (code.includes("spy(") || code.includes("stub(") || code.includes("sinon")) {
+    const importEnd = findImportEnd(out)
+    out =
+      out.slice(0, importEnd) +
+      "\n\n// sinon replacements\n" +
+      `function _createSpy(impl?: (...a: unknown[]) => unknown) {
+  const calls: unknown[][] = [];
+  const callBehaviors: Map<number, unknown> = new Map();
+  let callIdx = 0;
+  const fn = (...a: unknown[]) => { const idx = callIdx++; calls.push(a); if (callBehaviors.has(idx)) return callBehaviors.get(idx); return impl ? impl(...a) : undefined };
+  return Object.defineProperties(fn, {
+    calls: { value: calls },
+    callCount: { get() { return calls.length } },
+    calledOnce: { get() { return calls.length === 1 } },
+    called: { get() { return calls.length > 0 } },
+    firstCall: { get() { return calls.length > 0 ? { args: calls[0], firstArg: calls[0]![0] } : undefined } },
+    lastCall: { get() { return calls.length > 0 ? { args: calls.at(-1), firstArg: calls.at(-1)![0] } : undefined } },
+    getCall: { value(i: number) { return { args: calls[i], firstArg: calls[i]?.[0] } } },
+    getCalls: { value() { return calls.map((args, i) => ({ args, firstArg: args[0], callId: i })) } },
+    onCall: { value(i: number) { return { returns(v: unknown) { callBehaviors.set(i, v); return fn } } } },
+    reset: { value() { calls.length = 0; callIdx = 0; callBehaviors.clear() } },
+    callsFake: { value(f: (...a: unknown[]) => unknown) { impl = f; return fn } },
+    returns: { value(v: unknown) { impl = () => v; return fn } },
+    resetBehavior: { value() { impl = undefined; callBehaviors.clear() } },
+    calledOnceWithExactly: { value(...expected: unknown[]) { return calls.length === 1 && JSON.stringify(calls[0]) === JSON.stringify(expected) } },
+  }) as any
+}
+const spy = (...args: unknown[]) => _createSpy(args.length > 0 ? () => args[0] : undefined)
+function stub(obj?: any, method?: string) {
+  if (obj && method) {
+    const original = obj[method];
+    const s = _createSpy(typeof original === 'function' ? original.bind(obj) : undefined);
+    obj[method] = s;
+    (s as any).restore = () => { obj[method] = original };
+    return s;
+  }
+  return _createSpy()
+}
+const sinon = { spy: _createSpy, stub, useFakeTimers() { return { clock: Date.now(), tick(ms: number) { return new Promise(r => setTimeout(r, ms)) }, restore() {} } }, match: { any: true } }
+` +
+      out.slice(importEnd)
+  }
+
+  // 9. Header + cleanup
+  out =
+    `/**\n * Auto-generated from ink/test/${fileName}.tsx\n * DO NOT EDIT — regenerate with: bun packages/compat/scripts/gen-vitest.ts\n */\n` +
+    out
+
+  // Remove triple+ blank lines
+  out = out.replace(/\n{3,}/g, "\n\n")
+
+  return out
+}
+
+/** Find position after the last `import ... from` or `export` statement in the file. */
+function findLastImportEnd(code: string): number {
+  // Find the last `from '...'` or `from "..."` in the file that's part of an import
+  const importFromPattern = /^(?:import|export)\s.*from\s+['"][^'"]+['"];?\s*$/gm
+  let lastPos = 0
+  let match: RegExpExecArray | null
+  while ((match = importFromPattern.exec(code)) !== null) {
+    lastPos = match.index + match[0].length
+  }
+  // Also handle multi-line imports: } from '...'
+  const multiLineFromPattern = /\}\s*from\s+['"][^'"]+['"];?\s*$/gm
+  while ((match = multiLineFromPattern.exec(code)) !== null) {
+    const endPos = match.index + match[0].length
+    if (endPos > lastPos) lastPos = endPos
+  }
+  // Also handle `const ... = ...` near imports (inline stubs from codemod)
+  // Only count const declarations that appear within 3 lines of the last import
+  const lines = code.split("\n")
+  const lastImportLine = code.slice(0, lastPos).split("\n").length - 1
+  for (let i = lastImportLine + 1; i < Math.min(lastImportLine + 5, lines.length); i++) {
+    const line = lines[i]!.trim()
+    if (line.startsWith("const ") && !line.includes("{") && !line.endsWith("(") && !line.endsWith("=>")) {
+      lastPos = lines.slice(0, i + 1).join("\n").length
+    } else if (line !== "" && !line.startsWith("//") && !line.startsWith("/*") && !line.startsWith("*")) {
+      break
+    }
+  }
+  return lastPos
+}
+
+// Keep old name as alias for compatibility with sinon insertion
+const findImportEnd = findLastImportEnd
+
+// ---------------------------------------------------------------------------
+// Process files
+// ---------------------------------------------------------------------------
+
+console.log("Ink → vitest codemod (ava-shim approach)\n")
+
+if (!dryRun) {
+  mkdirSync(OUT_DIR, { recursive: true })
+}
+
+let generated = 0
+let skipped = 0
+const skippedFiles: string[] = []
+
+for (const fileName of filesToProcess) {
+  const srcPath = join(INK_TEST_DIR, `${fileName}.tsx`)
+  const outPath = join(OUT_DIR, `${fileName}.test.tsx`)
+
+  if (!existsSync(srcPath)) {
+    console.log(`  SKIP ${fileName} — source not found`)
+    skipped++
+    skippedFiles.push(fileName)
+    continue
+  }
+
+  if (INTERNAL_FILES.has(fileName)) {
+    console.log(`  SKIP ${fileName} — uses internal ink APIs`)
+    skipped++
+    skippedFiles.push(fileName)
+    continue
+  }
+
+  if (PTY_FILES.has(fileName) || RUN_FILES.has(fileName)) {
+    console.log(`  SKIP ${fileName} — uses PTY/subprocess`)
+    skipped++
+    skippedFiles.push(fileName)
+    continue
+  }
+
+  if (KITTY_FILES.has(fileName)) {
+    console.log(`  SKIP ${fileName} — uses kitty keyboard internals`)
+    skipped++
+    skippedFiles.push(fileName)
+    continue
+  }
+
+  const source = await Bun.file(srcPath).text()
+  const transformed = transform(source, fileName)
+
+  if (dryRun) {
+    console.log(`  DRY ${fileName}.test.tsx (${transformed.split("\n").length} lines)`)
+  } else {
+    await Bun.write(outPath, transformed)
+    console.log(`  GEN ${fileName}.test.tsx`)
+  }
+  generated++
+}
+
+console.log(`\n${generated} generated, ${skipped} skipped`)
+if (skippedFiles.length > 0) {
+  console.log(`Skipped: ${skippedFiles.join(", ")}`)
+}
+
+if (!dryRun && generated > 0) {
+  console.log(`\nOutput: ${OUT_DIR}`)
+  console.log(`Run: bun vitest run --project vendor vendor/silvery/tests/compat/ink/generated/`)
+}

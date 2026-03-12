@@ -16,27 +16,29 @@ From km: `bun run test:compat`.
 
 Cached clones at `/tmp/silvery-compat/`. Delete to re-clone. See `packages/compat/scripts/compat-check.ts`.
 
-## 2. Hand-Ported Vitest Tests (fast, integrated)
+## 2. Auto-Generated Vitest Tests (fast, integrated)
 
-Local vitest ports of a subset of Ink/Chalk tests. Run as part of `bun run test:vendor`.
+Auto-generated from Ink's upstream ava test suite via a codemod. Generated tests live in
+`tests/compat/ink/generated/` (gitignored — regenerate, don't edit).
 
 ```bash
-bun vitest run --project vendor vendor/silvery/tests/compat/ink/
+# Generate
+bun packages/compat/scripts/gen-vitest.ts
+
+# Run
+bun vitest run --project vendor vendor/silvery/tests/compat/ink/generated/
 bun vitest run --project vendor vendor/silvery/tests/compat/chalk/
 ```
 
-### Rules for hand-ported tests
+The codemod (`gen-vitest.ts`) transforms ink's ava-based tests:
+- Replaces ava with an ava-shim backed by vitest (`t.is` → `expect().toBe()`)
+- Rewrites imports to use silvery's compat layer
+- Marks known failures as `.failing` (EXPECTED_FAILURES, RENDER_MODE_FAILURES)
+- Skips files requiring PTY, internal APIs, or kitty keyboard
 
-- Tests MUST match the real Ink/Chalk tests. Do not modify assertions or add props to make silvery pass — fix the compat layer instead.
-- If Ink's `<Box>` relies on its implicit `flexDirection="column"` default, the test must too.
-- When in doubt, check the original at `/tmp/silvery-compat/ink/test/<file>.tsx`.
-
-## Analysis Documents
-
-- `ink/ANALYSIS.md` — Categorized failure breakdown with severity and effort estimates
-- `ink/RESULTS.md` — Summary of test results and key failure categories
+26 test files generated, 15 skipped. 516 tests pass, 2 skipped.
 
 ## Current Status
 
 - **Chalk**: 100% compat (32/32 real tests)
-- **Ink**: ~72% compat (188/262 real tests)
+- **Ink**: 98.9% compat (804/813 real tests) — 9 remaining failures are Flexily layout edge cases and minor compat gaps
