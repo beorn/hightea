@@ -47,7 +47,12 @@ function parseStackLine(line: string): { function?: string; file?: string; line?
   // Match: functionName (file:line:col)
   const match1 = rest.match(/^(.+?)\s+\((.+?):(\d+):(\d+)\)$/)
   if (match1) {
-    return { function: match1[1], file: match1[2], line: Number(match1[3]), column: Number(match1[4]) }
+    return {
+      function: match1[1],
+      file: match1[2],
+      line: Number(match1[3]),
+      column: Number(match1[4]),
+    }
   }
   // Match: file:line:col (no function name)
   const match2 = rest.match(/^(.+?):(\d+):(\d+)$/)
@@ -88,7 +93,7 @@ function getCodeExcerpt(filePath: string, line: number): Array<{ line: number; v
     const end = Math.min(lines.length, line + 3)
     const result: Array<{ line: number; value: string }> = []
     for (let i = start; i < end; i++) {
-      result.push({ line: i + 1, value: lines[i] ?? "" })
+      result.push({ line: i + 1, value: (lines[i] ?? "").replace(/\t/g, "  ") })
     }
     return result
   } catch {

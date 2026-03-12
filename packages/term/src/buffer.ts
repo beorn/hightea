@@ -1453,18 +1453,42 @@ function decodeHyperlinkFormat(encoded: string): {
       const tag = encoded.slice(1, sepIdx)
       const url = encoded.slice(sepIdx + 1)
       if (tag === "c1b") {
-        return { url, oscIntro: "\x9d", oscClose: "\x9d", closeIntro: "\x9d", closeTerminator: "\x07" }
+        return {
+          url,
+          oscIntro: "\x9d",
+          oscClose: "\x9d",
+          closeIntro: "\x9d",
+          closeTerminator: "\x07",
+        }
       }
       if (tag === "c1s") {
-        return { url, oscIntro: "\x9d", oscClose: "\x9d", closeIntro: "\x9d", closeTerminator: "\x1b\\" }
+        return {
+          url,
+          oscIntro: "\x9d",
+          oscClose: "\x9d",
+          closeIntro: "\x9d",
+          closeTerminator: "\x1b\\",
+        }
       }
       if (tag === "e7b") {
-        return { url, oscIntro: "\x1b]", oscClose: "\x1b]", closeIntro: "\x1b]", closeTerminator: "\x07" }
+        return {
+          url,
+          oscIntro: "\x1b]",
+          oscClose: "\x1b]",
+          closeIntro: "\x1b]",
+          closeTerminator: "\x07",
+        }
       }
     }
   }
   // Default: ESC OSC + ST
-  return { url: encoded, oscIntro: "\x1b]", oscClose: "\x1b]", closeIntro: "\x1b]", closeTerminator: "\x1b\\" }
+  return {
+    url: encoded,
+    oscIntro: "\x1b]",
+    oscClose: "\x1b]",
+    closeIntro: "\x1b]",
+    closeTerminator: "\x1b\\",
+  }
 }
 
 /** Emit OSC 8 hyperlink open sequence, respecting format metadata in URL. */

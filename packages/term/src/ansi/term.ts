@@ -608,7 +608,10 @@ function createBackendTerm(emulator: TermEmulator): Term {
   Object.defineProperty(termBase, "cols", { get: () => emulator.cols, enumerable: true })
   Object.defineProperty(termBase, "rows", { get: () => emulator.rows, enumerable: true })
   Object.defineProperty(termBase, "screen", { get: () => emulator.screen, enumerable: true })
-  Object.defineProperty(termBase, "scrollback", { get: () => emulator.scrollback, enumerable: true })
+  Object.defineProperty(termBase, "scrollback", {
+    get: () => emulator.scrollback,
+    enumerable: true,
+  })
 
   const term = createStyleProxy(chalkInstance, termBase)
 

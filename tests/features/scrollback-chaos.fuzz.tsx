@@ -151,7 +151,9 @@ async function setupInlineApp(
   dims: { cols: number; rows: number } = { cols: 80, rows: 20 },
 ): Promise<{ term: Term; handle: RunHandle }> {
   const term = createTermless(dims)
-  const emulator = (term as unknown as Record<string, unknown>)._emulator as { feed(data: string): void }
+  const emulator = (term as unknown as Record<string, unknown>)._emulator as {
+    feed(data: string): void
+  }
 
   const handle = await run(<TestApp initialItems={items} />, {
     mode: "inline",
@@ -420,7 +422,9 @@ describe("CodingAgent scrollback fuzz", () => {
   ) {
     const { CodingAgent, SCRIPT } = await import("../../examples/interactive/static-scrollback")
     term = createTermless(dims)
-    const emulator = (term as unknown as Record<string, unknown>)._emulator as { feed(data: string): void }
+    const emulator = (term as unknown as Record<string, unknown>)._emulator as {
+      feed(data: string): void
+    }
 
     // Pre-populate with shell prompt (simulates real terminal)
     for (let i = 0; i < shellLines; i++) {

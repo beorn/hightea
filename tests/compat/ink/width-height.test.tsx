@@ -174,6 +174,60 @@ test("set max height in percent", () => {
   expect(output).toBe("A\n\n\nB\n\n")
 })
 
+test("set aspect ratio with width", () => {
+  const output = renderToString(
+    <Box flexDirection="column">
+      <Box width={8} aspectRatio={2} borderStyle="single">
+        <Text>X</Text>
+      </Box>
+      <Text>Y</Text>
+    </Box>,
+  )
+  expect(output).toBe("┌──────┐\n│X     │\n│      │\n└──────┘\nY")
+})
+
+test("set aspect ratio with height", () => {
+  const output = renderToString(
+    <Box flexDirection="column">
+      <Box height={3} aspectRatio={2} borderStyle="single">
+        <Text>X</Text>
+      </Box>
+      <Text>Y</Text>
+    </Box>,
+  )
+  expect(output).toBe("┌────┐\n│X   │\n└────┘\nY")
+})
+
+test("set aspect ratio with width and height", () => {
+  // Note: Ink's Yoga re-derives width from height+AR when both are explicit.
+  // CSS spec says AR has no effect when both dimensions are explicit.
+  // Flexily follows CSS: preserves both explicit dimensions (w=8, h=3).
+  const output = renderToString(
+    <Box flexDirection="column">
+      <Box width={8} height={3} aspectRatio={2} borderStyle="single">
+        <Text>X</Text>
+      </Box>
+      <Text>Y</Text>
+    </Box>,
+  )
+  expect(output).toBe("┌──────┐\n│X     │\n└──────┘\nY")
+})
+
+test("set aspect ratio with maxHeight constraint", () => {
+  // Note: Ink's Yoga re-derives width from clamped height.
+  // CSS spec: width is explicit (10), maxHeight clamps AR-derived height to 3.
+  // Width stays 10 (explicit), not re-derived.
+  const output = renderToString(
+    <Box flexDirection="column">
+      <Box width={10} maxHeight={3} aspectRatio={2} borderStyle="single">
+        <Text>X</Text>
+      </Box>
+      <Text>Y</Text>
+    </Box>,
+  )
+  expect(output).toBe("┌────────┐\n│X       │\n└────────┘\nY")
+})
+
 test("set width - async", async () => {
   const output = await renderToStringAsync(
     <Box>

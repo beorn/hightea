@@ -31,7 +31,9 @@ import { CodingAgent, SCRIPT } from "../../examples/interactive/static-scrollbac
  * then `bun run examples/interactive/ai-chat.tsx`, then the app starts.
  */
 function feedShellPrompt(term: Term, lines: number = 5) {
-  const emulator = (term as unknown as Record<string, unknown>)._emulator as { feed(data: string): void }
+  const emulator = (term as unknown as Record<string, unknown>)._emulator as {
+    feed(data: string): void
+  }
   // Simulate shell prompt and some output
   emulator.feed("Last login: Tue Mar 10 20:23:34 on ttys012\r\n")
   emulator.feed("direnv: loading ~/Code/pim/km/.envrc\r\n")
@@ -52,7 +54,9 @@ async function runInlineWithShellPrompt(
   shellLines: number = 5,
 ): Promise<{ term: Term; handle: RunHandle }> {
   const term = createTermless(dims)
-  const emulator = (term as unknown as Record<string, unknown>)._emulator as { feed(data: string): void }
+  const emulator = (term as unknown as Record<string, unknown>)._emulator as {
+    feed(data: string): void
+  }
 
   // Pre-populate with shell prompt content
   feedShellPrompt(term, shellLines)
@@ -245,7 +249,9 @@ describe("clean screen baseline (no shell prompt)", () => {
   test("works correctly without pre-existing content", async () => {
     // This is the existing test pattern — start clean, no shell prompt
     term = createTermless({ cols: 120, rows: 40 })
-    const emulator = (term as unknown as Record<string, unknown>)._emulator as { feed(data: string): void }
+    const emulator = (term as unknown as Record<string, unknown>)._emulator as {
+      feed(data: string): void
+    }
 
     handle = await run(<CodingAgent script={SCRIPT} autoStart={false} fastMode={true} />, {
       mode: "inline",

@@ -178,6 +178,7 @@ export {
   P,
   Lead,
   Muted,
+  Small,
   Strong,
   Em,
   Code,

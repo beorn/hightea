@@ -25,6 +25,7 @@ Most Silvery components already use the correct semantic colors by default. **Th
 | `<Button>`             | `inverse` when focused/active                                       |
 | `<H1>`, `<H2>`, `<H3>` | `$primary`/`$accent`/`$fg` + bold                                   |
 | `<Muted>`              | `$muted` text                                                       |
+| `<Small>`              | `$muted` + `dimColor`                                               |
 | `<Lead>`               | `italic` text                                                       |
 | `<Code>`               | `$mutedbg` background                                               |
 | `<Blockquote>`         | `$muted` border + italic                                            |
@@ -83,6 +84,7 @@ TUIs can't vary font size — bold, dim, and italic are your only typographic to
 | H3 — Group      | `$fg` + `bold`      | Bright, bold — stands out without accent color |
 | Body            | `$fg`               | Normal text                                    |
 | Meta / caption  | `$muted`            | Dimmed, recedes                                |
+| Fine print      | `$muted` + `dim`    | Maximally receded — captions, footnotes        |
 | Disabled        | `$disabledfg`       | Faded — clearly inactive                       |
 
 Since TUIs lack font-size variation, using 2-3 colors for heading levels is natural and expected — just use **semantic tokens** (`$primary`, `$accent`, `$fg`) rather than status colors (`$success`, `$error`).
@@ -116,13 +118,14 @@ Status colors for heading hierarchy — "green heading" looks like success, "red
 Use the built-in typography presets (inspired by [shadcn/ui](https://ui.shadcn.com/docs/components/typography)) instead of remembering which combination of color + bold to use:
 
 ```tsx
-import { H1, H2, H3, Muted, Lead, Code, Blockquote, P, LI } from "silvery"
+import { H1, H2, H3, Muted, Small, Lead, Code, Blockquote, P, LI } from "silvery"
 
 <H1>Settings</H1>                    // $primary + bold
 <H2>General</H2>                      // $accent + bold
 <H3>Appearance</H3>                   // bold
 <P>Use dark colors for the UI.</P>    // plain body text
 <Muted>Requires restart</Muted>       // $muted
+<Small>Last updated 2 hours ago</Small> // $muted + dim
 <Lead>Welcome to the app</Lead>       // italic
 <Code>npm install silvery</Code>      // $mutedbg background
 <Blockquote>Less is more.</Blockquote> // │ border + italic

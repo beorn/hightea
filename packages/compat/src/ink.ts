@@ -34,7 +34,7 @@ import React, {
   useRef,
 } from "react"
 import { StdoutContext, StderrContext, TermContext } from "@silvery/react/context"
-import { bufferToStyledText, type TerminalBuffer } from "@silvery/term/buffer"
+import { bufferToStyledText, bufferToText, type TerminalBuffer } from "@silvery/term/buffer"
 import { stripAnsi, isTextPresentationEmoji } from "@silvery/term/unicode"
 import { tokenizeAnsi as tokenizeAnsiEsc, isCSISGR, createColonSGRTracker } from "@silvery/term/ansi-sanitize"
 import { createTerm } from "@silvery/term/ansi"
@@ -93,13 +93,35 @@ function resolveTerminalRows(): number {
 
 /**
  * Context that signals style props should be passed to silvery's Text.
- * When true (chalk has colors), Text passes all style props so buffer cells
- * are styled for correct content edge detection and ANSI output.
- * When false (chalk has no colors), Text strips style props to match Ink's
- * behavior, while user-provided embedded ANSI sequences pass through.
- * The render() path sets this to `chalkHasColors`; renderToString() does not use it.
+ * Always true in the render() path so buffer cells are styled for correct
+ * content edge detection (trailing whitespace preservation).
+ * When chalk has no colors AND no embedded ANSI, processBuffer strips ANSI
+ * from the styled output to produce plain text.
+ * The render() path sets this to true; renderToString() does not use it.
  */
 const ForceStylesCtx = React.createContext(false)
+
+/**
+ * Per-render-instance state shared between InkText (render phase) and
+ * processBuffer (output phase). Tracks whether any Text component in the
+ * tree has user-embedded ANSI sequences (SGR, OSC 8) in its children.
+ * When true and !chalkHasColors, processBuffer preserves ANSI in output;
+ * when false, processBuffer strips all ANSI for correct plain-mode output.
+ */
+interface InkRenderState {
+  hasEmbeddedAnsi: boolean
+}
+const InkRenderStateCtx = React.createContext<InkRenderState | null>(null)
+
+/** Check if a string contains ANSI escape sequences (ESC or C1 control chars). */
+function containsAnsiEscapes(text: string): boolean {
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i)
+    if (code === 0x1b) return true // ESC
+    if (code >= 0x80 && code <= 0x9f) return true // C1 control chars
+  }
+  return false
+}
 
 /**
  * Track text-presentation emoji codepoints that the user provided WITH VS16.
@@ -247,12 +269,17 @@ export const Text = React.forwardRef<SilveryTextHandle, SilveryTextProps>(functi
   // Scan original children for user-provided VS16 before sanitization
   scanChildrenForVS16(props.children)
   const sanitizedChildren = sanitizeChildren(props.children)
-  // When chalk has no color support (FORCE_COLOR=0), strip style props to match
-  // Ink behavior. Ink uses chalk to apply styles, so chalk.level=0 means no
-  // styles are applied. But embedded ANSI sequences in text content are preserved.
-  //
-  // ForceStylesCtx is true only when chalk has colors (render() path), so the
-  // forceStyles check here only forces style props when colors are active.
+  // Track embedded ANSI in children so processBuffer knows whether to strip
+  // prop-based ANSI codes when chalk has no colors (FORCE_COLOR=0).
+  const renderState = React.useContext(InkRenderStateCtx)
+  if (renderState && !renderState.hasEmbeddedAnsi) {
+    if (childrenContainAnsi(sanitizedChildren)) {
+      renderState.hasEmbeddedAnsi = true
+    }
+  }
+  // ForceStylesCtx is always true in the render() path so buffer cells
+  // are styled for correct content edge detection (trailing whitespace).
+  // When chalk has no colors, processBuffer handles ANSI stripping.
   const hasColors = currentChalkLevel() > 0
   const forceStyles = React.useContext(ForceStylesCtx)
   const passProps =
@@ -272,6 +299,16 @@ export const Text = React.forwardRef<SilveryTextHandle, SilveryTextProps>(functi
         }
   return React.createElement(SilveryText, passProps)
 })
+
+/** Recursively check if React children contain ANSI escape sequences. */
+function childrenContainAnsi(children: React.ReactNode): boolean {
+  if (typeof children === "string") return containsAnsiEscapes(children)
+  if (Array.isArray(children)) return children.some((c) => childrenContainAnsi(c))
+  if (React.isValidElement(children)) {
+    return childrenContainAnsi((children.props as Record<string, unknown>).children as React.ReactNode)
+  }
+  return false
+}
 
 /** Recursively sanitize string children, preserving React elements. */
 function sanitizeChildren(children: React.ReactNode): React.ReactNode {
@@ -974,14 +1011,17 @@ export function render(element: import("react").ReactNode, options?: Record<stri
   // When custom stdout is provided (test mode): delegate to silvery's test
   // renderer with autoRender for async state changes and onFrame for stdout writes.
   if (stdout) {
-    // Always render with ANSI codes (plain=false) so that bufferToStyledText can
-    // detect styled trailing spaces via content edge detection and ANSI reset codes.
-    // When chalk has colors, ForceStylesCtx is true so Text passes style props for
-    // content edge detection. When chalk has no colors, ForceStylesCtx is false so
-    // Text strips its style props (matching Ink behavior), but user-provided embedded
-    // ANSI sequences are still preserved in the buffer and output.
+    // Always render with ANSI codes (plain=false) and ForceStylesCtx=true so that
+    // buffer cells are styled even when chalk has no colors. Styled cells enable
+    // getContentEdge() to detect content trailing spaces (e.g., chalk.red(' ERROR '))
+    // and prevent them from being trimmed as buffer padding.
+    // When chalk has no colors, processBuffer strips prop-based ANSI from the output
+    // unless the tree contains user-embedded ANSI (tracked via InkRenderState).
     const plain = false
     const chalkHasColors = currentChalkLevel() > 0
+    // Per-instance render state: InkText sets hasEmbeddedAnsi when children contain ANSI.
+    // processBuffer reads it to decide whether to strip ANSI in plain mode.
+    const renderState: InkRenderState = { hasEmbeddedAnsi: false }
 
     // Alternate screen: enter on mount, exit on unmount.
     // Ink requires all three: alternateScreen=true, interactive mode, and stdout.isTTY.
@@ -1033,22 +1073,38 @@ export function render(element: import("react").ReactNode, options?: Record<stri
      * @param contentHeight - Root layout height (from renderer callback)
      */
     function processBuffer(buffer: TerminalBuffer, contentHeight?: number): string {
-      // Always use bufferToStyledText (even in plain mode) so that getContentEdge()
-      // can detect styled trailing spaces (e.g., `chalk.red(' ERROR ')`) and not
-      // trim them. If plain mode, strip ANSI codes after trimming.
-      // Don't trim empty lines here — we trim to content height below to preserve
-      // layout-meaningful empty rows (margin-bottom, padding-bottom, explicit height).
-      let output = bufferToStyledText(buffer, { trimTrailingWhitespace: true, trimEmptyLines: false })
-      output = stripSilveryVS16(output)
-      // Restore colon-format SGR sequences that were registered during sanitization.
-      // silvery's pipeline converts colon-format (38:2::R:G:B) to semicolon-format
-      // (38;2;R;G;B) during rendering. This converts them back to match Ink's behavior.
-      output = restoreColonFormatSGR(output)
-      // Strip ANSI only when plain mode is forced. When chalk has no colors,
-      // Ink still preserves user-provided embedded ANSI sequences (SGR, OSC 8
-      // hyperlinks) in text content — only chalk-applied style props are stripped.
-      // ForceStylesCtx is false when !chalkHasColors, so the Text component
-      // already strips its own style props; the buffer only contains user ANSI.
+      // ForceStylesCtx is always true, so buffer cells are styled even when chalk
+      // has no colors. This enables correct content edge detection for trailing
+      // whitespace preservation (e.g., `<Text color="red">{' ERROR '}</Text>`).
+      //
+      // When chalk has no colors AND no embedded ANSI: use bufferToText for plain
+      // output with getContentEdge-based trimming (detects styled cells in buffer).
+      // When chalk has no colors AND has embedded ANSI: use bufferToStyledText to
+      // preserve user-provided ANSI sequences (SGR, OSC 8) in the output.
+      // When chalk has colors: use bufferToStyledText for full ANSI output.
+      let output: string
+      if (!chalkHasColors && !renderState.hasEmbeddedAnsi) {
+        // Plain mode: styled buffer → plain text with content-edge-aware trimming.
+        // bufferToText uses getContentEdge() which detects styled cells (from
+        // ForceStylesCtx=true props) and preserves their trailing spaces.
+        output = bufferToText(buffer, {
+          trimTrailingWhitespace: true,
+          trimEmptyLines: false,
+        })
+        output = stripSilveryVS16(output)
+      } else {
+        // Styled mode: use bufferToStyledText for ANSI-preserving output.
+        // Don't trim empty lines here — we trim to content height below.
+        output = bufferToStyledText(buffer, {
+          trimTrailingWhitespace: true,
+          trimEmptyLines: false,
+        })
+        output = stripSilveryVS16(output)
+        // Restore colon-format SGR sequences that were registered during sanitization.
+        // silvery's pipeline converts colon-format (38:2::R:G:B) to semicolon-format
+        // (38;2;R;G;B) during rendering. This converts them back to match Ink's behavior.
+        output = restoreColonFormatSGR(output)
+      }
       if (plain) output = stripAnsi(output)
 
       // Trim buffer padding: keep only lines up to the root's layout content height.
@@ -1153,29 +1209,33 @@ export function render(element: import("react").ReactNode, options?: Record<stri
 
       return React.createElement(
         ForceStylesCtx.Provider,
-        { value: chalkHasColors },
+        { value: true },
         React.createElement(
-          SilveryErrorBoundary,
-          null,
+          InkRenderStateCtx.Provider,
+          { value: renderState },
           React.createElement(
-            InkStaticStoreCtx.Provider,
-            { value: staticStore },
+            SilveryErrorBoundary,
+            null,
             React.createElement(
-              InkStdinCtx.Provider,
-              { value: stdinState },
+              InkStaticStoreCtx.Provider,
+              { value: staticStore },
               React.createElement(
-                CursorProvider,
-                { store: cursorStore },
+                InkStdinCtx.Provider,
+                { value: stdinState },
                 React.createElement(
-                  InkCursorStoreCtx.Provider,
-                  { value: cursorStore },
+                  CursorProvider,
+                  { store: cursorStore },
                   React.createElement(
-                    StdoutContext.Provider,
-                    { value: stdoutCtxValue },
+                    InkCursorStoreCtx.Provider,
+                    { value: cursorStore },
                     React.createElement(
-                      StderrContext.Provider,
-                      { value: stderrCtxValue },
-                      React.createElement(InkFocusProvider, null, React.createElement(InkFocusBridge, null, el)),
+                      StdoutContext.Provider,
+                      { value: stdoutCtxValue },
+                      React.createElement(
+                        StderrContext.Provider,
+                        { value: stderrCtxValue },
+                        React.createElement(InkFocusProvider, null, React.createElement(InkFocusBridge, null, el)),
+                      ),
                     ),
                   ),
                 ),

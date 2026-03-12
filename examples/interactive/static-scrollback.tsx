@@ -1184,6 +1184,7 @@ function createDemoUpdate(script: ScriptEntry[], fastMode: boolean, autoMode: bo
 interface FooterControl {
   setText: (text: string) => void
   getText: () => string
+  getPlaceholder: () => string
 }
 
 const AUTO_SUBMIT_DELAY = 10_000
@@ -1218,9 +1219,13 @@ function DemoFooter({
   const inputTextRef = useRef(inputText)
   inputTextRef.current = inputText
 
+  const placeholderRef = useRef(placeholder)
+  placeholderRef.current = placeholder
+
   controlRef.current = {
     setText: setInputText,
     getText: () => inputTextRef.current,
+    getPlaceholder: () => placeholderRef.current,
   }
 
   // Elapsed time — lives here since it only affects the status bar
@@ -1234,13 +1239,26 @@ function DemoFooter({
   const [randomIdx, setRandomIdx] = useState(() => Math.floor(Math.random() * RANDOM_USER_COMMANDS.length))
   const randomPlaceholder = RANDOM_USER_COMMANDS[randomIdx % RANDOM_USER_COMMANDS.length]!
   const effectiveMessage = nextMessage || randomPlaceholder
-  const placeholder = ctrlDPending ? "Press Ctrl-D again to exit" : effectiveMessage
+  const placeholder = !terminalFocused
+    ? "Click to focus"
+    : ctrlDPending
+      ? "Press Ctrl-D again to exit"
+      : effectiveMessage
 
   // Auto-submit: if idle for AUTO_SUBMIT_DELAY, submit the placeholder message
   const autoSubmitRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (autoSubmitRef.current) clearTimeout(autoSubmitRef.current)
-    if (done || compacting || streamPhase !== "done" || !effectiveMessage || inputText || autoTypingText) return
+    if (
+      done ||
+      compacting ||
+      streamPhase !== "done" ||
+      !effectiveMessage ||
+      inputText ||
+      autoTypingText ||
+      !terminalFocused
+    )
+      return
     autoSubmitRef.current = setTimeout(() => onSubmit(effectiveMessage), AUTO_SUBMIT_DELAY)
     return () => {
       if (autoSubmitRef.current) clearTimeout(autoSubmitRef.current)
@@ -1263,7 +1281,7 @@ function DemoFooter({
   const displayText = autoTypingText ?? inputText
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" width="100%">
       <Text> </Text>
       <Box
         flexDirection="row"
@@ -1346,7 +1364,7 @@ export function CodingAgent({
   }, [autoStart, state.done, exit])
 
   const lastCtrlDRef = useRef(0)
-  const footerControlRef = useRef<FooterControl>({ setText: () => {}, getText: () => "" })
+  const footerControlRef = useRef<FooterControl>({ setText: () => {}, getText: () => "", getPlaceholder: () => "" })
 
   useInput((input: string, key: Key) => {
     if (key.escape) return "exit"
@@ -1364,8 +1382,8 @@ export function CodingAgent({
     if (key.tab) {
       if (state.done || state.compacting) return
       const text = footerControlRef.current.getText()
-      const nextMsg = getNextMessage(state, script, autoStart)
-      send({ type: "submit", text: text.trim() ? text : nextMsg })
+      const placeholder = footerControlRef.current.getPlaceholder()
+      send({ type: "submit", text: text.trim() ? text : placeholder })
       footerControlRef.current.setText("")
       return
     }

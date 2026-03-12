@@ -84,6 +84,15 @@ export function Muted({ children, color }: TypographyProps) {
   return <Text color={color ?? "$muted"}>{children}</Text>
 }
 
+/** Fine print — $muted + dim. Captions, footnotes, text that recedes even more than Muted. */
+export function Small({ children, color }: TypographyProps) {
+  return (
+    <Text dimColor color={color ?? "$muted"}>
+      {children}
+    </Text>
+  )
+}
+
 /** Bold emphasis — inline strong text. */
 export function Strong({ children, color }: TypographyProps) {
   return (
