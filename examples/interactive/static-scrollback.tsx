@@ -1219,15 +1219,6 @@ function DemoFooter({
   const inputTextRef = useRef(inputText)
   inputTextRef.current = inputText
 
-  const placeholderRef = useRef(placeholder)
-  placeholderRef.current = placeholder
-
-  controlRef.current = {
-    setText: setInputText,
-    getText: () => inputTextRef.current,
-    getPlaceholder: () => placeholderRef.current,
-  }
-
   // Elapsed time — lives here since it only affects the status bar
   const startRef = useRef(Date.now())
   const [elapsed, setElapsed] = useState(0)
@@ -1244,6 +1235,15 @@ function DemoFooter({
     : ctrlDPending
       ? "Press Ctrl-D again to exit"
       : effectiveMessage
+
+  const placeholderRef = useRef(placeholder)
+  placeholderRef.current = placeholder
+
+  controlRef.current = {
+    setText: setInputText,
+    getText: () => inputTextRef.current,
+    getPlaceholder: () => placeholderRef.current,
+  }
 
   // Auto-submit: if idle for AUTO_SUBMIT_DELAY, submit the placeholder message
   const autoSubmitRef = useRef<ReturnType<typeof setTimeout> | null>(null)
