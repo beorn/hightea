@@ -34,9 +34,9 @@ import React, {
   useRef,
 } from "react"
 import { StdoutContext, StderrContext, TermContext } from "@silvery/react/context"
-import { bufferToStyledText, bufferToText, type TerminalBuffer } from "@silvery/term/buffer"
-import { stripAnsi } from "@silvery/term/unicode"
-import { tokenizeAnsi as tokenizeAnsiEsc, createColonSGRTracker } from "@silvery/term/ansi-sanitize"
+import { bufferToStyledText, type TerminalBuffer } from "@silvery/term/buffer"
+import { stripAnsi, isTextPresentationEmoji } from "@silvery/term/unicode"
+import { tokenizeAnsi as tokenizeAnsiEsc, isCSISGR, createColonSGRTracker } from "@silvery/term/ansi-sanitize"
 import { createTerm } from "@silvery/term/ansi"
 import chalk from "chalk"
 import { createCursorStore, CursorProvider, type CursorStore } from "@silvery/react/hooks/useCursor"
@@ -47,7 +47,6 @@ import { useInput as silveryUseInput } from "@silvery/react/hooks/useInput"
 import { RuntimeContext } from "@silvery/react/context"
 import EventEmitter from "node:events"
 import { renderScreenReaderOutput } from "@silvery/react/accessibility"
-import { Buffer } from "node:buffer"
 import { KittyFlags, createKittyManager, type KittyManagerOptions } from "@silvery/term"
 
 // =============================================================================
@@ -72,9 +71,6 @@ export function currentChalkLevel(): number {
  * This preserves VS16 in user content where it was already present (e.g., 🌡️, ⚠️)
  * by only stripping VS16 after characters that match the text-presentation pattern.
  */
-const TEXT_PRES_REGEX = /^\p{Extended_Pictographic}$/u
-const EMOJI_PRES_REGEX = /^\p{Emoji_Presentation}$/u
-
 /** @internal */
 export function stripSilveryVS16(input: string): string {
   // Fast path: no VS16 in the string
@@ -92,7 +88,7 @@ export function stripSilveryVS16(input: string): string {
     if (i + charLen < input.length && input.charCodeAt(i + charLen) === 0xfe0f) {
       // Only strip VS16 if the preceding char is text-presentation emoji
       // (Extended_Pictographic AND NOT Emoji_Presentation)
-      if (TEXT_PRES_REGEX.test(char) && !EMOJI_PRES_REGEX.test(char)) {
+      if (isTextPresentationEmoji(char)) {
         // This is a text-presentation emoji that silvery decorated with VS16 — strip it
         result += char
         i += charLen + 1 // skip char + VS16
@@ -766,7 +762,7 @@ function sanitizeAnsi(text: string): string {
       case "csi":
         // Only keep SGR sequences: final byte 'm', no intermediate bytes,
         // no private-use parameter prefixes (<, =, >, ?)
-        if (isCompatCSISGR(token.value)) {
+        if (isCSISGR(token.value)) {
           result += token.value
           colonSGRTracker.register(token.value)
         }
@@ -783,34 +779,6 @@ function sanitizeAnsi(text: string): string {
   }
 
   return result
-}
-
-/**
- * Check if a CSI sequence is a proper SGR (Select Graphic Rendition).
- *
- * SGR sequences have the form: CSI <params> m
- * where params contain only digits (0-9), semicolons (;), and colons (:).
- * Private-use parameter prefixes (<, =, >, ?) indicate non-SGR.
- * Intermediate bytes (space, !, etc.) indicate non-SGR.
- */
-function isCompatCSISGR(value: string): boolean {
-  // Must end with 'm'
-  if (value.length < 2 || value.charCodeAt(value.length - 1) !== 0x6d) {
-    return false
-  }
-  // Find start of parameters (skip ESC[ or C1 CSI 0x9B)
-  const start = value.charCodeAt(0) === 0x1b ? 2 : 1
-  // Everything between start and final 'm' must be digits/semicolons/colons only
-  for (let i = start; i < value.length - 1; i++) {
-    const c = value.charCodeAt(i)
-    // Allow: digits 0-9 (0x30-0x39), colon (0x3A), semicolon (0x3B)
-    // Reject: < = > ? (0x3C-0x3F) — private-use prefixes
-    // Reject: anything outside 0x30-0x3B (intermediates, etc.)
-    if (c < 0x30 || c > 0x3b) {
-      return false
-    }
-  }
-  return true
 }
 
 /** Check if an OSC sequence is properly terminated (BEL or ST). */
@@ -837,45 +805,6 @@ function isOSC8(value: string): boolean {
   }
   // C1 OSC: \x9D 8 ;
   return value.charCodeAt(1) === 0x38 && value.charCodeAt(2) === 0x3b
-}
-
-/**
- * Convert silvery's fixed-buffer output to Ink-compatible output.
- *
- * silvery renders into a width x height buffer where every cell is filled.
- * Ink's yoga renderer only produces content without buffer padding.
- *
- * @param input - Raw output from renderStringSync (untrimmed)
- * @param contentHeight - Layout-computed content height (number of content rows)
- * @returns Output matching Ink's format
- */
-function convertBufferOutputToInkFormat(input: string, contentHeight: number): string {
-  const allLines = input.split("\n")
-  // Keep only contentHeight lines (rest is buffer padding)
-  const contentLines = allLines.slice(0, contentHeight)
-  // Strip trailing spaces from each line (buffer fill, not content)
-  for (let i = 0; i < contentLines.length; i++) {
-    contentLines[i] = contentLines[i]!.replace(/ +$/, "")
-  }
-  // Don't strip trailing empty lines — they are intentional content
-  // (e.g., Box with explicit height). The contentHeight from layout
-  // already tells us exactly how many lines to keep.
-  return contentLines.join("\n")
-}
-
-/**
- * Simplified version when content height is unknown.
- * Strips trailing spaces per line and trailing empty lines.
- */
-function convertBufferOutputToInkFormatSimple(input: string): string {
-  const allLines = input.split("\n")
-  for (let i = 0; i < allLines.length; i++) {
-    allLines[i] = allLines[i]!.replace(/ +$/, "")
-  }
-  while (allLines.length > 0 && allLines[allLines.length - 1] === "") {
-    allLines.pop()
-  }
-  return allLines.join("\n")
 }
 
 // =============================================================================
@@ -1003,18 +932,46 @@ export function render(element: import("react").ReactNode, options?: Record<stri
     /**
      * Compute processed output from a terminal buffer.
      * Converts buffer to text, strips VS16, applies chalk compat.
+     * Uses contentHeight to trim buffer padding while preserving
+     * layout-meaningful empty rows (from margin, padding, explicit height).
+     *
+     * @param buffer - Terminal buffer to process
+     * @param contentHeight - Root layout height (from renderer callback)
      */
-    function processBuffer(buffer: TerminalBuffer): string {
+    function processBuffer(buffer: TerminalBuffer, contentHeight?: number): string {
       // Always use bufferToStyledText (even in plain mode) so that getContentEdge()
       // can detect styled trailing spaces (e.g., `chalk.red(' ERROR ')`) and not
       // trim them. If plain mode, strip ANSI codes after trimming.
-      let output = bufferToStyledText(buffer, { trimTrailingWhitespace: true, trimEmptyLines: true })
+      // Don't trim empty lines here — we trim to content height below to preserve
+      // layout-meaningful empty rows (margin-bottom, padding-bottom, explicit height).
+      let output = bufferToStyledText(buffer, { trimTrailingWhitespace: true, trimEmptyLines: false })
       output = stripSilveryVS16(output)
       // Restore colon-format SGR sequences that were registered during sanitization.
       // silvery's pipeline converts colon-format (38:2::R:G:B) to semicolon-format
       // (38;2;R;G;B) during rendering. This converts them back to match Ink's behavior.
       output = restoreColonFormatSGR(output)
-      return plain ? stripAnsi(output) : output
+      if (plain) output = stripAnsi(output)
+
+      // Trim buffer padding: keep only lines up to the root's layout content height.
+      // The buffer is sized to the terminal (e.g., 24 rows), but layout content may
+      // only occupy a subset. Layout-meaningful empty rows (from padding, margin,
+      // explicit height) are preserved; buffer-padding rows beyond are trimmed.
+      if (contentHeight != null) {
+        if (contentHeight > 0) {
+          const lines = output.split("\n")
+          if (lines.length > contentHeight) {
+            output = lines.slice(0, contentHeight).join("\n")
+          }
+        } else {
+          // Content height is 0 (empty tree): strip all content
+          output = output.replace(/\n+$/, "")
+        }
+      } else {
+        // Fallback when content height not available: strip trailing empty lines.
+        output = output.replace(/\n+$/, "")
+      }
+
+      return output
     }
 
     /**
@@ -1132,8 +1089,8 @@ export function render(element: import("react").ReactNode, options?: Record<stri
      * Note: On the initial render, effects fire before onBufferReady (different code path
      * in renderer.ts), so deferred writes handle that case.
      */
-    function handleBufferReady(_frame: string, buffer: TerminalBuffer): void {
-      let result = processBuffer(buffer)
+    function handleBufferReady(_frame: string, buffer: TerminalBuffer, contentHeight?: number): void {
+      let result = processBuffer(buffer, contentHeight)
       if (staticStore.fullStaticOutput) {
         result = staticStore.fullStaticOutput + result
       }
@@ -1145,11 +1102,11 @@ export function render(element: import("react").ReactNode, options?: Record<stri
      * Converts buffer to text, applies VS16 stripping, chalk compat, line trimming, and cursor emission.
      * Also flushes any deferred debug writes that were queued before the first frame.
      */
-    function writeFrame(_frame: string, buffer: TerminalBuffer): void {
+    function writeFrame(_frame: string, buffer: TerminalBuffer, contentHeight?: number): void {
       // Suppress output after alternate screen exit to prevent replay on primary screen
       if (altScreenExited) return
 
-      let result = processBuffer(buffer)
+      let result = processBuffer(buffer, contentHeight)
 
       // Prepend accumulated static output (Ink writes fullStaticOutput + dynamicOutput in debug mode)
       if (staticStore.fullStaticOutput) {
@@ -1417,6 +1374,9 @@ export function renderToString(
     return renderScreenReaderOutput(node)
   }
 
+  // Enable Ink-compatible strict validation so raw text outside <Text> throws
+  setInkStrictValidation(true)
+
   if (!isLayoutEngineInitialized()) {
     setLayoutEngine(createFlexilyZeroEngine())
   }
@@ -1561,9 +1521,7 @@ export type KittyKeyboardOptions = {
 // =============================================================================
 
 /** Convert Ink-compatible KittyKeyboardOptions to @silvery/term KittyManagerOptions. */
-function resolveKittyManagerOptions(
-  opts: KittyKeyboardOptions | undefined,
-): KittyManagerOptions | undefined {
+function resolveKittyManagerOptions(opts: KittyKeyboardOptions | undefined): KittyManagerOptions | undefined {
   if (!opts) return undefined
   return {
     mode: opts.mode,

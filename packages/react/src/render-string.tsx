@@ -192,6 +192,12 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
     hadReactCommit = true
   })
 
+  // Capture uncaught errors from the reconciler so they propagate to the caller
+  let uncaughtError: unknown = null
+  const onUncaughtError = (error: unknown) => {
+    uncaughtError = error
+  }
+
   // Create fiber root using the dedicated string reconciler (not the main one)
   const fiberRoot = stringReconciler.createContainer(
     container,
@@ -200,7 +206,7 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
     false, // isStrictMode
     null, // concurrentUpdatesByDefaultOverride
     "", // identifierPrefix
-    () => {}, // onUncaughtError
+    onUncaughtError, // onUncaughtError
     () => {}, // onCaughtError
     () => {}, // onRecoverableError
     null, // onDefaultTransitionIndicator
@@ -256,6 +262,11 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
       stringReconciler.flushSyncWork()
     })
   })
+
+  // Propagate any uncaught render errors (e.g., text outside <Text> in strict mode)
+  if (uncaughtError) {
+    throw uncaughtError instanceof Error ? uncaughtError : new Error(String(uncaughtError))
+  }
 
   // Layout stabilization loop: run the pipeline, flush React work from
   // layout notifications (useContentRect forceUpdate etc.), repeat until stable.

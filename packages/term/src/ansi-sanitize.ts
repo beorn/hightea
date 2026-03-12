@@ -318,7 +318,7 @@ function findOSCEnd(text: string, i: number, len: number): number {
  * - There are no intermediate bytes (0x20–0x2F)
  * - Parameter bytes are only 0x30–0x3F
  */
-function isCSISGR(value: string): boolean {
+export function isCSISGR(value: string): boolean {
   // Must end with 'm'
   if (value.length < 2 || value.charCodeAt(value.length - 1) !== 0x6d) {
     return false

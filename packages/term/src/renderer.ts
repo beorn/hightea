@@ -138,7 +138,7 @@ export interface RenderOptions {
    * Fires after initial render, sendInput, rerender, and (if autoRender)
    * async state changes.
    */
-  onFrame?: (frame: string, buffer: TerminalBuffer) => void
+  onFrame?: (frame: string, buffer: TerminalBuffer, contentHeight?: number) => void
   /**
    * Callback fired after each pipeline execution, before React effects flush.
    *
@@ -147,7 +147,7 @@ export interface RenderOptions {
    * available to effects (e.g., Ink compat debug mode where useStdout().write()
    * needs to replay the latest frame).
    */
-  onBufferReady?: (frame: string, buffer: TerminalBuffer) => void
+  onBufferReady?: (frame: string, buffer: TerminalBuffer, contentHeight?: number) => void
   /**
    * Wrap the root element with additional providers.
    * Called with the element after silvery's internal contexts are applied.
@@ -353,7 +353,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         try {
           const newFrame = doRender()
           instance.frames.push(newFrame)
-          onFrame?.(newFrame, instance.prevBuffer!)
+          onFrame?.(newFrame, instance.prevBuffer!, getRootContentHeight())
         } finally {
           inRenderCycle = false
         }
@@ -362,6 +362,32 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   })
 
   instance.fiberRoot = createFiberRoot(instance.container)
+
+  /**
+   * Get the content extent of the root node's children (for buffer padding trimming).
+   * Returns the max bottom edge of the root's direct children, which represents
+   * the actual content height. The root itself stretches to fill the terminal,
+   * but its children have specific layout-computed heights.
+   * Returns undefined if no children have layout.
+   */
+  const getRootContentHeight = (): number | undefined => {
+    try {
+      const root = getContainerRoot(instance.container)
+      if (!root?.contentRect) return undefined
+      let maxBottom = 0
+      let hasChildren = false
+      for (const child of root.children) {
+        if (child.contentRect) {
+          hasChildren = true
+          const childBottom = child.contentRect.y + child.contentRect.height
+          if (childBottom > maxBottom) maxBottom = childBottom
+        }
+      }
+      return hasChildren ? maxBottom : 0
+    } catch {
+      return undefined
+    }
+  }
 
   // Track exit state
   let exitCalledFlag = false
@@ -404,8 +430,8 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     },
   } as unknown as NodeJS.WriteStream
 
-  // Create mock term
-  const mockTerm = createTerm({ color: "truecolor" })
+  // Create mock term with the mock stdout so useWindowSize reads correct dimensions
+  const mockTerm = createTerm({ color: "truecolor", stdout: mockStdout })
 
   // Focus manager (tree-based focus system)
   const focusManager = createFocusManager()
@@ -520,7 +546,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
             buffer = result.buffer
             instance.prevBuffer = buffer
             instance.renderCount++
-            onBufferReady?.(output, buffer)
+            onBufferReady?.(output, buffer, getRootContentHeight())
           })
           if (!hadReactCommit) {
             act(() => {
@@ -554,7 +580,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
             buffer = result.buffer
             instance.prevBuffer = buffer
             instance.renderCount++
-            onBufferReady?.(output, buffer)
+            onBufferReady?.(output, buffer, getRootContentHeight())
           })
           // Flush any React work scheduled during executeRender (e.g. from
           // useSyncExternalStore updates triggered by Phase 2.7 callbacks).
@@ -663,7 +689,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   instance.singlePassLayout = savedSinglePass
 
   instance.frames.push(output)
-  onFrame?.(output, instance.prevBuffer!)
+  onFrame?.(output, instance.prevBuffer!, getRootContentHeight())
 
   if (debug) {
     console.log("[silvery] Initial render:", output)
@@ -774,7 +800,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
 
     const t2 = performance.now()
     instance.frames.push(newFrame)
-    onFrame?.(newFrame, instance.prevBuffer!)
+    onFrame?.(newFrame, instance.prevBuffer!, getRootContentHeight())
     if (debug) {
       console.log("[silvery] stdin.write:", newFrame)
     }
@@ -807,7 +833,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     }
     const newFrame = doRender()
     instance.frames.push(newFrame)
-    onFrame?.(newFrame, instance.prevBuffer!)
+    onFrame?.(newFrame, instance.prevBuffer!, getRootContentHeight())
     if (debug) {
       console.log("[silvery] Rerender:", newFrame)
     }
@@ -864,7 +890,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     })
     const newFrame = doRender()
     instance.frames.push(newFrame)
-    onFrame?.(newFrame, instance.prevBuffer!)
+    onFrame?.(newFrame, instance.prevBuffer!, getRootContentHeight())
   }
 
   // Resize: update dimensions, clear prevBuffer, re-render (matches scheduler resize behavior)
@@ -884,7 +910,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     // Re-render at new dimensions
     const newFrame = doRender()
     instance.frames.push(newFrame)
-    onFrame?.(newFrame, instance.prevBuffer!)
+    onFrame?.(newFrame, instance.prevBuffer!, getRootContentHeight())
     if (debug) {
       console.log("[silvery] Resize:", newCols, "x", newRows)
     }

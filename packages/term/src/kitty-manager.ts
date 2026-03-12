@@ -12,6 +12,9 @@ import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard } from ".
 /** Regex to match a Kitty keyboard query response: CSI ? <digits> u */
 const KITTY_RESPONSE_RE = /\x1b\[\?(\d+)u/
 
+/** Regex to match a partial Kitty keyboard query response: ESC [ ? <digits> (at least one digit, no trailing 'u') */
+const KITTY_PARTIAL_RE = /\x1b\[\?\d+$/
+
 /** Kitty protocol manager handle. */
 export interface KittyManager {
   /** Whether the kitty keyboard protocol is currently enabled. */
@@ -95,9 +98,16 @@ function initKittyAutoDetection(
   flagBitmask: number,
   onEnable: (flags: number) => void,
 ): () => void {
-  let responseBuffer = ""
+  // Buffer incoming data as raw bytes to preserve binary integrity (e.g., split UTF-8 sequences).
+  // We always work with the concatenated raw bytes and only decode to string for regex matching.
+  const rawChunks: Buffer[] = []
   let cleaned = false
   let unmounted = false
+
+  /** Decode the full concatenated buffer to string for regex matching. */
+  function getBufferAsString(): string {
+    return Buffer.concat(rawChunks).toString()
+  }
 
   const cleanup = (): void => {
     if (cleaned) return
@@ -105,18 +115,31 @@ function initKittyAutoDetection(
     clearTimeout(timer)
     stdin.removeListener("data", onData)
 
-    // Re-emit any buffered data that wasn't the protocol response
-    const remaining = responseBuffer.replace(KITTY_RESPONSE_RE, "")
-    responseBuffer = ""
+    // Re-emit any buffered data that wasn't the protocol response.
+    // Strip both complete protocol responses and partial protocol prefixes
+    // (e.g., "\x1b[?1" without the trailing "u") — these are protocol artifacts, not user data.
+    const allBytes = Buffer.concat(rawChunks)
+    rawChunks.length = 0
+    const fullString = allBytes.toString()
+    let remaining = fullString.replace(KITTY_RESPONSE_RE, "")
+    remaining = remaining.replace(KITTY_PARTIAL_RE, "")
+
     if (remaining.length > 0) {
-      stdin.unshift(Buffer.from(remaining))
+      // Find where the remaining content starts in the original byte stream
+      // by computing the byte offset of the protocol prefix that was stripped.
+      const protocolPrefix = fullString.slice(0, fullString.indexOf(remaining))
+      const prefixByteLen = Buffer.byteLength(protocolPrefix)
+      stdin.unshift(allBytes.subarray(prefixByteLen))
     }
   }
 
   const onData = (data: Uint8Array | string): void => {
-    responseBuffer += typeof data === "string" ? data : data.toString()
+    // Buffer raw bytes. For strings, convert to Buffer to preserve byte-level integrity.
+    rawChunks.push(typeof data === "string" ? Buffer.from(data) : Buffer.from(data))
 
-    if (KITTY_RESPONSE_RE.test(responseBuffer)) {
+    // Decode the full accumulated buffer to check for the protocol response.
+    // This ensures correct handling of multi-byte sequences split across chunks.
+    if (KITTY_RESPONSE_RE.test(getBufferAsString())) {
       cleanup()
       if (!unmounted) {
         onEnable(flagBitmask)

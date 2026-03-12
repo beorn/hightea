@@ -430,65 +430,57 @@ describe("bug 6: compaction does not end session prematurely", () => {
     handle?.unmount()
   })
 
-  test(
-    "ctrl-l compaction in manual mode does not set done",
-    async () => {
-      term = createTermless({ cols: 120, rows: 40 })
-      // fastMode uses 300ms compaction timeout instead of 3000ms
-      handle = await run(<CodingAgent script={SCRIPT} autoStart={false} fastMode={true} />, term)
-      await settle(500)
+  test("ctrl-l compaction in manual mode does not set done", async () => {
+    term = createTermless({ cols: 120, rows: 40 })
+    // fastMode uses 300ms compaction timeout instead of 3000ms
+    handle = await run(<CodingAgent script={SCRIPT} autoStart={false} fastMode={true} />, term)
+    await settle(500)
 
-      // Advance a few times to create content
-      for (let i = 0; i < 3; i++) {
-        await handle.press("o")
-        await handle.press("k")
-        await handle.press("Enter")
-        await settle(500)
-      }
-
-      // Compact with Ctrl+L (fastMode = 300ms timeout)
-      await handle.press("ctrl+l")
-      await settle(800)
-
-      // After compaction, the app should NOT show "Session complete"
-      const text = term.screen!.getText()
-      expect(text).not.toContain("Session complete")
-
-      // The input should still be active (user can type)
-      expect(text).toContain("\u276F")
-    },
-    10000,
-  )
-
-  test(
-    "ctrl-l compaction continues advancing after completion",
-    async () => {
-      term = createTermless({ cols: 120, rows: 40 })
-      handle = await run(<CodingAgent script={SCRIPT} autoStart={false} fastMode={true} />, term)
-      await settle(500)
-
-      // Advance to create some content
+    // Advance a few times to create content
+    for (let i = 0; i < 3; i++) {
       await handle.press("o")
       await handle.press("k")
       await handle.press("Enter")
       await settle(500)
+    }
 
-      // Compact (fastMode = 300ms)
-      await handle.press("ctrl+l")
-      await settle(800)
+    // Compact with Ctrl+L (fastMode = 300ms timeout)
+    await handle.press("ctrl+l")
+    await settle(800)
 
-      // After compaction, should be able to continue the conversation
-      await handle.press("h")
-      await handle.press("i")
-      await handle.press("Enter")
-      await settle(500)
+    // After compaction, the app should NOT show "Session complete"
+    const text = term.screen!.getText()
+    expect(text).not.toContain("Session complete")
 
-      const text = term.screen!.getText()
-      // User message should appear
-      expect(text).toContain("hi")
-    },
-    10000,
-  )
+    // The input should still be active (user can type)
+    expect(text).toContain("\u276F")
+  }, 10000)
+
+  test("ctrl-l compaction continues advancing after completion", async () => {
+    term = createTermless({ cols: 120, rows: 40 })
+    handle = await run(<CodingAgent script={SCRIPT} autoStart={false} fastMode={true} />, term)
+    await settle(500)
+
+    // Advance to create some content
+    await handle.press("o")
+    await handle.press("k")
+    await handle.press("Enter")
+    await settle(500)
+
+    // Compact (fastMode = 300ms)
+    await handle.press("ctrl+l")
+    await settle(800)
+
+    // After compaction, should be able to continue the conversation
+    await handle.press("h")
+    await handle.press("i")
+    await handle.press("Enter")
+    await settle(500)
+
+    const text = term.screen!.getText()
+    // User message should appear
+    expect(text).toContain("hi")
+  }, 10000)
 })
 
 // ============================================================================
