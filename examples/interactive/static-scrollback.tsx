@@ -1268,13 +1268,13 @@ function DemoFooter({
       <Box
         flexDirection="row"
         borderStyle="round"
-        borderColor={!done && terminalFocused ? "$focusborder" : "$border"}
+        borderColor={!done && terminalFocused ? "$focusborder" : "$inputborder"}
         paddingX={1}
       >
         <Text bold color="$focusring">
           {"❯"}{" "}
         </Text>
-        <Box flexShrink={1} flexGrow={1} overflow="hidden">
+        <Box flexShrink={1} flexGrow={1}>
           <TextInput
             value={displayText}
             onChange={autoTypingText ? () => {} : setInputText}
@@ -1284,7 +1284,7 @@ function DemoFooter({
           />
         </Box>
       </Box>
-      <Box paddingX={1}>
+      <Box paddingX={2} width="100%">
         <StatusBar
           exchanges={exchanges}
           compacting={compacting}
@@ -1486,6 +1486,7 @@ export async function main() {
     mode: mode as "inline" | "fullscreen",
     // focusReporting disabled: causes ESC[I leak on startup (timing gap
     // between enabling focus reporting and input parser being ready)
+    // TODO: fix silvery to enable focus reporting after input parser init
     // focusReporting: true,
   })
   await handle.waitUntilExit()
