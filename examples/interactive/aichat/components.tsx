@@ -204,12 +204,12 @@ export function ExchangeItem({
 
   if (isUser) {
     return (
-      <Box paddingX={1} flexDirection="row">
+      <Box paddingX={1} flexDirection="row" backgroundColor="$surface-bg">
         <Text bold color="$focusring">
           {"❯"}{" "}
         </Text>
         <Box flexShrink={1}>
-          <Text backgroundColor="$muted-bg">{exchange.content}</Text>
+          <Text>{exchange.content}</Text>
         </Box>
       </Box>
     )
@@ -232,7 +232,7 @@ export function ExchangeItem({
   const { title, body } = splitTitleBody(exchange.content)
 
   const bulletColor = hasOperations ? "$success" : "$muted"
-  const contentText = hasOperations ? body : exchange.content
+  const contentText = title ? body : exchange.content
 
   return (
     <Box flexDirection="column">
@@ -247,7 +247,7 @@ export function ExchangeItem({
           </Text>
         ) : (
           <>
-            {hasOperations && title && <Text> {title}</Text>}
+            {title && <Text> {title}</Text>}
             <Text color="$muted">{metaStr}</Text>
           </>
         )}

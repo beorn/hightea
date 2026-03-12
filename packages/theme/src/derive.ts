@@ -38,7 +38,7 @@ function deriveTruecolorTheme(p: ColorPalette): Theme {
     fg: p.foreground,
 
     // ── Surface pairs (base = text, *bg = background) ──────────
-    muted: blend(p.foreground, p.background, 0.7),
+    muted: blend(p.foreground, p.background, 0.4),
     mutedbg: blend(p.background, p.foreground, 0.04),
     surface: p.foreground,
     surfacebg: blend(p.background, p.foreground, 0.05),
@@ -70,7 +70,7 @@ function deriveTruecolorTheme(p: ColorPalette): Theme {
     // ── Standalone ───────────────────────────────────────────────
     border: blend(p.background, p.foreground, 0.15),
     inputborder: blend(p.background, p.foreground, 0.25),
-    focusborder: p.blue,
+    focusborder: dark ? p.brightBlue : p.blue,
     link: p.blue,
     disabledfg: blend(p.foreground, p.background, 0.5),
 

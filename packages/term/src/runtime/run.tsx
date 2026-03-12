@@ -27,13 +27,15 @@
  * ```
  */
 
-import { useContext, useEffect, useRef, type ReactElement } from "react"
+import React, { useContext, useEffect, useRef, type ReactElement } from "react"
 
 import { RuntimeContext } from "@silvery/react/context"
 import { createApp } from "./create-app"
 import type { Key, InputHandler } from "./keys"
 import type { Term } from "../ansi/term"
 import { detectTerminalCaps } from "../terminal-caps"
+import { detectTheme } from "@silvery/theme/detect"
+import { ThemeProvider } from "@silvery/theme/ThemeContext"
 
 // Re-export types from keys.ts
 export type { Key, InputHandler } from "./keys"
@@ -246,8 +248,11 @@ export async function run(element: ReactElement, optionsOrTerm: RunOptions | Ter
 
     // Real terminal: full setup
     const caps = term.caps ?? detectTerminalCaps()
+    // Detect terminal colors via OSC — must happen before alt screen
+    const theme = await detectTheme()
+    const themed = <ThemeProvider theme={theme}>{element}</ThemeProvider>
     const app = createApp(() => () => ({}))
-    const handle = await app.run(element, {
+    const handle = await app.run(themed, {
       term,
       stdout: term.stdout,
       stdin: term.stdin,
@@ -266,8 +271,13 @@ export async function run(element: ReactElement, optionsOrTerm: RunOptions | Ter
   // Options path: auto-detect caps and derive defaults
   const { mode, ...rest } = optionsOrTerm as RunOptions
   const caps = rest.caps ?? detectTerminalCaps()
+  const headless = rest.writable != null || (rest.cols != null && rest.rows != null && !rest.stdout)
+  // Detect terminal colors via OSC — must happen before alt screen (skipped for headless)
+  const themed = headless
+    ? element
+    : await detectTheme().then((theme) => <ThemeProvider theme={theme}>{element}</ThemeProvider>)
   const app = createApp(() => () => ({}))
-  const handle = await app.run(element, {
+  const handle = await app.run(themed, {
     ...rest,
     caps,
     alternateScreen: mode !== "inline",

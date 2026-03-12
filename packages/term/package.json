@@ -48,6 +48,7 @@
     "@silvery/react": "workspace:*",
     "@silvery/tea": "workspace:*",
     "@silvery/test": "workspace:*",
+    "@silvery/theme": "workspace:*",
     "flexily": "github:beorn/flexily"
   }
 }

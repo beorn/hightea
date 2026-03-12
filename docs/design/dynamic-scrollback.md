@@ -6,11 +6,11 @@ How Silvery manages inline-mode content with a three-zone model: static scrollba
 
 Two parallel naming schemes — **item state** (what Silvery tracks) and **zone** (where content appears):
 
-| Item state      | Zone                                  | Meaning                                                    |
-| --------------- | ------------------------------------- | ---------------------------------------------------------- |
-| **mounted**     | **live screen**                       | React component in the tree. Normal rendering + hooks.     |
-| **virtualized** | **dynamic scrollback** (app-managed)  | Pre-rendered string cached. Data retained. Re-renderable.  |
-| **gone**        | **static scrollback** (terminal-managed) | Data dropped. Terminal owns the lines (until next ED3). |
+| Item state      | Zone                                     | Meaning                                                   |
+| --------------- | ---------------------------------------- | --------------------------------------------------------- |
+| **mounted**     | **live screen**                          | React component in the tree. Normal rendering + hooks.    |
+| **virtualized** | **dynamic scrollback** (app-managed)     | Pre-rendered string cached. Data retained. Re-renderable. |
+| **gone**        | **static scrollback** (terminal-managed) | Data dropped. Terminal owns the lines (until next ED3).   |
 
 An item's state tracks its lifecycle in Silvery. A zone describes where content physically exists in the terminal. The two align: mounted items are on the live screen, virtualized items are in dynamic scrollback, gone items are in static scrollback.
 
@@ -196,12 +196,7 @@ Without either hint, items are pre-rendered when they scroll off-screen (slightl
 Some items are actively changing — streaming text, running tool calls, updating progress. These items can resist automatic virtualization:
 
 ```tsx
-<ScrollbackView
-  maxHeight={500}
-  isComplete={(item) => item.status === "done"}
-  maxDeferLines={50}
-  footer={<StatusBar />}
->
+<ScrollbackView maxHeight={500} isComplete={(item) => item.status === "done"} maxDeferLines={50} footer={<StatusBar />}>
   {(item) => <ExchangeItem exchange={item} />}
 </ScrollbackView>
 ```
@@ -217,11 +212,11 @@ This prevents churn for items receiving rapid updates while still bounding memor
 
 Resize changes the rendering width, which affects line wrapping and item heights. The strategy differs by zone:
 
-| Zone               | Resize behavior                                                  |
-| ------------------ | ---------------------------------------------------------------- |
-| Static scrollback  | Destroyed by ED3. Terminal reflow was imperfect anyway.          |
-| Dynamic scrollback | Re-render at new width → re-virtualize. Full redraw.             |
-| Live screen        | Normal React re-render at new width                              |
+| Zone               | Resize behavior                                         |
+| ------------------ | ------------------------------------------------------- |
+| Static scrollback  | Destroyed by ED3. Terminal reflow was imperfect anyway. |
+| Dynamic scrollback | Re-render at new width → re-virtualize. Full redraw.    |
+| Live screen        | Normal React re-render at new width                     |
 
 The dynamic zone re-render is O(N) `renderStringSync` calls, but N is bounded by `maxHistory` lines and the calls are fast (no React reconciliation, just string generation). Items still resisting virtualization go through normal React re-render.
 
@@ -273,15 +268,15 @@ interface ScrollbackViewProps<T> {
 
 ## Comparison with Current Implementation
 
-| Aspect                    | Current                                       | Proposed                                                |
-| ------------------------- | --------------------------------------------- | ------------------------------------------------------- |
-| Zones                     | 2 (live screen, dynamic scrollback)           | 3 (live screen, dynamic scrollback, static scrollback)  |
-| Virtualize semantics      | Permanent (write to stdout, remove from tree) | Reversible (pre-render cache, data retained)            |
-| Resize                    | ED3 + re-emit everything                      | ED3 + re-emit dynamic zone only (static items dropped)  |
-| Viewport                  | = screen height                               | = maxHeight + screen height                             |
-| Auto-virtualize           | No (app must set isFrozen or call freeze())   | Yes (scroll off screen = auto-virtualize)               |
-| Virtualization resistance | N/A                                           | isComplete + maxDeferLines for active items              |
-| Data lifetime             | Retained until gone                           | Same, but static boundary is explicit (maxHistory)      |
+| Aspect                    | Current                                       | Proposed                                               |
+| ------------------------- | --------------------------------------------- | ------------------------------------------------------ |
+| Zones                     | 2 (live screen, dynamic scrollback)           | 3 (live screen, dynamic scrollback, static scrollback) |
+| Virtualize semantics      | Permanent (write to stdout, remove from tree) | Reversible (pre-render cache, data retained)           |
+| Resize                    | ED3 + re-emit everything                      | ED3 + re-emit dynamic zone only (static items dropped) |
+| Viewport                  | = screen height                               | = maxHeight + screen height                            |
+| Auto-virtualize           | No (app must set isFrozen or call freeze())   | Yes (scroll off screen = auto-virtualize)              |
+| Virtualization resistance | N/A                                           | isComplete + maxDeferLines for active items            |
+| Data lifetime             | Retained until gone                           | Same, but static boundary is explicit (maxHistory)     |
 
 ## DECSTBM: Why Not
 
