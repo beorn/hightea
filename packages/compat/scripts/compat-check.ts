@@ -130,10 +130,8 @@ await initInkCompat();
 
   // Remove .failing() marks for tests that silvery passes (Ink/Yoga bugs that Flexily gets right)
   await patchFailingMarks(join(INK_DIR, "test/width-height.tsx"), ["set min width in percent"])
-  await patchFailingMarks(join(INK_DIR, "test/flex-justify-content.tsx"), [
-    "row - align two text nodes with equal space around them",
-    "column - align two text nodes with equal space around them",
-  ])
+  // Note: space-around tests are NOT patched — both Yoga and Flexily produce the same (buggy per spec)
+  // result, so these tests fail in both Ink and silvery. Keeping .failing() marks = expected failures.
   console.log("  Patched .failing() marks for tests silvery passes")
 
   // Run ava

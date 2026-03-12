@@ -155,15 +155,13 @@ test("nested boxes - fit-content box with wide characters on flex-direction colu
     </Box>,
   )
 
-  // Ink upstream expects inner boxes to stretch (with "  " padding), but actual Ink
-  // output keeps them at natural width. The outer box is 14 cols wide (12 content),
-  // inner boxes ミスター and スポック are 10 cols (8 content) with 2 trailing spaces,
-  // while カーク船長 is 12 cols (10 content) filling the full width.
+  // Inner boxes stretch to widest child (カーク船長 = 10 CJK width).
+  // ミスター and スポック get 2 trailing spaces to fill stretched width.
   const expected = boxen(
-    boxen("\u30df\u30b9\u30bf\u30fc", { borderStyle: "round" }) +
-      "  \n" +
-      boxen("\u30b9\u30dd\u30c3\u30af", { borderStyle: "round" }) +
-      "  \n" +
+    boxen("\u30df\u30b9\u30bf\u30fc  ", { borderStyle: "round" }) +
+      "\n" +
+      boxen("\u30b9\u30dd\u30c3\u30af  ", { borderStyle: "round" }) +
+      "\n" +
       boxen("\u30ab\u30fc\u30af\u8239\u9577", { borderStyle: "round" }),
     { borderStyle: "round" },
   )

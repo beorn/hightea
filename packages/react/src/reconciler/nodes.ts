@@ -462,6 +462,8 @@ export function applyBoxProps(layoutNode: LayoutNode, props: BoxProps, oldProps?
   // Aspect ratio
   if (props.aspectRatio !== undefined) {
     layoutNode.setAspectRatio(props.aspectRatio)
+  } else if (wasRemoved("aspectRatio")) {
+    layoutNode.setAspectRatio(NaN)
   }
 
   // Overflow
