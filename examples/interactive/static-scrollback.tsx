@@ -36,7 +36,7 @@
  *   --stress  Generate 200 exchanges instead of scripted content
  */
 
-import React, { useState, useEffect, useCallback, useRef } from "react"
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import {
   Box,
   Text,
@@ -46,7 +46,10 @@ import {
   useScrollbackItem,
   TextInput,
   useTerminalFocused,
-} from "../../src/index.js"
+  useTea,
+  fx,
+} from "silvery"
+import type { TeaResult, TimerEffect } from "silvery"
 import { run, useInput, useExit, type Key } from "@silvery/term/runtime"
 import type { ExampleMeta } from "../_banner.js"
 
@@ -107,12 +110,12 @@ const TOOL_COLORS: Record<string, string> = {
 }
 
 const TOOL_ICONS: Record<string, string> = {
-  Read: "\u{1F4D6}",
-  Edit: "\u270F\uFE0F",
-  Bash: "\u26A1",
-  Write: "\u{1F4DD}",
-  Glob: "\u{1F50D}",
-  Grep: "\u{1F50E}",
+  Read: "📖",
+  Edit: "✏️",
+  Bash: "⚡",
+  Write: "📝",
+  Glob: "🔍",
+  Grep: "🔎",
 }
 
 /** Random user commands for Tab-to-inject feature. */
@@ -917,25 +920,265 @@ function StatusBar({
 }
 
 // ============================================================================
+// TEA State Machine — pure (state, msg) → [state, effects]
+// ============================================================================
+
+/** How many live turns to keep in the dynamic area before freezing to scrollback. */
+const MAX_LIVE_TURNS = 3
+
+/** Streaming phases: thinking -> streaming text -> tool calls -> done */
+type StreamPhase = "thinking" | "streaming" | "tools" | "done"
+
+type DemoState = {
+  exchanges: Exchange[]
+  scriptIdx: number
+  streamPhase: StreamPhase
+  revealFraction: number
+  done: boolean
+  compacting: boolean
+  pulse: boolean
+  ctrlDPending: boolean
+  contextBaseline: number
+  offScript: boolean
+  nextId: number
+  autoTyping: { full: string; revealed: number } | null
+}
+
+type DemoMsg =
+  | { type: "mount" }
+  | { type: "advance" }
+  | { type: "endThinking" }
+  | { type: "streamTick" }
+  | { type: "endTools" }
+  | { type: "submit"; text: string }
+  | { type: "compact" }
+  | { type: "compactDone" }
+  | { type: "pulse" }
+  | { type: "autoAdvance" }
+  | { type: "typingTick" }
+  | { type: "autoTypingDone" }
+  | { type: "respondRandom" }
+  | { type: "setCtrlDPending"; pending: boolean }
+
+type DemoEffect = TimerEffect<DemoMsg>
+type DemoResult = TeaResult<DemoState, DemoEffect>
+
+const INIT_STATE: DemoState = {
+  exchanges: [],
+  scriptIdx: 0,
+  streamPhase: "done",
+  revealFraction: 1,
+  done: false,
+  compacting: false,
+  pulse: false,
+  ctrlDPending: false,
+  contextBaseline: 0,
+  offScript: false,
+  nextId: 0,
+  autoTyping: null,
+}
+
+function createDemoUpdate(script: ScriptEntry[], fastMode: boolean, autoMode: boolean) {
+  function addExchange(state: DemoState, entry: ScriptEntry): DemoState {
+    const exchange: Exchange = { ...entry, id: state.nextId, frozen: false }
+    return { ...state, exchanges: [...state.exchanges, exchange], nextId: state.nextId + 1 }
+  }
+
+  function startStreaming(state: DemoState, entry: ScriptEntry): [DemoState, DemoEffect[]] {
+    const s = addExchange(state, entry)
+    if (entry.role !== "agent" || fastMode) {
+      return [{ ...s, streamPhase: "done", revealFraction: 1 }, []]
+    }
+    if (entry.thinking) {
+      return [{ ...s, streamPhase: "thinking", revealFraction: 0 }, [fx.delay(1200, { type: "endThinking" })]]
+    }
+    return [{ ...s, streamPhase: "streaming", revealFraction: 0 }, [fx.interval(50, { type: "streamTick" }, "reveal")]]
+  }
+
+  function freezeOld(exchanges: Exchange[]): Exchange[] {
+    const cutoff = Math.max(0, exchanges.length - MAX_LIVE_TURNS + 1)
+    return exchanges.map((ex, i) => (i < cutoff ? { ...ex, frozen: true } : ex))
+  }
+
+  /** Return auto-advance timer effects when streamPhase becomes "done". */
+  function autoAdvanceEffects(state: DemoState): DemoEffect[] {
+    if (state.done || state.compacting || state.streamPhase !== "done") return []
+    const next = script[state.scriptIdx]
+    if (!next) return []
+    if (next.role !== "user") return [fx.delay(fastMode ? 100 : 400, { type: "autoAdvance" })]
+    return []
+  }
+
+  /** Core advance: freeze old exchanges, stream next script entry, chain agent turns. */
+  function doAdvance(state: DemoState, extraEffects: DemoEffect[] = []): DemoResult {
+    if (state.done || state.compacting || state.streamPhase !== "done") return state
+    if (state.scriptIdx >= script.length) {
+      return autoMode ? { ...state, done: true } : state
+    }
+
+    const entry = script[state.scriptIdx]!
+    let s: DemoState = { ...state, exchanges: freezeOld(state.exchanges), scriptIdx: state.scriptIdx + 1 }
+    let effects = [...extraEffects]
+    let streamFx: DemoEffect[]
+
+    ;[s, streamFx] = startStreaming(s, entry)
+    effects.push(...streamFx)
+
+    if (fastMode) {
+      // Chain all consecutive non-user entries
+      while (s.scriptIdx < script.length && script[s.scriptIdx]!.role !== "user") {
+        ;[s, streamFx] = startStreaming({ ...s, scriptIdx: s.scriptIdx + 1 }, script[s.scriptIdx]!)
+        effects.push(...streamFx)
+      }
+      effects.push(...autoAdvanceEffects(s))
+    } else if (entry.role === "user") {
+      // Auto-chain user → first agent entry (one Enter = user msg + agent response)
+      if (s.scriptIdx < script.length && script[s.scriptIdx]!.role === "agent") {
+        ;[s, streamFx] = startStreaming({ ...s, scriptIdx: s.scriptIdx + 1 }, script[s.scriptIdx]!)
+        effects.push(...streamFx)
+      }
+    }
+
+    return [s, effects]
+  }
+
+  return function update(state: DemoState, msg: DemoMsg): DemoResult {
+    switch (msg.type) {
+      case "mount":
+        return doAdvance(state, [fx.interval(800, { type: "pulse" }, "pulse")])
+
+      case "advance":
+      case "autoAdvance": {
+        // Auto mode with user entry: start typing animation
+        if (autoMode && !fastMode && state.streamPhase === "done" && !state.done && !state.compacting) {
+          const next = script[state.scriptIdx]
+          if (next?.role === "user") {
+            return [
+              { ...state, autoTyping: { full: next.content, revealed: 0 } },
+              [fx.interval(30, { type: "typingTick" }, "typing")],
+            ]
+          }
+        }
+        if (autoMode && state.scriptIdx >= script.length && state.streamPhase === "done") {
+          return { ...state, done: true }
+        }
+        return doAdvance(state)
+      }
+
+      case "typingTick": {
+        if (!state.autoTyping) return state
+        const next = state.autoTyping.revealed + 1
+        if (next >= state.autoTyping.full.length) {
+          return [
+            { ...state, autoTyping: { ...state.autoTyping, revealed: state.autoTyping.full.length } },
+            [fx.cancel("typing"), fx.delay(300, { type: "autoTypingDone" })],
+          ]
+        }
+        return { ...state, autoTyping: { ...state.autoTyping, revealed: next } }
+      }
+
+      case "autoTypingDone":
+        return doAdvance({ ...state, autoTyping: null })
+
+      case "endThinking":
+        return [
+          { ...state, streamPhase: "streaming", revealFraction: 0 },
+          [fx.interval(50, { type: "streamTick" }, "reveal")],
+        ]
+
+      case "streamTick": {
+        const last = state.exchanges[state.exchanges.length - 1]
+        const rate = last?.thinking ? 0.08 : 0.12
+        const frac = Math.min(state.revealFraction + rate, 1)
+        if (frac < 1) return { ...state, revealFraction: frac }
+
+        const tools = last?.toolCalls ?? []
+        if (tools.length > 0) {
+          const s = { ...state, streamPhase: "tools" as StreamPhase, revealFraction: 1 }
+          return [s, [fx.cancel("reveal"), fx.delay(600 * tools.length, { type: "endTools" })]]
+        }
+        const s = { ...state, streamPhase: "done" as StreamPhase, revealFraction: 1 }
+        return [s, [fx.cancel("reveal"), ...autoAdvanceEffects(s)]]
+      }
+
+      case "endTools": {
+        const s = { ...state, streamPhase: "done" as StreamPhase }
+        return [s, autoAdvanceEffects(s)]
+      }
+
+      case "submit": {
+        if (state.streamPhase !== "done") {
+          return [
+            { ...state, streamPhase: "done", revealFraction: 1, autoTyping: null },
+            [fx.cancel("reveal"), fx.cancel("typing")],
+          ]
+        }
+        if (state.done || !msg.text.trim()) return state
+
+        const cleared = state.autoTyping ? { ...state, autoTyping: null } : state
+        const s = addExchange(cleared, {
+          role: "user",
+          content: msg.text,
+          tokens: { input: msg.text.length * 4, output: 0 },
+        })
+
+        if (s.scriptIdx < script.length) {
+          let nextIdx = s.scriptIdx
+          while (nextIdx < script.length && script[nextIdx]!.role === "user") nextIdx++
+          return [{ ...s, scriptIdx: nextIdx }, [fx.cancel("typing"), fx.delay(150, { type: "autoAdvance" })]]
+        }
+
+        return [{ ...s, offScript: true }, [fx.cancel("typing"), fx.delay(150, { type: "respondRandom" })]]
+      }
+
+      case "respondRandom": {
+        const resp = RANDOM_AGENT_RESPONSES[Math.floor(Math.random() * RANDOM_AGENT_RESPONSES.length)]!
+        const [s, effects] = startStreaming(state, resp)
+        return [{ ...s, offScript: true }, effects]
+      }
+
+      case "compact": {
+        if (state.done || state.compacting) return state
+        const cumulative = computeCumulativeTokens(state.exchanges)
+        return [
+          {
+            ...state,
+            streamPhase: "done",
+            revealFraction: 1,
+            compacting: true,
+            contextBaseline: cumulative.currentContext,
+            exchanges: state.exchanges.map((ex) => ({ ...ex, frozen: true })),
+            autoTyping: null,
+          },
+          [fx.cancel("reveal"), fx.cancel("typing"), fx.delay(fastMode ? 300 : 3000, { type: "compactDone" })],
+        ]
+      }
+
+      case "compactDone":
+        return doAdvance({ ...state, compacting: false })
+
+      case "pulse":
+        return { ...state, pulse: !state.pulse }
+
+      case "setCtrlDPending":
+        return { ...state, ctrlDPending: msg.pending }
+
+      default:
+        return state
+    }
+  }
+}
+
+// ============================================================================
 // Footer — owns inputText state so typing doesn't re-render the parent
 // ============================================================================
 
-/** Imperative handle for parent to control footer text (auto-typing, pre-fill). */
 interface FooterControl {
   setText: (text: string) => void
   getText: () => string
 }
 
-/**
- * Footer component that manages its own inputText state.
- *
- * By lifting text input state OUT of CodingAgent and INTO this component,
- * typing keystrokes only re-render the footer — not the entire exchange list.
- * This is the "lift state down" pattern: move state to the lowest component
- * that needs it.
- */
-/** Auto-submit idle timeout in ms. */
-const AUTO_SUBMIT_DELAY = 20_000
+const AUTO_SUBMIT_DELAY = 10_000
 
 function DemoFooter({
   controlRef,
@@ -948,6 +1191,7 @@ function DemoFooter({
   contextBaseline = 0,
   ctrlDPending = false,
   nextMessage = "",
+  autoTypingText = null,
 }: {
   controlRef: React.RefObject<FooterControl>
   onSubmit: (text: string) => void
@@ -959,13 +1203,13 @@ function DemoFooter({
   contextBaseline?: number
   ctrlDPending?: boolean
   nextMessage?: string
+  autoTypingText?: string | null
 }): JSX.Element {
   const terminalFocused = useTerminalFocused()
   const [inputText, setInputText] = useState("")
   const inputTextRef = useRef(inputText)
   inputTextRef.current = inputText
 
-  // Expose control to parent for auto-typing and pre-fill
   controlRef.current = {
     setText: setInputText,
     getText: () => inputTextRef.current,
@@ -979,52 +1223,60 @@ function DemoFooter({
     return () => clearInterval(timer)
   }, [])
 
-  // Auto-submit: if user is idle for AUTO_SUBMIT_DELAY, submit the placeholder message.
-  // Resets on any typing. Only fires when streaming is done and there's a next message.
+  const [randomPlaceholder] = useState(
+    () => RANDOM_USER_COMMANDS[Math.floor(Math.random() * RANDOM_USER_COMMANDS.length)]!,
+  )
+  const effectiveMessage = nextMessage || randomPlaceholder
+  const placeholder = ctrlDPending ? "Press Ctrl-D again to exit" : effectiveMessage
+
+  // Auto-submit: if idle for AUTO_SUBMIT_DELAY, submit the placeholder message
   const autoSubmitRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (autoSubmitRef.current) clearTimeout(autoSubmitRef.current)
-    if (done || compacting || streamPhase !== "done" || !nextMessage || inputText) return
-    autoSubmitRef.current = setTimeout(() => {
-      onSubmit(nextMessage)
-    }, AUTO_SUBMIT_DELAY)
+    if (done || compacting || streamPhase !== "done" || !effectiveMessage || inputText || autoTypingText) return
+    autoSubmitRef.current = setTimeout(() => onSubmit(effectiveMessage), AUTO_SUBMIT_DELAY)
     return () => {
       if (autoSubmitRef.current) clearTimeout(autoSubmitRef.current)
     }
-  }, [done, compacting, streamPhase, nextMessage, inputText, onSubmit])
+  }, [done, compacting, streamPhase, effectiveMessage, inputText, autoTypingText, onSubmit])
 
   const handleSubmit = useCallback(
     (text: string) => {
-      // If input is empty and there's a next scripted message, submit that
-      if (!text.trim() && nextMessage) {
-        onSubmit(nextMessage)
+      if (!text.trim() && effectiveMessage) {
+        onSubmit(effectiveMessage)
         setInputText("")
         return
       }
       onSubmit(text)
       setInputText("")
     },
-    [onSubmit, nextMessage],
+    [onSubmit, effectiveMessage],
   )
 
-  // Dynamic placeholder: show the next scripted message so user can see what'll auto-send
-  const placeholder = ctrlDPending
-    ? "Press Ctrl-D again to exit"
-    : nextMessage
-      ? nextMessage
-      : "Type a message or press Tab"
+  const displayText = autoTypingText ?? inputText
 
   return (
     <Box flexDirection="column">
-      <TextInput
-        value={inputText}
-        onChange={setInputText}
-        onSubmit={handleSubmit}
+      <Text> </Text>
+      <Box
+        flexDirection="row"
         borderStyle="round"
-        prompt={"\u276F "}
-        placeholder={placeholder}
-        isActive={!done && terminalFocused}
-      />
+        borderColor={!done && terminalFocused ? "$focusborder" : "$border"}
+        paddingX={1}
+      >
+        <Text bold color="$focusring">
+          {"\u276F"}{" "}
+        </Text>
+        <Box flexShrink={1}>
+          <TextInput
+            value={displayText}
+            onChange={autoTypingText ? () => {} : setInputText}
+            onSubmit={handleSubmit}
+            placeholder={placeholder}
+            isActive={!done && !autoTypingText && terminalFocused}
+          />
+        </Box>
+      </Box>
       <Box paddingX={1}>
         <StatusBar
           exchanges={exchanges}
@@ -1041,14 +1293,16 @@ function DemoFooter({
 }
 
 // ============================================================================
-// Main App — uses ScrollbackList for declarative scrollback management
+// Main App — TEA-driven with ScrollbackList
 // ============================================================================
 
-/** How many live turns to keep in the dynamic area before freezing to scrollback. */
-const MAX_LIVE_TURNS = 3
-
-/** Streaming phases: thinking -> streaming text -> tool calls -> done */
-type StreamPhase = "thinking" | "streaming" | "tools" | "done"
+/** Next scripted user message for footer placeholder. */
+function getNextMessage(state: DemoState, script: ScriptEntry[], autoMode: boolean): string {
+  if (autoMode || state.done || state.offScript || state.streamPhase !== "done" || state.exchanges.length === 0)
+    return ""
+  const entry = script[state.scriptIdx]
+  return entry?.role === "user" ? entry.content : ""
+}
 
 export function CodingAgent({
   script,
@@ -1060,447 +1314,65 @@ export function CodingAgent({
   fastMode: boolean
 }): JSX.Element {
   const exit = useExit()
-  const [exchanges, setExchanges] = useState<Exchange[]>([])
-  const [scriptIdx, setScriptIdx] = useState(0)
-  const [done, setDone] = useState(false)
-  const autoMode = autoStart
-  const [compacting, _setCompacting] = useState(false)
-  const compactingRef = useRef(false)
-  const setCompacting = useCallback((v: boolean) => {
-    compactingRef.current = v
-    _setCompacting(v)
-  }, [])
-  // Baseline subtracted from context after compaction (simulates context reset)
-  const contextBaselineRef = useRef(0)
-  const [pendingAdvance, setPendingAdvance] = useState(false)
-  const [ctrlDPending, setCtrlDPending] = useState(false)
+  const update = useMemo(() => createDemoUpdate(script, fastMode, autoStart), [script, fastMode, autoStart])
+  const [state, send] = useTea(INIT_STATE, update)
 
-  // Streaming state
-  const [streamPhase, setStreamPhase] = useState<StreamPhase>("done")
-  const [revealFraction, setRevealFraction] = useState(1)
-  const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const revealTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const inputTypingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const nextIdRef = useRef(0)
-
-  // Track whether user has gone off-script (Tab or custom text) — stops pre-filling
-  const offScriptRef = useRef(false)
-
-  // Stable ref to latest advance() — avoids stale closure in setTimeout callbacks
-  const advanceRef = useRef<() => void>(() => {})
-
-  // Footer control — parent uses this to set/get input text for auto-typing and pre-fill.
-  // Input text state lives in DemoFooter (not here) so typing doesn't re-render the exchange list.
-  const footerControlRef = useRef<FooterControl>({
-    setText: () => {},
-    getText: () => "",
-  })
-
-  /** Cancel all streaming timers. */
-  const cancelStreaming = useCallback(() => {
-    if (phaseTimerRef.current) {
-      clearTimeout(phaseTimerRef.current)
-      phaseTimerRef.current = null
-    }
-    if (revealTimerRef.current) {
-      clearInterval(revealTimerRef.current)
-      revealTimerRef.current = null
-    }
-    if (inputTypingTimerRef.current) {
-      clearInterval(inputTypingTimerRef.current)
-      inputTypingTimerRef.current = null
-    }
-  }, [])
-
-  /** Start streaming an exchange through its phases. */
-  const startStreaming = useCallback(
-    (entry: ScriptEntry, id: number) => {
-      cancelStreaming()
-      const newExchange: Exchange = { ...entry, id, frozen: false }
-
-      // User messages and system messages: instant
-      if (entry.role === "user" || entry.role === "system") {
-        setExchanges((prev) => [...prev, newExchange])
-        setStreamPhase("done")
-        setRevealFraction(1)
-        return
-      }
-
-      // Fast mode: skip all animation
-      if (fastMode) {
-        setExchanges((prev) => [...prev, newExchange])
-        setStreamPhase("done")
-        setRevealFraction(1)
-        return
-      }
-
-      // Agent message: thinking -> streaming -> tools -> done
-      setExchanges((prev) => [...prev, newExchange])
-
-      if (entry.thinking) {
-        // Phase 1: Thinking
-        setStreamPhase("thinking")
-        setRevealFraction(0)
-        phaseTimerRef.current = setTimeout(() => {
-          // Phase 2: Streaming text
-          setStreamPhase("streaming")
-          let frac = 0
-          revealTimerRef.current = setInterval(() => {
-            frac += 0.08
-            if (frac >= 1) {
-              frac = 1
-              if (revealTimerRef.current) clearInterval(revealTimerRef.current)
-              // Phase 3: Tool calls (if any)
-              if (entry.toolCalls?.length) {
-                setStreamPhase("tools")
-                phaseTimerRef.current = setTimeout(
-                  () => {
-                    setStreamPhase("done")
-                  },
-                  600 * (entry.toolCalls?.length ?? 1),
-                )
-              } else {
-                setStreamPhase("done")
-              }
-            }
-            setRevealFraction(frac)
-          }, 50)
-        }, 1200)
-      } else {
-        // No thinking — go straight to streaming
-        setStreamPhase("streaming")
-        let frac = 0
-        revealTimerRef.current = setInterval(() => {
-          frac += 0.12
-          if (frac >= 1) {
-            frac = 1
-            if (revealTimerRef.current) clearInterval(revealTimerRef.current)
-            if (entry.toolCalls?.length) {
-              setStreamPhase("tools")
-              phaseTimerRef.current = setTimeout(
-                () => {
-                  setStreamPhase("done")
-                },
-                600 * (entry.toolCalls?.length ?? 1),
-              )
-            } else {
-              setStreamPhase("done")
-            }
-          }
-          setRevealFraction(frac)
-        }, 50)
-      }
-    },
-    [fastMode, cancelStreaming],
-  )
-
-  const compact = useCallback(() => {
-    if (done || compactingRef.current) return
-    cancelStreaming()
-    setStreamPhase("done")
-    setRevealFraction(1)
-    setCompacting(true)
-    setExchanges((prev) => {
-      // Record current context level as baseline — post-compaction context
-      // starts from ~0 again (simulates real context window reset after compaction)
-      const cumulative = computeCumulativeTokens(prev)
-      contextBaselineRef.current = cumulative.currentContext
-      return prev.map((ex) => ({ ...ex, frozen: true }))
-    })
-
-    setTimeout(
-      () => {
-        setCompacting(false)
-        setPendingAdvance(true)
-      },
-      fastMode ? 300 : 3000,
-    )
-  }, [done, cancelStreaming, setCompacting, fastMode])
-
-  /** Skip current streaming — jump to done. */
-  const skipStreaming = useCallback(() => {
-    if (streamPhase === "done") return false
-    cancelStreaming()
-    setStreamPhase("done")
-    setRevealFraction(1)
-    return true
-  }, [streamPhase, cancelStreaming])
-
-  /** Advance to the next script entry. */
-  const advance = useCallback(() => {
-    if (done || compactingRef.current) return
-    if (streamPhase !== "done") return // Still streaming
-
-    if (scriptIdx >= script.length) {
-      // Script exhausted — DON'T set done. User can keep going with Tab
-      // to inject random turns or type their own messages. Session only
-      // ends on explicit exit (Esc, Ctrl+D).
-      return
-    }
-
-    // Freeze exchanges beyond the live window
-    setExchanges((prev) => {
-      const cutoff = Math.max(0, prev.length - MAX_LIVE_TURNS + 1)
-      return prev.map((ex, i) => (i < cutoff ? { ...ex, frozen: true } : ex))
-    })
-
-    const entry = script[scriptIdx]!
-
-    const id = nextIdRef.current++
-    setScriptIdx((i) => i + 1)
-    startStreaming(entry, id)
-
-    // Auto-chain: after processing any entry in fast mode, chain through all
-    // consecutive agent entries synchronously. In non-fast mode, the auto-advance
-    // effect (below) handles this with timers so streaming animation plays.
-    if (fastMode) {
-      let chainIdx = scriptIdx + 1
-      while (chainIdx < script.length && script[chainIdx]!.role !== "user") {
-        const chainEntry = script[chainIdx]!
-        const chainId = nextIdRef.current++
-        setScriptIdx((i) => i + 1)
-        startStreaming(chainEntry, chainId)
-        chainIdx++
-      }
-    } else if (entry.role === "user") {
-      // Non-fast mode: still auto-chain from user to the FIRST agent entry
-      // so one Enter press sends message AND starts agent response
-      const nextIdx = scriptIdx + 1
-      if (nextIdx < script.length && script[nextIdx]!.role === "agent") {
-        const nextEntry = script[nextIdx]!
-        const nextId = nextIdRef.current++
-        setScriptIdx((i) => i + 1)
-        startStreaming(nextEntry, nextId)
-      }
-    }
-  }, [scriptIdx, done, streamPhase, script, startStreaming, compact, fastMode, exchanges])
-  advanceRef.current = advance
-
-  // Auto-continue after compaction
+  // Start on mount
   useEffect(() => {
-    if (!pendingAdvance) return
-    setPendingAdvance(false)
-    advance()
-  }, [pendingAdvance, advance])
+    send({ type: "mount" })
+  }, [send])
 
-  // Show intro briefly, then auto-advance on mount after a delay
-  // so the intro text (exchanges.length === 0 guard) is visible.
+  // Auto-compact when context reaches 95%
   useEffect(() => {
-    const timer = setTimeout(() => advance(), fastMode ? 0 : 1500)
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    if (state.done || state.compacting) return
+    const active = state.exchanges.filter((ex) => !ex.frozen)
+    const cumulative = computeCumulativeTokens(active)
+    const effective = Math.max(0, cumulative.currentContext - state.contextBaseline)
+    if (effective >= CONTEXT_WINDOW * 0.95) send({ type: "compact" })
+  }, [state.exchanges, state.done, state.compacting, state.contextBaseline, send])
 
-  // Auto-advance when streaming finishes — type out next user message char-by-char
+  // Auto-exit in auto mode
   useEffect(() => {
-    if (!autoMode || done || compacting) return
-    if (streamPhase !== "done") return
-
-    const nextEntry = script[scriptIdx]
-    if (nextEntry?.role === "user" && !fastMode) {
-      // Simulate typing the next user message char-by-char
-      const fullMsg = nextEntry.content
-      let charIdx = 0
-      footerControlRef.current.setText("")
-      inputTypingTimerRef.current = setInterval(() => {
-        charIdx++
-        if (charIdx >= fullMsg.length) {
-          footerControlRef.current.setText(fullMsg)
-          if (inputTypingTimerRef.current) clearInterval(inputTypingTimerRef.current)
-          inputTypingTimerRef.current = null
-          // Brief pause after typing completes, then advance
-          autoTimerRef.current = setTimeout(() => {
-            footerControlRef.current.setText("")
-            advance()
-          }, 300)
-        } else {
-          footerControlRef.current.setText(fullMsg.slice(0, charIdx))
-        }
-      }, 30)
-      return () => {
-        if (inputTypingTimerRef.current) {
-          clearInterval(inputTypingTimerRef.current)
-          inputTypingTimerRef.current = null
-        }
-        if (autoTimerRef.current) clearTimeout(autoTimerRef.current)
-      }
-    }
-
-    // Script exhausted in auto mode: set done and exit
-    if (!nextEntry && scriptIdx >= script.length) {
-      setDone(true)
-      return
-    }
-
-    // Non-user entries or fast mode: advance after a brief delay
-    autoTimerRef.current = setTimeout(advance, 400)
-    return () => {
-      if (autoTimerRef.current) clearTimeout(autoTimerRef.current)
-    }
-  }, [autoMode, done, compacting, streamPhase, scriptIdx, advance, script, fastMode])
-
-  // Auto-advance agent turns — in manual mode, agent entries auto-advance
-  // after streaming finishes. Only user entries pause for input.
-  // This makes the demo feel like a real AI agent working.
-  useEffect(() => {
-    if (autoMode || done || compacting) return
-    if (streamPhase !== "done") return
-
-    const nextEntry = script[scriptIdx]
-    // If the next entry is NOT a user entry, auto-advance after a brief delay
-    if (nextEntry && nextEntry.role !== "user") {
-      autoTimerRef.current = setTimeout(() => advanceRef.current(), fastMode ? 100 : 400)
-      return () => {
-        if (autoTimerRef.current) clearTimeout(autoTimerRef.current)
-      }
-    }
-    // Script exhausted: no auto-advance. User can Tab for random turns.
-  }, [autoMode, done, compacting, streamPhase, scriptIdx, script, fastMode, exchanges.length])
-
-  // Auto-exit when done in auto mode (only set by --auto flag's exit timer)
-  useEffect(() => {
-    if (!autoMode || !done) return
+    if (!autoStart || !state.done) return
     const timer = setTimeout(exit, 1000)
     return () => clearTimeout(timer)
-  }, [autoMode, done, exit])
-
-  // Clean up streaming timers on unmount — if user presses q while streaming,
-  // revealTimerRef (setInterval) would otherwise run forever.
-  useEffect(() => {
-    return () => cancelStreaming()
-  }, [cancelStreaming])
-
-  // Auto-compact when the current context reaches 95% of the context window.
-  // Token values are cumulative — each exchange's input is the total context at
-  // that point. We subtract contextBaseline (set during compaction) so that
-  // post-compaction exchanges don't immediately re-trigger compaction.
-  useEffect(() => {
-    if (done || compactingRef.current) return
-    const active = exchanges.filter((ex) => !ex.frozen)
-    const cumulative = computeCumulativeTokens(active)
-    const effectiveContext = Math.max(0, cumulative.currentContext - contextBaselineRef.current)
-    if (effectiveContext >= CONTEXT_WINDOW * 0.95) {
-      compact()
-    }
-  }, [exchanges, done, compact])
-
-  // Terminal resize: no special handling needed.
-  // useScrollback's resize path re-emits frozen items at the new width,
-  // and the layout engine re-renders live content automatically.
-
-  // Next scripted user message — shown as placeholder in footer, auto-submitted after 20s idle.
-  // Replaces the old pre-fill approach (which typed text into the input).
-  const nextUserMessage =
-    !autoMode && !done && !offScriptRef.current && streamPhase === "done" && exchanges.length > 0
-      ? script[scriptIdx]?.role === "user"
-        ? script[scriptIdx]!.content
-        : ""
-      : ""
-
-  /** Handle Enter from TextInput — submit user text or skip streaming. */
-  const handleSubmit = useCallback(
-    (text: string) => {
-      if (streamPhase !== "done") {
-        skipStreaming()
-        return
-      }
-      if (done) return "exit"
-
-      if (text.trim()) {
-        // Add the user's typed text as a visible exchange
-        const id = nextIdRef.current++
-        const userExchange: Exchange = {
-          id,
-          role: "user",
-          content: text,
-          tokens: { input: text.length * 4, output: 0 },
-          frozen: false,
-        }
-        setExchanges((prev) => [...prev, userExchange])
-        // Note: DemoFooter clears inputText after calling onSubmit
-
-        // If script still has entries, skip to next agent entry
-        if (scriptIdx < script.length) {
-          let nextIdx = scriptIdx
-          while (nextIdx < script.length && script[nextIdx]!.role === "user") {
-            nextIdx++
-          }
-          setScriptIdx(nextIdx)
-          // Continue with the next agent entry after a brief pause
-          setTimeout(() => advanceRef.current(), 150)
-        } else {
-          // Script exhausted — inject a random agent response
-          offScriptRef.current = true
-          const resp = RANDOM_AGENT_RESPONSES[Math.floor(Math.random() * RANDOM_AGENT_RESPONSES.length)]!
-          setTimeout(() => {
-            const agentId = nextIdRef.current++
-            startStreaming(resp, agentId)
-          }, 150)
-        }
-      }
-      // Empty text after nextMessage handling: no-op
-    },
-    [streamPhase, skipStreaming, done, scriptIdx, script, startStreaming],
-  )
+  }, [autoStart, state.done, exit])
 
   const lastCtrlDRef = useRef(0)
+  const footerControlRef = useRef<FooterControl>({ setText: () => {}, getText: () => "" })
 
   useInput((input: string, key: Key) => {
     if (key.escape) return "exit"
-    // Ctrl-D twice within 500ms exits
     if (key.ctrl && input === "d") {
       const now = Date.now()
       if (now - lastCtrlDRef.current < 500) return "exit"
       lastCtrlDRef.current = now
-      setCtrlDPending(true)
+      send({ type: "setCtrlDPending", pending: true })
       return
     }
-    // Clear Ctrl-D pending state on any other key
     if (lastCtrlDRef.current > 0) {
       lastCtrlDRef.current = 0
-      setCtrlDPending(false)
+      send({ type: "setCtrlDPending", pending: false })
     }
     if (key.tab) {
-      if (done || compacting) return
-      const currentText = footerControlRef.current.getText()
-      if (currentText.trim()) {
-        // Non-empty input: Tab acts like Enter — submit the text
-        handleSubmit(currentText)
-        footerControlRef.current.setText("")
-      } else {
-        // Empty input + placeholder: submit the placeholder (same as Enter)
-        // Empty input + no placeholder: fill with random text
-        if (nextUserMessage) {
-          handleSubmit(nextUserMessage)
-          footerControlRef.current.setText("")
-        } else {
-          offScriptRef.current = true
-          const cmd = RANDOM_USER_COMMANDS[Math.floor(Math.random() * RANDOM_USER_COMMANDS.length)]!
-          footerControlRef.current.setText(cmd)
-        }
-      }
+      if (state.done || state.compacting) return
+      const text = footerControlRef.current.getText()
+      const nextMsg = getNextMessage(state, script, autoStart)
+      send({ type: "submit", text: text.trim() ? text : nextMsg })
+      footerControlRef.current.setText("")
       return
     }
     if (key.ctrl && input === "l") {
-      compact()
+      send({ type: "compact" })
       return
     }
   })
 
-  // Pulse animation for live icons
-  const [pulse, setPulse] = useState(false)
-  useEffect(() => {
-    const timer = setInterval(() => setPulse((p) => !p), 800)
-    return () => clearInterval(timer)
-  }, [])
-
-  // Count frozen for status display
-  const frozenCount = exchanges.filter((ex) => ex.frozen).length
+  const frozenCount = state.exchanges.filter((ex) => ex.frozen).length
+  const nextMessage = getNextMessage(state, script, autoStart)
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      {/* Header — always shown; scrolls away naturally as exchanges grow. */}
       <Box flexDirection="column">
         <Text> </Text>
         <Text bold>Static Scrollback</Text>
@@ -1519,39 +1391,36 @@ export function CodingAgent({
       </Box>
 
       <ScrollbackList
-        items={exchanges}
+        items={state.exchanges}
         keyExtractor={(ex) => ex.id}
         isFrozen={(ex) => ex.frozen}
         markers={true}
         footer={
           <DemoFooter
             controlRef={footerControlRef}
-            onSubmit={handleSubmit}
-            streamPhase={streamPhase}
-            done={done}
-            compacting={compacting}
-            exchanges={exchanges}
+            onSubmit={(text) => send({ type: "submit", text })}
+            streamPhase={state.streamPhase}
+            done={state.done}
+            compacting={state.compacting}
+            exchanges={state.exchanges}
             frozenCount={frozenCount}
-            contextBaseline={contextBaselineRef.current}
-            ctrlDPending={ctrlDPending}
-            nextMessage={nextUserMessage}
+            contextBaseline={state.contextBaseline}
+            ctrlDPending={state.ctrlDPending}
+            nextMessage={nextMessage}
+            autoTypingText={state.autoTyping ? state.autoTyping.full.slice(0, state.autoTyping.revealed) : null}
           />
         }
       >
         {(exchange, index) => {
-          const isLatest = index === exchanges.length - 1
-          const prevRole = index > 0 ? exchanges[index - 1]!.role : null
-          const nextRole = index < exchanges.length - 1 ? exchanges[index + 1]!.role : null
-          const isFirstInGroup = exchange.role !== prevRole
-          const isLastInGroup = exchange.role !== nextRole
+          const isLatest = index === state.exchanges.length - 1
+          const prevRole = index > 0 ? state.exchanges[index - 1]!.role : null
+          const nextRole = index < state.exchanges.length - 1 ? state.exchanges[index + 1]!.role : null
 
           return (
             <Box flexDirection="column">
-              {/* Spacing between turns */}
               {index > 0 && <Text> </Text>}
 
-              {/* Compaction overlay */}
-              {compacting && isLatest && (
+              {state.compacting && isLatest && (
                 <Box flexDirection="column" borderStyle="round" borderColor="$warning" paddingX={1} overflow="hidden">
                   <Text color="$warning" bold>
                     <Spinner type="arc" /> Compacting context
@@ -1561,8 +1430,7 @@ export function CodingAgent({
                 </Box>
               )}
 
-              {/* Done message — only in auto mode */}
-              {done && autoStart && isLatest && (
+              {state.done && autoStart && isLatest && (
                 <Box flexDirection="column" borderStyle="round" borderColor="$success" paddingX={1}>
                   <Text color="$success" bold>
                     {"\u2713"} Session complete
@@ -1573,18 +1441,15 @@ export function CodingAgent({
                 </Box>
               )}
 
-              {/* The exchange itself */}
               <ExchangeItem
                 exchange={exchange}
-                streamPhase={streamPhase}
-                revealFraction={revealFraction}
-                pulse={pulse}
+                streamPhase={state.streamPhase}
+                revealFraction={state.revealFraction}
+                pulse={state.pulse}
                 isLatest={isLatest}
-                isFirstInGroup={isFirstInGroup}
-                isLastInGroup={isLastInGroup}
+                isFirstInGroup={exchange.role !== prevRole}
+                isLastInGroup={exchange.role !== nextRole}
               />
-
-              {/* Input prompt moved to footer — see footer prop on ScrollbackList */}
             </Box>
           )
         }}
