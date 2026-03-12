@@ -104,9 +104,9 @@ function createContext(): TestContext {
     fail(message) {
       throw new Error(message ?? "Test failed")
     },
-    log(...args) {
-      // ava's t.log — just console.log in vitest
-      console.log(...args)
+    log(..._args) {
+      // ava's t.log — suppressed in vitest to avoid console output guard.
+      // Debug output can be seen via vitest's --reporter=verbose flag.
     },
     snapshot(_value, _message) {
       // Snapshots not supported in generated tests

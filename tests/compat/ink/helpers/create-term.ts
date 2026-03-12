@@ -72,14 +72,34 @@ export function termFixture(fixture: FixtureSpec, cols = 100) {
     ...fixture.options,
   })
 
+  // Intercept process.stdout.write AFTER render() completes.
+  // In real PTY tests, process.stdout IS the PTY — writes go to the captured output.
+  // Some fixtures (e.g., use-input-discrete-priority) use process.stdout.write()
+  // directly inside useInput handlers. We intercept after render to avoid capturing
+  // vitest internals or initial render side effects.
+  const originalWrite = process.stdout.write
+  process.stdout.write = ((...args: unknown[]) => {
+    return stdout.write(...args)
+  }) as typeof process.stdout.write
+
   const exitOutput: string[] = []
 
   return {
     write(input: string) {
-      stdin.emit("data", input)
+      // Use the renderer's sendInput path for proper input processing.
+      // stdin.emit("data", ...) doesn't work because the test renderer
+      // listens for "readable" events, not "data" events.
+      if (app.stdin) {
+        app.stdin.write(input)
+      } else {
+        stdin.emit("data", input)
+      }
     },
     get output() {
-      return stdout.getWrites().join("") + exitOutput.join("")
+      const raw = stdout.getWrites().join("") + exitOutput.join("")
+      // Emulate PTY behavior: convert \n to \r\n (PTY line discipline).
+      // Only convert bare \n (not already preceded by \r).
+      return raw.replace(/(?<!\r)\n/g, "\r\n")
     },
     async waitForExit() {
       try {
@@ -94,6 +114,8 @@ export function termFixture(fixture: FixtureSpec, cols = 100) {
         exitOutput.push("exited\n")
       } catch (err: unknown) {
         exitOutput.push(`${(err as Error).message}\n`)
+      } finally {
+        process.stdout.write = originalWrite
       }
     },
   }

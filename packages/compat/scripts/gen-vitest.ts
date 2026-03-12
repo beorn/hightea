@@ -107,10 +107,15 @@ const EXPECTED_FAILURES: Record<string, string[]> = {
     "text outside Text component throws",
   ],
   "measure-element": ["measure element"],
-  // PTY tests that need special timing or PTY-specific behavior
-  "hooks-use-input": ["useInput - discrete priority keeps states in sync with useTransition during rapid input"],
-  "hooks-use-paste": ["usePaste - receives bracketed paste as single text blob"],
-  hooks: ["useStdout - write to stdout"],
+  // PTY tests — some fixed, some remain known differences
+  "hooks-use-input": [
+    // silvery maps 0x7F to backspace (modern standard); Ink maps it to delete
+    "useInput - handle delete",
+  ],
+  hooks: [
+    // write() fires before initial frame in test renderer (timing order differs from real PTY)
+    "useStdout - write to stdout",
+  ],
   exit: [
     // Fixtures with 500ms setTimeout-based exit/unmount — timing-dependent behavior
     "exit when app finishes execution",
@@ -560,6 +565,13 @@ function transformFixture(source: string, fixtureName: string): string {
   let renderCallMatch = out.match(
     /(?:const\s+(?:\{[^}]+\}|\w+)\s*=\s*)?(?:_inkRender|render)\(\s*(<[^,)]+>)\s*(?:,\s*(\{[^}]+\}))?\s*\);?/,
   )
+  // Try same-line JSX with multi-line options (nested braces):
+  // render(<Component prop={val} />, {\n\tkeyboard: {mode: 'disabled'},\n});
+  if (!renderCallMatch) {
+    renderCallMatch = out.match(
+      /(?:const\s+(?:\{[^}]+\}|\w+)\s*=\s*)?(?:_inkRender|render)\(\s*(<[^,]+\/>)\s*,\s*(\{[\s\S]*?\})\s*\);?/m,
+    )
+  }
   // Try multi-line: render(\n\tternary ? <A /> : <B />,\n)
   if (!renderCallMatch) {
     renderCallMatch = out.match(
@@ -572,6 +584,9 @@ function transformFixture(source: string, fixtureName: string): string {
       const optStr = renderCallMatch[2]
       const exitOnCtrlC = optStr.match(/exitOnCtrlC:\s*(true|false)/)
       if (exitOnCtrlC) renderOptions.exitOnCtrlC = exitOnCtrlC[1]!
+      // Extract kittyKeyboard option
+      const kittyMatch = optStr.match(/kittyKeyboard:\s*(\{[^}]+\})/)
+      if (kittyMatch) renderOptions.kittyKeyboard = kittyMatch[1]!
     }
   }
 
