@@ -81,7 +81,7 @@ export type { RenderOptions, Instance, MeasureElementOutput } from "./ink-render
 // Types
 // =============================================================================
 
-export type { DOMElement } from "./ink-types"
+export type DOMElement = any
 
 // =============================================================================
 // Term primitives (so consumers don't need ansi directly)
@@ -100,5 +100,5 @@ export { measureText } from "./ink-measure-text"
 // Kitty keyboard protocol
 // =============================================================================
 
-export { kittyFlags, resolveFlags, kittyModifiers } from "./ink-kitty"
-export type { KittyFlagName, KittyKeyboardOptions } from "./ink-kitty"
+export { kittyFlags, resolveFlags, kittyModifiers } from "./ink-hooks"
+export type { KittyFlagName, KittyKeyboardOptions } from "./ink-hooks"

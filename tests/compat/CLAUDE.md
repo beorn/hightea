@@ -98,8 +98,8 @@ Two categories in gen-vitest.ts:
 ## Current Status
 
 - **Chalk**: 100% compat (32/32 real tests)
-- **Ink**: 98.5% strict / 100% effective compat (801 passed, 12 known failures)
-- **Vitest**: 32/32 files, 590/593 tests pass (2 skipped, 1 todo), 92 known `.failing`
+- **Ink**: 98.9% strict compat (804 passed, 9 known architectural differences)
+- **Vitest**: 34 files generated, 10,361 lines, 21 fixtures (976 lines)
 
 ## Updating When Ink Changes
 

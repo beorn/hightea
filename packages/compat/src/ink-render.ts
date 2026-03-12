@@ -36,7 +36,7 @@ import {
 import { restoreColonFormatSGR, colonSGRTracker } from "./ink-sanitize"
 import { InkStaticStoreCtx, type InkStaticStore } from "./ink-components"
 import { InkStdinCtx, createInkStdinState } from "./ink-stdin"
-import { type KittyKeyboardOptions, resolveKittyManagerOptions } from "./ink-kitty"
+import { type KittyKeyboardOptions, resolveKittyManagerOptions } from "./ink-hooks"
 
 // =============================================================================
 // Types
