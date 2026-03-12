@@ -82,19 +82,11 @@ function StatusBar({ lastCopied, lastPasted }: { lastCopied: string | null; last
     <Box flexDirection="column" borderStyle="round" borderColor="$border" paddingX={1}>
       <Box gap={1}>
         <Muted>Copied:</Muted>
-        {lastCopied ? (
-          <Text color="$success">{lastCopied}</Text>
-        ) : (
-          <Lead>nothing yet</Lead>
-        )}
+        {lastCopied ? <Text color="$success">{lastCopied}</Text> : <Lead>nothing yet</Lead>}
       </Box>
       <Box gap={1}>
         <Muted>Pasted:</Muted>
-        {lastPasted ? (
-          <Text color="$warning">{lastPasted}</Text>
-        ) : (
-          <Lead>nothing yet</Lead>
-        )}
+        {lastPasted ? <Text color="$warning">{lastPasted}</Text> : <Lead>nothing yet</Lead>}
       </Box>
     </Box>
   )

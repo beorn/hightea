@@ -132,9 +132,7 @@ const items: Item[] = [
 function SearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <Box>
-      <Strong color="$primary">
-        Search:{" "}
-      </Strong>
+      <Strong color="$primary">Search: </Strong>
       <Text>{value}</Text>
       <Text dim>|</Text>
     </Box>
@@ -167,9 +165,7 @@ function FilteredList({ query, isPending }: { query: string; isPending: boolean 
           <Text color="gray"> {item.tags.join(", ")}</Text>
         </Box>
       ))}
-      {filtered.length === 0 && (
-        <Lead>No matches found</Lead>
-      )}
+      {filtered.length === 0 && <Lead>No matches found</Lead>}
     </Box>
   )
 }

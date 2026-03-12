@@ -51,11 +51,7 @@ interface TestItem {
 function MultiLineItem({ item }: { item: TestItem }) {
   const rows = []
   for (let i = 0; i < item.lines; i++) {
-    rows.push(
-      <Text key={i}>
-        {i === 0 ? `[${item.id}] ${item.text}` : `  ...line ${i + 1}`}
-      </Text>,
-    )
+    rows.push(<Text key={i}>{i === 0 ? `[${item.id}] ${item.text}` : `  ...line ${i + 1}`}</Text>)
   }
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="$border" paddingX={1}>
@@ -184,11 +180,7 @@ function makeItems(count: number, linesEach: number = 3, frozen: boolean = false
  * Check invariants that should hold after ANY action on a scrollback app.
  * Modeled after km-tui's fuzz-invariants.ts.
  */
-function checkScrollbackInvariants(
-  term: Term,
-  action: string,
-  iteration: number,
-): void {
+function checkScrollbackInvariants(term: Term, action: string, iteration: number): void {
   const screenText = term.screen!.getText()
   const lines = term.screen!.getLines()
   const nonBlank = lines.filter((l: string) => l.trim().length > 0).length
@@ -203,10 +195,7 @@ function checkScrollbackInvariants(
   expect(screenText, `[${iteration}] undefined after ${action}`).not.toContain("undefined")
 
   // 3. Footer must always be visible on screen
-  expect(
-    screenText,
-    `[${iteration}] Footer missing after ${action}`,
-  ).toContain("Input here")
+  expect(screenText, `[${iteration}] Footer missing after ${action}`).toContain("Input here")
 
   // 4. Screen should have reasonable content (not mostly blank)
   //    After compaction ("f") all items are frozen → only footer remains on live screen.
@@ -221,11 +210,7 @@ function checkScrollbackInvariants(
 /**
  * Extended invariants that check frozen scrollback content integrity.
  */
-function checkScrollbackContentInvariants(
-  term: Term,
-  action: string,
-  iteration: number,
-): void {
+function checkScrollbackContentInvariants(term: Term, action: string, iteration: number): void {
   // Run basic invariants first
   checkScrollbackInvariants(term, action, iteration)
 
@@ -235,15 +220,12 @@ function checkScrollbackContentInvariants(
 
   // 5. Border chars should be valid (not corrupted multi-byte)
   // Look for common corruption patterns: ██ inside border lines
-  const borderLines = allText.split("\n").filter(
-    (l) => l.includes("╭") || l.includes("╰") || l.includes("─"),
-  )
+  const borderLines = allText.split("\n").filter((l) => l.includes("╭") || l.includes("╰") || l.includes("─"))
   for (const line of borderLines) {
     // A border line with ██ (full block) mixed in indicates multi-byte corruption
-    expect(
-      line,
-      `[${iteration}] Corrupted border chars after ${action}: ${line.slice(0, 40)}`,
-    ).not.toMatch(/[╭╰─│╮╯].*█.*[╭╰─│╮╯]/)
+    expect(line, `[${iteration}] Corrupted border chars after ${action}: ${line.slice(0, 40)}`).not.toMatch(
+      /[╭╰─│╮╯].*█.*[╭╰─│╮╯]/,
+    )
   }
 
   // 6. No orphaned content between box closings and box openings
@@ -288,25 +270,25 @@ function checkScrollbackContentInvariants(
  * then compaction and miscellaneous.
  */
 const SCROLLBACK_ACTIONS: [number, string][] = [
-  [30, "Enter"],  // Freeze oldest + add new (the main promotion trigger)
-  [20, "g"],      // Grow last item (streaming)
-  [10, "s"],      // Shrink last item
-  [5, "f"],       // Freeze all (compaction)
-  [10, "a"],      // Add item without freezing
-  [15, "Enter"],  // Extra weight for Enter (double-promotion is the bug path)
-  [10, "g"],      // Extra weight for grow (freeze-grow cycles)
+  [30, "Enter"], // Freeze oldest + add new (the main promotion trigger)
+  [20, "g"], // Grow last item (streaming)
+  [10, "s"], // Shrink last item
+  [5, "f"], // Freeze all (compaction)
+  [10, "a"], // Add item without freezing
+  [15, "Enter"], // Extra weight for Enter (double-promotion is the bug path)
+  [10, "g"], // Extra weight for grow (freeze-grow cycles)
 ]
 
 /**
  * Promotion-heavy actions — maximizes freeze/grow cycles that trigger bugs.
  */
 const PROMOTION_HEAVY_ACTIONS: [number, string][] = [
-  [40, "Enter"],  // Promotion is the bug path
-  [25, "g"],      // Grow after promotion
-  [15, "Enter"],  // Back-to-back promotions
-  [10, "g"],      // More grow
-  [5, "f"],       // Compaction
-  [5, "s"],       // Shrink
+  [40, "Enter"], // Promotion is the bug path
+  [25, "g"], // Grow after promotion
+  [15, "Enter"], // Back-to-back promotions
+  [10, "g"], // More grow
+  [5, "f"], // Compaction
+  [5, "s"], // Shrink
 ]
 
 // ============================================================================
@@ -446,15 +428,12 @@ describe("CodingAgent scrollback fuzz", () => {
     }
     emulator.feed("$ bun run examples/interactive/static-scrollback.tsx\r\n")
 
-    handle = await run(
-      <CodingAgent script={SCRIPT} autoStart={false} fastMode={true} />,
-      {
-        mode: "inline",
-        writable: { write: (s: string) => emulator.feed(s) },
-        cols: dims.cols,
-        rows: dims.rows,
-      },
-    )
+    handle = await run(<CodingAgent script={SCRIPT} autoStart={false} fastMode={true} />, {
+      mode: "inline",
+      writable: { write: (s: string) => emulator.feed(s) },
+      cols: dims.cols,
+      rows: dims.rows,
+    })
     return { term, handle }
   }
 
@@ -484,7 +463,7 @@ describe("CodingAgent scrollback fuzz", () => {
           // Screen should never be mostly blank
           expect(
             nonBlank / lines.length,
-            `[${i}] Screen ${(nonBlank / lines.length * 100).toFixed(0)}% content — too empty`,
+            `[${i}] Screen ${((nonBlank / lines.length) * 100).toFixed(0)}% content — too empty`,
           ).toBeGreaterThan(0.2)
 
           // Status bar should always be visible
@@ -496,10 +475,7 @@ describe("CodingAgent scrollback fuzz", () => {
 
           // No duplication of specific content
           const fixLoginCount = lines.filter((l: string) => l.includes("Fix the login")).length
-          expect(
-            fixLoginCount,
-            `[${i}] "Fix the login" duplicated ${fixLoginCount} times`,
-          ).toBeLessThanOrEqual(1)
+          expect(fixLoginCount, `[${i}] "Fix the login" duplicated ${fixLoginCount} times`).toBeLessThanOrEqual(1)
 
           i++
         }

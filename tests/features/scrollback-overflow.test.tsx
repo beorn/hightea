@@ -36,11 +36,7 @@ interface TestItem {
 function MultiLineItem({ item }: { item: TestItem }) {
   const rows = []
   for (let i = 0; i < item.lines; i++) {
-    rows.push(
-      <Text key={i}>
-        {i === 0 ? `[${item.id}] ${item.text}` : `  ...line ${i + 1}`}
-      </Text>,
-    )
+    rows.push(<Text key={i}>{i === 0 ? `[${item.id}] ${item.text}` : `  ...line ${i + 1}`}</Text>)
   }
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="$border" paddingX={1}>
@@ -266,8 +262,8 @@ describe("scrollback promotion overflow", () => {
 
     // Box border characters should be present (round style: ╭╮╰╯│─)
     const allText = (term.scrollback?.getText() ?? "") + term.screen!.getText()
-    const hasBorderChars = allText.includes("│") || allText.includes("─") ||
-      allText.includes("╭") || allText.includes("╰")
+    const hasBorderChars =
+      allText.includes("│") || allText.includes("─") || allText.includes("╭") || allText.includes("╰")
     expect(hasBorderChars, "No border characters found after promotion").toBe(true)
   })
 
@@ -312,10 +308,7 @@ describe("scrollback chaos invariants", () => {
     expect(screenText, `[${iteration}] NaN after ${action}`).not.toContain("NaN")
 
     // 3. Footer must always be visible on screen
-    expect(
-      term.screen!.getText(),
-      `[${iteration}] Footer missing after ${action}`,
-    ).toContain("Input here")
+    expect(term.screen!.getText(), `[${iteration}] Footer missing after ${action}`).toContain("Input here")
 
     // 4. Screen should have reasonable content (not mostly blank)
     // At least 20% of lines should have content
@@ -392,15 +385,12 @@ describe("CodingAgent inline scrollback with shell prompt", () => {
     }
     emulator.feed("$ bun run examples/interactive/static-scrollback.tsx\r\n")
 
-    handle = await run(
-      <CodingAgent script={SCRIPT} autoStart={false} fastMode={true} />,
-      {
-        mode: "inline",
-        writable: { write: (s: string) => emulator.feed(s) },
-        cols: dims.cols,
-        rows: dims.rows,
-      },
-    )
+    handle = await run(<CodingAgent script={SCRIPT} autoStart={false} fastMode={true} />, {
+      mode: "inline",
+      writable: { write: (s: string) => emulator.feed(s) },
+      cols: dims.cols,
+      rows: dims.rows,
+    })
     return { term, handle }
   }
 

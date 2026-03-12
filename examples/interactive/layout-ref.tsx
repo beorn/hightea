@@ -8,7 +8,18 @@
  */
 
 import React, { useRef, useState, useEffect } from "react"
-import { render, Box, Text, Kbd, Muted, useInput, useApp, createTerm, type BoxHandle, type Key } from "../../src/index.js"
+import {
+  render,
+  Box,
+  Text,
+  Kbd,
+  Muted,
+  useInput,
+  useApp,
+  createTerm,
+  type BoxHandle,
+  type Key,
+} from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {

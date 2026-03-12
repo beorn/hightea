@@ -153,7 +153,16 @@ export function Dashboard(): JSX.Element {
       </Box>
       <Muted>
         {" "}
-        <Kbd>h/l</Kbd> tabs{tab === 2 ? <>{" "}<Kbd>j/k</Kbd> select</> : ""} <Kbd>Esc/q</Kbd> quit
+        <Kbd>h/l</Kbd> tabs
+        {tab === 2 ? (
+          <>
+            {" "}
+            <Kbd>j/k</Kbd> select
+          </>
+        ) : (
+          ""
+        )}{" "}
+        <Kbd>Esc/q</Kbd> quit
       </Muted>
     </Box>
   )

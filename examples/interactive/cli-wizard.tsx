@@ -200,13 +200,17 @@ function DoneStep({ framework, projectName }: { framework: string; projectName: 
 
       <Box flexDirection="column" marginTop={1}>
         <Muted>Get started:</Muted>
-        <Code>{"  "}cd {projectName}</Code>
+        <Code>
+          {"  "}cd {projectName}
+        </Code>
         <Code>{"  "}bun install</Code>
         <Code>{"  "}bun dev</Code>
       </Box>
 
       <Box marginTop={1}>
-        <Muted>Press <Kbd>q</Kbd> or <Kbd>Esc</Kbd> to exit</Muted>
+        <Muted>
+          Press <Kbd>q</Kbd> or <Kbd>Esc</Kbd> to exit
+        </Muted>
       </Box>
     </Box>
   )

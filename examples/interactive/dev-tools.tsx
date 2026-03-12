@@ -354,16 +354,8 @@ export function DevTools(): JSX.Element {
       {/* Help bar */}
       <Box paddingX={1} justifyContent="space-between">
         <Muted>
-          <Kbd>j/k</Kbd>{" "}
-          navigate{" "}
-          <Kbd>g/G</Kbd>{" "}
-          start/end{" "}
-          <Kbd>d/i/w/e</Kbd>{" "}
-          add log{" "}
-          <Kbd>c</Kbd>{" "}
-          clear{" "}
-          <Kbd>Esc/q</Kbd>{" "}
-          quit
+          <Kbd>j/k</Kbd> navigate <Kbd>g/G</Kbd> start/end <Kbd>d/i/w/e</Kbd> add log <Kbd>c</Kbd> clear{" "}
+          <Kbd>Esc/q</Kbd> quit
         </Muted>
       </Box>
     </Box>

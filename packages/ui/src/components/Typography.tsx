@@ -212,7 +212,10 @@ export function LI({ children, color, _index }: TypographyProps & { _index?: num
 
   return (
     <Box>
-      <Text color={color ?? "$muted"}>{indent}{marker}</Text>
+      <Text color={color ?? "$muted"}>
+        {indent}
+        {marker}
+      </Text>
       <Box flexShrink={1}>
         <Text color={color}>{children}</Text>
       </Box>

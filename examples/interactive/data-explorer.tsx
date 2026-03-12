@@ -449,7 +449,9 @@ export function DataExplorer(): JSX.Element {
             filter: <Text bold>{query}</Text> (backspace to clear, / to edit)
           </Text>
         ) : (
-          <Muted>Press <Kbd>/</Kbd> to search</Muted>
+          <Muted>
+            Press <Kbd>/</Kbd> to search
+          </Muted>
         )}
       </Box>
 
@@ -465,9 +467,7 @@ export function DataExplorer(): JSX.Element {
           <ProcessListArea processes={filtered} cursor={effectiveCursor} width={width} />
         ) : (
           <Box paddingX={1} justifyContent="center">
-            <Lead>
-              No processes match &quot;{deferredQuery}&quot;
-            </Lead>
+            <Lead>No processes match &quot;{deferredQuery}&quot;</Lead>
           </Box>
         )}
       </Box>
@@ -475,15 +475,7 @@ export function DataExplorer(): JSX.Element {
       {/* Scroll indicator + help */}
       <Box paddingX={1} justifyContent="space-between">
         <Muted>
-          <Kbd>j/k</Kbd>{" "}
-          navigate{" "}
-          <Kbd>d/u</Kbd>{" "}
-          half-page{" "}
-          <Kbd>g/G</Kbd>{" "}
-          start/end{" "}
-          <Kbd>/</Kbd>{" "}
-          search{" "}
-          <Kbd>Esc/q</Kbd>{" "}
+          <Kbd>j/k</Kbd> navigate <Kbd>d/u</Kbd> half-page <Kbd>g/G</Kbd> start/end <Kbd>/</Kbd> search <Kbd>Esc/q</Kbd>{" "}
           quit
         </Muted>
         <Text color="$muted">
