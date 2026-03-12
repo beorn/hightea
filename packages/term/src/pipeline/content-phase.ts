@@ -589,7 +589,14 @@ function renderScrollContainerChildren(
   const padding = getPadding(props)
   // Scroll containers clip vertically (for scrolling) but NOT horizontally.
   // Horizontal clipping is only for overflow="hidden" containers (e.g., HVL).
-  const childClipBounds = computeChildClipBounds(layout, props, clipBounds, 0, /* horizontal */ false, /* vertical */ true)
+  const childClipBounds = computeChildClipBounds(
+    layout,
+    props,
+    clipBounds,
+    0,
+    /* horizontal */ false,
+    /* vertical */ true,
+  )
 
   // Determine if scroll offset changed since last render.
   const scrollOffsetChanged = ss.offset !== ss.prevOffset
@@ -859,9 +866,7 @@ function renderNormalChildren(
   const clipX = (props.overflowX ?? props.overflow) === "hidden"
   const clipY = (props.overflowY ?? props.overflow) === "hidden"
   const effectiveClipBounds =
-    clipX || clipY
-      ? computeChildClipBounds(layout, props, clipBounds, scrollOffset, clipX, clipY)
-      : clipBounds
+    clipX || clipY ? computeChildClipBounds(layout, props, clipBounds, scrollOffset, clipX, clipY) : clipBounds
 
   // Non-scroll sticky children support. When the layout phase computes
   // node.stickyChildren, we use the same two-pass pattern as scroll containers:

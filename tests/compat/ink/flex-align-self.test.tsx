@@ -114,6 +114,5 @@ test("row - align self baseline", () => {
       </Box>
     </Box>,
   )
-  // Ink upstream expects "AX\nB\n" but actual Ink output is "\nAX\nB" (rounding difference)
-  expect(output).toBe("\nAX\nB")
+  expect(output).toBe("AX\nB\n")
 })
