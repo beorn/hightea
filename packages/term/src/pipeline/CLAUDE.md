@@ -392,7 +392,7 @@ Returns `ChangesResult { output: string, finalY: number }` — the final cursor 
 
 10/10 fuzz failures in `render-fuzz.fuzz.ts` after sticky children support was added. Three complementary fixes were needed:
 
-1. **Full viewport clear to `bg: null`** — In Tier 2 (needsViewportClear), the viewport was being cleared to inherited bg, but fresh renders start with null bg. Clearing to inherited bg produced different output than fresh because Text nodes would inherit different bg values. Fix: clear to `null`. (Note: Text bg inheritance now uses explicit `inheritedBg` parameter rather than `getCellBg` buffer reads, but the viewport still must be cleared to null to match fresh render state.)
+1. **Tier 2 viewport clear uses inherited bg; Tier 3 stickyForceRefresh uses `bg: null`** — Originally Tier 2 cleared to `null`, but this was later changed: Tier 2 (`needsViewportClear`) now clears to `scrollBg` (the node's own `backgroundColor` or `findInheritedBg()`), which is correct because children render fresh on top. The separate `stickyForceRefresh` clear (Tier 3 with sticky children) still uses `bg: null` because it must match fresh render state before the sticky second pass. Text bg inheritance uses explicit `inheritedBg` parameter (not `getCellBg` buffer reads), so the viewport bg doesn't affect text rendering — it only matters for cells not covered by any child.
 
 2. **`stickyForceRefresh` in Tier 3** — When sticky children exist and only `subtreeDirty` is set (Tier 3), the cloned buffer has stale content from previous frames' sticky positions. All first-pass items must re-render before the sticky second pass overwrites. Without this, stale content from old sticky positions persists.
 

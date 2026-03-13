@@ -836,7 +836,7 @@ function renderScrollContainerChildren(
   // match fresh buffer state. The cloned buffer has stale sticky header content
   // from previous frames at positions that may have moved. Pre-clearing only
   // current sticky positions is insufficient because stale bg from old sticky
-  // positions leaks through to Text nodes via inheritedBg or getCellBg fallback.
+  // positions leaks through to Text nodes via inheritedBg (getCellBg is legacy fallback only).
   // Clearing the entire viewport ensures a clean slate matching fresh render
   // behavior (null bg everywhere before any content renders).
   //
