@@ -38,7 +38,14 @@ import {
   disableKittyKeyboard,
   resetWindowTitle,
 } from "@silvery/term/output"
-import { createContainer, createFiberRoot, getContainerRoot, reconciler, runWithDiscreteEvent, setOnNodeRemoved } from "./reconciler"
+import {
+  createContainer,
+  createFiberRoot,
+  getContainerRoot,
+  reconciler,
+  runWithDiscreteEvent,
+  setOnNodeRemoved,
+} from "./reconciler"
 import { renderStringSync } from "./render-string"
 import { RenderScheduler } from "@silvery/term/scheduler"
 import { type ResolvedTermDef, isTerm, isTermDef, resolveFromTerm, resolveTermDef } from "@silvery/term/term-def"

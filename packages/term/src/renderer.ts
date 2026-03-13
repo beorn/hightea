@@ -28,7 +28,13 @@ import {
   setLayoutEngine,
 } from "./layout-engine.js"
 import { executeRender } from "./pipeline.js"
-import { createContainer, createFiberRoot, getContainerRoot, reconciler, setOnNodeRemoved } from "@silvery/react/reconciler"
+import {
+  createContainer,
+  createFiberRoot,
+  getContainerRoot,
+  reconciler,
+  setOnNodeRemoved,
+} from "@silvery/react/reconciler"
 
 import { createTerm } from "./ansi/index"
 import { bufferToText } from "./buffer.js"
@@ -552,18 +558,37 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       for (let pass = 0; pass < MAX_SINGLE_PASS_ITERATIONS; pass++) {
         hadReactCommit = false
         singlePassCount++
+        let renderError: Error | null = null
         withActEnvironment(() => {
           act(() => {
             const root = getContainerRoot(instance.container)
-            const result = executeRender(
-              root,
-              instance.columns,
-              instance.rows,
-              incremental ? instance.prevBuffer : null,
-            )
-            output = result.output
-            buffer = result.buffer
-            instance.prevBuffer = buffer
+            try {
+              const result = executeRender(
+                root,
+                instance.columns,
+                instance.rows,
+                incremental ? instance.prevBuffer : null,
+              )
+              output = result.output
+              buffer = result.buffer
+            } catch (e) {
+              // SILVERY_STRICT_OUTPUT may throw from the output phase.
+              // The content phase buffer is still valid and attached to the
+              // error by executeRenderCore — extract it so lastBuffer()
+              // returns the correct frame, not a stale one.
+              renderError = e as Error
+              const attachedBuffer = (e as any)?.__silvery_buffer
+              if (attachedBuffer) {
+                buffer = attachedBuffer
+              }
+            }
+            // Always update prevBuffer when a new buffer was produced,
+            // even if the output phase threw. The buffer from contentPhase
+            // is correct; the STRICT_OUTPUT exception is a diagnostic that
+            // should not corrupt incremental rendering state.
+            if (buffer) {
+              instance.prevBuffer = buffer
+            }
             instance.renderCount++
             onBufferReady?.(output, buffer, getRootContentHeight())
           })
@@ -573,6 +598,15 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
             })
           }
         })
+        // Re-throw non-diagnostic errors. IncrementalRenderMismatchError from
+        // SILVERY_STRICT_OUTPUT is diagnostic — the buffer was saved above, and
+        // the content-phase STRICT check below will detect real mismatches.
+        // Propagating diagnostic throws would crash sendInput() callers.
+        if (renderError) {
+          if (!((renderError as Error) instanceof IncrementalRenderMismatchError)) {
+            throw renderError
+          }
+        }
         if (!hadReactCommit) break
       }
 
@@ -602,18 +636,29 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
 
         // Run the render pipeline inside act() so that forceUpdate/setState
         // from notifyLayoutSubscribers (Phase 2.7) are properly captured.
+        let classicRenderError: Error | null = null
         withActEnvironment(() => {
           act(() => {
             const root = getContainerRoot(instance.container)
-            const result = executeRender(
-              root,
-              instance.columns,
-              instance.rows,
-              incremental ? instance.prevBuffer : null,
-            )
-            output = result.output
-            buffer = result.buffer
-            instance.prevBuffer = buffer
+            try {
+              const result = executeRender(
+                root,
+                instance.columns,
+                instance.rows,
+                incremental ? instance.prevBuffer : null,
+              )
+              output = result.output
+              buffer = result.buffer
+            } catch (e) {
+              classicRenderError = e as Error
+              const attachedBuffer = (e as any)?.__silvery_buffer
+              if (attachedBuffer) {
+                buffer = attachedBuffer
+              }
+            }
+            if (buffer) {
+              instance.prevBuffer = buffer
+            }
             instance.renderCount++
             onBufferReady?.(output, buffer, getRootContentHeight())
           })
@@ -628,6 +673,11 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
             })
           }
         })
+        if (classicRenderError) {
+          if (!((classicRenderError as Error) instanceof IncrementalRenderMismatchError)) {
+            throw classicRenderError
+          }
+        }
 
         // If React didn't commit any new work from layout notifications,
         // the layout is stable — no more iterations needed.

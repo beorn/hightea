@@ -453,6 +453,7 @@ Flag emoji (🇨🇦) are regional indicator sequences (U+1F1E6..U+1F1FF pairs).
 **Why SILVERY_STRICT didn't catch it**: STRICT compares buffer content (content phase), which is correct. The bug is in the output phase — ANSI generation creates terminal state that diverges from the buffer. SILVERY_STRICT_OUTPUT uses `replayAnsiWithStyles` which has the same width assumption as the buffer (returns 2 for flag emoji), so it agrees with the buffer. Only feeding ANSI through a real xterm.js terminal emulator (`@termless/xtermjs`) reveals the divergence.
 
 **Fix**: Two complementary changes to `output-phase.ts`:
+
 1. `wrapTextSizing` simplified to wrap ALL `cell.wide` characters in OSC 66 unconditionally — no more per-category detection (PUA, text-presentation emoji, flag emoji). If the buffer says wide, the terminal is told width 2. Eliminates whack-a-mole as Unicode evolves.
 2. Cursor re-sync added to `bufferToAnsi` after every wide char — emits explicit CUP to re-sync the terminal cursor, matching the existing re-sync in `changesToAnsi`. After `x++` (skip continuation), CUP targets `x + 2` (1-indexed) = next cell position.
 

@@ -601,7 +601,7 @@ function ansi256toRgb(idx: number): RGB {
 // Main Gallery App
 // ============================================================================
 
-function Gallery(): JSX.Element {
+export function Gallery(): JSX.Element {
   const { exit } = useApp()
   const [activeTab, setActiveTab] = useState("images")
 

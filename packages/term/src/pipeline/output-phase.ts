@@ -2499,8 +2499,6 @@ function verifyOutputEquivalence(
           diffs.join(", ") +
           `\n  incremental: fg=${formatColor(incr.fg)} bg=${formatColor(incr.bg)} bold=${incr.bold} dim=${incr.dim}` +
           `\n  fresh:       fg=${formatColor(fresh.fg)} bg=${formatColor(fresh.bg)} bold=${fresh.bold} dim=${fresh.dim}`
-        // eslint-disable-next-line no-console
-        console.error(msg)
         throw new IncrementalRenderMismatchError(msg)
       }
     }

@@ -4,8 +4,8 @@
  * Handle fit-content nodes by measuring their intrinsic content size.
  */
 
-import type { BoxProps, TeaNode } from "@silvery/tea/types"
-import { displayWidthAnsi } from "../unicode"
+import type { BoxProps, TeaNode, TextProps } from "@silvery/tea/types"
+import { displayWidthAnsi, wrapText } from "../unicode"
 import { getBorderSize, getPadding } from "./helpers"
 import type { PipelineContext } from "./types"
 
@@ -23,7 +23,21 @@ export function measurePhase(root: TeaNode, ctx?: PipelineContext): void {
     const props = node.props as BoxProps
 
     if (props.width === "fit-content" || props.height === "fit-content") {
-      const intrinsicSize = measureIntrinsicSize(node, ctx)
+      // When height="fit-content" but width is fixed, pass the available width
+      // so text nodes can wrap and compute correct intrinsic height.
+      let availableWidth: number | undefined
+      if (props.height === "fit-content" && props.width !== "fit-content" && typeof props.width === "number") {
+        // Subtract padding and border from the fixed width to get content area width
+        const padding = getPadding(props)
+        availableWidth = props.width - padding.left - padding.right
+        if (props.borderStyle) {
+          const border = getBorderSize(props)
+          availableWidth -= border.left + border.right
+        }
+        if (availableWidth < 1) availableWidth = 1
+      }
+
+      const intrinsicSize = measureIntrinsicSize(node, ctx, availableWidth)
 
       if (props.width === "fit-content") {
         node.layoutNode.setWidth(intrinsicSize.width)
@@ -40,10 +54,14 @@ export function measurePhase(root: TeaNode, ctx?: PipelineContext): void {
  *
  * For text nodes: measures the text width and line count.
  * For box nodes: recursively measures children based on flex direction.
+ *
+ * @param availableWidth - When set, text nodes wrap at this width for height calculation.
+ *   Used when a container has fixed width + fit-content height.
  */
 function measureIntrinsicSize(
   node: TeaNode,
   ctx?: PipelineContext,
+  availableWidth?: number,
 ): {
   width: number
   height: number
@@ -56,8 +74,25 @@ function measureIntrinsicSize(
   }
 
   if (node.type === "silvery-text") {
+    const textProps = props as TextProps
     const text = collectTextContent(node)
-    const lines = text.split("\n")
+
+    // Apply internal_transform if present (used by Transform component).
+    // The transform is applied per-line, which can change the width.
+    const transform = textProps.internal_transform
+    let lines: string[]
+
+    if (availableWidth !== undefined && availableWidth > 0 && isWrapEnabled(textProps.wrap)) {
+      // Wrap text at available width to compute correct height
+      lines = ctx ? ctx.measurer.wrapText(text, availableWidth, true, true) : wrapText(text, availableWidth, true, true)
+    } else {
+      lines = text.split("\n")
+    }
+
+    if (transform) {
+      lines = lines.map((line, index) => transform(line, index))
+    }
+
     const width = Math.max(...lines.map((line) => getTextWidth(line, ctx)))
     return {
       width,
@@ -73,7 +108,7 @@ function measureIntrinsicSize(
 
   let childCount = 0
   for (const child of node.children) {
-    const childSize = measureIntrinsicSize(child, ctx)
+    const childSize = measureIntrinsicSize(child, ctx, availableWidth)
     childCount++
 
     if (isRow) {
@@ -112,6 +147,13 @@ function measureIntrinsicSize(
 }
 
 /**
+ * Check if text wrapping is enabled for a text node.
+ */
+function isWrapEnabled(wrap: TextProps["wrap"]): boolean {
+  return wrap === "wrap" || wrap === true || wrap === undefined
+}
+
+/**
  * Traverse tree in depth-first order.
  */
 function traverseTree(node: TeaNode, callback: (node: TeaNode) => void): void {
@@ -133,14 +175,24 @@ function getTextWidth(text: string, ctx?: PipelineContext): number {
 /**
  * Collect text content from a node and its children.
  * Used for measuring Text nodes that have nested Text children.
+ * Applies internal_transform from child nodes to match render-text.ts behavior.
  */
 function collectTextContent(node: TeaNode): string {
   if (node.textContent !== undefined) {
     return node.textContent
   }
   let result = ""
-  for (const child of node.children) {
-    result += collectTextContent(child)
+  for (let i = 0; i < node.children.length; i++) {
+    const child = node.children[i]!
+    let childText = collectTextContent(child)
+    // Apply internal_transform from virtual text nodes (nested Transform components).
+    // Matches render-text.ts collectPlainText: transform is applied to the full
+    // concatenated text of the child, with index = child position in parent's children array.
+    const childTransform = (child.props as TextProps).internal_transform
+    if (childTransform && childText.length > 0) {
+      childText = childTransform(childText, i)
+    }
+    result += childText
   }
   return result
 }

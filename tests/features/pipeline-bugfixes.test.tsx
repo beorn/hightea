@@ -10,7 +10,7 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
-import { Box, Text } from "@silvery/react"
+import { Box, Text, Transform } from "@silvery/react"
 import { createBuffer } from "@silvery/term/buffer"
 import { outputPhase, createOutputPhase } from "@silvery/term/pipeline/output-phase"
 import { contentPropsChanged } from "@silvery/react/reconciler/helpers"
@@ -579,5 +579,134 @@ describe("bg-segment-offsets: CJK/emoji bg segments use display-width coordinate
     expect(cellA.bg).not.toEqual(cellEmoji.bg)
     // emoji (blue) and B (green) should have different bg
     expect(cellEmoji.bg).not.toEqual(cellB.bg)
+  })
+})
+
+// ============================================================================
+// 9. measure-fit-transform: measureIntrinsicSize accounts for internal_transform
+// ============================================================================
+
+describe("measure-fit-transform: fit-content includes internal_transform width", () => {
+  test("Transform adding prefix increases fit-content width", () => {
+    const r = createRenderer({ cols: 40, rows: 5 })
+
+    // Transform adds "> " (2 chars) prefix to each line
+    const app = r(
+      <Box>
+        <Box width="fit-content">
+          <Transform transform={(line) => `> ${line}`}>
+            <Text>Hello</Text>
+          </Transform>
+        </Box>
+        <Text>|END</Text>
+      </Box>,
+    )
+
+    const text = stripAnsi(app.text)
+    // "Hello" is 5 chars, "> Hello" is 7 chars
+    // With transform accounted: fit-content width = 7, |END at col 7
+    // Without transform: fit-content width = 5, |END at col 5
+    expect(text).toContain("> Hello")
+    expect(text).toContain("|END")
+
+    const endIndex = text.indexOf("|END")
+    expect(endIndex).toBeGreaterThanOrEqual(7) // "> Hello" = 7 chars
+  })
+
+  test("Transform adding line numbers increases fit-content width", () => {
+    const r = createRenderer({ cols: 40, rows: 5 })
+
+    const app = r(
+      <Box>
+        <Box width="fit-content">
+          <Transform transform={(line, i) => `${i + 1}: ${line}`}>
+            <Text>{"AB\nCD"}</Text>
+          </Transform>
+        </Box>
+        <Text>|</Text>
+      </Box>,
+    )
+
+    const text = stripAnsi(app.text)
+    // "1: AB" = 5 chars, "2: CD" = 5 chars
+    // Without transform: "AB" = 2, "CD" = 2 → width = 2
+    // With transform: width = 5
+    expect(text).toContain("1: AB")
+    const pipeIndex = text.indexOf("|")
+    expect(pipeIndex).toBeGreaterThanOrEqual(5) // "1: AB" = 5 chars
+  })
+})
+
+// ============================================================================
+// 10. measure-fit-wrap: fit-content height accounts for text wrapping
+// ============================================================================
+
+describe("measure-fit-wrap: fit-content height wraps text at fixed width", () => {
+  test("long text wraps at fixed width, producing correct fit-content height", () => {
+    const r = createRenderer({ cols: 40, rows: 10 })
+
+    // A box with fixed width=10 and height=fit-content
+    // "AAAAAAAAAA BBBBBBBBBB" = 21 chars, wraps at width 10 to ~3 lines
+    const app = r(
+      <Box flexDirection="column">
+        <Box width={10} height="fit-content">
+          <Text wrap="wrap">AAAAAAAAAA BBBBBBBBBB</Text>
+        </Box>
+        <Text>AFTER</Text>
+      </Box>,
+    )
+
+    const text = stripAnsi(app.text)
+    const lines = text.split("\n")
+    const afterRow = lines.findIndex((l) => l.includes("AFTER"))
+    // "AAAAAAAAAA BBBBBBBBBB" at width 10 wraps to:
+    //   "AAAAAAAAAA" (10 chars)
+    //   "BBBBBBBBBB" (10 chars)
+    // = 2 lines (word wrap: break at space, trim leading space on continuation)
+    // So AFTER should appear at row 2, not row 1 (unwrapped line count)
+    expect(afterRow).toBeGreaterThanOrEqual(2)
+  })
+
+  test("single line that exceeds fixed width wraps to multiple lines", () => {
+    const r = createRenderer({ cols: 40, rows: 10 })
+
+    // "ABCDEFGHIJ" = 10 chars, width=5 → wraps to 2 lines
+    const app = r(
+      <Box flexDirection="column">
+        <Box width={5} height="fit-content">
+          <Text wrap="wrap">ABCDEFGHIJ</Text>
+        </Box>
+        <Text>AFTER</Text>
+      </Box>,
+    )
+
+    const text = stripAnsi(app.text)
+    const lines = text.split("\n")
+    const afterRow = lines.findIndex((l) => l.includes("AFTER"))
+    // "ABCDEFGHIJ" at width 5 character-wraps to:
+    //   "ABCDE" (5 chars)
+    //   "FGHIJ" (5 chars)
+    // = 2 lines
+    expect(afterRow).toBe(2)
+  })
+
+  test("text that fits in fixed width does not add extra height", () => {
+    const r = createRenderer({ cols: 40, rows: 10 })
+
+    // "Hi" = 2 chars, width=10 → fits in 1 line
+    const app = r(
+      <Box flexDirection="column">
+        <Box width={10} height="fit-content">
+          <Text>Hi</Text>
+        </Box>
+        <Text>AFTER</Text>
+      </Box>,
+    )
+
+    const text = stripAnsi(app.text)
+    const lines = text.split("\n")
+    const afterRow = lines.findIndex((l) => l.includes("AFTER"))
+    // No wrapping needed, height = 1
+    expect(afterRow).toBe(1)
   })
 })

@@ -74,6 +74,7 @@ const nodeStubPlugin: import("bun").BunPlugin = {
     const stubs: Record<string, string> = {
       child_process: "export function spawnSync() { return { status: 1, stdout: '', stderr: '' } }",
       "node:process": "export default globalThis.process",
+      "node:zlib": "export function deflateSync(buf) { return buf }",
     }
     for (const mod of Object.keys(stubs)) {
       build.onResolve({ filter: new RegExp(`^${mod}$`) }, (args) => ({
@@ -161,10 +162,14 @@ function extractMeta(source: string): { name?: string; description?: string; fea
 const SHOWCASE_SOURCE_MAP: Record<string, string> = {
   // Flagship keys
   aichat: "interactive/aichat/index.tsx",
+  gallery: "interactive/gallery.tsx",
   kanban: "interactive/kanban.tsx",
+  explorer: "interactive/explorer.tsx",
   wizard: "interactive/cli-wizard.tsx",
   dashboard: "layout/dashboard.tsx",
-  // gallery, explorer, terminal, components, theme — NEW, no source yet
+  terminal: "interactive/terminal.tsx",
+  components: "interactive/components.tsx",
+  theme: "interactive/theme.tsx",
 
   // Legacy / additional keys
   "ai-chat": "interactive/aichat/index.tsx",

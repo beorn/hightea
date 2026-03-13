@@ -681,7 +681,7 @@ function FocusTab(): JSX.Element {
 // Main App
 // ============================================================================
 
-function TerminalDemo({ kittySupported }: { kittySupported: boolean }): JSX.Element {
+export function TerminalDemo({ kittySupported }: { kittySupported: boolean }): JSX.Element {
   const { exit } = useApp()
 
   useInput((input: string, key: Key) => {

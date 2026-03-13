@@ -271,7 +271,18 @@ function executeRenderCore(
     using outputSpan = render.span("output")
     const t4 = performance.now()
     const outputFn = config?.outputPhaseFn ?? outputPhase
-    output = outputFn(prevBuffer, buffer, mode, scrollbackOffset, termRows, cursorPos)
+    try {
+      output = outputFn(prevBuffer, buffer, mode, scrollbackOffset, termRows, cursorPos)
+    } catch (e) {
+      // Output phase (SILVERY_STRICT_OUTPUT) may throw a diagnostic error.
+      // Attach the content-phase buffer so callers can still save it for
+      // incremental rendering continuity — the buffer is correct even when
+      // the ANSI output verification fails.
+      if (e instanceof Error) {
+        ;(e as any).__silvery_buffer = buffer
+      }
+      throw e
+    }
     tOutput = performance.now() - t4
     outputSpan.spanData.bytes = output.length
     log.debug?.(`output: ${tOutput.toFixed(2)}ms (${output.length} bytes)`)

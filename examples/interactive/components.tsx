@@ -407,7 +407,7 @@ function DisplayTab(): JSX.Element {
 // App
 // ============================================================================
 
-function ComponentsApp(): JSX.Element {
+export function ComponentsApp(): JSX.Element {
   const { exit } = useApp()
   const [activeTab, setActiveTab] = useState("typography")
 
