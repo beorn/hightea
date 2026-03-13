@@ -297,22 +297,24 @@ function handleScrollbackPromotion(
 }
 
 // These use getters so they can be set after module load (e.g., in test files).
-// SILVERY_STRICT enables buffer + output checks (per-frame).
-// SILVERY_STRICT_OUTPUT=0 explicitly disables output checking even when SILVERY_STRICT is set.
+// SILVERY_STRICT enables buffer-level checks (content phase).
+// SILVERY_STRICT_OUTPUT replays ANSI through xterm.js (termless) — requires explicit opt-in
+// since it catches genuine terminal divergences (e.g., wide char widths) that need separate fixes.
 // SILVERY_STRICT_ACCUMULATE is separate — it replays ALL frames (O(N²)) and is opt-in only.
 function isStrictOutput(): boolean {
-  const outputEnv = process.env.SILVERY_STRICT_OUTPUT
-  if (outputEnv === "0" || outputEnv === "false") return false
-  // Only activate when SILVERY_STRICT_OUTPUT is explicitly set.
-  // The old SILVERY_STRICT fallback was valid when the custom replayAnsiWithStyles
-  // shared the buffer's width assumptions. Now that verification uses a real terminal
-  // emulator (xterm.js via termless), it catches genuine terminal divergences (OSC 66,
-  // wide char continuation cells) that are separate from incremental rendering bugs.
-  // Use SILVERY_STRICT_OUTPUT=1 to opt in to terminal-backed output verification.
-  return !!outputEnv
+  return !!process.env.SILVERY_STRICT_OUTPUT
 }
 function isStrictAccumulate(): boolean {
   return !!process.env.SILVERY_STRICT_ACCUMULATE
+}
+function isStrictTerminal(): boolean {
+  const env = process.env.SILVERY_STRICT_TERMINAL
+  if (env === "0" || env === "false") return false
+  // Explicit opt-in only — STRICT_TERMINAL catches buffer-vs-terminal divergences
+  // (inline mode, scrollback promotion, wide char widths) that are expected in many
+  // test scenarios. Unlike STRICT_OUTPUT (incremental≡fresh), these divergences are
+  // often fundamental to how the terminal works, not rendering bugs.
+  return !!env
 }
 
 /** Per-instance state for SILVERY_STRICT_ACCUMULATE verification. */
@@ -821,7 +823,7 @@ export function outputPhase(
         for (let x = 0; x < w && !mismatchInfo; x++) {
           const ic = termIncr.getCell(y, x)
           const fc = termFresh.getCell(y, x)
-          if (ic.char !== fc.char || !sgrColorEquals(ic.fg, fc.fg) || !sgrColorEquals(ic.bg, fc.bg)) {
+          if ((ic.char || " ") !== (fc.char || " ") || !sgrColorEquals(ic.fg, fc.fg) || !sgrColorEquals(ic.bg, fc.bg)) {
             mismatchInfo = `MISMATCH at (${x},${y}): incr='${ic.char}' fresh='${fc.char}' incrFg=${formatColor(ic.fg)} freshFg=${formatColor(fc.fg)} incrBg=${formatColor(ic.bg)} freshBg=${formatColor(fc.bg)}`
             // Show row context
             let incrRow = ""
@@ -870,6 +872,15 @@ export function outputPhase(
     accState.accumulatedAnsi += incrOutput
     accState.accumulateFrameCount++
     verifyAccumulatedOutput(next, mode, ctx, accState)
+  }
+
+  // SILVERY_STRICT_TERMINAL: verify that the silvery buffer matches what a real
+  // terminal emulator (xterm.js) renders from the fresh ANSI output. Catches
+  // divergences where silvery's buffer disagrees with the terminal (e.g., wide
+  // character widths, SGR interpretation differences).
+  // Same text-sizing guard — xterm.js doesn't support OSC 66.
+  if (isStrictTerminal() && !outputTextSizingEnabled(ctx)) {
+    verifyTerminalEquivalence(next, mode, ctx)
   }
 
   if (CAPTURE_RAW) {
@@ -2100,8 +2111,12 @@ function verifyOutputEquivalence(
       for (let x = 0; x < w; x++) {
         const incr = termIncr.getCell(y, x)
         const fresh = termFresh.getCell(y, x)
+        // Normalize: xterm.js uses "" for never-written cells vs " " for cleared cells.
+        // Both are visually identical — only compare visible characters.
+        const incrChar = incr.char || " "
+        const freshChar = fresh.char || " "
 
-        if (incr.char !== fresh.char) {
+        if (incrChar !== freshChar) {
           // Build row context by reading cells
           let incrRow = ""
           let freshRow = ""
@@ -2120,15 +2135,17 @@ function verifyOutputEquivalence(
             const fc = termFresh.getCell(y, cx)
             const pc = prev.getCell(cx, y)
             const nc = next.getCell(cx, y)
-            const marker = cx === x ? " <<<" : ic.char !== fc.char ? " !!!" : ""
+            const icChar = ic.char || " "
+            const fcChar = fc.char || " "
+            const marker = cx === x ? " <<<" : icChar !== fcChar ? " !!!" : ""
             colDetails.push(
-              `  col ${cx}: prev='${pc.char}'(w=${pc.wide},c=${pc.continuation}) next='${nc.char}' incr='${ic.char}' fresh='${fc.char}' wide=${nc.wide} cont=${nc.continuation}${marker}`,
+              `  col ${cx}: prev='${pc.char}'(w=${pc.wide},c=${pc.continuation}) next='${nc.char}' incr='${icChar}' fresh='${fcChar}' wide=${nc.wide} cont=${nc.continuation}${marker}`,
             )
           }
 
           const msg =
             `SILVERY_STRICT_OUTPUT char mismatch at (${x},${y}): ` +
-            `incremental='${incr.char}' fresh='${fresh.char}'\n` +
+            `incremental='${incrChar}' fresh='${freshChar}'\n` +
             `  prev buffer cell: char='${prevCell.char}' bg=${prevCell.bg} wide=${prevCell.wide} cont=${prevCell.continuation}\n` +
             `  next buffer cell: char='${nextCell.char}' bg=${nextCell.bg} wide=${nextCell.wide} cont=${nextCell.continuation}\n` +
             `  incr row: ${incrRow}\n` +
@@ -2137,7 +2154,6 @@ function verifyOutputEquivalence(
             `Wide/cont cells on row ${y} (next buffer): ${_dumpRowWideCells(next, y)}\n` +
             `Wide/cont cells on row ${y} (prev buffer): ${_dumpRowWideCells(prev, y)}\n` +
             `Column detail around mismatch:\n${colDetails.join("\n")}`
-          console.error(msg)
           throw new IncrementalRenderMismatchError(msg)
         }
 
@@ -2197,12 +2213,13 @@ function verifyAccumulatedOutput(
       for (let x = 0; x < w; x++) {
         const accum = termAccum.getCell(y, x)
         const fresh = termFresh.getCell(y, x)
+        const accumChar = accum.char || " "
+        const freshChar = fresh.char || " "
 
-        if (accum.char !== fresh.char) {
+        if (accumChar !== freshChar) {
           const msg =
             `SILVERY_STRICT_ACCUMULATE char mismatch at (${x},${y}) after ${accState.accumulateFrameCount} frames: ` +
-            `accumulated='${accum.char}' fresh='${fresh.char}'`
-          console.error(msg)
+            `accumulated='${accumChar}' fresh='${freshChar}'`
           throw new IncrementalRenderMismatchError(msg)
         }
 
@@ -2221,7 +2238,6 @@ function verifyAccumulatedOutput(
           const msg =
             `SILVERY_STRICT_ACCUMULATE style mismatch at (${x},${y}) char='${accum.char}' after ${accState.accumulateFrameCount} frames: ` +
             diffs.join(", ")
-          console.error(msg)
           throw new IncrementalRenderMismatchError(msg)
         }
       }
@@ -2229,6 +2245,68 @@ function verifyAccumulatedOutput(
   } finally {
     void termAccum.close()
     void termFresh.close()
+  }
+}
+
+/**
+ * Verify that silvery's buffer matches what a real terminal emulator renders
+ * from the fresh ANSI output. Catches buffer-vs-terminal divergences such as
+ * wide character width disagreements or SGR interpretation differences.
+ *
+ * This is the STRICT_TERMINAL invariant — the ultimate ground truth check:
+ * "does our buffer match what a real terminal sees?"
+ */
+function verifyTerminalEquivalence(
+  buffer: TerminalBuffer,
+  mode: "fullscreen" | "inline",
+  ctx: OutputContext = defaultContext,
+): void {
+  const freshAnsi = bufferToAnsi(buffer, mode, ctx)
+  const term = createReplayTerminal(buffer.width, buffer.height)
+  term.feed(freshAnsi)
+
+  try {
+    for (let y = 0; y < buffer.height; y++) {
+      for (let x = 0; x < buffer.width; x++) {
+        // Buffer uses getCell(col, row); terminal uses getCell(row, col)
+        const ours = buffer.getCell(x, y)
+        const theirs = term.getCell(y, x)
+
+        // Character comparison — the primary check
+        if (ours.char !== theirs.char) {
+          // Skip continuation cells: buffer stores " " but terminal may store ""
+          if (ours.continuation) continue
+          const msg =
+            `SILVERY_STRICT_TERMINAL char divergence at (${x},${y}): ` +
+            `buffer='${ours.char}' terminal='${theirs.char}' ` +
+            `wide=${ours.wide} cont=${ours.continuation}`
+          throw new IncrementalRenderMismatchError(msg)
+        }
+
+        // Style comparison — secondary check
+        const diffs: string[] = []
+        if (!sgrColorEquals(ours.fg, theirs.fg)) diffs.push(`fg: ${formatColor(ours.fg)} vs ${formatColor(theirs.fg)}`)
+        if (!sgrColorEquals(ours.bg, theirs.bg)) diffs.push(`bg: ${formatColor(ours.bg)} vs ${formatColor(theirs.bg)}`)
+        if (ours.bold !== theirs.bold) diffs.push(`bold: ${ours.bold} vs ${theirs.bold}`)
+        if (ours.dim !== theirs.dim) diffs.push(`dim: ${ours.dim} vs ${theirs.dim}`)
+        if (ours.italic !== theirs.italic) diffs.push(`italic: ${ours.italic} vs ${theirs.italic}`)
+        // Underline: buffer may store boolean, terminal returns style string
+        const oursUl = ours.underline === true ? "single" : ours.underline
+        if (oursUl !== theirs.underline) diffs.push(`underline: ${ours.underline} vs ${theirs.underline}`)
+        if (ours.inverse !== theirs.inverse) diffs.push(`inverse: ${ours.inverse} vs ${theirs.inverse}`)
+        if (ours.strikethrough !== theirs.strikethrough)
+          diffs.push(`strikethrough: ${ours.strikethrough} vs ${theirs.strikethrough}`)
+
+        if (diffs.length > 0) {
+          const msg =
+            `SILVERY_STRICT_TERMINAL style divergence at (${x},${y}) char='${ours.char}': ` +
+            diffs.join(", ")
+          throw new IncrementalRenderMismatchError(msg)
+        }
+      }
+    }
+  } finally {
+    term.close()
   }
 }
 
