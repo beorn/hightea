@@ -305,10 +305,10 @@ function collectTextWithBg(
         text = sliceFn(text, maxDisplayWidth)
       }
     }
-    // plainLen tracks display width for budget, used for both budget tracking
-    // and BgSegment offset tracking (both are display-width based since
-    // mapLinesToCharOffsets works on plain text which maps 1:1 with display width
-    // for non-wide characters)
+    // plainLen tracks display width for budget and BgSegment offset tracking.
+    // Both use display-width coordinates consistently: collectTextWithBg uses
+    // getTextWidth for offsets, mapLinesToCharOffsets returns display-width,
+    // and applyBgSegmentsToLine compares via display-width (col - x).
     const plainLen = getTextWidth(text, ctx)
     return { text, bgSegments: [], plainLen }
   }
@@ -429,14 +429,14 @@ function applyBgSegmentsToLine(
     const overlapEnd = Math.min(seg.end, lineCharEnd)
     if (overlapStart >= overlapEnd) continue
 
-    // Convert character offsets to column positions within the line.
-    // We need to map "character offset relative to line start" to "screen column".
-    // The lineText may contain ANSI codes, so we use displayWidth-aware iteration.
+    // Convert display-width offsets to column positions within the line.
+    // BgSegment offsets and lineCharStart/lineCharEnd are all in display-width
+    // coordinates, so relStart/relEnd are display-width offsets within the line.
     const relStart = overlapStart - lineCharStart
     const relEnd = overlapEnd - lineCharStart
 
-    // Walk through the line's visible characters to find screen columns
-    let charIdx = 0
+    // Walk through the line's visible characters to find screen columns.
+    // Use display-width offset (col - x) to match BgSegment coordinate system.
     let col = x
     const graphemes = splitGraphemes(hasAnsi(lineText) ? stripAnsiForBg(lineText) : lineText)
 
@@ -444,7 +444,8 @@ function applyBgSegmentsToLine(
       const gWidth = gWidthFn(grapheme)
       if (gWidth === 0) continue
 
-      if (charIdx >= relStart && charIdx < relEnd) {
+      const displayOffset = col - x
+      if (displayOffset >= relStart && displayOffset < relEnd) {
         // This character is within the bg segment -- set bg on its cells.
         // Use readCellInto to avoid allocating a new Cell per iteration.
         buffer.readCellInto(col, y, bgCell)
@@ -458,8 +459,7 @@ function applyBgSegmentsToLine(
       }
 
       col += gWidth
-      charIdx++
-      if (charIdx >= relEnd) break
+      if (col - x >= relEnd) break
     }
   }
 }
@@ -485,30 +485,49 @@ function stripAnsiForBg(text: string): string {
  * Handles characters consumed by word wrapping (spaces at break points,
  * newlines) and characters added by truncation (ellipsis).
  *
+ * Returns display-width offsets (not UTF-16 code units) to match BgSegment
+ * coordinate system. BgSegments use display-width via getTextWidth/plainLen.
+ *
  * @param originalText - The original collected text (with ANSI, before wrapping)
  * @param formattedLines - The wrapped/truncated output lines
- * @returns Array of { start, end } character offsets for each formatted line
+ * @param ctx - Pipeline context for width measurement
+ * @returns Array of { start, end } display-width offsets for each formatted line
  */
-function mapLinesToCharOffsets(originalText: string, formattedLines: string[]): Array<{ start: number; end: number }> {
+function mapLinesToCharOffsets(
+  originalText: string,
+  formattedLines: string[],
+  ctx?: PipelineContext,
+): Array<{ start: number; end: number }> {
   // Strip ANSI from the original to get the plain text character sequence
   const plainOriginal = hasAnsi(originalText) ? stripAnsiForBg(originalText) : originalText
   // Normalize tabs to match formatTextLines behavior
   const normalized = plainOriginal.replace(/\t/g, "    ")
 
   const result: Array<{ start: number; end: number }> = []
-  let offset = 0
+  let charOffset = 0 // UTF-16 offset for string matching (findLineStart)
+  let displayOffset = 0 // Display-width offset for BgSegment matching
 
   for (const line of formattedLines) {
     const plainLine = hasAnsi(line) ? stripAnsiForBg(line) : line
 
-    // Find where this line starts in the normalized text.
-    // Search forward from current offset, skipping newlines and spaces
-    // that were consumed by the wrapping/splitting process.
-    const lineStart = findLineStart(normalized, plainLine, offset)
-    const lineLen = Math.min(plainLine.length, normalized.length - lineStart)
+    // Find where this line starts in the normalized text (UTF-16 matching).
+    const lineStart = findLineStart(normalized, plainLine, charOffset)
 
-    result.push({ start: lineStart, end: lineStart + lineLen })
-    offset = lineStart + lineLen
+    // Convert skipped characters (between previous line end and this line start)
+    // to display width. These are whitespace/newlines consumed by wrapping.
+    if (lineStart > charOffset) {
+      const skipped = normalized.slice(charOffset, lineStart)
+      displayOffset += getTextWidth(skipped, ctx)
+    }
+
+    // Line content display width
+    const lineDisplayWidth = getTextWidth(plainLine, ctx)
+    result.push({ start: displayOffset, end: displayOffset + lineDisplayWidth })
+
+    // Advance both offset trackers
+    const lineLen = Math.min(plainLine.length, normalized.length - lineStart)
+    charOffset = lineStart + lineLen
+    displayOffset += lineDisplayWidth
   }
 
   return result
@@ -1188,8 +1207,8 @@ export function renderText(
     lines = lines.map((line, index) => internalTransform(line, index))
   }
 
-  // Map formatted lines back to character offsets for bg segment application
-  const lineOffsets = bgSegments.length > 0 ? mapLinesToCharOffsets(text, lines) : []
+  // Map formatted lines back to display-width offsets for bg segment application
+  const lineOffsets = bgSegments.length > 0 ? mapLinesToCharOffsets(text, lines, ctx) : []
 
   // Render each line
   for (let lineIdx = 0; lineIdx < lines.length && lineIdx < height; lineIdx++) {

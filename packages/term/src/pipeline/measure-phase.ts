@@ -71,8 +71,10 @@ function measureIntrinsicSize(
   let width = 0
   let height = 0
 
+  let childCount = 0
   for (const child of node.children) {
     const childSize = measureIntrinsicSize(child, ctx)
+    childCount++
 
     if (isRow) {
       width += childSize.width
@@ -80,6 +82,17 @@ function measureIntrinsicSize(
     } else {
       width = Math.max(width, childSize.width)
       height += childSize.height
+    }
+  }
+
+  // Add gap between children
+  const gap = (props.gap as number) ?? 0
+  if (gap > 0 && childCount > 1) {
+    const totalGap = gap * (childCount - 1)
+    if (isRow) {
+      width += totalGap
+    } else {
+      height += totalGap
     }
   }
 

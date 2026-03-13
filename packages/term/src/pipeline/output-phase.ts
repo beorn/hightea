@@ -10,6 +10,7 @@ import {
   type Style,
   type TerminalBuffer,
   type UnderlineStyle,
+  VISIBLE_SPACE_ATTR_MASK,
   colorEquals,
   createMutableCell,
   hasActiveAttrs,
@@ -478,6 +479,7 @@ function cachedStyleToAnsi(style: Style, ctx: OutputContext): string {
   if (sgr !== undefined) return sgr
   sgr = styleToAnsi(style, ctx)
   ctx.sgrCache.set(key, sgr)
+  if (ctx.sgrCache.size > 1000) ctx.sgrCache.clear()
   return sgr
 }
 
@@ -610,6 +612,7 @@ function styleTransition(oldStyle: Style | null, newStyle: Style, ctx: OutputCon
   }
 
   ctx.transitionCache.set(cacheKey, result)
+  if (ctx.transitionCache.size > 1000) ctx.transitionCache.clear()
   return result
 }
 
@@ -804,9 +807,14 @@ function lineHasContent(buffer: TerminalBuffer, y: number): boolean {
   for (let x = 0; x < buffer.width; x++) {
     const ch = buffer.getCellChar(x, y)
     if (ch !== " " && ch !== "") return true
-    // Styled blank cells (background color, inverse, etc.) are visually meaningful
+    // Styled blank cells are visually meaningful:
+    // - background color (colored spacer rows)
+    // - inverse (visible block of fg color)
+    // - underline (visible line under space)
+    // - strikethrough (visible line through space)
     const bg = buffer.getCellBg(x, y)
     if (bg !== null) return true
+    if (buffer.getCellAttrs(x, y) & VISIBLE_SPACE_ATTR_MASK) return true
   }
   return false
 }
@@ -1808,7 +1816,9 @@ function styleToAnsi(style: Style, ctx: OutputContext = defaultContext): string 
 
   // Use SGR 7 for inverse — lets the terminal correctly swap fg/bg
   // (including default terminal colors that have no explicit ANSI code)
+  if (style.attrs.blink) result += "\x1b[5m"
   if (style.attrs.inverse) result += "\x1b[7m"
+  if (style.attrs.hidden) result += "\x1b[8m"
   if (style.attrs.strikethrough) result += "\x1b[9m"
 
   // Append underline color if specified (SGR 58) — skip for limited terminals
@@ -2308,8 +2318,11 @@ function verifyOutputEquivalence(
     return parts.join(" ")
   }
 
-  // Compare character by character AND style by style
-  for (let y = 0; y < compareHeight; y++) {
+  // Compare character by character AND style by style.
+  // Use vtHeight (not compareHeight) to catch stale rows after height shrink.
+  // When prev.height > next.height, stale rows beyond next.height must be
+  // verified as cleared — otherwise incremental output silently diverges.
+  for (let y = 0; y < vtHeight; y++) {
     for (let x = 0; x < w; x++) {
       const incr = screenIncr[y]![x]!
       const fresh = screenFresh[y]![x]!

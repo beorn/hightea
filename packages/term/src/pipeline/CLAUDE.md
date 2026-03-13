@@ -180,7 +180,7 @@ When only some descendants changed:
 - Children use `hasPrevBuffer=true` and skip via fast-path if clean
 - Only dirty descendants re-render
 
-**Exception with sticky children**: When sticky children exist in Tier 3, all first-pass items are forced to re-render (`stickyForceRefresh`). This is needed because of the Text bg inheritance coupling (see next section).
+**Exception with sticky children**: When sticky children exist in Tier 3, all first-pass items are forced to re-render (`stickyForceRefresh`). This is needed because sticky headers overwrite first-pass content in a second pass -- the cloned buffer has stale content from previous frames' sticky positions that must be refreshed before the sticky pass.
 
 ## Sticky Children Two-Pass Rendering
 
@@ -200,15 +200,17 @@ Text nodes with no explicit background inherit bg from their nearest ancestor Bo
 ```typescript
 // content-phase.ts: compute and pass inherited bg
 const textInheritedBg = findInheritedBg(node).color
-renderText(node, buffer, layout, props, scrollOffset, clipBounds, textInheritedBg)
+const textInheritedFg = findInheritedFg(node)
+renderText(node, buffer, layout, props, nodeState, textInheritedBg, textInheritedFg, ctx)
 
-// render-text.ts → renderGraphemes: use inherited bg instead of buffer read
-const existingBg = style.bg !== null ? style.bg : inheritedBg !== undefined ? inheritedBg : buffer.getCellBg(col, y) // legacy fallback for external callers
+// render-text.ts → renderGraphemes: priority chain for bg
+// 1) Text's own bg  2) inheritedBg from ancestor Box  3) getCellBg buffer read (legacy fallback)
+const existingBg = style.bg !== null ? style.bg : inheritedBg !== undefined ? inheritedBg : buffer.getCellBg(col, y)
 ```
 
-**Why not getCellBg?** The old approach read bg from the buffer (`getCellBg`), creating a coupling between text rendering and buffer state. On incremental renders, the cloned buffer could have stale bg at positions outside the parent's bg-filled region (e.g., overflow text, moved nodes). Using `inheritedBg` from the render tree is deterministic regardless of buffer state.
+**Why inheritedBg instead of getCellBg?** The old approach read bg from the buffer (`getCellBg`), creating a coupling between text rendering and buffer state. On incremental renders, the cloned buffer could have stale bg at positions outside the parent's bg-filled region (e.g., overflow text, moved nodes). Using `inheritedBg` from the render tree is deterministic regardless of buffer state. The `getCellBg` fallback remains only for external callers of `renderTextLine` that don't pass `inheritedBg` (e.g., scroll indicators in render-box.ts).
 
-**stickyForceRefresh** still exists for a related but different reason: sticky headers overwrite buffer content in a second pass, and Tier 3 incremental renders need to ensure all first-pass items re-render with correct content before the sticky pass.
+**stickyForceRefresh** exists because sticky headers overwrite first-pass content in a second pass, and the cloned buffer has stale content from previous frames' sticky positions. Tier 3 incremental renders need all first-pass items to re-render (with a pre-clear to null bg) to ensure the buffer matches fresh render state before the sticky pass.
 
 Nested Text `backgroundColor` is handled separately via `BgSegment` tracking (not ANSI codes) to prevent bg bleed across wrapped text lines.
 
@@ -272,7 +274,7 @@ When a child overflows its parent (e.g., text content extending beyond the paren
 
 3. **Buffer shift + sticky = corruption.** Never use Tier 1 (scrollRegion shift) when sticky children exist. The sticky second pass overwrites pixels that the shift assumed were final.
 
-4. **Scroll Tier 3 + sticky = stale bg.** The cloned buffer has stale bg from previous frames' sticky positions. Tier 3 (no viewport clear) must force all items to re-render and pre-clear to null bg.
+4. **Scroll Tier 3 + sticky = stale content.** The cloned buffer has stale content from previous frames' sticky positions. Tier 3 (no viewport clear) must force all items to re-render (`stickyForceRefresh`) and pre-clear to null bg to match fresh render state.
 
 5. **Absolute children need ancestorCleared=false in second pass.** After the first pass, the buffer at absolute positions has correct normal-flow content. Setting ancestorCleared=true causes transparent absolute overlays to clear that content.
 
@@ -361,16 +363,16 @@ Returns `ChangesResult { output: string, finalY: number }` — the final cursor 
 
 ## File Map
 
-| File              | Responsibility                                                                                             |
-| ----------------- | ---------------------------------------------------------------------------------------------------------- |
-| content-phase.ts  | Tree traversal, dirty-flag evaluation, incremental cascade logic, scroll container tiers, region clearing  |
-| render-box.ts     | Box bg fill (`skipBgFill` aware), border rendering, scroll indicators                                      |
-| render-text.ts    | Text content collection, ANSI parsing, bg segment tracking, `getCellBg` inheritance, bg conflict detection |
-| layout-phase.ts   | Layout calculation, scroll state, screen rects, layout subscriber notification                             |
-| measure-phase.ts  | Intrinsic size measurement for fit-content nodes                                                           |
-| output-phase.ts   | Buffer diff, dirty row tracking, minimal ANSI output generation, inline incremental rendering              |
-| render-helpers.ts | Color parsing, text width, border chars, style computation                                                 |
-| helpers.ts        | Border/padding size calculation                                                                            |
+| File              | Responsibility                                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------ |
+| content-phase.ts  | Tree traversal, dirty-flag evaluation, incremental cascade logic, scroll container tiers, region clearing    |
+| render-box.ts     | Box bg fill (`skipBgFill` aware), border rendering, scroll indicators                                        |
+| render-text.ts    | Text content collection, ANSI parsing, bg segment tracking, `inheritedBg` inheritance, bg conflict detection |
+| layout-phase.ts   | Layout calculation, scroll state, screen rects, layout subscriber notification                               |
+| measure-phase.ts  | Intrinsic size measurement for fit-content nodes                                                             |
+| output-phase.ts   | Buffer diff, dirty row tracking, minimal ANSI output generation, inline incremental rendering                |
+| render-helpers.ts | Color parsing, text width, border chars, style computation                                                   |
+| helpers.ts        | Border/padding size calculation                                                                              |
 
 ## Lessons from Past Sessions
 
@@ -390,16 +392,16 @@ Returns `ChangesResult { output: string, finalY: number }` — the final cursor 
 
 10/10 fuzz failures in `render-fuzz.fuzz.ts` after sticky children support was added. Three complementary fixes were needed:
 
-1. **Full viewport clear to `bg: null`** — In Tier 2 (needsViewportClear), the viewport was being cleared to inherited bg, but fresh renders start with null bg. Text nodes read bg via `getCellBg`, so clearing to inherited bg produced different output than fresh. Fix: clear to `null`.
+1. **Full viewport clear to `bg: null`** — In Tier 2 (needsViewportClear), the viewport was being cleared to inherited bg, but fresh renders start with null bg. Clearing to inherited bg produced different output than fresh because Text nodes would inherit different bg values. Fix: clear to `null`. (Note: Text bg inheritance now uses explicit `inheritedBg` parameter rather than `getCellBg` buffer reads, but the viewport still must be cleared to null to match fresh render state.)
 
-2. **`stickyForceRefresh` in Tier 3** — When sticky children exist and only `subtreeDirty` is set (Tier 3), the cloned buffer has stale bg from previous frames' sticky positions. All first-pass items must re-render to paint correct bg before the sticky second pass overwrites. Without this, Text nodes at old sticky positions read stale bg.
+2. **`stickyForceRefresh` in Tier 3** — When sticky children exist and only `subtreeDirty` is set (Tier 3), the cloned buffer has stale content from previous frames' sticky positions. All first-pass items must re-render before the sticky second pass overwrites. Without this, stale content from old sticky positions persists.
 
 3. **Sticky `ancestorCleared=false`** — The second pass renders sticky headers ON TOP of first-pass content. Using `ancestorCleared=true` caused transparent spacer Boxes to clear their region, wiping overlapping sticky headers rendered earlier in the same pass. Fresh render has first-pass content at sticky positions, not "cleared" space.
 
 **Blind paths in this session:**
 
-- Pre-clearing only current sticky positions (missed that OLD positions also had stale bg)
-- Setting `hasPrevBuffer=false` without clearing buffer (Text still reads stale bg via `getCellBg`)
+- Pre-clearing only current sticky positions (missed that OLD positions also had stale content)
+- Setting `hasPrevBuffer=false` without clearing buffer (stale content remains in the cloned buffer regardless of hasPrevBuffer flag)
 - Attempting to fix with `ancestorCleared=true` for sticky children (broke transparent overlays)
 
 ### Output Phase: True Color Row Pre-Check Bug (2026-02-24)
@@ -448,8 +450,8 @@ Fix: `BgSegment` tracking in `render-text.ts` strips ANSI bg from text content a
 | --------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
 | Broader viewport clearing                     | Causes 12ms regression (re-renders ~50 children vs 2 dirty ones)               | Only clear viewport for Tier 2 triggers (childrenDirty, scroll+sticky, parentRegionChanged)  |
 | Using `needsOwnRepaint` for cascade           | Includes `paintDirty`; border color changes cascade through ~200 child nodes   | Use `contentAreaAffected` — excludes pure paint changes                                      |
-| Pre-clearing only current sticky positions    | Old positions also have stale bg in the buffer                                 | Clear entire viewport to `null` bg                                                           |
-| `hasPrevBuffer=false` without clearing buffer | Text reads stale bg via `getCellBg` regardless of hasPrevBuffer flag           | Clear viewport first, then set `hasPrevBuffer=false`                                         |
+| Pre-clearing only current sticky positions    | Old positions also have stale content in the buffer                            | Clear entire viewport to `null` bg                                                           |
+| `hasPrevBuffer=false` without clearing buffer | Stale content remains in the cloned buffer regardless of hasPrevBuffer flag    | Clear viewport first, then set `hasPrevBuffer=false`                                         |
 | `ancestorCleared=true` for sticky second pass | Transparent spacer Boxes clear their region, wiping overlapping sticky content | Use `ancestorCleared=false` — matches fresh render semantics                                 |
 | Blaming the terminal emulator                 | If 3 terminals show the same glitch, it's your code                            | Use `withDiagnostics` + `SILVERY_STRICT=1` first                                             |
 | Hand-rolling VirtualTerminal tests            | Too simple to catch real app complexity                                        | Use `withDiagnostics(createBoardDriver(...))`                                                |
@@ -469,7 +471,7 @@ Fix: `BgSegment` tracking in `render-text.ts` strips ANSI bg from text content a
 
 5. **Check the five critical formulas** — `layoutChanged`, `contentAreaAffected`, `parentRegionCleared`, `skipBgFill`, `parentRegionChanged` in `renderNodeToBuffer`. If any is wrong, the cascade propagates errors to the entire subtree.
 
-6. **`getCellBg` coupling awareness** — Any change to when/how regions are cleared affects what Text nodes render. If your fix clears a region, check whether Text nodes at that position will read correct or stale bg.
+6. **Text bg inheritance awareness** — Text nodes inherit bg via `inheritedBg` (from `findInheritedBg`), not buffer reads. However, viewport clears and region clears still affect buffer state, which matters for the `getCellBg` legacy fallback (used by scroll indicators). If your fix clears a region, verify it clears to the correct bg (usually `null` to match fresh render state).
 
 7. **Parallel hypothesis testing** — When multiple hypotheses exist (dirty flag issue vs scroll tier issue vs bg inheritance issue), launch parallel sub-agents to test each with a targeted test.
 
@@ -477,14 +479,14 @@ Fix: `BgSegment` tracking in `render-text.ts` strips ANSI bg from text content a
 
 | Symptom                                                    | Check First                                                                                                                    |
 | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Stale background color persists                            | `bgDirty` flag; `getCellBg` coupling; is region being cleared?                                                                 |
+| Stale background color persists                            | `bgDirty` flag; `inheritedBg` from `findInheritedBg`; is region being cleared?                                                 |
 | Border artifacts after color change                        | `paintDirty` vs `contentAreaAffected` distinction; border-only change should NOT cascade                                       |
 | Scroll glitch (content jumps/disappears)                   | Scroll tier selection; Tier 1 unsafe with sticky; Tier 3 needs `stickyForceRefresh`                                            |
 | Children blank after parent changes                        | `parentRegionChanged` → `childHasPrev=false`; is viewport clear setting `childHasPrev` correctly?                              |
 | Absolute child disappears                                  | Two-pass rendering order; absolute children need `ancestorCleared=false` in second pass                                        |
 | Content correct initially, wrong after navigation          | Incremental rendering bug; `SILVERY_STRICT=1` will catch it                                                                    |
 | Colors wrong but characters correct (garble)               | Output phase: `diffBuffers` row pre-check skipping true-color Map diffs; check `rowExtrasEquals`                               |
-| Text bg different from parent Box bg                       | `getCellBg` reading stale buffer; check if region was cleared to correct bg                                                    |
+| Text bg different from parent Box bg                       | `inheritedBg` from `findInheritedBg`; check if ancestor Box has `backgroundColor`; check region clearing                       |
 | Flickering on every render                                 | Check `layoutChangedThisFrame` flag; verify `syncPrevLayout` runs at end of content phase                                      |
 | Stale overlay pixels after shrink (black area)             | `clearExcessArea` not called; check `parentRegionCleared` + `forceRepaint` interaction                                         |
 | CJK/wide char garble, text shifts right                    | `bufferToAnsi` cursor drift: wide char without continuation at col+1. Run `SILVERY_STRICT_OUTPUT=1`                            |

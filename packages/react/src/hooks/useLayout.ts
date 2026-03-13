@@ -194,3 +194,101 @@ export function useScreenRectCallback(callback: (rect: Rect) => void): void {
     }
   }, [node])
 }
+
+// ============================================================================
+// Render Rect Hooks (actual render position, accounting for sticky offsets)
+// ============================================================================
+
+/**
+ * Returns the actual render position for the current component.
+ * For non-sticky nodes, this equals `useScreenRect()`.
+ * For sticky nodes (position="sticky"), this accounts for sticky render
+ * offsets — the position where pixels are actually painted on screen.
+ *
+ * Use this for hit testing, cursor positioning, and any feature that
+ * needs to know where a node visually appears on screen.
+ *
+ * On first render, returns { x: 0, y: 0, width: 0, height: 0 }.
+ * After layout completes, automatically re-renders with actual dimensions.
+ *
+ * @example
+ * ```tsx
+ * function StickyHeader() {
+ *   const { y } = useRenderRect();
+ *   // y is the actual render row, accounting for sticky offset
+ *   return <Box position="sticky" stickyTop={0}>Header at row {y}</Box>;
+ * }
+ * ```
+ */
+export function useRenderRect(): Rect {
+  const node = useContext(NodeContext)
+  const [, forceUpdate] = useReducer((x: number) => x + 1, 0)
+  const prevRenderRectRef = useRef<Rect | null>(null)
+
+  useLayoutEffect(() => {
+    if (!node) return
+
+    const handleLayoutComplete = () => {
+      // Re-render when renderRect changes (can happen from sticky offset
+      // changes even when screenRect stays the same)
+      if (!rectEqual(prevRenderRectRef.current, node.renderRect)) {
+        prevRenderRectRef.current = node.renderRect
+        forceUpdate()
+      }
+    }
+
+    node.layoutSubscribers.add(handleLayoutComplete)
+    return () => {
+      node.layoutSubscribers.delete(handleLayoutComplete)
+    }
+  }, [node])
+
+  return node?.renderRect ?? { x: 0, y: 0, width: 0, height: 0 }
+}
+
+/**
+ * Callback invoked with actual render position after render.
+ * Does NOT cause re-renders - use for position registration in large lists.
+ *
+ * For non-sticky nodes, the rect equals screenRect. For sticky nodes,
+ * it reflects the actual render position accounting for sticky offsets.
+ *
+ * @example
+ * ```tsx
+ * function Card({ id, onLayout }) {
+ *   useRenderRectCallback((rect) => {
+ *     // rect.y is actual render row, accounting for sticky
+ *     onLayout(id, rect.y);
+ *   });
+ *   return <Box>...</Box>;
+ * }
+ * ```
+ */
+export function useRenderRectCallback(callback: (rect: Rect) => void): void {
+  const node = useContext(NodeContext)
+
+  // Use ref to always have current callback without re-subscribing
+  const callbackRef = useRef(callback)
+  callbackRef.current = callback
+
+  useLayoutEffect(() => {
+    if (!node) return
+
+    const handleLayoutComplete = () => {
+      if (node.renderRect) {
+        callbackRef.current(node.renderRect)
+      }
+    }
+
+    node.layoutSubscribers.add(handleLayoutComplete)
+
+    // Also call immediately if render rect already computed
+    if (node.renderRect) {
+      callbackRef.current(node.renderRect)
+    }
+
+    return () => {
+      node.layoutSubscribers.delete(handleLayoutComplete)
+    }
+  }, [node])
+}

@@ -142,6 +142,14 @@ const TRUE_COLOR_FG_FLAG = 1 << 29
 const TRUE_COLOR_BG_FLAG = 1 << 30
 // bit 31 spare
 
+/**
+ * Packed attribute bits that make a space character visually meaningful.
+ * Inverse makes spaces visible (block of color), underline draws a line under spaces,
+ * strikethrough draws a line through spaces. Other attrs (bold, dim, italic) don't
+ * visually affect space characters.
+ */
+export const VISIBLE_SPACE_ATTR_MASK = ATTR_INVERSE | ATTR_STRIKETHROUGH | UNDERLINE_STYLE_MASK
+
 // Default empty cell
 const EMPTY_CELL: Cell = {
   char: " ",

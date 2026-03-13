@@ -289,7 +289,14 @@ export type { SixelImageData } from "@silvery/ui/image/sixel-encoder"
  * }
  * ```
  */
-export { useContentRect, useContentRectCallback, useScreenRect, useScreenRectCallback } from "./hooks/useLayout"
+export {
+  useContentRect,
+  useContentRectCallback,
+  useScreenRect,
+  useScreenRectCallback,
+  useRenderRect,
+  useRenderRectCallback,
+} from "./hooks/useLayout"
 
 /**
  * Keyboard input hook.

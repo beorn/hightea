@@ -606,9 +606,9 @@ function renderNodeToBuffer(
     } else if (node.type === "silvery-text") {
       if (instrumentEnabled) stats.textNodes++
       // Pass inherited bg/fg from nearest ancestor with backgroundColor/color.
-      // This decouples text inheritance from buffer state, which is critical
-      // for incremental rendering: getCellBg on a cloned buffer may return stale
-      // bg at positions outside the parent's bg-filled region (overflow text).
+      // inheritedBg decouples text rendering from buffer state, which is critical
+      // for incremental rendering: the cloned buffer may have stale bg at positions
+      // outside the parent's bg-filled region (e.g., overflow text, moved nodes).
       // Foreground inheritance matches CSS semantics: Box color cascades to Text children.
       const textInheritedBg = findInheritedBg(node).color
       const textInheritedFg = findInheritedFg(node)
@@ -643,13 +643,8 @@ function renderNodeToBuffer(
       renderOutline(buffer, x, y, width, height, props, clipBounds, boxInheritedBg)
     }
 
-    // Clear dirty flags
-    node.contentDirty = false
-    node.paintDirty = false
-    node.bgDirty = false
-    node.subtreeDirty = false
-    node.childrenDirty = false
-    node.layoutChangedThisFrame = false
+    // Clear dirty flags (current node only — children clear their own when rendered)
+    clearNodeDirtyFlags(node)
   } finally {
     // Pop per-subtree theme override (after ALL child passes including absolute/sticky)
     if (nodeTheme) popContextTheme()
@@ -747,6 +742,18 @@ function renderScrollContainerChildren(
     }
   }
 
+  // STRICT invariant: Scroll Tier 1 (buffer shift) must never be used when sticky
+  // children exist. Sticky children render in a second pass that overwrites first-pass
+  // content — after a buffer shift, those overwritten pixels corrupt items at new
+  // positions. If this fires, the scrollOnly guard above has a logic error.
+  if (process.env.SILVERY_STRICT && scrollOnly && hasStickyChildren) {
+    throw new Error(
+      `[SILVERY_STRICT] Scroll Tier 1 (buffer shift) activated with sticky children ` +
+        `(node: ${(props.id as string | undefined) ?? node.type}, ` +
+        `stickyCount: ${ss.stickyChildren?.length ?? 0})`,
+    )
+  }
+
   // Compute viewport geometry (shared by both paths)
   const clearY = childClipBounds.top
   const clearHeight = childClipBounds.bottom - childClipBounds.top
@@ -813,11 +820,11 @@ function renderScrollContainerChildren(
 
   // When sticky children exist and we're in tier 3 (subtreeDirty only, no
   // viewport clear), force ALL first-pass items to re-render. This is needed
-  // because sticky headers render in a second pass where Text inherits bg from
-  // the buffer via getCellBg (render-text.ts:600). On a fresh render, the buffer
-  // has correct first-pass content. On incremental renders, the cloned buffer may
-  // have stale bg from PREVIOUS frames' sticky headers at various positions —
-  // both current AND former sticky positions. Forcing all items to re-render
+  // because sticky headers render in a second pass that overwrites first-pass
+  // content. On a fresh render, the buffer has correct first-pass content at
+  // all positions. On incremental renders, the cloned buffer may have stale
+  // content from PREVIOUS frames' sticky headers at various positions — both
+  // current AND former sticky positions. Forcing all items to re-render
   // ensures the buffer matches fresh render state before the sticky pass.
   //
   // Performance: this re-renders all visible items (~20-50) instead of just
@@ -828,10 +835,10 @@ function renderScrollContainerChildren(
   // Full viewport clear for sticky containers: clear to blank (bg=null) to
   // match fresh buffer state. The cloned buffer has stale sticky header content
   // from previous frames at positions that may have moved. Pre-clearing only
-  // current sticky positions is insufficient because Text nodes at ANY position
-  // inherit bg via getCellBg (render-text.ts:600) — stale bg from old sticky
-  // positions leaks through. Clearing the entire viewport ensures Text reads
-  // null bg everywhere, matching fresh render behavior.
+  // current sticky positions is insufficient because stale bg from old sticky
+  // positions leaks through to Text nodes via inheritedBg or getCellBg fallback.
+  // Clearing the entire viewport ensures a clean slate matching fresh render
+  // behavior (null bg everywhere before any content renders).
   //
   // Uses bg=null (not scrollBg/inherited bg) because fresh render starts with
   // a blank buffer — the viewport has null bg before any content renders.
@@ -915,9 +922,9 @@ function renderScrollContainerChildren(
       // parentRegionCleared), wiping overlapping sticky headers rendered earlier
       // in this pass.
       //
-      // Stale bg from previous frames is handled by the first-pass overlap
-      // forcing above, which ensures correct bg is in the buffer before sticky
-      // Text nodes inherit it via getCellBg (render-text.ts:600).
+      // Stale bg from previous frames is handled by the stickyForceRefresh
+      // pre-clear above, which ensures correct bg is in the buffer before sticky
+      // children render on top of first-pass content.
       renderNodeToBuffer(
         child,
         buffer,
@@ -975,9 +982,9 @@ function renderNormalChildren(
 
   // Pre-clear the content area to bg=null when stickyForceRefresh is true.
   // Fresh renders start with a blank buffer (null bg everywhere). The cloned
-  // buffer has stale bg from old sticky positions — Text nodes inherit bg via
-  // getCellBg/inheritedBg, so stale bg leaks through. Clearing to null matches
-  // fresh render state before any content renders.
+  // buffer has stale content from old sticky positions that would leak through
+  // on incremental renders. Clearing to null matches fresh render state before
+  // any content renders.
   if (stickyForceRefresh) {
     const border = props.borderStyle ? getBorderSize(props) : { top: 0, bottom: 0, left: 0, right: 0 }
     const padding = getPadding(props)
@@ -1149,15 +1156,23 @@ function renderNormalChildren(
 // ============================================================================
 
 /**
- * Clear dirty flags on a subtree that was skipped during incremental rendering.
+ * Clear dirty flags on the current node only (no recursion).
+ * Used after rendering a node to reset its flags.
  */
-function clearDirtyFlags(node: TeaNode): void {
+function clearNodeDirtyFlags(node: TeaNode): void {
   node.contentDirty = false
   node.paintDirty = false
   node.bgDirty = false
   node.subtreeDirty = false
   node.childrenDirty = false
   node.layoutChangedThisFrame = false
+}
+
+/**
+ * Clear dirty flags on a subtree that was skipped during incremental rendering.
+ */
+function clearDirtyFlags(node: TeaNode): void {
+  clearNodeDirtyFlags(node)
   for (const child of node.children) {
     if (child.layoutNode) {
       clearDirtyFlags(child)
@@ -1177,12 +1192,7 @@ function clearDirtyFlags(node: TeaNode): void {
  * markSubtreeDirty() propagation on future updates.
  */
 function clearVirtualTextFlags(node: TeaNode): void {
-  node.contentDirty = false
-  node.paintDirty = false
-  node.bgDirty = false
-  node.subtreeDirty = false
-  node.childrenDirty = false
-  node.layoutChangedThisFrame = false
+  clearNodeDirtyFlags(node)
   for (const child of node.children) {
     clearVirtualTextFlags(child)
   }

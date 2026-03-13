@@ -1,13 +1,52 @@
 /**
- * Phase 3: Content Phase (Adapter-aware)
+ * Phase 3: Content Phase (Adapter-aware) -- DIVERGENT RENDERER
  *
- * Render all nodes to a RenderBuffer using the current RenderAdapter.
- * This is a parallel implementation that works with any adapter (terminal, canvas, etc.)
+ * A simplified, adapter-agnostic content renderer that renders the full node
+ * tree to a RenderBuffer every frame. Used by `executeRenderAdapter()` for
+ * non-terminal targets (xterm.js web showcases, canvas, etc.) where the main
+ * terminal-optimized content phase cannot be used.
  *
- * Key differences from content-phase.ts:
- * - Uses RenderBuffer interface instead of TerminalBuffer directly
- * - Works with pixel dimensions (canvas) or cell dimensions (terminal)
- * - Delegates to adapter for text measurement and styling
+ * Relationship to content-phase.ts:
+ *   content-phase.ts is the primary renderer for terminal output. It has
+ *   incremental rendering (dirty flags, buffer cloning, fast-path skips),
+ *   bg inheritance via findInheritedBg(), ANSI-aware text rendering, theme
+ *   context propagation, region clearing, excess area cleanup, descendant
+ *   overflow detection, and extensive instrumentation/STRICT mode support.
+ *
+ *   This file is a parallel implementation that re-implements the same tree
+ *   traversal and rendering logic but against the abstract RenderBuffer
+ *   interface (drawChar/drawText/fillRect) instead of TerminalBuffer directly.
+ *
+ * Why it exists:
+ *   The RenderAdapter abstraction (see render-adapter.ts) allows silvery to
+ *   target different backends -- terminal, xterm.js, canvas. The main
+ *   content-phase.ts is tightly coupled to TerminalBuffer (cell-level access,
+ *   getCellBg, scrollRegion, packed metadata). This adapter version works with
+ *   any RenderBuffer implementation, making it usable for web showcases and
+ *   future non-terminal targets.
+ *
+ * Known divergences from content-phase.ts:
+ *   - No incremental rendering: full re-render every frame (no dirty flag
+ *     evaluation, no buffer cloning, no fast-path skips)
+ *   - No bg inheritance via findInheritedBg() for text -- uses a simpler
+ *     ancestor walk (findAncestorBg) that doesn't handle all edge cases
+ *   - No theme context propagation (pushContextTheme/popContextTheme)
+ *   - No region clearing or excess area cleanup (not needed without
+ *     incremental rendering since the buffer starts fresh each frame)
+ *   - No instrumentation, STRICT mode, or diagnostic support
+ *   - No ANSI-aware text rendering (collectTextContent is plain string
+ *     concatenation, not the segment-based BgSegment approach)
+ *   - No absolute/sticky two-pass paint order in renderNormalChildren
+ *     (sticky is handled but absolute children render inline with normal flow)
+ *
+ * Future direction:
+ *   The xterm-unification design (docs/design/xterm-unification.md) proposes
+ *   eliminating this file by making xterm.js use the main terminal pipeline
+ *   via createXtermProvider(). Since xterm.js is a terminal emulator that
+ *   accepts ANSI output, it can use the real content-phase.ts + output-phase.ts
+ *   and benefit from incremental rendering. Until then, this file must be
+ *   maintained in parallel -- any rendering feature added to content-phase.ts
+ *   may need a corresponding (simplified) implementation here.
  */
 
 import { type RenderBuffer, type RenderStyle, getRenderAdapter, hasRenderAdapter } from "../render-adapter"

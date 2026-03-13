@@ -28,10 +28,10 @@ Flexily is a pure JavaScript layout engine with a Yoga-compatible API. It's the 
 If you want to explicitly set up Flexily (not usually necessary):
 
 ```tsx
-import { render, setLayoutEngine, createFlexxEngine, Box, Text } from "silvery"
+import { render, setLayoutEngine, createFlexilyEngine, Box, Text } from "silvery"
 
 // Initialize Flexily (synchronous - no await needed)
-setLayoutEngine(createFlexxEngine())
+setLayoutEngine(createFlexilyEngine())
 
 // Now render uses Flexily for layout
 using term = createTerm()
@@ -43,9 +43,9 @@ await render(<App />, term)
 Since Flexily doesn't require async initialization, you can use `renderSync()`:
 
 ```tsx
-import { renderSync, setLayoutEngine, createFlexxEngine } from "silvery"
+import { renderSync, setLayoutEngine, createFlexilyEngine } from "silvery"
 
-setLayoutEngine(createFlexxEngine())
+setLayoutEngine(createFlexilyEngine())
 
 // No await needed for renderSync
 using term = createTerm()
@@ -63,9 +63,9 @@ function setLayoutEngine(engine: LayoutEngine): void
 Sets the global layout engine instance. Must be called before rendering if you want to use a non-default engine.
 
 ```tsx
-import { setLayoutEngine, createFlexxEngine } from "silvery"
+import { setLayoutEngine, createFlexilyEngine } from "silvery"
 
-setLayoutEngine(createFlexxEngine())
+setLayoutEngine(createFlexilyEngine())
 ```
 
 ### createYogaEngine()
@@ -99,18 +99,18 @@ const engine = await initYogaEngine()
 setLayoutEngine(engine)
 ```
 
-### createFlexxEngine()
+### createFlexilyEngine()
 
 ```ts
-function createFlexxEngine(): FlexxLayoutEngine
+function createFlexilyEngine(): FlexilyLayoutEngine
 ```
 
 Creates a Flexily layout engine. Unlike Yoga, this is synchronous:
 
 ```tsx
-import { setLayoutEngine, createFlexxEngine } from "silvery"
+import { setLayoutEngine, createFlexilyEngine } from "silvery"
 
-setLayoutEngine(createFlexxEngine())
+setLayoutEngine(createFlexilyEngine())
 ```
 
 ### isLayoutEngineInitialized()
@@ -122,10 +122,10 @@ function isLayoutEngineInitialized(): boolean
 Checks if a layout engine has been set:
 
 ```tsx
-import { isLayoutEngineInitialized, setLayoutEngine, createFlexxEngine } from "silvery"
+import { isLayoutEngineInitialized, setLayoutEngine, createFlexilyEngine } from "silvery"
 
 if (!isLayoutEngineInitialized()) {
-  setLayoutEngine(createFlexxEngine())
+  setLayoutEngine(createFlexilyEngine())
 }
 ```
 
@@ -313,7 +313,7 @@ using term = createTerm()
 await render(<App />, term)
 
 // Right - manually set engine first
-setLayoutEngine(createFlexxEngine())
+setLayoutEngine(createFlexilyEngine())
 using term = createTerm()
 renderSync(term, <App />)
 ```
@@ -323,7 +323,7 @@ renderSync(term, <App />)
 If Yoga WASM fails to load, try Flexily as a fallback:
 
 ```tsx
-import { render, setLayoutEngine, createFlexxEngine, isLayoutEngineInitialized } from "silvery"
+import { render, setLayoutEngine, createFlexilyEngine, isLayoutEngineInitialized } from "silvery"
 
 using term = createTerm()
 
@@ -332,7 +332,7 @@ try {
 } catch (e) {
   if (!isLayoutEngineInitialized()) {
     console.warn("Falling back to Flexily engine")
-    setLayoutEngine(createFlexxEngine())
+    setLayoutEngine(createFlexilyEngine())
     renderSync(term, <App />)
   } else {
     throw e

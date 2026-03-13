@@ -278,11 +278,30 @@ export interface TeaNode {
    * Screen-relative position (like CSS getBoundingClientRect).
    * Actual position on the terminal screen, accounting for scroll offsets.
    * Set after screen rect phase.
+   *
+   * Note: For sticky children, this reflects the node's layout position
+   * adjusted for scroll offsets, NOT the actual render position. Use
+   * `renderRect` for the actual pixel position on screen.
    */
   screenRect: Rect | null
 
   /** Previous screen rect (for change detection in notifyLayoutSubscribers) */
   prevScreenRect: Rect | null
+
+  /**
+   * Actual render position on the terminal screen.
+   * For non-sticky nodes, this equals `screenRect`.
+   * For sticky nodes (position="sticky"), this accounts for sticky render
+   * offsets — the position where pixels are actually painted.
+   *
+   * Use this for hit testing, cursor positioning, and any feature that
+   * needs to know where a node visually appears on screen.
+   * Set after screen rect phase.
+   */
+  renderRect: Rect | null
+
+  /** Previous render rect (for change detection) */
+  prevRenderRect: Rect | null
 
   /** True if layout changed THIS frame (position or size).
    *  Set by propagateLayout in layout phase. Cleared by content phase.

@@ -5,7 +5,14 @@
  */
 
 // Layout
-export { useContentRect, useContentRectCallback, useScreenRect, type Rect } from "./useLayout"
+export {
+  useContentRect,
+  useContentRectCallback,
+  useScreenRect,
+  useRenderRect,
+  useRenderRectCallback,
+  type Rect,
+} from "./useLayout"
 
 // Input
 export { useInput, type Key, type InputHandler, type UseInputOptions } from "./useInput"

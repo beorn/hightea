@@ -35,8 +35,10 @@ export function createNode(
     layoutNode,
     contentRect: null,
     screenRect: null,
+    renderRect: null,
     prevLayout: null,
     prevScreenRect: null,
+    prevRenderRect: null,
     layoutChangedThisFrame: false,
     layoutDirty: true,
     contentDirty: true,
@@ -234,8 +236,10 @@ export function createVirtualTextNode(props: TextProps): TeaNode {
     layoutNode: null, // No layout node for virtual text
     contentRect: null,
     screenRect: null,
+    renderRect: null,
     prevLayout: null,
     prevScreenRect: null,
+    prevRenderRect: null,
     layoutChangedThisFrame: false,
     layoutDirty: false,
     contentDirty: true,
@@ -386,8 +390,12 @@ export function applyBoxProps(layoutNode: LayoutNode, props: BoxProps, oldProps?
     layoutNode.setAlignItems(c.ALIGN_STRETCH)
   }
 
-  if (props.alignSelf !== undefined && props.alignSelf !== "auto") {
-    layoutNode.setAlignSelf(alignToConstant(props.alignSelf))
+  if (props.alignSelf !== undefined) {
+    if (props.alignSelf === "auto") {
+      layoutNode.setAlignSelf(c.ALIGN_AUTO)
+    } else {
+      layoutNode.setAlignSelf(alignToConstant(props.alignSelf))
+    }
   } else if (wasRemoved("alignSelf")) {
     layoutNode.setAlignSelf(c.ALIGN_AUTO)
   }

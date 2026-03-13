@@ -97,6 +97,16 @@ export function contentPropsChanged(
     // (child nodes will be updated via their own commitUpdate calls)
   }
 
+  // Content props affect layout dimensions (trigger contentDirty + layoutDirty).
+  // wrap changes text line count; internal_transform changes text width.
+  const contentProps = ["wrap", "internal_transform"]
+
+  for (const prop of contentProps) {
+    if (oldProps[prop] !== newProps[prop]) {
+      return "text" // Affects text layout (measure returns different result)
+    }
+  }
+
   // Style props affect content (paint) but NOT layout dimensions.
   // borderColor, color, bold, etc. don't change how much space a node takes.
   // borderStyle is also a layout prop (affects border widths), but it's included
@@ -114,7 +124,6 @@ export function contentPropsChanged(
     "underlineColor",
     "strikethrough",
     "inverse",
-    "wrap",
     "borderColor",
     "borderStyle",
     "outlineStyle",
@@ -124,7 +133,6 @@ export function contentPropsChanged(
     "outlineBottom",
     "outlineLeft",
     "outlineRight",
-    "internal_transform",
     "theme",
   ]
 

@@ -631,6 +631,15 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         if (!hadReactCommit) break
       }
 
+      if (hadReactCommit && iterationCount >= MAX_LAYOUT_ITERATIONS) {
+        if (process.env.SILVERY_STRICT) {
+          console.warn(
+            `[SILVERY] classic layout loop exhausted ${MAX_LAYOUT_ITERATIONS} iterations ` +
+              `with pending React commit — output may be stale`,
+          )
+        }
+      }
+
       // When multiple iterations ran, the final buffer's dirty rows only cover
       // the LAST iteration's content phase writes. Rows changed in earlier
       // iterations but not the last are invisible to diffBuffers' dirty row
