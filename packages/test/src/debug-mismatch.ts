@@ -367,10 +367,10 @@ export function formatMismatchContext(ctx: MismatchDebugContext, contentPhaseSta
   const { incremental, fresh } = ctx.cells
   lines.push("CELL VALUES:")
   lines.push(
-    `  incremental: char=${JSON.stringify(incremental.char)} fg=${JSON.stringify(incremental.fg)} bg=${JSON.stringify(incremental.bg)} attrs=${JSON.stringify(incremental.attrs)}`,
+    `  incremental: char=${JSON.stringify(incremental.char)} fg=${JSON.stringify(incremental.fg)} bg=${JSON.stringify(incremental.bg)} bold=${incremental.bold} dim=${incremental.dim} italic=${incremental.italic} ul=${incremental.underline} inv=${incremental.inverse} strike=${incremental.strikethrough}`,
   )
   lines.push(
-    `  fresh:       char=${JSON.stringify(fresh.char)} fg=${JSON.stringify(fresh.fg)} bg=${JSON.stringify(fresh.bg)} attrs=${JSON.stringify(fresh.attrs)}`,
+    `  fresh:       char=${JSON.stringify(fresh.char)} fg=${JSON.stringify(fresh.fg)} bg=${JSON.stringify(fresh.bg)} bold=${fresh.bold} dim=${fresh.dim} italic=${fresh.italic} ul=${fresh.underline} inv=${fresh.inverse} strike=${fresh.strikethrough}`,
   )
   lines.push("")
 

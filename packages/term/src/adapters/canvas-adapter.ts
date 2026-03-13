@@ -212,11 +212,9 @@ export class CanvasRenderBuffer implements RenderBuffer {
     const px = x * this.charWidth
     const py = y * this.cellHeight
 
-    const attrs = style.attrs ?? {}
-
     // Build font string
-    const weight = attrs.bold ? "bold" : "normal"
-    const fontStyle = attrs.italic ? "italic" : "normal"
+    const weight = style.bold ? "bold" : "normal"
+    const fontStyle = style.italic ? "italic" : "normal"
     this.ctx.font = `${fontStyle} ${weight} ${this.config.fontSize}px ${this.config.fontFamily}`
 
     // Set colors
@@ -227,12 +225,12 @@ export class CanvasRenderBuffer implements RenderBuffer {
     this.ctx.fillText(text, px, py)
 
     // Handle underline
-    if (attrs.underline) {
+    if (style.underline) {
       this.drawUnderline(px, py, text, style)
     }
 
     // Handle strikethrough
-    if (attrs.strikethrough) {
+    if (style.strikethrough) {
       const metrics = this.ctx.measureText(text)
       const textWidth = metrics.width
       const strikeY = py + this.config.fontSize * 0.5
@@ -251,17 +249,16 @@ export class CanvasRenderBuffer implements RenderBuffer {
    * Note: px, py are already in pixel coordinates.
    */
   private drawUnderline(px: number, py: number, text: string, style: RenderStyle): void {
-    const attrs = style.attrs ?? {}
     const metrics = this.ctx.measureText(text)
     const textWidth = metrics.width
     const underlineY = py + this.config.fontSize * 0.9
 
-    const underlineColor = resolveColor(attrs.underlineColor ?? style.fg, this.config.foregroundColor)
+    const underlineColor = resolveColor(style.underlineColor ?? style.fg, this.config.foregroundColor)
 
     this.ctx.strokeStyle = underlineColor
     this.ctx.lineWidth = 1
 
-    const underlineStyle = attrs.underlineStyle ?? "single"
+    const underlineStyle = style.underlineStyle ?? "single"
 
     switch (underlineStyle) {
       case "double":

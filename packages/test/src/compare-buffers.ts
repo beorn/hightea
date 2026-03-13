@@ -39,7 +39,14 @@ export function compareBuffers(a: TerminalBuffer, b: TerminalBuffer): BufferMism
             fg: null,
             bg: null,
             underlineColor: null,
-            attrs: {},
+            bold: false,
+            dim: false,
+            italic: false,
+            underline: false as const,
+            blink: false,
+            inverse: false,
+            hidden: false,
+            strikethrough: false,
             wide: false,
             continuation: false,
           }
@@ -50,7 +57,14 @@ export function compareBuffers(a: TerminalBuffer, b: TerminalBuffer): BufferMism
             fg: null,
             bg: null,
             underlineColor: null,
-            attrs: {},
+            bold: false,
+            dim: false,
+            italic: false,
+            underline: false as const,
+            blink: false,
+            inverse: false,
+            hidden: false,
+            strikethrough: false,
             wide: false,
             continuation: false,
           }
@@ -80,8 +94,8 @@ export function formatMismatch(
   const { x, y, cellA, cellB } = mismatch
   const lines: string[] = [
     `Buffer mismatch at (${x}, ${y})`,
-    `  incremental: char=${JSON.stringify(cellA.char)} fg=${JSON.stringify(cellA.fg)} bg=${JSON.stringify(cellA.bg)} attrs=${JSON.stringify(cellA.attrs)}`,
-    `  fresh:       char=${JSON.stringify(cellB.char)} fg=${JSON.stringify(cellB.fg)} bg=${JSON.stringify(cellB.bg)} attrs=${JSON.stringify(cellB.attrs)}`,
+    `  incremental: char=${JSON.stringify(cellA.char)} fg=${JSON.stringify(cellA.fg)} bg=${JSON.stringify(cellA.bg)} bold=${cellA.bold} dim=${cellA.dim} italic=${cellA.italic} ul=${cellA.underline} inv=${cellA.inverse} strike=${cellA.strikethrough}`,
+    `  fresh:       char=${JSON.stringify(cellB.char)} fg=${JSON.stringify(cellB.fg)} bg=${JSON.stringify(cellB.bg)} bold=${cellB.bold} dim=${cellB.dim} italic=${cellB.italic} ul=${cellB.underline} inv=${cellB.inverse} strike=${cellB.strikethrough}`,
   ]
 
   if (context?.seed !== undefined) lines.push(`  seed: ${context.seed}`)

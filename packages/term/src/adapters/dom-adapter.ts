@@ -316,57 +316,54 @@ export class DOMRenderBuffer implements RenderBuffer {
           styles.push(`background-color: ${resolveColor(run.style.bg, this.config.backgroundColor)}`)
         }
 
-        const attrs = run.style.attrs
-        if (attrs) {
-          if (attrs.bold) styles.push("font-weight: bold")
-          if (attrs.dim) styles.push("opacity: 0.5")
-          if (attrs.italic) styles.push("font-style: italic")
+        if (run.style.bold) styles.push("font-weight: bold")
+        if (run.style.dim) styles.push("opacity: 0.5")
+        if (run.style.italic) styles.push("font-style: italic")
 
-          // Underline handling
-          if (attrs.underline || attrs.underlineStyle) {
-            const underlineStyle = attrs.underlineStyle ?? "single"
-            const underlineColor = attrs.underlineColor
-              ? resolveColor(attrs.underlineColor, this.config.foregroundColor)
-              : "currentColor"
+        // Underline handling
+        if (run.style.underline || run.style.underlineStyle) {
+          const underlineStyle = run.style.underlineStyle ?? "single"
+          const underlineColor = run.style.underlineColor
+            ? resolveColor(run.style.underlineColor, this.config.foregroundColor)
+            : "currentColor"
 
-            switch (underlineStyle) {
-              case "double":
-                styles.push(`text-decoration: underline double ${underlineColor}`)
-                break
-              case "curly":
-                styles.push(`text-decoration: underline wavy ${underlineColor}`)
-                break
-              case "dotted":
-                styles.push(`text-decoration: underline dotted ${underlineColor}`)
-                break
-              case "dashed":
-                styles.push(`text-decoration: underline dashed ${underlineColor}`)
-                break
-              default:
-                styles.push(`text-decoration: underline solid ${underlineColor}`)
-            }
+          switch (underlineStyle) {
+            case "double":
+              styles.push(`text-decoration: underline double ${underlineColor}`)
+              break
+            case "curly":
+              styles.push(`text-decoration: underline wavy ${underlineColor}`)
+              break
+            case "dotted":
+              styles.push(`text-decoration: underline dotted ${underlineColor}`)
+              break
+            case "dashed":
+              styles.push(`text-decoration: underline dashed ${underlineColor}`)
+              break
+            default:
+              styles.push(`text-decoration: underline solid ${underlineColor}`)
           }
+        }
 
-          if (attrs.strikethrough) {
-            const existing = styles.find((s) => s.startsWith("text-decoration:"))
-            if (existing) {
-              const idx = styles.indexOf(existing)
-              styles[idx] = existing.replace("underline", "underline line-through")
-            } else {
-              styles.push("text-decoration: line-through")
-            }
+        if (run.style.strikethrough) {
+          const existing = styles.find((s) => s.startsWith("text-decoration:"))
+          if (existing) {
+            const idx = styles.indexOf(existing)
+            styles[idx] = existing.replace("underline", "underline line-through")
+          } else {
+            styles.push("text-decoration: line-through")
           }
+        }
 
-          if (attrs.inverse) {
-            // Swap foreground/background
-            const fg = run.style.fg
-              ? resolveColor(run.style.fg, this.config.foregroundColor)
-              : this.config.foregroundColor
-            const bg = run.style.bg
-              ? resolveColor(run.style.bg, this.config.backgroundColor)
-              : this.config.backgroundColor
-            styles.push(`color: ${bg}`, `background-color: ${fg}`)
-          }
+        if (run.style.inverse) {
+          // Swap foreground/background
+          const fg = run.style.fg
+            ? resolveColor(run.style.fg, this.config.foregroundColor)
+            : this.config.foregroundColor
+          const bg = run.style.bg
+            ? resolveColor(run.style.bg, this.config.backgroundColor)
+            : this.config.backgroundColor
+          styles.push(`color: ${bg}`, `background-color: ${fg}`)
         }
 
         span.style.cssText = styles.join("; ")

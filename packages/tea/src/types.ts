@@ -411,25 +411,8 @@ export interface TeaNode {
 // ============================================================================
 
 /**
- * Text attributes that can be applied to a cell.
- */
-export interface CellAttrs {
-  bold?: boolean
-  dim?: boolean
-  italic?: boolean
-  /** Simple underline flag (for backwards compatibility) */
-  underline?: boolean
-  /**
-   * Underline style: 'single' | 'double' | 'curly' | 'dotted' | 'dashed'.
-   * When set, takes precedence over the underline boolean.
-   */
-  underlineStyle?: UnderlineStyle
-  strikethrough?: boolean
-  inverse?: boolean
-}
-
-/**
  * A single cell in the terminal buffer.
+ * All style attributes are flat (no nested attrs object).
  */
 export interface Cell {
   /** The character (grapheme cluster) in this cell */
@@ -438,8 +421,21 @@ export interface Cell {
   fg: string | null
   /** Background color (ANSI code or RGB) */
   bg: string | null
-  /** Text attributes */
-  attrs: CellAttrs
+  /** Bold attribute */
+  bold: boolean
+  /** Dim/faint attribute */
+  dim: boolean
+  /** Italic attribute */
+  italic: boolean
+  /**
+   * Underline style. false = no underline.
+   * 'single' | 'double' | 'curly' | 'dotted' | 'dashed' for styled underlines.
+   */
+  underline: UnderlineStyle
+  /** Strikethrough attribute */
+  strikethrough: boolean
+  /** Inverse/reverse video attribute */
+  inverse: boolean
   /** True if this is a wide character (CJK) that takes 2 cells */
   wide: boolean
   /** True if this cell is the continuation of a wide character */
@@ -453,7 +449,7 @@ export interface TerminalBuffer {
   readonly width: number
   readonly height: number
   getCell(x: number, y: number): Cell
-  setCell(x: number, y: number, cell: Cell): void
+  setCell(x: number, y: number, cell: Partial<Cell>): void
   clear(): void
 }
 

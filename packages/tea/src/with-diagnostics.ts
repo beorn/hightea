@@ -171,14 +171,14 @@ export class VirtualTerminal {
           this.styles[y]![x] = {
             fg: cell.fg,
             bg: cell.bg,
-            bold: !!cell.attrs.bold,
-            dim: !!cell.attrs.dim,
-            italic: !!cell.attrs.italic,
-            underline: !!cell.attrs.underline || !!cell.attrs.underlineStyle,
-            blink: !!cell.attrs.blink,
-            inverse: !!cell.attrs.inverse,
-            hidden: !!cell.attrs.hidden,
-            strikethrough: !!cell.attrs.strikethrough,
+            bold: !!cell.bold,
+            dim: !!cell.dim,
+            italic: !!cell.italic,
+            underline: !!cell.underline,
+            blink: !!cell.blink,
+            inverse: !!cell.inverse,
+            hidden: !!cell.hidden,
+            strikethrough: !!cell.strikethrough,
           }
         }
       }
@@ -526,31 +526,31 @@ export class VirtualTerminal {
           diffs.push(`bg: ${formatVTermColor(actual.bg)} vs ${formatVTermColor(cell.bg)}`)
         }
         // Compare text attributes
-        if (actual.bold !== !!cell.attrs.bold) {
-          diffs.push(`bold: ${actual.bold} vs ${!!cell.attrs.bold}`)
+        if (actual.bold !== !!cell.bold) {
+          diffs.push(`bold: ${actual.bold} vs ${!!cell.bold}`)
         }
-        if (actual.dim !== !!cell.attrs.dim) {
-          diffs.push(`dim: ${actual.dim} vs ${!!cell.attrs.dim}`)
+        if (actual.dim !== !!cell.dim) {
+          diffs.push(`dim: ${actual.dim} vs ${!!cell.dim}`)
         }
-        if (actual.italic !== !!cell.attrs.italic) {
-          diffs.push(`italic: ${actual.italic} vs ${!!cell.attrs.italic}`)
+        if (actual.italic !== !!cell.italic) {
+          diffs.push(`italic: ${actual.italic} vs ${!!cell.italic}`)
         }
-        // Underline: buffer can have underline or underlineStyle
-        const expectedUnderline = !!cell.attrs.underline || !!cell.attrs.underlineStyle
+        // Underline: cell.underline is now the style (false | 'single' | 'double' | ...)
+        const expectedUnderline = !!cell.underline
         if (actual.underline !== expectedUnderline) {
           diffs.push(`underline: ${actual.underline} vs ${expectedUnderline}`)
         }
-        if (actual.blink !== !!cell.attrs.blink) {
-          diffs.push(`blink: ${actual.blink} vs ${!!cell.attrs.blink}`)
+        if (actual.blink !== !!cell.blink) {
+          diffs.push(`blink: ${actual.blink} vs ${!!cell.blink}`)
         }
-        if (actual.inverse !== !!cell.attrs.inverse) {
-          diffs.push(`inverse: ${actual.inverse} vs ${!!cell.attrs.inverse}`)
+        if (actual.inverse !== !!cell.inverse) {
+          diffs.push(`inverse: ${actual.inverse} vs ${!!cell.inverse}`)
         }
-        if (actual.hidden !== !!cell.attrs.hidden) {
-          diffs.push(`hidden: ${actual.hidden} vs ${!!cell.attrs.hidden}`)
+        if (actual.hidden !== !!cell.hidden) {
+          diffs.push(`hidden: ${actual.hidden} vs ${!!cell.hidden}`)
         }
-        if (actual.strikethrough !== !!cell.attrs.strikethrough) {
-          diffs.push(`strikethrough: ${actual.strikethrough} vs ${!!cell.attrs.strikethrough}`)
+        if (actual.strikethrough !== !!cell.strikethrough) {
+          diffs.push(`strikethrough: ${actual.strikethrough} vs ${!!cell.strikethrough}`)
         }
 
         if (diffs.length > 0) {

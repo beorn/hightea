@@ -42,16 +42,14 @@ export interface TextMeasurer {
 export interface RenderStyle {
   fg?: string
   bg?: string
-  attrs?: {
-    bold?: boolean
-    dim?: boolean
-    italic?: boolean
-    underline?: boolean
-    underlineStyle?: "single" | "double" | "curly" | "dotted" | "dashed"
-    underlineColor?: string
-    strikethrough?: boolean
-    inverse?: boolean
-  }
+  bold?: boolean
+  dim?: boolean
+  italic?: boolean
+  underline?: boolean
+  underlineStyle?: "single" | "double" | "curly" | "dotted" | "dashed"
+  underlineColor?: string
+  strikethrough?: boolean
+  inverse?: boolean
 }
 
 export interface RenderBuffer {

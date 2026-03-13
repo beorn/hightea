@@ -348,7 +348,7 @@ function renderOutlineAdapter(
   const chars = adapter.getBorderChars(props.outlineStyle ?? "single")
   const style: RenderStyle = {}
   if (props.outlineColor) style.fg = props.outlineColor
-  if (props.outlineDimColor) style.attrs = { dim: true }
+  if (props.outlineDimColor) style.dim = true
 
   const showTop = props.outlineTop !== false
   const showBottom = props.outlineBottom !== false
@@ -471,16 +471,14 @@ function contextToRenderStyle(ctx: AdapterStyleContext, bg?: string): RenderStyl
   return {
     fg: ctx.color ?? undefined,
     bg: bg ?? undefined,
-    attrs: {
-      bold: ctx.bold,
-      dim: ctx.dim,
-      italic: ctx.italic,
-      underline: ctx.underline,
-      underlineStyle: ctx.underlineStyle,
-      underlineColor: ctx.underlineColor,
-      strikethrough: ctx.strikethrough,
-      inverse: ctx.inverse,
-    },
+    bold: ctx.bold,
+    dim: ctx.dim,
+    italic: ctx.italic,
+    underline: ctx.underline,
+    underlineStyle: ctx.underlineStyle,
+    underlineColor: ctx.underlineColor,
+    strikethrough: ctx.strikethrough,
+    inverse: ctx.inverse,
   }
 }
 

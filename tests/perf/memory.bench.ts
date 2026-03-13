@@ -154,7 +154,6 @@ describe("Memory: Stability", () => {
         fg: null,
         bg: null,
         underlineColor: null,
-        attrs: {},
         wide: false,
         continuation: false,
       })

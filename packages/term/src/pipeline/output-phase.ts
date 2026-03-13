@@ -408,7 +408,6 @@ function wrapTextSizing(char: string, wide: boolean, ctx: OutputContext): string
 function styleToKey(style: Style): string {
   const fg = style.fg
   const bg = style.bg
-  const attrs = style.attrs
 
   // Fast path: common case of simple colors + few attrs
   let key = ""
@@ -435,20 +434,21 @@ function styleToKey(style: Style): string {
 
   // attrs packed as bitmask for speed
   let attrBits = 0
-  if (attrs.bold) attrBits |= 1
-  if (attrs.dim) attrBits |= 2
-  if (attrs.italic) attrBits |= 4
-  if (attrs.underline) attrBits |= 8
-  if (attrs.inverse) attrBits |= 16
-  if (attrs.strikethrough) attrBits |= 32
-  if (attrs.blink) attrBits |= 64
-  if (attrs.hidden) attrBits |= 128
+  if (style.bold) attrBits |= 1
+  if (style.dim) attrBits |= 2
+  if (style.italic) attrBits |= 4
+  if (style.underline) attrBits |= 8
+  if (style.inverse) attrBits |= 16
+  if (style.strikethrough) attrBits |= 32
+  if (style.blink) attrBits |= 64
+  if (style.hidden) attrBits |= 128
 
   key += `|${attrBits}`
 
-  // Underline style (rare)
-  if (attrs.underlineStyle) {
-    key += `|u${attrs.underlineStyle}`
+  // Underline style — underline IS the style now (false | 'single' | 'double' | ...)
+  // The bitmask above already captures the boolean truthiness; encode the specific style value
+  if (style.underline && style.underline !== "single") {
+    key += `|u${style.underline}`
   }
 
   // Underline color (rare)
@@ -511,43 +511,39 @@ function styleTransition(oldStyle: Style | null, newStyle: Style, ctx: OutputCon
 
   // Check attributes that can only be "turned off" via reset or specific off-codes.
   // If an attribute was on and is now off, we need either the off-code or a full reset.
-  const oa = oldStyle.attrs
-  const na = newStyle.attrs
 
   // Bold and dim share SGR 22 as their off-code, so handle them together
   // to avoid emitting duplicate codes.
-  const boldChanged = Boolean(oa.bold) !== Boolean(na.bold)
-  const dimChanged = Boolean(oa.dim) !== Boolean(na.dim)
+  const boldChanged = Boolean(oldStyle.bold) !== Boolean(newStyle.bold)
+  const dimChanged = Boolean(oldStyle.dim) !== Boolean(newStyle.dim)
   if (boldChanged || dimChanged) {
-    const boldOff = boldChanged && !na.bold
-    const dimOff = dimChanged && !na.dim
+    const boldOff = boldChanged && !newStyle.bold
+    const dimOff = dimChanged && !newStyle.dim
     if (boldOff || dimOff) {
       // SGR 22 resets both bold and dim
       codes.push("22")
       // Re-enable whichever should stay on
-      if (na.bold) codes.push("1")
-      if (na.dim) codes.push("2")
+      if (newStyle.bold) codes.push("1")
+      if (newStyle.dim) codes.push("2")
     } else {
       // Only turning attributes on
-      if (boldChanged && na.bold) codes.push("1")
-      if (dimChanged && na.dim) codes.push("2")
+      if (boldChanged && newStyle.bold) codes.push("1")
+      if (dimChanged && newStyle.dim) codes.push("2")
     }
   }
-  if (Boolean(oa.italic) !== Boolean(na.italic)) {
-    codes.push(na.italic ? "3" : "23")
+  if (Boolean(oldStyle.italic) !== Boolean(newStyle.italic)) {
+    codes.push(newStyle.italic ? "3" : "23")
   }
 
-  // Underline: compare both underline flag and underlineStyle
-  const oldUl = Boolean(oa.underline)
-  const newUl = Boolean(na.underline)
-  const oldUlStyle = oa.underlineStyle ?? false
-  const newUlStyle = na.underlineStyle ?? false
-  if (oldUl !== newUl || oldUlStyle !== newUlStyle) {
+  // Underline: compare the unified underline field (false | 'single' | 'double' | ...)
+  const oldUl = oldStyle.underline ?? false
+  const newUl = newStyle.underline ?? false
+  if (oldUl !== newUl) {
     if (!ctx.caps.underlineStyles) {
       // Terminal doesn't support SGR 4:x — fall back to simple SGR 4/24
-      codes.push(newUl || na.underlineStyle ? "4" : "24")
+      codes.push(newUl ? "4" : "24")
     } else {
-      const sgrSub = underlineStyleToSgr(na.underlineStyle)
+      const sgrSub = underlineStyleToSgr(newUl)
       if (sgrSub !== null && sgrSub !== 0) {
         codes.push(`4:${sgrSub}`)
       } else if (newUl) {
@@ -558,17 +554,17 @@ function styleTransition(oldStyle: Style | null, newStyle: Style, ctx: OutputCon
     }
   }
 
-  if (Boolean(oa.inverse) !== Boolean(na.inverse)) {
-    codes.push(na.inverse ? "7" : "27")
+  if (Boolean(oldStyle.inverse) !== Boolean(newStyle.inverse)) {
+    codes.push(newStyle.inverse ? "7" : "27")
   }
-  if (Boolean(oa.hidden) !== Boolean(na.hidden)) {
-    codes.push(na.hidden ? "8" : "28")
+  if (Boolean(oldStyle.hidden) !== Boolean(newStyle.hidden)) {
+    codes.push(newStyle.hidden ? "8" : "28")
   }
-  if (Boolean(oa.strikethrough) !== Boolean(na.strikethrough)) {
-    codes.push(na.strikethrough ? "9" : "29")
+  if (Boolean(oldStyle.strikethrough) !== Boolean(newStyle.strikethrough)) {
+    codes.push(newStyle.strikethrough ? "9" : "29")
   }
-  if (Boolean(oa.blink) !== Boolean(na.blink)) {
-    codes.push(na.blink ? "5" : "25")
+  if (Boolean(oldStyle.blink) !== Boolean(newStyle.blink)) {
+    codes.push(newStyle.blink ? "5" : "25")
   }
 
   // Foreground color
@@ -1260,7 +1256,6 @@ function bufferToAnsi(
     fg: null,
     bg: null,
     underlineColor: null,
-    attrs: {},
   }
 
   for (let y = startLine; y <= maxLine; y++) {
@@ -1291,20 +1286,34 @@ function bufferToAnsi(
       }
 
       // Build style from cell and check if changed.
-      // readCellInto mutates cell.attrs in place, so we must snapshot attrs
+      // readCellInto mutates cell fields in place, so we must snapshot
       // only when the style actually changes (which is rare -- most adjacent
       // cells share the same style). This avoids per-cell object allocation.
       cellStyle.fg = cell.fg
       cellStyle.bg = cell.bg
       cellStyle.underlineColor = cell.underlineColor
-      cellStyle.attrs = cell.attrs
+      cellStyle.bold = cell.bold
+      cellStyle.dim = cell.dim
+      cellStyle.italic = cell.italic
+      cellStyle.underline = cell.underline
+      cellStyle.blink = cell.blink
+      cellStyle.inverse = cell.inverse
+      cellStyle.hidden = cell.hidden
+      cellStyle.strikethrough = cell.strikethrough
       if (!styleEquals(currentStyle, cellStyle)) {
-        // Snapshot: copy attrs so currentStyle isn't invalidated by next readCellInto
+        // Snapshot: copy fields so currentStyle isn't invalidated by next readCellInto
         const saved: Style = {
           fg: cell.fg,
           bg: cell.bg,
           underlineColor: cell.underlineColor,
-          attrs: { ...cell.attrs },
+          bold: cell.bold,
+          dim: cell.dim,
+          italic: cell.italic,
+          underline: cell.underline,
+          blink: cell.blink,
+          inverse: cell.inverse,
+          hidden: cell.hidden,
+          strikethrough: cell.strikethrough,
         }
         output += styleTransition(currentStyle, saved, ctx)
         currentStyle = saved
@@ -1339,7 +1348,7 @@ function bufferToAnsi(
         } else {
           // Inline: \r resets to column 0, CUF moves to expected position.
           // Reset bg first to prevent bleed across traversed cells.
-          if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle.attrs))) {
+          if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle))) {
             output += "\x1b[0m"
             currentStyle = null
           }
@@ -1359,7 +1368,7 @@ function bufferToAnsi(
     // Reset style before clear-to-end and newline to prevent background
     // color from filling the right margin or bleeding into the next line.
     // \x1b[K] uses current SGR attributes for the erased area.
-    if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle.attrs))) {
+    if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle))) {
       output += "\x1b[0m"
       currentStyle = null
     }
@@ -1406,7 +1415,14 @@ function createEmptyCellChange(): CellChange {
       fg: null,
       bg: null,
       underlineColor: null,
-      attrs: {},
+      bold: false,
+      dim: false,
+      italic: false,
+      underline: false,
+      blink: false,
+      inverse: false,
+      hidden: false,
+      strikethrough: false,
       wide: false,
       continuation: false,
     },
@@ -1453,17 +1469,15 @@ function writeEmptyCellChange(change: CellChange, x: number, y: number): void {
   cell.fg = null
   cell.bg = null
   cell.underlineColor = null
-  // Reset attrs fields
-  const attrs = cell.attrs
-  attrs.bold = undefined
-  attrs.dim = undefined
-  attrs.italic = undefined
-  attrs.underline = undefined
-  attrs.underlineStyle = undefined
-  attrs.blink = undefined
-  attrs.inverse = undefined
-  attrs.hidden = undefined
-  attrs.strikethrough = undefined
+  // Reset attribute fields
+  cell.bold = false
+  cell.dim = false
+  cell.italic = false
+  cell.underline = false
+  cell.blink = false
+  cell.inverse = false
+  cell.hidden = false
+  cell.strikethrough = false
   cell.wide = false
   cell.continuation = false
 }
@@ -1613,7 +1627,6 @@ const reusableCellStyle: Style = {
   fg: null,
   bg: null,
   underlineColor: null,
-  attrs: {},
 }
 
 /**
@@ -1737,7 +1750,7 @@ function changesToAnsi(
       if (cursorY >= 0 && renderY === cursorY + 1 && x === 0) {
         // Next line at column 0, use newline (more efficient)
         // Reset style before newline to prevent background color bleeding
-        if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle.attrs))) {
+        if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle))) {
           output += "\x1b[0m"
           currentStyle = null
         }
@@ -1757,14 +1770,14 @@ function changesToAnsi(
       } else if (cursorY >= 0 && renderY > cursorY && x === 0) {
         // Same column (0), down N rows: use \r + CUD
         const dy = renderY - cursorY
-        if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle.attrs))) {
+        if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle))) {
           output += "\x1b[0m"
           currentStyle = null
         }
         output += dy === 1 ? "\r\n" : `\r\x1b[${dy}B`
       } else if (isInline) {
         // Inline mode: relative positioning (no absolute row numbers)
-        if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle.attrs))) {
+        if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle))) {
           output += "\x1b[0m"
           currentStyle = null
         }
@@ -1801,15 +1814,29 @@ function changesToAnsi(
     reusableCellStyle.fg = cell.fg
     reusableCellStyle.bg = cell.bg
     reusableCellStyle.underlineColor = cell.underlineColor
-    reusableCellStyle.attrs = cell.attrs
+    reusableCellStyle.bold = cell.bold
+    reusableCellStyle.dim = cell.dim
+    reusableCellStyle.italic = cell.italic
+    reusableCellStyle.underline = cell.underline
+    reusableCellStyle.blink = cell.blink
+    reusableCellStyle.inverse = cell.inverse
+    reusableCellStyle.hidden = cell.hidden
+    reusableCellStyle.strikethrough = cell.strikethrough
     if (!styleEquals(currentStyle, reusableCellStyle)) {
-      // Snapshot: copy attrs so currentStyle isn't invalidated by next iteration
+      // Snapshot: copy fields so currentStyle isn't invalidated by next iteration
       const prevStyle = currentStyle
       currentStyle = {
         fg: cell.fg,
         bg: cell.bg,
         underlineColor: cell.underlineColor,
-        attrs: { ...cell.attrs },
+        bold: cell.bold,
+        dim: cell.dim,
+        italic: cell.italic,
+        underline: cell.underline,
+        blink: cell.blink,
+        inverse: cell.inverse,
+        hidden: cell.hidden,
+        strikethrough: cell.strikethrough,
       }
       output += styleTransition(prevStyle, currentStyle, ctx)
     }
@@ -1907,30 +1934,29 @@ function styleToAnsi(style: Style, ctx: OutputContext = defaultContext): string 
   }
 
   // Attributes
-  if (style.attrs.bold) result += "\x1b[1m"
-  if (style.attrs.dim) result += "\x1b[2m"
-  if (style.attrs.italic) result += "\x1b[3m"
+  if (style.bold) result += "\x1b[1m"
+  if (style.dim) result += "\x1b[2m"
+  if (style.italic) result += "\x1b[3m"
 
   // Underline: use SGR 4:x if style specified, otherwise simple SGR 4
   if (!ctx.caps.underlineStyles) {
     // Terminal doesn't support SGR 4:x — use simple SGR 4
-    if (style.attrs.underline || style.attrs.underlineStyle) result += "\x1b[4m"
+    if (style.underline) result += "\x1b[4m"
   } else {
-    const underlineStyle = style.attrs.underlineStyle
-    const sgrSubparam = underlineStyleToSgr(underlineStyle)
+    const sgrSubparam = underlineStyleToSgr(style.underline)
     if (sgrSubparam !== null && sgrSubparam !== 0) {
       result += `\x1b[4:${sgrSubparam}m`
-    } else if (style.attrs.underline) {
+    } else if (style.underline) {
       result += "\x1b[4m"
     }
   }
 
   // Use SGR 7 for inverse — lets the terminal correctly swap fg/bg
   // (including default terminal colors that have no explicit ANSI code)
-  if (style.attrs.blink) result += "\x1b[5m"
-  if (style.attrs.inverse) result += "\x1b[7m"
-  if (style.attrs.hidden) result += "\x1b[8m"
-  if (style.attrs.strikethrough) result += "\x1b[9m"
+  if (style.blink) result += "\x1b[5m"
+  if (style.inverse) result += "\x1b[7m"
+  if (style.hidden) result += "\x1b[8m"
+  if (style.strikethrough) result += "\x1b[9m"
 
   // Append underline color if specified (SGR 58) — skip for limited terminals
   if (ctx.caps.underlineColor && style.underlineColor !== null && style.underlineColor !== undefined) {

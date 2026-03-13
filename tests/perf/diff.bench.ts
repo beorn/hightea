@@ -31,16 +31,14 @@ function fillWithContent(buffer: TerminalBuffer, density: number): void {
           fg: x % 8,
           bg: null,
           underlineColor: null,
-          attrs: {
-            bold: x % 5 === 0,
-            dim: false,
-            italic: y % 3 === 0,
-            underline: false,
-            blink: false,
-            inverse: false,
-            hidden: false,
-            strikethrough: false,
-          },
+          bold: x % 5 === 0,
+          dim: false,
+          italic: y % 3 === 0,
+          underline: false,
+          blink: false,
+          inverse: false,
+          hidden: false,
+          strikethrough: false,
           wide: false,
           continuation: false,
         })
@@ -65,7 +63,7 @@ function createWithChanges(base: TerminalBuffer, changePercent: number): Termina
       fg: 1, // red
       bg: null,
       underlineColor: null,
-      attrs: { bold: true },
+      bold: true,
       wide: false,
       continuation: false,
     })
@@ -83,7 +81,8 @@ function createWithRowChange(base: TerminalBuffer, row: number): TerminalBuffer 
       fg: 2, // green
       bg: null,
       underlineColor: null,
-      attrs: { bold: true, inverse: true },
+      bold: true,
+      inverse: true,
       wide: false,
       continuation: false,
     })

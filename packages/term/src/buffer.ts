@@ -23,25 +23,11 @@ import { fgColorCode, bgColorCode } from "./ansi/sgr-codes"
  */
 export type UnderlineStyle = false | "single" | "double" | "curly" | "dotted" | "dashed"
 
-/**
- * Text attributes that can be applied to a cell.
- */
-export interface CellAttrs {
-  bold?: boolean
-  dim?: boolean
-  italic?: boolean
-  /** Simple underline flag (for backwards compatibility) */
-  underline?: boolean
-  /**
-   * Underline style: 'single' | 'double' | 'curly' | 'dotted' | 'dashed'.
-   * When set, takes precedence over the underline boolean.
-   */
-  underlineStyle?: UnderlineStyle
-  blink?: boolean
-  inverse?: boolean
-  hidden?: boolean
-  strikethrough?: boolean
-}
+/** @deprecated Use flat Cell/Style fields instead */
+export type CellAttrs = Pick<
+  Cell,
+  "bold" | "dim" | "italic" | "underline" | "blink" | "inverse" | "hidden" | "strikethrough"
+>
 
 /**
  * Color representation.
@@ -66,6 +52,7 @@ export function isDefaultBg(color: Color): boolean {
 
 /**
  * A single cell in the terminal buffer.
+ * All style attributes are flat (no nested attrs object).
  */
 export interface Cell {
   /** The character/grapheme in this cell */
@@ -79,8 +66,25 @@ export interface Cell {
    * Uses SGR 58. If null, underline uses fg color.
    */
   underlineColor: Color
-  /** Text attributes */
-  attrs: CellAttrs
+  /** Bold attribute */
+  bold: boolean
+  /** Dim/faint attribute */
+  dim: boolean
+  /** Italic attribute */
+  italic: boolean
+  /**
+   * Underline style. false = no underline.
+   * Replaces the old underline boolean + underlineStyle pair.
+   */
+  underline: UnderlineStyle
+  /** Blink attribute */
+  blink: boolean
+  /** Inverse/reverse video attribute */
+  inverse: boolean
+  /** Hidden attribute */
+  hidden: boolean
+  /** Strikethrough attribute */
+  strikethrough: boolean
   /** True if this is a wide character (CJK, emoji, etc.) */
   wide: boolean
   /** True if this is the continuation cell after a wide character */
@@ -94,20 +98,20 @@ export interface Cell {
 
 /**
  * Style information for a cell (excludes char and position flags).
+ * Derived from Cell — all fields optional except fg/bg.
  */
 export interface Style {
   fg: Color
   bg: Color
-  /**
-   * Underline color (independent of fg).
-   * Uses SGR 58. If null, underline uses fg color.
-   */
   underlineColor?: Color
-  attrs: CellAttrs
-  /**
-   * OSC 8 hyperlink URL.
-   * When set, the cell is part of a clickable hyperlink in supporting terminals.
-   */
+  bold?: boolean
+  dim?: boolean
+  italic?: boolean
+  underline?: UnderlineStyle
+  blink?: boolean
+  inverse?: boolean
+  hidden?: boolean
+  strikethrough?: boolean
   hyperlink?: string
 }
 
@@ -158,14 +162,18 @@ const EMPTY_CELL: Cell = {
   fg: null,
   bg: null,
   underlineColor: null,
-  attrs: {},
+  bold: false,
+  dim: false,
+  italic: false,
+  underline: false,
+  blink: false,
+  inverse: false,
+  hidden: false,
+  strikethrough: false,
   wide: false,
   continuation: false,
   hyperlink: undefined,
 }
-
-/** Frozen empty attrs object, shared across zero-allocation reads for OOB cells */
-const EMPTY_ATTRS: CellAttrs = Object.freeze({})
 
 // ============================================================================
 // Packing/Unpacking Helpers
@@ -196,10 +204,8 @@ function underlineStyleToNumber(style: UnderlineStyle | undefined): number {
 /**
  * Map numeric value back to UnderlineStyle.
  */
-function numberToUnderlineStyle(n: number): UnderlineStyle | undefined {
+function numberToUnderlineStyle(n: number): UnderlineStyle {
   switch (n) {
-    case 0:
-      return undefined // No underline
     case 1:
       return "single"
     case 2:
@@ -211,54 +217,50 @@ function numberToUnderlineStyle(n: number): UnderlineStyle | undefined {
     case 5:
       return "dashed"
     default:
-      return undefined
+      return false
   }
 }
 
 /**
- * Convert CellAttrs to bits for packing (used internally by packCell).
+ * Convert text attributes to bits for packing.
+ * Accepts any object with flat attribute fields (Cell, Style, or partial).
  * Note: This packs into the full 32-bit word, not just the attrs byte.
  */
-export function attrsToNumber(attrs: CellAttrs): number {
+export function attrsToNumber(
+  cell: Partial<Pick<Cell, "bold" | "dim" | "italic" | "underline" | "blink" | "inverse" | "hidden" | "strikethrough">>,
+): number {
   let n = 0
-  if (attrs.bold) n |= ATTR_BOLD
-  if (attrs.dim) n |= ATTR_DIM
-  if (attrs.italic) n |= ATTR_ITALIC
-  if (attrs.blink) n |= ATTR_BLINK
-  if (attrs.inverse) n |= ATTR_INVERSE
-  if (attrs.hidden) n |= ATTR_HIDDEN
-  if (attrs.strikethrough) n |= ATTR_STRIKETHROUGH
+  if (cell.bold) n |= ATTR_BOLD
+  if (cell.dim) n |= ATTR_DIM
+  if (cell.italic) n |= ATTR_ITALIC
+  if (cell.blink) n |= ATTR_BLINK
+  if (cell.inverse) n |= ATTR_INVERSE
+  if (cell.hidden) n |= ATTR_HIDDEN
+  if (cell.strikethrough) n |= ATTR_STRIKETHROUGH
 
   // Pack underline style (3 bits)
-  // If underlineStyle is set, use it. Otherwise, check underline boolean.
-  const ulStyle = attrs.underlineStyle ?? (attrs.underline ? "single" : undefined)
-  n |= underlineStyleToNumber(ulStyle) << UNDERLINE_STYLE_SHIFT
+  // cell.underline is the style directly (false | "single" | ... )
+  n |= underlineStyleToNumber(cell.underline) << UNDERLINE_STYLE_SHIFT
 
   return n
 }
 
 /**
- * Convert a number back to CellAttrs.
+ * Convert packed bits back to flat attribute fields.
  */
-export function numberToAttrs(n: number): CellAttrs {
-  const attrs: CellAttrs = {}
-  if (n & ATTR_BOLD) attrs.bold = true
-  if (n & ATTR_DIM) attrs.dim = true
-  if (n & ATTR_ITALIC) attrs.italic = true
-  if (n & ATTR_BLINK) attrs.blink = true
-  if (n & ATTR_INVERSE) attrs.inverse = true
-  if (n & ATTR_HIDDEN) attrs.hidden = true
-  if (n & ATTR_STRIKETHROUGH) attrs.strikethrough = true
-
-  // Unpack underline style
-  const ulStyleNum = (n & UNDERLINE_STYLE_MASK) >> UNDERLINE_STYLE_SHIFT
-  const ulStyle = numberToUnderlineStyle(ulStyleNum)
-  if (ulStyle) {
-    attrs.underlineStyle = ulStyle
-    attrs.underline = true
+export function numberToAttrs(
+  n: number,
+): Pick<Cell, "bold" | "dim" | "italic" | "underline" | "blink" | "inverse" | "hidden" | "strikethrough"> {
+  return {
+    bold: (n & ATTR_BOLD) !== 0,
+    dim: (n & ATTR_DIM) !== 0,
+    italic: (n & ATTR_ITALIC) !== 0,
+    blink: (n & ATTR_BLINK) !== 0,
+    inverse: (n & ATTR_INVERSE) !== 0,
+    hidden: (n & ATTR_HIDDEN) !== 0,
+    strikethrough: (n & ATTR_STRIKETHROUGH) !== 0,
+    underline: numberToUnderlineStyle((n & UNDERLINE_STYLE_MASK) >> UNDERLINE_STYLE_SHIFT),
   }
-
-  return attrs
 }
 
 /**
@@ -294,8 +296,14 @@ export function packCell(cell: Cell): number {
   packed |= (colorToIndex(cell.bg) & 0xff) << 8
 
   // Attributes (bits 16-22) and underline style (bits 24-26)
-  // attrsToNumber returns bits already in their final positions
-  packed |= attrsToNumber(cell.attrs)
+  if (cell.bold) packed |= ATTR_BOLD
+  if (cell.dim) packed |= ATTR_DIM
+  if (cell.italic) packed |= ATTR_ITALIC
+  if (cell.blink) packed |= ATTR_BLINK
+  if (cell.inverse) packed |= ATTR_INVERSE
+  if (cell.hidden) packed |= ATTR_HIDDEN
+  if (cell.strikethrough) packed |= ATTR_STRIKETHROUGH
+  packed |= underlineStyleToNumber(cell.underline) << UNDERLINE_STYLE_SHIFT
 
   // Flags (bits 27-30)
   if (cell.wide) packed |= WIDE_FLAG
@@ -324,9 +332,9 @@ function unpackBgIndex(packed: number): number {
  * Unpack attributes from packed value.
  * Extracts both the boolean attrs (bits 16-22) and underline style (bits 24-26).
  */
-function unpackAttrs(packed: number): CellAttrs {
-  // numberToAttrs expects the full packed value with attrs in bits 16-22
-  // and underline style in bits 24-26
+function unpackAttrs(
+  packed: number,
+): Pick<Cell, "bold" | "dim" | "italic" | "underline" | "blink" | "inverse" | "hidden" | "strikethrough"> {
   return numberToAttrs(packed)
 }
 
@@ -458,12 +466,20 @@ export class TerminalBuffer {
     }
 
     const hyperlink = this.hyperlinks.get(idx)
+    const ulStyleNum = (packed! & UNDERLINE_STYLE_MASK) >> UNDERLINE_STYLE_SHIFT
     return {
       char: char!,
       fg,
       bg,
       underlineColor: this.underlineColors.get(idx) ?? null,
-      attrs: unpackAttrs(packed!),
+      bold: (packed! & ATTR_BOLD) !== 0,
+      dim: (packed! & ATTR_DIM) !== 0,
+      italic: (packed! & ATTR_ITALIC) !== 0,
+      underline: numberToUnderlineStyle(ulStyleNum),
+      blink: (packed! & ATTR_BLINK) !== 0,
+      inverse: (packed! & ATTR_INVERSE) !== 0,
+      hidden: (packed! & ATTR_HIDDEN) !== 0,
+      strikethrough: (packed! & ATTR_STRIKETHROUGH) !== 0,
       wide: unpackWide(packed!),
       continuation: unpackContinuation(packed!),
       ...(hyperlink !== undefined ? { hyperlink } : {}),
@@ -556,7 +572,14 @@ export class TerminalBuffer {
       out.fg = null
       out.bg = null
       out.underlineColor = null
-      out.attrs = EMPTY_ATTRS
+      out.bold = false
+      out.dim = false
+      out.italic = false
+      out.underline = false
+      out.blink = false
+      out.inverse = false
+      out.hidden = false
+      out.strikethrough = false
       out.wide = false
       out.continuation = false
       out.hyperlink = undefined
@@ -586,26 +609,17 @@ export class TerminalBuffer {
 
     out.underlineColor = this.underlineColors.get(idx) ?? null
 
-    // Unpack attrs inline to avoid allocating a new CellAttrs object.
-    // We reuse the existing out.attrs object when possible.
-    const attrs = out.attrs === EMPTY_ATTRS ? ((out.attrs = {}), out.attrs) : out.attrs
-    attrs.bold = (packed & ATTR_BOLD) !== 0 ? true : undefined
-    attrs.dim = (packed & ATTR_DIM) !== 0 ? true : undefined
-    attrs.italic = (packed & ATTR_ITALIC) !== 0 ? true : undefined
-    attrs.blink = (packed & ATTR_BLINK) !== 0 ? true : undefined
-    attrs.inverse = (packed & ATTR_INVERSE) !== 0 ? true : undefined
-    attrs.hidden = (packed & ATTR_HIDDEN) !== 0 ? true : undefined
-    attrs.strikethrough = (packed & ATTR_STRIKETHROUGH) !== 0 ? true : undefined
+    // Unpack attrs inline (flat fields, no nested object)
+    out.bold = (packed & ATTR_BOLD) !== 0
+    out.dim = (packed & ATTR_DIM) !== 0
+    out.italic = (packed & ATTR_ITALIC) !== 0
+    out.blink = (packed & ATTR_BLINK) !== 0
+    out.inverse = (packed & ATTR_INVERSE) !== 0
+    out.hidden = (packed & ATTR_HIDDEN) !== 0
+    out.strikethrough = (packed & ATTR_STRIKETHROUGH) !== 0
 
     const ulStyleNum = (packed & UNDERLINE_STYLE_MASK) >> UNDERLINE_STYLE_SHIFT
-    const ulStyle = numberToUnderlineStyle(ulStyleNum)
-    if (ulStyle) {
-      attrs.underlineStyle = ulStyle
-      attrs.underline = true
-    } else {
-      attrs.underlineStyle = undefined
-      attrs.underline = undefined
-    }
+    out.underline = numberToUnderlineStyle(ulStyleNum)
 
     out.wide = (packed & WIDE_FLAG) !== 0
     out.continuation = (packed & CONTINUATION_FLAG) !== 0
@@ -631,7 +645,7 @@ export class TerminalBuffer {
       const char = cell.char ?? " "
       const stack = new Error().stack?.split("\n").slice(1, 6).join("\n") ?? ""
       trap.log.push(
-        `  char="${char}" fg=${cell.fg ?? "null"} bg=${cell.bg ?? "null"} dim=${cell.attrs?.dim} ul=${cell.attrs?.underline}\n${stack}`,
+        `  char="${char}" fg=${cell.fg ?? "null"} bg=${cell.bg ?? "null"} dim=${cell.dim} ul=${cell.underline}\n${stack}`,
       )
     }
 
@@ -646,7 +660,6 @@ export class TerminalBuffer {
     const fg = cell.fg ?? null
     const bg = cell.bg ?? null
     const underlineColor = cell.underlineColor ?? null
-    const attrs = cell.attrs ?? EMPTY_ATTRS
     const wide = cell.wide ?? false
     const continuation = cell.continuation ?? false
 
@@ -681,11 +694,18 @@ export class TerminalBuffer {
       this.hyperlinks.delete(idx)
     }
 
-    // Pack metadata inline (avoids packCell's fullCell parameter overhead)
+    // Pack metadata inline (flat fields, no nested attrs)
     let packed = 0
     packed |= colorToIndex(fg) & 0xff
     packed |= (colorToIndex(bg) & 0xff) << 8
-    packed |= attrsToNumber(attrs)
+    if (cell.bold) packed |= ATTR_BOLD
+    if (cell.dim) packed |= ATTR_DIM
+    if (cell.italic) packed |= ATTR_ITALIC
+    if (cell.blink) packed |= ATTR_BLINK
+    if (cell.inverse) packed |= ATTR_INVERSE
+    if (cell.hidden) packed |= ATTR_HIDDEN
+    if (cell.strikethrough) packed |= ATTR_STRIKETHROUGH
+    if (cell.underline) packed |= underlineStyleToNumber(cell.underline) << UNDERLINE_STYLE_SHIFT
     if (wide) packed |= WIDE_FLAG
     if (continuation) packed |= CONTINUATION_FLAG
     if (isTrueColor(fg)) packed |= TRUE_COLOR_FG_FLAG
@@ -712,7 +732,6 @@ export class TerminalBuffer {
     const fg = cell.fg ?? null
     const bg = cell.bg ?? null
     const underlineColor = cell.underlineColor ?? null
-    const attrs = cell.attrs ?? {}
     const wide = cell.wide ?? false
     const continuation = cell.continuation ?? false
 
@@ -722,7 +741,14 @@ export class TerminalBuffer {
       fg,
       bg,
       underlineColor,
-      attrs,
+      bold: cell.bold ?? false,
+      dim: cell.dim ?? false,
+      italic: cell.italic ?? false,
+      underline: cell.underline ?? false,
+      blink: cell.blink ?? false,
+      inverse: cell.inverse ?? false,
+      hidden: cell.hidden ?? false,
+      strikethrough: cell.strikethrough ?? false,
       wide,
       continuation,
     }
@@ -1191,27 +1217,34 @@ export function cellEquals(a: Cell, b: Cell): boolean {
     colorEquals(a.fg, b.fg) &&
     colorEquals(a.bg, b.bg) &&
     colorEquals(a.underlineColor, b.underlineColor) &&
+    a.bold === b.bold &&
+    a.dim === b.dim &&
+    a.italic === b.italic &&
+    a.underline === b.underline &&
+    a.blink === b.blink &&
+    a.inverse === b.inverse &&
+    a.hidden === b.hidden &&
+    a.strikethrough === b.strikethrough &&
     a.wide === b.wide &&
     a.continuation === b.continuation &&
-    attrsEquals(a.attrs, b.attrs) &&
     (a.hyperlink ?? undefined) === (b.hyperlink ?? undefined)
   )
 }
 
 /**
- * Compare two CellAttrs for equality.
+ * Compare two sets of cell attributes for equality.
+ * @deprecated Use direct field comparison or styleEquals instead.
  */
 export function attrsEquals(a: CellAttrs, b: CellAttrs): boolean {
   return (
-    Boolean(a.bold) === Boolean(b.bold) &&
-    Boolean(a.dim) === Boolean(b.dim) &&
-    Boolean(a.italic) === Boolean(b.italic) &&
-    Boolean(a.underline) === Boolean(b.underline) &&
-    (a.underlineStyle ?? false) === (b.underlineStyle ?? false) &&
-    Boolean(a.blink) === Boolean(b.blink) &&
-    Boolean(a.inverse) === Boolean(b.inverse) &&
-    Boolean(a.hidden) === Boolean(b.hidden) &&
-    Boolean(a.strikethrough) === Boolean(b.strikethrough)
+    a.bold === b.bold &&
+    a.dim === b.dim &&
+    a.italic === b.italic &&
+    a.underline === b.underline &&
+    a.blink === b.blink &&
+    a.inverse === b.inverse &&
+    a.hidden === b.hidden &&
+    a.strikethrough === b.strikethrough
   )
 }
 
@@ -1225,7 +1258,14 @@ export function styleEquals(a: Style | null, b: Style | null): boolean {
     colorEquals(a.fg, b.fg) &&
     colorEquals(a.bg, b.bg) &&
     colorEquals(a.underlineColor, b.underlineColor) &&
-    attrsEquals(a.attrs, b.attrs) &&
+    Boolean(a.bold) === Boolean(b.bold) &&
+    Boolean(a.dim) === Boolean(b.dim) &&
+    Boolean(a.italic) === Boolean(b.italic) &&
+    (a.underline ?? false) === (b.underline ?? false) &&
+    Boolean(a.blink) === Boolean(b.blink) &&
+    Boolean(a.inverse) === Boolean(b.inverse) &&
+    Boolean(a.hidden) === Boolean(b.hidden) &&
+    Boolean(a.strikethrough) === Boolean(b.strikethrough) &&
     (a.hyperlink ?? undefined) === (b.hyperlink ?? undefined)
   )
 }
@@ -1240,7 +1280,14 @@ export function createMutableCell(): Cell {
     fg: null,
     bg: null,
     underlineColor: null,
-    attrs: {},
+    bold: false,
+    dim: false,
+    italic: false,
+    underline: false,
+    blink: false,
+    inverse: false,
+    hidden: false,
+    strikethrough: false,
     wide: false,
     continuation: false,
     hyperlink: undefined,
@@ -1391,7 +1438,14 @@ export function bufferToStyledText(
         fg: cell.fg,
         bg: cell.bg,
         underlineColor: cell.underlineColor,
-        attrs: cell.attrs,
+        bold: cell.bold,
+        dim: cell.dim,
+        italic: cell.italic,
+        underline: cell.underline,
+        blink: cell.blink,
+        inverse: cell.inverse,
+        hidden: cell.hidden,
+        strikethrough: cell.strikethrough,
       }
       if (!styleEquals(currentStyle, cellStyle)) {
         line += styleTransitionCodes(currentStyle, cellStyle)
@@ -1408,7 +1462,7 @@ export function bufferToStyledText(
     }
 
     // Reset style at end of line using per-attribute resets (chalk-compatible)
-    if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle.attrs))) {
+    if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle))) {
       line += styleResetCodes(currentStyle)
       currentStyle = null
     }
@@ -1423,7 +1477,7 @@ export function bufferToStyledText(
 
   // Final per-attribute reset (chalk-compatible)
   let result = lines.join("\n")
-  if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle.attrs))) {
+  if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle))) {
     result += styleResetCodes(currentStyle)
   }
 
@@ -1626,7 +1680,14 @@ export function bufferToHTML(
         fg: cell.fg,
         bg: cell.bg,
         underlineColor: cell.underlineColor,
-        attrs: cell.attrs,
+        bold: cell.bold,
+        dim: cell.dim,
+        italic: cell.italic,
+        underline: cell.underline,
+        blink: cell.blink,
+        inverse: cell.inverse,
+        hidden: cell.hidden,
+        strikethrough: cell.strikethrough,
       }
 
       if (!styleEquals(currentStyle, cellStyle)) {
@@ -1675,7 +1736,7 @@ function styleToCSSProperties(style: Style, defaultFg: string, defaultBg: string
   // Handle inverse: swap fg/bg
   let fgColor: string | null
   let bgColor: string | null
-  if (style.attrs.inverse) {
+  if (style.inverse) {
     fgColor = colorToCSS(style.bg) ?? defaultBg
     bgColor = colorToCSS(style.fg) ?? defaultFg
   } else {
@@ -1685,14 +1746,14 @@ function styleToCSSProperties(style: Style, defaultFg: string, defaultBg: string
 
   if (fgColor) parts.push(`color:${fgColor}`)
   if (bgColor) parts.push(`background:${bgColor}`)
-  if (style.attrs.bold) parts.push("font-weight:bold")
-  if (style.attrs.dim) parts.push("opacity:0.5")
-  if (style.attrs.italic) parts.push("font-style:italic")
-  if (style.attrs.hidden) parts.push("visibility:hidden")
+  if (style.bold) parts.push("font-weight:bold")
+  if (style.dim) parts.push("opacity:0.5")
+  if (style.italic) parts.push("font-style:italic")
+  if (style.hidden) parts.push("visibility:hidden")
 
   // Text decoration: underline and/or strikethrough
   const decorations: string[] = []
-  const underlineStyle = style.attrs.underlineStyle
+  const underlineStyle = style.underline
   if (typeof underlineStyle === "string") {
     const cssStyleMap: Record<string, string> = {
       single: "solid",
@@ -1706,10 +1767,10 @@ function styleToCSSProperties(style: Style, defaultFg: string, defaultBg: string
     if (cssStyle) parts.push(`text-decoration-style:${cssStyle}`)
     const ulColor = colorToCSS(style.underlineColor ?? null)
     if (ulColor) parts.push(`text-decoration-color:${ulColor}`)
-  } else if (style.attrs.underline) {
+  } else if (style.underline) {
     decorations.push("underline")
   }
-  if (style.attrs.strikethrough) decorations.push("line-through")
+  if (style.strikethrough) decorations.push("line-through")
   if (decorations.length > 0) parts.push(`text-decoration:${decorations.join(" ")}`)
 
   return parts.length > 0 ? parts.join(";") : null
@@ -1724,17 +1785,18 @@ function escapeHTML(str: string): string {
 /**
  * Check if any text attributes are active.
  */
-export function hasActiveAttrs(attrs: CellAttrs): boolean {
+export function hasActiveAttrs(
+  style: Pick<Style, "bold" | "dim" | "italic" | "underline" | "blink" | "inverse" | "hidden" | "strikethrough">,
+): boolean {
   return !!(
-    attrs.bold ||
-    attrs.dim ||
-    attrs.italic ||
-    attrs.underline ||
-    attrs.underlineStyle ||
-    attrs.blink ||
-    attrs.inverse ||
-    attrs.hidden ||
-    attrs.strikethrough
+    style.bold ||
+    style.dim ||
+    style.italic ||
+    style.underline ||
+    style.blink ||
+    style.inverse ||
+    style.hidden ||
+    style.strikethrough
   )
 }
 
@@ -1772,12 +1834,12 @@ function styleToAnsiCodes(style: Style): string {
   }
 
   // Attributes
-  if (style.attrs.bold) result += "\x1b[1m"
-  if (style.attrs.dim) result += "\x1b[2m"
-  if (style.attrs.italic) result += "\x1b[3m"
+  if (style.bold) result += "\x1b[1m"
+  if (style.dim) result += "\x1b[2m"
+  if (style.italic) result += "\x1b[3m"
 
   // Underline: use SGR 4:x if style specified, otherwise simple SGR 4
-  const underlineStyle = style.attrs.underlineStyle
+  const underlineStyle = style.underline
   if (typeof underlineStyle === "string") {
     const styleMap: Record<string, number> = {
       single: 1,
@@ -1790,13 +1852,13 @@ function styleToAnsiCodes(style: Style): string {
     if (subparam !== undefined && subparam !== 0) {
       result += `\x1b[4:${subparam}m`
     }
-  } else if (style.attrs.underline) {
+  } else if (style.underline) {
     result += "\x1b[4m" // Simple underline
   }
 
   // Use SGR 7 for inverse — lets the terminal correctly swap fg/bg
-  if (style.attrs.inverse) result += "\x1b[7m"
-  if (style.attrs.strikethrough) result += "\x1b[9m"
+  if (style.inverse) result += "\x1b[7m"
+  if (style.strikethrough) result += "\x1b[9m"
 
   // Underline color (SGR 58)
   if (style.underlineColor !== null && style.underlineColor !== undefined) {
@@ -1825,35 +1887,35 @@ function styleTransitionCodes(oldStyle: Style | null, newStyle: Style): string {
   if (styleEquals(oldStyle, newStyle)) return ""
 
   let result = ""
-  const oa = oldStyle.attrs
-  const na = newStyle.attrs
+  // Flat style comparison (attrs flattened into Style)
+  // old/new are the style objects directly
 
   // Bold and dim share SGR 22 as their off-code
-  const boldChanged = Boolean(oa.bold) !== Boolean(na.bold)
-  const dimChanged = Boolean(oa.dim) !== Boolean(na.dim)
+  const boldChanged = Boolean(oldStyle.bold) !== Boolean(newStyle.bold)
+  const dimChanged = Boolean(oldStyle.dim) !== Boolean(newStyle.dim)
   if (boldChanged || dimChanged) {
-    const boldOff = boldChanged && !na.bold
-    const dimOff = dimChanged && !na.dim
+    const boldOff = boldChanged && !newStyle.bold
+    const dimOff = dimChanged && !newStyle.dim
     if (boldOff || dimOff) {
       result += "\x1b[22m"
-      if (na.bold) result += "\x1b[1m"
-      if (na.dim) result += "\x1b[2m"
+      if (newStyle.bold) result += "\x1b[1m"
+      if (newStyle.dim) result += "\x1b[2m"
     } else {
-      if (boldChanged && na.bold) result += "\x1b[1m"
-      if (dimChanged && na.dim) result += "\x1b[2m"
+      if (boldChanged && newStyle.bold) result += "\x1b[1m"
+      if (dimChanged && newStyle.dim) result += "\x1b[2m"
     }
   }
-  if (Boolean(oa.italic) !== Boolean(na.italic)) {
-    result += na.italic ? "\x1b[3m" : "\x1b[23m"
+  if (Boolean(oldStyle.italic) !== Boolean(newStyle.italic)) {
+    result += newStyle.italic ? "\x1b[3m" : "\x1b[23m"
   }
 
   // Underline
-  const oldUl = Boolean(oa.underline)
-  const newUl = Boolean(na.underline)
-  const oldUlStyle = oa.underlineStyle ?? false
-  const newUlStyle = na.underlineStyle ?? false
+  const oldUl = Boolean(oldStyle.underline)
+  const newUl = Boolean(newStyle.underline)
+  const oldUlStyle = oldStyle.underline ?? false
+  const newUlStyle = newStyle.underline ?? false
   if (oldUl !== newUl || oldUlStyle !== newUlStyle) {
-    if (typeof na.underlineStyle === "string") {
+    if (typeof newStyle.underline === "string") {
       const styleMap: Record<string, number> = {
         single: 1,
         double: 2,
@@ -1861,7 +1923,7 @@ function styleTransitionCodes(oldStyle: Style | null, newStyle: Style): string {
         dotted: 4,
         dashed: 5,
       }
-      const sub = styleMap[na.underlineStyle]
+      const sub = styleMap[newStyle.underline]
       if (sub !== undefined && sub !== 0) {
         result += `\x1b[4:${sub}m`
       } else if (newUl) {
@@ -1876,11 +1938,11 @@ function styleTransitionCodes(oldStyle: Style | null, newStyle: Style): string {
     }
   }
 
-  if (Boolean(oa.inverse) !== Boolean(na.inverse)) {
-    result += na.inverse ? "\x1b[7m" : "\x1b[27m"
+  if (Boolean(oldStyle.inverse) !== Boolean(newStyle.inverse)) {
+    result += newStyle.inverse ? "\x1b[7m" : "\x1b[27m"
   }
-  if (Boolean(oa.strikethrough) !== Boolean(na.strikethrough)) {
-    result += na.strikethrough ? "\x1b[9m" : "\x1b[29m"
+  if (Boolean(oldStyle.strikethrough) !== Boolean(newStyle.strikethrough)) {
+    result += newStyle.strikethrough ? "\x1b[9m" : "\x1b[29m"
   }
 
   // Foreground color
@@ -1923,11 +1985,11 @@ function styleTransitionCodes(oldStyle: Style | null, newStyle: Style): string {
 function styleResetCodes(style: Style): string {
   let result = ""
   // Attributes (order: underline, bold/dim, italic, strikethrough, inverse — matches chalk close order)
-  if (style.attrs.underline || style.attrs.underlineStyle) result += "\x1b[24m"
-  if (style.attrs.bold || style.attrs.dim) result += "\x1b[22m"
-  if (style.attrs.italic) result += "\x1b[23m"
-  if (style.attrs.strikethrough) result += "\x1b[29m"
-  if (style.attrs.inverse) result += "\x1b[27m"
+  if (style.underline) result += "\x1b[24m"
+  if (style.bold || style.dim) result += "\x1b[22m"
+  if (style.italic) result += "\x1b[23m"
+  if (style.strikethrough) result += "\x1b[29m"
+  if (style.inverse) result += "\x1b[27m"
   // Colors
   if (style.bg !== null && !isDefaultBg(style.bg)) result += "\x1b[49m"
   if (style.fg !== null) result += "\x1b[39m"

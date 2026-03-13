@@ -14,9 +14,16 @@ interface Cell {
   fg: Color // Foreground color (256-color index, RGB, or null)
   bg: Color // Background color (separate from fg)
   underlineColor: Color // Independent underline color (SGR 58)
-  attrs: CellAttrs // bold, dim, italic, underline, strikethrough, etc.
+  bold: boolean // Bold attribute
+  dim: boolean // Dim attribute
+  italic: boolean // Italic attribute
+  underline: false | "single" | "double" | "curly" | "dotted" | "dashed"
+  blink: boolean // Blink attribute
+  inverse: boolean // Inverse attribute
+  hidden: boolean // Hidden attribute
+  strikethrough: boolean // Strikethrough attribute
   wide: boolean // CJK/emoji double-width flag
-  hyperlink?: string // OSC 8 hyperlink URL
+  hyperlink: string | null // OSC 8 hyperlink URL
 }
 ```
 

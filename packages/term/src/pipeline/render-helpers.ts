@@ -213,15 +213,12 @@ export function getTextStyle(props: TextProps): Style {
     fg: props.color ? parseColor(props.color) : null,
     bg: props.backgroundColor ? parseColor(props.backgroundColor) : null,
     underlineColor: props.underlineColor ? parseColor(props.underlineColor) : null,
-    attrs: {
-      bold: props.bold,
-      dim: props.dim || props.dimColor, // dimColor is Ink compatibility alias
-      italic: props.italic,
-      underline: props.underline || !!underlineStyle,
-      underlineStyle,
-      strikethrough: props.strikethrough,
-      inverse: props.inverse,
-    },
+    bold: props.bold,
+    dim: props.dim || props.dimColor, // dimColor is Ink compatibility alias
+    italic: props.italic,
+    underline: underlineStyle,
+    strikethrough: props.strikethrough,
+    inverse: props.inverse,
   }
 }
 

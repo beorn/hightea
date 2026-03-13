@@ -23,7 +23,7 @@ describe("blink-hidden-style: styleToAnsi produces SGR codes for blink and hidde
   test("blink attribute produces SGR 5 in ANSI output", () => {
     // Set up a buffer with a blink cell and render it through the output phase
     const buf = createBuffer(10, 1)
-    buf.setCell(0, 0, { char: "X", attrs: { blink: true } })
+    buf.setCell(0, 0, { char: "X", blink: true })
 
     const ansi = outputPhase(null, buf, "fullscreen")
     // SGR 5 is the blink code
@@ -33,7 +33,7 @@ describe("blink-hidden-style: styleToAnsi produces SGR codes for blink and hidde
 
   test("hidden attribute produces SGR 8 in ANSI output", () => {
     const buf = createBuffer(10, 1)
-    buf.setCell(0, 0, { char: "Y", attrs: { hidden: true } })
+    buf.setCell(0, 0, { char: "Y", hidden: true })
 
     const ansi = outputPhase(null, buf, "fullscreen")
     // SGR 8 is the hidden code
@@ -43,7 +43,7 @@ describe("blink-hidden-style: styleToAnsi produces SGR codes for blink and hidde
 
   test("blink + hidden combined produces both SGR 5 and SGR 8", () => {
     const buf = createBuffer(10, 1)
-    buf.setCell(0, 0, { char: "Z", attrs: { blink: true, hidden: true } })
+    buf.setCell(0, 0, { char: "Z", blink: true, hidden: true })
 
     const ansi = outputPhase(null, buf, "fullscreen")
     expect(ansi).toContain("\x1b[5m")
@@ -57,7 +57,7 @@ describe("blink-hidden-style: styleToAnsi produces SGR codes for blink and hidde
 
     // Second render: blink cell
     const next = createBuffer(5, 1)
-    next.setCell(0, 0, { char: "A", attrs: { blink: true } })
+    next.setCell(0, 0, { char: "A", blink: true })
 
     const ansi = outputPhase(prev, next, "fullscreen")
     // The transition should include SGR 5
@@ -67,7 +67,7 @@ describe("blink-hidden-style: styleToAnsi produces SGR codes for blink and hidde
   test("hidden to non-hidden transition re-renders without hidden attribute", () => {
     // First render: hidden cell
     const prev = createBuffer(5, 1)
-    prev.setCell(0, 0, { char: "A", attrs: { hidden: true } })
+    prev.setCell(0, 0, { char: "A", hidden: true })
 
     // Second render: normal cell
     const next = createBuffer(5, 1)
@@ -409,7 +409,7 @@ describe("line-has-content: styled blank cells are treated as content", () => {
     buf.setCell(1, 0, { char: "i" })
     // Row 1: blank with inverse (should be treated as content)
     for (let x = 0; x < 10; x++) {
-      buf.setCell(x, 1, { char: " ", attrs: { inverse: true } })
+      buf.setCell(x, 1, { char: " ", inverse: true })
     }
     // Row 2: truly empty
 
@@ -424,7 +424,7 @@ describe("line-has-content: styled blank cells are treated as content", () => {
     buf.setCell(0, 0, { char: "A" })
     // Row 1: blank with underline
     for (let x = 0; x < 5; x++) {
-      buf.setCell(x, 1, { char: " ", attrs: { underline: true } })
+      buf.setCell(x, 1, { char: " ", underline: "single" })
     }
 
     const ansi = outputPhase(null, buf, "inline", 0, 3)
@@ -437,7 +437,7 @@ describe("line-has-content: styled blank cells are treated as content", () => {
     buf.setCell(0, 0, { char: "A" })
     // Row 1: blank with strikethrough
     for (let x = 0; x < 5; x++) {
-      buf.setCell(x, 1, { char: " ", attrs: { strikethrough: true } })
+      buf.setCell(x, 1, { char: " ", strikethrough: true })
     }
 
     const ansi = outputPhase(null, buf, "inline", 0, 3)

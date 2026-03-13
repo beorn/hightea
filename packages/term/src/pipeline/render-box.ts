@@ -185,7 +185,7 @@ export function renderOutline(
   const chars = getBorderChars(props.outlineStyle ?? "single")
   const color = props.outlineColor ? parseColor(props.outlineColor) : null
   const bg = props.backgroundColor ? parseColor(props.backgroundColor) : (inheritedBg ?? null)
-  const attrs = props.outlineDimColor ? { dim: true } : {}
+  const dim = props.outlineDimColor ? true : undefined
 
   // Helper to check if a row is visible within clip bounds
   const isRowVisible = (row: number): boolean => {
@@ -206,12 +206,12 @@ export function renderOutline(
 
   // Top border
   if (showTop && isRowVisible(y)) {
-    if (showLeft && isColVisible(x)) buffer.setCell(x, y, { char: chars.topLeft, fg: color, bg, attrs })
+    if (showLeft && isColVisible(x)) buffer.setCell(x, y, { char: chars.topLeft, fg: color, bg, dim })
     for (let col = x + 1; col < x + width - 1 && col < buffer.width; col++) {
-      if (isColVisible(col)) buffer.setCell(col, y, { char: chars.horizontal, fg: color, bg, attrs })
+      if (isColVisible(col)) buffer.setCell(col, y, { char: chars.horizontal, fg: color, bg, dim })
     }
     if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
-      buffer.setCell(x + width - 1, y, { char: chars.topRight, fg: color, bg, attrs })
+      buffer.setCell(x + width - 1, y, { char: chars.topRight, fg: color, bg, dim })
     }
   }
 
@@ -221,9 +221,9 @@ export function renderOutline(
   const sideEnd = showBottom ? y + height - 1 : y + height
   for (let row = sideStart; row < sideEnd; row++) {
     if (!isRowVisible(row)) continue
-    if (showLeft && isColVisible(x)) buffer.setCell(x, row, { char: chars.vertical, fg: color, bg, attrs })
+    if (showLeft && isColVisible(x)) buffer.setCell(x, row, { char: chars.vertical, fg: color, bg, dim })
     if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
-      buffer.setCell(x + width - 1, row, { char: outlineRightVertical, fg: color, bg, attrs })
+      buffer.setCell(x + width - 1, row, { char: outlineRightVertical, fg: color, bg, dim })
     }
   }
 
@@ -232,17 +232,17 @@ export function renderOutline(
   const bottomY = y + height - 1
   if (showBottom && isRowVisible(bottomY)) {
     if (showLeft && isColVisible(x)) {
-      buffer.setCell(x, bottomY, { char: chars.bottomLeft, fg: color, bg, attrs })
+      buffer.setCell(x, bottomY, { char: chars.bottomLeft, fg: color, bg, dim })
     }
     for (let col = x + 1; col < x + width - 1 && col < buffer.width; col++) {
-      if (isColVisible(col)) buffer.setCell(col, bottomY, { char: outlineBottomHorizontal, fg: color, bg, attrs })
+      if (isColVisible(col)) buffer.setCell(col, bottomY, { char: outlineBottomHorizontal, fg: color, bg, dim })
     }
     if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
       buffer.setCell(x + width - 1, bottomY, {
         char: chars.bottomRight,
         fg: color,
         bg,
-        attrs,
+        dim,
       })
     }
   }
@@ -276,7 +276,6 @@ export function renderScrollIndicators(
   const indicatorStyle: Style = {
     fg: 15, // Bright white
     bg: 8, // Dark gray
-    attrs: {},
   }
 
   // Determine if we should show indicators for borderless containers

@@ -9,14 +9,7 @@
  * - Text content collection (collectTextContent)
  */
 
-import {
-  type CellAttrs,
-  type Color,
-  type Style,
-  type TerminalBuffer,
-  type UnderlineStyle,
-  createMutableCell,
-} from "../buffer"
+import { type Color, type Style, type TerminalBuffer, type UnderlineStyle, createMutableCell } from "../buffer"
 import type { TeaNode, TextProps } from "@silvery/tea/types"
 import {
   type StyledSegment,
@@ -791,7 +784,14 @@ function renderGraphemes(
         fg: style.fg,
         bg: existingBg,
         underlineColor: style.underlineColor ?? null,
-        attrs: style.attrs,
+        bold: style.bold,
+        dim: style.dim,
+        italic: style.italic,
+        underline: style.underline,
+        blink: style.blink,
+        inverse: style.inverse,
+        hidden: style.hidden,
+        strikethrough: style.strikethrough,
         wide: false,
         continuation: false,
         hyperlink: style.hyperlink,
@@ -808,7 +808,14 @@ function renderGraphemes(
       fg: style.fg,
       bg: existingBg,
       underlineColor: style.underlineColor ?? null,
-      attrs: style.attrs,
+      bold: style.bold,
+      dim: style.dim,
+      italic: style.italic,
+      underline: style.underline,
+      blink: style.blink,
+      inverse: style.inverse,
+      hidden: style.hidden,
+      strikethrough: style.strikethrough,
       wide: width === 2,
       continuation: false,
       hyperlink: style.hyperlink,
@@ -822,7 +829,14 @@ function renderGraphemes(
         fg: style.fg,
         bg: existingBg2,
         underlineColor: style.underlineColor ?? null,
-        attrs: style.attrs,
+        bold: style.bold,
+        dim: style.dim,
+        italic: style.italic,
+        underline: style.underline,
+        blink: style.blink,
+        inverse: style.inverse,
+        hidden: style.hidden,
+        strikethrough: style.strikethrough,
         wide: false,
         continuation: true,
         hyperlink: style.hyperlink,
@@ -919,7 +933,7 @@ function renderAnsiTextLineReturn(
 export interface MergeStylesOptions {
   /**
    * Preserve decoration attributes through layers (OR merge).
-   * Affects: underline, underlineStyle, underlineColor, strikethrough
+   * Affects: underline, underlineColor, strikethrough
    * Default: true
    */
   preserveDecorations?: boolean
@@ -948,53 +962,47 @@ export interface MergeStylesOptions {
 export function mergeStyles(base: Style, overlay: Partial<Style>, options: MergeStylesOptions = {}): Style {
   const { preserveDecorations = true, preserveEmphasis = true } = options
 
-  const baseAttrs = base.attrs ?? {}
-  const overlayAttrs = overlay.attrs ?? {}
-
-  // Merge attributes by category
-  const attrs: CellAttrs = {}
-
-  // Decorations: OR if preserving, otherwise overlay takes precedence
-  if (preserveDecorations) {
-    // Underline: OR the boolean, but style from overlay wins if specified
-    const hasBaseUnderline = baseAttrs.underline || baseAttrs.underlineStyle
-    const hasOverlayUnderline = overlayAttrs.underline || overlayAttrs.underlineStyle
-    if (hasBaseUnderline || hasOverlayUnderline) {
-      attrs.underline = true
-      // Style: overlay wins if specified, else base
-      attrs.underlineStyle = overlayAttrs.underlineStyle ?? baseAttrs.underlineStyle ?? "single"
-    }
-    attrs.strikethrough = overlayAttrs.strikethrough || baseAttrs.strikethrough
-  } else {
-    attrs.underline = overlayAttrs.underline ?? baseAttrs.underline
-    attrs.underlineStyle = overlayAttrs.underlineStyle ?? baseAttrs.underlineStyle
-    attrs.strikethrough = overlayAttrs.strikethrough ?? baseAttrs.strikethrough
-  }
-
-  // Emphasis: OR if preserving
-  if (preserveEmphasis) {
-    attrs.bold = overlayAttrs.bold || baseAttrs.bold
-    attrs.dim = overlayAttrs.dim || baseAttrs.dim
-    attrs.italic = overlayAttrs.italic || baseAttrs.italic
-  } else {
-    attrs.bold = overlayAttrs.bold ?? baseAttrs.bold
-    attrs.dim = overlayAttrs.dim ?? baseAttrs.dim
-    attrs.italic = overlayAttrs.italic ?? baseAttrs.italic
-  }
-
-  // Transform: overlay only, not inherited from base
-  attrs.inverse = overlayAttrs.inverse
-  attrs.hidden = overlayAttrs.hidden
-  attrs.blink = overlayAttrs.blink
-
-  return {
+  // Merged result built directly (flat Style, no nested attrs)
+  const result: Style = {
     // Container/Text: overlay wins if specified
     fg: overlay.fg ?? base.fg,
     bg: overlay.bg ?? base.bg,
     // Underline color: always use overlay ?? base (part of decoration preservation)
     underlineColor: overlay.underlineColor ?? base.underlineColor,
-    attrs,
   }
+
+  // Decorations: OR if preserving, otherwise overlay takes precedence
+  if (preserveDecorations) {
+    // Underline: OR merge, overlay style wins if specified
+    const hasBaseUnderline = !!base.underline
+    const hasOverlayUnderline = !!overlay.underline
+    if (hasBaseUnderline || hasOverlayUnderline) {
+      // Style: overlay wins if specified, else base, else 'single'
+      result.underline = overlay.underline || base.underline || "single"
+    }
+    result.strikethrough = overlay.strikethrough || base.strikethrough
+  } else {
+    result.underline = overlay.underline ?? base.underline
+    result.strikethrough = overlay.strikethrough ?? base.strikethrough
+  }
+
+  // Emphasis: OR if preserving
+  if (preserveEmphasis) {
+    result.bold = overlay.bold || base.bold
+    result.dim = overlay.dim || base.dim
+    result.italic = overlay.italic || base.italic
+  } else {
+    result.bold = overlay.bold ?? base.bold
+    result.dim = overlay.dim ?? base.dim
+    result.italic = overlay.italic ?? base.italic
+  }
+
+  // Transform: overlay only, not inherited from base
+  result.inverse = overlay.inverse
+  result.hidden = overlay.hidden
+  result.blink = overlay.blink
+
+  return result
 }
 
 // ============================================================================
@@ -1023,25 +1031,22 @@ function mergeAnsiStyle(base: Style, segment: StyledSegment, options: MergeStyle
     underlineColor = ansiColorToColor(segment.underlineColor)
   }
 
-  // Build overlay attrs from segment
-  const overlayAttrs: CellAttrs = {}
-  if (segment.bold !== undefined) overlayAttrs.bold = segment.bold
-  if (segment.dim !== undefined) overlayAttrs.dim = segment.dim
-  if (segment.italic !== undefined) overlayAttrs.italic = segment.italic
+  // Build overlay style from segment (flat fields, no nested attrs)
+  const overlayStyle: Partial<Style> = { fg, bg, underlineColor }
+  if (segment.bold !== undefined) overlayStyle.bold = segment.bold
+  if (segment.dim !== undefined) overlayStyle.dim = segment.dim
+  if (segment.italic !== undefined) overlayStyle.italic = segment.italic
   if (segment.underline !== undefined) {
-    overlayAttrs.underline = segment.underline
+    // ANSI underline boolean → UnderlineStyle: true → 'single', false → false
+    overlayStyle.underline = segment.underline ? "single" : false
   }
   if (segment.underlineStyle !== undefined) {
-    overlayAttrs.underlineStyle = segment.underlineStyle as UnderlineStyle
+    overlayStyle.underline = segment.underlineStyle as UnderlineStyle
   }
-  if (segment.inverse !== undefined) overlayAttrs.inverse = segment.inverse
+  if (segment.inverse !== undefined) overlayStyle.inverse = segment.inverse
 
   // Use mergeStyles for consistent category-based merging
-  const merged = mergeStyles(
-    base,
-    { fg, bg, underlineColor, attrs: overlayAttrs },
-    { preserveDecorations, preserveEmphasis },
-  )
+  const merged = mergeStyles(base, overlayStyle, { preserveDecorations, preserveEmphasis })
 
   // Pass through OSC 8 hyperlink from segment (not an SGR attribute)
   if (segment.hyperlink) {
@@ -1228,16 +1233,14 @@ export function renderText(
           fg: style.fg,
           bg: clearBg,
           underlineColor: null,
-          attrs: {
-            bold: false,
-            dim: false,
-            italic: false,
-            underline: false,
-            inverse: false,
-            strikethrough: false,
-            blink: false,
-            hidden: false,
-          },
+          bold: false,
+          dim: false,
+          italic: false,
+          underline: false,
+          inverse: false,
+          strikethrough: false,
+          blink: false,
+          hidden: false,
           wide: false,
           continuation: false,
         })

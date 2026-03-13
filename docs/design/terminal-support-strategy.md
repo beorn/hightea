@@ -8,6 +8,83 @@ Terminals disagree on character widths, escape sequence interpretation, style re
 
 **Goal**: A layered architecture where cross-terminal issues are resolved at the lowest possible layer. Application code (components, state machines, even the rendering pipeline) never deals with terminal differences.
 
+## Why Cross-Terminal Is Hard
+
+Terminal emulators look simple from the outside: receive bytes, draw characters on a grid. But decades of divergent implementations, a Unicode standard that was never designed for fixed-width grids, and the absence of any formal terminal rendering specification make cross-terminal correctness one of the hardest problems in TUI development.
+
+### Character Width Disagreements
+
+The fundamental question -- "how many cells does this character occupy?" -- has no single correct answer across terminals.
+
+**East Asian Width ambiguity.** Unicode Annex #11 (UAX #11) assigns each code point an East Asian Width property (Narrow, Wide, Fullwidth, Halfwidth, Ambiguous, Neutral). The "Ambiguous" category is the problem: it includes characters like `α`, `→`, and `§` that are typically fullwidth in East Asian contexts but halfwidth in Western contexts. UAX #11 deliberately leaves this to implementations. Worse, UAX #11 operates at the code-point level, not the grapheme-cluster level -- it has nothing to say about sequences of code points that form a single visual unit.
+
+**No standard defines terminal cell width for complex grapheme clusters.** Consider:
+
+| Character | Description                           | Width?                  |
+| --------- | ------------------------------------- | ----------------------- |
+| 🇳🇴        | Flag emoji (Regional Indicator N + O) | 1? 2?                   |
+| 👨‍👩‍👧‍👦        | ZWJ family sequence (7 code points)   | 2? 4? 8?                |
+| 1️⃣        | Keycap sequence (1 + VS16 + ⃣)        | 1? 2?                   |
+| `U+F0001` | Private Use Area character            | 1? 2? terminal-defined? |
+| ☺         | Text-presentation emoji (no VS16)     | 1? 2?                   |
+
+None of these have a standardized terminal width. Each terminal guesses independently.
+
+**POSIX `wcwidth()` is obsolete for modern Unicode.** The C standard library function `wcwidth()` predates grapheme clusters, emoji, and everything after Unicode 2.0. It takes a single `wchar_t` -- it cannot handle multi-code-point grapheme clusters at all. Yet many terminals still build their width logic on top of it or a slightly updated lookup table with the same single-code-point limitation.
+
+**Three ecosystem camps have emerged:**
+
+1. **POSIX-ish** (xterm, Terminal.app, many Linux terminals): Sum the `wcwidth()` of individual code points. A ZWJ family sequence becomes the sum of its parts (easily 8+ cells). Flag emoji become two Regional Indicator widths (4 cells). This produces garbled output when the font renders the cluster as a single glyph.
+
+2. **Grapheme-aware** (Kitty, WezTerm, Ghostty): Segment text into grapheme clusters first, then measure each cluster as a unit. A ZWJ family emoji is one cluster at width 2. This matches modern font rendering but disagrees with camp 1 on nearly every complex emoji.
+
+3. **Explicit protocol** (OSC 66 -- Kitty v0.40+, 2024): The application declares the width of each character explicitly. The terminal trusts the declaration instead of computing width itself. This sidesteps the entire disagreement -- but requires both the application and the terminal to support the protocol.
+
+**Unicode version lag** compounds every width issue. Terminals ship with different Unicode versions baked into their width tables. Unicode 15.1 added ~600 CJK ideographs and new emoji. A terminal on Unicode 14.0 will produce different widths for these characters than one on 15.1. Even terminals in the same "camp" can disagree if they're built against different Unicode data.
+
+### SGR Interpretation Differences
+
+Select Graphic Rendition (SGR) escape sequences (`ESC[...m`) control text styling. They look standardized, but the interpretation varies enough to cause visible bugs.
+
+**Bold vs. bright.** The original DEC VT100 had no bold font -- `ESC[1m` (bold) was rendered by brightening the foreground color. xterm inherited this behavior: bold blue text is actually bright blue, not bold blue. Modern terminals (Kitty, Ghostty, WezTerm, Alacritty) render bold as an actual bold font weight, keeping the color unchanged. An app that relies on `ESC[1m` to get bright colors will look wrong on modern terminals; an app that relies on it for bold weight will look wrong on xterm.
+
+**Underline style support.** `ESC[4m` gives a plain underline everywhere, but `ESC[4:3m` (curly/wavy underline) is only supported in terminals using the Kitty underline extension. Some terminals silently ignore the colon-separated sub-parameter and render a plain underline. Others ignore the sequence entirely. Colored underlines (`ESC[58;2;R;G;Bm`) have similarly patchy support.
+
+**256-color palette mapping.** The 256-color palette (`ESC[38;5;Nm`) is split into ranges: 0-7 (standard), 8-15 (bright), 16-231 (color cube), 232-255 (grayscale). The standard and bright ranges (0-15) map to different RGB values in every terminal -- they're user-configurable and theme-dependent. Even the color cube (16-231) can produce subtly different RGB values due to rounding differences in the `r*36 + g*6 + b + 16` formula. An app that carefully chooses color 67 for a specific shade of teal will get a noticeably different teal across terminals.
+
+**Reset scope.** `ESC[0m` (SGR reset) clears all attributes, but what counts as "all"? Most terminals reset bold, dim, italic, underline, blink, inverse, hidden, strikethrough, foreground, and background. But what about underline color? Hyperlink state (`OSC 8`)? Overline? Some terminals leave these set after a full SGR reset. The safer practice is explicit per-attribute resets (`ESC[22m` for bold, `ESC[24m` for underline, etc.), but that costs bytes and still relies on each terminal supporting each specific reset.
+
+### The Testing Gap
+
+Cross-terminal compatibility is largely untested across the industry, not just in our codebase.
+
+**No "caniuse for terminals" exists.** Web developers have caniuse.com with granular, versioned data on browser support for every CSS property and HTML feature. Terminal developers have... blog posts, GitHub issues, and trial-and-error. There is no centralized, empirical, versioned database of terminal behavior. Each TUI framework rediscovers the same bugs independently.
+
+**Most apps test against one terminal.** In practice, that terminal is usually xterm.js (because it's embeddable and headless). But xterm.js has its own interpretation of character widths, SGR rendering, and escape sequence support. Testing against xterm.js alone means testing against one opinion -- not validating cross-terminal correctness.
+
+**Terminal WASM/native builds exist but nobody does systematic comparison.** Ghostty exposes a WASM build of its terminal core. Alacritty's vte parser is available as a Rust crate (and via napi-rs from Node.js). WezTerm's termwiz is a standalone Rust crate. xterm.js runs headless in Node. The raw ingredients for multi-backend matrix testing exist -- but no project has assembled them into a systematic comparison framework.
+
+**Termless is uniquely positioned to fill this gap.** Our `createTermless()` abstraction already runs ANSI output through a real terminal emulator backend (currently xterm.js) and exposes the resulting cell grid for assertions. Extending this to multiple backends -- Ghostty WASM, Alacritty via napi-rs, WezTerm's termwiz -- gives us empirical, cell-level cross-terminal comparison. The same test sequence rendered through four real backends, compared cell by cell. That's the "caniuse for terminals" that doesn't exist yet.
+
+### No Width Oracle
+
+The deepest problem is that there is no authoritative source for "how wide is this character in a terminal."
+
+**UTR #11 is descriptive, not prescriptive.** The Unicode Technical Report on East Asian Width documents observed practice in East Asian legacy encodings. It explicitly states that the Width property is informative, not normative. It was never intended as a terminal rendering specification.
+
+**POSIX `wcwidth()` is outdated and single-code-point.** It predates emoji, ZWJ sequences, variation selectors, and grapheme cluster segmentation. It returns -1 for non-printable characters and has no concept of a grapheme cluster. Yet it remains the de facto width oracle for many terminal codebases.
+
+**No protocol existed until OSC 66.** The Kitty text sizing protocol (OSC 66), introduced in Kitty v0.40 (2024), is the first attempt at letting applications declare character widths explicitly. The terminal trusts the application's width declaration instead of computing its own. This is architecturally elegant -- but adoption is early. Only Kitty supports it today; Ghostty, WezTerm, and others have not yet implemented it.
+
+**The "right" answer literally depends on which terminal you ask.** Take the Norwegian flag emoji 🇳🇴: is it 1 cell, 2 cells, or 4 cells wide? The answer varies:
+
+- **xterm**: 4 cells (two Regional Indicators at width 2 each, summed)
+- **Kitty**: 2 cells (one grapheme cluster, emoji width)
+- **Terminal.app**: 2 cells (but misaligns the cursor afterward)
+- **Ghostty**: 2 cells (grapheme-aware)
+
+There is no spec that says which answer is correct. They're all "correct" within their own width model. This is why we need OSC 66 (declare the width we intend) and CUP re-sync (fix the cursor if the terminal disagrees) -- you can't solve a problem that has no single right answer by picking one answer. You solve it by making your answer explicit and recoverable.
+
 ## Architecture
 
 ```

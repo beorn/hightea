@@ -1007,7 +1007,7 @@ export function writeTextToBuffer(
   x: number,
   y: number,
   text: string,
-  style: Style = { fg: null, bg: null, attrs: {} },
+  style: Style = { fg: null, bg: null },
 ): number {
   const graphemes = splitGraphemes(text)
   let col = x
@@ -1033,7 +1033,14 @@ export function writeTextToBuffer(
           char: grapheme,
           fg: style.fg,
           bg: style.bg,
-          attrs: style.attrs,
+          bold: style.bold,
+          dim: style.dim,
+          italic: style.italic,
+          underline: style.underline,
+          blink: style.blink,
+          inverse: style.inverse,
+          hidden: style.hidden,
+          strikethrough: style.strikethrough,
           wide: false,
           continuation: false,
         })
@@ -1048,7 +1055,14 @@ export function writeTextToBuffer(
           char: outputChar,
           fg: style.fg,
           bg: style.bg,
-          attrs: style.attrs,
+          bold: style.bold,
+          dim: style.dim,
+          italic: style.italic,
+          underline: style.underline,
+          blink: style.blink,
+          inverse: style.inverse,
+          hidden: style.hidden,
+          strikethrough: style.strikethrough,
           wide: true,
           continuation: false,
         })
@@ -1058,7 +1072,14 @@ export function writeTextToBuffer(
           char: "",
           fg: style.fg,
           bg: style.bg,
-          attrs: style.attrs,
+          bold: style.bold,
+          dim: style.dim,
+          italic: style.italic,
+          underline: style.underline,
+          blink: style.blink,
+          inverse: style.inverse,
+          hidden: style.hidden,
+          strikethrough: style.strikethrough,
           wide: false,
           continuation: true,
         })
@@ -1092,7 +1113,7 @@ export function writeTextTruncated(
   y: number,
   text: string,
   maxWidth: number,
-  style: Style = { fg: null, bg: null, attrs: {} },
+  style: Style = { fg: null, bg: null },
   ellipsis = "\u2026",
 ): void {
   const textWidth = displayWidth(text)
@@ -1119,7 +1140,7 @@ export function writeLinesToBuffer(
   x: number,
   y: number,
   lines: string[],
-  style: Style = { fg: null, bg: null, attrs: {} },
+  style: Style = { fg: null, bg: null },
 ): void {
   for (let i = 0; i < lines.length; i++) {
     if (y + i >= buffer.height) break

@@ -26,7 +26,7 @@ describe("Headings", () => {
     const app = render(<H1>Title</H1>)
     const cell = app.term.buffer.getCell(0, 0)
     expect(cell.char).toBe("T")
-    expect(cell.attrs.bold).toBe(true)
+    expect(cell.bold).toBe(true)
     expect(cell.fg).not.toBeNull()
   })
 
@@ -39,7 +39,7 @@ describe("Headings", () => {
     const app = render(<H2>Section</H2>)
     const cell = app.term.buffer.getCell(0, 0)
     expect(cell.char).toBe("S")
-    expect(cell.attrs.bold).toBe(true)
+    expect(cell.bold).toBe(true)
     expect(cell.fg).not.toBeNull()
   })
 
@@ -64,7 +64,7 @@ describe("Headings", () => {
     const app = render(<H3>Group</H3>)
     const cell = app.term.buffer.getCell(0, 0)
     expect(cell.char).toBe("G")
-    expect(cell.attrs.bold).toBe(true)
+    expect(cell.bold).toBe(true)
     // H3 has no default color — fg should be null (inherits default)
     expect(cell.fg).toBeNull()
   })
@@ -73,7 +73,7 @@ describe("Headings", () => {
     const app = render(<H1 color="$success">OK</H1>)
     const cell = app.term.buffer.getCell(0, 0)
     expect(cell.char).toBe("O")
-    expect(cell.attrs.bold).toBe(true)
+    expect(cell.bold).toBe(true)
     // Should have a foreground color (the overridden one)
     expect(cell.fg).not.toBeNull()
   })
@@ -92,15 +92,15 @@ describe("Body text", () => {
   test("P has no bold/italic by default", () => {
     const app = render(<P>Plain</P>)
     const cell = app.term.buffer.getCell(0, 0)
-    expect(cell.attrs.bold).toBeFalsy()
-    expect(cell.attrs.italic).toBeFalsy()
+    expect(cell.bold).toBeFalsy()
+    expect(cell.italic).toBeFalsy()
   })
 
   test("Lead renders text in italic", () => {
     const app = render(<Lead>Intro text</Lead>)
     expect(app.text).toContain("Intro text")
     const cell = app.term.buffer.getCell(0, 0)
-    expect(cell.attrs.italic).toBe(true)
+    expect(cell.italic).toBe(true)
   })
 
   test("Lead uses $muted color by default", () => {
@@ -119,8 +119,8 @@ describe("Body text", () => {
   test("Muted is not bold or italic", () => {
     const app = render(<Muted>Secondary</Muted>)
     const cell = app.term.buffer.getCell(0, 0)
-    expect(cell.attrs.bold).toBeFalsy()
-    expect(cell.attrs.italic).toBeFalsy()
+    expect(cell.bold).toBeFalsy()
+    expect(cell.italic).toBeFalsy()
   })
 
   test("Lead and Muted have the same $muted foreground", () => {
@@ -143,26 +143,26 @@ describe("Inline emphasis", () => {
     const app = render(<Strong>Important</Strong>)
     expect(app.text).toContain("Important")
     const cell = app.term.buffer.getCell(0, 0)
-    expect(cell.attrs.bold).toBe(true)
+    expect(cell.bold).toBe(true)
   })
 
   test("Strong is not italic", () => {
     const app = render(<Strong>Bold</Strong>)
     const cell = app.term.buffer.getCell(0, 0)
-    expect(cell.attrs.italic).toBeFalsy()
+    expect(cell.italic).toBeFalsy()
   })
 
   test("Em renders italic text", () => {
     const app = render(<Em>Emphasis</Em>)
     expect(app.text).toContain("Emphasis")
     const cell = app.term.buffer.getCell(0, 0)
-    expect(cell.attrs.italic).toBe(true)
+    expect(cell.italic).toBe(true)
   })
 
   test("Em is not bold", () => {
     const app = render(<Em>Italic</Em>)
     const cell = app.term.buffer.getCell(0, 0)
-    expect(cell.attrs.bold).toBeFalsy()
+    expect(cell.bold).toBeFalsy()
   })
 
   test("Strong and Em accept color override", () => {
@@ -202,17 +202,17 @@ describe("Inline code elements", () => {
     const cell = app.term.buffer.getCell(1, 0)
     expect(cell.char).toBe("K")
     expect(cell.bg).not.toBeNull()
-    expect(cell.attrs.bold).toBe(true)
+    expect(cell.bold).toBe(true)
   })
 
   test("Code is not bold, Kbd is bold", () => {
     const app1 = render(<Code>a</Code>)
     const codeCell = app1.term.buffer.getCell(1, 0)
-    expect(codeCell.attrs.bold).toBeFalsy()
+    expect(codeCell.bold).toBeFalsy()
 
     const app2 = render(<Kbd>a</Kbd>)
     const kbdCell = app2.term.buffer.getCell(1, 0)
-    expect(kbdCell.attrs.bold).toBe(true)
+    expect(kbdCell.bold).toBe(true)
   })
 
   test("Code and Kbd accept color override", () => {
@@ -245,7 +245,7 @@ describe("Block elements", () => {
       }
     }
     expect(quoteCol).toBeGreaterThan(0)
-    expect(buffer.getCell(quoteCol, 0).attrs.italic).toBe(true)
+    expect(buffer.getCell(quoteCol, 0).italic).toBe(true)
   })
 
   test("Blockquote │ uses $muted color", () => {
@@ -280,7 +280,7 @@ describe("Block elements", () => {
       }
     }
     expect(codeCol).toBeGreaterThan(0)
-    expect(buffer.getCell(codeCol, 0).attrs.italic).toBeFalsy()
+    expect(buffer.getCell(codeCol, 0).italic).toBeFalsy()
   })
 
   test("CodeBlock │ uses $border color", () => {

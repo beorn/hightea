@@ -98,16 +98,16 @@ describe("content-phase-adapter nested text styles", () => {
 
     // "Hello " (cols 0-5) should NOT be bold
     const cellH = tb.getCell(0, 0)
-    expect(cellH.attrs.bold, "H should not be bold").toBeFalsy()
+    expect(cellH.bold, "H should not be bold").toBeFalsy()
 
     // "world" (cols 6-10) SHOULD be bold
     const cellW = tb.getCell(6, 0)
     expect(cellW.char).toBe("w")
-    expect(cellW.attrs.bold, "w in 'world' should be bold").toBe(true)
+    expect(cellW.bold, "w in 'world' should be bold").toBe(true)
 
     const cellD = tb.getCell(10, 0)
     expect(cellD.char).toBe("d")
-    expect(cellD.attrs.bold, "d in 'world' should be bold").toBe(true)
+    expect(cellD.bold, "d in 'world' should be bold").toBe(true)
   })
 
   test("nested colored Text applies foreground color to buffer cells", () => {
@@ -151,24 +151,24 @@ describe("content-phase-adapter nested text styles", () => {
     const tb = buffer.getTerminalBuffer()
 
     // A: no style
-    expect(tb.getCell(0, 0).attrs.bold).toBeFalsy()
-    expect(tb.getCell(0, 0).attrs.italic).toBeFalsy()
+    expect(tb.getCell(0, 0).bold).toBeFalsy()
+    expect(tb.getCell(0, 0).italic).toBeFalsy()
 
     // B: bold only
-    expect(tb.getCell(1, 0).attrs.bold).toBe(true)
-    expect(tb.getCell(1, 0).attrs.italic).toBeFalsy()
+    expect(tb.getCell(1, 0).bold).toBe(true)
+    expect(tb.getCell(1, 0).italic).toBeFalsy()
 
     // C: bold + italic
-    expect(tb.getCell(2, 0).attrs.bold).toBe(true)
-    expect(tb.getCell(2, 0).attrs.italic).toBe(true)
+    expect(tb.getCell(2, 0).bold).toBe(true)
+    expect(tb.getCell(2, 0).italic).toBe(true)
 
     // D: bold only (italic popped)
-    expect(tb.getCell(3, 0).attrs.bold).toBe(true)
-    expect(tb.getCell(3, 0).attrs.italic).toBeFalsy()
+    expect(tb.getCell(3, 0).bold).toBe(true)
+    expect(tb.getCell(3, 0).italic).toBeFalsy()
 
     // E: no style (bold popped)
-    expect(tb.getCell(4, 0).attrs.bold).toBeFalsy()
-    expect(tb.getCell(4, 0).attrs.italic).toBeFalsy()
+    expect(tb.getCell(4, 0).bold).toBeFalsy()
+    expect(tb.getCell(4, 0).italic).toBeFalsy()
   })
 
   test("parent Text style is inherited by nested children", () => {
@@ -191,7 +191,7 @@ describe("content-phase-adapter nested text styles", () => {
     // "world" should have green fg AND be bold
     const cellW = tb.getCell(6, 0)
     expect(cellW.fg, "w should inherit green fg from parent").toBe(2)
-    expect(cellW.attrs.bold, "w should be bold").toBe(true)
+    expect(cellW.bold, "w should be bold").toBe(true)
   })
 })
 

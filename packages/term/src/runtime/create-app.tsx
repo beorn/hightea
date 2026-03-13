@@ -1141,7 +1141,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             const incText = bufferToText(termBuffer)
             const freshText = bufferToText(freshBuffer)
             const cellStr = (c: typeof a) =>
-              `char=${JSON.stringify(c.char)} fg=${c.fg} bg=${c.bg} ulColor=${c.underlineColor} wide=${c.wide} cont=${c.continuation} attrs={bold=${c.attrs.bold},dim=${c.attrs.dim},italic=${c.attrs.italic},ul=${c.attrs.underline},ulStyle=${c.attrs.underlineStyle},blink=${c.attrs.blink},inv=${c.attrs.inverse},hidden=${c.attrs.hidden},strike=${c.attrs.strikethrough}}`
+              `char=${JSON.stringify(c.char)} fg=${c.fg} bg=${c.bg} ulColor=${c.underlineColor} wide=${c.wide} cont=${c.continuation} bold=${c.bold} dim=${c.dim} italic=${c.italic} ul=${c.underline} blink=${c.blink} inv=${c.inverse} hidden=${c.hidden} strike=${c.strikethrough}`
             // Dump content phase stats for diagnosis
             const contentAll = (globalThis as any).__silvery_content_all as unknown[]
             const statsStr = contentAll

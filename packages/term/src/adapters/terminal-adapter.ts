@@ -188,29 +188,33 @@ export class TerminalRenderBuffer implements RenderBuffer {
     fg: Color
     bg: Color
     underlineColor: Color
-    attrs: {
-      bold?: boolean
-      dim?: boolean
-      italic?: boolean
-      underline?: boolean
-      underlineStyle?: "single" | "double" | "curly" | "dotted" | "dashed" | false
-      strikethrough?: boolean
-      inverse?: boolean
-    }
+    bold?: boolean
+    dim?: boolean
+    italic?: boolean
+    underline?: "single" | "double" | "curly" | "dotted" | "dashed" | false
+    strikethrough?: boolean
+    inverse?: boolean
   } {
+    // Convert underline: RenderStyle.underline is boolean, Cell.underline is UnderlineStyle
+    let underline: "single" | "double" | "curly" | "dotted" | "dashed" | false | undefined
+    if (style.underlineStyle) {
+      underline = style.underlineStyle
+    } else if (style.underline) {
+      underline = "single"
+    } else if (style.underline === false) {
+      underline = false
+    }
+
     return {
       fg: this.parseColor(style.fg),
       bg: this.parseColor(style.bg),
-      underlineColor: this.parseColor(style.attrs?.underlineColor),
-      attrs: {
-        bold: style.attrs?.bold,
-        dim: style.attrs?.dim,
-        italic: style.attrs?.italic,
-        underline: style.attrs?.underline,
-        underlineStyle: style.attrs?.underlineStyle,
-        strikethrough: style.attrs?.strikethrough,
-        inverse: style.attrs?.inverse,
-      },
+      underlineColor: this.parseColor(style.underlineColor),
+      bold: style.bold,
+      dim: style.dim,
+      italic: style.italic,
+      underline,
+      strikethrough: style.strikethrough,
+      inverse: style.inverse,
     }
   }
 
