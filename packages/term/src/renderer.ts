@@ -577,7 +577,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         if (process.env.SILVERY_STRICT) {
           console.warn(
             `[SILVERY] singlePassLayout exhausted ${MAX_SINGLE_PASS_ITERATIONS} iterations ` +
-            `with pending React commit — output may be stale`
+              `with pending React commit — output may be stale`,
           )
         }
       }

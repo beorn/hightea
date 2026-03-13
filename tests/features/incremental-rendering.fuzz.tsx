@@ -489,4 +489,377 @@ describe("incremental rendering fuzz", () => {
       { timeout: 30_000 },
     )
   })
+
+  // ==========================================================================
+  // Tier 3 — Complex rendering patterns: scroll, backgrounds, wrap, overlay,
+  // multi-column board layout. These exercise rendering paths the simpler
+  // components above don't cover.
+  // ==========================================================================
+
+  // --------------------------------------------------------------------------
+  // ScrollableList — scroll offset changes with sticky-like header/footer
+  // --------------------------------------------------------------------------
+
+  describe("ScrollableList (scroll + overflow hidden)", () => {
+    function ScrollableList() {
+      const [offset, setOffset] = useState(0)
+      const [items, setItems] = useState(Array.from({ length: 30 }, (_, i) => `Item ${i}: ${"x".repeat((i * 7) % 20)}`))
+      useInput((input) => {
+        if (input === "j") setOffset((o) => Math.min(o + 1, items.length - 1))
+        if (input === "k") setOffset((o) => Math.max(o - 1, 0))
+        if (input === "a") setItems((prev) => [...prev, `Item ${prev.length}: new`])
+        if (input === "d") setItems((prev) => (prev.length > 5 ? prev.slice(0, -1) : prev))
+      })
+      return (
+        <Box flexDirection="column" height={15} borderStyle="single">
+          <Box height={1}>
+            <Text bold>Header (sticky-like)</Text>
+          </Box>
+          <Box flexDirection="column" overflow="hidden" flexGrow={1}>
+            {items.slice(offset, offset + 12).map((item, i) => (
+              <Text key={offset + i}>{item}</Text>
+            ))}
+          </Box>
+          <Box height={1}>
+            <Text dimColor>
+              {offset}/{items.length}
+            </Text>
+          </Box>
+        </Box>
+      )
+    }
+
+    const SCROLL_ACTIONS: [number, string][] = [
+      [35, "j"], // scroll down
+      [30, "k"], // scroll up
+      [20, "a"], // add item
+      [15, "d"], // delete item
+    ]
+
+    test.fuzz(
+      "incremental matches fresh after scroll and list mutations",
+      async () => {
+        const render = createRenderer({ cols: 60, rows: 18 })
+        const app = render(<ScrollableList />)
+
+        assertIncrementalMatchesFresh(app, { action: "initial", iteration: 0 })
+
+        let i = 1
+        for await (const action of take(gen<string>(SCROLL_ACTIONS), 120)) {
+          await app.press(action)
+          assertIncrementalMatchesFresh(app, { action, iteration: i })
+          i++
+        }
+
+        app.unmount()
+      },
+      { timeout: 30_000 },
+    )
+  })
+
+  // --------------------------------------------------------------------------
+  // NestedBg — background color inheritance chain with conditional middle layer
+  // --------------------------------------------------------------------------
+
+  describe("NestedBg (background inheritance)", () => {
+    function NestedBg() {
+      const [outerBg, setOuterBg] = useState<string | undefined>("blue")
+      const [innerBg, setInnerBg] = useState<string | undefined>(undefined)
+      const [showMiddle, setShowMiddle] = useState(true)
+      useInput((input) => {
+        if (input === "1") setOuterBg((bg) => (bg === "blue" ? "red" : bg === "red" ? undefined : "blue"))
+        if (input === "2") setInnerBg((bg) => (bg === undefined ? "green" : bg === "green" ? "yellow" : undefined))
+        if (input === "3") setShowMiddle((v) => !v)
+      })
+      return (
+        <Box flexDirection="column" backgroundColor={outerBg} padding={1}>
+          <Text>Outer bg: {outerBg ?? "none"}</Text>
+          {showMiddle && (
+            <Box flexDirection="column" padding={1}>
+              <Text>Middle (transparent)</Text>
+              <Box backgroundColor={innerBg} padding={1}>
+                <Text>Inner bg: {innerBg ?? "none"}</Text>
+              </Box>
+            </Box>
+          )}
+        </Box>
+      )
+    }
+
+    const BG_ACTIONS: [number, string][] = [
+      [30, "1"], // cycle outer bg: blue → red → none → blue
+      [30, "2"], // cycle inner bg: none → green → yellow → none
+      [40, "3"], // toggle middle layer
+    ]
+
+    test.fuzz(
+      "incremental matches fresh after background and structure changes",
+      async () => {
+        const render = createRenderer({ cols: 50, rows: 14 })
+        const app = render(<NestedBg />)
+
+        assertIncrementalMatchesFresh(app, { action: "initial", iteration: 0 })
+
+        let i = 1
+        for await (const action of take(gen<string>(BG_ACTIONS), 100)) {
+          await app.press(action)
+          assertIncrementalMatchesFresh(app, { action, iteration: i })
+          i++
+        }
+
+        app.unmount()
+      },
+      { timeout: 30_000 },
+    )
+  })
+
+  // --------------------------------------------------------------------------
+  // WrapTest — text near column width boundaries
+  // --------------------------------------------------------------------------
+
+  describe("WrapTest (wrap boundary stress)", () => {
+    function WrapTest() {
+      const [length, setLength] = useState(38) // Just under typical column width
+      const [padding, setPadding] = useState(0)
+      useInput((input) => {
+        if (input === "j") setLength((l) => Math.min(l + 1, 50))
+        if (input === "k") setLength((l) => Math.max(l - 1, 1))
+        if (input === "p") setPadding((p) => (p + 1) % 4)
+      })
+      return (
+        <Box flexDirection="column" borderStyle="single" paddingX={padding}>
+          <Text>{"A".repeat(length)}</Text>
+          <Text>After long text</Text>
+        </Box>
+      )
+    }
+
+    const WRAP_ACTIONS: [number, string][] = [
+      [35, "j"], // grow text
+      [35, "k"], // shrink text
+      [30, "p"], // cycle padding
+    ]
+
+    test.fuzz(
+      "incremental matches fresh as text crosses wrap boundary",
+      async () => {
+        const render = createRenderer({ cols: 45, rows: 8 })
+        const app = render(<WrapTest />)
+
+        assertIncrementalMatchesFresh(app, { action: "initial", iteration: 0 })
+
+        let i = 1
+        for await (const action of take(gen<string>(WRAP_ACTIONS), 100)) {
+          await app.press(action)
+          assertIncrementalMatchesFresh(app, { action, iteration: i })
+          i++
+        }
+
+        app.unmount()
+      },
+      { timeout: 30_000 },
+    )
+  })
+
+  // --------------------------------------------------------------------------
+  // OverlayApp — absolute positioned box over content
+  // --------------------------------------------------------------------------
+
+  describe("OverlayApp (absolute positioning)", () => {
+    function OverlayApp() {
+      const [showOverlay, setShowOverlay] = useState(false)
+      const [content, setContent] = useState("base content")
+      useInput((input) => {
+        if (input === "o") setShowOverlay((v) => !v)
+        if (input === "c") setContent((c) => (c === "base content" ? "changed!" : "base content"))
+      })
+      return (
+        <Box flexDirection="column" width={40} height={10}>
+          <Text>{content}</Text>
+          <Text>Line 2</Text>
+          <Text>Line 3</Text>
+          {showOverlay && (
+            <Box position="absolute" top={1} left={5} backgroundColor="red" padding={1}>
+              <Text bold>Overlay</Text>
+            </Box>
+          )}
+        </Box>
+      )
+    }
+
+    const OVERLAY_ACTIONS: [number, string][] = [
+      [50, "o"], // toggle overlay
+      [50, "c"], // toggle content
+    ]
+
+    test.fuzz(
+      "incremental matches fresh with overlay toggle and content changes",
+      async () => {
+        const render = createRenderer({ cols: 50, rows: 12 })
+        const app = render(<OverlayApp />)
+
+        assertIncrementalMatchesFresh(app, { action: "initial", iteration: 0 })
+
+        let i = 1
+        for await (const action of take(gen<string>(OVERLAY_ACTIONS), 100)) {
+          await app.press(action)
+          assertIncrementalMatchesFresh(app, { action, iteration: i })
+          i++
+        }
+
+        app.unmount()
+      },
+      { timeout: 30_000 },
+    )
+  })
+
+  // --------------------------------------------------------------------------
+  // BoardLayout — multi-column board with varying heights, selection, add/remove
+  // --------------------------------------------------------------------------
+
+  describe("BoardLayout (complex multi-column)", () => {
+    function BoardLayout() {
+      const [colCount, setColCount] = useState(3)
+      const [selected, setSelected] = useState(0)
+      const [items, setItems] = useState([
+        ["Task 1", "Task 2", "Task 3"],
+        ["Done 1", "Done 2"],
+        ["Backlog 1", "Backlog 2", "Backlog 3", "Backlog 4"],
+      ])
+      useInput((input) => {
+        if (input === "h") setSelected((s) => Math.max(0, s - 1))
+        if (input === "l") setSelected((s) => Math.min(colCount - 1, s + 1))
+        if (input === "+") setColCount((c) => Math.min(5, c + 1))
+        if (input === "-") setColCount((c) => Math.max(1, c - 1))
+        if (input === "a") {
+          setItems((prev) => {
+            const copy = prev.map((col) => [...col])
+            if (copy[selected]) copy[selected]!.push(`New ${copy[selected]!.length}`)
+            return copy
+          })
+        }
+        if (input === "d") {
+          setItems((prev) => {
+            const copy = prev.map((col) => [...col])
+            if (copy[selected]?.length) copy[selected]!.pop()
+            return copy
+          })
+        }
+      })
+      return (
+        <Box>
+          {items.slice(0, colCount).map((col, ci) => (
+            <Box key={ci} flexDirection="column" borderStyle={ci === selected ? "double" : "single"} flexGrow={1}>
+              <Text bold>
+                {ci === selected ? "\u25b6" : " "} Col {ci}
+              </Text>
+              {col.map((item, ii) => (
+                <Text key={ii}> {item}</Text>
+              ))}
+            </Box>
+          ))}
+        </Box>
+      )
+    }
+
+    const BOARD_ACTIONS: [number, string][] = [
+      [20, "h"], // select left
+      [20, "l"], // select right
+      [15, "+"], // add column
+      [15, "-"], // remove column
+      [15, "a"], // add item to selected column
+      [15, "d"], // delete item from selected column
+    ]
+
+    test.fuzz(
+      "incremental matches fresh under board mutations",
+      async () => {
+        const render = createRenderer({ cols: 100, rows: 20 })
+        const app = render(<BoardLayout />)
+
+        assertIncrementalMatchesFresh(app, { action: "initial", iteration: 0 })
+
+        let i = 1
+        for await (const action of take(gen<string>(BOARD_ACTIONS), 150)) {
+          await app.press(action)
+          assertIncrementalMatchesFresh(app, { action, iteration: i })
+          i++
+        }
+
+        app.unmount()
+      },
+      { timeout: 30_000 },
+    )
+  })
+
+  // --------------------------------------------------------------------------
+  // BoardLayout at small terminal — clipping + multi-column stress
+  // --------------------------------------------------------------------------
+
+  describe("BoardLayout small terminal (clipping + columns)", () => {
+    function SmallBoard() {
+      const [selected, setSelected] = useState(0)
+      const [items, setItems] = useState([
+        ["A1", "A2", "A3"],
+        ["B1", "B2"],
+      ])
+      useInput((input) => {
+        if (input === "h") setSelected((s) => Math.max(0, s - 1))
+        if (input === "l") setSelected((s) => Math.min(1, s + 1))
+        if (input === "a") {
+          setItems((prev) => {
+            const copy = prev.map((col) => [...col])
+            copy[selected]!.push(`${selected ? "B" : "A"}${copy[selected]!.length + 1}`)
+            return copy
+          })
+        }
+        if (input === "d") {
+          setItems((prev) => {
+            const copy = prev.map((col) => [...col])
+            if (copy[selected]!.length > 0) copy[selected]!.pop()
+            return copy
+          })
+        }
+      })
+      return (
+        <Box>
+          {items.map((col, ci) => (
+            <Box key={ci} flexDirection="column" borderStyle={ci === selected ? "double" : "single"} flexGrow={1}>
+              <Text bold>Col {ci}</Text>
+              {col.map((item, ii) => (
+                <Text key={ii}> {item}</Text>
+              ))}
+            </Box>
+          ))}
+        </Box>
+      )
+    }
+
+    const SMALL_BOARD_ACTIONS: [number, string][] = [
+      [25, "h"],
+      [25, "l"],
+      [25, "a"],
+      [25, "d"],
+    ]
+
+    test.fuzz(
+      "incremental matches fresh at 30x8",
+      async () => {
+        const render = createRenderer({ cols: 30, rows: 8 })
+        const app = render(<SmallBoard />)
+
+        assertIncrementalMatchesFresh(app, { action: "initial", iteration: 0 })
+
+        let i = 1
+        for await (const action of take(gen<string>(SMALL_BOARD_ACTIONS), 80)) {
+          await app.press(action)
+          assertIncrementalMatchesFresh(app, { action, iteration: i })
+          i++
+        }
+
+        app.unmount()
+      },
+      { timeout: 30_000 },
+    )
+  })
 })

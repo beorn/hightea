@@ -11,6 +11,7 @@
 
 import type { Cell } from "@silvery/term/buffer"
 import type { BoxProps, TeaNode, Rect, TextProps } from "@silvery/tea/types"
+import type { ContentPhaseStats } from "@silvery/term/pipeline/types"
 
 // ============================================================================
 // Types
@@ -349,8 +350,11 @@ export function buildMismatchContext(
 
 /**
  * Format mismatch context as a human-readable string.
+ *
+ * @param ctx - The mismatch debug context (node attribution, dirty flags, scroll, fast-path)
+ * @param contentPhaseStats - Optional content-phase instrumentation snapshot (auto-included by SILVERY_STRICT)
  */
-export function formatMismatchContext(ctx: MismatchDebugContext): string {
+export function formatMismatchContext(ctx: MismatchDebugContext, contentPhaseStats?: ContentPhaseStats): string {
   const lines: string[] = []
 
   // Header
@@ -453,6 +457,42 @@ export function formatMismatchContext(ctx: MismatchDebugContext): string {
     lines.push("FAST-PATH ANALYSIS:")
     for (const line of ctx.fastPathAnalysis) {
       lines.push(`  ${line}`)
+    }
+    lines.push("")
+  }
+
+  // Content-phase instrumentation stats
+  if (contentPhaseStats) {
+    const s = contentPhaseStats
+    lines.push("CONTENT PHASE STATS:")
+    lines.push(`  nodesVisited: ${s.nodesVisited}  nodesRendered: ${s.nodesRendered}  nodesSkipped: ${s.nodesSkipped}`)
+    lines.push(`  textNodes: ${s.textNodes}  boxNodes: ${s.boxNodes}  clearOps: ${s.clearOps}`)
+    // Per-flag breakdown (why nodes weren't skipped)
+    const flagLines: string[] = []
+    if (s.noPrevBuffer) flagLines.push(`noPrevBuffer=${s.noPrevBuffer}`)
+    if (s.flagContentDirty) flagLines.push(`contentDirty=${s.flagContentDirty}`)
+    if (s.flagPaintDirty) flagLines.push(`paintDirty=${s.flagPaintDirty}`)
+    if (s.flagLayoutChanged) flagLines.push(`layoutChanged=${s.flagLayoutChanged}`)
+    if (s.flagSubtreeDirty) flagLines.push(`subtreeDirty=${s.flagSubtreeDirty}`)
+    if (s.flagChildrenDirty) flagLines.push(`childrenDirty=${s.flagChildrenDirty}`)
+    if (s.flagChildPositionChanged) flagLines.push(`childPositionChanged=${s.flagChildPositionChanged}`)
+    if (flagLines.length > 0) {
+      lines.push(`  render reasons: ${flagLines.join(", ")}`)
+    }
+    // Scroll container diagnostics
+    if (s.scrollContainerCount > 0) {
+      lines.push(`  scrollContainers: ${s.scrollContainerCount}  viewportCleared: ${s.scrollViewportCleared}`)
+      if (s.scrollClearReason) lines.push(`  scrollClearReason: ${s.scrollClearReason}`)
+    }
+    // Normal container diagnostics
+    if (s.normalChildrenRepaint > 0) {
+      lines.push(`  normalChildrenRepaint: ${s.normalChildrenRepaint}`)
+      if (s.normalRepaintReason) lines.push(`  normalRepaintReason: ${s.normalRepaintReason}`)
+    }
+    // Cascade diagnostics
+    if (s.cascadeMinDepth < 999) {
+      lines.push(`  cascadeMinDepth: ${s.cascadeMinDepth}`)
+      if (s.cascadeNodes) lines.push(`  cascadeNodes: ${s.cascadeNodes}`)
     }
     lines.push("")
   }

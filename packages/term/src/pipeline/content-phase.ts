@@ -361,296 +361,295 @@ function renderNodeToBuffer(
   const nodeTheme = (props as BoxProps).theme as Theme | undefined
   if (nodeTheme) pushContextTheme(nodeTheme)
   try {
+    // Check if this is a scrollable container
+    const isScrollContainer = props.overflow === "scroll" && node.scrollState
 
-  // Check if this is a scrollable container
-  const isScrollContainer = props.overflow === "scroll" && node.scrollState
+    // Does this node's OWN visual state need re-rendering?
+    // True when content/style changed, children restructured, or layout shifted.
+    // (Not true for subtreeDirty alone — that only means descendants changed.)
+    //
+    // Why paintDirty: measure phase may clear contentDirty for its text-collection
+    // cache, so paintDirty acts as a surviving witness that style props changed.
+    // Why this matters: when backgroundColor changes from "cyan" to undefined,
+    // paintDirty ensures we clear stale pixels from the cloned buffer.
+    // needsOwnRepaint = node.contentDirty || node.paintDirty || node.childrenDirty || layoutChanged || childPositionChanged
 
-  // Does this node's OWN visual state need re-rendering?
-  // True when content/style changed, children restructured, or layout shifted.
-  // (Not true for subtreeDirty alone — that only means descendants changed.)
-  //
-  // Why paintDirty: measure phase may clear contentDirty for its text-collection
-  // cache, so paintDirty acts as a surviving witness that style props changed.
-  // Why this matters: when backgroundColor changes from "cyan" to undefined,
-  // paintDirty ensures we clear stale pixels from the cloned buffer.
-  // needsOwnRepaint = node.contentDirty || node.paintDirty || node.childrenDirty || layoutChanged || childPositionChanged
+    // contentAreaAffected: did this node's CONTENT AREA change (not just border)?
+    // Excludes border-only paint changes for BOX nodes: renderBox only draws border
+    // chars at edges, content area pixels are untouched. This avoids cascading ~200
+    // node re-renders per Card on cursor move (borderColor changes yellow↔blackBright
+    // but content area is unchanged).
+    //
+    // For TEXT nodes, paintDirty IS included because text nodes have no borders —
+    // any paint change (color, bold, inverse, or text content change) affects the
+    // content area. The measure phase clears contentDirty for its text-collection
+    // cache, so paintDirty acts as the surviving witness that the text node's
+    // content area changed and needs region clearing. Without this, stale pixels
+    // (e.g., cursor inverse attribute) persist when text content changes but
+    // layout dimensions stay the same.
+    //
+    // Uses bgDirty (set by reconciler when backgroundColor specifically changes) rather
+    // than checking current props.backgroundColor — catches bg removal (cyan → undefined)
+    // where current value is falsy but stale pixels must still be cleared.
+    const textPaintDirty = node.type === "silvery-text" && node.paintDirty
 
-  // contentAreaAffected: did this node's CONTENT AREA change (not just border)?
-  // Excludes border-only paint changes for BOX nodes: renderBox only draws border
-  // chars at edges, content area pixels are untouched. This avoids cascading ~200
-  // node re-renders per Card on cursor move (borderColor changes yellow↔blackBright
-  // but content area is unchanged).
-  //
-  // For TEXT nodes, paintDirty IS included because text nodes have no borders —
-  // any paint change (color, bold, inverse, or text content change) affects the
-  // content area. The measure phase clears contentDirty for its text-collection
-  // cache, so paintDirty acts as the surviving witness that the text node's
-  // content area changed and needs region clearing. Without this, stale pixels
-  // (e.g., cursor inverse attribute) persist when text content changes but
-  // layout dimensions stay the same.
-  //
-  // Uses bgDirty (set by reconciler when backgroundColor specifically changes) rather
-  // than checking current props.backgroundColor — catches bg removal (cyan → undefined)
-  // where current value is falsy but stale pixels must still be cleared.
-  const textPaintDirty = node.type === "silvery-text" && node.paintDirty
-
-  // absoluteChildMutated: an absolute child had its children added/removed/reordered,
-  // or its layout changed. In the two-pass rendering model (normal-flow first, absolute
-  // second), the cloned buffer contains BOTH first-pass content AND stale overlay pixels
-  // from the previous frame. When an absolute child's content structure changes (e.g.,
-  // a dialog unmounts), its old pixels persist at positions not covered by any current
-  // child. By including this in contentAreaAffected, the parent clears its region
-  // (removing stale overlay pixels in gap areas) and forces normal-flow children to
-  // re-render on the cleared background — matching fresh render behavior.
-  //
-  // Only checked when hasPrevBuffer (incremental mode) and subtreeDirty (a descendant
-  // changed somewhere). The scan is cheap: only direct children are checked.
-  const absoluteChildMutated =
-    hasPrevBuffer &&
-    node.subtreeDirty &&
-    node.children !== undefined &&
-    node.children.some((child) => {
-      const cp = child.props as BoxProps
-      return (
-        cp.position === "absolute" &&
-        (child.childrenDirty || child.layoutChangedThisFrame || hasChildPositionChanged(child))
-      )
-    })
-
-  // descendantOverflowChanged: a descendant (child, grandchild, etc.) was overflowing
-  // THIS node's rect in the previous frame and its layout changed (shrank/moved).
-  // clearExcessArea on the descendant clips to its immediate parent's content area,
-  // leaving stale pixels in THIS node's border/padding area and beyond THIS node's rect.
-  // By including this in contentAreaAffected, the node clears its region (removing stale
-  // overflow pixels, restoring borders) and forces children to re-render. The overflow
-  // area beyond the node's rect is handled by clearDescendantOverflowRegions.
-  //
-  // Recursive detection is critical: a grandchild overflowing a child AND this node
-  // must be caught at THIS level so the border is properly restored (depth 5 detects
-  // depth 7's overflow rather than depth 6 clearing into depth 5's border area).
-  const descendantOverflowChanged =
-    hasPrevBuffer && node.subtreeDirty && node.children !== undefined && hasDescendantOverflowChanged(node)
-
-  const contentAreaAffected =
-    node.contentDirty ||
-    layoutChanged ||
-    childPositionChanged ||
-    node.childrenDirty ||
-    node.bgDirty ||
-    textPaintDirty ||
-    absoluteChildMutated ||
-    descendantOverflowChanged
-
-  // subtreeDirtyWithBg: a descendant changed inside a Box with backgroundColor.
-  // When a child Text shrinks, trailing chars from the old longer text survive in
-  // the cloned buffer. The parent's bg fill must re-run to clear them, and children
-  // must re-render on top of the fresh fill. This is NOT added to contentAreaAffected
-  // because non-bg boxes don't need region clearing for subtreeDirty — only bg-bearing
-  // boxes need their fill to overwrite stale child pixels.
-  const subtreeDirtyWithBg = hasPrevBuffer && !contentAreaAffected && node.subtreeDirty && !!props.backgroundColor
-
-  // Clear this node's region when its content area changed but has no backgroundColor.
-  // Without bg, renderBox won't fill, so stale pixels from the cloned buffer
-  // remain visible. We must explicitly clear with inherited bg.
-  //
-  // Gated on (hasPrevBuffer || ancestorCleared) because:
-  // - hasPrevBuffer=true: buffer is a clone with stale pixels
-  // - ancestorCleared=true: buffer is a clone but hasPrevBuffer=false was passed
-  //   (ancestor cleared its region, but this node may need to clear its sub-region)
-  // On a truly fresh buffer (first render), both are false — no wasteful clear.
-  const parentRegionCleared = (hasPrevBuffer || ancestorCleared) && contentAreaAffected && !props.backgroundColor
-
-  // skipBgFill: in incremental mode, skip the bg fill when the cloned buffer
-  // already has the correct bg at this node's position. That's ONLY when:
-  // - hasPrevBuffer=true (buffer is a clone with previous frame's pixels)
-  // - ancestorCleared=false (no ancestor erased our region)
-  // - contentAreaAffected=false (no content-area changes)
-  // - subtreeDirtyWithBg=false (no descendant change requiring bg refresh)
-  //
-  // Uses contentAreaAffected (not needsOwnRepaint) because border-only changes
-  // (paintDirty without bgDirty) don't change the bg fill — the cloned buffer
-  // already has the correct bg. Using needsOwnRepaint here caused bg fill to
-  // wipe child content on borderColor changes, while parentRegionChanged=false
-  // (from contentAreaAffected) prevented children from re-rendering to restore it.
-  //
-  // When ancestorCleared=true, the buffer at our position was erased to the
-  // inherited bg, NOT our bg — so we must re-fill.
-  // When hasPrevBuffer=false AND ancestorCleared=false, it's a fresh render.
-  const skipBgFill = hasPrevBuffer && !ancestorCleared && !contentAreaAffected && !subtreeDirtyWithBg
-
-  // parentRegionChanged: this node's content area was modified on a cloned buffer.
-  // Children must re-render (childHasPrev=false) because their pixels may be stale.
-  const parentRegionChanged = (hasPrevBuffer || ancestorCleared) && (contentAreaAffected || subtreeDirtyWithBg)
-
-  // DIAG: Per-node trace and cascade tracking (gated on instrumentation)
-  if (instrumentEnabled) {
-    if (_traceThis) {
-      const flagStr = [
-        node.contentDirty && "C",
-        node.paintDirty && "P",
-        node.bgDirty && "B",
-        node.subtreeDirty && "S",
-        node.childrenDirty && "Ch",
-        childPositionChanged && "CP",
-      ]
-        .filter(Boolean)
-        .join(",")
-      const childrenNeedRepaint_ = node.childrenDirty || childPositionChanged || parentRegionChanged
-      const childHasPrev_ = childrenNeedRepaint_ ? false : hasPrevBuffer
-      const childAncestorCleared_ = parentRegionCleared || (ancestorCleared && !props.backgroundColor)
-      nodeTrace.push({
-        id: _nodeId,
-        type: node.type,
-        depth: _getNodeDepth(node),
-        rect: `${layout.x},${layout.y} ${layout.width}x${layout.height}`,
-        prevLayout: node.prevLayout
-          ? `${node.prevLayout.x},${node.prevLayout.y} ${node.prevLayout.width}x${node.prevLayout.height}`
-          : "null",
-        hasPrev: hasPrevBuffer,
-        ancestorCleared,
-        flags: flagStr,
-        decision: "RENDER",
-        layoutChanged,
-        contentAreaAffected,
-        parentRegionCleared,
-        parentRegionChanged,
-        childHasPrev: childHasPrev_,
-        childAncestorCleared: childAncestorCleared_,
-        skipBgFill,
-        bgColor: props.backgroundColor as string | undefined,
+    // absoluteChildMutated: an absolute child had its children added/removed/reordered,
+    // or its layout changed. In the two-pass rendering model (normal-flow first, absolute
+    // second), the cloned buffer contains BOTH first-pass content AND stale overlay pixels
+    // from the previous frame. When an absolute child's content structure changes (e.g.,
+    // a dialog unmounts), its old pixels persist at positions not covered by any current
+    // child. By including this in contentAreaAffected, the parent clears its region
+    // (removing stale overlay pixels in gap areas) and forces normal-flow children to
+    // re-render on the cleared background — matching fresh render behavior.
+    //
+    // Only checked when hasPrevBuffer (incremental mode) and subtreeDirty (a descendant
+    // changed somewhere). The scan is cheap: only direct children are checked.
+    const absoluteChildMutated =
+      hasPrevBuffer &&
+      node.subtreeDirty &&
+      node.children !== undefined &&
+      node.children.some((child) => {
+        const cp = child.props as BoxProps
+        return (
+          cp.position === "absolute" &&
+          (child.childrenDirty || child.layoutChangedThisFrame || hasChildPositionChanged(child))
+        )
       })
-    }
-    if (parentRegionChanged && node.children.length > 0) {
-      const depth = _getNodeDepth(node)
-      if (depth < stats.cascadeMinDepth) {
-        stats.cascadeMinDepth = depth
+
+    // descendantOverflowChanged: a descendant (child, grandchild, etc.) was overflowing
+    // THIS node's rect in the previous frame and its layout changed (shrank/moved).
+    // clearExcessArea on the descendant clips to its immediate parent's content area,
+    // leaving stale pixels in THIS node's border/padding area and beyond THIS node's rect.
+    // By including this in contentAreaAffected, the node clears its region (removing stale
+    // overflow pixels, restoring borders) and forces children to re-render. The overflow
+    // area beyond the node's rect is handled by clearDescendantOverflowRegions.
+    //
+    // Recursive detection is critical: a grandchild overflowing a child AND this node
+    // must be caught at THIS level so the border is properly restored (depth 5 detects
+    // depth 7's overflow rather than depth 6 clearing into depth 5's border area).
+    const descendantOverflowChanged =
+      hasPrevBuffer && node.subtreeDirty && node.children !== undefined && hasDescendantOverflowChanged(node)
+
+    const contentAreaAffected =
+      node.contentDirty ||
+      layoutChanged ||
+      childPositionChanged ||
+      node.childrenDirty ||
+      node.bgDirty ||
+      textPaintDirty ||
+      absoluteChildMutated ||
+      descendantOverflowChanged
+
+    // subtreeDirtyWithBg: a descendant changed inside a Box with backgroundColor.
+    // When a child Text shrinks, trailing chars from the old longer text survive in
+    // the cloned buffer. The parent's bg fill must re-run to clear them, and children
+    // must re-render on top of the fresh fill. This is NOT added to contentAreaAffected
+    // because non-bg boxes don't need region clearing for subtreeDirty — only bg-bearing
+    // boxes need their fill to overwrite stale child pixels.
+    const subtreeDirtyWithBg = hasPrevBuffer && !contentAreaAffected && node.subtreeDirty && !!props.backgroundColor
+
+    // Clear this node's region when its content area changed but has no backgroundColor.
+    // Without bg, renderBox won't fill, so stale pixels from the cloned buffer
+    // remain visible. We must explicitly clear with inherited bg.
+    //
+    // Gated on (hasPrevBuffer || ancestorCleared) because:
+    // - hasPrevBuffer=true: buffer is a clone with stale pixels
+    // - ancestorCleared=true: buffer is a clone but hasPrevBuffer=false was passed
+    //   (ancestor cleared its region, but this node may need to clear its sub-region)
+    // On a truly fresh buffer (first render), both are false — no wasteful clear.
+    const parentRegionCleared = (hasPrevBuffer || ancestorCleared) && contentAreaAffected && !props.backgroundColor
+
+    // skipBgFill: in incremental mode, skip the bg fill when the cloned buffer
+    // already has the correct bg at this node's position. That's ONLY when:
+    // - hasPrevBuffer=true (buffer is a clone with previous frame's pixels)
+    // - ancestorCleared=false (no ancestor erased our region)
+    // - contentAreaAffected=false (no content-area changes)
+    // - subtreeDirtyWithBg=false (no descendant change requiring bg refresh)
+    //
+    // Uses contentAreaAffected (not needsOwnRepaint) because border-only changes
+    // (paintDirty without bgDirty) don't change the bg fill — the cloned buffer
+    // already has the correct bg. Using needsOwnRepaint here caused bg fill to
+    // wipe child content on borderColor changes, while parentRegionChanged=false
+    // (from contentAreaAffected) prevented children from re-rendering to restore it.
+    //
+    // When ancestorCleared=true, the buffer at our position was erased to the
+    // inherited bg, NOT our bg — so we must re-fill.
+    // When hasPrevBuffer=false AND ancestorCleared=false, it's a fresh render.
+    const skipBgFill = hasPrevBuffer && !ancestorCleared && !contentAreaAffected && !subtreeDirtyWithBg
+
+    // parentRegionChanged: this node's content area was modified on a cloned buffer.
+    // Children must re-render (childHasPrev=false) because their pixels may be stale.
+    const parentRegionChanged = (hasPrevBuffer || ancestorCleared) && (contentAreaAffected || subtreeDirtyWithBg)
+
+    // DIAG: Per-node trace and cascade tracking (gated on instrumentation)
+    if (instrumentEnabled) {
+      if (_traceThis) {
+        const flagStr = [
+          node.contentDirty && "C",
+          node.paintDirty && "P",
+          node.bgDirty && "B",
+          node.subtreeDirty && "S",
+          node.childrenDirty && "Ch",
+          childPositionChanged && "CP",
+        ]
+          .filter(Boolean)
+          .join(",")
+        const childrenNeedRepaint_ = node.childrenDirty || childPositionChanged || parentRegionChanged
+        const childHasPrev_ = childrenNeedRepaint_ ? false : hasPrevBuffer
+        const childAncestorCleared_ = parentRegionCleared || (ancestorCleared && !props.backgroundColor)
+        nodeTrace.push({
+          id: _nodeId,
+          type: node.type,
+          depth: _getNodeDepth(node),
+          rect: `${layout.x},${layout.y} ${layout.width}x${layout.height}`,
+          prevLayout: node.prevLayout
+            ? `${node.prevLayout.x},${node.prevLayout.y} ${node.prevLayout.width}x${node.prevLayout.height}`
+            : "null",
+          hasPrev: hasPrevBuffer,
+          ancestorCleared,
+          flags: flagStr,
+          decision: "RENDER",
+          layoutChanged,
+          contentAreaAffected,
+          parentRegionCleared,
+          parentRegionChanged,
+          childHasPrev: childHasPrev_,
+          childAncestorCleared: childAncestorCleared_,
+          skipBgFill,
+          bgColor: props.backgroundColor as string | undefined,
+        })
       }
-      const id = (node.props as Record<string, unknown>).id ?? node.type
+      if (parentRegionChanged && node.children.length > 0) {
+        const depth = _getNodeDepth(node)
+        if (depth < stats.cascadeMinDepth) {
+          stats.cascadeMinDepth = depth
+        }
+        const id = (node.props as Record<string, unknown>).id ?? node.type
+        const flags = [
+          node.contentDirty && "C",
+          node.paintDirty && "P",
+          node.childrenDirty && "Ch",
+          layoutChanged && "L",
+          childPositionChanged && "CP",
+        ]
+          .filter(Boolean)
+          .join("")
+        const entry = `${id}@${depth}[${flags}:${node.children.length}ch]`
+        stats.cascadeNodes += (stats.cascadeNodes ? " " : "") + entry
+      }
+    }
+
+    // Cell debug: log render decision for nodes covering target cell
+    if (_cellDbg && (_coversCellNow || _coversCellPrev)) {
+      const id = (props.id as string) ?? node.type
+      const depth = _getNodeDepth(node)
+      const prev = node.prevLayout
       const flags = [
         node.contentDirty && "C",
         node.paintDirty && "P",
-        node.childrenDirty && "Ch",
         layoutChanged && "L",
+        node.subtreeDirty && "S",
+        node.childrenDirty && "Ch",
         childPositionChanged && "CP",
+        node.bgDirty && "B",
       ]
         .filter(Boolean)
-        .join("")
-      const entry = `${id}@${depth}[${flags}:${node.children.length}ch]`
-      stats.cascadeNodes += (stats.cascadeNodes ? " " : "") + entry
+        .join(",")
+      _cellDbg.log.push(
+        `RENDER ${id}@${depth} rect=${layout.x},${screenY} ${layout.width}x${layout.height}` +
+          ` prev=${prev ? `${prev.x},${prev.y - scrollOffset} ${prev.width}x${prev.height}` : "null"}` +
+          ` flags=[${flags}] hasPrev=${hasPrevBuffer} ancClr=${ancestorCleared}` +
+          ` caa=${contentAreaAffected} prc=${parentRegionCleared} prm=${parentRegionChanged}` +
+          ` coversNow=${_coversCellNow} coversPrev=${_coversCellPrev}` +
+          ` bg=${props.backgroundColor ?? "none"}`,
+      )
     }
-  }
 
-  // Cell debug: log render decision for nodes covering target cell
-  if (_cellDbg && (_coversCellNow || _coversCellPrev)) {
-    const id = (props.id as string) ?? node.type
-    const depth = _getNodeDepth(node)
-    const prev = node.prevLayout
-    const flags = [
-      node.contentDirty && "C",
-      node.paintDirty && "P",
-      layoutChanged && "L",
-      node.subtreeDirty && "S",
-      node.childrenDirty && "Ch",
-      childPositionChanged && "CP",
-      node.bgDirty && "B",
-    ]
-      .filter(Boolean)
-      .join(",")
-    _cellDbg.log.push(
-      `RENDER ${id}@${depth} rect=${layout.x},${screenY} ${layout.width}x${layout.height}` +
-        ` prev=${prev ? `${prev.x},${prev.y - scrollOffset} ${prev.width}x${prev.height}` : "null"}` +
-        ` flags=[${flags}] hasPrev=${hasPrevBuffer} ancClr=${ancestorCleared}` +
-        ` caa=${contentAreaAffected} prc=${parentRegionCleared} prm=${parentRegionChanged}` +
-        ` coversNow=${_coversCellNow} coversPrev=${_coversCellPrev}` +
-        ` bg=${props.backgroundColor ?? "none"}`,
-    )
-  }
+    if (parentRegionCleared) {
+      if (instrumentEnabled) stats.clearOps++
+      clearNodeRegion(node, buffer, layout, scrollOffset, clipBounds, layoutChanged)
+    } else if (bufferIsCloned && layoutChanged && node.prevLayout) {
+      // Even when parentRegionCleared is false, a shrinking node needs its excess
+      // area cleared. Key scenario: absolute-positioned overlays (e.g., search dialog)
+      // that shrink while normal-flow siblings are dirty — forceRepaint sets
+      // hasPrevBuffer=false + ancestorCleared=false, making parentRegionCleared=false,
+      // but the cloned buffer still has stale pixels from the old larger layout.
+      // Also applies to nodes WITH backgroundColor: renderBox fills only the NEW
+      // (smaller) region, leaving stale pixels in the excess area.
+      //
+      // Gated on bufferIsCloned: on a fresh buffer (e.g., multi-pass resize where
+      // dimensions changed between passes), there are no stale pixels to clear.
+      // Without this guard, clearExcessArea writes inherited bg into cells that
+      // doFreshRender leaves as default, causing STRICT mismatches.
+      clearExcessArea(node, buffer, layout, scrollOffset, clipBounds, layoutChanged)
+    }
 
-  if (parentRegionCleared) {
-    if (instrumentEnabled) stats.clearOps++
-    clearNodeRegion(node, buffer, layout, scrollOffset, clipBounds, layoutChanged)
-  } else if (bufferIsCloned && layoutChanged && node.prevLayout) {
-    // Even when parentRegionCleared is false, a shrinking node needs its excess
-    // area cleared. Key scenario: absolute-positioned overlays (e.g., search dialog)
-    // that shrink while normal-flow siblings are dirty — forceRepaint sets
-    // hasPrevBuffer=false + ancestorCleared=false, making parentRegionCleared=false,
-    // but the cloned buffer still has stale pixels from the old larger layout.
-    // Also applies to nodes WITH backgroundColor: renderBox fills only the NEW
-    // (smaller) region, leaving stale pixels in the excess area.
-    //
-    // Gated on bufferIsCloned: on a fresh buffer (e.g., multi-pass resize where
-    // dimensions changed between passes), there are no stale pixels to clear.
-    // Without this guard, clearExcessArea writes inherited bg into cells that
-    // doFreshRender leaves as default, causing STRICT mismatches.
-    clearExcessArea(node, buffer, layout, scrollOffset, clipBounds, layoutChanged)
-  }
+    // Clear descendant overflow regions: areas where descendants' previous layouts
+    // extended beyond THIS node's rect. clearNodeRegion covers the node's interior,
+    // but overflow content is beyond it. This is separate from parentRegionCleared
+    // because overflow is OUTSIDE the rect — it needs clearing even for nodes with
+    // backgroundColor (whose interior is handled by renderBox's bg fill).
+    // Runs BEFORE renderBox so borders drawn by renderBox aren't overwritten.
+    if (descendantOverflowChanged) {
+      clearDescendantOverflowRegions(node, buffer, layout, scrollOffset, clipBounds)
+    }
 
-  // Clear descendant overflow regions: areas where descendants' previous layouts
-  // extended beyond THIS node's rect. clearNodeRegion covers the node's interior,
-  // but overflow content is beyond it. This is separate from parentRegionCleared
-  // because overflow is OUTSIDE the rect — it needs clearing even for nodes with
-  // backgroundColor (whose interior is handled by renderBox's bg fill).
-  // Runs BEFORE renderBox so borders drawn by renderBox aren't overwritten.
-  if (descendantOverflowChanged) {
-    clearDescendantOverflowRegions(node, buffer, layout, scrollOffset, clipBounds)
-  }
+    // Compute inherited bg once for boxes — used by border and outline rendering
+    // to preserve parent backgrounds on border cells (prevents transparent holes).
+    const boxInheritedBg =
+      node.type === "silvery-box" && !props.backgroundColor ? findInheritedBg(node).color : undefined
 
-  // Compute inherited bg once for boxes — used by border and outline rendering
-  // to preserve parent backgrounds on border cells (prevents transparent holes).
-  const boxInheritedBg = node.type === "silvery-box" && !props.backgroundColor ? findInheritedBg(node).color : undefined
+    // Render based on node type
+    if (node.type === "silvery-box") {
+      if (instrumentEnabled) stats.boxNodes++
+      renderBox(node, buffer, layout, props, nodeState, skipBgFill, boxInheritedBg)
+    } else if (node.type === "silvery-text") {
+      if (instrumentEnabled) stats.textNodes++
+      // Pass inherited bg/fg from nearest ancestor with backgroundColor/color.
+      // This decouples text inheritance from buffer state, which is critical
+      // for incremental rendering: getCellBg on a cloned buffer may return stale
+      // bg at positions outside the parent's bg-filled region (overflow text).
+      // Foreground inheritance matches CSS semantics: Box color cascades to Text children.
+      const textInheritedBg = findInheritedBg(node).color
+      const textInheritedFg = findInheritedFg(node)
+      renderText(node, buffer, layout, props, nodeState, textInheritedBg, textInheritedFg, ctx)
+    }
 
-  // Render based on node type
-  if (node.type === "silvery-box") {
-    if (instrumentEnabled) stats.boxNodes++
-    renderBox(node, buffer, layout, props, nodeState, skipBgFill, boxInheritedBg)
-  } else if (node.type === "silvery-text") {
-    if (instrumentEnabled) stats.textNodes++
-    // Pass inherited bg/fg from nearest ancestor with backgroundColor/color.
-    // This decouples text inheritance from buffer state, which is critical
-    // for incremental rendering: getCellBg on a cloned buffer may return stale
-    // bg at positions outside the parent's bg-filled region (overflow text).
-    // Foreground inheritance matches CSS semantics: Box color cascades to Text children.
-    const textInheritedBg = findInheritedBg(node).color
-    const textInheritedFg = findInheritedFg(node)
-    renderText(node, buffer, layout, props, nodeState, textInheritedBg, textInheritedFg, ctx)
-  }
+    // Render children
+    if (isScrollContainer) {
+      renderScrollContainerChildren(node, buffer, props, nodeState, parentRegionCleared, parentRegionChanged, ctx)
 
-  // Render children
-  if (isScrollContainer) {
-    renderScrollContainerChildren(node, buffer, props, nodeState, parentRegionCleared, parentRegionChanged, ctx)
+      // Render overflow indicators AFTER children so they survive viewport clear.
+      // renderScrollContainerChildren may clear the viewport (Tier 2) which would
+      // overwrite indicators drawn before children.
+      renderScrollIndicators(node, buffer, layout, props, node.scrollState!, ctx)
+    } else {
+      renderNormalChildren(
+        node,
+        buffer,
+        props,
+        nodeState,
+        childPositionChanged,
+        parentRegionCleared,
+        parentRegionChanged,
+        ctx,
+      )
+    }
 
-    // Render overflow indicators AFTER children so they survive viewport clear.
-    // renderScrollContainerChildren may clear the viewport (Tier 2) which would
-    // overwrite indicators drawn before children.
-    renderScrollIndicators(node, buffer, layout, props, node.scrollState!, ctx)
-  } else {
-    renderNormalChildren(
-      node,
-      buffer,
-      props,
-      nodeState,
-      childPositionChanged,
-      parentRegionCleared,
-      parentRegionChanged,
-      ctx,
-    )
-  }
+    // Render outline AFTER children — outline overlaps content at edges
+    if (node.type === "silvery-box" && props.outlineStyle) {
+      const { x, width, height } = layout
+      const y = layout.y - scrollOffset
+      renderOutline(buffer, x, y, width, height, props, clipBounds, boxInheritedBg)
+    }
 
-  // Render outline AFTER children — outline overlaps content at edges
-  if (node.type === "silvery-box" && props.outlineStyle) {
-    const { x, width, height } = layout
-    const y = layout.y - scrollOffset
-    renderOutline(buffer, x, y, width, height, props, clipBounds, boxInheritedBg)
-  }
-
-  // Clear dirty flags
-  node.contentDirty = false
-  node.paintDirty = false
-  node.bgDirty = false
-  node.subtreeDirty = false
-  node.childrenDirty = false
-  node.layoutChangedThisFrame = false
-
+    // Clear dirty flags
+    node.contentDirty = false
+    node.paintDirty = false
+    node.bgDirty = false
+    node.subtreeDirty = false
+    node.childrenDirty = false
+    node.layoutChangedThisFrame = false
   } finally {
     // Pop per-subtree theme override (after ALL child passes including absolute/sticky)
     if (nodeTheme) popContextTheme()

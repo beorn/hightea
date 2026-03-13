@@ -288,6 +288,8 @@ SILVERY_CELL_DEBUG=77,85 bun km view /path
 
 The content phase has extensive instrumentation gated on `_instrumentEnabled` -- node visit/skip/render counts, cascade diagnostics, scroll container tier decisions, and per-node trace entries.
 
+**Enriched STRICT errors**: When `SILVERY_STRICT` detects a mismatch, the `IncrementalRenderMismatchError` automatically captures content-phase stats and mismatch debug context (cell attribution, dirty flags, scroll state, fast-path analysis). The scheduler auto-enables instrumentation for the STRICT comparison render and attaches the results to the error. This eliminates the need for separate `SILVERY_INSTRUMENT` or `SILVERY_CELL_DEBUG` runs when diagnosing STRICT failures.
+
 ## Inline Incremental Rendering
 
 In fullscreen mode, the output phase diffs prev/next buffers and emits only changed cells (~21 bytes/keystroke). In inline mode, `inlineFullRender()` regenerated the ENTIRE ANSI output from scratch every frame (~5,848 bytes at 50 items) — 280x more data per keystroke.

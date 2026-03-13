@@ -116,3 +116,12 @@ SILVERY_STRICT_OUTPUT=1 bun run app   # Verify ANSI output correctness
 SILVERY_INSTRUMENT=1 bun run app      # Expose skip/render counts
 DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log bun run app  # Pipeline debug output
 ```
+
+**Enriched STRICT errors**: `IncrementalRenderMismatchError` auto-includes content-phase stats (nodes visited/rendered/skipped, per-flag breakdown) and cell attribution (mismatch debug context). No need for separate `SILVERY_INSTRUMENT` or `SILVERY_CELL_DEBUG` when diagnosing a STRICT failure.
+
+## Fuzz Tests
+
+Property-invariant and stress fuzz tests (run with `FUZZ=1`, not in CI):
+
+- `tests/features/property-invariants.fuzz.tsx` — 7 property invariants (idempotence, no-op, inverse ops, viewport clipping, combined)
+- `tests/features/incremental-rendering.fuzz.tsx` — Stress tests (scrollable lists, nested bg, wrap boundaries, absolute positioning, multi-column boards)
