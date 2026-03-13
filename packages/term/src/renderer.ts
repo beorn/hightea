@@ -37,6 +37,7 @@ import { createCursorStore, CursorProvider } from "@silvery/react/hooks/useCurso
 import { keyToAnsi, parseKey, splitRawInput } from "@silvery/tea/keys"
 import { parseBracketedPaste } from "./bracketed-paste"
 import { IncrementalRenderMismatchError } from "./scheduler.js"
+import type { ContentPhaseStats } from "./pipeline/types"
 import { debugTree } from "@silvery/test/debug"
 
 // ============================================================================
@@ -516,6 +517,10 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   // calls from layout notifications are properly captured by React's scheduler.
   // With IS_REACT_ACT_ENVIRONMENT=true (set by silvery/testing), state updates
   // outside act() boundaries may be dropped.
+  // Max iterations for singlePassLayout mode. Normally 1-2 passes, but resize
+  // can need 3 (pass 0 stale zustand + pass 1 updated dims + pass 2 layout feedback).
+  const MAX_SINGLE_PASS_ITERATIONS = 3
+
   function doRender(): string {
     let output: string
     let buffer!: TerminalBuffer
@@ -536,9 +541,13 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       // with the updated React tree.
       // Single-pass: run executeRender once, then flush any pending React
       // work from layout notifications. If React committed new work, run
-      // one more executeRender to pick up the changes.
-      for (let pass = 0; pass < 2; pass++) {
+      // additional passes to stabilize. Normally 1-2 passes suffice, but
+      // resize can need 3 (pass 0 with stale zustand, pass 1 with updated
+      // dimensions, pass 2 for layout feedback from pass 1).
+      let singlePassCount = 0
+      for (let pass = 0; pass < MAX_SINGLE_PASS_ITERATIONS; pass++) {
         hadReactCommit = false
+        singlePassCount++
         withActEnvironment(() => {
           act(() => {
             const root = getContainerRoot(instance.container)
@@ -561,6 +570,13 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
           }
         })
         if (!hadReactCommit) break
+      }
+
+      // When multiple passes ran, the final buffer's dirty rows only cover
+      // the LAST pass's content phase writes. Mark all rows dirty so the
+      // output phase does a full diff scan.
+      if (incremental && buffer && singlePassCount > 1) {
+        buffer.markAllRowsDirty()
       }
     } else {
       // Classic multi-pass layout stabilization loop
@@ -643,13 +659,22 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
 
             // Build rich debug context
             const ctx = buildMismatchContext(root, x, y, a, b, instance.renderCount)
-            const debugInfo = formatMismatchContext(ctx)
+
+            // Capture content-phase instrumentation snapshot
+            const contentPhaseStats: ContentPhaseStats | undefined = (globalThis as any).__silvery_content_detail
+              ? structuredClone((globalThis as any).__silvery_content_detail)
+              : undefined
+
+            const debugInfo = formatMismatchContext(ctx, contentPhaseStats)
 
             // Include text output for full picture
             const incText = bufferToText(buffer!)
             const freshText = bufferToText(freshBuffer)
             const msg = debugInfo + trapInfo + `--- incremental ---\n${incText}\n--- fresh ---\n${freshText}`
-            throw new IncrementalRenderMismatchError(msg)
+            throw new IncrementalRenderMismatchError(msg, {
+              contentPhaseStats,
+              mismatchContext: ctx,
+            })
           }
         }
       }

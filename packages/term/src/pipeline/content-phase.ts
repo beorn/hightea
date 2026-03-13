@@ -71,6 +71,7 @@ export function contentPhase(root: TeaNode, prevBuffer?: TerminalBuffer | null, 
       clipBounds: undefined,
       hasPrevBuffer: !!hasPrevBuffer,
       ancestorCleared: false,
+      bufferIsCloned: !!hasPrevBuffer,
     },
     ctx,
   )
@@ -200,7 +201,7 @@ function renderNodeToBuffer(
   nodeState: NodeRenderState,
   ctx?: PipelineContext,
 ): void {
-  const { scrollOffset, clipBounds, hasPrevBuffer, ancestorCleared } = nodeState
+  const { scrollOffset, clipBounds, hasPrevBuffer, ancestorCleared, bufferIsCloned } = nodeState
   // Resolve instrumentation from ctx or module globals
   const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
   const stats = ctx?.stats ?? _contentPhaseStats
@@ -561,7 +562,7 @@ function renderNodeToBuffer(
   if (parentRegionCleared) {
     if (instrumentEnabled) stats.clearOps++
     clearNodeRegion(node, buffer, layout, scrollOffset, clipBounds, layoutChanged)
-  } else if (layoutChanged && node.prevLayout) {
+  } else if (bufferIsCloned && layoutChanged && node.prevLayout) {
     // Even when parentRegionCleared is false, a shrinking node needs its excess
     // area cleared. Key scenario: absolute-positioned overlays (e.g., search dialog)
     // that shrink while normal-flow siblings are dirty — forceRepaint sets
@@ -569,6 +570,11 @@ function renderNodeToBuffer(
     // but the cloned buffer still has stale pixels from the old larger layout.
     // Also applies to nodes WITH backgroundColor: renderBox fills only the NEW
     // (smaller) region, leaving stale pixels in the excess area.
+    //
+    // Gated on bufferIsCloned: on a fresh buffer (e.g., multi-pass resize where
+    // dimensions changed between passes), there are no stale pixels to clear.
+    // Without this guard, clearExcessArea writes inherited bg into cells that
+    // doFreshRender leaves as default, causing STRICT mismatches.
     clearExcessArea(node, buffer, layout, scrollOffset, clipBounds, layoutChanged)
   }
 
@@ -654,7 +660,7 @@ function renderScrollContainerChildren(
   parentRegionChanged = false,
   ctx?: PipelineContext,
 ): void {
-  const { clipBounds, hasPrevBuffer, ancestorCleared } = nodeState
+  const { clipBounds, hasPrevBuffer, ancestorCleared, bufferIsCloned } = nodeState
   // Resolve instrumentation from ctx or module globals
   const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
   const stats = ctx?.stats ?? _contentPhaseStats
@@ -873,6 +879,7 @@ function renderScrollContainerChildren(
         clipBounds: childClipBounds,
         hasPrevBuffer: thisChildHasPrev,
         ancestorCleared: thisChildAncestorCleared,
+        bufferIsCloned,
       },
       ctx,
     )
@@ -911,6 +918,7 @@ function renderScrollContainerChildren(
           clipBounds: childClipBounds,
           hasPrevBuffer: false,
           ancestorCleared: false,
+          bufferIsCloned,
         },
         ctx,
       )
@@ -931,7 +939,7 @@ function renderNormalChildren(
   parentRegionChanged = false,
   ctx?: PipelineContext,
 ): void {
-  const { scrollOffset, clipBounds, hasPrevBuffer, ancestorCleared } = nodeState
+  const { scrollOffset, clipBounds, hasPrevBuffer, ancestorCleared, bufferIsCloned } = nodeState
   // Resolve instrumentation from ctx or module globals
   const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
   const stats = ctx?.stats ?? _contentPhaseStats
@@ -1032,6 +1040,7 @@ function renderNormalChildren(
         clipBounds: effectiveClipBounds,
         hasPrevBuffer: childHasPrev,
         ancestorCleared: childAncestorCleared,
+        bufferIsCloned,
       },
       ctx,
     )
@@ -1064,6 +1073,7 @@ function renderNormalChildren(
           clipBounds: effectiveClipBounds,
           hasPrevBuffer: false,
           ancestorCleared: false,
+          bufferIsCloned,
         },
         ctx,
       )
@@ -1097,6 +1107,7 @@ function renderNormalChildren(
           clipBounds: effectiveClipBounds,
           hasPrevBuffer: false,
           ancestorCleared: false,
+          bufferIsCloned,
         },
         ctx,
       )

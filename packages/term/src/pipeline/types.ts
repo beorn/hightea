@@ -119,6 +119,12 @@ export interface NodeRenderState {
   clipBounds?: ClipBounds
   hasPrevBuffer: boolean
   ancestorCleared: boolean
+  /** True when the buffer was cloned from prevBuffer (stale pixels exist).
+   * False when the buffer is a fresh TerminalBuffer (no stale pixels).
+   * Unlike hasPrevBuffer (which can be false per-node on a cloned buffer),
+   * this is constant for the entire render pass. Used to prevent clearExcessArea
+   * from writing inherited bg into a fresh buffer — no stale pixels to clear. */
+  bufferIsCloned: boolean
 }
 
 /**
