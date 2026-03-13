@@ -87,7 +87,7 @@ Tells descendants that an ancestor erased the buffer at their position. This is 
 
 ### The Critical Formulas
 
-These five computed values in `renderNodeToBuffer` control the entire incremental cascade:
+These five computed values (plus two intermediates: `textPaintDirty`, `subtreeDirtyWithBg`) in `renderNodeToBuffer` control the entire incremental cascade:
 
 ```typescript
 // Did this node's layout position/size change?
@@ -95,17 +95,22 @@ These five computed values in `renderNodeToBuffer` control the entire incrementa
 // instead of the stale !rectEqual(prevLayout, contentRect).
 layoutChanged = node.layoutChangedThisFrame
 
-// Did the CONTENT AREA change? (excludes border-only paint changes)
+// Did the CONTENT AREA change? (excludes border-only paint changes for BOX nodes)
+// textPaintDirty: for TEXT nodes, paintDirty IS a content area change (text has no borders).
+//   measure phase may clear contentDirty, so paintDirty is the surviving witness.
 // absoluteChildMutated: absolute child had children mount/unmount/reorder, layout change,
-// or child position shift. Forces parent to clear (removes stale overlay pixels in gap areas).
+//   or child position shift. Forces parent to clear (removes stale overlay pixels in gap areas).
 // descendantOverflowChanged: a descendant's prevLayout extended beyond THIS node's rect
-// and its layout changed. Recursive check (follows subtreeDirty paths).
+//   and its layout changed. Recursive check (follows subtreeDirty paths).
+textPaintDirty = node.type === "silvery-text" && node.paintDirty
+
 contentAreaAffected =
   node.contentDirty ||
   layoutChanged ||
   childPositionChanged ||
   node.childrenDirty ||
   node.bgDirty ||
+  textPaintDirty ||
   absoluteChildMutated ||
   descendantOverflowChanged
 
@@ -114,10 +119,17 @@ contentAreaAffected =
 parentRegionCleared = (hasPrevBuffer || ancestorCleared) && contentAreaAffected && !props.backgroundColor
 
 // Can we skip the bg fill? Only when clone has correct bg already
-skipBgFill = hasPrevBuffer && !ancestorCleared && !contentAreaAffected
+// subtreeDirtyWithBg: a descendant changed inside a Box with backgroundColor.
+// The bg fill must re-run to clear stale child pixels (e.g., trailing chars from
+// a shrunk Text). Only applies to bg-bearing boxes when contentAreaAffected is false.
+subtreeDirtyWithBg = hasPrevBuffer && !contentAreaAffected && node.subtreeDirty && !!props.backgroundColor
 
-// Must children re-render? (content area was modified on a cloned buffer)
-parentRegionChanged = (hasPrevBuffer || ancestorCleared) && contentAreaAffected
+skipBgFill = hasPrevBuffer && !ancestorCleared && !contentAreaAffected && !subtreeDirtyWithBg
+
+// Must children re-render? (content area was modified OR bg needs refresh on a cloned buffer)
+// subtreeDirtyWithBg triggers this because bg refill overwrites child pixels — children
+// must re-render on top of the fresh fill.
+parentRegionChanged = (hasPrevBuffer || ancestorCleared) && (contentAreaAffected || subtreeDirtyWithBg)
 ```
 
 ### How the cascade propagates to children
