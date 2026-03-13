@@ -20,8 +20,8 @@ import {
 import { fgColorCode, bgColorCode } from "../ansi/sgr-codes"
 import type { CursorState } from "@silvery/react/hooks/useCursor"
 import { IncrementalRenderMismatchError } from "../errors"
-import { isPrivateUseArea, textSized } from "../text-sizing"
-import { graphemeWidth, isTextSizingEnabled, isTextPresentationEmoji } from "../unicode"
+import { textSized } from "../text-sizing"
+import { graphemeWidth, isTextSizingEnabled } from "../unicode"
 import type { CellChange } from "./types"
 
 const DEBUG_OUTPUT = !!process.env.SILVERY_DEBUG_OUTPUT
@@ -376,43 +376,20 @@ function updateInlineCursorRow(
 }
 
 /**
- * Wrap a cell character in OSC 66 if text sizing is enabled and the character
- * has width ambiguity. Covers:
- * - PUA characters (nerdfont icons, powerline symbols)
- * - Text-presentation emoji (e.g., warning sign, checkmark, airplane)
- * - Flag emoji (regional indicator sequences like 🇨🇦 🇺🇸)
+ * Wrap a cell character in OSC 66 if text sizing is enabled and the cell is
+ * wide. OSC 66 tells the terminal to render the character in exactly `width`
+ * cells, matching the layout engine's measurement.
  *
- * OSC 66 tells the terminal to render the character in exactly `width` cells,
- * matching the layout engine's measurement and eliminating misalignment.
+ * Previously this only wrapped specific categories (PUA, text-presentation
+ * emoji, flag emoji) — a whack-a-mole approach that missed new categories
+ * as Unicode evolved. Now wraps ALL wide chars unconditionally: if the buffer
+ * says width 2, the terminal is told width 2. CJK chars don't strictly need
+ * it (terminals agree on their width), but the ~8-byte overhead per wide char
+ * is negligible and eliminates any future width disagreement.
  */
 function wrapTextSizing(char: string, wide: boolean, ctx: OutputContext): string {
   if (!wide || !outputTextSizingEnabled(ctx)) return char
-  const cp = char.codePointAt(0)
-  if (cp !== undefined && isPrivateUseArea(cp)) {
-    return textSized(char, 2)
-  }
-  if (isTextPresentationEmoji(char)) {
-    return textSized(char, 2)
-  }
-  if (isFlagSequence(char)) {
-    return textSized(char, 2)
-  }
-  return char
-}
-
-/**
- * Check if a string is a flag emoji (two regional indicator codepoints).
- * Regional indicators are U+1F1E6..U+1F1FF. A flag sequence is exactly two
- * of them (e.g., 🇨🇦 = U+1F1E8 + U+1F1E6).
- */
-function isFlagSequence(char: string): boolean {
-  const cp0 = char.codePointAt(0)
-  if (cp0 === undefined || cp0 < 0x1f1e6 || cp0 > 0x1f1ff) return false
-  // First codepoint is a regional indicator. Check for a second one.
-  // Regional indicators are in the supplementary plane (4 bytes in UTF-16),
-  // so the second codepoint starts at index 2.
-  const cp1 = char.codePointAt(2)
-  return cp1 !== undefined && cp1 >= 0x1f1e6 && cp1 <= 0x1f1ff
+  return textSized(char, 2)
 }
 
 // ============================================================================
