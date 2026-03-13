@@ -45,7 +45,7 @@ export interface BoundTerm {
 export function createBoundTerm(buffer: TerminalBuffer, getRoot: () => TeaNode, getText: () => string): BoundTerm {
   return {
     cell(x: number, y: number): Cell {
-      return buffer.getCell(x, y)
+      return buffer.getCell(y, x)
     },
 
     nodeAt(x: number, y: number): TeaNode | null {

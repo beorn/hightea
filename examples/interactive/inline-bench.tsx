@@ -18,7 +18,7 @@ function fillBuffer(buf: TerminalBuffer, rows: number, prefix = ""): void {
   for (let y = 0; y < rows; y++) {
     const text = `${prefix}Item ${y}: Content line with some styling and longer text here`
     for (let x = 0; x < Math.min(text.length, buf.width); x++) {
-      buf.setCell(x, y, { char: text[x]! })
+      buf.setCell(y, x, { char: text[x]! })
     }
   }
 }
@@ -52,7 +52,7 @@ function benchmarkOutputPhase(
     for (let c = 0; c < changedCells; c++) {
       const row = Math.floor((c / Math.max(changedCells, 1)) * contentRows)
       const col = c % Math.min(10, width)
-      next.setCell(col, row, { char: "X" })
+      next.setCell(row, col, { char: "X" })
     }
 
     if (forceFullRender) {

@@ -74,7 +74,7 @@ function rowText(buffer: TerminalRenderBuffer, row: number): string {
   const tb = buffer.getTerminalBuffer()
   let text = ""
   for (let col = 0; col < buffer.width; col++) {
-    const cell = tb.getCell(col, row)
+    const cell = tb.getCell(row, col)
     if (cell.continuation) continue
     text += cell.char
   }

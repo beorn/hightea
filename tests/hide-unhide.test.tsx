@@ -111,7 +111,7 @@ describe("hide/unhide instances (Suspense)", () => {
     const loadingRow = (() => {
       for (let y = 0; y < 5; y++) {
         let row = ""
-        for (let x = 0; x < 30; x++) row += buffer1.getCell(x, y).char
+        for (let x = 0; x < 30; x++) row += buffer1.getCell(y, x).char
         if (row.includes("LOADING_TEXT_HERE")) return y
       }
       return -1
@@ -131,7 +131,7 @@ describe("hide/unhide instances (Suspense)", () => {
     const buffer2 = app.lastBuffer()!
     let residualRow = ""
     for (let x = 0; x < 30; x++) {
-      residualRow += buffer2.getCell(x, loadingRow).char
+      residualRow += buffer2.getCell(loadingRow, x).char
     }
     expect(residualRow).not.toContain("LOADING")
   })
@@ -189,7 +189,7 @@ describe("hide/unhide instances (Suspense)", () => {
     const contentRow = (() => {
       for (let y = 0; y < 5; y++) {
         let row = ""
-        for (let x = 0; x < 25; x++) row += buffer1.getCell(x, y).char
+        for (let x = 0; x < 25; x++) row += buffer1.getCell(y, x).char
         if (row.includes("LONG_CONTENT")) return y
       }
       return -1
@@ -205,8 +205,8 @@ describe("hide/unhide instances (Suspense)", () => {
     const fresh = app.freshRender()
     for (let y = 0; y < 4; y++) {
       for (let x = 0; x < 25; x++) {
-        const incCell = incremental.getCell(x, y)
-        const freshCell = fresh.getCell(x, y)
+        const incCell = incremental.getCell(y, x)
+        const freshCell = fresh.getCell(y, x)
         expect(incCell.char).toBe(freshCell.char)
       }
     }
@@ -355,7 +355,7 @@ describe("hide/unhide instances (Suspense)", () => {
     // Verify no red bg pixels remain in the buffer
     const buf2 = app.lastBuffer()!
     for (let x = 0; x < 10; x++) {
-      const cell = buf2.getCell(x, 0)
+      const cell = buf2.getCell(0, x)
       // None of these cells should have a red bg
       if (cell.bg && typeof cell.bg === "object" && "r" in cell.bg) {
         expect(cell.bg).not.toEqual({ r: 255, g: 0, b: 0 })

@@ -214,7 +214,7 @@ function renderBorder(
   const showRight = props.borderRight !== false
 
   const isRowVisible = (row: number): boolean =>
-    clipBounds ? row >= clipBounds.top && row < clipBounds.bottom && buffer.inBounds(0, row) : buffer.inBounds(0, row)
+    clipBounds ? row >= clipBounds.top && row < clipBounds.bottom && buffer.inBounds(row, 0) : buffer.inBounds(row, 0)
 
   // Top border
   if (showTop && isRowVisible(y)) {
@@ -289,12 +289,12 @@ function renderHorizontalBorder(
   const clipRight = clipBounds?.right ?? Infinity
   if (showLeft && x >= clipLeft && x < clipRight) buffer.drawChar(x, row, leftCorner, style)
   for (let col = x + 1; col < x + width - 1; col++) {
-    if (col >= clipLeft && col < clipRight && buffer.inBounds(col, row)) {
+    if (col >= clipLeft && col < clipRight && buffer.inBounds(row, col)) {
       buffer.drawChar(col, row, horizontal, style)
     }
   }
   const rightCol = x + width - 1
-  if (showRight && rightCol >= clipLeft && rightCol < clipRight && buffer.inBounds(rightCol, row)) {
+  if (showRight && rightCol >= clipLeft && rightCol < clipRight && buffer.inBounds(row, rightCol)) {
     buffer.drawChar(rightCol, row, rightCorner, style)
   }
 }
@@ -319,7 +319,7 @@ function renderSideBorders(
     if (!isRowVisible(row)) continue
     if (showLeft && x >= clipLeft && x < clipRight) buffer.drawChar(x, row, leftVertical, style)
     const rightCol = x + width - 1
-    if (showRight && rightCol >= clipLeft && rightCol < clipRight && buffer.inBounds(rightCol, row)) {
+    if (showRight && rightCol >= clipLeft && rightCol < clipRight && buffer.inBounds(row, rightCol)) {
       buffer.drawChar(rightCol, row, rightVertical, style)
     }
   }
@@ -356,7 +356,7 @@ function renderOutlineAdapter(
   const showRight = props.outlineRight !== false
 
   const isRowVisible = (row: number): boolean =>
-    clipBounds ? row >= clipBounds.top && row < clipBounds.bottom && buffer.inBounds(0, row) : buffer.inBounds(0, row)
+    clipBounds ? row >= clipBounds.top && row < clipBounds.bottom && buffer.inBounds(row, 0) : buffer.inBounds(row, 0)
 
   // Top border
   if (showTop && isRowVisible(y)) {
@@ -639,7 +639,7 @@ function renderText(
     for (let i = 0; i < lines.length; i++) {
       const lineY = y + i
       if (clipBounds && (lineY < clipBounds.top || lineY >= clipBounds.bottom)) continue
-      if (!buffer.inBounds(0, lineY)) continue
+      if (!buffer.inBounds(lineY, 0)) continue
       const truncated = truncateToWidth(lines[i]!, availableWidth)
       if (truncated) {
         buffer.drawText(x, lineY, truncated, style)
@@ -669,7 +669,7 @@ function renderText(
       flatOffset = advanceFlatOffset(text, flatOffset, lines[i]!)
       continue
     }
-    if (!buffer.inBounds(0, lineY)) {
+    if (!buffer.inBounds(lineY, 0)) {
       flatOffset = advanceFlatOffset(text, flatOffset, lines[i]!)
       continue
     }
@@ -695,7 +695,7 @@ function renderText(
         buffer.drawChar(col, lineY, char, style)
         // Mark continuation cells for wide characters
         for (let w = 1; w < charWidth; w++) {
-          if (buffer.inBounds(col + w, lineY)) {
+          if (buffer.inBounds(lineY, col + w)) {
             buffer.drawChar(col + w, lineY, "", style)
           }
         }
@@ -822,7 +822,7 @@ function renderScrollIndicators(
   // Up indicator
   if (canScrollUp) {
     const indicatorY = y + border.top
-    if (buffer.inBounds(indicatorX, indicatorY)) {
+    if (buffer.inBounds(indicatorY, indicatorX)) {
       buffer.drawChar(indicatorX, indicatorY, "▲", style)
     }
   }
@@ -830,7 +830,7 @@ function renderScrollIndicators(
   // Down indicator
   if (canScrollDown) {
     const indicatorY = y + height - border.bottom - 1
-    if (buffer.inBounds(indicatorX, indicatorY)) {
+    if (buffer.inBounds(indicatorY, indicatorX)) {
       buffer.drawChar(indicatorX, indicatorY, "▼", style)
     }
   }

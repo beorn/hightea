@@ -441,13 +441,13 @@ function applyBgSegmentsToLine(
       if (displayOffset >= relStart && displayOffset < relEnd) {
         // This character is within the bg segment -- set bg on its cells.
         // Use readCellInto to avoid allocating a new Cell per iteration.
-        buffer.readCellInto(col, y, bgCell)
+        buffer.readCellInto(y, col, bgCell)
         bgCell.bg = seg.bg
-        buffer.setCell(col, y, bgCell)
+        buffer.setCell(y, col, bgCell)
         if (gWidth === 2 && col + 1 < buffer.width) {
-          buffer.readCellInto(col + 1, y, bgCell)
+          buffer.readCellInto(y, col + 1, bgCell)
           bgCell.bg = seg.bg
-          buffer.setCell(col + 1, y, bgCell)
+          buffer.setCell(y, col + 1, bgCell)
         }
       }
 
@@ -769,7 +769,7 @@ function renderGraphemes(
     // Using inherited bg instead of getCellBg decouples text rendering from buffer state,
     // which is critical for incremental rendering: the cloned buffer may have stale bg
     // at positions outside the parent's bg-filled region (e.g., overflow text).
-    const existingBg = style.bg !== null ? style.bg : inheritedBg !== undefined ? inheritedBg : buffer.getCellBg(col, y)
+    const existingBg = style.bg !== null ? style.bg : inheritedBg !== undefined ? inheritedBg : buffer.getCellBg(y, col)
 
     // Wide character at the boundary: the continuation cell would overflow
     // into an adjacent container. Replace with a space to match terminal
@@ -779,7 +779,7 @@ function renderGraphemes(
     // rendering — the owning container's dirty flag tracking doesn't cover
     // cells outside its layout area.
     if (width === 2 && col + 1 >= rightEdge) {
-      buffer.setCell(col, y, {
+      buffer.setCell(y, col, {
         char: " ",
         fg: style.fg,
         bg: existingBg,
@@ -803,7 +803,7 @@ function renderGraphemes(
     // For text-presentation emoji, add VS16 so terminals render at 2 columns
     const outputChar = width === 2 ? ensureEmojiPresentation(grapheme) : grapheme
 
-    buffer.setCell(col, y, {
+    buffer.setCell(y, col, {
       char: outputChar,
       fg: style.fg,
       bg: existingBg,
@@ -823,8 +823,8 @@ function renderGraphemes(
 
     if (width === 2 && col + 1 < buffer.width) {
       const existingBg2 =
-        style.bg !== null ? style.bg : inheritedBg !== undefined ? inheritedBg : buffer.getCellBg(col + 1, y)
-      buffer.setCell(col + 1, y, {
+        style.bg !== null ? style.bg : inheritedBg !== undefined ? inheritedBg : buffer.getCellBg(y, col + 1)
+      buffer.setCell(y, col + 1, {
         char: "",
         fg: style.fg,
         bg: existingBg2,
@@ -898,7 +898,7 @@ function renderAnsiTextLineReturn(
       segment.bg !== null
     ) {
       // Check if there's an existing background (from Text prop or parent Box fill)
-      const existingBufBg = col < buffer.width ? buffer.getCellBg(col, y) : null
+      const existingBufBg = col < buffer.width ? buffer.getCellBg(y, col) : null
       const hasExistingBg = baseStyle.bg !== null || existingBufBg !== null
 
       if (hasExistingBg) {
@@ -1228,7 +1228,7 @@ export function renderText(
     if (endCol < maxCol) {
       const clearBg = inheritedBg ?? null
       for (let cx = endCol; cx < maxCol && cx < buffer.width; cx++) {
-        buffer.setCell(cx, lineY, {
+        buffer.setCell(lineY, cx, {
           char: " ",
           fg: style.fg,
           bg: clearBg,

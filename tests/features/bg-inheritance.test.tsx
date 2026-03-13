@@ -25,9 +25,9 @@ describe("background inheritance", () => {
     const buffer = app.term.buffer
     // The first two columns (where "Hi" is) should have green bg
     const cell0 = buffer.getCell(0, 0)
-    const cell1 = buffer.getCell(1, 0)
+    const cell1 = buffer.getCell(0, 1)
     // Column 2 onwards should NOT have green bg
-    const cell2 = buffer.getCell(2, 0)
+    const cell2 = buffer.getCell(0, 2)
 
     // cell0 and cell1 should have a bg color
     expect(cell0.char).toBe("H")
@@ -58,7 +58,7 @@ describe("background inheritance", () => {
     expect(cellA.char).toBe("A")
 
     // "B" should have blue bg (inherited from Box), not green
-    const cellB = buffer.getCell(1, 0)
+    const cellB = buffer.getCell(0, 1)
     expect(cellB.char).toBe("B")
 
     // B's bg should be the Box's bg (blue), not the sibling Text's bg (green)

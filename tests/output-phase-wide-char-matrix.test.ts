@@ -73,9 +73,9 @@ function writeString(buf: TerminalBuffer, startX: number, y: number, text: strin
   let x = startX
   for (const { segment: char } of segmenter.segment(text)) {
     const wide = isWideChar(char)
-    buf.setCell(x, y, { char, wide, fg: null })
+    buf.setCell(y, x, { char, wide, fg: null })
     if (wide) {
-      buf.setCell(x + 1, y, { char: "", continuation: true, fg: null })
+      buf.setCell(y, x + 1, { char: "", continuation: true, fg: null })
       x += 2
     } else {
       x += 1
@@ -106,8 +106,8 @@ describe("output-phase wide char matrix", () => {
       prev.resetDirtyRows()
 
       const next = prev.clone()
-      next.setCell(1, 0, { char, wide: true, fg: null })
-      next.setCell(2, 0, { char: "", continuation: true, fg: null })
+      next.setCell(0, 1, { char, wide: true, fg: null })
+      next.setCell(0, 2, { char: "", continuation: true, fg: null })
 
       const incrAnsi = render2(prev, next, "fullscreen")
       const matches = [...incrAnsi.matchAll(OSC66_REGEX)]

@@ -26,7 +26,7 @@ function fillWithContent(buffer: TerminalBuffer, density: number): void {
     for (let x = 0; x < w; x++) {
       if (Math.random() < density) {
         const char = chars[Math.floor(Math.random() * chars.length)]!
-        buffer.setCell(x, y, {
+        buffer.setCell(y, x, {
           char,
           fg: x % 8,
           bg: null,
@@ -58,7 +58,7 @@ function createWithChanges(base: TerminalBuffer, changePercent: number): Termina
   for (let i = 0; i < changesToMake; i++) {
     const x = Math.floor(Math.random() * w)
     const y = Math.floor(Math.random() * h)
-    next.setCell(x, y, {
+    next.setCell(y, x, {
       char: "X",
       fg: 1, // red
       bg: null,
@@ -76,7 +76,7 @@ function createWithRowChange(base: TerminalBuffer, row: number): TerminalBuffer 
   const next = base.clone()
   const w = base.width
   for (let x = 0; x < w; x++) {
-    next.setCell(x, row, {
+    next.setCell(row, x, {
       char: ">",
       fg: 2, // green
       bg: null,

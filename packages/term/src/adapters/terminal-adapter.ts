@@ -136,8 +136,8 @@ export class TerminalRenderBuffer implements RenderBuffer {
     const cellStyle = this.convertStyle(style)
     for (let row = y; row < y + height; row++) {
       for (let col = x; col < x + width; col++) {
-        if (this.buffer.inBounds(col, row)) {
-          this.buffer.setCell(col, row, {
+        if (this.buffer.inBounds(row, col)) {
+          this.buffer.setCell(row, col, {
             char: " ",
             ...cellStyle,
           })
@@ -150,17 +150,17 @@ export class TerminalRenderBuffer implements RenderBuffer {
     const cellStyle = this.convertStyle(style)
     let col = x
     for (const char of text) {
-      if (!this.buffer.inBounds(col, y)) break
+      if (!this.buffer.inBounds(y, col)) break
       const charWidth = this.dw(char)
-      this.buffer.setCell(col, y, {
+      this.buffer.setCell(y, col, {
         char,
         ...cellStyle,
         wide: charWidth > 1,
       })
       // Mark continuation cells for wide characters
       for (let i = 1; i < charWidth; i++) {
-        if (this.buffer.inBounds(col + i, y)) {
-          this.buffer.setCell(col + i, y, {
+        if (this.buffer.inBounds(y, col + i)) {
+          this.buffer.setCell(y, col + i, {
             char: "",
             ...cellStyle,
             continuation: true,
@@ -172,8 +172,8 @@ export class TerminalRenderBuffer implements RenderBuffer {
   }
 
   drawChar(x: number, y: number, char: string, style: RenderStyle): void {
-    if (this.buffer.inBounds(x, y)) {
-      this.buffer.setCell(x, y, {
+    if (this.buffer.inBounds(y, x)) {
+      this.buffer.setCell(y, x, {
         char,
         ...this.convertStyle(style),
       })
@@ -181,7 +181,7 @@ export class TerminalRenderBuffer implements RenderBuffer {
   }
 
   inBounds(x: number, y: number): boolean {
-    return this.buffer.inBounds(x, y)
+    return this.buffer.inBounds(y, x)
   }
 
   private convertStyle(style: RenderStyle): {

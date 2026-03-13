@@ -32,8 +32,8 @@ export function compareBuffers(a: TerminalBuffer, b: TerminalBuffer): BufferMism
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const cellA = a.inBounds(x, y)
-        ? a.getCell(x, y)
+      const cellA = a.inBounds(y, x)
+        ? a.getCell(y, x)
         : {
             char: " ",
             fg: null,
@@ -50,8 +50,8 @@ export function compareBuffers(a: TerminalBuffer, b: TerminalBuffer): BufferMism
             wide: false,
             continuation: false,
           }
-      const cellB = b.inBounds(x, y)
-        ? b.getCell(x, y)
+      const cellB = b.inBounds(y, x)
+        ? b.getCell(y, x)
         : {
             char: " ",
             fg: null,

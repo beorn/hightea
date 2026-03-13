@@ -1097,8 +1097,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         require("../buffer.js") as typeof import("../buffer.js")
       for (let y = 0; y < termBuffer.height; y++) {
         for (let x = 0; x < termBuffer.width; x++) {
-          const a = termBuffer.getCell(x, y)
-          const b = freshBuffer.getCell(x, y)
+          const a = termBuffer.getCell(y, x)
+          const b = freshBuffer.getCell(y, x)
           if (!cellEquals(a, b)) {
             // Use cell debug log collected during the real incremental render
             let cellDebugInfo = ""

@@ -193,8 +193,8 @@ describe("theme change rendering", () => {
     // Compare all cells in the rendered area
     for (let y = 0; y < 3; y++) {
       for (let x = 0; x < 20; x++) {
-        const incCell = incremental.getCell(x, y)
-        const freshCell = fresh.getCell(x, y)
+        const incCell = incremental.getCell(y, x)
+        const freshCell = fresh.getCell(y, x)
         expect(incCell.char).toBe(freshCell.char)
         expect(incCell.fg).toEqual(freshCell.fg)
         expect(incCell.bg).toEqual(freshCell.bg)

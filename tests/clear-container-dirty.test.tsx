@@ -154,7 +154,7 @@ describe("clearContainer dirty invalidation", () => {
     const fresh = app.freshRender()
     for (let y = 0; y < 5; y++) {
       for (let x = 0; x < 30; x++) {
-        expect(incremental.getCell(x, y).char).toBe(fresh.getCell(x, y).char)
+        expect(incremental.getCell(y, x).char).toBe(fresh.getCell(y, x).char)
       }
     }
   })

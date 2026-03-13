@@ -567,8 +567,8 @@ export class RenderScheduler {
         let found = false
         for (let y = 0; y < buffer.height && !found; y++) {
           for (let x = 0; x < buffer.width && !found; x++) {
-            const a = buffer.getCell(x, y)
-            const b = freshBuffer.getCell(x, y)
+            const a = buffer.getCell(y, x)
+            const b = freshBuffer.getCell(y, x)
             if (!cellEquals(a, b)) {
               found = true
 

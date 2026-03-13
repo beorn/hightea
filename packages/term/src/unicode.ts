@@ -1019,17 +1019,17 @@ export function writeTextToBuffer(
     if (width === 0) {
       // Zero-width character: combine with previous cell.
       // Use readCellInto to avoid allocating a fresh Cell on each combine.
-      if (col > 0 && buffer.inBounds(col - 1, y)) {
+      if (col > 0 && buffer.inBounds(y, col - 1)) {
         // Lazy-init reusable cell (zero-width combining is uncommon)
         combineCell ??= createMutableCell()
-        buffer.readCellInto(col - 1, y, combineCell)
+        buffer.readCellInto(y, col - 1, combineCell)
         combineCell.char = combineCell.char + grapheme
-        buffer.setCell(col - 1, y, combineCell)
+        buffer.setCell(y, col - 1, combineCell)
       }
     } else if (width === 1) {
       // Normal single-width character
-      if (buffer.inBounds(col, y)) {
-        buffer.setCell(col, y, {
+      if (buffer.inBounds(y, col)) {
+        buffer.setCell(y, col, {
           char: grapheme,
           fg: style.fg,
           bg: style.bg,
@@ -1050,8 +1050,8 @@ export function writeTextToBuffer(
       // Wide character: takes 2 cells
       // For text-presentation emoji, add VS16 so terminals render at 2 columns
       const outputChar = ensureEmojiPresentation(grapheme)
-      if (buffer.inBounds(col, y)) {
-        buffer.setCell(col, y, {
+      if (buffer.inBounds(y, col)) {
+        buffer.setCell(y, col, {
           char: outputChar,
           fg: style.fg,
           bg: style.bg,
@@ -1067,8 +1067,8 @@ export function writeTextToBuffer(
           continuation: false,
         })
       }
-      if (buffer.inBounds(col + 1, y)) {
-        buffer.setCell(col + 1, y, {
+      if (buffer.inBounds(y, col + 1)) {
+        buffer.setCell(y, col + 1, {
           char: "",
           fg: style.fg,
           bg: style.bg,

@@ -158,16 +158,16 @@ export class VirtualTerminal {
   loadFromBuffer(buffer: TerminalBuffer): void {
     for (let y = 0; y < Math.min(this.height, buffer.height); y++) {
       for (let x = 0; x < Math.min(this.width, buffer.width); x++) {
-        if (buffer.isCellContinuation(x, y)) {
+        if (buffer.isCellContinuation(y, x)) {
           this.wideMarker[y]![x] = true
           this.grid[y]![x] = ""
           // Continuation cells have default style
           this.styles[y]![x] = createDefaultVTermStyle()
         } else {
-          this.grid[y]![x] = buffer.getCellChar(x, y)
+          this.grid[y]![x] = buffer.getCellChar(y, x)
           this.wideMarker[y]![x] = false
           // Load style from buffer cell
-          const cell = buffer.getCell(x, y)
+          const cell = buffer.getCell(y, x)
           this.styles[y]![x] = {
             fg: cell.fg,
             bg: cell.bg,
@@ -491,9 +491,9 @@ export class VirtualTerminal {
     const mismatches: ReplayMismatch[] = []
     for (let y = 0; y < Math.min(this.height, buffer.height); y++) {
       for (let x = 0; x < Math.min(this.width, buffer.width); x++) {
-        if (buffer.isCellContinuation(x, y)) continue
+        if (buffer.isCellContinuation(y, x)) continue
 
-        const expected = buffer.getCellChar(x, y)
+        const expected = buffer.getCellChar(y, x)
         const actual = this.getChar(x, y)
         if (expected !== actual) {
           mismatches.push({ x, y, expected, actual })
@@ -511,9 +511,9 @@ export class VirtualTerminal {
     const mismatches: StyleMismatch[] = []
     for (let y = 0; y < Math.min(this.height, buffer.height); y++) {
       for (let x = 0; x < Math.min(this.width, buffer.width); x++) {
-        if (buffer.isCellContinuation(x, y)) continue
+        if (buffer.isCellContinuation(y, x)) continue
 
-        const cell = buffer.getCell(x, y)
+        const cell = buffer.getCell(y, x)
         const actual = this.getStyle(x, y)
         const diffs: string[] = []
 
@@ -824,7 +824,7 @@ export function withDiagnostics<T extends AppWithCommands>(app: T, options: Diag
                 const incrementalText = app.text
                 const freshText = fresh
                   ? Array.from({ length: fresh.height }, (_, y) =>
-                      Array.from({ length: fresh.width }, (_, x) => fresh.getCellChar(x, y)).join(""),
+                      Array.from({ length: fresh.width }, (_, x) => fresh.getCellChar(y, x)).join(""),
                     ).join("\n")
                   : "(no fresh buffer)"
                 const screenshotPath = await captureFailureScreenshot(command.id, "incremental")

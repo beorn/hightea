@@ -710,8 +710,8 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       const freshBuffer = doFreshRender()
       for (let y = 0; y < buffer!.height; y++) {
         for (let x = 0; x < buffer!.width; x++) {
-          const a = buffer!.getCell(x, y)
-          const b = freshBuffer.getCell(x, y)
+          const a = buffer!.getCell(y, x)
+          const b = freshBuffer.getCell(y, x)
           if (!cellEquals(a, b)) {
             // Re-run fresh render with write trap to capture what writes here
             let trapInfo = ""

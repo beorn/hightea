@@ -187,7 +187,7 @@ describe("Inline code elements", () => {
   test("Code has $mutedbg background", () => {
     const app = render(<Code>x</Code>)
     // Find the 'x' character — it's at col 1 because of leading space
-    const cell = app.term.buffer.getCell(1, 0)
+    const cell = app.term.buffer.getCell(0, 1)
     expect(cell.char).toBe("x")
     expect(cell.bg).not.toBeNull()
   })
@@ -199,7 +199,7 @@ describe("Inline code elements", () => {
 
   test("Kbd has $mutedbg background and is bold", () => {
     const app = render(<Kbd>K</Kbd>)
-    const cell = app.term.buffer.getCell(1, 0)
+    const cell = app.term.buffer.getCell(0, 1)
     expect(cell.char).toBe("K")
     expect(cell.bg).not.toBeNull()
     expect(cell.bold).toBe(true)
@@ -207,17 +207,17 @@ describe("Inline code elements", () => {
 
   test("Code is not bold, Kbd is bold", () => {
     const app1 = render(<Code>a</Code>)
-    const codeCell = app1.term.buffer.getCell(1, 0)
+    const codeCell = app1.term.buffer.getCell(0, 1)
     expect(codeCell.bold).toBeFalsy()
 
     const app2 = render(<Kbd>a</Kbd>)
-    const kbdCell = app2.term.buffer.getCell(1, 0)
+    const kbdCell = app2.term.buffer.getCell(0, 1)
     expect(kbdCell.bold).toBe(true)
   })
 
   test("Code and Kbd accept color override", () => {
     const app = render(<Code color="$success">ok</Code>)
-    const cell = app.term.buffer.getCell(1, 0)
+    const cell = app.term.buffer.getCell(0, 1)
     expect(cell.fg).not.toBeNull()
   })
 })
@@ -239,13 +239,13 @@ describe("Block elements", () => {
     const buffer = app.term.buffer
     let quoteCol = -1
     for (let x = 0; x < 80; x++) {
-      if (buffer.getCell(x, 0).char === "Q") {
+      if (buffer.getCell(0, x).char === "Q") {
         quoteCol = x
         break
       }
     }
     expect(quoteCol).toBeGreaterThan(0)
-    expect(buffer.getCell(quoteCol, 0).italic).toBe(true)
+    expect(buffer.getCell(0, quoteCol).italic).toBe(true)
   })
 
   test("Blockquote │ uses $muted color", () => {
@@ -254,13 +254,13 @@ describe("Block elements", () => {
     // Find the │ character
     let barCol = -1
     for (let x = 0; x < 80; x++) {
-      if (buffer.getCell(x, 0).char === "│") {
+      if (buffer.getCell(0, x).char === "│") {
         barCol = x
         break
       }
     }
     expect(barCol).toBeGreaterThanOrEqual(0)
-    expect(buffer.getCell(barCol, 0).fg).not.toBeNull()
+    expect(buffer.getCell(0, barCol).fg).not.toBeNull()
   })
 
   test("CodeBlock renders with │ prefix", () => {
@@ -274,13 +274,13 @@ describe("Block elements", () => {
     const buffer = app.term.buffer
     let codeCol = -1
     for (let x = 0; x < 80; x++) {
-      if (buffer.getCell(x, 0).char === "c") {
+      if (buffer.getCell(0, x).char === "c") {
         codeCol = x
         break
       }
     }
     expect(codeCol).toBeGreaterThan(0)
-    expect(buffer.getCell(codeCol, 0).italic).toBeFalsy()
+    expect(buffer.getCell(0, codeCol).italic).toBeFalsy()
   })
 
   test("CodeBlock │ uses $border color", () => {
@@ -288,14 +288,14 @@ describe("Block elements", () => {
     const buffer = app.term.buffer
     let barCol = -1
     for (let x = 0; x < 80; x++) {
-      if (buffer.getCell(x, 0).char === "│") {
+      if (buffer.getCell(0, x).char === "│") {
         barCol = x
         break
       }
     }
     expect(barCol).toBeGreaterThanOrEqual(0)
     // $border resolves to a color
-    expect(buffer.getCell(barCol, 0).fg).not.toBeNull()
+    expect(buffer.getCell(0, barCol).fg).not.toBeNull()
   })
 
   test("Blockquote and CodeBlock │ have different colors", () => {
@@ -303,8 +303,8 @@ describe("Block elements", () => {
     const buf1 = app1.term.buffer
     let bqBarFg = null
     for (let x = 0; x < 80; x++) {
-      if (buf1.getCell(x, 0).char === "│") {
-        bqBarFg = buf1.getCell(x, 0).fg
+      if (buf1.getCell(0, x).char === "│") {
+        bqBarFg = buf1.getCell(0, x).fg
         break
       }
     }
@@ -313,8 +313,8 @@ describe("Block elements", () => {
     const buf2 = app2.term.buffer
     let cbBarFg = null
     for (let x = 0; x < 80; x++) {
-      if (buf2.getCell(x, 0).char === "│") {
-        cbBarFg = buf2.getCell(x, 0).fg
+      if (buf2.getCell(0, x).char === "│") {
+        cbBarFg = buf2.getCell(0, x).fg
         break
       }
     }
@@ -352,7 +352,7 @@ describe("HR", () => {
     const app = narrowRender(<HR />)
     // Most columns should be ─ (last may be ellipsis from wrap="truncate")
     for (let x = 0; x < 19; x++) {
-      expect(app.term.buffer.getCell(x, 0).char).toBe("─")
+      expect(app.term.buffer.getCell(0, x).char).toBe("─")
     }
   })
 })
@@ -462,7 +462,7 @@ describe("Lists", () => {
       let bulletCol2 = -1
       for (let y = 0; y < 10; y++) {
         for (let x = 0; x < 80; x++) {
-          const ch = buffer.getCell(x, y).char
+          const ch = buffer.getCell(y, x).char
           if (ch === "•" && bulletCol1 === -1) bulletCol1 = x
           if (ch === "◦" && bulletCol2 === -1) bulletCol2 = x
         }
@@ -516,7 +516,7 @@ describe("Lists", () => {
       let bulletRow = -1
       for (let y = 0; y < 10; y++) {
         for (let x = 0; x < 80; x++) {
-          if (buffer.getCell(x, y).char === "•") {
+          if (buffer.getCell(y, x).char === "•") {
             bulletCol = x
             bulletRow = y
             break
@@ -525,7 +525,7 @@ describe("Lists", () => {
         if (bulletCol >= 0) break
       }
       expect(bulletCol).toBeGreaterThanOrEqual(0)
-      expect(buffer.getCell(bulletCol, bulletRow).fg).not.toBeNull()
+      expect(buffer.getCell(bulletRow, bulletCol).fg).not.toBeNull()
     })
 
     test("LI accepts color override", () => {
@@ -541,7 +541,7 @@ describe("Lists", () => {
       let bulletRow = -1
       for (let y = 0; y < 10; y++) {
         for (let x = 0; x < 80; x++) {
-          if (buffer.getCell(x, y).char === "•") {
+          if (buffer.getCell(y, x).char === "•") {
             bulletCol = x
             bulletRow = y
             break
@@ -550,7 +550,7 @@ describe("Lists", () => {
         if (bulletCol >= 0) break
       }
       expect(bulletCol).toBeGreaterThanOrEqual(0)
-      expect(buffer.getCell(bulletCol, bulletRow).fg).not.toBeNull()
+      expect(buffer.getCell(bulletRow, bulletCol).fg).not.toBeNull()
     })
   })
 
@@ -616,8 +616,8 @@ describe("Color override", () => {
     const buffer = app.term.buffer
     let found = false
     for (let x = 0; x < 80; x++) {
-      if (buffer.getCell(x, 0).char === "X") {
-        expect(buffer.getCell(x, 0).fg).not.toBeNull()
+      if (buffer.getCell(0, x).char === "X") {
+        expect(buffer.getCell(0, x).fg).not.toBeNull()
         found = true
         break
       }

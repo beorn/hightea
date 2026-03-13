@@ -785,13 +785,13 @@ function renderScrollContainerChildren(
       const bottomIndicatorY = clearY + clearHeight - 1
       if (ss.prevOffset != null && ss.prevOffset > 0) {
         // Previous frame had items hidden above → top indicator was showing
-        buffer.fill(contentX, topIndicatorY, contentWidth, 1, { char: " ", bg: scrollBg })
+        buffer.fill(topIndicatorY, contentX, contentWidth, 1, { char: " ", bg: scrollBg })
       }
       // Previous frame had items hidden below → bottom indicator was showing
       // (safe to always clear bottom row since it will be re-rendered)
-      buffer.fill(contentX, bottomIndicatorY, contentWidth, 1, { char: " ", bg: scrollBg })
+      buffer.fill(bottomIndicatorY, contentX, contentWidth, 1, { char: " ", bg: scrollBg })
     }
-    buffer.scrollRegion(contentX, clearY, contentWidth, clearHeight, scrollDelta, {
+    buffer.scrollRegion(clearY, contentX, contentWidth, clearHeight, scrollDelta, {
       char: " ",
       bg: scrollBg,
     })
@@ -799,7 +799,7 @@ function renderScrollContainerChildren(
 
   // Full viewport clear (tier 2)
   if (needsViewportClear && clearHeight > 0) {
-    buffer.fill(contentX, clearY, contentWidth, clearHeight, {
+    buffer.fill(clearY, contentX, contentWidth, clearHeight, {
       char: " ",
       bg: scrollBg,
     })
@@ -843,7 +843,7 @@ function renderScrollContainerChildren(
   // Uses bg=null (not scrollBg/inherited bg) because fresh render starts with
   // a blank buffer — the viewport has null bg before any content renders.
   if (stickyForceRefresh && clearHeight > 0) {
-    buffer.fill(contentX, clearY, contentWidth, clearHeight, { char: " ", bg: null })
+    buffer.fill(clearY, contentX, contentWidth, clearHeight, { char: " ", bg: null })
   }
 
   // First pass: render non-sticky visible children with scroll offset
@@ -1012,7 +1012,7 @@ function renderNormalChildren(
       }
     }
     if (clearW > 0 && clearH > 0) {
-      buffer.fill(clearX, clearY, clearW, clearH, { char: " ", bg: null })
+      buffer.fill(clearY, clearX, clearW, clearH, { char: " ", bg: null })
     }
   }
 
@@ -1425,7 +1425,7 @@ function _clearDescendantOverflow(
         const overflowTop = Math.max(prevTop, clipBounds?.top ?? 0)
         const overflowBottom = Math.min(prevBottom, clipBounds?.bottom ?? buffer.height)
         if (overflowWidth > 0 && overflowBottom > overflowTop) {
-          buffer.fill(overflowX, overflowTop, overflowWidth, overflowBottom - overflowTop, { char: " ", bg: clearBg })
+          buffer.fill(overflowTop, overflowX, overflowWidth, overflowBottom - overflowTop, { char: " ", bg: clearBg })
         }
       }
       // Clear overflow below the ancestor
@@ -1435,7 +1435,7 @@ function _clearDescendantOverflow(
         const overflowX = Math.max(prev.x, clipBounds?.left ?? 0)
         const overflowWidth = Math.min(prevRight, clipBounds?.right ?? buffer.width) - overflowX
         if (overflowWidth > 0 && overflowBottom > overflowTop) {
-          buffer.fill(overflowX, overflowTop, overflowWidth, overflowBottom - overflowTop, { char: " ", bg: clearBg })
+          buffer.fill(overflowTop, overflowX, overflowWidth, overflowBottom - overflowTop, { char: " ", bg: clearBg })
         }
       }
       // Clear overflow to the left of the ancestor
@@ -1445,7 +1445,7 @@ function _clearDescendantOverflow(
         const overflowTop = Math.max(prevTop, clipBounds?.top ?? 0)
         const overflowBottom = Math.min(prevBottom, clipBounds?.bottom ?? buffer.height)
         if (overflowWidth > 0 && overflowBottom > overflowTop) {
-          buffer.fill(overflowX, overflowTop, overflowWidth, overflowBottom - overflowTop, { char: " ", bg: clearBg })
+          buffer.fill(overflowTop, overflowX, overflowWidth, overflowBottom - overflowTop, { char: " ", bg: clearBg })
         }
       }
       // Clear overflow above the ancestor
@@ -1455,7 +1455,7 @@ function _clearDescendantOverflow(
         const overflowX = Math.max(prev.x, clipBounds?.left ?? 0)
         const overflowWidth = Math.min(prevRight, clipBounds?.right ?? buffer.width) - overflowX
         if (overflowWidth > 0 && overflowBottom > overflowTop) {
-          buffer.fill(overflowX, overflowTop, overflowWidth, overflowBottom - overflowTop, { char: " ", bg: clearBg })
+          buffer.fill(overflowTop, overflowX, overflowWidth, overflowBottom - overflowTop, { char: " ", bg: clearBg })
         }
       }
     }
@@ -1548,7 +1548,7 @@ function clearNodeRegion(
         )
       }
     }
-    buffer.fill(clearX, clearY, clearWidth, clearHeight, {
+    buffer.fill(clearY, clearX, clearWidth, clearHeight, {
       char: " ",
       bg: clearBg,
     })
@@ -1733,6 +1733,6 @@ function clippedFill(
   }
   const height = clippedBottom - clippedTop
   if (height > 0 && clippedWidth > 0) {
-    buffer.fill(clippedX, clippedTop, clippedWidth, height, { char: " ", bg })
+    buffer.fill(clippedTop, clippedX, clippedWidth, height, { char: " ", bg })
   }
 }

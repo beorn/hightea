@@ -65,7 +65,7 @@ function rowText(buffer: TerminalRenderBuffer, row: number): string {
   const tb = buffer.getTerminalBuffer()
   let text = ""
   for (let col = 0; col < buffer.width; col++) {
-    const cell = tb.getCell(col, row)
+    const cell = tb.getCell(row, col)
     if (cell.continuation) continue
     text += cell.char
   }
@@ -91,7 +91,7 @@ describe("content-phase-adapter border clipping", () => {
     const tb = buffer.getTerminalBuffer()
     for (let row = 0; row < 6; row++) {
       for (let col = 20; col < 80; col++) {
-        const cell = tb.getCell(col, row)
+        const cell = tb.getCell(row, col)
         expect(cell.char, `row ${row} col ${col} should be empty`).toBe(" ")
       }
     }
@@ -111,7 +111,7 @@ describe("content-phase-adapter border clipping", () => {
     const tb = buffer.getTerminalBuffer()
     for (let row = 0; row < 6; row++) {
       for (let col = 20; col < 80; col++) {
-        const cell = tb.getCell(col, row)
+        const cell = tb.getCell(row, col)
         expect(cell.char, `row ${row} col ${col} should be empty`).toBe(" ")
       }
     }
@@ -146,7 +146,7 @@ describe("content-phase-adapter text clipping", () => {
     // All content on row 0 should be within the 15-column Box
     const tb = buffer.getTerminalBuffer()
     for (let col = 15; col < 80; col++) {
-      const cell = tb.getCell(col, 0)
+      const cell = tb.getCell(0, col)
       expect(cell.char).toBe(" ")
     }
   })
@@ -167,7 +167,7 @@ describe("content-phase-adapter text clipping", () => {
     // Check that no text appears beyond column 20
     const tb = buffer.getTerminalBuffer()
     for (let col = 20; col < 80; col++) {
-      const cell = tb.getCell(col, 0)
+      const cell = tb.getCell(0, col)
       expect(cell.char, `col ${col} should be empty`).toBe(" ")
     }
   })
@@ -210,7 +210,7 @@ describe("content-phase-adapter outline side flags", () => {
     expect(bottomRow).not.toContain("└")
     expect(bottomRow).not.toContain("┘")
     // But left side should extend to row 3
-    const cell03 = tb.getCell(0, 3)
+    const cell03 = tb.getCell(3, 0)
     expect(cell03.char).toBe("│")
   })
 
@@ -226,12 +226,12 @@ describe("content-phase-adapter outline side flags", () => {
     const tb = buffer.getTerminalBuffer()
     // Left column should not have vertical border chars
     for (let row = 1; row < 3; row++) {
-      const cell = tb.getCell(0, row)
+      const cell = tb.getCell(row, 0)
       expect(cell.char, `row ${row} col 0 should not be │`).not.toBe("│")
     }
     // Corners should not render
     expect(tb.getCell(0, 0).char).not.toBe("┌")
-    expect(tb.getCell(0, 3).char).not.toBe("└")
+    expect(tb.getCell(3, 0).char).not.toBe("└")
   })
 
   test("outlineRight=false hides right border", () => {
@@ -246,12 +246,12 @@ describe("content-phase-adapter outline side flags", () => {
     const tb = buffer.getTerminalBuffer()
     // Right column (col 9) should not have vertical border chars
     for (let row = 1; row < 3; row++) {
-      const cell = tb.getCell(9, row)
+      const cell = tb.getCell(row, 9)
       expect(cell.char, `row ${row} col 9 should not be │`).not.toBe("│")
     }
     // Right corners should not render
-    expect(tb.getCell(9, 0).char).not.toBe("┐")
-    expect(tb.getCell(9, 3).char).not.toBe("┘")
+    expect(tb.getCell(0, 9).char).not.toBe("┐")
+    expect(tb.getCell(3, 9).char).not.toBe("┘")
   })
 })
 

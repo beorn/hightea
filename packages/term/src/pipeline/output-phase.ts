@@ -917,16 +917,16 @@ export function outputPhase(
  */
 function lineHasContent(buffer: TerminalBuffer, y: number): boolean {
   for (let x = 0; x < buffer.width; x++) {
-    const ch = buffer.getCellChar(x, y)
+    const ch = buffer.getCellChar(y, x)
     if (ch !== " " && ch !== "") return true
     // Styled blank cells are visually meaningful:
     // - background color (colored spacer rows)
     // - inverse (visible block of fg color)
     // - underline (visible line under space)
     // - strikethrough (visible line through space)
-    const bg = buffer.getCellBg(x, y)
+    const bg = buffer.getCellBg(y, x)
     if (bg !== null) return true
-    if (buffer.getCellAttrs(x, y) & VISIBLE_SPACE_ATTR_MASK) return true
+    if (buffer.getCellAttrs(y, x) & VISIBLE_SPACE_ATTR_MASK) return true
   }
   return false
 }
@@ -1294,7 +1294,7 @@ function bufferToAnsi(
 
     // Render the line content
     for (let x = 0; x < buffer.width; x++) {
-      buffer.readCellInto(x, y, cell)
+      buffer.readCellInto(y, x, cell)
 
       // No continuation skip here. Valid continuation cells are never reached
       // because `if (cell.wide) x++` below jumps past them. Orphaned
@@ -1482,7 +1482,7 @@ function ensureDiffPoolCapacity(capacity: number): void {
 function writeCellChange(change: CellChange, x: number, y: number, buffer: TerminalBuffer): void {
   change.x = x
   change.y = y
-  buffer.readCellInto(x, y, change.cell)
+  buffer.readCellInto(y, x, change.cell)
 }
 
 /**
@@ -1562,7 +1562,7 @@ function diffBuffers(prev: TerminalBuffer, next: TerminalBuffer): DiffResult {
 
     for (let x = 0; x < width; x++) {
       // Use buffer's optimized cellEquals which compares packed metadata first
-      if (!next.cellEquals(x, y, prev)) {
+      if (!next.cellEquals(y, x, prev)) {
         writeCellChange(diffPool[changeCount]!, x, y, next)
         changeCount++
 
@@ -1573,7 +1573,7 @@ function diffBuffers(prev: TerminalBuffer, next: TerminalBuffer): DiffResult {
         // next are ' '). Without this explicit change, changesToAnsi skips
         // x+1 and the terminal retains the wide char remnant, causing
         // cursor drift.
-        if (x + 1 < width && prev.isCellWide(x, y) && !next.isCellWide(x, y)) {
+        if (x + 1 < width && prev.isCellWide(y, x) && !next.isCellWide(y, x)) {
           writeCellChange(diffPool[changeCount]!, x + 1, y, next)
           changeCount++
         }
@@ -1749,7 +1749,7 @@ function changesToAnsi(
       // cell's style did. Read the main cell from the buffer and emit it.
       if (buffer && x > 0) {
         x = x - 1
-        buffer.readCellInto(x, y, wideCharLookupCell)
+        buffer.readCellInto(y, x, wideCharLookupCell)
         cell = wideCharLookupCell
         // If the looked-up cell is itself a continuation (shouldn't happen
         // with valid buffers) or not wide, fall back to skipping
@@ -2085,7 +2085,7 @@ function verifyOutputEquivalence(
     const _dumpRowWideCells = (buf: TerminalBuffer, row: number): string => {
       const parts: string[] = []
       for (let cx = 0; cx < buf.width; cx++) {
-        const c = buf.getCell(cx, row)
+        const c = buf.getCell(row, cx)
         const cp = c.char
           ? [...c.char]
               .map((ch) => "U+" + (ch.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, "0"))
@@ -2124,17 +2124,17 @@ function verifyOutputEquivalence(
             incrRow += termIncr.getCell(y, rx).char || " "
             freshRow += termFresh.getCell(y, rx).char || " "
           }
-          const prevRow = Array.from({ length: w }, (_, cx) => prev.getCell(cx, y).char).join("")
-          const nextCell = next.getCell(x, y)
-          const prevCell = prev.getCell(x, y)
+          const prevRow = Array.from({ length: w }, (_, cx) => prev.getCell(y, cx).char).join("")
+          const nextCell = next.getCell(y, x)
+          const prevCell = prev.getCell(y, x)
           const contextStart = Math.max(0, x - 5)
           const contextEnd = Math.min(w, x + 10)
           const colDetails: string[] = []
           for (let cx = contextStart; cx < contextEnd; cx++) {
             const ic = termIncr.getCell(y, cx)
             const fc = termFresh.getCell(y, cx)
-            const pc = prev.getCell(cx, y)
-            const nc = next.getCell(cx, y)
+            const pc = prev.getCell(y, cx)
+            const nc = next.getCell(y, cx)
             const icChar = ic.char || " "
             const fcChar = fc.char || " "
             const marker = cx === x ? " <<<" : icChar !== fcChar ? " !!!" : ""
@@ -2269,7 +2269,7 @@ function verifyTerminalEquivalence(
     for (let y = 0; y < buffer.height; y++) {
       for (let x = 0; x < buffer.width; x++) {
         // Buffer uses getCell(col, row); terminal uses getCell(row, col)
-        const ours = buffer.getCell(x, y)
+        const ours = buffer.getCell(y, x)
         const theirs = term.getCell(y, x)
 
         // Character comparison — the primary check
@@ -2296,9 +2296,7 @@ function verifyTerminalEquivalence(
           diffs.push(`strikethrough: ${ours.strikethrough} vs ${theirs.strikethrough}`)
 
         if (diffs.length > 0) {
-          const msg =
-            `SILVERY_STRICT_TERMINAL style divergence at (${x},${y}) char='${ours.char}': ` +
-            diffs.join(", ")
+          const msg = `SILVERY_STRICT_TERMINAL style divergence at (${x},${y}) char='${ours.char}': ` + diffs.join(", ")
           throw new IncrementalRenderMismatchError(msg)
         }
       }

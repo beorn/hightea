@@ -187,7 +187,7 @@ function createScreen(cols: number, rows: number) {
 /** Write a line of text into a buffer at the given row. */
 function writeLine(buffer: TerminalBuffer, row: number, text: string): void {
   for (let i = 0; i < text.length && i < buffer.width; i++) {
-    buffer.setCell(i, row, { char: text[i]! })
+    buffer.setCell(row, i, { char: text[i]! })
   }
 }
 

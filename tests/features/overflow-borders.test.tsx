@@ -58,11 +58,11 @@ describe("overflow border edge cases", () => {
     )
     const buffer = app.term.buffer
     // Right border at the last column
-    const topRight = buffer.getCell(9, 0)
+    const topRight = buffer.getCell(0, 9)
     expect(topRight.char).toBe("┐")
 
     // Bottom right border
-    const bottomRight = buffer.getCell(9, 2)
+    const bottomRight = buffer.getCell(2, 9)
     expect(bottomRight.char).toBe("┘")
   })
 

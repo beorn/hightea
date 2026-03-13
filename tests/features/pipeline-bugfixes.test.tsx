@@ -95,7 +95,7 @@ describe("output-cache-unbounded: cache size is bounded", () => {
     const buf = createBuffer(SIZE, 1)
     for (let i = 0; i < SIZE; i++) {
       // Each cell gets a unique true-color fg
-      buf.setCell(i, 0, {
+      buf.setCell(0, i, {
         char: "X",
         fg: { r: i % 256, g: Math.floor(i / 256) % 256, b: Math.floor(i / 65536) % 256 },
       })
@@ -114,11 +114,11 @@ describe("output-cache-unbounded: cache size is bounded", () => {
     const next = createBuffer(SIZE, 1)
 
     for (let i = 0; i < SIZE; i++) {
-      prev.setCell(i, 0, {
+      prev.setCell(0, i, {
         char: "A",
         fg: { r: i % 256, g: 0, b: 0 },
       })
-      next.setCell(i, 0, {
+      next.setCell(0, i, {
         char: "B",
         fg: { r: 0, g: i % 256, b: 0 },
       })
@@ -134,7 +134,7 @@ describe("output-cache-unbounded: cache size is bounded", () => {
     const SIZE = 1100
     const buf = createBuffer(SIZE, 1)
     for (let i = 0; i < SIZE; i++) {
-      buf.setCell(i, 0, {
+      buf.setCell(0, i, {
         char: "X",
         fg: { r: i % 256, g: Math.floor(i / 4) % 256, b: 0 },
       })
@@ -406,10 +406,10 @@ describe("line-has-content: styled blank cells are treated as content", () => {
     const buf = createBuffer(10, 3)
     // Row 0: text
     buf.setCell(0, 0, { char: "H" })
-    buf.setCell(1, 0, { char: "i" })
+    buf.setCell(0, 1, { char: "i" })
     // Row 1: blank with inverse (should be treated as content)
     for (let x = 0; x < 10; x++) {
-      buf.setCell(x, 1, { char: " ", inverse: true })
+      buf.setCell(1, x, { char: " ", inverse: true })
     }
     // Row 2: truly empty
 
@@ -424,7 +424,7 @@ describe("line-has-content: styled blank cells are treated as content", () => {
     buf.setCell(0, 0, { char: "A" })
     // Row 1: blank with underline
     for (let x = 0; x < 5; x++) {
-      buf.setCell(x, 1, { char: " ", underline: "single" })
+      buf.setCell(1, x, { char: " ", underline: "single" })
     }
 
     const ansi = outputPhase(null, buf, "inline", 0, 3)
@@ -437,7 +437,7 @@ describe("line-has-content: styled blank cells are treated as content", () => {
     buf.setCell(0, 0, { char: "A" })
     // Row 1: blank with strikethrough
     for (let x = 0; x < 5; x++) {
-      buf.setCell(x, 1, { char: " ", strikethrough: true })
+      buf.setCell(1, x, { char: " ", strikethrough: true })
     }
 
     const ansi = outputPhase(null, buf, "inline", 0, 3)
@@ -450,7 +450,7 @@ describe("line-has-content: styled blank cells are treated as content", () => {
     buf.setCell(0, 0, { char: "A" })
     // Row 1: blank with bg color
     for (let x = 0; x < 5; x++) {
-      buf.setCell(x, 1, { char: " ", bg: 1 }) // red bg
+      buf.setCell(1, x, { char: " ", bg: 1 }) // red bg
     }
 
     const ansi = outputPhase(null, buf, "inline", 0, 3)
@@ -494,10 +494,10 @@ describe("bg-segment-offsets: CJK/emoji bg segments use display-width coordinate
     const buffer = app.term.buffer
     // 你 occupies cols 0-1, 好 occupies cols 2-3, A at col 4, B at col 5
     const cell0 = buffer.getCell(0, 0)
-    const cell1 = buffer.getCell(1, 0) // continuation of 你
-    const cell2 = buffer.getCell(2, 0) // 好
-    const cell4 = buffer.getCell(4, 0) // A
-    const cell5 = buffer.getCell(5, 0) // B
+    const cell1 = buffer.getCell(0, 1) // continuation of 你
+    const cell2 = buffer.getCell(0, 2) // 好
+    const cell4 = buffer.getCell(0, 4) // A
+    const cell5 = buffer.getCell(0, 5) // B
 
     // 你好 should have red bg
     expect(cell0.bg).not.toBeNull()
@@ -531,9 +531,9 @@ describe("bg-segment-offsets: CJK/emoji bg segments use display-width coordinate
     // ! at col 4 (cyan bg)
 
     const cellH = buffer.getCell(0, 0)
-    const cellI = buffer.getCell(1, 0)
-    const cellNi = buffer.getCell(2, 0)
-    const cellBang = buffer.getCell(4, 0)
+    const cellI = buffer.getCell(0, 1)
+    const cellNi = buffer.getCell(0, 2)
+    const cellBang = buffer.getCell(0, 4)
 
     expect(cellH.char).toBe("H")
     expect(cellI.char).toBe("i")
@@ -567,8 +567,8 @@ describe("bg-segment-offsets: CJK/emoji bg segments use display-width coordinate
     const buffer = app.term.buffer
     // A at col 0 (red), emoji at cols 1-2 (blue, width 2), B at col 3 (green)
     const cellA = buffer.getCell(0, 0)
-    const cellEmoji = buffer.getCell(1, 0)
-    const cellB = buffer.getCell(3, 0)
+    const cellEmoji = buffer.getCell(0, 1)
+    const cellB = buffer.getCell(0, 3)
 
     expect(cellA.char).toBe("A")
     expect(cellA.bg).not.toBeNull()

@@ -75,8 +75,8 @@ describe("border rendering", () => {
       </Box>,
     )
     const buffer = app.term.buffer
-    const topRow = Array.from({ length: 10 }, (_, x) => buffer.getCell(x, 0).char).join("")
-    const botRow = Array.from({ length: 10 }, (_, x) => buffer.getCell(x, 2).char).join("")
+    const topRow = Array.from({ length: 10 }, (_, x) => buffer.getCell(0, x).char).join("")
+    const botRow = Array.from({ length: 10 }, (_, x) => buffer.getCell(2, x).char).join("")
 
     // Top/bottom rows: horizontal bar extends to left edge (no space), right corner
     expect(topRow[0]).toBe("─")
@@ -89,7 +89,7 @@ describe("border rendering", () => {
     expect(botRow).not.toContain("╰")
 
     // Side borders: no left border on content rows
-    const midRow = Array.from({ length: 10 }, (_, x) => buffer.getCell(x, 1).char).join("")
+    const midRow = Array.from({ length: 10 }, (_, x) => buffer.getCell(1, x).char).join("")
     expect(midRow).toContain("│") // right border
     expect(midRow[0]).not.toBe("│") // no left border character
   })
@@ -102,7 +102,7 @@ describe("border rendering", () => {
       </Box>,
     )
     const buffer = app.term.buffer
-    const topRow = Array.from({ length: 10 }, (_, x) => buffer.getCell(x, 0).char).join("")
+    const topRow = Array.from({ length: 10 }, (_, x) => buffer.getCell(0, x).char).join("")
 
     expect(topRow).toContain("╭")
     expect(topRow).not.toContain("╮")
@@ -138,7 +138,7 @@ describe("border rendering", () => {
     )
     const buffer = app.term.buffer
     // First row should be content with side borders, not top border
-    const firstRow = Array.from({ length: 10 }, (_, x) => buffer.getCell(x, 0).char).join("")
+    const firstRow = Array.from({ length: 10 }, (_, x) => buffer.getCell(0, x).char).join("")
     expect(firstRow).not.toContain("┌")
     expect(firstRow).not.toContain("┐")
     expect(firstRow).toContain("│") // side borders extend to cover top border space

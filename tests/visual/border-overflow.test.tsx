@@ -53,12 +53,12 @@ describe("border text overflow", () => {
 
     // The right border character on the top row should be a border char (┐),
     // not a digit from the scroll indicator
-    const topRightCell = buffer.getCell(4, 0)
+    const topRightCell = buffer.getCell(0, 4)
     expect(topRightCell.char).toBe("┐")
 
     // The cell at x=5 (outside the bordered box) should not contain
     // any scroll indicator characters
-    const outsideCell = buffer.getCell(5, 0)
+    const outsideCell = buffer.getCell(0, 5)
     expect(outsideCell.char).not.toMatch(/[▲▼\d]/)
 
     // "safe zone" must remain intact
@@ -92,7 +92,7 @@ describe("border text overflow", () => {
     expect(bottomRightCell.char).toBe("┘")
 
     // Outside the box should not have indicator chars
-    const outsideCell = buffer.getCell(5, 4)
+    const outsideCell = buffer.getCell(4, 5)
     expect(outsideCell.char).not.toMatch(/[▲▼\d]/)
 
     expect(app.text).toContain("intact")
@@ -121,7 +121,7 @@ describe("border text overflow", () => {
 
     // The box is at x=0..2 (width=3). x=3 should not have indicator chars.
     for (let row = 0; row < 5; row++) {
-      const cell = buffer.getCell(3, row)
+      const cell = buffer.getCell(row, 3)
       if (cell.char === "▲" || cell.char === "▼") {
         throw new Error(`Indicator character "${cell.char}" leaked to x=3, row ${row}`)
       }
@@ -153,11 +153,11 @@ describe("border text overflow", () => {
     const buffer = app.term.buffer
 
     // Right border at x=3, top row y=0: should be ┐
-    const topRight = buffer.getCell(3, 0)
+    const topRight = buffer.getCell(0, 3)
     expect(topRight.char).toBe("┐")
 
     // Outside at x=4 should not be indicator
-    const outside = buffer.getCell(4, 0)
+    const outside = buffer.getCell(0, 4)
     expect(outside.char).not.toMatch(/[▲▼\d]/)
 
     expect(app.text).toContain("W")

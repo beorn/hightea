@@ -423,26 +423,26 @@ export class TerminalBuffer {
   /**
    * Get the index for a cell position.
    */
-  private index(x: number, y: number): number {
-    return y * this.width + x
+  private index(row: number, col: number): number {
+    return row * this.width + col
   }
 
   /**
    * Check if coordinates are within bounds.
    */
-  inBounds(x: number, y: number): boolean {
-    return x >= 0 && x < this.width && y >= 0 && y < this.height
+  inBounds(row: number, col: number): boolean {
+    return col >= 0 && col < this.width && row >= 0 && row < this.height
   }
 
   /**
    * Get a cell at the given position.
    */
-  getCell(x: number, y: number): Cell {
-    if (!this.inBounds(x, y)) {
+  getCell(row: number, col: number): Cell {
+    if (!this.inBounds(row, col)) {
       return { ...EMPTY_CELL }
     }
 
-    const idx = this.index(x, y)
+    const idx = this.index(row, col)
     const packed = this.cells[idx]
     const char = this.chars[idx]
 
@@ -494,18 +494,18 @@ export class TerminalBuffer {
    * Get just the character at a cell position (no object allocation).
    * Returns " " for out-of-bounds positions.
    */
-  getCellChar(x: number, y: number): string {
-    if (!this.inBounds(x, y)) return " "
-    return this.chars[this.index(x, y)]!
+  getCellChar(row: number, col: number): string {
+    if (!this.inBounds(row, col)) return " "
+    return this.chars[this.index(row, col)]!
   }
 
   /**
    * Get just the background color at a cell position (no object allocation).
    * Returns null for out-of-bounds positions.
    */
-  getCellBg(x: number, y: number): Color {
-    if (!this.inBounds(x, y)) return null
-    const idx = this.index(x, y)
+  getCellBg(row: number, col: number): Color {
+    if (!this.inBounds(row, col)) return null
+    const idx = this.index(row, col)
     const packed = this.cells[idx]!
     if (unpackTrueColorBg(packed)) {
       return this.bgColors.get(idx) ?? null
@@ -518,9 +518,9 @@ export class TerminalBuffer {
    * Get just the foreground color at a cell position (no object allocation).
    * Returns null for out-of-bounds positions.
    */
-  getCellFg(x: number, y: number): Color {
-    if (!this.inBounds(x, y)) return null
-    const idx = this.index(x, y)
+  getCellFg(row: number, col: number): Color {
+    if (!this.inBounds(row, col)) return null
+    const idx = this.index(row, col)
     const packed = this.cells[idx]!
     if (unpackTrueColorFg(packed)) {
       return this.fgColors.get(idx) ?? null
@@ -534,27 +534,27 @@ export class TerminalBuffer {
    * Returns 0 for out-of-bounds positions. The packed value contains color
    * indices, attr bits, underline style, and flags in a single Uint32.
    */
-  getCellAttrs(x: number, y: number): number {
-    if (!this.inBounds(x, y)) return 0
-    return this.cells[this.index(x, y)]!
+  getCellAttrs(row: number, col: number): number {
+    if (!this.inBounds(row, col)) return 0
+    return this.cells[this.index(row, col)]!
   }
 
   /**
    * Check if a cell is a wide character (no object allocation).
    * Returns false for out-of-bounds positions.
    */
-  isCellWide(x: number, y: number): boolean {
-    if (!this.inBounds(x, y)) return false
-    return unpackWide(this.cells[this.index(x, y)]!)
+  isCellWide(row: number, col: number): boolean {
+    if (!this.inBounds(row, col)) return false
+    return unpackWide(this.cells[this.index(row, col)]!)
   }
 
   /**
    * Check if a cell is a continuation of a wide character (no object allocation).
    * Returns false for out-of-bounds positions.
    */
-  isCellContinuation(x: number, y: number): boolean {
-    if (!this.inBounds(x, y)) return false
-    return unpackContinuation(this.cells[this.index(x, y)]!)
+  isCellContinuation(row: number, col: number): boolean {
+    if (!this.inBounds(row, col)) return false
+    return unpackContinuation(this.cells[this.index(row, col)]!)
   }
 
   /**
@@ -562,12 +562,12 @@ export class TerminalBuffer {
    * For hot loops that need the full Cell, reuse a single object:
    *
    *   const cell = createMutableCell()
-   *   for (...) { buffer.readCellInto(x, y, cell) }
+   *   for (...) { buffer.readCellInto(row, col, cell) }
    *
    * Returns the same `out` object for chaining convenience.
    */
-  readCellInto(x: number, y: number, out: Cell): Cell {
-    if (!this.inBounds(x, y)) {
+  readCellInto(row: number, col: number, out: Cell): Cell {
+    if (!this.inBounds(row, col)) {
       out.char = " "
       out.fg = null
       out.bg = null
@@ -586,7 +586,7 @@ export class TerminalBuffer {
       return out
     }
 
-    const idx = this.index(x, y)
+    const idx = this.index(row, col)
     const packed = this.cells[idx]!
 
     out.char = this.chars[idx]!
@@ -634,14 +634,14 @@ export class TerminalBuffer {
    * Optimized: resolves defaults and packs metadata inline to avoid
    * allocating an intermediate Cell object.
    */
-  setCell(x: number, y: number, cell: Partial<Cell>): void {
-    if (!this.inBounds(x, y)) {
+  setCell(row: number, col: number, cell: Partial<Cell>): void {
+    if (!this.inBounds(row, col)) {
       return
     }
 
     // Write trap for SILVERY_STRICT mismatch diagnosis
     const trap = (globalThis as any).__silvery_write_trap
-    if (trap && x === trap.x && y === trap.y) {
+    if (trap && col === trap.x && row === trap.y) {
       const char = cell.char ?? " "
       const stack = new Error().stack?.split("\n").slice(1, 6).join("\n") ?? ""
       trap.log.push(
@@ -649,11 +649,11 @@ export class TerminalBuffer {
       )
     }
 
-    this._dirtyRows[y] = 1
-    if (this._minDirtyRow === -1 || y < this._minDirtyRow) this._minDirtyRow = y
-    if (y > this._maxDirtyRow) this._maxDirtyRow = y
+    this._dirtyRows[row] = 1
+    if (this._minDirtyRow === -1 || row < this._minDirtyRow) this._minDirtyRow = row
+    if (row > this._maxDirtyRow) this._maxDirtyRow = row
 
-    const idx = this.index(x, y)
+    const idx = this.index(row, col)
 
     // Resolve properties with defaults (no intermediate object)
     const char = cell.char ?? " "
@@ -719,11 +719,11 @@ export class TerminalBuffer {
    * Optimized: packs cell metadata once and assigns directly to arrays,
    * avoiding O(width*height) intermediate object allocations from setCell().
    */
-  fill(x: number, y: number, width: number, height: number, cell: Partial<Cell>): void {
-    const endX = Math.min(x + width, this.width)
-    const endY = Math.min(y + height, this.height)
-    const startX = Math.max(0, x)
-    const startY = Math.max(0, y)
+  fill(row: number, col: number, width: number, height: number, cell: Partial<Cell>): void {
+    const endX = Math.min(col + width, this.width)
+    const endY = Math.min(row + height, this.height)
+    const startX = Math.max(0, col)
+    const startY = Math.max(0, row)
 
     if (startX >= endX || startY >= endY) return
 
@@ -836,29 +836,29 @@ export class TerminalBuffer {
    */
   copyFrom(
     source: TerminalBuffer,
-    srcX: number,
-    srcY: number,
-    destX: number,
-    destY: number,
+    srcRow: number,
+    srcCol: number,
+    destRow: number,
+    destCol: number,
     width: number,
     height: number,
   ): void {
     const cell = createMutableCell()
     for (let dy = 0; dy < height; dy++) {
-      const dstY = destY + dy
-      if (dstY >= 0 && dstY < this.height) {
-        this._dirtyRows[dstY] = 1
-        if (this._minDirtyRow === -1 || dstY < this._minDirtyRow) this._minDirtyRow = dstY
-        if (dstY > this._maxDirtyRow) this._maxDirtyRow = dstY
+      const dstR = destRow + dy
+      if (dstR >= 0 && dstR < this.height) {
+        this._dirtyRows[dstR] = 1
+        if (this._minDirtyRow === -1 || dstR < this._minDirtyRow) this._minDirtyRow = dstR
+        if (dstR > this._maxDirtyRow) this._maxDirtyRow = dstR
       }
       for (let dx = 0; dx < width; dx++) {
-        const sx = srcX + dx
-        const sy = srcY + dy
-        const dX = destX + dx
+        const sc = srcCol + dx
+        const sr = srcRow + dy
+        const dc = destCol + dx
 
-        if (source.inBounds(sx, sy) && this.inBounds(dX, dstY)) {
-          source.readCellInto(sx, sy, cell)
-          this.setCell(dX, dstY, cell)
+        if (source.inBounds(sr, sc) && this.inBounds(dstR, dc)) {
+          source.readCellInto(sr, sc, cell)
+          this.setCell(dstR, dc, cell)
         }
       }
     }
@@ -874,8 +874,8 @@ export class TerminalBuffer {
    * Array splice for the character array.
    */
   scrollRegion(
-    x: number,
-    y: number,
+    row: number,
+    col: number,
     regionWidth: number,
     regionHeight: number,
     delta: number,
@@ -883,10 +883,10 @@ export class TerminalBuffer {
   ): void {
     if (delta === 0 || regionHeight <= 0 || regionWidth <= 0) return
 
-    const startX = Math.max(0, x)
-    const endX = Math.min(x + regionWidth, this.width)
-    const startY = Math.max(0, y)
-    const endY = Math.min(y + regionHeight, this.height)
+    const startX = Math.max(0, col)
+    const endX = Math.min(col + regionWidth, this.width)
+    const startY = Math.max(0, row)
+    const endY = Math.min(row + regionHeight, this.height)
     const clampedWidth = endX - startX
     const clampedHeight = endY - startY
 
@@ -901,7 +901,7 @@ export class TerminalBuffer {
 
     if (Math.abs(delta) >= clampedHeight) {
       // Scroll amount exceeds region — just clear everything
-      this.fill(startX, startY, clampedWidth, clampedHeight, {
+      this.fill(startY, startX, clampedWidth, clampedHeight, {
         char: clearCell.char ?? " ",
         bg: clearCell.bg ?? null,
       })
@@ -954,7 +954,7 @@ export class TerminalBuffer {
         }
       }
       // Clear exposed rows at bottom
-      this.fill(startX, endY - absDelta, clampedWidth, absDelta, {
+      this.fill(endY - absDelta, startX, clampedWidth, absDelta, {
         char: clearCell.char ?? " ",
         bg: clearCell.bg ?? null,
       })
@@ -999,7 +999,7 @@ export class TerminalBuffer {
         }
       }
       // Clear exposed rows at top
-      this.fill(startX, startY, clampedWidth, absDelta, {
+      this.fill(startY, startX, clampedWidth, absDelta, {
         char: clearCell.char ?? " ",
         bg: clearCell.bg ?? null,
       })
@@ -1071,13 +1071,13 @@ export class TerminalBuffer {
    * Check if two cells at given positions are equal.
    * Used for diffing.
    */
-  cellEquals(x: number, y: number, other: TerminalBuffer): boolean {
-    if (!this.inBounds(x, y) || !other.inBounds(x, y)) {
+  cellEquals(row: number, col: number, other: TerminalBuffer): boolean {
+    if (!this.inBounds(row, col) || !other.inBounds(row, col)) {
       return false
     }
 
-    const idx = this.index(x, y)
-    const otherIdx = other.index(x, y)
+    const idx = this.index(row, col)
+    const otherIdx = other.index(row, col)
 
     // Quick check: packed metadata must match
     if (this.cells[idx] !== other.cells[otherIdx]) {
@@ -1338,8 +1338,8 @@ export function bufferToText(
     const contentEdge = trimTrailingWhitespace ? getContentEdge(buffer, y) : 0
     for (let x = 0; x < buffer.width; x++) {
       // Use zero-allocation accessors instead of getCell()
-      if (buffer.isCellContinuation(x, y)) continue
-      line += buffer.getCellChar(x, y)
+      if (buffer.isCellContinuation(y, x)) continue
+      line += buffer.getCellChar(y, x)
       strOffset++
       // Track the string offset corresponding to the content edge column
       if (x < contentEdge) {
@@ -1377,12 +1377,12 @@ function getContentEdge(buffer: TerminalBuffer, y: number): number {
   const FLAG_MASK = ~(WIDE_FLAG | CONTINUATION_FLAG)
   for (let x = buffer.width - 1; x >= 0; x--) {
     // Skip continuation cells (trailing half of wide chars) — the main cell covers them
-    if (buffer.isCellContinuation(x, y)) continue
+    if (buffer.isCellContinuation(y, x)) continue
     // Check if cell has any actual styling (fg, bg, text attrs) after masking structural flags
-    const attrs = buffer.getCellAttrs(x, y) & FLAG_MASK
+    const attrs = buffer.getCellAttrs(y, x) & FLAG_MASK
     if (attrs !== 0) return x + 1
     // Check if cell has a non-space character
-    if (buffer.getCellChar(x, y) !== " ") return x + 1
+    if (buffer.getCellChar(y, x) !== " ") return x + 1
   }
   return 0
 }
@@ -1416,7 +1416,7 @@ export function bufferToStyledText(
     for (let x = 0; x < buffer.width; x++) {
       // getCell allocates a fresh object each call, which is fine here since
       // bufferToStyledText is a utility function, not a hot render path.
-      const cell = buffer.getCell(x, y)
+      const cell = buffer.getCell(y, x)
       // Skip continuation cells (part of wide character)
       if (cell.continuation) continue
 
@@ -1655,7 +1655,7 @@ export function bufferToHTML(
     let currentHyperlink: string | undefined
 
     for (let x = 0; x < buffer.width; x++) {
-      const cell = buffer.getCell(x, y)
+      const cell = buffer.getCell(y, x)
       if (cell.continuation) continue
 
       // Handle hyperlink transitions
