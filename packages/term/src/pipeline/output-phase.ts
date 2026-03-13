@@ -26,6 +26,10 @@ import type { CellChange } from "./types"
 
 const DEBUG_OUTPUT = !!process.env.SILVERY_DEBUG_OUTPUT
 const FULL_RENDER = !!process.env.SILVERY_FULL_RENDER
+const DEBUG_CAPTURE = !!process.env.SILVERY_DEBUG_CAPTURE
+const CAPTURE_RAW = !!process.env.SILVERY_CAPTURE_RAW
+let _debugFrameCount = 0
+let _captureRawFrameCount = 0
 
 // ============================================================================
 // Terminal Capability Flags (suppress unsupported SGR codes)
@@ -376,6 +380,7 @@ function updateInlineCursorRow(
  * has width ambiguity. Covers:
  * - PUA characters (nerdfont icons, powerline symbols)
  * - Text-presentation emoji (e.g., warning sign, checkmark, airplane)
+ * - Flag emoji (regional indicator sequences like 🇨🇦 🇺🇸)
  *
  * OSC 66 tells the terminal to render the character in exactly `width` cells,
  * matching the layout engine's measurement and eliminating misalignment.
@@ -389,7 +394,25 @@ function wrapTextSizing(char: string, wide: boolean, ctx: OutputContext): string
   if (isTextPresentationEmoji(char)) {
     return textSized(char, 2)
   }
+  if (isFlagSequence(char)) {
+    return textSized(char, 2)
+  }
   return char
+}
+
+/**
+ * Check if a string is a flag emoji (two regional indicator codepoints).
+ * Regional indicators are U+1F1E6..U+1F1FF. A flag sequence is exactly two
+ * of them (e.g., 🇨🇦 = U+1F1E8 + U+1F1E6).
+ */
+function isFlagSequence(char: string): boolean {
+  const cp0 = char.codePointAt(0)
+  if (cp0 === undefined || cp0 < 0x1f1e6 || cp0 > 0x1f1ff) return false
+  // First codepoint is a regional indicator. Check for a second one.
+  // Regional indicators are in the supplementary plane (4 bytes in UTF-16),
+  // so the second codepoint starts at index 2.
+  const cp1 = char.codePointAt(2)
+  return cp1 !== undefined && cp1 >= 0x1f1e6 && cp1 <= 0x1f1ff
 }
 
 // ============================================================================
@@ -726,6 +749,24 @@ export function outputPhase(
       accState.accumulateHeight = next.height
       accState.accumulateFrameCount = 0
     }
+    if (CAPTURE_RAW) {
+      try {
+        const fs = require("fs")
+        _captureRawFrameCount = 0
+        // Write initial render with frame separator
+        fs.writeFileSync("/tmp/silvery-raw.ansi", firstOutput)
+        fs.writeFileSync(
+          "/tmp/silvery-raw-frames.jsonl",
+          JSON.stringify({
+            frame: 0,
+            type: "full",
+            bytes: firstOutput.length,
+            width: next.width,
+            height: next.height,
+          }) + "\n",
+        )
+      } catch {}
+    }
     return firstOutput
   }
 
@@ -780,6 +821,51 @@ export function outputPhase(
     } catch {}
   }
 
+  // Debug capture: write both incremental and fresh ANSI to files for comparison.
+  // Usage: SILVERY_DEBUG_CAPTURE=1 bun km view --repo imports/asana launch-academy
+  if (DEBUG_CAPTURE) {
+    _debugFrameCount++
+    try {
+      const fs = require("fs")
+      const freshOutput = bufferToAnsi(next, mode, ctx)
+      const freshPrev = prev ? bufferToAnsi(prev, mode, ctx) : ""
+      // Replay incremental on top of fresh prev
+      const w = Math.max(prev?.width ?? next.width, next.width)
+      const h = Math.max(prev?.height ?? next.height, next.height)
+      const screenIncr = replayAnsiWithStyles(w, h, freshPrev + incrOutput, ctx)
+      const screenFresh = replayAnsiWithStyles(w, h, freshOutput, ctx)
+      // Find first mismatch
+      let mismatchInfo = ""
+      for (let y = 0; y < h && !mismatchInfo; y++) {
+        for (let x = 0; x < w && !mismatchInfo; x++) {
+          const ic = screenIncr[y]?.[x]
+          const fc = screenFresh[y]?.[x]
+          if (ic && fc && (ic.char !== fc.char || !sgrColorEquals(ic.fg, fc.fg) || !sgrColorEquals(ic.bg, fc.bg))) {
+            mismatchInfo = `MISMATCH at (${x},${y}): incr='${ic.char}' fresh='${fc.char}' incrFg=${formatColor(ic.fg)} freshFg=${formatColor(fc.fg)} incrBg=${formatColor(ic.bg)} freshBg=${formatColor(fc.bg)}`
+            // Show row context
+            const incrRow = screenIncr[y]!.map((c) => c.char).join("")
+            const freshRow = screenFresh[y]!.map((c) => c.char).join("")
+            mismatchInfo += `\n  incr row ${y}: ${incrRow.slice(Math.max(0, x - 20), x + 40)}\n  fresh row ${y}: ${freshRow.slice(Math.max(0, x - 20), x + 40)}`
+          }
+        }
+      }
+      const status = mismatchInfo || "MATCH"
+      fs.appendFileSync("/tmp/silvery-capture.log", `Frame ${_debugFrameCount}: ${count} changes, ${status}\n`)
+      if (mismatchInfo) {
+        fs.writeFileSync(`/tmp/silvery-incr-${_debugFrameCount}.ansi`, freshPrev + incrOutput)
+        fs.writeFileSync(`/tmp/silvery-fresh-${_debugFrameCount}.ansi`, freshOutput)
+        fs.appendFileSync(
+          "/tmp/silvery-capture.log",
+          `  Saved ANSI files: /tmp/silvery-incr-${_debugFrameCount}.ansi and /tmp/silvery-fresh-${_debugFrameCount}.ansi\n`,
+        )
+      }
+    } catch (e) {
+      try {
+        require("fs").appendFileSync("/tmp/silvery-capture.log", `Frame ${_debugFrameCount}: ERROR ${e}\n`)
+      } catch {}
+    }
+  }
+
   // SILVERY_STRICT_OUTPUT: verify that the incremental ANSI output produces the
   // same visible terminal state as a fresh render. Catches bugs in changesToAnsi
   // that SILVERY_STRICT (buffer-level check) cannot detect.
@@ -794,6 +880,30 @@ export function outputPhase(
     accState.accumulatedAnsi += incrOutput
     accState.accumulateFrameCount++
     verifyAccumulatedOutput(next, mode, ctx, accState)
+  }
+
+  if (CAPTURE_RAW) {
+    try {
+      const fs = require("fs")
+      _captureRawFrameCount++
+      // Append incremental output to cumulative ANSI file
+      fs.appendFileSync("/tmp/silvery-raw.ansi", incrOutput)
+      // Also save the fresh render of this frame for comparison
+      const freshOutput = bufferToAnsi(next, mode, ctx)
+      fs.writeFileSync(`/tmp/silvery-raw-fresh-${_captureRawFrameCount}.ansi`, freshOutput)
+      fs.appendFileSync(
+        "/tmp/silvery-raw-frames.jsonl",
+        JSON.stringify({
+          frame: _captureRawFrameCount,
+          type: "incremental",
+          changes: count,
+          bytes: incrOutput.length,
+          freshBytes: freshOutput.length,
+          width: next.width,
+          height: next.height,
+        }) + "\n",
+      )
+    } catch {}
   }
 
   return incrOutput
@@ -1236,7 +1346,31 @@ function bufferToAnsi(
       // an adjacent container's region clear overwrites the continuation.
       // Without this, the non-continuation cell at x+1 would also be written,
       // causing every subsequent character on the row to shift right by 1.
-      if (cell.wide) x++
+      if (cell.wide) {
+        x++
+        // Cursor re-sync: some terminals treat multi-codepoint wide chars
+        // (flag emoji like 🇨🇦) as two width-1 chars instead of one width-2
+        // char. This causes the terminal cursor to be 1 column behind where
+        // we expect. Emit an explicit cursor position to re-sync, mirroring
+        // the re-sync in changesToAnsi. Cost: ~8 bytes per wide char; wide
+        // chars are rare so overhead is negligible.
+        // After x++, x points to the continuation cell. The next character
+        // to write is at x+1 (after the loop increment), so position the
+        // cursor at 0-indexed column x+1 = 1-indexed column x+2.
+        if (mode === "fullscreen") {
+          output += `\x1b[${y - startLine + 1};${x + 2}H`
+        } else {
+          // Inline: \r resets to column 0, CUF moves to expected position.
+          // Reset bg first to prevent bleed across traversed cells.
+          if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle.attrs))) {
+            output += "\x1b[0m"
+            currentStyle = null
+          }
+          const nextCol = x + 1
+          output += "\r"
+          if (nextCol > 0) output += nextCol === 1 ? "\x1b[C" : `\x1b[${nextCol}C`
+        }
+      }
     }
 
     // Close any open hyperlink at end of row
@@ -1711,6 +1845,33 @@ function changesToAnsi(
     cursorY = renderY
     lastEmittedX = x
     lastEmittedY = y
+
+    // Wide char cursor re-sync: terminals may advance the cursor by 1
+    // instead of 2 for certain emoji (flag sequences, text-presentation
+    // emoji without OSC 66 support). In bufferToAnsi (full render) this
+    // only causes a consistent per-row shift since every cell is written
+    // sequentially. But in changesToAnsi, contiguous runs rely on cursor
+    // auto-advance, so a width mismatch causes progressive drift —
+    // characters appear at wrong positions, mixing old and new content.
+    // Fix: emit an explicit cursor position after each wide char to
+    // re-sync the terminal cursor with our tracking. Cost: ~8 bytes per
+    // wide char (CUP in fullscreen, \r+CUF in inline). Wide chars are
+    // rare so the overhead is negligible.
+    if (cell.wide) {
+      if (isInline) {
+        // Inline: \r resets to column 0, CUF moves to expected position.
+        // Reset bg first to prevent bleed across traversed cells.
+        if (currentStyle && currentStyle.bg !== null) {
+          output += "\x1b[0m"
+          currentStyle = null
+        }
+        output += "\r"
+        if (cursorX > 0) output += cursorX === 1 ? "\x1b[C" : `\x1b[${cursorX}C`
+      } else {
+        // Fullscreen: CUP (absolute position) — no style reset needed.
+        output += `\x1b[${cursorY + 1};${cursorX + 1}H`
+      }
+    }
   }
 
   finalY = cursorY
