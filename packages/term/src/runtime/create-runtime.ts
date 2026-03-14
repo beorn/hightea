@@ -128,7 +128,7 @@ export function createRuntime(options: RuntimeOptions): Runtime {
   // If no outputPhaseFn provided, create one so prevCursorRow/prevOutputLines
   // persist between renders (bare diff() creates fresh state each call).
   const fallbackOutputPhase = mode === "inline" ? createOutputPhase({}) : undefined
-  const outputPhaseFn = options.outputPhaseFn ?? fallbackOutputPhase
+  let outputPhaseFn = options.outputPhaseFn ?? fallbackOutputPhase
 
   // Internal abort controller for cleanup
   const controller = new AbortController()
@@ -278,6 +278,10 @@ export function createRuntime(options: RuntimeOptions): Runtime {
 
     invalidate(): void {
       prevBuffer = null
+    },
+
+    setOutputPhaseFn(fn: RuntimeOptions["outputPhaseFn"]): void {
+      if (fn) outputPhaseFn = fn
     },
 
     resetInlineCursor(): void {

@@ -59,14 +59,24 @@ export type OutputCaps = Pick<TerminalCaps, "underlineStyles" | "underlineColor"
 
 /**
  * Per-instance output context containing terminal capabilities, measurer,
- * and caches. Threaded through internal functions to eliminate module-level
- * mutable state. Caches are per-context because SGR output depends on caps.
+ * caches, and per-frame viewport state. Threaded through internal functions
+ * to eliminate module-level mutable state and prevent "forgot to thread
+ * parameter" failures. Caches are per-context because SGR output depends on caps.
+ *
+ * Per-frame fields (mode, termRows) are set by the caller before each frame:
+ * - createOutputPhase() closure sets them in scopedOutputPhase()
+ * - bare outputPhase() sets them from its parameters
  */
 interface OutputContext {
   readonly caps: OutputCaps
   readonly measurer: OutputMeasurer | null
   readonly sgrCache: Map<string, string>
   readonly transitionCache: Map<string, string>
+  /** Render mode for the current frame. Set per-frame by the output phase entry point. */
+  mode: "fullscreen" | "inline"
+  /** Terminal height in rows for the current frame. Caps output to prevent
+   *  scrollback corruption when content exceeds terminal height. Set per-frame. */
+  termRows: number | undefined
 }
 
 /** Default context used by bare outputPhase() calls (full capability support, no measurer). */
@@ -79,6 +89,8 @@ const defaultContext: OutputContext = {
   measurer: null,
   sgrCache: new Map(),
   transitionCache: new Map(),
+  mode: "fullscreen",
+  termRows: undefined,
 }
 
 /** Output phase function signature. */
@@ -133,6 +145,7 @@ function outputTextSizingEnabled(ctx: OutputContext): boolean {
  */
 export function createOutputPhase(caps: Partial<OutputCaps>, measurer?: OutputMeasurer): OutputPhaseFn {
   // Instance-scoped context — caps, measurer, and caches are all per-instance.
+  // mode and termRows are set per-frame in scopedOutputPhase() below.
   // No module-level globals are read or modified.
   const ctx: OutputContext = {
     caps: {
@@ -143,6 +156,8 @@ export function createOutputPhase(caps: Partial<OutputCaps>, measurer?: OutputMe
     measurer: measurer ?? null,
     sgrCache: new Map(),
     transitionCache: new Map(),
+    mode: "fullscreen",
+    termRows: undefined,
   }
   // Instance-scoped inline cursor state — persists across frames for incremental rendering.
   // Each createOutputPhase() call gets its own state, eliminating module-level globals.
@@ -157,6 +172,9 @@ export function createOutputPhase(caps: Partial<OutputCaps>, measurer?: OutputMe
     accumulateFrameCount: 0,
   }
 
+  // Instance-scoped terminal verify state for SILVERY_STRICT_TERMINAL verification.
+  const tvState = createTerminalVerifyState()
+
   // Pending scrollback promotion — queued by useScrollback, consumed by the next render.
   let pendingPromotion: { frozenContent: string; frozenLineCount: number } | null = null
 
@@ -168,21 +186,17 @@ export function createOutputPhase(caps: Partial<OutputCaps>, measurer?: OutputMe
     termRows?: number,
     cursorPos?: CursorState | null,
   ): string {
+    // Set per-frame viewport state on the context — internal functions read from ctx
+    // instead of accepting mode/termRows as separate parameters.
+    ctx.mode = mode
+    ctx.termRows = termRows
     // Handle scrollback promotion: write frozen content + live content in one pass.
     if (pendingPromotion && mode === "inline") {
       const promo = pendingPromotion
       pendingPromotion = null
-      return handleScrollbackPromotion(
-        inlineState,
-        promo.frozenContent,
-        promo.frozenLineCount,
-        next,
-        termRows,
-        cursorPos,
-        ctx,
-      )
+      return handleScrollbackPromotion(inlineState, promo.frozenContent, promo.frozenLineCount, next, cursorPos, ctx)
     }
-    return outputPhase(prev, next, mode, scrollbackOffset, termRows, cursorPos, inlineState, ctx, accState)
+    return outputPhase(prev, next, mode, scrollbackOffset, termRows, cursorPos, inlineState, ctx, accState, tvState)
   }
 
   fn.resetInlineState = () => {
@@ -226,10 +240,10 @@ function handleScrollbackPromotion(
   frozenContent: string,
   frozenLineCount: number,
   next: TerminalBuffer,
-  termRows: number | undefined,
   cursorPos: CursorState | null | undefined,
   ctx: OutputContext,
 ): string {
+  const { termRows } = ctx
   // 1. Move cursor to render region start
   let output = ""
   if (state.prevCursorRow > 0) {
@@ -243,7 +257,7 @@ function handleScrollbackPromotion(
   // 3. Write live content via bufferToAnsi (each line has \x1b[K — no blanking)
   const nextContentLines = findLastContentLine(next) + 1
   const maxOutputLines = termRows != null ? Math.min(nextContentLines, termRows) : nextContentLines
-  output += bufferToAnsi(next, "inline", ctx, maxOutputLines)
+  output += bufferToAnsi(next, ctx, maxOutputLines)
 
   // Total lines on-screen: frozen + live. The terminal may scroll if this exceeds
   // termRows, naturally pushing frozen lines into scrollback. No padding needed —
@@ -267,7 +281,7 @@ function handleScrollbackPromotion(
   //    Cursor is at the end of live content (row totalOnScreen - 1 relative to
   //    render region start). inlineCursorSuffix moves it to the useCursor position
   //    within the live content area.
-  output += inlineCursorSuffix(cursorPos ?? null, next, termRows)
+  output += inlineCursorSuffix(cursorPos ?? null, next, ctx)
 
   // 6. Update tracking for subsequent incremental renders.
   //    Track cursor position and output lines relative to the LIVE content only.
@@ -308,6 +322,16 @@ function isStrictOutput(): boolean {
 function isStrictAccumulate(): boolean {
   return !!process.env.SILVERY_STRICT_ACCUMULATE
 }
+function isStrictTerminal(): boolean {
+  return !!process.env.SILVERY_STRICT_TERMINAL
+}
+/** Get the strict terminal backend name: "xterm" (default), "ghostty", or "both" */
+function strictTerminalBackend(): "xterm" | "ghostty" | "both" {
+  const val = (process.env.SILVERY_STRICT_TERMINAL ?? "").toLowerCase()
+  if (val === "ghostty") return "ghostty"
+  if (val === "both") return "both"
+  return "xterm"
+}
 
 /** Per-instance state for SILVERY_STRICT_ACCUMULATE verification. */
 interface AccumulateState {
@@ -324,6 +348,32 @@ const defaultAccState: AccumulateState = {
   accumulateHeight: 0,
   accumulateFrameCount: 0,
 }
+
+/** Per-instance state for SILVERY_STRICT_TERMINAL verification.
+ *  Holds persistent terminal(s) that accumulate incremental ANSI output
+ *  across frames, enabling comparison against a fresh render in an independent emulator. */
+interface TerminalVerifyState {
+  /** The persistent xterm.js terminal accumulating incremental output */
+  terminal: import("@termless/core").Terminal | null
+  /** Optional persistent Ghostty terminal for cross-backend verification */
+  ghosttyTerminal: import("@termless/core").Terminal | null
+  /** Width of the terminal */
+  width: number
+  /** Height of the terminal */
+  height: number
+  /** Frame count for diagnostics */
+  frameCount: number
+  /** Which backend(s) to verify */
+  backend: "xterm" | "ghostty" | "both"
+}
+
+/** Create fresh terminal verify state. */
+function createTerminalVerifyState(): TerminalVerifyState {
+  return { terminal: null, ghosttyTerminal: null, width: 0, height: 0, frameCount: 0, backend: strictTerminalBackend() }
+}
+
+/** Default terminal verify state used by bare outputPhase() calls. */
+const defaultTerminalVerifyState = createTerminalVerifyState()
 
 // ============================================================================
 // Inline Mode: Inter-frame Cursor Tracking (instance-scoped)
@@ -660,6 +710,7 @@ export function outputPhase(
   _inlineState?: InlineCursorState,
   _ctx?: OutputContext,
   _accState?: AccumulateState,
+  _tvState?: TerminalVerifyState,
 ): string {
   // Bare outputPhase() calls use a fresh cursor state each time.
   // prevCursorRow = -1 means incremental rendering always falls back to full render.
@@ -667,6 +718,13 @@ export function outputPhase(
   const inlineState = _inlineState ?? createInlineCursorState()
   const ctx = _ctx ?? defaultContext
   const accState = _accState ?? defaultAccState
+
+  // Set per-frame viewport state on the context — internal functions read from ctx.
+  // For bare outputPhase() calls (no createOutputPhase), this updates defaultContext
+  // each call. For scoped calls, ctx.mode/termRows were already set by the closure.
+  ctx.mode = mode
+  ctx.termRows = termRows
+  const tvState = _tvState ?? defaultTerminalVerifyState
 
   // After resetInlineState (e.g., useScrollback cleared and re-emitted frozen items),
   // treat the next render as a first render. The cursor is at a known position
@@ -687,7 +745,7 @@ export function outputPhase(
       if (stored.width === next.width && stored.height === next.height) {
         // Dimensions match — use incremental rendering (skip clear entirely)
         inlineState.prevBuffer = next
-        return inlineIncrementalRender(inlineState, stored, next, scrollbackOffset, termRows, cursorPos, ctx)
+        return inlineIncrementalRender(inlineState, stored, next, scrollbackOffset, cursorPos, ctx)
       }
     }
 
@@ -695,7 +753,7 @@ export function outputPhase(
     // In inline mode: prevents scrollback corruption (cursor-up clamped at row 0).
     // In fullscreen mode: prevents terminal scroll that desynchronizes prevBuffer
     // from actual terminal state, causing ghost pixels on subsequent incremental renders.
-    const firstOutput = bufferToAnsi(next, mode, ctx, termRows)
+    const firstOutput = bufferToAnsi(next, ctx, termRows)
     // For inline first render, append cursor positioning and initialize tracking
     if (mode === "inline") {
       const firstContentLines = findLastContentLine(next) + 1
@@ -719,13 +777,16 @@ export function outputPhase(
 
       inlineState.prevBuffer = next
       updateInlineCursorRow(inlineState, cursorPos, firstMaxOutput, firstStartLine)
-      return prefix + firstOutput + inlineCursorSuffix(cursorPos ?? null, next, termRows)
+      return prefix + firstOutput + inlineCursorSuffix(cursorPos ?? null, next, ctx)
     }
     if (isStrictAccumulate()) {
       accState.accumulatedAnsi = firstOutput
       accState.accumulateWidth = next.width
       accState.accumulateHeight = next.height
       accState.accumulateFrameCount = 0
+    }
+    if (isStrictTerminal()) {
+      initTerminalVerifyState(tvState, next.width, next.height, firstOutput)
     }
     if (CAPTURE_RAW) {
       try {
@@ -751,14 +812,14 @@ export function outputPhase(
   // Inline mode: use incremental rendering when safe, fall back to full render.
   if (mode === "inline") {
     inlineState.prevBuffer = next
-    return inlineIncrementalRender(inlineState, prev, next, scrollbackOffset, termRows, cursorPos, ctx)
+    return inlineIncrementalRender(inlineState, prev, next, scrollbackOffset, cursorPos, ctx)
   }
 
   // SILVERY_FULL_RENDER: bypass incremental diff, always render full buffer.
   // Use to diagnose garbled rendering — if FULL_RENDER fixes it, the bug
   // is in changesToAnsi (diff → ANSI serialization).
   if (FULL_RENDER) {
-    return bufferToAnsi(next, mode, ctx, termRows)
+    return bufferToAnsi(next, ctx, termRows)
   }
 
   // Fullscreen mode: diff and emit only changes
@@ -803,7 +864,7 @@ export function outputPhase(
   // - Continuation cells are skipped (handled with their main cell)
   // - Orphaned continuation cells (main cell unchanged) trigger a
   //   re-emit of the main cell from the buffer
-  const { output: incrOutput } = changesToAnsi(pool, count, mode, ctx, next)
+  const { output: incrOutput } = changesToAnsi(pool, count, ctx, next)
 
   // Log output sizes when debug or strict-accumulate is enabled
   if (DEBUG_OUTPUT || isStrictAccumulate()) {
@@ -820,8 +881,8 @@ export function outputPhase(
     _debugFrameCount++
     try {
       const fs = require("fs")
-      const freshOutput = bufferToAnsi(next, mode, ctx)
-      const freshPrev = prev ? bufferToAnsi(prev, mode, ctx) : ""
+      const freshOutput = bufferToAnsi(next, ctx)
+      const freshPrev = prev ? bufferToAnsi(prev, ctx) : ""
       // Replay incremental on top of fresh prev
       const w = Math.max(prev?.width ?? next.width, next.width)
       const h = Math.max(prev?.height ?? next.height, next.height)
@@ -863,7 +924,7 @@ export function outputPhase(
   // same visible terminal state as a fresh render. Catches bugs in changesToAnsi
   // that SILVERY_STRICT (buffer-level check) cannot detect.
   if (isStrictOutput()) {
-    verifyOutputEquivalence(prev, next, incrOutput, mode, ctx)
+    verifyOutputEquivalence(prev, next, incrOutput, ctx)
   }
 
   // SILVERY_STRICT_ACCUMULATE: verify that the accumulated output from ALL frames
@@ -872,7 +933,19 @@ export function outputPhase(
   if (isStrictAccumulate()) {
     accState.accumulatedAnsi += incrOutput
     accState.accumulateFrameCount++
-    verifyAccumulatedOutput(next, mode, ctx, accState)
+    verifyAccumulatedOutput(next, ctx, accState)
+  }
+
+  // SILVERY_STRICT_TERMINAL: verify via independent xterm.js emulator that the
+  // cumulative incremental ANSI output produces the same terminal state as a
+  // fresh full render. Unlike STRICT_OUTPUT (which uses replayAnsiWithStyles —
+  // the same ANSI parser as the output generator), this feeds output through a
+  // real xterm.js terminal emulator, catching bugs where our ANSI parser and
+  // generator agree but a real terminal disagrees (e.g., OSC 66, wide char
+  // cursor drift, buffer overflow scrolling).
+  if (isStrictTerminal() && (tvState.terminal || tvState.ghosttyTerminal)) {
+    tvState.frameCount++
+    verifyTerminalEquivalence(tvState, incrOutput, next, ctx)
   }
 
   if (CAPTURE_RAW) {
@@ -882,7 +955,7 @@ export function outputPhase(
       // Append incremental output to cumulative ANSI file
       fs.appendFileSync("/tmp/silvery-raw.ansi", incrOutput)
       // Also save the fresh render of this frame for comparison
-      const freshOutput = bufferToAnsi(next, mode, ctx)
+      const freshOutput = bufferToAnsi(next, ctx)
       fs.writeFileSync(`/tmp/silvery-raw-fresh-${_captureRawFrameCount}.ansi`, freshOutput)
       fs.appendFileSync(
         "/tmp/silvery-raw-frames.jsonl",
@@ -945,13 +1018,14 @@ function findLastContentLine(buffer: TerminalBuffer): number {
  *
  * @param cursorPos The cursor state from useCursor() (or null if none)
  * @param buffer The rendered buffer
- * @param termRows Terminal height cap (may limit visible rows)
+ * @param ctx Output context (termRows read from ctx.termRows)
  */
 function inlineCursorSuffix(
   cursorPos: CursorState | null | undefined,
   buffer: TerminalBuffer,
-  termRows?: number,
+  ctx: OutputContext,
 ): string {
+  const { termRows } = ctx
   if (!cursorPos?.visible) {
     // No active cursor — hide it
     return "\x1b[?25l"
@@ -1008,13 +1082,13 @@ function inlineIncrementalRender(
   prev: TerminalBuffer,
   next: TerminalBuffer,
   scrollbackOffset: number,
-  termRows?: number,
   cursorPos?: CursorState | null,
   ctx: OutputContext = defaultContext,
 ): string {
+  const { termRows } = ctx
   // Guard: fall back to full render for complex cases
   if (scrollbackOffset > 0 || prev.width !== next.width || prev.height !== next.height || state.prevCursorRow < 0) {
-    return inlineFullRender(state, prev, next, scrollbackOffset, termRows, cursorPos, ctx)
+    return inlineFullRender(state, prev, next, scrollbackOffset, cursorPos, ctx)
   }
 
   const nextContentLines = findLastContentLine(next) + 1
@@ -1035,7 +1109,7 @@ function inlineIncrementalRender(
   // When the visible window shifts (content exceeds termRows and startLine changes),
   // the entire visible region is different — fall back to full render.
   if (startLine !== prevStartLine) {
-    return inlineFullRender(state, prev, next, scrollbackOffset, termRows, cursorPos, ctx)
+    return inlineFullRender(state, prev, next, scrollbackOffset, cursorPos, ctx)
   }
 
   // Diff buffers
@@ -1043,7 +1117,7 @@ function inlineIncrementalRender(
   if (count === 0 && nextContentLines === prevContentLines) {
     // No buffer changes, but cursor position may have changed.
     // Emit cursor suffix to update the terminal cursor.
-    const suffix = inlineCursorSuffix(cursorPos ?? null, next, termRows)
+    const suffix = inlineCursorSuffix(cursorPos ?? null, next, ctx)
     updateInlineCursorRow(state, cursorPos, maxOutputLines, startLine)
     return suffix
   }
@@ -1060,7 +1134,7 @@ function inlineIncrementalRender(
   // Use the larger of prev/next output lines so changesToAnsi processes all
   // visible cells including rows that shrank (need clearing) or grew (need writing).
   const effectiveOutputLines = Math.max(prevMaxOutputLines, maxOutputLines)
-  const changes = changesToAnsi(pool, count, "inline", ctx, next, startLine, effectiveOutputLines)
+  const changes = changesToAnsi(pool, count, ctx, next, startLine, effectiveOutputLines)
   output += changes.output
 
   // After changesToAnsi, cursor is at changes.finalY (render-relative).
@@ -1131,7 +1205,7 @@ function inlineIncrementalRender(
     }
   }
 
-  output += inlineCursorSuffix(cursorPos ?? null, next, termRows)
+  output += inlineCursorSuffix(cursorPos ?? null, next, ctx)
 
   // Update tracking
   updateInlineCursorRow(state, cursorPos, maxOutputLines, startLine)
@@ -1154,10 +1228,10 @@ function inlineFullRender(
   prev: TerminalBuffer,
   next: TerminalBuffer,
   scrollbackOffset: number,
-  termRows?: number,
   cursorPos?: CursorState | null,
   ctx: OutputContext = defaultContext,
 ): string {
+  const { termRows } = ctx
   const nextContentLines = findLastContentLine(next) + 1
 
   // Use tracked state from the previous frame for cursor position and output height.
@@ -1202,7 +1276,7 @@ function inlineFullRender(
   }
   // bufferToAnsi handles: hide cursor, render content lines with
   // \x1b[K (clear to EOL) on each line, and reset style at end.
-  let output = prefix + bufferToAnsi(next, "inline", ctx, maxOutputLines)
+  let output = prefix + bufferToAnsi(next, ctx, maxOutputLines)
 
   // Erase leftover lines if visible area shrank.
   // Account for terminal scroll: when useScrollback writes frozen items and the
@@ -1226,7 +1300,7 @@ function inlineFullRender(
   // Position the real terminal cursor and show it.
   // If a component called useCursor(), place the cursor there.
   // Otherwise, just show it at the current position (end of content).
-  output += inlineCursorSuffix(cursorPos ?? null, next, termRows)
+  output += inlineCursorSuffix(cursorPos ?? null, next, ctx)
 
   // Update cursor tracking for incremental rendering on next frame
   let startLine = 0
@@ -1239,15 +1313,15 @@ function inlineFullRender(
 /**
  * Convert entire buffer to ANSI string.
  *
+ * Mode is read from ctx.mode. maxRows is an explicit parameter because callers
+ * sometimes pass a pre-computed value (e.g., maxOutputLines) rather than raw
+ * ctx.termRows.
+ *
  * @param maxRows Optional cap on number of rows to output (inline mode).
  *   When content exceeds terminal height, this prevents scrollback corruption.
  */
-function bufferToAnsi(
-  buffer: TerminalBuffer,
-  mode: "fullscreen" | "inline" = "fullscreen",
-  ctx: OutputContext = defaultContext,
-  maxRows?: number,
-): string {
+function bufferToAnsi(buffer: TerminalBuffer, ctx: OutputContext = defaultContext, maxRows?: number): string {
+  const { mode } = ctx
   let output = ""
   let currentStyle: Style | null = null
   let currentHyperlink: string | undefined
@@ -1674,8 +1748,7 @@ function sortPoolByPosition(pool: CellChange[], count: number): void {
  *
  * @param pool Pre-allocated pool of CellChange objects
  * @param count Number of valid entries in the pool
- * @param mode Render mode: "fullscreen" uses absolute positioning,
- *   "inline" uses relative cursor movement
+ * @param ctx Output context (mode read from ctx.mode)
  * @param buffer The current buffer, used to look up main cells for orphaned
  *   continuation cells (optional for backward compatibility)
  * @param startLine For inline mode: first visible buffer row (for termRows capping)
@@ -1684,12 +1757,12 @@ function sortPoolByPosition(pool: CellChange[], count: number): void {
 function changesToAnsi(
   pool: CellChange[],
   count: number,
-  mode: "fullscreen" | "inline" = "fullscreen",
   ctx: OutputContext = defaultContext,
   buffer?: TerminalBuffer,
   startLine = 0,
   maxOutputLines = Infinity,
 ): ChangesResult {
+  const { mode } = ctx
   if (count === 0) return { output: "", finalY: -1 }
 
   // Sort by position for optimal cursor movement (in-place, no allocation)
@@ -2400,9 +2473,9 @@ function verifyOutputEquivalence(
   prev: TerminalBuffer,
   next: TerminalBuffer,
   incrOutput: string,
-  mode: "fullscreen" | "inline",
   ctx: OutputContext = defaultContext,
 ): void {
+  const { mode } = ctx
   const w = Math.max(prev.width, next.width)
   // VT height must accommodate the larger buffer to prevent scrolling artifacts
   // when prev is taller than next (e.g., items removed from a scrollback list).
@@ -2417,7 +2490,7 @@ function verifyOutputEquivalence(
     )
   }
   // Replay: fresh prev render + incremental diff applied on top
-  const freshPrev = bufferToAnsi(prev, mode, ctx)
+  const freshPrev = bufferToAnsi(prev, ctx)
   if (process.env.SILVERY_DEBUG_OUTPUT) {
     // eslint-disable-next-line no-console
     console.error(`[VERIFY] freshPrev len=${freshPrev.length} incrOutput len=${incrOutput.length}`)
@@ -2428,7 +2501,7 @@ function verifyOutputEquivalence(
   }
   const screenIncr = replayAnsiWithStyles(w, vtHeight, freshPrev + incrOutput, ctx)
   // Replay: fresh render of next buffer
-  const freshNext = bufferToAnsi(next, mode, ctx)
+  const freshNext = bufferToAnsi(next, ctx)
   const screenFresh = replayAnsiWithStyles(w, vtHeight, freshNext, ctx)
 
   const _dumpRowWideCells = (buf: TerminalBuffer, row: number): string => {
@@ -2534,16 +2607,16 @@ function verifyOutputEquivalence(
  */
 function verifyAccumulatedOutput(
   currentBuffer: TerminalBuffer,
-  mode: "fullscreen" | "inline",
   ctx: OutputContext = defaultContext,
   accState: AccumulateState = defaultAccState,
 ): void {
+  const { mode } = ctx
   const w = accState.accumulateWidth
   const h = accState.accumulateHeight
   // Replay all accumulated output (first render + all incremental updates)
   const screenAccumulated = replayAnsiWithStyles(w, h, accState.accumulatedAnsi, ctx)
   // Replay fresh render of current buffer
-  const freshOutput = bufferToAnsi(currentBuffer, mode, ctx)
+  const freshOutput = bufferToAnsi(currentBuffer, ctx)
   const screenFresh = replayAnsiWithStyles(w, h, freshOutput, ctx)
 
   for (let y = 0; y < h; y++) {
@@ -2581,6 +2654,202 @@ function verifyAccumulatedOutput(
       }
     }
   }
+}
+
+// =============================================================================
+// SILVERY_STRICT_TERMINAL: Independent xterm.js emulator verification
+// =============================================================================
+
+/** Lazily loaded termless factories — avoids import cost when STRICT_TERMINAL is off. */
+let _createTerminal: typeof import("@termless/core").createTerminal | null = null
+let _createXtermBackend: typeof import("@termless/xtermjs").createXtermBackend | null = null
+let _createGhosttyBackend: typeof import("@termless/ghostty").createGhosttyBackend | null = null
+let _ghosttyInitPromise: Promise<void> | null = null
+
+function loadTermless(): {
+  createTerminal: typeof import("@termless/core").createTerminal
+  createXtermBackend: typeof import("@termless/xtermjs").createXtermBackend
+} {
+  if (!_createTerminal || !_createXtermBackend) {
+    _createTerminal = require("@termless/core").createTerminal
+    _createXtermBackend = require("@termless/xtermjs").createXtermBackend
+  }
+  return { createTerminal: _createTerminal!, createXtermBackend: _createXtermBackend! }
+}
+
+function loadGhosttyBackend(): typeof import("@termless/ghostty").createGhosttyBackend {
+  if (!_createGhosttyBackend) {
+    const mod = require("@termless/ghostty")
+    _createGhosttyBackend = mod.createGhosttyBackend
+    // Start async WASM init — first call may block on this
+    if (!_ghosttyInitPromise) {
+      _ghosttyInitPromise = mod.initGhostty()
+    }
+  }
+  return _createGhosttyBackend!
+}
+
+/**
+ * Initialize the terminal verify state: create a persistent xterm.js terminal
+ * and feed the initial full render ANSI output.
+ */
+function initTerminalVerifyState(state: TerminalVerifyState, width: number, height: number, initialAnsi: string): void {
+  // Close any existing terminals from a previous run
+  if (state.terminal) void state.terminal.close()
+  if (state.ghosttyTerminal) void state.ghosttyTerminal.close()
+
+  const { createTerminal, createXtermBackend } = loadTermless()
+  const backend = state.backend
+
+  // Create xterm.js terminal (default or "both")
+  if (backend === "xterm" || backend === "both") {
+    state.terminal = createTerminal({ backend: createXtermBackend(), cols: width, rows: height })
+    state.terminal.feed(initialAnsi)
+  } else {
+    state.terminal = null
+  }
+
+  // Create Ghostty terminal ("ghostty" or "both")
+  if (backend === "ghostty" || backend === "both") {
+    const createGhostty = loadGhosttyBackend()
+    state.ghosttyTerminal = createTerminal({ backend: createGhostty(), cols: width, rows: height })
+    state.ghosttyTerminal.feed(initialAnsi)
+  } else {
+    state.ghosttyTerminal = null
+  }
+
+  state.width = width
+  state.height = height
+  state.frameCount = 0
+}
+
+/**
+ * Verify that the cumulative incremental ANSI output (fed through a persistent
+ * xterm.js terminal) produces the same visible state as a fresh full render
+ * (fed through a second, throwaway xterm.js terminal).
+ *
+ * This is the ONE invariant that catches both OSC 66 and buffer overflow bugs:
+ * "For a given terminal capability profile and viewport size, the actual
+ * terminal state after incremental rendering must equal the actual terminal
+ * state after a fresh full redraw" — checked in an independent emulator.
+ */
+function verifyTerminalEquivalence(
+  state: TerminalVerifyState,
+  incrOutput: string,
+  nextBuffer: TerminalBuffer,
+  ctx: OutputContext,
+): void {
+  const freshAnsi = bufferToAnsi(nextBuffer, ctx)
+
+  // Verify xterm.js terminal
+  if (state.terminal) {
+    state.terminal.feed(incrOutput)
+    const { createTerminal, createXtermBackend } = loadTermless()
+    const freshTerm = createTerminal({ backend: createXtermBackend(), cols: state.width, rows: state.height })
+    freshTerm.feed(freshAnsi)
+    try {
+      compareTerminals(state.terminal, freshTerm, state, "xterm")
+    } finally {
+      void freshTerm.close()
+    }
+  }
+
+  // Verify Ghostty terminal
+  if (state.ghosttyTerminal) {
+    state.ghosttyTerminal.feed(incrOutput)
+    const { createTerminal } = loadTermless()
+    const createGhostty = loadGhosttyBackend()
+    const freshTerm = createTerminal({ backend: createGhostty(), cols: state.width, rows: state.height })
+    freshTerm.feed(freshAnsi)
+    try {
+      compareTerminals(state.ghosttyTerminal, freshTerm, state, "ghostty")
+    } finally {
+      void freshTerm.close()
+    }
+  }
+}
+
+/** Compare two terminal states cell-by-cell. Throws IncrementalRenderMismatchError on divergence. */
+function compareTerminals(
+  incrTerm: import("@termless/core").Terminal,
+  freshTerm: import("@termless/core").Terminal,
+  state: TerminalVerifyState,
+  backendName: string,
+): void {
+  const w = state.width
+  const h = state.height
+  const prefix = `SILVERY_STRICT_TERMINAL[${backendName}]`
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const incrCell = incrTerm.getCell(y, x)
+      const freshCell = freshTerm.getCell(y, x)
+      const incrChar = incrCell.char || " "
+      const freshChar = freshCell.char || " "
+
+      if (incrChar !== freshChar) {
+        const incrRow = Array.from({ length: w }, (_, cx) => incrTerm.getCell(y, cx).char || " ").join("")
+        const freshRow = Array.from({ length: w }, (_, cx) => freshTerm.getCell(y, cx).char || " ").join("")
+        const msg =
+          `${prefix} char mismatch at (${x},${y}) frame ${state.frameCount}: ` +
+          `incremental='${incrChar}' fresh='${freshChar}'\n` +
+          `  incr row: ${incrRow.trimEnd()}\n` +
+          `  fresh row: ${freshRow.trimEnd()}`
+        // eslint-disable-next-line no-console
+        console.error(msg)
+        throw new IncrementalRenderMismatchError(msg)
+      }
+
+      if (!rgbEquals(incrCell.fg, freshCell.fg)) {
+        const msg =
+          `${prefix} fg color mismatch at (${x},${y}) char='${incrChar}' frame ${state.frameCount}: ` +
+          `incremental=${formatRgb(incrCell.fg)} fresh=${formatRgb(freshCell.fg)}`
+        // eslint-disable-next-line no-console
+        console.error(msg)
+        throw new IncrementalRenderMismatchError(msg)
+      }
+
+      if (!rgbEquals(incrCell.bg, freshCell.bg)) {
+        const msg =
+          `${prefix} bg color mismatch at (${x},${y}) char='${incrChar}' frame ${state.frameCount}: ` +
+          `incremental=${formatRgb(incrCell.bg)} fresh=${formatRgb(freshCell.bg)}`
+        // eslint-disable-next-line no-console
+        console.error(msg)
+        throw new IncrementalRenderMismatchError(msg)
+      }
+
+      const attrDiffs: string[] = []
+      if (incrCell.bold !== freshCell.bold) attrDiffs.push(`bold: ${incrCell.bold} vs ${freshCell.bold}`)
+      if (incrCell.dim !== freshCell.dim) attrDiffs.push(`dim: ${incrCell.dim} vs ${freshCell.dim}`)
+      if (incrCell.italic !== freshCell.italic) attrDiffs.push(`italic: ${incrCell.italic} vs ${freshCell.italic}`)
+      if (incrCell.inverse !== freshCell.inverse) attrDiffs.push(`inverse: ${incrCell.inverse} vs ${freshCell.inverse}`)
+      if (incrCell.strikethrough !== freshCell.strikethrough)
+        attrDiffs.push(`strikethrough: ${incrCell.strikethrough} vs ${freshCell.strikethrough}`)
+
+      if (attrDiffs.length > 0) {
+        const msg =
+          `${prefix} attr mismatch at (${x},${y}) char='${incrChar}' frame ${state.frameCount}: ` + attrDiffs.join(", ")
+        // eslint-disable-next-line no-console
+        console.error(msg)
+        throw new IncrementalRenderMismatchError(msg)
+      }
+    }
+  }
+}
+
+/** Compare two RGB color values (from termless Cell). */
+function rgbEquals(
+  a: { r: number; g: number; b: number } | null,
+  b: { r: number; g: number; b: number } | null,
+): boolean {
+  if (a === b) return true
+  if (a === null || b === null) return false
+  return a.r === b.r && a.g === b.g && a.b === b.b
+}
+
+/** Format an RGB value for diagnostic messages. */
+function formatRgb(c: { r: number; g: number; b: number } | null): string {
+  if (c === null) return "null"
+  return `rgb(${c.r},${c.g},${c.b})`
 }
 
 /** Compare two SGR color values. */

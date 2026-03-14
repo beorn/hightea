@@ -60,7 +60,7 @@ import { createCursorStore, CursorProvider } from "@silvery/react/hooks/useCurso
 import { createFocusEvent, dispatchFocusEvent } from "@silvery/tea/focus-events"
 import { executeRender } from "../pipeline"
 import { createPipeline } from "../measurer"
-import { isTextSizingLikelySupported } from "../text-sizing"
+import { isTextSizingLikelySupported, detectTextSizingSupport, getCachedProbeResult } from "../text-sizing"
 import { IncrementalRenderMismatchError } from "../scheduler"
 import {
   createContainer,
@@ -233,10 +233,11 @@ export interface AppRunOptions {
    * wrapped in OSC 66 sequences so the terminal renders them at the
    * correct width.
    * - `true`: force enable
-   * - `"auto"`: enable if terminal likely supports it (Kitty 0.40+, Ghostty)
+   * - `"auto"`: use heuristic, then probe to verify (progressive enhancement)
+   * - `"probe"`: start disabled, probe async, enable on confirmation
    * - `false`/undefined: disabled (default)
    */
-  textSizing?: boolean | "auto"
+  textSizing?: boolean | "auto" | "probe"
   /**
    * Enable terminal focus reporting (CSI ?1004h).
    * When enabled, the terminal sends focus-in/focus-out events that are
@@ -735,13 +736,38 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         },
       }
 
-  // Resolve textSizing from caps + option (matches run.tsx gate)
-  const textSizingEnabled =
-    textSizingOption === true ||
-    (textSizingOption === "auto" && (capsOption?.textSizingSupported ?? isTextSizingLikelySupported()))
+  // Resolve textSizing from caps + option
+  // For "auto": use heuristic first, probe to verify if heuristic says yes
+  // For "probe": start disabled, probe async to determine
+  // For true/false: use directly
+  const heuristicSupported = capsOption?.textSizingSupported ?? isTextSizingLikelySupported()
+  const shouldProbe = textSizingOption === "probe" || (textSizingOption === "auto" && heuristicSupported)
+  // If we have a cached probe result, use it immediately instead of probing again
+  const cachedProbe = shouldProbe ? getCachedProbeResult() : undefined
+  let textSizingEnabled: boolean
+  if (textSizingOption === true) {
+    textSizingEnabled = true
+  } else if (textSizingOption === "probe") {
+    // "probe": start disabled unless cache says supported
+    textSizingEnabled = cachedProbe?.supported ?? false
+  } else if (textSizingOption === "auto") {
+    if (cachedProbe !== undefined) {
+      // Cache available: use definitive probe result
+      textSizingEnabled = cachedProbe.supported
+    } else {
+      // No cache: use heuristic for first render, probe will verify
+      textSizingEnabled = heuristicSupported
+    }
+  } else {
+    textSizingEnabled = false
+  }
+
+  // Whether we still need to run the async probe (no cache hit)
+  const needsProbe = shouldProbe && cachedProbe === undefined && !headless
 
   // Create pipeline config from caps (scoped width measurer + output phase)
-  const pipelineConfig = capsOption
+  // Use `let` because the pipeline may be recreated after a probe changes textSizing
+  let pipelineConfig = capsOption
     ? createPipeline({ caps: { ...capsOption, textSizingSupported: textSizingEnabled } })
     : undefined
 
@@ -1659,6 +1685,70 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           eventQueueResolve = null
           resolve()
         }
+      }
+    }
+
+    // Run text sizing probe BEFORE stdin is consumed by the input parser.
+    // The probe writes a test sequence to stdout and reads the CPR response
+    // from stdin. This must happen before pumpEvents() attaches the stdin
+    // data listener, otherwise the CPR response would be consumed as a key event.
+    if (needsProbe) {
+      try {
+        // Set up temporary raw mode + stdin listener for probe
+        const wasRaw = stdin.isRaw
+        if (stdin.isTTY && !wasRaw) {
+          stdin.setRawMode(true)
+          stdin.resume()
+          stdin.setEncoding("utf8")
+        }
+
+        const probeRead = (): Promise<string> =>
+          new Promise<string>((resolve) => {
+            const onData = (data: string) => {
+              stdin.off("data", onData)
+              resolve(data as string)
+            }
+            stdin.on("data", onData)
+          })
+
+        const probeResult = await detectTextSizingSupport(
+          (data) => stdout.write(data),
+          probeRead,
+          500, // Short timeout — probe should be fast
+        )
+
+        // If probe result differs from initial heuristic, recreate pipeline
+        if (probeResult.supported !== textSizingEnabled) {
+          textSizingEnabled = probeResult.supported
+          if (capsOption) {
+            pipelineConfig = createPipeline({
+              caps: { ...capsOption, textSizingSupported: textSizingEnabled },
+            })
+            // Update runtime's output phase to use the new measurer
+            runtime.setOutputPhaseFn(pipelineConfig.outputPhaseFn)
+          }
+          // Invalidate pipeline and runtime diff state for full redraw
+          _prevTermBuffer = null
+          runtime.invalidate()
+          // Force full re-render with updated measurer
+          if (!isRendering) {
+            isRendering = true
+            try {
+              currentBuffer = doRender()
+              runtime.render(currentBuffer)
+            } finally {
+              isRendering = false
+            }
+          }
+        }
+
+        // Restore raw mode if we changed it (pumpEvents will set it again)
+        if (stdin.isTTY && !wasRaw) {
+          stdin.setRawMode(false)
+          stdin.pause()
+        }
+      } catch {
+        // Probe failed — keep current textSizing setting (safe fallback)
       }
     }
 

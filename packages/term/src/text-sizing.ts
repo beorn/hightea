@@ -63,10 +63,58 @@ export function isTextSizingLikelySupported(): boolean {
   return false
 }
 
+/** Result of text sizing probe */
+export interface TextSizingProbeResult {
+  supported: boolean
+  widthOnly: boolean
+}
+
+/**
+ * Cache of probe results by terminal fingerprint.
+ * Persists across app instances in the same process so the probe
+ * only runs once per terminal type.
+ */
+const probeCache = new Map<string, TextSizingProbeResult>()
+
+/**
+ * Get a terminal fingerprint for cache keying.
+ * Combines TERM_PROGRAM + TERM_PROGRAM_VERSION to uniquely identify
+ * the terminal type. Different versions may add/remove OSC 66 support.
+ */
+export function getTerminalFingerprint(): string {
+  const program = process.env.TERM_PROGRAM ?? "unknown"
+  const version = process.env.TERM_PROGRAM_VERSION ?? "unknown"
+  return `${program}@${version}`
+}
+
+/**
+ * Get a cached probe result for the current terminal, if available.
+ */
+export function getCachedProbeResult(): TextSizingProbeResult | undefined {
+  return probeCache.get(getTerminalFingerprint())
+}
+
+/**
+ * Store a probe result in the cache for the current terminal.
+ */
+export function setCachedProbeResult(result: TextSizingProbeResult): void {
+  probeCache.set(getTerminalFingerprint(), result)
+}
+
+/**
+ * Clear the probe cache. Useful for testing.
+ */
+export function clearProbeCache(): void {
+  probeCache.clear()
+}
+
 /**
  * Detect terminal support for the text sizing protocol.
  * Uses cursor position reports (CPR) to check if OSC 66 advances the cursor
  * by the specified width.
+ *
+ * Results are cached by terminal fingerprint so the probe only runs once
+ * per terminal type per process.
  *
  * @returns Object with `supported` and `widthOnly` flags:
  * - supported=true, widthOnly=false: full support (scale + width)
@@ -77,7 +125,11 @@ export async function detectTextSizingSupport(
   write: (data: string) => void,
   read: () => Promise<string>,
   timeout = 1000,
-): Promise<{ supported: boolean; widthOnly: boolean }> {
+): Promise<TextSizingProbeResult> {
+  // Check cache first
+  const cached = getCachedProbeResult()
+  if (cached !== undefined) return cached
+
   // Detection sequence:
   // 1. CR to column 0
   // 2. OSC 66 w=2 with a space character
@@ -98,12 +150,18 @@ export async function detectTextSizingSupport(
       const col = Number(match[2])
       // Column 3 means the space occupied 2 cells (col is 1-indexed, started at 1)
       if (col === 3) {
-        return { supported: true, widthOnly: false }
+        const result: TextSizingProbeResult = { supported: true, widthOnly: false }
+        setCachedProbeResult(result)
+        return result
       }
     }
 
-    return { supported: false, widthOnly: false }
+    const result: TextSizingProbeResult = { supported: false, widthOnly: false }
+    setCachedProbeResult(result)
+    return result
   } catch {
-    return { supported: false, widthOnly: false }
+    const result: TextSizingProbeResult = { supported: false, widthOnly: false }
+    setCachedProbeResult(result)
+    return result
   }
 }

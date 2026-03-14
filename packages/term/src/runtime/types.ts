@@ -112,6 +112,9 @@ export interface Runtime {
   /** Reset diff state so next render outputs a full frame */
   invalidate(): void
 
+  /** Update the output phase function (e.g., after text sizing probe changes measurer) */
+  setOutputPhaseFn(fn: RuntimeOptions["outputPhaseFn"]): void
+
   /** Reset inline cursor tracking state (inline mode only).
    *  Called by useScrollback before re-emitting frozen items on resize. */
   resetInlineCursor(): void

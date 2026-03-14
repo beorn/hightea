@@ -93,8 +93,14 @@ VirtualList shows blank rows when:
 ### Runtime Debug
 
 ```bash
-# Enable incremental vs fresh render comparison
+# Enable incremental vs fresh render comparison (buffer-level)
 SILVERY_STRICT=1 bun run app.ts
+
+# Verify ANSI output correctness (internal VT parser replay)
+SILVERY_STRICT_OUTPUT=1 bun run app.ts
+
+# Verify via independent xterm.js emulator (catches real terminal divergence)
+SILVERY_STRICT_TERMINAL=1 bun run app.ts
 
 # Write debug output to file
 DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log bun run app.ts

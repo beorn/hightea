@@ -96,11 +96,12 @@ export interface RunOptions {
    * Enable Kitty text sizing protocol (OSC 66) for PUA characters.
    * Ensures nerdfont/powerline icons are measured and rendered at the correct width.
    * - `true`: force enable
-   * - `"auto"`: enable if terminal supports it (Kitty 0.40+, Ghostty)
+   * - `"auto"`: use heuristic, then probe to verify (progressive enhancement)
+   * - `"probe"`: start disabled, probe async, enable on confirmation
    * - `false`: disabled
    * - Default: "auto"
    */
-  textSizing?: boolean | "auto"
+  textSizing?: boolean | "auto" | "probe"
   /**
    * Enable terminal focus reporting (CSI ?1004h).
    * Dispatches 'term:focus' events with `{ focused: boolean }`.
