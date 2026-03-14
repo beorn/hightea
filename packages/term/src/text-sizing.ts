@@ -55,8 +55,10 @@ export function isTextSizingLikelySupported(): boolean {
     if (major > 0 || (major === 0 && minor >= 40)) return true
   }
 
-  // Ghostty supports text sizing (Kitty protocol compatibility)
-  if (termProgram === "ghostty") return true
+  // Ghostty parses OSC 66 but does NOT render it (as of v1.3.0, March 2026).
+  // Wrapping text in OSC 66 causes Ghostty to swallow the content silently.
+  // Re-enable when Ghostty ships actual text sizing GUI support.
+  // if (termProgram === "ghostty") return true
 
   return false
 }

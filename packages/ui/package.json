@@ -1,6 +1,6 @@
 {
   "name": "@silvery/ui",
-  "version": "0.0.1",
+  "version": "0.3.0",
   "description": "Component library for silvery — Box, Text, ScrollView, VirtualList, and more",
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",

@@ -1,6 +1,6 @@
 {
   "name": "@silvery/react",
-  "version": "0.0.1",
+  "version": "0.3.0",
   "description": "Core React reconciler and runtime for silvery",
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",

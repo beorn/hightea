@@ -1,6 +1,6 @@
 {
   "name": "@silvery/term",
-  "version": "0.0.1",
+  "version": "0.3.0",
   "description": "Terminal rendering target for silvery",
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",

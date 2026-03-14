@@ -1,6 +1,6 @@
 {
   "name": "@silvery/theme",
-  "version": "0.0.1",
+  "version": "0.3.0",
   "description": "Theming system with semantic color tokens for silvery",
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",

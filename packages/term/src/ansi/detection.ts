@@ -434,7 +434,7 @@ export function detectTerminalCaps(): TerminalCaps {
     underlineStyles: underlineExtensions,
     underlineColor: underlineExtensions,
     textEmojiWide: !isAppleTerminal,
-    textSizingSupported: isKittyWithTextSizing || isGhostty,
+    textSizingSupported: isKittyWithTextSizing, // Ghostty parses OSC 66 but doesn't render it (v1.3.0)
     darkBackground,
     nerdfont,
   }

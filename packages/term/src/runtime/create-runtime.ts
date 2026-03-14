@@ -239,10 +239,13 @@ export function createRuntime(options: RuntimeOptions): Runtime {
     render(buffer: Buffer): void {
       if (disposed) return
 
-      // Compute diff internally (inline mode passes scrollback offset and terminal rows)
+      // Compute diff internally — pass terminal rows to cap output.
+      // Inline mode: prevents scrollback corruption (cursor-up clamped at row 0).
+      // Fullscreen mode: prevents buffer overflow that scrolls the terminal and
+      // desynchronizes prevBuffer from actual terminal state (ghost pixel garble).
       const offset = scrollbackOffset
       scrollbackOffset = 0 // Consume the offset
-      const termRows = mode === "inline" ? target.getDims().rows : undefined
+      const termRows = target.getDims().rows
 
       // Use scoped output phase if provided (threads measurer/caps correctly),
       // otherwise fall back to raw diff() for backwards compatibility

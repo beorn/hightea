@@ -691,10 +691,11 @@ export function outputPhase(
       }
     }
 
-    // In inline mode, cap output to terminal height to prevent scrollback corruption.
-    // Content taller than the terminal would push lines into scrollback where they
-    // can never be overwritten on re-render (cursor-up is clamped at terminal row 0).
-    const firstOutput = bufferToAnsi(next, mode, ctx, mode === "inline" ? termRows : undefined)
+    // Cap output to terminal height to prevent scroll desync.
+    // In inline mode: prevents scrollback corruption (cursor-up clamped at row 0).
+    // In fullscreen mode: prevents terminal scroll that desynchronizes prevBuffer
+    // from actual terminal state, causing ghost pixels on subsequent incremental renders.
+    const firstOutput = bufferToAnsi(next, mode, ctx, termRows)
     // For inline first render, append cursor positioning and initialize tracking
     if (mode === "inline") {
       const firstContentLines = findLastContentLine(next) + 1
@@ -757,15 +758,28 @@ export function outputPhase(
   // Use to diagnose garbled rendering — if FULL_RENDER fixes it, the bug
   // is in changesToAnsi (diff → ANSI serialization).
   if (FULL_RENDER) {
-    return bufferToAnsi(next, mode, ctx)
+    return bufferToAnsi(next, mode, ctx, termRows)
   }
 
   // Fullscreen mode: diff and emit only changes
-  const { pool, count } = diffBuffers(prev, next)
+  const { pool, count: rawCount } = diffBuffers(prev, next)
+
+  // Filter out changes beyond terminal height to prevent CUP targeting rows
+  // past the terminal, which causes scrolling and prevBuffer desync.
+  let count = rawCount
+  if (termRows != null) {
+    let writeIdx = 0
+    for (let i = 0; i < rawCount; i++) {
+      if (pool[i]!.y < termRows) {
+        pool[writeIdx++] = pool[i]!
+      }
+    }
+    count = writeIdx
+  }
 
   if (DEBUG_OUTPUT) {
     // eslint-disable-next-line no-console
-    console.error(`[SILVERY_DEBUG_OUTPUT] diffBuffers: ${count} changes`)
+    console.error(`[SILVERY_DEBUG_OUTPUT] diffBuffers: ${count} changes${rawCount !== count ? ` (${rawCount - count} clamped beyond termRows)` : ""}`)
     const debugLimit = Math.min(count, 10)
     for (let i = 0; i < debugLimit; i++) {
       const change = pool[i]!
@@ -1236,13 +1250,19 @@ function bufferToAnsi(
   let currentStyle: Style | null = null
   let currentHyperlink: string | undefined
 
-  // For inline mode, only render up to the last line with content.
-  // When content exceeds terminal height (maxRows), show the bottom of the
-  // buffer so the footer and latest content stay visible.
+  // Cap output to prevent rendering beyond terminal height.
+  // Inline mode: render up to last content line; if taller than terminal, show bottom
+  // (footer and latest content stay visible in scrollback).
+  // Fullscreen mode: always start from top; cap at terminal height to prevent scroll
+  // that desynchronizes prevBuffer from actual terminal state.
   let maxLine = mode === "inline" ? findLastContentLine(buffer) : buffer.height - 1
   let startLine = 0
   if (maxRows != null && maxLine >= maxRows) {
-    startLine = maxLine - maxRows + 1
+    if (mode === "fullscreen") {
+      maxLine = maxRows - 1 // cap at terminal height, always from top
+    } else {
+      startLine = maxLine - maxRows + 1 // show bottom of content
+    }
   }
 
   // Move cursor to start position based on mode
