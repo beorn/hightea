@@ -75,6 +75,7 @@ export default defineConfig({
           { text: "Theming", link: "/guides/theming" },
           { text: "State Management", link: "/guides/state-management" },
           { text: "Silvery vs Ink", link: "/guide/silvery-vs-ink" },
+          { text: "From Ink to Silvery", link: "/guide/migration-from-ink" },
           { text: "Why Silvery?", link: "/guide/why-silvery" },
           { text: "Comparison", link: "/guide/comparison" },
         ],

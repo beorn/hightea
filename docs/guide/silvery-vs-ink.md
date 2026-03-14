@@ -2,21 +2,23 @@
 
 _External project claims last verified: 2026-03._
 
-## Why Silvery Exists
+## Why This Page Exists
 
-Silvery started from a single frustration: **React terminal components can't know their own size during render.** In Ink, React renders first, then Yoga calculates layout — so components that need to adapt (truncate text, choose compact vs full layout, fit columns) must use post-render effects or prop drilling. This limitation ([Ink #5](https://github.com/vadimdemedes/ink/issues/5), open since 2016, still open as of 2026-03) cascades: no native scrolling, no automatic text truncation, no responsive layouts without workarounds.
+Ink is excellent for simpler, text-first terminal apps and has years of maturity and a large ecosystem. Silvery exists because we needed different primitives for large interactive layouts -- specifically, components that know their own dimensions during render.
 
-Fixing it required a different rendering pipeline — layout first, then render — which meant building from scratch. The result is a **better renderer**: responsive layout, per-node incremental rendering, ANSI-aware compositing, native scrolling, pure TypeScript. On top of this core, optional framework layers provide input management, commands, mouse support, 30+ components, theming, and TEA state machines — use as much or as little as you need.
+In Ink, React renders first, then Yoga calculates layout. Components that need to adapt to their available space (truncate text, choose compact vs full layout, fit columns to width) must use post-render effects or prop drilling. This is a known limitation ([Ink #5](https://github.com/vadimdemedes/ink/issues/5), open since 2016). It works fine for many apps, but it becomes a constraint when building complex interactive UIs like kanban boards, text editors, or multi-pane dashboards.
+
+Addressing it required a different rendering pipeline -- layout first, then render -- which meant building a new renderer. On top of that core, optional framework layers provide input management, commands, mouse support, 30+ components, theming, and TEA state machines.
 
 ## The Two Projects
 
-[Ink](https://github.com/vadimdemedes/ink) (2017) brought React to the terminal. ~1.3M npm weekly downloads, 50+ community components, used by Gatsby, Prisma, Terraform CDK, Shopify CLI, Claude Code, and many more. Mature, stable, actively maintained. Ink is a focused React renderer.
+[Ink](https://github.com/vadimdemedes/ink) (2017) brought React to the terminal. ~1.3M npm weekly downloads, 50+ community components, used by Gatsby, Prisma, Terraform CDK, Shopify CLI, Claude Code, and many more. Mature, stable, actively maintained, and battle-tested across thousands of production CLIs. Ink is a focused, reliable React renderer.
 
-[Silvery](https://github.com/beorn/silvery) (2025) is a ground-up reimplementation with a different rendering architecture. At its core, it's a renderer — `Box`, `Text`, `useInput`, `render()` work the same as Ink. Optional framework layers (`@silvery/ui` for 30+ components, `@silvery/tea` for state machines, `@silvery/theme` for theming) extend it into an ergonomic full-stack toolkit when you want one.
+[Silvery](https://github.com/beorn/silvery) (2025) is a ground-up reimplementation with a different rendering architecture. At its core, it's a renderer -- `Box`, `Text`, `useInput`, `render()` work the same as Ink. Optional framework layers (`@silvery/ui` for 30+ components, `@silvery/tea` for state machines, `@silvery/theme` for theming) extend it when you need them. Silvery is newer and has a smaller community.
 
 > For how Silvery compares to terminal UI frameworks beyond Ink (BubbleTea, Textual, Notcurses, FTXUI, blessed), see [comparison.md](comparison.md).
 
-See [migration guide](/getting-started/migrate-from-ink) for switching from Ink.
+See the [migration guide](/guide/migration-from-ink) for switching from Ink.
 
 > Performance numbers in this document are from the **Ink comparison benchmark suite**. Reproduce with `bun run bench` for raw benchmark tables.
 
@@ -138,6 +140,17 @@ _Benchmarks measure a specific scenario for each row. "Typical interactive updat
 **Understanding the rerender row:** When the _entire_ component tree re-renders from scratch (e.g., replacing the root element), Ink is 30x faster because its output is string concatenation. Silvery runs a 5-phase pipeline (measure, layout, content, output) after React reconciliation -- that is the cost of responsive layout. But this scenario rarely happens in real apps.
 
 **The row that matters -- "typical interactive update":** When a user presses a key (cursor move, scroll, toggle), only the changed nodes need updating. Silvery has per-node dirty tracking that bypasses React entirely -- 169 us for 1000 nodes. Ink's incremental rendering (v6.5.0+) improves output by skipping unchanged _lines_, but it still re-renders the entire React tree and runs full Yoga layout on every state change -- 20.7 ms. Silvery's dirty tracking skips React reconciliation, layout, and content generation for unchanged nodes -- a fundamentally different approach.
+
+### Benchmark Methodology
+
+All numbers on this page come from the Ink comparison benchmark suite, which measures both frameworks under identical conditions:
+
+- **Hardware**: Apple M1 Max, 64 GB RAM
+- **Runtime**: Bun 1.3.9 (Feb 2026)
+- **Methodology**: Each scenario uses [mitata](https://github.com/evanwashere/mitata) for statistical benchmarking with warmup iterations and automatic iteration count selection. Silvery benchmarks use `createRenderer()` (headless, no terminal I/O). Ink benchmarks use `render()` with mock stdout and `unmount()` per iteration.
+- **"100x faster updates"**: This refers specifically to the "typical interactive update" scenario -- a single `setState` in a mounted 1000-node tree (e.g., moving a cursor). Silvery's per-node dirty tracking updates only changed nodes (169 us). Ink re-renders the full React tree and runs full Yoga layout (20.7 ms). The comparison is between different update strategies, not the same operation running faster.
+- **Trade-off**: Full React re-renders (replacing the root element) are 30x slower in Silvery because its 5-phase pipeline has overhead that Ink's string concatenation approach avoids. This scenario is rare in interactive apps but important to acknowledge.
+- **Reproduce**: `bun run bench:compare` runs the full suite and outputs raw tables.
 
 ## Key Differences Explained
 
@@ -355,22 +368,25 @@ Silvery uses these queries at startup for capability detection — automatically
 
 ## When to Choose What
 
+Both are good tools. The right choice depends on what you're building.
+
 ### Choose Ink when:
 
-- You need a mature ecosystem with community components
-- Your app is a simple CLI prompt (one-shot interaction)
-- You want the safety of a battle-tested, widely-deployed renderer
-- You do not need scrolling, mouse, or complex focus management
+- **Simpler CLIs and prompts**: One-shot interactions, confirmation dialogs, progress indicators, setup wizards -- Ink handles these well with minimal setup
+- **Ecosystem matters**: Ink has ~1.3M weekly downloads, 50+ community components, and widespread adoption. If you need `ink-select-input`, `ink-table`, or other community packages, Ink's ecosystem is larger
+- **Battle-tested stability**: Ink has been in production across thousands of CLIs since 2017. It's a known quantity with well-understood behavior
+- **Team familiarity**: If your team already knows Ink, the context switch cost may not be worth it for a simple app
+- **You don't need layout-aware rendering**: If your components don't need to adapt to their available space, Ink's simpler pipeline is a fine fit
 
 ### Choose Silvery when:
 
-- You are building a complex interactive TUI (kanban board, text editor, dashboard)
-- You need scrollable containers, mouse support, or spatial focus navigation
-- You want a command system with keybindings and introspection
-- You need components to know their dimensions during render
-- You want multi-target rendering (terminal + canvas + DOM)
-- You care about interactive update performance (dirty tracking vs full re-render)
-- You want a complete component library without assembling third-party packages
+- **Complex interactive TUIs**: Kanban boards, text editors, multi-pane dashboards -- apps where components need to know their dimensions during render
+- **Scrollable containers**: `overflow="scroll"` with native measurement, rather than manual virtualization
+- **Mouse support and spatial focus**: Click-to-focus, arrow-key navigation between components, drag support
+- **Command system**: Named commands with keybindings, help text, and runtime introspection
+- **Interactive update performance**: Per-node dirty tracking for sub-millisecond updates in large trees
+- **Built-in component library**: 30+ components without assembling third-party packages
+- **Multi-target rendering**: Terminal today, Canvas 2D and DOM in the future
 
 ## Real-World Scenarios
 
@@ -409,13 +425,13 @@ One-shot question, answer, exit.
 - **Ink**: Excellent -- large ecosystem of prompt components (ink-select-input, ink-text-input, ink-spinner).
 - **Silvery**: Built-in TextInput, SelectList, Spinner components. Works, but the community ecosystem is smaller.
 
-## Real-World Impact
+## Real-World Context
 
-These are not theoretical differences. Production Ink-based CLIs have encountered several of these limitations:
+These differences surface in practice. Some examples from production Ink-based CLIs:
 
-- **Memory**: Large-scale Ink apps have encountered memory growth from Yoga's WASM linear memory, which cannot shrink once allocated (e.g., [Claude Code saw its process balloon over time](https://github.com/anthropics/claude-code/issues/4953)). Silvery avoids this class of problem by using a pure JavaScript layout engine with normal garbage collection.
-- **Flicker**: Earlier Ink versions [cleared the entire terminal area](https://github.com/vadimdemedes/ink/issues/359) on each render, causing visible flicker, especially in tmux. Ink v6.5.0+ added line-based incremental rendering and v6.7.0 added synchronized updates to mitigate this. Silvery's cell-level dirty tracking and buffer diff provide more granular flicker prevention.
-- **Missing capabilities**: Production CLIs have needed mouse support, customizable keybindings, scrollable containers, and complex focus management -- features that require additional libraries or manual implementation in Ink but are built into Silvery.
+- **Memory**: Long-running Ink apps can encounter memory growth from Yoga's WASM linear memory, which cannot shrink once allocated (e.g., [Claude Code discussion](https://github.com/anthropics/claude-code/issues/4953)). Silvery's pure JavaScript layout engine uses normal garbage collection, avoiding this particular class of issue.
+- **Flicker**: Earlier Ink versions [cleared the entire terminal area](https://github.com/vadimdemedes/ink/issues/359) on each render. Ink v6.5.0+ added line-based incremental rendering and v6.7.0 added synchronized updates, significantly improving this. Silvery's cell-level dirty tracking and buffer diff take a different approach to the same problem.
+- **Interactive features**: Apps that grow beyond simple CLI prompts often need mouse support, scrollable containers, and complex focus management. In Ink, these require additional libraries or manual implementation. Silvery includes them as built-in framework layers.
 
 ## Compatibility Coverage
 

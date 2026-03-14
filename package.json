@@ -1,8 +1,16 @@
 {
   "name": "silvery",
   "version": "0.0.1",
-  "description": "Multi-target rendering framework for React — terminal, browser, and beyond",
+  "description": "React terminal UI renderer for complex interactive apps — layout-aware rendering, flexbox, scrolling, and incremental updates",
   "keywords": [
+    "react-terminal",
+    "terminal-ui",
+    "ink-alternative",
+    "ansi",
+    "flexbox",
+    "text-ui",
+    "terminal-renderer",
+    "react-renderer",
     "chalk",
     "cli",
     "ink",
