@@ -1,12 +1,8 @@
 # Silvery
 
-**A React renderer for terminal applications.** Use it as a renderer, or add optional framework layers for a complete toolkit.
+**Polished Terminal UIs in React.**
 
-Silvery is the only React terminal renderer where components know their own dimensions during render. This single architectural change unlocks responsive layouts without prop drilling, native scrollable containers, and automatic text truncation — things that weren't possible in existing renderers.
-
-The renderer also provides per-node incremental rendering (only changed nodes update), ANSI-aware cell compositing, and synchronized output. Pure TypeScript, no WASM, no native dependencies.
-
-**Optional framework layers** add what you need: `@silvery/ui` (30+ components), `@silvery/tea` (TEA state machines), `@silvery/theme` (38 palettes), input layering, mouse support, and commands. Use as much or as little as you want.
+Responsive layouts, scrollable containers, ~169μs incremental updates, and full support for modern terminal capabilities. 30+ components from TextInput to VirtualList. Pure TypeScript, no WASM.
 
 ```
 npm install silvery react

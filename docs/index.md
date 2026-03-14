@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "Silvery"
   text: "Polished Terminal UIs in React"
-  tagline: "A React renderer for terminal applications — responsive layouts, scrollable containers, per-node incremental rendering, and comprehensive terminal protocol support. Optional framework layers add 30+ components, theming, and TEA state machines."
+  tagline: "Responsive layouts, scrollable containers, ~169μs incremental updates, and full support for modern terminal capabilities. 30+ components from TextInput to VirtualList. Pure TypeScript, no WASM."
   actions:
     - theme: brand
       text: Get Started
