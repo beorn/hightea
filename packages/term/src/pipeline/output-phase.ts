@@ -779,7 +779,9 @@ export function outputPhase(
 
   if (DEBUG_OUTPUT) {
     // eslint-disable-next-line no-console
-    console.error(`[SILVERY_DEBUG_OUTPUT] diffBuffers: ${count} changes${rawCount !== count ? ` (${rawCount - count} clamped beyond termRows)` : ""}`)
+    console.error(
+      `[SILVERY_DEBUG_OUTPUT] diffBuffers: ${count} changes${rawCount !== count ? ` (${rawCount - count} clamped beyond termRows)` : ""}`,
+    )
     const debugLimit = Math.min(count, 10)
     for (let i = 0; i < debugLimit; i++) {
       const change = pool[i]!
