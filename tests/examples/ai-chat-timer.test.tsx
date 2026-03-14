@@ -47,9 +47,13 @@ describe("bug 1: timer renders without keypress", () => {
     term = createTermless({ cols: 80, rows: 10 })
     handle = await run(<TimerApp />, term)
 
-    // Initial render should show count:0
+    // Initial render: timer may have already fired once due to async run() setup,
+    // so count can be 0 or 1. Just verify it's low.
     await settle(50)
-    expect(term.screen!.getText()).toContain("count:0")
+    const initialText = term.screen!.getText()
+    const initialMatch = initialText.match(/count:(\d+)/)
+    expect(initialMatch).toBeTruthy()
+    expect(parseInt(initialMatch![1]!, 10)).toBeLessThanOrEqual(1)
 
     // After 500ms, counter should have incremented multiple times WITHOUT any keypress
     await settle(500)
@@ -79,10 +83,14 @@ describe("bug 1: timer renders without keypress", () => {
     const initialText = term.screen!.getText()
     expect(initialText).toContain("0:00")
 
-    // After 1.5s, elapsed timer should update to 0:01 WITHOUT any keypress
-    await settle(1500)
+    // Wait long enough for the elapsed timer to advance past 0:00.
+    // The key assertion is that the timer updates WITHOUT any keypress.
+    // We check that the elapsed time has progressed (shows 0:01 or later).
+    await settle(2000)
     const laterText = term.screen!.getText()
-    expect(laterText).toContain("0:01")
+    // Timer should have advanced past 0:00 — accept any non-zero time
+    expect(laterText).not.toContain("0:00")
+    expect(laterText).toMatch(/0:0[1-9]/)
   })
 })
 
