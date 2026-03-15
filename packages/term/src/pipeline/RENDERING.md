@@ -126,7 +126,7 @@ Diff the current buffer against the previous buffer and emit minimal ANSI escape
 ### 4. Scheduler Output
 
 1. Build cursor suffix (position + show/hide + cursor shape via CSI q)
-2. Optionally wrap in DEC 2026 sync markers (disabled by default for Ghostty)
+2. DEC 2026 sync markers are NOT used (scheduler has them disabled; sync fallback was removed)
 3. `stdout.write(fullOutput)` — ANSI bytes sent to terminal process
 4. Save buffer as `prevBuffer` for next frame's diff
 5. STRICT buffer comparison: run full pipeline with null prevBuffer, compare cell-by-cell
@@ -143,19 +143,19 @@ The terminal process (Ghostty, iTerm2, etc.) receives the ANSI byte stream and:
 
 ## Test Coverage Map
 
-| Step                               | Test System                     | What It Verifies                          | Limitations                                        |
-| ---------------------------------- | ------------------------------- | ----------------------------------------- | -------------------------------------------------- |
-| Dirty flags → content              | **STRICT** (buffer comparison)  | Incremental buffer === fresh buffer       | Only buffer state, not ANSI output                 |
-| Measure/Layout                     | Flexily tests, STRICT           | Yoga constraints and computed rects       | -                                                  |
-| Scroll/Sticky                      | Fuzz tests, STRICT              | Scroll tier selection, sticky positioning | -                                                  |
-| Content phase                      | **STRICT**                      | Buffer correctness                        | Excellent — catches ALL content bugs               |
-| diffBuffers                        | STRICT_OUTPUT (implicit)        | Change detection completeness             | No isolated unit tests                             |
-| bufferToAnsi                       | STRICT_OUTPUT                   | Full render ANSI correctness              | **Self-referential** (same parser as generator)    |
-| changesToAnsi                      | STRICT_OUTPUT, wide char matrix | Incremental ANSI correctness              | **Self-referential**                               |
-| Terminal interpretation (xterm.js) | **STRICT_TERMINAL**             | xterm.js agrees with buffer               | Only xterm.js, not Ghostty; not enabled by default |
-| Terminal interpretation (Ghostty)  | Cross-backend tests (manual)    | Ghostty agrees with xterm.js              | Not in STRICT loop; test-only, not runtime         |
-| stdout delivery                    | **NONE**                        | -                                         | No pipe buffer split detection                     |
-| DEC 2026 sync interaction          | **NONE**                        | -                                         | No test for sync + terminal interaction            |
+| Step                               | Test System                     | What It Verifies                          | Limitations                                         |
+| ---------------------------------- | ------------------------------- | ----------------------------------------- | --------------------------------------------------- |
+| Dirty flags → content              | **STRICT** (buffer comparison)  | Incremental buffer === fresh buffer       | Only buffer state, not ANSI output                  |
+| Measure/Layout                     | Flexily tests, STRICT           | Yoga constraints and computed rects       | -                                                   |
+| Scroll/Sticky                      | Fuzz tests, STRICT              | Scroll tier selection, sticky positioning | -                                                   |
+| Content phase                      | **STRICT**                      | Buffer correctness                        | Excellent — catches ALL content bugs                |
+| diffBuffers                        | STRICT_OUTPUT (implicit)        | Change detection completeness             | No isolated unit tests                              |
+| bufferToAnsi                       | STRICT_OUTPUT                   | Full render ANSI correctness              | **Self-referential** (same parser as generator)     |
+| changesToAnsi                      | STRICT_OUTPUT, wide char matrix | Incremental ANSI correctness              | **Self-referential**                                |
+| Terminal interpretation (xterm.js) | **STRICT_TERMINAL**             | xterm.js agrees with buffer               | Only xterm.js, not Ghostty; not enabled by default  |
+| Terminal interpretation (Ghostty)  | Cross-backend tests (manual)    | Ghostty agrees with xterm.js              | Not in STRICT loop; test-only, not runtime          |
+| stdout delivery                    | **NONE**                        | -                                         | No pipe buffer split detection                      |
+| DEC 2026 sync interaction          | N/A (removed)                   | -                                         | Sync fallback removed; scheduler sync also disabled |
 
 ### Critical Gaps
 
@@ -165,7 +165,7 @@ The terminal process (Ghostty, iTerm2, etc.) receives the ANSI byte stream and:
 
 3. **No stdout delivery verification**: If output exceeds the pipe buffer (16KB on macOS), writes may be split mid-sequence. No detection or mitigation.
 
-4. **DEC 2026 sync not tested**: No test verifies that DEC 2026 sync markers interact correctly with the output content across different terminals.
+4. **DEC 2026 sync removed**: The sync fallback (wrapping output in DEC 2026 markers when >30% rows dirty) was removed — it caused garble in Ghostty. The scheduler's sync support is also disabled. No sync markers are emitted.
 
 ### What Each STRICT Mode Catches (and Misses)
 
@@ -178,17 +178,17 @@ The terminal process (Ghostty, iTerm2, etc.) receives the ANSI byte stream and:
 
 ## Key ANSI Sequences
 
-| Sequence             | Name                 | Used In                                          | Terminal-Dependent?                                        |
-| -------------------- | -------------------- | ------------------------------------------------ | ---------------------------------------------------------- |
-| `\x1b[H`             | CUP Home             | bufferToAnsi (first row)                         | No                                                         |
-| `\x1b[row;colH`      | CUP                  | bufferToAnsi (rows), changesToAnsi               | No — always unambiguous                                    |
-| `\x1b[K`             | EL (Erase to EOL)    | bufferToAnsi, changesToAnsi                      | **Yes — behavior in pending-wrap state varies**            |
-| `\n` (LF)            | Newline              | bufferToAnsi (fullscreen row transition)         | **Yes — double-advance vs single-advance in pending-wrap** |
-| `\r` (CR)            | Carriage Return      | bufferToAnsi (inline), changesToAnsi             | Mostly safe — goes to col 0, resolves pending-wrap         |
-| `\r\n`               | CR+LF                | changesToAnsi (next-row optimization)            | Safe — \r resolves pending-wrap, \n advances one row       |
-| `\x1b[nC`            | CUF (Cursor Forward) | changesToAnsi (same-row forward)                 | Some terminals apply current bg to traversed cells         |
-| `\x1b[?2026h/l`      | DEC Sync             | Scheduler (disabled), sync fallback (was active) | **Yes — Ghostty may handle differently from Kitty**        |
-| `\x1b]66;w=N;...BEL` | OSC 66 Text Sizing   | Wide char wrapping                               | Terminal support varies                                    |
+| Sequence             | Name                 | Used In                                             | Terminal-Dependent?                                           |
+| -------------------- | -------------------- | --------------------------------------------------- | ------------------------------------------------------------- |
+| `\x1b[H`             | CUP Home             | bufferToAnsi (first row)                            | No                                                            |
+| `\x1b[row;colH`      | CUP                  | bufferToAnsi (rows), changesToAnsi                  | No — always unambiguous                                       |
+| `\x1b[K`             | EL (Erase to EOL)    | bufferToAnsi, changesToAnsi                         | **Yes — behavior in pending-wrap state varies**               |
+| `\n` (LF)            | Newline              | bufferToAnsi (inline only; removed from fullscreen) | **Yes — double-advance in pending-wrap; fullscreen uses CUP** |
+| `\r` (CR)            | Carriage Return      | bufferToAnsi (inline), changesToAnsi                | Mostly safe — goes to col 0, resolves pending-wrap            |
+| `\r\n`               | CR+LF                | changesToAnsi (next-row optimization)               | Safe — \r resolves pending-wrap, \n advances one row          |
+| `\x1b[nC`            | CUF (Cursor Forward) | changesToAnsi (same-row forward)                    | Some terminals apply current bg to traversed cells            |
+| `\x1b[?2026h/l`      | DEC Sync             | Not used (scheduler disabled, fallback removed)     | Removed — caused garble in Ghostty                            |
+| `\x1b]66;w=N;...BEL` | OSC 66 Text Sizing   | Wide char wrapping                                  | Terminal support varies                                       |
 
 ## File Map
 
