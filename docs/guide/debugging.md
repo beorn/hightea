@@ -36,16 +36,41 @@ SILVERY_STRICT_ACCUMULATE=1 bun run app
 
 ### Diagnostics
 
+All diagnostic output is routed through [loggily](https://github.com/beorn/loggily) structured logging. Use `DEBUG` for log output and `TRACE` for span timing.
+
 ```bash
-# Pipeline debug output (file-based to avoid stdout corruption)
+# All silvery diagnostic output (file-based to avoid stdout corruption)
 DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log bun run app
 
-# Instrumentation counters (exposed on globalThis.__silvery_content_detail)
-SILVERY_INSTRUMENT=1 bun run app
+# Content phase stats only (nodes visited/rendered/skipped per frame)
+DEBUG=silvery:content DEBUG_LOG=/tmp/silvery.log bun run app
 
-# Trace which nodes cover a specific cell during incremental rendering
-SILVERY_CELL_DEBUG=77,85 bun run app
+# Per-node trace entries (requires SILVERY_STRICT for trace collection)
+DEBUG=silvery:content:trace DEBUG_LOG=/tmp/silvery.log bun run app
+
+# Per-cell debug (which nodes cover a specific cell during incremental rendering)
+SILVERY_CELL_DEBUG=77,85 DEBUG=silvery:content:cell DEBUG_LOG=/tmp/silvery.log bun run app
+
+# Pipeline phase timing spans
+TRACE=silvery:pipeline DEBUG_LOG=/tmp/silvery.log bun run app
+
+# Measure phase debug (text measurement calls)
+DEBUG=silvery:measure DEBUG_LOG=/tmp/silvery.log bun run app
+
+# Instrumentation counters (enables stats collection, also exposed on globalThis)
+SILVERY_INSTRUMENT=1 bun run app
 ```
+
+#### Loggily Namespace Reference
+
+| Namespace               | What                                               |
+| ----------------------- | -------------------------------------------------- |
+| `silvery:pipeline`      | Frame-level spans with per-phase timing            |
+| `silvery:content`       | Content phase stats per frame (render/skip counts) |
+| `silvery:content:trace` | Per-node trace entries (skip/render decisions)     |
+| `silvery:content:cell`  | Per-cell debug (node coverage at target coords)    |
+| `silvery:measure`       | Measure phase debug (text measurement calls)       |
+| `@silvery/react`        | React reconciler pipeline spans                    |
 
 ### Enriched STRICT Errors
 
@@ -84,7 +109,7 @@ The scheduler auto-enables instrumentation for the STRICT comparison render. No 
 
 3. **Read the mismatch error**: The enhanced error includes cell values, node path, dirty flags, scroll context, and fast-path analysis. This tells you exactly which node diverged and why it was skipped.
 
-4. **Check instrumentation**: `SILVERY_INSTRUMENT=1` exposes skip/render counts, cascade depth, scroll tier decisions on `globalThis.__silvery_content_detail`. Useful for understanding whether too many or too few nodes rendered.
+4. **Check instrumentation**: `SILVERY_INSTRUMENT=1` enables stats collection. View with `DEBUG=silvery:content DEBUG_LOG=/tmp/silvery.log` (loggily output) or programmatically via `globalThis.__silvery_content_detail`. Useful for understanding whether too many or too few nodes rendered.
 
 5. **Check the five critical formulas**: `layoutChanged`, `contentAreaAffected`, `contentRegionCleared`, `skipBgFill`, `childrenNeedFreshRender` in `renderNodeToBuffer` (content-phase.ts). If any is wrong, the cascade propagates errors to the entire subtree.
 

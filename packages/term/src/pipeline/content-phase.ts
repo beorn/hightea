@@ -7,12 +7,16 @@
  * and delegating to specialized rendering functions for boxes and text.
  *
  * Layout (top-down):
- *   contentPhase → renderNodeToBuffer → renderScrollContainerChildren
- *                                     → renderNormalChildren
+ *   contentPhase → renderNodeToBuffer → buildCascadeInputs + computeCascade
+ *                                     → traceRenderDecision (diagnostics)
+ *                                     → executeRegionClearing
+ *                                     → renderOwnContent
+ *                                     → renderScrollContainerChildren / renderNormalChildren
  *   Helpers: clearDirtyFlags, hasChildPositionChanged, computeChildClipBounds
- *   Region clearing: findInheritedBg, clearNodeRegion, clippedFill
+ *   Region clearing: findInheritedBg, clearNodeRegion, clearExcessArea, clippedFill
  */
 
+import { createLogger } from "loggily"
 import type { Color } from "../buffer"
 import { TerminalBuffer } from "../buffer"
 import type { BoxProps, TeaNode, TextProps } from "@silvery/tea/types"
@@ -23,7 +27,12 @@ import { clearBgConflictWarnings, renderText, setBgConflictMode } from "./render
 import { pushContextTheme, popContextTheme } from "@silvery/theme/state"
 import type { Theme } from "@silvery/theme/types"
 import { computeCascade } from "./cascade-predicates"
+import type { CascadeOutputs } from "./cascade-predicates"
 import type { ClipBounds, ContentPhaseStats, NodeRenderState, NodeTraceEntry, PipelineContext } from "./types"
+
+const contentLog = createLogger("silvery:content")
+const traceLog = createLogger("silvery:content:trace")
+const cellLog = createLogger("silvery:content:cell")
 
 /**
  * Render all nodes to a terminal buffer.
@@ -86,9 +95,14 @@ export function contentPhase(root: TeaNode, prevBuffer?: TerminalBuffer | null, 
       render: tRender,
       ...structuredClone(stats),
     }
+    // Retain globalThis for programmatic consumers (STRICT diagnostics, perf profiling)
     ;(globalThis as any).__silvery_content_detail = snap
     const arr = ((globalThis as any).__silvery_content_all ??= [] as (typeof snap)[])
     arr.push(snap)
+    // Route human-readable output through loggily
+    contentLog.debug?.(
+      `frame ${snap._callCount}: ${snap.nodesRendered}/${snap.nodesVisited} rendered, ${snap.nodesSkipped} skipped (${tClone.toFixed(1)}ms clone, ${tRender.toFixed(1)}ms render)`,
+    )
     for (const key of Object.keys(stats) as (keyof ContentPhaseStats)[]) {
       ;(stats as any)[key] = 0
     }
@@ -100,8 +114,11 @@ export function contentPhase(root: TeaNode, prevBuffer?: TerminalBuffer | null, 
 
   // Export node trace for SILVERY_STRICT diagnosis
   if (nodeTraceEnabled && nodeTrace.length > 0) {
+    // Retain globalThis for programmatic consumers (STRICT diagnostics)
     const traceArr = ((globalThis as any).__silvery_node_trace ??= [] as NodeTraceEntry[][])
     traceArr.push([...nodeTrace])
+    // Route human-readable output through loggily
+    traceLog.debug?.(`${nodeTrace.length} nodes traced`)
     nodeTrace.length = 0
   }
 
@@ -202,7 +219,14 @@ function renderNodeToBuffer(
   nodeState: NodeRenderState,
   ctx?: PipelineContext,
 ): void {
-  const { scrollOffset, clipBounds, hasPrevBuffer, ancestorCleared, bufferIsCloned, ancestorLayoutChanged } = nodeState
+  const {
+    scrollOffset,
+    clipBounds,
+    hasPrevBuffer,
+    ancestorCleared,
+    bufferIsCloned,
+    ancestorLayoutChanged = false,
+  } = nodeState
   // Resolve instrumentation from ctx or module globals
   const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
   const stats = ctx?.stats ?? _contentPhaseStats
@@ -278,7 +302,7 @@ function renderNodeToBuffer(
 
   // Check if any child shifted position (sibling shift from size changes).
   // Gap space between children belongs to this container, so must re-render.
-  const childPositionChanged = hasPrevBuffer && !layoutChanged && hasChildPositionChanged(node)
+  const childPositionChanged = !!(hasPrevBuffer && !layoutChanged && hasChildPositionChanged(node))
 
   // FAST PATH: Skip unchanged subtrees when we have a valid previous buffer.
   // The cloned buffer already has correct pixels for clean nodes.
@@ -305,7 +329,8 @@ function renderNodeToBuffer(
   const _nodeId = instrumentEnabled ? ((props.id as string | undefined) ?? "") : ""
   const _traceThis = instrumentEnabled && nodeTraceEnabled && _nodeId
 
-  // Cell debug: log nodes that cover the target cell
+  // Cell debug: log nodes that cover the target cell.
+  // Retained on globalThis for STRICT diagnostics (create-app.tsx reads the accumulated log).
   const _cellDbg = (globalThis as any).__silvery_cell_debug as { x: number; y: number; log: string[] } | undefined
   const _coversCellNow =
     _cellDbg &&
@@ -326,11 +351,12 @@ function renderNodeToBuffer(
       const id = (props.id as string) ?? node.type
       const depth = _getNodeDepth(node)
       const prev = node.prevLayout
-      _cellDbg.log.push(
+      const msg =
         `SKIP ${id}@${depth} rect=${layout.x},${screenY} ${layout.width}x${layout.height}` +
-          ` prev=${prev ? `${prev.x},${prev.y - scrollOffset} ${prev.width}x${prev.height}` : "null"}` +
-          ` coversNow=${_coversCellNow} coversPrev=${_coversCellPrev}`,
-      )
+        ` prev=${prev ? `${prev.x},${prev.y - scrollOffset} ${prev.width}x${prev.height}` : "null"}` +
+        ` coversNow=${_coversCellNow} coversPrev=${_coversCellPrev}`
+      _cellDbg.log.push(msg)
+      cellLog.debug?.(msg)
     }
     if (instrumentEnabled) {
       stats.nodesSkipped++
@@ -375,30 +401,9 @@ function renderNodeToBuffer(
     // Check if this is a scrollable container
     const isScrollContainer = props.overflow === "scroll" && node.scrollState
 
-    // Compute tree-dependent inputs that require node access.
-    // absoluteChildMutated: an absolute child had structural changes (children
-    // mount/unmount/reorder, layout change, child position shift). Forces parent
-    // to clear stale overlay pixels in gap areas.
-    const absoluteChildMutated =
-      hasPrevBuffer &&
-      node.subtreeDirty &&
-      node.children !== undefined &&
-      node.children.some((child) => {
-        const cp = child.props as BoxProps
-        return (
-          cp.position === "absolute" &&
-          (child.childrenDirty || child.layoutChangedThisFrame || hasChildPositionChanged(child))
-        )
-      })
-
-    // descendantOverflowChanged: a descendant was overflowing THIS node's rect
-    // in the previous frame and its layout changed. Must be detected recursively
-    // at THIS level so borders are properly restored.
-    const descendantOverflowChanged =
-      hasPrevBuffer && node.subtreeDirty && node.children !== undefined && hasDescendantOverflowChanged(node)
-
-    // Compute cascade predicates from boolean inputs.
+    // Build tree-dependent cascade inputs (child traversal), then compute cascade.
     // See cascade-predicates.ts for the truth table and invariants.
+    const { absoluteChildMutated, descendantOverflowChanged } = buildCascadeInputs(node, hasPrevBuffer)
     const cascade = computeCascade({
       hasPrevBuffer,
       contentDirty: node.contentDirty,
@@ -415,141 +420,59 @@ function renderNodeToBuffer(
       absoluteChildMutated,
       descendantOverflowChanged,
     })
-    const { contentAreaAffected, bgRefillNeeded, contentRegionCleared, skipBgFill, childrenNeedFreshRender } = cascade
+    const { contentRegionCleared, skipBgFill, childrenNeedFreshRender } = cascade
 
-    // DIAG: Per-node trace and cascade tracking (gated on instrumentation)
-    if (instrumentEnabled) {
-      if (_traceThis) {
-        const flagStr = [
-          node.contentDirty && "C",
-          node.stylePropsDirty && "P",
-          node.bgDirty && "B",
-          node.subtreeDirty && "S",
-          node.childrenDirty && "Ch",
-          childPositionChanged && "CP",
-        ]
-          .filter(Boolean)
-          .join(",")
-        const childrenNeedRepaint_ = node.childrenDirty || childPositionChanged || childrenNeedFreshRender
-        const childHasPrev_ = childrenNeedRepaint_ ? false : hasPrevBuffer
-        const childAncestorCleared_ = contentRegionCleared || (ancestorCleared && !props.backgroundColor)
-        nodeTrace.push({
-          id: _nodeId,
-          type: node.type,
-          depth: _getNodeDepth(node),
-          rect: `${layout.x},${layout.y} ${layout.width}x${layout.height}`,
-          prevLayout: node.prevLayout
-            ? `${node.prevLayout.x},${node.prevLayout.y} ${node.prevLayout.width}x${node.prevLayout.height}`
-            : "null",
-          hasPrev: hasPrevBuffer,
-          ancestorCleared,
-          flags: flagStr,
-          decision: "RENDER",
-          layoutChanged,
-          contentAreaAffected,
-          contentRegionCleared,
-          childrenNeedFreshRender,
-          childHasPrev: childHasPrev_,
-          childAncestorCleared: childAncestorCleared_,
-          skipBgFill,
-          bgColor: props.backgroundColor as string | undefined,
-        })
-      }
-      if (childrenNeedFreshRender && node.children.length > 0) {
-        const depth = _getNodeDepth(node)
-        if (depth < stats.cascadeMinDepth) {
-          stats.cascadeMinDepth = depth
-        }
-        const id = (node.props as Record<string, unknown>).id ?? node.type
-        const flags = [
-          node.contentDirty && "C",
-          node.stylePropsDirty && "P",
-          node.childrenDirty && "Ch",
-          layoutChanged && "L",
-          childPositionChanged && "CP",
-        ]
-          .filter(Boolean)
-          .join("")
-        const entry = `${id}@${depth}[${flags}:${node.children.length}ch]`
-        stats.cascadeNodes += (stats.cascadeNodes ? " " : "") + entry
-      }
-    }
-
-    // Cell debug: log render decision for nodes covering target cell
-    if (_cellDbg && (_coversCellNow || _coversCellPrev)) {
-      const id = (props.id as string) ?? node.type
-      const depth = _getNodeDepth(node)
-      const prev = node.prevLayout
-      const flags = [
-        node.contentDirty && "C",
-        node.stylePropsDirty && "P",
-        layoutChanged && "L",
-        node.subtreeDirty && "S",
-        node.childrenDirty && "Ch",
-        childPositionChanged && "CP",
-        node.bgDirty && "B",
-      ]
-        .filter(Boolean)
-        .join(",")
-      _cellDbg.log.push(
-        `RENDER ${id}@${depth} rect=${layout.x},${screenY} ${layout.width}x${layout.height}` +
-          ` prev=${prev ? `${prev.x},${prev.y - scrollOffset} ${prev.width}x${prev.height}` : "null"}` +
-          ` flags=[${flags}] hasPrev=${hasPrevBuffer} ancClr=${ancestorCleared}` +
-          ` caa=${contentAreaAffected} prc=${contentRegionCleared} prm=${childrenNeedFreshRender}` +
-          ` coversNow=${_coversCellNow} coversPrev=${_coversCellPrev}` +
-          ` bg=${props.backgroundColor ?? "none"}`,
+    // DIAG: Per-node trace, cascade tracking, and cell debug
+    if (instrumentEnabled || (_cellDbg && (_coversCellNow || _coversCellPrev))) {
+      traceRenderDecision(
+        node,
+        props,
+        layout,
+        screenY,
+        scrollOffset,
+        hasPrevBuffer,
+        ancestorCleared,
+        layoutChanged,
+        childPositionChanged,
+        cascade,
+        _nodeId,
+        _traceThis,
+        _cellDbg,
+        _coversCellNow,
+        _coversCellPrev,
+        instrumentEnabled,
+        stats,
+        nodeTrace,
       )
     }
 
-    if (contentRegionCleared) {
-      if (instrumentEnabled) stats.clearOps++
-      clearNodeRegion(node, buffer, layout, scrollOffset, clipBounds, layoutChanged)
-    } else if (bufferIsCloned && layoutChanged && node.prevLayout) {
-      // Even when contentRegionCleared is false, a shrinking node needs its excess
-      // area cleared. Key scenario: absolute-positioned overlays (e.g., search dialog)
-      // that shrink while normal-flow siblings are dirty — forceRepaint sets
-      // hasPrevBuffer=false + ancestorCleared=false, making contentRegionCleared=false,
-      // but the cloned buffer still has stale pixels from the old larger layout.
-      // Also applies to nodes WITH backgroundColor: renderBox fills only the NEW
-      // (smaller) region, leaving stale pixels in the excess area.
-      //
-      // Gated on bufferIsCloned: on a fresh buffer (e.g., multi-pass resize where
-      // dimensions changed between passes), there are no stale pixels to clear.
-      // Without this guard, clearExcessArea writes inherited bg into cells that
-      // doFreshRender leaves as default, causing STRICT mismatches.
-      clearExcessArea(node, buffer, layout, scrollOffset, clipBounds, layoutChanged)
-    }
+    // Clear stale regions in the cloned buffer before rendering content.
+    executeRegionClearing(
+      node,
+      buffer,
+      layout,
+      scrollOffset,
+      clipBounds,
+      bufferIsCloned,
+      layoutChanged,
+      contentRegionCleared,
+      descendantOverflowChanged,
+      instrumentEnabled,
+      stats,
+    )
 
-    // Clear descendant overflow regions: areas where descendants' previous layouts
-    // extended beyond THIS node's rect. clearNodeRegion covers the node's interior,
-    // but overflow content is beyond it. This is separate from contentRegionCleared
-    // because overflow is OUTSIDE the rect — it needs clearing even for nodes with
-    // backgroundColor (whose interior is handled by renderBox's bg fill).
-    // Runs BEFORE renderBox so borders drawn by renderBox aren't overwritten.
-    if (descendantOverflowChanged) {
-      clearDescendantOverflowRegions(node, buffer, layout, scrollOffset, clipBounds)
-    }
-
-    // Compute inherited bg once for boxes — used by border and outline rendering
-    // to preserve parent backgrounds on border cells (prevents transparent holes).
-    const boxInheritedBg =
-      node.type === "silvery-box" && !props.backgroundColor ? findInheritedBg(node).color : undefined
-
-    // Render based on node type
-    if (node.type === "silvery-box") {
-      if (instrumentEnabled) stats.boxNodes++
-      renderBox(node, buffer, layout, props, nodeState, skipBgFill, boxInheritedBg)
-    } else if (node.type === "silvery-text") {
-      if (instrumentEnabled) stats.textNodes++
-      // Pass inherited bg/fg from nearest ancestor with backgroundColor/color.
-      // inheritedBg decouples text rendering from buffer state, which is critical
-      // for incremental rendering: the cloned buffer may have stale bg at positions
-      // outside the parent's bg-filled region (e.g., overflow text, moved nodes).
-      // Foreground inheritance matches CSS semantics: Box color cascades to Text children.
-      const textInheritedBg = findInheritedBg(node).color
-      const textInheritedFg = findInheritedFg(node)
-      renderText(node, buffer, layout, props, nodeState, textInheritedBg, textInheritedFg, ctx)
-    }
+    // Render this node's own content (box bg/border or text).
+    const boxInheritedBg = renderOwnContent(
+      node,
+      buffer,
+      layout,
+      props,
+      nodeState,
+      skipBgFill,
+      instrumentEnabled,
+      stats,
+      ctx,
+    )
 
     // Render children
     if (isScrollContainer) {
@@ -585,6 +508,263 @@ function renderNodeToBuffer(
     // Pop per-subtree theme override (after ALL child passes including absolute/sticky)
     if (nodeTheme) popContextTheme()
   }
+}
+
+// ============================================================================
+// Cascade Input Helpers
+// ============================================================================
+
+/**
+ * Build tree-dependent cascade inputs that require child traversal.
+ *
+ * These feed into computeCascade() alongside the node's own dirty flags.
+ * Separated from renderNodeToBuffer to keep the main function focused on
+ * the rendering flow rather than child traversal details.
+ */
+function buildCascadeInputs(
+  node: TeaNode,
+  hasPrevBuffer: boolean,
+): { absoluteChildMutated: boolean; descendantOverflowChanged: boolean } {
+  if (!hasPrevBuffer || !node.subtreeDirty || node.children === undefined) {
+    return { absoluteChildMutated: false, descendantOverflowChanged: false }
+  }
+
+  // absoluteChildMutated: an absolute child had structural changes (children
+  // mount/unmount/reorder, layout change, child position shift). Forces parent
+  // to clear stale overlay pixels in gap areas.
+  const absoluteChildMutated = node.children.some((child) => {
+    const cp = child.props as BoxProps
+    return (
+      cp.position === "absolute" &&
+      (child.childrenDirty || child.layoutChangedThisFrame || hasChildPositionChanged(child))
+    )
+  })
+
+  // descendantOverflowChanged: a descendant was overflowing THIS node's rect
+  // in the previous frame and its layout changed. Must be detected recursively
+  // at THIS level so borders are properly restored.
+  const descendantOverflowChanged = hasDescendantOverflowChanged(node)
+
+  return { absoluteChildMutated, descendantOverflowChanged }
+}
+
+// ============================================================================
+// Render Decision Tracing
+// ============================================================================
+
+/**
+ * Log per-node trace, cascade tracking, and cell debug info.
+ *
+ * Gated on instrumentation or cell debug being active. Separated from
+ * renderNodeToBuffer to keep the main function focused on rendering logic.
+ */
+function traceRenderDecision(
+  node: TeaNode,
+  props: BoxProps & TextProps,
+  layout: NonNullable<TeaNode["contentRect"]>,
+  screenY: number,
+  scrollOffset: number,
+  hasPrevBuffer: boolean,
+  ancestorCleared: boolean,
+  layoutChanged: boolean,
+  childPositionChanged: boolean,
+  cascade: CascadeOutputs,
+  _nodeId: string,
+  _traceThis: string | false | 0 | "",
+  _cellDbg: { x: number; y: number; log: string[] } | undefined,
+  _coversCellNow: boolean | undefined,
+  _coversCellPrev: boolean | null | undefined,
+  instrumentEnabled: boolean,
+  stats: ContentPhaseStats,
+  nodeTrace: NodeTraceEntry[],
+): void {
+  const { contentAreaAffected, contentRegionCleared, skipBgFill, childrenNeedFreshRender } = cascade
+
+  // Per-node trace and cascade tracking (gated on instrumentation)
+  if (instrumentEnabled) {
+    if (_traceThis) {
+      const flagStr = [
+        node.contentDirty && "C",
+        node.stylePropsDirty && "P",
+        node.bgDirty && "B",
+        node.subtreeDirty && "S",
+        node.childrenDirty && "Ch",
+        childPositionChanged && "CP",
+      ]
+        .filter(Boolean)
+        .join(",")
+      const childrenNeedRepaint_ = node.childrenDirty || childPositionChanged || childrenNeedFreshRender
+      const childHasPrev_ = childrenNeedRepaint_ ? false : hasPrevBuffer
+      const childAncestorCleared_ = contentRegionCleared || (ancestorCleared && !props.backgroundColor)
+      nodeTrace.push({
+        id: _nodeId,
+        type: node.type,
+        depth: _getNodeDepth(node),
+        rect: `${layout.x},${layout.y} ${layout.width}x${layout.height}`,
+        prevLayout: node.prevLayout
+          ? `${node.prevLayout.x},${node.prevLayout.y} ${node.prevLayout.width}x${node.prevLayout.height}`
+          : "null",
+        hasPrev: hasPrevBuffer,
+        ancestorCleared,
+        flags: flagStr,
+        decision: "RENDER",
+        layoutChanged,
+        contentAreaAffected,
+        contentRegionCleared,
+        childrenNeedFreshRender,
+        childHasPrev: childHasPrev_,
+        childAncestorCleared: childAncestorCleared_,
+        skipBgFill,
+        bgColor: props.backgroundColor as string | undefined,
+      })
+    }
+    if (childrenNeedFreshRender && node.children.length > 0) {
+      const depth = _getNodeDepth(node)
+      if (depth < stats.cascadeMinDepth) {
+        stats.cascadeMinDepth = depth
+      }
+      const id = (node.props as Record<string, unknown>).id ?? node.type
+      const flags = [
+        node.contentDirty && "C",
+        node.stylePropsDirty && "P",
+        node.childrenDirty && "Ch",
+        layoutChanged && "L",
+        childPositionChanged && "CP",
+      ]
+        .filter(Boolean)
+        .join("")
+      const entry = `${id}@${depth}[${flags}:${node.children.length}ch]`
+      stats.cascadeNodes += (stats.cascadeNodes ? " " : "") + entry
+    }
+  }
+
+  // Cell debug: log render decision for nodes covering target cell
+  if (_cellDbg && (_coversCellNow || _coversCellPrev)) {
+    const id = (props.id as string) ?? node.type
+    const depth = _getNodeDepth(node)
+    const prev = node.prevLayout
+    const flags = [
+      node.contentDirty && "C",
+      node.stylePropsDirty && "P",
+      layoutChanged && "L",
+      node.subtreeDirty && "S",
+      node.childrenDirty && "Ch",
+      childPositionChanged && "CP",
+      node.bgDirty && "B",
+    ]
+      .filter(Boolean)
+      .join(",")
+    const msg =
+      `RENDER ${id}@${depth} rect=${layout.x},${screenY} ${layout.width}x${layout.height}` +
+      ` prev=${prev ? `${prev.x},${prev.y - scrollOffset} ${prev.width}x${prev.height}` : "null"}` +
+      ` flags=[${flags}] hasPrev=${hasPrevBuffer} ancClr=${ancestorCleared}` +
+      ` caa=${contentAreaAffected} prc=${contentRegionCleared} prm=${childrenNeedFreshRender}` +
+      ` coversNow=${_coversCellNow} coversPrev=${_coversCellPrev}` +
+      ` bg=${props.backgroundColor ?? "none"}`
+    _cellDbg.log.push(msg)
+    cellLog.debug?.(msg)
+  }
+}
+
+// ============================================================================
+// Region Clearing (executeRegionClearing)
+// ============================================================================
+
+/**
+ * Handle all region clearing before rendering own content.
+ *
+ * Three clearing paths:
+ * 1. contentRegionCleared: clear the node's region with inherited bg (no own bg)
+ * 2. Excess area: clear stale pixels when a node shrank (even without contentRegionCleared)
+ * 3. Descendant overflow: clear areas where descendants previously overflowed this node's rect
+ *
+ * All clearing runs BEFORE renderBox/renderText so borders drawn later are not overwritten.
+ */
+function executeRegionClearing(
+  node: TeaNode,
+  buffer: TerminalBuffer,
+  layout: NonNullable<TeaNode["contentRect"]>,
+  scrollOffset: number,
+  clipBounds: ClipBounds | undefined,
+  bufferIsCloned: boolean,
+  layoutChanged: boolean,
+  contentRegionCleared: boolean,
+  descendantOverflowChanged: boolean,
+  instrumentEnabled: boolean,
+  stats: ContentPhaseStats,
+): void {
+  if (contentRegionCleared) {
+    if (instrumentEnabled) stats.clearOps++
+    clearNodeRegion(node, buffer, layout, scrollOffset, clipBounds, layoutChanged)
+  } else if (bufferIsCloned && layoutChanged && node.prevLayout) {
+    // Even when contentRegionCleared is false, a shrinking node needs its excess
+    // area cleared. Key scenario: absolute-positioned overlays (e.g., search dialog)
+    // that shrink while normal-flow siblings are dirty -- forceRepaint sets
+    // hasPrevBuffer=false + ancestorCleared=false, making contentRegionCleared=false,
+    // but the cloned buffer still has stale pixels from the old larger layout.
+    // Also applies to nodes WITH backgroundColor: renderBox fills only the NEW
+    // (smaller) region, leaving stale pixels in the excess area.
+    //
+    // Gated on bufferIsCloned: on a fresh buffer (e.g., multi-pass resize where
+    // dimensions changed between passes), there are no stale pixels to clear.
+    // Without this guard, clearExcessArea writes inherited bg into cells that
+    // doFreshRender leaves as default, causing STRICT mismatches.
+    clearExcessArea(node, buffer, layout, scrollOffset, clipBounds, layoutChanged)
+  }
+
+  // Clear descendant overflow regions: areas where descendants' previous layouts
+  // extended beyond THIS node's rect. clearNodeRegion covers the node's interior,
+  // but overflow content is beyond it. This is separate from contentRegionCleared
+  // because overflow is OUTSIDE the rect -- it needs clearing even for nodes with
+  // backgroundColor (whose interior is handled by renderBox's bg fill).
+  if (descendantOverflowChanged) {
+    clearDescendantOverflowRegions(node, buffer, layout, scrollOffset, clipBounds)
+  }
+}
+
+// ============================================================================
+// Own Content Rendering
+// ============================================================================
+
+/**
+ * Render this node's own content (box background/border or text).
+ *
+ * For boxes: computes inherited bg for border rendering and calls renderBox.
+ * For text: computes inherited bg/fg for text rendering and calls renderText.
+ *
+ * @returns The boxInheritedBg color (needed by outline rendering after children).
+ */
+function renderOwnContent(
+  node: TeaNode,
+  buffer: TerminalBuffer,
+  layout: NonNullable<TeaNode["contentRect"]>,
+  props: BoxProps & TextProps,
+  nodeState: NodeRenderState,
+  skipBgFill: boolean,
+  instrumentEnabled: boolean,
+  stats: ContentPhaseStats,
+  ctx?: PipelineContext,
+): Color | undefined {
+  // Compute inherited bg once for boxes -- used by border and outline rendering
+  // to preserve parent backgrounds on border cells (prevents transparent holes).
+  const boxInheritedBg = node.type === "silvery-box" && !props.backgroundColor ? findInheritedBg(node).color : undefined
+
+  if (node.type === "silvery-box") {
+    if (instrumentEnabled) stats.boxNodes++
+    renderBox(node, buffer, layout, props, nodeState, skipBgFill, boxInheritedBg)
+  } else if (node.type === "silvery-text") {
+    if (instrumentEnabled) stats.textNodes++
+    // Pass inherited bg/fg from nearest ancestor with backgroundColor/color.
+    // inheritedBg decouples text rendering from buffer state, which is critical
+    // for incremental rendering: the cloned buffer may have stale bg at positions
+    // outside the parent's bg-filled region (e.g., overflow text, moved nodes).
+    // Foreground inheritance matches CSS semantics: Box color cascades to Text children.
+    const textInheritedBg = findInheritedBg(node).color
+    const textInheritedFg = findInheritedFg(node)
+    renderText(node, buffer, layout, props, nodeState, textInheritedBg, textInheritedFg, ctx)
+  }
+
+  return boxInheritedBg
 }
 
 // ============================================================================
@@ -1546,9 +1726,9 @@ function clearNodeRegion(
         clearY + clearHeight > _cellDbg2.y
       if (covers) {
         const id = ((node.props as Record<string, unknown>).id as string) ?? node.type
-        _cellDbg2.log.push(
-          `CLEAR_REGION ${id} fill=${clearX},${clearY} ${clearWidth}x${clearHeight} bg=${String(clearBg)} COVERS TARGET`,
-        )
+        const msg = `CLEAR_REGION ${id} fill=${clearX},${clearY} ${clearWidth}x${clearHeight} bg=${String(clearBg)} COVERS TARGET`
+        _cellDbg2.log.push(msg)
+        cellLog.debug?.(msg)
       }
     }
     buffer.fill(clearX, clearY, clearWidth, clearHeight, {
@@ -1603,10 +1783,11 @@ function clearExcessArea(
   if (prev.width <= layout.width && prev.height <= layout.height) {
     if (_cellDbg3 && _prevCoversCell3) {
       const id = ((node.props as Record<string, unknown>).id as string) ?? node.type
-      _cellDbg3.log.push(
+      const msg =
         `EXCESS_SKIP_NO_SHRINK ${id} prev=${prev.x},${prev.y - scrollOffset} ${prev.width}x${prev.height}` +
-          ` now=${layout.x},${layout.y - scrollOffset} ${layout.width}x${layout.height}`,
-      )
+        ` now=${layout.x},${layout.y - scrollOffset} ${layout.width}x${layout.height}`
+      _cellDbg3.log.push(msg)
+      cellLog.debug?.(msg)
     }
     return
   }
@@ -1623,11 +1804,12 @@ function clearExcessArea(
   if (prev.x !== layout.x || prev.y !== layout.y) {
     if (_cellDbg3 && _prevCoversCell3) {
       const id = ((node.props as Record<string, unknown>).id as string) ?? node.type
-      _cellDbg3.log.push(
+      const msg =
         `EXCESS_SKIP_MOVED ${id} prev=${prev.x},${prev.y - scrollOffset} ${prev.width}x${prev.height}` +
-          ` now=${layout.x},${layout.y - scrollOffset} ${layout.width}x${layout.height}` +
-          ` (dx=${layout.x - prev.x} dy=${layout.y - prev.y})`,
-      )
+        ` now=${layout.x},${layout.y - scrollOffset} ${layout.width}x${layout.height}` +
+        ` (dx=${layout.x - prev.x} dy=${layout.y - prev.y})`
+      _cellDbg3.log.push(msg)
+      cellLog.debug?.(msg)
     }
     return
   }

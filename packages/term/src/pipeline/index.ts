@@ -291,8 +291,10 @@ function executeRenderCore(
   const total = performance.now() - start
   log.debug?.(`total pipeline: ${total.toFixed(2)}ms`)
 
-  // Expose phase timing and render count for benchmarking and diagnostics
-  ;(globalThis as any).__silvery_last_pipeline = {
+  // Expose phase timing and render count for benchmarking and diagnostics.
+  // Retained on globalThis for programmatic consumers (tui.tsx perf overlay,
+  // profile-startup.ts benchmarks, scrollback-perf.tsx demo).
+  const pipelineTimings = {
     measure: tMeasure,
     layout: tLayout,
     scroll: tScroll,
@@ -303,7 +305,11 @@ function executeRenderCore(
     total,
     incremental: prevBuffer !== null,
   }
+  ;(globalThis as any).__silvery_last_pipeline = pipelineTimings
   ;(globalThis as any).__silvery_render_count = ((globalThis as any).__silvery_render_count ?? 0) + 1
+  log.debug?.(
+    `pipeline: measure=${tMeasure.toFixed(1)}ms layout=${tLayout.toFixed(1)}ms content=${tContent.toFixed(1)}ms output=${tOutput.toFixed(1)}ms total=${total.toFixed(1)}ms`,
+  )
 
   return { output, buffer }
 }

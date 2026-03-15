@@ -4,10 +4,13 @@
  * Functions for creating SilveryNodes and applying layout properties.
  */
 
+import { createLogger } from "loggily"
 import { type LayoutNode, getConstants, getLayoutEngine } from "@silvery/term/layout-engine"
 import { collectPlainTextSkipHidden as collectNodeTextContent } from "@silvery/term/pipeline/collect-text"
 import { type BoxProps, type TeaNode, type TeaNodeType, type TextProps, rectEqual } from "@silvery/tea/types"
 import { type Measurer, displayWidth, wrapText } from "@silvery/term/unicode"
+
+const measureLog = createLogger("silvery:measure")
 
 // Import from shared module (lives in @silvery/term to keep barrel React-free)
 // Re-exported for consumers that imported from here previously
@@ -65,18 +68,10 @@ export function createNode(
 
     layoutNode.setMeasureFunc((width, widthMode, height, heightMode) => {
       measureStats.calls++
-      // @ts-expect-error - temporary debug
-      if (globalThis.__silvery_debug_measure) {
-        const text = collectNodeTextContent(node)
-        // @ts-expect-error - temporary debug
-        globalThis.__silvery_debug_measure_log?.push({
-          text: text.slice(0, 40),
-          width,
-          widthMode,
-          height,
-          heightMode,
-        })
-      }
+      // Log measure calls through loggily (zero-cost when disabled via optional chaining)
+      measureLog.debug?.(
+        `measure "${collectNodeTextContent(node).slice(0, 40)}" width=${width} widthMode=${widthMode} height=${height} heightMode=${heightMode}`,
+      )
 
       // Fast path: check if we have a cached result for this exact constraint
       // This avoids text collection entirely if we've measured this before

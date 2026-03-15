@@ -306,12 +306,14 @@ SILVERY_STRICT=1 bun km view /path                        # Buffer-level verific
 SILVERY_STRICT_TERMINAL=vt100 bun km view /path           # ANSI-level (fast internal parser)
 SILVERY_STRICT_TERMINAL=xterm bun km view /path           # Terminal-level (xterm.js emulator)
 SILVERY_STRICT_TERMINAL=all bun km view /path             # All backends
-DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log bun km view /path  # Pipeline debug output
-SILVERY_INSTRUMENT=1 bun km view /path                    # Instrumentation counters
-SILVERY_CELL_DEBUG=77,85 bun km view /path                # Per-cell trace
+DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log bun km view /path  # All silvery diagnostic output
+DEBUG=silvery:content DEBUG_LOG=/tmp/silvery.log bun km view /path  # Content phase stats
+DEBUG=silvery:content:cell SILVERY_CELL_DEBUG=77,85 DEBUG_LOG=/tmp/silvery.log bun km view /path  # Per-cell trace
+TRACE=silvery:pipeline DEBUG_LOG=/tmp/silvery.log bun km view /path  # Pipeline phase timing
+SILVERY_INSTRUMENT=1 bun km view /path                    # Enable stats collection
 ```
 
-The content phase has extensive instrumentation gated on `_instrumentEnabled` -- node visit/skip/render counts, cascade diagnostics, scroll container tier decisions, and per-node trace entries.
+All diagnostic output is routed through loggily structured logging. The content phase has extensive instrumentation gated on `_instrumentEnabled` -- node visit/skip/render counts, cascade diagnostics, scroll container tier decisions, and per-node trace entries. Stats are also exposed on `globalThis.__silvery_content_detail` for programmatic access (STRICT diagnostics, perf profiling).
 
 ## Inline Incremental Rendering
 

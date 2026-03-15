@@ -67,7 +67,7 @@ export type OutputCaps = Pick<TerminalCaps, "underlineStyles" | "underlineColor"
  * - createOutputPhase() closure sets them in scopedOutputPhase()
  * - bare outputPhase() sets them from its parameters
  */
-interface OutputContext {
+export interface OutputContext {
   readonly caps: OutputCaps
   readonly measurer: OutputMeasurer | null
   readonly sgrCache: Map<string, string>
@@ -122,7 +122,7 @@ export interface OutputPhaseFn {
 // instance. We avoid this by closing over the measurer in createOutputPhase()
 // and setting a module-local variable that all output-phase functions read.
 
-interface OutputMeasurer {
+export interface OutputMeasurer {
   graphemeWidth(grapheme: string): number
   readonly textSizingEnabled: boolean
 }
@@ -2339,7 +2339,7 @@ function formatColor(c: number | { r: number; g: number; b: number } | null): st
  *
  * Returns the artifact directory path (included in the error message).
  */
-function captureStrictFailureArtifacts(opts: {
+export function captureStrictFailureArtifacts(opts: {
   source: string
   errorMessage: string
   prev?: TerminalBuffer | null

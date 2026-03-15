@@ -110,7 +110,7 @@ Flag emoji are regional indicator sequences (U+1F1E6..U+1F1FF pairs). Some termi
 
 3. **Read the mismatch error output** — The enhanced error includes cell values, node path, dirty flags, scroll context, and fast-path analysis. This tells you exactly which node diverged and why it was skipped.
 
-4. **`SILVERY_INSTRUMENT=1`** — Exposes skip/render counts, cascade depth, scroll tier decisions on `globalThis.__silvery_content_detail`. Useful for understanding whether too many or too few nodes rendered.
+4. **`SILVERY_INSTRUMENT=1`** — Enables stats collection. View with `DEBUG=silvery:content DEBUG_LOG=/tmp/silvery.log` (loggily output) or programmatically via `globalThis.__silvery_content_detail`. Useful for understanding whether too many or too few nodes rendered.
 
 5. **Check the five critical formulas** — `layoutChanged`, `contentAreaAffected`, `contentRegionCleared`, `skipBgFill`, `childrenNeedFreshRender` in `renderNodeToBuffer`. If any is wrong, the cascade propagates errors to the entire subtree.
 
