@@ -305,7 +305,7 @@ SILVERY_STRICT=1 bun km view /path
 SILVERY_STRICT_OUTPUT=1 bun km view /path
 
 # Verify via independent xterm.js emulator (catches bugs the internal parser misses)
-SILVERY_STRICT_TERMINAL=1 bun km view /path
+SILVERY_STRICT_TERMINAL=1 bun km view /path     # =ghostty for Ghostty WASM, =both for both
 
 # Write pipeline debug output
 DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log bun km view /path
@@ -323,7 +323,7 @@ The content phase has extensive instrumentation gated on `_instrumentEnabled` --
 
 - `SILVERY_STRICT` — buffer-level: incremental content phase produces same buffer as fresh render
 - `SILVERY_STRICT_OUTPUT` — ANSI-level: replays output through `replayAnsiWithStyles` (same parser as generator). Self-referential: won't catch bugs where the parser and generator agree but a real terminal disagrees
-- `SILVERY_STRICT_TERMINAL` — terminal-level: feeds cumulative ANSI output through an independent xterm.js emulator and compares cell-by-cell against a fresh render. Catches bugs that STRICT_OUTPUT misses (e.g., OSC 66 width disagreement, wide char cursor drift, buffer overflow scrolling)
+- `SILVERY_STRICT_TERMINAL` — terminal-level: feeds cumulative ANSI output through an independent terminal emulator and compares cell-by-cell against a fresh render. Values: `1`/`xterm` (xterm.js), `ghostty` (Ghostty WASM), `both` (both backends). Catches bugs that STRICT_OUTPUT misses (e.g., OSC 66 width disagreement, wide char cursor drift, buffer overflow scrolling)
 - `SILVERY_STRICT_ACCUMULATE` — accumulated ANSI: replays ALL frames (O(N\*\*2)) to catch compounding errors across renders
 
 **Enriched STRICT errors**: When `SILVERY_STRICT` detects a mismatch, the `IncrementalRenderMismatchError` automatically captures content-phase stats and mismatch debug context (cell attribution, dirty flags, scroll state, fast-path analysis). The scheduler auto-enables instrumentation for the STRICT comparison render and attaches the results to the error. This eliminates the need for separate `SILVERY_INSTRUMENT` or `SILVERY_CELL_DEBUG` runs when diagnosing STRICT failures.
