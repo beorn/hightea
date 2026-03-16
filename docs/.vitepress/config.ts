@@ -9,6 +9,16 @@ export default defineConfig({
         // at build time following the llmstxt.org standard
       }),
     ],
+    build: {
+      rollupOptions: {
+        // Termless packages are runtime-only (STRICT_TERMINAL verification)
+        // and not available in the standalone silvery repo CI
+        external: ["@termless/core", "@termless/xtermjs", "@termless/ghostty"],
+      },
+    },
+    ssr: {
+      external: ["@termless/core", "@termless/xtermjs", "@termless/ghostty"],
+    },
   },
 
   title: "Silvery",
