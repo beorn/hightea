@@ -102,9 +102,10 @@ import { createSearchState, searchUpdate, renderSearchBar, type SearchMatch } fr
  * Check if value is a Provider with events (full interface).
  */
 function isFullProvider(value: unknown): value is Provider<unknown, Record<string, unknown>> {
+  if (value === null || value === undefined) return false
+  // Term is a Proxy wrapping chalk, so typeof is "function" not "object"
+  if (typeof value !== "object" && typeof value !== "function") return false
   return (
-    value !== null &&
-    typeof value === "object" &&
     "getState" in value &&
     "subscribe" in value &&
     "events" in value &&
@@ -121,9 +122,10 @@ function isBasicProvider(value: unknown): value is {
   getState(): unknown
   subscribe(l: (s: unknown) => void): () => void
 } {
+  if (value === null || value === undefined) return false
+  // Term is a Proxy wrapping chalk, so typeof is "function" not "object"
+  if (typeof value !== "object" && typeof value !== "function") return false
   return (
-    value !== null &&
-    typeof value === "object" &&
     "getState" in value &&
     "subscribe" in value &&
     typeof (value as { getState: unknown }).getState === "function" &&
@@ -489,7 +491,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     stdin = process.stdin,
     signal: externalSignal,
     alternateScreen = false,
-    kittyMode: useKittyMode = false,
+    kittyMode: explicitKittyMode,
     kitty: kittyOption,
     mouse: mouseOption = false,
     virtualInline: virtualInlineOption = false,
@@ -507,6 +509,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     onResize: explicitOnResize,
     ...injectValues
   } = options
+
+  // Derive kitty mode for press(): use explicit kittyMode if set, otherwise
+  // auto-enable when kitty protocol is active (so press() encodes modifier keys correctly)
+  const useKittyMode = explicitKittyMode ?? !!kittyOption
 
   const headless = (explicitCols != null && explicitRows != null && !explicitStdout) || explicitWritable != null
   const cols = explicitCols ?? process.stdout.columns ?? 80
@@ -809,8 +815,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   let kittyFlags: number = defaultKittyFlags
   let mouseEnabled = false
   let focusReportingEnabled = false
-  // Selection state — enabled by default when mouse is enabled
-  const selectionEnabled = selectionOption ?? mouseOption
+  // Selection requires explicit opt-in — don't hijack mouse clicks by default
+  const selectionEnabled = selectionOption ?? false
   let selectionState = createSelectionState()
 
   // Virtual inline mode state

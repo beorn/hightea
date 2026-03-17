@@ -12,18 +12,17 @@
  */
 import React from "react"
 import { Text } from "@silvery/react/components/Text"
+import type { TextProps } from "@silvery/react/components/Text"
 
 // =============================================================================
 // Types
 // =============================================================================
 
-export interface BadgeProps {
+export interface BadgeProps extends Omit<TextProps, "children"> {
   /** Badge text */
   label: string
   /** Color variant */
   variant?: "default" | "primary" | "success" | "warning" | "error"
-  /** Custom color (overrides variant) */
-  color?: string
 }
 
 // =============================================================================
@@ -42,11 +41,11 @@ const VARIANT_COLORS: Record<NonNullable<BadgeProps["variant"]>, string> = {
 // Component
 // =============================================================================
 
-export function Badge({ label, variant = "default", color }: BadgeProps): React.ReactElement {
+export function Badge({ label, variant = "default", color, ...rest }: BadgeProps): React.ReactElement {
   const resolvedColor = color ?? VARIANT_COLORS[variant]
 
   return (
-    <Text color={resolvedColor} bold>
+    <Text color={resolvedColor} bold {...rest}>
       {" "}
       {label}{" "}
     </Text>

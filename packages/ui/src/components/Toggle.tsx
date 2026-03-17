@@ -17,13 +17,14 @@ import React from "react"
 import { useFocusable } from "@silvery/react/hooks/useFocusable"
 import { useInput } from "@silvery/react/hooks/useInput"
 import { Box } from "@silvery/react/components/Box"
+import type { BoxProps } from "@silvery/react/components/Box"
 import { Text } from "@silvery/react/components/Text"
 
 // =============================================================================
 // Types
 // =============================================================================
 
-export interface ToggleProps {
+export interface ToggleProps extends Omit<BoxProps, "children" | "onChange"> {
   /** Whether the toggle is on */
   value: boolean
   /** Called when value changes */
@@ -32,8 +33,6 @@ export interface ToggleProps {
   label?: string
   /** Whether input is active (default: from focus system) */
   isActive?: boolean
-  /** Test ID for focus system */
-  testID?: string
 }
 
 // =============================================================================
@@ -46,7 +45,7 @@ export interface ToggleProps {
  * Renders `[x]` when on, `[ ]` when off. When focused, the checkbox indicator
  * is rendered with inverse styling for visibility.
  */
-export function Toggle({ value, onChange, label, isActive, testID }: ToggleProps): React.ReactElement {
+export function Toggle({ value, onChange, label, isActive, ...rest }: ToggleProps): React.ReactElement {
   const { focused } = useFocusable()
 
   // isActive prop overrides focus state (same pattern as TextInput)
@@ -65,7 +64,7 @@ export function Toggle({ value, onChange, label, isActive, testID }: ToggleProps
   const indicator = value ? "[x]" : "[ ]"
 
   return (
-    <Box focusable testID={testID}>
+    <Box focusable {...rest}>
       <Text inverse={active}>{indicator}</Text>
       {label && <Text> {label}</Text>}
     </Box>

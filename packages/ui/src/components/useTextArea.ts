@@ -116,6 +116,8 @@ export interface UseTextAreaResult {
   setValue: (value: string) => void
   /** Get the current selection range, or null if no selection */
   getSelection: () => TextAreaSelection | null
+  /** Set cursor position (character offset) and scroll to keep it visible */
+  setCursor: (offset: number) => void
 }
 
 // =============================================================================
@@ -630,6 +632,16 @@ export function useTextArea({
     [updateValue],
   )
 
+  const setCursorFn = useCallback(
+    (offset: number) => {
+      const clamped = Math.min(Math.max(0, offset), stateRef.current.value.length)
+      setSelectionAnchor(null)
+      selectionAnchorRef.current = null
+      setCursorAndScroll(clamped, stateRef.current.value)
+    },
+    [setCursorAndScroll],
+  )
+
   return {
     value,
     cursor: clampedCursor,
@@ -644,5 +656,6 @@ export function useTextArea({
     clear,
     setValue,
     getSelection: getSelectionRange,
+    setCursor: setCursorFn,
   }
 }

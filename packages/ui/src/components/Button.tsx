@@ -17,21 +17,20 @@ import React from "react"
 import { useFocusable } from "@silvery/react/hooks/useFocusable"
 import { useInput } from "@silvery/react/hooks/useInput"
 import { Box } from "@silvery/react/components/Box"
+import type { BoxProps } from "@silvery/react/components/Box"
 import { Text } from "@silvery/react/components/Text"
 
 // =============================================================================
 // Types
 // =============================================================================
 
-export interface ButtonProps {
+export interface ButtonProps extends Omit<BoxProps, "children"> {
   /** Button label */
   label: string
   /** Called when activated (Enter or Space) */
   onPress: () => void
   /** Whether input is active (default: from focus system) */
   isActive?: boolean
-  /** Test ID for focus system */
-  testID?: string
   /** Button color */
   color?: string
 }
@@ -46,7 +45,7 @@ export interface ButtonProps {
  * Renders `[ label ]` with inverse styling when focused. Activates on
  * Enter or Space key press.
  */
-export function Button({ label, onPress, isActive, testID, color }: ButtonProps): React.ReactElement {
+export function Button({ label, onPress, isActive, color, ...rest }: ButtonProps): React.ReactElement {
   const { focused } = useFocusable()
 
   // isActive prop overrides focus state (same pattern as TextInput)
@@ -62,7 +61,7 @@ export function Button({ label, onPress, isActive, testID, color }: ButtonProps)
   )
 
   return (
-    <Box focusable testID={testID}>
+    <Box focusable {...rest}>
       <Text color={color} inverse={active}>
         {"[ "}
         {label}

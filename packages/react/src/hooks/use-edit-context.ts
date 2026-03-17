@@ -37,7 +37,7 @@ export interface UseEditContextOptions {
   /** Available width for visual line wrapping */
   wrapWidth?: number
   /** Initial cursor position */
-  initialCursorPos?: "start" | "end"
+  initialCursorPos?: "start" | "end" | number
   /** Preferred cursor column preserved across block boundaries (visual column index) */
   stickyX?: number
   /** Called on each text operation (for undo log) */
@@ -71,6 +71,8 @@ export interface EditTarget {
   getContent(): string
   insertBreak(): boolean
   replaceContent(content: string, cursor: number): void
+  /** Set cursor position from external source (e.g. mouse click) */
+  setCursorOffset(offset: number): void
 }
 
 export interface UseEditContextResult {
@@ -90,6 +92,8 @@ export interface UseEditContextResult {
   editContext: TermEditContext
   /** BlockEditTarget-compatible object for command system integration */
   target: EditTarget
+  /** Set cursor position from external source (e.g. mouse click) */
+  setCursorOffset: (offset: number) => void
 }
 
 /**
@@ -180,13 +184,20 @@ export function useEditContext({
     const effectiveWrapWidth = wrapWidth ?? Infinity
     let cursorPos: number
     if (stickyX != null && initialValue.length > 0) {
-      // Preserve preferred column across block boundaries:
-      // position cursor at stickyX column on the target row
-      const targetRow =
-        initialCursorPos === "start" ? 0 : Math.max(0, countVisualLines(initialValue, effectiveWrapWidth) - 1)
-      cursorPos = rowColToCursor(initialValue, targetRow, stickyX, effectiveWrapWidth)
+      if (typeof initialCursorPos === "number") {
+        cursorPos = Math.max(0, Math.min(initialCursorPos, initialValue.length))
+      } else {
+        const targetRow =
+          initialCursorPos === "start" ? 0 : Math.max(0, countVisualLines(initialValue, effectiveWrapWidth) - 1)
+        cursorPos = rowColToCursor(initialValue, targetRow, stickyX, effectiveWrapWidth)
+      }
     } else {
-      cursorPos = initialCursorPos === "start" ? 0 : initialValue.length
+      cursorPos =
+        typeof initialCursorPos === "number"
+          ? Math.max(0, Math.min(initialCursorPos, initialValue.length))
+          : initialCursorPos === "start"
+            ? 0
+            : initialValue.length
     }
     return createTermEditContext({
       text: initialValue,
@@ -291,6 +302,10 @@ export function useEditContext({
         initialValueRef.current = content
         forceRender()
       },
+      setCursorOffset(offset: number) {
+        ctx.setCursorOffset(Math.min(Math.max(0, offset), ctx.text.length))
+        forceRender()
+      },
     }),
     [ctx, forceRender],
   )
@@ -345,5 +360,12 @@ export function useEditContext({
     ),
     editContext: ctx,
     target,
+    setCursorOffset: useCallback(
+      (offset: number) => {
+        ctx.setCursorOffset(Math.min(Math.max(0, offset), ctx.text.length))
+        forceRender()
+      },
+      [ctx, forceRender],
+    ),
   }
 }

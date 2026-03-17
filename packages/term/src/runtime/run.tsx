@@ -229,18 +229,81 @@ export function usePaste(handler: PasteHandler): void {
  * Internally delegates to createApp() with an empty store.
  * For stores and providers, use createApp() directly.
  */
-export async function run(element: ReactElement, term: Term): Promise<RunHandle>
+export async function run(element: ReactElement, term: Term, termOptions?: Partial<RunOptions>): Promise<RunHandle>
 export async function run(element: ReactElement, options?: RunOptions): Promise<RunHandle>
-export async function run(element: ReactElement, optionsOrTerm: RunOptions | Term = {}): Promise<RunHandle> {
+export async function run(
+  element: ReactElement,
+  optionsOrTerm: RunOptions | Term = {},
+  termOptions?: Partial<RunOptions>,
+): Promise<RunHandle> {
   // Term path: pass Term as provider + its streams, auto-enable from Term caps
   if (isTerm(optionsOrTerm)) {
     const term = optionsOrTerm as Term
     const emulator = (term as Record<string, unknown>)._emulator as { feed(data: string): void } | undefined
 
-    // Emulator-backed term: headless mode with writable routing to emulator
+    // Emulator-backed term: headless mode with writable routing to emulator.
+    // Create a mock stdin that forwards sendInput() data to the term provider's
+    // input parser, so events flow through the full createApp pipeline.
     if (emulator) {
+      const { EventEmitter } = await import("node:events")
+      const stdinEmitter = new EventEmitter()
+      const mockStdin = Object.assign(stdinEmitter, {
+        isTTY: true,
+        isRaw: false,
+        fd: 0,
+        setRawMode(_mode: boolean) {
+          mockStdin.isRaw = _mode
+          return mockStdin
+        },
+        read() {
+          return null
+        },
+        resume() {
+          return mockStdin
+        },
+        pause() {
+          return mockStdin
+        },
+        ref() {
+          return mockStdin
+        },
+        unref() {
+          return mockStdin
+        },
+        setEncoding() {
+          return mockStdin
+        },
+      }) as unknown as NodeJS.ReadStream
+
+      // Wire sendInput: when term.sendInput(data) is called, emit on mock stdin
+      // so the term provider's parser processes it through the real pipeline.
+      const origSendInput = (term as any).sendInput as ((data: string) => void) | undefined
+      if (origSendInput) {
+        ;(term as any)._sendInputToStdin = (data: string) => {
+          stdinEmitter.emit("data", data)
+        }
+        // Monkey-patch sendInput on the termBase via the _emulator reference
+        // We can't patch through the Proxy, so we replace the function on
+        // the underlying object
+        const termBase = term as any
+        const origFn = termBase.sendInput
+        if (origFn) {
+          // The sendInput on termBase is captured via closure, but we need
+          // to redirect it to emit on the mock stdin instead
+          Object.defineProperty(term, "sendInput", {
+            value: (data: string) => {
+              stdinEmitter.emit("data", data)
+            },
+            writable: true,
+            configurable: true,
+          })
+        }
+      }
+
       const app = createApp(() => () => ({}))
       const handle = await app.run(element, {
+        ...termOptions,
+        stdin: mockStdin,
         writable: { write: (s: string) => emulator.feed(s) },
         cols: term.cols ?? 80,
         rows: term.rows ?? 24,

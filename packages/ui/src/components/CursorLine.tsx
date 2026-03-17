@@ -12,8 +12,10 @@
  * <CursorLine beforeCursor="" afterCursor="start" cursorStyle="underline" />
  * ```
  */
-import React from "react"
+import React, { useCallback } from "react"
+import { Box } from "@silvery/react/components/Box"
 import { Text } from "@silvery/react/components/Text"
+import type { SilveryMouseEvent } from "@silvery/term/mouse-events"
 
 // =============================================================================
 // Types
@@ -30,6 +32,8 @@ export interface CursorLineProps {
   showCursor?: boolean
   /** Cursor style: 'block' (inverse) or 'underline' (default: block) */
   cursorStyle?: "block" | "underline"
+  /** Called when the user clicks on the text — provides the character offset at the click position */
+  onCursorClick?: (offset: number) => void
 }
 
 // =============================================================================
@@ -49,23 +53,45 @@ export function CursorLine({
   color,
   showCursor = true,
   cursorStyle = "block",
+  onCursorClick,
 }: CursorLineProps): React.ReactElement {
-  if (!showCursor)
+  const totalLength = beforeCursor.length + afterCursor.length
+
+  const handleMouseDown = useCallback(
+    (e: SilveryMouseEvent) => {
+      if (!onCursorClick || e.button !== 0) return
+      const rect = e.currentTarget.screenRect
+      if (!rect) return
+      const relativeX = e.clientX - rect.x
+      const offset = Math.min(Math.max(0, relativeX), totalLength)
+      onCursorClick(offset)
+    },
+    [onCursorClick, totalLength],
+  )
+
+  const textContent = (() => {
+    if (!showCursor)
+      return (
+        <Text color={color}>
+          {beforeCursor}
+          {afterCursor}
+        </Text>
+      )
+
+    const cursorChar = afterCursor[0] ?? " "
+    const rest = afterCursor.slice(1)
+
     return (
       <Text color={color}>
         {beforeCursor}
-        {afterCursor}
+        {cursorStyle === "block" ? <Text inverse>{cursorChar}</Text> : <Text underline>{cursorChar}</Text>}
+        {rest}
       </Text>
     )
+  })()
 
-  const cursorChar = afterCursor[0] ?? " "
-  const rest = afterCursor.slice(1)
-
-  return (
-    <Text color={color}>
-      {beforeCursor}
-      {cursorStyle === "block" ? <Text inverse>{cursorChar}</Text> : <Text underline>{cursorChar}</Text>}
-      {rest}
-    </Text>
-  )
+  if (onCursorClick) {
+    return <Box onMouseDown={handleMouseDown}>{textContent}</Box>
+  }
+  return textContent
 }

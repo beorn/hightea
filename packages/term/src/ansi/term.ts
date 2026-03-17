@@ -33,6 +33,10 @@ import type {
 import { defaultCaps, detectColor, detectCursor, detectInput, detectTerminalCaps, detectUnicode } from "./detection"
 import type { ProviderEvent } from "../runtime/types"
 import { createTermProvider, type TermState, type TermEvents } from "../runtime/term-provider"
+import { splitRawInput, parseKey } from "@silvery/tea/keys"
+import { isMouseSequence, parseMouseSequence } from "../mouse"
+import { parseFocusEvent } from "../focus-reporting"
+import { parseBracketedPaste } from "../bracketed-paste"
 
 // Re-export Provider-related types for convenience
 export type { TermState, TermEvents } from "../runtime/term-provider"
@@ -555,7 +559,7 @@ function createBackendTerm(emulator: TermEmulator): Term {
 
   const termBase = {
     hasCursor: () => true,
-    hasInput: () => false,
+    hasInput: () => true, // sendInput() makes this term capable of receiving input
     hasColor: () => "truecolor" as ColorLevel | null,
     hasUnicode: () => true,
     caps: undefined as TerminalCaps | undefined,
@@ -589,6 +593,42 @@ function createBackendTerm(emulator: TermEmulator): Term {
       const state: TermState = { cols, rows }
       listeners.forEach((l) => l(state))
       eventQueue.push({ type: "resize", data: { cols, rows } })
+      if (eventResolve) {
+        const resolve = eventResolve
+        eventResolve = null
+        resolve()
+      }
+    },
+    /** Inject raw terminal input as if the user typed it.
+     *  Parsed and pushed into the event queue, flowing through the full
+     *  createApp/run() event pipeline (termProvider → processEventBatch). */
+    sendInput: (data: string) => {
+      // Check for bracketed paste first
+      const pasteResult = parseBracketedPaste(data)
+      if (pasteResult) {
+        eventQueue.push({ type: "paste", data: { text: pasteResult.content } })
+      } else {
+        for (const raw of splitRawInput(data)) {
+          // Focus events: CSI I (focus-in) / CSI O (focus-out)
+          const focusEvent = parseFocusEvent(raw)
+          if (focusEvent) {
+            eventQueue.push({ type: "focus", data: { focused: focusEvent.type === "focus-in" } })
+            continue
+          }
+          // Mouse events
+          if (isMouseSequence(raw)) {
+            const parsed = parseMouseSequence(raw)
+            if (parsed) {
+              eventQueue.push({ type: "mouse", data: parsed })
+            }
+            continue
+          }
+          // Key events
+          const [input, key] = parseKey(raw)
+          eventQueue.push({ type: "key", data: { input, key } })
+        }
+      }
+      // Wake the events() generator
       if (eventResolve) {
         const resolve = eventResolve
         eventResolve = null
@@ -653,6 +693,12 @@ function createChainProxy(currentChalk: ChalkInstance, termBase: object): Term {
         return currentChalk(args[0] as TemplateStringsArray, ...args.slice(1))
       }
       return currentChalk(String(args[0] ?? ""))
+    },
+
+    // Support `in` operator — check termBase first, then chalk
+    has(_target, prop) {
+      if (prop in termBase) return true
+      return prop in currentChalk
     },
 
     // Handle property access for chaining

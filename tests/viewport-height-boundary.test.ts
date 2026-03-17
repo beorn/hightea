@@ -158,11 +158,19 @@ describe("viewport height boundary", () => {
       const incrAnsi = outputPhase(prev, next, "fullscreen", 0, TERM_ROWS)
       const freshAnsi = outputPhase(null, next, "fullscreen", 0, TERM_ROWS)
 
-      const termIncr = createTerminal({ backend: createXtermBackend(), cols: COLS, rows: TERM_ROWS })
+      const termIncr = createTerminal({
+        backend: createXtermBackend(),
+        cols: COLS,
+        rows: TERM_ROWS,
+      })
       termIncr.feed(initialAnsi)
       termIncr.feed(incrAnsi)
 
-      const termFresh = createTerminal({ backend: createXtermBackend(), cols: COLS, rows: TERM_ROWS })
+      const termFresh = createTerminal({
+        backend: createXtermBackend(),
+        cols: COLS,
+        rows: TERM_ROWS,
+      })
       termFresh.feed(freshAnsi)
 
       const mismatches = compareCells(termIncr, termFresh, TERM_ROWS, COLS)
@@ -192,11 +200,19 @@ describe("viewport height boundary", () => {
       const incrAnsi = outputPhase(prev, next, "fullscreen", 0, TERM_ROWS)
       const freshAnsi = outputPhase(null, next, "fullscreen", 0, TERM_ROWS)
 
-      const termIncr = createTerminal({ backend: createXtermBackend(), cols: COLS, rows: TERM_ROWS })
+      const termIncr = createTerminal({
+        backend: createXtermBackend(),
+        cols: COLS,
+        rows: TERM_ROWS,
+      })
       termIncr.feed(initialAnsi)
       termIncr.feed(incrAnsi)
 
-      const termFresh = createTerminal({ backend: createXtermBackend(), cols: COLS, rows: TERM_ROWS })
+      const termFresh = createTerminal({
+        backend: createXtermBackend(),
+        cols: COLS,
+        rows: TERM_ROWS,
+      })
       termFresh.feed(freshAnsi)
 
       const mismatches = compareCells(termIncr, termFresh, TERM_ROWS, COLS)
@@ -223,12 +239,20 @@ describe("viewport height boundary", () => {
       for (let x = 0; x < 5; x++) buf3.setCell(x, 5, { char: "BBBBB"[x]! })
       const render3 = outputPhase(buf2, buf3, "fullscreen", 0, TERM_ROWS)
 
-      const termIncr = createTerminal({ backend: createXtermBackend(), cols: COLS, rows: TERM_ROWS })
+      const termIncr = createTerminal({
+        backend: createXtermBackend(),
+        cols: COLS,
+        rows: TERM_ROWS,
+      })
       termIncr.feed(render1)
       termIncr.feed(render2)
       termIncr.feed(render3)
 
-      const termFresh = createTerminal({ backend: createXtermBackend(), cols: COLS, rows: TERM_ROWS })
+      const termFresh = createTerminal({
+        backend: createXtermBackend(),
+        cols: COLS,
+        rows: TERM_ROWS,
+      })
       termFresh.feed(outputPhase(null, buf3, "fullscreen", 0, TERM_ROWS))
 
       const mismatches = compareCells(termIncr, termFresh, TERM_ROWS, COLS)
@@ -266,7 +290,11 @@ describe("viewport height boundary", () => {
       term.feed(render2)
       term.feed(render3)
 
-      const termFresh = createTerminal({ backend: createXtermBackend(), cols: COLS, rows: TERM_ROWS })
+      const termFresh = createTerminal({
+        backend: createXtermBackend(),
+        cols: COLS,
+        rows: TERM_ROWS,
+      })
       termFresh.feed(outputPhase(null, buf3, "fullscreen", 0, TERM_ROWS))
 
       const mismatches = compareCells(term, termFresh, TERM_ROWS, COLS)
@@ -304,13 +332,21 @@ describe("viewport height boundary", () => {
       for (let x = 0; x < text4.length; x++) buf4.setCell(x, 9, { char: text4[x]! })
       const render4 = outputPhase(buf3, buf4, "fullscreen", 0, TERM_ROWS)
 
-      const termIncr = createTerminal({ backend: createXtermBackend(), cols: COLS, rows: TERM_ROWS })
+      const termIncr = createTerminal({
+        backend: createXtermBackend(),
+        cols: COLS,
+        rows: TERM_ROWS,
+      })
       termIncr.feed(render1)
       termIncr.feed(render2)
       termIncr.feed(render3)
       termIncr.feed(render4)
 
-      const termFresh = createTerminal({ backend: createXtermBackend(), cols: COLS, rows: TERM_ROWS })
+      const termFresh = createTerminal({
+        backend: createXtermBackend(),
+        cols: COLS,
+        rows: TERM_ROWS,
+      })
       termFresh.feed(outputPhase(null, buf4, "fullscreen", 0, TERM_ROWS))
 
       const mismatches = compareCells(termIncr, termFresh, TERM_ROWS, COLS)

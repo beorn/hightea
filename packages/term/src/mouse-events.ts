@@ -352,10 +352,11 @@ export function createMouseEventProcessor(options?: MouseEventProcessorOptions):
  * - mousemove + mouseenter/mouseleave
  * - wheel
  */
-export function processMouseEvent(state: MouseEventProcessorState, parsed: ParsedMouse, root: TeaNode): void {
+export function processMouseEvent(state: MouseEventProcessorState, parsed: ParsedMouse, root: TeaNode): boolean {
   const { x, y, action } = parsed
   const target = hitTest(root, x, y)
-  if (!target) return
+  if (!target) return false
+  let defaultPrevented = false
 
   if (action === "down") {
     state.mouseDownTarget = target
@@ -381,12 +382,14 @@ export function processMouseEvent(state: MouseEventProcessorState, parsed: Parse
     if (state.mouseDownTarget) {
       const clickEvent = createMouseEvent("click", x, y, target, parsed)
       dispatchMouseEvent(clickEvent)
+      if (clickEvent.defaultPrevented) defaultPrevented = true
 
       // Check for double-click
       const isDouble = checkDoubleClick(state.doubleClick, x, y, parsed.button)
       if (isDouble) {
         const dblEvent = createMouseEvent("dblclick", x, y, target, parsed)
         dispatchMouseEvent(dblEvent)
+        if (dblEvent.defaultPrevented) defaultPrevented = true
       }
     }
 
@@ -415,5 +418,7 @@ export function processMouseEvent(state: MouseEventProcessorState, parsed: Parse
   } else if (action === "wheel") {
     const event = createWheelEvent(x, y, target, parsed)
     dispatchMouseEvent(event)
+    if (event.defaultPrevented) defaultPrevented = true
   }
+  return defaultPrevented
 }

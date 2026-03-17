@@ -78,6 +78,9 @@ export interface App {
   /** Simulate a double-click at (x, y) terminal coordinates */
   doubleClick(x: number, y: number, options?: { button?: number }): Promise<this>
 
+  /** Simulate a mouse move/hover at (x, y) terminal coordinates */
+  hover(x: number, y: number): Promise<this>
+
   /** Simulate a mouse wheel event at (x, y) with delta (-1=up, +1=down) */
   wheel(x: number, y: number, delta: number): Promise<this>
 
@@ -374,6 +377,28 @@ export function buildApp(options: AppOptions): App {
         actAndRender(doDblClick)
       } else {
         doDblClick()
+      }
+      await Promise.resolve()
+      return app
+    },
+
+    async hover(x: number, y: number): Promise<App> {
+      const doHover = () => {
+        const parsed: ParsedMouse = {
+          button: 0,
+          x,
+          y,
+          action: "move",
+          shift: false,
+          meta: false,
+          ctrl: false,
+        }
+        processMouseEvent(mouseState, parsed, getContainer())
+      }
+      if (actAndRender) {
+        actAndRender(doHover)
+      } else {
+        doHover()
       }
       await Promise.resolve()
       return app

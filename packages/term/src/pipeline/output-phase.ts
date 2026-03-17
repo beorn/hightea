@@ -2740,7 +2740,11 @@ function verifyTerminalEquivalence(
   if (state.terminal) {
     state.terminal.feed(incrOutput)
     const { createTerminal, createXtermBackend } = loadTermless()
-    const freshTerm = createTerminal({ backend: createXtermBackend(), cols: state.width, rows: state.height })
+    const freshTerm = createTerminal({
+      backend: createXtermBackend(),
+      cols: state.width,
+      rows: state.height,
+    })
     freshTerm.feed(freshAnsi)
     try {
       compareTerminals(state.terminal, freshTerm, state, "xterm")
@@ -2768,7 +2772,11 @@ function verifyTerminalEquivalence(
     state.ghosttyTerminal.feed(incrOutput)
     const { createTerminal } = loadTermless()
     const createGhostty = loadGhosttyBackend()
-    const freshTerm = createTerminal({ backend: createGhostty(), cols: state.width, rows: state.height })
+    const freshTerm = createTerminal({
+      backend: createGhostty(),
+      cols: state.width,
+      rows: state.height,
+    })
     freshTerm.feed(freshAnsi)
     try {
       compareTerminals(state.ghosttyTerminal, freshTerm, state, "ghostty")

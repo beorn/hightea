@@ -461,18 +461,27 @@ function renderNodeToBuffer(
       stats,
     )
 
+    // Determine if this node's own content (border, bg, text) needs repainting.
+    // When hasPrevBuffer=true and only subtreeDirty is set (no own visual changes),
+    // the cloned buffer already has correct own content. Skipping avoids a border
+    // redraw that would overwrite child content rendered on top of the border area
+    // (e.g., text overflow into border columns).
+    const needsOwnRepaint =
+      !hasPrevBuffer ||
+      ancestorCleared ||
+      ancestorLayoutChanged ||
+      cascade.contentAreaAffected ||
+      node.stylePropsDirty ||
+      cascade.bgRefillNeeded
+
     // Render this node's own content (box bg/border or text).
-    const boxInheritedBg = renderOwnContent(
-      node,
-      buffer,
-      layout,
-      props,
-      nodeState,
-      skipBgFill,
-      instrumentEnabled,
-      stats,
-      ctx,
-    )
+    // Compute boxInheritedBg even when skipping own repaint — it's needed by
+    // outline rendering (after children) and may be needed by child rendering.
+    const boxInheritedBg =
+      node.type === "silvery-box" && !props.backgroundColor ? findInheritedBg(node).color : undefined
+    if (needsOwnRepaint) {
+      renderOwnContent(node, buffer, layout, props, nodeState, skipBgFill, instrumentEnabled, stats, ctx)
+    }
 
     // Render children
     if (isScrollContainer) {
@@ -1608,7 +1617,10 @@ function _clearDescendantOverflow(
         const overflowTop = Math.max(prevTop, clipBounds?.top ?? 0)
         const overflowBottom = Math.min(prevBottom, clipBounds?.bottom ?? buffer.height)
         if (overflowWidth > 0 && overflowBottom > overflowTop) {
-          buffer.fill(overflowX, overflowTop, overflowWidth, overflowBottom - overflowTop, { char: " ", bg: clearBg })
+          buffer.fill(overflowX, overflowTop, overflowWidth, overflowBottom - overflowTop, {
+            char: " ",
+            bg: clearBg,
+          })
         }
       }
       // Clear overflow below the ancestor
@@ -1618,7 +1630,10 @@ function _clearDescendantOverflow(
         const overflowX = Math.max(prev.x, clipBounds?.left ?? 0)
         const overflowWidth = Math.min(prevRight, clipBounds?.right ?? buffer.width) - overflowX
         if (overflowWidth > 0 && overflowBottom > overflowTop) {
-          buffer.fill(overflowX, overflowTop, overflowWidth, overflowBottom - overflowTop, { char: " ", bg: clearBg })
+          buffer.fill(overflowX, overflowTop, overflowWidth, overflowBottom - overflowTop, {
+            char: " ",
+            bg: clearBg,
+          })
         }
       }
       // Clear overflow to the left of the ancestor
@@ -1628,7 +1643,10 @@ function _clearDescendantOverflow(
         const overflowTop = Math.max(prevTop, clipBounds?.top ?? 0)
         const overflowBottom = Math.min(prevBottom, clipBounds?.bottom ?? buffer.height)
         if (overflowWidth > 0 && overflowBottom > overflowTop) {
-          buffer.fill(overflowX, overflowTop, overflowWidth, overflowBottom - overflowTop, { char: " ", bg: clearBg })
+          buffer.fill(overflowX, overflowTop, overflowWidth, overflowBottom - overflowTop, {
+            char: " ",
+            bg: clearBg,
+          })
         }
       }
       // Clear overflow above the ancestor
@@ -1638,7 +1656,10 @@ function _clearDescendantOverflow(
         const overflowX = Math.max(prev.x, clipBounds?.left ?? 0)
         const overflowWidth = Math.min(prevRight, clipBounds?.right ?? buffer.width) - overflowX
         if (overflowWidth > 0 && overflowBottom > overflowTop) {
-          buffer.fill(overflowX, overflowTop, overflowWidth, overflowBottom - overflowTop, { char: " ", bg: clearBg })
+          buffer.fill(overflowX, overflowTop, overflowWidth, overflowBottom - overflowTop, {
+            char: " ",
+            bg: clearBg,
+          })
         }
       }
     }

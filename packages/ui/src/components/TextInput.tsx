@@ -32,6 +32,7 @@ import { Text } from "@silvery/react/components/Text"
 import { useReadline } from "./useReadline"
 import { useFocusable } from "@silvery/react/hooks/useFocusable"
 import { useCursor } from "@silvery/react/hooks/useCursor"
+import type { SilveryMouseEvent } from "@silvery/term/mouse-events"
 
 // =============================================================================
 // Types
@@ -189,6 +190,19 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
     visible: isActive,
   })
 
+  // Click-to-position: map mouse click to cursor offset
+  const handleMouseDown = useCallback(
+    (e: SilveryMouseEvent) => {
+      if (e.button !== 0) return
+      const rect = e.currentTarget.screenRect
+      if (!rect) return
+      const relativeX = e.clientX - rect.x - prompt.length
+      const newCursor = Math.max(0, Math.min(relativeX, value.length))
+      readline.setValueWithCursor(value, newCursor)
+    },
+    [prompt.length, value, readline],
+  )
+
   const inputContent = (
     <Text color={color}>
       {prompt && <Text color={promptColor}>{prompt}</Text>}
@@ -224,6 +238,7 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
         borderStyle={borderStyleProp as any}
         borderColor={isActive ? focusBorderColor : borderColorProp}
         paddingX={1}
+        onMouseDown={handleMouseDown}
       >
         {inputContent}
         {showUnderline && <Text dimColor>{"─".repeat(underlineWidth)}</Text>}
@@ -232,7 +247,7 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
   }
 
   return (
-    <Box focusable testID={testID} flexDirection="column">
+    <Box focusable testID={testID} flexDirection="column" onMouseDown={handleMouseDown}>
       {inputContent}
       {showUnderline && <Text dimColor>{"─".repeat(underlineWidth)}</Text>}
     </Box>

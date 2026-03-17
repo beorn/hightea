@@ -2,9 +2,10 @@
  * Theme Explorer Example
  *
  * Browse all built-in palettes with live color preview.
+ * First entry is always the detected terminal theme.
  * Left panel: scrollable list with mini color swatches.
  * Right panel: live preview wrapped in ThemeProvider showing
- * semantic tokens, ANSI 16-color table, surfaces, sample UI, and typography.
+ * semantic tokens, ANSI 16-color table, surfaces, components, and typography.
  */
 
 import React, { useState } from "react"
@@ -12,6 +13,7 @@ import {
   render,
   Box,
   Text,
+  Link,
   Kbd,
   Muted,
   H1,
@@ -22,14 +24,19 @@ import {
   Lead,
   Code,
   P,
+  Blockquote,
   ProgressBar,
+  Spinner,
   Badge,
+  Toggle,
   Divider,
   ThemeProvider,
   useInput,
   useApp,
   createTerm,
+  detectTheme,
   type Key,
+  type Theme,
 } from "../../src/index.js"
 import { builtinPalettes, deriveTheme, type ColorPalette } from "@silvery/theme"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
@@ -38,18 +45,25 @@ export const meta: ExampleMeta = {
   name: "Theme Explorer",
   description: "Browse built-in palettes with live color preview",
   demo: true,
-  features: ["ThemeProvider", "builtinThemes", "semantic tokens", "ANSI colors"],
+  features: ["ThemeProvider", "builtinThemes", "detectTheme", "semantic tokens", "components"],
 }
 
 // ============================================================================
-// Data
+// Types
 // ============================================================================
 
-const paletteEntries = Object.entries(builtinPalettes).map(([name, palette]) => ({
-  name,
-  palette,
-  theme: deriveTheme(palette),
-}))
+export interface ThemeEntry {
+  name: string
+  palette: ColorPalette | null // null for detected theme
+  theme: Theme
+  detected?: boolean
+}
+
+// ============================================================================
+// Data (populated in main, after detection)
+// ============================================================================
+
+let allEntries: ThemeEntry[] = []
 
 // ============================================================================
 // Components
@@ -72,28 +86,39 @@ function MiniSwatch({ palette }: { palette: ColorPalette }): JSX.Element {
   )
 }
 
+/** Mini swatch from theme tokens (for detected theme without a palette) */
+function ThemeMiniSwatch({ theme }: { theme: Theme }): JSX.Element {
+  return (
+    <Text>
+      <Text color={theme.error}>{"█"}</Text>
+      <Text color={theme.success}>{"█"}</Text>
+      <Text color={theme.info}>{"█"}</Text>
+      <Text color={theme.primary}>{"█"}</Text>
+    </Text>
+  )
+}
+
 /** Left panel: theme list with color swatches */
-function ThemeList({ selectedIndex }: { selectedIndex: number }): JSX.Element {
+function ThemeList({ entries, selectedIndex }: { entries: ThemeEntry[]; selectedIndex: number }): JSX.Element {
   return (
     <Box flexDirection="column" width={30} borderStyle="single" overflow="scroll" scrollTo={selectedIndex}>
       <Box paddingX={1}>
         <Text bold color="$primary">
           Palettes
         </Text>
-        <Muted> ({paletteEntries.length})</Muted>
+        <Muted> ({entries.length})</Muted>
       </Box>
       <Divider />
       <Box flexDirection="column" paddingX={1}>
-        {paletteEntries.map((entry, i) => {
+        {entries.map((entry, i) => {
           const isSelected = i === selectedIndex
-          const p = entry.palette
           return (
             <Box key={entry.name}>
               <Text inverse={isSelected}>
                 {isSelected ? "▸" : " "} {entry.name.padEnd(20)}
               </Text>
               <Text> </Text>
-              <MiniSwatch palette={p} />
+              {entry.palette ? <MiniSwatch palette={entry.palette} /> : <ThemeMiniSwatch theme={entry.theme} />}
             </Box>
           )
         })}
@@ -112,7 +137,7 @@ function SemanticTokens(): JSX.Element {
     { name: "info", token: "$info", icon: "ℹ" },
     { name: "accent", token: "$accent", icon: "◆" },
     { name: "muted", token: "$muted", icon: "○" },
-    { name: "link", token: "$link", icon: "→" },
+    { name: "link", token: "$link", icon: "🔗" },
   ]
 
   return (
@@ -175,28 +200,104 @@ function AnsiColorTable({ palette }: { palette: ColorPalette }): JSX.Element {
   )
 }
 
-/** Sample UI elements using theme tokens */
-function SampleUI(): JSX.Element {
+/** ANSI 16-color table from theme palette array (for detected theme) */
+function ThemeAnsiColorTable({ palette }: { palette: string[] }): JSX.Element {
+  const normal = palette.slice(0, 8)
+  const bright = palette.slice(8, 16)
+
   return (
     <Box flexDirection="column">
-      <H2>Sample UI</H2>
+      <H2>ANSI 16 Colors</H2>
+      <Box paddingX={1} gap={1}>
+        <Box>
+          <Muted>0-7 </Muted>
+          {normal.map((c, i) => (
+            <Swatch key={i} color={c} />
+          ))}
+        </Box>
+      </Box>
+      <Box paddingX={1} gap={1}>
+        <Box>
+          <Muted>8-15 </Muted>
+          {bright.map((c, i) => (
+            <Swatch key={i} color={c} />
+          ))}
+        </Box>
+      </Box>
+    </Box>
+  )
+}
+
+/** Component showcase — real silvery components using theme tokens */
+function ComponentShowcase(): JSX.Element {
+  return (
+    <Box flexDirection="column">
+      <H2>Components</H2>
       <Box flexDirection="column" paddingX={1} gap={1}>
+        {/* Links */}
+        <Box gap={2}>
+          <Link href="https://silvery.dev">silvery.dev</Link>
+          <Link href="https://example.com" color="$primary">
+            primary link
+          </Link>
+          <Link href="https://example.com" dim>
+            dim link
+          </Link>
+        </Box>
+
+        {/* Badges */}
+        <Box gap={1} flexWrap="wrap">
+          <Badge variant="default">default</Badge>
+          <Badge variant="success">success</Badge>
+          <Badge variant="error">error</Badge>
+          <Badge variant="warning">warning</Badge>
+          <Badge variant="info">info</Badge>
+          <Badge variant="secondary">secondary</Badge>
+        </Box>
+
+        {/* Progress + Spinner */}
+        <Box gap={2}>
+          <Box gap={1}>
+            <Muted>Progress:</Muted>
+            <Box width={16}>
+              <ProgressBar value={0.65} />
+            </Box>
+          </Box>
+          <Box gap={1}>
+            <Spinner />
+            <Muted>Loading...</Muted>
+          </Box>
+        </Box>
+
+        {/* Toggle */}
+        <Box gap={2}>
+          <Box gap={1}>
+            <Toggle checked={true} />
+            <Text>Enabled</Text>
+          </Box>
+          <Box gap={1}>
+            <Toggle checked={false} />
+            <Muted>Disabled</Muted>
+          </Box>
+        </Box>
+
+        {/* Dialog box */}
         <Box borderStyle="round" paddingX={1} flexDirection="column">
           <Text bold color="$primary">
             Dialog Title
           </Text>
-          <Text>This is body text using default colors.</Text>
-          <Box gap={2}>
-            <Badge variant="success">Passed</Badge>
-            <Badge variant="error">Failed</Badge>
-            <Badge variant="warning">Pending</Badge>
-          </Box>
+          <Text>Body text with default colors.</Text>
+          <Muted>Muted secondary info</Muted>
         </Box>
-        <Box gap={1}>
-          <Muted>Progress:</Muted>
-          <Box width={20}>
-            <ProgressBar value={0.65} />
-          </Box>
+
+        {/* Input border */}
+        <Box borderStyle="single" borderColor="$inputborder" paddingX={1} width={30}>
+          <Text color="$disabledfg">Search...</Text>
+        </Box>
+
+        {/* Focus border */}
+        <Box borderStyle="single" borderColor="$focusborder" paddingX={1} width={30}>
+          <Text>Focused input</Text>
         </Box>
       </Box>
     </Box>
@@ -218,6 +319,7 @@ function TypographySamples(): JSX.Element {
         <Muted>Muted text</Muted>
         <Small>Small text</Small>
         <Code>inline code</Code>
+        <Blockquote>Blockquote text</Blockquote>
       </Box>
     </Box>
   )
@@ -251,26 +353,43 @@ function SurfacePairs(): JSX.Element {
             <Text color="$successfg">success</Text>
           </Box>
         </Box>
+        <Box gap={1}>
+          <Box backgroundColor="$selectionbg" paddingX={1}>
+            <Text color="$selection">selection</Text>
+          </Box>
+          <Box backgroundColor="$popoverbg" paddingX={1}>
+            <Text color="$popover">popover</Text>
+          </Box>
+          <Box backgroundColor="$accent" paddingX={1}>
+            <Text color="$accentfg">accent</Text>
+          </Box>
+        </Box>
       </Box>
     </Box>
   )
 }
 
 /** Right panel: live preview wrapped in selected ThemeProvider */
-function ThemePreview({ entry }: { entry: (typeof paletteEntries)[number] }): JSX.Element {
+function ThemePreview({ entry }: { entry: ThemeEntry }): JSX.Element {
+  const label = entry.detected ? "(detected)" : entry.palette?.dark === false ? "(light)" : "(dark)"
+
   return (
     <ThemeProvider theme={entry.theme}>
       <Box flexDirection="column" flexGrow={1} borderStyle="single" overflow="scroll" backgroundColor="$bg">
         <Box paddingX={1} gap={1}>
           <H1>{entry.name}</H1>
-          <Muted>{entry.palette.dark === false ? "(light)" : "(dark)"}</Muted>
+          <Muted>{label}</Muted>
         </Box>
         <Divider />
         <Box flexDirection="column" gap={1}>
           <SemanticTokens />
-          <AnsiColorTable palette={entry.palette} />
+          {entry.palette ? (
+            <AnsiColorTable palette={entry.palette} />
+          ) : (
+            <ThemeAnsiColorTable palette={entry.theme.palette} />
+          )}
           <SurfacePairs />
-          <SampleUI />
+          <ComponentShowcase />
           <TypographySamples />
         </Box>
       </Box>
@@ -287,7 +406,7 @@ function HelpBar(): JSX.Element {
   )
 }
 
-export function ThemeExplorer(): JSX.Element {
+export function ThemeExplorer({ entries }: { entries: ThemeEntry[] }): JSX.Element {
   const { exit } = useApp()
   const [selectedIndex, setSelectedIndex] = useState(0)
 
@@ -296,19 +415,19 @@ export function ThemeExplorer(): JSX.Element {
       exit()
     }
     if (key.downArrow || input === "j") {
-      setSelectedIndex((i) => Math.min(i + 1, paletteEntries.length - 1))
+      setSelectedIndex((i) => Math.min(i + 1, entries.length - 1))
     }
     if (key.upArrow || input === "k") {
       setSelectedIndex((i) => Math.max(i - 1, 0))
     }
   })
 
-  const entry = paletteEntries[selectedIndex]!
+  const entry = entries[selectedIndex]!
 
   return (
     <Box flexDirection="column" height="100%" padding={1}>
       <Box flexGrow={1} flexDirection="row" gap={1} overflow="hidden">
-        <ThemeList selectedIndex={selectedIndex} />
+        <ThemeList entries={entries} selectedIndex={selectedIndex} />
         <ThemePreview entry={entry} />
       </Box>
       <HelpBar />
@@ -321,10 +440,21 @@ export function ThemeExplorer(): JSX.Element {
 // ============================================================================
 
 async function main() {
+  // Detect terminal theme BEFORE entering alternate screen
+  const detectedTheme = await detectTheme()
+
+  const builtinEntries: ThemeEntry[] = Object.entries(builtinPalettes).map(([name, palette]) => ({
+    name,
+    palette,
+    theme: deriveTheme(palette),
+  }))
+
+  allEntries = [{ name: "Detected", palette: null, theme: detectedTheme, detected: true }, ...builtinEntries]
+
   using term = createTerm()
   const { waitUntilExit } = await render(
     <ExampleBanner meta={meta} controls="j/k navigate  Esc/q quit">
-      <ThemeExplorer />
+      <ThemeExplorer entries={allEntries} />
     </ExampleBanner>,
     term,
   )

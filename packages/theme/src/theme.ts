@@ -66,8 +66,8 @@ export type { ValidationResult } from "./validate"
 export { validateTheme, THEME_TOKEN_KEYS } from "./validate-theme"
 export type { ThemeValidationResult } from "./validate-theme"
 
-// Contrast checking
-export { checkContrast } from "./contrast"
+// Contrast checking and enforcement
+export { checkContrast, ensureContrast } from "./contrast"
 export type { ContrastResult } from "./contrast"
 
 // Token aliasing

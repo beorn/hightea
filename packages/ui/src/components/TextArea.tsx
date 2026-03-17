@@ -43,13 +43,15 @@
  * - Enter: Insert newline (replaces selection, or submit with submitKey)
  * - Typing with selection: Replaces selected text
  */
-import { forwardRef, useImperativeHandle } from "react"
+import { forwardRef, useCallback, useImperativeHandle, useRef } from "react"
 import { useContentRect } from "@silvery/react/hooks/useLayout"
 import { useFocusable } from "@silvery/react/hooks/useFocusable"
 import { useCursor } from "@silvery/react/hooks/useCursor"
 import { Box } from "@silvery/react/components/Box"
 import { Text } from "@silvery/react/components/Text"
 import { useTextArea } from "./useTextArea"
+import type { WrappedLine } from "@silvery/tea/text-cursor"
+import type { SilveryMouseEvent } from "@silvery/term/mouse-events"
 
 // =============================================================================
 // Types
@@ -160,6 +162,35 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
     getSelection: ta.getSelection,
   }))
 
+  // Click-to-position: map mouse click to cursor offset
+  const wrappedLinesRef = useRef<WrappedLine[]>(ta.wrappedLines)
+  wrappedLinesRef.current = ta.wrappedLines
+  const scrollOffsetRef = useRef(ta.scrollOffset)
+  scrollOffsetRef.current = ta.scrollOffset
+
+  const handleMouseDown = useCallback(
+    (e: SilveryMouseEvent) => {
+      if (e.button !== 0) return
+      const rect = e.currentTarget.screenRect
+      if (!rect) return
+
+      const lines = wrappedLinesRef.current
+      const scroll = scrollOffsetRef.current
+
+      const relativeY = e.clientY - rect.y
+      const row = relativeY + scroll
+      const clampedRow = Math.min(Math.max(0, row), lines.length - 1)
+      const wl = lines[clampedRow]
+      if (!wl) return
+
+      const relativeX = e.clientX - rect.x
+      const col = Math.min(Math.max(0, relativeX), wl.line.length)
+      const offset = Math.min(Math.max(0, wl.startOffset + col), ta.value.length)
+      ta.setCursor(offset)
+    },
+    [ta],
+  )
+
   // =========================================================================
   // Rendering
   // =========================================================================
@@ -198,7 +229,15 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   }
 
   return (
-    <Box focusable testID={testID} key={ta.scrollOffset} flexDirection="column" height={height} {...borderProps}>
+    <Box
+      focusable
+      testID={testID}
+      key={ta.scrollOffset}
+      flexDirection="column"
+      height={height}
+      {...borderProps}
+      onMouseDown={handleMouseDown}
+    >
       {ta.visibleLines.map((wl, i) => {
         const absoluteRow = ta.scrollOffset + i
         const isCursorRow = absoluteRow === ta.cursorRow

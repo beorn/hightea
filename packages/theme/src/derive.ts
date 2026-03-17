@@ -5,11 +5,33 @@
  *   ColorPalette (22) → deriveTheme() → Theme (33)
  *
  * Supports two modes:
- *   - truecolor (default): rich derivation with blends, contrast pairing, OKLCH
+ *   - truecolor (default): rich derivation with blends, contrast pairing
  *   - ansi16: direct aliases into the 22 palette colors (no blending)
+ *
+ * ## Contrast-aware derivation
+ *
+ * Fixed blend factors (e.g. "40% toward background") produce wildly different
+ * contrast ratios across themes because palettes have different fg/bg luminance
+ * ranges. A 40% blend that gives 5:1 on Nord gives 2.2:1 on Tokyo Night Day.
+ *
+ * Instead of fixed blend factors, derived tokens use contrast targets:
+ *
+ * | Token           | Target | Rationale                           |
+ * |-----------------|--------|-------------------------------------|
+ * | muted / bg      | 4.5:1  | Secondary text, WCAG AA             |
+ * | disabled-fg / bg| 3.0:1  | Intentionally dim but visible       |
+ * | border / bg     | 1.5:1  | Faint structural divider            |
+ * | inputborder / bg| 2.0:1  | Subtle control boundary             |
+ * | accent as text  | 4.5:1  | Colored text on root background     |
+ * | selection pair  | 4.5:1  | Selected text readable              |
+ *
+ * The blend-first-then-ensure pattern preserves the palette's aesthetic:
+ * the initial blend sets the color's character, ensureContrast only
+ * adjusts lightness (preserving hue/saturation) if the ratio falls short.
  */
 
 import { blend, contrastFg, desaturate, complement } from "./color"
+import { ensureContrast } from "./contrast"
 import type { ColorPalette, Theme } from "./types"
 
 /**
@@ -26,53 +48,89 @@ export function deriveTheme(palette: ColorPalette, mode: "ansi16" | "truecolor" 
   return deriveTruecolorTheme(palette)
 }
 
+// ── Contrast targets ────────────────────────────────────────────────
+// These are minimums — most themes exceed them without adjustment.
+// ensureContrast() is a no-op when the target is already met.
+
+/** WCAG AA for normal text — secondary/muted text, accent-as-text */
+const AA = 4.5
+/** Reduced contrast for intentionally dim UI — disabled text */
+const DIM = 3.0
+/** Faint structural element — borders, dividers */
+const FAINT = 1.5
+/** Subtle but clear control boundary — input/button borders */
+const SUBTLE = 2.0
+
 function deriveTruecolorTheme(p: ColorPalette): Theme {
   const dark = p.dark ?? true
-  const primaryColor = dark ? p.yellow : p.blue
+  const bg = p.background
+  const fg = p.foreground
+
+  // ── Accent colors — ensure readability as text on root bg ────────
+  // Preserves hue, only adjusts lightness when needed.
+  const primary = ensureContrast(dark ? p.yellow : p.blue, bg, AA)
+  const secondary = ensureContrast(desaturate(primary, 0.4), bg, AA)
+  const accent = ensureContrast(complement(primary), bg, AA)
+  const error = ensureContrast(p.red, bg, AA)
+  const warning = ensureContrast(p.yellow, bg, AA)
+  const success = ensureContrast(p.green, bg, AA)
+  const info = ensureContrast(p.cyan, bg, AA)
+  const link = ensureContrast(dark ? p.brightBlue : p.blue, bg, AA)
+
+  // ── Blended tokens — blend first, then ensure contrast ───────────
+  // Muted targets mutedbg (the harder case) so it passes on both bg and mutedbg.
+  const mutedbg = blend(bg, fg, 0.04)
+  const muted = ensureContrast(blend(fg, bg, 0.4), mutedbg, AA)
+  const disabledfg = ensureContrast(blend(fg, bg, 0.5), bg, DIM)
+  const border = ensureContrast(blend(bg, fg, 0.15), bg, FAINT)
+  const inputborder = ensureContrast(blend(bg, fg, 0.25), bg, SUBTLE)
+
+  // ── Selection — palette-sourced, ensure the pair is readable ─────
+  const selection = ensureContrast(p.selectionForeground, p.selectionBackground, AA)
 
   return {
     name: p.name ?? (dark ? "derived-dark" : "derived-light"),
 
     // ── Root pair ─────────────────────────────────────────────────
-    bg: p.background,
-    fg: p.foreground,
+    bg,
+    fg,
 
     // ── Surface pairs (base = text, *bg = background) ──────────
-    muted: blend(p.foreground, p.background, 0.4),
-    mutedbg: blend(p.background, p.foreground, 0.04),
-    surface: p.foreground,
-    surfacebg: blend(p.background, p.foreground, 0.05),
-    popover: p.foreground,
-    popoverbg: blend(p.background, p.foreground, 0.08),
-    inverse: contrastFg(blend(p.foreground, p.background, 0.1)),
-    inversebg: blend(p.foreground, p.background, 0.1),
+    muted,
+    mutedbg,
+    surface: fg,
+    surfacebg: blend(bg, fg, 0.05),
+    popover: fg,
+    popoverbg: blend(bg, fg, 0.08),
+    inverse: contrastFg(blend(fg, bg, 0.1)),
+    inversebg: blend(fg, bg, 0.1),
     cursor: p.cursorText,
     cursorbg: p.cursorColor,
-    selection: p.selectionForeground,
+    selection,
     selectionbg: p.selectionBackground,
 
     // ── Accent pairs (base = area bg, *fg = text on area) ──────
-    primary: primaryColor,
-    primaryfg: contrastFg(primaryColor),
-    secondary: desaturate(primaryColor, 0.4),
-    secondaryfg: contrastFg(desaturate(primaryColor, 0.4)),
-    accent: complement(primaryColor),
-    accentfg: contrastFg(complement(primaryColor)),
-    error: p.red,
-    errorfg: contrastFg(p.red),
-    warning: p.yellow,
-    warningfg: contrastFg(p.yellow),
-    success: p.green,
-    successfg: contrastFg(p.green),
-    info: p.cyan,
-    infofg: contrastFg(p.cyan),
+    primary,
+    primaryfg: contrastFg(primary),
+    secondary,
+    secondaryfg: contrastFg(secondary),
+    accent,
+    accentfg: contrastFg(accent),
+    error,
+    errorfg: contrastFg(error),
+    warning,
+    warningfg: contrastFg(warning),
+    success,
+    successfg: contrastFg(success),
+    info,
+    infofg: contrastFg(info),
 
     // ── Standalone ───────────────────────────────────────────────
-    border: blend(p.background, p.foreground, 0.15),
-    inputborder: blend(p.background, p.foreground, 0.25),
-    focusborder: dark ? p.brightBlue : p.blue,
-    link: p.blue,
-    disabledfg: blend(p.foreground, p.background, 0.5),
+    border,
+    inputborder,
+    focusborder: link,
+    link,
+    disabledfg,
 
     // ── 16 palette passthrough ───────────────────────────────────
     palette: [

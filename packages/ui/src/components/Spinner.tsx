@@ -12,12 +12,13 @@
  */
 import React, { useEffect, useState } from "react"
 import { Text } from "@silvery/react/components/Text"
+import type { TextProps } from "@silvery/react/components/Text"
 
 // =============================================================================
 // Types
 // =============================================================================
 
-export interface SpinnerProps {
+export interface SpinnerProps extends Omit<TextProps, "children"> {
   /** Spinner style preset */
   type?: "dots" | "line" | "arc" | "bounce"
   /** Label text shown after spinner */
@@ -41,7 +42,7 @@ const FRAMES: Record<NonNullable<SpinnerProps["type"]>, readonly string[]> = {
 // Component
 // =============================================================================
 
-export function Spinner({ type = "dots", label, interval = 80 }: SpinnerProps): React.ReactElement {
+export function Spinner({ type = "dots", label, interval = 80, ...rest }: SpinnerProps): React.ReactElement {
   const [frameIndex, setFrameIndex] = useState(0)
   const frames = FRAMES[type]
 
@@ -56,7 +57,7 @@ export function Spinner({ type = "dots", label, interval = 80 }: SpinnerProps): 
   const frame = frames[frameIndex % frames.length]!
 
   return (
-    <Text>
+    <Text {...rest}>
       {frame}
       {label ? ` ${label}` : ""}
     </Text>

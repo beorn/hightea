@@ -25,10 +25,12 @@
  * Scroll logic extracted from TextArea.tsx — same clampScroll pattern
  * that keeps cursor visible within the viewport.
  */
-import React, { useMemo, useRef } from "react"
+import React, { useCallback, useMemo, useRef } from "react"
 import { cursorToRowCol, getWrappedLines } from "@silvery/tea/text-cursor"
+import type { WrappedLine } from "@silvery/tea/text-cursor"
 import { Box } from "@silvery/react/components/Box"
 import { Text } from "@silvery/react/components/Text"
+import type { SilveryMouseEvent } from "@silvery/term/mouse-events"
 
 // =============================================================================
 // Types
@@ -49,6 +51,8 @@ export interface EditContextDisplayProps {
   placeholder?: string
   /** Whether to show the cursor (default: true) */
   showCursor?: boolean
+  /** Called when the user clicks on the text — provides the character offset at the click position */
+  onCursorClick?: (offset: number) => void
 }
 
 // =============================================================================
@@ -80,6 +84,7 @@ export function EditContextDisplay({
   cursorStyle = "block",
   placeholder = "",
   showCursor = true,
+  onCursorClick,
 }: EditContextDisplayProps): React.ReactElement {
   // Scroll offset persists across renders via ref. No useState needed because
   // every cursor/value change triggers a re-render from the parent (props change),
@@ -133,11 +138,48 @@ export function EditContextDisplay({
   const visibleLines = hasViewport ? wrappedLines.slice(currentScroll, currentScroll + height) : wrappedLines
 
   // =========================================================================
+  // Mouse click handler
+  // =========================================================================
+
+  // Keep refs for the click handler to avoid stale closures
+  const wrappedLinesRef = useRef<WrappedLine[]>(wrappedLines)
+  wrappedLinesRef.current = wrappedLines
+  const scrollRefForClick = scrollRef
+
+  const handleMouseDown = useCallback(
+    (e: SilveryMouseEvent) => {
+      if (!onCursorClick || e.button !== 0) return
+      const rect = e.currentTarget.screenRect
+      if (!rect) return
+
+      const lines = wrappedLinesRef.current
+      const scroll = scrollRefForClick.current
+
+      const relativeY = e.clientY - rect.y
+      const row = relativeY + scroll
+      const clampedRow = Math.min(Math.max(0, row), lines.length - 1)
+      const wl = lines[clampedRow]
+      if (!wl) return
+
+      const relativeX = e.clientX - rect.x
+      const col = Math.min(Math.max(0, relativeX), wl.line.length)
+      const offset = Math.min(Math.max(0, wl.startOffset + col), value.length)
+      onCursorClick(offset)
+    },
+    [onCursorClick, value.length],
+  )
+
+  // =========================================================================
   // Render
   // =========================================================================
 
   return (
-    <Box key={currentScroll} flexDirection="column" height={hasViewport ? height : undefined}>
+    <Box
+      key={currentScroll}
+      flexDirection="column"
+      height={hasViewport ? height : undefined}
+      onMouseDown={onCursorClick ? handleMouseDown : undefined}
+    >
       {visibleLines.map((wl, i) => {
         const absoluteRow = currentScroll + i
         const isCursorRow = absoluteRow === cursorRow && showCursor

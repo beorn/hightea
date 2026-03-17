@@ -96,6 +96,35 @@ useInput((input, key) => {
 
 See [Input Features](input-features.md) for the full modifier reference, mouse events, and Kitty protocol details.
 
+### Options
+
+| Option      | Type                                | Default | Description                                      |
+| ----------- | ----------------------------------- | ------- | ------------------------------------------------ |
+| `isActive`  | `boolean`                           | `true`  | Enable/disable input handling                    |
+| `onPaste`   | `(text: string) => void`            | --      | Callback for bracketed paste events              |
+| `onRelease` | `(input: string, key: Key) => void` | --      | Callback for key release events (Kitty protocol) |
+
+### Key Release Events
+
+When the Kitty protocol is enabled with `REPORT_EVENTS`, every keystroke produces both press and release events. By default, `useInput` silently drops release events to preserve press-only semantics for the main handler.
+
+To handle release events, pass an `onRelease` callback:
+
+```tsx
+useInput(
+  (input, key) => {
+    if (input === " ") setScrolling(true) // Space press starts scrolling
+  },
+  {
+    onRelease: (input, key) => {
+      if (input === " ") setScrolling(false) // Space release stops scrolling
+    },
+  },
+)
+```
+
+The `onRelease` callback receives the same `(input, key)` arguments as the main handler, with `key.eventType === "release"`.
+
 ## useApp
 
 Access app-level controls:
@@ -407,3 +436,78 @@ All stdout writes use `\r\n` instead of bare `\n` to cancel the terminal's pendi
 ### OSC 133 Markers
 
 When `markers: true`, each frozen item is bracketed with OSC 133 prompt/command markers, enabling terminal navigation (Cmd+Up/Down in iTerm2, Kitty, WezTerm, Ghostty). Custom marker callbacks are also supported for per-item control.
+
+## useModifierKeys
+
+Track which modifier keys (Cmd, Ctrl, Alt, Shift) are currently held. Uses Kitty protocol key events for accurate modifier tracking.
+
+```tsx
+import { useModifierKeys } from "@silvery/react"
+
+function ModifierDisplay() {
+  const { super: cmdHeld, ctrl, alt, shift } = useModifierKeys()
+  return (
+    <Text>
+      Cmd: {String(cmdHeld)}, Ctrl: {String(ctrl)}
+    </Text>
+  )
+}
+```
+
+The `enabled` option controls subscription -- when `false`, the component never re-renders from modifier changes. Use this to limit re-renders to only the component that needs modifier state:
+
+```tsx
+function HoverTarget() {
+  const [hovered, setHovered] = useState(false)
+  // Only subscribe when hovered -- zero cost for non-hovered elements
+  const { super: cmdHeld } = useModifierKeys({ enabled: hovered })
+  const armed = hovered && cmdHeld
+  // ...
+}
+```
+
+| Option    | Type      | Default | Description                                  |
+| --------- | --------- | ------- | -------------------------------------------- |
+| `enabled` | `boolean` | `true`  | Whether to subscribe to modifier key changes |
+
+| Return  | Type      | Description                             |
+| ------- | --------- | --------------------------------------- |
+| `super` | `boolean` | Super/Cmd key (requires Kitty protocol) |
+| `ctrl`  | `boolean` | Ctrl key                                |
+| `alt`   | `boolean` | Alt/Option key                          |
+| `shift` | `boolean` | Shift key                               |
+
+## useMouseCursor
+
+Set the terminal mouse cursor shape via OSC 22. Resets to default on unmount or when the shape changes to null/undefined. Supported by Ghostty, Kitty (>=0.33), foot, WezTerm (partial). Terminals that don't support OSC 22 safely ignore it.
+
+```tsx
+import { useMouseCursor } from "@silvery/react"
+
+function DraggableHandle() {
+  const [hovered, setHovered] = useState(false)
+  useMouseCursor(hovered ? "move" : null)
+  return (
+    <Box onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <Text>Drag me</Text>
+    </Box>
+  )
+}
+```
+
+Combine with `useModifierKeys` for modifier-aware cursors (as `<Link>` does internally):
+
+```tsx
+function ClickableRegion() {
+  const [hovered, setHovered] = useState(false)
+  const { super: cmdHeld } = useModifierKeys({ enabled: hovered })
+  useMouseCursor(hovered && cmdHeld ? "pointer" : null)
+  // ...
+}
+```
+
+| Parameter | Type                                    | Description                              |
+| --------- | --------------------------------------- | ---------------------------------------- |
+| `shape`   | `MouseCursorShape \| null \| undefined` | Cursor shape to set, or null for default |
+
+Available shapes: `"default"`, `"text"`, `"pointer"`, `"crosshair"`, `"move"`, `"not-allowed"`, `"wait"`, `"help"`.

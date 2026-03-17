@@ -24,10 +24,10 @@ import type { ReactNode } from "react"
 import { createContext, useContext, Children, cloneElement, isValidElement } from "react"
 import { Box } from "@silvery/react/components/Box"
 import { Text } from "@silvery/react/components/Text"
+import type { TextProps } from "@silvery/react/components/Text"
 
-export interface TypographyProps {
+export interface TypographyProps extends Omit<TextProps, "children"> {
   children?: ReactNode
-  color?: string
 }
 
 // ============================================================================
@@ -35,27 +35,27 @@ export interface TypographyProps {
 // ============================================================================
 
 /** Page title — $primary + bold. Maximum emphasis. */
-export function H1({ children, color }: TypographyProps) {
+export function H1({ children, color, ...rest }: TypographyProps) {
   return (
-    <Text bold color={color ?? "$primary"}>
+    <Text bold color={color ?? "$primary"} {...rest}>
       {children}
     </Text>
   )
 }
 
 /** Section heading — $accent + bold. Contrasts with H1. */
-export function H2({ children, color }: TypographyProps) {
+export function H2({ children, color, ...rest }: TypographyProps) {
   return (
-    <Text bold color={color ?? "$accent"}>
+    <Text bold color={color ?? "$accent"} {...rest}>
       {children}
     </Text>
   )
 }
 
 /** Group heading — bold only. Stands out without accent color. */
-export function H3({ children, color }: TypographyProps) {
+export function H3({ children, color, ...rest }: TypographyProps) {
   return (
-    <Text bold color={color}>
+    <Text bold color={color} {...rest}>
       {children}
     </Text>
   )
@@ -66,46 +66,54 @@ export function H3({ children, color }: TypographyProps) {
 // ============================================================================
 
 /** Paragraph — plain body text. Semantic wrapper for readability. */
-export function P({ children, color }: TypographyProps) {
-  return <Text color={color}>{children}</Text>
+export function P({ children, color, ...rest }: TypographyProps) {
+  return (
+    <Text color={color} {...rest}>
+      {children}
+    </Text>
+  )
 }
 
 /** Introductory/lead text — $muted + italic. Slightly elevated, slightly receded. */
-export function Lead({ children, color }: TypographyProps) {
+export function Lead({ children, color, ...rest }: TypographyProps) {
   return (
-    <Text italic color={color ?? "$muted"}>
+    <Text italic color={color ?? "$muted"} {...rest}>
       {children}
     </Text>
   )
 }
 
 /** Secondary/supporting text — $muted. Recedes from body text. */
-export function Muted({ children, color }: TypographyProps) {
-  return <Text color={color ?? "$muted"}>{children}</Text>
+export function Muted({ children, color, ...rest }: TypographyProps) {
+  return (
+    <Text color={color ?? "$muted"} {...rest}>
+      {children}
+    </Text>
+  )
 }
 
 /** Fine print — $muted + dim. Captions, footnotes, text that recedes even more than Muted. */
-export function Small({ children, color }: TypographyProps) {
+export function Small({ children, color, ...rest }: TypographyProps) {
   return (
-    <Text dimColor color={color ?? "$muted"}>
+    <Text dimColor color={color ?? "$muted"} {...rest}>
       {children}
     </Text>
   )
 }
 
 /** Bold emphasis — inline strong text. */
-export function Strong({ children, color }: TypographyProps) {
+export function Strong({ children, color, ...rest }: TypographyProps) {
   return (
-    <Text bold color={color}>
+    <Text bold color={color} {...rest}>
       {children}
     </Text>
   )
 }
 
 /** Italic emphasis — inline emphasized text. */
-export function Em({ children, color }: TypographyProps) {
+export function Em({ children, color, ...rest }: TypographyProps) {
   return (
-    <Text italic color={color}>
+    <Text italic color={color} {...rest}>
       {children}
     </Text>
   )
@@ -116,18 +124,18 @@ export function Em({ children, color }: TypographyProps) {
 // ============================================================================
 
 /** Inline code — $mutedbg background with padding. */
-export function Code({ children, color }: TypographyProps) {
+export function Code({ children, color, ...rest }: TypographyProps) {
   return (
-    <Text backgroundColor="$mutedbg" color={color}>
+    <Text backgroundColor="$mutedbg" color={color} {...rest}>
       {` ${children} `}
     </Text>
   )
 }
 
 /** Keyboard shortcut badge — $mutedbg background + bold. */
-export function Kbd({ children, color }: TypographyProps) {
+export function Kbd({ children, color, ...rest }: TypographyProps) {
   return (
-    <Text backgroundColor="$mutedbg" bold color={color}>
+    <Text backgroundColor="$mutedbg" bold color={color} {...rest}>
       {` ${children} `}
     </Text>
   )
@@ -162,9 +170,9 @@ export function CodeBlock({ children, color }: TypographyProps) {
 }
 
 /** Horizontal rule — thin line across the available width. */
-export function HR({ color }: { color?: string }) {
+export function HR({ color, ...rest }: Omit<TypographyProps, "children">) {
   return (
-    <Text color={color ?? "$border"} wrap="truncate">
+    <Text color={color ?? "$border"} wrap="truncate" {...rest}>
       {"─".repeat(200)}
     </Text>
   )

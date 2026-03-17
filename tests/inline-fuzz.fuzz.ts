@@ -469,7 +469,11 @@ describe("inline mode fuzz", () => {
         // Measure full render size for comparison baseline
         const opMeasure = createOutputPhase({})
         const bufMeasure = bufferWithLines(COLS, ROWS, lines)
-        const fullOutput = opMeasure(null, bufMeasure, "inline", 0, ROWS, { x: 0, y: 0, visible: true })
+        const fullOutput = opMeasure(null, bufMeasure, "inline", 0, ROWS, {
+          x: 0,
+          y: 0,
+          visible: true,
+        })
         const fullBytes = Buffer.byteLength(fullOutput)
 
         // Create fresh output phase for the actual test

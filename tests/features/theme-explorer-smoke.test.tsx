@@ -1,0 +1,43 @@
+/**
+ * Theme Explorer Smoke Test
+ *
+ * Renders the Theme Explorer with every built-in palette to verify
+ * none crash. Dynamic: auto-discovers palettes from @silvery/theme.
+ */
+
+import React from "react"
+import { describe, it, expect } from "vitest"
+import { createRenderer } from "@silvery/test"
+
+import { ThemeExplorer, type ThemeEntry } from "../../examples/interactive/theme.tsx"
+import { builtinPalettes, deriveTheme } from "@silvery/theme"
+
+// Smoke test — disable strict mode (not testing rendering correctness)
+const render = createRenderer({ cols: 120, rows: 40, strict: false })
+
+// Build entries from all built-in palettes (same as the real demo, minus detectTheme)
+const entries: ThemeEntry[] = Object.entries(builtinPalettes).map(([name, palette]) => ({
+  name,
+  palette,
+  theme: deriveTheme(palette),
+}))
+
+describe("theme explorer smoke", () => {
+  it("renders with all built-in palettes", () => {
+    const app = render(<ThemeExplorer entries={entries} />)
+    const frame = app.lastFrame()!
+    expect(frame.length).toBeGreaterThan(0)
+    expect(frame).toContain("Palettes")
+    expect(frame).toContain("Semantic Tokens")
+    app.unmount()
+  })
+
+  it("renders each palette without error", () => {
+    for (const entry of entries) {
+      const app = render(<ThemeExplorer entries={[entry]} />)
+      const frame = app.lastFrame()!
+      expect(frame).toContain(entry.name)
+      app.unmount()
+    }
+  })
+})

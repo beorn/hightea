@@ -1,11 +1,13 @@
 /**
- * WCAG 2.1 contrast checking — compute contrast ratios between colors.
+ * WCAG 2.1 contrast checking and enforcement.
  *
- * Uses the relative luminance formula from WCAG 2.1 to calculate
- * contrast ratios and check AA/AAA compliance levels.
+ * - checkContrast(): measure the ratio between two colors
+ * - ensureContrast(): adjust a color until it meets a target ratio
+ *
+ * Uses the relative luminance formula from WCAG 2.1.
  */
 
-import { hexToRgb } from "./color"
+import { hexToRgb, hexToHsl, hslToHex, contrastFg } from "./color"
 
 /** Result of a contrast check between two colors. */
 export interface ContrastResult {
@@ -72,4 +74,66 @@ export function checkContrast(fg: string, bg: string): ContrastResult | null {
     aa: roundedRatio >= 4.5,
     aaa: roundedRatio >= 7,
   }
+}
+
+/**
+ * Adjust a color's lightness until it meets a minimum contrast ratio
+ * against a reference color. Preserves hue and saturation — only
+ * lightness is shifted, and only as much as needed.
+ *
+ * Returns the original color unchanged if it already meets the target.
+ *
+ * @param color - The color to adjust (hex)
+ * @param against - The reference background color (hex)
+ * @param minRatio - Minimum contrast ratio to achieve (e.g. 4.5 for AA)
+ * @returns Adjusted hex color meeting the target, or original if already OK
+ *
+ * @example
+ * ```typescript
+ * // Yellow on white — too low contrast, gets darkened
+ * ensureContrast("#FFAB91", "#FFFFFF", 4.5)  // → "#B35600" (darker orange)
+ *
+ * // Blue on dark bg — already fine, returned unchanged
+ * ensureContrast("#5C9FFF", "#1A1A2E", 4.5)  // → "#5C9FFF"
+ * ```
+ */
+export function ensureContrast(color: string, against: string, minRatio: number): string {
+  const current = checkContrast(color, against)
+  if (current && current.ratio >= minRatio) return color
+
+  const hsl = hexToHsl(color)
+  if (!hsl) return color
+  const [h, s] = hsl
+
+  // Light bg → darken (decrease L), dark bg → lighten (increase L)
+  const lightBg = contrastFg(against) === "#000000"
+
+  // Binary search for the minimum lightness shift that achieves the target.
+  // lo/hi bracket the L range to search within.
+  let lo: number, hi: number
+  if (lightBg) {
+    lo = 0 // maximum darkening
+    hi = hsl[2] // current lightness
+  } else {
+    lo = hsl[2] // current lightness
+    hi = 1 // maximum lightening
+  }
+
+  for (let i = 0; i < 20; i++) {
+    const mid = (lo + hi) / 2
+    const candidate = hslToHex(h, s, mid)
+    const r = checkContrast(candidate, against)
+    if (!r) break
+    if (lightBg) {
+      // Lower L = more contrast. Find highest L that still passes.
+      if (r.ratio >= minRatio) lo = mid
+      else hi = mid
+    } else {
+      // Higher L = more contrast. Find lowest L that still passes.
+      if (r.ratio >= minRatio) hi = mid
+      else lo = mid
+    }
+  }
+
+  return hslToHex(h, s, lightBg ? lo : hi)
 }

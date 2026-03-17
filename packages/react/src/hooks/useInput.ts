@@ -12,6 +12,35 @@ import { useContext, useEffect, useRef } from "react"
 import { RuntimeContext } from "../context"
 import type { Key } from "@silvery/tea/keys"
 
+/**
+ * Detect modifier-only key events (Cmd, Shift, Ctrl, Alt pressed alone).
+ * With REPORT_ALL_KEYS, these fire as key events with empty input and
+ * no actionable key flags — only modifier flags are set.
+ * Consumed by useModifierKeys, not dispatched to useInput handlers.
+ */
+function isModifierOnlyEvent(input: string, key: Key): boolean {
+  if (input !== "") return false
+  // If any actionable key flag is set, it's not modifier-only
+  if (
+    key.upArrow ||
+    key.downArrow ||
+    key.leftArrow ||
+    key.rightArrow ||
+    key.pageDown ||
+    key.pageUp ||
+    key.home ||
+    key.end ||
+    key.return ||
+    key.escape ||
+    key.tab ||
+    key.backspace ||
+    key.delete
+  )
+    return false
+  // Empty input + no actionable flags = modifier-only event
+  return true
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -42,6 +71,24 @@ export interface UseInputOptions {
    * individual keystrokes.
    */
   onPaste?: (text: string) => void
+
+  /**
+   * Callback for key release events.
+   * Requires Kitty protocol with REPORT_EVENTS flag enabled.
+   * When provided, release events are dispatched here instead of being silently dropped.
+   *
+   * @example
+   * ```tsx
+   * useInput((input, key) => {
+   *   // Handle press/repeat events
+   * }, {
+   *   onRelease: (input, key) => {
+   *     // Handle release events (e.g., stop scrolling, end drag)
+   *   },
+   * })
+   * ```
+   */
+  onRelease?: InputHandler
 }
 
 // ============================================================================
@@ -64,6 +111,10 @@ export interface UseInputOptions {
  *     if (key.upArrow) {
  *       // Move up
  *     }
+ *   }, {
+ *     onRelease: (input, key) => {
+ *       // Handle key release (requires Kitty REPORT_EVENTS)
+ *     },
  *   });
  *
  *   return <Text>Press q to quit</Text>;
@@ -80,7 +131,7 @@ export function useInput(inputHandler: InputHandler, options: UseInputOptions = 
     )
   }
 
-  const { isActive = true, onPaste } = options
+  const { isActive = true, onPaste, onRelease } = options
 
   // Stable ref for the handler — avoids tearing down/recreating the
   // subscription on every render. Without this, rapid keystrokes between
@@ -91,11 +142,23 @@ export function useInput(inputHandler: InputHandler, options: UseInputOptions = 
   const onPasteRef = useRef(onPaste)
   onPasteRef.current = onPaste
 
+  const onReleaseRef = useRef(onRelease)
+  onReleaseRef.current = onRelease
+
   // Subscribe to input events via RuntimeContext
   useEffect(() => {
     if (!isActive) return
 
     return rt.on("input", (input: string, key: Key) => {
+      // Skip modifier-only keys (Cmd, Shift, Ctrl, Alt pressed alone).
+      // These are handled by useModifierKeys, not useInput consumers.
+      if (isModifierOnlyEvent(input, key)) return
+      // Release events are dispatched to onRelease if provided,
+      // otherwise silently dropped (handlers expect press-only semantics).
+      if (key.eventType === "release") {
+        onReleaseRef.current?.(input, key)
+        return
+      }
       handlerRef.current(input, key)
     })
   }, [isActive, rt])

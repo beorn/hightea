@@ -74,13 +74,21 @@ await run(<App />, {
   kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS,
 })
 
-// In your component:
-useInput((input, key) => {
-  if (key.eventType === 1) onKeyDown(input) // Press
-  if (key.eventType === 2) onKeyHeld(input) // Repeat (key held down)
-  if (key.eventType === 3) onKeyUp(input) // Release
-})
+// In your component — use onRelease for key-up events:
+useInput(
+  (input, key) => {
+    // Main handler receives press and repeat events only
+    onKeyDown(input)
+  },
+  {
+    onRelease: (input, key) => {
+      onKeyUp(input) // key.eventType === "release"
+    },
+  },
+)
 ```
+
+> **Note**: By default, `useInput` silently drops release events to preserve press-only semantics. Use the `onRelease` option to opt into release handling.
 
 #### Extended Key Fields
 

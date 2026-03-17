@@ -52,7 +52,11 @@ function compareCrossBackend(
   const xtermTerm = createTerminal({ backend: createXtermBackend(), cols, rows })
   xtermTerm.feed(ansi)
 
-  const ghosttyTerm = createTerminal({ backend: createGhosttyBackend(undefined, ghostty), cols, rows })
+  const ghosttyTerm = createTerminal({
+    backend: createGhosttyBackend(undefined, ghostty),
+    cols,
+    rows,
+  })
   ghosttyTerm.feed(ansi)
 
   const mismatches: { row: number; col: number; xterm: string; ghostty: string }[] = []
@@ -134,7 +138,11 @@ describe("cross-backend output comparison", () => {
     xtermTerm.feed(initialAnsi)
     xtermTerm.feed(incrAnsi)
 
-    const ghosttyTerm = createTerminal({ backend: createGhosttyBackend(undefined, ghostty), cols, rows })
+    const ghosttyTerm = createTerminal({
+      backend: createGhosttyBackend(undefined, ghostty),
+      cols,
+      rows,
+    })
     ghosttyTerm.feed(initialAnsi)
     ghosttyTerm.feed(incrAnsi)
 
@@ -258,7 +266,11 @@ describe("cross-backend output comparison", () => {
     const xtermTerm = createTerminal({ backend: createXtermBackend(), cols, rows })
     xtermTerm.feed(ansi)
 
-    const ghosttyTerm = createTerminal({ backend: createGhosttyBackend(undefined, ghostty), cols, rows })
+    const ghosttyTerm = createTerminal({
+      backend: createGhosttyBackend(undefined, ghostty),
+      cols,
+      rows,
+    })
     ghosttyTerm.feed(ansi)
 
     // Check the last cell specifically

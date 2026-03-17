@@ -818,8 +818,14 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
       // Default text to the character from the codepoint when not explicitly
       // provided by the protocol, so keys like space and return produce their
       // expected text input (' ' and '\r' respectively).
+      // With REPORT_ALL_KEYS, Shift+letter sends lowercase codepoint + shift modifier.
+      // Produce uppercase text to match what the user typed.
       if (kittyParts && key.isPrintable && !textFromProtocol) {
-        key.text = safeFromCodePoint(codepoint)
+        if (key.shift && codepoint >= 97 && codepoint <= 122) {
+          key.text = String.fromCharCode(codepoint - 32) // 'a'→'A'
+        } else {
+          key.text = safeFromCodePoint(codepoint)
+        }
       }
     } else if (KITTY_RE.test(input)) {
       // Matched kitty pattern but was rejected (e.g., invalid codepoint in the
@@ -1113,6 +1119,28 @@ for (const [cp, name] of Object.entries(KITTY_CODEPOINT_MAP)) {
   NAME_TO_KITTY_CODEPOINT[name] = Number(cp)
 }
 
+/**
+ * Implicit modifier bits for modifier-only keys.
+ * When a modifier key is pressed by itself, real terminals include the
+ * corresponding modifier bit in the CSI u sequence. E.g., pressing Cmd alone
+ * sends `\x1b[57444;9u` (codepoint 57444, modifier 9 = super(8) + 1).
+ * This map ensures keyToKittyAnsi produces the same encoding.
+ */
+const MODIFIER_KEY_IMPLICIT_BITS: Record<string, number> = {
+  leftshift: 1,
+  rightshift: 1,
+  leftcontrol: 4,
+  rightcontrol: 4,
+  leftalt: 2,
+  rightalt: 2,
+  leftsuper: 8,
+  rightsuper: 8,
+  lefthyper: 16,
+  righthyper: 16,
+  leftmeta: 32,
+  rightmeta: 32,
+}
+
 /** Playwright-style key name → CSI u codepoint for keys using CSI u format */
 const PLAYWRIGHT_TO_KITTY_CSI_U: Record<string, number> = {
   Enter: 13,
@@ -1215,6 +1243,14 @@ export function keyToKittyAnsi(key: string): string {
   // Try lowercase as direct kitty name (e.g., "return", "escape")
   const cp = NAME_TO_KITTY_CODEPOINT[mainKey.toLowerCase()]
   if (cp !== undefined) {
+    // Modifier-only keys: include the implicit modifier bit.
+    // When the key IS a modifier (leftsuper, leftshift, etc.), real terminals
+    // include the corresponding modifier bit in the sequence. E.g., pressing
+    // Cmd sends codepoint 57444 with super bit (8), so modifier = 9.
+    const implicitMod = MODIFIER_KEY_IMPLICIT_BITS[mainKey.toLowerCase()]
+    if (implicitMod !== undefined) {
+      mod |= implicitMod
+    }
     if (mod > 0) {
       return `\x1b[${cp};${mod + 1}u`
     }
