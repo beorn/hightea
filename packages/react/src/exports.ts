@@ -69,7 +69,13 @@
 export { Box } from "./components/Box"
 export { Console } from "@silvery/ui/components/Console"
 export { ListView } from "@silvery/ui/components/ListView"
-export type { ListViewProps, ListViewHandle, ListItemMeta } from "@silvery/ui/components/ListView"
+export type {
+  ListViewProps,
+  ListViewHandle,
+  ListItemMeta,
+  ListViewHistoryConfig,
+  ListTextAdapter,
+} from "@silvery/ui/components/ListView"
 export { VirtualList } from "@silvery/ui/components/VirtualList"
 export type { VirtualListProps, VirtualListHandle, ItemMeta } from "@silvery/ui/components/VirtualList"
 export { HorizontalVirtualList } from "@silvery/ui/components/HorizontalVirtualList"
@@ -391,7 +397,7 @@ export { useListItem } from "./hooks/useListItem"
 export type { ListItemContext } from "./hooks/useListItem"
 
 // App-level Providers (Phase 4)
-export { SurfaceRegistryProvider, useSurfaceRegistry } from "./providers/SurfaceRegistry"
+export { SurfaceRegistryProvider, useSurfaceRegistry, useSurfaceRegistryOptional } from "./providers/SurfaceRegistry"
 export { SearchProvider, useSearch } from "./providers/SearchProvider"
 export { SearchBar } from "@silvery/ui/components/SearchBar"
 

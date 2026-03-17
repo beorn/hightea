@@ -10,11 +10,11 @@
  * - Basic rendering without history (mode="none")
  */
 
-import React, { useRef } from "react"
+import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
 import { Text } from "../../src/index.js"
-import { ListView, type ListViewHandle } from "../../packages/ui/src/components/ListView"
+import { ListView, type ListViewHandle, type ListItemMeta } from "../../packages/ui/src/components/ListView"
 
 // ============================================================================
 // Test Helpers
@@ -26,8 +26,8 @@ interface Message {
   delivered: boolean
 }
 
-function MessageItem({ msg, isSelected }: { msg: Message; isSelected?: boolean }) {
-  return <Text inverse={isSelected}>{msg.body}</Text>
+function MessageItem({ msg, isCursor }: { msg: Message; isCursor?: boolean }) {
+  return <Text inverse={isCursor}>{msg.body}</Text>
 }
 
 // ============================================================================
@@ -132,7 +132,7 @@ describe("ListView", () => {
           mode: "virtual",
           freezeWhen: (m) => (m as Message).delivered,
         }}
-        text={{
+        textAdapter={{
           getItemText: (m) => (m as Message).body,
         }}
         renderItem={(msg) => <Text>{msg.body}</Text>}
@@ -166,7 +166,7 @@ describe("ListView", () => {
           mode: "virtual",
           freezeWhen: (m) => (m as Message).delivered,
         }}
-        text={{
+        textAdapter={{
           getItemText: (m) => (m as Message).body,
         }}
         renderItem={(msg) => <Text>{msg.body}</Text>}
@@ -200,7 +200,7 @@ describe("ListView", () => {
           mode: "virtual",
           freezeWhen: (m) => (m as Message).delivered,
         }}
-        text={{
+        textAdapter={{
           getItemText: (m) => (m as Message).body,
         }}
         renderItem={(msg) => <Text>{msg.body}</Text>}
@@ -210,7 +210,7 @@ describe("ListView", () => {
     const viewport = listRef.current?.getComposedViewport()
     expect(viewport).not.toBeNull()
     expect(viewport!.isScrolledUp).toBe(false)
-    expect(viewport!.historyRows).toEqual([])
+    expect(viewport!.overlayRows).toEqual([])
   })
 
   // ── No history buffer when mode="none" ──────────────────────────

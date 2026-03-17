@@ -59,11 +59,13 @@ function ChatPane({
   fastMode,
   height,
   active,
+  surfaceId,
 }: {
   script: ScriptEntry[]
   fastMode: boolean
   height: number
   active: boolean
+  surfaceId: string
 }) {
   const exchanges = usePaneContent(script, fastMode)
 
@@ -82,6 +84,12 @@ function ChatPane({
       getKey={(ex: Exchange) => ex.id}
       scrollTo={exchanges.length - 1}
       active={active}
+      surfaceId={surfaceId}
+      history={{
+        mode: "virtual",
+        freezeWhen: (_ex: Exchange, idx: number) => idx < exchanges.length - 1,
+      }}
+      textAdapter={{ getItemText: (ex: Exchange) => ex.content }}
       renderItem={(exchange: Exchange, _index: number, _meta: ListItemMeta) => (
         <ExchangeItem
           exchange={exchange}
@@ -135,7 +143,13 @@ function PanesApp({ fastMode, rows }: { fastMode: boolean; rows: number }) {
               Agent A
             </Text>
           </Box>
-          <ChatPane script={leftScript} fastMode={fastMode} height={listHeight} active={focusedPane === "left"} />
+          <ChatPane
+            script={leftScript}
+            fastMode={fastMode}
+            height={listHeight}
+            active={focusedPane === "left"}
+            surfaceId="left"
+          />
         </Box>
         <Box
           width="50%"
@@ -149,7 +163,13 @@ function PanesApp({ fastMode, rows }: { fastMode: boolean; rows: number }) {
               Agent B
             </Text>
           </Box>
-          <ChatPane script={rightScript} fastMode={fastMode} height={listHeight} active={focusedPane === "right"} />
+          <ChatPane
+            script={rightScript}
+            fastMode={fastMode}
+            height={listHeight}
+            active={focusedPane === "right"}
+            surfaceId="right"
+          />
         </Box>
       </Box>
       <SearchBar />

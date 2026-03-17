@@ -146,3 +146,8 @@ export function useSurfaceRegistry(): SurfaceRegistryValue {
   }
   return ctx
 }
+
+/** Returns the SurfaceRegistryValue if a provider is in the tree, otherwise null. */
+export function useSurfaceRegistryOptional(): SurfaceRegistryValue | null {
+  return useContext(SurfaceRegistryContext)
+}

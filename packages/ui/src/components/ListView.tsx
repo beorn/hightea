@@ -28,10 +28,20 @@
  * ```
  */
 
-import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from "react"
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
 import { useVirtualizer } from "@silvery/react/hooks/useVirtualizer"
 import { useInput } from "@silvery/react/hooks/useInput"
 import { Box } from "@silvery/react/components/Box"
+import { createHistoryBuffer, createHistoryItem } from "@silvery/term/history-buffer"
+import type { HistoryBuffer } from "@silvery/term/history-buffer"
+import { createListDocument } from "@silvery/term/list-document"
+import type { LiveItemBlock } from "@silvery/term/list-document"
+import { createTextSurface } from "@silvery/term/text-surface"
+import type { TextSurface } from "@silvery/term/text-surface"
+import { composeViewport } from "@silvery/term/viewport-compositor"
+import type { ComposedViewport } from "@silvery/term/viewport-compositor"
+import { stripAnsi } from "@silvery/term/unicode"
+import { useSurfaceRegistryOptional } from "@silvery/react/providers/SurfaceRegistry"
 
 // =============================================================================
 // Types
@@ -41,6 +51,20 @@ import { Box } from "@silvery/react/components/Box"
 export interface ListItemMeta {
   /** Whether this item is at the cursor position (navigable mode only) */
   isCursor: boolean
+}
+
+/** History configuration for ListView */
+export interface ListViewHistoryConfig<T> {
+  mode: "none" | "virtual"
+  /** Data-driven freeze predicate — items matching this are frozen to history */
+  freezeWhen?: (item: T, index: number) => boolean
+  /** Maximum rows in history buffer. Default: 10_000 */
+  maxRows?: number
+}
+
+/** Text extraction adapter for search/history */
+export interface ListTextAdapter<T> {
+  getItemText: (item: T) => string
 }
 
 export interface ListViewProps<T> {
@@ -115,11 +139,26 @@ export interface ListViewProps<T> {
   /** Whether this ListView is active for keyboard input. Default: true.
    * Set to false when another pane has focus in multi-pane layouts. */
   active?: boolean
+
+  // ── History / Surface ─────────────────────────────────────────
+
+  /** Surface identity for search/selection routing */
+  surfaceId?: string
+
+  /** Text extraction for search/history */
+  textAdapter?: ListTextAdapter<T>
+
+  /** History configuration */
+  history?: ListViewHistoryConfig<T>
 }
 
 export interface ListViewHandle {
   /** Imperatively scroll to a specific item index */
   scrollToItem(index: number): void
+  /** Get the history buffer (if history.mode === "virtual") */
+  getHistoryBuffer(): HistoryBuffer | null
+  /** Get the composed viewport (if history.mode === "virtual") */
+  getComposedViewport(): ComposedViewport | null
 }
 
 // =============================================================================
@@ -162,6 +201,9 @@ function ListViewInner<T>(
     onCursorIndexChange,
     onSelect,
     active,
+    surfaceId,
+    textAdapter,
+    history,
   }: ListViewProps<T>,
   ref: React.ForwardedRef<ListViewHandle>,
 ): React.ReactElement {
@@ -198,11 +240,51 @@ function ListViewInner<T>(
   // In navigable mode, scrollTo is derived from cursor
   const scrollTo = navigable ? activeCursor : scrollToProp
 
+  // ── History buffer (virtual mode) ─────────────────────────────────
+  const historyMode = history?.mode ?? "none"
+  const historyBufferRef = useRef<HistoryBuffer | null>(null)
+  if (historyMode === "virtual" && !historyBufferRef.current) {
+    historyBufferRef.current = createHistoryBuffer(history?.maxRows ?? 10_000)
+  }
+  const historyBuffer = historyBufferRef.current
+
+  // Compute frozen prefix from freezeWhen
+  let frozenCount = 0
+  if (historyMode === "virtual" && history?.freezeWhen) {
+    for (let i = 0; i < items.length; i++) {
+      if (!history.freezeWhen(items[i]!, i)) break
+      frozenCount++
+    }
+  }
+
+  // Push newly frozen items to history buffer
+  const prevFrozenRef = useRef(0)
+  if (frozenCount > prevFrozenRef.current && historyBuffer) {
+    for (let i = prevFrozenRef.current; i < frozenCount; i++) {
+      const item = items[i]!
+      const text = textAdapter?.getItemText?.(item) ?? String(item)
+      historyBuffer.push(createHistoryItem(getKey?.(item, i) ?? i, text, 80))
+    }
+    prevFrozenRef.current = frozenCount
+  }
+
+  // Merge frozen prefix with external virtualized prop
+  const effectiveVirtualized = useMemo(() => {
+    if (frozenCount === 0) return virtualized
+    if (!virtualized) {
+      return (_item: T, index: number) => index < frozenCount
+    }
+    return (item: T, index: number) => {
+      if (index < frozenCount) return true
+      return virtualized(item, index)
+    }
+  }, [frozenCount, virtualized])
+
   // ── Virtual prefix computation ──────────────────────────────────────
   let virtualizedCount = 0
-  if (virtualized) {
+  if (effectiveVirtualized) {
     for (let i = 0; i < items.length; i++) {
-      if (!virtualized(items[i]!, i)) break
+      if (!effectiveVirtualized(items[i]!, i)) break
       virtualizedCount++
     }
   }
@@ -243,6 +325,86 @@ function ListViewInner<T>(
     onEndReachedThreshold,
   })
 
+  // ── Surface registration ─────────────────────────────────────────
+  const textSurfaceRef = useRef<TextSurface | null>(null)
+  const composedViewportRef = useRef<ComposedViewport | null>(null)
+  const registry = useSurfaceRegistryOptional()
+
+  // Stable refs for the effect closure to avoid re-running on every items change
+  const itemsRef = useRef(items)
+  itemsRef.current = items
+  const virtualizedCountRef = useRef(virtualizedCount)
+  virtualizedCountRef.current = virtualizedCount
+  const textAdapterRef = useRef(textAdapter)
+  textAdapterRef.current = textAdapter
+  const getKeyRef = useRef(getKey)
+  getKeyRef.current = getKey
+
+  // Create and maintain ListDocument + TextSurface when surfaceId is set
+  useEffect(() => {
+    if (!surfaceId || historyMode !== "virtual" || !historyBuffer) return
+
+    const getLiveItems = (): LiveItemBlock[] => {
+      const currentItems = itemsRef.current
+      const currentVirtualizedCount = virtualizedCountRef.current
+      const currentTextAdapter = textAdapterRef.current
+      const currentGetKey = getKeyRef.current
+      const live: LiveItemBlock[] = []
+      for (let i = currentVirtualizedCount; i < currentItems.length; i++) {
+        const item = currentItems[i]!
+        const text = currentTextAdapter?.getItemText?.(item) ?? String(item)
+        const rows = text.split("\n")
+        const plainTextRows = rows.map((r) => stripAnsi(r))
+        live.push({
+          key: currentGetKey?.(item, i) ?? i,
+          itemIndex: i,
+          rows,
+          plainTextRows,
+        })
+      }
+      return live
+    }
+
+    const document = createListDocument(historyBuffer, getLiveItems)
+    const surface = createTextSurface({
+      id: surfaceId,
+      document,
+      viewportToDocument: (viewportRow: number) => viewportRow + historyBuffer.totalRows,
+      onReveal: () => {
+        // Could be extended later for scroll-to-row
+      },
+      capabilities: {
+        paneSafe: true,
+        searchableHistory: true,
+        selectableHistory: true,
+        overlayHistory: true,
+      },
+    })
+
+    textSurfaceRef.current = surface
+
+    // Register with SurfaceRegistry if provider is in the tree
+    if (registry) {
+      registry.register(surface)
+    }
+
+    return () => {
+      textSurfaceRef.current = null
+      if (registry) {
+        registry.unregister(surfaceId)
+      }
+    }
+  }, [surfaceId, historyMode, historyBuffer, registry])
+
+  // Compute composed viewport when history is active
+  if (historyMode === "virtual" && historyBuffer) {
+    composedViewportRef.current = composeViewport({
+      history: historyBuffer,
+      viewportHeight: height,
+      scrollOffset: 0, // At tail by default; scroll offset would come from external state
+    })
+  }
+
   // ── Ref ───────────────────────────────────────────────────────────
   // Wrap scrollToItem to accept original indices (before virtual adjustment)
   useImperativeHandle(
@@ -250,6 +412,12 @@ function ListViewInner<T>(
     () => ({
       scrollToItem(index: number) {
         scrollToItem(Math.max(0, index - virtualizedCount))
+      },
+      getHistoryBuffer(): HistoryBuffer | null {
+        return historyBufferRef.current
+      },
+      getComposedViewport(): ComposedViewport | null {
+        return composedViewportRef.current
       },
     }),
     [scrollToItem, virtualizedCount],
