@@ -88,6 +88,13 @@ export { withKeybindings } from "./with-keybindings"
 export type { WithKeybindingsOptions, KeybindingContext, ExtendedKeybindingDef } from "./with-keybindings"
 
 // =============================================================================
+// withLinks — Link event handling
+// =============================================================================
+
+export { withLinks } from "./with-links"
+export type { WithLinksOptions, LinkEventBus, LinkHandler, AppWithLinks } from "./with-links"
+
+// =============================================================================
 // withDiagnostics — Testing invariants
 // =============================================================================
 

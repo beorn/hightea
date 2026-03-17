@@ -16,7 +16,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { defaultKeybindingLayers, parseKeyString, type Keybinding, type ParsedKey } from "@km/commands/keybindings"
+import { defaultKeybindingLayers, parseKeyString, type ParsedKey } from "@km/commands"
 import { parseKeypress, keyToAnsi, keyToKittyAnsi, splitRawInput } from "@silvery/tea/keys"
 
 // =============================================================================
@@ -405,9 +405,7 @@ describe("keybinding delivery matrix", () => {
       const legacyKeys = results.filter((r) => !r.kittyRequired)
       const kittyKeys = results.filter((r) => r.kittyRequired)
       const legacyPass = legacyKeys.filter((r) => !r.error)
-      const kittyPass = kittyKeys.filter(
-        (r) => !r.error || KNOWN_UNDELIVERABLE[r.playwrightKey] !== undefined,
-      )
+      const kittyPass = kittyKeys.filter((r) => !r.error || KNOWN_UNDELIVERABLE[r.playwrightKey] !== undefined)
 
       const legacyPassRate = legacyKeys.length > 0 ? (legacyPass.length / legacyKeys.length) * 100 : 100
       const kittyPassRate = kittyKeys.length > 0 ? (kittyPass.length / kittyKeys.length) * 100 : 100
@@ -422,9 +420,7 @@ describe("keybinding delivery matrix", () => {
       console.log(`Known undeliverable: ${Object.keys(KNOWN_UNDELIVERABLE).length}`)
 
       // Failures detail
-      const failures = results.filter(
-        (r) => r.error && !KNOWN_UNDELIVERABLE[r.playwrightKey],
-      )
+      const failures = results.filter((r) => r.error && !KNOWN_UNDELIVERABLE[r.playwrightKey])
       if (failures.length > 0) {
         console.log(`\nFailed roundtrips (${failures.length}):`)
         for (const f of failures) {

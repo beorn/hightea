@@ -200,6 +200,9 @@ export type {
 export { withKeybindings } from "./with-keybindings"
 export type { WithKeybindingsOptions, KeybindingContext, ExtendedKeybindingDef } from "./with-keybindings"
 
+export { withLinks } from "./with-links"
+export type { WithLinksOptions, LinkEventBus, LinkHandler, AppWithLinks } from "./with-links"
+
 export { withDiagnostics, checkLayoutInvariants, VirtualTerminal } from "./with-diagnostics"
 export type { DiagnosticOptions } from "./with-diagnostics"
 

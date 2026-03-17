@@ -33,8 +33,25 @@
  */
 
 import { blend, contrastFg, desaturate, complement } from "./color"
-import { ensureContrast } from "./contrast"
+import { checkContrast, ensureContrast } from "./contrast"
 import type { ColorPalette, Theme } from "./types"
+
+/** A single contrast adjustment made during theme derivation. */
+export interface ThemeAdjustment {
+  /** Token name (e.g. "primary", "muted", "fg") */
+  token: string
+  /** Original color before adjustment */
+  from: string
+  /** Adjusted color */
+  to: string
+  /** Background color used for contrast check */
+  against: string
+  /** Target contrast ratio */
+  target: number
+  /** Contrast ratio before and after adjustment */
+  ratioBefore: number
+  ratioAfter: number
+}
 
 /**
  * Derive a complete Theme from a ColorPalette.
@@ -44,10 +61,15 @@ import type { ColorPalette, Theme } from "./types"
  *
  * @param palette - The 22-color terminal palette
  * @param mode - "truecolor" (default) for rich derivation, "ansi16" for direct aliases
+ * @param adjustments - Optional array to collect contrast adjustments made during derivation
  */
-export function deriveTheme(palette: ColorPalette, mode: "ansi16" | "truecolor" = "truecolor"): Theme {
+export function deriveTheme(
+  palette: ColorPalette,
+  mode: "ansi16" | "truecolor" = "truecolor",
+  adjustments?: ThemeAdjustment[],
+): Theme {
   if (mode === "ansi16") return deriveAnsi16Theme(palette)
-  return deriveTruecolorTheme(palette)
+  return deriveTruecolorTheme(palette, adjustments)
 }
 
 // ── Contrast targets ────────────────────────────────────────────────
@@ -63,39 +85,58 @@ const FAINT = 1.5
 /** WCAG 1.4.11 non-text minimum — interactive control boundaries */
 const CONTROL = 3.0
 
-function deriveTruecolorTheme(p: ColorPalette): Theme {
+function deriveTruecolorTheme(p: ColorPalette, adjustments?: ThemeAdjustment[]): Theme {
   const dark = p.dark ?? true
   const bg = p.background
+
+  /** ensureContrast with optional adjustment tracking */
+  function ensure(token: string, color: string, against: string, target: number): string {
+    const result = ensureContrast(color, against, target)
+    if (adjustments && result !== color) {
+      const before = checkContrast(color, against)
+      const after = checkContrast(result, against)
+      adjustments.push({
+        token,
+        from: color,
+        to: result,
+        against,
+        target,
+        ratioBefore: before?.ratio ?? 0,
+        ratioAfter: after?.ratio ?? 0,
+      })
+    }
+    return result
+  }
 
   // ── Body text — ensure readability on all surfaces ──────────────
   // Surface backgrounds blend bg toward fg by 4-8%. popoverbg (8%) is the
   // hardest case — if fg meets AA there, it meets AA on all surfaces.
   const surfacebg = blend(bg, p.foreground, 0.05)
   const popoverbg = blend(bg, p.foreground, 0.08)
-  const fg = ensureContrast(p.foreground, popoverbg, AA)
+  const fg = ensure("fg", p.foreground, popoverbg, AA)
 
   // ── Accent colors — ensure readability as text on root bg ────────
   // Use explicit primary seed if provided, else infer from ANSI slots.
-  const primary = ensureContrast(p.primary ?? (dark ? p.yellow : p.blue), bg, AA)
-  const secondary = ensureContrast(desaturate(primary, 0.4), bg, AA)
-  const accent = ensureContrast(complement(primary), bg, AA)
-  const error = ensureContrast(p.red, bg, AA)
-  const warning = ensureContrast(p.yellow, bg, AA)
-  const success = ensureContrast(p.green, bg, AA)
-  const info = ensureContrast(p.cyan, bg, AA)
-  const link = ensureContrast(dark ? p.brightBlue : p.blue, bg, AA)
+  const primary = ensure("primary", p.primary ?? (dark ? p.yellow : p.blue), bg, AA)
+  const secondary = ensure("secondary", desaturate(primary, 0.4), bg, AA)
+  const accent = ensure("accent", complement(primary), bg, AA)
+  const error = ensure("error", p.red, bg, AA)
+  const warning = ensure("warning", p.yellow, bg, AA)
+  const success = ensure("success", p.green, bg, AA)
+  const info = ensure("info", p.cyan, bg, AA)
+  const link = ensure("link", dark ? p.brightBlue : p.blue, bg, AA)
 
   // ── Blended tokens — blend first, then ensure contrast ───────────
   // Muted targets mutedbg (the harder case) so it passes on both bg and mutedbg.
   const mutedbg = blend(bg, p.foreground, 0.04)
-  const muted = ensureContrast(blend(fg, bg, 0.4), mutedbg, AA)
-  const disabledfg = ensureContrast(blend(fg, bg, 0.5), bg, DIM)
-  const border = ensureContrast(blend(bg, p.foreground, 0.15), bg, FAINT)
-  const inputborder = ensureContrast(blend(bg, p.foreground, 0.25), bg, CONTROL)
+  const muted = ensure("muted", blend(fg, bg, 0.4), mutedbg, AA)
+  const disabledfg = ensure("disabledfg", blend(fg, bg, 0.5), bg, DIM)
+  const border = ensure("border", blend(bg, p.foreground, 0.15), bg, FAINT)
+  const inputborder = ensure("inputborder", blend(bg, p.foreground, 0.25), bg, CONTROL)
 
   // ── Selection & cursor — ensure pairs are readable ─────────────
-  const selection = ensureContrast(p.selectionForeground, p.selectionBackground, AA)
-  const cursor = ensureContrast(p.cursorText, p.cursorColor, AA)
+  const selection = ensure("selection", p.selectionForeground, p.selectionBackground, AA)
+  const cursor = ensure("cursor", p.cursorText, p.cursorColor, AA)
 
   return {
     name: p.name ?? (dark ? "derived-dark" : "derived-light"),

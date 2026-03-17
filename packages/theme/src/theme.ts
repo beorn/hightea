@@ -28,6 +28,7 @@ export { COLOR_PALETTE_FIELDS } from "./types"
 
 // Derivation
 export { deriveTheme } from "./derive"
+export type { ThemeAdjustment } from "./derive"
 
 // Color utilities
 export {
