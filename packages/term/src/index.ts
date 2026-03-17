@@ -476,10 +476,15 @@ export {
 export { renderSelectionOverlay } from "./selection-renderer"
 
 // =============================================================================
-// Virtual Scrollback
+// List Domain Objects (v5)
 // =============================================================================
 
-export { createVirtualScrollback, type VirtualScrollback, type VirtualScrollbackOptions } from "./virtual-scrollback"
+export { createListCache, isListCache, resolveListCache } from "./list-cache"
+export type { ListCache, ListCacheConfig, ListCacheEntry } from "./list-cache"
+export { createListNavigator, isListNavigator, resolveListNavigator } from "./list-navigator"
+export type { ListNavigator, ListNavigatorConfig } from "./list-navigator"
+export { createListSearch, isListSearch, resolveListSearch } from "./list-search"
+export type { ListSearch, ListSearchConfig, ListSearchMatch } from "./list-search"
 
 // =============================================================================
 // History Buffer
