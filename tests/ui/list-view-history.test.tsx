@@ -1,0 +1,236 @@
+/**
+ * ListView virtual history mode tests.
+ *
+ * Verifies:
+ * - Items freeze when freezeWhen returns true (contiguous prefix)
+ * - Frozen items leave the React tree
+ * - HistoryBuffer accumulates frozen items
+ * - Scroll anchor: stays at tail by default, preserves position when scrolled up
+ * - getItemText provides semantic search text
+ * - Basic rendering without history (mode="none")
+ */
+
+import React, { useRef } from "react"
+import { describe, test, expect } from "vitest"
+import { createRenderer, stripAnsi } from "@silvery/test"
+import { Text } from "../../src/index.js"
+import { ListView, type ListViewHandle } from "../../packages/ui/src/components/ListView"
+
+// ============================================================================
+// Test Helpers
+// ============================================================================
+
+interface Message {
+  id: string
+  body: string
+  delivered: boolean
+}
+
+function MessageItem({ msg, isSelected }: { msg: Message; isSelected?: boolean }) {
+  return <Text inverse={isSelected}>{msg.body}</Text>
+}
+
+// ============================================================================
+// Tests
+// ============================================================================
+
+describe("ListView", () => {
+  // ── Basic rendering (no history) ────────────────────────────────
+
+  test("renders all items with no history mode", () => {
+    const items: Message[] = [
+      { id: "1", body: "Hello", delivered: false },
+      { id: "2", body: "World", delivered: false },
+    ]
+
+    const r = createRenderer({ cols: 40, rows: 10 })
+    const app = r(
+      <ListView items={items} getKey={(m) => m.id} height={10} renderItem={(msg) => <Text>{msg.body}</Text>} />,
+    )
+
+    const text = stripAnsi(app.text)
+    expect(text).toContain("Hello")
+    expect(text).toContain("World")
+  })
+
+  // ── Virtual history: freezeWhen ─────────────────────────────────
+
+  test("freezeWhen removes frozen items from live render", () => {
+    const items: Message[] = [
+      { id: "1", body: "Delivered msg", delivered: true },
+      { id: "2", body: "Also delivered", delivered: true },
+      { id: "3", body: "Still pending", delivered: false },
+    ]
+
+    const r = createRenderer({ cols: 40, rows: 10 })
+    const app = r(
+      <ListView
+        items={items}
+        getKey={(m) => m.id}
+        height={10}
+        history={{
+          mode: "virtual",
+          freezeWhen: (m) => (m as Message).delivered,
+        }}
+        renderItem={(msg) => <Text>{msg.body}</Text>}
+      />,
+    )
+
+    const text = stripAnsi(app.text)
+    // Frozen items should NOT appear in live render
+    expect(text).not.toContain("Delivered msg")
+    expect(text).not.toContain("Also delivered")
+    // Non-frozen items should still render
+    expect(text).toContain("Still pending")
+  })
+
+  test("only freezes contiguous prefix", () => {
+    const items: Message[] = [
+      { id: "1", body: "Done 1", delivered: true },
+      { id: "2", body: "Not done", delivered: false },
+      { id: "3", body: "Done 2", delivered: true }, // NOT frozen (gap in prefix)
+    ]
+
+    const r = createRenderer({ cols: 40, rows: 10 })
+    const app = r(
+      <ListView
+        items={items}
+        getKey={(m) => m.id}
+        height={10}
+        history={{
+          mode: "virtual",
+          freezeWhen: (m) => (m as Message).delivered,
+        }}
+        renderItem={(msg) => <Text>{msg.body}</Text>}
+      />,
+    )
+
+    const text = stripAnsi(app.text)
+    expect(text).not.toContain("Done 1") // frozen (contiguous prefix)
+    expect(text).toContain("Not done") // not frozen
+    expect(text).toContain("Done 2") // not frozen (gap breaks prefix)
+  })
+
+  // ── History buffer accumulation ─────────────────────────────────
+
+  test("frozen items accumulate in history buffer", () => {
+    const listRef = React.createRef<ListViewHandle>()
+    const items: Message[] = [
+      { id: "1", body: "First message", delivered: true },
+      { id: "2", body: "Second message", delivered: true },
+      { id: "3", body: "Third message", delivered: false },
+    ]
+
+    const r = createRenderer({ cols: 40, rows: 10 })
+    r(
+      <ListView
+        ref={listRef}
+        items={items}
+        getKey={(m) => m.id}
+        height={10}
+        history={{
+          mode: "virtual",
+          freezeWhen: (m) => (m as Message).delivered,
+        }}
+        text={{
+          getItemText: (m) => (m as Message).body,
+        }}
+        renderItem={(msg) => <Text>{msg.body}</Text>}
+      />,
+    )
+
+    const buf = listRef.current?.getHistoryBuffer()
+    expect(buf).not.toBeNull()
+    expect(buf!.itemCount).toBe(2)
+    expect(buf!.totalRows).toBe(2)
+  })
+
+  // ── getItemText for search ──────────────────────────────────────
+
+  test("getItemText provides searchable text in history", () => {
+    const listRef = React.createRef<ListViewHandle>()
+    const items: Message[] = [
+      { id: "1", body: "important note", delivered: true },
+      { id: "2", body: "another note", delivered: true },
+      { id: "3", body: "pending", delivered: false },
+    ]
+
+    const r = createRenderer({ cols: 40, rows: 10 })
+    r(
+      <ListView
+        ref={listRef}
+        items={items}
+        getKey={(m) => m.id}
+        height={10}
+        history={{
+          mode: "virtual",
+          freezeWhen: (m) => (m as Message).delivered,
+        }}
+        text={{
+          getItemText: (m) => (m as Message).body,
+        }}
+        renderItem={(msg) => <Text>{msg.body}</Text>}
+      />,
+    )
+
+    const buf = listRef.current?.getHistoryBuffer()
+    expect(buf).not.toBeNull()
+    const matches = buf!.search("important")
+    expect(matches).toHaveLength(1)
+    expect(matches[0]).toBe(0)
+  })
+
+  // ── Viewport composition ────────────────────────────────────────
+
+  test("composed viewport at tail shows no history rows", () => {
+    const listRef = React.createRef<ListViewHandle>()
+    const items: Message[] = [
+      { id: "1", body: "Old msg", delivered: true },
+      { id: "2", body: "New msg", delivered: false },
+    ]
+
+    const r = createRenderer({ cols: 40, rows: 10 })
+    r(
+      <ListView
+        ref={listRef}
+        items={items}
+        getKey={(m) => m.id}
+        height={10}
+        history={{
+          mode: "virtual",
+          freezeWhen: (m) => (m as Message).delivered,
+        }}
+        text={{
+          getItemText: (m) => (m as Message).body,
+        }}
+        renderItem={(msg) => <Text>{msg.body}</Text>}
+      />,
+    )
+
+    const viewport = listRef.current?.getComposedViewport()
+    expect(viewport).not.toBeNull()
+    expect(viewport!.isScrolledUp).toBe(false)
+    expect(viewport!.historyRows).toEqual([])
+  })
+
+  // ── No history buffer when mode="none" ──────────────────────────
+
+  test("no history buffer created when mode is none", () => {
+    const listRef = React.createRef<ListViewHandle>()
+    const items: Message[] = [{ id: "1", body: "msg", delivered: false }]
+
+    const r = createRenderer({ cols: 40, rows: 10 })
+    r(
+      <ListView
+        ref={listRef}
+        items={items}
+        getKey={(m) => m.id}
+        height={10}
+        renderItem={(msg) => <Text>{msg.body}</Text>}
+      />,
+    )
+
+    expect(listRef.current?.getHistoryBuffer()).toBeNull()
+    expect(listRef.current?.getComposedViewport()).toBeNull()
+  })
+})

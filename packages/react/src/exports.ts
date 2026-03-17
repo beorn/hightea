@@ -390,6 +390,11 @@ export type { ScrollbackItemContext } from "./hooks/useScrollbackItem"
 export { useListItem } from "./hooks/useListItem"
 export type { ListItemContext } from "./hooks/useListItem"
 
+// App-level Providers (Phase 4)
+export { SurfaceRegistryProvider, useSurfaceRegistry } from "./providers/SurfaceRegistry"
+export { SearchProvider, useSearch } from "./providers/SearchProvider"
+export { SearchBar } from "@silvery/ui/components/SearchBar"
+
 /**
  * Re-export React concurrent features for TUI responsiveness.
  *

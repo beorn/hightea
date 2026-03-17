@@ -488,6 +488,12 @@ export { createVirtualScrollback, type VirtualScrollback, type VirtualScrollback
 export { createHistoryBuffer, createHistoryItem, type HistoryItem, type HistoryBuffer } from "./history-buffer"
 
 // =============================================================================
+// Viewport Compositor
+// =============================================================================
+
+export { composeViewport, type ViewportCompositorConfig, type ComposedViewport } from "./viewport-compositor"
+
+// =============================================================================
 // List Document
 // =============================================================================
 

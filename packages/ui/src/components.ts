@@ -105,6 +105,8 @@ export type { BadgeProps } from "./components/Badge"
 export { Divider } from "./components/Divider"
 export type { DividerProps } from "./components/Divider"
 
+export { SearchBar } from "./components/SearchBar"
+
 // =============================================================================
 // Position Registry (2D Grid Virtualization)
 // =============================================================================
