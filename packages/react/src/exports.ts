@@ -73,9 +73,19 @@ export type {
   ListViewProps,
   ListViewHandle,
   ListItemMeta,
-  ListViewHistoryConfig,
-  ListTextAdapter,
+  /** @deprecated */ ListViewHistoryConfig,
+  /** @deprecated */ ListTextAdapter,
 } from "@silvery/ui/components/ListView"
+export { Pane } from "@silvery/ui/components/Pane"
+export type { PaneProps } from "@silvery/ui/components/Pane"
+
+// ListView v5 domain objects
+export { createListCache, isListCache, resolveListCache } from "@silvery/term/list-cache"
+export type { ListCache, ListCacheConfig, ListCacheEntry } from "@silvery/term/list-cache"
+export { createListNavigator, isListNavigator, resolveListNavigator } from "@silvery/term/list-navigator"
+export type { ListNavigator, ListNavigatorConfig } from "@silvery/term/list-navigator"
+export { createListSearch, isListSearch, resolveListSearch } from "@silvery/term/list-search"
+export type { ListSearch, ListSearchConfig, ListSearchMatch } from "@silvery/term/list-search"
 export { VirtualList } from "@silvery/ui/components/VirtualList"
 export type { VirtualListProps, VirtualListHandle, ItemMeta } from "@silvery/ui/components/VirtualList"
 export { HorizontalVirtualList } from "@silvery/ui/components/HorizontalVirtualList"

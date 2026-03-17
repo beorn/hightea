@@ -1,31 +1,27 @@
 /**
- * Panes — tmux-style split pane demo.
+ * Panes — tmux-style split pane demo using ListView v5 API.
  *
  * Two AI chat panes running independently, Tab to switch focus, Esc to quit.
- * SearchProvider with Ctrl+F bindings for app-global search.
+ * No SearchProvider/SurfaceRegistry — search is built into ListView.
  *
  * Run: bun examples/interactive/panes/index.tsx [--fast]
  */
 
 import React, { useState, useEffect, useMemo } from "react"
-import { Box, Text, ListView } from "silvery"
-import { SurfaceRegistryProvider, SearchProvider, SearchBar, useSearch } from "@silvery/react"
+import { Box, Text, ListView, Pane } from "silvery"
 import { run, useInput, type Key } from "@silvery/term/runtime"
 import type { ExampleMeta } from "../../_banner.js"
 import { SCRIPT } from "../aichat/script.js"
 import type { ScriptEntry } from "../aichat/types.js"
 import type { Exchange } from "../aichat/types.js"
 import { ExchangeItem } from "../aichat/components.js"
-// ListItemMeta type from ListView — inline to avoid tsconfig path issues
-interface ListItemMeta {
-  isCursor: boolean
-}
+import type { ListItemMeta } from "silvery"
 
 export const meta: ExampleMeta = {
   name: "Panes",
-  description: "tmux-style split panes — ListView + SearchProvider + focus switching",
+  description: "tmux-style split panes — ListView v5 + Pane + cache/search",
   demo: true,
-  features: ["ListView", "SearchProvider", "split panes", "Tab focus"],
+  features: ["ListView", "Pane", "split panes", "Tab focus", "cache", "search"],
 }
 
 // ============================================================================
@@ -51,21 +47,19 @@ function usePaneContent(script: ScriptEntry[], fastMode: boolean): Exchange[] {
 }
 
 // ============================================================================
-// Chat pane
+// Chat pane content
 // ============================================================================
 
-function ChatPane({
+function ChatPaneContent({
   script,
   fastMode,
   height,
   active,
-  surfaceId,
 }: {
   script: ScriptEntry[]
   fastMode: boolean
   height: number
   active: boolean
-  surfaceId: string
 }) {
   const exchanges = usePaneContent(script, fastMode)
 
@@ -82,14 +76,11 @@ function ChatPane({
       items={exchanges}
       height={height}
       getKey={(ex: Exchange) => ex.id}
-      scrollTo={exchanges.length - 1}
+      cache={{ isCacheable: (_ex: Exchange, idx: number) => idx < exchanges.length - 1 }}
+      navigator
+      search={{ getText: (ex: Exchange) => ex.content }}
+      followOutput
       active={active}
-      surfaceId={surfaceId}
-      history={{
-        mode: "virtual",
-        freezeWhen: (_ex: Exchange, idx: number) => idx < exchanges.length - 1,
-      }}
-      textAdapter={{ getItemText: (ex: Exchange) => ex.content }}
       renderItem={(exchange: Exchange, _index: number, _meta: ListItemMeta) => (
         <ExchangeItem
           exchange={exchange}
@@ -111,16 +102,14 @@ function ChatPane({
 
 function PanesApp({ fastMode, rows }: { fastMode: boolean; rows: number }) {
   const [focusedPane, setFocusedPane] = useState<"left" | "right">("left")
-  const search = useSearch()
 
   const midpoint = Math.ceil(SCRIPT.length / 2)
   const leftScript = useMemo(() => SCRIPT.slice(0, midpoint), [midpoint])
   const rightScript = useMemo(() => SCRIPT.slice(midpoint), [midpoint])
 
   useInput((input: string, key: Key) => {
-    // Don't exit while search is active — Escape closes search first
-    if (key.escape && !search.isActive) return "exit"
-    if (key.tab && !search.isActive) {
+    if (key.escape) return "exit"
+    if (key.tab) {
       setFocusedPane((p) => (p === "left" ? "right" : "left"))
     }
   })
@@ -131,50 +120,25 @@ function PanesApp({ fastMode, rows }: { fastMode: boolean; rows: number }) {
   return (
     <Box flexDirection="column" height={rows}>
       <Box flexDirection="row" flexGrow={1}>
-        <Box
-          width="50%"
-          flexDirection="column"
-          borderStyle="single"
-          borderColor={focusedPane === "left" ? "$primary" : "$border"}
-          overflow="hidden"
-        >
-          <Box paddingX={1}>
-            <Text color={focusedPane === "left" ? "$primary" : "$border"} bold={focusedPane === "left"}>
-              Agent A
-            </Text>
-          </Box>
-          <ChatPane
+        <Pane title="Agent A" width="50%">
+          <ChatPaneContent
             script={leftScript}
             fastMode={fastMode}
             height={listHeight}
             active={focusedPane === "left"}
-            surfaceId="left"
           />
-        </Box>
-        <Box
-          width="50%"
-          flexDirection="column"
-          borderStyle="single"
-          borderColor={focusedPane === "right" ? "$primary" : "$border"}
-          overflow="hidden"
-        >
-          <Box paddingX={1}>
-            <Text color={focusedPane === "right" ? "$primary" : "$border"} bold={focusedPane === "right"}>
-              Agent B
-            </Text>
-          </Box>
-          <ChatPane
+        </Pane>
+        <Pane title="Agent B" width="50%">
+          <ChatPaneContent
             script={rightScript}
             fastMode={fastMode}
             height={listHeight}
             active={focusedPane === "right"}
-            surfaceId="right"
           />
-        </Box>
+        </Pane>
       </Box>
-      <SearchBar />
       <Box paddingX={1}>
-        <Text color="$muted">Tab: switch pane · Ctrl+F: search · Esc: quit</Text>
+        <Text color="$muted">Tab: switch pane · Ctrl+F: search · j/k: navigate · Esc: quit</Text>
       </Box>
     </Box>
   )
@@ -189,14 +153,11 @@ export async function main() {
   const fastMode = args.includes("--fast")
   const rows = process.stdout.rows ?? 40
 
-  using handle = await run(
-    <SurfaceRegistryProvider>
-      <SearchProvider>
-        <PanesApp fastMode={fastMode} rows={rows} />
-      </SearchProvider>
-    </SurfaceRegistryProvider>,
-    { mode: "fullscreen", kitty: false, textSizing: false },
-  )
+  using handle = await run(<PanesApp fastMode={fastMode} rows={rows} />, {
+    mode: "fullscreen",
+    kitty: false,
+    textSizing: false,
+  })
   await handle.waitUntilExit()
 }
 

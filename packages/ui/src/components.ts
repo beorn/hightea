@@ -23,6 +23,9 @@ export type { HorizontalVirtualListProps, HorizontalVirtualListHandle } from "./
 
 export { SplitView } from "./components/SplitView"
 export type { SplitViewProps } from "./components/SplitView"
+
+export { Pane } from "./components/Pane"
+export type { PaneProps } from "./components/Pane"
 export type { LayoutNode as SplitLayoutNode } from "@silvery/term/pane-manager"
 export {
   createLeaf,
