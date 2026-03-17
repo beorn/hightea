@@ -148,6 +148,18 @@ Styled text with auto-truncation.
 
 Text auto-truncates by default. Use `wrap="wrap"` to wrap instead, or `wrap="overflow"` to allow overflow.
 
+### Mouse Events on Nested Text
+
+Nested `<Text>` elements (virtual text nodes) support mouse event handlers (`onClick`, `onMouseEnter`, `onMouseLeave`, etc.). Hit testing uses computed inline rects — screen-space rectangles calculated during text rendering. This enables interactive inline elements like clickable links within a text block:
+
+```tsx
+<Text>
+  Click <Text onClick={handleClick} color="blue">here</Text> to continue
+</Text>
+```
+
+For wrapped text, inline rects correctly span multiple lines.
+
 ## VirtualList
 
 Efficient rendering for large lists (100+ items). Only renders visible items.

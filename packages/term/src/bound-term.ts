@@ -89,6 +89,26 @@ function findNodeAtScreenPosition(node: TeaNode, x: number, y: number): TeaNode 
     if (found) return found
   }
 
+  // Check virtual text children with inlineRects (nested Text inside Text).
+  // These don't have screenRect/layoutNode, so standard DFS misses them.
+  if (node.type === "silvery-text") {
+    for (let i = node.children.length - 1; i >= 0; i--) {
+      const child = node.children[i]!
+      if (child.inlineRects) {
+        for (const inlineRect of child.inlineRects) {
+          if (
+            x >= inlineRect.x &&
+            x < inlineRect.x + inlineRect.width &&
+            y >= inlineRect.y &&
+            y < inlineRect.y + inlineRect.height
+          ) {
+            return child
+          }
+        }
+      }
+    }
+  }
+
   // No child matched, this node is the deepest match
   return node
 }

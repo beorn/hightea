@@ -372,13 +372,31 @@ Returns `ChangesResult { output: string, finalY: number }` — the final cursor 
 - Inline incremental tests in `tests/inline-mode.test.ts` (9 tests covering guard conditions, cursor positioning, multi-frame consistency)
 - Vitest benchmarks in `tests/inline-output.bench.ts`
 
+## Inline Rects (Virtual Text Hit Testing)
+
+Virtual text nodes (nested `<Text>` inside `<Text>`) don't have layout nodes or screen rects, so standard tree-based hit testing misses them. Inline rects solve this by computing screen-space rectangles during text rendering.
+
+### How it works
+
+1. **Collection phase** (`collectTextWithBg`): Tracks `ChildSpan` entries alongside `BgSegment` entries. Each span maps a virtual text child to its display-width range `[start, end)` in the collected text.
+
+2. **Rendering phase** (`renderText`): After formatting lines and computing `lineOffsets`, calls `computeInlineRects()` which maps each child's display-width span to screen coordinates. For wrapped text, a child spanning multiple lines produces one rect per line fragment.
+
+3. **Hit testing** (`hitTest` in mouse-events.ts, `findNodeAtScreenPosition` in bound-term.ts): After standard DFS finds a `silvery-text` node as the deepest match, also checks its children's `inlineRects`. This enables mouse events (enter/leave/click) on nested interactive elements like `<Link>`.
+
+### Key design decisions
+
+- **Unconditional**: All virtual text nodes get `inlineRects`, not just ones with mouse handlers. TEA mode needs identity-based hit testing.
+- **Piggybacked on existing pipeline**: Uses the same `mapLinesToCharOffsets` as bg segments. No extra text measurement passes.
+- **One rect per line fragment**: Wrapped text produces multiple rects per child, correctly handling wrapping.
+
 ## File Map
 
 | File              | Responsibility                                                                                               |
 | ----------------- | ------------------------------------------------------------------------------------------------------------ |
 | content-phase.ts  | Tree traversal, dirty-flag evaluation, incremental cascade logic, scroll container tiers, region clearing    |
 | render-box.ts     | Box bg fill (`skipBgFill` aware), border rendering, scroll indicators                                        |
-| render-text.ts    | Text content collection, ANSI parsing, bg segment tracking, `inheritedBg` inheritance, bg conflict detection |
+| render-text.ts    | Text content collection, ANSI parsing, bg segment tracking, `inheritedBg` inheritance, bg conflict detection, inline rects |
 | layout-phase.ts   | Layout calculation, scroll state, screen rects, layout subscriber notification                               |
 | measure-phase.ts  | Intrinsic size measurement for fit-content nodes                                                             |
 | output-phase.ts   | Buffer diff, dirty row tracking, minimal ANSI output generation, inline incremental rendering                |

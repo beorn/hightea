@@ -172,6 +172,19 @@ export function hitTest(node: TeaNode, x: number, y: number): TeaNode | null {
     if (hit) return hit
   }
 
+  // Check virtual text children with inlineRects (nested Text inside Text).
+  // These don't have screenRect/layoutNode, so standard DFS misses them.
+  if (node.type === "silvery-text") {
+    for (let i = node.children.length - 1; i >= 0; i--) {
+      const child = node.children[i]!
+      if (child.inlineRects) {
+        for (const inlineRect of child.inlineRects) {
+          if (pointInRect(x, y, inlineRect)) return child
+        }
+      }
+    }
+  }
+
   // No child matched — this node is the target (if it has a screenRect)
   return node
 }

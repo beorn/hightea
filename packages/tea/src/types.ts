@@ -370,6 +370,10 @@ export interface TeaNode {
     height: number
   }>
 
+  /** Inline rects for virtual text nodes (no layout node). Computed during text rendering.
+   *  Array for wrapped text (one rect per line fragment). Enables hit testing on nested Text. */
+  inlineRects?: Array<{ x: number; y: number; width: number; height: number }> | null
+
   /** Scroll state for overflow='scroll' containers */
   scrollState?: {
     /** Current scroll offset (in terminal rows) */

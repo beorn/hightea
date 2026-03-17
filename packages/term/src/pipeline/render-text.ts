@@ -242,6 +242,19 @@ interface BgSegment {
 }
 
 /**
+ * A span mapping a virtual text child node to its character range.
+ * Used to compute inlineRects for hit testing on nested Text.
+ */
+interface ChildSpan {
+  /** The virtual text node */
+  node: TeaNode
+  /** Start display-width offset in the collected text (inclusive) */
+  start: number
+  /** End display-width offset in the collected text (exclusive) */
+  end: number
+}
+
+/**
  * Result of collecting text with background segments.
  */
 interface TextWithBg {
@@ -249,6 +262,8 @@ interface TextWithBg {
   text: string
   /** Background color segments from nested Text elements */
   bgSegments: BgSegment[]
+  /** Spans mapping virtual text children to display-width ranges */
+  childSpans: ChildSpan[]
   /** Plain text character count (excluding ANSI codes). Used for DOM-level budget tracking. */
   plainLen: number
 }
@@ -296,11 +311,12 @@ function collectTextWithBg(
     // getTextWidth for offsets, mapLinesToCharOffsets returns display-width,
     // and applyBgSegmentsToLine compares via display-width (col - x).
     const plainLen = getTextWidth(text, ctx)
-    return { text, bgSegments: [], plainLen }
+    return { text, bgSegments: [], childSpans: [], plainLen }
   }
 
   let result = ""
   const bgSegments: BgSegment[] = []
+  const childSpans: ChildSpan[] = []
   let currentOffset = offset
   let displayWidthCollected = 0
 
@@ -356,8 +372,18 @@ function collectTextWithBg(
         })
       }
 
-      // Include child's nested bg segments
+      // Track child span for inlineRects computation
+      if (childResult.plainLen > 0) {
+        childSpans.push({
+          node: child,
+          start: currentOffset,
+          end: currentOffset + childResult.plainLen,
+        })
+      }
+
+      // Include child's nested bg segments and child spans
       bgSegments.push(...childResult.bgSegments)
+      childSpans.push(...childResult.childSpans)
 
       // Track using plainLen (display width) — not text.length which includes ANSI codes
       currentOffset += childResult.plainLen
@@ -367,12 +393,13 @@ function collectTextWithBg(
       const childResult = collectTextWithBg(child, parentContext, currentOffset, childBudget, ctx)
       result += childResult.text
       bgSegments.push(...childResult.bgSegments)
+      childSpans.push(...childResult.childSpans)
       currentOffset += childResult.plainLen
       displayWidthCollected += childResult.plainLen
     }
   }
 
-  return { text: result, bgSegments, plainLen: displayWidthCollected }
+  return { text: result, bgSegments, childSpans, plainLen: displayWidthCollected }
 }
 
 /**
@@ -1149,7 +1176,7 @@ export function renderText(
   // Collect text content and background segments from this node and all children.
   // Background color from nested Text elements is tracked as BgSegments
   // (not embedded as ANSI codes) to survive text wrapping correctly.
-  const { text, bgSegments } = collectTextWithBg(node, {}, 0, maxDisplayWidth, ctx)
+  const { text, bgSegments, childSpans } = collectTextWithBg(node, {}, 0, maxDisplayWidth, ctx)
 
   // Get style for this Text node.
   // Inherit foreground from nearest ancestor Box with color prop (CSS semantics).
@@ -1175,8 +1202,9 @@ export function renderText(
     lines = lines.map((line, index) => internalTransform(line, index))
   }
 
-  // Map formatted lines back to display-width offsets for bg segment application
-  const lineOffsets = bgSegments.length > 0 ? mapLinesToCharOffsets(text, lines, ctx) : []
+  // Map formatted lines back to display-width offsets for bg segment and inlineRect application
+  const needLineOffsets = bgSegments.length > 0 || childSpans.length > 0
+  const lineOffsets = needLineOffsets ? mapLinesToCharOffsets(text, lines, ctx) : []
 
   // Render each line
   for (let lineIdx = 0; lineIdx < lines.length && lineIdx < height; lineIdx++) {
@@ -1237,5 +1265,56 @@ export function renderText(
       const { start, end } = lineOffsets[lineIdx]!
       applyBgSegmentsToLine(buffer, x, lineY, line, start, end, bgSegments, ctx)
     }
+  }
+
+  // Compute inlineRects for virtual text children.
+  // Maps each child's display-width span to screen-space rectangles,
+  // accounting for text wrapping (one rect per line fragment).
+  if (childSpans.length > 0 && lineOffsets.length > 0) {
+    computeInlineRects(childSpans, lineOffsets, x, y, lines.length, height)
+  }
+}
+
+/**
+ * Compute inlineRects for virtual text children based on their display-width spans
+ * and the formatted line offsets. For wrapped text, a child may span multiple lines,
+ * producing one rect per line fragment.
+ *
+ * @param childSpans - Virtual text children with their display-width ranges
+ * @param lineOffsets - Display-width offset ranges for each formatted line
+ * @param parentX - Screen X of the parent Text node
+ * @param parentY - Screen Y of the parent Text node (after scroll offset)
+ * @param lineCount - Number of formatted lines
+ * @param maxHeight - Maximum height (layout height) of the parent Text node
+ */
+function computeInlineRects(
+  childSpans: ChildSpan[],
+  lineOffsets: Array<{ start: number; end: number }>,
+  parentX: number,
+  parentY: number,
+  lineCount: number,
+  maxHeight: number,
+): void {
+  for (const span of childSpans) {
+    const rects: Array<{ x: number; y: number; width: number; height: number }> = []
+
+    for (let lineIdx = 0; lineIdx < lineCount && lineIdx < maxHeight; lineIdx++) {
+      const lineOffset = lineOffsets[lineIdx]
+      if (!lineOffset) continue
+
+      // Check overlap between span [span.start, span.end) and line [lineOffset.start, lineOffset.end)
+      const overlapStart = Math.max(span.start, lineOffset.start)
+      const overlapEnd = Math.min(span.end, lineOffset.end)
+      if (overlapStart >= overlapEnd) continue
+
+      // Convert to screen coordinates
+      const rectX = parentX + (overlapStart - lineOffset.start)
+      const rectY = parentY + lineIdx
+      const rectWidth = overlapEnd - overlapStart
+
+      rects.push({ x: rectX, y: rectY, width: rectWidth, height: 1 })
+    }
+
+    span.node.inlineRects = rects.length > 0 ? rects : null
   }
 }

@@ -223,6 +223,7 @@ export function createVirtualTextNode(props: TextProps): TeaNode {
     childrenDirty: false,
     layoutSubscribers: new Set(),
     isRawText: false, // Not raw text, but virtual (nested) text
+    inlineRects: null,
   }
 }
 
