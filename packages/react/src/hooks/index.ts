@@ -45,3 +45,7 @@ export type { UseScrollRegionOptions, UseScrollRegionResult } from "./useScrollR
 // Selection
 export { useSelection, useSelectionContext, SelectionProvider } from "./useSelection"
 export type { UseSelectionResult } from "./useSelection"
+
+// List Item
+export { useListItem } from "./useListItem"
+export type { ListItemContext } from "./useListItem"

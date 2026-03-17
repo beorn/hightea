@@ -68,6 +68,8 @@
  */
 export { Box } from "./components/Box"
 export { Console } from "@silvery/ui/components/Console"
+export { ListView } from "@silvery/ui/components/ListView"
+export type { ListViewProps, ListViewHandle, ListItemMeta } from "@silvery/ui/components/ListView"
 export { VirtualList } from "@silvery/ui/components/VirtualList"
 export type { VirtualListProps, VirtualListHandle, ItemMeta } from "@silvery/ui/components/VirtualList"
 export { HorizontalVirtualList } from "@silvery/ui/components/HorizontalVirtualList"
@@ -385,6 +387,8 @@ export { useVirtualizer } from "./hooks/useVirtualizer"
 export type { VirtualizerConfig, VirtualizerResult } from "./hooks/useVirtualizer"
 export { useScrollbackItem } from "./hooks/useScrollbackItem"
 export type { ScrollbackItemContext } from "./hooks/useScrollbackItem"
+export { useListItem } from "./hooks/useListItem"
+export type { ListItemContext } from "./hooks/useListItem"
 
 /**
  * Re-export React concurrent features for TUI responsiveness.

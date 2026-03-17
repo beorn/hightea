@@ -1,6 +1,8 @@
 /**
  * VirtualView - App-managed scrolling within a Screen rectangle.
  *
+ * @deprecated Use ListView instead. VirtualView is now a thin wrapper.
+ *
  * A scrollable area where items mount/unmount based on scroll position,
  * managed entirely by the app. Uses the shared useVirtualizer() engine.
  *
@@ -29,9 +31,9 @@
  * ```
  */
 
-import React, { forwardRef, useImperativeHandle } from "react"
-import { useVirtualizer } from "@silvery/react/hooks/useVirtualizer"
-import { Box } from "@silvery/react/components/Box"
+import React, { forwardRef, useCallback } from "react"
+import { ListView } from "./ListView"
+import type { ListViewHandle, ListItemMeta } from "./ListView"
 
 // =============================================================================
 // Types
@@ -95,40 +97,29 @@ export interface VirtualViewHandle {
 }
 
 // =============================================================================
-// Constants
-// =============================================================================
-
-const DEFAULT_ESTIMATE_HEIGHT = 1
-const DEFAULT_OVERSCAN = 5
-const DEFAULT_MAX_RENDERED = 100
-const DEFAULT_SCROLL_PADDING = 2
-
-// =============================================================================
 // Component
 // =============================================================================
 
 /**
- * App-managed scrollable view with virtualization.
+ * @deprecated Use ListView instead.
  *
- * Items mount/unmount based on scroll position within a fixed-height viewport.
- * Scroll state management:
- * - When scrollTo is defined: actively track and scroll to that index
- * - When scrollTo is undefined: freeze scroll state (critical for multi-column layouts)
+ * App-managed scrollable view with virtualization.
+ * Now delegates to ListView with prop mapping.
  */
 function VirtualViewInner<T>(
   {
     items,
     height,
-    estimateHeight = DEFAULT_ESTIMATE_HEIGHT,
+    estimateHeight,
     renderItem,
     scrollTo,
-    overscan = DEFAULT_OVERSCAN,
-    maxRendered = DEFAULT_MAX_RENDERED,
-    scrollPadding = DEFAULT_SCROLL_PADDING,
+    overscan,
+    maxRendered,
+    scrollPadding,
     overflowIndicator,
     keyExtractor,
     width,
-    gap = 0,
+    gap,
     renderSeparator,
     onWheel,
     onEndReached,
@@ -137,81 +128,35 @@ function VirtualViewInner<T>(
   }: VirtualViewProps<T>,
   ref: React.ForwardedRef<VirtualViewHandle>,
 ): React.ReactElement {
-  // Convert item-based estimateHeight to index-based for useVirtualizer
-  const indexEstimate = typeof estimateHeight === "function" ? estimateHeight : estimateHeight
-
-  const { range, leadingHeight, trailingHeight, scrollOffset, scrollToItem } = useVirtualizer({
-    count: items.length,
-    estimateHeight: indexEstimate,
-    viewportHeight: height,
-    scrollTo,
-    scrollPadding,
-    overscan,
-    maxRendered,
-    gap,
-    getItemKey: keyExtractor ? (index) => keyExtractor(items[index]!, index) : undefined,
-    onEndReached,
-    onEndReachedThreshold,
-  })
-
-  // Expose scrollToItem method via ref
-  useImperativeHandle(ref, () => ({ scrollToItem }), [scrollToItem])
-
-  // Empty state
-  if (items.length === 0) {
-    return (
-      <Box flexDirection="column" height={height} width={width}>
-        {/* Empty - nothing to render */}
-      </Box>
-    )
-  }
-
-  // Get the slice of items to render
-  const { startIndex, endIndex } = range
-  const visibleItems = items.slice(startIndex, endIndex)
-
-  // Calculate scrollTo index for silvery Box overflow="scroll"
-  const hasTopPlaceholder = leadingHeight > 0
-  const currentSelectedIndex = scrollTo !== undefined ? Math.max(0, Math.min(scrollTo, items.length - 1)) : scrollOffset
-  const selectedIndexInSlice = currentSelectedIndex - startIndex
-  const isSelectedInSlice = selectedIndexInSlice >= 0 && selectedIndexInSlice < visibleItems.length
-  const scrollToIndex = hasTopPlaceholder ? selectedIndexInSlice + 1 : selectedIndexInSlice
-  const boxScrollTo = isSelectedInSlice ? Math.max(0, scrollToIndex) : undefined
+  // Wrap renderItem to strip the ListItemMeta third arg
+  const wrappedRenderItem = useCallback(
+    (item: T, index: number, _meta: ListItemMeta): React.ReactNode => {
+      return renderItem(item, index)
+    },
+    [renderItem],
+  )
 
   return (
-    <Box
-      flexDirection="column"
+    <ListView
+      ref={ref}
+      items={items}
       height={height}
-      width={width}
-      overflow="scroll"
-      scrollTo={boxScrollTo}
+      estimateHeight={estimateHeight}
+      renderItem={wrappedRenderItem}
+      scrollTo={scrollTo}
+      overscan={overscan}
+      maxRendered={maxRendered}
+      scrollPadding={scrollPadding}
       overflowIndicator={overflowIndicator}
+      getKey={keyExtractor}
+      width={width}
+      gap={gap}
+      renderSeparator={renderSeparator}
       onWheel={onWheel}
-    >
-      {/* Leading placeholder for virtual height */}
-      {leadingHeight > 0 && <Box height={leadingHeight} flexShrink={0} />}
-
-      {/* Render visible items */}
-      {visibleItems.map((item, i) => {
-        const originalIndex = startIndex + i
-        const key = keyExtractor ? keyExtractor(item, originalIndex) : originalIndex
-        const isLast = i === visibleItems.length - 1
-
-        return (
-          <React.Fragment key={key}>
-            {renderItem(item, originalIndex)}
-            {!isLast && renderSeparator && renderSeparator()}
-            {!isLast && gap > 0 && !renderSeparator && <Box height={gap} flexShrink={0} />}
-          </React.Fragment>
-        )
-      })}
-
-      {/* Footer content (e.g., filter hidden count) */}
-      {listFooter}
-
-      {/* Trailing placeholder for virtual height */}
-      {trailingHeight > 0 && <Box height={trailingHeight} flexShrink={0} />}
-    </Box>
+      onEndReached={onEndReached}
+      onEndReachedThreshold={onEndReachedThreshold}
+      listFooter={listFooter}
+    />
   )
 }
 

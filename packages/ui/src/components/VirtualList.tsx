@@ -1,13 +1,18 @@
 /**
  * VirtualList Component
  *
+ * @deprecated Use ListView instead. VirtualList is now a thin wrapper.
+ *
  * React-level virtualization for long lists. Only renders items within the
  * visible viewport plus overscan, using placeholder boxes for virtual height.
  *
- * Thin wrapper around VirtualView that adds:
- * - Interactive mode: keyboard navigation (j/k, arrows, PgUp/PgDn, Home/End, G), mouse wheel, selection state
- * - Virtualized prefix: `virtualized` prop for contiguous prefix exclusion
- * - ItemMeta: Third arg to renderItem with `{ isSelected }`
+ * Thin wrapper around ListView that maps old prop names to new ones:
+ * - `interactive` → `navigable`
+ * - `selectedIndex` → `cursorIndex`
+ * - `onSelectionChange` → `onCursorIndexChange`
+ * - `keyExtractor` → `getKey`
+ * - `itemHeight` → `estimateHeight`
+ * - `isSelected` in ItemMeta → `isCursor` in ListItemMeta
  *
  * @example
  * ```tsx
@@ -35,10 +40,9 @@
  * />
  * ```
  */
-import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from "react"
-import { useInput } from "@silvery/react/hooks/useInput"
-import { VirtualView } from "./VirtualView"
-import type { VirtualViewHandle } from "./VirtualView"
+import React, { forwardRef, useCallback, useMemo } from "react"
+import { ListView } from "./ListView"
+import type { ListViewHandle, ListItemMeta } from "./ListView"
 
 // =============================================================================
 // Types
@@ -122,47 +126,21 @@ export interface VirtualListHandle {
 }
 
 // =============================================================================
-// Constants
-// =============================================================================
-
-const DEFAULT_ITEM_HEIGHT = 1
-/** Items to move per mouse wheel tick */
-const WHEEL_STEP = 3
-
-/**
- * Padding from edge before scrolling (in items).
- *
- * Vertical lists use padding=2 for more context visibility (you typically
- * want to see what's coming when scrolling through a long list).
- *
- * @see calcEdgeBasedScrollOffset in scroll-utils.ts for the algorithm
- */
-const SCROLL_PADDING = 2
-
-// =============================================================================
 // Component
 // =============================================================================
 
 /**
+ * @deprecated Use ListView instead.
+ *
  * VirtualList - React-level virtualized list with native silvery scrolling.
- *
- * Thin wrapper around VirtualView that adds interactive mode (keyboard +
- * mouse), virtual item prefix exclusion, and selection metadata injection.
- *
- * Scroll state management:
- * - When scrollTo is defined: actively track and scroll to that index
- * - When scrollTo is undefined: completely freeze scroll state (do nothing)
- *
- * This freeze behavior is critical for multi-column layouts where only one
- * column is "selected" at a time. Non-selected columns must not recalculate
- * their scroll position.
+ * Now delegates to ListView with prop mapping.
  */
 function VirtualListInner<T>(
   {
     items,
     height,
-    itemHeight = DEFAULT_ITEM_HEIGHT,
-    scrollTo: scrollToProp,
+    itemHeight = 1,
+    scrollTo,
     overscan,
     maxRendered,
     renderItem,
@@ -173,7 +151,7 @@ function VirtualListInner<T>(
     renderSeparator,
     virtualized,
     interactive,
-    selectedIndex: selectedIndexProp,
+    selectedIndex,
     onSelectionChange,
     onSelect,
     onEndReached,
@@ -182,129 +160,41 @@ function VirtualListInner<T>(
   }: VirtualListProps<T>,
   ref: React.ForwardedRef<VirtualListHandle>,
 ): React.ReactElement {
-  // ── Interactive mode: internal selection state ────────────────────
-  // Semi-controlled: internal state is the source of truth.
-  // Prop syncs initial value and external updates.
-  const [internalIndex, setInternalIndex] = useState(selectedIndexProp ?? 0)
-  const lastPropRef = useRef(selectedIndexProp)
-  if (selectedIndexProp !== undefined && selectedIndexProp !== lastPropRef.current) {
-    lastPropRef.current = selectedIndexProp
-    setInternalIndex(selectedIndexProp)
-  }
-  const activeSelection = interactive ? internalIndex : -1
-
-  const moveTo = useCallback(
-    (next: number) => {
-      const clamped = Math.max(0, Math.min(next, items.length - 1))
-      setInternalIndex(clamped)
-      onSelectionChange?.(clamped)
-    },
-    [items.length, onSelectionChange],
-  )
-
-  // Keyboard input for interactive mode
-  useInput(
-    (input, key) => {
-      if (!interactive) return
-      const cur = activeSelection
-      if (input === "j" || key.downArrow) moveTo(cur + 1)
-      else if (input === "k" || key.upArrow) moveTo(cur - 1)
-      else if (input === "G" || key.end) moveTo(items.length - 1)
-      else if (key.home) moveTo(0)
-      else if (key.pageDown || (input === "d" && key.ctrl)) moveTo(cur + Math.floor(height / 2))
-      else if (key.pageUp || (input === "u" && key.ctrl)) moveTo(cur - Math.floor(height / 2))
-      else if (key.return) onSelect?.(cur)
-    },
-    { isActive: interactive },
-  )
-
-  // In interactive mode, scrollTo is derived from selection
-  const scrollTo = interactive ? activeSelection : scrollToProp
-
-  // ── Virtual prefix computation ──────────────────────────────────────
-  let virtualizedCount = 0
-  if (virtualized) {
-    for (let i = 0; i < items.length; i++) {
-      if (!virtualized(items[i]!, i)) break
-      virtualizedCount++
-    }
-  }
-
-  // Slice items to exclude virtual prefix
-  const activeItems = virtualizedCount > 0 ? items.slice(virtualizedCount) : items
-
-  // Adjust scrollTo to account for virtual items
-  const adjustedScrollTo = scrollTo !== undefined ? Math.max(0, scrollTo - virtualizedCount) : undefined
-
-  // ── Adapt props for VirtualView ──────────────────────────────
-
-  // Convert itemHeight (item,index)=>number to estimateHeight (index)=>number
+  // Convert itemHeight (item, index) => number to estimateHeight (index) => number
   const estimateHeight = useMemo(() => {
     if (typeof itemHeight === "number") return itemHeight
-    if (virtualizedCount > 0) {
-      return (index: number) => itemHeight(activeItems[index]!, index + virtualizedCount)
-    }
-    return (index: number) => itemHeight(activeItems[index]!, index)
-  }, [itemHeight, activeItems, virtualizedCount])
+    return (index: number) => itemHeight(items[index]!, index)
+  }, [itemHeight, items])
 
-  // Wrap renderItem to inject ItemMeta (3rd arg) and adjust indices for virtual prefix
+  // Wrap renderItem to map ListItemMeta → ItemMeta
   const wrappedRenderItem = useCallback(
-    (item: T, index: number): React.ReactNode => {
-      const originalIndex = index + virtualizedCount
-      const meta: ItemMeta = { isSelected: originalIndex === activeSelection }
-      return renderItem(item, originalIndex, meta)
+    (item: T, index: number, meta: ListItemMeta): React.ReactNode => {
+      const oldMeta: ItemMeta = { isSelected: meta.isCursor }
+      return renderItem(item, index, oldMeta)
     },
-    [renderItem, virtualizedCount, activeSelection],
+    [renderItem],
   )
 
-  // Wrap keyExtractor to adjust indices for virtual prefix
-  const wrappedKeyExtractor = useMemo(() => {
-    if (!keyExtractor) return undefined
-    if (virtualizedCount === 0) return keyExtractor
-    return (item: T, index: number) => keyExtractor(item, index + virtualizedCount)
-  }, [keyExtractor, virtualizedCount])
-
-  // Mouse wheel handler for interactive mode
-  const onWheel = useMemo(() => {
-    if (!interactive) return undefined
-    return (e: { deltaY: number }) => {
-      const delta = e.deltaY > 0 ? WHEEL_STEP : -WHEEL_STEP
-      moveTo(activeSelection + delta)
-    }
-  }, [interactive, activeSelection, moveTo])
-
-  // ── Ref wrapping ───────────────────────────────────────────────────
-  const innerRef = useRef<VirtualViewHandle>(null)
-
-  // Wrap scrollToItem to accept original indices (before virtual adjustment)
-  useImperativeHandle(
-    ref,
-    () => ({
-      scrollToItem(index: number) {
-        innerRef.current?.scrollToItem(Math.max(0, index - virtualizedCount))
-      },
-    }),
-    [virtualizedCount],
-  )
-
-  // ── Delegate to VirtualView ──────────────────────────────────
   return (
-    <VirtualView
-      ref={innerRef}
-      items={activeItems}
+    <ListView
+      ref={ref}
+      items={items}
       height={height}
       estimateHeight={estimateHeight}
-      scrollTo={adjustedScrollTo}
-      scrollPadding={SCROLL_PADDING}
+      renderItem={wrappedRenderItem}
+      scrollTo={scrollTo}
       overscan={overscan}
       maxRendered={maxRendered}
-      renderItem={wrappedRenderItem}
       overflowIndicator={overflowIndicator}
-      keyExtractor={wrappedKeyExtractor}
+      getKey={keyExtractor}
       width={width}
       gap={gap}
       renderSeparator={renderSeparator}
-      onWheel={onWheel}
+      virtualized={virtualized}
+      navigable={interactive}
+      cursorIndex={selectedIndex}
+      onCursorIndexChange={onSelectionChange}
+      onSelect={onSelect}
       onEndReached={onEndReached}
       onEndReachedThreshold={onEndReachedThreshold}
       listFooter={listFooter}

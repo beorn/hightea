@@ -12,6 +12,9 @@
 // Layout Components
 // =============================================================================
 
+export { ListView } from "./components/ListView"
+export type { ListViewProps, ListViewHandle, ListItemMeta } from "./components/ListView"
+
 export { VirtualList } from "./components/VirtualList"
 export type { VirtualListProps, VirtualListHandle } from "./components/VirtualList"
 
