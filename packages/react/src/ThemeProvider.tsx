@@ -1,20 +1,27 @@
 /**
- * ThemeProvider with automatic fg color inheritance.
+ * ThemeProvider — delivers a Theme to the component tree.
  *
- * Wraps the base ThemeProvider from @silvery/theme with a Box that sets
- * `color="$fg"`, so all text in the subtree inherits the theme's foreground.
- * Without this, text in a themed subtree uses the terminal's default fg,
- * which breaks when the theme differs from the terminal (e.g., light theme
- * in a dark terminal).
+ * Re-exports the base ThemeProvider from @silvery/theme with an optional
+ * `root` mode that wraps children in a `<Box color="$fg">` for automatic
+ * foreground inheritance.
  *
- * The wrapper only sets `color` (not `backgroundColor`) because:
- * - fg needs explicit propagation (terminal default won't match the theme)
- * - bg is the app's responsibility (often paired with border/scroll/overflow)
- * - double bg painting causes incremental rendering artifacts
+ * ## Usage
  *
- * The `root` prop (default: true) controls whether the wrapper Box is rendered.
- * Set `root={false}` for test environments where an extra flex container
- * would interfere with layout assertions.
+ * Most apps don't need `root` — the terminal's default fg matches the
+ * detected theme. Use `root` when previewing a theme that differs from
+ * the terminal (e.g., light theme in a dark terminal):
+ *
+ * ```tsx
+ * // Normal app — detected theme matches terminal, no root needed
+ * <ThemeProvider theme={detectedTheme}>
+ *   <App />
+ * </ThemeProvider>
+ *
+ * // Theme preview — theme differs from terminal, use root
+ * <ThemeProvider theme={previewTheme} root>
+ *   <Box backgroundColor="$bg">...</Box>
+ * </ThemeProvider>
+ * ```
  */
 
 import React from "react"
@@ -22,7 +29,7 @@ import { ThemeProvider as BaseThemeProvider } from "@silvery/theme/ThemeContext"
 import type { ThemeProviderProps } from "@silvery/theme/ThemeContext"
 import { Box } from "./components/Box"
 
-export function ThemeProvider({ theme, children, root = true }: ThemeProviderProps): React.ReactElement {
+export function ThemeProvider({ theme, children, root = false }: ThemeProviderProps): React.ReactElement {
   if (!root) {
     return <BaseThemeProvider theme={theme}>{children}</BaseThemeProvider>
   }
