@@ -1,43 +1,45 @@
 /**
  * ThemeProvider — delivers a Theme to the component tree.
  *
- * Re-exports the base ThemeProvider from @silvery/theme with an optional
- * `root` mode that wraps children in a `<Box color="$fg">` for automatic
- * foreground inheritance.
+ * Renders as a Box, so it accepts all Box props (backgroundColor, flexDirection,
+ * etc.). Sets both React context (useTheme()) and Box `theme` prop (pipeline
+ * $token resolution via pushContextTheme/popContextTheme).
  *
- * ## Usage
+ * Does NOT call setActiveTheme() — that's only done by run()/render() for the
+ * root theme. Nested ThemeProviders use the Box `theme` prop which is properly
+ * scoped via the content phase's push/pop stack.
  *
- * Most apps don't need `root` — the terminal's default fg matches the
- * detected theme. Use `root` when previewing a theme that differs from
- * the terminal (e.g., light theme in a dark terminal):
- *
+ * @example
  * ```tsx
- * // Normal app — detected theme matches terminal, no root needed
+ * // Root app — no layout props needed
  * <ThemeProvider theme={detectedTheme}>
  *   <App />
  * </ThemeProvider>
  *
- * // Theme preview — theme differs from terminal, use root
- * <ThemeProvider theme={previewTheme} root>
- *   <Box backgroundColor="$bg">...</Box>
+ * // Themed panel — layout props on ThemeProvider itself
+ * <ThemeProvider theme={lightTheme} backgroundColor="$bg" borderStyle="single">
+ *   <Text>Uses light theme colors</Text>
  * </ThemeProvider>
  * ```
  */
 
 import React from "react"
-import { ThemeProvider as BaseThemeProvider } from "@silvery/theme/ThemeContext"
-import type { ThemeProviderProps } from "@silvery/theme/ThemeContext"
+import { ThemeContext } from "@silvery/theme/ThemeContext"
 import { Box } from "./components/Box"
+import type { BoxProps } from "./components/Box"
+import type { Theme } from "@silvery/theme/types"
 
-export function ThemeProvider({ theme, children, root = false }: ThemeProviderProps): React.ReactElement {
-  if (!root) {
-    return <BaseThemeProvider theme={theme}>{children}</BaseThemeProvider>
-  }
+export interface ThemeProviderProps extends Omit<BoxProps, "theme"> {
+  /** The theme to provide to the subtree. */
+  theme: Theme
+}
+
+export function ThemeProvider({ theme, children, ...boxProps }: ThemeProviderProps): React.ReactElement {
   return (
-    <BaseThemeProvider theme={theme}>
-      <Box color="$fg" flexDirection="column" flexGrow={1}>
+    <ThemeContext.Provider value={theme}>
+      <Box theme={theme} {...boxProps}>
         {children}
       </Box>
-    </BaseThemeProvider>
+    </ThemeContext.Provider>
   )
 }

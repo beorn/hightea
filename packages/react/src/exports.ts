@@ -432,7 +432,7 @@ export type { RuntimeContextValue, BaseRuntimeEvents } from "./context"
 // Theming
 export { ThemeProvider } from "./ThemeProvider"
 export { useTheme } from "@silvery/theme/ThemeContext"
-export type { ThemeProviderProps } from "@silvery/theme/ThemeContext"
+export type { ThemeProviderProps } from "./ThemeProvider"
 export {
   defaultDarkTheme,
   defaultLightTheme,

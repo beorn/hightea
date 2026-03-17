@@ -24,7 +24,8 @@ import { defaultDarkTheme } from "./palettes/index"
 // Context
 // ============================================================================
 
-const ThemeContext = createContext<Theme>(defaultDarkTheme)
+/** @internal Exported for @silvery/react ThemeProvider — not public API. */
+export const ThemeContext = createContext<Theme>(defaultDarkTheme)
 
 // ============================================================================
 // Provider
@@ -33,16 +34,6 @@ const ThemeContext = createContext<Theme>(defaultDarkTheme)
 export interface ThemeProviderProps {
   theme: Theme
   children: React.ReactNode
-  /**
-   * When true (default), wraps children in a container that sets
-   * `color="$fg"` so all text inherits the theme's foreground color.
-   * This is essential when the theme differs from the terminal
-   * (e.g., previewing a light theme in a dark terminal).
-   *
-   * Set to false for test environments or nested ThemeProviders
-   * where a wrapper element would interfere with layout assertions.
-   */
-  root?: boolean
 }
 
 /**

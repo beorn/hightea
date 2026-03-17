@@ -1,20 +1,15 @@
 /**
- * Panes — tmux-style split pane demo with virtual history.
+ * Panes — tmux-style split pane demo.
  *
- * Showcases: SplitView, ListView (virtual history), SearchProvider, SurfaceRegistry.
- * Two AI chat panes running independently, each with scrollable frozen history.
- * Tab switches focus, Ctrl+F searches the focused pane.
+ * Two AI chat panes with SplitView, tab focus switching, Ctrl+F search.
+ * Showcases: SplitView, ListView, SearchProvider, SurfaceRegistry.
  *
- * This is the Phase 5 showcase — exercises all 4 prior phases together:
- * - Phase 1: ListView (navigable, unified VirtualView+VirtualList)
- * - Phase 2: HistoryBuffer + ListDocument + TextSurface
- * - Phase 3: Virtual history mode + viewport compositor
- * - Phase 4: SearchProvider + SurfaceRegistry + SearchBar
+ * Run: bun examples/interactive/panes/index.tsx [--fast]
  */
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import { Box, Text, SplitView, ListView, SearchBar, useContentRect } from "silvery"
-import { SurfaceRegistryProvider, SearchProvider, useSearch } from "@silvery/react"
+import React, { useState, useEffect, useMemo } from "react"
+import { Box, Text, SplitView, ListView } from "silvery"
+import { SurfaceRegistryProvider, SearchProvider, useSearch, SearchBar } from "@silvery/react"
 import { run, useInput, type Key } from "@silvery/term/runtime"
 import { createLeaf, splitPane } from "@silvery/term/pane-manager"
 import type { ExampleMeta } from "../../_banner.js"
@@ -26,102 +21,64 @@ import type { ListItemMeta } from "@silvery/ui/components/ListView"
 
 export const meta: ExampleMeta = {
   name: "Panes",
-  description: "tmux-style split panes with virtual history and Ctrl+F search",
+  description: "tmux-style split panes — SplitView + ListView + SearchProvider",
   demo: true,
-  features: ["SplitView", "ListView", "virtual history", "SearchProvider", "Tab focus"],
+  features: ["SplitView", "ListView", "SearchProvider", "Tab focus"],
 }
 
 // ============================================================================
-// Types
+// Auto-advancing chat content
 // ============================================================================
 
-interface PaneState {
-  exchanges: Exchange[]
-  nextId: number
-  scriptIdx: number
-  done: boolean
-}
-
-// ============================================================================
-// Pane content — simplified aichat without TEA (just auto-advance)
-// ============================================================================
-
-function usePaneContent(script: ScriptEntry[], fastMode: boolean, label: string): PaneState {
-  const [state, setState] = useState<PaneState>({
-    exchanges: [],
-    nextId: 0,
-    scriptIdx: 0,
-    done: false,
-  })
+function usePaneContent(script: ScriptEntry[], fastMode: boolean): Exchange[] {
+  const [exchanges, setExchanges] = useState<Exchange[]>([])
+  const [idx, setIdx] = useState(0)
 
   useEffect(() => {
-    if (state.done) return
-    if (state.scriptIdx >= script.length) {
-      setState((s) => ({ ...s, done: true }))
-      return
-    }
-
-    const delay = fastMode ? 100 : 800 + Math.random() * 1200
+    if (idx >= script.length) return
+    const delay = fastMode ? 150 : 800 + Math.random() * 1200
     const timer = setTimeout(() => {
-      setState((s) => {
-        const entry = script[s.scriptIdx]
-        if (!entry) return { ...s, done: true }
-        const exchange: Exchange = { ...entry, id: s.nextId }
-        return {
-          exchanges: [...s.exchanges, exchange],
-          nextId: s.nextId + 1,
-          scriptIdx: s.scriptIdx + 1,
-          done: s.scriptIdx + 1 >= script.length,
-        }
-      })
+      const entry = script[idx]!
+      setExchanges((prev) => [...prev, { ...entry, id: idx }])
+      setIdx((i) => i + 1)
     }, delay)
     return () => clearTimeout(timer)
-  }, [state.scriptIdx, state.done, script, fastMode])
+  }, [idx, script, fastMode])
 
-  return state
+  return exchanges
 }
 
 // ============================================================================
-// Pane component
+// Chat pane — renders exchanges in a ListView
 // ============================================================================
 
-function ChatPane({
-  script,
-  fastMode,
-  surfaceId,
-  height,
-  isFocused,
-}: {
-  script: ScriptEntry[]
-  fastMode: boolean
-  surfaceId: string
-  height: number
-  isFocused: boolean
-}) {
-  const paneState = usePaneContent(script, fastMode, surfaceId)
+function ChatPane({ script, fastMode, height }: { script: ScriptEntry[]; fastMode: boolean; height: number }) {
+  const exchanges = usePaneContent(script, fastMode)
+
+  if (exchanges.length === 0) {
+    return (
+      <Box paddingX={1} paddingY={1}>
+        <Text color="$muted">Waiting for messages...</Text>
+      </Box>
+    )
+  }
 
   return (
     <ListView
-      items={paneState.exchanges}
-      height={Math.max(3, height - 2)} // Account for SplitView borders
+      items={exchanges}
+      height={height}
       getKey={(ex) => ex.id}
-      // TODO: Add when ListView history props are wired (Phase 3 merge)
-      // surfaceId={surfaceId}
-      // history={{ mode: "virtual", freezeWhen: (ex, idx) => idx < paneState.exchanges.length - 1 }}
-      // text={{ getItemText: (ex) => ex.content }}
-      scrollTo={paneState.exchanges.length - 1}
+      scrollTo={exchanges.length - 1}
       renderItem={(exchange: Exchange, _index: number, _meta: ListItemMeta) => (
-        <Box flexDirection="column" paddingX={1}>
-          <ExchangeItem
-            exchange={exchange}
-            streamPhase="done"
-            revealFraction={1}
-            pulse={false}
-            isLatest={false}
-            isFirstInGroup={true}
-            isLastInGroup={true}
-          />
-        </Box>
+        <ExchangeItem
+          exchange={exchange}
+          streamPhase="done"
+          revealFraction={1}
+          pulse={false}
+          isLatest={false}
+          isFirstInGroup={true}
+          isLastInGroup={true}
+        />
       )}
     />
   )
@@ -131,33 +88,29 @@ function ChatPane({
 // Main app
 // ============================================================================
 
-function PanesApp({ fastMode }: { fastMode: boolean }) {
+function PanesApp({ fastMode, rows }: { fastMode: boolean; rows: number }) {
   const [focusedPane, setFocusedPane] = useState<"left" | "right">("left")
-  const { height } = useContentRect()
   const search = useSearch()
 
-  // Split the script: first half left, second half right
+  // Split script: first half left, second half right
   const midpoint = Math.ceil(SCRIPT.length / 2)
   const leftScript = useMemo(() => SCRIPT.slice(0, midpoint), [midpoint])
   const rightScript = useMemo(() => SCRIPT.slice(midpoint), [midpoint])
 
-  // Layout: vertical split 50/50
+  // Layout: horizontal split 50/50
   const layout = useMemo(() => splitPane(createLeaf("left"), createLeaf("right"), "horizontal", 0.5), [])
 
   // Key bindings
   useInput((input: string, key: Key) => {
     if (key.escape && !search.isActive) return "exit"
-    // Tab switches panes
     if (key.tab) {
       setFocusedPane((p) => (p === "left" ? "right" : "left"))
       return
     }
-    // Ctrl+F opens search
     if (key.ctrl && input === "f") {
       search.open()
       return
     }
-    // When search is active, route keys to search
     if (search.isActive) {
       if (key.escape) {
         search.close()
@@ -190,32 +143,24 @@ function PanesApp({ fastMode }: { fastMode: boolean }) {
     }
   })
 
-  const paneHeight = height ?? 24
+  // Reserve 2 rows: 1 for search bar, 1 for status
+  // SplitView borders take 2 rows per pane (top + bottom)
+  const paneInnerHeight = Math.max(5, rows - 4)
 
   return (
-    <Box flexDirection="column" height={paneHeight}>
-      <Box flexGrow={1}>
-        <SplitView
-          layout={layout}
-          focusedPaneId={focusedPane}
-          focusedBorderColor="$primary"
-          unfocusedBorderColor="$border"
-          renderPaneTitle={(id) => (id === "left" ? " Agent A " : " Agent B ")}
-          renderPane={(id) => (
-            <ChatPane
-              script={id === "left" ? leftScript : rightScript}
-              fastMode={fastMode}
-              surfaceId={id}
-              height={paneHeight - 2}
-              isFocused={id === focusedPane}
-            />
-          )}
-        />
-      </Box>
+    <Box flexDirection="column">
+      <SplitView
+        layout={layout}
+        focusedPaneId={focusedPane}
+        focusedBorderColor="$primary"
+        unfocusedBorderColor="$border"
+        renderPaneTitle={(id) => (id === "left" ? " Agent A " : " Agent B ")}
+        renderPane={(id) => (
+          <ChatPane script={id === "left" ? leftScript : rightScript} fastMode={fastMode} height={paneInnerHeight} />
+        )}
+      />
       <SearchBar />
-      <Box>
-        <Text color="$muted">Tab: switch pane Ctrl+F: search Esc: {search.isActive ? "close search" : "quit"}</Text>
-      </Box>
+      <Text color="$muted"> Tab: switch pane · Ctrl+F: search · Esc: {search.isActive ? "close search" : "quit"}</Text>
     </Box>
   )
 }
@@ -224,11 +169,11 @@ function PanesApp({ fastMode }: { fastMode: boolean }) {
 // Entry
 // ============================================================================
 
-function App({ fastMode }: { fastMode: boolean }) {
+function App({ fastMode, rows }: { fastMode: boolean; rows: number }) {
   return (
     <SurfaceRegistryProvider>
       <SearchProvider>
-        <PanesApp fastMode={fastMode} />
+        <PanesApp fastMode={fastMode} rows={rows} />
       </SearchProvider>
     </SurfaceRegistryProvider>
   )
@@ -237,8 +182,13 @@ function App({ fastMode }: { fastMode: boolean }) {
 export async function main() {
   const args = process.argv.slice(2)
   const fastMode = args.includes("--fast")
+  const rows = process.stdout.rows ?? 40
 
-  using handle = await run(<App fastMode={fastMode} />, { mode: "fullscreen" })
+  using handle = await run(<App fastMode={fastMode} rows={rows} />, {
+    mode: "fullscreen",
+    kitty: false,
+    textSizing: false,
+  })
   await handle.waitUntilExit()
 }
 
