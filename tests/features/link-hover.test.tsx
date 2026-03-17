@@ -21,7 +21,8 @@ describe("useModifierKeys", () => {
       const mods = useModifierKeys()
       return (
         <Text>
-          super={String(mods.super)} ctrl={String(mods.ctrl)} alt={String(mods.alt)} shift={String(mods.shift)}
+          super={String(mods.super)} ctrl={String(mods.ctrl)} alt={String(mods.alt)} shift=
+          {String(mods.shift)}
         </Text>
       )
     }

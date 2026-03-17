@@ -8,6 +8,25 @@
  * Headings default to semantic theme colors; pass a custom color for
  * panel differentiation (e.g., <H1 color="$success">Panel A</H1>).
  *
+ * ## Color inheritance
+ *
+ * Body-text components (P, Strong, Em, H3) inherit foreground color from
+ * the nearest ancestor Box with a `color` prop — just like CSS. They do NOT
+ * hardcode `$fg`, so `<Box color="$error"><P>red text</P></Box>` works.
+ *
+ * When using ThemeProvider with a different theme mode than the terminal
+ * (e.g., previewing a light theme in a dark terminal), set `color="$fg"`
+ * on the container Box alongside `backgroundColor="$bg"` to establish
+ * the correct default foreground for the subtree:
+ *
+ * ```tsx
+ * <ThemeProvider theme={lightTheme}>
+ *   <Box backgroundColor="$bg" color="$fg">
+ *     <P>This text uses the light theme's fg</P>
+ *   </Box>
+ * </ThemeProvider>
+ * ```
+ *
  * Lists support nesting via UL/OL containers:
  * ```tsx
  * <UL>
@@ -52,10 +71,10 @@ export function H2({ children, color, ...rest }: TypographyProps) {
   )
 }
 
-/** Group heading — bold only. Stands out without accent color. */
+/** Group heading — bold only. Inherits foreground from parent. */
 export function H3({ children, color, ...rest }: TypographyProps) {
   return (
-    <Text bold color={color ?? "$fg"} {...rest}>
+    <Text bold color={color} {...rest}>
       {children}
     </Text>
   )
@@ -65,10 +84,10 @@ export function H3({ children, color, ...rest }: TypographyProps) {
 // Body Text
 // ============================================================================
 
-/** Paragraph — plain body text. Semantic wrapper for readability. */
+/** Paragraph — plain body text. Inherits foreground from parent. */
 export function P({ children, color, ...rest }: TypographyProps) {
   return (
-    <Text color={color ?? "$fg"} {...rest}>
+    <Text color={color} {...rest}>
       {children}
     </Text>
   )
@@ -101,19 +120,19 @@ export function Small({ children, color, ...rest }: TypographyProps) {
   )
 }
 
-/** Bold emphasis — inline strong text. */
+/** Bold emphasis — inline strong text. Inherits foreground from parent. */
 export function Strong({ children, color, ...rest }: TypographyProps) {
   return (
-    <Text bold color={color ?? "$fg"} {...rest}>
+    <Text bold color={color} {...rest}>
       {children}
     </Text>
   )
 }
 
-/** Italic emphasis — inline emphasized text. */
+/** Italic emphasis — inline emphasized text. Inherits foreground from parent. */
 export function Em({ children, color, ...rest }: TypographyProps) {
   return (
-    <Text italic color={color ?? "$fg"} {...rest}>
+    <Text italic color={color} {...rest}>
       {children}
     </Text>
   )
@@ -123,19 +142,19 @@ export function Em({ children, color, ...rest }: TypographyProps) {
 // Inline Elements
 // ============================================================================
 
-/** Inline code — $mutedbg background with padding. */
+/** Inline code — $mutedbg background with padding. Inherits foreground from parent. */
 export function Code({ children, color, ...rest }: TypographyProps) {
   return (
-    <Text backgroundColor="$mutedbg" color={color ?? "$fg"} {...rest}>
+    <Text backgroundColor="$mutedbg" color={color} {...rest}>
       {` ${children} `}
     </Text>
   )
 }
 
-/** Keyboard shortcut badge — $mutedbg background + bold. */
+/** Keyboard shortcut badge — $mutedbg background + bold. Inherits foreground from parent. */
 export function Kbd({ children, color, ...rest }: TypographyProps) {
   return (
-    <Text backgroundColor="$mutedbg" bold color={color ?? "$fg"} {...rest}>
+    <Text backgroundColor="$mutedbg" bold color={color} {...rest}>
       {` ${children} `}
     </Text>
   )
@@ -151,9 +170,7 @@ export function Blockquote({ children, color }: TypographyProps) {
     <Box>
       <Text color={color ?? "$muted"}>│ </Text>
       <Box flexShrink={1}>
-        <Text italic color="$fg">
-          {children}
-        </Text>
+        <Text italic>{children}</Text>
       </Box>
     </Box>
   )
@@ -236,7 +253,7 @@ export function LI({ children, color, _index }: TypographyProps & { _index?: num
         {marker}
       </Text>
       <Box flexShrink={1}>
-        <Text color={color ?? "$fg"}>{children}</Text>
+        <Text color={color}>{children}</Text>
       </Box>
     </Box>
   )

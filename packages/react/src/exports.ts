@@ -421,7 +421,8 @@ export { TermContext, FocusManagerContext, RuntimeContext, StderrContext } from 
 export type { RuntimeContextValue, BaseRuntimeEvents } from "./context"
 
 // Theming
-export { ThemeProvider, useTheme } from "@silvery/theme/ThemeContext"
+export { ThemeProvider } from "./ThemeProvider"
+export { useTheme } from "@silvery/theme/ThemeContext"
 export type { ThemeProviderProps } from "@silvery/theme/ThemeContext"
 export {
   defaultDarkTheme,

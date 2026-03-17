@@ -117,10 +117,10 @@ export function ProgressBar({
 
   return (
     <Box>
-      {label && <Text color="$fg">{label} </Text>}
-      <Text color={color ?? "$primary"}>{filledPart}</Text>
+      {label && <Text>{label} </Text>}
+      <Text color={color}>{filledPart}</Text>
       <Text dimColor>{emptyPart}</Text>
-      {showPct && <Text color="$fg"> {pct}%</Text>}
+      {showPct && <Text> {pct}%</Text>}
     </Box>
   )
 }

@@ -66,12 +66,8 @@ export function checkContrast(fg: string, bg: string): ContrastResult | null {
   const darker = Math.min(fgLum, bgLum)
   const ratio = (lighter + 0.05) / (darker + 0.05)
 
-  // Use exact ratio for conformance decisions (WCAG: don't round up).
-  // Round for display only.
-  const displayRatio = Math.round(ratio * 100) / 100
-
   return {
-    ratio: displayRatio,
+    ratio, // exact — callers round for display if needed
     aa: ratio >= 4.5,
     aaa: ratio >= 7,
   }

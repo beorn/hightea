@@ -65,10 +65,8 @@ export function Toggle({ value, onChange, label, isActive, ...rest }: ToggleProp
 
   return (
     <Box focusable {...rest}>
-      <Text inverse={active} color="$fg">
-        {indicator}
-      </Text>
-      {label && <Text color="$fg"> {label}</Text>}
+      <Text inverse={active}>{indicator}</Text>
+      {label && <Text> {label}</Text>}
     </Box>
   )
 }

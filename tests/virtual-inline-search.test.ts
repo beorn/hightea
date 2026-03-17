@@ -142,7 +142,13 @@ describe("renderSearchBar", () => {
   })
 
   test("renders no matches indicator", () => {
-    const state = { ...createSearchState(), active: true, query: "xyz", matches: [], currentMatch: -1 }
+    const state = {
+      ...createSearchState(),
+      active: true,
+      query: "xyz",
+      matches: [],
+      currentMatch: -1,
+    }
     const bar = renderSearchBar(state, 40)
     expect(bar).toContain("[no matches]")
   })

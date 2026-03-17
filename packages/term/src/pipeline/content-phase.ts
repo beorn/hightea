@@ -1538,6 +1538,12 @@ function findInheritedBg(node: TeaNode): InheritedBgResult {
  * Find the nearest ancestor Box with a `color` prop and return the parsed color.
  * Implements CSS-style foreground color inheritance: Text children without an
  * explicit `color` prop inherit from the nearest Box ancestor that sets one.
+ *
+ * Returns null when no ancestor sets a color — text uses the terminal default.
+ * When using ThemeProvider with a theme that differs from the terminal (e.g.,
+ * previewing a light theme in a dark terminal), set `color="$fg"` on the
+ * container Box alongside `backgroundColor="$bg"` to establish the correct
+ * default foreground for the subtree.
  */
 function findInheritedFg(node: TeaNode): Color {
   let current = node.parent
