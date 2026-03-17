@@ -1522,10 +1522,19 @@ interface InheritedBgResult {
 function findInheritedBg(node: TeaNode): InheritedBgResult {
   let current = node.parent
   while (current) {
-    const bg = (current.props as BoxProps).backgroundColor
-    if (bg) {
+    const props = current.props as BoxProps
+    if (props.backgroundColor) {
       return {
-        color: parseColor(bg),
+        color: parseColor(props.backgroundColor),
+        ancestorRect: current.contentRect,
+      }
+    }
+    // Box with theme prop: resolve $bg directly from the theme object
+    // (avoids context stack dependency — see findInheritedFg comment)
+    if (props.theme) {
+      const theme = props.theme as Theme
+      return {
+        color: parseColor(theme.bg),
         ancestorRect: current.contentRect,
       }
     }
@@ -1539,13 +1548,23 @@ function findInheritedBg(node: TeaNode): InheritedBgResult {
  * Implements CSS-style foreground color inheritance: Text children without an
  * explicit `color` prop inherit from the nearest Box ancestor that sets one.
  *
+ * Also resolves `$fg` from the nearest ancestor Box with a `theme` prop,
+ * reading the hex value directly from the Theme object to avoid context stack
+ * dependency (parseColor("$fg") is stateful and depends on render-order
+ * context stack position, but this function walks UP the tree).
+ *
  * Returns null when no ancestor sets a color — text uses the terminal default.
  */
 function findInheritedFg(node: TeaNode): Color {
   let current = node.parent
   while (current) {
-    const fg = (current.props as BoxProps).color
-    if (fg) return parseColor(fg)
+    const props = current.props as BoxProps
+    if (props.color) return parseColor(props.color)
+    // Box with theme prop: resolve $fg directly from the theme object
+    if (props.theme) {
+      const theme = props.theme as Theme
+      return parseColor(theme.fg)
+    }
     current = current.parent
   }
   return null

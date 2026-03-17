@@ -409,7 +409,7 @@ function ThemePreview({ entry }: { entry: ThemeEntry }): JSX.Element {
 
   return (
     <ThemeProvider theme={entry.theme}>
-      <Box theme={entry.theme} color="$fg" backgroundColor="$bg" flexDirection="column" flexGrow={1} borderStyle="single" overflow="scroll">
+      <Box theme={entry.theme} backgroundColor="$bg" flexDirection="column" flexGrow={1} borderStyle="single" overflow="scroll">
       <Box paddingX={1} gap={1}>
         <H1>{entry.name}</H1>
         <Muted>{label}</Muted>
