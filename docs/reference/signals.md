@@ -2,12 +2,12 @@
 
 As your app grows, selectors show their cost. Zustand runs _every_ selector on _every_ store update — 100 `<Row>` components each with `useApp(s => s.rows.get(id))` means 100 selector calls when the cursor moves, even though only 2 rows changed.
 
-[Signals](https://github.com/tc39/proposal-signals) (TC39 proposal, stage 1) flip this. Components read `.value` and automatically subscribe to exactly what they touched — no diffing, no linear scan. Same model as [SolidJS](https://www.solidjs.com/) and [Vue 3](https://vuejs.org/). We use [Preact's implementation](https://github.com/preactjs/signals) (`@preact/signals-core`).
+[Signals](https://github.com/tc39/proposal-signals) (TC39 proposal, stage 1) flip this. Components read `.value` and automatically subscribe to exactly what they touched — no diffing, no linear scan. Same model as [SolidJS](https://www.solidjs.com/) and [Vue 3](https://vuejs.org/). We use [alien-signals](https://github.com/stackblitz/alien-signals) — the fastest signals implementation (~1KB, push-pull, proven by Vue 3.6 adoption).
 
 With signals, the factory returns a plain object — signals _are_ the reactive state, so you don't need Zustand's `set()`:
 
 ```tsx
-import { signal, computed, batch } from "@preact/signals-core"
+import { signal, computed, batch } from "@silvery/signal"
 
 const app = createApp(
   () => {
@@ -56,7 +56,7 @@ batch(() => {
 
 Signals are orthogonal to the levels — you can use them at Level 2 or Level 5. They're a performance optimization, not a conceptual shift. If your app doesn't have performance issues with selectors, skip them.
 
-> **Silvery:** A bridge middleware connects signals to Zustand — when any signal's `.value` changes, Zustand subscribers are also notified. This is why we use `@preact/signals-core` (not `-react`): Silvery's bridge handles the React integration.
+> **Silvery:** `@silvery/signal` provides the reactive core (alien-signals) plus `createStore()` for deep objects, `createResource()` for async, and `/react` bindings (`useSignal`). The bridge handles React integration via `useSyncExternalStore`.
 
 ## Scaling to Thousands of Items
 
