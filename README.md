@@ -14,29 +14,20 @@ npm install silvery react
 
 ```tsx
 import { useState } from "react"
-import { render, Box, Text, useInput, useContentRect, createTerm } from "silvery"
+import { render, Text, useInput, createTerm } from "silvery"
 
-function App() {
-  const { width } = useContentRect()
+function Counter() {
   const [count, setCount] = useState(0)
-
   useInput((input) => {
     if (input === "j") setCount((c) => c + 1)
     if (input === "k") setCount((c) => c - 1)
     if (input === "q") return "exit"
   })
-
-  return (
-    <Box flexDirection="column" padding={1}>
-      <Text bold>Counter ({width} cols wide)</Text>
-      <Text>Count: {count}</Text>
-      <Text dim>j/k = change, q = quit</Text>
-    </Box>
-  )
+  return <Text>Count: {count}</Text>
 }
 
 using term = createTerm()
-await render(<App />, term).run()
+await render(<Counter />, term).run()
 ```
 
 ## What You Get
@@ -54,7 +45,7 @@ await render(<App />, term).run()
 
 [Ink](https://github.com/vadimdemedes/ink) pioneered React in the terminal and remains a great choice for many apps. Silvery builds on that foundation with additional capabilities for complex interactive UIs — focus management, scrollable containers, mouse support, text editing, virtual lists, theming, and incremental rendering.
 
-If you're already using Ink, `silvery/ink` provides a compatibility layer for gradual migration.
+If you're already using Ink, `@silvery/ink` provides a compatibility layer for gradual migration.
 
 ## Packages
 
@@ -63,7 +54,7 @@ If you're already using Ink, `silvery/ink` provides a compatibility layer for gr
 | `silvery` | Components, hooks, renderer — the one package you need |
 | `@silvery/tea` | Optional [TEA](https://guide.elm-lang.org/architecture/) state management for complex apps |
 | `@silvery/test` | Testing utilities and locators |
-| `@silvery/compat` | Ink/Chalk compatibility layers |
+| `@silvery/ink` | Ink compatibility layer |
 
 ## Ecosystem
 

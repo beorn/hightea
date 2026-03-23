@@ -38,8 +38,7 @@
   ],
   "files": [
     "src",
-    "bin",
-    "examples"
+    "bin"
   ],
   "type": "module",
   "main": "src/index.ts",
