@@ -18,17 +18,17 @@ import { Text } from "silvery"
 
 ## Props
 
-| Prop              | Type                                                                              | Default      | Description                    |
-| ----------------- | --------------------------------------------------------------------------------- | ------------ | ------------------------------ |
+| Prop              | Type                                                                              | Default      | Description                                       |
+| ----------------- | --------------------------------------------------------------------------------- | ------------ | ------------------------------------------------- |
 | `color`           | `string`                                                                          | -            | Text color (named, hex, `$token`, or `"inherit"`) |
-| `backgroundColor` | `string`                                                                          | -            | Background color               |
-| `bold`            | `boolean`                                                                         | `false`      | Bold text                      |
-| `italic`          | `boolean`                                                                         | `false`      | Italic text                    |
-| `underline`       | `boolean`                                                                         | `false`      | Underlined text                |
-| `strikethrough`   | `boolean`                                                                         | `false`      | Strikethrough text             |
-| `dimColor`        | `boolean`                                                                         | `false`      | Dimmed color                   |
-| `inverse`         | `boolean`                                                                         | `false`      | Swap foreground and background |
-| `wrap`            | `"wrap" \| "truncate" \| "truncate-start" \| "truncate-middle" \| "truncate-end"` | `"truncate"` | How to handle overflow         |
+| `backgroundColor` | `string`                                                                          | -            | Background color                                  |
+| `bold`            | `boolean`                                                                         | `false`      | Bold text                                         |
+| `italic`          | `boolean`                                                                         | `false`      | Italic text                                       |
+| `underline`       | `boolean`                                                                         | `false`      | Underlined text                                   |
+| `strikethrough`   | `boolean`                                                                         | `false`      | Strikethrough text                                |
+| `dimColor`        | `boolean`                                                                         | `false`      | Dimmed color                                      |
+| `inverse`         | `boolean`                                                                         | `false`      | Swap foreground and background                    |
+| `wrap`            | `"wrap" \| "truncate" \| "truncate-start" \| "truncate-middle" \| "truncate-end"` | `"truncate"` | How to handle overflow                            |
 
 ## Colors
 
@@ -57,13 +57,17 @@ import { Text } from "silvery"
 Use `"inherit"` to skip color override and inherit from the parent:
 
 ```tsx
-<Text color="red">
+;<Text color="red">
   Parent is red. <Text color="inherit">This inherits red.</Text>
 </Text>
 
-{/* Useful for Link inside colored containers */}
-<Text color="$selection">
-  <Link href="..." color="inherit">Inherits selection color</Link>
+{
+  /* Useful for Link inside colored containers */
+}
+;<Text color="$selection">
+  <Link href="..." color="inherit">
+    Inherits selection color
+  </Link>
 </Text>
 ```
 

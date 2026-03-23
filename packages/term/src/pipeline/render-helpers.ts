@@ -48,8 +48,25 @@ const namedColors: Record<string, number> = {
 }
 
 /**
+ * Blend two RGB colors in sRGB space.
+ * Formula: result = c1 * (1 - t) + c2 * t, where t is 0..1.
+ * Returns an RGB object with each channel clamped to 0-255.
+ */
+function blendColors(
+  c1: { r: number; g: number; b: number },
+  c2: { r: number; g: number; b: number },
+  t: number,
+): { r: number; g: number; b: number } {
+  return {
+    r: Math.round(c1.r * (1 - t) + c2.r * t),
+    g: Math.round(c1.g * (1 - t) + c2.g * t),
+    b: Math.round(c1.b * (1 - t) + c2.b * t),
+  }
+}
+
+/**
  * Parse color string to Color type.
- * Supports: $token (theme), named colors, hex (#rgb, #rrggbb), rgb(r,g,b)
+ * Supports: mix(c1,c2,amount), $token (theme), named colors, hex (#rgb, #rrggbb), rgb(r,g,b)
  */
 export function parseColor(color: string): Color {
   // Inherit: no color — parent's color flows through (like CSS color: inherit)
@@ -57,6 +74,50 @@ export function parseColor(color: string): Color {
 
   // Special token: terminal's default background (SGR 49)
   if (color === "$default") return DEFAULT_BG
+
+  // Mix: blend two colors — mix(color1, color2, amount)
+  // Amount can be a percentage (e.g. 50%) or a decimal (e.g. 0.5).
+  // Both colors are recursively resolved via parseColor (supports theme tokens, hex, named, etc.).
+  // Only blends when both colors resolve to RGB objects; returns null if either is null or an ANSI index.
+  if (color.startsWith("mix(") && color.endsWith(")")) {
+    const inner = color.slice(4, -1)
+    // Split on commas, but respect nested parentheses (e.g. rgb(r,g,b) as an argument)
+    const args: string[] = []
+    let depth = 0
+    let start = 0
+    for (let i = 0; i < inner.length; i++) {
+      if (inner[i] === "(") depth++
+      else if (inner[i] === ")") depth--
+      else if (inner[i] === "," && depth === 0) {
+        args.push(inner.slice(start, i).trim())
+        start = i + 1
+      }
+    }
+    args.push(inner.slice(start).trim())
+
+    if (args.length === 3) {
+      const c1 = parseColor(args[0]!)
+      const c2 = parseColor(args[1]!)
+      const amountStr = args[2]!
+
+      // Parse amount: percentage (e.g. "50%") or decimal (e.g. "0.5")
+      let t: number
+      if (amountStr.endsWith("%")) {
+        t = Number.parseFloat(amountStr.slice(0, -1)) / 100
+      } else {
+        t = Number.parseFloat(amountStr)
+      }
+
+      // Only blend RGB objects; ANSI indices (number) and null cannot be blended
+      if (c1 !== null && c2 !== null && typeof c1 === "object" && typeof c2 === "object" && !Number.isNaN(t)) {
+        return blendColors(c1, c2, Math.max(0, Math.min(1, t)))
+      }
+      return null
+    }
+  }
+
+  // Future: slash notation for background opacity (e.g. "$link/10") is not yet supported.
+  // It would require richer return types to carry opacity alongside the base color.
 
   // Resolve $token colors against the active theme
   if (color.startsWith("$")) {

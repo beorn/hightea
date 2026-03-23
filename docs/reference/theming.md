@@ -50,6 +50,33 @@ Non-`$` values pass through unchanged (`color="red"`, `color="#ff0000"`).
 **Default border color**: When `borderStyle` or `outlineStyle` is set without an
 explicit color, the theme's `$separator` token is used automatically.
 
+### Special Color Values
+
+| Value               | Description                                                                                                                                        |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `"inherit"`         | Skip color override, inherit from parent element. Useful for components with default colors (e.g., `<Link color="inherit">` to skip `$link` blue). |
+| `"mix(c1, c2, N%)"` | Blend c1 and c2 at N% ratio in sRGB space. Supports `$tokens`, named colors, and hex. Amount is 0-100% or 0.0-1.0.                                 |
+| `"$default"`        | Terminal's actual default background (SGR 49). Unlike `$bg`, this matches the user's terminal emulator setting exactly.                            |
+
+```tsx
+{
+  /* Link inherits parent color instead of defaulting to $link */
+}
+;<Text color="$error">
+  Error:{" "}
+  <Link color="inherit" href="...">
+    details
+  </Link>
+</Text>
+
+{
+  /* Subtle tint using mix */
+}
+;<Box backgroundColor="mix($bg, $error, 15%)">
+  <Text color="$error">3 errors</Text>
+</Box>
+```
+
 ## Token Reference
 
 ### Brand (3 tokens)
