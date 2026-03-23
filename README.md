@@ -47,7 +47,7 @@ await render(<Counter />).run()
 - **30+ components** — TextInput, TextArea, SelectList, VirtualList, Table, Tabs, CommandPalette, ModalDialog, Toast, and more
 - **Focus system** — scoped focus, arrow-key directional nav, click-to-focus
 - **Extremely composable** — use as just a renderer (`render`), add a runtime (`run`), or build full apps (`createApp`). Mix with any React state library (useState, Zustand, Jotai, Redux). Embed silvery components in existing CLIs. Use the layout engine standalone. Test headlessly with Termless. Render to terminal, Canvas, or DOM
-- **Most complete terminal protocol support** — Kitty keyboard (all 5 flags), SGR mouse (any-event + drag + wheel), bracketed paste, focus reporting, OSC 8 hyperlinks, OSC 52 clipboard, OSC 4/10/11 palette and theme detection, OSC 66 text sizing, OSC 133 semantic prompts, synchronized output, extended underlines (curly, dotted, dashed), underline colors, cursor shapes, device attribute queries — all auto-negotiated
+- **Most complete terminal protocol support** — 12 OSC sequences (hyperlinks, clipboard, palette, text sizing, semantic prompts, notifications, titles), Kitty keyboard protocol (all 5 flags), SGR mouse (any-event + drag + wheel), 6 underline styles with colors, bracketed paste, focus reporting, synchronized output, cursor shapes, device attribute queries, truecolor/256-color — all auto-negotiated
 
 ## Packages
 
