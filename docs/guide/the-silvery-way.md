@@ -348,92 +348,48 @@ try {
 
 → [render()](/api/render) · [Lifecycle](/reference/lifecycle)
 
-## 9. Adopt TEA Gradually
+## 9. Start Simple, Scale Architecture
 
-[`@silvery/tea`](/reference/packages) is a gradual path, not a rewrite. Start with `useState` — that's fine for simple components. When state gets shared, move to `createSlice`. When you need testable side effects, return `Effect[]` from your handlers instead of calling `fetch` inline. Each sip makes your app more testable, replayable, and composable — but you take them one at a time, when the complexity justifies it.
+`useState` and `useReducer` are the right starting point. They work great for most terminal apps. Don't add architecture until the complexity demands it.
 
-::: tip ✨ Shiny — sip by sip
-
-Same counter, three levels. Each sip changes only what the handlers _do_ — the API stays the same from sip 2 onward.
+::: tip ✨ Shiny — escalation ladder
 
 ```tsx
-// Sip 1: useState — local state, component-scoped
+// Level 1: local hooks — perfect for simple apps
 function Counter() {
   const [count, setCount] = useState(0)
-  return <Text>{count}</Text>
+  useInput((input) => {
+    if (input === "j") setCount((c) => c + 1)
+  })
+  return <Text>Count: {count}</Text>
 }
-// ✓ Simple. Perfect for local UI state (form fields, toggles, hover).
-// ✗ Can't share state across components. Can't serialize actions.
 
-// Sip 2: createSlice — shared store, named actions
-const counter = createSlice(() => ({ count: signal(0) }), {
-  increment(s) {
-    s.count.value += 1
-  },
-  save(s) {
-    fetch("/api", { body: JSON.stringify({ count: s.count.value }) })
-  },
-})
-function Counter() {
-  const count = counter.use((s) => s.count.value)
-  return <Text>{count}</Text>
-}
-// signal() = reactive state. Components read .value and auto-subscribe.
-// computed() adds derived state on top (e.g., doneCount, filtered lists).
-// store.apply({ op: "increment" })  — serializable, loggable, replayable
-// No switch/case — createSlice infers the op union from your handler names.
-// Undo/redo: ops are already data — record them and replay in reverse.
-// ✓ Shared state. Named actions. Selective re-renders. Undo/redo.
-// ✗ Side effects (save) still live in handlers — can't test without mocking.
-
-// Sip 3: effects as data — createEffects() defines types + builders + runners
-const fx = createEffects({
-  http: async ({ url, body }: { url: string; body: unknown }) => {
-    await fetch(url, { method: "POST", body: JSON.stringify(body) })
-  },
-})
-
-const counter = createSlice(() => ({ count: signal(0) }), {
-  increment(s) {
-    s.count.value += 1
-  },
-  save(s): (typeof fx.Effect)[] {
-    return [fx.http({ url: "/api", body: { count: s.count.value } })]
-    //      ^^ typed builder — wrong keys or params = compile error
-  },
-})
-// Test: just call the handler — no mocks, no fetch, no async
-const effects = counter.save({ count: signal(5) })
-expect(effects).toContainEqual(fx.http({ url: "/api", body: { count: 5 } }))
-// ✓ Everything is data. Type-safe. Pure, testable, replayable, swappable.
-```
-
-Most apps live at sip 2. That's fine — each sip is independently useful, and you move to the next only when you feel the pain the current level can't solve. The [state management guide](/guides/state-management) walks through each transition in detail.
-:::
-
-::: danger 🩶 Tarnished — skipping straight to the hard stuff
-
-```tsx
-// Mixing I/O into state logic — can't test, can't replay, can't swap environments
-async function handleSave() {
-  setLoading(true)
-  try {
-    await fetch("/api", { method: "POST", body: JSON.stringify(data) })
-    setData(null)
-  } catch (e) {
-    setError(e.message)
-  } finally {
-    setLoading(false)
+// Level 2: useReducer/context — when state gets shared
+const reducer = (state, action) => {
+  switch (action.type) {
+    case "increment": return { ...state, count: state.count + 1 }
+    case "decrement": return { ...state, count: state.count - 1 }
   }
 }
-// To test this, you need to mock fetch, mock setState, and hope the
-// error paths work. With effects as data, you just call the handler and check the output.
+
+// Level 3: external store (zustand, jotai, etc.) — when you need subscriptions
+// Level 4: @silvery/tea — when you need commands, keybindings, effects-as-data
 ```
 
-`useState` isn't tarnished — mixing I/O into state updates is. When you find yourself mocking `fetch` to test state logic, it's time for sip 3.
+Each level is independently useful. Move to the next only when you feel the pain the current level can't solve. Most apps live at level 1 or 2.
 :::
 
-→ [State management guide](/guides/state-management) — the full journey from `useState` to effects-as-data, one sip at a time
+::: danger 🩶 Tarnished — architecture astronautics
+
+```tsx
+// Don't reach for createApp + store + dispatch for a counter.
+// That's a 50-line app wearing a 500-line suit.
+```
+
+Architecture is a response to complexity, not a starting point. If `useState` solves your problem, that's the shiny way.
+:::
+
+→ [Application Architecture](/guides/state-management) — when and how to graduate from hooks to structured state management
 
 ## 10. Test Against What the User Sees
 
