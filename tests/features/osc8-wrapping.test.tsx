@@ -27,8 +27,6 @@ describe("wrapText: OSC 8 hyperlinks", () => {
     const text = `${OSC8_OPEN(url)}Hello World${OSC8_CLOSE}`
     const lines = wrapText(text, 7)
 
-    // "Hello " fits on line 1, "World" on line 2
-    // Each line should have its own OSC 8 open/close
     expect(lines.length).toBe(2)
     for (const line of lines) {
       expect(line).toContain(OSC8_OPEN(url))
@@ -41,9 +39,7 @@ describe("wrapText: OSC 8 hyperlinks", () => {
     const text = `${OSC8_OPEN(url)}Hello World${OSC8_CLOSE}`
     const lines = wrapText(text, 7)
 
-    // No visible ']8;;' text should appear in any line
     for (const line of lines) {
-      // Strip all valid OSC 8 sequences, then check nothing looks like a broken one
       const stripped = line.replace(/\x1b\]8;;[^\x07\x1b]*(?:\x07|\x1b\\)/g, "")
       expect(stripped).not.toContain("]8;;")
       expect(stripped).not.toContain("\\")
@@ -55,7 +51,6 @@ describe("wrapText: OSC 8 hyperlinks", () => {
     const text = `${OSC8_OPEN(url)}one two three${OSC8_CLOSE}`
     const lines = wrapText(text, 5)
 
-    // Should wrap into ~3 lines
     expect(lines.length).toBeGreaterThanOrEqual(3)
     for (const line of lines) {
       expect(line).toContain(OSC8_OPEN(url))
@@ -68,8 +63,6 @@ describe("wrapText: OSC 8 hyperlinks", () => {
     const text = `Prefix ${OSC8_OPEN(url)}link text${OSC8_CLOSE} suffix`
     const lines = wrapText(text, 10)
 
-    // First line has prefix, may or may not have link start
-    // Key assertion: no orphaned close sequences
     for (const line of lines) {
       const stripped = line.replace(/\x1b\]8;;[^\x07\x1b]*(?:\x07|\x1b\\)/g, "")
       expect(stripped).not.toContain("]8;;")
@@ -84,7 +77,6 @@ describe("wrapText: OSC 8 hyperlinks", () => {
   })
 
   test("character wrap within link: OSC 8 state maintained", () => {
-    // A very long word that must character-wrap
     const url = "https://x.co"
     const text = `${OSC8_OPEN(url)}abcdefghij${OSC8_CLOSE}`
     const lines = wrapText(text, 5)
@@ -108,7 +100,6 @@ describe("Link component: OSC 8 wrapping in rendered output", () => {
       </Box>,
     )
 
-    // The rendered text should show "Hello" and "World" etc. but NO ']8;;\' fragments
     const text = app.text
     expect(text).not.toContain("]8;;")
     expect(text).not.toContain("\\")

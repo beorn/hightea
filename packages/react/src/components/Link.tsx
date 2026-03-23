@@ -5,17 +5,17 @@
  * Text inside `<Link>` is underlined by default and wrapped in OSC 8 sequences,
  * making it clickable in supporting terminals (iTerm2, Ghostty, Kitty, etc.).
  *
- * Supports Cmd+hover armed state: when the user hovers over a link while
- * holding Cmd (Super), the link shows an underline. Only the hovered link
- * subscribes to modifier state, so this is O(1) regardless of link count.
+ * Two arming variants:
+ * - `arm-on-cmd-hover` (default): Arms on Cmd+hover (Kitty protocol) or Ctrl+click (SGR)
+ * - `arm-on-hover`: Arms on plain hover (no modifier needed)
  *
- * On Cmd+click, emits a `"link:open"` event via RuntimeContext. The app
+ * On click (when armed), emits a `"link:open"` event via RuntimeContext. The app
  * handles the actual URL opening (keeps silvery runtime-agnostic).
  *
  * @example
  * ```tsx
  * <Link href="https://example.com">Visit Example</Link>
- * <Link href="https://example.com" color="blue">Blue Link</Link>
+ * <Link href="https://example.com" variant="arm-on-hover">Always Clickable</Link>
  * <Link href="km://node/abc123" onClick={(e) => navigate(e)}>Internal Link</Link>
  * ```
  */
@@ -89,19 +89,21 @@ export function Link({
   // Determine armed state based on variant
   const armed = hovered && (needsModifier ? cmdHeld : true)
   if (armed) rest.underline = true
-  // Pointer cursor when armed (Cmd+hover)
+  // Pointer cursor when armed
   useMouseCursor(armed ? "pointer" : null)
 
-  // Cmd+click emits "link:open" event for the app to handle (keeps silvery runtime-agnostic)
+  // Click emits "link:open" when armed. For arm-on-cmd-hover, also check e.ctrlKey
+  // since SGR mouse protocol reports Ctrl but NOT Cmd/Super (metaKey is always false).
   const handleClick = useCallback(
     (e: SilveryMouseEvent) => {
-      if (armed) {
+      const isArmed = armed || (needsModifier && hovered && e.ctrlKey)
+      if (isArmed) {
         ;(rt as any)?.emit("link:open", href)
         e.preventDefault()
       }
       onClick?.(e)
     },
-    [armed, href, onClick, rt],
+    [armed, needsModifier, hovered, href, onClick, rt],
   )
 
   return (
