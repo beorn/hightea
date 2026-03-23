@@ -9,7 +9,7 @@ import React from "react"
 import { describe, it, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
 
-import { ThemeExplorer, type ThemeEntry } from "../../examples/interactive/theme.tsx"
+import { ThemeExplorer, type ThemeEntry } from "../../examples/apps/theme.tsx"
 import { builtinPalettes, deriveTheme, type ThemeAdjustment } from "@silvery/theme"
 
 // Smoke test — disable strict mode (not testing rendering correctness)

@@ -17,7 +17,7 @@ import "@termless/test/matchers"
 import type { Term } from "../../packages/term/src/ansi/term"
 import type { TermScreen } from "../../packages/term/src/ansi/types"
 import { run, type RunHandle } from "../../packages/term/src/runtime/run"
-import { AIChat, SCRIPT } from "../../examples/interactive/aichat/index"
+import { AIChat, SCRIPT } from "../../examples/apps/aichat/index"
 
 // ============================================================================
 // Helpers

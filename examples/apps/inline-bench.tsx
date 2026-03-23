@@ -6,7 +6,7 @@
  * - Incremental render (createOutputPhase — instance-scoped cursor tracking)
  *
  * Usage:
- *   bun examples/interactive/inline-bench.tsx
+ *   bun examples/apps/inline-bench.tsx
  */
 
 import { TerminalBuffer } from "@silvery/term/buffer"

@@ -34,8 +34,8 @@ bun install
 bun examples
 
 # Run a specific example:
-bun examples/interactive/aichat/index.tsx
-bun examples/interactive/cli-wizard.tsx
+bun examples/apps/aichat/index.tsx
+bun examples/apps/cli-wizard.tsx
 bun examples/layout/dashboard.tsx
 ```
 

@@ -12,7 +12,7 @@
  * - Terminal focus/blur tracking with event log
  * - Kitty keyboard protocol auto-detection
  *
- * Run: bun vendor/silvery/examples/interactive/terminal.tsx
+ * Run: bun vendor/silvery/examples/apps/terminal.tsx
  */
 
 import React, { useState, useRef, useEffect } from "react"

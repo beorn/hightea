@@ -417,7 +417,7 @@ describe("AIChat scrollback fuzz", () => {
   })
 
   async function setupAIChat(dims: { cols: number; rows: number } = { cols: 100, rows: 25 }, shellLines: number = 3) {
-    const { AIChat, SCRIPT } = await import("../../examples/interactive/aichat/index")
+    const { AIChat, SCRIPT } = await import("../../examples/apps/aichat/index")
     term = createTermless(dims)
     const emulator = (term as unknown as Record<string, unknown>)._emulator as {
       feed(data: string): void
@@ -427,7 +427,7 @@ describe("AIChat scrollback fuzz", () => {
     for (let i = 0; i < shellLines; i++) {
       emulator.feed(`shell-line-${i}\r\n`)
     }
-    emulator.feed("$ bun run examples/interactive/aichat/index.tsx\r\n")
+    emulator.feed("$ bun run examples/apps/aichat/index.tsx\r\n")
 
     handle = await run(<AIChat script={SCRIPT} autoStart={false} fastMode={true} />, {
       mode: "inline",

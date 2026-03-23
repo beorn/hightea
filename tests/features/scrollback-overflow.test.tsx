@@ -377,7 +377,7 @@ describe("AIChat inline scrollback with shell prompt", () => {
     dims: { cols: number; rows: number } = { cols: 120, rows: 40 },
     shellLines: number = 5,
   ) {
-    const { AIChat, SCRIPT } = await import("../../examples/interactive/aichat/index")
+    const { AIChat, SCRIPT } = await import("../../examples/apps/aichat/index")
     term = createTermless(dims)
     const emulator = (term as unknown as Record<string, unknown>)._emulator as {
       feed(data: string): void
@@ -387,7 +387,7 @@ describe("AIChat inline scrollback with shell prompt", () => {
     for (let i = 0; i < shellLines; i++) {
       emulator.feed(`shell-line-${i}\r\n`)
     }
-    emulator.feed("$ bun run examples/interactive/aichat/index.tsx\r\n")
+    emulator.feed("$ bun run examples/apps/aichat/index.tsx\r\n")
 
     handle = await run(<AIChat script={SCRIPT} autoStart={false} fastMode={true} />, {
       mode: "inline",

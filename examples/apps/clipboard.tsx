@@ -11,7 +11,7 @@
  * - Press v to request clipboard contents
  * - Status bar shows last copied/pasted text
  *
- * Run: bun vendor/silvery/examples/interactive/clipboard.tsx
+ * Run: bun vendor/silvery/examples/apps/clipboard.tsx
  */
 
 import React, { useState } from "react"

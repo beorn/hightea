@@ -17,7 +17,7 @@ import "@termless/test/matchers"
 import type { Term } from "../../packages/term/src/ansi/term"
 import { run, type RunHandle } from "../../packages/term/src/runtime/run"
 import { Box, Text } from "../../packages/react/src/index"
-import { AIChat, SCRIPT, type ScriptEntry } from "../../examples/interactive/aichat/index"
+import { AIChat, SCRIPT, type ScriptEntry } from "../../examples/apps/aichat/index"
 
 const settle = (ms = 200) => new Promise((r) => setTimeout(r, ms))
 

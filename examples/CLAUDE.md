@@ -2,16 +2,24 @@
 
 ## Directory Structure
 
-| Directory      | What                                                       |
-| -------------- | ---------------------------------------------------------- |
-| `interactive/` | Full apps — run with `bun examples/interactive/<name>.tsx` |
-| `inline/`      | Inline mode examples (no alt screen)                       |
-| `kitty/`       | Kitty protocol demos                                       |
-| `layout/`      | Layout engine examples                                     |
-| `runtime/`     | Runtime layer demos (run, createApp, createStore)          |
-| `playground/`  | Quick prototyping                                          |
-| `web/`         | Browser renderers (DOM, Canvas2D)                          |
-| `screenshots/` | Reference screenshots for visual regression                |
+| Directory       | What                                                                        |
+| --------------- | --------------------------------------------------------------------------- |
+| `components/`   | Simple component demos — `run()` + React hooks, one per component           |
+| `apps/`         | Full apps — `render()` / `createApp()` / `pipe()`, richer state management  |
+| `interactive/`  | Debug tools (underscore-prefixed files only)                                |
+| `inline/`       | Inline mode examples (no alt screen)                                        |
+| `kitty/`        | Kitty protocol demos                                                        |
+| `layout/`       | Layout engine examples                                                      |
+| `runtime/`      | Runtime layer demos (run, createApp, createStore)                           |
+| `playground/`   | Quick prototyping                                                           |
+| `web/`          | Browser renderers (DOM, Canvas2D)                                           |
+| `screenshots/`  | Reference screenshots for visual regression                                 |
+
+### Two tiers of examples
+
+**Component examples** (`components/`) use `run()` + `useState`/`useInput` — no store, no TEA, no `@silvery/tea`. They are the "getting started" examples: short (30-60 lines), self-contained, one component per file.
+
+**App examples** (`apps/`) demonstrate full app patterns: `render()` with `createTerm()`, `createApp()` with stores, `pipe()` composition. They showcase real-world usage with multiple components working together.
 
 ## Making a Great Showcase
 

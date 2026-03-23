@@ -7,7 +7,7 @@
  * - ProgressBar for visual progress feedback
  * - Step-by-step flow with state transitions
  *
- * Usage: bun run examples/interactive/cli-wizard.tsx
+ * Usage: bun run examples/apps/cli-wizard.tsx
  *
  * Controls:
  *   j/k or Up/Down - Navigate options (step 1)

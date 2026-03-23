@@ -6,7 +6,7 @@
  * 2. Paint — Half-block pixel art canvas with mouse drawing and RGB color picker
  * 3. Truecolor — Full truecolor spectrum, HSL rainbows, and 256-color palette
  *
- * Run: bun vendor/silvery/examples/interactive/gallery.tsx
+ * Run: bun vendor/silvery/examples/apps/gallery.tsx
  */
 
 import type { JSX } from "react"

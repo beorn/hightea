@@ -11,7 +11,7 @@
  * - Page up/down with large jumps
  * - Visual item variety (priorities, tags, progress bars)
  *
- * Usage: bun run examples/virtual-10k/index.tsx
+ * Usage: bun run examples/apps/virtual-10k.tsx
  *
  * Controls:
  *   j/k or Up/Down   - Navigate one item

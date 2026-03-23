@@ -10,7 +10,7 @@
  * - Shows original and transformed text side by side
  * - Uses Transform from silvery components
  *
- * Run: bun vendor/silvery/examples/interactive/transform.tsx
+ * Run: bun vendor/silvery/examples/apps/transform.tsx
  */
 
 import React, { useState } from "react"

@@ -4,7 +4,7 @@
  * Two AI chat panes running independently, Tab to switch focus, Esc to quit.
  * SearchProvider with Ctrl+F bindings for app-global search.
  *
- * Run: bun examples/interactive/panes/index.tsx [--fast]
+ * Run: bun examples/apps/panes/index.tsx [--fast]
  */
 
 import React, { useState, useEffect, useMemo } from "react"

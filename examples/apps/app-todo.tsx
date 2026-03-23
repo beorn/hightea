@@ -12,7 +12,7 @@
  * pipe() composes them left-to-right: each plugin enhances the
  * app object, wrapping run() so the final call needs no arguments.
  *
- * Usage: bun examples/interactive/app-todo.tsx
+ * Usage: bun examples/apps/app-todo.tsx
  *
  * Controls:
  *   j/k - Move cursor down/up

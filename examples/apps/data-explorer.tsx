@@ -8,7 +8,7 @@
  * - Keyboard navigation with j/k and vim-style jumps
  * - Color-coded status indicators
  *
- * Usage: bun run examples/interactive/data-explorer.tsx
+ * Usage: bun run examples/apps/data-explorer.tsx
  *
  * Controls:
  *   j/k or Up/Down  - Navigate rows

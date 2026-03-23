@@ -19,7 +19,7 @@ import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
 import type { Term } from "../../packages/term/src/ansi/term"
 import { run, type RunHandle } from "../../packages/term/src/runtime/run"
-import { AIChat, SCRIPT, type ScriptEntry } from "../../examples/interactive/aichat/index"
+import { AIChat, SCRIPT, type ScriptEntry } from "../../examples/apps/aichat/index"
 
 // ============================================================================
 // Short script for testing — structured to test advancement behavior

@@ -30,18 +30,19 @@ interface Example {
 // Auto-Discovery (matches viewer.tsx pattern)
 // =============================================================================
 
-const CATEGORY_DIRS = ["layout", "interactive", "runtime", "inline", "kitty"] as const
+const CATEGORY_DIRS = ["components", "layout", "apps", "runtime", "inline", "kitty"] as const
 
 const CATEGORY_DISPLAY: Record<string, string> = {
   kitty: "Kitty Protocol",
 }
 
 const CATEGORY_ORDER: Record<string, number> = {
-  Layout: 0,
-  Interactive: 1,
-  Runtime: 2,
-  Inline: 3,
-  "Kitty Protocol": 4,
+  Components: 0,
+  Layout: 1,
+  Apps: 2,
+  Runtime: 3,
+  Inline: 4,
+  "Kitty Protocol": 5,
 }
 
 async function discoverExamples(): Promise<Example[]> {
@@ -103,8 +104,9 @@ const RED = "\x1b[31m"
 const WHITE = "\x1b[37m"
 
 const CATEGORY_COLOR_CODE: Record<string, string> = {
+  Components: GREEN,
   Layout: MAGENTA,
-  Interactive: CYAN,
+  Apps: CYAN,
   Runtime: GREEN,
   Inline: YELLOW,
   "Kitty Protocol": BLUE,

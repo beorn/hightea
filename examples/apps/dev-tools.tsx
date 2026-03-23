@@ -8,7 +8,7 @@
  * - j/k navigation through log history
  * - Auto-scroll to latest entry
  *
- * Usage: bun run examples/interactive/dev-tools.tsx
+ * Usage: bun run examples/apps/dev-tools.tsx
  *
  * Controls:
  *   j/k or Up/Down  - Navigate through log entries

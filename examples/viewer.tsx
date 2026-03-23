@@ -58,19 +58,21 @@ interface Example {
   features?: string[]
 }
 
-const CATEGORY_DIRS = ["layout", "interactive", "runtime", "inline", "kitty"] as const
+const CATEGORY_DIRS = ["components", "layout", "apps", "runtime", "inline", "kitty"] as const
 
 const CATEGORY_ORDER: Record<string, number> = {
-  Layout: 0,
-  Interactive: 1,
-  Runtime: 2,
-  Inline: 3,
-  "Kitty Protocol": 4,
+  Components: 0,
+  Layout: 1,
+  Apps: 2,
+  Runtime: 3,
+  Inline: 4,
+  "Kitty Protocol": 5,
 }
 
 const CATEGORY_COLOR: Record<string, string> = {
+  Components: "green",
   Layout: "magenta",
-  Interactive: "cyan",
+  Apps: "cyan",
   Runtime: "green",
   Inline: "yellow",
   "Kitty Protocol": "blue",
