@@ -6,8 +6,8 @@ Ink-compatible React renderer for terminals — same `Box`, `Text`, `useInput` A
 
 > **Status:** Alpha — under active development. APIs may change. Early adopters and feedback welcome.
 
-```
-npm install silvery react
+```console
+$ npm install silvery react
 ```
 
 ```tsx
@@ -32,13 +32,13 @@ await render(<Counter />, term).run()
 
 ### Familiar
 
-- **Ink/Chalk compatible** — same component model, `@silvery/ink` compatibility layer for migration
 - **React 18 + 19** — hooks, refs, effects, suspense — all works
 - **Flexbox layout** — `Box` with `flexDirection`, `padding`, `gap`, `flexGrow`, just like Ink
+- **Ink/Chalk compatible** — same component model, `@silvery/ink` compatibility layer for migration
 
 ### Better
 
-- **Smaller install** — Ink pulls 16MB into node_modules. Silvery has fewer deps and no yoga binary
+- **Smaller install** — ~177 KB gzipped with 30+ components, theme engine, and layout included. Ink pulls 16MB into node_modules
 - **Pure TypeScript, zero native deps** — no WASM, no build steps. Works on Alpine, CI, Docker, everywhere
 - **Incremental rendering** — per-node dirty tracking, ~100x faster interactive updates
 - **Responsive layout** — `useContentRect()` returns actual dimensions synchronously during render
