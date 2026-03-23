@@ -1,13 +1,26 @@
 # From Ink to Silvery
 
-An actionable migration path for moving an Ink app to Silvery. For a feature-by-feature comparison, see [Silvery vs Ink](/guide/silvery-vs-ink).
+## You Don't Have to Migrate
+
+Silvery includes a full Ink compatibility layer. Just swap the import path:
+
+```diff
+- import { Box, Text, render } from "ink"
++ import { Box, Text, render } from "silvery/ink"
+```
+
+That's it. Your existing Ink app runs on Silvery's renderer — getting incremental rendering, layout feedback, and all the performance improvements for free. No other code changes needed.
+
+When you're ready for the full Silvery API (and we recommend it eventually — the API is cleaner and more powerful), follow the migration steps below. For a feature-by-feature comparison, see [Silvery vs Ink](/guide/silvery-vs-ink).
 
 ## Step 1: Swap Dependencies
 
 ```bash
 bun remove ink ink-testing-library
-bun add silvery @silvery/ag-react
+bun add silvery
 ```
+
+One package is all you need. Optionally add `@silvery/test` for testing.
 
 If you use Yoga-specific layout behavior:
 
@@ -33,22 +46,26 @@ Most imports are a direct find-and-replace:
 
 Everything from `ink` maps to `silvery`. The API surface is the same.
 
-## Step 3: Make `render()` Async
+## Step 3: Update `render()` Call
 
-Silvery's `render()` returns a Promise. Add `await`:
+Silvery's `render()` is sync (like Ink) but the app's event loop is started with `.run()`:
 
 ```diff
 - const { unmount, waitUntilExit } = render(<App />)
-+ const { unmount, waitUntilExit } = await render(<App />)
++ const app = render(<App />)
++ await app.run()  // starts the event loop, resolves on exit
 ```
 
-Without a `term` argument, Silvery creates one internally -- matching Ink's behavior. For explicit terminal control:
+Without a `term` argument, Silvery auto-detects TTY and wires up stdin/stdout -- matching Ink's behavior. No `createTerm()` needed for most apps.
+
+For explicit terminal control (optional):
 
 ```tsx
 import { render, createTerm } from "silvery"
 
 using term = createTerm()
-const { unmount, waitUntilExit } = await render(<App />, term)
+const app = render(<App />, term)
+await app.run()
 ```
 
 The `using` keyword (TC39 Explicit Resource Management) automatically restores the terminal on scope exit -- cursor visibility, raw mode, alternate screen. No manual cleanup needed.
@@ -127,14 +144,15 @@ Ink uses manual `unmount()`. Silvery supports both `unmount()` and the `using` k
 
 ```tsx
 // Ink pattern (still works)
-const { unmount } = await render(<App />)
-// ... later
-unmount()
+const app = render(<App />)
+app.unmount()
 
 // Silvery pattern (preferred)
-using term = createTerm()
-await render(<App />, term)
-// term is automatically cleaned up when scope exits
+{
+  using app = render(<App />)
+  await app.run()
+  // app is automatically cleaned up when scope exits
+}
 ```
 
 ### Scrollable Containers
@@ -177,12 +195,36 @@ if (width === 0) return null
 
 Packages like `ink-text-input`, `ink-select-input`, `ink-spinner` import from `ink`. You have two options:
 
-1. **Use Silvery equivalents**: `TextInput`, `SelectList`, `Spinner` are built into `@silvery/ag-react/ui`
+1. **Use Silvery equivalents**: `TextInput`, `SelectList`, `Spinner` are built into `silvery/ui`
 2. **Alias imports**: Configure your bundler to alias `ink` to `silvery`
 
-### 3. `measureElement()` Still Works
+### 3. `measureElement()` → `useContentRect()`
 
-Ink's `measureElement()` works in Silvery for compatibility, but `useContentRect()` is simpler and more powerful -- it provides dimensions during render, not after.
+Ink's `measureElement(ref)` requires a ref, runs after render, and returns stale dimensions until a `useEffect` fires. Silvery's `useContentRect()` is fundamentally different:
+
+```tsx
+// Ink: ref + effect, dimensions arrive late
+function Card() {
+  const ref = useRef()
+  const [width, setWidth] = useState(0)
+  useEffect(() => {
+    setWidth(measureElement(ref.current).width)
+  })
+  return <Box ref={ref}><Text>{truncate(title, width)}</Text></Box>
+}
+
+// Silvery: dimensions available during render, no ref needed
+function Card() {
+  const { width } = useContentRect()
+  return <Text>{truncate(title, width)}</Text>
+}
+```
+
+Key differences:
+- **No ref** — dimensions come from the layout engine, not DOM measurement
+- **Available during render** — no `useEffect` delay, no flash of wrong content
+- **Automatic updates** — rerenders when parent resizes, no manual subscription
+- Ink's `measureElement()` still works in Silvery for compat, but prefer `useContentRect()`
 
 ### 4. Focus System Differences
 

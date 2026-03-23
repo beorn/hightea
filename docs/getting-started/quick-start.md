@@ -37,7 +37,7 @@ pnpm add silvery
 Create a file called `app.tsx`:
 
 ```tsx
-import { Box, Text, render, createTerm } from "silvery"
+import { render, Box, Text } from "silvery"
 
 function App() {
   return (
@@ -47,8 +47,7 @@ function App() {
   )
 }
 
-using term = createTerm()
-await render(<App />, term)
+await render(<App />).run()
 ```
 
 Run it:
@@ -67,7 +66,7 @@ You should see a rounded box with "Hello from Silvery!" inside.
 Components can query their own dimensions during render — no prop drilling needed:
 
 ```tsx
-import { Box, Text, render, useContentRect, createTerm } from "silvery"
+import { render, Box, Text, useContentRect } from "silvery"
 
 function SizedBox() {
   const { width, height } = useContentRect()
@@ -90,8 +89,7 @@ function App() {
   )
 }
 
-using term = createTerm()
-await render(<App />, term)
+await render(<App />).run()
 ```
 
 Each `SizedBox` will display its actual computed dimensions. No prop threading needed!
@@ -101,7 +99,7 @@ Each `SizedBox` will display its actual computed dimensions. No prop threading n
 `SelectList` gives you keyboard-navigable selection out of the box — arrow keys, j/k, Home/End, disabled items, and scroll windowing. No manual `useInput()` or cursor state needed:
 
 ```tsx
-import { Box, Text, SelectList, render, createTerm } from "silvery"
+import { render, Box, Text, SelectList } from "silvery"
 
 function App() {
   return (
@@ -121,14 +119,13 @@ function App() {
   )
 }
 
-using term = createTerm()
-await render(<App />, term)
+await render(<App />).run()
 ```
 
 For large datasets, use `VirtualList` with `interactive` mode — it renders only visible items and handles keyboard navigation (j/k, Page Up/Down, Home/End):
 
 ```tsx
-import { Box, VirtualList, Text, render, createTerm } from "silvery"
+import { render, Box, VirtualList, Text } from "silvery"
 
 const items = Array.from({ length: 1000 }, (_, i) => `Item ${i + 1}`)
 
@@ -145,8 +142,7 @@ function App() {
   )
 }
 
-using term = createTerm()
-await render(<App />, term)
+await render(<App />).run()
 ```
 
 ## Next Steps

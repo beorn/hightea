@@ -116,7 +116,7 @@ const sharedOptions = {
 // =============================================================================
 
 const skipFiles = new Set([
-  "interactive/clipboard.tsx",
+  "apps/clipboard.tsx",
   "interactive/_input-debug.tsx",
   "interactive/_textarea-bare.tsx",
   "runtime/hello-runtime.tsx",
@@ -126,7 +126,8 @@ const skipFiles = new Set([
 
 const categories = [
   { dir: "layout", color: "#cba6f7", label: "Layout" },
-  { dir: "interactive", color: "#89dceb", label: "Interactive" },
+  { dir: "apps", color: "#89dceb", label: "Apps" },
+  { dir: "components", color: "#f5c2e7", label: "Components" },
   { dir: "runtime", color: "#a6e3a1", label: "Runtime" },
   { dir: "inline", color: "#fab387", label: "Inline" },
 ] as const
@@ -161,25 +162,25 @@ function extractMeta(source: string): { name?: string; description?: string; fea
  *  Flagship showcases and their legacy aliases both map to the same source. */
 const SHOWCASE_SOURCE_MAP: Record<string, string> = {
   // Flagship keys
-  aichat: "interactive/aichat/index.tsx",
-  gallery: "interactive/gallery.tsx",
-  kanban: "interactive/kanban.tsx",
-  explorer: "interactive/explorer.tsx",
-  wizard: "interactive/cli-wizard.tsx",
+  aichat: "apps/aichat/index.tsx",
+  gallery: "apps/gallery.tsx",
+  kanban: "apps/kanban.tsx",
+  explorer: "apps/explorer.tsx",
+  wizard: "apps/cli-wizard.tsx",
   dashboard: "layout/dashboard.tsx",
-  terminal: "interactive/terminal.tsx",
-  components: "interactive/components.tsx",
-  theme: "interactive/theme.tsx",
+  terminal: "apps/terminal.tsx",
+  components: "apps/components.tsx",
+  theme: "apps/theme.tsx",
 
   // Legacy / additional keys
-  "ai-chat": "interactive/aichat/index.tsx",
-  "cli-wizard": "interactive/cli-wizard.tsx",
-  "dev-tools": "interactive/dev-tools.tsx",
-  "data-explorer": "interactive/data-explorer.tsx",
-  scroll: "interactive/scroll.tsx",
-  "search-filter": "interactive/search-filter.tsx",
-  transform: "interactive/transform.tsx",
-  textarea: "interactive/textarea.tsx",
+  "ai-chat": "apps/aichat/index.tsx",
+  "cli-wizard": "apps/cli-wizard.tsx",
+  "dev-tools": "apps/dev-tools.tsx",
+  "data-explorer": "apps/data-explorer.tsx",
+  scroll: "apps/scroll.tsx",
+  "search-filter": "apps/search-filter.tsx",
+  transform: "apps/transform.tsx",
+  textarea: "apps/textarea.tsx",
 }
 
 async function generateRegistry(): Promise<void> {
