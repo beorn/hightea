@@ -52,6 +52,9 @@ const namedColors: Record<string, number> = {
  * Supports: $token (theme), named colors, hex (#rgb, #rrggbb), rgb(r,g,b)
  */
 export function parseColor(color: string): Color {
+  // Inherit: no color — parent's color flows through (like CSS color: inherit)
+  if (color === "inherit") return null
+
   // Special token: terminal's default background (SGR 49)
   if (color === "$default") return DEFAULT_BG
 
