@@ -15,6 +15,7 @@
     "rootDir": ".",
     "paths": {
       "@silvery/*": ["./packages/*/src"],
+      "@silvery/ag/*": ["./packages/ag/src/*"],
       "@silvery/ag-react/ui/*": ["./packages/ag-react/src/ui/*"],
       "@silvery/ag-react/*": ["./packages/ag-react/src/*"],
       "@silvery/ag-term/*": ["./packages/ag-term/src/*"],

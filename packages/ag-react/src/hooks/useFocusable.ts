@@ -7,7 +7,7 @@
 
 import { useCallback, useContext, useEffect, useMemo, useSyncExternalStore } from "react"
 import { FocusManagerContext, NodeContext } from "../context"
-import type { FocusOrigin, FocusSnapshot } from "@silvery/tea/focus-manager"
+import type { FocusOrigin, FocusSnapshot } from "@silvery/ag/focus-manager"
 
 // ============================================================================
 // Types

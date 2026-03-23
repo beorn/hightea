@@ -94,10 +94,10 @@ export type { TerminalBuffer } from "@silvery/ag-term/buffer"
 
 // Re-export locator API for DOM queries (legacy, prefer App.locator())
 export { createLocator, type SilveryLocator } from "./locator"
-export type { Rect } from "@silvery/tea/types"
+export type { Rect } from "@silvery/ag/types"
 
 // Re-export keyboard utilities
-export { keyToAnsi, keyToKittyAnsi, CODE_TO_KEY } from "@silvery/tea/keys"
+export { keyToAnsi, keyToKittyAnsi, CODE_TO_KEY } from "@silvery/ag/keys"
 
 // Re-export debug utilities
 export { debugTree, type DebugTreeOptions } from "./debug"

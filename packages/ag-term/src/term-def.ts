@@ -6,7 +6,7 @@
  */
 
 import type { ColorLevel, Term } from "./ansi/index"
-import type { Event, TermDef } from "@silvery/tea/types"
+import type { Event, TermDef } from "@silvery/ag/types"
 
 // ============================================================================
 // Resolved TermDef

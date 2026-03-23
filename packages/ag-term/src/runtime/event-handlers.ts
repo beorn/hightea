@@ -11,13 +11,13 @@
 
 import type { StoreApi } from "zustand"
 
-import { createKeyEvent, dispatchKeyEvent } from "@silvery/tea/focus-events"
-import type { FocusManager } from "@silvery/tea/focus-manager"
+import { createKeyEvent, dispatchKeyEvent } from "@silvery/ag/focus-events"
+import type { FocusManager } from "@silvery/ag/focus-manager"
 import { findByTestID } from "@silvery/tea/focus-queries"
 import { type MouseEventProcessorState, processMouseEvent, hitTest } from "../mouse-events"
 import type { Container } from "@silvery/ag-react/reconciler"
 import { getContainerRoot } from "@silvery/ag-react/reconciler"
-import type { TeaNode } from "@silvery/tea/types"
+import type { TeaNode } from "@silvery/ag/types"
 import type { Key } from "./keys"
 import type { EventHandler, EventHandlerContext, EventHandlers } from "./create-app"
 

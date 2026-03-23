@@ -20,7 +20,7 @@ import {
   StdoutContext,
   TermContext,
 } from "@silvery/ag-react/context"
-import { createFocusManager } from "@silvery/tea/focus-manager"
+import { createFocusManager } from "@silvery/ag/focus-manager"
 import {
   type LayoutEngine,
   ensureDefaultLayoutEngine,
@@ -40,7 +40,7 @@ import { createTerm } from "./ansi/index"
 import { bufferToText } from "./buffer.js"
 import { buildMismatchContext, formatMismatchContext } from "@silvery/test/debug-mismatch"
 import { createCursorStore, CursorProvider } from "@silvery/ag-react/hooks/useCursor"
-import { keyToAnsi, parseKey, splitRawInput } from "@silvery/tea/keys"
+import { keyToAnsi, parseKey, splitRawInput } from "@silvery/ag/keys"
 import { parseBracketedPaste } from "./bracketed-paste"
 import { IncrementalRenderMismatchError } from "./scheduler.js"
 import type { ContentPhaseStats } from "./pipeline/types"
@@ -1326,5 +1326,5 @@ export function getActiveRenderCount(): number {
 // Re-exports
 // ============================================================================
 
-export { keyToAnsi } from "@silvery/tea/keys"
+export { keyToAnsi } from "@silvery/ag/keys"
 export type { App } from "./app.js"

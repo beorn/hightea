@@ -2,7 +2,7 @@
  * Shared helper functions for silvery pipeline phases.
  */
 
-import type { BoxProps } from "@silvery/tea/types"
+import type { BoxProps } from "@silvery/ag/types"
 
 /**
  * Get padding values from props.

@@ -8,7 +8,7 @@
  */
 
 import type { Color, Style, TerminalBuffer } from "../buffer"
-import type { BoxProps, TeaNode, Rect } from "@silvery/tea/types"
+import type { BoxProps, TeaNode, Rect } from "@silvery/ag/types"
 import type { Theme } from "@silvery/theme/types"
 import { getPadding } from "./helpers"
 import { getBorderChars, getBorderSize, parseColor } from "./render-helpers"

@@ -17,7 +17,7 @@
 
 import type { createWriteStream as createWriteStreamType } from "node:fs"
 import type { RenderStats } from "./scheduler"
-import type { TeaNode } from "@silvery/tea/types"
+import type { TeaNode } from "@silvery/ag/types"
 
 // =============================================================================
 // Types

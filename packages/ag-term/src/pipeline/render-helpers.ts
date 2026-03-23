@@ -14,7 +14,7 @@
 import { DEFAULT_BG, type Color, type Style, type UnderlineStyle } from "../buffer"
 import { getActiveTheme } from "@silvery/theme/state"
 import { resolveThemeColor } from "@silvery/theme/resolve"
-import type { BoxProps, TextProps } from "@silvery/tea/types"
+import type { BoxProps, TextProps } from "@silvery/ag/types"
 import { displayWidthAnsi } from "../unicode"
 import type { BorderChars, PipelineContext } from "./types"
 

@@ -338,14 +338,14 @@ export { useStderr } from "./hooks/useStderr"
 export { useFocusManager } from "./hooks/useFocusManager"
 
 // Focus system (tree-based)
-export { createFocusManager } from "@silvery/tea/focus-manager"
+export { createFocusManager } from "@silvery/ag/focus-manager"
 export type {
   FocusManager,
   FocusManagerOptions,
   FocusChangeCallback,
   FocusOrigin,
   FocusSnapshot,
-} from "@silvery/tea/focus-manager"
+} from "@silvery/ag/focus-manager"
 export {
   findFocusableAncestor,
   findEnclosingScope,
@@ -354,8 +354,8 @@ export {
   findSpatialTarget,
   getExplicitFocusLink,
 } from "@silvery/tea/focus-queries"
-export { createKeyEvent, createFocusEvent, dispatchKeyEvent, dispatchFocusEvent } from "@silvery/tea/focus-events"
-export type { SilveryKeyEvent, SilveryFocusEvent, FocusEventProps } from "@silvery/tea/focus-events"
+export { createKeyEvent, createFocusEvent, dispatchKeyEvent, dispatchFocusEvent } from "@silvery/ag/focus-events"
+export type { SilveryKeyEvent, SilveryFocusEvent, FocusEventProps } from "@silvery/ag/focus-events"
 export { useFocusable } from "./hooks/useFocusable"
 export type { UseFocusableResult } from "./hooks/useFocusable"
 export { useFocusWithin } from "./hooks/useFocusWithin"
@@ -655,7 +655,13 @@ export { queryMode, queryModes, DecMode } from "@silvery/ag-term/mode-query"
 export { queryTextAreaPixels, queryTextAreaSize, queryCellSize } from "@silvery/ag-term/pixel-size"
 
 // Layout engine types
-export type { LayoutEngine, LayoutNode, LayoutConstants, MeasureFunc, MeasureMode } from "@silvery/ag-term/layout-engine"
+export type {
+  LayoutEngine,
+  LayoutNode,
+  LayoutConstants,
+  MeasureFunc,
+  MeasureMode,
+} from "@silvery/ag-term/layout-engine"
 
 // Render adapter (for canvas, DOM, etc.)
 export {
@@ -691,7 +697,7 @@ export type { BoundTerm } from "@silvery/ag-term/bound-term"
 // Types
 export type { BoxProps, BoxHandle } from "./components/Box"
 export type { TextProps, TextHandle } from "./components/Text"
-export type { Rect } from "@silvery/tea/types"
+export type { Rect } from "@silvery/ag/types"
 export type { Key, InputHandler, UseInputOptions } from "./hooks/useInput"
 export {
   keyToName,
@@ -701,8 +707,8 @@ export {
   parseKeypress,
   parseKey,
   emptyKey,
-} from "@silvery/tea/keys"
-export type { ParsedKeypress, ParsedHotkey } from "@silvery/tea/keys"
+} from "@silvery/ag/keys"
+export type { ParsedKeypress, ParsedHotkey } from "@silvery/ag/keys"
 export type { UseAppResult } from "./hooks/useApp"
 export type { UseStdoutResult } from "./hooks/useStdout"
 export type { UseStderrResult } from "./hooks/useStderr"
@@ -723,7 +729,7 @@ export type {
   EventSource,
   // TermDef for render configuration
   TermDef,
-} from "@silvery/tea/types"
+} from "@silvery/ag/types"
 export type { HitTarget, HitRegion } from "@silvery/ag-term/hit-registry"
 
 // Mouse parsing (SGR mode 1006)
@@ -1112,7 +1118,14 @@ export type { GridCellProps } from "@silvery/ag-react/ui/components"
  * Note: `useAnimatedTransition` is the animation interpolation hook.
  * React's `useTransition` (concurrent mode) is exported separately above.
  */
-export { easings, resolveEasing, useAnimation, useInterval, useTimeout, useLatest } from "@silvery/ag-react/ui/animation"
+export {
+  easings,
+  resolveEasing,
+  useAnimation,
+  useInterval,
+  useTimeout,
+  useLatest,
+} from "@silvery/ag-react/ui/animation"
 export { useAnimatedTransition } from "@silvery/ag-react/ui/animation"
 export type {
   EasingFn,

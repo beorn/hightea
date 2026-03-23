@@ -26,7 +26,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import type { TeaNode, TextProps, BoxProps } from "@silvery/tea/types"
+import type { TeaNode, TextProps, BoxProps } from "@silvery/ag/types"
 import { collectPlainText, collectPlainTextSkipHidden } from "@silvery/ag-term/pipeline/collect-text"
 import { collectTextContent as collectTextContentForRender } from "@silvery/ag-term/pipeline/render-text"
 import { createRenderer } from "@silvery/test"

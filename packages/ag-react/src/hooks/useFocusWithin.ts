@@ -7,7 +7,7 @@
 
 import { useCallback, useContext, useSyncExternalStore } from "react"
 import { FocusManagerContext, NodeContext } from "../context"
-import type { FocusSnapshot } from "@silvery/tea/focus-manager"
+import type { FocusSnapshot } from "@silvery/ag/focus-manager"
 
 // ============================================================================
 // Hook Implementation

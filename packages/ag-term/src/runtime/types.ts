@@ -3,7 +3,7 @@
  */
 
 import type { TerminalBuffer } from "../buffer"
-import type { TeaNode } from "@silvery/tea/types"
+import type { TeaNode } from "@silvery/ag/types"
 
 /**
  * Dimensions for rendering.

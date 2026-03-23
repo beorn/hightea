@@ -6,7 +6,7 @@
  */
 
 import type { ReactNode, Ref } from "react"
-import type { BoxProps, TeaNode, TextProps } from "@silvery/tea/types"
+import type { BoxProps, TeaNode, TextProps } from "@silvery/ag/types"
 
 declare module "react" {
   namespace JSX {

@@ -16,7 +16,7 @@
  */
 
 import { createContext, useContext, useEffect, useRef } from "react"
-import type { Rect } from "@silvery/tea/types"
+import type { Rect } from "@silvery/ag/types"
 
 // Re-export everything from core
 export { HitRegistry, generateHitRegionId, resetHitRegionIdCounter, Z_INDEX } from "./hit-registry-core"

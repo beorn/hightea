@@ -19,7 +19,7 @@
  *   Ctrl+K/U (kill to end/beginning of text vs wrapped line)
  *   Home/End, Up/Down, PageUp/PageDown, Enter, Escape
  */
-import type { Key } from "@silvery/tea/keys"
+import type { Key } from "@silvery/ag/keys"
 
 // =============================================================================
 // Kill Ring

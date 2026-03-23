@@ -19,7 +19,7 @@
 import { createLogger } from "loggily"
 import type { Color } from "../buffer"
 import { TerminalBuffer } from "../buffer"
-import type { BoxProps, TeaNode, TextProps } from "@silvery/tea/types"
+import type { BoxProps, TeaNode, TextProps } from "@silvery/ag/types"
 import { getBorderSize, getPadding } from "./helpers"
 import { renderBox, renderOutline, renderScrollIndicators, getEffectiveBg } from "./render-box"
 import { parseColor } from "./render-helpers"

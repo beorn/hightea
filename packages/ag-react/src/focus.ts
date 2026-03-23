@@ -12,14 +12,14 @@
 // Focus Manager (pure, no React)
 // =============================================================================
 
-export { createFocusManager } from "@silvery/tea/focus-manager"
+export { createFocusManager } from "@silvery/ag/focus-manager"
 export type {
   FocusManager,
   FocusManagerOptions,
   FocusChangeCallback,
   FocusOrigin,
   FocusSnapshot,
-} from "@silvery/tea/focus-manager"
+} from "@silvery/ag/focus-manager"
 
 // =============================================================================
 // Focus Queries
@@ -37,8 +37,8 @@ export {
 // Focus Events
 // =============================================================================
 
-export { createKeyEvent, createFocusEvent, dispatchKeyEvent, dispatchFocusEvent } from "@silvery/tea/focus-events"
-export type { SilveryKeyEvent, SilveryFocusEvent, FocusEventProps } from "@silvery/tea/focus-events"
+export { createKeyEvent, createFocusEvent, dispatchKeyEvent, dispatchFocusEvent } from "@silvery/ag/focus-events"
+export type { SilveryKeyEvent, SilveryFocusEvent, FocusEventProps } from "@silvery/ag/focus-events"
 
 // =============================================================================
 // React Hooks

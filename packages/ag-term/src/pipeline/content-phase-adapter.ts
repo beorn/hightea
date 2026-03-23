@@ -50,7 +50,7 @@
  */
 
 import { type RenderBuffer, type RenderStyle, getRenderAdapter, hasRenderAdapter } from "../render-adapter"
-import type { BoxProps, TeaNode, Rect, TextProps } from "@silvery/tea/types"
+import type { BoxProps, TeaNode, Rect, TextProps } from "@silvery/ag/types"
 import { getBorderSize, getPadding } from "./helpers"
 import { displayWidth } from "../unicode"
 import { formatTextLines } from "./render-text"

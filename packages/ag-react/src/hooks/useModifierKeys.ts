@@ -26,7 +26,7 @@
 
 import { useContext, useMemo, useSyncExternalStore } from "react"
 import { RuntimeContext, type RuntimeContextValue } from "../context"
-import type { Key } from "@silvery/tea/keys"
+import type { Key } from "@silvery/ag/keys"
 
 // ============================================================================
 // Types

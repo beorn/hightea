@@ -27,7 +27,7 @@
  * ```
  */
 
-import type { TeaNode, Rect } from "@silvery/tea/types"
+import type { TeaNode, Rect } from "@silvery/ag/types"
 
 /**
  * Locator interface - lazy reference to nodes matching a query

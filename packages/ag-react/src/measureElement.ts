@@ -35,7 +35,7 @@
  * ```
  */
 
-import type { TeaNode } from "@silvery/tea/types"
+import type { TeaNode } from "@silvery/ag/types"
 
 /**
  * Output from measureElement.

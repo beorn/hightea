@@ -10,7 +10,7 @@
 
 import { useContext, useEffect, useRef } from "react"
 import { RuntimeContext } from "../context"
-import type { Key } from "@silvery/tea/keys"
+import type { Key } from "@silvery/ag/keys"
 
 /**
  * Detect modifier-only key events (Cmd, Shift, Ctrl, Alt pressed alone).
@@ -46,7 +46,7 @@ function isModifierOnlyEvent(input: string, key: Key): boolean {
 // ============================================================================
 
 // Re-export Key for consumers that import from useInput
-export type { Key } from "@silvery/tea/keys"
+export type { Key } from "@silvery/ag/keys"
 
 /**
  * Input handler callback type.

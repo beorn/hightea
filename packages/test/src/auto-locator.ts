@@ -20,7 +20,7 @@
  * ```
  */
 
-import type { TeaNode, Rect } from "@silvery/tea/types"
+import type { TeaNode, Rect } from "@silvery/ag/types"
 
 /**
  * Filter options for locator narrowing

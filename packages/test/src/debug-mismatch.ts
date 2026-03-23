@@ -10,7 +10,7 @@
  */
 
 import type { Cell } from "@silvery/ag-term/buffer"
-import type { BoxProps, TeaNode, Rect, TextProps } from "@silvery/tea/types"
+import type { BoxProps, TeaNode, Rect, TextProps } from "@silvery/ag/types"
 import type { ContentPhaseStats } from "@silvery/ag-term/pipeline/types"
 
 // ============================================================================

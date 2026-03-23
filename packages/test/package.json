@@ -29,8 +29,9 @@
     "access": "public"
   },
   "dependencies": {
+    "@silvery/ag": "workspace:*",
     "@silvery/ag-react": "workspace:*",
-    "@silvery/tea": "workspace:*",
-    "@silvery/ag-term": "workspace:*"
+    "@silvery/ag-term": "workspace:*",
+    "@silvery/tea": "workspace:*"
   }
 }

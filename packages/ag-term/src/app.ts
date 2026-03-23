@@ -30,13 +30,13 @@ import { type BoundTerm, createBoundTerm } from "./bound-term"
 import type { TerminalBuffer } from "./buffer"
 import { bufferToHTML, bufferToStyledText, bufferToText } from "./buffer"
 import { type Screenshotter, createScreenshotter } from "./screenshot"
-import { keyToAnsi, keyToKittyAnsi, parseHotkey } from "@silvery/tea/keys"
+import { keyToAnsi, keyToKittyAnsi, parseHotkey } from "@silvery/ag/keys"
 import { updateKeyboardModifiers } from "./mouse-events"
 import type { ParsedMouse } from "./mouse"
 import { createMouseEventProcessor, processMouseEvent } from "./mouse-events"
-import type { FocusManager } from "@silvery/tea/focus-manager"
-import { pointInRect } from "@silvery/tea/tree-utils"
-import type { TeaNode } from "@silvery/tea/types"
+import type { FocusManager } from "@silvery/ag/focus-manager"
+import { pointInRect } from "@silvery/ag/tree-utils"
+import type { TeaNode } from "@silvery/ag/types"
 
 /**
  * App interface - unified return type from render()

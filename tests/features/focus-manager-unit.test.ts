@@ -10,7 +10,7 @@
 
 import { describe, test, expect, vi } from "vitest"
 import { createFocusManager, getTabOrder } from "@silvery/tea"
-import type { TeaNode, BoxProps } from "@silvery/tea/types"
+import type { TeaNode, BoxProps } from "@silvery/ag/types"
 
 // ============================================================================
 // Helpers

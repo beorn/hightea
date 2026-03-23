@@ -26,8 +26,8 @@ import {
   TermContext,
 } from "./context"
 import { createCursorStore, CursorProvider, type CursorStore } from "./hooks/useCursor"
-import { createFocusManager } from "@silvery/tea/focus-manager"
-import { parseKey } from "@silvery/tea/keys"
+import { createFocusManager } from "@silvery/ag/focus-manager"
+import { parseKey } from "@silvery/ag/keys"
 import { type LayoutEngineType, isLayoutEngineInitialized } from "@silvery/ag-term/layout-engine"
 import { enableBracketedPaste, disableBracketedPaste, parseBracketedPaste } from "@silvery/ag-term/bracketed-paste"
 import {
@@ -49,8 +49,8 @@ import {
 import { renderStringSync } from "./render-string"
 import { RenderScheduler } from "@silvery/ag-term/scheduler"
 import { type ResolvedTermDef, isTerm, isTermDef, resolveFromTerm, resolveTermDef } from "@silvery/ag-term/term-def"
-import type { TermDef } from "@silvery/tea/types"
-import { splitRawInput } from "@silvery/tea/keys"
+import type { TermDef } from "@silvery/ag/types"
+import { splitRawInput } from "@silvery/ag/keys"
 
 // ============================================================================
 // Types

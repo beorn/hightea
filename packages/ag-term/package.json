@@ -45,6 +45,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@silvery/ag": "workspace:*",
     "@silvery/ag-react": "workspace:*",
     "@silvery/tea": "workspace:*",
     "@silvery/test": "workspace:*",

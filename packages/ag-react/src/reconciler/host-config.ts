@@ -8,7 +8,7 @@
 
 import { createContext } from "react"
 import { DefaultEventPriority, DiscreteEventPriority, NoEventPriority } from "react-reconciler/constants.js"
-import type { BoxProps, TeaNode, TeaNodeType, TextProps } from "@silvery/tea/types"
+import type { BoxProps, TeaNode, TeaNodeType, TextProps } from "@silvery/ag/types"
 import { contentPropsChanged, layoutPropsChanged, propsEqual } from "./helpers"
 import { applyBoxProps, createNode, createVirtualTextNode } from "./nodes"
 

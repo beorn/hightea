@@ -23,4 +23,4 @@ export {
   useScreenRect,
   useScreenRectCallback,
 } from "@silvery/ag-react/hooks/useLayout"
-export type { Rect } from "@silvery/tea/types"
+export type { Rect } from "@silvery/ag/types"

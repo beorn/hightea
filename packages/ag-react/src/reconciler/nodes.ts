@@ -7,7 +7,7 @@
 import { createLogger } from "loggily"
 import { type LayoutNode, getConstants, getLayoutEngine } from "@silvery/ag-term/layout-engine"
 import { collectPlainTextSkipHidden as collectNodeTextContent } from "@silvery/ag-term/pipeline/collect-text"
-import { type BoxProps, type TeaNode, type TeaNodeType, type TextProps, rectEqual } from "@silvery/tea/types"
+import { type BoxProps, type TeaNode, type TeaNodeType, type TextProps, rectEqual } from "@silvery/ag/types"
 import { type Measurer, displayWidth, wrapText } from "@silvery/ag-term/unicode"
 
 const measureLog = createLogger("silvery:measure")

@@ -33,7 +33,7 @@ import type {
 import { defaultCaps, detectColor, detectCursor, detectInput, detectTerminalCaps, detectUnicode } from "./detection"
 import type { ProviderEvent } from "../runtime/types"
 import { createTermProvider, type TermState, type TermEvents } from "../runtime/term-provider"
-import { splitRawInput, parseKey } from "@silvery/tea/keys"
+import { splitRawInput, parseKey } from "@silvery/ag/keys"
 import { isMouseSequence, parseMouseSequence } from "../mouse"
 import { parseFocusEvent } from "../focus-reporting"
 import { parseBracketedPaste } from "../bracketed-paste"

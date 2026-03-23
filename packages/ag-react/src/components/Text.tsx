@@ -11,7 +11,7 @@
  */
 
 import { type ForwardedRef, type JSX, type ReactNode, forwardRef } from "react"
-import type { TeaNode, TextProps as TextPropsType } from "@silvery/tea/types"
+import type { TeaNode, TextProps as TextPropsType } from "@silvery/ag/types"
 
 // ============================================================================
 // Props

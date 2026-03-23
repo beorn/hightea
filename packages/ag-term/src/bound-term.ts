@@ -16,7 +16,7 @@
  */
 
 import type { Cell, TerminalBuffer } from "./buffer"
-import type { TeaNode } from "@silvery/tea/types"
+import type { TeaNode } from "@silvery/ag/types"
 
 /**
  * BoundTerm interface - terminal with node awareness

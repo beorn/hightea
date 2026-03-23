@@ -23,7 +23,7 @@ import {
   useState,
 } from "react"
 import { NodeContext } from "../context"
-import type { BoxProps as BoxPropsType, TeaNode, Rect } from "@silvery/tea/types"
+import type { BoxProps as BoxPropsType, TeaNode, Rect } from "@silvery/ag/types"
 
 // ============================================================================
 // Props

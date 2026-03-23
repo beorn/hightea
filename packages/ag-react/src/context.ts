@@ -11,9 +11,9 @@
 
 import type { Term } from "@silvery/ag-term/ansi"
 import { createContext } from "react"
-import type { FocusManager } from "@silvery/tea/focus-manager"
-import type { Key } from "@silvery/tea/keys"
-import type { TeaNode } from "@silvery/tea/types"
+import type { FocusManager } from "@silvery/ag/focus-manager"
+import type { Key } from "@silvery/ag/keys"
+import type { TeaNode } from "@silvery/ag/types"
 
 // ============================================================================
 // Term Context

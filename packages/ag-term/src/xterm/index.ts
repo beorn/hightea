@@ -47,8 +47,8 @@ import {
 import type { RenderBuffer } from "../render-adapter"
 import { setRenderAdapter } from "../render-adapter"
 import { RuntimeContext, FocusManagerContext, type RuntimeContextValue } from "@silvery/ag-react/context"
-import { createFocusManager } from "@silvery/tea/focus-manager"
-import { parseKey, splitRawInput } from "@silvery/tea/keys"
+import { createFocusManager } from "@silvery/ag/focus-manager"
+import { parseKey, splitRawInput } from "@silvery/ag/keys"
 import { parseBracketedPaste } from "../bracketed-paste"
 import { createXtermProvider, type XtermProvider } from "./xterm-provider"
 

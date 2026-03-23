@@ -115,5 +115,5 @@ export {
   parseKeypress,
   parseKey,
   emptyKey,
-} from "@silvery/tea/keys"
-export type { ParsedKeypress, ParsedHotkey } from "@silvery/tea/keys"
+} from "@silvery/ag/keys"
+export type { ParsedKeypress, ParsedHotkey } from "@silvery/ag/keys"

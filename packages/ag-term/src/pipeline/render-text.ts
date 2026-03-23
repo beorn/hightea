@@ -17,7 +17,7 @@ import {
   type UnderlineStyle,
   createMutableCell,
 } from "../buffer"
-import type { TeaNode, TextProps } from "@silvery/tea/types"
+import type { TeaNode, TextProps } from "@silvery/ag/types"
 import {
   type StyledSegment,
   ensureEmojiPresentation,

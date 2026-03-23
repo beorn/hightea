@@ -6,7 +6,7 @@
 
 import { createLogger } from "loggily"
 import { measureStats } from "./measure-stats"
-import { type BoxProps, type TeaNode, type Rect, rectEqual } from "@silvery/tea/types"
+import { type BoxProps, type TeaNode, type Rect, rectEqual } from "@silvery/ag/types"
 import { getBorderSize, getPadding } from "./helpers"
 
 const log = createLogger("silvery:layout")
@@ -182,7 +182,7 @@ export function notifyLayoutSubscribers(node: TeaNode): void {
 }
 
 // Re-export from types
-export { rectEqual } from "@silvery/tea/types"
+export { rectEqual } from "@silvery/ag/types"
 
 // ============================================================================
 // Phase 2.5: Scroll Phase (for overflow='scroll' containers)

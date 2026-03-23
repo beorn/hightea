@@ -4,7 +4,7 @@
  * Handle fit-content nodes by measuring their intrinsic content size.
  */
 
-import type { BoxProps, TeaNode, TextProps } from "@silvery/tea/types"
+import type { BoxProps, TeaNode, TextProps } from "@silvery/ag/types"
 import { displayWidthAnsi, wrapText } from "../unicode"
 import { collectPlainText as collectTextContent } from "./collect-text"
 import { getBorderSize, getPadding } from "./helpers"

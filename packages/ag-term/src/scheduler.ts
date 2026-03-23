@@ -28,7 +28,7 @@ import { copyToClipboard as copyToClipboardImpl } from "./clipboard"
 import { ANSI, notify as notifyTerminal, setCursorStyle, resetCursorStyle } from "./output"
 import { executeRender, type PipelineConfig } from "./pipeline"
 import type { ContentPhaseStats } from "./pipeline/types"
-import type { TeaNode } from "@silvery/tea/types"
+import type { TeaNode } from "@silvery/ag/types"
 
 const log = createLogger("silvery:scheduler")
 

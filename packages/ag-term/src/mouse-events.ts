@@ -10,11 +10,11 @@
  */
 
 import { createLogger } from "loggily"
-import type { FocusManager } from "@silvery/tea/focus-manager"
+import type { FocusManager } from "@silvery/ag/focus-manager"
 import { findFocusableAncestor } from "@silvery/tea/focus-queries"
 import type { ParsedMouse } from "./mouse"
-import { getAncestorPath, pointInRect } from "@silvery/tea/tree-utils"
-import type { TeaNode } from "@silvery/tea/types"
+import { getAncestorPath, pointInRect } from "@silvery/ag/tree-utils"
+import type { TeaNode } from "@silvery/ag/types"
 
 const mouseLog = createLogger("silvery:mouse")
 

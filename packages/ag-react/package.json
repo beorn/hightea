@@ -253,6 +253,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@silvery/ag": "workspace:*",
     "@silvery/theme": "workspace:*"
   },
   "peerDependencies": {

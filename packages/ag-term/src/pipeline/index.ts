@@ -29,7 +29,7 @@
 import { createLogger } from "loggily"
 import type { TerminalBuffer } from "../buffer"
 import type { CursorState } from "@silvery/ag-react/hooks/useCursor"
-import type { TeaNode } from "@silvery/tea/types"
+import type { TeaNode } from "@silvery/ag/types"
 import { runWithMeasurer, type Measurer } from "../unicode"
 import type { OutputPhaseFn } from "./output-phase"
 import type { PipelineContext } from "./types"

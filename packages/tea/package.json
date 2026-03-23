@@ -46,9 +46,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@silvery/ink": "workspace:*",
+    "@silvery/ag": "workspace:*",
     "@silvery/ag-react": "workspace:*",
     "@silvery/ag-term": "workspace:*",
+    "@silvery/ink": "workspace:*",
     "@silvery/test": "workspace:*"
   }
 }

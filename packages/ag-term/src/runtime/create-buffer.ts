@@ -1,5 +1,5 @@
 import { type TerminalBuffer, bufferToStyledText, bufferToText } from "../buffer"
-import type { TeaNode } from "@silvery/tea/types"
+import type { TeaNode } from "@silvery/ag/types"
 import type { Buffer } from "./types"
 
 export function createBuffer(termBuffer: TerminalBuffer, nodes: TeaNode): Buffer {

@@ -49,7 +49,7 @@ import type { ScrollbackMarkerCallbacks } from "@silvery/ag-react/hooks/useScrol
 import { useScrollback } from "@silvery/ag-react/hooks/useScrollback"
 import { renderStringSync } from "@silvery/ag-react/render-string"
 import { ScrollbackItemProvider } from "@silvery/ag-react/hooks/useScrollbackItem"
-import type { TeaNode } from "@silvery/tea/types"
+import type { TeaNode } from "@silvery/ag/types"
 
 // ============================================================================
 // Types

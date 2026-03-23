@@ -22,7 +22,7 @@
 
 import { describe, test, expect } from "vitest"
 import { defaultKeybindingLayers, parseKeyString, keyToString, keyToModifiers, type ParsedKey } from "@km/commands"
-import { parseKey, keyToAnsi, keyToKittyAnsi, splitRawInput } from "@silvery/tea/keys"
+import { parseKey, keyToAnsi, keyToKittyAnsi, splitRawInput } from "@silvery/ag/keys"
 
 // =============================================================================
 // Key format conversion: km-commands → Playwright-style

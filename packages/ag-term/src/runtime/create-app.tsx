@@ -56,9 +56,9 @@ import {
   TermContext,
 } from "@silvery/ag-react/context"
 import { SilveryErrorBoundary } from "@silvery/ag-react/error-boundary"
-import { createFocusManager } from "@silvery/tea/focus-manager"
+import { createFocusManager } from "@silvery/ag/focus-manager"
 import { createCursorStore, CursorProvider } from "@silvery/ag-react/hooks/useCursor"
-import { createFocusEvent, dispatchFocusEvent } from "@silvery/tea/focus-events"
+import { createFocusEvent, dispatchFocusEvent } from "@silvery/ag/focus-events"
 import { executeRender } from "../pipeline"
 import { createPipeline } from "../measurer"
 import { isTextSizingLikelySupported, detectTextSizingSupport, getCachedProbeResult } from "../text-sizing"
@@ -80,7 +80,7 @@ import {
   invokeEventHandler,
   type NamespacedEvent,
 } from "./event-handlers"
-import { keyToAnsi, keyToKittyAnsi } from "@silvery/tea/keys"
+import { keyToAnsi, keyToKittyAnsi } from "@silvery/ag/keys"
 import { parseKey, type Key } from "./keys"
 import { ensureLayoutEngine } from "./layout"
 import { createMouseEventProcessor, updateKeyboardModifiers } from "../mouse-events"

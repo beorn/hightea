@@ -17,7 +17,7 @@
  * so they remain separate.
  */
 
-import type { TeaNode } from "@silvery/tea/types"
+import type { TeaNode } from "@silvery/ag/types"
 
 /**
  * Collect plain text from a node tree, applying internal_transform.

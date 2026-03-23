@@ -10,7 +10,7 @@
 
 import { useContext, useLayoutEffect, useReducer, useRef } from "react"
 import { NodeContext } from "../context"
-import { type Rect, rectEqual } from "@silvery/tea/types"
+import { type Rect, rectEqual } from "@silvery/ag/types"
 
 export type { Rect }
 
