@@ -73,10 +73,18 @@ export interface App {
   type(text: string): Promise<this>
 
   /** Simulate a mouse click at (x, y) terminal coordinates */
-  click(x: number, y: number, options?: { button?: number }): Promise<this>
+  click(
+    x: number,
+    y: number,
+    options?: { button?: number; shift?: boolean; meta?: boolean; ctrl?: boolean; cmd?: boolean },
+  ): Promise<this>
 
   /** Simulate a double-click at (x, y) terminal coordinates */
-  doubleClick(x: number, y: number, options?: { button?: number }): Promise<this>
+  doubleClick(
+    x: number,
+    y: number,
+    options?: { button?: number; shift?: boolean; meta?: boolean; ctrl?: boolean; cmd?: boolean },
+  ): Promise<this>
 
   /** Simulate a mouse move/hover at (x, y) terminal coordinates */
   hover(x: number, y: number): Promise<this>
@@ -362,17 +370,22 @@ export function buildApp(options: AppOptions): App {
       return app
     },
 
-    async doubleClick(x: number, y: number, options?: { button?: number }): Promise<App> {
+    async doubleClick(
+      x: number,
+      y: number,
+      options?: { button?: number; shift?: boolean; meta?: boolean; ctrl?: boolean; cmd?: boolean },
+    ): Promise<App> {
       const button = options?.button ?? 0
+      if (options?.cmd) mouseState.keyboardModifiers.super = true
       const doDblClick = () => {
         const baseParsed: ParsedMouse = {
           button,
           x,
           y,
           action: "down",
-          shift: false,
-          meta: false,
-          ctrl: false,
+          shift: options?.shift ?? false,
+          meta: options?.meta ?? false,
+          ctrl: options?.ctrl ?? false,
         }
         // First click
         processMouseEvent(mouseState, baseParsed, getContainer())
@@ -386,6 +399,7 @@ export function buildApp(options: AppOptions): App {
       } else {
         doDblClick()
       }
+      if (options?.cmd) mouseState.keyboardModifiers.super = false
       await Promise.resolve()
       return app
     },
