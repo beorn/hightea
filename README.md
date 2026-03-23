@@ -4,26 +4,26 @@
 
 Responsive layouts, scrollable containers, 100x+ faster incremental updates, and full support for modern terminal capabilities. 30+ components from TextInput to VirtualList. Pure TypeScript, no WASM.
 
+> **Status:** Alpha — under active development. APIs may change. Early adopters and feedback welcome.
+
 ```
 npm install silvery react
 ```
 
-> **Status:** Alpha — under active development. APIs may change. Early adopters and feedback welcome.
-
-**Runtimes:** Bun >= 1.0 and Node.js >= 18. CLI (`silvery` command) requires Bun.
-
 ```tsx
 import { useState } from "react"
-import { render, Text, useInput, createTerm } from "silvery"
+import { render, Box, Text, useInput, createTerm } from "silvery"
 
 function Counter() {
   const [count, setCount] = useState(0)
   useInput((input) => {
     if (input === "j") setCount((c) => c + 1)
-    if (input === "k") setCount((c) => c - 1)
-    if (input === "q") return "exit"
   })
-  return <Text>Count: {count}</Text>
+  return (
+    <Box borderStyle="round" padding={1}>
+      <Text>Count: {count}</Text>
+    </Box>
+  )
 }
 
 using term = createTerm()
@@ -34,12 +34,12 @@ await render(<Counter />, term).run()
 
 - **30+ components** — TextInput, TextArea, SelectList, VirtualList, Table, Tabs, CommandPalette, ModalDialog, SplitView, Toast, and more. All with keyboard navigation, focus, and scrolling built in.
 - **Responsive layout** — `useContentRect()` returns actual dimensions synchronously. Components adapt to their space immediately.
-- **Scrollable containers** — `overflow="scroll"` with automatic measurement and clipping. No manual virtualization.
+- **Scrollable containers** — `overflow="scroll"` with automatic measurement and clipping.
 - **Theme system** — 38 palettes with semantic tokens (`$primary`, `$error`, `$border`). Auto-detects your terminal's colors.
-- **Focus navigation** — scoped focus, arrow-key directional movement, click-to-focus, `useFocusWithin`.
+- **Focus navigation** — scoped focus, arrow-key directional movement, click-to-focus.
 - **Mouse support** — full SGR protocol with `onClick`, `onMouseDown`, `onWheel`, hit testing, drag.
-- **Per-node incremental rendering** — only changed nodes update. ~170us for interactive updates in a 1000-node tree.
-- **Zero native dependencies** — pure JS layout engine ([Flexily](https://beorn.github.io/flexily)), no yoga binary, no WASM. Works everywhere.
+- **Incremental rendering** — per-node dirty tracking. ~170us for interactive updates in a 1000-node tree.
+- **Zero native dependencies** — pure JS layout engine ([Flexily](https://beorn.github.io/flexily)), no yoga binary, no WASM.
 
 ## Compared to Ink
 
@@ -63,6 +63,8 @@ If you're already using Ink, `@silvery/ink` provides a compatibility layer for g
 | [Termless](https://termless.dev) | Headless terminal testing — like Playwright for terminal apps |
 | [Flexily](https://beorn.github.io/flexily) | Pure JS flexbox layout engine (Yoga-compatible, zero WASM) |
 | [Loggily](https://beorn.github.io/loggily) | Debug + structured logging + tracing |
+
+**Runtimes:** Bun >= 1.0 and Node.js >= 18. CLI (`silvery` command) requires Bun.
 
 ## License
 
