@@ -329,17 +329,23 @@ export function buildApp(options: AppOptions): App {
       return app
     },
 
-    async click(x: number, y: number, options?: { button?: number }): Promise<App> {
+    async click(
+      x: number,
+      y: number,
+      options?: { button?: number; shift?: boolean; meta?: boolean; ctrl?: boolean; cmd?: boolean },
+    ): Promise<App> {
       const button = options?.button ?? 0
+      // cmd is an alias for setting keyboard-tracked Super (Cmd on macOS)
+      if (options?.cmd) mouseState.keyboardModifiers.super = true
       const doClick = () => {
         const parsed: ParsedMouse = {
           button,
           x,
           y,
           action: "down",
-          shift: false,
-          meta: false,
-          ctrl: false,
+          shift: options?.shift ?? false,
+          meta: options?.meta ?? false,
+          ctrl: options?.ctrl ?? false,
         }
         processMouseEvent(mouseState, parsed, getContainer())
         const upParsed: ParsedMouse = { ...parsed, action: "up" }
@@ -350,6 +356,8 @@ export function buildApp(options: AppOptions): App {
       } else {
         doClick()
       }
+      // Reset keyboard modifier override after click
+      if (options?.cmd) mouseState.keyboardModifiers.super = false
       await Promise.resolve()
       return app
     },

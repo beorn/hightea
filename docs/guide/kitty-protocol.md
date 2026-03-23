@@ -42,7 +42,7 @@ Enhancement flags (binary bitmask):
 | 0b1000  | 8     | **Report all keys as escape codes** - Even plain letters                |
 | 0b10000 | 16    | **Report associated text** - Include Unicode text for the key           |
 
-For Silvery, flags `1` (disambiguate) and `2` (event types) are the most valuable.
+For Silvery, flags `1` (disambiguate), `2` (event types), and `8` (all keys) are the most valuable. With all three enabled, Silvery can track modifier-only key presses (bare ⌘, bare ⇧) and bridge that state into mouse events — so `e.metaKey` on click events accurately reflects whether Cmd is held. See [Unified Modifier Tracking](../reference/input-features.md#unified-modifier-tracking).
 
 ### Key Encoding Format
 

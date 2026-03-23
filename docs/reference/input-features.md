@@ -207,6 +207,33 @@ const event = parseMouseSequence("\x1b[<0;10;5M")
 | `meta`   | `boolean`                             | ⌥ Alt/Meta was held                                 |
 | `ctrl`   | `boolean`                             | ⌃ Ctrl was held                                     |
 
+#### Unified Modifier Tracking
+
+SGR mouse protocol only reports Shift, Alt, and Ctrl — **not** Cmd ⌘ (Super) or Hyper ✦. Silvery bridges this gap by tracking keyboard modifier state from Kitty protocol events and merging it into every mouse event.
+
+This means `e.metaKey` on `SilveryMouseEvent` accurately reflects whether Cmd ⌘ is held — even though the mouse protocol can't report it. No special handling needed in components:
+
+```tsx
+<Box
+  onClick={(e) => {
+    if (e.metaKey) {
+      navigate(target) // ⌘+click → navigate
+    } else {
+      select(target) // plain click → select
+    }
+  }}
+/>
+```
+
+| `SilveryMouseEvent` field | Source         | Description                                  |
+| ------------------------- | -------------- | -------------------------------------------- |
+| `shiftKey`                | SGR mouse      | ⇧ Shift                                      |
+| `altKey`                  | SGR mouse      | ⌥ Alt/Option                                 |
+| `ctrlKey`                 | SGR mouse      | ⌃ Ctrl                                       |
+| `metaKey`                 | Kitty keyboard | ⌘ Cmd/Super (bridged from keyboard tracking) |
+
+> **Requires Kitty protocol** for `metaKey`. In terminals without Kitty support, `metaKey` is always `false`. The `altKey`, `ctrlKey`, and `shiftKey` fields work everywhere.
+
 #### Button Encoding
 
 SGR button field encoding:
