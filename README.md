@@ -38,9 +38,9 @@ await render(<Counter />, term).run()
 
 ### Better
 
-- **Smaller install** — ~177 KB gzipped all included (Ink pulls 16MB into node_modules)
+- **Smaller install** — ~177 KB gzipped all included (Ink 6 pulls 16MB into node_modules)
 - **Pure TypeScript, zero native deps** — no WASM, no build steps — works on Alpine, CI, Docker, everywhere
-- **Incremental rendering** — per-node dirty tracking, ~100x faster interactive updates
+- **Incremental rendering** — per-node dirty tracking, [~100x faster interactive updates](tests/perf/render.bench.ts)
 - **Responsive layout** — `useContentRect()` returns actual dimensions synchronously during render
 - **Scrollable containers** — `overflow="scroll"` with automatic measurement and clipping
 - **Theme system** — 38 palettes, semantic design/color tokens (`$primary`, `$error`), auto-detects terminal colors
