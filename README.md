@@ -165,7 +165,25 @@ For one-shot prompts or spinners, a prompt library may be simpler. But if you fi
 | [Flexily](https://beorn.github.io/flexily) | Pure JS flexbox layout engine (Yoga-compatible, zero WASM) |
 | [Loggily](https://beorn.github.io/loggily) | Debug + structured logging + tracing |
 
-## Performance
+## Silvery vs Ink
+
+|  | Silvery | Ink 5 |
+|---|---|---|
+| **Components** | 30+ (TextInput, TextArea, SelectList, VirtualList, Table, Tabs, ...) | 6 (Box, Text, Static, Spacer, Transform, Newline) |
+| **Layout engine** | [Flexily](https://beorn.github.io/flexily) — pure JS, yoga-compatible | yoga-layout — C++ compiled to JS |
+| **Native deps** | None | yoga-layout |
+| **Theme system** | 38 palettes, semantic tokens, auto-detect | chalk (manual colors) |
+| **Focus system** | Scoped focus, directional nav, click-to-focus | None |
+| **Scrolling** | Built-in `overflow="scroll"` | None |
+| **Text editing** | TextInput + TextArea with selection, undo/redo | None |
+| **Virtual lists** | VirtualList (10k+ items) | None |
+| **Mouse** | Full SGR protocol — click, drag, wheel | None |
+| **Incremental render** | Per-node dirty tracking (~100x faster) | Full re-render |
+| **Responsive layout** | `useContentRect()` — sync dimensions | None |
+| **React** | 18 + 19 | 18 |
+| **Ink compat** | `silvery/ink` compatibility layer | — |
+
+### Performance
 
 _Apple M1 Max, Bun 1.3.9. Reproduce: `bun run bench:compare`_
 
@@ -173,14 +191,14 @@ _Apple M1 Max, Bun 1.3.9. Reproduce: `bun run bench:compare`_
 |---|---|---|
 | Cold render (1 component) | 165 us | 271 us |
 | Cold render (1000 components) | 463 ms | 541 ms |
-| Typical interactive update (1000 nodes) | 169 us | 20.7 ms |
+| Typical interactive update (1000 nodes) | **169 us** | 20.7 ms |
 | Layout (50-node kanban) | 57 us | 88 us |
 
-Interactive updates — the ones that dominate real use (cursor move, scroll, toggle) — are ~100x faster thanks to per-node dirty tracking.
+Interactive updates — cursor move, scroll, toggle — are ~100x faster thanks to per-node dirty tracking.
 
 ## Documentation
 
-Full docs at [silvery.dev](https://silvery.dev) — getting started guide, API reference, component catalog, and migration guide.
+Docs at [github.com/beorn/silvery](https://github.com/beorn/silvery) — README, guides in `docs/guide/`, and the [getting started guide](docs/guide/getting-started.md).
 
 ## Development
 
