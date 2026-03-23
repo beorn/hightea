@@ -103,6 +103,10 @@ export function createMouseEvent(
 ): SilveryMouseEvent {
   let propagationStopped = false
   let defaultPrevented = false
+  const metaKey = keyboardMods?.super ?? false
+  if (type === "click" || type === "mousedown") {
+    mouseLog.debug?.(`createMouseEvent(${type}) metaKey=${metaKey} keyboardMods.super=${keyboardMods?.super}`)
+  }
 
   return {
     type,
@@ -111,7 +115,7 @@ export function createMouseEvent(
     button: parsed.button,
     altKey: parsed.meta,
     ctrlKey: parsed.ctrl,
-    metaKey: keyboardMods?.super ?? false,
+    metaKey,
     shiftKey: parsed.shift,
     target,
     currentTarget: target,
@@ -396,10 +400,16 @@ export function updateKeyboardModifiers(
 ): void {
   // On key release events, clear the modifier. On press/repeat, set it.
   const isRelease = key.eventType === "release"
+  const prevSuper = state.keyboardModifiers.super
   if (key.super !== undefined) state.keyboardModifiers.super = isRelease ? false : key.super
   if (key.hyper !== undefined) state.keyboardModifiers.hyper = isRelease ? false : key.hyper
   if (key.capsLock !== undefined) state.keyboardModifiers.capsLock = key.capsLock
   if (key.numLock !== undefined) state.keyboardModifiers.numLock = key.numLock
+  if (state.keyboardModifiers.super !== prevSuper) {
+    mouseLog.debug?.(
+      `keyboardModifiers.super: ${prevSuper} → ${state.keyboardModifiers.super} (key.super=${key.super}, eventType=${key.eventType})`,
+    )
+  }
 }
 
 /**
