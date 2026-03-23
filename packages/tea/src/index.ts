@@ -219,12 +219,7 @@ export { IncrementalRenderMismatchError } from "./plugins"
 // Layer 3: App integration (createApp, useApp, StoreContext)
 // =============================================================================
 
-export {
-  createApp,
-  useApp,
-  useAppShallow,
-  StoreContext,
-} from "./create-app"
+export { createApp, useApp, useAppShallow, StoreContext } from "./create-app"
 export type {
   AppDefinition,
   AppHandle,

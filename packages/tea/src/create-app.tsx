@@ -62,7 +62,11 @@ import { createCursorStore, CursorProvider } from "@silvery/ag-react/hooks/useCu
 import { createFocusEvent, dispatchFocusEvent } from "@silvery/ag/focus-events"
 import { executeRender } from "@silvery/ag-term/pipeline"
 import { createPipeline } from "@silvery/ag-term/measurer"
-import { isTextSizingLikelySupported, detectTextSizingSupport, getCachedProbeResult } from "@silvery/ag-term/text-sizing"
+import {
+  isTextSizingLikelySupported,
+  detectTextSizingSupport,
+  getCachedProbeResult,
+} from "@silvery/ag-term/text-sizing"
 import { IncrementalRenderMismatchError } from "@silvery/ag-term/scheduler"
 import {
   createContainer,
@@ -85,7 +89,13 @@ import { keyToAnsi, keyToKittyAnsi } from "@silvery/ag/keys"
 import { parseKey, type Key } from "@silvery/ag-term/runtime/keys"
 import { ensureLayoutEngine } from "@silvery/ag-term/runtime/layout"
 import { createMouseEventProcessor, updateKeyboardModifiers } from "@silvery/ag-term/mouse-events"
-import { enableKittyKeyboard, disableKittyKeyboard, KittyFlags, enableMouse, disableMouse } from "@silvery/ag-term/output"
+import {
+  enableKittyKeyboard,
+  disableKittyKeyboard,
+  KittyFlags,
+  enableMouse,
+  disableMouse,
+} from "@silvery/ag-term/output"
 import { enableFocusReporting, disableFocusReporting } from "@silvery/ag-term/focus-reporting"
 import { detectKittyFromStdio } from "@silvery/ag-term/kitty-detect"
 import { captureTerminalState, performSuspend } from "@silvery/ag-term/runtime/terminal-lifecycle"
