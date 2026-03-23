@@ -1,9 +1,9 @@
 {
   "name": "@silvery/ink",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Ink and Chalk API compatibility layer (not published separately)",
   "license": "MIT",
-  "author": "Bjørn Stabell <bjorn@stabell.org>",
+  "author": "Bj\u00f8rn Stabell <bjorn@stabell.org>",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
