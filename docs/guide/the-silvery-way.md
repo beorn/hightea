@@ -356,12 +356,12 @@ try {
 
 ## 9. Start Simple, Scale Architecture
 
-`useState` and `useReducer` are the right starting point. They work great for most terminal apps. Don't add architecture until the complexity demands it.
+Silvery works at every level of complexity. Pick the level that fits your app:
 
-::: tip ✨ Shiny — escalation ladder
+::: tip ✨ Shiny — pick your level
 
 ```tsx
-// Level 1: local hooks — perfect for simple apps
+// Level 1: local hooks — quick scripts, simple tools
 function Counter() {
   const [count, setCount] = useState(0)
   useInput((input) => {
@@ -370,7 +370,7 @@ function Counter() {
   return <Text>Count: {count}</Text>
 }
 
-// Level 2: useReducer/context — when state gets shared
+// Level 2: useReducer/context — shared state across components
 const reducer = (state, action) => {
   switch (action.type) {
     case "increment":
@@ -380,21 +380,11 @@ const reducer = (state, action) => {
   }
 }
 
-// Level 3: external store (zustand, jotai, etc.) — when you need subscriptions
-// Level 4: @silvery/tea — when you need commands, keybindings, effects-as-data
+// Level 3: external store (zustand, jotai, etc.) — subscriptions, middleware
+// Level 4: @silvery/tea — commands, keybindings, effects-as-data, plugin composition
 ```
 
-Each level is independently useful. Move to the next only when you feel the pain the current level can't solve. Most apps live at level 1 or 2.
-:::
-
-::: danger 🩶 Tarnished — architecture astronautics
-
-```tsx
-// Don't reach for createApp + store + dispatch for a counter.
-// That's a 50-line app wearing a 500-line suit.
-```
-
-Architecture is a response to complexity, not a starting point. If `useState` solves your problem, that's the shiny way.
+Each level is independently useful. Some people start with `@silvery/tea` from day one because they like the structure — that's fine too. The point is you're never forced into more architecture than you want.
 :::
 
 → [Application Architecture](/guides/state-management) — when and how to graduate from hooks to structured state management
