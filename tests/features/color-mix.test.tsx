@@ -9,7 +9,7 @@
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Box, Text } from "silvery"
-import { parseColor } from "@silvery/term/pipeline/render-helpers"
+import { parseColor } from "@silvery/ag-term/pipeline/render-helpers"
 
 // ============================================================================
 // parseColor: inherit

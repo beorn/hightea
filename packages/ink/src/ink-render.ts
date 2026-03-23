@@ -4,25 +4,25 @@
  */
 
 import React, { useContext } from "react"
-import { StdoutContext, StderrContext, TermContext } from "@silvery/react/context"
-import { bufferToStyledText, bufferToText, type TerminalBuffer } from "@silvery/term/buffer"
-import { stripAnsi } from "@silvery/term/unicode"
-import { createTerm } from "@silvery/term/ansi"
-import { createCursorStore, CursorProvider } from "@silvery/react/hooks/useCursor"
-import { SilveryErrorBoundary } from "@silvery/react/error-boundary"
+import { StdoutContext, StderrContext, TermContext } from "@silvery/ag-react/context"
+import { bufferToStyledText, bufferToText, type TerminalBuffer } from "@silvery/ag-term/buffer"
+import { stripAnsi } from "@silvery/ag-term/unicode"
+import { createTerm } from "@silvery/ag-term/ansi"
+import { createCursorStore, CursorProvider } from "@silvery/ag-react/hooks/useCursor"
+import { SilveryErrorBoundary } from "@silvery/ag-react/error-boundary"
 import { InkCursorStoreCtx } from "./with-ink-cursor"
 import { InkFocusContext, InkFocusProvider } from "./with-ink-focus"
-import { useInput as silveryUseInput } from "@silvery/react/hooks/useInput"
-import { renderScreenReaderOutput } from "@silvery/react/accessibility"
-import { createKittyManager } from "@silvery/term"
-import { renderSync, type Instance } from "@silvery/react/render"
-import { render as silveryTestRender } from "@silvery/term/renderer"
-import { setInkStrictValidation } from "@silvery/react/reconciler/host-config"
-import { renderStringSync } from "@silvery/react/render-string"
-import { isLayoutEngineInitialized, setLayoutEngine, ensureDefaultLayoutEngine } from "@silvery/term/layout-engine"
-import { createFlexilyZeroEngine } from "@silvery/term/adapters/flexily-zero-adapter"
-import { measureElement as baseMeasureElement } from "@silvery/react/measureElement"
-import { calculateLayout } from "@silvery/react/reconciler/nodes"
+import { useInput as silveryUseInput } from "@silvery/ag-react/hooks/useInput"
+import { renderScreenReaderOutput } from "@silvery/ag-react/accessibility"
+import { createKittyManager } from "@silvery/ag-term"
+import { renderSync, type Instance } from "@silvery/ag-react/render"
+import { render as silveryTestRender } from "@silvery/ag-term/renderer"
+import { setInkStrictValidation } from "@silvery/ag-react/reconciler/host-config"
+import { renderStringSync } from "@silvery/ag-react/render-string"
+import { isLayoutEngineInitialized, setLayoutEngine, ensureDefaultLayoutEngine } from "@silvery/ag-term/layout-engine"
+import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
+import { measureElement as baseMeasureElement } from "@silvery/ag-react/measureElement"
+import { calculateLayout } from "@silvery/ag-react/reconciler/nodes"
 
 import {
   currentChalkLevel,
@@ -42,8 +42,8 @@ import { type KittyKeyboardOptions, resolveKittyManagerOptions } from "./ink-hoo
 // Types
 // =============================================================================
 
-export type { RenderOptions, Instance } from "@silvery/react/render"
-export type { MeasureElementOutput } from "@silvery/react/measureElement"
+export type { RenderOptions, Instance } from "@silvery/ag-react/render"
+export type { MeasureElementOutput } from "@silvery/ag-react/measureElement"
 
 /**
  * Ink-compatible Instance type with additional Ink-specific methods.
@@ -722,7 +722,7 @@ function needsLayoutRecalculation(node: any): boolean {
  * This bridges the timing gap between Ink (Yoga runs during commit, so
  * effects see layout) and silvery (layout runs in a separate pipeline pass).
  */
-export function measureElement(nodeOrHandle: any): import("@silvery/react/measureElement").MeasureElementOutput {
+export function measureElement(nodeOrHandle: any): import("@silvery/ag-react/measureElement").MeasureElementOutput {
   // Resolve BoxHandle → TeaNode
   const node = typeof nodeOrHandle?.getNode === "function" ? nodeOrHandle.getNode() : nodeOrHandle
   if (!node) return { width: 0, height: 0 }

@@ -13,9 +13,9 @@
 import React, { Suspense, useState, use } from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Text } from "@silvery/react"
-import { hostConfig } from "@silvery/react/reconciler/host-config"
-import { createNode } from "@silvery/react/reconciler/nodes"
+import { Box, Text } from "@silvery/ag-react"
+import { hostConfig } from "@silvery/ag-react/reconciler/host-config"
+import { createNode } from "@silvery/ag-react/reconciler/nodes"
 
 /**
  * Create a controllable promise for testing Suspense.

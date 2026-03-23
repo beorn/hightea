@@ -14,9 +14,9 @@ import React, { useState, useEffect } from "react"
 import { describe, test, expect, afterEach } from "vitest"
 import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
-import type { Term } from "../../packages/term/src/ansi/term"
-import { run, type RunHandle } from "../../packages/term/src/runtime/run"
-import { Box, Text } from "../../packages/react/src/index"
+import type { Term } from "../../packages/ag-term/src/ansi/term"
+import { run, type RunHandle } from "../../packages/ag-term/src/runtime/run"
+import { Box, Text } from "../../packages/ag-react/src/index"
 import { AIChat, SCRIPT, type ScriptEntry } from "../../examples/apps/aichat/index"
 
 const settle = (ms = 200) => new Promise((r) => setTimeout(r, ms))

@@ -14,7 +14,7 @@ import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
 import { Text } from "../../src/index.js"
-import { ListView, type ListViewHandle, type ListItemMeta } from "../../packages/ui/src/components/ListView"
+import { ListView, type ListViewHandle, type ListItemMeta } from "../../packages/ag-react/src/ui/components/ListView"
 
 // ============================================================================
 // Test Helpers

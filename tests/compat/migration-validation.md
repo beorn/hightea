@@ -9,7 +9,7 @@ Validates the Silvery migration guide (`docs/guide/migration.md`) against real-w
 - Selected 3 popular, production Ink CLI apps with diverse API usage patterns
 - Searched each codebase (via `gh search code`) for all `from 'ink'` imports
 - Cataloged every Ink API used: components, hooks, types, functions
-- Checked each against `silvery/ink` (`packages/ink/src/ink.ts`) and `@silvery/react` exports
+- Checked each against `silvery/ink` (`packages/ink/src/ink.ts`) and `@silvery/ag-react` exports
 
 ---
 
@@ -81,7 +81,7 @@ All 13 Ink APIs used by Shopify CLI are exported by `silvery/ink`. The only edge
 
 ### Community Packages
 
-- `ink-spinner@4.0.3` — Loading spinner. Renders `<Text>` with animated characters. Would need silvery-compatible version or replacement with `@silvery/ui` `<Spinner>` component.
+- `ink-spinner@4.0.3` — Loading spinner. Renders `<Text>` with animated characters. Would need silvery-compatible version or replacement with `@silvery/ag-react/ui` `<Spinner>` component.
 
 ### Key Patterns
 
@@ -95,13 +95,13 @@ All 13 Ink APIs used by Shopify CLI are exported by `silvery/ink`. The only edge
 
 **Status: FULLY COMPATIBLE (core APIs)**
 
-All core Ink APIs used by Gatsby CLI are covered. The only dependency needing attention is `ink-spinner`, which has a trivial Silvery equivalent (`@silvery/ui` exports `<Spinner>`).
+All core Ink APIs used by Gatsby CLI are covered. The only dependency needing attention is `ink-spinner`, which has a trivial Silvery equivalent (`@silvery/ag-react/ui` exports `<Spinner>`).
 
 **Migration steps:**
 
 1. `bun remove ink ink-spinner` / `bun add silvery`
 2. Replace `from 'ink'` with `from 'silvery/ink'`
-3. Replace `ink-spinner` with `import { Spinner } from '@silvery/ui'` (same `<Spinner>` API)
+3. Replace `ink-spinner` with `import { Spinner } from '@silvery/ag-react/ui'` (same `<Spinner>` API)
 
 **Behavioral difference:** Text that overflowed in Ink 3 will now wrap by default in Silvery. Gatsby already uses `wrap="truncate"` where truncation is desired, so this should have no visible impact.
 
@@ -126,9 +126,9 @@ All core Ink APIs used by Gatsby CLI are covered. The only dependency needing at
 
 | Package                     | Version | Purpose            | Silvery Equivalent                  |
 | --------------------------- | ------- | ------------------ | ----------------------------------- |
-| `ink-select-input`          | 4.2.2   | Selection lists    | `@silvery/ui` `<SelectList>`        |
-| `ink-table`                 | 3.1.0   | Tabular output     | `@silvery/ui` `<Table>`             |
-| `ink-spinner`               | 4.0.3   | Loading indicators | `@silvery/ui` `<Spinner>`           |
+| `ink-select-input`          | 4.2.2   | Selection lists    | `@silvery/ag-react/ui` `<SelectList>`        |
+| `ink-table`                 | 3.1.0   | Tabular output     | `@silvery/ag-react/ui` `<Table>`             |
+| `ink-spinner`               | 4.0.3   | Loading indicators | `@silvery/ag-react/ui` `<Spinner>`           |
 | `ink-testing-library`       | 2.1.0   | Test utilities     | `@silvery/test` `createRenderer`    |
 | `ink-use-stdout-dimensions` | 1.0.5   | Terminal size      | `useStdout()` or `useContentRect()` |
 
@@ -146,9 +146,9 @@ All core Ink APIs used by Gatsby CLI are covered. The only dependency needing at
 
 Core Ink APIs (`Box`, `Text`, `render`) are fully covered. The challenge is 5 community packages that need Silvery equivalents:
 
-- `ink-select-input` -> `@silvery/ui` `<SelectList>` (different API, similar functionality)
-- `ink-table` -> `@silvery/ui` `<Table>` (different API, richer features)
-- `ink-spinner` -> `@silvery/ui` `<Spinner>` (compatible)
+- `ink-select-input` -> `@silvery/ag-react/ui` `<SelectList>` (different API, similar functionality)
+- `ink-table` -> `@silvery/ag-react/ui` `<Table>` (different API, richer features)
+- `ink-spinner` -> `@silvery/ag-react/ui` `<Spinner>` (compatible)
 - `ink-testing-library` -> `@silvery/test` `createRenderer` (more capable)
 - `ink-use-stdout-dimensions` -> `useStdout()` built-in (no extra package needed)
 
@@ -201,13 +201,13 @@ The biggest migration challenge is the Ink community ecosystem (~50 packages). O
 
 | ink-\* Package              | Silvery Built-in Equivalent      |
 | --------------------------- | -------------------------------- |
-| `ink-spinner`               | `@silvery/ui` `<Spinner>`        |
-| `ink-select-input`          | `@silvery/ui` `<SelectList>`     |
-| `ink-table`                 | `@silvery/ui` `<Table>`          |
+| `ink-spinner`               | `@silvery/ag-react/ui` `<Spinner>`        |
+| `ink-select-input`          | `@silvery/ag-react/ui` `<SelectList>`     |
+| `ink-table`                 | `@silvery/ag-react/ui` `<Table>`          |
 | `ink-testing-library`       | `@silvery/test` `createRenderer` |
 | `ink-use-stdout-dimensions` | `useStdout()` (built-in)         |
 
-Silvery's `@silvery/ui` package includes 23+ components that cover most of the popular `ink-*` community packages, plus additional components not available in the Ink ecosystem (TextArea, ModalDialog, CommandPalette, Image, etc.).
+Silvery's `@silvery/ag-react/ui` package includes 23+ components that cover most of the popular `ink-*` community packages, plus additional components not available in the Ink ecosystem (TextArea, ModalDialog, CommandPalette, Image, etc.).
 
 ---
 

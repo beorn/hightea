@@ -277,26 +277,26 @@ Higher-level pre-styled components using `$token` semantic colors. Import from `
 
 These components use the theming system — wrap your app in `ThemeProvider` with `defaultDarkTheme` or `defaultLightTheme` and the components will use semantic colors automatically. Any color prop starting with `$` is resolved against the active theme (e.g. `color="$primary"`, `backgroundColor="$surface-bg"`).
 
-## @silvery/ui — Progress & Input Package
+## @silvery/ag-react/ui — Progress & Input Package
 
-`@silvery/ui` is a separate package with progress indicators and ergonomic async wrappers. It works both as standalone CLI output (no React) and as React components inside Silvery apps.
+`@silvery/ag-react/ui` is a separate package with progress indicators and ergonomic async wrappers. It works both as standalone CLI output (no React) and as React components inside Silvery apps.
 
 ::: code-group
 
 ```bash [npm]
-npm install @silvery/ui
+npm install @silvery/ag-react/ui
 ```
 
 ```bash [bun]
-bun add @silvery/ui
+bun add @silvery/ag-react/ui
 ```
 
 ```bash [pnpm]
-pnpm add @silvery/ui
+pnpm add @silvery/ag-react/ui
 ```
 
 ```bash [yarn]
-yarn add @silvery/ui
+yarn add @silvery/ag-react/ui
 ```
 
 :::
@@ -304,7 +304,7 @@ yarn add @silvery/ui
 **CLI mode** (direct stdout, no React):
 
 ```ts
-import { Spinner, ProgressBar, MultiProgress } from "@silvery/ui/cli"
+import { Spinner, ProgressBar, MultiProgress } from "@silvery/ag-react/ui/cli"
 
 const stop = Spinner.start("Loading...")
 await doWork()
@@ -314,7 +314,7 @@ stop()
 **Wrappers** (ergonomic async adapters):
 
 ```ts
-import { withSpinner, withProgress } from "@silvery/ui/wrappers"
+import { withSpinner, withProgress } from "@silvery/ag-react/ui/wrappers"
 
 const data = await withSpinner(fetchData(), "Loading data...")
 ```
@@ -322,7 +322,7 @@ const data = await withSpinner(fetchData(), "Loading data...")
 **Declarative steps**:
 
 ```ts
-import { steps } from "@silvery/ui/progress"
+import { steps } from "@silvery/ag-react/ui/progress"
 
 const loader = steps({ loadModules, parseConfig, validate })
 await loader.run({ clear: true })
@@ -331,8 +331,8 @@ await loader.run({ clear: true })
 **React components** (for Silvery/Ink apps):
 
 ```tsx
-import { Spinner, ProgressBar, Tasks, Task } from "@silvery/ui/react"
-import { TextInput, Select } from "@silvery/ui/input"
+import { Spinner, ProgressBar, Tasks, Task } from "@silvery/ag-react/ui/react"
+import { TextInput, Select } from "@silvery/ag-react/ui/input"
 ```
 
-See the [@silvery/ui README](https://github.com/beorn/silvery/tree/main/packages/ui) for full documentation.
+See the [@silvery/ag-react/ui README](https://github.com/beorn/silvery/tree/main/packages/ui) for full documentation.

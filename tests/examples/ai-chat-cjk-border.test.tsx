@@ -13,8 +13,8 @@ import React from "react"
 import { describe, test, expect, afterEach } from "vitest"
 import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
-import type { Term } from "../../packages/term/src/ansi/term"
-import { run, type RunHandle } from "../../packages/term/src/runtime/run"
+import type { Term } from "../../packages/ag-term/src/ansi/term"
+import { run, type RunHandle } from "../../packages/ag-term/src/runtime/run"
 import { AIChat, type ScriptEntry } from "../../examples/apps/aichat/index"
 
 const settle = (ms = 300) => new Promise((r) => setTimeout(r, ms))
@@ -124,7 +124,7 @@ describe("CJK + emoji border integrity", () => {
 
   test("CJK width: 日本語 measured as 6 columns, 🌍 as 2", async () => {
     // Verify our width measurement matches terminal expectations
-    const { displayWidth } = await import("../../packages/term/src/unicode")
+    const { displayWidth } = await import("../../packages/ag-term/src/unicode")
     expect(displayWidth("日本語")).toBe(6) // Each CJK char = 2 cols
     expect(displayWidth("🌍")).toBe(2) // Emoji = 2 cols
     expect(displayWidth("日本語 (Japanese)")).toBe(17) // 6 + 1 + 10

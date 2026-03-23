@@ -9,7 +9,7 @@
 
 import React, { useState } from "react"
 import { Box, Text } from "../../src/index.js"
-import { run, useInput } from "@silvery/term/runtime"
+import { run, useInput } from "@silvery/ag-term/runtime"
 
 function Counter() {
   const [count, setCount] = useState(0)
@@ -29,7 +29,7 @@ function Counter() {
           {count}
         </Text>
       </Box>
-      <Text color="$muted">j/k: +/-  r: reset  q: quit</Text>
+      <Text color="$muted">j/k: +/- r: reset q: quit</Text>
     </Box>
   )
 }

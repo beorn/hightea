@@ -3,7 +3,7 @@
  */
 import React, { createContext, useContext } from "react"
 import { describe, test, expect } from "vitest"
-import { render, ensureEngine } from "@silvery/term/renderer"
+import { render, ensureEngine } from "@silvery/ag-term/renderer"
 import { Box, Text } from "silvery"
 
 await ensureEngine()

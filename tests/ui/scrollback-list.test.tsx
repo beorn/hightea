@@ -17,8 +17,8 @@ import React, { useEffect, useState } from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
 import { Box, Text } from "../../src/index.js"
-import { ScrollbackList } from "../../packages/ui/src/components/ScrollbackList"
-import { useScrollbackItem } from "../../packages/react/src/hooks/useScrollbackItem"
+import { ScrollbackList } from "../../packages/ag-react/src/ui/components/ScrollbackList"
+import { useScrollbackItem } from "../../packages/ag-react/src/hooks/useScrollbackItem"
 
 // ============================================================================
 // Test Helpers

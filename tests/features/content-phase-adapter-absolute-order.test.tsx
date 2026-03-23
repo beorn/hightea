@@ -15,13 +15,13 @@
  */
 import React from "react"
 import { describe, test, expect } from "vitest"
-import { Box, Text } from "@silvery/react"
-import { contentPhaseAdapter } from "@silvery/term/pipeline/content-phase-adapter"
-import { setRenderAdapter, hasRenderAdapter } from "@silvery/term/render-adapter"
-import { terminalAdapter, TerminalRenderBuffer } from "@silvery/term/adapters/terminal-adapter"
-import { setLayoutEngine } from "@silvery/term/layout-engine"
-import { createFlexilyZeroEngine } from "@silvery/term/adapters/flexily-zero-adapter"
-import { createContainer, createFiberRoot, getContainerRoot, reconciler } from "@silvery/react/reconciler"
+import { Box, Text } from "@silvery/ag-react"
+import { contentPhaseAdapter } from "@silvery/ag-term/pipeline/content-phase-adapter"
+import { setRenderAdapter, hasRenderAdapter } from "@silvery/ag-term/render-adapter"
+import { terminalAdapter, TerminalRenderBuffer } from "@silvery/ag-term/adapters/terminal-adapter"
+import { setLayoutEngine } from "@silvery/ag-term/layout-engine"
+import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
+import { createContainer, createFiberRoot, getContainerRoot, reconciler } from "@silvery/ag-react/reconciler"
 import {
   measurePhase,
   layoutPhase,
@@ -29,7 +29,7 @@ import {
   stickyPhase,
   screenRectPhase,
   notifyLayoutSubscribers,
-} from "@silvery/term/pipeline"
+} from "@silvery/ag-term/pipeline"
 
 function setupAdapter() {
   if (!hasRenderAdapter()) {

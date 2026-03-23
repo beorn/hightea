@@ -17,7 +17,7 @@
  */
 
 import type React from "react"
-import type { CursorStore } from "@silvery/react/hooks/useCursor"
+import type { CursorStore } from "@silvery/ag-react/hooks/useCursor"
 import type { EventEmitter } from "node:events"
 import { withInkCursor } from "./with-ink-cursor"
 import { withInkFocus } from "./with-ink-focus"

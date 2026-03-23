@@ -10,7 +10,7 @@
 import React, { useState } from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Text } from "@silvery/react"
+import { Box, Text } from "@silvery/ag-react"
 import type { Theme } from "@silvery/theme"
 import { ansi16DarkTheme, ansi16LightTheme } from "@silvery/theme"
 

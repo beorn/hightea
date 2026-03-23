@@ -12,8 +12,8 @@
 import { describe, test, expect } from "vitest"
 import { createTerminal } from "@termless/core"
 import { createXtermBackend } from "@termless/xtermjs"
-import { TerminalBuffer } from "@silvery/term/buffer"
-import { outputPhase } from "@silvery/term/pipeline/output-phase"
+import { TerminalBuffer } from "@silvery/ag-term/buffer"
+import { outputPhase } from "@silvery/ag-term/pipeline/output-phase"
 
 const COLS = 80
 

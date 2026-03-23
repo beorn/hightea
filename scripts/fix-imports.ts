@@ -17,7 +17,7 @@ const PACKAGES_DIR = join(ROOT, "packages")
 
 // Map each file's path relative to its package src/ to the package name
 // Key: old src/-relative path (e.g., "runtime/run.tsx")
-// Value: { pkg: "term", newPath: "packages/term/src/runtime/run.tsx" }
+// Value: { pkg: "term", newPath: "packages/ag-term/src/runtime/run.tsx" }
 interface FileEntry {
   pkg: string
   srcRelative: string // path relative to packages/<pkg>/src/
@@ -162,40 +162,40 @@ function rewriteFile(entry: FileEntry, map: Map<string, FileEntry>): { changed: 
   let changed = false
   const oldSrcPath = getOldSrcPath(entry)
 
-  // Rewrite @silvery/term imports → @silvery/*
+  // Rewrite @silvery/ag-term imports → @silvery/*
   content = content.replace(SILVERY_IMPORT, (match, q1, pkg, subpath, q2) => {
     changed = true
     if (pkg === "ansi") {
       return subpath ? `${q1}@silvery/ansi/${subpath}${q2}` : `${q1}@silvery/ansi${q2}`
     }
-    // @silvery/term subpath imports map to different packages
+    // @silvery/ag-term subpath imports map to different packages
     if (subpath) {
       const subpathMap: Record<string, string> = {
-        runtime: "@silvery/term/runtime",
+        runtime: "@silvery/ag-term/runtime",
         testing: "@silvery/test",
         store: "@silvery/tea/store",
         core: "@silvery/tea/core",
         tea: "@silvery/tea/tea",
-        canvas: "@silvery/ui/canvas",
-        dom: "@silvery/term/dom",
-        xterm: "@silvery/term/xterm",
+        canvas: "@silvery/ag-react/ui/canvas",
+        dom: "@silvery/ag-term/dom",
+        xterm: "@silvery/ag-term/xterm",
         ink: "@silvery/ink/ink",
-        layout: "@silvery/react/layout",
-        components: "@silvery/ui/components",
-        focus: "@silvery/react/focus",
-        input: "@silvery/react/input",
+        layout: "@silvery/ag-react/layout",
+        components: "@silvery/ag-react/ui/components",
+        focus: "@silvery/ag-react/focus",
+        input: "@silvery/ag-react/input",
         theme: "@silvery/theme",
-        animation: "@silvery/ui/animation",
-        images: "@silvery/ui/images",
+        animation: "@silvery/ag-react/ui/animation",
+        images: "@silvery/ag-react/ui/images",
         plugins: "@silvery/tea/plugins",
-        "scroll-utils": "@silvery/term/scroll-utils",
-        toolbelt: "@silvery/term/toolbelt",
-        hooks: "@silvery/react/hooks",
-        react: "@silvery/react/react",
+        "scroll-utils": "@silvery/ag-term/scroll-utils",
+        toolbelt: "@silvery/ag-term/toolbelt",
+        hooks: "@silvery/ag-react/hooks",
+        react: "@silvery/ag-react/react",
       }
-      return `${q1}${subpathMap[subpath] || `@silvery/react/${subpath}`}${q2}`
+      return `${q1}${subpathMap[subpath] || `@silvery/ag-react/${subpath}`}${q2}`
     }
-    return `${q1}@silvery/react${q2}`
+    return `${q1}@silvery/ag-react${q2}`
   })
 
   // Rewrite loggily → loggily

@@ -4,12 +4,12 @@
  */
 
 import { useContext, useEffect, useLayoutEffect, useCallback, useState, useMemo, useRef } from "react"
-import { StdoutContext } from "@silvery/react/context"
-import { RuntimeContext } from "@silvery/react/context"
+import { StdoutContext } from "@silvery/ag-react/context"
+import { RuntimeContext } from "@silvery/ag-react/context"
 import { InkCursorStoreCtx } from "./with-ink-cursor"
 import { InkFocusContext } from "./with-ink-focus"
 import { InkStdinCtx } from "./ink-stdin"
-import { useInput as silveryUseInput } from "@silvery/react/hooks/useInput"
+import { useInput as silveryUseInput } from "@silvery/ag-react/hooks/useInput"
 
 // =============================================================================
 // Focus hooks
@@ -188,7 +188,7 @@ export function useCursor() {
 // Window size hook
 // =============================================================================
 
-export { useWindowSize } from "@silvery/react/hooks/useWindowSize"
+export { useWindowSize } from "@silvery/ag-react/hooks/useWindowSize"
 
 // =============================================================================
 // Box metrics
@@ -335,22 +335,22 @@ export function useBoxMetrics(ref: import("react").RefObject<any>) {
 // Re-exported hooks
 // =============================================================================
 
-export { useInput, type Key, type InputHandler, type UseInputOptions } from "@silvery/react/hooks/useInput"
-export { useApp } from "@silvery/react/hooks/useApp"
-export type { UseAppResult } from "@silvery/react/hooks/useApp"
-export { useStdout } from "@silvery/react/hooks/useStdout"
-export type { UseStdoutResult } from "@silvery/react/hooks/useStdout"
-export { useStderr } from "@silvery/react/hooks/useStderr"
+export { useInput, type Key, type InputHandler, type UseInputOptions } from "@silvery/ag-react/hooks/useInput"
+export { useApp } from "@silvery/ag-react/hooks/useApp"
+export type { UseAppResult } from "@silvery/ag-react/hooks/useApp"
+export { useStdout } from "@silvery/ag-react/hooks/useStdout"
+export type { UseStdoutResult } from "@silvery/ag-react/hooks/useStdout"
+export { useStderr } from "@silvery/ag-react/hooks/useStderr"
 
 // =============================================================================
-// Kitty Keyboard Protocol — delegates to @silvery/term
+// Kitty Keyboard Protocol — delegates to @silvery/ag-term
 // =============================================================================
 
-import { KittyFlags, type KittyManagerOptions } from "@silvery/term"
+import { KittyFlags, type KittyManagerOptions } from "@silvery/ag-term"
 
 /**
  * Kitty keyboard protocol flags (Ink-compatible names).
- * Delegates to KittyFlags from @silvery/term.
+ * Delegates to KittyFlags from @silvery/ag-term.
  * @see https://sw.kovidgoyal.net/kitty/keyboard-protocol/
  */
 export const kittyFlags = {
@@ -396,10 +396,10 @@ export type KittyKeyboardOptions = {
 }
 
 // =============================================================================
-// Kitty Protocol Manager — delegates to @silvery/term
+// Kitty Protocol Manager — delegates to @silvery/ag-term
 // =============================================================================
 
-/** Convert Ink-compatible KittyKeyboardOptions to @silvery/term KittyManagerOptions. */
+/** Convert Ink-compatible KittyKeyboardOptions to @silvery/ag-term KittyManagerOptions. */
 export function resolveKittyManagerOptions(opts: KittyKeyboardOptions | undefined): KittyManagerOptions | undefined {
   if (!opts) return undefined
   return {

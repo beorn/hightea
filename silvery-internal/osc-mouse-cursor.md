@@ -36,7 +36,7 @@ Where `cursor-name` is one of the X11/CSS cursor names:
 
 ## Proposed API
 
-### Layer 1: Low-level escape functions (`@silvery/term/output`)
+### Layer 1: Low-level escape functions (`@silvery/ag-term/output`)
 
 ```ts
 /** Set the mouse cursor shape via OSC 22 */
@@ -95,8 +95,8 @@ This can be implemented by having these components set `cursor` on their root Bo
 
 ### Phase 1: Escape sequences
 
-- Add `setMouseCursor()`, `resetMouseCursor()`, and `MouseCursorShape` type to `@silvery/term/output`.
-- Export from `@silvery/react`.
+- Add `setMouseCursor()`, `resetMouseCursor()`, and `MouseCursorShape` type to `@silvery/ag-term/output`.
+- Export from `@silvery/ag-react`.
 - No component integration yet — apps can call directly.
 
 ### Phase 2: `cursor` prop on Box

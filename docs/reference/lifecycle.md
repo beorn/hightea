@@ -84,7 +84,7 @@ import {
   CTRL_Z,
   type TerminalLifecycleOptions,
   type TerminalState,
-} from "@silvery/term/runtime"
+} from "@silvery/ag-term/runtime"
 
 // Capture current state
 const state = captureTerminalState({

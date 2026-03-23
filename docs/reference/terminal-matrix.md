@@ -124,7 +124,7 @@ Silvery detects capabilities synchronously from environment variables at startup
 | `NO_COLOR`     | Disable all color output when set                     |
 
 ```typescript
-import { detectTerminalCaps } from "@silvery/term"
+import { detectTerminalCaps } from "@silvery/ag-term"
 
 const caps = detectTerminalCaps()
 // caps.colorLevel, caps.kittyKeyboard, caps.osc52, etc.
@@ -133,7 +133,7 @@ const caps = detectTerminalCaps()
 No I/O is performed -- detection is instant but limited to what env vars reveal. For runtime detection of specific protocols (like Kitty keyboard support), use:
 
 ```typescript
-import { detectKittyFromStdio } from "@silvery/term"
+import { detectKittyFromStdio } from "@silvery/ag-term"
 
 const result = await detectKittyFromStdio(process.stdout, process.stdin, 200)
 // result.supported: boolean, result.flags: number

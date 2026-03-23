@@ -24,7 +24,7 @@ You're building a counter. One component, one piece of state, one input handler.
 
 ```tsx
 import { useState } from "react"
-import { run, useInput } from "@silvery/term/runtime"
+import { run, useInput } from "@silvery/ag-term/runtime"
 import { Text } from "silvery"
 
 function Counter() {
@@ -68,7 +68,7 @@ The standard solution is a shared store. [Zustand](https://github.com/pmndrs/zus
 The double-arrow `() => (set, get) => ({...})` is Zustand's [state creator](https://zustand.docs.pmnd.rs/guides/updating-state) pattern — `set` merges new state, `get` reads current state:
 
 ```tsx
-import { createApp, useApp } from "@silvery/term/runtime"
+import { createApp, useApp } from "@silvery/ag-term/runtime"
 import { Box, Text } from "silvery"
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, max))

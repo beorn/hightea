@@ -8,9 +8,9 @@
 
 import React from "react"
 import { describe, test, expect } from "vitest"
-import { wrapText } from "@silvery/react"
+import { wrapText } from "@silvery/ag-react"
 import { createRenderer } from "@silvery/test"
-import { Box, Text, Link } from "@silvery/react"
+import { Box, Text, Link } from "@silvery/ag-react"
 
 const OSC8_OPEN = (url: string) => `\x1b]8;;${url}\x1b\\`
 const OSC8_CLOSE = "\x1b]8;;\x1b\\"

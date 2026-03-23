@@ -10,7 +10,7 @@ import { describe, test, expect } from "vitest"
 import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
 import { Box, Text } from "../../src/index.js"
-import { run, useInput } from "../../packages/term/src/runtime/run"
+import { run, useInput } from "../../packages/ag-term/src/runtime/run"
 
 // ============================================================================
 // Test Component

@@ -23,8 +23,8 @@ This means:
 The terminal is already modeled as a Provider (`Provider<TermState, TermEvents>`) via `createTermProvider(stdin, stdout)`. Create an equivalent for xterm.js:
 
 ```typescript
-import type { TermState, TermEvents } from "@silvery/term/runtime"
-import type { Provider, ProviderEvent } from "@silvery/term/runtime"
+import type { TermState, TermEvents } from "@silvery/ag-term/runtime"
+import type { Provider, ProviderEvent } from "@silvery/ag-term/runtime"
 
 /**
  * Create a terminal provider from an xterm.js Terminal instance.
@@ -88,14 +88,14 @@ function createXtermRenderTarget(terminal: XtermTerminal, provider: Provider<Ter
 
 ```typescript
 // Before: renderToXterm (special path, no runtime)
-import { renderToXterm } from "@silvery/term/xterm"
+import { renderToXterm } from "@silvery/ag-term/xterm"
 const instance = renderToXterm(<App />, xtermTerminal, {
   input: { onKey: ..., onMouse: ..., onFocus: ... },
 })
 
 // After: run() with xterm provider (full runtime)
-import { run } from "@silvery/term/runtime"
-import { createXtermProvider } from "@silvery/term/xterm"
+import { run } from "@silvery/ag-term/runtime"
+import { createXtermProvider } from "@silvery/ag-term/xterm"
 
 const term = createXtermProvider(xtermTerminal)
 const handle = await run(<App />, {
@@ -128,7 +128,7 @@ Alternatively, refactor `initApp` to accept `RenderTarget` directly (avoids the 
 
 ### Phase 1: `createXtermProvider()` (new file)
 
-Create `packages/term/src/xterm/xterm-provider.ts`:
+Create `packages/ag-term/src/xterm/xterm-provider.ts`:
 
 - Implements `Provider<TermState, TermEvents>`
 - Wraps `terminal.onData` → parses keys/mouse via existing `parseKey`/`parseMouseSequence`

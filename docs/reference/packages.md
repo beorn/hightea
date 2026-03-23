@@ -17,9 +17,9 @@ These are implementation details — you'll only need them for advanced use case
 
 | Package           | npm               | Description                                                 |
 | ----------------- | ----------------- | ----------------------------------------------------------- |
-| `@silvery/react`  | `@silvery/react`  | React reconciler, components, and hooks                     |
-| `@silvery/term`   | `@silvery/term`   | Terminal runtime, ANSI output, rendering pipeline           |
-| `@silvery/ui`     | `@silvery/ui`     | Component library (30+ components) + CLI progress utilities |
+| `@silvery/ag-react`  | `@silvery/ag-react`  | React reconciler, components, and hooks                     |
+| `@silvery/ag-term`   | `@silvery/ag-term`   | Terminal runtime, ANSI output, rendering pipeline           |
+| `@silvery/ag-react/ui`     | `@silvery/ag-react/ui`     | Component library (30+ components) + CLI progress utilities |
 | `@silvery/theme`  | `@silvery/theme`  | Theme tokens, 38 palettes, theme CLI                        |
 | `@silvery/ink`    | `@silvery/ink`    | Legacy Ink/Chalk compatibility                              |
 
@@ -39,10 +39,10 @@ For fine-grained control, import from scoped packages:
 
 ```tsx
 // Terminal-specific APIs
-import { createTerm, Pipeline } from "@silvery/term"
+import { createTerm, Pipeline } from "@silvery/ag-term"
 
 // React reconciler and hooks
-import { Box, Text, useContentRect } from "@silvery/react"
+import { Box, Text, useContentRect } from "@silvery/ag-react"
 
 // TEA state management
 import { createSlice, createStore } from "@silvery/tea"
@@ -54,14 +54,14 @@ import { createTheme, presetTheme } from "@silvery/theme"
 import { createRenderer } from "@silvery/test"
 
 // UI components
-import { Spinner, ProgressBar, Table } from "@silvery/ui"
+import { Spinner, ProgressBar, Table } from "@silvery/ag-react/ui"
 ```
 
 ### Runtime Entry Points
 
 ```tsx
 // High-level app framework
-import { run, createApp, useApp } from "@silvery/term/runtime"
+import { run, createApp, useApp } from "@silvery/ag-term/runtime"
 
 // Ink-compatible API
 import { Box, Text, render } from "silvery/ink"
@@ -72,7 +72,7 @@ import chalk from "silvery/chalk"
 
 ## `silvery` (Umbrella)
 
-Re-exports everything from `@silvery/react`. This is the primary import for most applications.
+Re-exports everything from `@silvery/ag-react`. This is the primary import for most applications.
 
 **Components**: Box, Text, Newline, Spacer, Static, Transform, TextInput, TextArea, SelectList, Toggle, Button, Spinner, ProgressBar, Table, Badge, Divider, VirtualList, VirtualView, Console, Image, Link, Form, FormField, Toast, CommandPalette, TreeView, Breadcrumb, Tabs, TabList, Tab, TabPanel, Tooltip, Skeleton, ErrorBoundary, ModalDialog, PickerDialog, PickerList, SplitView, ThemeProvider.
 
@@ -80,31 +80,31 @@ Re-exports everything from `@silvery/react`. This is the primary import for most
 
 **Functions**: render, renderSync, renderToString, createTerm.
 
-## `@silvery/term`
+## `@silvery/ag-term`
 
 Terminal runtime and rendering pipeline. Handles ANSI output, buffer management, terminal capabilities detection, and the 5-phase rendering pipeline (reconcile, measure, layout, content, output).
 
 Key exports: `createTerm`, `Pipeline`, buffer utilities, ANSI helpers, terminal capability detection.
 
-## `@silvery/react`
+## `@silvery/ag-react`
 
 React reconciler adapted for terminal rendering. Provides the component model, hooks, and reconciliation logic.
 
-## `@silvery/ui`
+## `@silvery/ag-react/ui`
 
 Component library with 30+ components plus CLI progress utilities.
 
 **CLI mode** (no React needed):
 
 ```ts
-import { Spinner, ProgressBar } from "@silvery/ui/cli"
+import { Spinner, ProgressBar } from "@silvery/ag-react/ui/cli"
 const stop = Spinner.start("Loading...")
 ```
 
 **Wrapper utilities**:
 
 ```ts
-import { withSpinner, withProgress } from "@silvery/ui/wrappers"
+import { withSpinner, withProgress } from "@silvery/ag-react/ui/wrappers"
 const data = await withSpinner(fetchData(), "Loading...")
 ```
 

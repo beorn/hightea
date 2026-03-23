@@ -5,8 +5,8 @@
  */
 
 import type { FocusEventProps } from "./focus-events"
-import type { LayoutNode } from "@silvery/term/layout-engine"
-import type { MouseEventProps } from "@silvery/term/mouse-events"
+import type { LayoutNode } from "@silvery/ag-term/layout-engine"
+import type { MouseEventProps } from "@silvery/ag-term/mouse-events"
 
 // ============================================================================
 // Layout Types
@@ -579,7 +579,7 @@ export interface EventSource {
 
 // ColorLevel is re-exported from ansi in index.ts
 // Import here for use in TermDef
-import type { ColorLevel } from "@silvery/term/ansi"
+import type { ColorLevel } from "@silvery/ag-term/ansi"
 
 /**
  * Minimal surface for configuring render().

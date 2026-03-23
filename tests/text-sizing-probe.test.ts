@@ -16,7 +16,7 @@ import {
   setCachedProbeResult,
   clearProbeCache,
   type TextSizingProbeResult,
-} from "../packages/term/src/text-sizing"
+} from "../packages/ag-term/src/text-sizing"
 
 // ============================================================================
 // Probe detection

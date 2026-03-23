@@ -32,7 +32,7 @@
  * ```
  */
 
-import type { App } from "@silvery/term/app"
+import type { App } from "@silvery/ag-term/app"
 
 // =============================================================================
 // Types

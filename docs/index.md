@@ -80,12 +80,12 @@ features:
 
 ## Packages
 
-| Package | Description |
-|---|---|
-| `silvery` | Components, hooks, renderer -- the one package you need |
-| `@silvery/test` | [Testing](/examples/testing) utilities and Playwright-style locators |
-| `@silvery/ink` | [Ink compatibility](/guide/silvery-vs-ink) layer for migration |
-| `@silvery/tea` | Optional [TEA](https://guide.elm-lang.org/architecture/) state management for complex apps |
+| Package         | Description                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------ |
+| `silvery`       | Components, hooks, renderer -- the one package you need                                    |
+| `@silvery/test` | [Testing](/examples/testing) utilities and Playwright-style locators                       |
+| `@silvery/ink`  | [Ink compatibility](/guide/silvery-vs-ink) layer for migration                             |
+| `@silvery/tea`  | Optional [TEA](https://guide.elm-lang.org/architecture/) state management for complex apps |
 
 ## Quick Start
 

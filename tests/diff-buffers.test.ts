@@ -7,8 +7,8 @@
  * produces a buffer matching next.
  */
 import { describe, test, expect } from "vitest"
-import { TerminalBuffer, type Cell, type CellAttrs, type Color, attrsEquals } from "@silvery/term/buffer"
-import { diffBuffers } from "@silvery/term/pipeline/diff-buffers"
+import { TerminalBuffer, type Cell, type CellAttrs, type Color, attrsEquals } from "@silvery/ag-term/buffer"
+import { diffBuffers } from "@silvery/ag-term/pipeline/diff-buffers"
 
 // ============================================================================
 // Helpers

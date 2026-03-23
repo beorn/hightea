@@ -9,7 +9,7 @@ Silvery provides best-in-class terminal input handling: full Kitty keyboard prot
 Standard terminal input that works everywhere. Handles arrow keys, function keys, Ctrl combinations, Alt/Meta sequences, and printable characters.
 
 ```tsx
-import { useInput, type Key } from "@silvery/term/runtime"
+import { useInput, type Key } from "@silvery/ag-term/runtime"
 
 useInput((input, key) => {
   if (input === "j" || key.downArrow) moveDown()
@@ -37,8 +37,8 @@ The [Kitty protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) elimina
 #### Enabling in Your App
 
 ```tsx
-import { run } from "@silvery/term/runtime"
-import { KittyFlags } from "@silvery/term"
+import { run } from "@silvery/ag-term/runtime"
+import { KittyFlags } from "@silvery/ag-term"
 
 // Auto-enabled by default — ⌘ and ✦ modifiers just work
 await run(<App />)
@@ -107,7 +107,7 @@ The `ParsedKeypress` object (from `parseKeypress()`) includes additional Kitty f
 Detect whether the terminal supports Kitty protocol before enabling:
 
 ```tsx
-import { detectKittyFromStdio } from "@silvery/term"
+import { detectKittyFromStdio } from "@silvery/ag-term"
 
 const result = await detectKittyFromStdio(process.stdout, process.stdin)
 if (result.supported) {
@@ -118,7 +118,7 @@ if (result.supported) {
 Low-level detection for custom I/O:
 
 ```tsx
-import { detectKittySupport } from "@silvery/term"
+import { detectKittySupport } from "@silvery/ag-term"
 
 const result = await detectKittySupport(
   (s) => socket.write(s),
@@ -132,7 +132,7 @@ const result = await detectKittySupport(
 For manual protocol management (auto-enable handles this for you):
 
 ```tsx
-import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard, KittyFlags } from "@silvery/term"
+import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard, KittyFlags } from "@silvery/ag-term"
 
 stdout.write(enableKittyKeyboard(KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS))
 // ... app runs ...
@@ -187,7 +187,7 @@ await run(<App />, { mouse: false })
 Mouse events flow through the runtime event system. The `ParsedMouse` type describes each event:
 
 ```tsx
-import { parseMouseSequence, isMouseSequence, type ParsedMouse } from "@silvery/term"
+import { parseMouseSequence, isMouseSequence, type ParsedMouse } from "@silvery/ag-term"
 
 // Manual parsing (runtime handles this automatically)
 const event = parseMouseSequence("\x1b[<0;10;5M")
@@ -280,7 +280,7 @@ All three are enabled/disabled together by `enableMouse()`/`disableMouse()`.
 Parse a hotkey string into its base key and modifier flags. Supports multiple formats:
 
 ```tsx
-import { parseHotkey } from "@silvery/term"
+import { parseHotkey } from "@silvery/ag-term"
 
 // Playwright-style (plus-separated)
 parseHotkey("Control+c") // { key: 'c', ctrl: true, ... }
@@ -304,7 +304,7 @@ parseHotkey("⌥⌘p") // { key: 'p', alt: true, super: true, ... }
 Match a parsed hotkey against a live key event:
 
 ```tsx
-import { parseHotkey, matchHotkey } from "@silvery/term"
+import { parseHotkey, matchHotkey } from "@silvery/ag-term"
 
 const saveHotkey = parseHotkey("⌘s")
 

@@ -20,7 +20,7 @@
  * @example
  * ```tsx
  * import { createRenderer } from '@silvery/test';
- * import { Text, Box } from '@silvery/react';
+ * import { Text, Box } from '@silvery/ag-react';
  *
  * const render = createRenderer({ cols: 80, rows: 24 });
  *
@@ -81,16 +81,16 @@
  * ```
  */
 
-import { ensureDefaultLayoutEngine } from "@silvery/term/layout-engine"
+import { ensureDefaultLayoutEngine } from "@silvery/ag-term/layout-engine"
 
 // Re-export App for type usage
-export type { App } from "@silvery/term/app"
+export type { App } from "@silvery/ag-term/app"
 export { createAutoLocator, type AutoLocator, type FilterOptions } from "./auto-locator"
-export type { BoundTerm } from "@silvery/term/bound-term"
+export type { BoundTerm } from "@silvery/ag-term/bound-term"
 
 // Re-export buffer utilities for testing convenience
-export { bufferToText, bufferToStyledText, bufferToHTML } from "@silvery/term/buffer"
-export type { TerminalBuffer } from "@silvery/term/buffer"
+export { bufferToText, bufferToStyledText, bufferToHTML } from "@silvery/ag-term/buffer"
+export type { TerminalBuffer } from "@silvery/ag-term/buffer"
 
 // Re-export locator API for DOM queries (legacy, prefer App.locator())
 export { createLocator, type SilveryLocator } from "./locator"
@@ -117,7 +117,7 @@ export {
   type PerRenderOptions,
   type Store,
   type StoreOptions,
-} from "@silvery/term/renderer"
+} from "@silvery/ag-term/renderer"
 
 // ============================================================================
 // Module Initialization
@@ -136,7 +136,7 @@ await ensureDefaultLayoutEngine()
 // Termless — in-process terminal emulation for full ANSI testing
 // ============================================================================
 
-import { createTerm, type Term } from "@silvery/term"
+import { createTerm, type Term } from "@silvery/ag-term"
 
 /**
  * Create a Term backed by a termless xterm.js emulator for full ANSI testing.
@@ -148,7 +148,7 @@ import { createTerm, type Term } from "@silvery/term"
  * @example
  * ```tsx
  * import { createTermless } from "@silvery/test"
- * import { run } from "@silvery/term/runtime"
+ * import { run } from "@silvery/ag-term/runtime"
  * import "@termless/test/matchers"
  *
  * test("renders correctly", async () => {
@@ -166,7 +166,7 @@ import { createTerm, type Term } from "@silvery/term"
 export function createTermless(dims: { cols: number; rows: number } = { cols: 80, rows: 24 }): Term {
   // Lazy import — only loads xterm.js when createTermless is called
   const { createXtermBackend } = require("@termless/xtermjs") as {
-    createXtermBackend: () => import("@silvery/term").TermEmulatorBackend
+    createXtermBackend: () => import("@silvery/ag-term").TermEmulatorBackend
   }
   return createTerm(createXtermBackend(), dims)
 }
@@ -176,8 +176,8 @@ export function createTermless(dims: { cols: number; rows: number } = { cols: 80
 // ============================================================================
 
 // Re-export stripAnsi from unicode.ts (canonical implementation)
-import { stripAnsi } from "@silvery/term/unicode"
-export { stripAnsi } from "@silvery/term/unicode"
+import { stripAnsi } from "@silvery/ag-term/unicode"
+export { stripAnsi } from "@silvery/ag-term/unicode"
 
 /**
  * Normalize frame output for comparison.

@@ -178,7 +178,7 @@ aesthetic blends/palette colors, then `ensureContrast()` adjusts lightness
 Generate a complete ANSI 16 theme from a primary color:
 
 ```tsx
-import { generateTheme } from "@silvery/term"
+import { generateTheme } from "@silvery/ag-term"
 
 const theme = generateTheme("cyan", true) // primary=cyan, dark=true
 const light = generateTheme("blue", false) // primary=blue, light mode
@@ -199,7 +199,7 @@ Available primaries: `yellow`, `cyan`, `magenta`, `green`, `red`, `blue`, `white
 Implement the `Theme` interface:
 
 ```tsx
-import { type Theme, ThemeProvider } from "@silvery/term"
+import { type Theme, ThemeProvider } from "@silvery/ag-term"
 
 const myTheme: Theme = {
   name: "my-theme",
@@ -302,7 +302,7 @@ per `getActiveTheme()` call — negligible.
 Read the current theme from any component:
 
 ```tsx
-import { useTheme } from "@silvery/term"
+import { useTheme } from "@silvery/ag-term"
 
 function StatusLine() {
   const theme = useTheme()
@@ -317,7 +317,7 @@ Returns `ansi16DarkTheme` when no `ThemeProvider` is present.
 For advanced use cases, resolve tokens programmatically:
 
 ```tsx
-import { resolveThemeColor, useTheme } from "@silvery/term"
+import { resolveThemeColor, useTheme } from "@silvery/ag-term"
 
 function CustomComponent({ highlight }: { highlight?: string }) {
   const theme = useTheme()
@@ -352,7 +352,7 @@ These aliases allow gradual migration. New code should use the v2 token names.
 Select by name at runtime:
 
 ```tsx
-import { getThemeByName } from "@silvery/term"
+import { getThemeByName } from "@silvery/ag-term"
 
 const theme = getThemeByName("dark-ansi16") // or "dark-truecolor", "light-ansi16", etc.
 ```

@@ -13,8 +13,8 @@
 import React, { useRef, useState } from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Text } from "@silvery/react"
-import { useInput } from "@silvery/term/runtime"
+import { Box, Text } from "@silvery/ag-react"
+import { useInput } from "@silvery/ag-term/runtime"
 
 // ============================================================================
 // Test Components

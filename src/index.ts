@@ -3,12 +3,12 @@
 
 export const VERSION = "0.0.1"
 
-// Re-export everything from @silvery/react — local `render` below shadows the re-exported one
-export * from "@silvery/react"
+// Re-export everything from @silvery/ag-react — local `render` below shadows the re-exported one
+export * from "@silvery/ag-react"
 
 import type { ReactElement } from "react"
-import { render as reactRender, type RenderOptions, type TermDef } from "@silvery/react"
-import type { Term } from "@silvery/react"
+import { render as reactRender, type RenderOptions, type TermDef } from "@silvery/ag-react"
+import type { Term } from "@silvery/ag-react"
 
 /**
  * Render a React element to the terminal.

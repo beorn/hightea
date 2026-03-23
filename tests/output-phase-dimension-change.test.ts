@@ -10,8 +10,8 @@
  * output must produce identical terminal state.
  */
 import { describe, test, expect } from "vitest"
-import { TerminalBuffer } from "@silvery/term/buffer"
-import { outputPhase, replayAnsiWithStyles } from "@silvery/term/pipeline/output-phase"
+import { TerminalBuffer } from "@silvery/ag-term/buffer"
+import { outputPhase, replayAnsiWithStyles } from "@silvery/ag-term/pipeline/output-phase"
 
 /** Write a string into a buffer row starting at column x. */
 function writeStr(buf: TerminalBuffer, x: number, y: number, text: string, fg?: number): void {

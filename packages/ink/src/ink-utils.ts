@@ -5,7 +5,7 @@
 
 import React from "react"
 import chalk from "chalk"
-import { isTextPresentationEmoji } from "@silvery/term/unicode"
+import { isTextPresentationEmoji } from "@silvery/ag-term/unicode"
 
 // =============================================================================
 // Chalk integration

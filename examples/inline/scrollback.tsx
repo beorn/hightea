@@ -11,7 +11,7 @@
 
 import React, { useState, useCallback } from "react"
 import { Box, Text, Divider, VirtualList, useInput, type Key, useScrollback } from "../../src/index.js"
-import { run, useExit } from "@silvery/term/runtime"
+import { run, useExit } from "@silvery/ag-term/runtime"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {

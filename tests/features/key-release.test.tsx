@@ -10,10 +10,10 @@
 import React, { useState } from "react"
 import { describe, test, expect, vi } from "vitest"
 import { createRenderer, createTermless } from "@silvery/test"
-import { run } from "@silvery/term/runtime"
+import { run } from "@silvery/ag-term/runtime"
 import "@termless/test/matchers"
-import { Text, Box, useModifierKeys } from "@silvery/react"
-import { useInput } from "@silvery/react"
+import { Text, Box, useModifierKeys } from "@silvery/ag-react"
+import { useInput } from "@silvery/ag-react"
 
 describe("useInput onRelease", () => {
   test("onRelease fires on key release events", async () => {

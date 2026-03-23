@@ -7,7 +7,7 @@
  *
  * @example
  * ```tsx
- * import { ThemeProvider, defaultDarkTheme } from '@silvery/react'
+ * import { ThemeProvider, defaultDarkTheme } from '@silvery/ag-react'
  *
  * <ThemeProvider theme={defaultDarkTheme}>
  *   <App />
@@ -24,7 +24,7 @@ import { defaultDarkTheme } from "./palettes/index"
 // Context
 // ============================================================================
 
-/** @internal Exported for @silvery/react ThemeProvider — not public API. */
+/** @internal Exported for @silvery/ag-react ThemeProvider — not public API. */
 export const ThemeContext = createContext<Theme>(defaultDarkTheme)
 
 // ============================================================================

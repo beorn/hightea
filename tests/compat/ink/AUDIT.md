@@ -48,7 +48,7 @@ The Ink compat layer (`packages/ink/src/ink.ts` + supporting files) totals ~2,93
 | --------------------------------------------------- | ----- | ---------- | ---------------------------------- | ------ | ------ |
 | **InkErrorBoundary** (stack parsing, code excerpts) | ~200  | Partially  | Yes - extract shared error display | Medium | Medium |
 
-Silvery has `SilveryErrorBoundary` in `@silvery/react/error-boundary`. The Ink compat layer has its own `InkErrorBoundary` that formats errors with source excerpts, colored labels, and stack traces to match Ink's `ErrorOverview` output. The stack parsing utilities (`parseStackLine`, `cleanupPath`, `getCodeExcerpt`) are general-purpose and could live in a shared utility. However, the display format is Ink-specific (raw `silvery-box`/`silvery-text` createElement calls matching Ink's output). This is a moderate win -- the utilities are ~60 lines that could be shared.
+Silvery has `SilveryErrorBoundary` in `@silvery/ag-react/error-boundary`. The Ink compat layer has its own `InkErrorBoundary` that formats errors with source excerpts, colored labels, and stack traces to match Ink's `ErrorOverview` output. The stack parsing utilities (`parseStackLine`, `cleanupPath`, `getCodeExcerpt`) are general-purpose and could live in a shared utility. However, the display format is Ink-specific (raw `silvery-box`/`silvery-text` createElement calls matching Ink's output). This is a moderate win -- the utilities are ~60 lines that could be shared.
 
 ### 2.4 ANSI Processing
 
@@ -77,7 +77,7 @@ Silvery has `SilveryErrorBoundary` in `@silvery/react/error-boundary`. The Ink c
 | **Alternate screen management**                             | ~25   | Yes                         | Partially - silvery handles this     | Low    | Low    |
 | **Debug mode / writeFrame / cursor**                        | ~80   | Yes (Ink debug semantics)   | No                                   | -      | -      |
 
-**Key finding: Kitty keyboard duplication.** The compat layer implements its own Kitty keyboard auto-detection (~170 lines: `kittyFlags`, `resolveFlags`, `kittyModifiers`, `KittyKeyboardOptions`, `initKittyAutoDetection`, and all the query/response matching). Silvery already has Kitty keyboard support in `@silvery/term` (`enableKittyKeyboard`, `disableKittyKeyboard`, `queryKittyKeyboard`, `KittyFlags`). The compat layer reimplements this because Ink's render() needs to manage the protocol lifecycle itself. This is a genuine DRY violation that should be consolidated.
+**Key finding: Kitty keyboard duplication.** The compat layer implements its own Kitty keyboard auto-detection (~170 lines: `kittyFlags`, `resolveFlags`, `kittyModifiers`, `KittyKeyboardOptions`, `initKittyAutoDetection`, and all the query/response matching). Silvery already has Kitty keyboard support in `@silvery/ag-term` (`enableKittyKeyboard`, `disableKittyKeyboard`, `queryKittyKeyboard`, `KittyFlags`). The compat layer reimplements this because Ink's render() needs to manage the protocol lifecycle itself. This is a genuine DRY violation that should be consolidated.
 
 **Key finding: measureElement timing bridge.** The compat layer's `measureElement()` includes on-demand layout calculation (`calculateLayout(root, termWidth, termHeight)`) because Ink tests expect layout to be available in effects. Silvery's layout runs in a separate pipeline pass. This is a real architectural gap. Moving on-demand layout into silvery's `measureElement()` would benefit all users, not just Ink compat.
 
@@ -119,7 +119,7 @@ Challenge: Ink's focus is a flat ordered list with Tab navigation. silvery's is 
 
 ## DRY Violations
 
-1. **Kitty keyboard auto-detection** (~170 lines in compat vs existing Kitty support in `@silvery/term`). The query/response matching (`matchKittyQueryResponse`, `hasCompleteKittyQueryResponse`, `stripKittyQueryResponsesAndTrailingPartial`) should be in `@silvery/term/kitty-detect`.
+1. **Kitty keyboard auto-detection** (~170 lines in compat vs existing Kitty support in `@silvery/ag-term`). The query/response matching (`matchKittyQueryResponse`, `hasCompleteKittyQueryResponse`, `stripKittyQueryResponsesAndTrailingPartial`) should be in `@silvery/ag-term/kitty-detect`.
 
 2. **Error boundary stack parsing** (~60 lines). `parseStackLine`, `cleanupPath`, `getCodeExcerpt` are general utilities duplicated between InkErrorBoundary and potentially useful for silvery's own error display.
 
@@ -139,7 +139,7 @@ Challenge: Ink's focus is a flat ordered list with Tab navigation. silvery's is 
 
 4. **`position: "static"`.** Useful for opting out of relative positioning. **Recommendation: Add to silvery's position type.**
 
-5. **`useWindowSize` hook.** Ink exposes terminal dimensions reactively. silvery has `useTerm()` which provides dimensions, but a simple `useWindowSize()` returning `{ columns, rows }` is a cleaner API for common cases. **Recommendation: Add as a convenience hook in `@silvery/react`.**
+5. **`useWindowSize` hook.** Ink exposes terminal dimensions reactively. silvery has `useTerm()` which provides dimensions, but a simple `useWindowSize()` returning `{ columns, rows }` is a cleaner API for common cases. **Recommendation: Add as a convenience hook in `@silvery/ag-react`.**
 
 6. **On-demand layout in `measureElement`.** Ink's Yoga runs during commit, so effects always see computed layout. silvery's pipeline runs asynchronously. The compat layer's `measureElement` bridges this by calling `calculateLayout` on demand. This is genuinely useful -- silvery-native code could also benefit from on-demand layout recalculation when reading measurements in effects. **Recommendation: Add to silvery's `measureElement`.**
 
@@ -179,17 +179,17 @@ These sections CANNOT move to silvery core because they implement Ink-specific s
 
 4. **Add `position: "static"` to silvery FlexboxProps.** Trivial enum addition + layout engine mapping.
 
-5. **Export `useWindowSize` from `@silvery/react`.** Wrap `useTerm()` to return `{ columns, rows }`. **Saves ~25 lines in compat.**
+5. **Export `useWindowSize` from `@silvery/ag-react`.** Wrap `useTerm()` to return `{ columns, rows }`. **Saves ~25 lines in compat.**
 
 ### Medium Effort (1-3 days, may require migration)
 
 6. **Change `Key.eventType` to string type.** `"press" | "repeat" | "release"` instead of `1 | 2 | 3`. Requires updating silvery core Key interface + all consumers (km, silvery tests). **Eliminates the entire useInput wrapper in compat (~30 lines) and the Key type override.**
 
-7. **Extract Kitty auto-detection to `@silvery/term`.** Move `matchKittyQueryResponse`, `hasCompleteKittyQueryResponse`, `stripKittyQueryResponsesAndTrailingPartial`, `initKittyAutoDetection` to `@silvery/term/kitty-detect`. Compat and silvery's own Kitty support both use the shared implementation. **Saves ~100 lines in compat.**
+7. **Extract Kitty auto-detection to `@silvery/ag-term`.** Move `matchKittyQueryResponse`, `hasCompleteKittyQueryResponse`, `stripKittyQueryResponsesAndTrailingPartial`, `initKittyAutoDetection` to `@silvery/ag-term/kitty-detect`. Compat and silvery's own Kitty support both use the shared implementation. **Saves ~100 lines in compat.**
 
 8. **Enhance silvery's `measureElement` with on-demand layout.** Port the compat layer's `needsLayoutRecalculation` + `calculateLayout` logic into silvery's base `measureElement`. Benefits all silvery users. **Saves ~50 lines in compat.**
 
-9. **Extract error display utilities.** Move `parseStackLine`, `cleanupPath`, `getCodeExcerpt` to a shared utility in `@silvery/term` or `@silvery/react`. Both silvery and compat error boundaries use them. **Saves ~60 lines of duplication.**
+9. **Extract error display utilities.** Move `parseStackLine`, `cleanupPath`, `getCodeExcerpt` to a shared utility in `@silvery/ag-term` or `@silvery/ag-react`. Both silvery and compat error boundaries use them. **Saves ~60 lines of duplication.**
 
 ### Strategic (> 3 days, architectural)
 

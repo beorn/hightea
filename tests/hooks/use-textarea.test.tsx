@@ -10,8 +10,8 @@
 import React, { useRef, useState } from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Text, TextArea, useTextArea, type TextAreaHandle } from "@silvery/react"
-import { clampScroll } from "@silvery/ui/components/useTextArea"
+import { Box, Text, TextArea, useTextArea, type TextAreaHandle } from "@silvery/ag-react"
+import { clampScroll } from "@silvery/ag-react/ui/components/useTextArea"
 
 // ============================================================================
 // clampScroll (pure function)

@@ -30,7 +30,7 @@
  * See docs/future/silvery-command-api-research.md for design rationale.
  */
 
-import type { App } from "@silvery/term/app"
+import type { App } from "@silvery/ag-term/app"
 
 // =============================================================================
 // Types

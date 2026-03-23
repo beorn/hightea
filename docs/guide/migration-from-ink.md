@@ -6,7 +6,7 @@ An actionable migration path for moving an Ink app to Silvery. For a feature-by-
 
 ```bash
 bun remove ink ink-testing-library
-bun add silvery @silvery/react
+bun add silvery @silvery/ag-react
 ```
 
 If you use Yoga-specific layout behavior:
@@ -177,7 +177,7 @@ if (width === 0) return null
 
 Packages like `ink-text-input`, `ink-select-input`, `ink-spinner` import from `ink`. You have two options:
 
-1. **Use Silvery equivalents**: `TextInput`, `SelectList`, `Spinner` are built into `@silvery/ui`
+1. **Use Silvery equivalents**: `TextInput`, `SelectList`, `Spinner` are built into `@silvery/ag-react/ui`
 2. **Alias imports**: Configure your bundler to alias `ink` to `silvery`
 
 ### 3. `measureElement()` Still Works

@@ -2,7 +2,7 @@
  * Tests for virtual scrollback buffer.
  */
 import { describe, test, expect } from "vitest"
-import { createVirtualScrollback } from "@silvery/term/virtual-scrollback"
+import { createVirtualScrollback } from "@silvery/ag-term/virtual-scrollback"
 
 describe("createVirtualScrollback", () => {
   test("starts empty", () => {

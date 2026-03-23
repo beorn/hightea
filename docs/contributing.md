@@ -76,8 +76,8 @@ bun run test:fast
 Silvery provides a testing library with auto-cleanup between renders:
 
 ```tsx
-import { createRenderer } from "@silvery/term/testing"
-import { Box, Text } from "@silvery/term"
+import { createRenderer } from "@silvery/ag-term/testing"
+import { Box, Text } from "@silvery/ag-term"
 
 // Create a render function (default: 80 columns, 24 rows)
 const render = createRenderer()
@@ -125,7 +125,7 @@ test("wide render", () => {
 ### Testing Utilities
 
 ```tsx
-import { createRenderer, stripAnsi, normalizeFrame, waitFor } from "@silvery/term/testing"
+import { createRenderer, stripAnsi, normalizeFrame, waitFor } from "@silvery/ag-term/testing"
 
 // Strip ANSI codes for easier assertions
 const plainText = stripAnsi("\u001B[32mGreen\u001B[39m")

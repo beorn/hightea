@@ -15,12 +15,12 @@
     "rootDir": ".",
     "paths": {
       "@silvery/*": ["./packages/*/src"],
-      "@silvery/react/*": ["./packages/react/src/*"],
-      "@silvery/term/*": ["./packages/term/src/*"],
-      "@silvery/ansi/*": ["./packages/term/src/ansi/*"],
+      "@silvery/ag-react/ui/*": ["./packages/ag-react/src/ui/*"],
+      "@silvery/ag-react/*": ["./packages/ag-react/src/*"],
+      "@silvery/ag-term/*": ["./packages/ag-term/src/*"],
+      "@silvery/ansi/*": ["./packages/ag-term/src/ansi/*"],
       "@silvery/theme/*": ["./packages/theme/src/*"],
       "@silvery/tea/*": ["./packages/tea/src/*"],
-      "@silvery/ui/*": ["./packages/ui/src/*"],
       "@silvery/test/*": ["./packages/test/src/*"],
       "@silvery/ink/*": ["./packages/ink/src/*"]
     }

@@ -10,10 +10,10 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
-import { Box, Text, Transform } from "@silvery/react"
-import { createBuffer } from "@silvery/term/buffer"
-import { outputPhase, createOutputPhase } from "@silvery/term/pipeline/output-phase"
-import { contentPropsChanged } from "@silvery/react/reconciler/helpers"
+import { Box, Text, Transform } from "@silvery/ag-react"
+import { createBuffer } from "@silvery/ag-term/buffer"
+import { outputPhase, createOutputPhase } from "@silvery/ag-term/pipeline/output-phase"
+import { contentPropsChanged } from "@silvery/ag-react/reconciler/helpers"
 
 // ============================================================================
 // 1. blink-hidden-style: styleToAnsi emits SGR 5 (blink) and SGR 8 (hidden)

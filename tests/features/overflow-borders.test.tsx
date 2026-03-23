@@ -10,7 +10,7 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
-import { Box, Text } from "@silvery/react"
+import { Box, Text } from "@silvery/ag-react"
 
 describe("overflow border edge cases", () => {
   test("multiple text nodes with border: word breaks correctly", () => {

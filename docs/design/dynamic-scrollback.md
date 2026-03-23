@@ -317,5 +317,5 @@ Pre-rendered strings written to dynamic scrollback include full ANSI styling: co
 ## Reference
 
 - Original design: `git show fff9add -- docs/design/viewport-architecture.md` (302 lines, deleted in docs cleanup)
-- Current implementation: `packages/react/src/hooks/useScrollback.ts`
+- Current implementation: `packages/ag-react/src/hooks/useScrollback.ts`
 - Bead: km-3edn9 (ScrollbackView v2)

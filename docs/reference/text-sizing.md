@@ -34,7 +34,7 @@ When both the layout engine and the terminal agree on 2 cells, alignment is corr
 ### Via `run()` (recommended)
 
 ```tsx
-import { run } from "@silvery/term/runtime"
+import { run } from "@silvery/ag-term/runtime"
 
 // Auto-detect: enable if terminal supports it (Kitty 0.40+, Ghostty)
 await run(<App />, { textSizing: "auto" })
@@ -46,7 +46,7 @@ await run(<App />, { textSizing: true })
 ### Programmatic Control
 
 ```typescript
-import { createMeasurer, runWithMeasurer, isTextSizingEnabled } from "@silvery/term"
+import { createMeasurer, runWithMeasurer, isTextSizingEnabled } from "@silvery/ag-term"
 
 // Create a measurer with text sizing enabled
 const measurer = createMeasurer({ textSizingEnabled: true })
@@ -84,7 +84,7 @@ Use `isTextSizingLikelySupported()` for a fast synchronous env-var check, or `de
 Wrap text in an OSC 66 sequence that tells the terminal to render it in exactly `width` cells.
 
 ```typescript
-import { textSized } from "@silvery/term"
+import { textSized } from "@silvery/ag-term"
 
 textSized("\uE0B0", 2) // "\x1b]66;w=2;\uE0B0\x07"
 ```
@@ -94,7 +94,7 @@ textSized("\uE0B0", 2) // "\x1b]66;w=2;\uE0B0\x07"
 Check if a code point is in the Private Use Area. Covers BMP PUA (U+E000-U+F8FF) and Supplementary PUA-A/B.
 
 ```typescript
-import { isPrivateUseArea } from "@silvery/term"
+import { isPrivateUseArea } from "@silvery/ag-term"
 
 isPrivateUseArea(0xe0b0) // true (Powerline separator)
 isPrivateUseArea(0x41) // false (ASCII 'A')

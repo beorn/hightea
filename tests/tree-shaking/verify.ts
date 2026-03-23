@@ -33,32 +33,32 @@ interface EntryPoint {
 }
 
 const entries: EntryPoint[] = [
-  // --- @silvery/term barrel and sub-paths (should NOT pull React) ---
+  // --- @silvery/ag-term barrel and sub-paths (should NOT pull React) ---
   {
-    name: "@silvery/term (barrel)",
-    specifier: "@silvery/term",
+    name: "@silvery/ag-term (barrel)",
+    specifier: "@silvery/ag-term",
     importExpr: "* as term",
     expectNoReact: true,
     expectNoReconciler: true,
   },
   {
-    name: "@silvery/term (selective)",
-    specifier: "@silvery/term",
+    name: "@silvery/ag-term (selective)",
+    specifier: "@silvery/ag-term",
     importExpr: "{ createTerm, detectColor, stripAnsi }",
     expectNoReact: true,
     expectNoReconciler: true,
   },
   {
-    name: "@silvery/term/ansi",
-    specifier: "@silvery/term/ansi",
+    name: "@silvery/ag-term/ansi",
+    specifier: "@silvery/ag-term/ansi",
     importExpr: "{ createTerm, detectColor }",
     expectNoReact: true,
     expectNoReconciler: true,
   },
-  // --- @silvery/term sub-paths that legitimately need React ---
+  // --- @silvery/ag-term sub-paths that legitimately need React ---
   {
-    name: "@silvery/term/hit-registry",
-    specifier: "@silvery/term/hit-registry",
+    name: "@silvery/ag-term/hit-registry",
+    specifier: "@silvery/ag-term/hit-registry",
     importExpr: "{ HitRegistry, useHitRegion, HitRegistryContext }",
     expectNoReact: false, // React hooks and context
     expectNoReconciler: true,
@@ -103,31 +103,31 @@ const entries: EntryPoint[] = [
   },
   // --- Packages that legitimately need React ---
   {
-    name: "@silvery/react",
-    specifier: "@silvery/react",
+    name: "@silvery/ag-react",
+    specifier: "@silvery/ag-react",
     importExpr: "{ Box, Text, render }",
     expectNoReact: false,
     expectNoReconciler: false,
   },
   {
-    name: "@silvery/term/runtime",
-    specifier: "@silvery/term/runtime",
+    name: "@silvery/ag-term/runtime",
+    specifier: "@silvery/ag-term/runtime",
     importExpr: "{ createRuntime, layout, diff }",
     // runtime includes createApp which uses React
     expectNoReact: false,
     expectNoReconciler: false,
   },
-  // --- @silvery/ui ---
+  // --- @silvery/ag-react/ui ---
   {
-    name: "@silvery/ui/cli",
-    specifier: "@silvery/ui/cli",
+    name: "@silvery/ag-react/ui/cli",
+    specifier: "@silvery/ag-react/ui/cli",
     importExpr: "{ Spinner, ProgressBar }",
     expectNoReact: true,
     expectNoReconciler: true,
   },
   {
-    name: "@silvery/ui/wrappers",
-    specifier: "@silvery/ui/wrappers",
+    name: "@silvery/ag-react/ui/wrappers",
+    specifier: "@silvery/ag-react/ui/wrappers",
     importExpr: "{ withSpinner, withProgress }",
     expectNoReact: true,
     expectNoReconciler: true,

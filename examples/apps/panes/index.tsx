@@ -9,8 +9,8 @@
 
 import React, { useState, useEffect, useMemo } from "react"
 import { Box, Text, ListView } from "silvery"
-import { SurfaceRegistryProvider, SearchProvider, SearchBar, useSearch } from "@silvery/react"
-import { run, useInput, type Key } from "@silvery/term/runtime"
+import { SurfaceRegistryProvider, SearchProvider, SearchBar, useSearch } from "@silvery/ag-react"
+import { run, useInput, type Key } from "@silvery/ag-term/runtime"
 import type { ExampleMeta } from "../../_banner.js"
 import { SCRIPT } from "../aichat/script.js"
 import type { ScriptEntry } from "../aichat/types.js"

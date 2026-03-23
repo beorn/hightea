@@ -24,10 +24,10 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
-import { Box, Text } from "@silvery/react"
-import { VirtualList } from "../../packages/ui/src/components/VirtualList"
-import { SelectList } from "../../packages/ui/src/components/SelectList"
-import type { SelectOption } from "../../packages/ui/src/components/SelectList"
+import { Box, Text } from "@silvery/ag-react"
+import { VirtualList } from "../../packages/ag-react/src/ui/components/VirtualList"
+import { SelectList } from "../../packages/ag-react/src/ui/components/SelectList"
+import type { SelectOption } from "../../packages/ag-react/src/ui/components/SelectList"
 
 // ============================================================================
 // Test Helpers

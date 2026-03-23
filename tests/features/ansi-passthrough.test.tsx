@@ -13,8 +13,8 @@ import React from "react"
 import { describe, test, expect } from "vitest"
 import chalk from "chalk"
 import { createRenderer } from "@silvery/test"
-import { Box, Text } from "@silvery/react"
-import { stripAnsi } from "@silvery/term/ansi"
+import { Box, Text } from "@silvery/ag-react"
+import { stripAnsi } from "@silvery/ag-term/ansi"
 
 // Ensure chalk uses full truecolor
 chalk.level = 3

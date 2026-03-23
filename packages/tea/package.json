@@ -47,8 +47,8 @@
   },
   "dependencies": {
     "@silvery/ink": "workspace:*",
-    "@silvery/react": "workspace:*",
-    "@silvery/term": "workspace:*",
+    "@silvery/ag-react": "workspace:*",
+    "@silvery/ag-term": "workspace:*",
     "@silvery/test": "workspace:*"
   }
 }

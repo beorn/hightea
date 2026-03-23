@@ -9,7 +9,7 @@
 
 import React from "react"
 import { Box, Text, VirtualList } from "../../src/index.js"
-import { run, useInput } from "@silvery/term/runtime"
+import { run, useInput } from "@silvery/ag-term/runtime"
 
 const items = Array.from({ length: 200 }, (_, i) => ({
   id: i,
@@ -30,17 +30,13 @@ function VirtualListDemo() {
         itemHeight={1}
         interactive
         renderItem={(item, _index, meta) => (
-          <Text
-            key={item.id}
-            color={meta?.isSelected ? "$primary" : undefined}
-            bold={meta?.isSelected}
-          >
+          <Text key={item.id} color={meta?.isSelected ? "$primary" : undefined} bold={meta?.isSelected}>
             {meta?.isSelected ? "> " : "  "}
             {item.name}
           </Text>
         )}
       />
-      <Text color="$muted">j/k: navigate  q: quit</Text>
+      <Text color="$muted">j/k: navigate q: quit</Text>
     </Box>
   )
 }

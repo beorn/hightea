@@ -27,11 +27,11 @@
 
 import { describe, test, expect } from "vitest"
 import type { TeaNode, TextProps, BoxProps } from "@silvery/tea/types"
-import { collectPlainText, collectPlainTextSkipHidden } from "@silvery/term/pipeline/collect-text"
-import { collectTextContent as collectTextContentForRender } from "@silvery/term/pipeline/render-text"
+import { collectPlainText, collectPlainTextSkipHidden } from "@silvery/ag-term/pipeline/collect-text"
+import { collectTextContent as collectTextContentForRender } from "@silvery/ag-term/pipeline/render-text"
 import { createRenderer } from "@silvery/test"
 import React from "react"
-import { Box, Text, Transform } from "@silvery/react"
+import { Box, Text, Transform } from "@silvery/ag-react"
 
 // ============================================================================
 // Test Node Helpers

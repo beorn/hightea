@@ -10,11 +10,11 @@
  *   const html = await term.renderStatic(<Report />)
  */
 
-import type { Term } from "@silvery/term/ansi"
+import type { Term } from "@silvery/ag-term/ansi"
 import type { ReactElement } from "react"
-import type { TerminalBuffer } from "@silvery/term/buffer"
-import { createPipeline, type MeasuredTerm } from "@silvery/term/measurer"
-import { executeRender, type ExecuteRenderOptions, type PipelineConfig } from "@silvery/term/pipeline"
+import type { TerminalBuffer } from "@silvery/ag-term/buffer"
+import { createPipeline, type MeasuredTerm } from "@silvery/ag-term/measurer"
+import { executeRender, type ExecuteRenderOptions, type PipelineConfig } from "@silvery/ag-term/pipeline"
 import type { TeaNode } from "./types"
 
 /**
@@ -69,7 +69,7 @@ export function withRender(term: Term): RenderTerm {
     element: ReactElement,
     options?: { width?: number; height?: number; plain?: boolean },
   ): Promise<string> {
-    const { renderString } = await import("@silvery/react/render-string")
+    const { renderString } = await import("@silvery/ag-react/render-string")
     return renderString(element, { ...options, pipelineConfig })
   }
 

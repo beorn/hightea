@@ -9,7 +9,7 @@
 import React, { useState } from "react"
 import { describe, test, expect, vi } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Text, Link, useModifierKeys, useMouseCursor } from "@silvery/react"
+import { Box, Text, Link, useModifierKeys, useMouseCursor } from "@silvery/ag-react"
 
 // ============================================================================
 // useModifierKeys

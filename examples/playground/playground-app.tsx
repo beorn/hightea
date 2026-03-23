@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react"
-import { renderToCanvas, Box, Text, useContentRect } from "../../packages/ui/src/canvas/index.js"
+import { renderToCanvas, Box, Text, useContentRect } from "../../packages/ag-react/src/ui/canvas/index.js"
 
 // ============================================================================
 // Shared components

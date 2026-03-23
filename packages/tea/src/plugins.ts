@@ -123,4 +123,4 @@ export { withInkFocus } from "@silvery/ink/with-ink-focus"
 export type { WithInkFocusOptions, AppWithInkFocus } from "@silvery/ink/with-ink-focus"
 
 // Scheduler errors (for catching incremental render mismatches)
-export { IncrementalRenderMismatchError } from "@silvery/term/scheduler"
+export { IncrementalRenderMismatchError } from "@silvery/ag-term/scheduler"

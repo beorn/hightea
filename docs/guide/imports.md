@@ -8,7 +8,7 @@ Silvery is organized as a monorepo of focused packages. Most apps only need the 
 
 ## Quick Start
 
-The `silvery` umbrella re-exports everything from `@silvery/react`, which in turn re-exports the most-used APIs from all other packages:
+The `silvery` umbrella re-exports everything from `@silvery/ag-react`, which in turn re-exports the most-used APIs from all other packages:
 
 ```tsx
 import { render, Box, Text, useInput, useApp, useContentRect, createTerm } from "silvery"
@@ -37,94 +37,94 @@ When the umbrella import is too broad, import from the specific package.
 
 ### `silvery` -- umbrella
 
-Re-exports `@silvery/react` plus a `VERSION` constant. Also provides compatibility shims:
+Re-exports `@silvery/ag-react` plus a `VERSION` constant. Also provides compatibility shims:
 
 ```ts
-import { Box, Text, render, useInput } from "silvery" // everything from @silvery/react
+import { Box, Text, render, useInput } from "silvery" // everything from @silvery/ag-react
 import { Ink, render as inkRender } from "silvery/ink" // Ink API compatibility
 import chalk from "silvery/chalk" // Chalk API compatibility
 ```
 
-### `@silvery/react` -- reconciler, components, hooks, render
+### `@silvery/ag-react` -- reconciler, components, hooks, render
 
 The main package. Contains the React reconciler, all built-in components, hooks, and render functions. This is what `silvery` re-exports.
 
 ```tsx
-import { Box, Text, render, renderSync, renderStatic } from "@silvery/react"
-import { useInput, useApp, useContentRect, useFocusable } from "@silvery/react"
-import { TextInput, TextArea, ModalDialog, SelectList } from "@silvery/react"
-import { VirtualList, ScrollbackView, SplitView, Table } from "@silvery/react"
-import { ThemeProvider, useTheme, defaultDarkTheme } from "@silvery/react"
-import { createTerm, term, patchConsole } from "@silvery/react"
-import { withCommands, withKeybindings } from "@silvery/react"
-import { createTermEditContext, useEditContext } from "@silvery/react"
+import { Box, Text, render, renderSync, renderStatic } from "@silvery/ag-react"
+import { useInput, useApp, useContentRect, useFocusable } from "@silvery/ag-react"
+import { TextInput, TextArea, ModalDialog, SelectList } from "@silvery/ag-react"
+import { VirtualList, ScrollbackView, SplitView, Table } from "@silvery/ag-react"
+import { ThemeProvider, useTheme, defaultDarkTheme } from "@silvery/ag-react"
+import { createTerm, term, patchConsole } from "@silvery/ag-react"
+import { withCommands, withKeybindings } from "@silvery/ag-react"
+import { createTermEditContext, useEditContext } from "@silvery/ag-react"
 ```
 
 Deep imports for subsets:
 
 ```ts
-import { useContentRect, useFocusable } from "@silvery/react/hooks"
-import { createReconciler } from "@silvery/react/reconciler"
+import { useContentRect, useFocusable } from "@silvery/ag-react/hooks"
+import { createReconciler } from "@silvery/ag-react/reconciler"
 ```
 
-### `@silvery/term` -- terminal buffer, pipeline, ANSI, unicode
+### `@silvery/ag-term` -- terminal buffer, pipeline, ANSI, unicode
 
 Low-level terminal primitives: buffer management, render pipeline, ANSI escape sequences, input parsing, unicode text utilities, and render adapters (terminal, canvas, DOM).
 
 ```ts
-import { executeRender, outputPhase, createOutputPhase } from "@silvery/term"
-import { displayWidth, wrapText, truncateText, splitGraphemes } from "@silvery/term"
-import { ANSI, enableMouse, setCursorStyle, detectTerminalCaps } from "@silvery/term"
-import { createTerm, term, patchConsole } from "@silvery/term"
-import { HitRegistry, useHitRegion } from "@silvery/term"
-import { createCanvasAdapter, createDOMAdapter } from "@silvery/term"
+import { executeRender, outputPhase, createOutputPhase } from "@silvery/ag-term"
+import { displayWidth, wrapText, truncateText, splitGraphemes } from "@silvery/ag-term"
+import { ANSI, enableMouse, setCursorStyle, detectTerminalCaps } from "@silvery/ag-term"
+import { createTerm, term, patchConsole } from "@silvery/ag-term"
+import { HitRegistry, useHitRegion } from "@silvery/ag-term"
+import { createCanvasAdapter, createDOMAdapter } from "@silvery/ag-term"
 ```
 
 Deep imports for specific subsystems:
 
 ```ts
 // ANSI primitives (term factory, styling, detection, underlines, hyperlinks)
-import { createTerm, hyperlink, curlyUnderline } from "@silvery/term/ansi"
+import { createTerm, hyperlink, curlyUnderline } from "@silvery/ag-term/ansi"
 
 // Render pipeline internals
-import { executeRender, type PipelineConfig } from "@silvery/term/pipeline"
-import { outputPhase, createOutputPhase } from "@silvery/term/pipeline"
+import { executeRender, type PipelineConfig } from "@silvery/ag-term/pipeline"
+import { outputPhase, createOutputPhase } from "@silvery/ag-term/pipeline"
 
 // Diagnostic toolbelt (withDiagnostics, VirtualTerminal, buffer comparison)
-import { withDiagnostics, VirtualTerminal, compareBuffers } from "@silvery/term/toolbelt"
+import { withDiagnostics, VirtualTerminal, compareBuffers } from "@silvery/ag-term/toolbelt"
 ```
 
-### `@silvery/term/runtime` -- app runtime
+### `@silvery/ag-term/runtime` -- app runtime
 
 The runtime layer for building full terminal applications with event loops, state stores, and the `createApp` pattern:
 
 ```ts
-import { run, createApp, createRuntime } from "@silvery/term/runtime"
-import { layout, diff, createBuffer } from "@silvery/term/runtime"
-import { createStore, withFocusManagement } from "@silvery/term/runtime"
-import { createTermProvider } from "@silvery/term/runtime"
-import { merge, map, filter, takeUntil } from "@silvery/term/runtime"
+import { run, createApp, createRuntime } from "@silvery/ag-term/runtime"
+import { layout, diff, createBuffer } from "@silvery/ag-term/runtime"
+import { createStore, withFocusManagement } from "@silvery/ag-term/runtime"
+import { createTermProvider } from "@silvery/ag-term/runtime"
+import { merge, map, filter, takeUntil } from "@silvery/ag-term/runtime"
 ```
 
-### `@silvery/ui` -- higher-level UI components
+### `@silvery/ag-react/ui` -- higher-level UI components
 
-Component library used by `@silvery/react`. Most components are re-exported through `@silvery/react`, so direct imports are only needed for non-React CLI usage or accessing sub-modules.
+Component library used by `@silvery/ag-react`. Most components are re-exported through `@silvery/ag-react`, so direct imports are only needed for non-React CLI usage or accessing sub-modules.
 
 ```ts
 // CLI spinners and progress bars (no React dependency)
-import { Spinner, ProgressBar, MultiProgress } from "@silvery/ui/cli"
+import { Spinner, ProgressBar, MultiProgress } from "@silvery/ag-react/ui/cli"
 
 // Fluent task API
-import { task, tasks, steps } from "@silvery/ui/progress"
+import { task, tasks, steps } from "@silvery/ag-react/ui/progress"
 
-// React components (prefer importing from @silvery/react instead)
-import { Spinner, ProgressBar } from "@silvery/ui/react"
+// React components (prefer importing from @silvery/ag-react instead)
+import { Spinner, ProgressBar } from "@silvery/ag-react/ui/react"
 
 // Other sub-modules
-import { TextInput, Select } from "@silvery/ui/input"
-import { Skeleton, Badge } from "@silvery/ui/display"
-import { useAnimation, easings } from "@silvery/ui/animation"
-import { wrapAnsi } from "@silvery/ui/ansi"
+import { TextInput, Select } from "@silvery/ag-react/ui/input"
+import { Skeleton, Badge } from "@silvery/ag-react/ui/display"
+import { useAnimation, easings } from "@silvery/ag-react/ui/animation"
+import { wrapAnsi } from "@silvery/ag-react/ui/ansi"
 ```
 
 ### `@silvery/tea` -- TEA state machine utilities
@@ -177,10 +177,10 @@ import { waitFor } from "@silvery/test"
 Every package supports deep imports via the `./*` export map pattern. If you only need a specific module, import it directly to minimize what gets pulled in:
 
 ```ts
-// Instead of pulling in all of @silvery/term:
-import { displayWidth, wrapText } from "@silvery/term/unicode"
-import { parseMouseSequence } from "@silvery/term/mouse"
-import { detectColorScheme } from "@silvery/term/terminal-colors"
+// Instead of pulling in all of @silvery/ag-term:
+import { displayWidth, wrapText } from "@silvery/ag-term/unicode"
+import { parseMouseSequence } from "@silvery/ag-term/mouse"
+import { detectColorScheme } from "@silvery/ag-term/terminal-colors"
 
 // Instead of pulling in all of @silvery/tea:
 import { parseKey, matchHotkey } from "@silvery/tea/keys"

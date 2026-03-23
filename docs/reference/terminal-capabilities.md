@@ -221,7 +221,7 @@ term.dispose() // or let `using` handle it
 
 ```ts
 import { createTerm } from '@silvery/ansi'
-import { render, renderString } from '@silvery/term'
+import { render, renderString } from '@silvery/ag-term'
 
 using term = createTerm()
 
@@ -241,7 +241,7 @@ if (term.hasCursor() && term.hasInput()) {
 ### Adaptive Components
 
 ```tsx
-import { useTerm, Box, Text } from "@silvery/term"
+import { useTerm, Box, Text } from "@silvery/ag-term"
 
 function StatusLine({ status }: { status: string }) {
   const term = useTerm()
@@ -261,7 +261,7 @@ function StatusLine({ status }: { status: string }) {
 
 ```tsx
 import { createTerm } from "@silvery/ansi"
-import { render, Console, Box, Text } from "@silvery/term"
+import { render, Console, Box, Text } from "@silvery/ag-term"
 
 using term = createTerm()
 
@@ -280,7 +280,7 @@ console.log("This shows in <Console />")
 
 ```tsx
 import { createTerm } from "@silvery/ansi"
-import { render, renderString, Console, Box } from "@silvery/term"
+import { render, renderString, Console, Box } from "@silvery/ag-term"
 
 class Reporter {
   private term = createTerm()
@@ -397,7 +397,7 @@ The [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/
 `run()` **auto-detects** Kitty protocol support and enables it by default on supported terminals (Ghostty, Kitty, WezTerm, foot). No configuration needed:
 
 ```typescript
-import { run } from "@silvery/term/runtime"
+import { run } from "@silvery/ag-term/runtime"
 
 // Kitty protocol is auto-enabled — ⌘ and ✦ modifiers just work
 await run(<App />)
@@ -406,7 +406,7 @@ await run(<App />)
 To opt out or use specific flags:
 
 ```typescript
-import { KittyFlags } from "@silvery/term"
+import { KittyFlags } from "@silvery/ag-term"
 
 // Disable Kitty protocol (legacy ANSI only)
 await run(<App />, { kitty: false })
@@ -429,7 +429,7 @@ When `kitty: <number>`, Silvery enables with the specified flags directly.
 For manual detection outside of `run()`:
 
 ```typescript
-import { detectKittyFromStdio, detectKittySupport, type KittyDetectResult } from "@silvery/term"
+import { detectKittyFromStdio, detectKittySupport, type KittyDetectResult } from "@silvery/ag-term"
 
 // Convenience: uses real stdin/stdout
 const result = await detectKittyFromStdio(process.stdout, process.stdin, 200)
@@ -450,7 +450,7 @@ The `buffered` field contains any non-response data read during detection (user 
 Manual control functions (auto-enable handles these for you):
 
 ```typescript
-import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard, KittyFlags } from "@silvery/term"
+import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard, KittyFlags } from "@silvery/ag-term"
 
 // Enable with default flags (disambiguate only)
 stdout.write(enableKittyKeyboard())
@@ -584,7 +584,7 @@ Column and row are 1-indexed in the protocol, parsed to 0-indexed by `parseMouse
 ### Parsing
 
 ```typescript
-import { parseMouseSequence, isMouseSequence, type ParsedMouse } from "@silvery/term"
+import { parseMouseSequence, isMouseSequence, type ParsedMouse } from "@silvery/ag-term"
 
 // Quick check
 if (isMouseSequence(rawInput)) {
@@ -635,7 +635,7 @@ Text is base64-encoded in the escape sequence. Terminals support both BEL (`\x07
 ### API
 
 ```tsx
-import { copyToClipboard, requestClipboard, parseClipboardResponse } from "@silvery/term"
+import { copyToClipboard, requestClipboard, parseClipboardResponse } from "@silvery/ag-term"
 
 // Copy text to system clipboard
 copyToClipboard(process.stdout, "Hello, clipboard!")
@@ -688,7 +688,7 @@ Paste end:    CSI 201 ~         (ESC [ 201 ~)
 ### API
 
 ```tsx
-import { enableBracketedPaste, disableBracketedPaste, parseBracketedPaste, PASTE_START, PASTE_END } from "@silvery/term"
+import { enableBracketedPaste, disableBracketedPaste, parseBracketedPaste, PASTE_START, PASTE_END } from "@silvery/ag-term"
 
 // Enable/disable (the run() runtime handles this automatically)
 enableBracketedPaste(process.stdout)
@@ -714,7 +714,7 @@ if (result) {
 The `run()` runtime automatically enables bracketed paste mode. Use the `usePaste` hook (from `silvery/runtime`) to receive paste events:
 
 ```tsx
-import { usePaste } from "@silvery/term/runtime"
+import { usePaste } from "@silvery/ag-term/runtime"
 
 usePaste((text) => {
   insertText(text)
@@ -745,7 +745,7 @@ useInput(handler, { onPaste: (text) => handlePaste(text) })
 Silvery provides a notification API that auto-detects the terminal and sends notifications using the best available method.
 
 ```tsx
-import { notify, notifyITerm2, notifyKitty, BEL } from "@silvery/term"
+import { notify, notifyITerm2, notifyKitty, BEL } from "@silvery/ag-term"
 
 // Auto-detect terminal and send notification
 notify(process.stdout, "Build complete", { title: "silvery" })

@@ -15,7 +15,7 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, normalizeFrame } from "@silvery/test"
-import { Box, Text, useContentRect } from "@silvery/react"
+import { Box, Text, useContentRect } from "@silvery/ag-react"
 import {
   displayWidth,
   splitGraphemes,
@@ -27,7 +27,7 @@ import {
   hasWideCharacters,
   hasZeroWidthCharacters,
   isZeroWidthGrapheme,
-} from "@silvery/react"
+} from "@silvery/ag-react"
 
 // ============================================================================
 // CJK Wide Characters

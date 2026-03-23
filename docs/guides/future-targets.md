@@ -6,7 +6,7 @@ Silvery's architecture separates the component model from the rendering target. 
 
 | Target       | Status       | Entry Point      |
 | ------------ | ------------ | ---------------- |
-| Terminal     | Production   | `@silvery/term`  |
+| Terminal     | Production   | `@silvery/ag-term`  |
 | Canvas 2D    | Experimental | `silvery/canvas` |
 | DOM          | Experimental | `silvery/dom`    |
 | WebGL        | Future       | --               |

@@ -6,7 +6,7 @@
  */
 
 import React from "react"
-import { Box, Text, useContentRect } from "@silvery/react"
+import { Box, Text, useContentRect } from "@silvery/ag-react"
 import type { ReactElement } from "react"
 
 // ============================================================================

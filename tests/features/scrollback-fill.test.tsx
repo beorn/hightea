@@ -10,8 +10,8 @@ import React, { useState } from "react"
 import { describe, test, expect, afterEach } from "vitest"
 import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
-import type { Term } from "../../packages/term/src/ansi/term"
-import { run, useInput, type RunHandle } from "../../packages/term/src/runtime/run"
+import type { Term } from "../../packages/ag-term/src/ansi/term"
+import { run, useInput, type RunHandle } from "../../packages/ag-term/src/runtime/run"
 import { Box, Text, ScrollbackList } from "../../src/index"
 
 /** Minimal app with ScrollbackList and footer, short content. */

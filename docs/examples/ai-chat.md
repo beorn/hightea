@@ -39,7 +39,7 @@ A minimal working chat interface in under 50 lines:
 
 ```tsx [chat.tsx]
 import { Box, Text, TextInput } from "silvery"
-import { run, useInput } from "@silvery/term/runtime"
+import { run, useInput } from "@silvery/ag-term/runtime"
 import { useState } from "react"
 
 interface Message {

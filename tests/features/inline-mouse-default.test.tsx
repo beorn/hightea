@@ -14,7 +14,7 @@ import React from "react"
 import { describe, test, expect } from "vitest"
 import { EventEmitter } from "node:events"
 import { Text } from "../../src/index.js"
-import { run } from "../../packages/term/src/runtime/run"
+import { run } from "../../packages/ag-term/src/runtime/run"
 
 const MOUSE_ENABLE = "?1006h"
 

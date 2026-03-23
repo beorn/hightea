@@ -9,7 +9,7 @@
 
 import React, { useState } from "react"
 import { Box, Text, ProgressBar } from "../../src/index.js"
-import { run, useInput } from "@silvery/term/runtime"
+import { run, useInput } from "@silvery/ag-term/runtime"
 
 function ProgressBarDemo() {
   const [progress, setProgress] = useState(0.4)
@@ -32,7 +32,7 @@ function ProgressBarDemo() {
         <ProgressBar />
       </Box>
 
-      <Text color="$muted">j/k: adjust  q: quit</Text>
+      <Text color="$muted">j/k: adjust q: quit</Text>
     </Box>
   )
 }

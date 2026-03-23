@@ -1,8 +1,8 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createTermless } from "@silvery/test"
-import { run } from "@silvery/term/runtime"
-import { Text, useModifierKeys } from "@silvery/react"
+import { run } from "@silvery/ag-term/runtime"
+import { Text, useModifierKeys } from "@silvery/ag-react"
 
 describe("sendInput debug2", () => {
   test("isFullProvider check", async () => {

@@ -33,8 +33,8 @@ import { describe, expect, afterEach } from "vitest"
 import { test, gen, take } from "vimonkey/fuzz"
 import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
-import type { Term } from "../../packages/term/src/ansi/term"
-import { run, type RunHandle } from "../../packages/term/src/runtime/run"
+import type { Term } from "../../packages/ag-term/src/ansi/term"
+import { run, type RunHandle } from "../../packages/ag-term/src/runtime/run"
 import { Box, Text, useInput, ScrollbackList } from "silvery"
 
 // ============================================================================

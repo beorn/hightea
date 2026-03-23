@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest"
-import { createHistoryBuffer } from "@silvery/term/history-buffer"
-import { createListDocument } from "@silvery/term/list-document"
-import { createTextSurface } from "@silvery/term/text-surface"
-import type { HistoryItem } from "@silvery/term/history-buffer"
-import type { LiveItemBlock } from "@silvery/term/list-document"
+import { createHistoryBuffer } from "@silvery/ag-term/history-buffer"
+import { createListDocument } from "@silvery/ag-term/list-document"
+import { createTextSurface } from "@silvery/ag-term/text-surface"
+import type { HistoryItem } from "@silvery/ag-term/history-buffer"
+import type { LiveItemBlock } from "@silvery/ag-term/list-document"
 
 function item(key: string, lines: string[]): HistoryItem {
   return { key, ansi: lines.join("\n"), rows: lines, plainTextRows: lines, width: 80 }

@@ -15,7 +15,7 @@ using term = createTerm()
 await render(<App />, term)  // or: await run(<App />, term)
 ```
 
-The same pattern works for any backend. `Term` is a Provider — it has state (dims), events (keys, mouse, resize), output (writable), and styling (chainable ANSI via chalk). See `packages/term/src/ansi/term.ts` for the type and `packages/term/src/runtime/term-provider.ts` for the Provider implementation.
+The same pattern works for any backend. `Term` is a Provider — it has state (dims), events (keys, mouse, resize), output (writable), and styling (chainable ANSI via chalk). See `packages/ag-term/src/ansi/term.ts` for the type and `packages/ag-term/src/runtime/term-provider.ts` for the Provider implementation.
 
 ## Commands
 
@@ -35,22 +35,22 @@ bun run compat            # Run Ink/Chalk compatibility checks
 
 | Package           | npm               | What                                           |
 | ----------------- | ----------------- | ---------------------------------------------- |
-| `packages/term`   | `@silvery/term`   | Terminal runtime, ANSI output, pipeline        |
-| `packages/react`  | `@silvery/react`  | React reconciler and hooks                     |
-| `packages/ui`     | `@silvery/ui`     | Component library (30+ components)             |
+| `packages/ag-term`   | `@silvery/ag-term`   | Terminal runtime, ANSI output, pipeline     |
+| `packages/ag-react`  | `@silvery/ag-react`  | React reconciler, hooks, and UI components |
+| `packages/ag-react/src/ui` | `@silvery/ag-react/ui` | Component library (30+ components)   |
 | `packages/tea`    | `@silvery/tea`    | TEA state machine store (zustand-based)        |
 | `packages/ink`    | `@silvery/ink`    | Ink/Chalk compatibility layers                 |
 | `packages/test`   | `@silvery/test`   | Testing utilities (virtual renderer, locators) |
 | `packages/theme`  | `@silvery/theme`  | Theme tokens, 38 palettes, theme CLI           |
 
-The main `silvery` package re-exports `@silvery/react`. Users import from `silvery`, not the scoped packages.
+The main `silvery` package re-exports `@silvery/ag-react`. Users import from `silvery`, not the scoped packages.
 
 ## Structure
 
 | Directory   | What                                                  |
 | ----------- | ----------------------------------------------------- |
-| `packages/` | Published packages (@silvery/term, @silvery/ui, etc.) |
-| `src/`      | Root index.ts (re-exports @silvery/react)             |
+| `packages/` | Published packages (@silvery/ag-term, @silvery/ag-react/ui, etc.) |
+| `src/`      | Root index.ts (re-exports @silvery/ag-react)             |
 | `docs/`     | VitePress documentation site (silvery.dev)            |
 | `examples/` | Interactive demos, web showcases, playground          |
 | `tests/`    | Test suites (compat, perf, tree-shaking, features)    |
@@ -60,14 +60,14 @@ The main `silvery` package re-exports `@silvery/react`. Users import from `silve
 
 | File                                          | What                                                 |
 | --------------------------------------------- | ---------------------------------------------------- |
-| `packages/term/src/ansi/term.ts`              | Term type and createTerm() — the central abstraction |
-| `packages/term/src/runtime/term-provider.ts`  | Terminal as Provider (state, events, input parsing)  |
-| `packages/term/src/runtime/run.tsx`           | Layer 2 entry point — run(<App />, term)             |
-| `packages/term/src/runtime/create-app.tsx`    | Layer 3 — multi-provider apps with zustand store     |
-| `packages/term/src/pipeline/content-phase.ts` | Incremental rendering (most complex)                 |
-| `packages/term/src/pipeline/output-phase.ts`  | Buffer diff, ANSI output generation                  |
-| `packages/term/src/pipeline/layout-phase.ts`  | Layout, scroll, sticky, screen rects                 |
-| `packages/term/src/pipeline/CLAUDE.md`        | Pipeline internals docs (read before editing)        |
+| `packages/ag-term/src/ansi/term.ts`              | Term type and createTerm() — the central abstraction |
+| `packages/ag-term/src/runtime/term-provider.ts`  | Terminal as Provider (state, events, input parsing)  |
+| `packages/ag-term/src/runtime/run.tsx`           | Layer 2 entry point — run(<App />, term)             |
+| `packages/ag-term/src/runtime/create-app.tsx`    | Layer 3 — multi-provider apps with zustand store     |
+| `packages/ag-term/src/pipeline/content-phase.ts` | Incremental rendering (most complex)                 |
+| `packages/ag-term/src/pipeline/output-phase.ts`  | Buffer diff, ANSI output generation                  |
+| `packages/ag-term/src/pipeline/layout-phase.ts`  | Layout, scroll, sticky, screen rects                 |
+| `packages/ag-term/src/pipeline/CLAUDE.md`        | Pipeline internals docs (read before editing)        |
 
 ## Documentation Site
 
@@ -87,7 +87,7 @@ Factory functions, `using` cleanup, no classes, no globals. ESM imports only. Ty
 
 ```tsx
 import { createTermless } from "@silvery/test"
-import { run } from "@silvery/term/runtime"
+import { run } from "@silvery/ag-term/runtime"
 import "@termless/test/matchers"
 
 using term = createTermless({ cols: 80, rows: 24 })

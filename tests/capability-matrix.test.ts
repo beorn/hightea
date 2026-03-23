@@ -14,9 +14,9 @@
 import { describe, test, expect } from "vitest"
 import { createTerminal } from "@termless/core"
 import { createXtermBackend } from "@termless/xtermjs"
-import { TerminalBuffer } from "@silvery/term/buffer"
-import { createOutputPhase, outputPhase } from "@silvery/term/pipeline/output-phase"
-import { createWidthMeasurer } from "@silvery/term/unicode"
+import { TerminalBuffer } from "@silvery/ag-term/buffer"
+import { createOutputPhase, outputPhase } from "@silvery/ag-term/pipeline/output-phase"
+import { createWidthMeasurer } from "@silvery/ag-term/unicode"
 
 const COLS = 80
 const ROWS = 5

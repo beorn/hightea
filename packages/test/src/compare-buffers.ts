@@ -5,7 +5,7 @@
  * mismatch found (or null if buffers are identical).
  */
 
-import { type Cell, type TerminalBuffer, cellEquals } from "@silvery/term/buffer"
+import { type Cell, type TerminalBuffer, cellEquals } from "@silvery/ag-term/buffer"
 
 /**
  * A single cell mismatch between two buffers.

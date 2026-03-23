@@ -33,8 +33,8 @@ import {
   cursorMoveUp,
   cursorMoveDown,
   countVisualLines,
-} from "@silvery/term"
-import type { WrappedLine } from "@silvery/term"
+} from "@silvery/ag-term"
+import type { WrappedLine } from "@silvery/ag-term"
 ```
 
 ### cursorToRowCol(text, cursor, wrapWidth)
@@ -202,7 +202,7 @@ The text-cursor functions accept `stickyX` but don't store it -- the caller mana
 Use text-cursor functions with your own state (Slate, Zustand, or plain React state):
 
 ```ts
-import { cursorToRowCol, cursorMoveDown, cursorMoveUp, countVisualLines } from "@silvery/term"
+import { cursorToRowCol, cursorMoveDown, cursorMoveUp, countVisualLines } from "@silvery/ag-term"
 
 // In your state manager or hook:
 function handleArrowDown(text: string, cursor: number, width: number, stickyX: number) {

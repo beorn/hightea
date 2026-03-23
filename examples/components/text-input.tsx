@@ -9,7 +9,7 @@
 
 import React, { useState } from "react"
 import { Box, Text, TextInput } from "../../src/index.js"
-import { run, useInput } from "@silvery/term/runtime"
+import { run, useInput } from "@silvery/ag-term/runtime"
 
 function TextInputDemo() {
   const [value, setValue] = useState("")
@@ -41,7 +41,7 @@ function TextInputDemo() {
           ))}
         </Box>
       )}
-      <Text color="$muted">Enter: submit  Esc: quit</Text>
+      <Text color="$muted">Enter: submit Esc: quit</Text>
     </Box>
   )
 }

@@ -13,8 +13,8 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
-import { Box, Text } from "@silvery/react"
-import { HorizontalVirtualList } from "../../packages/ui/src/components/HorizontalVirtualList"
+import { Box, Text } from "@silvery/ag-react"
+import { HorizontalVirtualList } from "../../packages/ag-react/src/ui/components/HorizontalVirtualList"
 
 // ============================================================================
 // Test Helpers

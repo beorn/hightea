@@ -8,7 +8,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { sanitizeAnsi, tokenizeAnsi, type AnsiToken } from "@silvery/term"
+import { sanitizeAnsi, tokenizeAnsi, type AnsiToken } from "@silvery/ag-term"
 
 // =============================================================================
 // Helpers

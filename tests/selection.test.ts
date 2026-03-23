@@ -2,8 +2,8 @@
  * Tests for selection state machine and text extraction.
  */
 import { describe, test, expect } from "vitest"
-import { createSelectionState, selectionUpdate, normalizeRange, extractText } from "@silvery/term/selection"
-import { TerminalBuffer } from "@silvery/term/buffer"
+import { createSelectionState, selectionUpdate, normalizeRange, extractText } from "@silvery/ag-term/selection"
+import { TerminalBuffer } from "@silvery/ag-term/buffer"
 
 // ============================================================================
 // State Machine

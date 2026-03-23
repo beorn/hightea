@@ -40,14 +40,14 @@
  * ```
  */
 
-import type { App } from "@silvery/term/app"
+import type { App } from "@silvery/ag-term/app"
 import type { FocusManager } from "./focus-manager"
 import {
   createMouseEventProcessor,
   processMouseEvent,
   type MouseEventProcessorOptions,
   type MouseEventProcessorState,
-} from "@silvery/term/mouse-events"
+} from "@silvery/ag-term/mouse-events"
 
 // =============================================================================
 // Types

@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from "react"
-import { Box, Text, useInput, useContentRect, TextInput } from "@silvery/react"
+import { Box, Text, useInput, useContentRect, TextInput } from "@silvery/ag-react"
 
 // ============================================================================
 // SimpleBox — Minimal box with text content

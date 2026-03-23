@@ -21,7 +21,7 @@ import {
   type Dims,
   type Event,
   type RenderTarget,
-} from "@silvery/term/runtime"
+} from "@silvery/ag-term/runtime"
 import type { ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {

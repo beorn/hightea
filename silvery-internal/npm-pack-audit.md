@@ -35,7 +35,7 @@ The tarball includes files that should NOT be published:
 | CI/GitHub        | `.github/workflows/docs.yml`                                 | 1.1 KB  | CI config                                       |
 | Changeset config | `.changeset/config.json`                                     | 296 B   | Release tooling internal                        |
 | Lint config      | `.oxlintrc.json`                                             | 206 B   | Dev-only config                                 |
-| CLAUDE.md files  | `examples/CLAUDE.md`, `packages/term/src/pipeline/CLAUDE.md` | ~41 KB  | AI assistant instructions                       |
+| CLAUDE.md files  | `examples/CLAUDE.md`, `packages/ag-term/src/pipeline/CLAUDE.md` | ~41 KB  | AI assistant instructions                       |
 | Scripts          | `scripts/fix-imports.ts`                                     | 9.3 KB  | Dev utility script                              |
 | Test fixtures    | `tests/compat/ink/helpers/*`, `tests/fixtures/index.tsx`     | ~10 KB  | Test infrastructure                             |
 | tsconfig         | `tsconfig.json`                                              | 936 B   | Workspace config (consumers have their own)     |
@@ -122,10 +122,10 @@ This is more maintainable than `.npmignore` because it's additive: only listed p
 
 ## Workspace Package Tarball Contents
 
-Note: The workspace packages (`@silvery/ansi`, `@silvery/react`, etc.) are NOT published separately when running `npm pack` on the root. They are included as source files under `packages/*/src/`. If they are ever published independently, each needs its own `"files"` field or `.npmignore`.
+Note: The workspace packages (`@silvery/ansi`, `@silvery/ag-react`, etc.) are NOT published separately when running `npm pack` on the root. They are included as source files under `packages/*/src/`. If they are ever published independently, each needs its own `"files"` field or `.npmignore`.
 
 ## Actionable Items
 
 1. **Create `.npmignore`** (or add `"files"` to package.json) to exclude docs, examples, tests, CI config, lock file, and CLAUDE.md files
 2. **Move `storybook.ts`** from `packages/ansi/src/` to `examples/` or `scripts/` (it's an executable demo, not a library module)
-3. **Consider** whether `packages/term/src/pipeline/CLAUDE.md` should exist in src/ at all (it's 36.9 KB of AI instructions that ships in the tarball)
+3. **Consider** whether `packages/ag-term/src/pipeline/CLAUDE.md` should exist in src/ at all (it's 36.9 KB of AI instructions that ships in the tarball)

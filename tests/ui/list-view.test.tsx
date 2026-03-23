@@ -9,10 +9,10 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
-import { Box, Text } from "@silvery/react"
-import { ListView } from "../../packages/ui/src/components/ListView"
-import { VirtualView } from "../../packages/ui/src/components/VirtualView"
-import { VirtualList } from "../../packages/ui/src/components/VirtualList"
+import { Box, Text } from "@silvery/ag-react"
+import { ListView } from "../../packages/ag-react/src/ui/components/ListView"
+import { VirtualView } from "../../packages/ag-react/src/ui/components/VirtualView"
+import { VirtualList } from "../../packages/ag-react/src/ui/components/VirtualList"
 
 // ============================================================================
 // Test Helpers

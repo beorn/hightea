@@ -11,16 +11,16 @@ The new `silvery/runtime` API provides:
 - **Better testing** - All layers testable without a terminal
 - **Zustand integration** - Fine-grained subscriptions for complex apps
 - **Rich Key parsing** - Arrow keys, modifiers, special keys out of the box
-- **Browser support** - `renderToXterm()` from `@silvery/term/xterm` for xterm.js rendering
+- **Browser support** - `renderToXterm()` from `@silvery/ag-term/xterm` for xterm.js rendering
 
 ## Import Changes
 
 | Old (Silvery)                                         | New (silvery/runtime)                              |
 | ----------------------------------------------------- | -------------------------------------------------- |
-| `import { render } from '@silvery/term'`              | `import { run } from '@silvery/term/runtime'`      |
-| `import { useInput } from '@silvery/term'`            | `import { useInput } from '@silvery/term/runtime'` |
-| `import { useApp } from '@silvery/term'`              | `import { useExit } from '@silvery/term/runtime'`  |
-| `import { renderToXterm } from '@silvery/term/xterm'` | `import { run } from '@silvery/term/runtime'`      |
+| `import { render } from '@silvery/ag-term'`              | `import { run } from '@silvery/ag-term/runtime'`      |
+| `import { useInput } from '@silvery/ag-term'`            | `import { useInput } from '@silvery/ag-term/runtime'` |
+| `import { useApp } from '@silvery/ag-term'`              | `import { useExit } from '@silvery/ag-term/runtime'`  |
+| `import { renderToXterm } from '@silvery/ag-term/xterm'` | `import { run } from '@silvery/ag-term/runtime'`      |
 
 ## useInput Signature
 
@@ -74,7 +74,7 @@ Choose based on your needs:
 **Before:**
 
 ```tsx
-import { render, useInput, useApp } from "@silvery/term"
+import { render, useInput, useApp } from "@silvery/ag-term"
 
 function App() {
   const [count, setCount] = useState(0)
@@ -95,7 +95,7 @@ await render(<App />)
 **After:**
 
 ```tsx
-import { run, useInput } from "@silvery/term/runtime"
+import { run, useInput } from "@silvery/ag-term/runtime"
 
 function App() {
   const [count, setCount] = useState(0)
@@ -117,7 +117,7 @@ await run(<App />)
 **Before:**
 
 ```tsx
-import { render, useInput } from "@silvery/term"
+import { render, useInput } from "@silvery/ag-term"
 // Manual prop drilling for state
 
 function App({ items, cursor, onMove }) {
@@ -134,7 +134,7 @@ function App({ items, cursor, onMove }) {
 **After:**
 
 ```tsx
-import { createApp, useApp, type Key } from "@silvery/term/runtime"
+import { createApp, useApp, type Key } from "@silvery/ag-term/runtime"
 
 const app = createApp(
   () => (set) => ({
@@ -173,7 +173,7 @@ await app.run(<App />)
 **Before:**
 
 ```tsx
-import { renderToXterm } from "@silvery/term/xterm"
+import { renderToXterm } from "@silvery/ag-term/xterm"
 
 const instance = renderToXterm(<App />, term, {
   input: {
@@ -193,7 +193,7 @@ instance.unmount()
 **After:**
 
 ```tsx
-import { run } from "@silvery/term/runtime"
+import { run } from "@silvery/ag-term/runtime"
 
 const handle = await run(<App />, term)
 
@@ -227,7 +227,7 @@ The following from the old Silvery API are **deprecated** and will be removed:
 | Deprecated              | Replacement                                |
 | ----------------------- | ------------------------------------------ |
 | `render()`              | `run()` from silvery/runtime               |
-| `renderToXterm()`       | Still available from `@silvery/term/xterm` |
+| `renderToXterm()`       | Still available from `@silvery/ag-term/xterm` |
 | `useInput` from Silvery | `useInput` from silvery/runtime            |
 | `useApp()` for exit     | `useExit()` or `return 'exit'`             |
 | `RenderScheduler`       | Built into `run()` with automatic batching |

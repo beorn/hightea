@@ -10,9 +10,9 @@
  * ```
  *
  * For silvery-native features beyond Ink's API:
- * - `@silvery/react`   — base components, reconciler, hooks
- * - `@silvery/ui`      — TextInput, TextArea, Table, Picker, Modal, etc.
- * - `@silvery/term`    — runtime, pipeline, terminal protocols
+ * - `@silvery/ag-react`   — base components, reconciler, hooks
+ * - `@silvery/ag-react/ui`      — TextInput, TextArea, Table, Picker, Modal, etc.
+ * - `@silvery/ag-term`    — runtime, pipeline, terminal protocols
  * - `@silvery/ansi`    — styling, colors, terminal control
  * - `@silvery/theme`   — ThemeProvider, useTheme, semantic tokens
  * - `@silvery/tea`     — store, core types, tree utilities
@@ -87,8 +87,8 @@ export type DOMElement = any
 // Term primitives (so consumers don't need ansi directly)
 // =============================================================================
 
-export { createTerm, term } from "@silvery/term/ansi"
-export type { Term } from "@silvery/term/ansi"
+export { createTerm, term } from "@silvery/ag-term/ansi"
+export type { Term } from "@silvery/ag-term/ansi"
 
 // =============================================================================
 // Measurement

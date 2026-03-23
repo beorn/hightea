@@ -19,8 +19,8 @@
  */
 
 import { Chalk, type ChalkInstance } from "chalk"
-import { detectColor } from "@silvery/term/ansi/detection"
-import type { ColorLevel } from "@silvery/term/ansi/types"
+import { detectColor } from "@silvery/ag-term/ansi/detection"
+import type { ColorLevel } from "@silvery/ag-term/ansi/types"
 
 // =============================================================================
 // Color level conversion

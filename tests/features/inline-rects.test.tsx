@@ -6,7 +6,7 @@
 import React from "react"
 import { describe, test, expect, vi } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Text } from "@silvery/react"
+import { Box, Text } from "@silvery/ag-react"
 
 describe("inline rects", () => {
   test("nested Text gets inlineRects after render", () => {

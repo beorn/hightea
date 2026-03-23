@@ -9,7 +9,7 @@
  *
  * @example
  * ```ts
- * import { applyTextOp, invertTextOp, mergeTextOps } from '@silvery/react'
+ * import { applyTextOp, invertTextOp, mergeTextOps } from '@silvery/ag-react'
  *
  * const op: TextOp = { type: "insert", offset: 5, text: "hello" }
  * const result = applyTextOp("world", op)  // "worlhellod"

@@ -11,10 +11,10 @@ import React, { useEffect } from "react"
 import { describe, test, expect, vi } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
 import { Text } from "../../src/index.js"
-import { SurfaceRegistryProvider, useSurfaceRegistry } from "../../packages/react/src/providers/SurfaceRegistry"
-import { SearchProvider, useSearch } from "../../packages/react/src/providers/SearchProvider"
-import type { TextSurface } from "../../packages/term/src/text-surface"
-import type { SearchMatch } from "../../packages/term/src/search-overlay"
+import { SurfaceRegistryProvider, useSurfaceRegistry } from "../../packages/ag-react/src/providers/SurfaceRegistry"
+import { SearchProvider, useSearch } from "../../packages/ag-react/src/providers/SearchProvider"
+import type { TextSurface } from "../../packages/ag-term/src/text-surface"
+import type { SearchMatch } from "../../packages/ag-term/src/search-overlay"
 
 // ============================================================================
 // Helpers

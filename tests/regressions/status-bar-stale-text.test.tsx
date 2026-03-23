@@ -14,7 +14,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { describe, test, expect, afterEach } from "vitest"
 import { createRenderer, createTermless } from "@silvery/test"
 import { Box, Text } from "silvery"
-import { run, type RunHandle } from "../../packages/term/src/runtime/run"
+import { run, type RunHandle } from "../../packages/ag-term/src/runtime/run"
 
 const settle = (ms = 200) => new Promise((r) => setTimeout(r, ms))
 

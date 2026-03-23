@@ -10,7 +10,7 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
-import { Box, Text } from "@silvery/react"
+import { Box, Text } from "@silvery/ag-react"
 import { Box as InkBox, Text as InkText, render } from "../../packages/ink/src/ink"
 import createStdout from "../compat/ink/helpers/create-stdout"
 

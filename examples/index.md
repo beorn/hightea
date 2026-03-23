@@ -43,45 +43,45 @@ examples/
 Simple, self-contained demos using `run()` + React hooks. No store, no TEA.
 Best starting point for new users.
 
-| Example       | File                           | Description                                  |
-| ------------- | ------------------------------ | -------------------------------------------- |
-| Hello         | `components/hello.tsx`         | Simplest app — styled text, exit on keypress |
-| Counter       | `components/counter.tsx`       | Interactive counter with useState + useInput |
-| Text Input    | `components/text-input.tsx`    | Single-line text entry with readline         |
-| Select List   | `components/select-list.tsx`   | Keyboard-navigable single-select list        |
-| Spinner       | `components/spinner.tsx`       | Four animated loading spinner styles         |
-| Progress Bar  | `components/progress-bar.tsx`  | Determinate and indeterminate progress       |
-| Virtual List  | `components/virtual-list.tsx`  | Efficient scrollable list with 200 items     |
+| Example      | File                          | Description                                  |
+| ------------ | ----------------------------- | -------------------------------------------- |
+| Hello        | `components/hello.tsx`        | Simplest app — styled text, exit on keypress |
+| Counter      | `components/counter.tsx`      | Interactive counter with useState + useInput |
+| Text Input   | `components/text-input.tsx`   | Single-line text entry with readline         |
+| Select List  | `components/select-list.tsx`  | Keyboard-navigable single-select list        |
+| Spinner      | `components/spinner.tsx`      | Four animated loading spinner styles         |
+| Progress Bar | `components/progress-bar.tsx` | Determinate and indeterminate progress       |
+| Virtual List | `components/virtual-list.tsx` | Efficient scrollable list with 200 items     |
 
 ## Apps
 
 Full interactive applications demonstrating real-world patterns.
 
-| Example         | File                      | Description                                    |
-| --------------- | ------------------------- | ---------------------------------------------- |
-| AI Coding Agent | `apps/aichat/`            | Coding agent with streaming, tool calls        |
-| Todo App        | `apps/app-todo.tsx`       | Layer 3: `createApp()` with Zustand store      |
-| Async Data      | `apps/async-data.tsx`     | Suspense boundaries with `use()` hook          |
-| CLI Wizard      | `apps/cli-wizard.tsx`     | Multi-step scaffolding wizard                  |
-| Clipboard       | `apps/clipboard.tsx`      | OSC 52 clipboard copy/paste across sessions    |
-| Components      | `apps/components.tsx`     | 30+ component gallery with tabs                |
-| Data Explorer   | `apps/data-explorer.tsx`  | Searchable, scrollable process table           |
-| Dev Tools       | `apps/dev-tools.tsx`      | Live log viewer with VirtualList               |
-| Explorer        | `apps/explorer.tsx`       | Tabbed log viewer + process explorer           |
-| Gallery         | `apps/gallery.tsx`        | Images, pixel art, and truecolor rendering     |
-| Kanban          | `apps/kanban.tsx`         | Multi-column kanban with card movement         |
-| Layout Ref      | `apps/layout-ref.tsx`     | `forwardRef` + `onLayout` callbacks            |
-| Outline         | `apps/outline.tsx`        | Outline vs border side-by-side comparison      |
-| Panes           | `apps/panes/`             | Split-pane layout with coding agent            |
-| Paste Demo      | `apps/paste-demo.tsx`     | Bracketed paste mode — paste as single event   |
-| Scroll          | `apps/scroll.tsx`         | Basic scrollable list                          |
-| Search Filter   | `apps/search-filter.tsx`  | React concurrent features (`useDeferredValue`) |
-| Task List       | `apps/task-list.tsx`      | VirtualList with variable-height items         |
-| Terminal        | `apps/terminal.tsx`       | Keyboard, mouse, clipboard, focus kitchensink  |
-| TextArea        | `apps/textarea.tsx`       | Multi-line text input component                |
-| Theme           | `apps/theme.tsx`          | Theme explorer with live palette preview       |
-| Transform       | `apps/transform.tsx`      | Text post-processing with Transform component  |
-| Virtual 10K     | `apps/virtual-10k.tsx`    | VirtualList with 10,000 items                  |
+| Example         | File                     | Description                                    |
+| --------------- | ------------------------ | ---------------------------------------------- |
+| AI Coding Agent | `apps/aichat/`           | Coding agent with streaming, tool calls        |
+| Todo App        | `apps/app-todo.tsx`      | Layer 3: `createApp()` with Zustand store      |
+| Async Data      | `apps/async-data.tsx`    | Suspense boundaries with `use()` hook          |
+| CLI Wizard      | `apps/cli-wizard.tsx`    | Multi-step scaffolding wizard                  |
+| Clipboard       | `apps/clipboard.tsx`     | OSC 52 clipboard copy/paste across sessions    |
+| Components      | `apps/components.tsx`    | 30+ component gallery with tabs                |
+| Data Explorer   | `apps/data-explorer.tsx` | Searchable, scrollable process table           |
+| Dev Tools       | `apps/dev-tools.tsx`     | Live log viewer with VirtualList               |
+| Explorer        | `apps/explorer.tsx`      | Tabbed log viewer + process explorer           |
+| Gallery         | `apps/gallery.tsx`       | Images, pixel art, and truecolor rendering     |
+| Kanban          | `apps/kanban.tsx`        | Multi-column kanban with card movement         |
+| Layout Ref      | `apps/layout-ref.tsx`    | `forwardRef` + `onLayout` callbacks            |
+| Outline         | `apps/outline.tsx`       | Outline vs border side-by-side comparison      |
+| Panes           | `apps/panes/`            | Split-pane layout with coding agent            |
+| Paste Demo      | `apps/paste-demo.tsx`    | Bracketed paste mode — paste as single event   |
+| Scroll          | `apps/scroll.tsx`        | Basic scrollable list                          |
+| Search Filter   | `apps/search-filter.tsx` | React concurrent features (`useDeferredValue`) |
+| Task List       | `apps/task-list.tsx`     | VirtualList with variable-height items         |
+| Terminal        | `apps/terminal.tsx`      | Keyboard, mouse, clipboard, focus kitchensink  |
+| TextArea        | `apps/textarea.tsx`      | Multi-line text input component                |
+| Theme           | `apps/theme.tsx`         | Theme explorer with live palette preview       |
+| Transform       | `apps/transform.tsx`     | Text post-processing with Transform component  |
+| Virtual 10K     | `apps/virtual-10k.tsx`   | VirtualList with 10,000 items                  |
 
 ## Layout
 

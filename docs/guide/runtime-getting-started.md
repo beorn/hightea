@@ -8,8 +8,8 @@ Create a terminal with `createTerm()`, then pass it to `run()`:
 
 ```typescript
 import { createTerm } from 'silvery'
-import { run, useInput } from '@silvery/term/runtime'
-import { Text } from '@silvery/term'
+import { run, useInput } from '@silvery/ag-term/runtime'
+import { Text } from '@silvery/ag-term'
 import { useState } from 'react'
 
 function Counter() {
@@ -59,7 +59,7 @@ See [Terminal Capabilities](../reference/terminal-capabilities.md) for the full 
 Use `useInput` to handle keyboard events. Return `'exit'` from the handler to quit the app.
 
 ```typescript
-import { run, useInput, type Key } from "@silvery/term/runtime"
+import { run, useInput, type Key } from "@silvery/ag-term/runtime"
 
 useInput((input: string, key: Key) => {
   // Regular characters
@@ -135,7 +135,7 @@ useInput(handleInput)
 Components can know their size during render:
 
 ```typescript
-import { useContentRect } from '@silvery/term'
+import { useContentRect } from '@silvery/ag-term'
 
 function ResponsivePanel() {
   const { width, height } = useContentRect()
@@ -154,7 +154,7 @@ function ResponsivePanel() {
 Access terminal info and styling with `useTerm`:
 
 ```typescript
-import { useTerm } from '@silvery/term'
+import { useTerm } from '@silvery/ag-term'
 
 function StatusLine() {
   const term = useTerm()
@@ -173,8 +173,8 @@ function StatusLine() {
 Putting hooks together into a real app:
 
 ```typescript
-import { run, useInput, useExit, type Key } from '@silvery/term/runtime'
-import { Box, Text, useContentRect } from '@silvery/term'
+import { run, useInput, useExit, type Key } from '@silvery/ag-term/runtime'
+import { Box, Text, useContentRect } from '@silvery/ag-term'
 import { useState, useCallback } from 'react'
 
 function App() {
@@ -224,7 +224,7 @@ interface RunHandle {
 Kitty keyboard protocol and mouse tracking are **enabled by default** — `run()` auto-detects your terminal. Cmd ⌘ and Hyper ✦ modifiers work out of the box on supported terminals (Ghostty, Kitty, WezTerm, foot):
 
 ```typescript
-import { run, useInput } from "@silvery/term/runtime"
+import { run, useInput } from "@silvery/ag-term/runtime"
 
 function App() {
   useInput((input, key) => {
@@ -252,7 +252,7 @@ await run(<App />, {
 For advanced Kitty flags (key release events, associated text):
 
 ```typescript
-import { KittyFlags } from "@silvery/term"
+import { KittyFlags } from "@silvery/ag-term"
 
 await run(<App />, {
   kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS,
@@ -263,10 +263,10 @@ See [Input Features](../reference/input-features.md) for the full reference.
 
 ### Browser Rendering (xterm.js)
 
-For browser rendering via [xterm.js](https://xtermjs.org/), use `renderToXterm()` from `@silvery/term/xterm`:
+For browser rendering via [xterm.js](https://xtermjs.org/), use `renderToXterm()` from `@silvery/ag-term/xterm`:
 
 ```tsx
-import { renderToXterm, Box, Text, useContentRect } from "@silvery/term/xterm"
+import { renderToXterm, Box, Text, useContentRect } from "@silvery/ag-term/xterm"
 import { Terminal } from "@xterm/xterm"
 
 function App() {

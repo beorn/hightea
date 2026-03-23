@@ -305,7 +305,7 @@ function transform(code: string, fileName: string): string {
   // 5. Replace third-party imports
   out = out.replace(
     /import\s+stripAnsi\s+from\s*['"]strip-ansi['"];?/g,
-    'import { stripAnsi } from "../../../../packages/term/src/unicode"',
+    'import { stripAnsi } from "../../../../packages/ag-term/src/unicode"',
   )
   // Keep chalk as-is (real chalk from node_modules works in tests)
   // Replace delay with inline promise

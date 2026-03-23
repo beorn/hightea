@@ -576,23 +576,23 @@ describe("kitty protocol - legacy fallback", () => {
 
 describe("kitty protocol - detection and control sequences", () => {
   test("enableKittyKeyboard produces correct CSI sequence", async () => {
-    const { enableKittyKeyboard, KittyFlags } = await import("../../packages/term/src/output")
+    const { enableKittyKeyboard, KittyFlags } = await import("../../packages/ag-term/src/output")
     expect(enableKittyKeyboard()).toBe("\x1b[>1u")
     expect(enableKittyKeyboard(KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS)).toBe("\x1b[>3u")
   })
 
   test("disableKittyKeyboard produces correct CSI sequence", async () => {
-    const { disableKittyKeyboard } = await import("../../packages/term/src/output")
+    const { disableKittyKeyboard } = await import("../../packages/ag-term/src/output")
     expect(disableKittyKeyboard()).toBe("\x1b[<u")
   })
 
   test("queryKittyKeyboard produces correct CSI sequence", async () => {
-    const { queryKittyKeyboard } = await import("../../packages/term/src/output")
+    const { queryKittyKeyboard } = await import("../../packages/ag-term/src/output")
     expect(queryKittyKeyboard()).toBe("\x1b[?u")
   })
 
   test("detectKittySupport parses response correctly", async () => {
-    const { detectKittySupport } = await import("../../packages/term/src/kitty-detect")
+    const { detectKittySupport } = await import("../../packages/ag-term/src/kitty-detect")
 
     const write = () => {}
     const read = async () => "\x1b[?1u"
@@ -602,7 +602,7 @@ describe("kitty protocol - detection and control sequences", () => {
   })
 
   test("detectKittySupport handles timeout (no response)", async () => {
-    const { detectKittySupport } = await import("../../packages/term/src/kitty-detect")
+    const { detectKittySupport } = await import("../../packages/ag-term/src/kitty-detect")
 
     const write = () => {}
     const read = async () => null
@@ -612,7 +612,7 @@ describe("kitty protocol - detection and control sequences", () => {
   })
 
   test("detectKittySupport handles non-response data", async () => {
-    const { detectKittySupport } = await import("../../packages/term/src/kitty-detect")
+    const { detectKittySupport } = await import("../../packages/ag-term/src/kitty-detect")
 
     const write = () => {}
     const read = async () => "somegarbage"
@@ -623,7 +623,7 @@ describe("kitty protocol - detection and control sequences", () => {
   })
 
   test("detectKittySupport preserves buffered input around response", async () => {
-    const { detectKittySupport } = await import("../../packages/term/src/kitty-detect")
+    const { detectKittySupport } = await import("../../packages/ag-term/src/kitty-detect")
 
     const write = () => {}
     const read = async () => "before\x1b[?3uafter"

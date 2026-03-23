@@ -9,8 +9,8 @@
  */
 
 import { bench, describe, beforeAll } from "vitest"
-import { TerminalBuffer, createBuffer } from "@silvery/term/buffer"
-import { outputPhase } from "@silvery/term/pipeline/output-phase"
+import { TerminalBuffer, createBuffer } from "@silvery/ag-term/buffer"
+import { outputPhase } from "@silvery/ag-term/pipeline/output-phase"
 
 // ============================================================================
 // Buffer Helpers

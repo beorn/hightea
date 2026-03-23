@@ -17,7 +17,7 @@ Pure functions for composing AsyncIterables. No EventEmitters, no callbacks.
 Merge multiple AsyncIterables into one. Values emit in arrival order.
 
 ```typescript
-import { merge, map } from "@silvery/term/streams"
+import { merge, map } from "@silvery/ag-term/streams"
 
 const keys = term.keys()
 const resizes = term.resizes()

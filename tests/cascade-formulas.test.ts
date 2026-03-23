@@ -7,8 +7,8 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { computeCascade } from "@silvery/term/pipeline/cascade-predicates"
-import type { CascadeInputs, CascadeOutputs } from "@silvery/term/pipeline/cascade-predicates"
+import { computeCascade } from "@silvery/ag-term/pipeline/cascade-predicates"
+import type { CascadeInputs, CascadeOutputs } from "@silvery/ag-term/pipeline/cascade-predicates"
 
 /** Input field names in the order they map to bit positions */
 const INPUT_FIELDS: (keyof CascadeInputs)[] = [

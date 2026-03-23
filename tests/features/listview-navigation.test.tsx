@@ -15,8 +15,8 @@ import { describe, test, expect } from "vitest"
 import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
 import { Box, Text } from "../../src/index.js"
-import { run, useInput } from "../../packages/term/src/runtime/run"
-import { ListView } from "../../packages/ui/src/components/ListView"
+import { run, useInput } from "../../packages/ag-term/src/runtime/run"
+import { ListView } from "../../packages/ag-react/src/ui/components/ListView"
 
 // ============================================================================
 // Test fixtures

@@ -6,7 +6,7 @@
  * so we wrap it here to match Ink's behavior.
  */
 
-import { measureText as silveryMeasureText } from "@silvery/term/unicode"
+import { measureText as silveryMeasureText } from "@silvery/ag-term/unicode"
 
 type MeasureResult = { width: number; height: number }
 

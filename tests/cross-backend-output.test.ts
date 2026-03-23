@@ -12,9 +12,9 @@ import { createXtermBackend } from "@termless/xtermjs"
 import { createGhosttyBackend, initGhostty } from "@termless/ghostty"
 // @ts-expect-error ghostty-web is an optional dependency (only available when installed)
 import type { Ghostty } from "ghostty-web"
-import { TerminalBuffer } from "@silvery/term/buffer"
-import { createOutputPhase, outputPhase } from "@silvery/term/pipeline/output-phase"
-import { graphemeWidth } from "@silvery/term/unicode"
+import { TerminalBuffer } from "@silvery/ag-term/buffer"
+import { createOutputPhase, outputPhase } from "@silvery/ag-term/pipeline/output-phase"
+import { graphemeWidth } from "@silvery/ag-term/unicode"
 import type { Cell } from "@termless/core"
 
 let ghostty: Ghostty

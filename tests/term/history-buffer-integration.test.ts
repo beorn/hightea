@@ -10,10 +10,10 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { createHistoryBuffer, createHistoryItem } from "@silvery/term/history-buffer"
-import { createListDocument } from "@silvery/term/list-document"
-import { createTextSurface } from "@silvery/term/text-surface"
-import type { LiveItemBlock } from "@silvery/term/list-document"
+import { createHistoryBuffer, createHistoryItem } from "@silvery/ag-term/history-buffer"
+import { createListDocument } from "@silvery/ag-term/list-document"
+import { createTextSurface } from "@silvery/ag-term/text-surface"
+import type { LiveItemBlock } from "@silvery/ag-term/list-document"
 
 // ============================================================================
 // Helpers

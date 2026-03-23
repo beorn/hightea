@@ -19,7 +19,7 @@ import React from "react"
 import { describe, test, expect } from "vitest"
 import { EventEmitter } from "node:events"
 import { Box, Text, useTerminalFocused } from "../../src/index.js"
-import { run } from "../../packages/term/src/runtime/run"
+import { run } from "../../packages/ag-term/src/runtime/run"
 
 const FOCUS_ENABLE = "?1004h"
 const FOCUS_DISABLE = "?1004l"

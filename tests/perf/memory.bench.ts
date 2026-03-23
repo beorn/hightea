@@ -15,8 +15,8 @@
 import React from "react"
 import { bench, describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { createBuffer } from "@silvery/term/buffer"
-import { ensureDefaultLayoutEngine, getLayoutEngine } from "@silvery/term/layout-engine"
+import { createBuffer } from "@silvery/ag-term/buffer"
+import { ensureDefaultLayoutEngine, getLayoutEngine } from "@silvery/ag-term/layout-engine"
 import { FlatList, CursorList } from "./fixtures"
 
 // Top-level await — beforeAll with async is unreliable in vitest bench mode

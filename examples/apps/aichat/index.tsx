@@ -10,7 +10,7 @@
 
 import React, { useEffect, useRef, useMemo } from "react"
 import { Box, Text, Spinner, ScrollbackList, useTea } from "silvery"
-import { run, useInput, useExit, type Key } from "@silvery/term/runtime"
+import { run, useInput, useExit, type Key } from "@silvery/ag-term/runtime"
 import type { ExampleMeta } from "../../_banner.js"
 import type { ScriptEntry } from "./types.js"
 import { SCRIPT, generateStressScript, CONTEXT_WINDOW } from "./script.js"

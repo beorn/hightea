@@ -4,10 +4,10 @@
  */
 
 import React, { createContext, useContext } from "react"
-import { Box as SilveryBox, type BoxProps as SilveryBoxProps, type BoxHandle } from "@silvery/react/components/Box"
-import { Static as SilveryStatic } from "@silvery/react/components/Static"
-import { Text as SilveryText } from "@silvery/react/components/Text"
-import type { TextProps as SilveryTextProps, TextHandle as SilveryTextHandle } from "@silvery/react/components/Text"
+import { Box as SilveryBox, type BoxProps as SilveryBoxProps, type BoxHandle } from "@silvery/ag-react/components/Box"
+import { Static as SilveryStatic } from "@silvery/ag-react/components/Static"
+import { Text as SilveryText } from "@silvery/ag-react/components/Text"
+import type { TextProps as SilveryTextProps, TextHandle as SilveryTextHandle } from "@silvery/ag-react/components/Text"
 
 import {
   currentChalkLevel,
@@ -22,7 +22,7 @@ import { sanitizeChildren } from "./ink-sanitize"
 // Box
 // =============================================================================
 
-export type { BoxHandle } from "@silvery/react/components/Box"
+export type { BoxHandle } from "@silvery/ag-react/components/Box"
 
 /**
  * Ink-compatible Box props. Same as silvery's BoxProps.
@@ -63,7 +63,7 @@ export const Box = React.forwardRef<BoxHandle, BoxProps>(function InkBox(props, 
 // Text
 // =============================================================================
 
-export type { TextProps, TextHandle } from "@silvery/react/components/Text"
+export type { TextProps, TextHandle } from "@silvery/ag-react/components/Text"
 
 /**
  * Ink-compatible Text component.
@@ -212,7 +212,7 @@ export function Static<T>({
 // Re-exports
 // =============================================================================
 
-export { Newline } from "@silvery/react/components/Newline"
-export { Spacer } from "@silvery/react/components/Spacer"
-export { Transform } from "@silvery/react/components/Transform"
-export type { TransformProps } from "@silvery/react/components/Transform"
+export { Newline } from "@silvery/ag-react/components/Newline"
+export { Spacer } from "@silvery/ag-react/components/Spacer"
+export { Transform } from "@silvery/ag-react/components/Transform"
+export type { TransformProps } from "@silvery/ag-react/components/Transform"

@@ -9,7 +9,7 @@
 
 import React, { useState } from "react"
 import { Box, Text, SelectList } from "../../src/index.js"
-import { run, useInput } from "@silvery/term/runtime"
+import { run, useInput } from "@silvery/ag-term/runtime"
 
 const languages = [
   { label: "TypeScript", value: "ts" },
@@ -31,17 +31,10 @@ function SelectListDemo() {
     <Box flexDirection="column" padding={1} gap={1}>
       <Text bold>Pick a language:</Text>
       <Box borderStyle="round" borderColor="$border" paddingX={1}>
-        <SelectList
-          items={languages}
-          onSelect={(opt) => setSelected(opt.value)}
-        />
+        <SelectList items={languages} onSelect={(opt) => setSelected(opt.value)} />
       </Box>
-      {selected && (
-        <Text color="$success">
-          Selected: {selected}
-        </Text>
-      )}
-      <Text color="$muted">j/k: navigate  Enter: select  Esc: quit</Text>
+      {selected && <Text color="$success">Selected: {selected}</Text>}
+      <Text color="$muted">j/k: navigate Enter: select Esc: quit</Text>
     </Box>
   )
 }

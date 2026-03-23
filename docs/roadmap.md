@@ -46,7 +46,7 @@ Terminal target is production-ready (used in [km](https://github.com/beorn/km)).
 
 | Target       | Value         | Status       | Entry Point      |
 | ------------ | ------------- | ------------ | ---------------- |
-| Terminal     | High (proven) | Production   | `@silvery/term`  |
+| Terminal     | High (proven) | Production   | `@silvery/ag-term`  |
 | Canvas 2D    | High          | Experimental | `silvery/canvas` |
 | DOM          | Medium        | Experimental | `silvery/dom`    |
 | WebGL        | High          | Future       | —                |

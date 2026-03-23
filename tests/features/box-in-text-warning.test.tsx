@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Box, Text } from "silvery"
-import { _resetBoxInsideTextWarning } from "@silvery/react/reconciler/host-config"
+import { _resetBoxInsideTextWarning } from "@silvery/ag-react/reconciler/host-config"
 
 const render = createRenderer({ cols: 40, rows: 10 })
 

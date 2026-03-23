@@ -9,9 +9,9 @@
  * - Scroll context (offset changes, hidden items)
  */
 
-import type { Cell } from "@silvery/term/buffer"
+import type { Cell } from "@silvery/ag-term/buffer"
 import type { BoxProps, TeaNode, Rect, TextProps } from "@silvery/tea/types"
-import type { ContentPhaseStats } from "@silvery/term/pipeline/types"
+import type { ContentPhaseStats } from "@silvery/ag-term/pipeline/types"
 
 // ============================================================================
 // Types

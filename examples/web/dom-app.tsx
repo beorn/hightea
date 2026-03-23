@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from "react"
-import { renderToDOM, Box, Text, useContentRect } from "../../packages/term/src/dom/index.js"
+import { renderToDOM, Box, Text, useContentRect } from "../../packages/ag-term/src/dom/index.js"
 
 // Component that shows its dimensions
 function SizeDisplay() {

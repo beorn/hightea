@@ -24,7 +24,7 @@ import React, { useState } from "react"
 import { describe, expect } from "vitest"
 import { test, gen, take } from "vimonkey/fuzz"
 import { createRenderer, compareBuffers, formatMismatch, bufferToText } from "@silvery/test"
-import type { TerminalBuffer } from "../../packages/term/src/buffer"
+import type { TerminalBuffer } from "../../packages/ag-term/src/buffer"
 import { Box, Text, useInput } from "silvery"
 
 // ============================================================================

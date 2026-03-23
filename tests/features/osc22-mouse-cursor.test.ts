@@ -7,7 +7,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { setMouseCursorShape, resetMouseCursorShape } from "@silvery/term/output"
+import { setMouseCursorShape, resetMouseCursorShape } from "@silvery/ag-term/output"
 
 describe("OSC 22 mouse cursor", () => {
   test("setMouseCursorShape generates correct sequence", () => {

@@ -12,7 +12,7 @@
  *
  * @example
  * ```ts
- * import { cursorToRowCol, cursorMoveDown } from '@silvery/react'
+ * import { cursorToRowCol, cursorMoveDown } from '@silvery/ag-react'
  *
  * const { row, col } = cursorToRowCol("hello world", 5, 8)
  * // row=0, col=5 (fits in 8-wide line)
@@ -21,7 +21,7 @@
  * // next = 12 (moved to row 1, col 3 → "foo"[3] = end)
  * ```
  */
-import { type Measurer, wrapText } from "@silvery/term/unicode"
+import { type Measurer, wrapText } from "@silvery/ag-term/unicode"
 
 // =============================================================================
 // Types

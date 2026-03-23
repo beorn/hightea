@@ -23,7 +23,7 @@ import { dirname, resolve } from "node:path"
 import React, { useState } from "react"
 import { render, createRenderer, ensureEngine, bufferToHTML } from "@silvery/test"
 import { Box, Text, Divider, useContentRect, useApp } from "../../src/index.js"
-import { createScreenshotter } from "@silvery/term/screenshot"
+import { createScreenshotter } from "@silvery/ag-term/screenshot"
 
 // ============================================================================
 // Output directory

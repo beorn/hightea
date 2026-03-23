@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { createHistoryBuffer, createHistoryItem } from "@silvery/term/history-buffer"
+import { createHistoryBuffer, createHistoryItem } from "@silvery/ag-term/history-buffer"
 
 function item(key: string, lines: string[], width = 80): ReturnType<typeof createHistoryItem> {
   return { key, ansi: lines.join("\n"), rows: lines, plainTextRows: lines, width }

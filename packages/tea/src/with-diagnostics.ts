@@ -24,7 +24,7 @@
  *
  * @example
  * ```typescript
- * import { withDiagnostics } from '@silvery/term/toolbelt';
+ * import { withDiagnostics } from '@silvery/ag-term/toolbelt';
  *
  * // All checks enabled by default when you call withDiagnostics()
  * const driver = withDiagnostics(createBoardDriver(repo, rootId));
@@ -42,8 +42,8 @@
 
 import { mkdir } from "node:fs/promises"
 import { join } from "node:path"
-import { type Color, type TerminalBuffer, colorEquals } from "@silvery/term/buffer"
-import { outputPhase } from "@silvery/term/pipeline"
+import { type Color, type TerminalBuffer, colorEquals } from "@silvery/ag-term/buffer"
+import { outputPhase } from "@silvery/ag-term/pipeline"
 import { compareBuffers, formatMismatch } from "@silvery/test/compare-buffers"
 import type { BoxProps, TeaNode } from "./types"
 import type { AppWithCommands, Cmd, Command } from "./with-commands"

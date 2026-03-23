@@ -26,10 +26,10 @@ let _silvery: any = null
 async function getSilvery() {
   if (!_silvery) {
     try {
-      const mod = "@silvery/react"
+      const mod = "@silvery/ag-react"
       _silvery = await import(mod)
     } catch {
-      throw new Error("Terminal palette detection requires '@silvery/term' to be installed")
+      throw new Error("Terminal palette detection requires '@silvery/ag-term' to be installed")
     }
   }
   return _silvery as {

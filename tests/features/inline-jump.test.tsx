@@ -10,8 +10,8 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { createBuffer, type TerminalBuffer } from "@silvery/term/buffer"
-import { createOutputPhase } from "@silvery/term/pipeline/output-phase"
+import { createBuffer, type TerminalBuffer } from "@silvery/ag-term/buffer"
+import { createOutputPhase } from "@silvery/ag-term/pipeline/output-phase"
 
 // ============================================================================
 // Minimal VT Screen Simulator

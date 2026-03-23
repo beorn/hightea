@@ -1,8 +1,8 @@
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Box, Text } from "silvery"
-import { DEFAULT_BG, isDefaultBg } from "@silvery/term"
-import { parseColor } from "@silvery/term/pipeline/render-helpers"
+import { DEFAULT_BG, isDefaultBg } from "@silvery/ag-term"
+import { parseColor } from "@silvery/ag-term/pipeline/render-helpers"
 
 describe("$default background", () => {
   test("parseColor('$default') returns DEFAULT_BG sentinel", () => {

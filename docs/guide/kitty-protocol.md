@@ -193,7 +193,7 @@ If the terminal doesn't respond to `CSI ? u`, it will respond to `CSI c` (device
 `run()` auto-detects Kitty protocol support and enables it by default on supported terminals (Ghostty, Kitty, WezTerm, foot):
 
 ```tsx
-import { run } from "@silvery/term/runtime"
+import { run } from "@silvery/ag-term/runtime"
 
 // Auto-enabled — ⌘ and ✦ modifiers just work
 await run(<App />)

@@ -40,16 +40,16 @@ Ink does not tree-shake: importing `{ Text }` alone bundles 335.6 KB gzip (96% o
 
 | Entry Point                 | Raw      | Gzip     | React? | Notes                                |
 | --------------------------- | -------- | -------- | ------ | ------------------------------------ |
-| `@silvery/term` (barrel)    | 378.5 KB | 83.1 KB  | No     | Full terminal runtime, React-free    |
-| `@silvery/term` (selective) | 79.4 KB  | 18.7 KB  | No     | createTerm + detectColor + stripAnsi |
-| `@silvery/term/ansi`        | 24.7 KB  | 6.6 KB   | No     | ANSI primitives only                 |
-| `@silvery/term/runtime`     | 854.4 KB | 158.9 KB | Yes    | Layout + diff + React runtime        |
+| `@silvery/ag-term` (barrel)    | 378.5 KB | 83.1 KB  | No     | Full terminal runtime, React-free    |
+| `@silvery/ag-term` (selective) | 79.4 KB  | 18.7 KB  | No     | createTerm + detectColor + stripAnsi |
+| `@silvery/ag-term/ansi`        | 24.7 KB  | 6.6 KB   | No     | ANSI primitives only                 |
+| `@silvery/ag-term/runtime`     | 854.4 KB | 158.9 KB | Yes    | Layout + diff + React runtime        |
 | `@silvery/tea/core`         | 0.2 KB   | 0.2 KB   | No     | Pure TEA functions                   |
 | `@silvery/tea/store`        | 2.0 KB   | --       | No     | Zustand-based store                  |
 | `@silvery/tea/streams`      | 1.0 KB   | --       | No     | Stream combinators                   |
 | `@silvery/theme`            | 77.3 KB  | 17.7 KB  | Yes    | Theme engine + 38 palettes           |
-| `@silvery/ui/cli`           | 22.9 KB  | 6.4 KB   | No     | Spinner, ProgressBar (React-free)    |
-| `@silvery/ui/wrappers`      | 18.6 KB  | --       | No     | withSpinner, withProgress            |
+| `@silvery/ag-react/ui/cli`           | 22.9 KB  | 6.4 KB   | No     | Spinner, ProgressBar (React-free)    |
+| `@silvery/ag-react/ui/wrappers`      | 18.6 KB  | --       | No     | withSpinner, withProgress            |
 
 ## Tree-Shaking Verification
 
@@ -57,19 +57,19 @@ All 14 silvery entry points pass tree-shaking verification:
 
 | Entry Point                  | Bundle Size | React?         | Reconciler?    | Status |
 | ---------------------------- | ----------- | -------------- | -------------- | ------ |
-| `@silvery/term` (barrel)     | 378.5 KB    | No             | No             | PASS   |
-| `@silvery/term` (selective)  | 79.4 KB     | No             | No             | PASS   |
-| `@silvery/term/ansi`         | 24.7 KB     | No             | No             | PASS   |
-| `@silvery/term/hit-registry` | 42.6 KB     | Yes (expected) | No             | PASS   |
+| `@silvery/ag-term` (barrel)     | 378.5 KB    | No             | No             | PASS   |
+| `@silvery/ag-term` (selective)  | 79.4 KB     | No             | No             | PASS   |
+| `@silvery/ag-term/ansi`         | 24.7 KB     | No             | No             | PASS   |
+| `@silvery/ag-term/hit-registry` | 42.6 KB     | Yes (expected) | No             | PASS   |
 | `@silvery/tea/core`          | 0.2 KB      | No             | No             | PASS   |
 | `@silvery/tea/store`         | 2.0 KB      | No             | No             | PASS   |
 | `@silvery/tea/tea`           | 0.7 KB      | No             | No             | PASS   |
 | `@silvery/tea/streams`       | 1.0 KB      | No             | No             | PASS   |
 | `@silvery/theme` (theme.ts)  | 77.3 KB     | Yes (expected) | No             | PASS   |
-| `@silvery/react`             | 994.3 KB    | Yes (expected) | Yes (expected) | PASS   |
-| `@silvery/term/runtime`      | 854.4 KB    | Yes (expected) | Yes (expected) | PASS   |
-| `@silvery/ui/cli`            | 22.9 KB     | No             | No             | PASS   |
-| `@silvery/ui/wrappers`       | 18.6 KB     | No             | No             | PASS   |
+| `@silvery/ag-react`             | 994.3 KB    | Yes (expected) | Yes (expected) | PASS   |
+| `@silvery/ag-term/runtime`      | 854.4 KB    | Yes (expected) | Yes (expected) | PASS   |
+| `@silvery/ag-react/ui/cli`            | 22.9 KB     | No             | No             | PASS   |
+| `@silvery/ag-react/ui/wrappers`       | 18.6 KB     | No             | No             | PASS   |
 | `silvery/chalk`              | 17.2 KB     | No             | No             | PASS   |
 
 ## Key Takeaways
@@ -78,7 +78,7 @@ All 14 silvery entry points pass tree-shaking verification:
 
 2. **Silvery tree-shakes; Ink does not.** Ink bundles 336-352 KB gzip regardless of what you import. Silvery ranges from 0.2 KB (tea/core) to 432 KB (full barrel) depending on imports.
 
-3. **Silvery offers React-free packages.** Terminal primitives (`@silvery/term/ansi` at 6.6 KB gzip), state management (`@silvery/tea/core` at 0.2 KB), and CLI utilities (`@silvery/ui/cli` at 6.4 KB) all work without React. Ink has no equivalent -- it always bundles React.
+3. **Silvery offers React-free packages.** Terminal primitives (`@silvery/ag-term/ansi` at 6.6 KB gzip), state management (`@silvery/tea/core` at 0.2 KB), and CLI utilities (`@silvery/ag-react/ui/cli` at 6.4 KB) all work without React. Ink has no equivalent -- it always bundles React.
 
 4. **Silvery's barrel is larger than Ink's barrel** (432 KB vs 352 KB gzip) because silvery ships more: a full layout engine (flexily), theme system (38 palettes), incremental renderer, and 30+ UI components. This is the only metric where Ink wins.
 

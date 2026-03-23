@@ -10,13 +10,13 @@
 import React, { useRef, useState } from "react"
 import { describe, test, expect, vi } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Text } from "@silvery/react"
-import { EditContextDisplay } from "@silvery/ui/components/EditContextDisplay"
-import { CursorLine } from "@silvery/ui/components/CursorLine"
-import { TextInput } from "@silvery/ui/components/TextInput"
-import { TextArea, type TextAreaHandle } from "@silvery/ui/components/TextArea"
-import { useEditContext, type EditTarget } from "@silvery/react/hooks/use-edit-context"
-import { useInput } from "@silvery/react/hooks/useInput"
+import { Box, Text } from "@silvery/ag-react"
+import { EditContextDisplay } from "@silvery/ag-react/ui/components/EditContextDisplay"
+import { CursorLine } from "@silvery/ag-react/ui/components/CursorLine"
+import { TextInput } from "@silvery/ag-react/ui/components/TextInput"
+import { TextArea, type TextAreaHandle } from "@silvery/ag-react/ui/components/TextArea"
+import { useEditContext, type EditTarget } from "@silvery/ag-react/hooks/use-edit-context"
+import { useInput } from "@silvery/ag-react/hooks/useInput"
 
 // ============================================================================
 // EditContextDisplay

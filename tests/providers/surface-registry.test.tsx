@@ -13,8 +13,8 @@ import React, { useRef } from "react"
 import { describe, test, expect, vi } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
 import { Text } from "../../src/index.js"
-import { SurfaceRegistryProvider, useSurfaceRegistry } from "../../packages/react/src/providers/SurfaceRegistry"
-import type { TextSurface } from "../../packages/term/src/text-surface"
+import { SurfaceRegistryProvider, useSurfaceRegistry } from "../../packages/ag-react/src/providers/SurfaceRegistry"
+import type { TextSurface } from "../../packages/ag-term/src/text-surface"
 
 // ============================================================================
 // Helpers

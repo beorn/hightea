@@ -2,9 +2,9 @@
  * Tests for selection overlay rendering.
  */
 import { describe, test, expect } from "vitest"
-import { TerminalBuffer } from "@silvery/term/buffer"
-import { renderSelectionOverlay } from "@silvery/term/selection-renderer"
-import type { SelectionRange } from "@silvery/term/selection"
+import { TerminalBuffer } from "@silvery/ag-term/buffer"
+import { renderSelectionOverlay } from "@silvery/ag-term/selection-renderer"
+import type { SelectionRange } from "@silvery/ag-term/selection"
 
 // ============================================================================
 // Helpers

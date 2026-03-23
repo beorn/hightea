@@ -17,7 +17,7 @@ Layer 4: Application (km, silvery components, pipeline)
 Layer 3: STRICT Invariants (detect & crash)
          ← catches anything layers 1-2 missed
 ─────────────────────────────────────────────────────
-Layer 2: Cross-Terminal Compat (@silvery/term)
+Layer 2: Cross-Terminal Compat (@silvery/ag-term)
          ← workarounds for known terminal bugs/quirks
 ─────────────────────────────────────────────────────
 Layer 1: Upstream Fixes + Capability Database
@@ -67,7 +67,7 @@ for (const backend of [xtermjs, ghostty, alacritty, wezterm, vt100]) {
 }
 ```
 
-### Layer 2: Cross-Terminal Compat (@silvery/term)
+### Layer 2: Cross-Terminal Compat (@silvery/ag-term)
 
 **Workarounds for known issues, driven by the Layer 1 database.**
 
@@ -85,7 +85,7 @@ This is where OSC 66 text sizing, CUP cursor re-sync, and future workarounds liv
 | Cursor drift after wide chars | CUP re-sync after every wide char     | All (belt-and-suspenders) |
 | PUA characters at wrong width | OSC 66 wrapping for `cell.wide` chars | All (preemptive)          |
 
-**Architecture within @silvery/term:**
+**Architecture within @silvery/ag-term:**
 
 ```
 detectTerminalCaps()     → what can this terminal do?
@@ -248,5 +248,5 @@ For these, the fix isn't "file a bug" -- it's "design a system that works regard
 - [Text Sizing Protocol (OSC 66)](../reference/text-sizing.md) -- current implementation
 - [Terminal Compatibility Matrix](../reference/terminal-matrix.md) -- capability detection
 - [Terminal Capabilities Reference](../reference/terminal-capabilities.md) -- per-terminal details
-- [Pipeline Internals](https://github.com/beorn/silvery/blob/main/packages/term/src/pipeline/CLAUDE.md) -- STRICT mode, flag emoji lesson
+- [Pipeline Internals](https://github.com/beorn/silvery/blob/main/packages/ag-term/src/pipeline/CLAUDE.md) -- STRICT mode, flag emoji lesson
 - [output-phase-wide-char-matrix.test.ts](https://github.com/beorn/silvery/blob/main/tests/output-phase-wide-char-matrix.test.ts) -- matrix test

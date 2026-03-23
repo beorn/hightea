@@ -13,9 +13,9 @@
 import React, { useState } from "react"
 import { describe, test, expect, vi } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Text } from "@silvery/react"
-import { hostConfig, type Container } from "@silvery/react/reconciler/host-config"
-import { createNode } from "@silvery/react/reconciler/nodes"
+import { Box, Text } from "@silvery/ag-react"
+import { hostConfig, type Container } from "@silvery/ag-react/reconciler/host-config"
+import { createNode } from "@silvery/ag-react/reconciler/nodes"
 
 describe("clearContainer dirty invalidation", () => {
   test("clearContainer sets childrenDirty on root", () => {

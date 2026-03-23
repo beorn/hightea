@@ -18,7 +18,7 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Text } from "@silvery/react"
+import { Box, Text } from "@silvery/ag-react"
 
 describe("border text overflow", () => {
   test("scroll indicator does not overwrite right border character", () => {

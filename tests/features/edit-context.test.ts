@@ -7,7 +7,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { createTermEditContext } from "@silvery/react"
+import { createTermEditContext } from "@silvery/ag-react"
 import { applyTextOp, invertTextOp } from "@silvery/tea/text-ops"
 import type { TextOp } from "@silvery/tea/text-ops"
 

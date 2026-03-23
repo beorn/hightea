@@ -11,7 +11,7 @@
 import type { JSX } from "react"
 import { Terminal } from "@xterm/xterm"
 import { FitAddon } from "@xterm/addon-fit"
-import { renderToXterm } from "../../packages/term/src/xterm/index.js"
+import { renderToXterm } from "../../packages/ag-term/src/xterm/index.js"
 import { SHOWCASES } from "./showcases/index.js"
 import { REGISTRY, type ExampleEntry } from "./viewer-registry.js"
 import React from "react"

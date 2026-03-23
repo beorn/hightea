@@ -6,8 +6,8 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { createHistoryBuffer, createHistoryItem } from "../../packages/term/src/history-buffer"
-import { composeViewport } from "../../packages/term/src/viewport-compositor"
+import { createHistoryBuffer, createHistoryItem } from "../../packages/ag-term/src/history-buffer"
+import { composeViewport } from "../../packages/ag-term/src/viewport-compositor"
 
 function pushRow(history: ReturnType<typeof createHistoryBuffer>, key: string, text: string) {
   history.push(createHistoryItem(key, text, 80))

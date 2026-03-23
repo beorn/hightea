@@ -22,7 +22,7 @@ The Silvery release. Complete rename from hightea to silvery, monorepo restructu
 - `@silvery/theme` package (absorbed from standalone swatch project) with 45 built-in color palettes and 33 semantic design tokens.
 - `@silvery/test` package with unified `createRenderer()` API, auto-refreshing locators, and Playwright-style assertions.
 - `@silvery/tea` package for optional TEA (The Elm Architecture) state machines with `zustand-tea` middleware.
-- `@silvery/ui` package with 23+ components: ModalDialog, Toast, SplitView, CommandPalette, SelectList, Table, ScrollbackView, ErrorBoundary, Tabs, and more.
+- `@silvery/ag-react/ui` package with 23+ components: ModalDialog, Toast, SplitView, CommandPalette, SelectList, Table, ScrollbackView, ErrorBoundary, Tabs, and more.
 - VitePress documentation site at silvery.dev with migration guide, API reference, and live xterm.js demos.
 - Examples directory with interactive demos (dashboard, live-resize, outline, scrollback, Kitty protocol).
 
@@ -32,7 +32,7 @@ The Silvery release. Complete rename from hightea to silvery, monorepo restructu
 - **Renamed**: decant -> loggily (logging library).
 - **Renamed**: flexture -> flexily (layout engine).
 - **Renamed**: swatch -> @silvery/theme (absorbed into monorepo).
-- Package structure: monolith split into `@silvery/react`, `@silvery/term`, `@silvery/tea`, `@silvery/ansi`, `@silvery/ui`, `@silvery/theme`, `@silvery/test`, `@silvery/ink`.
+- Package structure: monolith split into `@silvery/ag-react`, `@silvery/ag-term`, `@silvery/tea`, `@silvery/ansi`, `@silvery/ag-react/ui`, `@silvery/theme`, `@silvery/test`, `@silvery/ink`.
 - GitHub repositories renamed: beorn/hightea -> beorn/silvery, beorn/decant -> beorn/loggily, beorn/flexture -> beorn/flexily.
 
 ## [0.1.0] - 2026-03-05

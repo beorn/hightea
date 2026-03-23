@@ -223,8 +223,8 @@ test("scroll follows selection", async () => {
 ```tsx
 import { createXtermBackend } from "@termless/xtermjs"
 import "@termless/test/matchers"
-import { createTerm } from "@silvery/term"
-import { run } from "@silvery/term/runtime"
+import { createTerm } from "@silvery/ag-term"
+import { run } from "@silvery/ag-term/runtime"
 
 test("renders box borders correctly", async () => {
   using term = createTerm(createXtermBackend(), { cols: 40, rows: 10 })

@@ -14,7 +14,7 @@ Standard React. Perfect for local UI state — form fields, toggles, hover state
 
 ```tsx
 import { useState } from "react"
-import { run, useInput } from "@silvery/term/runtime"
+import { run, useInput } from "@silvery/ag-term/runtime"
 import { Text } from "silvery"
 
 function Counter() {
@@ -40,7 +40,7 @@ State lives inside a component. Input handling is a function call. Both invisibl
 `createApp()` is a [Zustand](https://github.com/pmndrs/zustand) middleware that bundles the store with centralized key handling, terminal I/O, and exit handling into a single `app.run(<Component />)` call.
 
 ```tsx
-import { createApp, useApp } from "@silvery/term/runtime"
+import { createApp, useApp } from "@silvery/ag-term/runtime"
 import { Box, Text } from "silvery"
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, max))
@@ -127,7 +127,7 @@ As your app grows, selectors show their cost — Zustand runs every selector on 
 `createSlice` turns state transitions into serializable data. You write handlers; it infers the op union:
 
 ```tsx
-import { createSlice } from "@silvery/term/core"
+import { createSlice } from "@silvery/ag-term/core"
 
 const TodoList = createSlice(
   () => ({ cursor: signal(0), items: signal<Item[]>([...]) }),
@@ -346,7 +346,7 @@ No mocks, no fakes, no async. `collect()` normalizes results for reducers that m
 For apps that don't need `createApp`'s Zustand integration, `createStore()` provides a standalone store with plugin composition:
 
 ```tsx
-import { createStore } from "@silvery/term/store"
+import { createStore } from "@silvery/ag-term/store"
 
 const store = createStore(initialState, update, {
   effects: fx,

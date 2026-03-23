@@ -19,7 +19,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
 import { Box, Text, TextInput } from "../../src/index.js"
-import { useInput, type Key } from "@silvery/term/runtime"
+import { useInput, type Key } from "@silvery/ag-term/runtime"
 
 // ============================================================================
 // Minimal CodingAgent reproduction
