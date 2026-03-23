@@ -256,8 +256,8 @@ interface AppProps {
   onPause?: () => void
   onResume?: () => void
   onScrollback?: (lines: number) => void
-  /** Get the root TeaNode for focus navigation. Provided by SilveryInstance. */
-  getRoot?: () => import("@silvery/tea/types").TeaNode | null
+  /** Get the root AgNode for focus navigation. Provided by SilveryInstance. */
+  getRoot?: () => import("@silvery/tea/types").AgNode | null
   /** Handle Tab/Shift+Tab/Escape focus cycling (default: true) */
   handleFocusCycling?: boolean
 }

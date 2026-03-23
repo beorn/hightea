@@ -50,7 +50,7 @@
  */
 
 import { type RenderBuffer, type RenderStyle, getRenderAdapter, hasRenderAdapter } from "../render-adapter"
-import type { BoxProps, TeaNode, Rect, TextProps } from "@silvery/ag/types"
+import type { BoxProps, AgNode, Rect, TextProps } from "@silvery/ag/types"
 import { getBorderSize, getPadding } from "./helpers"
 import { displayWidth } from "../unicode"
 import { formatTextLines } from "./render-text"
@@ -65,7 +65,7 @@ import { formatTextLines } from "./render-text"
  * @param root The root SilveryNode
  * @returns A RenderBuffer with the rendered content
  */
-export function contentPhaseAdapter(root: TeaNode): RenderBuffer {
+export function contentPhaseAdapter(root: AgNode): RenderBuffer {
   if (!hasRenderAdapter()) {
     throw new Error("contentPhaseAdapter called without a render adapter set")
   }
@@ -94,7 +94,7 @@ interface ClipRect {
   right?: number
 }
 
-function renderNodeToBuffer(node: TeaNode, buffer: RenderBuffer, scrollOffset = 0, clipBounds?: ClipRect): void {
+function renderNodeToBuffer(node: AgNode, buffer: RenderBuffer, scrollOffset = 0, clipBounds?: ClipRect): void {
   const layout = node.contentRect
   if (!layout) return
 
@@ -150,7 +150,7 @@ function renderNodeToBuffer(node: TeaNode, buffer: RenderBuffer, scrollOffset = 
  * Render a Box node.
  */
 function renderBox(
-  _node: TeaNode,
+  _node: AgNode,
   buffer: RenderBuffer,
   layout: Rect,
   props: BoxProps,
@@ -422,7 +422,7 @@ function renderOutlineAdapter(
  * Walk the parent chain to find the nearest ancestor Box with backgroundColor.
  * Mirrors findInheritedBg() in content-phase.ts.
  */
-function findAncestorBg(node: TeaNode): string | undefined {
+function findAncestorBg(node: AgNode): string | undefined {
   let current = node.parent
   while (current) {
     const bg = (current.props as BoxProps).backgroundColor
@@ -494,7 +494,7 @@ function contextToRenderStyle(ctx: AdapterStyleContext, bg?: string): RenderStyl
  * Handles: nested Text style push/pop, internal_transform, display="none" skipping.
  */
 function collectStyledSegments(
-  node: TeaNode,
+  node: AgNode,
   parentContext: AdapterStyleContext,
   inheritedBg: string | undefined,
   segments: StyledSegment[],
@@ -556,7 +556,7 @@ function collectStyledSegments(
  * Collect plain text from a node tree (no styles). Used for internal_transform
  * application which needs the full concatenated text before transformation.
  */
-function collectPlainTextAdapter(node: TeaNode): string {
+function collectPlainTextAdapter(node: AgNode): string {
   if (node.textContent !== undefined) return node.textContent
   let result = ""
   for (let i = 0; i < node.children.length; i++) {
@@ -577,7 +577,7 @@ function collectPlainTextAdapter(node: TeaNode): string {
  * Render a Text node.
  */
 function renderText(
-  node: TeaNode,
+  node: AgNode,
   buffer: RenderBuffer,
   layout: Rect,
   props: TextProps,
@@ -766,7 +766,7 @@ function truncateToWidth(text: string, maxWidth: number): string {
  * Collect text content from a node and its children (flat string, no styles).
  * Used by external callers that only need the plain text.
  */
-function collectTextContent(node: TeaNode): string {
+function collectTextContent(node: AgNode): string {
   // Raw text nodes have textContent set directly
   if (node.isRawText && node.textContent !== undefined) {
     return node.textContent
@@ -805,7 +805,7 @@ interface ScrollState {
  * Render scroll indicators for a scrollable container.
  */
 function renderScrollIndicators(
-  _node: TeaNode,
+  _node: AgNode,
   buffer: RenderBuffer,
   layout: Rect,
   props: BoxProps,
@@ -846,7 +846,7 @@ function renderScrollIndicators(
  * Render children of a scroll container.
  */
 function renderScrollContainerChildren(
-  node: TeaNode,
+  node: AgNode,
   buffer: RenderBuffer,
   props: BoxProps,
   clipBounds?: ClipRect,
@@ -902,7 +902,7 @@ function renderScrollContainerChildren(
  * Render children of a normal container.
  */
 function renderNormalChildren(
-  node: TeaNode,
+  node: AgNode,
   buffer: RenderBuffer,
   scrollOffset: number,
   props: BoxProps,

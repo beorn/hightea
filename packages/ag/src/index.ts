@@ -1,7 +1,7 @@
 /**
  * @silvery/ag — Core types and infrastructure for silvery.
  *
- * Contains foundational types (TeaNode, BoxProps, TextProps, Rect),
+ * Contains foundational types (AgNode, BoxProps, TextProps, Rect),
  * keyboard parsing (parseKey, keyToAnsi, parseHotkey),
  * focus management (createFocusManager),
  * focus events (createKeyEvent, dispatchKeyEvent),
@@ -14,8 +14,8 @@
 export { rectEqual } from "./types"
 export type {
   Rect,
-  TeaNode,
-  TeaNodeType,
+  AgNode,
+  AgNodeType,
   BoxProps,
   TextProps,
   FlexboxProps,

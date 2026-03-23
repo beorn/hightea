@@ -26,7 +26,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import type { TeaNode, TextProps, BoxProps } from "@silvery/ag/types"
+import type { AgNode, TextProps, BoxProps } from "@silvery/ag/types"
 import { collectPlainText, collectPlainTextSkipHidden } from "@silvery/ag-term/pipeline/collect-text"
 import { collectTextContent as collectTextContentForRender } from "@silvery/ag-term/pipeline/render-text"
 import { createRenderer } from "@silvery/test"
@@ -38,10 +38,10 @@ import { Box, Text, Transform } from "@silvery/ag-react"
 // ============================================================================
 
 /**
- * Create a minimal TeaNode for testing. These are plain objects — no layout
+ * Create a minimal AgNode for testing. These are plain objects — no layout
  * engine needed for the text collection functions.
  */
-function textNode(text: string, props: TextProps = {}): TeaNode {
+function textNode(text: string, props: TextProps = {}): AgNode {
   return {
     type: "silvery-text",
     props,
@@ -68,8 +68,8 @@ function textNode(text: string, props: TextProps = {}): TeaNode {
 }
 
 /** Create a virtual text node (nested Text) — no layoutNode */
-function virtualTextNode(props: TextProps, ...children: TeaNode[]): TeaNode {
-  const node: TeaNode = {
+function virtualTextNode(props: TextProps, ...children: AgNode[]): AgNode {
+  const node: AgNode = {
     type: "silvery-text",
     props,
     children,
@@ -98,7 +98,7 @@ function virtualTextNode(props: TextProps, ...children: TeaNode[]): TeaNode {
 }
 
 /** Create a text node with layoutNode set (top-level Text, has layout) */
-function layoutTextNode(props: TextProps, ...children: TeaNode[]): TeaNode {
+function layoutTextNode(props: TextProps, ...children: AgNode[]): AgNode {
   const node = virtualTextNode(props, ...children)
   // Use a truthy placeholder to indicate this has a layout node.
   // The text collection functions only check truthiness, not the actual value.
@@ -107,8 +107,8 @@ function layoutTextNode(props: TextProps, ...children: TeaNode[]): TeaNode {
 }
 
 /** Create a box node */
-function boxNode(props: BoxProps, ...children: TeaNode[]): TeaNode {
-  const node: TeaNode = {
+function boxNode(props: BoxProps, ...children: AgNode[]): AgNode {
+  const node: AgNode = {
     type: "silvery-box",
     props,
     children,

@@ -35,7 +35,7 @@
  * ```
  */
 
-import type { TeaNode } from "@silvery/ag/types"
+import type { AgNode } from "@silvery/ag/types"
 
 /**
  * Output from measureElement.
@@ -48,18 +48,18 @@ export interface MeasureElementOutput {
 }
 
 /**
- * Resolve a ref value to a TeaNode. Handles both direct TeaNode refs
+ * Resolve a ref value to a AgNode. Handles both direct AgNode refs
  * and BoxHandle refs (from silvery's Box component which uses useImperativeHandle).
- * Ink users pass ref.current which resolves to a BoxHandle, not a TeaNode directly.
+ * Ink users pass ref.current which resolves to a BoxHandle, not a AgNode directly.
  */
-function resolveNode(nodeOrHandle: any): TeaNode | null {
+function resolveNode(nodeOrHandle: any): AgNode | null {
   if (!nodeOrHandle) return null
   // BoxHandle from silvery's Box component (has getNode method)
   if (typeof nodeOrHandle.getNode === "function") {
     return nodeOrHandle.getNode()
   }
-  // Direct TeaNode
-  return nodeOrHandle as TeaNode
+  // Direct AgNode
+  return nodeOrHandle as AgNode
 }
 
 /**
@@ -71,7 +71,7 @@ function resolveNode(nodeOrHandle: any): TeaNode | null {
  * Note: Returns { width: 0, height: 0 } if the element hasn't been laid out yet.
  * For automatic re-rendering on dimension changes, use the useContentRect() hook instead.
  */
-export function measureElement(nodeOrHandle: TeaNode | unknown): MeasureElementOutput {
+export function measureElement(nodeOrHandle: AgNode | unknown): MeasureElementOutput {
   const node = resolveNode(nodeOrHandle)
   if (!node) {
     return { width: 0, height: 0 }

@@ -11,7 +11,7 @@
 
 // @ts-expect-error - react-reconciler has no type declarations
 import Reconciler from "react-reconciler"
-import type { TeaNode } from "@silvery/ag/types"
+import type { AgNode } from "@silvery/ag/types"
 import { type Container, hostConfig } from "./host-config"
 import { createRootNode } from "./nodes"
 
@@ -62,6 +62,6 @@ export function createFiberRoot(container: Container) {
 /**
  * Get the root SilveryNode from a container.
  */
-export function getContainerRoot(container: Container): TeaNode {
+export function getContainerRoot(container: Container): AgNode {
   return container.root
 }

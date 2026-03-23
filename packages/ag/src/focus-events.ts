@@ -11,7 +11,7 @@
 
 import type { Key } from "./keys"
 import { getAncestorPath } from "./tree-utils.js"
-import type { TeaNode } from "./types"
+import type { AgNode } from "./types"
 
 // ============================================================================
 // Event Types
@@ -34,9 +34,9 @@ export interface SilveryKeyEvent {
   /** Kitty event type */
   eventType?: "press" | "repeat" | "release"
   /** Deepest focusable node that received this event */
-  target: TeaNode
+  target: AgNode
   /** Node whose handler is currently firing (changes during capture/bubble) */
-  currentTarget: TeaNode
+  currentTarget: AgNode
   /** Stop event from propagating further */
   stopPropagation(): void
   /** Prevent default behavior */
@@ -54,13 +54,13 @@ export interface SilveryKeyEvent {
  */
 export interface SilveryFocusEvent {
   /** The node gaining or losing focus */
-  target: TeaNode
+  target: AgNode
   /** The other node involved (losing focus on 'focus', gaining on 'blur') */
-  relatedTarget: TeaNode | null
+  relatedTarget: AgNode | null
   /** Event type */
   type: "focus" | "blur"
   /** Node whose handler is currently firing (changes during bubble) */
-  currentTarget: TeaNode
+  currentTarget: AgNode
   /** Stop event from bubbling to parent nodes */
   stopPropagation(): void
   /** Whether stopPropagation() was called */
@@ -105,7 +105,7 @@ export interface FocusEventProps {
 /**
  * Create a synthetic keyboard event.
  */
-export function createKeyEvent(input: string, key: Key, target: TeaNode): SilveryKeyEvent {
+export function createKeyEvent(input: string, key: Key, target: AgNode): SilveryKeyEvent {
   let propagationStopped = false
   let defaultPrevented = false
 
@@ -141,8 +141,8 @@ export function createKeyEvent(input: string, key: Key, target: TeaNode): Silver
  */
 export function createFocusEvent(
   type: "focus" | "blur",
-  target: TeaNode,
-  relatedTarget: TeaNode | null,
+  target: AgNode,
+  relatedTarget: AgNode | null,
 ): SilveryFocusEvent {
   let propagationStopped = false
 
@@ -180,7 +180,7 @@ export function createFocusEvent(
  */
 export function dispatchKeyEvent(event: SilveryKeyEvent, dispatch?: (msg: unknown) => void): void {
   const path = getAncestorPath(event.target)
-  const mutableEvent = event as { currentTarget: TeaNode }
+  const mutableEvent = event as { currentTarget: AgNode }
 
   // Capture phase: root → target (reversed path, excluding target)
   for (let i = path.length - 1; i > 0; i--) {
@@ -229,7 +229,7 @@ export function dispatchKeyEvent(event: SilveryKeyEvent, dispatch?: (msg: unknow
 export function dispatchFocusEvent(event: SilveryFocusEvent): void {
   const handlerProp = event.type === "focus" ? "onFocus" : "onBlur"
   const path = getAncestorPath(event.target)
-  const mutableEvent = event as { currentTarget: TeaNode }
+  const mutableEvent = event as { currentTarget: AgNode }
 
   for (const node of path) {
     if (event.propagationStopped) break

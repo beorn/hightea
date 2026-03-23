@@ -28,7 +28,7 @@ import { copyToClipboard as copyToClipboardImpl } from "./clipboard"
 import { ANSI, notify as notifyTerminal, setCursorStyle, resetCursorStyle } from "./output"
 import { executeRender, type PipelineConfig } from "./pipeline"
 import type { ContentPhaseStats } from "./pipeline/types"
-import type { TeaNode } from "@silvery/ag/types"
+import type { AgNode } from "@silvery/ag/types"
 
 const log = createLogger("silvery:scheduler")
 
@@ -72,7 +72,7 @@ export interface SchedulerOptions {
   /** stdout stream for writing output */
   stdout: NodeJS.WriteStream
   /** Root Silvery node */
-  root: TeaNode
+  root: AgNode
   /** Debug mode - logs render timing */
   debug?: boolean
   /** Minimum time between frames in ms (default: 16 for ~60fps) */
@@ -135,7 +135,7 @@ export interface RenderStats {
  */
 export class RenderScheduler {
   private stdout: NodeJS.WriteStream
-  private root: TeaNode
+  private root: AgNode
   private debugMode: boolean
   private minFrameTime: number
   private slowFrameThreshold: number
@@ -718,7 +718,7 @@ export function createScheduler(options: SchedulerOptions): RenderScheduler {
  *
  * Does not batch or diff - just runs the pipeline and returns ANSI output.
  */
-export function renderToString(root: TeaNode, width: number, height: number): string {
+export function renderToString(root: AgNode, width: number, height: number): string {
   const { output } = executeRender(root, width, height, null)
   return output
 }

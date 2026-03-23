@@ -46,7 +46,7 @@ import process from "node:process"
 import React, { createContext, useContext, useEffect, useRef, type ReactElement } from "react"
 import { type StateCreator, type StoreApi, createStore } from "zustand"
 
-import { createTerm } from "../ansi/index"
+import { createTerm } from "@silvery/ag-term/ansi"
 import {
   FocusManagerContext,
   RuntimeContext,
@@ -59,10 +59,10 @@ import { SilveryErrorBoundary } from "@silvery/ag-react/error-boundary"
 import { createFocusManager } from "@silvery/ag/focus-manager"
 import { createCursorStore, CursorProvider } from "@silvery/ag-react/hooks/useCursor"
 import { createFocusEvent, dispatchFocusEvent } from "@silvery/ag/focus-events"
-import { executeRender } from "../pipeline"
-import { createPipeline } from "../measurer"
-import { isTextSizingLikelySupported, detectTextSizingSupport, getCachedProbeResult } from "../text-sizing"
-import { IncrementalRenderMismatchError } from "../scheduler"
+import { executeRender } from "@silvery/ag-term/pipeline"
+import { createPipeline } from "@silvery/ag-term/measurer"
+import { isTextSizingLikelySupported, detectTextSizingSupport, getCachedProbeResult } from "@silvery/ag-term/text-sizing"
+import { IncrementalRenderMismatchError } from "@silvery/ag-term/scheduler"
 import {
   createContainer,
   createFiberRoot,
@@ -70,30 +70,30 @@ import {
   reconciler,
   setOnNodeRemoved,
 } from "@silvery/ag-react/reconciler"
-import { map, merge, takeUntil } from "@silvery/tea/streams"
-import { createBuffer } from "./create-buffer"
-import { createRuntime } from "./create-runtime"
+import { map, merge, takeUntil } from "./streams"
+import { createBuffer } from "@silvery/ag-term/runtime/create-buffer"
+import { createRuntime } from "@silvery/ag-term/runtime/create-runtime"
 import {
   createHandlerContext,
   dispatchKeyToHandlers,
   handleFocusNavigation,
   invokeEventHandler,
   type NamespacedEvent,
-} from "./event-handlers"
+} from "@silvery/ag-term/runtime/event-handlers"
 import { keyToAnsi, keyToKittyAnsi } from "@silvery/ag/keys"
-import { parseKey, type Key } from "./keys"
-import { ensureLayoutEngine } from "./layout"
-import { createMouseEventProcessor, updateKeyboardModifiers } from "../mouse-events"
-import { enableKittyKeyboard, disableKittyKeyboard, KittyFlags, enableMouse, disableMouse } from "../output"
-import { enableFocusReporting, disableFocusReporting } from "../focus-reporting"
-import { detectKittyFromStdio } from "../kitty-detect"
-import { captureTerminalState, performSuspend } from "./terminal-lifecycle"
-import { type TermProvider, createTermProvider } from "./term-provider"
-import type { Buffer, Dims, Provider, RenderTarget } from "./types"
-import { createSelectionState, selectionUpdate, extractText } from "../selection"
-import { renderSelectionOverlay } from "../selection-renderer"
-import { createVirtualScrollback } from "../virtual-scrollback"
-import { createSearchState, searchUpdate, renderSearchBar, type SearchMatch } from "../search-overlay"
+import { parseKey, type Key } from "@silvery/ag-term/runtime/keys"
+import { ensureLayoutEngine } from "@silvery/ag-term/runtime/layout"
+import { createMouseEventProcessor, updateKeyboardModifiers } from "@silvery/ag-term/mouse-events"
+import { enableKittyKeyboard, disableKittyKeyboard, KittyFlags, enableMouse, disableMouse } from "@silvery/ag-term/output"
+import { enableFocusReporting, disableFocusReporting } from "@silvery/ag-term/focus-reporting"
+import { detectKittyFromStdio } from "@silvery/ag-term/kitty-detect"
+import { captureTerminalState, performSuspend } from "@silvery/ag-term/runtime/terminal-lifecycle"
+import { type TermProvider, createTermProvider } from "@silvery/ag-term/runtime/term-provider"
+import type { Buffer, Dims, Provider, RenderTarget } from "@silvery/ag-term/runtime/types"
+import { createSelectionState, selectionUpdate, extractText } from "@silvery/ag-term/selection"
+import { renderSelectionOverlay } from "@silvery/ag-term/selection-renderer"
+import { createVirtualScrollback } from "@silvery/ag-term/virtual-scrollback"
+import { createSearchState, searchUpdate, renderSearchBar, type SearchMatch } from "@silvery/ag-term/search-overlay"
 
 // ============================================================================
 // Types
@@ -144,7 +144,7 @@ export interface EventHandlerContext<S> {
   set: StoreApi<S>["setState"]
   get: StoreApi<S>["getState"]
   /** The tree-based focus manager */
-  focusManager: import("@silvery/tea/focus-manager").FocusManager
+  focusManager: import("./focus-manager").FocusManager
   /** Convenience: focus a node by testID */
   focus(testID: string): void
   /** Activate a peer focus scope (saves/restores focus per scope) */
@@ -270,7 +270,7 @@ export interface AppRunOptions {
    * When provided, configures the render pipeline to use these caps
    * (scoped width measurer + output phase). Typically from term.caps.
    */
-  caps?: import("../terminal-caps.js").TerminalCaps
+  caps?: import("@silvery/ag-term/terminal-caps").TerminalCaps
   /**
    * Root component that wraps the element tree with additional providers.
    * Set by plugins (e.g., withInk) via the `app.Root` pattern.
@@ -1059,7 +1059,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // Without this, every render walks the entire node tree from scratch.
   // Set SILVERY_NO_INCREMENTAL=1 to disable (for debugging blank screen issues).
   const _noIncremental = process.env?.SILVERY_NO_INCREMENTAL === "1"
-  let _prevTermBuffer: import("../buffer.js").TerminalBuffer | null = null
+  let _prevTermBuffer: import("@silvery/ag-term/buffer").TerminalBuffer | null = null
 
   // Helper to render and get text
   function doRender(): Buffer {
@@ -1168,7 +1168,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       )
       const { cellEquals, bufferToText } =
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        require("../buffer.js") as typeof import("../buffer.js")
+        require("@silvery/ag-term/buffer") as typeof import("@silvery/ag-term/buffer")
       for (let y = 0; y < termBuffer.height; y++) {
         for (let x = 0; x < termBuffer.width; x++) {
           const a = termBuffer.getCell(x, y)

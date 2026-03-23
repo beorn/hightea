@@ -27,7 +27,7 @@
  * ```
  */
 
-import type { TeaNode, Rect } from "@silvery/ag/types"
+import type { AgNode, Rect } from "@silvery/ag/types"
 
 /**
  * Locator interface - lazy reference to nodes matching a query
@@ -46,8 +46,8 @@ export interface SilveryLocator {
   nth(index: number): SilveryLocator
 
   // Resolution (actually finds nodes)
-  resolve(): TeaNode | null
-  resolveAll(): TeaNode[]
+  resolve(): AgNode | null
+  resolveAll(): AgNode[]
   count(): number
 
   // Utilities
@@ -58,12 +58,12 @@ export interface SilveryLocator {
 }
 
 // Query predicate type
-type NodePredicate = (node: TeaNode) => boolean
+type NodePredicate = (node: AgNode) => boolean
 
 /**
  * Create a locator rooted at the given container node
  */
-export function createLocator(root: TeaNode): SilveryLocator {
+export function createLocator(root: AgNode): SilveryLocator {
   return new LocatorImpl(root, [])
 }
 
@@ -72,7 +72,7 @@ export function createLocator(root: TeaNode): SilveryLocator {
  */
 class LocatorImpl implements SilveryLocator {
   constructor(
-    private root: TeaNode,
+    private root: AgNode,
     private predicates: NodePredicate[],
     private indexSelector?: { type: "first" | "last" | "nth"; index?: number },
   ) {}
@@ -135,7 +135,7 @@ class LocatorImpl implements SilveryLocator {
     })
   }
 
-  resolve(): TeaNode | null {
+  resolve(): AgNode | null {
     const nodes = this.resolveAll()
     if (this.indexSelector) {
       switch (this.indexSelector.type) {
@@ -150,13 +150,13 @@ class LocatorImpl implements SilveryLocator {
     return nodes[0] ?? null
   }
 
-  resolveAll(): TeaNode[] {
+  resolveAll(): AgNode[] {
     if (this.predicates.length === 0) {
       // No predicates - return root's children (or root if querying root)
       return [this.root]
     }
 
-    const matches: TeaNode[] = []
+    const matches: AgNode[] = []
     walkTree(this.root, (node) => {
       if (this.predicates.every((p) => p(node))) {
         matches.push(node)
@@ -199,7 +199,7 @@ class LocatorImpl implements SilveryLocator {
 /**
  * Walk tree depth-first, calling visitor for each node
  */
-function walkTree(node: TeaNode, visitor: (node: TeaNode) => void): void {
+function walkTree(node: AgNode, visitor: (node: AgNode) => void): void {
   visitor(node)
   for (const child of node.children) {
     walkTree(child, visitor)
@@ -209,7 +209,7 @@ function walkTree(node: TeaNode, visitor: (node: TeaNode) => void): void {
 /**
  * Get text content of a node (concatenated from all text descendants)
  */
-function getNodeTextContent(node: TeaNode): string {
+function getNodeTextContent(node: AgNode): string {
   // Raw text nodes have textContent set directly
   if (node.textContent !== undefined) {
     return node.textContent
@@ -221,7 +221,7 @@ function getNodeTextContent(node: TeaNode): string {
 /**
  * Get a prop value from node
  */
-function getNodeProp(node: TeaNode, name: string): string | undefined {
+function getNodeProp(node: AgNode, name: string): string | undefined {
   const props = node.props as Record<string, unknown>
   const value = props[name]
   if (value === undefined || value === null) return undefined
@@ -312,7 +312,7 @@ function parseSingleSelector(selector: string): NodePredicate | null {
   const idMatch = remaining.match(/^#([a-zA-Z0-9_-]+)/)
   if (idMatch) {
     const id = idMatch[1]!
-    parts.push((node: TeaNode) => getNodeProp(node, "id") === id)
+    parts.push((node: AgNode) => getNodeProp(node, "id") === id)
     // Remove ID from selector string
     remaining = remaining.slice(idMatch[0].length)
   }
@@ -325,10 +325,10 @@ function parseSingleSelector(selector: string): NodePredicate | null {
 
     if (value === undefined) {
       // Presence check [attr] - value group didn't match
-      parts.push((node: TeaNode) => getNodeProp(node, attr) !== undefined)
+      parts.push((node: AgNode) => getNodeProp(node, attr) !== undefined)
     } else {
       // Value check [attr="value"] - value group matched
-      parts.push((node: TeaNode) => {
+      parts.push((node: AgNode) => {
         const nodeValue = getNodeProp(node, attr)
         if (nodeValue === undefined) return false
         switch (op) {
@@ -351,7 +351,7 @@ function parseSingleSelector(selector: string): NodePredicate | null {
   if (parts.length === 0) return null
 
   // Compound selector - all parts must match
-  return (node: TeaNode) => parts.every((pred) => pred(node))
+  return (node: AgNode) => parts.every((pred) => pred(node))
 }
 
 /**
@@ -367,7 +367,7 @@ function parseChildCombinator(selector: string): NodePredicate | null {
 
   if (!parentPred || !childPred) return null
 
-  return (node: TeaNode) => {
+  return (node: AgNode) => {
     if (!childPred(node)) return false
     // Check if parent matches
     return node.parent !== null && parentPred(node.parent)
@@ -387,7 +387,7 @@ function parseAdjacentSiblingCombinator(selector: string): NodePredicate | null 
 
   if (!prevPred || !nextPred) return null
 
-  return (node: TeaNode) => {
+  return (node: AgNode) => {
     if (!nextPred(node)) return false
     if (!node.parent) return false
 
@@ -415,7 +415,7 @@ function parseDescendantCombinator(selector: string): NodePredicate | null {
 
   if (!ancestorPred || !descendantPred) return null
 
-  return (node: TeaNode) => {
+  return (node: AgNode) => {
     if (!descendantPred(node)) return false
 
     // Walk up the tree to find ancestor

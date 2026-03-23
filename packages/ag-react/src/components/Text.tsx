@@ -11,7 +11,7 @@
  */
 
 import { type ForwardedRef, type JSX, type ReactNode, forwardRef } from "react"
-import type { TeaNode, TextProps as TextPropsType } from "@silvery/ag/types"
+import type { AgNode, TextProps as TextPropsType } from "@silvery/ag/types"
 
 // ============================================================================
 // Props
@@ -27,7 +27,7 @@ export interface TextProps extends TextPropsType {
  */
 export interface TextHandle {
   /** Get the underlying SilveryNode */
-  getNode(): TeaNode | null
+  getNode(): AgNode | null
 }
 
 // ============================================================================
@@ -77,7 +77,7 @@ export const Text = forwardRef(function Text(props: TextProps, ref: ForwardedRef
   // We wrap it in a TextHandle for type safety
   return (
     <silvery-text
-      ref={(node: TeaNode | null) => {
+      ref={(node: AgNode | null) => {
         // Handle both callback refs and RefObjects
         if (typeof ref === "function") {
           ref(node ? { getNode: () => node } : null)

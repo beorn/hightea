@@ -14,7 +14,7 @@ import type { FocusManager } from "@silvery/ag/focus-manager"
 import { findFocusableAncestor } from "@silvery/tea/focus-queries"
 import type { ParsedMouse } from "./mouse"
 import { getAncestorPath, pointInRect } from "@silvery/ag/tree-utils"
-import type { TeaNode } from "@silvery/ag/types"
+import type { AgNode } from "@silvery/ag/types"
 
 const mouseLog = createLogger("silvery:mouse")
 
@@ -38,9 +38,9 @@ export interface SilveryMouseEvent {
   metaKey: boolean
   shiftKey: boolean
   /** Deepest node under cursor */
-  target: TeaNode
+  target: AgNode
   /** Node whose handler is currently firing (changes during bubble) */
-  currentTarget: TeaNode
+  currentTarget: AgNode
   /** Event type */
   type: "click" | "dblclick" | "mousedown" | "mouseup" | "mousemove" | "mouseenter" | "mouseleave" | "wheel"
   /** Stop event from bubbling to parent nodes */
@@ -97,7 +97,7 @@ export function createMouseEvent(
   type: SilveryMouseEvent["type"],
   x: number,
   y: number,
-  target: TeaNode,
+  target: AgNode,
   parsed: ParsedMouse,
   keyboardMods?: KeyboardModifierState,
 ): SilveryMouseEvent {
@@ -141,7 +141,7 @@ export function createMouseEvent(
 export function createWheelEvent(
   x: number,
   y: number,
-  target: TeaNode,
+  target: AgNode,
   parsed: ParsedMouse,
   keyboardMods?: KeyboardModifierState,
 ): SilveryWheelEvent {
@@ -160,7 +160,7 @@ export function createWheelEvent(
  * Uses reverse child order (last sibling wins = highest z-order, like DOM).
  * Respects overflow:hidden clipping.
  */
-export function hitTest(node: TeaNode, x: number, y: number): TeaNode | null {
+export function hitTest(node: AgNode, x: number, y: number): AgNode | null {
   const rect = node.screenRect
   if (!rect) return null
 
@@ -241,7 +241,7 @@ export function dispatchMouseEvent(event: SilveryMouseEvent): void {
       | ((e: SilveryMouseEvent) => void)
       | undefined
     if (handler) {
-      const mutableEvent = event as { currentTarget: TeaNode }
+      const mutableEvent = event as { currentTarget: AgNode }
       mutableEvent.currentTarget = event.target
       handler(event)
     }
@@ -255,7 +255,7 @@ export function dispatchMouseEvent(event: SilveryMouseEvent): void {
 
     const handler = (node.props as Record<string, unknown>)[handlerProp] as ((e: SilveryMouseEvent) => void) | undefined
     if (handler) {
-      const mutableEvent = event as { currentTarget: TeaNode }
+      const mutableEvent = event as { currentTarget: AgNode }
       mutableEvent.currentTarget = node
       handler(event)
     }
@@ -330,7 +330,7 @@ export function checkDoubleClick(
  * Mirrors the DOM spec: fire mouseleave on nodes in prevPath not in nextPath,
  * and mouseenter on nodes in nextPath not in prevPath.
  */
-export function computeEnterLeave(prevPath: TeaNode[], nextPath: TeaNode[]): { entered: TeaNode[]; left: TeaNode[] } {
+export function computeEnterLeave(prevPath: AgNode[], nextPath: AgNode[]): { entered: AgNode[]; left: AgNode[] } {
   const prevSet = new Set(prevPath)
   const nextSet = new Set(nextPath)
 
@@ -371,9 +371,9 @@ export interface KeyboardModifierState {
 export interface MouseEventProcessorState {
   doubleClick: DoubleClickState
   /** Previous hover path (for enter/leave tracking) */
-  hoverPath: TeaNode[]
+  hoverPath: AgNode[]
   /** Whether the left button is currently down (for click detection) */
-  mouseDownTarget: TeaNode | null
+  mouseDownTarget: AgNode | null
   /** Optional focus manager for click-to-focus */
   focusManager?: FocusManager
   /** Modifier state from Kitty keyboard events, merged into mouse events */
@@ -422,7 +422,7 @@ export function updateKeyboardModifiers(
  * - mousemove + mouseenter/mouseleave
  * - wheel
  */
-export function processMouseEvent(state: MouseEventProcessorState, parsed: ParsedMouse, root: TeaNode): boolean {
+export function processMouseEvent(state: MouseEventProcessorState, parsed: ParsedMouse, root: AgNode): boolean {
   const { x, y, action } = parsed
   const target = hitTest(root, x, y)
   if (action === "move") {
@@ -431,7 +431,7 @@ export function processMouseEvent(state: MouseEventProcessorState, parsed: Parse
     // Check entire ancestor path for onMouseEnter
     let enterAncestor = ""
     if (target) {
-      let n: TeaNode | null = target
+      let n: AgNode | null = target
       while (n) {
         if ("onMouseEnter" in (n.props as Record<string, unknown>)) {
           enterAncestor = `${n.type}#${(n.props as Record<string, unknown>).id ?? ""}`

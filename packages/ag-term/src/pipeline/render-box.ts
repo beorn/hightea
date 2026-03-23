@@ -8,7 +8,7 @@
  */
 
 import type { Color, Style, TerminalBuffer } from "../buffer"
-import type { BoxProps, TeaNode, Rect } from "@silvery/ag/types"
+import type { BoxProps, AgNode, Rect } from "@silvery/ag/types"
 import type { Theme } from "@silvery/theme/types"
 import { getPadding } from "./helpers"
 import { getBorderChars, getBorderSize, parseColor } from "./render-helpers"
@@ -34,7 +34,7 @@ export function getEffectiveBg(props: BoxProps): string | undefined {
  * Render a Box node.
  */
 export function renderBox(
-  _node: TeaNode,
+  _node: AgNode,
   buffer: TerminalBuffer,
   layout: Rect,
   props: BoxProps,
@@ -276,11 +276,11 @@ export function renderOutline(
  * Uses ▲N for items hidden above, ▼N for items hidden below.
  */
 export function renderScrollIndicators(
-  _node: TeaNode,
+  _node: AgNode,
   buffer: TerminalBuffer,
   layout: Rect,
   props: BoxProps,
-  ss: NonNullable<TeaNode["scrollState"]>,
+  ss: NonNullable<AgNode["scrollState"]>,
   ctx?: PipelineContext,
 ): void {
   const border = props.borderStyle ? getBorderSize(props) : { top: 0, bottom: 0, left: 0, right: 0 }

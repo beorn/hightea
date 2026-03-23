@@ -20,7 +20,7 @@
  * ```
  */
 
-import type { TeaNode, Rect } from "@silvery/ag/types"
+import type { AgNode, Rect } from "@silvery/ag/types"
 
 /**
  * Filter options for locator narrowing
@@ -45,7 +45,7 @@ export interface AutoLocator {
 
   // Filtering
   filter(options: FilterOptions): AutoLocator
-  filter(predicate: (node: TeaNode) => boolean): AutoLocator
+  filter(predicate: (node: AgNode) => boolean): AutoLocator
 
   // Narrowing
   first(): AutoLocator
@@ -53,8 +53,8 @@ export interface AutoLocator {
   nth(index: number): AutoLocator
 
   // Resolution (actually finds nodes - re-evaluates on each call)
-  resolve(): TeaNode | null
-  resolveAll(): TeaNode[]
+  resolve(): AgNode | null
+  resolveAll(): AgNode[]
   count(): number
 
   // Utilities (resolve then read)
@@ -65,13 +65,13 @@ export interface AutoLocator {
 }
 
 // Query predicate type
-type NodePredicate = (node: TeaNode) => boolean
+type NodePredicate = (node: AgNode) => boolean
 
 /**
  * Create an AutoLocator from a container getter function.
  * The getter is called fresh on each resolution.
  */
-export function createAutoLocator(getContainer: () => TeaNode): AutoLocator {
+export function createAutoLocator(getContainer: () => AgNode): AutoLocator {
   return new AutoLocatorImpl(getContainer, [])
 }
 
@@ -80,7 +80,7 @@ export function createAutoLocator(getContainer: () => TeaNode): AutoLocator {
  */
 class AutoLocatorImpl implements AutoLocator {
   constructor(
-    private getContainer: () => TeaNode,
+    private getContainer: () => AgNode,
     private predicates: NodePredicate[],
     private indexSelector?: { type: "first" | "last" | "nth"; index?: number },
   ) {}
@@ -124,14 +124,14 @@ class AutoLocatorImpl implements AutoLocator {
     return new AutoLocatorImpl(this.getContainer, [...this.predicates, predicate])
   }
 
-  filter(optionsOrPredicate: FilterOptions | ((node: TeaNode) => boolean)): AutoLocator {
+  filter(optionsOrPredicate: FilterOptions | ((node: AgNode) => boolean)): AutoLocator {
     let predicate: NodePredicate
 
     if (typeof optionsOrPredicate === "function") {
       predicate = optionsOrPredicate
     } else {
       const opts = optionsOrPredicate
-      predicate = (node: TeaNode) => {
+      predicate = (node: AgNode) => {
         if (opts.hasText !== undefined) {
           const content = getNodeTextContent(node)
           if (typeof opts.hasText === "string") {
@@ -177,7 +177,7 @@ class AutoLocatorImpl implements AutoLocator {
     })
   }
 
-  resolve(): TeaNode | null {
+  resolve(): AgNode | null {
     const nodes = this.resolveAll()
     if (this.indexSelector) {
       switch (this.indexSelector.type) {
@@ -192,7 +192,7 @@ class AutoLocatorImpl implements AutoLocator {
     return nodes[0] ?? null
   }
 
-  resolveAll(): TeaNode[] {
+  resolveAll(): AgNode[] {
     // Get fresh container on each resolution
     const container = this.getContainer()
 
@@ -200,7 +200,7 @@ class AutoLocatorImpl implements AutoLocator {
       return [container]
     }
 
-    const matches: TeaNode[] = []
+    const matches: AgNode[] = []
     walkTree(container, (node) => {
       if (this.predicates.every((p) => p(node))) {
         matches.push(node)
@@ -245,7 +245,7 @@ class AutoLocatorImpl implements AutoLocator {
 /**
  * Walk tree depth-first, calling visitor for each node
  */
-function walkTree(node: TeaNode, visitor: (node: TeaNode) => void): void {
+function walkTree(node: AgNode, visitor: (node: AgNode) => void): void {
   visitor(node)
   for (const child of node.children) {
     walkTree(child, visitor)
@@ -255,7 +255,7 @@ function walkTree(node: TeaNode, visitor: (node: TeaNode) => void): void {
 /**
  * Get text content of a node (concatenated from all text descendants)
  */
-function getNodeTextContent(node: TeaNode): string {
+function getNodeTextContent(node: AgNode): string {
   if (node.textContent !== undefined) {
     return node.textContent
   }
@@ -265,7 +265,7 @@ function getNodeTextContent(node: TeaNode): string {
 /**
  * Get a prop value from node
  */
-function getNodeProp(node: TeaNode, name: string): string | undefined {
+function getNodeProp(node: AgNode, name: string): string | undefined {
   const props = node.props as Record<string, unknown>
   const value = props[name]
   if (value === undefined || value === null) return undefined
@@ -312,7 +312,7 @@ function parseSingleSelector(selector: string): NodePredicate | null {
   const idMatch = remaining.match(/^#([a-zA-Z0-9_-]+)/)
   if (idMatch) {
     const id = idMatch[1]!
-    parts.push((node: TeaNode) => getNodeProp(node, "id") === id)
+    parts.push((node: AgNode) => getNodeProp(node, "id") === id)
     remaining = remaining.slice(idMatch[0].length)
   }
 
@@ -323,9 +323,9 @@ function parseSingleSelector(selector: string): NodePredicate | null {
     if (!attr) continue
 
     if (value === undefined) {
-      parts.push((node: TeaNode) => getNodeProp(node, attr) !== undefined)
+      parts.push((node: AgNode) => getNodeProp(node, attr) !== undefined)
     } else {
-      parts.push((node: TeaNode) => {
+      parts.push((node: AgNode) => {
         const nodeValue = getNodeProp(node, attr)
         if (nodeValue === undefined) return false
         switch (op) {
@@ -346,7 +346,7 @@ function parseSingleSelector(selector: string): NodePredicate | null {
 
   if (parts.length === 0) return null
 
-  return (node: TeaNode) => parts.every((pred) => pred(node))
+  return (node: AgNode) => parts.every((pred) => pred(node))
 }
 
 /**
@@ -362,7 +362,7 @@ function parseChildCombinator(selector: string): NodePredicate | null {
 
   if (!parentPred || !childPred) return null
 
-  return (node: TeaNode) => {
+  return (node: AgNode) => {
     if (!childPred(node)) return false
     return node.parent !== null && parentPred(node.parent)
   }
@@ -381,7 +381,7 @@ function parseAdjacentSiblingCombinator(selector: string): NodePredicate | null 
 
   if (!prevPred || !nextPred) return null
 
-  return (node: TeaNode) => {
+  return (node: AgNode) => {
     if (!nextPred(node)) return false
     if (!node.parent) return false
 
@@ -407,7 +407,7 @@ function parseDescendantCombinator(selector: string): NodePredicate | null {
 
   if (!ancestorPred || !descendantPred) return null
 
-  return (node: TeaNode) => {
+  return (node: AgNode) => {
     if (!descendantPred(node)) return false
 
     let current = node.parent

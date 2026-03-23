@@ -723,7 +723,7 @@ function needsLayoutRecalculation(node: any): boolean {
  * effects see layout) and silvery (layout runs in a separate pipeline pass).
  */
 export function measureElement(nodeOrHandle: any): import("@silvery/ag-react/measureElement").MeasureElementOutput {
-  // Resolve BoxHandle → TeaNode
+  // Resolve BoxHandle → AgNode
   const node = typeof nodeOrHandle?.getNode === "function" ? nodeOrHandle.getNode() : nodeOrHandle
   if (!node) return { width: 0, height: 0 }
 

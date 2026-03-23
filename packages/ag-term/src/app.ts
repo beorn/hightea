@@ -36,7 +36,7 @@ import type { ParsedMouse } from "./mouse"
 import { createMouseEventProcessor, processMouseEvent } from "./mouse-events"
 import type { FocusManager } from "@silvery/ag/focus-manager"
 import { pointInRect } from "@silvery/ag/tree-utils"
-import type { TeaNode } from "@silvery/ag/types"
+import type { AgNode } from "@silvery/ag/types"
 
 /**
  * App interface - unified return type from render()
@@ -51,7 +51,7 @@ export interface App {
   readonly ansi: string
 
   /** Get node at content coordinates */
-  nodeAt(x: number, y: number): TeaNode | null
+  nodeAt(x: number, y: number): AgNode | null
 
   /** Get locator by testID attribute */
   getByTestId(id: string): AutoLocator
@@ -162,7 +162,7 @@ export interface App {
   lastFrameText(): string | undefined
 
   /** Get container root node (internal - use app.locator() instead) */
-  getContainer(): TeaNode
+  getContainer(): AgNode
 
   // === Focus System ===
 
@@ -186,7 +186,7 @@ export interface App {
  */
 export interface AppOptions {
   /** Function to get current container root */
-  getContainer: () => TeaNode
+  getContainer: () => AgNode
 
   /** Function to get current buffer */
   getBuffer: () => TerminalBuffer | null
@@ -296,7 +296,7 @@ export function buildApp(options: AppOptions): App {
       return buffer ? bufferToStyledText(buffer) : ""
     },
 
-    nodeAt(x: number, y: number): TeaNode | null {
+    nodeAt(x: number, y: number): AgNode | null {
       const root = getContainer()
       return findNodeAtContentPosition(root, x, y)
     },
@@ -570,7 +570,7 @@ export function buildApp(options: AppOptions): App {
       return buffer ? bufferToText(buffer) : undefined
     },
 
-    getContainer(): TeaNode {
+    getContainer(): AgNode {
       return getContainer()
     },
 
@@ -609,7 +609,7 @@ export function buildApp(options: AppOptions): App {
 /**
  * Find node at content coordinates (not screen coordinates)
  */
-function findNodeAtContentPosition(node: TeaNode, x: number, y: number): TeaNode | null {
+function findNodeAtContentPosition(node: AgNode, x: number, y: number): AgNode | null {
   const rect = node.contentRect
   if (!rect) return null
 

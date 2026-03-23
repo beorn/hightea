@@ -29,7 +29,7 @@
 import { createLogger } from "loggily"
 import type { TerminalBuffer } from "../buffer"
 import type { CursorState } from "@silvery/ag-react/hooks/useCursor"
-import type { TeaNode } from "@silvery/ag/types"
+import type { AgNode } from "@silvery/ag/types"
 import { runWithMeasurer, type Measurer } from "../unicode"
 import type { OutputPhaseFn } from "./output-phase"
 import type { PipelineContext } from "./types"
@@ -141,7 +141,7 @@ export interface PipelineConfig {
  * SILVERY_DEV=1 warns at runtime if prevBuffer is null after the first frame.
  */
 export function executeRender(
-  root: TeaNode,
+  root: AgNode,
   width: number,
   height: number,
   prevBuffer: TerminalBuffer | null,
@@ -165,7 +165,7 @@ export function executeRender(
 
 /** Internal: runs the full pipeline. */
 function executeRenderCore(
-  root: TeaNode,
+  root: AgNode,
   width: number,
   height: number,
   prevBuffer: TerminalBuffer | null,
@@ -334,7 +334,7 @@ import { type RenderBuffer, getRenderAdapter, hasRenderAdapter } from "../render
  * @returns Object with output (if any) and current buffer
  */
 export function executeRenderAdapter(
-  root: TeaNode,
+  root: AgNode,
   width: number,
   height: number,
   prevBuffer: RenderBuffer | null,

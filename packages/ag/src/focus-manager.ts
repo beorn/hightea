@@ -7,7 +7,7 @@
  * Replaces the flat focus list in context.ts (FocusContext with focusables Map).
  */
 
-import type { TeaNode, Rect } from "./types"
+import type { AgNode, Rect } from "./types"
 import {
   findByTestID,
   findFocusableAncestor,
@@ -30,7 +30,7 @@ export type FocusOrigin = "keyboard" | "mouse" | "programmatic"
  * @param newNode - The node gaining focus (null on blur)
  * @param origin - How focus was acquired
  */
-export type FocusChangeCallback = (oldNode: TeaNode | null, newNode: TeaNode | null, origin: FocusOrigin | null) => void
+export type FocusChangeCallback = (oldNode: AgNode | null, newNode: AgNode | null, origin: FocusOrigin | null) => void
 
 export interface FocusSnapshot {
   activeId: string | null
@@ -48,11 +48,11 @@ export interface FocusManagerOptions {
 
 export interface FocusManager {
   /** Currently focused node */
-  readonly activeElement: TeaNode | null
+  readonly activeElement: AgNode | null
   /** testID of the currently focused node */
   readonly activeId: string | null
   /** Previously focused node */
-  readonly previousElement: TeaNode | null
+  readonly previousElement: AgNode | null
   /** testID of the previously focused node */
   readonly previousId: string | null
   /** How focus was most recently acquired */
@@ -63,9 +63,9 @@ export interface FocusManager {
   readonly scopeMemory: Readonly<Record<string, string>>
 
   /** Focus a specific node */
-  focus(node: TeaNode, origin?: FocusOrigin): void
+  focus(node: AgNode, origin?: FocusOrigin): void
   /** Focus a node by testID (requires root for tree search) */
-  focusById(id: string, root: TeaNode, origin?: FocusOrigin): void
+  focusById(id: string, root: AgNode, origin?: FocusOrigin): void
   /** Clear focus */
   blur(): void
 
@@ -74,7 +74,7 @@ export interface FocusManager {
    * If the focused node (or previous node) is within the removed subtree,
    * clear the reference to prevent dead node retention and broken navigation.
    */
-  handleSubtreeRemoved(removedRoot: TeaNode): void
+  handleSubtreeRemoved(removedRoot: AgNode): void
 
   /** Push a focus scope onto the stack */
   enterScope(scopeId: string): void
@@ -88,22 +88,22 @@ export interface FocusManager {
    * switches to the new scope, and restores the remembered focus (or focuses
    * the first focusable element in the scope subtree).
    */
-  activateScope(scopeId: string, root: TeaNode): void
+  activateScope(scopeId: string, root: AgNode): void
 
   /** Get the testID path from focused node to root */
-  getFocusPath(root: TeaNode): string[]
+  getFocusPath(root: AgNode): string[]
   /** Check if a subtree rooted at testID contains the focused node */
-  hasFocusWithin(root: TeaNode, testID: string): boolean
+  hasFocusWithin(root: AgNode, testID: string): boolean
 
   /** Focus the next focusable node in tab order */
-  focusNext(root: TeaNode, scope?: TeaNode): void
+  focusNext(root: AgNode, scope?: AgNode): void
   /** Focus the previous focusable node in tab order */
-  focusPrev(root: TeaNode, scope?: TeaNode): void
+  focusPrev(root: AgNode, scope?: AgNode): void
   /** Focus in a spatial direction (up/down/left/right) */
   focusDirection(
-    root: TeaNode,
+    root: AgNode,
     direction: "up" | "down" | "left" | "right",
-    layoutFn?: (node: TeaNode) => Rect | null,
+    layoutFn?: (node: AgNode) => Rect | null,
   ): void
 
   /** Subscribe for React integration (useSyncExternalStore) */
@@ -120,9 +120,9 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
   const onFocusChange = options?.onFocusChange
 
   // Internal state
-  let activeElement: TeaNode | null = null
+  let activeElement: AgNode | null = null
   let activeId: string | null = null
-  let previousElement: TeaNode | null = null
+  let previousElement: AgNode | null = null
   let previousId: string | null = null
   let focusOrigin: FocusOrigin | null = null
   const scopeStack: string[] = []
@@ -143,14 +143,14 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     }
   }
 
-  function getTestID(node: TeaNode): string | null {
+  function getTestID(node: AgNode): string | null {
     const props = node.props as Record<string, unknown>
     return typeof props.testID === "string" ? props.testID : null
   }
 
   // ---- Focus operations ----
 
-  function focus(node: TeaNode, origin: FocusOrigin = "programmatic"): void {
+  function focus(node: AgNode, origin: FocusOrigin = "programmatic"): void {
     // Skip if already focused on this node
     if (activeElement === node) {
       // Still update origin if different
@@ -179,7 +179,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     onFocusChange?.(oldElement, node, origin)
   }
 
-  function focusById(id: string, root: TeaNode, origin: FocusOrigin = "programmatic"): void {
+  function focusById(id: string, root: AgNode, origin: FocusOrigin = "programmatic"): void {
     const node = findByTestID(root, id)
     if (node) {
       // Walk up to the nearest focusable ancestor if the found node isn't focusable
@@ -225,7 +225,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
   /**
    * Check if a node is the given target or contains it as a descendant.
    */
-  function subtreeContains(subtreeRoot: TeaNode, target: TeaNode): boolean {
+  function subtreeContains(subtreeRoot: AgNode, target: AgNode): boolean {
     if (subtreeRoot === target) return true
     for (const child of subtreeRoot.children) {
       if (subtreeContains(child, target)) return true
@@ -238,7 +238,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
    * element lives within the removed subtree, clear the dangling reference.
    * This prevents dead node retention and broken navigation (indexOf → -1).
    */
-  function handleSubtreeRemoved(removedRoot: TeaNode): void {
+  function handleSubtreeRemoved(removedRoot: AgNode): void {
     let changed = false
 
     if (activeElement && subtreeContains(removedRoot, activeElement)) {
@@ -281,7 +281,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
 
   // ---- Peer scope activation (WPF FocusScope model) ----
 
-  function activateScope(scopeId: string, root: TeaNode): void {
+  function activateScope(scopeId: string, root: AgNode): void {
     // Save current focus in the outgoing scope's memory
     if (activeScopeId && activeId) {
       scopeMemory[activeScopeId] = activeId
@@ -314,11 +314,11 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
 
   // ---- Tree queries ----
 
-  function getFocusPath(root: TeaNode): string[] {
+  function getFocusPath(root: AgNode): string[] {
     if (!activeElement) return []
 
     const path: string[] = []
-    let current: TeaNode | null = activeElement
+    let current: AgNode | null = activeElement
     while (current && current !== root.parent) {
       const id = getTestID(current)
       if (id) path.push(id)
@@ -327,7 +327,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     return path
   }
 
-  function hasFocusWithin(root: TeaNode, testID: string): boolean {
+  function hasFocusWithin(root: AgNode, testID: string): boolean {
     if (!activeElement) return false
 
     // Find the node with the given testID
@@ -335,7 +335,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     if (!target) return false
 
     // Walk up from activeElement to see if we pass through target
-    let current: TeaNode | null = activeElement
+    let current: AgNode | null = activeElement
     while (current) {
       if (current === target) return true
       current = current.parent
@@ -350,7 +350,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
    * If an explicit scope is provided, use it. Otherwise, if the scopeStack
    * is non-empty, find the topmost scope node in the tree by testID.
    */
-  function resolveScope(root: TeaNode, explicitScope?: TeaNode): TeaNode | undefined {
+  function resolveScope(root: AgNode, explicitScope?: AgNode): AgNode | undefined {
     if (explicitScope) return explicitScope
 
     if (scopeStack.length > 0) {
@@ -362,7 +362,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     return undefined
   }
 
-  function focusNext(root: TeaNode, scope?: TeaNode): void {
+  function focusNext(root: AgNode, scope?: AgNode): void {
     const effectiveScope = resolveScope(root, scope)
     const order = getTabOrder(root, effectiveScope)
     if (order.length === 0) return
@@ -379,7 +379,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     focus(order[nextIndex]!, "keyboard")
   }
 
-  function focusPrev(root: TeaNode, scope?: TeaNode): void {
+  function focusPrev(root: AgNode, scope?: AgNode): void {
     const effectiveScope = resolveScope(root, scope)
     const order = getTabOrder(root, effectiveScope)
     if (order.length === 0) return
@@ -397,9 +397,9 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
   }
 
   function focusDirection(
-    root: TeaNode,
+    root: AgNode,
     direction: "up" | "down" | "left" | "right",
-    layoutFn?: (node: TeaNode) => Rect | null,
+    layoutFn?: (node: AgNode) => Rect | null,
   ): void {
     if (!activeElement) return
 
@@ -412,7 +412,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
 
     // Fall back to spatial navigation
     const candidates = getTabOrder(root)
-    const resolvedLayoutFn = layoutFn ?? ((node: TeaNode) => node.screenRect)
+    const resolvedLayoutFn = layoutFn ?? ((node: AgNode) => node.screenRect)
     const target = findSpatialTarget(activeElement, direction, candidates, resolvedLayoutFn)
     if (target) {
       focus(target, "keyboard")

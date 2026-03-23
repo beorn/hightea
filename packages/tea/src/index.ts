@@ -53,7 +53,7 @@ export type {
   SliceWithInit,
   InferOp,
   // Shared types
-  TeaNode,
+  AgNode,
   Rect,
 } from "./core"
 

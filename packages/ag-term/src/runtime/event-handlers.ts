@@ -17,7 +17,7 @@ import { findByTestID } from "@silvery/tea/focus-queries"
 import { type MouseEventProcessorState, processMouseEvent, hitTest } from "../mouse-events"
 import type { Container } from "@silvery/ag-react/reconciler"
 import { getContainerRoot } from "@silvery/ag-react/reconciler"
-import type { TeaNode } from "@silvery/ag/types"
+import type { AgNode } from "@silvery/ag/types"
 import type { Key } from "./keys"
 import type { EventHandler, EventHandlerContext, EventHandlers } from "./create-app"
 
@@ -164,7 +164,7 @@ export function handleFocusNavigation(
 export function dispatchMouseEventToTree(
   event: NamespacedEvent,
   mouseEventState: MouseEventProcessorState,
-  root: TeaNode,
+  root: AgNode,
 ): boolean {
   if (event.event !== "mouse" || !event.data) return false
 

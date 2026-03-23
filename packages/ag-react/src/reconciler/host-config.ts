@@ -8,7 +8,7 @@
 
 import { createContext } from "react"
 import { DefaultEventPriority, DiscreteEventPriority, NoEventPriority } from "react-reconciler/constants.js"
-import type { BoxProps, TeaNode, TeaNodeType, TextProps } from "@silvery/ag/types"
+import type { BoxProps, AgNode, AgNodeType, TextProps } from "@silvery/ag/types"
 import { contentPropsChanged, layoutPropsChanged, propsEqual } from "./helpers"
 import { applyBoxProps, createNode, createVirtualTextNode } from "./nodes"
 
@@ -17,10 +17,10 @@ import { applyBoxProps, createNode, createVirtualTextNode } from "./nodes"
  * Ink uses `ink-box` / `ink-text` as intrinsic element names;
  * Silvery uses `silvery-box` / `silvery-text`.
  */
-function normalizeNodeType(type: string): TeaNodeType {
+function normalizeNodeType(type: string): AgNodeType {
   if (type === "ink-box") return "silvery-box"
   if (type === "ink-text") return "silvery-text"
-  return type as TeaNodeType
+  return type as AgNodeType
 }
 
 // ============================================================================
@@ -33,13 +33,13 @@ function normalizeNodeType(type: string): TeaNodeType {
  * is within a removed subtree, focus must be cleared to prevent dangling
  * references and broken navigation (indexOf → -1, hasFocusWithin lies).
  */
-let onNodeRemovedCallback: ((removedNode: TeaNode) => void) | null = null
+let onNodeRemovedCallback: ((removedNode: AgNode) => void) | null = null
 
 /**
  * Register a callback to be called when any node is removed from the tree.
  * Returns a cleanup function to unregister. Only one callback at a time.
  */
-export function setOnNodeRemoved(callback: ((removedNode: TeaNode) => void) | null): void {
+export function setOnNodeRemoved(callback: ((removedNode: AgNode) => void) | null): void {
   onNodeRemovedCallback = callback
 }
 
@@ -51,7 +51,7 @@ export function setOnNodeRemoved(callback: ((removedNode: TeaNode) => void) | nu
  * Mark this node and all ancestors as having dirty content/layout.
  * Used to enable fast-path subtree skipping in contentPhase.
  */
-function markSubtreeDirty(node: TeaNode | null): void {
+function markSubtreeDirty(node: AgNode | null): void {
   while (node && !node.subtreeDirty) {
     node.subtreeDirty = true
     node = node.parent
@@ -67,9 +67,9 @@ function markSubtreeDirty(node: TeaNode | null): void {
  *
  * No-op when the node already has a layoutNode (normal path handles it).
  */
-function markLayoutAncestorDirty(node: TeaNode): void {
+function markLayoutAncestorDirty(node: AgNode): void {
   if (node.layoutNode) return
-  let ancestor: TeaNode | null = node.parent
+  let ancestor: AgNode | null = node.parent
   while (ancestor && !ancestor.layoutNode) {
     ancestor = ancestor.parent
   }
@@ -117,7 +117,7 @@ export function setInkStrictValidation(enabled: boolean): void {
  * Container type - the root of our Silvery tree
  */
 export interface Container {
-  root: TeaNode
+  root: AgNode
   onRender: () => void
 }
 
@@ -181,7 +181,7 @@ export const hostConfig = {
     return { isInsideText: false }
   },
 
-  getChildHostContext(parentHostContext: HostContext, type: TeaNodeType): HostContext {
+  getChildHostContext(parentHostContext: HostContext, type: AgNodeType): HostContext {
     // Normalize Ink intrinsic types (ink-box → silvery-box, ink-text → silvery-text)
     const normalizedType = normalizeNodeType(type)
     // Once inside a text node, stay inside
@@ -194,11 +194,11 @@ export const hostConfig = {
 
   // Instance creation
   createInstance(
-    type: TeaNodeType,
+    type: AgNodeType,
     props: BoxProps | TextProps,
     _rootContainer: unknown,
     hostContext: HostContext,
-  ): TeaNode {
+  ): AgNode {
     // Normalize Ink intrinsic types (ink-box → silvery-box, ink-text → silvery-text)
     type = normalizeNodeType(type)
     // Ink-compat: flatten `style` prop from intrinsic ink-box/ink-text elements.
@@ -225,14 +225,14 @@ export const hostConfig = {
     return createNode(type, props)
   },
 
-  createTextInstance(text: string, _rootContainer: unknown, hostContext: HostContext): TeaNode {
+  createTextInstance(text: string, _rootContainer: unknown, hostContext: HostContext): AgNode {
     // Ink-compat: throw when text appears directly in a Box (outside Text)
     if (inkStrictValidation && !hostContext.isInsideText && text.trim().length > 0) {
       throw new Error(`Text string "${text}" must be rendered inside <Text> component`)
     }
     // Raw text nodes don't have layout nodes - they're just data nodes
     // Their content is rendered by their parent silvery-text element
-    const node: TeaNode = {
+    const node: AgNode = {
       type: "silvery-text",
       props: { children: text } as TextProps,
       children: [],
@@ -259,7 +259,7 @@ export const hostConfig = {
   },
 
   // Tree operations
-  appendChild(parentInstance: TeaNode, child: TeaNode) {
+  appendChild(parentInstance: AgNode, child: AgNode) {
     // React calls appendChild to move an existing child during keyed reorder.
     // Remove from old position first to avoid duplicating in the children array.
     const existingIndex = parentInstance.children.indexOf(child)
@@ -285,7 +285,7 @@ export const hostConfig = {
     markSubtreeDirty(parentInstance)
   },
 
-  appendInitialChild(parentInstance: TeaNode, child: TeaNode) {
+  appendInitialChild(parentInstance: AgNode, child: AgNode) {
     child.parent = parentInstance
     parentInstance.children.push(child)
     // Only add to layout tree if both nodes have layout nodes
@@ -295,7 +295,7 @@ export const hostConfig = {
     }
   },
 
-  appendChildToContainer(container: Container, child: TeaNode) {
+  appendChildToContainer(container: Container, child: AgNode) {
     // Remove from old position if already a child (keyed reorder)
     const existingIndex = container.root.children.indexOf(child)
     if (existingIndex !== -1) {
@@ -317,7 +317,7 @@ export const hostConfig = {
     markSubtreeDirty(container.root)
   },
 
-  removeChild(parentInstance: TeaNode, child: TeaNode) {
+  removeChild(parentInstance: AgNode, child: AgNode) {
     const index = parentInstance.children.indexOf(child)
     if (index !== -1) {
       // Notify focus manager before detaching (needs parent chain intact for subtree check)
@@ -337,7 +337,7 @@ export const hostConfig = {
     }
   },
 
-  removeChildFromContainer(container: Container, child: TeaNode) {
+  removeChildFromContainer(container: Container, child: AgNode) {
     const index = container.root.children.indexOf(child)
     if (index !== -1) {
       // Notify focus manager before detaching
@@ -356,7 +356,7 @@ export const hostConfig = {
     }
   },
 
-  insertBefore(parentInstance: TeaNode, child: TeaNode, beforeChild: TeaNode) {
+  insertBefore(parentInstance: AgNode, child: AgNode, beforeChild: AgNode) {
     // React calls insertBefore to move an existing child during keyed reorder.
     // Remove from old position first to avoid duplicating in the children array.
     const existingIndex = parentInstance.children.indexOf(child)
@@ -384,7 +384,7 @@ export const hostConfig = {
     }
   },
 
-  insertInContainerBefore(container: Container, child: TeaNode, beforeChild: TeaNode) {
+  insertInContainerBefore(container: Container, child: AgNode, beforeChild: AgNode) {
     // Remove from old position if already a child (keyed reorder)
     const existingIndex = container.root.children.indexOf(child)
     if (existingIndex !== -1) {
@@ -411,8 +411,8 @@ export const hostConfig = {
 
   // Updates
   prepareUpdate(
-    _instance: TeaNode,
-    _type: TeaNodeType,
+    _instance: AgNode,
+    _type: AgNodeType,
     oldProps: BoxProps | TextProps,
     newProps: BoxProps | TextProps,
   ): boolean | null {
@@ -424,8 +424,8 @@ export const hostConfig = {
   // commitUpdate(instance, updatePayload, type, oldProps, newProps) to
   // commitUpdate(instance, type, oldProps, newProps, finishedWork)
   commitUpdate(
-    instance: TeaNode,
-    _type: TeaNodeType,
+    instance: AgNode,
+    _type: AgNodeType,
     oldProps: BoxProps | TextProps,
     newProps: BoxProps | TextProps,
     _finishedWork: unknown,
@@ -520,7 +520,7 @@ export const hostConfig = {
     }
   },
 
-  commitTextUpdate(textInstance: TeaNode, _oldText: string, newText: string) {
+  commitTextUpdate(textInstance: AgNode, _oldText: string, newText: string) {
     textInstance.textContent = newText
     textInstance.props = { children: newText } as TextProps
     textInstance.contentDirty = true
@@ -546,7 +546,7 @@ export const hostConfig = {
   },
 
   // Misc
-  getPublicInstance(instance: TeaNode) {
+  getPublicInstance(instance: AgNode) {
     return instance
   },
 
@@ -687,7 +687,7 @@ export const hostConfig = {
    * layout engine must recalculate dimensions), and markLayoutAncestorDirty
    * (virtual text nodes without layoutNode need the nearest layout ancestor dirty).
    */
-  hideInstance(instance: TeaNode) {
+  hideInstance(instance: AgNode) {
     instance.hidden = true
     instance.contentDirty = true
     instance.stylePropsDirty = true
@@ -710,7 +710,7 @@ export const hostConfig = {
    * Same invalidation as hideInstance — the node's visibility change affects
    * layout (measured content changes) and paint (content must be re-rendered).
    */
-  unhideInstance(instance: TeaNode, _props: BoxProps | TextProps) {
+  unhideInstance(instance: AgNode, _props: BoxProps | TextProps) {
     instance.hidden = false
     instance.contentDirty = true
     instance.stylePropsDirty = true
@@ -733,7 +733,7 @@ export const hostConfig = {
    * to the nearest layout ancestor and marks it dirty so the measure function
    * re-collects descendant text (collectNodeTextContent skips hidden children).
    */
-  hideTextInstance(textInstance: TeaNode) {
+  hideTextInstance(textInstance: AgNode) {
     textInstance.hidden = true
     textInstance.contentDirty = true
     textInstance.stylePropsDirty = true
@@ -750,7 +750,7 @@ export const hostConfig = {
    * Same invalidation as hideTextInstance — the text content changes when
    * hidden children become visible again.
    */
-  unhideTextInstance(textInstance: TeaNode, _text: string) {
+  unhideTextInstance(textInstance: AgNode, _text: string) {
     textInstance.hidden = false
     textInstance.contentDirty = true
     textInstance.stylePropsDirty = true

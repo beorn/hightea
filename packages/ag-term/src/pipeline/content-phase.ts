@@ -19,7 +19,7 @@
 import { createLogger } from "loggily"
 import type { Color } from "../buffer"
 import { TerminalBuffer } from "../buffer"
-import type { BoxProps, TeaNode, TextProps } from "@silvery/ag/types"
+import type { BoxProps, AgNode, TextProps } from "@silvery/ag/types"
 import { getBorderSize, getPadding } from "./helpers"
 import { renderBox, renderOutline, renderScrollIndicators, getEffectiveBg } from "./render-box"
 import { parseColor } from "./render-helpers"
@@ -41,7 +41,7 @@ const cellLog = createLogger("silvery:content:cell")
  * @param prevBuffer Previous buffer for incremental rendering (optional)
  * @returns A TerminalBuffer with the rendered content
  */
-export function contentPhase(root: TeaNode, prevBuffer?: TerminalBuffer | null, ctx?: PipelineContext): TerminalBuffer {
+export function contentPhase(root: AgNode, prevBuffer?: TerminalBuffer | null, ctx?: PipelineContext): TerminalBuffer {
   const layout = root.contentRect
   if (!layout) {
     throw new Error("contentPhase called before layout phase")
@@ -142,8 +142,8 @@ export function contentPhase(root: TeaNode, prevBuffer?: TerminalBuffer | null, 
  *    has null/stale prevLayout while fresh has synced prevLayout, causing
  *    different cascade behavior (layoutChanged true vs false).
  */
-function syncPrevLayout(root: TeaNode): void {
-  const stack: TeaNode[] = [root]
+function syncPrevLayout(root: AgNode): void {
+  const stack: AgNode[] = [root]
   while (stack.length > 0) {
     const node = stack.pop()!
     node.prevLayout = node.contentRect
@@ -198,9 +198,9 @@ const _nodeTrace: NodeTraceEntry[] = []
 const _nodeTraceEnabled = typeof process !== "undefined" && !!process.env?.SILVERY_STRICT
 
 /** DIAG: compute node depth in tree */
-function _getNodeDepth(node: TeaNode): number {
+function _getNodeDepth(node: AgNode): number {
   let depth = 0
-  let n: TeaNode | null = node.parent
+  let n: AgNode | null = node.parent
   while (n) {
     depth++
     n = n.parent
@@ -219,7 +219,7 @@ export { clearBgConflictWarnings, setBgConflictMode }
  * Render a single node to the buffer.
  */
 function renderNodeToBuffer(
-  node: TeaNode,
+  node: AgNode,
   buffer: TerminalBuffer,
   nodeState: NodeRenderState,
   ctx?: PipelineContext,
@@ -546,7 +546,7 @@ function renderNodeToBuffer(
  * the rendering flow rather than child traversal details.
  */
 function buildCascadeInputs(
-  node: TeaNode,
+  node: AgNode,
   hasPrevBuffer: boolean,
 ): { absoluteChildMutated: boolean; descendantOverflowChanged: boolean } {
   if (!hasPrevBuffer || !node.subtreeDirty || node.children === undefined) {
@@ -583,9 +583,9 @@ function buildCascadeInputs(
  * renderNodeToBuffer to keep the main function focused on rendering logic.
  */
 function traceRenderDecision(
-  node: TeaNode,
+  node: AgNode,
   props: BoxProps & TextProps,
-  layout: NonNullable<TeaNode["contentRect"]>,
+  layout: NonNullable<AgNode["contentRect"]>,
   screenY: number,
   scrollOffset: number,
   hasPrevBuffer: boolean,
@@ -705,9 +705,9 @@ function traceRenderDecision(
  * All clearing runs BEFORE renderBox/renderText so borders drawn later are not overwritten.
  */
 function executeRegionClearing(
-  node: TeaNode,
+  node: AgNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<TeaNode["contentRect"]>,
+  layout: NonNullable<AgNode["contentRect"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
   bufferIsCloned: boolean,
@@ -759,9 +759,9 @@ function executeRegionClearing(
  * @returns The boxInheritedBg color (needed by outline rendering after children).
  */
 function renderOwnContent(
-  node: TeaNode,
+  node: AgNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<TeaNode["contentRect"]>,
+  layout: NonNullable<AgNode["contentRect"]>,
   props: BoxProps & TextProps,
   nodeState: NodeRenderState,
   skipBgFill: boolean,
@@ -913,7 +913,7 @@ export function planScrollRender(inputs: ScrollPlanInputs): ScrollPlan {
  * Render children of a scroll container with proper clipping and offset.
  */
 function renderScrollContainerChildren(
-  node: TeaNode,
+  node: AgNode,
   buffer: TerminalBuffer,
   props: BoxProps,
   nodeState: NodeRenderState,
@@ -1142,7 +1142,7 @@ function renderScrollContainerChildren(
  * Render children of a normal (non-scroll) container.
  */
 function renderNormalChildren(
-  node: TeaNode,
+  node: AgNode,
   buffer: TerminalBuffer,
   props: BoxProps,
   nodeState: NodeRenderState,
@@ -1366,7 +1366,7 @@ function renderNormalChildren(
  * Clear dirty flags on the current node only (no recursion).
  * Used after rendering a node to reset its flags.
  */
-function clearNodeDirtyFlags(node: TeaNode): void {
+function clearNodeDirtyFlags(node: AgNode): void {
   node.contentDirty = false
   node.stylePropsDirty = false
   node.bgDirty = false
@@ -1378,7 +1378,7 @@ function clearNodeDirtyFlags(node: TeaNode): void {
 /**
  * Clear dirty flags on a subtree that was skipped during incremental rendering.
  */
-function clearDirtyFlags(node: TeaNode): void {
+function clearDirtyFlags(node: AgNode): void {
   clearNodeDirtyFlags(node)
   for (const child of node.children) {
     if (child.layoutNode) {
@@ -1398,7 +1398,7 @@ function clearDirtyFlags(node: TeaNode): void {
  * after the parent renders, otherwise stale subtreeDirty blocks
  * markSubtreeDirty() propagation on future updates.
  */
-function clearVirtualTextFlags(node: TeaNode): void {
+function clearVirtualTextFlags(node: AgNode): void {
   clearNodeDirtyFlags(node)
   for (const child of node.children) {
     clearVirtualTextFlags(child)
@@ -1410,7 +1410,7 @@ function clearVirtualTextFlags(node: TeaNode): void {
  * Checked even when subtreeDirty=true because subtreeDirty only means
  * descendants are dirty, not that this container's gap regions need clearing.
  */
-function hasChildPositionChanged(node: TeaNode): boolean {
+function hasChildPositionChanged(node: AgNode): boolean {
   for (const child of node.children) {
     if (child.contentRect && child.prevLayout) {
       if (child.contentRect.x !== child.prevLayout.x || child.contentRect.y !== child.prevLayout.y) {
@@ -1434,13 +1434,13 @@ function hasChildPositionChanged(node: TeaNode): boolean {
  * Only follows subtreeDirty paths for efficiency — layoutChangedThisFrame on a
  * descendant implies subtreeDirty on all its ancestors.
  */
-function hasDescendantOverflowChanged(node: TeaNode): boolean {
+function hasDescendantOverflowChanged(node: AgNode): boolean {
   const rect = node.contentRect!
   return _checkDescendantOverflow(node.children, rect.x, rect.y, rect.x + rect.width, rect.y + rect.height)
 }
 
 function _checkDescendantOverflow(
-  children: readonly TeaNode[],
+  children: readonly AgNode[],
   nodeLeft: number,
   nodeTop: number,
   nodeRight: number,
@@ -1474,7 +1474,7 @@ function _checkDescendantOverflow(
  * then intersecting with parent clip bounds.
  */
 function computeChildClipBounds(
-  layout: NonNullable<TeaNode["contentRect"]>,
+  layout: NonNullable<AgNode["contentRect"]>,
   props: BoxProps,
   parentClip: ClipBounds | undefined,
   scrollOffset = 0,
@@ -1534,7 +1534,7 @@ interface InheritedBgResult {
  * ancestor's bounds - not just the immediate parent. Otherwise the inherited
  * color can bleed into sibling areas that should have different backgrounds.
  */
-function findInheritedBg(node: TeaNode): InheritedBgResult {
+function findInheritedBg(node: AgNode): InheritedBgResult {
   let current = node.parent
   while (current) {
     const props = current.props as BoxProps
@@ -1570,7 +1570,7 @@ function findInheritedBg(node: TeaNode): InheritedBgResult {
  *
  * Returns null when no ancestor sets a color — text uses the terminal default.
  */
-function findInheritedFg(node: TeaNode): Color {
+function findInheritedFg(node: AgNode): Color {
   let current = node.parent
   while (current) {
     const props = current.props as BoxProps
@@ -1602,9 +1602,9 @@ function findInheritedFg(node: TeaNode): Color {
  * and renderBox. Recursive: follows subtreeDirty paths to find all overflowing descendants.
  */
 function clearDescendantOverflowRegions(
-  node: TeaNode,
+  node: AgNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<TeaNode["contentRect"]>,
+  layout: NonNullable<AgNode["contentRect"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
 ): void {
@@ -1629,7 +1629,7 @@ function clearDescendantOverflowRegions(
 }
 
 function _clearDescendantOverflow(
-  children: readonly TeaNode[],
+  children: readonly AgNode[],
   buffer: TerminalBuffer,
   nodeLeft: number,
   nodeTop: number,
@@ -1724,9 +1724,9 @@ function _clearDescendantOverflow(
  * colored ancestor's bounds (prevents bg color bleeding into siblings).
  */
 function clearNodeRegion(
-  node: TeaNode,
+  node: AgNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<TeaNode["contentRect"]>,
+  layout: NonNullable<AgNode["contentRect"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
   layoutChanged: boolean,
@@ -1816,9 +1816,9 @@ function clearNodeRegion(
  * content area will extend into the parent's border row, overwriting border chars.
  */
 function clearExcessArea(
-  node: TeaNode,
+  node: AgNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<TeaNode["contentRect"]>,
+  layout: NonNullable<AgNode["contentRect"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
   layoutChanged: boolean,

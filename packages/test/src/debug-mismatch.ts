@@ -10,7 +10,7 @@
  */
 
 import type { Cell } from "@silvery/ag-term/buffer"
-import type { BoxProps, TeaNode, Rect, TextProps } from "@silvery/ag/types"
+import type { BoxProps, AgNode, Rect, TextProps } from "@silvery/ag/types"
 import type { ContentPhaseStats } from "@silvery/ag-term/pipeline/types"
 
 // ============================================================================
@@ -90,10 +90,10 @@ export interface MismatchDebugContext {
 /**
  * Find the innermost node at a screen position.
  */
-export function findNodeAtPosition(root: TeaNode, x: number, y: number): TeaNode | null {
-  let result: TeaNode | null = null
+export function findNodeAtPosition(root: AgNode, x: number, y: number): AgNode | null {
+  let result: AgNode | null = null
 
-  function visit(node: TeaNode): void {
+  function visit(node: AgNode): void {
     const rect = node.screenRect
     if (!rect) return
 
@@ -116,10 +116,10 @@ export function findNodeAtPosition(root: TeaNode, x: number, y: number): TeaNode
  * Find all nodes whose screenRect contains the given position.
  * Returns nodes from root to innermost (outermost first).
  */
-export function findAllContainingNodes(root: TeaNode, x: number, y: number): TeaNode[] {
-  const result: TeaNode[] = []
+export function findAllContainingNodes(root: AgNode, x: number, y: number): AgNode[] {
+  const result: AgNode[] = []
 
-  function visit(node: TeaNode): void {
+  function visit(node: AgNode): void {
     const rect = node.screenRect
     if (!rect) return
 
@@ -138,9 +138,9 @@ export function findAllContainingNodes(root: TeaNode, x: number, y: number): Tea
 /**
  * Get the path from root to a node (for identification).
  */
-function getNodePath(node: TeaNode): string {
+function getNodePath(node: AgNode): string {
   const parts: string[] = []
-  let current: TeaNode | null = node
+  let current: AgNode | null = node
 
   while (current) {
     const props = current.props as BoxProps & TextProps
@@ -170,7 +170,7 @@ function rectChanged(a: Rect | null, b: Rect | null): boolean {
 /**
  * Extract debug info from a node.
  */
-export function getNodeDebugInfo(node: TeaNode): NodeDebugInfo {
+export function getNodeDebugInfo(node: AgNode): NodeDebugInfo {
   const props = node.props as BoxProps & TextProps
 
   // Get child index within parent
@@ -219,8 +219,8 @@ export function getNodeDebugInfo(node: TeaNode): NodeDebugInfo {
 /**
  * Find scroll container ancestors for a node.
  */
-function findScrollAncestors(node: TeaNode): TeaNode[] {
-  const result: TeaNode[] = []
+function findScrollAncestors(node: AgNode): AgNode[] {
+  const result: AgNode[] = []
   let current = node.parent
 
   while (current) {
@@ -236,7 +236,7 @@ function findScrollAncestors(node: TeaNode): TeaNode[] {
 /**
  * Analyze why a node might have been incorrectly skipped by fast-path.
  */
-function analyzeFastPath(node: TeaNode | null, scrollAncestors: TeaNode[]): string[] {
+function analyzeFastPath(node: AgNode | null, scrollAncestors: AgNode[]): string[] {
   const analysis: string[] = []
 
   if (!node) {
@@ -323,7 +323,7 @@ function analyzeFastPath(node: TeaNode | null, scrollAncestors: TeaNode[]): stri
  * Build full mismatch debug context.
  */
 export function buildMismatchContext(
-  root: TeaNode,
+  root: AgNode,
   x: number,
   y: number,
   incrementalCell: Cell,

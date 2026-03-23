@@ -6,21 +6,21 @@
  * tab order, spatial navigation targets, and explicit focus links.
  */
 
-import type { TeaNode, Rect } from "./types"
+import type { AgNode, Rect } from "./types"
 
 // ============================================================================
 // Focusable Detection
 // ============================================================================
 
 /** Check if a node has the focusable prop set to true (or truthy). */
-function isFocusable(node: TeaNode): boolean {
+function isFocusable(node: AgNode): boolean {
   if (node.hidden) return false
   const props = node.props as Record<string, unknown>
   return Boolean(props.focusable) && props.display !== "none"
 }
 
 /** Check if a node creates a focus scope (isolated Tab cycle). */
-function isFocusScope(node: TeaNode): boolean {
+function isFocusScope(node: AgNode): boolean {
   const props = node.props as Record<string, unknown>
   return Boolean(props.focusScope)
 }
@@ -33,8 +33,8 @@ function isFocusScope(node: TeaNode): boolean {
  * Walk up from node to nearest ancestor (or self) with focusable prop.
  * Useful for mouse clicks — find the focusable target from a deep text node.
  */
-export function findFocusableAncestor(node: TeaNode): TeaNode | null {
-  let current: TeaNode | null = node
+export function findFocusableAncestor(node: AgNode): AgNode | null {
+  let current: AgNode | null = node
   while (current) {
     if (isFocusable(current)) return current
     current = current.parent
@@ -50,11 +50,11 @@ export function findFocusableAncestor(node: TeaNode): TeaNode | null {
  * skipped (they belong to a different scope), unless that scope IS the
  * provided scope node.
  */
-export function getTabOrder(root: TeaNode, scope?: TeaNode): TeaNode[] {
-  const result: TeaNode[] = []
+export function getTabOrder(root: AgNode, scope?: AgNode): AgNode[] {
+  const result: AgNode[] = []
   const walkRoot = scope ?? root
 
-  function walk(node: TeaNode): void {
+  function walk(node: AgNode): void {
     // Skip hidden nodes (Suspense) and display: none — entire subtree is excluded
     if (node.hidden) return
     const props = node.props as Record<string, unknown>
@@ -88,8 +88,8 @@ export function getTabOrder(root: TeaNode, scope?: TeaNode): TeaNode[] {
  * Walk up from a node to find the nearest ancestor (or self) with focusScope prop.
  * Returns the testID of the enclosing scope, or null if none found.
  */
-export function findEnclosingScope(node: TeaNode): string | null {
-  let current: TeaNode | null = node
+export function findEnclosingScope(node: AgNode): string | null {
+  let current: AgNode | null = node
   while (current) {
     if (isFocusScope(current)) {
       const props = current.props as Record<string, unknown>
@@ -104,7 +104,7 @@ export function findEnclosingScope(node: TeaNode): string | null {
  * Find a node by testID in the subtree rooted at root.
  * DFS, returns the first match.
  */
-export function findByTestID(root: TeaNode, testID: string): TeaNode | null {
+export function findByTestID(root: AgNode, testID: string): AgNode | null {
   const props = root.props as Record<string, unknown>
   if (props.testID === testID) return root
 
@@ -185,17 +185,17 @@ function distance(a: { cx: number; cy: number }, b: { cx: number; cy: number }):
  * @param layoutFn - Function to get screen rect for a node (null if not laid out)
  */
 export function findSpatialTarget(
-  from: TeaNode,
+  from: AgNode,
   direction: "up" | "down" | "left" | "right",
-  candidates: TeaNode[],
-  layoutFn: (node: TeaNode) => Rect | null,
-): TeaNode | null {
+  candidates: AgNode[],
+  layoutFn: (node: AgNode) => Rect | null,
+): AgNode | null {
   const sourceRect = layoutFn(from)
   if (!sourceRect) return null
 
   const source = rectCenter(sourceRect)
 
-  let best: TeaNode | null = null
+  let best: AgNode | null = null
   let bestDist = Infinity
 
   for (const candidate of candidates) {
@@ -232,7 +232,7 @@ export function findSpatialTarget(
  * @param direction - Direction string: "up", "down", "left", "right"
  * @returns The testID of the explicit target, or null
  */
-export function getExplicitFocusLink(node: TeaNode, direction: string): string | null {
+export function getExplicitFocusLink(node: AgNode, direction: string): string | null {
   const props = node.props as Record<string, unknown>
   // Props follow the pattern: nextFocusUp, nextFocusDown, nextFocusLeft, nextFocusRight
   const propName = `nextFocus${direction.charAt(0).toUpperCase()}${direction.slice(1)}`

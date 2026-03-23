@@ -45,7 +45,7 @@ import { join } from "node:path"
 import { type Color, type TerminalBuffer, colorEquals } from "@silvery/ag-term/buffer"
 import { outputPhase } from "@silvery/ag-term/pipeline"
 import { compareBuffers, formatMismatch } from "@silvery/test/compare-buffers"
-import type { BoxProps, TeaNode } from "./types"
+import type { BoxProps, AgNode } from "./types"
 import type { AppWithCommands, Cmd, Command } from "./with-commands"
 
 // =============================================================================
@@ -672,14 +672,14 @@ function compareText(before: string, after: string, skipLines: number[]): TextMi
  * - Children don't overflow parent bounds (1px tolerance for rounding)
  *   - Skips overflow check for nodes with overflow:hidden/scroll (they intentionally clip)
  */
-export function checkLayoutInvariants(node: TeaNode): string[] {
+export function checkLayoutInvariants(node: AgNode): string[] {
   const violations: string[] = []
   walkLayout(node, null, violations)
   return violations
 }
 
 function walkLayout(
-  node: TeaNode,
+  node: AgNode,
   parentRect: {
     x: number
     y: number

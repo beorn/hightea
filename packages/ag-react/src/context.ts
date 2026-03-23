@@ -13,7 +13,7 @@ import type { Term } from "@silvery/ag-term/ansi"
 import { createContext } from "react"
 import type { FocusManager } from "@silvery/ag/focus-manager"
 import type { Key } from "@silvery/ag/keys"
-import type { TeaNode } from "@silvery/ag/types"
+import type { AgNode } from "@silvery/ag/types"
 
 // ============================================================================
 // Term Context
@@ -36,7 +36,7 @@ export const TermContext = createContext<Term | null>(null)
  * Each Box component wraps its children in a NodeContext.Provider
  * with its corresponding SilveryNode.
  */
-export const NodeContext = createContext<TeaNode | null>(null)
+export const NodeContext = createContext<AgNode | null>(null)
 
 // ============================================================================
 // Stdio Context

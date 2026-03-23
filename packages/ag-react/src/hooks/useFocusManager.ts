@@ -8,7 +8,7 @@
 import { useCallback, useContext, useSyncExternalStore } from "react"
 import { FocusManagerContext, NodeContext } from "../context"
 import type { FocusSnapshot } from "@silvery/ag/focus-manager"
-import type { TeaNode } from "@silvery/ag/types"
+import type { AgNode } from "@silvery/ag/types"
 
 // ============================================================================
 // Types
@@ -16,13 +16,13 @@ import type { TeaNode } from "@silvery/ag/types"
 
 export interface UseFocusManagerResult {
   /** Currently focused node (null if nothing focused) */
-  activeElement: TeaNode | null
+  activeElement: AgNode | null
   /** testID of the currently focused node */
   activeId: string | null
   /** The currently active peer scope ID */
   activeScopeId: string | null
   /** Focus a specific node or node by testID */
-  focus: (nodeOrId: TeaNode | string) => void
+  focus: (nodeOrId: AgNode | string) => void
   /** Focus the next focusable element in tab order */
   focusNext: () => void
   /** Focus the previous focusable element in tab order */
@@ -88,7 +88,7 @@ export function useFocusManager(): UseFocusManagerResult {
   const snapshot: FocusSnapshot | null = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
   // Helper: get the render tree root from the current node
-  const getRoot = useCallback((): TeaNode | null => {
+  const getRoot = useCallback((): AgNode | null => {
     if (!node) return null
     let root = node
     while (root.parent) {
@@ -98,7 +98,7 @@ export function useFocusManager(): UseFocusManagerResult {
   }, [node])
 
   const focus = useCallback(
-    (nodeOrId: TeaNode | string) => {
+    (nodeOrId: AgNode | string) => {
       if (!fm) return
       if (typeof nodeOrId === "string") {
         const root = getRoot()
@@ -161,7 +161,7 @@ export function useFocusManager(): UseFocusManagerResult {
     activeElement: null,
     activeId: null,
     activeScopeId: null,
-    focus: noOp as (nodeOrId: TeaNode | string) => void,
+    focus: noOp as (nodeOrId: AgNode | string) => void,
     focusNext: noOp,
     focusPrev: noOp,
     blur: noOp,

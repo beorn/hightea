@@ -6,7 +6,7 @@
 
 import { createLogger } from "loggily"
 import { measureStats } from "./measure-stats"
-import { type BoxProps, type TeaNode, type Rect, rectEqual } from "@silvery/ag/types"
+import { type BoxProps, type AgNode, type Rect, rectEqual } from "@silvery/ag/types"
 import { getBorderSize, getPadding } from "./helpers"
 
 const log = createLogger("silvery:layout")
@@ -18,7 +18,7 @@ const log = createLogger("silvery:layout")
  * @param width Terminal width in columns
  * @param height Terminal height in rows
  */
-export function layoutPhase(root: TeaNode, width: number, height: number): void {
+export function layoutPhase(root: AgNode, width: number, height: number): void {
   // Check if dimensions changed from previous layout
   const prevLayout = root.contentRect
   const dimensionsChanged = prevLayout && (prevLayout.width !== width || prevLayout.height !== height)
@@ -51,7 +51,7 @@ export function layoutPhase(root: TeaNode, width: number, height: number): void 
 /**
  * Count total nodes in tree.
  */
-function countNodes(node: TeaNode): number {
+function countNodes(node: AgNode): number {
   let count = 1
   for (const child of node.children) {
     count += countNodes(child)
@@ -62,7 +62,7 @@ function countNodes(node: TeaNode): number {
 /**
  * Check if any node in the tree has layoutDirty flag set.
  */
-function hasLayoutDirtyNodes(node: TeaNode, path = "root"): boolean {
+function hasLayoutDirtyNodes(node: AgNode, path = "root"): boolean {
   if (node.layoutDirty) {
     const props = node.props as BoxProps
     log.debug?.(`dirty node found: ${path} (id=${props.id ?? "?"}, type=${node.type})`)
@@ -82,7 +82,7 @@ function hasLayoutDirtyNodes(node: TeaNode, path = "root"): boolean {
  * @param parentX Absolute X position of parent
  * @param parentY Absolute Y position of parent
  */
-function propagateLayout(node: TeaNode, parentX: number, parentY: number): void {
+function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
   // Save previous layout for change detection
   node.prevLayout = node.contentRect
 
@@ -164,7 +164,7 @@ function propagateLayout(node: TeaNode, parentX: number, parentY: number): void 
  * need notification in both cases. renderRect can change from sticky
  * offset changes even when screenRect stays the same.
  */
-export function notifyLayoutSubscribers(node: TeaNode): void {
+export function notifyLayoutSubscribers(node: AgNode): void {
   // Notify if content rect, screen rect, or render rect changed
   const contentChanged = !rectEqual(node.prevLayout, node.contentRect)
   const screenChanged = !rectEqual(node.prevScreenRect, node.screenRect)
@@ -206,7 +206,7 @@ export interface ScrollPhaseOptions {
  * This phase runs after layout to determine which children are visible
  * within each scrollable container.
  */
-export function scrollPhase(root: TeaNode, options: ScrollPhaseOptions = {}): void {
+export function scrollPhase(root: AgNode, options: ScrollPhaseOptions = {}): void {
   const { skipStateUpdates = false } = options
   traverseTree(root, (node) => {
     const props = node.props as BoxProps
@@ -220,7 +220,7 @@ export function scrollPhase(root: TeaNode, options: ScrollPhaseOptions = {}): vo
 /**
  * Calculate scroll state for a single scrollable container.
  */
-function calculateScrollState(node: TeaNode, props: BoxProps, skipStateUpdates: boolean): void {
+function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: boolean): void {
   const layout = node.contentRect
   if (!layout || !node.layoutNode) return
 
@@ -233,7 +233,7 @@ function calculateScrollState(node: TeaNode, props: BoxProps, skipStateUpdates: 
   // Calculate total content height and child positions
   let contentHeight = 0
   const childPositions: {
-    child: TeaNode
+    child: AgNode
     top: number
     bottom: number
     index: number
@@ -370,7 +370,7 @@ function calculateScrollState(node: TeaNode, props: BoxProps, skipStateUpdates: 
   }
 
   // Calculate sticky children render positions
-  const stickyChildren: NonNullable<TeaNode["scrollState"]>["stickyChildren"] = []
+  const stickyChildren: NonNullable<AgNode["scrollState"]>["stickyChildren"] = []
 
   for (const cp of childPositions) {
     if (!cp.isSticky) continue
@@ -472,7 +472,7 @@ function calculateScrollState(node: TeaNode, props: BoxProps, skipStateUpdates: 
  * edge when content is shorter than the parent. When content fills the parent,
  * the child stays at its natural position.
  */
-export function stickyPhase(root: TeaNode): void {
+export function stickyPhase(root: AgNode): void {
   traverseTree(root, (node) => {
     const props = node.props as BoxProps
     // Skip scroll containers — they handle sticky in scrollPhase
@@ -504,7 +504,7 @@ export function stickyPhase(root: TeaNode): void {
     const padding = getPadding(props)
     const parentContentHeight = layout.height - border.top - border.bottom - padding.top - padding.bottom
 
-    const newStickyChildren: NonNullable<TeaNode["stickyChildren"]> = []
+    const newStickyChildren: NonNullable<AgNode["stickyChildren"]> = []
 
     for (let i = 0; i < node.children.length; i++) {
       const child = node.children[i]!
@@ -549,7 +549,7 @@ export function stickyPhase(root: TeaNode): void {
 /**
  * Compare two stickyChildren arrays for equality.
  */
-function stickyChildrenEqual(a: TeaNode["stickyChildren"], b: TeaNode["stickyChildren"]): boolean {
+function stickyChildrenEqual(a: AgNode["stickyChildren"], b: AgNode["stickyChildren"]): boolean {
   if (a === b) return true
   if (!a || !b) return false
   if (a.length !== b.length) return false
@@ -571,7 +571,7 @@ function stickyChildrenEqual(a: TeaNode["stickyChildren"], b: TeaNode["stickyChi
 /**
  * Traverse tree in depth-first order.
  */
-function traverseTree(node: TeaNode, callback: (node: TeaNode) => void): void {
+function traverseTree(node: AgNode, callback: (node: AgNode) => void): void {
   callback(node)
   for (const child of node.children) {
     traverseTree(child, callback)
@@ -594,7 +594,7 @@ function traverseTree(node: TeaNode, callback: (node: TeaNode) => void): void {
  *
  * Screen position = content position - sum of ancestor scroll offsets
  */
-export function screenRectPhase(root: TeaNode): void {
+export function screenRectPhase(root: AgNode): void {
   propagateScreenRect(root, 0)
 }
 
@@ -604,7 +604,7 @@ export function screenRectPhase(root: TeaNode): void {
  * @param node The node to process
  * @param ancestorScrollOffset Sum of all ancestor scroll offsets
  */
-function propagateScreenRect(node: TeaNode, ancestorScrollOffset: number): void {
+function propagateScreenRect(node: AgNode, ancestorScrollOffset: number): void {
   // Save previous rects for change detection in notifyLayoutSubscribers
   node.prevScreenRect = node.screenRect
   node.prevRenderRect = node.renderRect
@@ -656,7 +656,7 @@ function propagateScreenRect(node: TeaNode, ancestorScrollOffset: number): void 
  *
  * @param parent The parent node whose sticky children need renderRect computation
  */
-function computeStickyRenderRects(parent: TeaNode): void {
+function computeStickyRenderRects(parent: AgNode): void {
   // Determine which sticky children list to use
   const stickyList = parent.scrollState?.stickyChildren ?? parent.stickyChildren
   if (!stickyList || stickyList.length === 0) return

@@ -43,7 +43,7 @@ export function rectEqual(a: Rect | null, b: Rect | null): boolean {
 /**
  * Silvery node types - the primitive elements in the render tree.
  */
-export type TeaNodeType = "silvery-root" | "silvery-box" | "silvery-text"
+export type AgNodeType = "silvery-root" | "silvery-box" | "silvery-text"
 
 /**
  * Flexbox properties that can be applied to Box nodes.
@@ -248,18 +248,18 @@ export interface TextProps extends StyleProps, TestProps, MouseEventProps {
  * - Subscribers that get notified when layout changes
  * - Dirty flags for incremental updates
  */
-export interface TeaNode {
+export interface AgNode {
   /** Node type */
-  type: TeaNodeType
+  type: AgNodeType
 
   /** Props passed to this node */
   props: BoxProps | TextProps | Record<string, unknown>
 
   /** Child nodes */
-  children: TeaNode[]
+  children: AgNode[]
 
   /** Parent node (null for root) */
-  parent: TeaNode | null
+  parent: AgNode | null
 
   /** The layout node for layout calculation (null for raw text nodes) */
   layoutNode: LayoutNode | null

@@ -17,7 +17,7 @@
 
 import type { createWriteStream as createWriteStreamType } from "node:fs"
 import type { RenderStats } from "./scheduler"
-import type { TeaNode } from "@silvery/ag/types"
+import type { AgNode } from "@silvery/ag/types"
 
 // =============================================================================
 // Types
@@ -91,12 +91,12 @@ export function inspectFrame(stats: RenderStats): void {
  * Walks the SilveryNode tree and formats each node with its type, testID,
  * layout rect, and dirty flags.
  */
-export function inspectTree(rootNode: TeaNode, options?: { depth?: number; showLayout?: boolean }): string {
+export function inspectTree(rootNode: AgNode, options?: { depth?: number; showLayout?: boolean }): string {
   const maxDepth = options?.depth ?? 10
   const showLayout = options?.showLayout ?? true
   const lines: string[] = []
 
-  function walk(node: TeaNode, indent: number): void {
+  function walk(node: AgNode, indent: number): void {
     if (indent > maxDepth) return
 
     const prefix = "  ".repeat(indent)

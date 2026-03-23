@@ -15,7 +15,7 @@ import type { ReactElement } from "react"
 import type { TerminalBuffer } from "@silvery/ag-term/buffer"
 import { createPipeline, type MeasuredTerm } from "@silvery/ag-term/measurer"
 import { executeRender, type ExecuteRenderOptions, type PipelineConfig } from "@silvery/ag-term/pipeline"
-import type { TeaNode } from "./types"
+import type { AgNode } from "./types"
 
 /**
  * Extended Term with render pipeline capabilities.
@@ -29,7 +29,7 @@ export interface RenderTerm extends MeasuredTerm {
    * Run the full render pipeline.
    */
   render(
-    root: TeaNode,
+    root: AgNode,
     width: number,
     height: number,
     prevBuffer: TerminalBuffer | null,
@@ -56,7 +56,7 @@ export function withRender(term: Term): RenderTerm {
   const { measurer } = pipelineConfig
 
   function renderPipeline(
-    root: TeaNode,
+    root: AgNode,
     width: number,
     height: number,
     prevBuffer: TerminalBuffer | null,

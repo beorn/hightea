@@ -7,7 +7,7 @@
 import { createLogger } from "loggily"
 import { type LayoutNode, getConstants, getLayoutEngine } from "@silvery/ag-term/layout-engine"
 import { collectPlainTextSkipHidden as collectNodeTextContent } from "@silvery/ag-term/pipeline/collect-text"
-import { type BoxProps, type TeaNode, type TeaNodeType, type TextProps, rectEqual } from "@silvery/ag/types"
+import { type BoxProps, type AgNode, type AgNodeType, type TextProps, rectEqual } from "@silvery/ag/types"
 import { type Measurer, displayWidth, wrapText } from "@silvery/ag-term/unicode"
 
 const measureLog = createLogger("silvery:measure")
@@ -25,13 +25,13 @@ export { measureStats }
  * Create a new SilveryNode with a fresh layout node.
  */
 export function createNode(
-  type: TeaNodeType,
+  type: AgNodeType,
   props: BoxProps | TextProps | Record<string, unknown>,
   measurer?: Measurer,
-): TeaNode {
+): AgNode {
   const layoutNode = getLayoutEngine().createNode()
 
-  const node: TeaNode = {
+  const node: AgNode = {
     type,
     props,
     children: [],
@@ -189,7 +189,7 @@ export function createNode(
  * Root is always column (document flow is top-to-bottom), regardless of
  * flexily's default flexDirection.
  */
-export function createRootNode(): TeaNode {
+export function createRootNode(): AgNode {
   const node = createNode("silvery-root", {})
   const c = getConstants()
   node.layoutNode!.setFlexDirection(c.FLEX_DIRECTION_COLUMN)
@@ -201,7 +201,7 @@ export function createRootNode(): TeaNode {
  * Virtual text nodes don't have layout nodes and don't participate in layout.
  * They're used when Text is nested inside another Text.
  */
-export function createVirtualTextNode(props: TextProps): TeaNode {
+export function createVirtualTextNode(props: TextProps): AgNode {
   return {
     type: "silvery-text",
     props,
@@ -578,7 +578,7 @@ function justifyToConstant(justify: string): number {
 /**
  * Calculate layout for the entire tree starting from root.
  */
-export function calculateLayout(root: TeaNode, width: number, height: number): void {
+export function calculateLayout(root: AgNode, width: number, height: number): void {
   const c = getConstants()
   if (!root.layoutNode) {
     throw new Error("Root node must have a layout node")
@@ -591,7 +591,7 @@ export function calculateLayout(root: TeaNode, width: number, height: number): v
 /**
  * Propagate computed layout from layout nodes to SilveryNodes.
  */
-function propagateLayout(node: TeaNode, parentX: number, parentY: number): void {
+function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
   // Save previous layout for change detection
   node.prevLayout = node.contentRect
 
@@ -629,7 +629,7 @@ function propagateLayout(node: TeaNode, parentX: number, parentY: number): void 
 /**
  * Notify all layout subscribers of layout changes.
  */
-function notifyLayoutSubscribers(node: TeaNode): void {
+function notifyLayoutSubscribers(node: AgNode): void {
   if (!rectEqual(node.prevLayout, node.contentRect)) {
     for (const subscriber of node.layoutSubscribers) {
       subscriber()

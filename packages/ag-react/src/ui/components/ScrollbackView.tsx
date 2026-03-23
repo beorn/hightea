@@ -49,7 +49,7 @@ import type { ScrollbackMarkerCallbacks } from "@silvery/ag-react/hooks/useScrol
 import { useScrollback } from "@silvery/ag-react/hooks/useScrollback"
 import { renderStringSync } from "@silvery/ag-react/render-string"
 import { ScrollbackItemProvider } from "@silvery/ag-react/hooks/useScrollbackItem"
-import type { TeaNode } from "@silvery/ag/types"
+import type { AgNode } from "@silvery/ag/types"
 
 // ============================================================================
 // Types
@@ -168,7 +168,7 @@ export function ScrollbackView<T>({
   // frozenWidth = effectiveWidth - hPadding on every render. This avoids
   // the stale-layoutInfo problem where resize triggers a re-emit before
   // the layout engine has recomputed at the new width.
-  const outerNodeRef = useRef<TeaNode | null>(null)
+  const outerNodeRef = useRef<AgNode | null>(null)
   const [layoutInfo, setLayoutInfo] = useState<{ width: number; x: number } | null>(null)
 
   // Horizontal padding: total left+right padding from parent containers.

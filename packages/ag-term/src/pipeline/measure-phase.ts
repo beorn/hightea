@@ -4,7 +4,7 @@
  * Handle fit-content nodes by measuring their intrinsic content size.
  */
 
-import type { BoxProps, TeaNode, TextProps } from "@silvery/ag/types"
+import type { BoxProps, AgNode, TextProps } from "@silvery/ag/types"
 import { displayWidthAnsi, wrapText } from "../unicode"
 import { collectPlainText as collectTextContent } from "./collect-text"
 import { getBorderSize, getPadding } from "./helpers"
@@ -16,7 +16,7 @@ import type { PipelineContext } from "./types"
  * Traverses the tree and for any node with width="fit-content" or
  * height="fit-content", measures the content and sets the Yoga constraint.
  */
-export function measurePhase(root: TeaNode, ctx?: PipelineContext): void {
+export function measurePhase(root: AgNode, ctx?: PipelineContext): void {
   traverseTree(root, (node) => {
     // Skip nodes without Yoga (raw text nodes)
     if (!node.layoutNode) return
@@ -60,7 +60,7 @@ export function measurePhase(root: TeaNode, ctx?: PipelineContext): void {
  *   Used when a container has fixed width + fit-content height.
  */
 function measureIntrinsicSize(
-  node: TeaNode,
+  node: AgNode,
   ctx?: PipelineContext,
   availableWidth?: number,
 ): {
@@ -157,7 +157,7 @@ function isWrapEnabled(wrap: TextProps["wrap"]): boolean {
 /**
  * Traverse tree in depth-first order.
  */
-function traverseTree(node: TeaNode, callback: (node: TeaNode) => void): void {
+function traverseTree(node: AgNode, callback: (node: AgNode) => void): void {
   callback(node)
   for (const child of node.children) {
     traverseTree(child, callback)

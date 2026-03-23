@@ -716,7 +716,7 @@ export type { UseFocusManagerResult } from "./hooks/useFocusManager"
 export type { RenderOptions, Instance, RenderMode, NonTTYMode } from "./render"
 export type { MeasureElementOutput } from "./measureElement"
 export type {
-  TeaNode,
+  AgNode,
   // Event types
   Event,
   KeyEvent,

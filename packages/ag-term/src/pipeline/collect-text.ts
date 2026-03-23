@@ -17,7 +17,7 @@
  * so they remain separate.
  */
 
-import type { TeaNode } from "@silvery/ag/types"
+import type { AgNode } from "@silvery/ag/types"
 
 /**
  * Collect plain text from a node tree, applying internal_transform.
@@ -29,7 +29,7 @@ import type { TeaNode } from "@silvery/ag/types"
  * Does NOT filter hidden or display:none nodes — those are handled by
  * the layout engine (display:none gets 0x0 size) or by other phases.
  */
-export function collectPlainText(node: TeaNode): string {
+export function collectPlainText(node: AgNode): string {
   if (node.textContent !== undefined) return node.textContent
   let result = ""
   for (let i = 0; i < node.children.length; i++) {
@@ -51,7 +51,7 @@ export function collectPlainText(node: TeaNode): string {
  *
  * Identical to collectPlainText except for the hidden check.
  */
-export function collectPlainTextSkipHidden(node: TeaNode): string {
+export function collectPlainTextSkipHidden(node: AgNode): string {
   if (node.textContent !== undefined) return node.textContent
   let result = ""
   for (let i = 0; i < node.children.length; i++) {

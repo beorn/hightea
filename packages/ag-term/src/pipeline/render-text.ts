@@ -17,7 +17,7 @@ import {
   type UnderlineStyle,
   createMutableCell,
 } from "../buffer"
-import type { TeaNode, TextProps } from "@silvery/ag/types"
+import type { AgNode, TextProps } from "@silvery/ag/types"
 import {
   type StyledSegment,
   ensureEmojiPresentation,
@@ -186,7 +186,7 @@ function applyTextStyleAnsi(text: string, childStyle: StyleContext, parentStyle:
  * @param node - The node to collect text from
  * @param parentContext - The inherited style context from parent (used for restoration)
  */
-export function collectTextContent(node: TeaNode, parentContext: StyleContext = {}): string {
+export function collectTextContent(node: AgNode, parentContext: StyleContext = {}): string {
   // If this node has direct text content, return it
   if (node.textContent !== undefined) {
     return node.textContent
@@ -247,7 +247,7 @@ interface BgSegment {
  */
 interface ChildSpan {
   /** The virtual text node */
-  node: TeaNode
+  node: AgNode
   /** Start display-width offset in the collected text (inclusive) */
   start: number
   /** End display-width offset in the collected text (exclusive) */
@@ -289,7 +289,7 @@ interface TextWithBg {
  *   Uses getTextWidth (ANSI-aware) so pre-styled leaf text is handled correctly.
  */
 function collectTextWithBg(
-  node: TeaNode,
+  node: AgNode,
   parentContext: StyleContext = {},
   offset = 0,
   maxDisplayWidth?: number,
@@ -1118,7 +1118,7 @@ function ansiColorToColor(code: number): Color {
  * See km-silvery.bg-bleed for details.
  */
 export function renderText(
-  node: TeaNode,
+  node: AgNode,
   buffer: TerminalBuffer,
   layout: { x: number; y: number; width: number; height: number },
   props: TextProps,

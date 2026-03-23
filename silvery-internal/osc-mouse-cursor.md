@@ -102,7 +102,7 @@ This can be implemented by having these components set `cursor` on their root Bo
 ### Phase 2: `cursor` prop on Box
 
 - Add `cursor?: MouseCursorShape` to `BoxProps`.
-- Store it on the `TeaNode` props (no special reconciler handling needed).
+- Store it on the `AgNode` props (no special reconciler handling needed).
 - No automatic emission yet.
 
 ### Phase 3: Mouse processor integration

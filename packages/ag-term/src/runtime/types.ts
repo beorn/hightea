@@ -3,7 +3,7 @@
  */
 
 import type { TerminalBuffer } from "../buffer"
-import type { TeaNode } from "@silvery/ag/types"
+import type { AgNode } from "@silvery/ag/types"
 
 /**
  * Dimensions for rendering.
@@ -27,7 +27,7 @@ export interface Buffer {
   /** Styled output with ANSI escape codes */
   readonly ansi: string
   /** Internal node tree for locator queries */
-  readonly nodes: TeaNode
+  readonly nodes: AgNode
   /** Raw terminal buffer for diffing */
   readonly _buffer: TerminalBuffer
 }

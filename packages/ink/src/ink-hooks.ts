@@ -195,17 +195,17 @@ export { useWindowSize } from "@silvery/ag-react/hooks/useWindowSize"
 // =============================================================================
 
 /**
- * Extract the TeaNode from a ref that may point to a BoxHandle or a TeaNode.
+ * Extract the AgNode from a ref that may point to a BoxHandle or a AgNode.
  * In silvery, Box's forwardRef exposes a BoxHandle via useImperativeHandle,
  * which has getNode(). Ink users pass refs expecting direct DOM-like access.
  */
-function resolveTeaNode(refValue: any): import("@silvery/tea/types").TeaNode | null {
+function resolveAgNode(refValue: any): import("@silvery/tea/types").AgNode | null {
   if (!refValue) return null
   // BoxHandle from silvery's Box component
   if (typeof refValue.getNode === "function") {
     return refValue.getNode()
   }
-  // Direct TeaNode (has layoutNode property)
+  // Direct AgNode (has layoutNode property)
   if (refValue.layoutNode !== undefined || refValue.contentRect !== undefined) {
     return refValue
   }
@@ -243,13 +243,13 @@ function metricsEqual(a: BoxMetrics, b: BoxMetrics): boolean {
  * Returns layout metrics for a tracked box element.
  *
  * Wires into silvery's layout system by subscribing to layout changes
- * on the referenced TeaNode's layoutSubscribers.
+ * on the referenced AgNode's layoutSubscribers.
  */
 export function useBoxMetrics(ref: import("react").RefObject<any>) {
   const [metrics, setMetrics] = useState<BoxMetrics>(ZERO_METRICS)
 
   // Track the previously resolved node so we can detect ref switches
-  const prevNodeRef = useRef<import("@silvery/tea/types").TeaNode | null>(null)
+  const prevNodeRef = useRef<import("@silvery/tea/types").AgNode | null>(null)
   // Track the last metrics we set to avoid unnecessary state updates
   const lastMetricsRef = useRef<BoxMetrics>(ZERO_METRICS)
 
@@ -266,7 +266,7 @@ export function useBoxMetrics(ref: import("react").RefObject<any>) {
   // Subscribe to layout changes. Re-runs on every render (no deps) to
   // pick up ref changes (e.g., memoized component's ref becoming available).
   useEffect(() => {
-    const node = resolveTeaNode(ref.current)
+    const node = resolveAgNode(ref.current)
 
     // Detect ref switch
     if (node !== prevNodeRef.current) {
@@ -311,7 +311,7 @@ export function useBoxMetrics(ref: import("react").RefObject<any>) {
 
   useEffect(() => {
     const onResize = () => {
-      const node = resolveTeaNode(ref.current)
+      const node = resolveAgNode(ref.current)
       if (node?.contentRect) {
         updateMetrics({
           width: node.contentRect.width,

@@ -10,16 +10,16 @@
 
 import { describe, test, expect, vi } from "vitest"
 import { createFocusManager, getTabOrder } from "@silvery/tea"
-import type { TeaNode, BoxProps } from "@silvery/ag/types"
+import type { AgNode, BoxProps } from "@silvery/ag/types"
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
-/** Create a minimal TeaNode stub for focus manager tests. */
-function stubNode(testID: string, opts?: { focusable?: boolean; children?: TeaNode[] }): TeaNode {
+/** Create a minimal AgNode stub for focus manager tests. */
+function stubNode(testID: string, opts?: { focusable?: boolean; children?: AgNode[] }): AgNode {
   const children = opts?.children ?? []
-  const node: TeaNode = {
+  const node: AgNode = {
     type: "silvery-box",
     props: { testID, focusable: opts?.focusable ?? true } as BoxProps,
     children,

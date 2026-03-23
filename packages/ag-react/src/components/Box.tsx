@@ -23,7 +23,7 @@ import {
   useState,
 } from "react"
 import { NodeContext } from "../context"
-import type { BoxProps as BoxPropsType, TeaNode, Rect } from "@silvery/ag/types"
+import type { BoxProps as BoxPropsType, AgNode, Rect } from "@silvery/ag/types"
 
 // ============================================================================
 // Props
@@ -39,7 +39,7 @@ export interface BoxProps extends BoxPropsType {
  */
 export interface BoxHandle {
   /** Get the underlying SilveryNode */
-  getNode(): TeaNode | null
+  getNode(): AgNode | null
   /** Get the current content-relative layout rect */
   getContentRect(): Rect | null
   /** Get the current screen-relative layout rect */
@@ -88,8 +88,8 @@ export interface BoxHandle {
  */
 export const Box = forwardRef(function Box(props: BoxProps, ref: ForwardedRef<BoxHandle>): JSX.Element {
   const { children, onLayout, ...restProps } = props
-  const nodeRef = useRef<TeaNode | null>(null)
-  const [node, setNode] = useState<TeaNode | null>(null)
+  const nodeRef = useRef<AgNode | null>(null)
+  const [node, setNode] = useState<AgNode | null>(null)
 
   // Track the last layout we reported to onLayout to avoid duplicate calls
   const lastReportedLayout = useRef<Rect | null>(null)

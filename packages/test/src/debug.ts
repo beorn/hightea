@@ -17,7 +17,7 @@
  * ```
  */
 
-import type { TeaNode } from "@silvery/ag/types"
+import type { AgNode } from "@silvery/ag/types"
 
 export interface DebugTreeOptions {
   /** Maximum depth to traverse (default: unlimited) */
@@ -35,7 +35,7 @@ export interface DebugTreeOptions {
  * @param options - Display options
  * @returns Formatted tree string
  */
-export function debugTree(node: TeaNode, options: DebugTreeOptions = {}): string {
+export function debugTree(node: AgNode, options: DebugTreeOptions = {}): string {
   const { depth = Number.POSITIVE_INFINITY, showRects = true, showText = true } = options
   const lines: string[] = []
 
@@ -52,7 +52,7 @@ export function debugTree(node: TeaNode, options: DebugTreeOptions = {}): string
     }
   }
 
-  function walk(n: TeaNode, indent: number, currentDepth: number): void {
+  function walk(n: AgNode, indent: number, currentDepth: number): void {
     if (currentDepth > depth) return
 
     // Build props string (exclude children and internal props)

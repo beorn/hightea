@@ -6,13 +6,13 @@
  */
 
 import type { ReactNode, Ref } from "react"
-import type { BoxProps, TeaNode, TextProps } from "@silvery/ag/types"
+import type { BoxProps, AgNode, TextProps } from "@silvery/ag/types"
 
 declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
-      "silvery-box": BoxProps & { children?: ReactNode; ref?: Ref<TeaNode> }
-      "silvery-text": TextProps & { children?: ReactNode; ref?: Ref<TeaNode> }
+      "silvery-box": BoxProps & { children?: ReactNode; ref?: Ref<AgNode> }
+      "silvery-text": TextProps & { children?: ReactNode; ref?: Ref<AgNode> }
     }
   }
 }
