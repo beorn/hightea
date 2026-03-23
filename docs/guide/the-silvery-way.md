@@ -182,9 +182,11 @@ If you're writing `if (isDialogOpen) return` in your input handlers, you don't h
 
 → [Focus hooks](/api/use-focus) · [Input features](/reference/input-features)
 
-## 5. Command System
+## 5. Command System <Badge type="info" text="@silvery/tea" />
 
 Named, serializable, introspectable actions. Commands make your app automatable (AI agents invoke commands by name), testable (fire commands in tests), and discoverable ([`CommandPalette`](/guides/components#shadcn-style-components) lists them all).
+
+> The command system, `CommandPalette`, `withCommands()`, `withKeybindings()`, and `pipe()` composition are part of [`@silvery/tea`](https://www.npmjs.com/package/@silvery/tea) — the optional app architecture layer. Simple apps using `render()` + React hooks don't need this.
 
 ::: tip ✨ Shiny
 
@@ -277,7 +279,7 @@ If you hardcode a color, you've married one theme. Semantic tokens marry them al
 
 ## 7. Compose with Factory Functions
 
-Classes encourage hidden state and rigid hierarchies. Factory functions return plain objects with explicit deps — composable, testable, swappable. Silvery's plugin system is built on this: `pipe()` chains plugins together, each adding a capability.
+Classes encourage hidden state and rigid hierarchies. Factory functions return plain objects with explicit deps — composable, testable, swappable. The `@silvery/tea` plugin system is built on this: `pipe()` chains plugins together, each adding a capability.
 
 ::: tip ✨ Shiny
 
