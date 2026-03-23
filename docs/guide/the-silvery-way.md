@@ -186,7 +186,7 @@ If you're writing `if (isDialogOpen) return` in your input handlers, you don't h
 
 Named, serializable, introspectable actions. Commands make your app automatable (AI agents invoke commands by name), testable (fire commands in tests), and discoverable ([`CommandPalette`](/guides/components#shadcn-style-components) lists them all).
 
-> The command system, `CommandPalette`, `withCommands()`, `withKeybindings()`, and `pipe()` composition are part of [`@silvery/tea`](https://www.npmjs.com/package/@silvery/tea) — the optional app architecture layer. Simple apps using `render()` + React hooks don't need this.
+> Part of [`@silvery/tea`](https://www.npmjs.com/package/@silvery/tea) — the optional app architecture layer. `@silvery/tea` is under active development; the command system API is evolving.
 
 ::: tip ✨ Shiny
 
@@ -354,25 +354,32 @@ try {
 
 → [render()](/api/render) · [Lifecycle](/reference/lifecycle)
 
-## 9. Bring Your Own State Management
+## 9. Gradually Sip TEA
 
-Silvery is a renderer. Use whatever state management you like — React hooks, zustand, jotai, mobx, or `@silvery/tea` for commands and effects-as-data. They all work.
+Silvery's `render()` hides the event loop — great for simple apps. But `createApp()` exposes it, giving you full control over how events flow through your app. This is what makes [The Elm Architecture](https://guide.elm-lang.org/architecture/) possible: `(action, state) → [state, effects]`.
 
-::: tip ✨ Shiny
+You can adopt TEA gradually:
+
+::: tip ✨ Shiny — sip at your own pace
 
 ```tsx
-// React hooks — just works
+// Level 1: render() + hooks — event loop is hidden, just React
 const [count, setCount] = useState(0)
+useInput((input) => { if (input === "j") setCount((c) => c + 1) })
 
-// Zustand — just works
-const count = useStore((s) => s.count)
+// Level 2: useReducer — actions as data, one step toward TEA
 
-// @silvery/tea — commands, keybindings, plugin composition
-const app = pipe(createApp(), withCommands(opts))
+// Level 3: createApp() — exposed event loop, store, named event handlers
+const app = createApp(storeFactory, { "term:key": handleKey })
+
+// Level 4: pipe() — composable plugins, commands, keybindings, effects-as-data
+const app = pipe(createApp(), withFocus(), withCommands(opts))
 ```
 
-Silvery doesn't impose a state management opinion. The rendering layer is independent.
+Each level works independently. Start wherever feels natural — some apps never need more than `useState`, others want full TEA from the start. You can use `@silvery/tea` or build your own architecture on top of the exposed event loop.
 :::
+
+> **Note:** `@silvery/tea` is under active development. The core API (`createApp`, `pipe`) is used in production, but the command system, plugin model, and effects API are evolving. Expect breaking changes before 1.0.
 
 → [Application Architecture](/guides/state-management) — when and how to graduate from hooks to structured state management
 
@@ -439,7 +446,7 @@ Manual visual testing is slow, unrepeatable, and doesn't catch regressions. If y
 6. **Use semantic theme colors** — `$tokens`, not hardcoded values
 7. **Compose with factory functions** — `pipe()`, not class hierarchies
 8. **Clean up with `using`** — one keyword, zero leaks
-9. **Bring your own state management** — React hooks, zustand, jotai, @silvery/tea — the renderer doesn't care
+9. **Gradually sip TEA** — hooks → reducer → store → @silvery/tea, at your own pace
 10. **Test what the user sees** — render the buffer, not just the state
 
 Keep it shiny. ✨
