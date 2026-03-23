@@ -25,7 +25,7 @@
 
 import React from "react"
 import { Box, Text, H3, Muted, Small } from "../../src/index.js"
-import { createApp, useApp, type AppHandle } from "@silvery/ag-term/runtime"
+import { createApp, useApp, type AppHandle } from "@silvery/tea/create-app"
 import { pipe, withReact, withTerminal } from "@silvery/tea/plugins"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 

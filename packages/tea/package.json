@@ -40,6 +40,10 @@
       "types": "./src/plugins.ts",
       "import": "./src/plugins.ts"
     },
+    "./create-app": {
+      "types": "./src/create-app.tsx",
+      "import": "./src/create-app.tsx"
+    },
     "./*": "./src/*.ts"
   },
   "publishConfig": {

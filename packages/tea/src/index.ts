@@ -214,3 +214,23 @@ export type { RenderTerm } from "./with-render"
 // =============================================================================
 
 export { IncrementalRenderMismatchError } from "./plugins"
+
+// =============================================================================
+// Layer 3: App integration (createApp, useApp, StoreContext)
+// =============================================================================
+
+export {
+  createApp,
+  useApp,
+  useAppShallow,
+  StoreContext,
+} from "./create-app"
+export type {
+  AppDefinition,
+  AppHandle,
+  AppRunOptions,
+  AppRunner,
+  EventHandler,
+  EventHandlers,
+  EventHandlerContext,
+} from "./create-app"

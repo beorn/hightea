@@ -6,7 +6,8 @@
  *
  * @example
  * ```tsx
- * import { createApp, useApp, createTermProvider } from '@silvery/ag-term/runtime'
+ * import { createApp, useApp } from '@silvery/tea/create-app'
+ * import { createTermProvider } from '@silvery/ag-term/runtime'
  *
  * const app = createApp(
  *   // Store factory
@@ -160,7 +161,7 @@ export interface EventHandlerContext<S> {
    */
   dispatch?: "dispatch" extends keyof S ? S["dispatch"] : undefined
   /** Hit-test the render tree at (x, y). Returns the deepest SilveryNode at that point, or null. */
-  hitTest(x: number, y: number): import("@silvery/tea/types").AgNode | null
+  hitTest(x: number, y: number): import("./types").AgNode | null
 }
 
 /**

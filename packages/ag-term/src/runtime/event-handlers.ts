@@ -19,7 +19,7 @@ import type { Container } from "@silvery/ag-react/reconciler"
 import { getContainerRoot } from "@silvery/ag-react/reconciler"
 import type { AgNode } from "@silvery/ag/types"
 import type { Key } from "./keys"
-import type { EventHandler, EventHandlerContext, EventHandlers } from "./create-app"
+import type { EventHandler, EventHandlerContext, EventHandlers } from "@silvery/tea/create-app"
 
 // ============================================================================
 // Types

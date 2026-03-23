@@ -83,7 +83,7 @@ export {
 export { createStore, silveryUpdate, defaultInit, withFocusManagement } from "@silvery/tea/store"
 export type { StoreConfig, StoreApi } from "@silvery/tea/store"
 
-// Layer 3: Store integration
+// Layer 3: Store integration (canonical home: @silvery/tea, re-exported for compat)
 export {
   createApp,
   useApp,
@@ -96,7 +96,7 @@ export {
   type EventHandler,
   type EventHandlers,
   type EventHandlerContext,
-} from "./create-app"
+} from "@silvery/tea/create-app"
 
 // Time/tick sources
 export { createTick, createFrameTick, createSecondTick, createAdaptiveTick } from "./tick"
