@@ -2,7 +2,7 @@
 
 **Polished Terminal UIs in React.**
 
-Responsive layouts, scrollable containers, 100x+ faster incremental updates, and full support for modern terminal capabilities. 30+ components from TextInput to VirtualList. Pure TypeScript, no WASM.
+Ink-compatible React renderer for terminals — same `Box`, `Text`, `useInput` API you know. Plus everything you wish Ink had.
 
 > **Status:** Alpha — under active development. APIs may change. Early adopters and feedback welcome.
 
@@ -30,20 +30,26 @@ using term = createTerm()
 await render(<Counter />, term).run()
 ```
 
-## What You Get
+### Familiar
 
-- **30+ components** — TextInput, TextArea, SelectList, VirtualList, Table, Tabs, CommandPalette, ModalDialog, SplitView, Toast, and more. All with keyboard navigation, focus, and scrolling built in.
-- **Responsive layout** — `useContentRect()` returns actual dimensions synchronously. Components adapt to their space immediately.
-- **Scrollable containers** — `overflow="scroll"` with automatic measurement and clipping.
-- **Theme system** — 38 palettes with semantic tokens (`$primary`, `$error`, `$border`). Auto-detects your terminal's colors.
-- **Focus navigation** — scoped focus, arrow-key directional movement, click-to-focus.
-- **Mouse support** — full SGR protocol with `onClick`, `onMouseDown`, `onWheel`, hit testing, drag.
-- **Incremental rendering** — per-node dirty tracking. ~170us for interactive updates in a 1000-node tree.
-- **Zero native dependencies** — pure JS layout engine ([Flexily](https://beorn.github.io/flexily)), no yoga binary, no WASM.
+- **Ink/Chalk compatible** — same component model, `@silvery/ink` compatibility layer for migration
+- **React 18 + 19** — hooks, refs, effects, suspense — all works
+- **Flexbox layout** — `Box` with `flexDirection`, `padding`, `gap`, `flexGrow`, just like Ink
+
+### Better
+
+- **Pure TypeScript, zero native deps** — no yoga binary, no WASM. Works on Alpine, CI, Docker, everywhere
+- **Incremental rendering** — per-node dirty tracking, ~100x faster interactive updates
+- **Responsive layout** — `useContentRect()` returns actual dimensions synchronously during render
+- **Scrollable containers** — `overflow="scroll"` with automatic measurement and clipping
+- **Theme system** — 38 palettes, semantic tokens (`$primary`, `$error`), auto-detects terminal colors
+- **30+ components** — TextInput, TextArea, SelectList, VirtualList, Table, Tabs, CommandPalette, ModalDialog, Toast, and more
+- **Focus system** — scoped focus, arrow-key directional nav, click-to-focus
+- **Mouse support** — full SGR protocol — click, drag, scroll, hit testing
 
 ## Compared to Ink
 
-[Ink](https://github.com/vadimdemedes/ink) pioneered React in the terminal and remains a great choice for many apps. Silvery builds on that foundation with additional capabilities for complex interactive UIs — focus management, scrollable containers, mouse support, text editing, virtual lists, theming, and incremental rendering.
+[Ink](https://github.com/vadimdemedes/ink) pioneered React in the terminal and remains a great choice for many apps. Silvery builds on that foundation with additional capabilities for complex interactive UIs.
 
 If you're already using Ink, `@silvery/ink` provides a compatibility layer for gradual migration.
 
@@ -52,9 +58,9 @@ If you're already using Ink, `@silvery/ink` provides a compatibility layer for g
 | Package | Description |
 |---|---|
 | `silvery` | Components, hooks, renderer — the one package you need |
-| `@silvery/tea` | Optional [TEA](https://guide.elm-lang.org/architecture/) state management for complex apps |
 | `@silvery/test` | Testing utilities and locators |
 | `@silvery/ink` | Ink compatibility layer |
+| `@silvery/tea` | Optional [TEA](https://guide.elm-lang.org/architecture/) state management for complex apps |
 
 ## Ecosystem
 
