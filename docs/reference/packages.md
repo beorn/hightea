@@ -15,13 +15,13 @@ Most apps only need `silvery` — it re-exports everything you need from the int
 
 These are implementation details — you'll only need them for advanced use cases like custom renderers or direct pipeline access.
 
-| Package           | npm               | Description                                                 |
-| ----------------- | ----------------- | ----------------------------------------------------------- |
-| `@silvery/ag-react`  | `@silvery/ag-react`  | React reconciler, components, and hooks                     |
-| `@silvery/ag-term`   | `@silvery/ag-term`   | Terminal runtime, ANSI output, rendering pipeline           |
-| `@silvery/ag-react/ui`     | `@silvery/ag-react/ui`     | Component library (30+ components) + CLI progress utilities |
-| `@silvery/theme`  | `@silvery/theme`  | Theme tokens, 38 palettes, theme CLI                        |
-| `@silvery/ink`    | `@silvery/ink`    | Legacy Ink/Chalk compatibility                              |
+| Package                | npm                    | Description                                                 |
+| ---------------------- | ---------------------- | ----------------------------------------------------------- |
+| `@silvery/ag-react`    | `@silvery/ag-react`    | React reconciler, components, and hooks                     |
+| `@silvery/ag-term`     | `@silvery/ag-term`     | Terminal runtime, ANSI output, rendering pipeline           |
+| `@silvery/ag-react/ui` | `@silvery/ag-react/ui` | Component library (30+ components) + CLI progress utilities |
+| `@silvery/theme`       | `@silvery/theme`       | Theme tokens, 38 palettes, theme CLI                        |
+| `@silvery/ink`         | `@silvery/ink`         | Legacy Ink/Chalk compatibility                              |
 
 ## Import Conventions
 

@@ -87,8 +87,8 @@ function TypographyTab() {
 
       <H3>Use Built-in Components</H3>
       <P>
-        The <Code>@silvery/ag-react/ui</Code> package ships 30+ components. They handle keyboard navigation, theming, mouse
-        support, and dozens of edge cases.
+        The <Code>@silvery/ag-react/ui</Code> package ships 30+ components. They handle keyboard navigation, theming,
+        mouse support, and dozens of edge cases.
       </P>
       <UL>
         <LI>

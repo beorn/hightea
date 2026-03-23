@@ -15,9 +15,9 @@ Audit of `npm pack --dry-run` output for the `silvery` root package. Last update
 
 All three `exports` entry points resolve to files that would be in the tarball:
 
-| Entry Point | File                           | In Tarball? |
-| ----------- | ------------------------------ | ----------- |
-| `.`         | `src/index.ts`                 | Yes         |
+| Entry Point | File                        | In Tarball? |
+| ----------- | --------------------------- | ----------- |
+| `.`         | `src/index.ts`              | Yes         |
 | `./ink`     | `packages/ink/src/ink.ts`   | Yes         |
 | `./chalk`   | `packages/ink/src/chalk.ts` | Yes         |
 
@@ -29,16 +29,16 @@ The tarball includes files that should NOT be published:
 
 ### Must Exclude (saves ~170+ KB packed)
 
-| Category         | Files                                                        | Size    | Issue                                           |
-| ---------------- | ------------------------------------------------------------ | ------- | ----------------------------------------------- |
-| Lock file        | `bun.lock`                                                   | 63.5 KB | Not useful to consumers; regenerated on install |
-| CI/GitHub        | `.github/workflows/docs.yml`                                 | 1.1 KB  | CI config                                       |
-| Changeset config | `.changeset/config.json`                                     | 296 B   | Release tooling internal                        |
-| Lint config      | `.oxlintrc.json`                                             | 206 B   | Dev-only config                                 |
+| Category         | Files                                                           | Size    | Issue                                           |
+| ---------------- | --------------------------------------------------------------- | ------- | ----------------------------------------------- |
+| Lock file        | `bun.lock`                                                      | 63.5 KB | Not useful to consumers; regenerated on install |
+| CI/GitHub        | `.github/workflows/docs.yml`                                    | 1.1 KB  | CI config                                       |
+| Changeset config | `.changeset/config.json`                                        | 296 B   | Release tooling internal                        |
+| Lint config      | `.oxlintrc.json`                                                | 206 B   | Dev-only config                                 |
 | CLAUDE.md files  | `examples/CLAUDE.md`, `packages/ag-term/src/pipeline/CLAUDE.md` | ~41 KB  | AI assistant instructions                       |
-| Scripts          | `scripts/fix-imports.ts`                                     | 9.3 KB  | Dev utility script                              |
-| Test fixtures    | `tests/compat/ink/helpers/*`, `tests/fixtures/index.tsx`     | ~10 KB  | Test infrastructure                             |
-| tsconfig         | `tsconfig.json`                                              | 936 B   | Workspace config (consumers have their own)     |
+| Scripts          | `scripts/fix-imports.ts`                                        | 9.3 KB  | Dev utility script                              |
+| Test fixtures    | `tests/compat/ink/helpers/*`, `tests/fixtures/index.tsx`        | ~10 KB  | Test infrastructure                             |
+| tsconfig         | `tsconfig.json`                                                 | 936 B   | Workspace config (consumers have their own)     |
 
 ### Should Consider Excluding (saves ~1.5+ MB packed)
 

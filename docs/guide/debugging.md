@@ -70,7 +70,7 @@ SILVERY_INSTRUMENT=1 bun run app
 | `silvery:content:trace` | Per-node trace entries (skip/render decisions)     |
 | `silvery:content:cell`  | Per-cell debug (node coverage at target coords)    |
 | `silvery:measure`       | Measure phase debug (text measurement calls)       |
-| `@silvery/ag-react`        | React reconciler pipeline spans                    |
+| `@silvery/ag-react`     | React reconciler pipeline spans                    |
 
 ### Enriched STRICT Errors
 

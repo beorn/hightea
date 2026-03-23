@@ -124,13 +124,13 @@ All core Ink APIs used by Gatsby CLI are covered. The only dependency needing at
 
 ### Community Packages
 
-| Package                     | Version | Purpose            | Silvery Equivalent                  |
-| --------------------------- | ------- | ------------------ | ----------------------------------- |
-| `ink-select-input`          | 4.2.2   | Selection lists    | `@silvery/ag-react/ui` `<SelectList>`        |
-| `ink-table`                 | 3.1.0   | Tabular output     | `@silvery/ag-react/ui` `<Table>`             |
-| `ink-spinner`               | 4.0.3   | Loading indicators | `@silvery/ag-react/ui` `<Spinner>`           |
-| `ink-testing-library`       | 2.1.0   | Test utilities     | `@silvery/test` `createRenderer`    |
-| `ink-use-stdout-dimensions` | 1.0.5   | Terminal size      | `useStdout()` or `useContentRect()` |
+| Package                     | Version | Purpose            | Silvery Equivalent                    |
+| --------------------------- | ------- | ------------------ | ------------------------------------- |
+| `ink-select-input`          | 4.2.2   | Selection lists    | `@silvery/ag-react/ui` `<SelectList>` |
+| `ink-table`                 | 3.1.0   | Tabular output     | `@silvery/ag-react/ui` `<Table>`      |
+| `ink-spinner`               | 4.0.3   | Loading indicators | `@silvery/ag-react/ui` `<Spinner>`    |
+| `ink-testing-library`       | 2.1.0   | Test utilities     | `@silvery/test` `createRenderer`      |
+| `ink-use-stdout-dimensions` | 1.0.5   | Terminal size      | `useStdout()` or `useContentRect()`   |
 
 ### Key Patterns
 
@@ -199,13 +199,13 @@ These Ink 6 APIs exist but none of the 3 apps use them:
 
 The biggest migration challenge is the Ink community ecosystem (~50 packages). Of the community packages used by these apps:
 
-| ink-\* Package              | Silvery Built-in Equivalent      |
-| --------------------------- | -------------------------------- |
-| `ink-spinner`               | `@silvery/ag-react/ui` `<Spinner>`        |
-| `ink-select-input`          | `@silvery/ag-react/ui` `<SelectList>`     |
-| `ink-table`                 | `@silvery/ag-react/ui` `<Table>`          |
-| `ink-testing-library`       | `@silvery/test` `createRenderer` |
-| `ink-use-stdout-dimensions` | `useStdout()` (built-in)         |
+| ink-\* Package              | Silvery Built-in Equivalent           |
+| --------------------------- | ------------------------------------- |
+| `ink-spinner`               | `@silvery/ag-react/ui` `<Spinner>`    |
+| `ink-select-input`          | `@silvery/ag-react/ui` `<SelectList>` |
+| `ink-table`                 | `@silvery/ag-react/ui` `<Table>`      |
+| `ink-testing-library`       | `@silvery/test` `createRenderer`      |
+| `ink-use-stdout-dimensions` | `useStdout()` (built-in)              |
 
 Silvery's `@silvery/ag-react/ui` package includes 23+ components that cover most of the popular `ink-*` community packages, plus additional components not available in the Ink ecosystem (TextArea, ModalDialog, CommandPalette, Image, etc.).
 

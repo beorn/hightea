@@ -688,7 +688,13 @@ Paste end:    CSI 201 ~         (ESC [ 201 ~)
 ### API
 
 ```tsx
-import { enableBracketedPaste, disableBracketedPaste, parseBracketedPaste, PASTE_START, PASTE_END } from "@silvery/ag-term"
+import {
+  enableBracketedPaste,
+  disableBracketedPaste,
+  parseBracketedPaste,
+  PASTE_START,
+  PASTE_END,
+} from "@silvery/ag-term"
 
 // Enable/disable (the run() runtime handles this automatically)
 enableBracketedPaste(process.stdout)

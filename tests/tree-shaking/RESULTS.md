@@ -38,39 +38,39 @@ Ink does not tree-shake: importing `{ Text }` alone bundles 335.6 KB gzip (96% o
 
 ### Silvery-Only Packages (No Ink Equivalent)
 
-| Entry Point                 | Raw      | Gzip     | React? | Notes                                |
-| --------------------------- | -------- | -------- | ------ | ------------------------------------ |
-| `@silvery/ag-term` (barrel)    | 378.5 KB | 83.1 KB  | No     | Full terminal runtime, React-free    |
-| `@silvery/ag-term` (selective) | 79.4 KB  | 18.7 KB  | No     | createTerm + detectColor + stripAnsi |
-| `@silvery/ag-term/ansi`        | 24.7 KB  | 6.6 KB   | No     | ANSI primitives only                 |
-| `@silvery/ag-term/runtime`     | 854.4 KB | 158.9 KB | Yes    | Layout + diff + React runtime        |
-| `@silvery/tea/core`         | 0.2 KB   | 0.2 KB   | No     | Pure TEA functions                   |
-| `@silvery/tea/store`        | 2.0 KB   | --       | No     | Zustand-based store                  |
-| `@silvery/tea/streams`      | 1.0 KB   | --       | No     | Stream combinators                   |
-| `@silvery/theme`            | 77.3 KB  | 17.7 KB  | Yes    | Theme engine + 38 palettes           |
-| `@silvery/ag-react/ui/cli`           | 22.9 KB  | 6.4 KB   | No     | Spinner, ProgressBar (React-free)    |
-| `@silvery/ag-react/ui/wrappers`      | 18.6 KB  | --       | No     | withSpinner, withProgress            |
+| Entry Point                     | Raw      | Gzip     | React? | Notes                                |
+| ------------------------------- | -------- | -------- | ------ | ------------------------------------ |
+| `@silvery/ag-term` (barrel)     | 378.5 KB | 83.1 KB  | No     | Full terminal runtime, React-free    |
+| `@silvery/ag-term` (selective)  | 79.4 KB  | 18.7 KB  | No     | createTerm + detectColor + stripAnsi |
+| `@silvery/ag-term/ansi`         | 24.7 KB  | 6.6 KB   | No     | ANSI primitives only                 |
+| `@silvery/ag-term/runtime`      | 854.4 KB | 158.9 KB | Yes    | Layout + diff + React runtime        |
+| `@silvery/tea/core`             | 0.2 KB   | 0.2 KB   | No     | Pure TEA functions                   |
+| `@silvery/tea/store`            | 2.0 KB   | --       | No     | Zustand-based store                  |
+| `@silvery/tea/streams`          | 1.0 KB   | --       | No     | Stream combinators                   |
+| `@silvery/theme`                | 77.3 KB  | 17.7 KB  | Yes    | Theme engine + 38 palettes           |
+| `@silvery/ag-react/ui/cli`      | 22.9 KB  | 6.4 KB   | No     | Spinner, ProgressBar (React-free)    |
+| `@silvery/ag-react/ui/wrappers` | 18.6 KB  | --       | No     | withSpinner, withProgress            |
 
 ## Tree-Shaking Verification
 
 All 14 silvery entry points pass tree-shaking verification:
 
-| Entry Point                  | Bundle Size | React?         | Reconciler?    | Status |
-| ---------------------------- | ----------- | -------------- | -------------- | ------ |
+| Entry Point                     | Bundle Size | React?         | Reconciler?    | Status |
+| ------------------------------- | ----------- | -------------- | -------------- | ------ |
 | `@silvery/ag-term` (barrel)     | 378.5 KB    | No             | No             | PASS   |
 | `@silvery/ag-term` (selective)  | 79.4 KB     | No             | No             | PASS   |
 | `@silvery/ag-term/ansi`         | 24.7 KB     | No             | No             | PASS   |
 | `@silvery/ag-term/hit-registry` | 42.6 KB     | Yes (expected) | No             | PASS   |
-| `@silvery/tea/core`          | 0.2 KB      | No             | No             | PASS   |
-| `@silvery/tea/store`         | 2.0 KB      | No             | No             | PASS   |
-| `@silvery/tea/tea`           | 0.7 KB      | No             | No             | PASS   |
-| `@silvery/tea/streams`       | 1.0 KB      | No             | No             | PASS   |
-| `@silvery/theme` (theme.ts)  | 77.3 KB     | Yes (expected) | No             | PASS   |
+| `@silvery/tea/core`             | 0.2 KB      | No             | No             | PASS   |
+| `@silvery/tea/store`            | 2.0 KB      | No             | No             | PASS   |
+| `@silvery/tea/tea`              | 0.7 KB      | No             | No             | PASS   |
+| `@silvery/tea/streams`          | 1.0 KB      | No             | No             | PASS   |
+| `@silvery/theme` (theme.ts)     | 77.3 KB     | Yes (expected) | No             | PASS   |
 | `@silvery/ag-react`             | 994.3 KB    | Yes (expected) | Yes (expected) | PASS   |
 | `@silvery/ag-term/runtime`      | 854.4 KB    | Yes (expected) | Yes (expected) | PASS   |
-| `@silvery/ag-react/ui/cli`            | 22.9 KB     | No             | No             | PASS   |
-| `@silvery/ag-react/ui/wrappers`       | 18.6 KB     | No             | No             | PASS   |
-| `silvery/chalk`              | 17.2 KB     | No             | No             | PASS   |
+| `@silvery/ag-react/ui/cli`      | 22.9 KB     | No             | No             | PASS   |
+| `@silvery/ag-react/ui/wrappers` | 18.6 KB     | No             | No             | PASS   |
+| `silvery/chalk`                 | 17.2 KB     | No             | No             | PASS   |
 
 ## Key Takeaways
 

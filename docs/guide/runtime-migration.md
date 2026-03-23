@@ -15,8 +15,8 @@ The new `silvery/runtime` API provides:
 
 ## Import Changes
 
-| Old (Silvery)                                         | New (silvery/runtime)                              |
-| ----------------------------------------------------- | -------------------------------------------------- |
+| Old (Silvery)                                            | New (silvery/runtime)                                 |
+| -------------------------------------------------------- | ----------------------------------------------------- |
 | `import { render } from '@silvery/ag-term'`              | `import { run } from '@silvery/ag-term/runtime'`      |
 | `import { useInput } from '@silvery/ag-term'`            | `import { useInput } from '@silvery/ag-term/runtime'` |
 | `import { useApp } from '@silvery/ag-term'`              | `import { useExit } from '@silvery/ag-term/runtime'`  |
@@ -224,13 +224,13 @@ function Card() {
 
 The following from the old Silvery API are **deprecated** and will be removed:
 
-| Deprecated              | Replacement                                |
-| ----------------------- | ------------------------------------------ |
-| `render()`              | `run()` from silvery/runtime               |
+| Deprecated              | Replacement                                   |
+| ----------------------- | --------------------------------------------- |
+| `render()`              | `run()` from silvery/runtime                  |
 | `renderToXterm()`       | Still available from `@silvery/ag-term/xterm` |
-| `useInput` from Silvery | `useInput` from silvery/runtime            |
-| `useApp()` for exit     | `useExit()` or `return 'exit'`             |
-| `RenderScheduler`       | Built into `run()` with automatic batching |
+| `useInput` from Silvery | `useInput` from silvery/runtime               |
+| `useApp()` for exit     | `useExit()` or `return 'exit'`                |
+| `RenderScheduler`       | Built into `run()` with automatic batching    |
 
 ## Future
 

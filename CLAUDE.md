@@ -33,33 +33,33 @@ bun run compat            # Run Ink/Chalk compatibility checks
 
 ## Packages
 
-| Package           | npm               | What                                           |
-| ----------------- | ----------------- | ---------------------------------------------- |
-| `packages/ag-term`   | `@silvery/ag-term`   | Terminal runtime, ANSI output, pipeline     |
-| `packages/ag-react`  | `@silvery/ag-react`  | React reconciler, hooks, and UI components |
-| `packages/ag-react/src/ui` | `@silvery/ag-react/ui` | Component library (30+ components)   |
-| `packages/tea`    | `@silvery/tea`    | TEA state machine store (zustand-based)        |
-| `packages/ink`    | `@silvery/ink`    | Ink/Chalk compatibility layers                 |
-| `packages/test`   | `@silvery/test`   | Testing utilities (virtual renderer, locators) |
-| `packages/theme`  | `@silvery/theme`  | Theme tokens, 38 palettes, theme CLI           |
+| Package                    | npm                    | What                                           |
+| -------------------------- | ---------------------- | ---------------------------------------------- |
+| `packages/ag-term`         | `@silvery/ag-term`     | Terminal runtime, ANSI output, pipeline        |
+| `packages/ag-react`        | `@silvery/ag-react`    | React reconciler, hooks, and UI components     |
+| `packages/ag-react/src/ui` | `@silvery/ag-react/ui` | Component library (30+ components)             |
+| `packages/tea`             | `@silvery/tea`         | TEA state machine store (zustand-based)        |
+| `packages/ink`             | `@silvery/ink`         | Ink/Chalk compatibility layers                 |
+| `packages/test`            | `@silvery/test`        | Testing utilities (virtual renderer, locators) |
+| `packages/theme`           | `@silvery/theme`       | Theme tokens, 38 palettes, theme CLI           |
 
 The main `silvery` package re-exports `@silvery/ag-react`. Users import from `silvery`, not the scoped packages.
 
 ## Structure
 
-| Directory   | What                                                  |
-| ----------- | ----------------------------------------------------- |
+| Directory   | What                                                              |
+| ----------- | ----------------------------------------------------------------- |
 | `packages/` | Published packages (@silvery/ag-term, @silvery/ag-react/ui, etc.) |
-| `src/`      | Root index.ts (re-exports @silvery/ag-react)             |
-| `docs/`     | VitePress documentation site (silvery.dev)            |
-| `examples/` | Interactive demos, web showcases, playground          |
-| `tests/`    | Test suites (compat, perf, tree-shaking, features)    |
-| `scripts/`  | Build and maintenance scripts                         |
+| `src/`      | Root index.ts (re-exports @silvery/ag-react)                      |
+| `docs/`     | VitePress documentation site (silvery.dev)                        |
+| `examples/` | Interactive demos, web showcases, playground                      |
+| `tests/`    | Test suites (compat, perf, tree-shaking, features)                |
+| `scripts/`  | Build and maintenance scripts                                     |
 
 ## Key Internals
 
-| File                                          | What                                                 |
-| --------------------------------------------- | ---------------------------------------------------- |
+| File                                             | What                                                 |
+| ------------------------------------------------ | ---------------------------------------------------- |
 | `packages/ag-term/src/ansi/term.ts`              | Term type and createTerm() — the central abstraction |
 | `packages/ag-term/src/runtime/term-provider.ts`  | Terminal as Provider (state, events, input parsing)  |
 | `packages/ag-term/src/runtime/run.tsx`           | Layer 2 entry point — run(<App />, term)             |

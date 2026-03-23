@@ -44,14 +44,14 @@ Terminal target is production-ready (used in [km](https://github.com/beorn/km)).
 
 ## Future Targets
 
-| Target       | Value         | Status       | Entry Point      |
-| ------------ | ------------- | ------------ | ---------------- |
-| Terminal     | High (proven) | Production   | `@silvery/ag-term`  |
-| Canvas 2D    | High          | Experimental | `silvery/canvas` |
-| DOM          | Medium        | Experimental | `silvery/dom`    |
-| WebGL        | High          | Future       | —                |
-| React Native | High          | Future       | —                |
-| PDF/Email    | Medium        | Future       | —                |
+| Target       | Value         | Status       | Entry Point        |
+| ------------ | ------------- | ------------ | ------------------ |
+| Terminal     | High (proven) | Production   | `@silvery/ag-term` |
+| Canvas 2D    | High          | Experimental | `silvery/canvas`   |
+| DOM          | Medium        | Experimental | `silvery/dom`      |
+| WebGL        | High          | Future       | —                  |
+| React Native | High          | Future       | —                  |
+| PDF/Email    | Medium        | Future       | —                  |
 
 **Why multi-target matters**: Silvery's two-phase rendering provides synchronous responsive layout — components know their size during render via `useContentRect()`. This solves the "ResizeObserver dance" problem across all targets, not just terminals.
 

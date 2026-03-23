@@ -6,11 +6,11 @@ Catalog of every export from every entry point. Last updated 2026-03-09.
 
 ### Entry Points
 
-| Specifier       | Resolves To                    | Purpose                                 |
-| --------------- | ------------------------------ | --------------------------------------- |
-| `silvery` (`.`) | `src/index.ts`                 | Re-exports `@silvery/ag-react` + `VERSION` |
-| `silvery/ink`   | `packages/ink/src/ink.ts`   | Drop-in Ink replacement                 |
-| `silvery/chalk` | `packages/ink/src/chalk.ts` | Drop-in chalk replacement               |
+| Specifier       | Resolves To                 | Purpose                                    |
+| --------------- | --------------------------- | ------------------------------------------ |
+| `silvery` (`.`) | `src/index.ts`              | Re-exports `@silvery/ag-react` + `VERSION` |
+| `silvery/ink`   | `packages/ink/src/ink.ts`   | Drop-in Ink replacement                    |
+| `silvery/chalk` | `packages/ink/src/chalk.ts` | Drop-in chalk replacement                  |
 
 ### `silvery` (root)
 
@@ -81,8 +81,8 @@ Exposes all files in `src/` directly. Includes:
 
 ### Entry Points
 
-| Specifier                   | Resolves To                        |
-| --------------------------- | ---------------------------------- |
+| Specifier                      | Resolves To                        |
+| ------------------------------ | ---------------------------------- |
 | `@silvery/ag-react` (`.`)      | `src/index.ts` -> `src/exports.ts` |
 | `@silvery/ag-react/hooks`      | `src/hooks/index.ts`               |
 | `@silvery/ag-react/reconciler` | `src/reconciler/index.ts`          |
@@ -230,8 +230,8 @@ Exposes all `src/` files. Notable internal files:
 
 ### Entry Points
 
-| Specifier                | Resolves To             |
-| ------------------------ | ----------------------- |
+| Specifier                   | Resolves To             |
+| --------------------------- | ----------------------- |
 | `@silvery/ag-term` (`.`)    | `src/index.ts`          |
 | `@silvery/ag-term/runtime`  | `src/runtime/index.ts`  |
 | `@silvery/ag-term/toolbelt` | `src/toolbelt/index.ts` |
@@ -367,8 +367,8 @@ Exposes all `src/` files. Some are clearly internal (generator helpers, palette 
 
 ### Entry Points
 
-| Specifier               | Resolves To              |
-| ----------------------- | ------------------------ |
+| Specifier                        | Resolves To              |
+| -------------------------------- | ------------------------ |
 | `@silvery/ag-react/ui` (`.`)     | `src/index.ts`           |
 | `@silvery/ag-react/ui/cli`       | `src/cli/index.ts`       |
 | `@silvery/ag-react/ui/react`     | `src/react/index.ts`     |
