@@ -284,19 +284,19 @@ Classes encourage hidden state and rigid hierarchies. Factory functions return p
 ::: tip ✨ Shiny
 
 ```tsx
-// Explicit dependencies — no hidden globals
-function createEditor({ storage, parser }) {
-  return { open, save, close }
-}
+// render() takes explicit deps — term is optional, options are plain objects
+const app = render(<App />, term, { incremental: true })
 
-// Easy to test — just pass mock deps
-const editor = createEditor({ storage: mockStorage, parser: mockParser })
+// createRenderer() for tests — explicit config, no global state
+const render = createRenderer({ cols: 80, rows: 24 })
+const app = render(<MyComponent />)
+expect(app.text).toContain("Hello")
 ```
 
-With `@silvery/tea`, this pattern extends to app-level composition via `pipe()`:
+With `@silvery/tea`, this extends to app-level composition via `pipe()`:
 
 ```tsx
-// TEA plugin composition — each function adds a capability
+// Each function adds a capability — explicit, composable, no inheritance
 const app = pipe(createApp(), withFocus(), withDomEvents(), withCommands(opts))
 ```
 
