@@ -45,13 +45,8 @@ await render(<Counter />, term).run()
 - **Theme system** — 38 palettes, semantic tokens (`$primary`, `$error`), auto-detects terminal colors
 - **30+ components** — TextInput, TextArea, SelectList, VirtualList, Table, Tabs, CommandPalette, ModalDialog, Toast, and more
 - **Focus system** — scoped focus, arrow-key directional nav, click-to-focus
-- **Mouse support** — full SGR protocol — click, drag, scroll, hit testing
-
-## Compared to Ink
-
-[Ink](https://github.com/vadimdemedes/ink) pioneered React in the terminal and remains a great choice for many apps. Silvery builds on that foundation with additional capabilities for complex interactive UIs.
-
-If you're already using Ink, `@silvery/ink` provides a compatibility layer for gradual migration.
+- **Mouse support** — full SGR mouse protocol — click, drag, scroll, hit testing
+- **Kitty keyboard protocol** — unambiguous key IDs, modifier keys, key release events
 
 ## Packages
 
