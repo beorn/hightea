@@ -54,6 +54,7 @@ import { createXtermProvider, type XtermProvider } from "./xterm-provider"
 import { ThemeProvider } from "@silvery/theme/ThemeContext"
 import { catppuccinMocha } from "@silvery/theme/palettes"
 import { deriveTheme, type Theme } from "@silvery/theme"
+import { createCursorStore, CursorProvider } from "@silvery/ag-react/hooks/useCursor"
 
 type XtermTerminal = import("@xterm/xterm").Terminal
 
@@ -254,6 +255,9 @@ export function renderToXterm(
     return overrideRows ?? fixedRows ?? terminal.rows
   }
 
+  // Cursor store for hardware cursor positioning in xterm
+  const cursorStore = createCursorStore()
+
   const container = createContainer(() => {
     scheduleRender()
   })
@@ -403,10 +407,11 @@ export function renderToXterm(
     }
   }
 
-  // Wrap element with context providers (theme + input)
+  // Wrap element with context providers (theme + cursor + input)
   function wrapElement(el: ReactElement): ReactElement {
-    // Always wrap with ThemeProvider — detect from xterm.js theme options
-    const themed = React.createElement(ThemeProvider, { theme: deriveThemeFromXterm(terminal) }, el)
+    // Always wrap with ThemeProvider + CursorProvider
+    const withCursor = React.createElement(CursorProvider, { store: cursorStore }, el)
+    const themed = React.createElement(ThemeProvider, { theme: deriveThemeFromXterm(terminal) }, withCursor)
 
     if (!inputEnabled || !runtimeContextValue || !focusManager) return themed
     return React.createElement(
@@ -445,6 +450,15 @@ export function renderToXterm(
     // The terminal adapter's flush() returns ANSI diff strings
     if (typeof result.output === "string" && result.output.length > 0) {
       terminal.write(result.output)
+    }
+
+    // Emit cursor position after render (useCursor stores state, we emit ANSI)
+    const cursor = cursorStore.accessors.getCursorState()
+    if (cursor?.visible) {
+      // Move cursor to absolute position and show it
+      terminal.write(`\x1b[${cursor.y + 1};${cursor.x + 1}H\x1b[?25h`)
+    } else {
+      terminal.write("\x1b[?25l") // hide cursor
     }
   }
 

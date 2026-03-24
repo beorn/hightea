@@ -75,6 +75,20 @@ if (!ShowcaseComponent) {
     // (browsers restrict auto-focus in iframes, so click-to-focus is essential)
     termContainer.addEventListener("click", () => term.focus())
 
+    // Forward mouse wheel events as arrow key presses.
+    // xterm.js in iframes doesn't receive wheel events natively —
+    // the browser scrolls the parent page instead.
+    termContainer.addEventListener("wheel", (e) => {
+      e.preventDefault()
+      const lines = Math.max(1, Math.round(Math.abs(e.deltaY) / 40))
+      const key = e.deltaY < 0 ? "\x1b[A" : "\x1b[B" // Up/Down arrow
+      // Trigger xterm's onData (same path as keyboard input)
+      const core = (term as any)._core
+      if (core?._onData) {
+        for (let i = 0; i < lines; i++) core._onData.fire(key)
+      }
+    }, { passive: false })
+
     // Auto-focus terminal so keyboard input works immediately
     term.focus()
 

@@ -143,6 +143,22 @@ interface RegistryEntry {
   type: "showcase" | "example"
 }
 
+/** Clean source code for display — replace monorepo imports with published package names. */
+function cleanSourceForDisplay(source: string): string {
+  return source
+    .replace(/from\s+"\.\.\/\.\.\/src\/index\.js"/g, 'from "silvery"')
+    .replace(/from\s+"\.\.\/src\/index\.js"/g, 'from "silvery"')
+    .replace(/from\s+"@silvery\/ag-term\/runtime"/g, 'from "silvery/runtime"')
+    .replace(/from\s+"@silvery\/ag-term\/[^"]+"/g, 'from "silvery"')
+    .replace(/from\s+"@silvery\/ag-react\/ui\/[^"]+"/g, 'from "silvery/ui"')
+    .replace(/from\s+"@silvery\/ag-react\/[^"]+"/g, 'from "silvery"')
+    .replace(/from\s+"@silvery\/ag\/[^"]+"/g, 'from "silvery"')
+    .replace(/from\s+"@silvery\/theme\/[^"]+"/g, 'from "silvery/theme"')
+    .replace(/from\s+"@silvery\/theme"/g, 'from "silvery/theme"')
+    .replace(/import\s+.*from\s+"\.\.\/_(banner)\.js"\s*\n?/g, '')
+    .replace(/import\s+type\s+.*from\s+"\.\.\/\.\.\/_banner\.js"\s*\n?/g, '')
+}
+
 /** Extract ExampleMeta from source text via regex (avoids importing modules at build time). */
 function extractMeta(source: string): { name?: string; description?: string; features: string[] } {
   const metaMatch = source.match(/export const meta:\s*ExampleMeta\s*=\s*\{([^}]+)\}/)
@@ -182,11 +198,12 @@ async function generateRegistry(): Promise<void> {
     let source = ""
     if (sourcePath) {
       // Read meta + source from the terminal example
-      source = await Bun.file(join(__dirname, "..", sourcePath)).text()
-      const meta = extractMeta(source)
+      const rawSource = await Bun.file(join(__dirname, "..", sourcePath)).text()
+      const meta = extractMeta(rawSource)
       if (meta.name) name = meta.name
       if (meta.description) description = meta.description
       features = meta.features
+      source = cleanSourceForDisplay(rawSource)
     }
 
     entries.push({
@@ -207,9 +224,9 @@ async function generateRegistry(): Promise<void> {
     const files = (await readdir(dir)).filter((f) => f.endsWith(".tsx") && !skipFiles.has(`${cat.dir}/${f}`))
 
     for (const file of files.sort()) {
-      const source = await Bun.file(join(dir, file)).text()
+      const rawSource = await Bun.file(join(dir, file)).text()
       const key = file.replace(".tsx", "")
-      const meta = extractMeta(source)
+      const meta = extractMeta(rawSource)
 
       entries.push({
         key,
@@ -218,7 +235,7 @@ async function generateRegistry(): Promise<void> {
         features: meta.features,
         category: cat.label,
         categoryColor: cat.color,
-        source,
+        source: cleanSourceForDisplay(rawSource),
         type: "example",
       })
     }
