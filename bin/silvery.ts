@@ -127,17 +127,17 @@ function printHelp(): void {
 ${BOLD}${YELLOW}silvery${RESET} — React framework for modern terminal UIs
 
 ${BOLD}Usage:${RESET}
-  bunx silvery ${DIM}<name>${RESET}             Run an example by name (fuzzy match)
+  bunx silvery examples ${DIM}<name>${RESET}     Run an example by name (fuzzy match)
   bunx silvery examples            List all available examples
   bunx silvery doctor              Check terminal capabilities
   bunx silvery --help              Show this help
   bunx silvery --version           Show version
 
 ${BOLD}Quick start:${RESET}
-  bunx silvery dashboard           Responsive layout demo
-  bunx silvery kanban              Kanban board with keyboard nav
-  bunx silvery counter             Simple counter (Hello World)
-  bunx silvery textarea            Rich text editor
+  bunx silvery examples dashboard  Responsive layout demo
+  bunx silvery examples kanban     Kanban board with keyboard nav
+  bunx silvery examples counter    Simple counter (Hello World)
+  bunx silvery examples textarea   Rich text editor
 
 ${DIM}Documentation: https://silvery.dev${RESET}
 `)
@@ -160,7 +160,7 @@ function printExampleList(examples: Example[]): void {
     console.log(`    ${nameStr}  ${descStr}`)
   }
 
-  console.log(`\n  ${DIM}Run: bunx silvery <name>${RESET}\n`)
+  console.log(`\n  ${DIM}Run: bunx silvery examples <name>${RESET}\n`)
 }
 
 function findExample(examples: Example[], query: string): Example | undefined {
@@ -281,9 +281,9 @@ async function main(): Promise<void> {
       await doctorCommand()
       break
     default:
-      // "bunx silvery dashboard" → treat as "bunx silvery example dashboard"
-      await exampleCommand(args)
-      break
+      console.error(`${RED}Unknown command:${RESET} ${subcommand}\n`)
+      printHelp()
+      process.exit(1)
   }
 }
 
