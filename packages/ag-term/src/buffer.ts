@@ -641,6 +641,29 @@ export class TerminalBuffer {
 
     const idx = this.index(x, y)
 
+    // Wide character consistency: when overwriting a continuation cell (second
+    // half of a wide char), clear the wide flag on the preceding main cell.
+    // When overwriting a wide char's main cell with a non-wide char, clear
+    // the continuation cell at x+1. Without this, the buffer has inconsistent
+    // wide/continuation pairs, causing incremental ≠ fresh render mismatches.
+    if (!(cell.continuation ?? false)) {
+      const prevPacked = this.cells[idx]
+      if (prevPacked !== undefined && (prevPacked & CONTINUATION_FLAG) !== 0 && x > 0) {
+        // Overwriting a continuation cell — clear wide flag on main cell at x-1
+        const prevIdx = idx - 1
+        this.cells[prevIdx] = this.cells[prevIdx]! & ~WIDE_FLAG
+      }
+    }
+    if (!(cell.wide ?? false)) {
+      const prevPacked = this.cells[idx]
+      if (prevPacked !== undefined && (prevPacked & WIDE_FLAG) !== 0 && x + 1 < this.width) {
+        // Overwriting a wide cell with a non-wide char — clear continuation at x+1
+        const nextIdx = idx + 1
+        this.cells[nextIdx] = this.cells[nextIdx]! & ~CONTINUATION_FLAG
+        this.chars[nextIdx] = " "
+      }
+    }
+
     // Resolve properties with defaults (no intermediate object)
     const char = cell.char ?? " "
     const fg = cell.fg ?? null
