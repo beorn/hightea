@@ -138,7 +138,12 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   const { focused } = useFocusable()
   const isActive = isActiveProp ?? (testID ? focused : true)
 
-  const { width } = useContentRect()
+  const { width: parentWidth } = useContentRect()
+
+  // When borderStyle is set, TextArea renders a Box with border + paddingX.
+  // useContentRect reads from the parent's NodeContext, so we must subtract
+  // border (1+1) and padding (1+1) to get the actual content area width.
+  const contentWidth = borderStyleProp ? Math.max(1, parentWidth - 4) : parentWidth
 
   const ta = useTextArea({
     value: controlledValue,
@@ -148,7 +153,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
     submitKey,
     isActive,
     height,
-    wrapWidth: width,
+    wrapWidth: contentWidth,
     scrollMargin,
     disabled,
     maxLength,
@@ -195,13 +200,6 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   // Rendering
   // =========================================================================
 
-  // Hide hardware cursor when selection is active (cursor shown as part of selection rendering)
-  useCursor({
-    col: ta.cursorCol,
-    row: ta.visibleCursorRow,
-    visible: isActive && !disabled && !ta.selection,
-  })
-
   const showPlaceholder = !ta.value && placeholder
 
   const borderProps = borderStyleProp
@@ -211,6 +209,21 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
         paddingX: 1 as const,
       }
     : {}
+
+  // Compute border+padding offset for cursor positioning.
+  // useCursor reads screenRect from the parent's NodeContext, but the text
+  // content is rendered inside this component's Box (which may have border
+  // and padding). We must add those offsets so the terminal cursor aligns
+  // with the text content area.
+  const borderColOffset = borderStyleProp ? 2 : 0 // border-left(1) + paddingX-left(1)
+  const borderRowOffset = borderStyleProp ? 1 : 0 // border-top(1)
+
+  // Hide hardware cursor when selection is active (cursor shown as part of selection rendering)
+  useCursor({
+    col: ta.cursorCol + borderColOffset,
+    row: ta.visibleCursorRow + borderRowOffset,
+    visible: isActive && !disabled && !ta.selection,
+  })
 
   if (showPlaceholder) {
     return (

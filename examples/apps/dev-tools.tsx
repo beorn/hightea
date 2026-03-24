@@ -180,8 +180,25 @@ function LogRow({ entry, isSelected }: { entry: LogEntry; isSelected: boolean })
   const badge = LEVEL_BADGES[entry.level]
   const color = LEVEL_COLORS[entry.level]
 
+  // When selected, use $primary-fg for all text to ensure contrast against $primary bg.
+  // When not selected, use level-specific colors for visual distinction.
+  if (isSelected) {
+    return (
+      <Box paddingX={1} backgroundColor="$primary">
+        <Text color="$primary-fg">{formatTime(entry.timestamp)} </Text>
+        <Text color="$primary-fg" bold>
+          {badge}
+        </Text>
+        <Text color="$primary-fg"> [{entry.source.padEnd(9)}] </Text>
+        <Text color="$primary-fg" bold>
+          {entry.message}
+        </Text>
+      </Box>
+    )
+  }
+
   return (
-    <Box paddingX={1} backgroundColor={isSelected ? "$primary" : undefined}>
+    <Box paddingX={1}>
       <Muted>{formatTime(entry.timestamp)} </Muted>
       <Strong color={color}>{badge}</Strong>
       <Muted> [{entry.source.padEnd(9)}] </Muted>

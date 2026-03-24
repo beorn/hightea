@@ -104,7 +104,7 @@ function CardComponent({ card, isSelected }: { card: Card; isSelected: boolean }
   return (
     <Box flexDirection="column" borderStyle="round" borderColor={isSelected ? "$primary" : "$border"} paddingX={1}>
       {isSelected ? (
-        <Text backgroundColor="$primary" color="black" bold>
+        <Text backgroundColor="$primary" color="$primary-fg" bold>
           {card.title}
         </Text>
       ) : (
@@ -131,10 +131,10 @@ function ColumnComponent({
   return (
     <Box flexDirection="column" flexGrow={1} borderStyle="single" borderColor={isSelected ? "$primary" : "$border"}>
       <Box backgroundColor={isSelected ? "$primary" : undefined} paddingX={1}>
-        <Text bold color={isSelected ? "black" : "$text"}>
+        <Text bold color={isSelected ? "$primary-fg" : "$text"}>
           {column.title}
         </Text>
-        <Text color={isSelected ? "black" : "$muted"}> ({column.cards.length})</Text>
+        <Text color={isSelected ? "$primary-fg" : "$muted"}> ({column.cards.length})</Text>
       </Box>
 
       <Box

@@ -184,9 +184,18 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
   // cursor is also positioned via useCursor() for terminal blink support.
   const cursorEl =
     cursorStyle === "underline" ? <Text underline>{displayAtCursor}</Text> : <Text inverse>{displayAtCursor}</Text>
+
+  // Compute border+padding offset for cursor positioning.
+  // useCursor reads screenRect from the parent's NodeContext, but the text
+  // content is rendered inside this component's Box (which may have border
+  // and padding). We must add those offsets so the terminal cursor aligns
+  // with the text content area.
+  const borderColOffset = borderStyleProp ? 2 : 0 // border-left(1) + paddingX-left(1)
+  const borderRowOffset = borderStyleProp ? 1 : 0 // border-top(1)
+
   useCursor({
-    col: prompt.length + displayBeforeCursor.length,
-    row: 0,
+    col: prompt.length + displayBeforeCursor.length + borderColOffset,
+    row: borderRowOffset,
     visible: isActive,
   })
 

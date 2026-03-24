@@ -64,9 +64,9 @@ export const meta: ExampleMeta = {
 // Typography Tab
 // ============================================================================
 
-function TypographyTab() {
+function TypographyTab({ scrollOffset }: { scrollOffset?: number }) {
   return (
-    <Box flexDirection="column" gap={1} paddingX={1} overflow="scroll" flexGrow={1}>
+    <Box flexDirection="column" gap={1} paddingX={1} overflow="scroll" scrollOffset={scrollOffset} flexGrow={1}>
       <H1>Getting Started with Silvery</H1>
       <Lead>Build modern terminal UIs with React — layout feedback, semantic theming, and 30+ components.</Lead>
 
@@ -275,7 +275,7 @@ function InputsTab() {
 // Display Tab
 // ============================================================================
 
-function DisplayTab() {
+function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
   const [showModal, setShowModal] = useState(false)
   const [selectedBorder, setSelectedBorder] = useState(0)
 
@@ -297,7 +297,7 @@ function DisplayTab() {
   })
 
   return (
-    <Box flexDirection="column" gap={1} paddingX={1} overflow="scroll" flexGrow={1}>
+    <Box flexDirection="column" gap={1} paddingX={1} overflow="scroll" scrollOffset={scrollOffset} flexGrow={1}>
       <Box flexDirection="row" gap={2} flexGrow={1}>
         {/* Left column */}
         <Box flexDirection="column" gap={1} flexGrow={1} flexBasis={0}>
@@ -410,6 +410,13 @@ function DisplayTab() {
 export function ComponentsApp() {
   const { exit } = useApp()
   const [activeTab, setActiveTab] = useState("typography")
+  const [scrollOffset, setScrollOffset] = useState(0)
+
+  // Reset scroll when switching tabs
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab)
+    setScrollOffset(0)
+  }, [])
 
   useInput((input: string, key: Key) => {
     // Only quit with q when not on the inputs tab (where user may be typing)
@@ -419,24 +426,46 @@ export function ComponentsApp() {
     if (key.escape && activeTab !== "display") {
       exit()
     }
+
+    // Arrow keys / j/k scroll the active tab content (typography and display tabs)
+    if (activeTab !== "inputs") {
+      if (key.downArrow || (activeTab === "typography" && input === "j")) {
+        setScrollOffset((prev) => prev + 1)
+      }
+      if (key.upArrow || (activeTab === "typography" && input === "k")) {
+        setScrollOffset((prev) => Math.max(0, prev - 1))
+      }
+      if (key.pageDown) {
+        setScrollOffset((prev) => prev + 10)
+      }
+      if (key.pageUp) {
+        setScrollOffset((prev) => Math.max(0, prev - 10))
+      }
+      if (key.home || (activeTab === "typography" && input === "g")) {
+        setScrollOffset(0)
+      }
+      if (key.end || (activeTab === "typography" && input === "G")) {
+        setScrollOffset(999) // will be clamped by scroll phase
+      }
+    }
   })
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-      <Tabs defaultValue="typography" onChange={setActiveTab}>
+      <Tabs defaultValue="typography" onChange={handleTabChange}>
         <TabList>
           <Tab value="typography">Typography</Tab>
           <Tab value="inputs">Inputs</Tab>
           <Tab value="display">Display</Tab>
         </TabList>
         <TabPanel value="typography">
-          <TypographyTab />
+          <TypographyTab scrollOffset={scrollOffset} />
         </TabPanel>
         <TabPanel value="inputs">
           <InputsTab />
         </TabPanel>
         <TabPanel value="display">
-          <DisplayTab />
+          <DisplayTab scrollOffset={scrollOffset} />
         </TabPanel>
       </Tabs>
     </Box>
