@@ -1,6 +1,6 @@
 {
   "name": "@silvery/cli",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Silvery CLI — run examples, check terminal capabilities, and more",
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",

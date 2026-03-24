@@ -1,9 +1,9 @@
 {
   "name": "@silvery/theme",
-  "version": "0.4.1",
-  "description": "Theming system with semantic color tokens for silvery (internal \u2014 use silvery/theme instead)",
+  "version": "0.4.2",
+  "description": "Theming system with semantic color tokens for silvery (internal — use silvery/theme instead)",
   "license": "MIT",
-  "author": "Bj\u00f8rn Stabell <bjorn@stabell.org>",
+  "author": "Bjørn Stabell <bjorn@stabell.org>",
   "repository": {
     "type": "git",
     "url": "https://github.com/beorn/silvery.git",
