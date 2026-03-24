@@ -51,6 +51,22 @@ import { createFocusManager } from "@silvery/ag/focus-manager"
 import { parseKey, splitRawInput } from "@silvery/ag/keys"
 import { parseBracketedPaste } from "../bracketed-paste"
 import { createXtermProvider, type XtermProvider } from "./xterm-provider"
+import { ThemeProvider } from "@silvery/theme/ThemeContext"
+import { catppuccinMocha } from "@silvery/theme/palettes"
+import { deriveTheme, type Theme } from "@silvery/theme"
+
+type XtermTerminal = import("@xterm/xterm").Terminal
+
+/** Default theme for xterm.js rendering — Catppuccin Mocha (dark). */
+let cachedXtermTheme: Theme | null = null
+function deriveThemeFromXterm(_terminal: XtermTerminal): Theme {
+  // Use Catppuccin Mocha as default — matches showcase-app.tsx xterm.js theme config.
+  // TODO: read terminal.options.theme colors and derive dynamically
+  if (!cachedXtermTheme) {
+    cachedXtermTheme = deriveTheme(catppuccinMocha)
+  }
+  return cachedXtermTheme
+}
 
 // Re-export components and hooks for convenience
 export { Box, type BoxProps } from "@silvery/ag-react/components/Box"
@@ -387,13 +403,16 @@ export function renderToXterm(
     }
   }
 
-  // Wrap element with context providers when input is enabled
+  // Wrap element with context providers (theme + input)
   function wrapElement(el: ReactElement): ReactElement {
-    if (!inputEnabled || !runtimeContextValue || !focusManager) return el
+    // Always wrap with ThemeProvider — detect from xterm.js theme options
+    const themed = React.createElement(ThemeProvider, { theme: deriveThemeFromXterm(terminal) }, el)
+
+    if (!inputEnabled || !runtimeContextValue || !focusManager) return themed
     return React.createElement(
       FocusManagerContext.Provider,
       { value: focusManager },
-      React.createElement(RuntimeContext.Provider, { value: runtimeContextValue }, el),
+      React.createElement(RuntimeContext.Provider, { value: runtimeContextValue }, themed),
     )
   }
 
