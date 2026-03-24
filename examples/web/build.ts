@@ -155,8 +155,8 @@ function cleanSourceForDisplay(source: string): string {
     .replace(/from\s+"@silvery\/ag\/[^"]+"/g, 'from "silvery"')
     .replace(/from\s+"@silvery\/theme\/[^"]+"/g, 'from "silvery/theme"')
     .replace(/from\s+"@silvery\/theme"/g, 'from "silvery/theme"')
-    .replace(/import\s+.*from\s+"\.\.\/_(banner)\.js"\s*\n?/g, '')
-    .replace(/import\s+type\s+.*from\s+"\.\.\/\.\.\/_banner\.js"\s*\n?/g, '')
+    .replace(/import\s+.*from\s+"\.\.\/_(banner)\.js"\s*\n?/g, "")
+    .replace(/import\s+type\s+.*from\s+"\.\.\/\.\.\/_banner\.js"\s*\n?/g, "")
 }
 
 /** Extract ExampleMeta from source text via regex (avoids importing modules at build time). */

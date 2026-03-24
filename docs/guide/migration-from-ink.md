@@ -210,7 +210,11 @@ function Card() {
   useEffect(() => {
     setWidth(measureElement(ref.current).width)
   })
-  return <Box ref={ref}><Text>{truncate(title, width)}</Text></Box>
+  return (
+    <Box ref={ref}>
+      <Text>{truncate(title, width)}</Text>
+    </Box>
+  )
 }
 
 // Silvery: dimensions available during render, no ref needed
@@ -221,6 +225,7 @@ function Card() {
 ```
 
 Key differences:
+
 - **No ref** — dimensions come from the layout engine, not DOM measurement
 - **Available during render** — no `useEffect` delay, no flash of wrong content
 - **Automatic updates** — rerenders when parent resizes, no manual subscription

@@ -87,8 +87,8 @@ function TypographyTab() {
 
       <H3>Use Built-in Components</H3>
       <P>
-        <Code>silvery/ui</Code> ships 30+ components. They handle keyboard navigation, theming,
-        mouse support, and dozens of edge cases.
+        <Code>silvery/ui</Code> ships 30+ components. They handle keyboard navigation, theming, mouse support, and
+        dozens of edge cases.
       </P>
       <UL>
         <LI>

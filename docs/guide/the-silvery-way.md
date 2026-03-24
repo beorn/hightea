@@ -365,7 +365,9 @@ You can adopt TEA gradually:
 ```tsx
 // Level 1: render() + hooks — event loop is hidden, just React
 const [count, setCount] = useState(0)
-useInput((input) => { if (input === "j") setCount((c) => c + 1) })
+useInput((input) => {
+  if (input === "j") setCount((c) => c + 1)
+})
 
 // Level 2: useReducer — actions as data, one step toward TEA
 

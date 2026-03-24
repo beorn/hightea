@@ -57,8 +57,6 @@ import { deriveTheme, type Theme } from "@silvery/theme"
 import { setActiveTheme } from "@silvery/theme/state"
 import { createCursorStore, CursorProvider } from "@silvery/ag-react/hooks/useCursor"
 
-type XtermTerminal = import("@xterm/xterm").Terminal
-
 /** Default theme for xterm.js rendering — Catppuccin Mocha (dark). */
 let cachedXtermTheme: Theme | null = null
 function deriveThemeFromXterm(_terminal: XtermTerminal): Theme {

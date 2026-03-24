@@ -9,19 +9,19 @@
     "url": "https://github.com/beorn/silvery.git",
     "directory": "packages/examples"
   },
+  "bin": {
+    "silvery-examples": "./bin/cli.ts"
+  },
   "files": [
     "bin",
     "examples"
   ],
   "type": "module",
-  "bin": {
-    "silvery-examples": "./bin/cli.ts"
-  },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "silvery": "workspace:*",
-    "@silvery/tea": "workspace:*"
+    "@silvery/tea": "workspace:*",
+    "silvery": "workspace:*"
   }
 }
