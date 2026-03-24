@@ -54,6 +54,7 @@ import { createXtermProvider, type XtermProvider } from "./xterm-provider"
 import { ThemeProvider } from "@silvery/theme/ThemeContext"
 import { catppuccinMocha } from "@silvery/theme/palettes"
 import { deriveTheme, type Theme } from "@silvery/theme"
+import { setActiveTheme } from "@silvery/theme/state"
 import { createCursorStore, CursorProvider } from "@silvery/ag-react/hooks/useCursor"
 
 type XtermTerminal = import("@xterm/xterm").Terminal
@@ -461,6 +462,12 @@ export function renderToXterm(
       terminal.write("\x1b[?25l") // hide cursor
     }
   }
+
+  // Set the active theme at module level BEFORE rendering.
+  // This ensures the pipeline's getActiveTheme() returns the correct theme,
+  // even if the browser bundle deduplicates @silvery/theme/state differently
+  // than the ThemeProvider's setActiveTheme() call during React render.
+  setActiveTheme(deriveThemeFromXterm(terminal))
 
   // Initial render: hide cursor, clear screen, move to home, then render
   terminal.write(CURSOR_HIDE + CURSOR_HOME + CLEAR_SCREEN)
