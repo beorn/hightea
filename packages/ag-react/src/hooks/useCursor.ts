@@ -23,6 +23,8 @@ import React, {
   type ReactNode,
 } from "react"
 import type { CursorShape } from "@silvery/ag-term/output"
+import type { BoxProps } from "@silvery/ag/types"
+import { NodeContext } from "@silvery/ag-react/context"
 import { useScreenRectCallback, type Rect } from "./useLayout"
 
 // ============================================================================
@@ -160,10 +162,22 @@ export function resetCursorState(): void {
 export function useCursor(position: CursorPosition): void {
   const { col, row, visible = true, shape } = position
   const store = useContext(CursorCtx)
+  const node = useContext(NodeContext)
 
   // Resolve set/get functions from context or global fallback
   const set = store ? store.setCursorState.bind(store) : globalSetCursorState
   const get = store ? store.accessors.getCursorState : globalGetCursorState
+
+  // Compute content area offset from the parent node's border + padding.
+  // useScreenRectCallback provides the node's border-box rect, but cursor
+  // col/row are relative to the content area (inside border + padding).
+  const props = node?.props as BoxProps | undefined
+  const padLeft = props?.paddingLeft ?? props?.paddingX ?? props?.padding ?? 0
+  const padTop = props?.paddingTop ?? props?.paddingY ?? props?.padding ?? 0
+  const borderLeft = props?.borderStyle ? 1 : 0
+  const borderTop = props?.borderStyle ? 1 : 0
+  const contentOffsetX = borderLeft + padLeft
+  const contentOffsetY = borderTop + padTop
 
   // Keep current args in refs so the callback always reads fresh values
   const colRef = useRef(col)
@@ -173,12 +187,16 @@ export function useCursor(position: CursorPosition): void {
   const setRef = useRef(set)
   const getRef = useRef(get)
   const lastRectRef = useRef<Rect | null>(null)
+  const contentOffsetXRef = useRef(contentOffsetX)
+  const contentOffsetYRef = useRef(contentOffsetY)
   colRef.current = col
   rowRef.current = row
   visibleRef.current = visible
   shapeRef.current = shape
   setRef.current = set
   getRef.current = get
+  contentOffsetXRef.current = contentOffsetX
+  contentOffsetYRef.current = contentOffsetY
 
   // Called synchronously during layout (useLayoutEffect) whenever
   // the component's screen position changes.
@@ -189,8 +207,8 @@ export function useCursor(position: CursorPosition): void {
         return
       }
       setRef.current({
-        x: rect.x + colRef.current,
-        y: rect.y + rowRef.current,
+        x: rect.x + contentOffsetXRef.current + colRef.current,
+        y: rect.y + contentOffsetYRef.current + rowRef.current,
         visible: true,
         shape: shapeRef.current,
       })
@@ -205,12 +223,12 @@ export function useCursor(position: CursorPosition): void {
     const rect = lastRectRef.current
     if (!rect || !visible) return
     set({
-      x: rect.x + col,
-      y: rect.y + row,
+      x: rect.x + contentOffsetX + col,
+      y: rect.y + contentOffsetY + row,
       visible: true,
       shape,
     })
-  }, [col, row, shape, visible, set])
+  }, [col, row, contentOffsetX, contentOffsetY, shape, visible, set])
 
   // On unmount or when visible becomes false, clear cursor state
   useEffect(() => {

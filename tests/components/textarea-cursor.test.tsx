@@ -95,6 +95,47 @@ describe("TextArea cursor position", () => {
     expect(cursor!.y).toBe(1)
   })
 
+  test("cursor inside padded parent without own border (showcase layout)", () => {
+    const r = createRenderer({ cols: 40, rows: 10 })
+
+    // Mirrors the textarea showcase: border on grandparent, padding on parent,
+    // TextArea has no borderStyle of its own.
+    function App() {
+      return (
+        <Box flexDirection="column" padding={1}>
+          <Box borderStyle="single" flexDirection="column">
+            <Box paddingX={1}>
+              <TextArea defaultValue="X" height={3} />
+            </Box>
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = r(<App />)
+
+    // Structure:
+    // (0,0) padding row
+    // (1,1) ┌──────────────────────────────────────┐  border
+    // (1,2) │ X                                    │  border + padded content
+    // (1,3) │                                      │
+    // (1,4) │                                      │
+    // (1,5) └──────────────────────────────────────┘  border
+    //
+    // TextArea is inside <Box paddingX={1}>. useCursor reads that Box's
+    // screenRect (border box) and adds its paddingX=1 as content offset.
+    // Parent Box is at x=2 (root padding=1 + border=1).
+    // Content inside paddingX=1 starts at x=3.
+    // Cursor after "X" = x=3 + 1 = 4.
+    const cursor = app.getCursorState()
+    expect(cursor).not.toBeNull()
+    expect(cursor!.visible).toBe(true)
+    // x: root-padding(1) + border(1) + parent-paddingX(1) + cursorCol(1) = 4
+    expect(cursor!.x).toBe(4)
+    // y: root-padding(1) + border(1) + visibleCursorRow(0) = 2
+    expect(cursor!.y).toBe(2)
+  })
+
   test("cursor position with border on second wrapped line (uncontrolled)", () => {
     const r = createRenderer({ cols: 20, rows: 10 })
 
