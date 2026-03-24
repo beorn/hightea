@@ -412,10 +412,10 @@ function createViewerApp(root: HTMLElement): void {
       badgesDiv.appendChild(el("span", { className: "vw-badge" }, feat))
     }
 
-    // Key hints based on whether demo has component
+    // Key hints — showcases have their own help bars, so just show minimal viewer hints
     if (demo.component) {
       keyHints.innerHTML =
-        "<kbd>j</kbd><kbd>k</kbd> navigate &nbsp; <kbd>Enter</kbd> select &nbsp; <kbd>s</kbd> toggle source &nbsp; Click terminal for keyboard input"
+        "<kbd>s</kbd> toggle source &nbsp; Click terminal for keyboard input"
     } else {
       keyHints.innerHTML =
         "<kbd>j</kbd><kbd>k</kbd> navigate &nbsp; <kbd>s</kbd> toggle source &nbsp; Run: <code>bunx @silvery/examples &lt;name&gt;</code>"
