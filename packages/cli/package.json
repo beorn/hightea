@@ -1,7 +1,7 @@
 {
-  "name": "@silvery/cli",
+  "name": "@silvery/examples",
   "version": "0.4.2",
-  "description": "Silvery CLI — run examples, check terminal capabilities, and more",
+  "description": "Example apps and component demos for silvery — bunx @silvery/examples <name>",
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",
   "repository": {
@@ -15,7 +15,7 @@
   ],
   "type": "module",
   "bin": {
-    "silvery": "./bin/cli.ts"
+    "silvery-examples": "./bin/cli.ts"
   },
   "publishConfig": {
     "access": "public"

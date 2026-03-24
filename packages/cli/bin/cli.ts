@@ -124,20 +124,18 @@ async function discoverExamples(): Promise<Example[]> {
 
 function printHelp(): void {
   console.log(`
-${BOLD}${YELLOW}silvery${RESET} — React framework for modern terminal UIs
+${BOLD}${YELLOW}@silvery/examples${RESET} — Try silvery without installing
 
 ${BOLD}Usage:${RESET}
-  bunx silvery examples ${DIM}<name>${RESET}     Run an example by name (fuzzy match)
-  bunx silvery examples            List all available examples
-  bunx silvery doctor              Check terminal capabilities
-  bunx silvery --help              Show this help
-  bunx silvery --version           Show version
+  bunx @silvery/examples ${DIM}<name>${RESET}    Run an example by name (fuzzy match)
+  bunx @silvery/examples            List all available examples
+  bunx @silvery/examples --help     Show this help
 
 ${BOLD}Quick start:${RESET}
-  bunx silvery examples dashboard  Responsive layout demo
-  bunx silvery examples kanban     Kanban board with keyboard nav
-  bunx silvery examples counter    Simple counter (Hello World)
-  bunx silvery examples textarea   Rich text editor
+  bunx @silvery/examples counter    Simple counter (Hello World)
+  bunx @silvery/examples dashboard  Responsive layout demo
+  bunx @silvery/examples kanban     Kanban board with keyboard nav
+  bunx @silvery/examples textarea   Rich text editor
 
 ${DIM}Documentation: https://silvery.dev${RESET}
 `)
@@ -160,7 +158,7 @@ function printExampleList(examples: Example[]): void {
     console.log(`    ${nameStr}  ${descStr}`)
   }
 
-  console.log(`\n  ${DIM}Run: bunx silvery examples <name>${RESET}\n`)
+  console.log(`\n  ${DIM}Run: bunx @silvery/examples <name>${RESET}\n`)
 }
 
 function findExample(examples: Example[], query: string): Example | undefined {
@@ -186,7 +184,7 @@ function printNoMatch(query: string, examples: Example[]): void {
     console.error(`  ${WHITE}${ex.name}${RESET}`)
   }
 
-  console.error(`\n${DIM}Run ${BOLD}bunx silvery examples${RESET}${DIM} for full list.${RESET}\n`)
+  console.error(`\n${DIM}Run ${BOLD}bunx @silvery/examples${RESET}${DIM} for full list.${RESET}\n`)
 }
 
 // =============================================================================
@@ -270,33 +268,16 @@ async function main(): Promise<void> {
       const { resolve } = await import("node:path")
       const pkgPath = resolve(new URL(".", import.meta.url).pathname, "../package.json")
       const pkg = await Bun.file(pkgPath).json()
-      console.log(`silvery ${pkg.version}`)
+      console.log(`@silvery/examples ${pkg.version}`)
     } catch {
-      console.log("silvery (version unknown)")
+      console.log("@silvery/examples (version unknown)")
     }
     return
   }
 
-  const subcommand = args[0]
-  const subArgs = args.slice(1)
-
-  switch (subcommand) {
-    case "example":
-    case "examples":
-    case "demo":
-    case "list":
-      await exampleCommand(subArgs)
-      break
-    case "doctor":
-    case "diag":
-    case "check":
-      await doctorCommand()
-      break
-    default:
-      console.error(`${RED}Unknown command:${RESET} ${subcommand}\n`)
-      printHelp()
-      process.exit(1)
-  }
+  // "bunx @silvery/examples counter" → run counter example directly
+  // "bunx @silvery/examples" → list (handled above by args.length === 0)
+  await exampleCommand(args)
 }
 
 main().catch((err) => {

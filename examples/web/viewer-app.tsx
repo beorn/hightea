@@ -418,7 +418,7 @@ function createViewerApp(root: HTMLElement): void {
         "<kbd>j</kbd><kbd>k</kbd> navigate &nbsp; <kbd>Enter</kbd> select &nbsp; <kbd>s</kbd> toggle source &nbsp; Click terminal for keyboard input"
     } else {
       keyHints.innerHTML =
-        "<kbd>j</kbd><kbd>k</kbd> navigate &nbsp; <kbd>s</kbd> toggle source &nbsp; Run in terminal: <code>bun run examples/...</code>"
+        "<kbd>j</kbd><kbd>k</kbd> navigate &nbsp; <kbd>s</kbd> toggle source &nbsp; Run: <code>bunx @silvery/examples &lt;name&gt;</code>"
     }
 
     // Update source pane
@@ -456,8 +456,8 @@ function createViewerApp(root: HTMLElement): void {
       term.reset() // Clean slate after old async work drained
 
       if (!demo.component) {
-        term.writeln("\r\n  This example requires a full terminal runtime.")
-        term.writeln(`\r\n  Run: bun run examples/${demo.id}`)
+        term.writeln("\r\n  This example requires a full terminal.")
+        term.writeln(`\r\n  Run: bunx @silvery/examples ${demo.id}`)
         return
       }
 
