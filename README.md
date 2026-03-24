@@ -33,7 +33,7 @@ await render(<Counter />).run()
 
 - **React 18 + 19** — hooks, refs, effects, suspense — all works
 - **Flexbox layout** — `Box` with `flexDirection`, `padding`, `gap`, `flexGrow`, just like Ink
-- **Ink/Chalk compatible** — same component model, `@silvery/ink` compatibility layer for migration
+- **Ink/Chalk compatible** — same component model, [`@silvery/ink`](https://github.com/beorn/silvery/tree/main/packages/ink) compatibility layer for migrating existing Ink applications
 
 ### Better
 
@@ -51,12 +51,12 @@ await render(<Counter />).run()
 
 ## Packages
 
-| Package         | Description                                                                                |
-| --------------- | ------------------------------------------------------------------------------------------ |
-| `silvery`       | Components, hooks, renderer — the one package you need                                     |
-| `@silvery/test` | Testing utilities and locators                                                             |
-| `@silvery/ink`  | Ink compatibility layer                                                                    |
-| `@silvery/tea`  | Optional [TEA](https://guide.elm-lang.org/architecture/) state management for complex apps |
+| Package | Description |
+| --- | --- |
+| [`silvery`](https://github.com/beorn/silvery) | Components, hooks, renderer — the one package you need |
+| [`@silvery/test`](https://github.com/beorn/silvery/tree/main/packages/test) | Testing utilities and locators |
+| [`@silvery/ink`](https://github.com/beorn/silvery/tree/main/packages/ink) | Ink compatibility layer — migrate existing Ink apps with minimal changes |
+| [`@silvery/tea`](https://github.com/beorn/silvery/tree/main/packages/tea) | Optional [TEA](https://guide.elm-lang.org/architecture/) state management for complex apps |
 
 ## Ecosystem
 
@@ -65,6 +65,7 @@ await render(<Counter />).run()
 | [Termless](https://termless.dev)           | Headless terminal testing — like Playwright for terminal apps |
 | [Flexily](https://beorn.github.io/flexily) | Pure JS flexbox layout engine (Yoga-compatible, zero WASM)    |
 | [Loggily](https://beorn.github.io/loggily) | Debug + structured logging + tracing                          |
+| [terminfo.dev](https://terminfo.dev)       | Terminal feature support database, powered by Termless         |
 
 ## Coming
 
