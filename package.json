@@ -35,7 +35,8 @@
     "!packages/examples"
   ],
   "files": [
-    "src"
+    "src",
+    "packages/ink/src"
   ],
   "type": "module",
   "exports": {
