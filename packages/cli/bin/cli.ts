@@ -258,8 +258,15 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2)
 
   // Top-level flags
-  if (args.includes("--help") || args.includes("-h") || args.length === 0) {
+  if (args.includes("--help") || args.includes("-h")) {
     printHelp()
+    return
+  }
+
+  // No args → list examples
+  if (args.length === 0) {
+    const examples = await discoverExamples()
+    printExampleList(examples)
     return
   }
 
