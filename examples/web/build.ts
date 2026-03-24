@@ -179,9 +179,10 @@ async function generateRegistry(): Promise<void> {
     let description = ""
     let features: string[] = []
 
+    let source = ""
     if (sourcePath) {
-      // Read meta from the terminal example source
-      const source = await Bun.file(join(__dirname, "..", sourcePath)).text()
+      // Read meta + source from the terminal example
+      source = await Bun.file(join(__dirname, "..", sourcePath)).text()
       const meta = extractMeta(source)
       if (meta.name) name = meta.name
       if (meta.description) description = meta.description
@@ -195,7 +196,7 @@ async function generateRegistry(): Promise<void> {
       features,
       category: "Showcases",
       categoryColor: "#f9e2af",
-      source: "",
+      source,
       type: "showcase",
     })
   }
