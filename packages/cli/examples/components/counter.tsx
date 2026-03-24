@@ -8,8 +8,8 @@
  */
 
 import React, { useState } from "react"
-import { Box, Text } from "../../src/index.js"
-import { run, useInput } from "@silvery/ag-term/runtime"
+import { Box, Text } from "silvery"
+import { run, useInput } from "silvery/runtime"
 
 function Counter() {
   const [count, setCount] = useState(0)

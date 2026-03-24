@@ -8,8 +8,8 @@
  */
 
 import React from "react"
-import { Box, Text, VirtualList } from "../../src/index.js"
-import { run, useInput } from "@silvery/ag-term/runtime"
+import { Box, Text, VirtualList } from "silvery"
+import { run, useInput } from "silvery/runtime"
 
 const items = Array.from({ length: 200 }, (_, i) => ({
   id: i,

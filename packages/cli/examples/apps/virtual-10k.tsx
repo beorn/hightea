@@ -22,8 +22,8 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react"
-import { Box, Text, Strong, Kbd, Muted, Divider, VirtualList, useContentRect } from "../../src/index.js"
-import { run, useInput, type Key } from "@silvery/ag-term/runtime"
+import { Box, Text, Strong, Kbd, Muted, Divider, VirtualList, useContentRect } from "silvery"
+import { run, useInput, type Key } from "silvery/runtime"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {

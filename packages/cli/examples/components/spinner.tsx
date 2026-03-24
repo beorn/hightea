@@ -7,8 +7,8 @@
  */
 
 import React from "react"
-import { Box, Text, Spinner } from "../../src/index.js"
-import { run, useInput } from "@silvery/ag-term/runtime"
+import { Box, Text, Spinner } from "silvery"
+import { run, useInput } from "silvery/runtime"
 
 function SpinnerDemo() {
   useInput((input, key) => {

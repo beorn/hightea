@@ -32,7 +32,7 @@ import {
   requestClipboard,
   parseClipboardResponse,
   type Key,
-} from "../../src/index.js"
+} from "silvery"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {

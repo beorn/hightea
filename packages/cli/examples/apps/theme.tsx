@@ -37,7 +37,7 @@ import {
   detectTheme,
   type Key,
   type Theme,
-} from "../../src/index.js"
+} from "silvery"
 import {
   builtinPalettes,
   deriveTheme,
@@ -45,7 +45,7 @@ import {
   ansi16LightTheme,
   type ColorPalette,
   type ThemeAdjustment,
-} from "@silvery/theme"
+} from "silvery/theme"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {

@@ -23,7 +23,7 @@
  */
 
 import React from "react"
-import { Box, Text, Muted, Kbd } from "../../src/index.js"
+import { Box, Text, Muted, Kbd } from "silvery"
 import { createApp, useApp, type AppHandle } from "@silvery/tea/create-app"
 import { pipe, withReact, withTerminal } from "@silvery/tea/plugins"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"

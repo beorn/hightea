@@ -7,8 +7,8 @@
  */
 
 import React from "react"
-import { Box, Text } from "../../src/index.js"
-import { run, useInput } from "@silvery/ag-term/runtime"
+import { Box, Text } from "silvery"
+import { run, useInput } from "silvery/runtime"
 
 function Hello() {
   useInput(() => "exit" as const)
