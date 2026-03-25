@@ -359,26 +359,34 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
   })
 
   return (
-    <Box flexDirection="column" gap={1} flexGrow={1} marginTop={1}>
+    <Box flexDirection="column" gap={1} flexGrow={1} paddingX={1}>
       {/* Progress Bars */}
       <Box flexDirection="column">
         <Divider title="Progress Bars" />
         <Box flexDirection="column">
           <Box>
             <Text color="$muted">{"Build   "}</Text>
-            <Box flexGrow={1}><ProgressBar value={1.0} label="✓" /></Box>
+            <Box flexGrow={1}>
+              <ProgressBar value={1.0} label="✓" />
+            </Box>
           </Box>
           <Box>
             <Text color="$muted">{"Test    "}</Text>
-            <Box flexGrow={1}><ProgressBar value={0.73} /></Box>
+            <Box flexGrow={1}>
+              <ProgressBar value={0.73} />
+            </Box>
           </Box>
           <Box>
             <Text color="$muted">{"Deploy  "}</Text>
-            <Box flexGrow={1}><ProgressBar value={0.35} /></Box>
+            <Box flexGrow={1}>
+              <ProgressBar value={0.35} />
+            </Box>
           </Box>
           <Box>
             <Text color="$muted">{"Install "}</Text>
-            <Box flexGrow={1}><ProgressBar /></Box>
+            <Box flexGrow={1}>
+              <ProgressBar />
+            </Box>
           </Box>
         </Box>
       </Box>
@@ -407,14 +415,22 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
       </Box>
 
       {/* Status + Border Styles row */}
-      <Box flexDirection="row" gap={4}>
+      <Box flexDirection="row" gap={4} flexGrow={1}>
         <Box flexDirection="column">
           <Divider title="Status" />
           <Box flexDirection="column">
-            <Text><Text color="$success">{"✓"}</Text> All checks passed</Text>
-            <Text><Text color="$warning">{"⚠"}</Text> 2 deprecation warnings</Text>
-            <Text><Text color="$error">{"✗"}</Text> 1 vulnerability found</Text>
-            <Text><Text color="$info">{"ℹ"}</Text> 47 packages installed</Text>
+            <Text>
+              <Text color="$success">{"✓"}</Text> All checks passed
+            </Text>
+            <Text>
+              <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
+            </Text>
+            <Text>
+              <Text color="$error">{"✗"}</Text> 1 vulnerability found
+            </Text>
+            <Text>
+              <Text color="$info">{"ℹ"}</Text> 47 packages installed
+            </Text>
           </Box>
         </Box>
         <Box flexDirection="column" flexGrow={1}>
@@ -432,11 +448,22 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
                 paddingX={1}
               >
                 <Text bold={i === selectedBorder}>
-                  {i === selectedBorder ? "▸ " : "  "}{style}
+                  {i === selectedBorder ? "▸ " : "  "}
+                  {style}
                 </Text>
               </Box>
             ))}
           </Box>
+        </Box>
+      </Box>
+
+      {/* Dividers showcase */}
+      <Box flexDirection="column">
+        <Divider title="Divider Styles" />
+        <Box flexDirection="column" gap={1}>
+          <Divider />
+          <Divider title="Section" />
+          <Divider title="Decorative" titleAlignment="left" />
         </Box>
       </Box>
 

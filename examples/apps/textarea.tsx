@@ -95,7 +95,7 @@ export function NoteEditor() {
           borderStyle="round"
           borderColor={focusIndex === 0 ? "$primary" : "$border"}
           flexDirection="column"
-          flexGrow={2}
+          flexGrow={3}
           flexBasis={0}
         >
           <Box paddingX={1} justifyContent="space-between">
@@ -121,7 +121,7 @@ export function NoteEditor() {
           borderStyle="round"
           borderColor={focusIndex === 1 ? "$primary" : "$border"}
           flexDirection="column"
-          flexGrow={1}
+          flexGrow={2}
           flexBasis={0}
         >
           <Box paddingX={1}>
@@ -148,7 +148,6 @@ export function NoteEditor() {
           </Box>
         </Box>
       </Box>
-
     </Box>
   )
 }

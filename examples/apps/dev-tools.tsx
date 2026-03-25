@@ -371,7 +371,6 @@ export function DevTools() {
       <Box flexGrow={1} flexDirection="column">
         <LogListArea entries={entries} cursor={cursor} />
       </Box>
-
     </Box>
   )
 }

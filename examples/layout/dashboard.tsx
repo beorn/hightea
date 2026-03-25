@@ -235,8 +235,8 @@ function CpuPane({ cores }: { cores: CoreMetrics[] }) {
   const load1 = ((avgCpu / 100) * 8 * 0.8 + Math.random() * 0.5).toFixed(2)
   const load5 = ((avgCpu / 100) * 8 * 0.7 + Math.random() * 0.3).toFixed(2)
   const load15 = ((avgCpu / 100) * 8 * 0.6 + Math.random() * 0.2).toFixed(2)
-  // 2 (core label) + bar + 5 (pct) + 1 (space) + 10 (sparkline) = need ~18 besides bar
-  const barWidth = Math.max(8, width - 18)
+  // 2 (core label) + bar + 5 (pct) + 1 (space) + 10 (sparkline) + 2 (margin) = need ~20 besides bar
+  const barWidth = Math.max(8, width - 20)
 
   return (
     <Box flexDirection="column" flexGrow={1}>
@@ -437,18 +437,50 @@ function WideLayout({
   return (
     <Box flexDirection="column" flexGrow={1} gap={1}>
       <Box flexDirection="row" gap={1} flexGrow={1}>
-        <Box flexGrow={1} borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexDirection="column">
+        <Box
+          flexGrow={1}
+          flexBasis={0}
+          borderStyle="round"
+          borderColor="$border"
+          paddingX={1}
+          paddingY={1}
+          flexDirection="column"
+        >
           <CpuPane cores={cores} />
         </Box>
-        <Box flexGrow={1} borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexDirection="column">
+        <Box
+          flexGrow={1}
+          flexBasis={0}
+          borderStyle="round"
+          borderColor="$border"
+          paddingX={1}
+          paddingY={1}
+          flexDirection="column"
+        >
           <MemoryPane memory={memory} />
         </Box>
       </Box>
       <Box flexDirection="row" gap={1} flexGrow={1}>
-        <Box flexGrow={1} borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexDirection="column">
+        <Box
+          flexGrow={1}
+          flexBasis={0}
+          borderStyle="round"
+          borderColor="$border"
+          paddingX={1}
+          paddingY={1}
+          flexDirection="column"
+        >
           <NetworkPane network={network} />
         </Box>
-        <Box flexGrow={1} borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexDirection="column">
+        <Box
+          flexGrow={1}
+          flexBasis={0}
+          borderStyle="round"
+          borderColor="$border"
+          paddingX={1}
+          paddingY={1}
+          flexDirection="column"
+        >
           <ProcessPane processes={processes} />
         </Box>
       </Box>
@@ -465,7 +497,9 @@ export function Dashboard() {
   const { width } = useContentRect()
   const [state, setState] = useState(createInitialState)
   const [tick, setTick] = useState(0)
-  const isWide = width > 100
+  // Default to wide layout — useContentRect() returns 0 in xterm.js web rendering,
+  // so we only use narrow layout when we know the terminal is genuinely narrow
+  const isNarrow = width > 0 && width < 100
 
   useInterval(() => {
     setState((prev) => tickState(prev))
@@ -476,54 +510,59 @@ export function Dashboard() {
     if (input === "q" || key.escape) exit()
   })
 
-  if (isWide) {
+  if (isNarrow) {
     return (
       <Box flexDirection="column" flexGrow={1} padding={1}>
         <Box justifyContent="space-between">
           <Text>
-            <Strong>System Monitor</Strong> <Small>Tick #{tick}</Small>
+            <Strong>System Monitor</Strong>
           </Text>
           <Small>Tick #{tick}</Small>
         </Box>
-        <WideLayout cores={state.cores} memory={state.memory} network={state.network} processes={state.processes} />
+        <Tabs defaultValue="cpu">
+          <Box justifyContent="space-between">
+            <TabList>
+              <Tab value="cpu">CPU</Tab>
+              <Tab value="memory">Memory</Tab>
+              <Tab value="network">Network</Tab>
+              <Tab value="processes">Processes</Tab>
+            </TabList>
+          </Box>
+
+          <TabPanel value="cpu">
+            <Box borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexGrow={1}>
+              <CpuPane cores={state.cores} />
+            </Box>
+          </TabPanel>
+          <TabPanel value="memory">
+            <Box borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexGrow={1}>
+              <MemoryPane memory={state.memory} />
+            </Box>
+          </TabPanel>
+          <TabPanel value="network">
+            <Box borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexGrow={1}>
+              <NetworkPane network={state.network} />
+            </Box>
+          </TabPanel>
+          <TabPanel value="processes">
+            <Box borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexGrow={1}>
+              <ProcessPane processes={state.processes} />
+            </Box>
+          </TabPanel>
+        </Tabs>
       </Box>
     )
   }
 
   return (
     <Box flexDirection="column" flexGrow={1} padding={1}>
-      <Tabs defaultValue="cpu">
-        <Box justifyContent="space-between">
-          <TabList>
-            <Tab value="cpu">CPU</Tab>
-            <Tab value="memory">Memory</Tab>
-            <Tab value="network">Network</Tab>
-            <Tab value="processes">Processes</Tab>
-          </TabList>
-          <Small>Tick #{tick}</Small>
-        </Box>
-
-        <TabPanel value="cpu">
-          <Box borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexGrow={1}>
-            <CpuPane cores={state.cores} />
-          </Box>
-        </TabPanel>
-        <TabPanel value="memory">
-          <Box borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexGrow={1}>
-            <MemoryPane memory={state.memory} />
-          </Box>
-        </TabPanel>
-        <TabPanel value="network">
-          <Box borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexGrow={1}>
-            <NetworkPane network={state.network} />
-          </Box>
-        </TabPanel>
-        <TabPanel value="processes">
-          <Box borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexGrow={1}>
-            <ProcessPane processes={state.processes} />
-          </Box>
-        </TabPanel>
-      </Tabs>
+      <Box justifyContent="space-between">
+        <Text>
+          <Strong>System Monitor</Strong>
+        </Text>
+        <Small>Tick #{tick}</Small>
+      </Box>
+      <WideLayout cores={state.cores} memory={state.memory} network={state.network} processes={state.processes} />
     </Box>
   )
 }

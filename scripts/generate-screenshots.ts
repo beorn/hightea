@@ -110,7 +110,7 @@ try {
 
     // Screenshot the xterm canvas element (not full page) for pixel-exact margins
     const xtermScreen = page.locator(".xterm-screen")
-    if (await xtermScreen.count() > 0) {
+    if ((await xtermScreen.count()) > 0) {
       await xtermScreen.screenshot({ path: outPath, type: "png" })
     } else {
       await page.screenshot({ path: outPath, type: "png" })

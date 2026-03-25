@@ -105,10 +105,14 @@ function CardComponent({ card, isSelected }: { card: Card; isSelected: boolean }
     <Box flexDirection="column" borderStyle="round" borderColor={isSelected ? "$primary" : "$border"}>
       {isSelected ? (
         <Box backgroundColor="$primary" paddingX={1}>
-          <Text color="$primary-fg" bold>{card.title}</Text>
+          <Text color="$primary-fg" bold>
+            {card.title}
+          </Text>
         </Box>
       ) : (
-        <Box paddingX={1}><Text>{card.title}</Text></Box>
+        <Box paddingX={1}>
+          <Text>{card.title}</Text>
+        </Box>
       )}
       <Box gap={1} paddingX={1}>
         {card.tags.map((tag) => (
@@ -129,7 +133,13 @@ function ColumnComponent({
   selectedCardIndex: number
 }) {
   return (
-    <Box flexDirection="column" flexGrow={1} borderStyle="single" borderColor={isSelected ? "$primary" : "$border"}>
+    <Box
+      flexDirection="column"
+      flexGrow={1}
+      flexBasis={0}
+      borderStyle="single"
+      borderColor={isSelected ? "$primary" : "$border"}
+    >
       <Box backgroundColor={isSelected ? "$primary" : undefined} paddingX={1}>
         <Text bold color={isSelected ? "$primary-fg" : "$text"}>
           {column.title}
@@ -240,7 +250,6 @@ export function KanbanBoard() {
           />
         ))}
       </Box>
-
     </Box>
   )
 }
