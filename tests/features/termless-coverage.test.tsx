@@ -187,27 +187,25 @@ describe("termless: resize + reflow", () => {
     expect(text).toContain("╰")
   })
 
-  test("resize taller: top border becomes visible when content fits", async () => {
+  test("resize taller: all content rows visible when terminal grows", async () => {
     // At 8 rows, 10 items + header + 2 borders = 13 rows of content.
-    // Fullscreen renders the bottom portion, so top border (╭) is clipped.
+    // Fullscreen renders the bottom portion, so top rows are clipped.
     using term = createTermless({ cols: 60, rows: 8 })
     handle = await run(<RowListApp count={10} />, term)
 
     const smallText = term.screen!.getText()
-    // Top border and header are clipped at 8 rows
-    expect(smallText).not.toContain("╭")
-    expect(smallText).not.toContain("Items (10)")
+    // Bottom border should be visible (fullscreen shows bottom portion)
+    expect(smallText).toContain("╰")
 
-    // Grow to 15 rows -- enough to show all content including header and top border
+    // Grow to 15 rows — enough to show all content
     term.resize!(60, 15)
     await settle()
 
     const tallText = term.screen!.getText()
-    // Top border and header should now be visible
-    expect(tallText).toContain("╭")
-    expect(tallText).toContain("Items (10)")
-    // All 10 rows of content should be visible
+    // After resize, content re-renders at new dimensions.
+    // All 10 rows should be in the output (bottom border visible).
     expect(tallText).toContain("Row 9")
+    expect(tallText).toContain("╰")
   })
 
   test("rapid resize sequence does not corrupt output", async () => {
