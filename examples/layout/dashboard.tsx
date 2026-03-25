@@ -18,12 +18,12 @@ import {
   Strong,
   Small,
   Muted,
-  Kbd,
   Tabs,
   TabList,
   Tab,
   TabPanel,
   ProgressBar,
+  Table,
   useContentRect,
   useInput,
   useApp,
@@ -209,16 +209,15 @@ function LabelValue({ label, value, color }: { label: string; value: string; col
 
 // --- CPU Tab ---
 
-function CpuCore({ index, core, barWidth }: { index: number; core: CoreMetrics; barWidth: number }) {
+function CpuCore({ index, core }: { index: number; core: CoreMetrics }) {
   const pct = Math.round(core.usage)
   const color = severityColor(pct)
-  const filled = Math.round((pct / 100) * barWidth)
-  const empty = barWidth - filled
   return (
     <Box>
       <Muted>{`${index} `}</Muted>
-      <Text color={color}>{"█".repeat(filled)}</Text>
-      <Text dimColor>{"░".repeat(empty)}</Text>
+      <Box flexGrow={1}>
+        <ProgressBar value={pct / 100} color={color} showPercentage={false} />
+      </Box>
       <Text color={color}>
         <Strong>{` ${String(pct).padStart(3)}%`}</Strong>
       </Text>
@@ -229,14 +228,11 @@ function CpuCore({ index, core, barWidth }: { index: number; core: CoreMetrics; 
 }
 
 function CpuPane({ cores }: { cores: CoreMetrics[] }) {
-  const { width } = useContentRect()
   const avgCpu = cores.reduce((sum, c) => sum + c.usage, 0) / cores.length
   const maxCpu = Math.max(...cores.map((c) => c.usage))
   const load1 = ((avgCpu / 100) * 8 * 0.8 + Math.random() * 0.5).toFixed(2)
   const load5 = ((avgCpu / 100) * 8 * 0.7 + Math.random() * 0.3).toFixed(2)
   const load15 = ((avgCpu / 100) * 8 * 0.6 + Math.random() * 0.2).toFixed(2)
-  // 2 (core label) + bar + 5 (pct) + 1 (space) + 10 (sparkline) + 2 (margin) = need ~20 besides bar
-  const barWidth = Math.max(8, width - 20)
 
   return (
     <Box flexDirection="column" flexGrow={1}>
@@ -247,7 +243,7 @@ function CpuPane({ cores }: { cores: CoreMetrics[] }) {
         <LabelValue label="Load:" value={`${load1} ${load5} ${load15}`} />
       </Box>
       {cores.map((core, i) => (
-        <CpuCore key={i} index={i} core={core} barWidth={barWidth} />
+        <CpuCore key={i} index={i} core={core} />
       ))}
     </Box>
   )
@@ -259,8 +255,8 @@ function StackedBar({ segments }: { segments: { value: number; color: string; ch
   return (
     <Box>
       {segments.map((seg, i) => (
-        <Box key={i} flexGrow={Math.max(1, Math.round(seg.value * 100))}>
-          <Text color={seg.color}>{(seg.char ?? "█").repeat(80)}</Text>
+        <Box key={i} flexGrow={Math.max(1, Math.round(seg.value * 100))} wrap="truncate">
+          <ProgressBar value={1} color={seg.color} showPercentage={false} fillChar={seg.char ?? "█"} />
         </Box>
       ))}
     </Box>
@@ -289,19 +285,11 @@ function MemoryPane({ memory }: { memory: MemoryMetrics }) {
             { value: memory.free / total, color: "$muted", char: "░" },
           ]}
         />
-        <Box gap={2}>
-          <Text color={severityColor(usedPct)}>
-            {"█"} Used {memory.used.toFixed(1)}G
-          </Text>
-          <Text color="$info">
-            {"█"} Cache {memory.cached.toFixed(1)}G
-          </Text>
-          <Text color="$primary">
-            {"█"} Buf {memory.buffers.toFixed(1)}G
-          </Text>
-          <Muted>
-            {"░"} Free {memory.free.toFixed(1)}G
-          </Muted>
+        <Box gap={1} wrap="truncate">
+          <Text color={severityColor(usedPct)}>{"█"}Used</Text>
+          <Text color="$info">{"█"}Cache</Text>
+          <Text color="$primary">{"█"}Buf</Text>
+          <Muted>{"░"}Free</Muted>
         </Box>
       </Box>
       <Box flexDirection="column">
@@ -312,7 +300,7 @@ function MemoryPane({ memory }: { memory: MemoryMetrics }) {
       </Box>
       <Box flexDirection="column">
         <Muted>Top Consumers</Muted>
-        <Box gap={2}>
+        <Box gap={2} wrap="truncate">
           <Text>
             chrome <Strong color="$warning">12.1G</Strong>
           </Text>
@@ -358,12 +346,12 @@ function NetworkPane({ network }: { network: NetworkMetrics }) {
       </Box>
       <Box borderStyle="round" borderColor="$border" paddingX={1} flexDirection="column">
         <Muted>Connection Stats</Muted>
-        <Box gap={2}>
-          <LabelValue label="Connections:" value={String(network.connections)} />
-          <LabelValue label="Packets In:" value={String(network.packetsIn)} />
-          <LabelValue label="Packets Out:" value={String(network.packetsOut)} />
+        <Box gap={2} wrap="truncate">
+          <LabelValue label="Active:" value={String(network.connections)} />
+          <LabelValue label="Pkts In:" value={String(network.packetsIn)} />
+          <LabelValue label="Pkts Out:" value={String(network.packetsOut)} />
         </Box>
-        <Box gap={2}>
+        <Box gap={2} wrap="truncate">
           <LabelValue label="Interface:" value="en0" />
           <LabelValue label="MTU:" value="1500" />
           <LabelValue label="Duplex:" value="full" />
@@ -375,35 +363,28 @@ function NetworkPane({ network }: { network: NetworkMetrics }) {
 
 // --- Processes Tab ---
 
-function ProcessRow({ proc, isTop }: { proc: ProcessInfo; isTop: boolean }) {
-  const cpuColor = severityColor(proc.cpu)
-  return (
-    <Box gap={1}>
-      <Text color="$muted">{String(proc.pid).padStart(5)}</Text>
-      <Text bold={isTop}>{proc.name.padEnd(12)}</Text>
-      <Text color={cpuColor}>{proc.cpu.toFixed(1).padStart(5)}%</Text>
-      <Text color="$primary">{proc.mem.toFixed(1).padStart(5)}%</Text>
-      <Text color={proc.status === "running" ? "$success" : "$muted"}>{proc.status}</Text>
-    </Box>
-  )
-}
-
 function ProcessPane({ processes }: { processes: ProcessInfo[] }) {
   const sorted = [...processes].sort((a, b) => b.cpu - a.cpu)
 
   return (
     <Box flexDirection="column" gap={1} flexGrow={1}>
       <SectionHeader>Processes</SectionHeader>
-      <Box gap={1}>
-        <Muted>{"  PID".padStart(5)}</Muted>
-        <Muted>{"Name".padEnd(12)}</Muted>
-        <Muted>{"  CPU".padStart(5)}</Muted>
-        <Muted>{"  MEM".padStart(5)}</Muted>
-        <Muted>Status</Muted>
-      </Box>
-      {sorted.map((proc, i) => (
-        <ProcessRow key={proc.pid} proc={proc} isTop={i === 0} />
-      ))}
+      <Table
+        columns={[
+          { header: "PID", key: "pid", width: 6, align: "right" },
+          { header: "Name", key: "name" },
+          { header: "CPU%", key: "cpu", width: 6, align: "right" },
+          { header: "MEM%", key: "mem", width: 6, align: "right" },
+          { header: "Status", key: "status", width: 10 },
+        ]}
+        data={sorted.map((p) => ({
+          pid: String(p.pid),
+          name: p.name,
+          cpu: p.cpu.toFixed(1),
+          mem: p.mem.toFixed(1),
+          status: p.status,
+        }))}
+      />
       <Box gap={2} paddingTop={1}>
         <LabelValue label="Total:" value={`${processes.length} processes`} />
         <LabelValue
@@ -496,14 +477,12 @@ export function Dashboard() {
   const { exit } = useApp()
   const { width } = useContentRect()
   const [state, setState] = useState(createInitialState)
-  const [tick, setTick] = useState(0)
   // Default to wide layout — useContentRect() returns 0 in xterm.js web rendering,
   // so we only use narrow layout when we know the terminal is genuinely narrow
   const isNarrow = width > 0 && width < 100
 
   useInterval(() => {
     setState((prev) => tickState(prev))
-    setTick((t) => t + 1)
   }, 500)
 
   useInput((input: string, key: Key) => {
@@ -513,11 +492,10 @@ export function Dashboard() {
   if (isNarrow) {
     return (
       <Box flexDirection="column" flexGrow={1} padding={1}>
-        <Box justifyContent="space-between">
+        <Box>
           <Text>
             <Strong>System Monitor</Strong>
           </Text>
-          <Small>Tick #{tick}</Small>
         </Box>
         <Tabs defaultValue="cpu">
           <Box justifyContent="space-between">
@@ -556,11 +534,10 @@ export function Dashboard() {
 
   return (
     <Box flexDirection="column" flexGrow={1} padding={1}>
-      <Box justifyContent="space-between">
+      <Box>
         <Text>
           <Strong>System Monitor</Strong>
         </Text>
-        <Small>Tick #{tick}</Small>
       </Box>
       <WideLayout cores={state.cores} memory={state.memory} network={state.network} processes={state.processes} />
     </Box>
