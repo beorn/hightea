@@ -28,7 +28,7 @@ features:
     link: /guide/silvery-vs-ink#performance
     linkText: See benchmarks
   - title: Responsive Layout
-    details: 'Full CSS Flexbox layout via Flexily (pure JS, Yoga-compatible). Components query their own dimensions via useContentRect() — no width prop drilling. Native scrollable containers with overflow="scroll".'
+    details: 'Container queries for terminals — components know their own size at render time via useContentRect(). No prop drilling, no measure-then-rerender flicker. Full CSS Flexbox via Flexily (pure JS, Yoga-compatible). Native scrollable containers with overflow="scroll".'
   - title: 30+ Components
     details: "VirtualList, TextArea, SelectList, Table, CommandPalette, ModalDialog, Tabs, TreeView, Image, Toast, Spinner, ProgressBar, SplitView, and more."
     link: /guides/components

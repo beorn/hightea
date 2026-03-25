@@ -156,7 +156,9 @@ All numbers on this page come from the Ink comparison benchmark suite, which mea
 
 ### Responsive Layout
 
-The core architectural difference. Ink renders components, then runs Yoga layout. `useBoxMetrics()` provides dimensions _after_ layout via `useEffect`, meaning the first render always sees `{width: 0, height: 0}`. Silvery runs layout first, then renders components with actual dimensions via `useContentRect()`.
+The core architectural difference — think [CSS container queries](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries) for terminals. On the web, container queries were the #1 requested feature for a decade because the alternatives (media queries + ResizeObserver) meant rendering first, measuring after, then re-rendering with correct values. Terminal UIs hit the same wall.
+
+Ink renders components, then runs Yoga layout. `useBoxMetrics()` provides dimensions _after_ layout via `useEffect`, meaning the first render always sees `{width: 0, height: 0}`. With nested responsive components (board → column → card), each level needs its own measure→rerender cycle — N nesting levels, N visible flickers. Silvery runs layout first, then renders all components with actual dimensions via `useContentRect()` in one batch.
 
 ```tsx
 // Ink: useBoxMetrics returns 0x0 on first render, updates via effect
