@@ -18,14 +18,11 @@ import { readlineUpdate, createReadlineState, type ReadlineState, type ReadlineA
  * React hook for SelectList state machine.
  * Returns [state, send] — same pattern as useReducer.
  */
-export function useSelectList(
-  options: { count: number; index?: number },
-): [SelectListState, Dispatch<SelectListAction>] {
-  const [state, dispatch] = useReducer(
-    selectListUpdate,
-    options,
-    (opts) => createSelectListState(opts),
-  )
+export function useSelectList(options: {
+  count: number
+  index?: number
+}): [SelectListState, Dispatch<SelectListAction>] {
+  const [state, dispatch] = useReducer(selectListUpdate, options, (opts) => createSelectListState(opts))
   return [state, dispatch]
 }
 
@@ -33,13 +30,9 @@ export function useSelectList(
  * React hook for Readline state machine.
  * Returns [state, send] — same pattern as useReducer.
  */
-export function useReadline(
-  options?: { initialValue?: string },
-): [ReadlineState, Dispatch<ReadlineAction>] {
-  const [state, dispatch] = useReducer(
-    readlineUpdate,
-    options,
-    (opts) => createReadlineState({ value: opts?.initialValue }),
+export function useReadline(options?: { initialValue?: string }): [ReadlineState, Dispatch<ReadlineAction>] {
+  const [state, dispatch] = useReducer(readlineUpdate, options, (opts) =>
+    createReadlineState({ value: opts?.initialValue }),
   )
   return [state, dispatch]
 }

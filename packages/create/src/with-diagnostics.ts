@@ -46,7 +46,7 @@ import { type Color, type TerminalBuffer, colorEquals } from "@silvery/ag-term/b
 import { outputPhase } from "@silvery/ag-term/pipeline"
 import { compareBuffers, formatMismatch } from "@silvery/test/compare-buffers"
 import type { BoxProps, AgNode } from "./types"
-import type { AppWithCommands, Cmd, Command } from "./with-commands"
+import type { AppWithCommands, Cmd, Command } from "@silvery/commands/with-commands"
 
 // =============================================================================
 // Types

@@ -60,14 +60,14 @@ export type { WithDomEventsOptions } from "./with-dom-events"
 // createCommandRegistry — Command registry builder
 // =============================================================================
 
-export { createCommandRegistry } from "./create-command-registry"
-export type { CommandDefInput, CommandDefs } from "./create-command-registry"
+export { createCommandRegistry } from "@silvery/commands/create-command-registry"
+export type { CommandDefInput, CommandDefs } from "@silvery/commands/create-command-registry"
 
 // =============================================================================
-// withCommands — Command system
+// withCommands — Command system (canonical: @silvery/commands)
 // =============================================================================
 
-export { withCommands } from "./with-commands"
+export { withCommands } from "@silvery/commands/with-commands"
 export type {
   WithCommandsOptions,
   CommandDef,
@@ -78,14 +78,14 @@ export type {
   AppWithCommands,
   AppState,
   KeybindingDef,
-} from "./with-commands"
+} from "@silvery/commands/with-commands"
 
 // =============================================================================
-// withKeybindings — Keybinding resolution
+// withKeybindings — Keybinding resolution (canonical: @silvery/commands)
 // =============================================================================
 
-export { withKeybindings } from "./with-keybindings"
-export type { WithKeybindingsOptions, KeybindingContext, ExtendedKeybindingDef } from "./with-keybindings"
+export { withKeybindings } from "@silvery/commands/with-keybindings"
+export type { WithKeybindingsOptions, KeybindingContext, ExtendedKeybindingDef } from "@silvery/commands/with-keybindings"
 
 // =============================================================================
 // withLinks — Link event handling

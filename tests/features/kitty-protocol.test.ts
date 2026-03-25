@@ -7,7 +7,7 @@
  * Ported from Ink's kitty-keyboard.tsx test suite.
  */
 import { describe, expect, test } from "vitest"
-import { parseKeypress } from "../../packages/create/src/keys"
+import { parseKeypress } from "@silvery/ag/keys"
 
 // Helper to create kitty protocol CSI u sequences
 function kittyKey(codepoint: number, modifiers?: number, eventType?: number, textCodepoints?: number[]): string {
@@ -640,27 +640,27 @@ describe("kitty protocol - detection and control sequences", () => {
 
 describe("keyToKittyAnsi", () => {
   test("simple character", async () => {
-    const { keyToKittyAnsi } = await import("../../packages/create/src/keys")
+    const { keyToKittyAnsi } = await import("@silvery/ag/keys")
     expect(keyToKittyAnsi("a")).toBe("\x1b[97u")
   })
 
   test("character with ctrl modifier", async () => {
-    const { keyToKittyAnsi } = await import("../../packages/create/src/keys")
+    const { keyToKittyAnsi } = await import("@silvery/ag/keys")
     expect(keyToKittyAnsi("Control+c")).toBe("\x1b[99;5u")
   })
 
   test("enter key", async () => {
-    const { keyToKittyAnsi } = await import("../../packages/create/src/keys")
+    const { keyToKittyAnsi } = await import("@silvery/ag/keys")
     expect(keyToKittyAnsi("Enter")).toBe("\x1b[13u")
   })
 
   test("shift+enter", async () => {
-    const { keyToKittyAnsi } = await import("../../packages/create/src/keys")
+    const { keyToKittyAnsi } = await import("@silvery/ag/keys")
     expect(keyToKittyAnsi("Shift+Enter")).toBe("\x1b[13;2u")
   })
 
   test("arrow keys use enhanced special key format", async () => {
-    const { keyToKittyAnsi } = await import("../../packages/create/src/keys")
+    const { keyToKittyAnsi } = await import("@silvery/ag/keys")
     expect(keyToKittyAnsi("ArrowUp")).toBe("\x1b[1;1A")
     expect(keyToKittyAnsi("ArrowDown")).toBe("\x1b[1;1B")
     expect(keyToKittyAnsi("ArrowRight")).toBe("\x1b[1;1C")
@@ -668,7 +668,7 @@ describe("keyToKittyAnsi", () => {
   })
 
   test("super+key", async () => {
-    const { keyToKittyAnsi } = await import("../../packages/create/src/keys")
+    const { keyToKittyAnsi } = await import("@silvery/ag/keys")
     expect(keyToKittyAnsi("Super+s")).toBe("\x1b[115;9u")
   })
 })

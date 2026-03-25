@@ -94,8 +94,8 @@ export type { DelayEffect, IntervalEffect, CancelEffect, TimerEffect } from "./e
 // Keys
 // =============================================================================
 
-export { keyToName, keyToModifiers, parseHotkey, matchHotkey, parseKeypress, parseKey, emptyKey } from "./keys"
-export type { ParsedKeypress, ParsedHotkey, Key } from "./keys"
+export { keyToName, keyToModifiers, parseHotkey, matchHotkey, parseKeypress, parseKey, emptyKey } from "@silvery/ag/keys"
+export type { ParsedKeypress, ParsedHotkey, Key } from "@silvery/ag/keys"
 
 // =============================================================================
 // Text Cursor Utilities
@@ -181,10 +181,11 @@ export type { WithFocusOptions, AppWithFocus } from "./with-focus"
 export { withDomEvents } from "./with-dom-events"
 export type { WithDomEventsOptions } from "./with-dom-events"
 
-export { createCommandRegistry } from "./create-command-registry"
-export type { CommandDefInput, CommandDefs } from "./create-command-registry"
+// Commands — canonical source is @silvery/commands, re-exported for bundle convenience
+export { createCommandRegistry } from "@silvery/commands/create-command-registry"
+export type { CommandDefInput, CommandDefs } from "@silvery/commands/create-command-registry"
 
-export { withCommands } from "./with-commands"
+export { withCommands } from "@silvery/commands/with-commands"
 export type {
   WithCommandsOptions,
   CommandDef,
@@ -195,10 +196,10 @@ export type {
   AppWithCommands,
   AppState,
   KeybindingDef,
-} from "./with-commands"
+} from "@silvery/commands/with-commands"
 
-export { withKeybindings } from "./with-keybindings"
-export type { WithKeybindingsOptions, KeybindingContext, ExtendedKeybindingDef } from "./with-keybindings"
+export { withKeybindings } from "@silvery/commands/with-keybindings"
+export type { WithKeybindingsOptions, KeybindingContext, ExtendedKeybindingDef } from "@silvery/commands/with-keybindings"
 
 export { withLinks } from "./with-links"
 export type { WithLinksOptions, LinkEventBus, LinkHandler, AppWithLinks } from "./with-links"

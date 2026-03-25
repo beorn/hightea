@@ -976,7 +976,7 @@ export type { ScrollRegionConfig } from "@silvery/ag-term/scroll-region"
  * console.log(app.cmd.down.help); // Command metadata
  * ```
  */
-export { withCommands } from "@silvery/create/with-commands"
+export { withCommands } from "@silvery/commands/with-commands"
 export type {
   WithCommandsOptions,
   CommandDef,
@@ -987,10 +987,10 @@ export type {
   AppWithCommands,
   AppState,
   KeybindingDef,
-} from "@silvery/create/with-commands"
+} from "@silvery/commands/with-commands"
 
-export { withKeybindings } from "@silvery/create/with-keybindings"
-export type { WithKeybindingsOptions, KeybindingContext, ExtendedKeybindingDef } from "@silvery/create/with-keybindings"
+export { withKeybindings } from "@silvery/commands/with-keybindings"
+export type { WithKeybindingsOptions, KeybindingContext, ExtendedKeybindingDef } from "@silvery/commands/with-keybindings"
 
 // Diagnostic tools - prefer importing from '@silvery/ag-term/toolbelt' for new code
 export { withDiagnostics, VirtualTerminal } from "@silvery/create/with-diagnostics"
