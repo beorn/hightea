@@ -58,7 +58,7 @@ await app.run()                                            // event loop (if ter
 
 ### Scope
 
-This is era2a (rendering foundation). Commands, keymaps, signals, and domain models are era2b — they build on top of this. See [era2 architecture](../../vendor/silvery-internal/design/era2/00-architecture.md).
+This is era2a (rendering foundation). Commands, keymaps, signals, and domain models are era2b — they build on top of this.
 
 ## Render Configurations
 
@@ -375,8 +375,8 @@ RenderBuffer (write API)            → internal cell grid
 TextFrame (read API)                → public output of ag.render()
 ```
 
-**Migration**: 6 phases, each fully `/complete`d before the next. See [00-overview.md](../../vendor/silvery-internal/design/era2/00-overview.md) §Implementation Phases for the detailed roadmap with per-file change descriptions and `/complete` criteria.
+**Migration**: 6 phases, each fully `/complete`d before the next.
 
 ## App Architecture (era2b)
 
-Everything above works with React `useState`. For complex apps that outgrow local state — commands, keymaps, signals, domain plugins — see [era2b app architecture](../../vendor/silvery-internal/design/era2/era2b/app.md). Era2b builds on this foundation's `create()` + `dispatch/apply` pipeline; it ships separately as silvertea.
+Everything above works with React `useState`. For complex apps that outgrow local state — commands, keymaps, signals, domain plugins — Silvertea (coming soon) builds on this foundation's `create()` + `dispatch/apply` pipeline.
