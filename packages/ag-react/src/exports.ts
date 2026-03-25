@@ -990,7 +990,11 @@ export type {
 } from "@silvery/commands/with-commands"
 
 export { withKeybindings } from "@silvery/commands/with-keybindings"
-export type { WithKeybindingsOptions, KeybindingContext, ExtendedKeybindingDef } from "@silvery/commands/with-keybindings"
+export type {
+  WithKeybindingsOptions,
+  KeybindingContext,
+  ExtendedKeybindingDef,
+} from "@silvery/commands/with-keybindings"
 
 // Diagnostic tools - prefer importing from '@silvery/ag-term/toolbelt' for new code
 export { withDiagnostics, VirtualTerminal } from "@silvery/create/with-diagnostics"

@@ -94,7 +94,15 @@ export type { DelayEffect, IntervalEffect, CancelEffect, TimerEffect } from "./e
 // Keys
 // =============================================================================
 
-export { keyToName, keyToModifiers, parseHotkey, matchHotkey, parseKeypress, parseKey, emptyKey } from "@silvery/ag/keys"
+export {
+  keyToName,
+  keyToModifiers,
+  parseHotkey,
+  matchHotkey,
+  parseKeypress,
+  parseKey,
+  emptyKey,
+} from "@silvery/ag/keys"
 export type { ParsedKeypress, ParsedHotkey, Key } from "@silvery/ag/keys"
 
 // =============================================================================
@@ -199,7 +207,11 @@ export type {
 } from "@silvery/commands/with-commands"
 
 export { withKeybindings } from "@silvery/commands/with-keybindings"
-export type { WithKeybindingsOptions, KeybindingContext, ExtendedKeybindingDef } from "@silvery/commands/with-keybindings"
+export type {
+  WithKeybindingsOptions,
+  KeybindingContext,
+  ExtendedKeybindingDef,
+} from "@silvery/commands/with-keybindings"
 
 export { withLinks } from "./with-links"
 export type { WithLinksOptions, LinkEventBus, LinkHandler, AppWithLinks } from "./with-links"

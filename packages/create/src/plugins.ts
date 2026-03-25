@@ -85,7 +85,11 @@ export type {
 // =============================================================================
 
 export { withKeybindings } from "@silvery/commands/with-keybindings"
-export type { WithKeybindingsOptions, KeybindingContext, ExtendedKeybindingDef } from "@silvery/commands/with-keybindings"
+export type {
+  WithKeybindingsOptions,
+  KeybindingContext,
+  ExtendedKeybindingDef,
+} from "@silvery/commands/with-keybindings"
 
 // =============================================================================
 // withLinks — Link event handling
