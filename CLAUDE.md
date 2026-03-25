@@ -17,6 +17,28 @@ await render(<App />, term)  // or: await run(<App />, term)
 
 The same pattern works for any backend. `Term` is a Provider — it has state (dims), events (keys, mouse, resize), output (writable), and styling (chainable ANSI via chalk). See `packages/ag-term/src/ansi/term.ts` for the type and `packages/ag-term/src/runtime/term-provider.ts` for the Provider implementation.
 
+## TextFrame: Immutable Render Output
+
+`TextFrame` is the unified interface for rendered terminal output. It provides plain text, ANSI-styled text, per-line access, cell-level queries with resolved RGB colors, and text search. Defined in `packages/ag/src/text-frame.ts`.
+
+`createTextFrame(buffer)` creates an immutable snapshot from a `TerminalBuffer`. The snapshot is detached — buffer mutations after creation don't affect the frame. Text and ANSI are lazily computed on first access.
+
+```typescript
+interface TextFrame {
+  readonly text: string              // plain text (no ANSI)
+  readonly ansi: string              // text with ANSI styling
+  readonly lines: string[]           // per-line plain text
+  readonly width: number             // frame width in columns
+  readonly height: number            // frame height in rows
+  cell(col: number, row: number): FrameCell   // resolved styling per cell
+  containsText(text: string): boolean          // substring search
+}
+```
+
+`FrameCell` has resolved RGB colors (not raw palette indices), flattened boolean attributes (bold, dim, italic, etc.), underline style/color, wide character info, and hyperlink URL.
+
+`App` structurally implements `TextFrame` — `app.text`, `app.ansi`, `app.lines`, `app.width`, `app.height`, `app.cell()`, `app.containsText()` all work directly. Internal pipeline code continues to use `TerminalBuffer`; `TextFrame` is the public read API.
+
 ## Commands
 
 ```bash
@@ -78,11 +100,13 @@ These are workspace packages for development. Users do not import from them dire
 
 | File                                            | What                                                 |
 | ----------------------------------------------- | ---------------------------------------------------- |
+| `packages/ag/src/text-frame.ts`                 | TextFrame + FrameCell type definitions               |
 | `packages/ag-term/src/ansi/term.ts`             | Term type and createTerm() — the central abstraction |
 | `packages/ag-term/src/runtime/term-provider.ts` | Terminal as Provider (state, events, input parsing)  |
 | `packages/ag-term/src/runtime/run.tsx`          | Layer 2 entry point — run(<App />, term)             |
 | `packages/ag-term/src/runtime/create-app.tsx`   | Layer 3 — multi-provider apps with zustand store     |
 | `packages/ag-term/src/pipeline/render-phase.ts` | Incremental rendering (most complex)                 |
+| `packages/ag-term/src/buffer.ts`                | TerminalBuffer + createTextFrame() snapshot factory   |
 | `packages/ag-term/src/pipeline/output-phase.ts` | Buffer diff, ANSI output generation                  |
 | `packages/ag-term/src/pipeline/layout-phase.ts` | Layout, scroll, sticky, screen rects                 |
 | `packages/ag-term/src/pipeline/CLAUDE.md`       | Pipeline internals docs (read before editing)        |
@@ -124,7 +148,7 @@ Three kinds of Term:
 - `createTerm({ cols, rows })` — Headless (no output)
 - `createTermless({ cols, rows })` — Terminal emulator (real ANSI processing, screen/scrollback)
 
-Use `@silvery/test` + `createRenderer()` for fast stripped-text tests; use `createTermless()` when you need to verify ANSI output, box drawing, colors, scrollback, or cursor positioning.
+Use `@silvery/test` + `createRenderer()` for fast stripped-text tests; use `createTermless()` when you need to verify ANSI output, box drawing, colors, scrollback, or cursor positioning. App has `cell(col, row)` for `FrameCell` access with resolved RGB colors — useful for asserting styling without parsing ANSI.
 
 ## Debugging
 
