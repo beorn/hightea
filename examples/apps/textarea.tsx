@@ -88,7 +88,7 @@ export function NoteEditor() {
   const words = value.split(/\s+/).filter(Boolean).length
 
   return (
-    <Box flexDirection="column" padding={1} flexGrow={1}>
+    <Box flexDirection="column" flexGrow={1}>
       <Box flexDirection="row" gap={1} flexGrow={1}>
         {/* Main editor */}
         <Box
@@ -131,10 +131,7 @@ export function NoteEditor() {
           <Text> </Text>
           <Box flexDirection="column" paddingX={1} overflow="scroll" flexGrow={1}>
             {notes.length === 0 ? (
-              <Box flexDirection="column" paddingY={1}>
-                <Muted>No notes yet.</Muted>
-                <Muted>Press Ctrl+Enter to save.</Muted>
-              </Box>
+              <Muted>No notes yet.</Muted>
             ) : (
               notes.map((note, i) => (
                 <Box key={i} flexDirection="column" marginBottom={1}>
