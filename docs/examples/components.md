@@ -17,7 +17,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 Silvery ships 30+ components out of the box — from basic building blocks (Box, Text) to complex interactive widgets (SelectList, CommandPalette, ModalDialog). This example shows them composed together in a single dashboard.
 
-<LiveDemo xtermSrc="/examples/showcase.html?demo=dashboard" :height="500" />
+<LiveDemo xtermSrc="/examples/showcase.html?demo=components" :height="500" />
 
 ## What It Demonstrates
 
