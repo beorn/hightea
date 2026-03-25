@@ -10,7 +10,7 @@ const { frontmatter } = useData()
   <Layout>
     <template #home-hero-info-before>
       <div v-if="frontmatter.layout === 'home'" class="alpha-banner">
-        <strong>ALPHA VERSION</strong>
+        <strong>WORK IN PROGRESS</strong>
         <span>APIs may change</span>
       </div>
     </template>
