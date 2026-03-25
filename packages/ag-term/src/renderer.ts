@@ -461,7 +461,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       if (event === "input") {
         const wrapped = (data: string | Buffer) => {
           const [input, key] = parseKey(data)
-          ;(handler as (input: string, key: import("@silvery/create/keys").Key) => void)(input, key)
+          ;(handler as (input: string, key: import("@silvery/ag/keys").Key) => void)(input, key)
         }
         instance.inputEmitter.on("input", wrapped)
         return () => {

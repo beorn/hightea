@@ -226,7 +226,7 @@ async function ensureLayoutEngineInitialized(engineType?: LayoutEngineType): Pro
 // Lightweight subscriber list — replaces EventEmitter from node:events
 // ============================================================================
 
-type InputHandler = (input: string, key: import("@silvery/create/keys").Key) => void
+type InputHandler = (input: string, key: import("@silvery/ag/keys").Key) => void
 type PasteHandler = (text: string) => void
 
 interface SubscriberList {
