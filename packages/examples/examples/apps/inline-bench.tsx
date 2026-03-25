@@ -9,8 +9,8 @@
  *   bun examples/apps/inline-bench.tsx
  */
 
-import { TerminalBuffer } from "silvery"
-import { createOutputPhase, outputPhase } from "silvery/pipeline/output-phase"
+import { TerminalBuffer } from "@silvery/ag-term/buffer"
+import { createOutputPhase, outputPhase } from "@silvery/ag-term/pipeline/output-phase"
 
 const RUNS = 500
 

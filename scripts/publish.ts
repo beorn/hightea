@@ -21,6 +21,16 @@ import { readFileSync, writeFileSync } from "node:fs"
 import { resolve, join } from "node:path"
 import { execSync } from "node:child_process"
 
+interface PackageJson {
+  version: string
+  private?: boolean
+  publishConfig?: { access: string }
+  dependencies?: Record<string, string>
+  devDependencies?: Record<string, string>
+  peerDependencies?: Record<string, string>
+  [key: string]: unknown
+}
+
 const ROOT = resolve(import.meta.dir, "..")
 const version = process.argv[2]
 const dryRun = process.argv.includes("--dry-run")
@@ -53,7 +63,7 @@ for (const pkg of packages) {
 // Step 2: Update all package.json files
 for (const pkg of packages) {
   const path = join(ROOT, pkg.dir, "package.json")
-  const json = JSON.parse(readFileSync(path, "utf-8"))
+  const json = JSON.parse(readFileSync(path, "utf-8")) as PackageJson
 
   // Bump version
   json.version = version
@@ -65,11 +75,11 @@ for (const pkg of packages) {
   json.publishConfig = { access: "public" }
 
   // Replace workspace:* with actual version
-  for (const depType of ["dependencies", "devDependencies", "peerDependencies"]) {
+  for (const depType of ["dependencies", "devDependencies", "peerDependencies"] as const) {
     if (!json[depType]) continue
-    for (const [dep, ver] of Object.entries(json[depType])) {
+    for (const [dep, ver] of Object.entries(json[depType]!)) {
       if (ver === "workspace:*" && dep.startsWith("@silvery/")) {
-        json[depType][dep] = version
+        json[depType]![dep] = version
       }
     }
   }
@@ -104,16 +114,16 @@ for (const pkg of packages) {
 // Step 4: Restore workspace:* (for development)
 console.log("\nRestoring workspace:* dependencies...")
 for (const [path, content] of originals) {
-  const json = JSON.parse(readFileSync(path, "utf-8"))
-  const orig = JSON.parse(content)
+  const json = JSON.parse(readFileSync(path, "utf-8")) as PackageJson
+  const orig = JSON.parse(content) as PackageJson
 
   // Keep the new version but restore workspace:* deps and private flag
   json.version = version // keep bumped version
-  for (const depType of ["dependencies", "devDependencies", "peerDependencies"]) {
+  for (const depType of ["dependencies", "devDependencies", "peerDependencies"] as const) {
     if (!orig[depType]) continue
-    for (const [dep, ver] of Object.entries(orig[depType] as Record<string, string>)) {
+    for (const [dep, ver] of Object.entries(orig[depType]!)) {
       if (ver === "workspace:*" && json[depType]?.[dep]) {
-        json[depType][dep] = "workspace:*"
+        json[depType]![dep] = "workspace:*"
       }
     }
   }

@@ -25,6 +25,10 @@
       "types": "./src/ThemeContext.tsx",
       "import": "./src/ThemeContext.tsx"
     },
+    "./palettes": {
+      "types": "./src/palettes/index.ts",
+      "import": "./src/palettes/index.ts"
+    },
     "./*": {
       "types": "./src/*.ts",
       "import": "./src/*.ts"
