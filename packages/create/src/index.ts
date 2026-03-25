@@ -229,3 +229,10 @@ export type {
   EventHandlers,
   EventHandlerContext,
 } from "./create-app"
+
+// =============================================================================
+// App composition preset (withApp — registries, commands, keymaps)
+// =============================================================================
+
+export { withApp } from "./with-app"
+export type { CommandEntry, CommandNamespace, CommandTree, KeybindingEntry, AppWithApp } from "./with-app"

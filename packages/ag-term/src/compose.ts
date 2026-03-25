@@ -1,23 +1,21 @@
 /**
- * Plugin Composition — era2a Phase 5
+ * Plugin Composition — era2a
  *
  * Composable plugins that build an app piece by piece:
  * - create() — base app with dispatch/apply/defer/dispose
+ * - pipe() — left-to-right function composition (8 type-safe overloads)
+ * - from() — builder chain for >8 plugins
  * - withAg() — adds ag (tree + layout + render)
- * - withTerm(term) — adds render/paint wiring
- * - withReact({ view }) — mounts React reconciler
- * - withTest() — adds testing convenience (press, text, locators)
+ * - withTerm(term) — adds render/paint wiring + event loop
+ *
+ * Additional plugins in @silvery/create:
+ * - withReact({ view }) — mounts React reconciler (@silvery/create/with-react)
+ * - withApp() — registries, commands, keymaps (@silvery/create/with-app)
  *
  * @example
  * ```ts
- * // Interactive
- * const app = pipe(create(), withAg(), withTerm(term), withReact({ view: <App /> }))
- * await app.run()
- *
- * // Headless testing
- * const app = pipe(create(), withAg(), withTerm({ cols: 80, rows: 24 }), withReact({ view: <App /> }), withTest())
- * app.press("j")
- * app.text // "Count: 1"
+ * const app = pipe(create(), withAg(), withTerm(term))
+ * app.render() // layout + render + paint
  * ```
  */
 
