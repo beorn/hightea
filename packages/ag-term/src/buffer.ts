@@ -2005,3 +2005,167 @@ function trimTrailingWhitespacePreservingAnsi(str: string): string {
 
   return str.slice(0, lastContentIndex + 1)
 }
+
+// ============================================================================
+// TextFrame — Immutable Snapshot
+// ============================================================================
+
+import type { TextFrame, FrameCell, RGB } from "@silvery/ag/text-frame"
+
+/**
+ * Standard ANSI 256-color palette → RGB lookup.
+ * Colors 0-15: standard + bright colors (approximate).
+ * Colors 16-231: 6×6×6 color cube.
+ * Colors 232-255: grayscale ramp.
+ */
+function ansi256ToRgb(idx: number): RGB {
+  if (idx < 16) {
+    // Standard 16 colors (same values used by xterm)
+    const table: [number, number, number][] = [
+      [0, 0, 0],
+      [128, 0, 0],
+      [0, 128, 0],
+      [128, 128, 0],
+      [0, 0, 128],
+      [128, 0, 128],
+      [0, 128, 128],
+      [192, 192, 192],
+      [128, 128, 128],
+      [255, 0, 0],
+      [0, 255, 0],
+      [255, 255, 0],
+      [0, 0, 255],
+      [255, 0, 255],
+      [0, 255, 255],
+      [255, 255, 255],
+    ]
+    const [r, g, b] = table[idx]!
+    return { r, g, b }
+  }
+  if (idx < 232) {
+    // 6×6×6 color cube (indices 16-231)
+    const i = idx - 16
+    const r = Math.floor(i / 36)
+    const g = Math.floor((i % 36) / 6)
+    const b = i % 6
+    return {
+      r: r ? r * 40 + 55 : 0,
+      g: g ? g * 40 + 55 : 0,
+      b: b ? b * 40 + 55 : 0,
+    }
+  }
+  // Grayscale ramp (indices 232-255)
+  const v = (idx - 232) * 10 + 8
+  return { r: v, g: v, b: v }
+}
+
+/** Resolve a buffer Color (number | RGB | null) to FrameCell RGB (RGB | null). */
+function resolveColor(color: Color): RGB | null {
+  if (color === null) return null
+  if (typeof color === "number") return ansi256ToRgb(color)
+  // RGB object — check for DEFAULT_BG sentinel
+  if (color.r === -1) return null
+  return color
+}
+
+/** Empty FrameCell returned for out-of-bounds access. */
+const EMPTY_FRAME_CELL: FrameCell = Object.freeze({
+  char: " ",
+  fg: null,
+  bg: null,
+  bold: false,
+  dim: false,
+  italic: false,
+  underline: false as const,
+  underlineColor: null,
+  strikethrough: false,
+  inverse: false,
+  blink: false,
+  hidden: false,
+  wide: false,
+  continuation: false,
+  hyperlink: null,
+})
+
+/**
+ * Create an immutable TextFrame snapshot from a TerminalBuffer.
+ *
+ * The snapshot is detached from the source buffer — mutations to the buffer
+ * after this call do not affect the frame. Text and ANSI are lazily computed
+ * on first access.
+ *
+ * This is the primary public read API for rendered output. Internal pipeline
+ * code (diff-buffers, render phases) continues to use TerminalBuffer directly.
+ */
+export function createTextFrame(buffer: TerminalBuffer): TextFrame {
+  const width = buffer.width
+  const height = buffer.height
+
+  // Snapshot: clone the buffer so text/ansi lazy computation is safe
+  // from mutations to the original. clone() deep-copies all arrays/maps.
+  const snapshot = buffer.clone()
+
+  // Cell data from the snapshot for cell() access
+  const cellData: Cell[] = new Array(width * height)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      cellData[y * width + x] = snapshot.getCell(x, y)
+    }
+  }
+
+  // Lazy caches
+  let _text: string | undefined
+  let _ansi: string | undefined
+  let _lines: string[] | undefined
+
+  const frame: TextFrame = {
+    width,
+    height,
+
+    get text(): string {
+      if (_text === undefined) _text = bufferToText(snapshot)
+      return _text
+    },
+
+    get ansi(): string {
+      if (_ansi === undefined) _ansi = bufferToStyledText(snapshot)
+      return _ansi
+    },
+
+    get lines(): string[] {
+      if (_lines === undefined) _lines = frame.text.split("\n")
+      return _lines
+    },
+
+    cell(col: number, row: number): FrameCell {
+      if (col < 0 || col >= width || row < 0 || row >= height) {
+        return EMPTY_FRAME_CELL
+      }
+      const c = cellData[row * width + col]!
+      const ulStyle = c.attrs.underlineStyle ?? (c.attrs.underline ? ("single" as const) : (false as const))
+      return {
+        char: c.char,
+        fg: resolveColor(c.fg),
+        bg: resolveColor(c.bg),
+        bold: c.attrs.bold ?? false,
+        dim: c.attrs.dim ?? false,
+        italic: c.attrs.italic ?? false,
+        underline: ulStyle,
+        underlineColor: resolveColor(c.underlineColor ?? null),
+        strikethrough: c.attrs.strikethrough ?? false,
+        inverse: c.attrs.inverse ?? false,
+        blink: c.attrs.blink ?? false,
+        hidden: c.attrs.hidden ?? false,
+        wide: c.wide,
+        continuation: c.continuation,
+        hyperlink: c.hyperlink ?? null,
+      }
+    },
+
+    containsText(text: string): boolean {
+      return frame.text.includes(text)
+    },
+  }
+
+  return frame
+}

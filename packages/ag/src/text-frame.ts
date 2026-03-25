@@ -44,8 +44,10 @@ export interface FrameCell {
   readonly dim: boolean
   /** Italic attribute */
   readonly italic: boolean
-  /** Underline — false if none, or the underline style */
-  readonly underline: boolean | UnderlineStyle
+  /** Underline style — false if none */
+  readonly underline: UnderlineStyle
+  /** Underline color (independent of fg), or null to use fg */
+  readonly underlineColor: RGB | null
   /** Strikethrough attribute */
   readonly strikethrough: boolean
   /** Inverse/reverse video attribute */
