@@ -81,7 +81,7 @@ function PasteEventCard({ event, isLatest }: { event: PasteEvent; isLatest: bool
       marginBottom={0}
     >
       <Box justifyContent="space-between">
-        <H1 color={isLatest ? "$primary" : "white"}>Paste #{event.id}</H1>
+        <H1 color={isLatest ? "$primary" : undefined}>Paste #{event.id}</H1>
         <Small>{event.timestamp}</Small>
       </Box>
       <Box gap={2}>
@@ -93,7 +93,7 @@ function PasteEventCard({ event, isLatest }: { event: PasteEvent; isLatest: bool
         </Small>
       </Box>
       <Box marginTop={1}>
-        <Text color="yellow">{displayText}</Text>
+        <Text color="$warning">{displayText}</Text>
       </Box>
     </Box>
   )

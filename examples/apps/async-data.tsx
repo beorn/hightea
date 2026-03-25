@@ -129,7 +129,7 @@ function RecentActivity() {
 }
 
 // Loading fallbacks
-function LoadingBox({ label, color }: { label: string; color: string }) {
+function LoadingBox({ label }: { label: string }) {
   return (
     <Box borderStyle="round" borderColor="$border" padding={1}>
       <Text color="$muted">Loading {label}...</Text>
@@ -162,19 +162,19 @@ export function AsyncDataApp() {
       <Box flexGrow={1} flexDirection="row" gap={1}>
         {/* Each Suspense boundary loads independently */}
         <ErrorBoundary fallback={<Text color="$error">User error</Text>}>
-          <Suspense fallback={<LoadingBox label="user" color="green" />}>
+          <Suspense fallback={<LoadingBox label="user" />}>
             <UserProfile />
           </Suspense>
         </ErrorBoundary>
 
         <ErrorBoundary fallback={<Text color="$error">Stats error</Text>}>
-          <Suspense fallback={<LoadingBox label="stats" color="blue" />}>
+          <Suspense fallback={<LoadingBox label="stats" />}>
             <Statistics />
           </Suspense>
         </ErrorBoundary>
 
         <ErrorBoundary fallback={<Text color="$error">Activity error</Text>}>
-          <Suspense fallback={<LoadingBox label="activity" color="yellow" />}>
+          <Suspense fallback={<LoadingBox label="activity" />}>
             <RecentActivity />
           </Suspense>
         </ErrorBoundary>

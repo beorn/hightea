@@ -233,7 +233,7 @@ function TaskListScreenshot() {
             <Box key={task.id} flexDirection="column">
               {isSelected ? (
                 <Text>
-                  <Text backgroundColor="$primary" color="black">
+                  <Text backgroundColor="$primary" color="$primary-fg">
                     {" "}
                     {checkbox} {task.title}{" "}
                   </Text>{" "}
@@ -377,7 +377,7 @@ function KanbanScreenshot() {
                   paddingX={1}
                 >
                   {card.isSelected ? (
-                    <Text backgroundColor="$primary" color="black" bold>
+                    <Text backgroundColor="$primary" color="$primary-fg" bold>
                       {card.title}
                     </Text>
                   ) : (

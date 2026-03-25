@@ -38,7 +38,7 @@ export function ScrollExample() {
   })
 
   return (
-    <Box flexDirection="column" width={60} height={20}>
+    <Box flexDirection="column" padding={1} width={60} height={20}>
       <Box
         flexGrow={1}
         flexDirection="column"
@@ -50,7 +50,7 @@ export function ScrollExample() {
       >
         {items.map((item, index) => (
           <Box key={item.id} paddingX={1} backgroundColor={index === selectedIndex ? "$primary" : undefined}>
-            <Text color={index === selectedIndex ? "black" : "white"} bold={index === selectedIndex}>
+            <Text color={index === selectedIndex ? "$primary-fg" : undefined} bold={index === selectedIndex}>
               {item.title}
             </Text>
           </Box>

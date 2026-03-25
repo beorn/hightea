@@ -162,7 +162,7 @@ function FilteredList({ query, isPending }: { query: string; isPending: boolean 
         <Box key={item.id} marginBottom={1}>
           <Text bold>{item.name}</Text>
           <Text dim> [{item.category}]</Text>
-          <Text color="gray"> {item.tags.join(", ")}</Text>
+          <Text color="$muted"> {item.tags.join(", ")}</Text>
         </Box>
       ))}
       {filtered.length === 0 && <Lead>No matches found</Lead>}

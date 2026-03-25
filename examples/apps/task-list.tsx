@@ -101,7 +101,7 @@ function TaskItem({ task, isSelected, isExpanded }: { task: Task; isSelected: bo
     <Box flexDirection="column">
       <Box>
         {isSelected ? (
-          <Text backgroundColor="$primary" color="black">
+          <Text backgroundColor="$primary" color="$primary-fg">
             {" "}
             {checkbox} {task.title}{" "}
           </Text>

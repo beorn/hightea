@@ -23,7 +23,6 @@ import {
   Tab,
   TabPanel,
   ProgressBar,
-  Table,
   useContentRect,
   useInput,
   useApp,
@@ -215,8 +214,11 @@ function CpuCore({ index, core }: { index: number; core: CoreMetrics }) {
   return (
     <Box>
       <Muted>{`${index} `}</Muted>
-      <Box flexGrow={1}>
-        <ProgressBar value={pct / 100} color={color} showPercentage={false} />
+      <Box flexGrow={Math.max(1, pct)} flexBasis={0}>
+        <Text color={color}>{"█".repeat(80)}</Text>
+      </Box>
+      <Box flexGrow={Math.max(1, 100 - pct)} flexBasis={0}>
+        <Text dimColor>{"░".repeat(80)}</Text>
       </Box>
       <Text color={color}>
         <Strong>{` ${String(pct).padStart(3)}%`}</Strong>
@@ -236,7 +238,7 @@ function CpuPane({ cores }: { cores: CoreMetrics[] }) {
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-      <Box gap={2}>
+      <Box gap={2} wrap="truncate">
         <SectionHeader>CPU</SectionHeader>
         <LabelValue label="Avg:" value={`${Math.round(avgCpu)}%`} color={severityColor(avgCpu)} />
         <LabelValue label="Max:" value={`${Math.round(maxCpu)}%`} color={severityColor(maxCpu)} />
@@ -255,8 +257,8 @@ function StackedBar({ segments }: { segments: { value: number; color: string; ch
   return (
     <Box>
       {segments.map((seg, i) => (
-        <Box key={i} flexGrow={Math.max(1, Math.round(seg.value * 100))} wrap="truncate">
-          <ProgressBar value={1} color={seg.color} showPercentage={false} fillChar={seg.char ?? "█"} />
+        <Box key={i} flexGrow={Math.max(1, Math.round(seg.value * 100))}>
+          <Text color={seg.color}>{(seg.char ?? "█").repeat(80)}</Text>
         </Box>
       ))}
     </Box>
@@ -285,7 +287,7 @@ function MemoryPane({ memory }: { memory: MemoryMetrics }) {
             { value: memory.free / total, color: "$muted", char: "░" },
           ]}
         />
-        <Box gap={1} wrap="truncate">
+        <Box gap={2} wrap="truncate">
           <Text color={severityColor(usedPct)}>{"█"}Used</Text>
           <Text color="$info">{"█"}Cache</Text>
           <Text color="$primary">{"█"}Buf</Text>
@@ -363,28 +365,35 @@ function NetworkPane({ network }: { network: NetworkMetrics }) {
 
 // --- Processes Tab ---
 
+function ProcessRow({ proc, isTop }: { proc: ProcessInfo; isTop: boolean }) {
+  const cpuColor = severityColor(proc.cpu)
+  return (
+    <Box gap={1}>
+      <Text color="$muted">{String(proc.pid).padStart(5)}</Text>
+      <Text bold={isTop}>{proc.name.padEnd(12)}</Text>
+      <Text color={cpuColor}>{proc.cpu.toFixed(1).padStart(5)}%</Text>
+      <Text color="$primary">{proc.mem.toFixed(1).padStart(5)}%</Text>
+      <Text color={proc.status === "running" ? "$success" : "$muted"}>{proc.status}</Text>
+    </Box>
+  )
+}
+
 function ProcessPane({ processes }: { processes: ProcessInfo[] }) {
   const sorted = [...processes].sort((a, b) => b.cpu - a.cpu)
 
   return (
     <Box flexDirection="column" gap={1} flexGrow={1}>
       <SectionHeader>Processes</SectionHeader>
-      <Table
-        columns={[
-          { header: "PID", key: "pid", width: 6, align: "right" },
-          { header: "Name", key: "name" },
-          { header: "CPU%", key: "cpu", width: 6, align: "right" },
-          { header: "MEM%", key: "mem", width: 6, align: "right" },
-          { header: "Status", key: "status", width: 10 },
-        ]}
-        data={sorted.map((p) => ({
-          pid: String(p.pid),
-          name: p.name,
-          cpu: p.cpu.toFixed(1),
-          mem: p.mem.toFixed(1),
-          status: p.status,
-        }))}
-      />
+      <Box gap={1}>
+        <Muted>{"  PID".padStart(5)}</Muted>
+        <Muted>{"Name".padEnd(12)}</Muted>
+        <Muted>{"  CPU".padStart(5)}</Muted>
+        <Muted>{"  MEM".padStart(5)}</Muted>
+        <Muted>Status</Muted>
+      </Box>
+      {sorted.map((proc, i) => (
+        <ProcessRow key={proc.pid} proc={proc} isTop={i === 0} />
+      ))}
       <Box gap={2} paddingTop={1}>
         <LabelValue label="Total:" value={`${processes.length} processes`} />
         <LabelValue
@@ -491,14 +500,9 @@ export function Dashboard() {
 
   if (isNarrow) {
     return (
-      <Box flexDirection="column" flexGrow={1} padding={1}>
-        <Box>
-          <Text>
-            <Strong>System Monitor</Strong>
-          </Text>
-        </Box>
+      <Box flexDirection="column" flexGrow={1}>
         <Tabs defaultValue="cpu">
-          <Box justifyContent="space-between">
+          <Box justifyContent="space-between" paddingX={1}>
             <TabList>
               <Tab value="cpu">CPU</Tab>
               <Tab value="memory">Memory</Tab>
@@ -533,8 +537,8 @@ export function Dashboard() {
   }
 
   return (
-    <Box flexDirection="column" flexGrow={1} padding={1}>
-      <Box>
+    <Box flexDirection="column" flexGrow={1}>
+      <Box paddingX={1}>
         <Text>
           <Strong>System Monitor</Strong>
         </Text>

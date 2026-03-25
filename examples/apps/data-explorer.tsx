@@ -246,20 +246,20 @@ function ProcessRow({ proc, isSelected, width }: { proc: ProcessInfo; isSelected
 
   return (
     <Box paddingX={1} backgroundColor={isSelected ? "$primary" : undefined}>
-      <Text color={isSelected ? "white" : "$muted"}>{String(proc.pid).padEnd(cols.pidW)}</Text>
-      <Text bold={isSelected} color={isSelected ? "white" : undefined}>
+      <Text color={isSelected ? "$primary-fg" : "$muted"}>{String(proc.pid).padEnd(cols.pidW)}</Text>
+      <Text bold={isSelected} color={isSelected ? "$primary-fg" : undefined}>
         {displayName.padEnd(cols.nameW)}
       </Text>
-      <Text color={isSelected ? "white" : cpuColor}>{proc.cpu.toFixed(1).padStart(cols.cpuW - 1)}%</Text>
-      <Text color={isSelected ? "white" : memColor}>{proc.mem.toFixed(1).padStart(cols.memW - 1)}%</Text>
+      <Text color={isSelected ? "$primary-fg" : cpuColor}>{proc.cpu.toFixed(1).padStart(cols.cpuW - 1)}%</Text>
+      <Text color={isSelected ? "$primary-fg" : memColor}>{proc.mem.toFixed(1).padStart(cols.memW - 1)}%</Text>
       <Text>{"  "}</Text>
-      <Text color={isSelected ? "white" : STATUS_COLORS[proc.status]}>
+      <Text color={isSelected ? "$primary-fg" : STATUS_COLORS[proc.status]}>
         {STATUS_ICONS[proc.status]} {proc.status.padEnd(cols.statusW - 2)}
       </Text>
-      <Text color={isSelected ? "white" : "$muted"}>{proc.user.padEnd(cols.userW)}</Text>
-      <Text color={isSelected ? "white" : "$muted"}>{String(proc.threads).padStart(cols.threadsW)}</Text>
+      <Text color={isSelected ? "$primary-fg" : "$muted"}>{proc.user.padEnd(cols.userW)}</Text>
+      <Text color={isSelected ? "$primary-fg" : "$muted"}>{String(proc.threads).padStart(cols.threadsW)}</Text>
       <Text>{"  "}</Text>
-      <Text color={isSelected ? "white" : "$muted"}>{proc.uptime.padStart(cols.uptimeW)}</Text>
+      <Text color={isSelected ? "$primary-fg" : "$muted"}>{proc.uptime.padStart(cols.uptimeW)}</Text>
     </Box>
   )
 }
