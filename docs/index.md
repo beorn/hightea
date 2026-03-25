@@ -43,7 +43,7 @@ features:
     linkText: Runtime layers
   - title: Terminal Protocol Support
     details: "100+ escape sequences, all auto-negotiated: Kitty keyboard, SGR mouse, OSC 8 hyperlinks, OSC 52 clipboard, bracketed paste, focus reporting, text sizing, synchronized output, and more."
-    link: /guide/comparison
+    link: /guide/silvery-vs-ink
     linkText: See comparison
 ---
 

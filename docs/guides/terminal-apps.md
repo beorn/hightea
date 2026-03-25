@@ -183,6 +183,10 @@ State is shared and renders are efficient. Clicks resolve to components and even
 
 **The wall**: You want undo — but `store.toggleDone()` mutated state and vanished. You want customizable keybindings — but `onClick={() => selectCard()}` has no name to show in a command palette, no binding to remap. Both problems have the same root: behavior is function calls that execute and disappear. You need to turn behavior into data.
 
+::: warning Coming Soon
+Levels 3-5 below document the Silvertea app architecture, which is currently in development. For now, use `useState`, `useReducer`, or Zustand for state management. The APIs shown below will ship in a future release.
+:::
+
 ## Level 3: Everything is Data
 
 This is the level where Silvery's architecture clicks. Two invisible things become data at once — because they're the same insight applied to two domains.

@@ -110,7 +110,7 @@ const data = await withSpinner(fetchData(), "Loading...")
 
 ## `@silvery/create`
 
-TEA (The Elm Architecture) state machine store built on Zustand. Provides `createSlice`, `createStore`, effect runners, and plugin composition.
+App composition and state management. _(Coming soon — API is in active development.)_
 
 ## `@silvery/theme`
 

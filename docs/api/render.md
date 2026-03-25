@@ -33,7 +33,16 @@ function render(element: ReactElement, term?: Term, options?: RenderOptions): Re
 
 ### Return Value
 
-Returns a `Promise<Instance>` with the following methods:
+Returns a `RenderHandle` synchronously. The handle is thenable (implements `PromiseLike<Instance>`), so `await render(...)` works as a shortcut to get the `Instance` directly. For the common case of rendering and waiting for exit, use `.run()`.
+
+**RenderHandle methods:**
+
+| Method | Type                | Description                                                      |
+| ------ | ------------------- | ---------------------------------------------------------------- |
+| `run`  | `() => Promise<void>` | Start the event loop and wait until the app exits              |
+| `then` | `PromiseLike<Instance>` | Thenable — `await render(...)` resolves to an `Instance`     |
+
+**Instance methods** (returned by `await render(...)` or inside `.then()`):
 
 | Method          | Type                           | Description                              |
 | --------------- | ------------------------------ | ---------------------------------------- |
@@ -51,12 +60,13 @@ import { render, Box, Text, createTerm } from "silvery"
 
 using term = createTerm()
 
-await render(
+const app = render(
   <Box>
     <Text>Hello, World!</Text>
   </Box>,
   term,
 )
+await app.run()
 ```
 
 ### With Custom Options
@@ -66,7 +76,7 @@ import { render, Box, Text, createTerm } from "silvery"
 
 using term = createTerm()
 
-await render(
+const app = render(
   <Box>
     <Text>Full-screen mode...</Text>
   </Box>,
@@ -77,6 +87,7 @@ await render(
     debug: true,
   },
 )
+await app.run()
 ```
 
 ### Programmatic Re-render
@@ -86,12 +97,12 @@ import { render, Text, createTerm } from "silvery"
 
 using term = createTerm()
 
-const { rerender } = await render(<Text>Count: 0</Text>, term)
+const instance = await render(<Text>Count: 0</Text>, term)
 
 let count = 0
 setInterval(() => {
   count++
-  rerender(<Text>Count: {count}</Text>)
+  instance.rerender(<Text>Count: {count}</Text>)
 }, 1000)
 ```
 
@@ -119,9 +130,8 @@ function App() {
 async function main() {
   using term = createTerm()
 
-  const { waitUntilExit } = await render(<App />, term)
-
-  await waitUntilExit()
+  const app = render(<App />, term)
+  await app.run()
   console.log("App exited!")
 }
 
@@ -136,16 +146,15 @@ import { render, Box, Text, createTerm } from "silvery"
 using term = createTerm()
 
 // Uses alternate screen buffer - terminal is restored on exit
-const { waitUntilExit } = await render(
-  term,
+const app = render(
   <Box flexDirection="column" padding={1}>
     <Text>Full-screen app</Text>
     <Text>Terminal will be restored when you exit</Text>
   </Box>,
+  term,
   { alternateScreen: true },
 )
-
-await waitUntilExit()
+await app.run()
 ```
 
 ### Using Term in Components
@@ -164,7 +173,8 @@ function ColoredOutput() {
 }
 
 using term = createTerm()
-await render(<ColoredOutput />, term)
+const app = render(<ColoredOutput />, term)
+await app.run()
 ```
 
 ## Synchronous Variant

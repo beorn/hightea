@@ -16,9 +16,9 @@ Addressing it required a different rendering pipeline -- layout first, then rend
 
 [Silvery](https://github.com/beorn/silvery) (2025) is a ground-up reimplementation with a different rendering architecture. At its core, it's a renderer -- `Box`, `Text`, `useInput`, `render()` work the same as Ink. Optional layers (`silvery/ui` for 30+ components, `@silvery/create` for state machines, `silvery/theme` for theming) extend it when you need them. Silvery is newer and has a smaller community.
 
-> For how Silvery compares to terminal UI frameworks beyond Ink (BubbleTea, Textual, Notcurses, FTXUI, blessed), see [comparison.md](comparison.md).
+> Silvery also compares favorably to terminal UI frameworks beyond Ink (BubbleTea, Textual, Notcurses, FTXUI, blessed) — the renderer architecture, React ecosystem access, and TypeScript-first design are unique advantages.
 
-See the [migration guide](/guide/migration-from-ink) for switching from Ink.
+See the [migration guide](/getting-started/migrate-from-ink) for switching from Ink.
 
 > Performance numbers in this document are from the **Ink comparison benchmark suite**. Reproduce with `bun run bench` for raw benchmark tables.
 

@@ -58,12 +58,14 @@ import { Box, Text, render } from "silvery/ink"
 // Ink
 const { unmount, waitUntilExit } = render(<App />)
 
-// Silvery -- just add await
-const { unmount, waitUntilExit } = await render(<App />)
+// Silvery -- render() is sync, returns RenderHandle; .run() is async
+const app = render(<App />)
+await app.run()
 
 // Silvery -- with explicit terminal
 using term = createTerm()
-const { unmount, waitUntilExit } = await render(<App />, term)
+const app = render(<App />, term)
+await app.run()
 ```
 
 ### Behavior Differences
@@ -144,6 +146,8 @@ import { Text } from "silvery"
 The Ink compatibility layer (`@silvery/ink`) is built as thin adapters that bridge Ink's APIs to silvery-native systems. Understanding the architecture helps you decide when to use Ink-compat hooks vs silvery-native ones.
 
 ### How It Works
+
+> **Coming Soon:** The `withInk()`, `pipe()`, and `createApp()` composition APIs shown below are part of the era2b compatibility layer, which is not yet released. The current migration path uses `render()` directly (see [Migrate from Ink](/getting-started/migrate-from-ink)).
 
 `withInk()` composes two independent plugins:
 

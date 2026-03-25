@@ -4,7 +4,7 @@
 
 Ink-compatible React renderer for terminals — same `Box`, `Text`, `useInput` API you know. Plus everything you wish Ink had.
 
-> **Note:** Under active development. APIs may change. Feedback welcome.
+> **Work in progress.** APIs may change. Feedback welcome.
 
 ```console
 $ npm install silvery react

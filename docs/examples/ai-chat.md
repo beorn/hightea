@@ -100,6 +100,10 @@ This gives you:
 
 To add streaming, replace the echo stub with an async generator that appends tokens to the latest message. Silvery will re-render only the changed text node on each token.
 
+::: warning Coming Soon
+The command introspection API below (`withCommands`, command registries) is part of the Silvertea app architecture, which is currently in development. The APIs shown below will ship in a future release.
+:::
+
 ## Adding Command Introspection
 
 For AI-driven applications where an agent needs to discover and execute actions:
