@@ -1,6 +1,6 @@
 {
   "name": "@silvery/model",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "description": "Optional DI model factories for silvery apps",
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",
