@@ -10,14 +10,14 @@ next:
 ---
 
 <script setup>
-import LiveDemo from '../.vitepress/components/LiveDemo.vue'
+import DemoScreenshot from '../.vitepress/components/DemoScreenshot.vue'
 </script>
 
 # Layout
 
 Silvery brings CSS-like flexbox to the terminal. Proportional sizing, gap spacing, `justifyContent`, `alignItems`, responsive breakpoints via `useContentRect()` — the same layout model you know from the web, working in every terminal.
 
-<LiveDemo xtermSrc="/examples/showcase.html?demo=dashboard" :height="500" />
+<DemoScreenshot demo="dashboard" name="Dashboard layout" />
 
 ## What It Demonstrates
 

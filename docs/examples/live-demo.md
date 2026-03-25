@@ -11,13 +11,13 @@ next:
 
 # Live Demo
 
-An Silvery React component rendered in the browser via xterm.js — the same ANSI output you'd see in a real terminal.
+A Silvery React component rendered to the terminal — the same ANSI output you'd see in a real terminal.
 
 <script setup>
-import LiveDemo from '../.vitepress/components/LiveDemo.vue'
+import DemoScreenshot from '../.vitepress/components/DemoScreenshot.vue'
 </script>
 
-<LiveDemo xtermSrc="/examples/showcase.html?demo=dashboard" :height="500" />
+<DemoScreenshot demo="dashboard" name="Dashboard" />
 
 ## How It Works
 

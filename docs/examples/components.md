@@ -10,14 +10,14 @@ next:
 ---
 
 <script setup>
-import LiveDemo from '../.vitepress/components/LiveDemo.vue'
+import DemoScreenshot from '../.vitepress/components/DemoScreenshot.vue'
 </script>
 
 # Components
 
 Silvery ships 30+ components out of the box — from basic building blocks (Box, Text) to complex interactive widgets (SelectList, CommandPalette, ModalDialog). This example shows them composed together in a single dashboard.
 
-<LiveDemo xtermSrc="/examples/showcase.html?demo=components" :height="500" />
+<DemoScreenshot demo="components" name="Components gallery" />
 
 ## What It Demonstrates
 

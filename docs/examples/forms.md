@@ -10,14 +10,14 @@ next:
 ---
 
 <script setup>
-import LiveDemo from '../.vitepress/components/LiveDemo.vue'
+import DemoScreenshot from '../.vitepress/components/DemoScreenshot.vue'
 </script>
 
 # Forms & Input
 
 Interactive CLI wizards guide users through multi-step configuration, installation, or setup flows. Silvery provides the building blocks as first-class React components: each wizard step is a React component with its own state, and transitions between steps are just state changes. You get full control over layout, focus, and rendering without leaving the React model.
 
-<LiveDemo xtermSrc="/examples/showcase.html?demo=components" :height="400" />
+<DemoScreenshot demo="components" name="Components with form elements" />
 
 ## Key Benefits
 

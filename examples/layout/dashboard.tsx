@@ -209,42 +209,45 @@ function LabelValue({ label, value, color }: { label: string; value: string; col
 
 // --- CPU Tab ---
 
-function CpuCore({ index, core }: { index: number; core: CoreMetrics }) {
+function CpuCore({ index, core, barWidth }: { index: number; core: CoreMetrics; barWidth: number }) {
   const pct = Math.round(core.usage)
   const color = severityColor(pct)
+  const filled = Math.round((pct / 100) * barWidth)
+  const empty = barWidth - filled
   return (
-    <Box flexDirection="column">
-      <Box justifyContent="space-between">
-        <Text>
-          Core {index}{" "}
-          <Text color={color}>
-            <Strong>{String(pct).padStart(3)}%</Strong>
-          </Text>
-        </Text>
-        <Small>{sparkline(core.history, 100)}</Small>
-      </Box>
-      <ProgressBar value={core.usage / 100} color={color} showPercentage={false} />
+    <Box>
+      <Muted>{`${index} `}</Muted>
+      <Text color={color}>{"█".repeat(filled)}</Text>
+      <Text dimColor>{"░".repeat(empty)}</Text>
+      <Text color={color}>
+        <Strong>{` ${String(pct).padStart(3)}%`}</Strong>
+      </Text>
+      <Muted> </Muted>
+      <Small>{sparkline(core.history.slice(-10), 100)}</Small>
     </Box>
   )
 }
 
 function CpuPane({ cores }: { cores: CoreMetrics[] }) {
+  const { width } = useContentRect()
   const avgCpu = cores.reduce((sum, c) => sum + c.usage, 0) / cores.length
   const maxCpu = Math.max(...cores.map((c) => c.usage))
   const load1 = ((avgCpu / 100) * 8 * 0.8 + Math.random() * 0.5).toFixed(2)
   const load5 = ((avgCpu / 100) * 8 * 0.7 + Math.random() * 0.3).toFixed(2)
   const load15 = ((avgCpu / 100) * 8 * 0.6 + Math.random() * 0.2).toFixed(2)
+  // 2 (core label) + bar + 5 (pct) + 1 (space) + 10 (sparkline) = need ~18 besides bar
+  const barWidth = Math.max(8, width - 18)
 
   return (
-    <Box flexDirection="column" gap={1} flexGrow={1}>
-      <SectionHeader>CPU</SectionHeader>
+    <Box flexDirection="column" flexGrow={1}>
       <Box gap={2}>
+        <SectionHeader>CPU</SectionHeader>
         <LabelValue label="Avg:" value={`${Math.round(avgCpu)}%`} color={severityColor(avgCpu)} />
         <LabelValue label="Max:" value={`${Math.round(maxCpu)}%`} color={severityColor(maxCpu)} />
         <LabelValue label="Load:" value={`${load1} ${load5} ${load15}`} />
       </Box>
       {cores.map((core, i) => (
-        <CpuCore key={i} index={i} core={core} />
+        <CpuCore key={i} index={i} core={core} barWidth={barWidth} />
       ))}
     </Box>
   )
