@@ -513,22 +513,9 @@ export function ComponentsApp() {
 
   return (
     <Box flexDirection="column" flexGrow={1} paddingX={1}>
-      <Tabs defaultValue="display" onChange={handleTabChange}>
-        <TabList>
-          <Tab value="display">Display</Tab>
-            <Tab value="inputs">Inputs</Tab>
-            <Tab value="typography">Typography</Tab>
-          </TabList>
-          <TabPanel value="display">
-            <DisplayTab scrollOffset={scrollOffset} />
-          </TabPanel>
-          <TabPanel value="inputs">
-            <InputsTab />
-          </TabPanel>
-          <TabPanel value="typography">
-            <TypographyTab scrollOffset={scrollOffset} />
-          </TabPanel>
-        </Tabs>
+      {activeTab === "display" && <DisplayTab scrollOffset={scrollOffset} />}
+      {activeTab === "inputs" && <InputsTab />}
+      {activeTab === "typography" && <TypographyTab scrollOffset={scrollOffset} />}
     </Box>
   )
 }

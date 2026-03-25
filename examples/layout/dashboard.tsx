@@ -492,38 +492,9 @@ export function Dashboard() {
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-      <Tabs defaultValue="cpu">
-        <Box justifyContent="space-between" paddingX={1}>
-          <TabList>
-            <Tab value="cpu">CPU</Tab>
-            <Tab value="memory">Memory</Tab>
-            <Tab value="network">Network</Tab>
-            <Tab value="processes">Processes</Tab>
-          </TabList>
-          <Small>Tick #{tick}</Small>
-        </Box>
-
-        <TabPanel value="cpu">
-          <Box borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexGrow={1}>
-            <CpuPane cores={state.cores} />
-          </Box>
-        </TabPanel>
-        <TabPanel value="memory">
-          <Box borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexGrow={1}>
-            <MemoryPane memory={state.memory} />
-          </Box>
-        </TabPanel>
-        <TabPanel value="network">
-          <Box borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexGrow={1}>
-            <NetworkPane network={state.network} />
-          </Box>
-        </TabPanel>
-        <TabPanel value="processes">
-          <Box borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexGrow={1}>
-            <ProcessPane processes={state.processes} />
-          </Box>
-        </TabPanel>
-      </Tabs>
+      <Box borderStyle="round" borderColor="$border" paddingX={1} paddingY={1} flexGrow={1}>
+        <CpuPane cores={state.cores} />
+      </Box>
     </Box>
   )
 }
