@@ -7,8 +7,9 @@ export const VERSION = "0.0.1"
 export * from "@silvery/ag-react"
 
 import type { ReactElement } from "react"
-import { render as reactRender, type RenderOptions, type TermDef } from "@silvery/ag-react"
+import { render as reactRender, type RenderOptions } from "@silvery/ag-react"
 import type { Term } from "@silvery/ag-react"
+import type { TermDef } from "@silvery/ag/types"
 
 /**
  * Render a React element to the terminal.

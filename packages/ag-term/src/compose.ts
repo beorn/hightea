@@ -88,9 +88,67 @@ export function create(): AppBase {
 // pipe() — Function Composition
 // =============================================================================
 
-/** Compose plugins left-to-right. Each plugin takes an app and returns an enhanced app. */
-export function pipe<T>(initial: T, ...plugins: Array<(app: any) => any>): any {
-  return plugins.reduce((app, plugin) => plugin(app), initial)
+/**
+ * Compose plugins left-to-right. Each plugin takes an app and returns an enhanced app.
+ * TypeScript instantiates each generic at each overload step, so the accumulated type
+ * flows through the chain. 8 overloads covers all realistic silvery apps.
+ *
+ * For >8 plugins, use `from(create()).then(withAg()).then(withTerm(term)).build()`.
+ */
+export function pipe<A>(a: A): A
+export function pipe<A, B>(a: A, f1: (a: A) => B): B
+export function pipe<A, B, C>(a: A, f1: (a: A) => B, f2: (b: B) => C): C
+export function pipe<A, B, C, D>(a: A, f1: (a: A) => B, f2: (b: B) => C, f3: (c: C) => D): D
+export function pipe<A, B, C, D, E>(a: A, f1: (a: A) => B, f2: (b: B) => C, f3: (c: C) => D, f4: (d: D) => E): E
+export function pipe<A, B, C, D, E, F>(
+  a: A,
+  f1: (a: A) => B,
+  f2: (b: B) => C,
+  f3: (c: C) => D,
+  f4: (d: D) => E,
+  f5: (e: E) => F,
+): F
+export function pipe<A, B, C, D, E, F, G>(
+  a: A,
+  f1: (a: A) => B,
+  f2: (b: B) => C,
+  f3: (c: C) => D,
+  f4: (d: D) => E,
+  f5: (e: E) => F,
+  f6: (f: F) => G,
+): G
+export function pipe<A, B, C, D, E, F, G, H>(
+  a: A,
+  f1: (a: A) => B,
+  f2: (b: B) => C,
+  f3: (c: C) => D,
+  f4: (d: D) => E,
+  f5: (e: E) => F,
+  f6: (f: F) => G,
+  f7: (g: G) => H,
+): H
+export function pipe(initial: any, ...fns: ((arg: any) => any)[]): any {
+  return fns.reduce((acc, fn) => fn(acc), initial)
+}
+
+// =============================================================================
+// from() — Builder Chain (escape hatch for >8 plugins)
+// =============================================================================
+
+export interface PipeBuilder<T> {
+  then<U>(fn: (value: T) => U): PipeBuilder<U>
+  build(): T
+}
+
+export function from<T>(value: T): PipeBuilder<T> {
+  return {
+    then<U>(fn: (value: T) => U): PipeBuilder<U> {
+      return from(fn(value))
+    },
+    build(): T {
+      return value
+    },
+  }
 }
 
 // =============================================================================
@@ -98,7 +156,7 @@ export function pipe<T>(initial: T, ...plugins: Array<(app: any) => any>): any {
 // =============================================================================
 
 export function withAg(options?: { root?: AgNode; measurer?: import("./unicode").Measurer }) {
-  return (app: AppBase): AppWithAg => {
+  return <A extends AppBase>(app: A) => {
     const root =
       options?.root ??
       ({
@@ -125,7 +183,7 @@ export function withAg(options?: { root?: AgNode; measurer?: import("./unicode")
 
     const ag = createAg(root, { measurer: options?.measurer })
 
-    return Object.assign(app, { ag }) as AppWithAg
+    return { ...app, ag } as A & { readonly ag: Ag }
   }
 }
 
@@ -134,7 +192,7 @@ export function withAg(options?: { root?: AgNode; measurer?: import("./unicode")
 // =============================================================================
 
 export function withTerm(term: Term) {
-  return (app: AppWithAg): AppWithTerm => {
+  return <A extends AppBase & { readonly ag: Ag }>(app: A) => {
     let prev: TextFrame | undefined
     let prevBuffer: TerminalBuffer | null = null
 
@@ -175,10 +233,10 @@ export function withTerm(term: Term) {
       }
     }
 
-    return Object.assign(app, {
-      term,
-      render,
-      run: runFn,
-    }) as AppWithTerm
+    return { ...app, term, render, run: runFn } as A & {
+      readonly term: Term
+      render(): void
+      run?: () => Promise<void>
+    }
   }
 }

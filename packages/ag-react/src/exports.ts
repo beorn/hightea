@@ -529,15 +529,8 @@ export { measureElement } from "./measureElement"
 export { renderScreenReaderOutput } from "./accessibility"
 export type { AriaState } from "./accessibility"
 
-// TermDef resolution utilities
-export {
-  resolveTermDef,
-  resolveFromTerm,
-  isTerm,
-  isTermDef,
-  createInputEvents,
-  type ResolvedTermDef,
-} from "@silvery/ag-term/term-def"
+// Term utilities (TermDef/resolveTermDef are internal — use createTerm() instead)
+export { isTerm, createInputEvents } from "@silvery/ag-term/term-def"
 
 // ANSI escape sequences for terminal control
 export {
@@ -663,14 +656,7 @@ export type {
   MeasureMode,
 } from "@silvery/ag-term/layout-engine"
 
-// Render adapter (for canvas, DOM, etc. — RenderAdapter type not re-exported publicly)
-export {
-  setRenderAdapter,
-  getRenderAdapter,
-  hasRenderAdapter,
-  getTextMeasurer,
-  ensureRenderAdapterInitialized,
-} from "@silvery/ag-term/render-adapter"
+// Render adapter types (RenderAdapter itself is internal — use term.paint() instead)
 export type {
   RenderBuffer,
   RenderStyle,
@@ -726,8 +712,6 @@ export type {
   SignalEvent,
   CustomEvent,
   EventSource,
-  // TermDef for render configuration
-  TermDef,
 } from "@silvery/ag/types"
 export type { HitTarget, HitRegion } from "@silvery/ag-term/hit-registry"
 

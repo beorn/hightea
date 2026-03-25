@@ -84,13 +84,14 @@ export { createStore, silveryUpdate, defaultInit, withFocusManagement } from "@s
 export type { StoreConfig, StoreApi } from "@silvery/tea/store"
 
 // Layer 3: Store integration (canonical home: @silvery/tea, re-exported for compat)
+// NOTE: AppHandle is intentionally NOT re-exported — it's an era2b concept.
+// Use @silvery/tea directly for createApp/AppHandle.
 export {
   createApp,
   useApp,
   useAppShallow,
   StoreContext,
   type AppDefinition,
-  type AppHandle,
   type AppRunOptions,
   type AppRunner,
   type EventHandler,

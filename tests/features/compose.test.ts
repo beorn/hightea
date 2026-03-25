@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { create, pipe, withAg, withTerm } from "@silvery/ag-term/compose"
+import { create, pipe, from, withAg, withTerm } from "@silvery/ag-term/compose"
 import { createTerm } from "@silvery/ag-term"
 
 describe("plugin composition", () => {
@@ -77,6 +77,18 @@ describe("plugin composition", () => {
     })
   })
 
+  describe("from() builder", () => {
+    test("builder chain works like pipe", () => {
+      const term = createTerm({ cols: 40, rows: 10 })
+      const app = from(create()).then(withAg()).then(withTerm(term)).build()
+
+      expect(app.ag).toBeDefined()
+      expect(app.term).toBe(term)
+      expect(typeof app.render).toBe("function")
+      expect(typeof app.dispatch).toBe("function")
+    })
+  })
+
   describe("full composition", () => {
     test("create + withAg + withTerm(headless) works end-to-end", () => {
       const term = createTerm({ cols: 40, rows: 10 })
@@ -86,6 +98,13 @@ describe("plugin composition", () => {
       expect(app.term).toBe(term)
       expect(typeof app.render).toBe("function")
       expect(typeof app.dispatch).toBe("function")
+    })
+
+    test("generic plugins preserve extra properties", () => {
+      const base = { ...create(), customProp: 42 }
+      const app = pipe(base, withAg())
+      expect(app.ag).toBeDefined()
+      expect(app.customProp).toBe(42)
     })
   })
 })

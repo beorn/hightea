@@ -18,8 +18,8 @@ export type { Ag, CreateAgOptions, AgLayoutOptions, AgRenderOptions, AgRenderRes
 // Plugin Composition (era2a)
 // =============================================================================
 
-export { create, pipe, withAg, withTerm } from "./compose"
-export type { AppBase, AppWithAg, AppWithTerm } from "./compose"
+export { create, pipe, from, withAg, withTerm } from "./compose"
+export type { AppBase, AppWithAg, AppWithTerm, PipeBuilder } from "./compose"
 
 // =============================================================================
 // Buffer
@@ -56,16 +56,9 @@ export type { BoundTerm } from "./bound-term"
 export type { LayoutEngine, LayoutNode, LayoutConstants, MeasureFunc, MeasureMode } from "./layout-engine"
 
 // =============================================================================
-// Render Adapter (internals — RenderAdapter type not re-exported publicly)
+// Render Adapter Types (RenderAdapter itself is internal — not exported)
 // =============================================================================
 
-export {
-  setRenderAdapter,
-  getRenderAdapter,
-  hasRenderAdapter,
-  getTextMeasurer,
-  ensureRenderAdapterInitialized,
-} from "./render-adapter"
 export type {
   RenderBuffer,
   RenderStyle,
@@ -242,7 +235,9 @@ export { queryTextAreaPixels, queryTextAreaSize, queryCellSize } from "./pixel-s
 // TermDef Resolution
 // =============================================================================
 
-export { resolveTermDef, resolveFromTerm, isTerm, isTermDef, createInputEvents, type ResolvedTermDef } from "./term-def"
+// TermDef resolution — internal. Use createTerm() instead of TermDef.
+// isTerm and createInputEvents are still public utilities.
+export { isTerm, createInputEvents } from "./term-def"
 
 // =============================================================================
 // Hit Registry (Mouse Support) — React-free core only
