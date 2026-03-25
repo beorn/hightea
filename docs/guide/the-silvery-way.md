@@ -322,17 +322,21 @@ Composition scales. Inheritance doesn't.
 
 → [Plugins](/reference/plugins)
 
-## 8. Clean Up with `using`
+## 8. Compose and Clean Up with `using`
 
-`using` (TC39 Explicit Resource Management) ensures cleanup on every exit path — no leaked terminals, no orphaned processes, no hung event loops. One keyword replaces an entire class of bugs.
+Silvery uses factory functions that return disposable objects. `using` (TC39 Explicit Resource Management) ties their lifetime to scope — no leaked terminals, no orphaned processes, no hung event loops. Composition and cleanup are the same pattern: build up resources, and `using` tears them down in reverse order.
 
 ::: tip ✨ Shiny
 
 ```tsx
-// Automatic cleanup — terminal restored on any exit (success, error, Ctrl+C)
+// Compose resources — each one is automatically cleaned up on any exit
 using term = createTerm()
-await render(<App />, term)
-// term is disposed when it goes out of scope — always
+using app = render(<App />, term)
+using console = patchConsole(term)  // redirect console.log through term
+await app.run()
+// On exit (success, error, Ctrl+C):
+// 1. console restored  2. app unmounted  3. terminal restored
+// Reverse order, guaranteed, every path
 ```
 
 :::
@@ -342,52 +346,77 @@ await render(<App />, term)
 ```tsx
 // Manual cleanup — forgotten in error paths, Ctrl+C leaves terminal broken
 const term = createTerm()
+const console = patchConsole(term)
 try {
-  await render(<App />, term)
+  const app = render(<App />, term)
+  await app.run()
 } finally {
-  term.dispose() // Forgot this path? Terminal stays in raw mode
+  console.dispose() // Did you remember both?
+  term.dispose()    // In the right order?
 }
 ```
 
-`using` is one keyword. Manual cleanup is a bug waiting to happen.
+`using` is one keyword per resource. Manual cleanup is a bug waiting to happen.
 :::
+
+Silvery objects that support `using`:
+
+| Object | What it cleans up |
+|---|---|
+| `createTerm()` | Restores terminal mode, cursor, alternate screen |
+| `render()` / `app.run()` | Unmounts React tree, stops event loop |
+| `createScope()` | Cancels child tasks, clears timers |
+| `createEditContext()` | Releases input layer bindings |
+| `patchConsole()` | Restores original console methods |
+| `Spinner` / `ProgressBar` / `MultiProgress` | Stops animation, clears interval |
+| `createScreenshot()` | Closes screenshot file handle |
+
+The pattern extends to your own code — any factory that returns `{ [Symbol.dispose]() { ... } }` works with `using`. Silvery's plugin composition (`pipe()`, `withScope()`) uses the same mechanism internally.
 
 → [render()](/api/render) · [Lifecycle](/reference/lifecycle)
 
 ## 9. Gradually Sip TEA
 
-Silvery's `render()` hides the event loop — great for simple apps. But `createApp()` exposes it, giving you full control over how events flow through your app. This is what makes [The Elm Architecture](https://guide.elm-lang.org/architecture/) possible: `(action, state) → [state, effects]`.
+Simple apps work great with `useState` and `useInput`. But as complexity grows — undo/redo, customizable keybindings, command palettes, collaborative editing, AI-driven automation — you need structured state management. Silvery makes this graduation seamless.
 
-You can adopt TEA gradually:
+The idea: [The Elm Architecture](https://guide.elm-lang.org/architecture/) models every interaction as `(action, state) → [state, effects]`. Actions are data (serializable, replayable, undoable). Effects are data (testable, interceptable). You adopt it gradually — no big rewrite, just replace one `setState` at a time.
 
 ::: tip ✨ Shiny — sip at your own pace
 
 ```tsx
-// Level 1: render() + hooks — event loop is hidden, just React
+// Level 1: useState + useInput — just React, nothing extra
 const [count, setCount] = useState(0)
 useInput((input) => {
   if (input === "j") setCount((c) => c + 1)
 })
 
 // Level 2: useReducer — actions as data, one step toward TEA
+const [state, dispatch] = useReducer(reducer, initialState)
+// Now you can log actions, replay them, test the reducer in isolation
 
-// Level 3: createApp() — exposed event loop, store, named event handlers
-const app = createApp(storeFactory, { "term:key": handleKey })
-
-// Level 4: pipe() — composable plugins, commands, keybindings, effects-as-data
-const app = pipe(createApp(), withFocus(), withCommands(opts))
+// Level 3: Zustand / external store — shared state across components
+// Level 4: @silvery/create — commands, keybindings, effects-as-data (coming soon)
 ```
 
-Each level works independently. Start wherever feels natural — some apps never need more than `useState`, others want full TEA from the start. You can use `@silvery/create` or build your own architecture on top of the exposed event loop.
+Each level works independently. Some apps never need more than `useState`. Others need undo from day one — start at Level 2. The framework doesn't force a choice; it makes graduation painless.
 :::
 
-> **Note:** `@silvery/create` is under active development. The core API (`createApp`, `pipe`) is used in production, but the command system, plugin model, and effects API are evolving. Expect breaking changes before 1.0.
+**When to graduate:**
+- **Need undo/redo?** → actions as data (Level 2+)
+- **Need customizable keybindings?** → named commands (Level 4)
+- **Need a command palette?** → discoverable command registry (Level 4)
+- **Need replay/recording?** → serializable actions + effects (Level 4)
+- **Need AI automation?** → commands as a tool surface (Level 4)
 
-→ [Application Architecture](/guides/state-management) — when and how to graduate from hooks to structured state management
+::: warning Coming Soon
+`@silvery/create` (Level 4 — commands, keybindings, composable plugins) is under active development. Levels 1-3 work today with any React state library.
+:::
 
 ## 10. Test Against What the User Sees
 
-[`@silvery/test`](/reference/packages) (optional package) gives you headless rendering with Playwright-style locators. State assertions pass while the screen is garbled — `selectedIndex === 2` doesn't catch the selection rendering on the wrong row, or the border overlapping content, or the scroll indicator showing the wrong count. Test what the user actually sees.
+[`@silvery/test`](/reference/packages) gives you headless rendering with Playwright-style locators. State assertions pass while the screen is garbled — `selectedIndex === 2` doesn't catch the selection rendering on the wrong row, or the border overlapping content, or the scroll indicator showing the wrong count. Test what the user actually sees.
+
+For full ANSI verification (colors, cursor positioning, scrollback), use [Termless](https://termless.dev) — headless terminal testing, like Playwright for terminals. It runs a real terminal emulator in-process so you can assert on exactly what would appear on screen, including escape sequences and wide characters. See [terminfo.dev](https://terminfo.dev) for how different terminals handle the same sequences — useful when your app needs to work across Ghostty, iTerm2, Windows Terminal, and more.
 
 ::: tip ✨ Shiny
 
@@ -436,7 +465,7 @@ expect(output).toMatchInlineSnapshot(`"\u001b[1m\u001b[34m..."`)
 Manual visual testing is slow, unrepeatable, and doesn't catch regressions. If you're resizing your terminal by hand to check layouts, that's a test you should automate.
 :::
 
-→ [Testing guide](/guide/testing) · [Testing examples](/examples/testing)
+→ [Testing guide](/guide/testing) · [Testing examples](/examples/testing) · [Termless](https://termless.dev) · [terminfo.dev](https://terminfo.dev)
 
 ## The Silvery Way, at a Glance
 
@@ -447,7 +476,7 @@ Manual visual testing is slow, unrepeatable, and doesn't catch regressions. If y
 5. **Use the command system** — named actions, not anonymous handlers
 6. **Use semantic theme colors** — `$tokens`, not hardcoded values
 7. **Compose with factory functions** — `pipe()`, not class hierarchies
-8. **Clean up with `using`** — one keyword, zero leaks
+8. **Compose and clean up with `using`** — factory functions + scope-bound lifetime
 9. **Gradually sip TEA** — hooks → reducer → store → @silvery/create, at your own pace
 10. **Test what the user sees** — render the buffer, not just the state
 
