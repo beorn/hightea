@@ -174,7 +174,7 @@ export function TabList({ children }: TabListProps): React.ReactElement {
  * with `$primary` color; inactive tabs use `$muted`.
  */
 export function Tab({ value, children }: TabProps): React.ReactElement {
-  const { activeValue, registerTab } = useTabsContext()
+  const { activeValue, setActiveValue, registerTab } = useTabsContext()
   const isActive = activeValue === value
 
   // Register this tab's value for keyboard navigation
@@ -183,7 +183,7 @@ export function Tab({ value, children }: TabProps): React.ReactElement {
   }, [value, registerTab])
 
   return (
-    <Box>
+    <Box onMouseDown={() => setActiveValue(value)}>
       <Text color={isActive ? "$primary" : "$muted"} bold={isActive} underline={isActive}>
         {children}
       </Text>
