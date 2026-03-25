@@ -2,6 +2,19 @@
 
 Silvery is a drop-in replacement for Ink. Change your imports, and your app works.
 
+## You Don't Have to Migrate
+
+Silvery includes a full Ink compatibility layer. Just swap the import path:
+
+```diff
+- import { Box, Text, render } from "ink"
++ import { Box, Text, render } from "silvery/ink"
+```
+
+That's it. Your existing Ink app runs on Silvery's renderer — getting incremental rendering, layout feedback, and all the performance improvements for free. No other code changes needed.
+
+When you're ready for the full Silvery API (and we recommend it eventually — the API is cleaner and more powerful), follow the migration steps below.
+
 ## Quick Start
 
 ### Step 1: Install Silvery
@@ -21,14 +34,15 @@ bun add silvery
 + import { render } from '@silvery/test'
 ```
 
-That's it. `render(<App />)` works without any term parameter — just add `await`:
+That's it. Silvery's `render()` is sync and returns a handle — call `.run()` to start the event loop:
 
 ```tsx
 // Ink
 const { unmount, waitUntilExit } = render(<App />)
 
-// Silvery — just add await
-const { unmount, waitUntilExit } = await render(<App />)
+// Silvery
+const app = render(<App />)
+await app.run()
 ```
 
 ### Step 3: Run Tests
@@ -47,7 +61,8 @@ For production apps that need more control, you can create a term explicitly:
 import { render, createTerm } from "silvery"
 
 using term = createTerm()
-const { unmount, waitUntilExit } = await render(<App />, term)
+const app = render(<App />, term)
+await app.run()
 ```
 
 **Why use `createTerm()`?**
@@ -58,8 +73,8 @@ const { unmount, waitUntilExit } = await render(<App />, term)
 
 Without `createTerm()`, Silvery creates a default term internally — matching Ink's behavior exactly.
 
-::: tip Why is render() async?
-`render()` returns a handle synchronously (like Ink), but `await`-ing it waits for layout engine initialization. With Flexily (the default), this is near-instant — just a dynamic `import()`. With Yoga, it's a genuine WASM compilation step. For fully synchronous rendering, use `renderSync()` after initializing the engine manually. Most apps should just `await render(<App />)`.
+::: tip render() is synchronous
+`render()` returns a `RenderHandle` synchronously. Call `.run()` to start the event loop — it returns a promise that resolves when the app exits. This two-step pattern gives you a chance to configure the handle before starting.
 :::
 
 ## What Works Identically
@@ -276,7 +291,8 @@ bun add yoga-wasm-web
 ```tsx
 import { render } from "silvery"
 
-await render(<App />, { layoutEngine: "yoga" })
+const app = render(<App />, { layoutEngine: "yoga" })
+await app.run()
 ```
 
 Or set `SILVERY_ENGINE=yoga` to switch globally without code changes.
@@ -341,30 +357,9 @@ function Card({ item }) {
 }
 ```
 
-## The Compat Layer
+## Advanced: Plugin System
 
-If you're using Silvery's runtime (`pipe()` + `createApp()`), the Ink compat layer is a composable plugin:
-
-```tsx
-import { pipe, createApp, withReact, withTerminal, withInk } from "@silvery/create/plugins"
-
-const app = pipe(
-  createApp(store),
-  withReact(<App />),
-  withTerminal(process),
-  withInk(), // enables Ink's useFocus, useFocusManager, useCursor
-)
-await app.run()
-```
-
-`withInk()` composes two thin adapters: `withInkCursor()` (bridges Ink's `useCursor` to silvery's `CursorStore`) and `withInkFocus()` (provides Ink's flat-list focus system). You can use them individually:
-
-```tsx
-// Only need Ink cursor compat, not focus
-const app = pipe(createApp(store), withReact(<App />), withTerminal(process), withInkCursor())
-```
-
-As you adopt silvery-native APIs (`useFocusable()` instead of `useFocus()`, silvery's `useCursor()` instead of Ink's), you can drop the adapters one by one. See [Compat Layer Architecture](/reference/compatibility#compat-layer-architecture) for details.
+Silvery will offer a composable plugin system for complex apps that need to mix Ink compatibility adapters (focus, cursor) with Silvery-native APIs. This is coming in a future release — for now, `render()` covers all migration use cases.
 
 ## Getting Help
 

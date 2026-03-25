@@ -9,7 +9,7 @@ Most apps only need `silvery` — it re-exports everything you need from the int
 | `silvery`         | `silvery`         | Components, hooks, renderer — the one package you need          |
 | `@silvery/test`   | `@silvery/test`   | Testing utilities (virtual renderer, Playwright-style locators) |
 | `@silvery/ink`    | `@silvery/ink`    | Ink compatibility layer for migration                           |
-| `@silvery/create` | `@silvery/create` | Optional TEA state machine store for complex apps               |
+| `@silvery/create` | `@silvery/create` | App composition and state management _(coming soon)_            |
 
 ## Internal Packages
 

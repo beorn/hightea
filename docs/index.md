@@ -38,9 +38,9 @@ features:
     link: /guide/testing
     linkText: Testing guide
   - title: Flexible Rendering
-    details: "Three modes: render once (static output), run() with React's event loop (hooks + useInput), or createApp() with your own event loop (commands, keybindings, TEA). Same renderer, pick your level."
-    link: /guide/the-silvery-way#_9-gradually-sip-tea
-    linkText: Gradually sip TEA
+    details: "Three modes: render once (static output), run() for interactive apps (hooks + useInput), or compose with plugins for full control. Same renderer, pick your level."
+    link: /guide/runtime-layers
+    linkText: Runtime layers
   - title: Terminal Protocol Support
     details: "100+ escape sequences, all auto-negotiated: Kitty keyboard, SGR mouse, OSC 8 hyperlinks, OSC 52 clipboard, bracketed paste, focus reporting, text sizing, synchronized output, and more."
     link: /guide/comparison
@@ -85,7 +85,7 @@ features:
 | `silvery`         | Components, hooks, renderer -- the one package you need                                    |
 | `@silvery/test`   | [Testing](/examples/testing) utilities and Playwright-style locators                       |
 | `@silvery/ink`    | [Ink compatibility](/guide/silvery-vs-ink) layer for migration                             |
-| `@silvery/create` | Optional [TEA](https://guide.elm-lang.org/architecture/) state management for complex apps |
+| `@silvery/create` | App composition and state management _(coming soon)_ |
 
 ## Quick Start
 

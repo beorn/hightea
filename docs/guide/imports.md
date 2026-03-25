@@ -56,7 +56,6 @@ import { TextInput, TextArea, ModalDialog, SelectList } from "@silvery/ag-react"
 import { VirtualList, ScrollbackView, SplitView, Table } from "@silvery/ag-react"
 import { ThemeProvider, useTheme, defaultDarkTheme } from "@silvery/ag-react"
 import { createTerm, term, patchConsole } from "@silvery/ag-react"
-import { withCommands, withKeybindings } from "@silvery/ag-react"
 import { createTermEditContext, useEditContext } from "@silvery/ag-react"
 ```
 
@@ -96,14 +95,11 @@ import { withDiagnostics, VirtualTerminal, compareBuffers } from "@silvery/ag-te
 
 ### `@silvery/ag-term/runtime` -- app runtime
 
-The runtime layer for building full terminal applications with event loops, state stores, and the `createApp` pattern:
+The runtime layer for interactive terminal applications:
 
 ```ts
-import { run, createApp, createRuntime } from "@silvery/ag-term/runtime"
-import { layout, diff, createBuffer } from "@silvery/ag-term/runtime"
-import { createStore, withFocusManagement } from "@silvery/ag-term/runtime"
+import { run } from "@silvery/ag-term/runtime"
 import { createTermProvider } from "@silvery/ag-term/runtime"
-import { merge, map, filter, takeUntil } from "@silvery/ag-term/runtime"
 ```
 
 ### `@silvery/ag-react/ui` -- higher-level UI components
@@ -127,28 +123,9 @@ import { useAnimation, easings } from "@silvery/ag-react/ui/animation"
 import { wrapAnsi } from "@silvery/ag-react/ui/ansi"
 ```
 
-### `@silvery/create` -- TEA state machine utilities
+### `@silvery/create` -- app composition _(coming soon)_
 
-Pure TypeScript (no React dependency). TEA types, effect constructors, focus manager, key parsing, text cursor utilities, plugin composition, and stream helpers.
-
-```ts
-import { none, batch, dispatch, compose, createSlice } from "@silvery/create"
-import { createFocusManager } from "@silvery/create"
-import { parseKey, matchHotkey, keyToName } from "@silvery/create"
-import { cursorToRowCol, cursorMoveDown, getWrappedLines } from "@silvery/create"
-import { applyTextOp, invertTextOp } from "@silvery/create"
-import { withCommands, withKeybindings, withDiagnostics } from "@silvery/create"
-import { tea, collect, createStore } from "@silvery/create"
-```
-
-Deep imports:
-
-```ts
-import { none, batch, dispatch } from "@silvery/create/core"
-import { createStore, silveryUpdate } from "@silvery/create/store"
-import { tea, collect } from "@silvery/create/tea"
-import { merge, filter, takeUntil } from "@silvery/create/streams"
-```
+App composition, state management, commands, and keybindings. Currently in development — API will be documented when released.
 
 ### `@silvery/theme` -- theming system
 
@@ -182,9 +159,8 @@ import { displayWidth, wrapText } from "@silvery/ag-term/unicode"
 import { parseMouseSequence } from "@silvery/ag-term/mouse"
 import { detectColorScheme } from "@silvery/ag-term/terminal-colors"
 
-// Instead of pulling in all of @silvery/create:
-import { parseKey, matchHotkey } from "@silvery/create/keys"
-import { cursorToRowCol } from "@silvery/create/text-cursor"
+// Specific utilities:
+import { parseKey, matchHotkey } from "@silvery/ag-term/keys"
 ```
 
 This is useful for libraries or tools that want to depend on a narrow slice of Silvery without loading the full component library, React reconciler, or layout engine.
