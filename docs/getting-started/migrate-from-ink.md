@@ -122,7 +122,11 @@ function App() {
 ```
 
 ::: info Why can't Ink do this with measureElement()?
-Ink's `measureElement()` reads dimensions *after* rendering — by the time you know the size, you've already drawn the wrong thing. Feeding dimensions back requires `useEffect` + `setState`, which triggers a visible re-render. With nested responsive components (board → column → card), each level needs its own measure→rerender cycle, cascading into N visible flickers for N nesting levels. Silvery's renderer runs layout *before* committing output, so all components get correct dimensions in one batch — no flicker, no plumbing.
+This is the terminal equivalent of [CSS container queries](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries) — components adapt to their container's size, not the viewport. The web spent a decade wanting this because the alternatives (media queries + JS measurement) had the same problems.
+
+Ink's `measureElement()` is like `ResizeObserver` — it reads dimensions *after* rendering. By the time you know the size, you've already drawn the wrong thing. Feeding dimensions back requires `useEffect` + `setState`, triggering a visible re-render. With nested responsive components (board → column → card), each level needs its own measure→rerender cycle — N nesting levels means N visible flickers.
+
+Silvery's `useContentRect()` is like container queries — the layout engine computes dimensions *before* content renders, so all components get correct sizes in one batch. No flicker, no plumbing, no cascading re-renders.
 :::
 
 ### 2. flexDirection Defaults to `row` (CSS spec)
