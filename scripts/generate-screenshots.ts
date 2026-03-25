@@ -108,8 +108,13 @@ try {
     // Wait for animations to settle
     await page.waitForTimeout(SETTLE_MS)
 
-    // Capture screenshot
-    await page.screenshot({ path: outPath, type: "png" })
+    // Screenshot the xterm canvas element (not full page) for pixel-exact margins
+    const xtermScreen = page.locator(".xterm-screen")
+    if (await xtermScreen.count() > 0) {
+      await xtermScreen.screenshot({ path: outPath, type: "png" })
+    } else {
+      await page.screenshot({ path: outPath, type: "png" })
+    }
 
     console.log(`-> ${demo.id}.png`)
 

@@ -362,8 +362,8 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
     <Box flexDirection="column" gap={1} flexGrow={1} marginTop={1}>
       {/* Progress Bars */}
       <Box flexDirection="column">
-        <Text bold color="$accent">Progress Bars</Text>
-        <Box flexDirection="column" marginTop={1}>
+        <Divider title="Progress Bars" />
+        <Box flexDirection="column">
           <Box>
             <Text color="$muted">{"Build   "}</Text>
             <Box flexGrow={1}><ProgressBar value={1.0} label="✓" /></Box>
@@ -386,7 +386,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
       {/* Spinners + Badges row */}
       <Box flexDirection="row" gap={4}>
         <Box flexDirection="column">
-          <Text bold color="$accent">Spinners</Text>
+          <Divider title="Spinners" />
           <Box flexDirection="column">
             <Spinner type="dots" label="Loading packages..." />
             <Spinner type="line" label="Compiling..." />
@@ -395,7 +395,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
           </Box>
         </Box>
         <Box flexDirection="column">
-          <Text bold color="$accent">Badges</Text>
+          <Divider title="Badges" />
           <Box gap={1} flexWrap="wrap">
             <Badge label="Stable" variant="success" />
             <Badge label="Beta" variant="warning" />
@@ -411,14 +411,14 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
         <Box flexDirection="column">
           <Divider title="Status" />
           <Box flexDirection="column">
-            <Text color="$success">{"✓ All checks passed"}</Text>
-            <Text color="$warning">{"⚠ 2 deprecation warnings"}</Text>
-            <Text color="$error">{"✗ 1 vulnerability found"}</Text>
-            <Text color="$info">{"ℹ 47 packages installed"}</Text>
+            <Text><Text color="$success">{"✓"}</Text> All checks passed</Text>
+            <Text><Text color="$warning">{"⚠"}</Text> 2 deprecation warnings</Text>
+            <Text><Text color="$error">{"✗"}</Text> 1 vulnerability found</Text>
+            <Text><Text color="$info">{"ℹ"}</Text> 47 packages installed</Text>
           </Box>
         </Box>
         <Box flexDirection="column" flexGrow={1}>
-          <Text bold color="$accent">Border Styles</Text>
+          <Divider title="Border Styles" />
           <Box flexDirection="column" gap={0}>
             {borderStyles.map((style, i) => (
               <Box
