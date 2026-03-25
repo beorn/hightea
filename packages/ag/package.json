@@ -45,6 +45,6 @@
   },
   "dependencies": {
     "@silvery/ag-term": "workspace:*",
-    "@silvery/tea": "workspace:*"
+    "@silvery/create": "workspace:*"
   }
 }

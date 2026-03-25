@@ -236,7 +236,7 @@ Key differences:
 Ink provides tab-order focus (`useFocus()`). Silvery provides tree-based spatial focus (`useFocusable()`). The Ink compat layer bridges them:
 
 ```tsx
-import { withInk } from "@silvery/tea/plugins"
+import { withInk } from "@silvery/create/plugins"
 // Enables Ink's useFocus, useFocusManager
 ```
 

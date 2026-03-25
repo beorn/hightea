@@ -21,7 +21,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@silvery/tea": "workspace:*",
+    "@silvery/create": "workspace:*",
     "silvery": "workspace:*"
   }
 }

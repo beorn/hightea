@@ -45,7 +45,7 @@
   "dependencies": {
     "@silvery/ag": "workspace:*",
     "@silvery/ag-react": "workspace:*",
-    "@silvery/tea": "workspace:*",
+    "@silvery/create": "workspace:*",
     "@silvery/test": "workspace:*",
     "@silvery/theme": "workspace:*",
     "flexily": "github:beorn/flexily"

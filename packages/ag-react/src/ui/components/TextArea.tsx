@@ -50,7 +50,7 @@ import { useCursor } from "@silvery/ag-react/hooks/useCursor"
 import { Box } from "@silvery/ag-react/components/Box"
 import { Text } from "@silvery/ag-react/components/Text"
 import { useTextArea } from "./useTextArea"
-import type { WrappedLine } from "@silvery/tea/text-cursor"
+import type { WrappedLine } from "@silvery/create/text-cursor"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 
 // =============================================================================

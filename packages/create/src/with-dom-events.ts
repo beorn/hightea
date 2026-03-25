@@ -14,7 +14,7 @@
  *
  * @example
  * ```tsx
- * import { pipe, withDomEvents } from '@silvery/tea'
+ * import { pipe, withDomEvents } from '@silvery/create'
  *
  * const app = pipe(
  *   baseApp,

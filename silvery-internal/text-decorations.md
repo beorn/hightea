@@ -130,7 +130,7 @@ Segments:
 
 ### Phase 1: Core types and segment splitting (pure functions)
 
-1. Define `Decoration` and `DecorationStyle` types in `@silvery/tea/text-decorations.ts`.
+1. Define `Decoration` and `DecorationStyle` types in `@silvery/create/text-decorations.ts`.
 2. Implement `splitIntoSegments(lineStart, lineEnd, decorations, selection)`:
    - Takes a line range, array of decorations, and optional selection.
    - Returns an array of `{ from, to, style }` segments, sorted by position, non-overlapping.

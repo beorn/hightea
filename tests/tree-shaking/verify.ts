@@ -63,31 +63,31 @@ const entries: EntryPoint[] = [
     expectNoReact: false, // React hooks and context
     expectNoReconciler: true,
   },
-  // --- @silvery/tea sub-paths (should NOT pull React) ---
+  // --- @silvery/create sub-paths (should NOT pull React) ---
   {
-    name: "@silvery/tea/core",
-    specifier: "@silvery/tea/core",
+    name: "@silvery/create/core",
+    specifier: "@silvery/create/core",
     importExpr: "{ none, batch, dispatch, compose, createFocusManager }",
     expectNoReact: true,
     expectNoReconciler: true,
   },
   {
-    name: "@silvery/tea/store",
-    specifier: "@silvery/tea/store",
+    name: "@silvery/create/store",
+    specifier: "@silvery/create/store",
     importExpr: "{ createStore, silveryUpdate, defaultInit }",
     expectNoReact: true,
     expectNoReconciler: true,
   },
   {
-    name: "@silvery/tea/tea",
-    specifier: "@silvery/tea/tea",
+    name: "@silvery/create/tea",
+    specifier: "@silvery/create/tea",
     importExpr: "{ tea, collect }",
     expectNoReact: false, // zustand may reference React
     expectNoReconciler: true,
   },
   {
-    name: "@silvery/tea/streams",
-    specifier: "@silvery/tea/streams",
+    name: "@silvery/create/streams",
+    specifier: "@silvery/create/streams",
     importExpr: "{ merge, map, filter, take }",
     expectNoReact: true,
     expectNoReconciler: true,

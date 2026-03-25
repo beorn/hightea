@@ -26,8 +26,8 @@
  * that keeps cursor visible within the viewport.
  */
 import React, { useCallback, useMemo, useRef } from "react"
-import { cursorToRowCol, getWrappedLines } from "@silvery/tea/text-cursor"
-import type { WrappedLine } from "@silvery/tea/text-cursor"
+import { cursorToRowCol, getWrappedLines } from "@silvery/create/text-cursor"
+import type { WrappedLine } from "@silvery/create/text-cursor"
 import { Box } from "@silvery/ag-react/components/Box"
 import { Text } from "@silvery/ag-react/components/Text"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"

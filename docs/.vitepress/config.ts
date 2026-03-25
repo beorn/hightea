@@ -91,9 +91,7 @@ export default defineConfig({
       {
         text: "Building Apps",
         collapsed: false,
-        items: [
-          { text: "Terminal Apps", link: "/guides/terminal-apps" },
-        ],
+        items: [{ text: "Terminal Apps", link: "/guides/terminal-apps" }],
       },
       {
         text: "API Reference",

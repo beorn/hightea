@@ -36,6 +36,6 @@ Optional packages extend the renderer into a full framework:
 - **30+ components** — TextArea, VirtualList, Table, CommandPalette, and more ([component catalog](/guides/components))
 - **Rich interaction** — mouse events, spatial focus navigation, command system with keybindings, input layer stack
 - **Theming** — 38 palettes with semantic color tokens, auto-detects terminal colors
-- **TEA state machines** (`@silvery/tea`, optional) — pure `(action, state) → [state, effects]` for testing, replay, and undo
+- **TEA state machines** (`@silvery/create`, optional) — pure `(action, state) → [state, effects]` for testing, replay, and undo
 
 If you know React, you know Silvery — the core API (`Box`, `Text`, `useInput`, `render`) is familiar. See the [getting started guide](/getting-started/quick-start) to try it, or the [detailed comparison](/guide/silvery-vs-ink) for technical details.

@@ -9,7 +9,7 @@
  *
  * @example
  * ```tsx
- * import { pipe, createApp, withReact, withTerminal, withFocus, withDomEvents } from '@silvery/tea'
+ * import { pipe, createApp, withReact, withTerminal, withFocus, withDomEvents } from '@silvery/create'
  *
  * const app = pipe(
  *   createApp(store),

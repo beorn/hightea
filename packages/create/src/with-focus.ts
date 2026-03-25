@@ -11,7 +11,7 @@
  *
  * @example
  * ```tsx
- * import { pipe, withFocus } from '@silvery/tea'
+ * import { pipe, withFocus } from '@silvery/create'
  *
  * const app = pipe(
  *   baseApp,

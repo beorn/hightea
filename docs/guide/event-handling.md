@@ -7,7 +7,7 @@
 Adds React-style event handlers to Silvery components. Events bubble up the tree, components can stop propagation, and hit testing maps mouse coordinates to nodes.
 
 ```tsx
-import { pipe, withDomEvents, withReact } from "@silvery/tea/plugins"
+import { pipe, withDomEvents, withReact } from "@silvery/create/plugins"
 
 const app = pipe(createApp(store), withReact(<Board />), withDomEvents())
 ```
@@ -52,7 +52,7 @@ const app = pipe(createApp(store), withReact(<Board />), withDomEvents())
 Turns input into named, serializable commands. Keys and clicks resolve to commands; commands produce actions.
 
 ```tsx
-import { pipe, withDomEvents, withCommands, withReact, createCommandRegistry } from "@silvery/tea/plugins"
+import { pipe, withDomEvents, withCommands, withReact, createCommandRegistry } from "@silvery/create/plugins"
 
 const registry = createCommandRegistry({
   cursor_down: {
@@ -136,7 +136,7 @@ await driver.screenshot() // capture screen
 Every extension — `withDomEvents`, `withCommands`, `withKeybindings`, `withDiagnostics` — is an app plugin: a function that takes an app and returns an enhanced app.
 
 ```tsx
-import type { AppPlugin } from "@silvery/tea/plugins"
+import type { AppPlugin } from "@silvery/create/plugins"
 
 type AppPlugin<A, B> = (app: A) => B
 ```
@@ -144,7 +144,7 @@ type AppPlugin<A, B> = (app: A) => B
 A plugin is a function that takes an app and returns an enhanced version. It can wrap existing methods (like `press()` or `run()`), add new properties, or store configuration for the runtime:
 
 ```tsx
-import { withTerminal } from "@silvery/tea/plugins"
+import { withTerminal } from "@silvery/create/plugins"
 
 // withTerminal captures process streams and terminal options,
 // then wraps run() to inject them:

@@ -15,7 +15,7 @@
  * - `@silvery/ag-term`    — runtime, pipeline, terminal protocols
  * - `@silvery/ansi`    — styling, colors, terminal control
  * - `@silvery/theme`   — ThemeProvider, useTheme, semantic tokens
- * - `@silvery/tea`     — store, core types, tree utilities
+ * - `@silvery/create`     — store, core types, tree utilities
  * - `@silvery/test`    — testing utilities, buffer assertions
  *
  * Or import everything from `silvery`.

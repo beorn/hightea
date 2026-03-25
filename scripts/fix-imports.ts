@@ -173,9 +173,9 @@ function rewriteFile(entry: FileEntry, map: Map<string, FileEntry>): { changed: 
       const subpathMap: Record<string, string> = {
         runtime: "@silvery/ag-term/runtime",
         testing: "@silvery/test",
-        store: "@silvery/tea/store",
-        core: "@silvery/tea/core",
-        tea: "@silvery/tea/tea",
+        store: "@silvery/create/store",
+        core: "@silvery/create/core",
+        tea: "@silvery/create/tea",
         canvas: "@silvery/ag-react/ui/canvas",
         dom: "@silvery/ag-term/dom",
         xterm: "@silvery/ag-term/xterm",
@@ -187,7 +187,7 @@ function rewriteFile(entry: FileEntry, map: Map<string, FileEntry>): { changed: 
         theme: "@silvery/theme",
         animation: "@silvery/ag-react/ui/animation",
         images: "@silvery/ag-react/ui/images",
-        plugins: "@silvery/tea/plugins",
+        plugins: "@silvery/create/plugins",
         "scroll-utils": "@silvery/ag-term/scroll-utils",
         toolbelt: "@silvery/ag-term/toolbelt",
         hooks: "@silvery/ag-react/hooks",
@@ -211,7 +211,7 @@ function rewriteFile(entry: FileEntry, map: Map<string, FileEntry>): { changed: 
   })
 
   // Rewrite relative imports that cross package boundaries
-  // Also handle imports that were already partially rewritten (e.g., @silvery/tea/types → still relative from ./types.js)
+  // Also handle imports that were already partially rewritten (e.g., @silvery/create/types → still relative from ./types.js)
   const rewriteRelative = (match: string, importPath: string) => {
     // Skip if already an @silvery/ import
     if (importPath.startsWith("@silvery/")) return match

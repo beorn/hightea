@@ -9,7 +9,7 @@
  *
  * @example
  * ```ts
- * import { splitIntoSegments, type Decoration } from '@silvery/tea/text-decorations'
+ * import { splitIntoSegments, type Decoration } from '@silvery/create/text-decorations'
  *
  * const decorations: Decoration[] = [
  *   { from: 0, to: 5, style: { backgroundColor: "yellow" } },

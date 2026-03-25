@@ -236,7 +236,7 @@ For identity-based ops that survive reordering and concurrency, see [Designing R
 `createEffects()` defines your effect vocabulary in one place — types, builders, and runners all inferred from a single definition:
 
 ```tsx
-import { createEffects } from "@silvery/tea"
+import { createEffects } from "@silvery/create"
 
 const fx = createEffects({
   persist: async ({ data }: { data: unknown }) => {

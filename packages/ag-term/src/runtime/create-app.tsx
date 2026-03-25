@@ -1,8 +1,8 @@
 /**
- * createApp() — re-exported from @silvery/tea (canonical home).
+ * createApp() — re-exported from @silvery/create (canonical home).
  *
  * This file exists for backward compatibility. The canonical source is
- * `@silvery/tea/create-app`. Import from there for new code.
+ * `@silvery/create/create-app`. Import from there for new code.
  */
 export {
   createApp,
@@ -16,4 +16,4 @@ export {
   type EventHandler,
   type EventHandlers,
   type EventHandlerContext,
-} from "@silvery/tea/create-app"
+} from "@silvery/create/create-app"

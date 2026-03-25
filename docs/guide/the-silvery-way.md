@@ -182,11 +182,11 @@ If you're writing `if (isDialogOpen) return` in your input handlers, you don't h
 
 → [Focus hooks](/api/use-focus) · [Input features](/reference/input-features)
 
-## 5. Command System <Badge type="info" text="@silvery/tea" />
+## 5. Command System <Badge type="info" text="@silvery/create" />
 
 Named, serializable, introspectable actions. Commands make your app automatable (AI agents invoke commands by name), testable (fire commands in tests), and discoverable ([`CommandPalette`](/guides/components#shadcn-style-components) lists them all).
 
-> Part of [`@silvery/tea`](https://www.npmjs.com/package/@silvery/tea) — the optional app architecture layer. `@silvery/tea` is under active development; the command system API is evolving.
+> Part of [`@silvery/create`](https://www.npmjs.com/package/@silvery/create) — the optional app architecture layer. `@silvery/create` is under active development; the command system API is evolving.
 
 ::: tip ✨ Shiny
 
@@ -293,7 +293,7 @@ const app = render(<MyComponent />)
 expect(app.text).toContain("Hello")
 ```
 
-With `@silvery/tea`, this extends to app-level composition via `pipe()`:
+With `@silvery/create`, this extends to app-level composition via `pipe()`:
 
 ```tsx
 // Each function adds a capability — explicit, composable, no inheritance
@@ -378,10 +378,10 @@ const app = createApp(storeFactory, { "term:key": handleKey })
 const app = pipe(createApp(), withFocus(), withCommands(opts))
 ```
 
-Each level works independently. Start wherever feels natural — some apps never need more than `useState`, others want full TEA from the start. You can use `@silvery/tea` or build your own architecture on top of the exposed event loop.
+Each level works independently. Start wherever feels natural — some apps never need more than `useState`, others want full TEA from the start. You can use `@silvery/create` or build your own architecture on top of the exposed event loop.
 :::
 
-> **Note:** `@silvery/tea` is under active development. The core API (`createApp`, `pipe`) is used in production, but the command system, plugin model, and effects API are evolving. Expect breaking changes before 1.0.
+> **Note:** `@silvery/create` is under active development. The core API (`createApp`, `pipe`) is used in production, but the command system, plugin model, and effects API are evolving. Expect breaking changes before 1.0.
 
 → [Application Architecture](/guides/state-management) — when and how to graduate from hooks to structured state management
 
@@ -448,7 +448,7 @@ Manual visual testing is slow, unrepeatable, and doesn't catch regressions. If y
 6. **Use semantic theme colors** — `$tokens`, not hardcoded values
 7. **Compose with factory functions** — `pipe()`, not class hierarchies
 8. **Clean up with `using`** — one keyword, zero leaks
-9. **Gradually sip TEA** — hooks → reducer → store → @silvery/tea, at your own pace
+9. **Gradually sip TEA** — hooks → reducer → store → @silvery/create, at your own pace
 10. **Test what the user sees** — render the buffer, not just the state
 
 Keep it shiny. ✨

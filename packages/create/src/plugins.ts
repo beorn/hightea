@@ -4,7 +4,7 @@
  * Plugins are functions `(app) => enhancedApp` that compose via `pipe()`:
  *
  * ```tsx
- * import { pipe, withCommands, withKeybindings, withFocus, withDomEvents } from '@silvery/tea/plugins'
+ * import { pipe, withCommands, withKeybindings, withFocus, withDomEvents } from '@silvery/create/plugins'
  *
  * const app = pipe(
  *   baseApp,

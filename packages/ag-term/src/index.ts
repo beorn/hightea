@@ -361,7 +361,7 @@ export { createWidthMeasurer, createMeasurer, runWithMeasurer, type Measurer, ty
 // Measurer composition (term + measurement)
 export { withMeasurer, createPipeline, type MeasuredTerm } from "./measurer"
 
-// withRender plugin — available via @silvery/tea/with-render (not re-exported
+// withRender plugin — available via @silvery/create/with-render (not re-exported
 // here to keep this barrel React-free; withRender's renderStatic() pulls React)
 
 // =============================================================================

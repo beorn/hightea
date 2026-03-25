@@ -154,7 +154,7 @@ await app.run(
 The `withDomEvents()` plugin adds React-style event handlers to Silvery components. Events bubble up the tree, components can stop propagation, and hit testing maps mouse coordinates to nodes:
 
 ```tsx
-import { pipe, withDomEvents, withReact } from "@silvery/tea/plugins"
+import { pipe, withDomEvents, withReact } from "@silvery/create/plugins"
 
 function ItemList() {
   const items = useApp((s) => s.items)
@@ -207,7 +207,7 @@ These are just JSON — plain objects you can inspect, store, and manipulate. On
 Silvery provides `createSlice` — you write only the handlers, it infers the op union from your handler names and parameter types:
 
 ```tsx
-import { createSlice } from "@silvery/tea/core"
+import { createSlice } from "@silvery/create/core"
 
 const TodoList = createSlice(
   () => ({ cursor: signal(0), items: signal<Item[]>([...]) }),
@@ -256,7 +256,7 @@ Meanwhile, event handlers have the same problem. `if (input === "j") moveCursor(
 **The fix**: turn input into named, serializable commands. Declare that `j` maps to the command `cursor_down`, and `cursor_down` produces the action `{ op: "moveCursor", delta: 1 }`:
 
 ```tsx
-import { pipe, withDomEvents, withCommands, withReact, createCommandRegistry } from "@silvery/tea/plugins"
+import { pipe, withDomEvents, withCommands, withReact, createCommandRegistry } from "@silvery/create/plugins"
 
 const registry = createCommandRegistry({
   cursor_down: {
@@ -419,7 +419,7 @@ Step back: `apply(state, op) → [new state, effects]`. This is [The Elm Archite
 Every extension in this guide — `withDomEvents`, `withCommands`, `withKeybindings` — is the same thing: an app plugin. A function that takes an app and returns an enhanced app:
 
 ```tsx
-import type { AppPlugin } from "@silvery/tea/plugins"
+import type { AppPlugin } from "@silvery/create/plugins"
 
 type AppPlugin<A, B> = (app: A) => B
 ```
@@ -436,7 +436,7 @@ import {
   withCommands,
   withKeybindings,
   withDiagnostics,
-} from "@silvery/tea/plugins"
+} from "@silvery/create/plugins"
 
 const app = pipe(
   createApp(store), // kernel: event loop + state

@@ -28,8 +28,8 @@ import {
   cursorMoveDown,
   getWrappedLines,
   countVisualLines,
-} from "@silvery/tea/text-cursor"
-import type { TextOp } from "@silvery/tea/text-ops"
+} from "@silvery/create/text-cursor"
+import type { TextOp } from "@silvery/create/text-ops"
 
 // =============================================================================
 // Types

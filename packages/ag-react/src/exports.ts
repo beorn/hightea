@@ -353,7 +353,7 @@ export {
   findByTestID,
   findSpatialTarget,
   getExplicitFocusLink,
-} from "@silvery/tea/focus-queries"
+} from "@silvery/create/focus-queries"
 export { createKeyEvent, createFocusEvent, dispatchKeyEvent, dispatchFocusEvent } from "@silvery/ag/focus-events"
 export type { SilveryKeyEvent, SilveryFocusEvent, FocusEventProps } from "@silvery/ag/focus-events"
 export { useFocusable } from "./hooks/useFocusable"
@@ -601,7 +601,7 @@ export {
 export { type PipelineConfig, type PipelineContext } from "@silvery/ag-term/pipeline"
 
 // withRender plugin
-export { withRender, type RenderTerm } from "@silvery/tea/with-render"
+export { withRender, type RenderTerm } from "@silvery/create/with-render"
 
 // Text sizing protocol (OSC 66) — PUA character width control
 export {
@@ -884,8 +884,8 @@ export {
   cursorMoveUp,
   cursorMoveDown,
   countVisualLines,
-} from "@silvery/tea/text-cursor"
-export type { WrappedLine } from "@silvery/tea/text-cursor"
+} from "@silvery/create/text-cursor"
+export type { WrappedLine } from "@silvery/create/text-cursor"
 
 // =============================================================================
 // Edit Context
@@ -911,8 +911,8 @@ export type { WrappedLine } from "@silvery/tea/text-cursor"
 export { createTermEditContext } from "./edit-context"
 export type { EditContextLike, TermEditContext, TermEditContextOptions } from "./edit-context"
 
-export { applyTextOp, invertTextOp, mergeTextOps } from "@silvery/tea/text-ops"
-export type { TextOp } from "@silvery/tea/text-ops"
+export { applyTextOp, invertTextOp, mergeTextOps } from "@silvery/create/text-ops"
+export type { TextOp } from "@silvery/create/text-ops"
 
 export { useEditContext, activeEditContextRef, activeEditTargetRef } from "./hooks/use-edit-context"
 export type { UseEditContextOptions, UseEditContextResult, EditTarget } from "./hooks/use-edit-context"
@@ -976,7 +976,7 @@ export type { ScrollRegionConfig } from "@silvery/ag-term/scroll-region"
  * console.log(app.cmd.down.help); // Command metadata
  * ```
  */
-export { withCommands } from "@silvery/tea/with-commands"
+export { withCommands } from "@silvery/create/with-commands"
 export type {
   WithCommandsOptions,
   CommandDef,
@@ -987,14 +987,14 @@ export type {
   AppWithCommands,
   AppState,
   KeybindingDef,
-} from "@silvery/tea/with-commands"
+} from "@silvery/create/with-commands"
 
-export { withKeybindings } from "@silvery/tea/with-keybindings"
-export type { WithKeybindingsOptions, KeybindingContext, ExtendedKeybindingDef } from "@silvery/tea/with-keybindings"
+export { withKeybindings } from "@silvery/create/with-keybindings"
+export type { WithKeybindingsOptions, KeybindingContext, ExtendedKeybindingDef } from "@silvery/create/with-keybindings"
 
 // Diagnostic tools - prefer importing from '@silvery/ag-term/toolbelt' for new code
-export { withDiagnostics, VirtualTerminal } from "@silvery/tea/with-diagnostics"
-export type { DiagnosticOptions } from "@silvery/tea/with-diagnostics"
+export { withDiagnostics, VirtualTerminal } from "@silvery/create/with-diagnostics"
+export type { DiagnosticOptions } from "@silvery/create/with-diagnostics"
 
 // Scheduler errors (for catching incremental render mismatches)
 export { IncrementalRenderMismatchError } from "@silvery/ag-term/scheduler"
@@ -1149,5 +1149,5 @@ export type {
  * ```
  */
 export { useTea } from "@silvery/ag-react/ui/hooks/useTea"
-export { fx, collect } from "@silvery/tea"
-export type { TeaResult, EffectLike, TimerEffect } from "@silvery/tea"
+export { fx, collect } from "@silvery/create"
+export type { TeaResult, EffectLike, TimerEffect } from "@silvery/create"

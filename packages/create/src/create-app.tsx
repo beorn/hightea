@@ -6,7 +6,7 @@
  *
  * @example
  * ```tsx
- * import { createApp, useApp } from '@silvery/tea/create-app'
+ * import { createApp, useApp } from '@silvery/create/create-app'
  * import { createTermProvider } from '@silvery/ag-term/runtime'
  *
  * const app = createApp(

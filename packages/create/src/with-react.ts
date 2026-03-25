@@ -23,7 +23,7 @@
  *
  * @example
  * ```tsx
- * import { pipe, withReact } from '@silvery/tea'
+ * import { pipe, withReact } from '@silvery/create'
  *
  * // The element is associated with the app for later mounting
  * const app = pipe(baseApp, withReact(<MyComponent />))

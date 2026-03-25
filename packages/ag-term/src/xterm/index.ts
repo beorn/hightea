@@ -190,7 +190,7 @@ function initXtermRenderer(): void {
 // Input handler type for subscriber list
 // ============================================================================
 
-type InputEventHandler = (input: string, key: import("@silvery/tea/keys").Key) => void
+type InputEventHandler = (input: string, key: import("@silvery/create/keys").Key) => void
 type PasteEventHandler = (text: string) => void
 
 // ============================================================================

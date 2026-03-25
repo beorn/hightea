@@ -80,12 +80,12 @@ features:
 
 ## Packages
 
-| Package         | Description                                                                                |
-| --------------- | ------------------------------------------------------------------------------------------ |
-| `silvery`       | Components, hooks, renderer -- the one package you need                                    |
-| `@silvery/test` | [Testing](/examples/testing) utilities and Playwright-style locators                       |
-| `@silvery/ink`  | [Ink compatibility](/guide/silvery-vs-ink) layer for migration                             |
-| `@silvery/tea`  | Optional [TEA](https://guide.elm-lang.org/architecture/) state management for complex apps |
+| Package           | Description                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------ |
+| `silvery`         | Components, hooks, renderer -- the one package you need                                    |
+| `@silvery/test`   | [Testing](/examples/testing) utilities and Playwright-style locators                       |
+| `@silvery/ink`    | [Ink compatibility](/guide/silvery-vs-ink) layer for migration                             |
+| `@silvery/create` | Optional [TEA](https://guide.elm-lang.org/architecture/) state management for complex apps |
 
 ## Quick Start
 
@@ -140,7 +140,7 @@ Silvery is part of a family of terminal-focused libraries:
 
 - **Renderers** -- Canvas 2D, Web DOM (experimental today, production later)
 - **Frameworks** -- Svelte, Solid.js, Vue adapters
-- **@silvery/tea** -- Structured state management with commands, keybindings, effects-as-data
+- **@silvery/create** -- Structured state management with commands, keybindings, effects-as-data
 
 <style>
 .viewer-wrapper {

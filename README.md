@@ -51,12 +51,12 @@ await render(<Counter />).run()
 
 ## Packages
 
-| Package                                                                     | Description                                                                                |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| [`silvery`](https://github.com/beorn/silvery)                               | Components, hooks, renderer — the one package you need                                     |
-| [`@silvery/test`](https://github.com/beorn/silvery/tree/main/packages/test) | Testing utilities and locators                                                             |
-| [`@silvery/ink`](https://github.com/beorn/silvery/tree/main/packages/ink)   | Ink compatibility layer — migrate existing Ink apps with minimal changes                   |
-| [`@silvery/tea`](https://github.com/beorn/silvery/tree/main/packages/tea)   | Optional [TEA](https://guide.elm-lang.org/architecture/) state management for complex apps |
+| Package                                                                         | Description                                                              |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [`silvery`](https://github.com/beorn/silvery)                                   | Components, hooks, renderer — the one package you need                   |
+| [`@silvery/test`](https://github.com/beorn/silvery/tree/main/packages/test)     | Testing utilities and locators                                           |
+| [`@silvery/ink`](https://github.com/beorn/silvery/tree/main/packages/ink)       | Ink compatibility layer — migrate existing Ink apps with minimal changes |
+| [`@silvery/create`](https://github.com/beorn/silvery/tree/main/packages/create) | App composition, state management, and TEA architecture                  |
 
 ## Ecosystem
 
@@ -71,7 +71,7 @@ await render(<Counter />).run()
 
 - **Renderers** — Canvas 2D, Web DOM (experimental today, production later)
 - **Frameworks** — Svelte, Solid.js, Vue adapters
-- **@silvery/tea** — Structured state management with commands, keybindings, effects-as-data
+- **@silvery/create** — Structured state management with commands, keybindings, effects-as-data
 
 **Runtimes:** Bun >= 1.0 and Node.js >= 18. CLI (`silvery` command) requires Bun.
 

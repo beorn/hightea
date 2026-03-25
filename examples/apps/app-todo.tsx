@@ -24,8 +24,8 @@
 
 import React from "react"
 import { Box, Text, Muted, Kbd } from "../../src/index.js"
-import { createApp, useApp, type AppHandle } from "@silvery/tea/create-app"
-import { pipe, withReact, withTerminal } from "@silvery/tea/plugins"
+import { createApp, useApp, type AppHandle } from "@silvery/create/create-app"
+import { pipe, withReact, withTerminal } from "@silvery/create/plugins"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {

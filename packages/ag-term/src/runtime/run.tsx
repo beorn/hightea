@@ -30,7 +30,7 @@
 import React, { useContext, useEffect, useRef, type ReactElement } from "react"
 
 import { RuntimeContext } from "@silvery/ag-react/context"
-import { createApp } from "@silvery/tea/create-app"
+import { createApp } from "@silvery/create/create-app"
 import type { Key, InputHandler } from "./keys"
 import type { Term } from "../ansi/term"
 import { detectTerminalCaps } from "../terminal-caps"

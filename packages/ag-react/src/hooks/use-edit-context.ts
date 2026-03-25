@@ -12,8 +12,8 @@
 import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
 import { createTermEditContext } from "../edit-context"
 import type { TermEditContext } from "../edit-context"
-import type { TextOp } from "@silvery/tea/text-ops"
-import { rowColToCursor, countVisualLines } from "@silvery/tea/text-cursor"
+import type { TextOp } from "@silvery/create/text-ops"
+import { rowColToCursor, countVisualLines } from "@silvery/create/text-cursor"
 
 // =============================================================================
 // Types

@@ -22,7 +22,7 @@
  */
 
 import { createOutputPhase } from "../pipeline/output-phase"
-import { takeUntil } from "@silvery/tea/streams"
+import { takeUntil } from "@silvery/create/streams"
 import { diff } from "./diff"
 import type { Buffer, Dims, Event, Runtime, RuntimeOptions } from "./types"
 

@@ -10,7 +10,7 @@
  *   - silvery/ui/*        → dist/ui/*.js        (component sub-categories)
  *   - silvery/ink         → dist/ink.js         (Ink compatibility)
  *   - silvery/chalk       → dist/chalk.js       (Chalk compatibility)
- *   - @silvery/tea        → packages/tea/dist/  (TEA store, subpaths)
+ *   - @silvery/create        → packages/create/dist/  (TEA store, subpaths)
  *   - @silvery/test       → packages/test/dist/ (testing utilities)
  *
  * Internal packages (@silvery/ag, @silvery/ag-react, @silvery/ag-term, @silvery/theme, @silvery/ink)
@@ -175,42 +175,42 @@ const targets: BuildTarget[] = [
     entrypoint: "packages/ink/src/chalk.ts",
     outfile: "dist/chalk.js",
   },
-  // @silvery/tea — TEA store (public package)
+  // @silvery/create — TEA store (public package)
   {
-    name: "@silvery/tea",
-    entrypoint: "packages/tea/src/index.ts",
-    outfile: "packages/tea/dist/index.js",
+    name: "@silvery/create",
+    entrypoint: "packages/create/src/index.ts",
+    outfile: "packages/create/dist/index.js",
   },
-  // @silvery/tea subpath exports
+  // @silvery/create subpath exports
   {
-    name: "@silvery/tea/core",
-    entrypoint: "packages/tea/src/core/index.ts",
-    outfile: "packages/tea/dist/core.js",
-  },
-  {
-    name: "@silvery/tea/store",
-    entrypoint: "packages/tea/src/store/index.ts",
-    outfile: "packages/tea/dist/store.js",
+    name: "@silvery/create/core",
+    entrypoint: "packages/create/src/core/index.ts",
+    outfile: "packages/create/dist/core.js",
   },
   {
-    name: "@silvery/tea/tea",
-    entrypoint: "packages/tea/src/tea/index.ts",
-    outfile: "packages/tea/dist/tea.js",
+    name: "@silvery/create/store",
+    entrypoint: "packages/create/src/store/index.ts",
+    outfile: "packages/create/dist/store.js",
   },
   {
-    name: "@silvery/tea/streams",
-    entrypoint: "packages/tea/src/streams/index.ts",
-    outfile: "packages/tea/dist/streams.js",
+    name: "@silvery/create/tea",
+    entrypoint: "packages/create/src/tea/index.ts",
+    outfile: "packages/create/dist/tea.js",
   },
   {
-    name: "@silvery/tea/plugins",
-    entrypoint: "packages/tea/src/plugins.ts",
-    outfile: "packages/tea/dist/plugins.js",
+    name: "@silvery/create/streams",
+    entrypoint: "packages/create/src/streams/index.ts",
+    outfile: "packages/create/dist/streams.js",
   },
   {
-    name: "@silvery/tea/create-app",
-    entrypoint: "packages/tea/src/create-app.tsx",
-    outfile: "packages/tea/dist/create-app.js",
+    name: "@silvery/create/plugins",
+    entrypoint: "packages/create/src/plugins.ts",
+    outfile: "packages/create/dist/plugins.js",
+  },
+  {
+    name: "@silvery/create/create-app",
+    entrypoint: "packages/create/src/create-app.tsx",
+    outfile: "packages/create/dist/create-app.js",
   },
   // @silvery/test — Testing utilities (public package)
   {
@@ -221,7 +221,7 @@ const targets: BuildTarget[] = [
 ]
 
 async function clean() {
-  const dirs = ["dist", "packages/tea/dist", "packages/test/dist"]
+  const dirs = ["dist", "packages/create/dist", "packages/test/dist"]
   for (const dir of dirs) {
     const fullPath = join(ROOT, dir)
     if (existsSync(fullPath)) {

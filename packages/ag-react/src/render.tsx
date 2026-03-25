@@ -226,7 +226,7 @@ async function ensureLayoutEngineInitialized(engineType?: LayoutEngineType): Pro
 // Lightweight subscriber list — replaces EventEmitter from node:events
 // ============================================================================
 
-type InputHandler = (input: string, key: import("@silvery/tea/keys").Key) => void
+type InputHandler = (input: string, key: import("@silvery/create/keys").Key) => void
 type PasteHandler = (text: string) => void
 
 interface SubscriberList {
@@ -257,7 +257,7 @@ interface AppProps {
   onResume?: () => void
   onScrollback?: (lines: number) => void
   /** Get the root AgNode for focus navigation. Provided by SilveryInstance. */
-  getRoot?: () => import("@silvery/tea/types").AgNode | null
+  getRoot?: () => import("@silvery/create/types").AgNode | null
   /** Handle Tab/Shift+Tab/Escape focus cycling (default: true) */
   handleFocusCycling?: boolean
 }
@@ -310,7 +310,7 @@ function SilveryApp({
   handleExitRef.current = handleExit
 
   // Refs for focus manager and root getter — accessed inside input handler
-  const focusManagerRef = useRef<import("@silvery/tea/focus-manager").FocusManager | null>(null)
+  const focusManagerRef = useRef<import("@silvery/create/focus-manager").FocusManager | null>(null)
   const getRootRef = useRef(getRootProp)
   getRootRef.current = getRootProp
   const handleFocusCyclingRef = useRef(handleFocusCycling)

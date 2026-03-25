@@ -72,7 +72,7 @@ export interface AppWithInk {
  *
  * @example
  * ```tsx
- * import { pipe, createApp, withReact, withTerminal } from '@silvery/tea'
+ * import { pipe, createApp, withReact, withTerminal } from '@silvery/create'
  * import { withInk } from '@silvery/ink/with-ink'
  *
  * const app = pipe(

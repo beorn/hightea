@@ -94,11 +94,11 @@ bun run compat            # Run Ink/Chalk compatibility checks
 
 Users install and import from these packages only:
 
-| Package         | What                                                      |
-| --------------- | --------------------------------------------------------- |
-| `silvery`       | Main barrel — components, hooks, render, types, runtime   |
-| `@silvery/tea`  | TEA state machine store, createApp (optional)             |
-| `@silvery/test` | Testing utilities — virtual renderer, locators (optional) |
+| Package           | What                                                      |
+| ----------------- | --------------------------------------------------------- |
+| `silvery`         | Main barrel — components, hooks, render, types, runtime   |
+| `@silvery/create` | TEA state machine store, createApp (optional)             |
+| `@silvery/test`   | Testing utilities — virtual renderer, locators (optional) |
 
 Subpath imports available from `silvery`:
 

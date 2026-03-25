@@ -31,7 +31,7 @@ export {
   findByTestID,
   findSpatialTarget,
   getExplicitFocusLink,
-} from "@silvery/tea/focus-queries"
+} from "@silvery/create/focus-queries"
 
 // =============================================================================
 // Focus Events

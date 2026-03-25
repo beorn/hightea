@@ -51,8 +51,8 @@ import {
   handleReadlineKey,
   type YankState,
 } from "@silvery/ag-react/hooks/readline-ops"
-import { cursorToRowCol, getWrappedLines } from "@silvery/tea/text-cursor"
-import type { WrappedLine } from "@silvery/tea/text-cursor"
+import { cursorToRowCol, getWrappedLines } from "@silvery/create/text-cursor"
+import type { WrappedLine } from "@silvery/create/text-cursor"
 
 // =============================================================================
 // Types

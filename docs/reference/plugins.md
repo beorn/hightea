@@ -71,7 +71,7 @@ Every option on `run()` maps to a plugin. When you need more control — custom 
 Adds a `cmd` object for direct command invocation with metadata.
 
 ```tsx
-import { withCommands } from "@silvery/tea/plugins"
+import { withCommands } from "@silvery/create/plugins"
 
 const app = withCommands(render(<Board />), {
   registry: commandRegistry,
@@ -100,7 +100,7 @@ app.getState() // { screen, commands, focus }
 Routes `press()` calls to commands via keybinding lookup. Wraps a `withCommands`-enhanced app.
 
 ```tsx
-import { withKeybindings } from "@silvery/tea/plugins"
+import { withKeybindings } from "@silvery/create/plugins"
 
 const app = withKeybindings(withCommands(render(<Board />), cmdOpts), {
   bindings: defaultKeybindings,
@@ -119,7 +119,7 @@ await app.press("x")
 Adds buffer and rendering invariant checks after command execution.
 
 ```tsx
-import { withDiagnostics } from "@silvery/tea/plugins"
+import { withDiagnostics } from "@silvery/create/plugins"
 
 const driver = withDiagnostics(app, {
   checkIncremental: true, // Verify incremental vs fresh render match

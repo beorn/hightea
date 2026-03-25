@@ -80,12 +80,12 @@ export {
 } from "./terminal-lifecycle"
 
 // Layer 1.5: TEA store (re-exported for discoverability)
-export { createStore, silveryUpdate, defaultInit, withFocusManagement } from "@silvery/tea/store"
-export type { StoreConfig, StoreApi } from "@silvery/tea/store"
+export { createStore, silveryUpdate, defaultInit, withFocusManagement } from "@silvery/create/store"
+export type { StoreConfig, StoreApi } from "@silvery/create/store"
 
-// Layer 3: Store integration (canonical home: @silvery/tea, re-exported for compat)
+// Layer 3: Store integration (canonical home: @silvery/create, re-exported for compat)
 // NOTE: AppHandle is intentionally NOT re-exported — it's an era2b concept.
-// Use @silvery/tea directly for createApp/AppHandle.
+// Use @silvery/create directly for createApp/AppHandle.
 export {
   createApp,
   useApp,
@@ -97,7 +97,7 @@ export {
   type EventHandler,
   type EventHandlers,
   type EventHandlerContext,
-} from "@silvery/tea/create-app"
+} from "@silvery/create/create-app"
 
 // Time/tick sources
 export { createTick, createFrameTick, createSecondTick, createAdaptiveTick } from "./tick"
@@ -117,4 +117,4 @@ export {
   zip,
   fromArray,
   fromArrayWithDelay,
-} from "@silvery/tea/streams"
+} from "@silvery/create/streams"

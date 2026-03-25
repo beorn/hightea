@@ -182,8 +182,8 @@ export function defaultInit(): [SilveryModel, Effect[]] {
  *
  * @example
  * ```ts
- * import { createStore, withFocusManagement, silveryUpdate } from '@silvery/tea/store'
- * import { compose } from '@silvery/tea/core'
+ * import { createStore, withFocusManagement, silveryUpdate } from '@silvery/create/store'
+ * import { compose } from '@silvery/create/core'
  *
  * const store = createStore({
  *   init: () => [{ focus: { activeId: null, ... }, count: 0 }, []],

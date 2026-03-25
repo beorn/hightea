@@ -49,15 +49,15 @@ Later plugins wrap earlier ones — `withInk()` wraps `withTerminal()` which wra
 
 ### Core (silvery)
 
-| Plugin                   | What                                                    | Package        |
-| ------------------------ | ------------------------------------------------------- | -------------- |
-| `withReact(<Element />)` | Mounts React element tree                               | `@silvery/tea` |
-| `withTerminal(process)`  | Terminal I/O (stdin/stdout, raw mode, alternate screen) | `@silvery/tea` |
-| `withFocus()`            | Tree-based focus management (scopes, spatial nav)       | `@silvery/tea` |
-| `withDomEvents()`        | DOM-style event dispatch (capture/target/bubble)        | `@silvery/tea` |
-| `withCommands(opts)`     | Named commands with keybindings and introspection       | `@silvery/tea` |
-| `withKeybindings(opts)`  | Configurable keybinding resolution                      | `@silvery/tea` |
-| `withDiagnostics()`      | Render invariant checking                               | `@silvery/tea` |
+| Plugin                   | What                                                    | Package           |
+| ------------------------ | ------------------------------------------------------- | ----------------- |
+| `withReact(<Element />)` | Mounts React element tree                               | `@silvery/create` |
+| `withTerminal(process)`  | Terminal I/O (stdin/stdout, raw mode, alternate screen) | `@silvery/create` |
+| `withFocus()`            | Tree-based focus management (scopes, spatial nav)       | `@silvery/create` |
+| `withDomEvents()`        | DOM-style event dispatch (capture/target/bubble)        | `@silvery/create` |
+| `withCommands(opts)`     | Named commands with keybindings and introspection       | `@silvery/create` |
+| `withKeybindings(opts)`  | Configurable keybinding resolution                      | `@silvery/create` |
+| `withDiagnostics()`      | Render invariant checking                               | `@silvery/create` |
 
 ### Ink Compatibility (`@silvery/ink`)
 

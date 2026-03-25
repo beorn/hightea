@@ -8,7 +8,7 @@
  * @example
  * ```tsx
  * import { useTea } from "silvery"
- * import { fx } from "@silvery/tea/effects"
+ * import { fx } from "@silvery/create/effects"
  *
  * type State = { count: number; running: boolean }
  * type Msg = { type: "start" } | { type: "tick" } | { type: "stop" }
@@ -32,9 +32,9 @@
  */
 
 import { useCallback, useEffect, useRef, useReducer } from "react"
-import type { EffectLike, EffectRunners, TeaResult } from "@silvery/tea/tea"
-import { collect } from "@silvery/tea/tea"
-import { createTimerRunners, type TimerEffect } from "@silvery/tea/effects"
+import type { EffectLike, EffectRunners, TeaResult } from "@silvery/create/tea"
+import { collect } from "@silvery/create/tea"
+import { createTimerRunners, type TimerEffect } from "@silvery/create/effects"
 
 // =============================================================================
 // Hook

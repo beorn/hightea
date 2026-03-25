@@ -13,7 +13,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - **Era2 package renames** — `@silvery/react` → `@silvery/ag-react`, `@silvery/term` → `@silvery/ag-term`, `@silvery/ui` merged into `@silvery/ag-react/ui`, `@silvery/compat` → `@silvery/ink`
 - **TeaNode → AgNode** — core node type renamed across the entire codebase
-- **createApp moved to @silvery/tea** — canonical import is now `@silvery/tea/create-app` (ag-term re-exports for backwards compat)
+- **createApp moved to @silvery/create** — canonical import is now `@silvery/create/create-app` (ag-term re-exports for backwards compat)
 
 ### Added
 
@@ -25,7 +25,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
-- **3 public packages** — `silvery`, `@silvery/tea`, `@silvery/test`. Internal packages (`@silvery/ag`, `@silvery/ag-react`, `@silvery/ag-term`, `@silvery/theme`, `@silvery/ink`) are published but not user-facing.
+- **3 public packages** — `silvery`, `@silvery/create`, `@silvery/test`. Internal packages (`@silvery/ag`, `@silvery/ag-react`, `@silvery/ag-term`, `@silvery/theme`, `@silvery/ink`) are published but not user-facing.
 - **Examples reorganized** — `examples/components/` (no TEA) and `examples/apps/` (with TEA)
 - **Docs rewritten** — rendering-first positioning, TEA is optional, Ink-compatible messaging
 
@@ -48,7 +48,7 @@ The Silvery release. Complete rename from hightea to silvery, monorepo restructu
 - `@silvery/ink` package for ink/chalk API compatibility layer.
 - `@silvery/theme` package (absorbed from standalone swatch project) with 45 built-in color palettes and 33 semantic design tokens.
 - `@silvery/test` package with unified `createRenderer()` API, auto-refreshing locators, and Playwright-style assertions.
-- `@silvery/tea` package for optional TEA (The Elm Architecture) state machines with `zustand-tea` middleware.
+- `@silvery/create` package for optional TEA (The Elm Architecture) state machines with `zustand-tea` middleware.
 - `@silvery/ag-react/ui` package with 23+ components: ModalDialog, Toast, SplitView, CommandPalette, SelectList, Table, ScrollbackView, ErrorBoundary, Tabs, and more.
 - VitePress documentation site at silvery.dev with migration guide, API reference, and live xterm.js demos.
 - Examples directory with interactive demos (dashboard, live-resize, outline, scrollback, Kitty protocol).
@@ -59,7 +59,7 @@ The Silvery release. Complete rename from hightea to silvery, monorepo restructu
 - **Renamed**: decant -> loggily (logging library).
 - **Renamed**: flexture -> flexily (layout engine).
 - **Renamed**: swatch -> @silvery/theme (absorbed into monorepo).
-- Package structure: monolith split into `@silvery/ag-react`, `@silvery/ag-term`, `@silvery/tea`, `@silvery/ansi`, `@silvery/ag-react/ui`, `@silvery/theme`, `@silvery/test`, `@silvery/ink`.
+- Package structure: monolith split into `@silvery/ag-react`, `@silvery/ag-term`, `@silvery/create`, `@silvery/ansi`, `@silvery/ag-react/ui`, `@silvery/theme`, `@silvery/test`, `@silvery/ink`.
 - GitHub repositories renamed: beorn/hightea -> beorn/silvery, beorn/decant -> beorn/loggily, beorn/flexture -> beorn/flexily.
 
 ## [0.1.0] - 2026-03-05
@@ -139,7 +139,7 @@ The inkx era. Initial development as a high-performance Ink alternative with inc
 
 ### Added — State Management
 
-- TEA (The Elm Architecture) optional integration via `@silvery/tea`.
+- TEA (The Elm Architecture) optional integration via `@silvery/create`.
 - `zustand-tea` middleware: TEA effects for Zustand stores.
 - `createSlice()` helper for ops-as-data patterns.
 - Four-level state management progression documented: component -> store -> ops-as-data -> pure machine.

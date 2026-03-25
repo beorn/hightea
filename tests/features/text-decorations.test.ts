@@ -14,7 +14,7 @@ import {
   adjustDecorations,
   type Decoration,
   type DecorationStyle,
-} from "@silvery/tea/text-decorations"
+} from "@silvery/create/text-decorations"
 
 // ============================================================================
 // splitIntoSegments

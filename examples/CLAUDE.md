@@ -17,7 +17,7 @@
 
 ### Two tiers of examples
 
-**Component examples** (`components/`) use `run()` + `useState`/`useInput` — no store, no TEA, no `@silvery/tea`. They are the "getting started" examples: short (30-60 lines), self-contained, one component per file.
+**Component examples** (`components/`) use `run()` + `useState`/`useInput` — no store, no TEA, no `@silvery/create`. They are the "getting started" examples: short (30-60 lines), self-contained, one component per file.
 
 **App examples** (`apps/`) demonstrate full app patterns: `render()` with `createTerm()`, `createApp()` with stores, `pipe()` composition. They showcase real-world usage with multiple components working together.
 

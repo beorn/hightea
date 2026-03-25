@@ -346,7 +346,7 @@ function Card({ item }) {
 If you're using Silvery's runtime (`pipe()` + `createApp()`), the Ink compat layer is a composable plugin:
 
 ```tsx
-import { pipe, createApp, withReact, withTerminal, withInk } from "@silvery/tea/plugins"
+import { pipe, createApp, withReact, withTerminal, withInk } from "@silvery/create/plugins"
 
 const app = pipe(
   createApp(store),

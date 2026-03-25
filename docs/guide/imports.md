@@ -127,27 +127,27 @@ import { useAnimation, easings } from "@silvery/ag-react/ui/animation"
 import { wrapAnsi } from "@silvery/ag-react/ui/ansi"
 ```
 
-### `@silvery/tea` -- TEA state machine utilities
+### `@silvery/create` -- TEA state machine utilities
 
 Pure TypeScript (no React dependency). TEA types, effect constructors, focus manager, key parsing, text cursor utilities, plugin composition, and stream helpers.
 
 ```ts
-import { none, batch, dispatch, compose, createSlice } from "@silvery/tea"
-import { createFocusManager } from "@silvery/tea"
-import { parseKey, matchHotkey, keyToName } from "@silvery/tea"
-import { cursorToRowCol, cursorMoveDown, getWrappedLines } from "@silvery/tea"
-import { applyTextOp, invertTextOp } from "@silvery/tea"
-import { withCommands, withKeybindings, withDiagnostics } from "@silvery/tea"
-import { tea, collect, createStore } from "@silvery/tea"
+import { none, batch, dispatch, compose, createSlice } from "@silvery/create"
+import { createFocusManager } from "@silvery/create"
+import { parseKey, matchHotkey, keyToName } from "@silvery/create"
+import { cursorToRowCol, cursorMoveDown, getWrappedLines } from "@silvery/create"
+import { applyTextOp, invertTextOp } from "@silvery/create"
+import { withCommands, withKeybindings, withDiagnostics } from "@silvery/create"
+import { tea, collect, createStore } from "@silvery/create"
 ```
 
 Deep imports:
 
 ```ts
-import { none, batch, dispatch } from "@silvery/tea/core"
-import { createStore, silveryUpdate } from "@silvery/tea/store"
-import { tea, collect } from "@silvery/tea/tea"
-import { merge, filter, takeUntil } from "@silvery/tea/streams"
+import { none, batch, dispatch } from "@silvery/create/core"
+import { createStore, silveryUpdate } from "@silvery/create/store"
+import { tea, collect } from "@silvery/create/tea"
+import { merge, filter, takeUntil } from "@silvery/create/streams"
 ```
 
 ### `@silvery/theme` -- theming system
@@ -182,9 +182,9 @@ import { displayWidth, wrapText } from "@silvery/ag-term/unicode"
 import { parseMouseSequence } from "@silvery/ag-term/mouse"
 import { detectColorScheme } from "@silvery/ag-term/terminal-colors"
 
-// Instead of pulling in all of @silvery/tea:
-import { parseKey, matchHotkey } from "@silvery/tea/keys"
-import { cursorToRowCol } from "@silvery/tea/text-cursor"
+// Instead of pulling in all of @silvery/create:
+import { parseKey, matchHotkey } from "@silvery/create/keys"
+import { cursorToRowCol } from "@silvery/create/text-cursor"
 ```
 
 This is useful for libraries or tools that want to depend on a narrow slice of Silvery without loading the full component library, React reconciler, or layout engine.

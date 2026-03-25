@@ -90,7 +90,7 @@ Exposes all files in `src/` directly. Includes:
 
 ### `.` (main) - via `exports.ts`
 
-This is the largest entry point (~1057 lines). Re-exports from `@silvery/ag-react/ui`, `@silvery/tea`, `@silvery/ag-term`, `@silvery/ansi`, `@silvery/theme`.
+This is the largest entry point (~1057 lines). Re-exports from `@silvery/ag-react/ui`, `@silvery/create`, `@silvery/ag-term`, `@silvery/ansi`, `@silvery/theme`.
 
 **Components** (40+):
 
@@ -171,18 +171,18 @@ Exposes all `src/` files including:
 
 ---
 
-## `@silvery/tea`
+## `@silvery/create`
 
 ### Entry Points
 
-| Specifier              | Resolves To            |
-| ---------------------- | ---------------------- |
-| `@silvery/tea` (`.`)   | `src/index.ts`         |
-| `@silvery/tea/core`    | `src/core/index.ts`    |
-| `@silvery/tea/store`   | `src/store/index.ts`   |
-| `@silvery/tea/tea`     | `src/tea/index.ts`     |
-| `@silvery/tea/streams` | `src/streams/index.ts` |
-| `@silvery/tea/*`       | `src/*` (wildcard)     |
+| Specifier                 | Resolves To            |
+| ------------------------- | ---------------------- |
+| `@silvery/create` (`.`)   | `src/index.ts`         |
+| `@silvery/create/core`    | `src/core/index.ts`    |
+| `@silvery/create/store`   | `src/store/index.ts`   |
+| `@silvery/create/tea`     | `src/tea/index.ts`     |
+| `@silvery/create/streams` | `src/streams/index.ts` |
+| `@silvery/create/*`       | `src/*` (wildcard)     |
 
 ### `.` (main)
 
@@ -200,23 +200,23 @@ Exposes all `src/` files including:
 
 **Types**: `SilveryModel`, `SilveryMsg`, `Effect`, `Sub`, `Direction`, `Plugin`, `FocusManager`, `FocusManagerOptions`, `FocusChangeCallback`, `FocusOrigin`, `FocusSnapshot`, `SilveryKeyEvent`, `SilveryFocusEvent`, `FocusEventProps`, `Slice`, `SliceWithInit`, `InferOp`, `AgNode`, `Rect`, `StoreConfig`, `StoreApi`, `TeaResult`, `TeaReducer`, `EffectRunners`, `TeaSlice`, `EffectLike`, `TeaOptions`, `ParsedKeypress`, `ParsedHotkey`, `Key`, `WrappedLine`, `TextOp`, `WithCommandsOptions`, `CommandDef`, `CommandRegistryLike`, `CommandInfo`, `Command`, `Cmd`, `AppWithCommands`, `AppState`, `KeybindingDef`, `WithKeybindingsOptions`, `KeybindingContext`, `ExtendedKeybindingDef`, `DiagnosticOptions`, `RenderTerm`
 
-### `@silvery/tea/core`
+### `@silvery/create/core`
 
 Pure TypeScript, no React. TEA types, effect constructors, plugin composition, focus manager, focus events/queries, slices.
 
-### `@silvery/tea/store`
+### `@silvery/create/store`
 
 TEA store: `createStore`, `silveryUpdate`, `defaultInit`, `withFocusManagement`. Types: `StoreConfig`, `StoreApi`.
 
-### `@silvery/tea/tea`
+### `@silvery/create/tea`
 
 Zustand TEA middleware: `tea`, `collect`. Types: `TeaResult`, `TeaReducer`, `EffectRunners`, `TeaSlice`, `EffectLike`, `TeaOptions`.
 
-### `@silvery/tea/streams`
+### `@silvery/create/streams`
 
 AsyncIterable helpers: `merge`, `map`, `filter`, `filterMap`, `takeUntil`, `take`, `throttle`, `debounce`, `batch`, `concat`, `zip`, `fromArray`, `fromArrayWithDelay`.
 
-### Wildcard (`@silvery/tea/*`)
+### Wildcard (`@silvery/create/*`)
 
 Exposes all `src/` files. Notable internal files:
 
@@ -245,7 +245,7 @@ The largest leaf package. Exports terminal buffer, pipeline, layout engine, rend
 
 ~330 exports total (values + types). See the full `packages/ag-term/src/index.ts` for the complete list.
 
-**Notable re-export from another package**: `withRender` and `RenderTerm` from `@silvery/tea/with-render` — cross-package re-export.
+**Notable re-export from another package**: `withRender` and `RenderTerm` from `@silvery/create/with-render` — cross-package re-export.
 
 ### `@silvery/ag-term/runtime`
 
@@ -255,7 +255,7 @@ New runtime architecture (Layers 0-3):
 **Layer 1**: `createRuntime`, `createTermProvider`, `createBuffer`
 **Layer 2**: `run`, `useInput`, `useExit`, `usePaste`, `parseKey`, `emptyKey`
 **Layer 3**: `createApp`, `useApp`, `useAppShallow`, `StoreContext`
-**Re-exports**: TEA store from `@silvery/tea/store`, streams from `@silvery/tea/streams`
+**Re-exports**: TEA store from `@silvery/create/store`, streams from `@silvery/create/streams`
 **Tick sources**: `createTick`, `createFrameTick`, `createSecondTick`, `createAdaptiveTick`
 **Terminal lifecycle**: `captureTerminalState`, `restoreTerminalState`, `resumeTerminalState`, `performSuspend`, `CTRL_C`, `CTRL_Z`
 
@@ -450,7 +450,7 @@ Every workspace package uses `./*` -> `./src/*` wildcard exports. This exposes i
 - `@silvery/ag-react/exports` - barrel file that should only be imported by `index.ts`
 - `@silvery/ag-react/jsx.d.ts` - type declaration file
 - `@silvery/ag-react/react-reconciler.d.ts` - type shim
-- `@silvery/tea/plugins` - thin re-export file
+- `@silvery/create/plugins` - thin re-export file
 - `@silvery/ag-react/ui/components` - internal barrel file
 - `@silvery/ag-react/ui/animation` (top-level shim, distinct from `animation/index.ts`)
 
@@ -470,11 +470,11 @@ Every workspace package uses `./*` -> `./src/*` wildcard exports. This exposes i
 
 Several symbols are exported from multiple packages:
 
-- `withRender` / `RenderTerm`: exported from `@silvery/tea`, `@silvery/ag-term`, and `@silvery/ag-react`
-- `IncrementalRenderMismatchError`: exported from `@silvery/tea`, `@silvery/ag-term`, and `@silvery/ag-term/toolbelt`
-- `createStore`, `silveryUpdate`, `defaultInit`, `withFocusManagement`: exported from `@silvery/tea/store` and `@silvery/ag-term/runtime`
-- Stream helpers: exported from `@silvery/tea/streams` and `@silvery/ag-term/runtime`
-- Focus manager exports: from `@silvery/tea/core` and `@silvery/ag-react`
+- `withRender` / `RenderTerm`: exported from `@silvery/create`, `@silvery/ag-term`, and `@silvery/ag-react`
+- `IncrementalRenderMismatchError`: exported from `@silvery/create`, `@silvery/ag-term`, and `@silvery/ag-term/toolbelt`
+- `createStore`, `silveryUpdate`, `defaultInit`, `withFocusManagement`: exported from `@silvery/create/store` and `@silvery/ag-term/runtime`
+- Stream helpers: exported from `@silvery/create/streams` and `@silvery/ag-term/runtime`
+- Focus manager exports: from `@silvery/create/core` and `@silvery/ag-react`
 - `stripAnsi`: exported from `@silvery/ag-term` (twice, as `stripAnsi` and `stripAnsiUnicode`) and `@silvery/ag-react`
 
 This is by design (convenience re-exports), but should be documented so consumers know the canonical source.

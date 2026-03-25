@@ -1,5 +1,5 @@
 /**
- * @silvery/tea — TEA (The Elm Architecture) state machines, focus system, and utilities.
+ * @silvery/create — TEA (The Elm Architecture) state machines, focus system, and utilities.
  *
  * Pure TypeScript core with no React dependency. Provides:
  * - TEA types and effect constructors (core/)

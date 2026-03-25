@@ -12,7 +12,7 @@
  *   3. @silvery/ag-react (depends on ag, theme)
  *   4. @silvery/ag-term  (depends on ag, ag-react, theme)
  *   5. @silvery/ink      (depends on ag-react, ag-term)
- *   6. @silvery/tea      (depends on ag, ag-react, ag-term, ink)
+ *   6. @silvery/create      (depends on ag, ag-react, ag-term, ink)
  *   7. @silvery/test     (depends on ag, ag-react, ag-term, tea)
  *   8. silvery           (depends on all above via bundled imports)
  */
@@ -37,7 +37,7 @@ const packages = [
   { dir: "packages/ag-react", name: "@silvery/ag-react" },
   { dir: "packages/ag-term", name: "@silvery/ag-term" },
   { dir: "packages/ink", name: "@silvery/ink" },
-  { dir: "packages/tea", name: "@silvery/tea" },
+  { dir: "packages/create", name: "@silvery/create" },
   { dir: "packages/test", name: "@silvery/test" },
   { dir: ".", name: "silvery" },
   { dir: "packages/examples", name: "@silvery/examples" },

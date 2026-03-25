@@ -25,7 +25,7 @@
  *
  * @example
  * ```tsx
- * import { pipe, withTerminal } from '@silvery/tea'
+ * import { pipe, withTerminal } from '@silvery/create'
  *
  * // All protocols enabled by default
  * const app = pipe(baseApp, withTerminal(process))
