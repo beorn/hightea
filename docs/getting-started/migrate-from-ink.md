@@ -121,6 +121,10 @@ function App() {
 }
 ```
 
+::: info Why can't Ink do this with measureElement()?
+Ink's `measureElement()` reads dimensions *after* rendering — by the time you know the size, you've already drawn the wrong thing. Feeding dimensions back requires `useEffect` + `setState`, which triggers a visible re-render. With nested responsive components (board → column → card), each level needs its own measure→rerender cycle, cascading into N visible flickers for N nesting levels. Silvery's renderer runs layout *before* committing output, so all components get correct dimensions in one batch — no flicker, no plumbing.
+:::
+
 ### 2. flexDirection Defaults to `row` (CSS spec)
 
 **Ink**: Box defaults to `flexDirection="column"` (non-standard, but convenient for document flow).
