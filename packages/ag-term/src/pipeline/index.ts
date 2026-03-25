@@ -33,6 +33,7 @@ import type { AgNode } from "@silvery/ag/types"
 import { runWithMeasurer, type Measurer } from "../unicode"
 import type { OutputPhaseFn } from "./output-phase"
 import type { PipelineContext } from "./types"
+import { createAg } from "../ag"
 
 const log = createLogger("silvery:pipeline")
 const baseLog = createLogger("@silvery/ag-react")
@@ -148,22 +149,17 @@ export function executeRender(
   options: ExecuteRenderOptions | "fullscreen" | "inline" = "fullscreen",
   config?: PipelineConfig,
 ): { output: string; buffer: TerminalBuffer } {
-  // Create PipelineContext from config measurer (if provided).
-  // The context is threaded explicitly through the pipeline, eliminating
-  // the need for pipeline functions to read the _scopedMeasurer global.
-  const ctx: PipelineContext | undefined = config?.measurer ? { measurer: config.measurer } : undefined
-
+  // runWithMeasurer for backward compat: output-phase reads the scoped measurer global.
+  // createAg handles measurer internally for layout/render phases.
   if (config?.measurer) {
-    // Keep runWithMeasurer for backward compat: output-phase and other
-    // non-pipeline consumers still read the scoped measurer global.
     return runWithMeasurer(config.measurer, () => {
-      return executeRenderCore(root, width, height, prevBuffer, options, config, ctx)
+      return executeRenderCore(root, width, height, prevBuffer, options, config)
     })
   }
-  return executeRenderCore(root, width, height, prevBuffer, options, config, ctx)
+  return executeRenderCore(root, width, height, prevBuffer, options, config)
 }
 
-/** Internal: runs the full pipeline. */
+/** Internal: runs the full pipeline, delegating layout + render to createAg. */
 function executeRenderCore(
   root: AgNode,
   width: number,
@@ -171,7 +167,6 @@ function executeRenderCore(
   prevBuffer: TerminalBuffer | null,
   options: ExecuteRenderOptions | "fullscreen" | "inline" = "fullscreen",
   config?: PipelineConfig,
-  ctx?: PipelineContext,
 ): { output: string; buffer: TerminalBuffer } {
   // Normalize options (string shorthand for mode)
   const opts: ExecuteRenderOptions = typeof options === "string" ? { mode: options } : options
@@ -184,8 +179,6 @@ function executeRenderCore(
     cursorPos,
   } = opts
   // Dev warning: prevBuffer null after first render means incremental is disabled.
-  // Intentional null (SILVERY_STRICT, static/one-shot) passes skipLayoutNotifications.
-  // console.warn (not loggily) — must fire regardless of logger config.
   if (process?.env?.SILVERY_DEV && prevBuffer === null && root.prevLayout !== null && !skipLayoutNotifications) {
     console.warn(
       "[silvery] executeRender called with prevBuffer=null on frame 2+ — " +
@@ -196,119 +189,43 @@ function executeRenderCore(
 
   const start = performance.now()
 
-  using render = baseLog.span("pipeline", { width, height, mode })
+  // Delegate layout + render to ag
+  const ag = createAg(root, { measurer: config?.measurer })
+  ag.layout({ cols: width, rows: height }, { skipLayoutNotifications, skipScrollStateUpdates })
+  const { buffer } = ag.render({ prevBuffer })
 
-  // Clear per-render caches
-  clearBgConflictWarnings()
+  const tLayout = performance.now() - start
 
-  // Phase 1: Measure (for fit-content nodes)
-  let tMeasure: number
-  {
-    using _measure = render.span("measure")
-    const t1 = performance.now()
-    measurePhase(root, ctx)
-    tMeasure = performance.now() - t1
-    log.debug?.(`measure: ${tMeasure.toFixed(2)}ms`)
-  }
-
-  // Phase 2: Layout
-  let tLayout: number
-  {
-    using _layout = render.span("layout")
-    const t2 = performance.now()
-    layoutPhase(root, width, height)
-    tLayout = performance.now() - t2
-    log.debug?.(`layout: ${tLayout.toFixed(2)}ms`)
-  }
-
-  // Phase 2.5: Scroll calculation (for overflow='scroll' containers)
-  let tScroll: number
-  {
-    using _scroll = render.span("scroll")
-    const t2s = performance.now()
-    scrollPhase(root, { skipStateUpdates: skipScrollStateUpdates })
-    tScroll = performance.now() - t2s
-  }
-
-  // Phase 2.55: Sticky phase (non-scroll container sticky children)
-  stickyPhase(root)
-
-  // Phase 2.6: Screen rect calculation (screen-relative positions)
-  let tScreenRect: number
-  {
-    using _screenRect = render.span("screenRect")
-    const t2r = performance.now()
-    screenRectPhase(root)
-    tScreenRect = performance.now() - t2r
-  }
-
-  // Phase 2.7: Notify layout subscribers
-  // This runs AFTER screenRectPhase so useScreenRectCallback reads correct positions
-  // Skip for static renders where no one will respond to the feedback
-  let tNotify = 0
-  if (!skipLayoutNotifications) {
-    using _notify = render.span("notify")
-    const t2n = performance.now()
-    notifyLayoutSubscribers(root)
-    tNotify = performance.now() - t2n
-  }
-
-  // Phase 3: Content render (incremental if we have prevBuffer)
-  let buffer: TerminalBuffer
-  let tContent: number
-  {
-    using _content = render.span("content")
-    const t3 = performance.now()
-    buffer = renderPhase(root, prevBuffer, ctx)
-    tContent = performance.now() - t3
-    log.debug?.(`content: ${tContent.toFixed(2)}ms`)
-  }
-
-  // Phase 4: Diff and output
+  // Phase 4: Diff and output (not part of ag — lives in term.paint)
   let output: string
   let tOutput: number
   {
-    using outputSpan = render.span("output")
     const t4 = performance.now()
     const outputFn = config?.outputPhaseFn ?? outputPhase
     try {
       output = outputFn(prevBuffer, buffer, mode, scrollbackOffset, termRows, cursorPos)
     } catch (e) {
-      // Output phase (STRICT output verification) may throw a diagnostic error.
-      // Attach the render-phase buffer so callers can still save it for
-      // incremental rendering continuity — the buffer is correct even when
-      // the ANSI output verification fails.
       if (e instanceof Error) {
         ;(e as any).__silvery_buffer = buffer
       }
       throw e
     }
     tOutput = performance.now() - t4
-    outputSpan.spanData.bytes = output.length
     log.debug?.(`output: ${tOutput.toFixed(2)}ms (${output.length} bytes)`)
   }
 
   const total = performance.now() - start
-  log.debug?.(`total pipeline: ${total.toFixed(2)}ms`)
 
-  // Expose phase timing and render count for benchmarking and diagnostics.
-  // Retained on globalThis for programmatic consumers (tui.tsx perf overlay,
-  // profile-startup.ts benchmarks, scrollback-perf.tsx demo).
-  const pipelineTimings = {
-    measure: tMeasure,
+  // Expose timing for diagnostics
+  ;(globalThis as any).__silvery_last_pipeline = {
     layout: tLayout,
-    scroll: tScroll,
-    screenRect: tScreenRect,
-    notify: tNotify,
-    content: tContent,
     output: tOutput,
     total,
     incremental: prevBuffer !== null,
   }
-  ;(globalThis as any).__silvery_last_pipeline = pipelineTimings
   ;(globalThis as any).__silvery_render_count = ((globalThis as any).__silvery_render_count ?? 0) + 1
   log.debug?.(
-    `pipeline: measure=${tMeasure.toFixed(1)}ms layout=${tLayout.toFixed(1)}ms content=${tContent.toFixed(1)}ms output=${tOutput.toFixed(1)}ms total=${total.toFixed(1)}ms`,
+    `pipeline: layout+render=${tLayout.toFixed(1)}ms output=${tOutput.toFixed(1)}ms total=${total.toFixed(1)}ms`,
   )
 
   return { output, buffer }

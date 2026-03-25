@@ -57,6 +57,25 @@ Behavior varies by Term type:
 
 `RenderAdapter` is internal — not exported from the public barrel. Use `term.paint()` instead of `adapter.flush()`.
 
+## Ag: Decomposed Pipeline
+
+`createAg(root, { measurer? })` wraps the render pipeline as two independent phases:
+
+```typescript
+import { createAg } from "@silvery/ag-term"
+
+const ag = createAg(root, { measurer })
+ag.layout({ cols: 80, rows: 24 }) // measure + flexbox → positions/sizes
+const { frame, buffer, prevBuffer } = ag.render() // positioned tree → TextFrame
+ag.resetBuffer() // clear prev (on resize)
+ag.render({ fresh: true }) // force non-incremental render
+```
+
+- `ag.layout(dims, opts?)` — measure, layout, scroll, sticky, screenRect, notify
+- `ag.render(opts?)` — incremental content render → TextFrame + TerminalBuffer
+- Internal prevBuffer management — no caller tracking needed
+- `executeRender()` delegates to `createAg` internally
+
 ## Commands
 
 ```bash
