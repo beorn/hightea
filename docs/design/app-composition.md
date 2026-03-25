@@ -139,10 +139,15 @@ Use any phase alone: layout without render (inspect sizes), render without paint
 
 - `ag.render()` requires prior `ag.layout()` — calling render without layout is an error
 - Mounting triggers one immediate render (withReact calls `app.render()` on first commit)
+- **Resize always causes a render** — even without React state change (layout depends on dims)
 - `term.screen` is populated after first render, undefined before
+- `term.screen` is an immutable snapshot — detached from mutable internal buffers
 - `app.run()` only exists when the term has events
-- Resize resets paint diffing (`prev = undefined`)
+- Resize resets paint diffing (`prev = undefined`) and updates `term.dims`
+- `toAnsi(frame, prev)` requires same dimensions — mismatched dims triggers full repaint
 - Cursor state lives on `term.cursor`, not in TextFrame
+- `dispatch()` is synchronous. `press()` (withTest) is synchronous.
+- Input handler traversal: depth-first through ag tree, focused/deepest nodes first
 
 ## Framework Adapters
 
@@ -210,22 +215,28 @@ function withTerm(term) {
   return (app) => {
     let prev: TextFrame | undefined
     app.render = () => {
-      app.ag.layout(term.dims) // 1. positions/sizes
-      const frame = app.ag.render() // 2. tree → TextFrame
-      term.paint?.(frame, prev) // 3. TextFrame → output
+      app.ag.layout(term.dims)                   // 1. positions/sizes
+      const frame = app.ag.render()              // 2. tree → TextFrame
+      term.paint?.(frame, prev)                  // 3. TextFrame → output
       prev = frame
-      term.screen = frame // always set after render
+      term.screen = frame                        // always set after render
     }
     if (term.events) {
       const { run } = app
       app.run = async () => {
-        app.render()
+        app.render()                             // initial render
         for await (const event of term.events(app.scope?.signal)) {
-          if (event.type === "resize") prev = undefined // reset diffing
+          if (event.type === "resize") {
+            prev = undefined                     // reset diffing
+            term.dims = event.dims               // update dimensions
+          }
           app.dispatch(event)
-          // No render here — React commit calls app.render() if state changed
+          if (event.type === "resize") {
+            app.render()                         // resize always re-renders
+          }
+          // For non-resize: React commit calls app.render() if state changed
         }
-        await run?.()
+        await run?.()                            // inner plugins (teardown)
       }
     }
     // Terminal cleanup: createTerm registers process exit hooks
@@ -251,6 +262,8 @@ function withReact({ view }) {
 - **No double-render** — event loop only dispatches; rendering happens via reconciler commit.
 - **Scope integration** — `term.events(app.scope?.signal)` terminates on scope cancel.
 - **TermDef normalization** — `withTerm` accepts `Term | TermDef`. A bare `{ cols, rows }` works immediately (headless); a full Term adds paint/events/screen.
+- **Resize triggers render unconditionally** — layout depends on dims, not just React state.
+- **`run()` wrapper semantics** — inner `run` is called after the event loop exits (teardown). Plugins that need setup-before-loop do it in the plugin body, not in `run()`.
 - **Terminal lifetime** — you dispose what you create. Pre-created Term: caller disposes. Process exit hooks are the safety net.
 - **Plugin ordering** — `withAg` → `withTerm` → `withReact`. Validated at compose time.
 
@@ -362,32 +375,8 @@ RenderBuffer (write API)            → internal cell grid
 TextFrame (read API)                → public output of ag.render()
 ```
 
-**Migration order** (each phase fully `/complete`d before the next — no dual paths):
+**Migration**: 6 phases, each fully `/complete`d before the next. See [00-overview.md](../../vendor/silvery-internal/design/era2/00-overview.md) §Implementation Phases for the detailed roadmap with per-file change descriptions and `/complete` criteria.
 
-1. Extract TextFrame as read API over existing buffer
-2. Add `term.paint(frame, prev)` wrapping RenderAdapter.flush
-3. Move layout/measurer under ag
-4. Replace adapter tree mutations with ag.createNode/insertChild
-5. Plugin composition: withAg/withTerm/withReact/withTest
-6. Term unification: one Term type, remove createRenderer/RunHandle/AppHandle
+## App Architecture (era2b)
 
-## TEA (era2b)
-
-Everything above works with React useState. For complex apps, add TEA plugins (optional):
-
-```ts
-const app = pipe(
-  create(), withScope(), withAg(), withTerm(term),
-  withReact({ view: <App /> }),
-  withApp({ providers: { term, storage, ai } }),
-  todoDomain(),              // models + commands + keybindings
-  editorDomain(),
-)
-await app.run()
-
-// createApp() bundles the above:
-const app = createApp(storeFactory, handlers)
-await app.run(<Counter />, { term })
-```
-
-See [era2 architecture](../../vendor/silvery-internal/design/era2/00-architecture.md) for commands, signals, scopes, and domain plugins.
+Everything above works with React `useState`. For complex apps that outgrow local state — commands, keymaps, signals, domain plugins — see [era2b app architecture](../../vendor/silvery-internal/design/era2/era2b/app.md). Era2b builds on this foundation's `create()` + `dispatch/apply` pipeline; it ships separately as silvertea.
