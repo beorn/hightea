@@ -118,23 +118,9 @@ await handle.waitUntilExit()
 console.log('Final items:', handle.store.getState().items)
 ```
 
-### Key Handler Signature (createApp)
-
-```typescript
-type KeyHandler<S> = (input: string, key: Key, ctx: { set: SetState<S>; get: GetState<S> }) => void | "exit"
-```
-
-### AppHandle API
-
-```typescript
-interface AppHandle<S> {
-  text: string
-  store: StoreApi<S> // Full Zustand store access
-  waitUntilExit(): Promise<void>
-  unmount(): void
-  press(key: string): Promise<void>
-}
-```
+::: warning Coming Soon
+`createApp()` and `AppHandle` are part of the Silvertea app architecture (era2b), which is under active development. For now, use `render()` + `run()` for terminal apps.
+:::
 
 ## Layer 1: createRuntime()
 

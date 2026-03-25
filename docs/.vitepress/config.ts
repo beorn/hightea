@@ -93,7 +93,6 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: "Terminal Apps", link: "/guides/terminal-apps" },
-          { text: "State Management", link: "/guides/state-management" },
         ],
       },
       {
@@ -123,8 +122,6 @@ export default defineConfig({
           { text: "Components", link: "/reference/components" },
           { text: "Hooks", link: "/reference/hooks" },
           { text: "Lifecycle", link: "/reference/lifecycle" },
-          { text: "Signals", link: "/reference/signals" },
-          { text: "Plugins", link: "/reference/plugins" },
           { text: "Theming", link: "/reference/theming" },
           { text: "Input Features", link: "/reference/input-features" },
           { text: "Streams", link: "/reference/streams" },

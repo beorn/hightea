@@ -3,7 +3,7 @@
 Start with `useState` — standard React. When state gets shared across components, move to a store. When you need undo or replay, make state transitions into data. When side effects need testing, return them as data too. Each step makes your app more testable and composable — take them one at a time, when the complexity justifies it.
 
 ::: tip Most apps stop early
-Most apps only need Level 1 (`useState`) or Level 2 (`createApp`). Levels 3-5 are for complex apps that need undo, replay, AI automation, or configurable keybindings — don't reach for them until you feel the pain.
+Most apps only need `useState` or `useReducer`. The higher-level patterns (stores, TEA, signals) are part of Silvertea — coming soon.
 :::
 
 For the full conceptual progression with both state management _and_ event handling evolving together, see [Terminal Apps](/guides/terminal-apps).

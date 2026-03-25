@@ -1,5 +1,9 @@
 # Scaling with Signals
 
+::: warning Coming Soon
+Signals are part of the Silvertea app architecture (era2b) and have not shipped yet. This page documents the planned API. For current state management, use `useState`, `useReducer`, or Zustand directly.
+:::
+
 As your app grows, selectors show their cost. Zustand runs _every_ selector on _every_ store update — 100 `<Row>` components each with `useApp(s => s.rows.get(id))` means 100 selector calls when the cursor moves, even though only 2 rows changed.
 
 [Signals](https://github.com/tc39/proposal-signals) (TC39 proposal, stage 1) flip this. Components call signal accessors and automatically subscribe to exactly what they touched — no diffing, no linear scan. Same model as [SolidJS](https://www.solidjs.com/) and [Angular](https://angular.dev/guide/signals). We use [alien-signals](https://github.com/stackblitz/alien-signals) — the fastest signals implementation (~1KB, push-pull, proven by Vue 3.6 adoption).

@@ -11,16 +11,16 @@ import { render, createTerm } from "silvery"
 ## Signature
 
 ```tsx
-function render(element: ReactElement, term?: Term | TermDef, options?: RenderOptions): RenderHandle
+function render(element: ReactElement, term?: Term, options?: RenderOptions): RenderHandle
 ```
 
 ### Parameters
 
-| Parameter | Type              | Description                           |
-| --------- | ----------------- | ------------------------------------- |
-| `element` | `ReactElement`    | React element to render               |
-| `term`    | `Term \| TermDef` | Terminal instance from `createTerm()` |
-| `options` | `RenderOptions`   | Optional render configuration         |
+| Parameter | Type            | Description                           |
+| --------- | --------------- | ------------------------------------- |
+| `element` | `ReactElement`  | React element to render               |
+| `term`    | `Term`          | Terminal instance from `createTerm()` |
+| `options` | `RenderOptions` | Optional render configuration         |
 
 ### Options
 
