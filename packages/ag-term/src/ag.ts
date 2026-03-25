@@ -17,7 +17,8 @@
  */
 
 import { createLogger } from "loggily"
-import type { AgNode } from "@silvery/ag/types"
+import type { AgNode, AgNodeType } from "@silvery/ag/types"
+import { getLayoutEngine } from "./layout-engine"
 import type { TextFrame } from "@silvery/ag/text-frame"
 import { type TerminalBuffer, createTextFrame } from "./buffer"
 import { runWithMeasurer, type Measurer } from "./unicode"
@@ -64,6 +65,10 @@ export interface Ag {
   /** The root AgNode tree. */
   readonly root: AgNode
 
+  // -------------------------------------------------------------------------
+  // Pipeline
+  // -------------------------------------------------------------------------
+
   /**
    * Run layout phases: measure → flexbox → scroll → sticky → screenRect → notify.
    * Mutates layout nodes in place.
@@ -79,6 +84,28 @@ export interface Ag {
 
   /** Reset internal prevBuffer (call on resize — forces fresh render next frame). */
   resetBuffer(): void
+
+  // -------------------------------------------------------------------------
+  // Tree Mutation API (Phase 4)
+  // -------------------------------------------------------------------------
+
+  /** Create a new AgNode with a layout node. */
+  createNode(type: AgNodeType, props: Record<string, unknown>): AgNode
+
+  /** Insert child at index in both ag tree and layout tree. */
+  insertChild(parent: AgNode, child: AgNode, index: number): void
+
+  /** Remove child from both ag tree and layout tree. */
+  removeChild(parent: AgNode, child: AgNode): void
+
+  /** Update node props (applies to layout node if layout-affecting). */
+  updateProps(node: AgNode, props: Record<string, unknown>, oldProps?: Record<string, unknown>): void
+
+  /** Update text content on a node. */
+  setText(node: AgNode, text: string): void
+
+  /** Structural text representation (no layout). */
+  toString(): string
 }
 
 export interface CreateAgOptions {
@@ -171,9 +198,72 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
     return { frame, buffer, prevBuffer, tContent }
   }
 
+  // -------------------------------------------------------------------------
+  // Tree Mutation
+  // -------------------------------------------------------------------------
+
+  function agCreateNode(type: AgNodeType, props: Record<string, unknown>): AgNode {
+    const engine = getLayoutEngine()
+    const layoutNode = engine.createNode()
+    return {
+      type,
+      props,
+      children: [],
+      parent: null,
+      layoutNode,
+      contentRect: null,
+      screenRect: null,
+      renderRect: null,
+      prevLayout: null,
+      prevScreenRect: null,
+      prevRenderRect: null,
+      layoutChangedThisFrame: false,
+      layoutDirty: true,
+      contentDirty: true,
+      stylePropsDirty: true,
+      bgDirty: true,
+      subtreeDirty: true,
+      childrenDirty: true,
+      layoutSubscribers: new Set(),
+    }
+  }
+
+  function agInsertChild(parent: AgNode, child: AgNode, index: number): void {
+    // Remove from old parent if already in a tree (keyed reorder)
+    if (child.parent) {
+      agRemoveChild(child.parent, child)
+    }
+
+    // Insert into children array
+    parent.children.splice(index, 0, child)
+    child.parent = parent
+
+    // Sync layout tree
+    if (parent.layoutNode && child.layoutNode) {
+      // Layout index = count of children with layoutNode before this position
+      const layoutIndex = parent.children.slice(0, index).filter((c) => c.layoutNode !== null).length
+      parent.layoutNode.insertChild(child.layoutNode, layoutIndex)
+    }
+  }
+
+  function agRemoveChild(parent: AgNode, child: AgNode): void {
+    const index = parent.children.indexOf(child)
+    if (index === -1) return
+
+    parent.children.splice(index, 1)
+
+    if (parent.layoutNode && child.layoutNode) {
+      parent.layoutNode.removeChild(child.layoutNode)
+      child.layoutNode.free()
+    }
+
+    child.parent = null
+  }
+
   return {
     root,
 
+    // Pipeline
     layout(dims, options) {
       if (measurer) {
         runWithMeasurer(measurer, () => doLayout(dims.cols, dims.rows, options))
@@ -189,6 +279,31 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
 
     resetBuffer() {
       _prevBuffer = null
+    },
+
+    // Tree mutations
+    createNode: agCreateNode,
+    insertChild: agInsertChild,
+    removeChild: agRemoveChild,
+
+    updateProps(node, props, oldProps) {
+      node.props = props
+      if (node.layoutNode) {
+        node.layoutNode.markDirty()
+      }
+    },
+
+    setText(node, text) {
+      ;(node as any).textContent = text
+      node.contentDirty = true
+      node.stylePropsDirty = true
+      if (node.layoutNode) {
+        node.layoutNode.markDirty()
+      }
+    },
+
+    toString() {
+      return `[Ag root=${root.type} children=${root.children.length}]`
     },
   }
 }
