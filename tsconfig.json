@@ -28,6 +28,8 @@
       "@silvery/model/*": ["./packages/model/src/*"],
       "@silvery/scope": ["./packages/scope/src/index.ts"],
       "@silvery/scope/*": ["./packages/scope/src/*"],
+      "@silvery/signals": ["./packages/signals/src/index.ts"],
+      "@silvery/signals/*": ["./packages/signals/src/*"],
       "@silvery/test/*": ["./packages/test/src/*"],
       "@silvery/ink/*": ["./packages/ink/src/*"]
     }
