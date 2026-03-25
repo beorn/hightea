@@ -104,6 +104,7 @@ export function NoteEditor() {
               {lines} lines, {words} words, {chars} chars
             </Muted>
           </Box>
+          <Text> </Text>
           <Box paddingX={1} flexGrow={1}>
             <TextArea
               value={value}
@@ -127,6 +128,7 @@ export function NoteEditor() {
             <H1>Notes</H1>
             <Muted> ({notes.length})</Muted>
           </Box>
+          <Text> </Text>
           <Box flexDirection="column" paddingX={1} overflow="scroll" flexGrow={1}>
             {notes.length === 0 ? (
               <Box flexDirection="column" paddingY={1}>
@@ -150,9 +152,6 @@ export function NoteEditor() {
         </Box>
       </Box>
 
-      <Box justifyContent="space-between" paddingX={1}>
-        <Muted>Tab switch pane | Ctrl+Enter submit | Ctrl+K kill line | Ctrl+A/E home/end | Esc quit</Muted>
-      </Box>
     </Box>
   )
 }

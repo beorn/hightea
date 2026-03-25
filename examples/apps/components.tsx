@@ -359,7 +359,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
   })
 
   return (
-    <Box flexDirection="column" gap={1} paddingX={1} flexGrow={1}>
+    <Box flexDirection="column" gap={1} flexGrow={1} marginTop={1}>
       {/* Progress Bars */}
       <Box flexDirection="column">
         <Text bold color="$accent">Progress Bars</Text>
@@ -387,7 +387,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
       <Box flexDirection="row" gap={4}>
         <Box flexDirection="column">
           <Text bold color="$accent">Spinners</Text>
-          <Box flexDirection="column" marginTop={1}>
+          <Box flexDirection="column">
             <Spinner type="dots" label="Loading packages..." />
             <Spinner type="line" label="Compiling..." />
             <Spinner type="arc" label="Optimizing bundle..." />
@@ -396,7 +396,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
         </Box>
         <Box flexDirection="column">
           <Text bold color="$accent">Badges</Text>
-          <Box gap={1} flexWrap="wrap" marginTop={1}>
+          <Box gap={1} flexWrap="wrap">
             <Badge label="Stable" variant="success" />
             <Badge label="Beta" variant="warning" />
             <Badge label="Deprecated" variant="error" />
@@ -419,7 +419,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
         </Box>
         <Box flexDirection="column" flexGrow={1}>
           <Text bold color="$accent">Border Styles</Text>
-          <Box flexDirection="column" marginTop={1} gap={0}>
+          <Box flexDirection="column" gap={0}>
             {borderStyles.map((style, i) => (
               <Box
                 key={style}
@@ -512,11 +512,10 @@ export function ComponentsApp() {
   })
 
   return (
-    <Box flexDirection="column" flexGrow={1}>
-      <Box paddingX={1}>
-        <Tabs defaultValue="display" onChange={handleTabChange}>
-          <TabList>
-            <Tab value="display">Display</Tab>
+    <Box flexDirection="column" flexGrow={1} paddingX={1}>
+      <Tabs defaultValue="display" onChange={handleTabChange}>
+        <TabList>
+          <Tab value="display">Display</Tab>
             <Tab value="inputs">Inputs</Tab>
             <Tab value="typography">Typography</Tab>
           </TabList>
@@ -530,7 +529,6 @@ export function ComponentsApp() {
             <TypographyTab scrollOffset={scrollOffset} />
           </TabPanel>
         </Tabs>
-      </Box>
     </Box>
   )
 }

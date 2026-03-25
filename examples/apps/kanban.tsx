@@ -104,9 +104,9 @@ function CardComponent({ card, isSelected }: { card: Card; isSelected: boolean }
   return (
     <Box flexDirection="column" borderStyle="round" borderColor={isSelected ? "$primary" : "$border"} paddingX={1}>
       {isSelected ? (
-        <Text backgroundColor="$primary" color="$primary-fg" bold>
-          {card.title}
-        </Text>
+        <Box backgroundColor="$primary">
+          <Text color="$primary-fg" bold>{card.title}</Text>
+        </Box>
       ) : (
         <Text>{card.title}</Text>
       )}
@@ -230,7 +230,7 @@ export function KanbanBoard() {
   }
 
   return (
-    <Box flexDirection="column" padding={1} height="100%">
+    <Box flexDirection="column" paddingY={1} height="100%">
       <Box flexGrow={1} flexDirection="row" gap={1} overflow="hidden">
         {columns.map((column, colIndex) => (
           <ColumnComponent

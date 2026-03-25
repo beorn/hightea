@@ -465,7 +465,7 @@ export function Dashboard() {
   const { width } = useContentRect()
   const [state, setState] = useState(createInitialState)
   const [tick, setTick] = useState(0)
-  const isWide = width > 100
+  const isWide = width > 120
 
   useInterval(() => {
     setState((prev) => tickState(prev))
