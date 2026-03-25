@@ -43,12 +43,8 @@ import {
   Spinner,
   Badge,
   Divider,
+  Kbd,
   ModalDialog,
-  // Tabs
-  Tabs,
-  TabList,
-  Tab,
-  TabPanel,
   type Key,
 } from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
@@ -359,7 +355,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
   })
 
   return (
-    <Box flexDirection="column" gap={1} flexGrow={1} paddingX={1}>
+    <Box flexDirection="column" gap={1} flexGrow={1} paddingX={1} overflow="scroll" scrollOffset={scrollOffset}>
       {/* Progress Bars */}
       <Box flexDirection="column">
         <Divider title="Progress Bars" />
@@ -506,6 +502,8 @@ export function ComponentsApp() {
     setScrollOffset(0)
   }, [])
 
+  const tabs = ["display", "inputs", "typography"] as const
+
   useInput((input: string, key: Key) => {
     // Only quit with q when not on the inputs tab (where user may be typing)
     if (input === "q" && activeTab !== "inputs") {
@@ -513,6 +511,18 @@ export function ComponentsApp() {
     }
     if (key.escape && activeTab !== "display") {
       exit()
+    }
+
+    // Tab switching with h/l
+    if (input === "l" && activeTab !== "inputs") {
+      const idx = tabs.indexOf(activeTab as (typeof tabs)[number])
+      handleTabChange(tabs[(idx + 1) % tabs.length]!)
+      return
+    }
+    if (input === "h" && activeTab !== "inputs") {
+      const idx = tabs.indexOf(activeTab as (typeof tabs)[number])
+      handleTabChange(tabs[(idx - 1 + tabs.length) % tabs.length]!)
+      return
     }
 
     // Arrow keys / j/k scroll the active tab content (typography and display tabs)
