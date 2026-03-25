@@ -1,6 +1,17 @@
 # Migrate from Chalk
 
-Silvery includes a Chalk compatibility layer via `silvery/chalk`. If your terminal app uses Chalk for styling, you can switch to Silvery's built-in styling with minimal changes.
+## You Don't Have to Migrate
+
+Silvery includes a full Chalk compatibility layer. Just swap the import:
+
+```diff
+- import chalk from 'chalk'
++ import chalk from 'silvery/chalk'
+```
+
+That's it. All your chalk-styled strings work unchanged — `chalk.red.bold("Error!")` produces the same output. You get silvery's theme-aware color detection for free.
+
+When you're ready for silvery's native styling (semantic tokens, theme palettes, auto-dark/light), follow the steps below.
 
 ## Quick Start
 
