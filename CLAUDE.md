@@ -25,19 +25,37 @@ The same pattern works for any backend. `Term` is a Provider — it has state (d
 
 ```typescript
 interface TextFrame {
-  readonly text: string              // plain text (no ANSI)
-  readonly ansi: string              // text with ANSI styling
-  readonly lines: string[]           // per-line plain text
-  readonly width: number             // frame width in columns
-  readonly height: number            // frame height in rows
-  cell(col: number, row: number): FrameCell   // resolved styling per cell
-  containsText(text: string): boolean          // substring search
+  readonly text: string // plain text (no ANSI)
+  readonly ansi: string // text with ANSI styling
+  readonly lines: string[] // per-line plain text
+  readonly width: number // frame width in columns
+  readonly height: number // frame height in rows
+  cell(col: number, row: number): FrameCell // resolved styling per cell
+  containsText(text: string): boolean // substring search
 }
 ```
 
 `FrameCell` has resolved RGB colors (not raw palette indices), flattened boolean attributes (bold, dim, italic, etc.), underline style/color, wide character info, and hyperlink URL.
 
 `App` structurally implements `TextFrame` — `app.text`, `app.ansi`, `app.lines`, `app.width`, `app.height`, `app.cell()`, `app.containsText()` all work directly. Internal pipeline code continues to use `TerminalBuffer`; `TextFrame` is the public read API.
+
+### term.paint() and term.frame
+
+`Term` has an optional `paint(buffer, prev)` method that diffs two `TerminalBuffer`s via the output phase and returns the ANSI string. After painting, `term.frame` holds an immutable `TextFrame` snapshot.
+
+```typescript
+const term = createTerm({ cols: 80, rows: 24 })
+const output = term.paint!(buffer, prevBuffer) // ANSI diff string
+term.frame // TextFrame — cell access, text, containsText()
+```
+
+Behavior varies by Term type:
+
+- **Node.js terminal**: computes ANSI diff, stores frame (caller writes output to stdout)
+- **Headless**: stores frame, returns empty string (no output)
+- **Emulator (termless)**: computes ANSI diff, feeds emulator, stores frame
+
+`RenderAdapter` is internal — not exported from the public barrel. Use `term.paint()` instead of `adapter.flush()`.
 
 ## Commands
 
@@ -106,7 +124,7 @@ These are workspace packages for development. Users do not import from them dire
 | `packages/ag-term/src/runtime/run.tsx`          | Layer 2 entry point — run(<App />, term)             |
 | `packages/ag-term/src/runtime/create-app.tsx`   | Layer 3 — multi-provider apps with zustand store     |
 | `packages/ag-term/src/pipeline/render-phase.ts` | Incremental rendering (most complex)                 |
-| `packages/ag-term/src/buffer.ts`                | TerminalBuffer + createTextFrame() snapshot factory   |
+| `packages/ag-term/src/buffer.ts`                | TerminalBuffer + createTextFrame() snapshot factory  |
 | `packages/ag-term/src/pipeline/output-phase.ts` | Buffer diff, ANSI output generation                  |
 | `packages/ag-term/src/pipeline/layout-phase.ts` | Layout, scroll, sticky, screen rects                 |
 | `packages/ag-term/src/pipeline/CLAUDE.md`       | Pipeline internals docs (read before editing)        |

@@ -42,7 +42,7 @@ export type { BoundTerm } from "./bound-term"
 export type { LayoutEngine, LayoutNode, LayoutConstants, MeasureFunc, MeasureMode } from "./layout-engine"
 
 // =============================================================================
-// Render Adapter
+// Render Adapter (internals — RenderAdapter type not re-exported publicly)
 // =============================================================================
 
 export {
@@ -53,7 +53,6 @@ export {
   ensureRenderAdapterInitialized,
 } from "./render-adapter"
 export type {
-  RenderAdapter,
   RenderBuffer,
   RenderStyle,
   TextMeasurer,

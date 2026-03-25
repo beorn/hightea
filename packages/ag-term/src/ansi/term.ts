@@ -30,6 +30,10 @@ import type {
   TermScreen,
   TerminalCaps,
 } from "./types"
+import type { TerminalBuffer } from "../buffer"
+import { createTextFrame } from "../buffer"
+import type { TextFrame } from "@silvery/ag/text-frame"
+import { outputPhase } from "../pipeline/output-phase"
 import { defaultCaps, detectColor, detectCursor, detectInput, detectTerminalCaps, detectUnicode } from "./detection"
 import type { ProviderEvent } from "../runtime/types"
 import { createTermProvider, type TermState, type TermEvents } from "../runtime/term-provider"
@@ -318,6 +322,26 @@ export interface Term extends Disposable, StyleChain {
    * Resizes the underlying emulator and triggers a re-render in the app.
    */
   resize?(cols: number, rows: number): void
+
+  // -------------------------------------------------------------------------
+  // Paint (rendered buffer → output)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Paint a rendered buffer to produce ANSI output.
+   * Diffs buffer against prev (fresh render if prev is null).
+   * Updates term.frame with an immutable TextFrame snapshot.
+   * Returns the ANSI output string.
+   * For emulator backends, also feeds the output to the emulator.
+   * For headless terms, returns empty string.
+   */
+  paint?(buffer: TerminalBuffer, prev: TerminalBuffer | null): string
+
+  /**
+   * Last painted TextFrame. Set after each paint() call.
+   * Immutable snapshot with cell-level access and resolved RGB colors.
+   */
+  readonly frame?: TextFrame
 }
 
 // =============================================================================
@@ -443,6 +467,9 @@ function createNodeTerm(options: CreateTermOptions): Term {
     return provider
   }
 
+  // Paint state — TextFrame snapshot of last painted buffer
+  let _frame: TextFrame | undefined
+
   // Base term object with methods
   const termBase = {
     // Detection methods
@@ -474,11 +501,21 @@ function createNodeTerm(options: CreateTermOptions): Term {
     // Utilities
     stripAnsi,
 
+    // Paint — diff buffer → ANSI string, update frame
+    paint: (buffer: TerminalBuffer, prev: TerminalBuffer | null): string => {
+      const output = outputPhase(prev, buffer)
+      _frame = createTextFrame(buffer)
+      return output
+    },
+
     // Disposable — also disposes the Provider if created
     [Symbol.dispose]: () => {
       if (provider) provider[Symbol.dispose]()
     },
   }
+
+  // Frame getter — last painted TextFrame
+  Object.defineProperty(termBase, "frame", { get: () => _frame, enumerable: true })
 
   // Create proxy that wraps chalk for styling
   const term = createStyleProxy(chalkInstance, termBase)
@@ -507,6 +544,9 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
 
   const chalkInstance = new Chalk({ level: 0 })
 
+  // Paint state — TextFrame snapshot of last painted buffer
+  let _frame: TextFrame | undefined
+
   const termBase = {
     hasCursor: () => false,
     hasInput: () => false,
@@ -526,12 +566,22 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
       })
     },
     stripAnsi,
+
+    // Paint — headless: store frame, no output
+    paint: (buffer: TerminalBuffer, prev: TerminalBuffer | null): string => {
+      _frame = createTextFrame(buffer)
+      return ""
+    },
+
     [Symbol.dispose]: () => {
       if (disposed) return
       disposed = true
       controller.abort()
     },
   }
+
+  // Frame getter — last painted TextFrame
+  Object.defineProperty(termBase, "frame", { get: () => _frame, enumerable: true })
 
   const term = createStyleProxy(chalkInstance, termBase)
 
@@ -556,6 +606,9 @@ function createBackendTerm(emulator: TermEmulator): Term {
   // Event queue for resize events (consumed by events() async generator)
   const eventQueue: ProviderEvent<TermEvents>[] = []
   let eventResolve: (() => void) | null = null
+
+  // Paint state — TextFrame snapshot of last painted buffer
+  let _frame: TextFrame | undefined
 
   const termBase = {
     hasCursor: () => true,
@@ -636,6 +689,15 @@ function createBackendTerm(emulator: TermEmulator): Term {
       }
     },
     stripAnsi,
+
+    // Paint — diff buffer → ANSI string, feed emulator, update frame
+    paint: (buffer: TerminalBuffer, prev: TerminalBuffer | null): string => {
+      const output = outputPhase(prev, buffer)
+      if (output) emulator.feed(output)
+      _frame = createTextFrame(buffer)
+      return output
+    },
+
     // Store emulator for run() to detect and auto-wire writable
     _emulator: emulator,
     [Symbol.dispose]: () => {
@@ -652,6 +714,7 @@ function createBackendTerm(emulator: TermEmulator): Term {
   Object.defineProperty(termBase, "cols", { get: () => emulator.cols, enumerable: true })
   Object.defineProperty(termBase, "rows", { get: () => emulator.rows, enumerable: true })
   Object.defineProperty(termBase, "screen", { get: () => emulator.screen, enumerable: true })
+  Object.defineProperty(termBase, "frame", { get: () => _frame, enumerable: true })
   Object.defineProperty(termBase, "scrollback", {
     get: () => emulator.scrollback,
     enumerable: true,

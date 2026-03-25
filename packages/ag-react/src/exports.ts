@@ -663,7 +663,7 @@ export type {
   MeasureMode,
 } from "@silvery/ag-term/layout-engine"
 
-// Render adapter (for canvas, DOM, etc.)
+// Render adapter (for canvas, DOM, etc. — RenderAdapter type not re-exported publicly)
 export {
   setRenderAdapter,
   getRenderAdapter,
@@ -672,7 +672,6 @@ export {
   ensureRenderAdapterInitialized,
 } from "@silvery/ag-term/render-adapter"
 export type {
-  RenderAdapter,
   RenderBuffer,
   RenderStyle,
   TextMeasurer,
