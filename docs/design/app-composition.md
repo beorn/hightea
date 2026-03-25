@@ -76,7 +76,7 @@ The ag tree exists for cell-based rendering. All ag targets are term-like — a 
 
 ## Core Objects
 
-Three objects. ag produces TextFrames, term consumes them.
+Three objects. **ag** (the retained cell tree — silvery's equivalent of the DOM) produces TextFrames, **term** consumes them.
 
 ```ts
 // Ag — tree + layout engine + renderer
@@ -134,6 +134,14 @@ term.paint(frame)              // 3. TextFrame → output
 Use any phase alone: layout without render (inspect sizes), render without paint (headless testing), paint without the others (re-present a saved frame).
 
 `ag.render()` requires a prior `ag.layout()`. On resize, discard the previous frame (paint diffing assumes same dimensions). `toFrame(ag, dims)` combines 1+2 as convenience.
+
+**Invariants:**
+- `ag.render()` requires prior `ag.layout()` — calling render without layout is an error
+- Mounting triggers one immediate render (withReact calls `app.render()` on first commit)
+- `term.screen` is populated after first render, undefined before
+- `app.run()` only exists when the term has events
+- Resize resets paint diffing (`prev = undefined`)
+- Cursor state lives on `term.cursor`, not in TextFrame
 
 ## Framework Adapters
 
@@ -196,20 +204,22 @@ Plugins wire the primitives together via `pipe()`. Each adds capabilities by wra
 
 ```ts
 function withTerm(term) {
+  // Normalizes TermDef → Term: { cols, rows } gets wrapped with dims, screen, etc.
   return (app) => {
     let prev: TextFrame | undefined
     app.render = () => {
-      ag.layout(term.dims)                       // 1. positions/sizes
-      const frame = ag.render()                  // 2. tree → TextFrame
+      app.ag.layout(term.dims)                   // 1. positions/sizes
+      const frame = app.ag.render()              // 2. tree → TextFrame
       term.paint?.(frame, prev)                  // 3. TextFrame → output
       prev = frame
-      term.screen = frame                        // store for reading
+      term.screen = frame                        // always set after render
     }
     if (term.events) {
       const { run } = app
       app.run = async () => {
         app.render()
         for await (const event of term.events(app.scope?.signal)) {
+          if (event.type === "resize") prev = undefined  // reset diffing
           app.dispatch(event)
           // No render here — React commit calls app.render() if state changed
         }
@@ -225,7 +235,7 @@ function withTerm(term) {
 function withReact({ view }) {
   return (app) => {
     app.render ??= () => {}
-    const reconciler = createReconciler(app.root, app.render)
+    const reconciler = createReconciler(app.ag.root, app.render)
     reconciler.render(view)  // mount immediately — stays alive until dispose
     app.defer(reconciler.unmount)
     return app
@@ -237,7 +247,8 @@ function withReact({ view }) {
 - **withReact mounts immediately** — headless testing works without `run()`.
 - **No double-render** — event loop only dispatches; rendering happens via reconciler commit.
 - **Scope integration** — `term.events(app.scope?.signal)` terminates on scope cancel.
-- **Terminal lifetime** — you dispose what you create. TermDef: withTerm creates inside `run()`. Pre-created Term: caller disposes. Process exit hooks are the safety net.
+- **TermDef normalization** — `withTerm` accepts `Term | TermDef`. A bare `{ cols, rows }` works immediately (headless); a full Term adds paint/events/screen.
+- **Terminal lifetime** — you dispose what you create. Pre-created Term: caller disposes. Process exit hooks are the safety net.
 - **Plugin ordering** — `withAg` → `withTerm` → `withReact`. Validated at compose time.
 
 ### App shape after each plugin
