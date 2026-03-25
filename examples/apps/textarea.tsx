@@ -135,9 +135,8 @@ export function NoteEditor() {
             ) : (
               notes.map((note, i) => (
                 <Box key={i} flexDirection="column" marginBottom={1}>
-                  <Text>
-                    <Strong color="$success">#{i + 1}</Strong> {note.split("\n")[0]?.slice(0, 40)}
-                    {(note.split("\n")[0]?.length ?? 0) > 40 ? "..." : ""}
+                  <Text wrap="truncate">
+                    <Strong color="$success">#{i + 1}</Strong> {note.split("\n")[0]}
                   </Text>
                   <Muted>
                     {note.split("\n").length} lines, {note.length} chars

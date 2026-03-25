@@ -9,7 +9,7 @@
  */
 
 import React, { useState } from "react"
-import { render, Box, Text, Kbd, Muted, useInput, useApp, createTerm, type Key } from "../../src/index.js"
+import { render, Box, Text, useInput, useApp, createTerm, type Key } from "../../src/index.js"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
@@ -105,13 +105,13 @@ function CardComponent({ card, isSelected }: { card: Card; isSelected: boolean }
     <Box flexDirection="column" borderStyle="round" borderColor={isSelected ? "$primary" : "$border"}>
       {isSelected ? (
         <Box backgroundColor="$primary" paddingX={1}>
-          <Text color="$primary-fg" bold>
+          <Text color="$primary-fg" bold wrap="truncate">
             {card.title}
           </Text>
         </Box>
       ) : (
         <Box paddingX={1}>
-          <Text>{card.title}</Text>
+          <Text wrap="truncate">{card.title}</Text>
         </Box>
       )}
       <Box gap={1} paddingX={1}>
@@ -165,15 +165,6 @@ function ColumnComponent({
         )}
       </Box>
     </Box>
-  )
-}
-
-function HelpBar() {
-  return (
-    <Muted>
-      {" "}
-      <Kbd>h/l</Kbd> column <Kbd>j/k</Kbd> card <Kbd>{"</"}</Kbd> move <Kbd>Esc/q</Kbd> quit
-    </Muted>
   )
 }
 
