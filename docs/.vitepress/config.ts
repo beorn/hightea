@@ -80,6 +80,7 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: "Components", link: "/guides/components" },
+          { text: "Layouts", link: "/guide/layouts" },
           { text: "Styling", link: "/guide/styling" },
           { text: "Theming", link: "/guides/theming" },
           { text: "Scrolling", link: "/guide/scrolling" },

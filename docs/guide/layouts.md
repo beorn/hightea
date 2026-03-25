@@ -2,6 +2,7 @@
 
 This guide walks through building a typical TUI application layout with:
 
+- Responsive components that know their own size
 - Fixed-height top/bottom bars
 - Flexible content area that fills remaining space
 - Multiple scrollable columns
@@ -302,6 +303,48 @@ const contentHeight = terminalRows - topBarHeight - bottomBarHeight
 </Box>
 ```
 
+## Responsive Layout with useContentRect()
+
+The killer feature for complex layouts: components can query their own dimensions during render. This is like [CSS container queries](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries) — components adapt to their container, not the viewport.
+
+```tsx
+function ResponsiveBoard({ items }) {
+  const { width } = useContentRect()
+  // Adapt column count to available space
+  const columns = width > 120 ? 4 : width > 80 ? 3 : width > 40 ? 2 : 1
+
+  return (
+    <Box>
+      {Array.from({ length: columns }, (_, i) => (
+        <Box key={i} flexGrow={1} flexDirection="column">
+          {items.filter((_, j) => j % columns === i).map(item => (
+            <Card key={item.id} item={item} />
+          ))}
+        </Box>
+      ))}
+    </Box>
+  )
+}
+```
+
+No prop drilling, no `measureElement` + `useEffect` dance. The layout engine computes dimensions first, then components render with correct values. This works at any nesting depth — a `Card` inside a `Column` inside a `Board` all get their own dimensions simultaneously, in one batch.
+
+```tsx
+function Card({ item }) {
+  const { width } = useContentRect()
+  return (
+    <Box borderStyle="round" flexDirection="column">
+      <Text bold>{width > 30 ? item.title : truncate(item.title, width - 4)}</Text>
+      {width > 50 && <Text color="$muted">{item.description}</Text>}
+    </Box>
+  )
+}
+```
+
+::: tip First render returns zeros
+`useContentRect()` returns `{ width: 0, height: 0 }` on the first render (before layout runs). Guard with `if (width === 0) return null` if your component can't render without dimensions. The framework handles the re-render automatically.
+:::
+
 ## Summary
 
 | Need                 | Solution                                          |
@@ -309,5 +352,7 @@ const contentHeight = terminalRows - topBarHeight - bottomBarHeight
 | Fixed-height element | `height={n}` + `flexShrink={0}`                   |
 | Fill remaining space | `flexGrow={1}`                                    |
 | Scrollable list      | `overflow="scroll"` + `scrollTo={index}`          |
+| Responsive columns   | `useContentRect()` + conditional rendering         |
+| Adaptive content     | `useContentRect()` + truncation / hide at breakpoints |
 | Filled background    | `backgroundColor="color"` on Box                  |
 | Centered content     | `justifyContent="center"` + `alignItems="center"` |
