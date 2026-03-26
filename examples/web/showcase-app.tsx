@@ -92,11 +92,7 @@ if (!ShowcaseComponent) {
         e.preventDefault()
         const lines = Math.max(1, Math.round(Math.abs(e.deltaY) / 40))
         const key = e.deltaY < 0 ? "\x1b[A" : "\x1b[B" // Up/Down arrow
-        // Trigger xterm's onData (same path as keyboard input)
-        const core = (term as any)._core
-        if (core?._onData) {
-          for (let i = 0; i < lines; i++) core._onData.fire(key)
-        }
+        for (let i = 0; i < lines; i++) term.input(key, true)
       },
       { passive: false },
     )

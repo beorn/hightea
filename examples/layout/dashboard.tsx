@@ -112,9 +112,11 @@ interface ProcessInfo {
 }
 
 function createInitialState() {
-  const cores: CoreMetrics[] = Array.from({ length: 8 }, (_, i) => ({
-    usage: 20 + Math.random() * 60,
-    history: initHistory(30 + i * 5, 20, 20),
+  // Varied usage to showcase severity colors (green/yellow/red)
+  const coreUsages = [35, 52, 88, 45, 72, 93, 28, 61]
+  const cores: CoreMetrics[] = coreUsages.map((usage, i) => ({
+    usage,
+    history: initHistory(usage, 15, 20),
   }))
 
   const memory: MemoryMetrics = {
@@ -214,25 +216,22 @@ function CpuCore({ index, core, barWidth }: { index: number; core: CoreMetrics; 
   return (
     <Box>
       <Muted>{`${index} `}</Muted>
-      <ProgressBar value={pct / 100} color={color} showPercentage={false} width={barWidth} />
-      <Text color={color}>
-        <Strong>{` ${String(pct).padStart(3)}%`}</Strong>
-      </Text>
-      <Muted> </Muted>
-      <Small>{sparkline(core.history.slice(-10), 100)}</Small>
+      <ProgressBar value={pct / 100} color={color} showPercentage width={barWidth} />
     </Box>
   )
 }
 
 function CpuPane({ cores }: { cores: CoreMetrics[] }) {
   const { width } = useContentRect()
-  // 2 (index) + bar + 5 (pct) + 1 (space) + 10 (sparkline) = 18 overhead + 2 safety
-  const barWidth = Math.max(8, width - 20)
+  // 2 (index) + bar (includes " NN%") = overhead 2 + 2 safety
+  const barWidth = Math.max(8, width - 4)
   const avgCpu = cores.reduce((sum, c) => sum + c.usage, 0) / cores.length
   const maxCpu = Math.max(...cores.map((c) => c.usage))
   const load1 = ((avgCpu / 100) * 8 * 0.8 + Math.random() * 0.5).toFixed(2)
   const load5 = ((avgCpu / 100) * 8 * 0.7 + Math.random() * 0.3).toFixed(2)
   const load15 = ((avgCpu / 100) * 8 * 0.6 + Math.random() * 0.2).toFixed(2)
+  const avgHistory =
+    cores[0]?.history.map((_, i) => cores.reduce((s, c) => s + (c.history[i] ?? 0), 0) / cores.length) ?? []
 
   return (
     <Box flexDirection="column" flexGrow={1} gap={1}>
@@ -247,6 +246,7 @@ function CpuPane({ cores }: { cores: CoreMetrics[] }) {
           <CpuCore key={i} index={i} core={core} barWidth={barWidth} />
         ))}
       </Box>
+      <Small color="$primary">{sparkline(avgHistory, 100)}</Small>
     </Box>
   )
 }
@@ -289,8 +289,8 @@ function MemoryPane({ memory }: { memory: MemoryMetrics }) {
         <ProgressBar value={swapPct} color={severityColor(swapPct * 100)} showPercentage />
       </Box>
       <Box flexDirection="column">
-        <Muted>Top Consumers</Muted>
         <Box gap={2} wrap="truncate">
+          <Muted>Top:</Muted>
           <Text>
             chrome <Strong color="$warning">12.1G</Strong>
           </Text>
@@ -304,7 +304,7 @@ function MemoryPane({ memory }: { memory: MemoryMetrics }) {
       </Box>
       <Box flexDirection="column">
         <Muted>History</Muted>
-        <Text color="$primary">{sparkline(memory.history, 100)}</Text>
+        <Text color="$success">{sparkline(memory.history, 100)}</Text>
       </Box>
     </Box>
   )

@@ -36845,9 +36845,10 @@ function severityColor(pct) {
   return "$success";
 }
 function createInitialState() {
-  const cores = Array.from({ length: 8 }, (_2, i) => ({
-    usage: 20 + Math.random() * 60,
-    history: initHistory(30 + i * 5, 20, 20)
+  const coreUsages = [35, 52, 88, 45, 72, 93, 28, 61];
+  const cores = coreUsages.map((usage, i) => ({
+    usage,
+    history: initHistory(usage, 15, 20)
   }));
   const memory = {
     used: 8.2,
@@ -36942,32 +36943,21 @@ function CpuCore({ index, core, barWidth }) {
       /* @__PURE__ */ jsx_runtime53.jsx(ProgressBar, {
         value: pct / 100,
         color,
-        showPercentage: false,
+        showPercentage: true,
         width: barWidth
-      }),
-      /* @__PURE__ */ jsx_runtime53.jsx(Text2, {
-        color,
-        children: /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
-          children: ` ${String(pct).padStart(3)}%`
-        })
-      }),
-      /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-        children: " "
-      }),
-      /* @__PURE__ */ jsx_runtime53.jsx(Small, {
-        children: sparkline(core.history.slice(-10), 100)
       })
     ]
   });
 }
 function CpuPane({ cores }) {
   const { width } = useContentRect();
-  const barWidth = Math.max(8, width - 20);
+  const barWidth = Math.max(8, width - 4);
   const avgCpu = cores.reduce((sum, c) => sum + c.usage, 0) / cores.length;
   const maxCpu = Math.max(...cores.map((c) => c.usage));
   const load1 = (avgCpu / 100 * 8 * 0.8 + Math.random() * 0.5).toFixed(2);
   const load5 = (avgCpu / 100 * 8 * 0.7 + Math.random() * 0.3).toFixed(2);
   const load15 = (avgCpu / 100 * 8 * 0.6 + Math.random() * 0.2).toFixed(2);
+  const avgHistory = cores[0]?.history.map((_2, i) => cores.reduce((s15, c) => s15 + (c.history[i] ?? 0), 0) / cores.length) ?? [];
   return /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
     flexDirection: "column",
     flexGrow: 1,
@@ -37003,6 +36993,10 @@ function CpuPane({ cores }) {
           core,
           barWidth
         }, i))
+      }),
+      /* @__PURE__ */ jsx_runtime53.jsx(Small, {
+        color: "$primary",
+        children: sparkline(avgHistory, 100)
       })
     ]
   });
@@ -37104,46 +37098,44 @@ function MemoryPane({ memory }) {
           })
         ]
       }),
-      /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
+      /* @__PURE__ */ jsx_runtime53.jsx(Box, {
         flexDirection: "column",
-        children: [
-          /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-            children: "Top Consumers"
-          }),
-          /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
-            gap: 2,
-            wrap: "truncate",
-            children: [
-              /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
-                children: [
-                  "chrome ",
-                  /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
-                    color: "$warning",
-                    children: "12.1G"
-                  })
-                ]
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
-                children: [
-                  "vscode ",
-                  /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
-                    color: "$primary",
-                    children: "8.4G"
-                  })
-                ]
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
-                children: [
-                  "docker ",
-                  /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
-                    color: "$primary",
-                    children: "5.1G"
-                  })
-                ]
-              })
-            ]
-          })
-        ]
+        children: /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
+          gap: 2,
+          wrap: "truncate",
+          children: [
+            /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
+              children: "Top:"
+            }),
+            /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
+              children: [
+                "chrome ",
+                /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
+                  color: "$warning",
+                  children: "12.1G"
+                })
+              ]
+            }),
+            /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
+              children: [
+                "vscode ",
+                /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
+                  color: "$primary",
+                  children: "8.4G"
+                })
+              ]
+            }),
+            /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
+              children: [
+                "docker ",
+                /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
+                  color: "$primary",
+                  children: "5.1G"
+                })
+              ]
+            })
+          ]
+        })
       }),
       /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
         flexDirection: "column",
@@ -37152,7 +37144,7 @@ function MemoryPane({ memory }) {
             children: "History"
           }),
           /* @__PURE__ */ jsx_runtime53.jsx(Text2, {
-            color: "$primary",
+            color: "$success",
             children: sparkline(memory.history, 100)
           })
         ]
@@ -38976,68 +38968,80 @@ function DisplayTab({ scrollOffset }) {
                     })
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                    flexDirection: "column",
+                    flexDirection: "row",
+                    gap: 2,
                     children: [
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        color: "$success",
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                        flexDirection: "column",
                         children: [
-                          "●",
-                          " $success"
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            color: "$success",
+                            children: [
+                              "●",
+                              " $success"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            color: "$warning",
+                            children: [
+                              "●",
+                              " $warning"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            color: "$error",
+                            children: [
+                              "●",
+                              " $error"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            color: "$info",
+                            children: [
+                              "●",
+                              " $info"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            color: "$primary",
+                            children: [
+                              "●",
+                              " $primary"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Muted, {
+                            children: [
+                              "●",
+                              " $muted"
+                            ]
+                          })
                         ]
                       }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        color: "$warning",
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                        flexDirection: "column",
+                        gap: 1,
                         children: [
-                          "●",
-                          " $warning"
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            backgroundColor: "$primary",
+                            color: "$primary-fg",
+                            children: " $primary "
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            backgroundColor: "$fg",
+                            color: "$bg",
+                            children: " $inverse "
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            backgroundColor: "$muted-bg",
+                            color: "$fg",
+                            children: " $surface "
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            backgroundColor: "$surfacebg",
+                            color: "$surface",
+                            children: " $surfacebg "
+                          })
                         ]
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        color: "$error",
-                        children: [
-                          "●",
-                          " $error"
-                        ]
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        color: "$info",
-                        children: [
-                          "●",
-                          " $info"
-                        ]
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        color: "$primary",
-                        children: [
-                          "●",
-                          " $primary"
-                        ]
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Muted, {
-                        children: [
-                          "●",
-                          " $muted"
-                        ]
-                      })
-                    ]
-                  }),
-                  /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                    flexDirection: "column",
-                    children: [
-                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                        backgroundColor: "$primary",
-                        color: "$primary-fg",
-                        children: " $primary "
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                        backgroundColor: "$fg",
-                        color: "$bg",
-                        children: " $inverse "
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                        backgroundColor: "$muted-bg",
-                        color: "$fg",
-                        children: " $surface "
                       })
                     ]
                   })
@@ -39047,7 +39051,6 @@ function DisplayTab({ scrollOffset }) {
           }),
           /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
             ...cell,
-            borderColor: "$primary",
             backgroundColor: "$surfacebg",
             children: [
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
@@ -39065,80 +39068,67 @@ function DisplayTab({ scrollOffset }) {
                 ]
               }),
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                flexDirection: "row",
-                gap: 4,
+                flexDirection: "column",
+                gap: 1,
                 children: [
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                    flexDirection: "column",
                     gap: 1,
-                    flexGrow: 1,
-                    flexBasis: 0,
                     children: [
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                        gap: 1,
-                        children: [
-                          /* @__PURE__ */ jsx_runtime56.jsx(Muted, {
-                            children: "Branch:"
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsx(Box, {
-                            flexGrow: 1,
-                            children: /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
-                              value: "main",
-                              onChange: () => {},
-                              showUnderline: true,
-                              underlineWidth: 30,
-                              isActive: true
-                            })
-                          })
-                        ]
+                      /* @__PURE__ */ jsx_runtime56.jsx(Muted, {
+                        children: "Branch:"
                       }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                        flexDirection: "column",
-                        children: [
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            children: [
-                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                                color: "$success",
-                                children: "✓"
-                              }),
-                              " All checks passed"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            children: [
-                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                                color: "$success",
-                                children: "✓"
-                              }),
-                              " Tests: 247 passed"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            children: [
-                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                                color: "$warning",
-                                children: "⚠"
-                              }),
-                              " 2 deprecation warnings"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            children: [
-                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                                color: "$info",
-                                children: "ℹ"
-                              }),
-                              " Deploy target: us-east-1"
-                            ]
-                          })
-                        ]
+                      /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
+                        value: "main",
+                        onChange: () => {},
+                        showUnderline: true,
+                        underlineWidth: 25,
+                        isActive: true
                       })
                     ]
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
                     flexDirection: "column",
-                    gap: 1,
-                    justifyContent: "flex-end",
+                    children: [
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            color: "$success",
+                            children: "✓"
+                          }),
+                          " All checks passed"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            color: "$success",
+                            children: "✓"
+                          }),
+                          " Tests: 247 passed"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            color: "$warning",
+                            children: "⚠"
+                          }),
+                          " 2 deprecation warnings"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            color: "$info",
+                            children: "ℹ"
+                          }),
+                          " Deploy target: us-east-1"
+                        ]
+                      })
+                    ]
+                  }),
+                  /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                    gap: 2,
                     children: [
                       /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                         backgroundColor: "$primary",
@@ -39522,11 +39512,8 @@ if (!ShowcaseComponent) {
       e.preventDefault();
       const lines = Math.max(1, Math.round(Math.abs(e.deltaY) / 40));
       const key = e.deltaY < 0 ? "\x1B[A" : "\x1B[B";
-      const core = term2._core;
-      if (core?._onData) {
-        for (let i = 0;i < lines; i++)
-          core._onData.fire(key);
-      }
+      for (let i = 0;i < lines; i++)
+        term2.input(key, true);
     }, { passive: false });
     term2.focus();
     window.addEventListener("resize", () => {
@@ -39548,4 +39535,4 @@ if (!ShowcaseComponent) {
   }
 }
 
-//# debugId=8BCCFBCC5E2B2DFF64756E2164756E21
+//# debugId=4BF52ECC91F86D3A64756E2164756E21

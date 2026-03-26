@@ -36845,9 +36845,10 @@ function severityColor(pct) {
   return "$success";
 }
 function createInitialState() {
-  const cores = Array.from({ length: 8 }, (_2, i) => ({
-    usage: 20 + Math.random() * 60,
-    history: initHistory(30 + i * 5, 20, 20)
+  const coreUsages = [35, 52, 88, 45, 72, 93, 28, 61];
+  const cores = coreUsages.map((usage, i) => ({
+    usage,
+    history: initHistory(usage, 15, 20)
   }));
   const memory = {
     used: 8.2,
@@ -36942,32 +36943,21 @@ function CpuCore({ index, core, barWidth }) {
       /* @__PURE__ */ jsx_runtime53.jsx(ProgressBar, {
         value: pct / 100,
         color,
-        showPercentage: false,
+        showPercentage: true,
         width: barWidth
-      }),
-      /* @__PURE__ */ jsx_runtime53.jsx(Text2, {
-        color,
-        children: /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
-          children: ` ${String(pct).padStart(3)}%`
-        })
-      }),
-      /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-        children: " "
-      }),
-      /* @__PURE__ */ jsx_runtime53.jsx(Small, {
-        children: sparkline(core.history.slice(-10), 100)
       })
     ]
   });
 }
 function CpuPane({ cores }) {
   const { width } = useContentRect();
-  const barWidth = Math.max(8, width - 20);
+  const barWidth = Math.max(8, width - 4);
   const avgCpu = cores.reduce((sum, c) => sum + c.usage, 0) / cores.length;
   const maxCpu = Math.max(...cores.map((c) => c.usage));
   const load1 = (avgCpu / 100 * 8 * 0.8 + Math.random() * 0.5).toFixed(2);
   const load5 = (avgCpu / 100 * 8 * 0.7 + Math.random() * 0.3).toFixed(2);
   const load15 = (avgCpu / 100 * 8 * 0.6 + Math.random() * 0.2).toFixed(2);
+  const avgHistory = cores[0]?.history.map((_2, i) => cores.reduce((s15, c) => s15 + (c.history[i] ?? 0), 0) / cores.length) ?? [];
   return /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
     flexDirection: "column",
     flexGrow: 1,
@@ -37003,6 +36993,10 @@ function CpuPane({ cores }) {
           core,
           barWidth
         }, i))
+      }),
+      /* @__PURE__ */ jsx_runtime53.jsx(Small, {
+        color: "$primary",
+        children: sparkline(avgHistory, 100)
       })
     ]
   });
@@ -37104,46 +37098,44 @@ function MemoryPane({ memory }) {
           })
         ]
       }),
-      /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
+      /* @__PURE__ */ jsx_runtime53.jsx(Box, {
         flexDirection: "column",
-        children: [
-          /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-            children: "Top Consumers"
-          }),
-          /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
-            gap: 2,
-            wrap: "truncate",
-            children: [
-              /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
-                children: [
-                  "chrome ",
-                  /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
-                    color: "$warning",
-                    children: "12.1G"
-                  })
-                ]
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
-                children: [
-                  "vscode ",
-                  /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
-                    color: "$primary",
-                    children: "8.4G"
-                  })
-                ]
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
-                children: [
-                  "docker ",
-                  /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
-                    color: "$primary",
-                    children: "5.1G"
-                  })
-                ]
-              })
-            ]
-          })
-        ]
+        children: /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
+          gap: 2,
+          wrap: "truncate",
+          children: [
+            /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
+              children: "Top:"
+            }),
+            /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
+              children: [
+                "chrome ",
+                /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
+                  color: "$warning",
+                  children: "12.1G"
+                })
+              ]
+            }),
+            /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
+              children: [
+                "vscode ",
+                /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
+                  color: "$primary",
+                  children: "8.4G"
+                })
+              ]
+            }),
+            /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
+              children: [
+                "docker ",
+                /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
+                  color: "$primary",
+                  children: "5.1G"
+                })
+              ]
+            })
+          ]
+        })
       }),
       /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
         flexDirection: "column",
@@ -37152,7 +37144,7 @@ function MemoryPane({ memory }) {
             children: "History"
           }),
           /* @__PURE__ */ jsx_runtime53.jsx(Text2, {
-            color: "$primary",
+            color: "$success",
             children: sparkline(memory.history, 100)
           })
         ]
@@ -38976,68 +38968,80 @@ function DisplayTab({ scrollOffset }) {
                     })
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                    flexDirection: "column",
+                    flexDirection: "row",
+                    gap: 2,
                     children: [
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        color: "$success",
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                        flexDirection: "column",
                         children: [
-                          "●",
-                          " $success"
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            color: "$success",
+                            children: [
+                              "●",
+                              " $success"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            color: "$warning",
+                            children: [
+                              "●",
+                              " $warning"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            color: "$error",
+                            children: [
+                              "●",
+                              " $error"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            color: "$info",
+                            children: [
+                              "●",
+                              " $info"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            color: "$primary",
+                            children: [
+                              "●",
+                              " $primary"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Muted, {
+                            children: [
+                              "●",
+                              " $muted"
+                            ]
+                          })
                         ]
                       }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        color: "$warning",
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                        flexDirection: "column",
+                        gap: 1,
                         children: [
-                          "●",
-                          " $warning"
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            backgroundColor: "$primary",
+                            color: "$primary-fg",
+                            children: " $primary "
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            backgroundColor: "$fg",
+                            color: "$bg",
+                            children: " $inverse "
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            backgroundColor: "$muted-bg",
+                            color: "$fg",
+                            children: " $surface "
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            backgroundColor: "$surfacebg",
+                            color: "$surface",
+                            children: " $surfacebg "
+                          })
                         ]
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        color: "$error",
-                        children: [
-                          "●",
-                          " $error"
-                        ]
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        color: "$info",
-                        children: [
-                          "●",
-                          " $info"
-                        ]
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        color: "$primary",
-                        children: [
-                          "●",
-                          " $primary"
-                        ]
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Muted, {
-                        children: [
-                          "●",
-                          " $muted"
-                        ]
-                      })
-                    ]
-                  }),
-                  /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                    flexDirection: "column",
-                    children: [
-                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                        backgroundColor: "$primary",
-                        color: "$primary-fg",
-                        children: " $primary "
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                        backgroundColor: "$fg",
-                        color: "$bg",
-                        children: " $inverse "
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                        backgroundColor: "$muted-bg",
-                        color: "$fg",
-                        children: " $surface "
                       })
                     ]
                   })
@@ -39047,7 +39051,6 @@ function DisplayTab({ scrollOffset }) {
           }),
           /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
             ...cell,
-            borderColor: "$primary",
             backgroundColor: "$surfacebg",
             children: [
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
@@ -39065,80 +39068,67 @@ function DisplayTab({ scrollOffset }) {
                 ]
               }),
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                flexDirection: "row",
-                gap: 4,
+                flexDirection: "column",
+                gap: 1,
                 children: [
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                    flexDirection: "column",
                     gap: 1,
-                    flexGrow: 1,
-                    flexBasis: 0,
                     children: [
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                        gap: 1,
-                        children: [
-                          /* @__PURE__ */ jsx_runtime56.jsx(Muted, {
-                            children: "Branch:"
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsx(Box, {
-                            flexGrow: 1,
-                            children: /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
-                              value: "main",
-                              onChange: () => {},
-                              showUnderline: true,
-                              underlineWidth: 30,
-                              isActive: true
-                            })
-                          })
-                        ]
+                      /* @__PURE__ */ jsx_runtime56.jsx(Muted, {
+                        children: "Branch:"
                       }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                        flexDirection: "column",
-                        children: [
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            children: [
-                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                                color: "$success",
-                                children: "✓"
-                              }),
-                              " All checks passed"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            children: [
-                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                                color: "$success",
-                                children: "✓"
-                              }),
-                              " Tests: 247 passed"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            children: [
-                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                                color: "$warning",
-                                children: "⚠"
-                              }),
-                              " 2 deprecation warnings"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            children: [
-                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                                color: "$info",
-                                children: "ℹ"
-                              }),
-                              " Deploy target: us-east-1"
-                            ]
-                          })
-                        ]
+                      /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
+                        value: "main",
+                        onChange: () => {},
+                        showUnderline: true,
+                        underlineWidth: 25,
+                        isActive: true
                       })
                     ]
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
                     flexDirection: "column",
-                    gap: 1,
-                    justifyContent: "flex-end",
+                    children: [
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            color: "$success",
+                            children: "✓"
+                          }),
+                          " All checks passed"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            color: "$success",
+                            children: "✓"
+                          }),
+                          " Tests: 247 passed"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            color: "$warning",
+                            children: "⚠"
+                          }),
+                          " 2 deprecation warnings"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            color: "$info",
+                            children: "ℹ"
+                          }),
+                          " Deploy target: us-east-1"
+                        ]
+                      })
+                    ]
+                  }),
+                  /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                    gap: 2,
                     children: [
                       /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                         backgroundColor: "$primary",
@@ -39590,9 +39580,11 @@ interface ProcessInfo {
 }
 
 function createInitialState() {
-  const cores: CoreMetrics[] = Array.from({ length: 8 }, (_, i) => ({
-    usage: 20 + Math.random() * 60,
-    history: initHistory(30 + i * 5, 20, 20),
+  // Varied usage to showcase severity colors (green/yellow/red)
+  const coreUsages = [35, 52, 88, 45, 72, 93, 28, 61]
+  const cores: CoreMetrics[] = coreUsages.map((usage, i) => ({
+    usage,
+    history: initHistory(usage, 15, 20),
   }))
 
   const memory: MemoryMetrics = {
@@ -39692,25 +39684,22 @@ function CpuCore({ index, core, barWidth }: { index: number; core: CoreMetrics; 
   return (
     <Box>
       <Muted>{\`\${index} \`}</Muted>
-      <ProgressBar value={pct / 100} color={color} showPercentage={false} width={barWidth} />
-      <Text color={color}>
-        <Strong>{\` \${String(pct).padStart(3)}%\`}</Strong>
-      </Text>
-      <Muted> </Muted>
-      <Small>{sparkline(core.history.slice(-10), 100)}</Small>
+      <ProgressBar value={pct / 100} color={color} showPercentage width={barWidth} />
     </Box>
   )
 }
 
 function CpuPane({ cores }: { cores: CoreMetrics[] }) {
   const { width } = useContentRect()
-  // 2 (index) + bar + 5 (pct) + 1 (space) + 10 (sparkline) = 18 overhead + 2 safety
-  const barWidth = Math.max(8, width - 20)
+  // 2 (index) + bar (includes " NN%") = overhead 2 + 2 safety
+  const barWidth = Math.max(8, width - 4)
   const avgCpu = cores.reduce((sum, c) => sum + c.usage, 0) / cores.length
   const maxCpu = Math.max(...cores.map((c) => c.usage))
   const load1 = ((avgCpu / 100) * 8 * 0.8 + Math.random() * 0.5).toFixed(2)
   const load5 = ((avgCpu / 100) * 8 * 0.7 + Math.random() * 0.3).toFixed(2)
   const load15 = ((avgCpu / 100) * 8 * 0.6 + Math.random() * 0.2).toFixed(2)
+  const avgHistory =
+    cores[0]?.history.map((_, i) => cores.reduce((s, c) => s + (c.history[i] ?? 0), 0) / cores.length) ?? []
 
   return (
     <Box flexDirection="column" flexGrow={1} gap={1}>
@@ -39725,6 +39714,7 @@ function CpuPane({ cores }: { cores: CoreMetrics[] }) {
           <CpuCore key={i} index={i} core={core} barWidth={barWidth} />
         ))}
       </Box>
+      <Small color="$primary">{sparkline(avgHistory, 100)}</Small>
     </Box>
   )
 }
@@ -39767,8 +39757,8 @@ function MemoryPane({ memory }: { memory: MemoryMetrics }) {
         <ProgressBar value={swapPct} color={severityColor(swapPct * 100)} showPercentage />
       </Box>
       <Box flexDirection="column">
-        <Muted>Top Consumers</Muted>
         <Box gap={2} wrap="truncate">
+          <Muted>Top:</Muted>
           <Text>
             chrome <Strong color="$warning">12.1G</Strong>
           </Text>
@@ -39782,7 +39772,7 @@ function MemoryPane({ memory }: { memory: MemoryMetrics }) {
       </Box>
       <Box flexDirection="column">
         <Muted>History</Muted>
-        <Text color="$primary">{sparkline(memory.history, 100)}</Text>
+        <Text color="$success">{sparkline(memory.history, 100)}</Text>
       </Box>
     </Box>
   )
@@ -40827,59 +40817,60 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             <Text color="$primary">
               <Strong>Design Tokens</Strong>
             </Text>
-            <Box flexDirection="column">
-              <Text color="$success">{"●"} $success</Text>
-              <Text color="$warning">{"●"} $warning</Text>
-              <Text color="$error">{"●"} $error</Text>
-              <Text color="$info">{"●"} $info</Text>
-              <Text color="$primary">{"●"} $primary</Text>
-              <Muted>{"●"} $muted</Muted>
-            </Box>
-            <Box flexDirection="column">
-              <Text backgroundColor="$primary" color="$primary-fg">
-                {" $primary "}
-              </Text>
-              <Text backgroundColor="$fg" color="$bg">
-                {" $inverse "}
-              </Text>
-              <Text backgroundColor="$muted-bg" color="$fg">
-                {" $surface "}
-              </Text>
+            <Box flexDirection="row" gap={2}>
+              <Box flexDirection="column">
+                <Text color="$success">{"●"} $success</Text>
+                <Text color="$warning">{"●"} $warning</Text>
+                <Text color="$error">{"●"} $error</Text>
+                <Text color="$info">{"●"} $info</Text>
+                <Text color="$primary">{"●"} $primary</Text>
+                <Muted>{"●"} $muted</Muted>
+              </Box>
+              <Box flexDirection="column" gap={1}>
+                <Text backgroundColor="$primary" color="$primary-fg">
+                  {" $primary "}
+                </Text>
+                <Text backgroundColor="$fg" color="$bg">
+                  {" $inverse "}
+                </Text>
+                <Text backgroundColor="$muted-bg" color="$fg">
+                  {" $surface "}
+                </Text>
+                <Text backgroundColor="$surfacebg" color="$surface">
+                  {" $surfacebg "}
+                </Text>
+              </Box>
             </Box>
           </Box>
         </Box>
         {/* Right half: Modal Dialog */}
-        <Box {...cell} borderColor="$primary" backgroundColor="$surfacebg">
+        <Box {...cell} backgroundColor="$surfacebg">
           <Box justifyContent="space-between">
             <Text color="$primary">
               <Strong>Modal Dialog</Strong>
             </Text>
             <Muted>Esc to close</Muted>
           </Box>
-          <Box flexDirection="row" gap={4}>
-            <Box flexDirection="column" gap={1} flexGrow={1} flexBasis={0}>
-              <Box gap={1}>
-                <Muted>Branch:</Muted>
-                <Box flexGrow={1}>
-                  <TextInput value="main" onChange={() => {}} showUnderline underlineWidth={30} isActive={true} />
-                </Box>
-              </Box>
-              <Box flexDirection="column">
-                <Text>
-                  <Text color="$success">{"✓"}</Text> All checks passed
-                </Text>
-                <Text>
-                  <Text color="$success">{"✓"}</Text> Tests: 247 passed
-                </Text>
-                <Text>
-                  <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
-                </Text>
-                <Text>
-                  <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
-                </Text>
-              </Box>
+          <Box flexDirection="column" gap={1}>
+            <Box gap={1}>
+              <Muted>Branch:</Muted>
+              <TextInput value="main" onChange={() => {}} showUnderline underlineWidth={25} isActive={true} />
             </Box>
-            <Box flexDirection="column" gap={1} justifyContent="flex-end">
+            <Box flexDirection="column">
+              <Text>
+                <Text color="$success">{"✓"}</Text> All checks passed
+              </Text>
+              <Text>
+                <Text color="$success">{"✓"}</Text> Tests: 247 passed
+              </Text>
+              <Text>
+                <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
+              </Text>
+              <Text>
+                <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
+              </Text>
+            </Box>
+            <Box gap={2}>
               <Text backgroundColor="$primary" color="$primary-fg">
                 {" Deploy "}
               </Text>
@@ -41719,9 +41710,11 @@ interface ProcessInfo {
 }
 
 function createInitialState() {
-  const cores: CoreMetrics[] = Array.from({ length: 8 }, (_, i) => ({
-    usage: 20 + Math.random() * 60,
-    history: initHistory(30 + i * 5, 20, 20),
+  // Varied usage to showcase severity colors (green/yellow/red)
+  const coreUsages = [35, 52, 88, 45, 72, 93, 28, 61]
+  const cores: CoreMetrics[] = coreUsages.map((usage, i) => ({
+    usage,
+    history: initHistory(usage, 15, 20),
   }))
 
   const memory: MemoryMetrics = {
@@ -41821,25 +41814,22 @@ function CpuCore({ index, core, barWidth }: { index: number; core: CoreMetrics; 
   return (
     <Box>
       <Muted>{\`\${index} \`}</Muted>
-      <ProgressBar value={pct / 100} color={color} showPercentage={false} width={barWidth} />
-      <Text color={color}>
-        <Strong>{\` \${String(pct).padStart(3)}%\`}</Strong>
-      </Text>
-      <Muted> </Muted>
-      <Small>{sparkline(core.history.slice(-10), 100)}</Small>
+      <ProgressBar value={pct / 100} color={color} showPercentage width={barWidth} />
     </Box>
   )
 }
 
 function CpuPane({ cores }: { cores: CoreMetrics[] }) {
   const { width } = useContentRect()
-  // 2 (index) + bar + 5 (pct) + 1 (space) + 10 (sparkline) = 18 overhead + 2 safety
-  const barWidth = Math.max(8, width - 20)
+  // 2 (index) + bar (includes " NN%") = overhead 2 + 2 safety
+  const barWidth = Math.max(8, width - 4)
   const avgCpu = cores.reduce((sum, c) => sum + c.usage, 0) / cores.length
   const maxCpu = Math.max(...cores.map((c) => c.usage))
   const load1 = ((avgCpu / 100) * 8 * 0.8 + Math.random() * 0.5).toFixed(2)
   const load5 = ((avgCpu / 100) * 8 * 0.7 + Math.random() * 0.3).toFixed(2)
   const load15 = ((avgCpu / 100) * 8 * 0.6 + Math.random() * 0.2).toFixed(2)
+  const avgHistory =
+    cores[0]?.history.map((_, i) => cores.reduce((s, c) => s + (c.history[i] ?? 0), 0) / cores.length) ?? []
 
   return (
     <Box flexDirection="column" flexGrow={1} gap={1}>
@@ -41854,6 +41844,7 @@ function CpuPane({ cores }: { cores: CoreMetrics[] }) {
           <CpuCore key={i} index={i} core={core} barWidth={barWidth} />
         ))}
       </Box>
+      <Small color="$primary">{sparkline(avgHistory, 100)}</Small>
     </Box>
   )
 }
@@ -41896,8 +41887,8 @@ function MemoryPane({ memory }: { memory: MemoryMetrics }) {
         <ProgressBar value={swapPct} color={severityColor(swapPct * 100)} showPercentage />
       </Box>
       <Box flexDirection="column">
-        <Muted>Top Consumers</Muted>
         <Box gap={2} wrap="truncate">
+          <Muted>Top:</Muted>
           <Text>
             chrome <Strong color="$warning">12.1G</Strong>
           </Text>
@@ -41911,7 +41902,7 @@ function MemoryPane({ memory }: { memory: MemoryMetrics }) {
       </Box>
       <Box flexDirection="column">
         <Muted>History</Muted>
-        <Text color="$primary">{sparkline(memory.history, 100)}</Text>
+        <Text color="$success">{sparkline(memory.history, 100)}</Text>
       </Box>
     </Box>
   )
@@ -43814,59 +43805,60 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             <Text color="$primary">
               <Strong>Design Tokens</Strong>
             </Text>
-            <Box flexDirection="column">
-              <Text color="$success">{"●"} $success</Text>
-              <Text color="$warning">{"●"} $warning</Text>
-              <Text color="$error">{"●"} $error</Text>
-              <Text color="$info">{"●"} $info</Text>
-              <Text color="$primary">{"●"} $primary</Text>
-              <Muted>{"●"} $muted</Muted>
-            </Box>
-            <Box flexDirection="column">
-              <Text backgroundColor="$primary" color="$primary-fg">
-                {" $primary "}
-              </Text>
-              <Text backgroundColor="$fg" color="$bg">
-                {" $inverse "}
-              </Text>
-              <Text backgroundColor="$muted-bg" color="$fg">
-                {" $surface "}
-              </Text>
+            <Box flexDirection="row" gap={2}>
+              <Box flexDirection="column">
+                <Text color="$success">{"●"} $success</Text>
+                <Text color="$warning">{"●"} $warning</Text>
+                <Text color="$error">{"●"} $error</Text>
+                <Text color="$info">{"●"} $info</Text>
+                <Text color="$primary">{"●"} $primary</Text>
+                <Muted>{"●"} $muted</Muted>
+              </Box>
+              <Box flexDirection="column" gap={1}>
+                <Text backgroundColor="$primary" color="$primary-fg">
+                  {" $primary "}
+                </Text>
+                <Text backgroundColor="$fg" color="$bg">
+                  {" $inverse "}
+                </Text>
+                <Text backgroundColor="$muted-bg" color="$fg">
+                  {" $surface "}
+                </Text>
+                <Text backgroundColor="$surfacebg" color="$surface">
+                  {" $surfacebg "}
+                </Text>
+              </Box>
             </Box>
           </Box>
         </Box>
         {/* Right half: Modal Dialog */}
-        <Box {...cell} borderColor="$primary" backgroundColor="$surfacebg">
+        <Box {...cell} backgroundColor="$surfacebg">
           <Box justifyContent="space-between">
             <Text color="$primary">
               <Strong>Modal Dialog</Strong>
             </Text>
             <Muted>Esc to close</Muted>
           </Box>
-          <Box flexDirection="row" gap={4}>
-            <Box flexDirection="column" gap={1} flexGrow={1} flexBasis={0}>
-              <Box gap={1}>
-                <Muted>Branch:</Muted>
-                <Box flexGrow={1}>
-                  <TextInput value="main" onChange={() => {}} showUnderline underlineWidth={30} isActive={true} />
-                </Box>
-              </Box>
-              <Box flexDirection="column">
-                <Text>
-                  <Text color="$success">{"✓"}</Text> All checks passed
-                </Text>
-                <Text>
-                  <Text color="$success">{"✓"}</Text> Tests: 247 passed
-                </Text>
-                <Text>
-                  <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
-                </Text>
-                <Text>
-                  <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
-                </Text>
-              </Box>
+          <Box flexDirection="column" gap={1}>
+            <Box gap={1}>
+              <Muted>Branch:</Muted>
+              <TextInput value="main" onChange={() => {}} showUnderline underlineWidth={25} isActive={true} />
             </Box>
-            <Box flexDirection="column" gap={1} justifyContent="flex-end">
+            <Box flexDirection="column">
+              <Text>
+                <Text color="$success">{"✓"}</Text> All checks passed
+              </Text>
+              <Text>
+                <Text color="$success">{"✓"}</Text> Tests: 247 passed
+              </Text>
+              <Text>
+                <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
+              </Text>
+              <Text>
+                <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
+              </Text>
+            </Box>
+            <Box gap={2}>
               <Text backgroundColor="$primary" color="$primary-fg">
                 {" Deploy "}
               </Text>
@@ -51833,4 +51825,4 @@ if (root) {
   createViewerApp(root);
 }
 
-//# debugId=ACB46AC6CC217E7964756E2164756E21
+//# debugId=642A70721EE675DC64756E2164756E21

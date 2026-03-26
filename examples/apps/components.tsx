@@ -467,59 +467,60 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             <Text color="$primary">
               <Strong>Design Tokens</Strong>
             </Text>
-            <Box flexDirection="column">
-              <Text color="$success">{"●"} $success</Text>
-              <Text color="$warning">{"●"} $warning</Text>
-              <Text color="$error">{"●"} $error</Text>
-              <Text color="$info">{"●"} $info</Text>
-              <Text color="$primary">{"●"} $primary</Text>
-              <Muted>{"●"} $muted</Muted>
-            </Box>
-            <Box flexDirection="column">
-              <Text backgroundColor="$primary" color="$primary-fg">
-                {" $primary "}
-              </Text>
-              <Text backgroundColor="$fg" color="$bg">
-                {" $inverse "}
-              </Text>
-              <Text backgroundColor="$muted-bg" color="$fg">
-                {" $surface "}
-              </Text>
+            <Box flexDirection="row" gap={2}>
+              <Box flexDirection="column">
+                <Text color="$success">{"●"} $success</Text>
+                <Text color="$warning">{"●"} $warning</Text>
+                <Text color="$error">{"●"} $error</Text>
+                <Text color="$info">{"●"} $info</Text>
+                <Text color="$primary">{"●"} $primary</Text>
+                <Muted>{"●"} $muted</Muted>
+              </Box>
+              <Box flexDirection="column" gap={1}>
+                <Text backgroundColor="$primary" color="$primary-fg">
+                  {" $primary "}
+                </Text>
+                <Text backgroundColor="$fg" color="$bg">
+                  {" $inverse "}
+                </Text>
+                <Text backgroundColor="$muted-bg" color="$fg">
+                  {" $surface "}
+                </Text>
+                <Text backgroundColor="$surfacebg" color="$surface">
+                  {" $surfacebg "}
+                </Text>
+              </Box>
             </Box>
           </Box>
         </Box>
         {/* Right half: Modal Dialog */}
-        <Box {...cell} borderColor="$primary" backgroundColor="$surfacebg">
+        <Box {...cell} backgroundColor="$surfacebg">
           <Box justifyContent="space-between">
             <Text color="$primary">
               <Strong>Modal Dialog</Strong>
             </Text>
             <Muted>Esc to close</Muted>
           </Box>
-          <Box flexDirection="row" gap={4}>
-            <Box flexDirection="column" gap={1} flexGrow={1} flexBasis={0}>
-              <Box gap={1}>
-                <Muted>Branch:</Muted>
-                <Box flexGrow={1}>
-                  <TextInput value="main" onChange={() => {}} showUnderline underlineWidth={30} isActive={true} />
-                </Box>
-              </Box>
-              <Box flexDirection="column">
-                <Text>
-                  <Text color="$success">{"✓"}</Text> All checks passed
-                </Text>
-                <Text>
-                  <Text color="$success">{"✓"}</Text> Tests: 247 passed
-                </Text>
-                <Text>
-                  <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
-                </Text>
-                <Text>
-                  <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
-                </Text>
-              </Box>
+          <Box flexDirection="column" gap={1}>
+            <Box gap={1}>
+              <Muted>Branch:</Muted>
+              <TextInput value="main" onChange={() => {}} showUnderline underlineWidth={25} isActive={true} />
             </Box>
-            <Box flexDirection="column" gap={1} justifyContent="flex-end">
+            <Box flexDirection="column">
+              <Text>
+                <Text color="$success">{"✓"}</Text> All checks passed
+              </Text>
+              <Text>
+                <Text color="$success">{"✓"}</Text> Tests: 247 passed
+              </Text>
+              <Text>
+                <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
+              </Text>
+              <Text>
+                <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
+              </Text>
+            </Box>
+            <Box gap={2}>
               <Text backgroundColor="$primary" color="$primary-fg">
                 {" Deploy "}
               </Text>
