@@ -36225,26 +36225,6 @@ function SelectList({
 var jsx_runtime30 = __toESM(require_jsx_runtime(), 1);
 // packages/ag-react/src/ui/components/Badge.tsx
 var jsx_runtime31 = __toESM(require_jsx_runtime(), 1);
-var VARIANT_COLORS = {
-  default: "$fg",
-  primary: "$primary",
-  success: "$success",
-  warning: "$warning",
-  error: "$error"
-};
-function Badge({ label, variant = "default", color, ...rest }) {
-  const resolvedColor = color ?? VARIANT_COLORS[variant];
-  return /* @__PURE__ */ jsx_runtime31.jsxs(Text2, {
-    color: resolvedColor,
-    bold: true,
-    ...rest,
-    children: [
-      " ",
-      label,
-      " "
-    ]
-  });
-}
 // packages/ag-react/src/ui/components/SearchBar.tsx
 var import_react51 = __toESM(require_react(), 1);
 
@@ -38789,8 +38769,11 @@ function DisplayTab({ scrollOffset }) {
           /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
             ...gridCell,
             children: [
-              /* @__PURE__ */ jsx_runtime56.jsx(H2, {
-                children: "Progress & Activity"
+              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                color: "$primary",
+                children: /* @__PURE__ */ jsx_runtime56.jsx(Strong, {
+                  children: "Progress & Spinners"
+                })
               }),
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
                 flexDirection: "column",
@@ -38862,28 +38845,10 @@ function DisplayTab({ scrollOffset }) {
                   /* @__PURE__ */ jsx_runtime56.jsx(Spinner, {
                     type: "line",
                     label: "Compiling..."
-                  })
-                ]
-              }),
-              /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                gap: 1,
-                flexWrap: "wrap",
-                children: [
-                  /* @__PURE__ */ jsx_runtime56.jsx(Badge, {
-                    label: "Stable",
-                    variant: "success"
                   }),
-                  /* @__PURE__ */ jsx_runtime56.jsx(Badge, {
-                    label: "Beta",
-                    variant: "warning"
-                  }),
-                  /* @__PURE__ */ jsx_runtime56.jsx(Badge, {
-                    label: "Deprecated",
-                    variant: "error"
-                  }),
-                  /* @__PURE__ */ jsx_runtime56.jsx(Badge, {
-                    label: "v0.0.1",
-                    variant: "primary"
+                  /* @__PURE__ */ jsx_runtime56.jsx(Spinner, {
+                    type: "arc",
+                    label: "Optimizing bundle..."
                   })
                 ]
               })
@@ -38892,8 +38857,11 @@ function DisplayTab({ scrollOffset }) {
           /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
             ...gridCell,
             children: [
-              /* @__PURE__ */ jsx_runtime56.jsx(H2, {
-                children: "Input Controls"
+              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                color: "$primary",
+                children: /* @__PURE__ */ jsx_runtime56.jsx(Strong, {
+                  children: "Input Controls"
+                })
               }),
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
                 flexDirection: "column",
@@ -38955,8 +38923,11 @@ function DisplayTab({ scrollOffset }) {
           /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
             ...gridCell,
             children: [
-              /* @__PURE__ */ jsx_runtime56.jsx(H2, {
-                children: "Visual Styles"
+              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                color: "$primary",
+                children: /* @__PURE__ */ jsx_runtime56.jsx(Strong, {
+                  children: "Borders & Status"
+                })
               }),
               /* @__PURE__ */ jsx_runtime56.jsx(Box, {
                 flexDirection: "column",
@@ -38979,35 +38950,45 @@ function DisplayTab({ scrollOffset }) {
                 }, style))
               }),
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                gap: 1,
-                wrap: "truncate",
+                borderStyle: "round",
+                borderColor: "$border",
+                paddingX: 1,
+                flexDirection: "column",
                 children: [
                   /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                    color: "$success",
                     children: [
-                      "✓",
-                      " pass"
+                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                        color: "$success",
+                        children: "✓"
+                      }),
+                      " All checks passed"
                     ]
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                    color: "$error",
                     children: [
-                      "✗",
-                      " fail"
+                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                        color: "$warning",
+                        children: "⚠"
+                      }),
+                      " 2 deprecation warnings"
                     ]
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                    color: "$warning",
                     children: [
-                      "⚠",
-                      " warn"
+                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                        color: "$error",
+                        children: "✗"
+                      }),
+                      " 1 vulnerability found"
                     ]
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                    color: "$info",
                     children: [
-                      "ℹ",
-                      " info"
+                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                        color: "$info",
+                        children: "ℹ"
+                      }),
+                      " 47 packages installed"
                     ]
                   })
                 ]
@@ -39016,81 +38997,98 @@ function DisplayTab({ scrollOffset }) {
           }),
           /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
             ...gridCell,
+            borderColor: "$primary",
             children: [
-              /* @__PURE__ */ jsx_runtime56.jsx(H2, {
-                children: "Typography"
-              }),
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                flexDirection: "column",
+                justifyContent: "space-between",
                 children: [
-                  /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                    children: [
-                      /* @__PURE__ */ jsx_runtime56.jsx(Strong, {
-                        children: "Silvery"
-                      }),
-                      " is a ",
-                      /* @__PURE__ */ jsx_runtime56.jsx(Em, {
-                        children: "React framework"
-                      }),
-                      " for terminal UIs."
-                    ]
-                  }),
-                  /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                    children: [
-                      "Use ",
-                      /* @__PURE__ */ jsx_runtime56.jsx(Code, {
-                        children: "useContentRect()"
-                      }),
-                      " for responsive layout and ",
-                      /* @__PURE__ */ jsx_runtime56.jsx(Code, {
-                        children: "ProgressBar"
-                      }),
-                      " for feedback."
-                    ]
-                  }),
-                  /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                    children: [
-                      "Supports ",
-                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                        color: "$success",
-                        children: "semantic"
-                      }),
-                      " ",
-                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                        color: "$warning",
-                        children: "color"
-                      }),
-                      " ",
-                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                        color: "$error",
-                        children: "tokens"
-                      }),
-                      ", ",
-                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                        bold: true,
-                        children: "bold"
-                      }),
-                      ", ",
-                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                        dimColor: true,
-                        children: "dim"
-                      }),
-                      ", and",
-                      " ",
-                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                        underline: true,
-                        children: "underline"
-                      }),
-                      "."
-                    ]
+                  /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                    color: "$primary",
+                    children: /* @__PURE__ */ jsx_runtime56.jsx(Strong, {
+                      children: "Deploy to Production"
+                    })
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsx(Muted, {
-                    children: "38 built-in palettes — Dracula, Nord, Catppuccin, and more."
+                    children: "Esc to close"
                   })
                 ]
               }),
-              /* @__PURE__ */ jsx_runtime56.jsx(Kbd, {
-                children: "Ctrl"
+              /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                flexDirection: "column",
+                gap: 1,
+                children: [
+                  /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                    gap: 1,
+                    children: [
+                      /* @__PURE__ */ jsx_runtime56.jsx(Muted, {
+                        children: "Branch:"
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsx(Box, {
+                        flexGrow: 1,
+                        children: /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
+                          value: "main",
+                          onChange: () => {}
+                        })
+                      })
+                    ]
+                  }),
+                  /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                    flexDirection: "column",
+                    children: [
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            color: "$success",
+                            children: "✓"
+                          }),
+                          " All checks passed"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            color: "$success",
+                            children: "✓"
+                          }),
+                          " Tests: 247 passed"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            color: "$warning",
+                            children: "⚠"
+                          }),
+                          " 2 deprecation warnings"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                            color: "$info",
+                            children: "ℹ"
+                          }),
+                          " Deploy target: us-east-1"
+                        ]
+                      })
+                    ]
+                  }),
+                  /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                    gap: 2,
+                    children: [
+                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                        backgroundColor: "$primary",
+                        color: "$primary-fg",
+                        children: " Deploy "
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                        backgroundColor: "$muted-bg",
+                        color: "$fg",
+                        children: " Cancel "
+                      })
+                    ]
+                  })
+                ]
               })
             ]
           })
@@ -40663,10 +40661,12 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
 
   return (
     <Box flexDirection="column" gap={1} paddingX={1}>
-      {/* Row 1: Progress & Activity | Input Controls */}
+      {/* Row 1: Progress & Spinners | Input Controls */}
       <Box flexDirection="row" gap={1} flexGrow={1}>
         <Box {...gridCell}>
-          <H2>Progress & Activity</H2>
+          <Text color="$primary">
+            <Strong>Progress & Spinners</Strong>
+          </Text>
           <Box flexDirection="column">
             <Box>
               <Text color="$muted">{"Build   "}</Text>
@@ -40696,16 +40696,13 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
           <Box flexDirection="column">
             <Spinner type="dots" label="Loading packages..." />
             <Spinner type="line" label="Compiling..." />
-          </Box>
-          <Box gap={1} flexWrap="wrap">
-            <Badge label="Stable" variant="success" />
-            <Badge label="Beta" variant="warning" />
-            <Badge label="Deprecated" variant="error" />
-            <Badge label="v0.0.1" variant="primary" />
+            <Spinner type="arc" label="Optimizing bundle..." />
           </Box>
         </Box>
         <Box {...gridCell}>
-          <H2>Input Controls</H2>
+          <Text color="$primary">
+            <Strong>Input Controls</Strong>
+          </Text>
           <Box flexDirection="column" gap={1}>
             <Box gap={1}>
               <Muted>Search:</Muted>
@@ -40732,10 +40729,12 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
         </Box>
       </Box>
 
-      {/* Row 2: Visual Styles | Typography */}
+      {/* Row 2: Borders & Status | Typography */}
       <Box flexDirection="row" gap={1} flexGrow={1}>
         <Box {...gridCell}>
-          <H2>Visual Styles</H2>
+          <Text color="$primary">
+            <Strong>Borders & Status</Strong>
+          </Text>
           <Box flexDirection="column" gap={0}>
             {borderStyles.map((style, i) => (
               <Box
@@ -40755,30 +40754,58 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
               </Box>
             ))}
           </Box>
-          <Box gap={1} wrap="truncate">
-            <Text color="$success">{"✓"} pass</Text>
-            <Text color="$error">{"✗"} fail</Text>
-            <Text color="$warning">{"⚠"} warn</Text>
-            <Text color="$info">{"ℹ"} info</Text>
+          <Box borderStyle="round" borderColor="$border" paddingX={1} flexDirection="column">
+            <Text>
+              <Text color="$success">{"✓"}</Text> All checks passed
+            </Text>
+            <Text>
+              <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
+            </Text>
+            <Text>
+              <Text color="$error">{"✗"}</Text> 1 vulnerability found
+            </Text>
+            <Text>
+              <Text color="$info">{"ℹ"}</Text> 47 packages installed
+            </Text>
           </Box>
         </Box>
-        <Box {...gridCell}>
-          <H2>Typography</H2>
-          <Box flexDirection="column">
-            <Text>
-              <Strong>Silvery</Strong> is a <Em>React framework</Em> for terminal UIs.
+        <Box {...gridCell} borderColor="$primary">
+          <Box justifyContent="space-between">
+            <Text color="$primary">
+              <Strong>Deploy to Production</Strong>
             </Text>
-            <Text>
-              Use <Code>{"useContentRect()"}</Code> for responsive layout and <Code>{"ProgressBar"}</Code> for feedback.
-            </Text>
-            <Text>
-              Supports <Text color="$success">semantic</Text> <Text color="$warning">color</Text>{" "}
-              <Text color="$error">tokens</Text>, <Text bold>bold</Text>, <Text dimColor>dim</Text>, and{" "}
-              <Text underline>underline</Text>.
-            </Text>
-            <Muted>38 built-in palettes — Dracula, Nord, Catppuccin, and more.</Muted>
+            <Muted>Esc to close</Muted>
           </Box>
-          <Kbd>Ctrl</Kbd>
+          <Box flexDirection="column" gap={1}>
+            <Box gap={1}>
+              <Muted>Branch:</Muted>
+              <Box flexGrow={1}>
+                <TextInput value="main" onChange={() => {}} />
+              </Box>
+            </Box>
+            <Box flexDirection="column">
+              <Text>
+                <Text color="$success">{"✓"}</Text> All checks passed
+              </Text>
+              <Text>
+                <Text color="$success">{"✓"}</Text> Tests: 247 passed
+              </Text>
+              <Text>
+                <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
+              </Text>
+              <Text>
+                <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
+              </Text>
+            </Box>
+            <Box gap={2}>
+              <Text backgroundColor="$primary" color="$primary-fg">
+                {" Deploy "}
+              </Text>
+              <Text backgroundColor="$muted-bg" color="$fg">
+                {" Cancel "}
+              </Text>
+            </Box>
+          </Box>
         </Box>
       </Box>
 
@@ -43603,10 +43630,12 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
 
   return (
     <Box flexDirection="column" gap={1} paddingX={1}>
-      {/* Row 1: Progress & Activity | Input Controls */}
+      {/* Row 1: Progress & Spinners | Input Controls */}
       <Box flexDirection="row" gap={1} flexGrow={1}>
         <Box {...gridCell}>
-          <H2>Progress & Activity</H2>
+          <Text color="$primary">
+            <Strong>Progress & Spinners</Strong>
+          </Text>
           <Box flexDirection="column">
             <Box>
               <Text color="$muted">{"Build   "}</Text>
@@ -43636,16 +43665,13 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
           <Box flexDirection="column">
             <Spinner type="dots" label="Loading packages..." />
             <Spinner type="line" label="Compiling..." />
-          </Box>
-          <Box gap={1} flexWrap="wrap">
-            <Badge label="Stable" variant="success" />
-            <Badge label="Beta" variant="warning" />
-            <Badge label="Deprecated" variant="error" />
-            <Badge label="v0.0.1" variant="primary" />
+            <Spinner type="arc" label="Optimizing bundle..." />
           </Box>
         </Box>
         <Box {...gridCell}>
-          <H2>Input Controls</H2>
+          <Text color="$primary">
+            <Strong>Input Controls</Strong>
+          </Text>
           <Box flexDirection="column" gap={1}>
             <Box gap={1}>
               <Muted>Search:</Muted>
@@ -43672,10 +43698,12 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
         </Box>
       </Box>
 
-      {/* Row 2: Visual Styles | Typography */}
+      {/* Row 2: Borders & Status | Typography */}
       <Box flexDirection="row" gap={1} flexGrow={1}>
         <Box {...gridCell}>
-          <H2>Visual Styles</H2>
+          <Text color="$primary">
+            <Strong>Borders & Status</Strong>
+          </Text>
           <Box flexDirection="column" gap={0}>
             {borderStyles.map((style, i) => (
               <Box
@@ -43695,30 +43723,58 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
               </Box>
             ))}
           </Box>
-          <Box gap={1} wrap="truncate">
-            <Text color="$success">{"✓"} pass</Text>
-            <Text color="$error">{"✗"} fail</Text>
-            <Text color="$warning">{"⚠"} warn</Text>
-            <Text color="$info">{"ℹ"} info</Text>
+          <Box borderStyle="round" borderColor="$border" paddingX={1} flexDirection="column">
+            <Text>
+              <Text color="$success">{"✓"}</Text> All checks passed
+            </Text>
+            <Text>
+              <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
+            </Text>
+            <Text>
+              <Text color="$error">{"✗"}</Text> 1 vulnerability found
+            </Text>
+            <Text>
+              <Text color="$info">{"ℹ"}</Text> 47 packages installed
+            </Text>
           </Box>
         </Box>
-        <Box {...gridCell}>
-          <H2>Typography</H2>
-          <Box flexDirection="column">
-            <Text>
-              <Strong>Silvery</Strong> is a <Em>React framework</Em> for terminal UIs.
+        <Box {...gridCell} borderColor="$primary">
+          <Box justifyContent="space-between">
+            <Text color="$primary">
+              <Strong>Deploy to Production</Strong>
             </Text>
-            <Text>
-              Use <Code>{"useContentRect()"}</Code> for responsive layout and <Code>{"ProgressBar"}</Code> for feedback.
-            </Text>
-            <Text>
-              Supports <Text color="$success">semantic</Text> <Text color="$warning">color</Text>{" "}
-              <Text color="$error">tokens</Text>, <Text bold>bold</Text>, <Text dimColor>dim</Text>, and{" "}
-              <Text underline>underline</Text>.
-            </Text>
-            <Muted>38 built-in palettes — Dracula, Nord, Catppuccin, and more.</Muted>
+            <Muted>Esc to close</Muted>
           </Box>
-          <Kbd>Ctrl</Kbd>
+          <Box flexDirection="column" gap={1}>
+            <Box gap={1}>
+              <Muted>Branch:</Muted>
+              <Box flexGrow={1}>
+                <TextInput value="main" onChange={() => {}} />
+              </Box>
+            </Box>
+            <Box flexDirection="column">
+              <Text>
+                <Text color="$success">{"✓"}</Text> All checks passed
+              </Text>
+              <Text>
+                <Text color="$success">{"✓"}</Text> Tests: 247 passed
+              </Text>
+              <Text>
+                <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
+              </Text>
+              <Text>
+                <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
+              </Text>
+            </Box>
+            <Box gap={2}>
+              <Text backgroundColor="$primary" color="$primary-fg">
+                {" Deploy "}
+              </Text>
+              <Text backgroundColor="$muted-bg" color="$fg">
+                {" Cancel "}
+              </Text>
+            </Box>
+          </Box>
         </Box>
       </Box>
 
@@ -51677,4 +51733,4 @@ if (root) {
   createViewerApp(root);
 }
 
-//# debugId=1AACE3D22220CE8464756E2164756E21
+//# debugId=AD8E597446529B6164756E2164756E21

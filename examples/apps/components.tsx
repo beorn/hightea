@@ -367,10 +367,12 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
 
   return (
     <Box flexDirection="column" gap={1} paddingX={1}>
-      {/* Row 1: Progress & Activity | Input Controls */}
+      {/* Row 1: Progress & Spinners | Input Controls */}
       <Box flexDirection="row" gap={1} flexGrow={1}>
         <Box {...gridCell}>
-          <H2>Progress & Activity</H2>
+          <Text color="$primary">
+            <Strong>Progress & Spinners</Strong>
+          </Text>
           <Box flexDirection="column">
             <Box>
               <Text color="$muted">{"Build   "}</Text>
@@ -400,16 +402,13 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
           <Box flexDirection="column">
             <Spinner type="dots" label="Loading packages..." />
             <Spinner type="line" label="Compiling..." />
-          </Box>
-          <Box gap={1} flexWrap="wrap">
-            <Badge label="Stable" variant="success" />
-            <Badge label="Beta" variant="warning" />
-            <Badge label="Deprecated" variant="error" />
-            <Badge label="v0.0.1" variant="primary" />
+            <Spinner type="arc" label="Optimizing bundle..." />
           </Box>
         </Box>
         <Box {...gridCell}>
-          <H2>Input Controls</H2>
+          <Text color="$primary">
+            <Strong>Input Controls</Strong>
+          </Text>
           <Box flexDirection="column" gap={1}>
             <Box gap={1}>
               <Muted>Search:</Muted>
@@ -436,10 +435,12 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
         </Box>
       </Box>
 
-      {/* Row 2: Visual Styles | Typography */}
+      {/* Row 2: Borders & Status | Typography */}
       <Box flexDirection="row" gap={1} flexGrow={1}>
         <Box {...gridCell}>
-          <H2>Visual Styles</H2>
+          <Text color="$primary">
+            <Strong>Borders & Status</Strong>
+          </Text>
           <Box flexDirection="column" gap={0}>
             {borderStyles.map((style, i) => (
               <Box
@@ -459,30 +460,58 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
               </Box>
             ))}
           </Box>
-          <Box gap={1} wrap="truncate">
-            <Text color="$success">{"✓"} pass</Text>
-            <Text color="$error">{"✗"} fail</Text>
-            <Text color="$warning">{"⚠"} warn</Text>
-            <Text color="$info">{"ℹ"} info</Text>
+          <Box borderStyle="round" borderColor="$border" paddingX={1} flexDirection="column">
+            <Text>
+              <Text color="$success">{"✓"}</Text> All checks passed
+            </Text>
+            <Text>
+              <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
+            </Text>
+            <Text>
+              <Text color="$error">{"✗"}</Text> 1 vulnerability found
+            </Text>
+            <Text>
+              <Text color="$info">{"ℹ"}</Text> 47 packages installed
+            </Text>
           </Box>
         </Box>
-        <Box {...gridCell}>
-          <H2>Typography</H2>
-          <Box flexDirection="column">
-            <Text>
-              <Strong>Silvery</Strong> is a <Em>React framework</Em> for terminal UIs.
+        <Box {...gridCell} borderColor="$primary">
+          <Box justifyContent="space-between">
+            <Text color="$primary">
+              <Strong>Deploy to Production</Strong>
             </Text>
-            <Text>
-              Use <Code>{"useContentRect()"}</Code> for responsive layout and <Code>{"ProgressBar"}</Code> for feedback.
-            </Text>
-            <Text>
-              Supports <Text color="$success">semantic</Text> <Text color="$warning">color</Text>{" "}
-              <Text color="$error">tokens</Text>, <Text bold>bold</Text>, <Text dimColor>dim</Text>, and{" "}
-              <Text underline>underline</Text>.
-            </Text>
-            <Muted>38 built-in palettes — Dracula, Nord, Catppuccin, and more.</Muted>
+            <Muted>Esc to close</Muted>
           </Box>
-          <Kbd>Ctrl</Kbd>
+          <Box flexDirection="column" gap={1}>
+            <Box gap={1}>
+              <Muted>Branch:</Muted>
+              <Box flexGrow={1}>
+                <TextInput value="main" onChange={() => {}} />
+              </Box>
+            </Box>
+            <Box flexDirection="column">
+              <Text>
+                <Text color="$success">{"✓"}</Text> All checks passed
+              </Text>
+              <Text>
+                <Text color="$success">{"✓"}</Text> Tests: 247 passed
+              </Text>
+              <Text>
+                <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
+              </Text>
+              <Text>
+                <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
+              </Text>
+            </Box>
+            <Box gap={2}>
+              <Text backgroundColor="$primary" color="$primary-fg">
+                {" Deploy "}
+              </Text>
+              <Text backgroundColor="$muted-bg" color="$fg">
+                {" Cancel "}
+              </Text>
+            </Box>
+          </Box>
         </Box>
       </Box>
 
