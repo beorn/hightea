@@ -22,7 +22,6 @@ import {
   TabList,
   Tab,
   TabPanel,
-  ProgressBar,
   useContentRect,
   useInput,
   useApp,
@@ -47,6 +46,49 @@ const SPARK_CHARS = "▁▂▃▄▅▆▇█"
 
 function sparkline(values: number[], max: number): string {
   return values.map((v) => SPARK_CHARS[Math.round((v / max) * 7)] ?? SPARK_CHARS[0]).join("")
+}
+
+// ============================================================================
+// Bar components
+// ============================================================================
+
+const BAR_WIDTH = 30
+
+/** Fixed-width progress bar with pre-calculated chars (no flex measurement needed) */
+function SimpleBar({
+  value,
+  color,
+  width = BAR_WIDTH,
+  showPercentage = false,
+}: {
+  value: number
+  color: string
+  width?: number
+  showPercentage?: boolean
+}) {
+  const pct = Math.max(0, Math.min(1, value))
+  const filled = Math.round(pct * width)
+  const empty = width - filled
+  return (
+    <Box wrap="truncate">
+      <Text color={color}>{"█".repeat(filled)}</Text>
+      <Text dimColor>{"░".repeat(empty)}</Text>
+      {showPercentage && <Text> {Math.round(pct * 100)}%</Text>}
+    </Box>
+  )
+}
+
+/** Multi-segment stacked bar (flexGrow — works in column-only parents) */
+function StackedBar({ segments }: { segments: { value: number; color: string; char?: string }[] }) {
+  return (
+    <Box>
+      {segments.map((seg, i) => (
+        <Box key={i} flexGrow={Math.max(1, Math.round(seg.value * 100))}>
+          <Text color={seg.color}>{(seg.char ?? "█").repeat(80)}</Text>
+        </Box>
+      ))}
+    </Box>
+  )
 }
 
 // ============================================================================
@@ -208,18 +250,16 @@ function LabelValue({ label, value, color }: { label: string; value: string; col
 
 // --- CPU Tab ---
 
-function CpuCore({ index, core }: { index: number; core: CoreMetrics }) {
+function CpuCore({ index, core, barWidth }: { index: number; core: CoreMetrics; barWidth: number }) {
   const pct = Math.round(core.usage)
   const color = severityColor(pct)
+  const filled = Math.round((pct / 100) * barWidth)
+  const empty = barWidth - filled
   return (
-    <Box>
+    <Box wrap="truncate">
       <Muted>{`${index} `}</Muted>
-      <Box flexGrow={Math.max(1, pct)} flexBasis={0}>
-        <Text color={color}>{"█".repeat(80)}</Text>
-      </Box>
-      <Box flexGrow={Math.max(1, 100 - pct)} flexBasis={0}>
-        <Text dimColor>{"░".repeat(80)}</Text>
-      </Box>
+      <Text color={color}>{"█".repeat(filled)}</Text>
+      <Text dimColor>{"░".repeat(empty)}</Text>
       <Text color={color}>
         <Strong>{` ${String(pct).padStart(3)}%`}</Strong>
       </Text>
@@ -229,7 +269,7 @@ function CpuCore({ index, core }: { index: number; core: CoreMetrics }) {
   )
 }
 
-function CpuPane({ cores }: { cores: CoreMetrics[] }) {
+function CpuPane({ cores, barWidth = BAR_WIDTH }: { cores: CoreMetrics[]; barWidth?: number }) {
   const avgCpu = cores.reduce((sum, c) => sum + c.usage, 0) / cores.length
   const maxCpu = Math.max(...cores.map((c) => c.usage))
   const load1 = ((avgCpu / 100) * 8 * 0.8 + Math.random() * 0.5).toFixed(2)
@@ -245,7 +285,7 @@ function CpuPane({ cores }: { cores: CoreMetrics[] }) {
         <LabelValue label="Load:" value={`${load1} ${load5} ${load15}`} />
       </Box>
       {cores.map((core, i) => (
-        <CpuCore key={i} index={i} core={core} />
+        <CpuCore key={i} index={i} core={core} barWidth={barWidth} />
       ))}
     </Box>
   )
@@ -253,27 +293,15 @@ function CpuPane({ cores }: { cores: CoreMetrics[] }) {
 
 // --- Memory Tab ---
 
-function StackedBar({ segments }: { segments: { value: number; color: string; char?: string }[] }) {
-  return (
-    <Box>
-      {segments.map((seg, i) => (
-        <Box key={i} flexGrow={Math.max(1, Math.round(seg.value * 100))}>
-          <Text color={seg.color}>{(seg.char ?? "█").repeat(80)}</Text>
-        </Box>
-      ))}
-    </Box>
-  )
-}
-
 function MemoryPane({ memory }: { memory: MemoryMetrics }) {
   const total = memory.used + memory.cached + memory.buffers + memory.free
   const usedPct = (memory.used / total) * 100
-  const swapPct = (memory.swap / memory.swapTotal) * 100
+  const swapPct = memory.swap / memory.swapTotal
 
   return (
     <Box flexDirection="column" gap={1} flexGrow={1}>
       <SectionHeader>Memory</SectionHeader>
-      <Box gap={2}>
+      <Box gap={2} wrap="truncate">
         <LabelValue label="Total:" value={`${total.toFixed(1)} GB`} />
         <LabelValue label="Used:" value={`${memory.used.toFixed(1)} GB`} color={severityColor(usedPct)} />
       </Box>
@@ -287,7 +315,7 @@ function MemoryPane({ memory }: { memory: MemoryMetrics }) {
             { value: memory.free / total, color: "$muted", char: "░" },
           ]}
         />
-        <Box gap={2} wrap="truncate">
+        <Box gap={1} wrap="truncate">
           <Text color={severityColor(usedPct)}>{"█"}Used</Text>
           <Text color="$info">{"█"}Cache</Text>
           <Text color="$primary">{"█"}Buf</Text>
@@ -298,7 +326,7 @@ function MemoryPane({ memory }: { memory: MemoryMetrics }) {
         <Muted>
           Swap: {memory.swap.toFixed(1)}G / {memory.swapTotal.toFixed(1)}G
         </Muted>
-        <ProgressBar value={swapPct / 100} color={severityColor(swapPct)} showPercentage />
+        <SimpleBar value={swapPct} color={severityColor(swapPct * 100)} showPercentage />
       </Box>
       <Box flexDirection="column">
         <Muted>Top Consumers</Muted>
@@ -329,22 +357,22 @@ function NetworkPane({ network }: { network: NetworkMetrics }) {
     <Box flexDirection="column" gap={1} flexGrow={1}>
       <SectionHeader>Network</SectionHeader>
       <Box flexDirection="column">
-        <Box justifyContent="space-between">
+        <Box justifyContent="space-between" wrap="truncate">
           <Text color="$success">
             {"↓"} Download: <Strong>{network.downloadRate.toFixed(1)} MB/s</Strong>
           </Text>
           <Small>{sparkline(network.downloadHistory, 100)}</Small>
         </Box>
-        <ProgressBar value={network.downloadRate / 100} color="$success" showPercentage={false} />
+        <SimpleBar value={network.downloadRate / 100} color="$success" />
       </Box>
       <Box flexDirection="column">
-        <Box justifyContent="space-between">
+        <Box justifyContent="space-between" wrap="truncate">
           <Text color="$info">
             {"↑"} Upload: <Strong>{network.uploadRate.toFixed(1)} MB/s</Strong>
           </Text>
           <Small>{sparkline(network.uploadHistory, 40)}</Small>
         </Box>
-        <ProgressBar value={network.uploadRate / 40} color="$info" showPercentage={false} />
+        <SimpleBar value={network.uploadRate / 40} color="$info" />
       </Box>
       <Box borderStyle="round" borderColor="$border" paddingX={1} flexDirection="column">
         <Muted>Connection Stats</Muted>
@@ -368,7 +396,7 @@ function NetworkPane({ network }: { network: NetworkMetrics }) {
 function ProcessRow({ proc, isTop }: { proc: ProcessInfo; isTop: boolean }) {
   const cpuColor = severityColor(proc.cpu)
   return (
-    <Box gap={1}>
+    <Box gap={1} wrap="truncate">
       <Text color="$muted">{String(proc.pid).padStart(5)}</Text>
       <Text bold={isTop}>{proc.name.padEnd(12)}</Text>
       <Text color={cpuColor}>{proc.cpu.toFixed(1).padStart(5)}%</Text>
@@ -384,7 +412,7 @@ function ProcessPane({ processes }: { processes: ProcessInfo[] }) {
   return (
     <Box flexDirection="column" gap={1} flexGrow={1}>
       <SectionHeader>Processes</SectionHeader>
-      <Box gap={1}>
+      <Box gap={1} wrap="truncate">
         <Muted>{"  PID".padStart(5)}</Muted>
         <Muted>{"Name".padEnd(12)}</Muted>
         <Muted>{"  CPU".padStart(5)}</Muted>
@@ -394,7 +422,7 @@ function ProcessPane({ processes }: { processes: ProcessInfo[] }) {
       {sorted.map((proc, i) => (
         <ProcessRow key={proc.pid} proc={proc} isTop={i === 0} />
       ))}
-      <Box gap={2} paddingTop={1}>
+      <Box gap={2} paddingTop={1} wrap="truncate">
         <LabelValue label="Total:" value={`${processes.length} processes`} />
         <LabelValue
           label="Running:"
