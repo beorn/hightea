@@ -59,7 +59,9 @@ export function ProgressBar({
   label,
   color,
 }: ProgressBarProps): React.ReactElement {
-  const { width: contentWidth } = useContentRect()
+  // Only use layout feedback when width isn't explicitly provided
+  const layoutRect = useContentRect()
+  const contentWidth = widthProp ? 0 : layoutRect.width
   const [bouncePos, setBouncePos] = useState(0)
   const [bounceDir, setBounceDir] = useState(1)
 

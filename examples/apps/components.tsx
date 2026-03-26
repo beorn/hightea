@@ -483,11 +483,18 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
           </Box>
         </Box>
         <Box flexDirection="column" flexGrow={1}>
-          <Divider title="Divider Styles" />
-          <Box flexDirection="column" gap={1}>
-            <Divider />
-            <Divider title="Section" />
-            <Divider title="Decorative" titleAlignment="left" />
+          <Divider title="Color Tokens" />
+          <Box flexDirection="column">
+            <Box gap={2}>
+              <Text color="$primary">{"●"} primary</Text>
+              <Text color="$success">{"●"} success</Text>
+              <Text color="$warning">{"●"} warning</Text>
+            </Box>
+            <Box gap={2}>
+              <Text color="$error">{"●"} error</Text>
+              <Text color="$info">{"●"} info</Text>
+              <Muted>{"●"} muted</Muted>
+            </Box>
           </Box>
         </Box>
       </Box>

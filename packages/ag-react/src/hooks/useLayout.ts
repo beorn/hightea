@@ -10,17 +10,55 @@
 
 import { useContext, useLayoutEffect, useReducer, useRef } from "react"
 import { NodeContext } from "../context"
-import { type Rect, rectEqual } from "@silvery/ag/types"
+import { type AgNode, type BoxProps, type Rect, rectEqual } from "@silvery/ag/types"
 
 export type { Rect }
+
+/**
+ * Get the inner content dimensions of a node (border-box minus padding and border).
+ * This is the space available for the node's children.
+ */
+function getInnerRect(node: AgNode): Rect {
+  const rect = node.contentRect
+  if (!rect) return { x: 0, y: 0, width: 0, height: 0 }
+
+  const props = node.props as BoxProps
+  if (!props || node.type === "silvery-text") return rect
+
+  // Compute padding
+  const pTop = props.paddingTop ?? props.paddingY ?? props.padding ?? 0
+  const pBottom = props.paddingBottom ?? props.paddingY ?? props.padding ?? 0
+  const pLeft = props.paddingLeft ?? props.paddingX ?? props.padding ?? 0
+  const pRight = props.paddingRight ?? props.paddingX ?? props.padding ?? 0
+
+  // Compute border (1px per side if borderStyle is set)
+  let bTop = 0
+  let bBottom = 0
+  let bLeft = 0
+  let bRight = 0
+  if (props.borderStyle) {
+    bTop = props.borderTop !== false ? 1 : 0
+    bBottom = props.borderBottom !== false ? 1 : 0
+    bLeft = props.borderLeft !== false ? 1 : 0
+    bRight = props.borderRight !== false ? 1 : 0
+  }
+
+  return {
+    x: rect.x + pLeft + bLeft,
+    y: rect.y + pTop + bTop,
+    width: Math.max(0, rect.width - pLeft - pRight - bLeft - bRight),
+    height: Math.max(0, rect.height - pTop - pBottom - bTop - bBottom),
+  }
+}
 
 // ============================================================================
 // Content Rect Hooks (position within scrollable content)
 // ============================================================================
 
 /**
- * Returns the content-relative position for the current component.
- * Like CSS offsetTop/offsetLeft - position within scrollable content.
+ * Returns the inner content dimensions for the current component's nearest Box.
+ * Width and height reflect the space available for children (border-box minus
+ * padding and border), like CSS `clientWidth`/`clientHeight`.
  *
  * On first render, returns { x: 0, y: 0, width: 0, height: 0 }.
  * After layout completes, automatically re-renders with actual dimensions.
@@ -52,7 +90,8 @@ export function useContentRect(): Rect {
     }
   }, [node])
 
-  return node?.contentRect ?? { x: 0, y: 0, width: 0, height: 0 }
+  if (!node) return { x: 0, y: 0, width: 0, height: 0 }
+  return getInnerRect(node)
 }
 
 /**
