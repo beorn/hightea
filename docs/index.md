@@ -47,12 +47,6 @@ features:
     linkText: See comparison
 ---
 
-## Explore the Examples
-
-<div class="viewer-wrapper">
-  <iframe src="/examples/viewer.html" class="viewer-iframe" frameborder="0" title="Silvery Interactive Examples" loading="lazy" />
-</div>
-
 ## Build Any Terminal App
 
 <div class="use-cases">
@@ -143,23 +137,6 @@ Silvery is part of a family of terminal-focused libraries:
 - **@silvery/create** -- Structured state management with commands, keybindings, effects-as-data
 
 <style>
-.viewer-wrapper {
-  margin: 1.5rem 0 2rem;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 12px;
-  overflow: hidden;
-  background: #0f0f1a;
-}
-.viewer-wrapper {
-  padding: 8px;
-}
-.viewer-iframe {
-  width: 100%;
-  height: 640px;
-  border: none;
-  display: block;
-  border-radius: 8px;
-}
 .use-cases {
   margin: 0.5rem 0 1.5rem;
 }

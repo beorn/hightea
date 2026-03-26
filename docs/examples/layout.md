@@ -159,7 +159,7 @@ Add scrolling to any Box. Silvery measures children, calculates the visible rang
 
 ### Multi-Column Layouts
 
-Equal-width columns via `flexGrow`. Each column scrolls independently (see the [Kanban showcase](/examples/showcase.html?demo=kanban)):
+Equal-width columns via `flexGrow`. Each column scrolls independently:
 
 ```tsx
 <Box flexDirection="row" flexGrow={1}>
