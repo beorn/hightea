@@ -355,7 +355,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
   })
 
   return (
-    <Box flexDirection="column" gap={1} flexGrow={1} paddingX={1} overflow="scroll" scrollOffset={scrollOffset}>
+    <Box flexDirection="column" gap={1} paddingX={1}>
       {/* Progress Bars */}
       <Box flexDirection="column">
         <Divider title="Progress Bars" />
@@ -411,7 +411,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
       </Box>
 
       {/* Status + Border Styles row */}
-      <Box flexDirection="row" gap={4} flexGrow={1}>
+      <Box flexDirection="row" gap={4}>
         <Box flexDirection="column">
           <Divider title="Status" />
           <Box flexDirection="column">

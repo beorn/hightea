@@ -27,8 +27,8 @@ const ALL_DEMOS = [
   { id: "textarea", name: "Text Editor" },
 ]
 
-const VIEWPORT = { width: 800, height: 500 }
-const SETTLE_MS = 3000
+const VIEWPORT = { width: 1100, height: 650 }
+const SETTLE_MS = 5000
 
 // --- Parse CLI args ---
 

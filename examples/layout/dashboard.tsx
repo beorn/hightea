@@ -52,7 +52,7 @@ function sparkline(values: number[], max: number): string {
 // Bar components
 // ============================================================================
 
-const BAR_WIDTH = 30
+const BAR_WIDTH = 40
 
 /** Fixed-width progress bar with pre-calculated chars (no flex measurement needed) */
 function SimpleBar({
