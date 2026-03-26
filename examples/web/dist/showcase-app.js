@@ -38746,7 +38746,7 @@ function DisplayTab({ scrollOffset }) {
       setSelectedBorder((prev) => Math.max(prev - 1, 0));
     }
   });
-  const gridCell = {
+  const cell = {
     flexGrow: 1,
     flexBasis: 0,
     borderStyle: "round",
@@ -38758,16 +38758,19 @@ function DisplayTab({ scrollOffset }) {
   };
   return /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
     flexDirection: "column",
+    flexGrow: 1,
     gap: 1,
-    paddingX: 1,
+    paddingX: 2,
+    paddingY: 1,
     children: [
       /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
         flexDirection: "row",
-        gap: 1,
+        gap: 2,
         flexGrow: 1,
+        flexBasis: 0,
         children: [
           /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-            ...gridCell,
+            ...cell,
             children: [
               /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                 color: "$primary",
@@ -38855,7 +38858,7 @@ function DisplayTab({ scrollOffset }) {
             ]
           }),
           /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-            ...gridCell,
+            ...cell,
             children: [
               /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                 color: "$primary",
@@ -38917,16 +38920,17 @@ function DisplayTab({ scrollOffset }) {
       }),
       /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
         flexDirection: "row",
-        gap: 1,
+        gap: 2,
         flexGrow: 1,
+        flexBasis: 0,
         children: [
           /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-            ...gridCell,
+            ...cell,
             children: [
               /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                 color: "$primary",
                 children: /* @__PURE__ */ jsx_runtime56.jsx(Strong, {
-                  children: "Borders & Status"
+                  children: "Border & Color Styles"
                 })
               }),
               /* @__PURE__ */ jsx_runtime56.jsx(Box, {
@@ -38950,45 +38954,79 @@ function DisplayTab({ scrollOffset }) {
                 }, style))
               }),
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                borderStyle: "round",
-                borderColor: "$border",
-                paddingX: 1,
                 flexDirection: "column",
                 children: [
-                  /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                  /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                    gap: 1,
+                    wrap: "truncate",
                     children: [
-                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
                         color: "$success",
-                        children: "✓"
+                        children: [
+                          "●",
+                          " success"
+                        ]
                       }),
-                      " All checks passed"
-                    ]
-                  }),
-                  /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                    children: [
-                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
                         color: "$warning",
-                        children: "⚠"
+                        children: [
+                          "●",
+                          " warning"
+                        ]
                       }),
-                      " 2 deprecation warnings"
-                    ]
-                  }),
-                  /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                    children: [
-                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
                         color: "$error",
-                        children: "✗"
+                        children: [
+                          "●",
+                          " error"
+                        ]
                       }),
-                      " 1 vulnerability found"
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        color: "$info",
+                        children: [
+                          "●",
+                          " info"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        color: "$primary",
+                        children: [
+                          "●",
+                          " primary"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Muted, {
+                        children: [
+                          "●",
+                          " muted"
+                        ]
+                      })
                     ]
                   }),
-                  /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                  /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                    gap: 1,
+                    wrap: "truncate",
                     children: [
                       /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                        color: "$info",
-                        children: "ℹ"
+                        backgroundColor: "$primary",
+                        color: "$primary-fg",
+                        children: " primary "
                       }),
-                      " 47 packages installed"
+                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                        backgroundColor: "$success-bg",
+                        color: "$success",
+                        children: " success "
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                        backgroundColor: "$error-bg",
+                        color: "$error",
+                        children: " error "
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                        backgroundColor: "$muted-bg",
+                        color: "$fg",
+                        children: " surface "
+                      })
                     ]
                   })
                 ]
@@ -38996,8 +39034,9 @@ function DisplayTab({ scrollOffset }) {
             ]
           }),
           /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-            ...gridCell,
+            ...cell,
             borderColor: "$primary",
+            backgroundColor: "$surfacebg",
             children: [
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
                 justifyContent: "space-between",
@@ -39005,7 +39044,7 @@ function DisplayTab({ scrollOffset }) {
                   /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                     color: "$primary",
                     children: /* @__PURE__ */ jsx_runtime56.jsx(Strong, {
-                      children: "Deploy to Production"
+                      children: "Modal Dialog"
                     })
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsx(Muted, {
@@ -39017,20 +39056,13 @@ function DisplayTab({ scrollOffset }) {
                 flexDirection: "column",
                 gap: 1,
                 children: [
-                  /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                    gap: 1,
-                    children: [
-                      /* @__PURE__ */ jsx_runtime56.jsx(Muted, {
-                        children: "Branch:"
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsx(Box, {
-                        flexGrow: 1,
-                        children: /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
-                          value: "main",
-                          onChange: () => {}
-                        })
-                      })
-                    ]
+                  /* @__PURE__ */ jsx_runtime56.jsx(Box, {
+                    borderStyle: "round",
+                    borderColor: "$focusborder",
+                    paddingX: 1,
+                    children: /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                      children: "main"
+                    })
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
                     flexDirection: "column",
@@ -39075,6 +39107,7 @@ function DisplayTab({ scrollOffset }) {
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
                     gap: 2,
+                    justifyContent: "center",
                     children: [
                       /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                         backgroundColor: "$primary",
@@ -39484,4 +39517,4 @@ if (!ShowcaseComponent) {
   }
 }
 
-//# debugId=C8225153A9BD3E3F64756E2164756E21
+//# debugId=36EC8C38297BADBF64756E2164756E21
