@@ -208,21 +208,20 @@ function LabelValue({ label, value, color }: { label: string; value: string; col
 
 // --- CPU Tab ---
 
-function CpuCore({ index, core, barWidth }: { index: number; core: CoreMetrics; barWidth: number }) {
+function CpuCore({ index, core }: { index: number; core: CoreMetrics }) {
   const pct = Math.round(core.usage)
   const color = severityColor(pct)
   return (
     <Box>
       <Muted>{`${index} `}</Muted>
-      <ProgressBar value={pct / 100} color={color} showPercentage width={barWidth} />
+      <Box flexGrow={1}>
+        <ProgressBar value={pct / 100} color={color} showPercentage />
+      </Box>
     </Box>
   )
 }
 
 function CpuPane({ cores }: { cores: CoreMetrics[] }) {
-  const { width } = useContentRect()
-  // 2 (index) + bar (includes " NN%") = overhead 2 + 2 safety
-  const barWidth = Math.max(8, width - 4)
   const avgCpu = cores.reduce((sum, c) => sum + c.usage, 0) / cores.length
   const maxCpu = Math.max(...cores.map((c) => c.usage))
   const load1 = ((avgCpu / 100) * 8 * 0.8 + Math.random() * 0.5).toFixed(2)
@@ -241,7 +240,7 @@ function CpuPane({ cores }: { cores: CoreMetrics[] }) {
       </Box>
       <Box flexDirection="column">
         {cores.map((core, i) => (
-          <CpuCore key={i} index={i} core={core} barWidth={barWidth} />
+          <CpuCore key={i} index={i} core={core} />
         ))}
       </Box>
       <Small color="$primary">{sparkline(avgHistory, 100)}</Small>
@@ -310,56 +309,23 @@ function MemoryPane({ memory }: { memory: MemoryMetrics }) {
 
 // --- Network Tab ---
 
-function NetworkRow({
-  label,
-  rate,
-  max,
-  color,
-  history,
-  barWidth,
-}: {
-  label: string
-  rate: number
-  max: number
-  color: string
-  history: number[]
-  barWidth: number
-}) {
-  return (
-    <Box>
-      <Text color={color}>{label} </Text>
-      <ProgressBar value={Math.min(1, rate / max)} color={color} showPercentage={false} width={barWidth} />
-      <Text color={color}>{` ${rate.toFixed(1).padStart(5)} MB/s`}</Text>
-      <Muted> </Muted>
-      <Small>{sparkline(history.slice(-10), max)}</Small>
-    </Box>
-  )
-}
-
 function NetworkPane({ network }: { network: NetworkMetrics }) {
-  const { width } = useContentRect()
-  // 2 (label+space) + bar + 6 (rate) + 1 (space) + 10 (sparkline) = 19 overhead + 2 safety
-  const barWidth = Math.max(8, width - 21)
   return (
     <Box flexDirection="column" gap={1} flexGrow={1}>
       <SectionHeader>Network</SectionHeader>
       <Box flexDirection="column">
-        <NetworkRow
-          label="↓"
-          rate={network.downloadRate}
-          max={100}
-          color="$success"
-          history={network.downloadHistory}
-          barWidth={barWidth}
-        />
-        <NetworkRow
-          label="↑"
-          rate={network.uploadRate}
-          max={40}
-          color="$info"
-          history={network.uploadHistory}
-          barWidth={barWidth}
-        />
+        <Box justifyContent="space-between" wrap="truncate">
+          <Text color="$success">{"↓"} Download</Text>
+          <Text color="$success">{network.downloadRate.toFixed(1)} MB/s</Text>
+        </Box>
+        <ProgressBar value={Math.min(1, network.downloadRate / 100)} color="$success" showPercentage={false} />
+      </Box>
+      <Box flexDirection="column">
+        <Box justifyContent="space-between" wrap="truncate">
+          <Text color="$info">{"↑"} Upload</Text>
+          <Text color="$info">{network.uploadRate.toFixed(1)} MB/s</Text>
+        </Box>
+        <ProgressBar value={Math.min(1, network.uploadRate / 40)} color="$info" showPercentage={false} />
       </Box>
       <Box flexDirection="column">
         <Muted>Connections</Muted>

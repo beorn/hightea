@@ -36930,7 +36930,7 @@ function LabelValue({ label, value, color }) {
     ]
   });
 }
-function CpuCore({ index, core, barWidth }) {
+function CpuCore({ index, core }) {
   const pct = Math.round(core.usage);
   const color = severityColor(pct);
   return /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
@@ -36938,18 +36938,18 @@ function CpuCore({ index, core, barWidth }) {
       /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
         children: `${index} `
       }),
-      /* @__PURE__ */ jsx_runtime53.jsx(ProgressBar, {
-        value: pct / 100,
-        color,
-        showPercentage: true,
-        width: barWidth
+      /* @__PURE__ */ jsx_runtime53.jsx(Box, {
+        flexGrow: 1,
+        children: /* @__PURE__ */ jsx_runtime53.jsx(ProgressBar, {
+          value: pct / 100,
+          color,
+          showPercentage: true
+        })
       })
     ]
   });
 }
 function CpuPane({ cores }) {
-  const { width } = useContentRect();
-  const barWidth = Math.max(8, width - 4);
   const avgCpu = cores.reduce((sum, c) => sum + c.usage, 0) / cores.length;
   const maxCpu = Math.max(...cores.map((c) => c.usage));
   const load1 = (avgCpu / 100 * 8 * 0.8 + Math.random() * 0.5).toFixed(2);
@@ -36988,8 +36988,7 @@ function CpuPane({ cores }) {
         flexDirection: "column",
         children: cores.map((core, i) => /* @__PURE__ */ jsx_runtime53.jsx(CpuCore, {
           index: i,
-          core,
-          barWidth
+          core
         }, i))
       }),
       /* @__PURE__ */ jsx_runtime53.jsx(Small, {
@@ -37150,45 +37149,7 @@ function MemoryPane({ memory }) {
     ]
   });
 }
-function NetworkRow({
-  label,
-  rate,
-  max,
-  color,
-  history,
-  barWidth
-}) {
-  return /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
-    children: [
-      /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
-        color,
-        children: [
-          label,
-          " "
-        ]
-      }),
-      /* @__PURE__ */ jsx_runtime53.jsx(ProgressBar, {
-        value: Math.min(1, rate / max),
-        color,
-        showPercentage: false,
-        width: barWidth
-      }),
-      /* @__PURE__ */ jsx_runtime53.jsx(Text2, {
-        color,
-        children: ` ${rate.toFixed(1).padStart(5)} MB/s`
-      }),
-      /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-        children: " "
-      }),
-      /* @__PURE__ */ jsx_runtime53.jsx(Small, {
-        children: sparkline(history.slice(-10), max)
-      })
-    ]
-  });
-}
 function NetworkPane({ network }) {
-  const { width } = useContentRect();
-  const barWidth = Math.max(8, width - 21);
   return /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
     flexDirection: "column",
     gap: 1,
@@ -37200,21 +37161,60 @@ function NetworkPane({ network }) {
       /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
         flexDirection: "column",
         children: [
-          /* @__PURE__ */ jsx_runtime53.jsx(NetworkRow, {
-            label: "↓",
-            rate: network.downloadRate,
-            max: 100,
-            color: "$success",
-            history: network.downloadHistory,
-            barWidth
+          /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
+            justifyContent: "space-between",
+            wrap: "truncate",
+            children: [
+              /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
+                color: "$success",
+                children: [
+                  "↓",
+                  " Download"
+                ]
+              }),
+              /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
+                color: "$success",
+                children: [
+                  network.downloadRate.toFixed(1),
+                  " MB/s"
+                ]
+              })
+            ]
           }),
-          /* @__PURE__ */ jsx_runtime53.jsx(NetworkRow, {
-            label: "↑",
-            rate: network.uploadRate,
-            max: 40,
+          /* @__PURE__ */ jsx_runtime53.jsx(ProgressBar, {
+            value: Math.min(1, network.downloadRate / 100),
+            color: "$success",
+            showPercentage: false
+          })
+        ]
+      }),
+      /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
+        flexDirection: "column",
+        children: [
+          /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
+            justifyContent: "space-between",
+            wrap: "truncate",
+            children: [
+              /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
+                color: "$info",
+                children: [
+                  "↑",
+                  " Upload"
+                ]
+              }),
+              /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
+                color: "$info",
+                children: [
+                  network.uploadRate.toFixed(1),
+                  " MB/s"
+                ]
+              })
+            ]
+          }),
+          /* @__PURE__ */ jsx_runtime53.jsx(ProgressBar, {
+            value: Math.min(1, network.uploadRate / 40),
             color: "$info",
-            history: network.uploadHistory,
-            barWidth
+            showPercentage: false
           })
         ]
       }),
@@ -39506,4 +39506,4 @@ if (!ShowcaseComponent) {
   }
 }
 
-//# debugId=44202D368F6CC00664756E2164756E21
+//# debugId=5CD12DA1A3385E7864756E2164756E21
