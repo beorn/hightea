@@ -211,21 +211,171 @@ function createInitialState(): DashboardState {
   }
 
   const processes: ProcessInfo[] = [
-    { pid: 31842, name: "bun dev --hot src/server.ts", cpu: 94.2, memp: 3.8, mem: "1.22G", status: "Running", time: "01:42:17", io: "24M/s", thr: 18 },
-    { pid: 27114, name: "node /usr/bin/vite --host", cpu: 71.4, memp: 2.2, mem: "716M", status: "Running", time: "00:18:09", io: "12M/s", thr: 26 },
-    { pid: 918, name: "postgres: checkpointer", cpu: 12.8, memp: 1.4, mem: "448M", status: "Sleep", time: "19:22:41", io: "3.1M/s", thr: 27 },
-    { pid: 1023, name: "Code Helper (Renderer)", cpu: 9.6, memp: 4.8, mem: "1.53G", status: "Sleep", time: "07:13:51", io: "1.2M/s", thr: 44 },
-    { pid: 2241, name: "docker-desktop", cpu: 8.9, memp: 6.3, mem: "2.01G", status: "Running", time: "11:08:04", io: "9.4M/s", thr: 61 },
-    { pid: 1542, name: "redis-server *:6379", cpu: 6.7, memp: 0.9, mem: "289M", status: "Sleep", time: "02:51:17", io: "642K/s", thr: 8 },
-    { pid: 612, name: "tailscaled --tun=userspace-networking", cpu: 5.4, memp: 0.4, mem: "132M", status: "Sleep", time: "05:44:22", io: "218K/s", thr: 19 },
-    { pid: 33210, name: "bun test --watch", cpu: 4.2, memp: 1.1, mem: "356M", status: "Running", time: "00:06:38", io: "4.6M/s", thr: 12 },
-    { pid: 1804, name: "nginx: worker process", cpu: 3.7, memp: 0.2, mem: "72M", status: "Sleep", time: "03:17:09", io: "118K/s", thr: 5 },
-    { pid: 2877, name: "Chrome Helper (GPU)", cpu: 3.2, memp: 2.7, mem: "864M", status: "Sleep", time: "06:29:33", io: "2.3M/s", thr: 23 },
-    { pid: 451, name: "kernel_task", cpu: 2.8, memp: 0.1, mem: "42M", status: "Running", time: "22:54:48", io: "0", thr: 179 },
-    { pid: 1942, name: "syncthing serve --no-browser", cpu: 2.1, memp: 0.8, mem: "258M", status: "Sleep", time: "14:05:14", io: "884K/s", thr: 16 },
-    { pid: 7621, name: "python scripts/indexer.py --incremental", cpu: 1.9, memp: 1.9, mem: "604M", status: "I/O wait", time: "00:43:58", io: "14M/s", thr: 9 },
-    { pid: 266, name: "systemd-journald", cpu: 1.2, memp: 0.1, mem: "38M", status: "Sleep", time: "09:12:44", io: "96K/s", thr: 3 },
-    { pid: 74, name: "zsh - bun gen-mockup.ts", cpu: 0.2, memp: 0.0, mem: "6M", status: "Running", time: "00:00:03", io: "0", thr: 1 },
+    {
+      pid: 31842,
+      name: "bun dev --hot src/server.ts",
+      cpu: 94.2,
+      memp: 3.8,
+      mem: "1.22G",
+      status: "Running",
+      time: "01:42:17",
+      io: "24M/s",
+      thr: 18,
+    },
+    {
+      pid: 27114,
+      name: "node /usr/bin/vite --host",
+      cpu: 71.4,
+      memp: 2.2,
+      mem: "716M",
+      status: "Running",
+      time: "00:18:09",
+      io: "12M/s",
+      thr: 26,
+    },
+    {
+      pid: 918,
+      name: "postgres: checkpointer",
+      cpu: 12.8,
+      memp: 1.4,
+      mem: "448M",
+      status: "Sleep",
+      time: "19:22:41",
+      io: "3.1M/s",
+      thr: 27,
+    },
+    {
+      pid: 1023,
+      name: "Code Helper (Renderer)",
+      cpu: 9.6,
+      memp: 4.8,
+      mem: "1.53G",
+      status: "Sleep",
+      time: "07:13:51",
+      io: "1.2M/s",
+      thr: 44,
+    },
+    {
+      pid: 2241,
+      name: "docker-desktop",
+      cpu: 8.9,
+      memp: 6.3,
+      mem: "2.01G",
+      status: "Running",
+      time: "11:08:04",
+      io: "9.4M/s",
+      thr: 61,
+    },
+    {
+      pid: 1542,
+      name: "redis-server *:6379",
+      cpu: 6.7,
+      memp: 0.9,
+      mem: "289M",
+      status: "Sleep",
+      time: "02:51:17",
+      io: "642K/s",
+      thr: 8,
+    },
+    {
+      pid: 612,
+      name: "tailscaled --tun=userspace-networking",
+      cpu: 5.4,
+      memp: 0.4,
+      mem: "132M",
+      status: "Sleep",
+      time: "05:44:22",
+      io: "218K/s",
+      thr: 19,
+    },
+    {
+      pid: 33210,
+      name: "bun test --watch",
+      cpu: 4.2,
+      memp: 1.1,
+      mem: "356M",
+      status: "Running",
+      time: "00:06:38",
+      io: "4.6M/s",
+      thr: 12,
+    },
+    {
+      pid: 1804,
+      name: "nginx: worker process",
+      cpu: 3.7,
+      memp: 0.2,
+      mem: "72M",
+      status: "Sleep",
+      time: "03:17:09",
+      io: "118K/s",
+      thr: 5,
+    },
+    {
+      pid: 2877,
+      name: "Chrome Helper (GPU)",
+      cpu: 3.2,
+      memp: 2.7,
+      mem: "864M",
+      status: "Sleep",
+      time: "06:29:33",
+      io: "2.3M/s",
+      thr: 23,
+    },
+    {
+      pid: 451,
+      name: "kernel_task",
+      cpu: 2.8,
+      memp: 0.1,
+      mem: "42M",
+      status: "Running",
+      time: "22:54:48",
+      io: "0",
+      thr: 179,
+    },
+    {
+      pid: 1942,
+      name: "syncthing serve --no-browser",
+      cpu: 2.1,
+      memp: 0.8,
+      mem: "258M",
+      status: "Sleep",
+      time: "14:05:14",
+      io: "884K/s",
+      thr: 16,
+    },
+    {
+      pid: 7621,
+      name: "python scripts/indexer.py --incremental",
+      cpu: 1.9,
+      memp: 1.9,
+      mem: "604M",
+      status: "I/O wait",
+      time: "00:43:58",
+      io: "14M/s",
+      thr: 9,
+    },
+    {
+      pid: 266,
+      name: "systemd-journald",
+      cpu: 1.2,
+      memp: 0.1,
+      mem: "38M",
+      status: "Sleep",
+      time: "09:12:44",
+      io: "96K/s",
+      thr: 3,
+    },
+    {
+      pid: 74,
+      name: "zsh - bun gen-mockup.ts",
+      cpu: 0.2,
+      memp: 0.0,
+      mem: "6M",
+      status: "Running",
+      time: "00:00:03",
+      io: "0",
+      thr: 1,
+    },
   ]
 
   return {
@@ -442,20 +592,14 @@ function MemoryPanel({ memory }: { memory: MemoryMetrics }) {
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-      <LR>
-        <Box gap={1} wrap="truncate">
-          <Muted>RAM</Muted>
-          <Text>{`${memory.ramUsed.toFixed(1)} / ${memory.ramTotal.toFixed(1)} GiB`}</Text>
-          <Text color={severityColor(ramPct)}>{`${ramPct}%`}</Text>
-          <Box flexGrow={1}>
-            <ProgressBar value={ramPct / 100} color={severityColor(ramPct)} showPercentage={false} />
-          </Box>
+      <Box wrap="truncate">
+        <Muted>{"RAM "}</Muted>
+        <Text>{`${memory.ramUsed.toFixed(1)}/${memory.ramTotal.toFixed(1)}G `}</Text>
+        <Text color={severityColor(ramPct)}>{`${ramPct}% `}</Text>
+        <Box flexGrow={1}>
+          <ProgressBar value={ramPct / 100} color={severityColor(ramPct)} showPercentage={false} />
         </Box>
-        <Box gap={1} wrap="truncate">
-          <Muted>avail</Muted>
-          <Text>{`${avail}G`}</Text>
-        </Box>
-      </LR>
+      </Box>
       <LR>
         <Box gap={2} wrap="truncate">
           <Box gap={1}>
@@ -478,20 +622,14 @@ function MemoryPanel({ memory }: { memory: MemoryMetrics }) {
           </Box>
         </Box>
       </LR>
-      <LR>
-        <Box gap={1} wrap="truncate">
-          <Muted>Swap</Muted>
-          <Text>{`${memory.swapUsed.toFixed(1)} / ${memory.swapTotal.toFixed(1)} GiB`}</Text>
-          <Text color={severityColor(swapPct)}>{`${swapPct}%`}</Text>
-          <Box flexGrow={1}>
-            <ProgressBar value={swapPct / 100} color={severityColor(swapPct)} showPercentage={false} />
-          </Box>
+      <Box wrap="truncate">
+        <Muted>{"Swap"}</Muted>
+        <Text>{` ${memory.swapUsed.toFixed(1)}/${memory.swapTotal.toFixed(1)}G `}</Text>
+        <Text color={severityColor(swapPct)}>{`${swapPct}% `}</Text>
+        <Box flexGrow={1}>
+          <ProgressBar value={swapPct / 100} color={severityColor(swapPct)} showPercentage={false} />
         </Box>
-        <Box gap={1} wrap="truncate">
-          <Muted>zram</Muted>
-          <Text>off</Text>
-        </Box>
-      </LR>
+      </Box>
       <Sep />
       <LR>
         <Box gap={2} wrap="truncate">
@@ -546,34 +684,22 @@ function NetworkPanel({ network }: { network: NetworkMetrics }) {
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-      <LR>
-        <Box gap={1} wrap="truncate">
-          <Muted>DL</Muted>
-          <Text>{`${network.dlRate} Mb/s`}</Text>
-          <Text color={severityColor(dlPct)}>{`${dlPct}%`}</Text>
-          <Box flexGrow={1}>
-            <ProgressBar value={dlPct / 100} color={severityColor(dlPct)} showPercentage={false} />
-          </Box>
+      <Box wrap="truncate">
+        <Muted>{"DL "}</Muted>
+        <Text>{`${network.dlRate} Mb/s `}</Text>
+        <Text color={severityColor(dlPct)}>{`${dlPct}% `}</Text>
+        <Box flexGrow={1}>
+          <ProgressBar value={dlPct / 100} color={severityColor(dlPct)} showPercentage={false} />
         </Box>
-        <Box gap={1} wrap="truncate">
-          <Muted>peak</Muted>
-          <Text>{`${network.dlPeak}`}</Text>
+      </Box>
+      <Box wrap="truncate">
+        <Muted>{"UL "}</Muted>
+        <Text color="$info">{`${network.ulRate} Mb/s `}</Text>
+        <Text color="$info">{`${ulPct}% `}</Text>
+        <Box flexGrow={1}>
+          <ProgressBar value={ulPct / 100} color="$info" showPercentage={false} />
         </Box>
-      </LR>
-      <LR>
-        <Box gap={1} wrap="truncate">
-          <Muted>UL</Muted>
-          <Text color="$info">{`${network.ulRate} Mb/s`}</Text>
-          <Text color="$info">{`${ulPct}%`}</Text>
-          <Box flexGrow={1}>
-            <ProgressBar value={ulPct / 100} color="$info" showPercentage={false} />
-          </Box>
-        </Box>
-        <Box gap={1} wrap="truncate">
-          <Muted>peak</Muted>
-          <Text>{`${network.ulPeak}`}</Text>
-        </Box>
-      </LR>
+      </Box>
       <Sep />
       <LR>
         <Box gap={2} wrap="truncate">
@@ -847,7 +973,7 @@ export function Dashboard() {
           <Muted>system monitor showcase</Muted>
           <Text color="$primary">devbox-01</Text>
         </Box>
-        <Muted>14:27 UTC  [h]help  [1]cpu  [2]mem  [3]net  [p]proc  [/]filter  [q]quit</Muted>
+        <Muted>14:27 UTC [h]help [1]cpu [2]mem [3]net [p]proc [/]filter [q]quit</Muted>
       </LR>
       <WideLayout state={state} />
     </Box>
