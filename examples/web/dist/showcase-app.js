@@ -38881,7 +38881,8 @@ function DisplayTab({ scrollOffset }) {
                         children: /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
                           value: "flutter widgets",
                           onChange: () => {},
-                          borderStyle: "round"
+                          showUnderline: true,
+                          underlineWidth: 30
                         })
                       })
                     ]
@@ -38926,18 +38927,22 @@ function DisplayTab({ scrollOffset }) {
         flexBasis: 0,
         children: [
           /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-            ...cell,
+            flexDirection: "column",
+            gap: 1,
+            flexGrow: 1,
+            flexBasis: 0,
             children: [
-              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                color: "$primary",
-                children: /* @__PURE__ */ jsx_runtime56.jsx(Strong, {
-                  children: "Border & Color Styles"
-                })
-              }),
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                flexDirection: "row",
-                gap: 2,
+                ...cell,
+                flexGrow: 1,
+                flexBasis: 0,
                 children: [
+                  /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                    color: "$primary",
+                    children: /* @__PURE__ */ jsx_runtime56.jsx(Strong, {
+                      children: "Border Styles"
+                    })
+                  }),
                   /* @__PURE__ */ jsx_runtime56.jsx(Box, {
                     flexDirection: "column",
                     gap: 0,
@@ -38957,77 +38962,83 @@ function DisplayTab({ scrollOffset }) {
                         ]
                       })
                     }, style))
+                  })
+                ]
+              }),
+              /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                ...cell,
+                flexGrow: 1,
+                flexBasis: 0,
+                children: [
+                  /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                    color: "$primary",
+                    children: /* @__PURE__ */ jsx_runtime56.jsx(Strong, {
+                      children: "Design Tokens"
+                    })
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
                     flexDirection: "column",
-                    flexGrow: 1,
-                    gap: 1,
                     children: [
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                        flexDirection: "column",
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        color: "$success",
                         children: [
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            color: "$success",
-                            children: [
-                              "●",
-                              " success"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            color: "$warning",
-                            children: [
-                              "●",
-                              " warning"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            color: "$error",
-                            children: [
-                              "●",
-                              " error"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            color: "$info",
-                            children: [
-                              "●",
-                              " info"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            color: "$primary",
-                            children: [
-                              "●",
-                              " primary"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Muted, {
-                            children: [
-                              "●",
-                              " muted"
-                            ]
-                          })
+                          "●",
+                          " $success"
                         ]
                       }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                        flexDirection: "column",
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        color: "$warning",
                         children: [
-                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                            backgroundColor: "$primary",
-                            color: "$primary-fg",
-                            children: " selected "
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                            backgroundColor: "$fg",
-                            color: "$bg",
-                            children: " inverse "
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                            backgroundColor: "$muted-bg",
-                            color: "$fg",
-                            children: " surface "
-                          })
+                          "●",
+                          " $warning"
                         ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        color: "$error",
+                        children: [
+                          "●",
+                          " $error"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        color: "$info",
+                        children: [
+                          "●",
+                          " $info"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        color: "$primary",
+                        children: [
+                          "●",
+                          " $primary"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Muted, {
+                        children: [
+                          "●",
+                          " $muted"
+                        ]
+                      })
+                    ]
+                  }),
+                  /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                    flexDirection: "column",
+                    children: [
+                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                        backgroundColor: "$primary",
+                        color: "$primary-fg",
+                        children: " $primary "
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                        backgroundColor: "$fg",
+                        color: "$bg",
+                        children: " $inverse "
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                        backgroundColor: "$muted-bg",
+                        color: "$fg",
+                        children: " $surface "
                       })
                     ]
                   })
@@ -39055,70 +39066,80 @@ function DisplayTab({ scrollOffset }) {
                 ]
               }),
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                flexDirection: "column",
-                gap: 1,
+                flexDirection: "row",
+                gap: 4,
                 children: [
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                    flexDirection: "column",
                     gap: 1,
+                    flexGrow: 1,
+                    flexBasis: 0,
                     children: [
-                      /* @__PURE__ */ jsx_runtime56.jsx(Muted, {
-                        children: "Branch:"
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                        gap: 1,
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsx(Muted, {
+                            children: "Branch:"
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsx(Box, {
+                            flexGrow: 1,
+                            children: /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
+                              value: "main",
+                              onChange: () => {},
+                              showUnderline: true,
+                              underlineWidth: 30,
+                              isActive: true
+                            })
+                          })
+                        ]
                       }),
-                      /* @__PURE__ */ jsx_runtime56.jsx(Box, {
-                        flexGrow: 1,
-                        children: /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
-                          value: "main",
-                          onChange: () => {},
-                          borderStyle: "round",
-                          isActive: true
-                        })
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                        flexDirection: "column",
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            children: [
+                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                                color: "$success",
+                                children: "✓"
+                              }),
+                              " All checks passed"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            children: [
+                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                                color: "$success",
+                                children: "✓"
+                              }),
+                              " Tests: 247 passed"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            children: [
+                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                                color: "$warning",
+                                children: "⚠"
+                              }),
+                              " 2 deprecation warnings"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            children: [
+                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                                color: "$info",
+                                children: "ℹ"
+                              }),
+                              " Deploy target: us-east-1"
+                            ]
+                          })
+                        ]
                       })
                     ]
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
                     flexDirection: "column",
-                    children: [
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        children: [
-                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                            color: "$success",
-                            children: "✓"
-                          }),
-                          " All checks passed"
-                        ]
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        children: [
-                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                            color: "$success",
-                            children: "✓"
-                          }),
-                          " Tests: 247 passed"
-                        ]
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        children: [
-                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                            color: "$warning",
-                            children: "⚠"
-                          }),
-                          " 2 deprecation warnings"
-                        ]
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        children: [
-                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                            color: "$info",
-                            children: "ℹ"
-                          }),
-                          " Deploy target: us-east-1"
-                        ]
-                      })
-                    ]
-                  }),
-                  /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                    gap: 2,
-                    justifyContent: "center",
+                    gap: 1,
+                    justifyContent: "flex-end",
                     children: [
                       /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                         backgroundColor: "$primary",
@@ -39528,4 +39549,4 @@ if (!ShowcaseComponent) {
   }
 }
 
-//# debugId=B1D84BF06D5F2A2564756E2164756E21
+//# debugId=4C41164BD1F8722564756E2164756E21

@@ -38881,7 +38881,8 @@ function DisplayTab({ scrollOffset }) {
                         children: /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
                           value: "flutter widgets",
                           onChange: () => {},
-                          borderStyle: "round"
+                          showUnderline: true,
+                          underlineWidth: 30
                         })
                       })
                     ]
@@ -38926,18 +38927,22 @@ function DisplayTab({ scrollOffset }) {
         flexBasis: 0,
         children: [
           /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-            ...cell,
+            flexDirection: "column",
+            gap: 1,
+            flexGrow: 1,
+            flexBasis: 0,
             children: [
-              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                color: "$primary",
-                children: /* @__PURE__ */ jsx_runtime56.jsx(Strong, {
-                  children: "Border & Color Styles"
-                })
-              }),
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                flexDirection: "row",
-                gap: 2,
+                ...cell,
+                flexGrow: 1,
+                flexBasis: 0,
                 children: [
+                  /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                    color: "$primary",
+                    children: /* @__PURE__ */ jsx_runtime56.jsx(Strong, {
+                      children: "Border Styles"
+                    })
+                  }),
                   /* @__PURE__ */ jsx_runtime56.jsx(Box, {
                     flexDirection: "column",
                     gap: 0,
@@ -38957,77 +38962,83 @@ function DisplayTab({ scrollOffset }) {
                         ]
                       })
                     }, style))
+                  })
+                ]
+              }),
+              /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                ...cell,
+                flexGrow: 1,
+                flexBasis: 0,
+                children: [
+                  /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                    color: "$primary",
+                    children: /* @__PURE__ */ jsx_runtime56.jsx(Strong, {
+                      children: "Design Tokens"
+                    })
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
                     flexDirection: "column",
-                    flexGrow: 1,
-                    gap: 1,
                     children: [
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                        flexDirection: "column",
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        color: "$success",
                         children: [
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            color: "$success",
-                            children: [
-                              "●",
-                              " success"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            color: "$warning",
-                            children: [
-                              "●",
-                              " warning"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            color: "$error",
-                            children: [
-                              "●",
-                              " error"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            color: "$info",
-                            children: [
-                              "●",
-                              " info"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                            color: "$primary",
-                            children: [
-                              "●",
-                              " primary"
-                            ]
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsxs(Muted, {
-                            children: [
-                              "●",
-                              " muted"
-                            ]
-                          })
+                          "●",
+                          " $success"
                         ]
                       }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                        flexDirection: "column",
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        color: "$warning",
                         children: [
-                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                            backgroundColor: "$primary",
-                            color: "$primary-fg",
-                            children: " selected "
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                            backgroundColor: "$fg",
-                            color: "$bg",
-                            children: " inverse "
-                          }),
-                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                            backgroundColor: "$muted-bg",
-                            color: "$fg",
-                            children: " surface "
-                          })
+                          "●",
+                          " $warning"
                         ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        color: "$error",
+                        children: [
+                          "●",
+                          " $error"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        color: "$info",
+                        children: [
+                          "●",
+                          " $info"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                        color: "$primary",
+                        children: [
+                          "●",
+                          " $primary"
+                        ]
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Muted, {
+                        children: [
+                          "●",
+                          " $muted"
+                        ]
+                      })
+                    ]
+                  }),
+                  /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                    flexDirection: "column",
+                    children: [
+                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                        backgroundColor: "$primary",
+                        color: "$primary-fg",
+                        children: " $primary "
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                        backgroundColor: "$fg",
+                        color: "$bg",
+                        children: " $inverse "
+                      }),
+                      /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                        backgroundColor: "$muted-bg",
+                        color: "$fg",
+                        children: " $surface "
                       })
                     ]
                   })
@@ -39055,70 +39066,80 @@ function DisplayTab({ scrollOffset }) {
                 ]
               }),
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                flexDirection: "column",
-                gap: 1,
+                flexDirection: "row",
+                gap: 4,
                 children: [
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                    flexDirection: "column",
                     gap: 1,
+                    flexGrow: 1,
+                    flexBasis: 0,
                     children: [
-                      /* @__PURE__ */ jsx_runtime56.jsx(Muted, {
-                        children: "Branch:"
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                        gap: 1,
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsx(Muted, {
+                            children: "Branch:"
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsx(Box, {
+                            flexGrow: 1,
+                            children: /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
+                              value: "main",
+                              onChange: () => {},
+                              showUnderline: true,
+                              underlineWidth: 30,
+                              isActive: true
+                            })
+                          })
+                        ]
                       }),
-                      /* @__PURE__ */ jsx_runtime56.jsx(Box, {
-                        flexGrow: 1,
-                        children: /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
-                          value: "main",
-                          onChange: () => {},
-                          borderStyle: "round",
-                          isActive: true
-                        })
+                      /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
+                        flexDirection: "column",
+                        children: [
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            children: [
+                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                                color: "$success",
+                                children: "✓"
+                              }),
+                              " All checks passed"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            children: [
+                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                                color: "$success",
+                                children: "✓"
+                              }),
+                              " Tests: 247 passed"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            children: [
+                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                                color: "$warning",
+                                children: "⚠"
+                              }),
+                              " 2 deprecation warnings"
+                            ]
+                          }),
+                          /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
+                            children: [
+                              /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
+                                color: "$info",
+                                children: "ℹ"
+                              }),
+                              " Deploy target: us-east-1"
+                            ]
+                          })
+                        ]
                       })
                     ]
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
                     flexDirection: "column",
-                    children: [
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        children: [
-                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                            color: "$success",
-                            children: "✓"
-                          }),
-                          " All checks passed"
-                        ]
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        children: [
-                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                            color: "$success",
-                            children: "✓"
-                          }),
-                          " Tests: 247 passed"
-                        ]
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        children: [
-                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                            color: "$warning",
-                            children: "⚠"
-                          }),
-                          " 2 deprecation warnings"
-                        ]
-                      }),
-                      /* @__PURE__ */ jsx_runtime56.jsxs(Text2, {
-                        children: [
-                          /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                            color: "$info",
-                            children: "ℹ"
-                          }),
-                          " Deploy target: us-east-1"
-                        ]
-                      })
-                    ]
-                  }),
-                  /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                    gap: 2,
-                    justifyContent: "center",
+                    gap: 1,
+                    justifyContent: "flex-end",
                     children: [
                       /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                         backgroundColor: "$primary",
@@ -40751,7 +40772,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             <Box gap={1}>
               <Muted>Search:</Muted>
               <Box flexGrow={1}>
-                <TextInput value="flutter widgets" onChange={() => {}} borderStyle="round" />
+                <TextInput value="flutter widgets" onChange={() => {}} showUnderline underlineWidth={30} />
               </Box>
             </Box>
             <Box gap={2} wrap="truncate">
@@ -40773,13 +40794,14 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
         </Box>
       </Box>
 
-      {/* Row 2 */}
+      {/* Row 2: Border Styles | Design Tokens | Modal Dialog */}
       <Box flexDirection="row" gap={2} flexGrow={1} flexBasis={0}>
-        <Box {...cell}>
-          <Text color="$primary">
-            <Strong>Border & Color Styles</Strong>
-          </Text>
-          <Box flexDirection="row" gap={2}>
+        {/* Left half: two stacked boxes */}
+        <Box flexDirection="column" gap={1} flexGrow={1} flexBasis={0}>
+          <Box {...cell} flexGrow={1} flexBasis={0}>
+            <Text color="$primary">
+              <Strong>Border Styles</Strong>
+            </Text>
             <Box flexDirection="column" gap={0}>
               {borderStyles.map((style, i) => (
                 <Box
@@ -40799,29 +40821,33 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
                 </Box>
               ))}
             </Box>
-            <Box flexDirection="column" flexGrow={1} gap={1}>
-              <Box flexDirection="column">
-                <Text color="$success">{"●"} success</Text>
-                <Text color="$warning">{"●"} warning</Text>
-                <Text color="$error">{"●"} error</Text>
-                <Text color="$info">{"●"} info</Text>
-                <Text color="$primary">{"●"} primary</Text>
-                <Muted>{"●"} muted</Muted>
-              </Box>
-              <Box flexDirection="column">
-                <Text backgroundColor="$primary" color="$primary-fg">
-                  {" selected "}
-                </Text>
-                <Text backgroundColor="$fg" color="$bg">
-                  {" inverse "}
-                </Text>
-                <Text backgroundColor="$muted-bg" color="$fg">
-                  {" surface "}
-                </Text>
-              </Box>
+          </Box>
+          <Box {...cell} flexGrow={1} flexBasis={0}>
+            <Text color="$primary">
+              <Strong>Design Tokens</Strong>
+            </Text>
+            <Box flexDirection="column">
+              <Text color="$success">{"●"} $success</Text>
+              <Text color="$warning">{"●"} $warning</Text>
+              <Text color="$error">{"●"} $error</Text>
+              <Text color="$info">{"●"} $info</Text>
+              <Text color="$primary">{"●"} $primary</Text>
+              <Muted>{"●"} $muted</Muted>
+            </Box>
+            <Box flexDirection="column">
+              <Text backgroundColor="$primary" color="$primary-fg">
+                {" $primary "}
+              </Text>
+              <Text backgroundColor="$fg" color="$bg">
+                {" $inverse "}
+              </Text>
+              <Text backgroundColor="$muted-bg" color="$fg">
+                {" $surface "}
+              </Text>
             </Box>
           </Box>
         </Box>
+        {/* Right half: Modal Dialog */}
         <Box {...cell} borderColor="$primary" backgroundColor="$surfacebg">
           <Box justifyContent="space-between">
             <Text color="$primary">
@@ -40829,28 +40855,30 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             </Text>
             <Muted>Esc to close</Muted>
           </Box>
-          <Box flexDirection="column" gap={1}>
-            <Box gap={1}>
-              <Muted>Branch:</Muted>
-              <Box flexGrow={1}>
-                <TextInput value="main" onChange={() => {}} borderStyle="round" isActive={true} />
+          <Box flexDirection="row" gap={4}>
+            <Box flexDirection="column" gap={1} flexGrow={1} flexBasis={0}>
+              <Box gap={1}>
+                <Muted>Branch:</Muted>
+                <Box flexGrow={1}>
+                  <TextInput value="main" onChange={() => {}} showUnderline underlineWidth={30} isActive={true} />
+                </Box>
+              </Box>
+              <Box flexDirection="column">
+                <Text>
+                  <Text color="$success">{"✓"}</Text> All checks passed
+                </Text>
+                <Text>
+                  <Text color="$success">{"✓"}</Text> Tests: 247 passed
+                </Text>
+                <Text>
+                  <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
+                </Text>
+                <Text>
+                  <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
+                </Text>
               </Box>
             </Box>
-            <Box flexDirection="column">
-              <Text>
-                <Text color="$success">{"✓"}</Text> All checks passed
-              </Text>
-              <Text>
-                <Text color="$success">{"✓"}</Text> Tests: 247 passed
-              </Text>
-              <Text>
-                <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
-              </Text>
-              <Text>
-                <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
-              </Text>
-            </Box>
-            <Box gap={2} justifyContent="center">
+            <Box flexDirection="column" gap={1} justifyContent="flex-end">
               <Text backgroundColor="$primary" color="$primary-fg">
                 {" Deploy "}
               </Text>
@@ -43729,7 +43757,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             <Box gap={1}>
               <Muted>Search:</Muted>
               <Box flexGrow={1}>
-                <TextInput value="flutter widgets" onChange={() => {}} borderStyle="round" />
+                <TextInput value="flutter widgets" onChange={() => {}} showUnderline underlineWidth={30} />
               </Box>
             </Box>
             <Box gap={2} wrap="truncate">
@@ -43751,13 +43779,14 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
         </Box>
       </Box>
 
-      {/* Row 2 */}
+      {/* Row 2: Border Styles | Design Tokens | Modal Dialog */}
       <Box flexDirection="row" gap={2} flexGrow={1} flexBasis={0}>
-        <Box {...cell}>
-          <Text color="$primary">
-            <Strong>Border & Color Styles</Strong>
-          </Text>
-          <Box flexDirection="row" gap={2}>
+        {/* Left half: two stacked boxes */}
+        <Box flexDirection="column" gap={1} flexGrow={1} flexBasis={0}>
+          <Box {...cell} flexGrow={1} flexBasis={0}>
+            <Text color="$primary">
+              <Strong>Border Styles</Strong>
+            </Text>
             <Box flexDirection="column" gap={0}>
               {borderStyles.map((style, i) => (
                 <Box
@@ -43777,29 +43806,33 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
                 </Box>
               ))}
             </Box>
-            <Box flexDirection="column" flexGrow={1} gap={1}>
-              <Box flexDirection="column">
-                <Text color="$success">{"●"} success</Text>
-                <Text color="$warning">{"●"} warning</Text>
-                <Text color="$error">{"●"} error</Text>
-                <Text color="$info">{"●"} info</Text>
-                <Text color="$primary">{"●"} primary</Text>
-                <Muted>{"●"} muted</Muted>
-              </Box>
-              <Box flexDirection="column">
-                <Text backgroundColor="$primary" color="$primary-fg">
-                  {" selected "}
-                </Text>
-                <Text backgroundColor="$fg" color="$bg">
-                  {" inverse "}
-                </Text>
-                <Text backgroundColor="$muted-bg" color="$fg">
-                  {" surface "}
-                </Text>
-              </Box>
+          </Box>
+          <Box {...cell} flexGrow={1} flexBasis={0}>
+            <Text color="$primary">
+              <Strong>Design Tokens</Strong>
+            </Text>
+            <Box flexDirection="column">
+              <Text color="$success">{"●"} $success</Text>
+              <Text color="$warning">{"●"} $warning</Text>
+              <Text color="$error">{"●"} $error</Text>
+              <Text color="$info">{"●"} $info</Text>
+              <Text color="$primary">{"●"} $primary</Text>
+              <Muted>{"●"} $muted</Muted>
+            </Box>
+            <Box flexDirection="column">
+              <Text backgroundColor="$primary" color="$primary-fg">
+                {" $primary "}
+              </Text>
+              <Text backgroundColor="$fg" color="$bg">
+                {" $inverse "}
+              </Text>
+              <Text backgroundColor="$muted-bg" color="$fg">
+                {" $surface "}
+              </Text>
             </Box>
           </Box>
         </Box>
+        {/* Right half: Modal Dialog */}
         <Box {...cell} borderColor="$primary" backgroundColor="$surfacebg">
           <Box justifyContent="space-between">
             <Text color="$primary">
@@ -43807,28 +43840,30 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             </Text>
             <Muted>Esc to close</Muted>
           </Box>
-          <Box flexDirection="column" gap={1}>
-            <Box gap={1}>
-              <Muted>Branch:</Muted>
-              <Box flexGrow={1}>
-                <TextInput value="main" onChange={() => {}} borderStyle="round" isActive={true} />
+          <Box flexDirection="row" gap={4}>
+            <Box flexDirection="column" gap={1} flexGrow={1} flexBasis={0}>
+              <Box gap={1}>
+                <Muted>Branch:</Muted>
+                <Box flexGrow={1}>
+                  <TextInput value="main" onChange={() => {}} showUnderline underlineWidth={30} isActive={true} />
+                </Box>
+              </Box>
+              <Box flexDirection="column">
+                <Text>
+                  <Text color="$success">{"✓"}</Text> All checks passed
+                </Text>
+                <Text>
+                  <Text color="$success">{"✓"}</Text> Tests: 247 passed
+                </Text>
+                <Text>
+                  <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
+                </Text>
+                <Text>
+                  <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
+                </Text>
               </Box>
             </Box>
-            <Box flexDirection="column">
-              <Text>
-                <Text color="$success">{"✓"}</Text> All checks passed
-              </Text>
-              <Text>
-                <Text color="$success">{"✓"}</Text> Tests: 247 passed
-              </Text>
-              <Text>
-                <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
-              </Text>
-              <Text>
-                <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
-              </Text>
-            </Box>
-            <Box gap={2} justifyContent="center">
+            <Box flexDirection="column" gap={1} justifyContent="flex-end">
               <Text backgroundColor="$primary" color="$primary-fg">
                 {" Deploy "}
               </Text>
@@ -51795,4 +51830,4 @@ if (root) {
   createViewerApp(root);
 }
 
-//# debugId=16B717F03C69CE8B64756E2164756E21
+//# debugId=23CD5387C2BB9A8A64756E2164756E21
