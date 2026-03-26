@@ -26,7 +26,10 @@ export default defineConfig({
     "Silvery — A React renderer for terminal UIs with responsive layouts, scrollable containers, and 100x+ faster interactive updates.",
   base: "/",
 
-  head: [["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }]],
+  head: [
+    ["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }],
+    ["script", { defer: "", src: "https://static.cloudflareinsights.com/beacon.min.js", "data-cf-beacon": '{"token": "22f9c4cb26ce4f21bd36ed1b772c226e"}' }],
+  ],
 
   themeConfig: {
     logo: "/logo.svg",
