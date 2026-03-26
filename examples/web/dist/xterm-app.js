@@ -5629,26 +5629,8 @@ var init_buffer = __esm(() => {
   EMPTY_ATTRS = Object.freeze({});
   XTERM_256_PALETTE = (() => {
     const palette = new Array(256);
-    const standard = [
-      "#000000",
-      "#cd0000",
-      "#00cd00",
-      "#cdcd00",
-      "#0000ee",
-      "#cd00cd",
-      "#00cdcd",
-      "#e5e5e5"
-    ];
-    const bright = [
-      "#7f7f7f",
-      "#ff0000",
-      "#00ff00",
-      "#ffff00",
-      "#5c5cff",
-      "#ff00ff",
-      "#00ffff",
-      "#ffffff"
-    ];
+    const standard = ["#000000", "#cd0000", "#00cd00", "#cdcd00", "#0000ee", "#cd00cd", "#00cdcd", "#e5e5e5"];
+    const bright = ["#7f7f7f", "#ff0000", "#00ff00", "#ffff00", "#5c5cff", "#ff00ff", "#00ffff", "#ffffff"];
     for (let i = 0;i < 8; i++) {
       palette[i] = standard[i];
       palette[i + 8] = bright[i];
@@ -7972,15 +7954,7 @@ function detectTerminalCaps() {
 }
 var CI_ENVS, cachedMacOSDarkMode;
 var init_detection = __esm(() => {
-  CI_ENVS = [
-    "CI",
-    "GITHUB_ACTIONS",
-    "GITLAB_CI",
-    "JENKINS_URL",
-    "BUILDKITE",
-    "CIRCLECI",
-    "TRAVIS"
-  ];
+  CI_ENVS = ["CI", "GITHUB_ACTIONS", "GITLAB_CI", "JENKINS_URL", "BUILDKITE", "CIRCLECI", "TRAVIS"];
 });
 
 // packages/ag/src/keys.ts
@@ -8431,20 +8405,7 @@ var init_keys = __esm(() => {
     "tab",
     "delete"
   ];
-  SHIFT_CODES = new Set([
-    "[a",
-    "[b",
-    "[c",
-    "[d",
-    "[e",
-    "[2$",
-    "[3$",
-    "[5$",
-    "[6$",
-    "[7$",
-    "[8$",
-    "[Z"
-  ]);
+  SHIFT_CODES = new Set(["[a", "[b", "[c", "[d", "[e", "[2$", "[3$", "[5$", "[6$", "[7$", "[8$", "[Z"]);
   CTRL_CODES = new Set(["Oa", "Ob", "Oc", "Od", "Oe", "[2^", "[3^", "[5^", "[6^", "[7^", "[8^"]);
   META_KEY_CODE_RE = /^(?:\x1b)([a-zA-Z0-9])$/;
   FN_KEY_RE = /^(?:\x1b+)(O|N|\[|\[\[)(?:(\d+)(?:;(\d+))?([~^$])|(?:1;)?(\d+)?([a-zA-Z]))/;
@@ -34115,4 +34076,4 @@ if (termContainer) {
   window.xtermTerminal = term2;
 }
 
-//# debugId=2753EC6944862E7A64756E2164756E21
+//# debugId=51A58E7DF0AFAF8D64756E2164756E21

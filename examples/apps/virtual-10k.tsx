@@ -22,16 +22,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react"
-import {
-  Box,
-  Text,
-  Strong,
-  Kbd,
-  Muted,
-  Divider,
-  VirtualList,
-  useContentRect,
-} from "../../src/index.js"
+import { Box, Text, Strong, Kbd, Muted, Divider, VirtualList, useContentRect } from "../../src/index.js"
 import { run, useInput, type Key } from "@silvery/ag-term/runtime"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
@@ -190,15 +181,7 @@ function ProgressBar({ percent, width: barWidth }: { percent: number; width: num
   )
 }
 
-function ItemRow({
-  item,
-  isSelected,
-  showDetail,
-}: {
-  item: Item
-  isSelected: boolean
-  showDetail: boolean
-}) {
+function ItemRow({ item, isSelected, showDetail }: { item: Item; isSelected: boolean; showDetail: boolean }) {
   const idStr = String(item.id).padStart(5, " ")
 
   return (
@@ -231,15 +214,7 @@ function ItemRow({
   )
 }
 
-function ScrollIndicator({
-  current,
-  total,
-  width,
-}: {
-  current: number
-  total: number
-  width: number
-}) {
+function ScrollIndicator({ current, total, width }: { current: number; total: number; width: number }) {
   const percent = total > 0 ? Math.round(((current + 1) / total) * 100) : 0
 
   // Progress bar
@@ -404,8 +379,8 @@ function VirtualBenchmark() {
       {/* Help */}
       <Box paddingX={1} justifyContent="center">
         <Muted>
-          <Kbd>j/k</Kbd> navigate <Kbd>d/u</Kbd> half-page <Kbd>g/G</Kbd> start/end <Kbd>Enter</Kbd>{" "}
-          detail <Kbd>Esc/q</Kbd> quit
+          <Kbd>j/k</Kbd> navigate <Kbd>d/u</Kbd> half-page <Kbd>g/G</Kbd> start/end <Kbd>Enter</Kbd> detail{" "}
+          <Kbd>Esc/q</Kbd> quit
         </Muted>
       </Box>
     </Box>
@@ -418,10 +393,7 @@ function VirtualBenchmark() {
 
 async function main() {
   const handle = await run(
-    <ExampleBanner
-      meta={meta}
-      controls="j/k navigate  d/u half-page  g/G start/end  Enter detail  Esc/q quit"
-    >
+    <ExampleBanner meta={meta} controls="j/k navigate  d/u half-page  g/G start/end  Enter detail  Esc/q quit">
       <VirtualBenchmark />
     </ExampleBanner>,
   )

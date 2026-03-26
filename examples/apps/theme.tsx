@@ -109,13 +109,7 @@ function ThemeMiniSwatch({ theme }: { theme: Theme }) {
 /** Left panel: theme list with color swatches */
 function ThemeList({ entries, selectedIndex }: { entries: ThemeEntry[]; selectedIndex: number }) {
   return (
-    <Box
-      flexDirection="column"
-      width={30}
-      borderStyle="single"
-      overflow="scroll"
-      scrollTo={selectedIndex}
-    >
+    <Box flexDirection="column" width={30} borderStyle="single" overflow="scroll" scrollTo={selectedIndex}>
       <Box paddingX={1}>
         <Text bold color="$primary">
           Palettes
@@ -132,11 +126,7 @@ function ThemeList({ entries, selectedIndex }: { entries: ThemeEntry[]; selected
                 {isSelected ? "▸" : " "} {entry.name.padEnd(18)}
               </Text>
               <Text> </Text>
-              {entry.palette ? (
-                <MiniSwatch palette={entry.palette} />
-              ) : (
-                <ThemeMiniSwatch theme={entry.theme} />
-              )}
+              {entry.palette ? <MiniSwatch palette={entry.palette} /> : <ThemeMiniSwatch theme={entry.theme} />}
             </Box>
           )
         })}
@@ -428,13 +418,7 @@ function ThemePreview({ entry }: { entry: ThemeEntry }) {
 
   return (
     <ThemeProvider theme={entry.theme}>
-      <Box
-        theme={entry.theme}
-        flexDirection="column"
-        flexGrow={1}
-        borderStyle="single"
-        overflow="scroll"
-      >
+      <Box theme={entry.theme} flexDirection="column" flexGrow={1} borderStyle="single" overflow="scroll">
         <Box paddingX={1} gap={1}>
           <H1>{entry.name}</H1>
           <Muted>{label}</Muted>

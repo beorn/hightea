@@ -30,11 +30,7 @@ function VirtualListDemo() {
         itemHeight={1}
         interactive
         renderItem={(item, _index, meta) => (
-          <Text
-            key={item.id}
-            color={meta?.isSelected ? "$primary" : undefined}
-            bold={meta?.isSelected}
-          >
+          <Text key={item.id} color={meta?.isSelected ? "$primary" : undefined} bold={meta?.isSelected}>
             {meta?.isSelected ? "> " : "  "}
             {item.name}
           </Text>

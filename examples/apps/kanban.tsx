@@ -102,11 +102,7 @@ function Tag({ name }: { name: string }) {
 
 function CardComponent({ card, isSelected }: { card: Card; isSelected: boolean }) {
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor={isSelected ? "$primary" : "$border"}
-    >
+    <Box flexDirection="column" borderStyle="round" borderColor={isSelected ? "$primary" : "$border"}>
       {isSelected ? (
         <Box backgroundColor="$primary" paddingX={1}>
           <Text color="$primary-fg" bold wrap="truncate">
@@ -159,11 +155,7 @@ function ColumnComponent({
         flexGrow={1}
       >
         {column.cards.map((card, cardIndex) => (
-          <CardComponent
-            key={card.id}
-            card={card}
-            isSelected={isSelected && cardIndex === selectedCardIndex}
-          />
+          <CardComponent key={card.id} card={card} isSelected={isSelected && cardIndex === selectedCardIndex} />
         ))}
 
         {column.cards.length === 0 && (

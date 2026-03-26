@@ -131,9 +131,7 @@ const baseApp = createApp<Record<string, unknown>, State>(
         case " ":
         case "x":
           set(() => ({
-            items: items.map((item, i) =>
-              i === cursor ? { ...item, selected: !item.selected } : item,
-            ),
+            items: items.map((item, i) => (i === cursor ? { ...item, selected: !item.selected } : item)),
           }))
           break
         case "a":
@@ -179,10 +177,7 @@ async function main() {
 
   const { items } = handle.store.getState()
   const selected = items.filter((i: ListItem) => i.selected)
-  console.log(
-    `\nSelected ${selected.length} items:`,
-    selected.map((i: ListItem) => i.label).join(", "),
-  )
+  console.log(`\nSelected ${selected.length} items:`, selected.map((i: ListItem) => i.label).join(", "))
 }
 
 if (import.meta.main) {

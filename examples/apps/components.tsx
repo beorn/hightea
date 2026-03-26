@@ -62,20 +62,10 @@ export const meta: ExampleMeta = {
 
 function TypographyTab({ scrollOffset }: { scrollOffset?: number }) {
   return (
-    <Box
-      flexDirection="column"
-      gap={1}
-      paddingX={1}
-      overflow="scroll"
-      scrollOffset={scrollOffset}
-      flexGrow={1}
-    >
+    <Box flexDirection="column" gap={1} paddingX={1} overflow="scroll" scrollOffset={scrollOffset} flexGrow={1}>
       <Box flexDirection="column">
         <H1>Getting Started with Silvery</H1>
-        <Lead>
-          Build modern terminal UIs with React — layout feedback, semantic theming, and 30+
-          components.
-        </Lead>
+        <Lead>Build modern terminal UIs with React — layout feedback, semantic theming, and 30+ components.</Lead>
       </Box>
 
       <HR />
@@ -163,12 +153,9 @@ function TypographyTab({ scrollOffset }: { scrollOffset?: number }) {
 
       <H2>Block Elements</H2>
       <Blockquote>
-        The best color code is no color code — most components already use the right semantic
-        tokens.
+        The best color code is no color code — most components already use the right semantic tokens.
       </Blockquote>
-      <CodeBlock>
-        {"bun add silvery      # install\nbun run dev          # start dev server"}
-      </CodeBlock>
+      <CodeBlock>{"bun add silvery      # install\nbun run dev          # start dev server"}</CodeBlock>
 
       <H2>Lists</H2>
       <Box flexDirection="row" gap={4}>
@@ -281,11 +268,7 @@ function InputsTab() {
           />
 
           <H2>Select List</H2>
-          <Box
-            borderStyle="round"
-            borderColor={focusIndex === 2 ? "$focusborder" : "$border"}
-            paddingX={1}
-          >
+          <Box borderStyle="round" borderColor={focusIndex === 2 ? "$focusborder" : "$border"} paddingX={1}>
             <SelectList
               items={frameworkItems}
               highlightedIndex={selectedFramework}
@@ -306,18 +289,8 @@ function InputsTab() {
             paddingY={1}
             gap={1}
           >
-            <Toggle
-              value={darkMode}
-              onChange={setDarkMode}
-              label="Dark mode"
-              isActive={focusIndex === 3}
-            />
-            <Toggle
-              value={notifications}
-              onChange={setNotifications}
-              label="Notifications"
-              isActive={false}
-            />
+            <Toggle value={darkMode} onChange={setDarkMode} label="Dark mode" isActive={focusIndex === 3} />
+            <Toggle value={notifications} onChange={setNotifications} label="Notifications" isActive={false} />
             <Toggle value={autoSave} onChange={setAutoSave} label="Auto-save" isActive={false} />
           </Box>
 
@@ -327,23 +300,13 @@ function InputsTab() {
           <HR />
 
           <H2>Current Values</H2>
-          <Box
-            flexDirection="column"
-            backgroundColor="$surfacebg"
-            paddingX={1}
-            paddingY={1}
-            borderStyle="round"
-          >
+          <Box flexDirection="column" backgroundColor="$surfacebg" paddingX={1} paddingY={1} borderStyle="round">
             <Text color="$surface">
               <Strong>Text:</Strong> {textValue || <Muted>(empty)</Muted>}
             </Text>
             <Text color="$surface">
               <Strong>Area:</Strong>{" "}
-              {areaValue ? (
-                areaValue.split("\n")[0] + (areaValue.includes("\n") ? "..." : "")
-              ) : (
-                <Muted>(empty)</Muted>
-              )}
+              {areaValue ? areaValue.split("\n")[0] + (areaValue.includes("\n") ? "..." : "") : <Muted>(empty)</Muted>}
             </Text>
             <Text color="$surface">
               <Strong>Framework:</Strong> {frameworkItems[selectedFramework]?.label}
@@ -404,10 +367,10 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
 
   return (
     <Box flexDirection="column" gap={1} paddingX={1}>
-      {/* Row 1: Progress Bars | Spinners */}
-      <Box flexDirection="row" gap={1}>
+      {/* Row 1: Progress & Activity | Input Controls */}
+      <Box flexDirection="row" gap={1} flexGrow={1}>
         <Box {...gridCell}>
-          <H2>Progress Bars</H2>
+          <H2>Progress & Activity</H2>
           <Box flexDirection="column">
             <Box>
               <Text color="$muted">{"Build   "}</Text>
@@ -434,27 +397,17 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
               </Box>
             </Box>
           </Box>
-        </Box>
-        <Box {...gridCell}>
-          <H2>Spinners + Badges</H2>
           <Box flexDirection="column">
             <Spinner type="dots" label="Loading packages..." />
             <Spinner type="line" label="Compiling..." />
-            <Spinner type="arc" label="Optimizing bundle..." />
-            <Spinner type="bounce" label="Connecting..." />
           </Box>
           <Box gap={1} flexWrap="wrap">
             <Badge label="Stable" variant="success" />
             <Badge label="Beta" variant="warning" />
             <Badge label="Deprecated" variant="error" />
             <Badge label="v0.0.1" variant="primary" />
-            <Badge label="MIT" />
           </Box>
         </Box>
-      </Box>
-
-      {/* Row 2: Input Controls | Border Styles */}
-      <Box flexDirection="row" gap={1}>
         <Box {...gridCell}>
           <H2>Input Controls</H2>
           <Box flexDirection="column" gap={1}>
@@ -469,9 +422,24 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
               <Toggle label="Notifications" value={false} onChange={() => {}} />
             </Box>
           </Box>
+          <SelectList
+            items={[
+              { label: "React", value: "react" },
+              { label: "Vue", value: "vue" },
+              { label: "Svelte", value: "svelte" },
+              { label: "Angular", value: "angular" },
+            ]}
+            highlightedIndex={0}
+            onHighlight={() => {}}
+            isActive={false}
+          />
         </Box>
+      </Box>
+
+      {/* Row 2: Visual Styles | Typography */}
+      <Box flexDirection="row" gap={1} flexGrow={1}>
         <Box {...gridCell}>
-          <H2>Border Styles</H2>
+          <H2>Visual Styles</H2>
           <Box flexDirection="column" gap={0}>
             {borderStyles.map((style, i) => (
               <Box
@@ -491,25 +459,12 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
               </Box>
             ))}
           </Box>
-        </Box>
-      </Box>
-
-      {/* Row 3: Select List | Dialog Preview */}
-      <Box flexDirection="row" gap={1}>
-        <Box {...gridCell}>
-          <H2>Select List</H2>
-          <SelectList
-            items={[
-              { label: "React", value: "react" },
-              { label: "Vue", value: "vue" },
-              { label: "Svelte", value: "svelte" },
-              { label: "Angular", value: "angular" },
-              { label: "Solid", value: "solid" },
-            ]}
-            highlightedIndex={0}
-            onHighlight={() => {}}
-            isActive={false}
-          />
+          <Box gap={1} wrap="truncate">
+            <Text color="$success">{"✓"} pass</Text>
+            <Text color="$error">{"✗"} fail</Text>
+            <Text color="$warning">{"⚠"} warn</Text>
+            <Text color="$info">{"ℹ"} info</Text>
+          </Box>
         </Box>
         <Box {...gridCell}>
           <H2>Typography</H2>
@@ -518,39 +473,31 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
               <Strong>Silvery</Strong> is a <Em>React framework</Em> for terminal UIs.
             </Text>
             <Text>
-              Use <Code>{"useContentRect()"}</Code> for responsive layout.
+              Use <Code>{"useContentRect()"}</Code> for responsive layout and <Code>{"ProgressBar"}</Code> for feedback.
             </Text>
             <Text>
-              Supports <Text color="$success">semantic colors</Text>, <Text bold>bold</Text>,{" "}
-              <Text dimColor>dim</Text>, and <Text underline>underline</Text>.
+              Supports <Text color="$success">semantic</Text> <Text color="$warning">color</Text>{" "}
+              <Text color="$error">tokens</Text>, <Text bold>bold</Text>, <Text dimColor>dim</Text>, and{" "}
+              <Text underline>underline</Text>.
             </Text>
-            <Muted>38 built-in color palettes — adapts automatically.</Muted>
+            <Muted>38 built-in palettes — Dracula, Nord, Catppuccin, and more.</Muted>
           </Box>
+          <Kbd>Ctrl</Kbd>
         </Box>
       </Box>
 
       {showModal && (
-        <Box
-          position="absolute"
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          width="100%"
-          height="100%"
-        >
+        <Box position="absolute" display="flex" justifyContent="center" alignItems="center" width="100%" height="100%">
           <ModalDialog title="Component Gallery" width={50} footer="ESC or q to close">
             <Box flexDirection="column" gap={1}>
               <P>
-                This gallery demonstrates <Strong>silvery</Strong>'s built-in UI components. Every
-                component uses semantic theme tokens — they adapt to any of the 38 built-in palettes
-                automatically.
+                This gallery demonstrates <Strong>silvery</Strong>'s built-in UI components. Every component uses
+                semantic theme tokens — they adapt to any of the 38 built-in palettes automatically.
               </P>
               <HR />
               <Box flexDirection="column">
                 <Text color="$success">{"✓ Typography presets (H1-H3, Lead, Muted, Code)"}</Text>
-                <Text color="$success">
-                  {"✓ Input components (TextInput, TextArea, SelectList)"}
-                </Text>
+                <Text color="$success">{"✓ Input components (TextInput, TextArea, SelectList)"}</Text>
                 <Text color="$success">{"✓ Display widgets (ProgressBar, Spinner, Badge)"}</Text>
                 <Text color="$success">{"✓ Layout primitives (Box, Divider, border styles)"}</Text>
                 <Text color="$success">{"✓ Dialog system (ModalDialog with input blocking)"}</Text>
@@ -640,10 +587,7 @@ export function ComponentsApp() {
 export async function main() {
   using term = createTerm()
   const { waitUntilExit } = await render(
-    <ExampleBanner
-      meta={meta}
-      controls="h/l tab  Tab cycle inputs  j/k navigate  Enter modal  Esc/q quit"
-    >
+    <ExampleBanner meta={meta} controls="h/l tab  Tab cycle inputs  j/k navigate  Enter modal  Esc/q quit">
       <ComponentsApp />
     </ExampleBanner>,
     term,

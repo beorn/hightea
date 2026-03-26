@@ -5,12 +5,7 @@
  */
 
 import React, { useState } from "react"
-import {
-  renderToCanvas,
-  Box,
-  Text,
-  useContentRect,
-} from "../../packages/ag-react/src/ui/canvas/index.js"
+import { renderToCanvas, Box, Text, useContentRect } from "../../packages/ag-react/src/ui/canvas/index.js"
 
 // Component that shows its dimensions
 function SizeDisplay() {
