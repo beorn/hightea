@@ -495,11 +495,11 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
         </Box>
         {/* Right half: Modal Dialog */}
         <Box {...cell} backgroundColor="$surfacebg">
-          <Box justifyContent="space-between">
+          <Box justifyContent="space-between" paddingBottom={1}>
             <Text color="$primary">
               <Strong>Modal Dialog</Strong>
             </Text>
-            <Muted>Esc to close</Muted>
+            <Small color="$muted">Esc to close</Small>
           </Box>
           <Box flexDirection="column" gap={1}>
             <Box gap={1}>
@@ -520,12 +520,12 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
                 <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
               </Text>
             </Box>
-            <Box gap={1}>
+            <Box gap={2}>
               <Text backgroundColor="$primary" color="$primary-fg">
-                {" Deploy "}
+                {"  Deploy  "}
               </Text>
               <Text backgroundColor="$muted-bg" color="$fg">
-                {" Cancel "}
+                {"  Cancel  "}
               </Text>
             </Box>
           </Box>

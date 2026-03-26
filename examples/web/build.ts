@@ -305,7 +305,7 @@ if (!xtermResult.success) {
   process.exit(1)
 }
 
-// Build showcase app (use-case demos for docs site)
+// Build showcase app (xterm.js-based, use-case demos for docs site)
 const showcaseResult = await Bun.build({
   entrypoints: [join(__dirname, "showcase-app.tsx")],
   ...sharedOptions,
@@ -314,6 +314,20 @@ const showcaseResult = await Bun.build({
 if (!showcaseResult.success) {
   console.error("Showcase build failed:")
   for (const log of showcaseResult.logs) {
+    console.error(log)
+  }
+  process.exit(1)
+}
+
+// Build showcase canvas app (canvas-based, pixel-perfect rendering)
+const showcaseCanvasResult = await Bun.build({
+  entrypoints: [join(__dirname, "showcase-canvas-app.tsx")],
+  ...sharedOptions,
+})
+
+if (!showcaseCanvasResult.success) {
+  console.error("Showcase canvas build failed:")
+  for (const log of showcaseCanvasResult.logs) {
     console.error(log)
   }
   process.exit(1)
@@ -336,8 +350,9 @@ if (!viewerResult.success) {
 // Copy built files to VitePress public dir for docs site
 await cp(distDir, docsDistDir, { recursive: true })
 
-// Copy showcase.html to docs public dir
+// Copy showcase HTML files to docs public dir
 await cp(join(__dirname, "showcase.html"), join(__dirname, "../../docs/public/examples/showcase.html"))
+await cp(join(__dirname, "showcase-canvas.html"), join(__dirname, "../../docs/public/examples/showcase-canvas.html"))
 
 // Copy viewer.html to docs public dir (if it exists)
 try {
@@ -358,9 +373,10 @@ console.log("✓ Built examples/web/dist/canvas-app.js")
 console.log("✓ Built examples/web/dist/dom-app.js")
 console.log("✓ Built examples/web/dist/xterm-app.js")
 console.log("✓ Built examples/web/dist/showcase-app.js")
+console.log("✓ Built examples/web/dist/showcase-canvas-app.js")
 console.log("✓ Built examples/web/dist/viewer-app.js")
 console.log("✓ Copied to docs/public/examples/dist/")
-console.log("✓ Copied showcase.html to docs/public/examples/")
+console.log("✓ Copied showcase.html + showcase-canvas.html to docs/public/examples/")
 console.log("\nOpen in browser:")
 console.log("  examples/web/canvas.html")
 console.log("  examples/web/dom.html")

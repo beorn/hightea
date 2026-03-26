@@ -125,6 +125,417 @@ var __callDispose = (stack, error, hasError) => {
   return next();
 };
 
+// node_modules/.bun/react@19.2.4/node_modules/react/cjs/react.production.js
+var exports_react_production = {};
+__export(exports_react_production, {
+  version: () => $version,
+  useTransition: () => $useTransition,
+  useSyncExternalStore: () => $useSyncExternalStore,
+  useState: () => $useState,
+  useRef: () => $useRef,
+  useReducer: () => $useReducer,
+  useOptimistic: () => $useOptimistic,
+  useMemo: () => $useMemo,
+  useLayoutEffect: () => $useLayoutEffect,
+  useInsertionEffect: () => $useInsertionEffect,
+  useImperativeHandle: () => $useImperativeHandle,
+  useId: () => $useId,
+  useEffectEvent: () => $useEffectEvent,
+  useEffect: () => $useEffect,
+  useDeferredValue: () => $useDeferredValue,
+  useDebugValue: () => $useDebugValue,
+  useContext: () => $useContext,
+  useCallback: () => $useCallback,
+  useActionState: () => $useActionState,
+  use: () => $use,
+  unstable_useCacheRefresh: () => $unstable_useCacheRefresh,
+  startTransition: () => $startTransition,
+  memo: () => $memo,
+  lazy: () => $lazy,
+  isValidElement: () => $isValidElement,
+  forwardRef: () => $forwardRef,
+  createRef: () => $createRef,
+  createElement: () => $createElement,
+  createContext: () => $createContext,
+  cloneElement: () => $cloneElement,
+  cacheSignal: () => $cacheSignal,
+  cache: () => $cache,
+  __COMPILER_RUNTIME: () => $__COMPILER_RUNTIME,
+  __CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE: () => $__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE,
+  Suspense: () => $Suspense,
+  StrictMode: () => $StrictMode,
+  PureComponent: () => $PureComponent,
+  Profiler: () => $Profiler,
+  Fragment: () => $Fragment,
+  Component: () => $Component,
+  Children: () => $Children,
+  Activity: () => $Activity
+});
+function getIteratorFn(maybeIterable) {
+  if (maybeIterable === null || typeof maybeIterable !== "object")
+    return null;
+  maybeIterable = MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL] || maybeIterable["@@iterator"];
+  return typeof maybeIterable === "function" ? maybeIterable : null;
+}
+function Component(props, context, updater) {
+  this.props = props;
+  this.context = context;
+  this.refs = emptyObject;
+  this.updater = updater || ReactNoopUpdateQueue;
+}
+function ComponentDummy() {}
+function PureComponent(props, context, updater) {
+  this.props = props;
+  this.context = context;
+  this.refs = emptyObject;
+  this.updater = updater || ReactNoopUpdateQueue;
+}
+function noop() {}
+function ReactElement(type, key, props) {
+  var refProp = props.ref;
+  return {
+    $$typeof: REACT_ELEMENT_TYPE,
+    type,
+    key,
+    ref: refProp !== undefined ? refProp : null,
+    props
+  };
+}
+function cloneAndReplaceKey(oldElement, newKey) {
+  return ReactElement(oldElement.type, newKey, oldElement.props);
+}
+function isValidElement(object) {
+  return typeof object === "object" && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
+}
+function escape(key) {
+  var escaperLookup = { "=": "=0", ":": "=2" };
+  return "$" + key.replace(/[=:]/g, function(match) {
+    return escaperLookup[match];
+  });
+}
+function getElementKey(element, index) {
+  return typeof element === "object" && element !== null && element.key != null ? escape("" + element.key) : index.toString(36);
+}
+function resolveThenable(thenable) {
+  switch (thenable.status) {
+    case "fulfilled":
+      return thenable.value;
+    case "rejected":
+      throw thenable.reason;
+    default:
+      switch (typeof thenable.status === "string" ? thenable.then(noop, noop) : (thenable.status = "pending", thenable.then(function(fulfilledValue) {
+        thenable.status === "pending" && (thenable.status = "fulfilled", thenable.value = fulfilledValue);
+      }, function(error) {
+        thenable.status === "pending" && (thenable.status = "rejected", thenable.reason = error);
+      })), thenable.status) {
+        case "fulfilled":
+          return thenable.value;
+        case "rejected":
+          throw thenable.reason;
+      }
+  }
+  throw thenable;
+}
+function mapIntoArray(children, array, escapedPrefix, nameSoFar, callback) {
+  var type = typeof children;
+  if (type === "undefined" || type === "boolean")
+    children = null;
+  var invokeCallback = false;
+  if (children === null)
+    invokeCallback = true;
+  else
+    switch (type) {
+      case "bigint":
+      case "string":
+      case "number":
+        invokeCallback = true;
+        break;
+      case "object":
+        switch (children.$$typeof) {
+          case REACT_ELEMENT_TYPE:
+          case REACT_PORTAL_TYPE:
+            invokeCallback = true;
+            break;
+          case REACT_LAZY_TYPE:
+            return invokeCallback = children._init, mapIntoArray(invokeCallback(children._payload), array, escapedPrefix, nameSoFar, callback);
+        }
+    }
+  if (invokeCallback)
+    return callback = callback(children), invokeCallback = nameSoFar === "" ? "." + getElementKey(children, 0) : nameSoFar, isArrayImpl(callback) ? (escapedPrefix = "", invokeCallback != null && (escapedPrefix = invokeCallback.replace(userProvidedKeyEscapeRegex, "$&/") + "/"), mapIntoArray(callback, array, escapedPrefix, "", function(c) {
+      return c;
+    })) : callback != null && (isValidElement(callback) && (callback = cloneAndReplaceKey(callback, escapedPrefix + (callback.key == null || children && children.key === callback.key ? "" : ("" + callback.key).replace(userProvidedKeyEscapeRegex, "$&/") + "/") + invokeCallback)), array.push(callback)), 1;
+  invokeCallback = 0;
+  var nextNamePrefix = nameSoFar === "" ? "." : nameSoFar + ":";
+  if (isArrayImpl(children))
+    for (var i = 0;i < children.length; i++)
+      nameSoFar = children[i], type = nextNamePrefix + getElementKey(nameSoFar, i), invokeCallback += mapIntoArray(nameSoFar, array, escapedPrefix, type, callback);
+  else if (i = getIteratorFn(children), typeof i === "function")
+    for (children = i.call(children), i = 0;!(nameSoFar = children.next()).done; )
+      nameSoFar = nameSoFar.value, type = nextNamePrefix + getElementKey(nameSoFar, i++), invokeCallback += mapIntoArray(nameSoFar, array, escapedPrefix, type, callback);
+  else if (type === "object") {
+    if (typeof children.then === "function")
+      return mapIntoArray(resolveThenable(children), array, escapedPrefix, nameSoFar, callback);
+    array = String(children);
+    throw Error("Objects are not valid as a React child (found: " + (array === "[object Object]" ? "object with keys {" + Object.keys(children).join(", ") + "}" : array) + "). If you meant to render a collection of children, use an array instead.");
+  }
+  return invokeCallback;
+}
+function mapChildren(children, func, context) {
+  if (children == null)
+    return children;
+  var result = [], count = 0;
+  mapIntoArray(children, result, "", "", function(child) {
+    return func.call(context, child, count++);
+  });
+  return result;
+}
+function lazyInitializer(payload) {
+  if (payload._status === -1) {
+    var ctor = payload._result;
+    ctor = ctor();
+    ctor.then(function(moduleObject) {
+      if (payload._status === 0 || payload._status === -1)
+        payload._status = 1, payload._result = moduleObject;
+    }, function(error) {
+      if (payload._status === 0 || payload._status === -1)
+        payload._status = 2, payload._result = error;
+    });
+    payload._status === -1 && (payload._status = 0, payload._result = ctor);
+  }
+  if (payload._status === 1)
+    return payload._result.default;
+  throw payload._result;
+}
+var REACT_ELEMENT_TYPE, REACT_PORTAL_TYPE, REACT_FRAGMENT_TYPE, REACT_STRICT_MODE_TYPE, REACT_PROFILER_TYPE, REACT_CONSUMER_TYPE, REACT_CONTEXT_TYPE, REACT_FORWARD_REF_TYPE, REACT_SUSPENSE_TYPE, REACT_MEMO_TYPE, REACT_LAZY_TYPE, REACT_ACTIVITY_TYPE, MAYBE_ITERATOR_SYMBOL, ReactNoopUpdateQueue, assign, emptyObject, pureComponentPrototype, isArrayImpl, ReactSharedInternals, hasOwnProperty, userProvidedKeyEscapeRegex, reportGlobalError, Children, $Activity, $Children, $Component, $Fragment, $Profiler, $PureComponent, $StrictMode, $Suspense, $__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE, $__COMPILER_RUNTIME, $cache = function(fn) {
+  return function() {
+    return fn.apply(null, arguments);
+  };
+}, $cacheSignal = function() {
+  return null;
+}, $cloneElement = function(element, config, children) {
+  if (element === null || element === undefined)
+    throw Error("The argument must be a React element, but you passed " + element + ".");
+  var props = assign({}, element.props), key = element.key;
+  if (config != null)
+    for (propName in config.key !== undefined && (key = "" + config.key), config)
+      !hasOwnProperty.call(config, propName) || propName === "key" || propName === "__self" || propName === "__source" || propName === "ref" && config.ref === undefined || (props[propName] = config[propName]);
+  var propName = arguments.length - 2;
+  if (propName === 1)
+    props.children = children;
+  else if (1 < propName) {
+    for (var childArray = Array(propName), i = 0;i < propName; i++)
+      childArray[i] = arguments[i + 2];
+    props.children = childArray;
+  }
+  return ReactElement(element.type, key, props);
+}, $createContext = function(defaultValue) {
+  defaultValue = {
+    $$typeof: REACT_CONTEXT_TYPE,
+    _currentValue: defaultValue,
+    _currentValue2: defaultValue,
+    _threadCount: 0,
+    Provider: null,
+    Consumer: null
+  };
+  defaultValue.Provider = defaultValue;
+  defaultValue.Consumer = {
+    $$typeof: REACT_CONSUMER_TYPE,
+    _context: defaultValue
+  };
+  return defaultValue;
+}, $createElement = function(type, config, children) {
+  var propName, props = {}, key = null;
+  if (config != null)
+    for (propName in config.key !== undefined && (key = "" + config.key), config)
+      hasOwnProperty.call(config, propName) && propName !== "key" && propName !== "__self" && propName !== "__source" && (props[propName] = config[propName]);
+  var childrenLength = arguments.length - 2;
+  if (childrenLength === 1)
+    props.children = children;
+  else if (1 < childrenLength) {
+    for (var childArray = Array(childrenLength), i = 0;i < childrenLength; i++)
+      childArray[i] = arguments[i + 2];
+    props.children = childArray;
+  }
+  if (type && type.defaultProps)
+    for (propName in childrenLength = type.defaultProps, childrenLength)
+      props[propName] === undefined && (props[propName] = childrenLength[propName]);
+  return ReactElement(type, key, props);
+}, $createRef = function() {
+  return { current: null };
+}, $forwardRef = function(render) {
+  return { $$typeof: REACT_FORWARD_REF_TYPE, render };
+}, $isValidElement, $lazy = function(ctor) {
+  return {
+    $$typeof: REACT_LAZY_TYPE,
+    _payload: { _status: -1, _result: ctor },
+    _init: lazyInitializer
+  };
+}, $memo = function(type, compare) {
+  return {
+    $$typeof: REACT_MEMO_TYPE,
+    type,
+    compare: compare === undefined ? null : compare
+  };
+}, $startTransition = function(scope) {
+  var prevTransition = ReactSharedInternals.T, currentTransition = {};
+  ReactSharedInternals.T = currentTransition;
+  try {
+    var returnValue = scope(), onStartTransitionFinish = ReactSharedInternals.S;
+    onStartTransitionFinish !== null && onStartTransitionFinish(currentTransition, returnValue);
+    typeof returnValue === "object" && returnValue !== null && typeof returnValue.then === "function" && returnValue.then(noop, reportGlobalError);
+  } catch (error) {
+    reportGlobalError(error);
+  } finally {
+    prevTransition !== null && currentTransition.types !== null && (prevTransition.types = currentTransition.types), ReactSharedInternals.T = prevTransition;
+  }
+}, $unstable_useCacheRefresh = function() {
+  return ReactSharedInternals.H.useCacheRefresh();
+}, $use = function(usable) {
+  return ReactSharedInternals.H.use(usable);
+}, $useActionState = function(action, initialState, permalink) {
+  return ReactSharedInternals.H.useActionState(action, initialState, permalink);
+}, $useCallback = function(callback, deps) {
+  return ReactSharedInternals.H.useCallback(callback, deps);
+}, $useContext = function(Context) {
+  return ReactSharedInternals.H.useContext(Context);
+}, $useDebugValue = function() {}, $useDeferredValue = function(value, initialValue) {
+  return ReactSharedInternals.H.useDeferredValue(value, initialValue);
+}, $useEffect = function(create, deps) {
+  return ReactSharedInternals.H.useEffect(create, deps);
+}, $useEffectEvent = function(callback) {
+  return ReactSharedInternals.H.useEffectEvent(callback);
+}, $useId = function() {
+  return ReactSharedInternals.H.useId();
+}, $useImperativeHandle = function(ref, create, deps) {
+  return ReactSharedInternals.H.useImperativeHandle(ref, create, deps);
+}, $useInsertionEffect = function(create, deps) {
+  return ReactSharedInternals.H.useInsertionEffect(create, deps);
+}, $useLayoutEffect = function(create, deps) {
+  return ReactSharedInternals.H.useLayoutEffect(create, deps);
+}, $useMemo = function(create, deps) {
+  return ReactSharedInternals.H.useMemo(create, deps);
+}, $useOptimistic = function(passthrough, reducer) {
+  return ReactSharedInternals.H.useOptimistic(passthrough, reducer);
+}, $useReducer = function(reducer, initialArg, init) {
+  return ReactSharedInternals.H.useReducer(reducer, initialArg, init);
+}, $useRef = function(initialValue) {
+  return ReactSharedInternals.H.useRef(initialValue);
+}, $useState = function(initialState) {
+  return ReactSharedInternals.H.useState(initialState);
+}, $useSyncExternalStore = function(subscribe, getSnapshot, getServerSnapshot) {
+  return ReactSharedInternals.H.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}, $useTransition = function() {
+  return ReactSharedInternals.H.useTransition();
+}, $version = "19.2.4";
+var init_react_production = __esm(() => {
+  REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element");
+  REACT_PORTAL_TYPE = Symbol.for("react.portal");
+  REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
+  REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode");
+  REACT_PROFILER_TYPE = Symbol.for("react.profiler");
+  REACT_CONSUMER_TYPE = Symbol.for("react.consumer");
+  REACT_CONTEXT_TYPE = Symbol.for("react.context");
+  REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref");
+  REACT_SUSPENSE_TYPE = Symbol.for("react.suspense");
+  REACT_MEMO_TYPE = Symbol.for("react.memo");
+  REACT_LAZY_TYPE = Symbol.for("react.lazy");
+  REACT_ACTIVITY_TYPE = Symbol.for("react.activity");
+  MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
+  ReactNoopUpdateQueue = {
+    isMounted: function() {
+      return false;
+    },
+    enqueueForceUpdate: function() {},
+    enqueueReplaceState: function() {},
+    enqueueSetState: function() {}
+  };
+  assign = Object.assign;
+  emptyObject = {};
+  Component.prototype.isReactComponent = {};
+  Component.prototype.setState = function(partialState, callback) {
+    if (typeof partialState !== "object" && typeof partialState !== "function" && partialState != null)
+      throw Error("takes an object of state variables to update or a function which returns an object of state variables.");
+    this.updater.enqueueSetState(this, partialState, callback, "setState");
+  };
+  Component.prototype.forceUpdate = function(callback) {
+    this.updater.enqueueForceUpdate(this, callback, "forceUpdate");
+  };
+  ComponentDummy.prototype = Component.prototype;
+  pureComponentPrototype = PureComponent.prototype = new ComponentDummy;
+  pureComponentPrototype.constructor = PureComponent;
+  assign(pureComponentPrototype, Component.prototype);
+  pureComponentPrototype.isPureReactComponent = true;
+  isArrayImpl = Array.isArray;
+  ReactSharedInternals = { H: null, A: null, T: null, S: null };
+  hasOwnProperty = Object.prototype.hasOwnProperty;
+  userProvidedKeyEscapeRegex = /\/+/g;
+  reportGlobalError = typeof reportError === "function" ? reportError : function(error) {
+    if (typeof window === "object" && typeof window.ErrorEvent === "function") {
+      var event = new window.ErrorEvent("error", {
+        bubbles: true,
+        cancelable: true,
+        message: typeof error === "object" && error !== null && typeof error.message === "string" ? String(error.message) : String(error),
+        error
+      });
+      if (!window.dispatchEvent(event))
+        return;
+    } else if (typeof process === "object" && typeof process.emit === "function") {
+      process.emit("uncaughtException", error);
+      return;
+    }
+    console.error(error);
+  };
+  Children = {
+    map: mapChildren,
+    forEach: function(children, forEachFunc, forEachContext) {
+      mapChildren(children, function() {
+        forEachFunc.apply(this, arguments);
+      }, forEachContext);
+    },
+    count: function(children) {
+      var n = 0;
+      mapChildren(children, function() {
+        n++;
+      });
+      return n;
+    },
+    toArray: function(children) {
+      return mapChildren(children, function(child) {
+        return child;
+      }) || [];
+    },
+    only: function(children) {
+      if (!isValidElement(children))
+        throw Error("React.Children.only expected to receive a single React element child.");
+      return children;
+    }
+  };
+  $Activity = REACT_ACTIVITY_TYPE;
+  $Children = Children;
+  $Component = Component;
+  $Fragment = REACT_FRAGMENT_TYPE;
+  $Profiler = REACT_PROFILER_TYPE;
+  $PureComponent = PureComponent;
+  $StrictMode = REACT_STRICT_MODE_TYPE;
+  $Suspense = REACT_SUSPENSE_TYPE;
+  $__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = ReactSharedInternals;
+  $__COMPILER_RUNTIME = {
+    __proto__: null,
+    c: function(size) {
+      return ReactSharedInternals.H.useMemoCache(size);
+    }
+  };
+  $isValidElement = isValidElement;
+});
+
+// node_modules/.bun/react@19.2.4/node_modules/react/index.js
+var require_react = __commonJS((exports, module) => {
+  init_react_production();
+  if (true) {
+    module.exports = exports_react_production;
+  } else {}
+});
+
 // vendor/flexily/src/constants.ts
 var FLEX_DIRECTION_COLUMN = 0, FLEX_DIRECTION_COLUMN_REVERSE = 1, FLEX_DIRECTION_ROW = 2, FLEX_DIRECTION_ROW_REVERSE = 3, WRAP_NO_WRAP = 0, WRAP_WRAP = 1, WRAP_WRAP_REVERSE = 2, ALIGN_AUTO = 0, ALIGN_FLEX_START = 1, ALIGN_CENTER = 2, ALIGN_FLEX_END = 3, ALIGN_STRETCH = 4, ALIGN_BASELINE = 5, ALIGN_SPACE_BETWEEN = 6, ALIGN_SPACE_AROUND = 7, ALIGN_SPACE_EVENLY = 8, JUSTIFY_FLEX_START = 0, JUSTIFY_CENTER = 1, JUSTIFY_FLEX_END = 2, JUSTIFY_SPACE_BETWEEN = 3, JUSTIFY_SPACE_AROUND = 4, JUSTIFY_SPACE_EVENLY = 5, EDGE_LEFT = 0, EDGE_TOP = 1, EDGE_RIGHT = 2, EDGE_BOTTOM = 3, EDGE_START = 4, EDGE_END = 5, EDGE_HORIZONTAL = 6, EDGE_VERTICAL = 7, EDGE_ALL = 8, GUTTER_COLUMN = 0, GUTTER_ROW = 1, GUTTER_ALL = 2, DISPLAY_FLEX = 0, DISPLAY_NONE = 1, POSITION_TYPE_STATIC = 0, POSITION_TYPE_RELATIVE = 1, POSITION_TYPE_ABSOLUTE = 2, OVERFLOW_VISIBLE = 0, OVERFLOW_HIDDEN = 1, OVERFLOW_SCROLL = 2, DIRECTION_LTR = 1, DIRECTION_RTL = 2, MEASURE_MODE_UNDEFINED = 0, MEASURE_MODE_EXACTLY = 1, MEASURE_MODE_AT_MOST = 2, UNIT_UNDEFINED = 0, UNIT_POINT = 1, UNIT_PERCENT = 2, UNIT_AUTO = 3;
 
@@ -11712,7 +12123,7 @@ var init_modus = __esm(() => {
 });
 
 // vendor/silvery/packages/theme/src/palettes/index.ts
-var defaultDarkTheme, defaultLightTheme;
+var ansi16DarkTheme, defaultDarkTheme, defaultLightTheme;
 var init_palettes = __esm(() => {
   init_derive();
   init_catppuccin();
@@ -11761,425 +12172,73 @@ var init_palettes = __esm(() => {
   init_sonokai();
   init_edge();
   init_modus();
+  ansi16DarkTheme = {
+    name: "dark-ansi16",
+    bg: "",
+    fg: "whiteBright",
+    muted: "white",
+    mutedbg: "black",
+    surface: "whiteBright",
+    surfacebg: "black",
+    popover: "whiteBright",
+    popoverbg: "black",
+    inverse: "black",
+    inversebg: "whiteBright",
+    cursor: "black",
+    cursorbg: "yellow",
+    selection: "black",
+    selectionbg: "yellow",
+    primary: "yellow",
+    primaryfg: "black",
+    secondary: "white",
+    secondaryfg: "black",
+    accent: "blueBright",
+    accentfg: "black",
+    error: "redBright",
+    errorfg: "black",
+    warning: "yellow",
+    warningfg: "black",
+    success: "greenBright",
+    successfg: "black",
+    info: "cyan",
+    infofg: "black",
+    border: "gray",
+    inputborder: "gray",
+    focusborder: "blueBright",
+    link: "blueBright",
+    disabledfg: "gray",
+    palette: [
+      "black",
+      "red",
+      "green",
+      "yellow",
+      "blue",
+      "magenta",
+      "cyan",
+      "white",
+      "blackBright",
+      "redBright",
+      "greenBright",
+      "yellowBright",
+      "blueBright",
+      "magentaBright",
+      "cyanBright",
+      "whiteBright"
+    ]
+  };
   defaultDarkTheme = deriveTheme(nord);
   defaultLightTheme = deriveTheme(catppuccinLatte);
 });
 
 // vendor/silvery/packages/theme/src/state.ts
+function setActiveTheme(theme) {
+  _activeTheme = theme;
+}
+var _activeTheme;
 var init_state = __esm(() => {
   init_palettes();
+  _activeTheme = ansi16DarkTheme;
 });
-// node_modules/.bun/react@19.2.4/node_modules/react/cjs/react.production.js
-var exports_react_production = {};
-__export(exports_react_production, {
-  version: () => $version,
-  useTransition: () => $useTransition,
-  useSyncExternalStore: () => $useSyncExternalStore,
-  useState: () => $useState,
-  useRef: () => $useRef,
-  useReducer: () => $useReducer,
-  useOptimistic: () => $useOptimistic,
-  useMemo: () => $useMemo,
-  useLayoutEffect: () => $useLayoutEffect,
-  useInsertionEffect: () => $useInsertionEffect,
-  useImperativeHandle: () => $useImperativeHandle,
-  useId: () => $useId,
-  useEffectEvent: () => $useEffectEvent,
-  useEffect: () => $useEffect,
-  useDeferredValue: () => $useDeferredValue,
-  useDebugValue: () => $useDebugValue,
-  useContext: () => $useContext,
-  useCallback: () => $useCallback,
-  useActionState: () => $useActionState,
-  use: () => $use,
-  unstable_useCacheRefresh: () => $unstable_useCacheRefresh,
-  startTransition: () => $startTransition,
-  memo: () => $memo,
-  lazy: () => $lazy,
-  isValidElement: () => $isValidElement,
-  forwardRef: () => $forwardRef,
-  createRef: () => $createRef,
-  createElement: () => $createElement,
-  createContext: () => $createContext,
-  cloneElement: () => $cloneElement,
-  cacheSignal: () => $cacheSignal,
-  cache: () => $cache,
-  __COMPILER_RUNTIME: () => $__COMPILER_RUNTIME,
-  __CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE: () => $__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE,
-  Suspense: () => $Suspense,
-  StrictMode: () => $StrictMode,
-  PureComponent: () => $PureComponent,
-  Profiler: () => $Profiler,
-  Fragment: () => $Fragment,
-  Component: () => $Component,
-  Children: () => $Children,
-  Activity: () => $Activity
-});
-function getIteratorFn(maybeIterable) {
-  if (maybeIterable === null || typeof maybeIterable !== "object")
-    return null;
-  maybeIterable = MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL] || maybeIterable["@@iterator"];
-  return typeof maybeIterable === "function" ? maybeIterable : null;
-}
-function Component(props, context, updater) {
-  this.props = props;
-  this.context = context;
-  this.refs = emptyObject;
-  this.updater = updater || ReactNoopUpdateQueue;
-}
-function ComponentDummy() {}
-function PureComponent(props, context, updater) {
-  this.props = props;
-  this.context = context;
-  this.refs = emptyObject;
-  this.updater = updater || ReactNoopUpdateQueue;
-}
-function noop() {}
-function ReactElement(type, key, props) {
-  var refProp = props.ref;
-  return {
-    $$typeof: REACT_ELEMENT_TYPE,
-    type,
-    key,
-    ref: refProp !== undefined ? refProp : null,
-    props
-  };
-}
-function cloneAndReplaceKey(oldElement, newKey) {
-  return ReactElement(oldElement.type, newKey, oldElement.props);
-}
-function isValidElement(object) {
-  return typeof object === "object" && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
-}
-function escape(key) {
-  var escaperLookup = { "=": "=0", ":": "=2" };
-  return "$" + key.replace(/[=:]/g, function(match) {
-    return escaperLookup[match];
-  });
-}
-function getElementKey(element, index) {
-  return typeof element === "object" && element !== null && element.key != null ? escape("" + element.key) : index.toString(36);
-}
-function resolveThenable(thenable) {
-  switch (thenable.status) {
-    case "fulfilled":
-      return thenable.value;
-    case "rejected":
-      throw thenable.reason;
-    default:
-      switch (typeof thenable.status === "string" ? thenable.then(noop, noop) : (thenable.status = "pending", thenable.then(function(fulfilledValue) {
-        thenable.status === "pending" && (thenable.status = "fulfilled", thenable.value = fulfilledValue);
-      }, function(error) {
-        thenable.status === "pending" && (thenable.status = "rejected", thenable.reason = error);
-      })), thenable.status) {
-        case "fulfilled":
-          return thenable.value;
-        case "rejected":
-          throw thenable.reason;
-      }
-  }
-  throw thenable;
-}
-function mapIntoArray(children, array, escapedPrefix, nameSoFar, callback) {
-  var type = typeof children;
-  if (type === "undefined" || type === "boolean")
-    children = null;
-  var invokeCallback = false;
-  if (children === null)
-    invokeCallback = true;
-  else
-    switch (type) {
-      case "bigint":
-      case "string":
-      case "number":
-        invokeCallback = true;
-        break;
-      case "object":
-        switch (children.$$typeof) {
-          case REACT_ELEMENT_TYPE:
-          case REACT_PORTAL_TYPE:
-            invokeCallback = true;
-            break;
-          case REACT_LAZY_TYPE:
-            return invokeCallback = children._init, mapIntoArray(invokeCallback(children._payload), array, escapedPrefix, nameSoFar, callback);
-        }
-    }
-  if (invokeCallback)
-    return callback = callback(children), invokeCallback = nameSoFar === "" ? "." + getElementKey(children, 0) : nameSoFar, isArrayImpl(callback) ? (escapedPrefix = "", invokeCallback != null && (escapedPrefix = invokeCallback.replace(userProvidedKeyEscapeRegex, "$&/") + "/"), mapIntoArray(callback, array, escapedPrefix, "", function(c) {
-      return c;
-    })) : callback != null && (isValidElement(callback) && (callback = cloneAndReplaceKey(callback, escapedPrefix + (callback.key == null || children && children.key === callback.key ? "" : ("" + callback.key).replace(userProvidedKeyEscapeRegex, "$&/") + "/") + invokeCallback)), array.push(callback)), 1;
-  invokeCallback = 0;
-  var nextNamePrefix = nameSoFar === "" ? "." : nameSoFar + ":";
-  if (isArrayImpl(children))
-    for (var i = 0;i < children.length; i++)
-      nameSoFar = children[i], type = nextNamePrefix + getElementKey(nameSoFar, i), invokeCallback += mapIntoArray(nameSoFar, array, escapedPrefix, type, callback);
-  else if (i = getIteratorFn(children), typeof i === "function")
-    for (children = i.call(children), i = 0;!(nameSoFar = children.next()).done; )
-      nameSoFar = nameSoFar.value, type = nextNamePrefix + getElementKey(nameSoFar, i++), invokeCallback += mapIntoArray(nameSoFar, array, escapedPrefix, type, callback);
-  else if (type === "object") {
-    if (typeof children.then === "function")
-      return mapIntoArray(resolveThenable(children), array, escapedPrefix, nameSoFar, callback);
-    array = String(children);
-    throw Error("Objects are not valid as a React child (found: " + (array === "[object Object]" ? "object with keys {" + Object.keys(children).join(", ") + "}" : array) + "). If you meant to render a collection of children, use an array instead.");
-  }
-  return invokeCallback;
-}
-function mapChildren(children, func, context) {
-  if (children == null)
-    return children;
-  var result = [], count = 0;
-  mapIntoArray(children, result, "", "", function(child) {
-    return func.call(context, child, count++);
-  });
-  return result;
-}
-function lazyInitializer(payload) {
-  if (payload._status === -1) {
-    var ctor = payload._result;
-    ctor = ctor();
-    ctor.then(function(moduleObject) {
-      if (payload._status === 0 || payload._status === -1)
-        payload._status = 1, payload._result = moduleObject;
-    }, function(error) {
-      if (payload._status === 0 || payload._status === -1)
-        payload._status = 2, payload._result = error;
-    });
-    payload._status === -1 && (payload._status = 0, payload._result = ctor);
-  }
-  if (payload._status === 1)
-    return payload._result.default;
-  throw payload._result;
-}
-var REACT_ELEMENT_TYPE, REACT_PORTAL_TYPE, REACT_FRAGMENT_TYPE, REACT_STRICT_MODE_TYPE, REACT_PROFILER_TYPE, REACT_CONSUMER_TYPE, REACT_CONTEXT_TYPE, REACT_FORWARD_REF_TYPE, REACT_SUSPENSE_TYPE, REACT_MEMO_TYPE, REACT_LAZY_TYPE, REACT_ACTIVITY_TYPE, MAYBE_ITERATOR_SYMBOL, ReactNoopUpdateQueue, assign, emptyObject, pureComponentPrototype, isArrayImpl, ReactSharedInternals, hasOwnProperty, userProvidedKeyEscapeRegex, reportGlobalError, Children, $Activity, $Children, $Component, $Fragment, $Profiler, $PureComponent, $StrictMode, $Suspense, $__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE, $__COMPILER_RUNTIME, $cache = function(fn) {
-  return function() {
-    return fn.apply(null, arguments);
-  };
-}, $cacheSignal = function() {
-  return null;
-}, $cloneElement = function(element, config, children) {
-  if (element === null || element === undefined)
-    throw Error("The argument must be a React element, but you passed " + element + ".");
-  var props = assign({}, element.props), key = element.key;
-  if (config != null)
-    for (propName in config.key !== undefined && (key = "" + config.key), config)
-      !hasOwnProperty.call(config, propName) || propName === "key" || propName === "__self" || propName === "__source" || propName === "ref" && config.ref === undefined || (props[propName] = config[propName]);
-  var propName = arguments.length - 2;
-  if (propName === 1)
-    props.children = children;
-  else if (1 < propName) {
-    for (var childArray = Array(propName), i = 0;i < propName; i++)
-      childArray[i] = arguments[i + 2];
-    props.children = childArray;
-  }
-  return ReactElement(element.type, key, props);
-}, $createContext = function(defaultValue) {
-  defaultValue = {
-    $$typeof: REACT_CONTEXT_TYPE,
-    _currentValue: defaultValue,
-    _currentValue2: defaultValue,
-    _threadCount: 0,
-    Provider: null,
-    Consumer: null
-  };
-  defaultValue.Provider = defaultValue;
-  defaultValue.Consumer = {
-    $$typeof: REACT_CONSUMER_TYPE,
-    _context: defaultValue
-  };
-  return defaultValue;
-}, $createElement = function(type, config, children) {
-  var propName, props = {}, key = null;
-  if (config != null)
-    for (propName in config.key !== undefined && (key = "" + config.key), config)
-      hasOwnProperty.call(config, propName) && propName !== "key" && propName !== "__self" && propName !== "__source" && (props[propName] = config[propName]);
-  var childrenLength = arguments.length - 2;
-  if (childrenLength === 1)
-    props.children = children;
-  else if (1 < childrenLength) {
-    for (var childArray = Array(childrenLength), i = 0;i < childrenLength; i++)
-      childArray[i] = arguments[i + 2];
-    props.children = childArray;
-  }
-  if (type && type.defaultProps)
-    for (propName in childrenLength = type.defaultProps, childrenLength)
-      props[propName] === undefined && (props[propName] = childrenLength[propName]);
-  return ReactElement(type, key, props);
-}, $createRef = function() {
-  return { current: null };
-}, $forwardRef = function(render) {
-  return { $$typeof: REACT_FORWARD_REF_TYPE, render };
-}, $isValidElement, $lazy = function(ctor) {
-  return {
-    $$typeof: REACT_LAZY_TYPE,
-    _payload: { _status: -1, _result: ctor },
-    _init: lazyInitializer
-  };
-}, $memo = function(type, compare) {
-  return {
-    $$typeof: REACT_MEMO_TYPE,
-    type,
-    compare: compare === undefined ? null : compare
-  };
-}, $startTransition = function(scope) {
-  var prevTransition = ReactSharedInternals.T, currentTransition = {};
-  ReactSharedInternals.T = currentTransition;
-  try {
-    var returnValue = scope(), onStartTransitionFinish = ReactSharedInternals.S;
-    onStartTransitionFinish !== null && onStartTransitionFinish(currentTransition, returnValue);
-    typeof returnValue === "object" && returnValue !== null && typeof returnValue.then === "function" && returnValue.then(noop, reportGlobalError);
-  } catch (error) {
-    reportGlobalError(error);
-  } finally {
-    prevTransition !== null && currentTransition.types !== null && (prevTransition.types = currentTransition.types), ReactSharedInternals.T = prevTransition;
-  }
-}, $unstable_useCacheRefresh = function() {
-  return ReactSharedInternals.H.useCacheRefresh();
-}, $use = function(usable) {
-  return ReactSharedInternals.H.use(usable);
-}, $useActionState = function(action, initialState, permalink) {
-  return ReactSharedInternals.H.useActionState(action, initialState, permalink);
-}, $useCallback = function(callback, deps) {
-  return ReactSharedInternals.H.useCallback(callback, deps);
-}, $useContext = function(Context) {
-  return ReactSharedInternals.H.useContext(Context);
-}, $useDebugValue = function() {}, $useDeferredValue = function(value, initialValue) {
-  return ReactSharedInternals.H.useDeferredValue(value, initialValue);
-}, $useEffect = function(create, deps) {
-  return ReactSharedInternals.H.useEffect(create, deps);
-}, $useEffectEvent = function(callback) {
-  return ReactSharedInternals.H.useEffectEvent(callback);
-}, $useId = function() {
-  return ReactSharedInternals.H.useId();
-}, $useImperativeHandle = function(ref, create, deps) {
-  return ReactSharedInternals.H.useImperativeHandle(ref, create, deps);
-}, $useInsertionEffect = function(create, deps) {
-  return ReactSharedInternals.H.useInsertionEffect(create, deps);
-}, $useLayoutEffect = function(create, deps) {
-  return ReactSharedInternals.H.useLayoutEffect(create, deps);
-}, $useMemo = function(create, deps) {
-  return ReactSharedInternals.H.useMemo(create, deps);
-}, $useOptimistic = function(passthrough, reducer) {
-  return ReactSharedInternals.H.useOptimistic(passthrough, reducer);
-}, $useReducer = function(reducer, initialArg, init) {
-  return ReactSharedInternals.H.useReducer(reducer, initialArg, init);
-}, $useRef = function(initialValue) {
-  return ReactSharedInternals.H.useRef(initialValue);
-}, $useState = function(initialState) {
-  return ReactSharedInternals.H.useState(initialState);
-}, $useSyncExternalStore = function(subscribe, getSnapshot, getServerSnapshot) {
-  return ReactSharedInternals.H.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-}, $useTransition = function() {
-  return ReactSharedInternals.H.useTransition();
-}, $version = "19.2.4";
-var init_react_production = __esm(() => {
-  REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element");
-  REACT_PORTAL_TYPE = Symbol.for("react.portal");
-  REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
-  REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode");
-  REACT_PROFILER_TYPE = Symbol.for("react.profiler");
-  REACT_CONSUMER_TYPE = Symbol.for("react.consumer");
-  REACT_CONTEXT_TYPE = Symbol.for("react.context");
-  REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref");
-  REACT_SUSPENSE_TYPE = Symbol.for("react.suspense");
-  REACT_MEMO_TYPE = Symbol.for("react.memo");
-  REACT_LAZY_TYPE = Symbol.for("react.lazy");
-  REACT_ACTIVITY_TYPE = Symbol.for("react.activity");
-  MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
-  ReactNoopUpdateQueue = {
-    isMounted: function() {
-      return false;
-    },
-    enqueueForceUpdate: function() {},
-    enqueueReplaceState: function() {},
-    enqueueSetState: function() {}
-  };
-  assign = Object.assign;
-  emptyObject = {};
-  Component.prototype.isReactComponent = {};
-  Component.prototype.setState = function(partialState, callback) {
-    if (typeof partialState !== "object" && typeof partialState !== "function" && partialState != null)
-      throw Error("takes an object of state variables to update or a function which returns an object of state variables.");
-    this.updater.enqueueSetState(this, partialState, callback, "setState");
-  };
-  Component.prototype.forceUpdate = function(callback) {
-    this.updater.enqueueForceUpdate(this, callback, "forceUpdate");
-  };
-  ComponentDummy.prototype = Component.prototype;
-  pureComponentPrototype = PureComponent.prototype = new ComponentDummy;
-  pureComponentPrototype.constructor = PureComponent;
-  assign(pureComponentPrototype, Component.prototype);
-  pureComponentPrototype.isPureReactComponent = true;
-  isArrayImpl = Array.isArray;
-  ReactSharedInternals = { H: null, A: null, T: null, S: null };
-  hasOwnProperty = Object.prototype.hasOwnProperty;
-  userProvidedKeyEscapeRegex = /\/+/g;
-  reportGlobalError = typeof reportError === "function" ? reportError : function(error) {
-    if (typeof window === "object" && typeof window.ErrorEvent === "function") {
-      var event = new window.ErrorEvent("error", {
-        bubbles: true,
-        cancelable: true,
-        message: typeof error === "object" && error !== null && typeof error.message === "string" ? String(error.message) : String(error),
-        error
-      });
-      if (!window.dispatchEvent(event))
-        return;
-    } else if (typeof process === "object" && typeof process.emit === "function") {
-      process.emit("uncaughtException", error);
-      return;
-    }
-    console.error(error);
-  };
-  Children = {
-    map: mapChildren,
-    forEach: function(children, forEachFunc, forEachContext) {
-      mapChildren(children, function() {
-        forEachFunc.apply(this, arguments);
-      }, forEachContext);
-    },
-    count: function(children) {
-      var n = 0;
-      mapChildren(children, function() {
-        n++;
-      });
-      return n;
-    },
-    toArray: function(children) {
-      return mapChildren(children, function(child) {
-        return child;
-      }) || [];
-    },
-    only: function(children) {
-      if (!isValidElement(children))
-        throw Error("React.Children.only expected to receive a single React element child.");
-      return children;
-    }
-  };
-  $Activity = REACT_ACTIVITY_TYPE;
-  $Children = Children;
-  $Component = Component;
-  $Fragment = REACT_FRAGMENT_TYPE;
-  $Profiler = REACT_PROFILER_TYPE;
-  $PureComponent = PureComponent;
-  $StrictMode = REACT_STRICT_MODE_TYPE;
-  $Suspense = REACT_SUSPENSE_TYPE;
-  $__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = ReactSharedInternals;
-  $__COMPILER_RUNTIME = {
-    __proto__: null,
-    c: function(size) {
-      return ReactSharedInternals.H.useMemoCache(size);
-    }
-  };
-  $isValidElement = isValidElement;
-});
-
-// node_modules/.bun/react@19.2.4/node_modules/react/index.js
-var require_react = __commonJS((exports, module) => {
-  init_react_production();
-  if (true) {
-    module.exports = exports_react_production;
-  } else {}
-});
-
 // node_modules/.bun/scheduler@0.27.0/node_modules/scheduler/cjs/scheduler.production.js
 var exports_scheduler_production = {};
 __export(exports_scheduler_production, {
@@ -19269,6 +19328,9 @@ var require_jsx_runtime = __commonJS((exports, module) => {
   } else {}
 });
 
+// vendor/silvery/packages/ag-react/src/ui/canvas/index.ts
+var import_react9 = __toESM(require_react(), 1);
+
 // vendor/silvery/packages/ag-term/src/adapters/canvas-adapter.ts
 var DEFAULT_CONFIG = {
   fontSize: 14,
@@ -19498,7 +19560,7 @@ function createCanvasAdapter(config = {}) {
   };
 }
 
-// vendor/silvery/packages/ag-term/src/browser-renderer.ts
+// vendor/silvery/packages/ag-react/src/ui/canvas/index.ts
 await init_flexily_zero_adapter();
 
 // vendor/silvery/packages/ag-term/src/layout-engine.ts
@@ -21344,6 +21406,9 @@ function normalizeNodeType(type) {
   return type;
 }
 var onNodeRemovedCallback = null;
+function setOnNodeRemoved(callback) {
+  onNodeRemovedCallback = callback;
+}
 function markSubtreeDirty(node) {
   while (node && !node.subtreeDirty) {
     node.subtreeDirty = true;
@@ -21366,6 +21431,15 @@ function markLayoutAncestorDirty(node) {
 }
 var inkStrictValidation = false;
 var currentUpdatePriority = import_constants5.NoEventPriority;
+function runWithDiscreteEvent(fn) {
+  const prev = currentUpdatePriority;
+  currentUpdatePriority = import_constants5.DiscreteEventPriority;
+  try {
+    fn();
+  } finally {
+    currentUpdatePriority = prev;
+  }
+}
 var hostConfig = {
   rendererPackageName: "@silvery/ag-react",
   rendererVersion: "0.0.1",
@@ -21773,72 +21847,6 @@ function getContainerRoot(container) {
   return container.root;
 }
 
-// vendor/silvery/packages/ag-term/src/browser-renderer.ts
-var initialized = false;
-function initBrowserRenderer(factory, config) {
-  if (initialized)
-    return;
-  setLayoutEngine(createFlexilyZeroEngine());
-  setRenderAdapter(factory.createAdapter(config));
-  initialized = true;
-}
-function createBrowserRenderer(element, width, height, onRender, onUnmount) {
-  const container = createContainer(() => {
-    scheduleRender();
-  });
-  const root = getContainerRoot(container);
-  const fiberRoot = createFiberRoot(container);
-  let currentBuffer = null;
-  let currentElement = element;
-  let renderScheduled = false;
-  function scheduleRender() {
-    if (renderScheduled)
-      return;
-    renderScheduled = true;
-    if (typeof requestAnimationFrame !== "undefined") {
-      requestAnimationFrame(() => {
-        renderScheduled = false;
-        doRender();
-      });
-    } else {
-      setTimeout(() => {
-        renderScheduled = false;
-        doRender();
-      }, 0);
-    }
-  }
-  function doRender() {
-    reconciler.updateContainerSync(currentElement, fiberRoot, null, null);
-    reconciler.flushSyncWork();
-    const prevBuffer = currentBuffer;
-    const result = executeRenderAdapter(root, width, height, prevBuffer);
-    currentBuffer = result.buffer;
-    onRender(currentBuffer);
-  }
-  doRender();
-  const unmount = () => {
-    reconciler.updateContainer(null, fiberRoot, null, () => {});
-    onUnmount?.();
-  };
-  return {
-    rerender(newElement) {
-      currentElement = newElement;
-      scheduleRender();
-    },
-    unmount,
-    [Symbol.dispose]: unmount,
-    getBuffer() {
-      return currentBuffer;
-    },
-    refresh() {
-      scheduleRender();
-    }
-  };
-}
-
-// vendor/silvery/packages/ag-react/src/components/Box.tsx
-var import_react3 = __toESM(require_react(), 1);
-
 // vendor/silvery/packages/ag-react/src/context.ts
 var import_react2 = __toESM(require_react(), 1);
 var TermContext = import_react2.createContext(null);
@@ -21848,72 +21856,489 @@ var StderrContext = import_react2.createContext(null);
 var RuntimeContext = import_react2.createContext(null);
 var FocusManagerContext = import_react2.createContext(null);
 
-// vendor/silvery/packages/ag-react/src/components/Box.tsx
-var jsx_runtime = __toESM(require_jsx_runtime(), 1);
-var Box = import_react3.forwardRef(function Box2(props, ref) {
-  const { children, onLayout, ...restProps } = props;
-  const nodeRef = import_react3.useRef(null);
-  const [node, setNode] = import_react3.useState(null);
-  const lastReportedLayout = import_react3.useRef(null);
-  import_react3.useLayoutEffect(() => {
-    if (nodeRef.current) {
-      setNode(nodeRef.current);
-    }
-  }, []);
-  import_react3.useLayoutEffect(() => {
-    if (!onLayout || !node)
+// vendor/silvery/packages/create/src/focus-queries.ts
+function isFocusable(node) {
+  if (node.hidden)
+    return false;
+  const props = node.props;
+  return Boolean(props.focusable) && props.display !== "none";
+}
+function isFocusScope(node) {
+  const props = node.props;
+  return Boolean(props.focusScope);
+}
+function findFocusableAncestor(node) {
+  let current = node;
+  while (current) {
+    if (isFocusable(current))
+      return current;
+    current = current.parent;
+  }
+  return null;
+}
+function getTabOrder(root, scope) {
+  const result = [];
+  const walkRoot = scope ?? root;
+  function walk(node) {
+    if (node.hidden)
       return;
-    const handleLayoutChange = () => {
-      const layout = node.contentRect;
-      if (!layout)
-        return;
-      const last = lastReportedLayout.current;
-      if (!last || last.x !== layout.x || last.y !== layout.y || last.width !== layout.width || last.height !== layout.height) {
-        lastReportedLayout.current = layout;
-        onLayout(layout);
+    const props = node.props;
+    if (props.display === "none")
+      return;
+    if (node !== walkRoot && isFocusScope(node)) {
+      if (isFocusable(node)) {
+        result.push(node);
       }
-    };
-    node.layoutSubscribers.add(handleLayoutChange);
-    if (node.contentRect) {
-      handleLayoutChange();
+      return;
     }
-    return () => {
-      node.layoutSubscribers.delete(handleLayoutChange);
-    };
-  }, [node, onLayout]);
-  import_react3.useImperativeHandle(ref, () => ({
-    getNode: () => nodeRef.current,
-    getContentRect: () => nodeRef.current?.contentRect ?? null,
-    getScreenRect: () => nodeRef.current?.screenRect ?? null
-  }), []);
-  return /* @__PURE__ */ jsx_runtime.jsx("silvery-box", {
-    ref: nodeRef,
-    ...restProps,
-    children: /* @__PURE__ */ jsx_runtime.jsx(NodeContext.Provider, {
-      value: node,
-      children
-    })
-  });
-});
-// vendor/silvery/packages/ag-react/src/components/Text.tsx
-var import_react4 = __toESM(require_react(), 1);
-var jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
-var Text = import_react4.forwardRef(function Text2(props, ref) {
-  const { children, ...styleProps } = props;
-  return /* @__PURE__ */ jsx_runtime2.jsx("silvery-text", {
-    ref: (node) => {
-      if (typeof ref === "function") {
-        ref(node ? { getNode: () => node } : null);
-      } else if (ref) {
-        ref.current = node ? { getNode: () => node } : null;
+    if (isFocusable(node)) {
+      result.push(node);
+    }
+    for (const child of node.children) {
+      walk(child);
+    }
+  }
+  walk(walkRoot);
+  return result;
+}
+function findByTestID(root, testID) {
+  const props = root.props;
+  if (props.testID === testID)
+    return root;
+  for (const child of root.children) {
+    const found = findByTestID(child, testID);
+    if (found)
+      return found;
+  }
+  return null;
+}
+function rectCenter(rect) {
+  return {
+    cx: rect.x + rect.width / 2,
+    cy: rect.y + rect.height / 2
+  };
+}
+function isInCone(source, candidate, direction) {
+  const dx = candidate.cx - source.cx;
+  const dy = candidate.cy - source.cy;
+  switch (direction) {
+    case "up":
+      if (dy >= 0)
+        return false;
+      return Math.abs(dx) <= Math.abs(dy);
+    case "down":
+      if (dy <= 0)
+        return false;
+      return Math.abs(dx) <= Math.abs(dy);
+    case "left":
+      if (dx >= 0)
+        return false;
+      return Math.abs(dy) <= Math.abs(dx);
+    case "right":
+      if (dx <= 0)
+        return false;
+      return Math.abs(dy) <= Math.abs(dx);
+  }
+}
+function distance(a, b) {
+  const dx = a.cx - b.cx;
+  const dy = a.cy - b.cy;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+function findSpatialTarget(from, direction, candidates, layoutFn) {
+  const sourceRect = layoutFn(from);
+  if (!sourceRect)
+    return null;
+  const source = rectCenter(sourceRect);
+  let best = null;
+  let bestDist = Infinity;
+  for (const candidate of candidates) {
+    if (candidate === from)
+      continue;
+    const candidateRect = layoutFn(candidate);
+    if (!candidateRect)
+      continue;
+    const target = rectCenter(candidateRect);
+    if (!isInCone(source, target, direction))
+      continue;
+    const dist = distance(source, target);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = candidate;
+    }
+  }
+  return best;
+}
+function getExplicitFocusLink(node, direction) {
+  const props = node.props;
+  const propName = `nextFocus${direction.charAt(0).toUpperCase()}${direction.slice(1)}`;
+  const value = props[propName];
+  return typeof value === "string" ? value : null;
+}
+
+// vendor/silvery/packages/ag/src/focus-manager.ts
+function createFocusManager(options) {
+  const onFocusChange = options?.onFocusChange;
+  let activeElement = null;
+  let activeId = null;
+  let previousElement = null;
+  let previousId = null;
+  let focusOrigin = null;
+  const scopeStack = [];
+  const scopeMemory = {};
+  let activeScopeId = null;
+  const listeners = new Set;
+  let snapshot = null;
+  let notifyCount = 0;
+  function notify() {
+    snapshot = null;
+    notifyCount++;
+    for (const listener of listeners) {
+      listener();
+    }
+  }
+  function getTestID(node) {
+    const props = node.props;
+    return typeof props.testID === "string" ? props.testID : null;
+  }
+  function focus(node, origin = "programmatic") {
+    if (activeElement === node) {
+      if (focusOrigin !== origin) {
+        focusOrigin = origin;
+        notify();
       }
+      return;
+    }
+    const oldElement = activeElement;
+    previousElement = activeElement;
+    previousId = activeId;
+    activeElement = node;
+    activeId = getTestID(node);
+    focusOrigin = origin;
+    if (activeId && scopeStack.length > 0) {
+      scopeMemory[scopeStack[scopeStack.length - 1]] = activeId;
+    }
+    notify();
+    onFocusChange?.(oldElement, node, origin);
+  }
+  function focusById(id, root, origin = "programmatic") {
+    const node = findByTestID(root, id);
+    if (node) {
+      const focusable = findFocusableAncestor(node);
+      if (focusable) {
+        focus(focusable, origin);
+        return;
+      }
+    }
+    const oldElement = activeElement;
+    previousElement = activeElement;
+    previousId = activeId;
+    activeElement = null;
+    activeId = id;
+    focusOrigin = origin;
+    notify();
+    onFocusChange?.(oldElement, null, origin);
+  }
+  function blur() {
+    if (!activeElement && !activeId)
+      return;
+    const oldElement = activeElement;
+    previousElement = activeElement;
+    previousId = activeId;
+    activeElement = null;
+    activeId = null;
+    focusOrigin = null;
+    notify();
+    onFocusChange?.(oldElement, null, null);
+  }
+  function subtreeContains(subtreeRoot, target) {
+    if (subtreeRoot === target)
+      return true;
+    for (const child of subtreeRoot.children) {
+      if (subtreeContains(child, target))
+        return true;
+    }
+    return false;
+  }
+  function handleSubtreeRemoved(removedRoot) {
+    let changed = false;
+    if (activeElement && subtreeContains(removedRoot, activeElement)) {
+      const oldElement = activeElement;
+      previousElement = activeElement;
+      previousId = activeId;
+      activeElement = null;
+      activeId = null;
+      focusOrigin = null;
+      changed = true;
+      onFocusChange?.(oldElement, null, null);
+    }
+    if (previousElement && subtreeContains(removedRoot, previousElement)) {
+      previousElement = null;
+      previousId = null;
+      changed = true;
+    }
+    if (changed) {
+      notify();
+    }
+  }
+  function enterScope(scopeId) {
+    scopeStack.push(scopeId);
+    notify();
+  }
+  function exitScope() {
+    const exited = scopeStack.pop();
+    if (exited === undefined)
+      return;
+    notify();
+  }
+  function activateScope(scopeId, root) {
+    if (activeScopeId && activeId) {
+      scopeMemory[activeScopeId] = activeId;
+    }
+    activeScopeId = scopeId;
+    const countBefore = notifyCount;
+    const remembered = scopeMemory[scopeId];
+    if (remembered) {
+      focusById(remembered, root, "programmatic");
+    } else {
+      const scopeNode = findByTestID(root, scopeId);
+      if (scopeNode) {
+        const order = getTabOrder(root, scopeNode);
+        if (order.length > 0) {
+          focus(order[0], "programmatic");
+        }
+      }
+    }
+    if (notifyCount === countBefore) {
+      notify();
+    }
+  }
+  function getFocusPath(root) {
+    if (!activeElement)
+      return [];
+    const path = [];
+    let current = activeElement;
+    while (current && current !== root.parent) {
+      const id = getTestID(current);
+      if (id)
+        path.push(id);
+      current = current.parent;
+    }
+    return path;
+  }
+  function hasFocusWithin(root, testID) {
+    if (!activeElement)
+      return false;
+    const target = findByTestID(root, testID);
+    if (!target)
+      return false;
+    let current = activeElement;
+    while (current) {
+      if (current === target)
+        return true;
+      current = current.parent;
+    }
+    return false;
+  }
+  function resolveScope(root, explicitScope) {
+    if (explicitScope)
+      return explicitScope;
+    if (scopeStack.length > 0) {
+      const scopeId = scopeStack[scopeStack.length - 1];
+      const scopeNode = findByTestID(root, scopeId);
+      if (scopeNode)
+        return scopeNode;
+    }
+    return;
+  }
+  function focusNext(root, scope) {
+    const effectiveScope = resolveScope(root, scope);
+    const order = getTabOrder(root, effectiveScope);
+    if (order.length === 0)
+      return;
+    if (!activeElement) {
+      focus(order[0], "keyboard");
+      return;
+    }
+    const currentIndex = order.indexOf(activeElement);
+    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % order.length;
+    focus(order[nextIndex], "keyboard");
+  }
+  function focusPrev(root, scope) {
+    const effectiveScope = resolveScope(root, scope);
+    const order = getTabOrder(root, effectiveScope);
+    if (order.length === 0)
+      return;
+    if (!activeElement) {
+      focus(order[order.length - 1], "keyboard");
+      return;
+    }
+    const currentIndex = order.indexOf(activeElement);
+    const prevIndex = currentIndex <= 0 ? order.length - 1 : currentIndex - 1;
+    focus(order[prevIndex], "keyboard");
+  }
+  function focusDirection(root, direction, layoutFn) {
+    if (!activeElement)
+      return;
+    const explicitTarget = getExplicitFocusLink(activeElement, direction);
+    if (explicitTarget) {
+      focusById(explicitTarget, root, "keyboard");
+      return;
+    }
+    const candidates = getTabOrder(root);
+    const resolvedLayoutFn = layoutFn ?? ((node) => node.screenRect);
+    const target = findSpatialTarget(activeElement, direction, candidates, resolvedLayoutFn);
+    if (target) {
+      focus(target, "keyboard");
+    }
+  }
+  function subscribe(listener) {
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  }
+  function getSnapshot() {
+    if (!snapshot) {
+      snapshot = {
+        activeId,
+        previousId,
+        focusOrigin,
+        scopeStack: [...scopeStack],
+        activeScopeId
+      };
+    }
+    return snapshot;
+  }
+  return {
+    get activeElement() {
+      return activeElement;
     },
-    ...styleProps,
-    children
-  });
-});
-// vendor/silvery/packages/ag-react/src/hooks/useLayout.ts
+    get activeId() {
+      return activeId;
+    },
+    get previousElement() {
+      return previousElement;
+    },
+    get previousId() {
+      return previousId;
+    },
+    get focusOrigin() {
+      return focusOrigin;
+    },
+    get scopeStack() {
+      return [...scopeStack];
+    },
+    get scopeMemory() {
+      return scopeMemory;
+    },
+    get activeScopeId() {
+      return activeScopeId;
+    },
+    focus,
+    focusById,
+    blur,
+    handleSubtreeRemoved,
+    enterScope,
+    exitScope,
+    activateScope,
+    getFocusPath,
+    hasFocusWithin,
+    focusNext,
+    focusPrev,
+    focusDirection,
+    subscribe,
+    getSnapshot
+  };
+}
+
+// vendor/silvery/packages/ag-react/src/ui/canvas/index.ts
+init_keys();
+
+// vendor/silvery/packages/theme/src/ThemeContext.tsx
+init_state();
+init_palettes();
+var import_react3 = __toESM(require_react(), 1);
+var ThemeContext = import_react3.createContext(defaultDarkTheme);
+function ThemeProvider({ theme, children }) {
+  setActiveTheme(theme);
+  return import_react3.default.createElement(ThemeContext.Provider, { value: theme }, children);
+}
+
+// vendor/silvery/packages/ag-react/src/ui/canvas/index.ts
+init_palettes();
+// vendor/silvery/packages/theme/src/theme.ts
+init_derive();
+
+// vendor/silvery/packages/theme/src/builder.ts
+init_derive();
+// vendor/silvery/packages/theme/src/generators.ts
+init_palettes();
+
+// vendor/silvery/packages/theme/src/builder.ts
+init_palettes();
+
+// vendor/silvery/packages/theme/src/theme.ts
+init_state();
+// vendor/silvery/packages/theme/src/validate-theme.ts
+var THEME_TOKEN_KEYS = [
+  "bg",
+  "fg",
+  "muted",
+  "mutedbg",
+  "surface",
+  "surfacebg",
+  "popover",
+  "popoverbg",
+  "inverse",
+  "inversebg",
+  "cursor",
+  "cursorbg",
+  "selection",
+  "selectionbg",
+  "primary",
+  "primaryfg",
+  "secondary",
+  "secondaryfg",
+  "accent",
+  "accentfg",
+  "error",
+  "errorfg",
+  "warning",
+  "warningfg",
+  "success",
+  "successfg",
+  "info",
+  "infofg",
+  "border",
+  "inputborder",
+  "focusborder",
+  "link",
+  "disabledfg"
+];
+var ALL_KNOWN_KEYS = new Set([...THEME_TOKEN_KEYS, "name", "palette"]);
+
+// vendor/silvery/packages/theme/src/theme.ts
+init_contrast();
+// vendor/silvery/packages/theme/src/auto-generate.ts
+init_derive();
+// vendor/silvery/packages/theme/src/detect.ts
+init_derive();
+init_nord();
+init_catppuccin();
+init_palettes();
+
+// vendor/silvery/packages/theme/src/theme.ts
+init_palettes();
+init_palettes();
+// vendor/silvery/packages/ag-react/src/ui/canvas/index.ts
+init_state();
+
+// vendor/silvery/packages/ag-react/src/hooks/useCursor.ts
 var import_react5 = __toESM(require_react(), 1);
+
+// vendor/silvery/packages/ag-react/src/hooks/useLayout.ts
+var import_react4 = __toESM(require_react(), 1);
 function getInnerRect(node) {
   const rect = node.contentRect;
   if (!rect)
@@ -21943,9 +22368,9 @@ function getInnerRect(node) {
   };
 }
 function useContentRect() {
-  const node = import_react5.useContext(NodeContext);
-  const [, forceUpdate] = import_react5.useReducer((x) => x + 1, 0);
-  import_react5.useLayoutEffect(() => {
+  const node = import_react4.useContext(NodeContext);
+  const [, forceUpdate] = import_react4.useReducer((x) => x + 1, 0);
+  import_react4.useLayoutEffect(() => {
     if (!node)
       return;
     const handleLayoutComplete = () => {
@@ -21962,20 +22387,294 @@ function useContentRect() {
     return { x: 0, y: 0, width: 0, height: 0 };
   return getInnerRect(node);
 }
-// vendor/silvery/packages/ag-react/src/hooks/useApp.ts
+
+// vendor/silvery/packages/ag-react/src/hooks/useCursor.ts
+function createCursorStore() {
+  const store = {
+    state: null,
+    listeners: new Set,
+    accessors: null,
+    setCursorState(s) {
+      store.state = s;
+      for (const listener of store.listeners)
+        listener();
+    }
+  };
+  store.accessors = {
+    getCursorState: () => store.state,
+    subscribeCursor: (listener) => {
+      store.listeners.add(listener);
+      return () => {
+        store.listeners.delete(listener);
+      };
+    }
+  };
+  return store;
+}
+var CursorCtx = import_react5.createContext(null);
+function CursorProvider({ store, children }) {
+  return import_react5.default.createElement(CursorCtx.Provider, { value: store }, children);
+}
+var _globalCursorListeners = new Set;
+
+// vendor/silvery/packages/ag-react/src/ui/canvas/input.ts
+function keyboardEventToSequence(e) {
+  if (e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta" || e.key === "CapsLock" || e.key === "NumLock")
+    return null;
+  if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1) {
+    const code = e.key.toLowerCase().charCodeAt(0);
+    if (code >= 97 && code <= 122)
+      return String.fromCharCode(code - 96);
+    if (e.key === "[")
+      return "\x1B";
+    if (e.key === "]")
+      return "\x1D";
+    if (e.key === "\\")
+      return "\x1C";
+  }
+  if (e.altKey && !e.ctrlKey && !e.metaKey && e.key.length === 1) {
+    return "\x1B" + e.key;
+  }
+  switch (e.key) {
+    case "ArrowUp":
+      return "\x1B[A";
+    case "ArrowDown":
+      return "\x1B[B";
+    case "ArrowRight":
+      return "\x1B[C";
+    case "ArrowLeft":
+      return "\x1B[D";
+    case "Enter":
+      return "\r";
+    case "Escape":
+      return "\x1B";
+    case "Tab":
+      return e.shiftKey ? "\x1B[Z" : "\t";
+    case "Backspace":
+      return "";
+    case "Delete":
+      return "\x1B[3~";
+    case "Home":
+      return "\x1B[H";
+    case "End":
+      return "\x1B[F";
+    case "PageUp":
+      return "\x1B[5~";
+    case "PageDown":
+      return "\x1B[6~";
+    case "Insert":
+      return "\x1B[2~";
+    case "F1":
+      return "\x1BOP";
+    case "F2":
+      return "\x1BOQ";
+    case "F3":
+      return "\x1BOR";
+    case "F4":
+      return "\x1BOS";
+    case "F5":
+      return "\x1B[15~";
+    case "F6":
+      return "\x1B[17~";
+    case "F7":
+      return "\x1B[18~";
+    case "F8":
+      return "\x1B[19~";
+    case "F9":
+      return "\x1B[20~";
+    case "F10":
+      return "\x1B[21~";
+    case "F11":
+      return "\x1B[23~";
+    case "F12":
+      return "\x1B[24~";
+    case " ":
+      return " ";
+  }
+  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey)
+    return e.key;
+  return null;
+}
+function createCanvasInput(config) {
+  const { container, onData, onFocusChange } = config;
+  let disposed = false;
+  let isFocused = false;
+  const textarea = document.createElement("textarea");
+  textarea.style.cssText = `
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+    resize: none;
+    pointer-events: none;
+    z-index: -1;
+  `;
+  textarea.setAttribute("autocomplete", "off");
+  textarea.setAttribute("autocorrect", "off");
+  textarea.setAttribute("autocapitalize", "off");
+  textarea.setAttribute("spellcheck", "false");
+  textarea.tabIndex = -1;
+  container.style.position = container.style.position || "relative";
+  container.appendChild(textarea);
+  function onKeyDown(e) {
+    if (disposed)
+      return;
+    if (e.metaKey)
+      return;
+    const seq = keyboardEventToSequence(e);
+    if (seq !== null) {
+      e.preventDefault();
+      e.stopPropagation();
+      onData(seq);
+    }
+  }
+  function onPaste(e) {
+    if (disposed)
+      return;
+    const text = e.clipboardData?.getData("text");
+    if (text) {
+      e.preventDefault();
+      onData("\x1B[200~" + text + "\x1B[201~");
+    }
+  }
+  function onFocus() {
+    isFocused = true;
+    onFocusChange?.(true);
+  }
+  function onBlur() {
+    isFocused = false;
+    onFocusChange?.(false);
+  }
+  function onContainerClick() {
+    if (!disposed)
+      textarea.focus();
+  }
+  textarea.addEventListener("keydown", onKeyDown);
+  textarea.addEventListener("paste", onPaste);
+  textarea.addEventListener("focus", onFocus);
+  textarea.addEventListener("blur", onBlur);
+  container.addEventListener("click", onContainerClick);
+  return {
+    focus() {
+      if (!disposed)
+        textarea.focus();
+    },
+    blur() {
+      if (!disposed)
+        textarea.blur();
+    },
+    get focused() {
+      return isFocused;
+    },
+    updateDimensions(_charWidth, _lineHeight) {},
+    dispose() {
+      if (disposed)
+        return;
+      disposed = true;
+      textarea.removeEventListener("keydown", onKeyDown);
+      textarea.removeEventListener("paste", onPaste);
+      textarea.removeEventListener("focus", onFocus);
+      textarea.removeEventListener("blur", onBlur);
+      container.removeEventListener("click", onContainerClick);
+      container.removeChild(textarea);
+    }
+  };
+}
+
+// vendor/silvery/packages/ag-react/src/components/Box.tsx
 var import_react6 = __toESM(require_react(), 1);
+var jsx_runtime = __toESM(require_jsx_runtime(), 1);
+var Box = import_react6.forwardRef(function Box2(props, ref) {
+  const { children, onLayout, ...restProps } = props;
+  const nodeRef = import_react6.useRef(null);
+  const [node, setNode] = import_react6.useState(null);
+  const lastReportedLayout = import_react6.useRef(null);
+  import_react6.useLayoutEffect(() => {
+    if (nodeRef.current) {
+      setNode(nodeRef.current);
+    }
+  }, []);
+  import_react6.useLayoutEffect(() => {
+    if (!onLayout || !node)
+      return;
+    const handleLayoutChange = () => {
+      const layout = node.contentRect;
+      if (!layout)
+        return;
+      const last = lastReportedLayout.current;
+      if (!last || last.x !== layout.x || last.y !== layout.y || last.width !== layout.width || last.height !== layout.height) {
+        lastReportedLayout.current = layout;
+        onLayout(layout);
+      }
+    };
+    node.layoutSubscribers.add(handleLayoutChange);
+    if (node.contentRect) {
+      handleLayoutChange();
+    }
+    return () => {
+      node.layoutSubscribers.delete(handleLayoutChange);
+    };
+  }, [node, onLayout]);
+  import_react6.useImperativeHandle(ref, () => ({
+    getNode: () => nodeRef.current,
+    getContentRect: () => nodeRef.current?.contentRect ?? null,
+    getScreenRect: () => nodeRef.current?.screenRect ?? null
+  }), []);
+  return /* @__PURE__ */ jsx_runtime.jsx("silvery-box", {
+    ref: nodeRef,
+    ...restProps,
+    children: /* @__PURE__ */ jsx_runtime.jsx(NodeContext.Provider, {
+      value: node,
+      children
+    })
+  });
+});
+// vendor/silvery/packages/ag-react/src/components/Text.tsx
+var import_react7 = __toESM(require_react(), 1);
+var jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
+var Text = import_react7.forwardRef(function Text2(props, ref) {
+  const { children, ...styleProps } = props;
+  return /* @__PURE__ */ jsx_runtime2.jsx("silvery-text", {
+    ref: (node) => {
+      if (typeof ref === "function") {
+        ref(node ? { getNode: () => node } : null);
+      } else if (ref) {
+        ref.current = node ? { getNode: () => node } : null;
+      }
+    },
+    ...styleProps,
+    children
+  });
+});
+// vendor/silvery/packages/ag-react/src/hooks/useApp.ts
+var import_react8 = __toESM(require_react(), 1);
 
 // vendor/silvery/packages/ag-react/src/ui/canvas/index.ts
-var canvasAdapterFactory = {
-  createAdapter: (config) => createCanvasAdapter(config)
-};
-function initCanvasRenderer(config = {}) {
-  initBrowserRenderer(canvasAdapterFactory, config);
+var initialized = false;
+var currentAdapter2 = null;
+function initCanvasRenderer(config) {
+  if (initialized)
+    return;
+  setLayoutEngine(createFlexilyZeroEngine());
+  currentAdapter2 = createCanvasAdapter(config);
+  setRenderAdapter(currentAdapter2);
+  initialized = true;
+}
+var cachedTheme = null;
+function getDefaultTheme() {
+  if (!cachedTheme)
+    cachedTheme = deriveTheme(catppuccinMocha);
+  return cachedTheme;
 }
 function renderToCanvas(element, canvas, options = {}) {
   initCanvasRenderer(options);
-  const pixelWidth = options.width ?? canvas.width;
-  const pixelHeight = options.height ?? canvas.height;
+  const theme2 = options.theme ?? getDefaultTheme();
+  setActiveTheme(theme2);
+  let pixelWidth = options.width ?? canvas.width;
+  let pixelHeight = options.height ?? canvas.height;
   if (canvas.width !== pixelWidth)
     canvas.width = pixelWidth;
   if (canvas.height !== pixelHeight)
@@ -21984,14 +22683,200 @@ function renderToCanvas(element, canvas, options = {}) {
   const lineHeightMultiplier = options.lineHeight ?? 1.2;
   const charWidth = fontSize * 0.6;
   const lineHeight = fontSize * lineHeightMultiplier;
-  const cols = Math.floor(pixelWidth / charWidth);
-  const rows = Math.floor(pixelHeight / lineHeight);
-  return createBrowserRenderer(element, cols, rows, (buffer) => {
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.drawImage(buffer.canvas, 0, 0);
-    }
+  let cols = Math.floor(pixelWidth / charWidth);
+  let rows = Math.floor(pixelHeight / lineHeight);
+  const cursorStore = createCursorStore();
+  const container = createContainer(() => {
+    scheduleRender();
   });
+  const root = getContainerRoot(container);
+  const fiberRoot = createFiberRoot(container);
+  let currentBuffer = null;
+  let currentElement = element;
+  let renderScheduled = false;
+  let unmounted = false;
+  const inputOpts = options.input;
+  const inputEnabled = inputOpts === true || typeof inputOpts === "object" && inputOpts !== null;
+  const inputCallbacks = typeof inputOpts === "object" && inputOpts !== null ? inputOpts : {};
+  const exitOnCtrlC = options.exitOnCtrlC ?? inputEnabled;
+  const handleFocusCycling = options.handleFocusCycling ?? inputEnabled;
+  let canvasInput = null;
+  let focusManager = null;
+  let runtimeContextValue = null;
+  const inputHandlers = new Set;
+  const pasteHandlers = new Set;
+  let doUnmount = () => {};
+  const handleExit = (_error) => {
+    doUnmount();
+  };
+  if (inputEnabled) {
+    let processKey = function(rawKey) {
+      if (rawKey === "\x03" && exitOnCtrlC) {
+        handleExit();
+        return;
+      }
+      if (handleFocusCycling && focusManager) {
+        const treeRoot = getContainerRoot(container);
+        if (treeRoot) {
+          const [, key2] = parseKey(rawKey);
+          if (key2.tab && !key2.shift) {
+            focusManager.focusNext(treeRoot);
+            reconciler.flushSyncWork();
+            return;
+          }
+          if (key2.tab && key2.shift) {
+            focusManager.focusPrev(treeRoot);
+            reconciler.flushSyncWork();
+            return;
+          }
+          if (key2.escape && focusManager.activeElement) {
+            focusManager.blur();
+            reconciler.flushSyncWork();
+            return;
+          }
+        }
+      }
+      const [input, key] = parseKey(rawKey);
+      runWithDiscreteEvent(() => {
+        for (const handler of inputHandlers)
+          handler(input, key);
+      });
+      reconciler.flushSyncWork();
+      inputCallbacks.onKey?.(rawKey);
+    };
+    focusManager = createFocusManager();
+    setOnNodeRemoved((removedNode) => focusManager.handleSubtreeRemoved(removedNode));
+    const canvasContainer = canvas.parentElement ?? canvas;
+    canvasInput = createCanvasInput({
+      container: canvasContainer,
+      onData(data) {
+        if (unmounted)
+          return;
+        const pasteResult = parseBracketedPaste(data);
+        if (pasteResult) {
+          for (const handler of pasteHandlers)
+            handler(pasteResult.content);
+          return;
+        }
+        for (const keypress of splitRawInput(data)) {
+          processKey(keypress);
+        }
+      },
+      onFocusChange(focused) {
+        inputCallbacks.onFocus?.(focused);
+      }
+    });
+    runtimeContextValue = {
+      on(event, handler) {
+        if (event === "input") {
+          const typed = handler;
+          inputHandlers.add(typed);
+          return () => {
+            inputHandlers.delete(typed);
+          };
+        }
+        if (event === "paste") {
+          const typed = handler;
+          pasteHandlers.add(typed);
+          return () => {
+            pasteHandlers.delete(typed);
+          };
+        }
+        return () => {};
+      },
+      emit() {},
+      exit: handleExit
+    };
+  }
+  function wrapElement(el) {
+    const withCursor = import_react9.default.createElement(CursorProvider, { store: cursorStore }, el);
+    const themed = import_react9.default.createElement(ThemeProvider, { theme: theme2, children: withCursor });
+    if (!inputEnabled || !runtimeContextValue || !focusManager)
+      return themed;
+    return import_react9.default.createElement(FocusManagerContext.Provider, { value: focusManager }, import_react9.default.createElement(RuntimeContext.Provider, { value: runtimeContextValue }, themed));
+  }
+  function scheduleRender() {
+    if (renderScheduled || unmounted)
+      return;
+    renderScheduled = true;
+    if (typeof requestAnimationFrame !== "undefined") {
+      requestAnimationFrame(() => {
+        renderScheduled = false;
+        doRender();
+      });
+    } else {
+      setTimeout(() => {
+        renderScheduled = false;
+        doRender();
+      }, 0);
+    }
+  }
+  function doRender() {
+    if (unmounted)
+      return;
+    reconciler.updateContainerSync(wrapElement(currentElement), fiberRoot, null, null);
+    reconciler.flushSyncWork();
+    const prevBuffer = currentBuffer;
+    const result = executeRenderAdapter(root, cols, rows, prevBuffer);
+    currentBuffer = result.buffer;
+    const ctx = canvas.getContext("2d");
+    if (ctx && currentBuffer instanceof CanvasRenderBuffer) {
+      ctx.drawImage(currentBuffer.canvas, 0, 0);
+      const cursor = cursorStore.accessors.getCursorState();
+      if (cursor?.visible) {
+        const cx = cursor.x * charWidth;
+        const cy = cursor.y * lineHeight;
+        ctx.save();
+        ctx.globalCompositeOperation = "difference";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(cx, cy, charWidth, lineHeight);
+        ctx.restore();
+      }
+    }
+  }
+  doRender();
+  doRender();
+  if (canvasInput)
+    canvasInput.focus();
+  const unmount = () => {
+    if (unmounted)
+      return;
+    unmounted = true;
+    if (canvasInput)
+      canvasInput.dispose();
+    reconciler.updateContainerSync(null, fiberRoot, null, null);
+    reconciler.flushSyncWork();
+    setOnNodeRemoved(null);
+    inputHandlers.clear();
+    pasteHandlers.clear();
+  };
+  doUnmount = unmount;
+  return {
+    rerender(newElement) {
+      currentElement = newElement;
+      scheduleRender();
+    },
+    unmount,
+    [Symbol.dispose]: unmount,
+    getBuffer() {
+      return currentBuffer;
+    },
+    refresh() {
+      scheduleRender();
+    },
+    resize(newPixelWidth, newPixelHeight) {
+      pixelWidth = newPixelWidth;
+      pixelHeight = newPixelHeight;
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+      cols = Math.floor(pixelWidth / charWidth);
+      rows = Math.floor(pixelHeight / lineHeight);
+      currentBuffer = null;
+      renderScheduled = false;
+      doRender();
+      doRender();
+    }
+  };
 }
 
 // vendor/silvery/examples/web/canvas-app.tsx
@@ -22131,4 +23016,4 @@ if (canvas) {
   window.silveryInstance = instance;
 }
 
-//# debugId=304F3719ACE03E2264756E2164756E21
+//# debugId=73E73682EA43FC7864756E2164756E21

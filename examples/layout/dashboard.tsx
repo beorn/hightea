@@ -49,6 +49,30 @@ function sparkline(values: number[], max: number): string {
   return values.map((v) => SPARK_CHARS[Math.round((v / max) * 7)] ?? SPARK_CHARS[0]).join("")
 }
 
+/** Multi-row chart using block characters — creates a mini area chart */
+function multiRowChart(values: number[], max: number, rows: number, width: number): string[] {
+  // Resample values to fit width
+  const resampled: number[] = []
+  for (let i = 0; i < width; i++) {
+    const idx = Math.floor((i / width) * values.length)
+    resampled.push(values[Math.min(idx, values.length - 1)] ?? 0)
+  }
+
+  const lines: string[] = []
+  for (let row = rows - 1; row >= 0; row--) {
+    const threshold = (row / rows) * max
+    let line = ""
+    for (const val of resampled) {
+      if (val >= threshold + max / rows) line += "█"
+      else if (val >= threshold + (max / rows) * 0.5) line += "▄"
+      else if (val >= threshold) line += "▁"
+      else line += " "
+    }
+    lines.push(line)
+  }
+  return lines
+}
+
 // ============================================================================
 // Data Helpers
 // ============================================================================
@@ -148,6 +172,10 @@ function createInitialState() {
     { pid: 1893, name: "nginx", cpu: 3.4, mem: 1.2, status: "sleeping" },
     { pid: 7234, name: "redis", cpu: 2.1, mem: 0.8, status: "sleeping" },
     { pid: 5612, name: "bun", cpu: 1.8, mem: 2.3, status: "running" },
+    { pid: 3891, name: "webpack", cpu: 1.5, mem: 1.9, status: "running" },
+    { pid: 6742, name: "eslint", cpu: 0.9, mem: 0.6, status: "sleeping" },
+    { pid: 8123, name: "ssh-agent", cpu: 0.3, mem: 0.1, status: "sleeping" },
+    { pid: 9001, name: "cron", cpu: 0.1, mem: 0.2, status: "sleeping" },
   ]
 
   return { cores, memory, network, processes }
@@ -222,6 +250,7 @@ function CpuCore({ index, core }: { index: number; core: CoreMetrics }) {
 }
 
 function CpuPane({ cores }: { cores: CoreMetrics[] }) {
+  const { width: paneWidth } = useContentRect()
   const avgCpu = cores.reduce((sum, c) => sum + c.usage, 0) / cores.length
   const maxCpu = Math.max(...cores.map((c) => c.usage))
   const load1 = ((avgCpu / 100) * 8 * 0.8 + Math.random() * 0.5).toFixed(2)
@@ -229,6 +258,8 @@ function CpuPane({ cores }: { cores: CoreMetrics[] }) {
   const load15 = ((avgCpu / 100) * 8 * 0.6 + Math.random() * 0.2).toFixed(2)
   const avgHistory =
     cores[0]?.history.map((_, i) => cores.reduce((s, c) => s + (c.history[i] ?? 0), 0) / cores.length) ?? []
+  const chartWidth = Math.max(20, paneWidth > 0 ? paneWidth : 50)
+  const chartLines = multiRowChart(avgHistory, 100, 4, chartWidth)
 
   return (
     <Box flexDirection="column" flexGrow={1} gap={1}>
@@ -243,7 +274,14 @@ function CpuPane({ cores }: { cores: CoreMetrics[] }) {
           <CpuCore key={i} index={i} core={core} />
         ))}
       </Box>
-      <Small color="$primary">{sparkline(avgHistory, 100)}</Small>
+      <Box flexDirection="column" flexGrow={1}>
+        <Muted>CPU Usage History</Muted>
+        {chartLines.map((line, i) => (
+          <Text key={i} color="$primary">
+            {line}
+          </Text>
+        ))}
+      </Box>
     </Box>
   )
 }
@@ -251,9 +289,12 @@ function CpuPane({ cores }: { cores: CoreMetrics[] }) {
 // --- Memory Tab ---
 
 function MemoryPane({ memory }: { memory: MemoryMetrics }) {
+  const { width: paneWidth } = useContentRect()
   const total = memory.used + memory.cached + memory.buffers + memory.free
   const usedPct = (memory.used / total) * 100
   const swapPct = memory.swap / memory.swapTotal
+  const chartWidth = Math.max(20, paneWidth > 0 ? paneWidth : 50)
+  const chartLines = multiRowChart(memory.history, 100, 4, chartWidth)
 
   return (
     <Box flexDirection="column" gap={1} flexGrow={1}>
@@ -299,9 +340,13 @@ function MemoryPane({ memory }: { memory: MemoryMetrics }) {
           </Text>
         </Box>
       </Box>
-      <Box flexDirection="column">
-        <Muted>History</Muted>
-        <Text color="$success">{sparkline(memory.history, 100)}</Text>
+      <Box flexDirection="column" flexGrow={1}>
+        <Muted>Memory Usage History</Muted>
+        {chartLines.map((line, i) => (
+          <Text key={i} color="$success">
+            {line}
+          </Text>
+        ))}
       </Box>
     </Box>
   )
@@ -310,30 +355,48 @@ function MemoryPane({ memory }: { memory: MemoryMetrics }) {
 // --- Network Tab ---
 
 function NetworkPane({ network }: { network: NetworkMetrics }) {
+  const { width: paneWidth } = useContentRect()
+  const chartWidth = Math.max(20, paneWidth > 0 ? paneWidth : 50)
+  const dlChart = multiRowChart(network.downloadHistory, 100, 3, chartWidth)
+  const ulChart = multiRowChart(network.uploadHistory, 40, 3, chartWidth)
+
   return (
     <Box flexDirection="column" gap={1} flexGrow={1}>
       <SectionHeader>Network</SectionHeader>
       <Box flexDirection="column">
         <Box justifyContent="space-between" wrap="truncate">
           <Text color="$success">{"↓"} Download</Text>
-          <Text color="$success">{network.downloadRate.toFixed(1)} MB/s</Text>
+          <Text color="$success">{network.downloadRate.toFixed(1).padStart(6)} MB/s</Text>
         </Box>
         <ProgressBar value={Math.min(1, network.downloadRate / 100)} color="$success" showPercentage={false} />
       </Box>
       <Box flexDirection="column">
         <Box justifyContent="space-between" wrap="truncate">
           <Text color="$info">{"↑"} Upload</Text>
-          <Text color="$info">{network.uploadRate.toFixed(1)} MB/s</Text>
+          <Text color="$info">{network.uploadRate.toFixed(1).padStart(6)} MB/s</Text>
         </Box>
         <ProgressBar value={Math.min(1, network.uploadRate / 40)} color="$info" showPercentage={false} />
       </Box>
       <Box flexDirection="column">
         <Muted>Connections</Muted>
         <Box gap={2} wrap="truncate">
-          <LabelValue label="Active:" value={String(network.connections)} />
-          <LabelValue label="In:" value={`${network.packetsIn} pkts`} />
-          <LabelValue label="Out:" value={`${network.packetsOut} pkts`} />
+          <LabelValue label="Active:" value={String(network.connections).padStart(4)} />
+          <LabelValue label="In:" value={`${String(network.packetsIn).padStart(5)} pkts`} />
+          <LabelValue label="Out:" value={`${String(network.packetsOut).padStart(5)} pkts`} />
         </Box>
+      </Box>
+      <Box flexDirection="column" flexGrow={1}>
+        <Muted>Traffic History</Muted>
+        {dlChart.map((line, i) => (
+          <Text key={`dl-${i}`} color="$success">
+            {line}
+          </Text>
+        ))}
+        {ulChart.map((line, i) => (
+          <Text key={`ul-${i}`} color="$info">
+            {line}
+          </Text>
+        ))}
       </Box>
     </Box>
   )
@@ -341,15 +404,20 @@ function NetworkPane({ network }: { network: NetworkMetrics }) {
 
 // --- Processes Tab ---
 
+// Column widths for consistent alignment
+const COL = { pid: 6, name: 11, cpu: 7, mem: 7, status: 9 }
+
 function ProcessRow({ proc, isTop }: { proc: ProcessInfo; isTop: boolean }) {
   const cpuColor = severityColor(proc.cpu)
   return (
     <Box wrap="truncate">
-      <Text color="$muted">{String(proc.pid).padStart(6)}</Text>
-      <Text bold={isTop}> {proc.name.padEnd(10)}</Text>
-      <Text color={cpuColor}>{proc.cpu.toFixed(1).padStart(6)}%</Text>
-      <Text>{proc.mem.toFixed(1).padStart(6)}%</Text>
-      <Text color={proc.status === "running" ? "$success" : "$muted"}> {proc.status.padEnd(8)}</Text>
+      <Text color="$muted">{String(proc.pid).padStart(COL.pid)}</Text>
+      <Text bold={isTop}>{(" " + proc.name).padEnd(COL.name)}</Text>
+      <Text color={cpuColor}>{(proc.cpu.toFixed(1) + "%").padStart(COL.cpu)}</Text>
+      <Text>{(proc.mem.toFixed(1) + "%").padStart(COL.mem)}</Text>
+      <Text color={proc.status === "running" ? "$success" : "$muted"}>
+        {(" " + proc.status).padEnd(COL.status)}
+      </Text>
     </Box>
   )
 }
@@ -360,19 +428,24 @@ function ProcessPane({ processes }: { processes: ProcessInfo[] }) {
   return (
     <Box flexDirection="column" flexGrow={1} gap={1}>
       <SectionHeader>Processes</SectionHeader>
-      <Box flexDirection="column">
+      <Box flexDirection="column" flexGrow={1}>
         <Box wrap="truncate">
           <Muted>
-            {"PID".padStart(6)} {"Name".padEnd(10)}
-            {"CPU%".padStart(7)}
-            {"MEM%".padStart(7)} {"Status".padEnd(8)}
+            {"PID".padStart(COL.pid)}
+            {" Name".padEnd(COL.name)}
+            {"CPU%".padStart(COL.cpu)}
+            {"MEM%".padStart(COL.mem)}
+            {" Status".padEnd(COL.status)}
           </Muted>
+        </Box>
+        <Box wrap="truncate">
+          <Muted>{"─".repeat(COL.pid + COL.name + COL.cpu + COL.mem + COL.status)}</Muted>
         </Box>
         {sorted.map((proc, i) => (
           <ProcessRow key={proc.pid} proc={proc} isTop={i === 0} />
         ))}
       </Box>
-      <Box gap={2} paddingTop={1} wrap="truncate">
+      <Box gap={2} wrap="truncate">
         <LabelValue label="Total:" value={`${processes.length} processes`} />
         <LabelValue
           label="Running:"

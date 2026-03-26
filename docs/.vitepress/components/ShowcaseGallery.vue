@@ -15,7 +15,7 @@ function select(demo) {
   active.value = demo
 }
 
-const iframeSrc = computed(() => `/examples/showcase.html?demo=${active.value.id}`)
+const iframeSrc = computed(() => `/examples/showcase-canvas.html?demo=${active.value.id}`)
 </script>
 
 <template>
