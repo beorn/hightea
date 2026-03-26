@@ -371,7 +371,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
       <Box flexDirection="row" gap={1}>
         <Box {...cell}>
           <Text color="$primary">
-            <Strong>Progress & Spinners</Strong>
+            <Strong>Progress Bars</Strong>
           </Text>
           <Box flexDirection="column">
             <Box>
@@ -476,15 +476,15 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
                 <Text color="$primary">{"●"} $primary</Text>
                 <Muted>{"●"} $muted</Muted>
               </Box>
-              <Box flexDirection="column" gap={1}>
+              <Box flexDirection="column">
                 <Text backgroundColor="$primary" color="$primary-fg">
-                  {" $primary "}
+                  {" $primary  "}
                 </Text>
                 <Text backgroundColor="$fg" color="$bg">
-                  {" $inverse "}
+                  {" $inverse  "}
                 </Text>
                 <Text backgroundColor="$muted-bg" color="$fg">
-                  {" $surface "}
+                  {" $surface  "}
                 </Text>
                 <Text backgroundColor="$surfacebg" color="$surface">
                   {" $surfacebg "}
@@ -520,7 +520,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
                 <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
               </Text>
             </Box>
-            <Box gap={2}>
+            <Box gap={1}>
               <Text backgroundColor="$primary" color="$primary-fg">
                 {" Deploy "}
               </Text>

@@ -36925,9 +36925,7 @@ function LabelValue({ label, value, color }) {
       }),
       /* @__PURE__ */ jsx_runtime53.jsx(Text2, {
         color,
-        children: /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
-          children: value
-        })
+        children: value
       })
     ]
   });
@@ -37177,9 +37175,7 @@ function NetworkRow({
       }),
       /* @__PURE__ */ jsx_runtime53.jsx(Text2, {
         color,
-        children: /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
-          children: ` ${rate.toFixed(1).padStart(5)}`
-        })
+        children: ` ${rate.toFixed(1).padStart(5)} MB/s`
       }),
       /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
         children: " "
@@ -37223,13 +37219,10 @@ function NetworkPane({ network }) {
         ]
       }),
       /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
-        borderStyle: "round",
-        borderColor: "$border",
-        paddingX: 1,
         flexDirection: "column",
         children: [
           /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-            children: "Connection Stats"
+            children: "Connections"
           }),
           /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
             gap: 2,
@@ -37240,30 +37233,12 @@ function NetworkPane({ network }) {
                 value: String(network.connections)
               }),
               /* @__PURE__ */ jsx_runtime53.jsx(LabelValue, {
-                label: "Pkts In:",
-                value: String(network.packetsIn)
+                label: "In:",
+                value: `${network.packetsIn} pkts`
               }),
               /* @__PURE__ */ jsx_runtime53.jsx(LabelValue, {
-                label: "Pkts Out:",
-                value: String(network.packetsOut)
-              })
-            ]
-          }),
-          /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
-            gap: 2,
-            wrap: "truncate",
-            children: [
-              /* @__PURE__ */ jsx_runtime53.jsx(LabelValue, {
-                label: "Interface:",
-                value: "en0"
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsx(LabelValue, {
-                label: "MTU:",
-                value: "1500"
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsx(LabelValue, {
-                label: "Duplex:",
-                value: "full"
+                label: "Out:",
+                value: `${network.packetsOut} pkts`
               })
             ]
           })
@@ -37275,34 +37250,38 @@ function NetworkPane({ network }) {
 function ProcessRow({ proc, isTop }) {
   const cpuColor = severityColor(proc.cpu);
   return /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
-    gap: 1,
     wrap: "truncate",
     children: [
       /* @__PURE__ */ jsx_runtime53.jsx(Text2, {
         color: "$muted",
-        children: String(proc.pid).padStart(5)
+        children: String(proc.pid).padStart(6)
       }),
-      /* @__PURE__ */ jsx_runtime53.jsx(Text2, {
+      /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
         bold: isTop,
-        children: proc.name.padEnd(12)
+        children: [
+          " ",
+          proc.name.padEnd(10)
+        ]
       }),
       /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
         color: cpuColor,
         children: [
-          proc.cpu.toFixed(1).padStart(5),
+          proc.cpu.toFixed(1).padStart(6),
           "%"
         ]
       }),
       /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
-        color: "$primary",
         children: [
-          proc.mem.toFixed(1).padStart(5),
+          proc.mem.toFixed(1).padStart(6),
           "%"
         ]
       }),
-      /* @__PURE__ */ jsx_runtime53.jsx(Text2, {
+      /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
         color: proc.status === "running" ? "$success" : "$muted",
-        children: proc.status
+        children: [
+          " ",
+          proc.status.padEnd(8)
+        ]
       })
     ]
   });
@@ -37320,26 +37299,19 @@ function ProcessPane({ processes }) {
       /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
         flexDirection: "column",
         children: [
-          /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
-            gap: 1,
+          /* @__PURE__ */ jsx_runtime53.jsx(Box, {
             wrap: "truncate",
-            children: [
-              /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-                children: "  PID".padStart(5)
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-                children: "Name".padEnd(12)
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-                children: "  CPU".padStart(5)
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-                children: "  MEM".padStart(5)
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-                children: "Status"
-              })
-            ]
+            children: /* @__PURE__ */ jsx_runtime53.jsxs(Muted, {
+              children: [
+                "PID".padStart(6),
+                " ",
+                "Name".padEnd(10),
+                "CPU%".padStart(7),
+                "MEM%".padStart(7),
+                " ",
+                "Status".padEnd(8)
+              ]
+            })
           }),
           sorted.map((proc, i) => /* @__PURE__ */ jsx_runtime53.jsx(ProcessRow, {
             proc,
@@ -38768,7 +38740,7 @@ function DisplayTab({ scrollOffset }) {
               /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                 color: "$primary",
                 children: /* @__PURE__ */ jsx_runtime56.jsx(Strong, {
-                  children: "Progress & Spinners"
+                  children: "Progress Bars"
                 })
               }),
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
@@ -39019,22 +38991,21 @@ function DisplayTab({ scrollOffset }) {
                       }),
                       /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
                         flexDirection: "column",
-                        gap: 1,
                         children: [
                           /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                             backgroundColor: "$primary",
                             color: "$primary-fg",
-                            children: " $primary "
+                            children: " $primary  "
                           }),
                           /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                             backgroundColor: "$fg",
                             color: "$bg",
-                            children: " $inverse "
+                            children: " $inverse  "
                           }),
                           /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                             backgroundColor: "$muted-bg",
                             color: "$fg",
-                            children: " $surface "
+                            children: " $surface  "
                           }),
                           /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                             backgroundColor: "$surfacebg",
@@ -39128,7 +39099,7 @@ function DisplayTab({ scrollOffset }) {
                     ]
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                    gap: 2,
+                    gap: 1,
                     children: [
                       /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                         backgroundColor: "$primary",
@@ -39669,9 +39640,7 @@ function LabelValue({ label, value, color }: { label: string; value: string; col
   return (
     <Box gap={1}>
       <Muted>{label}</Muted>
-      <Text color={color}>
-        <Strong>{value}</Strong>
-      </Text>
+      <Text color={color}>{value}</Text>
     </Box>
   )
 }
@@ -39799,9 +39768,7 @@ function NetworkRow({
     <Box>
       <Text color={color}>{label} </Text>
       <ProgressBar value={Math.min(1, rate / max)} color={color} showPercentage={false} width={barWidth} />
-      <Text color={color}>
-        <Strong>{\` \${rate.toFixed(1).padStart(5)}\`}</Strong>
-      </Text>
+      <Text color={color}>{\` \${rate.toFixed(1).padStart(5)} MB/s\`}</Text>
       <Muted> </Muted>
       <Small>{sparkline(history.slice(-10), max)}</Small>
     </Box>
@@ -39833,17 +39800,12 @@ function NetworkPane({ network }: { network: NetworkMetrics }) {
           barWidth={barWidth}
         />
       </Box>
-      <Box borderStyle="round" borderColor="$border" paddingX={1} flexDirection="column">
-        <Muted>Connection Stats</Muted>
+      <Box flexDirection="column">
+        <Muted>Connections</Muted>
         <Box gap={2} wrap="truncate">
           <LabelValue label="Active:" value={String(network.connections)} />
-          <LabelValue label="Pkts In:" value={String(network.packetsIn)} />
-          <LabelValue label="Pkts Out:" value={String(network.packetsOut)} />
-        </Box>
-        <Box gap={2} wrap="truncate">
-          <LabelValue label="Interface:" value="en0" />
-          <LabelValue label="MTU:" value="1500" />
-          <LabelValue label="Duplex:" value="full" />
+          <LabelValue label="In:" value={\`\${network.packetsIn} pkts\`} />
+          <LabelValue label="Out:" value={\`\${network.packetsOut} pkts\`} />
         </Box>
       </Box>
     </Box>
@@ -39855,12 +39817,12 @@ function NetworkPane({ network }: { network: NetworkMetrics }) {
 function ProcessRow({ proc, isTop }: { proc: ProcessInfo; isTop: boolean }) {
   const cpuColor = severityColor(proc.cpu)
   return (
-    <Box gap={1} wrap="truncate">
-      <Text color="$muted">{String(proc.pid).padStart(5)}</Text>
-      <Text bold={isTop}>{proc.name.padEnd(12)}</Text>
-      <Text color={cpuColor}>{proc.cpu.toFixed(1).padStart(5)}%</Text>
-      <Text color="$primary">{proc.mem.toFixed(1).padStart(5)}%</Text>
-      <Text color={proc.status === "running" ? "$success" : "$muted"}>{proc.status}</Text>
+    <Box wrap="truncate">
+      <Text color="$muted">{String(proc.pid).padStart(6)}</Text>
+      <Text bold={isTop}> {proc.name.padEnd(10)}</Text>
+      <Text color={cpuColor}>{proc.cpu.toFixed(1).padStart(6)}%</Text>
+      <Text>{proc.mem.toFixed(1).padStart(6)}%</Text>
+      <Text color={proc.status === "running" ? "$success" : "$muted"}> {proc.status.padEnd(8)}</Text>
     </Box>
   )
 }
@@ -39872,12 +39834,12 @@ function ProcessPane({ processes }: { processes: ProcessInfo[] }) {
     <Box flexDirection="column" flexGrow={1} gap={1}>
       <SectionHeader>Processes</SectionHeader>
       <Box flexDirection="column">
-        <Box gap={1} wrap="truncate">
-          <Muted>{"  PID".padStart(5)}</Muted>
-          <Muted>{"Name".padEnd(12)}</Muted>
-          <Muted>{"  CPU".padStart(5)}</Muted>
-          <Muted>{"  MEM".padStart(5)}</Muted>
-          <Muted>Status</Muted>
+        <Box wrap="truncate">
+          <Muted>
+            {"PID".padStart(6)} {"Name".padEnd(10)}
+            {"CPU%".padStart(7)}
+            {"MEM%".padStart(7)} {"Status".padEnd(8)}
+          </Muted>
         </Box>
         {sorted.map((proc, i) => (
           <ProcessRow key={proc.pid} proc={proc} isTop={i === 0} />
@@ -40721,7 +40683,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
       <Box flexDirection="row" gap={1}>
         <Box {...cell}>
           <Text color="$primary">
-            <Strong>Progress & Spinners</Strong>
+            <Strong>Progress Bars</Strong>
           </Text>
           <Box flexDirection="column">
             <Box>
@@ -40826,15 +40788,15 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
                 <Text color="$primary">{"●"} $primary</Text>
                 <Muted>{"●"} $muted</Muted>
               </Box>
-              <Box flexDirection="column" gap={1}>
+              <Box flexDirection="column">
                 <Text backgroundColor="$primary" color="$primary-fg">
-                  {" $primary "}
+                  {" $primary  "}
                 </Text>
                 <Text backgroundColor="$fg" color="$bg">
-                  {" $inverse "}
+                  {" $inverse  "}
                 </Text>
                 <Text backgroundColor="$muted-bg" color="$fg">
-                  {" $surface "}
+                  {" $surface  "}
                 </Text>
                 <Text backgroundColor="$surfacebg" color="$surface">
                   {" $surfacebg "}
@@ -40870,7 +40832,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
                 <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
               </Text>
             </Box>
-            <Box gap={2}>
+            <Box gap={1}>
               <Text backgroundColor="$primary" color="$primary-fg">
                 {" Deploy "}
               </Text>
@@ -41799,9 +41761,7 @@ function LabelValue({ label, value, color }: { label: string; value: string; col
   return (
     <Box gap={1}>
       <Muted>{label}</Muted>
-      <Text color={color}>
-        <Strong>{value}</Strong>
-      </Text>
+      <Text color={color}>{value}</Text>
     </Box>
   )
 }
@@ -41929,9 +41889,7 @@ function NetworkRow({
     <Box>
       <Text color={color}>{label} </Text>
       <ProgressBar value={Math.min(1, rate / max)} color={color} showPercentage={false} width={barWidth} />
-      <Text color={color}>
-        <Strong>{\` \${rate.toFixed(1).padStart(5)}\`}</Strong>
-      </Text>
+      <Text color={color}>{\` \${rate.toFixed(1).padStart(5)} MB/s\`}</Text>
       <Muted> </Muted>
       <Small>{sparkline(history.slice(-10), max)}</Small>
     </Box>
@@ -41963,17 +41921,12 @@ function NetworkPane({ network }: { network: NetworkMetrics }) {
           barWidth={barWidth}
         />
       </Box>
-      <Box borderStyle="round" borderColor="$border" paddingX={1} flexDirection="column">
-        <Muted>Connection Stats</Muted>
+      <Box flexDirection="column">
+        <Muted>Connections</Muted>
         <Box gap={2} wrap="truncate">
           <LabelValue label="Active:" value={String(network.connections)} />
-          <LabelValue label="Pkts In:" value={String(network.packetsIn)} />
-          <LabelValue label="Pkts Out:" value={String(network.packetsOut)} />
-        </Box>
-        <Box gap={2} wrap="truncate">
-          <LabelValue label="Interface:" value="en0" />
-          <LabelValue label="MTU:" value="1500" />
-          <LabelValue label="Duplex:" value="full" />
+          <LabelValue label="In:" value={\`\${network.packetsIn} pkts\`} />
+          <LabelValue label="Out:" value={\`\${network.packetsOut} pkts\`} />
         </Box>
       </Box>
     </Box>
@@ -41985,12 +41938,12 @@ function NetworkPane({ network }: { network: NetworkMetrics }) {
 function ProcessRow({ proc, isTop }: { proc: ProcessInfo; isTop: boolean }) {
   const cpuColor = severityColor(proc.cpu)
   return (
-    <Box gap={1} wrap="truncate">
-      <Text color="$muted">{String(proc.pid).padStart(5)}</Text>
-      <Text bold={isTop}>{proc.name.padEnd(12)}</Text>
-      <Text color={cpuColor}>{proc.cpu.toFixed(1).padStart(5)}%</Text>
-      <Text color="$primary">{proc.mem.toFixed(1).padStart(5)}%</Text>
-      <Text color={proc.status === "running" ? "$success" : "$muted"}>{proc.status}</Text>
+    <Box wrap="truncate">
+      <Text color="$muted">{String(proc.pid).padStart(6)}</Text>
+      <Text bold={isTop}> {proc.name.padEnd(10)}</Text>
+      <Text color={cpuColor}>{proc.cpu.toFixed(1).padStart(6)}%</Text>
+      <Text>{proc.mem.toFixed(1).padStart(6)}%</Text>
+      <Text color={proc.status === "running" ? "$success" : "$muted"}> {proc.status.padEnd(8)}</Text>
     </Box>
   )
 }
@@ -42002,12 +41955,12 @@ function ProcessPane({ processes }: { processes: ProcessInfo[] }) {
     <Box flexDirection="column" flexGrow={1} gap={1}>
       <SectionHeader>Processes</SectionHeader>
       <Box flexDirection="column">
-        <Box gap={1} wrap="truncate">
-          <Muted>{"  PID".padStart(5)}</Muted>
-          <Muted>{"Name".padEnd(12)}</Muted>
-          <Muted>{"  CPU".padStart(5)}</Muted>
-          <Muted>{"  MEM".padStart(5)}</Muted>
-          <Muted>Status</Muted>
+        <Box wrap="truncate">
+          <Muted>
+            {"PID".padStart(6)} {"Name".padEnd(10)}
+            {"CPU%".padStart(7)}
+            {"MEM%".padStart(7)} {"Status".padEnd(8)}
+          </Muted>
         </Box>
         {sorted.map((proc, i) => (
           <ProcessRow key={proc.pid} proc={proc} isTop={i === 0} />
@@ -43709,7 +43662,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
       <Box flexDirection="row" gap={1}>
         <Box {...cell}>
           <Text color="$primary">
-            <Strong>Progress & Spinners</Strong>
+            <Strong>Progress Bars</Strong>
           </Text>
           <Box flexDirection="column">
             <Box>
@@ -43814,15 +43767,15 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
                 <Text color="$primary">{"●"} $primary</Text>
                 <Muted>{"●"} $muted</Muted>
               </Box>
-              <Box flexDirection="column" gap={1}>
+              <Box flexDirection="column">
                 <Text backgroundColor="$primary" color="$primary-fg">
-                  {" $primary "}
+                  {" $primary  "}
                 </Text>
                 <Text backgroundColor="$fg" color="$bg">
-                  {" $inverse "}
+                  {" $inverse  "}
                 </Text>
                 <Text backgroundColor="$muted-bg" color="$fg">
-                  {" $surface "}
+                  {" $surface  "}
                 </Text>
                 <Text backgroundColor="$surfacebg" color="$surface">
                   {" $surfacebg "}
@@ -43858,7 +43811,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
                 <Text color="$info">{"ℹ"}</Text> Deploy target: us-east-1
               </Text>
             </Box>
-            <Box gap={2}>
+            <Box gap={1}>
               <Text backgroundColor="$primary" color="$primary-fg">
                 {" Deploy "}
               </Text>
@@ -51825,4 +51778,4 @@ if (root) {
   createViewerApp(root);
 }
 
-//# debugId=642A70721EE675DC64756E2164756E21
+//# debugId=17FABAB67988237C64756E2164756E21

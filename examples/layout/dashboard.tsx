@@ -201,9 +201,7 @@ function LabelValue({ label, value, color }: { label: string; value: string; col
   return (
     <Box gap={1}>
       <Muted>{label}</Muted>
-      <Text color={color}>
-        <Strong>{value}</Strong>
-      </Text>
+      <Text color={color}>{value}</Text>
     </Box>
   )
 }
@@ -331,9 +329,7 @@ function NetworkRow({
     <Box>
       <Text color={color}>{label} </Text>
       <ProgressBar value={Math.min(1, rate / max)} color={color} showPercentage={false} width={barWidth} />
-      <Text color={color}>
-        <Strong>{` ${rate.toFixed(1).padStart(5)}`}</Strong>
-      </Text>
+      <Text color={color}>{` ${rate.toFixed(1).padStart(5)} MB/s`}</Text>
       <Muted> </Muted>
       <Small>{sparkline(history.slice(-10), max)}</Small>
     </Box>
@@ -365,17 +361,12 @@ function NetworkPane({ network }: { network: NetworkMetrics }) {
           barWidth={barWidth}
         />
       </Box>
-      <Box borderStyle="round" borderColor="$border" paddingX={1} flexDirection="column">
-        <Muted>Connection Stats</Muted>
+      <Box flexDirection="column">
+        <Muted>Connections</Muted>
         <Box gap={2} wrap="truncate">
           <LabelValue label="Active:" value={String(network.connections)} />
-          <LabelValue label="Pkts In:" value={String(network.packetsIn)} />
-          <LabelValue label="Pkts Out:" value={String(network.packetsOut)} />
-        </Box>
-        <Box gap={2} wrap="truncate">
-          <LabelValue label="Interface:" value="en0" />
-          <LabelValue label="MTU:" value="1500" />
-          <LabelValue label="Duplex:" value="full" />
+          <LabelValue label="In:" value={`${network.packetsIn} pkts`} />
+          <LabelValue label="Out:" value={`${network.packetsOut} pkts`} />
         </Box>
       </Box>
     </Box>
@@ -387,12 +378,12 @@ function NetworkPane({ network }: { network: NetworkMetrics }) {
 function ProcessRow({ proc, isTop }: { proc: ProcessInfo; isTop: boolean }) {
   const cpuColor = severityColor(proc.cpu)
   return (
-    <Box gap={1} wrap="truncate">
-      <Text color="$muted">{String(proc.pid).padStart(5)}</Text>
-      <Text bold={isTop}>{proc.name.padEnd(12)}</Text>
-      <Text color={cpuColor}>{proc.cpu.toFixed(1).padStart(5)}%</Text>
-      <Text color="$primary">{proc.mem.toFixed(1).padStart(5)}%</Text>
-      <Text color={proc.status === "running" ? "$success" : "$muted"}>{proc.status}</Text>
+    <Box wrap="truncate">
+      <Text color="$muted">{String(proc.pid).padStart(6)}</Text>
+      <Text bold={isTop}> {proc.name.padEnd(10)}</Text>
+      <Text color={cpuColor}>{proc.cpu.toFixed(1).padStart(6)}%</Text>
+      <Text>{proc.mem.toFixed(1).padStart(6)}%</Text>
+      <Text color={proc.status === "running" ? "$success" : "$muted"}> {proc.status.padEnd(8)}</Text>
     </Box>
   )
 }
@@ -404,12 +395,12 @@ function ProcessPane({ processes }: { processes: ProcessInfo[] }) {
     <Box flexDirection="column" flexGrow={1} gap={1}>
       <SectionHeader>Processes</SectionHeader>
       <Box flexDirection="column">
-        <Box gap={1} wrap="truncate">
-          <Muted>{"  PID".padStart(5)}</Muted>
-          <Muted>{"Name".padEnd(12)}</Muted>
-          <Muted>{"  CPU".padStart(5)}</Muted>
-          <Muted>{"  MEM".padStart(5)}</Muted>
-          <Muted>Status</Muted>
+        <Box wrap="truncate">
+          <Muted>
+            {"PID".padStart(6)} {"Name".padEnd(10)}
+            {"CPU%".padStart(7)}
+            {"MEM%".padStart(7)} {"Status".padEnd(8)}
+          </Muted>
         </Box>
         {sorted.map((proc, i) => (
           <ProcessRow key={proc.pid} proc={proc} isTop={i === 0} />

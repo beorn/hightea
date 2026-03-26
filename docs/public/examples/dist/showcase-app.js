@@ -36925,9 +36925,7 @@ function LabelValue({ label, value, color }) {
       }),
       /* @__PURE__ */ jsx_runtime53.jsx(Text2, {
         color,
-        children: /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
-          children: value
-        })
+        children: value
       })
     ]
   });
@@ -37177,9 +37175,7 @@ function NetworkRow({
       }),
       /* @__PURE__ */ jsx_runtime53.jsx(Text2, {
         color,
-        children: /* @__PURE__ */ jsx_runtime53.jsx(Strong, {
-          children: ` ${rate.toFixed(1).padStart(5)}`
-        })
+        children: ` ${rate.toFixed(1).padStart(5)} MB/s`
       }),
       /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
         children: " "
@@ -37223,13 +37219,10 @@ function NetworkPane({ network }) {
         ]
       }),
       /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
-        borderStyle: "round",
-        borderColor: "$border",
-        paddingX: 1,
         flexDirection: "column",
         children: [
           /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-            children: "Connection Stats"
+            children: "Connections"
           }),
           /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
             gap: 2,
@@ -37240,30 +37233,12 @@ function NetworkPane({ network }) {
                 value: String(network.connections)
               }),
               /* @__PURE__ */ jsx_runtime53.jsx(LabelValue, {
-                label: "Pkts In:",
-                value: String(network.packetsIn)
+                label: "In:",
+                value: `${network.packetsIn} pkts`
               }),
               /* @__PURE__ */ jsx_runtime53.jsx(LabelValue, {
-                label: "Pkts Out:",
-                value: String(network.packetsOut)
-              })
-            ]
-          }),
-          /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
-            gap: 2,
-            wrap: "truncate",
-            children: [
-              /* @__PURE__ */ jsx_runtime53.jsx(LabelValue, {
-                label: "Interface:",
-                value: "en0"
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsx(LabelValue, {
-                label: "MTU:",
-                value: "1500"
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsx(LabelValue, {
-                label: "Duplex:",
-                value: "full"
+                label: "Out:",
+                value: `${network.packetsOut} pkts`
               })
             ]
           })
@@ -37275,34 +37250,38 @@ function NetworkPane({ network }) {
 function ProcessRow({ proc, isTop }) {
   const cpuColor = severityColor(proc.cpu);
   return /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
-    gap: 1,
     wrap: "truncate",
     children: [
       /* @__PURE__ */ jsx_runtime53.jsx(Text2, {
         color: "$muted",
-        children: String(proc.pid).padStart(5)
+        children: String(proc.pid).padStart(6)
       }),
-      /* @__PURE__ */ jsx_runtime53.jsx(Text2, {
+      /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
         bold: isTop,
-        children: proc.name.padEnd(12)
+        children: [
+          " ",
+          proc.name.padEnd(10)
+        ]
       }),
       /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
         color: cpuColor,
         children: [
-          proc.cpu.toFixed(1).padStart(5),
+          proc.cpu.toFixed(1).padStart(6),
           "%"
         ]
       }),
       /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
-        color: "$primary",
         children: [
-          proc.mem.toFixed(1).padStart(5),
+          proc.mem.toFixed(1).padStart(6),
           "%"
         ]
       }),
-      /* @__PURE__ */ jsx_runtime53.jsx(Text2, {
+      /* @__PURE__ */ jsx_runtime53.jsxs(Text2, {
         color: proc.status === "running" ? "$success" : "$muted",
-        children: proc.status
+        children: [
+          " ",
+          proc.status.padEnd(8)
+        ]
       })
     ]
   });
@@ -37320,26 +37299,19 @@ function ProcessPane({ processes }) {
       /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
         flexDirection: "column",
         children: [
-          /* @__PURE__ */ jsx_runtime53.jsxs(Box, {
-            gap: 1,
+          /* @__PURE__ */ jsx_runtime53.jsx(Box, {
             wrap: "truncate",
-            children: [
-              /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-                children: "  PID".padStart(5)
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-                children: "Name".padEnd(12)
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-                children: "  CPU".padStart(5)
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-                children: "  MEM".padStart(5)
-              }),
-              /* @__PURE__ */ jsx_runtime53.jsx(Muted, {
-                children: "Status"
-              })
-            ]
+            children: /* @__PURE__ */ jsx_runtime53.jsxs(Muted, {
+              children: [
+                "PID".padStart(6),
+                " ",
+                "Name".padEnd(10),
+                "CPU%".padStart(7),
+                "MEM%".padStart(7),
+                " ",
+                "Status".padEnd(8)
+              ]
+            })
           }),
           sorted.map((proc, i) => /* @__PURE__ */ jsx_runtime53.jsx(ProcessRow, {
             proc,
@@ -38768,7 +38740,7 @@ function DisplayTab({ scrollOffset }) {
               /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                 color: "$primary",
                 children: /* @__PURE__ */ jsx_runtime56.jsx(Strong, {
-                  children: "Progress & Spinners"
+                  children: "Progress Bars"
                 })
               }),
               /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
@@ -39019,22 +38991,21 @@ function DisplayTab({ scrollOffset }) {
                       }),
                       /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
                         flexDirection: "column",
-                        gap: 1,
                         children: [
                           /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                             backgroundColor: "$primary",
                             color: "$primary-fg",
-                            children: " $primary "
+                            children: " $primary  "
                           }),
                           /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                             backgroundColor: "$fg",
                             color: "$bg",
-                            children: " $inverse "
+                            children: " $inverse  "
                           }),
                           /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                             backgroundColor: "$muted-bg",
                             color: "$fg",
-                            children: " $surface "
+                            children: " $surface  "
                           }),
                           /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                             backgroundColor: "$surfacebg",
@@ -39128,7 +39099,7 @@ function DisplayTab({ scrollOffset }) {
                     ]
                   }),
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                    gap: 2,
+                    gap: 1,
                     children: [
                       /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
                         backgroundColor: "$primary",
@@ -39535,4 +39506,4 @@ if (!ShowcaseComponent) {
   }
 }
 
-//# debugId=4BF52ECC91F86D3A64756E2164756E21
+//# debugId=44202D368F6CC00664756E2164756E21
