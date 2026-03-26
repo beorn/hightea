@@ -38880,7 +38880,8 @@ function DisplayTab({ scrollOffset }) {
                         flexGrow: 1,
                         children: /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
                           value: "flutter widgets",
-                          onChange: () => {}
+                          onChange: () => {},
+                          borderStyle: "round"
                         })
                       })
                     ]
@@ -39058,18 +39059,18 @@ function DisplayTab({ scrollOffset }) {
                 gap: 1,
                 children: [
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                    flexDirection: "column",
+                    gap: 1,
                     children: [
                       /* @__PURE__ */ jsx_runtime56.jsx(Muted, {
-                        children: "Branch"
+                        children: "Branch:"
                       }),
                       /* @__PURE__ */ jsx_runtime56.jsx(Box, {
-                        borderStyle: "round",
-                        borderColor: "$focusborder",
-                        backgroundColor: "$surfacebg",
-                        paddingX: 1,
-                        children: /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                          children: "main"
+                        flexGrow: 1,
+                        children: /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
+                          value: "main",
+                          onChange: () => {},
+                          borderStyle: "round",
+                          isActive: true
                         })
                       })
                     ]
@@ -40750,7 +40751,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             <Box gap={1}>
               <Muted>Search:</Muted>
               <Box flexGrow={1}>
-                <TextInput value="flutter widgets" onChange={() => {}} />
+                <TextInput value="flutter widgets" onChange={() => {}} borderStyle="round" />
               </Box>
             </Box>
             <Box gap={2} wrap="truncate">
@@ -40829,10 +40830,10 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             <Muted>Esc to close</Muted>
           </Box>
           <Box flexDirection="column" gap={1}>
-            <Box flexDirection="column">
-              <Muted>Branch</Muted>
-              <Box borderStyle="round" borderColor="$focusborder" backgroundColor="$surfacebg" paddingX={1}>
-                <Text>main</Text>
+            <Box gap={1}>
+              <Muted>Branch:</Muted>
+              <Box flexGrow={1}>
+                <TextInput value="main" onChange={() => {}} borderStyle="round" isActive={true} />
               </Box>
             </Box>
             <Box flexDirection="column">
@@ -43728,7 +43729,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             <Box gap={1}>
               <Muted>Search:</Muted>
               <Box flexGrow={1}>
-                <TextInput value="flutter widgets" onChange={() => {}} />
+                <TextInput value="flutter widgets" onChange={() => {}} borderStyle="round" />
               </Box>
             </Box>
             <Box gap={2} wrap="truncate">
@@ -43807,10 +43808,10 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             <Muted>Esc to close</Muted>
           </Box>
           <Box flexDirection="column" gap={1}>
-            <Box flexDirection="column">
-              <Muted>Branch</Muted>
-              <Box borderStyle="round" borderColor="$focusborder" backgroundColor="$surfacebg" paddingX={1}>
-                <Text>main</Text>
+            <Box gap={1}>
+              <Muted>Branch:</Muted>
+              <Box flexGrow={1}>
+                <TextInput value="main" onChange={() => {}} borderStyle="round" isActive={true} />
               </Box>
             </Box>
             <Box flexDirection="column">
@@ -51794,4 +51795,4 @@ if (root) {
   createViewerApp(root);
 }
 
-//# debugId=8BE76FFE72AAD94B64756E2164756E21
+//# debugId=16B717F03C69CE8B64756E2164756E21

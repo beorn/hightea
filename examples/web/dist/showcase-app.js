@@ -38880,7 +38880,8 @@ function DisplayTab({ scrollOffset }) {
                         flexGrow: 1,
                         children: /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
                           value: "flutter widgets",
-                          onChange: () => {}
+                          onChange: () => {},
+                          borderStyle: "round"
                         })
                       })
                     ]
@@ -39058,18 +39059,18 @@ function DisplayTab({ scrollOffset }) {
                 gap: 1,
                 children: [
                   /* @__PURE__ */ jsx_runtime56.jsxs(Box, {
-                    flexDirection: "column",
+                    gap: 1,
                     children: [
                       /* @__PURE__ */ jsx_runtime56.jsx(Muted, {
-                        children: "Branch"
+                        children: "Branch:"
                       }),
                       /* @__PURE__ */ jsx_runtime56.jsx(Box, {
-                        borderStyle: "round",
-                        borderColor: "$focusborder",
-                        backgroundColor: "$surfacebg",
-                        paddingX: 1,
-                        children: /* @__PURE__ */ jsx_runtime56.jsx(Text2, {
-                          children: "main"
+                        flexGrow: 1,
+                        children: /* @__PURE__ */ jsx_runtime56.jsx(TextInput, {
+                          value: "main",
+                          onChange: () => {},
+                          borderStyle: "round",
+                          isActive: true
                         })
                       })
                     ]
@@ -39527,4 +39528,4 @@ if (!ShowcaseComponent) {
   }
 }
 
-//# debugId=4D01EDCD12871C5E64756E2164756E21
+//# debugId=B1D84BF06D5F2A2564756E2164756E21

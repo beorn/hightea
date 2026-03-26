@@ -413,7 +413,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             <Box gap={1}>
               <Muted>Search:</Muted>
               <Box flexGrow={1}>
-                <TextInput value="flutter widgets" onChange={() => {}} />
+                <TextInput value="flutter widgets" onChange={() => {}} borderStyle="round" />
               </Box>
             </Box>
             <Box gap={2} wrap="truncate">
@@ -492,10 +492,10 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             <Muted>Esc to close</Muted>
           </Box>
           <Box flexDirection="column" gap={1}>
-            <Box flexDirection="column">
-              <Muted>Branch</Muted>
-              <Box borderStyle="round" borderColor="$focusborder" backgroundColor="$surfacebg" paddingX={1}>
-                <Text>main</Text>
+            <Box gap={1}>
+              <Muted>Branch:</Muted>
+              <Box flexGrow={1}>
+                <TextInput value="main" onChange={() => {}} borderStyle="round" isActive={true} />
               </Box>
             </Box>
             <Box flexDirection="column">
