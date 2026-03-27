@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="260" viewBox="0 0 520 260">
+  <style>
+    .bg { fill: #1e1e2e; rx: 8; }
+    text { font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Menlo, Consolas, monospace; font-size: 13px; }
+    .prompt { fill: #cdd6f4; }
+    .bold { fill: #cdd6f4; font-weight: bold; }
+    .cyan { fill: #89b4fa; }
+    .green { fill: #a6e3a1; }
+    .dim { fill: #6c7086; }
+    .text { fill: #cdd6f4; }
+  </style>
+  <rect class="bg" width="520" height="260"/>
+  <text y="28" x="16">
+    <tspan class="prompt">$</tspan>
+    <tspan class="text"> deploy --help</tspan>
+  </text>
+  <text y="58" x="16">
+    <tspan class="bold">Usage:</tspan>
+    <tspan class="cyan"> deploy</tspan>
+    <tspan class="green"> [options]</tspan>
+  </text>
+  <text y="82" x="16" class="text">Deploy to an environment</text>
+  <text y="112" x="16" class="bold">Options:</text>
+  <text y="136" x="16">
+    <tspan class="green">  -V, --version     </tspan>
+    <tspan class="dim">output the version number</tspan>
+  </text>
+  <text y="154" x="16">
+    <tspan class="green">  -e, --env &lt;env&gt;   </tspan>
+    <tspan class="dim">Target environment</tspan>
+  </text>
+  <text y="172" x="16">
+    <tspan class="green">  -p, --port &lt;n&gt;    </tspan>
+    <tspan class="dim">Port number</tspan>
+  </text>
+  <text y="190" x="16">
+    <tspan class="green">  -r, --retries &lt;n&gt; </tspan>
+    <tspan class="dim">Retry count</tspan>
+  </text>
+  <text y="208" x="16">
+    <tspan class="green">  --tags &lt;t&gt;        </tspan>
+    <tspan class="dim">Labels</tspan>
+  </text>
+  <text y="226" x="16">
+    <tspan class="green">  -f, --force       </tspan>
+    <tspan class="dim">Skip confirmation</tspan>
+  </text>
+  <text y="244" x="16">
+    <tspan class="green">  -h, --help        </tspan>
+    <tspan class="dim">display help for command</tspan>
+  </text>
+</svg>

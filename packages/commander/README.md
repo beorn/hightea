@@ -33,21 +33,7 @@ With plain Commander, `opts()` returns `Record<string, any>` — every value is 
 
 [Zod](https://github.com/colinhacks/zod) is entirely optional — `z` is tree-shaken from your bundle if you don't import it. Without Zod, use the built-in types (`port`, `int`, `csv`) or plain Commander.
 
-<pre><code>$ deploy --help
-
-<b>Usage:</b> <span style="color:#56b6c2">deploy</span> <span style="color:#98c379">[options]</span>
-
-Deploy to an environment
-
-<b>Options:</b>
-  <span style="color:#98c379">-V, --version</span>      <span style="color:#888">output the version number</span>
-  <span style="color:#98c379">-e, --env &lt;env&gt;</span>    <span style="color:#888">Target environment</span>
-  <span style="color:#98c379">-p, --port &lt;n&gt;</span>     <span style="color:#888">Port number</span>
-  <span style="color:#98c379">-r, --retries &lt;n&gt;</span>  <span style="color:#888">Retry count</span>
-  <span style="color:#98c379">--tags &lt;t&gt;</span>         <span style="color:#888">Labels</span>
-  <span style="color:#98c379">-f, --force</span>        <span style="color:#888">Skip confirmation</span>
-  <span style="color:#98c379">-h, --help</span>         <span style="color:#888">display help for command</span>
-</code></pre>
+<p align="center"><img src="help-output.svg" alt="Colorized help output" width="520" /></p>
 
 Help is auto-colorized — bold headings, green flags, cyan commands, dim descriptions. Options with [Zod](https://github.com/colinhacks/zod) schemas or built-in types are validated at parse time with clear error messages.
 
