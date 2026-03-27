@@ -44,6 +44,7 @@
     "./theme": "./src/theme.ts",
     "./ui": "./src/ui.ts",
     "./ui/cli": "./src/ui/cli.ts",
+    "./ui/commander": "./src/ui/commander.ts",
     "./ui/react": "./src/ui/react.ts",
     "./ui/progress": "./src/ui/progress.ts",
     "./ui/wrappers": "./src/ui/wrappers.ts",
