@@ -11,7 +11,20 @@ next:
 
 # Scrollback
 
-Try it: `bun examples/inline/scrollback.tsx` or `npx tsx examples/inline/scrollback.tsx`
+::: code-group
+```bash [npm]
+npx silvery examples scrollback
+```
+```bash [bun]
+bunx silvery examples scrollback
+```
+```bash [pnpm]
+pnpm dlx silvery examples scrollback
+```
+```bash [vp]
+vp silvery examples scrollback
+```
+:::
 
 Silvery is the only TUI framework with a dynamic scrollback system. Instead of taking over the alternate screen buffer, inline mode renders directly into the terminal's normal scrollback — your output becomes part of the terminal history, scrollable like any other command output. This is how tools like Claude Code, npm, and modern CLI tools should work.
 

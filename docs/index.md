@@ -49,7 +49,22 @@ features:
 
 ## Build Any Terminal App
 
-Try the interactive examples: `npx silvery examples`
+Try the interactive examples:
+
+::: code-group
+```bash [npm]
+npx silvery examples
+```
+```bash [bun]
+bunx silvery examples
+```
+```bash [pnpm]
+pnpm dlx silvery examples
+```
+```bash [vp]
+vp silvery examples
+```
+:::
 
 <div class="use-cases">
 

@@ -11,7 +11,20 @@ next:
 
 # Tables & Data
 
-Try it: `bun examples/apps/data-explorer.tsx` or `npx tsx examples/apps/data-explorer.tsx`
+::: code-group
+```bash [npm]
+npx silvery examples data-explorer
+```
+```bash [bun]
+bunx silvery examples data-explorer
+```
+```bash [pnpm]
+pnpm dlx silvery examples data-explorer
+```
+```bash [vp]
+vp silvery examples data-explorer
+```
+:::
 
 Terminal data explorers need to handle thousands of rows, resize gracefully across terminal widths, and respond instantly to search queries. Silvery provides the primitives: a `Table` component with column alignment, `VirtualList` for constant-memory rendering of massive datasets, `useContentRect()` for responsive column sizing, and `TextInput` for real-time filtering.
 

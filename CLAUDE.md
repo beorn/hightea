@@ -161,6 +161,29 @@ VitePress docs at `docs/` — deployed to silvery.dev via GitHub Pages.
 - **CI**: `.github/workflows/docs.yml` — auto-deploys on push to main
 - **Do NOT create `docs/site/`** — docs live directly in `docs/`
 
+### Docs conventions
+
+**Package manager commands** must always show all variants using VitePress `::: code-group` blocks with tabs for npm, bun, pnpm, and vp (Vite Plus):
+
+```md
+::: code-group
+```bash [npm]
+npx silvery examples
+```
+```bash [bun]
+bunx silvery examples
+```
+```bash [pnpm]
+pnpm dlx silvery examples
+```
+```bash [vp]
+vp silvery examples
+```
+:::
+```
+
+This applies to install commands, run commands, and `npx`/`bunx`/`pnpm dlx`/`vp` invocations.
+
 ## Code Style
 
 Factory functions, `using` cleanup, no classes, no globals. ESM imports only. TypeScript strict mode.

@@ -13,7 +13,20 @@ next:
 
 Silvery ships 30+ components out of the box — from basic building blocks (Box, Text) to complex interactive widgets (SelectList, CommandPalette, ModalDialog). This example shows them composed together in a single dashboard.
 
-Try it: `bun examples/apps/components.tsx` or `npx tsx examples/apps/components.tsx`
+::: code-group
+```bash [npm]
+npx silvery examples components
+```
+```bash [bun]
+bunx silvery examples components
+```
+```bash [pnpm]
+pnpm dlx silvery examples components
+```
+```bash [vp]
+vp silvery examples components
+```
+:::
 
 ## Features
 
