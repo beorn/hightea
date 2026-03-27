@@ -94,19 +94,19 @@ bun run compat            # Run Ink/Chalk compatibility checks
 
 Users install and import from these packages:
 
-| Package             | What                                                    |
-| ------------------- | ------------------------------------------------------- |
-| `silvery`           | Main barrel — components, hooks, render, types, runtime |
-| `@silvery/create`   | App composition — createApp, pipe, withApp, TEA store   |
-| `@silvery/test`     | Testing utilities — virtual renderer, locators          |
-| `@silvery/headless` | Pure state machines — SelectList, Readline (no React)   |
-| `@silvery/commands` | Command registry, keymaps, invocation                   |
-| `@silvery/scope`    | Structured concurrency — createScope, withScope         |
-| `@silvery/signals`  | Reactive signals — thin wrapper around alien-signals    |
-| `@silvery/model`    | Optional DI model factories                             |
-| `@silvery/commander`| Type-safe Commander.js with colorized help, Standard Schema |
-| `@silvery/style`    | Theme-aware terminal styling — chalk replacement        |
-| `@silvery/ansi`     | Terminal ANSI utilities — color detection, SGR codes    |
+| Package              | What                                                        |
+| -------------------- | ----------------------------------------------------------- |
+| `silvery`            | Main barrel — components, hooks, render, types, runtime     |
+| `@silvery/create`    | App composition — createApp, pipe, withApp, TEA store       |
+| `@silvery/test`      | Testing utilities — virtual renderer, locators              |
+| `@silvery/headless`  | Pure state machines — SelectList, Readline (no React)       |
+| `@silvery/commands`  | Command registry, keymaps, invocation                       |
+| `@silvery/scope`     | Structured concurrency — createScope, withScope             |
+| `@silvery/signals`   | Reactive signals — thin wrapper around alien-signals        |
+| `@silvery/model`     | Optional DI model factories                                 |
+| `@silvery/commander` | Type-safe Commander.js with colorized help, Standard Schema |
+| `@silvery/style`     | Theme-aware terminal styling — chalk replacement            |
+| `@silvery/ansi`      | Terminal ANSI utilities — color detection, SGR codes        |
 
 Subpath imports available from `silvery`:
 

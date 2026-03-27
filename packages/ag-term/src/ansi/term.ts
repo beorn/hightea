@@ -21,7 +21,7 @@
  * ```
  */
 
-import { createStyle, type Style } from "@silvery/style"
+import { createMixedStyle, createStyle, type Style } from "@silvery/style"
 import type {
   ColorLevel,
   CreateTermOptions,
@@ -517,7 +517,7 @@ function createNodeTerm(options: CreateTermOptions): Term {
   Object.defineProperty(termBase, "frame", { get: () => _frame, enumerable: true })
 
   // Create proxy that wraps style for chaining + term methods
-  const term = createStyleProxy(styleInstance, termBase)
+  const term = createMixedStyle(styleInstance, termBase) as unknown as Term
 
   // Add dynamic dimension getters
   Object.defineProperty(term, "cols", {
@@ -582,7 +582,7 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
   // Frame getter — last painted TextFrame
   Object.defineProperty(termBase, "frame", { get: () => _frame, enumerable: true })
 
-  const term = createStyleProxy(styleInstance, termBase)
+  const term = createMixedStyle(styleInstance, termBase) as unknown as Term
 
   Object.defineProperty(term, "cols", { get: () => dims.cols, enumerable: true })
   Object.defineProperty(term, "rows", { get: () => dims.rows, enumerable: true })
@@ -719,95 +719,7 @@ function createBackendTerm(emulator: TermEmulator): Term {
     enumerable: true,
   })
 
-  const term = createStyleProxy(styleInstance, termBase)
+  const term = createMixedStyle(styleInstance, termBase) as unknown as Term
 
   return term as Term
-}
-
-// =============================================================================
-// Style Proxy Implementation
-// =============================================================================
-
-/**
- * Create a proxy that combines term methods with @silvery/style styling.
- *
- * The proxy makes the term object:
- * - Callable: term('text') applies current styles
- * - Chainable: term.bold.red('text') chains styles
- */
-function createStyleProxy(style: Style, termBase: object): Term {
-  return createChainProxy(style, termBase)
-}
-
-/** Methods on Style that take arguments and return a new Style chain. */
-const STYLE_METHODS = new Set(["hex", "bgHex", "rgb", "bgRgb", "ansi256", "bgAnsi256"])
-
-/**
- * Create a chainable proxy that wraps a @silvery/style instance with term methods.
- */
-function createChainProxy(currentStyle: Style, termBase: object): Term {
-  const handler: ProxyHandler<(...args: unknown[]) => string> = {
-    apply(_target, _thisArg, args) {
-      // Call the Style proxy — it handles string and template literal args
-      if (args.length === 1 && typeof args[0] === "string") {
-        return (currentStyle as unknown as (s: string) => string)(args[0])
-      }
-      if (args.length > 0 && Array.isArray(args[0]) && "raw" in args[0]) {
-        return (currentStyle as unknown as (s: TemplateStringsArray, ...v: unknown[]) => string)(
-          args[0] as TemplateStringsArray,
-          ...args.slice(1),
-        )
-      }
-      return (currentStyle as unknown as (s: string) => string)(String(args[0] ?? ""))
-    },
-
-    get(_target, prop) {
-      // Check termBase first for term-specific methods/properties
-      if (prop in termBase) {
-        const value = (termBase as Record<string | symbol, unknown>)[prop]
-        if (typeof value === "function") return value
-        return value
-      }
-
-      // Handle symbol properties
-      if (typeof prop === "symbol") {
-        if (prop === Symbol.dispose) {
-          return (termBase as Record<symbol, unknown>)[Symbol.dispose]
-        }
-        return undefined
-      }
-
-      // Style methods that take arguments — wrap result in new chain proxy
-      if (STYLE_METHODS.has(prop)) {
-        const method = currentStyle[prop as keyof Style]
-        if (typeof method === "function") {
-          return (...args: unknown[]) => {
-            const newStyle = (method as Function).apply(currentStyle, args) as Style
-            return createChainProxy(newStyle, termBase)
-          }
-        }
-      }
-
-      // Style properties (bold, red, etc.) — return new chain proxy
-      const styleProp = currentStyle[prop as keyof Style]
-      if (styleProp !== undefined) {
-        // If it's a Style chain (callable object), wrap in term proxy
-        if (typeof styleProp === "function" || typeof styleProp === "object") {
-          return createChainProxy(styleProp as Style, termBase)
-        }
-        return styleProp
-      }
-
-      return undefined
-    },
-
-    has(_target, prop) {
-      if (prop in termBase) return true
-      if (typeof prop === "string" && prop in currentStyle) return true
-      return false
-    },
-  }
-
-  const proxyTarget = function () {} as unknown as (...args: unknown[]) => string
-  return new Proxy(proxyTarget, handler) as unknown as Term
 }

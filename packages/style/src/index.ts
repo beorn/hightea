@@ -23,3 +23,4 @@
 export { createStyle, resolveThemeColor } from "./style.ts"
 export type { Style, StyleOptions, ThemeLike } from "./types.ts"
 export { hexToRgb, fgFromRgb, bgFromRgb, MODIFIERS, FG_COLORS, BG_COLORS, THEME_TOKEN_DEFAULTS } from "./colors.ts"
+export { createMixedStyle } from "./mixed-proxy.ts"

@@ -203,7 +203,8 @@ function createChainWithRef(
           if (level === null) return createChainWithRef(state, ref)
           const rgb = hexToRgb(color)
           if (!rgb) return createChainWithRef(state, ref)
-          const code = prop === "hex" ? fgFromRgb(rgb[0], rgb[1], rgb[2], level) : bgFromRgb(rgb[0], rgb[1], rgb[2], level)
+          const code =
+            prop === "hex" ? fgFromRgb(rgb[0], rgb[1], rgb[2], level) : bgFromRgb(rgb[0], rgb[1], rgb[2], level)
           const close = prop === "hex" ? "39" : "49"
           return createChainWithRef({ opens: [...state.opens, code], closes: [...state.closes, close] }, ref)
         }
@@ -291,10 +292,7 @@ function createChainWithRef(
               ref,
             )
           }
-          return createChainWithRef(
-            { opens: [...state.opens, String(fallback)], closes: [...state.closes, "39"] },
-            ref,
-          )
+          return createChainWithRef({ opens: [...state.opens, String(fallback)], closes: [...state.closes, "39"] }, ref)
         }
       }
 
@@ -313,11 +311,7 @@ function createChainWithRef(
       if (prop === "level") return true
       if (typeof prop === "symbol") return false
       return (
-        prop in MODIFIERS ||
-        prop in FG_COLORS ||
-        prop in BG_COLORS ||
-        THEME_TOKENS.has(prop) ||
-        KNOWN_METHODS.has(prop)
+        prop in MODIFIERS || prop in FG_COLORS || prop in BG_COLORS || THEME_TOKENS.has(prop) || KNOWN_METHODS.has(prop)
       )
     },
   }

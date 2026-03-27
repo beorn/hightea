@@ -9,16 +9,14 @@
  * palette generation from minimal input).
  */
 
+import { hexToRgb } from "@silvery/style"
+
+// Re-export so existing consumers (builder, validate, contrast, generators, theme) keep working.
+export { hexToRgb }
+
 // ============================================================================
 // Hex ↔ RGB Parsing
 // ============================================================================
-
-/** Parse a hex color string to [r, g, b] (0-255). Returns null for non-hex. */
-export function hexToRgb(hex: string): [number, number, number] | null {
-  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex)
-  if (!match) return null
-  return [parseInt(match[1]!, 16), parseInt(match[2]!, 16), parseInt(match[3]!, 16)]
-}
 
 /** Convert [r, g, b] (0-255) to hex string. */
 export function rgbToHex(r: number, g: number, b: number): string {

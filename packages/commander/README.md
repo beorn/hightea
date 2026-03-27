@@ -23,18 +23,24 @@ program
   .description("Start a service")
   .option("-p, --port <n>", "Port number", z.port)
   .option("-r, --retries <n>", "Retry count", z.int)
-  .action((service, opts) => { /* ... */ })
+  .action((service, opts) => {
+    /* ... */
+  })
 
 program
   .command("stop <service>")
   .description("Stop a running service")
-  .action((service) => { /* ... */ })
+  .action((service) => {
+    /* ... */
+  })
 
 program
   .command("status")
   .description("Show service status")
   .option("--json", "Output as JSON")
-  .action((opts) => { /* ... */ })
+  .action((opts) => {
+    /* ... */
+  })
 
 program.parse()
 const { env, force, verbose } = program.opts()

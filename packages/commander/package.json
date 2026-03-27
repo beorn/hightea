@@ -29,16 +29,14 @@
     "access": "public"
   },
   "dependencies": {
+    "@silvery/ansi": ">=0.1.0",
+    "@silvery/style": ">=0.1.0",
     "commander": ">=12.0.0"
   },
   "peerDependencies": {
-    "@silvery/ansi": ">=0.1.0",
     "zod": ">=3.0.0"
   },
   "peerDependenciesMeta": {
-    "@silvery/ansi": {
-      "optional": true
-    },
     "zod": {
       "optional": true
     }

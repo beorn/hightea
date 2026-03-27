@@ -56,19 +56,25 @@ Any color prop starting with `$` resolves against the active theme. This is the 
 ### Surfaces and Backgrounds
 
 ```tsx
-{/* Elevated card */}
-<Box backgroundColor="$surface-bg" borderStyle="single" borderColor="$border">
+{
+  /* Elevated card */
+}
+;<Box backgroundColor="$surface-bg" borderStyle="single" borderColor="$border">
   <Text color="$surface">Card content</Text>
 </Box>
 
-{/* Popover / floating panel */}
-<Box backgroundColor="$popover-bg" borderStyle="round" borderColor="$inputborder">
+{
+  /* Popover / floating panel */
+}
+;<Box backgroundColor="$popover-bg" borderStyle="round" borderColor="$inputborder">
   <Text color="$popover">Menu item</Text>
 </Box>
 
-{/* Status bar */}
-<Box backgroundColor="$inverse-bg">
-  <Text color="$inverse"> main  3 files  Ln 42 </Text>
+{
+  /* Status bar */
+}
+;<Box backgroundColor="$inverse-bg">
+  <Text color="$inverse"> main 3 files Ln 42 </Text>
 </Box>
 ```
 
@@ -77,18 +83,24 @@ Any color prop starting with `$` resolves against the active theme. This is the 
 Accent tokens use **reversed pairing** — the base name is the area background, `*-fg` is text on it:
 
 ```tsx
-{/* Primary button */}
-<Box backgroundColor="$primary">
+{
+  /* Primary button */
+}
+;<Box backgroundColor="$primary">
   <Text color="$primary-fg">Deploy</Text>
 </Box>
 
-{/* Error banner */}
-<Box backgroundColor="$error">
+{
+  /* Error banner */
+}
+;<Box backgroundColor="$error">
   <Text color="$error-fg">Build failed: missing dependency</Text>
 </Box>
 
-{/* Success badge */}
-<Box backgroundColor="$success">
+{
+  /* Success badge */
+}
+;<Box backgroundColor="$success">
   <Text color="$success-fg"> PASS </Text>
 </Box>
 ```
@@ -132,11 +144,7 @@ import { presetTheme } from "silvery/theme"
 const theme = presetTheme("tokyo-night")
 
 function App() {
-  return (
-    <ThemeProvider theme={theme}>
-      {/* ... */}
-    </ThemeProvider>
-  )
+  return <ThemeProvider theme={theme}>{/* ... */}</ThemeProvider>
 }
 ```
 
@@ -199,9 +207,9 @@ The fastest way to get a unique theme — provide one hex color and Silvery gene
 ```typescript
 import { quickTheme } from "silvery/theme"
 
-const theme = quickTheme("#818cf8")          // indigo, dark mode
+const theme = quickTheme("#818cf8") // indigo, dark mode
 const light = quickTheme("#818cf8", "light") // indigo, light mode
-const named = quickTheme("teal", "dark")     // named color
+const named = quickTheme("teal", "dark") // named color
 ```
 
 Or with full palette auto-generation:
@@ -221,25 +229,13 @@ The chainable builder API gives fine-grained control:
 import { createTheme } from "silvery/theme"
 
 // Start from a preset and override the primary
-const theme = createTheme()
-  .preset("nord")
-  .primary("#A3BE8C")
-  .build()
+const theme = createTheme().preset("nord").primary("#A3BE8C").build()
 
 // Start from scratch with just bg + fg + primary
-const theme = createTheme()
-  .bg("#1e1e2e")
-  .fg("#cdd6f4")
-  .primary("#89b4fa")
-  .dark()
-  .build()
+const theme = createTheme().bg("#1e1e2e").fg("#cdd6f4").primary("#89b4fa").dark().build()
 
 // Override individual palette colors
-const theme = createTheme()
-  .preset("dracula")
-  .color("red", "#FF6E6E")
-  .color("green", "#69FF94")
-  .build()
+const theme = createTheme().preset("dracula").color("red", "#FF6E6E").color("green", "#69FF94").build()
 ```
 
 Builder methods: `.bg()`, `.fg()`, `.primary()`, `.accent()`, `.dark()`, `.light()`, `.color(name, value)`, `.palette(p)`, `.preset(name)`, `.build()`.
@@ -255,14 +251,28 @@ import type { ColorPalette } from "silvery/theme"
 const myPalette: ColorPalette = {
   name: "my-palette",
   dark: true,
-  black: "#1a1b26", red: "#f7768e", green: "#9ece6a", yellow: "#e0af68",
-  blue: "#7aa2f7", magenta: "#bb9af7", cyan: "#7dcfff", white: "#a9b1d6",
-  brightBlack: "#414868", brightRed: "#f7768e", brightGreen: "#9ece6a",
-  brightYellow: "#e0af68", brightBlue: "#7aa2f7", brightMagenta: "#bb9af7",
-  brightCyan: "#7dcfff", brightWhite: "#c0caf5",
-  foreground: "#c0caf5", background: "#1a1b26",
-  cursorColor: "#c0caf5", cursorText: "#1a1b26",
-  selectionBackground: "#33467c", selectionForeground: "#c0caf5",
+  black: "#1a1b26",
+  red: "#f7768e",
+  green: "#9ece6a",
+  yellow: "#e0af68",
+  blue: "#7aa2f7",
+  magenta: "#bb9af7",
+  cyan: "#7dcfff",
+  white: "#a9b1d6",
+  brightBlack: "#414868",
+  brightRed: "#f7768e",
+  brightGreen: "#9ece6a",
+  brightYellow: "#e0af68",
+  brightBlue: "#7aa2f7",
+  brightMagenta: "#bb9af7",
+  brightCyan: "#7dcfff",
+  brightWhite: "#c0caf5",
+  foreground: "#c0caf5",
+  background: "#1a1b26",
+  cursorColor: "#c0caf5",
+  cursorText: "#1a1b26",
+  selectionBackground: "#33467c",
+  selectionForeground: "#c0caf5",
 }
 
 const theme = deriveTheme(myPalette)
@@ -291,9 +301,9 @@ Without a theme, token names fall back to sensible ANSI colors (e.g., `primary` 
 ```typescript
 const s = createStyle()
 
-s.primary("text")  // yellow (ANSI 33)
-s.error("text")    // red (ANSI 31)
-s.success("text")  // green (ANSI 32)
+s.primary("text") // yellow (ANSI 33)
+s.error("text") // red (ANSI 31)
+s.success("text") // green (ANSI 32)
 s.bold.red("text") // standard chalk-style chaining still works
 ```
 
@@ -305,11 +315,11 @@ Silvery detects the terminal's color capabilities and adapts automatically. The 
 
 ### Three Color Levels
 
-| Level        | Colors | When                                      | Token Resolution                           |
-| ------------ | ------ | ----------------------------------------- | ------------------------------------------ |
-| `truecolor`  | 16M    | Modern terminals (Ghostty, Kitty, iTerm2) | Hex blending, contrast-adjusted derivation |
-| `256`        | 256    | Older terminals, some SSH sessions        | Hex values downsampled to nearest 256      |
-| `basic`      | 16     | Very old terminals, CI, pipes             | Direct ANSI color name mapping             |
+| Level       | Colors | When                                      | Token Resolution                           |
+| ----------- | ------ | ----------------------------------------- | ------------------------------------------ |
+| `truecolor` | 16M    | Modern terminals (Ghostty, Kitty, iTerm2) | Hex blending, contrast-adjusted derivation |
+| `256`       | 256    | Older terminals, some SSH sessions        | Hex values downsampled to nearest 256      |
+| `basic`     | 16     | Very old terminals, CI, pipes             | Direct ANSI color name mapping             |
 
 Detection is automatic via `@silvery/ansi`. Override with environment variables:
 
@@ -391,7 +401,7 @@ const theme = deriveTheme(nord, "truecolor", adjustments)
 for (const adj of adjustments) {
   console.log(
     `${adj.token}: ${adj.from} -> ${adj.to} ` +
-    `(${adj.ratioBefore.toFixed(1)} -> ${adj.ratioAfter.toFixed(1)} against ${adj.against})`
+      `(${adj.ratioBefore.toFixed(1)} -> ${adj.ratioAfter.toFixed(1)} against ${adj.against})`,
   )
 }
 ```

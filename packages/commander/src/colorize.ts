@@ -6,8 +6,6 @@
  * or plain commander — accepts a minimal CommandLike interface so Commander
  * is a peer dependency, not a hard one.
  *
- * Zero dependencies — only raw ANSI escape codes.
- *
  * @example
  * ```ts
  * import { Command } from "@silvery/commander"
@@ -18,39 +16,27 @@
  * ```
  */
 
-// Raw ANSI escape codes — no framework dependencies.
+import { MODIFIERS, FG_COLORS } from "@silvery/style"
+import { detectColor } from "@silvery/ansi"
+
+// Derive ANSI escape sequences from @silvery/style constants.
 const RESET = "\x1b[0m"
-const BOLD = "\x1b[1m"
-const DIM = "\x1b[2m"
-const CYAN = "\x1b[36m"
-const GREEN = "\x1b[32m"
-const YELLOW = "\x1b[33m"
+const BOLD = `\x1b[${MODIFIERS.bold![0]}m`
+const DIM = `\x1b[${MODIFIERS.dim![0]}m`
+const CYAN = `\x1b[${FG_COLORS.cyan}m`
+const GREEN = `\x1b[${FG_COLORS.green}m`
+const YELLOW = `\x1b[${FG_COLORS.yellow}m`
 
 /**
  * Check if color output should be enabled.
- * Uses @silvery/ansi detectColor() if available, falls back to basic
- * NO_COLOR/FORCE_COLOR/isTTY checks.
+ * Uses @silvery/ansi detectColor() for full detection (respects NO_COLOR,
+ * FORCE_COLOR, TERM, etc.).
  */
 let _shouldColorize: boolean | undefined
 
 export function shouldColorize(): boolean {
   if (_shouldColorize !== undefined) return _shouldColorize
-
-  // Try @silvery/ansi for full detection (respects NO_COLOR, FORCE_COLOR, TERM, etc.)
-  try {
-    const { detectColor } = require("@silvery/ansi") as { detectColor: (stdout: NodeJS.WriteStream) => string | null }
-    _shouldColorize = detectColor(process.stdout) !== null
-  } catch {
-    // Fallback: basic NO_COLOR / FORCE_COLOR / isTTY checks
-    if (process.env.NO_COLOR !== undefined) {
-      _shouldColorize = false
-    } else if (process.env.FORCE_COLOR !== undefined) {
-      _shouldColorize = true
-    } else {
-      _shouldColorize = process.stdout?.isTTY ?? true
-    }
-  }
-
+  _shouldColorize = detectColor(process.stdout) !== null
   return _shouldColorize
 }
 

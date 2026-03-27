@@ -43,8 +43,7 @@ function fromChalkLevel(level: ChalkLevel): ColorLevel | null {
 // Default instance (auto-detected)
 // =============================================================================
 
-const detectedColor =
-  typeof process !== "undefined" && process.stdout ? detectColor(process.stdout) : null
+const detectedColor = typeof process !== "undefined" && process.stdout ? detectColor(process.stdout) : null
 
 /**
  * Default chalk instance — drop-in replacement for `import chalk from 'chalk'`.
@@ -61,51 +60,19 @@ export default chalk
 
 /**
  * Chalk constructor — creates a new style instance with a specific level.
+ * Returns a callable Style (the constructor return overrides `this`).
  *
  * ```ts
  * const instance = new Chalk({ level: 3 })
  * console.log(instance.red('error'))
+ * instance.level = 0 // disable colors
  * ```
  */
 export class Chalk {
-  #style: Style
-
   constructor(options?: { level?: ChalkLevel }) {
-    this.#style = createStyle({ level: fromChalkLevel(options?.level ?? toChalkLevel(detectedColor)) })
+    // Returning an object from a constructor overrides `this` — chalk compat pattern
+    return createStyle({ level: fromChalkLevel(options?.level ?? toChalkLevel(detectedColor)) }) as any
   }
-
-  get level(): ChalkLevel {
-    return this.#style.level as ChalkLevel
-  }
-
-  set level(n: ChalkLevel) {
-    this.#style.level = n
-  }
-
-  // Make instances callable — Chalk("text") applies styles
-  [Symbol.toPrimitive](_hint: string): string {
-    return ""
-  }
-}
-
-// Create a Proxy around Chalk instances to make them callable + chainable
-const ChalkHandler: ProxyHandler<Chalk> = {
-  apply(target, _thisArg, args) {
-    return (target as unknown as Style)(args[0] as string)
-  },
-  get(target, prop) {
-    if (prop === "level") return (target as any).level
-    const style = (target as any)["#style"] ?? createStyle({ level: fromChalkLevel((target as any).level ?? 0) })
-    const val = (style as any)[prop]
-    return val
-  },
-  set(target, prop, value) {
-    if (prop === "level") {
-      (target as any).level = value
-      return true
-    }
-    return false
-  },
 }
 
 export type ChalkInstance = Style
