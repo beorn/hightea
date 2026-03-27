@@ -99,4 +99,11 @@ export interface Style {
 
   /** Resolve a $token or color name to its hex/ANSI value. */
   resolve(token: string): string | undefined
+
+  /**
+   * Mutable color level — chalk-compatible.
+   * Setting this changes the color level for ALL subsequent calls on this instance.
+   * Chalk levels: 0 = none, 1 = basic (16), 2 = 256, 3 = truecolor.
+   */
+  level: number
 }

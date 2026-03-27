@@ -32,9 +32,9 @@ The primary entry point. Returns a chainable, callable style object.
 import { createStyle } from "@silvery/style"
 
 const s = createStyle()
-s.bold.red("Error!")              // bold red text
-s.hex("#818cf8")("Indigo")       // truecolor foreground
-s.bgYellow.black("Warning")     // black text on yellow background
+s.bold.red("Error!") // bold red text
+s.hex("#818cf8")("Indigo") // truecolor foreground
+s.bgYellow.black("Warning") // black text on yellow background
 ```
 
 ### Options
@@ -48,10 +48,10 @@ interface StyleOptions {
 }
 ```
 
-| Option  | Type                                | Default       | Description                                |
-| ------- | ----------------------------------- | ------------- | ------------------------------------------ |
+| Option  | Type                                      | Default       | Description                                     |
+| ------- | ----------------------------------------- | ------------- | ----------------------------------------------- |
 | `level` | `"truecolor" \| "256" \| "basic" \| null` | auto-detected | Color support level. `null` disables all color. |
-| `theme` | `ThemeLike`                         | `undefined`   | Theme object for token resolution          |
+| `theme` | `ThemeLike`                               | `undefined`   | Theme object for token resolution               |
 
 When `level` is omitted, `createStyle()` auto-detects from `process.stdout` using `@silvery/ansi`'s `detectColor()`, respecting `NO_COLOR` and `FORCE_COLOR` environment variables.
 
@@ -63,49 +63,49 @@ Every property returns a new `Style` that can be chained further or called with 
 const s = createStyle()
 
 // Single modifier
-s.bold("text")                    // bold
-s.dim("text")                     // dim
+s.bold("text") // bold
+s.dim("text") // dim
 
 // Chained modifiers
-s.bold.italic("text")             // bold + italic
-s.bold.underline.red("text")     // bold + underline + red
+s.bold.italic("text") // bold + italic
+s.bold.underline.red("text") // bold + underline + red
 ```
 
 ### Modifiers
 
-| Property        | SGR Open | SGR Close | Description      |
-| --------------- | -------- | --------- | ---------------- |
-| `bold`          | 1        | 22        | Bold intensity   |
-| `dim`           | 2        | 22        | Faint/dim        |
-| `italic`        | 3        | 23        | Italic           |
-| `underline`     | 4        | 24        | Underline        |
-| `inverse`       | 7        | 27        | Swap fg/bg       |
-| `hidden`        | 8        | 28        | Hidden text      |
-| `strikethrough` | 9        | 29        | Strikethrough    |
+| Property        | SGR Open | SGR Close | Description    |
+| --------------- | -------- | --------- | -------------- |
+| `bold`          | 1        | 22        | Bold intensity |
+| `dim`           | 2        | 22        | Faint/dim      |
+| `italic`        | 3        | 23        | Italic         |
+| `underline`     | 4        | 24        | Underline      |
+| `inverse`       | 7        | 27        | Swap fg/bg     |
+| `hidden`        | 8        | 28        | Hidden text    |
+| `strikethrough` | 9        | 29        | Strikethrough  |
 
 ### Foreground Colors
 
 Standard ANSI foreground colors:
 
-| Property        | Code | Color         |
-| --------------- | ---- | ------------- |
-| `black`         | 30   | Black         |
-| `red`           | 31   | Red           |
-| `green`         | 32   | Green         |
-| `yellow`        | 33   | Yellow        |
-| `blue`          | 34   | Blue          |
-| `magenta`       | 35   | Magenta       |
-| `cyan`          | 36   | Cyan          |
-| `white`         | 37   | White         |
-| `blackBright`   | 90   | Bright black  |
-| `gray` / `grey` | 90   | Gray (alias)  |
-| `redBright`     | 91   | Bright red    |
-| `greenBright`   | 92   | Bright green  |
-| `yellowBright`  | 93   | Bright yellow |
-| `blueBright`    | 94   | Bright blue   |
-| `magentaBright` | 95   | Bright magenta|
-| `cyanBright`    | 96   | Bright cyan   |
-| `whiteBright`   | 97   | Bright white  |
+| Property        | Code | Color          |
+| --------------- | ---- | -------------- |
+| `black`         | 30   | Black          |
+| `red`           | 31   | Red            |
+| `green`         | 32   | Green          |
+| `yellow`        | 33   | Yellow         |
+| `blue`          | 34   | Blue           |
+| `magenta`       | 35   | Magenta        |
+| `cyan`          | 36   | Cyan           |
+| `white`         | 37   | White          |
+| `blackBright`   | 90   | Bright black   |
+| `gray` / `grey` | 90   | Gray (alias)   |
+| `redBright`     | 91   | Bright red     |
+| `greenBright`   | 92   | Bright green   |
+| `yellowBright`  | 93   | Bright yellow  |
+| `blueBright`    | 94   | Bright blue    |
+| `magentaBright` | 95   | Bright magenta |
+| `cyanBright`    | 96   | Bright cyan    |
+| `whiteBright`   | 97   | Bright white   |
 
 ### Background Colors
 
@@ -137,14 +137,14 @@ s.ansi256(196)("Bright red")
 s.bgAnsi256(17)("Navy bg")
 ```
 
-| Method       | Signature                     | Description                    |
-| ------------ | ----------------------------- | ------------------------------ |
-| `hex`        | `(color: string) => Style`    | Foreground from hex (`#rrggbb`) |
-| `bgHex`      | `(color: string) => Style`    | Background from hex            |
-| `rgb`        | `(r, g, b) => Style`         | Foreground from RGB values     |
-| `bgRgb`      | `(r, g, b) => Style`         | Background from RGB values     |
-| `ansi256`    | `(code: number) => Style`    | Foreground from 256-color index |
-| `bgAnsi256`  | `(code: number) => Style`    | Background from 256-color index |
+| Method      | Signature                  | Description                     |
+| ----------- | -------------------------- | ------------------------------- |
+| `hex`       | `(color: string) => Style` | Foreground from hex (`#rrggbb`) |
+| `bgHex`     | `(color: string) => Style` | Background from hex             |
+| `rgb`       | `(r, g, b) => Style`       | Foreground from RGB values      |
+| `bgRgb`     | `(r, g, b) => Style`       | Background from RGB values      |
+| `ansi256`   | `(code: number) => Style`  | Foreground from 256-color index |
+| `bgAnsi256` | `(code: number) => Style`  | Background from 256-color index |
 
 ## Theme Token Resolution
 
@@ -156,31 +156,31 @@ import { defaultDarkTheme } from "silvery/theme"
 
 const s = createStyle({ theme: defaultDarkTheme })
 
-s.primary("Deploy")        // resolves theme.primary -> hex -> ANSI
-s.error("Failed!")         // resolves theme.error -> hex -> ANSI
-s.success("Passed")        // resolves theme.success -> hex -> ANSI
-s.muted("(3 files)")       // resolves theme.muted -> hex -> ANSI
-s.warning("Caution")       // resolves theme.warning -> hex -> ANSI
-s.info("Note")             // resolves theme.info -> hex -> ANSI
-s.link("https://...")      // resolves theme.link + adds underline
-s.bold.primary("DEPLOY")  // chain modifiers with tokens
+s.primary("Deploy") // resolves theme.primary -> hex -> ANSI
+s.error("Failed!") // resolves theme.error -> hex -> ANSI
+s.success("Passed") // resolves theme.success -> hex -> ANSI
+s.muted("(3 files)") // resolves theme.muted -> hex -> ANSI
+s.warning("Caution") // resolves theme.warning -> hex -> ANSI
+s.info("Note") // resolves theme.info -> hex -> ANSI
+s.link("https://...") // resolves theme.link + adds underline
+s.bold.primary("DEPLOY") // chain modifiers with tokens
 ```
 
 ### Available Tokens
 
-| Token       | Without theme (fallback)     | With theme                    |
-| ----------- | ---------------------------- | ----------------------------- |
-| `primary`   | yellow (ANSI 33)             | `theme.primary` as hex        |
-| `secondary` | cyan (ANSI 36)               | `theme.secondary` as hex      |
-| `accent`    | magenta (ANSI 35)            | `theme.accent` as hex         |
-| `error`     | red (ANSI 31)                | `theme.error` as hex          |
-| `warning`   | yellow (ANSI 33)             | `theme.warning` as hex        |
-| `success`   | green (ANSI 32)              | `theme.success` as hex        |
-| `info`      | cyan (ANSI 36)               | `theme.info` as hex           |
-| `muted`     | dim (SGR 2)                  | `theme.muted` as hex          |
-| `link`      | blue + underline (ANSI 34)   | `theme.link` as hex + underline |
-| `border`    | gray (ANSI 90)               | `theme.border` as hex         |
-| `surface`   | white (ANSI 37)              | `theme.surface` as hex        |
+| Token       | Without theme (fallback)   | With theme                      |
+| ----------- | -------------------------- | ------------------------------- |
+| `primary`   | yellow (ANSI 33)           | `theme.primary` as hex          |
+| `secondary` | cyan (ANSI 36)             | `theme.secondary` as hex        |
+| `accent`    | magenta (ANSI 35)          | `theme.accent` as hex           |
+| `error`     | red (ANSI 31)              | `theme.error` as hex            |
+| `warning`   | yellow (ANSI 33)           | `theme.warning` as hex          |
+| `success`   | green (ANSI 32)            | `theme.success` as hex          |
+| `info`      | cyan (ANSI 36)             | `theme.info` as hex             |
+| `muted`     | dim (SGR 2)                | `theme.muted` as hex            |
+| `link`      | blue + underline (ANSI 34) | `theme.link` as hex + underline |
+| `border`    | gray (ANSI 90)             | `theme.border` as hex           |
+| `surface`   | white (ANSI 37)            | `theme.surface` as hex          |
 
 When no theme is provided, tokens fall back to standard ANSI codes. The `link` token always adds underline in addition to the color.
 
@@ -191,22 +191,22 @@ Programmatically resolve a token to its hex value:
 ```typescript
 const s = createStyle({ theme })
 
-s.resolve("primary")       // "#EBCB8B"
-s.resolve("$primary")      // "#EBCB8B" ($ prefix also accepted)
-s.resolve("$color0")       // theme.palette[0]
-s.resolve("$surface-bg")   // theme.surfacebg (hyphens stripped)
+s.resolve("primary") // "#EBCB8B"
+s.resolve("$primary") // "#EBCB8B" ($ prefix also accepted)
+s.resolve("$color0") // theme.palette[0]
+s.resolve("$surface-bg") // theme.surfacebg (hyphens stripped)
 ```
 
 ## Color Level Detection and Degradation
 
 `createStyle()` auto-detects the terminal's color capability and degrades gracefully:
 
-| Level        | Capability        | Hex/RGB handling                    |
-| ------------ | ----------------- | ----------------------------------- |
-| `"truecolor"` | 16 million colors | `38;2;R;G;B` — exact color          |
-| `"256"`      | 256 colors        | `38;5;N` — nearest in 6x6x6 cube  |
-| `"basic"`    | 16 colors         | `30`--`37` / `90`--`97` — nearest ANSI |
-| `null`       | No color          | All styling stripped, plain text returned |
+| Level         | Capability        | Hex/RGB handling                          |
+| ------------- | ----------------- | ----------------------------------------- |
+| `"truecolor"` | 16 million colors | `38;2;R;G;B` — exact color                |
+| `"256"`       | 256 colors        | `38;5;N` — nearest in 6x6x6 cube          |
+| `"basic"`     | 16 colors         | `30`--`37` / `90`--`97` — nearest ANSI    |
+| `null`        | No color          | All styling stripped, plain text returned |
 
 The degradation from truecolor to 256 uses the 6x6x6 color cube (indices 16--231) and the 24-shade gray ramp (indices 232--255). The degradation from 256 to basic uses Euclidean distance in RGB space against the standard ANSI 16 color values.
 
@@ -245,8 +245,8 @@ const s = createStyle({
   },
 })
 
-s.primary("Styled")  // uses #818cf8
-s.warning("Warn")    // falls back to yellow (ANSI 33) — not in theme
+s.primary("Styled") // uses #818cf8
+s.warning("Warn") // falls back to yellow (ANSI 33) — not in theme
 ```
 
 ## Template Literal Support
@@ -255,8 +255,8 @@ Style functions accept template literals:
 
 ```typescript
 const name = "world"
-s.bold`Hello, ${name}!`  // bold "Hello, world!"
-s.red`Error: ${code}`    // red text with interpolation
+s.bold`Hello, ${name}!` // bold "Hello, world!"
+s.red`Error: ${code}` // red text with interpolation
 ```
 
 ## Examples
@@ -287,9 +287,7 @@ function statusLine(branch: string, files: number, errors: number) {
   const parts = [
     s.primary(` ${branch} `),
     s.muted(` ${files} files`),
-    errors > 0
-      ? s.error(` ${errors} errors`)
-      : s.success(" clean"),
+    errors > 0 ? s.error(` ${errors} errors`) : s.success(" clean"),
   ]
   return parts.join(s.muted(" | "))
 }

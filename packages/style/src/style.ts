@@ -87,14 +87,79 @@ const THEME_TOKENS = new Set([
   "surface",
 ])
 
-function createChain(
+// =============================================================================
+// Public API
+// =============================================================================
+
+/**
+ * Create a style object for terminal output.
+ *
+ * @param options - Color level and optional theme
+ * @returns A chainable style object (chalk-compatible API)
+ *
+ * @example
+ * ```ts
+ * import { createStyle } from "@silvery/style"
+ *
+ * const s = createStyle()
+ * console.log(s.bold.red("Error!"))
+ * console.log(s.hex("#818cf8")("Indigo"))
+ *
+ * // With theme
+ * const s = createStyle({ theme })
+ * console.log(s.primary("Deploy"))
+ * console.log(s.success("Done"))
+ * ```
+ */
+/** Convert chalk numeric level (0-3) to ColorLevel. */
+function fromChalkLevel(n: number): import("@silvery/ansi").ColorLevel | null {
+  if (n <= 0) return null
+  if (n === 1) return "basic"
+  if (n === 2) return "256"
+  return "truecolor"
+}
+
+/** Convert ColorLevel to chalk numeric level (0-3). */
+function toChalkLevel(cl: import("@silvery/ansi").ColorLevel | null): number {
+  if (cl === null) return 0
+  if (cl === "basic") return 1
+  if (cl === "256") return 2
+  return 3
+}
+
+export function createStyle(options?: StyleOptions): Style {
+  // Mutable level ref — shared across all chains from this instance
+  const ref = {
+    level: null as import("@silvery/ansi").ColorLevel | null,
+    theme: options?.theme as ThemeLike | undefined,
+  }
+
+  if (options?.level !== undefined) {
+    ref.level = options.level
+  } else {
+    try {
+      ref.level = detectColor(process.stdout)
+    } catch {
+      ref.level = null
+    }
+  }
+
+  // Root chain with mutable level via ref
+  const root = createChainWithRef({ opens: [], closes: [] }, ref)
+  return root
+}
+
+/**
+ * Create a chain that reads level from a mutable ref.
+ * This allows `style.level = 3` to affect all subsequent calls.
+ */
+function createChainWithRef(
   state: ChainState,
-  level: import("@silvery/ansi").ColorLevel | null,
-  theme: ThemeLike | undefined,
+  ref: { level: import("@silvery/ansi").ColorLevel | null; theme: ThemeLike | undefined },
 ): Style {
   const handler: ProxyHandler<(...args: unknown[]) => string> = {
     apply(_target, _thisArg, args) {
-      // No color support → return plain text
+      const level = ref.level
       if (level === null) {
         if (typeof args[0] === "string") return args[0]
         if (Array.isArray(args[0]) && "raw" in args[0]) {
@@ -122,124 +187,113 @@ function createChain(
     get(_target, prop) {
       if (typeof prop === "symbol") return undefined
 
+      // level getter/setter (chalk compat)
+      if (prop === "level") return toChalkLevel(ref.level)
+
       // resolve() method
       if (prop === "resolve") {
-        return (token: string): string | undefined => {
-          return resolveToken(token, theme)
-        }
+        return (token: string): string | undefined => resolveToken(token, ref.theme)
       }
 
-      // Color methods that take arguments
+      const level = ref.level
+
+      // Color methods
       if (prop === "hex" || prop === "bgHex") {
         return (color: string) => {
-          if (level === null) return createChain(state, level, theme)
+          if (level === null) return createChainWithRef(state, ref)
           const rgb = hexToRgb(color)
-          if (!rgb) return createChain(state, level, theme)
-          const code =
-            prop === "hex" ? fgFromRgb(rgb[0], rgb[1], rgb[2], level) : bgFromRgb(rgb[0], rgb[1], rgb[2], level)
+          if (!rgb) return createChainWithRef(state, ref)
+          const code = prop === "hex" ? fgFromRgb(rgb[0], rgb[1], rgb[2], level) : bgFromRgb(rgb[0], rgb[1], rgb[2], level)
           const close = prop === "hex" ? "39" : "49"
-          return createChain({ opens: [...state.opens, code], closes: [...state.closes, close] }, level, theme)
+          return createChainWithRef({ opens: [...state.opens, code], closes: [...state.closes, close] }, ref)
         }
       }
 
       if (prop === "rgb" || prop === "bgRgb") {
         return (r: number, g: number, b: number) => {
-          if (level === null) return createChain(state, level, theme)
+          if (level === null) return createChainWithRef(state, ref)
           const code = prop === "rgb" ? fgFromRgb(r, g, b, level) : bgFromRgb(r, g, b, level)
           const close = prop === "rgb" ? "39" : "49"
-          return createChain({ opens: [...state.opens, code], closes: [...state.closes, close] }, level, theme)
+          return createChainWithRef({ opens: [...state.opens, code], closes: [...state.closes, close] }, ref)
         }
       }
 
       if (prop === "ansi256") {
         return (code: number) => {
-          if (level === null) return createChain(state, level, theme)
-          return createChain({ opens: [...state.opens, `38;5;${code}`], closes: [...state.closes, "39"] }, level, theme)
+          if (level === null) return createChainWithRef(state, ref)
+          return createChainWithRef({ opens: [...state.opens, `38;5;${code}`], closes: [...state.closes, "39"] }, ref)
         }
       }
 
       if (prop === "bgAnsi256") {
         return (code: number) => {
-          if (level === null) return createChain(state, level, theme)
-          return createChain({ opens: [...state.opens, `48;5;${code}`], closes: [...state.closes, "49"] }, level, theme)
+          if (level === null) return createChainWithRef(state, ref)
+          return createChainWithRef({ opens: [...state.opens, `48;5;${code}`], closes: [...state.closes, "49"] }, ref)
         }
       }
 
-      // Modifiers (bold, dim, italic, etc.)
+      // Modifiers
       if (prop in MODIFIERS) {
-        if (level === null) return createChain(state, level, theme)
+        if (level === null) return createChainWithRef(state, ref)
         const [open, close] = MODIFIERS[prop]!
-        return createChain(
+        return createChainWithRef(
           { opens: [...state.opens, String(open)], closes: [...state.closes, String(close)] },
-          level,
-          theme,
+          ref,
         )
       }
 
-      // Foreground colors (red, green, cyan, etc.)
+      // Foreground colors
       if (prop in FG_COLORS) {
-        if (level === null) return createChain(state, level, theme)
-        return createChain(
+        if (level === null) return createChainWithRef(state, ref)
+        return createChainWithRef(
           { opens: [...state.opens, String(FG_COLORS[prop]!)], closes: [...state.closes, "39"] },
-          level,
-          theme,
+          ref,
         )
       }
 
-      // Background colors (bgRed, bgGreen, etc.)
+      // Background colors
       if (prop in BG_COLORS) {
-        if (level === null) return createChain(state, level, theme)
-        return createChain(
+        if (level === null) return createChainWithRef(state, ref)
+        return createChainWithRef(
           { opens: [...state.opens, String(BG_COLORS[prop]!)], closes: [...state.closes, "49"] },
-          level,
-          theme,
+          ref,
         )
       }
 
-      // Theme tokens (primary, success, error, etc.)
+      // Theme tokens
       if (THEME_TOKENS.has(prop)) {
-        if (level === null) return createChain(state, level, theme)
-
-        // Try theme first
-        const hex = resolveToken(prop, theme)
+        if (level === null) return createChainWithRef(state, ref)
+        const hex = resolveToken(prop, ref.theme)
         if (hex) {
           const rgb = hexToRgb(hex)
           if (rgb) {
             const code = fgFromRgb(rgb[0], rgb[1], rgb[2], level)
-            // Special: link gets underline too
             if (prop === "link") {
-              return createChain(
+              return createChainWithRef(
                 { opens: [...state.opens, code, "4"], closes: [...state.closes, "39", "24"] },
-                level,
-                theme,
+                ref,
               )
             }
-            return createChain({ opens: [...state.opens, code], closes: [...state.closes, "39"] }, level, theme)
+            return createChainWithRef({ opens: [...state.opens, code], closes: [...state.closes, "39"] }, ref)
           }
         }
-
-        // Fallback to default ANSI codes
         const fallback = THEME_TOKEN_DEFAULTS[prop]
         if (fallback !== undefined) {
-          // muted uses dim (modifier), others use fg color
           if (prop === "muted") {
-            return createChain(
+            return createChainWithRef(
               { opens: [...state.opens, String(fallback)], closes: [...state.closes, "22"] },
-              level,
-              theme,
+              ref,
             )
           }
           if (prop === "link") {
-            return createChain(
+            return createChainWithRef(
               { opens: [...state.opens, String(fallback), "4"], closes: [...state.closes, "39", "24"] },
-              level,
-              theme,
+              ref,
             )
           }
-          return createChain(
+          return createChainWithRef(
             { opens: [...state.opens, String(fallback)], closes: [...state.closes, "39"] },
-            level,
-            theme,
+            ref,
           )
         }
       }
@@ -247,56 +301,27 @@ function createChain(
       return undefined
     },
 
+    set(_target, prop, value) {
+      if (prop === "level") {
+        ref.level = fromChalkLevel(value as number)
+        return true
+      }
+      return false
+    },
+
     has(_target, prop) {
+      if (prop === "level") return true
       if (typeof prop === "symbol") return false
       return (
-        prop in MODIFIERS || prop in FG_COLORS || prop in BG_COLORS || THEME_TOKENS.has(prop) || KNOWN_METHODS.has(prop)
+        prop in MODIFIERS ||
+        prop in FG_COLORS ||
+        prop in BG_COLORS ||
+        THEME_TOKENS.has(prop) ||
+        KNOWN_METHODS.has(prop)
       )
     },
   }
 
   const target = function () {} as unknown as (...args: unknown[]) => string
   return new Proxy(target, handler) as unknown as Style
-}
-
-// =============================================================================
-// Public API
-// =============================================================================
-
-/**
- * Create a style object for terminal output.
- *
- * @param options - Color level and optional theme
- * @returns A chainable style object (chalk-compatible API)
- *
- * @example
- * ```ts
- * import { createStyle } from "@silvery/style"
- *
- * const s = createStyle()
- * console.log(s.bold.red("Error!"))
- * console.log(s.hex("#818cf8")("Indigo"))
- *
- * // With theme
- * const s = createStyle({ theme })
- * console.log(s.primary("Deploy"))
- * console.log(s.success("Done"))
- * ```
- */
-export function createStyle(options?: StyleOptions): Style {
-  let level: import("@silvery/ansi").ColorLevel | null
-
-  if (options?.level !== undefined) {
-    level = options.level
-  } else {
-    // Auto-detect from terminal
-    try {
-      level = detectColor(process.stdout)
-    } catch {
-      // Not in a TTY context
-      level = null
-    }
-  }
-
-  return createChain({ opens: [], closes: [] }, level, options?.theme)
 }

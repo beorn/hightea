@@ -295,4 +295,35 @@ describe("createStyle", () => {
       expect(s.bold("c")).toBe(`${ESC}1mc${ESC}22m`)
     })
   })
+
+  describe("level property (chalk compat)", () => {
+    it("returns numeric level", () => {
+      expect(createStyle({ level: null }).level).toBe(0)
+      expect(createStyle({ level: "basic" }).level).toBe(1)
+      expect(createStyle({ level: "256" }).level).toBe(2)
+      expect(createStyle({ level: "truecolor" }).level).toBe(3)
+    })
+
+    it("setting level changes output", () => {
+      const s = createStyle({ level: null })
+      expect(s.red("x")).toBe("x") // no color
+      s.level = 3
+      expect(s.red("x")).toBe(`${ESC}31mx${ESC}39m`) // now colored
+    })
+
+    it("setting level to 0 disables color", () => {
+      const s = createStyle({ level: "truecolor" })
+      expect(s.red("x")).toBe(`${ESC}31mx${ESC}39m`)
+      s.level = 0
+      expect(s.red("x")).toBe("x")
+    })
+
+    it("level change affects existing chain references", () => {
+      const s = createStyle({ level: "basic" })
+      const bold = s.bold
+      expect(bold("x")).toBe(`${ESC}1mx${ESC}22m`)
+      s.level = 0
+      expect(bold("x")).toBe("x") // shared ref, level change propagates
+    })
+  })
 })

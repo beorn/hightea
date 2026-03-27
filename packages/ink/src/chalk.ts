@@ -1,5 +1,5 @@
 /**
- * silvery/chalk — Drop-in chalk replacement.
+ * silvery/chalk — Drop-in chalk replacement powered by @silvery/style.
  *
  * ```ts
  * // Before:
@@ -9,20 +9,18 @@
  * import chalk from 'silvery/chalk'
  * ```
  *
- * The default export is a real chalk instance for full compat (level mutation,
- * visible, multi-arg). Uses @silvery/ansi for color detection.
- *
- * The core rendering pipeline (ag-term) uses @silvery/style instead of chalk.
+ * The default export is a chainable styling function with chalk-compatible API.
+ * Under the hood it uses @silvery/style — no chalk dependency.
  *
  * @packageDocumentation
  */
 
-import { Chalk, type ChalkInstance } from "chalk"
+import { createStyle, type Style } from "@silvery/style"
 import { detectColor } from "@silvery/ag-term/ansi/detection"
 import type { ColorLevel } from "@silvery/ag-term/ansi/types"
 
 // =============================================================================
-// Color level conversion
+// Color level conversion (chalk uses 0-3, silvery uses string|null)
 // =============================================================================
 
 type ChalkLevel = 0 | 1 | 2 | 3
@@ -42,32 +40,81 @@ function fromChalkLevel(level: ChalkLevel): ColorLevel | null {
 }
 
 // =============================================================================
-// Default chalk instance (auto-detected)
+// Default instance (auto-detected)
 // =============================================================================
 
-const detectedLevel = toChalkLevel(
-  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain -- typeof guard prevents ReferenceError in environments without process global
-  typeof process !== "undefined" && process.stdout ? detectColor(process.stdout) : null,
-)
+const detectedColor =
+  typeof process !== "undefined" && process.stdout ? detectColor(process.stdout) : null
 
 /**
  * Default chalk instance — drop-in replacement for `import chalk from 'chalk'`.
  *
  * Supports the full chainable API: `chalk.bold.red('error')`, `chalk.hex('#ff0')('hi')`, etc.
+ * Also supports mutable `chalk.level` for chalk compat (0=none, 1=basic, 2=256, 3=truecolor).
  */
-const chalk = new Chalk({ level: detectedLevel })
+const chalk: Style = createStyle({ level: detectedColor })
 export default chalk
 
 // =============================================================================
 // Named exports (chalk 5.x compatibility)
 // =============================================================================
 
-export { Chalk, type ChalkInstance }
+/**
+ * Chalk constructor — creates a new style instance with a specific level.
+ *
+ * ```ts
+ * const instance = new Chalk({ level: 3 })
+ * console.log(instance.red('error'))
+ * ```
+ */
+export class Chalk {
+  #style: Style
+
+  constructor(options?: { level?: ChalkLevel }) {
+    this.#style = createStyle({ level: fromChalkLevel(options?.level ?? toChalkLevel(detectedColor)) })
+  }
+
+  get level(): ChalkLevel {
+    return this.#style.level as ChalkLevel
+  }
+
+  set level(n: ChalkLevel) {
+    this.#style.level = n
+  }
+
+  // Make instances callable — Chalk("text") applies styles
+  [Symbol.toPrimitive](_hint: string): string {
+    return ""
+  }
+}
+
+// Create a Proxy around Chalk instances to make them callable + chainable
+const ChalkHandler: ProxyHandler<Chalk> = {
+  apply(target, _thisArg, args) {
+    return (target as unknown as Style)(args[0] as string)
+  },
+  get(target, prop) {
+    if (prop === "level") return (target as any).level
+    const style = (target as any)["#style"] ?? createStyle({ level: fromChalkLevel((target as any).level ?? 0) })
+    const val = (style as any)[prop]
+    return val
+  },
+  set(target, prop, value) {
+    if (prop === "level") {
+      (target as any).level = value
+      return true
+    }
+    return false
+  },
+}
+
+export type ChalkInstance = Style
 
 /**
  * Color support detection for stdout.
  * Returns false if no color, or an object with the chalk level.
  */
+const detectedLevel = toChalkLevel(detectedColor)
 export const supportsColor: false | { level: ChalkLevel } = detectedLevel === 0 ? false : { level: detectedLevel }
 
 /**
