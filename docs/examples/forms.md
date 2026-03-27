@@ -11,7 +11,7 @@ next:
 
 # Forms & Input
 
-Run it: `bun examples/apps/cli-wizard.tsx`
+Try it: `bun examples/apps/cli-wizard.tsx` or `npx tsx examples/apps/cli-wizard.tsx`
 
 Interactive CLI wizards guide users through multi-step configuration, installation, or setup flows. Silvery provides the building blocks as first-class React components: each wizard step is a React component with its own state, and transitions between steps are just state changes. You get full control over layout, focus, and rendering without leaving the React model.
 

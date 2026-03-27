@@ -13,7 +13,7 @@ next:
 
 Silvery brings CSS-like flexbox to the terminal. Proportional sizing, gap spacing, `justifyContent`, `alignItems`, responsive breakpoints via `useContentRect()` — the same layout model you know from the web, working in every terminal.
 
-Run it: `bun examples/layout/dashboard.tsx`
+Try it: `bun examples/layout/dashboard.tsx` or `npx tsx examples/layout/dashboard.tsx`
 
 ## Features
 

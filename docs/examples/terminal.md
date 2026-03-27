@@ -11,7 +11,7 @@ next:
 
 # Terminal Protocols
 
-Run it: `bun examples/kitty/keys.tsx`
+Try it: `bun examples/kitty/keys.tsx` or `npx tsx examples/kitty/keys.tsx`
 
 Modern terminals support far more than basic ANSI escape codes. Silvery provides comprehensive protocol support: the Kitty keyboard protocol for unambiguous key identification, mouse tracking for click and scroll events, sixel/kitty graphics for inline images, and OSC queries for terminal capability detection.
 
