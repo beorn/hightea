@@ -104,6 +104,9 @@ Users install and import from these packages:
 | `@silvery/scope`    | Structured concurrency — createScope, withScope         |
 | `@silvery/signals`  | Reactive signals — thin wrapper around alien-signals    |
 | `@silvery/model`    | Optional DI model factories                             |
+| `@silvery/commander`| Type-safe Commander.js with colorized help, Standard Schema |
+| `@silvery/style`    | Theme-aware terminal styling — chalk replacement        |
+| `@silvery/ansi`     | Terminal ANSI utilities — color detection, SGR codes    |
 
 Subpath imports available from `silvery`:
 
