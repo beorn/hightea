@@ -80,10 +80,24 @@ function legacyZodParser<T>(schema: ZodLike<T>): (value: string) => T {
   }
 }
 
+/** A styled help section: title + rows of [term, description] pairs, or just text. */
+export interface HelpSection {
+  /** Section heading (e.g., "Getting Started:") */
+  title: string
+  /** Rows as [term, description] pairs — formatted like Commander's option/command lists */
+  rows?: [string, string][]
+  /** Free-form body text (used if rows is not provided) */
+  body?: string
+}
+
 export class Command extends BaseCommand {
+  private _helpSections: HelpSection[] = []
+
   constructor(name?: string) {
     super(name)
     colorizeHelp(this as any)
+    // Auto-capitalize built-in option descriptions (-V, -h)
+    this._capitalizeBuiltinDescriptions()
   }
 
   /**
@@ -114,8 +128,79 @@ export class Command extends BaseCommand {
     return super.option(flags, description ?? "", parseArgOrDefault)
   }
 
+  /**
+   * Add a styled help section that appears after the standard help output.
+   * Sections are formatted with the same alignment as Commander's built-in lists.
+   *
+   * @example
+   * ```ts
+   * program.addSection({
+   *   title: "Getting Started:",
+   *   rows: [
+   *     ["myapp init", "Initialize a new project"],
+   *     ["myapp serve", "Start the dev server"],
+   *   ],
+   * })
+   * ```
+   */
+  addSection(section: HelpSection): this {
+    this._helpSections.push(section)
+    this._updateHelpSections()
+    return this
+  }
+
   // Subcommands also get colorized help, Standard Schema, and array choices
   override createCommand(name?: string): Command {
     return new Command(name)
+  }
+
+  /** Capitalize the first letter of built-in -V/--version and -h/--help descriptions. */
+  private _capitalizeBuiltinDescriptions(): void {
+    // Defer — options aren't added until .version() / .helpOption() are called.
+    // Hook into helpInformation to capitalize just before rendering.
+    const origHelp = this.helpInformation.bind(this)
+    this.helpInformation = () => {
+      for (const opt of this.options) {
+        if (opt.description && /^[a-z]/.test(opt.description)) {
+          opt.description = opt.description[0]!.toUpperCase() + opt.description.slice(1)
+        }
+      }
+      return origHelp()
+    }
+  }
+
+  /** Re-generate the addHelpText content from accumulated sections. */
+  private _updateHelpSections(): void {
+    // Build the help text — we use configureHelp to access style hooks
+    const helpConfig = (this as any)._helpConfiguration ?? {}
+    const styleTitle = helpConfig.styleTitle ?? ((s: string) => s)
+    const styleCmd = helpConfig.styleCommandText ?? ((s: string) => s)
+    const styleDesc = helpConfig.styleDescriptionText ?? ((s: string) => s)
+
+    const lines: string[] = []
+    for (const section of this._helpSections) {
+      lines.push("")
+      lines.push(styleTitle(section.title))
+      if (section.rows) {
+        // Calculate padding from the widest term
+        const maxTerm = Math.max(...section.rows.map(([t]) => t.length), 0)
+        const pad = maxTerm + 2
+        for (const [term, desc] of section.rows) {
+          lines.push(`  ${styleCmd(term)}${" ".repeat(Math.max(1, pad - term.length))}${styleDesc(desc)}`)
+        }
+      } else if (section.body) {
+        for (const line of section.body.split("\n")) {
+          lines.push(`  ${line}`)
+        }
+      }
+    }
+
+    // Remove any previous addHelpText("after") and replace
+    // Commander stores these in _helpAfter, we replace our entry
+    const text = lines.join("\n")
+    ;(this as any)._sectionHelpText = text
+
+    // Use afterAll to add our sections
+    this.addHelpText("afterAll", () => (this as any)._sectionHelpText ?? "")
   }
 }
