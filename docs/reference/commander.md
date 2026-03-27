@@ -1,6 +1,8 @@
 # @silvery/commander
 
-Enhanced [Commander.js](https://github.com/tj/commander.js) with auto-colorized help, [Standard Schema](https://github.com/standard-schema/standard-schema) validation, and CLI presets. Drop-in replacement -- `Command` is a subclass of Commander's `Command`.
+Enhanced [Commander.js](https://github.com/tj/commander.js) with type-safe options, auto-colorized help, [Standard Schema](https://github.com/standard-schema/standard-schema) validation, and built-in CLI types.
+
+Drop-in replacement -- `Command` is a subclass of Commander's `Command` with full type inference for options, arguments, and parsed values. Install once, Commander is included.
 
 ## Installation
 
@@ -27,27 +29,27 @@ yarn add @silvery/commander
 ## Three Usage Patterns
 
 ```typescript
-// 1. Enhanced Commander (auto-colorized help, Standard Schema support)
+// 1. Enhanced Commander (auto-colorized help, Standard Schema, array choices)
 import { Command, port, csv } from "@silvery/commander"
 
-// 2. Standalone presets (zero-dep, Standard Schema, no Commander)
+// 2. Standalone types (zero-dep, Standard Schema, no Commander)
 import { port, csv, int } from "@silvery/commander/parse"
 
-// 3. Zod + CLI presets (batteries included)
+// 3. Zod + CLI types (batteries included)
 import { Command, z } from "@silvery/commander"
 ```
 
 ## Usage
 
 ```typescript
-import { Command, port, csv, oneOf } from "@silvery/commander"
+import { Command, port, csv } from "@silvery/commander"
 
 const program = new Command("deploy")
   .description("Deploy the application")
   .version("1.0.0")
-  .option("-p, --port <n>", "Port", port)                            // number (1-65535)
-  .option("--tags <t>", "Tags", csv)                                 // string[]
-  .option("-e, --env <e>", "Env", oneOf(["dev", "staging", "prod"])) // literal union
+  .option("-p, --port <n>", "Port", port) // number (1-65535)
+  .option("--tags <t>", "Tags", csv) // string[]
+  .option("-e, --env <e>", "Env", ["dev", "staging", "prod"]) // choices
 
 program.parse()
 const opts = program.opts()
@@ -69,7 +71,7 @@ colorizeHelp(program) // applies recursively to all subcommands
 
 ## Standard Schema Validation
 
-Pass any [Standard Schema v1](https://github.com/standard-schema/standard-schema) compatible schema as the third argument to `.option()`. Works with the built-in presets, Zod (>=3.24), Valibot (>=1.0), ArkType (>=2.0), and any other library implementing the standard:
+Pass any [Standard Schema v1](https://github.com/standard-schema/standard-schema) compatible schema as the third argument to `.option()`. Works with the built-in types, Zod (>=3.24), Valibot (>=1.0), ArkType (>=2.0), and any other library implementing the standard:
 
 ```typescript
 import { Command } from "@silvery/commander"
@@ -78,12 +80,16 @@ import { z } from "zod"
 const program = new Command("deploy")
   .option("-p, --port <n>", "Port", z.coerce.number().min(1).max(65535))
   .option("-e, --env <env>", "Env", z.enum(["dev", "staging", "prod"]))
-  .option("--tags <t>", "Tags", z.string().transform((v) => v.split(",")))
+  .option(
+    "--tags <t>",
+    "Tags",
+    z.string().transform((v) => v.split(",")),
+  )
 ```
 
 Schema libraries are optional peer dependencies -- detected at runtime via the Standard Schema `~standard` interface, never imported at the top level.
 
-## Zod CLI Presets
+## Zod CLI Types
 
 Import `z` from `@silvery/commander` for an extended Zod object with CLI-specific schemas:
 
@@ -91,21 +97,21 @@ Import `z` from `@silvery/commander` for an extended Zod object with CLI-specifi
 import { Command, z } from "@silvery/commander"
 
 const program = new Command("deploy")
-  .option("-p, --port <n>", "Port", z.port)                        // z.coerce.number().int().min(1).max(65535)
-  .option("--tags <t>", "Tags", z.csv)                             // z.string().transform(...)
-  .option("-e, --env <e>", "Env", z.oneOf(["dev", "staging", "prod"]))
-  .option("-r, --retries <n>", "Retries", z.int)                   // z.coerce.number().int()
+  .option("-p, --port <n>", "Port", z.port) // z.coerce.number().int().min(1).max(65535)
+  .option("--tags <t>", "Tags", z.csv) // z.string().transform(...)
+  .option("-r, --retries <n>", "Retries", z.int) // z.coerce.number().int()
+  .option("-e, --env <e>", "Env", ["dev", "staging", "prod"])
 ```
 
 The `z` export is tree-shakeable -- if you don't import it, Zod won't be in your bundle.
 
-Available `z` CLI presets: `z.port`, `z.int`, `z.uint`, `z.float`, `z.csv`, `z.url`, `z.path`, `z.email`, `z.date`, `z.json`, `z.bool`, `z.intRange(min, max)`, `z.oneOf(values)`.
+Available `z` CLI types: `z.port`, `z.int`, `z.uint`, `z.float`, `z.csv`, `z.url`, `z.path`, `z.email`, `z.date`, `z.json`, `z.bool`, `z.intRange(min, max)`.
 
-## Preset Reference
+## Built-in Type Reference
 
-Pre-built validators for common CLI argument patterns. Each preset implements [Standard Schema v1](https://github.com/standard-schema/standard-schema) and works with Commander's `.option()` or standalone.
+Each type implements [Standard Schema v1](https://github.com/standard-schema/standard-schema) and works with Commander's `.option()` or standalone.
 
-| Preset  | Type       | Validation                               |
+| Type    | Output     | Validation                               |
 | ------- | ---------- | ---------------------------------------- |
 | `int`   | `number`   | Integer (coerced from string)            |
 | `uint`  | `number`   | Unsigned integer (>= 0)                  |
@@ -120,21 +126,30 @@ Pre-built validators for common CLI argument patterns. Each preset implements [S
 | `email` | `string`   | Basic email validation (has @ and .)     |
 | `regex` | `RegExp`   | Valid regex pattern                      |
 
-### Factory Presets
+### Factory Type
 
 ```typescript
-import { intRange, oneOf } from "@silvery/commander"
+import { intRange } from "@silvery/commander"
 
-intRange(1, 100)          // Preset<number> -- integer within bounds
-oneOf(["a", "b", "c"])    // Preset<"a" | "b" | "c"> -- enum from values
+intRange(1, 100) // CLIType<number> -- integer within bounds
 ```
+
+### Array Choices
+
+Pass an array as the third argument to restrict an option to a fixed set of values:
+
+```typescript
+.option("-e, --env <e>", "Env", ["dev", "staging", "prod"])
+```
+
+Commander validates the choice at parse time and rejects invalid values.
 
 ### Standalone Usage
 
-Presets also work outside Commander for validating env vars, config files, etc. Import from `@silvery/commander/parse` for tree-shaking:
+Types also work outside Commander for validating env vars, config files, etc. Import from `@silvery/commander/parse` for tree-shaking:
 
 ```typescript
-import { port, csv, oneOf } from "@silvery/commander/parse"
+import { port, csv } from "@silvery/commander/parse"
 
 // .parse() -- returns value or throws
 const dbPort = port.parse(process.env.DB_PORT ?? "5432")
@@ -154,9 +169,9 @@ When `.option()` is called with a parser function as the third argument, Command
 
 ```typescript
 const program = new Command("deploy")
-  .option("-p, --port <n>", "Port", parseInt)                     // port: number
-  .option("-t, --timeout <ms>", "Timeout", Number)                // timeout: number
-  .option("--tags <items>", "Tags", (v) => v.split(","))          // tags: string[]
+  .option("-p, --port <n>", "Port", parseInt) // port: number
+  .option("-t, --timeout <ms>", "Timeout", Number) // timeout: number
+  .option("--tags <items>", "Tags", (v) => v.split(",")) // tags: string[]
 ```
 
 Default values can be passed as the fourth argument:
@@ -165,14 +180,14 @@ Default values can be passed as the fourth argument:
 .option("-p, --port <n>", "Port", parseInt, 8080)  // port: number (defaults to 8080)
 ```
 
-## Comparison with @commander-js/extra-typings
+## Beyond extra-typings
 
-`@silvery/commander` is a superset. It re-exports Commander's `Command` as a subclass with:
+Built on the shoulders of [@commander-js/extra-typings](https://github.com/commander-js/extra-typings). We add:
 
-- **Auto-colorized help** -- no manual formatting, respects `NO_COLOR`/`FORCE_COLOR`
-- **Standard Schema validation** -- pass Zod/Valibot/ArkType schemas directly to `.option()`
-- **Built-in presets** -- `port`, `csv`, `int`, `url`, etc. with Standard Schema compliance
-- **Zod CLI presets** -- extended `z` with `z.port`, `z.csv`, `z.oneOf()`, etc.
-- **Standalone usage** -- presets work outside Commander via `@silvery/commander/parse`
+- **Auto-colorized help** -- bold headings, green flags, cyan commands
+- **Built-in validation** via [Standard Schema](https://github.com/standard-schema/standard-schema) -- works with [Zod](https://github.com/colinhacks/zod), [Valibot](https://github.com/fabian-hiller/valibot), [ArkType](https://github.com/arktypeio/arktype)
+- **14 CLI types** -- `port`, `csv`, `int`, `url`, `email` and more, usable standalone via `.parse()`/`.safeParse()`
+- **NO_COLOR support** via [`@silvery/ansi`](https://github.com/beorn/silvery/tree/main/packages/ansi) (optional)
+- **Commander included** -- one install, no peer dep setup
 
 If you're using `@commander-js/extra-typings` today, switching is a one-line import change.

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { z } from "zod"
-import { Command, Option } from "../src/index.ts"
+import { Command } from "../src/index.ts"
 
 describe("Command subclass", () => {
   it("creates a command with colorized help", () => {
@@ -127,23 +127,26 @@ describe("custom parser", () => {
   })
 })
 
-describe("choices", () => {
-  it("restricts to valid choices via addOption", () => {
-    const cmd = new Command("test")
-    cmd.addOption(new Option("-e, --env <env>", "Environment").choices(["dev", "staging", "prod"]))
+describe("array choices", () => {
+  it("restricts to valid choices via array", () => {
+    const cmd = new Command("test").option("-e, --env <env>", "Environment", ["dev", "staging", "prod"])
     cmd.parse(["node", "test", "--env", "dev"], { from: "node" })
     expect(cmd.opts().env).toBe("dev")
   })
 
   it("rejects invalid choices", () => {
-    const cmd = new Command("test")
-    cmd.addOption(new Option("-e, --env <env>", "Environment").choices(["dev", "staging", "prod"]))
-
+    const cmd = new Command("test").option("-e, --env <env>", "Environment", ["dev", "staging", "prod"])
     cmd.exitOverride()
     cmd.configureOutput({ writeErr: () => {} })
     expect(() => {
       cmd.parse(["node", "test", "--env", "invalid"], { from: "node" })
     }).toThrow()
+  })
+
+  it("is undefined when not provided", () => {
+    const cmd = new Command("test").option("-e, --env <env>", "Environment", ["dev", "staging", "prod"])
+    cmd.parse(["node", "test"], { from: "node" })
+    expect(cmd.opts().env).toBeUndefined()
   })
 })
 

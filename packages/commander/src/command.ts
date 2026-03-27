@@ -1,26 +1,25 @@
 /**
- * Enhanced Commander Command with auto-colorized help and Standard Schema support.
+ * Enhanced Commander Command with auto-colorized help, Standard Schema support,
+ * and array-as-choices detection.
  *
- * Subclasses Commander's Command so `new Command("app")` just works —
- * it's Commander with auto-colorized help and automatic Standard Schema /
- * legacy Zod detection in `.option()`.
+ * Subclasses Commander's Command so `new Command("app")` just works --
+ * it's Commander with auto-colorized help, automatic Standard Schema /
+ * legacy Zod detection, and array choices in `.option()`.
  *
  * @example
  * ```ts
- * import { Command } from "@silvery/commander"
- * import { port, csv } from "@silvery/commander/parse"
+ * import { Command, port, csv } from "@silvery/commander"
  *
- * const program = new Command("myapp")
- *   .description("My CLI tool")
- *   .version("1.0.0")
+ * new Command("deploy")
  *   .option("-p, --port <n>", "Port", port)
  *   .option("--tags <t>", "Tags", csv)
+ *   .option("-e, --env <e>", "Env", ["dev", "staging", "prod"])
  *
  * program.parse()
  * ```
  */
 
-import { Command as BaseCommand } from "commander"
+import { Command as BaseCommand, Option } from "commander"
 import { colorizeHelp } from "./colorize.ts"
 import type { StandardSchemaV1 } from "./presets.ts"
 
@@ -88,16 +87,21 @@ export class Command extends BaseCommand {
   }
 
   /**
-   * Add an option with automatic Standard Schema / legacy Zod detection.
+   * Add an option with smart third-argument detection.
    *
-   * When the third argument is a Standard Schema v1 object (Zod >=3.24,
-   * Valibot >=1.0, ArkType >=2.0, or @silvery/commander presets), it's
-   * automatically wrapped as a Commander parser function.
-   *
-   * When the third argument is a legacy Zod schema (pre-3.24, has `_def`
-   * and `parse` but no `~standard`), it's also wrapped automatically.
+   * The third argument is detected in order:
+   * 1. **Array** -- treated as choices (Commander `.choices()`)
+   * 2. **Standard Schema v1** -- wrapped as a parser function
+   * 3. **Legacy Zod** (pre-3.24, has `_def` + `parse`) -- wrapped as a parser
+   * 4. **Function** -- passed through as Commander's parser function
+   * 5. **Anything else** -- passed through as a default value
    */
   option(flags: string, description?: string, parseArgOrDefault?: any, defaultValue?: any): this {
+    if (Array.isArray(parseArgOrDefault)) {
+      const opt = new Option(flags, description ?? "").choices(parseArgOrDefault)
+      this.addOption(opt)
+      return this
+    }
     if (isStandardSchema(parseArgOrDefault)) {
       return super.option(flags, description ?? "", standardSchemaParser(parseArgOrDefault))
     }
@@ -110,7 +114,7 @@ export class Command extends BaseCommand {
     return super.option(flags, description ?? "", parseArgOrDefault)
   }
 
-  // Subcommands also get colorized help and Standard Schema support
+  // Subcommands also get colorized help, Standard Schema, and array choices
   createCommand(name?: string): Command {
     return new Command(name)
   }

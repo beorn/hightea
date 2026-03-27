@@ -1,20 +1,19 @@
 /**
- * Pre-built Standard Schema v1 presets for common CLI argument patterns.
+ * Built-in CLI types — Standard Schema v1 validators for common CLI argument patterns.
  *
  * Zero dependencies — validation is manual, no Zod/Valibot/ArkType required.
- * Each preset implements Standard Schema v1 for interop with any schema library,
+ * Each type implements Standard Schema v1 for interop with any schema library,
  * plus standalone `.parse()` and `.safeParse()` convenience methods.
  *
  * @example
  * ```ts
- * import { createCLI, port, csv, int, url, oneOf } from "@silvery/commander"
+ * import { Command, port, csv } from "@silvery/commander"
  *
- * const cli = createCLI("deploy")
+ * new Command("deploy")
  *   .option("-p, --port <n>", "Port", port)           // number (1-65535)
  *   .option("-r, --retries <n>", "Retries", int)      // number (integer)
  *   .option("--tags <t>", "Tags", csv)                // string[]
- *   .option("--callback <url>", "Callback", url)      // string (validated URL)
- *   .option("-e, --env <e>", "Env", oneOf(["dev", "staging", "prod"]))
+ *   .option("-e, --env <e>", "Env", ["dev", "staging", "prod"])
  *
  * // Standalone usage (outside Commander)
  * port.parse("3000")       // 3000
@@ -40,16 +39,16 @@ export interface StandardSchemaV1<T = unknown> {
   }
 }
 
-/** A Standard Schema v1 preset with standalone parse/safeParse methods. */
-export interface Preset<T> extends StandardSchemaV1<T> {
+/** A Standard Schema v1 CLI type with standalone parse/safeParse methods. */
+export interface CLIType<T> extends StandardSchemaV1<T> {
   /** Parse and validate a value, throwing on failure. */
   parse(value: unknown): T
   /** Parse and validate a value, returning a result object. */
   safeParse(value: unknown): { success: true; value: T } | { success: false; issues: Array<{ message: string }> }
 }
 
-function createPreset<T>(vendor: string, validate: (value: unknown) => T): Preset<T> {
-  const schema: Preset<T> = {
+function createType<T>(vendor: string, validate: (value: unknown) => T): CLIType<T> {
+  const schema: CLIType<T> = {
     "~standard": {
       version: 1,
       vendor,
@@ -78,7 +77,7 @@ function createPreset<T>(vendor: string, validate: (value: unknown) => T): Prese
 const VENDOR = "@silvery/commander"
 
 /** Integer (coerced from string). */
-export const int = createPreset<number>(VENDOR, (v) => {
+export const int = createType<number>(VENDOR, (v) => {
   const s = String(v).trim()
   if (s === "") throw new Error(`Expected integer, got "${v}"`)
   const n = Number(s)
@@ -87,7 +86,7 @@ export const int = createPreset<number>(VENDOR, (v) => {
 })
 
 /** Unsigned integer (>= 0, coerced from string). */
-export const uint = createPreset<number>(VENDOR, (v) => {
+export const uint = createType<number>(VENDOR, (v) => {
   const s = String(v).trim()
   if (s === "") throw new Error(`Expected unsigned integer (>= 0), got "${v}"`)
   const n = Number(s)
@@ -96,7 +95,7 @@ export const uint = createPreset<number>(VENDOR, (v) => {
 })
 
 /** Float (coerced from string). */
-export const float = createPreset<number>(VENDOR, (v) => {
+export const float = createType<number>(VENDOR, (v) => {
   const s = String(v).trim()
   if (s === "" || s === "NaN") throw new Error(`Expected number, got "${v}"`)
   const n = Number(s)
@@ -105,14 +104,14 @@ export const float = createPreset<number>(VENDOR, (v) => {
 })
 
 /** Port number (1-65535). */
-export const port = createPreset<number>(VENDOR, (v) => {
+export const port = createType<number>(VENDOR, (v) => {
   const n = Number(v)
   if (!Number.isInteger(n) || n < 1 || n > 65535) throw new Error(`Expected port (1-65535), got "${v}"`)
   return n
 })
 
 /** URL (validated via URL constructor). */
-export const url = createPreset<string>(VENDOR, (v) => {
+export const url = createType<string>(VENDOR, (v) => {
   const s = String(v)
   try {
     new URL(s)
@@ -123,14 +122,14 @@ export const url = createPreset<string>(VENDOR, (v) => {
 })
 
 /** File path (non-empty string). */
-export const path = createPreset<string>(VENDOR, (v) => {
+export const path = createType<string>(VENDOR, (v) => {
   const s = String(v)
   if (!s) throw new Error("Expected non-empty path")
   return s
 })
 
 /** Comma-separated values to string[]. */
-export const csv = createPreset<string[]>(VENDOR, (v) => {
+export const csv = createType<string[]>(VENDOR, (v) => {
   return String(v)
     .split(",")
     .map((s) => s.trim())
@@ -138,7 +137,7 @@ export const csv = createPreset<string[]>(VENDOR, (v) => {
 })
 
 /** JSON string to parsed value. */
-export const json = createPreset<unknown>(VENDOR, (v) => {
+export const json = createType<unknown>(VENDOR, (v) => {
   try {
     return JSON.parse(String(v))
   } catch {
@@ -147,7 +146,7 @@ export const json = createPreset<unknown>(VENDOR, (v) => {
 })
 
 /** Boolean string ("true"/"false"/"1"/"0"/"yes"/"no"). */
-export const bool = createPreset<boolean>(VENDOR, (v) => {
+export const bool = createType<boolean>(VENDOR, (v) => {
   const s = String(v).toLowerCase()
   if (["true", "1", "yes", "y"].includes(s)) return true
   if (["false", "0", "no", "n"].includes(s)) return false
@@ -155,21 +154,21 @@ export const bool = createPreset<boolean>(VENDOR, (v) => {
 })
 
 /** Date string to Date object. */
-export const date = createPreset<Date>(VENDOR, (v) => {
+export const date = createType<Date>(VENDOR, (v) => {
   const d = new Date(String(v))
   if (isNaN(d.getTime())) throw new Error(`Expected valid date, got "${v}"`)
   return d
 })
 
 /** Email address (basic validation). */
-export const email = createPreset<string>(VENDOR, (v) => {
+export const email = createType<string>(VENDOR, (v) => {
   const s = String(v)
   if (!s.includes("@") || !s.includes(".")) throw new Error(`Expected email address, got "${v}"`)
   return s
 })
 
 /** Regex pattern string to RegExp. */
-export const regex = createPreset<RegExp>(VENDOR, (v) => {
+export const regex = createType<RegExp>(VENDOR, (v) => {
   try {
     return new RegExp(String(v))
   } catch {
@@ -178,19 +177,10 @@ export const regex = createPreset<RegExp>(VENDOR, (v) => {
 })
 
 /** Integer with min/max bounds (factory). */
-export function intRange(min: number, max: number): Preset<number> {
-  return createPreset<number>(VENDOR, (v) => {
+export function intRange(min: number, max: number): CLIType<number> {
+  return createType<number>(VENDOR, (v) => {
     const n = Number(v)
     if (!Number.isInteger(n) || n < min || n > max) throw new Error(`Expected integer ${min}-${max}, got "${v}"`)
     return n
-  })
-}
-
-/** Enum from a fixed set of string values (factory). */
-export function oneOf<const T extends readonly string[]>(values: T): Preset<T[number]> {
-  return createPreset<T[number]>(VENDOR, (v) => {
-    const s = String(v)
-    if (!values.includes(s as any)) throw new Error(`Expected one of [${values.join(", ")}], got "${v}"`)
-    return s as T[number]
   })
 }

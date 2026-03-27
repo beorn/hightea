@@ -14,34 +14,29 @@ import {
   email,
   regex,
   intRange,
-  oneOf,
 } from "../src/index.ts"
-import type { Preset, StandardSchemaV1 } from "../src/index.ts"
+import type { CLIType, StandardSchemaV1 } from "../src/index.ts"
 
 // ---------------------------------------------------------------------------
-// All presets implement Standard Schema v1
+// All built-in types implement Standard Schema v1
 // ---------------------------------------------------------------------------
 
 describe("standard schema interface", () => {
-  it("every preset has ~standard with version 1", () => {
-    for (const preset of [int, uint, float, port, url, path, csv, json, bool, date, email, regex]) {
-      expect(preset["~standard"].version).toBe(1)
-      expect(preset["~standard"].vendor).toBe("@silvery/commander")
-      expect(typeof preset["~standard"].validate).toBe("function")
+  it("every type has ~standard with version 1", () => {
+    for (const type of [int, uint, float, port, url, path, csv, json, bool, date, email, regex]) {
+      expect(type["~standard"].version).toBe(1)
+      expect(type["~standard"].vendor).toBe("@silvery/commander")
+      expect(typeof type["~standard"].validate).toBe("function")
     }
   })
 
-  it("factory-created presets have ~standard with version 1", () => {
+  it("factory-created types have ~standard with version 1", () => {
     const range = intRange(1, 10)
     expect(range["~standard"].version).toBe(1)
     expect(typeof range["~standard"].validate).toBe("function")
-
-    const choice = oneOf(["a", "b"])
-    expect(choice["~standard"].version).toBe(1)
-    expect(typeof choice["~standard"].validate).toBe("function")
   })
 
-  it("presets satisfy StandardSchemaV1 type", () => {
+  it("types satisfy StandardSchemaV1 type", () => {
     expectTypeOf(int).toMatchTypeOf<StandardSchemaV1<number>>()
     expectTypeOf(uint).toMatchTypeOf<StandardSchemaV1<number>>()
     expectTypeOf(float).toMatchTypeOf<StandardSchemaV1<number>>()
@@ -56,12 +51,9 @@ describe("standard schema interface", () => {
     expectTypeOf(regex).toMatchTypeOf<StandardSchemaV1<RegExp>>()
   })
 
-  it("factory presets satisfy StandardSchemaV1 type", () => {
+  it("factory types satisfy StandardSchemaV1 type", () => {
     const range = intRange(1, 10)
     expectTypeOf(range).toMatchTypeOf<StandardSchemaV1<number>>()
-
-    const choice = oneOf(["a", "b", "c"] as const)
-    expectTypeOf(choice).toMatchTypeOf<StandardSchemaV1<"a" | "b" | "c">>()
   })
 })
 
@@ -103,7 +95,7 @@ describe("parse / safeParse", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Preset: int
+// Type: int
 // ---------------------------------------------------------------------------
 
 describe("int", () => {
@@ -127,7 +119,7 @@ describe("int", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Preset: uint
+// Type: uint
 // ---------------------------------------------------------------------------
 
 describe("uint", () => {
@@ -149,7 +141,7 @@ describe("uint", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Preset: float
+// Type: float
 // ---------------------------------------------------------------------------
 
 describe("float", () => {
@@ -173,7 +165,7 @@ describe("float", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Preset: port
+// Type: port
 // ---------------------------------------------------------------------------
 
 describe("port", () => {
@@ -198,7 +190,7 @@ describe("port", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Preset: url
+// Type: url
 // ---------------------------------------------------------------------------
 
 describe("url", () => {
@@ -216,7 +208,7 @@ describe("url", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Preset: path
+// Type: path
 // ---------------------------------------------------------------------------
 
 describe("path", () => {
@@ -236,7 +228,7 @@ describe("path", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Preset: csv
+// Type: csv
 // ---------------------------------------------------------------------------
 
 describe("csv", () => {
@@ -257,7 +249,7 @@ describe("csv", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Preset: json
+// Type: json
 // ---------------------------------------------------------------------------
 
 describe("json", () => {
@@ -278,7 +270,7 @@ describe("json", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Preset: bool
+// Type: bool
 // ---------------------------------------------------------------------------
 
 describe("bool", () => {
@@ -309,7 +301,7 @@ describe("bool", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Preset: date
+// Type: date
 // ---------------------------------------------------------------------------
 
 describe("date", () => {
@@ -333,7 +325,7 @@ describe("date", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Preset: email
+// Type: email
 // ---------------------------------------------------------------------------
 
 describe("email", () => {
@@ -352,7 +344,7 @@ describe("email", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Preset: regex
+// Type: regex
 // ---------------------------------------------------------------------------
 
 describe("regex", () => {
@@ -418,70 +410,23 @@ describe("intRange", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Factory: oneOf
-// ---------------------------------------------------------------------------
-
-describe("oneOf", () => {
-  it("accepts valid values", () => {
-    const envs = oneOf(["dev", "staging", "prod"] as const)
-    expect(envs.parse("dev")).toBe("dev")
-    expect(envs.parse("staging")).toBe("staging")
-    expect(envs.parse("prod")).toBe("prod")
-  })
-
-  it("rejects invalid values", () => {
-    const envs = oneOf(["dev", "staging", "prod"] as const)
-    expect(() => envs.parse("test")).toThrow('Expected one of [dev, staging, prod], got "test"')
-    expect(() => envs.parse("")).toThrow("Expected one of")
-  })
-
-  it("is case-sensitive", () => {
-    const envs = oneOf(["dev", "staging"])
-    expect(() => envs.parse("Dev")).toThrow('Expected one of [dev, staging], got "Dev"')
-  })
-
-  it("works with different value sets", () => {
-    const colors = oneOf(["red", "green", "blue"] as const)
-    expect(colors.parse("red")).toBe("red")
-    expect(() => colors.parse("yellow")).toThrow("Expected one of [red, green, blue]")
-
-    const single = oneOf(["only"])
-    expect(single.parse("only")).toBe("only")
-    expect(() => single.parse("other")).toThrow("Expected one of [only]")
-  })
-
-  it("implements Standard Schema v1", () => {
-    const envs = oneOf(["a", "b"])
-    expect(envs["~standard"].version).toBe(1)
-    const result = envs["~standard"].validate("a")
-    expect("value" in result && result.value).toBe("a")
-  })
-
-  it("infers union type", () => {
-    const envs = oneOf(["dev", "staging", "prod"] as const)
-    type EnvType = ReturnType<typeof envs.parse>
-    expectTypeOf<EnvType>().toEqualTypeOf<"dev" | "staging" | "prod">()
-  })
-})
-
-// ---------------------------------------------------------------------------
-// Commander integration — presets as .option() schemas
+// Commander integration -- built-in types as .option() schemas
 // ---------------------------------------------------------------------------
 
 describe("commander integration", () => {
-  it("uses int preset for option parsing", () => {
+  it("uses int type for option parsing", () => {
     const cli = new Command("test").option("-r, --retries <n>", "Retries", int)
     cli.parse(["node", "test", "--retries", "3"], { from: "node" })
     expect(cli.opts().retries).toBe(3)
   })
 
-  it("uses port preset for option parsing", () => {
+  it("uses port type for option parsing", () => {
     const cli = new Command("test").option("-p, --port <n>", "Port", port)
     cli.parse(["node", "test", "--port", "8080"], { from: "node" })
     expect(cli.opts().port).toBe(8080)
   })
 
-  it("port preset rejects invalid port via Commander", () => {
+  it("port type rejects invalid port via Commander", () => {
     const cli = new Command("test").option("-p, --port <n>", "Port", port)
     cli.exitOverride()
     cli.configureOutput({ writeErr: () => {} })
@@ -490,26 +435,26 @@ describe("commander integration", () => {
     }).toThrow()
   })
 
-  it("uses csv preset for option parsing", () => {
+  it("uses csv type for option parsing", () => {
     const cli = new Command("test").option("--tags <t>", "Tags", csv)
     cli.parse(["node", "test", "--tags", "a,b,c"], { from: "node" })
     expect(cli.opts().tags).toEqual(["a", "b", "c"])
   })
 
-  it("uses url preset for option parsing", () => {
+  it("uses url type for option parsing", () => {
     const cli = new Command("test").option("--callback <url>", "Callback", url)
     cli.parse(["node", "test", "--callback", "https://example.com/hook"], { from: "node" })
     expect(cli.opts().callback).toBe("https://example.com/hook")
   })
 
-  it("uses oneOf preset for option parsing", () => {
-    const cli = new Command("test").option("-e, --env <e>", "Env", oneOf(["dev", "staging", "prod"] as const))
+  it("uses array as choices for option parsing", () => {
+    const cli = new Command("test").option("-e, --env <e>", "Env", ["dev", "staging", "prod"])
     cli.parse(["node", "test", "--env", "dev"], { from: "node" })
     expect(cli.opts().env).toBe("dev")
   })
 
-  it("oneOf preset rejects invalid values via Commander", () => {
-    const cli = new Command("test").option("-e, --env <e>", "Env", oneOf(["dev", "staging", "prod"]))
+  it("array choices rejects invalid values via Commander", () => {
+    const cli = new Command("test").option("-e, --env <e>", "Env", ["dev", "staging", "prod"])
     cli.exitOverride()
     cli.configureOutput({ writeErr: () => {} })
     expect(() => {
@@ -517,24 +462,24 @@ describe("commander integration", () => {
     }).toThrow()
   })
 
-  it("uses bool preset for option parsing", () => {
+  it("uses bool type for option parsing", () => {
     const cli = new Command("test").option("--flag <v>", "Flag", bool)
     cli.parse(["node", "test", "--flag", "yes"], { from: "node" })
     expect(cli.opts().flag).toBe(true)
   })
 
-  it("uses json preset for option parsing", () => {
+  it("uses json type for option parsing", () => {
     const cli = new Command("test").option("--config <json>", "Config", json)
     cli.parse(["node", "test", "--config", '{"key":"value"}'], { from: "node" })
     expect(cli.opts().config).toEqual({ key: "value" })
   })
 
-  it("accumulates presets with regular options", () => {
+  it("accumulates types with regular options and array choices", () => {
     const cli = new Command("test")
       .option("-v, --verbose", "Verbose")
       .option("-p, --port <n>", "Port", port)
       .option("--tags <t>", "Tags", csv)
-      .option("-e, --env <e>", "Env", oneOf(["dev", "prod"] as const))
+      .option("-e, --env <e>", "Env", ["dev", "prod"])
     cli.parse(["node", "test", "--verbose", "--port", "3000", "--tags", "a,b", "--env", "dev"], { from: "node" })
     const opts = cli.opts()
     expect(opts.verbose).toBe(true)
