@@ -30,16 +30,8 @@ export function createMixedStyle<T extends object>(style: Style, extra: T): Styl
 function createChainProxy<T extends object>(currentStyle: Style, extra: T): Style & T {
   const handler: ProxyHandler<(...args: unknown[]) => string> = {
     apply(_target, _thisArg, args) {
-      if (args.length === 1 && typeof args[0] === "string") {
-        return (currentStyle as unknown as (s: string) => string)(args[0])
-      }
-      if (args.length > 0 && Array.isArray(args[0]) && "raw" in args[0]) {
-        return (currentStyle as unknown as (s: TemplateStringsArray, ...v: unknown[]) => string)(
-          args[0] as TemplateStringsArray,
-          ...args.slice(1),
-        )
-      }
-      return (currentStyle as unknown as (s: string) => string)(String(args[0] ?? ""))
+      // Forward all args to the Style proxy — it handles multi-arg, template literals, etc.
+      return (currentStyle as unknown as (...a: unknown[]) => string)(...args)
     },
 
     get(_target, prop) {

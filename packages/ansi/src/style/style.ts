@@ -177,24 +177,18 @@ function createChainWithRef(
   const handler: ProxyHandler<(...args: unknown[]) => string> = {
     apply(_target, _thisArg, args) {
       const level = ref.level
-      if (level === null) {
-        if (typeof args[0] === "string") return args[0]
-        if (Array.isArray(args[0]) && "raw" in args[0]) {
-          return String.raw(args[0] as TemplateStringsArray, ...args.slice(1))
-        }
-        return String(args[0] ?? "")
-      }
 
+      // Resolve text from args — supports: string, multiple args (chalk compat), template literals
       let text: string
-      if (typeof args[0] === "string") {
-        text = args[0]
-      } else if (Array.isArray(args[0]) && "raw" in args[0]) {
+      if (Array.isArray(args[0]) && "raw" in args[0]) {
         text = String.raw(args[0] as TemplateStringsArray, ...args.slice(1))
+      } else if (args.length > 1) {
+        text = args.map((a) => String(a ?? "")).join(" ")
       } else {
         text = String(args[0] ?? "")
       }
 
-      if (state.opens.length === 0) return text
+      if (level === null || state.opens.length === 0) return text
 
       const open = `${ESC}${state.opens.join(";")}m`
       const close = `${ESC}${state.closes.join(";")}m`

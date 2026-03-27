@@ -105,6 +105,23 @@ describe("createStyle (from @silvery/ansi)", () => {
     })
   })
 
+  describe("multiple arguments (chalk compat)", () => {
+    it("joins multiple args with spaces", () => {
+      const s = createStyle({ level: "basic" })
+      expect(s.red("hello", "there")).toBe(`${ESC}31mhello there${ESC}39m`)
+    })
+
+    it("joins multiple args without styles", () => {
+      const s = createStyle({ level: "basic" })
+      expect(s("hello", "there")).toBe("hello there")
+    })
+
+    it("joins multiple args with no color", () => {
+      const s = createStyle({ level: null })
+      expect(s.bold("a", "b", "c")).toBe("a b c")
+    })
+  })
+
   describe("no color", () => {
     it("returns plain text", () => {
       const s = createStyle({ level: null })
