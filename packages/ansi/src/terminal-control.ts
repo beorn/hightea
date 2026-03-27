@@ -238,7 +238,7 @@ export function scrollDown(n: number): string {
  *
  * @param flags Bitfield of Kitty keyboard flags
  */
-export function enableKittyKeyboard(flags: number): string {
+export function enableKittyKeyboard(flags: number = 1): string {
   return `${CSI}>${flags}u`
 }
 

@@ -6,6 +6,12 @@
  */
 
 import { hostname } from "node:os"
+import {
+  enableMouse as _enableMouse,
+  disableMouse as _disableMouse,
+  enableKittyKeyboard as _enableKittyKeyboard,
+  disableKittyKeyboard as _disableKittyKeyboard,
+} from "@silvery/ansi"
 
 // ============================================================================
 // ANSI Escape Codes
@@ -207,22 +213,9 @@ export function leaveAlternateScreen(): string {
   return `${SYNC_END}${CURSOR_SHOW}${CSI}?1049l`
 }
 
-/**
- * Enable mouse tracking.
- */
-export function enableMouse(): string {
-  // 1003: any-event tracking (all mouse motion — clicks, drags, and hover)
-  // 1006: SGR encoding (decimal coordinates, no 223-column limit)
-  // 1003 supersedes 1000 (click) and 1002 (button-event), so we only need these two.
-  return `${CSI}?1003h${CSI}?1006h`
-}
-
-/**
- * Disable mouse tracking.
- */
-export function disableMouse(): string {
-  return `${CSI}?1006l${CSI}?1003l`
-}
+// Re-export from @silvery/ansi — canonical implementations
+export const enableMouse = _enableMouse
+export const disableMouse = _disableMouse
 
 /**
  * Kitty keyboard protocol flags (bitfield).
@@ -251,26 +244,11 @@ export const KittyFlags = {
  *
  * @param flags Bitfield of KittyFlags (default: DISAMBIGUATE)
  */
-export function enableKittyKeyboard(flags: number = KittyFlags.DISAMBIGUATE): string {
-  return `${CSI}>${flags}u`
-}
-
-/**
- * Query Kitty keyboard protocol support.
- * Sends CSI ? u — terminal responds with CSI ? flags u if supported.
- * Parse the response to detect which flags the terminal supports.
- */
+export const enableKittyKeyboard = _enableKittyKeyboard
 export function queryKittyKeyboard(): string {
   return `${CSI}?u`
 }
-
-/**
- * Disable Kitty keyboard protocol (pop mode stack).
- * Sends CSI < u to restore previous keyboard mode.
- */
-export function disableKittyKeyboard(): string {
-  return `${CSI}<u`
-}
+export const disableKittyKeyboard = _disableKittyKeyboard
 
 // ============================================================================
 // Terminal Notifications

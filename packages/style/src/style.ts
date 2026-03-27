@@ -45,8 +45,8 @@ interface ChainState {
  */
 export function resolveThemeColor(name: string | undefined, theme: object | undefined): string | undefined {
   if (!name) return undefined
-  if (!theme) return name.startsWith("$") ? undefined : name
   if (!name.startsWith("$")) return name
+  if (!theme) return undefined
   return resolveToken(name, theme as ThemeLike)
 }
 

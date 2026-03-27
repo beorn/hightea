@@ -7,27 +7,8 @@
  * Uses the relative luminance formula from WCAG 2.1.
  */
 
-import { hexToRgb, hexToHsl, hslToHex, contrastFg } from "./color.ts"
+import { hexToHsl, hslToHex, contrastFg, relativeLuminance } from "./color.ts"
 import type { ContrastResult } from "./types.ts"
-
-/**
- * Compute relative luminance of an sRGB color channel value (0-255).
- * Per WCAG 2.1: linearize, then weight by standard coefficients.
- */
-function channelLuminance(c: number): number {
-  const s = c / 255
-  return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
-}
-
-/**
- * Compute relative luminance of a hex color.
- * Returns a value between 0 (darkest) and 1 (lightest).
- */
-function relativeLuminance(hex: string): number | null {
-  const rgb = hexToRgb(hex)
-  if (!rgb) return null
-  return 0.2126 * channelLuminance(rgb[0]) + 0.7152 * channelLuminance(rgb[1]) + 0.0722 * channelLuminance(rgb[2])
-}
 
 /**
  * Check contrast ratio between foreground and background colors.

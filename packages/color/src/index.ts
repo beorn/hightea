@@ -26,6 +26,8 @@ export {
   blend,
   brighten,
   darken,
+  channelLuminance,
+  relativeLuminance,
   contrastFg,
   rgbToHsl,
   hslToHex,

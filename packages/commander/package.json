@@ -29,7 +29,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@silvery/ansi": ">=0.1.0",
     "@silvery/style": ">=0.1.0",
     "commander": ">=12.0.0"
   },

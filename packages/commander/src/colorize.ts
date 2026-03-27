@@ -1,57 +1,42 @@
 /**
- * Commander.js help colorization using ANSI escape codes.
+ * Commander.js help colorization using @silvery/style.
  *
  * Uses Commander's built-in style hooks (styleTitle, styleOptionText, etc.)
- * rather than regex post-processing. Works with @silvery/commander
- * or plain commander — accepts a minimal CommandLike interface so Commander
- * is a peer dependency, not a hard one.
+ * rather than regex post-processing.
  *
  * @example
  * ```ts
  * import { Command } from "@silvery/commander"
+ * // Command auto-colorizes in its constructor — no manual call needed.
+ * // For plain Commander:
  * import { colorizeHelp } from "@silvery/commander"
- *
- * const program = new Command("myapp").description("My CLI tool")
  * colorizeHelp(program)
  * ```
  */
 
-import { MODIFIERS, FG_COLORS } from "@silvery/style"
-import { detectColor } from "@silvery/ansi"
+import { createStyle } from "@silvery/style"
 
-// Derive ANSI escape sequences from @silvery/style constants.
-const RESET = "\x1b[0m"
-const BOLD = `\x1b[${MODIFIERS.bold![0]}m`
-const DIM = `\x1b[${MODIFIERS.dim![0]}m`
-const CYAN = `\x1b[${FG_COLORS.cyan}m`
-const GREEN = `\x1b[${FG_COLORS.green}m`
-const YELLOW = `\x1b[${FG_COLORS.yellow}m`
+// Style instance for generating help text ANSI codes.
+// Uses "basic" level (16 colors) — help text should work on any terminal.
+// Commander's configureOutput({ getOutHasColors }) controls whether the
+// ANSI codes are actually emitted to the user. The style layer just
+// generates them; Commander decides whether to strip them.
+const s = createStyle({ level: "basic" })
 
 /**
  * Check if color output should be enabled.
- * Uses @silvery/ansi detectColor() for full detection (respects NO_COLOR,
- * FORCE_COLOR, TERM, etc.).
+ * Uses @silvery/style's auto-detection (via @silvery/ansi).
  */
-let _shouldColorize: boolean | undefined
-
 export function shouldColorize(): boolean {
-  if (_shouldColorize !== undefined) return _shouldColorize
-  _shouldColorize = detectColor(process.stdout) !== null
-  return _shouldColorize
-}
-
-/** Wrap a string with ANSI codes, handling nested resets. */
-function ansi(text: string, code: string): string {
-  return `${code}${text}${RESET}`
+  // Create a separate detection instance — the shared `s` is always "basic"
+  // for code generation, but shouldColorize checks the actual terminal.
+  return createStyle().level > 0
 }
 
 /**
  * Minimal interface for Commander's Command — avoids requiring Commander
  * as a direct dependency. Works with both `commander` and
  * `@silvery/commander`.
- *
- * Uses permissive types to ensure structural compatibility with all
- * Commander versions, overloads, and generic instantiations.
  */
 export interface CommandLike {
   // biome-ignore lint: permissive to match Commander's overloaded signatures
@@ -62,82 +47,50 @@ export interface CommandLike {
   readonly commands: readonly any[]
 }
 
-/** Color scheme for help output. Values are raw ANSI escape sequences. */
+/** Color scheme for help output. Each value is a styling function (text → styled text). */
 export interface ColorizeHelpOptions {
-  /** ANSI code for command/subcommand names. Default: cyan */
-  commands?: string
-  /** ANSI code for --flags and -short options. Default: green */
-  flags?: string
-  /** ANSI code for description text. Default: dim */
-  description?: string
-  /** ANSI code for section headings (Usage:, Options:, etc.). Default: bold */
-  heading?: string
-  /** ANSI code for <required> and [optional] argument brackets. Default: yellow */
-  brackets?: string
+  /** Style for command/subcommand names. Default: cyan */
+  commands?: (text: string) => string
+  /** Style for --flags and -short options. Default: green */
+  flags?: (text: string) => string
+  /** Style for description text. Default: dim */
+  description?: (text: string) => string
+  /** Style for section headings (Usage:, Options:, etc.). Default: bold */
+  heading?: (text: string) => string
+  /** Style for <required> and [optional] argument brackets. Default: yellow */
+  brackets?: (text: string) => string
 }
 
 /**
  * Apply colorized help output to a Commander.js program and all its subcommands.
  *
  * Uses Commander's built-in `configureHelp()` style hooks rather than
- * post-processing the formatted string. This approach is robust against
- * formatting changes in Commander and handles wrapping correctly.
+ * post-processing the formatted string.
  *
  * @param program - A Commander Command instance (or compatible object)
- * @param options - Override default ANSI color codes for each element
+ * @param options - Override default style functions for each element
  */
 export function colorizeHelp(program: CommandLike, options?: ColorizeHelpOptions): void {
-  const cmds = options?.commands ?? CYAN
-  const flags = options?.flags ?? GREEN
-  const desc = options?.description ?? DIM
-  const heading = options?.heading ?? BOLD
-  const brackets = options?.brackets ?? YELLOW
+  const cmds = options?.commands ?? ((t: string) => s.cyan(t))
+  const flags = options?.flags ?? ((t: string) => s.green(t))
+  const desc = options?.description ?? ((t: string) => s.dim(t))
+  const heading = options?.heading ?? ((t: string) => s.bold(t))
+  const brackets = options?.brackets ?? ((t: string) => s.yellow(t))
 
   const helpConfig: Record<string, unknown> = {
-    // Section headings: "Usage:", "Options:", "Commands:", "Arguments:"
-    styleTitle(str: string): string {
-      return ansi(str, heading)
-    },
-
-    // Command name in usage line and subcommand terms
-    styleCommandText(str: string): string {
-      return ansi(str, cmds)
-    },
-
-    // Option terms: "-v, --verbose", "--repo <path>", "[options]"
-    styleOptionText(str: string): string {
-      return ansi(str, flags)
-    },
-
-    // Subcommand names in the commands list
-    styleSubcommandText(str: string): string {
-      return ansi(str, cmds)
-    },
-
-    // Argument terms: "<file>", "[dir]"
-    styleArgumentText(str: string): string {
-      return ansi(str, brackets)
-    },
-
-    // Description text for options, subcommands, arguments
-    styleDescriptionText(str: string): string {
-      return ansi(str, desc)
-    },
-
-    // Command description (the main program description line) — keep normal
-    styleCommandDescription(str: string): string {
-      return str
-    },
+    styleTitle: (str: string) => heading(str),
+    styleCommandText: (str: string) => cmds(str),
+    styleOptionText: (str: string) => flags(str),
+    styleSubcommandText: (str: string) => cmds(str),
+    styleArgumentText: (str: string) => brackets(str),
+    styleDescriptionText: (str: string) => desc(str),
+    styleCommandDescription: (str: string) => str,
   }
 
   program.configureHelp(helpConfig)
 
   // Tell Commander that color output is supported, even when stdout is not
-  // a TTY (e.g., piped output, CI, tests). Without this, Commander strips
-  // all ANSI codes from helpInformation() output.
-  //
-  // Callers who want to respect NO_COLOR/FORCE_COLOR should check
-  // shouldColorize() before calling colorizeHelp().
+  // a TTY. Without this, Commander strips ANSI codes from helpInformation().
   program.configureOutput({
     getOutHasColors: () => true,
     getErrHasColors: () => true,

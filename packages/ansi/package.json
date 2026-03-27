@@ -22,7 +22,8 @@
   ],
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./utils": "./src/utils.ts"
   },
   "publishConfig": {
     "access": "public"

@@ -70,20 +70,37 @@ export function darken(color: string, amount: number): string {
   return blend(color, "#000000", amount)
 }
 
+// ============================================================================
+// Luminance (WCAG 2.1)
+// ============================================================================
+
+/**
+ * Linearize an sRGB channel value (0-255) for luminance calculation.
+ * Per WCAG 2.1: values below the threshold use a linear scale,
+ * above use the gamma-corrected formula.
+ */
+export function channelLuminance(c: number): number {
+  const s = c / 255
+  return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+}
+
+/**
+ * Compute relative luminance of a hex color per WCAG 2.1.
+ * Returns a value between 0 (darkest) and 1 (lightest), or null for invalid input.
+ */
+export function relativeLuminance(hex: string): number | null {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return null
+  return 0.2126 * channelLuminance(rgb[0]) + 0.7152 * channelLuminance(rgb[1]) + 0.0722 * channelLuminance(rgb[2])
+}
+
 /**
  * Pick black or white text for readability on the given background.
  * Uses relative luminance (WCAG formula).
  */
 export function contrastFg(bg: string): "#000000" | "#FFFFFF" {
-  const rgb = hexToRgb(bg)
-  if (!rgb) return "#FFFFFF" // default to white for non-hex
-
-  // Relative luminance per WCAG 2.0
-  const [r, g, b] = rgb.map((c) => {
-    const s = c / 255
-    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
-  })
-  const luminance = 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
+  const luminance = relativeLuminance(bg)
+  if (luminance === null) return "#FFFFFF" // default to white for non-hex
   return luminance > 0.179 ? "#000000" : "#FFFFFF"
 }
 
