@@ -46,8 +46,13 @@ Help is auto-colorized — bold headings, green flags, cyan commands, dim descri
 
 ## What's included
 
-- **Colorized help** — automatic, respects `NO_COLOR`/`FORCE_COLOR` with [`@silvery/ansi`](https://github.com/beorn/silvery/tree/main/packages/ansi) (optional)
-- **Typed `.option()` parsing** — 14 built-in types (`port`, `int`, `csv`, `url`, `email`, `date`, [more](https://silvery.dev/reference/commander)), array choices, [Zod](https://github.com/colinhacks/zod) schemas (`z.port`, `z.int`, `z.csv`), or any [Standard Schema](https://github.com/standard-schema/standard-schema) library — all usable standalone via `.parse()`/`.safeParse()`
+- **Colorized help** — automatic, respects [`NO_COLOR`](https://no-color.org)/`FORCE_COLOR` via [`@silvery/ansi`](https://github.com/beorn/silvery/tree/main/packages/ansi) (optional)
+- **Typed `.option()` parsing** — pass a type as the third argument:
+  - 14 built-in types — `port`, `int`, `csv`, `url`, `email`, `date`, [more](https://silvery.dev/reference/commander)
+  - Array choices — `["dev", "staging", "prod"]`
+  - [Zod](https://github.com/colinhacks/zod) schemas — `z.port`, `z.int`, `z.csv`, or any custom `z.string()`, `z.number()`, etc.
+  - Any [Standard Schema](https://github.com/standard-schema/standard-schema) library — [Valibot](https://github.com/fabian-hiller/valibot), [ArkType](https://github.com/arktypeio/arktype)
+  - All types usable standalone via `.parse()`/`.safeParse()`
 
 ## Docs
 
