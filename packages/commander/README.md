@@ -49,6 +49,7 @@ With plain Commander, `opts()` returns `Record<string, any>` — every value is 
 
 Help is auto-colorized — bold headings, green flags, cyan commands, dim descriptions:
 
+<div style="font-family: monospace">
 <table>
 <tr><td colspan="2"><code>$ deploy --help</code></td></tr>
 <tr><td colspan="2"><b>Usage:</b> <code>deploy</code> [options] [command]</td></tr>
@@ -67,6 +68,7 @@ Help is auto-colorized — bold headings, green flags, cyan commands, dim descri
 <tr><td>&nbsp;&nbsp;<code>status</code></td><td>Show service status</td></tr>
 <tr><td>&nbsp;&nbsp;<code>help [command]</code></td><td>display help for command</td></tr>
 </table>
+</div>
 
 Options with [Zod](https://github.com/colinhacks/zod) schemas or built-in types are validated at parse time with clear error messages.
 
