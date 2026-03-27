@@ -26,16 +26,19 @@ yarn add @silvery/commander
 
 :::
 
-## Three Usage Patterns
+## Four Usage Patterns
 
 ```typescript
 // 1. Enhanced Commander (auto-colorized help, Standard Schema, array choices)
 import { Command, port, csv } from "@silvery/commander"
 
-// 2. Standalone types (zero-dep, Standard Schema, no Commander)
+// 2. Plain Commander (Standard Schema, no auto-colorization, no @silvery/ansi)
+import { Command, port, csv } from "@silvery/commander/plain"
+
+// 3. Standalone types (zero-dep, Standard Schema, no Commander)
 import { port, csv, int } from "@silvery/commander/parse"
 
-// 3. Zod + CLI types (batteries included)
+// 4. Zod + CLI types (batteries included)
 import { Command, z } from "@silvery/commander"
 ```
 
@@ -55,7 +58,7 @@ program.parse()
 const opts = program.opts()
 ```
 
-Help output is automatically colorized using Commander's built-in `configureHelp()` style hooks -- headings bold, flags green, commands cyan, descriptions dim, arguments yellow.
+Help output is automatically colorized using semantic design tokens -- headings bold, commands primary, flags secondary, descriptions muted, arguments accent. With a theme, these resolve to theme colors; without a theme, they fall back to yellow/cyan/dim/magenta.
 
 ## `colorizeHelp()`
 
@@ -196,7 +199,7 @@ Default values can be passed as the fourth argument:
 
 Built on the shoulders of [@commander-js/extra-typings](https://github.com/commander-js/extra-typings). We add:
 
-- **Auto-colorized help** -- bold headings, green flags, cyan commands
+- **Auto-colorized help** -- semantic design tokens (primary commands, secondary flags, muted descriptions)
 - **Built-in validation** via [Standard Schema](https://github.com/standard-schema/standard-schema) -- works with [Zod](https://github.com/colinhacks/zod), [Valibot](https://github.com/fabian-hiller/valibot), [ArkType](https://github.com/arktypeio/arktype)
 - **14 CLI types** -- `port`, `csv`, `int`, `url`, `email` and more, usable standalone via `.parse()`/`.safeParse()`
 - **NO_COLOR support** via [`@silvery/ansi`](https://github.com/beorn/silvery/tree/main/packages/ansi) (optional)
