@@ -47,12 +47,12 @@ Detection order:
 
 ### Color Levels
 
-| Level        | Colors   | SGR Format       |
-| ------------ | -------- | ---------------- |
-| `null`       | None     | No ANSI codes    |
-| `"basic"`    | 16       | `\x1b[31m` etc.  |
-| `"256"`      | 256      | `\x1b[38;5;Nm`   |
-| `"truecolor"`| 16M      | `\x1b[38;2;R;G;Bm` |
+| Level         | Colors | SGR Format         |
+| ------------- | ------ | ------------------ |
+| `null`        | None   | No ANSI codes      |
+| `"basic"`     | 16     | `\x1b[31m` etc.    |
+| `"256"`       | 256    | `\x1b[38;5;Nm`     |
+| `"truecolor"` | 16M    | `\x1b[38;2;R;G;Bm` |
 
 ## Terminal Capability Detection
 
@@ -63,34 +63,40 @@ import { detectTerminalCaps } from "@silvery/ansi"
 
 const caps = detectTerminalCaps()
 
-if (caps.kittyKeyboard) { /* use enhanced key reporting */ }
-if (caps.hyperlinks)     { /* emit OSC 8 links */ }
-if (caps.underlineStyles){ /* use curly underlines for errors */ }
+if (caps.kittyKeyboard) {
+  /* use enhanced key reporting */
+}
+if (caps.hyperlinks) {
+  /* emit OSC 8 links */
+}
+if (caps.underlineStyles) {
+  /* use curly underlines for errors */
+}
 ```
 
 The `TerminalCaps` object includes:
 
-| Property            | Type      | Description                                 |
-| ------------------- | --------- | ------------------------------------------- |
-| `program`           | `string`  | Terminal program name (from `TERM_PROGRAM`)  |
-| `term`              | `string`  | `TERM` value                                 |
-| `colorLevel`        | `string`  | `"none"` / `"basic"` / `"256"` / `"truecolor"` |
-| `kittyKeyboard`     | `boolean` | Kitty keyboard protocol                      |
-| `kittyGraphics`     | `boolean` | Kitty graphics protocol (inline images)      |
-| `sixel`             | `boolean` | Sixel graphics                               |
-| `osc52`             | `boolean` | OSC 52 clipboard access                      |
-| `hyperlinks`        | `boolean` | OSC 8 hyperlinks                             |
-| `notifications`     | `boolean` | OSC 9/99 notifications                       |
-| `bracketedPaste`    | `boolean` | Bracketed paste mode                         |
-| `mouse`             | `boolean` | SGR mouse tracking                           |
-| `syncOutput`        | `boolean` | Synchronized output (DEC 2026)               |
-| `unicode`           | `boolean` | Unicode/emoji support                        |
-| `underlineStyles`   | `boolean` | Extended underline styles (curly, dotted)    |
-| `underlineColor`    | `boolean` | SGR 58 underline color                       |
-| `textEmojiWide`     | `boolean` | Text-presentation emoji rendered at 2 cells  |
-| `textSizingSupported` | `boolean` | OSC 66 text sizing (Kitty 0.40+)          |
-| `darkBackground`    | `boolean` | Heuristic: dark background likely            |
-| `nerdfont`          | `boolean` | Heuristic: Nerd Font likely installed        |
+| Property              | Type      | Description                                    |
+| --------------------- | --------- | ---------------------------------------------- |
+| `program`             | `string`  | Terminal program name (from `TERM_PROGRAM`)    |
+| `term`                | `string`  | `TERM` value                                   |
+| `colorLevel`          | `string`  | `"none"` / `"basic"` / `"256"` / `"truecolor"` |
+| `kittyKeyboard`       | `boolean` | Kitty keyboard protocol                        |
+| `kittyGraphics`       | `boolean` | Kitty graphics protocol (inline images)        |
+| `sixel`               | `boolean` | Sixel graphics                                 |
+| `osc52`               | `boolean` | OSC 52 clipboard access                        |
+| `hyperlinks`          | `boolean` | OSC 8 hyperlinks                               |
+| `notifications`       | `boolean` | OSC 9/99 notifications                         |
+| `bracketedPaste`      | `boolean` | Bracketed paste mode                           |
+| `mouse`               | `boolean` | SGR mouse tracking                             |
+| `syncOutput`          | `boolean` | Synchronized output (DEC 2026)                 |
+| `unicode`             | `boolean` | Unicode/emoji support                          |
+| `underlineStyles`     | `boolean` | Extended underline styles (curly, dotted)      |
+| `underlineColor`      | `boolean` | SGR 58 underline color                         |
+| `textEmojiWide`       | `boolean` | Text-presentation emoji rendered at 2 cells    |
+| `textSizingSupported` | `boolean` | OSC 66 text sizing (Kitty 0.40+)               |
+| `darkBackground`      | `boolean` | Heuristic: dark background likely              |
+| `nerdfont`            | `boolean` | Heuristic: Nerd Font likely installed          |
 
 Use `defaultCaps()` for a sensible default profile (assumes modern terminal with truecolor).
 
@@ -101,12 +107,12 @@ Generate the shortest SGR code string for foreground and background colors:
 ```typescript
 import { fgColorCode, bgColorCode } from "@silvery/ansi"
 
-fgColorCode(1)                      // "31"              (basic red)
-fgColorCode(196)                    // "38;5;196"        (256-color)
+fgColorCode(1) // "31"              (basic red)
+fgColorCode(196) // "38;5;196"        (256-color)
 fgColorCode({ r: 255, g: 0, b: 0 }) // "38;2;255;0;0"   (truecolor)
 
-bgColorCode(4)                      // "44"              (basic blue)
-bgColorCode({ r: 0, g: 0, b: 0 })  // "48;2;0;0;0"     (truecolor black)
+bgColorCode(4) // "44"              (basic blue)
+bgColorCode({ r: 0, g: 0, b: 0 }) // "48;2;0;0;0"     (truecolor black)
 ```
 
 ## String Utilities
@@ -118,7 +124,7 @@ Remove all ANSI escape codes from a string. Handles CSI SGR sequences, OSC 8 hyp
 ```typescript
 import { stripAnsi } from "@silvery/ansi"
 
-stripAnsi("\x1b[31mred\x1b[0m")     // "red"
+stripAnsi("\x1b[31mred\x1b[0m") // "red"
 stripAnsi("\x1b[4:3mwavy\x1b[4:0m") // "wavy"
 ```
 
@@ -130,8 +136,8 @@ Get the display width of a string in terminal columns, excluding ANSI codes. Han
 import { displayLength } from "@silvery/ansi"
 
 displayLength("\x1b[31mhello\x1b[0m") // 5
-displayLength("hello")                 // 5
-displayLength("\u97D3\u8A9E")          // 4 (2 chars x 2 cells each)
+displayLength("hello") // 5
+displayLength("\u97D3\u8A9E") // 4 (2 chars x 2 cells each)
 ```
 
 ### `ANSI_REGEX`
@@ -148,13 +154,13 @@ Constants and builders for extended underline styles (ISO 8613-6) and OSC 8 hype
 
 ```typescript
 import {
-  UNDERLINE_CODES,          // { none, single, double, curly, dotted, dashed, reset }
-  buildUnderlineColorCode,  // (r, g, b) => SGR 58 escape string
-  buildHyperlink,           // (text, url) => OSC 8 wrapped string
+  UNDERLINE_CODES, // { none, single, double, curly, dotted, dashed, reset }
+  buildUnderlineColorCode, // (r, g, b) => SGR 58 escape string
+  buildHyperlink, // (text, url) => OSC 8 wrapped string
 } from "@silvery/ansi"
 
-UNDERLINE_CODES.curly               // "\x1b[4:3m"
-buildUnderlineColorCode(255, 0, 0)  // "\x1b[58:2::255:0:0m"
+UNDERLINE_CODES.curly // "\x1b[4:3m"
+buildUnderlineColorCode(255, 0, 0) // "\x1b[58:2::255:0:0m"
 buildHyperlink("click me", "https://example.com")
 ```
 
@@ -162,11 +168,11 @@ buildHyperlink("click me", "https://example.com")
 
 ```typescript
 import type {
-  ColorLevel,      // "basic" | "256" | "truecolor"
-  RGB,             // [r: number, g: number, b: number]
-  AnsiColorName,   // "red" | "green" | "cyan" | ... (16 standard names)
-  Color,           // AnsiColorName | "#hex" | "rgb(...)" | "$token" | string
-  UnderlineStyle,  // "single" | "double" | "curly" | "dotted" | "dashed"
-  TerminalCaps,    // Full terminal capability profile
+  ColorLevel, // "basic" | "256" | "truecolor"
+  RGB, // [r: number, g: number, b: number]
+  AnsiColorName, // "red" | "green" | "cyan" | ... (16 standard names)
+  Color, // AnsiColorName | "#hex" | "rgb(...)" | "$token" | string
+  UnderlineStyle, // "single" | "double" | "curly" | "dotted" | "dashed"
+  TerminalCaps, // Full terminal capability profile
 } from "@silvery/ansi"
 ```

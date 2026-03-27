@@ -165,22 +165,29 @@ VitePress docs at `docs/` — deployed to silvery.dev via GitHub Pages.
 
 **Package manager commands** must always show all variants using VitePress `::: code-group` blocks with tabs for npm, bun, pnpm, and vp (Vite Plus):
 
-```md
+````md
 ::: code-group
+
 ```bash [npm]
 npx silvery examples
 ```
+````
+
 ```bash [bun]
 bunx silvery examples
 ```
+
 ```bash [pnpm]
 pnpm dlx silvery examples
 ```
+
 ```bash [vp]
 vp silvery examples
 ```
+
 :::
-```
+
+````
 
 This applies to install commands, run commands, and `npx`/`bunx`/`pnpm dlx`/`vp` invocations.
 
@@ -203,7 +210,7 @@ const handle = await run(<App />, term)
 expect(term.screen).toContainText("Hello") // termless screen assertion
 await handle.press("j") // input via handle
 expect(term.screen).toContainText("Count: 1")
-```
+````
 
 `createTermless(dims)` wraps `createTerm(createXtermBackend(), dims)`. The Term exposes `screen` and `scrollback` from the emulator for assertions.
 
