@@ -49,7 +49,7 @@ With plain Commander, `opts()` returns `Record<string, any>` — every value is 
 
 Help is auto-colorized — bold headings, green flags, cyan commands, dim descriptions:
 
-<div style="font-family: monospace">
+<div style="font-family: monospace; background: #1e1e2e; color: #cdd6f4; border-radius: 8px; padding: 12px 16px">
 <table>
 <tr><td colspan="2"><code>$ deploy --help</code></td></tr>
 <tr><td colspan="2"><b>Usage:</b> <code>deploy</code> [options] [command]</td></tr>
