@@ -39,7 +39,15 @@ export default defineConfig({
     ],
     ["meta", { property: "og:type", content: "website" }],
     ["meta", { property: "og:site_name", content: "Silvery" }],
+    ["meta", { property: "og:image", content: "https://silvery.dev/og-image.png" }],
     ["meta", { name: "twitter:card", content: "summary" }],
+    ["script", { type: "application/ld+json" }, JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Silvery",
+      "url": "https://silvery.dev",
+      "description": "React TUI framework for modern terminal apps",
+    })],
   ],
 
   transformPageData(pageData) {
@@ -50,6 +58,7 @@ export default defineConfig({
       ["meta", { property: "og:title", content: title }],
       ["meta", { property: "og:description", content: description }],
       ["meta", { property: "og:url", content: `https://silvery.dev/${pageData.relativePath.replace(/\.md$/, ".html").replace(/index\.html$/, "")}` }],
+      ["link", { rel: "canonical", href: `https://silvery.dev/${pageData.relativePath.replace(/\.md$/, ".html").replace(/index\.html$/, "")}` }],
     )
   },
 
