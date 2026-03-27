@@ -12,21 +12,35 @@ npm install @silvery/commander
 import { Command, z } from "@silvery/commander"
 
 const program = new Command("deploy")
-  .description("Deploy to an environment")
+  .description("Deploy services to an environment")
   .version("1.0.0")
   .option("-e, --env <env>", "Target environment", z.enum(["dev", "staging", "prod"]))
+  .option("-f, --force", "Skip confirmation")
+  .option("-v, --verbose", "Verbose output")
+
+program
+  .command("start <service>")
+  .description("Start a service")
   .option("-p, --port <n>", "Port number", z.port)
   .option("-r, --retries <n>", "Retry count", z.int)
-  .option("--tags <t>", "Labels", z.csv)
-  .option("-f, --force", "Skip confirmation")
+  .action((service, opts) => { /* ... */ })
+
+program
+  .command("stop <service>")
+  .description("Stop a running service")
+  .action((service) => { /* ... */ })
+
+program
+  .command("status")
+  .description("Show service status")
+  .option("--json", "Output as JSON")
+  .action((opts) => { /* ... */ })
 
 program.parse()
-const { env, port, retries, tags, force } = program.opts()
-//      │      │     │         │      └─ boolean | undefined
-//      │      │     │         └──────── string[]
-//      │      │     └────────────────── number
-//      │      └──────────────────────── number (1–65535)
-//      └─────────────────────────────── "dev" | "staging" | "prod"
+const { env, force, verbose } = program.opts()
+//      │     │       └─ boolean | undefined
+//      │     └────────── boolean | undefined
+//      └──────────────── "dev" | "staging" | "prod"
 ```
 
 With plain Commander, `opts()` returns `Record<string, any>` — every value is untyped. With `@silvery/commander`, each option's type is inferred from its schema: `z.port` produces `number`, `z.enum(...)` produces a union, `z.csv` produces `string[]`. Invalid values are rejected at parse time with clear error messages — not silently passed through as strings.

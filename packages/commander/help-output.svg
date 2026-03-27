@@ -1,29 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 620 280">
-  <rect width="620" height="280" rx="8" fill="#1e1e2e"/>
-  <foreignObject x="0" y="0" width="620" height="280">
-    <div xmlns="http://www.w3.org/1999/xhtml" style="
-      font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Menlo, Consolas, monospace;
-      font-size: 13px;
-      line-height: 1.5;
-      padding: 16px 20px;
-      color: #cdd6f4;
-    ">
-      <div>$ deploy --help</div>
-      <br/>
-      <div><b>Usage:</b> <span style="color:#89b4fa">deploy</span> <span style="color:#a6e3a1">[options]</span></div>
-      <br/>
-      <div>Deploy to an environment</div>
-      <br/>
-      <div><b>Options:</b></div>
-      <table style="border-collapse:collapse; margin-left:8px">
-        <tr><td style="padding:1px 16px 1px 0; color:#a6e3a1; white-space:nowrap">-V, --version</td><td style="color:#6c7086">output the version number</td></tr>
-        <tr><td style="padding:1px 16px 1px 0; color:#a6e3a1; white-space:nowrap">-e, --env &lt;env&gt;</td><td style="color:#6c7086">Target environment</td></tr>
-        <tr><td style="padding:1px 16px 1px 0; color:#a6e3a1; white-space:nowrap">-p, --port &lt;n&gt;</td><td style="color:#6c7086">Port number</td></tr>
-        <tr><td style="padding:1px 16px 1px 0; color:#a6e3a1; white-space:nowrap">-r, --retries &lt;n&gt;</td><td style="color:#6c7086">Retry count</td></tr>
-        <tr><td style="padding:1px 16px 1px 0; color:#a6e3a1; white-space:nowrap">--tags &lt;t&gt;</td><td style="color:#6c7086">Labels</td></tr>
-        <tr><td style="padding:1px 16px 1px 0; color:#a6e3a1; white-space:nowrap">-f, --force</td><td style="color:#6c7086">Skip confirmation</td></tr>
-        <tr><td style="padding:1px 16px 1px 0; color:#a6e3a1; white-space:nowrap">-h, --help</td><td style="color:#6c7086">display help for command</td></tr>
-      </table>
-    </div>
-  </foreignObject>
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 500 330">
+  <style>
+    text {
+      font-family: 'SFMono-Regular', 'Cascadia Code', 'Fira Code', Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      fill: #cdd6f4;
+    }
+    .bold { font-weight: bold; }
+    .cyan { fill: #89b4fa; }
+    .green { fill: #a6e3a1; }
+    .dim { fill: #6c7086; }
+  </style>
+  <rect width="500" height="330" rx="8" fill="#1e1e2e"/>
+  <text xml:space="preserve" y="28" x="16"><tspan fill="#bac2de">$</tspan> deploy --help</text>
+  <text xml:space="preserve" y="56" x="16"><tspan class="bold">Usage:</tspan> <tspan class="cyan">deploy</tspan> <tspan class="green">[options]</tspan> <tspan class="green">[command]</tspan></text>
+  <text xml:space="preserve" y="78" x="16">Deploy services to an environment</text>
+  <text xml:space="preserve" y="106" x="16" class="bold">Options:</text>
+  <text xml:space="preserve" y="124" x="16">  <tspan class="green">-V, --version    </tspan> <tspan class="dim">output the version number</tspan></text>
+  <text xml:space="preserve" y="142" x="16">  <tspan class="green">-e, --env &lt;env&gt;  </tspan> <tspan class="dim">Target environment</tspan></text>
+  <text xml:space="preserve" y="160" x="16">  <tspan class="green">-f, --force      </tspan> <tspan class="dim">Skip confirmation</tspan></text>
+  <text xml:space="preserve" y="178" x="16">  <tspan class="green">-v, --verbose    </tspan> <tspan class="dim">Verbose output</tspan></text>
+  <text xml:space="preserve" y="196" x="16">  <tspan class="green">-h, --help       </tspan> <tspan class="dim">display help for command</tspan></text>
+  <text xml:space="preserve" y="224" x="16" class="bold">Commands:</text>
+  <text xml:space="preserve" y="242" x="16">  <tspan class="cyan">start</tspan> <tspan class="green">&lt;service&gt;</tspan>  <tspan class="dim">Start a service</tspan></text>
+  <text xml:space="preserve" y="260" x="16">  <tspan class="cyan">stop</tspan> <tspan class="green">&lt;service&gt;</tspan>   <tspan class="dim">Stop a running service</tspan></text>
+  <text xml:space="preserve" y="278" x="16">  <tspan class="cyan">status</tspan>            <tspan class="dim">Show service status</tspan></text>
+  <text xml:space="preserve" y="296" x="16">  <tspan class="cyan">help</tspan> <tspan class="green">[command]</tspan>    <tspan class="dim">display help for command</tspan></text>
 </svg>
