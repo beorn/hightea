@@ -47,9 +47,28 @@ With plain Commander, `opts()` returns `Record<string, any>` — every value is 
 
 [Zod](https://github.com/colinhacks/zod) is entirely optional — `z` is tree-shaken from your bundle if you don't import it. Without Zod, use the built-in types (`port`, `int`, `csv`) or plain Commander.
 
-<img src="help-output.svg" alt="Colorized help output" />
+Help is auto-colorized — bold headings, green flags, cyan commands, dim descriptions:
 
-Help is auto-colorized — bold headings, green flags, cyan commands, dim descriptions. Options with [Zod](https://github.com/colinhacks/zod) schemas or built-in types are validated at parse time with clear error messages.
+<table>
+<tr><td colspan="2"><code>$ deploy --help</code></td></tr>
+<tr><td colspan="2"><b>Usage:</b> <code>deploy</code> [options] [command]</td></tr>
+<tr><td colspan="2">Deploy services to an environment</td></tr>
+<tr><td colspan="2"></td></tr>
+<tr><td colspan="2"><b>Options:</b></td></tr>
+<tr><td>&nbsp;&nbsp;<code>-V, --version</code></td><td>output the version number</td></tr>
+<tr><td>&nbsp;&nbsp;<code>-e, --env &lt;env&gt;</code></td><td>Target environment</td></tr>
+<tr><td>&nbsp;&nbsp;<code>-f, --force</code></td><td>Skip confirmation</td></tr>
+<tr><td>&nbsp;&nbsp;<code>-v, --verbose</code></td><td>Verbose output</td></tr>
+<tr><td>&nbsp;&nbsp;<code>-h, --help</code></td><td>display help for command</td></tr>
+<tr><td colspan="2"></td></tr>
+<tr><td colspan="2"><b>Commands:</b></td></tr>
+<tr><td>&nbsp;&nbsp;<code>start &lt;service&gt;</code></td><td>Start a service</td></tr>
+<tr><td>&nbsp;&nbsp;<code>stop &lt;service&gt;</code></td><td>Stop a running service</td></tr>
+<tr><td>&nbsp;&nbsp;<code>status</code></td><td>Show service status</td></tr>
+<tr><td>&nbsp;&nbsp;<code>help [command]</code></td><td>display help for command</td></tr>
+</table>
+
+Options with [Zod](https://github.com/colinhacks/zod) schemas or built-in types are validated at parse time with clear error messages.
 
 ## What's included
 
