@@ -28,7 +28,14 @@ export default defineConfig({
 
   head: [
     ["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }],
-    ["script", { defer: "", src: "https://static.cloudflareinsights.com/beacon.min.js", "data-cf-beacon": '{"token": "22f9c4cb26ce4f21bd36ed1b772c226e"}' }],
+    [
+      "script",
+      {
+        defer: "",
+        src: "https://static.cloudflareinsights.com/beacon.min.js",
+        "data-cf-beacon": '{"token": "22f9c4cb26ce4f21bd36ed1b772c226e"}',
+      },
+    ],
   ],
 
   themeConfig: {
@@ -43,7 +50,6 @@ export default defineConfig({
       {
         text: "Examples",
         items: [
-
           { text: "Components", link: "/examples/components" },
           { text: "Layout", link: "/examples/layout" },
           { text: "Forms & Input", link: "/examples/forms" },
@@ -152,6 +158,8 @@ export default defineConfig({
           { text: "Terminal Matrix", link: "/reference/terminal-matrix" },
           { text: "Devtools", link: "/reference/devtools" },
           { text: "Recipes", link: "/reference/recipes" },
+          { text: "@silvery/commander", link: "/reference/commander" },
+          { text: "@silvery/ansi", link: "/reference/ansi" },
         ],
       },
       {

@@ -52,18 +52,23 @@ features:
 Try the interactive examples:
 
 ::: code-group
+
 ```bash [npm]
 npx silvery examples
 ```
+
 ```bash [bun]
 bunx silvery examples
 ```
+
 ```bash [pnpm]
 pnpm dlx silvery examples
 ```
+
 ```bash [vp]
 vp silvery examples
 ```
+
 :::
 
 <div class="use-cases">
@@ -91,12 +96,14 @@ vp silvery examples
 
 ## Packages
 
-| Package           | Description                                                          |
-| ----------------- | -------------------------------------------------------------------- |
-| `silvery`         | Components, hooks, renderer -- the one package you need              |
-| `@silvery/test`   | [Testing](/examples/testing) utilities and Playwright-style locators |
-| `@silvery/ink`    | [Ink compatibility](/guide/silvery-vs-ink) layer for migration       |
-| `@silvery/create` | App composition and state management _(coming soon)_                 |
+| Package                | Description                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| `silvery`              | Components, hooks, renderer -- the one package you need                                          |
+| `@silvery/test`        | [Testing](/examples/testing) utilities and Playwright-style locators                              |
+| `@silvery/ink`         | [Ink compatibility](/guide/silvery-vs-ink) layer for migration                                    |
+| `@silvery/create`      | App composition and state management _(coming soon)_                                             |
+| `@silvery/commander`   | [Enhanced Commander.js](/reference/commander) with colorized help and Standard Schema validation  |
+| `@silvery/ansi`        | [ANSI utilities](/reference/ansi) -- color detection, SGR codes, NO_COLOR support                |
 
 ## Quick Start
 

@@ -114,28 +114,28 @@ Internal debug tools, underscore-prefixed. Not discoverable by the viewer.
 
 ## Web Targets (`web/`)
 
-| File              | Path                            | Purpose                                      | Referenced By                        | Notes                                              |
-| ----------------- | ------------------------------- | -------------------------------------------- | ------------------------------------ | -------------------------------------------------- |
-| Showcase App (xterm) | `web/showcase-app.tsx`       | Renders demos in xterm.js (legacy)           | `docs/public/examples/showcase.html` | Superseded by canvas showcase                      |
-| Showcase App (canvas) | `web/showcase-canvas-app.tsx` | Renders demos on canvas for VitePress docs  | `docs/public/examples/showcase-canvas.html` | Primary showcase — used by ShowcaseGallery |
-| Showcase Registry | `web/showcases/index.tsx`       | Registry of 5 web-ready demos                | `web/showcase-app.tsx`               | dashboard, kanban, components, dev-tools, textarea |
-| Viewer App        | `web/viewer-app.tsx`            | Web version of the example viewer            | `docs/public/examples/viewer.html`   | Embedded in docs index page                        |
-| Xterm App         | `web/xterm-app.tsx`             | Standalone xterm.js renderer                 | `docs/public/examples/xterm.html`    | General-purpose web renderer                       |
-| DOM App           | `web/dom-app.tsx`               | Experimental DOM renderer                    | `docs/public/examples/dom.html`      | Experimental                                       |
-| Canvas App        | `web/canvas-app.tsx`            | Experimental Canvas2D renderer               | `docs/public/examples/canvas.html`   | Experimental                                       |
-| Playground        | `playground/playground-app.tsx` | Quick prototyping playground                 | `playground/index.html`              | Web-based                                          |
+| File                  | Path                            | Purpose                                    | Referenced By                               | Notes                                              |
+| --------------------- | ------------------------------- | ------------------------------------------ | ------------------------------------------- | -------------------------------------------------- |
+| Showcase App (xterm)  | `web/showcase-app.tsx`          | Renders demos in xterm.js (legacy)         | `docs/public/examples/showcase.html`        | Superseded by canvas showcase                      |
+| Showcase App (canvas) | `web/showcase-canvas-app.tsx`   | Renders demos on canvas for VitePress docs | `docs/public/examples/showcase-canvas.html` | Primary showcase — used by ShowcaseGallery         |
+| Showcase Registry     | `web/showcases/index.tsx`       | Registry of 5 web-ready demos              | `web/showcase-app.tsx`                      | dashboard, kanban, components, dev-tools, textarea |
+| Viewer App            | `web/viewer-app.tsx`            | Web version of the example viewer          | `docs/public/examples/viewer.html`          | Embedded in docs index page                        |
+| Xterm App             | `web/xterm-app.tsx`             | Standalone xterm.js renderer               | `docs/public/examples/xterm.html`           | General-purpose web renderer                       |
+| DOM App               | `web/dom-app.tsx`               | Experimental DOM renderer                  | `docs/public/examples/dom.html`             | Experimental                                       |
+| Canvas App            | `web/canvas-app.tsx`            | Experimental Canvas2D renderer             | `docs/public/examples/canvas.html`          | Experimental                                       |
+| Playground            | `playground/playground-app.tsx` | Quick prototyping playground               | `playground/index.html`                     | Web-based                                          |
 
 ## Screenshots
 
 ### docs/public/screenshots/ (used by DemoScreenshot component on silvery.dev)
 
-| Screenshot       | Source Demo            | Used By                                                                                                           |
-| ---------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `dashboard.png`  | `layout/dashboard.tsx` | `docs/examples/layout.md`, `docs/examples/tables.md`, `docs/examples/scrollback.md` |
-| `kanban.png`     | `apps/kanban.tsx`      | `docs/guide/scrolling.md`                                                                                         |
-| `components.png` | `apps/components.tsx`  | `docs/examples/components.md`, `docs/examples/forms.md`, `docs/guides/components.md`, `docs/api/use-focus.md`     |
-| `dev-tools.png`  | `apps/dev-tools.tsx`   | None (only via ShowcaseGallery)                                                                                   |
-| `textarea.png`   | `apps/textarea.tsx`    | `docs/examples/ai-chat.md`                                                                                        |
+| Screenshot       | Source Demo            | Used By                                                                                                       |
+| ---------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `dashboard.png`  | `layout/dashboard.tsx` | `docs/examples/layout.md`, `docs/examples/tables.md`, `docs/examples/scrollback.md`                           |
+| `kanban.png`     | `apps/kanban.tsx`      | `docs/guide/scrolling.md`                                                                                     |
+| `components.png` | `apps/components.tsx`  | `docs/examples/components.md`, `docs/examples/forms.md`, `docs/guides/components.md`, `docs/api/use-focus.md` |
+| `dev-tools.png`  | `apps/dev-tools.tsx`   | None (only via ShowcaseGallery)                                                                               |
+| `textarea.png`   | `apps/textarea.tsx`    | `docs/examples/ai-chat.md`                                                                                    |
 
 ### docs/images/ (generated by screenshots/generate.tsx)
 

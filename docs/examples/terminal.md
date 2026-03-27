@@ -12,18 +12,23 @@ next:
 # Terminal Protocols
 
 ::: code-group
+
 ```bash [npm]
 npx silvery examples kitty-keys
 ```
+
 ```bash [bun]
 bunx silvery examples kitty-keys
 ```
+
 ```bash [pnpm]
 pnpm dlx silvery examples kitty-keys
 ```
+
 ```bash [vp]
 vp silvery examples kitty-keys
 ```
+
 :::
 
 Modern terminals support far more than basic ANSI escape codes. Silvery provides comprehensive protocol support: the Kitty keyboard protocol for unambiguous key identification, mouse tracking for click and scroll events, sixel/kitty graphics for inline images, and OSC queries for terminal capability detection.

@@ -12,18 +12,23 @@ next:
 # AI Coding Agent
 
 ::: code-group
+
 ```bash [npm]
 npx silvery examples aichat
 ```
+
 ```bash [bun]
 bunx silvery examples aichat
 ```
+
 ```bash [pnpm]
 pnpm dlx silvery examples aichat
 ```
+
 ```bash [vp]
 vp silvery examples aichat
 ```
+
 :::
 
 Terminal-based AI coding agents have unique UI requirements: streaming output that grows unpredictably, tool call rendering with diff-style output, long conversation history that must scroll, and the ability for AI agents to discover and invoke actions programmatically. Silvery handles all of these out of the box.

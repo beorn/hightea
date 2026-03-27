@@ -12,18 +12,23 @@ next:
 # Forms & Input
 
 ::: code-group
+
 ```bash [npm]
 npx silvery examples cli-wizard
 ```
+
 ```bash [bun]
 bunx silvery examples cli-wizard
 ```
+
 ```bash [pnpm]
 pnpm dlx silvery examples cli-wizard
 ```
+
 ```bash [vp]
 vp silvery examples cli-wizard
 ```
+
 :::
 
 Interactive CLI wizards guide users through multi-step configuration, installation, or setup flows. Silvery provides the building blocks as first-class React components: each wizard step is a React component with its own state, and transitions between steps are just state changes. You get full control over layout, focus, and rendering without leaving the React model.
