@@ -90,7 +90,7 @@ export default defineConfig({
           { text: "Components", link: "/guides/components" },
           { text: "Layouts", link: "/guide/layouts" },
           { text: "Styling", link: "/guide/styling" },
-          { text: "Theming", link: "/guides/theming" },
+          { text: "Theming", link: "/guide/theming" },
           { text: "Scrolling", link: "/guide/scrolling" },
           { text: "Testing", link: "/guide/testing" },
           { text: "Debugging", link: "/guide/debugging" },
