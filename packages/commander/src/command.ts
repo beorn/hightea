@@ -92,11 +92,11 @@ export interface HelpSection {
 
 export class Command extends BaseCommand {
   private _helpSections: HelpSection[] = []
+  private _sectionsRegistered = false
 
   constructor(name?: string) {
     super(name)
     colorizeHelp(this as any)
-    // Auto-capitalize built-in option descriptions (-V, -h)
     this._capitalizeBuiltinDescriptions()
   }
 
@@ -154,53 +154,76 @@ export class Command extends BaseCommand {
     return new Command(name)
   }
 
-  /** Capitalize the first letter of built-in -V/--version and -h/--help descriptions. */
+  /**
+   * Auto-detect capitalization from user-provided descriptions and match it
+   * for built-in options (-V/--version, -h/--help).
+   *
+   * If most user descriptions start with uppercase, capitalize the built-in ones too.
+   * If most start with lowercase, leave them as-is.
+   */
   private _capitalizeBuiltinDescriptions(): void {
-    // Defer — options aren't added until .version() / .helpOption() are called.
-    // Hook into helpInformation to capitalize just before rendering.
     const origHelp = this.helpInformation.bind(this)
     this.helpInformation = () => {
-      for (const opt of this.options) {
-        if (opt.description && /^[a-z]/.test(opt.description)) {
-          opt.description = opt.description[0]!.toUpperCase() + opt.description.slice(1)
+      // Check user-provided descriptions (skip built-in -V and -h)
+      const builtinFlags = new Set(["-V, --version", "-h, --help"])
+      const userDescs = this.options
+        .filter((opt) => !builtinFlags.has(opt.flags) && opt.description && /^[a-zA-Z]/.test(opt.description))
+        .map((opt) => opt.description!)
+      // Also check subcommand descriptions
+      for (const cmd of this.commands) {
+        if (cmd.description() && /^[a-zA-Z]/.test(cmd.description())) {
+          userDescs.push(cmd.description())
+        }
+      }
+      if (userDescs.length > 0) {
+        const capitalCount = userDescs.filter((d) => /^[A-Z]/.test(d)).length
+        if (capitalCount > userDescs.length / 2) {
+          // Majority capitalized — capitalize built-in descriptions too
+          for (const opt of this.options) {
+            if (builtinFlags.has(opt.flags) && opt.description && /^[a-z]/.test(opt.description)) {
+              opt.description = opt.description[0]!.toUpperCase() + opt.description.slice(1)
+            }
+          }
+          // Also capitalize the help option (stored separately by Commander)
+          const helpOpt = (this as any)._helpOption
+          if (helpOpt?.description && /^[a-z]/.test(helpOpt.description)) {
+            helpOpt.description = helpOpt.description[0]!.toUpperCase() + helpOpt.description.slice(1)
+          }
         }
       }
       return origHelp()
     }
   }
 
-  /** Re-generate the addHelpText content from accumulated sections. */
+  /** Register the help callback once, render all accumulated sections. */
   private _updateHelpSections(): void {
-    // Build the help text — we use configureHelp to access style hooks
-    const helpConfig = (this as any)._helpConfiguration ?? {}
-    const styleTitle = helpConfig.styleTitle ?? ((s: string) => s)
-    const styleCmd = helpConfig.styleCommandText ?? ((s: string) => s)
-    const styleDesc = helpConfig.styleDescriptionText ?? ((s: string) => s)
+    if (this._sectionsRegistered) return
+    this._sectionsRegistered = true
 
-    const lines: string[] = []
-    for (const section of this._helpSections) {
-      lines.push("")
-      lines.push(styleTitle(section.title))
-      if (section.rows) {
-        // Calculate padding from the widest term
-        const maxTerm = Math.max(...section.rows.map(([t]) => t.length), 0)
-        const pad = maxTerm + 2
-        for (const [term, desc] of section.rows) {
-          lines.push(`  ${styleCmd(term)}${" ".repeat(Math.max(1, pad - term.length))}${styleDesc(desc)}`)
-        }
-      } else if (section.body) {
-        for (const line of section.body.split("\n")) {
-          lines.push(`  ${line}`)
+    // Register once — the callback reads _helpSections at render time
+    this.addHelpText("afterAll", () => {
+      const helpConfig = (this as any)._helpConfiguration ?? {}
+      const styleTitle = helpConfig.styleTitle ?? ((s: string) => s)
+      const styleCmd = helpConfig.styleCommandText ?? ((s: string) => s)
+      const styleDesc = helpConfig.styleDescriptionText ?? ((s: string) => s)
+
+      const lines: string[] = []
+      for (const section of this._helpSections) {
+        lines.push("")
+        lines.push(styleTitle(section.title))
+        if (section.rows) {
+          const maxTerm = Math.max(...section.rows.map(([t]) => t.length), 0)
+          const pad = maxTerm + 2
+          for (const [term, desc] of section.rows) {
+            lines.push(`  ${styleCmd(term)}${" ".repeat(Math.max(1, pad - term.length))}${styleDesc(desc)}`)
+          }
+        } else if (section.body) {
+          for (const line of section.body.split("\n")) {
+            lines.push(`  ${line}`)
+          }
         }
       }
-    }
-
-    // Remove any previous addHelpText("after") and replace
-    // Commander stores these in _helpAfter, we replace our entry
-    const text = lines.join("\n")
-    ;(this as any)._sectionHelpText = text
-
-    // Use afterAll to add our sections
-    this.addHelpText("afterAll", () => (this as any)._sectionHelpText ?? "")
+      return lines.join("\n")
+    })
   }
 }
