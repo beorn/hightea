@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 340" width="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 340" width="100%">
   <style>
     text { font-family: ui-monospace, 'Cascadia Code', 'Fira Code', Menlo, Consolas, monospace; font-size: 13px; fill: #cdd6f4; }
     .b { font-weight: bold; }
@@ -6,7 +6,7 @@
     .g { fill: #a6e3a1; }
     .d { fill: #6c7086; }
   </style>
-  <rect width="520" height="340" rx="8" fill="#1e1e2e"/>
+  <rect width="780" height="340" rx="8" fill="#1e1e2e"/>
 
   <text y="28" x="18" fill="#bac2de">$ deploy --help</text>
 

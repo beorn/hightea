@@ -50,7 +50,7 @@ With plain Commander, `opts()` returns `Record<string, any>` — every value is 
 Help is auto-colorized — bold headings, green flags, cyan commands, dim descriptions:
 
 <picture>
-  <img src="help-output.svg?v=3" alt="Colorized help output" width="100%" />
+  <img src="help-output.svg?v=4" alt="Colorized help output" width="100%" />
 </picture>
 
 Options with [Zod](https://github.com/colinhacks/zod) schemas or built-in types are validated at parse time with clear error messages.
