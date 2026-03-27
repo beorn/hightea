@@ -22,7 +22,14 @@ const program = new Command("deploy")
 
 program.parse()
 const { env, port, retries, tags, force } = program.opts()
+//      │      │     │         │      └─ boolean | undefined
+//      │      │     │         └──────── string[]
+//      │      │     └────────────────── number
+//      │      └──────────────────────── number (1–65535)
+//      └─────────────────────────────── "dev" | "staging" | "prod"
 ```
+
+With plain Commander, `opts()` returns `Record<string, any>` — every value is untyped. With `@silvery/commander`, each option's type is inferred from its schema: `z.port` produces `number`, `z.enum(...)` produces a union, `z.csv` produces `string[]`. Invalid values are rejected at parse time with clear error messages — not silently passed through as strings.
 
 [Zod](https://github.com/colinhacks/zod) is entirely optional — `z` is tree-shaken from your bundle if you don't import it. Without Zod, use the built-in types (`port`, `int`, `csv`) or plain Commander.
 
