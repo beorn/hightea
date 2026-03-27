@@ -49,26 +49,7 @@ With plain Commander, `opts()` returns `Record<string, any>` — every value is 
 
 Help is auto-colorized — bold headings, green flags, cyan commands, dim descriptions:
 
-```
-$ deploy --help
-
-Usage: deploy [options] [command]
-
-Deploy services to an environment
-
-Options:
-  -V, --version      output the version number
-  -e, --env <env>    Target environment
-  -f, --force        Skip confirmation
-  -v, --verbose      Verbose output
-  -h, --help         display help for command
-
-Commands:
-  start <service>    Start a service
-  stop <service>     Stop a running service
-  status             Show service status
-  help [command]     display help for command
-```
+<img src="help-output.svg" alt="Colorized help output" width="520" />
 
 Options with [Zod](https://github.com/colinhacks/zod) schemas or built-in types are validated at parse time with clear error messages.
 
