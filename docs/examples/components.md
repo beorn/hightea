@@ -13,7 +13,9 @@ next:
 
 Silvery ships 30+ components out of the box — from basic building blocks (Box, Text) to complex interactive widgets (SelectList, CommandPalette, ModalDialog). This example shows them composed together in a single dashboard.
 
-## What It Demonstrates
+Run it: `bun examples/apps/components.tsx`
+
+## Features
 
 - **SelectList** — Keyboard-navigable selection with j/k, arrows, Home/End, disabled items, and `maxVisible` scroll windowing
 - **ProgressBar** — Determinate (0–1 value) and indeterminate (animated) modes with customizable fill and colors

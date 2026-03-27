@@ -11,6 +11,8 @@ next:
 
 # Scrollback
 
+Run it: `bun examples/inline/scrollback.tsx`
+
 Silvery is the only TUI framework with a dynamic scrollback system. Instead of taking over the alternate screen buffer, inline mode renders directly into the terminal's normal scrollback — your output becomes part of the terminal history, scrollable like any other command output. This is how tools like Claude Code, npm, and modern CLI tools should work.
 
 ScrollbackList is part of Silvery's [list component family](/guide/scrolling#list-components) — see the scrolling guide for how it relates to `overflow="scroll"` and `VirtualList`.

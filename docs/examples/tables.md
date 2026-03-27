@@ -11,6 +11,8 @@ next:
 
 # Tables & Data
 
+Run it: `bun examples/apps/data-explorer.tsx`
+
 Terminal data explorers need to handle thousands of rows, resize gracefully across terminal widths, and respond instantly to search queries. Silvery provides the primitives: a `Table` component with column alignment, `VirtualList` for constant-memory rendering of massive datasets, `useContentRect()` for responsive column sizing, and `TextInput` for real-time filtering.
 
 ## Key Benefits

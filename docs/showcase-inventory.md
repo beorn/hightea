@@ -116,7 +116,8 @@ Internal debug tools, underscore-prefixed. Not discoverable by the viewer.
 
 | File              | Path                            | Purpose                                      | Referenced By                        | Notes                                              |
 | ----------------- | ------------------------------- | -------------------------------------------- | ------------------------------------ | -------------------------------------------------- |
-| Showcase App      | `web/showcase-app.tsx`          | Renders demos in xterm.js for VitePress docs | `docs/public/examples/showcase.html` | Bridges terminal demos to browser                  |
+| Showcase App (xterm) | `web/showcase-app.tsx`       | Renders demos in xterm.js (legacy)           | `docs/public/examples/showcase.html` | Superseded by canvas showcase                      |
+| Showcase App (canvas) | `web/showcase-canvas-app.tsx` | Renders demos on canvas for VitePress docs  | `docs/public/examples/showcase-canvas.html` | Primary showcase — used by ShowcaseGallery |
 | Showcase Registry | `web/showcases/index.tsx`       | Registry of 5 web-ready demos                | `web/showcase-app.tsx`               | dashboard, kanban, components, dev-tools, textarea |
 | Viewer App        | `web/viewer-app.tsx`            | Web version of the example viewer            | `docs/public/examples/viewer.html`   | Embedded in docs index page                        |
 | Xterm App         | `web/xterm-app.tsx`             | Standalone xterm.js renderer                 | `docs/public/examples/xterm.html`    | General-purpose web renderer                       |
@@ -130,7 +131,7 @@ Internal debug tools, underscore-prefixed. Not discoverable by the viewer.
 
 | Screenshot       | Source Demo            | Used By                                                                                                           |
 | ---------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `dashboard.png`  | `layout/dashboard.tsx` | `docs/examples/layout.md`, `docs/examples/live-demo.md`, `docs/examples/tables.md`, `docs/examples/scrollback.md` |
+| `dashboard.png`  | `layout/dashboard.tsx` | `docs/examples/layout.md`, `docs/examples/tables.md`, `docs/examples/scrollback.md` |
 | `kanban.png`     | `apps/kanban.tsx`      | `docs/guide/scrolling.md`                                                                                         |
 | `components.png` | `apps/components.tsx`  | `docs/examples/components.md`, `docs/examples/forms.md`, `docs/guides/components.md`, `docs/api/use-focus.md`     |
 | `dev-tools.png`  | `apps/dev-tools.tsx`   | None (only via ShowcaseGallery)                                                                                   |
