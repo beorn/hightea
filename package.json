@@ -1,7 +1,7 @@
 {
   "name": "silvery",
   "version": "0.6.0",
-  "description": "React terminal UI renderer for complex interactive apps \u2014 layout-aware rendering, flexbox, scrolling, and incremental updates",
+  "description": "React terminal UI renderer for complex interactive apps — layout-aware rendering, flexbox, scrolling, and incremental updates",
   "keywords": [
     "ansi",
     "chalk",
@@ -25,7 +25,7 @@
     "url": "https://github.com/beorn/silvery/issues"
   },
   "license": "MIT",
-  "author": "Bj\u00f8rn Stabell <bjorn@stabell.org>",
+  "author": "Bjørn Stabell <bjorn@stabell.org>",
   "repository": {
     "type": "git",
     "url": "https://github.com/beorn/silvery.git"
@@ -44,7 +44,6 @@
     "./theme": "./src/theme.ts",
     "./ui": "./src/ui.ts",
     "./ui/cli": "./src/ui/cli.ts",
-    "./ui/commander": "./src/ui/commander.ts",
     "./ui/react": "./src/ui/react.ts",
     "./ui/progress": "./src/ui/progress.ts",
     "./ui/wrappers": "./src/ui/wrappers.ts",
@@ -77,6 +76,7 @@
     "compat:chalk": "bun packages/ink/scripts/compat-check.ts chalk"
   },
   "dependencies": {
+    "@silvery/commander": "workspace:*",
     "chalk": "^5.6.2",
     "loggily": "github:beorn/loggily",
     "react-reconciler": "^0.33.0",

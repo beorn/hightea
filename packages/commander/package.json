@@ -1,0 +1,44 @@
+{
+  "name": "@silvery/commander",
+  "version": "0.1.0",
+  "description": "Colorized Commander.js help output using ANSI escape codes",
+  "keywords": [
+    "ansi",
+    "cli",
+    "color",
+    "commander",
+    "help"
+  ],
+  "license": "MIT",
+  "author": "Bjørn Stabell <bjorn@stabell.org>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/beorn/silvery.git",
+    "directory": "packages/commander"
+  },
+  "files": [
+    "src"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@commander-js/extra-typings": ">=12.0.0",
+    "commander": ">=12.0.0"
+  },
+  "peerDependenciesMeta": {
+    "commander": {
+      "optional": true
+    },
+    "@commander-js/extra-typings": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=23.6.0"
+  }
+}
