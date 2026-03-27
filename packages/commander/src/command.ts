@@ -103,10 +103,10 @@ export class Command extends BaseCommand {
       return this
     }
     if (isStandardSchema(parseArgOrDefault)) {
-      return super.option(flags, description ?? "", standardSchemaParser(parseArgOrDefault))
+      return super.option(flags, description ?? "", standardSchemaParser(parseArgOrDefault), defaultValue)
     }
     if (isLegacyZodSchema(parseArgOrDefault)) {
-      return super.option(flags, description ?? "", legacyZodParser(parseArgOrDefault))
+      return super.option(flags, description ?? "", legacyZodParser(parseArgOrDefault), defaultValue)
     }
     if (typeof parseArgOrDefault === "function") {
       return super.option(flags, description ?? "", parseArgOrDefault, defaultValue)
