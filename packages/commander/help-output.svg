@@ -12,7 +12,7 @@
 
   <text y="56" x="18"><tspan class="b">Usage:</tspan></text>
   <text y="56" x="72" class="c">deploy</text>
-  <text y="56" x="120" class="g">[options] [command]</text>
+  <text y="56" x="128" class="g">[options] [command]</text>
 
   <text y="78" x="18">Deploy services to an environment</text>
 
