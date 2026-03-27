@@ -2,6 +2,7 @@ import { defineConfig } from "vitepress"
 import llmstxt from "vitepress-plugin-llms"
 
 export default defineConfig({
+  sitemap: { hostname: "https://silvery.dev" },
   vite: {
     plugins: [
       llmstxt({
@@ -36,7 +37,21 @@ export default defineConfig({
         "data-cf-beacon": '{"token": "22f9c4cb26ce4f21bd36ed1b772c226e"}',
       },
     ],
+    ["meta", { property: "og:type", content: "website" }],
+    ["meta", { property: "og:site_name", content: "Silvery" }],
+    ["meta", { name: "twitter:card", content: "summary" }],
   ],
+
+  transformPageData(pageData) {
+    const title = pageData.title || "Silvery"
+    const description = pageData.description || "React TUI framework for modern terminal apps"
+    pageData.frontmatter.head ??= []
+    pageData.frontmatter.head.push(
+      ["meta", { property: "og:title", content: title }],
+      ["meta", { property: "og:description", content: description }],
+      ["meta", { property: "og:url", content: `https://silvery.dev/${pageData.relativePath.replace(/\.md$/, ".html").replace(/index\.html$/, "")}` }],
+    )
+  },
 
   themeConfig: {
     logo: "/logo.svg",
