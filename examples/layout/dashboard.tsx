@@ -46,6 +46,12 @@ function sparkline(values: number[]): string {
   return values.map((v) => SPARK_CHARS[Math.max(0, Math.min(7, v))] ?? SPARK_CHARS[0]).join("")
 }
 
+/** Fixed-width inline progress bar string: ████████░░░░ */
+function miniBar(pct: number, width: number): string {
+  const filled = Math.round((pct / 100) * width)
+  return "█".repeat(filled) + "░".repeat(width - filled)
+}
+
 // ============================================================================
 // Data Helpers
 // ============================================================================
@@ -592,14 +598,18 @@ function MemoryPanel({ memory }: { memory: MemoryMetrics }) {
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-      <Box wrap="truncate">
-        <Muted>{"RAM "}</Muted>
-        <Text>{`${memory.ramUsed.toFixed(1)}/${memory.ramTotal.toFixed(1)}G `}</Text>
-        <Text color={severityColor(ramPct)}>{`${ramPct}% `}</Text>
-        <Box flexGrow={1}>
-          <ProgressBar value={ramPct / 100} color={severityColor(ramPct)} showPercentage={false} />
+      <LR>
+        <Box wrap="truncate">
+          <Muted>{"RAM "}</Muted>
+          <Text>{`${memory.ramUsed.toFixed(1)} / ${memory.ramTotal.toFixed(1)} GiB `}</Text>
+          <Text color={severityColor(ramPct)}>{`${ramPct}% `}</Text>
+          <Text color={severityColor(ramPct)}>{miniBar(ramPct, 12)}</Text>
         </Box>
-      </Box>
+        <Box gap={1} wrap="truncate">
+          <Muted>avail</Muted>
+          <Text>{`${avail}G`}</Text>
+        </Box>
+      </LR>
       <LR>
         <Box gap={2} wrap="truncate">
           <Box gap={1}>
@@ -622,14 +632,18 @@ function MemoryPanel({ memory }: { memory: MemoryMetrics }) {
           </Box>
         </Box>
       </LR>
-      <Box wrap="truncate">
-        <Muted>{"Swap"}</Muted>
-        <Text>{` ${memory.swapUsed.toFixed(1)}/${memory.swapTotal.toFixed(1)}G `}</Text>
-        <Text color={severityColor(swapPct)}>{`${swapPct}% `}</Text>
-        <Box flexGrow={1}>
-          <ProgressBar value={swapPct / 100} color={severityColor(swapPct)} showPercentage={false} />
+      <LR>
+        <Box wrap="truncate">
+          <Muted>{"Swap "}</Muted>
+          <Text>{`${memory.swapUsed.toFixed(1)} / ${memory.swapTotal.toFixed(1)} GiB `}</Text>
+          <Text color={severityColor(swapPct)}>{`${swapPct}% `}</Text>
+          <Text color={severityColor(swapPct)}>{miniBar(swapPct, 12)}</Text>
         </Box>
-      </Box>
+        <Box gap={1} wrap="truncate">
+          <Muted>zram</Muted>
+          <Text>off</Text>
+        </Box>
+      </LR>
       <Sep />
       <LR>
         <Box gap={2} wrap="truncate">
@@ -684,22 +698,30 @@ function NetworkPanel({ network }: { network: NetworkMetrics }) {
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-      <Box wrap="truncate">
-        <Muted>{"DL "}</Muted>
-        <Text>{`${network.dlRate} Mb/s `}</Text>
-        <Text color={severityColor(dlPct)}>{`${dlPct}% `}</Text>
-        <Box flexGrow={1}>
-          <ProgressBar value={dlPct / 100} color={severityColor(dlPct)} showPercentage={false} />
+      <LR>
+        <Box wrap="truncate">
+          <Muted>{"DL "}</Muted>
+          <Text>{`${network.dlRate} Mb/s `}</Text>
+          <Text color={severityColor(dlPct)}>{`${dlPct}% `}</Text>
+          <Text color={severityColor(dlPct)}>{miniBar(dlPct, 12)}</Text>
         </Box>
-      </Box>
-      <Box wrap="truncate">
-        <Muted>{"UL "}</Muted>
-        <Text color="$info">{`${network.ulRate} Mb/s `}</Text>
-        <Text color="$info">{`${ulPct}% `}</Text>
-        <Box flexGrow={1}>
-          <ProgressBar value={ulPct / 100} color="$info" showPercentage={false} />
+        <Box gap={1} wrap="truncate">
+          <Muted>peak</Muted>
+          <Text>{`${network.dlPeak}`}</Text>
         </Box>
-      </Box>
+      </LR>
+      <LR>
+        <Box wrap="truncate">
+          <Muted>{"UL "}</Muted>
+          <Text color="$info">{`${network.ulRate} Mb/s `}</Text>
+          <Text color="$info">{`${ulPct}% `}</Text>
+          <Text color="$info">{miniBar(ulPct, 12)}</Text>
+        </Box>
+        <Box gap={1} wrap="truncate">
+          <Muted>peak</Muted>
+          <Text>{`${network.ulPeak}`}</Text>
+        </Box>
+      </LR>
       <Sep />
       <LR>
         <Box gap={2} wrap="truncate">
@@ -907,7 +929,7 @@ function Panel({
         borderStyle="round"
         borderColor="$primary"
         borderTop={false}
-        paddingX={1}
+        paddingX={0}
         flexDirection="column"
         flexGrow={1}
       >
@@ -1004,16 +1026,13 @@ export function Dashboard() {
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-      <LR>
-        <Box gap={1} wrap="truncate">
-          <Text bold color="$primary">
-            Silvery TUI
-          </Text>
-          <Muted>system monitor showcase</Muted>
-          <Text color="$primary">devbox-01</Text>
-        </Box>
-        <Muted>14:27 UTC [h]help [1]cpu [2]mem [3]net [p]proc [/]filter [q]quit</Muted>
-      </LR>
+      <Box wrap="truncate">
+        <Text bold color="$primary">Silvery TUI</Text>
+        <Muted>{" system monitor showcase "}</Muted>
+        <Text color="$primary">devbox-01</Text>
+        <Muted>{"┄".repeat(19)}</Muted>
+        <Muted>14:27 UTC  [h]help  [1]cpu  [2]mem  [3]net  [p]proc  [/]filter  [q]quit</Muted>
+      </Box>
       <WideLayout state={state} />
     </Box>
   )
