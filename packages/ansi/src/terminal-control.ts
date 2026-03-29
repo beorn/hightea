@@ -123,24 +123,26 @@ export function setTitle(title: string): string {
 }
 
 /**
- * Enable mouse tracking.
+ * Enable mouse tracking with full hover support.
  *
- * Enables three modes for full mouse support:
- * - 1000: Basic button press/release reporting
- * - 1002: Button-event tracking (drag events)
- * - 1006: SGR extended coordinates (supports >223 columns)
+ * Uses two modes:
+ * - **1003** (any-event tracking): Reports ALL mouse motion — clicks, drags, AND hover.
+ *   This is what makes onMouseEnter/onMouseLeave work. Without it, only clicks are reported.
+ * - **1006** (SGR encoding): Decimal coordinates with no 223-column limit.
+ *
+ * WARNING: Do NOT replace 1003 with 1000+1002. The xterm mouse modes form a hierarchy:
+ *   1000 = clicks only
+ *   1002 = clicks + drag (motion while button held)
+ *   1003 = clicks + drag + hover (ALL motion, even without button)
+ * Mode 1003 supersedes 1000 and 1002. Using 1000+1002 instead of 1003 silently
+ * disables hover — onMouseEnter/onMouseLeave stop firing with no error.
  */
 export function enableMouse(): string {
-  // 1003: any-event tracking (all mouse motion — clicks, drags, and hover)
-  // 1006: SGR encoding (decimal coordinates, no 223-column limit)
-  // 1003 supersedes 1000 (click) and 1002 (button-event), so we only need these two.
   return `${CSI}?1003h${CSI}?1006h`
 }
 
 /**
- * Disable mouse tracking.
- *
- * Disables in reverse order of enabling.
+ * Disable mouse tracking. Disables in reverse order of enabling.
  */
 export function disableMouse(): string {
   return `${CSI}?1006l${CSI}?1003l`
