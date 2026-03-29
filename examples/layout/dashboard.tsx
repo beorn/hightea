@@ -450,6 +450,16 @@ function LR({ children }: { children: React.ReactNode }) {
   )
 }
 
+/** Label-value pair: `Label value` with muted label */
+function LV({ label, value, color }: { label: string; value: string | number; color?: string }) {
+  return (
+    <Box gap={1}>
+      <Muted>{label}</Muted>
+      <Text color={color}>{`${value}`}</Text>
+    </Box>
+  )
+}
+
 // ============================================================================
 // CPU Panel
 // ============================================================================
@@ -466,48 +476,21 @@ function CpuSummary({ state }: { state: DashboardState }) {
           </Box>
         </Box>
         <Box gap={2} wrap="truncate">
-          <Box gap={1}>
-            <Muted>Load</Muted>
-            <Text>{`${state.load[0].toFixed(2)} ${state.load[1].toFixed(2)} ${state.load[2].toFixed(2)}`}</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>Temp</Muted>
-            <Text color={heatColor(state.avgTemp)}>{`${state.avgTemp}\u00B0C`}</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>Tasks</Muted>
-            <Text>{`${state.tasks}`}</Text>
-          </Box>
+          <LV label="Load" value={`${state.load[0].toFixed(2)} ${state.load[1].toFixed(2)} ${state.load[2].toFixed(2)}`} />
+          <LV label="Temp" value={`${state.avgTemp}\u00B0C`} color={heatColor(state.avgTemp)} />
+          <LV label="Tasks" value={state.tasks} />
         </Box>
       </LR>
       <LR>
         <Box gap={2} wrap="truncate">
-          <Box gap={1}>
-            <Muted>User</Muted>
-            <Text color={severityColor(state.userCpu)}>{`${state.userCpu}%`}</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>Sys</Muted>
-            <Text color={severityColor(state.sysCpu)}>{`${state.sysCpu}%`}</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>Wait</Muted>
-            <Text color={severityColor(state.waitCpu)}>{`${state.waitCpu}%`}</Text>
-          </Box>
+          <LV label="User" value={`${state.userCpu}%`} color={severityColor(state.userCpu)} />
+          <LV label="Sys" value={`${state.sysCpu}%`} color={severityColor(state.sysCpu)} />
+          <LV label="Wait" value={`${state.waitCpu}%`} color={severityColor(state.waitCpu)} />
         </Box>
         <Box gap={2} wrap="truncate">
-          <Box gap={1}>
-            <Muted>Avg</Muted>
-            <Text>{`${state.avgFreq}GHz`}</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>Ctx/s</Muted>
-            <Text>{state.ctxPerSec}</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>Uptime</Muted>
-            <Text>{state.uptime}</Text>
-          </Box>
+          <LV label="Avg" value={`${state.avgFreq}GHz`} />
+          <LV label="Ctx/s" value={state.ctxPerSec} />
+          <LV label="Uptime" value={state.uptime} />
         </Box>
       </LR>
     </>
@@ -548,18 +531,9 @@ function CpuFooter({ state }: { state: DashboardState }) {
           </Box>
         </Box>
         <Box gap={2} wrap="truncate">
-          <Box gap={1}>
-            <Muted>Power</Muted>
-            <Text>{`${state.power}W`}</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>Fan</Muted>
-            <Text>{`${state.fan}RPM`}</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>Boost</Muted>
-            <Text color="$success">on</Text>
-          </Box>
+          <LV label="Power" value={`${state.power}W`} />
+          <LV label="Fan" value={`${state.fan}RPM`} />
+          <LV label="Boost" value="on" color="$success" />
         </Box>
       </LR>
       <LR>
@@ -612,24 +586,12 @@ function MemoryPanel({ memory }: { memory: MemoryMetrics }) {
       </LR>
       <LR>
         <Box gap={2} wrap="truncate">
-          <Box gap={1}>
-            <Muted>Used</Muted>
-            <Text>{`${memory.ramUsed.toFixed(1)}G`}</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>Cache</Muted>
-            <Text>{`${memory.cached.toFixed(1)}G`}</Text>
-          </Box>
+          <LV label="Used" value={`${memory.ramUsed.toFixed(1)}G`} />
+          <LV label="Cache" value={`${memory.cached.toFixed(1)}G`} />
         </Box>
         <Box gap={2} wrap="truncate">
-          <Box gap={1}>
-            <Muted>Free</Muted>
-            <Text>{`${memory.free.toFixed(1)}G`}</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>Slab</Muted>
-            <Text>{`${memory.slab.toFixed(1)}G`}</Text>
-          </Box>
+          <LV label="Free" value={`${memory.free.toFixed(1)}G`} />
+          <LV label="Slab" value={`${memory.slab.toFixed(1)}G`} />
         </Box>
       </LR>
       <LR>
@@ -647,35 +609,17 @@ function MemoryPanel({ memory }: { memory: MemoryMetrics }) {
       <Sep />
       <LR>
         <Box gap={2} wrap="truncate">
-          <Box gap={1}>
-            <Muted>Apps</Muted>
-            <Text>{`${memory.apps.toFixed(1)}G`}</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>Wired</Muted>
-            <Text>{`${memory.wired.toFixed(1)}G`}</Text>
-          </Box>
+          <LV label="Apps" value={`${memory.apps.toFixed(1)}G`} />
+          <LV label="Wired" value={`${memory.wired.toFixed(1)}G`} />
         </Box>
-        <Box gap={1} wrap="truncate">
-          <Muted>Buffers</Muted>
-          <Text>612M</Text>
-        </Box>
+        <LV label="Buffers" value="612M" />
       </LR>
       <LR>
         <Box gap={2} wrap="truncate">
-          <Box gap={1}>
-            <Muted>Dirty</Muted>
-            <Text>212M</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>Shared</Muted>
-            <Text>{`${memory.shared.toFixed(1)}G`}</Text>
-          </Box>
+          <LV label="Dirty" value="212M" />
+          <LV label="Shared" value={`${memory.shared.toFixed(1)}G`} />
         </Box>
-        <Box gap={1} wrap="truncate">
-          <Muted>Reclaim</Muted>
-          <Text>{`${memory.reclaim.toFixed(1)}G`}</Text>
-        </Box>
+        <LV label="Reclaim" value={`${memory.reclaim.toFixed(1)}G`} />
       </LR>
       <LR>
         <Box gap={1} wrap="truncate">
@@ -725,46 +669,22 @@ function NetworkPanel({ network }: { network: NetworkMetrics }) {
       <Sep />
       <LR>
         <Box gap={2} wrap="truncate">
-          <Box gap={1}>
-            <Muted>Conn</Muted>
-            <Text>{`${network.connEst} est`}</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>Listen</Muted>
-            <Text>{`${network.listen}`}</Text>
-          </Box>
+          <LV label="Conn" value={`${network.connEst} est`} />
+          <LV label="Listen" value={network.listen} />
         </Box>
         <Box gap={2} wrap="truncate">
-          <Box gap={1}>
-            <Muted>SYN</Muted>
-            <Text>{`${network.syn}`}</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>Drops</Muted>
-            <Text>{`${network.drops}`}</Text>
-          </Box>
+          <LV label="SYN" value={network.syn} />
+          <LV label="Drops" value={network.drops} />
         </Box>
       </LR>
       <LR>
         <Box gap={2} wrap="truncate">
-          <Box gap={1}>
-            <Muted>Rx</Muted>
-            <Text>{network.rxPps}</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>Tx</Muted>
-            <Text>{network.txPps}</Text>
-          </Box>
+          <LV label="Rx" value={network.rxPps} />
+          <LV label="Tx" value={network.txPps} />
         </Box>
         <Box gap={2} wrap="truncate">
-          <Box gap={1}>
-            <Muted>Retrans</Muted>
-            <Text>{network.retrans}</Text>
-          </Box>
-          <Box gap={1}>
-            <Muted>RTT</Muted>
-            <Text>{network.rtt}</Text>
-          </Box>
+          <LV label="Retrans" value={network.retrans} />
+          <LV label="RTT" value={network.rtt} />
         </Box>
       </LR>
       <LR>
@@ -840,8 +760,8 @@ function ProcessRow({ proc, isTop }: { proc: ProcessInfo; isTop: boolean }) {
 
 function ProcessFooter({ processes, state }: { processes: ProcessInfo[]; state: DashboardState }) {
   const running = processes.filter((p) => p.status === "Running").length
-  const sleeping = processes.filter((p) => p.status === "Sleep").length
   const iowait = processes.filter((p) => p.status === "I/O wait").length
+  const sleeping = 184 - running - iowait
   const ramPct = Math.round((state.memory.ramUsed / state.memory.ramTotal) * 100)
 
   return (
@@ -849,22 +769,13 @@ function ProcessFooter({ processes, state }: { processes: ProcessInfo[]; state: 
       <Box gap={2} wrap="truncate">
         <Muted>184 processes</Muted>
         <Text color="$success">{`${running} running`}</Text>
-        <Muted>{`${sleeping + iowait + (184 - running - sleeping - iowait)} sleeping`}</Muted>
-        <Text color="$warning">{`${iowait > 0 ? iowait : 2} iowait`}</Text>
+        <Muted>{`${sleeping} sleeping`}</Muted>
+        <Text color="$warning">{`${iowait} iowait`}</Text>
       </Box>
       <Box gap={2} wrap="truncate">
-        <Box gap={1}>
-          <Muted>Threads</Muted>
-          <Text>1,942</Text>
-        </Box>
-        <Box gap={1}>
-          <Muted>CPU</Muted>
-          <Text color={severityColor(state.totalCpu)}>{`${state.totalCpu}%`}</Text>
-        </Box>
-        <Box gap={1}>
-          <Muted>MEM</Muted>
-          <Text color={severityColor(ramPct)}>{`${ramPct}%`}</Text>
-        </Box>
+        <LV label="Threads" value="1,942" />
+        <LV label="CPU" value={`${state.totalCpu}%`} color={severityColor(state.totalCpu)} />
+        <LV label="MEM" value={`${ramPct}%`} color={severityColor(ramPct)} />
         <Text color="$primary">{`428\u2193`}</Text>
         <Text color="$info">{`86\u2191`}</Text>
       </Box>
