@@ -2,10 +2,9 @@
  * useModifierKeys — track held modifier key state.
  *
  * Returns which modifier keys (Cmd/Super, Ctrl, Alt, Shift) are currently held.
- * Tracks state from key events, so accuracy depends on Kitty protocol flags:
- *
- * - DISAMBIGUATE only: updates when any key is pressed with modifiers held
- * - REPORT_ALL_KEYS + REPORT_EVENTS: updates on modifier-only press/release
+ * Tracks state from key events via Kitty protocol. The default Kitty flags
+ * (DISAMBIGUATE | REPORT_EVENTS | REPORT_ALL_KEYS) enable modifier-only
+ * press/release detection — no special configuration needed.
  *
  * The `enabled` option controls subscription — when false, the component
  * never re-renders from modifier changes. Use this to avoid re-rendering

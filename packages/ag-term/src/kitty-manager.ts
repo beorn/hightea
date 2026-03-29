@@ -7,7 +7,7 @@
  * @see https://sw.kovidgoyal.net/kitty/keyboard-protocol/
  */
 
-import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard } from "./output"
+import { enableKittyKeyboard, disableKittyKeyboard, queryKittyKeyboard, KittyFlags } from "./output"
 
 /** Regex to match a Kitty keyboard query response: CSI ? <digits> u */
 const KITTY_RESPONSE_RE = /\x1b\[\?(\d+)u/
@@ -27,7 +27,7 @@ export interface KittyManager {
 export interface KittyManagerOptions {
   /** Detection mode: "enabled" activates immediately, "auto" probes the terminal, "disabled" does nothing. */
   mode?: "auto" | "enabled" | "disabled"
-  /** Bitmask of KittyFlags to enable. Defaults to KittyFlags.DISAMBIGUATE (1). */
+  /** Bitmask of KittyFlags to enable. Defaults to DISAMBIGUATE | REPORT_EVENTS | REPORT_ALL_KEYS (11). */
   flags?: number
 }
 
@@ -54,7 +54,11 @@ export function createKittyManager(
 
   if (opts) {
     const mode = opts.mode ?? "auto"
-    const flagBitmask = opts.flags ?? 1 // Default: DISAMBIGUATE
+    // Default: DISAMBIGUATE + REPORT_EVENTS + REPORT_ALL_KEYS
+    // This enables useModifierKeys() to track Cmd/Super held state,
+    // which is needed for Cmd+hover, Cmd+click, and modifier-aware mouse events.
+    // REPORT_EVENTS reports key press/release; REPORT_ALL_KEYS reports modifier-only keys.
+    const flagBitmask = opts.flags ?? (KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS | KittyFlags.REPORT_ALL_KEYS)
     const isTTY = (stdin as any)?.isTTY && (stdout as any)?.isTTY
 
     if (isTTY) {

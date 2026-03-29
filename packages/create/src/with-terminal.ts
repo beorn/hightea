@@ -67,7 +67,8 @@ export interface WithTerminalOptions {
 
   /**
    * Enable Kitty keyboard protocol.
-   * - `true`: auto-detect and enable with DISAMBIGUATE flag
+   * - `true`: auto-detect and enable with default flags
+   *   (DISAMBIGUATE | REPORT_EVENTS | REPORT_ALL_KEYS — supports useModifierKeys Cmd tracking)
    * - number: enable with specific KittyFlags bitfield
    * - `false`: don't enable
    * Default: true

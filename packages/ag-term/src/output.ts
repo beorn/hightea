@@ -239,7 +239,8 @@ export const KittyFlags = {
 /**
  * Enable Kitty keyboard protocol (push mode).
  * Sends CSI > flags u to opt into the specified modes.
- * Default flags=1 (disambiguate only) for maximum compatibility.
+ * Default flags=11 (DISAMBIGUATE | REPORT_EVENTS | REPORT_ALL_KEYS) —
+ * enables modifier-only key reporting needed for useModifierKeys() Cmd tracking.
  * Supported: Ghostty, Kitty, WezTerm, foot. Ignored by unsupported terminals.
  *
  * @param flags Bitfield of KittyFlags (default: DISAMBIGUATE)
