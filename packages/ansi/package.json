@@ -1,7 +1,7 @@
 {
   "name": "@silvery/ansi",
   "version": "0.3.1",
-  "description": "Everything terminal \u2014 styling, ANSI primitives, color detection, theme derivation, terminal control",
+  "description": "Everything terminal — styling, ANSI primitives, color detection, theme derivation, terminal control",
   "keywords": [
     "ansi",
     "chalk",
@@ -14,7 +14,7 @@
     "theme"
   ],
   "license": "MIT",
-  "author": "Bj\u00f8rn Stabell <bjorn@stabell.org>",
+  "author": "Bjørn Stabell <bjorn@stabell.org>",
   "repository": {
     "type": "git",
     "url": "https://github.com/beorn/silvery.git",
