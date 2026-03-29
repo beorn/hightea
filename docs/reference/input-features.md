@@ -46,9 +46,9 @@ await run(<App />)
 // Opt out if needed
 await run(<App />, { kitty: false })
 
-// Specific flags for advanced features (key release, associated text)
+// Custom flags (overrides the default DISAMBIGUATE | REPORT_EVENTS | REPORT_ALL_KEYS)
 await run(<App />, {
-  kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS,
+  kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS | KittyFlags.REPORT_TEXT,
 })
 ```
 
@@ -67,12 +67,10 @@ useInput((input, key) => {
 
 #### Event Types (Press/Repeat/Release)
 
-Requires `KittyFlags.REPORT_EVENTS`:
+Key release events work by default (the default flags include `REPORT_EVENTS`):
 
 ```tsx
-await run(<App />, {
-  kitty: KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS,
-})
+// No special configuration needed — REPORT_EVENTS is on by default
 
 // In your component — use onRelease for key-up events:
 useInput(

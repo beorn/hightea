@@ -419,10 +419,11 @@ await run(<App />, {
 
 When Kitty protocol is enabled (auto-detected or explicit):
 
-1. Silvery enables with `KittyFlags.DISAMBIGUATE` (flag 1)
-2. On app exit, Silvery sends `CSI < u` to restore the previous keyboard mode
+1. Silvery enables with `DISAMBIGUATE | REPORT_EVENTS | REPORT_ALL_KEYS` (flags 1|2|8 = 11)
+2. This enables `useModifierKeys()` to track Cmd/Super held state (needed for Cmd+hover, Cmd+click)
+3. On app exit, Silvery sends `CSI < u` to restore the previous keyboard mode
 
-When `kitty: <number>`, Silvery enables with the specified flags directly.
+When `kitty: <number>`, Silvery enables with the specified flags directly (overrides the default).
 
 ### Protocol Detection
 

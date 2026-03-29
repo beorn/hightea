@@ -439,7 +439,7 @@ When `markers: true`, each frozen item is bracketed with OSC 133 prompt/command 
 
 ## useModifierKeys
 
-Track which modifier keys (Cmd, Ctrl, Alt, Shift) are currently held. Uses Kitty protocol key events for accurate modifier tracking.
+Track which modifier keys (Cmd, Ctrl, Alt, Shift) are currently held. Works out of the box — Silvery's default Kitty flags enable modifier-only key reporting, so Cmd hold is detected without any configuration.
 
 ```tsx
 import { useModifierKeys } from "@silvery/ag-react"
