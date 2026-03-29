@@ -736,7 +736,7 @@ describe("kitty protocol - shifted punctuation", () => {
     expect(result.shift).toBe(true)
     expect(result.shiftedKey).toBeUndefined()
     expect(result.text).toBe("1")
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("REPORT_ALL_KEYS"))
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("shifted_codepoint"))
     warnSpy.mockRestore()
   })
 
