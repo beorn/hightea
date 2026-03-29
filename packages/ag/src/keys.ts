@@ -851,7 +851,7 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
           //
           // See: https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement
           //      https://terminfo.dev/extensions/kitty-keyboard
-          if (typeof console !== "undefined" && !_shiftWarningEmitted) {
+          if (typeof console !== "undefined" && !_shiftWarningEmitted && typeof process !== "undefined" && !process.env.VITEST) {
             _shiftWarningEmitted = true
             console.warn(
               "[silvery] Kitty keyboard protocol: Shift+key received without shifted_codepoint. " +
