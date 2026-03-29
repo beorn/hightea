@@ -1027,11 +1027,13 @@ export function Dashboard() {
   return (
     <Box flexDirection="column" flexGrow={1}>
       <Box wrap="truncate">
-        <Text bold color="$primary">Silvery TUI</Text>
+        <Text bold color="$primary">
+          Silvery TUI
+        </Text>
         <Muted>{" system monitor showcase "}</Muted>
         <Text color="$primary">devbox-01</Text>
         <Muted>{"┄".repeat(19)}</Muted>
-        <Muted>14:27 UTC  [h]help  [1]cpu  [2]mem  [3]net  [p]proc  [/]filter  [q]quit</Muted>
+        <Muted>14:27 UTC [h]help [1]cpu [2]mem [3]net [p]proc [/]filter [q]quit</Muted>
       </Box>
       <WideLayout state={state} />
     </Box>
