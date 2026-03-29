@@ -7,6 +7,27 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-03-29
+
+### Added
+
+- **Interactive canvas rendering** — `renderToCanvas()` now supports full keyboard input via hidden textarea, RuntimeContext, FocusManager, ThemeProvider, and CursorProvider. Showcase demos switched from xterm.js to canvas.
+- **Variable-height virtualizer** — `VirtualList` supports dynamic item heights via measurement, not just fixed `itemHeight`.
+- **Canvas input handler** — new `createCanvasInput()` for DOM KeyboardEvent → terminal escape sequence conversion.
+
+### Fixed
+
+- **Kitty keyboard: shifted punctuation** — `Shift+1` now correctly produces `!` (not `1`) via `shifted_codepoint`. Default Kitty flags upgraded to `DISAMBIGUATE | REPORT_EVENTS | REPORT_ALL_KEYS` (11). Warns when shifted info is missing.
+- **`matchHotkey` layout-independent** — single-character hotkeys (`"!"`, `"J"`, `"@"`) skip shift check. Works across all keyboard layouts.
+- **Mouse mode 1003** — restored any-event tracking for hover support.
+- **Commander: `NO_COLOR`** — `colorizeHelp` now respects `NO_COLOR` environment variable.
+
+### Documentation
+
+- Example pages: added `npx silvery examples` run commands with code-group tabs (npm/bun/pnpm/vp).
+- Removed placeholder blog and live-demo pages.
+- Showcase inventory updated for canvas renderer.
+
 ## [0.4.0] - 2026-03-23
 
 ### Breaking Changes

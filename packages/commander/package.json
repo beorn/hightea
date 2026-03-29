@@ -1,6 +1,6 @@
 {
   "name": "@silvery/commander",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Colorized Commander.js help output using ANSI escape codes",
   "keywords": [
     "ansi",
@@ -10,7 +10,7 @@
     "help"
   ],
   "license": "MIT",
-  "author": "Bjørn Stabell <bjorn@stabell.org>",
+  "author": "Bj\u00f8rn Stabell <bjorn@stabell.org>",
   "repository": {
     "type": "git",
     "url": "https://github.com/beorn/silvery.git",
