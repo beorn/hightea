@@ -837,16 +837,27 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
           key.text = String.fromCharCode(codepoint) // Already uppercase — 'A' stays 'A'
         } else if (key.shift && key.isPrintable && !key.shiftedKey && codepoint >= 32 && codepoint <= 126) {
           // Kitty protocol with Shift held on a non-letter key but no shifted_codepoint.
-          // The terminal is likely running with DISAMBIGUATE flag only (missing REPORT_ALL_KEYS).
-          // key.text will be the base character ('1' instead of '!'), which breaks
-          // hotkey matching and text input for shifted punctuation.
-          // Enable REPORT_ALL_KEYS (flag 8) to fix this. See KittyFlags in output.ts.
+          // The terminal is using DISAMBIGUATE flag only (missing REPORT_ALL_KEYS flag 8).
+          //
+          // What goes wrong: key.text will be the base character ('1' instead of '!',
+          // ';' instead of ':', '=' instead of '+', etc.). This means:
+          //  - Hotkey bindings like "!" won't match when the user types Shift+1
+          //  - TextInput will insert '1' instead of '!' when the user types Shift+1
+          //  - Any shifted punctuation produces the wrong character
+          //
+          // Fix: enable REPORT_ALL_KEYS when requesting the Kitty keyboard protocol.
+          // Silvery defaults to this (flag 11 = DISAMBIGUATE|REPORT_EVENTS|REPORT_ALL_KEYS).
+          // If you see this warning, your app or framework is overriding the default flags.
+          //
+          // See: https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement
+          //      https://terminfo.dev/extensions/kitty-keyboard
           if (typeof console !== "undefined" && !_shiftWarningEmitted) {
             _shiftWarningEmitted = true
             console.warn(
-              "[silvery] Kitty keyboard: Shift+key without shifted_codepoint. " +
-                "Shifted punctuation (e.g., !) may not work correctly. " +
-                "Enable REPORT_ALL_KEYS flag for full support.",
+              "[silvery] Kitty keyboard protocol: Shift+key received without shifted_codepoint. " +
+                "Shifted punctuation will produce wrong characters (e.g., '1' instead of '!'). " +
+                "Enable REPORT_ALL_KEYS (flag 8) when requesting the Kitty keyboard protocol. " +
+                "See: https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement",
             )
           }
           key.text = safeFromCodePoint(codepoint)
