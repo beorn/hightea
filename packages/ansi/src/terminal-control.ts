@@ -131,7 +131,10 @@ export function setTitle(title: string): string {
  * - 1006: SGR extended coordinates (supports >223 columns)
  */
 export function enableMouse(): string {
-  return `${CSI}?1000h${CSI}?1002h${CSI}?1006h`
+  // 1003: any-event tracking (all mouse motion — clicks, drags, and hover)
+  // 1006: SGR encoding (decimal coordinates, no 223-column limit)
+  // 1003 supersedes 1000 (click) and 1002 (button-event), so we only need these two.
+  return `${CSI}?1003h${CSI}?1006h`
 }
 
 /**
@@ -140,7 +143,7 @@ export function enableMouse(): string {
  * Disables in reverse order of enabling.
  */
 export function disableMouse(): string {
-  return `${CSI}?1006l${CSI}?1002l${CSI}?1000l`
+  return `${CSI}?1006l${CSI}?1003l`
 }
 
 /**
