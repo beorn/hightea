@@ -372,6 +372,19 @@ const NON_ALPHANUMERIC_KEYS = [
 
 const SHIFT_CODES = new Set(["[a", "[b", "[c", "[d", "[e", "[2$", "[3$", "[5$", "[6$", "[7$", "[8$", "[Z"])
 
+/** Characters that implicitly require Shift on a US keyboard layout.
+ *  Used by matchHotkey — hotkey "!" matches Shift+1 without explicit Shift modifier. */
+// prettier-ignore
+const SHIFTED_PUNCTUATION = new Set([
+  // Uppercase letters
+  "A","B","C","D","E","F","G","H","I","J","K","L","M",
+  "N","O","P","Q","R","S","T","U","V","W","X","Y","Z",
+  // Shifted number row: !@#$%^&*()
+  "!","@","#","$","%","^","&","*","(",")",
+  // Shifted punctuation
+  "_","+","{","}","|",":",'"',"<",">","?","~",
+])
+
 const CTRL_CODES = new Set(["Oa", "Ob", "Oc", "Od", "Oe", "[2^", "[3^", "[5^", "[6^", "[7^", "[8^"])
 
 const META_KEY_CODE_RE = /^(?:\x1b)([a-zA-Z0-9])$/
@@ -818,10 +831,13 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
       // Default text to the character from the codepoint when not explicitly
       // provided by the protocol, so keys like space and return produce their
       // expected text input (' ' and '\r' respectively).
-      // With REPORT_ALL_KEYS, Shift+letter sends lowercase codepoint + shift modifier.
-      // Produce uppercase text to match what the user typed.
+      // With REPORT_ALL_KEYS, Shift+key sends base codepoint + shift modifier.
+      // Use shifted_codepoint (if available) or uppercase letter to match what
+      // the user actually typed (e.g., Shift+1 → '!', Shift+a → 'A').
       if (kittyParts && key.isPrintable && !textFromProtocol) {
-        if (key.shift && codepoint >= 97 && codepoint <= 122) {
+        if (key.shift && key.shiftedKey) {
+          key.text = key.shiftedKey // Shift+1→'!', Shift+;→':'
+        } else if (key.shift && codepoint >= 97 && codepoint <= 122) {
           key.text = String.fromCharCode(codepoint - 32) // 'a'→'A'
         } else {
           key.text = safeFromCodePoint(codepoint)
@@ -1095,9 +1111,10 @@ export function matchHotkey(hotkey: ParsedHotkey, key: Key, input?: string): boo
   if (!!hotkey.hyper !== !!key.hyper) return false
   if (!!hotkey.alt !== false) return false // terminals can't distinguish alt from meta
 
-  // For single uppercase letters (A-Z), shift is implicit
-  const isUppercaseLetter = hotkey.key.length === 1 && hotkey.key >= "A" && hotkey.key <= "Z" && !hotkey.shift
-  if (!isUppercaseLetter && !!hotkey.shift !== !!key.shift) return false
+  // For single uppercase letters (A-Z) and shifted punctuation (!@#$%^&*()_+{}|:"<>?~),
+  // shift is implicit — the character itself implies Shift was held.
+  const isImplicitShift = hotkey.key.length === 1 && !hotkey.shift && SHIFTED_PUNCTUATION.has(hotkey.key)
+  if (!isImplicitShift && !!hotkey.shift !== !!key.shift) return false
 
   // Check key name against Key boolean fields
   const name = keyToName(key)

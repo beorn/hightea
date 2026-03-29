@@ -10,8 +10,18 @@ import { describe, expect, test } from "vitest"
 import { parseKeypress } from "@silvery/ag/keys"
 
 // Helper to create kitty protocol CSI u sequences
-function kittyKey(codepoint: number, modifiers?: number, eventType?: number, textCodepoints?: number[]): string {
+// Full format: CSI codepoint[:shifted[:base]][;modifiers[:event_type][;text]] u
+function kittyKey(
+  codepoint: number,
+  modifiers?: number,
+  eventType?: number,
+  textCodepoints?: number[],
+  shifted?: number,
+  base?: number,
+): string {
   let seq = `\x1b[${codepoint}`
+  if (shifted !== undefined) seq += `:${shifted}`
+  if (base !== undefined) seq += shifted === undefined ? `::${base}` : `:${base}`
   if (modifiers !== undefined || eventType !== undefined || textCodepoints !== undefined) {
     seq += `;${modifiers ?? 1}`
   }
@@ -670,5 +680,66 @@ describe("keyToKittyAnsi", () => {
   test("super+key", async () => {
     const { keyToKittyAnsi } = await import("@silvery/ag/keys")
     expect(keyToKittyAnsi("Super+s")).toBe("\x1b[115;9u")
+  })
+})
+
+// ============================================================================
+// Shifted punctuation normalization
+// ============================================================================
+
+describe("kitty protocol - shifted punctuation", () => {
+  test("Shift+1 produces text '!' via shifted_codepoint", () => {
+    // Kitty sends: codepoint=49('1'), shifted=33('!'), modifier=2(shift)
+    const result = parseKeypress(kittyKey(49, 2, undefined, undefined, 33))
+    expect(result.shift).toBe(true)
+    expect(result.shiftedKey).toBe("!")
+    expect(result.text).toBe("!")
+  })
+
+  test("Shift+; produces text ':' via shifted_codepoint", () => {
+    // codepoint=59(';'), shifted=58(':'), modifier=2(shift)
+    const result = parseKeypress(kittyKey(59, 2, undefined, undefined, 58))
+    expect(result.shift).toBe(true)
+    expect(result.shiftedKey).toBe(":")
+    expect(result.text).toBe(":")
+  })
+
+  test("Shift+' produces text '\"' via shifted_codepoint", () => {
+    // codepoint=39("'"), shifted=34('"'), modifier=2(shift)
+    const result = parseKeypress(kittyKey(39, 2, undefined, undefined, 34))
+    expect(result.shift).toBe(true)
+    expect(result.shiftedKey).toBe('"')
+    expect(result.text).toBe('"')
+  })
+
+  test("Shift+= produces text '+' via shifted_codepoint", () => {
+    // codepoint=61('='), shifted=43('+'), modifier=2(shift)
+    const result = parseKeypress(kittyKey(61, 2, undefined, undefined, 43))
+    expect(result.shift).toBe(true)
+    expect(result.shiftedKey).toBe("+")
+    expect(result.text).toBe("+")
+  })
+
+  test("explicit text_as_codepoints takes precedence over shifted_codepoint", () => {
+    // When text is explicitly provided, use it even if shifted_codepoint differs
+    const result = parseKeypress(kittyKey(49, 2, undefined, [33], 33))
+    expect(result.text).toBe("!")
+    expect(result.associatedText).toBe("!")
+  })
+
+  test("shift without shifted_codepoint leaves text as base character", () => {
+    // Some terminals may not provide shifted_codepoint
+    const result = parseKeypress(kittyKey(49, 2))
+    expect(result.shift).toBe(true)
+    expect(result.shiftedKey).toBeUndefined()
+    expect(result.text).toBe("1")
+  })
+
+  test("matchHotkey('!') matches Shift+1 with shifted_codepoint", async () => {
+    const { parseHotkey, matchHotkey, parseKey } = await import("@silvery/ag/keys")
+    const seq = kittyKey(49, 2, undefined, undefined, 33)
+    const [input, key] = parseKey(seq)
+    const hotkey = parseHotkey("!")
+    expect(matchHotkey(hotkey, key, input)).toBe(true)
   })
 })
