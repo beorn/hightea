@@ -44,6 +44,8 @@ export interface SelectListProps {
   maxVisible?: number
   /** Whether this list captures input (default: true) */
   isActive?: boolean
+  /** Show ▸/space indicator prefix (default: true). Set false when inverse highlight is sufficient. */
+  showIndicator?: boolean
 }
 
 // =============================================================================
@@ -92,6 +94,7 @@ export function SelectList({
   initialIndex,
   maxVisible,
   isActive = true,
+  showIndicator = true,
 }: SelectListProps): React.ReactElement {
   const isControlled = controlledIndex !== undefined
 
@@ -166,7 +169,7 @@ export function SelectList({
 
         return (
           <Text key={item.value} inverse={isHighlighted} dimColor={item.disabled}>
-            {isHighlighted ? "▸ " : "  "}
+            {showIndicator ? (isHighlighted ? "▸ " : "  ") : ""}
             {item.label}
           </Text>
         )
