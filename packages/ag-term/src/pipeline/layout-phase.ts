@@ -306,12 +306,13 @@ function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: b
         scrollOffset = target.bottom - effectiveHeight
       }
       // Otherwise, keep current scroll position (target is visible)
-
-      // Clamp to valid range
-      scrollOffset = Math.max(0, scrollOffset)
-      scrollOffset = Math.min(scrollOffset, Math.max(0, contentHeight - viewportHeight))
     }
   }
+
+  // Clamp to valid range — applies to both scrollTo and explicit scrollOffset.
+  // Without this, explicit scrollOffset can scroll past content into blank space.
+  scrollOffset = Math.max(0, scrollOffset)
+  scrollOffset = Math.min(scrollOffset, Math.max(0, contentHeight - viewportHeight))
 
   // Determine visible children.
   // When the overflow indicator reserves a row (indicatorReserve=1), reduce the
