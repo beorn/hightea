@@ -26,6 +26,7 @@ import {
 } from "@silvery/ag-term/adapters/canvas-adapter"
 import { runWithMeasurer, type Measurer } from "@silvery/ag-term/unicode"
 import { createPretextMeasurer } from "./pretext-measurer"
+import { createDomMeasurer } from "./dom-measurer"
 import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
 import { setLayoutEngine } from "@silvery/ag-term/layout-engine"
 import { executeRenderAdapter } from "@silvery/ag-term/pipeline"
@@ -86,6 +87,12 @@ export interface CanvasRenderOptions extends CanvasAdapterConfig {
   /** Theme to use (default: Catppuccin Mocha) */
   theme?: Theme
   /**
+   * Text measurement strategy for proportional mode.
+   * - `"pretext"` (default) — fast, uses @chenglou/pretext canvas measurement
+   * - `"dom"` — pixel-perfect CSS parity, uses hidden DOM elements (slower, causes reflow)
+   */
+  measurer?: "pretext" | "dom"
+  /**
    * Enable keyboard input and focus management.
    *
    * When enabled, `useInput()` and focus management work inside rendered components.
@@ -121,7 +128,7 @@ export interface CanvasInstance {
 // ============================================================================
 
 /** Compute pipeline dimensions from pixel size and font config. */
-function computeDimensions(pixelWidth: number, pixelHeight: number, options: CanvasAdapterConfig) {
+function computeDimensions(pixelWidth: number, pixelHeight: number, options: CanvasRenderOptions) {
   const fontSize = options.fontSize ?? 14
   const lineHeightMultiplier = options.lineHeight ?? 1.2
   const isProportional = options.monospace === false
@@ -129,13 +136,14 @@ function computeDimensions(pixelWidth: number, pixelHeight: number, options: Can
   const lineHeight = fontSize * lineHeightMultiplier
   const cols = isProportional ? pixelWidth : Math.floor(pixelWidth / charWidth)
   const rows = isProportional ? pixelHeight : Math.floor(pixelHeight / lineHeight)
-  const measurer: Measurer | undefined = isProportional
-    ? createPretextMeasurer({
-        fontSize,
-        fontFamily: options.fontFamily ?? "monospace",
-        lineHeight: lineHeightMultiplier,
-      })
-    : undefined
+  const measurerType = (options as CanvasRenderOptions).measurer ?? "pretext"
+  const fontFamily = options.fontFamily ?? "monospace"
+  let measurer: (Measurer & { dispose?: () => void }) | undefined
+  if (isProportional) {
+    measurer = measurerType === "dom"
+      ? createDomMeasurer({ fontSize, fontFamily, lineHeight: lineHeightMultiplier })
+      : createPretextMeasurer({ fontSize, fontFamily, lineHeight: lineHeightMultiplier })
+  }
   return { fontSize, lineHeightMultiplier, isProportional, charWidth, lineHeight, cols, rows, measurer }
 }
 

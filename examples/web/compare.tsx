@@ -166,6 +166,7 @@ const canvasOpts: CanvasRenderOptions = {
   lineHeight: 1.4,
   backgroundColor: "#0d1117",
   foregroundColor: "#e6edf3",
+  measurer: "dom", // Use DOM measurement for pixel-perfect CSS parity
 }
 
 // ============================================================================
