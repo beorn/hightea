@@ -24,8 +24,7 @@ import {
   CanvasRenderBuffer,
   createCanvasAdapter,
 } from "@silvery/ag-term/adapters/canvas-adapter"
-import { runWithMeasurer } from "@silvery/ag-term/unicode"
-import type { Measurer } from "@silvery/ag-term/unicode"
+import { runWithMeasurer, type Measurer } from "@silvery/ag-term/unicode"
 import { createPretextMeasurer } from "./pretext-measurer"
 import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
 import { setLayoutEngine } from "@silvery/ag-term/layout-engine"
@@ -118,6 +117,25 @@ export interface CanvasInstance {
 }
 
 // ============================================================================
+// Dimension Helpers
+// ============================================================================
+
+/** Compute pipeline dimensions from pixel size and font config. */
+function computeDimensions(pixelWidth: number, pixelHeight: number, options: CanvasAdapterConfig) {
+  const fontSize = options.fontSize ?? 14
+  const lineHeightMultiplier = options.lineHeight ?? 1.2
+  const isProportional = options.monospace === false
+  const charWidth = fontSize * 0.6
+  const lineHeight = fontSize * lineHeightMultiplier
+  const cols = isProportional ? pixelWidth : Math.floor(pixelWidth / charWidth)
+  const rows = isProportional ? pixelHeight : Math.floor(pixelHeight / lineHeight)
+  const measurer: Measurer | undefined = isProportional
+    ? createPretextMeasurer({ fontSize, fontFamily: options.fontFamily ?? "monospace", lineHeight: lineHeightMultiplier })
+    : undefined
+  return { fontSize, lineHeightMultiplier, isProportional, charWidth, lineHeight, cols, rows, measurer }
+}
+
+// ============================================================================
 // Initialization
 // ============================================================================
 
@@ -182,25 +200,9 @@ export function renderToCanvas(
   if (canvas.width !== pixelWidth) canvas.width = pixelWidth
   if (canvas.height !== pixelHeight) canvas.height = pixelHeight
 
-  const fontSize = options.fontSize ?? 14
-  const lineHeightMultiplier = options.lineHeight ?? 1.2
-  const isProportional = options.monospace === false
-  const charWidth = fontSize * 0.6
-  const lineHeight = fontSize * lineHeightMultiplier
-
-  // Proportional: pipeline works in pixels. Monospace: pipeline works in cells.
-  let cols = isProportional ? pixelWidth : Math.floor(pixelWidth / charWidth)
-  let rows = isProportional ? pixelHeight : Math.floor(pixelHeight / lineHeight)
-
-  // Pipeline measurer for proportional mode (scoped via runWithMeasurer).
-  // Uses Pretext for accurate word-level measurement and Unicode line breaking.
-  const pixelMeasurer: Measurer | undefined = isProportional
-    ? createPretextMeasurer({
-        fontSize,
-        fontFamily: options.fontFamily ?? "monospace",
-        lineHeight: lineHeightMultiplier,
-      })
-    : undefined
+  let dims = computeDimensions(pixelWidth, pixelHeight, options)
+  let { cols, rows } = dims
+  const { charWidth, lineHeight, isProportional, measurer: pixelMeasurer } = dims
 
   // Cursor store for cursor position tracking
   const cursorStore = createCursorStore()
@@ -436,8 +438,9 @@ export function renderToCanvas(
       pixelHeight = newPixelHeight
       canvas.width = pixelWidth
       canvas.height = pixelHeight
-      cols = isProportional ? pixelWidth : Math.floor(pixelWidth / charWidth)
-      rows = isProportional ? pixelHeight : Math.floor(pixelHeight / lineHeight)
+      dims = computeDimensions(pixelWidth, pixelHeight, options)
+      cols = dims.cols
+      rows = dims.rows
       // Clear buffer for full repaint at new size
       currentBuffer = null
       // Two passes for layout feedback
@@ -460,21 +463,7 @@ export function renderCanvasOnce(
 ): CanvasRenderBuffer {
   initCanvasRenderer(options)
 
-  const fontSize = options.fontSize ?? 14
-  const lineHeightMultiplier = options.lineHeight ?? 1.2
-  const isProportional = options.monospace === false
-  const charWidth = fontSize * 0.6
-  const lineHeight = fontSize * lineHeightMultiplier
-  const cols = isProportional ? width : Math.floor(width / charWidth)
-  const rows = isProportional ? height : Math.floor(height / lineHeight)
-
-  const onceMeasurer: Measurer | undefined = isProportional
-    ? createPretextMeasurer({
-        fontSize,
-        fontFamily: options.fontFamily ?? "monospace",
-        lineHeight: lineHeightMultiplier,
-      })
-    : undefined
+  const { cols, rows, measurer: onceMeasurer } = computeDimensions(width, height, options)
 
   const container = createContainer(() => {})
   const root = getContainerRoot(container)
