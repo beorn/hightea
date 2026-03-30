@@ -932,13 +932,14 @@ function renderScrollContainerChildren(
   const border = props.borderStyle ? getBorderSize(props) : { top: 0, bottom: 0, left: 0, right: 0 }
   const padding = getPadding(props)
   // Scroll containers clip vertically (for scrolling) but NOT horizontally.
-  // Horizontal clipping is only for overflow="hidden" containers (e.g., HVL).
+  // Scroll containers clip both vertically (viewport) and horizontally (content width).
+  // Without horizontal clipping, text overflows the right border of scroll containers.
   const childClipBounds = computeChildClipBounds(
     layout,
     props,
     clipBounds,
     0,
-    /* horizontal */ false,
+    /* horizontal */ true,
     /* vertical */ true,
   )
 
@@ -1481,7 +1482,7 @@ function computeChildClipBounds(
   /** Compute left/right clip bounds for horizontal overflow clipping. */
   horizontal = true,
   /** Compute top/bottom clip bounds for vertical overflow clipping.
-   *  Defaults to true — scroll containers pass vertical=true, horizontal=false. */
+   *  Defaults to true — overflow="hidden" and scroll containers both clip horizontally. */
   vertical = true,
 ): ClipBounds {
   const border = props.borderStyle ? getBorderSize(props) : { top: 0, bottom: 0, left: 0, right: 0 }

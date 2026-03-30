@@ -123,7 +123,7 @@ function styleToAnsi(style: StyleContext): string {
   if (style.dim) parts.push("2")
   if (style.italic) parts.push("3")
   // Underline: prefer underlineStyle (SGR 4:x subparam) over boolean (SGR 4)
-  if (style.underlineStyle && style.underlineStyle !== false) {
+  if (style.underlineStyle) {
     const styleMap: Record<string, string> = {
       single: "4:1",
       double: "4:2",
@@ -167,7 +167,7 @@ function mergeStyleContext(parent: StyleContext, childProps: TextProps): StyleCo
     bold: childProps.bold ?? parent.bold,
     dim: childProps.dim ?? childProps.dimColor ?? parent.dim,
     italic: childProps.italic ?? parent.italic,
-    underline: childProps.underline ?? (childProps as any).underlineStyle ? true : parent.underline,
+    underline: (childProps.underline ?? (childProps as any).underlineStyle) ? true : parent.underline,
     underlineStyle: (childProps as any).underlineStyle ?? parent.underlineStyle,
     underlineColor: (childProps as any).underlineColor ?? parent.underlineColor,
     inverse: childProps.inverse ?? parent.inverse,
