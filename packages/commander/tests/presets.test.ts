@@ -480,7 +480,9 @@ describe("commander integration", () => {
       .option("-p, --port <n>", "Port", port)
       .option("--tags <t>", "Tags", csv)
       .option("-e, --env <e>", "Env", ["dev", "prod"])
-    cli.parse(["node", "test", "--verbose", "--port", "3000", "--tags", "a,b", "--env", "dev"], { from: "node" })
+    cli.parse(["node", "test", "--verbose", "--port", "3000", "--tags", "a,b", "--env", "dev"], {
+      from: "node",
+    })
     const opts = cli.opts()
     expect(opts.verbose).toBe(true)
     expect(opts.port).toBe(3000)

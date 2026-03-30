@@ -46,7 +46,11 @@ import { type Color, type TerminalBuffer, colorEquals } from "@silvery/ag-term/b
 import { outputPhase } from "@silvery/ag-term/pipeline"
 import { compareBuffers, formatMismatch } from "@silvery/test/compare-buffers"
 import type { BoxProps, AgNode } from "./types"
+import type { App } from "@silvery/ag-term/app"
 import type { AppWithCommands, Cmd, Command } from "@silvery/commands/with-commands"
+
+/** App with both full App capabilities and command system */
+type FullAppWithCommands = AppWithCommands<App>
 
 // =============================================================================
 // Types
@@ -760,7 +764,7 @@ function walkLayout(
  * @param options - Diagnostic check configuration (all enabled by default)
  * @returns App with wrapped cmd that runs diagnostic checks
  */
-export function withDiagnostics<T extends AppWithCommands>(app: T, options: DiagnosticOptions = {}): T {
+export function withDiagnostics<T extends FullAppWithCommands>(app: T, options: DiagnosticOptions = {}): T {
   // All checks enabled by default when plugin is used
   const {
     checkIncremental = true,

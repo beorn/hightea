@@ -48,8 +48,14 @@ import {
 } from "./reconciler"
 import { renderStringSync } from "./render-string"
 import { RenderScheduler } from "@silvery/ag-term/scheduler"
-import { type ResolvedTermDef, isTerm, isTermDef, resolveFromTerm, resolveTermDef } from "@silvery/ag-term/term-def"
-import type { TermDef } from "@silvery/ag/types"
+import {
+  type ResolvedTermDef,
+  type TermDef,
+  isTerm,
+  isTermDef,
+  resolveFromTerm,
+  resolveTermDef,
+} from "@silvery/ag-term/term-def"
 import { splitRawInput } from "@silvery/ag/keys"
 
 // ============================================================================

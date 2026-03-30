@@ -353,7 +353,7 @@ export {
   findByTestID,
   findSpatialTarget,
   getExplicitFocusLink,
-} from "@silvery/create/focus-queries"
+} from "@silvery/ag/focus-queries"
 export { createKeyEvent, createFocusEvent, dispatchKeyEvent, dispatchFocusEvent } from "@silvery/ag/focus-events"
 export type { SilveryKeyEvent, SilveryFocusEvent, FocusEventProps } from "@silvery/ag/focus-events"
 export { useFocusable } from "./hooks/useFocusable"
@@ -648,13 +648,8 @@ export { queryMode, queryModes, DecMode } from "@silvery/ag-term/mode-query"
 export { queryTextAreaPixels, queryTextAreaSize, queryCellSize } from "@silvery/ag-term/pixel-size"
 
 // Layout engine types
-export type {
-  LayoutEngine,
-  LayoutNode,
-  LayoutConstants,
-  MeasureFunc,
-  MeasureMode,
-} from "@silvery/ag-term/layout-engine"
+export type { LayoutEngine, LayoutConstants } from "@silvery/ag-term/layout-engine"
+export type { LayoutNode, MeasureFunc, MeasureMode } from "@silvery/ag/layout-types"
 
 // Render adapter types (RenderAdapter itself is internal — use term.paint() instead)
 export type {
@@ -731,10 +726,10 @@ export {
   computeEnterLeave,
   type SilveryMouseEvent,
   type SilveryWheelEvent,
-  type MouseEventProps,
   type MouseEventProcessorOptions,
   type MouseEventProcessorState,
 } from "@silvery/ag-term/mouse-events"
+export type { MouseEventProps } from "@silvery/ag/mouse-event-types"
 
 // Non-TTY utilities
 export { isTTY, resolveNonTTYMode, stripAnsi } from "@silvery/ag-term/non-tty"

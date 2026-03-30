@@ -15,6 +15,7 @@ export { createCommandRegistry, type CommandDefInput, type CommandDefs } from ".
 // withCommands plugin
 export {
   withCommands,
+  type CommandableApp,
   type CommandDef,
   type CommandRegistryLike,
   type AppWithCommands,

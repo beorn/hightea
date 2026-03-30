@@ -33,7 +33,6 @@ export {
   computeEnterLeave,
   type SilveryMouseEvent,
   type SilveryWheelEvent,
-  type MouseEventProps,
   type MouseEventProcessorOptions,
   type MouseEventProcessorState,
 } from "./mouse-events"

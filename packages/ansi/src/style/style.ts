@@ -299,7 +299,10 @@ function createChainWithRef(
           }
           if (prop === "link") {
             return createChainWithRef(
-              { opens: [...state.opens, String(fallback), "4"], closes: [...state.closes, "39", "24"] },
+              {
+                opens: [...state.opens, String(fallback), "4"],
+                closes: [...state.closes, "39", "24"],
+              },
               ref,
             )
           }

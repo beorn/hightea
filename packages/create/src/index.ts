@@ -60,14 +60,14 @@ export type {
 // Focus events
 export { createKeyEvent, createFocusEvent, dispatchKeyEvent, dispatchFocusEvent } from "./focus-events"
 
-// Focus queries
+// Focus queries (canonical: @silvery/ag/focus-queries)
 export {
   findFocusableAncestor,
   getTabOrder,
   findByTestID,
   findSpatialTarget,
   getExplicitFocusLink,
-} from "./focus-queries"
+} from "@silvery/ag/focus-queries"
 
 // =============================================================================
 // Store (TEA-style state container)

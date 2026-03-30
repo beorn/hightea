@@ -30,11 +30,21 @@
  * See docs/future/silvery-command-api-research.md for design rationale.
  */
 
-import type { App } from "@silvery/ag-term/app"
-
 // =============================================================================
 // Types
 // =============================================================================
+
+/**
+ * Minimal app interface required by the command system.
+ * The full App type (from @silvery/ag-term/app) satisfies this.
+ * Using a minimal interface avoids a layer violation (commands → ag-term).
+ */
+export interface CommandableApp {
+  /** Full rendered text (no ANSI codes) — used by getState() for AI introspection */
+  readonly text: string
+  /** Send a key press — used by withKeybindings to intercept and route to commands */
+  press(key: string): Promise<unknown>
+}
 
 /**
  * Generic command definition interface.
@@ -133,8 +143,9 @@ export interface AppState {
 
 /**
  * App with command system.
+ * Generic over the app type — preserves the full type when used with App.
  */
-export type AppWithCommands = App & {
+export type AppWithCommands<TApp extends CommandableApp = CommandableApp> = TApp & {
   cmd: Cmd
   getState(): AppState
 }
@@ -231,26 +242,29 @@ function formatHelp<TContext, TAction>(
 // Curried form: withCommands(options) => plugin
 export function withCommands<TContext, TAction>(
   options: WithCommandsOptions<TContext, TAction>,
-): (app: App) => AppWithCommands
+): <TApp extends CommandableApp>(app: TApp) => AppWithCommands<TApp>
 // Direct form: withCommands(app, options) => enhancedApp
-export function withCommands<TContext, TAction>(
-  app: App,
+export function withCommands<TApp extends CommandableApp, TContext, TAction>(
+  app: TApp,
   options: WithCommandsOptions<TContext, TAction>,
-): AppWithCommands
+): AppWithCommands<TApp>
 export function withCommands<TContext, TAction>(
-  appOrOptions: App | WithCommandsOptions<TContext, TAction>,
+  appOrOptions: CommandableApp | WithCommandsOptions<TContext, TAction>,
   maybeOptions?: WithCommandsOptions<TContext, TAction>,
-): AppWithCommands | ((app: App) => AppWithCommands) {
+): AppWithCommands | ((app: CommandableApp) => AppWithCommands) {
   // Curried form: first arg is options (no press/text/ansi = not an App)
   if (maybeOptions === undefined) {
     const options = appOrOptions as WithCommandsOptions<TContext, TAction>
-    return (app: App) => applyCommands(app, options)
+    return (app: CommandableApp) => applyCommands(app, options)
   }
   // Direct form: first arg is app
-  return applyCommands(appOrOptions as App, maybeOptions)
+  return applyCommands(appOrOptions as CommandableApp, maybeOptions)
 }
 
-function applyCommands<TContext, TAction>(app: App, options: WithCommandsOptions<TContext, TAction>): AppWithCommands {
+function applyCommands<TContext, TAction>(
+  app: CommandableApp,
+  options: WithCommandsOptions<TContext, TAction>,
+): AppWithCommands {
   const { registry, getContext, handleAction, getKeybindings } = options
 
   const cmd = new Proxy({} as Cmd, {

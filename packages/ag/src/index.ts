@@ -34,8 +34,6 @@ export type {
   CustomEvent,
   Event,
   EventSource,
-  RenderOptions,
-  RenderInstance,
 } from "./types"
 
 // Keys

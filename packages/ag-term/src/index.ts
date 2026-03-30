@@ -55,7 +55,8 @@ export type { BoundTerm } from "./bound-term"
 // Layout Engine
 // =============================================================================
 
-export type { LayoutEngine, LayoutNode, LayoutConstants, MeasureFunc, MeasureMode } from "./layout-engine"
+export type { LayoutEngine, LayoutConstants } from "./layout-engine"
+export type { LayoutNode, MeasureFunc, MeasureMode } from "@silvery/ag/layout-types"
 
 // =============================================================================
 // Render Adapter Types (RenderAdapter itself is internal — not exported)
@@ -237,6 +238,12 @@ export { queryTextAreaPixels, queryTextAreaSize, queryCellSize } from "./pixel-s
 // TermDef Resolution
 // =============================================================================
 
+// TermDef and related terminal-specific types
+export type {
+  TermDef,
+  RenderOptions as TermDefRenderOptions,
+  RenderInstance as TermDefRenderInstance,
+} from "./term-def"
 // TermDef resolution — internal. Use createTerm() instead of TermDef.
 // isTerm and createInputEvents are still public utilities.
 export { isTerm, createInputEvents } from "./term-def"
@@ -274,12 +281,12 @@ export {
   computeEnterLeave,
   type SilveryMouseEvent,
   type SilveryWheelEvent,
-  type MouseEventProps,
   type MouseEventProcessorOptions,
   type MouseEventProcessorState,
   type KeyboardModifierState,
   updateKeyboardModifiers,
 } from "./mouse-events"
+export type { MouseEventProps } from "@silvery/ag/mouse-event-types"
 
 // =============================================================================
 // Non-TTY Utilities

@@ -9,7 +9,7 @@ export * from "@silvery/ag-react"
 import type { ReactElement } from "react"
 import { render as reactRender, type RenderOptions } from "@silvery/ag-react"
 import type { Term } from "@silvery/ag-react"
-import type { TermDef } from "@silvery/ag/types"
+import type { TermDef } from "@silvery/ag-term/term-def"
 
 /**
  * Render a React element to the terminal.

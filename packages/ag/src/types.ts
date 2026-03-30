@@ -6,7 +6,7 @@
 
 import type { FocusEventProps } from "./focus-events"
 import type { LayoutNode } from "./layout-types"
-import type { MouseEventProps } from "@silvery/ag-term/mouse-events"
+import type { MouseEventProps } from "./mouse-event-types"
 
 // ============================================================================
 // Layout Types
@@ -571,103 +571,4 @@ export interface EventSource {
   subscribe(handler: (event: Event) => void): () => void
   /** Convert to async iterable */
   [Symbol.asyncIterator](): AsyncIterator<Event>
-}
-
-// ============================================================================
-// TermDef - Minimal Render Configuration
-// ============================================================================
-
-// ColorLevel imported directly from @silvery/ansi (not via ag-term, to avoid layer violation)
-import type { ColorLevel } from "@silvery/ansi"
-
-/**
- * Minimal surface for configuring render().
- *
- * TermDef provides a simple way to configure rendering without requiring
- * a full Term instance. It's useful for:
- * - Static rendering (just width/height, no events)
- * - Testing (mock dimensions and events)
- * - Quick scripts (auto-detect everything from stdin/stdout)
- *
- * The presence of `events` (or `stdin` which auto-creates events)
- * determines the render mode:
- * - No events → static mode (render until stable)
- * - Has events → interactive mode (render until exit() called)
- *
- * @example
- * ```tsx
- * // Static render with custom width
- * const output = await render(<App />, { width: 100 })
- *
- * // Interactive with stdin/stdout
- * await render(<App />, { stdin: process.stdin, stdout: process.stdout })
- *
- * // Custom events
- * await render(<App />, { events: myEventSource })
- * ```
- */
-export interface TermDef {
-  // -------------------------------------------------------------------------
-  // Output Configuration
-  // -------------------------------------------------------------------------
-
-  /** Output stream (used for dimensions if not specified) */
-  stdout?: NodeJS.WriteStream
-
-  /** Width in columns (default: stdout?.columns ?? 80) */
-  width?: number
-
-  /** Height in rows (default: stdout?.rows ?? 24) */
-  height?: number
-
-  /** Color support (true=detect, false=none, or specific level) */
-  colors?: boolean | ColorLevel | null
-
-  // -------------------------------------------------------------------------
-  // Input Configuration
-  // -------------------------------------------------------------------------
-
-  /**
-   * Event source for interactive mode.
-   *
-   * When present, render runs until exit() is called.
-   * When absent, render completes when UI is stable.
-   */
-  events?: AsyncIterable<Event> | EventSource
-
-  /**
-   * Standard input stream.
-   *
-   * When provided (and events is not), automatically creates input events
-   * from stdin, enabling interactive mode.
-   */
-  stdin?: NodeJS.ReadStream
-}
-
-// ============================================================================
-// Render Context Types
-// ============================================================================
-
-/**
- * Options passed to the render function.
- */
-export interface RenderOptions {
-  stdout?: NodeJS.WriteStream
-  stdin?: NodeJS.ReadStream
-  exitOnCtrlC?: boolean
-  debug?: boolean
-}
-
-/**
- * The render instance returned by render().
- */
-export interface RenderInstance {
-  /** Re-render with new element */
-  rerender: (element: React.ReactNode) => void
-  /** Unmount and clean up */
-  unmount: () => void
-  /** Wait for render to complete */
-  waitUntilExit: () => Promise<void>
-  /** Clear terminal output */
-  clear: () => void
 }

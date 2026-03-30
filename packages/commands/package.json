@@ -25,7 +25,5 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-    "@silvery/ag-term": "workspace:*"
-  }
+  "dependencies": {}
 }

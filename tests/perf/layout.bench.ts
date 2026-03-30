@@ -11,12 +11,8 @@
  */
 
 import { bench, describe } from "vitest"
-import {
-  ensureDefaultLayoutEngine,
-  getLayoutEngine,
-  getConstants,
-  type LayoutNode,
-} from "@silvery/ag-term/layout-engine"
+import { ensureDefaultLayoutEngine, getLayoutEngine, getConstants } from "@silvery/ag-term/layout-engine"
+import type { LayoutNode } from "@silvery/ag/layout-types"
 
 // Top-level await for layout engine initialization —
 // beforeAll with async doesn't reliably complete before bench() in vitest bench mode.

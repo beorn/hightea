@@ -249,7 +249,9 @@ describe("zod schema via Standard Schema", () => {
       .option("-v, --verbose", "Verbose")
       .option("-p, --port <n>", "Port", z.coerce.number())
       .option("--host <addr>", "Host")
-    cmd.parse(["node", "test", "--verbose", "--port", "8080", "--host", "localhost"], { from: "node" })
+    cmd.parse(["node", "test", "--verbose", "--port", "8080", "--host", "localhost"], {
+      from: "node",
+    })
     const opts = cmd.opts()
     expect(opts.verbose).toBe(true)
     expect(opts.port).toBe(8080)

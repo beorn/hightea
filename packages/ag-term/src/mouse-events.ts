@@ -16,69 +16,17 @@ import type { ParsedMouse } from "./mouse"
 import { getAncestorPath, pointInRect } from "@silvery/ag/tree-utils"
 import type { AgNode } from "@silvery/ag/types"
 
+// Re-export canonical types from ag (avoid duplicate type definitions)
+export type { SilveryMouseEvent, SilveryWheelEvent } from "@silvery/ag/mouse-event-types"
+import type { SilveryMouseEvent, SilveryWheelEvent } from "@silvery/ag/mouse-event-types"
+
 const mouseLog = createLogger("silvery:mouse")
 
 // ============================================================================
-// Event Types
+// Mouse Event Handler Props — canonical location is @silvery/ag
 // ============================================================================
 
-/**
- * Synthetic mouse event, mirroring React.MouseEvent / DOM MouseEvent.
- */
-export interface SilveryMouseEvent {
-  /** Terminal column (0-indexed) */
-  clientX: number
-  /** Terminal row (0-indexed) */
-  clientY: number
-  /** Mouse button: 0=left, 1=middle, 2=right */
-  button: number
-  /** Modifier keys */
-  altKey: boolean
-  ctrlKey: boolean
-  metaKey: boolean
-  shiftKey: boolean
-  /** Deepest node under cursor */
-  target: AgNode
-  /** Node whose handler is currently firing (changes during bubble) */
-  currentTarget: AgNode
-  /** Event type */
-  type: "click" | "dblclick" | "mousedown" | "mouseup" | "mousemove" | "mouseenter" | "mouseleave" | "wheel"
-  /** Stop event from bubbling to parent nodes */
-  stopPropagation(): void
-  /** Prevent default behavior */
-  preventDefault(): void
-  /** Whether stopPropagation() was called */
-  readonly propagationStopped: boolean
-  /** Whether preventDefault() was called */
-  readonly defaultPrevented: boolean
-  /** Raw parsed mouse data from SGR protocol */
-  nativeEvent: ParsedMouse
-}
-
-/**
- * Synthetic wheel event, extending SilveryMouseEvent with scroll deltas.
- */
-export interface SilveryWheelEvent extends SilveryMouseEvent {
-  /** Vertical scroll: -1 (up) or +1 (down) */
-  deltaY: number
-  /** Horizontal scroll: always 0 for terminals */
-  deltaX: number
-}
-
-// ============================================================================
-// Mouse Event Handler Props (added to BoxProps/TextProps)
-// ============================================================================
-
-export interface MouseEventProps {
-  onClick?: (event: SilveryMouseEvent) => void
-  onDoubleClick?: (event: SilveryMouseEvent) => void
-  onMouseDown?: (event: SilveryMouseEvent) => void
-  onMouseUp?: (event: SilveryMouseEvent) => void
-  onMouseMove?: (event: SilveryMouseEvent) => void
-  onMouseEnter?: (event: SilveryMouseEvent) => void
-  onMouseLeave?: (event: SilveryMouseEvent) => void
-  onWheel?: (event: SilveryWheelEvent) => void
-}
+import type { MouseEventProps } from "@silvery/ag/mouse-event-types"
 
 // ============================================================================
 // Event Factory
@@ -211,7 +159,7 @@ export function hitTest(node: AgNode, x: number, y: number): AgNode | null {
 // ============================================================================
 
 /** Map event type to the handler prop name */
-const EVENT_HANDLER_MAP: Record<string, keyof MouseEventProps> = {
+const EVENT_HANDLER_MAP: Record<string, string & keyof MouseEventProps> = {
   click: "onClick",
   dblclick: "onDoubleClick",
   mousedown: "onMouseDown",

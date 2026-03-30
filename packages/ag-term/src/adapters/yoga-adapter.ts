@@ -18,6 +18,7 @@ import type {
   Yoga,
   Node as YogaNode,
 } from "yoga-wasm-web"
+import type { LayoutNode, MeasureFunc, MeasureMode } from "@silvery/ag/layout-types"
 import type {
   AlignValue,
   DirectionValue,
@@ -28,9 +29,6 @@ import type {
   JustifyValue,
   LayoutConstants,
   LayoutEngine,
-  LayoutNode,
-  MeasureFunc,
-  MeasureMode,
   MeasureModeValue,
   OverflowValue,
   PositionTypeValue,

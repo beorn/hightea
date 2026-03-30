@@ -5,7 +5,8 @@
  */
 
 import { createLogger } from "loggily"
-import { type LayoutNode, getConstants, getLayoutEngine } from "@silvery/ag-term/layout-engine"
+import type { LayoutNode } from "@silvery/ag/layout-types"
+import { getConstants, getLayoutEngine } from "@silvery/ag-term/layout-engine"
 import { collectPlainTextSkipHidden as collectNodeTextContent } from "@silvery/ag-term/pipeline/collect-text"
 import { type BoxProps, type AgNode, type AgNodeType, type TextProps, rectEqual } from "@silvery/ag/types"
 import { type Measurer, displayWidth, wrapText } from "@silvery/ag-term/unicode"

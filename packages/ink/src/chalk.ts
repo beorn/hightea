@@ -69,7 +69,9 @@ export default chalk
 export class Chalk {
   constructor(options?: { level?: ChalkLevel }) {
     // Returning an object from a constructor overrides `this` — chalk compat pattern
-    return createStyle({ level: fromChalkLevel(options?.level ?? toChalkLevel(detectedColor)) }) as any
+    return createStyle({
+      level: fromChalkLevel(options?.level ?? toChalkLevel(detectedColor)),
+    }) as any
   }
 }
 

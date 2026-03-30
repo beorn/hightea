@@ -5,11 +5,9 @@
  * This allows silvery to use different layout backends without code changes.
  *
  * Core type interfaces (LayoutNode, MeasureFunc, MeasureMode) live in
- * @silvery/ag/layout-types and are re-exported here for backward compatibility.
+ * @silvery/ag/layout-types. This file contains the runtime engine management.
  */
 
-// Re-export core layout types from ag (canonical location)
-export type { MeasureMode, MeasureFunc, LayoutNode } from "@silvery/ag/layout-types"
 import type { LayoutNode } from "@silvery/ag/layout-types"
 
 // ============================================================================

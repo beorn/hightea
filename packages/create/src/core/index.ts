@@ -209,7 +209,7 @@ export {
   findByTestID,
   findSpatialTarget,
   getExplicitFocusLink,
-} from "../focus-queries.js"
+} from "@silvery/ag/focus-queries"
 
 // =============================================================================
 // Slices (ops-as-data helper)
