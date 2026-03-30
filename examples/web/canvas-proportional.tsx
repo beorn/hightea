@@ -2,69 +2,45 @@
  * Silvery Canvas — Proportional Text Demo
  *
  * Same React components as terminal, rendered on canvas with proportional fonts.
- * Uses renderToCanvas({ monospace: false }) for pixel-based layout via Pretext-style measurement.
+ * Uses renderToCanvas({ monospace: false }) for pixel-based layout.
  */
 
 import React from "react"
 import { renderToCanvas, Box, Text } from "../../packages/ag-react/src/ui/canvas/index.js"
 
-function ChatBubble({ text, isUser, name, time }: { text: string; isUser: boolean; name: string; time: string }) {
-  return (
-    <Box flexDirection="column" alignItems={isUser ? "flex-end" : "flex-start"} marginTop={4}>
-      <Box
-        backgroundColor={isUser ? "#1f6feb" : "#161b22"}
-        borderStyle={isUser ? undefined : "single"}
-        borderColor={isUser ? undefined : "#30363d"}
-        paddingX={12}
-        paddingY={8}
-      >
-        <Text color={isUser ? "#ffffff" : "#e6edf3"} wrap="wrap">
-          {text}
-        </Text>
-      </Box>
-      <Box marginTop={2}>
-        <Text color="#8b949e" dimColor>
-          {name} · {time}
-        </Text>
-      </Box>
-    </Box>
-  )
-}
-
+// Simple test: does text wrap and do backgrounds render?
 function App() {
   return (
-    <Box flexDirection="column" padding={16}>
-      <Box backgroundColor="#161b22" paddingX={16} paddingY={12}>
-        <Text bold color="#e6edf3">
-          Shrinkwrap Chat — Silvery + Canvas
+    <Box flexDirection="column" width={480} padding={16}>
+      <Box backgroundColor="#1f6feb" paddingX={8} paddingY={4}>
+        <Text color="#ffffff" bold>Proportional Canvas Demo</Text>
+      </Box>
+
+      <Box marginTop={8} backgroundColor="#161b22" paddingX={8} paddingY={4}>
+        <Text color="#e6edf3" wrap="wrap">
+          This text should wrap within its container. If you can read this entire sentence without it overflowing the right edge, text wrapping is working correctly in proportional pixel mode.
         </Text>
       </Box>
 
-      <ChatBubble
-        isUser
-        name="You"
-        time="2:41 PM"
-        text="How does shrinkwrap sizing work? CSS can't do it, right?"
-      />
-      <ChatBubble
-        isUser={false}
-        name="Claude"
-        time="2:41 PM"
-        text="Right! CSS has no way to size a container to the tightest width of wrapped text. Pretext measures the actual rendered width of each line. Flexily uses this for layout."
-      />
-      <ChatBubble isUser name="You" time="2:42 PM" text="And this is all on canvas? No DOM layout?" />
-      <ChatBubble
-        isUser={false}
-        name="Claude"
-        time="2:42 PM"
-        text="Exactly. Same React components as terminal — Box, Text, padding, flex. But rendered with proportional fonts on canvas."
-      />
-      <ChatBubble isUser name="You" time="2:43 PM" text="This is wild 🚀" />
+      <Box marginTop={8} flexDirection="row" gap={8}>
+        <Box backgroundColor="#da3633" paddingX={8} paddingY={4}>
+          <Text color="#ffffff">Red</Text>
+        </Box>
+        <Box backgroundColor="#2ea043" paddingX={8} paddingY={4}>
+          <Text color="#ffffff">Green</Text>
+        </Box>
+        <Box backgroundColor="#1f6feb" paddingX={8} paddingY={4}>
+          <Text color="#ffffff">Blue</Text>
+        </Box>
+      </Box>
+
+      <Box marginTop={8} backgroundColor="#161b22" paddingX={8} paddingY={4}>
+        <Text color="#8b949e">Emoji: 🚀 CJK: 春天到了 Mixed: hello 世界</Text>
+      </Box>
     </Box>
   )
 }
 
-// Mount to canvas after fonts load
 document.fonts.ready.then(() => {
   const canvas = document.getElementById("canvas") as HTMLCanvasElement
   if (!canvas) return
@@ -77,15 +53,10 @@ document.fonts.ready.then(() => {
       backgroundColor: "#0d1117",
       foregroundColor: "#e6edf3",
     })
-    console.log("renderToCanvas succeeded, buffer:", instance.getBuffer())
-
-    // Debug: draw directly on canvas to verify it's visible
-    const ctx = canvas.getContext("2d")!
-    ctx.fillStyle = "#ff0000"
-    ctx.fillRect(10, 10, 100, 30)
-    ctx.fillStyle = "#ffffff"
-    ctx.font = '14px Inter'
-    ctx.fillText("DEBUG: canvas works", 15, 30)
+    const buf = instance.getBuffer() as any
+    document.getElementById("debug")!.textContent = buf
+      ? `buffer: ${buf.width}x${buf.height}`
+      : "no buffer"
   } catch (e) {
     console.error("renderToCanvas failed:", e)
     document.body.innerHTML += `<pre style="color:red;margin:20px">${e}\n${(e as Error).stack}</pre>`
