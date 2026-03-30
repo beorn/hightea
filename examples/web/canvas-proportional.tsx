@@ -18,7 +18,7 @@ function ChatBubble({ text, isUser, name, time }: { text: string; isUser: boolea
         borderColor={isUser ? "#1f6feb" : "#30363d"}
         paddingX={12}
         paddingY={8}
-        maxWidth={340}
+        maxWidth={300}
       >
         <Text color={isUser ? "#ffffff" : "#e6edf3"} wrap="wrap">
           {text}

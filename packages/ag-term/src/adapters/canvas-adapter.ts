@@ -92,11 +92,14 @@ const BORDER_CHARS: Record<string, BorderChars> = {
 
 /** Create a scratch canvas 2D context for text measurement. */
 function createMeasureContext(fontSize: number, fontFamily: string): CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D {
+  // Prefer document.createElement("canvas") over OffscreenCanvas for measurement —
+  // OffscreenCanvas may not have access to web fonts loaded via <link> or @font-face.
+  // A regular canvas element shares the document's font loading state.
   const canvas =
-    typeof OffscreenCanvas !== "undefined"
-      ? new OffscreenCanvas(1, 1)
-      : typeof document !== "undefined"
-        ? document.createElement("canvas")
+    typeof document !== "undefined"
+      ? document.createElement("canvas")
+      : typeof OffscreenCanvas !== "undefined"
+        ? new OffscreenCanvas(1, 1)
         : null
   if (!canvas) throw new Error("Canvas not available for text measurement")
   const ctx = canvas.getContext("2d")
