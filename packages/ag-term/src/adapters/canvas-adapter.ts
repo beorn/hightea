@@ -361,12 +361,20 @@ export class CanvasRenderBuffer implements RenderBuffer {
     this.ctx.fillStyle = resolveColor(style.fg, this.config.foregroundColor)
 
     if (!this.config.monospace) {
-      // Proportional mode: match CSS line-height centering.
-      // CSS centers the font's content area within the line box (half-leading).
-      // Canvas textBaseline="middle" at lineBox center achieves the same result.
+      // Match CSS line-height centering exactly.
+      // CSS positions text by placing the alphabetic baseline at:
+      //   y + halfLeading + fontAscent
+      // where halfLeading = (lineHeight - contentArea) / 2
+      // and contentArea = fontBoundingBoxAscent + fontBoundingBoxDescent.
+      // fontBoundingBox metrics are font-wide (not glyph-specific), matching CSS.
+      const metrics = this.ctx.measureText("Hg")
+      const fontAscent = metrics.fontBoundingBoxAscent
+      const fontDescent = metrics.fontBoundingBoxDescent
+      const contentArea = fontAscent + fontDescent
       const lineHeightPx = this.config.fontSize * this.config.lineHeight
-      this.ctx.textBaseline = "middle"
-      py += lineHeightPx / 2
+      const halfLeading = (lineHeightPx - contentArea) / 2
+      this.ctx.textBaseline = "alphabetic"
+      py += halfLeading + fontAscent
     } else {
       this.ctx.textBaseline = "top"
     }

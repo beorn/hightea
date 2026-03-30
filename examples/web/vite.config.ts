@@ -16,7 +16,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     esbuildOptions: { target: "esnext" },
-    exclude: ["@resvg/resvg-js"],
+    exclude: ["@resvg/resvg-js", "yoga-wasm-web"],
   },
   resolve: {
     alias: {
