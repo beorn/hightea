@@ -99,11 +99,14 @@ export function createPretextMeasurer(config: PretextMeasurerConfig): Measurer {
     lineHeight: lineHeightPx,
 
     displayWidth(text: string): number {
-      return pixelWidth(stripAnsi(text))
+      // Ceil to avoid floating-point rounding causing unexpected wrapping.
+      // Without this, MeasureFunc reports 275.3px, flexily allocates 275.3,
+      // but Pretext's layoutWithLines wraps at 275.300001 due to float math.
+      return Math.ceil(pixelWidth(stripAnsi(text)))
     },
 
     displayWidthAnsi(text: string): number {
-      return pixelWidth(stripAnsi(text))
+      return Math.ceil(pixelWidth(stripAnsi(text)))
     },
 
     graphemeWidth(grapheme: string): number {

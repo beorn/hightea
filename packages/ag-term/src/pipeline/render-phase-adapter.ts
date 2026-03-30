@@ -172,7 +172,11 @@ function renderBox(
   if (buffer.fillRoundedRect && (props.backgroundColor || props.borderStyle)) {
     const borderRadius = props.borderStyle === "round" ? 12 : props.borderStyle ? 4 : 0
     buffer.fillRoundedRect(
-      x, y, width, height, borderRadius,
+      x,
+      y,
+      width,
+      height,
+      borderRadius,
       props.backgroundColor ?? undefined,
       props.borderStyle ? (props.borderColor ?? "#30363d") : undefined,
     )
