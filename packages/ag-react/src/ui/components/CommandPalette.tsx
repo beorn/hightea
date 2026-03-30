@@ -147,7 +147,7 @@ export function CommandPalette({
   )
 
   return (
-    <Box flexDirection="column" borderStyle="single" borderColor="$border" backgroundColor="$surface-bg" paddingX={1}>
+    <Box flexDirection="column" borderStyle="single" borderColor="$border" backgroundColor="$popover-bg" paddingX={1}>
       {/* Search input */}
       <Box>
         <Text color="$primary" bold>

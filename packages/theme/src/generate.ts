@@ -25,7 +25,7 @@ export function generateTheme(primary: AnsiPrimary, dark: boolean): Theme {
     surface: dark ? "whiteBright" : "black",
     surfacebg: dark ? "black" : "white",
     popover: dark ? "whiteBright" : "black",
-    popoverbg: dark ? "black" : "white",
+    popoverbg: dark ? "blackBright" : "white",
     inverse: dark ? "black" : "whiteBright",
     inversebg: dark ? "whiteBright" : "black",
     cursor: "black",

@@ -188,7 +188,7 @@ export function ToastItem({ toast }: ToastItemProps): React.ReactElement {
   const icon = VARIANT_ICONS[toast.variant]
 
   return (
-    <Box borderStyle="single" borderColor="$border" paddingX={1} backgroundColor="$surface-bg">
+    <Box borderStyle="single" borderColor="$border" paddingX={1} backgroundColor="$popover-bg">
       <Text color={color} bold>
         [{icon}]
       </Text>
