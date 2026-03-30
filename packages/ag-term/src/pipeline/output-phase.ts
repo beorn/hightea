@@ -27,10 +27,11 @@ import { createLogger } from "loggily"
 
 const log = createLogger("silvery:output")
 
-const DEBUG_OUTPUT = !!process.env.SILVERY_DEBUG_OUTPUT
-const FULL_RENDER = !!process.env.SILVERY_FULL_RENDER
-const DEBUG_CAPTURE = !!process.env.SILVERY_DEBUG_CAPTURE
-const CAPTURE_RAW = !!process.env.SILVERY_CAPTURE_RAW
+const _env = typeof process !== "undefined" ? process.env : ({} as Record<string, string | undefined>)
+const DEBUG_OUTPUT = !!_env.SILVERY_DEBUG_OUTPUT
+const FULL_RENDER = !!_env.SILVERY_FULL_RENDER
+const DEBUG_CAPTURE = !!_env.SILVERY_DEBUG_CAPTURE
+const CAPTURE_RAW = !!_env.SILVERY_CAPTURE_RAW
 let _debugFrameCount = 0
 let _captureRawFrameCount = 0
 
@@ -317,10 +318,10 @@ function handleScrollbackPromotion(
 // SILVERY_STRICT enables buffer + output checks (per-frame), including vt100 output verification.
 // SILVERY_STRICT_ACCUMULATE is separate — it replays ALL frames (O(N²)) and is opt-in only.
 function isStrictOutput(): boolean {
-  return !!process.env.SILVERY_STRICT
+  return typeof process !== "undefined" && !!process.env.SILVERY_STRICT
 }
 function isStrictAccumulate(): boolean {
-  return !!process.env.SILVERY_STRICT_ACCUMULATE
+  return typeof process !== "undefined" && !!process.env.SILVERY_STRICT_ACCUMULATE
 }
 /** Parse SILVERY_STRICT_TERMINAL into a list of backends.
  *
@@ -331,7 +332,7 @@ function isStrictAccumulate(): boolean {
  * `xterm` and `ghostty` use persistent terminal emulators (stateful).
  */
 function strictTerminalBackends(): Array<"vt100" | "xterm" | "ghostty"> {
-  const val = (process.env.SILVERY_STRICT_TERMINAL ?? "").toLowerCase().trim()
+  const val = (typeof process !== "undefined" ? process.env.SILVERY_STRICT_TERMINAL ?? "" : "").toLowerCase().trim()
   if (!val) return []
   if (val === "all") return ["vt100", "xterm", "ghostty"]
   // Comma-separated list
@@ -2444,12 +2445,12 @@ function verifyOutputEquivalence(
   const vtHeight = Math.max(prev.height, next.height)
   const compareHeight = next.height
   // DEBUG: log buffer dimensions
-  if (process.env.SILVERY_DEBUG_OUTPUT) {
+  if (DEBUG_OUTPUT) {
     log.error(`[VERIFY] prev=${prev.width}x${prev.height} next=${next.width}x${next.height} vtSize=${w}x${vtHeight}`)
   }
   // Replay: fresh prev render + incremental diff applied on top
   const freshPrev = bufferToAnsi(prev, ctx)
-  if (process.env.SILVERY_DEBUG_OUTPUT) {
+  if (DEBUG_OUTPUT) {
     log.error(`[VERIFY] freshPrev len=${freshPrev.length} incrOutput len=${incrOutput.length}`)
     // Show incrOutput as escaped string
     const escaped = incrOutput.replace(/\x1b/g, "\\e").replace(/\r/g, "\\r").replace(/\n/g, "\\n")

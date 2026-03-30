@@ -238,4 +238,75 @@ describe("border rendering", () => {
     // Content row should have both wide characters
     expect(lines[1]).toContain("日本")
   })
+
+  // =========================================================================
+  // flexGrow siblings with borders
+  // =========================================================================
+
+  test("two flexGrow siblings with borders fit within parent width", () => {
+    const cols = 40
+    const r = createRenderer({ cols, rows: 5 })
+    const app = r(
+      <Box flexDirection="row" width={cols}>
+        <Box flexGrow={1} borderStyle="single">
+          <Text>Left</Text>
+        </Box>
+        <Box flexGrow={1} borderStyle="single">
+          <Text>Right</Text>
+        </Box>
+      </Box>,
+    )
+
+    const buffer = app.term.buffer
+
+    // The rightmost border character (col 39) should be ┐ on the top row
+    // If the border is clipped, col 39 will be empty/space
+    const topRight = buffer.getCell(cols - 1, 0).char
+    expect(topRight).toBe("┐")
+
+    // Bottom-right corner
+    const bottomRight = buffer.getCell(cols - 1, 2).char
+    expect(bottomRight).toBe("┘")
+
+    // Right border on content row
+    const midRight = buffer.getCell(cols - 1, 1).char
+    expect(midRight).toBe("│")
+
+    // Both boxes should have their right borders visible
+    // Left box right border should be at col 19 (width=20, so cols 0-19)
+    const leftBoxTopRight = buffer.getCell(19, 0).char
+    expect(leftBoxTopRight).toBe("┐")
+  })
+
+  test("two flexGrow bordered siblings fill exactly the terminal width", () => {
+    // Test at terminal edge — the root node fills the terminal width automatically
+    const cols = 80
+    const r = createRenderer({ cols, rows: 5 })
+    const app = r(
+      <Box flexDirection="row">
+        <Box flexGrow={1} borderStyle="single">
+          <Text>Panel A</Text>
+        </Box>
+        <Box flexGrow={1} borderStyle="single">
+          <Text>Panel B</Text>
+        </Box>
+      </Box>,
+    )
+
+    const buffer = app.term.buffer
+
+    // Last column should have right border of the second box
+    expect(buffer.getCell(cols - 1, 0).char).toBe("┐")
+    expect(buffer.getCell(cols - 1, 1).char).toBe("│")
+    expect(buffer.getCell(cols - 1, 2).char).toBe("┘")
+
+    // Total width should be exactly cols — no clipping, no overflow
+    // First box starts at 0
+    expect(buffer.getCell(0, 0).char).toBe("┌")
+
+    // Verify content is visible in both boxes
+    const text = stripAnsi(app.text)
+    expect(text).toContain("Panel A")
+    expect(text).toContain("Panel B")
+  })
 })

@@ -42,7 +42,7 @@ const log = createLogger("silvery:content")
 
 /** Cached bg conflict mode. Read from env once at module load. */
 let bgConflictMode: BgConflictMode = (() => {
-  const env = process.env.SILVERY_BG_CONFLICT?.toLowerCase()
+  const env = typeof process !== "undefined" ? process.env.SILVERY_BG_CONFLICT?.toLowerCase() : undefined
   if (env === "ignore" || env === "warn" || env === "throw") return env
   return "throw" // default - fail fast on programming errors
 })()

@@ -10,7 +10,6 @@
  * - Terminal capabilities profile (TerminalCaps)
  */
 
-import { spawnSync } from "child_process"
 import type { ColorLevel } from "./types"
 
 // =============================================================================
@@ -344,6 +343,9 @@ function detectMacOSDarkMode(): boolean {
   if (cachedMacOSDarkMode !== undefined) return cachedMacOSDarkMode
 
   try {
+    // Lazy import: child_process is Node.js-only and must not be loaded at
+    // module level so that browser bundles (canvas adapter) never pull it in.
+    const { spawnSync } = require("child_process") as typeof import("child_process")
     const result = spawnSync("defaults", ["read", "-g", "AppleInterfaceStyle"], {
       encoding: "utf-8",
       timeout: 500,
