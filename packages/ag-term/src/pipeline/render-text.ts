@@ -86,6 +86,8 @@ interface StyleContext {
   dim?: boolean
   italic?: boolean
   underline?: boolean
+  underlineStyle?: string | false
+  underlineColor?: string
   inverse?: boolean
   strikethrough?: boolean
 }
@@ -98,16 +100,16 @@ interface StyleContext {
  * to prevent bg bleed across wrapped text lines. See km-silvery.bg-bleed.
  */
 function styleToAnsi(style: StyleContext): string {
-  const codes: number[] = []
+  const parts: string[] = []
 
   // Foreground color - use parseColor directly instead of roundtripping through getTextStyle
   if (style.color) {
     const color = parseColor(style.color)
     if (color !== null) {
       if (typeof color === "number") {
-        codes.push(38, 5, color)
+        parts.push(`38;5;${color}`)
       } else {
-        codes.push(38, 2, color.r, color.g, color.b)
+        parts.push(`38;2;${color.r};${color.g};${color.b}`)
       }
     }
   }
@@ -117,18 +119,41 @@ function styleToAnsi(style: StyleContext): string {
   // bg color from bleeding across wrapped lines. See collectTextWithBg().
 
   // Attributes
-  if (style.bold) codes.push(1)
-  if (style.dim) codes.push(2)
-  if (style.italic) codes.push(3)
-  if (style.underline) codes.push(4)
-  if (style.inverse) codes.push(7)
-  if (style.strikethrough) codes.push(9)
+  if (style.bold) parts.push("1")
+  if (style.dim) parts.push("2")
+  if (style.italic) parts.push("3")
+  // Underline: prefer underlineStyle (SGR 4:x subparam) over boolean (SGR 4)
+  if (style.underlineStyle && style.underlineStyle !== false) {
+    const styleMap: Record<string, string> = {
+      single: "4:1",
+      double: "4:2",
+      curly: "4:3",
+      dotted: "4:4",
+      dashed: "4:5",
+    }
+    parts.push(styleMap[style.underlineStyle] ?? "4")
+  } else if (style.underline) {
+    parts.push("4")
+  }
+  // Underline color (SGR 58;5;N or 58;2;r;g;b)
+  if (style.underlineColor) {
+    const ulColor = parseColor(style.underlineColor)
+    if (ulColor !== null) {
+      if (typeof ulColor === "number") {
+        parts.push(`58;5;${ulColor}`)
+      } else {
+        parts.push(`58;2;${ulColor.r};${ulColor.g};${ulColor.b}`)
+      }
+    }
+  }
+  if (style.inverse) parts.push("7")
+  if (style.strikethrough) parts.push("9")
 
-  if (codes.length === 0) {
+  if (parts.length === 0) {
     return ""
   }
 
-  return `\x1b[${codes.join(";")}m`
+  return `\x1b[${parts.join(";")}m`
 }
 
 /**
@@ -142,7 +167,9 @@ function mergeStyleContext(parent: StyleContext, childProps: TextProps): StyleCo
     bold: childProps.bold ?? parent.bold,
     dim: childProps.dim ?? childProps.dimColor ?? parent.dim,
     italic: childProps.italic ?? parent.italic,
-    underline: childProps.underline ?? parent.underline,
+    underline: childProps.underline ?? (childProps as any).underlineStyle ? true : parent.underline,
+    underlineStyle: (childProps as any).underlineStyle ?? parent.underlineStyle,
+    underlineColor: (childProps as any).underlineColor ?? parent.underlineColor,
     inverse: childProps.inverse ?? parent.inverse,
     strikethrough: childProps.strikethrough ?? parent.strikethrough,
   }
