@@ -76,6 +76,7 @@
     "compat:chalk": "bun packages/ink/scripts/compat-check.ts chalk"
   },
   "dependencies": {
+    "@chenglou/pretext": "^0.0.3",
     "@silvery/commander": "workspace:*",
     "loggily": "github:beorn/loggily",
     "react-reconciler": "^0.33.0",

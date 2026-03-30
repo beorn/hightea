@@ -23,10 +23,10 @@ import {
   type CanvasAdapterConfig,
   CanvasRenderBuffer,
   createCanvasAdapter,
-  createCanvasPixelMeasurer,
 } from "@silvery/ag-term/adapters/canvas-adapter"
 import { runWithMeasurer } from "@silvery/ag-term/unicode"
 import type { Measurer } from "@silvery/ag-term/unicode"
+import { createPretextMeasurer } from "./pretext-measurer"
 import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
 import { setLayoutEngine } from "@silvery/ag-term/layout-engine"
 import { executeRenderAdapter } from "@silvery/ag-term/pipeline"
@@ -192,9 +192,14 @@ export function renderToCanvas(
   let cols = isProportional ? pixelWidth : Math.floor(pixelWidth / charWidth)
   let rows = isProportional ? pixelHeight : Math.floor(pixelHeight / lineHeight)
 
-  // Pipeline measurer for proportional mode (scoped via runWithMeasurer)
+  // Pipeline measurer for proportional mode (scoped via runWithMeasurer).
+  // Uses Pretext for accurate word-level measurement and Unicode line breaking.
   const pixelMeasurer: Measurer | undefined = isProportional
-    ? createCanvasPixelMeasurer({ fontSize, fontFamily: options.fontFamily ?? "monospace", lineHeight: lineHeightMultiplier })
+    ? createPretextMeasurer({
+        fontSize,
+        fontFamily: options.fontFamily ?? "monospace",
+        lineHeight: lineHeightMultiplier,
+      })
     : undefined
 
   // Cursor store for cursor position tracking
@@ -464,7 +469,11 @@ export function renderCanvasOnce(
   const rows = isProportional ? height : Math.floor(height / lineHeight)
 
   const onceMeasurer: Measurer | undefined = isProportional
-    ? createCanvasPixelMeasurer({ fontSize, fontFamily: options.fontFamily ?? "monospace", lineHeight: lineHeightMultiplier })
+    ? createPretextMeasurer({
+        fontSize,
+        fontFamily: options.fontFamily ?? "monospace",
+        lineHeight: lineHeightMultiplier,
+      })
     : undefined
 
   const container = createContainer(() => {})
