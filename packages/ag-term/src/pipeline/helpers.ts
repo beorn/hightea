@@ -3,6 +3,7 @@
  */
 
 import type { BoxProps } from "@silvery/ag/types"
+import { getActiveLineHeight } from "../unicode"
 
 /**
  * Get padding values from props.
@@ -23,6 +24,8 @@ export function getPadding(props: BoxProps): {
 
 /**
  * Get border size (1 or 0 for each side).
+ * In pixel/canvas mode (lineHeight > 1), borders are visual-only (fillRoundedRect)
+ * and don't affect content positioning — returns 0.
  */
 export function getBorderSize(props: BoxProps): {
   top: number
@@ -30,7 +33,7 @@ export function getBorderSize(props: BoxProps): {
   left: number
   right: number
 } {
-  if (!props.borderStyle) {
+  if (!props.borderStyle || getActiveLineHeight() > 1) {
     return { top: 0, bottom: 0, left: 0, right: 0 }
   }
   return {

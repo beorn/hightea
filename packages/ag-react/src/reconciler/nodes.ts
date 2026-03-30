@@ -467,9 +467,12 @@ export function applyBoxProps(layoutNode: LayoutNode, props: BoxProps, oldProps?
     layoutNode.setOverflow(c.OVERFLOW_VISIBLE)
   }
 
-  // Border (affects layout - 1 cell per border side)
+  // Border (affects layout - 1 cell per border side in terminal mode).
+  // In pixel/canvas mode (lineHeight > 1), borders are visual-only — drawn by
+  // fillRoundedRect, not layout-affecting box-drawing characters. Set width to 0
+  // so flexily doesn't steal space from content for invisible character borders.
   if (props.borderStyle) {
-    const borderWidth = 1
+    const borderWidth = getActiveLineHeight() > 1 ? 0 : 1
     if (props.borderTop !== false) {
       layoutNode.setBorder(c.EDGE_TOP, borderWidth)
     } else {

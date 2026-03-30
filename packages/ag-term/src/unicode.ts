@@ -775,6 +775,12 @@ function splitGraphemesAnsiAware(text: string): string[] {
  * @returns Array of wrapped lines
  */
 export function wrapText(text: string, width: number, preserveNewlines = true, trim = false): string[] {
+  // When a scoped measurer with its own wrapText is active (e.g., Pretext),
+  // delegate to it directly — it uses word-level measurement (layoutWithLines)
+  // rather than character-by-character accumulation via wrapTextWithMeasurer.
+  if (_scopedMeasurer?.wrapText) {
+    return _scopedMeasurer.wrapText(text, width, trim)
+  }
   return wrapTextWithMeasurer(text, width, _scopedMeasurer ?? undefined, trim, false, preserveNewlines)
 }
 
