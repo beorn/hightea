@@ -22,7 +22,7 @@ export interface PretextMeasurerConfig {
  * All measurements return pixel values.
  */
 export function createPretextMeasurer(config: PretextMeasurerConfig): Measurer {
-  const lineHeightPx = Math.ceil(config.fontSize * config.lineHeight)
+  const lineHeightPx = config.fontSize * config.lineHeight
   const font = `${config.fontSize}px ${config.fontFamily}`
 
   // Pretext caches internally, but we cache PreparedText per string for repeat calls

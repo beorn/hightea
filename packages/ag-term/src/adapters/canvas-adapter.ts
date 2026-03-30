@@ -126,7 +126,7 @@ function createCanvasMeasurer(config: Required<CanvasAdapterConfig>): TextMeasur
     }
   }
 
-  const lineHeightPx = Math.ceil(config.fontSize * config.lineHeight)
+  const lineHeightPx = config.fontSize * config.lineHeight
   const ctx = createMeasureContext(config.fontSize, config.fontFamily)
 
   return {
@@ -156,7 +156,7 @@ export interface CanvasPixelMeasurerConfig {
  */
 export function createCanvasPixelMeasurer(config: CanvasPixelMeasurerConfig): Measurer {
   const ctx = createMeasureContext(config.fontSize, config.fontFamily)
-  const lineHeightPx = Math.ceil(config.fontSize * config.lineHeight)
+  const lineHeightPx = config.fontSize * config.lineHeight
 
   // Simple cache with full eviction at capacity (5000 entries, mostly single graphemes)
   const cache = new Map<string, number>()
@@ -355,11 +355,21 @@ export class CanvasRenderBuffer implements RenderBuffer {
     const fontStyle = attrs.italic ? "italic" : "normal"
     this.ctx.font = `${fontStyle} ${weight} ${this.config.fontSize}px ${this.config.fontFamily}`
 
-    const py = y * this.cellHeight
+    let py = y * this.cellHeight
 
     // Set colors
     this.ctx.fillStyle = resolveColor(style.fg, this.config.foregroundColor)
-    this.ctx.textBaseline = "top"
+
+    if (!this.config.monospace) {
+      // Proportional mode: match CSS line-height centering.
+      // CSS centers the font's content area within the line box (half-leading).
+      // Canvas textBaseline="middle" at lineBox center achieves the same result.
+      const lineHeightPx = this.config.fontSize * this.config.lineHeight
+      this.ctx.textBaseline = "middle"
+      py += lineHeightPx / 2
+    } else {
+      this.ctx.textBaseline = "top"
+    }
 
     // Draw text
     this.ctx.fillText(text, px, py)

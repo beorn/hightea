@@ -92,7 +92,19 @@ function renderDom(container: HTMLElement, width: number) {
 // Canvas (Silvery) renderer
 // ============================================================================
 
-function ChatBubble({ text, isUser, name, time, maxBubbleWidth }: { text: string; isUser: boolean; name: string; time: string; maxBubbleWidth: number }) {
+function ChatBubble({
+  text,
+  isUser,
+  name,
+  time,
+  maxBubbleWidth,
+}: {
+  text: string
+  isUser: boolean
+  name: string
+  time: string
+  maxBubbleWidth: number
+}) {
   return (
     <Box flexDirection="column" alignItems={isUser ? "flex-end" : "flex-start"} marginTop={12}>
       <Box
@@ -128,7 +140,14 @@ function ChatApp({ width }: { width: number }) {
       {/* Chat area with padding */}
       <Box flexDirection="column" paddingX={16} paddingTop={4} paddingBottom={12}>
         {messages.map((msg, i) => (
-          <ChatBubble key={i} isUser={msg.role === "user"} name={msg.name} time={msg.time} text={msg.text} maxBubbleWidth={maxBubbleWidth} />
+          <ChatBubble
+            key={i}
+            isUser={msg.role === "user"}
+            name={msg.name}
+            time={msg.time}
+            text={msg.text}
+            maxBubbleWidth={maxBubbleWidth}
+          />
         ))}
         <Box marginTop={16} backgroundColor="#1f6feb22" paddingX={10} paddingY={8}>
           <Text color="#58a6ff" wrap="wrap">
