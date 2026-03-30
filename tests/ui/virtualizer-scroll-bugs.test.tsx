@@ -21,11 +21,7 @@ import { describe, test, expect, beforeEach } from "vitest"
 // Import the internal helpers we need to test.
 // The hook itself is hard to test without React, but the helper functions
 // and the hook's computation logic can be verified by simulating state.
-import {
-  calcAverageHeight,
-  getHeight,
-  sumHeights,
-} from "../../packages/ag-react/src/hooks/useVirtualizer"
+import { calcAverageHeight, getHeight, sumHeights } from "../../packages/ag-react/src/hooks/useVirtualizer"
 
 // ============================================================================
 // Bug 1: getHeight / sumHeights for unmeasured items should use measured avg

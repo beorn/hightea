@@ -67,8 +67,9 @@ function App() {
 // Mount to canvas after fonts load
 document.fonts.ready.then(() => {
   const canvas = document.getElementById("canvas") as HTMLCanvasElement
-  if (canvas) {
-    renderToCanvas(<App />, canvas, {
+  if (!canvas) return
+  try {
+    const instance = renderToCanvas(<App />, canvas, {
       monospace: false,
       fontSize: 14,
       fontFamily: '"Inter", "SF Pro Text", system-ui, sans-serif',
@@ -76,5 +77,17 @@ document.fonts.ready.then(() => {
       backgroundColor: "#0d1117",
       foregroundColor: "#e6edf3",
     })
+    console.log("renderToCanvas succeeded, buffer:", instance.getBuffer())
+
+    // Debug: draw directly on canvas to verify it's visible
+    const ctx = canvas.getContext("2d")!
+    ctx.fillStyle = "#ff0000"
+    ctx.fillRect(10, 10, 100, 30)
+    ctx.fillStyle = "#ffffff"
+    ctx.font = '14px Inter'
+    ctx.fillText("DEBUG: canvas works", 15, 30)
+  } catch (e) {
+    console.error("renderToCanvas failed:", e)
+    document.body.innerHTML += `<pre style="color:red;margin:20px">${e}\n${(e as Error).stack}</pre>`
   }
 })
