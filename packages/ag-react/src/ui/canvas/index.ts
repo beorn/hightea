@@ -402,6 +402,8 @@ export function renderToCanvas(
     if (ctx && currentBuffer instanceof CanvasRenderBuffer) {
       // Reset transform — buffer is already at native resolution, copy 1:1
       ctx.setTransform(1, 0, 0, 1, 0, 0)
+      // Clear previous frame (prevents stale content when render shrinks)
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
       ctx.drawImage(currentBuffer.canvas, 0, 0)
 
       // Render cursor on canvas (inverse block at cursor position)
