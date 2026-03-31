@@ -39,7 +39,7 @@ export default defineConfig({
     ],
     ["meta", { property: "og:type", content: "website" }],
     ["meta", { property: "og:site_name", content: "Silvery" }],
-    ["meta", { property: "og:image", content: "https://silvery.dev/og-image.png" }],
+    ["meta", { property: "og:image", content: "https://silvery.dev/og-image.svg" }],
     ["meta", { name: "twitter:card", content: "summary" }],
     [
       "script",
