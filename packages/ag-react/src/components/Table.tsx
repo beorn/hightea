@@ -83,9 +83,16 @@ export function Table<T>({
 
   const renderCell = (col: Column<T>, item: T, index: number, width: number) => {
     const rendered = col.render ? col.render(item, index) : null
-    const content = rendered != null
-      ? (typeof rendered === "string" ? <Text>{rendered}</Text> : rendered)
-      : <Text>{String((col.key ? item[col.key] : "") ?? "")}</Text>
+    const content =
+      rendered != null ? (
+        typeof rendered === "string" ? (
+          <Text>{rendered}</Text>
+        ) : (
+          rendered
+        )
+      ) : (
+        <Text>{String((col.key ? item[col.key] : "") ?? "")}</Text>
+      )
 
     return col.grow ? (
       <Box key={col.header} flexGrow={1} justifyContent={col.align === "right" ? "flex-end" : undefined}>

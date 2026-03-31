@@ -80,6 +80,9 @@ export interface Key {
   numLock: boolean
   /** Kitty event type. Only set with Kitty flag 2 (report events). */
   eventType?: "press" | "repeat" | "release"
+  /** The actual text character typed (pre-normalization). For text insertion,
+   *  use this instead of the normalized `input` which maps shifted chars to base keys. */
+  text?: string
 }
 
 /**
@@ -1031,6 +1034,12 @@ export function parseKey(rawInput: string | Buffer): [string, Key] {
         input = ""
       }
     }
+  }
+
+  // Preserve the actual typed character before normalization.
+  // Text insertion needs the real character ('#'), not the base key ('3').
+  if (input.length >= 1) {
+    key.text = input
   }
 
   // Legacy terminals: normalize shifted punctuation → base key + shift

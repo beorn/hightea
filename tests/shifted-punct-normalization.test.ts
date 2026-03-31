@@ -106,6 +106,28 @@ describe("shifted punctuation normalization", () => {
     })
   })
 
+  describe("key.text preserves original character before normalization", () => {
+    for (const [shifted, base] of SHIFTED_PAIRS) {
+      test(`'${shifted}' has text='${shifted}' even though input='${base}'`, () => {
+        const [input, key] = parseKey(shifted)
+        expect(input).toBe(base)
+        expect(key.text).toBe(shifted)
+      })
+    }
+
+    test("base characters have text equal to input", () => {
+      const [input, key] = parseKey("a")
+      expect(input).toBe("a")
+      expect(key.text).toBe("a")
+    })
+
+    test("uppercase letters preserve text", () => {
+      const [input, key] = parseKey("A")
+      expect(input).toBe("A")
+      expect(key.text).toBe("A")
+    })
+  })
+
   describe("does not affect non-punctuation", () => {
     test("lowercase letters are unaffected", () => {
       const [input, key] = parseKey("a")
