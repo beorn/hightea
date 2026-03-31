@@ -6,7 +6,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
     <style>
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
         background: #0d1117;
@@ -27,15 +29,38 @@
         gap: 10px;
         border: 1px solid #21262d;
       }
-      .controls label { color: #8b949e; font-size: 12px; white-space: nowrap; }
-      .controls input[type="range"] { flex: 1; accent-color: #1f6feb; }
-      .controls .value { color: #e6edf3; font-size: 12px; font-variant-numeric: tabular-nums; min-width: 40px; text-align: right; }
-      .controls button {
-        background: #21262d; color: #e6edf3; border: 1px solid #30363d;
-        padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer;
+      .controls label {
+        color: #8b949e;
+        font-size: 12px;
+        white-space: nowrap;
       }
-      .controls button:hover { background: #30363d; }
-      .controls button.active { background: #1f6feb; border-color: #1f6feb; }
+      .controls input[type="range"] {
+        flex: 1;
+        accent-color: #1f6feb;
+      }
+      .controls .value {
+        color: #e6edf3;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        min-width: 40px;
+        text-align: right;
+      }
+      .controls button {
+        background: #21262d;
+        color: #e6edf3;
+        border: 1px solid #30363d;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        cursor: pointer;
+      }
+      .controls button:hover {
+        background: #30363d;
+      }
+      .controls button.active {
+        background: #1f6feb;
+        border-color: #1f6feb;
+      }
 
       .viewport {
         position: relative;
@@ -44,12 +69,15 @@
         border-radius: 8px;
         overflow: hidden;
       }
-      canvas { display: block; }
+      canvas {
+        display: block;
+      }
 
       /* Hidden DOM reference — same styles as Canvas component */
       #dom-ref {
         position: absolute;
-        top: 0; left: 0;
+        top: 0;
+        left: 0;
         pointer-events: none;
         font-family: "Inter", "SF Pro Text", system-ui, sans-serif;
         font-size: 14px;
@@ -73,14 +101,20 @@
         display: flex;
         justify-content: space-between;
       }
-      #dom-ref .title-bar .title { font-weight: 600; }
+      #dom-ref .title-bar .title {
+        font-weight: 600;
+      }
       #dom-ref .bubble-group {
         display: flex;
         flex-direction: column;
         margin-top: 12px;
       }
-      #dom-ref .bubble-group.user { align-items: flex-end; }
-      #dom-ref .bubble-group.bot { align-items: flex-start; }
+      #dom-ref .bubble-group.user {
+        align-items: flex-end;
+      }
+      #dom-ref .bubble-group.bot {
+        align-items: flex-start;
+      }
       #dom-ref .bubble {
         padding: 8px 12px;
         border-radius: 14px;
@@ -98,7 +132,8 @@
       /* Overlay canvas for drawing red outlines */
       #overlay {
         position: absolute;
-        top: 0; left: 0;
+        top: 0;
+        left: 0;
         pointer-events: none;
       }
 
@@ -121,8 +156,12 @@
         padding: 4px 8px;
         border: 1px solid #21262d;
       }
-      #diff-table tr.mismatch td { background: #3b1219; }
-      #diff-table tr.ok td { background: #0d1117; }
+      #diff-table tr.mismatch td {
+        background: #3b1219;
+      }
+      #diff-table tr.ok td {
+        background: #0d1117;
+      }
     </style>
   </head>
   <body>
@@ -130,8 +169,10 @@
       <label>Width</label>
       <input type="range" id="width-slider" min="280" max="600" value="420" step="1" />
       <span class="value" id="width-value">420px</span>
-      <button id="btn-overlay" class="active">Overlay</button>
+      <button id="btn-overlay" class="active">DOM rects</button>
+      <button id="btn-canvas">Canvas rects</button>
       <button id="btn-dom">DOM text</button>
+      <button id="btn-measurer">Pretext</button>
     </div>
 
     <div class="viewport" id="viewport">
@@ -143,8 +184,7 @@
     <table id="diff-table">
       <thead>
         <tr>
-          <th>#</th>
-          <th>Text</th>
+          <th>Label</th>
           <th>DOM w</th>
           <th>Canvas w</th>
           <th>&Delta;w</th>

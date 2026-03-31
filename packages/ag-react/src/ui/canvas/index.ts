@@ -117,6 +117,8 @@ export interface CanvasInstance {
   [Symbol.dispose](): void
   /** Get the current buffer */
   getBuffer: () => RenderBuffer | null
+  /** Get the ag tree root node (for diagnostics, tree walking) */
+  getRoot: () => import("@silvery/ag").AgNode | null
   /** Force a re-render */
   refresh: () => void
   /** Resize the canvas and re-render */
@@ -140,9 +142,10 @@ function computeDimensions(pixelWidth: number, pixelHeight: number, options: Can
   const fontFamily = options.fontFamily ?? "monospace"
   let measurer: (Measurer & { dispose?: () => void }) | undefined
   if (isProportional) {
-    measurer = measurerType === "dom"
-      ? createDomMeasurer({ fontSize, fontFamily, lineHeight: lineHeightMultiplier })
-      : createPretextMeasurer({ fontSize, fontFamily, lineHeight: lineHeightMultiplier })
+    measurer =
+      measurerType === "dom"
+        ? createDomMeasurer({ fontSize, fontFamily, lineHeight: lineHeightMultiplier })
+        : createPretextMeasurer({ fontSize, fontFamily, lineHeight: lineHeightMultiplier })
   }
   return { fontSize, lineHeightMultiplier, isProportional, charWidth, lineHeight, cols, rows, measurer }
 }
@@ -448,6 +451,10 @@ export function renderToCanvas(
 
     getBuffer(): RenderBuffer | null {
       return currentBuffer
+    },
+
+    getRoot() {
+      return root
     },
 
     refresh(): void {
