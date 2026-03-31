@@ -245,6 +245,10 @@ function extractCanvasRects(root: AgNode): Map<string, LabeledRect> {
   const textNodes: { node: AgNode; text: string }[] = []
   collectTextNodes(root, textNodes)
 
+  // Track matched indices to handle duplicate texts (e.g., multiple "You · 2:43 PM")
+  const matchedBubbleIndices = new Set<number>()
+  const matchedMetaIndices = new Set<number>()
+
   /** Get the best available rect for a node — try the node first, fall back to parent Box. */
   function getRect(node: AgNode): LabeledRect | null {
     // Try the node's own rect
@@ -287,8 +291,9 @@ function extractCanvasRects(root: AgNode): Map<string, LabeledRect> {
     }
 
     // Bubble text — use the bubble container (ancestor Box with backgroundColor)
-    const bubbleIdx = BUBBLE_TEXTS.findIndex((t) => trimmed === t)
+    const bubbleIdx = BUBBLE_TEXTS.findIndex((t, i) => trimmed === t && !matchedBubbleIndices.has(i))
     if (bubbleIdx >= 0) {
+      matchedBubbleIndices.add(bubbleIdx)
       const bubbleBox = findAncestorWithBg(node)
       if (bubbleBox) {
         const rect = bubbleBox.screenRect ?? bubbleBox.contentRect
@@ -298,8 +303,9 @@ function extractCanvasRects(root: AgNode): Map<string, LabeledRect> {
     }
 
     // Meta text — use parent or own rect
-    const metaIdx = META_TEXTS.findIndex((t) => trimmed === t)
+    const metaIdx = META_TEXTS.findIndex((t, i) => trimmed === t && !matchedMetaIndices.has(i))
     if (metaIdx >= 0) {
+      matchedMetaIndices.add(metaIdx)
       const r = getRect(node)
       if (r) rects.set(`meta-${metaIdx}`, { ...r, label: `meta-${metaIdx}` })
       continue
@@ -403,6 +409,12 @@ function render(width: number) {
   const allLabels = new Set([...domRects.keys(), ...canvasRects.keys()])
   const sortedLabels = [...allLabels].sort()
 
+  let maxDw = 0,
+    maxDh = 0,
+    maxDy = 0,
+    matchCount = 0,
+    mismatchCount = 0
+
   for (const label of sortedLabels) {
     const dom = domRects.get(label)
     const cvs = canvasRects.get(label)
@@ -413,7 +425,13 @@ function render(width: number) {
     const domLines = dom ? estimateLineCount(dom, LINE_HEIGHT) : NaN
     const cvsLines = cvs ? estimateLineCount(new DOMRect(0, 0, cvs.width, cvs.height), LINE_HEIGHT) : NaN
 
+    if (!isNaN(dw)) maxDw = Math.max(maxDw, dw)
+    if (!isNaN(dh)) maxDh = Math.max(maxDh, dh)
+    if (!isNaN(dy)) maxDy = Math.max(maxDy, dy)
+
     const hasMismatch = dw > 2 || dh > 2 || dy > 2
+    if (hasMismatch) mismatchCount++
+    else if (dom && cvs) matchCount++
 
     const tr = document.createElement("tr")
     tr.className = hasMismatch ? "mismatch" : "ok"
@@ -433,6 +451,22 @@ function render(width: number) {
     `
     tbody.appendChild(tr)
   }
+
+  // Summary row
+  const summary = document.createElement("tr")
+  summary.style.borderTop = "2px solid #30363d"
+  summary.style.fontWeight = "bold"
+  summary.innerHTML = `
+    <td>${matchCount} ok / ${mismatchCount} mismatch</td>
+    <td colspan="2"></td>
+    <td>${maxDw.toFixed(1)}</td>
+    <td colspan="2"></td>
+    <td>${maxDh.toFixed(1)}</td>
+    <td colspan="2"></td>
+    <td>${maxDy.toFixed(1)}</td>
+    <td colspan="2">max deltas</td>
+  `
+  tbody.appendChild(summary)
 }
 
 // ============================================================================
