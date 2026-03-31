@@ -255,7 +255,7 @@ export function createCanvasInput(config: CanvasInputConfig): CanvasInputInstanc
   }
 
   function onMouseMove(e: MouseEvent): void {
-    if (disposed || !mouseDown) return
+    if (disposed) return
     const { col, row } = pixelToCell(e.clientX, e.clientY)
     const { pixelX, pixelY } = pixelRelative(e)
     onMouse?.({ type: "mousemove", col, row, pixelX, pixelY, button: e.button })
