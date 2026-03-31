@@ -27,7 +27,7 @@ function render(element: ReactElement, term?: Term, options?: RenderOptions): Re
 | Option            | Type      | Default | Description                                             |
 | ----------------- | --------- | ------- | ------------------------------------------------------- |
 | `exitOnCtrlC`     | `boolean` | `true`  | Exit the app when Ctrl+C is pressed                     |
-| `patchConsole`    | `boolean` | `true`  | Patch console methods to work with Silvery output       |
+| `patchConsole`    | `boolean` | `true`  | Patch `console.*` methods to work with Silvery output   |
 | `debug`           | `boolean` | `false` | Enable verbose debug logging                            |
 | `alternateScreen` | `boolean` | `false` | Use alternate screen buffer (restores terminal on exit) |
 
@@ -201,5 +201,5 @@ const instance2 = renderSync(<Text>Ready!</Text>, term)
 - The `term` parameter is optional — without it, Silvery creates a default term internally
 - Use `using term = createTerm()` for automatic cleanup with explicit resource management
 - Use `alternateScreen: true` for full-screen apps to restore terminal state on exit
-- The `patchConsole` option prevents console output from corrupting the UI
+- `patchConsole` patches `console.*` methods. In alt screen mode, silvery also intercepts `process.stdout.write` and `process.stderr.write` directly (output guard) — this catches loggily, direct writes, and any dependency output that would corrupt the display. Stderr is redirected to `DEBUG_LOG` if set
 - Components can access the term via `useTerm()` hook
