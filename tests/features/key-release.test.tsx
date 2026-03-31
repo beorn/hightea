@@ -240,13 +240,14 @@ describe("modifier-only key filtering", () => {
     const app = render(<App />)
 
     // REPORT_ALL_KEYS sends Shift+z as: codepoint 122 ('z'), modifier 2 (shift+1)
-    // This is how real terminals encode it — input should be "Z" (uppercase)
+    // Kitty protocol: shifted letters get uppercase input to match legacy terminal behavior,
+    // since many components check `input === "G"` directly.
     app.stdin.write("\x1b[122;2u")
     await Promise.resolve()
 
     expect(handler).toHaveBeenCalledOnce()
     const [input, key] = handler.mock.calls[0]!
-    expect(input).toBe("Z") // Must be uppercase, not lowercase "z"
+    expect(input).toBe("Z") // Uppercase — matches legacy terminal behavior
     expect(key.shift).toBe(true)
   })
 

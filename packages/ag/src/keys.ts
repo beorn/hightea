@@ -1010,9 +1010,20 @@ export function parseKey(rawInput: string | Buffer): [string, Key] {
   let input: string
 
   if (keypress.isKittyProtocol) {
-    // Kitty protocol: use text field for printable keys, key name for ctrl+letter
+    // Kitty protocol: use base key name for keybinding resolution.
+    // key.text (set by parseKeypress) has the shifted character for text insertion,
+    // but input must be the base key so keybindings like "shift-/" match correctly.
+    //
+    // Exception: shifted letters get uppercase input to match legacy terminal behavior
+    // (legacy terminals send "G" for Shift+g). This matters because many components
+    // check `input === "G"` directly. The km command system normalizes via keyToString
+    // so uppercase vs lowercase doesn't affect keybinding resolution for letters.
     if (keypress.isPrintable) {
-      input = keypress.text ?? keypress.name
+      if (keypress.shift && keypress.name.length === 1 && keypress.name >= "a" && keypress.name <= "z") {
+        input = keypress.name.toUpperCase()
+      } else {
+        input = keypress.name
+      }
     } else if (keypress.ctrl && keypress.name.length === 1) {
       // Ctrl+letter via codepoint 1-26: provide the letter name so handlers
       // (e.g., exitOnCtrlC checking input === 'c' && key.ctrl) still work.
@@ -1046,9 +1057,12 @@ export function parseKey(rawInput: string | Buffer): [string, Key] {
     }
   }
 
-  // Preserve the actual typed character before normalization.
-  // Text insertion needs the real character ('#'), not the base key ('3').
-  if (input.length >= 1) {
+  // Preserve the actual typed character for text insertion.
+  // For Kitty: keypress.text has the shifted char ('?' for Shift+/), input has the base key ('/').
+  // For legacy: input has the shifted char ('#' for Shift+3), which gets normalized below.
+  if (keypress.isKittyProtocol) {
+    key.text = keypress.text ?? input
+  } else if (input.length >= 1) {
     key.text = input
   }
 
@@ -1226,8 +1240,13 @@ export function matchHotkey(hotkey: ParsedHotkey, key: Key, input?: string): boo
   const name = keyToName(key)
   if (name && name === hotkey.key) return true
 
-  // Check against input string
+  // Check against input string (base key for keybinding resolution)
   if (input !== undefined && input === hotkey.key) return true
+
+  // Check against key.text (actual typed character for text insertion).
+  // Kitty protocol: input is the base key ("1") but key.text is the shifted char ("!").
+  // Character hotkeys like "!" should match against key.text so they work across protocols.
+  if (key.text !== undefined && key.text === hotkey.key) return true
 
   return false
 }

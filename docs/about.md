@@ -30,4 +30,4 @@ Silvery is part of a suite of terminal development tools:
 
 ## Built By
 
-Created by [Bjorn Stabell](https://beorn.codes), serial entrepreneur and open-source developer. Silvery grew out of building [km](https://github.com/beorn/km), a workspace for agentic knowledge workers.
+Created by [Bjørn Stabell](https://beorn.codes), serial entrepreneur and open-source developer. Silvery grew out of building AI-powered productivity tools and discovering that existing terminal frameworks couldn't keep up with the demands of modern, interactive applications.
