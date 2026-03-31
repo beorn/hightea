@@ -81,28 +81,59 @@ describe("shifted punctuation normalization", () => {
     }
   })
 
-  describe("Kitty protocol: already sends base + shift, no double-normalization", () => {
-    // Kitty CSI u format: ESC [ codepoint ; modifiers u
+  describe("Kitty protocol with shifted_codepoint: base + shift, correct text", () => {
+    // Kitty CSI u format with shifted_codepoint: ESC [ codepoint:shifted ; modifiers u
     // modifier 2 = shift
-    test("Kitty shift+/ sends base codepoint 47 + shift modifier", () => {
-      const seq = "\x1b[47;2u" // codepoint 47 = '/', modifier 2 = shift
+    test("Kitty shift+/ with shifted_codepoint sends input='?' text='?'", () => {
+      const seq = "\x1b[47:63;2u" // codepoint 47='/', shifted 63='?', modifier 2=shift
       const [input, key] = parseKey(seq)
-      expect(input).toBe("/")
+      expect(input).toBe("?")
       expect(key.shift).toBe(true)
+      expect(key.text).toBe("?")
     })
 
-    test("Kitty shift+; sends base codepoint 59 + shift modifier", () => {
-      const seq = "\x1b[59;2u" // codepoint 59 = ';', modifier 2 = shift
+    test("Kitty shift+; with shifted_codepoint sends input=':' text=':'", () => {
+      const seq = "\x1b[59:58;2u" // codepoint 59=';', shifted 58=':', modifier 2=shift
       const [input, key] = parseKey(seq)
-      expect(input).toBe(";")
+      expect(input).toBe(":")
       expect(key.shift).toBe(true)
+      expect(key.text).toBe(":")
     })
 
-    test("Kitty shift+1 sends base codepoint 49 + shift modifier", () => {
-      const seq = "\x1b[49;2u" // codepoint 49 = '1', modifier 2 = shift
+    test("Kitty shift+1 with shifted_codepoint sends input='!' text='!'", () => {
+      const seq = "\x1b[49:33;2u" // codepoint 49='1', shifted 33='!', modifier 2=shift
       const [input, key] = parseKey(seq)
-      expect(input).toBe("1")
+      expect(input).toBe("!")
       expect(key.shift).toBe(true)
+      expect(key.text).toBe("!")
+    })
+  })
+
+  describe("Kitty protocol WITHOUT shifted_codepoint: fallback to US QWERTY", () => {
+    // When terminal uses DISAMBIGUATE-only (no REPORT_ALL_KEYS), shifted_codepoint
+    // is missing. Silvery uses US QWERTY fallback to recover the shifted character.
+    test("Kitty shift+/ without shifted_codepoint falls back to '?'", () => {
+      const seq = "\x1b[47;2u" // codepoint 47='/', modifier 2=shift, NO shifted_codepoint
+      const [input, key] = parseKey(seq)
+      expect(input).toBe("?")
+      expect(key.shift).toBe(true)
+      expect(key.text).toBe("?")
+    })
+
+    test("Kitty shift+; without shifted_codepoint falls back to ':'", () => {
+      const seq = "\x1b[59;2u"
+      const [input, key] = parseKey(seq)
+      expect(input).toBe(":")
+      expect(key.shift).toBe(true)
+      expect(key.text).toBe(":")
+    })
+
+    test("Kitty shift+1 without shifted_codepoint falls back to '!'", () => {
+      const seq = "\x1b[49;2u"
+      const [input, key] = parseKey(seq)
+      expect(input).toBe("!")
+      expect(key.shift).toBe(true)
+      expect(key.text).toBe("!")
     })
   })
 

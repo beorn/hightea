@@ -161,14 +161,17 @@ export function useTextInput(
         return
       }
 
-      // Ignore control characters
-      if (key.ctrl || key.meta || !input) {
+      // Ignore control characters (but allow opt+key composed chars via key.text)
+      if (key.ctrl || !input) {
         return
       }
 
-      // Insert character at cursor position
-      setValue((v) => v.slice(0, cursorPosition) + input + v.slice(cursorPosition))
-      setCursorPosition((p) => p + input.length)
+      // Insert the actual typed character (pre-normalization), not the keybinding key.
+      // E.g., Shift+3 should insert '#', not '3'.
+      const char = key.text ?? input
+      if (key.meta && !char) return // opt+key with no text output
+      setValue((v) => v.slice(0, cursorPosition) + char + v.slice(cursorPosition))
+      setCursorPosition((p) => p + char.length)
     },
     [value, cursorPosition, options.onSubmit],
   )

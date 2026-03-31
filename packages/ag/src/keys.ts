@@ -3,6 +3,21 @@
  *
  * Single source of truth for all key parsing, mapping, and matching in silvery.
  *
+ * ## Two-Layer Input Architecture
+ *
+ * parseKey() returns `[input, key]` where these serve DIFFERENT purposes:
+ *
+ * - `input` is **normalized for keybinding matching**. Shifted punctuation is
+ *   decomposed: '#' becomes input='3' with key.shift=true, so keybindings
+ *   like 'shift-3' can match. Uppercase letters become lowercase + shift.
+ *
+ * - `key.text` is the **actual typed character** (pre-normalization). For text
+ *   insertion, always use `key.text ?? input` — this ensures Shift+3 inserts
+ *   '#', opt+e inserts '´', and IME output inserts the composed string.
+ *
+ * Rule: keybinding resolution uses `input`. Text insertion uses `key.text`.
+ * Never reconstruct characters from key codes — trust what the terminal sent.
+ *
  * - KEY_MAP: Playwright key names -> ANSI sequences (for sending input)
  * - CODE_TO_KEY: ANSI escape suffixes -> key names (for parsing input)
  * - Key interface: structured key object with boolean flags
@@ -907,16 +922,11 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
           //
           // See: https://terminfo.dev/extensions/kitty-keyboard-report-all-keys
           //      https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement
-          if (!_shiftWarningEmitted) {
-            _shiftWarningEmitted = true
-            log.warn(
-              "Kitty keyboard protocol: Shift+key received without shifted_codepoint. " +
-                "Shifted punctuation will produce wrong characters (e.g., '1' instead of '!'). " +
-                "Enable REPORT_ALL_KEYS (flag 8) when requesting the Kitty keyboard protocol. " +
-                "See: https://terminfo.dev/extensions/kitty-keyboard-report-all-keys",
-            )
-          }
-          key.text = safeFromCodePoint(codepoint)
+          // Best-effort recovery: use US QWERTY shifted punct map as fallback.
+          // Not perfect for non-US layouts, but better than inserting '1' for '#'.
+          const baseChar = safeFromCodePoint(codepoint)
+          const shifted = BASE_TO_SHIFTED_PUNCT[baseChar]
+          key.text = shifted ?? baseChar
         } else {
           key.text = safeFromCodePoint(codepoint)
         }
@@ -1348,6 +1358,19 @@ export function keyToKittyAnsi(key: string): string {
   if (mainKey.length === 1) {
     const codepoint = mainKey.charCodeAt(0)
     if (mod > 0) {
+      // Include shifted_codepoint for Shift+key so parseKey can recover the actual character.
+      // Format: CSI codepoint:shifted_codepoint;modifiers u
+      if ((mod & 1) !== 0) {
+        // Shift is held — check if there's a shifted character to include
+        const shifted = BASE_TO_SHIFTED_PUNCT[mainKey]
+        if (shifted) {
+          return `\x1b[${codepoint}:${shifted.charCodeAt(0)};${mod + 1}u`
+        }
+        // Shift+letter: include uppercase codepoint
+        if (codepoint >= 97 && codepoint <= 122) {
+          return `\x1b[${codepoint}:${codepoint - 32};${mod + 1}u`
+        }
+      }
       return `\x1b[${codepoint};${mod + 1}u`
     }
     return `\x1b[${codepoint}u`

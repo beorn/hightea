@@ -239,10 +239,13 @@ export function handleReadlineKey(
   // Regular Character Input
   // =========================================================================
 
-  if (input.length >= 1 && input >= " ") {
+  // Use the actual typed character (key.text) when available, not the normalized
+  // keybinding key. E.g., Shift+3 sends '#' but input is normalized to '3'.
+  const char = key.text ?? input
+  if (char.length >= 1 && char >= " ") {
     return {
-      value: value.slice(0, cursor) + input + value.slice(cursor),
-      cursor: cursor + input.length,
+      value: value.slice(0, cursor) + char + value.slice(cursor),
+      cursor: cursor + char.length,
       yankState: null,
     }
   }

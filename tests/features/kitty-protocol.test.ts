@@ -702,36 +702,54 @@ describe("keyToKittyAnsi", () => {
 // ============================================================================
 
 describe("kitty protocol - shifted punctuation", () => {
-  test("Shift+1 produces text '!' via shifted_codepoint", () => {
-    // Kitty sends: codepoint=49('1'), shifted=33('!'), modifier=2(shift)
-    const result = parseKeypress(kittyKey(49, 2, undefined, undefined, 33))
-    expect(result.shift).toBe(true)
-    expect(result.shiftedKey).toBe("!")
-    expect(result.text).toBe("!")
+  // All US QWERTY shifted punctuation: [baseChar, shiftedChar, baseCodepoint, shiftedCodepoint]
+  const ALL_SHIFTED_PUNCT: [string, string, number, number][] = [
+    ["1", "!", 49, 33],
+    ["2", "@", 50, 64],
+    ["3", "#", 51, 35],
+    ["4", "$", 52, 36],
+    ["5", "%", 53, 37],
+    ["6", "^", 54, 94],
+    ["7", "&", 55, 38],
+    ["8", "*", 56, 42],
+    ["9", "(", 57, 40],
+    ["0", ")", 48, 41],
+    ["-", "_", 45, 95],
+    ["=", "+", 61, 43],
+    ["`", "~", 96, 126],
+    ["[", "{", 91, 123],
+    ["]", "}", 93, 125],
+    ["\\", "|", 92, 124],
+    [";", ":", 59, 58],
+    ["'", '"', 39, 34],
+    [",", "<", 44, 60],
+    [".", ">", 46, 62],
+    ["/", "?", 47, 63],
+  ]
+
+  describe("all 21 shifted punct via shifted_codepoint", () => {
+    for (const [base, shifted, baseCp, shiftedCp] of ALL_SHIFTED_PUNCT) {
+      test(`Shift+${base} → text='${shifted}' via shifted_codepoint`, () => {
+        const result = parseKeypress(kittyKey(baseCp, 2, undefined, undefined, shiftedCp))
+        expect(result.shift).toBe(true)
+        expect(result.shiftedKey).toBe(shifted)
+        expect(result.text).toBe(shifted)
+      })
+    }
   })
 
-  test("Shift+; produces text ':' via shifted_codepoint", () => {
-    // codepoint=59(';'), shifted=58(':'), modifier=2(shift)
-    const result = parseKeypress(kittyKey(59, 2, undefined, undefined, 58))
-    expect(result.shift).toBe(true)
-    expect(result.shiftedKey).toBe(":")
-    expect(result.text).toBe(":")
-  })
-
-  test("Shift+' produces text '\"' via shifted_codepoint", () => {
-    // codepoint=39("'"), shifted=34('"'), modifier=2(shift)
-    const result = parseKeypress(kittyKey(39, 2, undefined, undefined, 34))
-    expect(result.shift).toBe(true)
-    expect(result.shiftedKey).toBe('"')
-    expect(result.text).toBe('"')
-  })
-
-  test("Shift+= produces text '+' via shifted_codepoint", () => {
-    // codepoint=61('='), shifted=43('+'), modifier=2(shift)
-    const result = parseKeypress(kittyKey(61, 2, undefined, undefined, 43))
-    expect(result.shift).toBe(true)
-    expect(result.shiftedKey).toBe("+")
-    expect(result.text).toBe("+")
+  describe("all 21 shifted punct WITHOUT shifted_codepoint (DISAMBIGUATE-only fallback)", () => {
+    for (const [base, shifted, baseCp] of ALL_SHIFTED_PUNCT) {
+      test(`Shift+${base} → fallback text='${shifted}' without shifted_codepoint`, () => {
+        _resetShiftWarning()
+        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+        const result = parseKeypress(kittyKey(baseCp, 2))
+        expect(result.shift).toBe(true)
+        // Without shifted_codepoint, the fallback uses US QWERTY map
+        expect(result.text).toBe(shifted)
+        warnSpy.mockRestore()
+      })
+    }
   })
 
   test("explicit text_as_codepoints takes precedence over shifted_codepoint", () => {
@@ -741,16 +759,16 @@ describe("kitty protocol - shifted punctuation", () => {
     expect(result.associatedText).toBe("!")
   })
 
-  test("shift without shifted_codepoint leaves text as base character and warns", () => {
-    // Some terminals may not provide shifted_codepoint (DISAMBIGUATE-only).
-    // This logs a one-time warning.
+  test("shift without shifted_codepoint uses US QWERTY fallback silently", () => {
+    // The code used to warn but now silently recovers via BASE_TO_SHIFTED_PUNCT.
+    // Verify no warning is emitted and the text is correct.
     _resetShiftWarning()
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
-    const result = parseKeypress(kittyKey(49, 2))
-    expect(result.shift).toBe(true)
-    expect(result.shiftedKey).toBeUndefined()
-    expect(result.text).toBe("1")
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("shifted_codepoint"))
+    const r1 = parseKeypress(kittyKey(49, 2)) // Shift+1 without shifted_codepoint
+    const r2 = parseKeypress(kittyKey(59, 2)) // Shift+; without shifted_codepoint
+    expect(r1.text).toBe("!")
+    expect(r2.text).toBe(":")
+    expect(warnSpy).not.toHaveBeenCalled()
     warnSpy.mockRestore()
   })
 

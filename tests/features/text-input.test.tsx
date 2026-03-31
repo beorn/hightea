@@ -292,3 +292,59 @@ describe("TextInput controlled mode", () => {
     expect(app.text).toContain("val:helXworld")
   })
 })
+
+// ============================================================================
+// Shifted Punctuation Insertion
+// ============================================================================
+
+describe("TextInput shifted punctuation", () => {
+  test("all shifted punctuation chars insert correctly", async () => {
+    const render = createRenderer({ cols: 60, rows: 5 })
+    const app = render(<ControlledInput />)
+
+    // Type each shifted punctuation character
+    const shiftedChars = ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")"]
+    for (const ch of shiftedChars) {
+      await app.press(ch)
+    }
+    expect(app.text).toContain("val:!@#$%^&*()")
+  })
+
+  test("remaining shifted punctuation chars insert correctly", async () => {
+    const render = createRenderer({ cols: 60, rows: 5 })
+    const app = render(<ControlledInput />)
+
+    // Type remaining shifted punctuation
+    const shiftedChars = ["_", "~", "{", "}", "|", ":", "<", ">", "?"]
+    for (const ch of shiftedChars) {
+      await app.press(ch)
+    }
+    expect(app.text).toContain("val:_~{}|:<>?")
+  })
+
+  test("shifted punct inserts at cursor position, not at end", async () => {
+    const render = createRenderer({ cols: 60, rows: 5 })
+    const app = render(<ControlledInput initial="hello" />)
+
+    // Move to position 3
+    await app.press("ctrl+a")
+    for (let i = 0; i < 3; i++) await app.press("ctrl+f")
+
+    // Insert shifted chars at position 3
+    await app.press("#")
+    await app.press("$")
+    expect(app.text).toContain("val:hel#$lo")
+  })
+
+  test("mixed regular and shifted chars in sequence", async () => {
+    const render = createRenderer({ cols: 60, rows: 5 })
+    const app = render(<ControlledInput />)
+
+    // Type a realistic mixed string: "Task #1 (done!)"
+    for (const ch of "Task #1 (done!)") {
+      if (ch === " ") await app.press("Space")
+      else await app.press(ch)
+    }
+    expect(app.text).toContain("val:Task #1 (done!)")
+  })
+})
