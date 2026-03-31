@@ -70,15 +70,22 @@ export function Table<T>({
   const widths = columns.map((col) => {
     if (col.width) return col.width
     if (col.grow) return 0 // will use flexGrow
-    const cellValues = data.map((item) => {
-      if (col.render) return "" // can't measure React nodes, use header width
+    const cellValues = data.map((item, i) => {
+      if (col.render) {
+        const rendered = col.render(item, i)
+        // Measure string renders for auto-width; React nodes fall back to header width
+        return typeof rendered === "string" ? rendered : ""
+      }
       return String((col.key ? item[col.key] : "") ?? "")
     })
     return Math.max(col.header.length, ...cellValues.map((v) => v.length)) + padding
   })
 
   const renderCell = (col: Column<T>, item: T, index: number, width: number) => {
-    const content = col.render ? col.render(item, index) : <Text>{String((col.key ? item[col.key] : "") ?? "")}</Text>
+    const rendered = col.render ? col.render(item, index) : null
+    const content = rendered != null
+      ? (typeof rendered === "string" ? <Text>{rendered}</Text> : rendered)
+      : <Text>{String((col.key ? item[col.key] : "") ?? "")}</Text>
 
     return col.grow ? (
       <Box key={col.header} flexGrow={1} justifyContent={col.align === "right" ? "flex-end" : undefined}>
