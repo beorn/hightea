@@ -5,12 +5,13 @@
  * to a real terminal emulator, and that handle.press() drives interaction.
  */
 
-import React, { useState } from "react"
-import { describe, test, expect } from "vitest"
+import React, { useEffect, useState } from "react"
+import { describe, test, expect, afterEach } from "vitest"
 import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
 import { Box, Text } from "../../src/index.js"
-import { run, useInput } from "../../packages/ag-term/src/runtime/run"
+import { run, useInput, type RunHandle } from "../../packages/ag-term/src/runtime/run"
+import { useRuntime } from "../../src/index.js"
 
 // ============================================================================
 // Test Component
@@ -100,5 +101,86 @@ describe("run() with createTermless()", () => {
     await handle.press("Escape")
     // App should have exited cleanly
     await handle.waitUntilExit()
+  })
+})
+
+// ============================================================================
+// Alt Screen + Pause/Resume (3-layer verification: screen, terminal mode, app state)
+// ============================================================================
+
+/** Minimal app simulating console toggle via runtime.pause/resume */
+function ConsoleToggleApp() {
+  const [consoleOpen, setConsoleOpen] = useState(false)
+  const runtime = useRuntime()
+
+  useInput((input) => {
+    if (input === "`") setConsoleOpen((prev) => !prev)
+    if (input === "q") return "exit"
+  })
+
+  useEffect(() => {
+    if (!consoleOpen) return
+    runtime?.pause?.()
+    return () => { runtime?.resume?.() }
+  }, [consoleOpen])
+
+  return (
+    <Box><Text>{consoleOpen ? "CONSOLE MODE" : "BOARD VIEW"}</Text></Box>
+  )
+}
+
+describe("run() terminal protocol setup", () => {
+  test("alternateScreen enters alt screen", async () => {
+    using term = createTermless({ cols: 40, rows: 10 })
+    const handle = await run(<Counter />, term, { alternateScreen: true })
+
+    expect(term).toBeInMode("altScreen")
+    expect(term.screen).toContainText("Counter")
+
+    handle.unmount()
+  })
+
+  test("mouse: true enables mouse tracking", async () => {
+    using term = createTermless({ cols: 40, rows: 10 })
+    const handle = await run(<Counter />, term, { mouse: true })
+
+    expect(term).toBeInMode("mouseTracking")
+
+    handle.unmount()
+  })
+
+  test("bracketedPaste enabled by default", async () => {
+    using term = createTermless({ cols: 40, rows: 10 })
+    const handle = await run(<Counter />, term, { alternateScreen: true })
+
+    expect(term).toBeInMode("bracketedPaste")
+
+    handle.unmount()
+  })
+})
+
+describe("run() pause/resume alt screen", () => {
+  let handle: RunHandle
+
+  afterEach(() => { handle?.unmount() })
+
+  test("initial: board on alt screen", async () => {
+    using term = createTermless({ cols: 40, rows: 10 })
+    handle = await run(<ConsoleToggleApp />, term, { alternateScreen: true })
+
+    expect(term.screen).toContainText("BOARD VIEW")
+    expect(term).toBeInMode("altScreen")
+  })
+
+  test("pause leaves alt screen, resume re-enters", async () => {
+    using term = createTermless({ cols: 40, rows: 10 })
+    handle = await run(<ConsoleToggleApp />, term, { alternateScreen: true })
+
+    await handle.press("`") // open → pause
+    expect(term).not.toBeInMode("altScreen")
+
+    await handle.press("`") // close → resume
+    expect(term).toBeInMode("altScreen")
+    expect(term.screen).toContainText("BOARD VIEW")
   })
 })
