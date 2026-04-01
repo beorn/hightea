@@ -30,6 +30,7 @@ export default defineConfig({
       },
     },
     ssr: {
+      noExternal: ["@bearly/vitepress-enrich"],
       external: ["@termless/core", "@termless/xtermjs", "@termless/ghostty"],
     },
   },
