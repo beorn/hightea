@@ -4,7 +4,6 @@
     "href": "/guide/the-silvery-way",
     "tooltip": "10 principles for building canonical Silvery apps — use high-level components, semantic tokens, and canonical patterns"
   },
-
   {
     "term": "Box",
     "href": "/api/box",
@@ -50,34 +49,141 @@
     "href": "/api/progress-bar",
     "tooltip": "Determinate/indeterminate progress indicator with theming"
   },
-  { "term": "Spinner", "href": "/api/spinner", "tooltip": "Animated loading indicator with customizable frames" },
-  { "term": "Table", "href": "/api/table", "tooltip": "Column-aligned table component with headers and auto-sizing" },
-  { "term": "Tabs", "href": "/api/tabs", "tooltip": "Tabbed navigation component with keyboard support" },
-  { "term": "ModalDialog", "href": "/components/ModalDialog", "tooltip": "Modal overlay with focus trapping and automatic theme" },
-  { "term": "ScrollbackView", "href": "/components/ScrollbackView", "tooltip": "Streaming content display for chat, logs, and agent output" },
-  { "term": "ScrollbackList", "href": "/components/ScrollbackList", "tooltip": "Streaming list where completed items freeze into terminal scrollback" },
-  { "term": "TreeView", "href": "/components/TreeView", "tooltip": "Expandable/collapsible tree navigation component" },
-  { "term": "SplitView", "href": "/components/SplitView", "tooltip": "Resizable split panes component" },
-  { "term": "Toast", "href": "/components/Toast", "tooltip": "Auto-dismiss notification component" },
-  { "term": "Badge", "href": "/components/Badge", "tooltip": "Styled status label with variant colors (success, error, warning, primary)" },
-  { "term": "Divider", "href": "/components/Divider", "tooltip": "Horizontal line separator with optional title label" },
-  { "term": "Link", "href": "/components/Link", "tooltip": "Clickable OSC 8 hyperlink component — opens URLs in the user's browser" },
-  { "term": "Button", "href": "/components/Button", "tooltip": "Focusable button with press handler, color variants, and active state" },
-  { "term": "Toggle", "href": "/components/Toggle", "tooltip": "Boolean switch with label — keyboard-togglable on/off control" },
-  { "term": "Form", "href": "/components/Form", "tooltip": "Vertical form layout with labeled fields, validation, and submit handling" },
-  { "term": "ErrorBoundary", "href": "/components/ErrorBoundary", "tooltip": "Catches render errors in children and displays a fallback UI" },
-  { "term": "Console", "href": "/components/Console", "tooltip": "Displays captured console.log/warn/error output inside the TUI" },
-  { "term": "Skeleton", "href": "/components/Skeleton", "tooltip": "Placeholder loading indicator — animated shimmer effect for content not yet loaded" },
-  { "term": "PickerDialog", "href": "/components/PickerDialog", "tooltip": "Modal selection dialog — fuzzy-searchable list with keyboard navigation" },
-  { "term": "Breadcrumb", "href": "/components/Breadcrumb", "tooltip": "Navigation breadcrumb trail with configurable separator" },
-  { "term": "SearchBar", "href": "/components/SearchBar", "tooltip": "Integrated search input — activates via / or Ctrl+F with match highlighting" },
-  { "term": "ThemeProvider", "href": "/components/ThemeProvider", "tooltip": "React context provider that sets the active color theme for all descendants" },
-  { "term": "Screen", "href": "/components/Screen", "tooltip": "Root layout component — fills the terminal viewport with flexbox column layout" },
-  { "term": "Image", "href": "/components/Image", "tooltip": "Inline terminal image via Kitty graphics protocol or Sixel encoding" },
-  { "term": "Fill", "href": "/components/Fill", "tooltip": "Measures available space and passes dimensions to children via render prop" },
-  { "term": "Static", "href": "/api/static", "tooltip": "Renders items once into terminal scrollback — for build logs, CI output, streaming results" },
-
-  { "term": "useInput", "href": "/api/use-input", "tooltip": "Hook for handling keyboard and mouse input events" },
+  {
+    "term": "Spinner",
+    "href": "/api/spinner",
+    "tooltip": "Animated loading indicator with customizable frames"
+  },
+  {
+    "term": "Table",
+    "href": "/api/table",
+    "tooltip": "Column-aligned table component with headers and auto-sizing"
+  },
+  {
+    "term": "Tabs",
+    "href": "/api/tabs",
+    "tooltip": "Tabbed navigation component with keyboard support"
+  },
+  {
+    "term": "ModalDialog",
+    "href": "/components/ModalDialog",
+    "tooltip": "Modal overlay with focus trapping and automatic theme"
+  },
+  {
+    "term": "ScrollbackView",
+    "href": "/components/ScrollbackView",
+    "tooltip": "Streaming content display for chat, logs, and agent output"
+  },
+  {
+    "term": "ScrollbackList",
+    "href": "/components/ScrollbackList",
+    "tooltip": "Streaming list where completed items freeze into terminal scrollback"
+  },
+  {
+    "term": "TreeView",
+    "href": "/components/TreeView",
+    "tooltip": "Expandable/collapsible tree navigation component"
+  },
+  {
+    "term": "SplitView",
+    "href": "/components/SplitView",
+    "tooltip": "Resizable split panes component"
+  },
+  {
+    "term": "Toast",
+    "href": "/components/Toast",
+    "tooltip": "Auto-dismiss notification component"
+  },
+  {
+    "term": "Badge",
+    "href": "/components/Badge",
+    "tooltip": "Styled status label with variant colors (success, error, warning, primary)"
+  },
+  {
+    "term": "Divider",
+    "href": "/components/Divider",
+    "tooltip": "Horizontal line separator with optional title label"
+  },
+  {
+    "term": "Link",
+    "href": "/components/Link",
+    "tooltip": "Clickable OSC 8 hyperlink component — opens URLs in the user's browser"
+  },
+  {
+    "term": "Button",
+    "href": "/components/Button",
+    "tooltip": "Focusable button with press handler, color variants, and active state"
+  },
+  {
+    "term": "Toggle",
+    "href": "/components/Toggle",
+    "tooltip": "Boolean switch with label — keyboard-togglable on/off control"
+  },
+  {
+    "term": "Form",
+    "href": "/components/Form",
+    "tooltip": "Vertical form layout with labeled fields, validation, and submit handling"
+  },
+  {
+    "term": "ErrorBoundary",
+    "href": "/components/ErrorBoundary",
+    "tooltip": "Catches render errors in children and displays a fallback UI"
+  },
+  {
+    "term": "Console",
+    "href": "/components/Console",
+    "tooltip": "Displays captured console.log/warn/error output inside the TUI"
+  },
+  {
+    "term": "Skeleton",
+    "href": "/components/Skeleton",
+    "tooltip": "Placeholder loading indicator — animated shimmer effect for content not yet loaded"
+  },
+  {
+    "term": "PickerDialog",
+    "href": "/components/PickerDialog",
+    "tooltip": "Modal selection dialog — fuzzy-searchable list with keyboard navigation"
+  },
+  {
+    "term": "Breadcrumb",
+    "href": "/components/Breadcrumb",
+    "tooltip": "Navigation breadcrumb trail with configurable separator"
+  },
+  {
+    "term": "SearchBar",
+    "href": "/components/SearchBar",
+    "tooltip": "Integrated search input — activates via / or Ctrl+F with match highlighting"
+  },
+  {
+    "term": "ThemeProvider",
+    "href": "/components/ThemeProvider",
+    "tooltip": "React context provider that sets the active color theme for all descendants"
+  },
+  {
+    "term": "Screen",
+    "href": "/components/Screen",
+    "tooltip": "Root layout component — fills the terminal viewport with flexbox column layout"
+  },
+  {
+    "term": "Image",
+    "href": "/components/Image",
+    "tooltip": "Inline terminal image via Kitty graphics protocol or Sixel encoding"
+  },
+  {
+    "term": "Fill",
+    "href": "/components/Fill",
+    "tooltip": "Measures available space and passes dimensions to children via render prop"
+  },
+  {
+    "term": "Static",
+    "href": "/api/static",
+    "tooltip": "Renders items once into terminal scrollback — for build logs, CI output, streaming results"
+  },
+  {
+    "term": "useInput",
+    "href": "/api/use-input",
+    "tooltip": "Hook for handling keyboard and mouse input events"
+  },
   {
     "term": "useFocus",
     "href": "/api/use-focus",
@@ -88,21 +194,48 @@
     "href": "/api/use-app",
     "tooltip": "Hook for accessing the app instance — exit, dimensions, theme"
   },
-  { "term": "useStdout", "href": "/api/use-stdout", "tooltip": "Hook for accessing the stdout stream" },
+  {
+    "term": "useStdout",
+    "href": "/api/use-stdout",
+    "tooltip": "Hook for accessing the stdout stream"
+  },
   {
     "term": "useContentRect",
     "href": "/api/use-content-rect",
     "tooltip": "Hook that reports a component's measured content rectangle (width, height)"
   },
-  { "term": "useTerm", "tooltip": "Hook for accessing the Term instance — dimensions, capabilities, styling" },
-  { "term": "useTheme", "tooltip": "Hook for reading the current theme — colors, tokens, palette name" },
-  { "term": "useWindowSize", "tooltip": "Hook that returns current terminal dimensions (cols, rows) and re-renders on resize" },
-  { "term": "useVirtualizer", "tooltip": "Hook for virtualizing large lists — computes visible window from scroll offset and item count" },
-  { "term": "useRuntime", "tooltip": "Hook for accessing the runtime instance — commands, focus manager, store" },
-  { "term": "useToast", "tooltip": "Hook for showing toast notifications — returns a toast() function" },
-  { "term": "useReadline", "tooltip": "Hook for readline-style line editing — history, completion, key bindings" },
-  { "term": "useTea", "tooltip": "Hook that connects a TEA state machine to React — dispatches actions, subscribes to state" },
-
+  {
+    "term": "useTerm",
+    "tooltip": "Hook for accessing the Term instance — dimensions, capabilities, styling"
+  },
+  {
+    "term": "useTheme",
+    "tooltip": "Hook for reading the current theme — colors, tokens, palette name"
+  },
+  {
+    "term": "useWindowSize",
+    "tooltip": "Hook that returns current terminal dimensions (cols, rows) and re-renders on resize"
+  },
+  {
+    "term": "useVirtualizer",
+    "tooltip": "Hook for virtualizing large lists — computes visible window from scroll offset and item count"
+  },
+  {
+    "term": "useRuntime",
+    "tooltip": "Hook for accessing the runtime instance — commands, focus manager, store"
+  },
+  {
+    "term": "useToast",
+    "tooltip": "Hook for showing toast notifications — returns a toast() function"
+  },
+  {
+    "term": "useReadline",
+    "tooltip": "Hook for readline-style line editing — history, completion, key bindings"
+  },
+  {
+    "term": "useTea",
+    "tooltip": "Hook that connects a TEA state machine to React — dispatches actions, subscribes to state"
+  },
   {
     "term": "createTermless",
     "href": "/guide/testing",
@@ -117,7 +250,10 @@
     "term": "createTerm",
     "tooltip": "Factory for the terminal abstraction — wraps stdin/stdout, styling, and capabilities"
   },
-  { "term": "createApp", "tooltip": "Kernel app factory — event loop + state, the base for pipe() composition" },
+  {
+    "term": "createApp",
+    "tooltip": "Kernel app factory — event loop + state, the base for pipe() composition"
+  },
   {
     "term": "render",
     "href": "/api/render",
@@ -156,7 +292,6 @@
     "term": "withApp",
     "tooltip": "Plugin: base app lifecycle — dimensions, exit handling, error boundaries"
   },
-
   {
     "term": "focus scope",
     "href": "/guide/event-handling",
@@ -186,10 +321,24 @@
     "term": "TEA",
     "tooltip": "The Elm Architecture — (action, state) → [state, effects] pattern for structured interactive state"
   },
-  { "term": "synchronized update", "href": "https://terminfo.dev/modes/decset-2026-synchronized-output", "tooltip": "DEC 2026 protocol for atomic screen updates — prevents visual tearing", "external": true },
-  { "term": "bracketed paste", "href": "https://terminfo.dev/modes/decset-2004-bracketed-paste", "tooltip": "Terminal protocol to distinguish pasted text from typed input", "external": true },
-  { "term": "truecolor", "href": "https://terminfo.dev/sgr/38-2-truecolor-fg", "tooltip": "24-bit RGB color support via ESC[38;2;R;G;Bm — 16 million colors", "external": true },
-
+  {
+    "term": "synchronized update",
+    "href": "https://terminfo.dev/modes/decset-2026-synchronized-output",
+    "tooltip": "DEC 2026 protocol for atomic screen updates — prevents visual tearing",
+    "external": true
+  },
+  {
+    "term": "bracketed paste",
+    "href": "https://terminfo.dev/modes/decset-2004-bracketed-paste",
+    "tooltip": "Terminal protocol to distinguish pasted text from typed input",
+    "external": true
+  },
+  {
+    "term": "truecolor",
+    "href": "https://terminfo.dev/sgr/38-2-truecolor-fg",
+    "tooltip": "24-bit RGB color support via ESC[38;2;R;G;Bm — 16 million colors",
+    "external": true
+  },
   {
     "term": "inline mode",
     "tooltip": "Normal scrollback rendering — app output flows with terminal history, no alternate screen"
@@ -222,7 +371,6 @@
     "term": "term",
     "tooltip": "Terminal abstraction — wraps I/O, styling (chalk-compatible), capabilities, and dimensions"
   },
-
   {
     "term": "ED",
     "tooltip": "Erase in Display — clear part of the screen (below cursor, above cursor, or entire screen)",
@@ -232,13 +380,13 @@
   {
     "term": "ED2",
     "tooltip": "Erase entire screen — CSI 2 J clears all visible cells without affecting scrollback",
-    "href": "https://terminfo.dev/erase",
+    "href": "https://terminfo.dev/erase/ed-2-erase-screen",
     "external": true
   },
   {
     "term": "ED3",
     "tooltip": "Erase screen + scrollback — CSI 3 J clears visible screen and the entire scrollback buffer",
-    "href": "https://terminfo.dev/erase",
+    "href": "https://terminfo.dev/erase/ed-3-erase-scrollback",
     "external": true
   },
   {
@@ -250,7 +398,7 @@
   {
     "term": "DECSTBM",
     "tooltip": "DEC Set Top and Bottom Margins — defines the scroll region for independent scrolling",
-    "href": "https://terminfo.dev/scrollback",
+    "href": "https://terminfo.dev/scrollback/decstbm-scroll-region",
     "external": true
   },
   {
@@ -262,16 +410,15 @@
   {
     "term": "EL",
     "tooltip": "Erase in Line — clear part of the current line (right of cursor, left, or entire line)",
-    "href": "https://terminfo.dev/erase",
+    "href": "https://terminfo.dev/erase/el-0-erase-to-eol",
     "external": true
   },
   {
     "term": "DCS",
     "tooltip": "Device Control String — escape sequences for device-specific data (Sixel graphics, DECRQSS)",
-    "href": "https://terminfo.dev/standards",
+    "href": "https://terminfo.dev/fundamentals/anatomy",
     "external": true
   },
-
   {
     "term": "Kitty keyboard protocol",
     "href": "/guide/kitty-protocol",
@@ -283,7 +430,12 @@
     "tooltip": "Select Graphic Rendition — ANSI escape codes that control text styling (bold, color, underline)",
     "external": true
   },
-  { "term": "CSI", "href": "https://terminfo.dev/fundamentals/anatomy", "tooltip": "Control Sequence Introducer (ESC[) — prefix for most ANSI terminal commands", "external": true },
+  {
+    "term": "CSI",
+    "href": "https://terminfo.dev/fundamentals/anatomy",
+    "tooltip": "Control Sequence Introducer (ESC[) — prefix for most ANSI terminal commands",
+    "external": true
+  },
   {
     "term": "OSC",
     "href": "https://terminfo.dev/osc",
@@ -296,7 +448,6 @@
     "tooltip": "Control codes starting with ESC that tell terminals to set colors, move cursor, etc.",
     "external": true
   },
-
   {
     "term": "Flexily",
     "href": "https://beorn.codes/flexily",
