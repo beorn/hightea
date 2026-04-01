@@ -354,6 +354,37 @@
     "tooltip": "Terminal abstraction — wraps I/O, styling (chalk-compatible), capabilities, and dimensions"
   },
   {
+    "term": "dynamic scrollback",
+    "href": "/design/dynamic-scrollback",
+    "tooltip": "Content zone between frozen scrollback and live screen — items scroll up as new content arrives"
+  },
+  {
+    "term": "static scrollback",
+    "href": "/design/dynamic-scrollback",
+    "tooltip": "Frozen terminal history above the dynamic zone — permanent, not re-rendered"
+  },
+  {
+    "term": "live screen",
+    "href": "/design/dynamic-scrollback",
+    "tooltip": "The active render area — fullscreen apps or the bottom of inline output"
+  },
+  {
+    "term": "viewport",
+    "tooltip": "The visible portion of the terminal — rows × cols currently displayed to the user"
+  },
+  {
+    "term": "React tree",
+    "tooltip": "The component hierarchy — Box, Text, and custom components composed via JSX"
+  },
+  {
+    "term": "reconciler",
+    "tooltip": "React's engine for diffing virtual trees and applying minimal updates to the output"
+  },
+  {
+    "term": "reconciliation",
+    "tooltip": "The process of comparing old and new React trees to determine what changed"
+  },
+  {
     "term": "ED2",
     "tooltip": "Erase entire screen — CSI 2 J clears all visible cells without affecting scrollback",
     "href": "https://terminfo.dev/erase/ed-2-erase-screen",
