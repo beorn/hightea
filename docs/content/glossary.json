@@ -1,0 +1,198 @@
+[
+  {
+    "term": "The Silvery Way",
+    "href": "/guide/the-silvery-way",
+    "tooltip": "10 principles for building canonical Silvery apps — use high-level components, semantic tokens, and canonical patterns"
+  },
+
+  {
+    "term": "Box",
+    "href": "/api/box",
+    "tooltip": "Primary layout component — CSS flexbox container with borders, padding, scrolling"
+  },
+  {
+    "term": "Text",
+    "href": "/api/text",
+    "tooltip": "Styled text component with color, bold, italic, underline, and wrapping"
+  },
+  {
+    "term": "SelectList",
+    "href": "/api/select-list",
+    "tooltip": "Interactive keyboard-navigable list — j/k, arrows, Enter, type-ahead search"
+  },
+  {
+    "term": "TextInput",
+    "href": "/api/text-input",
+    "tooltip": "Single-line text input with built-in readline (Ctrl+A/E/K/U, Alt+B/F)"
+  },
+  {
+    "term": "TextArea",
+    "href": "/api/text-area",
+    "tooltip": "Multi-line text editing with cursor movement, selection, and word wrap"
+  },
+  {
+    "term": "ListView",
+    "href": "/api/list-view",
+    "tooltip": "Virtualized list with pluggable cache, navigation, and search"
+  },
+  {
+    "term": "VirtualList",
+    "href": "/api/virtual-list",
+    "tooltip": "Efficient rendering for large lists — only visible items are mounted"
+  },
+  {
+    "term": "CommandPalette",
+    "href": "/api/command-palette",
+    "tooltip": "VS Code-style fuzzy command palette with keyboard navigation"
+  },
+  {
+    "term": "ProgressBar",
+    "href": "/api/progress-bar",
+    "tooltip": "Determinate/indeterminate progress indicator with theming"
+  },
+  { "term": "Spinner", "href": "/api/spinner", "tooltip": "Animated loading indicator with customizable frames" },
+  { "term": "Table", "href": "/api/table", "tooltip": "Column-aligned table component with headers and auto-sizing" },
+  { "term": "Tabs", "href": "/api/tabs", "tooltip": "Tabbed navigation component with keyboard support" },
+  { "term": "ModalDialog", "tooltip": "Modal overlay with focus trapping and automatic theme" },
+  { "term": "ScrollbackView", "tooltip": "Streaming content display for chat, logs, and agent output" },
+  { "term": "ScrollbackList", "tooltip": "Streaming list where completed items freeze into terminal scrollback" },
+  { "term": "TreeView", "tooltip": "Expandable/collapsible tree navigation component" },
+  { "term": "SplitView", "tooltip": "Resizable split panes component" },
+  { "term": "Toast", "tooltip": "Auto-dismiss notification component" },
+  { "term": "Badge", "tooltip": "Styled status label with variant colors (success, error, warning, primary)" },
+
+  { "term": "useInput", "href": "/api/use-input", "tooltip": "Hook for handling keyboard and mouse input events" },
+  {
+    "term": "useFocus",
+    "href": "/api/use-focus",
+    "tooltip": "Hook for managing component focus state within focus scopes"
+  },
+  {
+    "term": "useApp",
+    "href": "/api/use-app",
+    "tooltip": "Hook for accessing the app instance — exit, dimensions, theme"
+  },
+  { "term": "useStdout", "href": "/api/use-stdout", "tooltip": "Hook for accessing the stdout stream" },
+  {
+    "term": "useContentRect",
+    "href": "/api/use-content-rect",
+    "tooltip": "Hook that reports a component's measured content rectangle (width, height)"
+  },
+
+  {
+    "term": "createTermless",
+    "href": "/guide/testing",
+    "tooltip": "Creates an in-process terminal emulator for full ANSI verification testing"
+  },
+  {
+    "term": "createRenderer",
+    "href": "/guide/testing",
+    "tooltip": "Test utility — creates a headless render function with auto-cleanup"
+  },
+  {
+    "term": "createTerm",
+    "tooltip": "Factory for the terminal abstraction — wraps stdin/stdout, styling, and capabilities"
+  },
+  { "term": "createApp", "tooltip": "Kernel app factory — event loop + state, the base for pipe() composition" },
+  {
+    "term": "render",
+    "href": "/api/render",
+    "tooltip": "Mount a React tree into a terminal with incremental rendering"
+  },
+  {
+    "term": "run",
+    "href": "/api/render",
+    "tooltip": "Sugar over pipe() with sensible defaults — the simplest way to start an app"
+  },
+  {
+    "term": "TextFrame",
+    "tooltip": "Immutable render output — text, ANSI, cell-level queries with resolved RGB colors"
+  },
+
+  {
+    "term": "focus scope",
+    "href": "/guide/event-handling",
+    "tooltip": "A containment boundary for keyboard focus — Tab/Shift+Tab cycle within the scope"
+  },
+  {
+    "term": "scroll region",
+    "href": "/reference/scroll-regions",
+    "tooltip": "A scrollable content area that handles overflow with virtual viewport"
+  },
+  {
+    "term": "alternate screen",
+    "tooltip": "Terminal buffer that preserves the main scrollback — used by fullscreen TUI apps"
+  },
+  {
+    "term": "scrollback",
+    "href": "/guide/scrolling",
+    "tooltip": "Terminal history buffer above the visible viewport — content that scrolled off-screen"
+  },
+  {
+    "term": "incremental rendering",
+    "tooltip": "Only re-rendering cells that changed between frames — 100x+ faster than full redraws"
+  },
+  {
+    "term": "TEA",
+    "tooltip": "The Elm Architecture — (action, state) → [state, effects] pattern for structured interactive state"
+  },
+  { "term": "synchronized update", "tooltip": "DEC 2026 protocol for atomic screen updates — prevents visual tearing" },
+  { "term": "bracketed paste", "tooltip": "Terminal protocol to distinguish pasted text from typed input" },
+  { "term": "truecolor", "tooltip": "24-bit RGB color support via ESC[38;2;R;G;Bm — 16 million colors" },
+
+  {
+    "term": "Kitty keyboard protocol",
+    "href": "/guide/kitty-protocol",
+    "tooltip": "Modern keyboard input protocol with key release events, modifiers, and full Unicode support"
+  },
+  {
+    "term": "SGR",
+    "tooltip": "Select Graphic Rendition — ANSI escape codes that control text styling (bold, color, underline)"
+  },
+  { "term": "CSI", "tooltip": "Control Sequence Introducer (ESC[) — prefix for most ANSI terminal commands" },
+  {
+    "term": "OSC",
+    "tooltip": "Operating System Command — terminal escape sequences for titles, hyperlinks, clipboard"
+  },
+  {
+    "term": "ANSI escape",
+    "tooltip": "Control codes starting with ESC that tell terminals to set colors, move cursor, etc."
+  },
+
+  {
+    "term": "Flexily",
+    "href": "https://beorn.codes/flexily",
+    "tooltip": "Pure JavaScript flexbox layout engine — powers Silvery's layout system",
+    "external": true
+  },
+  {
+    "term": "Termless",
+    "href": "https://termless.dev",
+    "tooltip": "Headless terminal testing framework — like Playwright, but for terminal apps",
+    "external": true
+  },
+  {
+    "term": "terminfo.dev",
+    "href": "https://terminfo.dev",
+    "tooltip": "Terminal feature compatibility database — caniuse.com for terminals",
+    "external": true
+  },
+  {
+    "term": "Ink",
+    "href": "/guide/silvery-vs-ink",
+    "tooltip": "React-based CLI framework by Vadim Demedes — Silvery's predecessor"
+  },
+  {
+    "term": "Zustand",
+    "tooltip": "Lightweight state management library for React — used internally by Silvery's TEA system"
+  },
+  {
+    "term": "React reconciler",
+    "tooltip": "React's pluggable rendering backend — Silvery uses a custom reconciler for terminal output"
+  },
+  {
+    "term": "Yoga",
+    "href": "/guide/layout-engine",
+    "tooltip": "Facebook's WASM-based flexbox layout engine — alternative to Flexily"
+  }
+]

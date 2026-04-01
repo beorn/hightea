@@ -1,8 +1,20 @@
 import { defineConfig } from "vitepress"
 import llmstxt from "vitepress-plugin-llms"
+import { glossaryPlugin, seoHead, seoTransformPageData, validateGlossary } from "@bearly/vitepress-enrich"
+import glossary from "../content/glossary.json"
+
+const seoOptions = {
+  hostname: "https://silvery.dev",
+  siteName: "Silvery",
+  description: "React TUI framework for modern terminal apps",
+  ogImage: "https://silvery.dev/og-image.svg",
+  author: "Bjørn Stabell",
+  codeRepository: "https://github.com/beorn/silvery",
+}
 
 export default defineConfig({
   sitemap: { hostname: "https://silvery.dev" },
+  lastUpdated: true,
   vite: {
     plugins: [
       llmstxt({
@@ -27,6 +39,12 @@ export default defineConfig({
     "Silvery — A React renderer for terminal UIs with responsive layouts, scrollable containers, and 100x+ faster interactive updates.",
   base: "/",
 
+  markdown: {
+    config(md) {
+      md.use(glossaryPlugin, { entities: glossary })
+    },
+  },
+
   head: [
     ["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }],
     [
@@ -37,62 +55,13 @@ export default defineConfig({
         "data-cf-beacon": '{"token": "22f9c4cb26ce4f21bd36ed1b772c226e"}',
       },
     ],
-    ["meta", { property: "og:type", content: "website" }],
-    ["meta", { property: "og:site_name", content: "Silvery" }],
-    ["meta", { property: "og:image", content: "https://silvery.dev/og-image.svg" }],
-    ["meta", { name: "twitter:card", content: "summary" }],
-    [
-      "script",
-      { type: "application/ld+json" },
-      JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        name: "Silvery",
-        url: "https://silvery.dev",
-        description: "React TUI framework for modern terminal apps",
-      }),
-    ],
+    ...seoHead(seoOptions),
   ],
 
-  transformPageData(pageData) {
-    const title = pageData.title || "Silvery"
-    const description = pageData.description || "React TUI framework for modern terminal apps"
-    const cleanPath = pageData.relativePath.replace(/\.md$/, ".html").replace(/index\.html$/, "")
-    pageData.frontmatter.head ??= []
-    pageData.frontmatter.head.push(
-      ["meta", { property: "og:title", content: title }],
-      ["meta", { property: "og:description", content: description }],
-      ["meta", { property: "og:url", content: `https://silvery.dev/${cleanPath}` }],
-      ["link", { rel: "canonical", href: `https://silvery.dev/${cleanPath}` }],
-    )
+  transformPageData: seoTransformPageData(seoOptions),
 
-    // JSON-LD BreadcrumbList
-    const segments = cleanPath
-      .replace(/\.html$/, "")
-      .split("/")
-      .filter(Boolean)
-    if (segments.length > 0) {
-      const breadcrumbItems = [{ "@type": "ListItem", position: 1, name: "Home", item: "https://silvery.dev/" }]
-      for (let i = 0; i < segments.length; i++) {
-        const path = segments.slice(0, i + 1).join("/")
-        const name = segments[i].replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-        breadcrumbItems.push({
-          "@type": "ListItem",
-          position: i + 2,
-          name: pageData.title && i === segments.length - 1 ? pageData.title : name,
-          item: `https://silvery.dev/${path}`,
-        })
-      }
-      pageData.frontmatter.head.push([
-        "script",
-        { type: "application/ld+json" },
-        JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "BreadcrumbList",
-          itemListElement: breadcrumbItems,
-        }),
-      ])
-    }
+  buildEnd(siteConfig) {
+    validateGlossary(glossary, siteConfig)
   },
 
   themeConfig: {
@@ -146,14 +115,25 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: "Components", link: "/guides/components" },
+          { text: "Building an App", link: "/guides/terminal-apps" },
+          { text: "State Management", link: "/guides/state-management" },
           { text: "Layouts", link: "/guide/layouts" },
           { text: "Styling", link: "/guide/styling" },
           { text: "Theming", link: "/guide/theming" },
           { text: "Scrolling", link: "/guide/scrolling" },
           { text: "Testing", link: "/guide/testing" },
           { text: "Debugging", link: "/guide/debugging" },
-          { text: "Silvery vs Ink", link: "/guide/silvery-vs-ink" },
           { text: "Why Silvery?", link: "/guide/why-silvery" },
+          {
+            text: "Comparisons",
+            collapsed: true,
+            items: [
+              { text: "Silvery vs Ink", link: "/guide/silvery-vs-ink" },
+              { text: "Silvery vs BubbleTea", link: "/guide/silvery-vs-bubbletea" },
+              { text: "Silvery vs Textual", link: "/guide/silvery-vs-textual" },
+              { text: "Silvery vs Blessed", link: "/guide/silvery-vs-blessed" },
+            ],
+          },
         ],
       },
       {
@@ -210,6 +190,9 @@ export default defineConfig({
           { text: "Streams", link: "/reference/streams" },
           { text: "Text Cursor", link: "/reference/text-cursor" },
           { text: "Text Sizing", link: "/reference/text-sizing" },
+          { text: "Style", link: "/reference/style" },
+          { text: "Plugins", link: "/reference/plugins" },
+          { text: "Signals", link: "/reference/signals" },
           { text: "Scroll Regions", link: "/reference/scroll-regions" },
           { text: "Robust Ops", link: "/reference/robust-ops" },
           { text: "Terminal Capabilities", link: "/reference/terminal-capabilities" },
@@ -230,11 +213,14 @@ export default defineConfig({
           { text: "Event Handling", link: "/guide/event-handling" },
           { text: "Input Limitations", link: "/guide/input-limitations" },
           { text: "Cursor API", link: "/guide/cursor-api" },
+          { text: "TextArea Design", link: "/guide/textarea-design" },
           { text: "Kitty Protocol", link: "/guide/kitty-protocol" },
           { text: "Layout Engine", link: "/guide/layout-engine" },
           { text: "CSS Alignment", link: "/guide/css-alignment" },
           { text: "ANSI Layering", link: "/guide/ansi-layering" },
           { text: "Runtime Layers", link: "/guide/runtime-layers" },
+          { text: "Runtime Getting Started", link: "/guide/runtime-getting-started" },
+          { text: "Runtime Migration", link: "/guide/runtime-migration" },
           { text: "Imports", link: "/guide/imports" },
           { text: "React 19", link: "/guide/react-19" },
           { text: "Troubleshooting", link: "/guide/troubleshooting" },
@@ -257,11 +243,49 @@ export default defineConfig({
         ],
       },
       {
+        text: "Components Library",
+        collapsed: true,
+        items: [
+          { text: "Overview", link: "/components/README" },
+          { text: "Badge", link: "/components/Badge" },
+          { text: "Breadcrumb", link: "/components/Breadcrumb" },
+          { text: "Button", link: "/components/Button" },
+          { text: "Console", link: "/components/Console" },
+          { text: "Divider", link: "/components/Divider" },
+          { text: "ErrorBoundary", link: "/components/ErrorBoundary" },
+          { text: "Form", link: "/components/Form" },
+          { text: "Image", link: "/components/Image" },
+          { text: "Link", link: "/components/Link" },
+          { text: "ModalDialog", link: "/components/ModalDialog" },
+          { text: "PickerDialog", link: "/components/PickerDialog" },
+          { text: "Screen", link: "/components/Screen" },
+          { text: "ScrollbackView", link: "/components/ScrollbackView" },
+          { text: "ScrollbackList", link: "/components/ScrollbackList" },
+          { text: "SearchBar", link: "/components/SearchBar" },
+          { text: "Skeleton", link: "/components/Skeleton" },
+          { text: "SplitView", link: "/components/SplitView" },
+          { text: "Toast", link: "/components/Toast" },
+          { text: "Toggle", link: "/components/Toggle" },
+          { text: "Tooltip", link: "/components/Tooltip" },
+          { text: "TreeView", link: "/components/TreeView" },
+          { text: "Typography", link: "/components/typography" },
+        ],
+      },
+      {
+        text: "Design",
+        collapsed: true,
+        items: [
+          { text: "App Composition", link: "/design/app-composition" },
+          { text: "Plugin Architecture", link: "/design/plugin-architecture" },
+          { text: "Dynamic Scrollback", link: "/design/dynamic-scrollback" },
+          { text: "Terminal Support Strategy", link: "/design/terminal-support-strategy" },
+        ],
+      },
+      {
         text: "Project",
         collapsed: true,
         items: [
           { text: "Contributing", link: "/contributing" },
-          { text: "Roadmap", link: "/roadmap" },
         ],
       },
     ],
@@ -275,8 +299,9 @@ export default defineConfig({
     },
 
     footer: {
-      message: 'Layout by <a href="https://beorn.codes/flexily">Flexily</a> · Tested with <a href="https://termless.dev">Termless</a> · Compatibility at <a href="https://terminfo.dev">terminfo.dev</a>',
-      copyright: 'Built by <a href="https://beorn.codes">Bjørn Stabell</a>'
+      message:
+        'Layout by <a href="https://beorn.codes/flexily">Flexily</a> · Tested with <a href="https://termless.dev">Termless</a> · Compatibility at <a href="https://terminfo.dev">terminfo.dev</a>',
+      copyright: 'Built by <a href="https://beorn.codes">Bjørn Stabell</a>',
     },
   },
 })

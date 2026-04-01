@@ -294,6 +294,10 @@ test("useApp exit function", async () => {
 })
 ```
 
+## ANSI-Level Testing with Termless
+
+For tests that need to verify actual ANSI output, colors, cursor positioning, or scrollback behavior, use `createTermless()` which runs a real terminal emulator in-process. For more on headless terminal testing, see [termless.dev](https://termless.dev).
+
 ## Running Tests
 
 ```bash

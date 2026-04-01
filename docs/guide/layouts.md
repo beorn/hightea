@@ -1,6 +1,6 @@
 # Building Complex Layouts
 
-This guide walks through building a typical TUI application layout with:
+Silvery's layout is powered by [Flexily](https://beorn.codes/flexily), a pure JavaScript flexbox engine. This guide walks through building a typical TUI application layout with:
 
 - Responsive components that know their own size
 - Fixed-height top/bottom bars

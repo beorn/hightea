@@ -21,6 +21,8 @@ Comprehensive reference of terminal emulator feature support as detected by Silv
 
 \* tmux color support depends on the outer terminal and tmux configuration.
 
+For comprehensive, feature-by-feature terminal compatibility data beyond what Silvery detects, see [terminfo.dev](https://terminfo.dev).
+
 ## Column Descriptions
 
 | Column     | Protocol/Standard | Description                                                |

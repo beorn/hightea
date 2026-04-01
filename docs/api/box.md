@@ -1,6 +1,6 @@
 # Box
 
-The primary layout component. Uses CSS flexbox for layout.
+The primary layout component. Uses [Flexily](https://beorn.codes/flexily) for CSS-spec-compliant flexbox layout.
 
 ## Import
 

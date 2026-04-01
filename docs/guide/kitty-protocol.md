@@ -93,6 +93,8 @@ Example: `CSI 97 ; 1 : 3 u` = 'a' key released.
 
 ## Terminal Support
 
+For up-to-date compatibility data across all terminals, see [terminfo.dev's Kitty keyboard page](https://terminfo.dev/keyboard/kitty-keyboard-protocol).
+
 ### Terminals with Full Support
 
 | Terminal                                   | Platform              | Notes                        |

@@ -336,7 +336,7 @@ term.dispose()
 
 ## Synchronized Update Mode (DEC 2026)
 
-Silvery automatically wraps all terminal output with **Synchronized Update Mode** sequences (`CSI ? 2026 h` / `CSI ? 2026 l`). This tells the terminal to batch output and paint atomically, preventing visual tearing during rapid screen updates.
+Silvery automatically wraps all terminal output with **[Synchronized Update Mode](https://terminfo.dev/modes/synchronized-update)** sequences (`CSI ? 2026 h` / `CSI ? 2026 l`). This tells the terminal to batch output and paint atomically, preventing visual tearing during rapid screen updates.
 
 ### How It Works
 
@@ -390,7 +390,7 @@ Silvery does not currently query support — it always emits the sequences since
 
 ## Kitty Keyboard Protocol
 
-The [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) provides unambiguous key identification, distinguishing modifiers that legacy ANSI cannot (Cmd ⌘, Hyper ✦) and reporting event types (press, repeat, release).
+The [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) provides unambiguous key identification, distinguishing modifiers that legacy ANSI cannot (Cmd ⌘, Hyper ✦) and reporting event types (press, repeat, release). See [terminfo.dev's Kitty keyboard page](https://terminfo.dev/keyboard/kitty-keyboard-protocol) for detailed terminal compatibility data.
 
 ### Auto-Enable/Disable
 
@@ -621,7 +621,7 @@ The runtime handles mouse parsing automatically — mouse sequences are dispatch
 
 ## OSC 52 Clipboard
 
-Silvery provides clipboard access via the OSC 52 terminal protocol. This works across SSH sessions — the clipboard operation is handled by the local terminal, not the remote host.
+Silvery provides clipboard access via the [OSC 52](https://terminfo.dev/osc/osc52-clipboard) terminal protocol. This works across SSH sessions — the clipboard operation is handled by the local terminal, not the remote host.
 
 ### Protocol
 
@@ -673,7 +673,7 @@ OSC 52 is particularly useful over SSH because the escape sequence is forwarded 
 
 ## Bracketed Paste Mode
 
-Bracketed paste mode lets the app distinguish pasted text from typed input. When enabled, the terminal wraps pasted content with start/end markers, delivering it as a single event rather than individual keystrokes.
+[Bracketed paste mode](https://terminfo.dev/modes/bracketed-paste-mode) lets the app distinguish pasted text from typed input. When enabled, the terminal wraps pasted content with start/end markers, delivering it as a single event rather than individual keystrokes.
 
 ### Protocol
 
@@ -828,6 +828,7 @@ See [text-sizing.md](text-sizing.md) for full documentation.
 
 ## See Also
 
+- [terminfo.dev](https://terminfo.dev) — comprehensive terminal feature compatibility data
 - [ANSI escape code (Wikipedia)](https://en.wikipedia.org/wiki/ANSI_escape_code)
 - [Escape Code Standards (Julia Evans)](https://jvns.ca/blog/2025/03/07/escape-code-standards/)
 - [The Chaos of Terminal Standards](https://or1k.net/posts/ansi-escape-codes-terminal-standards/)

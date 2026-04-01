@@ -33,6 +33,7 @@ SILVERY_STRICT_ACCUMULATE=1 bun run app
 
 - `SILVERY_STRICT=1` → enables buffer-level check AND vt100 output verification
 - `SILVERY_STRICT_TERMINAL=all` → shorthand for `vt100,xterm,ghostty`
+- These terminal verification modes use [Termless](https://termless.dev) backends internally
 
 ### Diagnostics
 
