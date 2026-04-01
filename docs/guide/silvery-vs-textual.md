@@ -1,6 +1,6 @@
 # Silvery vs Textual
 
-_External project claims last verified: 2026-03._
+_Information about Textual as of March 2026._
 
 ## Why This Page Exists
 
@@ -10,7 +10,7 @@ This page compares them honestly so you can pick the right one.
 
 ## The Two Projects
 
-[Textual](https://github.com/Textualize/textual) (2021, Textualize) is a Python framework for building terminal UIs. Created by Will McGuigan (author of Rich), it uses a widget tree with CSS-like styling (TCSS), reactive attributes, and asyncio for event handling. Large widget library, active development, and a growing community. Apps can run in both terminal and web browser via Textual Web.
+[Textual](https://github.com/Textualize/textual) (2021, [Textualize](https://www.textualize.io)) is a Python framework for building terminal UIs. Created by Will McGuigan (author of Rich), it uses a widget tree with CSS-like styling (TCSS), reactive attributes, and asyncio for event handling. Large widget library, active development, and a growing community. Apps can run in both terminal and web browser via [Textual Web](https://textual.textualize.io). See the [documentation](https://textual.textualize.io) for the full API reference.
 
 [Silvery](https://github.com/beorn/silvery) (2025) is a React-based terminal UI framework for TypeScript. It uses React's component model with CSS flexbox layout (via Flexily), incremental rendering, and comprehensive terminal protocol support. Newer and smaller community, but more built-in terminal features.
 
@@ -272,14 +272,20 @@ expect(app).toContainText("Count: 1")
 
 ```tsx
 // Full: Termless (in-process terminal emulator)
+import { createTermless } from "@silvery/test"
+import "@termless/test/matchers"
+
 using term = createTermless({ cols: 80, rows: 24 })
 const handle = await run(<App />, term)
-// Verify actual ANSI sequences, resolved RGB colors, cursor position
-const cell = term.screen.cell(0, 0)
-expect(cell.fg).toEqual({ r: 255, g: 100, b: 50 })
+
+expect(term.screen).toContainText("Dashboard")
+expect(term.cell(0, 10)).toBeBold()
+expect(term.row(0)).toHaveFg({ r: 255, g: 255, b: 255 })
+await handle.press("j")  // Navigate down
+expect(term.scrollback).toContainText("Previous item")
 ```
 
-Termless runs a real terminal emulator (xterm.js) in-process, so you can verify ANSI escape sequences, colors, cursor position, and scrollback -- not just widget state. This is unique to Silvery and matters when testing terminal protocol correctness.
+Termless runs a real terminal emulator in-process, so you can verify resolved RGB colors per cell, bold/italic/underline attributes, cursor position, and scrollback content -- not just widget state. This is unique to Silvery and matters when testing terminal protocol correctness.
 
 ## Terminal Protocol Support
 

@@ -49,3 +49,4 @@ import { ScrollbackView } from "silvery"
 - [ScrollbackList](./ScrollbackList.md) -- thin wrapper with same semantics
 - [ListView](./ListView.md) -- app-managed scrolling (no terminal scrollback)
 - [Static](./Static.md) -- write-once rendering
+- [Dynamic Scrollback](/design/dynamic-scrollback) -- architecture behind scrollback rendering

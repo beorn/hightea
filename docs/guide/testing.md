@@ -296,7 +296,7 @@ test("useApp exit function", async () => {
 
 ## ANSI-Level Testing with Termless
 
-For tests that need to verify actual ANSI output, colors, cursor positioning, or scrollback behavior, use `createTermless()` which runs a real terminal emulator in-process. For more on headless terminal testing, see [termless.dev](https://termless.dev).
+For tests that need to verify actual ANSI output, colors, cursor positioning, or scrollback behavior, use `createTermless()` which runs a real terminal emulator in-process. For more on headless terminal testing, see [termless.dev](https://termless.dev). For STRICT mode verification across terminal backends, see [Terminal Support Strategy](/design/terminal-support-strategy).
 
 ## Running Tests
 
@@ -321,7 +321,7 @@ bun test --verbose
 Bug fixes include regression tests named after issue IDs:
 
 ```tsx
-describe("Bug km-r0nz: Columns view vertical spacing", () => {
+describe("Bug #142: Columns view vertical spacing", () => {
   it("items should have consistent vertical spacing", () => {
     // Reproduction of original bug
   })

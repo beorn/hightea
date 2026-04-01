@@ -20,12 +20,14 @@ This maps directly to VirtualList: VirtualList keeps items in memory but only mo
 
 Terminal scrollback is opaque. Once content scrolls off the visible screen, the terminal owns it — the application cannot query, modify, or selectively clear it. Most TUI frameworks avoid this by using the alternate screen buffer (no scrollback at all). Silvery's inline mode embraces scrollback, which creates a fundamental tension: the app wants to keep content up-to-date, but the terminal wants scrollback to be permanent.
 
-The current implementation treats virtualized items as permanent: write once to stdout, remove from React tree, re-emit everything on resize. This works but has limitations:
+A naive approach treats virtualized items as permanent: write once to stdout, remove from React tree, re-emit everything on resize. This has limitations:
 
-- **No dynamic zone**: All virtualized items are permanent. The app can't update items that have merely scrolled off-screen.
+- **No dynamic zone**: All virtualized items are permanent. The app cannot update items that have merely scrolled off-screen.
 - **Virtualization is permanent**: Once virtualized, an item's React component is gone. The data is retained only for resize re-emission.
 - **Resize is nuclear**: ED3+ED2 clears ALL scrollback and re-emits everything from scratch.
 - **No viewport > screen**: Content can only be "mounted" (on-screen, in React tree) or "virtualized" (in scrollback, not in React tree).
+
+The three-zone model solves these problems.
 
 ## The Three-Zone Model
 
@@ -112,7 +114,7 @@ Not all items should be virtualized at the same point. An item that is actively 
 - **Auto-virtualize**: Completed items virtualize immediately when they scroll off the visible screen.
 - **Resist virtualization**: Actively-changing items remain mounted until they're `maxDeferLines` past the screen top (default: ~50 lines). This prevents constant mount/unmount churn for items still receiving updates.
 
-The `isFrozen` hint becomes `isComplete`: "This item is done changing — safe to virtualize eagerly, even while still on-screen."
+The `isFrozen` predicate indicates: "This item is done changing — safe to virtualize eagerly, even while still on-screen."
 
 ### Gone
 
@@ -146,13 +148,13 @@ The sequence:
 
 ### Why ED3 (Not ED0)?
 
-The earlier draft of this design proposed using CUP + ED0 to "clear from a boundary" without touching scrollback. This doesn't work:
+An alternative approach would be CUP + ED0 to "clear from a boundary" without touching scrollback. This does not work:
 
 - **CUP can't reach scrollback.** CUP coordinates are 1-based within the visible screen. The cursor can never be positioned into scrollback lines.
 - **ED0 only affects the visible screen.** It erases from cursor to end of screen — scrollback is untouched.
 - **Dynamic items ARE in scrollback.** Once they scroll off the visible screen, they're in terminal scrollback and unreachable by CUP/ED0.
 
-The only way to update content that has scrolled into terminal scrollback is ED3 (nuke it all) + re-emit. This is what the current resize implementation already does.
+The only way to update content that has scrolled into terminal scrollback is ED3 (nuke it all) + re-emit. This is what the resize implementation does.
 
 ### When Redraw Fires
 
@@ -173,21 +175,23 @@ ED3 + re-emit is the correct primitive for dynamic scrollback. It's fast because
 
 ## Automatic Virtualization
 
-Items that scroll off the visible screen are automatically virtualized. The app doesn't need to call `complete()` or set `isComplete` — scrolling past the screen top is sufficient.
+Items that scroll off the visible screen are automatically virtualized. The app does not need to call `freeze()` or set `isFrozen` — scrolling past the screen top is sufficient.
 
 ```tsx
-// This just works. Items virtualize as they scroll off-screen.
-<ScrollbackView maxHeight={500} footer={<StatusBar />}>
-  {messages.map((m) => (
-    <Message key={m.id} data={m} />
-  ))}
+// Items virtualize as they scroll off-screen.
+<ScrollbackView
+  items={messages}
+  keyExtractor={(m) => m.id}
+  footer={<StatusBar />}
+>
+  {(m) => <Message data={m} />}
 </ScrollbackView>
 ```
 
-The `isComplete` prop and `complete()` callback are **hints** rather than requirements:
+The `isFrozen` prop and `freeze()` callback are **hints** rather than requirements:
 
-- `isComplete`: "This item will never change again — safe to pre-render immediately even while on-screen"
-- `complete()`: "I'm done — pre-render me now so redraw is fast when I scroll off"
+- `isFrozen`: "This item will never change again — safe to pre-render immediately even while on-screen"
+- `freeze()`: "I'm done — pre-render me now so redraw is fast when I scroll off"
 
 Without either hint, items are pre-rendered when they scroll off-screen (slightly more work at virtualization time, but no app coordination needed).
 
@@ -196,15 +200,20 @@ Without either hint, items are pre-rendered when they scroll off-screen (slightl
 Some items are actively changing — streaming text, running tool calls, updating progress. These items can resist automatic virtualization:
 
 ```tsx
-<ScrollbackView maxHeight={500} isComplete={(item) => item.status === "done"} maxDeferLines={50} footer={<StatusBar />}>
+<ScrollbackView
+  items={exchanges}
+  keyExtractor={(e) => e.id}
+  isFrozen={(item) => item.status === "done"}
+  footer={<StatusBar />}
+>
   {(item) => <ExchangeItem exchange={item} />}
 </ScrollbackView>
 ```
 
-Incomplete items remain mounted (in React tree) until either:
+Unfrozen items remain mounted (in React tree) until either:
 
-- They become complete (`isComplete` returns true) and scroll off-screen → immediate virtualization
-- They pass `maxDeferLines` lines above the screen top → forced virtualization regardless
+- They become frozen (`isFrozen` returns true) and scroll off-screen → immediate virtualization
+- They are explicitly frozen via the `freeze()` callback from `useScrollbackItem`
 
 This prevents churn for items receiving rapid updates while still bounding memory usage.
 
@@ -222,41 +231,39 @@ The dynamic zone re-render is O(N) `renderStringSync` calls, but N is bounded by
 
 **No selective clear needed.** Full ED3 + re-emit handles resize cleanly. Static content is destroyed (acceptable — the terminal's reflow was imperfect anyway).
 
-## maxHeight and the Virtual Viewport
+## maxHistory and the Virtual Viewport
 
-`maxHeight` controls the size of the virtual viewport — how many lines of dynamic scrollback silvery maintains above the screen.
+`maxHistory` controls the size of the virtual viewport — how many lines of dynamic scrollback silvery maintains above the screen. Default: 10000.
 
 ```tsx
 <ScrollbackView
-  maxHeight={500} // 500 lines of dynamic scrollback
+  items={items}
+  keyExtractor={(item) => item.id}
+  maxHistory={500} // 500 lines of dynamic scrollback
   footer={<StatusBar />}
 >
-  {items.map((item) => (
-    <Item key={item.id} data={item} />
-  ))}
+  {(item) => <Item data={item} />}
 </ScrollbackView>
 ```
 
-When dynamic scrollback exceeds `maxHeight`, the oldest items are promoted to gone (data dropped, terminal owns them until next ED3).
+When dynamic scrollback exceeds `maxHistory`, the oldest items are promoted to gone (data dropped, terminal owns them until next ED3).
 
-The total viewport is: `maxHeight + screen height`. This is the maximum content silvery can re-render on demand.
+The total viewport is: `maxHistory + screen height`. This is the maximum content silvery can re-render on demand.
 
-## API (Proposed)
+## API
 
 ```tsx
 interface ScrollbackViewProps<T> {
   items: T[]
-  children: (item: T, index: number) => ReactNode
+  children?: (item: T, index: number) => ReactNode
+  renderItem?: (item: T, index: number) => ReactNode
   keyExtractor: (item: T, index: number) => string | number
 
-  // Completion hints (optional — auto-virtualize works without these)
-  isComplete?: (item: T, index: number) => boolean
+  // Data-driven frozen predicate (optional — items freeze via useScrollbackItem too)
+  isFrozen?: (item: T, index: number) => boolean
 
-  // How far past screen top incomplete items stay mounted (lines). Default: 50
-  maxDeferLines?: number
-
-  // Dynamic scrollback size (in terminal lines). Default: 500
-  maxHeight?: number
+  // Maximum lines in dynamic scrollback before promoting to static. Default: 10000
+  maxHistory?: number
 
   // Footer pinned at bottom of screen
   footer?: ReactNode
@@ -266,17 +273,17 @@ interface ScrollbackViewProps<T> {
 }
 ```
 
-## Comparison with Current Implementation
+## Architecture Summary
 
-| Aspect                    | Current                                       | Proposed                                               |
-| ------------------------- | --------------------------------------------- | ------------------------------------------------------ |
-| Zones                     | 2 (live screen, dynamic scrollback)           | 3 (live screen, dynamic scrollback, static scrollback) |
-| Virtualize semantics      | Permanent (write to stdout, remove from tree) | Reversible (pre-render cache, data retained)           |
-| Resize                    | ED3 + re-emit everything                      | ED3 + re-emit dynamic zone only (static items dropped) |
-| Viewport                  | = screen height                               | = maxHeight + screen height                            |
-| Auto-virtualize           | No (app must set isFrozen or call freeze())   | Yes (scroll off screen = auto-virtualize)              |
-| Virtualization resistance | N/A                                           | isComplete + maxDeferLines for active items            |
-| Data lifetime             | Retained until gone                           | Same, but static boundary is explicit (maxHistory)     |
+| Aspect                    | Behavior                                                       |
+| ------------------------- | -------------------------------------------------------------- |
+| Zones                     | 3 (live screen, dynamic scrollback, static scrollback)         |
+| Virtualize semantics      | Reversible (pre-render cache, data retained)                   |
+| Resize                    | ED3 + re-emit dynamic zone only (static items dropped)         |
+| Viewport                  | = maxHistory + screen height                                   |
+| Auto-virtualize           | Scroll off screen = auto-virtualize                            |
+| Virtualization resistance | `isFrozen` + `maxDeferLines` for actively-changing items       |
+| Data lifetime             | Retained until crossing the static boundary (`maxHistory`)     |
 
 ## DECSTBM: Why Not
 
@@ -302,20 +309,19 @@ Each virtualized item in dynamic scrollback gets OSC 133 prompt markers, enablin
 
 Pre-rendered strings written to dynamic scrollback include full ANSI styling: colors, bold, italic, borders, OSC 8 hyperlinks. When the user scrolls up in their terminal, they see fully styled content — until the next ED3 redraw clears it.
 
-## Open Questions
+## Future Considerations
 
-1. **Tall items spanning zones**: An item may be tall enough that its top is in scrollback while its bottom is on-screen. How to handle this? Current approach: keep it mounted until fully off-screen.
+1. **Tall items spanning zones**: An item tall enough that its top is in scrollback while its bottom is on-screen is kept mounted until fully off-screen.
 
-2. **Scroll position detection**: No terminal protocol exists to detect whether the user has scrolled up. The app can't show "new content below" indicators.
+2. **Scroll position detection**: No terminal protocol exists to detect whether the user has scrolled up. The app cannot show "new content below" indicators.
 
 3. **React `<Activity>`**: If React ships offscreen rendering, virtualized items could potentially be "paused" instead of unmounted, preserving hook state.
 
-4. **maxDeferLines tuning**: The default of ~50 lines is a guess. Needs real-world measurement: too low causes churn for streaming items, too high wastes memory keeping many items mounted. Should this be item-count-based or line-count-based?
+4. **maxDeferLines tuning**: The default of ~50 lines may need adjustment based on real-world measurement. Too low causes churn for streaming items, too high wastes memory keeping many items mounted.
 
-5. **ED3 frequency**: Every redraw destroys static scrollback. If redraws are frequent (e.g., streaming updates), the user may never see content in scrollback because it's constantly being cleared. Should redraws be batched/debounced? Should there be a minimum interval between ED3 clears?
+5. **ED3 frequency**: Every redraw destroys static scrollback. If redraws are frequent (e.g., streaming updates), the user may never see content in scrollback because it is constantly being cleared. Batching or debouncing redraws may be beneficial.
 
 ## Reference
 
-- Original design: `git show fff9add -- docs/design/viewport-architecture.md` (302 lines, deleted in docs cleanup)
 - Current implementation: `packages/ag-react/src/hooks/useScrollback.ts`
-- Bead: km-silvery.scrollback-v2 (ScrollbackView v2)
+- ScrollbackView component: `packages/ag-react/src/ui/components/ScrollbackView.tsx`

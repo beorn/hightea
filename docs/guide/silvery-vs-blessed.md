@@ -1,6 +1,6 @@
 # Silvery vs Blessed
 
-_External project claims last verified: 2026-03._
+_Information about Blessed as of March 2026._
 
 ## Why This Page Exists
 
@@ -271,19 +271,30 @@ using app = await createRenderer(<App />, { cols: 80, rows: 24 })
 expect(app).toContainText("Hello")
 await app.press("j")
 expect(app.getByRole("listitem", { selected: true })).toHaveTextContent("Item 2")
+```
 
+```tsx
 // Full: terminal emulator (Termless)
+import { createTermless } from "@silvery/test"
+import "@termless/test/matchers"
+
 using term = createTermless({ cols: 80, rows: 24 })
 const handle = await run(<App />, term)
-// Verify ANSI output, colors, cursor position, scrollback
+
+expect(term.screen).toContainText("Dashboard")
+expect(term.cell(0, 10)).toBeBold()
+expect(term.row(0)).toHaveFg({ r: 255, g: 255, b: 255 })
+await handle.press("j")  // Navigate down
+expect(term.scrollback).toContainText("Previous item")
 ```
 
 ## Community Forks
 
 Blessed has several community forks that apply maintenance patches:
 
-- **[neo-blessed](https://github.com/embarklabs/neo-blessed)** -- maintained by Embark Labs, positioned as a drop-in replacement. Applies bug fixes and compatibility patches.
+- **[neo-blessed](https://github.com/embarklabs/neo-blessed)** -- the most active fork, positioned as a drop-in replacement. Applies bug fixes and compatibility patches, with recent npm releases (v2.0.2 as of early 2026).
 - **[blessed-ng](https://github.com/nicholasgasior/blessed-ng)** -- another community maintenance fork.
+- **[@terminal-junkies/neo-blessed](https://www.npmjs.com/package/@terminal-junkies/neo-blessed)** -- a fork of neo-blessed with additional bug fixes.
 
 These forks keep Blessed usable on modern Node.js versions, but none have changed the fundamental architecture. They are maintenance patches, not evolution.
 

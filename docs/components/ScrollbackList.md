@@ -51,3 +51,4 @@ function TaskItem({ task }: { task: Task }) {
 
 - [ScrollbackView](./ScrollbackView.md) -- with maxHistory support
 - [Static](./Static.md) -- simpler write-once rendering
+- [Dynamic Scrollback](/design/dynamic-scrollback) -- architecture behind scrollback rendering

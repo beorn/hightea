@@ -203,3 +203,4 @@ const instance2 = renderSync(<Text>Ready!</Text>, term)
 - Use `alternateScreen: true` for full-screen apps to restore terminal state on exit
 - `patchConsole` patches `console.*` methods. In alt screen mode, silvery also intercepts `process.stdout.write` and `process.stderr.write` directly (output guard) — this catches loggily, direct writes, and any dependency output that would corrupt the display. Stderr is redirected to `DEBUG_LOG` if set
 - Components can access the term via `useTerm()` hook
+- For multi-provider app composition using `pipe()` and `createApp()`, see [App Composition](/design/app-composition)

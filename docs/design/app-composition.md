@@ -2,43 +2,21 @@
 
 How silvery apps are built, piece by piece.
 
-## Why
+## Design Goals
 
-Silvery's API has grown fragmented:
+Silvery's composition model addresses several architectural requirements:
 
-- **6+ types for the same concept** — TerminalBuffer, TermScreen, RegionView, App.text — different APIs depending on entry point.
-- **3 confusing return types** — `render()` returns App, `run()` returns RunHandle, `createApp()` returns AppHandle.
-- **Testing API inconsistency** — `createRenderer` (stripped text), `createTermless` (emulator), `run()` (full runtime) — each with a different shape.
-- **Monolithic App** — tree, renderer, terminal I/O, state, focus all in one blob.
-- **Opaque pipeline** — `runPipeline()` does layout + render + paint in one call.
-- **No shared type** — silvery's buffer and termless's screen represent the same data with different APIs.
-
-This redesign also enables:
-
-- **Multi-target** — same ag tree renders to terminal, canvas, or (future) DOM.
-- **Framework independence** — ag doesn't know about React. Svelte/Solid adapters are first-class.
+- **Unified output type** — `TextFrame` everywhere, whether using `render()`, `createTermless()`, or `createApp()`.
+- **Multi-target** — the same ag tree renders to terminal, canvas, or DOM.
+- **Framework independence** — ag does not know about React. Svelte/Solid adapters are first-class.
 - **Testability** — layout without rendering, rendering without paint, input without an event loop.
 - **Debuggability** — dispatch/apply are wrappable functions. Pipeline phases are separate inspectable calls.
-- **Foundation for era2b** — commands, keymaps, signals build on the dispatch/apply pipeline from this design.
+- **Composable app building** — `pipe()` + plugins compose independently testable layers.
 
-### Before and After
+### Usage
 
 ```ts
-// BEFORE — fragmented
-const r = createRenderer({ cols: 80, rows: 24 })  // returns App
-const app = r(<Counter />)
-app.text                                            // string (no cell access)
-app.lastFrame()                                     // different from .text!
-
-const term = createTermless({ cols: 80, rows: 24 }) // returns RunHandle
-const handle = await run(<Counter />, term)
-term.screen.getText()                               // different API!
-await handle.press("j")                             // different from app.press()
-
-const app = createApp(storeFactory, handlers)       // returns AppHandle
-await app.run(<Counter />, { term })
-
-// AFTER — unified (render() includes withTest() for convenience)
+// Unified API — render() includes withTest() for convenience
 const app = render(<Counter />, { cols: 80, rows: 24 })   // headless
 const app = render(<Counter />, term)                      // live or emulator
 app.press("j")                                             // → dispatch(press("j"))
@@ -47,18 +25,14 @@ term.screen.text                                           // TextFrame everywhe
 await app.run()                                            // event loop (if term has events)
 ```
 
-| Problem                  | Solution                                                 |
+| Concern                  | Solution                                                 |
 | ------------------------ | -------------------------------------------------------- |
-| 6+ types for styled text | **TextFrame** everywhere                                 |
-| 3 return types           | **One app** from `render()`, capabilities depend on term |
-| Testing inconsistency    | **`render(element, term)`** — one function, term varies  |
-| Monolithic App           | **ag** (tree), **term** (I/O), **TextFrame** (output)    |
-| Opaque pipeline          | **layout → render → paint** — three independent phases   |
-| No shared type           | silvery + termless both produce **TextFrame**            |
-
-### Scope
-
-This is era2a (rendering foundation). Commands, keymaps, signals, and domain models are era2b — they build on top of this.
+| Styled text output       | **TextFrame** everywhere                                 |
+| App entry point          | **One app** from `render()`, capabilities depend on term |
+| Testing                  | **`render(element, term)`** — one function, term varies  |
+| Separation of concerns   | **ag** (tree), **term** (I/O), **TextFrame** (output)    |
+| Pipeline phases          | **layout → render → paint** — three independent phases   |
+| Shared type              | silvery + termless both produce **TextFrame**            |
 
 ## Render Configurations
 
@@ -362,9 +336,9 @@ app.getByText("Task 1").textContent() // ag tree query
 expect(term.screen).toContainText("Hello") // TextFrame assertion (vitest matcher)
 ```
 
-## Relationship to Existing Code
+## Internal Decomposition
 
-The current `RenderAdapter` gets decomposed across `ag` and `term`:
+`RenderAdapter` is decomposed across `ag` and `term`:
 
 ```
 RenderAdapter.measurer              → ag.engine
@@ -375,8 +349,6 @@ RenderBuffer (write API)            → internal cell grid
 TextFrame (read API)                → public output of ag.render()
 ```
 
-**Migration**: 6 phases, each fully `/complete`d before the next.
+## App Architecture (Silvertea)
 
-## App Architecture (era2b)
-
-Everything above works with React `useState`. For complex apps that outgrow local state — commands, keymaps, signals, domain plugins — Silvertea (coming soon) builds on this foundation's `create()` + `dispatch/apply` pipeline.
+> **Future**: Silvertea extends this foundation for complex apps that outgrow React `useState` — commands, keymaps, signals, domain plugins — building on the `create()` + `dispatch/apply` pipeline.

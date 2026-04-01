@@ -1,7 +1,5 @@
 # Plugin Architecture
 
-## Status: Implemented
-
 Plugins are functions `(app) => enhancedApp` that compose via `pipe()`. The `.Root` component pattern lets plugins wrap the React element tree with providers.
 
 ## Core Concepts

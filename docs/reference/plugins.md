@@ -4,7 +4,7 @@
 The full plugin system (withCommands, withScope, withApp) is part of Silvertea (era2b). The rendering plugins (`create()`, `pipe()`, `withAg()`, `withTerm()`) are available now. This page documents both shipped and planned APIs.
 :::
 
-Silvery provides SlateJS-style plugins for extending app functionality. Plugins compose together to create "drivers" for automated testing and AI interaction. For the graduated introduction to the plugin architecture, see [Building an App](../guides/terminal-apps.md). For the API reference, see [Event Handling](../guide/event-handling.md).
+Silvery provides SlateJS-style plugins for extending app functionality. Plugins compose together to create "drivers" for automated testing and AI interaction. For the graduated introduction to the plugin architecture, see [Building an App](../guides/terminal-apps.md). For the API reference, see [Event Handling](../guide/event-handling.md). For the design rationale, see [Plugin Architecture](/design/plugin-architecture).
 
 ## Built-in Plugins
 

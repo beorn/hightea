@@ -1,6 +1,6 @@
 # Silvery vs Bubble Tea
 
-_External project claims last verified: 2026-03._
+_Information about Bubble Tea as of March 2026._
 
 ## Why This Page Exists
 
@@ -10,7 +10,7 @@ This page gives an honest comparison so you can pick the right tool for your pro
 
 ## The Two Projects
 
-[Bubble Tea](https://github.com/charmbracelet/bubbletea) (2020, Charm) is a Go framework for building terminal UIs using The Elm Architecture. Programs are defined by three functions: `Init`, `Update`, and `View`. The Charm ecosystem includes [Bubbles](https://github.com/charmbracelet/bubbles) (reusable components), [Lip Gloss](https://github.com/charmbracelet/lipgloss) (styling), and [Huh](https://github.com/charmbracelet/huh) (form building). Widely adopted, well-documented, and actively maintained with v2 released in 2025.
+[Bubble Tea](https://github.com/charmbracelet/bubbletea) (2020, [Charm](https://charm.sh)) is a Go framework for building terminal UIs using The Elm Architecture. Programs are defined by three functions: `Init`, `Update`, and `View`. The [Charm ecosystem](https://charm.sh) includes [Bubbles](https://github.com/charmbracelet/bubbles) (reusable components), [Lip Gloss](https://github.com/charmbracelet/lipgloss) (styling), and [Huh](https://github.com/charmbracelet/huh) (form building). Widely adopted, well-documented, and actively maintained with v2 released in 2025.
 
 [Silvery](https://github.com/beorn/silvery) (2025) is a React-based terminal UI framework for TypeScript. It combines React's component model with TEA-style state machines (via `@silvery/create`), CSS flexbox layout (via Flexily), and a rendering pipeline that gives components their dimensions during render. Newer, smaller community, but more built-in features.
 
@@ -19,8 +19,8 @@ This page gives an honest comparison so you can pick the right tool for your pro
 | Aspect | Bubble Tea | Silvery |
 | --- | --- | --- |
 | **Language** | Go | TypeScript |
-| **Architecture** | Pure TEA (Model/Update/View) | React components + optional TEA (`@silvery/create`) |
 | **Layout** | Manual string joining (Lip Gloss) | CSS flexbox (Flexily engine) |
+| **Architecture** | Pure TEA (Model/Update/View) | React components + optional TEA (`@silvery/create`) |
 | **Styling** | Lip Gloss (chainable style functions) | `@silvery/theme` (38 palettes, semantic tokens) |
 | **Components** | Bubbles: ~12 (spinner, textinput, textarea, viewport, table, list, filepicker, paginator, progress, help, timer, stopwatch) | 30+ built-in (VirtualList, TextArea, SelectList, Table, CommandPalette, ModalDialog, Tabs, TreeView, Toast, Image, SplitView, etc.) |
 | **Testing** | `teatest` (Go testing, golden files) | `@silvery/test` (headless renderer, Playwright-style locators) + Termless (terminal emulator) |
@@ -34,6 +34,39 @@ This page gives an honest comparison so you can pick the right tool for your pro
 | **Binary size** | Single static binary | Requires Node.js/Bun runtime |
 | **Startup time** | ~1 ms (compiled) | ~50-150 ms (JS runtime init) |
 | **Community** | Large (Go TUI standard) | New |
+
+## Layout
+
+This is the most significant difference between the two frameworks.
+
+**Bubble Tea has no layout engine.** You build layouts by joining strings with [Lip Gloss](https://github.com/charmbracelet/lipgloss):
+
+```go
+// Bubble Tea + Lip Gloss: manual layout via string joining
+left := lipgloss.NewStyle().Width(30).Render(sidebar.View())
+right := lipgloss.NewStyle().Width(50).Render(content.View())
+layout := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
+```
+
+You must calculate widths and heights yourself, pass them down to child models with `SetWidth`/`SetHeight`, and recalculate on terminal resize. There is no automatic flex-grow, no wrapping, no gap, no alignment that responds to available space.
+
+**Silvery has CSS flexbox** via the Flexily layout engine:
+
+```tsx
+// Silvery: CSS flexbox layout
+<Box flexDirection="row" gap={1}>
+  <Box width={30}>
+    <Sidebar />
+  </Box>
+  <Box flexGrow={1}>
+    <Content />
+  </Box>
+</Box>
+```
+
+Components can read their computed dimensions during render via `useContentRect()`. No manual size threading, no resize handlers calculating widths. The layout engine handles flex-grow, flex-shrink, wrapping, padding, margin, borders, gap, and alignment automatically.
+
+For simple UIs (a list, a form, a spinner), this difference barely matters. For complex UIs (multi-pane dashboards, kanban boards, text editors with sidebars), it's substantial.
 
 ## Architecture
 
@@ -64,7 +97,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     return m, cmd
 }
 
-func (m Model) View() string {
+func (m Model) View() tea.View {
     return m.list.View()
 }
 ```
@@ -131,39 +164,6 @@ function App() {
 }
 ```
 
-## Layout
-
-This is the most significant functional difference between the two frameworks.
-
-**Bubble Tea has no layout engine.** You build layouts by joining strings with Lip Gloss:
-
-```go
-// Bubble Tea + Lip Gloss: manual layout via string joining
-left := lipgloss.NewStyle().Width(30).Render(sidebar.View())
-right := lipgloss.NewStyle().Width(50).Render(content.View())
-layout := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
-```
-
-You must calculate widths and heights yourself, pass them down to child models with `SetWidth`/`SetHeight`, and recalculate on terminal resize. There is no automatic flex-grow, no wrapping, no gap, no alignment that responds to available space.
-
-**Silvery has CSS flexbox** via the Flexily layout engine:
-
-```tsx
-// Silvery: CSS flexbox layout
-<Box flexDirection="row" gap={1}>
-  <Box width={30}>
-    <Sidebar />
-  </Box>
-  <Box flexGrow={1}>
-    <Content />
-  </Box>
-</Box>
-```
-
-Components can read their computed dimensions during render via `useContentRect()`. No manual size threading, no resize handlers calculating widths. The layout engine handles flex-grow, flex-shrink, wrapping, padding, margin, borders, gap, and alignment automatically.
-
-For simple UIs (a list, a form, a spinner), this difference barely matters. For complex UIs (multi-pane dashboards, kanban boards, text editors with sidebars), it's substantial.
-
 ## Styling
 
 **Lip Gloss** provides chainable style functions:
@@ -226,14 +226,19 @@ expect(app.getByRole("listitem", { selected: true })).toHaveTextContent("Item 2"
 ```tsx
 // Full: terminal emulator (Termless) for ANSI verification
 import { createTermless } from "@silvery/test"
+import "@termless/test/matchers"
 
 using term = createTermless({ cols: 80, rows: 24 })
 const handle = await run(<App />, term)
-expect(term.screen).toContainText("Hello")
-// Verify actual ANSI output, colors, cursor position
+
+expect(term.screen).toContainText("Dashboard")
+expect(term.cell(0, 10)).toBeBold()
+expect(term.row(0)).toHaveFg({ r: 255, g: 255, b: 255 })
+await handle.press("j")  // Navigate down
+expect(term.scrollback).toContainText("Previous item")
 ```
 
-Silvery's Termless gives you a real terminal emulator in-process -- you can verify ANSI escape sequences, colors, cursor position, and scrollback. Bubble Tea's golden file approach compares rendered string output, which works well for catching regressions but doesn't validate terminal protocol correctness.
+Silvery's Termless runs a real terminal emulator in-process -- you can verify ANSI escape sequences, resolved RGB colors per cell, bold/italic/underline attributes, cursor position, and scrollback content. Bubble Tea's golden file approach compares rendered string output, which works well for catching regressions but doesn't validate terminal protocol correctness.
 
 ## Performance
 

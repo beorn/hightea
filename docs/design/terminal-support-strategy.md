@@ -89,7 +89,7 @@ This is where OSC 66 text sizing, CUP cursor re-sync, and future workarounds liv
 
 ```
 detectTerminalCaps()     → what can this terminal do?
-capabilityDatabase       → what bugs does this terminal have?  (NEW)
+capabilityDatabase       → what bugs does this terminal have?
 createOutputPhase(caps)  → apply workarounds during ANSI generation
 createMeasurer(caps)     → adjust width calculations
 ```
@@ -114,21 +114,21 @@ STRICT mode is the safety net. If our workarounds are incomplete, or if a new te
 | ---------------- | ----------------------------------------------------------------------------- | --------------- |
 | `SILVERY_STRICT` | Incremental buffer == fresh buffer (render phase) + vt100 output verification | ~2x render time |
 
-#### `SILVERY_STRICT_TERMINAL` (implemented)
+#### `SILVERY_STRICT_TERMINAL`
 
 **Full buffer-vs-backend comparison.** Feeds our ANSI output through each termless backend and compares the resulting terminal state against our `TerminalBuffer`, cell by cell. Accepts comma-separated backend list: `vt100` (fast internal parser), `xterm` (xterm.js headless), `ghostty` (Ghostty WASM). Alias: `all` = vt100,xterm,ghostty.
 
 What it catches that STRICT can't:
 
 | Issue                                | STRICT | STRICT_TERMINAL |
-| ------------------------------------ | ------ | --------------- | ------- |
+| ------------------------------------ | ------ | --------------- |
 | Incremental != fresh (content)       | Yes    | -               |
 | Incremental != fresh (output)        | Yes    | -               |
-| Width disagreement (flag emoji, PUA) | -      | -               | **Yes** |
-| SGR interpretation bugs              | -      | -               | **Yes** |
-| Style reset scope issues             | -      | -               | **Yes** |
-| Background bleed                     | -      | -               | **Yes** |
-| Hyperlink parsing differences        | -      | -               | **Yes** |
+| Width disagreement (flag emoji, PUA) | -      | **Yes**         |
+| SGR interpretation bugs              | -      | **Yes**         |
+| Style reset scope issues             | -      | **Yes**         |
+| Background bleed                     | -      | **Yes**         |
+| Hyperlink parsing differences        | -      | **Yes**         |
 
 **Cell comparison covers:**
 
@@ -212,36 +212,29 @@ Some cross-terminal differences aren't bugs -- they're design decisions that nee
 
 For these, the fix isn't "file a bug" -- it's "design a system that works regardless."
 
-## Implementation Roadmap
+## Implementation Status
 
-### Phase 1: Character Width Matrix (immediate)
+### Character Width Matrix
 
-- [x] OSC 66 wrapping for all wide chars (unconditional)
-- [x] CUP cursor re-sync after wide chars
-- [x] Matrix test: 8 wide char categories x 4 test dimensions (43 tests)
-- [ ] Extend matrix to cover all termless backends (not just xterm.js)
-- [ ] Record empirical widths per backend into a database fixture
+- OSC 66 wrapping for all wide chars (unconditional)
+- CUP cursor re-sync after wide chars
+- Matrix test: 8 wide char categories x 4 test dimensions (43 tests)
 
-### Phase 2: STRICT_TERMINAL (next)
+### STRICT_TERMINAL
 
-- [ ] Implement `SILVERY_STRICT_TERMINAL` with xterm.js backend
-- [ ] Cell-by-cell comparison: text, wide, fg, bg, bold, italic, underline, strikethrough
-- [ ] Enable in vitest/setup.ts (always-on for tests)
-- [ ] Clear error messages with backend name, position, expected vs actual
+- `SILVERY_STRICT_TERMINAL` with vt100, xterm, and ghostty backends
+- Cell-by-cell comparison: text, wide, fg, bg, bold, italic, underline, strikethrough
+- Clear error messages with backend name, position, expected vs actual
+- Cross-backend output verification tests (`tests/cross-backend-output.test.ts`)
 
-### Phase 3: Multi-Backend Matrix (CI)
+### Future Work
 
-- [ ] Run STRICT_TERMINAL against all available termless backends in CI
-- [ ] Build capability database from empirical results
-- [ ] Auto-generate compatibility report (caniuse-style)
-- [ ] Identify upstream bugs with evidence
-
-### Phase 4: Upstream Engagement
-
-- [ ] File bugs with terminal projects (Ghostty, Kitty, WezTerm, etc.)
-- [ ] Include our matrix test evidence
-- [ ] Track fix status per terminal + version
-- [ ] Remove workarounds as fixes land
+- Extend the character width matrix to cover all termless backends
+- Record empirical widths per backend into a database fixture
+- Build capability database from empirical cross-backend results
+- Auto-generate compatibility report (caniuse-style)
+- File upstream bugs with terminal projects using matrix test evidence
+- Track fix status per terminal + version and remove workarounds as fixes land
 
 ## References
 
