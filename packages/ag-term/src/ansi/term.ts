@@ -719,6 +719,36 @@ function createBackendTerm(emulator: TermEmulator): Term {
     enumerable: true,
   })
 
+  // Delegate ALL methods/properties from the emulator to Term so that
+  // termless matchers work directly: expect(term).toBeInMode("altScreen").
+  // Term is a strict superset of the underlying terminal — no cherry-picking.
+  for (const key of Object.getOwnPropertyNames(Object.getPrototypeOf(emulator))) {
+    if (key === "constructor" || key in termBase) continue
+    const desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(emulator), key)
+    if (desc && typeof desc.value === "function") {
+      Object.defineProperty(termBase, key, {
+        value: (...args: unknown[]) => (emulator as any)[key](...args),
+        enumerable: false,
+      })
+    }
+  }
+  // Also delegate own properties (not just prototype methods)
+  for (const key of Object.keys(emulator)) {
+    if (key in termBase) continue
+    const val = (emulator as any)[key]
+    if (typeof val === "function") {
+      Object.defineProperty(termBase, key, {
+        value: (...args: unknown[]) => (emulator as any)[key](...args),
+        enumerable: false,
+      })
+    } else {
+      Object.defineProperty(termBase, key, {
+        get: () => (emulator as any)[key],
+        enumerable: false,
+      })
+    }
+  }
+
   const term = createMixedStyle(styleInstance, termBase) as unknown as Term
 
   return term as Term
