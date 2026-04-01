@@ -303,12 +303,6 @@
     "tooltip": "A scrollable content area that handles overflow with virtual viewport"
   },
   {
-    "term": "alternate screen",
-    "href": "https://terminfo.dev/modes/decset-1049-alt-screen-enter",
-    "tooltip": "Terminal buffer that preserves the main scrollback — used by fullscreen TUI apps",
-    "external": true
-  },
-  {
     "term": "scrollback",
     "href": "/guide/scrolling",
     "tooltip": "Terminal history buffer above the visible viewport — content that scrolled off-screen"
@@ -325,18 +319,6 @@
     "term": "synchronized update",
     "href": "https://terminfo.dev/modes/decset-2026-synchronized-output",
     "tooltip": "DEC 2026 protocol for atomic screen updates — prevents visual tearing",
-    "external": true
-  },
-  {
-    "term": "bracketed paste",
-    "href": "https://terminfo.dev/modes/decset-2004-bracketed-paste",
-    "tooltip": "Terminal protocol to distinguish pasted text from typed input",
-    "external": true
-  },
-  {
-    "term": "truecolor",
-    "href": "https://terminfo.dev/sgr/38-2-truecolor-fg",
-    "tooltip": "24-bit RGB color support via ESC[38;2;R;G;Bm — 16 million colors",
     "external": true
   },
   {
@@ -372,12 +354,6 @@
     "tooltip": "Terminal abstraction — wraps I/O, styling (chalk-compatible), capabilities, and dimensions"
   },
   {
-    "term": "ED",
-    "tooltip": "Erase in Display — clear part of the screen (below cursor, above cursor, or entire screen)",
-    "href": "https://terminfo.dev/erase",
-    "external": true
-  },
-  {
     "term": "ED2",
     "tooltip": "Erase entire screen — CSI 2 J clears all visible cells without affecting scrollback",
     "href": "https://terminfo.dev/erase/ed-2-erase-screen",
@@ -390,57 +366,9 @@
     "external": true
   },
   {
-    "term": "CUP",
-    "tooltip": "Cursor Position — CSI row;col H moves cursor to an absolute position on screen",
-    "href": "https://terminfo.dev/cursor/cup-cursor-position",
-    "external": true
-  },
-  {
-    "term": "DECSTBM",
-    "tooltip": "DEC Set Top and Bottom Margins — defines the scroll region for independent scrolling",
-    "href": "https://terminfo.dev/scrollback/decstbm-scroll-region",
-    "external": true
-  },
-  {
-    "term": "DECTCEM",
-    "tooltip": "DEC Text Cursor Enable Mode — DEC private mode ?25 to show or hide the text cursor",
-    "href": "https://terminfo.dev/cursor/dectcem-hide-cursor",
-    "external": true
-  },
-  {
-    "term": "EL",
-    "tooltip": "Erase in Line — clear part of the current line (right of cursor, left, or entire line)",
-    "href": "https://terminfo.dev/erase/el-0-erase-to-eol",
-    "external": true
-  },
-  {
-    "term": "DCS",
-    "tooltip": "Device Control String — escape sequences for device-specific data (Sixel graphics, DECRQSS)",
-    "href": "https://terminfo.dev/fundamentals/anatomy",
-    "external": true
-  },
-  {
     "term": "Kitty keyboard protocol",
     "href": "/guide/kitty-protocol",
     "tooltip": "Modern keyboard input protocol with key release events, modifiers, and full Unicode support"
-  },
-  {
-    "term": "SGR",
-    "href": "https://terminfo.dev/sgr",
-    "tooltip": "Select Graphic Rendition — ANSI escape codes that control text styling (bold, color, underline)",
-    "external": true
-  },
-  {
-    "term": "CSI",
-    "href": "https://terminfo.dev/fundamentals/anatomy",
-    "tooltip": "Control Sequence Introducer (ESC[) — prefix for most ANSI terminal commands",
-    "external": true
-  },
-  {
-    "term": "OSC",
-    "href": "https://terminfo.dev/osc",
-    "tooltip": "Operating System Command — terminal escape sequences for titles, hyperlinks, clipboard",
-    "external": true
   },
   {
     "term": "ANSI escape",
