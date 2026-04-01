@@ -550,8 +550,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   const rows = explicitRows ?? process.stdout.rows ?? 24
   const stdout = explicitStdout ?? process.stdout
 
-  // Output guard: created after protocol setup (see below)
-  const shouldGuardOutput = guardOutputOption ?? (alternateScreen && !headless)
+  // Output guard: created after protocol setup (see below).
+  // Only guard when using real process.stdout — mock stdouts don't benefit from
+  // the guard (which patches process.stdout.write), and it would route render
+  // output to the real stdout instead of the mock.
+  const isRealStdout = stdout === process.stdout
+  const shouldGuardOutput = guardOutputOption ?? (alternateScreen && !headless && isRealStdout)
   let outputGuard: OutputGuard | null = null
 
   // Initialize layout engine
@@ -932,9 +936,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Disable terminal protocols BEFORE provider cleanup (which disables raw mode).
     // If raw mode is disabled first, the shell takes over stdin while mouse tracking
     // is still active — pending mouse events appear as garbled text on the prompt.
-    // Use writeSync for reliability during shutdown (async write may not flush in time).
     if (!headless) {
-      const fd = (stdout as unknown as { fd: number }).fd
       const sequences = [
         focusReportingEnabled ? "\x1b[?1004l" : "",
         mouseEnabled ? disableMouse() : "",
@@ -944,9 +946,21 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         "\n",
         alternateScreen ? "\x1b[?1049l" : "",
       ].join("")
-      try {
-        writeSync(fd, sequences)
-      } catch {
+      // Use writeSync for reliability during real TTY shutdown (async write may
+      // not flush in time). For mock/test stdouts, writeSync(fd) bypasses the
+      // mock and writes directly to the OS fd — fall back to stdout.write().
+      const isRealStdout = stdout === process.stdout
+      if (isRealStdout) {
+        try {
+          writeSync((stdout as unknown as { fd: number }).fd, sequences)
+        } catch {
+          try {
+            stdout.write(sequences)
+          } catch {
+            /* terminal may be gone */
+          }
+        }
+      } else {
         try {
           stdout.write(sequences)
         } catch {

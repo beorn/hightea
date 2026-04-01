@@ -112,15 +112,23 @@ export function restoreTerminalState(stdout: NodeJS.WriteStream, stdin: NodeJS.R
     "\x1b[?1049l", // Exit alternate screen
   ].join("")
 
-  // Use writeSync for reliability during signal handlers
-  try {
-    writeSync((stdout as unknown as { fd: number }).fd, sequences)
-  } catch {
-    // Fallback to async write if fd is unavailable
+  // Use writeSync for reliability during signal handlers — but only when stdout
+  // is the real process.stdout. Mock stdouts have fd:1 which bypasses the mock.
+  if (stdout === process.stdout) {
+    try {
+      writeSync((stdout as unknown as { fd: number }).fd, sequences)
+    } catch {
+      try {
+        stdout.write(sequences)
+      } catch {
+        // Terminal may already be gone (e.g., SSH disconnect)
+      }
+    }
+  } else {
     try {
       stdout.write(sequences)
     } catch {
-      // Terminal may already be gone (e.g., SSH disconnect)
+      // Terminal may already be gone
     }
   }
 
@@ -186,12 +194,21 @@ export function resumeTerminalState(state: TerminalState, stdout: NodeJS.WriteSt
     sequences.push("\x1b[?1004h") // Enable focus reporting
   }
 
-  // Write all sequences
-  try {
-    writeSync((stdout as unknown as { fd: number }).fd, sequences.join(""))
-  } catch {
+  // Write all sequences — use writeSync only for real process.stdout
+  const joined = sequences.join("")
+  if (stdout === process.stdout) {
     try {
-      stdout.write(sequences.join(""))
+      writeSync((stdout as unknown as { fd: number }).fd, joined)
+    } catch {
+      try {
+        stdout.write(joined)
+      } catch {
+        // Terminal may be gone
+      }
+    }
+  } else {
+    try {
+      stdout.write(joined)
     } catch {
       // Terminal may be gone
     }
