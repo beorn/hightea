@@ -45,7 +45,7 @@ jobs:
         continue-on-error: true
 
       - name: Build docs
-        run: bun run docs:build
+        run: bunx --bun vitepress build docs
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
