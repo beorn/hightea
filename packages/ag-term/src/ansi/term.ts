@@ -419,7 +419,11 @@ function createEmulatorStdout(feed: (data: string) => void, cols: number, rows: 
     columns: cols,
     rows: rows,
   }
-  return { stdout: stdout as unknown as NodeJS.WriteStream, resizeListeners }
+  return {
+    stdout: stdout as unknown as NodeJS.WriteStream,
+    resizeListeners,
+    updateDims(c: number, r: number) { stdout.columns = c; stdout.rows = r },
+  }
 }
 
 /**
@@ -636,7 +640,7 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
 function createBackendTerm(emulator: TermEmulator): Term {
   const controller = new AbortController()
   const eq = createEventQueue(controller)
-  const { stdout, resizeListeners } = createEmulatorStdout(
+  const { stdout, resizeListeners, updateDims } = createEmulatorStdout(
     (s) => emulator.feed(s), emulator.cols, emulator.rows,
   )
   const subscribers = new Set<(state: TermState) => void>()
@@ -659,8 +663,7 @@ function createBackendTerm(emulator: TermEmulator): Term {
       emulator.resize(cols, rows)
       subscribers.forEach((l) => l({ cols, rows }))
       eq.push({ type: "resize", data: { cols, rows } })
-      ;(stdout as any).columns = cols
-      ;(stdout as any).rows = rows
+      updateDims(cols, rows)
       resizeListeners.forEach((l) => l())
     },
     sendInput: (data: string) => eq.push(...parseInputEvents(data)),
