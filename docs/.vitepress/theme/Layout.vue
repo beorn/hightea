@@ -42,4 +42,9 @@ const { frontmatter } = useData()
 .alpha-banner span {
   font-weight: 500;
 }
+@media (max-width: 768px) {
+  .alpha-banner {
+    display: none;
+  }
+}
 </style>
