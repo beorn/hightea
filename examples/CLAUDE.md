@@ -27,7 +27,7 @@
 
 1. **Show, don't tell.** A showcase should demonstrate Silvery features through working UI, not walls of text. Intro text is fine — but collapse it once the demo starts.
 
-2. **Auto-size to content.** `ListView`/`ListView` auto-size to their content — no manual height management. The output phase caps output at terminal height independently. Content that exceeds terminal height causes natural terminal scrolling.
+2. **Auto-size to content.** `ListView` auto-sizes to its content — no manual height management. The output phase caps output at terminal height independently. Content that exceeds terminal height causes natural terminal scrolling.
 
 3. **Single status bar.** Keep the status bar to one line. Include: context bar, elapsed time, cost, and key hints. Remove anything that doesn't help the user interact.
 
@@ -39,27 +39,30 @@
 
 ### Scrollback Pattern
 
-Use `ListView` (or `ListView`) — they handle terminal height, footer pinning, and overflow automatically:
+Use `ListView` — it handles terminal height, footer pinning, and overflow automatically:
 
 ```tsx
 function App() {
   return (
     <ListView
       items={items}
-      keyExtractor={(item) => item.id}
-      isFrozen={(item) => item.done}
-      markers={true}
-      footer={<StatusBar />}
-    >
-      {(item) => <ItemView item={item} />}
-    </ListView>
+      getKey={(item) => item.id}
+      height={process.stdout.rows ?? 24}
+      estimateHeight={3}
+      renderItem={(item) => <ItemView item={item} />}
+      cache={{
+        mode: "virtual",
+        isCacheable: (item) => item.done,
+      }}
+      listFooter={<StatusBar />}
+    />
   )
 }
 
 await render(<App />, term, { mode: "inline" })
 ```
 
-`ListView` auto-sizes to its content — no manual height management. The output phase independently caps output at terminal height (via `inlineFullRender()`), so content that exceeds the terminal causes natural scrolling. The footer stays pinned at the bottom of the content.
+`ListView` with cache mode "virtual" caches completed items for performance. The output phase independently caps output at terminal height, so content that exceeds the terminal causes natural scrolling. The `listFooter` stays pinned at the bottom of the content.
 
 ### Theme Tokens
 

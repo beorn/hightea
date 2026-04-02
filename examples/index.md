@@ -66,7 +66,7 @@ Full interactive applications demonstrating real-world patterns.
 | Clipboard       | `apps/clipboard.tsx`     | OSC 52 clipboard copy/paste across sessions    |
 | Components      | `apps/components.tsx`    | 30+ component gallery with tabs                |
 | Data Explorer   | `apps/data-explorer.tsx` | Searchable, scrollable process table           |
-| Dev Tools       | `apps/dev-tools.tsx`     | Live log viewer with VirtualList               |
+| Dev Tools       | `apps/dev-tools.tsx`     | Live log viewer with ListView                  |
 | Explorer        | `apps/explorer.tsx`      | Tabbed log viewer + process explorer           |
 | Gallery         | `apps/gallery.tsx`       | Images, pixel art, and truecolor rendering     |
 | Kanban          | `apps/kanban.tsx`        | Multi-column kanban with card movement         |
@@ -76,12 +76,12 @@ Full interactive applications demonstrating real-world patterns.
 | Paste Demo      | `apps/paste-demo.tsx`    | Bracketed paste mode — paste as single event   |
 | Scroll          | `apps/scroll.tsx`        | Basic scrollable list                          |
 | Search Filter   | `apps/search-filter.tsx` | React concurrent features (`useDeferredValue`) |
-| Task List       | `apps/task-list.tsx`     | VirtualList with variable-height items         |
+| Task List       | `apps/task-list.tsx`     | ListView with variable-height items            |
 | Terminal        | `apps/terminal.tsx`      | Keyboard, mouse, clipboard, focus kitchensink  |
 | TextArea        | `apps/textarea.tsx`      | Multi-line text input component                |
 | Theme           | `apps/theme.tsx`         | Theme explorer with live palette preview       |
 | Transform       | `apps/transform.tsx`     | Text post-processing with Transform component  |
-| Virtual 10K     | `apps/virtual-10k.tsx`   | VirtualList with 10,000 items                  |
+| Virtual 10K     | `apps/virtual-10k.tsx`   | ListView with 10,000 items                     |
 
 ## Layout
 
@@ -118,7 +118,7 @@ Full interactive applications demonstrating real-world patterns.
 | Inline Simple   | `inline/inline-simple.tsx`   | Basic inline rendering                              |
 | Inline Progress | `inline/inline-progress.tsx` | Inline progress bar                                 |
 | Inline Non-TTY  | `inline/inline-nontty.tsx`   | Inline output for piped/non-TTY                     |
-| Scrollback      | `inline/scrollback.tsx`      | REPL with `useScrollback` + VirtualList virtualized |
+| Scrollback      | `inline/scrollback.tsx`      | REPL with ListView cache                            |
 
 ## Creating New Examples
 

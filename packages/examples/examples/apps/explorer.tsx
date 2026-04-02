@@ -393,10 +393,10 @@ function ProcessListArea({ processes, cursor, width }: { processes: ProcessInfo[
   const { height } = useContentRect()
 
   return (
-    <VirtualList
+    <ListView
       items={processes}
       height={height}
-      itemHeight={1}
+      estimateHeight={1}
       scrollTo={cursor}
       overscan={5}
       renderItem={(proc, index) => (

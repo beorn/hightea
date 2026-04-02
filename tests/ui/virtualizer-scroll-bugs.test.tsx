@@ -1,5 +1,5 @@
 /**
- * Tests for VirtualList scroll bugs:
+ * Tests for ListView scroll bugs:
  *
  * Bug 1 (scroll-blank-top): When scrolling down, blank rows appear between
  * the column header and first visible card. The leadingHeight placeholder

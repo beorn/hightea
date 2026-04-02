@@ -1,5 +1,5 @@
 /**
- * Variable-height measurement tests for ListView/VirtualList.
+ * Variable-height measurement tests for ListView.
  *
  * Verifies that the dynamic measurement system correctly handles items
  * with different heights. After the first render, ListView measures actual
@@ -15,7 +15,7 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
-import { Box, Text, VirtualList } from "@silvery/ag-react"
+import { Box, Text, ListView } from "@silvery/ag-react"
 
 // ============================================================================
 // Test Helpers
@@ -57,16 +57,16 @@ function countVisibleItems(text: string, total: number): number {
 // Variable-Height Rendering
 // ============================================================================
 
-describe("VirtualList — variable-height measurement", () => {
+describe("ListView — variable-height measurement", () => {
   test("mixed heights: all visible items render within viewport", () => {
     // Items with heights 1, 3, 1, 2, 1 = 8 rows total, viewport=10
     const items = makeVariableItems([1, 3, 1, 2, 1])
     const r = createRenderer({ cols: 40, rows: 12 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={10}
-        itemHeight={2}
+        estimateHeight={2}
         scrollTo={0}
         renderItem={renderVariableItem}
         getKey={(item) => item.id}
@@ -85,10 +85,10 @@ describe("VirtualList — variable-height measurement", () => {
     const items = makeVariableItems(Array.from({ length: 10 }, () => 3))
     const r = createRenderer({ cols: 40, rows: 11 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={9}
-        itemHeight={1}
+        estimateHeight={1}
         scrollTo={0}
         overflowIndicator
         renderItem={renderVariableItem}
@@ -108,10 +108,10 @@ describe("VirtualList — variable-height measurement", () => {
     const items = makeVariableItems(heights)
     const r = createRenderer({ cols: 40, rows: 12 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={10}
-        itemHeight={2}
+        estimateHeight={2}
         scrollTo={10}
         overflowIndicator
         renderItem={renderVariableItem}
@@ -128,10 +128,10 @@ describe("VirtualList — variable-height measurement", () => {
     const items = makeVariableItems([2, 2, 5, 2, 2])
     const r = createRenderer({ cols: 40, rows: 14 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={12}
-        itemHeight={(item: Item) => item.height}
+        estimateHeight={(index: number) => items[index]!.height}
         scrollTo={0}
         renderItem={renderVariableItem}
         getKey={(item) => item.id}
@@ -148,10 +148,10 @@ describe("VirtualList — variable-height measurement", () => {
     const items = makeVariableItems([8, 1, 1, 1])
     const r = createRenderer({ cols: 40, rows: 12 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={10}
-        itemHeight={2}
+        estimateHeight={2}
         scrollTo={0}
         overflowIndicator
         renderItem={renderVariableItem}
@@ -169,10 +169,10 @@ describe("VirtualList — variable-height measurement", () => {
     const items = makeVariableItems(Array.from({ length: 10 }, () => 1))
     const r = createRenderer({ cols: 40, rows: 7 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={5}
-        itemHeight={1}
+        estimateHeight={1}
         scrollTo={0}
         overflowIndicator
         renderItem={renderVariableItem}
@@ -193,10 +193,10 @@ describe("VirtualList — variable-height measurement", () => {
     const items = makeVariableItems([1, 1, 4, 1, 1, 4, 1, 1])
     const r = createRenderer({ cols: 40, rows: 10 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={8}
-        itemHeight={2}
+        estimateHeight={2}
         scrollTo={0}
         overflowIndicator
         renderItem={renderVariableItem}

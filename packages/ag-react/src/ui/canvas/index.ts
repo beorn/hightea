@@ -62,7 +62,7 @@ export { useFocusable } from "@silvery/ag-react/hooks/useFocusable"
 export { useFocusManager } from "@silvery/ag-react/hooks/useFocusManager"
 export { useFocusWithin } from "@silvery/ag-react/hooks/useFocusWithin"
 
-// Re-export all canvas-safe UI components (excludes ScrollbackList, ScrollbackView which need terminal)
+// Re-export all canvas-safe UI components
 export { Badge, type BadgeProps } from "@silvery/ag-react/ui/components/Badge"
 export { Breadcrumb, type BreadcrumbProps } from "@silvery/ag-react/ui/components/Breadcrumb"
 export { Button, type ButtonProps } from "@silvery/ag-react/ui/components/Button"
@@ -86,7 +86,6 @@ export { TextInput } from "@silvery/ag-react/ui/components/TextInput"
 export { Toggle } from "@silvery/ag-react/ui/components/Toggle"
 export { Tooltip } from "@silvery/ag-react/ui/components/Tooltip"
 export { TreeView } from "@silvery/ag-react/ui/components/TreeView"
-export { VirtualList } from "@silvery/ag-react/ui/components/VirtualList"
 export { HorizontalVirtualList } from "@silvery/ag-react/ui/components/HorizontalVirtualList"
 export {
   H1,

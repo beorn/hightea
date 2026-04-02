@@ -2,7 +2,7 @@
  * silvery/components -- Rich UI components beyond Ink's built-in set.
  *
  * ```tsx
- * import { VirtualList, Table, SelectList, TextInput, Spinner } from '@silvery/ag-react/ui/components'
+ * import { ListView, Table, SelectList, TextInput, Spinner } from '@silvery/ag-react/ui/components'
  * ```
  *
  * @packageDocumentation
@@ -20,9 +20,6 @@ export type {
   ListViewCacheConfig,
   ListViewSearchConfig,
 } from "./components/ListView"
-
-export { VirtualList } from "./components/VirtualList"
-export type { VirtualListProps, VirtualListHandle, ItemMeta } from "./components/VirtualList"
 
 export { HorizontalVirtualList } from "./components/HorizontalVirtualList"
 export type { HorizontalVirtualListProps, HorizontalVirtualListHandle } from "./components/HorizontalVirtualList"

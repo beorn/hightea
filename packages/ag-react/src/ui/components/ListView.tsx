@@ -1,5 +1,5 @@
 /**
- * ListView - Unified virtualized list component.
+ * ListView - Unified unmounted list component.
  *
  * Merges VirtualView's core (useVirtualizer, viewport rendering, placeholders)
  * with VirtualList's navigation (keyboard, mouse wheel, cursor state) into
@@ -120,9 +120,9 @@ export interface ListViewProps<T> {
   /** Content rendered after all items inside the scroll container (e.g., hidden count indicator) */
   listFooter?: React.ReactNode
 
-  /** Predicate for items already virtualized (e.g. pushed to scrollback).
+  /** Predicate for items already unmounted (cached, pushed to scrollback).
    * Only a contiguous prefix of matching items is removed from the list. */
-  virtualized?: (item: T, index: number) => boolean
+  unmounted?: (item: T, index: number) => boolean
 
   // ── Navigable mode ──────────────────────────────────────────────
 
@@ -240,7 +240,7 @@ function ListViewInner<T>(
     onEndReached,
     onEndReachedThreshold,
     listFooter,
-    virtualized,
+    unmounted,
     nav,
     cursorKey: cursorKeyProp,
     onCursor,
@@ -296,7 +296,7 @@ function ListViewInner<T>(
 
   // ── Resolve search config ─────────────────────────────────────────
   const searchConfig = typeof searchProp === "object" ? searchProp : searchProp ? {} : undefined
-  const textAdapter = searchConfig ? { getItemText: searchConfig.getText ?? ((item: T) => String(item)) } : undefined
+  const getText = searchConfig?.getText ?? (searchConfig ? ((item: T) => String(item)) : undefined)
 
   // Compute cached prefix from isCacheable
   let cachedCount = 0
@@ -308,58 +308,58 @@ function ListViewInner<T>(
   }
 
   // Push newly cached items to buffer
-  const prevFrozenRef = useRef(0)
-  if (cachedCount > prevFrozenRef.current && cacheBuffer) {
-    for (let i = prevFrozenRef.current; i < cachedCount; i++) {
+  const prevCachedRef = useRef(0)
+  if (cachedCount > prevCachedRef.current && cacheBuffer) {
+    for (let i = prevCachedRef.current; i < cachedCount; i++) {
       const item = items[i]!
-      const text = textAdapter?.getItemText?.(item) ?? String(item)
+      const text = getTextFn?.(item) ?? String(item)
       cacheBuffer.push(createHistoryItem(getKey?.(item, i) ?? i, text, 80))
     }
-    prevFrozenRef.current = cachedCount
+    prevCachedRef.current = cachedCount
   }
 
-  // Merge frozen prefix with external virtualized prop
-  const effectiveVirtualized = useMemo(() => {
-    if (cachedCount === 0) return virtualized
-    if (!virtualized) {
+  // Merge cached prefix with external unmounted prop
+  const effectiveUnmounted = useMemo(() => {
+    if (cachedCount === 0) return unmounted
+    if (!unmounted) {
       return (_item: T, index: number) => index < cachedCount
     }
     return (item: T, index: number) => {
       if (index < cachedCount) return true
-      return virtualized(item, index)
+      return unmounted(item, index)
     }
-  }, [cachedCount, virtualized])
+  }, [cachedCount, unmounted])
 
   // ── Virtual prefix computation ──────────────────────────────────────
-  let virtualizedCount = 0
-  if (effectiveVirtualized) {
+  let unmountedCount = 0
+  if (effectiveUnmounted) {
     for (let i = 0; i < items.length; i++) {
-      if (!effectiveVirtualized(items[i]!, i)) break
-      virtualizedCount++
+      if (!effectiveUnmounted(items[i]!, i)) break
+      unmountedCount++
     }
   }
 
   // Slice items to exclude virtual prefix
-  const activeItems = virtualizedCount > 0 ? items.slice(virtualizedCount) : items
+  const activeItems = unmountedCount > 0 ? items.slice(unmountedCount) : items
 
   // Adjust scrollTo to account for virtual items
-  const adjustedScrollTo = scrollTo !== undefined ? Math.max(0, scrollTo - virtualizedCount) : undefined
+  const adjustedScrollTo = scrollTo !== undefined ? Math.max(0, scrollTo - unmountedCount) : undefined
 
-  // ── Adapt estimateHeight for virtualized offset ──────────────────
+  // ── Adapt estimateHeight for unmounted offset ──────────────────
   const adjustedEstimateHeight = useMemo(() => {
     if (typeof estimateHeight === "number") return estimateHeight
-    if (virtualizedCount > 0) {
-      return (index: number) => estimateHeight(index + virtualizedCount)
+    if (unmountedCount > 0) {
+      return (index: number) => estimateHeight(index + unmountedCount)
     }
     return estimateHeight
-  }, [estimateHeight, virtualizedCount])
+  }, [estimateHeight, unmountedCount])
 
   // ── useVirtualizer ──────────────────────────────────────────────
   const wrappedGetKey = useMemo(() => {
     if (!getKey) return undefined
-    if (virtualizedCount === 0) return (index: number) => getKey(activeItems[index]!, index)
-    return (index: number) => getKey(activeItems[index]!, index + virtualizedCount)
-  }, [getKey, activeItems, virtualizedCount])
+    if (unmountedCount === 0) return (index: number) => getKey(activeItems[index]!, index)
+    return (index: number) => getKey(activeItems[index]!, index + unmountedCount)
+  }, [getKey, activeItems, unmountedCount])
 
   const { range, leadingHeight, trailingHeight, scrollOffset, scrollToItem, measureItem, measuredHeights } =
     useVirtualizer({
@@ -384,10 +384,10 @@ function ListViewInner<T>(
   // Stable refs for the effect closure to avoid re-running on every items change
   const itemsRef = useRef(items)
   itemsRef.current = items
-  const virtualizedCountRef = useRef(virtualizedCount)
-  virtualizedCountRef.current = virtualizedCount
-  const textAdapterRef = useRef(textAdapter)
-  if (textAdapter) textAdapterRef.current = textAdapter
+  const unmountedCountRef = useRef(unmountedCount)
+  unmountedCountRef.current = unmountedCount
+  const getTextFnRef = useRef(getTextFn)
+  if (getTextFn) getTextFnRef.current = getTextFn
   const getKeyRef = useRef(getKey)
   getKeyRef.current = getKey
 
@@ -397,13 +397,13 @@ function ListViewInner<T>(
 
     const getLiveItems = (): LiveItemBlock[] => {
       const currentItems = itemsRef.current
-      const currentVirtualizedCount = virtualizedCountRef.current
-      const currentTextAdapter = textAdapterRef.current
+      const currentUnmountedCount = unmountedCountRef.current
+      const currentGetText = getTextFnRef.current
       const currentGetKey = getKeyRef.current
       const live: LiveItemBlock[] = []
-      for (let i = currentVirtualizedCount; i < currentItems.length; i++) {
+      for (let i = currentUnmountedCount; i < currentItems.length; i++) {
         const item = currentItems[i]!
-        const text = currentTextAdapter?.getItemText?.(item) ?? String(item)
+        const text = currentGetText?.(item) ?? String(item)
         const rows = text.split("\n")
         const plainTextRows = rows.map((r) => stripAnsi(r))
         live.push({
@@ -462,7 +462,7 @@ function ListViewInner<T>(
     ref,
     () => ({
       scrollToItem(index: number) {
-        scrollToItem(Math.max(0, index - virtualizedCount))
+        scrollToItem(Math.max(0, index - unmountedCount))
       },
       getHistoryBuffer(): HistoryBuffer | null {
         return cacheBufferRef.current
@@ -471,7 +471,7 @@ function ListViewInner<T>(
         return composedViewportRef.current
       },
     }),
-    [scrollToItem, virtualizedCount],
+    [scrollToItem, unmountedCount],
   )
 
   // ── Mouse wheel handler ─────────────────────────────────────────
@@ -522,7 +522,7 @@ function ListViewInner<T>(
 
       {/* Render visible items with height measurement */}
       {visibleItems.map((item, i) => {
-        const originalIndex = startIndex + i + virtualizedCount
+        const originalIndex = startIndex + i + unmountedCount
         const key = getKey ? getKey(item, originalIndex) : startIndex + i
         const isLast = i === visibleItems.length - 1
         const meta: ListItemMeta = { isCursor: originalIndex === activeCursor }

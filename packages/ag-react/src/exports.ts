@@ -76,8 +76,6 @@ export type {
   ListViewCacheConfig,
   ListViewSearchConfig,
 } from "@silvery/ag-react/ui/components"
-export { VirtualList } from "@silvery/ag-react/ui/components"
-export type { VirtualListProps, VirtualListHandle, ItemMeta } from "@silvery/ag-react/ui/components"
 export { HorizontalVirtualList } from "@silvery/ag-react/ui/components"
 export type { HorizontalVirtualListProps, HorizontalVirtualListHandle } from "@silvery/ag-react/ui/components"
 export { SplitView } from "@silvery/ag-react/ui/components"
@@ -384,6 +382,7 @@ export type { ListItemContext } from "./hooks/useListItem"
 
 // App-level Providers (Phase 4)
 export { SearchProvider, useSearch } from "./providers/SearchProvider"
+export type { Searchable, SearchContextValue } from "./providers/SearchProvider"
 export { SearchBar } from "@silvery/ag-react/ui/components"
 
 /**
@@ -1053,7 +1052,7 @@ export type { InputBoundaryProps } from "./contexts/InputBoundary"
  *
  * <PositionRegistryProvider>
  *   {columns.map((col, i) => (
- *     <VirtualList items={col.items} renderItem={(item, idx) => (
+ *     <ListView items={col.items} renderItem={(item, idx) => (
  *       <GridCell sectionIndex={i} itemIndex={idx}>
  *         <Card {...item} />
  *       </GridCell>

@@ -1,17 +1,17 @@
 /**
- * VirtualList and SelectList boundary-condition tests.
+ * ListView and SelectList boundary-condition tests.
  *
  * Verifies viewport-based item rendering and overflow indicator behavior,
  * particularly at boundary heights where items partially fit.
  *
  * Context: HorizontalVirtualList had a ceil/floor bug where
  * calcActualVisibleCount used Math.ceil, counting partially-fitting items
- * as "visible". These tests verify VirtualList and SelectList behave
+ * as "visible". These tests verify ListView and SelectList behave
  * correctly at boundary heights.
  *
- * VirtualList architecture:
- * - VirtualList → VirtualView → useVirtualizer (scroll/window calculations)
- * - VirtualView renders into a Box with overflow="scroll" and fixed height
+ * ListView architecture:
+ * - ListView uses useVirtualizer (scroll/window calculations)
+ * - Renders into a Box with overflow="scroll" and fixed height
  * - The Box physically clips items that don't fit and tracks hiddenAbove/Below
  * - useVirtualizer uses Math.ceil for estimatedVisibleCount, which affects
  *   scroll offset calculations (not rendering — the Box handles that)
@@ -25,7 +25,7 @@ import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
 import { Box, Text } from "@silvery/ag-react"
-import { VirtualList } from "../../packages/ag-react/src/ui/components/VirtualList"
+import { ListView } from "../../packages/ag-react/src/ui/components/ListView"
 import { SelectList } from "../../packages/ag-react/src/ui/components/SelectList"
 import type { SelectOption } from "../../packages/ag-react/src/ui/components/SelectList"
 
@@ -75,18 +75,18 @@ function countVisibleItems(text: string, prefix: string, total: number): number 
 }
 
 // ============================================================================
-// VirtualList — Visible Count Tests (single-row items)
+// ListView — Visible Count Tests (single-row items)
 // ============================================================================
 
-describe("VirtualList — visible count at boundary heights", () => {
+describe("ListView — visible count at boundary heights", () => {
   test("exact fit: 5 items in height=5 renders all 5 (no overflow indicator)", () => {
     const items = makeItems(5)
     const r = createRenderer({ cols: 40, rows: 7 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={5}
-        itemHeight={1}
+        estimateHeight={1}
         scrollTo={0}
         overflowIndicator
         renderItem={renderItem}
@@ -107,10 +107,10 @@ describe("VirtualList — visible count at boundary heights", () => {
     const items = makeItems(10)
     const r = createRenderer({ cols: 40, rows: 7 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={5}
-        itemHeight={1}
+        estimateHeight={1}
         scrollTo={0}
         overflowIndicator
         renderItem={renderItem}
@@ -133,10 +133,10 @@ describe("VirtualList — visible count at boundary heights", () => {
     const items = makeItems(3)
     const r = createRenderer({ cols: 40, rows: 7 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={5}
-        itemHeight={1}
+        estimateHeight={1}
         scrollTo={0}
         overflowIndicator
         renderItem={renderItem}
@@ -155,10 +155,10 @@ describe("VirtualList — visible count at boundary heights", () => {
     const items: Item[] = []
     const r = createRenderer({ cols: 40, rows: 7 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={5}
-        itemHeight={1}
+        estimateHeight={1}
         scrollTo={0}
         renderItem={renderItem}
         getKey={(item) => item.id}
@@ -172,10 +172,10 @@ describe("VirtualList — visible count at boundary heights", () => {
     const items = makeItems(1)
     const r = createRenderer({ cols: 40, rows: 22 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={20}
-        itemHeight={1}
+        estimateHeight={1}
         scrollTo={0}
         renderItem={renderItem}
         getKey={(item) => item.id}
@@ -187,18 +187,18 @@ describe("VirtualList — visible count at boundary heights", () => {
 })
 
 // ============================================================================
-// VirtualList — Overflow Indicator Tests
+// ListView — Overflow Indicator Tests
 // ============================================================================
 
-describe("VirtualList — overflow indicators", () => {
+describe("ListView — overflow indicators", () => {
   test("shows ▼ overflow when items exceed viewport at scroll top", () => {
     const items = makeItems(10)
     const r = createRenderer({ cols: 40, rows: 7 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={5}
-        itemHeight={1}
+        estimateHeight={1}
         scrollTo={0}
         overflowIndicator
         renderItem={renderItem}
@@ -214,10 +214,10 @@ describe("VirtualList — overflow indicators", () => {
     const items = makeItems(3)
     const r = createRenderer({ cols: 40, rows: 7 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={5}
-        itemHeight={1}
+        estimateHeight={1}
         scrollTo={0}
         overflowIndicator
         renderItem={renderItem}
@@ -233,10 +233,10 @@ describe("VirtualList — overflow indicators", () => {
     const items = makeItems(10)
     const r = createRenderer({ cols: 40, rows: 7 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={5}
-        itemHeight={1}
+        estimateHeight={1}
         scrollTo={5}
         overflowIndicator
         renderItem={renderItem}
@@ -252,10 +252,10 @@ describe("VirtualList — overflow indicators", () => {
     const items = makeItems(20)
     const r = createRenderer({ cols: 40, rows: 12 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={10}
-        itemHeight={1}
+        estimateHeight={1}
         scrollTo={10}
         overflowIndicator
         renderItem={renderItem}
@@ -270,18 +270,18 @@ describe("VirtualList — overflow indicators", () => {
 })
 
 // ============================================================================
-// VirtualList — Gap Handling
+// ListView — Gap Handling
 // ============================================================================
 
-describe("VirtualList — gap handling", () => {
+describe("ListView — gap handling", () => {
   test("gap reduces number of visible items", () => {
     const items = makeItems(10)
     const r = createRenderer({ cols: 40, rows: 7 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={5}
-        itemHeight={1}
+        estimateHeight={1}
         gap={1}
         scrollTo={0}
         overflowIndicator
@@ -299,10 +299,10 @@ describe("VirtualList — gap handling", () => {
     // Compare with no gap
     const r2 = createRenderer({ cols: 40, rows: 7 })
     const app2 = r2(
-      <VirtualList
+      <ListView
         items={items}
         height={5}
-        itemHeight={1}
+        estimateHeight={1}
         scrollTo={0}
         overflowIndicator
         renderItem={renderItem}
@@ -317,27 +317,27 @@ describe("VirtualList — gap handling", () => {
     const items = makeItems(10)
     const r1 = createRenderer({ cols: 40, rows: 7 })
     const app1 = r1(
-      <VirtualList items={items} height={5} itemHeight={1} gap={0} scrollTo={0} renderItem={renderItem} />,
+      <ListView items={items} height={5} estimateHeight={1} gap={0} scrollTo={0} renderItem={renderItem} />,
     )
     const r2 = createRenderer({ cols: 40, rows: 7 })
-    const app2 = r2(<VirtualList items={items} height={5} itemHeight={1} scrollTo={0} renderItem={renderItem} />)
+    const app2 = r2(<ListView items={items} height={5} estimateHeight={1} scrollTo={0} renderItem={renderItem} />)
     expect(stripAnsi(app1.text)).toBe(stripAnsi(app2.text))
   })
 })
 
 // ============================================================================
-// VirtualList — Multi-Row Items at Boundaries
+// ListView — Multi-Row Items at Boundaries
 // ============================================================================
 
-describe("VirtualList — multi-row items at boundaries", () => {
+describe("ListView — multi-row items at boundaries", () => {
   test("3-row items in height=6: exactly 2 fit", () => {
     const items = makeItems(5)
     const r = createRenderer({ cols: 40, rows: 8 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={6}
-        itemHeight={3}
+        estimateHeight={3}
         scrollTo={0}
         overflowIndicator
         renderItem={renderFixedHeightItem(3)}
@@ -356,10 +356,10 @@ describe("VirtualList — multi-row items at boundaries", () => {
     const items = makeItems(5)
     const r = createRenderer({ cols: 40, rows: 9 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={7}
-        itemHeight={3}
+        estimateHeight={3}
         scrollTo={0}
         overflowIndicator
         renderItem={renderFixedHeightItem(3)}
@@ -376,10 +376,10 @@ describe("VirtualList — multi-row items at boundaries", () => {
     const items = makeItems(5)
     const r = createRenderer({ cols: 40, rows: 11 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={9}
-        itemHeight={3}
+        estimateHeight={3}
         scrollTo={0}
         overflowIndicator
         renderItem={renderFixedHeightItem(3)}
@@ -397,10 +397,10 @@ describe("VirtualList — multi-row items at boundaries", () => {
     const items = makeItems(8)
     const r = createRenderer({ cols: 40, rows: 8 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={6}
-        itemHeight={2}
+        estimateHeight={2}
         scrollTo={0}
         overflowIndicator
         renderItem={renderFixedHeightItem(2)}
@@ -417,10 +417,10 @@ describe("VirtualList — multi-row items at boundaries", () => {
 })
 
 // ============================================================================
-// VirtualList — Boundary Parametric Tests
+// ListView — Boundary Parametric Tests
 // ============================================================================
 
-describe("VirtualList — boundary heights (parametric)", () => {
+describe("ListView — boundary heights (parametric)", () => {
   // Verify that rendered items never overflow the viewport.
   // The Box with overflow="scroll" handles clipping, so this tests
   // that the virtualizer + box interaction is correct.
@@ -441,10 +441,10 @@ describe("VirtualList — boundary heights (parametric)", () => {
       const items = makeItems(itemCount)
       const r = createRenderer({ cols: 40, rows: height + 2 })
       const app = r(
-        <VirtualList
+        <ListView
           items={items}
           height={height}
-          itemHeight={itemHeight}
+          estimateHeight={itemHeight}
           scrollTo={0}
           overflowIndicator
           renderItem={renderFixedHeightItem(itemHeight)}
@@ -472,18 +472,18 @@ describe("VirtualList — boundary heights (parametric)", () => {
 })
 
 // ============================================================================
-// VirtualList — Interactive Mode Boundary Tests
+// ListView — Interactive Mode Boundary Tests
 // ============================================================================
 
-describe("VirtualList — nav mode boundaries", () => {
+describe("ListView — nav mode boundaries", () => {
   test("nav: selection at index 0 shows first item selected", () => {
     const items = makeItems(20)
     const r = createRenderer({ cols: 40, rows: 7 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={5}
-        itemHeight={1}
+        estimateHeight={1}
         nav
         cursorKey={0}
         overflowIndicator
@@ -506,10 +506,10 @@ describe("VirtualList — nav mode boundaries", () => {
     for (const selectedIdx of [0, 5, 10, 15, 19]) {
       const r = createRenderer({ cols: 40, rows: 7 })
       const app = r(
-        <VirtualList
+        <ListView
           items={items}
           height={5}
-          itemHeight={1}
+          estimateHeight={1}
           nav
           cursorKey={selectedIdx}
           renderItem={(item, _index, meta) => (
@@ -528,10 +528,10 @@ describe("VirtualList — nav mode boundaries", () => {
 })
 
 // ============================================================================
-// VirtualList — Scroll Offset Behavior (ceil vs floor impact)
+// ListView — Scroll Offset Behavior (ceil vs floor impact)
 // ============================================================================
 
-describe("VirtualList — scroll offset at boundaries", () => {
+describe("ListView — scroll offset at boundaries", () => {
   // The useVirtualizer hook uses Math.ceil for estimatedVisibleCount.
   // This affects scroll offset calculations: when the visible count is
   // overestimated by 1, scrolling may not trigger soon enough, leaving
@@ -544,10 +544,10 @@ describe("VirtualList — scroll offset at boundaries", () => {
     const items = makeItems(30)
     const r = createRenderer({ cols: 40, rows: 12 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={10}
-        itemHeight={1}
+        estimateHeight={1}
         scrollTo={15}
         overflowIndicator
         renderItem={renderItem}
@@ -566,10 +566,10 @@ describe("VirtualList — scroll offset at boundaries", () => {
     const items = makeItems(30)
     const r = createRenderer({ cols: 40, rows: 12 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={10}
-        itemHeight={1}
+        estimateHeight={1}
         scrollTo={29}
         overflowIndicator
         renderItem={renderItem}
@@ -588,10 +588,10 @@ describe("VirtualList — scroll offset at boundaries", () => {
     const items = makeItems(30)
     const r = createRenderer({ cols: 40, rows: 12 })
     const app = r(
-      <VirtualList
+      <ListView
         items={items}
         height={10}
-        itemHeight={1}
+        estimateHeight={1}
         scrollTo={0}
         overflowIndicator
         renderItem={renderItem}

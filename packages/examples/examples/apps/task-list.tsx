@@ -15,7 +15,7 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 export const meta: ExampleMeta = {
   name: "Task List",
   description: "Scrollable list with priority badges, toggles, and expandable subtasks",
-  features: ["VirtualList", "variable itemHeight", "Box overflow"],
+  features: ["ListView", "variable estimateHeight", "Box overflow"],
 }
 
 // ============================================================================

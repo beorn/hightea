@@ -2,8 +2,7 @@
  * ListView tests.
  *
  * Verifies the unified ListView component: basic rendering, nav mode,
- * getKey, estimateHeight, overflow indicators, virtualized prefix, listFooter,
- * and backward compatibility via VirtualView/VirtualList wrappers.
+ * getKey, estimateHeight, overflow indicators, virtualized prefix, and listFooter.
  */
 
 import React from "react"
@@ -11,7 +10,6 @@ import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
 import { Box, Text } from "@silvery/ag-react"
 import { ListView } from "../../packages/ag-react/src/ui/components/ListView"
-import { VirtualList } from "../../packages/ag-react/src/ui/components/VirtualList"
 
 // ============================================================================
 // Test Helpers
@@ -367,89 +365,3 @@ describe("ListView — gap handling", () => {
   })
 })
 
-// ============================================================================
-// VirtualList wrapper — backward compatibility
-// ============================================================================
-
-describe("VirtualList wrapper — backward compatibility", () => {
-  test("renders items with itemHeight", () => {
-    const items = makeItems(5)
-    const r = createRenderer({ cols: 40, rows: 7 })
-    const app = r(
-      <VirtualList
-        items={items}
-        height={5}
-        itemHeight={1}
-        scrollTo={0}
-        getKey={(item) => item.id}
-        renderItem={(item, _index) => <Text>{item.title}</Text>}
-      />,
-    )
-    const text = stripAnsi(app.text)
-    expect(text).toContain("Item 0")
-  })
-
-  test("nav mode with isCursor in meta", () => {
-    const items = makeItems(20)
-    const r = createRenderer({ cols: 40, rows: 7 })
-    const app = r(
-      <VirtualList
-        items={items}
-        height={5}
-        itemHeight={1}
-        nav
-        cursorKey={0}
-        overflowIndicator
-        renderItem={(item, _index, meta) => (
-          <Text>
-            {meta?.isCursor ? "> " : "  "}
-            {item.title}
-          </Text>
-        )}
-        getKey={(item) => item.id}
-      />,
-    )
-    const text = stripAnsi(app.text)
-    expect(text).toContain("> Item 0")
-  })
-
-  test("overflow indicators match original behavior", () => {
-    const items = makeItems(10)
-    const r = createRenderer({ cols: 40, rows: 7 })
-    const app = r(
-      <VirtualList
-        items={items}
-        height={5}
-        itemHeight={1}
-        scrollTo={0}
-        overflowIndicator
-        getKey={(item) => item.id}
-        renderItem={(item, _index) => <Text>{item.title}</Text>}
-      />,
-    )
-    const text = stripAnsi(app.text)
-    expect(text).toContain("▼")
-    expect(text).not.toContain("▲")
-  })
-
-  test("virtualized prefix still works", () => {
-    const items = makeItems(10)
-    const r = createRenderer({ cols: 40, rows: 12 })
-    const app = r(
-      <VirtualList
-        items={items}
-        height={10}
-        itemHeight={1}
-        scrollTo={5}
-        virtualized={(_item, index) => index < 3}
-        renderItem={(item, _index) => <Text>{item.title}</Text>}
-        getKey={(item) => item.id}
-      />,
-    )
-    const text = stripAnsi(app.text)
-    expect(text).not.toContain("Item 0")
-    expect(text).not.toContain("Item 1")
-    expect(text).not.toContain("Item 2")
-    expect(text).toContain("Item 5")
-  })
-})

@@ -1,8 +1,9 @@
 /**
- * SearchProvider — app-global search routed to the focused TextSurface.
+ * SearchProvider — app-global search with pluggable Searchable registration.
  *
- * Wraps the TEA search state machine from @silvery/ag-term/search-overlay
- * and delegates search queries to the focused surface from SurfaceRegistry.
+ * Components (e.g., ListView) register as searchable. SearchBar reads search state.
+ * Ctrl+F opens search on the focused searchable. Pluggable: any component can
+ * register by calling `registerSearchable()` from the context.
  *
  * Usage:
  * ```tsx
@@ -13,13 +14,23 @@
  * ```
  */
 
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react"
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from "react"
 import { type SearchState, type SearchMatch, createSearchState, searchUpdate } from "@silvery/ag-term/search-overlay"
 import { useInput } from "../hooks/useInput"
 import type { ReactNode, ReactElement } from "react"
 
 // ============================================================================
-// Types
+// Searchable interface — what components register
+// ============================================================================
+
+/** Minimal interface for a searchable component. */
+export interface Searchable {
+  search(query: string): SearchMatch[]
+  reveal(match: SearchMatch): void
+}
+
+// ============================================================================
+// Context types
 // ============================================================================
 
 export interface SearchContextValue {
@@ -49,6 +60,10 @@ export interface SearchContextValue {
   cursorLeft(): void
   /** Move the query cursor right */
   cursorRight(): void
+  /** Register a searchable component. Returns unregister function. */
+  registerSearchable(id: string, searchable: Searchable): () => void
+  /** Set which searchable is focused (for multi-pane routing). */
+  setFocused(id: string | null): void
 }
 
 // ============================================================================
@@ -63,40 +78,62 @@ const SearchContext = createContext<SearchContextValue | null>(null)
 
 export function SearchProvider({ children }: { children: ReactNode }): ReactElement {
   const [state, setState] = useState<SearchState>(createSearchState)
-  const [activeSurfaceId, setActiveSurfaceId] = useState<string | null>(null)
-  // TODO: Replace with search-machine registration (km-silvery.search-machine)
-  const registry = { getSurface: () => null, getFocusedSurface: () => null } as any
+  const [focusedId, setFocusedId] = useState<string | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const searchablesRef = useRef(new Map<string, Searchable>())
+
+  const getActiveSearchable = useCallback((): Searchable | null => {
+    const id = activeId ?? focusedId
+    if (!id) {
+      // Fall back to the only registered searchable (single-pane apps)
+      const entries = searchablesRef.current
+      if (entries.size === 1) return entries.values().next().value!
+      return null
+    }
+    return searchablesRef.current.get(id) ?? null
+  }, [activeId, focusedId])
 
   const getSearchFn = useCallback(() => {
-    const surface = activeSurfaceId ? registry.getSurface(activeSurfaceId) : registry.getFocusedSurface()
-    if (!surface) return undefined
-    return (query: string) => surface.search(query)
-  }, [registry, activeSurfaceId])
+    const searchable = getActiveSearchable()
+    if (!searchable) return undefined
+    return (query: string) => searchable.search(query)
+  }, [getActiveSearchable])
 
   const handleEffects = useCallback(
-    (effects: Array<{ type: string; row?: number }>) => {
-      const surface = activeSurfaceId ? registry.getSurface(activeSurfaceId) : registry.getFocusedSurface()
-      if (!surface) return
+    (effects: Array<{ type: string; row?: number; startCol?: number; endCol?: number }>) => {
+      const searchable = getActiveSearchable()
+      if (!searchable) return
       for (const eff of effects) {
         if (eff.type === "scrollTo" && eff.row !== undefined) {
-          surface.reveal(eff.row)
+          searchable.reveal({ row: eff.row, startCol: eff.startCol ?? 0, endCol: eff.endCol ?? 0 })
         }
       }
     },
-    [registry, activeSurfaceId],
+    [getActiveSearchable],
   )
 
+  const registerSearchable = useCallback((id: string, searchable: Searchable): (() => void) => {
+    searchablesRef.current.set(id, searchable)
+    return () => {
+      searchablesRef.current.delete(id)
+    }
+  }, [])
+
+  const setFocused = useCallback((id: string | null) => {
+    setFocusedId(id)
+  }, [])
+
   const open = useCallback(() => {
-    const surface = registry.getFocusedSurface()
-    if (surface) setActiveSurfaceId(surface.id)
+    // Lock to current focused searchable when opening
+    setActiveId(focusedId)
     setState((prev) => {
       const [next] = searchUpdate({ type: "open" }, prev)
       return next
     })
-  }, [registry])
+  }, [focusedId])
 
   const close = useCallback(() => {
-    setActiveSurfaceId(null)
+    setActiveId(null)
     setState((prev) => {
       const [next] = searchUpdate({ type: "close" }, prev)
       return next
@@ -171,8 +208,10 @@ export function SearchProvider({ children }: { children: ReactNode }): ReactElem
       backspace,
       cursorLeft,
       cursorRight,
+      registerSearchable,
+      setFocused,
     }),
-    [state, open, close, next, prev, input, backspace, cursorLeft, cursorRight],
+    [state, open, close, next, prev, input, backspace, cursorLeft, cursorRight, registerSearchable, setFocused],
   )
 
   return React.createElement(

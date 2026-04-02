@@ -2,7 +2,7 @@
  * Dev Tools — Log Viewer Example
  *
  * A live log viewer demonstrating:
- * - VirtualList for efficient rendering of thousands of log entries
+ * - ListView for efficient rendering of thousands of log entries
  * - Keyboard shortcuts to add log entries at different severity levels
  * - Color-coded severity levels (DEBUG, INFO, WARN, ERROR)
  * - j/k navigation through log history
@@ -26,7 +26,7 @@ import {
   render,
   Box,
   Text,
-  VirtualList,
+  ListView,
   Divider,
   useContentRect,
   useInput,
@@ -42,8 +42,8 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Dev Tools",
-  description: "Log viewer with severity levels, VirtualList, and keyboard-driven log injection",
-  features: ["VirtualList", "useInput()", "useContentRect()", "keyboard navigation"],
+  description: "Log viewer with severity levels, ListView, and keyboard-driven log injection",
+  features: ["ListView", "useInput()", "useContentRect()", "keyboard navigation"],
 }
 
 // ============================================================================
@@ -220,10 +220,10 @@ function LogListArea({ entries, cursor }: { entries: LogEntry[]; cursor: number 
   const { height } = useContentRect()
 
   return (
-    <VirtualList
+    <ListView
       items={entries}
       height={height}
-      itemHeight={1}
+      estimateHeight={1}
       scrollTo={cursor}
       overscan={5}
       renderItem={(entry, index) => <LogRow key={entry.id} entry={entry} isSelected={index === cursor} />}
