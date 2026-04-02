@@ -101,6 +101,7 @@ export default defineConfig({
         ],
       },
       { text: "Themes", link: "/themes" },
+      { text: "Blog", link: "/blog/" },
       { text: "About", link: "/about" },
       {
         text: "Links",
@@ -255,6 +256,18 @@ export default defineConfig({
           { text: "Terminal Protocols", link: "/examples/terminal" },
           { text: "AI Coding Agent", link: "/examples/ai-chat" },
           { text: "Testing", link: "/examples/testing" },
+        ],
+      },
+      {
+        text: "Blog",
+        collapsed: true,
+        items: [
+          { text: "All Posts", link: "/blog/" },
+          { text: "Build a CLI Dashboard in 50 Lines", link: "/blog/build-cli-dashboard" },
+          { text: "Silvery vs Ink: Benchmarks", link: "/blog/silvery-vs-ink-benchmarks" },
+          { text: "Migrating from Ink", link: "/blog/migrating-from-ink" },
+          { text: "Layout-First Rendering", link: "/blog/layout-first-rendering" },
+          { text: "Building an AI Agent TUI", link: "/blog/building-ai-agent-tui" },
         ],
       },
       {
