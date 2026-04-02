@@ -20,7 +20,7 @@
  */
 
 import { Command as BaseCommand, Help, Option } from "commander"
-import { colorizeHelp } from "./colorize.ts"
+import { colorizeHelp, shouldColorize } from "./colorize.ts"
 import type { StandardSchemaV1 } from "./presets.ts"
 
 // --- Standard Schema support ---
@@ -90,23 +90,68 @@ interface StoredSection {
 
 /**
  * Style a section term using Commander's style hooks.
- * Splits the term into segments: option-like (-f), argument brackets (<arg>, [opt]),
- * and command words — each styled with the appropriate hook.
+ *
+ * Three modes:
+ * - Shell command (`$ termless play demo.tape`): dim prompt, primary command,
+ *   secondary flags, accent brackets, normal filenames/args
+ * - Option-like (`-f, --flag`): styled as option
+ * - Plain text: command words + argument brackets
  */
 function styleSectionTerm(term: string, helper: any): string {
+  // Shell command terms (start with "$ "): nuanced multi-part styling
+  const shellMatch = term.match(/^(\$\s+)(.+)$/)
+  if (shellMatch) {
+    const prompt = shellMatch[1]!
+    const rest = shellMatch[2]!
+    // Dim the $ prompt (respect NO_COLOR)
+    const dimPrompt = shouldColorize() ? `\x1b[2m${prompt}\x1b[22m` : prompt
+    // Split into tokens, style contextually:
+    // - First word = program name (primary/command)
+    // - Subcommand words before first flag/arg = command (primary)
+    // - Flags (--foo, -f) = secondary/option
+    // - <brackets> [brackets] = accent/argument
+    // - Everything else (filenames, values) = unstyled
+    const tokens = rest.match(/(--?\S+)|(<[^>]+>|\[[^\]]+\])|('[^']*'|"[^"]*")|(\S+)|(\s+)/g) ?? []
+    let commandWords = 0
+    let doneWithCommand = false
+    const styled = tokens
+      .map((token) => {
+        if (/^\s+$/.test(token)) return token // whitespace
+        if (/^--?\S/.test(token)) {
+          doneWithCommand = true
+          return helper.styleOptionText(token)
+        }
+        if (/^[<[]/.test(token)) {
+          doneWithCommand = true
+          return helper.styleArgumentText(token)
+        }
+        if (/^["']/.test(token)) {
+          doneWithCommand = true
+          return shouldColorize() ? `\x1b[2m${token}\x1b[22m` : token
+        }
+        // First word = program name (always command)
+        // Second word = subcommand IF it looks like a bare word (no dots/slashes/extensions)
+        if (!doneWithCommand && commandWords === 0) {
+          commandWords++
+          return helper.styleCommandText(token)
+        }
+        if (!doneWithCommand && commandWords === 1 && /^[a-z][\w-]*$/i.test(token)) {
+          commandWords++
+          return helper.styleCommandText(token)
+        }
+        doneWithCommand = true
+        // Plain args (filenames, values) — dim to distinguish from command
+        return shouldColorize() ? `\x1b[2m${token}\x1b[22m` : token
+      })
+      .join("")
+    return dimPrompt + styled
+  }
+
   // Option-like terms: entire term styled as option
   if (/^\s*-/.test(term)) return helper.styleOptionText(term)
 
-  // Mixed terms: style <arg>/[opt] as arguments, "quoted" as literal values, rest as commands
-  return term.replace(
-    /(<[^>]+>|\[[^\]]+\])|("[^"]*")|([^<["[\]]+)/g,
-    (_match, bracket: string, quoted: string, text: string) => {
-      if (bracket) return helper.styleArgumentText(bracket)
-      if (quoted) return quoted // literal values — default foreground (quotes distinguish them)
-      if (text) return helper.styleCommandText(text)
-      return ""
-    },
-  )
+  // Non-shell terms: render as plain text (no command styling without $ prefix)
+  return term
 }
 
 export class Command extends BaseCommand {
@@ -282,6 +327,7 @@ export class Command extends BaseCommand {
               helper.longestSubcommandTermLength(cmd, helper),
               helper.longestArgumentTermLength(cmd, helper),
             )
+        if (cmd !== self) return base
         let sectionMax = 0
         for (const section of self._helpSectionList) {
           if (typeof section.content !== "string") {
@@ -295,6 +341,10 @@ export class Command extends BaseCommand {
       // Render "before" and "after" sections inside formatHelp
       formatHelp(cmd: any, helper: any) {
         const baseHelp = origFormatHelp ? origFormatHelp(cmd, helper) : protoFormatHelp.call(helper, cmd, helper)
+        // Only render THIS command's sections. configureHelp is inherited by
+        // subcommands, so without this guard parent sections leak into subcommand help.
+        // Subcommands with their own sections install their own hooks.
+        if (cmd !== self) return baseHelp
         const termWidth = helper.padWidth(cmd, helper)
         const before = self._renderSections("before", helper, termWidth)
         const after = self._renderSections("after", helper, termWidth)

@@ -17,7 +17,7 @@ I ran into two problems I couldn't work around:
 
 **Every keystroke re-renders everything.** When a user moves a cursor in a 1000-node tree, Ink re-runs React reconciliation and Yoga layout for the entire tree. For my application, that took about 20 milliseconds per keypress — noticeable at 60fps.
 
-I needed layout to run *before* rendering (so components could access their dimensions), and per-node dirty tracking (so only changed nodes would re-render). That required a different rendering pipeline, which meant building a new renderer.
+I needed layout to run _before_ rendering (so components could access their dimensions), and per-node dirty tracking (so only changed nodes would re-render). That required a different rendering pipeline, which meant building a new renderer.
 
 What started as fixing two Ink limitations grew into something much broader — a complete terminal UI framework with its own layout engine, 45+ components, theming, terminal protocol negotiation, state machines, and testing infrastructure. The renderer and incremental rendering were the starting point, but they're a small part of what Silvery is today.
 
@@ -28,9 +28,7 @@ What started as fixing two Ink limitations grew into something much broader — 
 ```tsx
 function IssueCard({ issue }: { issue: Issue }) {
   const { width } = useContentRect()
-  return width >= 32
-    ? <FullCard issue={issue} />
-    : <CompactCard issue={issue} />
+  return width >= 32 ? <FullCard issue={issue} /> : <CompactCard issue={issue} />
 }
 ```
 

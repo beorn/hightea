@@ -207,7 +207,16 @@ function computeDimensions(pixelWidth: number, pixelHeight: number, options: Can
         ? createDomMeasurer({ fontSize, fontFamily, lineHeight: lineHeightMultiplier })
         : createPretextMeasurer({ fontSize, fontFamily, lineHeight: lineHeightMultiplier })
   }
-  return { fontSize, lineHeightMultiplier, isProportional, charWidth, lineHeight, cols, rows, measurer }
+  return {
+    fontSize,
+    lineHeightMultiplier,
+    isProportional,
+    charWidth,
+    lineHeight,
+    cols,
+    rows,
+    measurer,
+  }
 }
 
 // ============================================================================

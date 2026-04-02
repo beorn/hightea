@@ -85,7 +85,7 @@ export function colorizeHelp(program: CommandLike, options?: ColorizeHelpOptions
     styleSubcommandText: (str: string) => cmds(str),
     styleArgumentText: (str: string) => brackets(str),
     styleDescriptionText: (str: string) => desc(str),
-    styleCommandDescription: (str: string) => s.bold.primary(str),
+    styleCommandDescription: (str: string) => s.bold(str),
   }
 
   program.configureHelp(helpConfig)
