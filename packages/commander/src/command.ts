@@ -140,7 +140,8 @@ function styleSectionTerm(term: string, helper: any): string {
           return helper.styleCommandText(token)
         }
         doneWithCommand = true
-        return token // plain args — unstyled
+        // Plain args (filenames, values) — dim to distinguish from command
+        return shouldColorize() ? `\x1b[2m${token}\x1b[22m` : token
       })
       .join("")
     return dimPrompt + styled
