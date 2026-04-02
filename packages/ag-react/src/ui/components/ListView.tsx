@@ -312,7 +312,7 @@ function ListViewInner<T>(
   if (cachedCount > prevCachedRef.current && cacheBuffer) {
     for (let i = prevCachedRef.current; i < cachedCount; i++) {
       const item = items[i]!
-      const text = getTextFn?.(item) ?? String(item)
+      const text = getText?.(item) ?? String(item)
       cacheBuffer.push(createHistoryItem(getKey?.(item, i) ?? i, text, 80))
     }
     prevCachedRef.current = cachedCount
@@ -386,8 +386,8 @@ function ListViewInner<T>(
   itemsRef.current = items
   const unmountedCountRef = useRef(unmountedCount)
   unmountedCountRef.current = unmountedCount
-  const getTextFnRef = useRef(getTextFn)
-  if (getTextFn) getTextFnRef.current = getTextFn
+  const getTextRef = useRef(getText)
+  if (getText) getTextRef.current = getText
   const getKeyRef = useRef(getKey)
   getKeyRef.current = getKey
 
@@ -398,7 +398,7 @@ function ListViewInner<T>(
     const getLiveItems = (): LiveItemBlock[] => {
       const currentItems = itemsRef.current
       const currentUnmountedCount = unmountedCountRef.current
-      const currentGetText = getTextFnRef.current
+      const currentGetText = getTextRef.current
       const currentGetKey = getKeyRef.current
       const live: LiveItemBlock[] = []
       for (let i = currentUnmountedCount; i < currentItems.length; i++) {
