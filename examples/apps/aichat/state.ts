@@ -56,11 +56,10 @@ export type DemoResult = TeaResult<DemoState, DemoEffect>
 // ============================================================================
 
 const INTRO_TEXT = [
-  "Coding agent simulation showcasing ScrollbackList:",
-  " • ScrollbackList — declarative list with automatic scrollback",
-  " • Auto-freeze — items freeze when they scroll off-screen",
+  "Coding agent simulation showcasing ListView:",
+  " • ListView — unified virtualized list with cache",
+  " • Cache mode — completed exchanges cached for performance",
   " • OSC 8 hyperlinks — clickable file paths and URLs",
-  " • OSC 133 markers — Cmd+↑/↓ to jump between exchanges",
   " • $token theme colors — semantic color tokens",
 ].join("\n")
 

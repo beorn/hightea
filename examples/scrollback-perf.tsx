@@ -1,5 +1,5 @@
 /**
- * Benchmark: ScrollbackList typing performance
+ * Benchmark: ListView typing performance
  * Measures per-keystroke cost across React reconciliation + silvery pipeline.
  *
  * Usage: bun examples/scrollback-perf.tsx
@@ -11,7 +11,7 @@
  */
 import React, { useState, useEffect, useRef } from "react"
 import { createRenderer } from "@silvery/test"
-import { Box, Text, ScrollbackList, TextInput, Spinner } from "../src/index.js"
+import { Box, Text, ListView, TextInput, Spinner } from "../src/index.js"
 
 interface Item {
   id: string
@@ -154,11 +154,21 @@ function TestApp({ itemCount }: { itemCount: number }) {
 
   return (
     <Box flexDirection="column">
-      <ScrollbackList
+      <ListView
         items={items}
-        keyExtractor={(item) => item.id}
-        isFrozen={(item) => item.frozen}
-        footer={
+        getKey={(item) => item.id}
+        height={36}
+        estimateHeight={useSimple ? 3 : 8}
+        scrollTo={items.length - 1}
+        cache={{
+          mode: "virtual",
+          isCacheable: (item) => item.frozen,
+        }}
+        renderItem={(item, index) => {
+          const isLatest = index === items.length - 1
+          return useSimple ? <SimpleItem item={item} isLatest={isLatest} /> : <ComplexItem item={item} />
+        }}
+        listFooter={
           useLifted ? (
             <LiftedFooter />
           ) : (
@@ -170,15 +180,7 @@ function TestApp({ itemCount }: { itemCount: number }) {
             </Box>
           )
         }
-        footerHeight={useSimple ? 3 : 4}
-        width={120}
-        stdout={{ write: () => true }}
-      >
-        {(item, index) => {
-          const isLatest = index === items.length - 1
-          return useSimple ? <SimpleItem item={item} isLatest={isLatest} /> : <ComplexItem item={item} />
-        }}
-      </ScrollbackList>
+      />
     </Box>
   )
 }
@@ -220,7 +222,7 @@ async function benchmark(itemCount: number, label: string) {
   )
 }
 
-console.log("=== ScrollbackList Typing Performance ===\n")
+console.log("=== ListView Typing Performance ===\n")
 await benchmark(1, "1 item")
 await benchmark(5, "5 items")
 await benchmark(10, "10 items")

@@ -1,11 +1,11 @@
 /**
  * Virtual Scroll Benchmark — 10,000 Items
  *
- * Demonstrates that VirtualList handles massive datasets with instant scrolling.
+ * Demonstrates that ListView handles massive datasets with instant scrolling.
  * Only visible items + overscan are rendered, regardless of total count.
  *
  * Demonstrates:
- * - VirtualList with 10,000 items and variable heights
+ * - ListView with 10,000 items and variable heights
  * - Smooth j/k navigation with position indicator
  * - useContentRect() for adaptive column count
  * - Page up/down with large jumps
@@ -22,14 +22,14 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react"
-import { Box, Text, Strong, Kbd, Muted, Divider, VirtualList, useContentRect } from "../../src/index.js"
+import { Box, Text, Strong, Kbd, Muted, Divider, ListView, useContentRect } from "../../src/index.js"
 import { run, useInput, type Key } from "@silvery/ag-term/runtime"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Virtual 10K",
-  description: "VirtualList scrolling through 10,000 items with instant navigation",
-  features: ["VirtualList", "10K items", "useContentRect()", "variable itemHeight"],
+  description: "ListView scrolling through 10,000 items with instant navigation",
+  features: ["ListView", "10K items", "useContentRect()", "variable estimateHeight"],
 }
 
 // ============================================================================
@@ -296,8 +296,8 @@ function VirtualBenchmark() {
   const listHeight = Math.max(5, height - 5)
   const halfPage = Math.max(1, Math.floor(listHeight / 2))
 
-  const itemHeight = useCallback(
-    (_item: Item, index: number) => {
+  const estimateHeight = useCallback(
+    (index: number) => {
       if (showDetail && index === cursor) return 2
       return 1
     },
@@ -356,10 +356,10 @@ function VirtualBenchmark() {
 
       {/* Virtual list */}
       <Box flexGrow={1}>
-        <VirtualList
+        <ListView
           items={ALL_ITEMS}
           height={listHeight}
-          itemHeight={itemHeight}
+          estimateHeight={estimateHeight}
           scrollTo={cursor}
           overscan={5}
           renderItem={(item, index) => (

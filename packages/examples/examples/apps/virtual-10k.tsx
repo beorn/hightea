@@ -1,11 +1,11 @@
 /**
  * Virtual Scroll Benchmark — 10,000 Items
  *
- * Demonstrates that VirtualList handles massive datasets with instant scrolling.
+ * Demonstrates that ListView handles massive datasets with instant scrolling.
  * Only visible items + overscan are rendered, regardless of total count.
  *
  * Demonstrates:
- * - VirtualList with 10,000 items and variable heights
+ * - ListView with 10,000 items and variable heights
  * - Smooth j/k navigation with position indicator
  * - useContentRect() for adaptive column count
  * - Page up/down with large jumps
@@ -22,14 +22,14 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react"
-import { Box, Text, Strong, Kbd, Muted, Divider, VirtualList, useContentRect } from "silvery"
+import { Box, Text, Strong, Kbd, Muted, Divider, ListView, useContentRect } from "silvery"
 import { run, useInput, type Key } from "silvery/runtime"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Virtual 10K",
-  description: "VirtualList scrolling through 10,000 items with instant navigation",
-  features: ["VirtualList", "10K items", "useContentRect()", "variable itemHeight"],
+  description: "ListView scrolling through 10,000 items with instant navigation",
+  features: ["ListView", "10K items", "useContentRect()", "variable estimateHeight"],
 }
 
 // ============================================================================

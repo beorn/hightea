@@ -185,7 +185,7 @@ const REACT_KEYWORDS = new Set([
   "useApp",
   "useTerm",
   "useContentRect",
-  "useScrollback",
+  "useVirtualizer",
 ])
 
 function highlightLine(line: string): React.ReactNode {

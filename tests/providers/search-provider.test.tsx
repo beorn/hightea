@@ -58,11 +58,9 @@ describe("SearchProvider", () => {
 
     const r = createRenderer({ cols: 80, rows: 3 })
     const app = r(
-      
-        <SearchProvider>
-          <Inspector />
-        </SearchProvider>
-,
+      <SearchProvider>
+        <Inspector />
+      </SearchProvider>,
     )
 
     const text = stripAnsi(app.text)
@@ -83,11 +81,9 @@ describe("SearchProvider", () => {
 
     const r = createRenderer({ cols: 40, rows: 3 })
     const app = r(
-      
-        <SearchProvider>
-          <Inspector />
-        </SearchProvider>
-,
+      <SearchProvider>
+        <Inspector />
+      </SearchProvider>,
     )
 
     // After effect runs, the state update will schedule a re-render
@@ -117,11 +113,9 @@ describe("SearchProvider", () => {
 
     const r = createRenderer({ cols: 80, rows: 3 })
     const app = r(
-      
-        <SearchProvider>
-          <Inspector />
-        </SearchProvider>
-,
+      <SearchProvider>
+        <Inspector />
+      </SearchProvider>,
     )
 
     const text = stripAnsi(app.text)
@@ -161,11 +155,9 @@ describe("SearchProvider", () => {
 
     const r = createRenderer({ cols: 60, rows: 3 })
     r(
-      
-        <SearchProvider>
-          <Inspector />
-        </SearchProvider>
-,
+      <SearchProvider>
+        <Inspector />
+      </SearchProvider>,
     )
 
     // The surface's search() was called (indirectly via searchUpdate's searchFn)
@@ -199,11 +191,9 @@ describe("SearchProvider", () => {
 
     const r = createRenderer({ cols: 40, rows: 3 })
     r(
-      
-        <SearchProvider>
-          <Inspector />
-        </SearchProvider>
-,
+      <SearchProvider>
+        <Inspector />
+      </SearchProvider>,
     )
 
     // First match reveal from input()
@@ -226,11 +216,9 @@ describe("SearchProvider", () => {
 
     const r = createRenderer({ cols: 40, rows: 3 })
     r(
-      
-        <SearchProvider>
-          <Inspector />
-        </SearchProvider>
-,
+      <SearchProvider>
+        <Inspector />
+      </SearchProvider>,
     )
 
     // Should not throw — just produces no matches

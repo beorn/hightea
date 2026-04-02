@@ -1,15 +1,16 @@
 /**
  * AI Chat — Coding Agent Demo
  *
- * Showcases ScrollbackList with streaming, tool calls, context tracking.
- * TEA state machine drives all animation; ScrollbackList freezes completed
- * exchanges into real terminal scrollback with colors, borders, and hyperlinks.
+ * Showcases ListView with streaming, tool calls, context tracking.
+ * TEA state machine drives all animation; ListView caches completed
+ * exchanges while live content stays in the React tree.
  *
  * Flags: --auto (auto-advance) --fast (skip animation) --stress (200 exchanges)
  */
 
-import React, { useEffect, useRef, useMemo } from "react"
-import { Box, Text, Spinner, ScrollbackList, useTea } from "silvery"
+import React, { useCallback, useEffect, useRef, useMemo } from "react"
+import { Box, Text, Spinner, ListView, useTea } from "silvery"
+import type { ListItemMeta } from "silvery"
 import { run, useInput, useExit, type Key } from "@silvery/ag-term/runtime"
 import type { ExampleMeta } from "../../_banner.js"
 import type { ScriptEntry } from "./types.js"
@@ -32,13 +33,14 @@ export type { Exchange, ToolCall } from "./types.js"
 
 export const meta: ExampleMeta = {
   name: "AI Coding Agent",
-  description: "Coding agent showcase — ScrollbackList, streaming, context tracking",
+  description: "Coding agent showcase — ListView, streaming, context tracking",
   demo: true,
-  features: ["ScrollbackList", "auto-freeze", "inline mode", "streaming", "OSC 8 links", "OSC 133 markers"],
+  features: ["ListView", "cache", "inline mode", "streaming", "OSC 8 links"],
+  // TODO: Add OSC 133 marker support to ListView (km-silvery.listview-markers)
 }
 
 // ============================================================================
-// AIChat — TEA state machine + ScrollbackList
+// AIChat — TEA state machine + ListView
 // ============================================================================
 
 export function AIChat({
@@ -60,13 +62,45 @@ export function AIChat({
   useAutoExit(autoStart, state.done, exit)
   useKeyBindings(state, send, footerControlRef)
 
+  const renderExchange = useCallback(
+    (exchange: (typeof state.exchanges)[number], index: number, _meta: ListItemMeta) => {
+      const isLatest = index === state.exchanges.length - 1
+      return (
+        <Box flexDirection="column">
+          {index > 0 && <Text> </Text>}
+          {state.compacting && isLatest && <CompactingOverlay />}
+          {state.done && autoStart && isLatest && <SessionComplete />}
+          <ExchangeItem
+            exchange={exchange}
+            streamPhase={state.streamPhase}
+            revealFraction={state.revealFraction}
+            pulse={state.pulse}
+            isLatest={isLatest}
+            isFirstInGroup={exchange.role !== (index > 0 ? state.exchanges[index - 1]!.role : null)}
+            isLastInGroup={
+              exchange.role !== (index < state.exchanges.length - 1 ? state.exchanges[index + 1]!.role : null)
+            }
+          />
+        </Box>
+      )
+    },
+    [state, autoStart],
+  )
+
   return (
     <Box flexDirection="column" paddingX={1}>
-      <ScrollbackList
+      <ListView
         items={state.exchanges}
-        keyExtractor={(ex) => ex.id}
-        markers={true}
-        footer={
+        getKey={(ex) => ex.id}
+        height={process.stdout.rows ?? 24}
+        estimateHeight={6}
+        renderItem={renderExchange}
+        scrollTo={state.exchanges.length - 1}
+        cache={{
+          mode: "virtual",
+          isCacheable: (_ex, index) => index < state.exchanges.length - 1,
+        }}
+        listFooter={
           <DemoFooter
             controlRef={footerControlRef}
             onSubmit={(text) => send({ type: "submit", text })}
@@ -80,29 +114,7 @@ export function AIChat({
             autoTypingText={state.autoTyping ? state.autoTyping.full.slice(0, state.autoTyping.revealed) : null}
           />
         }
-      >
-        {(exchange, index) => {
-          const isLatest = index === state.exchanges.length - 1
-          return (
-            <Box flexDirection="column">
-              {index > 0 && <Text> </Text>}
-              {state.compacting && isLatest && <CompactingOverlay />}
-              {state.done && autoStart && isLatest && <SessionComplete />}
-              <ExchangeItem
-                exchange={exchange}
-                streamPhase={state.streamPhase}
-                revealFraction={state.revealFraction}
-                pulse={state.pulse}
-                isLatest={isLatest}
-                isFirstInGroup={exchange.role !== (index > 0 ? state.exchanges[index - 1]!.role : null)}
-                isLastInGroup={
-                  exchange.role !== (index < state.exchanges.length - 1 ? state.exchanges[index + 1]!.role : null)
-                }
-              />
-            </Box>
-          )
-        }}
-      </ScrollbackList>
+      />
     </Box>
   )
 }

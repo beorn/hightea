@@ -23,14 +23,12 @@ describe("SearchBar", () => {
   test("renders nothing when search is inactive", () => {
     const r = createRenderer({ cols: 40, rows: 5 })
     const app = r(
-      
-        <SearchProvider>
-          <Box flexDirection="column">
-            <Text>App content</Text>
-            <SearchBar />
-          </Box>
-        </SearchProvider>
-,
+      <SearchProvider>
+        <Box flexDirection="column">
+          <Text>App content</Text>
+          <SearchBar />
+        </Box>
+      </SearchProvider>,
     )
 
     const text = stripAnsi(app.text)
@@ -55,11 +53,9 @@ describe("SearchBar", () => {
 
     const r = createRenderer({ cols: 40, rows: 5 })
     const app = r(
-      
-        <SearchProvider>
-          <TestApp />
-        </SearchProvider>
-,
+      <SearchProvider>
+        <TestApp />
+      </SearchProvider>,
     )
 
     // After effect runs and re-render, the search bar should show the "/" prefix
@@ -109,11 +105,9 @@ describe("SearchBar", () => {
 
     const r = createRenderer({ cols: 60, rows: 5 })
     const app = r(
-      
-        <SearchProvider>
-          <TestApp />
-        </SearchProvider>
-,
+      <SearchProvider>
+        <TestApp />
+      </SearchProvider>,
     )
 
     // The match count should show after the useEffect state update

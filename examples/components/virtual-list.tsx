@@ -1,5 +1,5 @@
 /**
- * VirtualList — Efficient scrollable list
+ * ListView — Efficient scrollable list
  *
  * Renders 200 items but only materializes visible rows.
  * Built-in j/k navigation, page up/down, Home/End.
@@ -8,7 +8,7 @@
  */
 
 import React from "react"
-import { Box, Text, VirtualList } from "../../src/index.js"
+import { Box, Text, ListView } from "../../src/index.js"
 import { run, useInput } from "@silvery/ag-term/runtime"
 
 const items = Array.from({ length: 200 }, (_, i) => ({
@@ -16,7 +16,7 @@ const items = Array.from({ length: 200 }, (_, i) => ({
   name: `Item ${i + 1}`,
 }))
 
-function VirtualListDemo() {
+function ListViewDemo() {
   useInput((input, key) => {
     if (input === "q" || key.escape) return "exit"
   })
@@ -24,14 +24,14 @@ function VirtualListDemo() {
   return (
     <Box flexDirection="column" padding={1} gap={1}>
       <Text bold>200 items (virtualized)</Text>
-      <VirtualList
+      <ListView
         items={items}
         height={12}
-        itemHeight={1}
-        interactive
+        estimateHeight={1}
+        nav
         renderItem={(item, _index, meta) => (
-          <Text key={item.id} color={meta?.isSelected ? "$primary" : undefined} bold={meta?.isSelected}>
-            {meta?.isSelected ? "> " : "  "}
+          <Text key={item.id} color={meta.isCursor ? "$primary" : undefined} bold={meta.isCursor}>
+            {meta.isCursor ? "> " : "  "}
             {item.name}
           </Text>
         )}
@@ -47,6 +47,6 @@ export const meta = {
 }
 
 if (import.meta.main) {
-  const handle = await run(<VirtualListDemo />)
+  const handle = await run(<ListViewDemo />)
   await handle.waitUntilExit()
 }

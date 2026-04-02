@@ -1,8 +1,8 @@
 /**
  * Scrollback Mode — REPL
  *
- * Interactive expression evaluator demonstrating useScrollback + VirtualList virtualized.
- * Completed results freeze into terminal scrollback; the active prompt stays at bottom.
+ * Interactive expression evaluator demonstrating ListView with cache.
+ * Completed results are cached by ListView; the active prompt stays at bottom.
  *
  * Controls:
  *   Type expression + Enter  - Evaluate
@@ -10,14 +10,14 @@
  */
 
 import React, { useState, useCallback } from "react"
-import { Box, Text, Divider, VirtualList, useInput, type Key, useScrollback } from "../../src/index.js"
+import { Box, Text, Divider, ListView, useInput, type Key } from "../../src/index.js"
 import { run, useExit } from "@silvery/ag-term/runtime"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Scrollback",
-  description: "REPL with useScrollback + VirtualList virtualized for terminal scrollback",
-  features: ["useScrollback()", "VirtualList virtualized", "inline mode"],
+  description: "REPL with ListView cache for completed results",
+  features: ["ListView", "cache", "inline mode"],
 }
 
 // =============================================================================
@@ -28,7 +28,7 @@ interface Result {
   id: number
   expr: string
   value: string
-  frozen: boolean
+  done: boolean
 }
 
 let nextId = 0
@@ -52,12 +52,6 @@ export function Repl() {
   const [input, setInput] = useState("")
   const [cursor, setCursor] = useState(0)
 
-  // Push frozen results to terminal scrollback
-  const frozenCount = useScrollback(results, {
-    frozen: (r) => r.frozen,
-    render: (r) => `$ ${r.expr}\n→ ${r.value}`,
-  })
-
   const submit = useCallback(() => {
     const expr = input.trim()
     if (!expr) return
@@ -65,8 +59,8 @@ export function Repl() {
     const value = evaluate(expr)
     const id = nextId++
 
-    // Mark all existing results as frozen, add new one unfrozen
-    setResults((prev) => [...prev.map((r) => ({ ...r, frozen: true })), { id, expr, value, frozen: false }])
+    // Mark all existing results as done, add new one as active
+    setResults((prev) => [...prev.map((r) => ({ ...r, done: true })), { id, expr, value, done: false }])
     setInput("")
     setCursor(0)
   }, [input])
@@ -117,21 +111,24 @@ export function Repl() {
     }
   })
 
-  const activeCount = results.length - frozenCount
   const beforeCursor = input.slice(0, cursor)
   const atCursor = input[cursor] ?? " "
   const afterCursor = input.slice(cursor + 1)
 
   return (
     <Box flexDirection="column">
-      {/* Active (non-virtualized) results via VirtualList */}
-      {activeCount > 0 && (
-        <VirtualList
+      {/* Results via ListView with cache */}
+      {results.length > 0 && (
+        <ListView
           items={results}
-          virtualized={(r) => r.frozen}
-          height={activeCount * 2}
-          itemHeight={2}
-          scrollTo={0}
+          getKey={(r) => r.id}
+          height={Math.min(results.length * 2, 20)}
+          estimateHeight={2}
+          scrollTo={results.length - 1}
+          cache={{
+            mode: "virtual",
+            isCacheable: (r) => r.done,
+          }}
           renderItem={(r) => (
             <Box key={r.id} flexDirection="column">
               <Text>
