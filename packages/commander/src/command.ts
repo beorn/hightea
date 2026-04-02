@@ -111,26 +111,36 @@ function styleSectionTerm(term: string, helper: any): string {
     // - Flags (--foo, -f) = secondary/option
     // - <brackets> [brackets] = accent/argument
     // - Everything else (filenames, values) = unstyled
-    const tokens = rest.match(/(--?\S+)|(<[^>]+>|\[[^\]]+\])|("[^"]*")|(\S+)|(\s+)/g) ?? []
-    let seenNonCommand = false
+    const tokens = rest.match(/(--?\S+)|(<[^>]+>|\[[^\]]+\])|('[^']*'|"[^"]*")|(\S+)|(\s+)/g) ?? []
+    let commandWords = 0
+    let doneWithCommand = false
     const styled = tokens
       .map((token) => {
         if (/^\s+$/.test(token)) return token // whitespace
         if (/^--?\S/.test(token)) {
-          seenNonCommand = true
+          doneWithCommand = true
           return helper.styleOptionText(token)
         }
         if (/^[<[]/.test(token)) {
-          seenNonCommand = true
+          doneWithCommand = true
           return helper.styleArgumentText(token)
         }
-        if (/^"/.test(token)) {
-          seenNonCommand = true
+        if (/^["']/.test(token)) {
+          doneWithCommand = true
           return token
         }
-        // Words: command name until we see a flag/arg/value, then plain
-        if (!seenNonCommand) return helper.styleCommandText(token)
-        return token // plain args/filenames — unstyled
+        // First word = program name (always command)
+        // Second word = subcommand IF it looks like a bare word (no dots/slashes/extensions)
+        if (!doneWithCommand && commandWords === 0) {
+          commandWords++
+          return helper.styleCommandText(token)
+        }
+        if (!doneWithCommand && commandWords === 1 && /^[a-z][\w-]*$/i.test(token)) {
+          commandWords++
+          return helper.styleCommandText(token)
+        }
+        doneWithCommand = true
+        return token // plain args — unstyled
       })
       .join("")
     return dimPrompt + styled
