@@ -20,7 +20,7 @@
  */
 
 import { Command as BaseCommand, Help, Option } from "commander"
-import { colorizeHelp } from "./colorize.ts"
+import { colorizeHelp, shouldColorize } from "./colorize.ts"
 import type { StandardSchemaV1 } from "./presets.ts"
 
 // --- Standard Schema support ---
@@ -103,8 +103,8 @@ function styleSectionTerm(term: string, helper: any): string {
   if (shellMatch) {
     const prompt = shellMatch[1]!
     const rest = shellMatch[2]!
-    // Dim the $ prompt
-    const dimPrompt = helper.styleDescriptionText?.(prompt) ?? prompt
+    // Dim the $ prompt (respect NO_COLOR)
+    const dimPrompt = shouldColorize() ? `\x1b[2m${prompt}\x1b[22m` : prompt
     // Split into tokens, style contextually:
     // - First word = program name (primary/command)
     // - Subcommand words before first flag/arg = command (primary)
