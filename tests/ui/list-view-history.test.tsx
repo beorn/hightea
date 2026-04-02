@@ -213,6 +213,46 @@ describe("ListView", () => {
     expect(viewport!.overlayRows).toEqual([])
   })
 
+  // ── ANSI capture in cache buffer ─────────────────────────────────
+
+  test("cached items contain rendered ANSI, not just plain text", () => {
+    const listRef = React.createRef<ListViewHandle>()
+    const items: Message[] = [
+      { id: "1", body: "Styled msg", delivered: true },
+      { id: "2", body: "Also styled", delivered: true },
+      { id: "3", body: "Still pending", delivered: false },
+    ]
+
+    const r = createRenderer({ cols: 40, rows: 10 })
+    r(
+      <ListView
+        ref={listRef}
+        items={items}
+        getKey={(m) => m.id}
+        height={10}
+        cache={{
+          mode: "virtual",
+          isCacheable: (m) => (m as Message).delivered,
+        }}
+        renderItem={(msg) => <Text bold>{msg.body}</Text>}
+      />,
+    )
+
+    const buf = listRef.current?.getHistoryBuffer()
+    expect(buf).not.toBeNull()
+    expect(buf!.itemCount).toBe(2)
+
+    // The cached ANSI rows should contain actual ANSI escape codes (bold)
+    const rows = buf!.getRows(0, 2)
+    expect(rows[0]).toContain("\x1b[") // has ANSI codes
+    expect(rows[0]).toContain("Styled msg")
+
+    // Plain text rows should have the text without ANSI
+    const plainRows = buf!.getPlainTextRows(0, 2)
+    expect(plainRows[0]).toContain("Styled msg")
+    expect(plainRows[0]).not.toContain("\x1b[")
+  })
+
   // ── No history buffer when mode="none" ──────────────────────────
 
   test("no history buffer created when mode is none", () => {

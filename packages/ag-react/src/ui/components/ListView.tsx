@@ -28,10 +28,21 @@
  * ```
  */
 
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
+import React, {
+  forwardRef,
+  useCallback,
+  useContext,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { useVirtualizer } from "@silvery/ag-react/hooks/useVirtualizer"
 import { useInput } from "@silvery/ag-react/hooks/useInput"
 import { Box } from "@silvery/ag-react/components/Box"
+import { TermContext } from "@silvery/ag-react/context"
+import { renderStringSync } from "@silvery/ag-react/render-string"
 import { createHistoryBuffer, createHistoryItem } from "@silvery/ag-term/history-buffer"
 import type { HistoryBuffer } from "@silvery/ag-term/history-buffer"
 import { createListDocument } from "@silvery/ag-term/list-document"
@@ -41,8 +52,9 @@ import type { TextSurface } from "@silvery/ag-term/text-surface"
 import { composeViewport } from "@silvery/ag-term/viewport-compositor"
 import type { ComposedViewport } from "@silvery/ag-term/viewport-compositor"
 import { stripAnsi } from "@silvery/ag-term/unicode"
-// TODO: Replace with search-machine registration (km-silvery.search-machine)
-const useSurfaceRegistryOptional = (): any => null
+import { isLayoutEngineInitialized } from "@silvery/ag-term/layout-engine"
+import { useSearchOptional } from "@silvery/ag-react/providers/SearchProvider"
+import type { SearchMatch } from "@silvery/ag-term/search-overlay"
 
 // =============================================================================
 // Types
@@ -252,6 +264,9 @@ function ListViewInner<T>(
   }: ListViewProps<T>,
   ref: React.ForwardedRef<ListViewHandle>,
 ): React.ReactElement {
+  // ── Term context for cache capture width ─────────────────────────
+  const term = useContext(TermContext)
+
   // ── Nav mode: controlled/uncontrolled cursor ─────────
   const isControlled = cursorKeyProp !== undefined
   const [uncontrolledCursor, setUncontrolledCursor] = useState(0)
@@ -307,13 +322,35 @@ function ListViewInner<T>(
     }
   }
 
-  // Push newly cached items to buffer
+  // Push newly cached items to buffer — capture real rendered ANSI
   const prevCachedRef = useRef(0)
   if (cachedCount > prevCachedRef.current && cacheBuffer) {
+    const captureWidth = width ?? term?.cols ?? 80
+    const canCapture = isLayoutEngineInitialized()
     for (let i = prevCachedRef.current; i < cachedCount; i++) {
       const item = items[i]!
-      const text = getText?.(item) ?? String(item)
-      cacheBuffer.push(createHistoryItem(getKey?.(item, i) ?? i, text, 80))
+      const key = getKey?.(item, i) ?? i
+      let ansi: string
+      if (canCapture) {
+        // Render the item's element through the pipeline to get real ANSI
+        // (borders, padding, colors — everything the user saw)
+        try {
+          const element = renderItem(item, i, { isCursor: false })
+          ansi = renderStringSync(element as React.ReactElement, {
+            width: captureWidth,
+            plain: false,
+            trimTrailingWhitespace: true,
+            trimEmptyLines: false,
+          })
+        } catch {
+          // Fallback to plain text if render fails
+          ansi = getText?.(item) ?? String(item)
+        }
+      } else {
+        // Layout engine not ready — fallback to plain text
+        ansi = getText?.(item) ?? String(item)
+      }
+      cacheBuffer.push(createHistoryItem(key, ansi, captureWidth))
     }
     prevCachedRef.current = cachedCount
   }
@@ -376,10 +413,10 @@ function ListViewInner<T>(
       onEndReachedThreshold,
     })
 
-  // ── Surface registration ─────────────────────────────────────────
+  // ── Surface / search registration ────────────────────────────────
   const textSurfaceRef = useRef<TextSurface | null>(null)
   const composedViewportRef = useRef<ComposedViewport | null>(null)
-  const registry = useSurfaceRegistryOptional()
+  const searchCtx = useSearchOptional()
 
   // Stable refs for the effect closure to avoid re-running on every items change
   const itemsRef = useRef(items)
@@ -390,6 +427,10 @@ function ListViewInner<T>(
   if (getText) getTextRef.current = getText
   const getKeyRef = useRef(getKey)
   getKeyRef.current = getKey
+
+  // Stable ref to scrollToItem so the search reveal closure doesn't go stale
+  const scrollToItemRef = useRef(scrollToItem)
+  scrollToItemRef.current = scrollToItem
 
   // Create and maintain ListDocument + TextSurface when surfaceId is set
   useEffect(() => {
@@ -434,18 +475,66 @@ function ListViewInner<T>(
 
     textSurfaceRef.current = surface
 
-    // Register with SurfaceRegistry if provider is in the tree
-    if (registry) {
-      registry.register(surface)
-    }
-
     return () => {
       textSurfaceRef.current = null
-      if (registry) {
-        registry.unregister(surfaceId)
-      }
     }
-  }, [surfaceId, cacheMode, cacheBuffer, registry])
+  }, [surfaceId, cacheMode, cacheBuffer])
+
+  // ── Search registration ──────────────────────────────────────────
+  // Register as Searchable in SearchProvider when `search` prop is set.
+  // The search function scans all items' text for query matches.
+  // The reveal function scrolls the matching item into view.
+  useEffect(() => {
+    if (!searchConfig || !searchCtx || !surfaceId) return
+
+    const searchable = {
+      search(query: string): SearchMatch[] {
+        if (!query) return []
+        const currentItems = itemsRef.current
+        const currentGetText = getTextRef.current
+        const lowerQuery = query.toLowerCase()
+        const matches: SearchMatch[] = []
+        let row = 0
+        for (let i = 0; i < currentItems.length; i++) {
+          const item = currentItems[i]!
+          const text = currentGetText?.(item) ?? String(item)
+          const lines = text.split("\n")
+          for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+            const line = lines[lineIdx]!
+            const lowerLine = line.toLowerCase()
+            let col = 0
+            while (col < lowerLine.length) {
+              const found = lowerLine.indexOf(lowerQuery, col)
+              if (found === -1) break
+              matches.push({ row: row + lineIdx, startCol: found, endCol: found + query.length })
+              col = found + 1
+            }
+          }
+          row += lines.length
+        }
+        return matches
+      },
+      reveal(match: SearchMatch): void {
+        // Find which item contains this row
+        const currentItems = itemsRef.current
+        const currentGetText = getTextRef.current
+        let row = 0
+        for (let i = 0; i < currentItems.length; i++) {
+          const item = currentItems[i]!
+          const text = currentGetText?.(item) ?? String(item)
+          const lineCount = text.split("\n").length
+          if (match.row < row + lineCount) {
+            // This item contains the match — scroll to it
+            scrollToItemRef.current(Math.max(0, i - unmountedCountRef.current))
+            return
+          }
+          row += lineCount
+        }
+      },
+    }
+
+    return searchCtx.registerSearchable(surfaceId, searchable)
+  }, [searchConfig, searchCtx, surfaceId])
 
   // Compute composed viewport when history is active
   if (cacheMode === "virtual" && cacheBuffer) {

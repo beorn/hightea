@@ -10,10 +10,10 @@
  * items are preserved as frozen React elements. This matches Ink's Static
  * behavior where each item is rendered exactly once.
  *
- * In inline mode (when promoteScrollback is available), Static uses
- * useScrollback to push items to terminal scrollback. Items leave the React
- * tree once promoted — the terminal owns them. This is the correct behavior
- * for inline mode where content flows into the scrollback buffer.
+ * In inline mode (when promoteScrollback is available), Static renders
+ * items to ANSI strings via renderStringSync and promotes them to
+ * terminal scrollback. Items leave the React tree once promoted — the
+ * terminal owns them.
  *
  * In fullscreen/test mode, items remain in the React tree as frozen elements.
  */
@@ -21,12 +21,7 @@
 import { useContext, useRef, type JSX, type ReactNode } from "react"
 import { StdoutContext, TermContext } from "../context"
 import { renderStringSync } from "../render-string"
-
-// TODO: useScrollback was removed — inline scrollback promotion needs reimplementation
-// Stub returns 0 (no items promoted) so fullscreen/test mode still works
-function useScrollback(_items: unknown[], _opts: unknown): number {
-  return 0
-}
+import { isLayoutEngineInitialized } from "@silvery/ag-term/layout-engine"
 
 export interface StaticProps<T> {
   /** Items to render */
@@ -64,12 +59,14 @@ export interface StaticProps<T> {
 export function Static<T>({ items, children, style }: StaticProps<T>): JSX.Element {
   const stdoutCtx = useContext(StdoutContext)
   const term = useContext(TermContext)
-  const useInlineScrollback = !!stdoutCtx?.promoteScrollback
+  const promoteScrollback = stdoutCtx?.promoteScrollback
 
   // Track previously rendered items to implement write-once semantics.
   // Once an item has been rendered, its React element is frozen and reused
   // on subsequent renders — the children callback is NOT called again for it.
   const renderedRef = useRef<ReactNode[]>([])
+  // Track how many items have been promoted to terminal scrollback (inline mode only)
+  const promotedCountRef = useRef(0)
 
   // Render only new items (items beyond what we've already rendered)
   const prevCount = renderedRef.current.length
@@ -80,31 +77,42 @@ export function Static<T>({ items, children, style }: StaticProps<T>): JSX.Eleme
   } else if (items.length < prevCount) {
     // Items were removed — truncate the rendered cache
     renderedRef.current.length = items.length
+    // Also adjust promoted count if items were removed below promoted threshold
+    if (promotedCountRef.current > items.length) {
+      promotedCountRef.current = items.length
+    }
   }
 
-  // In inline mode, use useScrollback to promote items to terminal scrollback.
-  // All items are immediately frozen (write-once semantics = always frozen).
-  const frozenCount = useScrollback(items, {
-    frozen: () => useInlineScrollback,
-    render: (_item: T, index: number) => {
-      const element = renderedRef.current[index]
-      if (!element) return ""
-      try {
-        return renderStringSync(element as React.ReactElement, {
-          width: term?.cols ?? 80,
-          plain: false,
-        })
-      } catch {
-        return `[static item ${index}]`
-      }
-    },
-    width: useInlineScrollback ? (term?.cols ?? 80) : undefined,
-  })
+  // In inline mode, promote new items to terminal scrollback
+  if (promoteScrollback && isLayoutEngineInitialized()) {
+    const renderWidth = term?.cols ?? 80
+    const prevPromoted = promotedCountRef.current
 
-  if (useInlineScrollback) {
-    // In inline mode, only render items not yet promoted to scrollback.
-    // Frozen items have been written to the terminal scrollback by useScrollback.
-    const liveElements = renderedRef.current.slice(frozenCount)
+    // Promote all rendered items that haven't been promoted yet
+    for (let i = prevPromoted; i < renderedRef.current.length; i++) {
+      const element = renderedRef.current[i]
+      if (!element) continue
+      try {
+        const ansi = renderStringSync(element as React.ReactElement, {
+          width: renderWidth,
+          plain: false,
+          trimTrailingWhitespace: true,
+          trimEmptyLines: false,
+        })
+        // Each promoted item: ANSI content + erase-to-end-of-line + newline
+        const lines = ansi.split("\n")
+        const frozenContent = lines.map((line) => `${line}\x1b[K`).join("\r\n") + "\r\n"
+        promoteScrollback(frozenContent, lines.length)
+      } catch {
+        // Fallback: promote plain text placeholder
+        promoteScrollback(`[static item ${i}]\x1b[K\r\n`, 1)
+      }
+    }
+
+    promotedCountRef.current = renderedRef.current.length
+
+    // In inline mode, only render items not yet promoted to scrollback
+    const liveElements = renderedRef.current.slice(promotedCountRef.current)
     if (liveElements.length === 0) {
       // All items promoted — render empty container to maintain tree structure
       return <silvery-box flexDirection="column" {...style} />

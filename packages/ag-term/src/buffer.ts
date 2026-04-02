@@ -1778,7 +1778,7 @@ export function hasActiveAttrs(attrs: CellAttrs): boolean {
  * is no previous style context (first cell), so the terminal is already in
  * reset state. Each attribute gets its own \x1b[Xm sequence.
  */
-function styleToAnsiCodes(style: Style): string {
+export function styleToAnsiCodes(style: Style): string {
   const fg = style.fg
   const bg = style.bg
 
@@ -1840,7 +1840,7 @@ function styleToAnsiCodes(style: Style): string {
  * full generation via styleToAnsiCodes. Otherwise, diffs attribute
  * by attribute and emits only changed SGR codes as individual \x1b[Xm sequences.
  */
-function styleTransitionCodes(oldStyle: Style | null, newStyle: Style): string {
+export function styleTransitionCodes(oldStyle: Style | null, newStyle: Style): string {
   // First cell or after reset — full generation
   if (!oldStyle) return styleToAnsiCodes(newStyle)
 
@@ -1943,7 +1943,7 @@ function styleTransitionCodes(oldStyle: Style | null, newStyle: Style): string {
  * Returns empty string if no attributes are active.
  * Uses individual \x1b[Xm sequences to match chalk's format.
  */
-function styleResetCodes(style: Style): string {
+export function styleResetCodes(style: Style): string {
   let result = ""
   // Attributes (order: underline, bold/dim, italic, strikethrough, inverse — matches chalk close order)
   if (style.attrs.underline || style.attrs.underlineStyle) result += "\x1b[24m"
@@ -1962,7 +1962,7 @@ function styleResetCodes(style: Style): string {
 /**
  * Trim trailing whitespace from a string while preserving ANSI codes.
  */
-function trimTrailingWhitespacePreservingAnsi(str: string): string {
+export function trimTrailingWhitespacePreservingAnsi(str: string): string {
   // Find the last non-whitespace character or ANSI escape
   let lastContentIndex = -1
   let i = 0
