@@ -19,6 +19,8 @@ I ran into two problems I couldn't work around:
 
 I needed layout to run *before* rendering (so components could access their dimensions), and per-node dirty tracking (so only changed nodes would re-render). That required a different rendering pipeline, which meant building a new renderer.
 
+What started as fixing two Ink limitations grew into something much broader — a complete terminal UI framework with its own layout engine, 45+ components, theming, terminal protocol negotiation, state machines, and testing infrastructure. The renderer and incremental rendering were the starting point, but they're a small part of what Silvery is today.
+
 ## How It Works
 
 **Layout first, then render.** Silvery inverts the pipeline: [Flexily](https://beorn.codes/flexily) (a Yoga-compatible layout engine) calculates positions and sizes, then React renders components with their actual content box available via `useContentRect()`:
