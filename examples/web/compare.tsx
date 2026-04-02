@@ -24,7 +24,12 @@ interface Message {
 }
 
 const messages: Message[] = [
-  { role: "user", name: "You", time: "2:41 PM", text: "How does shrinkwrap sizing work? CSS can't do it, right?" },
+  {
+    role: "user",
+    name: "You",
+    time: "2:41 PM",
+    text: "How does shrinkwrap sizing work? CSS can't do it, right?",
+  },
   {
     role: "assistant",
     name: "Claude",
@@ -194,7 +199,11 @@ function mount(width: number) {
   // Canvas side — unmount previous, render fresh
   if (instance) instance.unmount()
 
-  instance = renderToCanvas(<ChatApp width={width} />, canvas, { ...canvasOpts, width, height: 800 })
+  instance = renderToCanvas(<ChatApp width={width} />, canvas, {
+    ...canvasOpts,
+    width,
+    height: 800,
+  })
 
   // Auto-size canvas height to content
   const dpr = window.devicePixelRatio || 1

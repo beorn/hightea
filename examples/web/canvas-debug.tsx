@@ -25,7 +25,12 @@ interface Message {
 }
 
 const messages: Message[] = [
-  { role: "user", name: "You", time: "2:41 PM", text: "How does shrinkwrap sizing work? CSS can't do it, right?" },
+  {
+    role: "user",
+    name: "You",
+    time: "2:41 PM",
+    text: "How does shrinkwrap sizing work? CSS can't do it, right?",
+  },
   {
     role: "assistant",
     name: "Claude",
