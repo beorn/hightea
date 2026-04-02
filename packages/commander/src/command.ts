@@ -90,23 +90,57 @@ interface StoredSection {
 
 /**
  * Style a section term using Commander's style hooks.
- * Splits the term into segments: option-like (-f), argument brackets (<arg>, [opt]),
- * and command words — each styled with the appropriate hook.
+ *
+ * Three modes:
+ * - Shell command (`$ termless play demo.tape`): dim prompt, primary command,
+ *   secondary flags, accent brackets, normal filenames/args
+ * - Option-like (`-f, --flag`): styled as option
+ * - Plain text: command words + argument brackets
  */
 function styleSectionTerm(term: string, helper: any): string {
+  // Shell command terms (start with "$ "): nuanced multi-part styling
+  const shellMatch = term.match(/^(\$\s+)(.+)$/)
+  if (shellMatch) {
+    const prompt = shellMatch[1]!
+    const rest = shellMatch[2]!
+    // Dim the $ prompt
+    const dimPrompt = helper.styleDescriptionText?.(prompt) ?? prompt
+    // Split into tokens, style contextually:
+    // - First word = program name (primary/command)
+    // - Subcommand words before first flag/arg = command (primary)
+    // - Flags (--foo, -f) = secondary/option
+    // - <brackets> [brackets] = accent/argument
+    // - Everything else (filenames, values) = unstyled
+    const tokens = rest.match(/(--?\S+)|(<[^>]+>|\[[^\]]+\])|("[^"]*")|(\S+)|(\s+)/g) ?? []
+    let seenNonCommand = false
+    const styled = tokens
+      .map((token) => {
+        if (/^\s+$/.test(token)) return token // whitespace
+        if (/^--?\S/.test(token)) {
+          seenNonCommand = true
+          return helper.styleOptionText(token)
+        }
+        if (/^[<[]/.test(token)) {
+          seenNonCommand = true
+          return helper.styleArgumentText(token)
+        }
+        if (/^"/.test(token)) {
+          seenNonCommand = true
+          return token
+        }
+        // Words: command name until we see a flag/arg/value, then plain
+        if (!seenNonCommand) return helper.styleCommandText(token)
+        return token // plain args/filenames — unstyled
+      })
+      .join("")
+    return dimPrompt + styled
+  }
+
   // Option-like terms: entire term styled as option
   if (/^\s*-/.test(term)) return helper.styleOptionText(term)
 
-  // Mixed terms: style <arg>/[opt] as arguments, "quoted" as literal values, rest as commands
-  return term.replace(
-    /(<[^>]+>|\[[^\]]+\])|("[^"]*")|([^<["[\]]+)/g,
-    (_match, bracket: string, quoted: string, text: string) => {
-      if (bracket) return helper.styleArgumentText(bracket)
-      if (quoted) return quoted // literal values — default foreground (quotes distinguish them)
-      if (text) return helper.styleCommandText(text)
-      return ""
-    },
-  )
+  // Non-shell terms: render as plain text (no command styling without $ prefix)
+  return term
 }
 
 export class Command extends BaseCommand {
