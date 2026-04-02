@@ -79,4 +79,3 @@ export function ListItemProvider({ children, freeze, isCached, index, nearCache 
   const value = useMemo(() => ({ freeze, isCached, index, nearCache }), [freeze, isCached, index, nearCache])
   return <ListItemCtx.Provider value={value}>{children}</ListItemCtx.Provider>
 }
-

@@ -364,4 +364,3 @@ describe("ListView — gap handling", () => {
     expect(visibleWithGap).toBeLessThan(visibleNoGap)
   })
 })
-

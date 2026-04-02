@@ -296,7 +296,7 @@ function ListViewInner<T>(
 
   // ── Resolve search config ─────────────────────────────────────────
   const searchConfig = typeof searchProp === "object" ? searchProp : searchProp ? {} : undefined
-  const getText = searchConfig?.getText ?? (searchConfig ? ((item: T) => String(item)) : undefined)
+  const getText = searchConfig?.getText ?? (searchConfig ? (item: T) => String(item) : undefined)
 
   // Compute cached prefix from isCacheable
   let cachedCount = 0
