@@ -27,15 +27,15 @@ Silvery's incremental rendering engine tracks 7 independent dirty flags per node
 
 ### Benchmark Comparison
 
-| Scenario | Silvery | Ink | Result |
-| --- | --- | --- | --- |
-| Cold render (1 component) | 165 us | 271 us | Silvery 1.6x faster |
-| Cold render (1000 components) | 463 ms | 541 ms | Silvery 1.2x faster |
-| Full React rerender (1000 components) | 630 ms | 20.7 ms | Ink 30x faster |
-| **Typical interactive update** | **169 us** | **20.7 ms** | **Silvery 100x+ faster** |
-| Layout (50-node kanban) | 57 us (Flexily) | 88 us (Yoga WASM) | Flexily 1.5x faster |
-| Terminal resize (1000 nodes) | 21 us | Full re-render | -- |
-| Buffer diff (80x24, 10% changed) | 34 us | N/A (line-based) | -- |
+| Scenario                              | Silvery         | Ink               | Result                   |
+| ------------------------------------- | --------------- | ----------------- | ------------------------ |
+| Cold render (1 component)             | 165 us          | 271 us            | Silvery 1.6x faster      |
+| Cold render (1000 components)         | 463 ms          | 541 ms            | Silvery 1.2x faster      |
+| Full React rerender (1000 components) | 630 ms          | 20.7 ms           | Ink 30x faster           |
+| **Typical interactive update**        | **169 us**      | **20.7 ms**       | **Silvery 100x+ faster** |
+| Layout (50-node kanban)               | 57 us (Flexily) | 88 us (Yoga WASM) | Flexily 1.5x faster      |
+| Terminal resize (1000 nodes)          | 21 us           | Full re-render    | --                       |
+| Buffer diff (80x24, 10% changed)      | 34 us           | N/A (line-based)  | --                       |
 
 _Apple M1 Max, 64 GB RAM, Bun 1.3.9, Feb 2026. Reproduce: `bun run bench:compare`_
 

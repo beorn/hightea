@@ -1,4 +1,5 @@
 import { defineConfig } from "vitepress"
+import { withMermaid } from "vitepress-plugin-mermaid"
 import llmstxt from "vitepress-plugin-llms"
 import {
   glossaryPlugin,
@@ -25,7 +26,7 @@ const seoOptions = {
   codeRepository: "https://github.com/beorn/silvery",
 }
 
-export default defineConfig({
+export default withMermaid(defineConfig({
   sitemap: { hostname: "https://silvery.dev" },
   lastUpdated: true,
   vite: {
@@ -330,4 +331,4 @@ export default defineConfig({
       copyright: 'Built by <a href="https://beorn.codes">Bjørn Stabell</a>',
     },
   },
-})
+}))
