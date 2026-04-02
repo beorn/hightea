@@ -3,12 +3,12 @@
  *
  * Provides freeze control and status information to items rendered
  * within a ListView. Items call `freeze()` to signal they are complete
- * and should be pushed to terminal scrollback.
+ * and should be pushed to terminal cache.
  *
  * @example
  * ```tsx
  * function TaskItem({ task }: { task: Task }) {
- *   const { freeze, isFrozen } = useListItem()
+ *   const { freeze, isCached } = useListItem()
  *
  *   useEffect(() => {
  *     if (task.status === "done") freeze()
@@ -27,20 +27,17 @@ import { createContext, useContext, useMemo, type ReactElement, type ReactNode }
 
 /** Context value provided to each item inside a ListView. */
 export interface ListItemContext {
-  /** Signal that this item is complete and should freeze into scrollback.
+  /** Signal that this item is complete and should freeze into cache.
    *  Optionally pass a snapshot JSX element to use instead of re-rendering
    *  the item's live children. */
   freeze: (snapshot?: ReactElement) => void
-  /** Whether this item has already been frozen into scrollback. */
-  isFrozen: boolean
+  /** Whether this item has already been frozen into cache. */
+  isCached: boolean
   /** The index of this item in the items array. */
   index: number
-  /** True when item is close to the scrollback boundary. */
-  nearScrollback: boolean
+  /** True when item is close to the cache boundary. */
+  nearCache: boolean
 }
-
-/** @deprecated Use ListItemContext instead */
-export type ScrollbackItemContext = ListItemContext
 
 // ============================================================================
 // Context
@@ -66,9 +63,6 @@ export function useListItem(): ListItemContext {
   return ctx
 }
 
-/** @deprecated Use useListItem instead */
-export const useScrollbackItem = useListItem
-
 // ============================================================================
 // Provider (internal, used by ListView)
 // ============================================================================
@@ -81,10 +75,8 @@ interface ListItemProviderProps extends ListItemContext {
  * Wraps each item rendered by ListView with its context.
  * Internal — not exported from the package's public API.
  */
-export function ListItemProvider({ children, freeze, isFrozen, index, nearScrollback }: ListItemProviderProps) {
-  const value = useMemo(() => ({ freeze, isFrozen, index, nearScrollback }), [freeze, isFrozen, index, nearScrollback])
+export function ListItemProvider({ children, freeze, isCached, index, nearCache }: ListItemProviderProps) {
+  const value = useMemo(() => ({ freeze, isCached, index, nearCache }), [freeze, isCached, index, nearCache])
   return <ListItemCtx.Provider value={value}>{children}</ListItemCtx.Provider>
 }
 
-/** @deprecated Use ListItemProvider instead */
-export const ScrollbackItemProvider = ListItemProvider

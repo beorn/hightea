@@ -299,36 +299,36 @@ function ListViewInner<T>(
   const textAdapter = searchConfig ? { getItemText: searchConfig.getText ?? ((item: T) => String(item)) } : undefined
 
   // Compute cached prefix from isCacheable
-  let frozenCount = 0
+  let cachedCount = 0
   if (cacheMode === "virtual" && cacheConfig?.isCacheable) {
     for (let i = 0; i < items.length; i++) {
       if (!cacheConfig.isCacheable(items[i]!, i)) break
-      frozenCount++
+      cachedCount++
     }
   }
 
   // Push newly cached items to buffer
   const prevFrozenRef = useRef(0)
-  if (frozenCount > prevFrozenRef.current && cacheBuffer) {
-    for (let i = prevFrozenRef.current; i < frozenCount; i++) {
+  if (cachedCount > prevFrozenRef.current && cacheBuffer) {
+    for (let i = prevFrozenRef.current; i < cachedCount; i++) {
       const item = items[i]!
       const text = textAdapter?.getItemText?.(item) ?? String(item)
       cacheBuffer.push(createHistoryItem(getKey?.(item, i) ?? i, text, 80))
     }
-    prevFrozenRef.current = frozenCount
+    prevFrozenRef.current = cachedCount
   }
 
   // Merge frozen prefix with external virtualized prop
   const effectiveVirtualized = useMemo(() => {
-    if (frozenCount === 0) return virtualized
+    if (cachedCount === 0) return virtualized
     if (!virtualized) {
-      return (_item: T, index: number) => index < frozenCount
+      return (_item: T, index: number) => index < cachedCount
     }
     return (item: T, index: number) => {
-      if (index < frozenCount) return true
+      if (index < cachedCount) return true
       return virtualized(item, index)
     }
-  }, [frozenCount, virtualized])
+  }, [cachedCount, virtualized])
 
   // ── Virtual prefix computation ──────────────────────────────────────
   let virtualizedCount = 0
