@@ -102,6 +102,7 @@ export default defineConfig({
       },
       { text: "Themes", link: "/themes" },
       { text: "About", link: "/about" },
+      { text: "Blog", link: "/blog/" },
       {
         text: "Links",
         items: [
