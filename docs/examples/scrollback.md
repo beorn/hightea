@@ -31,13 +31,25 @@ vp silvery examples scrollback
 
 :::
 
-Silvery is the only TUI framework with a dynamic scrollback system. Instead of taking over the alternate screen buffer, inline mode renders directly into the terminal's normal scrollback — your output becomes part of the terminal history, scrollable like any other command output. This is how tools like Claude Code, npm, and modern CLI tools should work.
+Terminal apps that produce output users want to review later — AI agents, test runners, build tools — have a fundamental problem. Traditional TUI frameworks render on the alternate screen buffer, which means the output vanishes when the app exits. You can't scroll back through it, can't Cmd+F to search it, can't select and copy across multiple screens of output.
+
+The usual alternative is raw stdout: just print lines. But then you lose layout, live updates, keyboard input, and interactivity.
+
+Silvery's inline mode gives you both: interactive React rendering with layout and live updates, where completed output graduates into the terminal's native scrollback. The output becomes part of your terminal history — scrollable, searchable, selectable.
 
 ScrollbackList is part of Silvery's [list component family](/guide/scrolling#list-components) — see the scrolling guide for how it relates to `overflow="scroll"` and `VirtualList`.
 
-## Why This Matters
+## The Problem
 
-Most TUI frameworks force you to choose: alternate screen (full-screen, no history) or raw stdout (scrollback, no interactivity). Silvery's inline mode gives you both: interactive rendering with layout, keyboard input, and live updates — that also becomes part of your terminal history.
+Most terminal apps that stream output face a tradeoff:
+
+**Alternate screen** (what most TUI frameworks use): You get full layout control and interactivity, but everything disappears on exit. No scrollback, no search, no text selection across the history.
+
+**Raw stdout** (what simpler CLIs do): Output persists in scrollback, but you lose layout, live updates, and keyboard-driven interaction. Redraws cause flickering because there's no incremental rendering — the app reprints everything from scratch.
+
+**Inline rendering without layout feedback** causes a third problem: the app doesn't know how much space it has, so it can't make layout decisions (how wide to render a table, when to truncate, how many columns to show). This leads to either hardcoded widths or a render → measure → re-render cycle that flickers on every update.
+
+Silvery solves all three by combining inline mode (render into normal scrollback) with layout-first rendering (components know their width) and incremental updates (only changed cells are rewritten).
 
 ### ScrollbackList
 
@@ -187,16 +199,15 @@ bun my-app.tsx | head    # Clean text, no escape sequences
 | `footer`         | Pinned input area at bottom            |
 | `markers`        | Visual separators between frozen items |
 
-## What Makes This Unique
+## How It's Different
 
-No other TUI framework has this capability:
+The combination of three features makes this work:
 
-- **Ink** always uses alternate screen for full apps
-- **Blessed** is alternate-screen only
-- **Bubble Tea / Ratatui** are alternate-screen only
-- **Textual** is alternate-screen only
+1. **Inline mode** — renders into normal scrollback, not the alternate screen
+2. **Layout-first rendering** — components know their width via `useContentRect()`, so layout decisions happen correctly on the first paint without a measure-then-rerender cycle
+3. **Incremental rendering** — only changed cells are rewritten, so live updates don't cause the flickering you'd get from reprinting everything
 
-Silvery's inline mode gives you the best of both worlds: rich interactive rendering that becomes part of your terminal history.
+Without all three, inline rendering either loses interactivity (raw stdout), loses history (alternate screen), or flickers on every update (naive redraws).
 
 ## Exercises
 
