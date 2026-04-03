@@ -277,26 +277,12 @@ export async function run(
 
       // Wire sendInput: when term.sendInput(data) is called, emit on mock stdin
       // so the term provider's parser processes it through the real pipeline.
-      const origSendInput = (term as any).sendInput as ((data: string) => void) | undefined
-      if (origSendInput) {
-        ;(term as any)._sendInputToStdin = (data: string) => {
+      // The mixed-proxy's set/defineProperty traps forward to termBase,
+      // so this override replaces the original sendInput with one that
+      // feeds the mock stdin instead of the internal event queue.
+      if ((term as any).sendInput) {
+        ;(term as any).sendInput = (data: string) => {
           stdinEmitter.emit("data", data)
-        }
-        // Monkey-patch sendInput on the termBase via the _emulator reference
-        // We can't patch through the Proxy, so we replace the function on
-        // the underlying object
-        const termBase = term as any
-        const origFn = termBase.sendInput
-        if (origFn) {
-          // The sendInput on termBase is captured via closure, but we need
-          // to redirect it to emit on the mock stdin instead
-          Object.defineProperty(term, "sendInput", {
-            value: (data: string) => {
-              stdinEmitter.emit("data", data)
-            },
-            writable: true,
-            configurable: true,
-          })
         }
       }
 

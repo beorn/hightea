@@ -69,6 +69,16 @@ function createChainProxy<T extends object>(currentStyle: Style, extra: T): Styl
       return undefined
     },
 
+    set(_target, prop, value) {
+      ;(extra as Record<string | symbol, unknown>)[prop] = value
+      return true
+    },
+
+    defineProperty(_target, prop, descriptor) {
+      Object.defineProperty(extra, prop, descriptor)
+      return true
+    },
+
     has(_target, prop) {
       if (prop in extra) return true
       if (typeof prop === "string" && prop in currentStyle) return true

@@ -1,12 +1,15 @@
 /**
  * Text selection — termless end-to-end tests.
  *
- * Verifies mouse drag selection through the full pipeline.
- * Uses run() with the termless Term path, which properly wires
- * sendInput → stdin → createApp event pipeline → writable → emulator.
+ * Verifies mouse drag selection through the full pipeline:
+ * sendInput → mock stdin → term-provider parser → createApp event handler → selection state → overlay/clipboard
  *
  * Selection is enabled via termOptions (selection: true, mouse: true).
  * Mouse events use SGR mode 1006 sequences through term.sendInput().
+ *
+ * The mixed-proxy's set/defineProperty traps allow run() to override
+ * sendInput on the Term Proxy, routing events through the mock stdin
+ * so the full createApp pipeline (including selection interception) runs.
  */
 
 import React from "react"
@@ -73,11 +76,7 @@ describe("text selection (termless e2e)", { timeout: 10000 }, () => {
     handle.unmount()
   })
 
-  // TODO: Mouse events via sendInput don't flow through to createApp's event
-  // pipeline in the termless emulator path. The Proxy-based Term's sendInput
-  // override via Object.defineProperty may not be intercepted correctly.
-  // Need to investigate the Term Proxy defineProperty trap.
-  test.todo("mouse down + move emits inverse overlay in output", async () => {
+  test("mouse down + move emits inverse overlay in output", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
 
     // Capture raw ANSI output for verification
@@ -114,7 +113,7 @@ describe("text selection (termless e2e)", { timeout: 10000 }, () => {
     handle.unmount()
   })
 
-  test.todo("mouse up after drag emits OSC 52 clipboard", async () => {
+  test("mouse up after drag emits OSC 52 clipboard", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
 
     const rawChunks: string[] = []
@@ -153,7 +152,7 @@ describe("text selection (termless e2e)", { timeout: 10000 }, () => {
     handle.unmount()
   })
 
-  test.todo("keypress clears active selection", async () => {
+  test("keypress clears active selection", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
 
     const rawChunks: string[] = []
