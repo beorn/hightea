@@ -2,8 +2,8 @@
  * TreeView Component
  *
  * Expandable/collapsible hierarchical data display with keyboard navigation.
- * Each node can have children, and the tree supports controlled or
- * uncontrolled expansion state.
+ * Thin composition over ListView — flattens the tree, delegates navigation
+ * and virtualization, adds expand/collapse and indentation.
  *
  * Usage:
  * ```tsx
@@ -22,10 +22,11 @@
  * <TreeView data={data} renderNode={(node) => <Text>{node.label}</Text>} />
  * ```
  */
-import React, { useCallback, useState } from "react"
+import React, { useCallback, useMemo, useRef, useState } from "react"
 import { useInput } from "@silvery/ag-react/hooks/useInput"
 import { Box } from "@silvery/ag-react/components/Box"
 import { Text } from "@silvery/ag-react/components/Text"
+import { ListView } from "@silvery/ag-react/ui/components/ListView"
 
 // =============================================================================
 // Types
@@ -55,22 +56,26 @@ export interface TreeViewProps {
   isActive?: boolean
   /** Indent per level in characters (default: 2) */
   indent?: number
+  /** Height of the viewport in rows. When omitted, renders all items (no virtualization). */
+  height?: number
 }
 
 // =============================================================================
 // Helpers
 // =============================================================================
 
+/** A flattened tree item with its source node and depth. */
+interface FlatItem {
+  node: TreeNode
+  depth: number
+}
+
 /** Flatten tree into visible list based on expansion state. */
-function flattenTree(
-  nodes: TreeNode[],
-  expanded: Set<string>,
-  depth: number = 0,
-): Array<{ node: TreeNode; depth: number }> {
-  const result: Array<{ node: TreeNode; depth: number }> = []
+function flattenTree(nodes: TreeNode[], expanded: Set<string>, depth: number = 0): FlatItem[] {
+  const result: FlatItem[] = []
   for (const node of nodes) {
     result.push({ node, depth })
-    if (node.children && node.children.length > 0 && expanded.has(node.id)) {
+    if (node.children?.length && expanded.has(node.id)) {
       result.push(...flattenTree(node.children, expanded, depth + 1))
     }
   }
@@ -96,10 +101,13 @@ function collectAllIds(nodes: TreeNode[]): Set<string> {
 // =============================================================================
 
 /**
- * Expandable/collapsible tree view.
+ * Expandable/collapsible tree view built on ListView.
  *
- * Navigate with Up/Down (or j/k), expand/collapse with Enter or Right/Left.
- * Branch nodes show a triangle indicator (right = collapsed, down = expanded).
+ * ListView handles: cursor movement (j/k, arrows, PgUp/PgDn), scrolling,
+ * mouse wheel, virtualization, and search.
+ *
+ * TreeView adds: tree flattening, indentation, expand/collapse (Enter,
+ * Right on collapsed, Left on expanded).
  */
 export function TreeView({
   data,
@@ -109,6 +117,7 @@ export function TreeView({
   defaultExpanded = false,
   isActive = true,
   indent = 2,
+  height,
 }: TreeViewProps): React.ReactElement {
   const isControlled = controlledExpanded !== undefined
 
@@ -117,69 +126,80 @@ export function TreeView({
   )
 
   const expanded = isControlled ? controlledExpanded : uncontrolledExpanded
-  const [cursorIndex, setCursorIndex] = useState(0)
 
-  const flatItems = flattenTree(data, expanded)
+  // Cursor tracked via ref (updated by ListView's onCursor) to avoid
+  // re-renders on every cursor move. Only expand/collapse reads it.
+  const cursorRef = useRef(0)
+
+  const flatItems = useMemo(() => flattenTree(data, expanded), [data, expanded])
 
   const toggleNode = useCallback(
     (nodeId: string) => {
-      const isExpanded = expanded.has(nodeId)
+      const wasExpanded = expanded.has(nodeId)
       if (!isControlled) {
         setUncontrolledExpanded((prev) => {
           const next = new Set(prev)
-          if (isExpanded) {
-            next.delete(nodeId)
-          } else {
-            next.add(nodeId)
-          }
+          if (wasExpanded) next.delete(nodeId)
+          else next.add(nodeId)
           return next
         })
       }
-      onToggle?.(nodeId, !isExpanded)
+      onToggle?.(nodeId, !wasExpanded)
     },
     [expanded, isControlled, onToggle],
   )
 
+  // Right arrow → expand collapsed branch, Left arrow → collapse expanded branch.
+  // ListView handles j/k/↑/↓/PgUp/PgDn/Home/End/G; we add only tree-specific keys.
   useInput(
-    (input, key) => {
+    (_input, key) => {
       if (flatItems.length === 0) return
+      const cursor = Math.min(cursorRef.current, flatItems.length - 1)
+      const item = flatItems[cursor]
+      if (!item?.node.children?.length) return
 
-      // Navigate up
-      if (key.upArrow || input === "k") {
-        setCursorIndex((prev) => Math.max(0, prev - 1))
-        return
-      }
-
-      // Navigate down
-      if (key.downArrow || input === "j") {
-        setCursorIndex((prev) => Math.min(flatItems.length - 1, prev + 1))
-        return
-      }
-
-      // Expand / toggle
-      if (key.return || key.rightArrow) {
-        const item = flatItems[cursorIndex]
-        if (item?.node?.children && item.node.children.length > 0) {
-          if (!expanded.has(item.node.id)) {
-            toggleNode(item.node.id)
-          } else if (key.return) {
-            // Enter on already-expanded = collapse
-            toggleNode(item.node.id)
-          }
-        }
-        return
-      }
-
-      // Collapse
-      if (key.leftArrow) {
-        const item = flatItems[cursorIndex]
-        if (item && expanded.has(item.node.id)) {
-          toggleNode(item.node.id)
-        }
-        return
+      if (key.rightArrow && !expanded.has(item.node.id)) {
+        toggleNode(item.node.id)
+      } else if (key.leftArrow && expanded.has(item.node.id)) {
+        toggleNode(item.node.id)
       }
     },
     { isActive },
+  )
+
+  // Enter on a branch node → toggle expand/collapse (via ListView's onSelect).
+  const handleSelect = useCallback(
+    (index: number) => {
+      const item = flatItems[index]
+      if (item?.node.children?.length) {
+        toggleNode(item.node.id)
+      }
+    },
+    [flatItems, toggleNode],
+  )
+
+  const handleCursor = useCallback((index: number) => {
+    cursorRef.current = index
+  }, [])
+
+  const getKey = useCallback((item: FlatItem) => item.node.id, [])
+
+  const renderTreeItem = useCallback(
+    (item: FlatItem, _index: number, meta: { isCursor: boolean }) => {
+      const hasChildren = !!item.node.children?.length
+      const isExpanded = expanded.has(item.node.id)
+      const prefix = hasChildren ? (isExpanded ? "v " : "> ") : "  "
+      const padding = " ".repeat(item.depth * indent)
+
+      return (
+        <Text inverse={meta.isCursor}>
+          {padding}
+          <Text color={hasChildren ? "$primary" : "$fg"}>{prefix}</Text>
+          {renderNode ? renderNode(item.node, item.depth) : <Text>{item.node.label}</Text>}
+        </Text>
+      )
+    },
+    [expanded, indent, renderNode],
   )
 
   if (flatItems.length === 0) {
@@ -191,22 +211,16 @@ export function TreeView({
   }
 
   return (
-    <Box flexDirection="column">
-      {flatItems.map(({ node, depth }, i) => {
-        const isCursor = i === cursorIndex
-        const hasChildren = node.children && node.children.length > 0
-        const isExpanded = expanded.has(node.id)
-        const prefix = hasChildren ? (isExpanded ? "v " : "> ") : "  "
-        const padding = " ".repeat(depth * indent)
-
-        return (
-          <Text key={node.id} inverse={isCursor}>
-            {padding}
-            <Text color={hasChildren ? "$primary" : "$fg"}>{prefix}</Text>
-            {renderNode ? renderNode(node, depth) : <Text>{node.label}</Text>}
-          </Text>
-        )
-      })}
-    </Box>
+    <ListView
+      items={flatItems}
+      height={height ?? flatItems.length}
+      nav
+      active={isActive}
+      onCursor={handleCursor}
+      onSelect={handleSelect}
+      renderItem={renderTreeItem}
+      getKey={getKey}
+      estimateHeight={1}
+    />
   )
 }
