@@ -1,7 +1,9 @@
 /**
  * Table Component
  *
- * A data table with headers and column alignment.
+ * A data table with headers and column alignment, composed over ListView.
+ * Each data row is a ListView item; column headers render above.
+ * Gets nav/cache/search from ListView for free.
  *
  * Usage:
  * ```tsx
@@ -17,9 +19,10 @@
  * />
  * ```
  */
-import React from "react"
+import React, { useMemo } from "react"
 import { Box } from "@silvery/ag-react/components/Box"
 import { Text } from "@silvery/ag-react/components/Text"
+import { ListView } from "./ListView"
 
 // =============================================================================
 // Types
@@ -64,22 +67,16 @@ function getCellValue(row: Record<string, unknown> | unknown[], col: TableColumn
   return ""
 }
 
-function alignText(text: string, width: number, align: "left" | "right" | "center" = "left"): string {
-  if (text.length >= width) return text.slice(0, width)
-
-  const pad = width - text.length
-
-  switch (align) {
-    case "right":
-      return " ".repeat(pad) + text
-    case "center": {
-      const leftPad = Math.floor(pad / 2)
-      const rightPad = pad - leftPad
-      return " ".repeat(leftPad) + text + " ".repeat(rightPad)
+function computeWidths(columns: TableColumn[], data: Array<Record<string, unknown> | unknown[]>): number[] {
+  return columns.map((col, colIndex) => {
+    if (col.width) return col.width
+    let maxWidth = col.header.length
+    for (const row of data) {
+      const cellText = getCellValue(row, col, colIndex)
+      maxWidth = Math.max(maxWidth, cellText.length)
     }
-    default:
-      return text + " ".repeat(pad)
-  }
+    return maxWidth
+  })
 }
 
 // =============================================================================
@@ -93,47 +90,65 @@ export function Table({
   separator = " │ ",
   headerBold = true,
 }: TableProps): React.ReactElement {
-  // Calculate column widths
-  const colWidths = columns.map((col, colIndex) => {
-    if (col.width) return col.width
+  const colWidths = useMemo(() => computeWidths(columns, data), [columns, data])
 
-    let maxWidth = col.header.length
-    for (const row of data) {
-      const cellText = getCellValue(row, col, colIndex)
-      maxWidth = Math.max(maxWidth, cellText.length)
-    }
-    return maxWidth
-  })
+  // Build separator line for header underline
+  const separatorLine = useMemo(() => {
+    return colWidths.map((w) => "─".repeat(w)).join(separator.replace(/[^│]/g, "─").replace(/│/g, "┼"))
+  }, [colWidths, separator])
 
-  // Build header row
-  const headerCells = columns.map((col, i) => alignText(col.header, colWidths[i]!, col.align))
-  const headerLine = headerCells.join(separator)
+  const renderCell = (value: string, width: number, align: "left" | "right" | "center" = "left") => {
+    const justifyContent =
+      align === "right" ? ("flex-end" as const) : align === "center" ? ("center" as const) : undefined
+    return (
+      <Box width={width} justifyContent={justifyContent} flexShrink={0}>
+        <Text>{value}</Text>
+      </Box>
+    )
+  }
 
-  // Build separator line
-  const separatorLine = colWidths.map((w) => "─".repeat(w)).join(separator.replace(/[^│]/g, "─").replace(/│/g, "┼"))
+  const renderRow = (row: Record<string, unknown> | unknown[]) => (
+    <Box>
+      {columns.map((col, i) => {
+        const value = getCellValue(row, col, i)
+        const isLast = i === columns.length - 1
+        return (
+          <React.Fragment key={col.key ?? col.header}>
+            {renderCell(value, colWidths[i]!, col.align)}
+            {!isLast && <Text>{separator}</Text>}
+          </React.Fragment>
+        )
+      })}
+    </Box>
+  )
 
-  // Build data rows
-  const dataRows = data.map((row) => {
-    const cells = columns.map((col, i) => {
-      const value = getCellValue(row, col, i)
-      return alignText(value, colWidths[i]!, col.align)
-    })
-    return cells.join(separator)
-  })
+  // Viewport height = number of data rows (show all, no scrolling)
+  // Minimum 1 to avoid zero-height viewport when data is empty
+  const viewportHeight = Math.max(data.length, 1)
 
   return (
     <Box flexDirection="column">
       {showHeader && (
         <>
-          <Text bold={headerBold} dimColor>
-            {headerLine}
-          </Text>
+          <Box>
+            {columns.map((col, i) => {
+              const isLast = i === columns.length - 1
+              return (
+                <React.Fragment key={col.key ?? col.header}>
+                  <Box width={colWidths[i]} flexShrink={0}>
+                    <Text bold={headerBold} dimColor>
+                      {col.header}
+                    </Text>
+                  </Box>
+                  {!isLast && <Text dimColor>{separator}</Text>}
+                </React.Fragment>
+              )
+            })}
+          </Box>
           <Text dimColor>{separatorLine}</Text>
         </>
       )}
-      {dataRows.map((row, i) => (
-        <Text key={i}>{row}</Text>
-      ))}
+      {data.length > 0 && <ListView items={data} height={viewportHeight} estimateHeight={1} renderItem={renderRow} />}
     </Box>
   )
 }
