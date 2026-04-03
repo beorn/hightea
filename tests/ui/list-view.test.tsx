@@ -288,7 +288,7 @@ describe("ListView — virtualized prefix", () => {
         items={items}
         height={10}
         scrollTo={5}
-        virtualized={(_item, index) => index < 3}
+        unmounted={(_item, index) => index < 3}
         renderItem={(item, _i, _meta) => <Text>{item.title}</Text>}
         getKey={(item) => item.id}
       />,
