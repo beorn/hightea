@@ -15,7 +15,7 @@
  *   renderItem={(item, selected) => (
  *     <Text inverse={selected}>{item.name}</Text>
  *   )}
- *   keyExtractor={(item) => item.id}
+ *   getKey={(item) => item.id}
  *   onSelect={(item) => navigateTo(item)}
  *   onCancel={() => closeDialog()}
  *   onChange={(query) => setFilter(query)}
@@ -46,7 +46,7 @@ export interface PickerDialogProps<T> {
   /** Render function for each item. `selected` is true for the highlighted item. */
   renderItem: (item: T, selected: boolean) => React.ReactNode
   /** Unique key for each item */
-  keyExtractor: (item: T) => string
+  getKey: (item: T) => string
   /** Called when an item is confirmed (Enter) */
   onSelect: (item: T) => void
   /** Called when the dialog is cancelled (Esc) */
@@ -92,7 +92,7 @@ export function PickerDialog<T>({
   placeholder,
   items,
   renderItem,
-  keyExtractor,
+  getKey,
   onSelect,
   onCancel,
   onChange,
@@ -199,7 +199,7 @@ export function PickerDialog<T>({
         items={items}
         selectedIndex={clampedIndex}
         renderItem={renderItem}
-        keyExtractor={keyExtractor}
+        getKey={getKey}
         emptyMessage={emptyMessage}
         maxVisible={maxVisible}
       />

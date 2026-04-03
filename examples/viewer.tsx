@@ -601,7 +601,7 @@ function Viewer({ examples }: { examples: Example[] }) {
                 {item.name}
               </Text>
             )}
-            keyExtractor={(item) => item.file}
+            getKey={(item) => item.file}
             onSelect={(item) => {
               setCursor(item.idx)
               setDialog("none")
@@ -630,7 +630,7 @@ function Viewer({ examples }: { examples: Example[] }) {
                 </Text>
               )
             }}
-            keyExtractor={(name) => name}
+            getKey={(name) => name}
             onSelect={(name) => {
               setThemeIdx(THEME_NAMES.indexOf(name))
               setDialog("none")
