@@ -201,11 +201,7 @@ export async function main() {
 
   const runtimeMode = mode === "panes" ? "fullscreen" : mode
   const app =
-    mode === "panes" ? (
-      <PanesApp fast={fast} rows={rows} />
-    ) : (
-      <SingleApp mode={mode} fast={fast} rows={rows} />
-    )
+    mode === "panes" ? <PanesApp fast={fast} rows={rows} /> : <SingleApp mode={mode} fast={fast} rows={rows} />
 
   using handle = await run(<SearchProvider>{app}</SearchProvider>, {
     mode: runtimeMode,

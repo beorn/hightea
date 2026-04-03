@@ -89,6 +89,52 @@ exports[`dashboard snapshot > narrow layout at 80x40 matches snapshot > dashboar
 │    451 kernel_task                                                      2.8%"
 `;
 
+exports[`dashboard snapshot > narrow layout at 80x40 matches snapshot > dashboard-137x40 1`] = `
+"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"
+`;
+
 exports[`dashboard snapshot full render at 137x40 matches snapshot: dashboard-137x40 1`] = `
 "Silvery TUI system monitor showcase devbox-01┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄14:27 UTC [h]help [1]cpu [2]mem [3]net [p]proc [/]filter [q]quit
 ╭────────────────────────────────────────────────────────────────────────────────╮ ╭────────────────────────────────────────────────────╮

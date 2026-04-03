@@ -16,7 +16,7 @@ import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
 import type { Term } from "../../packages/ag-term/src/ansi/term"
 import { run, useInput, type RunHandle } from "../../packages/ag-term/src/runtime/run"
-import { Box, Text, ScrollbackList } from "../../src/index"
+import { Box, Text, ListView } from "../../src/index"
 
 // ============================================================================
 // Test Components
@@ -63,7 +63,7 @@ function MultiColumnApp() {
   )
 }
 
-/** ScrollbackList with bordered items for freeze/promote testing. */
+/** ListView with cache for freeze/promote testing. */
 interface FreezeItem {
   id: number
   text: string
@@ -79,34 +79,34 @@ function FreezePromoteApp({ initialItems }: { initialItems: FreezeItem[] }) {
     // Enter: freeze oldest unfrozen + add new item
     if (key.return) {
       setItems((prev) => {
-        const firstUnfrozen = prev.findIndex((it) => !it.frozen)
+        const firstUnfrozen = prev.findIndex((it: FreezeItem) => !it.frozen)
         if (firstUnfrozen < 0) return prev
-        const next = prev.map((it, i) => (i === firstUnfrozen ? { ...it, frozen: true } : it))
-        const newId = prev.length > 0 ? Math.max(...prev.map((it) => it.id)) + 1 : 1
+        const next = prev.map((it: FreezeItem, i: number) => (i === firstUnfrozen ? { ...it, frozen: true } : it))
+        const newId = prev.length > 0 ? Math.max(...prev.map((it: FreezeItem) => it.id)) + 1 : 1
         return [...next, { id: newId, text: `Item ${newId}`, frozen: false }]
       })
     }
   })
 
   return (
-    <ScrollbackList
-      items={items}
-      getKey={(it) => it.id}
-      isFrozen={(it) => it.frozen}
-      footer={
-        <Box borderStyle="round" borderColor="$primary" paddingX={1}>
-          <Text>{">"} Input area</Text>
-        </Box>
-      }
-    >
-      {(item) => (
-        <Box flexDirection="column" borderStyle="round" borderColor="$border" paddingX={1}>
-          <Text>
-            [{item.id}] {item.text}
-          </Text>
-        </Box>
-      )}
-    </ScrollbackList>
+    <Box flexDirection="column">
+      <ListView
+        items={items}
+        height={20}
+        getKey={(it: FreezeItem) => it.id}
+        cache={{ isCacheable: (it: FreezeItem) => it.frozen }}
+        renderItem={(item: FreezeItem) => (
+          <Box flexDirection="column" borderStyle="round" borderColor="$border" paddingX={1}>
+            <Text>
+              [{item.id}] {item.text}
+            </Text>
+          </Box>
+        )}
+      />
+      <Box borderStyle="round" borderColor="$primary" paddingX={1}>
+        <Text>{">"} Input area</Text>
+      </Box>
+    </Box>
   )
 }
 
