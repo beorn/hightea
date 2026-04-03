@@ -994,10 +994,23 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         // Step 3: Drain in-flight stdin bytes. The terminal may have already
         // queued events (Kitty release, mouse moves) before processing our
         // disable sequences. Read and discard them so they don't leak to shell.
+        //
+        // stdin.read() only gets what's in Node's internal buffer. Events in
+        // the kernel TTY buffer (e.g., Kitty release of 'q') may not have
+        // arrived yet. We block briefly with Atomics.wait to let the terminal
+        // process our disable sequences and flush remaining events to us.
         try {
           stdin.resume()
           while (stdin.read() !== null) {
-            // discard buffered data
+            /* discard initial buffered data */
+          }
+          // Block 5ms to let kernel TTY buffer flush to Node's buffer.
+          // Atomics.wait is the only way to synchronously block in Node.
+          const sab = new SharedArrayBuffer(4)
+          Atomics.wait(new Int32Array(sab), 0, 0, 5)
+          // Drain anything that arrived during the wait
+          while (stdin.read() !== null) {
+            /* discard late arrivals */
           }
           stdin.pause()
         } catch {
