@@ -9,7 +9,7 @@
  * mutable state (pendingRerender, isRendering, etc.), which stays in create-app.tsx.
  */
 
-import type { StoreApi } from "zustand"
+import type { StoreApi } from "@silvery/create/signal-store"
 
 import { createKeyEvent, dispatchKeyEvent } from "@silvery/ag/focus-events"
 import type { FocusManager } from "@silvery/ag/focus-manager"

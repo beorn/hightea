@@ -1,7 +1,7 @@
 /**
  * createApp() - Layer 3 entry point for silvery-loop
  *
- * Provides Zustand store integration with unified providers.
+ * Provides signal-backed store integration with unified providers.
  * Providers are stores (getState/subscribe) + event sources (events()).
  *
  * @example
@@ -45,7 +45,7 @@
 import { writeSync } from "node:fs"
 import process from "node:process"
 import React, { createContext, useContext, useEffect, useRef, type ReactElement } from "react"
-import { type StateCreator, type StoreApi, createStore } from "zustand"
+import { type StateCreator, type StoreApi, createStore } from "./signal-store.ts"
 
 import { createTerm } from "@silvery/ag-term/ansi"
 import {

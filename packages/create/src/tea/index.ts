@@ -53,7 +53,7 @@
  * @packageDocumentation
  */
 
-import type { StateCreator } from "zustand"
+import type { StateCreator } from "../signal-store.ts"
 
 // =============================================================================
 // Types
