@@ -50,16 +50,15 @@ export function createStore<T>(factory: StateCreator<T>): StoreApi<T> {
 
   const setState: SetStateInternal<T> = (partial: unknown, replace?: boolean) => {
     const prev = state$()
+    const raw = typeof partial === "function"
+      ? (partial as (state: T) => T | Partial<T>)(prev)
+      : (partial as T | Partial<T>)
+
     let next: T
-
-    if (typeof partial === "function") {
-      next = (partial as (state: T) => T | Partial<T>)(prev)
+    if (!replace && raw !== null && typeof raw === "object" && !Array.isArray(raw)) {
+      next = { ...prev, ...(raw as Partial<T>) } as T
     } else {
-      next = partial as T
-    }
-
-    if (!replace && next !== null && typeof next === "object" && !Array.isArray(next)) {
-      next = { ...prev, ...(next as Partial<T>) } as T
+      next = raw as T
     }
 
     if (Object.is(prev, next)) return
