@@ -51,7 +51,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
+    gap: 2px;
   }
 
   .diagram-05-termless .stage-box {
@@ -64,10 +64,10 @@
     position: relative;
   }
   .diagram-05-termless .stage-sub {
-    font-size: 10px;
-    font-weight: 500;
-    color: rgba(100, 116, 160, 0.8);
-    margin-top: 2px;
+    font-size: 9px;
+    font-weight: 600;
+    color: rgba(100, 116, 160, 0.7);
+    line-height: 1.2;
   }
 
   .diagram-05-termless .stage-app .stage-box {
@@ -89,10 +89,10 @@
     background: #191922;
     border: 2px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
-    padding: 4px 6px;
+    padding: 5px 6px;
     font-family: "SF Mono", "Fira Code", "Cascadia Code", "JetBrains Mono", "Menlo", "Consolas", monospace;
-    font-size: 8px;
-    line-height: 1.5;
+    font-size: 9px;
+    line-height: 1.4;
     white-space: pre;
     color: #d4d8e0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -200,10 +200,10 @@
   }
   .diagram-05-termless .buffer-body {
     background: #191922;
-    padding: 6px 8px;
+    padding: 4px 6px;
     font-family: "SF Mono", "Fira Code", "Cascadia Code", "JetBrains Mono", "Menlo", "Consolas", monospace;
     font-size: 9px;
-    line-height: 1.4;
+    line-height: 1.3;
     color: #94a3b8;
     white-space: pre;
     width: 70px;
@@ -225,11 +225,12 @@
   }
   .diagram-05-termless .buffer-title {
     font-family: "Inter", sans-serif;
-    font-size: 10px;
-    font-weight: 500;
-    color: rgba(100, 116, 160, 0.8);
+    font-size: 9px;
+    font-weight: 600;
+    color: rgba(100, 116, 160, 0.7);
     text-align: center;
-    margin-top: 5px;
+    margin-top: 3px;
+    line-height: 1.2;
   }
 
   /* === ASSERT DETAIL === */
@@ -346,7 +347,9 @@
 
       <!-- ANSI Output -->
       <div class="stage stage-ansi">
-        <div class="ansi-preview"><span style="color: #6b7585">\e[32m</span><span style="color: #85d6a0">Header</span><span style="color: #6b7585">\e[0m</span> <span style="color: #6b7585">\e[36m</span><span style="color: #6ccad4">Sidebar</span><span style="color: #6b7585">\e[0m</span></div>
+        <div class="ansi-preview"><span style="color: #6b7585">\e[32m</span><span style="color: #85d6a0">Header</span><span style="color: #6b7585">\e[0m</span>
+<span style="color: #6b7585">\e[36m</span><span style="color: #6ccad4">Sidebar</span><span style="color: #6b7585">\e[0m</span>
+<span style="color: #6b7585">\e[37m</span><span style="color: #eff0f3">Footer</span><span style="color: #6b7585">\e[0m</span></div>
         <div class="stage-sub">ANSI sequences</div>
       </div>
 

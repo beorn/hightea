@@ -47,25 +47,25 @@
 
   /* === LEFT ARROWS === */
   .diagram-04-zones .arrows-col {
-    width: 50px;
+    width: 44px;
     flex-shrink: 0;
     position: relative;
   }
 
   .diagram-04-zones .arrow-item {
     position: absolute;
-    left: 10px;
+    left: 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    height: 50px;
+    height: 40px;
   }
-  /* Position arrows at zone boundaries (native≈25%, tracked≈50%) */
+  /* Position arrows at zone boundaries */
   .diagram-04-zones .arrow-upper {
-    top: calc(25% - 25px);
+    top: calc(25% - 20px);
   }
   .diagram-04-zones .arrow-lower {
-    top: calc(50% - 25px);
+    top: calc(50% - 20px);
   }
   .diagram-04-zones .arrow-shaft {
     width: 2.5px;
@@ -123,17 +123,7 @@
     margin: 0 8px;
   }
   .diagram-04-zones .zone-native .term-text {
-    opacity: 0.35;
-  }
-  .diagram-04-zones .zone-native::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 50%;
-    background: linear-gradient(to bottom, rgba(20, 20, 32, 0.6), transparent);
-    pointer-events: none;
+    opacity: 0.7;
   }
 
   /* Zone 2: App Scrollback — medium ghosted */
@@ -147,7 +137,7 @@
     margin: 0 8px;
   }
   .diagram-04-zones .zone-tracked .term-text {
-    opacity: 0.5;
+    opacity: 0.8;
   }
 
   /* Zone 3: Live Screen — blue (focus) */
@@ -477,19 +467,15 @@
       <!-- Terminal -->
       <div class="terminal-col">
         <div class="zone zone-native">
-          <div class="term-text"><span class="bullet">&gt;</span> List all files in src/auth/
-<span class="comment">Found 3 files: middleware.ts, session.ts, types.ts</span>
-<span class="bullet">&gt;</span> What does middleware.ts do?
-<span class="comment">It validates JWT tokens and attaches the</span>
-<span class="comment">decoded user to the request context...</span></div>
+          <div class="term-text"><span class="bullet">&gt;</span> List files in src/auth/
+<span class="comment">Found 3 files</span>
+<span class="dimmed">  ...</span></div>
         </div>
 
         <div class="zone zone-tracked">
-          <div class="term-text"><span class="bullet">&gt;</span> Run the tests
-<span class="success">&#10003; 47 tests passed</span>
-<span class="comment">(3 files)</span>
-<span class="bullet">&gt;</span> Show recent commits <span class="string">ab3f1e2</span> fix: resolve
-flicker on resize <span class="string">7c9d4a1</span> feat: add streaming support</div>
+          <div class="term-text"><span class="bullet">&gt;</span> Run the tests <span class="success">&#10003; 47 passed</span>
+<span class="bullet">&gt;</span> Show commits
+<span class="dimmed">  ...</span></div>
         </div>
 
         <div class="live-group">
@@ -500,14 +486,9 @@ flicker on resize <span class="string">7c9d4a1</span> feat: add streaming suppor
             <div class="window-title">Terminal &mdash; zsh</div>
           </div>
           <div class="zone-live">
-            <div class="term-text"><span class="bullet">&gt;</span> Help me refactor the auth module
-<span class="bullet">&#9679;</span> Reading src/auth/middleware.ts...
-<span class="bullet">&#9679;</span> Found 3 issues. Streaming fix... <span class="keyword">export</span>
-<span class="keyword">function</span> <span class="func">validateToken</span>( token:
-<span class="string">string</span>, secret: <span class="string">string</span>
-<span class="dimmed">)</span>
-<span class="dimmed">{</span>
-<span class="input-divider" style="margin-top: 8px"></span><span class="prompt">&gt; </span><span class="cursor-block">&#9612;</span><span class="input-divider"></span></div>
+            <div class="term-text"><span class="bullet">&gt;</span> Refactor the auth module
+<span class="bullet">&#9679;</span> Reading middleware.ts...
+<span class="input-divider" style="margin-top: 4px"></span><span class="prompt">&gt; </span><span class="cursor-block">&#9612;</span></div>
           </div>
         </div>
       </div>
