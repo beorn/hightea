@@ -1,0 +1,316 @@
+<style>
+  .diagram-02-pipelines-compared {
+    font-family:
+      "Inter",
+      -apple-system,
+      BlinkMacSystemFont,
+      sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 0;
+  }
+
+  .diagram-02-pipelines-compared * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .diagram-02-pipelines-compared .page {
+    max-width: 680px;
+    width: 100%;
+  }
+
+  /* Explanation text */
+  .diagram-02-pipelines-compared .explain {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.55;
+    margin-bottom: 12px;
+    margin-left: 76px;
+  }
+  .diagram-02-pipelines-compared .explain-warning {
+    color: #92400e;
+  }
+  .diagram-02-pipelines-compared .explain-success {
+    color: #1e5f8a;
+  }
+  .diagram-02-pipelines-compared .explain-icon {
+    margin-right: 4px;
+  }
+
+  /* Pipeline row */
+  .diagram-02-pipelines-compared .pipeline-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .diagram-02-pipelines-compared .row-label {
+    width: 70px;
+    flex-shrink: 0;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .diagram-02-pipelines-compared .row-label-typical {
+    color: #92400e;
+  }
+  .diagram-02-pipelines-compared .row-label-silvery {
+    color: #1e5f8a;
+  }
+
+  .diagram-02-pipelines-compared .stages {
+    display: grid;
+    grid-template-columns: 2fr auto 1fr auto 1fr;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+  /* First two columns merge for the reconcile+layout group */
+  .diagram-02-pipelines-compared .stage-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .diagram-02-pipelines-compared .stage {
+    flex: 1;
+    padding: 10px 6px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.4;
+    min-height: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .diagram-02-pipelines-compared .stage-sub {
+    font-size: 10px;
+    font-weight: 500;
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+  .diagram-02-pipelines-compared .stage-typical {
+    background: rgba(230, 159, 0, 0.1);
+    border: 1.5px solid rgba(230, 159, 0, 0.3);
+    color: #92400e;
+  }
+  .diagram-02-pipelines-compared .stage-silvery {
+    background: rgba(86, 180, 233, 0.1);
+    border: 1.5px solid rgba(86, 180, 233, 0.3);
+    color: #1e5f8a;
+  }
+
+  .diagram-02-pipelines-compared .arrow-icon {
+    color: #94a3b8;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  /* Inline gap marker between boxes */
+  .diagram-02-pipelines-compared .gap-inline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0 5px;
+    align-self: stretch;
+  }
+  .diagram-02-pipelines-compared .gap-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #d55e00;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    letter-spacing: 0.05em;
+  }
+
+  /* Bracket */
+  .diagram-02-pipelines-compared .bracket-section {
+    display: flex;
+    align-items: flex-start;
+    margin-top: 12px;
+    margin-bottom: 10px;
+  }
+  .diagram-02-pipelines-compared .bracket-spacer {
+    width: 70px;
+    flex-shrink: 0;
+  }
+  .diagram-02-pipelines-compared .bracket {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-left: 4px;
+    margin-right: 4px;
+  }
+  .diagram-02-pipelines-compared .bracket-bar {
+    display: flex;
+    width: 100%;
+    height: 8px;
+  }
+  .diagram-02-pipelines-compared .bracket-end {
+    width: 2px;
+    background: rgba(86, 180, 233, 0.6);
+    border-radius: 2px 2px 0 0;
+  }
+  .diagram-02-pipelines-compared .bracket-mid {
+    flex: 1;
+    border-bottom: 2px solid rgba(86, 180, 233, 0.6);
+    border-radius: 0 0 3px 3px;
+  }
+  .diagram-02-pipelines-compared .bracket-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: #1e5f8a;
+    margin-top: 3px;
+  }
+
+  /* Spacer */
+  .diagram-02-pipelines-compared .row-spacer {
+    height: 24px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .diagram-02-pipelines-compared {
+      background: #1a1a2e;
+    }
+    .diagram-02-pipelines-compared .row-label-typical {
+      color: #fbbf24;
+    }
+    .diagram-02-pipelines-compared .row-label-silvery {
+      color: #93c5fd;
+    }
+    .diagram-02-pipelines-compared .stage-typical {
+      background: rgba(230, 159, 0, 0.12);
+      border-color: rgba(230, 159, 0, 0.35);
+      color: #fbbf24;
+    }
+    .diagram-02-pipelines-compared .stage-silvery {
+      background: rgba(86, 180, 233, 0.12);
+      border-color: rgba(86, 180, 233, 0.35);
+      color: #93c5fd;
+    }
+    .diagram-02-pipelines-compared .gap-badge {
+      color: #fb923c;
+      background: #1a1a2e;
+      border-color: rgba(213, 94, 0, 0.5);
+    }
+    .diagram-02-pipelines-compared .bracket-end {
+      background: rgba(86, 180, 233, 0.6);
+    }
+    .diagram-02-pipelines-compared .bracket-mid {
+      border-color: rgba(86, 180, 233, 0.6);
+    }
+    .diagram-02-pipelines-compared .bracket-text {
+      color: #93c5fd;
+    }
+    .diagram-02-pipelines-compared .explain-warning {
+      color: #fbbf24;
+    }
+    .diagram-02-pipelines-compared .explain-success {
+      color: #93c5fd;
+    }
+    .diagram-02-pipelines-compared .gap-badge {
+      background: rgba(213, 94, 0, 0.15);
+    }
+  }
+</style>
+
+<div class="diagram-02-pipelines-compared">
+  <div class="page">
+    <!-- Typical explanation -->
+    <div class="explain explain-warning">
+      <span class="explain-icon">⚠</span>
+      In Ink / Claude Code's pipeline, there's an
+      <span style="color: #d55e00; font-weight: 700">async gap</span> between reconciliation and
+      layout. If React updates mid-layout, the renderer sees stale geometry — ghost cells,
+      overlapping text, blank regions.
+    </div>
+
+    <!-- Typical pipeline -->
+    <div class="pipeline-row">
+      <div class="row-label row-label-typical">Ink / CC</div>
+      <div class="stages">
+        <div class="stage-group">
+          <div class="stage stage-typical">
+            Reconcile
+            <div class="stage-sub">React (default async)</div>
+          </div>
+          <span class="gap-inline">
+            <span class="gap-label">- ASYNC GAP -</span>
+          </span>
+          <div class="stage stage-typical">
+            Layout
+            <div class="stage-sub">Yoga</div>
+          </div>
+        </div>
+        <span class="arrow-icon">→</span>
+        <div class="stage stage-typical">
+          Render
+          <div class="stage-sub">full screen</div>
+        </div>
+        <span class="arrow-icon">→</span>
+        <div class="stage stage-typical">
+          Output
+          <div class="stage-sub">screen diff → ANSI</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row-spacer"></div>
+
+    <!-- Silvery pipeline -->
+    <div class="pipeline-row">
+      <div class="row-label row-label-silvery">Silvery</div>
+      <div class="stages">
+        <div class="stage-group">
+          <div class="stage stage-silvery">
+            Reconcile
+            <div class="stage-sub">React (custom sync)</div>
+          </div>
+          <span class="arrow-icon">→</span>
+          <div class="stage stage-silvery">
+            Layout
+            <div class="stage-sub">Flexily / Yoga</div>
+          </div>
+        </div>
+        <span class="arrow-icon">→</span>
+        <div class="stage stage-silvery">
+          Render
+          <div class="stage-sub">dirty nodes only</div>
+        </div>
+        <span class="arrow-icon">→</span>
+        <div class="stage stage-silvery">
+          Output
+          <div class="stage-sub">cell diff → ANSI</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bracket under Silvery -->
+    <div class="bracket-section">
+      <div class="bracket-spacer"></div>
+      <div class="bracket">
+        <div class="bracket-bar">
+          <div class="bracket-end"></div>
+          <div class="bracket-mid"></div>
+          <div class="bracket-end"></div>
+        </div>
+        <div class="bracket-text">single synchronous transaction</div>
+      </div>
+    </div>
+
+    <!-- Silvery explanation -->
+    <div class="explain explain-success">
+      <span class="explain-icon">✓</span>
+      Every stage sees exactly the same state. No async gaps means no timing bugs — tree, layout,
+      and rendered cells are always consistent.
+    </div>
+  </div>
+</div>

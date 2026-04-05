@@ -1,18 +1,20 @@
 # Dynamic Scrollback
 
-How Silvery manages inline-mode content with a three-zone model: static scrollback, dynamic scrollback, and live screen.
+How Silvery manages inline-mode content with a three-zone model: terminal scrollback, app scrollback, and live screen.
 
 ## Terminology
 
 Two parallel naming schemes — **item state** (what Silvery tracks) and **zone** (where content appears):
 
-| Item state      | Zone                                     | Meaning                                                   |
-| --------------- | ---------------------------------------- | --------------------------------------------------------- |
-| **mounted**     | **live screen**                          | React component in the tree. Normal rendering + hooks.    |
-| **virtualized** | **dynamic scrollback** (app-managed)     | Pre-rendered string cached. Data retained. Re-renderable. |
-| **gone**        | **static scrollback** (terminal-managed) | Data dropped. Terminal owns the lines (until next ED3).   |
+| Item state      | Zone                                       | Meaning                                                   |
+| --------------- | ------------------------------------------ | --------------------------------------------------------- |
+| **mounted**     | **live screen**                            | React component in the tree. Normal rendering + hooks.    |
+| **virtualized** | **app scrollback** (app-managed)           | Pre-rendered string cached. Data retained. Re-renderable. |
+| **gone**        | **terminal scrollback** (terminal-managed) | Data dropped. Terminal owns the lines (until next ED3).   |
 
-An item's state tracks its lifecycle in Silvery. A zone describes where content physically exists in the terminal. The two align: mounted items are on the live screen, virtualized items are in dynamic scrollback, gone items are in static scrollback.
+An item's state tracks its lifecycle in Silvery. A zone describes where content physically exists in the terminal. The two align: mounted items are on the live screen, virtualized items are in app scrollback, gone items are in terminal scrollback.
+
+> **Naming note:** The codebase uses "dynamic scrollback" for the app-managed zone and "static scrollback" for the terminal-managed zone. The blog and public docs use "app scrollback" and "terminal scrollback" for clarity — these make ownership immediately obvious. Ink uses `<Static>` for a similar concept. Silvery's `<Static>` component and `useScrollback` hook implement the graduation from live screen → app scrollback → terminal scrollback.
 
 This maps directly to VirtualList: VirtualList keeps items in memory but only mounts visible ones. ScrollbackView does the same, but writes virtualized items as pre-rendered strings into terminal scrollback instead of dropping them entirely.
 
@@ -33,34 +35,15 @@ The three-zone model solves these problems.
 
 The viewport is larger than the terminal screen. Content above the screen but within the viewport is **dynamic scrollback** — still app-managed, re-renderable on demand.
 
-```
-┌─────────────────────┐
-│  Static scrollback   │  Terminal-managed. Items gone.
-│                      │  Silvery no longer tracks these.
-│                      │  Destroyed on next ED3 redraw.
-│                      │
-├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┤  ← static boundary (maxHistory lines)
-│  Dynamic scrollback  │  App-managed. Items virtualized.
-│                      │  Pre-rendered for fast redraw.
-│                      │  ED3 + re-emit when content changes.
-│                      │
-├─────────────────────┤  ← screen top
-│  Live screen         │  Items mounted (React components).
-│                      │  Normal rendering + incremental diff.
-│                      │
-│ ┌─────────────────┐ │
-│ │  Footer (pinned) │ │
-│ └─────────────────┘ │
-└─────────────────────┘
-```
+<iframe src="/design/scrollback-zones.html" style="width:100%;height:550px;border:none;border-radius:12px;"></iframe>
 
-### Static Scrollback
+### Terminal Scrollback (gone)
 
 Items above the static boundary. The terminal owns these lines — until the next ED3 clears them. Silvery has dropped their data (state: **gone**). They exist in the terminal's scrollback buffer and are scrollable by the user, but the app cannot modify them and does not attempt to preserve them across redraws.
 
 The static boundary is controlled by `maxHistory` (in terminal lines). As items accumulate, the oldest ones cross the boundary and become gone. Calling `compact()` forces the boundary down immediately.
 
-### Dynamic Scrollback
+### App Scrollback (virtualized)
 
 Items between the static boundary and the screen top (state: **virtualized**). Silvery retains their data and pre-rendered strings. This is the key innovation: **dynamic scrollback is app-managed content that can be re-rendered on demand.**
 
@@ -72,9 +55,9 @@ When content in the dynamic zone changes (new items added, existing items update
 
 This is cheap because pre-rendered items are just string writes — no React rendering, no layout, no diffing. Only items that actually changed need re-rendering.
 
-**Tradeoff**: ED3 destroys static scrollback. Gone items are truly gone after a redraw — the user can no longer scroll up to see them. This is the fundamental cost of having a dynamic zone. The `maxHistory` setting controls how much content stays in the dynamic zone (re-emittable) vs. static (accepted as lost on next redraw).
+**Tradeoff**: ED3 destroys terminal scrollback. Gone items are truly gone after a redraw — the user can no longer scroll up to see them. This is the fundamental cost of having a dynamic zone. The `maxHistory` setting controls how much content stays in the dynamic zone (re-emittable) vs. terminal scrollback (accepted as lost on next redraw).
 
-### Live Screen
+### Live Screen (mounted)
 
 The visible terminal screen (state: **mounted**). React components with normal rendering, incremental diffing, and layout. The footer is pinned at the bottom via flex layout (not DECSTBM — scroll regions discard scrollback).
 
@@ -273,7 +256,7 @@ interface ScrollbackViewProps<T> {
 
 | Aspect                    | Behavior                                                   |
 | ------------------------- | ---------------------------------------------------------- |
-| Zones                     | 3 (live screen, dynamic scrollback, static scrollback)     |
+| Zones                     | 3 (live screen, app scrollback, terminal scrollback)       |
 | Virtualize semantics      | Reversible (pre-render cache, data retained)               |
 | Resize                    | ED3 + re-emit dynamic zone only (static items dropped)     |
 | Viewport                  | = maxHistory + screen height                               |
@@ -315,7 +298,7 @@ Pre-rendered strings written to dynamic scrollback include full ANSI styling: co
 
 4. **maxDeferLines tuning**: The default of ~50 lines may need adjustment based on real-world measurement. Too low causes churn for streaming items, too high wastes memory keeping many items mounted.
 
-5. **ED3 frequency**: Every redraw destroys static scrollback. If redraws are frequent (e.g., streaming updates), the user may never see content in scrollback because it is constantly being cleared. Batching or debouncing redraws may be beneficial.
+5. **ED3 frequency**: Every redraw destroys terminal scrollback. If redraws are frequent (e.g., streaming updates), the user may never see content in scrollback because it is constantly being cleared. Batching or debouncing redraws may be beneficial.
 
 ## Reference
 

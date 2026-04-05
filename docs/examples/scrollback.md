@@ -45,7 +45,7 @@ Most terminal apps that stream output face a tradeoff:
 
 **Alternate screen** (what most TUI frameworks use): You get full layout control and interactivity, but everything disappears on exit. No scrollback, no search, no text selection across the history.
 
-**Raw stdout** (what simpler CLIs do): Output persists in scrollback, but you lose layout, live updates, and keyboard-driven interaction. Redraws cause flickering because there's no incremental rendering — the app reprints everything from scratch.
+**Raw stdout** (what simpler CLIs do): Output persists in scrollback, but you lose layout, live updates, and keyboard-driven interaction. Redraws cause flickering because there's no incremental rendering — the app redraws everything from scratch.
 
 **Inline rendering without layout feedback** causes a third problem: the app doesn't know how much space it has, so it can't make layout decisions (how wide to render a table, when to truncate, how many columns to show). This leads to either hardcoded widths or a render → measure → re-render cycle that flickers on every update.
 
@@ -120,7 +120,10 @@ function REPL() {
       setInput("")
       const id = nextId++
       // Add entry, simulate processing, then freeze
-      setEntries((prev) => [...prev, { id, input: text, output: `Result: ${text.toUpperCase()}`, done: true }])
+      setEntries((prev) => [
+        ...prev,
+        { id, input: text, output: `Result: ${text.toUpperCase()}`, done: true },
+      ])
     },
     [nextId],
   )
@@ -205,7 +208,7 @@ The combination of three features makes this work:
 
 1. **Inline mode** — renders into normal scrollback, not the alternate screen
 2. **Layout-first rendering** — components know their width via `useContentRect()`, so layout decisions happen correctly on the first paint without a measure-then-rerender cycle
-3. **Incremental rendering** — only changed cells are rewritten, so live updates don't cause the flickering you'd get from reprinting everything
+3. **Incremental rendering** — only changed cells are rewritten, so live updates don't cause the flickering you'd get from redrawing everything
 
 Without all three, inline rendering either loses interactivity (raw stdout), loses history (alternate screen), or flickers on every update (naive redraws).
 

@@ -356,17 +356,22 @@
   {
     "term": "dynamic scrollback",
     "href": "/design/dynamic-scrollback",
-    "tooltip": "Content zone between frozen scrollback and live screen — items scroll up as new content arrives"
+    "tooltip": "Silvery's three-zone rendering model — splits output into terminal scrollback, app scrollback, and live screen"
   },
   {
-    "term": "static scrollback",
+    "term": "terminal scrollback",
     "href": "/design/dynamic-scrollback",
-    "tooltip": "Frozen terminal history above the dynamic zone — permanent, not re-rendered"
+    "tooltip": "Zone 1: content released to the terminal — owned by the terminal, searchable via Cmd+F, stays after exit"
+  },
+  {
+    "term": "app scrollback",
+    "href": "/design/dynamic-scrollback",
+    "tooltip": "Zone 2: content managed by the app — virtualized output, pre-rendered strings, redraws on resize"
   },
   {
     "term": "live screen",
     "href": "/design/dynamic-scrollback",
-    "tooltip": "The active render area — fullscreen apps or the bottom of inline output"
+    "tooltip": "Zone 3: the active render area — React components, incremental updates, streaming content and input prompt"
   },
   {
     "term": "viewport",

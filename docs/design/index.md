@@ -10,5 +10,5 @@ Architecture decisions and technical design documents for Silvery's internals.
 ## Terminal
 
 - [Terminal Support Strategy](/design/terminal-support-strategy) -- Cross-terminal abstraction layer
-- [Dynamic Scrollback](/design/dynamic-scrollback) -- Three-zone inline mode: static scrollback, dynamic scrollback, live screen
+- [Dynamic Scrollback](/design/dynamic-scrollback) -- Three-zone inline mode: terminal scrollback, app scrollback, live screen
 - [Xterm.js Unification](/design/xterm-unification) -- Terminal as Provider design proposal

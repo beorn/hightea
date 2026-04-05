@@ -1,0 +1,408 @@
+<style>
+  .diagram-01-buffers {
+    font-family:
+      "Inter",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 0;
+  }
+
+  .diagram-01-buffers * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .diagram-01-buffers .page {
+    max-width: 660px;
+    width: 100%;
+    position: relative;
+  }
+
+  .diagram-01-buffers .diagram {
+    max-width: 660px;
+    width: 100%;
+    display: flex;
+    gap: 20px;
+    align-items: flex-end;
+  }
+
+  /* Make both terminal frames the same height */
+  .diagram-01-buffers .terminal-frame {
+    display: flex;
+    flex-direction: column;
+    height: 220px;
+  }
+  .diagram-01-buffers .ann-main .terminal-body {
+    flex: 1;
+  }
+  .diagram-01-buffers .alt-app {
+    flex: 1;
+  }
+  .diagram-01-buffers .alt-content {
+    flex: 1;
+  }
+
+  .diagram-01-buffers .terminal-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .diagram-01-buffers .panel-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  /* === SCROLLBACK ZONE (above terminal, faded) === */
+  .diagram-01-buffers .scrollback-zone {
+    background: rgba(20, 20, 32, 0.4);
+    border: 1.5px dotted rgba(0, 158, 115, 0.4);
+    border-bottom: 1px dotted rgba(255, 255, 255, 0.15);
+    border-radius: 8px 8px 0 0;
+    margin: 0 6px;
+    padding: 14px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .diagram-01-buffers .scrollback-zone .term-text {
+    opacity: 0.35;
+  }
+  .diagram-01-buffers .scrollback-zone::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to bottom, rgba(20, 20, 32, 0.6), transparent);
+    pointer-events: none;
+  }
+  .diagram-01-buffers .scrollback-label {
+    position: absolute;
+    top: 6px;
+    right: 10px;
+    font-size: 9px;
+    font-weight: 600;
+    color: rgba(0, 158, 115, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    z-index: 1;
+  }
+
+  /* === TERMINAL FRAME (live screen only) === */
+  .diagram-01-buffers .terminal-frame {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.12),
+      0 8px 28px rgba(0, 0, 0, 0.18),
+      0 0 0 1px rgba(0, 0, 0, 0.06);
+  }
+  .diagram-01-buffers .window-chrome {
+    background: linear-gradient(to bottom, #3c3c48, #2e2e3a);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(60, 60, 70, 0.5);
+  }
+  .diagram-01-buffers .dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+  }
+  .diagram-01-buffers .dot.close {
+    background: #ff5f57;
+    border: 1px solid #e0443e;
+  }
+  .diagram-01-buffers .dot.minimize {
+    background: #febc2e;
+    border: 1px solid #dea123;
+  }
+  .diagram-01-buffers .dot.maximize {
+    background: #28c840;
+    border: 1px solid #1aab29;
+  }
+  .diagram-01-buffers .window-title {
+    flex: 1;
+    text-align: center;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.45);
+    font-weight: 500;
+    margin-right: 48px;
+  }
+  .diagram-01-buffers .terminal-body {
+    background: #191922;
+    padding: 14px 18px;
+  }
+
+  /* Terminal text */
+  .diagram-01-buffers .term-text {
+    font-family:
+      "SF Mono", "Fira Code", "Cascadia Code", "JetBrains Mono", "Menlo", "Consolas", monospace;
+    font-size: 11.5px;
+    line-height: 1.85;
+    color: #d4d8e0;
+    white-space: pre;
+  }
+  .diagram-01-buffers .prompt {
+    color: #85d6a0;
+  }
+  .diagram-01-buffers .cmd {
+    color: #eff0f3;
+  }
+  .diagram-01-buffers .comment {
+    color: #6b7585;
+  }
+  .diagram-01-buffers .success {
+    color: #a5d6a7;
+  }
+  .diagram-01-buffers .keyword {
+    color: #d2a0f0;
+  }
+  .diagram-01-buffers .func {
+    color: #79c0ff;
+  }
+  .diagram-01-buffers .string {
+    color: #f0d080;
+  }
+  .diagram-01-buffers .dimmed {
+    color: #555d6e;
+  }
+  .diagram-01-buffers .line-num {
+    color: #4a5568;
+    user-select: none;
+  }
+  .diagram-01-buffers .cursor-block {
+    display: inline-block;
+    color: #3cda5c;
+    animation: diagram-01-blink-green 1s step-end infinite;
+    font-size: 14px;
+    line-height: 1;
+    vertical-align: text-bottom;
+  }
+  @keyframes diagram-01-blink-green {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+
+  /* Fullscreen app (alternate buffer) */
+  .diagram-01-buffers .alt-app {
+    background: #191922;
+    display: flex;
+    flex-direction: column;
+  }
+  .diagram-01-buffers .alt-statusbar {
+    background: #2d4a7a;
+    color: #a8c8f0;
+    font-family: "SF Mono", monospace;
+    font-size: 10px;
+    padding: 3px 12px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .diagram-01-buffers .alt-content {
+    flex: 1;
+    padding: 10px 14px;
+  }
+  .diagram-01-buffers .alt-footer {
+    background: #2d4a7a;
+    color: #a8c8f0;
+    font-family: "SF Mono", monospace;
+    font-size: 10px;
+    padding: 3px 12px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Annotation cards */
+  .diagram-01-buffers .annotation-card {
+    background: white;
+    border-radius: 10px;
+    padding: 10px 12px 12px;
+    margin-top: 12px;
+  }
+  .diagram-01-buffers .ann-main .annotation-card {
+    border: 2px solid rgba(0, 158, 115, 0.25);
+  }
+  .diagram-01-buffers .ann-alt .annotation-card {
+    border: 2px solid rgba(86, 180, 233, 0.3);
+  }
+  .diagram-01-buffers .annotation-details {
+    font-size: 11px;
+    color: #475569;
+    font-weight: 500;
+    line-height: 1.7;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .diagram-01-buffers .annotation-details li::before {
+    content: "\2022";
+    margin-right: 5px;
+    font-size: 10px;
+  }
+  .diagram-01-buffers .ann-main .annotation-details li::before {
+    color: rgba(0, 158, 115, 0.55);
+  }
+  .diagram-01-buffers .ann-alt .annotation-details li::before {
+    color: rgba(86, 180, 233, 0.55);
+  }
+  .diagram-01-buffers .pro-tag,
+  .diagram-01-buffers .con-tag {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-right: 3px;
+    vertical-align: middle;
+  }
+  .diagram-01-buffers .pro-tag {
+    background: rgba(0, 158, 115, 0.15);
+    color: #009e73;
+  }
+  .diagram-01-buffers .con-tag {
+    background: rgba(230, 159, 0, 0.15);
+    color: #b8860b;
+  }
+  .diagram-01-buffers .pros-cons {
+    margin-top: 10px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #475569;
+    line-height: 1.8;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .diagram-01-buffers {
+      background: #1a1a2e;
+    }
+    .diagram-01-buffers .panel-label {
+      color: #e2e8f0;
+    }
+    .diagram-01-buffers .annotation-card {
+      background: #2a2a3a;
+    }
+    .diagram-01-buffers .annotation-details {
+      color: #94a3b8;
+    }
+    .diagram-01-buffers .ann-main .annotation-card {
+      border-color: rgba(0, 158, 115, 0.35);
+    }
+    .diagram-01-buffers .ann-alt .annotation-card {
+      border-color: rgba(86, 180, 233, 0.4);
+    }
+  }
+</style>
+
+<div class="diagram-01-buffers">
+  <div class="page">
+    <div class="diagram">
+      <!-- LEFT: Main Buffer -->
+      <div class="terminal-panel ann-main">
+        <div class="panel-label">Main Buffer</div>
+
+        <!-- Scrollback: faded zone ABOVE terminal -->
+        <div class="scrollback-zone">
+          <div class="scrollback-label">scrollback</div>
+          <div class="term-text">
+            <span class="prompt">$ </span><span class="cmd">bun add express</span>
+            <span class="comment">added 64 packages in 2.1s</span>
+            <span class="prompt">$ </span><span class="cmd">cat README.md</span>
+          </div>
+        </div>
+
+        <!-- Live screen: terminal with chrome -->
+        <div class="terminal-frame">
+          <div class="window-chrome">
+            <div class="dot close"></div>
+            <div class="dot minimize"></div>
+            <div class="dot maximize"></div>
+            <div class="window-title">Terminal &mdash; zsh</div>
+          </div>
+          <div class="terminal-body">
+            <div class="term-text">
+              <span class="prompt">$ </span><span class="cmd">node server.js</span>
+              <span class="success">Server listening on :3000</span>
+              <span class="comment">GET /api/users 200 12ms</span>
+              <span class="comment">POST /api/auth 201 45ms</span>
+              <span class="prompt">$ </span><span class="cursor-block">&#9612;</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pros-cons">
+          <span class="pro-tag">+</span> Cmd+F, text selection, history persists
+          <br />
+          <span class="con-tag">&minus;</span> Can't update scrolled content
+        </div>
+      </div>
+
+      <!-- RIGHT: Alternate Buffer -->
+      <div class="terminal-panel ann-alt">
+        <div class="panel-label">Alternate Buffer</div>
+
+        <!-- Full terminal (no scrollback zone) -->
+        <div class="terminal-frame">
+          <div class="window-chrome">
+            <div class="dot close"></div>
+            <div class="dot minimize"></div>
+            <div class="dot maximize"></div>
+            <div class="window-title">Terminal &mdash; vim</div>
+          </div>
+          <div class="alt-app">
+            <div class="alt-statusbar">
+              <span>server.js</span>
+              <span>[+] 1 of 3</span>
+            </div>
+            <div class="alt-content">
+              <div class="term-text">
+                <span class="line-num"> 1 </span><span class="keyword">import</span> express
+                <span class="keyword">from</span> <span class="string">'express'</span>
+                <span class="line-num"> 2 </span>
+                <span class="line-num"> 3 </span><span class="keyword">const</span> app =
+                <span class="func">express</span>() <span class="line-num"> 4 </span>app.<span
+                  class="func"
+                  >use</span
+                >(express.<span class="func">json</span>())
+                <span class="line-num"> 5 </span>
+                <span class="line-num"> 6 </span>app.<span class="func">get</span>(<span
+                  class="string"
+                  >'/users'</span
+                >, ...)
+                <span class="line-num"> 7 </span>
+                <span class="line-num"> 8 </span><span class="dimmed">~</span>
+                <span class="line-num"> 9 </span><span class="dimmed">~</span>
+              </div>
+            </div>
+            <div class="alt-footer">
+              <span>NORMAL</span>
+              <span>6:1</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pros-cons">
+          <span class="pro-tag">+</span> Full cell control, no flicker
+          <br />
+          <span class="con-tag">&minus;</span> No scrollback, discarded on exit
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
