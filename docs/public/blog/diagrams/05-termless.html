@@ -41,7 +41,7 @@
     max-width: 660px;
     width: 100%;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0;
     z-index: 1;
   }
@@ -51,7 +51,15 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 3px;
+  }
+  /* Label above the box */
+  .diagram-05-termless .stage-sub {
+    font-size: 9px;
+    font-weight: 600;
+    color: rgba(100, 116, 160, 0.7);
+    line-height: 1.2;
+    order: -1;
   }
 
   .diagram-05-termless .stage-box {
@@ -62,12 +70,6 @@
     text-align: center;
     white-space: nowrap;
     position: relative;
-  }
-  .diagram-05-termless .stage-sub {
-    font-size: 9px;
-    font-weight: 600;
-    color: rgba(100, 116, 160, 0.7);
-    line-height: 1.2;
   }
 
   .diagram-05-termless .stage-app .stage-box {
@@ -103,6 +105,7 @@
     display: flex;
     align-items: center;
     padding: 0 2px;
+    margin-top: 14px; /* align with boxes below labels */
   }
   .diagram-05-termless .arrow svg {
     display: block;
@@ -122,6 +125,7 @@
     display: flex;
     align-items: center;
     gap: 0;
+    margin-top: 14px; /* align with boxes below labels */
   }
 
   .diagram-05-termless .backends-stack {
@@ -229,8 +233,9 @@
     font-weight: 600;
     color: rgba(100, 116, 160, 0.7);
     text-align: center;
-    margin-top: 3px;
+    margin-bottom: 3px;
     line-height: 1.2;
+    order: -1;
   }
 
   /* === ASSERT DETAIL === */
@@ -443,7 +448,7 @@ Card item
           <span class="assert-result result-pass">&#10003; pass</span>
           <span class="assert-result result-fail">&#10007; fail</span>
         </div>
-        <div style="font-size: 10px; color: #64748b; font-weight: 600; text-align: center; margin-top: 6px">
+        <div style="font-size: 9px; color: rgba(100, 116, 160, 0.7); font-weight: 600; text-align: center; order: -1; line-height: 1.2">
           Termless tests
         </div>
       </div>
