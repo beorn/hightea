@@ -226,7 +226,7 @@
     font-size: 11px;
     line-height: 1.85;
     color: #d4d8e0;
-    white-space: pre-wrap;
+    white-space: pre;
   }
   .diagram-04-zones .prompt {
     color: #85d6a0;
@@ -485,23 +485,19 @@
       <!-- Terminal -->
       <div class="terminal-col">
         <div class="zone zone-native">
-          <div class="term-text">
-            <span class="bullet">&gt;</span> List all files in src/auth/
-            <span class="comment">Found 3 files: middleware.ts, session.ts, types.ts</span>
-            <span class="bullet">&gt;</span> What does middleware.ts do?
-            <span class="comment">It validates JWT tokens and attaches the</span>
-            <span class="comment">decoded user to the request context...</span>
-          </div>
+          <div class="term-text"><span class="bullet">&gt;</span> List all files in src/auth/
+<span class="comment">Found 3 files: middleware.ts, session.ts, types.ts</span>
+<span class="bullet">&gt;</span> What does middleware.ts do?
+<span class="comment">It validates JWT tokens and attaches the</span>
+<span class="comment">decoded user to the request context...</span></div>
         </div>
 
         <div class="zone zone-tracked">
-          <div class="term-text">
-            <span class="bullet">&gt;</span> Run the tests
-            <span class="success">&#10003; 47 tests passed</span>
-            <span class="comment">(3 files)</span>
-            <span class="bullet">&gt;</span> Show recent commits <span class="string">ab3f1e2</span> fix: resolve
-            flicker on resize <span class="string">7c9d4a1</span> feat: add streaming support
-          </div>
+          <div class="term-text"><span class="bullet">&gt;</span> Run the tests
+<span class="success">&#10003; 47 tests passed</span>
+<span class="comment">(3 files)</span>
+<span class="bullet">&gt;</span> Show recent commits <span class="string">ab3f1e2</span> fix: resolve
+flicker on resize <span class="string">7c9d4a1</span> feat: add streaming support</div>
         </div>
 
         <div class="live-group">
@@ -512,17 +508,14 @@
             <div class="window-title">Terminal &mdash; zsh</div>
           </div>
           <div class="zone-live">
-            <div class="term-text">
-              <span class="bullet">&gt;</span> Help me refactor the auth module
-              <span class="bullet">&#9679;</span> Reading src/auth/middleware.ts...
-              <span class="bullet">&#9679;</span> Found 3 issues. Streaming fix... <span class="keyword">export</span>
-              <span class="keyword">function</span> <span class="func">validateToken</span>( token:
-              <span class="string">string</span>, secret: <span class="string">string</span>
-              <span class="dimmed">)</span>
-              <span class="dimmed">{</span>
-              <span class="input-divider" style="margin-top: 8px"></span><span class="prompt">&gt; </span
-              ><span class="cursor-block">&#9612;</span><span class="input-divider"></span>
-            </div>
+            <div class="term-text"><span class="bullet">&gt;</span> Help me refactor the auth module
+<span class="bullet">&#9679;</span> Reading src/auth/middleware.ts...
+<span class="bullet">&#9679;</span> Found 3 issues. Streaming fix... <span class="keyword">export</span>
+<span class="keyword">function</span> <span class="func">validateToken</span>( token:
+<span class="string">string</span>, secret: <span class="string">string</span>
+<span class="dimmed">)</span>
+<span class="dimmed">{</span>
+<span class="input-divider" style="margin-top: 8px"></span><span class="prompt">&gt; </span><span class="cursor-block">&#9612;</span><span class="input-divider"></span></div>
           </div>
         </div>
       </div>

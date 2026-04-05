@@ -69,7 +69,7 @@
     border-bottom: 1px dotted rgba(255, 255, 255, 0.15);
     border-radius: 8px 8px 0 0;
     margin: 0 6px;
-    padding: 6px 8px;
+    padding: 6px 4px;
     position: relative;
     overflow: hidden;
   }
@@ -109,15 +109,15 @@
   }
   .diagram-01-buffers .window-chrome {
     background: linear-gradient(to bottom, #3c3c48, #2e2e3a);
-    padding: 10px 14px;
+    padding: 8px 10px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     border-bottom: 1px solid rgba(60, 60, 70, 0.5);
   }
   .diagram-01-buffers .dot {
-    width: 11px;
-    height: 11px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
   }
   .diagram-01-buffers .dot.close {
@@ -142,7 +142,7 @@
   }
   .diagram-01-buffers .terminal-body {
     background: #191922;
-    padding: 8px 8px;
+    padding: 6px 4px;
   }
 
   /* Terminal text */
@@ -151,7 +151,7 @@
     font-size: 11.5px;
     line-height: 1.85;
     color: #d4d8e0;
-    white-space: pre-wrap;
+    white-space: pre;
   }
   .diagram-01-buffers .prompt {
     color: #85d6a0;
@@ -216,7 +216,7 @@
   }
   .diagram-01-buffers .alt-content {
     flex: 1;
-    padding: 8px 8px;
+    padding: 6px 4px;
   }
   .diagram-01-buffers .alt-footer {
     background: #2d4a7a;
@@ -325,11 +325,9 @@
         <!-- Scrollback: faded zone ABOVE terminal -->
         <div class="scrollback-zone">
           <div class="scrollback-label">scrollback</div>
-          <div class="term-text">
-            <span class="prompt">$ </span><span class="cmd">bun add express</span>
-            <span class="comment">added 64 packages in 2.1s</span>
-            <span class="prompt">$ </span><span class="cmd">cat README.md</span>
-          </div>
+          <div class="term-text"><span class="prompt">$ </span><span class="cmd">bun add express</span>
+<span class="comment">added 64 packages in 2.1s</span>
+<span class="prompt">$ </span><span class="cmd">cat README.md</span></div>
         </div>
 
         <!-- Live screen: terminal with chrome -->
@@ -341,13 +339,11 @@
             <div class="window-title">Terminal &mdash; zsh</div>
           </div>
           <div class="terminal-body">
-            <div class="term-text">
-              <span class="prompt">$ </span><span class="cmd">node server.js</span>
-              <span class="success">Server listening on :3000</span>
-              <span class="comment">GET /api/users 200 12ms</span>
-              <span class="comment">POST /api/auth 201 45ms</span>
-              <span class="prompt">$ </span><span class="cursor-block">&#9612;</span>
-            </div>
+            <div class="term-text"><span class="prompt">$ </span><span class="cmd">node server.js</span>
+<span class="success">Server listening on :3000</span>
+<span class="comment">GET /api/users 200 12ms</span>
+<span class="comment">POST /api/auth 201 45ms</span>
+<span class="prompt">$ </span><span class="cursor-block">&#9612;</span></div>
           </div>
         </div>
 
@@ -378,19 +374,17 @@
               <span>[+] 1 of 3</span>
             </div>
             <div class="alt-content">
-              <div class="term-text">
-                <span class="line-num"> 1 </span><span class="keyword">import</span> express
-                <span class="line-num"> 2 </span><span class="keyword">from</span> <span class="string">'express'</span>
-                <span class="line-num"> 3 </span>
-                <span class="line-num"> 4 </span><span class="keyword">const</span> app =
-                <span class="line-num"> 5 </span> <span class="func">express</span>()
-                <span class="line-num"> 6 </span>
-                <span class="line-num"> 7 </span>app.<span class="func">get</span>(<span class="string">'/'</span>, ...)
-                <span class="line-num"> 8 </span>
-                <span class="line-num"> 9 </span><span class="dimmed">~</span>
-                <span class="line-num">10 </span><span class="dimmed">~</span>
-                <span class="line-num">11 </span><span class="dimmed">~</span>
-              </div>
+              <div class="term-text"><span class="line-num"> 1 </span><span class="keyword">import</span> express
+<span class="line-num"> 2 </span><span class="keyword">from</span> <span class="string">'express'</span>
+<span class="line-num"> 3 </span>
+<span class="line-num"> 4 </span><span class="keyword">const</span> app =
+<span class="line-num"> 5 </span> <span class="func">express</span>()
+<span class="line-num"> 6 </span>
+<span class="line-num"> 7 </span>app.<span class="func">get</span>(<span class="string">'/'</span>, ...)
+<span class="line-num"> 8 </span>
+<span class="line-num"> 9 </span><span class="dimmed">~</span>
+<span class="line-num">10 </span><span class="dimmed">~</span>
+<span class="line-num">11 </span><span class="dimmed">~</span></div>
             </div>
             <div class="alt-footer">
               <span>NORMAL</span>
