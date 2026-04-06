@@ -15,6 +15,7 @@ import zonesDiagram from '../public/blog/diagrams/04-zones.html?raw'
 </script>
 
 # Why Claude Code Flickers
+
 <p style="font-size: 1.2em; color: var(--vp-c-text-2); margin-top: -8px; font-weight: 400">And What It Would Take to Fix It</p>
 
 Claude Code has spent months rewriting its renderer. They've [shipped a NO_FLICKER mode](https://x.com/bcherny/status/2039421575422980329), moved to the alternate screen buffer, built a [differential renderer with TypedArray double-buffering](https://news.ycombinator.com/item?id=46701013) — and users are still reporting blank areas and visual glitches across [dozens of GitHub issues](https://github.com/anthropics/claude-code/issues/42670) spanning inline flicker, fullscreen corruption, and scrollback destruction. That strongly suggests the problem isn't only a bad diff. At least part of it is architectural.
@@ -109,9 +110,11 @@ When a response finishes, `Static` virtualizes the output to app scrollback and 
 
 ### Incremental rendering
 
+Both Claude Code and Silvery use incremental rendering in fullscreen mode — diffing the current frame against the previous one and only emitting changed cells. Claude Code's renderer uses TypedArray double-buffering for this; Silvery uses per-node dirty flags in the render tree.
+
 <HtmlDiagram :html="dirtyTrackingDiagram" />
 
-Silvery tracks changes at the source: per-node dirty flags in the render tree. Only dirty nodes re-render. Only changed cells generate output bytes. If a component re-renders but produces identical output, zero bytes go to stdout — no ED3 (erase scrollback), no screen clear, no flicker. This is a performance optimization layered on top of the invariants above, not a substitute for them.
+The difference is where change tracking happens. A screen-level diff compares entire buffers — fast, but if the buffer was built from stale state, the diff is correct for the _wrong frame_. Silvery tracks changes at the source: only dirty nodes re-render, only changed cells generate output. If a component re-renders but produces identical output, zero bytes go to stdout. This is a performance optimization layered on top of the invariants above, not a substitute for them.
 
 ::: details How deep does it go?
 The layout engine ([Flexily](https://github.com/beorn/flexily)) caches layout results and skips unchanged subtrees. The text measurement layer caches grapheme widths and line-break results. The render phase writes only changed cells. The output phase diffs the buffer and emits only changed ANSI sequences. End-to-end: ~169 microseconds for a typical interactive update (cursor move in a 1000-node tree, Apple M1 Max, 80×24, warm cache).
@@ -128,21 +131,24 @@ Same components in both modes. Fullscreen gets transactional rendering with auth
 
 ### How the approaches compare
 
-| | Inline redraw | Alt-screen diff renderer | Model-based fullscreen | Model-based inline + scrollback |
-| ----------------------- | ----------------------------- | -------------------------- | ------------------------------ | ------------------------------------- |
-| **Terminal scrollback** | Yes, but disrupted by redraws | Not while active | Not while active | Yes (content graduates out) |
-| **Cmd+F** | Native (but flickers) | Reimplemented in-app | Reimplemented in-app | Native for graduated content + in-app |
-| **Frame coherence** | Split (gap between phases) | Split (gap between phases) | Single synchronous transaction | Single synchronous transaction |
-| **Desync recovery** | None typical | None typical | Full repaint from model | Full repaint from model |
-| **Render tree growth** | Grows with conversation | Only visible content | Only visible content | Bounded (items graduate out) |
+|  | CC inline (pre-NO_FLICKER) | CC fullscreen (NO_FLICKER) | Silvery fullscreen | Silvery inline |
+| --- | --- | --- | --- | --- |
+| **Scrollback** | Native (but redraws disrupt it) | None while active (`Ctrl+O [` dumps transcript) | None while active | Graduated: app scrollback → terminal scrollback |
+| **Cmd+F** | Native | Reimplemented (`Ctrl+O /`) | In-app | Native for graduated + in-app |
+| **Incremental rendering** | No (full redraw every token) | Yes (cell-level buffer diff) | Yes (per-node dirty flags) | Yes (dirty flags + ED3 on structural events) |
+| **Pipeline** | Async (phases in separate turns) | Async (phases in separate turns) | Synchronous transaction | Synchronous transaction |
+| **Layout** | Measure-after-render | Measure-after-render | Layout-before-render | Layout-before-render |
+| **Desync recovery** | None | None apparent | Full repaint from model | Full repaint from model |
+| **Render tree** | Grows with conversation | Visible content only | Visible content only | Bounded (items graduate out) |
+| **History while streaming** | Auto-scroll yanks back | `Ctrl+O [` to browse | Scroll within app | Scroll naturally |
 
-> These columns are architectural archetypes, not exact descriptions of every app. Viewed through this lens, Claude Code's public evolution looks more like a move from the first architecture toward the second. Silvery provides the third and fourth.
+> Claude Code evolved from column 1 to column 2. Silvery provides columns 3 and 4. The core architectural differences are pipeline atomicity (sync vs async), layout ordering (before vs after render), scrollback management (graduated vs all-or-nothing), and desync recovery (repaint vs hope).
 
 ## Honest caveats
 
 This isn't magic. There are real constraints.
 
-**Silvery can't incrementally update scrollback either.** The difference is _when_ redraws happen — on infrequent structural events (resize, item graduation) instead of every token. In my testing, flicker is uncommon, but on resize with thousands of graduated items there's a brief pause.
+**Silvery inline mode still redraws scrollback.** When app scrollback needs re-emission (resize, item graduation), Silvery does ED3 + re-emit — the same clear-and-redraw mechanism as reason 1. The difference is frequency: this happens on infrequent structural events (a few times per session) instead of on every streaming token (50 times per second). The redraw mechanism is the same; the trigger is different. In fullscreen mode, redraws don't happen at all — only incremental cell updates.
 
 **Graduation requires an immutability boundary.** Once content is released to terminal scrollback, changing it means replaying history. Items that might still change (collapsible output, edited messages) stay in app scrollback.
 
