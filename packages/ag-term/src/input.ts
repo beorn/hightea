@@ -91,16 +91,24 @@ export {
   enableBracketedPaste,
   disableBracketedPaste,
   parseBracketedPaste,
+  createBracketedPasteEvent,
+  createInternalPasteEvent,
   PASTE_START,
   PASTE_END,
 } from "./bracketed-paste"
-export type { BracketedPasteResult } from "./bracketed-paste"
+export type { BracketedPasteResult, PasteEvent } from "./bracketed-paste"
 
 // =============================================================================
-// OSC 52 Clipboard
+// Clipboard
 // =============================================================================
 
 export { copyToClipboard, requestClipboard, parseClipboardResponse } from "./clipboard"
+export {
+  createOsc52Backend,
+  createInternalClipboardBackend,
+  createCompositeClipboard,
+} from "./clipboard"
+export type { ClipboardData, ClipboardBackend, ClipboardCapabilities } from "./clipboard"
 
 // =============================================================================
 // Key Parsing

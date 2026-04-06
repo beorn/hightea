@@ -73,3 +73,43 @@ export function parseBracketedPaste(input: string): BracketedPasteResult | null 
     content: input.slice(contentStart, endIdx),
   }
 }
+
+// ============================================================================
+// Paste Event
+// ============================================================================
+
+/**
+ * Structured paste event with source tracking and optional rich data.
+ *
+ * Fired when text is pasted into the application, either from the system
+ * clipboard (via bracketed paste) or from the internal clipboard store.
+ */
+export interface PasteEvent {
+  /** The pasted plain text */
+  text: string
+  /** Where the paste came from */
+  source: "bracketed" | "internal"
+  /** Rich clipboard data, if available (internal paste only) */
+  structured?: import("./clipboard").ClipboardData
+}
+
+/**
+ * Create a PasteEvent from a bracketed paste result.
+ */
+export function createBracketedPasteEvent(result: BracketedPasteResult): PasteEvent {
+  return {
+    text: result.content,
+    source: "bracketed",
+  }
+}
+
+/**
+ * Create a PasteEvent from internal clipboard data.
+ */
+export function createInternalPasteEvent(data: import("./clipboard").ClipboardData): PasteEvent {
+  return {
+    text: data.text,
+    source: "internal",
+    structured: data,
+  }
+}
