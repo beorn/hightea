@@ -558,6 +558,20 @@ export {
 } from "./pointer-state"
 
 // =============================================================================
+// Drag Events
+// =============================================================================
+
+export {
+  createDragEvent,
+  createDragState,
+  isDropTarget,
+  findDropTarget,
+  type DragState,
+  type DragEvent,
+  type DragEventProps,
+} from "./drag-events"
+
+// =============================================================================
 // Virtual Scrollback
 // =============================================================================
 
