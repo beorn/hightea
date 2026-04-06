@@ -14,7 +14,8 @@ import type { FocusManager } from "@silvery/ag/focus-manager"
 import { findFocusableAncestor } from "@silvery/ag/focus-queries"
 import type { ParsedMouse } from "./mouse"
 import { getAncestorPath, pointInRect } from "@silvery/ag/tree-utils"
-import type { AgNode } from "@silvery/ag/types"
+import type { AgNode, Rect, UserSelect } from "@silvery/ag/types"
+import type { SelectionScope } from "./selection"
 
 // Re-export canonical types from ag (avoid duplicate type definitions)
 export type { SilveryMouseEvent, SilveryWheelEvent } from "@silvery/ag/mouse-event-types"
@@ -152,6 +153,102 @@ export function hitTest(node: AgNode, x: number, y: number): AgNode | null {
 
   // No child matched — this node is the target (if it has a screenRect)
   return node
+}
+
+// ============================================================================
+// Selection Hit Testing
+// ============================================================================
+
+/**
+ * Resolve the effective userSelect value for a node.
+ * "auto" inherits from parent; root defaults to "text".
+ */
+export function resolveUserSelect(node: AgNode): "none" | "text" | "contain" {
+  let current: AgNode | null = node
+  while (current) {
+    const props = current.props as { userSelect?: UserSelect }
+    const value = props.userSelect
+    if (value === "none" || value === "text" || value === "contain") return value
+    // "auto" or undefined — walk up
+    current = current.parent
+  }
+  // Root default is "text"
+  return "text"
+}
+
+/**
+ * Selection hit test: find the deepest node whose text is selectable at (x, y).
+ *
+ * Unlike pointer hitTest, this:
+ * - Ignores pointerEvents (a node with pointerEvents="none" can still be selectable)
+ * - Respects userSelect (a node with userSelect="none" is not a selection target)
+ */
+export function selectionHitTest(node: AgNode, x: number, y: number): AgNode | null {
+  const rect = node.screenRect
+  if (!rect) return null
+
+  if (!pointInRect(x, y, rect)) return null
+
+  // userSelect="none" blocks this subtree from selection hit testing
+  // But only if explicitly "none" — "auto" inherits and root defaults to "text"
+  const props = node.props as { overflow?: string; userSelect?: UserSelect }
+  const resolved = resolveUserSelect(node)
+  if (resolved === "none") return null
+
+  // Check overflow clipping (same as pointer hitTest)
+  const clips = props.overflow === "hidden" || props.overflow === "scroll"
+
+  // DFS: check children in reverse order (last child = top z-order)
+  for (let i = node.children.length - 1; i >= 0; i--) {
+    const child = node.children[i]!
+    if (clips) {
+      const childRect = child.screenRect
+      if (childRect && !pointInRect(x, y, rect)) {
+        continue
+      }
+    }
+    const hit = selectionHitTest(child, x, y)
+    if (hit) return hit
+  }
+
+  // Check virtual text children with inlineRects
+  if (node.type === "silvery-text") {
+    for (let i = node.children.length - 1; i >= 0; i--) {
+      const child = node.children[i]!
+      if (child.inlineRects) {
+        for (const inlineRect of child.inlineRects) {
+          if (pointInRect(x, y, inlineRect)) return child
+        }
+      }
+    }
+  }
+
+  return node
+}
+
+/**
+ * Find the contain boundary for a node.
+ * Walks up to the nearest `userSelect="contain"` ancestor and returns its screenRect
+ * as a SelectionScope. Returns null if no contain boundary exists.
+ */
+export function findContainBoundary(node: AgNode): SelectionScope | null {
+  let current: AgNode | null = node
+  while (current) {
+    const props = current.props as { userSelect?: UserSelect }
+    if (props.userSelect === "contain") {
+      const rect = current.screenRect
+      if (rect) {
+        return {
+          top: rect.y,
+          bottom: rect.y + rect.height - 1,
+          left: rect.x,
+          right: rect.x + rect.width - 1,
+        }
+      }
+    }
+    current = current.parent
+  }
+  return null
 }
 
 // ============================================================================
@@ -416,6 +513,7 @@ export function processMouseEvent(state: MouseEventProcessorState, parsed: Parse
 
     const event = createMouseEvent("mousedown", x, y, target, parsed, state.keyboardModifiers)
     dispatchMouseEvent(event)
+    if (event.defaultPrevented) defaultPrevented = true
   } else if (action === "up") {
     const event = createMouseEvent("mouseup", x, y, target, parsed, state.keyboardModifiers)
     dispatchMouseEvent(event)
