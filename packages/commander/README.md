@@ -75,6 +75,14 @@ Options with [Zod](https://github.com/colinhacks/zod) schemas or built-in types 
 
 Full reference, type table, and API details at **[silvery.dev/reference/commander](https://silvery.dev/reference/commander)**.
 
+## Replaces `@commander-js/extra-typings`
+
+[`@commander-js/extra-typings`](https://github.com/commander-js/extra-typings) pioneered chain-inferred option types for Commander.js — each `.option()` call narrows the type of `.opts()`. We use the same idea but with a much simpler implementation (~100 lines vs. 1536 lines) because we own the `Command` class rather than wrapping someone else's.
+
+`extra-typings` re-declares Commander's entire API from the outside — every method, every overload, every generic parameter — because it's a type-only wrapper around a class it doesn't control. We use interface merging on our own class and only type the methods that matter (`.option()`, `.opts()`, `.action()`). Modern TS features (const type parameters, template literal types) keep the flag-parsing utilities clean.
+
+If you're using `@silvery/commander`, you don't need `@commander-js/extra-typings`.
+
 ## Credits
 
 - **[Commander.js](https://github.com/tj/commander.js)** by TJ Holowaychuk and contributors
