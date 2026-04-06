@@ -9,7 +9,18 @@ import {
   extractText,
   type SelectionScope,
 } from "@silvery/ag-term/selection"
-import { TerminalBuffer, SELECTABLE_FLAG, setSelectableFlag } from "@silvery/ag-term/buffer"
+import { TerminalBuffer, SELECTABLE_FLAG, setSelectableFlag, isCellSelectable, clearSelectableFlag } from "@silvery/ag-term/buffer"
+import {
+  composeSelectionCells,
+  applySelectionToBuffer,
+  type SelectionTheme,
+} from "@silvery/ag-term/selection-renderer"
+import {
+  resolveUserSelect,
+  selectionHitTest,
+  findContainBoundary,
+} from "@silvery/ag-term/mouse-events"
+import type { AgNode, Rect } from "@silvery/ag/types"
 
 // ============================================================================
 // State Machine
@@ -281,22 +292,32 @@ describe("extractText", () => {
 
   test("respects SELECTABLE_FLAG when enabled", () => {
     const buf = new TerminalBuffer(10, 1)
-    // Write "ABCDE" — mark A, C, E as selectable, B, D as not
-    for (let i = 0; i < 5; i++) {
-      buf.setCell(i, 0, { char: String.fromCharCode(65 + i) })
-    }
-    // Manually set selectable flags using getCellAttrs + setCell approach
-    // Actually we need to stamp SELECTABLE_FLAG on the raw packed data
-    // The buffer's isCellSelectable checks the packed data, which setCell doesn't set
-    // In practice, the render phase stamps this. For testing, we need a workaround.
-    // Let's use the internal cells array via a helper buffer subclass or just test the flag check.
 
-    // For now, test that respectSelectableFlag=false (default) returns all text
-    const text = extractText(buf, {
+    // Write "ABCDE" — A, C, E selectable; B, D not selectable
+    buf.setSelectableMode(true)
+    buf.setCell(0, 0, { char: "A" })
+    buf.setSelectableMode(false)
+    buf.setCell(1, 0, { char: "B" })
+    buf.setSelectableMode(true)
+    buf.setCell(2, 0, { char: "C" })
+    buf.setSelectableMode(false)
+    buf.setCell(3, 0, { char: "D" })
+    buf.setSelectableMode(true)
+    buf.setCell(4, 0, { char: "E" })
+
+    // Without flag check — all chars returned
+    const all = extractText(buf, {
       anchor: { col: 0, row: 0 },
       head: { col: 4, row: 0 },
     }, { respectSelectableFlag: false })
-    expect(text).toBe("ABCDE")
+    expect(all).toBe("ABCDE")
+
+    // With flag check — only selectable chars returned
+    const filtered = extractText(buf, {
+      anchor: { col: 0, row: 0 },
+      head: { col: 4, row: 0 },
+    }, { respectSelectableFlag: true })
+    expect(filtered).toBe("ACE")
   })
 
   test("trims trailing spaces using lastContentCol from row metadata", () => {
@@ -309,5 +330,462 @@ describe("extractText", () => {
     }, { rowMetadata: buf.getRowMetadataArray() })
 
     expect(text).toBe("Hello")
+  })
+})
+
+// ============================================================================
+// Buffer SELECTABLE_FLAG
+// ============================================================================
+
+describe("SELECTABLE_FLAG in buffer", () => {
+  test("setSelectableMode stamps flag on setCell", () => {
+    const buf = new TerminalBuffer(5, 1)
+    buf.setSelectableMode(true)
+    buf.setCell(0, 0, { char: "A" })
+    buf.setSelectableMode(false)
+    buf.setCell(1, 0, { char: "B" })
+
+    expect(buf.isCellSelectable(0, 0)).toBe(true)
+    expect(buf.isCellSelectable(1, 0)).toBe(false)
+  })
+
+  test("setSelectableMode stamps flag on fill", () => {
+    const buf = new TerminalBuffer(10, 2)
+    buf.setSelectableMode(true)
+    buf.fill(0, 0, 10, 1, { char: "X" })
+    buf.setSelectableMode(false)
+    buf.fill(0, 1, 10, 1, { char: "Y" })
+
+    expect(buf.isCellSelectable(5, 0)).toBe(true)
+    expect(buf.isCellSelectable(5, 1)).toBe(false)
+  })
+
+  test("clone preserves SELECTABLE_FLAG", () => {
+    const buf = new TerminalBuffer(5, 1)
+    buf.setSelectableMode(true)
+    buf.setCell(0, 0, { char: "A" })
+
+    const clone = buf.clone()
+    expect(clone.isCellSelectable(0, 0)).toBe(true)
+  })
+
+  test("SELECTABLE_FLAG does not affect diff comparison", () => {
+    const buf1 = new TerminalBuffer(5, 1)
+    buf1.setCell(0, 0, { char: "A" })
+
+    const buf2 = new TerminalBuffer(5, 1)
+    buf2.setSelectableMode(true)
+    buf2.setCell(0, 0, { char: "A" })
+
+    // Cells should be "equal" for diff purposes despite different SELECTABLE_FLAG
+    expect(buf2.cellEquals(0, 0, buf1)).toBe(true)
+    expect(buf2.rowMetadataEquals(0, buf1)).toBe(true)
+  })
+
+  test("helper functions work on packed values", () => {
+    const packed = 0
+    const withFlag = setSelectableFlag(packed)
+    expect(isCellSelectable(withFlag)).toBe(true)
+
+    const cleared = clearSelectableFlag(withFlag)
+    expect(isCellSelectable(cleared)).toBe(false)
+  })
+})
+
+// ============================================================================
+// Row Metadata
+// ============================================================================
+
+describe("RowMetadata", () => {
+  test("setRowMeta and getRowMeta", () => {
+    const buf = new TerminalBuffer(10, 3)
+    buf.setRowMeta(0, { softWrapped: true, lastContentCol: 8 })
+    buf.setRowMeta(1, { softWrapped: false, lastContentCol: 5 })
+
+    const meta0 = buf.getRowMeta(0)
+    expect(meta0.softWrapped).toBe(true)
+    expect(meta0.lastContentCol).toBe(8)
+
+    const meta1 = buf.getRowMeta(1)
+    expect(meta1.softWrapped).toBe(false)
+    expect(meta1.lastContentCol).toBe(5)
+
+    // Default for unset row
+    const meta2 = buf.getRowMeta(2)
+    expect(meta2.softWrapped).toBe(false)
+    expect(meta2.lastContentCol).toBe(-1)
+  })
+
+  test("clone preserves row metadata", () => {
+    const buf = new TerminalBuffer(10, 2)
+    buf.setRowMeta(0, { softWrapped: true, lastContentCol: 7 })
+
+    const clone = buf.clone()
+    const meta = clone.getRowMeta(0)
+    expect(meta.softWrapped).toBe(true)
+    expect(meta.lastContentCol).toBe(7)
+
+    // Mutations on clone don't affect original
+    clone.setRowMeta(0, { softWrapped: false })
+    expect(buf.getRowMeta(0).softWrapped).toBe(true)
+  })
+
+  test("out-of-bounds returns defaults", () => {
+    const buf = new TerminalBuffer(5, 2)
+    const meta = buf.getRowMeta(-1)
+    expect(meta.softWrapped).toBe(false)
+    expect(meta.lastContentCol).toBe(-1)
+  })
+})
+
+// ============================================================================
+// resolveUserSelect
+// ============================================================================
+
+describe("resolveUserSelect", () => {
+  function makeNode(userSelect?: string, parent?: AgNode): AgNode {
+    return {
+      type: "silvery-box",
+      props: { userSelect },
+      children: [],
+      parent: parent ?? null,
+      layoutNode: null,
+      prevLayout: null,
+      contentRect: { x: 0, y: 0, width: 10, height: 5 },
+      screenRect: { x: 0, y: 0, width: 10, height: 5 },
+      prevScreenRect: null,
+      renderRect: { x: 0, y: 0, width: 10, height: 5 },
+      prevRenderRect: null,
+      layoutChangedThisFrame: false,
+      layoutDirty: false,
+      contentDirty: false,
+      stylePropsDirty: false,
+      bgDirty: false,
+      subtreeDirty: false,
+      childrenDirty: false,
+      hidden: false,
+    } as unknown as AgNode
+  }
+
+  test("root with no userSelect defaults to text", () => {
+    const root = makeNode(undefined)
+    expect(resolveUserSelect(root)).toBe("text")
+  })
+
+  test("explicit none returns none", () => {
+    const node = makeNode("none")
+    expect(resolveUserSelect(node)).toBe("none")
+  })
+
+  test("explicit text returns text", () => {
+    const node = makeNode("text")
+    expect(resolveUserSelect(node)).toBe("text")
+  })
+
+  test("explicit contain returns contain", () => {
+    const node = makeNode("contain")
+    expect(resolveUserSelect(node)).toBe("contain")
+  })
+
+  test("auto inherits from parent", () => {
+    const parent = makeNode("none")
+    const child = makeNode("auto", parent)
+    expect(resolveUserSelect(child)).toBe("none")
+  })
+
+  test("text overrides parent none", () => {
+    const parent = makeNode("none")
+    const child = makeNode("text", parent)
+    expect(resolveUserSelect(child)).toBe("text")
+  })
+
+  test("auto with no explicit parent resolves to text (root default)", () => {
+    const grandparent = makeNode(undefined)
+    const parent = makeNode("auto", grandparent)
+    const child = makeNode("auto", parent)
+    expect(resolveUserSelect(child)).toBe("text")
+  })
+})
+
+// ============================================================================
+// selectionHitTest vs pointer hitTest
+// ============================================================================
+
+describe("selectionHitTest", () => {
+  function makeTree(): { root: AgNode; selectable: AgNode; nonSelectable: AgNode; pointerNone: AgNode } {
+    const root: AgNode = {
+      type: "silvery-root",
+      props: {},
+      children: [],
+      parent: null,
+      layoutNode: {} as any,
+      prevLayout: null,
+      contentRect: { x: 0, y: 0, width: 40, height: 20 },
+      screenRect: { x: 0, y: 0, width: 40, height: 20 },
+      prevScreenRect: null,
+      renderRect: { x: 0, y: 0, width: 40, height: 20 },
+      prevRenderRect: null,
+      layoutChangedThisFrame: false,
+      layoutDirty: false,
+      contentDirty: false,
+      stylePropsDirty: false,
+      bgDirty: false,
+      subtreeDirty: false,
+      childrenDirty: false,
+      hidden: false,
+    } as unknown as AgNode
+
+    // pointerEvents=none but userSelect=text — should be found by selection but not pointer
+    const pointerNone: AgNode = {
+      type: "silvery-box",
+      props: { pointerEvents: "none", userSelect: "text" },
+      children: [],
+      parent: root,
+      layoutNode: {} as any,
+      prevLayout: null,
+      contentRect: { x: 0, y: 0, width: 10, height: 5 },
+      screenRect: { x: 0, y: 0, width: 10, height: 5 },
+      prevScreenRect: null,
+      renderRect: { x: 0, y: 0, width: 10, height: 5 },
+      prevRenderRect: null,
+      layoutChangedThisFrame: false,
+      layoutDirty: false,
+      contentDirty: false,
+      stylePropsDirty: false,
+      bgDirty: false,
+      subtreeDirty: false,
+      childrenDirty: false,
+      hidden: false,
+    } as unknown as AgNode
+
+    // userSelect=none — should NOT be found by selection but IS by pointer
+    const nonSelectable: AgNode = {
+      type: "silvery-box",
+      props: { userSelect: "none" },
+      children: [],
+      parent: root,
+      layoutNode: {} as any,
+      prevLayout: null,
+      contentRect: { x: 10, y: 0, width: 10, height: 5 },
+      screenRect: { x: 10, y: 0, width: 10, height: 5 },
+      prevScreenRect: null,
+      renderRect: { x: 10, y: 0, width: 10, height: 5 },
+      prevRenderRect: null,
+      layoutChangedThisFrame: false,
+      layoutDirty: false,
+      contentDirty: false,
+      stylePropsDirty: false,
+      bgDirty: false,
+      subtreeDirty: false,
+      childrenDirty: false,
+      hidden: false,
+    } as unknown as AgNode
+
+    // Normal selectable node
+    const selectable: AgNode = {
+      type: "silvery-box",
+      props: { userSelect: "text" },
+      children: [],
+      parent: root,
+      layoutNode: {} as any,
+      prevLayout: null,
+      contentRect: { x: 20, y: 0, width: 10, height: 5 },
+      screenRect: { x: 20, y: 0, width: 10, height: 5 },
+      prevScreenRect: null,
+      renderRect: { x: 20, y: 0, width: 10, height: 5 },
+      prevRenderRect: null,
+      layoutChangedThisFrame: false,
+      layoutDirty: false,
+      contentDirty: false,
+      stylePropsDirty: false,
+      bgDirty: false,
+      subtreeDirty: false,
+      childrenDirty: false,
+      hidden: false,
+    } as unknown as AgNode
+
+    root.children = [pointerNone, nonSelectable, selectable]
+    return { root, selectable, nonSelectable, pointerNone }
+  }
+
+  test("selectionHitTest finds pointerEvents=none node with userSelect=text", () => {
+    const { root, pointerNone } = makeTree()
+    const hit = selectionHitTest(root, 5, 2)
+    expect(hit).toBe(pointerNone)
+  })
+
+  test("selectionHitTest does NOT find userSelect=none node", () => {
+    const { root } = makeTree()
+    // Point at (15, 2) is in the nonSelectable node area
+    const hit = selectionHitTest(root, 15, 2)
+    // Should fall through to root since nonSelectable blocks selection
+    expect(hit).not.toHaveProperty("props.userSelect", "none")
+  })
+
+  test("selectionHitTest finds explicitly selectable node", () => {
+    const { root, selectable } = makeTree()
+    const hit = selectionHitTest(root, 25, 2)
+    expect(hit).toBe(selectable)
+  })
+})
+
+// ============================================================================
+// findContainBoundary
+// ============================================================================
+
+describe("findContainBoundary", () => {
+  function makeContainTree(): { root: AgNode; inner: AgNode; leaf: AgNode } {
+    const root: AgNode = {
+      type: "silvery-root",
+      props: {},
+      children: [],
+      parent: null,
+      layoutNode: {} as any,
+      screenRect: { x: 0, y: 0, width: 80, height: 24 },
+    } as unknown as AgNode
+
+    const inner: AgNode = {
+      type: "silvery-box",
+      props: { userSelect: "contain" },
+      children: [],
+      parent: root,
+      layoutNode: {} as any,
+      screenRect: { x: 5, y: 2, width: 30, height: 10 },
+    } as unknown as AgNode
+
+    const leaf: AgNode = {
+      type: "silvery-text",
+      props: {},
+      children: [],
+      parent: inner,
+      layoutNode: {} as any,
+      screenRect: { x: 6, y: 3, width: 20, height: 5 },
+    } as unknown as AgNode
+
+    root.children = [inner]
+    inner.children = [leaf]
+    return { root, inner, leaf }
+  }
+
+  test("returns contain boundary from ancestor", () => {
+    const { leaf } = makeContainTree()
+    const scope = findContainBoundary(leaf)
+
+    expect(scope).toEqual({
+      top: 2,
+      bottom: 11,
+      left: 5,
+      right: 34,
+    })
+  })
+
+  test("returns null when no contain ancestor exists", () => {
+    const node: AgNode = {
+      type: "silvery-box",
+      props: {},
+      children: [],
+      parent: null,
+      layoutNode: {} as any,
+      screenRect: { x: 0, y: 0, width: 10, height: 5 },
+    } as unknown as AgNode
+
+    expect(findContainBoundary(node)).toBeNull()
+  })
+})
+
+// ============================================================================
+// Style Composition
+// ============================================================================
+
+describe("composeSelectionCells", () => {
+  test("returns empty array for null selection", () => {
+    const buf = new TerminalBuffer(10, 1)
+    const changes = composeSelectionCells(buf, null)
+    expect(changes).toEqual([])
+  })
+
+  test("swaps fg/bg as fallback", () => {
+    const buf = new TerminalBuffer(10, 1)
+    buf.setCell(0, 0, { char: "A", fg: 1, bg: 2 })
+
+    const changes = composeSelectionCells(buf, {
+      anchor: { col: 0, row: 0 },
+      head: { col: 0, row: 0 },
+    })
+
+    expect(changes).toHaveLength(1)
+    expect(changes[0]!.fg).toBe(2) // was bg
+    expect(changes[0]!.bg).toBe(1) // was fg
+  })
+
+  test("uses theme tokens when provided", () => {
+    const buf = new TerminalBuffer(10, 1)
+    buf.setCell(0, 0, { char: "A", fg: 1, bg: 2 })
+
+    const theme: SelectionTheme = {
+      selectionFg: { r: 255, g: 255, b: 255 },
+      selectionBg: { r: 0, g: 0, b: 128 },
+    }
+
+    const changes = composeSelectionCells(buf, {
+      anchor: { col: 0, row: 0 },
+      head: { col: 0, row: 0 },
+    }, theme)
+
+    expect(changes).toHaveLength(1)
+    expect(changes[0]!.fg).toEqual({ r: 255, g: 255, b: 255 })
+    expect(changes[0]!.bg).toEqual({ r: 0, g: 0, b: 128 })
+  })
+
+  test("skips continuation cells", () => {
+    const buf = new TerminalBuffer(5, 1)
+    buf.setCell(0, 0, { char: "漢", wide: true })
+    buf.setCell(1, 0, { char: "", continuation: true })
+    buf.setCell(2, 0, { char: "B" })
+
+    const changes = composeSelectionCells(buf, {
+      anchor: { col: 0, row: 0 },
+      head: { col: 2, row: 0 },
+    })
+
+    // Should have 2 changes: col 0 (wide char) and col 2 (B) — col 1 (continuation) skipped
+    expect(changes).toHaveLength(2)
+    expect(changes.map(c => c.col)).toEqual([0, 2])
+  })
+
+  test("respects SELECTABLE_FLAG when enabled", () => {
+    const buf = new TerminalBuffer(5, 1)
+    buf.setSelectableMode(true)
+    buf.setCell(0, 0, { char: "A" })
+    buf.setSelectableMode(false)
+    buf.setCell(1, 0, { char: "B" })
+    buf.setSelectableMode(true)
+    buf.setCell(2, 0, { char: "C" })
+
+    const changes = composeSelectionCells(buf, {
+      anchor: { col: 0, row: 0 },
+      head: { col: 2, row: 0 },
+    }, undefined, true) // respectSelectableFlag = true
+
+    // Only A and C are selectable
+    expect(changes).toHaveLength(2)
+    expect(changes.map(c => c.col)).toEqual([0, 2])
+  })
+
+  test("applySelectionToBuffer modifies cell colors", () => {
+    const buf = new TerminalBuffer(5, 1)
+    buf.setCell(0, 0, { char: "A", fg: 1, bg: 2 })
+
+    const changes = composeSelectionCells(buf, {
+      anchor: { col: 0, row: 0 },
+      head: { col: 0, row: 0 },
+    })
+
+    applySelectionToBuffer(buf, changes)
+
+    const cell = buf.getCell(0, 0)
+    expect(cell.fg).toBe(2) // swapped
+    expect(cell.bg).toBe(1) // swapped
+    expect(cell.char).toBe("A") // char unchanged
   })
 })
