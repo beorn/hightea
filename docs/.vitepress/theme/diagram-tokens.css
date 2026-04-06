@@ -19,13 +19,13 @@
   --d-font-mono: "SF Mono", "Fira Code", "Cascadia Code", "JetBrains Mono", "Menlo", "Consolas", monospace;
 
   /* Font sizes — 4px scale matching blog body */
-  --d-fs-xs: 11px;   /* micro labels, tags, badges */
-  --d-fs-sm: 12px;   /* annotation details, sub-labels */
+  --d-fs-xs: 11px; /* micro labels, tags, badges */
+  --d-fs-sm: 12px; /* annotation details, sub-labels */
   --d-fs-base: 13px; /* default body text in diagrams */
-  --d-fs-md: 14px;   /* terminal content, phase headings */
-  --d-fs-lg: 16px;   /* section headings, annotation titles */
-  --d-fs-xl: 20px;   /* panel titles, emphasis */
-  --d-fs-2xl: 26px;  /* big stats (60 cells, 2 cells) */
+  --d-fs-md: 14px; /* terminal content, phase headings */
+  --d-fs-lg: 16px; /* section headings, annotation titles */
+  --d-fs-xl: 20px; /* panel titles, emphasis */
+  --d-fs-2xl: 26px; /* big stats (60 cells, 2 cells) */
 
   /* Font weights */
   --d-fw-regular: 500;
@@ -34,10 +34,10 @@
   --d-fw-heavy: 800;
 
   /* Line heights */
-  --d-lh-tight: 1.2;    /* labels, headings */
-  --d-lh-snug: 1.4;     /* terminal content */
-  --d-lh-normal: 1.5;   /* body text */
-  --d-lh-relaxed: 1.7;  /* annotation details */
+  --d-lh-tight: 1.2; /* labels, headings */
+  --d-lh-snug: 1.4; /* terminal content */
+  --d-lh-normal: 1.5; /* body text */
+  --d-lh-relaxed: 1.7; /* annotation details */
 
   /* Letter spacing */
   --d-ls-tight: -0.01em;
@@ -81,10 +81,10 @@
    * TEXT — high contrast (WCAG AA)
    * ═══════════════════════════════════════════ */
 
-  --d-text: #0f172a;         /* primary — 19:1 on white */
-  --d-text-muted: #334155;   /* secondary — 11:1 on white */
-  --d-text-subtle: #64748b;  /* tertiary — 5.5:1 on white */
-  --d-text-label: #1e293b;   /* labels/headings */
+  --d-text: #0f172a; /* primary — 19:1 on white */
+  --d-text-muted: #334155; /* secondary — 11:1 on white */
+  --d-text-subtle: #64748b; /* tertiary — 5.5:1 on white */
+  --d-text-label: #1e293b; /* labels/headings */
 
   /* ═══════════════════════════════════════════
    * TERMINAL — dark chrome, accessible syntax colors
@@ -93,10 +93,10 @@
   --d-terminal-bg: #191922;
   --d-terminal-bg-alt: #1e1e2a;
   --d-terminal-bg-faded: #252535;
-  --d-terminal-text: #e5e8ef;           /* 13:1 on terminal-bg */
+  --d-terminal-text: #e5e8ef; /* 13:1 on terminal-bg */
   --d-terminal-chrome: linear-gradient(to bottom, #3c3c48, #2e2e3a);
   --d-terminal-chrome-border: rgba(255, 255, 255, 0.12);
-  --d-terminal-title: rgba(255, 255, 255, 0.7);  /* was 0.55 — brighter */
+  --d-terminal-title: rgba(255, 255, 255, 0.7); /* was 0.55 — brighter */
 
   /* Terminal window dots */
   --d-dot-close: #ff5f57;
@@ -107,15 +107,15 @@
   --d-dot-max-border: #1aab29;
 
   /* Terminal syntax colors — tuned for WCAG AA on #191922 */
-  --d-term-prompt: #8cd9a3;    /* 9.8:1 */
-  --d-term-cmd: #f1f2f5;       /* 15:1 */
-  --d-term-comment: #a0aabf;   /* 7.2:1 — was #8a96ab */
-  --d-term-success: #a5d6a7;   /* 9.5:1 */
-  --d-term-keyword: #d8a8f2;   /* 8.2:1 */
-  --d-term-func: #8ac6ff;      /* 9:1 */
-  --d-term-string: #f0d080;    /* 11:1 */
-  --d-term-bullet: #7fd1db;    /* 10:1 */
-  --d-term-dimmed: #8a94a8;    /* 5.5:1 — was #7a8294 */
+  --d-term-prompt: #8cd9a3; /* 9.8:1 */
+  --d-term-cmd: #f1f2f5; /* 15:1 */
+  --d-term-comment: #a0aabf; /* 7.2:1 — was #8a96ab */
+  --d-term-success: #a5d6a7; /* 9.5:1 */
+  --d-term-keyword: #d8a8f2; /* 8.2:1 */
+  --d-term-func: #8ac6ff; /* 9:1 */
+  --d-term-string: #f0d080; /* 11:1 */
+  --d-term-bullet: #7fd1db; /* 10:1 */
+  --d-term-dimmed: #8a94a8; /* 5.5:1 — was #7a8294 */
   --d-term-cursor: #3cda5c;
 
   /* ═══════════════════════════════════════════
@@ -138,8 +138,8 @@
   --d-annotation-bg: #ffffff;
   --d-annotation-border: rgba(0, 0, 0, 0.12);
   --d-annotation-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  --d-annotation-title: #0f172a;   /* 19:1 on white */
-  --d-annotation-body: #334155;    /* 11:1 on white */
+  --d-annotation-title: #0f172a; /* 19:1 on white */
+  --d-annotation-body: #334155; /* 11:1 on white */
 
   /* ═══════════════════════════════════════════
    * TAGS / BADGES
@@ -164,9 +164,9 @@
     --d-border-strong: rgba(255, 255, 255, 0.22);
 
     /* Text — high contrast on dark */
-    --d-text: #f1f5f9;         /* 16:1 on #1e1e2a */
-    --d-text-muted: #cbd5e1;   /* 11:1 */
-    --d-text-subtle: #94a3b8;  /* 6:1 */
+    --d-text: #f1f5f9; /* 16:1 on #1e1e2a */
+    --d-text-muted: #cbd5e1; /* 11:1 */
+    --d-text-subtle: #94a3b8; /* 6:1 */
     --d-text-label: #e2e8f0;
 
     /* Terminal colors stay the same — dark chrome works on any bg */

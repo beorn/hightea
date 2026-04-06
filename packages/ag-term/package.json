@@ -37,6 +37,10 @@
       "types": "./src/ansi/index.ts",
       "import": "./src/ansi/index.ts"
     },
+    "./features": {
+      "types": "./src/features/index.ts",
+      "import": "./src/features/index.ts"
+    },
     "./*": {
       "types": "./src/*.ts",
       "import": "./src/*.ts"

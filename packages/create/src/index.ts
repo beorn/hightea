@@ -187,7 +187,7 @@ export { withFocus } from "./with-focus"
 export type { WithFocusOptions, AppWithFocus } from "./with-focus"
 
 export { withDomEvents } from "./with-dom-events"
-export type { WithDomEventsOptions } from "./with-dom-events"
+export type { WithDomEventsOptions, AppWithDomEvents } from "./with-dom-events"
 
 // Commands — canonical source is @silvery/commands, re-exported for bundle convenience
 export { createCommandRegistry } from "@silvery/commands/create-command-registry"

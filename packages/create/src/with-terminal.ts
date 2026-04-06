@@ -41,6 +41,10 @@
  * ```
  */
 
+import { createCapabilityRegistry, type CapabilityRegistry } from "./internal/capability-registry"
+import { CLIPBOARD_CAPABILITY } from "./internal/capabilities"
+import { createOSC52Clipboard, type ClipboardCapability } from "@silvery/ag-term/features"
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -127,6 +131,12 @@ export interface WithTerminalOptions {
 export interface AppWithTerminal {
   /** The terminal options for this app */
   readonly terminalOptions: WithTerminalOptions & { proc: ProcessLike }
+
+  /** Capability registry populated by withTerminal (clipboard). */
+  readonly capabilityRegistry: CapabilityRegistry
+
+  /** Clipboard capability for copy operations (OSC 52). */
+  readonly clipboardCapability: ClipboardCapability
 }
 
 /**
@@ -174,8 +184,21 @@ export function withTerminal<T extends RunnableApp>(
   return (app: T): T & AppWithTerminal => {
     const originalRun = app.run
 
+    // Create capability registry and clipboard capability
+    // If the app already has a registry (e.g., from a previous plugin), reuse it
+    const existingRegistry = (app as any).capabilityRegistry as CapabilityRegistry | undefined
+    const registry = existingRegistry ?? createCapabilityRegistry()
+
+    // Create OSC 52 clipboard using stdout.write
+    const clipboard = createOSC52Clipboard((data: string) => {
+      proc.stdout.write(data)
+    })
+    registry.register(CLIPBOARD_CAPABILITY, clipboard)
+
     return Object.assign(Object.create(app), {
       terminalOptions: termConfig,
+      capabilityRegistry: registry,
+      clipboardCapability: clipboard,
       run(...args: unknown[]) {
         // Inject terminal options into the run call
         // The first arg after element is typically options

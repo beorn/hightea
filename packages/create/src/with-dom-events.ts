@@ -48,6 +48,10 @@ import {
   type MouseEventProcessorOptions,
   type MouseEventProcessorState,
 } from "@silvery/ag-term/mouse-events"
+import { createInputRouter, type InputRouter } from "./internal/input-router"
+import { createCapabilityRegistry, type CapabilityRegistry } from "./internal/capability-registry"
+import { SELECTION_CAPABILITY, CLIPBOARD_CAPABILITY, INPUT_ROUTER } from "./internal/capabilities"
+import { createSelectionFeature, type SelectionFeature } from "@silvery/ag-term/features"
 
 // =============================================================================
 // Types
@@ -60,6 +64,33 @@ export interface WithDomEventsOptions {
   /** Focus manager for click-to-focus behavior.
    *  If the app has a focusManager property, it's used automatically. */
   focusManager?: FocusManager
+
+  /**
+   * Enable text selection via mouse drag.
+   * When true, creates a SelectionFeature and registers it in the capability registry.
+   * Default: false
+   */
+  selection?: boolean
+
+  /**
+   * Pre-built capability registry. If not provided, a new one is created.
+   * Allows withTerminal (or other plugins) to pre-register capabilities like clipboard.
+   */
+  capabilityRegistry?: CapabilityRegistry
+}
+
+/**
+ * App enhanced with DOM event dispatch and interaction features.
+ */
+export interface AppWithDomEvents {
+  /** The capability registry for cross-feature discovery. */
+  readonly capabilityRegistry: CapabilityRegistry
+
+  /** The input router for priority-based event dispatch. */
+  readonly inputRouter: InputRouter
+
+  /** The selection feature (only present when selection is enabled). */
+  readonly selectionFeature?: SelectionFeature
 }
 
 // =============================================================================
@@ -80,8 +111,10 @@ export interface WithDomEventsOptions {
  * @param options - Configuration (focusManager for click-to-focus)
  * @returns Plugin function that enhances an App with DOM event dispatch
  */
-export function withDomEvents(options: WithDomEventsOptions = {}): <T extends App>(app: T) => T {
-  return <T extends App>(app: T): T => {
+export function withDomEvents(
+  options: WithDomEventsOptions = {},
+): <T extends App>(app: T) => T & AppWithDomEvents {
+  return <T extends App>(app: T): T & AppWithDomEvents => {
     // Get focus manager from options or from the app itself
     const fm = options.focusManager ?? (app as App & { focusManager?: FocusManager }).focusManager
 
@@ -92,20 +125,114 @@ export function withDomEvents(options: WithDomEventsOptions = {}): <T extends Ap
     }
     const mouseState = createMouseEventProcessor(processorOptions)
 
+    // --- Capability Registry ---
+    // Reuse registry from options, from a previous plugin (e.g., withTerminal), or create new
+    const existingRegistry = (app as any).capabilityRegistry as CapabilityRegistry | undefined
+    const registry = options.capabilityRegistry ?? existingRegistry ?? createCapabilityRegistry()
+
+    // --- Input Router ---
+    // invalidate() triggers a re-render. For now, we use a simple approach:
+    // the composed app may have a store with setState. If not, invalidate is a no-op
+    // until wired by withRender or create-app.
+    let invalidateCallback = () => {}
+    const router = createInputRouter({ invalidate: () => invalidateCallback() })
+    registry.register(INPUT_ROUTER, router)
+
+    // --- Selection Feature ---
+    const selectionEnabled = options.selection ?? false
+    let selectionFeature: SelectionFeature | undefined
+
+    if (selectionEnabled) {
+      // Selection needs a buffer — it will be lazily resolved when mouse events arrive.
+      // For now, create with a deferred buffer access pattern.
+      // The buffer is accessed from the app's lastBuffer() method.
+      const bufferProxy = new Proxy({} as import("@silvery/ag-term/buffer").TerminalBuffer, {
+        get(_target, prop) {
+          const buf = app.lastBuffer?.()
+          if (!buf) throw new Error("SelectionFeature: no buffer available yet")
+          return (buf as any)[prop]
+        },
+      })
+
+      const clipboard = registry.get<import("@silvery/ag-term/features").ClipboardCapability>(CLIPBOARD_CAPABILITY)
+
+      selectionFeature = createSelectionFeature({
+        buffer: bufferProxy,
+        clipboard: clipboard ?? undefined,
+        invalidate: () => router.invalidate(),
+      })
+
+      registry.register(SELECTION_CAPABILITY, selectionFeature)
+
+      // Register selection mouse handler at priority 100 (high — intercepts before component handlers)
+      router.registerMouseHandler(100, (event) => {
+        if (event.button !== 0) return false // only left button
+
+        if (event.type === "mousedown") {
+          selectionFeature!.handleMouseDown(event.x, event.y, event.modifiers?.alt ?? false)
+          return false // don't consume mousedown — let components handle click-to-focus etc.
+        }
+
+        if (event.type === "mousemove" && selectionFeature!.state.selecting) {
+          selectionFeature!.handleMouseMove(event.x, event.y)
+          return true // consume move during active selection
+        }
+
+        if (event.type === "mouseup" && selectionFeature!.state.selecting) {
+          selectionFeature!.handleMouseUp(event.x, event.y)
+          return false // don't consume mouseup
+        }
+
+        return false
+      })
+    }
+
     // Override click, doubleClick, and wheel to use our processor
-    // which is connected to the focus manager
-    return new Proxy(app, {
+    // which is connected to the focus manager and input router
+    const enhanced = new Proxy(app, {
       get(target, prop, receiver) {
+        if (prop === "capabilityRegistry") return registry
+        if (prop === "inputRouter") return router
+        if (prop === "selectionFeature") return selectionFeature
+
         if (prop === "click") {
           return async function enhancedClick(x: number, y: number, clickOptions?: { button?: number }): Promise<T> {
             const button = clickOptions?.button ?? 0
-            const root = target.getContainer()
-            processMouseEvent(
-              mouseState,
-              { button, x, y, action: "down", shift: false, meta: false, ctrl: false },
-              root,
-            )
-            processMouseEvent(mouseState, { button, x, y, action: "up", shift: false, meta: false, ctrl: false }, root)
+
+            // Dispatch through input router first
+            const downClaimed = router.dispatchMouse({
+              x,
+              y,
+              button,
+              type: "mousedown",
+            })
+
+            if (!downClaimed) {
+              // Fall through to DOM event processor
+              const root = target.getContainer()
+              processMouseEvent(
+                mouseState,
+                { button, x, y, action: "down", shift: false, meta: false, ctrl: false },
+                root,
+              )
+            }
+
+            const upClaimed = router.dispatchMouse({
+              x,
+              y,
+              button,
+              type: "mouseup",
+            })
+
+            if (!upClaimed) {
+              const root = target.getContainer()
+              processMouseEvent(
+                mouseState,
+                { button, x, y, action: "up", shift: false, meta: false, ctrl: false },
+                root,
+              )
+            }
+
             await Promise.resolve()
             return receiver as T
           }
@@ -141,21 +268,32 @@ export function withDomEvents(options: WithDomEventsOptions = {}): <T extends Ap
 
         if (prop === "wheel") {
           return async function enhancedWheel(x: number, y: number, delta: number): Promise<T> {
-            const root = target.getContainer()
-            processMouseEvent(
-              mouseState,
-              {
-                button: 0,
-                x,
-                y,
-                action: "wheel",
-                delta,
-                shift: false,
-                meta: false,
-                ctrl: false,
-              },
-              root,
-            )
+            // Dispatch through input router first
+            const claimed = router.dispatchMouse({
+              x,
+              y,
+              button: 0,
+              type: "wheel",
+            })
+
+            if (!claimed) {
+              const root = target.getContainer()
+              processMouseEvent(
+                mouseState,
+                {
+                  button: 0,
+                  x,
+                  y,
+                  action: "wheel",
+                  delta,
+                  shift: false,
+                  meta: false,
+                  ctrl: false,
+                },
+                root,
+              )
+            }
+
             await Promise.resolve()
             return receiver as T
           }
@@ -163,6 +301,17 @@ export function withDomEvents(options: WithDomEventsOptions = {}): <T extends Ap
 
         return Reflect.get(target, prop, receiver)
       },
-    }) as T
+    }) as T & AppWithDomEvents
+
+    // Wire invalidation to re-render if the app has a compatible mechanism.
+    // The store pattern: app may have a signal-store with setState.
+    const appAny = app as any
+    if (typeof appAny.store?.setState === "function") {
+      invalidateCallback = () => {
+        appAny.store.setState((prev: any) => ({ ...prev, _inv: ((prev._inv as number) ?? 0) + 1 }))
+      }
+    }
+
+    return enhanced
   }
 }
