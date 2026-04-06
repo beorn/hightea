@@ -500,7 +500,7 @@ export {
 } from "@silvery/ag/interactive-signals"
 
 // =============================================================================
-// Selection
+// Selection (re-exported from @silvery/headless)
 // =============================================================================
 
 export {
@@ -516,12 +516,12 @@ export {
   type SelectionAction,
   type SelectionEffect,
   type SelectionGranularity,
-} from "./selection"
+} from "@silvery/headless/selection"
 
 export { renderSelectionOverlay } from "./selection-renderer"
 
 // =============================================================================
-// Find
+// Find (re-exported from @silvery/headless)
 // =============================================================================
 
 export {
@@ -534,10 +534,10 @@ export {
   type FindProvider,
   type FindAction,
   type FindEffect,
-} from "./find"
+} from "@silvery/headless/find"
 
 // =============================================================================
-// Copy Mode
+// Copy Mode (re-exported from @silvery/headless)
 // =============================================================================
 
 export {
@@ -548,10 +548,10 @@ export {
   type CopyModeBuffer,
   type CopyModeAction,
   type CopyModeEffect,
-} from "./copy-mode"
+} from "@silvery/headless/copy-mode"
 
 // =============================================================================
-// Pointer State Machine
+// Pointer State Machine (re-exported from @silvery/headless)
 // =============================================================================
 
 export {
@@ -565,7 +565,7 @@ export {
   type PointerEffect,
   type Position as PointerPosition,
   type PointerDoubleClickState,
-} from "./pointer-state"
+} from "@silvery/headless/pointer"
 
 // =============================================================================
 // Drag Events

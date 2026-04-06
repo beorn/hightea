@@ -19,7 +19,7 @@ import {
   createTerminalSelectionState,
   terminalSelectionUpdate,
   extractText,
-} from "@silvery/ag-term/selection"
+} from "@silvery/headless/selection"
 import type { TerminalBuffer } from "@silvery/ag-term/buffer"
 import { copyToClipboard } from "@silvery/ag-term/clipboard"
 import { selectionHitTest, findContainBoundary, resolveUserSelect } from "@silvery/ag-term/mouse-events"

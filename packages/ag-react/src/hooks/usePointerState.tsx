@@ -22,7 +22,7 @@ import {
   createPointerDoubleClickState,
   checkPointerDoubleClick,
   pointerStateUpdate,
-} from "@silvery/ag-term/pointer-state"
+} from "@silvery/headless/pointer"
 import type { AgNode } from "@silvery/ag/types"
 import { hitTest } from "@silvery/ag-term/mouse-events"
 import type { UseTerminalSelectionResult } from "./useTerminalSelection"

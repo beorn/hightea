@@ -2,7 +2,7 @@
  * Tests for copy-mode state machine.
  */
 import { describe, test, expect } from "vitest"
-import { createCopyModeState, copyModeUpdate } from "@silvery/ag-term/copy-mode"
+import { createCopyModeState, copyModeUpdate } from "@silvery/headless/copy-mode"
 
 // ============================================================================
 // enter / exit

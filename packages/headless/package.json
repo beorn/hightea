@@ -28,5 +28,13 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "peerDependencies": {
+    "@silvery/ag": ">=0.5.0",
+    "@silvery/ag-term": ">=0.5.0"
+  },
+  "peerDependenciesMeta": {
+    "@silvery/ag": { "optional": true },
+    "@silvery/ag-term": { "optional": true }
   }
 }

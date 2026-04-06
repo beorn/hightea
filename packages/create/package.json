@@ -54,6 +54,7 @@
     "@silvery/ag-react": "workspace:*",
     "@silvery/ag-term": "workspace:*",
     "@silvery/commands": "workspace:*",
+    "@silvery/headless": "workspace:*",
     "@silvery/ink": "workspace:*",
     "@silvery/test": "workspace:*",
     "alien-signals": "^3.1.2"

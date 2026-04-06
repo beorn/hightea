@@ -25,5 +25,61 @@ export { selectListUpdate, createSelectListState, type SelectListState, type Sel
 // Readline — text editing with cursor, kill ring, history
 export { readlineUpdate, createReadlineState, type ReadlineState, type ReadlineAction } from "./readline"
 
+// Selection — buffer-level text selection state machine
+export {
+  terminalSelectionUpdate,
+  createTerminalSelectionState,
+  normalizeRange,
+  extractText,
+  findWordBoundary,
+  findLineBoundary,
+  type TerminalSelectionState,
+  type SelectionRange,
+  type SelectionPosition,
+  type SelectionAction,
+  type SelectionEffect,
+  type SelectionGranularity,
+  type SelectionScope,
+  type ExtractTextOptions,
+} from "./selection"
+
+// Pointer — gesture disambiguation state machine
+export {
+  pointerStateUpdate,
+  createPointerState,
+  createPointerDoubleClickState,
+  checkPointerDoubleClick,
+  DRAG_THRESHOLD,
+  type PointerState,
+  type PointerAction,
+  type PointerEffect,
+  type Position as PointerPosition,
+  type PointerDoubleClickState,
+} from "./pointer"
+
+// Find — visible-buffer search state machine
+export {
+  findUpdate,
+  createFindState,
+  searchBuffer,
+  type FindState,
+  type FindMatch,
+  type FindResult,
+  type FindProvider,
+  type FindAction,
+  type FindEffect,
+} from "./find"
+
+// Copy Mode — keyboard-driven selection state machine
+export {
+  copyModeUpdate,
+  createCopyModeState,
+  type CopyModeState,
+  type CopyModePosition,
+  type CopyModeBuffer,
+  type CopyModeAction,
+  type CopyModeEffect,
+} from "./copy-mode"
+
 // React integration
 export { useSelectList, useReadline } from "./react"

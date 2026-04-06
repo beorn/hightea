@@ -15,7 +15,7 @@
 
 import type { AgNode } from "@silvery/ag/types"
 import type { DragEventProps } from "@silvery/ag/drag-event-types"
-import type { Position } from "./pointer-state"
+import type { Position } from "@silvery/headless/pointer"
 
 // Re-export prop types for convenience
 export type { DragEventProps, DragEventPayload } from "@silvery/ag/drag-event-types"

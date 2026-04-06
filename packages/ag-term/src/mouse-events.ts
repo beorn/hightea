@@ -15,7 +15,7 @@ import { findFocusableAncestor } from "@silvery/ag/focus-queries"
 import type { ParsedMouse } from "./mouse"
 import { getAncestorPath, pointInRect } from "@silvery/ag/tree-utils"
 import type { AgNode, Rect, UserSelect } from "@silvery/ag/types"
-import type { SelectionScope } from "./selection"
+import type { SelectionScope } from "@silvery/headless/selection"
 import { setHovered, setArmed } from "@silvery/ag/interactive-signals"
 
 // Re-export canonical types from ag (avoid duplicate type definitions)

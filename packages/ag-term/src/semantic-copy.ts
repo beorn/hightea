@@ -25,7 +25,7 @@
  * ```
  */
 
-import type { SelectionRange } from "./selection"
+import type { SelectionRange } from "@silvery/headless/selection"
 
 // ============================================================================
 // ClipboardData

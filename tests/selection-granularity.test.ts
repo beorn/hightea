@@ -7,7 +7,7 @@ import {
   terminalSelectionUpdate,
   findWordBoundary,
   findLineBoundary,
-} from "@silvery/ag-term/selection"
+} from "@silvery/headless/selection"
 import { TerminalBuffer } from "@silvery/ag-term/buffer"
 
 // ============================================================================

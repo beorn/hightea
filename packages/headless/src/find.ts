@@ -9,7 +9,7 @@
  * to the provider's model-level search; otherwise falls back to buffer search.
  */
 
-import type { TerminalBuffer } from "./buffer"
+import type { TerminalBuffer } from "@silvery/ag-term/buffer"
 
 // ============================================================================
 // Types

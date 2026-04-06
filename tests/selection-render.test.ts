@@ -4,7 +4,7 @@
 import { describe, test, expect } from "vitest"
 import { TerminalBuffer } from "@silvery/ag-term/buffer"
 import { renderSelectionOverlay } from "@silvery/ag-term/selection-renderer"
-import type { SelectionRange } from "@silvery/ag-term/selection"
+import type { SelectionRange } from "@silvery/headless/selection"
 
 // ============================================================================
 // Helpers

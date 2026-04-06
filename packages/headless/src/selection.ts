@@ -10,7 +10,7 @@
  * - line: triple-click then drag extends by lines
  */
 
-import type { TerminalBuffer, RowMetadata } from "./buffer"
+import type { TerminalBuffer, RowMetadata } from "@silvery/ag-term/buffer"
 
 // ============================================================================
 // Types

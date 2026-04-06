@@ -13,7 +13,7 @@ import {
   type CopyModeBuffer,
   createCopyModeState,
   copyModeUpdate,
-} from "@silvery/ag-term/copy-mode"
+} from "@silvery/headless/copy-mode"
 
 // ============================================================================
 // Types

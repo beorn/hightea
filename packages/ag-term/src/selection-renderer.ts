@@ -10,7 +10,7 @@
  */
 
 import type { Color, TerminalBuffer } from "./buffer"
-import { type SelectionRange, normalizeRange } from "./selection"
+import { type SelectionRange, normalizeRange } from "@silvery/headless/selection"
 
 // ============================================================================
 // Types

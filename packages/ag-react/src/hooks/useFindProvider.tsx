@@ -26,7 +26,7 @@
  */
 
 import React, { createContext, useContext, type ReactNode } from "react"
-import type { FindProvider } from "@silvery/ag-term/find"
+import type { FindProvider } from "@silvery/headless/find"
 
 // ============================================================================
 // Context

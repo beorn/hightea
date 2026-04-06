@@ -2,7 +2,7 @@
  * Tests for find state machine and buffer search.
  */
 import { describe, test, expect } from "vitest"
-import { createFindState, findUpdate, searchBuffer } from "@silvery/ag-term/find"
+import { createFindState, findUpdate, searchBuffer } from "@silvery/headless/find"
 import { TerminalBuffer } from "@silvery/ag-term/buffer"
 
 // ============================================================================

@@ -340,6 +340,7 @@
   },
   "dependencies": {
     "@silvery/ag": "workspace:*",
+    "@silvery/headless": "workspace:*",
     "@silvery/theme": "workspace:*"
   },
   "peerDependencies": {

@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useContext, useState } from "react"
-import { type FindState, type FindEffect, type FindResult, createFindState, findUpdate } from "@silvery/ag-term/find"
+import { type FindState, type FindEffect, type FindResult, createFindState, findUpdate } from "@silvery/headless/find"
 import type { TerminalBuffer } from "@silvery/ag-term/buffer"
 import { useFindProvider } from "./useFindProvider"
 

@@ -8,7 +8,7 @@ import {
   normalizeRange,
   extractText,
   type SelectionScope,
-} from "@silvery/ag-term/selection"
+} from "@silvery/headless/selection"
 import {
   TerminalBuffer,
   SELECTABLE_FLAG,

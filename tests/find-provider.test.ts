@@ -10,7 +10,7 @@ import {
   type FindProvider,
   type FindResult,
   type FindState,
-} from "@silvery/ag-term/find"
+} from "@silvery/headless/find"
 import { TerminalBuffer } from "@silvery/ag-term/buffer"
 
 // ============================================================================

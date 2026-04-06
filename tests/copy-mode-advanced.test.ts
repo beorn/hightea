@@ -5,7 +5,7 @@
  * - Word motion with visual mode
  */
 import { describe, test, expect } from "vitest"
-import { createCopyModeState, copyModeUpdate, type CopyModeBuffer } from "@silvery/ag-term/copy-mode"
+import { createCopyModeState, copyModeUpdate, type CopyModeBuffer } from "@silvery/headless/copy-mode"
 
 // ============================================================================
 // Helpers

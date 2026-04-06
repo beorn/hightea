@@ -13,7 +13,7 @@ import {
   type PointerState,
   type PointerAction,
   type PointerEffect,
-} from "@silvery/ag-term/pointer-state"
+} from "@silvery/headless/pointer"
 import { resolveNodeDraggable } from "@silvery/ag-term/mouse-events"
 import {
   createDragState,
