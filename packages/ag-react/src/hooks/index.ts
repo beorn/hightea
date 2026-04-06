@@ -46,6 +46,14 @@ export type { UseScrollRegionOptions, UseScrollRegionResult } from "./useScrollR
 export { useTerminalSelection, useTerminalSelectionContext, TerminalSelectionProvider } from "./useTerminalSelection"
 export type { UseTerminalSelectionResult } from "./useTerminalSelection"
 
+// Find (visible-buffer text search)
+export { useFind } from "./useFind"
+export type { UseFindResult, UseFindOptions } from "./useFind"
+
+// Copy Mode (keyboard-driven selection)
+export { useCopyMode } from "./useCopyMode"
+export type { UseCopyModeResult, UseCopyModeOptions } from "./useCopyMode"
+
 // List Item
 export { useListItem } from "./useListItem"
 export type { ListItemContext } from "./useListItem"

@@ -497,14 +497,44 @@ export {
   createTerminalSelectionState,
   normalizeRange,
   extractText,
+  findWordBoundary,
+  findLineBoundary,
   type TerminalSelectionState,
   type SelectionRange,
   type SelectionPosition,
   type SelectionAction,
   type SelectionEffect,
+  type SelectionGranularity,
 } from "./selection"
 
 export { renderSelectionOverlay } from "./selection-renderer"
+
+// =============================================================================
+// Find
+// =============================================================================
+
+export {
+  findUpdate,
+  createFindState,
+  searchBuffer,
+  type FindState,
+  type FindMatch,
+  type FindAction,
+  type FindEffect,
+} from "./find"
+
+// =============================================================================
+// Copy Mode
+// =============================================================================
+
+export {
+  copyModeUpdate,
+  createCopyModeState,
+  type CopyModeState,
+  type CopyModePosition,
+  type CopyModeAction,
+  type CopyModeEffect,
+} from "./copy-mode"
 
 // =============================================================================
 // Virtual Scrollback
