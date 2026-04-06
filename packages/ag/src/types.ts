@@ -220,7 +220,8 @@ export interface StyleProps {
 /**
  * Props for Box component.
  */
-export interface BoxProps extends FlexboxProps, StyleProps, TestProps, MouseEventProps, DragEventProps, FocusEventProps {
+export interface BoxProps
+  extends FlexboxProps, StyleProps, TestProps, MouseEventProps, DragEventProps, FocusEventProps {
   /** Text truncation mode for child text content (passed through to Text children). */
   wrap?: "wrap" | "truncate" | "truncate-start" | "truncate-middle" | "truncate-end" | "clip" | boolean
   borderStyle?: "single" | "double" | "round" | "bold" | "singleDouble" | "doubleSingle" | "classic"

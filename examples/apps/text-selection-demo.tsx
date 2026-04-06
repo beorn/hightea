@@ -46,57 +46,35 @@ function SelectableTextPanel(): React.ReactElement {
       <Text>Multi-line selections work across paragraphs.</Text>
       <Text>Double-click to select a word. Triple-click for a line.</Text>
       <Box height={1} />
-      <Text color="$muted">
-        The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.
-      </Text>
+      <Text color="$muted">The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.</Text>
     </Box>
   )
 }
 
 /** Panel 2: Non-selectable buttons (userSelect="none") */
-function NonSelectablePanel({
-  onAction,
-}: {
-  onAction: (label: string) => void
-}): React.ReactElement {
+function NonSelectablePanel({ onAction }: { onAction: (label: string) => void }): React.ReactElement {
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor="$border"
-      paddingX={1}
-      flexGrow={1}
-      userSelect="none"
-    >
+    <Box flexDirection="column" borderStyle="round" borderColor="$border" paddingX={1} flexGrow={1} userSelect="none">
       <H2>Non-Selectable</H2>
       <Small>userSelect="none"</Small>
       <Box height={1} />
       <Text>Click these buttons — text won't select.</Text>
       <Box height={1} />
       <Box gap={2}>
-        <Box
-          borderStyle="round"
-          borderColor="$primary"
-          paddingX={1}
-          onClick={() => onAction("Save")}
-        >
-          <Text color="$primary" bold>Save</Text>
+        <Box borderStyle="round" borderColor="$primary" paddingX={1} onClick={() => onAction("Save")}>
+          <Text color="$primary" bold>
+            Save
+          </Text>
         </Box>
-        <Box
-          borderStyle="round"
-          borderColor="$success"
-          paddingX={1}
-          onClick={() => onAction("Apply")}
-        >
-          <Text color="$success" bold>Apply</Text>
+        <Box borderStyle="round" borderColor="$success" paddingX={1} onClick={() => onAction("Apply")}>
+          <Text color="$success" bold>
+            Apply
+          </Text>
         </Box>
-        <Box
-          borderStyle="round"
-          borderColor="$error"
-          paddingX={1}
-          onClick={() => onAction("Cancel")}
-        >
-          <Text color="$error" bold>Cancel</Text>
+        <Box borderStyle="round" borderColor="$error" paddingX={1} onClick={() => onAction("Cancel")}>
+          <Text color="$error" bold>
+            Cancel
+          </Text>
         </Box>
       </Box>
       <Box height={1} />
@@ -112,14 +90,10 @@ function ContainedDialogPanel(): React.ReactElement {
       <H2 color="$warning">Contained Dialog</H2>
       <Small>userSelect="contain"</Small>
       <Box height={1} />
-      <Box
-        flexDirection="column"
-        borderStyle="round"
-        borderColor="$primary"
-        paddingX={1}
-        userSelect="contain"
-      >
-        <Text bold color="$primary">Selection Boundary</Text>
+      <Box flexDirection="column" borderStyle="round" borderColor="$primary" paddingX={1} userSelect="contain">
+        <Text bold color="$primary">
+          Selection Boundary
+        </Text>
         <Box height={1} />
         <Text>This text is selectable, but selection cannot escape</Text>
         <Text>this container. Try dragging past the border — the</Text>
@@ -132,7 +106,12 @@ function ContainedDialogPanel(): React.ReactElement {
 }
 
 /** Panel 4: Find demo placeholder */
-function FindPanel({ findActive, query, matchCount, currentMatch }: {
+function FindPanel({
+  findActive,
+  query,
+  matchCount,
+  currentMatch,
+}: {
   findActive: boolean
   query: string
   matchCount: number
@@ -149,8 +128,8 @@ function FindPanel({ findActive, query, matchCount, currentMatch }: {
       <Text>Press Enter to select the current match for copying.</Text>
       <Box height={1} />
       <Text color="$muted">
-        Silvery provides searchBuffer for visible content and FindProvider
-        for virtual lists where off-screen items need model-level search.
+        Silvery provides searchBuffer for visible content and FindProvider for virtual lists where off-screen items need
+        model-level search.
       </Text>
       {findActive && (
         <>
@@ -176,24 +155,18 @@ function FindPanel({ findActive, query, matchCount, currentMatch }: {
 // Status bar
 // ============================================================================
 
-function StatusBar({
-  lastAction,
-  copied,
-}: {
-  lastAction: string | null
-  copied: boolean
-}): React.ReactElement {
+function StatusBar({ lastAction, copied }: { lastAction: string | null; copied: boolean }): React.ReactElement {
   return (
     <Box flexDirection="row" gap={2} paddingX={1} flexShrink={0} userSelect="none">
       <Muted>
-        <Kbd>Drag</Kbd> select <Kbd>Alt+Drag</Kbd> force select <Kbd>Ctrl+F</Kbd> find{" "}
-        <Kbd>y</Kbd> copy <Kbd>q</Kbd> quit
+        <Kbd>Drag</Kbd> select <Kbd>Alt+Drag</Kbd> force select <Kbd>Ctrl+F</Kbd> find <Kbd>y</Kbd> copy <Kbd>q</Kbd>{" "}
+        quit
       </Muted>
-      {lastAction && (
-        <Text color="$info">Action: {lastAction}</Text>
-      )}
+      {lastAction && <Text color="$info">Action: {lastAction}</Text>}
       {copied && (
-        <Text color="$success" bold>Copied!</Text>
+        <Text color="$success" bold>
+          Copied!
+        </Text>
       )}
     </Box>
   )
@@ -285,10 +258,7 @@ function TextSelectionDemo(): React.ReactElement {
 
 if (import.meta.main) {
   using handle = await run(
-    <ExampleBanner
-      meta={meta}
-      controls="Drag select  Alt+Drag force select  Ctrl+F find  y copy  q quit"
-    >
+    <ExampleBanner meta={meta} controls="Drag select  Alt+Drag force select  Ctrl+F find  y copy  q quit">
       <TextSelectionDemo />
     </ExampleBanner>,
     { mode: "fullscreen" },

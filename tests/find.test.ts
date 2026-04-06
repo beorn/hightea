@@ -170,21 +170,21 @@ describe("findUpdate — next/prev navigation", () => {
 
   test("next is no-op with no matches", () => {
     const buf = createBufferWithText(["hello"])
-    let [state] = findUpdate({ type: "search", query: "xyz", buffer: buf }, createFindState())
+    const [state] = findUpdate({ type: "search", query: "xyz", buffer: buf }, createFindState())
     const [next] = findUpdate({ type: "next" }, state)
     expect(next).toBe(state)
   })
 
   test("prev is no-op with no matches", () => {
     const buf = createBufferWithText(["hello"])
-    let [state] = findUpdate({ type: "search", query: "xyz", buffer: buf }, createFindState())
+    const [state] = findUpdate({ type: "search", query: "xyz", buffer: buf }, createFindState())
     const [prev] = findUpdate({ type: "prev" }, state)
     expect(prev).toBe(state)
   })
 
   test("next emits scrollTo effect", () => {
     const buf = createBufferWithText(["hello", "world", "hello"])
-    let [state] = findUpdate({ type: "search", query: "hello", buffer: buf }, createFindState())
+    const [state] = findUpdate({ type: "search", query: "hello", buffer: buf }, createFindState())
     const [, effects] = findUpdate({ type: "next" }, state)
     expect(effects).toContainEqual({ type: "scrollTo", row: 2 })
   })
@@ -197,7 +197,7 @@ describe("findUpdate — next/prev navigation", () => {
 describe("findUpdate — close", () => {
   test("close resets state", () => {
     const buf = createBufferWithText(["hello world"])
-    let [state] = findUpdate({ type: "search", query: "hello", buffer: buf }, createFindState())
+    const [state] = findUpdate({ type: "search", query: "hello", buffer: buf }, createFindState())
     const [next, effects] = findUpdate({ type: "close" }, state)
 
     expect(next.active).toBe(false)
@@ -215,7 +215,7 @@ describe("findUpdate — close", () => {
 describe("findUpdate — selectCurrent", () => {
   test("selectCurrent emits setSelection for current match", () => {
     const buf = createBufferWithText(["hello world hello"])
-    let [state] = findUpdate({ type: "search", query: "hello", buffer: buf }, createFindState())
+    const [state] = findUpdate({ type: "search", query: "hello", buffer: buf }, createFindState())
     const [, effects] = findUpdate({ type: "selectCurrent" }, state)
 
     expect(effects).toContainEqual({
@@ -245,7 +245,7 @@ describe("findUpdate — selectCurrent", () => {
 
   test("selectCurrent is no-op with no matches", () => {
     const buf = createBufferWithText(["hello"])
-    let [state] = findUpdate({ type: "search", query: "xyz", buffer: buf }, createFindState())
+    const [state] = findUpdate({ type: "search", query: "xyz", buffer: buf }, createFindState())
     const [next, effects] = findUpdate({ type: "selectCurrent" }, state)
     expect(next).toBe(state)
     expect(effects).toEqual([])

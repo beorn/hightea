@@ -22,10 +22,7 @@ import {
   clearInteractiveState,
 } from "../../packages/ag/src/interactive-signals"
 import { createFocusManager } from "../../packages/ag/src/focus-manager"
-import {
-  createMouseEventProcessor,
-  processMouseEvent,
-} from "../../packages/ag-term/src/mouse-events"
+import { createMouseEventProcessor, processMouseEvent } from "../../packages/ag-term/src/mouse-events"
 import type { ParsedMouse } from "../../packages/ag-term/src/mouse"
 
 // ============================================================================

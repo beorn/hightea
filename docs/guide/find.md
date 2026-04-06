@@ -25,8 +25,8 @@ function App() {
   search("hello", buffer)
 
   // Navigate matches
-  next()  // go to next match
-  prev()  // go to previous match
+  next() // go to next match
+  prev() // go to previous match
 
   // Select current match (for copying)
   selectCurrent()
@@ -40,10 +40,10 @@ function App() {
 
 ```typescript
 interface FindState {
-  query: string | null    // current search query
-  matches: FindMatch[]    // all matches in the buffer
-  currentIndex: number    // index of the focused match
-  active: boolean         // whether find mode is open
+  query: string | null // current search query
+  matches: FindMatch[] // all matches in the buffer
+  currentIndex: number // index of the focused match
+  active: boolean // whether find mode is open
 }
 
 interface FindMatch {
@@ -103,9 +103,9 @@ interface FindProvider {
 }
 
 interface FindResult {
-  itemId: string    // virtual list item identifier
-  offset: number    // character offset within item text
-  length: number    // match length
+  itemId: string // virtual list item identifier
+  offset: number // character offset within item text
+  length: number // match length
 }
 ```
 
@@ -118,12 +118,11 @@ function VirtualListApp({ items }) {
   const findProvider: FindProvider = {
     search(query) {
       // Search all items, not just visible ones
-      return items
-        .flatMap((item, i) => {
-          const idx = item.text.indexOf(query)
-          if (idx === -1) return []
-          return [{ itemId: item.id, offset: idx, length: query.length }]
-        })
+      return items.flatMap((item, i) => {
+        const idx = item.text.indexOf(query)
+        if (idx === -1) return []
+        return [{ itemId: item.id, offset: idx, length: query.length }]
+      })
     },
 
     reveal(result) {
@@ -132,17 +131,13 @@ function VirtualListApp({ items }) {
     },
 
     totalCount(query) {
-      return items.filter(i => i.text.includes(query)).length
+      return items.filter((i) => i.text.includes(query)).length
     },
   }
 
   return (
     <SearchProvider value={findProvider}>
-      <ListView
-        items={items}
-        getKey={(item) => item.id}
-        renderItem={(item) => <Text>{item.text}</Text>}
-      />
+      <ListView items={items} getKey={(item) => item.id} renderItem={(item) => <Text>{item.text}</Text>} />
     </SearchProvider>
   )
 }

@@ -43,13 +43,7 @@ const FindProviderContext = createContext<FindProvider | null>(null)
  * When find is active within this subtree, the provider's search() is used
  * instead of buffer-level search, and reveal() scrolls to make results visible.
  */
-export function FindProviderComponent({
-  provider,
-  children,
-}: {
-  provider: FindProvider
-  children: ReactNode
-}) {
+export function FindProviderComponent({ provider, children }: { provider: FindProvider; children: ReactNode }) {
   return React.createElement(FindProviderContext.Provider, { value: provider }, children)
 }
 

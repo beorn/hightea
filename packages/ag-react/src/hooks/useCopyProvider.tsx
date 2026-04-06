@@ -36,13 +36,7 @@ const CopyProviderContext = createContext<SemanticCopyProvider | null>(null)
  * When copy happens within this subtree, the provider's enrichCopy
  * method is called to produce rich clipboard data.
  */
-export function CopyProvider({
-  provider,
-  children,
-}: {
-  provider: SemanticCopyProvider
-  children: ReactNode
-}) {
+export function CopyProvider({ provider, children }: { provider: SemanticCopyProvider; children: ReactNode }) {
   return React.createElement(CopyProviderContext.Provider, { value: provider }, children)
 }
 

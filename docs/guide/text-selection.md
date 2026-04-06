@@ -31,24 +31,24 @@ function App() {
 
 ### Values
 
-| Value       | Behavior                                                                      |
-| ----------- | ----------------------------------------------------------------------------- |
-| `auto`      | Inherit from parent. Root resolves to `text`.                                 |
-| `none`      | Not selectable. Mouse-drag does not start text selection.                     |
-| `text`      | Force selectable, even if parent is `none`.                                   |
-| `contain`   | Selectable, but selection range cannot escape this node's bounds.             |
+| Value     | Behavior                                                          |
+| --------- | ----------------------------------------------------------------- |
+| `auto`    | Inherit from parent. Root resolves to `text`.                     |
+| `none`    | Not selectable. Mouse-drag does not start text selection.         |
+| `text`    | Force selectable, even if parent is `none`.                       |
+| `contain` | Selectable, but selection range cannot escape this node's bounds. |
 
 ### Common Patterns
 
-| Surface            | `userSelect` | Why                                         |
-| ------------------ | ------------ | ------------------------------------------- |
-| Read-only text     | `auto`       | Default — users expect to select text        |
-| Help dialog        | `contain`    | Selectable, but selection stays in dialog    |
-| Detail pane        | `contain`    | Selectable, scoped to pane                   |
-| Board card         | `none`       | Interactive node — click, drag, not select   |
-| Button / toolbar   | `none`       | Clickable chrome, not text content           |
-| Status bar         | `none`       | UI chrome, not content                       |
-| Decorative overlay | `text`       | Force selectable even if parent is `none`    |
+| Surface            | `userSelect` | Why                                        |
+| ------------------ | ------------ | ------------------------------------------ |
+| Read-only text     | `auto`       | Default — users expect to select text      |
+| Help dialog        | `contain`    | Selectable, but selection stays in dialog  |
+| Detail pane        | `contain`    | Selectable, scoped to pane                 |
+| Board card         | `none`       | Interactive node — click, drag, not select |
+| Button / toolbar   | `none`       | Clickable chrome, not text content         |
+| Status bar         | `none`       | UI chrome, not content                     |
+| Decorative overlay | `text`       | Force selectable even if parent is `none`  |
 
 ## Mouse Selection
 
@@ -121,9 +121,13 @@ function Dialog() {
 When boundaries are nested, the **innermost `contain` wins**:
 
 ```tsx
-<Box userSelect="contain">           {/* outer boundary */}
+<Box userSelect="contain">
+  {" "}
+  {/* outer boundary */}
   <Text>Title</Text>
-  <Box userSelect="contain">         {/* inner boundary — wins */}
+  <Box userSelect="contain">
+    {" "}
+    {/* inner boundary — wins */}
     <Text>Scrollable content</Text>
   </Box>
 </Box>
@@ -136,29 +140,37 @@ Selection started in the inner container is scoped to the inner container, even 
 `userSelect="contain"` is independent of `overflow`. A Box can clip overflow without constraining selection, or constrain selection without clipping overflow:
 
 ```tsx
-{/* Clips content, but selection can cross into adjacent panes */}
-<Box overflow="hidden">...</Box>
+{
+  /* Clips content, but selection can cross into adjacent panes */
+}
+;<Box overflow="hidden">...</Box>
 
-{/* Doesn't clip, but selection stays inside */}
-<Box userSelect="contain">...</Box>
+{
+  /* Doesn't clip, but selection stays inside */
+}
+;<Box userSelect="contain">...</Box>
 
-{/* Both: clips AND constrains selection */}
-<Box overflow="hidden" userSelect="contain">...</Box>
+{
+  /* Both: clips AND constrains selection */
+}
+;<Box overflow="hidden" userSelect="contain">
+  ...
+</Box>
 ```
 
 ## Keyboard Copy-Mode
 
 Enter copy-mode with a keybinding to navigate and select text without the mouse. Vim-style navigation:
 
-| Key     | Action                    |
-| ------- | ------------------------- |
-| `h/j/k/l` | Move cursor            |
-| `w/b/e`   | Word motion            |
-| `0/$`      | Line start/end         |
-| `v`        | Start character visual |
-| `V`        | Start line visual      |
-| `y`        | Yank selection → clipboard |
-| `Esc`      | Exit copy-mode         |
+| Key       | Action                     |
+| --------- | -------------------------- |
+| `h/j/k/l` | Move cursor                |
+| `w/b/e`   | Word motion                |
+| `0/$`     | Line start/end             |
+| `v`       | Start character visual     |
+| `V`       | Start line visual          |
+| `y`       | Yank selection → clipboard |
+| `Esc`     | Exit copy-mode             |
 
 Copy-mode shares the selection range with mouse selection. If you start a mouse drag during copy-mode, the mouse takes over and copy-mode exits.
 

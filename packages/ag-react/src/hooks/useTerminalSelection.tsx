@@ -135,13 +135,19 @@ export function TerminalSelectionProvider({
     dragStarted.current = false
 
     // Start selection immediately (drag threshold is checked on extend)
-    setState((prev) => terminalSelectionUpdate({
-      type: "start",
-      col,
-      row,
-      scope,
-      source: "mouse",
-    }, prev)[0])
+    setState(
+      (prev) =>
+        terminalSelectionUpdate(
+          {
+            type: "start",
+            col,
+            row,
+            scope,
+            source: "mouse",
+          },
+          prev,
+        )[0],
+    )
   }, [])
 
   const handleMouseMove = useCallback((col: number, row: number) => {
@@ -163,63 +169,66 @@ export function TerminalSelectionProvider({
     })
   }, [])
 
-  const handleMouseUp = useCallback((col: number, row: number, buffer: TerminalBuffer, stdout: NodeJS.WriteStream) => {
-    setState((prev) => {
-      const [next] = terminalSelectionUpdate({ type: "finish" }, prev)
+  const handleMouseUp = useCallback(
+    (col: number, row: number, buffer: TerminalBuffer, stdout: NodeJS.WriteStream) => {
+      setState((prev) => {
+        const [next] = terminalSelectionUpdate({ type: "finish" }, prev)
 
-      // Copy on select (when enabled)
-      if (copyOnSelect && next.range && dragStarted.current) {
-        const text = extractText(buffer, next.range, {
-          respectSelectableFlag: true,
-          rowMetadata: buffer.getRowMetadataArray(),
-        })
-        if (text.length > 0) {
-          // Always write plain text immediately — never block on async
-          copyToClipboard(stdout, text)
+        // Copy on select (when enabled)
+        if (copyOnSelect && next.range && dragStarted.current) {
+          const text = extractText(buffer, next.range, {
+            respectSelectableFlag: true,
+            rowMetadata: buffer.getRowMetadataArray(),
+          })
+          if (text.length > 0) {
+            // Always write plain text immediately — never block on async
+            copyToClipboard(stdout, text)
 
-          // Store minimal clipboard data immediately
-          const baseData: ClipboardData = { text }
-          internalClipboard = baseData
-          setLastCopy(baseData)
+            // Store minimal clipboard data immediately
+            const baseData: ClipboardData = { text }
+            internalClipboard = baseData
+            setLastCopy(baseData)
 
-          // Consult CopyProvider for semantic enrichment (best-effort)
-          const provider = copyProviderRef.current
-          if (provider) {
-            const copyEvent: CopyEvent = { text, range: next.range }
-            try {
-              const result = provider.enrichCopy(copyEvent)
-              if (result && typeof (result as Promise<ClipboardData>).then === "function") {
-                // Async enrichment — update internal clipboard when resolved
-                ;(result as Promise<ClipboardData>).then(
-                  (data) => {
-                    if (data) {
-                      internalClipboard = data
-                      setLastCopy(data)
-                    }
-                  },
-                  () => {
-                    // Enrichment failed — plain text is already in clipboard
-                  },
-                )
-              } else if (result) {
-                // Sync enrichment — update immediately
-                internalClipboard = result as ClipboardData
-                setLastCopy(result as ClipboardData)
+            // Consult CopyProvider for semantic enrichment (best-effort)
+            const provider = copyProviderRef.current
+            if (provider) {
+              const copyEvent: CopyEvent = { text, range: next.range }
+              try {
+                const result = provider.enrichCopy(copyEvent)
+                if (result && typeof (result as Promise<ClipboardData>).then === "function") {
+                  // Async enrichment — update internal clipboard when resolved
+                  ;(result as Promise<ClipboardData>).then(
+                    (data) => {
+                      if (data) {
+                        internalClipboard = data
+                        setLastCopy(data)
+                      }
+                    },
+                    () => {
+                      // Enrichment failed — plain text is already in clipboard
+                    },
+                  )
+                } else if (result) {
+                  // Sync enrichment — update immediately
+                  internalClipboard = result as ClipboardData
+                  setLastCopy(result as ClipboardData)
+                }
+              } catch {
+                // Enrichment failed — plain text is already in clipboard
               }
-            } catch {
-              // Enrichment failed — plain text is already in clipboard
             }
           }
         }
-      }
 
-      // Reset drag tracking
-      dragStart.current = null
-      dragStarted.current = false
+        // Reset drag tracking
+        dragStart.current = null
+        dragStarted.current = false
 
-      return next
-    })
-  }, [copyOnSelect])
+        return next
+      })
+    },
+    [copyOnSelect],
+  )
 
   const clearSelection = useCallback(() => {
     setState((prev) => terminalSelectionUpdate({ type: "clear" }, prev)[0])
@@ -227,18 +236,21 @@ export function TerminalSelectionProvider({
     dragStarted.current = false
   }, [])
 
-  const copySelection = useCallback((buffer: TerminalBuffer, stdout: NodeJS.WriteStream) => {
-    const { range } = state
-    if (!range) return
+  const copySelection = useCallback(
+    (buffer: TerminalBuffer, stdout: NodeJS.WriteStream) => {
+      const { range } = state
+      if (!range) return
 
-    const text = extractText(buffer, range, {
-      respectSelectableFlag: true,
-      rowMetadata: buffer.getRowMetadataArray(),
-    })
-    if (text.length > 0) {
-      copyToClipboard(stdout, text)
-    }
-  }, [state])
+      const text = extractText(buffer, range, {
+        respectSelectableFlag: true,
+        rowMetadata: buffer.getRowMetadataArray(),
+      })
+      if (text.length > 0) {
+        copyToClipboard(stdout, text)
+      }
+    },
+    [state],
+  )
 
   const value: UseTerminalSelectionResult = {
     selection: state.range,

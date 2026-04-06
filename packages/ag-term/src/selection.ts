@@ -53,8 +53,22 @@ export interface TerminalSelectionState {
 
 export type SelectionAction =
   | { type: "start"; col: number; row: number; scope?: SelectionScope | null; source?: "mouse" | "keyboard" }
-  | { type: "startWord"; col: number; row: number; buffer: TerminalBuffer; scope?: SelectionScope | null; source?: "mouse" | "keyboard" }
-  | { type: "startLine"; col: number; row: number; buffer: TerminalBuffer; scope?: SelectionScope | null; source?: "mouse" | "keyboard" }
+  | {
+      type: "startWord"
+      col: number
+      row: number
+      buffer: TerminalBuffer
+      scope?: SelectionScope | null
+      source?: "mouse" | "keyboard"
+    }
+  | {
+      type: "startLine"
+      col: number
+      row: number
+      buffer: TerminalBuffer
+      scope?: SelectionScope | null
+      source?: "mouse" | "keyboard"
+    }
   | { type: "extend"; col: number; row: number; buffer?: TerminalBuffer }
   | { type: "finish" }
   | { type: "clear" }
@@ -78,7 +92,11 @@ function isWordChar(ch: string): boolean {
  * Returns { startCol, endCol } inclusive of the word.
  * If the position is on whitespace/punctuation, selects that single char.
  */
-export function findWordBoundary(buffer: TerminalBuffer, col: number, row: number): { startCol: number; endCol: number } {
+export function findWordBoundary(
+  buffer: TerminalBuffer,
+  col: number,
+  row: number,
+): { startCol: number; endCol: number } {
   const width = buffer.width
   const ch = buffer.getCell(col, row).char
 
@@ -199,13 +217,16 @@ export function terminalSelectionUpdate(
     case "start": {
       const scope = action.scope ?? null
       const pos = clampToScope(action.col, action.row, scope)
-      return [{
-        range: { anchor: pos, head: pos },
-        selecting: true,
-        source: action.source ?? "mouse",
-        granularity: "character",
-        scope,
-      }, [{ type: "render" }]]
+      return [
+        {
+          range: { anchor: pos, head: pos },
+          selecting: true,
+          source: action.source ?? "mouse",
+          granularity: "character",
+          scope,
+        },
+        [{ type: "render" }],
+      ]
     }
 
     case "startWord": {
@@ -213,13 +234,16 @@ export function terminalSelectionUpdate(
       const { startCol, endCol } = findWordBoundary(action.buffer, action.col, action.row)
       const anchorPos = clampToScope(startCol, action.row, scope)
       const headPos = clampToScope(endCol, action.row, scope)
-      return [{
-        range: { anchor: anchorPos, head: headPos },
-        selecting: true,
-        source: action.source ?? "mouse",
-        granularity: "word",
-        scope,
-      }, [{ type: "render" }]]
+      return [
+        {
+          range: { anchor: anchorPos, head: headPos },
+          selecting: true,
+          source: action.source ?? "mouse",
+          granularity: "word",
+          scope,
+        },
+        [{ type: "render" }],
+      ]
     }
 
     case "startLine": {
@@ -227,24 +251,36 @@ export function terminalSelectionUpdate(
       const { startCol, endCol } = findLineBoundary(action.buffer, action.row)
       const anchorPos = clampToScope(startCol, action.row, scope)
       const headPos = clampToScope(endCol, action.row, scope)
-      return [{
-        range: { anchor: anchorPos, head: headPos },
-        selecting: true,
-        source: action.source ?? "mouse",
-        granularity: "line",
-        scope,
-      }, [{ type: "render" }]]
+      return [
+        {
+          range: { anchor: anchorPos, head: headPos },
+          selecting: true,
+          source: action.source ?? "mouse",
+          granularity: "line",
+          scope,
+        },
+        [{ type: "render" }],
+      ]
     }
 
     case "extend": {
       if (!state.selecting) return [state, []]
-      const extended = extendByGranularity(action.col, action.row, state.range!.anchor, state.granularity, action.buffer)
+      const extended = extendByGranularity(
+        action.col,
+        action.row,
+        state.range!.anchor,
+        state.granularity,
+        action.buffer,
+      )
       const head = clampToScope(extended.col, extended.row, state.scope)
-      return [{
-        ...state,
-        range: { anchor: state.range!.anchor, head },
-        selecting: true,
-      }, [{ type: "render" }]]
+      return [
+        {
+          ...state,
+          range: { anchor: state.range!.anchor, head },
+          selecting: true,
+        },
+        [{ type: "render" }],
+      ]
     }
 
     case "finish": {

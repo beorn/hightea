@@ -150,10 +150,7 @@ function distance(a: Position, b: Position): number {
  * Processes pointer actions and returns [newState, effects[]].
  * Effects are consumed by the integration hook.
  */
-export function pointerStateUpdate(
-  action: PointerAction,
-  state: PointerState,
-): [PointerState, PointerEffect[]] {
+export function pointerStateUpdate(action: PointerAction, state: PointerState): [PointerState, PointerEffect[]] {
   switch (action.type) {
     case "pointerDown":
       return handlePointerDown(action, state)
@@ -182,20 +179,14 @@ function handlePointerDown(
     // For now, go to pointing-text which will produce extendSelection on threshold.
     if (action.target) {
       const scope = action.target.screenRect ?? null
-      return [
-        { type: "pointing-text", anchor: pos, scope, target: action.target },
-        [],
-      ]
+      return [{ type: "pointing-text", anchor: pos, scope, target: action.target }, []]
     }
   }
 
   // 1. altKey? -> always text selection (override)
   if (action.altKey && action.target) {
     const scope = action.target.screenRect ?? null
-    return [
-      { type: "pointing-text", anchor: pos, scope, target: action.target },
-      [],
-    ]
+    return [{ type: "pointing-text", anchor: pos, scope, target: action.target }, []]
   }
 
   // 2. No target -> pointing-empty
@@ -211,10 +202,7 @@ function handlePointerDown(
   // 4. targetUserSelect === "text" | "auto"? -> pointing-text
   if (action.targetUserSelect === "text" || action.targetUserSelect === "auto") {
     const scope = action.target.screenRect ?? null
-    return [
-      { type: "pointing-text", anchor: pos, scope, target: action.target },
-      [],
-    ]
+    return [{ type: "pointing-text", anchor: pos, scope, target: action.target }, []]
   }
 
   // 5. targetUserSelect === "none"? -> pointing-node (click only, no drag)
@@ -267,10 +255,7 @@ function handlePointerMove(
       const dist = distance(state.startPos, pos)
       if (dist > DRAG_THRESHOLD) {
         // Transition to dragging-area
-        return [
-          { type: "dragging-area", startPos: state.startPos, currentPos: pos },
-          [{ type: "clearSelection" }],
-        ]
+        return [{ type: "dragging-area", startPos: state.startPos, currentPos: pos }, [{ type: "clearSelection" }]]
       }
       return [state, []]
     }
@@ -290,10 +275,7 @@ function handlePointerMove(
     }
 
     case "dragging-area": {
-      return [
-        { type: "dragging-area", startPos: state.startPos, currentPos: pos },
-        [],
-      ]
+      return [{ type: "dragging-area", startPos: state.startPos, currentPos: pos }, []]
     }
   }
 }
@@ -329,10 +311,7 @@ function handlePointerUp(
 
     case "dragging-node": {
       // End the node drag — emit finishDrag so integration layer can dispatch onDrop
-      return [
-        { type: "idle" },
-        [{ type: "finishDrag", target: state.target, pos: { x: action.x, y: action.y } }],
-      ]
+      return [{ type: "idle" }, [{ type: "finishDrag", target: state.target, pos: { x: action.x, y: action.y } }]]
     }
 
     case "dragging-area": {

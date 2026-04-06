@@ -71,18 +71,14 @@ describe("FindProvider interface", () => {
   })
 
   test("provider returns empty for no matches", () => {
-    const provider = createMockProvider([
-      { id: "1", text: "Hello World" },
-    ])
+    const provider = createMockProvider([{ id: "1", text: "Hello World" }])
 
     const results = provider.search("xyz") as FindResult[]
     expect(results).toHaveLength(0)
   })
 
   test("provider finds multiple matches in same item", () => {
-    const provider = createMockProvider([
-      { id: "1", text: "foo bar foo baz foo" },
-    ])
+    const provider = createMockProvider([{ id: "1", text: "foo bar foo baz foo" }])
 
     const results = provider.search("foo") as FindResult[]
     expect(results).toHaveLength(3)
@@ -92,9 +88,7 @@ describe("FindProvider interface", () => {
   })
 
   test("reveal is callable", () => {
-    const provider = createMockProvider([
-      { id: "1", text: "Hello World" },
-    ])
+    const provider = createMockProvider([{ id: "1", text: "Hello World" }])
 
     const results = provider.search("hello") as FindResult[]
     provider.reveal(results[0]!)
@@ -130,7 +124,9 @@ describe("FindProvider interface", () => {
   test("async reveal", async () => {
     const revealFn = vi.fn(async () => {})
     const provider: FindProvider = {
-      search(query: string) { return [] },
+      search(query: string) {
+        return []
+      },
       reveal: revealFn,
     }
 
@@ -146,10 +142,7 @@ describe("FindProvider interface", () => {
 describe("findUpdate — providerSearchStarted", () => {
   test("sets providerSearching flag and activates find", () => {
     const state = createFindState()
-    const [next, effects] = findUpdate(
-      { type: "providerSearchStarted", query: "hello" },
-      state,
-    )
+    const [next, effects] = findUpdate({ type: "providerSearchStarted", query: "hello" }, state)
 
     expect(next.active).toBe(true)
     expect(next.query).toBe("hello")
@@ -162,20 +155,14 @@ describe("findUpdate — providerSearchStarted", () => {
 
 describe("findUpdate — setProviderResults", () => {
   test("sets provider results and focuses first result", () => {
-    const [searching] = findUpdate(
-      { type: "providerSearchStarted", query: "hello" },
-      createFindState(),
-    )
+    const [searching] = findUpdate({ type: "providerSearchStarted", query: "hello" }, createFindState())
 
     const results: FindResult[] = [
       { itemId: "1", offset: 0, length: 5 },
       { itemId: "2", offset: 3, length: 5 },
     ]
 
-    const [next, effects] = findUpdate(
-      { type: "setProviderResults", results, query: "hello" },
-      searching,
-    )
+    const [next, effects] = findUpdate({ type: "setProviderResults", results, query: "hello" }, searching)
 
     expect(next.providerResults).toEqual(results)
     expect(next.providerSearching).toBe(false)
@@ -185,20 +172,12 @@ describe("findUpdate — setProviderResults", () => {
   })
 
   test("ignores results for stale query", () => {
-    const [searching] = findUpdate(
-      { type: "providerSearchStarted", query: "hello" },
-      createFindState(),
-    )
+    const [searching] = findUpdate({ type: "providerSearchStarted", query: "hello" }, createFindState())
 
-    const results: FindResult[] = [
-      { itemId: "1", offset: 0, length: 5 },
-    ]
+    const results: FindResult[] = [{ itemId: "1", offset: 0, length: 5 }]
 
     // Send results for a different query
-    const [next, effects] = findUpdate(
-      { type: "setProviderResults", results, query: "world" },
-      searching,
-    )
+    const [next, effects] = findUpdate({ type: "setProviderResults", results, query: "world" }, searching)
 
     // Should be ignored — state unchanged
     expect(next).toBe(searching)
@@ -206,15 +185,9 @@ describe("findUpdate — setProviderResults", () => {
   })
 
   test("handles empty results", () => {
-    const [searching] = findUpdate(
-      { type: "providerSearchStarted", query: "xyz" },
-      createFindState(),
-    )
+    const [searching] = findUpdate({ type: "providerSearchStarted", query: "xyz" }, createFindState())
 
-    const [next, effects] = findUpdate(
-      { type: "setProviderResults", results: [], query: "xyz" },
-      searching,
-    )
+    const [next, effects] = findUpdate({ type: "setProviderResults", results: [], query: "xyz" }, searching)
 
     expect(next.providerResults).toEqual([])
     expect(next.currentIndex).toBe(-1)
@@ -227,17 +200,9 @@ describe("findUpdate — setProviderResults", () => {
 describe("findUpdate — revealComplete", () => {
   test("updates provider result with screen coords and adds buffer match", () => {
     // Set up state with provider results
-    const [searching] = findUpdate(
-      { type: "providerSearchStarted", query: "hello" },
-      createFindState(),
-    )
-    const results: FindResult[] = [
-      { itemId: "item-1", offset: 5, length: 5 },
-    ]
-    const [withResults] = findUpdate(
-      { type: "setProviderResults", results, query: "hello" },
-      searching,
-    )
+    const [searching] = findUpdate({ type: "providerSearchStarted", query: "hello" }, createFindState())
+    const results: FindResult[] = [{ itemId: "item-1", offset: 5, length: 5 }]
+    const [withResults] = findUpdate({ type: "setProviderResults", results, query: "hello" }, searching)
 
     const [next, effects] = findUpdate(
       {
@@ -274,14 +239,8 @@ describe("findUpdate — next/prev with provider results", () => {
       length: 5,
     }))
 
-    const [searching] = findUpdate(
-      { type: "providerSearchStarted", query: "test" },
-      createFindState(),
-    )
-    const [withResults] = findUpdate(
-      { type: "setProviderResults", results, query: "test" },
-      searching,
-    )
+    const [searching] = findUpdate({ type: "providerSearchStarted", query: "test" }, createFindState())
+    const [withResults] = findUpdate({ type: "setProviderResults", results, query: "test" }, searching)
     return withResults
   }
 
@@ -339,15 +298,9 @@ describe("findUpdate — next/prev with provider results", () => {
 
 describe("findUpdate — close with provider state", () => {
   test("close resets all provider state", () => {
-    const [searching] = findUpdate(
-      { type: "providerSearchStarted", query: "hello" },
-      createFindState(),
-    )
+    const [searching] = findUpdate({ type: "providerSearchStarted", query: "hello" }, createFindState())
     const results: FindResult[] = [{ itemId: "1", offset: 0, length: 5 }]
-    const [withResults] = findUpdate(
-      { type: "setProviderResults", results, query: "hello" },
-      searching,
-    )
+    const [withResults] = findUpdate({ type: "setProviderResults", results, query: "hello" }, searching)
 
     const [next, effects] = findUpdate({ type: "close" }, withResults)
 

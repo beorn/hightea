@@ -14,9 +14,7 @@ import {
   type PointerAction,
   type PointerEffect,
 } from "@silvery/ag-term/pointer-state"
-import {
-  resolveNodeDraggable,
-} from "@silvery/ag-term/mouse-events"
+import { resolveNodeDraggable } from "@silvery/ag-term/mouse-events"
 import {
   createDragState,
   createDragEvent,
@@ -196,10 +194,7 @@ describe("pointer state machine: draggable node gestures", () => {
   })
 
   test("pointerUp without crossing threshold -> click (no drag)", () => {
-    const { state, effects } = runSequence([
-      down(10, 5, { target: draggableNode, draggable: true }),
-      up(10, 5),
-    ])
+    const { state, effects } = runSequence([down(10, 5, { target: draggableNode, draggable: true }), up(10, 5)])
 
     expect(state.type).toBe("idle")
     expect(effects).toContainEqual({ type: "click", target: draggableNode, x: 10, y: 5 })
@@ -244,10 +239,7 @@ describe("pointer state machine: drag finish and cancel", () => {
   })
 
   test("cancel from pointing-node -> idle (no drag effects)", () => {
-    const { state, effects } = runSequence([
-      down(10, 5, { target: draggableNode, draggable: true }),
-      cancel(),
-    ])
+    const { state, effects } = runSequence([down(10, 5, { target: draggableNode, draggable: true }), cancel()])
 
     expect(state.type).toBe("idle")
     expect(effects.filter((e) => e.type === "startDrag")).toHaveLength(0)

@@ -9,17 +9,15 @@ import {
   extractText,
   type SelectionScope,
 } from "@silvery/ag-term/selection"
-import { TerminalBuffer, SELECTABLE_FLAG, setSelectableFlag, isCellSelectable, clearSelectableFlag } from "@silvery/ag-term/buffer"
 import {
-  composeSelectionCells,
-  applySelectionToBuffer,
-  type SelectionTheme,
-} from "@silvery/ag-term/selection-renderer"
-import {
-  resolveUserSelect,
-  selectionHitTest,
-  findContainBoundary,
-} from "@silvery/ag-term/mouse-events"
+  TerminalBuffer,
+  SELECTABLE_FLAG,
+  setSelectableFlag,
+  isCellSelectable,
+  clearSelectableFlag,
+} from "@silvery/ag-term/buffer"
+import { composeSelectionCells, applySelectionToBuffer, type SelectionTheme } from "@silvery/ag-term/selection-renderer"
+import { resolveUserSelect, selectionHitTest, findContainBoundary } from "@silvery/ag-term/mouse-events"
 import type { AgNode, Rect } from "@silvery/ag/types"
 
 // ============================================================================
@@ -120,10 +118,7 @@ describe("terminalSelectionUpdate", () => {
 
   test("extend clamps to scope", () => {
     const scope: SelectionScope = { top: 0, bottom: 5, left: 0, right: 15 }
-    const [state] = terminalSelectionUpdate(
-      { type: "start", col: 5, row: 2, scope },
-      createTerminalSelectionState(),
-    )
+    const [state] = terminalSelectionUpdate({ type: "start", col: 5, row: 2, scope }, createTerminalSelectionState())
     const [next] = terminalSelectionUpdate(
       { type: "extend", col: 25, row: 8 }, // beyond scope
       state,
@@ -282,10 +277,14 @@ describe("extractText", () => {
     buf.setRowMeta(0, { softWrapped: true, lastContentCol: 5 })
     buf.setRowMeta(1, { softWrapped: false, lastContentCol: 5 })
 
-    const text = extractText(buf, {
-      anchor: { col: 0, row: 0 },
-      head: { col: 5, row: 1 },
-    }, { rowMetadata: buf.getRowMetadataArray() })
+    const text = extractText(
+      buf,
+      {
+        anchor: { col: 0, row: 0 },
+        head: { col: 5, row: 1 },
+      },
+      { rowMetadata: buf.getRowMetadataArray() },
+    )
 
     expect(text).toBe("Hello World!")
   })
@@ -306,17 +305,25 @@ describe("extractText", () => {
     buf.setCell(4, 0, { char: "E" })
 
     // Without flag check — all chars returned
-    const all = extractText(buf, {
-      anchor: { col: 0, row: 0 },
-      head: { col: 4, row: 0 },
-    }, { respectSelectableFlag: false })
+    const all = extractText(
+      buf,
+      {
+        anchor: { col: 0, row: 0 },
+        head: { col: 4, row: 0 },
+      },
+      { respectSelectableFlag: false },
+    )
     expect(all).toBe("ABCDE")
 
     // With flag check — only selectable chars returned
-    const filtered = extractText(buf, {
-      anchor: { col: 0, row: 0 },
-      head: { col: 4, row: 0 },
-    }, { respectSelectableFlag: true })
+    const filtered = extractText(
+      buf,
+      {
+        anchor: { col: 0, row: 0 },
+        head: { col: 4, row: 0 },
+      },
+      { respectSelectableFlag: true },
+    )
     expect(filtered).toBe("ACE")
   })
 
@@ -324,10 +331,14 @@ describe("extractText", () => {
     const buf = createBufferWithText(["Hello          "], 15)
     buf.setRowMeta(0, { softWrapped: false, lastContentCol: 4 })
 
-    const text = extractText(buf, {
-      anchor: { col: 0, row: 0 },
-      head: { col: 14, row: 0 },
-    }, { rowMetadata: buf.getRowMetadataArray() })
+    const text = extractText(
+      buf,
+      {
+        anchor: { col: 0, row: 0 },
+        head: { col: 14, row: 0 },
+      },
+      { rowMetadata: buf.getRowMetadataArray() },
+    )
 
     expect(text).toBe("Hello")
   })
@@ -727,10 +738,14 @@ describe("composeSelectionCells", () => {
       selectionBg: { r: 0, g: 0, b: 128 },
     }
 
-    const changes = composeSelectionCells(buf, {
-      anchor: { col: 0, row: 0 },
-      head: { col: 0, row: 0 },
-    }, theme)
+    const changes = composeSelectionCells(
+      buf,
+      {
+        anchor: { col: 0, row: 0 },
+        head: { col: 0, row: 0 },
+      },
+      theme,
+    )
 
     expect(changes).toHaveLength(1)
     expect(changes[0]!.fg).toEqual({ r: 255, g: 255, b: 255 })
@@ -750,7 +765,7 @@ describe("composeSelectionCells", () => {
 
     // Should have 2 changes: col 0 (wide char) and col 2 (B) — col 1 (continuation) skipped
     expect(changes).toHaveLength(2)
-    expect(changes.map(c => c.col)).toEqual([0, 2])
+    expect(changes.map((c) => c.col)).toEqual([0, 2])
   })
 
   test("respects SELECTABLE_FLAG when enabled", () => {
@@ -762,14 +777,19 @@ describe("composeSelectionCells", () => {
     buf.setSelectableMode(true)
     buf.setCell(2, 0, { char: "C" })
 
-    const changes = composeSelectionCells(buf, {
-      anchor: { col: 0, row: 0 },
-      head: { col: 2, row: 0 },
-    }, undefined, true) // respectSelectableFlag = true
+    const changes = composeSelectionCells(
+      buf,
+      {
+        anchor: { col: 0, row: 0 },
+        head: { col: 2, row: 0 },
+      },
+      undefined,
+      true,
+    ) // respectSelectableFlag = true
 
     // Only A and C are selectable
     expect(changes).toHaveLength(2)
-    expect(changes.map(c => c.col)).toEqual([0, 2])
+    expect(changes.map((c) => c.col)).toEqual([0, 2])
   })
 
   test("applySelectionToBuffer modifies cell colors", () => {

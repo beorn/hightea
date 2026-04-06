@@ -8,13 +8,7 @@
  */
 
 import { useCallback, useContext, useState } from "react"
-import {
-  type FindState,
-  type FindEffect,
-  type FindResult,
-  createFindState,
-  findUpdate,
-} from "@silvery/ag-term/find"
+import { type FindState, type FindEffect, type FindResult, createFindState, findUpdate } from "@silvery/ag-term/find"
 import type { TerminalBuffer } from "@silvery/ag-term/buffer"
 import { useFindProvider } from "./useFindProvider"
 
@@ -107,10 +101,7 @@ export function useFind(options?: UseFindOptions): UseFindResult {
               void (async () => {
                 const results = await provider.search(query)
                 setState((prev) => {
-                  const [next, resultEffects] = findUpdate(
-                    { type: "setProviderResults", results, query },
-                    prev,
-                  )
+                  const [next, resultEffects] = findUpdate({ type: "setProviderResults", results, query }, prev)
                   // Process effects from setProviderResults
                   for (const e of resultEffects) {
                     if (e.type === "providerReveal" && provider) {
@@ -171,10 +162,7 @@ export function useFind(options?: UseFindOptions): UseFindResult {
       if (provider) {
         // Provider mode: delegate to provider
         setState((prev) => {
-          const [next, effects] = findUpdate(
-            { type: "providerSearchStarted", query },
-            prev,
-          )
+          const [next, effects] = findUpdate({ type: "providerSearchStarted", query }, prev)
           processEffects(effects)
           // Kick off provider search
           processEffects([{ type: "providerSearch", query }])

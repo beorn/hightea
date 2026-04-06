@@ -54,8 +54,8 @@ function DetailPane({ node }) {
 
 ```typescript
 interface CopyEvent {
-  text: string           // plain text from buffer extraction
-  range: SelectionRange  // screen coordinates of selection
+  text: string // plain text from buffer extraction
+  range: SelectionRange // screen coordinates of selection
 }
 ```
 
@@ -63,10 +63,10 @@ interface CopyEvent {
 
 ```typescript
 interface ClipboardData {
-  text: string         // plain text (always required)
-  markdown?: string    // structured content
-  html?: string        // rich format
-  internal?: unknown   // app-specific structured data
+  text: string // plain text (always required)
+  markdown?: string // structured content
+  html?: string // rich format
+  internal?: unknown // app-specific structured data
 }
 ```
 
@@ -109,7 +109,7 @@ interface ClipboardBackend {
   write(data: ClipboardData): Promise<void>
   read?(): Promise<string>
   capabilities: {
-    text: true        // always supported
+    text: true // always supported
     html?: boolean
     markdown?: boolean
     internal?: boolean
@@ -178,9 +178,9 @@ function Editor() {
 
 ```typescript
 interface PasteEvent {
-  text: string                      // raw pasted text
-  source: "bracketed" | "internal"  // where it came from
-  structured?: ClipboardData        // rich data if internal paste
+  text: string // raw pasted text
+  source: "bracketed" | "internal" // where it came from
+  structured?: ClipboardData // rich data if internal paste
 }
 ```
 
