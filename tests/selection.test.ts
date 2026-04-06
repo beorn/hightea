@@ -95,12 +95,12 @@ describe("terminalSelectionUpdate", () => {
     const state = createTerminalSelectionState()
     const scope: SelectionScope = { top: 2, bottom: 10, left: 5, right: 30 }
     const [next] = terminalSelectionUpdate(
-      { type: "start", col: 7, row: 3, source: "keyboard", granularity: "word", scope },
+      { type: "start", col: 7, row: 3, source: "keyboard", scope },
       state,
     )
 
     expect(next.source).toBe("keyboard")
-    expect(next.granularity).toBe("word")
+    expect(next.granularity).toBe("character") // default granularity on start
     expect(next.scope).toEqual(scope)
     expect(next.range!.anchor).toEqual({ col: 7, row: 3 })
   })

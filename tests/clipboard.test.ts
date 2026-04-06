@@ -33,13 +33,13 @@ import {
 // Helpers
 // ============================================================================
 
-function createMockStdout(): { write: ReturnType<typeof vi.fn>; written: string[] } {
+function createMockStdout() {
   const written: string[] = []
   const write = vi.fn((data: string) => {
     written.push(data)
     return true
   })
-  return { write, written }
+  return { write, written } as any // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 // ============================================================================
