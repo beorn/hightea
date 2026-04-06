@@ -22,7 +22,7 @@
  * Run: bun vendor/silvery/examples/apps/terminal-caps-demo.tsx
  */
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { Box, Text, H3, Muted, Kbd, render, useInput, useApp, type Key } from "../../src/index.js"
 import {
   detectTerminalCaps,
@@ -115,12 +115,14 @@ function buildStaticEntries(caps: TerminalCaps): CapEntry[] {
 // Main app component
 // ============================================================================
 
-function TerminalCapsApp() {
+function TerminalCapsApp({ initialProbes }: {
+  initialProbes?: { colorScheme: ColorScheme; widthConfig: TerminalWidthConfig | null; kittyDetected: boolean | null }
+}) {
   const { exit } = useApp()
   const [caps] = useState<TerminalCaps>(() => detectTerminalCaps())
-  const [colorScheme, setColorScheme] = useState<ColorScheme>("unknown")
-  const [widthConfig, setWidthConfig] = useState<TerminalWidthConfig | null>(null)
-  const [kittyDetected, setKittyDetected] = useState<boolean | null>(null)
+  const [colorScheme] = useState<ColorScheme>(initialProbes?.colorScheme ?? "unknown")
+  const [widthConfig] = useState<TerminalWidthConfig | null>(initialProbes?.widthConfig ?? null)
+  const [kittyDetected] = useState<boolean | null>(initialProbes?.kittyDetected ?? null)
 
   // Quit on q or Esc
   useInput((input: string, key: Key) => {
@@ -129,82 +131,8 @@ function TerminalCapsApp() {
     }
   })
 
-  // Run async detection on mount
-  useEffect(() => {
-    // Color scheme detection (Mode 2031)
-    const detector = createColorSchemeDetector({
-      write: (data) => {
-        process.stdout.write(data)
-      },
-      onData: (handler) => {
-        const bufHandler = (chunk: Buffer | string) => {
-          handler(typeof chunk === "string" ? chunk : chunk.toString())
-        }
-        process.stdin.on("data", bufHandler)
-        return () => {
-          process.stdin.removeListener("data", bufHandler)
-        }
-      },
-      timeoutMs: 500,
-    })
-
-    detector.subscribe((scheme) => {
-      setColorScheme(scheme)
-    })
-    detector.start()
-
-    // After timeout, if still unknown, fallback
-    const fallbackTimer = setTimeout(() => {
-      if (detector.scheme !== "unknown") {
-        setColorScheme(detector.scheme)
-      }
-    }, 600)
-
-    // Width detection (DEC 1020-1023)
-    const widthDet = createWidthDetector({
-      write: (data) => {
-        process.stdout.write(data)
-      },
-      onData: (handler) => {
-        const bufHandler = (chunk: Buffer | string) => {
-          handler(typeof chunk === "string" ? chunk : chunk.toString())
-        }
-        process.stdin.on("data", bufHandler)
-        return () => {
-          process.stdin.removeListener("data", bufHandler)
-        }
-      },
-      timeoutMs: 500,
-    })
-
-    widthDet
-      .detect()
-      .then((config) => {
-        setWidthConfig(config)
-      })
-      .catch(() => {
-        setWidthConfig({ ...DEFAULT_WIDTH_CONFIG })
-      })
-
-    // Kitty keyboard detection (requires TTY stdin)
-    if (process.stdin.isTTY) {
-      detectKittyFromStdio(process.stdout, process.stdin, 500)
-        .then((result) => {
-          setKittyDetected(result.supported)
-        })
-        .catch(() => {
-          setKittyDetected(false)
-        })
-    } else {
-      setKittyDetected(false)
-    }
-
-    return () => {
-      detector.stop()
-      clearTimeout(fallbackTimer)
-      widthDet.dispose()
-    }
-  }, [])
+  // Probing is done before render() in main() — no useEffect needed.
+  // This avoids stdin conflicts between protocol responses and useInput.
 
   // Build the display entries
   const staticEntries = buildStaticEntries(caps)
@@ -322,9 +250,50 @@ function TerminalCapsApp() {
 // ============================================================================
 
 async function main() {
+  // Probe BEFORE render() starts — avoids stdin conflict with useInput.
+  // Once render() owns stdin, protocol responses leak as visible text.
+  let probeResults: {
+    colorScheme: ColorScheme
+    widthConfig: TerminalWidthConfig | null
+    kittyDetected: boolean | null
+  } = { colorScheme: "unknown", widthConfig: null, kittyDetected: null }
+
+  if (process.stdin.isTTY) {
+    process.stdin.setRawMode(true)
+    process.stdin.resume()
+
+    const write = (data: string) => process.stdout.write(data)
+    const onData = (handler: (data: string) => void): (() => void) => {
+      const h = (chunk: Buffer | string) => handler(typeof chunk === "string" ? chunk : chunk.toString())
+      process.stdin.on("data", h)
+      return () => process.stdin.removeListener("data", h)
+    }
+
+    // Run all probes in parallel with 500ms timeout
+    const [colorResult, widthResult, kittyResult] = await Promise.allSettled([
+      new Promise<ColorScheme>((resolve) => {
+        const det = createColorSchemeDetector({ write, onData, timeoutMs: 500 })
+        det.subscribe((s) => { resolve(s); det.stop() })
+        det.start()
+        setTimeout(() => { resolve(det.scheme); det.stop() }, 600)
+      }),
+      createWidthDetector({ write, onData, timeoutMs: 500 }).detect().catch(() => null),
+      detectKittyFromStdio(process.stdout, process.stdin, 500).then((r) => r.supported).catch(() => false),
+    ])
+
+    probeResults = {
+      colorScheme: colorResult.status === "fulfilled" ? colorResult.value : "unknown",
+      widthConfig: widthResult.status === "fulfilled" ? widthResult.value : null,
+      kittyDetected: kittyResult.status === "fulfilled" ? kittyResult.value : false,
+    }
+
+    process.stdin.setRawMode(false)
+    process.stdin.pause()
+  }
+
   const { waitUntilExit } = await render(
     <ExampleBanner meta={meta} controls="q/Esc quit">
-      <TerminalCapsApp />
+      <TerminalCapsApp initialProbes={probeResults} />
     </ExampleBanner>,
   )
 
