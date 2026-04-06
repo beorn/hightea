@@ -246,7 +246,7 @@ describe("pointer state machine: node interaction", () => {
     expect(effects).toContainEqual({ type: "updateDrag", pos: { x: 20, y: 8 } })
   })
 
-  test("pointerUp on dragging-node -> idle with cancelDrag", () => {
+  test("pointerUp on dragging-node -> idle with finishDrag", () => {
     const { state, effects } = runSequence([
       down(10, 5, { target: nodeElement, draggable: true }),
       move(10 + DRAG_THRESHOLD + 1, 5),
@@ -254,7 +254,9 @@ describe("pointer state machine: node interaction", () => {
     ])
 
     expect(state.type).toBe("idle")
-    expect(effects).toContainEqual({ type: "cancelDrag" })
+    // Phase 7 added finishDrag effect — pointerUp now finishes the drag (drop),
+    // while cancelDrag is reserved for Escape/cancel action.
+    expect(effects.some((e) => e.type === "finishDrag")).toBe(true)
   })
 })
 

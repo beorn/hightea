@@ -132,7 +132,7 @@ describe("terminalSelectionUpdate", () => {
     const [next] = terminalSelectionUpdate({ type: "start", col: 0, row: 0 }, state)
 
     expect(next.source).toBe("mouse")
-    expect(next.granularity).toBe("char")
+    expect(next.granularity).toBe("character")
     expect(next.scope).toBeNull()
   })
 
