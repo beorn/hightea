@@ -1,5 +1,6 @@
 ---
-title: "Why Claude Code Flickers (And What It Would Take to Fix It)"
+title: "Why Claude Code Flickers"
+subtitle: "And What It Would Take to Fix It"
 description: "Claude Code's 700+ upvote flickering bug, their NO_FLICKER rewrite, and why the new fullscreen mode still shows blank areas. A technical deep dive into why this class of terminal rendering bug is so persistent — and the pipeline architecture that prevents it."
 date: 2026-04-04
 ---
@@ -13,9 +14,10 @@ import termlessDiagram from '../public/blog/diagrams/05-termless.html?raw'
 import zonesDiagram from '../public/blog/diagrams/04-zones.html?raw'
 </script>
 
-# Why Claude Code Flickers (And What It Would Take to Fix It)
+# Why Claude Code Flickers
+<p style="font-size: 1.2em; color: var(--vp-c-text-2); margin-top: -8px; font-weight: 400">And What It Would Take to Fix It</p>
 
-Claude Code has spent months rewriting its renderer. They've [shipped a NO_FLICKER mode](https://x.com/bcherny/status/2039421575422980329), moved to the [alternate screen](https://terminfo.dev/feature/screen.alternate-screen) buffer, built a [differential renderer with TypedArray double-buffering](https://news.ycombinator.com/item?id=46701013) — and users are still reporting blank areas and visual glitches across [12+ open GitHub issues](https://github.com/anthropics/claude-code/issues/42670). That strongly suggests the problem isn't only a bad diff. At least part of it is architectural.
+Claude Code has spent months rewriting its renderer. They've [shipped a NO_FLICKER mode](https://x.com/bcherny/status/2039421575422980329), moved to the alternate screen buffer, built a [differential renderer with TypedArray double-buffering](https://news.ycombinator.com/item?id=46701013) — and users are still reporting blank areas and visual glitches across [12+ open GitHub issues](https://github.com/anthropics/claude-code/issues/42670). That strongly suggests the problem isn't only a bad diff. At least part of it is architectural.
 
 I don't have Claude Code's internal code — the discussion below is based on public comments, GitHub issues, and observed behavior. The team is clearly talented, and they're solving this under production constraints across xterm.js, VS Code, tmux, SSH, Windows, and native terminals. Anthropic may well fix today's fullscreen glitches with targeted patches. My claim is narrower: the recurring tradeoff between stable streaming updates, native scrollback, and robust recovery is architectural.
 
@@ -29,7 +31,7 @@ Terminal apps with rich, mutable streaming output usually face a forced choice. 
 
 **Main buffer** (also called the primary screen or normal buffer) is what your shell runs in — it's where `echo`, `git log`, and every line-oriented CLI writes output. Content accumulates as scrollback, Cmd+F works, text selection works across history, and everything persists after the app exits. This is what TUI frameworks call "inline mode."
 
-**[Alternate buffer](https://terminfo.dev/feature/screen.alternate-screen)** (also called altscreen or fullscreen mode) is what vim, htop, and other fullscreen apps use — a separate canvas with full cell-level control, but no scrollback. When the app exits, the alternate buffer is discarded and the original main buffer is restored, as if the app was never there.
+**Alternate buffer** (also called alternate screen or fullscreen mode) is what vim, htop, and other fullscreen apps use — a separate canvas with full cell-level control, but no scrollback. When the app exits, the alternate buffer is discarded and the original main buffer is restored, as if the app was never there.
 
 Append-only logs don't have this problem — output scrolls up and stays. The hard case is output that keeps changing after earlier lines have already scrolled away. That's what every AI agent, streaming test runner, and deployment dashboard needs — and it doesn't fit neatly into either buffer. From here, the failure modes split cleanly: in the main buffer, flicker comes from redrawing content you no longer own; in fullscreen, it comes from emitting frames you can't generate and recover authoritatively.
 
@@ -37,7 +39,7 @@ Append-only logs don't have this problem — output scrolls up and stays. The ha
 
 Choose the main buffer and you get scrollback. But the moment your streaming content grows taller than the terminal — which happens within the first long AI response — part of it scrolls into the scrollback region above the viewport.
 
-Now the AI sends the next token. You need to update the live content, but some of it has crossed into terminal-owned history. **Terminals don't give you random-access mutation of scrollback.** They have [scroll regions](https://terminfo.dev/feature/scroll.scroll-region) (`DECSTBM`), [insert](https://terminfo.dev/feature/edit.insert-line)/[delete line](https://terminfo.dev/feature/edit.delete-line), and [cursor positioning](https://terminfo.dev/feature/cursor.cursor-position) (`CUP`) — but none of these can reach content above the visible screen. A common fallback is to erase the screen ([ED](https://terminfo.dev/feature/edit.erase-display) — Erase in Display) and redraw everything — sometimes the entire app area — on every token.
+Now the AI sends the next token. You need to update the live content, but some of it has crossed into terminal-owned history. **Terminals don't give you random-access mutation of scrollback.** They have scroll region (`DECSTBM`), insert/delete line, and cursor positioning (`CUP`) — but none of these can reach content above the visible screen. A common fallback is to erase the screen (ED — Erase in Display) and redraw everything — sometimes the entire app area — on every token.
 
 <HtmlDiagram :html="clearRedrawDiagram" />
 
@@ -53,11 +55,11 @@ Two forms of this:
 
 **Layout feedback loops.** A component renders, then measures its size, discovers it changed, and re-renders. Text wraps to 3 lines, container adjusts, text reflows to 2 lines, container adjusts, text wraps to 3 lines — visible oscillation between two states. Ink has hit this class of problem with `measureElement()`, which returns dimensions _after_ render, triggering a state update, triggering another render. Each intermediate pass flashes on screen.
 
-Claude Code's move to the [alternate screen](https://terminfo.dev/feature/screen.alternate-screen) appears to have reduced the worst scrollback-driven flicker (reason 1). But they had to rebuild everything the main buffer gives you for free: search (`Ctrl+O` then `/` instead of Cmd+F), text selection (custom click-and-drag handler), scrolling (PgUp/PgDn/mouse wheel capture), clipboard ([OSC 52](https://terminfo.dev/feature/osc.clipboard) for SSH/tmux), and history review. That `Ctrl+O` → `[` escape hatch — dumping the conversation back to native scrollback — shows the team knows users want scrollback.
+Claude Code's move to the alternate screen appears to have reduced the worst scrollback-driven flicker (reason 1). But they had to rebuild everything the main buffer gives you for free: search (`Ctrl+O` then `/` instead of Cmd+F), text selection (custom click-and-drag handler), scrolling (PgUp/PgDn/mouse wheel capture), clipboard (OSC 52 for SSH/tmux), and history review. That `Ctrl+O` → `[` escape hatch — dumping the conversation back to native scrollback — shows the team knows users want scrollback.
 
 But even with total cell-level control, users still see **garbled output**: blank areas, overlapping text, stale content. It's non-deterministic — sometimes the screen renders correctly, sometimes entire sections are empty.
 
-In one [public reverse-engineering thread](https://github.com/anthropics/claude-code/issues/42010), contributors proposed several plausible failure modes: previous-frame corruption during [DECSTBM](https://terminfo.dev/feature/scroll.scroll-region) scroll optimization, a style-cache edge case, and missing full-repaint recovery after terminal state disturbances (focus change, multiplexer reattach). The exact bugs may differ, but the failure shape is the same: the renderer emits a frame based on an incorrect belief about what the screen currently shows, and then lacks a reliable way to recover.
+In one [public reverse-engineering thread](https://github.com/anthropics/claude-code/issues/42010), contributors proposed several plausible failure modes: previous-frame corruption during scroll region optimization, a style-cache edge case, and missing full-repaint recovery after terminal state disturbances (focus change, multiplexer reattach). The exact bugs may differ, but the failure shape is the same: the renderer emits a frame based on an incorrect belief about what the screen currently shows, and then lacks a reliable way to recover.
 
 If the failure includes state incoherence or desync, better diffing alone won't fix it.
 
@@ -75,7 +77,7 @@ Here's the contrast between a pipeline where phases happen in separate event loo
 
 <HtmlDiagram :html="pipelineDiagram" />
 
-**Why the split matters for terminals but not the web:** React can prepare work off-DOM and commit atomically — the browser owns paint timing, so the user never sees a half-updated frame. In a terminal, [ANSI escape sequences](https://terminfo.dev/feature) written to stdout are processed immediately — there's no compositor holding back a partial frame. If the pipeline computes a frame from inconsistent state, that's what the user sees.
+**Why the split matters for terminals but not the web:** React can prepare work off-DOM and commit atomically — the browser owns paint timing, so the user never sees a half-updated frame. In a terminal, ANSI escape sequences written to stdout are processed immediately — there's no compositor holding back a partial frame. If the pipeline computes a frame from inconsistent state, that's what the user sees.
 
 **Why layout-before-render prevents feedback loops:** Frameworks that measure _after_ render create the oscillation described above. When the layout engine runs first — computing positions and sizes before any rendering — components know their dimensions on the first pass. There's no feedback loop because there's no feedback.
 
@@ -109,7 +111,7 @@ When a response finishes, `Static` virtualizes the output to app scrollback and 
 
 <HtmlDiagram :html="dirtyTrackingDiagram" />
 
-Silvery tracks changes at the source: per-node dirty flags in the render tree. Only dirty nodes re-render. Only changed cells generate output bytes. If a component re-renders but produces identical output, zero bytes go to stdout — no [ED3](https://terminfo.dev/feature/edit.erase-display) (erase scrollback), no screen clear, no flicker. This is a performance optimization layered on top of the invariants above, not a substitute for them.
+Silvery tracks changes at the source: per-node dirty flags in the render tree. Only dirty nodes re-render. Only changed cells generate output bytes. If a component re-renders but produces identical output, zero bytes go to stdout — no ED3 (erase scrollback), no screen clear, no flicker. This is a performance optimization layered on top of the invariants above, not a substitute for them.
 
 ::: details How deep does it go?
 The layout engine ([Flexily](https://github.com/beorn/flexily)) caches layout results and skips unchanged subtrees. The text measurement layer caches grapheme widths and line-break results. The render phase writes only changed cells. The output phase diffs the buffer and emits only changed ANSI sequences. End-to-end: ~169 microseconds for a typical interactive update (cursor move in a 1000-node tree, Apple M1 Max, 80×24, warm cache).
@@ -149,7 +151,7 @@ This isn't magic. There are real constraints.
 **Emulator variability is real.** xterm.js behaves differently from Ghostty, tmux changes behavior, Windows terminals differ. Some of Claude Code's worst reports may be emulator-specific, not purely app-architecture-specific. This is why multi-backend testing matters.
 
 ::: details What about synchronized output?
-[Synchronized output](https://terminfo.dev/feature/output.synchronized-output) ([DECSYNC](https://terminfo.dev/feature/output.synchronized-output), mode 2026) batches terminal output between `\e[?2026h` and `\e[?2026l` so partial frames never hit the screen. It helps — Silvery uses it when available. But it doesn't fix state mismatches within the pipeline, doesn't solve scrollback ownership, and doesn't help with desync recovery. It paints the wrong frame atomically instead of painting it torn.
+Synchronized output (mode 2026) batches terminal output between `\e[?2026h` and `\e[?2026l` so partial frames never hit the screen. It helps — Silvery uses it when available. But it doesn't fix state mismatches within the pipeline, doesn't solve scrollback ownership, and doesn't help with desync recovery. It paints the wrong frame atomically instead of painting it torn.
 :::
 
 ## How you verify a terminal renderer
