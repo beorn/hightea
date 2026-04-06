@@ -66,6 +66,9 @@ export { CopyProvider, useCopyProvider } from "./useCopyProvider"
 export { PasteProvider, usePaste } from "./usePaste"
 export type { PasteHandler } from "./usePaste"
 
+// Paste Event Bridge (runtime → PasteHandler context)
+export { usePasteEvents } from "./usePasteEvents"
+
 // List Item
 export { useListItem } from "./useListItem"
 export type { ListItemContext } from "./useListItem"
