@@ -96,7 +96,8 @@ describe("legacy Zod fallback", () => {
 
     const cmd = new Command("test").option("-n, --count <n>", "Count", legacySchema)
     cmd.parse(["node", "test", "--count", "42"], { from: "node" })
-    expect(cmd.opts().count).toBe(42)
+    // Legacy Zod (no ~standard) falls through to untyped — runtime detects it fine
+    expect((cmd.opts() as any).count).toBe(42)
   })
 
   it("throws on legacy Zod validation failure", () => {

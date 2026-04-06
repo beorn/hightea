@@ -1,10 +1,13 @@
 /**
  * Enhanced Commander Command with auto-colorized help, Standard Schema support,
- * and array-as-choices detection.
+ * array-as-choices detection, and **type-safe option inference**.
  *
  * Subclasses Commander's Command so `new Command("app")` just works --
  * it's Commander with auto-colorized help, automatic Standard Schema /
  * legacy Zod detection, and array choices in `.option()`.
+ *
+ * Each `.option()` call narrows the return type so that `.action()` and
+ * `.opts()` know exactly which options exist and what types they have.
  *
  * @example
  * ```ts
@@ -14,6 +17,11 @@
  *   .option("-p, --port <n>", "Port", port)
  *   .option("--tags <t>", "Tags", csv)
  *   .option("-e, --env <e>", "Env", ["dev", "staging", "prod"])
+ *   .action((opts) => {
+ *     opts.port   // number | undefined
+ *     opts.tags   // string[] | undefined
+ *     opts.env    // "dev" | "staging" | "prod" | undefined
+ *   })
  *
  * program.parse()
  * ```
@@ -21,7 +29,128 @@
 
 import { Command as BaseCommand, Help, Option } from "commander"
 import { colorizeHelp, shouldColorize } from "./colorize.ts"
-import type { StandardSchemaV1 } from "./presets.ts"
+import type { CLIType, StandardSchemaV1 } from "./presets.ts"
+
+/**
+ * Broad structural type for schema objects that have a `~standard` property.
+ * Matches both our `StandardSchemaV1<T>`, Zod v4's async-capable Standard Schema,
+ * and any other library implementing Standard Schema v1.
+ *
+ * Type extraction works via the `types` property (Standard Schema v1 convention).
+ */
+interface AnyStandardSchema {
+  readonly "~standard": {
+    readonly version: 1
+    readonly vendor: string
+    readonly validate: (value: unknown, ...args: any[]) => any
+    readonly types?: { readonly output: unknown } | undefined
+  }
+}
+
+/** Extract the output type from a Standard Schema v1 object. */
+type SchemaOutput<S extends AnyStandardSchema> = NonNullable<S["~standard"]["types"]>["output"]
+
+// ────────────────────────────────────────────────────────────────
+// Type-level flag parsing utilities
+// ────────────────────────────────────────────────────────────────
+
+/**
+ * Extract the long option name from a flags string.
+ *
+ * Examples:
+ *   "-v, --verbose"        → "verbose"
+ *   "--port <n>"           → "port"
+ *   "--dry-run"            → "dry-run"
+ *   "--no-color"           → "no-color"
+ *   "-o, --output [path]"  → "output"
+ */
+type ExtractLongName<S extends string> = S extends `${string}--${infer Rest}`
+  ? Rest extends `${infer Name} ${string}`
+    ? Name
+    : Rest
+  : S extends `-${infer C}, ${infer Rest}`
+    ? Rest extends `${infer Name} ${string}`
+      ? Name
+      : Rest
+    : S extends `-${infer C}`
+      ? C
+      : never
+
+/**
+ * Convert kebab-case to camelCase (matching Commander's attributeName()).
+ *
+ * "dry-run"        → "dryRun"
+ * "terminal-name"  → "terminalName"
+ * "verbose"        → "verbose"
+ */
+type CamelCase<S extends string> = S extends `${infer A}-${infer B}${infer Rest}`
+  ? `${A}${Uppercase<B>}${CamelCase<Rest>}`
+  : S
+
+/**
+ * Strip "no-" prefix from negated flags.
+ * "--no-color" → long name "no-color" → stripped to "color"
+ */
+type StripNo<S extends string> = S extends `no-${infer Rest}` ? Rest : S
+
+/**
+ * Derive the property key from a flags string.
+ * Applies: extract long name → strip "no-" → camelCase.
+ */
+type FlagKey<S extends string> = CamelCase<StripNo<ExtractLongName<S>>>
+
+/**
+ * Does the flags string contain a required value argument `<...>`?
+ */
+type HasRequiredArg<S extends string> = S extends `${string}<${string}>${string}` ? true : false
+
+/**
+ * Does the flags string contain an optional value argument `[...]`?
+ */
+type HasOptionalArg<S extends string> = S extends `${string}[${string}]${string}` ? true : false
+
+/**
+ * Does the flags string start with `--no-`?
+ */
+type IsNegated<S extends string> = ExtractLongName<S> extends `no-${string}` ? true : false
+
+/**
+ * Infer the value type for a flag based on the flags string and the
+ * optional third argument (parser function, Standard Schema, choices array).
+ *
+ * Rules (mirroring Commander runtime behavior):
+ *   --flag                    → boolean | undefined
+ *   --no-flag                 → boolean
+ *   --flag <value>            → string | undefined  (or parser return type)
+ *   --flag [value]            → string | boolean | undefined (or parser return type | boolean)
+ *   --flag <value>, parser fn → ReturnType<parser> | undefined
+ *   --flag <value>, CLIType<T> / StandardSchemaV1<T> → T | undefined
+ *   --flag <value>, choices[] → choices[number] | undefined
+ */
+type InferOptionType<Flags extends string, ParseArg = undefined> =
+  IsNegated<Flags> extends true
+    ? boolean
+    : HasRequiredArg<Flags> extends true
+      ? ParseArg extends readonly (infer C)[]
+        ? C | undefined
+        : ParseArg extends CLIType<infer T>
+          ? T | undefined
+          : ParseArg extends StandardSchemaV1<infer T>
+            ? T | undefined
+            : ParseArg extends (value: string, ...args: any[]) => infer R
+              ? R | undefined
+              : string | undefined
+      : HasOptionalArg<Flags> extends true
+        ? ParseArg extends readonly (infer C)[]
+          ? C | boolean | undefined
+          : ParseArg extends CLIType<infer T>
+            ? T | boolean | undefined
+            : ParseArg extends StandardSchemaV1<infer T>
+              ? T | boolean | undefined
+              : ParseArg extends (value: string, ...args: any[]) => infer R
+                ? R | boolean | undefined
+                : string | boolean | undefined
+        : boolean | undefined
 
 // --- Standard Schema support ---
 
@@ -167,7 +296,16 @@ function styleSectionTerm(term: string, helper: any): string {
     .join("")
 }
 
-export class Command extends BaseCommand {
+// ────────────────────────────────────────────────────────────────
+// Command class — runtime implementation (non-generic)
+//
+// The class itself is NOT generic. Type-safe option inference is
+// layered on via interface merging below (see `TypedOptionOverloads`).
+// This keeps the class fully compatible with Commander's base Command
+// (no `noImplicitOverride` or structural assignability issues).
+// ────────────────────────────────────────────────────────────────
+
+class _CommandBase extends BaseCommand {
   private _helpSectionList: StoredSection[] = []
   private _helpSectionsInstalled = false
 
@@ -255,8 +393,8 @@ export class Command extends BaseCommand {
   }
 
   // Subcommands also get colorized help, Standard Schema, and array choices
-  override createCommand(name?: string): Command {
-    return new Command(name)
+  override createCommand(name?: string): _CommandBase {
+    return new _CommandBase(name)
   }
 
   /**
@@ -381,4 +519,98 @@ export class Command extends BaseCommand {
       return this._renderSections("afterAll", helper, termWidth)
     })
   }
+}
+
+// ────────────────────────────────────────────────────────────────
+// Type-safe option inference layer
+//
+// The `Command` type wraps `_CommandBase` with a generic `Opts` parameter.
+// Each `.option()` overload returns a narrowed `Command<Opts & ...>`.
+// The runtime class is `_CommandBase` — `Command` is just a type alias
+// with a constructor wrapper.
+// ────────────────────────────────────────────────────────────────
+
+// ────────────────────────────────────────────────────────────────
+// Public type: Command<Opts>
+//
+// Interface merging adds typed `.option()` and `.opts()` overloads
+// on top of `_CommandBase`. The `@ts-expect-error` suppresses the
+// `opts()` return type conflict (we intentionally narrow it from
+// Commander's generic `<T>() => T` to a concrete `() => Opts`).
+// ────────────────────────────────────────────────────────────────
+
+// @ts-expect-error — opts() intentionally narrows from base <T>() => T to () => Opts
+export interface Command<Opts extends Record<string, unknown> = {}> extends _CommandBase {
+  /** Return option values with full type inference. */
+  opts(): Opts
+
+  /** Accept any `Command<...>` variant as a subcommand. */
+  addCommand(cmd: Command<any>, opts?: { isDefault?: boolean; hidden?: boolean; noHelp?: boolean }): this
+
+  /** Factory for subcommands — returns a fresh `Command<{}>`. */
+  createCommand(name?: string): Command<{}>
+
+  // -- Typed option overloads --
+
+  /** Add a choices option: `--env <e>`, `["dev", "staging", "prod"]` */
+  option<F extends string, const C extends readonly string[]>(
+    flags: F,
+    description: string,
+    choices: C,
+  ): Command<Opts & Record<FlagKey<F>, C[number] | undefined>>
+
+  /** Add an option with a CLIType preset (port, csv, uint, etc.) */
+  option<F extends string, T>(
+    flags: F,
+    description: string,
+    schema: CLIType<T>,
+    defaultValue?: T,
+  ): Command<Opts & Record<FlagKey<F>, T | undefined>>
+
+  /** Add an option with a Standard Schema v1 validator (Zod, Valibot, ArkType) */
+  option<F extends string, S extends AnyStandardSchema>(
+    flags: F,
+    description: string,
+    schema: S,
+    defaultValue?: SchemaOutput<S>,
+  ): Command<Opts & Record<FlagKey<F>, SchemaOutput<S> | undefined>>
+
+  /** Add an option with a parser function */
+  option<F extends string, T>(
+    flags: F,
+    description: string,
+    parseArg: (value: string, previous: T) => T,
+    defaultValue?: T,
+  ): Command<Opts & Record<FlagKey<F>, T | undefined>>
+
+  /** Add a boolean flag or string-value option (no parser) */
+  option<F extends string>(
+    flags: F,
+    description?: string,
+    defaultValue?: string | boolean,
+  ): Command<Opts & Record<FlagKey<F>, InferOptionType<F>>>
+
+  /**
+   * Fallback: accepts any third argument (legacy Zod, unknown schemas, etc.)
+   * that doesn't match the more specific overloads above.
+   */
+  option<F extends string>(flags: F, description: string, parseArgOrDefault: any, defaultValue?: any): Command<Opts>
+}
+
+/**
+ * Type-safe Commander Command with auto-colorized help, Standard Schema support,
+ * array-as-choices detection, and inferred option types.
+ *
+ * @example
+ * ```ts
+ * const cmd = new Command("deploy")
+ *   .option("-p, --port <n>", "Port", port)
+ *   .option("--verbose", "Verbose output")
+ *
+ * cmd.opts().port     // number | undefined
+ * cmd.opts().verbose  // boolean | undefined
+ * ```
+ */
+export const Command = _CommandBase as unknown as {
+  new (name?: string): Command<{}>
 }
