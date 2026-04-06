@@ -31,7 +31,8 @@ export default withMermaid(
   defineConfig({
     sitemap: { hostname: "https://silvery.dev" },
     lastUpdated: true,
-    srcExclude: ["blog/**"], // Blog not ready for public — local preview only
+    // Blog excluded by default (not ready for public). Use INCLUDE_BLOG=1 for local preview.
+    srcExclude: process.env.INCLUDE_BLOG ? [] : ["blog/**"],
     vite: {
       plugins: [
         llmstxt({

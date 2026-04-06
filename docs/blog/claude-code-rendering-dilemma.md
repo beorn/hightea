@@ -1,7 +1,7 @@
 ---
 title: "Why Claude Code Flickers"
 subtitle: "And What It Would Take to Fix It"
-description: "Claude Code's most-upvoted bug (~700 votes as of April 2026), their NO_FLICKER rewrite, and why fullscreen mode still shows blank areas. Why this class of terminal rendering bug is so persistent — and the pipeline architecture that prevents it."
+description: "Claude Code's most-upvoted rendering complaint (~700 votes as of April 2026), the NO_FLICKER rewrite, and why users still report blank areas in fullscreen mode. Why this class of terminal rendering bug persists — and the renderer invariants that prevent it."
 date: 2026-04-04
 ---
 
@@ -18,9 +18,9 @@ import zonesDiagram from '../public/blog/diagrams/04-zones.html?raw'
 
 <p style="font-size: 1.2em; color: var(--vp-c-text-2); margin-top: -8px; font-weight: 400">And What It Would Take to Fix It</p>
 
-Claude Code has spent months rewriting its renderer. They've [shipped a NO_FLICKER mode](https://x.com/bcherny/status/2039421575422980329), moved to the alternate screen buffer, built a [differential renderer with TypedArray double-buffering](https://news.ycombinator.com/item?id=46701013) — and users are still reporting blank areas and visual glitches across [dozens of GitHub issues](https://github.com/anthropics/claude-code/issues/42670) spanning inline flicker, fullscreen corruption, and scrollback destruction. That strongly suggests the problem isn't only a bad diff. At least part of it is architectural.
+Claude Code has spent months iterating on its renderer. Publicly, Claude Code has [shipped a NO_FLICKER mode](https://x.com/bcherny/status/2039421575422980329), moved much of the UI to the alternate screen, and built a [differential renderer with TypedArray double-buffering](https://news.ycombinator.com/item?id=46701013). Yet users still report blank regions, stale rows, and other visual glitches across [dozens of GitHub issues](https://github.com/anthropics/claude-code/issues/42670) spanning inline flicker, fullscreen corruption, and scrollback breakage. The recurrence across both inline and fullscreen paths suggests the problem is not only the diff algorithm; some of it is architectural.
 
-I don't have Claude Code's internal code — the discussion below is based on public comments, GitHub issues, and observed behavior. The team is clearly talented, and they're solving this under production constraints across xterm.js, VS Code, tmux, SSH, Windows, and native terminals. Anthropic may well fix today's fullscreen glitches with targeted patches. My claim is narrower: the recurring tradeoff between stable streaming updates, native scrollback, and robust recovery is architectural.
+I don't have Claude Code's internal code — the discussion below is based on public comments, GitHub issues, and observed behavior. The team is clearly talented, and they're solving this under production constraints across xterm.js, VS Code, tmux, SSH, Windows, and native terminals. Anthropic may well fix today's fullscreen glitches with targeted patches. My claim is narrower: once a terminal UI wants all three — stable streaming updates, native scrollback, and robust recovery after desync — the tradeoffs become architectural.
 
 This post explains why this class of bug is so persistent, and what rendering architecture actually prevents it.
 
@@ -34,13 +34,15 @@ Terminal apps with rich, mutable streaming output usually face a forced choice. 
 
 **Alternate buffer** (also called alternate screen or fullscreen mode) is what vim, htop, and other fullscreen apps use — a separate canvas with full cell-level control, but no scrollback. When the app exits, the alternate buffer is discarded and the original main buffer is restored, as if the app was never there.
 
-Append-only logs don't have this problem — output scrolls up and stays. The hard case is output that keeps changing after earlier lines have already scrolled away. That's what every AI agent, streaming test runner, and deployment dashboard needs — and it doesn't fit neatly into either buffer. From here, the failure modes split cleanly: in the main buffer, flicker comes from redrawing content you no longer own; in fullscreen, it comes from emitting frames you can't generate and recover authoritatively.
+Append-only logs don't have this problem — output scrolls up and stays. The hard case is output that keeps changing after some of its earlier lines have already scrolled off-screen. That's what every AI agent, streaming test runner, and deployment dashboard needs — and it doesn't fit neatly into either buffer. From here, the failure modes split cleanly: in the main buffer, flicker comes from redrawing content you no longer own; in fullscreen, it comes from emitting frames you can't generate and recover authoritatively.
 
 ## Flicker reason 1: Inline redraws
 
+As long as the mutable region still fits on screen, terminals can update it incrementally. The pathology starts once part of that region has scrolled into history.
+
 Choose the main buffer and you get scrollback. But the moment your streaming content grows taller than the terminal — which happens within the first long AI response — part of it scrolls into the scrollback region above the viewport.
 
-Now the AI sends the next token. You need to update the live content, but some of it has crossed into terminal-owned history. **Terminals don't give you random-access mutation of scrollback.** They have scroll region (`DECSTBM`), insert/delete line, and cursor positioning (`CUP`) — but none of these can reach content above the visible screen. A common fallback is to erase the screen (ED — Erase in Display) and redraw everything — sometimes the entire app area — on every token.
+Now the AI sends the next token. You need to update the live content, but some of it has crossed into terminal-owned history. **No terminal provides random-access mutation of scrollback.** They have scroll region (`DECSTBM`), insert/delete line, and cursor positioning (`CUP`) — but none of these can reach content above the visible screen. At that point, one common fallback is a clear-and-repaint cycle — typically an ED (Erase in Display) clear followed by re-emission of the entire app region, on every token.
 
 <HtmlDiagram :html="clearRedrawDiagram" />
 
@@ -56,9 +58,9 @@ Two forms of this:
 
 **Layout feedback loops.** A component renders, then measures its size, discovers it changed, and re-renders. Text wraps to 3 lines, container adjusts, text reflows to 2 lines, container adjusts, text wraps to 3 lines — visible oscillation between two states. Ink has hit this class of problem with `measureElement()`, which returns dimensions _after_ render, triggering a state update, triggering another render. Each intermediate pass flashes on screen.
 
-Claude Code's move to the alternate screen appears to have reduced the worst scrollback-driven flicker (reason 1). But they had to rebuild everything the main buffer gives you for free: search (`Ctrl+O` then `/` instead of Cmd+F), text selection (custom click-and-drag handler), scrolling (PgUp/PgDn/mouse wheel capture), clipboard (OSC 52 for SSH/tmux), and history review. That `Ctrl+O` → `[` escape hatch — dumping the conversation back to native scrollback — shows the team knows users want scrollback.
+Claude Code's move to the alternate screen appears to have reduced the worst scrollback-driven flicker (reason 1). But they also had to recreate several affordances users normally get from the main buffer: search (`Ctrl+O` then `/` instead of Cmd+F), text selection (custom click-and-drag handler), scrolling (PgUp/PgDn/mouse wheel capture), clipboard (OSC 52 for SSH/tmux), and history review. That `Ctrl+O` → `[` transcript dump is itself evidence that users still want a bridge back to native scrollback.
 
-But even with total cell-level control, users still see **garbled output**: blank areas, overlapping text, stale content. It's non-deterministic — sometimes the screen renders correctly, sometimes entire sections are empty.
+But even with full cell-level control over the active screen, users still report blank regions, stale rows, and occasional overlap. It's non-deterministic — sometimes the screen renders correctly, sometimes entire sections are empty.
 
 In one [public reverse-engineering thread](https://github.com/anthropics/claude-code/issues/42010), contributors proposed several plausible failure modes: previous-frame corruption during scroll region optimization, a style-cache edge case, and missing full-repaint recovery after terminal state disturbances (focus change, multiplexer reattach). The exact bugs may differ, but the failure shape is the same: the renderer emits a frame based on an incorrect belief about what the screen currently shows, and then lacks a reliable way to recover.
 
@@ -72,7 +74,7 @@ For this class of app, a reliable renderer needs three invariants:
 
 1. **Coherent frame generation** — every emitted frame is derived from one consistent snapshot of app state, layout, and styling. No async gaps where state can drift between phases.
 2. **Authoritative screen state** — the app maintains a model of what's on screen. The diff is computed against this model, not against what the terminal might have.
-3. **Reliable resynchronization** — when anything disrupts the terminal's buffer (resize, tmux detach/attach, focus change), the app detects it and forces a full repaint from its model.
+3. **Reliable resynchronization** — when the app knows it may have lost sync with the terminal (resize, reattach, exiting passthrough, other known divergence points), it resets the terminal state it depends on and forces a full repaint from its model.
 
 Here's the contrast between a pipeline where phases happen in separate event loop turns, and one where they're fused:
 
@@ -82,7 +84,7 @@ Here's the contrast between a pipeline where phases happen in separate event loo
 
 **Why layout-before-render prevents feedback loops:** Frameworks that measure _after_ render create the oscillation described above. When the layout engine runs first — computing positions and sizes before any rendering — components know their dimensions on the first pass. There's no feedback loop because there's no feedback.
 
-[Silvery](https://silvery.dev) uses a custom React reconciler that enforces all three invariants. After React produces a new tree, the entire layout → render → output pipeline runs as a single synchronous transaction. The reconciler APIs — Suspense, `useTransition`, `useDeferredValue` — remain available, though concurrent rendering semantics matter less in a renderer that flushes synchronously. The tradeoff is reduced interruptibility — but in the workloads I've measured, a typical Silvery frame is about [169 microseconds](https://silvery.dev/guide/silvery-vs-ink#performance). The practical cost has been small.
+[Silvery](https://silvery.dev) was built around those three invariants. After React produces a new tree, the entire layout → render → output pipeline runs as a single synchronous transaction. The reconciler APIs — Suspense, `useTransition`, `useDeferredValue` — remain available, though concurrent rendering semantics matter less in a renderer that flushes synchronously. The tradeoff is reduced interruptibility, but in my benchmarked workloads the cost has been small: a typical Silvery frame is about [169 microseconds](https://silvery.dev/guide/silvery-vs-ink#performance).
 
 ## An architecture built to avoid it
 
@@ -106,7 +108,7 @@ Instead of choosing between "flicker with scrollback" or "no flicker without scr
 <InputPrompt />
 ```
 
-When a response finishes, `Static` virtualizes the output to app scrollback and unmounts the React component. From there it graduates to terminal scrollback. The active render tree can stay bounded as completed items graduate out. New output only happens at the bottom — graduated scrollback doesn't trigger auto-scroll, so the user can review history while content streams below.
+When a response finishes, `Static` materializes it into app-managed immutable history and unmounts the live React subtree. Later, that immutable history can graduate into native terminal scrollback. That keeps the live render tree bounded even as the overall conversation grows. New output only happens at the bottom — graduated scrollback doesn't trigger auto-scroll, so the user can review history while content streams below.
 
 ### Incremental rendering
 
@@ -120,35 +122,37 @@ The difference is where change tracking happens. A screen-level diff compares en
 The layout engine ([Flexily](https://github.com/beorn/flexily)) caches layout results and skips unchanged subtrees. The text measurement layer caches grapheme widths and line-break results. The render phase writes only changed cells. The output phase diffs the buffer and emits only changed ANSI sequences. End-to-end: ~169 microseconds for a typical interactive update (cursor move in a 1000-node tree, Apple M1 Max, 80×24, warm cache).
 :::
 
-### Same components, one-line switch
+### One component model, two output modes
 
 ```tsx
 render(<App />, term) // fullscreen
 render(<App />, term, { mode: "inline" }) // inline with scrollback
 ```
 
-Same components in both modes. Fullscreen gets transactional rendering with authoritative screen state and desync recovery. Inline gets all of that plus app-managed scrollback.
+Same components in both modes. Fullscreen gets atomic frame generation, an authoritative screen model, and repaint recovery. Inline keeps the same core pipeline, then layers app-managed scrollback on top.
 
 ### How the approaches compare
 
-|  | CC inline (pre-NO_FLICKER) | CC fullscreen (NO_FLICKER) | Silvery fullscreen | Silvery inline |
-| --- | --- | --- | --- | --- |
-| **Scrollback** | Native (but redraws disrupt it) | None while active (`Ctrl+O [` dumps transcript) | None while active | Graduated: app scrollback → terminal scrollback |
-| **Cmd+F** | Native | Reimplemented (`Ctrl+O /`) | In-app | Native for graduated + in-app |
-| **Incremental rendering** | No (full redraw every token) | Yes (cell-level buffer diff) | Yes (per-node dirty flags) | Yes (dirty flags + ED3 on structural events) |
-| **Pipeline** | Async (phases in separate turns) | Async (phases in separate turns) | Synchronous transaction | Synchronous transaction |
-| **Layout** | Measure-after-render | Measure-after-render | Layout-before-render | Layout-before-render |
-| **Desync recovery** | None | None apparent | Full repaint from model | Full repaint from model |
-| **Render tree** | Grows with conversation | Visible content only | Visible content only | Bounded (items graduate out) |
-| **History while streaming** | Auto-scroll yanks back | `Ctrl+O [` to browse | Scroll within app | Scroll naturally |
+|                             | CC inline (observed, pre-NO_FLICKER)           | CC fullscreen (observed, NO_FLICKER)                    | Silvery fullscreen         | Silvery inline                                  |
+| --------------------------- | ---------------------------------------------- | ------------------------------------------------------- | -------------------------- | ----------------------------------------------- |
+| **Scrollback**              | Native (but redraws disrupt it)                | None while active (`Ctrl+O [` dumps transcript)         | None while active          | Graduated: app scrollback → terminal scrollback |
+| **Cmd+F**                   | Native                                         | Reimplemented (`Ctrl+O /`)                              | In-app                     | Native for graduated + in-app                   |
+| **Incremental rendering**   | Observed: frequent large-region redraws        | Yes (cell-level buffer diff)                            | Yes (per-node dirty flags) | Yes (dirty flags + ED3 on structural events)    |
+| **Pipeline**                | Appears multi-turn / non-atomic                | Appears multi-turn / non-atomic                         | Synchronous transaction    | Synchronous transaction                         |
+| **Layout**                  | Appears measure-after-render                   | Appears measure-after-render                            | Layout-before-render       | Layout-before-render                            |
+| **Desync recovery**         | No public evidence of recovery                 | No public evidence of recovery                          | Full repaint from model    | Full repaint from model                         |
+| **Render tree**             | Not publicly documented                        | Visible content only                                    | Visible content only       | Bounded (items graduate out)                    |
+| **History while streaming** | Users report being pulled back to bottom       | `Ctrl+O [` to browse                                    | Scroll within app          | Scroll naturally                                |
 
-> Claude Code evolved from column 1 to column 2. Silvery provides columns 3 and 4. The core architectural differences are pipeline atomicity (sync vs async), layout ordering (before vs after render), scrollback management (graduated vs all-or-nothing), and desync recovery (repaint vs hope).
+> **Note:** Claude Code cells are based on public comments, issue reports, and observed behavior — not internal source code.
+
+> Claude Code has clearly moved from column 1 toward column 2. Silvery aims to offer columns 3 and 4. The key differences are frame atomicity, layout timing, scrollback strategy, and repaint recovery.
 
 ## Honest caveats
 
 This isn't magic. There are real constraints.
 
-**Silvery inline mode still redraws scrollback.** When app scrollback needs re-emission (resize, item graduation), Silvery does ED3 + re-emit — the same clear-and-redraw mechanism as reason 1. The difference is frequency: this happens on infrequent structural events (a few times per session) instead of on every streaming token (50 times per second). The redraw mechanism is the same; the trigger is different. In fullscreen mode, redraws don't happen at all — only incremental cell updates.
+**Silvery inline mode still redraws scrollback.** When app scrollback needs re-emission (resize, item graduation), Silvery does ED3 + re-emit — the same clear-and-redraw mechanism as reason 1. The difference is frequency: this happens on infrequent structural events (a few times per session) instead of on every streaming token (50 times per second). The redraw mechanism is the same; the trigger is different. In fullscreen mode, normal updates are incremental cell diffs; full repaints are reserved for recovery events.
 
 **Graduation requires an immutability boundary.** Once content is released to terminal scrollback, changing it means replaying history. Items that might still change (collapsible output, edited messages) stay in app scrollback.
 
@@ -182,7 +186,7 @@ expect(term.screen).toContainText("Hello world")
 
 ## The real decision
 
-If you're building a terminal app that streams output, you'll hit this dilemma. The question isn't "inline or fullscreen." It's whether your rendering pipeline is built around the right invariants: coherent frames from consistent state, an authoritative screen model, and a recovery path when the terminal diverges.
+If you're building a terminal app with long-lived mutable output, you'll likely hit this dilemma. The question isn't "inline or fullscreen." It's whether your rendering pipeline is built around the right invariants: coherent frames from consistent state, an authoritative screen model, and a recovery path when the terminal diverges.
 
 The broader point is that this tradeoff keeps reappearing unless the renderer owns both the frame model and the scrollback boundary.
 

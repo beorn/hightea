@@ -352,9 +352,13 @@
       <!-- ANSI Output -->
       <div class="stage stage-ansi">
         <div class="phase-heading">Output</div>
-        <div class="ansi-preview"><span style="color: #6b7585">\e[32m</span><span style="color: #85d6a0">Header</span><span style="color: #6b7585">\e[0m</span>
-<span style="color: #6b7585">\e[36m</span><span style="color: #6ccad4">Sidebar</span><span style="color: #6b7585">\e[0m</span>
-<span style="color: #6b7585">\e[37m</span><span style="color: #eff0f3">Footer</span><span style="color: #6b7585">\e[0m</span></div>
+        <div class="ansi-preview">
+          <span style="color: #6b7585">\e[32m</span><span style="color: #85d6a0">Header</span
+          ><span style="color: #6b7585">\e[0m</span> <span style="color: #6b7585">\e[36m</span
+          ><span style="color: #6ccad4">Sidebar</span><span style="color: #6b7585">\e[0m</span>
+          <span style="color: #6b7585">\e[37m</span><span style="color: #eff0f3">Footer</span
+          ><span style="color: #6b7585">\e[0m</span>
+        </div>
         <div class="stage-sub">ANSI sequences</div>
       </div>
 
@@ -376,27 +380,27 @@
         <div class="phase-heading">Terminals</div>
         <div class="fanout-zone">
           <div class="backends-stack">
-          <div class="backend-row">
-            <div class="backend-line"></div>
-            <div class="backend-chip highlight">xterm.js</div>
-            <div class="backend-line"></div>
+            <div class="backend-row">
+              <div class="backend-line"></div>
+              <div class="backend-chip highlight">xterm.js</div>
+              <div class="backend-line"></div>
+            </div>
+            <div class="backend-row">
+              <div class="backend-line"></div>
+              <div class="backend-chip">Ghostty</div>
+              <div class="backend-line"></div>
+            </div>
+            <div class="backend-row">
+              <div class="backend-line"></div>
+              <div class="backend-chip">Kitty</div>
+              <div class="backend-line"></div>
+            </div>
+            <div class="backend-row">
+              <div class="backend-line" style="opacity: 0.4"></div>
+              <div class="backend-chip" style="opacity: 0.5; border-style: dashed">...</div>
+              <div class="backend-line" style="opacity: 0.4"></div>
+            </div>
           </div>
-          <div class="backend-row">
-            <div class="backend-line"></div>
-            <div class="backend-chip">Ghostty</div>
-            <div class="backend-line"></div>
-          </div>
-          <div class="backend-row">
-            <div class="backend-line"></div>
-            <div class="backend-chip">Kitty</div>
-            <div class="backend-line"></div>
-          </div>
-          <div class="backend-row">
-            <div class="backend-line" style="opacity: 0.4"></div>
-            <div class="backend-chip" style="opacity: 0.5; border-style: dashed">...</div>
-            <div class="backend-line" style="opacity: 0.4"></div>
-          </div>
-        </div>
         </div>
       </div>
 
@@ -416,18 +420,21 @@
       <!-- Screen Buffer as terminal mockup with scrollback -->
       <div style="display: flex; flex-direction: column; align-items: center; flex-shrink: 1">
         <div class="phase-heading">Screen</div>
-        <div class="buffer-scrollback"><span style="color: #6b7585">Done: task 1</span>
-<span style="color: #6b7585">Done: task 2</span></div>
+        <div class="buffer-scrollback">
+          <span style="color: #6b7585">Done: task 1</span> <span style="color: #6b7585">Done: task 2</span>
+        </div>
         <div class="buffer-terminal">
           <div class="buffer-chrome">
             <div class="buffer-dot close"></div>
             <div class="buffer-dot minimize"></div>
             <div class="buffer-dot maximize"></div>
           </div>
-          <div class="buffer-body"><span class="cell-match">Header</span>
-<span class="cell-match">Sidebar</span>
-Card item
-<span class="cell-match">Footer</span></div>
+          <div class="buffer-body">
+            <span class="cell-match">Header</span>
+            <span class="cell-match">Sidebar</span>
+            Card item
+            <span class="cell-match">Footer</span>
+          </div>
         </div>
         <div class="buffer-title">Screen + Scrollback</div>
       </div>
@@ -448,11 +455,24 @@ Card item
       <!-- Assertions -->
       <div class="assert-detail">
         <div class="phase-heading">Tests</div>
-        <div style="font-size: 9px; color: rgba(100, 116, 160, 0.7); font-weight: 600; text-align: center; line-height: 1.2; display: block; margin-bottom: 3px">
-          Termless<br>tests
+        <div
+          style="
+            font-size: 9px;
+            color: rgba(100, 116, 160, 0.7);
+            font-weight: 600;
+            text-align: center;
+            line-height: 1.2;
+            display: block;
+            margin-bottom: 3px;
+          "
+        >
+          Termless<br />tests
         </div>
-        <div class="assert-code"><span class="assert-fn">expect</span>(screen)
- .<span class="assert-fn">toBe</span>(<span class="assert-str">"Hdr"</span>)</div>
+        <div class="assert-code">
+          <span class="assert-fn">expect</span>(screen) .<span class="assert-fn">toBe</span>(<span class="assert-str"
+            >"Hdr"</span
+          >)
+        </div>
         <div style="display: flex; gap: 5px">
           <span class="assert-result result-pass">&#10003; pass</span>
           <span class="assert-result result-fail">&#10007; fail</span>
