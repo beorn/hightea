@@ -151,13 +151,13 @@ describe("array choices", () => {
 })
 
 describe("typed arguments", () => {
-  it("receives arguments in action handler", () => {
+  it("receives arguments merged into opts", () => {
     let received: { env?: string; tag?: string } = {}
     const cmd = new Command("test")
       .argument("<env>", "Environment")
       .argument("[tag]", "Optional tag")
-      .action((env, tag) => {
-        received = { env, tag }
+      .action((opts) => {
+        received = { env: opts.env, tag: opts.tag }
       })
     cmd.parse(["node", "test", "production", "v1.0"], { from: "node" })
     expect(received.env).toBe("production")
@@ -169,24 +169,107 @@ describe("typed arguments", () => {
     const cmd = new Command("test")
       .argument("<env>", "Environment")
       .argument("[tag]", "Optional tag")
-      .action((env, tag) => {
-        received = { env, tag }
+      .action((opts) => {
+        received = { env: opts.env, tag: opts.tag }
       })
     cmd.parse(["node", "test", "production"], { from: "node" })
     expect(received.env).toBe("production")
     expect(received.tag).toBeUndefined()
   })
 
-  it("action receives opts after arguments", () => {
+  it("action receives args and opts merged together", () => {
     let receivedOpts: any
     const cmd = new Command("test")
       .argument("<env>", "Environment")
       .option("-f, --force", "Force")
-      .action((_env, opts) => {
+      .action((opts) => {
         receivedOpts = opts
       })
     cmd.parse(["node", "test", "prod", "--force"], { from: "node" })
+    expect(receivedOpts.env).toBe("prod")
     expect(receivedOpts.force).toBe(true)
+  })
+
+  it("argument with choices restricts valid values", () => {
+    let received: any
+    const cmd = new Command("test").argument("<env>", "Environment", ["dev", "staging", "prod"]).action((opts) => {
+      received = opts
+    })
+    cmd.parse(["node", "test", "dev"], { from: "node" })
+    expect(received.env).toBe("dev")
+  })
+
+  it("argument with choices rejects invalid values", () => {
+    const cmd = new Command("test").argument("<env>", "Environment", ["dev", "staging", "prod"]).action(() => {})
+    cmd.exitOverride()
+    cmd.configureOutput({ writeErr: () => {} })
+    expect(() => {
+      cmd.parse(["node", "test", "invalid"], { from: "node" })
+    }).toThrow()
+  })
+
+  it("argument with parser coerces value", () => {
+    let received: any
+    const cmd = new Command("test").argument("<port>", "Port", parseInt).action((opts) => {
+      received = opts
+    })
+    cmd.parse(["node", "test", "3000"], { from: "node" })
+    expect(received.port).toBe(3000)
+    expect(typeof received.port).toBe("number")
+  })
+
+  it("argument with Standard Schema validates", () => {
+    let received: any
+    const cmd = new Command("test").argument("<port>", "Port", z.coerce.number()).action((opts) => {
+      received = opts
+    })
+    cmd.parse(["node", "test", "8080"], { from: "node" })
+    expect(received.port).toBe(8080)
+  })
+
+  it("kebab-case argument name becomes camelCase", () => {
+    let received: any
+    const cmd = new Command("test").argument("<service-name>", "Service name").action((opts) => {
+      received = opts
+    })
+    cmd.parse(["node", "test", "my-api"], { from: "node" })
+    expect(received.serviceName).toBe("my-api")
+  })
+
+  it("variadic argument collects multiple values", () => {
+    let received: any
+    const cmd = new Command("test").argument("<files...>", "Files to process").action((opts) => {
+      received = opts
+    })
+    cmd.parse(["node", "test", "a.txt", "b.txt", "c.txt"], { from: "node" })
+    expect(received.files).toEqual(["a.txt", "b.txt", "c.txt"])
+  })
+
+  it("action without typed arguments uses Commander default behavior", () => {
+    // When no .argument() calls are made, .action() passes through to Commander
+    let receivedOpts: any
+    const cmd = new Command("test").option("-v, --verbose", "Verbose").action((opts) => {
+      receivedOpts = opts
+    })
+    cmd.parse(["node", "test", "--verbose"], { from: "node" })
+    expect(receivedOpts.verbose).toBe(true)
+  })
+
+  it("multiple args + multiple opts all merge correctly", () => {
+    let received: any
+    const cmd = new Command("test")
+      .argument("<service>", "Service")
+      .argument("[env]", "Env")
+      .option("-p, --port <n>", "Port", parseInt)
+      .option("-v, --verbose", "Verbose")
+      .action((opts) => {
+        received = opts
+      })
+    cmd.parse(["node", "test", "api", "prod", "--port", "3000", "--verbose"], { from: "node" })
+    expect(received.service).toBe("api")
+    expect(received.env).toBe("prod")
+    expect(received.port).toBe(3000)
+    expect(received.verbose).toBe(true)
   })
 })
 

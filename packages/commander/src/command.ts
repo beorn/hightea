@@ -87,6 +87,93 @@ type CamelCase<S extends string> = S extends `${infer A}-${infer B}${infer Rest}
   ? `${A}${Uppercase<B>}${CamelCase<Rest>}`
   : S
 
+// ────────────────────────────────────────────────────────────────
+// Type-level argument parsing utilities
+// ────────────────────────────────────────────────────────────────
+
+/**
+ * Extract the argument name from a flags string.
+ *
+ * Examples:
+ *   "<service>"       → "service"
+ *   "[env]"           → "env"
+ *   "<files...>"      → "files"
+ *   "<service-name>"  → "service-name"
+ */
+type ExtractArgName<S extends string> = S extends `<${infer Name}...>`
+  ? Name
+  : S extends `<${infer Name}>`
+    ? Name
+    : S extends `[${infer Name}...]`
+      ? Name
+      : S extends `[${infer Name}]`
+        ? Name
+        : never
+
+/** Is the argument required (wrapped in `<...>`)? */
+type IsArgRequired<S extends string> = S extends `<${string}>` ? true : false
+
+/** Is the argument variadic (ends with `...>` or `...]`)? */
+type IsArgVariadic<S extends string> = S extends `${string}...${string}` ? true : false
+
+/**
+ * Derive the property key from an argument flags string.
+ * Applies: extract name → camelCase.
+ */
+type ArgKey<S extends string> = CamelCase<ExtractArgName<S>>
+
+/**
+ * Reject command name strings that contain argument syntax.
+ * `"deploy <service>"` → never (forces use of `.argument()` instead).
+ * `"deploy"` → `"deploy"` (passes through).
+ */
+type RejectArgSyntax<S extends string> = S extends `${string}<${string}` | `${string}[${string}]` ? never : S
+
+/**
+ * Infer the value type for an argument based on its flags string and
+ * the optional parser/choices/schema.
+ *
+ * Rules:
+ *   <required>            → string
+ *   [optional]            → string | undefined
+ *   <variadic...>         → string[]
+ *   [variadic...]         → string[]
+ *   with parser fn        → ReturnType<parser> (+ | undefined if optional)
+ *   with CLIType<T>       → T (+ | undefined if optional)
+ *   with StandardSchema   → T (+ | undefined if optional)
+ *   with choices[]        → choices[number] (+ | undefined if optional)
+ */
+type InferArgType<Flags extends string, ParseArg = undefined> =
+  IsArgVariadic<Flags> extends true
+    ? ParseArg extends readonly (infer C)[]
+      ? C[]
+      : ParseArg extends CLIType<infer T>
+        ? T[]
+        : ParseArg extends StandardSchemaV1<infer T>
+          ? T[]
+          : ParseArg extends (value: string, ...args: any[]) => infer R
+            ? R[]
+            : string[]
+    : IsArgRequired<Flags> extends true
+      ? ParseArg extends readonly (infer C)[]
+        ? C
+        : ParseArg extends CLIType<infer T>
+          ? T
+          : ParseArg extends StandardSchemaV1<infer T>
+            ? T
+            : ParseArg extends (value: string, ...args: any[]) => infer R
+              ? R
+              : string
+      : ParseArg extends readonly (infer C)[]
+        ? C | undefined
+        : ParseArg extends CLIType<infer T>
+          ? T | undefined
+          : ParseArg extends StandardSchemaV1<infer T>
+            ? T | undefined
+            : ParseArg extends (value: string, ...args: any[]) => infer R
+              ? R | undefined
+              : string | undefined
+
 /**
  * Strip "no-" prefix from negated flags.
  * "--no-color" → long name "no-color" → stripped to "color"
@@ -309,6 +396,9 @@ class _CommandBase extends BaseCommand {
   private _helpSectionList: StoredSection[] = []
   private _helpSectionsInstalled = false
 
+  /** Argument names registered via typed .argument() — used by .action() to merge into opts. */
+  _typedArgNames: string[] = []
+
   constructor(name?: string) {
     super(name)
     colorizeHelp(this as any)
@@ -341,6 +431,62 @@ class _CommandBase extends BaseCommand {
       return super.option(flags, description ?? "", parseArgOrDefault, defaultValue)
     }
     return super.option(flags, description ?? "", parseArgOrDefault)
+  }
+
+  /**
+   * Add an argument with smart third-argument detection.
+   *
+   * Same detection as `.option()`: array → choices, Standard Schema → parser,
+   * legacy Zod → parser, function → parser, anything else → default value.
+   * Tracks argument names for `.action()` merging.
+   */
+  override argument(flags: string, description?: string, parseArgOrDefault?: any, defaultValue?: any): this {
+    // Extract the camelCase name from the flags string for action() merging
+    const rawName = flags.replace(/[<\[\]>.]/g, "").trim()
+    const camelName = rawName.replace(/-([a-z])/g, (_: string, c: string) => c.toUpperCase())
+    this._typedArgNames.push(camelName)
+
+    if (Array.isArray(parseArgOrDefault)) {
+      const arg = this.createArgument(flags, description ?? "")
+      arg.choices(parseArgOrDefault as string[])
+      this.addArgument(arg)
+      return this
+    }
+    if (isStandardSchema(parseArgOrDefault)) {
+      return super.argument(flags, description ?? "", standardSchemaParser(parseArgOrDefault), defaultValue)
+    }
+    if (isLegacyZodSchema(parseArgOrDefault)) {
+      return super.argument(flags, description ?? "", legacyZodParser(parseArgOrDefault), defaultValue)
+    }
+    if (typeof parseArgOrDefault === "function") {
+      return super.argument(flags, description ?? "", parseArgOrDefault, defaultValue)
+    }
+    return super.argument(flags, description ?? "", parseArgOrDefault)
+  }
+
+  /**
+   * Register an action callback that receives a single merged opts object.
+   *
+   * When typed `.argument()` calls have been made, Commander's positional args
+   * are merged into the opts object by their camelCase names. The callback
+   * always receives `(opts)` — one parameter containing both options and arguments.
+   */
+  override action(fn: (...args: any[]) => any): this {
+    const argNames = this._typedArgNames
+    if (argNames.length === 0) {
+      // No typed arguments — use Commander's default behavior
+      return super.action(fn)
+    }
+    // Wrap: merge positional args into the opts object
+    return super.action((...args: any[]) => {
+      // Commander passes: (arg1, arg2, ..., opts, command)
+      const opts = args[args.length - 2] ?? {}
+      const merged = { ...opts }
+      for (let i = 0; i < argNames.length; i++) {
+        merged[argNames[i]!] = args[i]
+      }
+      return fn(merged)
+    })
   }
 
   /**
@@ -595,6 +741,82 @@ export interface Command<Opts extends Record<string, unknown> = {}> extends _Com
    * that doesn't match the more specific overloads above.
    */
   option<F extends string>(flags: F, description: string, parseArgOrDefault: any, defaultValue?: any): Command<Opts>
+
+  // -- Typed argument overloads --
+  // Arguments merge into the same Opts bag as options.
+
+  /** Add a choices argument: `<env>`, `["dev", "staging", "prod"]` */
+  argument<F extends string, const C extends readonly string[]>(
+    flags: F,
+    description: string,
+    choices: C,
+  ): Command<
+    Opts &
+      Record<
+        ArgKey<F>,
+        IsArgVariadic<F> extends true ? C[number][] : IsArgRequired<F> extends true ? C[number] : C[number] | undefined
+      >
+  >
+
+  /** Add an argument with a CLIType preset (port, csv, uint, etc.) */
+  argument<F extends string, T>(
+    flags: F,
+    description: string,
+    schema: CLIType<T>,
+    defaultValue?: T,
+  ): Command<Opts & Record<ArgKey<F>, InferArgType<F, CLIType<T>>>>
+
+  /** Add an argument with a Standard Schema v1 validator (Zod, Valibot, ArkType) */
+  argument<F extends string, S extends AnyStandardSchema>(
+    flags: F,
+    description: string,
+    schema: S,
+    defaultValue?: SchemaOutput<S>,
+  ): Command<Opts & Record<ArgKey<F>, InferArgType<F, StandardSchemaV1<SchemaOutput<S>>>>>
+
+  /** Add an argument with a parser function */
+  argument<F extends string, T>(
+    flags: F,
+    description: string,
+    parseArg: (value: string, previous: T) => T,
+    defaultValue?: T,
+  ): Command<Opts & Record<ArgKey<F>, InferArgType<F, (value: string, previous: T) => T>>>
+
+  /** Add a string argument (no parser) — required, optional, or variadic */
+  argument<F extends string>(
+    flags: F,
+    description?: string,
+    defaultValue?: string,
+  ): Command<Opts & Record<ArgKey<F>, InferArgType<F>>>
+
+  /** Fallback: accepts any third argument */
+  argument<F extends string>(flags: F, description: string, parseArgOrDefault: any, defaultValue?: any): Command<Opts>
+
+  // -- Typed action overload --
+  // When typed arguments are registered, action receives (opts) — one merged object.
+
+  /** Action callback receiving the merged opts (options + arguments). */
+  action(fn: (opts: Opts) => void | Promise<void>): this
+
+  // -- Typed command overload --
+
+  /**
+   * Create a subcommand. Returns a fresh `Command<{}>`.
+   *
+   * **Do not define arguments in the command name string** (e.g. `"deploy <service>"`).
+   * Use `.argument()` on the returned command for typed positional arguments.
+   */
+  command<S extends string>(
+    nameAndArgs: RejectArgSyntax<S>,
+    opts?: { isDefault?: boolean; hidden?: boolean; noHelp?: boolean },
+  ): Command<{}>
+
+  /** Overload for command with description (attached-action subcommand, returns parent). */
+  command<S extends string>(
+    nameAndArgs: RejectArgSyntax<S>,
+    description: string,
+    opts?: { isDefault?: boolean; hidden?: boolean; noHelp?: boolean; executableFile?: string },
+  ): this
 }
 
 /**

@@ -75,6 +75,27 @@ Options with [Zod](https://github.com/colinhacks/zod) schemas or built-in types 
 
 Full reference, type table, and API details at **[silvery.dev/reference/commander](https://silvery.dev/reference/commander)**.
 
+## Note on `.action()` callback signature
+
+When using typed `.argument()`, positional args are merged into the opts object
+alongside options. The `.action()` callback receives a single typed parameter:
+
+```ts
+new Command("deploy")
+  .argument("<service>", "Service to deploy")
+  .argument("[env]", "Environment", ["dev", "staging", "prod"] as const)
+  .option("--verbose", "Verbose")
+  .action((opts) => {
+    opts.service // string
+    opts.env // "dev" | "staging" | "prod" | undefined
+    opts.verbose // boolean | undefined
+  })
+```
+
+If you define args in the `.command()` string instead (e.g. `.command("deploy <service>")`),
+Commander's default behavior applies (separate positional parameters, untyped).
+For full type safety, prefer `.argument()` on the subcommand.
+
 ## Replaces `@commander-js/extra-typings`
 
 [`@commander-js/extra-typings`](https://github.com/commander-js/extra-typings) pioneered chain-inferred option types for Commander.js — each `.option()` call narrows the type of `.opts()`. We use the same idea but with a much simpler implementation (~100 lines vs. 1536 lines) because we own the `Command` class rather than wrapping someone else's.
