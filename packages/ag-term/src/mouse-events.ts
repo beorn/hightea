@@ -156,6 +156,7 @@ export function hitTest(node: AgNode, x: number, y: number): AgNode | null {
 }
 
 // ============================================================================
+<<<<<<< HEAD
 // Selection Hit Testing
 // ============================================================================
 
@@ -249,6 +250,21 @@ export function findContainBoundary(node: AgNode): SelectionScope | null {
     current = current.parent
   }
   return null
+}
+
+// ============================================================================
+// Draggable Resolution
+// ============================================================================
+
+/**
+ * Check if a node has draggable=true.
+ * Unlike userSelect, draggable is NOT inherited — only the exact node is checked.
+ * Ancestors' draggable prop has no effect on children.
+ */
+export function resolveNodeDraggable(node: AgNode | null): boolean {
+  if (!node) return false
+  const props = node.props as { draggable?: boolean }
+  return props.draggable === true
 }
 
 // ============================================================================

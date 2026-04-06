@@ -287,6 +287,7 @@ export {
   checkDoubleClick,
   createDoubleClickState,
   computeEnterLeave,
+  resolveNodeDraggable,
   type SilveryMouseEvent,
   type SilveryWheelEvent,
   type MouseEventProcessorOptions,
