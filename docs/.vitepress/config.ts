@@ -272,6 +272,8 @@ export default withMermaid(
             { text: "CSS Alignment", link: "/guide/css-alignment" },
             { text: "ANSI Layering", link: "/guide/ansi-layering" },
             { text: "Runtime Layers", link: "/guide/runtime-layers" },
+            { text: "Providers and Plugins", link: "/guide/providers" },
+            { text: "Headless Machines", link: "/guide/headless-machines" },
             { text: "Runtime Getting Started", link: "/guide/runtime-getting-started" },
             { text: "Runtime Migration", link: "/guide/runtime-migration" },
             { text: "Imports", link: "/guide/imports" },

@@ -358,6 +358,31 @@ for await (const event of events) {
 }
 ```
 
+## Composition: pipe() and Providers
+
+The layers above describe _what_ silvery can do. **Providers** describe _how features are wired together_ at app startup.
+
+`pipe()` composes providers left-to-right. Each provider is a function `(app) => enhancedApp` that adds one capability:
+
+```typescript
+import { pipe, createApp, withReact, withTerminal, withFocus, withDomEvents } from '@silvery/create'
+
+const app = pipe(
+  createApp(store),       // base: Zustand store, useApp
+  withReact(<Board />),   // mount React reconciler
+  withTerminal(process),  // terminal I/O, alternate screen, raw mode
+  withFocus(),            // Tab/Escape focus navigation
+  withDomEvents(),        // mouse dispatch, hit testing, click-to-focus
+)
+await app.run()
+```
+
+The `AppPlugin<A, B>` type is just `(app: A) => B` — no base class, no registration. TypeScript infers the accumulating type through the chain, catching ordering mistakes at compile time.
+
+Built-in providers: `withApp`, `withReact`, `withRender`, `withTerminal`, `withFocus`, `withDomEvents`, `withDiagnostics`, `withLinks`. See the [Providers and Plugins](./providers.md) guide for the full list and how to write custom providers.
+
+Providers consume **headless machines** from `@silvery/headless` — pure `(state, action) -> state` functions with no framework dependency. See [Headless Machines](./headless-machines.md).
+
 ## Examples
 
 | File                  | Layer             | Description             |

@@ -41,6 +41,32 @@ console.log(state.index) // 1
 
 `Machine`, `UpdateFn`, `SelectListState`, `SelectListAction`, `ReadlineState`, `ReadlineAction`
 
+## Naming Conventions
+
+Machine files are flat with no suffix:
+
+- `readline.ts` (not `readline-machine.ts`)
+- `select-list.ts` (not `select-list-machine.ts`)
+
+Each file exports:
+
+- `{name}Update(state, action)` — pure update function
+- `create{Name}State(opts)` — state factory
+- `{Name}State`, `{Name}Action` — types
+
+The `createMachine()` container is for consumers who need observability (subscribe, send). The update function itself is framework-agnostic.
+
+## Writing a New Machine
+
+1. Create a file named after the concept (e.g., `clipboard.ts`)
+2. Define `State` and `Action` types (immutable, serializable)
+3. Write a pure `update(state, action) -> state` function
+4. Export a `createState(opts)` factory
+5. Add to `index.ts` barrel export
+6. Optionally add a React hook in `react.ts`
+
+See the [Headless Machines guide](https://silvery.dev/guide/headless-machines) for full examples.
+
 ## License
 
 MIT

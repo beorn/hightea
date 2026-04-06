@@ -76,6 +76,25 @@ ag.render({ fresh: true }) // force non-incremental render
 - Internal prevBuffer management — no caller tracking needed
 - `executeRender()` delegates to `createAg` internally
 
+## Composition Architecture
+
+Silvery apps are assembled via `pipe()` — each **provider** (`with-*` function) adds one capability to the app object. Providers live in `@silvery/create`. Pure state machines live in `@silvery/headless`.
+
+- **[Providers and Plugins](docs/guide/providers.md)** — `pipe()` composition, `AppPlugin` type, all built-in providers, how to write custom providers
+- **[Headless Machines](docs/guide/headless-machines.md)** — `createMachine()`, pure update functions (readline, select-list), naming conventions, React hooks
+
+Quick reference:
+
+```typescript
+const app = pipe(
+  createApp(store),       // base app
+  withReact(<Board />),   // React reconciler
+  withTerminal(process),  // terminal I/O
+  withFocus(),            // Tab/Escape focus
+  withDomEvents(),        // mouse dispatch
+)
+```
+
 ## Commands
 
 ```bash
