@@ -43,7 +43,8 @@
 
 import { createCapabilityRegistry, type CapabilityRegistry } from "./internal/capability-registry"
 import { CLIPBOARD_CAPABILITY } from "./internal/capabilities"
-import { createOSC52Clipboard, type ClipboardCapability } from "@silvery/ag-term/features"
+import { createOSC52Clipboard, createRichClipboard, type ClipboardCapability } from "@silvery/ag-term/features"
+import { createAdvancedClipboard } from "@silvery/ag-term/ansi"
 
 // =============================================================================
 // Types
@@ -123,6 +124,14 @@ export interface WithTerminalOptions {
    * Default: false
    */
   focusReporting?: boolean
+
+  /**
+   * Enable OSC 5522 advanced clipboard (rich copy with MIME types).
+   * When true, clipboard copies include both text/plain and text/html.
+   * When false or unset, uses OSC 52 (plain text only).
+   * Default: false
+   */
+  advancedClipboard?: boolean
 }
 
 /**
@@ -189,10 +198,28 @@ export function withTerminal<T extends RunnableApp>(
     const existingRegistry = (app as any).capabilityRegistry as CapabilityRegistry | undefined
     const registry = existingRegistry ?? createCapabilityRegistry()
 
-    // Create OSC 52 clipboard using stdout.write
-    const clipboard = createOSC52Clipboard((data: string) => {
-      proc.stdout.write(data)
-    })
+    // Create clipboard capability.
+    // When advancedClipboard is enabled, use OSC 5522 for rich copy (text/plain + text/html).
+    // Otherwise fall back to OSC 52 (plain text only).
+    const clipboard: ClipboardCapability = termConfig.advancedClipboard
+      ? createRichClipboard(
+          createAdvancedClipboard({
+            write: (data: string) => {
+              proc.stdout.write(data)
+            },
+            onData: (handler: (data: string) => void) => {
+              const listener = (buf: Buffer) => handler(buf.toString())
+              proc.stdin.on("data", listener)
+              return () => {
+                proc.stdin.removeListener("data", listener)
+              }
+            },
+            supported: true,
+          }),
+        )
+      : createOSC52Clipboard((data: string) => {
+          proc.stdout.write(data)
+        })
     registry.register(CLIPBOARD_CAPABILITY, clipboard)
 
     return Object.assign(Object.create(app), {

@@ -9,6 +9,7 @@
  */
 
 import type { ClipboardBackend } from "../clipboard"
+import type { AdvancedClipboard } from "../ansi/advanced-clipboard"
 
 // ============================================================================
 // Types
@@ -18,6 +19,13 @@ import type { ClipboardBackend } from "../clipboard"
 export interface ClipboardCapability {
   /** Copy plain text to the clipboard. */
   copy(text: string): void
+
+  /**
+   * Copy rich content (text/plain + text/html) to the clipboard.
+   * Optional — when absent, only plain text copy is available.
+   * When present, selection features should prefer this over copy().
+   */
+  copyRich?(text: string, html: string): void
 }
 
 // ============================================================================
@@ -54,6 +62,25 @@ export function wrapClipboardBackend(backend: ClipboardBackend): ClipboardCapabi
   return {
     copy(text: string): void {
       backend.write({ text })
+    },
+  }
+}
+
+/**
+ * Create a rich clipboard capability backed by AdvancedClipboard (OSC 5522).
+ *
+ * Provides both `copy(text)` and `copyRich(text, html)`. When the terminal
+ * supports OSC 5522, both MIME types are sent. When it doesn't, the
+ * AdvancedClipboard falls back to OSC 52 for plain text only.
+ */
+export function createRichClipboard(advancedClipboard: AdvancedClipboard): ClipboardCapability {
+  return {
+    copy(text: string): void {
+      advancedClipboard.copyText(text)
+    },
+
+    copyRich(text: string, html: string): void {
+      advancedClipboard.copyRich(text, html)
     },
   }
 }

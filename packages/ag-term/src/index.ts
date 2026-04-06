@@ -546,6 +546,7 @@ export {
 } from "@silvery/headless/selection"
 
 export { renderSelectionOverlay } from "./selection-renderer"
+export { extractHtml } from "./extract-html"
 
 // =============================================================================
 // Find (re-exported from @silvery/headless)

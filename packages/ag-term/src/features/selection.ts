@@ -24,6 +24,7 @@ import {
 } from "@silvery/headless/selection"
 import type { TerminalBuffer } from "../buffer"
 import type { ClipboardCapability } from "./clipboard-capability"
+import { extractHtml } from "../extract-html"
 
 // ============================================================================
 // Types
@@ -88,20 +89,29 @@ export function createSelectionFeature(options: SelectionFeatureOptions): Select
     }
   }
 
-  function processEffects(effects: SelectionEffect[]): void {
+  function processEffects(effects: SelectionEffect[], richRange?: SelectionRange | null): void {
     for (const effect of effects) {
       if (effect.type === "render") {
         invalidate()
       } else if (effect.type === "copy" && clipboard) {
-        clipboard.copy(effect.text)
+        if (clipboard.copyRich && richRange) {
+          const html = extractHtml(buffer, richRange)
+          clipboard.copyRich(effect.text, html)
+        } else {
+          clipboard.copy(effect.text)
+        }
       }
     }
   }
 
-  function updateState(newState: TerminalSelectionState, effects: SelectionEffect[]): void {
+  function updateState(
+    newState: TerminalSelectionState,
+    effects: SelectionEffect[],
+    richRange?: SelectionRange | null,
+  ): void {
     selectionState = newState
     notifyListeners()
-    processEffects(effects)
+    processEffects(effects, richRange)
   }
 
   return {
@@ -140,7 +150,7 @@ export function createSelectionFeature(options: SelectionFeatureOptions): Select
         }
       }
 
-      updateState(newState, copyEffects)
+      updateState(newState, copyEffects, newState.range)
     },
 
     setRange(range: SelectionRange | null): void {

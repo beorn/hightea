@@ -21,5 +21,5 @@ export { createCopyModeFeature } from "./copy-mode"
 export type { CopyModeFeature, CopyModeFeatureOptions } from "./copy-mode"
 
 // Clipboard
-export { createOSC52Clipboard, wrapClipboardBackend } from "./clipboard-capability"
+export { createOSC52Clipboard, wrapClipboardBackend, createRichClipboard } from "./clipboard-capability"
 export type { ClipboardCapability } from "./clipboard-capability"
