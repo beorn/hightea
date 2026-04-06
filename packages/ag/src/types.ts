@@ -244,6 +244,14 @@ export interface BoxProps extends FlexboxProps, StyleProps, TestProps, MouseEven
    */
   userSelect?: UserSelect
 
+  /**
+   * Whether this node can be dragged via mouse.
+   * When true, mousedown + drag past threshold initiates a node drag gesture
+   * instead of text selection. Not inherited — only the node with draggable=true
+   * is draggable, not its children.
+   */
+  draggable?: boolean
+
   onLayout?: (layout: Rect) => void
 
   /**
