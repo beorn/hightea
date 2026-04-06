@@ -9,7 +9,8 @@
 
 import React from "react"
 import { Box, Text, H1, H2, Small, Muted, Strong, Kbd, HR } from "../../src/index.js"
-import { run } from "@silvery/ag-term/runtime"
+import { createApp } from "@silvery/create/create-app"
+import { pipe, withReact, withTerminal, withDomEvents, withFocus } from "@silvery/create/plugins"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 import { useSelection } from "../../packages/ag-react/src/hooks/useSelection"
 
@@ -173,11 +174,17 @@ function TextSelectionDemo(): React.ReactElement {
 // ============================================================================
 
 if (import.meta.main) {
-  using handle = await run(
-    <ExampleBanner meta={meta} controls="Drag select  Alt+Drag force select  Ctrl+C quit">
-      <TextSelectionDemo />
-    </ExampleBanner>,
-    { mode: "fullscreen" },
+  const app = pipe(
+    createApp(() => () => ({})),
+    withReact(
+      <ExampleBanner meta={meta} controls="Drag select  Alt+Drag force select  Ctrl+C quit">
+        <TextSelectionDemo />
+      </ExampleBanner>,
+    ),
+    withTerminal(process, { mouse: true }),
+    withFocus(),
+    withDomEvents(),
   )
+  using handle = await app.run()
   await handle.waitUntilExit()
 }
