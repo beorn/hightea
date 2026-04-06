@@ -33,9 +33,7 @@ function SelectableTextPanel(): React.ReactElement {
       <Text>Drag your mouse over this text to select it.</Text>
       <Text>Multi-line selections work across paragraphs.</Text>
       <Box height={1} />
-      <Text color="$muted">
-        The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.
-      </Text>
+      <Text color="$muted">The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.</Text>
     </Box>
   )
 }

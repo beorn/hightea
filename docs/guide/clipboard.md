@@ -207,8 +207,8 @@ When the terminal does not support OSC 5522, the advanced clipboard falls back t
 
 ```typescript
 interface ClipboardEntry {
-  mime: string                  // "text/plain", "text/html", "image/png", etc.
-  data: string | Uint8Array    // text or binary data
+  mime: string // "text/plain", "text/html", "image/png", etc.
+  data: string | Uint8Array // text or binary data
 }
 
 interface AdvancedClipboard {
@@ -233,7 +233,7 @@ const clipboard = createAdvancedClipboard({
     process.stdin.on("data", listener)
     return () => process.stdin.removeListener("data", listener)
   },
-  supported: true,  // set based on terminal detection
+  supported: true, // set based on terminal detection
 })
 ```
 
@@ -250,7 +250,7 @@ clipboard.copyRich("Hello", "<b>Hello</b>")
 clipboard.copy([
   { mime: "text/plain", data: "Hello" },
   { mime: "text/html", data: "<b>Hello</b>" },
-  { mime: "image/png", data: pngBytes },  // Uint8Array
+  { mime: "image/png", data: pngBytes }, // Uint8Array
 ])
 ```
 
@@ -281,14 +281,14 @@ process.stdout.write(DISABLE_PASTE_EVENTS)
 
 ### Relationship to OSC 52
 
-| Feature | OSC 52 | OSC 5522 |
-|---------|--------|----------|
-| Plain text copy | Yes | Yes |
-| Multiple MIME types | No | Yes |
-| Binary data (images) | No | Yes |
-| Large payload chunking | No | Yes (4096 byte chunks) |
-| Paste events | No | Yes |
-| Terminal support | Broad | Kitty 0.28+ |
+| Feature                | OSC 52 | OSC 5522               |
+| ---------------------- | ------ | ---------------------- |
+| Plain text copy        | Yes    | Yes                    |
+| Multiple MIME types    | No     | Yes                    |
+| Binary data (images)   | No     | Yes                    |
+| Large payload chunking | No     | Yes (4096 byte chunks) |
+| Paste events           | No     | Yes                    |
+| Terminal support       | Broad  | Kitty 0.28+            |
 
 The `createAdvancedClipboard` factory handles fallback automatically: when `supported` is false, `copyText` and `copyRich` use OSC 52, and `copy` extracts the text/plain entry for OSC 52.
 

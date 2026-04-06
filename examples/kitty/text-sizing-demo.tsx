@@ -60,10 +60,7 @@ function banner(): string {
 
   lines.push("")
   lines.push(rule)
-  lines.push(
-    styled("  TEXT SIZING DEMO", BOLD, CYAN) +
-      styled("  —  OSC 66 font scale (Kitty v0.40+)", DIM, GRAY),
-  )
+  lines.push(styled("  TEXT SIZING DEMO", BOLD, CYAN) + styled("  —  OSC 66 font scale (Kitty v0.40+)", DIM, GRAY))
   lines.push(rule)
   lines.push("")
 
@@ -96,18 +93,12 @@ function mixedLayout(): string {
   lines.push(`  ${atScale(2, styled("Breaking News", BOLD, CYAN))}`)
   lines.push(`  ${atScale(1.5, styled("TypeScript 6.0 Released with Native Terminal UI Support", BOLD))}`)
   lines.push("")
-  lines.push(
-    `  ${styled("TOKYO", BOLD, MAGENTA)} ${GRAY}${ITALIC}— In a surprise announcement today,${RESET}`,
-  )
-  lines.push(
-    `  ${styled("the TypeScript team unveiled native terminal UI", ITALIC)}`,
-  )
-  lines.push(
-    `  ${styled("primitives built directly into the type system.", ITALIC)}`,
-  )
+  lines.push(`  ${styled("TOKYO", BOLD, MAGENTA)} ${GRAY}${ITALIC}— In a surprise announcement today,${RESET}`)
+  lines.push(`  ${styled("the TypeScript team unveiled native terminal UI", ITALIC)}`)
+  lines.push(`  ${styled("primitives built directly into the type system.", ITALIC)}`)
   lines.push("")
   lines.push(
-    `  ${atScale(0.5, styled('Photo credit: J. Developer / Terminal Times  |  Published: 2026-04-06  |  Reading time: 3 min', GRAY))}`,
+    `  ${atScale(0.5, styled("Photo credit: J. Developer / Terminal Times  |  Published: 2026-04-06  |  Reading time: 3 min", GRAY))}`,
   )
   lines.push("")
 
@@ -139,10 +130,14 @@ function codeAnnotations(): string {
 
   // Simulated code with inline annotations at different sizes
   lines.push(`  ${styled("function", MAGENTA)} ${styled("greet", CYAN)}(name: ${styled("string", GREEN)}) {`)
-  lines.push(`    ${styled("return", MAGENTA)} ${styled('`Hello, ${name}!`', GREEN)}  ${atScale(0.5, styled("<-- template literal", GRAY, ITALIC))}`)
+  lines.push(
+    `    ${styled("return", MAGENTA)} ${styled("`Hello, ${name}!`", GREEN)}  ${atScale(0.5, styled("<-- template literal", GRAY, ITALIC))}`,
+  )
   lines.push(`  }`)
   lines.push("")
-  lines.push(`  ${atScale(0.5, styled("Note: This function uses ES6 template literals for string interpolation.", GRAY))}`)
+  lines.push(
+    `  ${atScale(0.5, styled("Note: This function uses ES6 template literals for string interpolation.", GRAY))}`,
+  )
   lines.push(`  ${atScale(0.5, styled("Performance: O(1) — no loop, no allocation beyond the result string.", GRAY))}`)
   lines.push("")
 
@@ -168,8 +163,8 @@ function terminalSupport(): string {
   lines.push(`    ${styled("Other terminals silently ignore the escape sequences.", GRAY)}`)
   lines.push("")
   lines.push(`  ${styled("Protocol:", DIM)} ${styled("OSC 66 ; s=<scale> BEL", CYAN)}`)
-  lines.push(`  ${styled("API:", DIM)}      ${styled('textScaled(2)', CYAN)} ${styled("// set 2x size", GRAY)}`)
-  lines.push(`  ${styled("           ", DIM)} ${styled('resetTextScale()', CYAN)} ${styled("// back to 1x", GRAY)}`)
+  lines.push(`  ${styled("API:", DIM)}      ${styled("textScaled(2)", CYAN)} ${styled("// set 2x size", GRAY)}`)
+  lines.push(`  ${styled("           ", DIM)} ${styled("resetTextScale()", CYAN)} ${styled("// back to 1x", GRAY)}`)
   lines.push("")
 
   return lines.join("\n")

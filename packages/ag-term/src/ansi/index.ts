@@ -212,5 +212,11 @@ export function bgOverride(text: string): string {
 // Advanced Clipboard (OSC 5522)
 // =============================================================================
 
-export { createAdvancedClipboard, parseOsc5522Response, parsePasteData, ENABLE_PASTE_EVENTS, DISABLE_PASTE_EVENTS } from "./advanced-clipboard"
+export {
+  createAdvancedClipboard,
+  parseOsc5522Response,
+  parsePasteData,
+  ENABLE_PASTE_EVENTS,
+  DISABLE_PASTE_EVENTS,
+} from "./advanced-clipboard"
 export type { AdvancedClipboard, AdvancedClipboardOptions, ClipboardEntry } from "./advanced-clipboard"

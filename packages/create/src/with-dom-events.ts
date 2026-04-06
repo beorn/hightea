@@ -111,9 +111,7 @@ export interface AppWithDomEvents {
  * @param options - Configuration (focusManager for click-to-focus)
  * @returns Plugin function that enhances an App with DOM event dispatch
  */
-export function withDomEvents(
-  options: WithDomEventsOptions = {},
-): <T extends App>(app: T) => T & AppWithDomEvents {
+export function withDomEvents(options: WithDomEventsOptions = {}): <T extends App>(app: T) => T & AppWithDomEvents {
   return <T extends App>(app: T): T & AppWithDomEvents => {
     // Get focus manager from options or from the app itself
     const fm = options.focusManager ?? (app as App & { focusManager?: FocusManager }).focusManager
@@ -305,7 +303,7 @@ export function withDomEvents(
           const originalRun = Reflect.get(target, prop, receiver) as (...a: any[]) => any
           if (typeof originalRun === "function") {
             return function enhancedRun(element: unknown, options?: Record<string, unknown>) {
-              const opts = { ...(options ?? {}), capabilityRegistry: registry }
+              const opts = { ...options, capabilityRegistry: registry }
               return originalRun.call(target, element, opts)
             }
           }

@@ -96,6 +96,7 @@ process.stdout.write(textScaled(0.5) + "fine print" + resetTextScale())
 ```
 
 Scale values:
+
 - `3.0` — triple size (display titles)
 - `2.0` — double size (headings)
 - `1.5` — large (subheadings)

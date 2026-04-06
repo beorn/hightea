@@ -17,13 +17,7 @@
 
 import type { AgNode } from "@silvery/ag/types"
 import type { Position } from "@silvery/headless/pointer"
-import {
-  createDragState,
-  createDragEvent,
-  findDropTarget,
-  type DragState,
-  type DragEventProps,
-} from "../drag-events"
+import { createDragState, createDragEvent, findDropTarget, type DragState, type DragEventProps } from "../drag-events"
 
 // ============================================================================
 // Types
@@ -174,11 +168,7 @@ export function createDragFeature(options: DragFeatureOptions): DragFeature {
       return true
     },
 
-    handleMouseMove(
-      col: number,
-      row: number,
-      hitTestFn: (x: number, y: number) => AgNode | null,
-    ): void {
+    handleMouseMove(col: number, row: number, hitTestFn: (x: number, y: number) => AgNode | null): void {
       const pos: Position = { x: col, y: row }
 
       // --- Pointing phase: check threshold ---
@@ -232,11 +222,7 @@ export function createDragFeature(options: DragFeatureOptions): DragFeature {
       invalidate()
     },
 
-    handleMouseUp(
-      col: number,
-      row: number,
-      hitTestFn: (x: number, y: number) => AgNode | null,
-    ): void {
+    handleMouseUp(col: number, row: number, hitTestFn: (x: number, y: number) => AgNode | null): void {
       // If still in pointing phase (threshold not crossed), just reset
       if (pointing && !dragState) {
         pointing = null

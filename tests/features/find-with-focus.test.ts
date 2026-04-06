@@ -8,7 +8,11 @@ import { describe, test, expect, vi } from "vitest"
 import { createFindFeature } from "../../packages/ag-term/src/find-feature"
 import { createBuffer } from "../../packages/ag-term/src/buffer"
 import type { TerminalBuffer } from "../../packages/ag-term/src/buffer"
-import { FIND_CAPABILITY, SELECTION_CAPABILITY, CLIPBOARD_CAPABILITY } from "../../packages/create/src/internal/capabilities"
+import {
+  FIND_CAPABILITY,
+  SELECTION_CAPABILITY,
+  CLIPBOARD_CAPABILITY,
+} from "../../packages/create/src/internal/capabilities"
 
 // ============================================================================
 // Helpers

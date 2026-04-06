@@ -394,6 +394,9 @@ export { useListItem } from "./hooks/useListItem"
 export type { ListItemContext } from "./hooks/useListItem"
 export { useInteractiveState } from "./hooks/useInteractiveState"
 export { useSelection } from "./hooks/useSelection"
+export { useFindState } from "./hooks/useFindState"
+export { useCopyModeState } from "./hooks/useCopyModeState"
+export { useDragState } from "./hooks/useDragState"
 
 // App-level Providers (Phase 4)
 export { SearchProvider, useSearch, useSearchOptional } from "./providers/SearchProvider"
@@ -431,7 +434,14 @@ export { useTransition, useDeferredValue, useId } from "react"
 export { useRuntime } from "./hooks/useRuntime"
 
 // Contexts for advanced usage (usually hooks are preferred)
-export { CacheBackendContext, TermContext, FocusManagerContext, RuntimeContext, StderrContext, CapabilityRegistryContext } from "./context"
+export {
+  CacheBackendContext,
+  TermContext,
+  FocusManagerContext,
+  RuntimeContext,
+  StderrContext,
+  CapabilityRegistryContext,
+} from "./context"
 export type { CacheBackend, RuntimeContextValue, BaseRuntimeEvents, CapabilityLookup } from "./context"
 
 // Theming
