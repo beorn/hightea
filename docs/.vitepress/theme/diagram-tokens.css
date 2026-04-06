@@ -109,13 +109,13 @@
   /* Terminal syntax colors (Dracula-adjacent) */
   --d-term-prompt: #85d6a0;
   --d-term-cmd: #eff0f3;
-  --d-term-comment: #6b7585;
+  --d-term-comment: #8a96ab;   /* brightened — was #6b7585 (too dim on dark bg) */
   --d-term-success: #a5d6a7;
   --d-term-keyword: #d2a0f0;
   --d-term-func: #79c0ff;
   --d-term-string: #f0d080;
   --d-term-bullet: #6ccad4;
-  --d-term-dimmed: #555d6e;
+  --d-term-dimmed: #7a8294;    /* brightened — was #555d6e (too dim) */
   --d-term-cursor: #3cda5c;
 
   /* ═══════════════════════════════════════════

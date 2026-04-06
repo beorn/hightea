@@ -139,17 +139,17 @@
     min-width: 60px;
     text-align: center;
     background: var(--d-annotation-bg);
-    border: 1.5px solid rgba(0, 0, 0, 0.08);
-    color: #334155;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    border: 1.5px solid var(--d-annotation-border);
+    color: var(--d-annotation-title);
+    box-shadow: var(--d-annotation-shadow);
     position: relative;
     flex-shrink: 1;
   }
 
   .diagram-05-termless .backend-chip.highlight {
-    border-color: rgba(86, 180, 233, 0.3);
-    background: rgba(86, 180, 233, 0.06);
-    color: #1e5f8a;
+    border-color: rgba(86, 180, 233, 0.5);
+    background: rgba(86, 180, 233, 0.12);
+    color: #56b4e9;
   }
 
   /* === SCREEN BUFFER as terminal window === */
@@ -360,7 +360,8 @@
         <div class="phase-heading">Screen</div>
         <pre
           class="buffer-scrollback"
-        ><span style="color: #6b7585">Done: task 1</span> <span style="color: #6b7585">Done: task 2</span></pre>
+        ><span style="color: #6b7585">Done: task 1</span>
+<span style="color: #6b7585">Done: task 2</span></pre>
         <div class="buffer-terminal">
           <div class="buffer-chrome">
             <div class="buffer-dot close"></div>
