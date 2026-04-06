@@ -10,6 +10,7 @@ import {
   type CopyModeState,
   type CopyModeEffect,
   type CopyModePosition,
+  type CopyModeBuffer,
   createCopyModeState,
   copyModeUpdate,
 } from "@silvery/ag-term/copy-mode"
@@ -23,6 +24,8 @@ export interface UseCopyModeOptions {
   onCopy?: (anchor: CopyModePosition, head: CopyModePosition, lineWise: boolean) => void
   /** Called to update the selection display */
   onSetSelection?: (anchor: CopyModePosition, head: CopyModePosition, lineWise: boolean) => void
+  /** Called when auto-scroll is needed (cursor at buffer edge) */
+  onScroll?: (direction: "up" | "down", amount: number) => void
 }
 
 export interface UseCopyModeResult {
@@ -34,9 +37,15 @@ export interface UseCopyModeResult {
   exit(): void
   /** Move cursor in a direction */
   move(direction: "up" | "down" | "left" | "right"): void
-  /** Move cursor to line start */
+  /** Move cursor forward by word (w) */
+  moveWordForward(buffer?: CopyModeBuffer): void
+  /** Move cursor backward by word (b) */
+  moveWordBackward(buffer?: CopyModeBuffer): void
+  /** Move cursor to end of word (e) */
+  moveWordEnd(buffer?: CopyModeBuffer): void
+  /** Move cursor to line start (0) */
   moveToLineStart(): void
-  /** Move cursor to line end */
+  /** Move cursor to line end ($) */
   moveToLineEnd(): void
   /** Toggle character-wise visual mode */
   visual(): void
@@ -62,6 +71,9 @@ export function useCopyMode(options?: UseCopyModeOptions): UseCopyModeResult {
             break
           case "setSelection":
             options?.onSetSelection?.(effect.anchor, effect.head, effect.lineWise)
+            break
+          case "scroll":
+            options?.onScroll?.(effect.direction, effect.amount)
             break
           // "render" effects are handled by React re-render from setState
         }
@@ -132,6 +144,39 @@ export function useCopyMode(options?: UseCopyModeOptions): UseCopyModeResult {
     })
   }, [processEffects])
 
+  const moveWordForward = useCallback(
+    (buffer?: CopyModeBuffer) => {
+      setState((prev) => {
+        const [next, effects] = copyModeUpdate({ type: "moveWordForward", buffer }, prev)
+        processEffects(effects)
+        return next
+      })
+    },
+    [processEffects],
+  )
+
+  const moveWordBackward = useCallback(
+    (buffer?: CopyModeBuffer) => {
+      setState((prev) => {
+        const [next, effects] = copyModeUpdate({ type: "moveWordBackward", buffer }, prev)
+        processEffects(effects)
+        return next
+      })
+    },
+    [processEffects],
+  )
+
+  const moveWordEnd = useCallback(
+    (buffer?: CopyModeBuffer) => {
+      setState((prev) => {
+        const [next, effects] = copyModeUpdate({ type: "moveWordEnd", buffer }, prev)
+        processEffects(effects)
+        return next
+      })
+    },
+    [processEffects],
+  )
+
   const yank = useCallback(() => {
     setState((prev) => {
       const [next, effects] = copyModeUpdate({ type: "yank" }, prev)
@@ -145,6 +190,9 @@ export function useCopyMode(options?: UseCopyModeOptions): UseCopyModeResult {
     enter,
     exit,
     move,
+    moveWordForward,
+    moveWordBackward,
+    moveWordEnd,
     moveToLineStart,
     moveToLineEnd,
     visual,

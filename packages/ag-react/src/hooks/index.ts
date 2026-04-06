@@ -51,9 +51,12 @@ export {
 } from "./useTerminalSelection"
 export type { UseTerminalSelectionResult } from "./useTerminalSelection"
 
-// Find (visible-buffer text search)
+// Find (visible-buffer text search + optional FindProvider for virtual lists)
 export { useFind } from "./useFind"
 export type { UseFindResult, UseFindOptions } from "./useFind"
+
+// Find Provider (virtual list model-level search)
+export { FindProviderComponent, useFindProvider } from "./useFindProvider"
 
 // Copy Mode (keyboard-driven selection)
 export { useCopyMode } from "./useCopyMode"

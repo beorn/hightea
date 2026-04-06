@@ -31,12 +31,18 @@ export interface CopyModeState {
   bufferHeight: number
 }
 
+/** Minimal buffer interface for word motion queries */
+export interface CopyModeBuffer {
+  getCell(col: number, row: number): { char: string }
+}
+
 export type CopyModeAction =
   | { type: "enter"; col: number; row: number; bufferWidth: number; bufferHeight: number }
   | { type: "exit" }
   | { type: "move"; direction: "up" | "down" | "left" | "right" }
-  | { type: "moveWordForward"; buffer?: { getCell(col: number, row: number): { char: string } } }
-  | { type: "moveWordBackward"; buffer?: { getCell(col: number, row: number): { char: string } } }
+  | { type: "moveWordForward"; buffer?: CopyModeBuffer }
+  | { type: "moveWordBackward"; buffer?: CopyModeBuffer }
+  | { type: "moveWordEnd"; buffer?: CopyModeBuffer }
   | { type: "moveToLineStart" }
   | { type: "moveToLineEnd" }
   | { type: "visual" }
@@ -47,6 +53,7 @@ export type CopyModeEffect =
   | { type: "render" }
   | { type: "copy"; anchor: CopyModePosition; head: CopyModePosition; lineWise: boolean }
   | { type: "setSelection"; anchor: CopyModePosition; head: CopyModePosition; lineWise: boolean }
+  | { type: "scroll"; direction: "up" | "down"; amount: number }
 
 // ============================================================================
 // State
@@ -90,6 +97,25 @@ function moveCursor(state: CopyModeState, direction: "up" | "down" | "left" | "r
   }
 }
 
+/**
+ * Detect if cursor is at a buffer edge while moving vertically
+ * and emit a scroll effect. Only triggers for up/down movement.
+ * Returns the scroll effect or null.
+ */
+function detectAutoScroll(
+  cursor: CopyModePosition,
+  state: CopyModeState,
+  direction: "up" | "down" | "left" | "right",
+): CopyModeEffect | null {
+  if (direction === "up" && cursor.row <= 0 && state.cursor.row <= 0) {
+    return { type: "scroll", direction: "up", amount: 1 }
+  }
+  if (direction === "down" && cursor.row >= state.bufferHeight - 1 && state.cursor.row >= state.bufferHeight - 1) {
+    return { type: "scroll", direction: "down", amount: 1 }
+  }
+  return null
+}
+
 // ============================================================================
 // Update
 // ============================================================================
@@ -119,6 +145,12 @@ export function copyModeUpdate(action: CopyModeAction, state: CopyModeState): [C
       if (!state.active) return [state, []]
       const cursor = moveCursor(state, action.direction)
       const effects: CopyModeEffect[] = [{ type: "render" }]
+
+      // Auto-scroll when cursor is at buffer edge and trying to move further
+      const scrollEffect = detectAutoScroll(cursor, state, action.direction)
+      if (scrollEffect) {
+        effects.push(scrollEffect)
+      }
 
       // Update selection rendering when in visual mode
       if ((state.visual || state.visualLine) && state.anchor) {
@@ -167,6 +199,29 @@ export function copyModeUpdate(action: CopyModeAction, state: CopyModeState): [C
       while (col > 0 && !isWord(col - 1, row)) col--
       // Skip word chars backwards
       while (col > 0 && isWord(col - 1, row)) col--
+
+      const cursor = { col, row }
+      const effects: CopyModeEffect[] = [{ type: "render" }]
+      if ((state.visual || state.visualLine) && state.anchor) {
+        effects.push({ type: "setSelection", anchor: state.anchor, head: cursor, lineWise: state.visualLine })
+      }
+      return [{ ...state, cursor }, effects]
+    }
+
+    case "moveWordEnd": {
+      if (!state.active) return [state, []]
+      let { col, row } = state.cursor
+      const buffer = action.buffer
+      if (!buffer) return [state, []]
+
+      const isWord = (c: number, r: number) => /\w/.test(buffer.getCell(c, r).char)
+
+      // Move at least one position forward
+      if (col < state.bufferWidth - 1) col++
+      // Skip non-word chars forward
+      while (col < state.bufferWidth - 1 && !isWord(col, row)) col++
+      // Move to end of word
+      while (col < state.bufferWidth - 1 && isWord(col + 1, row)) col++
 
       const cursor = { col, row }
       const effects: CopyModeEffect[] = [{ type: "render" }]

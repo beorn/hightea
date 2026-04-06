@@ -519,6 +519,8 @@ export {
   searchBuffer,
   type FindState,
   type FindMatch,
+  type FindResult,
+  type FindProvider,
   type FindAction,
   type FindEffect,
 } from "./find"
@@ -532,6 +534,7 @@ export {
   createCopyModeState,
   type CopyModeState,
   type CopyModePosition,
+  type CopyModeBuffer,
   type CopyModeAction,
   type CopyModeEffect,
 } from "./copy-mode"
