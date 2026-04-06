@@ -16,22 +16,21 @@ Interactive UI components need state logic (cursor position, selection range, ki
 The observable container that wraps any update function:
 
 ```typescript
-import { createMachine, type Machine, type UpdateFn } from '@silvery/headless'
+import { createMachine, type Machine, type UpdateFn } from "@silvery/headless"
 
 // Define your pure update function
-const counterUpdate: UpdateFn<number, 'inc' | 'dec'> = (state, action) =>
-  action === 'inc' ? state + 1 : state - 1
+const counterUpdate: UpdateFn<number, "inc" | "dec"> = (state, action) => (action === "inc" ? state + 1 : state - 1)
 
 // Wrap it in an observable container
-const counter: Machine<number, 'inc' | 'dec'> = createMachine(counterUpdate, 0)
+const counter: Machine<number, "inc" | "dec"> = createMachine(counterUpdate, 0)
 
-counter.state        // 0
-counter.send('inc')  // dispatches through update function
-counter.state        // 1
+counter.state // 0
+counter.send("inc") // dispatches through update function
+counter.state // 1
 
 // Subscribe to changes
-const unsub = counter.subscribe((state) => console.log('count:', state))
-counter.send('inc')  // logs "count: 2"
+const unsub = counter.subscribe((state) => console.log("count:", state))
+counter.send("inc") // logs "count: 2"
 unsub()
 
 // Escape hatch: replace state directly (for controlled mode sync)
@@ -42,10 +41,10 @@ counter.setState(10)
 
 ```typescript
 interface Machine<S, A> {
-  readonly state: S                              // Current state (read-only)
-  send(action: A): void                          // Dispatch an action
-  subscribe(listener: (state: S) => void): () => void  // Subscribe; returns unsubscribe
-  setState(state: S): void                       // Replace state directly
+  readonly state: S // Current state (read-only)
+  send(action: A): void // Dispatch an action
+  subscribe(listener: (state: S) => void): () => void // Subscribe; returns unsubscribe
+  setState(state: S): void // Replace state directly
 }
 
 type UpdateFn<S, A> = (state: S, action: A) => S
@@ -60,13 +59,13 @@ type UpdateFn<S, A> = (state: S, action: A) => S
 Pure state machine for single-line text editing. Cursor movement, character editing, kill ring with yank cycling — all as immutable state transitions.
 
 ```typescript
-import { readlineUpdate, createReadlineState, type ReadlineState, type ReadlineAction } from '@silvery/headless'
+import { readlineUpdate, createReadlineState, type ReadlineState, type ReadlineAction } from "@silvery/headless"
 
-let state = createReadlineState({ value: 'hello world', cursor: 5 })
-state = readlineUpdate(state, { type: 'kill_to_end' })
+let state = createReadlineState({ value: "hello world", cursor: 5 })
+state = readlineUpdate(state, { type: "kill_to_end" })
 // state.value === 'hello', state.killRing === ['world']
 
-state = readlineUpdate(state, { type: 'yank' })
+state = readlineUpdate(state, { type: "yank" })
 // state.value === 'hello world' (yanked from kill ring)
 ```
 
@@ -77,13 +76,13 @@ state = readlineUpdate(state, { type: 'yank' })
 Pure state machine for navigating a list with a cursor. The machine tracks the index and count; actual items are external.
 
 ```typescript
-import { selectListUpdate, createSelectListState, type SelectListState, type SelectListAction } from '@silvery/headless'
+import { selectListUpdate, createSelectListState, type SelectListState, type SelectListAction } from "@silvery/headless"
 
 let state = createSelectListState({ count: 10 })
-state = selectListUpdate(state, { type: 'move_down' })
+state = selectListUpdate(state, { type: "move_down" })
 // state.index === 1
 
-state = selectListUpdate(state, { type: 'move_last' })
+state = selectListUpdate(state, { type: "move_last" })
 // state.index === 9
 ```
 
@@ -105,7 +104,7 @@ These machines are planned for `@silvery/headless` (see km-silvery.interactions-
 `@silvery/headless` includes React hooks that bridge machines to component state via `useReducer`:
 
 ```typescript
-import { useSelectList, useReadline } from '@silvery/headless'
+import { useSelectList, useReadline } from "@silvery/headless"
 
 function MyList({ items }) {
   const [state, send] = useSelectList({ count: items.length })
@@ -114,7 +113,7 @@ function MyList({ items }) {
 }
 
 function MyInput() {
-  const [state, send] = useReadline({ value: '' })
+  const [state, send] = useReadline({ value: "" })
   // state.value, state.cursor
   // send({ type: 'insert', text: 'a' })
 }
@@ -143,10 +142,7 @@ export interface ClipboardState {
   readonly current: number
 }
 
-export type ClipboardAction =
-  | { type: 'copy'; text: string }
-  | { type: 'cycle_next' }
-  | { type: 'cycle_prev' }
+export type ClipboardAction = { type: "copy"; text: string } | { type: "cycle_next" } | { type: "cycle_prev" }
 ```
 
 ### 2. Write the Pure Update Function
@@ -154,11 +150,11 @@ export type ClipboardAction =
 ```typescript
 export function clipboardUpdate(state: ClipboardState, action: ClipboardAction): ClipboardState {
   switch (action.type) {
-    case 'copy':
+    case "copy":
       return { entries: [action.text, ...state.entries].slice(0, 20), current: 0 }
-    case 'cycle_next':
+    case "cycle_next":
       return { ...state, current: Math.min(state.current + 1, state.entries.length - 1) }
-    case 'cycle_prev':
+    case "cycle_prev":
       return { ...state, current: Math.max(state.current - 1, 0) }
     default:
       return state
@@ -174,7 +170,7 @@ export function createClipboardState(): ClipboardState {
 
 ```typescript
 // index.ts
-export { clipboardUpdate, createClipboardState, type ClipboardState, type ClipboardAction } from './clipboard'
+export { clipboardUpdate, createClipboardState, type ClipboardState, type ClipboardAction } from "./clipboard"
 ```
 
 ### Naming Conventions

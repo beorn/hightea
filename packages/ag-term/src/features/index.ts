@@ -16,6 +16,10 @@ export type { SelectionFeature, SelectionFeatureOptions } from "./selection"
 export { createDragFeature } from "./drag"
 export type { DragFeature, DragFeatureOptions } from "./drag"
 
+// Copy-mode
+export { createCopyModeFeature } from "./copy-mode"
+export type { CopyModeFeature, CopyModeFeatureOptions } from "./copy-mode"
+
 // Clipboard
 export { createOSC52Clipboard, wrapClipboardBackend } from "./clipboard-capability"
 export type { ClipboardCapability } from "./clipboard-capability"

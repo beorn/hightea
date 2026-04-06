@@ -29,16 +29,16 @@ The `AppPlugin<A, B>` type is just `(app: A) => B`. TypeScript infers the accumu
 
 All follow the `with-*` naming convention (file) / `with*` (export):
 
-| Provider | What |
-|----------|------|
-| `withApp()` | Domain state registry, command tree, keymaps |
-| `withReact(element)` | React reconciler mount, virtual buffer |
-| `withRender(term)` | Render pipeline from term capabilities |
-| `withTerminal(process)` | Terminal I/O — alternate screen, raw mode, resize |
-| `withFocus()` | Tab/Shift+Tab/Escape focus navigation |
-| `withDomEvents()` | Mouse dispatch — hit testing, bubbling, click-to-focus |
-| `withDiagnostics()` | Debug overlays — incremental vs fresh render checks |
-| `withLinks()` | Hyperlink event routing |
+| Provider                | What                                                   |
+| ----------------------- | ------------------------------------------------------ |
+| `withApp()`             | Domain state registry, command tree, keymaps           |
+| `withReact(element)`    | React reconciler mount, virtual buffer                 |
+| `withRender(term)`      | Render pipeline from term capabilities                 |
+| `withTerminal(process)` | Terminal I/O — alternate screen, raw mode, resize      |
+| `withFocus()`           | Tab/Shift+Tab/Escape focus navigation                  |
+| `withDomEvents()`       | Mouse dispatch — hit testing, bubbling, click-to-focus |
+| `withDiagnostics()`     | Debug overlays — incremental vs fresh render checks    |
+| `withLinks()`           | Hyperlink event routing                                |
 
 ### Why `with-*`?
 

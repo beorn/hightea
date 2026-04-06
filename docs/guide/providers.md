@@ -30,7 +30,7 @@ A provider is just a function from one app shape to another. No base class, no r
 ```typescript
 const withCustom = (app) => ({
   ...app,
-  custom: () => console.log('hello'),
+  custom: () => console.log("hello"),
 })
 
 const enhanced = pipe(baseApp, withCustom)
@@ -41,16 +41,16 @@ enhanced.custom() // typed!
 
 All providers live in `@silvery/create` and follow the `with-*` naming convention (file name) / `with*` (export name).
 
-| Provider | File | What it adds |
-|----------|------|--------------|
-| **withApp()** | `with-app.ts` | Domain state registry (`models`), command tree (`commands`), keymaps |
-| **withReact(element)** | `with-react.ts` | React reconciler mount, virtual buffer, component rendering |
-| **withRender(term)** | `with-render.ts` | Render pipeline — `render()` and `renderStatic()` methods from term caps |
-| **withTerminal(process, opts?)** | `with-terminal.ts` | Terminal I/O — alternate screen, raw mode, resize, cursor, cleanup |
-| **withFocus()** | `with-focus.ts` | Tab/Shift+Tab focus navigation, Escape to parent scope |
-| **withDomEvents()** | `with-dom-events.ts` | Mouse dispatch — hit testing, bubbling, click-to-focus, double-click |
-| **withDiagnostics()** | `with-diagnostics.ts` | Debug overlays — incremental vs fresh render checks after commands |
-| **withLinks()** | `with-links.ts` | Hyperlink event routing — `link:open` events from Link components |
+| Provider                         | File                  | What it adds                                                             |
+| -------------------------------- | --------------------- | ------------------------------------------------------------------------ |
+| **withApp()**                    | `with-app.ts`         | Domain state registry (`models`), command tree (`commands`), keymaps     |
+| **withReact(element)**           | `with-react.ts`       | React reconciler mount, virtual buffer, component rendering              |
+| **withRender(term)**             | `with-render.ts`      | Render pipeline — `render()` and `renderStatic()` methods from term caps |
+| **withTerminal(process, opts?)** | `with-terminal.ts`    | Terminal I/O — alternate screen, raw mode, resize, cursor, cleanup       |
+| **withFocus()**                  | `with-focus.ts`       | Tab/Shift+Tab focus navigation, Escape to parent scope                   |
+| **withDomEvents()**              | `with-dom-events.ts`  | Mouse dispatch — hit testing, bubbling, click-to-focus, double-click     |
+| **withDiagnostics()**            | `with-diagnostics.ts` | Debug overlays — incremental vs fresh render checks after commands       |
+| **withLinks()**                  | `with-links.ts`       | Hyperlink event routing — `link:open` events from Link components        |
 
 ## Writing a Custom Provider
 

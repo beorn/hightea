@@ -31,6 +31,11 @@ import type { App } from "@silvery/ag-term/app"
 import { createFocusManager, type FocusManager, type FocusManagerOptions } from "./focus-manager"
 import { createFocusEvent, createKeyEvent, dispatchFocusEvent, dispatchKeyEvent } from "./focus-events"
 import { parseHotkey, parseKey } from "@silvery/ag/keys"
+import { createSelectionFeature, type SelectionFeature } from "@silvery/ag-term/features/selection"
+import { createCopyModeFeature, type CopyModeFeature } from "@silvery/ag-term/features/copy-mode"
+import type { CapabilityRegistry } from "./internal/capability-registry"
+import type { InputRouter } from "./internal/input-router"
+import { SELECTION_CAPABILITY, COPY_MODE_CAPABILITY } from "./internal/capabilities"
 
 // =============================================================================
 // Types
@@ -50,6 +55,12 @@ export interface WithFocusOptions {
   handleEscape?: boolean
   /** Dispatch keyboard events through focus tree (default: true) */
   dispatchKeyEvents?: boolean
+  /** Enable keyboard copy-mode via Esc+v (default: false) */
+  copyMode?: boolean
+  /** Capability registry for cross-feature discovery (required for copyMode) */
+  capabilityRegistry?: CapabilityRegistry
+  /** Input router for priority-based key dispatch (required for copyMode) */
+  inputRouter?: InputRouter
 }
 
 /**
@@ -58,6 +69,10 @@ export interface WithFocusOptions {
 export type AppWithFocus = App & {
   /** The focus manager instance */
   readonly focusManager: FocusManager
+  /** Copy-mode feature (only present when copyMode option is enabled) */
+  readonly copyModeFeature?: CopyModeFeature
+  /** Selection feature (only present when copyMode option is enabled) */
+  readonly selectionFeature?: SelectionFeature
 }
 
 // =============================================================================
@@ -76,7 +91,7 @@ export type AppWithFocus = App & {
  */
 export function withFocus(options: WithFocusOptions = {}): (app: App) => AppWithFocus {
   return (app: App): AppWithFocus => {
-    const { handleTab = true, handleEscape = true, dispatchKeyEvents = true } = options
+    const { handleTab = true, handleEscape = true, dispatchKeyEvents = true, copyMode = false } = options
 
     // Create or reuse focus manager
     const fm =
@@ -102,6 +117,85 @@ export function withFocus(options: WithFocusOptions = {}): (app: App) => AppWith
         },
       })
 
+    // --- Copy-mode setup ---
+    let selectionFeature: SelectionFeature | undefined
+    let copyModeFeatureInstance: CopyModeFeature | undefined
+    let unregisterCopyModeKey: (() => void) | undefined
+
+    // Track Escape press for Esc+v chord detection
+    let lastEscapeTime = 0
+    const ESC_V_CHORD_TIMEOUT = 500 // ms
+
+    if (copyMode) {
+      const registry = options.capabilityRegistry
+      const router = options.inputRouter
+
+      // Create selection feature (always needed for copy-mode)
+      const invalidate = router ? () => router.invalidate() : () => {}
+      selectionFeature = createSelectionFeature({ invalidate })
+
+      // Register selection capability
+      if (registry) {
+        registry.register(SELECTION_CAPABILITY, selectionFeature)
+      }
+
+      // Create copy-mode feature (requires selection)
+      copyModeFeatureInstance = createCopyModeFeature({
+        selection: selectionFeature,
+        invalidate,
+      })
+
+      // Register copy-mode capability
+      if (registry) {
+        registry.register(COPY_MODE_CAPABILITY, copyModeFeatureInstance)
+      }
+
+      // Register key handler via InputRouter at priority 200 (above normal app keys)
+      if (router) {
+        unregisterCopyModeKey = router.registerKeyHandler(200, (event) => {
+          const cm = copyModeFeatureInstance!
+
+          // When copy-mode is active, intercept all relevant keys
+          if (cm.state.active) {
+            switch (event.key) {
+              case "h":
+              case "j":
+              case "k":
+              case "l":
+                cm.motion(event.key)
+                return true
+              case "v":
+                cm.startVisual()
+                return true
+              case "V":
+                cm.startVisualLine()
+                return true
+              case "y":
+                cm.yank()
+                return true
+              case "Escape":
+              case "q":
+                cm.exit()
+                return true
+              case "0":
+                // Move to line start
+                copyModeUpdate_dispatch(cm, { type: "moveToLineStart" })
+                return true
+              case "$":
+                // Move to line end
+                copyModeUpdate_dispatch(cm, { type: "moveToLineEnd" })
+                return true
+              default:
+                // Consume all other keys while in copy-mode (don't let them through)
+                return true
+            }
+          }
+
+          return false
+        })
+      }
+    }
+
     // Wrap press() to intercept focus navigation keys
     const originalPress = app.press.bind(app)
 
@@ -111,11 +205,43 @@ export function withFocus(options: WithFocusOptions = {}): (app: App) => AppWith
           return fm
         }
 
+        if (prop === "copyModeFeature") {
+          return copyModeFeatureInstance
+        }
+
+        if (prop === "selectionFeature") {
+          return selectionFeature
+        }
+
         if (prop === "press") {
           return async function focusPress(keyStr: string): Promise<typeof enhancedApp> {
-            const { key, shift } = parseHotkey(keyStr)
+            const { key, shift, alt } = parseHotkey(keyStr)
 
             const root = target.getContainer()
+
+            // Copy-mode: dispatch through InputRouter first if active
+            if (copyMode && copyModeFeatureInstance?.state.active) {
+              const router = options.inputRouter
+              if (router) {
+                const claimed = router.dispatchKey({
+                  key,
+                  modifiers: { shift, alt },
+                })
+                if (claimed) return enhancedApp
+              }
+            }
+
+            // Esc+v chord: track Escape presses, enter copy-mode on 'v' within timeout
+            if (copyMode && copyModeFeatureInstance) {
+              if (key === "Escape") {
+                lastEscapeTime = Date.now()
+                // Don't consume Escape here — let it fall through for blur behavior
+              } else if (key === "v" && !shift && !alt && Date.now() - lastEscapeTime < ESC_V_CHORD_TIMEOUT) {
+                lastEscapeTime = 0
+                copyModeFeatureInstance.enter()
+                return enhancedApp
+              }
+            }
 
             // Tab → focus next
             if (handleTab && key === "Tab" && !shift) {
@@ -153,10 +279,54 @@ export function withFocus(options: WithFocusOptions = {}): (app: App) => AppWith
           }
         }
 
+        if (prop === Symbol.dispose || prop === "unmount") {
+          return function disposeWithCopyMode(): void {
+            // Clean up copy-mode resources
+            unregisterCopyModeKey?.()
+            copyModeFeatureInstance?.dispose()
+            selectionFeature?.dispose()
+
+            // Call original
+            if (prop === Symbol.dispose) {
+              target[Symbol.dispose]()
+            } else {
+              target.unmount()
+            }
+          }
+        }
+
         return Reflect.get(target, prop, receiver)
       },
     }) as AppWithFocus
 
     return enhancedApp
+  }
+}
+
+/**
+ * Helper to dispatch raw copy-mode actions through the feature.
+ * Used for actions not covered by the high-level API (moveToLineStart, etc.).
+ */
+function copyModeUpdate_dispatch(
+  cm: CopyModeFeature,
+  action: { type: "moveToLineStart" } | { type: "moveToLineEnd" },
+): void {
+  // Access the internal state machine directly via the feature's enter/exit pattern
+  // For line-start/end, we use motion keys mapped to 0/$
+  // The feature doesn't expose these directly, but we can use the state to calculate
+  if (action.type === "moveToLineStart") {
+    // Move left repeatedly to reach column 0
+    const { state } = cm
+    if (!state.active) return
+    // Quick approach: just keep pressing left until col 0
+    while (cm.state.cursor.col > 0) {
+      cm.motion("h")
+    }
+  } else if (action.type === "moveToLineEnd") {
+    const { state } = cm
+    if (!state.active) return
+    while (cm.state.cursor.col < state.bufferWidth - 1) {
+      cm.motion("l")
+    }
   }
 }

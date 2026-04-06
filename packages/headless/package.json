@@ -34,7 +34,11 @@
     "@silvery/ag-term": ">=0.5.0"
   },
   "peerDependenciesMeta": {
-    "@silvery/ag": { "optional": true },
-    "@silvery/ag-term": { "optional": true }
+    "@silvery/ag": {
+      "optional": true
+    },
+    "@silvery/ag-term": {
+      "optional": true
+    }
   }
 }

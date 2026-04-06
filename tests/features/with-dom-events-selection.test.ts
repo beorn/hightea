@@ -13,7 +13,11 @@
 import { describe, test, expect, vi } from "vitest"
 import { withDomEvents, type AppWithDomEvents } from "../../packages/create/src/with-dom-events"
 import { withTerminal, type AppWithTerminal } from "../../packages/create/src/with-terminal"
-import { SELECTION_CAPABILITY, CLIPBOARD_CAPABILITY, INPUT_ROUTER } from "../../packages/create/src/internal/capabilities"
+import {
+  SELECTION_CAPABILITY,
+  CLIPBOARD_CAPABILITY,
+  INPUT_ROUTER,
+} from "../../packages/create/src/internal/capabilities"
 import type { SelectionFeature } from "../../packages/ag-term/src/features/selection"
 import type { ClipboardCapability } from "../../packages/ag-term/src/features/clipboard-capability"
 import type { InputRouter } from "../../packages/create/src/internal/input-router"

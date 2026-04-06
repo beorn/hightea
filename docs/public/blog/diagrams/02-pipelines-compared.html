@@ -13,15 +13,15 @@
   }
 
   .diagram-02-pipelines-compared .page {
-    max-width: 680px;
+    max-width: 660px;
     width: 100%;
   }
 
   /* Explanation text */
   .diagram-02-pipelines-compared .explain {
-    font-size: 13px;
+    font-size: var(--d-fs-sm);
     font-weight: var(--d-fw-regular);
-    line-height: 1.55;
+    line-height: 1.5;
     margin-bottom: 12px;
     margin-left: 76px;
   }
@@ -78,7 +78,6 @@
     gap: 4px;
     flex: 1;
   }
-  /* First two columns merge for the reconcile+layout group */
   .diagram-02-pipelines-compared .stage-group {
     display: flex;
     align-items: center;
@@ -134,23 +133,35 @@
     flex-shrink: 0;
   }
 
-  /* Inline gap marker between boxes */
+  /* Async gap indicator */
   .diagram-02-pipelines-compared .gap-inline {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    padding: 0 5px;
-    align-self: stretch;
+    padding: 0 2px;
+    gap: 3px;
   }
   .diagram-02-pipelines-compared .gap-label {
-    font-size: var(--d-fs-base);
-    font-weight: var(--d-fw-bold);
+    font-size: var(--d-fs-xs);
+    font-weight: var(--d-fw-medium);
     color: #d55e00;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    transform: rotate(180deg);
-    letter-spacing: 0.05em;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .diagram-02-pipelines-compared .gap-break {
+    width: 24px;
+    border: none;
+    border-top: 2px dashed #d55e00;
+  }
+  @media (prefers-color-scheme: dark) {
+    .diagram-02-pipelines-compared .gap-label {
+      color: #e69f00;
+    }
+    .diagram-02-pipelines-compared .gap-break {
+      border-top-color: #e69f00;
+    }
   }
 
   /* Bracket */
@@ -205,9 +216,7 @@
     <!-- Typical explanation -->
     <div class="explain explain-warning">
       <span class="explain-icon">⚠</span>
-      Reconciliation and layout are
-      <span style="color: #d55e00; font-weight: 700">not transactionally coupled</span>. If an update lands between
-      them, the renderer sees stale geometry.
+      Reconciliation and layout are <strong>not transactionally coupled</strong>.
     </div>
 
     <!-- Typical pipeline -->
@@ -220,7 +229,8 @@
             <div class="stage-sub">React (scheduled, may yield)</div>
           </div>
           <span class="gap-inline">
-            <span class="gap-label">- ASYNC GAP -</span>
+            <span class="gap-label">⚠ async gap</span>
+            <hr class="gap-break">
           </span>
           <div class="stage stage-typical">
             Layout
@@ -286,7 +296,7 @@
     <!-- Silvery explanation -->
     <div class="explain explain-success">
       <span class="explain-icon">✓</span>
-      Every stage sees the same state. One transaction eliminates tree/layout/render skew.
+      One transaction. Same state at every stage.
     </div>
   </div>
 </div>

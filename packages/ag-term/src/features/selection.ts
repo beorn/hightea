@@ -117,19 +117,13 @@ export function createSelectionFeature(options: SelectionFeatureOptions): Select
     },
 
     handleMouseDown(col: number, row: number, _altKey: boolean): void {
-      const [newState, effects] = terminalSelectionUpdate(
-        { type: "start", col, row, source: "mouse" },
-        selectionState,
-      )
+      const [newState, effects] = terminalSelectionUpdate({ type: "start", col, row, source: "mouse" }, selectionState)
       updateState(newState, effects)
     },
 
     handleMouseMove(col: number, row: number): void {
       if (!selectionState.selecting) return
-      const [newState, effects] = terminalSelectionUpdate(
-        { type: "extend", col, row, buffer },
-        selectionState,
-      )
+      const [newState, effects] = terminalSelectionUpdate({ type: "extend", col, row, buffer }, selectionState)
       updateState(newState, effects)
     },
 
