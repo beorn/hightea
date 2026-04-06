@@ -4,6 +4,7 @@
  * Core types for the Silvery renderer architecture.
  */
 
+import type { DragEventProps } from "./drag-event-types"
 import type { FocusEventProps } from "./focus-events"
 import type { LayoutNode } from "./layout-types"
 import type { MouseEventProps } from "./mouse-event-types"
@@ -192,7 +193,7 @@ export interface StyleProps {
 /**
  * Props for Box component.
  */
-export interface BoxProps extends FlexboxProps, StyleProps, TestProps, MouseEventProps, FocusEventProps {
+export interface BoxProps extends FlexboxProps, StyleProps, TestProps, MouseEventProps, DragEventProps, FocusEventProps {
   /** Text truncation mode for child text content (passed through to Text children). */
   wrap?: "wrap" | "truncate" | "truncate-start" | "truncate-middle" | "truncate-end" | "clip" | boolean
   borderStyle?: "single" | "double" | "round" | "bold" | "singleDouble" | "doubleSingle" | "classic"

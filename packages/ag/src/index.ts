@@ -66,6 +66,9 @@ export type {
 export { createKeyEvent, createFocusEvent, dispatchKeyEvent, dispatchFocusEvent } from "./focus-events"
 export type { SilveryKeyEvent, SilveryFocusEvent, FocusEventProps } from "./focus-events"
 
+// Drag Event Types
+export type { DragEventPayload, DragEventProps } from "./drag-event-types"
+
 // TextFrame
 export type { TextFrame, FrameCell, RGB } from "./text-frame"
 

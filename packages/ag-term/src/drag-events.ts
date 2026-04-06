@@ -1,5 +1,5 @@
 /**
- * Drag Event Types — types for the drag-and-drop system.
+ * Drag Event Types — types and utilities for the drag-and-drop system.
  *
  * Drag events are separate from mouse events — they have different semantics.
  * Mouse events fire on the node under the cursor; drag events track the
@@ -8,10 +8,17 @@
  * The pointer state machine (pointer-state.ts) decides when a drag starts;
  * the integration layer (usePointerState hook) uses these types to dispatch
  * drag events to the appropriate nodes.
+ *
+ * Prop types (DragEventProps, DragEventPayload) live in @silvery/ag/drag-event-types
+ * since BoxProps needs them. This module provides runtime state and utilities.
  */
 
 import type { AgNode } from "@silvery/ag/types"
+import type { DragEventProps } from "@silvery/ag/drag-event-types"
 import type { Position } from "./pointer-state"
+
+// Re-export prop types for convenience
+export type { DragEventProps, DragEventPayload } from "@silvery/ag/drag-event-types"
 
 // ============================================================================
 // Drag State
@@ -40,8 +47,8 @@ export interface DragState {
 // ============================================================================
 
 /**
- * Event payload dispatched to drag event handlers.
- * Passed to onDragEnter, onDragLeave, onDragOver, and onDrop.
+ * Runtime drag event — structurally identical to DragEventPayload.
+ * Used by the integration layer for dispatching.
  */
 export interface DragEvent {
   /** The node being dragged */
@@ -50,25 +57,6 @@ export interface DragEvent {
   position: Position
   /** The node under the cursor (the drop target receiving this event) */
   dropTarget: AgNode | null
-}
-
-// ============================================================================
-// Drag Event Props (for drop targets)
-// ============================================================================
-
-/**
- * Props for nodes that act as drop targets.
- * Added to BoxProps so any Box can receive drag events.
- */
-export interface DragEventProps {
-  /** Fired when a dragged node enters this node's bounds */
-  onDragEnter?: (event: DragEvent) => void
-  /** Fired when a dragged node leaves this node's bounds */
-  onDragLeave?: (event: DragEvent) => void
-  /** Fired repeatedly as a dragged node moves over this node */
-  onDragOver?: (event: DragEvent) => void
-  /** Fired when a dragged node is dropped on this node */
-  onDrop?: (event: DragEvent) => void
 }
 
 // ============================================================================
