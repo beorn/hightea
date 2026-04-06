@@ -1958,8 +1958,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           }
           const [next] = terminalSelectionUpdate({ type: "start", col: mouseData.x, row: mouseData.y }, selectionState)
           selectionState = next
-          // Re-render to clear old overlay
+          // Force full re-render to clear old overlay (incremental render won't
+          // overwrite the inverse-video ANSI the overlay wrote directly to stdout)
           if (currentBuffer) {
+            runtime.invalidate()
+            currentBuffer = doRender()
             runtime.render(currentBuffer)
             writeSelectionOverlay()
           }
@@ -2000,8 +2003,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     if (selectionEnabled && event.type === "term:key" && selectionState.range) {
       const [next] = terminalSelectionUpdate({ type: "clear" }, selectionState)
       selectionState = next
-      // Re-render to remove overlay
+      // Force full re-render to remove overlay
       if (currentBuffer) {
+        runtime.invalidate()
+        currentBuffer = doRender()
         runtime.render(currentBuffer)
       }
     }
