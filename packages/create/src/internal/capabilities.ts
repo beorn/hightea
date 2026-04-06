@@ -24,3 +24,6 @@ export const DRAG_CAPABILITY = Symbol.for("silvery.drag")
 
 /** Input router: priority-based event dispatch for interaction features. */
 export const INPUT_ROUTER = Symbol.for("silvery.input-router")
+
+/** Color scheme detector: Mode 2031 dark/light reactive detection. */
+export const COLOR_SCHEME_CAPABILITY = Symbol.for("silvery.color-scheme")

@@ -32,25 +32,14 @@ import {
   DEFAULT_WIDTH_CONFIG,
   detectKittyFromStdio,
 } from "@silvery/ag-term"
-import {
-  createColorSchemeDetector,
-  type ColorScheme,
-} from "@silvery/ag-term/ansi"
+import { createColorSchemeDetector, type ColorScheme } from "@silvery/ag-term/ansi"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {
   name: "Terminal Capabilities",
   description: "Probe and display all supported terminal protocols",
   demo: true,
-  features: [
-    "detectTerminalCaps()",
-    "Mode 2031",
-    "DEC 1020-1023",
-    "OSC 66",
-    "OSC 52",
-    "OSC 5522",
-    "DA1/DA2/DA3",
-  ],
+  features: ["detectTerminalCaps()", "Mode 2031", "DEC 1020-1023", "OSC 66", "OSC 52", "OSC 5522", "DA1/DA2/DA3"],
 }
 
 // ============================================================================
@@ -99,8 +88,7 @@ function CapRow({ entry, width }: { entry: CapEntry; width: number }) {
 // ============================================================================
 
 function buildStaticEntries(caps: TerminalCaps): CapEntry[] {
-  const bool = (supported: boolean): CapStatus =>
-    supported ? "supported" : "not-supported"
+  const bool = (supported: boolean): CapStatus => (supported ? "supported" : "not-supported")
 
   return [
     { name: "Synchronized Output (Mode 2026)", status: bool(caps.syncOutput) },
@@ -145,13 +133,17 @@ function TerminalCapsApp() {
   useEffect(() => {
     // Color scheme detection (Mode 2031)
     const detector = createColorSchemeDetector({
-      write: (data) => { process.stdout.write(data) },
+      write: (data) => {
+        process.stdout.write(data)
+      },
       onData: (handler) => {
         const bufHandler = (chunk: Buffer | string) => {
           handler(typeof chunk === "string" ? chunk : chunk.toString())
         }
         process.stdin.on("data", bufHandler)
-        return () => { process.stdin.removeListener("data", bufHandler) }
+        return () => {
+          process.stdin.removeListener("data", bufHandler)
+        }
       },
       timeoutMs: 500,
     })
@@ -170,29 +162,38 @@ function TerminalCapsApp() {
 
     // Width detection (DEC 1020-1023)
     const widthDet = createWidthDetector({
-      write: (data) => { process.stdout.write(data) },
+      write: (data) => {
+        process.stdout.write(data)
+      },
       onData: (handler) => {
         const bufHandler = (chunk: Buffer | string) => {
           handler(typeof chunk === "string" ? chunk : chunk.toString())
         }
         process.stdin.on("data", bufHandler)
-        return () => { process.stdin.removeListener("data", bufHandler) }
+        return () => {
+          process.stdin.removeListener("data", bufHandler)
+        }
       },
       timeoutMs: 500,
     })
 
-    widthDet.detect().then((config) => {
-      setWidthConfig(config)
-    }).catch(() => {
-      setWidthConfig({ ...DEFAULT_WIDTH_CONFIG })
-    })
+    widthDet
+      .detect()
+      .then((config) => {
+        setWidthConfig(config)
+      })
+      .catch(() => {
+        setWidthConfig({ ...DEFAULT_WIDTH_CONFIG })
+      })
 
     // Kitty keyboard detection
-    detectKittyFromStdio(process.stdout, process.stdin, 500).then((result) => {
-      setKittyDetected(result.supported)
-    }).catch(() => {
-      setKittyDetected(false)
-    })
+    detectKittyFromStdio(process.stdout, process.stdin, 500)
+      .then((result) => {
+        setKittyDetected(result.supported)
+      })
+      .catch(() => {
+        setKittyDetected(false)
+      })
 
     return () => {
       detector.stop()
@@ -272,7 +273,8 @@ function TerminalCapsApp() {
       {/* Terminal identity */}
       <Box paddingBottom={1}>
         <Muted>
-          Terminal: {termProgram} ({termType}) | Colors: {colorLevel} | Background: {caps.darkBackground ? "dark" : "light"}
+          Terminal: {termProgram} ({termType}) | Colors: {colorLevel} | Background:{" "}
+          {caps.darkBackground ? "dark" : "light"}
         </Muted>
       </Box>
 
@@ -280,7 +282,9 @@ function TerminalCapsApp() {
       <Box>
         {/* Left column: static capabilities */}
         <Box flexDirection="column" width={colWidth + 4}>
-          <Text bold color="$primary">Static Detection</Text>
+          <Text bold color="$primary">
+            Static Detection
+          </Text>
           <Box height={1} />
           {staticEntries.map((entry) => (
             <CapRow key={entry.name} entry={entry} width={colWidth} />
@@ -289,7 +293,9 @@ function TerminalCapsApp() {
 
         {/* Right column: runtime probes */}
         <Box flexDirection="column" width={colWidth + 4}>
-          <Text bold color="$primary">Runtime Probes</Text>
+          <Text bold color="$primary">
+            Runtime Probes
+          </Text>
           <Box height={1} />
           {probeEntries.map((entry) => (
             <CapRow key={entry.name} entry={entry} width={colWidth} />
@@ -330,11 +336,15 @@ if (import.meta.main) {
   main().catch((err) => {
     // Ensure terminal is restored on error
     const stdout = process.stdout
-    stdout.write("\x1b[?25h")   // show cursor
+    stdout.write("\x1b[?25h") // show cursor
     stdout.write("\x1b[?1049l") // leave alt screen
-    stdout.write("\x1b[0m")     // reset styles
+    stdout.write("\x1b[0m") // reset styles
     if (process.stdin.isTTY && process.stdin.isRaw) {
-      try { process.stdin.setRawMode(false) } catch { /* noop */ }
+      try {
+        process.stdin.setRawMode(false)
+      } catch {
+        /* noop */
+      }
     }
     console.error(err)
     process.exit(1)

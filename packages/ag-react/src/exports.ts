@@ -1158,3 +1158,7 @@ export type {
 export { useTea } from "@silvery/ag-react/ui/hooks/useTea"
 export { fx, collect } from "@silvery/create"
 export type { TeaResult, EffectLike, TimerEffect } from "@silvery/create"
+
+// Reactive theme
+export { useColorScheme } from "./hooks/useColorScheme"
+export { ReactiveThemeProvider } from "./ReactiveThemeProvider"

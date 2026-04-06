@@ -861,15 +861,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     !headless && (widthDetectionOption === true || (widthDetectionOption === "auto" && capsOption != null))
 
   // Track effective caps — may be updated by width detection and text sizing probes
-  let effectiveCaps = capsOption
-    ? { ...capsOption, textSizingSupported: textSizingEnabled }
-    : undefined
+  let effectiveCaps = capsOption ? { ...capsOption, textSizingSupported: textSizingEnabled } : undefined
 
   // Create pipeline config from caps (scoped width measurer + output phase)
   // Use `let` because the pipeline may be recreated after a probe changes textSizing
-  let pipelineConfig = effectiveCaps
-    ? createPipeline({ caps: effectiveCaps })
-    : undefined
+  let pipelineConfig = effectiveCaps ? createPipeline({ caps: effectiveCaps }) : undefined
 
   // Create runtime (pass scoped output phase to ensure measurer/caps are threaded)
   // mode must match alternateScreen: inline apps (alternateScreen=false) need
