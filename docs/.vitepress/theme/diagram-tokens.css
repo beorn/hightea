@@ -1,0 +1,196 @@
+/*
+ * Diagram Design System
+ * Shared tokens for all HTML diagrams — colors, typography, spacing.
+ * Injected by HtmlDiagram.vue into the Shadow DOM.
+ * Auto-adapts to light/dark mode via prefers-color-scheme.
+ *
+ * Usage in diagrams:
+ *   color: var(--d-text);
+ *   background: var(--d-terminal-bg);
+ *   font: var(--d-font-label);
+ */
+
+:host {
+  /* ═══════════════════════════════════════════
+   * TYPOGRAPHY
+   * ═══════════════════════════════════════════ */
+
+  /* Font families */
+  --d-font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --d-font-mono: "SF Mono", "Fira Code", "Cascadia Code", "JetBrains Mono", "Menlo", "Consolas", monospace;
+
+  /* Font sizes (use these — don't hardcode px) */
+  --d-fs-xs: 9px;     /* tags, badges, micro labels */
+  --d-fs-sm: 10px;    /* stage labels, annotation details */
+  --d-fs-base: 11px;  /* default body text, phase headings */
+  --d-fs-md: 12px;    /* emphasized body, window titles */
+  --d-fs-lg: 14px;    /* section headings, panel titles */
+  --d-fs-xl: 18px;    /* big stats, emphasis numbers */
+  --d-fs-2xl: 24px;   /* huge emphasis (rare) */
+
+  /* Font weights */
+  --d-fw-regular: 500;
+  --d-fw-medium: 600;
+  --d-fw-bold: 700;
+
+  /* Line heights */
+  --d-lh-tight: 1.2;   /* labels, headings */
+  --d-lh-normal: 1.5;  /* body text */
+  --d-lh-relaxed: 1.85; /* terminal content with breathing room */
+
+  /* Letter spacing */
+  --d-ls-tight: -0.01em;
+  --d-ls-normal: 0;
+  --d-ls-wide: 0.04em;
+  --d-ls-wider: 0.08em; /* for uppercase labels */
+
+  /* ═══════════════════════════════════════════
+   * SPACING
+   * ═══════════════════════════════════════════ */
+
+  --d-space-1: 2px;
+  --d-space-2: 4px;
+  --d-space-3: 6px;
+  --d-space-4: 8px;
+  --d-space-5: 10px;
+  --d-space-6: 12px;
+  --d-space-8: 16px;
+  --d-space-10: 20px;
+
+  /* Border radii */
+  --d-radius-sm: 4px;
+  --d-radius-md: 6px;
+  --d-radius-lg: 8px;
+  --d-radius-xl: 12px;
+
+  /* Border widths */
+  --d-border-1: 1px;
+  --d-border-2: 2px;
+  --d-border-3: 3px;
+
+  /* ═══════════════════════════════════════════
+   * SURFACE
+   * ═══════════════════════════════════════════ */
+
+  --d-bg: #f8f9fb;
+  --d-card-bg: #ffffff;
+  --d-border: rgba(0, 0, 0, 0.08);
+  --d-border-strong: rgba(0, 0, 0, 0.15);
+
+  /* ═══════════════════════════════════════════
+   * TEXT
+   * ═══════════════════════════════════════════ */
+
+  --d-text: #1e293b;
+  --d-text-muted: #475569;
+  --d-text-subtle: rgba(100, 116, 160, 0.7);
+  --d-text-label: #334155;
+
+  /* ═══════════════════════════════════════════
+   * TERMINAL (dark chrome on any background)
+   * ═══════════════════════════════════════════ */
+
+  --d-terminal-bg: #191922;
+  --d-terminal-bg-alt: #1e1e2a;    /* recent scrollback — slightly lighter */
+  --d-terminal-bg-faded: #252535;  /* older scrollback — lighter still */
+  --d-terminal-text: #d4d8e0;
+  --d-terminal-chrome: linear-gradient(to bottom, #3c3c48, #2e2e3a);
+  --d-terminal-chrome-border: rgba(60, 60, 70, 0.5);
+  --d-terminal-title: rgba(255, 255, 255, 0.55);
+
+  /* Terminal window dots */
+  --d-dot-close: #ff5f57;
+  --d-dot-close-border: #e0443e;
+  --d-dot-min: #febc2e;
+  --d-dot-min-border: #dea123;
+  --d-dot-max: #28c840;
+  --d-dot-max-border: #1aab29;
+
+  /* Terminal syntax colors (Dracula-adjacent) */
+  --d-term-prompt: #85d6a0;
+  --d-term-cmd: #eff0f3;
+  --d-term-comment: #6b7585;
+  --d-term-success: #a5d6a7;
+  --d-term-keyword: #d2a0f0;
+  --d-term-func: #79c0ff;
+  --d-term-string: #f0d080;
+  --d-term-bullet: #6ccad4;
+  --d-term-dimmed: #555d6e;
+  --d-term-cursor: #3cda5c;
+
+  /* ═══════════════════════════════════════════
+   * ZONE COLORS (Okabe-Ito colorblind-safe)
+   * ═══════════════════════════════════════════ */
+
+  /* Semantic zones — use these for architectural diagrams */
+  --d-zone-primary: #56b4e9;   /* sky blue — active/focus/live */
+  --d-zone-success: #009e73;   /* bluish green — app-managed */
+  --d-zone-warning: #e69f00;   /* orange */
+  --d-zone-danger: #d55e00;    /* vermillion */
+
+  /* Strong variants (for scrollback zones) */
+  --d-zone-red: #dc3c3c;       /* terminal-owned scrollback */
+  --d-zone-green: #22c55e;     /* app-managed scrollback */
+  --d-zone-blue: #3b82f6;      /* live screen */
+
+  /* ═══════════════════════════════════════════
+   * ANNOTATION CARDS
+   * ═══════════════════════════════════════════ */
+
+  --d-annotation-bg: #ffffff;
+  --d-annotation-border: rgba(0, 0, 0, 0.08);
+  --d-annotation-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  --d-annotation-title: #1e293b;
+  --d-annotation-body: #475569;
+
+  /* ═══════════════════════════════════════════
+   * TAGS / BADGES
+   * ═══════════════════════════════════════════ */
+
+  --d-tag-pro-bg: rgba(0, 158, 115, 0.15);
+  --d-tag-pro-text: #009e73;
+  --d-tag-con-bg: rgba(230, 159, 0, 0.15);
+  --d-tag-con-text: #b8860b;
+}
+
+/* ═══════════════════════════════════════════
+ * DARK MODE
+ * ═══════════════════════════════════════════ */
+
+@media (prefers-color-scheme: dark) {
+  :host {
+    /* Surface */
+    --d-bg: #252535;
+    --d-card-bg: #2a2a3a;
+    --d-border: rgba(255, 255, 255, 0.08);
+    --d-border-strong: rgba(255, 255, 255, 0.15);
+
+    /* Text */
+    --d-text: #e2e8f0;
+    --d-text-muted: #94a3b8;
+    --d-text-subtle: rgba(148, 163, 184, 0.7);
+    --d-text-label: #cbd5e1;
+
+    /* Terminal colors stay the same — dark chrome works on any background */
+
+    /* Annotation cards */
+    --d-annotation-bg: #2a2a3a;
+    --d-annotation-border: rgba(255, 255, 255, 0.1);
+    --d-annotation-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    --d-annotation-title: #e2e8f0;
+    --d-annotation-body: #94a3b8;
+  }
+}
+
+/* ═══════════════════════════════════════════
+ * BASE STYLES — applied to diagram-card wrapper
+ * ═══════════════════════════════════════════ */
+
+.diagram-card {
+  background: var(--d-bg);
+  border-radius: var(--d-radius-xl);
+  padding: var(--d-space-4);
+  border: var(--d-border-1) solid var(--d-border);
+  font-family: var(--d-font-ui);
+  color: var(--d-text);
+}
