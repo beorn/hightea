@@ -143,6 +143,19 @@ export { createOsc52Backend, createInternalClipboardBackend, createCompositeClip
 export type { ClipboardData, ClipboardBackend, ClipboardCapabilities } from "./clipboard"
 
 // =============================================================================
+// Advanced Clipboard (OSC 5522)
+// =============================================================================
+
+export {
+  createAdvancedClipboard,
+  parseOsc5522Response,
+  parsePasteData,
+  ENABLE_PASTE_EVENTS,
+  DISABLE_PASTE_EVENTS,
+} from "./ansi/advanced-clipboard"
+export type { AdvancedClipboard, AdvancedClipboardOptions, ClipboardEntry } from "./ansi/advanced-clipboard"
+
+// =============================================================================
 // OSC 4 Palette Color Query/Set
 // =============================================================================
 

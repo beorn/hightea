@@ -207,3 +207,10 @@ export const BG_OVERRIDE_CODE = 9999
 export function bgOverride(text: string): string {
   return `\x1b[${BG_OVERRIDE_CODE}m${text}`
 }
+
+// =============================================================================
+// Advanced Clipboard (OSC 5522)
+// =============================================================================
+
+export { createAdvancedClipboard, parseOsc5522Response, parsePasteData, ENABLE_PASTE_EVENTS, DISABLE_PASTE_EVENTS } from "./advanced-clipboard"
+export type { AdvancedClipboard, AdvancedClipboardOptions, ClipboardEntry } from "./advanced-clipboard"

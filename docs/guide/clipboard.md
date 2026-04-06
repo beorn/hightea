@@ -189,6 +189,109 @@ interface PasteEvent {
 - **External paste** (Cmd+V / Ctrl+Shift+V): Terminal wraps text in bracketed paste sequences. Silvery parses them and fires the paste event.
 - **Internal paste**: If the last copy produced `ClipboardData` with `internal` or `markdown` fields, paste provides the structured data alongside the plain text.
 
+## Advanced Clipboard (OSC 5522)
+
+The advanced clipboard extends OSC 52 with MIME type support, large payload chunking, and paste events using the [kitty clipboard protocol](https://sw.kovidgoyal.net/kitty/clipboard/).
+
+### When to Use
+
+Use the advanced clipboard when you need:
+
+- **Multiple MIME types** — copy text/plain alongside text/html, image/png, etc.
+- **Large payloads** — automatic chunking for data > 4096 bytes
+- **Paste events** — terminal notifies your app when the user pastes, including MIME types
+
+When the terminal does not support OSC 5522, the advanced clipboard falls back to OSC 52 (plain text only).
+
+### AdvancedClipboard Interface
+
+```typescript
+interface ClipboardEntry {
+  mime: string                  // "text/plain", "text/html", "image/png", etc.
+  data: string | Uint8Array    // text or binary data
+}
+
+interface AdvancedClipboard {
+  copy(entries: ClipboardEntry[]): void
+  copyText(text: string): void
+  copyRich(text: string, html: string): void
+  onPaste(handler: (entries: ClipboardEntry[]) => void): () => void
+  readonly supported: boolean
+  dispose(): void
+}
+```
+
+### Creating an Advanced Clipboard
+
+```typescript
+import { createAdvancedClipboard } from "@silvery/ag-term"
+
+const clipboard = createAdvancedClipboard({
+  write: (data) => process.stdout.write(data),
+  onData: (handler) => {
+    const listener = (buf: Buffer) => handler(buf.toString())
+    process.stdin.on("data", listener)
+    return () => process.stdin.removeListener("data", listener)
+  },
+  supported: true,  // set based on terminal detection
+})
+```
+
+### Copying with MIME Types
+
+```typescript
+// Plain text (convenience)
+clipboard.copyText("Hello, World!")
+
+// Text + HTML (convenience)
+clipboard.copyRich("Hello", "<b>Hello</b>")
+
+// Multiple MIME types (full control)
+clipboard.copy([
+  { mime: "text/plain", data: "Hello" },
+  { mime: "text/html", data: "<b>Hello</b>" },
+  { mime: "image/png", data: pngBytes },  // Uint8Array
+])
+```
+
+### Paste Events
+
+Enable paste events mode by writing the CSI sequence, then subscribe:
+
+```typescript
+import { ENABLE_PASTE_EVENTS, DISABLE_PASTE_EVENTS } from "@silvery/ag-term"
+
+// Enable paste events
+process.stdout.write(ENABLE_PASTE_EVENTS)
+
+const unsub = clipboard.onPaste((entries) => {
+  for (const entry of entries) {
+    if (entry.mime === "text/plain") {
+      insertText(entry.data as string)
+    } else if (entry.mime === "image/png") {
+      insertImage(entry.data as Uint8Array)
+    }
+  }
+})
+
+// Later: disable and unsubscribe
+unsub()
+process.stdout.write(DISABLE_PASTE_EVENTS)
+```
+
+### Relationship to OSC 52
+
+| Feature | OSC 52 | OSC 5522 |
+|---------|--------|----------|
+| Plain text copy | Yes | Yes |
+| Multiple MIME types | No | Yes |
+| Binary data (images) | No | Yes |
+| Large payload chunking | No | Yes (4096 byte chunks) |
+| Paste events | No | Yes |
+| Terminal support | Broad | Kitty 0.28+ |
+
+The `createAdvancedClipboard` factory handles fallback automatically: when `supported` is false, `copyText` and `copyRich` use OSC 52, and `copy` extracts the text/plain entry for OSC 52.
+
 ## See Also
 
 - [Text Selection](/guide/text-selection) — userSelect prop, mouse selection, copy-mode
