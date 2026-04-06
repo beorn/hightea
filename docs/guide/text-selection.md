@@ -2,6 +2,36 @@
 
 Silvery captures all mouse events via DECSET 1003, which kills native terminal text selection. Silvery's text selection system restores that capability — and goes further with contain boundaries, semantic copy, and vim-style copy-mode.
 
+## How It's Activated
+
+Text selection is a **runtime feature** (`SelectionFeature`) that activates automatically when you use `withDomEvents()`:
+
+```typescript
+const app = pipe(
+  createApp(store),
+  withReact(<App />),
+  withTerminal(process),
+  withFocus(),
+  withDomEvents(),    // ← text selection is included
+)
+```
+
+No explicit hook setup is needed. To observe selection state from a React component, use the `useSelection()` hook:
+
+```tsx
+import { useSelection } from "silvery"
+
+function SelectionStatus() {
+  const selection = useSelection()
+  if (!selection?.active) return null
+  return <Text>Selection active</Text>
+}
+```
+
+::: info Migration
+The older `useTerminalSelection` hook and `TerminalSelectionProvider` component still exist for backwards compatibility, but `useSelection()` is the recommended API. It reads from the `CapabilityRegistry` — no provider wrapper needed.
+:::
+
 ## The `userSelect` Prop
 
 Control which elements are text-selectable with the `userSelect` prop on `Box`:
@@ -75,12 +105,7 @@ Both use the existing double-click detection (300ms window, 2-cell threshold) ex
 
 By default, selection persists after mouseup — you must explicitly copy with `y` or your app's copy command. This avoids clipboard spam from accidental selections.
 
-For tmux-style auto-copy on mouseup:
-
-```tsx
-// In your app configuration
-useTerminalSelection({ copyOnSelect: true })
-```
+For tmux-style auto-copy on mouseup, configure the `SelectionFeature` via `withDomEvents()` options (or use the legacy `useTerminalSelection({ copyOnSelect: true })` hook).
 
 ## Alt+Drag Override
 
@@ -94,12 +119,7 @@ Alt + mousedown → always starts text selection
 
 When a user tries to drag on a `userSelect="none"` element without Alt, a transient hint appears: "Hold Alt to select text".
 
-The modifier key is configurable:
-
-```tsx
-// Default is "alt"
-useTerminalSelection({ selectionModifier: "shift" })
-```
+The modifier key is configurable via the `SelectionFeature` options (default is Alt).
 
 ## Contain Boundaries
 

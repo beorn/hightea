@@ -2,11 +2,33 @@
 
 Silvery provides text search at two levels: buffer-level search for visible content, and FindProvider for virtual lists where off-screen items need model-level search.
 
+## How It's Activated
+
+Find is a **runtime feature** (`FindFeature`) that activates automatically when you use `withFocus()`:
+
+```typescript
+const app = pipe(
+  createApp(store),
+  withReact(<App />),
+  withTerminal(process),
+  withFocus(),        // ← Ctrl+F find is included
+  withDomEvents(),
+)
+```
+
+Press `Ctrl+F` to open the find bar, type a query, use `n`/`N` to navigate matches, `Enter` to select the current match, and `Esc` to close.
+
+::: info Migration
+The older `useFind` hook still exists for backwards compatibility, but find now works automatically via `withFocus()`. No explicit hook setup is needed for basic find functionality.
+:::
+
 ## Buffer-Level Find
 
 Search the rendered terminal buffer for text matches. Matches are highlighted in the output using style composition — the same pipeline as selection highlights.
 
-### useFind Hook
+### Legacy useFind Hook
+
+The `useFind` hook provides programmatic access to find state for custom find UIs:
 
 ```tsx
 import { useFind } from "silvery"

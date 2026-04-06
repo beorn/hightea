@@ -2,9 +2,15 @@
 
 > This page documents Silvery's event handling APIs. For the guided progression from callbacks to composable plugins, see [Building an App](../guides/terminal-apps.md).
 
+## InputRouter and Feature Registration
+
+Under the hood, Silvery uses an **InputRouter** (`@silvery/create/internal/`) to dispatch keyboard and mouse events to registered feature handlers. Features like `SelectionFeature`, `FindFeature`, `CopyModeFeature`, and `DragFeature` register themselves with the router via the **CapabilityRegistry**. This happens automatically when you use the corresponding providers — you don't need to configure the router directly.
+
+The `CapabilityRegistry` also powers React hooks like `useSelection()`, which read feature state without needing provider wrappers.
+
 ## `withDomEvents()` — Component Event Handlers
 
-Adds React-style event handlers to Silvery components. Events bubble up the tree, components can stop propagation, and hit testing maps mouse coordinates to nodes.
+Adds React-style event handlers to Silvery components. Events bubble up the tree, components can stop propagation, and hit testing maps mouse coordinates to nodes. Also activates `SelectionFeature` (text selection) and `DragFeature` (drag-and-drop).
 
 ```tsx
 import { pipe, withDomEvents, withReact } from "@silvery/create/plugins"

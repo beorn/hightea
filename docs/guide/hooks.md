@@ -1,6 +1,30 @@
 # Hooks
 
-Silvery provides hooks for input handling, layout queries, and terminal access.
+Silvery provides hooks for input handling, layout queries, terminal access, and interaction features.
+
+## Interaction Feature Hooks
+
+These hooks read state from the interactions runtime (features registered in the `CapabilityRegistry`). They require no provider wrappers — just use the corresponding `with*` provider in your app's `pipe()` chain.
+
+### useSelection
+
+Reads the current text selection state from the `SelectionFeature`. Available when `withDomEvents()` is in the provider chain.
+
+```tsx
+import { useSelection } from "silvery"
+
+function SelectionIndicator() {
+  const selection = useSelection()
+  if (!selection?.active) return null
+  return <Text>Selected: {selection.text}</Text>
+}
+```
+
+Returns `TerminalSelectionState | undefined` — `undefined` when no selection feature is registered.
+
+::: info Legacy hooks
+The following hooks are superseded by the feature-based architecture but still exist for backwards compatibility: `useTerminalSelection`, `usePointerState`, `useFind`, `useFindProvider`, `useCopyMode`, `useCopyProvider`. New code should use `useSelection()` and the automatic feature activation via `withDomEvents()` / `withFocus()`.
+:::
 
 ## useContentRect
 

@@ -90,14 +90,16 @@ state = selectListUpdate(state, { type: "move_last" })
 
 Actions that move accept an optional `isDisabled` predicate to skip disabled items.
 
-### Upcoming Machines
+### Interaction Features (Runtime-Level)
 
-These machines are planned for `@silvery/headless` (see km-silvery.interactions-runtime):
+The following interaction capabilities are implemented as **runtime features** in `@silvery/ag-term/features/`, not as headless machines. They are wired automatically by providers:
 
-- **selection** — text/node selection with anchor/focus positions
-- **pointer** — mouse state tracking (hover, drag, click sequences)
-- **find** — incremental search with match navigation
-- **copy-mode** — keyboard-driven text selection (terminal copy mode)
+- **SelectionFeature** — text selection with mouse drag, word/line selection, contain boundaries. Activated by `withDomEvents()`.
+- **FindFeature** — buffer-level text search with match highlighting and navigation. Activated by `withFocus()` (`Ctrl+F`).
+- **CopyModeFeature** — vim-style keyboard-driven text selection. Activated by `withFocus()` (`Esc, v`).
+- **DragFeature** — mouse drag-and-drop with hit testing. Activated by `withDomEvents()`.
+
+See [Text Selection](/guide/text-selection), [Find](/guide/find), and [Event Handling](/guide/event-handling) for usage details.
 
 ## React Integration
 

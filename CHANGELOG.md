@@ -7,6 +7,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **Interactions runtime** — selection, find, copy-mode, and drag as composable runtime features (`SelectionFeature`, `FindFeature`, `CopyModeFeature`, `DragFeature`) in `@silvery/ag-term/features/`. Each feature is wired automatically by its provider (`withDomEvents` for selection and drag, `withFocus` for find and copy-mode).
+- **InputRouter** — centralized input routing in `@silvery/create/internal/` dispatches keyboard and mouse events to registered feature handlers with priority ordering.
+- **CapabilityRegistry** — runtime capability discovery in `@silvery/create/internal/`. Features register themselves; React components access them via `CapabilityRegistryContext`.
+- **`useSelection` hook** — reads selection state from the CapabilityRegistry. Replaces the old `useTerminalSelection` + `TerminalSelectionProvider` pattern.
+- **Composition docs** — new guide pages: [Providers and Plugins](docs/guide/providers.md) and [Headless Machines](docs/guide/headless-machines.md).
+
+### Breaking Changes
+
+- **Removed hooks** — `useTerminalSelection`, `usePointerState`, `useFind`, `useFindProvider`, `useCopyMode`, `useCopyProvider` are superseded by the feature-based architecture. The old hooks still exist for backwards compatibility but are no longer the recommended API.
+- **Text selection** now activates automatically via `withDomEvents()` — no explicit hook setup required.
+- **Find** now activates automatically via `withFocus()` with `Ctrl+F` — no explicit `useFind` setup required.
+- **Copy-mode** now activates automatically via `withFocus()` with `Esc, v` — no explicit `useCopyMode` setup required.
+
 ## [0.9.0] - 2026-03-29
 
 ### Added
@@ -206,7 +221,9 @@ The inkx era. Initial development as a high-performance Ink alternative with inc
 - `layoutChangedThisFrame` flag: eliminates permanent O(N) content-phase recalculation from stale `prevLayout`.
 - Zero-allocation Flexily layout engine option.
 
-[Unreleased]: https://github.com/beorn/silvery/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/beorn/silvery/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/beorn/silvery/compare/v0.4.0...v0.9.0
+[0.4.0]: https://github.com/beorn/silvery/compare/v0.2.0...v0.4.0
 [0.2.0]: https://github.com/beorn/silvery/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/beorn/silvery/compare/v0.0.1...v0.1.0
 [0.0.x]: https://github.com/beorn/silvery/releases/tag/v0.0.1
