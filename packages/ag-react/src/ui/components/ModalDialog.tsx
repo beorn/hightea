@@ -147,6 +147,7 @@ export function ModalDialog({
       backgroundColor={"$popover-bg"}
       paddingX={2}
       paddingY={1}
+      userSelect="contain"
     >
       {title && (
         <Box flexShrink={0} flexDirection="column">
