@@ -54,6 +54,9 @@ export type { UseFindResult, UseFindOptions } from "./useFind"
 export { useCopyMode } from "./useCopyMode"
 export type { UseCopyModeResult, UseCopyModeOptions } from "./useCopyMode"
 
+// Semantic Copy Provider
+export { CopyProvider, useCopyProvider } from "./useCopyProvider"
+
 // List Item
 export { useListItem } from "./useListItem"
 export type { ListItemContext } from "./useListItem"

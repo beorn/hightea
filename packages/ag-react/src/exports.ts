@@ -379,6 +379,7 @@ export {
   TerminalSelectionProvider,
 } from "./hooks/useTerminalSelection"
 export type { UseTerminalSelectionResult } from "./hooks/useTerminalSelection"
+export { CopyProvider, useCopyProvider } from "./hooks/useCopyProvider"
 export { useVirtualizer } from "./hooks/useVirtualizer"
 export type { VirtualizerConfig, VirtualizerResult } from "./hooks/useVirtualizer"
 export { useListItem } from "./hooks/useListItem"
