@@ -55,6 +55,33 @@ export function rectEqual(a: Rect | null, b: Rect | null): boolean {
 }
 
 // ============================================================================
+// Interactive State Types
+// ============================================================================
+
+/**
+ * Per-node interactive state — written by pointer/selection/focus state machines,
+ * read by theme/render for automatic styling.
+ *
+ * These are plain mutable booleans, NOT reactive signals. State machines set them
+ * synchronously during event processing, and the next render reads them.
+ * React re-renders are driven by the event processing, not signal subscriptions.
+ *
+ * The object is lazily created on first write to avoid overhead on non-interactive nodes.
+ */
+export interface InteractiveState {
+  /** Pointer is over this node (mouseenter/mouseleave) */
+  hovered: boolean
+  /** Pointer-down on this node, awaiting pointer-up (will receive click) */
+  armed: boolean
+  /** Node is in the current selection set */
+  selected: boolean
+  /** Node has keyboard focus */
+  focused: boolean
+  /** A drag operation is hovering over this node */
+  dropTarget: boolean
+}
+
+// ============================================================================
 // Node Types
 // ============================================================================
 
@@ -410,6 +437,15 @@ export interface AgNode {
   /** Inline rects for virtual text nodes (no layout node). Computed during text rendering.
    *  Array for wrapped text (one rect per line fragment). Enables hit testing on nested Text. */
   inlineRects?: Array<{ x: number; y: number; width: number; height: number }> | null
+
+  /**
+   * Interactive state signals — written by pointer/selection/focus state machines,
+   * read by theme/render for automatic styling (hover highlights, focus rings, etc.).
+   *
+   * Lazily created on first write. Null means no interactive state has been set.
+   * See InteractiveState for field docs.
+   */
+  interactiveState?: InteractiveState | null
 
   /** Scroll state for overflow='scroll' containers */
   scrollState?: {

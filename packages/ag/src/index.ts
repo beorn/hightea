@@ -22,6 +22,7 @@ export type {
   StyleProps,
   TestProps,
   UnderlineStyle,
+  InteractiveState,
   CellAttrs,
   Cell,
   TerminalBuffer,
