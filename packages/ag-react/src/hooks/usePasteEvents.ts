@@ -4,8 +4,7 @@
  * Subscribes to the runtime's paste events, enriches with internal clipboard
  * data, and routes to the nearest ancestor PasteHandler.
  *
- * Call this hook in your app root (or wherever TerminalSelectionProvider
- * is rendered) to enable paste routing.
+ * Call this hook in your app root to enable paste routing.
  *
  * @example
  * ```tsx
@@ -18,9 +17,8 @@
 
 import { useContext, useEffect, useRef } from "react"
 import { RuntimeContext } from "../context"
-import { createPasteEvent } from "@silvery/ag-term/semantic-copy"
+import { createPasteEvent, getInternalClipboard } from "@silvery/ag-term/copy-extraction"
 import { usePaste } from "./usePaste"
-import { getInternalClipboard } from "./useTerminalSelection"
 
 /**
  * Bridge runtime paste events to the nearest PasteHandler.

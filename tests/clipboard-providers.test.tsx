@@ -1,93 +1,19 @@
 /**
- * Tests for CopyProvider, PasteProvider, and paste event handling.
+ * Tests for PasteProvider and paste event handling.
  *
  * Uses createRenderer for synchronous rendering to verify context resolution.
+ *
+ * NOTE: CopyProvider/useCopyProvider tests were removed — the old React context
+ * pattern for semantic copy enrichment was replaced by the runtime-level
+ * SelectionFeature in the interactions runtime refactor (Phase 5).
  */
 import React from "react"
 import { describe, test, expect, vi } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Text } from "../src/index.js"
-import { CopyProvider, useCopyProvider } from "../packages/ag-react/src/hooks/useCopyProvider"
 import { PasteProvider, usePaste, type PasteHandler } from "../packages/ag-react/src/hooks/usePaste"
-import type { SemanticCopyProvider, CopyEvent, ClipboardData, PasteEvent } from "../packages/ag-term/src/semantic-copy"
+import type { PasteEvent } from "../packages/ag-term/src/copy-extraction"
 import { parseBracketedPaste, PASTE_START, PASTE_END } from "../packages/ag-term/src/bracketed-paste"
-
-// ============================================================================
-// CopyProvider Context
-// ============================================================================
-
-describe("CopyProvider", () => {
-  test("useCopyProvider returns null when no provider in tree", () => {
-    let resolvedProvider: SemanticCopyProvider | null = "not-set" as any
-
-    function TestComponent() {
-      resolvedProvider = useCopyProvider()
-      return <Text>test</Text>
-    }
-
-    const render = createRenderer({ cols: 40, rows: 10 })
-    render(<TestComponent />)
-
-    expect(resolvedProvider).toBeNull()
-  })
-
-  test("useCopyProvider returns nearest ancestor provider", () => {
-    let resolvedProvider: SemanticCopyProvider | null = null
-
-    const outerProvider: SemanticCopyProvider = {
-      enrichCopy: () => ({ text: "outer" }),
-    }
-
-    const innerProvider: SemanticCopyProvider = {
-      enrichCopy: () => ({ text: "inner" }),
-    }
-
-    function TestComponent() {
-      resolvedProvider = useCopyProvider()
-      return <Text>test</Text>
-    }
-
-    const render = createRenderer({ cols: 40, rows: 10 })
-    render(
-      <CopyProvider provider={outerProvider}>
-        <CopyProvider provider={innerProvider}>
-          <TestComponent />
-        </CopyProvider>
-      </CopyProvider>,
-    )
-
-    expect(resolvedProvider).toBe(innerProvider)
-
-    const copyEvent: CopyEvent = {
-      text: "hello",
-      range: { anchor: { col: 0, row: 0 }, head: { col: 4, row: 0 } },
-    }
-    const result = resolvedProvider!.enrichCopy(copyEvent) as ClipboardData
-    expect(result.text).toBe("inner")
-  })
-
-  test("useCopyProvider resolves to outer provider when no inner", () => {
-    let resolvedProvider: SemanticCopyProvider | null = null
-
-    const outerProvider: SemanticCopyProvider = {
-      enrichCopy: () => ({ text: "outer" }),
-    }
-
-    function TestComponent() {
-      resolvedProvider = useCopyProvider()
-      return <Text>test</Text>
-    }
-
-    const render = createRenderer({ cols: 40, rows: 10 })
-    render(
-      <CopyProvider provider={outerProvider}>
-        <TestComponent />
-      </CopyProvider>,
-    )
-
-    expect(resolvedProvider).toBe(outerProvider)
-  })
-})
 
 // ============================================================================
 // PasteProvider Context

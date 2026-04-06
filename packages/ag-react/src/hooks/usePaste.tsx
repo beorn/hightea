@@ -26,7 +26,7 @@
  */
 
 import React, { createContext, useContext, type ReactNode } from "react"
-import type { PasteEvent } from "@silvery/ag-term/semantic-copy"
+import type { PasteEvent } from "@silvery/ag-term/copy-extraction"
 
 // ============================================================================
 // Types

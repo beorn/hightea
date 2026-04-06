@@ -377,21 +377,13 @@ export {
   CursorProvider,
 } from "./hooks/useCursor"
 export type { CursorPosition, CursorState, CursorAccessors, CursorStore } from "./hooks/useCursor"
-export {
-  useTerminalSelection,
-  useTerminalSelectionContext,
-  TerminalSelectionProvider,
-  getInternalClipboard,
-} from "./hooks/useTerminalSelection"
-export type { UseTerminalSelectionResult } from "./hooks/useTerminalSelection"
-export { CopyProvider, useCopyProvider } from "./hooks/useCopyProvider"
 export { PasteProvider, usePaste } from "./hooks/usePaste"
 export type { PasteHandler } from "./hooks/usePaste"
 export { usePasteEvents } from "./hooks/usePasteEvents"
 
-// Re-export semantic copy types from ag-term for convenience
-export type { CopyEvent, SemanticCopyProvider, ClipboardData, PasteEvent } from "@silvery/ag-term/semantic-copy"
-export { createPasteEvent, createCopyProvider } from "@silvery/ag-term/semantic-copy"
+// Re-export copy extraction types from ag-term for convenience
+export type { CopyEvent, SemanticCopyProvider, ClipboardData, PasteEvent } from "@silvery/ag-term/copy-extraction"
+export { createPasteEvent, createCopyProvider, getInternalClipboard } from "@silvery/ag-term/copy-extraction"
 export { useVirtualizer } from "./hooks/useVirtualizer"
 export type { VirtualizerConfig, VirtualizerResult } from "./hooks/useVirtualizer"
 export { useListItem } from "./hooks/useListItem"

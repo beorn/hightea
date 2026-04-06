@@ -6,7 +6,7 @@
  * dragged source node and the drop target.
  *
  * The pointer state machine (pointer-state.ts) decides when a drag starts;
- * the integration layer (usePointerState hook) uses these types to dispatch
+ * the integration layer (DragFeature) uses these types to dispatch
  * drag events to the appropriate nodes.
  *
  * Prop types (DragEventProps, DragEventPayload) live in @silvery/ag/drag-event-types

@@ -42,39 +42,12 @@ export { useTerminalFocused } from "./useTerminalFocused"
 export { useScrollRegion } from "./useScrollRegion"
 export type { UseScrollRegionOptions, UseScrollRegionResult } from "./useScrollRegion"
 
-// Terminal Selection (buffer-level text copy/paste)
-export {
-  useTerminalSelection,
-  useTerminalSelectionContext,
-  TerminalSelectionProvider,
-  getInternalClipboard,
-} from "./useTerminalSelection"
-export type { UseTerminalSelectionResult } from "./useTerminalSelection"
-
-// Find (visible-buffer text search + optional FindProvider for virtual lists)
-export { useFind } from "./useFind"
-export type { UseFindResult, UseFindOptions } from "./useFind"
-
-// Find Provider (virtual list model-level search)
-export { FindProviderComponent, useFindProvider } from "./useFindProvider"
-
-// Copy Mode (keyboard-driven selection)
-export { useCopyMode } from "./useCopyMode"
-export type { UseCopyModeResult, UseCopyModeOptions } from "./useCopyMode"
-
-// Semantic Copy Provider
-export { CopyProvider, useCopyProvider } from "./useCopyProvider"
-
 // Paste Handler
 export { PasteProvider, usePaste } from "./usePaste"
 export type { PasteHandler } from "./usePaste"
 
 // Paste Event Bridge (runtime → PasteHandler context)
 export { usePasteEvents } from "./usePasteEvents"
-
-// Pointer State Machine (gesture disambiguation)
-export { usePointerState, resolveUserSelect, resolveNodeDraggable } from "./usePointerState"
-export type { UsePointerStateOptions, UsePointerStateResult } from "./usePointerState"
 
 // Selection (capability-based — reads from CapabilityRegistry)
 export { useSelection } from "./useSelection"

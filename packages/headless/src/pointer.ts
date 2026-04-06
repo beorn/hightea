@@ -3,7 +3,7 @@
  *
  * Disambiguates mouse gestures: text selection vs node drag vs area selection.
  * The machine DECIDES what a gesture means; effects are consumed by the
- * integration layer (usePointerState hook) which calls into selection/drag systems.
+ * integration layer (DragFeature) which calls into selection/drag systems.
  *
  * Key design points:
  * - Pure function, no side effects

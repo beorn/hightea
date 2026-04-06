@@ -8,7 +8,7 @@ import {
   type ClipboardData,
   type CopyEvent,
   type SemanticCopyProvider,
-} from "../packages/ag-term/src/semantic-copy"
+} from "../packages/ag-term/src/copy-extraction"
 
 // ============================================================================
 // createPasteEvent

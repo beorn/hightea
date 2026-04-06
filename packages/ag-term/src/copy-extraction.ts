@@ -1,5 +1,5 @@
 /**
- * Semantic Copy Providers
+ * Copy Extraction
  *
  * Application-facing API that lets apps enrich copied content with
  * structured data (markdown, HTML, internal formats).
@@ -7,6 +7,9 @@
  * When text is selected and copied, the nearest ancestor CopyProvider
  * gets a chance to enrich the plain text with semantic representations.
  * Plain text always goes to clipboard immediately; rich data is best-effort.
+ *
+ * Also manages the internal clipboard — a module-level store of the last
+ * copy's rich data so paste events can detect internal copies.
  *
  * @example
  * ```tsx
@@ -99,6 +102,32 @@ export interface PasteEvent {
 }
 
 // ============================================================================
+// Internal Clipboard
+// ============================================================================
+
+/**
+ * Shared internal clipboard — stores the last copy's rich data so paste
+ * events can detect internal copies and include structured data.
+ */
+let internalClipboard: ClipboardData | null = null
+
+/**
+ * Get the current internal clipboard data.
+ * Used by paste event handling to detect internal copies.
+ */
+export function getInternalClipboard(): ClipboardData | null {
+  return internalClipboard
+}
+
+/**
+ * Set the internal clipboard data.
+ * Called after a copy operation to store rich data for paste detection.
+ */
+export function setInternalClipboard(data: ClipboardData | null): void {
+  internalClipboard = data
+}
+
+// ============================================================================
 // Factory Functions
 // ============================================================================
 
@@ -106,12 +135,12 @@ export interface PasteEvent {
  * Create a PasteEvent from bracketed paste text.
  * Checks against the internal clipboard to determine source.
  */
-export function createPasteEvent(text: string, internalClipboard: ClipboardData | null): PasteEvent {
-  if (internalClipboard && internalClipboard.text === text) {
+export function createPasteEvent(text: string, clipboard: ClipboardData | null): PasteEvent {
+  if (clipboard && clipboard.text === text) {
     return {
       text,
       source: "internal",
-      data: internalClipboard,
+      data: clipboard,
     }
   }
 
