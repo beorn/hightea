@@ -30,9 +30,9 @@ Here's the thing that took me too long to understand. Terminals give you two buf
 
 <HtmlDiagram :html="buffersDiagram" />
 
-**Main buffer** is what your shell runs in — `echo`, `git log`, every line-oriented CLI writes here. Content accumulates as scrollback, Cmd+F works, text selection works across history, everything persists after the app exits. TUI frameworks call this "inline mode."
+**Main screen buffer** is what your shell runs in — `echo`, `git log`, every line-oriented CLI writes here. Content accumulates as scrollback, Cmd+F works, text selection works across history, everything persists after the app exits. TUI frameworks call this "inline mode."
 
-**Alternate buffer** is what vim, htop, and other fullscreen apps use — a separate canvas with full cell-level control, but no scrollback. When the app exits, the buffer is discarded and the original main buffer is restored.
+**Alternate screen buffer** is what vim, htop, and other fullscreen apps use — a separate canvas with full cell-level control, but no scrollback. When the app exits, the buffer is discarded and the original main buffer is restored.
 
 Append-only logs don't have this problem — output scrolls up and stays. The hard case is output that keeps changing after some of its earlier lines have already scrolled off-screen. That's what every AI agent, streaming test runner, and deployment dashboard needs — and it doesn't fit neatly into either buffer.
 

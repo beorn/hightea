@@ -285,14 +285,12 @@
     <div class="diagram">
       <!-- LEFT: Main Buffer -->
       <div class="terminal-panel ann-main">
-        <div class="panel-label">Main Buffer</div>
+        <div class="panel-label">Main Screen Buffer</div>
 
         <!-- Scrollback: faded zone ABOVE terminal -->
         <div class="scrollback-zone">
           <div class="scrollback-label">scrollback</div>
-          <pre
-            class="term-text"
-          ><span class="prompt">$ </span><span class="cmd">bun add express</span>
+          <pre class="term-text"><span class="prompt">$ </span><span class="cmd">bun add express</span>
 <span class="comment">added 64 packages in 2.1s</span>
 <span class="prompt">$ </span><span class="cmd">cat README.md</span></pre>
         </div>
@@ -306,9 +304,7 @@
             <div class="window-title">Terminal &mdash; zsh</div>
           </div>
           <div class="terminal-body">
-            <pre
-              class="term-text"
-            ><span class="prompt">$ </span><span class="cmd">node server.js</span>
+            <pre class="term-text"><span class="prompt">$ </span><span class="cmd">node server.js</span>
 <span class="success">Server listening on :3000</span>
 <span class="comment">GET /api/users 200 12ms</span>
 <span class="comment">POST /api/auth 201 45ms</span>
@@ -318,17 +314,16 @@
 
         <div class="pros-cons">
           <div class="pros-cons-inner">
-            <span class="pro-tag">+</span> Cmd+F, text selection, history
-            persists
+            <span class="pro-tag">+</span> Searchable, selectable, persists after exit
             <br />
-            <span class="con-tag">&minus;</span> Can't update scrolled content
+            <span class="con-tag">&minus;</span> Can't rewrite lines once in scrollback
           </div>
         </div>
       </div>
 
       <!-- RIGHT: Alternate Buffer -->
       <div class="terminal-panel ann-alt">
-        <div class="panel-label">Alternate Buffer</div>
+        <div class="panel-label">Alternate Screen Buffer</div>
 
         <!-- Full terminal (no scrollback zone) -->
         <div class="terminal-frame">
@@ -344,9 +339,7 @@
               <span>[+] 1 of 3</span>
             </div>
             <div class="alt-content">
-              <pre
-                class="term-text"
-              ><span class="line-num"> 1 </span><span class="keyword">import</span> express
+              <pre class="term-text"><span class="line-num"> 1 </span><span class="keyword">import</span> express
 <span class="line-num"> 2 </span><span class="keyword">from</span> <span class="string">'express'</span>
 <span class="line-num"> 3 </span>
 <span class="line-num"> 4 </span><span class="keyword">const</span> app = <span class="func">express</span>()
@@ -364,10 +357,9 @@
 
         <div class="pros-cons">
           <div class="pros-cons-inner">
-            <span class="pro-tag">+</span> Full cell control, no flicker
+            <span class="pro-tag">+</span> App controls every visible cell
             <br />
-            <span class="con-tag">&minus;</span> No scrollback, discarded on
-            exit
+            <span class="con-tag">&minus;</span> No persistent terminal history
           </div>
         </div>
       </div>

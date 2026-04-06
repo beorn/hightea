@@ -32,8 +32,12 @@
     color: #56b4e9;
   }
   @media (prefers-color-scheme: dark) {
-    .diagram-02-pipelines-compared .explain-warning { color: #e69f00; }
-    .diagram-02-pipelines-compared .explain-success { color: #56b4e9; }
+    .diagram-02-pipelines-compared .explain-warning {
+      color: #e69f00;
+    }
+    .diagram-02-pipelines-compared .explain-success {
+      color: #56b4e9;
+    }
   }
   .diagram-02-pipelines-compared .explain-icon {
     margin-right: 4px;
@@ -59,8 +63,12 @@
     color: #56b4e9;
   }
   @media (prefers-color-scheme: dark) {
-    .diagram-02-pipelines-compared .row-label-typical { color: #e69f00; }
-    .diagram-02-pipelines-compared .row-label-silvery { color: #56b4e9; }
+    .diagram-02-pipelines-compared .row-label-typical {
+      color: #e69f00;
+    }
+    .diagram-02-pipelines-compared .row-label-silvery {
+      color: #56b4e9;
+    }
   }
 
   .diagram-02-pipelines-compared .stages {
@@ -197,10 +205,9 @@
     <!-- Typical explanation -->
     <div class="explain explain-warning">
       <span class="explain-icon">⚠</span>
-      In Ink / Claude Code's pipeline, there's an
-      <span style="color: #d55e00; font-weight: 700">async gap</span> between
-      reconciliation and layout. If React updates mid-layout, the renderer sees
-      stale geometry — ghost cells, overlapping text, blank regions.
+      Reconciliation and layout are
+      <span style="color: #d55e00; font-weight: 700">not transactionally coupled</span>. If an update lands between
+      them, the renderer sees stale geometry.
     </div>
 
     <!-- Typical pipeline -->
@@ -210,7 +217,7 @@
         <div class="stage-group">
           <div class="stage stage-typical">
             Reconcile
-            <div class="stage-sub">React (default async)</div>
+            <div class="stage-sub">React (scheduled, may yield)</div>
           </div>
           <span class="gap-inline">
             <span class="gap-label">- ASYNC GAP -</span>
@@ -242,12 +249,12 @@
         <div class="stage-group">
           <div class="stage stage-silvery">
             Reconcile
-            <div class="stage-sub">React (custom sync)</div>
+            <div class="stage-sub">React (synchronous commit)</div>
           </div>
           <span class="arrow-icon">→</span>
           <div class="stage stage-silvery">
             Layout
-            <div class="stage-sub">Flexily / Yoga</div>
+            <div class="stage-sub">Flexily</div>
           </div>
         </div>
         <span class="arrow-icon">→</span>
@@ -279,8 +286,7 @@
     <!-- Silvery explanation -->
     <div class="explain explain-success">
       <span class="explain-icon">✓</span>
-      Every stage sees exactly the same state. No async gaps means no timing
-      bugs — tree, layout, and rendered cells are always consistent.
+      Every stage sees the same state. One transaction eliminates tree/layout/render skew.
     </div>
   </div>
 </div>

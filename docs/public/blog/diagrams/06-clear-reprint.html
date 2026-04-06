@@ -296,9 +296,7 @@
                 ><span class="bullet">&gt;</span> <span class="comment">List files in src/</span> <span class="success">&#10003;</span></pre>
               </div>
               <div class="exchange-row ellipsis">
-                <pre
-                  class="term-text"
-                ><span class="dimmed">... 48 more exchanges ...</span></pre>
+                <pre class="term-text"><span class="dimmed">[49 completed exchanges]</span></pre>
               </div>
               <div class="exchange-row done">
                 <pre
@@ -311,10 +309,7 @@
             <!-- Active streaming exchange -->
             <div
               class="exchange-row streaming"
-              style="
-                padding: 3px 8px;
-                border-top: 1px solid rgba(86, 180, 233, 0.15);
-              "
+              style="padding: 3px 8px; border-top: 1px solid rgba(86, 180, 233, 0.15)"
             >
               <pre
                 class="term-text"
@@ -323,10 +318,7 @@
           </div>
         </div>
 
-        <div class="caption">
-          One new token &rarr; entire screen erased and redrawn. That's the
-          flicker.
-        </div>
+        <div class="caption">One new token &rarr; managed region cleared and reprinted. That's the flicker.</div>
       </div>
 
       <!-- Right: step annotations -->
@@ -338,37 +330,24 @@
 
         <div class="step-card">
           <div class="annotation-card">
-            <div class="step-title">
-              <span class="step-num">1</span> Clear entire region
-            </div>
+            <div class="step-title"><span class="step-num">1</span> Rewind and clear</div>
             <div class="step-desc">
-              Erase everything from the first exchange to the cursor. The
-              terminal goes blank momentarily.
+              Cursor rewinds to region start, clears to end. The region can visibly flash or tear.
             </div>
           </div>
         </div>
 
         <div class="step-card">
           <div class="annotation-card">
-            <div class="step-title">
-              <span class="step-num">2</span> Redraw 49 unchanged exchanges
-            </div>
-            <div class="step-desc">
-              Every completed exchange is re-serialized and re-written to the
-              terminal. None of them changed.
-            </div>
+            <div class="step-title"><span class="step-num">2</span> Reprint 49 unchanged exchanges</div>
+            <div class="step-desc">Every completed exchange is re-serialized and re-written. None of them changed.</div>
           </div>
         </div>
 
         <div class="step-card">
           <div class="annotation-card">
-            <div class="step-title">
-              <span class="step-num">3</span> Redraw Exchange 50 + new token
-            </div>
-            <div class="step-desc">
-              Finally, the one exchange that actually changed gets redrawn with
-              the new token appended.
-            </div>
+            <div class="step-title"><span class="step-num">3</span> Append new token</div>
+            <div class="step-desc">The one exchange that actually changed gets reprinted with the new token.</div>
           </div>
         </div>
 
@@ -376,8 +355,8 @@
           <div class="annotation-card">
             <div class="step-title">Repeat for every token</div>
             <div class="step-desc">
-              At 50 tokens/sec, this cycle runs 50 times per second. Each time,
-              99% of the bytes written are unchanged content.
+              At 50 tokens/sec, this cycle runs 50 times per second. Each time, 99% of the bytes written are unchanged
+              content.
             </div>
           </div>
         </div>
