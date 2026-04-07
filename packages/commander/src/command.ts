@@ -46,6 +46,7 @@
 import { Command as BaseCommand, Help, Option } from "commander"
 import { colorizeHelp, shouldColorize } from "./colorize.ts"
 import type { CLIType, StandardSchemaV1 } from "./presets.ts"
+import { tokenizeCmdline, isShellLine, type CmdlineToken } from "./tokenize.ts"
 
 /**
  * Broad structural type for schema objects that have a `~standard` property.
@@ -321,62 +322,22 @@ interface StoredSection {
 }
 
 /**
- * Style a section term using Commander's style hooks.
+ * Style a SINGLE-LINE section term using Commander's style hooks.
  *
  * Three modes:
- * - Shell command (`$ termless play demo.tape`): dim prompt, primary command,
- *   secondary flags, accent brackets, normal filenames/args
- * - Option-like (`-f, --flag`): styled as option
+ * - Shell command line (`$ termless play demo.tape`): tokenize via tokenizeCmdline()
+ *   and style each token by kind (dim prompt, primary program/subcommand,
+ *   secondary flags, accent brackets, dim quoted strings, plain values)
+ * - Option-like (`-f, --flag`): entire term styled as option
  * - Plain text: command words + argument brackets
+ *
+ * For multi-line terms, callers split on \n and call this per line — see
+ * _renderSections().
  */
 function styleSectionTerm(term: string, helper: any): string {
-  // Shell command terms (start with "$ "): nuanced multi-part styling
-  const shellMatch = term.match(/^(\$\s+)(.+)$/)
-  if (shellMatch) {
-    const prompt = shellMatch[1]!
-    const rest = shellMatch[2]!
-    // Dim the $ prompt (respect NO_COLOR)
-    const dimPrompt = shouldColorize() ? `\x1b[2m${prompt}\x1b[22m` : prompt
-    // Split into tokens, style contextually:
-    // - First word = program name (primary/command)
-    // - Subcommand words before first flag/arg = command (primary)
-    // - Flags (--foo, -f) = secondary/option
-    // - <brackets> [brackets] = accent/argument
-    // - Everything else (filenames, values) = unstyled
-    const tokens = rest.match(/(--?\S+)|(<[^>]+>|\[[^\]]+\])|('[^']*'|"[^"]*")|(\S+)|(\s+)/g) ?? []
-    let commandWords = 0
-    let doneWithCommand = false
-    const styled = tokens
-      .map((token) => {
-        if (/^\s+$/.test(token)) return token // whitespace
-        if (/^--?\S/.test(token)) {
-          doneWithCommand = true
-          return helper.styleOptionText(token)
-        }
-        if (/^[<[]/.test(token)) {
-          doneWithCommand = true
-          return helper.styleArgumentText(token)
-        }
-        if (/^["']/.test(token)) {
-          doneWithCommand = true
-          return shouldColorize() ? `\x1b[2m${token}\x1b[22m` : token
-        }
-        // First word = program name (always command)
-        // Second word = subcommand IF it looks like a bare word (no dots/slashes/extensions)
-        if (!doneWithCommand && commandWords === 0) {
-          commandWords++
-          return helper.styleCommandText(token)
-        }
-        if (!doneWithCommand && commandWords === 1 && /^[a-z][\w-]*$/i.test(token)) {
-          commandWords++
-          return helper.styleCommandText(token)
-        }
-        doneWithCommand = true
-        // Plain args (filenames, values) — dim to distinguish from command
-        return shouldColorize() ? `\x1b[2m${token}\x1b[22m` : token
-      })
-      .join("")
-    return dimPrompt + styled
+  // Shell command terms (start with "$ ", "# ", "> ", "❯ ")
+  if (isShellLine(term)) {
+    return styleCmdlineTokens(tokenizeCmdline(term), helper)
   }
 
   // Option-like terms: entire term styled as option
@@ -397,6 +358,49 @@ function styleSectionTerm(term: string, helper: any): string {
       return part
     })
     .join("")
+}
+
+/**
+ * Apply style hooks to a stream of CmdlineTokens.
+ *
+ * Each token kind maps to one of Commander's style hooks (or a manual ANSI
+ * dim escape for prompts/quoted strings, since Commander's style hook set
+ * doesn't have a "dim" entry).
+ */
+function styleCmdlineTokens(tokens: CmdlineToken[], helper: any): string {
+  const dim = (text: string) => (shouldColorize() ? `\x1b[2m${text}\x1b[22m` : text)
+  return tokens
+    .map((t) => {
+      switch (t.kind) {
+        case "prompt":
+          return dim(t.text)
+        case "program":
+        case "subcommand":
+          return helper.styleCommandText(t.text)
+        case "flag":
+          return helper.styleOptionText(t.text)
+        case "arg-bracket":
+          return helper.styleArgumentText(t.text)
+        case "quoted":
+          return dim(t.text)
+        case "value":
+        case "whitespace":
+          return t.text
+      }
+    })
+    .join("")
+}
+
+/**
+ * Compute the longest visual width of any line within a (possibly multi-line) term.
+ * Used for column alignment when terms span multiple lines.
+ */
+function maxLineWidth(term: string): number {
+  let max = 0
+  for (const line of term.split("\n")) {
+    if (line.length > max) max = line.length
+  }
+  return max
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -606,7 +610,14 @@ class _CommandBase extends BaseCommand {
     }
   }
 
-  /** Render sections for a given position using the help formatter. */
+  /**
+   * Render sections for a given position using the help formatter.
+   *
+   * Handles multi-line term entries (terms containing `\n`) by emitting one
+   * row per line. The description column is **top-aligned**: it appears only
+   * on the first line of a multi-line term, with subsequent lines holding
+   * just the styled term and an empty description column.
+   */
   private _renderSections(position: HelpSectionPosition, helper: any, termWidth: number): string {
     const sections = this._helpSectionList.filter((s) => s.position === position)
     if (sections.length === 0) return ""
@@ -621,8 +632,15 @@ class _CommandBase extends BaseCommand {
         }
       } else {
         for (const [term, desc] of section.content) {
-          const styleTerm = styleSectionTerm(term, helper)
-          lines.push(helper.formatItem(styleTerm, termWidth, helper.styleDescriptionText(desc), helper))
+          // Multi-line term support: split on \n, emit one row per line.
+          // First line carries the description; subsequent lines have empty desc.
+          const termLines = term.split("\n")
+          for (let i = 0; i < termLines.length; i++) {
+            const lineText = termLines[i]!
+            const styledTerm = styleSectionTerm(lineText, helper)
+            const lineDesc = i === 0 ? helper.styleDescriptionText(desc) : ""
+            lines.push(helper.formatItem(styledTerm, termWidth, lineDesc, helper))
+          }
         }
       }
     }
@@ -658,7 +676,9 @@ class _CommandBase extends BaseCommand {
         for (const section of self._helpSectionList) {
           if (typeof section.content !== "string") {
             for (const [term] of section.content) {
-              if (term.length > sectionMax) sectionMax = term.length
+              // For multi-line terms, use the LONGEST line, not the total length.
+              const w = maxLineWidth(term)
+              if (w > sectionMax) sectionMax = w
             }
           }
         }

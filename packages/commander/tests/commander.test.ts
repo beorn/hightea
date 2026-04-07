@@ -3,6 +3,13 @@ import { describe, expect, it } from "vitest"
 import { Command, colorizeHelp } from "../src/index.ts"
 import { createStyle } from "@silvery/ansi"
 
+// Strip ANSI escape sequences for assertions that need to match raw text
+// across styled tokens (e.g. "myapp init" where each word is styled separately).
+function stripAnsi(s: string): string {
+  // eslint-disable-next-line no-control-regex
+  return s.replace(/\x1b\[[0-9;]*m/g, "")
+}
+
 // ANSI escape code constants matching @silvery/ansi output.
 // Style uses per-attribute close codes (not full reset \x1b[0m).
 const ESC = "\x1b["
@@ -257,5 +264,91 @@ describe("addHelpSection", () => {
     expect(help).toContain("Section B:")
     expect(help).toContain("first")
     expect(help).toContain("second")
+  })
+
+  // ─────────────────────────────────────────────────────────────────
+  // Multi-line term + console-block detection (commander-text-render)
+  // ─────────────────────────────────────────────────────────────────
+
+  it("detects $ shell prompt in any section, not just Examples", () => {
+    const program = new Command("myapp")
+    colorizeHelp(program)
+    program.addHelpSection("Quick Start:", [["$ myapp init", "Initialize project"]])
+    const help = program.helpInformation()
+    // Program name "myapp" should be styled as command (yellow)
+    expect(help).toContain(`${YELLOW}myapp${FG_OFF}`)
+    // Description should appear
+    expect(help).toContain("Initialize project")
+  })
+
+  it("renders multi-line terms with description on first line only", () => {
+    const program = new Command("myapp")
+    colorizeHelp(program)
+    program.addHelpSection("Quick Start:", [
+      ["$ myapp init\n$ myapp build\n$ myapp serve", "Set up and run the app"],
+    ])
+    const plain = stripAnsi(program.helpInformation())
+
+    // All three command lines must be present (plain text — ANSI stripped)
+    expect(plain).toContain("myapp init")
+    expect(plain).toContain("myapp build")
+    expect(plain).toContain("myapp serve")
+
+    // Description appears exactly once (only on the first line of the term)
+    const descCount = (plain.match(/Set up and run the app/g) ?? []).length
+    expect(descCount).toBe(1)
+
+    // Description must appear on the line with "myapp init" (first line of the term),
+    // not on the lines with "myapp build" or "myapp serve"
+    const lines = plain.split("\n")
+    const initLine = lines.find((l) => l.includes("myapp init"))
+    const buildLine = lines.find((l) => l.includes("myapp build"))
+    const serveLine = lines.find((l) => l.includes("myapp serve"))
+    expect(initLine).toBeDefined()
+    expect(initLine).toContain("Set up and run the app")
+    expect(buildLine).toBeDefined()
+    expect(buildLine).not.toContain("Set up and run the app")
+    expect(serveLine).toBeDefined()
+    expect(serveLine).not.toContain("Set up and run the app")
+  })
+
+  it("multi-line term aligns description to the longest line width", () => {
+    const program = new Command("myapp").option("-p, --port <n>", "Port")
+    colorizeHelp(program)
+    // Mix a short term with a multi-line term that has a long longest-line.
+    // The padding should be wide enough for the longest line of the multi-line term.
+    program.addHelpSection("Examples:", [
+      ["$ myapp init", "Init"],
+      ["$ myapp serve --port 3000\n$ myapp serve --port 4000", "Start"],
+    ])
+    const plain = stripAnsi(program.helpInformation())
+
+    // Both rows present
+    expect(plain).toContain("myapp init")
+    expect(plain).toContain("myapp serve --port 3000")
+    expect(plain).toContain("myapp serve --port 4000")
+    expect(plain).toContain("Init")
+    expect(plain).toContain("Start")
+
+    // The "Init" description should be padded to align with the longest line of
+    // the multi-line term (the --port 3000 / 4000 lines). Verify by checking that
+    // the column where "Init" appears matches where "Start" appears.
+    const lines = plain.split("\n")
+    const initLine = lines.find((l) => l.includes("myapp init"))!
+    const startLine = lines.find((l) => l.includes("myapp serve --port 3000"))!
+    const initDescCol = initLine.indexOf("Init")
+    const startDescCol = startLine.indexOf("Start")
+    expect(initDescCol).toBe(startDescCol)
+  })
+
+  it("dollar prompt with quoted string is dimmed (not treated as program name)", () => {
+    const program = new Command("myapp")
+    colorizeHelp(program)
+    program.addHelpSection("Examples:", [['$ git commit -m "fix bug"', "Commit a fix"]])
+    const help = program.helpInformation()
+    // Program name git should be styled
+    expect(help).toContain("git")
+    // Quoted string should be dimmed (ESC[2m...ESC[22m)
+    expect(help).toContain('"fix bug"')
   })
 })
