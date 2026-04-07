@@ -6,30 +6,38 @@
  * it's Commander with auto-colorized help, automatic Standard Schema /
  * legacy Zod detection, and array choices in `.option()` and `.argument()`.
  *
- * Each `.option()` call narrows the return type so that `.action()` and
- * `.opts()` know exactly which options exist and what types they have.
- * Each `.argument()` call adds to both a positional tuple (for Commander-
- * compatible actions) and a named record (for merged-form actions).
+ * Each `.option()` call narrows the return type so that `.action()`, `.opts()`,
+ * and `.actionMerged()` know exactly which options exist and what types they have.
+ * Each `.argument()` call appends to both a positional tuple (for `.action()`)
+ * and a named record (for `.actionMerged()`).
  *
- * Two `.action()` calling conventions (auto-detected via `fn.length`):
- * - Merged: `.action(({ service, env, verbose }) => { ... })`
- * - Commander-compatible: `.action((service, env, opts) => { ... })`
+ * `.action(fn)` is Commander-native: positional args, then options, then command.
+ * `.actionMerged(fn)` is an opt-in helper that merges args and options into a
+ * single named object — nicer for commands with many positional arguments.
  *
  * @example
  * ```ts
  * import { Command, port, csv } from "@silvery/commander"
  *
+ * // Commander-native: positional args, then options
  * new Command("deploy")
  *   .argument("<service>", "Service to deploy")
  *   .argument("[env]", "Environment", ["dev", "staging", "prod"])
  *   .option("-p, --port <n>", "Port", port)
  *   .option("--verbose", "Verbose output")
- *   .action(({ service, env, port, verbose }) => {
- *     service  // string
- *     env      // "dev" | "staging" | "prod" | undefined
- *     port     // number | undefined
- *     verbose  // boolean | undefined
+ *   .action((service, env, opts) => {
+ *     service       // string
+ *     env           // "dev" | "staging" | "prod" | undefined
+ *     opts.port     // number | undefined
+ *     opts.verbose  // boolean | undefined
  *   })
+ *
+ * // Merged form: flat named object with args and options merged
+ * new Command("deploy")
+ *   .argument("<service>")
+ *   .argument("[env]", ["dev", "staging", "prod"] as const)
+ *   .option("-p, --port <n>", "Port", port)
+ *   .actionMerged(({ service, env, port }) => { ... })
  *
  * program.parse()
  * ```
@@ -473,34 +481,40 @@ class _CommandBase extends BaseCommand {
   }
 
   /**
-   * Register an action callback with auto-detected calling convention.
+   * Register an action callback with a named-parameter object instead of positional args.
    *
-   * Supports two forms (detected via `fn.length`):
-   * - **Merged** (`fn.length <= 1`): `(params) => { params.service }` — args and opts in one object
-   * - **Commander-compatible** (`fn.length > 1`): `(service, env, opts) => {}` — positional args then opts
+   * The handler receives a single object containing all positional arguments
+   * (merged by name) and all options, plus the Command instance as a second arg.
+   * Argument names come from the typed `.argument()` calls, camelCased.
    *
-   * When no typed `.argument()` calls have been made, passes through to Commander directly.
+   * This is a convenience wrapper over `.action()` — `.action()` itself remains
+   * Commander-native `(...args, opts, command) => ...`. Prefer `.action()` for
+   * single-arg commands (where positional is more ergonomic) and `.actionMerged()`
+   * for multi-arg commands (where a flat named object is nicer).
+   *
+   * @example
+   * ```ts
+   * new Command("deploy")
+   *   .argument("<service>")
+   *   .argument("[env]")
+   *   .option("-p, --port <n>", port)
+   *   .actionMerged(({ service, env, port }, cmd) => {
+   *     // service, env, port are all typed
+   *     // cmd is the Command instance
+   *   })
+   * ```
    */
-  override action(fn: (...args: any[]) => any): this {
+  actionMerged(fn: (params: any, cmd: any) => any): this {
     const argNames = this._typedArgNames
-    if (argNames.length === 0) {
-      // No typed arguments — use Commander's default behavior
-      return super.action(fn)
-    }
-    if (fn.length > 1) {
-      // Commander-compatible: pass positional args then opts
-      // Commander already does this natively, so just pass through
-      return super.action(fn)
-    }
-    // Merged form: merge positional args into the opts object
     return super.action((...args: any[]) => {
       // Commander passes: (arg1, arg2, ..., opts, command)
+      const cmd = args[args.length - 1]
       const opts = args[args.length - 2] ?? {}
-      const merged = { ...opts }
+      const merged: Record<string, unknown> = { ...opts }
       for (let i = 0; i < argNames.length; i++) {
         merged[argNames[i]!] = args[i]
       }
-      return fn(merged)
+      return fn(merged, cmd)
     })
   }
 
@@ -772,7 +786,8 @@ export interface Command<
   ): Command<Opts, Args, ArgsRecord>
 
   // -- Typed argument overloads --
-  // Arguments append to the Args tuple AND the ArgsRecord, and also merge into Opts.
+  // Arguments append to the Args tuple (for native .action()) AND to ArgsRecord
+  // (for .actionMerged()). They do NOT merge into Opts — Opts is strictly options-only.
 
   /** Add a choices argument: `<env>`, `["dev", "staging", "prod"]` */
   argument<F extends string, const C extends readonly string[]>(
@@ -780,11 +795,7 @@ export interface Command<
     description: string,
     choices: C,
   ): Command<
-    Opts &
-      Record<
-        ArgKey<F>,
-        IsArgVariadic<F> extends true ? C[number][] : IsArgRequired<F> extends true ? C[number] : C[number] | undefined
-      >,
+    Opts,
     [
       ...Args,
       IsArgVariadic<F> extends true ? C[number][] : IsArgRequired<F> extends true ? C[number] : C[number] | undefined,
@@ -803,7 +814,7 @@ export interface Command<
     schema: CLIType<T>,
     defaultValue?: T,
   ): Command<
-    Opts & Record<ArgKey<F>, InferArgType<F, CLIType<T>>>,
+    Opts,
     [...Args, InferArgType<F, CLIType<T>>],
     ArgsRecord & Record<ArgKey<F>, InferArgType<F, CLIType<T>>>
   >
@@ -815,7 +826,7 @@ export interface Command<
     schema: S,
     defaultValue?: SchemaOutput<S>,
   ): Command<
-    Opts & Record<ArgKey<F>, InferArgType<F, StandardSchemaV1<SchemaOutput<S>>>>,
+    Opts,
     [...Args, InferArgType<F, StandardSchemaV1<SchemaOutput<S>>>],
     ArgsRecord & Record<ArgKey<F>, InferArgType<F, StandardSchemaV1<SchemaOutput<S>>>>
   >
@@ -827,7 +838,7 @@ export interface Command<
     parseArg: (value: string, previous: T) => T,
     defaultValue?: T,
   ): Command<
-    Opts & Record<ArgKey<F>, InferArgType<F, (value: string, previous: T) => T>>,
+    Opts,
     [...Args, InferArgType<F, (value: string, previous: T) => T>],
     ArgsRecord & Record<ArgKey<F>, InferArgType<F, (value: string, previous: T) => T>>
   >
@@ -837,11 +848,7 @@ export interface Command<
     flags: F,
     description?: string,
     defaultValue?: string,
-  ): Command<
-    Opts & Record<ArgKey<F>, InferArgType<F>>,
-    [...Args, InferArgType<F>],
-    ArgsRecord & Record<ArgKey<F>, InferArgType<F>>
-  >
+  ): Command<Opts, [...Args, InferArgType<F>], ArgsRecord & Record<ArgKey<F>, InferArgType<F>>>
 
   /** Fallback: accepts any third argument */
   argument<F extends string>(
@@ -852,13 +859,27 @@ export interface Command<
   ): Command<Opts, Args, ArgsRecord>
 
   // -- Typed action overloads --
-  // Two calling conventions detected at runtime via fn.length:
 
-  /** Merged form — args and options in one named object. */
-  action(fn: (params: Opts & ArgsRecord) => void | Promise<void>): this
+  /**
+   * Register an action handler — Commander-native positional form.
+   * Receives `(...positionalArgs, opts, command)`. The command instance is
+   * appended last so it can be safely ignored by handlers that don't need it.
+   */
+  action(
+    fn: (...args: [...Args, Opts, Command<Opts, Args, ArgsRecord>]) => void | Promise<void>,
+  ): this
 
-  /** Commander-compatible form — positional args then opts. */
-  action(fn: (...args: [...Args, Opts]) => void | Promise<void>): this
+  /**
+   * Register an action handler — merged named-object form.
+   * Receives `(params, command)` where `params` is a flat object of
+   * args merged with options, keyed by argument/option name.
+   *
+   * Use this when you prefer a single destructured object to multiple positional
+   * parameters — especially for commands with 2+ arguments.
+   */
+  actionMerged(
+    fn: (params: Opts & ArgsRecord, cmd: Command<Opts, Args, ArgsRecord>) => void | Promise<void>,
+  ): this
 
   // -- Typed command overload --
 
@@ -885,9 +906,8 @@ export interface Command<
  * Type-safe Commander Command with auto-colorized help, Standard Schema support,
  * array-as-choices detection, and inferred option types.
  *
- * Two `.action()` calling conventions (auto-detected via `fn.length`):
- * - **Merged** (`fn.length <= 1`): `({ service, env, verbose }) => {}` — all in one object
- * - **Commander-compatible** (`fn.length > 1`): `(service, env, opts) => {}` — positional then opts
+ * Use `.action()` for Commander-native positional form — `(arg1, arg2, opts, cmd) => ...`.
+ * Use `.actionMerged()` for a flat destructured form — `({ arg1, arg2, opt1 }, cmd) => ...`.
  *
  * @example
  * ```ts
@@ -895,8 +915,8 @@ export interface Command<
  *   .argument("<service>", "Service to deploy")
  *   .argument("[env]", "Environment", ["dev", "staging", "prod"] as const)
  *   .option("--verbose", "Verbose output")
- *   .action(({ service, env, verbose }) => { ... })
- *   // or: .action((service, env, opts) => { ... })
+ *   .action((service, env, opts) => { ... })
+ *   // or: .actionMerged(({ service, env, verbose }) => { ... })
  * ```
  */
 export const Command = _CommandBase as unknown as {

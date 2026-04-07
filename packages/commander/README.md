@@ -75,43 +75,44 @@ Options with [Zod](https://github.com/colinhacks/zod) schemas or built-in types 
 
 Full reference, type table, and API details at **[silvery.dev/reference/commander](https://silvery.dev/reference/commander)**.
 
-## Typed `.action()` — two calling conventions
+## Typed `.action()` and `.actionMerged()`
 
-Both forms are fully typed. The convention is auto-detected at runtime via `fn.length`.
-
-### Recommended: named parameters
-
-For maximum type safety, define arguments with `.argument()` and destructure:
+`.action()` is Commander-native: positional arguments, then the options object, then the command instance. Every positional is fully typed from the `.argument()` chain, and `opts` is fully typed from the `.option()` chain:
 
 ```ts
 new Command("deploy")
   .argument("<service>", "Service to deploy")
   .argument("[env]", "Environment", ["dev", "staging", "prod"] as const)
   .option("--verbose", "Verbose output")
-  .action(({ service, env, verbose }) => {
+  .action((service, env, opts) => {
     service // string
     env // "dev" | "staging" | "prod" | undefined
-    verbose // boolean | undefined
+    opts.verbose // boolean | undefined
   })
 ```
 
-Why this is safer:
-
-- **Named access** — `service` can't be accidentally swapped with `env`
-- **Typed arguments** — choices, parsers, and schemas infer the correct type
-- **Self-documenting** — each `.argument()` has a description that appears in `--help`
-
-### Also supported: Commander-compatible positional form
+For commands with several positional arguments, `.actionMerged()` provides a flat named-object form:
 
 ```ts
-.action((service, env, opts) => {
-  service  // string
-  env      // "dev" | "staging" | "prod" | undefined
-  opts     // { verbose: boolean | undefined }
-})
+new Command("deploy")
+  .argument("<service>", "Service to deploy")
+  .argument("[env]", "Environment", ["dev", "staging", "prod"] as const)
+  .option("-p, --port <n>", "Port", port)
+  .option("--verbose", "Verbose output")
+  .actionMerged(({ service, env, port, verbose }, cmd) => {
+    // Everything in one destructured object.
+    // `cmd` is the Command instance.
+  })
 ```
 
-The positional form matches Commander.js convention — positional args first, then the options object. Useful for migration from plain Commander or familiarity. Both forms are fully typed.
+`.actionMerged()` merges all arguments (by camelCased name) and options into a single `params` object. It's a convenience over `.action()` — use whichever reads better for your command.
+
+**Picking between them:**
+
+- `.action()` — better for commands with zero or one positional argument, or when you want access to the command instance as a trailing argument. Matches Commander.js muscle memory.
+- `.actionMerged()` — better for commands with 2+ positional arguments, where a flat object is nicer than nested destructure.
+
+Both forms are fully typed end-to-end. The only runtime difference is whether arguments are merged into the params object or passed positionally.
 
 If you define args in the `.command()` string instead (e.g. `.command("deploy <service>")`),
 Commander's default behavior applies (separate positional parameters, untyped).
