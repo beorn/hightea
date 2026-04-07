@@ -14,6 +14,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - **CapabilityRegistry** — runtime capability discovery in `@silvery/create/internal/`. Features register themselves; React components access them via `CapabilityRegistryContext`.
 - **`useSelection` hook** — reads selection state from the CapabilityRegistry. Replaces the old `useTerminalSelection` + `TerminalSelectionProvider` pattern.
 - **Composition docs** — new guide pages: [Providers and Plugins](docs/guide/providers.md) and [Headless Machines](docs/guide/headless-machines.md).
+- **`@silvery/commander`: typed inline arg syntax** — `command("deploy <service> [env]")` now parses positional arguments embedded in the command name string and contributes them to the typed `Args` tuple and `ArgsRecord`. Both forms (inline string and chained `.argument()`) coexist, are fully typed, and produce equivalent runtime behavior. Mixing them in one command is supported — inline args come first, `.argument()` calls append.
+- **`@silvery/commander`: `.actionMerged()`** — explicit opt-in for the merged named-object form. Receives `(params, cmd)` where `params` contains all positional args (camelCased) merged with options. `.action()` itself is now a pure Commander-native passthrough — `(...args, opts, cmd)` — with no auto-detection. Replaces the previous `fn.length` heuristic that silently miscompiled handlers when an underscore-prefixed parameter was added or removed.
+- **`@silvery/commander`: multi-line console blocks in help sections** — `addHelpSection` row terms can now contain `\n`-separated lines. Each line renders as a separate row, the description appears only on the first line, and column padding is computed from the longest line across the multi-line term. Useful for setup sequences and recipes where several commands share one description.
+- **`@silvery/commander`: shell prompt detection across all sections** — lines starting with `$ `, `# `, `> `, or `❯ ` get console-block styling (dim prompt, primary program/subcommand, secondary flags, accent brackets, dim quoted strings) in any `addHelpSection`, not just `Examples:`.
 
 ### Breaking Changes
 

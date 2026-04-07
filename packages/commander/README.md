@@ -114,9 +114,32 @@ new Command("deploy")
 
 Both forms are fully typed end-to-end. The only runtime difference is whether arguments are merged into the params object or passed positionally.
 
-If you define args in the `.command()` string instead (e.g. `.command("deploy <service>")`),
-Commander's default behavior applies (separate positional parameters, untyped).
-For full type safety, prefer `.argument()` on the subcommand.
+### Two ways to declare positional arguments
+
+Both forms are fully typed end-to-end and produce equivalent `Command<{}, Args, ArgsRecord>`:
+
+```ts
+// Inline form — Commander.js native shorthand
+.command("deploy <service> [env]")
+  .action((service, env, opts) => { /* service: string, env: string | undefined */ })
+
+// Explicit form — chained .argument() calls
+.command("deploy")
+  .argument("<service>", "Service to deploy")
+  .argument("[env]", "Environment", ["dev", "staging", "prod"] as const)
+  .action((service, env, opts) => { /* service: string, env: union | undefined */ })
+```
+
+Use the inline form for plain string args (terse, matches Commander.js docs and tutorials).
+Use `.argument()` when you need:
+
+- A description for `--help` output
+- A parser, schema, or `choices` array (the inline string syntax can't express these)
+- A default value
+
+The two forms compose: inline args declared in the command string come first in the
+positional tuple, and any `.argument()` calls append. The merged form `.actionMerged()`
+sees all of them on a single named-object parameter regardless of which form declared them.
 
 ## Replaces `@commander-js/extra-typings`
 

@@ -60,6 +60,74 @@ const opts = program.opts()
 
 Help output is automatically colorized using semantic design tokens -- bold program description, bold headings, primary commands, secondary flags, accent arguments, unstyled descriptions. With a theme, tokens resolve to theme colors; without a theme, they fall back to yellow/cyan/magenta.
 
+## Typed positional arguments
+
+Two ways to declare positional arguments — both are fully typed and produce equivalent `Command<Opts, Args, ArgsRecord>`:
+
+```typescript
+// Inline form — Commander.js native shorthand
+const sub = program.command("deploy <service> [env]")
+  .action((service, env, opts) => {
+    service // string
+    env     // string | undefined
+  })
+
+// Explicit form — chained .argument() calls
+const sub2 = program.command("deploy")
+  .argument("<service>", "Service to deploy")
+  .argument("[env]", "Environment", ["dev", "staging", "prod"] as const)
+  .action((service, env, opts) => {
+    service // string
+    env     // "dev" | "staging" | "prod" | undefined
+  })
+```
+
+**Use the inline form** for plain string args. It's terse and matches Commander.js docs/tutorials.
+
+**Use `.argument()`** when you need:
+- A description for `--help` output
+- A parser, schema, or `choices` array (the inline string syntax can't express these)
+- A default value
+
+The two forms compose: inline args come first in the positional tuple, and any `.argument()` calls append.
+
+`<required>`, `[optional]`, `<variadic...>`, and `[variadic...]` are all supported in both forms. Argument names with kebab-case (`<service-name>`) are camelCased on the merged form (`params.serviceName`).
+
+## Action handler forms
+
+`.action()` is Commander.js native — it receives positional arguments first, then the options object, then the command instance:
+
+```typescript
+program.command("deploy <service>")
+  .option("-p, --port <n>", "Port", port)
+  .action((service, opts, cmd) => {
+    // service: string
+    // opts.port: number | undefined
+    // cmd: Command instance
+  })
+```
+
+`.actionMerged()` is an opt-in convenience that merges all positional arguments and options into a single named-object parameter, plus the command as a second arg:
+
+```typescript
+program.command("deploy <service> [env]")
+  .option("-p, --port <n>", "Port", port)
+  .option("--verbose", "Verbose")
+  .actionMerged((params, cmd) => {
+    // params.service: string
+    // params.env: string | undefined
+    // params.port: number | undefined
+    // params.verbose: boolean | undefined
+  })
+```
+
+**Picking between them:**
+
+- `.action()` — better for commands with zero or one positional argument, or when you want access to the command instance as a trailing argument. Matches Commander.js muscle memory and works with any other Commander-typed library.
+- `.actionMerged()` — better for commands with 2+ positional arguments, where a flat destructured object is nicer than nested positional parameters.
+
+Both forms are fully typed end-to-end. `.actionMerged()` exists because the merged form was the original API in this package; both are now first-class.
+
 ## `addHelpSection()`
 
 Add styled help sections that integrate with Commander's built-in formatting — same column alignment, same color scheme, proper description wrapping.
@@ -81,7 +149,40 @@ program.addHelpSection("before", "Prerequisites:", [
 ])
 ```
 
-Terms starting with `-` are automatically styled as options (secondary color). Other terms use command styling (primary color). Descriptions use muted styling. Section headings are bold — matching Commander's built-in Options/Commands headings.
+### Auto-styling rules
+
+- Terms starting with `-` (`-v, --verbose`) → option styling (secondary color)
+- Terms starting with a shell prompt (`$ `, `# `, `> `, `❯ `) → console-block styling: dim prompt, primary program name, primary subcommand, secondary flags, accent brackets, dim quoted strings
+- Other terms → command styling (primary color)
+- Descriptions → muted (dim) styling
+- Section headings → bold (matching Commander's built-in `Options:`/`Commands:` headings)
+
+Console-block detection works in **any** section, not just `Examples:`. A row like `["$ myapp init", "Initialize"]` in a `"Getting Started:"` section gets the same shell-aware styling.
+
+### Multi-line terms with top-aligned descriptions
+
+A term containing `\n` is treated as a multi-line block. Each line is rendered separately, the description appears only on the first line, and column padding is computed from the longest line:
+
+```typescript
+program.addHelpSection("Quick Start:", [
+  ["$ myapp init\n$ myapp build\n$ myapp serve", "Set up and run the app"],
+  ["$ myapp deploy --production", "Deploy when ready"],
+])
+```
+
+Renders as:
+
+```
+Quick Start:
+  $ myapp init                  Set up and run the app
+  $ myapp build
+  $ myapp serve
+  $ myapp deploy --production   Deploy when ready
+```
+
+Useful when several commands share one description (setup sequences, build steps, multi-step recipes).
+
+### Positions
 
 Positions mirror Commander's `addHelpText`:
 
