@@ -62,6 +62,8 @@ export interface WithFocusOptions {
   capabilityRegistry?: CapabilityRegistry
   /** Input router for priority-based key dispatch (required for copyMode) */
   inputRouter?: InputRouter
+  /** Enable Ctrl+F find. Pass true for defaults, or FindFeatureOptions for custom config. */
+  find?: boolean | FindFeatureOptions
 }
 
 /**
@@ -74,6 +76,8 @@ export type AppWithFocus = App & {
   readonly copyModeFeature?: CopyModeFeature
   /** Selection feature (only present when copyMode option is enabled) */
   readonly selectionFeature?: SelectionFeature
+  /** Find feature (only present when find option is enabled) */
+  readonly find?: FindFeature
 }
 
 // =============================================================================
@@ -92,7 +96,13 @@ export type AppWithFocus = App & {
  */
 export function withFocus(options: WithFocusOptions = {}): (app: App) => AppWithFocus {
   return (app: App): AppWithFocus => {
-    const { handleTab = true, handleEscape = true, dispatchKeyEvents = true, copyMode = false } = options
+    const {
+      handleTab = true,
+      handleEscape = true,
+      dispatchKeyEvents = true,
+      copyMode = false,
+      find: findOption,
+    } = options
 
     // Create or reuse focus manager
     const fm =
@@ -197,6 +207,20 @@ export function withFocus(options: WithFocusOptions = {}): (app: App) => AppWith
       }
     }
 
+    // --- Find feature setup ---
+    let findFeature: FindFeature | undefined
+
+    if (findOption) {
+      const findOpts = typeof findOption === "object" ? findOption : undefined
+      if (findOpts) {
+        findFeature = createFindFeature(findOpts)
+        const registry = options.capabilityRegistry
+        if (registry) {
+          registry.register(FIND_CAPABILITY, findFeature)
+        }
+      }
+    }
+
     // Wrap press() to intercept focus navigation keys
     // NOTE: app.press may not exist at composition time (only on run() handle).
     // Use lazy binding — resolve press at call time, not composition time.
@@ -213,6 +237,10 @@ export function withFocus(options: WithFocusOptions = {}): (app: App) => AppWith
 
         if (prop === "selectionFeature") {
           return selectionFeature
+        }
+
+        if (prop === "find") {
+          return findFeature
         }
 
         if (prop === "press") {
@@ -257,6 +285,18 @@ export function withFocus(options: WithFocusOptions = {}): (app: App) => AppWith
               return enhancedApp
             }
 
+            // Ctrl+F → open find
+            if (findFeature && keyStr === "Ctrl+f") {
+              findFeature.open()
+              return enhancedApp
+            }
+
+            // Escape → close find (if active)
+            if (findFeature && key === "Escape" && findFeature.state.active) {
+              findFeature.close()
+              return enhancedApp
+            }
+
             // Escape → blur (only when something is focused)
             if (handleEscape && key === "Escape" && fm.activeElement) {
               fm.blur()
@@ -285,10 +325,11 @@ export function withFocus(options: WithFocusOptions = {}): (app: App) => AppWith
 
         if (prop === Symbol.dispose || prop === "unmount") {
           return function disposeWithCopyMode(): void {
-            // Clean up copy-mode resources
+            // Clean up copy-mode and find resources
             unregisterCopyModeKey?.()
             copyModeFeatureInstance?.dispose()
             selectionFeature?.dispose()
+            findFeature?.dispose()
 
             // Call original
             if (prop === Symbol.dispose) {

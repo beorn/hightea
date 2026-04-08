@@ -284,9 +284,7 @@ describe("addHelpSection", () => {
   it("renders multi-line terms with description on first line only", () => {
     const program = new Command("myapp")
     colorizeHelp(program)
-    program.addHelpSection("Quick Start:", [
-      ["$ myapp init\n$ myapp build\n$ myapp serve", "Set up and run the app"],
-    ])
+    program.addHelpSection("Quick Start:", [["$ myapp init\n$ myapp build\n$ myapp serve", "Set up and run the app"]])
     const plain = stripAnsi(program.helpInformation())
 
     // All three command lines must be present (plain text — ANSI stripped)

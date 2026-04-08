@@ -115,7 +115,9 @@ function buildStaticEntries(caps: TerminalCaps): CapEntry[] {
 // Main app component
 // ============================================================================
 
-function TerminalCapsApp({ initialProbes }: {
+function TerminalCapsApp({
+  initialProbes,
+}: {
   initialProbes?: { colorScheme: ColorScheme; widthConfig: TerminalWidthConfig | null; kittyDetected: boolean | null }
 }) {
   const { exit } = useApp()
@@ -273,12 +275,22 @@ async function main() {
     const [colorResult, widthResult, kittyResult] = await Promise.allSettled([
       new Promise<ColorScheme>((resolve) => {
         const det = createColorSchemeDetector({ write, onData, timeoutMs: 500 })
-        det.subscribe((s) => { resolve(s); det.stop() })
+        det.subscribe((s) => {
+          resolve(s)
+          det.stop()
+        })
         det.start()
-        setTimeout(() => { resolve(det.scheme); det.stop() }, 600)
+        setTimeout(() => {
+          resolve(det.scheme)
+          det.stop()
+        }, 600)
       }),
-      createWidthDetector({ write, onData, timeoutMs: 500 }).detect().catch(() => null),
-      detectKittyFromStdio(process.stdout, process.stdin, 500).then((r) => r.supported).catch(() => false),
+      createWidthDetector({ write, onData, timeoutMs: 500 })
+        .detect()
+        .catch(() => null),
+      detectKittyFromStdio(process.stdout, process.stdin, 500)
+        .then((r) => r.supported)
+        .catch(() => false),
     ])
 
     probeResults = {

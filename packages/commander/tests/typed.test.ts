@@ -192,11 +192,9 @@ describe("actionMerged — merged named-object form", () => {
 
   it("exposes the Command instance as second argument", () => {
     let receivedCmd: any
-    const cmd = new Command("test")
-      .argument("<env>", "Environment")
-      .actionMerged((_params, c) => {
-        receivedCmd = c
-      })
+    const cmd = new Command("test").argument("<env>", "Environment").actionMerged((_params, c) => {
+      receivedCmd = c
+    })
     cmd.parse(["node", "test", "prod"], { from: "node" })
     expect(receivedCmd).toBeDefined()
     expect(receivedCmd.name()).toBe("test")
@@ -214,9 +212,7 @@ describe("actionMerged — merged named-object form", () => {
   })
 
   it("argument with choices rejects invalid values", () => {
-    const cmd = new Command("test")
-      .argument("<env>", "Environment", ["dev", "staging", "prod"])
-      .actionMerged(() => {})
+    const cmd = new Command("test").argument("<env>", "Environment", ["dev", "staging", "prod"]).actionMerged(() => {})
     cmd.exitOverride()
     cmd.configureOutput({ writeErr: () => {} })
     expect(() => {

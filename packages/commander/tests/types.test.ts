@@ -322,119 +322,93 @@ describe("subcommand options don't leak to parent", () => {
 
 describe("required argument inference", () => {
   it("<service> → service: string", () => {
-    new Command("test")
-      .argument("<service>", "Service to deploy")
-      .actionMerged((params) => {
-        expectTypeOf(params.service).toEqualTypeOf<string>()
-      })
+    new Command("test").argument("<service>", "Service to deploy").actionMerged((params) => {
+      expectTypeOf(params.service).toEqualTypeOf<string>()
+    })
   })
 
   it("<name> no parser → string", () => {
-    new Command("test")
-      .argument("<name>", "Name")
-      .actionMerged((params) => {
-        expectTypeOf(params.name).toEqualTypeOf<string>()
-      })
+    new Command("test").argument("<name>", "Name").actionMerged((params) => {
+      expectTypeOf(params.name).toEqualTypeOf<string>()
+    })
   })
 })
 
 describe("optional argument inference", () => {
   it("[env] → env: string | undefined", () => {
-    new Command("test")
-      .argument("[env]", "Environment")
-      .actionMerged((params) => {
-        expectTypeOf(params.env).toEqualTypeOf<string | undefined>()
-      })
+    new Command("test").argument("[env]", "Environment").actionMerged((params) => {
+      expectTypeOf(params.env).toEqualTypeOf<string | undefined>()
+    })
   })
 })
 
 describe("variadic argument inference", () => {
   it("<files...> → files: string[]", () => {
-    new Command("test")
-      .argument("<files...>", "Files")
-      .actionMerged((params) => {
-        expectTypeOf(params.files).toEqualTypeOf<string[]>()
-      })
+    new Command("test").argument("<files...>", "Files").actionMerged((params) => {
+      expectTypeOf(params.files).toEqualTypeOf<string[]>()
+    })
   })
 
   it("[extras...] → extras: string[]", () => {
-    new Command("test")
-      .argument("[extras...]", "Extra args")
-      .actionMerged((params) => {
-        expectTypeOf(params.extras).toEqualTypeOf<string[]>()
-      })
+    new Command("test").argument("[extras...]", "Extra args").actionMerged((params) => {
+      expectTypeOf(params.extras).toEqualTypeOf<string[]>()
+    })
   })
 })
 
 describe("argument with parser", () => {
   it("<port> with uint → port: number", () => {
-    new Command("test")
-      .argument("<port>", "Port", uint)
-      .actionMerged((params) => {
-        expectTypeOf(params.port).toEqualTypeOf<number>()
-      })
+    new Command("test").argument("<port>", "Port", uint).actionMerged((params) => {
+      expectTypeOf(params.port).toEqualTypeOf<number>()
+    })
   })
 
   it("[port] with uint → port: number | undefined", () => {
-    new Command("test")
-      .argument("[port]", "Port", uint)
-      .actionMerged((params) => {
-        expectTypeOf(params.port).toEqualTypeOf<number | undefined>()
-      })
+    new Command("test").argument("[port]", "Port", uint).actionMerged((params) => {
+      expectTypeOf(params.port).toEqualTypeOf<number | undefined>()
+    })
   })
 
   it("<port> with parseInt → port: number", () => {
-    new Command("test")
-      .argument("<port>", "Port", parseInt)
-      .actionMerged((params) => {
-        expectTypeOf(params.port).toEqualTypeOf<number>()
-      })
+    new Command("test").argument("<port>", "Port", parseInt).actionMerged((params) => {
+      expectTypeOf(params.port).toEqualTypeOf<number>()
+    })
   })
 })
 
 describe("argument with choices", () => {
   it("<env> with choices → union", () => {
-    new Command("test")
-      .argument("<env>", "Env", ["dev", "staging", "prod"] as const)
-      .actionMerged((params) => {
-        expectTypeOf(params.env).toEqualTypeOf<"dev" | "staging" | "prod">()
-      })
+    new Command("test").argument("<env>", "Env", ["dev", "staging", "prod"] as const).actionMerged((params) => {
+      expectTypeOf(params.env).toEqualTypeOf<"dev" | "staging" | "prod">()
+    })
   })
 
   it("[env] with choices → union | undefined", () => {
-    new Command("test")
-      .argument("[env]", "Env", ["dev", "staging"] as const)
-      .actionMerged((params) => {
-        expectTypeOf(params.env).toEqualTypeOf<"dev" | "staging" | undefined>()
-      })
+    new Command("test").argument("[env]", "Env", ["dev", "staging"] as const).actionMerged((params) => {
+      expectTypeOf(params.env).toEqualTypeOf<"dev" | "staging" | undefined>()
+    })
   })
 })
 
 describe("argument with Zod schema", () => {
   it("<port> with z.coerce.number() → port: number", () => {
-    new Command("test")
-      .argument("<port>", "Port", z.coerce.number())
-      .actionMerged((params) => {
-        expectTypeOf(params.port).toEqualTypeOf<number>()
-      })
+    new Command("test").argument("<port>", "Port", z.coerce.number()).actionMerged((params) => {
+      expectTypeOf(params.port).toEqualTypeOf<number>()
+    })
   })
 })
 
 describe("argument camelCase", () => {
   it("<service-name> → serviceName: string", () => {
-    new Command("test")
-      .argument("<service-name>", "Service name")
-      .actionMerged((params) => {
-        expectTypeOf(params.serviceName).toEqualTypeOf<string>()
-      })
+    new Command("test").argument("<service-name>", "Service name").actionMerged((params) => {
+      expectTypeOf(params.serviceName).toEqualTypeOf<string>()
+    })
   })
 
   it("<task-id> → taskId: string", () => {
-    new Command("test")
-      .argument("<task-id>", "Task ID")
-      .actionMerged((params) => {
-        expectTypeOf(params.taskId).toEqualTypeOf<string>()
-      })
+    new Command("test").argument("<task-id>", "Task ID").actionMerged((params) => {
+      expectTypeOf(params.taskId).toEqualTypeOf<string>()
+    })
   })
 })
 
@@ -454,9 +428,7 @@ describe("mixed arguments and options", () => {
   })
 
   it("cmd.opts() returns ONLY options, not arguments", () => {
-    const cmd = new Command("test")
-      .argument("<service>", "Service")
-      .option("--verbose", "Verbose")
+    const cmd = new Command("test").argument("<service>", "Service").option("--verbose", "Verbose")
 
     type Opts = ReturnType<typeof cmd.opts>
 
@@ -470,16 +442,14 @@ describe("mixed arguments and options", () => {
 
 describe("accessing undefined argument is a type error", () => {
   it("nonexistent key on params is never", () => {
-    new Command("test")
-      .argument("<service>", "Service")
-      .actionMerged((params) => {
-        expectTypeOf(params.service).not.toBeNever()
+    new Command("test").argument("<service>", "Service").actionMerged((params) => {
+      expectTypeOf(params.service).not.toBeNever()
 
-        // @ts-expect-error -- 'environment' does not exist on the inferred params type
-        type _CheckEnv = (typeof params)["environment"]
-        // Suppress unused-type warning
-        type _ = _CheckEnv
-      })
+      // @ts-expect-error -- 'environment' does not exist on the inferred params type
+      type _CheckEnv = (typeof params)["environment"]
+      // Suppress unused-type warning
+      type _ = _CheckEnv
+    })
   })
 })
 
@@ -550,7 +520,8 @@ describe("command() with inline args (Commander-native string form)", () => {
 
   it(".argument() chain on a subcommand still works", () => {
     const parent = new Command("app").option("--verbose", "Verbose")
-    parent.command("deploy")
+    parent
+      .command("deploy")
       .argument("<service>", "Service")
       .actionMerged((params) => {
         expectTypeOf(params.service).toEqualTypeOf<string>()
@@ -558,61 +529,47 @@ describe("command() with inline args (Commander-native string form)", () => {
   })
 
   it("command('deploy <service>') types service: string", () => {
-    new Command("app")
-      .command("deploy <service>")
-      .action((service, _opts) => {
-        expectTypeOf(service).toEqualTypeOf<string>()
-      })
+    new Command("app").command("deploy <service>").action((service, _opts) => {
+      expectTypeOf(service).toEqualTypeOf<string>()
+    })
   })
 
   it("command('deploy [env]') types env: string | undefined", () => {
-    new Command("app")
-      .command("deploy [env]")
-      .action((env, _opts) => {
-        expectTypeOf(env).toEqualTypeOf<string | undefined>()
-      })
+    new Command("app").command("deploy [env]").action((env, _opts) => {
+      expectTypeOf(env).toEqualTypeOf<string | undefined>()
+    })
   })
 
   it("command('deploy <service> [env]') types both args in order", () => {
-    new Command("app")
-      .command("deploy <service> [env]")
-      .action((service, env, _opts) => {
-        expectTypeOf(service).toEqualTypeOf<string>()
-        expectTypeOf(env).toEqualTypeOf<string | undefined>()
-      })
+    new Command("app").command("deploy <service> [env]").action((service, env, _opts) => {
+      expectTypeOf(service).toEqualTypeOf<string>()
+      expectTypeOf(env).toEqualTypeOf<string | undefined>()
+    })
   })
 
   it("command('run <files...>') types files: string[]", () => {
-    new Command("app")
-      .command("run <files...>")
-      .action((files, _opts) => {
-        expectTypeOf(files).toEqualTypeOf<string[]>()
-      })
+    new Command("app").command("run <files...>").action((files, _opts) => {
+      expectTypeOf(files).toEqualTypeOf<string[]>()
+    })
   })
 
   it("command('cleanup [extras...]') types extras: string[]", () => {
-    new Command("app")
-      .command("cleanup [extras...]")
-      .action((extras, _opts) => {
-        expectTypeOf(extras).toEqualTypeOf<string[]>()
-      })
+    new Command("app").command("cleanup [extras...]").action((extras, _opts) => {
+      expectTypeOf(extras).toEqualTypeOf<string[]>()
+    })
   })
 
   it("inline args + actionMerged: params has typed keys", () => {
-    new Command("app")
-      .command("deploy <service> [env]")
-      .actionMerged((params) => {
-        expectTypeOf(params.service).toEqualTypeOf<string>()
-        expectTypeOf(params.env).toEqualTypeOf<string | undefined>()
-      })
+    new Command("app").command("deploy <service> [env]").actionMerged((params) => {
+      expectTypeOf(params.service).toEqualTypeOf<string>()
+      expectTypeOf(params.env).toEqualTypeOf<string | undefined>()
+    })
   })
 
   it("kebab-case inline arg name is camelCased in actionMerged params", () => {
-    new Command("app")
-      .command("deploy <service-name>")
-      .actionMerged((params) => {
-        expectTypeOf(params.serviceName).toEqualTypeOf<string>()
-      })
+    new Command("app").command("deploy <service-name>").actionMerged((params) => {
+      expectTypeOf(params.serviceName).toEqualTypeOf<string>()
+    })
   })
 
   it("inline args compose with .option()", () => {

@@ -251,7 +251,7 @@ export function withTerminal<T extends RunnableApp>(
     // -------------------------------------------------------------------------
     // Startup detection: Mode 2031 color scheme + DEC 1020-1023 width
     // -------------------------------------------------------------------------
-    const autoDetect = termConfig.autoDetect ?? false  // disabled until input filter strips responses
+    const autoDetect = termConfig.autoDetect ?? false // disabled until input filter strips responses
     const timeoutMs = termConfig.autoDetectTimeoutMs ?? 200
 
     let colorSchemeDetector: ColorSchemeDetector | undefined

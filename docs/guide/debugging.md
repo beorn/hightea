@@ -66,7 +66,7 @@ SILVERY_INSTRUMENT=1 bun run app
 
 | Namespace               | What                                              |
 | ----------------------- | ------------------------------------------------- |
-| `silvery:render`      | Frame-level spans with per-phase timing           |
+| `silvery:render`        | Frame-level spans with per-phase timing           |
 | `silvery:content`       | Render phase stats per frame (render/skip counts) |
 | `silvery:content:trace` | Per-node trace entries (skip/render decisions)    |
 | `silvery:content:cell`  | Per-cell debug (node coverage at target coords)   |

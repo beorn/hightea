@@ -1743,12 +1743,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   function writeSelectionOverlay(): void {
     if (!selectionEnabled || !selectionState.range || !currentBuffer) return
     const mode = alternateScreen ? "fullscreen" : "inline"
-    const overlay = renderSelectionOverlay(
-      selectionState.range,
-      currentBuffer._buffer,
-      mode,
-      selectionState.scope,
-    )
+    const overlay = renderSelectionOverlay(selectionState.range, currentBuffer._buffer, mode, selectionState.scope)
     if (overlay) target.write(overlay)
   }
 

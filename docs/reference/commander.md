@@ -66,25 +66,26 @@ Two ways to declare positional arguments — both are fully typed and produce eq
 
 ```typescript
 // Inline form — Commander.js native shorthand
-const sub = program.command("deploy <service> [env]")
-  .action((service, env, opts) => {
-    service // string
-    env     // string | undefined
-  })
+const sub = program.command("deploy <service> [env]").action((service, env, opts) => {
+  service // string
+  env // string | undefined
+})
 
 // Explicit form — chained .argument() calls
-const sub2 = program.command("deploy")
+const sub2 = program
+  .command("deploy")
   .argument("<service>", "Service to deploy")
   .argument("[env]", "Environment", ["dev", "staging", "prod"] as const)
   .action((service, env, opts) => {
     service // string
-    env     // "dev" | "staging" | "prod" | undefined
+    env // "dev" | "staging" | "prod" | undefined
   })
 ```
 
 **Use the inline form** for plain string args. It's terse and matches Commander.js docs/tutorials.
 
 **Use `.argument()`** when you need:
+
 - A description for `--help` output
 - A parser, schema, or `choices` array (the inline string syntax can't express these)
 - A default value
@@ -98,7 +99,8 @@ The two forms compose: inline args come first in the positional tuple, and any `
 `.action()` is Commander.js native — it receives positional arguments first, then the options object, then the command instance:
 
 ```typescript
-program.command("deploy <service>")
+program
+  .command("deploy <service>")
   .option("-p, --port <n>", "Port", port)
   .action((service, opts, cmd) => {
     // service: string
@@ -110,7 +112,8 @@ program.command("deploy <service>")
 `.actionMerged()` is an opt-in convenience that merges all positional arguments and options into a single named-object parameter, plus the command as a second arg:
 
 ```typescript
-program.command("deploy <service> [env]")
+program
+  .command("deploy <service> [env]")
   .option("-p, --port <n>", "Port", port)
   .option("--verbose", "Verbose")
   .actionMerged((params, cmd) => {

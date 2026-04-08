@@ -767,7 +767,7 @@ export function outputPhase(
     const fullRenderAcc = (globalThis as any).__silvery_bench_output_detail
     if (fullRenderAcc) {
       fullRenderAcc.fullRenderCalls = (fullRenderAcc.fullRenderCalls ?? 0) + 1
-      fullRenderAcc.fullRenderCells = (fullRenderAcc.fullRenderCells ?? 0) + (next.width * next.height)
+      fullRenderAcc.fullRenderCells = (fullRenderAcc.fullRenderCells ?? 0) + next.width * next.height
     }
     // Inline mode resize optimization: if the runtime invalidated prevBuffer (resize)
     // but we have a stored buffer with matching dimensions, use incremental rendering

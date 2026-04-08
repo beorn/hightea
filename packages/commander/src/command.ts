@@ -162,29 +162,28 @@ type ArgKey<S extends string> = CamelCase<ExtractArgName<S>>
 type SplitCommandHead<S extends string> = S extends `${infer Name} ${infer Rest}` ? [Name, Rest] : [S, ""]
 
 /** Walk the tail tokens after the command name and build [Args tuple, ArgsRecord]. */
-type ParseInlineArgs<S extends string, Tuple extends any[] = [], Rec = {}> =
-  S extends ""
-    ? [Tuple, Rec]
-    : S extends `${infer Tok} ${infer Rest}`
-      ? Tok extends `<${infer Name}...>`
-        ? ParseInlineArgs<Rest, [...Tuple, string[]], Rec & Record<CamelCase<Name>, string[]>>
-        : Tok extends `<${infer Name}>`
-          ? ParseInlineArgs<Rest, [...Tuple, string], Rec & Record<CamelCase<Name>, string>>
-          : Tok extends `[${infer Name}...]`
-            ? ParseInlineArgs<Rest, [...Tuple, string[]], Rec & Record<CamelCase<Name>, string[]>>
-            : Tok extends `[${infer Name}]`
-              ? ParseInlineArgs<Rest, [...Tuple, string | undefined], Rec & Record<CamelCase<Name>, string | undefined>>
-              : ParseInlineArgs<Rest, Tuple, Rec> // skip non-arg tokens
-      : // Last token (no trailing space)
-        S extends `<${infer Name}...>`
-        ? [[...Tuple, string[]], Rec & Record<CamelCase<Name>, string[]>]
-        : S extends `<${infer Name}>`
-          ? [[...Tuple, string], Rec & Record<CamelCase<Name>, string>]
-          : S extends `[${infer Name}...]`
-            ? [[...Tuple, string[]], Rec & Record<CamelCase<Name>, string[]>]
-            : S extends `[${infer Name}]`
-              ? [[...Tuple, string | undefined], Rec & Record<CamelCase<Name>, string | undefined>]
-              : [Tuple, Rec]
+type ParseInlineArgs<S extends string, Tuple extends any[] = [], Rec = {}> = S extends ""
+  ? [Tuple, Rec]
+  : S extends `${infer Tok} ${infer Rest}`
+    ? Tok extends `<${infer Name}...>`
+      ? ParseInlineArgs<Rest, [...Tuple, string[]], Rec & Record<CamelCase<Name>, string[]>>
+      : Tok extends `<${infer Name}>`
+        ? ParseInlineArgs<Rest, [...Tuple, string], Rec & Record<CamelCase<Name>, string>>
+        : Tok extends `[${infer Name}...]`
+          ? ParseInlineArgs<Rest, [...Tuple, string[]], Rec & Record<CamelCase<Name>, string[]>>
+          : Tok extends `[${infer Name}]`
+            ? ParseInlineArgs<Rest, [...Tuple, string | undefined], Rec & Record<CamelCase<Name>, string | undefined>>
+            : ParseInlineArgs<Rest, Tuple, Rec> // skip non-arg tokens
+    : // Last token (no trailing space)
+      S extends `<${infer Name}...>`
+      ? [[...Tuple, string[]], Rec & Record<CamelCase<Name>, string[]>]
+      : S extends `<${infer Name}>`
+        ? [[...Tuple, string], Rec & Record<CamelCase<Name>, string>]
+        : S extends `[${infer Name}...]`
+          ? [[...Tuple, string[]], Rec & Record<CamelCase<Name>, string[]>]
+          : S extends `[${infer Name}]`
+            ? [[...Tuple, string | undefined], Rec & Record<CamelCase<Name>, string | undefined>]
+            : [Tuple, Rec]
 
 /** Top-level: parse a `command(name)` string into [Args tuple, ArgsRecord]. */
 type ParseCommandString<S extends string> =
@@ -833,6 +832,23 @@ export interface Command<
   /** Factory for subcommands — returns a fresh `Command<{}>`. */
   createCommand(name?: string): Command<{}, [], {}>
 
+  // -- Chain-preserving overrides for inherited Commander methods --
+  // Without these, calling .description(), .alias(), or .version() loses the
+  // generic type parameters (falls back to base Commander's `this`).
+
+  /** Set command description (preserves typed chain). */
+  description(str: string): this
+  /** Get command description. */
+  description(): string
+
+  /** Set command alias (preserves typed chain). */
+  alias(alias: string): this
+  /** Get command alias. */
+  alias(): string
+
+  /** Set command version (preserves typed chain). */
+  version(str: string, flags?: string, description?: string): this
+
   // -- Typed option overloads --
 
   /** Add a choices option: `--env <e>`, `["dev", "staging", "prod"]` */
@@ -912,11 +928,7 @@ export interface Command<
     description: string,
     schema: CLIType<T>,
     defaultValue?: T,
-  ): Command<
-    Opts,
-    [...Args, InferArgType<F, CLIType<T>>],
-    ArgsRecord & Record<ArgKey<F>, InferArgType<F, CLIType<T>>>
-  >
+  ): Command<Opts, [...Args, InferArgType<F, CLIType<T>>], ArgsRecord & Record<ArgKey<F>, InferArgType<F, CLIType<T>>>>
 
   /** Add an argument with a Standard Schema v1 validator (Zod, Valibot, ArkType) */
   argument<F extends string, S extends AnyStandardSchema>(
@@ -964,9 +976,7 @@ export interface Command<
    * Receives `(...positionalArgs, opts, command)`. The command instance is
    * appended last so it can be safely ignored by handlers that don't need it.
    */
-  action(
-    fn: (...args: [...Args, Opts, Command<Opts, Args, ArgsRecord>]) => void | Promise<void>,
-  ): this
+  action(fn: (...args: [...Args, Opts, Command<Opts, Args, ArgsRecord>]) => void | Promise<void>): this
 
   /**
    * Register an action handler — merged named-object form.
@@ -976,9 +986,7 @@ export interface Command<
    * Use this when you prefer a single destructured object to multiple positional
    * parameters — especially for commands with 2+ arguments.
    */
-  actionMerged(
-    fn: (params: Opts & ArgsRecord, cmd: Command<Opts, Args, ArgsRecord>) => void | Promise<void>,
-  ): this
+  actionMerged(fn: (params: Opts & ArgsRecord, cmd: Command<Opts, Args, ArgsRecord>) => void | Promise<void>): this
 
   // -- Typed command overload --
 

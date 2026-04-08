@@ -36,7 +36,7 @@ describe("SelectionFeature", () => {
   it("starts with no selection", () => {
     const { selection } = setup()
     expect(selection.state.range).toBeNull()
-    expect(selection.getRange()).toBeNull()
+    expect(selection.state.range).toBeNull()
   })
 
   it("setRange updates state and notifies", () => {
@@ -49,7 +49,7 @@ describe("SelectionFeature", () => {
       head: { col: 10, row: 0 },
     })
 
-    expect(selection.getRange()).toEqual({
+    expect(selection.state.range).toEqual({
       anchor: { col: 0, row: 0 },
       head: { col: 10, row: 0 },
     })
@@ -61,7 +61,7 @@ describe("SelectionFeature", () => {
     const { selection } = setup()
     selection.setRange({ anchor: { col: 0, row: 0 }, head: { col: 5, row: 0 } })
     selection.clear()
-    expect(selection.getRange()).toBeNull()
+    expect(selection.state.range).toBeNull()
   })
 
   it("subscribe returns unsubscribe function", () => {
@@ -77,9 +77,9 @@ describe("SelectionFeature", () => {
     expect(listener).toHaveBeenCalledOnce() // not called again
   })
 
-  it("dispatch forwards to state machine", () => {
+  it("handleMouseDown starts selection", () => {
     const { selection } = setup()
-    selection.dispatch({ type: "start", col: 5, row: 3 })
+    selection.handleMouseDown(5, 3, false)
     expect(selection.state.selecting).toBe(true)
     expect(selection.state.range).toBeTruthy()
   })
@@ -134,10 +134,10 @@ describe("CopyModeFeature", () => {
       const { copyMode, selection } = setup()
       copyMode.enter()
       copyMode.startVisual()
-      expect(selection.getRange()).toBeTruthy()
+      expect(selection.state.range).toBeTruthy()
 
       copyMode.exit()
-      expect(selection.getRange()).toBeNull()
+      expect(selection.state.range).toBeNull()
     })
 
     it("subscribe notifies on state changes", () => {
@@ -256,7 +256,7 @@ describe("CopyModeFeature", () => {
       copyMode.startVisual()
 
       // Selection should be set on the feature
-      const range = selection.getRange()
+      const range = selection.state.range
       expect(range).toBeTruthy()
       expect(range!.anchor).toEqual({ col: 5, row: 5 })
       expect(range!.head).toEqual({ col: 5, row: 5 })
@@ -270,7 +270,7 @@ describe("CopyModeFeature", () => {
       copyMode.motion("l")
       copyMode.motion("j")
 
-      const range = selection.getRange()
+      const range = selection.state.range
       expect(range).toBeTruthy()
       expect(range!.anchor).toEqual({ col: 5, row: 5 })
       expect(range!.head).toEqual({ col: 7, row: 6 })
@@ -285,7 +285,7 @@ describe("CopyModeFeature", () => {
 
       expect(copyMode.state.active).toBe(false)
       // Selection is cleared via copy effect processing
-      expect(selection.getRange()).toBeNull()
+      expect(selection.state.range).toBeNull()
     })
 
     it("yank without visual mode just exits", () => {

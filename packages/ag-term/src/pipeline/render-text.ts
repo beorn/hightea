@@ -64,6 +64,29 @@ export function setBgConflictMode(mode: BgConflictMode): void {
 // Track warned conflicts to avoid spam (only used in 'warn' mode)
 const warnedBgConflicts = new Set<string>()
 
+/** Format a Color value for bg conflict diagnostics */
+function formatBgConflictColor(c: number | { r: number; g: number; b: number } | null | undefined): string {
+  if (c === null || c === undefined) return "none"
+  if (typeof c === "number") {
+    // Packed RGB (0x1000000 marker) or ANSI palette index
+    if (c & 0x1000000) {
+      const r = (c >> 16) & 0xff
+      const g = (c >> 8) & 0xff
+      const b = c & 0xff
+      return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`
+    }
+    // Map SGR codes to names for readability
+    const names: Record<number, string> = {
+      40: "black", 41: "red", 42: "green", 43: "yellow",
+      44: "blue", 45: "magenta", 46: "cyan", 47: "white",
+      100: "brightBlack", 101: "brightRed", 102: "brightGreen", 103: "brightYellow",
+      104: "brightBlue", 105: "brightMagenta", 106: "brightCyan", 107: "brightWhite",
+    }
+    return names[c] ?? `palette(${c})`
+  }
+  return `rgb(${c.r},${c.g},${c.b})`
+}
+
 /**
  * Clear the background conflict warning cache.
  * Call this at the start of each render cycle to:
@@ -932,7 +955,11 @@ function renderAnsiTextLineReturn(
 
       if (hasExistingBg) {
         const preview = segment.text.slice(0, 30)
-        const msg = `[silvery] Background conflict: chalk.bg* on text that already has silvery background. Chalk bg will override only text characters, causing visual gaps in padding. Use ansi.bgOverride() to suppress if intentional. Text: "${preview}${segment.text.length > 30 ? "..." : ""}"`
+        const chalkBg = formatBgConflictColor(segment.bg)
+        const silveryBg = baseStyle.bg !== null ? `Text.bg=${formatBgConflictColor(baseStyle.bg)}` : `bufferBg=${formatBgConflictColor(existingBufBg)}`
+        // Show a snippet of the raw ANSI text around the conflict for debugging
+        const textPreview = text.length > 80 ? text.slice(0, 80) + "…" : text
+        const msg = `[silvery] Background conflict at (${col},${y}): chalk bg=${chalkBg} on silvery ${silveryBg}. Text: "${preview}${segment.text.length > 30 ? "…" : ""}". Raw ANSI (first 80): ${JSON.stringify(textPreview)}. Chalk bg will override only text characters, causing visual gaps in padding. Use ansi.bgOverride() to suppress if intentional.`
 
         if (effectiveBgConflictMode === "throw") {
           throw new Error(msg)

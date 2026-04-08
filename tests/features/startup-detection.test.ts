@@ -145,7 +145,7 @@ describe("withTerminal startup detection", () => {
     const dataHandlers = new Set<(data: string) => void>()
 
     // Auto-respond to DECRQM queries with controlled responses
-    const widthResponses = new Map([
+    const widthResponses = new Map<number, number>([
       [WidthMode.UTF8, 1], // set
       [WidthMode.CJK_WIDTH, 1], // set (wide=2)
       [WidthMode.EMOJI_WIDTH, 2], // reset (narrow=1)

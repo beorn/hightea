@@ -31,4 +31,5 @@ export {
   silveryBenchStop,
   silveryBenchReset,
   type SilveryBenchPhases,
+  type SilveryBenchOutputDetail,
 } from "./pipeline/index"

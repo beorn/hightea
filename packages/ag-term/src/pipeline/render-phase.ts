@@ -512,7 +512,9 @@ function renderNodeToBuffer(
     // Compute boxInheritedBg even when skipping own repaint — it's needed by
     // outline rendering (after children) and may be needed by child rendering.
     const boxInheritedBg =
-      node.type === "silvery-box" && !getEffectiveBg(props) ? (nodeState.inheritedBg?.color ?? findInheritedBg(node).color) : undefined
+      node.type === "silvery-box" && !getEffectiveBg(props)
+        ? (nodeState.inheritedBg?.color ?? findInheritedBg(node).color)
+        : undefined
     if (needsOwnRepaint) {
       renderOwnContent(node, buffer, layout, props, nodeState, skipBgFill, instrumentEnabled, stats, ctx)
     }
@@ -809,9 +811,10 @@ function renderOwnContent(
   // Use threaded inherited bg from nodeState — avoids O(depth) parent chain walk.
   // Falls back to findInheritedBg() only when nodeState doesn't carry inherited values
   // (e.g., root node or external callers).
-  const boxInheritedBg = node.type === "silvery-box" && !getEffectiveBg(props)
-    ? (nodeState.inheritedBg?.color ?? findInheritedBg(node).color)
-    : undefined
+  const boxInheritedBg =
+    node.type === "silvery-box" && !getEffectiveBg(props)
+      ? (nodeState.inheritedBg?.color ?? findInheritedBg(node).color)
+      : undefined
 
   if (node.type === "silvery-box") {
     if (instrumentEnabled) stats.boxNodes++
@@ -961,7 +964,15 @@ function renderScrollContainerChildren(
   childrenNeedFreshRender = false,
   ctx?: PipelineContext,
 ): void {
-  const { clipBounds, hasPrevBuffer, ancestorCleared, bufferIsCloned, ancestorLayoutChanged, inheritedBg, inheritedFg } = nodeState
+  const {
+    clipBounds,
+    hasPrevBuffer,
+    ancestorCleared,
+    bufferIsCloned,
+    ancestorLayoutChanged,
+    inheritedBg,
+    inheritedFg,
+  } = nodeState
   // Resolve instrumentation from ctx or module globals
   const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
   const stats = ctx?.stats ?? _renderPhaseStats
@@ -1196,7 +1207,16 @@ function renderNormalChildren(
   childrenNeedFreshRender = false,
   ctx?: PipelineContext,
 ): void {
-  const { scrollOffset, clipBounds, hasPrevBuffer, ancestorCleared, bufferIsCloned, ancestorLayoutChanged, inheritedBg, inheritedFg } = nodeState
+  const {
+    scrollOffset,
+    clipBounds,
+    hasPrevBuffer,
+    ancestorCleared,
+    bufferIsCloned,
+    ancestorLayoutChanged,
+    inheritedBg,
+    inheritedFg,
+  } = nodeState
   // Resolve instrumentation from ctx or module globals
   const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
   const stats = ctx?.stats ?? _renderPhaseStats

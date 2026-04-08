@@ -59,8 +59,8 @@ export interface SelectionFeature {
 
 /** Options for creating a SelectionFeature. */
 export interface SelectionFeatureOptions {
-  /** Terminal buffer to extract text from. */
-  buffer: TerminalBuffer
+  /** Terminal buffer to extract text from (required for mouse selection / copy). */
+  buffer?: TerminalBuffer
   /** Optional clipboard capability for copy-on-select. */
   clipboard?: ClipboardCapability
   /** Callback to trigger a render pass after state changes. */
@@ -94,7 +94,7 @@ export function createSelectionFeature(options: SelectionFeatureOptions): Select
       if (effect.type === "render") {
         invalidate()
       } else if (effect.type === "copy" && clipboard) {
-        if (clipboard.copyRich && richRange) {
+        if (clipboard.copyRich && richRange && buffer) {
           const html = extractHtml(buffer, richRange)
           clipboard.copyRich(effect.text, html)
         } else {
@@ -133,7 +133,7 @@ export function createSelectionFeature(options: SelectionFeatureOptions): Select
 
     handleMouseMove(col: number, row: number): void {
       if (!selectionState.selecting) return
-      const [newState, effects] = terminalSelectionUpdate({ type: "extend", col, row, buffer }, selectionState)
+      const [newState, effects] = terminalSelectionUpdate({ type: "extend", col, row, buffer: buffer! }, selectionState)
       updateState(newState, effects)
     },
 
@@ -143,7 +143,7 @@ export function createSelectionFeature(options: SelectionFeatureOptions): Select
 
       // Extract text and copy to clipboard on mouse up
       const copyEffects = [...effects]
-      if (newState.range && clipboard) {
+      if (newState.range && clipboard && buffer) {
         const text = extractText(buffer, newState.range)
         if (text.length > 0) {
           copyEffects.push({ type: "copy", text })
