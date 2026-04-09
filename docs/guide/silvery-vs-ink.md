@@ -26,6 +26,7 @@ Silvery is a ground-up React terminal renderer with a different rendering archit
 | **Canvas / DOM targets** | Terminal, Canvas 2D, DOM (experimental) | Terminal only |
 | **TEA state machines** | `@silvery/create`: `(action, state) → [state, effects]`, replay, undo | None |
 | **Playwright-style testing** | Built-in `@silvery/test` with locators, press(), buffer assertions | Third-party `ink-testing-library` |
+| **Headless rendering** | `createTerm({ cols, rows })` — no terminal needed for testing/scripting | None (always renders to stdout) |
 | **Render invariant checks** | `SILVERY_STRICT=1` verifies incremental = fresh on every frame | None |
 
 **Silvery is better** — things both have, silvery does more:
