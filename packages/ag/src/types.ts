@@ -233,7 +233,7 @@ export interface StyleProps {
 export interface BoxProps
   extends FlexboxProps, StyleProps, TestProps, MouseEventProps, DragEventProps, FocusEventProps {
   /** Text truncation mode for child text content (passed through to Text children). */
-  wrap?: "wrap" | "truncate" | "truncate-start" | "truncate-middle" | "truncate-end" | "clip" | boolean
+  wrap?: "wrap" | "hard" | "truncate" | "truncate-start" | "truncate-middle" | "truncate-end" | "clip" | boolean
   borderStyle?: "single" | "double" | "round" | "bold" | "singleDouble" | "doubleSingle" | "classic"
   borderColor?: string
   /** Background color for all border sides (shorthand). Per-side props override this. */
@@ -319,7 +319,7 @@ export interface BoxProps
  */
 export interface TextProps extends StyleProps, TestProps, MouseEventProps {
   children?: React.ReactNode
-  wrap?: "wrap" | "truncate" | "truncate-start" | "truncate-middle" | "truncate-end" | "clip" | boolean
+  wrap?: "wrap" | "hard" | "truncate" | "truncate-start" | "truncate-middle" | "truncate-end" | "clip" | boolean
   /** Internal transform function applied to each rendered line. Used by Transform component. */
   internal_transform?: (line: string, index: number) => string
 }

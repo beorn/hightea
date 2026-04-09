@@ -129,6 +129,10 @@ export function createNode(
         wrap === "truncate-end" ||
         wrap === "clip" ||
         wrap === false
+      // Hard wrap: character-level wrapping, not word-aware. Each line that
+      // exceeds maxWidth is sliced into chunks of exactly maxWidth. Intrinsic
+      // width is maxWidth (since hard-wrapped lines fill the available width).
+      const isHardWrap = wrap === "hard"
 
       // Calculate actual dimensions based on wrapping
       // Use wrapText() for accurate line count — must match the render phase
@@ -148,6 +152,16 @@ export function createNode(
         if (isTruncate || lineWidth <= maxWidth) {
           totalHeight += lh
           actualWidth = Math.max(actualWidth, isTruncate ? Math.min(lineWidth, maxWidth) : lineWidth)
+        } else if (isHardWrap) {
+          // Character-level hard wrap: ceil(lineWidth / maxWidth) lines.
+          // Guard: when maxWidth is not finite (unconstrained), treat as 1 line.
+          if (Number.isFinite(maxWidth) && maxWidth > 0) {
+            totalHeight += Math.ceil(lineWidth / maxWidth) * lh
+            actualWidth = Math.max(actualWidth, maxWidth)
+          } else {
+            totalHeight += lh
+            actualWidth = Math.max(actualWidth, lineWidth)
+          }
         } else {
           const wrapped = wt(line, maxWidth, false, true)
           totalHeight += wrapped.length * lh

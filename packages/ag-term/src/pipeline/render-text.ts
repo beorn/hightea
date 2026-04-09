@@ -704,6 +704,34 @@ export function formatTextLines(
     })
   }
 
+  // Hard wrap: character-level wrapping without regard to word boundaries.
+  // Matches Ink's wrap="hard" behavior (wrap-ansi with wordWrap=false), so
+  // "Hello World" at width=7 becomes ["Hello W", "orld"] — the break lands
+  // mid-word rather than at the space. Multi-line input is hard-wrapped
+  // line-by-line; each line is repeatedly sliced by display width.
+  if (wrap === "hard") {
+    const sliceFn = ctx ? ctx.measurer.sliceByWidth : sliceByWidth
+    const out: string[] = []
+    for (const line of lines) {
+      if (line === "") {
+        out.push("")
+        continue
+      }
+      let remaining = line
+      // Guard against infinite loops when sliceByWidth cannot advance
+      // (e.g., a single grapheme wider than `width`). In that case, push
+      // the remaining text as-is and break.
+      while (getTextWidth(remaining, ctx) > width) {
+        const head = sliceFn(remaining, width)
+        if (head.length === 0) break
+        out.push(head)
+        remaining = remaining.slice(head.length)
+      }
+      out.push(remaining)
+    }
+    return out
+  }
+
   // No wrapping, just truncate at end
   if (wrap === false || wrap === "truncate-end" || wrap === "truncate") {
     return lines.map((line) => truncateText(line, width, "end", ctx))
@@ -808,11 +836,12 @@ function renderTextLineReturn(
   maxCol?: number,
   inheritedBg?: Color,
   ctx?: PipelineContext,
+  minCol?: number,
 ): number {
   if (hasAnsi(text)) {
-    return renderAnsiTextLineReturn(buffer, x, y, text, baseStyle, maxCol, inheritedBg, ctx)
+    return renderAnsiTextLineReturn(buffer, x, y, text, baseStyle, maxCol, inheritedBg, ctx, minCol)
   }
-  return renderGraphemes(buffer, splitGraphemes(text), x, y, baseStyle, maxCol, inheritedBg, ctx)
+  return renderGraphemes(buffer, splitGraphemes(text), x, y, baseStyle, maxCol, inheritedBg, ctx, minCol)
 }
 
 /**
@@ -825,6 +854,10 @@ function renderTextLineReturn(
  *   behavior for wide chars at the right edge of a container and prevents
  *   continuation cells from overflowing into adjacent containers, where
  *   they become stale during incremental rendering.
+ * @param minCol - Left edge of the visible region (inclusive). Graphemes
+ *   whose end position is at or before minCol are skipped (col still advances).
+ *   Used to clip text that overflows the LEFT edge of an overflow:hidden
+ *   container with a border (so the border isn't overwritten).
  *
  * Returns the column position after the last rendered grapheme.
  */
@@ -837,10 +870,13 @@ function renderGraphemes(
   maxCol?: number,
   inheritedBg?: Color,
   ctx?: PipelineContext,
+  minCol?: number,
 ): number {
   let col = startCol
   // Effective right boundary: text node's layout edge or buffer edge
   const rightEdge = maxCol !== undefined ? Math.min(maxCol, buffer.width) : buffer.width
+  // Effective left boundary: max of clipBounds.left and 0 (no negative columns)
+  const leftEdge = minCol !== undefined ? Math.max(minCol, 0) : 0
   const gWidthFn = ctx ? ctx.measurer.graphemeWidth : graphemeWidth
 
   for (const grapheme of graphemes) {
@@ -848,6 +884,26 @@ function renderGraphemes(
 
     const width = gWidthFn(grapheme)
     if (width === 0) continue
+
+    // Skip graphemes whose end is still left of leftEdge (still advance col).
+    // This clips text that overflows the LEFT edge of an overflow:hidden
+    // container — without this, the text would overwrite the parent's left
+    // border or padding cells.
+    if (col + width <= leftEdge) {
+      col += width
+      continue
+    }
+
+    // Partial overlap: a wide grapheme straddling the left edge. Replace with
+    // a space at leftEdge so the visible cell is preserved without the
+    // grapheme's continuation cell extending outside the clip region.
+    if (col < leftEdge) {
+      // Skip this grapheme (the visible portion is its right cell which we
+      // can't draw without the leading half). Advance to leftEdge.
+      col = leftEdge
+      // Don't draw a partial wide char — fall through to the next grapheme.
+      continue
+    }
 
     // Determine background color for this cell.
     // Priority: 1) Text's own bg, 2) inherited bg from ancestor Box, 3) buffer read (legacy fallback).
@@ -943,6 +999,7 @@ function renderAnsiTextLineReturn(
   maxCol?: number,
   inheritedBg?: Color,
   ctx?: PipelineContext,
+  minCol?: number,
 ): number {
   const segments = parseAnsiText(text)
   let col = x
@@ -989,7 +1046,7 @@ function renderAnsiTextLineReturn(
       }
     }
 
-    col = renderGraphemes(buffer, splitGraphemes(segment.text), col, y, style, maxCol, inheritedBg, ctx)
+    col = renderGraphemes(buffer, splitGraphemes(segment.text), col, y, style, maxCol, inheritedBg, ctx, minCol)
   }
   return col
 }
@@ -1298,7 +1355,12 @@ export function renderText(
       clipBounds && "right" in clipBounds && clipBounds.right !== undefined
         ? Math.min(layoutRight, clipBounds.right)
         : layoutRight
-    const endCol = renderTextLineReturn(buffer, x, lineY, line, style, maxCol, inheritedBg, ctx)
+    // Clip left edge to horizontal clip bounds. Without this, text rendered
+    // by a node whose x is BEFORE the parent's clip-left (e.g., negative
+    // marginLeft inside an overflow:hidden container with a border) would
+    // overwrite the parent's left border or padding cells.
+    const minCol = clipBounds && "left" in clipBounds && clipBounds.left !== undefined ? clipBounds.left : undefined
+    const endCol = renderTextLineReturn(buffer, x, lineY, line, style, maxCol, inheritedBg, ctx, minCol)
 
     // Clear remaining cells after text to end of layout width (clipped).
     // When text content shrinks (e.g., breadcrumb changes from long to short path),
@@ -1306,9 +1368,11 @@ export function renderText(
     // Without explicit clearing here, stale chars from the previous longer text
     // survive in the cloned buffer. This is safe: we only clear within our own
     // layout area, writing spaces with the correct inherited background.
-    if (endCol < maxCol) {
+    // Respect minCol so we don't clear cells inside the parent's left border.
+    const clearStart = minCol !== undefined ? Math.max(endCol, minCol) : endCol
+    if (clearStart < maxCol) {
       const clearBg = inheritedBg ?? null
-      for (let cx = endCol; cx < maxCol && cx < buffer.width; cx++) {
+      for (let cx = clearStart; cx < maxCol && cx < buffer.width; cx++) {
         buffer.setCell(cx, lineY, {
           char: " ",
           fg: style.fg,

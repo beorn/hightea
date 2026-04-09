@@ -281,8 +281,6 @@ await initInkCompat();
     "test.serial(testCase.testName,",
     "test.serial.failing(testCase.testName,",
   )
-  // Ink 7.0 components: hard wrap text rendering difference.
-  await addFailingMarks(join(INK_DIR, "test/components.tsx"), ["hard wrap text"])
   console.log("  Marked known silvery/Flexily differences as expected failures")
 
   // Run ava
