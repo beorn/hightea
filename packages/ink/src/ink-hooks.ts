@@ -185,6 +185,125 @@ export function useCursor() {
 }
 
 // =============================================================================
+// Animation hook
+// =============================================================================
+
+import { InkAnimationContext, normalizeAnimationInterval } from "./ink-animation"
+
+/**
+ * Result returned by useAnimation.
+ */
+export type AnimationResult = {
+  /** Discrete frame counter (increments by 1 each interval). */
+  readonly frame: number
+  /** Total elapsed ms since animation started or last reset. */
+  readonly time: number
+  /** Milliseconds since the previous tick. */
+  readonly delta: number
+  /** Reset all counters to 0 and restart timing. */
+  readonly reset: () => void
+}
+
+/**
+ * Options for useAnimation.
+ */
+export type UseAnimationOptions = {
+  /** Time between ticks in ms (default 100). */
+  readonly interval?: number
+  /** Whether the animation is running (default true). */
+  readonly isActive?: boolean
+}
+
+const zeroAnimState = { frame: 0, time: 0, delta: 0 }
+
+/**
+ * Ink-compatible useAnimation hook.
+ *
+ * Drives animations by providing a frame counter, elapsed time, frame delta,
+ * and a reset function. All animations share a single timer internally via
+ * InkAnimationContext, so multiple animated components consolidate into one
+ * render cycle (matching Ink 7.0 behaviour).
+ */
+export function useAnimation(options?: UseAnimationOptions): AnimationResult {
+  const { interval = 100, isActive = true } = options ?? {}
+  const safeInterval = normalizeAnimationInterval(interval)
+  const { subscribe, renderThrottleMs } = useContext(InkAnimationContext)
+
+  const [resetKey, setResetKey] = useState(0)
+  const [animState, setAnimState] = useState(zeroAnimState)
+
+  const nextRenderTimeRef = useRef(0)
+  const lastRenderTimeRef = useRef(0)
+  const previousOptionsRef = useRef({ isActive, safeInterval, resetKey })
+  const previousOptions = previousOptionsRef.current
+
+  const shouldReset =
+    isActive &&
+    (safeInterval !== previousOptions.safeInterval || !previousOptions.isActive || resetKey !== previousOptions.resetKey)
+
+  const reset = useCallback(() => {
+    setResetKey((k) => k + 1)
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!isActive) return
+
+    // Reset to zero immediately so any render between effect commit and
+    // first tick shows zeros, not stale values.
+    setAnimState(zeroAnimState)
+
+    let startTime = 0
+
+    const { startTime: subscriberStartTime, unsubscribe } = subscribe((currentTime: number) => {
+      const isThrottled = renderThrottleMs > 0 && currentTime < nextRenderTimeRef.current
+      if (isThrottled) return
+
+      const elapsed = currentTime - startTime
+      const nextDelta = currentTime - lastRenderTimeRef.current
+      lastRenderTimeRef.current = currentTime
+      nextRenderTimeRef.current = currentTime + renderThrottleMs
+
+      setAnimState({
+        frame: Math.floor(elapsed / safeInterval),
+        time: elapsed,
+        delta: nextDelta,
+      })
+    }, safeInterval)
+
+    startTime = subscriberStartTime
+    lastRenderTimeRef.current = subscriberStartTime
+    nextRenderTimeRef.current = startTime + renderThrottleMs
+
+    return unsubscribe
+  }, [safeInterval, isActive, subscribe, renderThrottleMs, resetKey])
+
+  useLayoutEffect(() => {
+    previousOptionsRef.current = { isActive, safeInterval, resetKey }
+  }, [isActive, safeInterval, resetKey])
+
+  if (shouldReset) {
+    return { ...zeroAnimState, reset }
+  }
+
+  return { ...animState, reset }
+}
+
+// =============================================================================
+// Screen reader hook
+// =============================================================================
+
+/**
+ * Ink-compatible useIsScreenReaderEnabled hook.
+ *
+ * Returns whether screen reader mode is enabled. Silvery does not yet have
+ * a runtime accessibility probe, so this always returns false unless the
+ * INK_SCREEN_READER env var is set.
+ */
+export function useIsScreenReaderEnabled(): boolean {
+  return process.env["INK_SCREEN_READER"] === "true"
+}
+
+// =============================================================================
 // Window size hook
 // =============================================================================
 

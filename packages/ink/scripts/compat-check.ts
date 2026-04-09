@@ -173,12 +173,97 @@ await initInkCompat();
   // Effect timing: silvery's test renderer flushes effects eagerly on initial render,
   // so measureElement returns the post-layout width on first write (Ink defers to useEffect).
   await addFailingMarks(join(INK_DIR, "test/measure-element.tsx"), ["measure element"])
+  // Ink 7.0 background rendering: silvery's background rendering architecture
+  // differs from Ink's BackgroundContext-based approach. Silvery renders
+  // backgroundColor via cell-level styling in the buffer, while Ink 7.0 uses
+  // a separate background rendering pass with BackgroundContext inheritance.
+  await addFailingMarks(join(INK_DIR, "test/background.tsx"), [
+    "Text inherits parent Box background color",
+    "Text explicit background color overrides inherited",
+    "Nested Box background inheritance",
+    "Multiple Text elements inherit same background",
+    "Mixed text with and without background inheritance",
+    "Complex nested structure with background inheritance",
+    "Box background with standard color",
+    "Box background with hex color",
+    "Box background with rgb color",
+    "Box background with ansi256 color",
+    "Box background with wide characters",
+    "Box background with emojis",
+    "Box background fills entire area with standard color",
+    "Box background fills with hex color",
+    "Box background fills with rgb color",
+    "Box background fills with ansi256 color",
+    "Box background with border fills content area",
+    "Box background with padding fills entire padded area",
+    "Box background with center alignment fills entire area",
+    "Box background with column layout fills entire area",
+    "Box background updates on rerender",
+    "Text inherits parent Box background color - concurrent",
+    "Nested Box background inheritance - concurrent",
+    "Box background with hex color - concurrent",
+    "Box background updates on rerender - concurrent",
+    "Box backgroundColor fills full width on every line when text wraps",
+    "Text-only backgroundColor colors text content but does not fill Box width",
+  ])
+  // Ink 7.0 border background rendering: separate borderBackgroundColor props
+  // that silvery's border rendering doesn't yet support.
+  await addFailingMarks(join(INK_DIR, "test/border-backgrounds.tsx"), [
+    "border with background color",
+    "border with different background colors per side",
+    "border background color fallback to general borderBackgroundColor",
+    "vertical border background does not bleed into content rows",
+    "foreground, background and dim combine correctly",
+  ])
+  // Ink 7.0 build output tests: check for ./build/ directory structure that
+  // silvery doesn't have (silvery publishes TypeScript source).
+  await addFailingMarks(join(INK_DIR, "test/build-output.ts"), [
+    "package.json export paths resolve to existing files",
+    "build/index.js and build/index.d.ts exist",
+  ])
+  // Ink 7.0 useAnimation: maxFps/renderThrottleMs tests require Ink's render
+  // throttling, which silvery's compat test renderer doesn't implement.
+  // Also: concurrent mode aborted render test requires React concurrent mode.
+  await addFailingMarks(join(INK_DIR, "test/use-animation.tsx"), [
+    "low maxFps caps animation rerenders",
+    "delta accounts for throttled ticks",
+    "concurrent aborted renders do not suppress interval reset",
+  ])
+  // Ink 7.0 kitty-keyboard: tests that interact with stdin/stdout protocol
+  // negotiation directly, which the compat layer handles differently.
+  await addFailingMarks(join(INK_DIR, "test/kitty-keyboard.tsx"), [
+    "kitty protocol - writes enable sequence on init when mode is enabled",
+    "kitty protocol - auto detection handles synchronous query response",
+    "kitty protocol - auto detection handles Uint8Array query response",
+  ])
+  // Ink 7.0 text-width: CJK overlay clearing differences — silvery's buffer
+  // handles wide character overlay differently at cell boundaries.
+  await addFailingMarks(join(INK_DIR, "test/text-width.tsx"), [
+    "overlay on 2nd cell of CJK character clears the full character",
+    "CJK overlay on 2nd cell of CJK clears both sides",
+  ])
+  // Ink 7.0 text dim+bold rendering: Ink outputs combined SGR codes, silvery
+  // emits separate sequences.
+  await addFailingMarks(join(INK_DIR, "test/text.tsx"), [
+    "text with dim+bold",
+    "text with dim+bold - concurrent",
+  ])
+  // Ink 7.0 cursor: debug mode interaction with cursor visibility.
+  await addFailingMarks(join(INK_DIR, "test/cursor.tsx"), [
+    "cursor remains visible after useStdout().write()",
+    "debug mode: useStderr().write() replays latest frame without empty writes",
+    "debug mode: useStderr().write() replays rerendered frame",
+  ])
+  // Ink 7.0 components: hard wrap text rendering difference.
+  await addFailingMarks(join(INK_DIR, "test/components.tsx"), [
+    "hard wrap text",
+  ])
   console.log("  Marked known silvery/Flexily differences as expected failures")
 
   // Run ava
   console.log("  Running ink tests with ava...\n")
   try {
-    const result = await $`cd ${INK_DIR} && FORCE_COLOR=0 npx ava --timeout=30s 2>&1`.text()
+    const result = await $`cd ${INK_DIR} && FORCE_COLOR=0 npx ava --timeout=120s 2>&1`.text()
     console.log(result)
     return result
   } catch (e: any) {

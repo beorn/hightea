@@ -37,6 +37,7 @@ import { restoreColonFormatSGR, colonSGRTracker } from "./ink-sanitize"
 import { InkStaticStoreCtx, type InkStaticStore } from "./ink-components"
 import { InkStdinCtx, createInkStdinState } from "./ink-stdin"
 import { type KittyKeyboardOptions, resolveKittyManagerOptions } from "./ink-hooks"
+import { InkAnimationProvider } from "./ink-animation"
 
 // =============================================================================
 // Types
@@ -366,7 +367,11 @@ function renderTestMode(
                     React.createElement(
                       StderrContext.Provider,
                       { value: stderrCtxValue },
-                      React.createElement(InkFocusProvider, null, React.createElement(InkFocusBridge, null, el)),
+                      React.createElement(
+                        InkAnimationProvider,
+                        null,
+                        React.createElement(InkFocusProvider, null, React.createElement(InkFocusBridge, null, el)),
+                      ),
                     ),
                   ),
                 ),
