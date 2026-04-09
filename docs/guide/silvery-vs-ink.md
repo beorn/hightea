@@ -13,6 +13,7 @@ The biggest differences at a glance:
 - **Layout-first rendering** — components know their size _during_ render via `useBoxRect()`, not after. Ink's `useBoxMetrics()` returns 0×0 on first render.
 - **Cell-level ANSI compositing** — proper style stacking and color blending. Ink concatenates strings.
 - **Incremental rendering in inline mode** — only changed cells emit; native scrollback preserved. Ink does a full redraw every frame in inline mode.
+- **Blurred inline/fullscreen boundary** — inline mode gets fullscreen-level performance (cell-level incremental, no flicker, dynamic scrollback graduation). Fullscreen mode gets inline-level UX (app-managed scrollback, history access). Ink has a hard split between the two.
 - **3–5× faster on mounted workloads** — wins all 16 scenarios in our [benchmarks](/guide/silvery-vs-ink#performance--size). Bundle parity with Ink+Yoga.
 - **Native scroll containers** — `overflow="scroll"` + `position="sticky"`. Ink's core has `visible`/`hidden` only ([#222](https://github.com/vadimdemedes/ink/issues/222), open since 2019).
 - **Mouse, drag, selection, find, clipboard** — SGR mouse protocol, `onClick`/`onWheel`, text selection, `Ctrl+F` search, OSC 52 clipboard. Ink has none of these.
@@ -37,7 +38,8 @@ Ink first, Silvery second. Features marked "core" are built into the framework; 
 | **Scrollable containers** | `visible`/`hidden` only; ecosystem packages available ([#222](https://github.com/vadimdemedes/ink/issues/222), [ink-scroll-view](https://github.com/grahammendick/ink-scroll-view)) | `overflow="scroll"` + `scrollTo` — core framework, handles clipping |
 | **Sticky headers** | None | `position="sticky"` in scroll containers |
 | **Dynamic scrollback** | All items stay in render tree | Items automatically graduate to terminal history; Cmd+F works |
-| **Inline-like fullscreen** | None | Alt-screen with scrollback graduation — fullscreen control + inline UX |
+| **Fullscreen-like inline** | Hard split: inline = full redraw, fullscreen = no scrollback | Inline mode with cell-level incremental rendering + scrollback graduation — fullscreen performance, inline UX |
+| **Inline-like fullscreen** | None | Alt-screen with app-managed scrollback graduation — fullscreen control, inline history access |
 | **Render targets** | Terminal only | Terminal, Canvas 2D, DOM (experimental) |
 
 ### Performance & Size
