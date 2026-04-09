@@ -283,20 +283,33 @@ function SpatialFocusBoard() {
     const root = getRoot()
     if (!root) return
 
+    // If nothing focused yet, Tab or any arrow focuses the first element
+    if (!fm.activeElement) {
+      fm.focusNext(root)
+      return
+    }
+
+    // Tab / Shift+Tab → linear tab-order navigation
+    if (key.tab) {
+      if (key.shift) fm.focusPrev(root)
+      else fm.focusNext(root)
+      return
+    }
+
     // Arrow keys → spatial focus navigation
-    if (key.upArrow) {
+    if (key.upArrow || input === "k") {
       fm.focusDirection(root, "up")
       return
     }
-    if (key.downArrow) {
+    if (key.downArrow || input === "j") {
       fm.focusDirection(root, "down")
       return
     }
-    if (key.leftArrow) {
+    if (key.leftArrow || input === "h") {
       fm.focusDirection(root, "left")
       return
     }
-    if (key.rightArrow) {
+    if (key.rightArrow || input === "l") {
       fm.focusDirection(root, "right")
       return
     }
