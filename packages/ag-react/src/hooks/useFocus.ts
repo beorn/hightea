@@ -68,7 +68,9 @@ export function useFocus(options: UseFocusOptions = {}): UseFocusResult {
   const node = useContext(NodeContext)
 
   // Determine the focus ID: explicit id > node's testID > null
-  const testID = node ? (((node.props as Record<string, unknown>).testID as string | undefined) ?? null) : null
+  const testID = node
+    ? (((node.props as Record<string, unknown>).testID as string | undefined) ?? null)
+    : null
   const focusId = id ?? testID
 
   // Subscribe to FocusManager state via useSyncExternalStore
@@ -88,7 +90,8 @@ export function useFocus(options: UseFocusOptions = {}): UseFocusResult {
   const snapshot: FocusSnapshot | null = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
   // isFocused: true only when isActive AND this component's focusId matches activeId
-  const isFocused = isActive && focusId !== null && snapshot !== null && snapshot.activeId === focusId
+  const isFocused =
+    isActive && focusId !== null && snapshot !== null && snapshot.activeId === focusId
 
   // Helper: get the render tree root from the current node
   const getRoot = useCallback((): AgNode | null => {
