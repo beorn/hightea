@@ -108,31 +108,38 @@ function useReactiveRect(getRect: (node: AgNode) => Rect | null | undefined): Re
  * is invoked after layout completes whenever the selected rect is available.
  * Uses a ref so the hook doesn't re-subscribe when the caller passes a fresh
  * function each render.
+ *
+ * `getRectRef` is wrapped in a ref to keep the subscription stable across
+ * renders — the `getRect` function is typically created inline as
+ * `(node) => node.scrollRect` and would otherwise invalidate the effect on
+ * every render, missing layout notifications in tests that re-render the
+ * same tree with a fresh registry.
  */
 function useCallbackRect(getRect: (node: AgNode) => Rect | null | undefined, callback: RectCallback): void {
   const node = useContext(NodeContext)
 
   const callbackRef = useRef(callback)
   callbackRef.current = callback
+  const getRectRef = useRef(getRect)
+  getRectRef.current = getRect
 
   useLayoutEffect(() => {
     if (!node) return
 
     const handleLayoutComplete = () => {
-      const rect = getRect(node)
+      const rect = getRectRef.current(node)
       if (rect) callbackRef.current(rect)
     }
 
     node.layoutSubscribers.add(handleLayoutComplete)
 
     // Call immediately if the rect is already computed
-    const rect = getRect(node)
+    const rect = getRectRef.current(node)
     if (rect) callbackRef.current(rect)
 
     return () => {
       node.layoutSubscribers.delete(handleLayoutComplete)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node])
 }
 
