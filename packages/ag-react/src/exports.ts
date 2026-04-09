@@ -355,6 +355,21 @@ export { useStderr } from "./hooks/useStderr"
 export { useFocusManager } from "./hooks/useFocusManager"
 
 // Focus system (tree-based)
+/**
+ * Ink-compatible focus hook.
+ *
+ * Returns `{ isFocused, focus }`. Options: `{ isActive, autoFocus, id }`.
+ * Uses silvery's FocusManager under the hood. For the richer silvery-specific
+ * API (focus origin, blur, scope-aware), use `useFocusable()`.
+ *
+ * @example
+ * ```tsx
+ * const { isFocused, focus } = useFocus({ id: "panel", autoFocus: true })
+ * ```
+ */
+export { useFocus } from "./hooks/useFocus"
+export type { UseFocusOptions, UseFocusResult } from "./hooks/useFocus"
+
 export { createFocusManager } from "@silvery/ag/focus-manager"
 export type {
   FocusManager,

@@ -31,6 +31,7 @@ export { useStdout, type UseStdoutResult } from "./useStdout"
 export { useStderr, type UseStderrResult } from "./useStderr"
 
 // Focus (tree-based system)
+export { useFocus, type UseFocusOptions, type UseFocusResult } from "./useFocus"
 export { useFocusable, type UseFocusableResult } from "./useFocusable"
 export { useFocusWithin } from "./useFocusWithin"
 export { useFocusManager, type UseFocusManagerResult } from "./useFocusManager"
