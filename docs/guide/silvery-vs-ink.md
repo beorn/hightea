@@ -6,6 +6,22 @@ _External project claims last verified: 2026-04. Ink version: 7.0.0._
 
 Silvery is a ground-up reimplementation with a different rendering architecture. Same `Box`, `Text`, `useInput` API — <a href="#compatibility" title="918+/931 Ink 7.0 tests pass. ~12 intentional differences: Flexily follows W3C spec where Yoga doesn't (4), build artifact format (2), minor edge cases (~6). Silvery supports Yoga as a pluggable engine for exact parity.">99% of Ink's tests pass</a> on silvery's compat layer. [Migration guide →](/getting-started/migrate-from-ink)
 
+## Highlights
+
+The biggest differences at a glance:
+
+- **Layout-first rendering** — components know their size _during_ render via `useBoxRect()`, not after. Ink's `useBoxMetrics()` returns 0×0 on first render.
+- **Cell-level ANSI compositing** — proper style stacking and color blending. Ink concatenates strings.
+- **Incremental rendering in inline mode** — only changed cells emit; native scrollback preserved. Ink does a full redraw every frame in inline mode.
+- **3–5× faster on mounted workloads** — wins all 16 scenarios in our [benchmarks](/guide/silvery-vs-ink#performance--size). Bundle parity with Ink+Yoga.
+- **Native scroll containers** — `overflow="scroll"` + `position="sticky"`. Ink's core has `visible`/`hidden` only ([#222](https://github.com/vadimdemedes/ink/issues/222), open since 2019).
+- **Mouse, drag, selection, find, clipboard** — SGR mouse protocol, `onClick`/`onWheel`, text selection, `Ctrl+F` search, OSC 52 clipboard. Ink has none of these.
+- **45+ built-in components** — vs Ink's 6 core + [@inkjs/ui](https://github.com/vadimdemedes/ink-ui)'s 13.
+- **Multi-backend test matrix** — [Termless](https://termless.dev) runs tests across 10+ real terminal parsers (xterm.js, vt100, Ghostty, Kitty, Alacritty, ...). Ink has no equivalent.
+- **Pure TypeScript, no WASM** — synchronous import, normal GC, zero native dependencies.
+
+**What's the same:** React 19, `Box`/`Text`/`useInput`, flexbox layout, `Static`, `useFocus`, `usePaste`, `useAnimation`, `useWindowSize`, Kitty keyboard, synchronized output (DEC 2026), alternate screen, concurrent mode, Suspense. Most Ink code works with an import change.
+
 ## Feature Matrix
 
 Ink first, Silvery second. Features marked "core" are built into the framework; "ecosystem" means available via official or third-party packages.
