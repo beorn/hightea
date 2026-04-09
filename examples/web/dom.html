@@ -94,10 +94,10 @@
 
     <div class="info">
       <h3>Code</h3>
-      <pre><code>import { renderToDOM, Box, Text, useContentRect } from '@silvery/term/dom';
+      <pre><code>import { renderToDOM, Box, Text, useBoxRect } from '@silvery/term/dom';
 
 function App() {
-  const { width, height } = useContentRect();
+  const { width, height } = useBoxRect();
   return (
     &lt;Box borderStyle="single"&gt;
       &lt;Text&gt;Size: {width}px × {height}px&lt;/Text&gt;

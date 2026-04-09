@@ -200,7 +200,7 @@
     "tooltip": "Hook for accessing the stdout stream"
   },
   {
-    "term": "useContentRect",
+    "term": "useBoxRect",
     "href": "/api/use-content-rect",
     "tooltip": "Hook that reports a component's measured content rectangle (width, height)"
   },
