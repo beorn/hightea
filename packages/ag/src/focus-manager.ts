@@ -47,6 +47,22 @@ export interface FocusManagerOptions {
   onFocusChange?: FocusChangeCallback
 }
 
+/**
+ * Options for registering a hook-based (virtual) focusable.
+ *
+ * Hook focusables are registered via React hooks (e.g. `useFocus()` in the
+ * Ink compat layer) rather than by the `focusable` prop on a tree node. They
+ * participate in Tab cycling but don't have a backing `AgNode` — activeId
+ * tracking is by id only, and `activeElement` is null when a hook focusable
+ * is the active target.
+ */
+export interface HookFocusableOptions {
+  /** Registration is inert when false — skipped in tab order, never reports focused */
+  isActive?: boolean
+  /** Focus this id when registered (only when isActive !== false) */
+  autoFocus?: boolean
+}
+
 export interface FocusManager {
   /** Currently focused node */
   readonly activeElement: AgNode | null
@@ -67,8 +83,39 @@ export interface FocusManager {
   focus(node: AgNode, origin?: FocusOrigin): void
   /** Focus a node by testID (requires root for tree search) */
   focusById(id: string, root: AgNode, origin?: FocusOrigin): void
+  /**
+   * Focus a hook-registered (virtual) id directly without tree traversal.
+   * Unlike `focusById`, this never needs a root — used by `useFocus()` hooks
+   * that track focus by id only.
+   */
+  focusVirtualId(id: string, origin?: FocusOrigin): void
   /** Clear focus */
   blur(): void
+
+  // ---- Hook-based (virtual) focusables ----
+
+  /**
+   * Register a hook-based focusable id (e.g. from `useFocus()` in Ink compat).
+   *
+   * Hook focusables form a flat list alongside the tree-based focusables.
+   * `focusNext`/`focusPrev` interleave: tree focusables come first (document
+   * order), then hook focusables (registration order). A single unified tab
+   * cycle walks both.
+   *
+   * Returns an unregister callback (safe to call on effect cleanup).
+   */
+  registerHookFocusable(id: string, options?: HookFocusableOptions): () => void
+  /** Update an existing hook-focusable's active state. */
+  setHookFocusableActive(id: string, isActive: boolean): void
+  /** Whether any hook focusables are currently registered. */
+  readonly hasHookFocusables: boolean
+  /**
+   * Global focus enable (Ink compat). When false, `focusNext`/`focusPrev`
+   * become no-ops for hook-registered focusables. Tree-based focusables
+   * ignore this flag — apps using `useFocusable` are not affected.
+   */
+  readonly hookFocusEnabled: boolean
+  setHookFocusEnabled(enabled: boolean): void
 
   /**
    * Handle a subtree being removed from the tree.
@@ -117,6 +164,15 @@ export interface FocusManager {
 // Factory
 // ============================================================================
 
+/**
+ * Internal shape for a hook-registered focusable.
+ * Order in the list reflects registration order (Ink-compatible tab order).
+ */
+interface HookFocusable {
+  id: string
+  isActive: boolean
+}
+
 export function createFocusManager(options?: FocusManagerOptions): FocusManager {
   const onFocusChange = options?.onFocusChange
 
@@ -129,6 +185,11 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
   const scopeStack: string[] = []
   const scopeMemory: Record<string, string> = {}
   let activeScopeId: string | null = null
+
+  // Hook-registered focusables (flat list, Ink-style).
+  const hookFocusables: HookFocusable[] = []
+  // Global focus enable (Ink compat — `enableFocus()` / `disableFocus()` knob).
+  let hookFocusEnabled = true
 
   // Subscriber management
   const listeners = new Set<() => void>()
@@ -230,6 +291,91 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
 
     // Fire focus change callback (after state is updated)
     onFocusChange?.(oldElement, null, null)
+  }
+
+  // ---- Hook-based (virtual) focusables ----
+
+  /**
+   * Set the focused target to a hook-registered id directly (no tree lookup).
+   * activeElement becomes null (no backing node), activeId is the hook id.
+   */
+  function focusVirtualId(id: string, origin: FocusOrigin = "programmatic"): void {
+    if (activeId === id && !activeElement) {
+      if (focusOrigin !== origin) {
+        focusOrigin = origin
+        notify()
+      }
+      return
+    }
+    const oldElement = activeElement
+    previousElement = activeElement
+    previousId = activeId
+    activeElement = null
+    activeId = id
+    focusOrigin = origin
+
+    if (oldElement) setFocused(oldElement, false)
+
+    notify()
+
+    onFocusChange?.(oldElement, null, origin)
+  }
+
+  function registerHookFocusable(id: string, opts: HookFocusableOptions = {}): () => void {
+    const { isActive = true, autoFocus = false } = opts
+
+    // Dedup by id — last registration wins (matches Ink behavior on re-mount).
+    const existing = hookFocusables.findIndex((f) => f.id === id)
+    if (existing !== -1) {
+      hookFocusables[existing] = { id, isActive }
+    } else {
+      hookFocusables.push({ id, isActive })
+    }
+
+    if (autoFocus && isActive && activeId === null) {
+      focusVirtualId(id, "programmatic")
+    } else {
+      notify()
+    }
+
+    return () => {
+      const idx = hookFocusables.findIndex((f) => f.id === id)
+      if (idx === -1) return
+      hookFocusables.splice(idx, 1)
+      // Clear active focus if the removed id was focused.
+      if (activeId === id && !activeElement) {
+        previousId = activeId
+        activeId = null
+        focusOrigin = null
+        notify()
+        onFocusChange?.(null, null, null)
+        return
+      }
+      notify()
+    }
+  }
+
+  function setHookFocusableActive(id: string, isActive: boolean): void {
+    const entry = hookFocusables.find((f) => f.id === id)
+    if (!entry) return
+    if (entry.isActive === isActive) return
+    entry.isActive = isActive
+    // If the active virtual id was deactivated, clear it.
+    if (!isActive && activeId === id && !activeElement) {
+      previousId = activeId
+      activeId = null
+      focusOrigin = null
+      notify()
+      onFocusChange?.(null, null, null)
+      return
+    }
+    notify()
+  }
+
+  function setHookFocusEnabled(enabled: boolean): void {
+    if (hookFocusEnabled === enabled) return
+    hookFocusEnabled = enabled
+    notify()
   }
 
   // ---- Subtree removal ----
@@ -376,38 +522,80 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     return undefined
   }
 
-  function focusNext(root: AgNode, scope?: AgNode): void {
-    const effectiveScope = resolveScope(root, scope)
-    const order = getTabOrder(root, effectiveScope)
-    if (order.length === 0) return
+  /**
+   * Unified tab entry — either a tree-based AgNode or a hook-registered id.
+   * Tree focusables come first (document order), then hook focusables
+   * (registration order). Inactive hook focusables are excluded.
+   */
+  type TabEntry = { kind: "node"; node: AgNode } | { kind: "hook"; id: string }
 
-    if (!activeElement) {
-      // Nothing focused — focus the first element
-      focus(order[0]!, "keyboard")
+  function buildTabEntries(root: AgNode, scope?: AgNode): TabEntry[] {
+    const effectiveScope = resolveScope(root, scope)
+    const nodes = getTabOrder(root, effectiveScope)
+    const entries: TabEntry[] = nodes.map((node) => ({ kind: "node", node }))
+    // Hook focusables are only included when no explicit tree scope is active —
+    // they're inherently scope-less. Skip inactive or when globally disabled.
+    if (!effectiveScope && hookFocusEnabled) {
+      for (const entry of hookFocusables) {
+        if (entry.isActive) entries.push({ kind: "hook", id: entry.id })
+      }
+    }
+    return entries
+  }
+
+  function currentTabIndex(entries: TabEntry[]): number {
+    if (activeElement) {
+      for (let i = 0; i < entries.length; i++) {
+        const e = entries[i]!
+        if (e.kind === "node" && e.node === activeElement) return i
+      }
+      return -1
+    }
+    if (activeId) {
+      for (let i = 0; i < entries.length; i++) {
+        const e = entries[i]!
+        if (e.kind === "hook" && e.id === activeId) return i
+      }
+    }
+    return -1
+  }
+
+  function focusTabEntry(entry: TabEntry, origin: FocusOrigin): void {
+    if (entry.kind === "node") {
+      focus(entry.node, origin)
+    } else {
+      focusVirtualId(entry.id, origin)
+    }
+  }
+
+  function focusNext(root: AgNode, scope?: AgNode): void {
+    const entries = buildTabEntries(root, scope)
+    if (entries.length === 0) return
+
+    const currentIndex = currentTabIndex(entries)
+    if (currentIndex === -1) {
+      // Nothing focused — focus the first entry
+      focusTabEntry(entries[0]!, "keyboard")
       return
     }
 
-    const currentIndex = order.indexOf(activeElement)
-    // Wrap around to the first element
-    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % order.length
-    focus(order[nextIndex]!, "keyboard")
+    const nextIndex = (currentIndex + 1) % entries.length
+    focusTabEntry(entries[nextIndex]!, "keyboard")
   }
 
   function focusPrev(root: AgNode, scope?: AgNode): void {
-    const effectiveScope = resolveScope(root, scope)
-    const order = getTabOrder(root, effectiveScope)
-    if (order.length === 0) return
+    const entries = buildTabEntries(root, scope)
+    if (entries.length === 0) return
 
-    if (!activeElement) {
-      // Nothing focused — focus the last element
-      focus(order[order.length - 1]!, "keyboard")
+    const currentIndex = currentTabIndex(entries)
+    if (currentIndex === -1) {
+      // Nothing focused — focus the last entry
+      focusTabEntry(entries[entries.length - 1]!, "keyboard")
       return
     }
 
-    const currentIndex = order.indexOf(activeElement)
-    // Wrap around to the last element
-    const prevIndex = currentIndex <= 0 ? order.length - 1 : currentIndex - 1
-    focus(order[prevIndex]!, "keyboard")
+    const prevIndex = currentIndex <= 0 ? entries.length - 1 : currentIndex - 1
+    focusTabEntry(entries[prevIndex]!, "keyboard")
   }
 
   function focusDirection(
@@ -485,6 +673,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
 
     focus,
     focusById,
+    focusVirtualId,
     blur,
     handleSubtreeRemoved,
 
@@ -501,5 +690,16 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
 
     subscribe,
     getSnapshot,
+
+    // Hook-based focusables (Ink compat)
+    registerHookFocusable,
+    setHookFocusableActive,
+    get hasHookFocusables() {
+      return hookFocusables.length > 0
+    },
+    get hookFocusEnabled() {
+      return hookFocusEnabled
+    },
+    setHookFocusEnabled,
   }
 }

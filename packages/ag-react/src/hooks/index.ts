@@ -31,6 +31,7 @@ export { useStderr, type UseStderrResult } from "./useStderr"
 export { useFocusable, type UseFocusableResult } from "./useFocusable"
 export { useFocusWithin } from "./useFocusWithin"
 export { useFocusManager, type UseFocusManagerResult } from "./useFocusManager"
+export { useFocus, type UseFocusOptions, type UseFocusResult } from "./useFocus"
 
 // Input Layer Stack
 export { useInputLayer, useInputLayerContext, type InputLayerHandler } from "./useInputLayer"

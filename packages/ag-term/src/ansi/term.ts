@@ -328,7 +328,10 @@ export interface Term extends Disposable, StyleChain {
    * Row-level access for the visible screen.
    * Only available on emulator-backed terms (createTermless).
    */
-  row?(n: number): { getText(): string; cell(col: number): { readonly fg: unknown; readonly bg: unknown; readonly char: string } }
+  row?(n: number): {
+    getText(): string
+    cell(col: number): { readonly fg: unknown; readonly bg: unknown; readonly char: string }
+  }
 
   /**
    * Resize the terminal emulator. Only available when created with a terminal backend.

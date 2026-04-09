@@ -354,6 +354,8 @@ export type { SilveryKeyEvent, SilveryFocusEvent, FocusEventProps } from "@silve
 export { useFocusable } from "./hooks/useFocusable"
 export type { UseFocusableResult } from "./hooks/useFocusable"
 export { useFocusWithin } from "./hooks/useFocusWithin"
+export { useFocus } from "./hooks/useFocus"
+export type { UseFocusOptions, UseFocusResult } from "./hooks/useFocus"
 
 // Terminal focus state
 export { useTerminalFocused } from "./hooks/useTerminalFocused"
