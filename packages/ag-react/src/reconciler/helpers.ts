@@ -207,36 +207,3 @@ export function classifyPropChanges(
   return { anyChanged, layoutChanged, contentChanged }
 }
 
-// ============================================================================
-// Legacy API — kept for external callers and tests
-// ============================================================================
-
-/**
- * Check if layout-affecting props changed.
- * @deprecated Use classifyPropChanges() for single-pass classification.
- */
-export function layoutPropsChanged(oldProps: Record<string, unknown>, newProps: Record<string, unknown>): boolean {
-  return classifyPropChanges(oldProps, newProps).layoutChanged
-}
-
-/**
- * Check if content-affecting props changed.
- * Returns "text" for text content changes (affect layout dimensions),
- * "style" for style-only changes (affect paint but not layout),
- * or false if nothing content-related changed.
- * @deprecated Use classifyPropChanges() for single-pass classification.
- */
-export function contentPropsChanged(
-  oldProps: Record<string, unknown>,
-  newProps: Record<string, unknown>,
-): "text" | "style" | false {
-  return classifyPropChanges(oldProps, newProps).contentChanged
-}
-
-/**
- * Shallow compare two prop objects.
- * @deprecated Use classifyPropChanges() for single-pass classification.
- */
-export function propsEqual(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
-  return !classifyPropChanges(a, b).anyChanged
-}
