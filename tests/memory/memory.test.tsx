@@ -6,13 +6,13 @@
  * Validates that silvery does not leak memory under sustained usage:
  * - Re-renders with bounded heap growth (proportional to frame count)
  * - Mount/unmount cycles with bounded growth
- * - useContentRect subscription cleanup (no leaked listeners)
+ * - useBoxRect subscription cleanup (no leaked listeners)
  */
 
 import React, { useState } from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, render, getActiveRenderCount } from "@silvery/test"
-import { Box, Text, useContentRect } from "@silvery/ag-react"
+import { Box, Text, useBoxRect } from "@silvery/ag-react"
 import { SimpleBox, Counter, ResponsiveBox, MountUnmountCycle, ComplexLayout } from "../fixtures/index.tsx"
 
 // ============================================================================
@@ -146,11 +146,11 @@ describe("memory: mount/unmount cycles", () => {
 })
 
 // ============================================================================
-// useContentRect Subscription Cleanup
+// useBoxRect Subscription Cleanup
 // ============================================================================
 
-describe("memory: useContentRect cleanup", () => {
-  test("useContentRect subscriptions are cleaned up on unmount", () => {
+describe("memory: useBoxRect cleanup", () => {
+  test("useBoxRect subscriptions are cleaned up on unmount", () => {
     const r = createRenderer({ cols: 80, rows: 24 })
 
     // Cycle through many mount/unmount of ResponsiveBox
@@ -165,7 +165,7 @@ describe("memory: useContentRect cleanup", () => {
     expect(app.text).toContain("End")
   })
 
-  test("useContentRect with resize does not leak", () => {
+  test("useBoxRect with resize does not leak", () => {
     const r = createRenderer({ cols: 80, rows: 24 })
     const app = r(React.createElement(ResponsiveBox))
 
@@ -183,8 +183,8 @@ describe("memory: useContentRect cleanup", () => {
     expect(app.text).toContain("Size:")
   })
 
-  /** Component that mounts/unmounts useContentRect users dynamically. */
-  function DynamicContentRect({ showInner }: { showInner: boolean }) {
+  /** Component that mounts/unmounts useBoxRect users dynamically. */
+  function DynamicBoxRect({ showInner }: { showInner: boolean }) {
     return React.createElement(
       Box,
       { flexDirection: "column" },
@@ -193,33 +193,33 @@ describe("memory: useContentRect cleanup", () => {
     )
   }
 
-  test("dynamic mount/unmount of useContentRect components", () => {
+  test("dynamic mount/unmount of useBoxRect components", () => {
     const r = createRenderer({ cols: 80, rows: 24 })
 
     const heapBefore = getHeapUsedMB()
 
     for (let i = 0; i < 200; i++) {
-      const app = r(React.createElement(DynamicContentRect, { showInner: true }))
+      const app = r(React.createElement(DynamicBoxRect, { showInner: true }))
       expect(app.text).toContain("Size:")
 
       // Rerender without the inner component
-      app.rerender(React.createElement(DynamicContentRect, { showInner: false }))
+      app.rerender(React.createElement(DynamicBoxRect, { showInner: false }))
       expect(app.text).not.toContain("Size:")
 
       // Rerender with it again
-      app.rerender(React.createElement(DynamicContentRect, { showInner: true }))
+      app.rerender(React.createElement(DynamicBoxRect, { showInner: true }))
       expect(app.text).toContain("Size:")
     }
 
     const heapAfter = getHeapUsedMB()
     const growth = heapAfter - heapBefore
 
-    // 200 cycles of mount/unmount with useContentRect
+    // 200 cycles of mount/unmount with useBoxRect
     // Allow 15MB for GC timing, frames accumulation, etc.
     expect(growth).toBeLessThan(15)
   })
 
-  test("rapid rerender of useContentRect component does not leak", () => {
+  test("rapid rerender of useBoxRect component does not leak", () => {
     const r = createRenderer({ cols: 80, rows: 24 })
 
     const heapBefore = getHeapUsedMB()
@@ -233,7 +233,7 @@ describe("memory: useContentRect cleanup", () => {
     const heapAfter = getHeapUsedMB()
     const growth = heapAfter - heapBefore
 
-    // 500 rerenders of useContentRect component should stay bounded
+    // 500 rerenders of useBoxRect component should stay bounded
     expect(growth).toBeLessThan(15)
     expect(app.text).toContain("Size:")
   })

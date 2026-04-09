@@ -42,7 +42,7 @@ Traverse nodes with `width/height="fit-content"`. Measure intrinsic content size
 
 #### Phase 2: Layout (`layout-phase.ts`)
 
-Run `yoga.calculateLayout()`. Propagate computed dimensions to all nodes. Set `layoutChangedThisFrame = true` on nodes whose `contentRect` changed. Set `subtreeDirty` upward from changed nodes to root.
+Run `yoga.calculateLayout()`. Propagate computed dimensions to all nodes. Set `layoutChangedThisFrame = true` on nodes whose `boxRect` changed. Set `subtreeDirty` upward from changed nodes to root.
 
 #### Phase 2.5: Scroll (`layout-phase.ts`)
 
@@ -58,7 +58,7 @@ Compute screen-relative positions for each node (content position minus ancestor
 
 #### Phase 2.7: Notify (`layout-phase.ts`)
 
-Fire `useContentRect()` and `useScrollRect()` subscriber callbacks. Skipped for STRICT comparison renders to avoid side effects.
+Fire `useboxRect()` and `useScrollRect()` subscriber callbacks. Skipped for STRICT comparison renders to avoid side effects.
 
 #### Phase 3: Content (`render-phase.ts`)
 

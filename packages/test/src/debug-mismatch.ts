@@ -5,7 +5,7 @@
  * these utilities help identify the root cause by providing:
  * - Node attribution (which node owns the mismatched cell)
  * - Dirty flag state (what flags were set before render)
- * - Layout changes (prevLayout vs contentRect)
+ * - Layout changes (prevLayout vs boxRect)
  * - Scroll context (offset changes, hidden items)
  */
 
@@ -38,7 +38,7 @@ export interface NodeDebugInfo {
   /** Layout info */
   layout: {
     prevLayout: Rect | null
-    contentRect: Rect | null
+    boxRect: Rect | null
     scrollRect: Rect | null
     layoutChanged: boolean
   }
@@ -193,9 +193,9 @@ export function getNodeDebugInfo(node: AgNode): NodeDebugInfo {
     },
     layout: {
       prevLayout: node.prevLayout,
-      contentRect: node.contentRect,
+      boxRect: node.boxRect,
       scrollRect: node.scrollRect,
-      layoutChanged: rectChanged(node.prevLayout, node.contentRect),
+      layoutChanged: rectChanged(node.prevLayout, node.boxRect),
     },
     scroll: node.scrollState
       ? {
@@ -286,9 +286,9 @@ function analyzeFastPath(node: AgNode | null, scrollAncestors: AgNode[]): string
   }
 
   // Check prevLayout
-  const layoutChanged = rectChanged(node.prevLayout, node.contentRect)
+  const layoutChanged = rectChanged(node.prevLayout, node.boxRect)
   if (!layoutChanged && node.prevLayout) {
-    analysis.push("✓ Layout unchanged (prevLayout matches contentRect)")
+    analysis.push("✓ Layout unchanged (prevLayout matches boxRect)")
   } else if (!node.prevLayout) {
     analysis.push("⚠ prevLayout is NULL - node may never have been rendered before")
   } else {
@@ -299,8 +299,8 @@ function analyzeFastPath(node: AgNode | null, scrollAncestors: AgNode[]): string
   if (node.parent && node.parent.children.length > 1) {
     let siblingMoved = false
     for (const sibling of node.parent.children) {
-      if (sibling !== node && sibling.contentRect && sibling.prevLayout) {
-        if (sibling.contentRect.x !== sibling.prevLayout.x || sibling.contentRect.y !== sibling.prevLayout.y) {
+      if (sibling !== node && sibling.boxRect && sibling.prevLayout) {
+        if (sibling.boxRect.x !== sibling.prevLayout.x || sibling.boxRect.y !== sibling.prevLayout.y) {
           siblingMoved = true
           break
         }
@@ -404,9 +404,9 @@ export function formatMismatchContext(ctx: MismatchDebugContext, renderPhaseStat
     if (layout.layoutChanged) {
       lines.push("  ⚠ LAYOUT CHANGED:")
       lines.push(`    prevLayout: ${formatRect(layout.prevLayout)}`)
-      lines.push(`    contentRect: ${formatRect(layout.contentRect)}`)
+      lines.push(`    boxRect: ${formatRect(layout.boxRect)}`)
     } else {
-      lines.push(`  contentRect: ${formatRect(layout.contentRect)}`)
+      lines.push(`  boxRect: ${formatRect(layout.boxRect)}`)
     }
     lines.push(`  scrollRect: ${formatRect(layout.scrollRect)}`)
     lines.push("")

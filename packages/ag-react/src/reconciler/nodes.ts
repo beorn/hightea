@@ -38,7 +38,7 @@ export function createNode(
     children: [],
     parent: null,
     layoutNode,
-    contentRect: null,
+    boxRect: null,
     scrollRect: null,
     screenRect: null,
     prevLayout: null,
@@ -209,7 +209,7 @@ export function createVirtualTextNode(props: TextProps): AgNode {
     children: [],
     parent: null,
     layoutNode: null, // No layout node for virtual text
-    contentRect: null,
+    boxRect: null,
     scrollRect: null,
     screenRect: null,
     prevLayout: null,
@@ -600,7 +600,7 @@ export function calculateLayout(root: AgNode, width: number, height: number): vo
  */
 function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
   // Save previous layout for change detection
-  node.prevLayout = node.contentRect
+  node.prevLayout = node.boxRect
 
   // Get computed layout from layout node
   if (!node.layoutNode) {
@@ -612,7 +612,7 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
   const width = node.layoutNode.getComputedWidth()
   const height = node.layoutNode.getComputedHeight()
 
-  node.contentRect = {
+  node.boxRect = {
     x: parentX + left,
     y: parentY + top,
     width,
@@ -623,13 +623,13 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
   node.layoutDirty = false
 
   // If dimensions changed, content needs re-render
-  if (!rectEqual(node.prevLayout, node.contentRect)) {
+  if (!rectEqual(node.prevLayout, node.boxRect)) {
     node.contentDirty = true
   }
 
   // Recursively propagate to children
   for (const child of node.children) {
-    propagateLayout(child, node.contentRect.x, node.contentRect.y)
+    propagateLayout(child, node.boxRect.x, node.boxRect.y)
   }
 }
 
@@ -637,7 +637,7 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
  * Notify all layout subscribers of layout changes.
  */
 function notifyLayoutSubscribers(node: AgNode): void {
-  if (!rectEqual(node.prevLayout, node.contentRect)) {
+  if (!rectEqual(node.prevLayout, node.boxRect)) {
     for (const subscriber of node.layoutSubscribers) {
       subscriber()
     }

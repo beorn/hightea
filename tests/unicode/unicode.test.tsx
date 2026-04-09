@@ -15,7 +15,7 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, normalizeFrame } from "@silvery/test"
-import { Box, Text, useContentRect } from "@silvery/ag-react"
+import { Box, Text, useBoxRect } from "@silvery/ag-react"
 import {
   displayWidth,
   splitGraphemes,

@@ -133,7 +133,7 @@ function TypographyTab() {
 
       <H3>Think in Flexbox</H3>
       <P>
-        Silvery uses CSS flexbox via Flexily. Components know their size via <Code>useContentRect()</Code> —
+        Silvery uses CSS flexbox via Flexily. Components know their size via <Code>useBoxRect()</Code> —
         synchronous, during render. No effects, no flash.
       </P>
 

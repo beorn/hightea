@@ -10,11 +10,11 @@ This has been a [known limitation](https://github.com/vadimdemedes/ink/issues/5)
 
 ## Silvery's Approach
 
-Silvery inverts the order: layout runs first, then components render with actual dimensions available via `useContentRect()`:
+Silvery inverts the order: layout runs first, then components render with actual dimensions available via `useboxRect()`:
 
 ```tsx
 function Card({ item }: { item: Item }) {
-  const { width } = useContentRect()
+  const { width } = useboxRect()
   return <Text>{truncate(item.title, width - 4)}</Text>
 }
 ```

@@ -1,6 +1,6 @@
 # Divider
 
-A horizontal separator line with optional centered title. Uses `useContentRect` for responsive width.
+A horizontal separator line with optional centered title. Uses `useboxRect` for responsive width.
 
 ## Import
 
@@ -14,7 +14,7 @@ import { Divider } from "silvery"
 | ------- | -------- | ------- | ------------------------------------------------- |
 | `char`  | `string` | `"--"`  | Character to repeat                               |
 | `title` | `string` | --      | Title text centered in divider                    |
-| `width` | `number` | auto    | Width (uses available width via `useContentRect`) |
+| `width` | `number` | auto    | Width (uses available width via `useboxRect`) |
 
 ## Usage
 

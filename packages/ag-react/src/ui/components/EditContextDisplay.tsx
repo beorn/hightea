@@ -12,7 +12,7 @@
  * Usage:
  * ```tsx
  * const { value, cursor } = useEditContext({ ... })
- * const { width } = useContentRect()
+ * const { width } = useBoxRect()
  *
  * <EditContextDisplay
  *   value={value}

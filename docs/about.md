@@ -23,11 +23,11 @@ What started as fixing two Ink limitations grew into something much broader — 
 
 ## How It Works
 
-**Layout first, then render.** Silvery inverts the pipeline: [Flexily](https://beorn.codes/flexily) (a Yoga-compatible layout engine) calculates positions and sizes, then React renders components with their actual content box available via `useContentRect()`:
+**Layout first, then render.** Silvery inverts the pipeline: [Flexily](https://beorn.codes/flexily) (a Yoga-compatible layout engine) calculates positions and sizes, then React renders components with their actual content box available via `useboxRect()`:
 
 ```tsx
 function IssueCard({ issue }: { issue: Issue }) {
-  const { width } = useContentRect()
+  const { width } = useboxRect()
   return width >= 32 ? <FullCard issue={issue} /> : <CompactCard issue={issue} />
 }
 ```

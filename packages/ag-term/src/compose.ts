@@ -163,7 +163,7 @@ export function withAg(options?: { root?: AgNode; measurer?: import("./unicode")
         children: [],
         parent: null,
         layoutNode: null,
-        contentRect: null,
+        boxRect: null,
         scrollRect: null,
         screenRect: null,
         prevLayout: null,

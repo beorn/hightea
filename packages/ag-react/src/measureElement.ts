@@ -2,7 +2,7 @@
  * Silvery measureElement
  *
  * Backward-compatible API for measuring element dimensions.
- * This is provided for Ink compatibility - prefer using the useContentRect() hook instead.
+ * This is provided for Ink compatibility - prefer using the useBoxRect() hook instead.
  *
  * @example
  * ```tsx
@@ -24,12 +24,12 @@
  * }
  * ```
  *
- * Note: The useContentRect() hook is preferred as it automatically re-renders
+ * Note: The useBoxRect() hook is preferred as it automatically re-renders
  * when dimensions change:
  *
  * ```tsx
  * function MyComponent() {
- *   const { width } = useContentRect();
+ *   const { width } = useBoxRect();
  *   return <Text>Width: {width}</Text>;
  * }
  * ```
@@ -69,7 +69,7 @@ function resolveNode(nodeOrHandle: any): AgNode | null {
  * @returns The computed width and height of the element
  *
  * Note: Returns { width: 0, height: 0 } if the element hasn't been laid out yet.
- * For automatic re-rendering on dimension changes, use the useContentRect() hook instead.
+ * For automatic re-rendering on dimension changes, use the useBoxRect() hook instead.
  */
 export function measureElement(nodeOrHandle: AgNode | unknown): MeasureElementOutput {
   const node = resolveNode(nodeOrHandle)
@@ -77,12 +77,12 @@ export function measureElement(nodeOrHandle: AgNode | unknown): MeasureElementOu
     return { width: 0, height: 0 }
   }
 
-  // Prefer contentRect (set by silvery pipeline after layout phase)
+  // Prefer boxRect (set by silvery pipeline after layout phase)
   // This is the canonical source of truth after a render
-  if (node.contentRect) {
+  if (node.boxRect) {
     return {
-      width: node.contentRect.width,
-      height: node.contentRect.height,
+      width: node.boxRect.width,
+      height: node.boxRect.height,
     }
   }
 

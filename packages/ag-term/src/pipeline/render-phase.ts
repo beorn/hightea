@@ -42,7 +42,7 @@ const cellLog = createLogger("silvery:content:cell")
  * @returns A TerminalBuffer with the rendered content
  */
 export function renderPhase(root: AgNode, prevBuffer?: TerminalBuffer | null, ctx?: PipelineContext): TerminalBuffer {
-  const layout = root.contentRect
+  const layout = root.boxRect
   if (!layout) {
     throw new Error("renderPhase called before layout phase")
   }
@@ -135,10 +135,10 @@ export function renderPhase(root: AgNode, prevBuffer?: TerminalBuffer | null, ct
 }
 
 /**
- * Sync prevLayout to contentRect for all nodes in the tree.
+ * Sync prevLayout to boxRect for all nodes in the tree.
  *
  * Called at the end of each renderPhase pass. This prevents:
- * 1. The O(N) staleness bug where prevLayout drifts from contentRect
+ * 1. The O(N) staleness bug where prevLayout drifts from boxRect
  *    causing !rectEqual to always be true on subsequent frames.
  * 2. Stale old-bounds references in clearExcessArea on doRender iteration 2+.
  * 3. Asymmetry between incremental and fresh renders — doFreshRender's layout
@@ -150,7 +150,7 @@ function syncPrevLayout(root: AgNode): void {
   const stack: AgNode[] = [root]
   while (stack.length > 0) {
     const node = stack.pop()!
-    node.prevLayout = node.contentRect
+    node.prevLayout = node.boxRect
     const children = node.children
     for (let i = children.length - 1; i >= 0; i--) {
       stack.push(children[i]!)
@@ -247,7 +247,7 @@ function renderNodeToBuffer(
   const nodeTrace = ctx?.nodeTrace ?? _nodeTrace
   const nodeTraceEnabled = ctx?.nodeTraceEnabled ?? _nodeTraceEnabled
   if (instrumentEnabled) stats.nodesVisited++
-  const layout = node.contentRect
+  const layout = node.boxRect
   if (!layout) return
 
   // Skip nodes without Yoga (raw text and virtual text nodes)
@@ -319,9 +319,9 @@ function renderNodeToBuffer(
   //
   // layoutChanged: did this node's layout position/size change?
   // Uses layoutChangedThisFrame (set by propagateLayout in layout phase) instead of
-  // the stale !rectEqual(prevLayout, contentRect). The rect comparison is asymmetric
+  // the stale !rectEqual(prevLayout, boxRect). The rect comparison is asymmetric
   // between incremental and fresh renders: doFreshRender's layout phase syncs
-  // prevLayout=contentRect before content, making layoutChanged=false, while the
+  // prevLayout=boxRect before content, making layoutChanged=false, while the
   // real render may have prevLayout=null (new nodes), making layoutChanged=true.
   // This asymmetry causes contentAreaAffected→clearNodeRegion to fire in incremental
   // but not fresh, wiping sibling content. layoutChangedThisFrame is symmetric.
@@ -528,9 +528,9 @@ function renderNodeToBuffer(
     // color, or theme, children inherit from this node. Otherwise, inherit from parent.
     const effectiveBg = getEffectiveBg(props)
     const childInheritedBg = effectiveBg
-      ? { color: parseColor(effectiveBg), ancestorRect: node.contentRect }
+      ? { color: parseColor(effectiveBg), ancestorRect: node.boxRect }
       : nodeTheme
-        ? { color: parseColor(nodeTheme.bg), ancestorRect: node.contentRect }
+        ? { color: parseColor(nodeTheme.bg), ancestorRect: node.boxRect }
         : nodeState.inheritedBg
     const childInheritedFg = props.color
       ? parseColor(props.color)
@@ -628,7 +628,7 @@ function buildCascadeInputs(
 function traceRenderDecision(
   node: AgNode,
   props: BoxProps & TextProps,
-  layout: NonNullable<AgNode["contentRect"]>,
+  layout: NonNullable<AgNode[boxRectt"]>,
   screenY: number,
   scrollOffset: number,
   hasPrevBuffer: boolean,
@@ -750,7 +750,7 @@ function traceRenderDecision(
 function executeRegionClearing(
   node: AgNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<AgNode["contentRect"]>,
+  layout: NonNullable<AgNode[boxRectt"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
   bufferIsCloned: boolean,
@@ -805,7 +805,7 @@ function executeRegionClearing(
 function renderOwnContent(
   node: AgNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<AgNode["contentRect"]>,
+  layout: NonNullable<AgNode[boxRectt"]>,
   props: BoxProps & TextProps,
   nodeState: NodeRenderState,
   skipBgFill: boolean,
@@ -981,7 +981,7 @@ function renderScrollContainerChildren(
   // Resolve instrumentation from ctx or module globals
   const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
   const stats = ctx?.stats ?? _renderPhaseStats
-  const layout = node.contentRect
+  const layout = node.boxRect
   const ss = node.scrollState
   if (!layout || !ss) return
 
@@ -1119,7 +1119,7 @@ function renderScrollContainerChildren(
     let thisChildAncestorCleared = defaultChildAncestorCleared
     if (tier === "shift") {
       // Check if child was fully visible in the previous frame
-      const childRect = child.contentRect
+      const childRect = child.boxRect
       if (childRect) {
         const childTop = childRect.y - layout.y - border.top - padding.top
         const childBottom = childTop + childRect.height
@@ -1160,7 +1160,7 @@ function renderScrollContainerChildren(
   if (ss.stickyChildren) {
     for (const sticky of ss.stickyChildren) {
       const child = node.children[sticky.index]
-      if (!child?.contentRect) continue
+      if (!child?.boxRect) continue
 
       // Calculate the scroll offset that would place the child at its sticky position
       // stickyOffset = naturalTop - renderOffset
@@ -1225,7 +1225,7 @@ function renderNormalChildren(
   // Resolve instrumentation from ctx or module globals
   const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
   const stats = ctx?.stats ?? _renderPhaseStats
-  const layout = node.contentRect
+  const layout = node.boxRect
   if (!layout) return
 
   // For overflow='hidden' containers, clip children to content area.
@@ -1362,7 +1362,7 @@ function renderNormalChildren(
   if (node.stickyChildren) {
     for (const sticky of node.stickyChildren) {
       const child = node.children[sticky.index]
-      if (!child?.contentRect) continue
+      if (!child?.boxRect) continue
 
       // Calculate the scroll offset that would place the child at its sticky position.
       // stickyScrollOffset = naturalTop - renderOffset
@@ -1488,8 +1488,8 @@ function clearVirtualTextFlags(node: AgNode): void {
  */
 function hasChildPositionChanged(node: AgNode): boolean {
   for (const child of node.children) {
-    if (child.contentRect && child.prevLayout) {
-      if (child.contentRect.x !== child.prevLayout.x || child.contentRect.y !== child.prevLayout.y) {
+    if (child.boxRect && child.prevLayout) {
+      if (child.boxRect.x !== child.prevLayout.x || child.boxRect.y !== child.prevLayout.y) {
         return true
       }
     }
@@ -1511,7 +1511,7 @@ function hasChildPositionChanged(node: AgNode): boolean {
  * descendant implies subtreeDirty on all its ancestors.
  */
 function hasDescendantOverflowChanged(node: AgNode): boolean {
-  const rect = node.contentRect!
+  const rect = node.boxRect!
   return _checkDescendantOverflow(node.children, rect.x, rect.y, rect.x + rect.width, rect.y + rect.height)
 }
 
@@ -1550,7 +1550,7 @@ function _checkDescendantOverflow(
  * then intersecting with parent clip bounds.
  */
 function computeChildClipBounds(
-  layout: NonNullable<AgNode["contentRect"]>,
+  layout: NonNullable<AgNode[boxRectt"]>,
   props: BoxProps,
   parentClip: ClipBounds | undefined,
   scrollOffset = 0,
@@ -1618,7 +1618,7 @@ function findInheritedBg(node: AgNode): InheritedBgResult {
     if (props.backgroundColor) {
       return {
         color: parseColor(props.backgroundColor),
-        ancestorRect: current.contentRect,
+        ancestorRect: current.boxRect,
       }
     }
     // Box with theme prop: resolve $bg directly from the theme object
@@ -1627,7 +1627,7 @@ function findInheritedBg(node: AgNode): InheritedBgResult {
       const theme = props.theme as Theme
       return {
         color: parseColor(theme.bg),
-        ancestorRect: current.contentRect,
+        ancestorRect: current.boxRect,
       }
     }
     current = current.parent
@@ -1681,7 +1681,7 @@ function findInheritedFg(node: AgNode): Color {
 function clearDescendantOverflowRegions(
   node: AgNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<AgNode["contentRect"]>,
+  layout: NonNullable<AgNode[boxRectt"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
   threadedInheritedBg?: NodeRenderState["inheritedBg"],
@@ -1798,13 +1798,13 @@ function _clearDescendantOverflow(
  * Clear a node's region with inherited bg when it has no backgroundColor.
  * Also clears excess area when the node shrank (previous layout was larger).
  *
- * Clipping: clips to parent's contentRect (prevents overflow) and to the
+ * Clipping: clips to parent's boxRect (prevents overflow) and to the
  * colored ancestor's bounds (prevents bg color bleeding into siblings).
  */
 function clearNodeRegion(
   node: AgNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<AgNode["contentRect"]>,
+  layout: NonNullable<AgNode[boxRectt"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
   layoutChanged: boolean,
@@ -1814,9 +1814,9 @@ function clearNodeRegion(
   const clearBg = inherited.color
   const screenY = layout.y - scrollOffset
 
-  // Clip to parent's contentRect to prevent oversized children from clearing
+  // Clip to parent's boxRect to prevent oversized children from clearing
   // beyond their parent's bounds and bleeding inherited bg into sibling regions.
-  const parentRect = node.parent?.contentRect
+  const parentRect = node.parent?.boxRect
   const parentBottom = parentRect ? parentRect.y - scrollOffset + parentRect.height : undefined
 
   const clearY = clipBounds ? Math.max(screenY, clipBounds.top) : screenY
@@ -1890,14 +1890,14 @@ function clearNodeRegion(
  * Clips to the COLORED ANCESTOR's content area (not immediate parent's full rect)
  * to prevent inherited color from bleeding into sibling areas with different bg.
  *
- * IMPORTANT: Uses content area (inside border/padding), not full contentRect.
+ * IMPORTANT: Uses content area (inside border/padding), not full boxRect.
  * Without this, excess clearing of a child that previously filled the parent's
  * content area will extend into the parent's border row, overwriting border chars.
  */
 function clearExcessArea(
   node: AgNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<AgNode["contentRect"]>,
+  layout: NonNullable<AgNode[boxRectt"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
   layoutChanged: boolean,
@@ -1959,7 +1959,7 @@ function clearExcessArea(
   // Start with the colored ancestor's rect (prevents bg color bleed),
   // then further restrict to the immediate parent's content area (prevents
   // overwriting parent's border characters).
-  const clipRect = inherited.ancestorRect ?? node.parent?.contentRect
+  const clipRect = inherited.ancestorRect ?? node.parent?.boxRect
   if (!clipRect) return
 
   const clipRectScreenY = clipRect.y - scrollOffset
@@ -1973,13 +1973,13 @@ function clearExcessArea(
   // assuming "its bg fill covers its border area" — but bg fill only covers
   // the inside, while renderBorder draws characters on the border row.)
   const parent = node.parent
-  if (parent?.contentRect) {
+  if (parent?.boxRect) {
     const parentProps = parent.props as BoxProps
     const border = getBorderSize(parentProps)
     const padding = getPadding(parentProps)
-    const parentRight = parent.contentRect.x + parent.contentRect.width - border.right - padding.right
+    const parentRight = parent.boxRect.x + parent.boxRect.width - border.right - padding.right
     const parentBottom =
-      parent.contentRect.y - scrollOffset + parent.contentRect.height - border.bottom - padding.bottom
+      parent.boxRect.y - scrollOffset + parent.boxRect.height - border.bottom - padding.bottom
     clipRectRight = Math.min(clipRectRight, parentRight)
     clipRectBottom = Math.min(clipRectBottom, parentBottom)
   }

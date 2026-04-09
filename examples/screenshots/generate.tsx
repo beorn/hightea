@@ -14,7 +14,7 @@
  *   docs/images/dashboard.png      - Multi-pane dashboard with borders and colors
  *   docs/images/task-list.png      - Scrollable task list with selection
  *   docs/images/kanban.png         - 3-column kanban board with cards
- *   docs/images/layout-feedback.png - Layout feedback with useContentRect() values
+ *   docs/images/layout-feedback.png - Layout feedback with useBoxRect() values
  */
 
 import type { JSX } from "react"
@@ -22,7 +22,7 @@ import { mkdir } from "node:fs/promises"
 import { dirname, resolve } from "node:path"
 import React, { useState } from "react"
 import { render, createRenderer, ensureEngine, bufferToHTML } from "@silvery/test"
-import { Box, Text, Divider, useContentRect, useApp } from "../../src/index.js"
+import { Box, Text, Divider, useBoxRect, useApp } from "../../src/index.js"
 import { createScreenshotter } from "@silvery/ag-term/screenshot"
 
 // ============================================================================
@@ -423,7 +423,7 @@ function KanbanScreenshot() {
 // --- 4. Layout Feedback -----------------------------------------------------
 
 function LayoutPane({ title, color, grow = 1 }: { title: string; color: string; grow?: number }) {
-  const rect = useContentRect()
+  const rect = useBoxRect()
   return (
     <Box flexGrow={grow} borderStyle="round" borderColor={color} padding={1} flexDirection="column">
       <Text bold color={color}>
@@ -455,9 +455,9 @@ function LayoutFeedbackScreenshot() {
 
       <Box marginTop={1} borderStyle="single" borderColor="$border" padding={1}>
         <Box flexDirection="column">
-          <Text bold>useContentRect() — components know their size during render</Text>
+          <Text bold>useBoxRect() — components know their size during render</Text>
           <Text dim>No ResizeObserver, no second render, no layout jank.</Text>
-          <Text dim>Each pane above displays its own dimensions via useContentRect().</Text>
+          <Text dim>Each pane above displays its own dimensions via useBoxRect().</Text>
         </Box>
       </Box>
 

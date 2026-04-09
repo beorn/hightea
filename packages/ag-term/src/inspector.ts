@@ -104,11 +104,11 @@ export function inspectTree(rootNode: AgNode, options?: { depth?: number; showLa
     const testID = (node.props as Record<string, unknown>)?.testID
     const idStr = testID ? ` #${testID}` : ""
 
-    // Layout rect from computed layout node or contentRect
+    // Layout rect from computed layout node or boxRect
     let rectStr = ""
     if (showLayout) {
-      if (node.contentRect) {
-        const r = node.contentRect
+      if (node.boxRect) {
+        const r = node.boxRect
         rectStr = ` [${r.x},${r.y} ${r.width}x${r.height}]`
       } else if (node.layoutNode) {
         const ln = node.layoutNode

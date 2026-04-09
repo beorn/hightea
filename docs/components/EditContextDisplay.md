@@ -25,7 +25,7 @@ import { EditContextDisplay } from "silvery"
 
 ```tsx
 const { value, cursor } = useEditContext({ ... })
-const { width } = useContentRect()
+const { width } = useboxRect()
 
 <EditContextDisplay
   value={value}

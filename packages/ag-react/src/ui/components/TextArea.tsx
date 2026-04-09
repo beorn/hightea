@@ -2,7 +2,7 @@
  * TextArea Component
  *
  * Multi-line text input with word wrapping, scrolling, and cursor movement.
- * Uses useContentRect for width-aware word wrapping and VirtualList-style
+ * Uses useBoxRect for width-aware word wrapping and VirtualList-style
  * scroll tracking to keep the cursor visible.
  *
  * Built on useTextArea hook — use the hook directly for custom rendering.
@@ -44,7 +44,7 @@
  * - Typing with selection: Replaces selected text
  */
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react"
-import { useContentRect } from "@silvery/ag-react/hooks/useLayout"
+import { useBoxRect } from "@silvery/ag-react/hooks/useLayout"
 import { useFocusable } from "@silvery/ag-react/hooks/useFocusable"
 import { useCursor } from "@silvery/ag-react/hooks/useCursor"
 import { Box } from "@silvery/ag-react/components/Box"
@@ -138,10 +138,10 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   const { focused } = useFocusable()
   const isActive = isActiveProp ?? (testID ? focused : true)
 
-  const { width: parentWidth } = useContentRect()
+  const { width: parentWidth } = useBoxRect()
 
   // When borderStyle is set, TextArea renders a Box with border + paddingX.
-  // useContentRect reads from the parent's NodeContext, so we must subtract
+  // useBoxRect reads from the parent's NodeContext, so we must subtract
   // border (1+1) and padding (1+1) to get the actual content area width.
   const contentWidth = borderStyleProp ? Math.max(1, parentWidth - 4) : parentWidth
 

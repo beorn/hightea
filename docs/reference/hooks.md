@@ -1,14 +1,14 @@
 # Hooks
 
-## useContentRect
+## useboxRect
 
 Returns the content area dimensions (excluding padding and borders) of the nearest Box ancestor.
 
 ```tsx
-import { useContentRect } from "@silvery/ag-term"
+import { useboxRect } from "@silvery/ag-term"
 
 function ResponsiveCard() {
-  const { width, height, x, y } = useContentRect()
+  const { width, height, x, y } = useboxRect()
   return <Text>{`Content area: ${width}x${height} at (${x},${y})`}</Text>
 }
 ```

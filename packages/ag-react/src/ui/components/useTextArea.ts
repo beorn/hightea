@@ -10,7 +10,7 @@
  * Usage:
  * ```tsx
  * function CustomEditor() {
- *   const { width } = useContentRect()
+ *   const { width } = useBoxRect()
  *   const ta = useTextArea({ height: 10, wrapWidth: width })
  *
  *   // ta.value, ta.cursor, ta.wrappedLines, ta.selection, etc.
@@ -79,7 +79,7 @@ export interface UseTextAreaOptions {
   isActive?: boolean
   /** Visible height in rows (for scroll clamping and PageUp/PageDown) */
   height: number
-  /** Wrap width in columns (typically from useContentRect) */
+  /** Wrap width in columns (typically from useBoxRect) */
   wrapWidth: number
   /** Number of context lines to keep visible above/below cursor when scrolling (default: 1) */
   scrollMargin?: number

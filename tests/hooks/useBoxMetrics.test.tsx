@@ -7,7 +7,7 @@
  * { width, height, left, top, hasMeasured } for the nearest silvery Box,
  * either via NodeContext (silvery idiom) or via a ref (Ink idiom).
  *
- * Known limitation (shared with useContentRect): the test renderer's initial
+ * Known limitation (shared with useBoxRect): the test renderer's initial
  * snapshot resolves metrics to zeros because Box provides NodeContext=null on
  * first render and the layout feedback loop may not complete enough iterations
  * to propagate stabilized values. Interactive (run/createApp) mode DOES

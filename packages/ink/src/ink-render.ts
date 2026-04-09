@@ -722,7 +722,7 @@ function needsLayoutRecalculation(node: any): boolean {
 
 /**
  * Ink-compatible measureElement that handles BoxHandle refs and computes
- * layout on demand when contentRect is stale or hasn't been set yet.
+ * layout on demand when boxRect is stale or hasn't been set yet.
  *
  * This bridges the timing gap between Ink (Yoga runs during commit, so
  * effects see layout) and silvery (layout runs in a separate pipeline pass).
@@ -732,12 +732,12 @@ export function measureElement(nodeOrHandle: any): import("@silvery/ag-react/mea
   const node = typeof nodeOrHandle?.getNode === "function" ? nodeOrHandle.getNode() : nodeOrHandle
   if (!node) return { width: 0, height: 0 }
 
-  // If contentRect exists AND layout is not stale, use cached values
-  if (node.contentRect && !needsLayoutRecalculation(node)) {
+  // If boxRect exists AND layout is not stale, use cached values
+  if (node.boxRect && !needsLayoutRecalculation(node)) {
     return baseMeasureElement(node)
   }
 
-  // contentRect is null or layout is dirty — walk up to root and
+  // boxRect is null or layout is dirty — walk up to root and
   // calculate layout on demand so effects can read correct dimensions.
   let root = node
   while (root.parent) {

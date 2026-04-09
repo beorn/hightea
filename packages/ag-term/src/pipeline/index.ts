@@ -15,7 +15,7 @@
  * Phase 2: LAYOUT
  *   Run yoga.calculateLayout()
  *   Propagate computed dimensions to all nodes
- *   Notify useContentRect() subscribers
+ *   Notify useBoxRect() subscribers
  *
  * Phase 3: CONTENT RENDER
  *   Render each node to the TerminalBuffer

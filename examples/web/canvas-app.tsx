@@ -5,11 +5,11 @@
  */
 
 import React, { useState } from "react"
-import { renderToCanvas, Box, Text, useContentRect } from "../../packages/ag-react/src/ui/canvas/index.js"
+import { renderToCanvas, Box, Text, useBoxRect } from "../../packages/ag-react/src/ui/canvas/index.js"
 
 // Component that shows its dimensions
 function SizeDisplay() {
-  const { width, height } = useContentRect()
+  const { width, height } = useBoxRect()
   return (
     <Text color="green">
       Size: {Math.round(width)}px × {Math.round(height)}px

@@ -2,7 +2,7 @@
  * Silvery - Next-gen Terminal UI Renderer with Layout Feedback
  *
  * React-based terminal UI framework. Ink-compatible API with components
- * that know their size via useContentRect/useScrollRect hooks.
+ * that know their size via useBoxRect/useScrollRect hooks.
  *
  * ## Import Syntax
  *
@@ -10,7 +10,7 @@
  *
  * ```tsx
  * // Components and hooks
- * import { Box, Text, useContentRect, useInput, useApp, render, createTerm, term } from '@silvery/ag-react'
+ * import { Box, Text, useBoxRect, useInput, useApp, render, createTerm, term } from '@silvery/ag-react'
  *
  * // Testing utilities
  * import { createRenderer, createLocator } from '@silvery/test'
@@ -280,18 +280,18 @@ export type { SixelImageData } from "@silvery/ag-react/ui/image"
  *
  * @example
  * ```tsx
- * import { useContentRect, Box, Text } from '@silvery/ag-react';
+ * import { useBoxRect, Box, Text } from '@silvery/ag-react';
  *
  * function ResponsiveCard() {
  *   // Components know their size - no width prop threading needed
- *   const { width, height } = useContentRect();
+ *   const { width, height } = useBoxRect();
  *   return <Text>{`Size: ${width}x${height}`}</Text>;
  * }
  * ```
  */
 export {
-  useContentRect,
-  useContentRectCallback,
+  useBoxRect,
+  useBoxRectCallback,
   useScrollRect,
   useScrollRectCallback,
   useScreenRect,

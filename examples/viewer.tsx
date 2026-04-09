@@ -32,7 +32,7 @@ import {
   builtinThemes,
   useInput,
   useApp,
-  useContentRect,
+  useBoxRect,
   createTerm,
   PickerDialog,
   type Key,
@@ -184,7 +184,7 @@ const REACT_KEYWORDS = new Set([
   "useInput",
   "useApp",
   "useTerm",
-  "useContentRect",
+  "useBoxRect",
   "useVirtualizer",
 ])
 
@@ -306,7 +306,7 @@ function padLines(contentLines: string[], totalHeight: number): string[] {
 }
 
 function Preview({ example, theme }: { example: Example; theme: Theme }) {
-  const { width, height } = useContentRect()
+  const { width, height } = useBoxRect()
   const [lines, setLines] = useState<string[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 

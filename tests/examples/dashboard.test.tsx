@@ -30,7 +30,7 @@ describe("dashboard snapshot", () => {
     using term = createTermless({ cols: 137, rows: 43 })
     handle = await run(<Dashboard static />, term)
 
-    // Wait for layout to stabilize (useContentRect needs one cycle)
+    // Wait for layout to stabilize (useBoxRect needs one cycle)
     await new Promise((r) => setTimeout(r, 400))
 
     const lines = term.screen!.getLines()

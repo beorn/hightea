@@ -11,7 +11,7 @@
  * ```
  */
 import React, { useEffect, useState } from "react"
-import { useContentRect } from "@silvery/ag-react/hooks/useLayout"
+import { useBoxRect } from "@silvery/ag-react/hooks/useLayout"
 import { Box } from "@silvery/ag-react/components/Box"
 import { Text } from "@silvery/ag-react/components/Text"
 
@@ -22,7 +22,7 @@ import { Text } from "@silvery/ag-react/components/Text"
 export interface ProgressBarProps {
   /** Progress value 0-1 (omit for indeterminate) */
   value?: number
-  /** Width in columns (default: uses available width via useContentRect) */
+  /** Width in columns (default: uses available width via useBoxRect) */
   width?: number
   /** Fill character (default: "█") */
   fillChar?: string
@@ -60,7 +60,7 @@ export function ProgressBar({
   color,
 }: ProgressBarProps): React.ReactElement {
   // Only use layout feedback when width isn't explicitly provided
-  const layoutRect = useContentRect()
+  const layoutRect = useBoxRect()
   const contentWidth = widthProp ? 0 : layoutRect.width
   const [bouncePos, setBouncePos] = useState(0)
   const [bounceDir, setBounceDir] = useState(1)

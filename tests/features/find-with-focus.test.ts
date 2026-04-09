@@ -232,7 +232,7 @@ function createMockApp(onPress?: (key: string) => void) {
       children: [],
       parent: null,
       layoutNode: null,
-      contentRect: null,
+      boxRect: null,
       scrollRect: null,
       screenRect: null,
       prevLayout: null,

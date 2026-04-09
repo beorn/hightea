@@ -1,6 +1,6 @@
 # ProgressBar
 
-A terminal progress bar with determinate and indeterminate modes. Uses `useContentRect` for responsive width.
+A terminal progress bar with determinate and indeterminate modes. Uses `useboxRect` for responsive width.
 
 ## Import
 
@@ -13,7 +13,7 @@ import { ProgressBar } from "silvery"
 | Prop             | Type      | Default | Description                                                  |
 | ---------------- | --------- | ------- | ------------------------------------------------------------ |
 | `value`          | `number`  | --      | Progress value 0-1 (omit for indeterminate)                  |
-| `width`          | `number`  | auto    | Width in columns (uses available width via `useContentRect`) |
+| `width`          | `number`  | auto    | Width in columns (uses available width via `useboxRect`) |
 | `fillChar`       | `string`  | `"█"`   | Fill character                                               |
 | `emptyChar`      | `string`  | `"░"`   | Empty character                                              |
 | `showPercentage` | `boolean` | auto    | Show percentage label (defaults to true for determinate)     |

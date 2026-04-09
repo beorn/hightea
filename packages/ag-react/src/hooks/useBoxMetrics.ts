@@ -73,24 +73,24 @@ function resolveNode(refValue: unknown): AgNode | null {
   if (typeof obj.getNode === "function") {
     return (obj.getNode as () => AgNode | null)()
   }
-  // Direct AgNode (has contentRect property)
-  if (obj.contentRect !== undefined) {
+  // Direct AgNode (has boxRect property)
+  if (obj.boxRect !== undefined) {
     return refValue as AgNode
   }
   return null
 }
 
 /**
- * Compute parent-relative BoxMetrics from a node's contentRect.
- * Position is relative to the parent's contentRect origin, matching
+ * Compute parent-relative BoxMetrics from a node's boxRect.
+ * Position is relative to the parent's boxRect origin, matching
  * Ink's getComputedLayout semantics.
  */
 function computeMetrics(node: AgNode): BoxMetrics {
-  const rect = node.contentRect
+  const rect = node.boxRect
   if (!rect) return EMPTY_METRICS
 
   // Parent-relative position (matches Ink semantics)
-  const parentRect = node.parent?.contentRect
+  const parentRect = node.parent?.boxRect
   return {
     width: rect.width,
     height: rect.height,

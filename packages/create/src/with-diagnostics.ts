@@ -693,7 +693,7 @@ function walkLayout(
   } | null,
   violations: string[],
 ): void {
-  const rect = node.contentRect
+  const rect = node.boxRect
   if (!rect) return // No layout computed yet — skip
 
   const id = (node.props as BoxProps).id ?? node.type

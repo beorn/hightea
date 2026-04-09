@@ -3,7 +3,7 @@
  *
  * Repeats its children's text content to fill the parent's allocated width.
  * Single-pass rendering: generates a long repeated string that gets
- * hard-clipped by the Text element's wrap="clip" mode. No useContentRect,
+ * hard-clipped by the Text element's wrap="clip" mode. No useBoxRect,
  * no layout re-render cycle.
  *
  * Parent Box MUST use `flexBasis={0}` to prevent the long content from
@@ -81,7 +81,7 @@ function renderWithText(children: ReactNode, text: string): JSX.Element {
  * Repeats children's text content to fill parent width.
  *
  * Single-pass rendering: generates a long repeated string, truncated by the
- * Text element. No layout feedback needed — no useContentRect, no re-render.
+ * Text element. No layout feedback needed — no useBoxRect, no re-render.
  *
  * Parent Box **must** use `flexBasis={0}` so the long text doesn't inflate
  * the flex minimum size; it gets truncated to the allocated width.

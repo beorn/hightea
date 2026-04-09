@@ -8,7 +8,7 @@
  * Box renders to an 'silvery-box' host element that the reconciler converts to an
  * SilveryNode with an associated Yoga layout node.
  *
- * Box provides NodeContext to its children, enabling useContentRect/useScrollRect hooks.
+ * Box provides NodeContext to its children, enabling useBoxRect/useScrollRect hooks.
  * It also supports forwardRef for imperative access and onLayout for layout callbacks.
  */
 
@@ -41,7 +41,7 @@ export interface BoxHandle {
   /** Get the underlying SilveryNode */
   getNode(): AgNode | null
   /** Get the current content-relative layout rect */
-  getContentRect(): Rect | null
+  getBoxRect(): Rect | null
   /** Get the current screen-relative layout rect */
   getScrollRect(): Rect | null
 }
@@ -53,7 +53,7 @@ export interface BoxHandle {
 /**
  * Flexbox container component for terminal UIs.
  *
- * Provides NodeContext to children, enabling useContentRect/useScrollRect hooks.
+ * Provides NodeContext to children, enabling useBoxRect/useScrollRect hooks.
  * Supports forwardRef for imperative access and onLayout for layout callbacks.
  *
  * @example
@@ -108,7 +108,7 @@ export const Box = forwardRef(function Box(props: BoxProps, ref: ForwardedRef<Bo
 
     // Create subscriber callback
     const handleLayoutChange = () => {
-      const layout = node.contentRect
+      const layout = node.boxRect
       if (!layout) return
 
       // Only call onLayout if layout actually changed
@@ -129,7 +129,7 @@ export const Box = forwardRef(function Box(props: BoxProps, ref: ForwardedRef<Bo
     node.layoutSubscribers.add(handleLayoutChange)
 
     // Call immediately if we already have layout
-    if (node.contentRect) {
+    if (node.boxRect) {
       handleLayoutChange()
     }
 
@@ -143,7 +143,7 @@ export const Box = forwardRef(function Box(props: BoxProps, ref: ForwardedRef<Bo
     ref,
     () => ({
       getNode: () => nodeRef.current,
-      getContentRect: () => nodeRef.current?.contentRect ?? null,
+      getBoxRect: () => nodeRef.current?.boxRect ?? null,
       getScrollRect: () => nodeRef.current?.scrollRect ?? null,
     }),
     [],

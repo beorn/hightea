@@ -3,7 +3,7 @@
  *
  * Provides contexts for:
  * - TermContext: Access to Term instance (for styling/detection)
- * - NodeContext: Access to the current SilveryNode (for useContentRect)
+ * - NodeContext: Access to the current SilveryNode (for useBoxRect)
  * - RuntimeContext: Unified input/app controls (replaces Events/Input/Stdin/App contexts)
  * - StdoutContext: Access to stdout
  * - StderrContext: Access to stderr
@@ -31,7 +31,7 @@ export const TermContext = createContext<Term | null>(null)
 
 /**
  * Context that provides access to the current SilveryNode.
- * Used by useContentRect() to subscribe to layout changes.
+ * Used by useBoxRect() to subscribe to layout changes.
  *
  * Each Box component wraps its children in a NodeContext.Provider
  * with its corresponding SilveryNode.

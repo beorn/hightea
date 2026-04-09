@@ -4,7 +4,7 @@ import { Box, Text, Strong, Muted, ThemeProvider, getThemeByName, type Theme } f
 export interface ExampleMeta {
   name: string
   description: string
-  /** API features showcased, e.g. ["ListView", "useContentRect()"] */
+  /** API features showcased, e.g. ["ListView", "useBoxRect()"] */
   features?: string[]
   /** Curated demo — shown in CLI viewer (`bun examples`) and web showcase */
   demo?: boolean

@@ -7,7 +7,7 @@
  * Uses silvery's tree-based FocusManager rather than Ink's flat list.
  *
  * Known limitation: useSyncExternalStore updates from FocusManager don't
- * always propagate to app.text in the test renderer (same as useContentRect).
+ * always propagate to app.text in the test renderer (same as useBoxRect).
  * Tests use app.focusManager (direct FM access) for focus state verification
  * and app.text for initial/structural checks.
  */

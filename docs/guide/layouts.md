@@ -303,13 +303,13 @@ const contentHeight = terminalRows - topBarHeight - bottomBarHeight
 </Box>
 ```
 
-## Responsive Layout with useContentRect()
+## Responsive Layout with useboxRect()
 
 The killer feature for complex layouts: components can query their own dimensions during render. This is like [CSS container queries](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries) — components adapt to their container, not the viewport.
 
 ```tsx
 function ResponsiveBoard({ items }) {
-  const { width } = useContentRect()
+  const { width } = useboxRect()
   // Adapt column count to available space
   const columns = width > 120 ? 4 : width > 80 ? 3 : width > 40 ? 2 : 1
 
@@ -333,7 +333,7 @@ No prop drilling, no `measureElement` + `useEffect` dance. The layout engine com
 
 ```tsx
 function Card({ item }) {
-  const { width } = useContentRect()
+  const { width } = useboxRect()
   return (
     <Box borderStyle="round" flexDirection="column">
       <Text bold>{width > 30 ? item.title : truncate(item.title, width - 4)}</Text>
@@ -344,7 +344,7 @@ function Card({ item }) {
 ```
 
 ::: tip First render returns zeros
-`useContentRect()` returns `{ width: 0, height: 0 }` on the first render (before layout runs). Guard with `if (width === 0) return null` if your component can't render without dimensions. The framework handles the re-render automatically.
+`useboxRect()` returns `{ width: 0, height: 0 }` on the first render (before layout runs). Guard with `if (width === 0) return null` if your component can't render without dimensions. The framework handles the re-render automatically.
 :::
 
 ## Summary
@@ -354,7 +354,7 @@ function Card({ item }) {
 | Fixed-height element | `height={n}` + `flexShrink={0}`                       |
 | Fill remaining space | `flexGrow={1}`                                        |
 | Scrollable list      | `overflow="scroll"` + `scrollTo={index}`              |
-| Responsive columns   | `useContentRect()` + conditional rendering            |
-| Adaptive content     | `useContentRect()` + truncation / hide at breakpoints |
+| Responsive columns   | `useboxRect()` + conditional rendering            |
+| Adaptive content     | `useboxRect()` + truncation / hide at breakpoints |
 | Filled background    | `backgroundColor="color"` on Box                      |
 | Centered content     | `justifyContent="center"` + `alignItems="center"`     |

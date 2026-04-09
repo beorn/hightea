@@ -11,7 +11,7 @@
  * ```
  */
 import React from "react"
-import { useContentRect } from "@silvery/ag-react/hooks/useLayout"
+import { useBoxRect } from "@silvery/ag-react/hooks/useLayout"
 import { Box } from "@silvery/ag-react/components/Box"
 import { Text } from "@silvery/ag-react/components/Text"
 
@@ -24,7 +24,7 @@ export interface DividerProps {
   char?: string
   /** Title text centered in divider */
   title?: string
-  /** Width (default: 100% via useContentRect) */
+  /** Width (default: 100% via useBoxRect) */
   width?: number
 }
 
@@ -40,7 +40,7 @@ const DEFAULT_WIDTH = 40
 // =============================================================================
 
 export function Divider({ char = DEFAULT_CHAR, title, width: widthProp }: DividerProps): React.ReactElement {
-  const { width: contentWidth } = useContentRect()
+  const { width: contentWidth } = useBoxRect()
   const totalWidth = widthProp ?? (contentWidth > 0 ? contentWidth : DEFAULT_WIDTH)
 
   if (!title) {

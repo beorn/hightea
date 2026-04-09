@@ -21,7 +21,7 @@ const log = createLogger("silvery:layout")
  */
 export function layoutPhase(root: AgNode, width: number, height: number): void {
   // Check if dimensions changed from previous layout
-  const prevLayout = root.contentRect
+  const prevLayout = root.boxRect
   const dimensionsChanged = prevLayout && (prevLayout.width !== width || prevLayout.height !== height)
 
   // Only recalculate if something changed (dirty nodes or dimensions).
@@ -86,7 +86,7 @@ function hasLayoutDirtyNodes(node: AgNode, path = "root"): boolean {
 
 /**
  * Propagate computed layout from Yoga nodes to SilveryNodes.
- * Sets contentRect (content-relative position) on each node.
+ * Sets boxRect (content-relative position) on each node.
  *
  * @param node The node to process
  * @param parentX Absolute X position of parent
@@ -94,7 +94,7 @@ function hasLayoutDirtyNodes(node: AgNode, path = "root"): boolean {
  */
 function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
   // Save previous layout for change detection
-  node.prevLayout = node.contentRect
+  node.prevLayout = node.boxRect
 
   // Virtual/raw text nodes (no layoutNode) inherit parent's position
   if (!node.layoutNode) {
@@ -104,7 +104,7 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
       width: 0,
       height: 0,
     }
-    node.contentRect = rect
+    node.boxRect = rect
     node.layoutDirty = false
     // Still recurse to children (virtual text nodes can have raw text children)
     for (const child of node.children) {
@@ -120,26 +120,26 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
     width: node.layoutNode.getComputedWidth(),
     height: node.layoutNode.getComputedHeight(),
   }
-  node.contentRect = rect
+  node.boxRect = rect
 
   // Clear layout dirty flag
   node.layoutDirty = false
 
   // Set authoritative "layout changed this frame" flag.
-  // Unlike !rectEqual(prevLayout, contentRect) which becomes stale when
+  // Unlike !rectEqual(prevLayout, boxRect) which becomes stale when
   // layout phase skips on subsequent frames, this flag is explicitly set
   // each time propagateLayout runs and cleared by the render phase.
-  node.layoutChangedThisFrame = !!(node.prevLayout && !rectEqual(node.prevLayout, node.contentRect))
+  node.layoutChangedThisFrame = !!(node.prevLayout && !rectEqual(node.prevLayout, node.boxRect))
 
-  // STRICT invariant: if layoutChangedThisFrame is true, prevLayout must differ from contentRect.
+  // STRICT invariant: if layoutChangedThisFrame is true, prevLayout must differ from boxRect.
   // This validates that the flag is consistent with the actual rect comparison. A violation
   // would mean the flag is set spuriously, causing unnecessary re-renders and cascade propagation.
   if (process?.env?.SILVERY_STRICT && node.layoutChangedThisFrame) {
-    if (rectEqual(node.prevLayout, node.contentRect)) {
+    if (rectEqual(node.prevLayout, node.boxRect)) {
       const props = node.props as BoxProps
       throw new Error(
-        `[SILVERY_STRICT] layoutChangedThisFrame=true but prevLayout equals contentRect ` +
-          `(node: ${props.id ?? node.type}, rect: ${JSON.stringify(node.contentRect)})`,
+        `[SILVERY_STRICT] layoutChangedThisFrame=true but prevLayout equals boxRect ` +
+          `(node: ${props.id ?? node.type}, rect: ${JSON.stringify(node.boxRect)})`,
       )
     }
   }
@@ -168,15 +168,15 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
  * Called from executeRender AFTER scrollrectPhase completes,
  * so useScrollRectCallback can read correct screen positions.
  *
- * Notifies when EITHER contentRect, scrollRect, or screenRect changed.
+ * Notifies when EITHER boxRect, scrollRect, or screenRect changed.
  * scrollRect can change from scroll offset changes even when
- * contentRect stays the same — subscribers (like useScrollRectCallback)
+ * boxRect stays the same — subscribers (like useScrollRectCallback)
  * need notification in both cases. screenRect can change from sticky
  * offset changes even when scrollRect stays the same.
  */
 export function notifyLayoutSubscribers(node: AgNode): void {
   // Notify if content rect, screen rect, or render rect changed
-  const contentChanged = !rectEqual(node.prevLayout, node.contentRect)
+  const contentChanged = !rectEqual(node.prevLayout, node.boxRect)
   const screenChanged = !rectEqual(node.prevScrollRect, node.scrollRect)
   const renderChanged = !rectEqual(node.prevScreenRect, node.screenRect)
   if (contentChanged || screenChanged || renderChanged) {
@@ -231,7 +231,7 @@ export function scrollPhase(root: AgNode, options: ScrollPhaseOptions = {}): voi
  * Calculate scroll state for a single scrollable container.
  */
 function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: boolean): void {
-  const layout = node.contentRect
+  const layout = node.boxRect
   if (!layout || !node.layoutNode) return
 
   // Calculate viewport (container minus borders/padding)
@@ -254,10 +254,10 @@ function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: b
 
   for (let i = 0; i < node.children.length; i++) {
     const child = node.children[i]!
-    if (!child.layoutNode || !child.contentRect) continue
+    if (!child.layoutNode || !child.boxRect) continue
 
-    const childTop = child.contentRect.y - layout.y - border.top - padding.top
-    const childBottom = childTop + child.contentRect.height
+    const childTop = child.boxRect.y - layout.y - border.top - padding.top
+    const childBottom = childTop + child.boxRect.height
     const childProps = child.props as BoxProps
 
     childPositions.push({
@@ -508,7 +508,7 @@ export function stickyPhase(root: AgNode): void {
       return
     }
 
-    const layout = node.contentRect
+    const layout = node.boxRect
     if (!layout || !node.layoutNode) return
 
     const border = props.borderStyle ? getBorderSize(props) : { top: 0, bottom: 0, left: 0, right: 0 }
@@ -523,11 +523,11 @@ export function stickyPhase(root: AgNode): void {
       if (childProps.position !== "sticky") continue
       if (childProps.stickyBottom === undefined) continue
 
-      if (!child.contentRect) continue
+      if (!child.boxRect) continue
 
       // Natural position relative to parent content area
-      const naturalY = child.contentRect.y - layout.y - border.top - padding.top
-      const childHeight = child.contentRect.height
+      const naturalY = child.boxRect.y - layout.y - border.top - padding.top
+      const childHeight = child.boxRect.height
       const stickyBottom = childProps.stickyBottom
 
       // Pin position: where the child would be if pinned to parent bottom
@@ -620,7 +620,7 @@ function propagateScrollRect(node: AgNode, ancestorScrollOffset: number): void {
   node.prevScrollRect = node.scrollRect
   node.prevScreenRect = node.screenRect
 
-  const content = node.contentRect
+  const content = node.boxRect
   if (!content) {
     node.scrollRect = null
     node.screenRect = null

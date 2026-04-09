@@ -14,10 +14,10 @@
  * @example
  * ```tsx
  * import { Terminal } from "@xterm/xterm"
- * import { renderToXterm, Box, Text, useContentRect } from '@silvery/ag-term/xterm';
+ * import { renderToXterm, Box, Text, useBoxRect } from '@silvery/ag-term/xterm';
  *
  * function App() {
- *   const { width, height } = useContentRect();
+ *   const { width, height } = useBoxRect();
  *   return (
  *     <Box flexDirection="column">
  *       <Text>Terminal size: {width} cols x {height} rows</Text>
@@ -74,7 +74,7 @@ export { Text, type TextProps } from "@silvery/ag-react/components/Text"
 export { Divider, type DividerProps } from "@silvery/ag-react/ui/components/Divider"
 export { TextInput, type TextInputProps, type TextInputHandle } from "@silvery/ag-react/ui/components/TextInput"
 export { Spinner, type SpinnerProps } from "@silvery/ag-react/ui/components/Spinner"
-export { useContentRect, useScrollRect } from "@silvery/ag-react/hooks/useLayout"
+export { useBoxRect, useScrollRect } from "@silvery/ag-react/hooks/useLayout"
 export { useApp } from "@silvery/ag-react/hooks/useApp"
 export { useInput, type Key, type InputHandler, type UseInputOptions } from "@silvery/ag-react/hooks/useInput"
 
@@ -473,7 +473,7 @@ export function renderToXterm(
   // Initial render: hide cursor, clear screen, move to home, then render
   terminal.write(CURSOR_HIDE + CURSOR_HOME + CLEAR_SCREEN)
   doRender()
-  // Second pass picks up layout feedback (useContentRect dimensions).
+  // Second pass picks up layout feedback (useBoxRect dimensions).
   // Without this, the first frame shows zeros because forceUpdate() is
   // deferred to requestAnimationFrame, which may not fire in iframes.
   doRender()
@@ -522,7 +522,7 @@ export function renderToXterm(
       terminal.write(CURSOR_HOME + CLEAR_SCREEN)
       options.onResize?.(cols, rows)
       // Two passes: first pass calculates layout at new size and notifies
-      // useContentRect subscribers, second pass picks up the updated values.
+      // useBoxRect subscribers, second pass picks up the updated values.
       // Without this, resize causes a flash of stale dimensions.
       renderScheduled = false
       doRender()

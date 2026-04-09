@@ -26,15 +26,15 @@ Returns `TerminalSelectionState | undefined` — `undefined` when no selection f
 The following hooks are superseded by the feature-based architecture but still exist for backwards compatibility: `useTerminalSelection`, `usePointerState`, `useFind`, `useFindProvider`, `useCopyMode`, `useCopyProvider`. New code should use `useSelection()` and the automatic feature activation via `withDomEvents()` / `withFocus()`.
 :::
 
-## useContentRect
+## useboxRect
 
 Returns the computed dimensions of the component's content area — width, height, and position.
 
 ```tsx
-import { Box, Text, useContentRect } from "silvery"
+import { Box, Text, useboxRect } from "silvery"
 
 function SizedBox() {
-  const { width, height, x, y } = useContentRect()
+  const { width, height, x, y } = useboxRect()
 
   return (
     <Box borderStyle="single">
@@ -50,7 +50,7 @@ function SizedBox() {
 ```
 
 ::: info Note
-`useLayout` is a deprecated alias for `useContentRect`. Both work identically, but prefer `useContentRect` for new code.
+`useLayout` is a deprecated alias for `useboxRect`. Both work identically, but prefer `useboxRect` for new code.
 :::
 
 ### Return Value
@@ -68,7 +68,7 @@ On the first render, dimensions are `{ width: 0, height: 0, x: 0, y: 0 }`. This 
 
 ```tsx
 function Header() {
-  const { width } = useContentRect()
+  const { width } = useboxRect()
 
   // Guard against first render if needed
   if (width === 0) return null

@@ -19,7 +19,7 @@ export type { Rect }
  * This is the space available for the node's children.
  */
 function getInnerRect(node: AgNode): Rect {
-  const rect = node.contentRect
+  const rect = node.boxRect
   if (!rect) return { x: 0, y: 0, width: 0, height: 0 }
 
   const props = node.props as BoxProps
@@ -66,12 +66,12 @@ function getInnerRect(node: AgNode): Rect {
  * @example
  * ```tsx
  * function Header() {
- *   const { width } = useContentRect();
+ *   const { width } = useBoxRect();
  *   return <Text>{'='.repeat(width)}</Text>;
  * }
  * ```
  */
-export function useContentRect(): Rect {
+export function useBoxRect(): Rect {
   const node = useContext(NodeContext)
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0)
 
@@ -79,7 +79,7 @@ export function useContentRect(): Rect {
     if (!node) return
 
     const handleLayoutComplete = () => {
-      if (!rectEqual(node.prevLayout, node.contentRect)) {
+      if (!rectEqual(node.prevLayout, node.boxRect)) {
         forceUpdate()
       }
     }
@@ -101,14 +101,14 @@ export function useContentRect(): Rect {
  * @example
  * ```tsx
  * function Card({ id, onLayout }) {
- *   useContentRectCallback((rect) => {
+ *   useBoxRectCallback((rect) => {
  *     onLayout(id, rect);
  *   });
  *   return <Box>...</Box>;
  * }
  * ```
  */
-export function useContentRectCallback(callback: (rect: Rect) => void): void {
+export function useBoxRectCallback(callback: (rect: Rect) => void): void {
   const node = useContext(NodeContext)
 
   // Use ref to always have current callback without re-subscribing
@@ -119,16 +119,16 @@ export function useContentRectCallback(callback: (rect: Rect) => void): void {
     if (!node) return
 
     const handleLayoutComplete = () => {
-      if (node.contentRect) {
-        callbackRef.current(node.contentRect)
+      if (node.boxRect) {
+        callbackRef.current(node.boxRect)
       }
     }
 
     node.layoutSubscribers.add(handleLayoutComplete)
 
     // Also call immediately if layout already computed
-    if (node.contentRect) {
-      callbackRef.current(node.contentRect)
+    if (node.boxRect) {
+      callbackRef.current(node.boxRect)
     }
 
     return () => {
@@ -170,7 +170,7 @@ export function useScrollRect(): Rect {
 
     const handleLayoutComplete = () => {
       // Re-render when scrollRect changes (can happen from scroll offset changes
-      // even when contentRect stays the same)
+      // even when boxRect stays the same)
       if (!rectEqual(prevScrollRectRef.current, node.scrollRect)) {
         prevScrollRectRef.current = node.scrollRect
         forceUpdate()

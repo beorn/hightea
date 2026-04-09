@@ -42,7 +42,7 @@ function stubNode(
     children,
     parent: null,
     layoutNode: {} as any,
-    contentRect: null,
+    boxRect: null,
     scrollRect: rect,
     screenRect: rect,
     prevLayout: null,

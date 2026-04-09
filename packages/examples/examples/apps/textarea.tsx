@@ -16,7 +16,7 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 export const meta: ExampleMeta = {
   name: "TextArea",
   description: "Multi-line text input with word wrap, scrolling, and kill operations",
-  features: ["TextArea", "useContentRect()", "Ctrl+Enter submit"],
+  features: ["TextArea", "useBoxRect()", "Ctrl+Enter submit"],
 }
 
 export function NoteEditor() {

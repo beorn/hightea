@@ -112,7 +112,7 @@ function App() {
 ```tsx
 // Silvery: Just ask
 function Card() {
-  const { width } = useContentRect()
+  const { width } = useboxRect()
   return <Text>{truncate(title, width)}</Text>
 }
 
@@ -126,7 +126,7 @@ This is the terminal equivalent of [CSS container queries](https://developer.moz
 
 Ink's `measureElement()` is like `ResizeObserver` — it reads dimensions _after_ rendering. By the time you know the size, you've already drawn the wrong thing. Feeding dimensions back requires `useEffect` + `setState`, triggering a visible re-render. With nested responsive components (board → column → card), each level needs its own measure→rerender cycle — N nesting levels means N visible flickers.
 
-Silvery's `useContentRect()` is like container queries — the layout engine computes dimensions _before_ content renders, so all components get correct sizes in one batch. No flicker, no plumbing, no cascading re-renders.
+Silvery's `useboxRect()` is like container queries — the layout engine computes dimensions _before_ content renders, so all components get correct sizes in one batch. No flicker, no plumbing, no cascading re-renders.
 :::
 
 ### 2. flexDirection Defaults to `row` (CSS spec)
@@ -199,11 +199,11 @@ You can also truncate with an ellipsis instead of wrapping:
 
 **Ink**: Components render once with final output.
 
-**Silvery**: Components using `useContentRect()` render twice. First render has `{ width: 0, height: 0 }`, second has actual values.
+**Silvery**: Components using `useboxRect()` render twice. First render has `{ width: 0, height: 0 }`, second has actual values.
 
 ```tsx
 function Header() {
-  const { width } = useContentRect()
+  const { width } = useboxRect()
   // First render: width=0
   // Second render: width=80
   return <Text>{"=".repeat(width)}</Text>
@@ -214,7 +214,7 @@ This is usually invisible (both renders happen before first paint). Add a guard 
 
 ```tsx
 function Header() {
-  const { width } = useContentRect()
+  const { width } = useboxRect()
   if (width === 0) return null
   return <Text>{"=".repeat(width)}</Text>
 }
@@ -247,17 +247,17 @@ function Header() {
 
 **Migration**: Replace virtualization components with `overflow="scroll"`.
 
-### 6. measureElement() / useLayout() -> useContentRect()
+### 6. measureElement() / useLayout() -> useboxRect()
 
-Replace `measureElement()` and `useLayout()` with `useContentRect()` — see [section 1](#_1-components-know-their-size-the-big-win) above for why this is a significant upgrade, not just a rename.
+Replace `measureElement()` and `useLayout()` with `useboxRect()` — see [section 1](#_1-components-know-their-size-the-big-win) above for why this is a significant upgrade, not just a rename.
 
 ```diff
 - const ref = useRef()
 - const { width } = measureElement(ref.current)
-+ const { width } = useContentRect()
++ const { width } = useboxRect()
 
 - const { width } = useLayout()
-+ const { width } = useContentRect()
++ const { width } = useboxRect()
 ```
 
 ## Known Incompatibilities
@@ -345,7 +345,7 @@ function Column({ items }) {
 }
 
 function Card({ item }) {
-  const { width } = useContentRect()
+  const { width } = useboxRect()
   // Use width only where actually needed
 }
 ```

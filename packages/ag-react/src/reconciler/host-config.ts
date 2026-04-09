@@ -244,7 +244,7 @@ export const hostConfig = {
       children: [],
       parent: null,
       layoutNode: null, // No layout node for raw text
-      contentRect: null,
+      boxRect: null,
       scrollRect: null,
       screenRect: null,
       prevLayout: null,

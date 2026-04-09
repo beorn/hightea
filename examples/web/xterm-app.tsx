@@ -8,11 +8,11 @@
 import React from "react"
 import { Terminal } from "@xterm/xterm"
 import { FitAddon } from "@xterm/addon-fit"
-import { renderToXterm, Box, Text, useContentRect } from "../../packages/ag-term/src/xterm/index.js"
+import { renderToXterm, Box, Text, useBoxRect } from "../../packages/ag-term/src/xterm/index.js"
 
 // Component that shows its dimensions (in cells, not pixels)
 function SizeDisplay() {
-  const { width, height } = useContentRect()
+  const { width, height } = useBoxRect()
   return (
     <Text color="green">
       Size: {width} cols x {height} rows

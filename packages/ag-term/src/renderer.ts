@@ -121,7 +121,7 @@ export interface RenderOptions {
    *
    * When false (default), doRender() runs a synchronous layout stabilization
    * loop (up to 5 iterations) that re-runs executeRender whenever React
-   * commits new work from layout notifications (useContentRect, etc.).
+   * commits new work from layout notifications (useBoxRect, etc.).
    *
    * When true, doRender() does a single executeRender call (matching
    * production's create-app.tsx behavior). Layout feedback effects are
@@ -385,17 +385,17 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   const getRootContentHeight = (): number | undefined => {
     try {
       const root = getContainerRoot(instance.container)
-      if (!root?.contentRect) return undefined
+      if (!root?.boxRect) return undefined
       let maxBottom = 0
       let hasChildren = false
       for (const child of root.children) {
-        if (child.contentRect) {
+        if (child.boxRect) {
           hasChildren = true
-          // contentRect includes marginTop in the y position but NOT marginBottom
+          // boxRect includes marginTop in the y position but NOT marginBottom
           // in the height. Read marginBottom from props to get the full outer extent.
           const props = child.props as Record<string, unknown>
           const mb = (props.marginBottom as number) ?? (props.marginY as number) ?? (props.margin as number) ?? 0
-          const childBottom = child.contentRect.y + child.contentRect.height + mb
+          const childBottom = child.boxRect.y + child.boxRect.height + mb
           if (childBottom > maxBottom) maxBottom = childBottom
         }
       }
@@ -517,7 +517,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   // Two modes:
   // 1. Multi-pass (default): Layout stabilization loop (up to 5 iterations).
   //    After executeRender fires notifyLayoutSubscribers (Phase 2.7), hooks
-  //    like useContentRect call forceUpdate(). These React updates are flushed
+  //    like useBoxRect call forceUpdate(). These React updates are flushed
   //    and the pipeline re-run until stable.
   //
   // 2. Single-pass (singlePassLayout=true): Matches production create-app.tsx.
@@ -541,7 +541,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     if (instance.singlePassLayout) {
       // Production-matching single-pass: one executeRender, no stabilization
       // loop. This matches create-app.tsx doRender() which does a single
-      // reconcile + pipeline pass. Layout feedback effects (useContentRect
+      // reconcile + pipeline pass. Layout feedback effects (useBoxRect
       // etc.) are NOT re-run within this doRender — they're flushed by the
       // caller (sendInput) in a separate loop, matching production's
       // processEventBatch flush pattern.
@@ -783,7 +783,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
 
   // Execute the render pipeline.
   // The initial render always uses the multi-pass stabilization loop regardless
-  // of singlePassLayout, because hooks like useContentRect need multiple passes
+  // of singlePassLayout, because hooks like useBoxRect need multiple passes
   // to stabilize (subscribe → layout → forceUpdate → re-render). This matches
   // production where the initial render runs once and the first user-visible
   // frame comes after the event loop starts. For tests, we need the initial

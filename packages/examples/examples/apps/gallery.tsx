@@ -26,7 +26,7 @@ import {
   H2,
   useInput,
   useApp,
-  useContentRect,
+  useBoxRect,
   createTerm,
   type Key,
 } from "silvery"
@@ -222,7 +222,7 @@ function generateCheckerPattern(w: number, h: number): Buffer {
 // ============================================================================
 
 function ImagesTab() {
-  const rect = useContentRect()
+  const rect = useBoxRect()
   const w = Math.max(20, rect.width - 4)
   const imgH = Math.max(5, rect.height - 6)
 
@@ -311,7 +311,7 @@ const PAINT_PRESETS: { name: string; color: RGB }[] = [
 ]
 
 function PaintTab() {
-  const rect = useContentRect()
+  const rect = useBoxRect()
   const canvasW = Math.max(10, rect.width - 2)
   const canvasTermH = Math.max(4, rect.height - 7)
   const canvasPixH = canvasTermH * 2
@@ -457,7 +457,7 @@ function PaintTab() {
 // ============================================================================
 
 function TruecolorTab() {
-  const rect = useContentRect()
+  const rect = useBoxRect()
   const w = Math.max(20, rect.width - 4)
   const availH = Math.max(10, rect.height - 3)
 

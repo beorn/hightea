@@ -237,7 +237,7 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
       children: [],
       parent: null,
       layoutNode,
-      contentRect: null,
+      boxRect: null,
       scrollRect: null,
       screenRect: null,
       prevLayout: null,

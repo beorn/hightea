@@ -1,15 +1,15 @@
-# useContentRect
+# useboxRect
 
 Returns the computed dimensions of the component's content area — width, height, and position. Components use this to adapt to their available space during render.
 
 ::: info Note
-`useLayout` is a deprecated alias for `useContentRect`. Both work identically, but prefer `useContentRect` for new code.
+`useLayout` is a deprecated alias for `useboxRect`. Both work identically, but prefer `useboxRect` for new code.
 :::
 
 ## Import
 
 ```tsx
-import { useContentRect } from "silvery"
+import { useboxRect } from "silvery"
 
 // Deprecated alias (still works)
 import { useLayout } from "silvery"
@@ -19,7 +19,7 @@ import { useLayout } from "silvery"
 
 ```tsx
 function SizedBox() {
-  const { width, height } = useContentRect()
+  const { width, height } = useboxRect()
 
   return (
     <Box borderStyle="single">
@@ -56,7 +56,7 @@ If your component breaks on `width=0`, add a guard:
 
 ```tsx
 function Header() {
-  const { width } = useContentRect()
+  const { width } = useboxRect()
 
   if (width === 0) return null // Or a loading state
 
@@ -68,7 +68,7 @@ Or handle it in your rendering logic:
 
 ```tsx
 function ProgressBar({ progress }: { progress: number }) {
-  const { width } = useContentRect()
+  const { width } = useboxRect()
 
   // Safe even when width=0
   const filled = Math.floor(width * progress)
@@ -89,7 +89,7 @@ function ProgressBar({ progress }: { progress: number }) {
 
 ```tsx
 function ResponsiveBox() {
-  const { width } = useContentRect()
+  const { width } = useboxRect()
 
   // Stack vertically on narrow terminals
   const direction = width < 60 ? "column" : "row"
@@ -111,7 +111,7 @@ function ResponsiveBox() {
 
 ```tsx
 function CenteredText({ children }: { children: string }) {
-  const { width } = useContentRect()
+  const { width } = useboxRect()
 
   const padding = Math.max(0, Math.floor((width - children.length) / 2))
 
@@ -128,7 +128,7 @@ function CenteredText({ children }: { children: string }) {
 
 ```tsx
 function TruncatedTitle({ title }: { title: string }) {
-  const { width } = useContentRect()
+  const { width } = useboxRect()
 
   if (title.length <= width) {
     return <Text>{title}</Text>
@@ -142,7 +142,7 @@ function TruncatedTitle({ title }: { title: string }) {
 
 ```tsx
 function DebugOverlay({ children }: { children: React.ReactNode }) {
-  const { width, height, x, y } = useContentRect()
+  const { width, height, x, y } = useboxRect()
 
   return (
     <Box flexDirection="column">
@@ -159,7 +159,7 @@ function DebugOverlay({ children }: { children: React.ReactNode }) {
 
 ```tsx
 function ProportionalColumns() {
-  const { width } = useContentRect()
+  const { width } = useboxRect()
 
   // 30% / 70% split
   const leftWidth = Math.floor(width * 0.3)
@@ -228,7 +228,7 @@ function Content() {
 }
 
 function Column() {
-  const { width } = useContentRect() // Only query where actually needed
+  const { width } = useboxRect() // Only query where actually needed
   // Use width for truncation, responsive behavior, etc.
 }
 ```

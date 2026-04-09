@@ -70,7 +70,7 @@ export function renderPhaseAdapter(root: AgNode): RenderBuffer {
     throw new Error("renderPhaseAdapter called without a render adapter set")
   }
 
-  const layout = root.contentRect
+  const layout = root.boxRect
   if (!layout) {
     throw new Error("renderPhaseAdapter called before layout phase")
   }
@@ -95,7 +95,7 @@ interface ClipRect {
 }
 
 function renderNodeToBuffer(node: AgNode, buffer: RenderBuffer, scrollOffset = 0, clipBounds?: ClipRect): void {
-  const layout = node.contentRect
+  const layout = node.boxRect
   if (!layout) return
 
   // Skip nodes without layout (raw text and virtual text nodes)
@@ -868,7 +868,7 @@ function renderScrollContainerChildren(
   props: BoxProps,
   clipBounds?: ClipRect,
 ): void {
-  const layout = node.contentRect
+  const layout = node.boxRect
   const ss = node.scrollState as ScrollState | undefined
   if (!layout || !ss) return
 
@@ -907,7 +907,7 @@ function renderScrollContainerChildren(
   if (ss.stickyChildren) {
     for (const sticky of ss.stickyChildren) {
       const child = node.children[sticky.index]
-      if (!child?.contentRect) continue
+      if (!child?.boxRect) continue
 
       const stickyScrollOffset = sticky.naturalTop - sticky.renderOffset
       renderNodeToBuffer(child, buffer, stickyScrollOffset, childClipBounds)
@@ -925,7 +925,7 @@ function renderNormalChildren(
   props: BoxProps,
   clipBounds?: ClipRect,
 ): void {
-  const layout = node.contentRect
+  const layout = node.boxRect
   if (!layout) return
 
   let effectiveClipBounds = clipBounds
@@ -976,7 +976,7 @@ function renderNormalChildren(
   if (node.stickyChildren) {
     for (const sticky of node.stickyChildren) {
       const child = node.children[sticky.index]
-      if (!child?.contentRect) continue
+      if (!child?.boxRect) continue
       const stickyScrollOffset = sticky.naturalTop - sticky.renderOffset
       renderNodeToBuffer(child, buffer, stickyScrollOffset, effectiveClipBounds)
     }

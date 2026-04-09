@@ -12,7 +12,7 @@
 import React, { useState } from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, render, bufferToText } from "@silvery/test"
-import { Box, Text, useContentRect, useInput } from "@silvery/ag-react"
+import { Box, Text, useBoxRect, useInput } from "@silvery/ag-react"
 import { Counter, ComplexLayout, ResponsiveBox, SimpleBox, NestedFlex } from "../fixtures/index.tsx"
 
 // ============================================================================
@@ -134,7 +134,7 @@ describe("stability: resize handling", () => {
     expect(app.text.length).toBeGreaterThan(0)
   })
 
-  test("resize with useContentRect updates correctly", () => {
+  test("resize with useBoxRect updates correctly", () => {
     const r = createRenderer({ cols: 80, rows: 24 })
     const app = r(React.createElement(ResponsiveBox))
 

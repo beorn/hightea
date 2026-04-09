@@ -6,8 +6,8 @@
 
 // Layout
 export {
-  useContentRect,
-  useContentRectCallback,
+  useBoxRect,
+  useBoxRectCallback,
   useScrollRect,
   useScreenRect,
   useScreenRectCallback,

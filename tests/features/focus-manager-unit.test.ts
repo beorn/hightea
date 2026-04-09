@@ -25,7 +25,7 @@ function stubNode(testID: string, opts?: { focusable?: boolean; children?: AgNod
     children,
     parent: null,
     layoutNode: {} as any,
-    contentRect: null,
+    boxRect: null,
     scrollRect: null,
     screenRect: null,
     prevLayout: null,

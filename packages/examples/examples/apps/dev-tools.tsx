@@ -28,7 +28,7 @@ import {
   Text,
   ListView,
   Divider,
-  useContentRect,
+  useBoxRect,
   useInput,
   useApp,
   createTerm,
@@ -43,7 +43,7 @@ import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 export const meta: ExampleMeta = {
   name: "Dev Tools",
   description: "Log viewer with severity levels, ListView, and keyboard-driven log injection",
-  features: ["ListView", "useInput()", "useContentRect()", "keyboard navigation"],
+  features: ["ListView", "useInput()", "useBoxRect()", "keyboard navigation"],
 }
 
 // ============================================================================
@@ -215,9 +215,9 @@ function LevelCounts({ entries }: { entries: LogEntry[] }) {
   )
 }
 
-/** Inner component that reads the flex container's height via useContentRect */
+/** Inner component that reads the flex container's height via useBoxRect */
 function LogListArea({ entries, cursor }: { entries: LogEntry[]; cursor: number }) {
-  const { height } = useContentRect()
+  const { height } = useBoxRect()
 
   return (
     <ListView
@@ -240,7 +240,7 @@ const rng = seededRandom(12345)
 
 export function DevTools() {
   const { exit } = useApp()
-  const { width } = useContentRect()
+  const { width } = useBoxRect()
   const [entries, setEntries] = useState<LogEntry[]>(() => generateInitialLogs(INITIAL_COUNT))
   const [cursor, setCursor] = useState(INITIAL_COUNT - 1)
   const [autoScroll, setAutoScroll] = useState(true)

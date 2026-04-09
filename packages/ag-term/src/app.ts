@@ -648,7 +648,7 @@ export function buildApp(options: AppOptions): App {
  * Find node at content coordinates (not screen coordinates)
  */
 function findNodeAtContentPosition(node: AgNode, x: number, y: number): AgNode | null {
-  const rect = node.contentRect
+  const rect = node.boxRect
   if (!rect) return null
 
   if (!pointInRect(x, y, rect)) {

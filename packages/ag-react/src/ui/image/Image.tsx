@@ -29,7 +29,7 @@
 import { readFileSync } from "node:fs"
 import { type JSX, useContext, useEffect, useMemo, useRef } from "react"
 import { StdoutContext } from "@silvery/ag-react/context"
-import { useContentRect } from "@silvery/ag-react/hooks/useLayout"
+import { useBoxRect } from "@silvery/ag-react/hooks/useLayout"
 import { encodeKittyImage, isKittyGraphicsSupported, deleteKittyImage } from "./kitty-graphics"
 import { isSixelSupported } from "./sixel-encoder"
 
@@ -99,7 +99,7 @@ export function Image({
   fallback = "[image]",
   protocol: preferredProtocol = "auto",
 }: ImageProps): JSX.Element {
-  const contentRect = useContentRect()
+  const boxRect = useBoxRect()
   const stdoutCtx = useContext(StdoutContext)
   const imageIdRef = useRef<number | null>(null)
 
@@ -115,7 +115,7 @@ export function Image({
   }, [src])
 
   // Determine effective dimensions
-  const effectiveWidth = requestedWidth ?? contentRect.width
+  const effectiveWidth = requestedWidth ?? boxRect.width
   const effectiveHeight = requestedHeight ?? Math.max(1, Math.floor(effectiveWidth / 2))
 
   // Detect protocol support

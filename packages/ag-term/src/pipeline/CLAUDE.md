@@ -20,7 +20,7 @@ measure -> layout -> scroll -> sticky -> scrollRect -> [notify] -> content -> ou
 | scroll      | layout-phase.ts     | Calculate scroll offset, visible children, sticky positions for overflow=scroll containers |
 | sticky      | layout-phase.ts     | Calculate sticky render offsets for non-scroll parents with sticky children                |
 | scrollRect  | layout-phase.ts     | Compute screen-relative positions (content position minus ancestor scroll offsets)         |
-| notify      | layout-phase.ts     | Fire `layoutSubscribers` callbacks (drives `useContentRect`/`useScrollRect`)               |
+| notify      | layout-phase.ts     | Fire `layoutSubscribers` callbacks (drives `useboxRect`/`useScrollRect`)               |
 | **content** | **render-phase.ts** | **Render nodes to a TerminalBuffer (this is the complex part)**                            |
 | output      | output-phase.ts     | Diff current buffer against previous, emit minimal ANSI escape sequences                   |
 
@@ -41,11 +41,11 @@ The reconciler sets flags on nodes when props/children change. The render phase 
 | `childrenDirty`   | Reconciler                | Direct children added, removed, or reordered                                             |
 | `layoutDirty`     | Reconciler                | Layout-affecting props changed; triggers Yoga recalculation                              |
 
-The layout phase also sets `subtreeDirty` upward when a descendant's `contentRect` changes via `layoutChangedThisFrame`.
+The layout phase also sets `subtreeDirty` upward when a descendant's `boxRect` changes via `layoutChangedThisFrame`.
 
 | Flag                     | Set by       | Meaning                                                                         |
 | ------------------------ | ------------ | ------------------------------------------------------------------------------- |
-| `layoutChangedThisFrame` | Layout phase | Node's contentRect changed this frame; cleared by render phase after processing |
+| `layoutChangedThisFrame` | Layout phase | Node's boxRect changed this frame; cleared by render phase after processing |
 
 ## Incremental Rendering Model
 
@@ -103,7 +103,7 @@ These five computed values (plus two intermediates: `textPaintDirty`, `bgRefillN
 ```typescript
 // Did this node's layout position/size change?
 // Uses layoutChangedThisFrame (set by propagateLayout in layout phase)
-// instead of the stale !rectEqual(prevLayout, contentRect).
+// instead of the stale !rectEqual(prevLayout, boxRect).
 layoutChanged = node.layoutChangedThisFrame
 
 // Did the CONTENT AREA change? (excludes border-only paint changes for BOX nodes)
@@ -262,13 +262,13 @@ When a child overflows its parent (e.g., text content extending beyond the paren
 
 ## prevLayout and layoutChangedThisFrame
 
-`layoutChanged` is now driven by the `layoutChangedThisFrame` flag (set by `propagateLayout` in layout phase, cleared by render phase after processing). This replaces the old `!rectEqual(prevLayout, contentRect)` which was permanently stale when layout phase skipped (no dirty nodes), causing O(N) render phase every frame.
+`layoutChanged` is now driven by the `layoutChangedThisFrame` flag (set by `propagateLayout` in layout phase, cleared by render phase after processing). This replaces the old `!rectEqual(prevLayout, boxRect)` which was permanently stale when layout phase skipped (no dirty nodes), causing O(N) render phase every frame.
 
 **How it works:**
 
-1. Layout phase: `propagateLayout` saves `node.prevLayout = node.contentRect`, recomputes rect, sets `node.layoutChangedThisFrame = !rectEqual(old, new)`
+1. Layout phase: `propagateLayout` saves `node.prevLayout = node.boxRect`, recomputes rect, sets `node.layoutChangedThisFrame = !rectEqual(old, new)`
 2. Render phase: reads `node.layoutChangedThisFrame` for skip decisions, clears it after processing
-3. End of render phase: `syncPrevLayout` sets `prevLayout = contentRect` for all nodes, ensuring `clearExcessArea` and `hasChildPositionChanged` use correct coordinates on multi-pass doRender iterations
+3. End of render phase: `syncPrevLayout` sets `prevLayout = boxRect` for all nodes, ensuring `clearExcessArea` and `hasChildPositionChanged` use correct coordinates on multi-pass doRender iterations
 
 `prevLayout` is still used by `clearExcessArea` (old bounds for excess clearing) and `hasChildPositionChanged` (sibling position shift detection), but NOT for the primary `layoutChanged` decision.
 

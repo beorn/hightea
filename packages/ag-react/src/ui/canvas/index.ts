@@ -56,7 +56,7 @@ export { Box, type BoxProps } from "@silvery/ag-react/components/Box"
 export { Text, type TextProps } from "@silvery/ag-react/components/Text"
 
 // Re-export hooks
-export { useContentRect, useScrollRect, useScrollRectCallback } from "@silvery/ag-react/hooks/useLayout"
+export { useBoxRect, useScrollRect, useScrollRectCallback } from "@silvery/ag-react/hooks/useLayout"
 export { useApp } from "@silvery/ag-react/hooks/useApp"
 export { useFocusable } from "@silvery/ag-react/hooks/useFocusable"
 export { useFocusManager } from "@silvery/ag-react/hooks/useFocusManager"
@@ -494,7 +494,7 @@ export function renderToCanvas(
     }
   }
 
-  // Initial render (two passes for layout feedback — useContentRect)
+  // Initial render (two passes for layout feedback — useBoxRect)
   doRender()
   doRender()
 

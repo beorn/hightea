@@ -6,14 +6,14 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react"
-import { renderToCanvas, Box, Text, useContentRect } from "../../packages/ag-react/src/ui/canvas/index.js"
+import { renderToCanvas, Box, Text, useBoxRect } from "../../packages/ag-react/src/ui/canvas/index.js"
 
 // ============================================================================
 // Shared components
 // ============================================================================
 
 function SizeDisplay() {
-  const { width, height } = useContentRect()
+  const { width, height } = useBoxRect()
   return (
     <Text color="$success">
       {Math.round(width)}px x {Math.round(height)}px
@@ -22,7 +22,7 @@ function SizeDisplay() {
 }
 
 function Divider({ color = "$muted" }: { color?: string }) {
-  const { width } = useContentRect()
+  const { width } = useBoxRect()
   const line = "─".repeat(Math.max(1, Math.floor(width / 8)))
   return <Text color={color}>{line}</Text>
 }
@@ -267,7 +267,7 @@ function Dashboard() {
 // ============================================================================
 
 function Responsive() {
-  const { width } = useContentRect()
+  const { width } = useBoxRect()
   const isWide = width > 350
 
   return (

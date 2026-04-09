@@ -338,7 +338,7 @@ function resolveAgNode(refValue: any): import("@silvery/create/types").AgNode | 
     return refValue.getNode()
   }
   // Direct AgNode (has layoutNode property)
-  if (refValue.layoutNode !== undefined || refValue.contentRect !== undefined) {
+  if (refValue.layoutNode !== undefined || refValue.boxRect !== undefined) {
     return refValue
   }
   return null
@@ -412,7 +412,7 @@ export function useBoxMetrics(ref: import("react").RefObject<any>) {
     if (!node) return
 
     const onLayoutChange = () => {
-      const rect = node.contentRect
+      const rect = node.boxRect
       if (rect) {
         updateMetrics({
           width: rect.width,
@@ -425,7 +425,7 @@ export function useBoxMetrics(ref: import("react").RefObject<any>) {
     }
 
     // Read current layout if already computed
-    if (node.contentRect) {
+    if (node.boxRect) {
       onLayoutChange()
     }
 
@@ -444,12 +444,12 @@ export function useBoxMetrics(ref: import("react").RefObject<any>) {
   useEffect(() => {
     const onResize = () => {
       const node = resolveAgNode(ref.current)
-      if (node?.contentRect) {
+      if (node?.boxRect) {
         updateMetrics({
-          width: node.contentRect.width,
-          height: node.contentRect.height,
-          left: node.contentRect.x,
-          top: node.contentRect.y,
+          width: node.boxRect.width,
+          height: node.boxRect.height,
+          left: node.boxRect.x,
+          top: node.boxRect.y,
           hasMeasured: true,
         })
       }

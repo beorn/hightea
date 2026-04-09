@@ -1,6 +1,6 @@
 # Box
 
-Flexbox container component -- the primary layout primitive. Supports all standard flexbox properties, dimensions, spacing, borders, outlines, and theming. Provides `NodeContext` to children, enabling `useContentRect`/`useScrollRect` hooks.
+Flexbox container component -- the primary layout primitive. Supports all standard flexbox properties, dimensions, spacing, borders, outlines, and theming. Provides `NodeContext` to children, enabling `useboxRect`/`useScrollRect` hooks.
 
 ## Import
 
@@ -116,7 +116,7 @@ import { Box } from "silvery"
 ```ts
 interface BoxHandle {
   getNode(): AgNode | null
-  getContentRect(): Rect | null
+  getboxRect(): Rect | null
   getScrollRect(): Rect | null
 }
 ```

@@ -257,11 +257,11 @@ function extractCanvasRects(root: AgNode): Map<string, LabeledRect> {
   /** Get the best available rect for a node — try the node first, fall back to parent Box. */
   function getRect(node: AgNode): LabeledRect | null {
     // Try the node's own rect
-    const own = node.scrollRect ?? node.contentRect
+    const own = node.scrollRect ?? node.boxRect
     if (own && own.width > 0 && own.height > 0) return { label: "", ...own }
     // Text nodes often have 0x0 rects in proportional mode — use parent Box
     if (node.parent) {
-      const parent = node.parent.scrollRect ?? node.parent.contentRect
+      const parent = node.parent.scrollRect ?? node.parent.boxRect
       if (parent && parent.width > 0 && parent.height > 0) return { label: "", ...parent }
     }
     return null
@@ -289,7 +289,7 @@ function extractCanvasRects(root: AgNode): Map<string, LabeledRect> {
     if (trimmed.startsWith("Every bubble wraps")) {
       const calloutBox = findAncestorWithBg(node)
       if (calloutBox) {
-        const rect = calloutBox.scrollRect ?? calloutBox.contentRect
+        const rect = calloutBox.scrollRect ?? calloutBox.boxRect
         if (rect) rects.set("callout", { label: "callout", ...rect })
       }
       continue
@@ -301,7 +301,7 @@ function extractCanvasRects(root: AgNode): Map<string, LabeledRect> {
       matchedBubbleIndices.add(bubbleIdx)
       const bubbleBox = findAncestorWithBg(node)
       if (bubbleBox) {
-        const rect = bubbleBox.scrollRect ?? bubbleBox.contentRect
+        const rect = bubbleBox.scrollRect ?? bubbleBox.boxRect
         if (rect) rects.set(`bubble-${bubbleIdx}`, { label: `bubble-${bubbleIdx}`, ...rect })
       }
       continue

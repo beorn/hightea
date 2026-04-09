@@ -269,7 +269,7 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
   }
 
   // Layout stabilization loop: run the pipeline, flush React work from
-  // layout notifications (useContentRect forceUpdate etc.), repeat until stable.
+  // layout notifications (useBoxRect forceUpdate etc.), repeat until stable.
   // This matches the test renderer's multi-pass approach.
   let buffer!: TerminalBuffer
   let rootNode: ReturnType<typeof getContainerRoot> | undefined
@@ -294,16 +294,16 @@ export function renderStringSync(element: ReactElement, options: RenderStringOpt
 
   // Report content height if callback provided.
   // Compute from children's outer bottom edges (including margins) rather than
-  // root.contentRect.height which equals the buffer height (root stretches to fill).
+  // root.boxRect.height which equals the buffer height (root stretches to fill).
   if (onContentHeight && rootNode) {
     let maxBottom = 0
     let hasChildren = false
     for (const child of rootNode.children) {
-      if (child.contentRect) {
+      if (child.boxRect) {
         hasChildren = true
         const props = child.props as Record<string, unknown>
         const mb = (props.marginBottom as number) ?? (props.marginY as number) ?? (props.margin as number) ?? 0
-        const childBottom = child.contentRect.y + child.contentRect.height + mb
+        const childBottom = child.boxRect.y + child.boxRect.height + mb
         if (childBottom > maxBottom) maxBottom = childBottom
       }
     }

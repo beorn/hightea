@@ -29,7 +29,7 @@ function stubNode(testID: string, rect: Rect, opts?: { focusable?: boolean; chil
     children,
     parent: null,
     layoutNode: {} as any,
-    contentRect: null,
+    boxRect: null,
     scrollRect: rect,
     screenRect: null,
     prevLayout: null,

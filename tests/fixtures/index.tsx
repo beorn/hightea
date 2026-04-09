@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from "react"
-import { Box, Text, useInput, useContentRect, TextInput } from "@silvery/ag-react"
+import { Box, Text, useInput, useBoxRect, TextInput } from "@silvery/ag-react"
 
 // ============================================================================
 // SimpleBox — Minimal box with text content
@@ -179,11 +179,11 @@ export function ChalkStyledContent() {
 }
 
 // ============================================================================
-// ResponsiveBox — Uses useContentRect for layout feedback
+// ResponsiveBox — Uses useBoxRect for layout feedback
 // ============================================================================
 
 export function ResponsiveBox() {
-  const { width, height } = useContentRect()
+  const { width, height } = useBoxRect()
   return (
     <Box flexDirection="column">
       <Text>

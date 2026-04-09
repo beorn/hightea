@@ -357,7 +357,7 @@ export interface AgNode {
    * Position within the scrollable content, ignoring scroll offsets.
    * Set after layout phase.
    */
-  contentRect: Rect | null
+  boxRect: Rect | null
 
   /**
    * Screen-relative position (like CSS getBoundingClientRect).
@@ -391,7 +391,7 @@ export interface AgNode {
   /** True if layout changed THIS frame (position or size).
    *  Set by propagateLayout in layout phase. Cleared by render phase.
    *  This is the authoritative signal for "did layout change?" — unlike
-   *  !rectEqual(prevLayout, contentRect) which becomes stale when layout
+   *  !rectEqual(prevLayout, boxRect) which becomes stale when layout
    *  phase skips (no dirty nodes). */
   layoutChangedThisFrame: boolean
 
@@ -429,7 +429,7 @@ export interface AgNode {
    *  Cleared by render phase. */
   childrenDirty: boolean
 
-  /** Callbacks subscribed to layout changes (used by useContentRect) */
+  /** Callbacks subscribed to layout changes (used by useBoxRect) */
   layoutSubscribers: Set<() => void>
 
   /** Text content for text nodes */
