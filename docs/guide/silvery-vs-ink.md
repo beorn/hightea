@@ -74,7 +74,7 @@ Ink first, Silvery second. Features marked "core" are built into the framework; 
 | **Terminal emulator in tests** | None | `createTermless()` via [Termless](https://termless.dev) — in-process terminal emulation with 10+ backends: xterm.js, vt100, libvterm, Ghostty, Kitty, Alacritty, WezTerm, and more. Matrix-test across real parsers. |
 | **Render invariant checks** | None | `SILVERY_STRICT=1` verifies incremental = fresh on every frame |
 | **Multi-backend verification** | None | STRICT checks against vt100, xterm.js, and Ghostty backends |
-| **Visual snapshots** | None | `bufferToHTML()` + Playwright programmatic capture |
+| **Visual snapshots + recordings** | None | `bufferToHTML()`, Playwright capture, and Termless `.tape` recordings → animated GIF, PNG, SVG with 77 themes and window chrome |
 
 ### API & DX
 
