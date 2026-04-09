@@ -57,6 +57,21 @@ export interface SelectionFeature {
   dispose(): void
 }
 
+/**
+ * Options for creating a bridge SelectionFeature that delegates to
+ * an external state owner (e.g., create-app's inline selection state).
+ */
+export interface SelectionBridgeOptions {
+  /** Get the current selection state. */
+  getState: () => TerminalSelectionState
+  /** Subscribe to state changes. Returns an unsubscribe function. */
+  subscribe: (listener: () => void) => () => void
+  /** Set a selection range programmatically (used by copy-mode). */
+  setRange: (range: SelectionRange | null) => void
+  /** Clear the selection. */
+  clear: () => void
+}
+
 /** Options for creating a SelectionFeature. */
 export interface SelectionFeatureOptions {
   /** Terminal buffer to extract text from (required for mouse selection / copy). */
@@ -178,7 +193,47 @@ export function createSelectionFeature(options: SelectionFeatureOptions): Select
     },
 
     dispose(): void {
+      selectionState = createTerminalSelectionState()
       listeners.clear()
     },
+  }
+}
+
+// ============================================================================
+// Bridge Implementation
+// ============================================================================
+
+/**
+ * Create a bridge SelectionFeature that delegates to an external state owner.
+ *
+ * Used by create-app to expose its inline selection state to React hooks
+ * (useSelection) and copy-mode (which calls setRange/clear) without
+ * duplicating the state machine. Mouse handlers are no-ops — the external
+ * owner (create-app's event loop) handles mouse events directly.
+ */
+export function createSelectionBridge(options: SelectionBridgeOptions): SelectionFeature {
+  return {
+    get state(): TerminalSelectionState {
+      return options.getState()
+    },
+
+    subscribe(listener: () => void): () => void {
+      return options.subscribe(listener)
+    },
+
+    // Mouse handlers are no-ops — create-app handles mouse events directly.
+    handleMouseDown(_col: number, _row: number, _altKey: boolean): void {},
+    handleMouseMove(_col: number, _row: number): void {},
+    handleMouseUp(_col: number, _row: number): void {},
+
+    setRange(range: SelectionRange | null): void {
+      options.setRange(range)
+    },
+
+    clear(): void {
+      options.clear()
+    },
+
+    dispose(): void {},
   }
 }

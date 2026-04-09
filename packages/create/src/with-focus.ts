@@ -141,18 +141,51 @@ export function withFocus(options: WithFocusOptions = {}): (app: App) => AppWith
       const registry = options.capabilityRegistry
       const router = options.inputRouter
 
-      // Create selection feature (always needed for copy-mode)
       const invalidate = router ? () => router.invalidate() : () => {}
-      selectionFeature = createSelectionFeature({ invalidate })
 
-      // Register selection capability
-      if (registry) {
-        registry.register(SELECTION_CAPABILITY, selectionFeature)
+      // Selection feature for copy-mode: use the registry's bridge (set by
+      // create-app at run time) when available, otherwise fall back to a
+      // standalone feature for headless/test usage.
+      const fallbackSelection = createSelectionFeature({ invalidate })
+      const selectionProxy: SelectionFeature = {
+        get state() {
+          const bridge = registry?.get<SelectionFeature>(SELECTION_CAPABILITY)
+          return (bridge ?? fallbackSelection).state
+        },
+        subscribe(listener) {
+          const bridge = registry?.get<SelectionFeature>(SELECTION_CAPABILITY)
+          return (bridge ?? fallbackSelection).subscribe(listener)
+        },
+        handleMouseDown(col, row, altKey) {
+          const bridge = registry?.get<SelectionFeature>(SELECTION_CAPABILITY)
+          ;(bridge ?? fallbackSelection).handleMouseDown(col, row, altKey)
+        },
+        handleMouseMove(col, row) {
+          const bridge = registry?.get<SelectionFeature>(SELECTION_CAPABILITY)
+          ;(bridge ?? fallbackSelection).handleMouseMove(col, row)
+        },
+        handleMouseUp(col, row) {
+          const bridge = registry?.get<SelectionFeature>(SELECTION_CAPABILITY)
+          ;(bridge ?? fallbackSelection).handleMouseUp(col, row)
+        },
+        setRange(range) {
+          const bridge = registry?.get<SelectionFeature>(SELECTION_CAPABILITY)
+          ;(bridge ?? fallbackSelection).setRange(range)
+        },
+        clear() {
+          const bridge = registry?.get<SelectionFeature>(SELECTION_CAPABILITY)
+          ;(bridge ?? fallbackSelection).clear()
+        },
+        dispose() {
+          fallbackSelection.dispose()
+        },
       }
+      selectionFeature = selectionProxy
 
-      // Create copy-mode feature (requires selection)
+      // Create copy-mode feature — uses the selection proxy so it
+      // delegates to create-app's bridge when available.
       copyModeFeatureInstance = createCopyModeFeature({
-        selection: selectionFeature,
+        selection: selectionProxy,
         invalidate,
       })
 

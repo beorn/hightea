@@ -91,22 +91,22 @@ const app = pipe(
   withReact(<Board />),   // React reconciler
   withTerminal(process),  // terminal I/O
   withFocus(),            // Tab/Escape focus + FindFeature (Ctrl+F) + CopyModeFeature (Esc,v)
-  withDomEvents(),        // mouse dispatch + SelectionFeature + DragFeature
+  withDomEvents(),        // mouse dispatch + DragFeature
 )
 ```
 
 ### Interactions Runtime
 
-Interactive features (selection, find, copy-mode, drag) are implemented as runtime features in `packages/ag-term/src/features/`. Each feature registers with the **InputRouter** (`@silvery/create/internal/input-router.ts`) for event dispatch and the **CapabilityRegistry** (`@silvery/create/internal/capability-registry.ts`) for React-side state access.
+Interactive features (selection, find, copy-mode, drag) are implemented as runtime features in `packages/ag-term/src/features/`. Each feature registers with the **CapabilityRegistry** (`@silvery/create/internal/capability-registry.ts`) for React-side state access.
 
 | Feature            | Activated by      | Trigger                 | Observer hook    |
 | ------------------ | ----------------- | ----------------------- | ---------------- |
-| `SelectionFeature` | `withDomEvents()` | mouse drag              | `useSelection()` |
+| `SelectionFeature` | `createApp.run()` | mouse drag              | `useSelection()` |
 | `DragFeature`      | `withDomEvents()` | mouse drag on draggable | —                |
 | `FindFeature`      | `withFocus()`     | `Ctrl+F`                | —                |
 | `CopyModeFeature`  | `withFocus()`     | `Esc, v`                | —                |
 
-React components access feature state via the `CapabilityRegistryContext`. The `useSelection()` hook is the canonical example — it reads `SelectionFeature` state without needing a provider wrapper.
+Selection is handled by create-app's inline event loop and exposed via a bridge `SelectionFeature` registered in the capability registry. The `useSelection()` hook reads from this bridge — no provider wrapper needed. Copy-mode (`withFocus`) accesses the same bridge to drive keyboard selection.
 
 ## Commands
 

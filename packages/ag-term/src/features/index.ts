@@ -9,8 +9,8 @@
  */
 
 // Selection
-export { createSelectionFeature } from "./selection"
-export type { SelectionFeature, SelectionFeatureOptions } from "./selection"
+export { createSelectionFeature, createSelectionBridge } from "./selection"
+export type { SelectionFeature, SelectionFeatureOptions, SelectionBridgeOptions } from "./selection"
 
 // Drag
 export { createDragFeature } from "./drag"

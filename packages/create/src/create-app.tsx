@@ -113,7 +113,10 @@ import { captureTerminalState, performSuspend } from "@silvery/ag-term/runtime/t
 import { type TermProvider, createTermProvider } from "@silvery/ag-term/runtime/term-provider"
 import type { Buffer, Dims, Provider, RenderTarget } from "@silvery/ag-term/runtime/types"
 import { createTerminalSelectionState, terminalSelectionUpdate, extractText } from "@silvery/headless/selection"
+import { createSelectionBridge, type SelectionFeature } from "@silvery/ag-term/features/selection"
 import { renderSelectionOverlay } from "@silvery/ag-term/selection-renderer"
+import { createCapabilityRegistry, type CapabilityRegistry } from "./internal/capability-registry"
+import { SELECTION_CAPABILITY } from "./internal/capabilities"
 import { createVirtualScrollback } from "@silvery/ag-term/virtual-scrollback"
 import { createSearchState, searchUpdate, renderSearchBar, type SearchMatch } from "@silvery/ag-term/search-overlay"
 import { createOutputGuard, type OutputGuard } from "@silvery/ag-term/ansi/output-guard"
@@ -896,6 +899,67 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   const selectionEnabled = selectionOption ?? false
   let selectionState = createTerminalSelectionState()
 
+  // --- Selection bridge ---
+  // Listeners for the bridge's subscribe mechanism (used by useSelection)
+  const selectionListeners = new Set<() => void>()
+
+  /** Notify useSelection() subscribers that selection state changed. */
+  function notifySelectionListeners(): void {
+    for (const listener of selectionListeners) {
+      listener()
+    }
+  }
+
+  // Capability registry: use provided one or create our own so the bridge
+  // can be registered and useSelection() works even without withDomEvents().
+  const capabilityRegistry: CapabilityRegistry =
+    (capabilityRegistryOption as CapabilityRegistry | undefined) ?? createCapabilityRegistry()
+
+  // The bridge exposes create-app's selection state via the SelectionFeature
+  // interface. React hooks (useSelection) and copy-mode read/write through it.
+  let selectionBridge: SelectionFeature | undefined
+  if (selectionEnabled) {
+    selectionBridge = createSelectionBridge({
+      getState: () => selectionState,
+      subscribe: (listener) => {
+        selectionListeners.add(listener)
+        return () => { selectionListeners.delete(listener) }
+      },
+      setRange: (range) => {
+        if (range === null) {
+          const [next] = terminalSelectionUpdate({ type: "clear" }, selectionState)
+          selectionState = next
+        } else {
+          // Start at anchor, extend to head, finish
+          const [s1] = terminalSelectionUpdate(
+            { type: "start", col: range.anchor.col, row: range.anchor.row, source: "keyboard" },
+            selectionState,
+          )
+          const [s2] = terminalSelectionUpdate(
+            { type: "extend", col: range.head.col, row: range.head.row },
+            s1,
+          )
+          const [s3] = terminalSelectionUpdate({ type: "finish" }, s2)
+          selectionState = s3
+        }
+        notifySelectionListeners()
+        // Force re-render to show/clear overlay
+        if (currentBuffer) {
+          runtime.invalidate()
+        }
+      },
+      clear: () => {
+        const [next] = terminalSelectionUpdate({ type: "clear" }, selectionState)
+        selectionState = next
+        notifySelectionListeners()
+        if (currentBuffer) {
+          runtime.invalidate()
+        }
+      },
+    })
+    capabilityRegistry.register(SELECTION_CAPABILITY, selectionBridge)
+  }
+
   // Virtual inline mode state
   const scrollback = virtualInlineOption ? createVirtualScrollback() : null
   let virtualScrollOffset = 0 // 0 = live (bottom), >0 = scrolled up
@@ -1207,7 +1271,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
               >
                 <FocusManagerContext.Provider value={focusManager}>
                   <RuntimeContext.Provider value={runtimeContextValue}>
-                    <CapabilityRegistryContext.Provider value={capabilityRegistryOption ?? null}>
+                    <CapabilityRegistryContext.Provider value={capabilityRegistry}>
                       <Root>
                         <StoreContext.Provider value={store as StoreApi<unknown>}>{element}</StoreContext.Provider>
                       </Root>
@@ -1986,6 +2050,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             selectionState,
           )
           selectionState = next
+          notifySelectionListeners()
           // Force full re-render to clear old overlay (incremental render won't
           // overwrite the inverse-video ANSI the overlay wrote directly to stdout)
           if (currentBuffer) {
@@ -1998,6 +2063,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         } else if (mouseData.action === "move" && selectionState.selecting) {
           const [next] = terminalSelectionUpdate({ type: "extend", col: mouseData.x, row: mouseData.y }, selectionState)
           selectionState = next
+          notifySelectionListeners()
           // Re-render overlay to show updated selection
           if (currentBuffer) {
             runtime.render(currentBuffer)
@@ -2008,6 +2074,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         } else if (mouseData.action === "up" && selectionState.selecting) {
           const [next] = terminalSelectionUpdate({ type: "finish" }, selectionState)
           selectionState = next
+          notifySelectionListeners()
 
           // Copy selected text via OSC 52
           if (next.range && currentBuffer) {
@@ -2031,6 +2098,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     if (selectionEnabled && event.type === "term:key" && selectionState.range) {
       const [next] = terminalSelectionUpdate({ type: "clear" }, selectionState)
       selectionState = next
+      notifySelectionListeners()
       // Force full re-render to remove overlay
       if (currentBuffer) {
         runtime.invalidate()

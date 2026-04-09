@@ -1,12 +1,14 @@
 /**
- * withDomEvents �� selection integration tests.
+ * withDomEvents — composition integration tests.
  *
- * Tests the wiring between withDomEvents, InputRouter, CapabilityRegistry,
- * and SelectionFeature. Verifies that:
- * - withDomEvents creates and exposes capabilityRegistry, inputRouter, selectionFeature
- * - Selection is enabled via { selection: true }
- * - InputRouter dispatches mouse events to the selection handler
- * - Invalidation callback is called during selection
+ * Tests the wiring between withDomEvents, InputRouter, and CapabilityRegistry.
+ * Selection is now handled by create-app's inline event loop and exposed
+ * via a bridge SelectionFeature in the capability registry — withDomEvents
+ * no longer creates or dispatches selection events.
+ *
+ * Verifies that:
+ * - withDomEvents creates and exposes capabilityRegistry, inputRouter
+ * - InputRouter is registered in the capability registry
  * - CapabilityRegistry is shared between withTerminal and withDomEvents
  */
 
@@ -14,11 +16,9 @@ import { describe, test, expect, vi } from "vitest"
 import { withDomEvents, type AppWithDomEvents } from "../../packages/create/src/with-dom-events"
 import { withTerminal, type AppWithTerminal } from "../../packages/create/src/with-terminal"
 import {
-  SELECTION_CAPABILITY,
   CLIPBOARD_CAPABILITY,
   INPUT_ROUTER,
 } from "../../packages/create/src/internal/capabilities"
-import type { SelectionFeature } from "../../packages/ag-term/src/features/selection"
 import type { ClipboardCapability } from "../../packages/ag-term/src/features/clipboard-capability"
 import type { InputRouter } from "../../packages/create/src/internal/input-router"
 import { createBuffer, type TerminalBuffer } from "../../packages/ag-term/src/buffer"
@@ -94,122 +94,6 @@ describe("withDomEvents — plugin composition", () => {
     const router = enhanced.capabilityRegistry.get<InputRouter>(INPUT_ROUTER)
     expect(router).toBe(enhanced.inputRouter)
   })
-
-  test("selectionFeature is undefined when selection not enabled", () => {
-    const mockApp = createMockApp()
-    const enhanced = withDomEvents()(mockApp) as AppWithDomEvents
-
-    expect(enhanced.selectionFeature).toBeUndefined()
-  })
-
-  test("selectionFeature is created when selection: true", () => {
-    const mockApp = createMockApp()
-    const enhanced = withDomEvents({ selection: true })(mockApp) as AppWithDomEvents
-
-    expect(enhanced.selectionFeature).toBeDefined()
-    expect(typeof enhanced.selectionFeature!.handleMouseDown).toBe("function")
-    expect(typeof enhanced.selectionFeature!.handleMouseMove).toBe("function")
-    expect(typeof enhanced.selectionFeature!.handleMouseUp).toBe("function")
-  })
-
-  test("selectionFeature is registered in capability registry", () => {
-    const mockApp = createMockApp()
-    const enhanced = withDomEvents({ selection: true })(mockApp) as AppWithDomEvents
-
-    const feature = enhanced.capabilityRegistry.get<SelectionFeature>(SELECTION_CAPABILITY)
-    expect(feature).toBe(enhanced.selectionFeature)
-  })
-})
-
-// ============================================================================
-// Selection via input router
-// ============================================================================
-
-describe("withDomEvents — selection via input router", () => {
-  test("mousedown dispatched through router starts selection", () => {
-    const mockApp = createMockApp()
-    const enhanced = withDomEvents({ selection: true })(mockApp) as AppWithDomEvents
-
-    enhanced.inputRouter.dispatchMouse({
-      x: 2,
-      y: 0,
-      button: 0,
-      type: "mousedown",
-    })
-
-    expect(enhanced.selectionFeature!.state.selecting).toBe(true)
-    expect(enhanced.selectionFeature!.state.range).not.toBeNull()
-    expect(enhanced.selectionFeature!.state.range!.anchor).toEqual({ col: 2, row: 0 })
-  })
-
-  test("mousemove during selection extends range", () => {
-    const mockApp = createMockApp()
-    const enhanced = withDomEvents({ selection: true })(mockApp) as AppWithDomEvents
-
-    enhanced.inputRouter.dispatchMouse({
-      x: 0,
-      y: 0,
-      button: 0,
-      type: "mousedown",
-    })
-
-    enhanced.inputRouter.dispatchMouse({
-      x: 8,
-      y: 0,
-      button: 0,
-      type: "mousemove",
-    })
-
-    expect(enhanced.selectionFeature!.state.range!.head).toEqual({ col: 8, row: 0 })
-  })
-
-  test("mousemove during selection is claimed (returns true)", () => {
-    const mockApp = createMockApp()
-    const enhanced = withDomEvents({ selection: true })(mockApp) as AppWithDomEvents
-
-    enhanced.inputRouter.dispatchMouse({
-      x: 0,
-      y: 0,
-      button: 0,
-      type: "mousedown",
-    })
-
-    const claimed = enhanced.inputRouter.dispatchMouse({
-      x: 5,
-      y: 0,
-      button: 0,
-      type: "mousemove",
-    })
-
-    expect(claimed).toBe(true)
-  })
-
-  test("mouseup finishes selection", () => {
-    const mockApp = createMockApp()
-    const enhanced = withDomEvents({ selection: true })(mockApp) as AppWithDomEvents
-
-    enhanced.inputRouter.dispatchMouse({ x: 0, y: 0, button: 0, type: "mousedown" })
-    enhanced.inputRouter.dispatchMouse({ x: 5, y: 0, button: 0, type: "mousemove" })
-    enhanced.inputRouter.dispatchMouse({ x: 5, y: 0, button: 0, type: "mouseup" })
-
-    expect(enhanced.selectionFeature!.state.selecting).toBe(false)
-    expect(enhanced.selectionFeature!.state.range).not.toBeNull()
-  })
-
-  test("right-click (button 2) does not start selection", () => {
-    const mockApp = createMockApp()
-    const enhanced = withDomEvents({ selection: true })(mockApp) as AppWithDomEvents
-
-    enhanced.inputRouter.dispatchMouse({
-      x: 0,
-      y: 0,
-      button: 2,
-      type: "mousedown",
-    })
-
-    expect(enhanced.selectionFeature!.state.selecting).toBe(false)
-    expect(enhanced.selectionFeature!.state.range).toBeNull()
-  })
 })
 
 // ============================================================================
@@ -217,22 +101,9 @@ describe("withDomEvents — selection via input router", () => {
 // ============================================================================
 
 describe("withDomEvents — invalidation", () => {
-  test("selection state change triggers store.setState (invalidation)", () => {
-    const mockApp = createMockApp()
-    const enhanced = withDomEvents({ selection: true })(mockApp) as AppWithDomEvents
-
-    // Store setState should have been set up as invalidation target
-    const storeSetState = mockApp.store.setState
-
-    enhanced.inputRouter.dispatchMouse({ x: 0, y: 0, button: 0, type: "mousedown" })
-
-    // The invalidation callback should have triggered setState
-    expect(storeSetState).toHaveBeenCalled()
-  })
-
   test("invalidate() on inputRouter calls the invalidation mechanism", () => {
     const mockApp = createMockApp()
-    const enhanced = withDomEvents({ selection: true })(mockApp) as AppWithDomEvents
+    const enhanced = withDomEvents()(mockApp) as AppWithDomEvents
 
     const storeSetState = mockApp.store.setState
     storeSetState.mockClear()
@@ -261,16 +132,12 @@ describe("withDomEvents — registry sharing", () => {
     const withTerm = withTerminal(mockProc as any)(mockApp) as AppWithTerminal
 
     // Apply withDomEvents (should pick up existing registry)
-    const enhanced = withDomEvents({ selection: true })(withTerm as any) as AppWithDomEvents & AppWithTerminal
+    const enhanced = withDomEvents()(withTerm as any) as AppWithDomEvents & AppWithTerminal
 
     // The clipboard from withTerminal should be accessible via the shared registry
     const clipboard = enhanced.capabilityRegistry.get<ClipboardCapability>(CLIPBOARD_CAPABILITY)
     expect(clipboard).toBeDefined()
     expect(typeof clipboard!.copy).toBe("function")
-
-    // The selection feature should also be in the same registry
-    const selection = enhanced.capabilityRegistry.get<SelectionFeature>(SELECTION_CAPABILITY)
-    expect(selection).toBe(enhanced.selectionFeature)
   })
 
   test("creates new registry when no existing one", () => {

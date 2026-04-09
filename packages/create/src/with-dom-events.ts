@@ -50,8 +50,7 @@ import {
 } from "@silvery/ag-term/mouse-events"
 import { createInputRouter, type InputRouter } from "./internal/input-router"
 import { createCapabilityRegistry, type CapabilityRegistry } from "./internal/capability-registry"
-import { SELECTION_CAPABILITY, CLIPBOARD_CAPABILITY, INPUT_ROUTER } from "./internal/capabilities"
-import { createSelectionFeature, type SelectionFeature } from "@silvery/ag-term/features"
+import { INPUT_ROUTER } from "./internal/capabilities"
 
 // =============================================================================
 // Types
@@ -64,13 +63,6 @@ export interface WithDomEventsOptions {
   /** Focus manager for click-to-focus behavior.
    *  If the app has a focusManager property, it's used automatically. */
   focusManager?: FocusManager
-
-  /**
-   * Enable text selection via mouse drag.
-   * When true, creates a SelectionFeature and registers it in the capability registry.
-   * Default: false
-   */
-  selection?: boolean
 
   /**
    * Pre-built capability registry. If not provided, a new one is created.
@@ -88,9 +80,6 @@ export interface AppWithDomEvents {
 
   /** The input router for priority-based event dispatch. */
   readonly inputRouter: InputRouter
-
-  /** The selection feature (only present when selection is enabled). */
-  readonly selectionFeature?: SelectionFeature
 }
 
 // =============================================================================
@@ -136,54 +125,9 @@ export function withDomEvents(options: WithDomEventsOptions = {}): <T extends Ap
     const router = createInputRouter({ invalidate: () => invalidateCallback() })
     registry.register(INPUT_ROUTER, router)
 
-    // --- Selection Feature ---
-    const selectionEnabled = options.selection ?? true
-    let selectionFeature: SelectionFeature | undefined
-
-    if (selectionEnabled) {
-      // Selection needs a buffer — it will be lazily resolved when mouse events arrive.
-      // For now, create with a deferred buffer access pattern.
-      // The buffer is accessed from the app's lastBuffer() method.
-      const bufferProxy = new Proxy({} as import("@silvery/ag-term/buffer").TerminalBuffer, {
-        get(_target, prop) {
-          const buf = app.lastBuffer?.()
-          if (!buf) throw new Error("SelectionFeature: no buffer available yet")
-          return (buf as any)[prop]
-        },
-      })
-
-      const clipboard = registry.get<import("@silvery/ag-term/features").ClipboardCapability>(CLIPBOARD_CAPABILITY)
-
-      selectionFeature = createSelectionFeature({
-        buffer: bufferProxy,
-        clipboard: clipboard ?? undefined,
-        invalidate: () => router.invalidate(),
-      })
-
-      registry.register(SELECTION_CAPABILITY, selectionFeature)
-
-      // Register selection mouse handler at priority 100 (high — intercepts before component handlers)
-      router.registerMouseHandler(100, (event) => {
-        if (event.button !== 0) return false // only left button
-
-        if (event.type === "mousedown") {
-          selectionFeature!.handleMouseDown(event.x, event.y, event.modifiers?.alt ?? false)
-          return false // don't consume mousedown — let components handle click-to-focus etc.
-        }
-
-        if (event.type === "mousemove" && selectionFeature!.state.selecting) {
-          selectionFeature!.handleMouseMove(event.x, event.y)
-          return true // consume move during active selection
-        }
-
-        if (event.type === "mouseup" && selectionFeature!.state.selecting) {
-          selectionFeature!.handleMouseUp(event.x, event.y)
-          return false // don't consume mouseup
-        }
-
-        return false
-      })
-    }
+    // Selection is now handled by create-app.tsx's inline event loop and
+    // exposed via a bridge SelectionFeature in the capability registry.
+    // withDomEvents no longer creates or dispatches selection events.
 
     // Override click, doubleClick, and wheel to use our processor
     // which is connected to the focus manager and input router
@@ -191,7 +135,6 @@ export function withDomEvents(options: WithDomEventsOptions = {}): <T extends Ap
       get(target, prop, receiver) {
         if (prop === "capabilityRegistry") return registry
         if (prop === "inputRouter") return router
-        if (prop === "selectionFeature") return selectionFeature
 
         if (prop === "click") {
           return async function enhancedClick(x: number, y: number, clickOptions?: { button?: number }): Promise<T> {
@@ -306,9 +249,7 @@ export function withDomEvents(options: WithDomEventsOptions = {}): <T extends Ap
               // Inject capabilityRegistry into the options argument.
               // run() can be called as run(), run(element), or run(element, options).
               // We need to find or create the options object and add our registry.
-              // Inject both capabilityRegistry AND selection: true into run options.
-              // create-app.tsx has built-in selection handling gated by selection option.
-              const inject = { capabilityRegistry: registry, selection: selectionEnabled }
+              const inject = { capabilityRegistry: registry }
 
               if (args.length === 0) {
                 return originalRun.call(target, inject)
