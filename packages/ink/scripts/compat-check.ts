@@ -27,6 +27,16 @@ const CHALK_DIR = join(CLONE_DIR, "chalk")
 const INK_REPO = "https://github.com/vadimdemedes/ink.git"
 const CHALK_REPO = "https://github.com/chalk/chalk.git"
 
+/**
+ * Pinned upstream versions for compat testing.
+ *
+ * These pins control which upstream tag we clone and test against.
+ * Bumping these is an explicit action — see `.claude/skills/ink-compat/SKILL.md`
+ * mode "upgrade" for the full workflow.
+ */
+const INK_VERSION = "v7.0.0"
+const CHALK_VERSION = "v5.6.2"
+
 const target = process.argv[2] // "ink", "chalk", or undefined (both)
 
 /** Remove `test.failing(` marks for specific test names (Ink/Yoga bugs that silvery passes). */
@@ -56,14 +66,14 @@ async function addFailingMarks(filePath: string, testNames: string[]) {
   await Bun.write(filePath, content)
 }
 
-async function cloneIfNeeded(repo: string, dir: string, name: string) {
+async function cloneIfNeeded(repo: string, dir: string, name: string, ref: string) {
   if (existsSync(dir)) {
-    console.log(`  ${name}: using cached clone at ${dir}`)
+    console.log(`  ${name}: using cached clone at ${dir} (pinned to ${ref})`)
     console.log(`  (delete ${dir} to re-clone)`)
     return
   }
-  console.log(`  ${name}: cloning ${repo}...`)
-  await $`git clone --depth=1 ${repo} ${dir}`.quiet()
+  console.log(`  ${name}: cloning ${repo} @ ${ref}...`)
+  await $`git clone --depth=1 --branch=${ref} ${repo} ${dir}`.quiet()
   console.log(`  ${name}: done`)
 }
 
@@ -72,9 +82,9 @@ async function cloneIfNeeded(repo: string, dir: string, name: string) {
 // ---------------------------------------------------------------------------
 
 async function runInkTests() {
-  console.log("\n--- Ink Compatibility ---\n")
+  console.log(`\n--- Ink Compatibility (pinned ${INK_VERSION}) ---\n`)
 
-  await cloneIfNeeded(INK_REPO, INK_DIR, "ink")
+  await cloneIfNeeded(INK_REPO, INK_DIR, "ink", INK_VERSION)
 
   // Install ink's dependencies first (ava, sinon, strip-ansi, react, etc.)
   console.log("  Installing ink dependencies...")
@@ -194,9 +204,9 @@ await initInkCompat();
 // ---------------------------------------------------------------------------
 
 async function runChalkTests() {
-  console.log("\n--- Chalk Compatibility ---\n")
+  console.log(`\n--- Chalk Compatibility (pinned ${CHALK_VERSION}) ---\n`)
 
-  await cloneIfNeeded(CHALK_REPO, CHALK_DIR, "chalk")
+  await cloneIfNeeded(CHALK_REPO, CHALK_DIR, "chalk", CHALK_VERSION)
 
   // Install chalk's dependencies first
   console.log("  Installing chalk dependencies...")
@@ -292,6 +302,7 @@ function parseSummary(output: string) {
 // ---------------------------------------------------------------------------
 
 console.log("silvery compat checker\n")
+console.log(`Pinned upstream versions: ink=${INK_VERSION}, chalk=${CHALK_VERSION}`)
 console.log("Cloning test suites (cached after first run)...")
 await $`mkdir -p ${CLONE_DIR}`.quiet()
 
