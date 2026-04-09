@@ -94,4 +94,31 @@ describe("overflow border edge cases", () => {
     expect(lines[0]).not.toContain("┌")
     expect(lines[0]).not.toContain("┐")
   })
+
+  test("text overflowing LEFT edge of overflow=hidden border parent preserves border", () => {
+    // Regression for km-flexily.overflow-clip-edges (Ink 7 compat overflow.tsx
+    // test "overflowX - box intersecting with left edge of overflow container
+    // with border"). A child with negative marginLeft inside an overflow:hidden
+    // container with a border. Historically silvery wrote text starting at the
+    // negative position, overwriting the parent's left border. With horizontal
+    // left-clipping in renderText/renderGraphemes, the visible portion of the
+    // text starts at clipBounds.left (col 1), preserving the border at col 0.
+    const r = createRenderer({ cols: 20, rows: 5 })
+    const app = r(
+      <Box width={8} overflowX="hidden" borderStyle="round">
+        <Box marginLeft={-3} width={12} flexShrink={0}>
+          <Text>Hello World</Text>
+        </Box>
+      </Box>,
+    )
+    const text = stripAnsi(app.text)
+    const lines = text.split("\n")
+    // Line 0: top border 8 chars: ╭──────╮
+    expect(lines[0]).toBe("╭──────╮")
+    // Line 1: │lo Wor│ — left border preserved, visible text is "Hello World"
+    // chars at indices 3..9 ("lo Wor"), right border preserved.
+    expect(lines[1]).toBe("│lo Wor│")
+    // Line 2: bottom border
+    expect(lines[2]).toBe("╰──────╯")
+  })
 })

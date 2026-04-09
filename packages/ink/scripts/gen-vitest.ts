@@ -95,9 +95,10 @@ const EXPECTED_FAILURES: Record<string, string[]> = {
   "flex-wrap": ["row - no wrap", "column - no wrap"],
   "width-height": ["set aspect ratio with width and height", "set aspect ratio with maxHeight constraint"],
   overflow: [
-    "overflowX - single text node in a box with border inside overflow container",
+    // Multi-Text-children inside a border box don't wrap as if joined; this matches
+    // upstream Ink which also marks this test .failing — Yoga lays out sibling Text
+    // nodes side-by-side without re-wrapping at the container's content width.
     "overflowX - multiple text nodes in a box with border inside overflow container",
-    "overflowX - box intersecting with left edge of overflow container with border",
     "out of bounds writes do not crash",
   ],
   "render-to-string": [
@@ -329,13 +330,21 @@ function transform(code: string, fileName: string): string {
   )
 
   // Comment out truly unavailable packages
-  const unavailable = ["patch-console", "is-in-ci", "slice-ansi"]
+  const unavailable = ["patch-console", "is-in-ci"]
   for (const pkg of unavailable) {
     out = out.replace(
       new RegExp(`import\\s+\\w+(?:,\\s*\\{[^}]*\\})?\\s+from\\s*['"]${pkg}['"];?\\n?`, "g"),
       `// import from '${pkg}' — not available\n`,
     )
   }
+
+  // slice-ansi: provide an inline shim. None of the test inputs we run through
+  // it contain ANSI escape codes (they're all silvery render output of plain
+  // text + box-drawing characters), so plain String.prototype.slice suffices.
+  out = out.replace(
+    /import\s+\w+(?:,\s*\{[^}]*\})?\s+from\s*['"]slice-ansi['"];?\n?/g,
+    "// slice-ansi shim — test inputs contain no ANSI; plain .slice() suffices\nconst sliceAnsi = (s: string, start: number, end: number): string => s.slice(start, end);\n",
+  )
 
   // Handle indent-string inline
   out = out.replace(
