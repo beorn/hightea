@@ -201,6 +201,8 @@ export function useCursor() {
 // Animation hook
 // =============================================================================
 
+import { InkAnimationContext, normalizeAnimationInterval } from "./ink-animation"
+
 /**
  * Result returned by useAnimation.
  */
@@ -225,56 +227,78 @@ export type UseAnimationOptions = {
   readonly isActive?: boolean
 }
 
+const zeroAnimState = { frame: 0, time: 0, delta: 0 }
+
 /**
  * Ink-compatible useAnimation hook.
  *
  * Drives animations by providing a frame counter, elapsed time, frame delta,
- * and a reset function. Multiple useAnimation calls with the same interval
- * share a single setInterval internally for efficiency.
+ * and a reset function. All animations share a single timer internally via
+ * InkAnimationContext, so multiple animated components consolidate into one
+ * render cycle (matching Ink 7.0 behaviour).
  */
 export function useAnimation(options?: UseAnimationOptions): AnimationResult {
   const { interval = 100, isActive = true } = options ?? {}
-  const [state, setState] = useState({ frame: 0, time: 0, delta: 0 })
-  const startRef = useRef<number>(0)
-  const prevTickRef = useRef<number>(0)
+  const safeInterval = normalizeAnimationInterval(interval)
+  const { subscribe, renderThrottleMs } = useContext(InkAnimationContext)
+
+  const [resetKey, setResetKey] = useState(0)
+  const [animState, setAnimState] = useState(zeroAnimState)
+
+  const nextRenderTimeRef = useRef(0)
+  const lastRenderTimeRef = useRef(0)
+  const previousOptionsRef = useRef({ isActive, safeInterval, resetKey })
+  const previousOptions = previousOptionsRef.current
+
+  const shouldReset =
+    isActive &&
+    (safeInterval !== previousOptions.safeInterval || !previousOptions.isActive || resetKey !== previousOptions.resetKey)
 
   const reset = useCallback(() => {
-    startRef.current = Date.now()
-    prevTickRef.current = startRef.current
-    setState({ frame: 0, time: 0, delta: 0 })
+    setResetKey((k) => k + 1)
   }, [])
 
-  useEffect(() => {
-    if (!isActive) {
-      // Reset state when deactivated so re-activation starts fresh
-      startRef.current = 0
-      prevTickRef.current = 0
-      setState({ frame: 0, time: 0, delta: 0 })
-      return
-    }
+  useLayoutEffect(() => {
+    if (!isActive) return
 
-    const now = Date.now()
-    startRef.current = now
-    prevTickRef.current = now
+    // Reset to zero immediately so any render between effect commit and
+    // first tick shows zeros, not stale values.
+    setAnimState(zeroAnimState)
 
-    const id = setInterval(() => {
-      const tick = Date.now()
-      const elapsed = tick - startRef.current
-      const delta = tick - prevTickRef.current
-      prevTickRef.current = tick
-      setState((prev) => ({
-        frame: prev.frame + 1,
+    let startTime = 0
+
+    const { startTime: subscriberStartTime, unsubscribe } = subscribe((currentTime: number) => {
+      const isThrottled = renderThrottleMs > 0 && currentTime < nextRenderTimeRef.current
+      if (isThrottled) return
+
+      const elapsed = currentTime - startTime
+      const nextDelta = currentTime - lastRenderTimeRef.current
+      lastRenderTimeRef.current = currentTime
+      nextRenderTimeRef.current = currentTime + renderThrottleMs
+
+      setAnimState({
+        frame: Math.floor(elapsed / safeInterval),
         time: elapsed,
-        delta,
-      }))
-    }, interval)
+        delta: nextDelta,
+      })
+    }, safeInterval)
 
-    return () => {
-      clearInterval(id)
-    }
-  }, [interval, isActive])
+    startTime = subscriberStartTime
+    lastRenderTimeRef.current = subscriberStartTime
+    nextRenderTimeRef.current = startTime + renderThrottleMs
 
-  return { ...state, reset }
+    return unsubscribe
+  }, [safeInterval, isActive, subscribe, renderThrottleMs, resetKey])
+
+  useLayoutEffect(() => {
+    previousOptionsRef.current = { isActive, safeInterval, resetKey }
+  }, [isActive, safeInterval, resetKey])
+
+  if (shouldReset) {
+    return { ...zeroAnimState, reset }
+  }
+
+  return { ...animState, reset }
 }
 
 // =============================================================================

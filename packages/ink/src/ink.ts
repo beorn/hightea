@@ -58,6 +58,8 @@ export {
   useApp,
   useStdout,
   useStderr,
+  useAnimation,
+  useIsScreenReaderEnabled,
 } from "./ink-hooks"
 export type {
   UseFocusOptions,
@@ -68,6 +70,8 @@ export type {
   UseInputOptions,
   UseAppResult,
   UseStdoutResult,
+  AnimationResult,
+  UseAnimationOptions,
 } from "./ink-hooks"
 
 // =============================================================================
