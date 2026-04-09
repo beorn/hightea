@@ -2,98 +2,129 @@
 
 _External project claims last verified: 2026-04. Ink version: 7.0.0._
 
-## Why This Page Exists
+Silvery is a ground-up React terminal renderer with a different rendering architecture. Same `Box`, `Text`, `useInput` API — 99% of Ink's tests pass on silvery's compat layer. [Migration guide →](/getting-started/migrate-from-ink)
 
-Ink is excellent for simpler, text-first terminal apps and has years of maturity and a large ecosystem. Silvery exists because we needed different primitives for large interactive layouts — specifically, components that know their own dimensions during render, and a rendering pipeline that commits frames atomically.
+## Feature Matrix
 
-In Ink, React renders first, then Yoga calculates layout. Components that need to adapt to their available space (truncate text, choose compact vs full layout, fit columns to width) must use post-render effects or prop drilling. This is a known limitation ([Ink #5](https://github.com/vadimdemedes/ink/issues/5), open since 2016). It works fine for many apps, but it becomes a constraint when building complex interactive UIs like kanban boards, text editors, or multi-pane dashboards.
+**Silvery-only** — things Ink doesn't have:
 
-Addressing it required a different rendering pipeline — layout first, then render, with atomic commit — which meant building a new renderer. On top of that core, optional framework layers provide input management, commands, mouse support, 45+ components, theming, and TEA state machines.
+| Feature | Silvery | Ink |
+|---|---|---|
+| **Scrollable containers** | `overflow="scroll"` + `scrollTo` | `visible`/`hidden` only ([#222](https://github.com/vadimdemedes/ink/issues/222)) |
+| **Dynamic scrollback** | Items graduate to terminal history; Cmd+F works | All items stay in render tree |
+| **Mouse + drag-and-drop** | SGR mouse, `onClick`/`onWheel`, hit testing, drag | None |
+| **Sticky headers** | `position="sticky"` in scroll containers | None |
+| **Image rendering** | `<Image>` — Kitty graphics + Sixel + text fallback | None |
+| **TextInput / TextArea** | Built-in: readline, cursor, selection, undo/redo | None ([third-party](https://github.com/vadimdemedes/ink-text-input)) |
+| **Command + keybinding system** | Named commands, context-aware keys, `parseHotkey("⌘K")` | None |
+| **Input layering** | DOM-style bubbling, modal isolation, `stopPropagation` | Flat: all handlers see all input |
+| **Focus scopes + spatial nav** | Tree-based, arrow keys, click-to-focus, `useFocusWithin` | Tab-order only |
+| **Text selection + find + copy-mode** | Mouse drag, `Ctrl+F` search, `Esc,v` keyboard selection | None |
+| **Clipboard** | OSC 52 — works across SSH | None |
+| **45+ built-in components** | VirtualList, Table, CommandPalette, TreeView, Toast, Tabs, SplitView, ... | 5 built-in + 50+ third-party |
+| **Theme system** | 38 palettes, semantic tokens (`$primary`, `$muted`), auto-detect | Manual chalk styling |
+| **Canvas / DOM targets** | Terminal, Canvas 2D, DOM (experimental) | Terminal only |
+| **TEA state machines** | `@silvery/create`: `(action, state) → [state, effects]`, replay, undo | None |
+| **Playwright-style testing** | Built-in `@silvery/test` with locators, press(), buffer assertions | Third-party `ink-testing-library` |
+| **Render invariant checks** | `SILVERY_STRICT=1` verifies incremental = fresh on every frame | None |
 
-## The atomicity story
+**Silvery is better** — things both have, silvery does more:
 
-The deepest architectural difference between Silvery and Ink is **frame atomicity**: in Silvery, a frame is either fully committed to the terminal or not at all. There are no intermediate states a user can observe. In Ink, intermediate states are constantly observable, which is why Ink apps exhibit flicker, component dropout during scroll, and half-updated frames.
+| Feature | Silvery | Ink |
+|---|---|---|
+| **Responsive layout** | `useBoxRect()` — dimensions available _during_ render | `useBoxMetrics()` — post-layout via `useEffect`, returns 0×0 first |
+| **Incremental rendering** | Cell-level dirty tracking (7 flags/node), cell-level buffer diff | Line-level diff; any change rewrites entire line |
+| **ANSI compositing** | Cell-level buffer with style stacking + color blending | String concatenation; no compositing layer |
+| **Layout engine** | [Flexily](https://beorn.codes/flexily) (pure JS, ~2KB) or Yoga — pluggable | Yoga WASM only |
+| **Layout caching** | Fingerprint + cache unchanged subtrees | Full tree recomputation every pass |
+| **Memory** | Normal JS GC; graduated scrollback frees React tree | Yoga WASM linear heap can grow over long sessions |
+| **Animation** | `useAnimation` + easing functions + `useAnimatedTransition` | `useAnimation` (frame/time/delta only, v7.0+) |
+| **Resource cleanup** | `using` / Disposable — automatic teardown | Manual `unmount()` |
 
-Silvery's pipeline is atomic in three dimensions simultaneously:
+**Ink is better:**
 
-1. **Atomic in time.** `layout → render → diff → output` runs as a single synchronous transaction per frame. React's concurrent mode cannot interrupt mid-commit. When a frame starts committing, it finishes committing before any other work runs.
+| Feature | Ink | Silvery |
+|---|---|---|
+| **Community** | ~1.3M npm weekly downloads, 50+ third-party components | Newer, smaller community |
+| **Simpler API** | `render(<App />)` — one function | `pipe()` composition — more setup |
+| **Documentation** | Extensive README, many community examples | Growing docs site |
+| **React DevTools** | Supported | `SILVERY_DEV=1` inspector (different) |
 
-2. **Atomic in space.** [Flexily](https://beorn.codes/flexily) computes the full layout tree before React renders anything, so `useBoxRect()` returns the same layout values for every component in the tree, sampled at the same moment. No part of the tree is ever at a different layout state than another part. Children always see consistent parent dimensions because the layout was computed once, up front, for the whole tree.
+**Both have:** React 19, Box/Text, flexbox, `useInput`, `useApp`/exit, `Static`, border styles, `measureElement`, Kitty keyboard, `renderToString`, `useCursor`, `usePaste`, `useAnimation`, `useWindowSize`, DEC mode 2026 (synchronized output).
 
-3. **Atomic in content.** Every frame emission is wrapped in DEC mode 2026 (synchronized output bracketing). The terminal either sees the full new frame or the full old frame — never a half-drawn mixture. Cell-level diffing + relative cursor addressing means the emission is small enough to fit inside a single sync barrier without tearing.
+## Performance
 
-The consequence: **no symptom class that stems from non-atomic rendering can occur in Silvery.** Not flicker during streaming. Not component dropout on scroll. Not stuttering in alt-screen. Not half-updated trees. Not tearing. These are not bugs Silvery needs to fix — they are bugs Silvery's architecture makes impossible to experience.
+_Reproduce: `bun run bench`_
 
-This matters most for streaming apps (AI agents, log viewers, test runners, build tools) and long-running interactive apps where users scroll while content is updating. The atomicity property is what eliminates flicker, component dropout, and tearing during scroll — symptoms that other React-for-terminal frameworks exhibit because their render pipelines violate one or more of the three atomicity dimensions.
+Silvery wins **all 16 benchmark scenarios** vs Ink 7.0 on mounted workloads — the fair comparison (both frameworks keep a mounted app and call `rerender()`).
 
-## The Two Projects
+### Canonical — mounted app, what users experience
 
-[Ink](https://github.com/vadimdemedes/ink) (2017) brought React to the terminal. ~1.3M npm weekly downloads, 50+ community components, used by Gatsby, Prisma, Terraform CDK, Shopify CLI, Claude Code, and many more. Mature, stable, actively maintained, and battle-tested across thousands of production CLIs. Ink is a focused, reliable React renderer.
+| Scenario                            | Silvery advantage |
+| ----------------------------------- | ----------------- |
+| Mounted cursor move 100-item        | **2.56×**         |
+| Mounted kanban single text change   | **3.36×**         |
+| Memo'd 100-item single toggle       | **4.59×**         |
+| Memo'd 500-item single toggle       | **5.15×**         |
+| Memo'd kanban 5×20 single card edit | **3.75×**         |
 
-[Silvery](https://github.com/beorn/silvery) (2025) is a ground-up reimplementation with a different rendering architecture. At its core, it's a renderer — `Box`, `Text`, `useInput`, `render()` work the same as Ink. It ships 45+ components, state machines (`@silvery/create`), and theming — all available from a single `import from "silvery"`. Silvery is newer and has a smaller community.
+### Cold render (createRenderer reuse)
 
-> Silvery also compares favorably to terminal UI frameworks beyond Ink (BubbleTea, Textual, Notcurses, FTXUI, blessed) — the renderer architecture, React ecosystem access, and TypeScript-first design are unique advantages.
+| Scenario               | Silvery advantage |
+| ---------------------- | ----------------- |
+| Flat list 10 (80×24)   | **3.37×**         |
+| Flat list 100 (80×24)  | **3.53×**         |
+| Flat list 100 (200×60) | **4.56×**         |
+| Styled list 100        | **3.76×**         |
+| Kanban 5×10            | **3.99×**         |
+| Kanban 5×20 (200×60)   | **4.77×**         |
+| Deep tree 20           | **2.59×**         |
+| Deep tree 50           | **2.73×**         |
 
-See the [migration guide](/getting-started/migrate-from-ink) for switching from Ink.
+### Output efficiency
 
-> Performance numbers in this document are from the **Ink comparison benchmark suite**. Reproduce with `bun run bench` for raw benchmark tables.
+Silvery emits **28–192× less output** to the terminal than a full redraw on incremental updates. Cell-level buffer diff + relative cursor addressing.
 
-## Compatibility at a Glance
+### Bundle size
 
-Silvery passes **918+ of Ink 7.0's 931 tests** (~98.6%) when tested with the Flexily layout engine. Chalk compatibility is **32/32 (100%)**. These numbers come from cloning the real Ink and Chalk repos and running their original test suites against silvery's compat layer (`bun run compat`).
+| Package                                | Minified + Gzipped | vs Ink+Yoga |
+| -------------------------------------- | ------------------ | ----------- |
+| Ink 7.0 + Yoga WASM (baseline)         | 116.6 KB           | 1.00×       |
+| `silvery/runtime` (core + flexily)     | **114.9 KB**       | **0.99× (tied)** |
+| `silvery/ink` (Ink compat layer)       | 119.2 KB           | 1.02×       |
 
-The remaining failures break down as:
+### Methodology
 
-| Category                           | Failures | Why                                                                                         |
-| ---------------------------------- | -------- | ------------------------------------------------------------------------------------------- |
-| Flexily W3C spec divergence        | 4        | [flex-wrap (2), aspect ratio (2)](#flexily-vs-yoga-philosophy) — Flexily follows W3C spec, Yoga has non-spec behaviors silvery intentionally doesn't match |
-| Build artifact checks              | 2        | Ink expects `./build/` dir — silvery publishes TypeScript source plus pre-built `dist/`     |
-| Minor rendering edge cases         | ~6       | dim+bold SGR order (2), measure-element timing (1), render-to-string timing (1), misc       |
+- **Tooling**: [mitata](https://github.com/evanwashere/mitata) with warmup + automatic iteration count
+- **STRICT mode** disabled (`SILVERY_STRICT=0`). A prior env-parsing bug treated `"0"` as truthy; fixed 2026-04-09.
+- **Fair comparison**: Mounted scenarios keep both frameworks' React trees mounted and call `rerender()`
+- **Reproduce**: `bun run bench`
 
-**What recently shipped to compat (2026-04-09 parallel agent sweep):**
-- `BackgroundContext` shim — Ink 7.0's context-based bg inheritance (+27 tests)
-- `maxFps` render throttling option (+3 tests)
-- Kitty protocol negotiation bytes matching Ink's behavior (+3 tests)
-- Debug-mode cursor API shim (+3 tests)
-- `wrap="hard"` text wrapping (+1 test)
-- CJK wide-char overlay clearing (+2 tests)
-- Flexily overflow clipping at container edges (+3 tests)
-- Per-side `borderBackgroundColor` props (+5 tests)
+## Compatibility
 
-All new Ink 7.0 hooks (useAnimation, useBoxMetrics, useCursor, usePaste, useWindowSize, useIsScreenReaderEnabled) have full shims or direct re-exports.
+Silvery passes **918+ of Ink 7.0's 931 tests** (~98.6%). Chalk: **32/32 (100%)**. Run `bun run compat` to verify.
 
-If you need exact Yoga layout parity, Silvery supports Yoga as a pluggable layout engine.
+::: details Remaining failures (~12 tests)
+| Category                           | Failures | Why |
+| ---------------------------------- | -------- | --- |
+| Flexily W3C spec divergence        | 4        | flex-wrap (2), aspect ratio (2) — Flexily follows W3C, Yoga doesn't |
+| Build artifact checks              | 2        | Ink expects `./build/`; silvery ships TypeScript + `dist/` |
+| Minor rendering edge cases         | ~6       | SGR order (2), measure timing (1), render-to-string timing (1), misc |
+:::
 
-The compat layer is built as thin adapters (~50 lines each) that bridge Ink's APIs to silvery-native systems. `withInk()` composes `withInkCursor()` + `withInkFocus()` — you can use them individually or drop them as you adopt silvery-native APIs. See [compatibility reference](/reference/compatibility) for the full API mapping and [compat layer architecture](/reference/compatibility#compat-layer-architecture) for how the bridge works.
+::: details Recently shipped compat (2026-04-09)
+- `BackgroundContext` shim (+27 tests)
+- `maxFps` render throttling (+3)
+- Kitty protocol negotiation bytes (+3)
+- Debug-mode cursor API (+3)
+- `wrap="hard"` (+1), CJK overlay (+2), overflow clipping (+3), per-side `borderBackgroundColor` (+5)
+:::
 
-## Shared Foundation
+All Ink 7.0 hooks have full shims. [Full API mapping →](/reference/compatibility)
 
-Silvery and Ink share the same core ideas -- the migration path is intentionally short:
+If you need exact Yoga layout parity, Silvery supports Yoga as a pluggable engine.
 
-- **React 19 component model** -- JSX, hooks (`useState`, `useEffect`, `useMemo`, etc.), reconciliation, keys
-- **Box + Text primitives** -- Flexbox layout via `<Box>` with direction/padding/margin/border, styled text via `<Text>`
-- **Flexbox layout** -- Both use CSS-like flexbox (Silvery via Flexily or Yoga, Ink via Yoga WASM)
-- **`useInput` hook** -- Same callback signature `(input, key) => void` for keyboard handling
-- **`useApp` / exit pattern** -- `useApp()` to access app-level methods including `exit()`
-- **`Static` component** -- Render content above the interactive area (log lines, completed items)
-- **`Spacer` / `Newline` / `Transform`** -- Same utility components
-- **Border styles** -- `single`, `double`, `round`, `bold`, `classic`, etc.
-- **`measureElement`** -- Both offer ways to measure rendered elements
-- **Layout metrics** -- Both provide hooks for element dimensions (`useBoxRect` / `useBoxMetrics`)
-- **Kitty keyboard protocol** -- Both support extended modifiers and key event types
-- **`renderToString`** -- Both support synchronous string rendering without terminal setup
-- **Cursor positioning** -- Both provide `useCursor()` for IME support
-- **Animation** -- Both provide `useAnimation()` for frame-based animations (Ink 7.0+)
-- **Paste events** -- Both provide `usePaste()` with bracketed paste mode (Ink 7.0+)
-- **Window size** -- Both provide `useWindowSize()` for reactive terminal dimensions (Ink 7.0+)
-- **Screen reader support** -- Ink has ARIA roles/states; Silvery has basic support
-- **Node.js streams** -- Both render to stdout, read from stdin
-
-If your app uses `Box`, `Text`, `useInput`, and basic hooks, it works in both with minimal changes.
-
-## Where They Differ
-
-Both are React renderers at the core. The rendering architecture is the primary differentiator. Silvery's optional packages then add framework-level features on top. The differences fall into three categories:
+## Architecture
 
 ### Rendering Architecture
 
