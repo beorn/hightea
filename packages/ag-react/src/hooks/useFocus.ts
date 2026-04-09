@@ -92,10 +92,7 @@ export function useFocus(options: UseFocusOptions = {}): UseFocusResult {
   }, [fm, focusId, isActive])
 
   // Subscribe to FocusManager snapshot via useSyncExternalStore.
-  const subscribe = useCallback(
-    (listener: () => void) => fm?.subscribe(listener) ?? (() => {}),
-    [fm],
-  )
+  const subscribe = useCallback((listener: () => void) => fm?.subscribe(listener) ?? (() => {}), [fm])
   const getSnapshot = useCallback(() => fm?.getSnapshot() ?? null, [fm])
   const snapshot: FocusSnapshot | null = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 

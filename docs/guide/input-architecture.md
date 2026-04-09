@@ -42,6 +42,7 @@ stdin data event: "jjj\x1b[A\x1b[A"
 ```
 
 `splitRawInput()` recognizes three sequence types:
+
 - **Single bytes** -- printable characters and ctrl codes
 - **CSI sequences** -- `ESC [` ... terminator (letter or `~`)
 - **SS3 sequences** -- `ESC O` + letter (function keys on some terminals)
@@ -52,6 +53,7 @@ stdin data event: "jjj\x1b[A\x1b[A"
 **Bracketed paste.** Paste content is detected before splitting -- the entire paste arrives as a single `{ type: "paste" }` event, not as individual keystrokes.
 
 Each parsed sequence becomes a typed `ProviderEvent`:
+
 - `{ type: "key", data: { input, key } }` -- keyboard input
 - `{ type: "mouse", data: ParsedMouse }` -- mouse sequences
 - `{ type: "paste", data: { text } }` -- bracketed paste
@@ -81,6 +83,7 @@ CSI codepoint : shifted : base ; modifiers : eventType u
 ```
 
 This extracts:
+
 - **Modifier flags** -- ctrl, shift, alt, super, hyper, capsLock, numLock (bitmask)
 - **Event type** -- `"press"` (1), `"repeat"` (2), `"release"` (3)
 - **Shifted codepoint** -- for correct shifted punctuation on non-US layouts
@@ -91,6 +94,7 @@ Legacy CSI sequences (arrows, function keys) are also enhanced with the `:eventT
 ### Default Kitty flags
 
 Silvery enables flags 1 + 2 + 8 = **11** by default:
+
 - **DISAMBIGUATE** (1) -- unambiguous `CSI u` encoding for all keys
 - **REPORT_EVENTS** (2) -- press, repeat, and release events
 - **REPORT_ALL_KEYS** (8) -- even plain letters get `CSI u` encoding, enabling modifier-only detection
@@ -159,11 +163,11 @@ These defaults only fire when `dispatchKeyEvent()` did not set `propagationStopp
 
 ### Hook hierarchy
 
-| Hook | Purpose | Sees releases? | Sees modifier-only? |
-| --- | --- | --- | --- |
-| `useInput()` | Raw key handling for components | Via `onRelease` option | No (filtered) |
-| `useModifierKeys()` | Track held modifier state | Yes (all events) | Yes |
-| `useInputLayer()` | Layered input with bubbling | No | No |
+| Hook                | Purpose                         | Sees releases?         | Sees modifier-only? |
+| ------------------- | ------------------------------- | ---------------------- | ------------------- |
+| `useInput()`        | Raw key handling for components | Via `onRelease` option | No (filtered)       |
+| `useModifierKeys()` | Track held modifier state       | Yes (all events)       | Yes                 |
+| `useInputLayer()`   | Layered input with bubbling     | No                     | No                  |
 
 **`useInput(handler, options?)`** -- the primary input hook. Subscribes to `RuntimeContext` "input" events. Filters out modifier-only events. Routes release events to the `onRelease` callback if provided, otherwise drops them. See [Event Handling](event-handling.md) for the full API.
 
@@ -254,12 +258,14 @@ expect(event.propagationStopped).toBe(true)
 Dialogs capture Escape in the bubble phase to close themselves, preventing it from reaching parent handlers:
 
 ```tsx
-<Box onKeyDown={(e) => {
-  if (e.nativeEvent.key.escape) {
-    closeDialog()
-    e.stopPropagation()
-  }
-}}>
+<Box
+  onKeyDown={(e) => {
+    if (e.nativeEvent.key.escape) {
+      closeDialog()
+      e.stopPropagation()
+    }
+  }}
+>
   <TextInput value={query} onChange={setQuery} />
 </Box>
 ```
@@ -270,8 +276,14 @@ Components that accept text input (search bars, editors) use `key.text` for inse
 
 ```tsx
 useInput((input, key) => {
-  if (key.return) { submit(); return }
-  if (key.escape) { cancel(); return }
+  if (key.return) {
+    submit()
+    return
+  }
+  if (key.escape) {
+    cancel()
+    return
+  }
 
   // Text insertion: use key.text (actual character) not input (normalized)
   const char = key.text ?? input
@@ -291,7 +303,7 @@ withCommands({
   getContext: () => ({ mode: store.getState().mode, cursor: store.getState().cursor }),
   bindings: {
     key: {
-      i: "enter_insert",  // only active in normal mode (registry checks context)
+      i: "enter_insert", // only active in normal mode (registry checks context)
       Escape: "exit_insert",
     },
   },
