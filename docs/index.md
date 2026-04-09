@@ -54,10 +54,10 @@ features:
     details: "Wins all 16 benchmark scenarios vs Ink 7.0 on mounted workloads. Per-node dirty tracking with 7 independent flags. Only changed cells emit to the terminal. Incremental output is 28-192× smaller than full redraw."
     link: /guide/silvery-vs-ink#performance
     linkText: See benchmarks
-  - title: Atomic Rendering
-    details: "Layout runs before render, so components know their own dimensions on first pass via useBoxRect() — no two-pass flash. Frame emission wrapped in synchronized output (DEC 2026). No flicker, no component dropout on scroll, no half-updated frames."
-    link: /guide/silvery-vs-ink
-    linkText: Architecture
+  - title: Responsive Layout &amp; Scrolling
+    details: "Layout runs before render, so components know their size on first pass via useBoxRect(). That powers native scroll containers (overflow=scroll, no manual virtualization) AND atomic rendering — no two-pass flash, no flicker, no component dropout on scroll. Frames wrapped in DEC 2026 synchronized output."
+    link: /blog/claude-code-rendering-dilemma
+    linkText: Why atomic rendering matters
   - title: 45+ Components
     details: "VirtualList, TextArea, SelectList, Table, CommandPalette, ModalDialog, Tabs, TreeView, Image, Toast, Spinner, ProgressBar, SplitView, and more."
     link: /guides/components
@@ -66,8 +66,14 @@ features:
     details: "Headless rendering, auto-refreshing locators, getByText/getByTestId queries, bounding box assertions, and press() input. Test terminal UIs like you test web apps."
     link: /guide/testing
     linkText: Testing guide
-  - title: Flexible Rendering
-    details: "Three modes: render once (static output), run() for interactive apps (hooks + useInput), or compose with plugins for full control. Same renderer, pick your level."
+  - title: Inline, Fullscreen, or Static
+    details: |
+      Pick the rendering mode that fits your app. Same components, one-line switch:
+
+      - **Inline incremental** — live React zone at the bottom, completed items graduate to native scrollback (Cmd+F works)
+      - **Fullscreen (alt-screen)** — vim-style full control, cell-level updates, incremental diff
+      - **Static output** — render once to string, pipe to files or CI logs
+      - **Virtual lists** — windowed rendering for huge datasets, built into VirtualList
     link: /guide/runtime-layers
     linkText: Runtime layers
   - title: Terminal Protocol Support
