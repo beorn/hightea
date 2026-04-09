@@ -66,8 +66,8 @@ features:
     details: "Headless rendering, auto-refreshing locators, getByText/getByTestId queries, bounding box assertions, and press() input. Test terminal UIs like you test web apps."
     link: /guide/testing
     linkText: Testing guide
-  - title: Inline, Fullscreen, or Static
-    details: "Same components, one-line switch. Inline mode with native scrollback and Cmd+F. Fullscreen for dashboards. Static for CI logs. VirtualList for huge datasets."
+  - title: Inline, Fullscreen, or Both
+    details: "Same components, one-line switch. Inline mode gets fullscreen-level performance (cell-level incremental, no flicker) with native scrollback and Cmd+F. Fullscreen mode gets inline-level UX (app-managed scrollback graduation). Static for CI logs."
     link: /guide/runtime-layers
     linkText: Runtime layers
   - title: Terminal Protocol Support
