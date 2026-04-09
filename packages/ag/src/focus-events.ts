@@ -172,9 +172,15 @@ export function createFocusEvent(
  * Dispatch a keyboard event through the render tree with DOM-style
  * capture/target/bubble phases.
  *
- * 1. Capture phase: root → target (onKeyDownCapture props)
- * 2. Target phase: target's onKeyDown
- * 3. Bubble phase: target parent → root (onKeyDown props)
+ * For press/repeat events:
+ *   1. Capture phase: root → target (onKeyDownCapture props)
+ *   2. Target phase: target's onKeyDown
+ *   3. Bubble phase: target parent → root (onKeyDown props)
+ *
+ * For release events:
+ *   1. Target phase: target's onKeyUp
+ *   2. Bubble phase: target parent → root (onKeyUp props)
+ *   (No capture phase for keyUp — matches React DOM behavior)
  *
  * stopPropagation() halts traversal at any phase.
  */
@@ -182,24 +188,30 @@ export function dispatchKeyEvent(event: SilveryKeyEvent, dispatch?: (msg: unknow
   const path = getAncestorPath(event.target)
   const mutableEvent = event as { currentTarget: AgNode }
 
-  // Capture phase: root → target (reversed path, excluding target)
-  for (let i = path.length - 1; i > 0; i--) {
-    if (event.propagationStopped) return
-    const node = path[i]!
-    const handler = (node.props as Record<string, unknown>).onKeyDownCapture as
-      | ((e: SilveryKeyEvent) => void)
-      | undefined
-    if (handler) {
-      mutableEvent.currentTarget = node
-      handler(event)
+  // Release events → onKeyUp (no capture phase, matching React DOM)
+  const isRelease = event.eventType === "release"
+  const handlerProp = isRelease ? "onKeyUp" : "onKeyDown"
+
+  // Capture phase: root → target (onKeyDownCapture — press/repeat only)
+  if (!isRelease) {
+    for (let i = path.length - 1; i > 0; i--) {
+      if (event.propagationStopped) return
+      const node = path[i]!
+      const handler = (node.props as Record<string, unknown>).onKeyDownCapture as
+        | ((e: SilveryKeyEvent) => void)
+        | undefined
+      if (handler) {
+        mutableEvent.currentTarget = node
+        handler(event)
+      }
     }
   }
 
-  // Target phase: fire onKeyDown on the target itself
+  // Target phase
   if (!event.propagationStopped) {
     const target = path[0]!
     mutableEvent.currentTarget = target
-    const handler = (target.props as Record<string, unknown>).onKeyDown as
+    const handler = (target.props as Record<string, unknown>)[handlerProp] as
       | ((e: SilveryKeyEvent, d?: (msg: unknown) => void) => void)
       | undefined
     if (handler) {
@@ -211,7 +223,7 @@ export function dispatchKeyEvent(event: SilveryKeyEvent, dispatch?: (msg: unknow
   for (let i = 1; i < path.length; i++) {
     if (event.propagationStopped) return
     const node = path[i]!
-    const handler = (node.props as Record<string, unknown>).onKeyDown as
+    const handler = (node.props as Record<string, unknown>)[handlerProp] as
       | ((e: SilveryKeyEvent, d?: (msg: unknown) => void) => void)
       | undefined
     if (handler) {
