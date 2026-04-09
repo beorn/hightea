@@ -236,6 +236,16 @@ export interface BoxProps
   wrap?: "wrap" | "truncate" | "truncate-start" | "truncate-middle" | "truncate-end" | "clip" | boolean
   borderStyle?: "single" | "double" | "round" | "bold" | "singleDouble" | "doubleSingle" | "classic"
   borderColor?: string
+  /** Background color for all border sides (shorthand). Per-side props override this. */
+  borderBackgroundColor?: string
+  /** Background color for the top border (overrides borderBackgroundColor). */
+  borderTopBackgroundColor?: string
+  /** Background color for the bottom border (overrides borderBackgroundColor). */
+  borderBottomBackgroundColor?: string
+  /** Background color for the left border (overrides borderBackgroundColor). */
+  borderLeftBackgroundColor?: string
+  /** Background color for the right border (overrides borderBackgroundColor). */
+  borderRightBackgroundColor?: string
   borderTop?: boolean
   borderBottom?: boolean
   borderLeft?: boolean

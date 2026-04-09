@@ -108,7 +108,20 @@ export function renderBorder(
   // Preserve the box's background color on border cells. Falls back to
   // inherited bg from the nearest ancestor with backgroundColor, ensuring
   // border cells don't punch transparent holes through parent backgrounds.
-  const bg = props.backgroundColor ? parseColor(props.backgroundColor) : (inheritedBg ?? null)
+  const baseBg = props.backgroundColor ? parseColor(props.backgroundColor) : (inheritedBg ?? null)
+
+  // Per-side border background colors — each side falls back to the shorthand
+  // borderBackgroundColor, then to the box's own bg / inherited bg.
+  const borderBgStr = (props as BoxProps).borderBackgroundColor
+  const borderBgBase = borderBgStr ? parseColor(borderBgStr) : baseBg
+  const topBorderBgStr = (props as BoxProps).borderTopBackgroundColor
+  const bottomBorderBgStr = (props as BoxProps).borderBottomBackgroundColor
+  const leftBorderBgStr = (props as BoxProps).borderLeftBackgroundColor
+  const rightBorderBgStr = (props as BoxProps).borderRightBackgroundColor
+  const topBg = topBorderBgStr ? parseColor(topBorderBgStr) : borderBgBase
+  const bottomBg = bottomBorderBgStr ? parseColor(bottomBorderBgStr) : borderBgBase
+  const leftBg = leftBorderBgStr ? parseColor(leftBorderBgStr) : borderBgBase
+  const rightBg = rightBorderBgStr ? parseColor(rightBorderBgStr) : borderBgBase
 
   const showTop = props.borderTop !== false
   const showBottom = props.borderBottom !== false
@@ -127,16 +140,16 @@ export function renderBorder(
     return col >= clipBounds.left && col < clipBounds.right && col < buffer.width
   }
 
-  // Top border
+  // Top border — corners use the bg of the horizontal side (top/bottom)
   if (showTop && isRowVisible(y)) {
-    if (showLeft && isColVisible(x)) buffer.setCell(x, y, { char: chars.topLeft, fg: color, bg })
+    if (showLeft && isColVisible(x)) buffer.setCell(x, y, { char: chars.topLeft, fg: color, bg: topBg })
     const hStart = showLeft ? x + 1 : x
     const hEnd = showRight ? x + width - 1 : x + width
     for (let col = hStart; col < hEnd && col < buffer.width; col++) {
-      if (isColVisible(col)) buffer.setCell(col, y, { char: chars.horizontal, fg: color, bg })
+      if (isColVisible(col)) buffer.setCell(col, y, { char: chars.horizontal, fg: color, bg: topBg })
     }
     if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
-      buffer.setCell(x + width - 1, y, { char: chars.topRight, fg: color, bg })
+      buffer.setCell(x + width - 1, y, { char: chars.topRight, fg: color, bg: topBg })
     }
   }
 
@@ -146,9 +159,9 @@ export function renderBorder(
   const sideEnd = showBottom ? y + height - 1 : y + height
   for (let row = sideStart; row < sideEnd; row++) {
     if (!isRowVisible(row)) continue
-    if (showLeft && isColVisible(x)) buffer.setCell(x, row, { char: chars.vertical, fg: color, bg })
+    if (showLeft && isColVisible(x)) buffer.setCell(x, row, { char: chars.vertical, fg: color, bg: leftBg })
     if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
-      buffer.setCell(x + width - 1, row, { char: rightVertical, fg: color, bg })
+      buffer.setCell(x + width - 1, row, { char: rightVertical, fg: color, bg: rightBg })
     }
   }
 
@@ -157,18 +170,18 @@ export function renderBorder(
   const bottomY = y + height - 1
   if (showBottom && isRowVisible(bottomY)) {
     if (showLeft && isColVisible(x)) {
-      buffer.setCell(x, bottomY, { char: chars.bottomLeft, fg: color, bg })
+      buffer.setCell(x, bottomY, { char: chars.bottomLeft, fg: color, bg: bottomBg })
     }
     const bStart = showLeft ? x + 1 : x
     const bEnd = showRight ? x + width - 1 : x + width
     for (let col = bStart; col < bEnd && col < buffer.width; col++) {
-      if (isColVisible(col)) buffer.setCell(col, bottomY, { char: bottomHorizontal, fg: color, bg })
+      if (isColVisible(col)) buffer.setCell(col, bottomY, { char: bottomHorizontal, fg: color, bg: bottomBg })
     }
     if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
       buffer.setCell(x + width - 1, bottomY, {
         char: chars.bottomRight,
         fg: color,
-        bg,
+        bg: bottomBg,
       })
     }
   }
