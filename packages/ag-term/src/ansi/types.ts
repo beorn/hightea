@@ -76,12 +76,15 @@ export interface CreateTermOptions {
 
 /**
  * A screen region — duck-type matching termless RegionView.
- * Provides text content and line access for assertions.
+ * Provides text content, line access, and cell-level queries for assertions.
  */
 export interface TermScreen {
   getText(): string
   getLines(): string[]
   containsText?(text: string): boolean
+  /** Cell-level access — row-first order. Returns resolved RGB colors.
+   *  Only available on emulator-backed terms (createTermless). */
+  cell?(row: number, col: number): { readonly fg: unknown; readonly bg: unknown; readonly char: string }
 }
 
 /**

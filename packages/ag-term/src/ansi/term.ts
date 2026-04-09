@@ -318,6 +318,19 @@ export interface Term extends Disposable, StyleChain {
   readonly scrollback?: TermScreen
 
   /**
+   * Cell-level access for the visible screen — row-first order.
+   * Returns resolved RGB colors, attributes, wide-char info.
+   * Only available on emulator-backed terms (createTermless).
+   */
+  cell?(row: number, col: number): { readonly fg: unknown; readonly bg: unknown; readonly char: string }
+
+  /**
+   * Row-level access for the visible screen.
+   * Only available on emulator-backed terms (createTermless).
+   */
+  row?(n: number): { getText(): string; cell(col: number): { readonly fg: unknown; readonly bg: unknown; readonly char: string } }
+
+  /**
    * Resize the terminal emulator. Only available when created with a terminal backend.
    * Resizes the underlying emulator and triggers a re-render in the app.
    */
