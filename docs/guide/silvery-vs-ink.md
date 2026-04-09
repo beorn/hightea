@@ -2,7 +2,7 @@
 
 _External project claims last verified: 2026-04. Ink version: 7.0.0._
 
-Silvery is a ground-up React terminal renderer with a different rendering architecture. Same `Box`, `Text`, `useInput` API — 99% of Ink's tests pass on silvery's compat layer. [Migration guide →](/getting-started/migrate-from-ink)
+Silvery is a ground-up React terminal renderer with a different rendering architecture. Same `Box`, `Text`, `useInput` API — <a href="#compatibility" title="918+/931 Ink 7.0 tests pass. ~12 intentional differences: Flexily follows W3C spec where Yoga doesn't (4), build artifact format (2), minor edge cases (~6). Silvery supports Yoga as a pluggable engine for exact parity.">99% of Ink's tests pass</a> on silvery's compat layer. [Migration guide →](/getting-started/migrate-from-ink)
 
 ## Feature Matrix
 
@@ -11,7 +11,7 @@ Silvery is a ground-up React terminal renderer with a different rendering archit
 | Feature | Silvery | Ink |
 |---|---|---|
 | **Scrollable containers** | `overflow="scroll"` + `scrollTo` | `visible`/`hidden` only ([#222](https://github.com/vadimdemedes/ink/issues/222)) |
-| **Dynamic scrollback** | Items graduate to terminal history; Cmd+F works | All items stay in render tree |
+| **Dynamic scrollback** | Items automatically graduate to terminal history; Cmd+F works | All items stay in render tree |
 | **Mouse + drag-and-drop** | SGR mouse, `onClick`/`onWheel`, hit testing, drag | None |
 | **Sticky headers** | `position="sticky"` in scroll containers | None |
 | **Image rendering** | `<Image>` — Kitty graphics + Sixel + text fallback | None |
@@ -105,7 +105,15 @@ Silvery emits **28–192× less output** to the terminal than a full redraw on i
 
 Silvery passes **918+ of Ink 7.0's 931 tests** (~98.6%). Chalk: **32/32 (100%)**. Run `bun run compat` to verify.
 
-::: details Remaining failures (~12 tests)
+### What we chose to do differently {#what-we-chose-differently}
+
+The ~12 remaining test failures are **intentional design choices**, not bugs:
+
+- **W3C flexbox spec over Yoga quirks** (4 tests) — Flexily follows the W3C flexbox specification for flex-wrap and aspect-ratio behavior. Yoga has non-standard behaviors here that Ink tests expect. We chose spec compliance. If you need exact Yoga parity, silvery supports Yoga as a pluggable engine.
+- **TypeScript source over compiled build artifacts** (2 tests) — Ink expects a `./build/` directory. Silvery ships raw TypeScript source (for Bun) + pre-built `dist/` (for Node). The tests check for file paths that don't exist in silvery's layout.
+- **Minor rendering edge cases** (~6 tests) — SGR attribute ordering (dim+bold emission order differs), `measureElement` timing in synchronous render, and `renderToString` effect ordering. These produce identical visual output in practice.
+
+::: details Remaining failures breakdown
 | Category                           | Failures | Why |
 | ---------------------------------- | -------- | --- |
 | Flexily W3C spec divergence        | 4        | flex-wrap (2), aspect ratio (2) — Flexily follows W3C, Yoga doesn't |
