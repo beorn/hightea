@@ -610,5 +610,35 @@
     "term": "createTermless",
     "href": "/guide/testing",
     "tooltip": "Creates an in-process terminal emulator for tests — real xterm.js processing without a real terminal. Verifies ANSI output, colors, scrollback."
+  },
+  {
+    "term": "Zellij",
+    "href": "https://zellij.dev/",
+    "tooltip": "Modern terminal multiplexer written in Rust — supports synchronized output and Kitty keyboard protocol.",
+    "external": true
+  },
+  {
+    "term": "iTerm2",
+    "href": "https://iterm2.com/",
+    "tooltip": "macOS terminal emulator with rich feature set — Sixel, imgcat, tmux integration, shell integration.",
+    "external": true
+  },
+  {
+    "term": "Claude Code",
+    "href": "https://claude.ai/code",
+    "tooltip": "Anthropic's AI coding assistant CLI — built on a forked Ink renderer.",
+    "external": true
+  },
+  {
+    "term": "Suspense",
+    "href": "https://react.dev/reference/react/Suspense",
+    "tooltip": "React feature for declarative loading states — wrap async components in a boundary with a fallback.",
+    "external": true
+  },
+  {
+    "term": "concurrent mode",
+    "href": "https://react.dev/blog/2022/03/29/react-v18",
+    "tooltip": "React 18+ feature — render work can be interrupted and resumed, enabling responsive UIs during heavy updates.",
+    "external": true
   }
 ]
