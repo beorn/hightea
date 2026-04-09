@@ -117,7 +117,7 @@ import { renderSelectionOverlay } from "@silvery/ag-term/selection-renderer"
 import { createVirtualScrollback } from "@silvery/ag-term/virtual-scrollback"
 import { createSearchState, searchUpdate, renderSearchBar, type SearchMatch } from "@silvery/ag-term/search-overlay"
 import { createOutputGuard, type OutputGuard } from "@silvery/ag-term/ansi/output-guard"
-import { keypressSpan, checkBudget, logExitSummary } from "@silvery/ag-term/runtime/perf"
+import { perfLog, checkBudget, logExitSummary, startTracking } from "@silvery/ag-term/runtime/perf"
 import { createLogger } from "loggily"
 
 const log = createLogger("silvery:app")
@@ -2067,13 +2067,21 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     _eventStart = performance.now()
 
     // Keypress performance span — wraps the entire batch cycle.
-    // Identify the batch by the first key event's input (or event type for non-key batches).
-    const keyEvents = events.filter((e) => e.type === "term:key")
-    const batchKey =
-      keyEvents.length > 0
-        ? keyEvents.map((e) => (e.data as { input: string }).input).join(",")
-        : events[0]?.type ?? "unknown"
-    using _perfSpan = keypressSpan(batchKey)
+    // perfLog.span?.() short-circuits all argument evaluation when TRACE is off.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    using _perfSpan = perfLog.span?.(
+      "keypress",
+      (() => {
+        startTracking()
+        const keyEvents = events.filter((e) => e.type === "term:key")
+        return {
+          key:
+            keyEvents.length > 0
+              ? keyEvents.map((e) => (e.data as { input: string }).input).join(",")
+              : (events[0]?.type ?? "unknown"),
+        }
+      })(),
+    )
 
     // Intercept lifecycle keys (Ctrl+Z, Ctrl+C) BEFORE they reach app handlers.
     // These must be handled at the runtime level, not by individual components.
@@ -2277,8 +2285,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       )
     }
     // Budget check — warn if batch took longer than one frame (16ms)
-    const batchDuration = performance.now() - _eventStart
-    checkBudget(batchKey, batchDuration)
+    if (_perfSpan) {
+      checkBudget(events[0]?.type ?? "batch", performance.now() - _eventStart)
+    }
     return currentBuffer
   }
 
@@ -2591,11 +2600,18 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       exit()
     },
     async press(rawKey: string) {
-      const pressStart = performance.now()
+      const pressStart = perfLog.span ? performance.now() : 0
       // Convert named keys to ANSI bytes (Kitty protocol when enabled)
       const ansiKey = useKittyMode ? keyToKittyAnsi(rawKey) : keyToAnsi(rawKey)
       const [input, parsedKey] = parseKey(ansiKey)
-      using _perfSpan = keypressSpan(input || rawKey)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      using _perfSpan = perfLog.span?.(
+        "keypress",
+        (() => {
+          startTracking()
+          return { key: input || rawKey }
+        })(),
+      )
 
       // Intercept lifecycle keys (Ctrl+C) — same as processEventBatch but for
       // headless/press() path. parseKey returns input="c" with key.ctrl=true
@@ -2625,7 +2641,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         inEventHandler = false
         doRender()
         await Promise.resolve()
-        checkBudget(input || rawKey, performance.now() - pressStart)
+        if (_perfSpan) checkBudget(input || rawKey, performance.now() - pressStart)
         return
       }
 
@@ -2667,7 +2683,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       }
       inEventHandler = false
       runtime.render(currentBuffer)
-      checkBudget(input || rawKey, performance.now() - pressStart)
+      if (_perfSpan) checkBudget(input || rawKey, performance.now() - pressStart)
     },
 
     [Symbol.asyncIterator](): AsyncIterator<Buffer> {

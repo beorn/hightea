@@ -211,3 +211,15 @@ See **[debugging.md](../../../docs/guide/debugging.md)** for the full table, dia
 | `pipeline/layout-phase.ts`  | -      | Yoga layout, scroll, sticky, screen rects                          |
 | `pipeline/render-phase.ts`  | -      | Node→buffer rendering (the complex part)                           |
 | `pipeline/output-phase.ts`  | ~2900+ | Buffer diff, ANSI generation, all verification modes               |
+
+## Resolved: Detail Pane "Stale Pixels" — TTY MCP Text Extraction Artifact
+
+Initially reported as stale pixels after detail pane close. Investigation revealed:
+
+1. Buffer content is correct (STRICT passes, incremental = fresh)
+2. ANSI output is correct (STRICT_TERMINAL=vt100 and =xterm pass)
+3. Visual rendering via screenshots is **clean** — no actual stale pixels
+
+The "artifacts" seen in `mcp__tty__text` output (displaced `╮`, `───███───` patterns, stale content fragments) are caused by **Unicode width disagreements** between silvery's width tables and xterm.js headless emulator's width tables. Emoji characters (📁, ✅, ▸) and certain box-drawing characters have ambiguous widths that cause xterm.js text extraction to produce garbled output — but the visual rendering in the terminal is correct.
+
+**Lesson**: Always verify TUI rendering bugs with `mcp__tty__screenshot` (visual), not just `mcp__tty__text` (text extraction). Text extraction from terminal emulators is unreliable for Unicode-heavy content.

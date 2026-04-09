@@ -11,7 +11,8 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest"
 import { enableSpans, disableSpans, setLogLevel, setTraceFilter } from "loggily"
 import {
-  keypressSpan,
+  perfLog,
+  startTracking,
   checkBudget,
   logExitSummary,
   resetPerfState,
@@ -75,7 +76,10 @@ describe("keypress-spans", () => {
       setLogLevel("trace")
 
       const messages = withConsoleSpy(() => {
-        const span = keypressSpan("j")
+        const span = (() => {
+          startTracking()
+          return perfLog.span?.("keypress", { key: "j" })
+        })()
         expect(span).toBeDefined()
         expect(span!.spanData).toBeDefined()
         expect(span!.spanData.startTime).toBeGreaterThan(0)
@@ -91,7 +95,10 @@ describe("keypress-spans", () => {
       disableSpans()
       setTraceFilter(null)
 
-      const span = keypressSpan("j")
+      const span = (() => {
+        startTracking()
+        return perfLog.span?.("keypress", { key: "j" })
+      })()
       // loggily returns the span object but suppresses output when disabled.
       // The span itself may or may not be undefined depending on log level.
       // What matters: no samples are accumulated when spans are disabled.
@@ -145,7 +152,10 @@ describe("keypress-spans", () => {
 
       // Create a span to initialize sample tracking
       withConsoleSpy(() => {
-        const span = keypressSpan("j")
+        const span = (() => {
+          startTracking()
+          return perfLog.span?.("keypress", { key: "j" })
+        })()
         span?.end()
       })
 
@@ -165,7 +175,10 @@ describe("keypress-spans", () => {
 
       // Initialize sample tracking by creating a span
       withConsoleSpy(() => {
-        const span = keypressSpan("init")
+        const span = (() => {
+          startTracking()
+          return perfLog.span?.("keypress", { key: "init" })
+        })()
         span?.end()
       })
 
@@ -205,7 +218,10 @@ describe("keypress-spans", () => {
       setLogLevel("trace")
 
       withConsoleSpy(() => {
-        const span = keypressSpan("j")
+        const span = (() => {
+          startTracking()
+          return perfLog.span?.("keypress", { key: "j" })
+        })()
         span?.end()
       })
       checkBudget("j", 5)
@@ -227,7 +243,10 @@ describe("keypress-spans", () => {
       const iterations = 100_000
       const start = performance.now()
       for (let i = 0; i < iterations; i++) {
-        const span = keypressSpan("j")
+        const span = (() => {
+          startTracking()
+          return perfLog.span?.("keypress", { key: "j" })
+        })()
         span?.[Symbol.dispose]()
       }
       const elapsed = performance.now() - start

@@ -15,59 +15,34 @@
 
 import { createLogger } from "loggily"
 
-const log = createLogger("silvery:perf")
+/** Exported for ?.  chaining in hot paths: `perfLog.span?.("keypress", { key })` */
+export const perfLog = createLogger("silvery:perf")
 
 // ============================================================================
-// Span tracking
+// Budget tracking (only active when spans are created)
 // ============================================================================
 
-/** Recorded duration for a completed keypress span */
-interface KeypressSample {
-  key: string
-  durationMs: number
-}
-
-/** Accumulated samples for exit summary */
-let samples: KeypressSample[] | null = null
+let samples: Array<{ key: string; durationMs: number }> | null = null
 let budgetOverruns = 0
-
-// ============================================================================
-// Keypress span
-// ============================================================================
-
-/**
- * Start a keypress timing span.
- *
- * Returns a Disposable span when TRACE is enabled, undefined otherwise.
- * Caller uses: `using span = keypressSpan(key)`
- *
- * The span's duration is measured from creation to disposal (block exit).
- */
-export function keypressSpan(key: string) {
-  const span = log.span?.("keypress", { key })
-  if (span) {
-    // Lazily initialize samples array on first span
-    if (!samples) samples = []
-  }
-  return span
-}
 
 /**
  * Record a completed keypress and check budget.
- *
+ * Only records when tracing is active (samples array initialized by startTracking).
  * Call after the keypress cycle completes (render done).
- * Emits a warning if duration exceeds the budget (default 16ms = 60fps).
  */
 export function checkBudget(key: string, durationMs: number, budgetMs = 16) {
-  // Record sample for exit summary
   if (samples) {
     samples.push({ key, durationMs })
   }
-
   if (durationMs > budgetMs) {
     budgetOverruns++
-    log.warn?.(`keypress over budget: ${key} took ${durationMs.toFixed(1)}ms (budget: ${budgetMs}ms)`)
+    perfLog.warn?.(`keypress over budget: ${key} took ${durationMs.toFixed(1)}ms (budget: ${budgetMs}ms)`)
   }
+}
+
+/** Call once when first span is created to start accumulating samples. */
+export function startTracking() {
+  if (!samples) samples = []
 }
 
 // ============================================================================
@@ -90,7 +65,7 @@ export function logExitSummary() {
   const p95 = durations[p95Index]!
   const max = durations[total - 1]!
 
-  log.info?.(
+  perfLog.info?.(
     `keypress summary: ${total} presses, mean=${mean.toFixed(1)}ms, p95=${p95.toFixed(1)}ms, max=${max.toFixed(1)}ms, overruns=${budgetOverruns}`,
   )
 

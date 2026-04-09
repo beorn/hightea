@@ -117,3 +117,16 @@ Flag emoji are regional indicator sequences (U+1F1E6..U+1F1FF pairs). Some termi
 6. **Text bg inheritance awareness** — Text nodes inherit bg via `inheritedBg` (from `findInheritedBg`), not buffer reads. However, viewport clears and region clears still affect buffer state, which matters for the `getCellBg` legacy fallback (used by scroll indicators). If your fix clears a region, verify it clears to the correct bg (usually `null` to match fresh render state).
 
 7. **Parallel hypothesis testing** — When multiple hypotheses exist (dirty flag issue vs scroll tier issue vs bg inheritance issue), launch parallel sub-agents to test each with a targeted test.
+
+## Detail Pane "Stale Pixels" — False Alarm (2026-04-08)
+
+**Symptom**: After detail pane open/close, `mcp__tty__text` showed displaced borders, content fragments, garbled patterns.
+
+**Investigation** (8+ TTY sessions, multiple fix attempts at render-phase, output-phase, create-app levels):
+- Buffer: STRICT passes (incremental = fresh) ✓
+- ANSI: STRICT_TERMINAL passes ✓  
+- Visual: **Screenshots showed clean rendering** ✓
+
+**Root cause**: TTY MCP text extraction artifact. Unicode characters (📁, ✅, ▸) have width disagreements between silvery and xterm.js headless. `mcp__tty__text` extracts text based on xterm.js cell positions, which diverge from silvery's after emoji/wide chars. The visual rendering is correct.
+
+**Lesson**: For TUI bugs, ALWAYS verify with `mcp__tty__screenshot`, not just `mcp__tty__text`. Text extraction from terminal emulators is unreliable for Unicode-heavy content. Hours were spent debugging a non-existent rendering bug.

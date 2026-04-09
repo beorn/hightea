@@ -121,6 +121,7 @@ export interface ExecuteRenderOptions {
    * at this location instead of leaving it at the end of content.
    */
   cursorPos?: CursorState | null
+
 }
 
 /**
