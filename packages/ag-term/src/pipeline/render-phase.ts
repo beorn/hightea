@@ -628,7 +628,7 @@ function buildCascadeInputs(
 function traceRenderDecision(
   node: AgNode,
   props: BoxProps & TextProps,
-  layout: NonNullable<AgNode[boxRectt"]>,
+  layout: NonNullable<AgNode["boxRect"]>,
   screenY: number,
   scrollOffset: number,
   hasPrevBuffer: boolean,
@@ -750,7 +750,7 @@ function traceRenderDecision(
 function executeRegionClearing(
   node: AgNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<AgNode[boxRectt"]>,
+  layout: NonNullable<AgNode["boxRect"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
   bufferIsCloned: boolean,
@@ -805,7 +805,7 @@ function executeRegionClearing(
 function renderOwnContent(
   node: AgNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<AgNode[boxRectt"]>,
+  layout: NonNullable<AgNode["boxRect"]>,
   props: BoxProps & TextProps,
   nodeState: NodeRenderState,
   skipBgFill: boolean,
@@ -1550,7 +1550,7 @@ function _checkDescendantOverflow(
  * then intersecting with parent clip bounds.
  */
 function computeChildClipBounds(
-  layout: NonNullable<AgNode[boxRectt"]>,
+  layout: NonNullable<AgNode["boxRect"]>,
   props: BoxProps,
   parentClip: ClipBounds | undefined,
   scrollOffset = 0,
@@ -1681,7 +1681,7 @@ function findInheritedFg(node: AgNode): Color {
 function clearDescendantOverflowRegions(
   node: AgNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<AgNode[boxRectt"]>,
+  layout: NonNullable<AgNode["boxRect"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
   threadedInheritedBg?: NodeRenderState["inheritedBg"],
@@ -1804,7 +1804,7 @@ function _clearDescendantOverflow(
 function clearNodeRegion(
   node: AgNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<AgNode[boxRectt"]>,
+  layout: NonNullable<AgNode["boxRect"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
   layoutChanged: boolean,
@@ -1897,7 +1897,7 @@ function clearNodeRegion(
 function clearExcessArea(
   node: AgNode,
   buffer: TerminalBuffer,
-  layout: NonNullable<AgNode[boxRectt"]>,
+  layout: NonNullable<AgNode["boxRect"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
   layoutChanged: boolean,
