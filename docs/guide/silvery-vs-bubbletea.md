@@ -1,43 +1,108 @@
 # Silvery vs Bubble Tea
 
-_Information about Bubble Tea as of March 2026._
+_External project claims last verified: 2026-04. Bubble Tea version: 2.x._
 
-## Why This Page Exists
+[Bubble Tea](https://github.com/charmbracelet/bubbletea) (2020, [Charm](https://charm.sh)) is a Go framework for building terminal UIs using The Elm Architecture. Programs are defined by three functions: `Init`, `Update`, and `View`. The [Charm ecosystem](https://charm.sh) includes [Bubbles](https://github.com/charmbracelet/bubbles) (reusable components), [Lip Gloss](https://github.com/charmbracelet/lipgloss) (styling), [Huh](https://github.com/charmbracelet/huh) (form building), and [Wish](https://github.com/charmbracelet/wish) (SSH server for TUI apps). Widely adopted, well-documented, and actively maintained — v2 shipped in 2025 with cell-based rendering, SGR mouse, Kitty keyboard, and more. Bubble Tea is the standard TUI framework for Go.
 
-Bubble Tea is the leading TUI framework in the Go ecosystem. It uses The Elm Architecture (TEA) -- the same functional pattern that inspired Silvery's `@silvery/create` state machines. If you're choosing between them, the decision usually starts with language: Go or TypeScript. But the architectural differences go deeper than that.
+Silvery is a ground-up React-based terminal UI framework for TypeScript. It combines React's component model with TEA-style state machines (via `@silvery/create`), CSS flexbox layout (via Flexily), and a rendering pipeline that gives components their dimensions during render. Newer, smaller community, but more built-in features.
 
-This page gives an honest comparison so you can pick the right tool for your project.
+## Highlights
 
-## The Two Projects
+The biggest differences at a glance:
 
-[Bubble Tea](https://github.com/charmbracelet/bubbletea) (2020, [Charm](https://charm.sh)) is a Go framework for building terminal UIs using The Elm Architecture. Programs are defined by three functions: `Init`, `Update`, and `View`. The [Charm ecosystem](https://charm.sh) includes [Bubbles](https://github.com/charmbracelet/bubbles) (reusable components), [Lip Gloss](https://github.com/charmbracelet/lipgloss) (styling), and [Huh](https://github.com/charmbracelet/huh) (form building). Widely adopted, well-documented, and actively maintained with v2 released in 2025.
+- **CSS flexbox layout** — components auto-size with flex-grow, wrapping, gap, and alignment. Bubble Tea has no layout engine; you join strings manually with Lip Gloss and thread widths/heights yourself.
+- **Layout-first rendering** — components know their size _during_ render via `useBoxRect()`. Bubble Tea's `View()` returns a string with no dimension awareness — you must pass sizes down through model state.
+- **React component model** — hooks, context, Suspense, third-party React libraries all work. Bubble Tea uses Go structs with manual message routing.
+- **45+ built-in components** — VirtualList, Table, CommandPalette, TreeView, Toast, Tabs, SplitView, ModalDialog, Image, TextArea, and more. Bubbles provides ~12 components.
+- **Incremental rendering** — cell-level dirty tracking skips unchanged nodes. Bubble Tea v2's cell-based renderer diffs at the cell level too, but re-runs `View()` for the full tree on every update.
+- **DOM-style mouse events** — `onClick`, `onWheel`, `onMouseDown` with hit testing and drag support. Bubble Tea v2 has SGR mouse, but events are flat messages routed through `Update`.
+- **38 palettes with semantic tokens** — `$primary`, `$muted`, `$border` with auto-detection. Lip Gloss provides chainable style functions with color downsampling.
+- **Multi-backend test matrix** — [Termless](https://termless.dev) runs tests across 10+ real terminal parsers (xterm.js, vt100, Ghostty, Kitty, Alacritty, ...). `teatest` uses golden file comparison.
+- **Dynamic scrollback** — items graduate to terminal history; inline/fullscreen hybrid modes. Bubble Tea uses alternate screen with no scrollback access.
+- **3–5× faster on mounted workloads** — cell-level dirty tracking means most of the tree is skipped on interactive updates.
 
-[Silvery](https://github.com/beorn/silvery) (2025) is a React-based terminal UI framework for TypeScript. It combines React's component model with TEA-style state machines (via `@silvery/create`), CSS flexbox layout (via Flexily), and a rendering pipeline that gives components their dimensions during render. Newer, smaller community, but more built-in features.
+**Where Bubble Tea is stronger:**
 
-## At a Glance
+- **Compiled Go** — single static binary, ~1 ms startup, no runtime dependency. Ideal for distributing CLI tools. Silvery requires Node.js or Bun (~50–150 ms startup).
+- **TEA is native** — The Elm Architecture is Bubble Tea's core, not an optional layer. Every program is a pure `(Msg, Model) → (Model, Cmd)` function. In Silvery, TEA is available via `@silvery/create` but layered on top of React.
+- **Community** — the Charm ecosystem (Bubble Tea, Bubbles, Lip Gloss, Huh, Wish, Log) is cohesive, well-documented, and widely adopted. Thousands of Go CLI tools use it. Silvery is newer with a smaller community.
+- **No React overhead** — Bubble Tea has no reconciler, no virtual tree, no hooks lifecycle. The update loop is a simple Go function. For simple TUIs, this directness is an advantage.
+- **Go ecosystem** — any Go library works alongside Bubble Tea. Strong concurrency primitives (goroutines, channels) are built into the language.
 
-| Aspect              | Bubble Tea                                                                                                                  | Silvery                                                                                                                             |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Language**        | Go                                                                                                                          | TypeScript                                                                                                                          |
-| **Layout**          | Manual string joining (Lip Gloss)                                                                                           | CSS flexbox (Flexily engine)                                                                                                        |
-| **Architecture**    | Pure TEA (Model/Update/View)                                                                                                | React components + optional TEA (`@silvery/create`)                                                                                 |
-| **Styling**         | Lip Gloss (chainable style functions)                                                                                       | `@silvery/theme` (38 palettes, semantic tokens)                                                                                     |
-| **Components**      | Bubbles: ~12 (spinner, textinput, textarea, viewport, table, list, filepicker, paginator, progress, help, timer, stopwatch) | 45+ built-in (VirtualList, TextArea, SelectList, Table, CommandPalette, ModalDialog, Tabs, TreeView, Toast, Image, SplitView, etc.) |
-| **Testing**         | `teatest` (Go testing, golden files)                                                                                        | `@silvery/test` (headless renderer, Playwright-style locators) + Termless (terminal emulator)                                       |
-| **Mouse support**   | SGR mouse (v2)                                                                                                              | SGR mouse with DOM-style events (`onClick`, `onWheel`, `onMouseDown`)                                                               |
-| **Keyboard**        | Kitty keyboard protocol (v2)                                                                                                | Kitty keyboard, all 5 flags                                                                                                         |
-| **Focus system**    | Manual (manage in model state)                                                                                              | Tree-based with scopes, spatial navigation, click-to-focus                                                                          |
-| **Scrolling**       | Viewport bubble (manual sizing)                                                                                             | `overflow="scroll"` (native, layout-integrated)                                                                                     |
-| **Clipboard**       | OSC 52 (v2)                                                                                                                 | OSC 52 `copyToClipboard`/`requestClipboard`                                                                                         |
-| **Image rendering** | None (community libraries)                                                                                                  | Built-in Kitty graphics + Sixel with auto-detect                                                                                    |
-| **Native deps**     | None (compiled Go binary)                                                                                                   | None (pure TypeScript)                                                                                                              |
-| **Binary size**     | Single static binary                                                                                                        | Requires Node.js/Bun runtime                                                                                                        |
-| **Startup time**    | ~1 ms (compiled)                                                                                                            | ~50-150 ms (JS runtime init)                                                                                                        |
-| **Community**       | Large (Go TUI standard)                                                                                                     | New                                                                                                                                 |
+**What's the same:** Both use TEA (Model/Update/View pattern), both support Kitty keyboard (all 5 flags), SGR mouse protocol, OSC 52 clipboard, bracketed paste, alternate screen, synchronized output (DEC 2026), and cell-based rendering. Both are pure implementations with no native dependencies in their respective languages.
 
-## Layout
+## Feature Matrix
 
-This is the most significant difference between the two frameworks.
+Bubble Tea first, Silvery second. Features marked "core" are built into the framework; "ecosystem" means available via official packages.
+
+### Layout & Rendering
+
+| Feature | Bubble Tea v2 | Silvery |
+|---|---|---|
+| **Layout engine** | None — manual string joining via Lip Gloss (`JoinHorizontal`, `JoinVertical`, `Place`) | CSS flexbox (Flexily) — flex-grow, wrap, gap, padding, margin, alignment |
+| **Responsive layout** | Manual: pass `SetWidth`/`SetHeight` to child models, recalculate on resize | `useBoxRect()` — dimensions available _during_ render, first pass |
+| **Rendering approach** | Cell-based renderer (v2): `View()` returns styled string, framework diffs cells | Cell-level buffer with style stacking, 7 dirty flags/node, incremental skip |
+| **Incremental rendering** | Re-runs full `View()` on every message, then cell-diffs the output | Per-node dirty tracking — unchanged subtrees skip render + diff entirely |
+| **Scrollable containers** | Viewport bubble (manual sizing, scroll offset management) | `overflow="scroll"` + `scrollTo` — core framework, handles clipping |
+| **Sticky headers** | None | `position="sticky"` in scroll containers |
+| **Dynamic scrollback** | None — uses alternate screen | Items graduate to terminal history; Cmd+F works on graduated content |
+| **Inline/fullscreen hybrid** | Hard split: `Program` runs in alt screen or inline, not both | Inline mode with fullscreen-level performance; fullscreen with scrollback graduation |
+| **Render targets** | Terminal only | Terminal, Canvas 2D, DOM (experimental) |
+
+### Interaction
+
+| Feature | Bubble Tea v2 | Silvery |
+|---|---|---|
+| **Mouse support** | SGR mouse — flat `tea.MouseMsg` through `Update` | SGR mouse with DOM-style events: `onClick`, `onWheel`, `onMouseDown`, hit testing, drag |
+| **Input handling** | All messages go through single `Update` function | DOM-style bubbling, modal isolation, `stopPropagation`, input layers |
+| **Focus system** | Manual — manage focused component in model state | Tree-based: scopes, spatial nav (arrow keys), click-to-focus, `useFocusWithin` |
+| **Text selection + find** | None | Mouse drag, `Ctrl+F` search, `Esc,v` keyboard selection |
+| **Command system** | None | Named commands, context-aware keys, `parseHotkey("⌘K")` |
+| **Clipboard** | OSC 52 (v2) | OSC 52 `copyToClipboard`/`requestClipboard` |
+| **Image rendering** | None (community libraries) | Core: `<Image>` — Kitty graphics + Sixel + text fallback |
+
+### Components & Framework
+
+| Feature | Bubble Tea v2 | Silvery |
+|---|---|---|
+| **Built-in components** | Bubbles: ~12 (spinner, textinput, textarea, viewport, table, list, filepicker, paginator, progress, help, timer, stopwatch) | **45+** core (VirtualList, Table, CommandPalette, TreeView, Toast, Tabs, SplitView, ModalDialog, Image, TextArea, ...) |
+| **Forms** | [Huh](https://github.com/charmbracelet/huh) — form builder with groups, validation, accessibility | Built-in form components (TextInput, SelectList, Checkbox, etc.) |
+| **Theme system** | Lip Gloss: chainable style functions, auto color downsampling (truecolor → 256 → 16) | 38 palettes, semantic tokens (`$primary`, `$muted`), auto-detect terminal scheme |
+| **TEA state machines** | Core — every program is `Init`/`Update`/`View` | Optional via `@silvery/create`: `(action, state) → [state, effects]`, replay, undo |
+| **Composition** | Embed models in parent, forward messages manually | React JSX nesting + `pipe()` provider composition |
+| **SSH server** | [Wish](https://github.com/charmbracelet/wish) — serve TUI apps over SSH | None |
+| **Animation** | `tea.Tick` commands for timer-based animation | `useAnimation` + easing functions + `useAnimatedTransition` |
+| **Resource cleanup** | `tea.Quit` command | `using` / Disposable — automatic teardown |
+
+### Testing
+
+| Feature | Bubble Tea v2 | Silvery |
+|---|---|---|
+| **Test library** | `teatest` — send messages, assert model state, golden file comparison | `@silvery/test` with Playwright-style locators, `press()`, buffer assertions |
+| **Pure function testing** | Direct: call `Update(msg, model)` and assert returned model + cmd | Direct: call TEA reducer and assert state + effects |
+| **Headless rendering** | None built-in | `createTerm({ cols, rows })` — no terminal needed |
+| **Terminal emulator in tests** | None | `createTermless()` via [Termless](https://termless.dev) — 10+ backends: xterm.js, vt100, Ghostty, Kitty, Alacritty, and more |
+| **Render invariant checks** | None | `SILVERY_STRICT=1` verifies incremental = fresh on every frame |
+| **Visual snapshots** | Golden file comparison (string output) | `bufferToHTML()`, Playwright capture, `.tape` recordings → animated GIF, PNG, SVG |
+
+### Performance & Distribution
+
+| Aspect | Bubble Tea v2 | Silvery |
+|---|---|---|
+| **Language** | Compiled Go | TypeScript (Bun or Node.js) |
+| **Startup time** | ~1 ms (compiled binary) | ~50–150 ms (JS runtime initialization) |
+| **Distribution** | Single static binary — `go build`, cross-compile, no dependencies | Requires Node.js/Bun runtime; bundle with `bun build` or ship as npm package |
+| **Interactive update speed** | Fast (compiled Go, cell diff) | **3–5× faster** — cell-level dirty tracking skips unchanged subtrees entirely |
+| **Output efficiency** | Cell-based diff (v2) | **28–192× less output** — cell-level diff + relative cursor addressing |
+| **Memory** | Go GC with low pause times | Normal JS GC; graduated scrollback frees React tree |
+| **Native dependencies** | None (compiled Go) | None (pure TypeScript) |
+| **Type safety** | Go's type system (interfaces, generics since 1.18) | TypeScript strict mode (generics, discriminated unions, branded types) |
+
+## Key Differences Explained
+
+### Layout
+
+This is the most significant architectural difference.
 
 **Bubble Tea has no layout engine.** You build layouts by joining strings with [Lip Gloss](https://github.com/charmbracelet/lipgloss):
 
@@ -67,8 +132,6 @@ You must calculate widths and heights yourself, pass them down to child models w
 Components can read their computed dimensions during render via `useBoxRect()`. No manual size threading, no resize handlers calculating widths. The layout engine handles flex-grow, flex-shrink, wrapping, padding, margin, borders, gap, and alignment automatically.
 
 For simple UIs (a list, a form, a spinner), this difference barely matters. For complex UIs (multi-pane dashboards, kanban boards, text editors with sidebars), it's substantial.
-
-## Architecture
 
 ### TEA: Same Pattern, Different Surfaces
 
@@ -124,7 +187,7 @@ function App() {
 const [state, dispatch] = useTea(reducer, initialState)
 ```
 
-The practical difference: in Bubble Tea, you manage all state transitions and message routing yourself. In Silvery, React handles the component tree, reconciliation, and rendering -- you only use TEA where you want explicit state machine semantics (complex interactions, undo/redo, replay).
+The practical difference: in Bubble Tea, you manage all state transitions and message routing yourself — this is explicit and testable (you can call `Update` directly in tests). In Silvery, React handles the component tree, reconciliation, and rendering — you only use TEA where you want explicit state machine semantics (complex interactions, undo/redo, replay).
 
 ### Composition
 
@@ -164,7 +227,7 @@ function App() {
 }
 ```
 
-## Styling
+### Styling
 
 **Lip Gloss** provides chainable style functions:
 
@@ -192,7 +255,7 @@ Lip Gloss v2 integrates with Bubble Tea for automatic color downsampling -- true
 
 Silvery auto-detects the terminal's color scheme and selects an appropriate palette. Both approaches work well; Lip Gloss gives more explicit control, Silvery provides more consistency across terminals.
 
-## Testing
+### Testing
 
 **Bubble Tea** has `teatest` for integration-style testing:
 
@@ -242,15 +305,15 @@ Silvery's Termless runs a real terminal emulator in-process -- you can verify AN
 
 ## Performance
 
-Bubble Tea compiles to a native binary. Startup is near-instant (~1 ms). Rendering is fast because Go is compiled and garbage-collected with low pause times. The View function produces a string on every update; Bubble Tea v2's cell-based renderer then diffs at the cell level.
+Bubble Tea compiles to a native binary. Startup is near-instant (~1 ms). Rendering is fast because Go is compiled and garbage-collected with low pause times. The `View` function produces a string on every update; Bubble Tea v2's cell-based renderer then diffs at the cell level.
 
-Silvery runs on a JavaScript runtime (Bun or Node.js). Startup includes runtime initialization (~50-150 ms). Once running, Silvery's incremental rendering skips unchanged nodes entirely -- a typical interactive update (cursor move in a 1000-node tree) takes ~169 us. The 5-phase pipeline (measure, layout, content, diff, output) has overhead for full re-renders, but interactive updates are sub-millisecond because most of the tree is skipped.
+Silvery runs on a JavaScript runtime (Bun or Node.js). Startup includes runtime initialization (~50–150 ms). Once running, Silvery's incremental rendering skips unchanged nodes entirely — a typical interactive update (cursor move in a 1000-node tree) takes ~169 us. The 5-phase pipeline (measure, layout, content, diff, output) has overhead for full re-renders, but interactive updates are sub-millisecond because most of the tree is skipped.
 
-For CLIs that start, do one thing, and exit, Go's startup advantage is real. For interactive TUIs that run for minutes or hours, runtime startup is irrelevant and per-update performance matters more.
+**For CLIs that start, do one thing, and exit**, Go's startup advantage is real — 1 ms vs 50–150 ms matters when users run the command hundreds of times a day. **For interactive TUIs that run for minutes or hours**, runtime startup is irrelevant and per-update performance matters more. Silvery's 3–5× advantage on mounted workloads (measured vs Ink; no direct Bubble Tea benchmarks yet) comes from skipping unchanged subtrees entirely rather than re-running the full view function.
 
 ## Ecosystem
 
-The Charm ecosystem is cohesive and well-designed:
+The [Charm ecosystem](https://charm.sh) is cohesive and well-designed:
 
 | Package                                                  | What                                                                                                                      |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -274,22 +337,27 @@ Silvery's ecosystem is smaller but more integrated:
 
 Bubble Tea benefits from the broader Go ecosystem -- any Go library works alongside it. Silvery benefits from the React/npm ecosystem -- any React pattern (hooks, context, suspense) works inside it.
 
-## When to Choose
+## When to Choose What
+
+Both are excellent tools. The right choice depends on what you're building and in which language.
 
 ### Choose Bubble Tea when:
 
-- **Your project is in Go** -- Bubble Tea is the standard TUI framework for Go, and mixing languages adds complexity
-- **You want a single binary** -- Go compiles to a static binary with no runtime dependencies, ideal for distribution
-- **You prefer pure TEA** -- if you want the Elm Architecture without React's abstraction layer, Bubble Tea is TEA in its most direct form
-- **Simple-to-medium complexity UIs** -- for CLIs, dashboards, and tools where manual layout is manageable, Bubble Tea's explicit approach works well
-- **Startup time matters** -- compiled Go starts in ~1 ms; JavaScript runtimes need 50-150 ms
+- **Your project is in Go** — Bubble Tea is the standard TUI framework for Go, and mixing languages adds complexity
+- **You want a single binary** — Go compiles to a static binary with no runtime dependencies, ideal for distributing CLI tools (`brew install`, `go install`, download from GitHub releases)
+- **You prefer pure TEA** — if you want the Elm Architecture without React's abstraction layer, Bubble Tea is TEA in its most direct form. Every program is a testable `(Msg, Model) → (Model, Cmd)` function
+- **Simple-to-medium complexity UIs** — for CLIs, dashboards, and tools where manual layout is manageable, Bubble Tea's explicit approach works well
+- **Startup time matters** — compiled Go starts in ~1 ms; JavaScript runtimes need 50–150 ms. For commands users run hundreds of times a day, this adds up
+- **SSH-served TUIs** — [Wish](https://github.com/charmbracelet/wish) lets you serve Bubble Tea apps over SSH with no client-side installation
 
 ### Choose Silvery when:
 
-- **Your project is in TypeScript/JavaScript** -- using a Go framework from a Node.js project means running a subprocess or rewriting in Go
-- **Complex layouts** -- CSS flexbox handles multi-pane, responsive UIs that would require substantial manual calculation in Bubble Tea
-- **React ecosystem** -- hooks, context, component composition, third-party React libraries all work directly
-- **Rich built-in components** -- 45+ components (VirtualList, TextArea, Table, CommandPalette, ModalDialog) without assembling individual packages
-- **Mouse interaction** -- DOM-style event handling (`onClick`, `onWheel`, drag) with hit testing
-- **Terminal protocol depth** -- image rendering, extended underlines, OSC sequences, terminal capability detection via [terminfo.dev](https://terminfo.dev)
-- **Testing terminal output** -- Termless gives you a real terminal emulator in-process for verifying ANSI output, not just string snapshots
+- **Your project is in TypeScript/JavaScript** — using a Go framework from a Node.js project means running a subprocess or rewriting in Go
+- **Complex layouts** — CSS flexbox handles multi-pane, responsive UIs that would require substantial manual calculation in Bubble Tea
+- **React ecosystem** — hooks, context, component composition, third-party React libraries all work directly
+- **Rich built-in components** — 45+ components (VirtualList, TextArea, Table, CommandPalette, ModalDialog) without assembling individual packages
+- **Mouse interaction** — DOM-style event handling (`onClick`, `onWheel`, drag) with hit testing
+- **Interactive update performance** — per-node dirty tracking for sub-millisecond updates in large trees
+- **Terminal protocol depth** — image rendering, extended underlines, OSC sequences, terminal capability detection via [terminfo.dev](https://terminfo.dev)
+- **Testing terminal output** — [Termless](https://termless.dev) gives you a real terminal emulator in-process with 10+ backends for verifying ANSI output, not just string snapshots
+- **Inline/fullscreen hybrid** — inline mode with fullscreen performance, or fullscreen with scrollback graduation
