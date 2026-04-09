@@ -349,12 +349,12 @@ function Card({ item }) {
 
 ## Summary
 
-| Need                 | Solution                                              |
-| -------------------- | ----------------------------------------------------- |
-| Fixed-height element | `height={n}` + `flexShrink={0}`                       |
-| Fill remaining space | `flexGrow={1}`                                        |
-| Scrollable list      | `overflow="scroll"` + `scrollTo={index}`              |
+| Need                 | Solution                                          |
+| -------------------- | ------------------------------------------------- |
+| Fixed-height element | `height={n}` + `flexShrink={0}`                   |
+| Fill remaining space | `flexGrow={1}`                                    |
+| Scrollable list      | `overflow="scroll"` + `scrollTo={index}`          |
 | Responsive columns   | `useBoxRect()` + conditional rendering            |
 | Adaptive content     | `useBoxRect()` + truncation / hide at breakpoints |
-| Filled background    | `backgroundColor="color"` on Box                      |
-| Centered content     | `justifyContent="center"` + `alignItems="center"`     |
+| Filled background    | `backgroundColor="color"` on Box                  |
+| Centered content     | `justifyContent="center"` + `alignItems="center"` |

@@ -29,7 +29,7 @@ vp silvery examples
 | [Components](/examples/components)       | 30+ ready-made widgets          | SelectList, Tabs, ProgressBar, Spinner |
 | [Layout](/examples/layout)               | CSS flexbox for terminals       | Box, flexGrow, gap, justifyContent     |
 | [Forms & Input](/examples/forms)         | Interactive forms and wizards   | SelectList, TextInput, focusScope      |
-| [Tables & Data](/examples/tables)        | Data exploration and filtering  | Table, VirtualList, useBoxRect()   |
+| [Tables & Data](/examples/tables)        | Data exploration and filtering  | Table, VirtualList, useBoxRect()       |
 | [Scrollback](/examples/scrollback)       | Dynamic inline mode (unique)    | ScrollbackList, ScrollbackView         |
 | [Terminal Protocols](/examples/terminal) | Kitty keyboard, mouse, images   | Image, Canvas, parseHotkey()           |
 | [AI Coding Agent](/examples/ai-chat)     | Streaming and real-time updates | VirtualList, TextInput, tool calls     |

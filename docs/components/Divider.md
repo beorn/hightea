@@ -10,10 +10,10 @@ import { Divider } from "silvery"
 
 ## Props
 
-| Prop    | Type     | Default | Description                                       |
-| ------- | -------- | ------- | ------------------------------------------------- |
-| `char`  | `string` | `"--"`  | Character to repeat                               |
-| `title` | `string` | --      | Title text centered in divider                    |
+| Prop    | Type     | Default | Description                                   |
+| ------- | -------- | ------- | --------------------------------------------- |
+| `char`  | `string` | `"--"`  | Character to repeat                           |
+| `title` | `string` | --      | Title text centered in divider                |
 | `width` | `number` | auto    | Width (uses available width via `useBoxRect`) |
 
 ## Usage

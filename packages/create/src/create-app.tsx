@@ -2745,7 +2745,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       exit()
     },
     async press(rawKey: string) {
-      const pressStart = perfLog.span ? performance.now() : 0
+      // perfLog.span is always defined; the cost of performance.now() is negligible.
+      const pressStart = performance.now()
       // Convert named keys to ANSI bytes (Kitty protocol when enabled)
       const ansiKey = useKittyMode ? keyToKittyAnsi(rawKey) : keyToAnsi(rawKey)
       const [input, parsedKey] = parseKey(ansiKey)

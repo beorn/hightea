@@ -211,4 +211,3 @@ export function classifyPropChanges(
   if (!anyChanged) return NO_CHANGES
   return { anyChanged, layoutChanged, contentChanged }
 }
-

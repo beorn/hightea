@@ -1209,10 +1209,7 @@ function canReuseInstance(
   if (overrides.incremental !== undefined && overrides.incremental !== (baseOpts.incremental ?? true)) {
     return false
   }
-  if (
-    overrides.singlePassLayout !== undefined &&
-    overrides.singlePassLayout !== (baseOpts.singlePassLayout ?? false)
-  ) {
+  if (overrides.singlePassLayout !== undefined && overrides.singlePassLayout !== (baseOpts.singlePassLayout ?? false)) {
     return false
   }
   if (overrides.kittyMode !== undefined && overrides.kittyMode !== (baseOpts.kittyMode ?? false)) {

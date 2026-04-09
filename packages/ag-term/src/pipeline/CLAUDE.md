@@ -20,7 +20,7 @@ measure -> layout -> scroll -> sticky -> scrollRect -> [notify] -> content -> ou
 | scroll      | layout-phase.ts     | Calculate scroll offset, visible children, sticky positions for overflow=scroll containers |
 | sticky      | layout-phase.ts     | Calculate sticky render offsets for non-scroll parents with sticky children                |
 | scrollRect  | layout-phase.ts     | Compute screen-relative positions (content position minus ancestor scroll offsets)         |
-| notify      | layout-phase.ts     | Fire `layoutSubscribers` callbacks (drives `useBoxRect`/`useScrollRect`)               |
+| notify      | layout-phase.ts     | Fire `layoutSubscribers` callbacks (drives `useBoxRect`/`useScrollRect`)                   |
 | **content** | **render-phase.ts** | **Render nodes to a TerminalBuffer (this is the complex part)**                            |
 | output      | output-phase.ts     | Diff current buffer against previous, emit minimal ANSI escape sequences                   |
 
@@ -43,8 +43,8 @@ The reconciler sets flags on nodes when props/children change. The render phase 
 
 The layout phase also sets `subtreeDirty` upward when a descendant's `boxRect` changes via `layoutChangedThisFrame`.
 
-| Flag                     | Set by       | Meaning                                                                         |
-| ------------------------ | ------------ | ------------------------------------------------------------------------------- |
+| Flag                     | Set by       | Meaning                                                                     |
+| ------------------------ | ------------ | --------------------------------------------------------------------------- |
 | `layoutChangedThisFrame` | Layout phase | Node's boxRect changed this frame; cleared by render phase after processing |
 
 ## Incremental Rendering Model

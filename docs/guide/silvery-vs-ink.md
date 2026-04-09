@@ -28,17 +28,17 @@ Silvery passes **925+ of Ink 7.0's 985 tests** when tested with the Flexily layo
 
 The known failures (57 tests) break down as:
 
-| Category                           | Failures | Why                                                                                        |
-| ---------------------------------- | -------- | ------------------------------------------------------------------------------------------ |
-| BackgroundContext (new in 7.0)     | 27       | Ink 7.0's context-based bg inheritance -- silvery uses cell-level bg styling               |
-| borderBackgroundColor (new in 7.0) | 5        | Per-side border bg colors -- not yet supported in silvery's border rendering               |
-| Flexily layout differences         | 4        | [flex-wrap (2), aspect ratio (2)](#flexily-vs-yoga-philosophy) -- W3C spec vs Yoga behavior|
-| Compat renderer limitations        | 9        | maxFps throttling (3), kitty protocol negotiation (3), debug mode cursor (3)               |
-| Rendering differences              | 5        | CJK overlay (2), dim+bold SGR order (2), hard wrap (1)                                     |
-| Build artifact checks              | 2        | Ink expects `./build/` dir -- silvery publishes TypeScript source                          |
-| Overflow edge cases                | 3        | overflowX clipping differences                                                             |
-| measure-element                    | 1        | Post-state-change re-measurement timing                                                    |
-| render-to-string                   | 1        | Effect timing in synchronous render                                                        |
+| Category                           | Failures | Why                                                                                         |
+| ---------------------------------- | -------- | ------------------------------------------------------------------------------------------- |
+| BackgroundContext (new in 7.0)     | 27       | Ink 7.0's context-based bg inheritance -- silvery uses cell-level bg styling                |
+| borderBackgroundColor (new in 7.0) | 5        | Per-side border bg colors -- not yet supported in silvery's border rendering                |
+| Flexily layout differences         | 4        | [flex-wrap (2), aspect ratio (2)](#flexily-vs-yoga-philosophy) -- W3C spec vs Yoga behavior |
+| Compat renderer limitations        | 9        | maxFps throttling (3), kitty protocol negotiation (3), debug mode cursor (3)                |
+| Rendering differences              | 5        | CJK overlay (2), dim+bold SGR order (2), hard wrap (1)                                      |
+| Build artifact checks              | 2        | Ink expects `./build/` dir -- silvery publishes TypeScript source                           |
+| Overflow edge cases                | 3        | overflowX clipping differences                                                              |
+| measure-element                    | 1        | Post-state-change re-measurement timing                                                     |
+| render-to-string                   | 1        | Effect timing in synchronous render                                                         |
 
 **The majority of new failures are Ink 7.0 features not yet shimmed** (BackgroundContext, borderBackgroundColor), not regressions. The 9 original architectural differences from Ink 5.2.1 are unchanged. All new Ink 7.0 hooks (useAnimation, useBoxMetrics, useCursor, usePaste, useWindowSize, useIsScreenReaderEnabled) have full shims or direct re-exports.
 
@@ -77,23 +77,23 @@ Both are React renderers at the core. The rendering architecture is the primary 
 
 ### Rendering Architecture
 
-| Feature                   | Silvery                                                                                                | Ink                                                                                                                                              |
-| ------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Responsive layout**     | `useBoxRect()` / `useScrollRect()` -- synchronous, available during render                         | `useBoxMetrics()` -- post-layout via `useEffect`, returns 0x0 until first measure (released in v7.0.0)                                           |
-| **Incremental rendering** | Per-node dirty tracking with 7 independent flags; cell-level buffer diff                               | Line-based diff (opt-in `incrementalRendering` option in v7.0.0); unchanged lines skipped, but any change rewrites entire line                    |
-| **ANSI compositing**      | Cell-level buffer with proper style stacking; ANSI sequences composed, not passed through              | String concatenation; ANSI sequences emitted inline, no compositing layer                                                                        |
-| **Scrollable containers** | `overflow="scroll"` with `scrollTo` -- framework handles measurement and clipping                      | `overflow` supports `visible` and `hidden` only; scrolling requires manual virtualization                                                        |
-| **Dynamic scrollback**    | `useScrollback` -- items graduate from interactive area to terminal history (like Claude Code needs)   | None -- all items must stay in the render tree                                                                                                   |
-| **Text truncation**       | Automatic, ANSI-aware; text clips at Box boundaries                                                    | Manual per-component ([#584](https://github.com/vadimdemedes/ink/issues/584))                                                                    |
-| **CSS/W3C alignment**     | Flexbox defaults match W3C spec (`flexDirection: row`); `outlineStyle` (CSS outline, no layout impact) | Non-standard defaults (`flexDirection: column`); no outline                                                                                      |
-| **Layout engines**        | [Flexily](https://beorn.codes/flexily) (19 KB gzip, pure JS) or Yoga WASM — pluggable                  | Yoga WASM only (`yoga-layout` v3)                                                                                                                |
-| **Render targets**        | Terminal, Canvas 2D, DOM (experimental)                                                                | Terminal only                                                                                                                                    |
-| **Native dependencies**   | None -- pure TypeScript                                                                                | Yoga WASM binary blob (no native compilation, but not pure JS)                                                                                   |
-| **Memory profile**        | Constant -- Flexily uses normal JS GC                                                                  | Yoga WASM uses a linear memory heap that can grow over long sessions ([discussion](https://github.com/anthropics/claude-code/issues/4953))       |
-| **Layout caching**        | Flexily fingerprints + caches unchanged subtrees                                                       | Full tree recomputation on every layout pass                                                                                                     |
-| **Synchronized output**   | DEC synchronized output (mode 2026) for flicker-free rendering in tmux/Zellij                          | None                                                                                                                                             |
-| **Bracketed paste**       | `usePaste` hook with automatic mode toggling                                                           | `usePaste` hook (released in v7.0.0)                                                                                                              |
-| **Initialization**        | Synchronous -- pure TypeScript import                                                                  | Async WASM loading                                                                                                                               |
+| Feature                   | Silvery                                                                                                | Ink                                                                                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Responsive layout**     | `useBoxRect()` / `useScrollRect()` -- synchronous, available during render                             | `useBoxMetrics()` -- post-layout via `useEffect`, returns 0x0 until first measure (released in v7.0.0)                                     |
+| **Incremental rendering** | Per-node dirty tracking with 7 independent flags; cell-level buffer diff                               | Line-based diff (opt-in `incrementalRendering` option in v7.0.0); unchanged lines skipped, but any change rewrites entire line             |
+| **ANSI compositing**      | Cell-level buffer with proper style stacking; ANSI sequences composed, not passed through              | String concatenation; ANSI sequences emitted inline, no compositing layer                                                                  |
+| **Scrollable containers** | `overflow="scroll"` with `scrollTo` -- framework handles measurement and clipping                      | `overflow` supports `visible` and `hidden` only; scrolling requires manual virtualization                                                  |
+| **Dynamic scrollback**    | `useScrollback` -- items graduate from interactive area to terminal history (like Claude Code needs)   | None -- all items must stay in the render tree                                                                                             |
+| **Text truncation**       | Automatic, ANSI-aware; text clips at Box boundaries                                                    | Manual per-component ([#584](https://github.com/vadimdemedes/ink/issues/584))                                                              |
+| **CSS/W3C alignment**     | Flexbox defaults match W3C spec (`flexDirection: row`); `outlineStyle` (CSS outline, no layout impact) | Non-standard defaults (`flexDirection: column`); no outline                                                                                |
+| **Layout engines**        | [Flexily](https://beorn.codes/flexily) (19 KB gzip, pure JS) or Yoga WASM — pluggable                  | Yoga WASM only (`yoga-layout` v3)                                                                                                          |
+| **Render targets**        | Terminal, Canvas 2D, DOM (experimental)                                                                | Terminal only                                                                                                                              |
+| **Native dependencies**   | None -- pure TypeScript                                                                                | Yoga WASM binary blob (no native compilation, but not pure JS)                                                                             |
+| **Memory profile**        | Constant -- Flexily uses normal JS GC                                                                  | Yoga WASM uses a linear memory heap that can grow over long sessions ([discussion](https://github.com/anthropics/claude-code/issues/4953)) |
+| **Layout caching**        | Flexily fingerprints + caches unchanged subtrees                                                       | Full tree recomputation on every layout pass                                                                                               |
+| **Synchronized output**   | DEC synchronized output (mode 2026) for flicker-free rendering in tmux/Zellij                          | None                                                                                                                                       |
+| **Bracketed paste**       | `usePaste` hook with automatic mode toggling                                                           | `usePaste` hook (released in v7.0.0)                                                                                                       |
+| **Initialization**        | Synchronous -- pure TypeScript import                                                                  | Async WASM loading                                                                                                                         |
 
 ### Interaction Model
 

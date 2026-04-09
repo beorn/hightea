@@ -81,14 +81,14 @@ Without `createTerm()`, Silvery creates a default term internally — matching I
 
 These APIs are 100% compatible:
 
-| Category       | APIs                                                                     |
-| -------------- | ------------------------------------------------------------------------ |
-| **Render**     | `render(<App />)` -- no term parameter needed                            |
-| **Components** | `<Box>`, `<Text>`, `<Newline>`, `<Spacer>`, `<Static>`                   |
+| Category       | APIs                                                                                                                                                       |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Render**     | `render(<App />)` -- no term parameter needed                                                                                                              |
+| **Components** | `<Box>`, `<Text>`, `<Newline>`, `<Spacer>`, `<Static>`                                                                                                     |
 | **Hooks**      | `useInput()`, `useApp()`, `useStdout()`, `useAnimation()`, `usePaste()`, `useCursor()`, `useBoxMetrics()`, `useWindowSize()`, `useIsScreenReaderEnabled()` |
-| **Styling**    | All Chalk styles work unchanged                                          |
-| **Flexbox**    | All flexbox props (direction, justify, align, wrap, grow, shrink, basis) |
-| **Borders**    | All border styles (single, double, round, bold, etc.)                    |
+| **Styling**    | All Chalk styles work unchanged                                                                                                                            |
+| **Flexbox**    | All flexbox props (direction, justify, align, wrap, grow, shrink, basis)                                                                                   |
+| **Borders**    | All border styles (single, double, round, bold, etc.)                                                                                                      |
 
 ## What's Different
 

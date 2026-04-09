@@ -757,16 +757,21 @@ export class TerminalBuffer {
     const idx = this.index(x, y)
 
     // Wide character consistency: when overwriting a continuation cell (second
-    // half of a wide char), clear the wide flag on the preceding main cell.
-    // When overwriting a wide char's main cell with a non-wide char, clear
-    // the continuation cell at x+1. Without this, the buffer has inconsistent
-    // wide/continuation pairs, causing incremental ≠ fresh render mismatches.
+    // half of a wide char), the leading main cell at x-1 must be replaced with
+    // a space (matching Ink's overlay boundary clearing — see ink/output.ts).
+    // Otherwise the buffer would have a wide-char glyph with no continuation,
+    // and the terminal would render a half-visible wide character past the
+    // overlay. When overwriting a wide char's main cell with a non-wide char,
+    // clear the continuation cell at x+1 the same way.
     if (!(cell.continuation ?? false)) {
       const prevPacked = this.cells[idx]
       if (prevPacked !== undefined && (prevPacked & CONTINUATION_FLAG) !== 0 && x > 0) {
-        // Overwriting a continuation cell — clear wide flag on main cell at x-1
+        // Overwriting a continuation cell — replace the leading wide-char cell
+        // at x-1 with a space and clear its wide flag. This matches Ink's
+        // pre-write boundary cleanup (ink/output.ts: currentLine[offsetX-1] = spaceCell).
         const prevIdx = idx - 1
         this.cells[prevIdx] = this.cells[prevIdx]! & ~WIDE_FLAG
+        this.chars[prevIdx] = " "
       }
     }
     if (!(cell.wide ?? false)) {

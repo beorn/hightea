@@ -13,7 +13,6 @@ import { createRenderer, stripAnsi } from "@silvery/test"
 import { Box, Text, Transform } from "@silvery/ag-react"
 import { createBuffer } from "@silvery/ag-term/buffer"
 import { outputPhase, createOutputPhase } from "@silvery/ag-term/pipeline/output-phase"
-import { contentPropsChanged } from "@silvery/ag-react/reconciler/helpers"
 
 // ============================================================================
 // 1. blink-hidden-style: styleToAnsi emits SGR 5 (blink) and SGR 8 (hidden)
@@ -148,63 +147,16 @@ describe("output-cache-unbounded: cache size is bounded", () => {
 
 // ============================================================================
 // 3. wrap-transform-classify: wrap and internal_transform are content props
+//
+// REMOVED: the `contentPropsChanged` helper was deleted in commit 408f57e0
+// ("refactor: delete deprecated propsEqual/layoutPropsChanged/contentPropsChanged
+// — zero callers"). That refactor missed this test file — the tests for the
+// helper were left behind and broke typecheck. Deleting them here.
+//
+// The behavior (wrap/internal_transform affecting layout dimensions) is now
+// verified by integration tests that actually render with these props, rather
+// than unit tests on a specific helper function.
 // ============================================================================
-
-describe("wrap-transform-classify: wrap and internal_transform are content props", () => {
-  test("changing wrap returns 'text' (content change, not style)", () => {
-    const oldProps = { wrap: "wrap" as const }
-    const newProps = { wrap: "truncate" as const }
-    expect(contentPropsChanged(oldProps, newProps)).toBe("text")
-  })
-
-  test("changing internal_transform returns 'text' (content change)", () => {
-    const transform1 = (s: string) => s.toUpperCase()
-    const transform2 = (s: string) => s.toLowerCase()
-    const oldProps = { internal_transform: transform1 }
-    const newProps = { internal_transform: transform2 }
-    expect(contentPropsChanged(oldProps, newProps)).toBe("text")
-  })
-
-  test("adding wrap returns 'text'", () => {
-    const oldProps = {}
-    const newProps = { wrap: "wrap" as const }
-    expect(contentPropsChanged(oldProps, newProps)).toBe("text")
-  })
-
-  test("removing wrap returns 'text'", () => {
-    const oldProps = { wrap: "wrap" as const }
-    const newProps = {}
-    expect(contentPropsChanged(oldProps, newProps)).toBe("text")
-  })
-
-  test("adding internal_transform returns 'text'", () => {
-    const oldProps = {}
-    const newProps = { internal_transform: (s: string) => s }
-    expect(contentPropsChanged(oldProps, newProps)).toBe("text")
-  })
-
-  test("wrap and internal_transform are NOT style-only changes", () => {
-    // They must return "text", not "style" -- because they affect layout dimensions
-    const result1 = contentPropsChanged({ wrap: "wrap" }, { wrap: false })
-    const result2 = contentPropsChanged({}, { internal_transform: (s: string) => s })
-    expect(result1).toBe("text")
-    expect(result2).toBe("text")
-    // Verify they are NOT "style" (which would skip layout recalculation)
-    expect(result1).not.toBe("style")
-    expect(result2).not.toBe("style")
-  })
-
-  test("style-only props still return 'style'", () => {
-    // Verify non-regression: actual style props still return "style"
-    expect(contentPropsChanged({ color: "red" }, { color: "blue" })).toBe("style")
-    expect(contentPropsChanged({ bold: false }, { bold: true })).toBe("style")
-  })
-
-  test("no change returns false", () => {
-    expect(contentPropsChanged({ wrap: "wrap" }, { wrap: "wrap" })).toBe(false)
-    expect(contentPropsChanged({}, {})).toBe(false)
-  })
-})
 
 // ============================================================================
 // 5. align-self-auto: applyBoxProps handles alignSelf="auto" correctly

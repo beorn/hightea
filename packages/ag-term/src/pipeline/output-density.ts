@@ -90,14 +90,8 @@ export interface DensityAnalysis {
  *
  * See design doc §2 (density analysis) and §5 (data structures).
  */
-export function analyzeRowDensity(
-  _pool: readonly CellChange[],
-  _count: number,
-  _width: number,
-): DensityAnalysis {
-  throw new Error(
-    "analyzeRowDensity: not implemented — see vendor/internal/silvery/design/v05-layout/hybrid-output.md",
-  )
+export function analyzeRowDensity(_pool: readonly CellChange[], _count: number, _width: number): DensityAnalysis {
+  throw new Error("analyzeRowDensity: not implemented — see vendor/internal/silvery/design/v05-layout/hybrid-output.md")
 }
 
 /**
@@ -122,7 +116,5 @@ export function analyzeRowDensity(
  * TODO(hybrid-output phase 2): implement.
  */
 export function pickEmissionMode(_row: DirtyRowSummary, _width: number): EmissionMode {
-  throw new Error(
-    "pickEmissionMode: not implemented — see vendor/internal/silvery/design/v05-layout/hybrid-output.md",
-  )
+  throw new Error("pickEmissionMode: not implemented — see vendor/internal/silvery/design/v05-layout/hybrid-output.md")
 }

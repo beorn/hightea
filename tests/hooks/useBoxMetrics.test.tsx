@@ -106,7 +106,11 @@ describe("useBoxMetrics", () => {
     // return zeros + hasMeasured:false without crashing.
     function Standalone({ testID }: { testID: string }) {
       const m = useBoxMetrics()
-      return <Text testID={testID}>m={String(m.hasMeasured)} w={m.width}</Text>
+      return (
+        <Text testID={testID}>
+          m={String(m.hasMeasured)} w={m.width}
+        </Text>
+      )
     }
     const render = createRenderer({ cols: 80, rows: 24 })
     const app = render(<Standalone testID="s" />)

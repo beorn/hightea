@@ -83,9 +83,7 @@ export function emitWholeRow(
   _ctx: OutputContext,
   _state: OutputEmitState,
 ): void {
-  throw new Error(
-    "emitWholeRow: not implemented — see vendor/internal/silvery/design/v05-layout/hybrid-output.md",
-  )
+  throw new Error("emitWholeRow: not implemented — see vendor/internal/silvery/design/v05-layout/hybrid-output.md")
 }
 
 /**
@@ -124,9 +122,7 @@ export function emitRuns(
   _ctx: OutputContext,
   _state: OutputEmitState,
 ): void {
-  throw new Error(
-    "emitRuns: not implemented — see vendor/internal/silvery/design/v05-layout/hybrid-output.md",
-  )
+  throw new Error("emitRuns: not implemented — see vendor/internal/silvery/design/v05-layout/hybrid-output.md")
 }
 
 /**
@@ -165,7 +161,5 @@ export function emitScatter(
   _ctx: OutputContext,
   _state: OutputEmitState,
 ): void {
-  throw new Error(
-    "emitScatter: not implemented — see vendor/internal/silvery/design/v05-layout/hybrid-output.md",
-  )
+  throw new Error("emitScatter: not implemented — see vendor/internal/silvery/design/v05-layout/hybrid-output.md")
 }

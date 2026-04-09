@@ -335,11 +335,11 @@ function MyInput() {
 }
 ```
 
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `id` | `string` | auto-generated | Stable focus ID |
-| `autoFocus` | `boolean` | `false` | Focus on mount |
-| `isActive` | `boolean` | `true` | When false, skipped in tab order and never reports focused |
+| Option      | Type      | Default        | Description                                                |
+| ----------- | --------- | -------------- | ---------------------------------------------------------- |
+| `id`        | `string`  | auto-generated | Stable focus ID                                            |
+| `autoFocus` | `boolean` | `false`        | Focus on mount                                             |
+| `isActive`  | `boolean` | `true`         | When false, skipped in tab order and never reports focused |
 
 Returns `{ isFocused: boolean, focus: (id: string) => void }`.
 
@@ -376,26 +376,26 @@ function Sidebar() {
 
 ```tsx
 const {
-  activeId,        // currently focused component's ID
-  activeScopeId,   // active peer focus scope
-  focus,           // focus by node or id
-  focusNext,       // Tab
-  focusPrev,       // Shift+Tab
-  blur,            // clear focus
-  activateScope,   // switch peer scope (WPF model)
+  activeId, // currently focused component's ID
+  activeScopeId, // active peer focus scope
+  focus, // focus by node or id
+  focusNext, // Tab
+  focusPrev, // Shift+Tab
+  blur, // clear focus
+  activateScope, // switch peer scope (WPF model)
 } = useFocusManager()
 ```
 
 ### When to use which
 
-| Need | Use |
-| --- | --- |
-| Simple focus tracking (Ink migration) | `useFocus({ id })` |
-| Focus origin ("keyboard" vs "mouse") | `useFocusable()` |
-| Parent knows if descendants focused | `useFocusWithin()` |
-| Control focus from anywhere | `useFocusManager()` |
-| Focus scopes (dialogs, modals) | `<Box focusScope>` + `activateScope()` |
-| Spatial navigation (grid layouts) | `focusManager.focusDirection("up"/"down"/"left"/"right")` |
+| Need                                  | Use                                                       |
+| ------------------------------------- | --------------------------------------------------------- |
+| Simple focus tracking (Ink migration) | `useFocus({ id })`                                        |
+| Focus origin ("keyboard" vs "mouse")  | `useFocusable()`                                          |
+| Parent knows if descendants focused   | `useFocusWithin()`                                        |
+| Control focus from anywhere           | `useFocusManager()`                                       |
+| Focus scopes (dialogs, modals)        | `<Box focusScope>` + `activateScope()`                    |
+| Spatial navigation (grid layouts)     | `focusManager.focusDirection("up"/"down"/"left"/"right")` |
 
 ## See Also
 

@@ -165,7 +165,8 @@ function envTruthy(val: string | undefined): boolean {
 
 /** Instrumentation enabled when SILVERY_STRICT or SILVERY_INSTRUMENT is set */
 const _instrumentEnabled =
-  typeof process !== "undefined" && (envTruthy(process.env?.SILVERY_STRICT) || envTruthy(process.env?.SILVERY_INSTRUMENT))
+  typeof process !== "undefined" &&
+  (envTruthy(process.env?.SILVERY_STRICT) || envTruthy(process.env?.SILVERY_INSTRUMENT))
 
 /** Mutable stats counters — reset after each renderPhase call */
 const _renderPhaseStats: RenderPhaseStats = {
@@ -1978,8 +1979,7 @@ function clearExcessArea(
     const border = getBorderSize(parentProps)
     const padding = getPadding(parentProps)
     const parentRight = parent.boxRect.x + parent.boxRect.width - border.right - padding.right
-    const parentBottom =
-      parent.boxRect.y - scrollOffset + parent.boxRect.height - border.bottom - padding.bottom
+    const parentBottom = parent.boxRect.y - scrollOffset + parent.boxRect.height - border.bottom - padding.bottom
     clipRectRight = Math.min(clipRectRight, parentRight)
     clipRectBottom = Math.min(clipRectBottom, parentBottom)
   }

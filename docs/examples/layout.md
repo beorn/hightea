@@ -202,7 +202,7 @@ Equal-width columns via `flexGrow`. Each column scrolls independently:
 | `gap`               | Consistent spacing between items            |
 | `overflow="scroll"` | Scrollable containers with auto-indicators  |
 | `scrollTo={index}`  | Keep selected item visible                  |
-| `useBoxRect()`  | Responsive layout feedback at render time   |
+| `useBoxRect()`      | Responsive layout feedback at render time   |
 | `useInput()`        | Tab switching and list navigation           |
 
 ## Exercises

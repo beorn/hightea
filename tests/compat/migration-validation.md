@@ -130,7 +130,7 @@ All core Ink APIs used by Gatsby CLI are covered. The only dependency needing at
 | `ink-table`                 | 3.1.0   | Tabular output     | `@silvery/ag-react/ui` `<Table>`      |
 | `ink-spinner`               | 4.0.3   | Loading indicators | `@silvery/ag-react/ui` `<Spinner>`    |
 | `ink-testing-library`       | 2.1.0   | Test utilities     | `@silvery/test` `createRenderer`      |
-| `ink-use-stdout-dimensions` | 1.0.5   | Terminal size      | `useStdout()` or `useBoxRect()`   |
+| `ink-use-stdout-dimensions` | 1.0.5   | Terminal size      | `useStdout()` or `useBoxRect()`       |
 
 ### Key Patterns
 

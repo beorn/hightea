@@ -42,15 +42,15 @@ import { Box, Text, render } from "silvery/ink"
 
 ### Hook Compatibility
 
-| Hook                | Ink       | Silvery   | Notes                                |
-| ------------------- | --------- | --------- | ------------------------------------ |
-| `useInput()`        | Supported | Supported | Same callback signature              |
-| `useApp()`          | Supported | Supported | Same API                             |
-| `useStdout()`       | Supported | Supported | Same API                             |
-| `useFocus()`        | Supported | Supported | Enhanced with spatial navigation     |
-| `useFocusManager()` | Supported | Supported | Same API                             |
+| Hook                | Ink       | Silvery   | Notes                            |
+| ------------------- | --------- | --------- | -------------------------------- |
+| `useInput()`        | Supported | Supported | Same callback signature          |
+| `useApp()`          | Supported | Supported | Same API                         |
+| `useStdout()`       | Supported | Supported | Same API                         |
+| `useFocus()`        | Supported | Supported | Enhanced with spatial navigation |
+| `useFocusManager()` | Supported | Supported | Same API                         |
 | `measureElement()`  | Supported | Supported | Works, but prefer `useBoxRect()` |
-| `useBoxMetrics()`   | --        | New       | Post-layout dimensions               |
+| `useBoxMetrics()`   | --        | New       | Post-layout dimensions           |
 
 ### render() Differences
 
@@ -201,7 +201,7 @@ These features have no Ink/Chalk equivalent:
 
 | Feature               | API                                   |
 | --------------------- | ------------------------------------- |
-| Layout feedback       | `useBoxRect()`                    |
+| Layout feedback       | `useBoxRect()`                        |
 | Scrollable containers | `overflow="scroll"` + `scrollTo`      |
 | Input layer isolation | `<InputLayerProvider>`                |
 | Spatial focus         | `<FocusScope>` with arrow keys        |

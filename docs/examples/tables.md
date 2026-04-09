@@ -172,7 +172,7 @@ The Table component handles header alignment and separators:
 | ------------------ | ------------------------------------------- |
 | `Table`            | Column alignment and headers                |
 | `VirtualList`      | Constant-memory rendering of large datasets |
-| `useBoxRect()` | Responsive column widths                    |
+| `useBoxRect()`     | Responsive column widths                    |
 | `TextInput`        | Real-time search filter                     |
 | `useDeferredValue` | Non-blocking filter during typing           |
 | `useInput()`       | Keyboard navigation                         |
