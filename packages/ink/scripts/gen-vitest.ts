@@ -166,11 +166,6 @@ const RENDER_MODE_FAILURES: Record<string, string[]> = {
     "alternate screen - cleanup() exits the alternate screen",
     "alternate screen - content is rendered between enter and exit",
     "alternate screen - debug concurrent teardown restores the cursor before the first commit",
-    "debug mode: useStdout().write() replays latest frame",
-    "debug mode: useStdout().write() replays rerendered frame",
-    "debug mode: useStdout().write() does not leak into stderr",
-    "debug mode: useStderr().write() replays latest frame without empty writes",
-    "debug mode: useStderr().write() replays rerendered frame",
   ],
   cursor: [
     "cursor follows text input",
@@ -179,11 +174,6 @@ const RENDER_MODE_FAILURES: Record<string, string[]> = {
     "cursor position does not leak from suspended concurrent render to fallback",
     "cursor remains visible after useStderr().write()",
     "cursor remains visible after useStdout().write()",
-    "debug mode: useStdout().write() replays latest frame",
-    "debug mode: useStdout().write() does not leak into stderr",
-    "debug mode: useStderr().write() replays latest frame without empty writes",
-    "debug mode: useStdout().write() replays rerendered frame",
-    "debug mode: useStderr().write() replays rerendered frame",
   ],
   "use-box-metrics": [
     "returns correct size on first render",
