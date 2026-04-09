@@ -1903,55 +1903,57 @@ function styleToAnsi(style: Style, ctx: OutputContext = defaultContext): string 
   const fg = style.fg
   const bg = style.bg
 
-  // Build individual escape sequences (chalk-compatible: one \x1b[Xm per attribute)
-  let result = ""
+  // Collect all SGR codes into one combined sequence: \x1b[code1;code2;...m
+  // This is more spec-compliant and produces fewer bytes than separate sequences.
+  const codes: string[] = []
 
   // Foreground color
   if (fg !== null) {
-    result += `\x1b[${fgColorCode(fg)}m`
+    codes.push(fgColorCode(fg))
   }
 
   // Background color (DEFAULT_BG sentinel = terminal default, skip)
   if (bg !== null && !isDefaultBg(bg)) {
-    result += `\x1b[${bgColorCode(bg)}m`
+    codes.push(bgColorCode(bg))
   }
 
   // Attributes
-  if (style.attrs.bold) result += "\x1b[1m"
-  if (style.attrs.dim) result += "\x1b[2m"
-  if (style.attrs.italic) result += "\x1b[3m"
+  if (style.attrs.bold) codes.push("1")
+  if (style.attrs.dim) codes.push("2")
+  if (style.attrs.italic) codes.push("3")
 
   // Underline: use SGR 4:x if style specified, otherwise simple SGR 4
   if (!ctx.caps.underlineStyles) {
     // Terminal doesn't support SGR 4:x — use simple SGR 4
-    if (style.attrs.underline || style.attrs.underlineStyle) result += "\x1b[4m"
+    if (style.attrs.underline || style.attrs.underlineStyle) codes.push("4")
   } else {
     const underlineStyle = style.attrs.underlineStyle
     const sgrSubparam = underlineStyleToSgr(underlineStyle)
     if (sgrSubparam !== null && sgrSubparam !== 0) {
-      result += `\x1b[4:${sgrSubparam}m`
+      codes.push(`4:${sgrSubparam}`)
     } else if (style.attrs.underline) {
-      result += "\x1b[4m"
+      codes.push("4")
     }
   }
 
   // Use SGR 7 for inverse — lets the terminal correctly swap fg/bg
   // (including default terminal colors that have no explicit ANSI code)
-  if (style.attrs.blink) result += "\x1b[5m"
-  if (style.attrs.inverse) result += "\x1b[7m"
-  if (style.attrs.hidden) result += "\x1b[8m"
-  if (style.attrs.strikethrough) result += "\x1b[9m"
+  if (style.attrs.blink) codes.push("5")
+  if (style.attrs.inverse) codes.push("7")
+  if (style.attrs.hidden) codes.push("8")
+  if (style.attrs.strikethrough) codes.push("9")
 
   // Append underline color if specified (SGR 58) — skip for limited terminals
   if (ctx.caps.underlineColor && style.underlineColor !== null && style.underlineColor !== undefined) {
     if (typeof style.underlineColor === "number") {
-      result += `\x1b[58;5;${style.underlineColor}m`
+      codes.push(`58;5;${style.underlineColor}`)
     } else {
-      result += `\x1b[58;2;${style.underlineColor.r};${style.underlineColor.g};${style.underlineColor.b}m`
+      codes.push(`58;2;${style.underlineColor.r};${style.underlineColor.g};${style.underlineColor.b}`)
     }
   }
 
-  return result
+  if (codes.length === 0) return ""
+  return `\x1b[${codes.join(";")}m`
 }
 
 // =============================================================================
