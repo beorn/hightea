@@ -469,5 +469,146 @@
     "href": "https://react.dev",
     "tooltip": "Latest React version — concurrent features, use() hook, server components",
     "external": true
+  },
+  {
+    "term": "alternate screen",
+    "href": "/guide/silvery-vs-ink#rendering",
+    "tooltip": "DEC private mode 1049 — a separate terminal buffer apps can take over (like vim). No scrollback, but full cell-level control. Also called alt-screen."
+  },
+  {
+    "term": "scrollback",
+    "href": "/guide/silvery-vs-ink#rendering",
+    "tooltip": "Terminal scroll history — the lines above the visible viewport. Cmd+F searches it, text selection works across it, content persists after the app exits."
+  },
+  {
+    "term": "position sticky",
+    "href": "/guide/scrolling",
+    "tooltip": "CSS-like sticky positioning — headers stay visible at the top of a scroll container as content scrolls underneath."
+  },
+  {
+    "term": "synchronized output",
+    "href": "/reference/terminal-protocols",
+    "tooltip": "DEC mode 2026 — wraps frame emission so the terminal paints atomically. Prevents tearing in tmux, Zellij, and other multiplexers."
+  },
+  {
+    "term": "DEC mode 2026",
+    "href": "/reference/terminal-protocols",
+    "tooltip": "Synchronized output — terminal renders a frame atomically, preventing mid-frame tearing."
+  },
+  {
+    "term": "SGR mouse",
+    "href": "/guide/event-handling",
+    "tooltip": "Extended mouse protocol (mode 1006) — reports coordinates beyond column 223, supports press/release/drag/wheel events."
+  },
+  {
+    "term": "Kitty keyboard",
+    "href": "/reference/terminal-protocols",
+    "tooltip": "Extended keyboard protocol with 5 flags — disambiguate, event types, alternate keys, all keys, associated text. Enables modifier detection and key release events."
+  },
+  {
+    "term": "OSC 8",
+    "href": "/reference/terminal-protocols",
+    "tooltip": "Hyperlink escape sequence — makes text clickable in supporting terminals."
+  },
+  {
+    "term": "OSC 52",
+    "href": "/guide/clipboard",
+    "tooltip": "Clipboard access escape sequence — copy/paste that works across SSH sessions."
+  },
+  {
+    "term": "ANSI compositing",
+    "href": "/guide/silvery-vs-ink#rendering",
+    "tooltip": "Cell-level buffer with proper style stacking — ANSI sequences are composed and blended, not just concatenated as strings."
+  },
+  {
+    "term": "incremental rendering",
+    "href": "/guide/silvery-vs-ink#rendering",
+    "tooltip": "Only changed cells emit to the terminal. Silvery tracks 7 independent dirty flags per node for cell-level precision."
+  },
+  {
+    "term": "useBoxMetrics",
+    "href": "/guide/silvery-vs-ink#rendering",
+    "tooltip": "Ink's post-layout hook for component dimensions — returns 0×0 on first render, updates via useEffect. Compare with silvery's useBoxRect()."
+  },
+  {
+    "term": "useAnimation",
+    "href": "/api/use-animation",
+    "tooltip": "Frame-based animation hook — provides frame count, elapsed time, and delta. Silvery adds easing functions and useAnimatedTransition."
+  },
+  {
+    "term": "usePaste",
+    "href": "/api/use-paste",
+    "tooltip": "Hook for receiving bracketed paste events — automatically enables/disables paste mode."
+  },
+  {
+    "term": "useCursor",
+    "href": "/api/use-cursor",
+    "tooltip": "Hook for IME cursor positioning — reports cursor location for input method editors."
+  },
+  {
+    "term": "useFocusManager",
+    "href": "/api/use-focus-manager",
+    "tooltip": "Programmatic focus control — focusNext(), focusPrevious(), focusById(). Works with both Ink compat and silvery-native focus."
+  },
+  {
+    "term": "useFocusWithin",
+    "href": "/api/use-focus-within",
+    "tooltip": "Hook that reports whether any descendant of the current component has focus — useful for styling parent containers."
+  },
+  {
+    "term": "InputLayerProvider",
+    "href": "/guide/silvery-vs-ink#interaction",
+    "tooltip": "DOM-style input isolation — handlers in a layer only receive input when the layer is active. Modal dialogs consume input without manual guards."
+  },
+  {
+    "term": "FocusScope",
+    "href": "/guide/silvery-vs-ink#interaction",
+    "tooltip": "Focus boundary — Tab/arrow keys cycle within the scope. Used for modals, dialogs, and navigation regions."
+  },
+  {
+    "term": "@silvery/test",
+    "href": "/reference/packages",
+    "tooltip": "Testing package — createRenderer for headless tests, Playwright-style locators, press() simulation, buffer assertions."
+  },
+  {
+    "term": "@silvery/create",
+    "href": "/reference/packages",
+    "tooltip": "App composition package — createApp, pipe(), withFocus, withDomEvents, TEA state machines with replay and undo."
+  },
+  {
+    "term": "@inkjs/ui",
+    "href": "https://github.com/vadimdemedes/ink-ui",
+    "tooltip": "Ink's official component library — 13 input-focused components including TextInput, Select, MultiSelect, Spinner, ProgressBar.",
+    "external": true
+  },
+  {
+    "term": "Transform",
+    "href": "/guide/silvery-vs-ink#both-have",
+    "tooltip": "Ink built-in component that applies a string transformation function to its children's output."
+  },
+  {
+    "term": "Spacer",
+    "href": "/api/spacer",
+    "tooltip": "Utility component that expands to fill available space — like CSS flex-grow: 1."
+  },
+  {
+    "term": "Newline",
+    "href": "/guide/silvery-vs-ink#both-have",
+    "tooltip": "Utility component that renders a newline character — equivalent to a line break in terminal output."
+  },
+  {
+    "term": "SILVERY_STRICT",
+    "href": "/guide/debugging",
+    "tooltip": "Environment variable that enables render verification — compares incremental render output against a fresh full render on every frame."
+  },
+  {
+    "term": "WASM",
+    "href": "/guide/silvery-vs-ink#performance-size",
+    "tooltip": "WebAssembly — Ink uses Yoga compiled to WASM for layout. Silvery uses pure TypeScript (Flexily) by default, with optional Yoga WASM."
+  },
+  {
+    "term": "createTermless",
+    "href": "/guide/testing",
+    "tooltip": "Creates an in-process terminal emulator for tests — real xterm.js processing without a real terminal. Verifies ANSI output, colors, scrollback."
   }
 ]
