@@ -47,7 +47,7 @@ features:
   - title: Familiar React API
     details: "Same Box/Text/useInput patterns you already know. If you've used Ink, most code works with just an import change."
     link: /guide/silvery-vs-ink
-    linkText: Ink compatibility guide
+    linkText: Full feature comparison
   - title: Pure TypeScript
     details: "No WASM, no C++, no native dependencies. Runs on Node, Bun, and Deno. Instant startup, stable memory."
   - title: Fast Incremental Rendering
