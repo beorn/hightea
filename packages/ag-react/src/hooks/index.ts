@@ -14,6 +14,9 @@ export {
   type Rect,
 } from "./useLayout"
 
+// Box metrics (Ink-compatible — returns { width, height, left, top, hasMeasured })
+export { useBoxMetrics, type BoxMetrics } from "./useBoxMetrics"
+
 // Input
 export { useInput, type Key, type InputHandler, type UseInputOptions } from "./useInput"
 
