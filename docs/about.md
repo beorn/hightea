@@ -78,14 +78,8 @@ See also: [Silvery vs Ink](/guide/silvery-vs-ink), [Silvery vs BubbleTea](/guide
 
 ## Author
 
-I'm [Bjørn Stabell](https://beorn.codes), a serial entrepreneur and technologist based in Palo Alto, CA. I've been building software companies and developer tools since 2000 — co-founded [App Annie / data.ai](https://www.data.ai/) (app market intelligence, used across the Fortune 500, exit to Sensor Tower in 2024), [Happylatte](https://beorn.codes/#happylatte) (mobile games — High Noon hit top 10 grossing in 60+ countries), and [Exoweb](https://beorn.codes/#exoweb) (agile dev services, 90 people in Beijing). Also co-created [XPilot](https://en.wikipedia.org/wiki/XPilot), one of the first multiplayer internet action games (1991).
+[Bjørn Stabell](https://beorn.codes) — serial entrepreneur and technologist. Co-founded [App Annie / data.ai](https://www.data.ai/) (app market intelligence), [Happylatte](https://beorn.codes/#happylatte) (mobile games), and [Exoweb](https://beorn.codes/#exoweb) (agile dev services). Running companies since 2000 across Beijing, Vancouver, and now Palo Alto. Co-created [XPilot](https://en.wikipedia.org/wiki/XPilot) (1991).
 
-Currently building AI products and open-source infrastructure for the terminal ecosystem. Silvery started because I was building a complex TUI app ([km](https://github.com/beorn/km) — a workspace for agentic knowledge workers) and couldn't find a React terminal framework with responsive layout, native scrolling, and incremental rendering. So I built one, and the ecosystem grew around it:
-
-- **[Silvery](https://silvery.dev)** — this project
-- **[Flexily](https://beorn.codes/flexily)** — pure JS flexbox layout engine (Yoga-compatible)
-- **[Termless](https://termless.dev)** — headless terminal testing, like Playwright for terminal apps
-- **[terminfo.dev](https://terminfo.dev)** — terminal feature compatibility database (161 features, 19 terminals)
-- **[Loggily](https://beorn.codes/loggily)** — debug + structured logging + tracing
+Currently building AI products and open-source infrastructure for the terminal ecosystem: [Silvery](https://silvery.dev) (this project), [terminfo.dev](https://terminfo.dev) (terminal compatibility database), [Termless](https://termless.dev) (headless terminal testing), [Flexily](https://beorn.codes/flexily) (flexbox layout engine), and [Loggily](https://beorn.codes/loggily) (structured logging).
 
 [GitHub](https://github.com/beorn) · [LinkedIn](https://linkedin.com/in/beorn) · [X](https://x.com/beorn)
