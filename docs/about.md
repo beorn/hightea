@@ -58,6 +58,24 @@ These are all MIT-licensed and part of the same development effort:
 
 Silvery is a good fit for interactive, keyboard-heavy terminal apps with large or responsive UIs. For simpler CLIs, output-only tools, or apps that rebuild the full screen on every update, [Ink](https://github.com/vadimdemedes/ink) is a solid choice with a bigger ecosystem. If you don't want React or TypeScript, frameworks in Go, Python, and Rust may be a better fit.
 
+## Inspirations
+
+Silvery stands on the shoulders of many great projects:
+
+- **[Ink](https://github.com/vadimdemedes/ink)** — defined React for terminals. Silvery's API is intentionally Ink-compatible.
+- **[Chalk](https://github.com/chalk/chalk)** — terminal string styling. Silvery includes a full Chalk compat layer (100% test pass).
+- **[Ratatui](https://ratatui.rs/)** — the cell-level buffer model and immediate-mode rendering approach.
+- **[SlateJS](https://www.slatejs.org/)** — plugin composition via `pipe()`, operations-as-data, middleware transforms.
+- **[The Elm Architecture](https://guide.elm-lang.org/architecture/) / [BubbleTea](https://github.com/charmbracelet/bubbletea)** — TEA state machines: `(action, state) → [state, effects]`.
+- **CSS/Web platform** — flexbox layout, container queries (`useBoxRect`), DOM-style events, focus scopes, `overflow: scroll`, `position: sticky`.
+- **[VS Code](https://code.visualstudio.com/)** — command palette, keybinding system with when-predicates.
+- **[Playwright](https://playwright.dev/)** — locator-based testing API (`getByText`, `press()`).
+- **[ProseMirror](https://prosemirror.net/)** — selection model and state machine approach to editing.
+- **[Blessed](https://github.com/chjj/blessed)** — proved rich terminal UIs are possible in JavaScript.
+- **[Textual](https://textual.textualize.io/)** — CSS-like theming and widget library for terminals.
+
+See also: [Silvery vs Ink](/guide/silvery-vs-ink), [Silvery vs BubbleTea](/guide/silvery-vs-bubbletea), [Silvery vs Textual](/guide/silvery-vs-textual), [Silvery vs Blessed](/guide/silvery-vs-blessed).
+
 ## Author
 
 I'm [Bjørn Stabell](https://beorn.codes), based in Palo Alto, CA. I've been building developer tools for about twenty years — distributed systems, infrastructure, and more recently terminal and AI tooling. Silvery started because I needed it for my own work and couldn't find anything that did what I needed. The ecosystem around it ([Flexily](https://beorn.codes/flexily), [Termless](https://termless.dev), [terminfo.dev](https://terminfo.dev)) grew out of the same need.

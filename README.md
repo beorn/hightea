@@ -77,6 +77,10 @@ await render(<Counter />).run()
 
 **Runtimes:** Bun >= 1.0 and Node.js >= 18. CLI (`silvery` command) requires Bun.
 
+## Inspirations
+
+Silvery builds on ideas from [Ink](https://github.com/vadimdemedes/ink) (React for terminals), [Ratatui](https://ratatui.rs/) (cell-level buffer model), [SlateJS](https://www.slatejs.org/) (plugin composition, operations-as-data), [The Elm Architecture](https://guide.elm-lang.org/architecture/) / [BubbleTea](https://github.com/charmbracelet/bubbletea) (TEA state machines), the CSS/Web platform (flexbox, container queries, DOM events, focus scopes), [VS Code](https://code.visualstudio.com/) (command palette, keybindings), [Playwright](https://playwright.dev/) (locator-based testing), [ProseMirror](https://prosemirror.net/) (selection model), [Blessed](https://github.com/chjj/blessed) (rich terminal UIs in JS), and [Textual](https://textual.textualize.io/) (CSS-like terminal theming).
+
 ## License
 
 MIT
