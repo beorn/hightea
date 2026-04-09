@@ -610,6 +610,17 @@ export function scrollrectPhase(root: AgNode): void {
 }
 
 /**
+ * Fast path for scrollrectPhase when no scroll containers or sticky nodes exist.
+ *
+ * When there are no scroll containers and no sticky nodes, ancestorScrollOffset
+ * is always 0, so scrollRect === boxRect and screenRect === scrollRect. This
+ * avoids the overhead of accumulating scroll offsets through the tree.
+ */
+export function scrollrectPhaseSimple(root: AgNode): void {
+  propagateScrollRectSimple(root)
+}
+
+/**
  * Propagate screen-relative positions through the tree.
  *
  * @param node The node to process
@@ -694,4 +705,87 @@ function computeStickyScreenRects(parent: AgNode): void {
       height: child.scrollRect.height,
     }
   }
+}
+
+// ============================================================================
+// Simple scrollRect propagation (no scroll/sticky)
+// ============================================================================
+
+/**
+ * Simple scrollRect propagation for trees without scroll containers or sticky nodes.
+ * When ancestorScrollOffset is always 0, scrollRect === boxRect and screenRect === scrollRect.
+ * Saves the overhead of accumulating scroll offsets and computing sticky screen rects.
+ */
+function propagateScrollRectSimple(node: AgNode): void {
+  node.prevScrollRect = node.scrollRect
+  node.prevScreenRect = node.screenRect
+
+  const content = node.boxRect
+  if (!content) {
+    node.scrollRect = null
+    node.screenRect = null
+    for (const child of node.children) {
+      propagateScrollRectSimple(child)
+    }
+    return
+  }
+
+  // No scroll offset — scrollRect equals boxRect
+  node.scrollRect = {
+    x: content.x,
+    y: content.y,
+    width: content.width,
+    height: content.height,
+  }
+  node.screenRect = node.scrollRect
+
+  for (const child of node.children) {
+    propagateScrollRectSimple(child)
+  }
+}
+
+// ============================================================================
+// Feature Detection
+// ============================================================================
+
+/**
+ * Pipeline feature flags — tracks which optional phases the tree needs.
+ *
+ * Flags are one-way: once set to true, they stay true for the lifetime
+ * of the Ag instance. This ensures that if a component dynamically mounts
+ * a scroll container or sticky child, the phase starts running immediately
+ * and never gets skipped again.
+ */
+export interface PipelineFeatures {
+  /** Tree contains at least one `overflow="scroll"` node. */
+  hasScroll: boolean
+  /** Tree contains at least one `position="sticky"` node. */
+  hasSticky: boolean
+}
+
+/**
+ * Scan the tree for features that require optional pipeline phases.
+ *
+ * Returns feature flags. This is called on every layout pass so newly
+ * mounted components are detected. The caller should merge flags with
+ * one-way semantics (false → true, never true → false).
+ */
+export function detectPipelineFeatures(root: AgNode): PipelineFeatures {
+  let hasScroll = false
+  let hasSticky = false
+
+  function scan(node: AgNode): void {
+    const props = node.props as BoxProps
+    if (props.overflow === "scroll") hasScroll = true
+    if (props.position === "sticky") hasSticky = true
+    // Early exit if both features detected
+    if (hasScroll && hasSticky) return
+    for (const child of node.children) {
+      scan(child)
+      if (hasScroll && hasSticky) return
+    }
+  }
+
+  scan(root)
+  return { hasScroll, hasSticky }
 }

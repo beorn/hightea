@@ -17,6 +17,9 @@ export {
   rectEqual,
   scrollPhase,
   scrollrectPhase,
+  scrollrectPhaseSimple,
+  detectPipelineFeatures,
+  type PipelineFeatures,
   renderPhase,
   outputPhase,
   // Utilities

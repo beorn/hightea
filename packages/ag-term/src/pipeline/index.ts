@@ -58,7 +58,10 @@ export {
   scrollPhase,
   stickyPhase,
   scrollrectPhase,
+  scrollrectPhaseSimple,
   notifyLayoutSubscribers,
+  detectPipelineFeatures,
+  type PipelineFeatures,
 } from "./layout-phase"
 export { renderPhase, clearBgConflictWarnings, setBgConflictMode } from "./render-phase"
 export { renderPhaseAdapter } from "./render-phase-adapter"
@@ -66,7 +69,15 @@ export { outputPhase } from "./output-phase"
 
 import { renderPhaseAdapter } from "./render-phase-adapter"
 import { clearBgConflictWarnings, renderPhase } from "./render-phase"
-import { layoutPhase, notifyLayoutSubscribers, scrollrectPhase, scrollPhase, stickyPhase } from "./layout-phase"
+import {
+  layoutPhase,
+  notifyLayoutSubscribers,
+  scrollrectPhase,
+  scrollrectPhaseSimple,
+  scrollPhase,
+  stickyPhase,
+  detectPipelineFeatures,
+} from "./layout-phase"
 // Import for orchestration
 import { measurePhase } from "./measure-phase"
 import { outputPhase } from "./output-phase"

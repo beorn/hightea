@@ -28,7 +28,9 @@ import {
   scrollPhase,
   stickyPhase,
   scrollrectPhase,
+  scrollrectPhaseSimple,
   notifyLayoutSubscribers,
+  detectPipelineFeatures,
 } from "./pipeline/layout-phase"
 import { renderPhase, clearBgConflictWarnings } from "./pipeline/render-phase"
 import { clearDirtyTracking } from "@silvery/ag/dirty-tracking"
@@ -123,6 +125,12 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
   const ctx: PipelineContext | undefined = measurer ? { measurer } : undefined
   let _prevBuffer: TerminalBuffer | null = null
 
+  // Feature flags — one-way: once true, stays true for the lifetime of this Ag.
+  // This ensures dynamically mounted scroll/sticky components enable their phases
+  // and never get skipped again.
+  let hasScroll = false
+  let hasSticky = false
+
   function doLayout(
     cols: number,
     rows: number,
@@ -148,21 +156,39 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
       log.debug?.(`layout: ${tLayout.toFixed(2)}ms`)
     }
 
+    // Detect features for phase skipping. One-way merge: false → true only.
+    // This scan runs every layout pass to catch newly mounted components.
+    if (!hasScroll || !hasSticky) {
+      const features = detectPipelineFeatures(root)
+      if (features.hasScroll) hasScroll = true
+      if (features.hasSticky) hasSticky = true
+    }
+
     let tScroll: number
-    {
+    if (hasScroll) {
       using _s = render.span("scroll")
       const t = performance.now()
       scrollPhase(root, { skipStateUpdates: opts?.skipScrollStateUpdates })
       tScroll = performance.now() - t
+    } else {
+      tScroll = 0
     }
 
-    stickyPhase(root)
+    if (hasSticky) {
+      stickyPhase(root)
+    }
 
     let tScrollRect: number
     {
       using _r = render.span("scrollRect")
       const t = performance.now()
-      scrollrectPhase(root)
+      if (hasScroll || hasSticky) {
+        scrollrectPhase(root)
+      } else {
+        // Fast path: no scroll offsets or sticky positions to account for.
+        // scrollRect === boxRect, screenRect === scrollRect.
+        scrollrectPhaseSimple(root)
+      }
       tScrollRect = performance.now() - t
     }
 
