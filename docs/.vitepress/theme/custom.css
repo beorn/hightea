@@ -1,0 +1,10 @@
+/* Fix glossary tooltips being clipped by table scroll containers */
+.vp-doc .table-wrapper {
+  overflow: visible;
+}
+
+/* Ensure glossary tooltips render above table content */
+.glossary-link .glossary-tooltip,
+.glossary-link [class*="tooltip"] {
+  z-index: 100;
+}
