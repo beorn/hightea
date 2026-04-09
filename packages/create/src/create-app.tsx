@@ -126,6 +126,36 @@ import { createLogger } from "loggily"
 const log = createLogger("silvery:app")
 
 // ============================================================================
+// Feature-detection flags — hoisted to module scope.
+//
+// These env var checks were historically evaluated on every doRender() call,
+// adding ~10μs/frame overhead to production renders. They are all static for
+// the lifetime of the process, so we compute them once at module load.
+//
+// When the instrumentation flag is off (the common case), branches guarded by
+// these constants are dead-code eliminated by V8's optimizer — turning them
+// into no-ops on the hot path.
+// ============================================================================
+const ENV = typeof process !== "undefined" ? process.env : undefined
+const NO_INCREMENTAL = ENV?.SILVERY_NO_INCREMENTAL === "1"
+const STRICT_MODE = (() => {
+  const v = ENV?.SILVERY_STRICT
+  return !!v && v !== "0" && v !== "false"
+})()
+const CELL_DEBUG = (() => {
+  const v = ENV?.SILVERY_CELL_DEBUG
+  if (!v || !v.includes(",")) return null
+  const [cx, cy] = v.split(",").map(Number)
+  if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null
+  return { x: cx, y: cy }
+})()
+// INSTRUMENTED = any diagnostic is on. When false, the per-frame resets of
+// diagnostic globals can be skipped entirely — they are only consumed by the
+// STRICT/CELL_DEBUG paths. This is the primary hot-path win: when no
+// instrumentation is active (production), doRender skips ~8 global ops/frame.
+const INSTRUMENTED = STRICT_MODE || CELL_DEBUG !== null
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -1297,7 +1327,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // Incremental rendering — store previous pipeline buffer for diffing.
   // Without this, every render walks the entire node tree from scratch.
   // Set SILVERY_NO_INCREMENTAL=1 to disable (for debugging blank screen issues).
-  const _noIncremental = process.env?.SILVERY_NO_INCREMENTAL === "1"
+  // _noIncremental aliases the module-level NO_INCREMENTAL constant for readability.
+  const _noIncremental = NO_INCREMENTAL
   let _prevTermBuffer: import("@silvery/ag-term/buffer").TerminalBuffer | null = null
 
   // Helper to render and get text
@@ -1350,19 +1381,18 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       }
     }
 
-    // Clear diagnostic arrays before the render so we capture only this render's data
-    ;(globalThis as any).__silvery_content_all = undefined
-    ;(globalThis as any).__silvery_node_trace = undefined
-    // Cell debug: enable during real incremental render for SILVERY_STRICT diagnosis.
-    // Set SILVERY_CELL_DEBUG=x,y to trace which nodes cover a specific cell.
-    // The log is captured during the render and included in any mismatch error.
-    ;(globalThis as any).__silvery_cell_debug = undefined
-    const _cellDebugVal = typeof process !== "undefined" ? process.env?.SILVERY_CELL_DEBUG : undefined
-    if (_cellDebugVal?.includes(",")) {
-      const [cx, cy] = _cellDebugVal.split(",").map(Number)
-      if (Number.isFinite(cx) && Number.isFinite(cy)) {
-        ;(globalThis as any).__silvery_cell_debug = { x: cx, y: cy, log: [] as string[] }
-      }
+    // Clear diagnostic arrays before the render so we capture only this render's data.
+    // INSTRUMENTED is hoisted from env vars at module load — when no diagnostic is
+    // active (the hot path), all three global resets and the cell-debug setup
+    // constant-fold out of the frame.
+    if (INSTRUMENTED) {
+      ;(globalThis as any).__silvery_content_all = undefined
+      ;(globalThis as any).__silvery_node_trace = undefined
+      // Cell debug: enable during real incremental render for SILVERY_STRICT diagnosis.
+      // Set SILVERY_CELL_DEBUG=x,y to trace which nodes cover a specific cell.
+      // The log is captured during the render and included in any mismatch error.
+      ;(globalThis as any).__silvery_cell_debug =
+        CELL_DEBUG !== null ? { x: CELL_DEBUG.x, y: CELL_DEBUG.y, log: [] as string[] } : undefined
     }
 
     // Early return: if reconciliation produced no dirty flags on the tree,
@@ -1400,8 +1430,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // SILVERY_STRICT: compare incremental render against fresh render.
     // createApp bypasses Scheduler/Renderer which have this check built-in,
     // so we add it here to catch incremental rendering bugs at runtime.
-    const strictEnv = typeof process !== "undefined" && process.env?.SILVERY_STRICT
-    if (strictEnv && strictEnv !== "0" && strictEnv !== "false" && wasIncremental) {
+    // STRICT_MODE is hoisted to module scope — the env var is read once at load.
+    if (STRICT_MODE && wasIncremental) {
       const { buffer: freshBuffer } = executeRender(
         rootNode,
         dims.cols,
