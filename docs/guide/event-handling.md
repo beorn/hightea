@@ -318,9 +318,89 @@ A single plugin can fill multiple roles — `withCommands` wraps `update` AND ad
 
 For the full API, see [Plugins Reference](../reference/plugins.md).
 
+## Focus Management
+
+Silvery provides two complementary hooks for focus management, plus a parent-level awareness hook:
+
+### `useFocus(options?)` -- Ink-compatible
+
+Matches Ink 7.0's signature. Best for components that need simple focus tracking.
+
+```tsx
+import { useFocus } from "silvery"
+
+function MyInput() {
+  const { isFocused, focus } = useFocus({ id: "my-input", autoFocus: true })
+  return <Box borderColor={isFocused ? "cyan" : "gray"}>...</Box>
+}
+```
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | auto-generated | Stable focus ID |
+| `autoFocus` | `boolean` | `false` | Focus on mount |
+| `isActive` | `boolean` | `true` | When false, skipped in tab order and never reports focused |
+
+Returns `{ isFocused: boolean, focus: (id: string) => void }`.
+
+### `useFocusable()` -- Silvery-native
+
+Reads `testID` and `autoFocus` from the parent `<Box>` props. Richer return type with focus origin tracking.
+
+```tsx
+import { useFocusable } from "silvery"
+
+function Panel() {
+  const { focused, focusOrigin, focus, blur } = useFocusable()
+  // focusOrigin: "keyboard" | "mouse" | "programmatic" | null
+  return (
+    <Box testID="panel" focusable>
+      <Text>{focused ? `Focused via ${focusOrigin}` : "Unfocused"}</Text>
+    </Box>
+  )
+}
+```
+
+### `useFocusWithin()` -- Parent awareness
+
+Returns `true` when any descendant of the current component is focused. No Ink equivalent.
+
+```tsx
+function Sidebar() {
+  const hasFocus = useFocusWithin()
+  return <Box borderColor={hasFocus ? "blue" : "gray"}>...</Box>
+}
+```
+
+### `useFocusManager()` -- Global control
+
+```tsx
+const {
+  activeId,        // currently focused component's ID
+  activeScopeId,   // active peer focus scope
+  focus,           // focus by node or id
+  focusNext,       // Tab
+  focusPrev,       // Shift+Tab
+  blur,            // clear focus
+  activateScope,   // switch peer scope (WPF model)
+} = useFocusManager()
+```
+
+### When to use which
+
+| Need | Use |
+| --- | --- |
+| Simple focus tracking (Ink migration) | `useFocus({ id })` |
+| Focus origin ("keyboard" vs "mouse") | `useFocusable()` |
+| Parent knows if descendants focused | `useFocusWithin()` |
+| Control focus from anywhere | `useFocusManager()` |
+| Focus scopes (dialogs, modals) | `<Box focusScope>` + `activateScope()` |
+| Spatial navigation (grid layouts) | `focusManager.focusDirection("up"/"down"/"left"/"right")` |
+
 ## See Also
 
 - [Building an App](../guides/terminal-apps.md) — guided progression from callbacks to composable plugins
+- [Input Architecture](input-architecture.md) -- internal pipeline from stdin to hooks
 - [State Management](../guides/state-management.md) — createApp, createSlice, tea() middleware, createStore
 - [Runtime Layers](runtime-layers.md) — createApp, createRuntime, createStore API reference
 - [Input Features](../reference/input-features.md) — keyboard, mouse, hotkeys, modifier symbols

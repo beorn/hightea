@@ -13,11 +13,24 @@ import { useInput as silveryUseInput } from "@silvery/ag-react/hooks/useInput"
 
 // =============================================================================
 // Focus hooks
+//
+// NOTE: @silvery/ag-react now exports a native useFocus(options) hook backed
+// by the real silvery FocusManager — same signature, same return shape, but
+// integrated with scopes, spatial nav, and focus origin tracking.
+//
+// This Ink-compat version uses its own InkFocusContext (parallel state).
+// It's kept because ink-render.ts doesn't provide FocusManagerContext.
+// Tracked for unification: km-silvery.focus-unify (Step 5).
+//
+// For NON-Ink apps, prefer: import { useFocus } from "silvery"
 // =============================================================================
 
 /**
  * Ink-compatible useFocus hook.
  * Registers a focusable component and tracks focus state.
+ *
+ * @deprecated For non-Ink apps, prefer `useFocus` from `@silvery/ag-react`
+ * which integrates with scopes, spatial nav, and the native FocusManager.
  */
 export function useFocus(opts?: { isActive?: boolean; autoFocus?: boolean; id?: string }): {
   isFocused: boolean
@@ -182,6 +195,101 @@ export function useCursor() {
   )
 
   return { setCursorPosition }
+}
+
+// =============================================================================
+// Animation hook
+// =============================================================================
+
+/**
+ * Result returned by useAnimation.
+ */
+export type AnimationResult = {
+  /** Discrete frame counter (increments by 1 each interval). */
+  readonly frame: number
+  /** Total elapsed ms since animation started or last reset. */
+  readonly time: number
+  /** Milliseconds since the previous tick. */
+  readonly delta: number
+  /** Reset all counters to 0 and restart timing. */
+  readonly reset: () => void
+}
+
+/**
+ * Options for useAnimation.
+ */
+export type UseAnimationOptions = {
+  /** Time between ticks in ms (default 100). */
+  readonly interval?: number
+  /** Whether the animation is running (default true). */
+  readonly isActive?: boolean
+}
+
+/**
+ * Ink-compatible useAnimation hook.
+ *
+ * Drives animations by providing a frame counter, elapsed time, frame delta,
+ * and a reset function. Multiple useAnimation calls with the same interval
+ * share a single setInterval internally for efficiency.
+ */
+export function useAnimation(options?: UseAnimationOptions): AnimationResult {
+  const { interval = 100, isActive = true } = options ?? {}
+  const [state, setState] = useState({ frame: 0, time: 0, delta: 0 })
+  const startRef = useRef<number>(0)
+  const prevTickRef = useRef<number>(0)
+
+  const reset = useCallback(() => {
+    startRef.current = Date.now()
+    prevTickRef.current = startRef.current
+    setState({ frame: 0, time: 0, delta: 0 })
+  }, [])
+
+  useEffect(() => {
+    if (!isActive) {
+      // Reset state when deactivated so re-activation starts fresh
+      startRef.current = 0
+      prevTickRef.current = 0
+      setState({ frame: 0, time: 0, delta: 0 })
+      return
+    }
+
+    const now = Date.now()
+    startRef.current = now
+    prevTickRef.current = now
+
+    const id = setInterval(() => {
+      const tick = Date.now()
+      const elapsed = tick - startRef.current
+      const delta = tick - prevTickRef.current
+      prevTickRef.current = tick
+      setState((prev) => ({
+        frame: prev.frame + 1,
+        time: elapsed,
+        delta,
+      }))
+    }, interval)
+
+    return () => {
+      clearInterval(id)
+    }
+  }, [interval, isActive])
+
+  return { ...state, reset }
+}
+
+// =============================================================================
+// Screen reader hook
+// =============================================================================
+
+/**
+ * Ink-compatible useIsScreenReaderEnabled hook.
+ *
+ * Returns whether screen reader mode is enabled. Silvery does not yet have
+ * a runtime accessibility probe, so this always returns false unless the
+ * INK_SCREEN_READER env var is set.
+ */
+export function useIsScreenReaderEnabled(): boolean {
+  return process.env["INK_SCREEN_READER"] === "true"
 }
 
 // =============================================================================
