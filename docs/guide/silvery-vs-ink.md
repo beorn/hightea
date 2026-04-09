@@ -2,7 +2,9 @@
 
 _External project claims last verified: 2026-04. Ink version: 7.0.0._
 
-Silvery is a ground-up React terminal renderer with a different rendering architecture. Same `Box`, `Text`, `useInput` API — <a href="#compatibility" title="918+/931 Ink 7.0 tests pass. ~12 intentional differences: Flexily follows W3C spec where Yoga doesn't (4), build artifact format (2), minor edge cases (~6). Silvery supports Yoga as a pluggable engine for exact parity.">99% of Ink's tests pass</a> on silvery's compat layer. [Migration guide →](/getting-started/migrate-from-ink)
+[Ink](https://github.com/vadimdemedes/ink) (2017) brought React to the terminal. ~1.3M npm weekly downloads, used by Gatsby, Prisma, Terraform CDK, Shopify CLI, Claude Code, and many more. Mature, stable, and actively maintained — [v7.0.0](https://github.com/vadimdemedes/ink/releases/tag/v7.0.0) shipped April 2026 with Kitty keyboard, `useBoxMetrics`, synchronized output, and more. Ink defined the category.
+
+Silvery is a ground-up reimplementation with a different rendering architecture. Same `Box`, `Text`, `useInput` API — <a href="#compatibility" title="918+/931 Ink 7.0 tests pass. ~12 intentional differences: Flexily follows W3C spec where Yoga doesn't (4), build artifact format (2), minor edge cases (~6). Silvery supports Yoga as a pluggable engine for exact parity.">99% of Ink's tests pass</a> on silvery's compat layer. [Migration guide →](/getting-started/migrate-from-ink)
 
 ## Feature Matrix
 

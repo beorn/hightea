@@ -445,7 +445,7 @@
   {
     "term": "Ink",
     "href": "/guide/silvery-vs-ink",
-    "tooltip": "React-based CLI framework by Vadim Demedes — Silvery's predecessor"
+    "tooltip": "React-based terminal UI framework by Vadim Demedes — the established standard for React CLIs"
   },
   {
     "term": "Zustand",
