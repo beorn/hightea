@@ -252,7 +252,9 @@ export function useAnimation(options?: UseAnimationOptions): AnimationResult {
 
   const shouldReset =
     isActive &&
-    (safeInterval !== previousOptions.safeInterval || !previousOptions.isActive || resetKey !== previousOptions.resetKey)
+    (safeInterval !== previousOptions.safeInterval ||
+      !previousOptions.isActive ||
+      resetKey !== previousOptions.resetKey)
 
   const reset = useCallback(() => {
     setResetKey((k) => k + 1)
@@ -531,11 +533,18 @@ export type KittyKeyboardOptions = {
 // Kitty Protocol Manager — delegates to @silvery/ag-term
 // =============================================================================
 
-/** Convert Ink-compatible KittyKeyboardOptions to @silvery/ag-term KittyManagerOptions. */
+/** Convert Ink-compatible KittyKeyboardOptions to @silvery/ag-term KittyManagerOptions.
+ *
+ * Ink's default when no flags are specified is `['disambiguateEscapeCodes']`
+ * (bitmask 1). We match that here for bytewise compat with Ink's test suite,
+ * which asserts that `kittyKeyboard: {mode: 'enabled'}` emits exactly `CSI > 1 u`.
+ * Silvery's own default (DISAMBIGUATE | REPORT_EVENTS | REPORT_ALL_KEYS = 11)
+ * applies only to silvery's native runtime — not the Ink compat layer.
+ */
 export function resolveKittyManagerOptions(opts: KittyKeyboardOptions | undefined): KittyManagerOptions | undefined {
   if (!opts) return undefined
   return {
     mode: opts.mode,
-    flags: opts.flags ? resolveFlags(opts.flags) : undefined,
+    flags: opts.flags ? resolveFlags(opts.flags) : kittyFlags.disambiguateEscapeCodes,
   }
 }
