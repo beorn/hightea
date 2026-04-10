@@ -20,6 +20,10 @@
   "publishConfig": {
     "access": "public"
   },
+  "engines": {
+    "node": ">=23.6.0",
+    "bun": ">=1.0"
+  },
   "dependencies": {
     "@silvery/ag-term": "0.5.0",
     "@silvery/create": "0.5.0",
