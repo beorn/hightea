@@ -89,13 +89,21 @@ function computeMetrics(node: AgNode): BoxMetrics {
   const rect = node.boxRect
   if (!rect) return EMPTY_METRICS
 
-  // Parent-relative position (matches Ink semantics)
-  const parentRect = node.parent?.boxRect
+  // Parent-relative position (matches Ink/Yoga semantics: offset from parent content area)
+  const parent = node.parent
+  const parentRect = parent?.boxRect
+  const parentProps = parent?.props as import("@silvery/ag/types").BoxProps | undefined
+  const padLeft = parentProps?.paddingLeft ?? parentProps?.paddingX ?? parentProps?.padding ?? 0
+  const padTop = parentProps?.paddingTop ?? parentProps?.paddingY ?? parentProps?.padding ?? 0
+  const borderLeft = parentProps?.borderStyle ? 1 : 0
+  const borderTop = parentProps?.borderStyle ? 1 : 0
+  const contentX = parentRect ? parentRect.x + padLeft + borderLeft : 0
+  const contentY = parentRect ? parentRect.y + padTop + borderTop : 0
   return {
     width: rect.width,
     height: rect.height,
-    left: parentRect ? rect.x - parentRect.x : rect.x,
-    top: parentRect ? rect.y - parentRect.y : rect.y,
+    left: parentRect ? rect.x - contentX : rect.x,
+    top: parentRect ? rect.y - contentY : rect.y,
     hasMeasured: true,
   }
 }

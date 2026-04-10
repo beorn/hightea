@@ -18,7 +18,7 @@ The biggest differences at a glance:
 - **45+ built-in components** — VirtualList, Table, TreeView, CommandPalette, Toast, Tabs, SplitView, TextArea, ModalDialog, and more.
 - **Multi-backend test matrix** — [Termless](https://termless.dev) runs tests across 10+ real terminal parsers (xterm.js, vt100, Ghostty, Kitty, Alacritty, ...). Blessed has no built-in testing support.
 - **Dynamic scrollback** — items graduate to terminal history automatically; inline/fullscreen hybrid modes blur the boundary. Blessed has neither.
-- **3–5× faster on mounted workloads** — cell-level diff + incremental rendering vs region-level damage buffer. Output efficiency is 28–192× less ANSI emitted per update.
+- **3–5× faster on mounted workloads** — cell-level diff + incremental rendering vs region-level damage buffer. Output efficiency is 10–20× less ANSI emitted per update.
 - **38 palettes, semantic tokens** — theme system with `$primary`, `$muted`, auto-detection. Blessed uses manual styling.
 
 **Where Blessed is stronger:**
@@ -108,7 +108,7 @@ Blessed first, Silvery second. Features marked "core" are built into the framewo
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
 | **Rendering model**        | Screen damage buffer with two buffers — only draws changes (CSR/BCE); `smartCSR`/`fastCSR` optimize scroll regions | 5-phase pipeline: measure → layout → content → output → flush                            |
 | **Incremental rendering**  | Region-level via `smartCSR` / `fastCSR`                                                                            | Cell-level dirty tracking (7 flags/node), cell-level buffer diff                         |
-| **Output efficiency**      | Region-level diff via damage buffer                                                                                | **28–192× less output** — cell-level diff + relative cursor addressing                   |
+| **Output efficiency**      | Region-level diff via damage buffer                                                                                | **10–20× less output** — cell-level diff + relative cursor addressing                    |
 | **Inline mode**            | Not supported — always fullscreen                                                                                  | Cell-level incremental with native scrollback preserved                                  |
 | **Dynamic scrollback**     | Not supported                                                                                                      | Items graduate to terminal history; Cmd+F works                                          |
 | **Fullscreen-like inline** | Not supported                                                                                                      | Inline mode with fullscreen performance — cell-level incremental + scrollback graduation |
@@ -332,7 +332,7 @@ If you're maintaining a Blessed app and considering a move, here's what to expec
 
 - CSS flexbox layout, eliminating manual coordinate math
 - React's component model (hooks, context, composition, third-party libraries)
-- Incremental rendering (28–192× less output per update)
+- Incremental rendering (10–20× less output per update)
 - Modern terminal protocols (Kitty keyboard, SGR mouse, images, clipboard)
 - Full Unicode/emoji support
 - Built-in testing with Termless (10+ terminal backends)
@@ -359,4 +359,4 @@ Both tools serve different needs. The right choice depends on your situation.
 - **Unicode content** -- international text, emoji, CJK characters work correctly out of the box
 - **Testing** -- Termless provides test coverage across 10+ terminal backends that Blessed cannot match
 - **TypeScript** -- type safety, editor support, and modern JavaScript patterns
-- **Performance** -- 3–5× faster mounted updates and 28–192× less terminal output per change
+- **Performance** -- 3–5× faster mounted updates and 10–20× less terminal output per change

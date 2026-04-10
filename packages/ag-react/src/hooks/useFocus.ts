@@ -24,10 +24,13 @@
  * Bead: km-silvery.focus-parity
  */
 
-import { useCallback, useContext, useSyncExternalStore } from "react"
+import { useCallback, useContext, useEffect, useRef, useSyncExternalStore } from "react"
 import { FocusManagerContext, NodeContext } from "../context"
 import type { FocusSnapshot } from "@silvery/ag/focus-manager"
 import type { AgNode } from "@silvery/ag/types"
+
+// Counter for auto-generated focus IDs when none provided
+let autoIdCounter = 0
 
 // ============================================================================
 // Types
@@ -63,13 +66,35 @@ export interface UseFocusResult {
  * @param options - Focus options (all optional).
  */
 export function useFocus(options: UseFocusOptions = {}): UseFocusResult {
-  const { isActive = true, id } = options
+  const { isActive = true, autoFocus = false, id } = options
   const fm = useContext(FocusManagerContext)
   const node = useContext(NodeContext)
 
-  // Determine the focus ID: explicit id > node's testID > null
-  const testID = node ? (((node.props as Record<string, unknown>).testID as string | undefined) ?? null) : null
-  const focusId = id ?? testID
+  // Stable auto-generated ID when no explicit id is provided.
+  // Uses a ref so the ID persists across re-renders.
+  const autoIdRef = useRef<string | null>(null)
+  if (!autoIdRef.current && !id) {
+    autoIdRef.current = `__useFocus_${++autoIdCounter}`
+  }
+
+  // Determine the focus ID: explicit id > auto-generated id
+  // (node's testID is NOT used — useFocus manages its own identity)
+  const focusId = id ?? autoIdRef.current
+
+  // Register as a hook focusable with the FocusManager.
+  // This adds the component to the Tab cycle alongside tree-based focusables.
+  // If a tree-based focusable with the same testID exists, FocusManager's
+  // buildTabEntries deduplicates — the tree entry takes priority.
+  useEffect(() => {
+    if (!fm || !focusId) return
+    return fm.registerHookFocusable(focusId, { isActive, autoFocus })
+  }, [fm, focusId]) // eslint-disable-line react-hooks/exhaustive-deps -- autoFocus only matters on mount
+
+  // Update isActive when it changes (without re-registering)
+  useEffect(() => {
+    if (!fm || !focusId) return
+    fm.setHookFocusableActive(focusId, isActive)
+  }, [fm, focusId, isActive])
 
   // Subscribe to FocusManager state via useSyncExternalStore
   const subscribe = useCallback(

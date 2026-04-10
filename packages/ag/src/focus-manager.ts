@@ -258,6 +258,11 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     // Virtual focus: set the ID without a DOM node. This enables named focus
     // targets (e.g. "board-area", "detail-pane") without requiring wrapper Boxes
     // that would disrupt layout.
+
+    // Idempotent: skip if already virtually focused on this ID (prevents infinite
+    // re-render loops when focus() is called during render).
+    if (activeId === id && !activeElement) return
+
     const oldElement = activeElement
     previousElement = activeElement
     previousId = activeId
@@ -321,12 +326,32 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     onFocusChange?.(oldElement, null, origin)
   }
 
+  function unregisterHookFocusable(id: string): void {
+    const idx = hookFocusables.findIndex((f) => f.id === id)
+    if (idx === -1) return
+    hookFocusables.splice(idx, 1)
+    // Clear active focus if the removed id was focused.
+    if (activeId === id && !activeElement) {
+      previousId = activeId
+      activeId = null
+      focusOrigin = null
+      notify()
+      onFocusChange?.(null, null, null)
+      return
+    }
+    notify()
+  }
+
   function registerHookFocusable(id: string, opts: HookFocusableOptions = {}): () => void {
     const { isActive = true, autoFocus = false } = opts
 
     // Dedup by id — last registration wins (matches Ink behavior on re-mount).
     const existing = hookFocusables.findIndex((f) => f.id === id)
     if (existing !== -1) {
+      // Skip notification if nothing changed (prevents render loops)
+      if (hookFocusables[existing]!.isActive === isActive && !autoFocus) {
+        return () => unregisterHookFocusable(id)
+      }
       hookFocusables[existing] = { id, isActive }
     } else {
       hookFocusables.push({ id, isActive })
@@ -338,21 +363,7 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
       notify()
     }
 
-    return () => {
-      const idx = hookFocusables.findIndex((f) => f.id === id)
-      if (idx === -1) return
-      hookFocusables.splice(idx, 1)
-      // Clear active focus if the removed id was focused.
-      if (activeId === id && !activeElement) {
-        previousId = activeId
-        activeId = null
-        focusOrigin = null
-        notify()
-        onFocusChange?.(null, null, null)
-        return
-      }
-      notify()
-    }
+    return () => unregisterHookFocusable(id)
   }
 
   function setHookFocusableActive(id: string, isActive: boolean): void {
@@ -535,9 +546,14 @@ export function createFocusManager(options?: FocusManagerOptions): FocusManager 
     const entries: TabEntry[] = nodes.map((node) => ({ kind: "node", node }))
     // Hook focusables are only included when no explicit tree scope is active —
     // they're inherently scope-less. Skip inactive or when globally disabled.
+    // Dedup: skip hook focusables whose id matches a tree node's testID —
+    // the component is already in the tab order via the tree scan.
     if (!effectiveScope && hookFocusEnabled) {
+      const treeIds = new Set(
+        nodes.map((n) => (n.props as Record<string, unknown>).testID as string | undefined).filter(Boolean),
+      )
       for (const entry of hookFocusables) {
-        if (entry.isActive) entries.push({ kind: "hook", id: entry.id })
+        if (entry.isActive && !treeIds.has(entry.id)) entries.push({ kind: "hook", id: entry.id })
       }
     }
     return entries

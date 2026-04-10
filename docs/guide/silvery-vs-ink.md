@@ -55,7 +55,7 @@ Ink first, Silvery second. Features marked "core" are built into the framework; 
 | Metric                        | Ink 7.0                             | Silvery                                                                                                |
 | ----------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | **Speed (mounted workloads)** | Baseline                            | **3–6× faster** in our benchmarks ([reproduce](https://github.com/beorn/silvery/tree/main/benchmarks)) |
-| **Output efficiency**         | Full line rewrite per change        | **28–192× less output** — cell-level diff + relative cursor addressing                                 |
+| **Output efficiency**         | Line-level diff per change          | **10–20× less output** — cell-level diff + relative cursor addressing                                  |
 | **Bundle size (gzipped)**     | 116.6 KB (Ink + Yoga WASM)          | 114.9 KB (runtime + Flexily) — parity                                                                  |
 | **Layout engine**             | Yoga WASM only (~45 KB, async init) | [Flexily](https://beorn.codes/flexily) (pure JS, ~2 KB, sync) or Yoga — pluggable                      |
 | **Layout caching**            | Full tree recomputation every pass  | Fingerprint + cache unchanged subtrees                                                                 |
@@ -126,14 +126,14 @@ Silvery wins **all 17 benchmark scenarios** vs Ink 7.0 on mounted workloads — 
 
 ### Canonical — mounted app, what users experience
 
-| Scenario                                    | Silvery advantage |
-| ------------------------------------------- | ----------------- |
-| Mounted cursor move 100-item                | **3.15×**         |
-| Mounted kanban single text change           | **4.73×**         |
-| Memo'd 100-item single toggle               | **5.42×**         |
-| Memo'd 500-item single toggle               | **6.14×**         |
-| Memo'd kanban 5×20 single card edit         | **4.50×**         |
-| Memo'd style-only cursor highlight (bg)     | **5.69×**         |
+| Scenario                                | Silvery advantage |
+| --------------------------------------- | ----------------- |
+| Mounted cursor move 100-item            | **3.15×**         |
+| Mounted kanban single text change       | **4.73×**         |
+| Memo'd 100-item single toggle           | **5.42×**         |
+| Memo'd 500-item single toggle           | **6.14×**         |
+| Memo'd kanban 5×20 single card edit     | **4.50×**         |
+| Memo'd style-only cursor highlight (bg) | **5.69×**         |
 
 ### Cold render (createRenderer reuse)
 
@@ -150,7 +150,7 @@ Silvery wins **all 17 benchmark scenarios** vs Ink 7.0 on mounted workloads — 
 
 ### Output efficiency
 
-Silvery emits **28–192× less output** to the terminal than a full redraw on incremental updates. Cell-level buffer diff + relative cursor addressing.
+Silvery emits **10–20× less output** (much more for large trees) to the terminal than Ink's line-level diff on incremental updates. Cell-level buffer diff + relative cursor addressing.
 
 ### Bundle size
 

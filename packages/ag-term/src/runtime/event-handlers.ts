@@ -133,7 +133,15 @@ export function handleFocusNavigation(
     }
   }
 
-  // Escape: blur current focus or exit the current focus scope
+  // Escape: exit the current focus scope if one is open.
+  //
+  // Apps handle their own Escape routing via keybindings (close dialogs, exit
+  // modes, etc.), so we only intercept Escape when there is an actual focus
+  // scope to pop. Previously this also called focusManager.blur() as a
+  // fallback, but that consumed Escape before app handlers could run — for
+  // example preventing `console.close` from firing while the board has the
+  // auto-focused "board-area" Box as activeElement. Apps that want the old
+  // behaviour can implement it in their own key handler.
   if (parsedKey.escape) {
     if (focusManager.scopeStack.length > 0) {
       const scopeId = focusManager.scopeStack[focusManager.scopeStack.length - 1]!
@@ -142,10 +150,6 @@ export function handleFocusNavigation(
       if (scopeNode) {
         focusManager.focus(scopeNode, "keyboard")
       }
-      return "consumed"
-    }
-    if (focusManager.activeElement) {
-      focusManager.blur()
       return "consumed"
     }
   }

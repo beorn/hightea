@@ -81,6 +81,7 @@ const KEY_ADAPTER_GAPS: Record<string, string> = {
 /** Keys where keyToAnsi cannot encode them (encoding gaps) */
 const ENCODING_GAPS: Record<string, string> = {
   "+": "keyToAnsi('+') returns '' — '+' is the Playwright modifier separator",
+  "|": "Legacy ANSI: '|' = shift-\\ (shifted punctuation normalized to base+shift)",
 }
 
 // =============================================================================

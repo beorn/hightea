@@ -751,6 +751,23 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
   // Track current dimensions
   let currentDims: Dims = { cols, rows }
+
+  // Subscribe to stdout resize events so currentDims stays in sync.
+  // In headless mode this is handled by explicitOnResize above.
+  // In non-headless mode, stdout resize events update currentDims directly
+  // and notify mockTerm subscribers (so useSyncExternalStore re-renders).
+  if (!headless) {
+    const onStdoutResize = () => {
+      currentDims = {
+        cols: stdout.columns || 80,
+        rows: stdout.rows || 24,
+      }
+      for (const listener of mockTermSubscribers) listener(currentDims)
+    }
+    stdout.on("resize", onStdoutResize)
+    providerCleanups.push(() => stdout.off("resize", onStdoutResize))
+  }
+
   let shouldExit = false
   let renderPaused = false
   let isRendering = false // Re-entrancy guard for store subscription
@@ -1230,9 +1247,18 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
   // Create mock term — override getState to return the app's actual dimensions
   // rather than process.stdout dimensions (which may differ in test/emulator contexts).
+  // Also override subscribe to notify listeners on resize so useSyncExternalStore
+  // (used by useTerm/useWindowSize) triggers re-renders when dimensions change.
   const baseMockTerm = createTerm({ color: "truecolor" })
+  const mockTermSubscribers = new Set<(state: { cols: number; rows: number }) => void>()
   const mockTerm = Object.create(baseMockTerm, {
     getState: { value: (): { cols: number; rows: number } => currentDims },
+    subscribe: {
+      value: (listener: (state: { cols: number; rows: number }) => void): (() => void) => {
+        mockTermSubscribers.add(listener)
+        return () => mockTermSubscribers.delete(listener)
+      },
+    },
   }) as typeof baseMockTerm
 
   // RuntimeContext input listeners — allows components using hooks/useInput
@@ -1387,7 +1413,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // incrementally by the output phase. Invalidating on height causes the runtime's
     // prevBuffer to be null, which triggers the first-render clear path with \x1b[J
     // — wiping the entire visible screen including shell prompt content above the app.
-    if (_ag && _renderCount > 1) {
+    if (_ag) {
       // Check dimension changes. On first render there's no prevBuffer to compare.
       const lastBuffer = _lastTermBuffer
       if (lastBuffer) {
@@ -1418,6 +1444,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // skip the pipeline entirely. This avoids cloning prevBuffer (which
     // resets dirty rows to 0), preserving the row-level dirty markers that
     // the runtime diff needs to detect actual changes.
+    // Exception: dimension changes require re-layout even without dirty flags.
     const rootHasDirty =
       rootNode.layoutDirty ||
       rootNode.contentDirty ||
@@ -1425,7 +1452,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       rootNode.bgDirty ||
       rootNode.subtreeDirty ||
       rootNode.childrenDirty
-    if (!rootHasDirty && _lastTermBuffer && currentBuffer) {
+    const dimsChanged =
+      _lastTermBuffer != null && (dims.cols !== _lastTermBuffer.width || dims.rows !== _lastTermBuffer.height)
+    if (!rootHasDirty && !dimsChanged && _lastTermBuffer && currentBuffer) {
       return currentBuffer
     }
 
@@ -1644,8 +1673,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         kittyEnabled = true
         kittyFlags = kittyOption as number
       }
-    } else {
-      // Legacy behavior: always enable Kitty with full fidelity
+    } else if (kittyOption == null) {
+      // No option specified: legacy behavior — always enable Kitty with full fidelity
       stdout.write(enableKittyKeyboard(defaultKittyFlags))
       kittyEnabled = true
       kittyFlags = defaultKittyFlags

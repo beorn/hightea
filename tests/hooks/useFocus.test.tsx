@@ -152,17 +152,13 @@ describe("useFocus", () => {
     expect(app.getByTestId("tc").textContent()).toContain("ok")
   })
 
-  test("focus(id) is callable without throwing", () => {
+  test("focus(id) is callable without throwing", async () => {
     const render = createRenderer({ cols: 40, rows: 10 })
 
     function FocusCaller() {
       const { focus } = useFocus({ id: "caller" })
-      // Calling focus() should not throw even without a valid target
-      try {
-        focus("nonexistent")
-      } catch {
-        return <Text testID="err">error</Text>
-      }
+      // Expose focus for external invocation (not during render)
+      ;(globalThis as Record<string, unknown>).__testFocus = focus
       return <Text testID="ok">ok</Text>
     }
 
@@ -172,6 +168,11 @@ describe("useFocus", () => {
       </Box>,
     )
     expect(app.getByTestId("ok").textContent()).toContain("ok")
+
+    // Calling focus() outside of render should not throw even without a valid target
+    const focus = (globalThis as Record<string, unknown>).__testFocus as (id: string) => void
+    expect(() => focus("nonexistent")).not.toThrow()
+    delete (globalThis as Record<string, unknown>).__testFocus
   })
 
   test("useFocus without FocusManagerContext returns inert result", () => {

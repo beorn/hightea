@@ -194,10 +194,15 @@ export function withTerm(term: Term) {
     let prev: TextFrame | undefined
     let prevBuffer: TerminalBuffer | null = null
 
+    // Use a mutable reference for ag so that downstream plugins (e.g. withReact)
+    // can replace ag after withTerm has been applied. The render closure reads
+    // ag from this ref, which the returned object's ag getter keeps in sync.
+    let currentAg: Ag = app.ag
+
     const render = () => {
       const state = term.getState()
-      app.ag.layout({ cols: state.cols, rows: state.rows })
-      const result = app.ag.render()
+      currentAg.layout({ cols: state.cols, rows: state.rows })
+      const result = currentAg.render()
 
       // Paint: diff and write output
       if (term.paint) {
@@ -221,7 +226,7 @@ export function withTerm(term: Term) {
           if (event.type === "resize") {
             prevBuffer = null // Reset diffing
             prev = undefined
-            app.ag.resetBuffer()
+            currentAg.resetBuffer()
           }
           app.dispatch({
             type: `input:${event.type}`,
@@ -234,7 +239,19 @@ export function withTerm(term: Term) {
       }
     }
 
-    return { ...app, term, render, run: runFn } as A & {
+    // Create the result object with a setter that updates the mutable ag ref.
+    // This allows withReact to do `result.ag = newAg` and have the render()
+    // closure automatically use the new ag.
+    const result = { ...app, term, render, run: runFn }
+    Object.defineProperty(result, "ag", {
+      get: () => currentAg,
+      set: (newAg: Ag) => {
+        currentAg = newAg
+      },
+      enumerable: true,
+      configurable: true,
+    })
+    return result as A & {
       readonly term: Term
       render(): void
       run?: () => Promise<void>

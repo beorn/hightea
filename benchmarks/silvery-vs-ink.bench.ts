@@ -25,9 +25,10 @@ import { render as inkRender, renderToString as inkRenderToString, Box as IBox, 
 // Mock stdout for Ink mounted-app benchmarks (incremental rendering path)
 // ============================================================================
 
-function createMockStdout(cols: number, rows: number): NodeJS.WriteStream {
+function createMockStdout(cols: number, rows: number): NodeJS.WriteStream & { bytesWritten: number; resetBytes(): void } {
   const stream = new Writable({
-    write(_chunk, _encoding, cb) {
+    write(chunk, _encoding, cb) {
+      ;(stream as any).bytesWritten += typeof chunk === "string" ? Buffer.byteLength(chunk) : chunk.length
       cb()
     },
   })
@@ -35,9 +36,11 @@ function createMockStdout(cols: number, rows: number): NodeJS.WriteStream {
     columns: cols,
     rows,
     isTTY: true,
+    bytesWritten: 0,
+    resetBytes() { ;(stream as any).bytesWritten = 0 },
     getWindowSize: () => [cols, rows],
   })
-  return stream as unknown as NodeJS.WriteStream
+  return stream as unknown as NodeJS.WriteStream & { bytesWritten: number; resetBytes(): void }
 }
 
 // ============================================================================

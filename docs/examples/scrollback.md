@@ -88,7 +88,7 @@ await render(<App />, term, { mode: "inline" })
 - **Natural terminal history** — Output stays in scrollback. Scroll up to see earlier output, just like regular commands.
 - **Freeze-and-scroll** — Completed items freeze into scrollback while active items stay interactive at the bottom.
 - **No height management** — ScrollbackView/ScrollbackList auto-size to content. The runtime caps output at terminal height automatically.
-- **Incremental inline rendering** — Instance-scoped cursor tracking produces 28–192x fewer bytes than full re-renders.
+- **Incremental inline rendering** — Instance-scoped cursor tracking produces 10–20× fewer bytes than full re-renders (much more for large trees).
 - **Footer pinning** — Status bars and input areas stay pinned at the bottom of the viewport.
 - **Piped output** — Inline mode detects non-TTY output and strips control sequences automatically.
 

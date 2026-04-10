@@ -6,6 +6,299 @@ React framework for modern terminal UIs. Layout feedback, incremental rendering,
 
 **[Styling Guide](docs/guide/styling.md)** — Semantic colors, typography presets, and component defaults. Read it before styling anything.
 
+## Quick Start
+
+The simplest Silvery app — styled text that exits on any keypress:
+
+```tsx
+import React from "react"
+import { Box, Text } from "silvery"
+import { run } from "silvery/runtime"
+
+function App() {
+  return (
+    <Box flexDirection="column" padding={1}>
+      <Text bold color="$primary">
+        Hello, Silvery!
+      </Text>
+      <Text color="$muted">Press any key to exit.</Text>
+    </Box>
+  )
+}
+
+const handle = await run(<App />)
+await handle.waitUntilExit()
+```
+
+`run()` handles terminal setup, alternate screen, raw mode, and cleanup automatically. `using` is optional here because `handle.waitUntilExit()` blocks until exit.
+
+## Building Apps
+
+### Simple apps: `run()`
+
+For apps that use React hooks for state and `useInput` for keyboard handling:
+
+```tsx
+import React, { useState } from "react"
+import { Box, Text, SelectList, TextInput } from "silvery"
+import { run, useInput } from "silvery/runtime"
+
+function App() {
+  const [query, setQuery] = useState("")
+
+  useInput((input, key) => {
+    if (key.escape) return "exit" // return "exit" to quit
+  })
+
+  return (
+    <Box flexDirection="column" padding={1} gap={1}>
+      <TextInput value={query} onChange={setQuery} placeholder="Search..." prompt="> " />
+      <SelectList
+        items={[
+          { label: "TypeScript", value: "ts" },
+          { label: "Rust", value: "rs" },
+          { label: "Python", value: "py" },
+        ]}
+        onSelect={(opt) => console.log(opt.value)}
+      />
+    </Box>
+  )
+}
+```
+
+### Complex apps: `pipe()` composition
+
+For apps with structured state, commands, mouse dispatch, and focus management, compose capabilities via `pipe()`. Each `with*` provider adds one capability:
+
+```tsx
+import { pipe, createApp, withReact, withTerminal, withFocus, withDomEvents } from "@silvery/create"
+
+const app = pipe(
+  createApp(store), // base app with zustand store
+  withReact(<Board />), // React reconciler
+  withTerminal(process), // terminal I/O (alt screen, raw mode, resize)
+  withFocus(), // Tab/Escape focus + Find (Ctrl+F) + CopyMode (Esc,v)
+  withDomEvents(), // mouse dispatch + drag
+)
+await app.run()
+```
+
+See [Providers and Plugins](docs/guide/providers.md) for all built-in providers and how to write custom ones.
+
+## Components
+
+All available from `import { ... } from "silvery"`. They handle keyboard, mouse, theming, and edge cases automatically.
+
+```tsx
+<SelectList items={items} onSelect={handleSelect} />       // j/k navigation, mouse, scroll
+<TextInput value={v} onChange={setV} placeholder="..." />   // readline keybindings (Ctrl+A/E/K/U, Alt+B/F)
+<VirtualList items={data} renderItem={renderRow} interactive /> // virtualized, thousands of items
+<ModalDialog title="Confirm" onClose={close}>Are you sure?</ModalDialog>
+<Spinner label="Loading..." />
+<ProgressBar value={0.7} />
+<Tabs items={tabs} selected={activeTab} onSelect={setActiveTab} />
+```
+
+Use the built-in components — don't reimplement keyboard navigation, scroll handling, or selection theming.
+
+## Styling
+
+### Semantic tokens — not raw colors
+
+Tokens adapt to any terminal theme automatically. 38 built-in palettes work out of the box.
+
+```tsx
+<Text color="$primary">Selected item</Text>
+<Text color="$success">✓ Saved</Text>
+<Text color="$error">✗ Failed</Text>
+<Text color="$muted">Last modified 2h ago</Text>
+<Box borderStyle="round" />  // auto $border color
+```
+
+### Typography presets — not manual color+bold combos
+
+```tsx
+import { H1, H2, H3, Muted, Small, Code, Blockquote } from "silvery"
+
+<H1>Page Title</H1>          // $primary + bold
+<H2>Section</H2>              // $accent + bold
+<H3>Group</H3>                // bold
+<Muted>Caption text</Muted>   // $muted
+<Small>Fine print</Small>     // $muted + dim
+<Code>npm install</Code>      // $mutedbg background
+```
+
+### Background + text pairing
+
+Every surface background has a matching text token. Set both or set neither.
+
+```tsx
+<Box backgroundColor="$surfacebg">
+  <Text color="$surface">Dialog content</Text>
+</Box>
+
+<Box backgroundColor="$inversebg">
+  <Text color="$inverse">Status bar</Text>
+</Box>
+```
+
+Full styling reference: [Styling Guide](docs/guide/styling.md)
+
+## Input Handling
+
+`useInput` receives parsed key events. Return `"exit"` to quit the app.
+
+```tsx
+import { useInput } from "silvery/runtime"
+
+useInput((input, key) => {
+  if (key.escape) return "exit"
+  if (input === "j") moveDown()
+  if (key.ctrl && input === "s") save()
+})
+```
+
+For complex apps, use the command system (named, serializable actions) instead of anonymous handlers — see [The Silvery Way, principle 5](docs/guide/the-silvery-way.md#_5-command-system).
+
+## Focus Management
+
+`useFocus()` registers a component in the focus tree. Modals automatically consume input — no guard clauses needed.
+
+```tsx
+function SearchBox() {
+  const { isFocused } = useFocus()
+  return <TextInput value={query} onChange={setQuery} />
+}
+
+// Focus navigation
+focusNext() // Tab
+focusPrev() // Shift-Tab
+setFocus(id) // jump to specific component
+```
+
+## Layout
+
+CSS flexbox via Flexily. Let the layout engine compute positions and sizes.
+
+```tsx
+<Box flexGrow={1}><Text>I expand</Text></Box>
+<Box flexDirection="column" gap={1}>
+  <Header />
+  <Content />
+  <Footer />
+</Box>
+<Box overflow="scroll" scrollTo={selectedIndex} height={20}>
+  {items.map((item, i) => <Row key={i} item={item} />)}
+</Box>
+```
+
+`useBoxRect()` gives synchronous access to a component's size during render — no effects, no 0x0 flash.
+
+## Testing
+
+Three levels, from fast to full-fidelity:
+
+### createRenderer -- fast, stripped text
+
+Unit tests for silvery components. Tests the virtual buffer (phases 1-4), no ANSI processing. ~5ms/op.
+
+```tsx
+import { createRenderer } from "@silvery/test"
+
+const render = createRenderer({ cols: 80, rows: 24 })
+const app = render(<MyComponent />)
+expect(app.text).toContain("Hello")
+
+app.press("j")
+expect(app.text).toContain("▶ Second item")
+```
+
+### createTermless -- full ANSI, real terminal emulator
+
+Integration tests through xterm.js. Tests the full 5-phase pipeline including ANSI output. ~50ms/op.
+
+```tsx
+import { createTermless } from "@silvery/test"
+import { run } from "silvery/runtime"
+import "@termless/test/matchers"
+
+using term = createTermless({ cols: 80, rows: 24 })
+const handle = await run(<App />, term)
+
+expect(term.screen).toContainText("Hello")
+await handle.press("j")
+expect(term.screen).toContainText("Count: 1")
+```
+
+### run() -- real terminal
+
+Full E2E through the actual terminal runtime. For interactive debugging, not automated tests.
+
+```tsx
+const handle = await run(<App />)
+await handle.waitUntilExit()
+```
+
+### Cell-level color assertions
+
+`app.cell(col, row)` returns a `FrameCell` with resolved RGB colors -- useful for asserting styling without parsing ANSI:
+
+```tsx
+const cell = app.cell(5, 0)
+expect(cell.bold).toBe(true)
+expect(cell.fg).toBe("#e0def4") // resolved RGB
+```
+
+### AutoLocator CSS Selectors
+
+`app.locator(selector)` returns a self-refreshing AutoLocator that re-evaluates against the current tree on every access. Supports CSS-style combinators:
+
+```tsx
+// ID selector
+app.locator("#my-component").resolve()
+
+// Attribute selector (presence or value)
+app.locator("[data-cursor]").resolve()
+app.locator("[data-testid='panel']").resolve()
+
+// Child combinator (>) -- direct parent-child
+app.locator("#parent > #child").resolveAll()
+
+// Adjacent sibling (+) -- immediately preceding sibling
+app.locator("#item1 + #item2").resolve()
+
+// Descendant (space) -- anywhere in subtree
+app.locator("#container #nested-item").resolve()
+
+// Narrowing
+app.locator("#list").getByText("Hello").first()
+app.locator("#list").filter({ hasText: "world" }).count()
+```
+
+AutoLocator methods: `resolve()`, `resolveAll()`, `count()`, `textContent()`, `getAttribute()`, `boundingBox()`, `isVisible()`, `getByText()`, `getByTestId()`, `locator()`, `filter()`, `first()`, `last()`, `nth()`.
+
+## Anti-Patterns
+
+**Manual key handlers instead of components** — Use `SelectList` for lists, `TextInput` for text entry. Don't reimplement j/k navigation or readline keybindings.
+
+**Hardcoded colors** — Use `$primary`, `$muted`, `$success`, etc. Never `"red"`, `"#ff0000"`, or `"\x1b[31m"`.
+
+**`Box theme={{}}` for bg-only changes** — `theme={{}}` re-resolves ALL `$tokens`. Use `backgroundColor` directly:
+
+```tsx
+// Wrong: re-resolves every token for a background change
+<Box theme={{ bg: "#1a1a1a" }}>
+
+// Right: only sets background
+<Box backgroundColor="$surfacebg">
+```
+
+**Status tokens for decoration** — `$success` means success, `$error` means error. Don't use them for headings, borders, or categories. Use `$primary`/`$accent` for emphasis, `$color0`-`$color15` for data categories.
+
+**Specifying default colors** — Components already use correct colors. Don't write `<Text color="$fg">` or `<SelectList color="$primary">`.
+
+---
+
 ## Central Abstraction: Term
 
 `createTerm()` is the terminal abstraction. It wraps a terminal backend (Node.js stdin/stdout, xterm.js, headless) and provides styling, capabilities, dimensions, and I/O. You pass it to `run()` or `render()`:
@@ -82,18 +375,6 @@ Silvery apps are assembled via `pipe()` — each **provider** (`with-*` function
 
 - **[Providers and Plugins](docs/guide/providers.md)** — `pipe()` composition, `AppPlugin` type, all built-in providers, how to write custom providers
 - **[Headless Machines](docs/guide/headless-machines.md)** — `createMachine()`, pure update functions (readline, select-list), naming conventions, React hooks
-
-Quick reference:
-
-```typescript
-const app = pipe(
-  createApp(store),       // base app
-  withReact(<Board />),   // React reconciler
-  withTerminal(process),  // terminal I/O
-  withFocus(),            // Tab/Escape focus + FindFeature (Ctrl+F) + CopyModeFeature (Esc,v)
-  withDomEvents(),        // mouse dispatch + DragFeature
-)
-```
 
 ### Interactions Runtime
 
@@ -230,33 +511,6 @@ This applies to install commands, run commands, and `npx`/`bunx`/`pnpm dlx`/`vp`
 
 Factory functions, `using` cleanup, no classes, no globals. ESM imports only. TypeScript strict mode.
 
-## Testing with termless
-
-`createTermless()` from `@silvery/test` creates an in-process terminal emulator for full ANSI testing — renders go through the real pipeline and a real xterm.js emulator, not stripped text:
-
-```tsx
-import { createTermless } from "@silvery/test"
-import { run } from "silvery/runtime"
-import "@termless/test/matchers"
-
-using term = createTermless({ cols: 80, rows: 24 })
-const handle = await run(<App />, term)
-
-expect(term.screen).toContainText("Hello") // termless screen assertion
-await handle.press("j") // input via handle
-expect(term.screen).toContainText("Count: 1")
-````
-
-`createTermless(dims)` wraps `createTerm(createXtermBackend(), dims)`. The Term exposes `screen` and `scrollback` from the emulator for assertions.
-
-Three kinds of Term:
-
-- `createTerm()` — Node.js terminal (real stdin/stdout)
-- `createTerm({ cols, rows })` — Headless (no output)
-- `createTermless({ cols, rows })` — Terminal emulator (real ANSI processing, screen/scrollback)
-
-Use `@silvery/test` + `createRenderer()` for fast stripped-text tests; use `createTermless()` when you need to verify ANSI output, box drawing, colors, scrollback, or cursor positioning. App has `cell(col, row)` for `FrameCell` access with resolved RGB colors — useful for asserting styling without parsing ANSI.
-
 ## Common Tasks
 
 **Need to...** → **Use this:**
@@ -295,3 +549,4 @@ Property-invariant and stress fuzz tests (run with `FUZZ=1`, not in CI):
 
 - `tests/features/property-invariants.fuzz.tsx` — 7 property invariants (idempotence, no-op, inverse ops, viewport clipping, combined)
 - `tests/features/incremental-rendering.fuzz.tsx` — Stress tests (scrollable lists, nested bg, wrap boundaries, absolute positioning, multi-column boards)
+````

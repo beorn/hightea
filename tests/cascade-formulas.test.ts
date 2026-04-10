@@ -65,19 +65,10 @@ function expectedOutputs(i: CascadeInputs): CascadeOutputs {
     i.absoluteChildMutated ||
     i.descendantOverflowChanged
 
-  // bgOnlyChange: bgDirty is the ONLY trigger for contentAreaAffected, node has
-  // bg and prev buffer, no ancestor changes. Uses fillBg() to preserve child chars.
-  const bgOnlyAffected =
-    i.bgDirty &&
-    !i.contentDirty &&
-    !i.layoutChanged &&
-    !i.childPositionChanged &&
-    !i.childrenDirty &&
-    !textPaintDirty &&
-    !i.absoluteChildMutated &&
-    !i.descendantOverflowChanged
-  const bgOnlyChange =
-    i.hasPrevBuffer && bgOnlyAffected && i.hasBgColor && !i.ancestorLayoutChanged && !i.ancestorCleared
+  // bgOnlyChange: DISABLED — fast path causes incremental rendering mismatches
+  // (fg colors lost on child nodes). Needs investigation before re-enabling.
+  // See cascade-predicates.ts for details.
+  const bgOnlyChange = false
 
   const bgRefillNeeded = i.hasPrevBuffer && !contentAreaAffected && i.subtreeDirty && i.hasBgColor
 
@@ -424,7 +415,7 @@ describe("cascade predicates — named scenarios", () => {
     expect(out.skipBgFill).toBe(false)
   })
 
-  test("bgOnlyChange — bg changed on Box with bg, no other changes", () => {
+  test("bgOnlyChange — DISABLED: always false even when bg changed on Box with bg", () => {
     const out = computeCascade({
       ...allFalse(),
       hasPrevBuffer: true,
@@ -432,9 +423,10 @@ describe("cascade predicates — named scenarios", () => {
       stylePropsDirty: true, // always set alongside bgDirty
       hasBgColor: true,
     })
-    expect(out.bgOnlyChange).toBe(true)
+    // bgOnlyChange fast path is disabled (causes incremental rendering mismatches)
+    expect(out.bgOnlyChange).toBe(false)
     expect(out.contentAreaAffected).toBe(true)
-    expect(out.childrenNeedFreshRender).toBe(false) // fast path: children skip
+    expect(out.childrenNeedFreshRender).toBe(true)
   })
 
   test("bgOnlyChange disabled when ancestorLayoutChanged", () => {

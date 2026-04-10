@@ -106,6 +106,8 @@ describe("inline mode focus reporting default", () => {
       rows: 10,
       kitty: false,
       mouse: false,
+      textSizing: false,
+      widthDetection: false,
     })
 
     expect(stdout.output).toContain(FOCUS_ENABLE)
@@ -123,6 +125,8 @@ describe("inline mode focus reporting default", () => {
       mode: "inline",
       kitty: false,
       mouse: false,
+      textSizing: false,
+      widthDetection: false,
     })
 
     // Focus reporting disabled in inline mode: enableFocusReporting() runs
@@ -146,6 +150,8 @@ describe("inline mode focus reporting default", () => {
       focusReporting: true,
       kitty: false,
       mouse: false,
+      textSizing: false,
+      widthDetection: false,
     })
 
     expect(stdout.output).toContain(FOCUS_ENABLE)
@@ -184,6 +190,8 @@ describe("inline mode focus reporting default", () => {
       focusReporting: true,
       kitty: false,
       mouse: false,
+      textSizing: false,
+      widthDetection: false,
     })
     await settle(50)
 
@@ -226,6 +234,8 @@ describe("useTerminalFocused hook", () => {
       focusReporting: true,
       kitty: false,
       mouse: false,
+      textSizing: false,
+      widthDetection: false,
     })
     await settle()
 
@@ -245,6 +255,8 @@ describe("useTerminalFocused hook", () => {
       focusReporting: true,
       kitty: false,
       mouse: false,
+      textSizing: false,
+      widthDetection: false,
     })
     await settle()
 
@@ -267,6 +279,8 @@ describe("useTerminalFocused hook", () => {
       focusReporting: true,
       kitty: false,
       mouse: false,
+      textSizing: false,
+      widthDetection: false,
     })
     await settle()
 
