@@ -22,6 +22,9 @@ export { useRuntime } from "./useRuntime"
 // App
 export { useApp, type UseAppResult } from "./useApp"
 
+// Exit (throws outside runtime — use useApp().exit for static-safe variant)
+export { useExit } from "./useExit"
+
 // Stdio
 export { useStdout, type UseStdoutResult } from "./useStdout"
 export { useStderr, type UseStderrResult } from "./useStderr"

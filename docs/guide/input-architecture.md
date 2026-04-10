@@ -121,10 +121,10 @@ This ensures `useModifierKeys()` sees every event -- including modifier-only and
 
 ### Event filtering
 
-After the bridge, the event loop filters for app handlers:
+After the bridge, the event loop filters for app handlers using `isModifierOnlyEvent()` from `@silvery/ag/keys` (single source of truth — shared by useInput and create-app):
 
 1. **Release events** (`key.eventType === "release"`) -- skipped. App handlers expect press-only semantics.
-2. **Modifier-only events** (empty `input` + no actionable key flags) -- skipped. Only `useModifierKeys()` consumes these.
+2. **Modifier-only events** (`isModifierOnlyEvent(input, key)`) -- skipped. Only `useModifierKeys()` consumes these.
 3. **Press and repeat events** -- continue to focus dispatch and app handlers.
 
 ## Stage 4: Focus Dispatch
@@ -163,13 +163,18 @@ These defaults only fire when `dispatchKeyEvent()` did not set `propagationStopp
 
 ### Hook hierarchy
 
-| Hook                | Purpose                         | Sees releases?         | Sees modifier-only? |
-| ------------------- | ------------------------------- | ---------------------- | ------------------- |
-| `useInput()`        | Raw key handling for components | Via `onRelease` option | No (filtered)       |
-| `useModifierKeys()` | Track held modifier state       | Yes (all events)       | Yes                 |
-| `useInputLayer()`   | Layered input with bubbling     | No                     | No                  |
+All hooks are defined in `@silvery/ag-react/hooks/` and re-exported from `silvery` and `silvery/runtime`. There is ONE implementation per hook — no duplicates across packages.
 
-**`useInput(handler, options?)`** -- the primary input hook. Subscribes to `RuntimeContext` "input" events. Filters out modifier-only events. Routes release events to the `onRelease` callback if provided, otherwise drops them. See [Event Handling](event-handling.md) for the full API.
+| Hook                 | Purpose                         | Sees releases?         | Sees modifier-only? |
+| -------------------- | ------------------------------- | ---------------------- | ------------------- |
+| `useInput()`         | Primary key handling            | Via `onRelease` option | No (filtered)       |
+| `useModifierKeys()`  | Track held modifier state       | Yes (all events)       | Yes                 |
+| `useInputLayer()`    | Layered input with bubbling     | No                     | No                  |
+| `useExit()`          | Programmatic exit               | N/A                    | N/A                 |
+| `usePasteCallback()` | Simple paste text callback      | N/A                    | N/A                 |
+| `usePaste()`         | Context-based rich paste events | N/A                    | N/A                 |
+
+**`useInput(handler, options?)`** -- the primary input hook. Subscribes to `RuntimeContext` "input" events. Filters out modifier-only events via `isModifierOnlyEvent()` from `@silvery/ag/keys`. Routes release events to the `onRelease` callback if provided, otherwise drops them. Return `"exit"` to quit the app. See [Event Handling](event-handling.md) for the full API.
 
 **`useModifierKeys(options?)`** -- tracks which modifier keys (Cmd, Ctrl, Alt, Shift) are currently held. Uses `useSyncExternalStore` backed by a per-runtime singleton store. The `enabled` option controls subscription -- set to `false` to avoid re-renders when the component doesn't need modifier state.
 

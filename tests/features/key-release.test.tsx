@@ -273,6 +273,62 @@ describe("modifier-only key filtering", () => {
 })
 
 // ============================================================================
+// run.tsx useInput — the simplified version exported from silvery/runtime
+// Must also filter release events (bug: double-keypress in examples)
+// ============================================================================
+
+// The simplified useInput from run.tsx (same as silvery/runtime) — must also filter releases
+import { useInput as useInputSimple } from "../../packages/ag-term/src/runtime/run"
+
+describe("run.tsx useInput release filtering", () => {
+  test("release events are filtered from run.tsx useInput", async () => {
+    const handler = vi.fn()
+
+    function App() {
+      useInputSimple(handler)
+      return <Text>app</Text>
+    }
+
+    const render = createRenderer({ cols: 40, rows: 5, kittyMode: true })
+    const app = render(<App />)
+
+    // Send press for "j" (codepoint 106, modifier 1=none, eventType 1=press)
+    app.stdin.write("\x1b[106;1:1u")
+    await Promise.resolve()
+
+    // Send release for "j" (eventType 3=release)
+    app.stdin.write("\x1b[106;1:3u")
+    await Promise.resolve()
+
+    // Handler should fire exactly once (press only, not release)
+    expect(handler).toHaveBeenCalledOnce()
+    expect(handler.mock.calls[0]![0]).toBe("j")
+  })
+
+  test("single keypress produces single callback — no double-move", async () => {
+    const calls: string[] = []
+
+    function App() {
+      useInputSimple((input: string) => {
+        calls.push(input)
+      })
+      return <Text>app</Text>
+    }
+
+    const render = createRenderer({ cols: 40, rows: 5, kittyMode: true })
+    const app = render(<App />)
+
+    // Simulate Kitty protocol for a single "j" keypress:
+    // press event followed by release event
+    app.stdin.write("\x1b[106;1:1u") // press
+    app.stdin.write("\x1b[106;1:3u") // release
+    await Promise.resolve()
+
+    expect(calls).toEqual(["j"]) // exactly one callback
+  })
+})
+
+// ============================================================================
 // Term.sendInput() — raw bytes through the REAL event pipeline
 // ============================================================================
 

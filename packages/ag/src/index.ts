@@ -49,6 +49,7 @@ export {
   splitRawInput,
   parseHotkey,
   matchHotkey,
+  isModifierOnlyEvent,
   CODE_TO_KEY,
 } from "./keys"
 export type { Key, ParsedKeypress, ParsedHotkey, InputHandler } from "./keys"

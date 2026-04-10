@@ -52,16 +52,16 @@ Ink first, Silvery second. Features marked "core" are built into the framework; 
 
 ### Performance & Size
 
-| Metric                       | Ink 7.0                             | Silvery                                                                           |
-| ---------------------------- | ----------------------------------- | --------------------------------------------------------------------------------- |
-| **Speed (mounted rerender)** | Baseline                            | **3–27× faster (typically 15–20×)** in our benchmarks ([details below](#performance--size))           |
-| **Output efficiency**        | Line-level diff per change          | **10–20× less output** — cell-level diff + relative cursor addressing             |
-| **Bundle size (gzipped)**    | 116.6 KB (Ink + Yoga WASM)          | 114.9 KB (runtime + Flexily) — parity                                             |
-| **Layout engine**            | Yoga WASM only (~45 KB, async init) | [Flexily](https://beorn.codes/flexily) (pure JS, ~2 KB, sync) or Yoga — pluggable |
-| **Layout caching**           | Full tree recomputation every pass  | Fingerprint + cache unchanged subtrees                                            |
-| **Memory (long sessions)**   | Yoga WASM linear heap can grow      | Normal JS GC; graduated scrollback frees React tree                               |
-| **Native dependencies**      | Yoga WASM binary blob               | None — pure TypeScript                                                            |
-| **Initialization**           | Async WASM loading                  | Synchronous import                                                                |
+| Metric                       | Ink 7.0                             | Silvery                                                                                     |
+| ---------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------- |
+| **Speed (mounted rerender)** | Baseline                            | **3–27× faster (typically 15–20×)** in our benchmarks ([details below](#performance--size)) |
+| **Output efficiency**        | Line-level diff per change          | **10–20× less output** — cell-level diff + relative cursor addressing                       |
+| **Bundle size (gzipped)**    | 116.6 KB (Ink + Yoga WASM)          | 114.9 KB (runtime + Flexily) — parity                                                       |
+| **Layout engine**            | Yoga WASM only (~45 KB, async init) | [Flexily](https://beorn.codes/flexily) (pure JS, ~2 KB, sync) or Yoga — pluggable           |
+| **Layout caching**           | Full tree recomputation every pass  | Fingerprint + cache unchanged subtrees                                                      |
+| **Memory (long sessions)**   | Yoga WASM linear heap can grow      | Normal JS GC; graduated scrollback frees React tree                                         |
+| **Native dependencies**      | Yoga WASM binary blob               | None — pure TypeScript                                                                      |
+| **Initialization**           | Async WASM loading                  | Synchronous import                                                                          |
 
 ### Interaction
 
@@ -128,15 +128,15 @@ Silvery is **3–27× faster (typically 15–20×)** than Ink 7.0 in our mounted
 
 The 15–20× advantage comes from Silvery's pipeline making full use of `React.memo` — when components bail out, Silvery's dirty-tracking pipeline skips those nodes entirely (no buffer writes, no text processing). Ink re-renders and re-diffs the full tree regardless of memo bail-outs.
 
-| Scenario                               | Silvery advantage |
-| -------------------------------------- | ----------------- |
-| Mounted cursor 100-item                | **5.2×**          |
-| Mounted cursor 200×60                  | **6.5×**          |
-| Mounted kanban 5×20                    | **7.6×**          |
-| Memo'd cursor 100 (inverse)            | **15.8×**         |
-| Memo'd cursor 1000 (inverse)           | **19.1×**         |
-| Memo'd kanban 5×20                     | **17.0×**         |
-| Memo'd kanban 5×50                     | **26.7×**         |
+| Scenario                     | Silvery advantage |
+| ---------------------------- | ----------------- |
+| Mounted cursor 100-item      | **5.2×**          |
+| Mounted cursor 200×60        | **6.5×**          |
+| Mounted kanban 5×20          | **7.6×**          |
+| Memo'd cursor 100 (inverse)  | **15.8×**         |
+| Memo'd cursor 1000 (inverse) | **19.1×**         |
+| Memo'd kanban 5×20           | **17.0×**         |
+| Memo'd kanban 5×50           | **26.7×**         |
 
 ### Output efficiency
 

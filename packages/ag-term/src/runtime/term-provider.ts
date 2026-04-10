@@ -272,7 +272,8 @@ export function createTermProvider(
       // next chunk so the sequence can be reassembled.
       let incompleteCSI: string | null = null
 
-      // stdin handler: splits multi-char chunks into individual keystrokes.
+      // Input pipeline Stage 1: Terminal Provider — see docs/guide/input-architecture.md
+      // Splits multi-char chunks into individual keystrokes.
       // When the OS buffers key repeat events, stdin delivers "jjjjj" as a
       // single read — splitRawInput breaks it into individual keys for onKey.
       const onChunk = (chunk: string) => {

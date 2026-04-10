@@ -107,6 +107,34 @@ export interface Key {
 export type InputHandler = (input: string, key: Key) => void | "exit"
 
 /**
+ * Detect modifier-only key events (Cmd, Shift, Ctrl, Alt pressed alone).
+ * With Kitty REPORT_ALL_KEYS, these fire as key events with empty input
+ * and no actionable key flags — only modifier flags are set.
+ *
+ * Shared by useInput (filters these out) and create-app (filters for app handlers).
+ */
+export function isModifierOnlyEvent(input: string, key: Key): boolean {
+  if (input !== "") return false
+  if (
+    key.upArrow ||
+    key.downArrow ||
+    key.leftArrow ||
+    key.rightArrow ||
+    key.pageDown ||
+    key.pageUp ||
+    key.home ||
+    key.end ||
+    key.return ||
+    key.escape ||
+    key.tab ||
+    key.backspace ||
+    key.delete
+  )
+    return false
+  return true
+}
+
+/**
  * Parsed hotkey from a string like "ctrl+shift+a" or "Control+ArrowUp".
  */
 export interface ParsedHotkey {

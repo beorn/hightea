@@ -233,17 +233,12 @@ async function ensureLayoutEngineInitialized(engineType?: LayoutEngineType): Pro
 // Lightweight subscriber list — replaces EventEmitter from node:events
 // ============================================================================
 
-type InputHandler = (input: string, key: import("@silvery/ag/keys").Key) => void
-type PasteHandler = (text: string) => void
-
-interface SubscriberList {
-  input: Set<InputHandler>
-  paste: Set<PasteHandler>
-}
-
-function createSubscriberList(): SubscriberList {
-  return { input: new Set(), paste: new Set() }
-}
+import {
+  type InputCallback,
+  type PasteCallback,
+  type SubscriberList,
+  createSubscriberList,
+} from "./runtime-subscribers"
 
 // ============================================================================
 // App Props — callback-based, no Node.js types in the callback interface
@@ -418,14 +413,14 @@ function SilveryApp({
     () => ({
       on(event, handler) {
         if (event === "input") {
-          const typed = handler as InputHandler
+          const typed = handler as InputCallback
           subscribers.input.add(typed)
           return () => {
             subscribers.input.delete(typed)
           }
         }
         if (event === "paste") {
-          const typed = handler as unknown as PasteHandler
+          const typed = handler as unknown as PasteCallback
           subscribers.paste.add(typed)
           return () => {
             subscribers.paste.delete(typed)

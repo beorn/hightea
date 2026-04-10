@@ -10,36 +10,7 @@
 
 import { useContext, useEffect, useRef } from "react"
 import { RuntimeContext } from "../context"
-import type { Key } from "@silvery/ag/keys"
-
-/**
- * Detect modifier-only key events (Cmd, Shift, Ctrl, Alt pressed alone).
- * With REPORT_ALL_KEYS, these fire as key events with empty input and
- * no actionable key flags — only modifier flags are set.
- * Consumed by useModifierKeys, not dispatched to useInput handlers.
- */
-function isModifierOnlyEvent(input: string, key: Key): boolean {
-  if (input !== "") return false
-  // If any actionable key flag is set, it's not modifier-only
-  if (
-    key.upArrow ||
-    key.downArrow ||
-    key.leftArrow ||
-    key.rightArrow ||
-    key.pageDown ||
-    key.pageUp ||
-    key.home ||
-    key.end ||
-    key.return ||
-    key.escape ||
-    key.tab ||
-    key.backspace ||
-    key.delete
-  )
-    return false
-  // Empty input + no actionable flags = modifier-only event
-  return true
-}
+import { isModifierOnlyEvent, type Key } from "@silvery/ag/keys"
 
 // ============================================================================
 // Types
@@ -50,8 +21,9 @@ export type { Key } from "@silvery/ag/keys"
 
 /**
  * Input handler callback type.
+ * Return "exit" to quit the app (calls rt.exit()).
  */
-export type InputHandler = (input: string, key: Key) => void
+export type InputHandler = (input: string, key: Key) => void | "exit"
 
 /**
  * Options for useInput hook.
@@ -154,7 +126,8 @@ export function useInput(inputHandler: InputHandler, options: UseInputOptions = 
         onReleaseRef.current?.(input, key)
         return
       }
-      handlerRef.current(input, key)
+      const result = handlerRef.current(input, key)
+      if (result === "exit") rt.exit()
     })
   }, [isActive, rt])
 

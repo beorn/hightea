@@ -78,11 +78,7 @@ export function renderPhase(root: AgNode, prevBuffer?: TerminalBuffer | null, ct
   // - Signal-driven updates (v1.5) that bypass React
   // - Timer-driven re-renders where nothing changed
   // - Scheduler polling without React pending work
-  if (
-    hasPrevBuffer &&
-    !isAnyDirty(root.dirtyBits, root.dirtyEpoch) &&
-    !isCurrentEpoch(root.layoutChangedThisFrame)
-  ) {
+  if (hasPrevBuffer && !isAnyDirty(root.dirtyBits, root.dirtyEpoch) && !isCurrentEpoch(root.layoutChangedThisFrame)) {
     if (instr.enabled) instr.stats._noopSkip = 1
     advanceRenderEpoch()
     return prevBuffer
@@ -132,8 +128,8 @@ export function renderPhase(root: AgNode, prevBuffer?: TerminalBuffer | null, ct
   // Skip when no layout changed this frame (cursor move, style-only changes).
   // The layout phase sets layoutChangedThisFrame on affected nodes; if root's
   // subtree has any, we need the full sync. If not, prevLayout is already correct.
-  const anyLayoutChanged = isCurrentEpoch(root.layoutChangedThisFrame) ||
-    isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)
+  const anyLayoutChanged =
+    isCurrentEpoch(root.layoutChangedThisFrame) || isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)
   syncPrevLayout(root, anyLayoutChanged || !hasPrevBuffer)
 
   // Advance the render epoch — all dirty flags stamped with the old epoch

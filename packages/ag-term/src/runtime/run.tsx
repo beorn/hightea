@@ -27,11 +27,9 @@
  * ```
  */
 
-import React, { useContext, useEffect, useRef, type ReactElement } from "react"
+import React, { type ReactElement } from "react"
 
-import { RuntimeContext } from "@silvery/ag-react/context"
 import { createApp } from "@silvery/create/create-app"
-import type { Key, InputHandler } from "./keys"
 import type { Term } from "../ansi/term"
 import { detectTerminalCaps } from "../terminal-caps"
 import { detectTheme } from "@silvery/theme/detect"
@@ -161,72 +159,18 @@ export interface RunHandle {
   press(key: string): Promise<void>
 }
 
-/** Paste handler callback type */
-export type PasteHandler = (text: string) => void
-
 // ============================================================================
 // Hooks (Layer 2 — uses RuntimeContext, works in both run() and createApp())
 // ============================================================================
 
-/**
- * Hook for handling keyboard input.
- *
- * Layer 2 variant: supports returning 'exit' from the handler to exit the app.
- * For the standard hook (isActive, onPaste options), import from 'silvery'.
- *
- * @example
- * ```tsx
- * useInput((input, key) => {
- *   if (input === 'q') return 'exit'
- *   if (key.upArrow) moveCursor(-1)
- *   if (key.downArrow) moveCursor(1)
- * })
- * ```
- */
-export function useInput(handler: InputHandler): void {
-  const rt = useContext(RuntimeContext)
-
-  // Stable ref for the handler — avoids tearing down/recreating the
-  // subscription on every render. Without this, rapid keystrokes between
-  // effect cleanup and setup are lost (e.g., Ctrl+D twice, Escape).
-  const handlerRef = useRef(handler)
-  handlerRef.current = handler
-
-  useEffect(() => {
-    if (!rt) return
-    return rt.on("input", (input: string, key: Key) => {
-      const result = handlerRef.current(input, key)
-      if (result === "exit") rt.exit()
-    })
-  }, [rt])
-}
-
-/**
- * Hook for programmatic exit.
- */
-export function useExit(): () => void {
-  const rt = useContext(RuntimeContext)
-  if (!rt) throw new Error("useExit must be used within run() or createApp()")
-  return rt.exit
-}
-
-/**
- * Hook for handling bracketed paste events.
- */
-export function usePaste(handler: PasteHandler): void {
-  const rt = useContext(RuntimeContext)
-
-  // Stable ref — same pattern as useInput to avoid lost paste events.
-  const handlerRef = useRef(handler)
-  handlerRef.current = handler
-
-  useEffect(() => {
-    if (!rt) return
-    return rt.on("paste", (text: string) => {
-      handlerRef.current(text)
-    })
-  }, [rt])
-}
+// All hooks re-exported from ag-react — single implementation, no duplication.
+// run.tsx has zero hook implementations. See km-silvery.zero-hooks-run.
+export { useInput, type UseInputOptions } from "@silvery/ag-react/hooks/useInput"
+export { useExit } from "@silvery/ag-react/hooks/useExit"
+export {
+  usePasteCallback as usePaste,
+  type PasteCallback as PasteHandler,
+} from "@silvery/ag-react/hooks/usePasteCallback"
 
 // ============================================================================
 // run() — thin wrapper over createApp()

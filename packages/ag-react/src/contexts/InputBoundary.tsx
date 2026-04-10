@@ -59,17 +59,12 @@ export interface InputBoundaryProps {
 // Subscriber list — lightweight replacement for EventEmitter
 // =============================================================================
 
-type InputHandler = (input: string, key: Key) => void
-type PasteHandler = (text: string) => void
-
-interface SubscriberList {
-  input: Set<InputHandler>
-  paste: Set<PasteHandler>
-}
-
-function createSubscriberList(): SubscriberList {
-  return { input: new Set(), paste: new Set() }
-}
+import {
+  type InputCallback,
+  type PasteCallback,
+  type SubscriberList,
+  createSubscriberList,
+} from "../runtime-subscribers"
 
 // =============================================================================
 // Helpers
@@ -175,14 +170,14 @@ export function InputBoundary({
     () => ({
       on(event, handler) {
         if (event === "input") {
-          const typed = handler as InputHandler
+          const typed = handler as InputCallback
           subscribers.input.add(typed)
           return () => {
             subscribers.input.delete(typed)
           }
         }
         if (event === "paste") {
-          const typed = handler as unknown as PasteHandler
+          const typed = handler as unknown as PasteCallback
           subscribers.paste.add(typed)
           return () => {
             subscribers.paste.delete(typed)

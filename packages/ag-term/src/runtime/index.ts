@@ -62,6 +62,7 @@ export {
   usePaste,
   type RunOptions,
   type InputHandler,
+  type UseInputOptions,
   type PasteHandler,
   type Key,
 } from "./run"

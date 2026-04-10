@@ -146,7 +146,40 @@ Full styling reference: [Styling Guide](docs/guide/styling.md)
 
 ## Input Handling
 
-`useInput` receives parsed key events. Return `"exit"` to quit the app.
+> **Full architecture**: [docs/guide/input-architecture.md](docs/guide/input-architecture.md) — 5-stage pipeline from stdin to hooks.
+> Read that doc before debugging input issues. It covers filtering, Kitty protocol, focus dispatch, and the hook hierarchy.
+
+### Single useInput — two import paths, one implementation
+
+`useInput` is defined in `@silvery/ag-react/hooks/useInput.ts` and re-exported from both `silvery` and `silvery/runtime`. Both paths resolve to the same hook.
+
+```tsx
+import { useInput } from "silvery" // components, complex apps
+import { useInput } from "silvery/runtime" // run() apps, examples
+// Both are the SAME function — use whichever matches your import style
+```
+
+Features: `isActive`, `onRelease`, `onPaste`, release filtering, modifier filtering, `return "exit"` to quit.
+
+### Key event lifecycle (Kitty keyboard protocol)
+
+When Kitty keyboard protocol is enabled (default in Ghostty, Kitty, WezTerm):
+
+1. **stdin** receives raw bytes → `splitRawInput()` splits buffered chunks into individual sequences
+2. **`parseKey()`** (`@silvery/ag/keys`) parses ANSI/Kitty sequences → `{ input, key }` with `key.eventType: "press" | "repeat" | "release"`
+3. **Event dispatch** (`create-app.tsx:2301`): ALL events go to `runtimeInputListeners` first (useModifierKeys needs releases)
+4. **`useInput` filtering**: both hooks filter `key.eventType === "release"` — handlers see press/repeat only
+5. **App handlers** (`runEventHandler`): additionally filter modifier-only events (Cmd/Shift/Alt/Ctrl alone)
+
+### useModifierKeys
+
+Tracks held modifier state (Cmd, Shift, Ctrl, Alt) from Kitty press/release events. Used by `<Link>` for Cmd+click. Does NOT go through useInput — uses a separate modifier store updated at dispatch level.
+
+```tsx
+const { super: cmdHeld } = useModifierKeys({ enabled: hovered })
+```
+
+### Quick reference
 
 ```tsx
 import { useInput } from "silvery/runtime"

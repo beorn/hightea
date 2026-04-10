@@ -90,7 +90,7 @@ import {
   invokeEventHandler,
   type NamespacedEvent,
 } from "@silvery/ag-term/runtime/event-handlers"
-import { keyToAnsi, keyToKittyAnsi } from "@silvery/ag/keys"
+import { keyToAnsi, keyToKittyAnsi, isModifierOnlyEvent } from "@silvery/ag/keys"
 import { parseKey, type Key } from "@silvery/ag-term/runtime/keys"
 import { ensureLayoutEngine } from "@silvery/ag-term/runtime/layout"
 import {
@@ -2295,6 +2295,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     inEventHandler = true
     isRendering = true
 
+    // Input pipeline Stage 3: Event Loop — see docs/guide/input-architecture.md
     // Bridge ALL key events to RuntimeContext listeners first (useModifierKeys
     // needs modifier-only and release events). Then filter events for app handlers.
     // Also update keyboard modifier state for mouse event enrichment.
@@ -2332,24 +2333,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       if (event.type === "term:key") {
         const { input, key: k } = event.data as { input: string; key: Key }
         if (k.eventType === "release") continue
-        // Modifier-only: empty input + no actionable flags
-        if (
-          input === "" &&
-          !k.upArrow &&
-          !k.downArrow &&
-          !k.leftArrow &&
-          !k.rightArrow &&
-          !k.pageDown &&
-          !k.pageUp &&
-          !k.home &&
-          !k.end &&
-          !k.return &&
-          !k.escape &&
-          !k.tab &&
-          !k.backspace &&
-          !k.delete
-        )
-          continue
+        if (isModifierOnlyEvent(input, k)) continue
       }
 
       const result = runEventHandler(event)

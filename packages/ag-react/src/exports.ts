@@ -342,6 +342,7 @@ export { useInput } from "./hooks/useInput"
  * ```
  */
 export { useApp } from "./hooks/useApp"
+export { useExit } from "./hooks/useExit"
 
 export { useStdout } from "./hooks/useStdout"
 export { useStderr } from "./hooks/useStderr"
