@@ -121,10 +121,10 @@ function App() {
 }
 ```
 
-::: info Why can't Ink do this with measureElement()?
+::: info Why not use Ink's measureElement() or useBoxMetrics()?
 This is the terminal equivalent of [CSS container queries](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries) — components adapt to their container's size, not the viewport. The web spent a decade wanting this because the alternatives (media queries + JS measurement) had the same problems.
 
-Ink's `measureElement()` is like `ResizeObserver` — it reads dimensions _after_ rendering. By the time you know the size, you've already drawn the wrong thing. Feeding dimensions back requires `useEffect` + `setState`, triggering a visible re-render. With nested responsive components (board → column → card), each level needs its own measure→rerender cycle — N nesting levels means N visible flickers.
+Ink 7.0's `useBoxMetrics()` (and the older `measureElement()`) provide dimensions _after_ rendering via `useEffect`. The first render always sees `{width: 0, height: 0}`, then a re-render fires with actual values. With nested responsive components (board → column → card), each level needs its own measure→rerender cycle.
 
 Silvery's `useBoxRect()` is like container queries — the layout engine computes dimensions _before_ content renders, so all components get correct sizes in one batch. No flicker, no plumbing, no cascading re-renders.
 :::
@@ -197,7 +197,7 @@ You can also truncate with an ellipsis instead of wrapping:
 
 ### 4. First Render Shows Zeros
 
-**Ink**: Components render once with final output.
+**Ink**: Components render with final output. Ink 7.0 added `useBoxMetrics()` for post-layout dimensions, but the first render still sees zeros.
 
 **Silvery**: Components using `useBoxRect()` render twice. First render has `{ width: 0, height: 0 }`, second has actual values.
 

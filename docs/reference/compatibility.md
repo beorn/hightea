@@ -4,10 +4,10 @@ Silvery provides compatibility layers for both Ink and Chalk, making migration s
 
 ## Compatibility Summary
 
-| Test suite                                  | Pass rate                             | Notes                          |
-| ------------------------------------------- | ------------------------------------- | ------------------------------ |
+| Test suite                                  | Pass rate                            | Notes                          |
+| ------------------------------------------- | ------------------------------------ | ------------------------------ |
 | Ink's own test suite (via `bun run compat`) | **918/931 (~98.6%) against Ink 7.0** | Real Ink tests, Flexily engine |
-| Chalk's own test suite                      | **32/32 (100%)**                      | Full Chalk API compatibility   |
+| Chalk's own test suite                      | **32/32 (100%)**                     | Full Chalk API compatibility   |
 
 Compatibility is tested by cloning the real Ink and Chalk repos and running their original test suites against silvery's compat layer (`bun run compat`). The ~13 remaining Ink test failures break down into W3C spec divergence (flex-wrap, aspect ratio — intentional: Flexily follows the spec where Yoga doesn't), build artifact expectations (silvery publishes TypeScript source + `dist/`), and minor rendering timing edge cases. For exact Yoga layout parity, silvery supports Yoga as a pluggable engine. See [Silvery vs Ink](/guide/silvery-vs-ink#compatibility-at-a-glance) for the full breakdown.
 
@@ -147,7 +147,7 @@ The Ink compatibility layer (`@silvery/ink`) is built as thin adapters that brid
 
 ### How It Works
 
-> **Coming Soon:** The `withInk()`, `pipe()`, and `createApp()` composition APIs shown below are part of the era2b compatibility layer, which is not yet released. The current migration path uses `render()` directly (see [Migrate from Ink](/getting-started/migrate-from-ink)).
+`withInk()`, `pipe()`, and `createApp()` are available from `@silvery/create`. For simple migrations, `render()` is sufficient (see [Migrate from Ink](/getting-started/migrate-from-ink)). The composition APIs are for apps that need fine-grained control over which Ink adapters to load.
 
 `withInk()` composes two independent plugins:
 
