@@ -425,3 +425,46 @@ describe("Large terminal — kanban 5x50 (400x200)", () => {
     app.rerender(kanban(5, 50, 2, card))
   })
 })
+
+// ============================================================================
+// Reconciliation profiling — isolate React vs pipeline scaling
+//
+// Compares 80x24 vs 400x200 for three scenarios:
+//   1. No-change rerender (same props — pure React.memo bail-out + pipeline)
+//   2. Cursor move (2 items change — memo bail-out for N-2, full render for 2)
+//   3. createElement only (no render — isolates vDOM allocation cost)
+//
+// If no-change rerender scales with terminal size, the cost is in the pipeline
+// (buffer clone, layout walk, output diff), not React reconciliation.
+// If it doesn't scale, the 4x on cursor move comes from React re-rendering
+// more components at larger sizes (e.g., context propagation, layout hooks).
+// ============================================================================
+
+describe("Reconciliation profiling — 1000 items", () => {
+  const render80 = createRenderer({ cols: 80, rows: 24 })
+  const render400 = createRenderer({ cols: 400, rows: 200 })
+  const app80 = render80(memoList(1000, 0))
+  const app400 = render400(memoList(1000, 0))
+
+  bench("no-change rerender 80x24", () => {
+    app80.rerender(memoList(1000, 0))
+  })
+  bench("no-change rerender 400x200", () => {
+    app400.rerender(memoList(1000, 0))
+  })
+
+  let c80 = 0
+  let c400 = 0
+  bench("cursor move 80x24", () => {
+    c80 = (c80 + 1) % 1000
+    app80.rerender(memoList(1000, c80))
+  })
+  bench("cursor move 400x200", () => {
+    c400 = (c400 + 1) % 1000
+    app400.rerender(memoList(1000, c400))
+  })
+
+  bench("createElement only (no render)", () => {
+    memoList(1000, 42)
+  })
+})
