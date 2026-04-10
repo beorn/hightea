@@ -52,7 +52,7 @@ features:
     details: "One-phase responsive layouts — useBoxRect() returns real dimensions during render. overflow=scroll with scrollTo. position=sticky headers. ANSI-aware compositing with color blending."
     link: /guide/silvery-vs-ink#responsive-layout
     linkText: Architecture deep dive
-  - title: Batteries-Included Components
+  - title: Rich Component Library
     details: "45+ components: TextInput, SelectList, ListView, Table, CommandPalette, ModalDialog, Tabs, TreeView, Toast, Spinner, and more. Built-in focus, mouse, and native keybindings. 38 theme palettes with auto-detected terminal colors."
     link: /guides/components
     linkText: Browse components
