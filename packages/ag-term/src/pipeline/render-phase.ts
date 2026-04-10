@@ -64,36 +64,30 @@ export function renderPhase(root: AgNode, prevBuffer?: TerminalBuffer | null, ct
     throw new Error("renderPhase called before layout phase")
   }
 
-  // Resolve instrumentation from ctx (if provided) or module-level globals
-  const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
-  const stats = ctx?.stats ?? _renderPhaseStats
-  const nodeTrace = ctx?.nodeTrace ?? _nodeTrace
-  const nodeTraceEnabled = ctx?.nodeTraceEnabled ?? _nodeTraceEnabled
+  const instr = resolveInstrumentation(ctx)
 
   // Clone prevBuffer if same dimensions, else create fresh
   const hasPrevBuffer = prevBuffer && prevBuffer.width === layout.width && prevBuffer.height === layout.height
 
-  if (instrumentEnabled) {
-    _renderPhaseCallCount++
-    stats._prevBufferNull = prevBuffer == null ? 1 : 0
-    stats._prevBufferDimMismatch = prevBuffer && !hasPrevBuffer ? 1 : 0
-    stats._hasPrevBuffer = hasPrevBuffer ? 1 : 0
-    stats._layoutW = layout.width
-    stats._layoutH = layout.height
-    stats._prevW = prevBuffer?.width ?? 0
-    stats._prevH = prevBuffer?.height ?? 0
-    stats._callCount = _renderPhaseCallCount
+  if (instr.enabled) {
+    instr.stats._prevBufferNull = prevBuffer == null ? 1 : 0
+    instr.stats._prevBufferDimMismatch = prevBuffer && !hasPrevBuffer ? 1 : 0
+    instr.stats._hasPrevBuffer = hasPrevBuffer ? 1 : 0
+    instr.stats._layoutW = layout.width
+    instr.stats._layoutH = layout.height
+    instr.stats._prevW = prevBuffer?.width ?? 0
+    instr.stats._prevH = prevBuffer?.height ?? 0
   }
 
-  const t0 = instrumentEnabled ? performance.now() : 0
+  const t0 = instr.enabled ? performance.now() : 0
   const buffer = hasPrevBuffer ? prevBuffer.clone() : new TerminalBuffer(layout.width, layout.height)
-  const tClone = instrumentEnabled ? performance.now() - t0 : 0
+  const tClone = instr.enabled ? performance.now() - t0 : 0
 
   // Default: root is selectable (userSelect defaults to "text").
   // renderNodeToBuffer will override per-node as it traverses.
   buffer.setSelectableMode(true)
 
-  const t1 = instrumentEnabled ? performance.now() : 0
+  const t1 = instr.enabled ? performance.now() : 0
   renderNodeToBuffer(
     root,
     buffer,
@@ -109,45 +103,13 @@ export function renderPhase(root: AgNode, prevBuffer?: TerminalBuffer | null, ct
     },
     ctx,
   )
-  const tRender = instrumentEnabled ? performance.now() - t1 : 0
+  const tRender = instr.enabled ? performance.now() - t1 : 0
 
-  if (instrumentEnabled) {
-    // Expose sub-phase timing for profiling
-    const snap = {
-      clone: tClone,
-      render: tRender,
-      ...structuredClone(stats),
-    }
-    // Retain globalThis for programmatic consumers (STRICT diagnostics, perf profiling)
-    ;(globalThis as any).__silvery_content_detail = snap
-    const arr = ((globalThis as any).__silvery_content_all ??= [] as (typeof snap)[])
-    arr.push(snap)
-    // Route human-readable output through loggily
-    contentLog.debug?.(
-      `frame ${snap._callCount}: ${snap.nodesRendered}/${snap.nodesVisited} rendered, ${snap.nodesSkipped} skipped (${tClone.toFixed(1)}ms clone, ${tRender.toFixed(1)}ms render)`,
-    )
-    for (const key of Object.keys(stats) as (keyof RenderPhaseStats)[]) {
-      ;(stats as any)[key] = 0
-    }
-    stats.cascadeMinDepth = 999
-    stats.cascadeNodes = ""
-    stats.scrollClearReason = ""
-    stats.normalRepaintReason = ""
-  }
-
-  // Export node trace for SILVERY_STRICT diagnosis
-  if (nodeTraceEnabled && nodeTrace.length > 0) {
-    // Retain globalThis for programmatic consumers (STRICT diagnostics)
-    const traceArr = ((globalThis as any).__silvery_node_trace ??= [] as NodeTraceEntry[][])
-    traceArr.push([...nodeTrace])
-    // Route human-readable output through loggily
-    traceLog.debug?.(`${nodeTrace.length} nodes traced`)
-    nodeTrace.length = 0
+  if (instr.enabled) {
+    emitRenderPhaseStats(instr.stats, instr.nodeTrace, instr.nodeTraceEnabled, tClone, tRender)
   }
 
   // Sync prevLayout after render phase to prevent staleness on subsequent frames.
-  // Without this, prevLayout stays at the old value from propagateLayout, causing
-  // hasChildPositionChanged and clearExcessArea to use stale coordinates.
   syncPrevLayout(root)
 
   // Advance the render epoch — all dirty flags stamped with the old epoch
@@ -246,6 +208,47 @@ export function setReactiveEnabled(enabled: boolean): void {
   _reactiveVerifyEnabled = enabled && typeof process !== "undefined" && envTruthy(process.env?.SILVERY_STRICT)
 }
 
+// ============================================================================
+// Instrumentation Helpers
+// ============================================================================
+
+/** Resolved instrumentation state — avoids repeating ctx ?? module fallbacks. */
+interface InstrumentState {
+  readonly enabled: boolean
+  readonly stats: RenderPhaseStats
+  readonly nodeTrace: NodeTraceEntry[]
+  readonly nodeTraceEnabled: boolean
+}
+
+/** Resolve instrumentation from PipelineContext or module-level defaults. */
+function resolveInstrumentation(ctx?: PipelineContext): InstrumentState {
+  return {
+    enabled: ctx?.instrumentEnabled ?? _instrumentEnabled,
+    stats: ctx?.stats ?? _renderPhaseStats,
+    nodeTrace: ctx?.nodeTrace ?? _nodeTrace,
+    nodeTraceEnabled: ctx?.nodeTraceEnabled ?? _nodeTraceEnabled,
+  }
+}
+
+/** Cell debug state — read once from globalThis per function scope. */
+type CellDebug = { x: number; y: number; log: string[] }
+
+/** Read the cell debug target (set by SILVERY_CELL_DEBUG env var). */
+function getCellDebug(): CellDebug | undefined {
+  return (globalThis as any).__silvery_cell_debug as CellDebug | undefined
+}
+
+/** Check if a rect covers the cell debug target point. */
+function cellCoversPoint(
+  cellDbg: CellDebug,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): boolean {
+  return x <= cellDbg.x && x + width > cellDbg.x && y <= cellDbg.y && y + height > cellDbg.y
+}
+
 /** DIAG: compute node depth in tree */
 function _getNodeDepth(node: AgNode): number {
   let depth = 0
@@ -255,6 +258,49 @@ function _getNodeDepth(node: AgNode): number {
     n = n.parent
   }
   return depth
+}
+
+/**
+ * Emit render-phase stats to globalThis + loggily, then reset counters.
+ * Called at end of renderPhase when instrumentation is active.
+ */
+function emitRenderPhaseStats(
+  stats: RenderPhaseStats,
+  nodeTrace: NodeTraceEntry[],
+  nodeTraceEnabled: boolean,
+  tClone: number,
+  tRender: number,
+): void {
+  _renderPhaseCallCount++
+  stats._callCount = _renderPhaseCallCount
+  const snap = {
+    clone: tClone,
+    render: tRender,
+    ...structuredClone(stats),
+  }
+  // Retain globalThis for programmatic consumers (STRICT diagnostics, perf profiling)
+  ;(globalThis as any).__silvery_content_detail = snap
+  const arr = ((globalThis as any).__silvery_content_all ??= [] as (typeof snap)[])
+  arr.push(snap)
+  // Route human-readable output through loggily
+  contentLog.debug?.(
+    `frame ${snap._callCount}: ${snap.nodesRendered}/${snap.nodesVisited} rendered, ${snap.nodesSkipped} skipped (${tClone.toFixed(1)}ms clone, ${tRender.toFixed(1)}ms render)`,
+  )
+  for (const key of Object.keys(stats) as (keyof RenderPhaseStats)[]) {
+    ;(stats as any)[key] = 0
+  }
+  stats.cascadeMinDepth = 999
+  stats.cascadeNodes = ""
+  stats.scrollClearReason = ""
+  stats.normalRepaintReason = ""
+
+  // Export node trace for SILVERY_STRICT diagnosis
+  if (nodeTraceEnabled && nodeTrace.length > 0) {
+    const traceArr = ((globalThis as any).__silvery_node_trace ??= [] as NodeTraceEntry[][])
+    traceArr.push([...nodeTrace])
+    traceLog.debug?.(`${nodeTrace.length} nodes traced`)
+    nodeTrace.length = 0
+  }
 }
 
 // Re-export for consumers who need to clear bg conflict warnings
@@ -281,28 +327,19 @@ function renderNodeToBuffer(
     bufferIsCloned,
     ancestorLayoutChanged = false,
   } = nodeState
-  // Resolve instrumentation from ctx or module globals
-  const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
-  const stats = ctx?.stats ?? _renderPhaseStats
-  const nodeTrace = ctx?.nodeTrace ?? _nodeTrace
-  const nodeTraceEnabled = ctx?.nodeTraceEnabled ?? _nodeTraceEnabled
-  if (instrumentEnabled) stats.nodesVisited++
+  const instr = resolveInstrumentation(ctx)
+  if (instr.enabled) instr.stats.nodesVisited++
   const layout = node.boxRect
   if (!layout) return
 
   // Skip nodes without Yoga (raw text and virtual text nodes)
   // Their content is rendered by their parent silvery-text via collectTextContent()
   if (!node.layoutNode) {
-    // Clear dirty flags so markSubtreeDirty() can propagate future updates.
-    // Without this, virtual text children keep stale subtreeDirty=true from
-    // creation, causing markSubtreeDirty to stop early and never reach the
-    // layout ancestor — producing 0-byte diffs on text content changes.
     clearVirtualTextFlags(node)
     return
   }
 
   // Skip hidden nodes (Suspense support)
-  // When a Suspense boundary shows a fallback, the hidden subtree is not rendered
   if (node.hidden) {
     clearDirtyFlags(node)
     return
@@ -311,7 +348,6 @@ function renderNodeToBuffer(
   const props = node.props as BoxProps & TextProps
 
   // Resolve userSelect for SELECTABLE_FLAG stamping.
-  // Set buffer selectable mode before any cell writes. Restore on exit.
   const prevSelectableMode = buffer.getSelectableMode()
   const userSelect = props.userSelect
   if (userSelect === "none") {
@@ -319,10 +355,8 @@ function renderNodeToBuffer(
   } else if (userSelect === "text" || userSelect === "contain") {
     buffer.setSelectableMode(true)
   }
-  // "auto" or undefined: inherit parent's mode (already set on buffer)
 
-  // Skip display="none" nodes - they have 0x0 dimensions and shouldn't render
-  // Also skip their children since the entire subtree is hidden
+  // Skip display="none" nodes
   if (props.display === "none") {
     clearDirtyFlags(node)
     buffer.setSelectableMode(prevSelectableMode)
@@ -330,67 +364,20 @@ function renderNodeToBuffer(
   }
 
   // Skip nodes entirely off-screen (viewport clipping).
-  // The scroll container's VirtualList already handles most culling, but this
-  // catches any remaining nodes rendered below/above the visible area.
-  //
-  // IMPORTANT: Don't clear dirty flags on nodes that were never rendered.
-  // Just skip them and leave their flags intact so they render correctly
-  // when scrolled into view.
-  //
-  // Why this matters: clearDirtyFlags on off-screen nodes prevents them from
-  // rendering when they later become visible:
-  // 1. Node off-screen → clearDirtyFlags → all flags false
-  // 2. Scroll brings node on-screen with hasPrevBuffer=true
-  // 3. canSkipEntireSubtree = true (all flags clean) → node SKIPPED
-  // 4. Buffer has stale/blank pixels → blank content visible
-  //
-  // By preserving dirty flags, the node forces rendering when it enters
-  // the visible area. The subtreeDirty flag on ancestors is maintained
-  // because we don't clear it — markSubtreeDirty() already set it during
-  // reconciliation/layout, and not clearing here preserves that signal.
+  // IMPORTANT: Don't clear dirty flags on off-screen nodes — they need their
+  // flags intact so they render correctly when scrolled into view.
   const screenY = layout.y - scrollOffset
   if (screenY >= buffer.height || screenY + layout.height <= 0) {
     buffer.setSelectableMode(prevSelectableMode)
     return
   }
 
-  // FAST PATH: Skip entire subtree if unchanged and we have a previous buffer
-  // The buffer was cloned from prevBuffer, so skipped nodes keep their rendered output
-  //
-  // layoutChanged: did this node's layout position/size change?
-  // Uses layoutChangedThisFrame (set by propagateLayout in layout phase) instead of
-  // the stale !rectEqual(prevLayout, boxRect). The rect comparison is asymmetric
-  // between incremental and fresh renders: doFreshRender's layout phase syncs
-  // prevLayout=boxRect before content, making layoutChanged=false, while the
-  // real render may have prevLayout=null (new nodes), making layoutChanged=true.
-  // This asymmetry causes contentAreaAffected→clearNodeRegion to fire in incremental
-  // but not fresh, wiping sibling content. layoutChangedThisFrame is symmetric.
+  // FAST PATH: Skip entire subtree if unchanged and we have a previous buffer.
+  // layoutChanged uses layoutChangedThisFrame (symmetric between incremental/fresh).
   const layoutChanged = isCurrentEpoch(node.layoutChangedThisFrame)
-
-  // Check if any child shifted position (sibling shift from size changes).
-  // Gap space between children belongs to this container, so must re-render.
   const childPositionChanged = !!(hasPrevBuffer && !layoutChanged && hasChildPositionChanged(node))
-
-  // Check if this node is a scroll container whose offset changed.
-  // The scroll phase (layout-phase.ts) sets subtreeDirty on the scroll container
-  // when offset changes, and the reconciler propagates subtreeDirty to ancestors
-  // when scrollTo/scrollOffset props change. However, this defensive check
-  // catches edge cases where scroll offset changes without proper dirty
-  // propagation — e.g., layout feedback loops that alter scroll state between
-  // render passes without a reconciler commit.
   const scrollOffsetChanged = !!(node.scrollState && node.scrollState.offset !== node.scrollState.prevOffset)
 
-  // FAST PATH: Skip unchanged subtrees when we have a valid previous buffer.
-  // The cloned buffer already has correct pixels for clean nodes.
-  // SILVERY_STRICT=1 verifies this by comparing incremental vs fresh renders.
-  //
-  // ancestorLayoutChanged: an ancestor's layout position/size changed this frame.
-  // Even if this node's own flags are clean, its pixels in the cloned buffer are
-  // at coordinates relative to the old ancestor layout. The node must re-render
-  // at its new absolute position. This is a safety net — normally the parent's
-  // childrenNeedFreshRender cascade sets childHasPrev=false which prevents skipping,
-  // but ancestorLayoutChanged catches cases where the cascade doesn't propagate
-  // (e.g., ancestor with backgroundColor that breaks the ancestorCleared chain).
   const canSkipEntireSubtree =
     hasPrevBuffer &&
     !isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT) &&
@@ -402,26 +389,21 @@ function renderNodeToBuffer(
     !ancestorLayoutChanged &&
     !scrollOffsetChanged
 
-  // Node ID for tracing (only trace named nodes to keep compact)
-  const _nodeId = instrumentEnabled ? ((props.id as string | undefined) ?? "") : ""
-  const _traceThis = instrumentEnabled && nodeTraceEnabled && _nodeId
-
-  // Cell debug: log nodes that cover the target cell.
-  // Retained on globalThis for STRICT diagnostics (create-app.tsx reads the accumulated log).
-  const _cellDbg = (globalThis as any).__silvery_cell_debug as { x: number; y: number; log: string[] } | undefined
-  const _coversCellNow =
-    _cellDbg &&
-    layout.x <= _cellDbg.x &&
-    layout.x + layout.width > _cellDbg.x &&
-    screenY <= _cellDbg.y &&
-    screenY + layout.height > _cellDbg.y
+  // Diagnostics: node ID, cell debug, node trace
+  const _nodeId = instr.enabled ? ((props.id as string | undefined) ?? "") : ""
+  const _traceThis = instr.enabled && instr.nodeTraceEnabled && _nodeId
+  const _cellDbg = getCellDebug()
+  const _coversCellNow = _cellDbg && cellCoversPoint(_cellDbg, layout.x, screenY, layout.width, layout.height)
   const _coversCellPrev =
     _cellDbg &&
     node.prevLayout &&
-    node.prevLayout.x <= _cellDbg.x &&
-    node.prevLayout.x + node.prevLayout.width > _cellDbg.x &&
-    node.prevLayout.y - scrollOffset <= _cellDbg.y &&
-    node.prevLayout.y - scrollOffset + node.prevLayout.height > _cellDbg.y
+    cellCoversPoint(
+      _cellDbg,
+      node.prevLayout.x,
+      node.prevLayout.y - scrollOffset,
+      node.prevLayout.width,
+      node.prevLayout.height,
+    )
 
   if (canSkipEntireSubtree) {
     if (_cellDbg && (_coversCellNow || _coversCellPrev)) {
@@ -435,10 +417,10 @@ function renderNodeToBuffer(
       _cellDbg.log.push(msg)
       cellLog.debug?.(msg)
     }
-    if (instrumentEnabled) {
-      stats.nodesSkipped++
+    if (instr.enabled) {
+      instr.stats.nodesSkipped++
       if (_traceThis) {
-        nodeTrace.push({
+        instr.nodeTrace.push({
           id: _nodeId,
           type: node.type,
           depth: _getNodeDepth(node),
@@ -458,16 +440,16 @@ function renderNodeToBuffer(
     buffer.setSelectableMode(prevSelectableMode)
     return
   }
-  if (instrumentEnabled) {
-    stats.nodesRendered++
-    if (!hasPrevBuffer) stats.noPrevBuffer++
-    if (isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT)) stats.flagContentDirty++
-    if (isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT)) stats.flagStylePropsDirty++
-    if (layoutChanged) stats.flagLayoutChanged++
-    if (isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT)) stats.flagSubtreeDirty++
-    if (isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT)) stats.flagChildrenDirty++
-    if (childPositionChanged) stats.flagChildPositionChanged++
-    if (ancestorLayoutChanged) stats.flagAncestorLayoutChanged++
+  if (instr.enabled) {
+    instr.stats.nodesRendered++
+    if (!hasPrevBuffer) instr.stats.noPrevBuffer++
+    if (isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT)) instr.stats.flagContentDirty++
+    if (isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT)) instr.stats.flagStylePropsDirty++
+    if (layoutChanged) instr.stats.flagLayoutChanged++
+    if (isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT)) instr.stats.flagSubtreeDirty++
+    if (isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT)) instr.stats.flagChildrenDirty++
+    if (childPositionChanged) instr.stats.flagChildPositionChanged++
+    if (ancestorLayoutChanged) instr.stats.flagAncestorLayoutChanged++
   }
 
   // Push per-subtree theme override (if this Box has a theme prop).
@@ -534,7 +516,7 @@ function renderNodeToBuffer(
     const { contentRegionCleared, skipBgFill, childrenNeedFreshRender } = cascade
 
     // DIAG: Per-node trace, cascade tracking, and cell debug
-    if (instrumentEnabled || (_cellDbg && (_coversCellNow || _coversCellPrev))) {
+    if (instr.enabled || (_cellDbg && (_coversCellNow || _coversCellPrev))) {
       traceRenderDecision(
         node,
         props,
@@ -551,30 +533,12 @@ function renderNodeToBuffer(
         _cellDbg,
         _coversCellNow,
         _coversCellPrev,
-        instrumentEnabled,
-        stats,
-        nodeTrace,
+        instr.enabled,
+        instr.stats,
+        instr.nodeTrace,
       )
     }
 
-    // Text style-only fast path: when only visual style props changed on a text
-    // node (no content, bg, or children changes), we restyle existing cells
-    // instead of re-rendering. In this case, skip region clearing — the chars
-    // in the cloned buffer are correct and must be preserved.
-    //
-    // CRITICAL: check !contentDirty and !childrenDirty in addition to
-    // isStyleOnlyDirty. The reconciler may set isStyleOnlyDirty in commitUpdate
-    // (based on prop changes alone), then commitTextUpdate on a child sets
-    // contentDirty on the layout ancestor. Both flags can be true simultaneously.
-    // Text style-only fast path: when only visual style props changed on a text
-    // node (no content, bg, or children changes), we restyle existing cells
-    // instead of re-rendering. In this case, skip region clearing — the chars
-    // in the cloned buffer are correct and must be preserved.
-    //
-    // CRITICAL: check !contentDirty and !childrenDirty in addition to
-    // isStyleOnlyDirty. The reconciler may set isStyleOnlyDirty in commitUpdate
-    // (based on prop changes alone), then commitTextUpdate on a child sets
-    // contentDirty on the layout ancestor. Both flags can be true simultaneously.
     // DISABLED: text style-only fast path causes incremental rendering mismatches
     // (fg colors lost). Needs investigation before re-enabling.
     const useTextStyleFastPath = false
@@ -592,8 +556,8 @@ function renderNodeToBuffer(
       layoutChanged,
       useTextStyleFastPath ? false : contentRegionCleared,
       descendantOverflowChanged,
-      instrumentEnabled,
-      stats,
+      instr.enabled,
+      instr.stats,
       nodeState.inheritedBg,
     )
 
@@ -623,8 +587,8 @@ function renderNodeToBuffer(
         props,
         nodeState,
         skipBgFill,
-        instrumentEnabled,
-        stats,
+        instr.enabled,
+        instr.stats,
         ctx,
         cascade.bgOnlyChange,
         useTextStyleFastPath,
@@ -1102,9 +1066,7 @@ function renderScrollContainerChildren(
     inheritedBg,
     inheritedFg,
   } = nodeState
-  // Resolve instrumentation from ctx or module globals
-  const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
-  const stats = ctx?.stats ?? _renderPhaseStats
+  const instr = resolveInstrumentation(ctx)
   const layout = node.boxRect
   const ss = node.scrollState
   if (!layout || !ss) return
@@ -1162,16 +1124,16 @@ function renderScrollContainerChildren(
   const defaultChildHasPrev = plan.childHasPrev
   const defaultChildAncestorCleared = plan.childAncestorCleared
 
-  if (instrumentEnabled) {
-    stats.scrollContainerCount++
+  if (instr.enabled) {
+    instr.stats.scrollContainerCount++
     if (tier !== "subtree-only" || stickyForceRefresh) {
-      stats.scrollViewportCleared++
+      instr.stats.scrollViewportCleared++
       const reasons = [...plan.reasons]
       if (scrollOffsetChanged) reasons.push(`scrollOffset(${ss.prevOffset}->${ss.offset})`)
       reasons.push(
         `vp=${ss.viewportHeight} content=${ss.contentHeight} vis=${ss.firstVisibleChild}-${ss.lastVisibleChild}`,
       )
-      stats.scrollClearReason = reasons.join("+")
+      instr.stats.scrollClearReason = reasons.join("+")
     }
   }
 
@@ -1354,9 +1316,7 @@ function renderNormalChildren(
     inheritedBg,
     inheritedFg,
   } = nodeState
-  // Resolve instrumentation from ctx or module globals
-  const instrumentEnabled = ctx?.instrumentEnabled ?? _instrumentEnabled
-  const stats = ctx?.stats ?? _renderPhaseStats
+  const instr = resolveInstrumentation(ctx)
   const layout = node.boxRect
   if (!layout) return
 
@@ -1419,13 +1379,13 @@ function renderNormalChildren(
   // children were restructured, or sibling positions shifted.
   const childrenNeedRepaint =
     isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT) || childPositionChanged || childrenNeedFreshRender
-  if (instrumentEnabled && childrenNeedRepaint && hasPrevBuffer) {
-    stats.normalChildrenRepaint++
+  if (instr.enabled && childrenNeedRepaint && hasPrevBuffer) {
+    instr.stats.normalChildrenRepaint++
     const reasons: string[] = []
     if (isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT)) reasons.push("childrenDirty")
     if (childPositionChanged) reasons.push("childPositionChanged")
     if (childrenNeedFreshRender) reasons.push("childrenNeedFreshRender")
-    stats.normalRepaintReason = reasons.join("+")
+    instr.stats.normalRepaintReason = reasons.join("+")
   }
   let childHasPrev = childrenNeedRepaint ? false : hasPrevBuffer
   // childAncestorCleared: tells descendants that STALE pixels exist in the buffer.
@@ -1956,20 +1916,12 @@ function clearNodeRegion(
 
   const clearHeight = clearBottom - clearY
   if (clearHeight > 0 && clearWidth > 0) {
-    // Cell debug: log clearNodeRegion coverage
-    const _cellDbg2 = (globalThis as any).__silvery_cell_debug as { x: number; y: number; log: string[] } | undefined
-    if (_cellDbg2) {
-      const covers =
-        clearX <= _cellDbg2.x &&
-        clearX + clearWidth > _cellDbg2.x &&
-        clearY <= _cellDbg2.y &&
-        clearY + clearHeight > _cellDbg2.y
-      if (covers) {
-        const id = ((node.props as Record<string, unknown>).id as string) ?? node.type
-        const msg = `CLEAR_REGION ${id} fill=${clearX},${clearY} ${clearWidth}x${clearHeight} bg=${String(clearBg)} COVERS TARGET`
-        _cellDbg2.log.push(msg)
-        cellLog.debug?.(msg)
-      }
+    const _cellDbg2 = getCellDebug()
+    if (_cellDbg2 && cellCoversPoint(_cellDbg2, clearX, clearY, clearWidth, clearHeight)) {
+      const id = ((node.props as Record<string, unknown>).id as string) ?? node.type
+      const msg = `CLEAR_REGION ${id} fill=${clearX},${clearY} ${clearWidth}x${clearHeight} bg=${String(clearBg)} COVERS TARGET`
+      _cellDbg2.log.push(msg)
+      cellLog.debug?.(msg)
     }
     buffer.fill(clearX, clearY, clearWidth, clearHeight, {
       char: " ",
@@ -2010,14 +1962,9 @@ function clearExcessArea(
   if (!layoutChanged || !node.prevLayout) return
   const prev = node.prevLayout
 
-  // Cell debug: log clearExcessArea decisions
-  const _cellDbg3 = (globalThis as any).__silvery_cell_debug as { x: number; y: number; log: string[] } | undefined
+  const _cellDbg3 = getCellDebug()
   const _prevCoversCell3 =
-    _cellDbg3 &&
-    prev.x <= _cellDbg3.x &&
-    prev.x + prev.width > _cellDbg3.x &&
-    prev.y - scrollOffset <= _cellDbg3.y &&
-    prev.y - scrollOffset + prev.height > _cellDbg3.y
+    _cellDbg3 && cellCoversPoint(_cellDbg3, prev.x, prev.y - scrollOffset, prev.width, prev.height)
 
   // Only clear if the node actually shrank in at least one dimension
   if (prev.width <= layout.width && prev.height <= layout.height) {
