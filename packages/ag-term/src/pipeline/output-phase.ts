@@ -1683,6 +1683,41 @@ function changesToAnsi(
   // Sort by position for optimal cursor movement (in-place, no allocation)
   sortPoolByPosition(pool, count)
 
+  // ========================================================================
+  // Hybrid emission: analyze per-row density and choose strategy per row.
+  //
+  // Dense rows (>50% of cells changed): emit the entire row from the buffer
+  // with a single cursor positioning — avoids per-cell CUP overhead.
+  //
+  // Sparse rows: cell-by-cell emission (current behavior) — optimal for
+  // isolated changes since it skips unchanged cells entirely.
+  //
+  // The threshold is checked only when the buffer is available (incremental
+  // renders always pass it; bare changesToAnsi calls may not).
+  // ========================================================================
+
+  // Build a set of dense rows by scanning the sorted pool.
+  // A row is dense if its changed cell count exceeds 50% of the buffer width.
+  // We collect row boundaries (start/end indices in the pool) for dense rows
+  // so we can skip their individual changes in the main loop.
+  const denseRows = new Set<number>()
+  const bufWidth = buffer?.width ?? 0
+  const densityThreshold = bufWidth > 0 ? bufWidth * 0.5 : Infinity
+
+  if (buffer && bufWidth > 0) {
+    let rowStart = 0
+    while (rowStart < count) {
+      const rowY = pool[rowStart]!.y
+      let rowEnd = rowStart + 1
+      while (rowEnd < count && pool[rowEnd]!.y === rowY) rowEnd++
+      const rowChanges = rowEnd - rowStart
+      if (rowChanges >= densityThreshold) {
+        denseRows.add(rowY)
+      }
+      rowStart = rowEnd
+    }
+  }
+
   let output = ""
   let currentStyle: Style | null = null
   let currentHyperlink: string | undefined
@@ -1697,6 +1732,10 @@ function changesToAnsi(
   let lastEmittedX = -1
   let lastEmittedY = -1
 
+  // Pre-allocated cell for full-row reads (dense row emission).
+  // Separate from wideCharLookupCell to avoid aliasing issues.
+  const denseRowCell = createMutableCell()
+
   for (let i = 0; i < count; i++) {
     const change = pool[i]!
     let x = change.x
@@ -1705,6 +1744,123 @@ function changesToAnsi(
 
     // In inline mode, skip changes outside the visible range
     if (isInline && (y < startLine || y >= endLine)) continue
+
+    // ====================================================================
+    // Dense row: emit the full row from the buffer.
+    // Skip all pool entries for this row — we read directly from the buffer.
+    // ====================================================================
+    if (buffer && denseRows.has(y)) {
+      // Skip remaining pool entries for this row
+      while (i + 1 < count && pool[i + 1]!.y === y) i++
+
+      const renderY = isInline ? y - startLine : y
+
+      // Close hyperlink on row change
+      if (y !== prevY && currentHyperlink) {
+        output += "\x1b]8;;\x1b\\"
+        currentHyperlink = undefined
+      }
+      prevY = y
+
+      // Position cursor at start of row (column 0)
+      if (renderY !== cursorY || cursorX !== 0) {
+        // Reset style before cursor movement to prevent bg bleed
+        if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle.attrs))) {
+          output += "\x1b[0m"
+          currentStyle = null
+        }
+
+        if (cursorY >= 0 && renderY === cursorY + 1) {
+          output += "\r\n"
+        } else if (cursorY >= 0 && renderY > cursorY) {
+          const dy = renderY - cursorY
+          output += dy === 1 ? "\r\n" : `\r\x1b[${dy}B`
+        } else if (isInline) {
+          const fromRow = cursorY >= 0 ? cursorY : 0
+          if (renderY > fromRow) {
+            output += `\x1b[${renderY - fromRow}B\r`
+          } else if (renderY < fromRow) {
+            output += `\x1b[${fromRow - renderY}A\r`
+          } else {
+            output += "\r"
+          }
+        } else {
+          output += `\x1b[${renderY + 1};1H`
+        }
+      }
+
+      // Emit the entire row from the buffer (like bufferToAnsi per-row logic)
+      for (let bx = 0; bx < bufWidth; bx++) {
+        buffer.readCellInto(bx, y, denseRowCell)
+
+        // Handle hyperlink transitions
+        const cellHyperlink = denseRowCell.hyperlink
+        if (cellHyperlink !== currentHyperlink) {
+          if (currentHyperlink) output += "\x1b]8;;\x1b\\"
+          if (cellHyperlink) output += `\x1b]8;;${cellHyperlink}\x1b\\`
+          currentHyperlink = cellHyperlink
+        }
+
+        // Style transition
+        reusableCellStyle.fg = denseRowCell.fg
+        reusableCellStyle.bg = denseRowCell.bg
+        reusableCellStyle.underlineColor = denseRowCell.underlineColor
+        reusableCellStyle.attrs = denseRowCell.attrs
+        if (!styleEquals(currentStyle, reusableCellStyle)) {
+          const prevStyle = currentStyle
+          currentStyle = {
+            fg: denseRowCell.fg,
+            bg: denseRowCell.bg,
+            underlineColor: denseRowCell.underlineColor,
+            attrs: { ...denseRowCell.attrs },
+          }
+          output += styleTransition(prevStyle, currentStyle, ctx)
+        }
+
+        // Write character
+        const char = denseRowCell.char || " "
+        output += wrapTextSizing(char, denseRowCell.wide, ctx)
+
+        // Skip continuation cell for wide chars
+        if (denseRowCell.wide) {
+          bx++
+          // Cursor re-sync for wide chars (same logic as bufferToAnsi)
+          if (isInline) {
+            if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle.attrs))) {
+              output += "\x1b[0m"
+              currentStyle = null
+            }
+            const nextCol = bx + 1
+            output += "\r"
+            if (nextCol > 0) output += nextCol === 1 ? "\x1b[C" : `\x1b[${nextCol}C`
+          } else {
+            output += `\x1b[${renderY + 1};${bx + 2}H`
+          }
+        }
+      }
+
+      // Close hyperlink at end of row
+      if (currentHyperlink) {
+        output += "\x1b]8;;\x1b\\"
+        currentHyperlink = undefined
+      }
+
+      // Reset style at end of row to prevent bg bleed into next row
+      if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle.attrs))) {
+        output += "\x1b[0m"
+        currentStyle = null
+      }
+
+      cursorX = bufWidth
+      cursorY = renderY
+      lastEmittedX = bufWidth - 1
+      lastEmittedY = y
+      continue
+    }
+
+    // ====================================================================
+    // Sparse cell: standard cell-by-cell emission
+    // ====================================================================
 
     // Handle continuation cells: these are the second column of a wide
     // character. If their main cell (x-1) was already emitted in this
