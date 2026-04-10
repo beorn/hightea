@@ -184,3 +184,79 @@ describe("Style-only (inverse toggle) — 1000 items (80x24)", () => {
     app.rerender(memoList(1000, on ? 500 : -1))
   })
 })
+
+// ============================================================================
+// Resize (layout changes, text unchanged — exercises PreparedText cache)
+//
+// PreparedText caches collected text and formatted lines per node. Resize
+// changes dimensions but not content, so:
+//   - collected text cache: HIT (text unchanged)
+//   - format cache: MISS on first width, HIT on repeat (LRU keyed by width)
+//
+// Compare with SILVERY_NO_TEXT_CACHE=1 to see the cache delta.
+// Run with SILVERY_STRICT=0 for accurate timing.
+// ============================================================================
+
+describe("Resize — 100 items (80→120 cols)", () => {
+  const render = createRenderer({ cols: 80, rows: 24 })
+  const app = render(flatList(100, 5))
+  bench("resize to 120 cols", () => {
+    app.resize(120, 24)
+  })
+})
+
+describe("Resize — 1000 items (80→120 cols)", () => {
+  const render = createRenderer({ cols: 80, rows: 40 })
+  const app = render(flatList(1000, 5))
+  bench("resize to 120 cols", () => {
+    app.resize(120, 40)
+  })
+})
+
+describe("Resize kanban 5x20 (200→160 cols)", () => {
+  const render = createRenderer({ cols: 200, rows: 60 })
+  const app = render(kanban(5, 20, 2, 5))
+  bench("resize to 160 cols", () => {
+    app.resize(160, 60)
+  })
+})
+
+// ============================================================================
+// Width oscillation (resize back and forth — exercises format cache LRU)
+//
+// The PreparedText format cache stores entries keyed by width. On oscillation:
+//   - First cycle: MISS at 120, MISS at 80 (populates both)
+//   - Subsequent cycles: HIT at both widths (LRU retains both entries)
+//
+// Without cache, every oscillation re-collects AND re-formats.
+// ============================================================================
+
+describe("Width oscillation — 100 items (80↔120 cols)", () => {
+  const render = createRenderer({ cols: 80, rows: 24 })
+  const app = render(flatList(100, 5))
+  let wide = false
+  bench("alternate 80↔120", () => {
+    wide = !wide
+    app.resize(wide ? 120 : 80, 24)
+  })
+})
+
+describe("Width oscillation — 1000 items (80↔120 cols)", () => {
+  const render = createRenderer({ cols: 80, rows: 40 })
+  const app = render(flatList(1000, 5))
+  let wide = false
+  bench("alternate 80↔120", () => {
+    wide = !wide
+    app.resize(wide ? 120 : 80, 40)
+  })
+})
+
+describe("Width oscillation kanban 5x20 (160↔200 cols)", () => {
+  const render = createRenderer({ cols: 200, rows: 60 })
+  const app = render(kanban(5, 20, 2, 5))
+  let wide = true
+  bench("alternate 160↔200", () => {
+    wide = !wide
+    app.resize(wide ? 200 : 160, 60)
+  })
+})
