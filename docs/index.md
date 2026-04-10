@@ -44,35 +44,35 @@ hero:
       link: https://github.com/beorn/silvery
 features:
   - title: Familiar React API
-    details: 'Same Box/Text/useInput patterns you already know. If you''ve used Ink, most code works with just an import change. <a href="/guide/silvery-vs-ink#compatibility">918/931 Ink 7.0 tests pass</a> on the <a href="/guide/silvery-vs-ink">@silvery/ink</a> compat layer.'
+    details: 'Same Box/Text/useInput you already know:<ul><li>React 18 + 19 — hooks, refs, effects, suspense</li><li>Flexbox layout — flexDirection, padding, gap, flexGrow</li><li><a href="/guide/silvery-vs-ink#compatibility">918/931 Ink 7.0 tests pass</a> on <a href="/guide/silvery-vs-ink">@silvery/ink</a></li></ul>'
     link: /guide/silvery-vs-ink
     linkText: Full feature comparison
   - title: Best-in-Class Performance
-    details: '<a href="/guide/silvery-vs-ink#performance">3–6× faster</a> than Ink, <a href="/guide/silvery-vs-ink#output-efficiency">10–20× less terminal output</a>. Pure TypeScript, zero native deps. Layout via <a href="https://beorn.codes/flexily">Flexily</a> (or Yoga). Runs on Bun and Node.js.'
+    details: 'Pure TypeScript, zero native deps:<ul><li><a href="/guide/silvery-vs-ink#performance">3–6× faster</a> than Ink in mounted rerenders</li><li><a href="/guide/silvery-vs-ink#output-efficiency">10–20× less terminal output</a></li><li>Layout via <a href="https://beorn.codes/flexily">Flexily</a> (or Yoga)</li><li>Runs on Bun and Node.js</li></ul>'
     link: /guide/silvery-vs-ink#performance
     linkText: Benchmark details
   - title: Web-like Responsive Layout
-    details: 'One-phase responsive layouts — <a href="/guide/hooks">useBoxRect()</a> returns real dimensions during render. <a href="/guide/scrolling">overflow="scroll"</a> with virtualization. <a href="/guide/layout-coordinates">position="sticky"</a> headers. <a href="/guide/ansi-layering">ANSI-aware compositing</a> with color blending.'
+    details: '<a href="/guide/hooks">useBoxRect()</a> returns real dimensions during render:<ul><li><a href="/guide/scrolling">Scroll containers</a> — overflow="scroll" with virtualization</li><li><a href="/guide/layout-coordinates">Sticky positioning</a> — position="sticky" for headers</li><li><a href="/guide/ansi-layering">ANSI-aware compositing</a> — color blending with alpha</li></ul>'
     link: /guide/layouts
     linkText: Layout guide
   - title: Rich Component Library
-    details: '<a href="/guides/components">45+ components</a>: TextInput, SelectList, ListView, Table, CommandPalette, ModalDialog, Tabs, TreeView, Toast, Spinner, and more. Built-in focus, mouse, and native keybindings. <a href="/guide/styling">38 theme palettes</a> with auto-detected terminal colors.'
+    details: '<a href="/guides/components">45+ components</a> with built-in focus, mouse, and native keybindings:<ul><li>TextInput, SelectList, ListView, Table, TreeView</li><li>CommandPalette, ModalDialog, Tabs, Toast, Spinner</li><li><a href="/guide/styling">38 theme palettes</a> with auto-detected terminal colors</li></ul>'
     link: /guides/components
     linkText: Browse components
   - title: Inline, Fullscreen, or Both
-    details: 'Same components, one-line switch. <a href="/examples/scrollback">Inline mode</a> gets fullscreen-level performance with native scrollback and Cmd+F. Fullscreen mode gets inline-level UX (<a href="/design/dynamic-scrollback">app-managed scrollback</a>). <a href="/design/dynamic-scrollback">Virtual inline</a> combines both.'
+    details: 'Same components, one-line switch:<ul><li>Fullscreen — alt screen, traditional TUI</li><li><a href="/examples/scrollback">Inline</a> — dynamic scrollback, native Cmd+F</li><li><a href="/design/dynamic-scrollback">Virtual inline</a> — alt screen + app-managed scrollback</li></ul>'
     link: /guide/runtime-layers
     linkText: Runtime layers
   - title: Web-like Interaction
-    details: '<a href="/guide/silvery-vs-ink#focus-system">Focus scopes</a> with spatial arrow-key nav, click-to-focus, <a href="/guide/text-selection">text selection</a>, <a href="/guide/find">Ctrl+F find</a>, <a href="/guide/clipboard">vim copy-mode</a>, and <a href="/guide/event-handling">drag-and-drop</a>. Powered by <a href="/guide/silvery-vs-ink#terminal-protocol-coverage">100+ auto-negotiated terminal protocols</a>.'
+    details: 'Full keyboard and mouse events that just work. Powered by <a href="/guide/silvery-vs-ink#terminal-protocol-coverage">100+ auto-negotiated protocols</a>:<ul><li><a href="/guide/silvery-vs-ink#focus-system">Focus scopes</a> — spatial arrow nav, Tab/Escape, click-to-focus</li><li><a href="/guide/text-selection">Text selection</a> — mouse drag, word/line, userSelect</li><li><a href="/guide/find">Find</a> — Ctrl+F with highlighting and n/N</li><li><a href="/guide/clipboard">Copy-mode</a> · <a href="/guide/event-handling">Drag-and-drop</a></li></ul>'
     link: /guide/event-handling
     linkText: Interaction guide
   - title: Playwright-Style Testing
-    details: '3,000+ tests. Auto-refreshing CSS locators, cell-level color assertions, and press() input. <a href="https://termless.dev">Termless</a> provides full ANSI fidelity with <a href="https://termless.dev/guide/backends">10 swappable backends</a> (xterm.js, Ghostty, Alacritty, WezTerm, Kitty).'
+    details: '3,000+ tests with full access to terminal internals:<ul><li>Auto-refreshing CSS locators, cell-level color assertions, press() input</li><li><a href="https://termless.dev">Termless</a> — full ANSI fidelity with <a href="https://termless.dev/guide/backends">10 swappable backends</a></li><li>xterm.js, Ghostty, Alacritty, WezTerm, Kitty, and more</li></ul>'
     link: /guide/testing
     linkText: Testing guide
   - title: Composable Architecture
-    details: 'Every layer is independently swappable: <a href="/guide/layout-engine">layout engine</a> (Flexily or Yoga), terminal backends, state management (useState, Zustand, Jotai), <a href="/guide/providers">render targets</a> (terminal, Canvas, DOM), and <a href="/guide/runtime-layers">runtime layers</a> via pipe().'
+    details: 'Every layer is independently swappable:<ul><li><a href="/guide/layout-engine">Layout engine</a> — Flexily or Yoga, usable standalone</li><li>State — useState, Zustand, Jotai, Redux</li><li><a href="/guide/providers">Render targets</a> — terminal, Canvas, DOM</li><li><a href="/guide/runtime-layers">Runtime layers</a> — renderer, runtime, or full app via pipe()</li></ul>'
     link: /guide/providers
     linkText: Providers guide
 ---
@@ -206,6 +206,15 @@ Standalone projects Silvery builds on — each stands on its own:
   color: var(--vp-c-brand-1);
   text-decoration-style: solid;
   text-decoration-color: var(--vp-c-brand-1);
+}
+.VPFeatures .details ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+  list-style: disc;
+}
+.VPFeatures .details li {
+  margin: 0.1rem 0;
+  line-height: 1.5;
 }
 .use-cases {
   margin: 0.5rem 0 1.5rem;
