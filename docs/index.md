@@ -232,10 +232,7 @@ Standalone projects Silvery builds on — each stands on its own:
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 0.75rem;
   margin: 0.75rem 0;
-  max-width: 1152px;
-  margin-left: auto;
-  margin-right: auto;
-  padding: 0 1.5rem;
+  padding: 0;
 }
 .feature {
   border: 1px solid var(--vp-c-divider);
