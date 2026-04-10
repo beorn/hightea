@@ -229,10 +229,20 @@ Standalone projects Silvery builds on — each stands on its own:
 <style>
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.75rem;
-  margin: 0.75rem 0;
+  margin: 0 0 1rem;
   padding: 0;
+}
+@media (max-width: 960px) {
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
 }
 .feature {
   border: 1px solid var(--vp-c-divider);
