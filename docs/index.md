@@ -56,10 +56,16 @@ features:
     details: "VirtualList, TextArea, SelectList, Table, CommandPalette, ModalDialog, Tabs, TreeView, Image, Toast, Spinner, ProgressBar, SplitView, and more."
     link: /guides/components
     linkText: Browse components
+  - title: Pure TypeScript
+    details: "No WASM, no C++, no native dependencies. Runs on Bun and Node.js. Instant startup, stable memory."
   - title: Playwright-Style Testing
     details: "Headless rendering, auto-refreshing locators, getByText/getByTestId queries, bounding box assertions, and press() input. Test terminal UIs like you test web apps."
     link: /guide/testing
     linkText: Testing guide
+  - title: Incremental Rendering
+    details: "Cell-level dirty tracking — only changed cells emit to the terminal. Works in inline mode with native scrollback, not just fullscreen."
+    link: /guide/silvery-vs-ink#performance
+    linkText: Benchmark details
   - title: Inline, Fullscreen, or Both
     details: "Same components, one-line switch. Inline mode gets fullscreen-level performance (cell-level incremental, no flicker) with native scrollback and Cmd+F. Fullscreen mode gets inline-level UX (app-managed scrollback graduation). Static for CI logs."
     link: /guide/runtime-layers
@@ -68,12 +74,6 @@ features:
     details: "100+ escape sequences, all auto-negotiated: Kitty keyboard, SGR mouse, OSC 8 hyperlinks, OSC 52 clipboard, bracketed paste, focus reporting, text sizing, synchronized output, and more."
     link: /guide/silvery-vs-ink
     linkText: See comparison
-  - title: Pure TypeScript
-    details: "No WASM, no C++, no native dependencies. Runs on Bun and Node.js. Instant startup, stable memory."
-  - title: Incremental Rendering
-    details: "Cell-level dirty tracking — only changed cells emit to the terminal. Works in inline mode with native scrollback, not just fullscreen."
-    link: /guide/silvery-vs-ink#performance
-    linkText: Benchmark details
 ---
 
 ## Why Silvery?
