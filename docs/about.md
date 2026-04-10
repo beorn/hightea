@@ -13,9 +13,9 @@ I was building a terminal application — a multi-pane workspace with a kanban-s
 
 I ran into two problems I couldn't work around:
 
-**Components can't know their size during render.** In Ink, React renders first, then Yoga calculates layout. So when your component runs, it doesn't know how wide its container is. If you need to truncate text to fit, choose between a compact and full layout, or adapt columns to the terminal width — you're stuck with post-render effects and prop drilling. This is [Ink issue #5](https://github.com/vadimdemedes/ink/issues/5), open since 2016.
+**Components can't know their size during render.** In Ink, React renders first, then Yoga calculates layout. So when your component runs, it doesn't know how wide its container is. Ink 7.0 added `useBoxMetrics()`, which provides dimensions after the first layout via `useEffect` — but the first render still sees `{width: 0, height: 0}`, and nested responsive components each need their own measure→rerender cycle.
 
-**Every keystroke re-renders everything.** When a user moves a cursor in a 1000-node tree, Ink re-runs React reconciliation and Yoga layout for the entire tree. For my application, that took about 20 milliseconds per keypress — noticeable at 60fps.
+**Every update re-reconciles the entire tree.** When a user moves a cursor in a 1000-node tree, Ink re-runs React reconciliation and Yoga layout for the full tree. Ink 7.0 added line-level incremental output, but the React and layout passes still walk everything. For my application, that took about 20 milliseconds per keypress — noticeable at 60fps.
 
 I needed layout to run _before_ rendering (so components could access their dimensions), and per-node dirty tracking (so only changed nodes would re-render). That required a different rendering pipeline, which meant building a new renderer.
 
@@ -60,16 +60,16 @@ All MIT-licensed, all part of the same development effort.
 
 ### Packages
 
-| Package                           | Description                                                                            |
-| --------------------------------- | -------------------------------------------------------------------------------------- |
-| `silvery`                         | Components, hooks, renderer — the one package you need                                 |
-| `@silvery/ink` / `@silvery/chalk` | Ink compatibility — 99% of Ink 7.0 tests, 100% of Chalk tests                         |
-| `@silvery/test`                   | Playwright-style testing — locators, `press()`, buffer assertions                      |
-| `@silvery/create`                 | Composable app builder — `pipe()` providers _(under active development)_               |
-| `@silvery/theme`                  | 38 palettes, semantic tokens (`$primary`, `$muted`), auto-detect                       |
-| `@silvery/commander`              | **Beautiful CLIs for free** — help renders through Silvery itself                      |
-| `@silvery/headless`               | Pure state machines — portable, embeddable, no React                                   |
-| `@silvery/ansi`                   | Terminal primitives — styling, SGR, truecolor, detection                               |
+| Package                           | Description                                                              |
+| --------------------------------- | ------------------------------------------------------------------------ |
+| `silvery`                         | Components, hooks, renderer — the one package you need                   |
+| `@silvery/ink` / `@silvery/chalk` | Ink compatibility — 99% of Ink 7.0 tests, 100% of Chalk tests            |
+| `@silvery/test`                   | Playwright-style testing — locators, `press()`, buffer assertions        |
+| `@silvery/create`                 | Composable app builder — `pipe()` providers _(under active development)_ |
+| `@silvery/theme`                  | 38 palettes, semantic tokens (`$primary`, `$muted`), auto-detect         |
+| `@silvery/commander`              | **Beautiful CLIs for free** — help renders through Silvery itself        |
+| `@silvery/headless`               | Pure state machines — portable, embeddable, no React                     |
+| `@silvery/ansi`                   | Terminal primitives — styling, SGR, truecolor, detection                 |
 
 ### Standalone projects
 
@@ -85,7 +85,7 @@ Each stands on its own — Silvery builds on them, but they work independently:
 - 45+ components — Box, Text, SelectList, VirtualList, CommandPalette, TreeView, Table, Form, and more
 - 23 color palettes with semantic tokens and WCAG-aware contrast
 - [~99% of Ink 7.0's test suite (918/931)](/guide/silvery-vs-ink#compatibility-at-a-glance) passes via the compatibility layer
-- Runs on Bun, Node.js 23.6+, and Deno
+- Runs on Bun and Node.js 23.6+
 
 Silvery is a good fit for interactive, keyboard-heavy terminal apps with large or responsive UIs. For simpler CLIs, output-only tools, or apps that rebuild the full screen on every update, [Ink](https://github.com/vadimdemedes/ink) is a solid choice with a bigger ecosystem. If you don't want React or TypeScript, frameworks in Go, Python, and Rust may be a better fit.
 

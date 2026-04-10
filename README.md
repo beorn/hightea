@@ -1,6 +1,6 @@
 # Silvery — React for modern terminal apps
 
-Powerful apps. Polished UIs. Proudly terminal.
+**Powerful apps. Polished UIs. Proudly terminal.**
 
 Ink-compatible React renderer for interactive terminal apps. Same `Box`, `Text`, `useInput` API you know. 3–5× faster than Ink 7.0 on mounted workloads.
 
