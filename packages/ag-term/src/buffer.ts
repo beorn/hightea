@@ -2396,16 +2396,31 @@ export function createTextFrame(buffer: TerminalBuffer): TextFrame {
   const width = buffer.width
   const height = buffer.height
 
-  // Snapshot: clone the buffer so text/ansi lazy computation is safe
-  // from mutations to the original. clone() deep-copies all arrays/maps.
-  const snapshot = buffer.clone()
+  // Snapshot: clone the buffer lazily — only when text/ansi/cell is accessed.
+  // The clone ensures lazy computation is safe from mutations to the original.
+  // At 400x200 (80K cells), eager clone + cellData construction costs ~10ms.
+  // Lazy: O(1) frame creation, clone on first access.
+  let _snapshot: TerminalBuffer | undefined
+  function getSnapshot(): TerminalBuffer {
+    if (!_snapshot) _snapshot = buffer.clone()
+    return _snapshot
+  }
 
-  // Cell data from the snapshot for cell() access
-  const cellData: Cell[] = new Array(width * height)
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      cellData[y * width + x] = snapshot.getCell(x, y)
+  // Cell data: lazy — only built on first cell() access.
+  // At 400x200, eager construction creates 80,000 Cell objects (~10ms).
+  // Most frames only access .text or .ansi, never individual cells.
+  let _cellData: Cell[] | undefined
+  function getCellData(): Cell[] {
+    if (!_cellData) {
+      const snap = getSnapshot()
+      _cellData = new Array(width * height)
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          _cellData[y * width + x] = snap.getCell(x, y)
+        }
+      }
     }
+    return _cellData
   }
 
   // Lazy caches
@@ -2418,12 +2433,12 @@ export function createTextFrame(buffer: TerminalBuffer): TextFrame {
     height,
 
     get text(): string {
-      if (_text === undefined) _text = bufferToText(snapshot)
+      if (_text === undefined) _text = bufferToText(getSnapshot())
       return _text
     },
 
     get ansi(): string {
-      if (_ansi === undefined) _ansi = bufferToStyledText(snapshot)
+      if (_ansi === undefined) _ansi = bufferToStyledText(getSnapshot())
       return _ansi
     },
 
@@ -2436,7 +2451,7 @@ export function createTextFrame(buffer: TerminalBuffer): TextFrame {
       if (col < 0 || col >= width || row < 0 || row >= height) {
         return EMPTY_FRAME_CELL
       }
-      return cellToFrameCell(cellData[row * width + col]!)
+      return cellToFrameCell(getCellData()[row * width + col]!)
     },
 
     containsText(text: string): boolean {
