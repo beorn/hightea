@@ -18,6 +18,7 @@
 import type { createWriteStream as createWriteStreamType } from "node:fs"
 import type { RenderStats } from "./scheduler"
 import type { AgNode } from "@silvery/ag/types"
+import { isCurrentEpoch } from "@silvery/ag/epoch"
 
 // =============================================================================
 // Types
@@ -119,11 +120,11 @@ export function inspectTree(rootNode: AgNode, options?: { depth?: number; showLa
     // Dirty flags
     const dirtyFlags: string[] = []
     if (node.layoutDirty) dirtyFlags.push("layout")
-    if (node.contentDirty) dirtyFlags.push("content")
-    if (node.stylePropsDirty) dirtyFlags.push("paint")
-    if (node.bgDirty) dirtyFlags.push("bg")
-    if (node.subtreeDirty) dirtyFlags.push("subtree")
-    if (node.childrenDirty) dirtyFlags.push("children")
+    if (isCurrentEpoch(node.contentDirtyEpoch)) dirtyFlags.push("content")
+    if (isCurrentEpoch(node.stylePropsDirtyEpoch)) dirtyFlags.push("paint")
+    if (isCurrentEpoch(node.bgDirtyEpoch)) dirtyFlags.push("bg")
+    if (isCurrentEpoch(node.subtreeDirtyEpoch)) dirtyFlags.push("subtree")
+    if (isCurrentEpoch(node.childrenDirtyEpoch)) dirtyFlags.push("children")
     const dirtyStr = dirtyFlags.length > 0 ? ` dirty=[${dirtyFlags.join(",")}]` : ""
 
     // Text content (for text nodes)

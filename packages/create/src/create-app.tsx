@@ -72,6 +72,7 @@ import {
 } from "@silvery/ag-term/text-sizing"
 import { createWidthDetector, applyWidthConfig } from "@silvery/ag-term"
 import { IncrementalRenderMismatchError } from "@silvery/ag-term/scheduler"
+import { isCurrentEpoch } from "@silvery/ag/epoch"
 import {
   createContainer,
   createFiberRoot,
@@ -1447,11 +1448,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Exception: dimension changes require re-layout even without dirty flags.
     const rootHasDirty =
       rootNode.layoutDirty ||
-      rootNode.contentDirty ||
-      rootNode.stylePropsDirty ||
-      rootNode.bgDirty ||
-      rootNode.subtreeDirty ||
-      rootNode.childrenDirty
+      isCurrentEpoch(rootNode.contentDirtyEpoch) ||
+      isCurrentEpoch(rootNode.stylePropsDirtyEpoch) ||
+      isCurrentEpoch(rootNode.bgDirtyEpoch) ||
+      isCurrentEpoch(rootNode.subtreeDirtyEpoch) ||
+      isCurrentEpoch(rootNode.childrenDirtyEpoch)
     const dimsChanged =
       _lastTermBuffer != null && (dims.cols !== _lastTermBuffer.width || dims.rows !== _lastTermBuffer.height)
     if (!rootHasDirty && !dimsChanged && _lastTermBuffer && currentBuffer) {

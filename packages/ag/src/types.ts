@@ -388,46 +388,52 @@ export interface AgNode {
   /** Previous render rect (for change detection) */
   prevScreenRect: Rect | null
 
-  /** True if layout changed THIS frame (position or size).
-   *  Set by propagateLayout in layout phase. Cleared by render phase.
+  /** Epoch when layout changed (position or size).
+   *  Set by propagateLayout in layout phase. Compared against renderEpoch by render phase.
    *  This is the authoritative signal for "did layout change?" — unlike
    *  !rectEqual(prevLayout, boxRect) which becomes stale when layout
-   *  phase skips (no dirty nodes). */
-  layoutChangedThisFrame: boolean
+   *  phase skips (no dirty nodes).
+   *  Value: renderEpoch when dirty, INITIAL_EPOCH (-1) when clean. */
+  layoutChangedThisFrame: number
 
   /** True if layout-affecting props changed and Yoga needs recalculation.
-   *  Set by reconciler on prop changes. Cleared after layout phase. */
+   *  Set by reconciler on prop changes. Cleared after layout phase.
+   *  NOTE: layoutDirty stays boolean — it's cleared by layout phase (not render phase)
+   *  and has its own tracking set in dirty-tracking.ts. */
   layoutDirty: boolean
 
-  /** True if content changed but layout didn't (e.g., text content update).
-   *  Set by reconciler. Cleared by render phase after rendering.
+  /** Epoch when content changed but layout didn't (e.g., text content update).
+   *  Set by reconciler. Read by render phase (=== renderEpoch means dirty).
    *  NOTE: measure phase may clear this for its text-collection cache —
-   *  stylePropsDirty acts as the surviving witness for style changes. */
-  contentDirty: boolean
+   *  stylePropsDirty acts as the surviving witness for style changes.
+   *  Value: renderEpoch when dirty, INITIAL_EPOCH (-1) when clean. */
+  contentDirtyEpoch: number
 
-  /** True if visual props changed (color, backgroundColor, borderStyle, etc.).
-   *  Set by reconciler alongside contentDirty. Survives measure phase clearing
-   *  of contentDirty, ensuring render phase still detects style changes.
-   *  Cleared by render phase after rendering. */
-  stylePropsDirty: boolean
+  /** Epoch when visual props changed (color, backgroundColor, borderStyle, etc.).
+   *  Set by reconciler alongside contentDirtyEpoch. Survives measure phase clearing
+   *  of contentDirtyEpoch, ensuring render phase still detects style changes.
+   *  Value: renderEpoch when dirty, INITIAL_EPOCH (-1) when clean. */
+  stylePropsDirtyEpoch: number
 
-  /** True if backgroundColor specifically changed (added, modified, or removed).
+  /** Epoch when backgroundColor specifically changed (added, modified, or removed).
    *  Set by reconciler when backgroundColor prop changes. Used by render phase
    *  to avoid cascading re-renders for border-only paint changes (borderColor
-   *  doesn't affect the content area). Cleared by render phase. */
-  bgDirty: boolean
+   *  doesn't affect the content area).
+   *  Value: renderEpoch when dirty, INITIAL_EPOCH (-1) when clean. */
+  bgDirtyEpoch: number
 
-  /** True if this node or any descendant has dirty content/layout.
+  /** Epoch when this node or any descendant has dirty content/layout.
    *  Propagated upward by reconciler when any descendant is dirtied.
    *  When only subtreeDirty (no other flags), the node's OWN rendering is
-   *  skipped — only descendants are traversed. Cleared by render phase. */
-  subtreeDirty: boolean
+   *  skipped — only descendants are traversed.
+   *  Value: renderEpoch when dirty, INITIAL_EPOCH (-1) when clean. */
+  subtreeDirtyEpoch: number
 
-  /** True if direct children were added, removed, or reordered.
+  /** Epoch when direct children were added, removed, or reordered.
    *  Set by reconciler on child list changes. Triggers own repaint
    *  (gap regions may need clearing) and forces child re-render.
-   *  Cleared by render phase. */
-  childrenDirty: boolean
+   *  Value: renderEpoch when dirty, INITIAL_EPOCH (-1) when clean. */
+  childrenDirtyEpoch: number
 
   /** Callbacks subscribed to layout changes (used by useBoxRect) */
   layoutSubscribers: Set<() => void>

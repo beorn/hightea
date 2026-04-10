@@ -11,6 +11,7 @@
 
 import type { Cell } from "@silvery/ag-term/buffer"
 import type { BoxProps, AgNode, Rect, TextProps } from "@silvery/ag/types"
+import { isCurrentEpoch } from "@silvery/ag/epoch"
 import type { RenderPhaseStats } from "@silvery/ag-term/pipeline/types"
 
 // ============================================================================
@@ -185,10 +186,10 @@ export function getNodeDebugInfo(node: AgNode): NodeDebugInfo {
     path: getNodePath(node),
     childIndex,
     dirtyFlags: {
-      contentDirty: node.contentDirty,
-      stylePropsDirty: node.stylePropsDirty,
-      subtreeDirty: node.subtreeDirty,
-      childrenDirty: node.childrenDirty,
+      contentDirty: isCurrentEpoch(node.contentDirtyEpoch),
+      stylePropsDirty: isCurrentEpoch(node.stylePropsDirtyEpoch),
+      subtreeDirty: isCurrentEpoch(node.subtreeDirtyEpoch),
+      childrenDirty: isCurrentEpoch(node.childrenDirtyEpoch),
       layoutDirty: node.layoutDirty,
     },
     layout: {
@@ -246,7 +247,7 @@ function analyzeFastPath(node: AgNode | null, scrollAncestors: AgNode[]): string
 
   const flags = node
   const allClean =
-    !flags.contentDirty && !flags.stylePropsDirty && !flags.subtreeDirty && !flags.childrenDirty && !flags.layoutDirty
+    !isCurrentEpoch(flags.contentDirtyEpoch) && !isCurrentEpoch(flags.stylePropsDirtyEpoch) && !isCurrentEpoch(flags.subtreeDirtyEpoch) && !isCurrentEpoch(flags.childrenDirtyEpoch) && !flags.layoutDirty
 
   if (allClean) {
     analysis.push("⚠ ALL DIRTY FLAGS FALSE - fast-path likely skipped this node")

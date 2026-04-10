@@ -18,6 +18,7 @@
 
 import { createLogger } from "loggily"
 import type { AgNode, AgNodeType } from "@silvery/ag/types"
+import { getRenderEpoch } from "@silvery/ag/epoch"
 import { getLayoutEngine } from "./layout-engine"
 import type { TextFrame } from "@silvery/ag/text-frame"
 import { type TerminalBuffer, createTextFrame } from "./buffer"
@@ -360,8 +361,9 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
 
     setText(node, text) {
       ;(node as any).textContent = text
-      node.contentDirty = true
-      node.stylePropsDirty = true
+      const epoch = getRenderEpoch()
+      node.contentDirtyEpoch = epoch
+      node.stylePropsDirtyEpoch = epoch
       if (node.layoutNode) {
         node.layoutNode.markDirty()
       }

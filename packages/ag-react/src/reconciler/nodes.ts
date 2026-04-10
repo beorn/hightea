@@ -10,6 +10,7 @@ import { getConstants, getLayoutEngine } from "@silvery/ag-term/layout-engine"
 import { collectPlainTextSkipHidden as collectNodeTextContent } from "@silvery/ag-term/pipeline/collect-text"
 import { type BoxProps, type AgNode, type AgNodeType, type TextProps, rectEqual } from "@silvery/ag/types"
 import { type Measurer, displayWidth, wrapText, getActiveLineHeight } from "@silvery/ag-term/unicode"
+import { getRenderEpoch, INITIAL_EPOCH, isCurrentEpoch } from "@silvery/ag/epoch"
 
 const measureLog = createLogger("silvery:measure")
 
@@ -31,6 +32,7 @@ export function createNode(
   measurer?: Measurer,
 ): AgNode {
   const layoutNode = getLayoutEngine().createNode()
+  const epoch = getRenderEpoch()
 
   const node: AgNode = {
     type,
@@ -44,13 +46,13 @@ export function createNode(
     prevLayout: null,
     prevScrollRect: null,
     prevScreenRect: null,
-    layoutChangedThisFrame: false,
+    layoutChangedThisFrame: epoch,
     layoutDirty: true,
-    contentDirty: true,
-    stylePropsDirty: true,
-    bgDirty: true,
-    subtreeDirty: true,
-    childrenDirty: true,
+    contentDirtyEpoch: epoch,
+    stylePropsDirtyEpoch: epoch,
+    bgDirtyEpoch: epoch,
+    subtreeDirtyEpoch: epoch,
+    childrenDirtyEpoch: epoch,
     layoutSubscribers: new Set(),
   }
 
@@ -78,7 +80,7 @@ export function createNode(
       // This avoids text collection entirely if we've measured this before
       const cacheKey = `${width}|${widthMode}|${height}|${heightMode}`
       const cached = measureCache.get(cacheKey)
-      if (cached && cachedText !== null && !node.contentDirty) {
+      if (cached && cachedText !== null && !isCurrentEpoch(node.contentDirtyEpoch)) {
         measureStats.cacheHits++
         return cached
       }
@@ -86,7 +88,7 @@ export function createNode(
       // Collect text content from this node and its raw text children
       // Use cached text if node hasn't been marked dirty (contentDirty)
       let text: string
-      if (cachedText !== null && !node.contentDirty) {
+      if (cachedText !== null && !isCurrentEpoch(node.contentDirtyEpoch)) {
         text = cachedText
       } else {
         measureStats.textCollects++
@@ -102,7 +104,7 @@ export function createNode(
         // whose content changed. The render phase uses stylePropsDirty (which survives the
         // measure phase) combined with the node type check to correctly identify text
         // nodes that need region clearing. See contentAreaAffected in render-phase.ts.
-        node.contentDirty = false
+        node.contentDirtyEpoch = INITIAL_EPOCH
       }
       if (!text) {
         return { width: 0, height: 0 }
@@ -217,6 +219,7 @@ export function createRootNode(): AgNode {
  * They're used when Text is nested inside another Text.
  */
 export function createVirtualTextNode(props: TextProps): AgNode {
+  const epoch = getRenderEpoch()
   return {
     type: "silvery-text",
     props,
@@ -229,13 +232,13 @@ export function createVirtualTextNode(props: TextProps): AgNode {
     prevLayout: null,
     prevScrollRect: null,
     prevScreenRect: null,
-    layoutChangedThisFrame: false,
+    layoutChangedThisFrame: INITIAL_EPOCH,
     layoutDirty: false,
-    contentDirty: true,
-    stylePropsDirty: true,
-    bgDirty: true,
-    subtreeDirty: true,
-    childrenDirty: false,
+    contentDirtyEpoch: epoch,
+    stylePropsDirtyEpoch: epoch,
+    bgDirtyEpoch: epoch,
+    subtreeDirtyEpoch: epoch,
+    childrenDirtyEpoch: INITIAL_EPOCH,
     layoutSubscribers: new Set(),
     isRawText: false, // Not raw text, but virtual (nested) text
     inlineRects: null,
@@ -638,7 +641,7 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
 
   // If dimensions changed, content needs re-render
   if (!rectEqual(node.prevLayout, node.boxRect)) {
-    node.contentDirty = true
+    node.contentDirtyEpoch = getRenderEpoch()
   }
 
   // Recursively propagate to children

@@ -8,6 +8,7 @@ import { createLogger } from "loggily"
 import { measureStats } from "./measure-stats"
 import { type BoxProps, type AgNode, type Rect, rectEqual } from "@silvery/ag/types"
 import { hasLayoutDirty, clearLayoutDirtyTracking } from "@silvery/ag/dirty-tracking"
+import { getRenderEpoch, INITIAL_EPOCH, isCurrentEpoch } from "@silvery/ag/epoch"
 import { getBorderSize, getPadding } from "./helpers"
 
 const log = createLogger("silvery:layout")
@@ -125,16 +126,17 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
   // Clear layout dirty flag
   node.layoutDirty = false
 
-  // Set authoritative "layout changed this frame" flag.
+  // Set authoritative "layout changed this frame" epoch stamp.
   // Unlike !rectEqual(prevLayout, boxRect) which becomes stale when
-  // layout phase skips on subsequent frames, this flag is explicitly set
-  // each time propagateLayout runs and cleared by the render phase.
-  node.layoutChangedThisFrame = !!(node.prevLayout && !rectEqual(node.prevLayout, node.boxRect))
+  // layout phase skips on subsequent frames, this epoch is explicitly set
+  // each time propagateLayout runs and expires when the render epoch advances.
+  const layoutDidChange = !!(node.prevLayout && !rectEqual(node.prevLayout, node.boxRect))
+  node.layoutChangedThisFrame = layoutDidChange ? getRenderEpoch() : INITIAL_EPOCH
 
-  // STRICT invariant: if layoutChangedThisFrame is true, prevLayout must differ from boxRect.
+  // STRICT invariant: if layoutChangedThisFrame is current epoch, prevLayout must differ from boxRect.
   // This validates that the flag is consistent with the actual rect comparison. A violation
   // would mean the flag is set spuriously, causing unnecessary re-renders and cascade propagation.
-  if (process?.env?.SILVERY_STRICT && node.layoutChangedThisFrame) {
+  if (process?.env?.SILVERY_STRICT && isCurrentEpoch(node.layoutChangedThisFrame)) {
     if (rectEqual(node.prevLayout, node.boxRect)) {
       const props = node.props as BoxProps
       throw new Error(
@@ -148,10 +150,11 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
   // fast-path skip them. Without this, a deeply nested node whose dimensions
   // change (e.g., width 3→4) would never be re-rendered because all ancestors
   // appear clean — their own layout didn't change, just a descendant's did.
-  if (node.layoutChangedThisFrame) {
+  if (isCurrentEpoch(node.layoutChangedThisFrame)) {
+    const epoch = getRenderEpoch()
     let ancestor = node.parent
-    while (ancestor && !ancestor.subtreeDirty) {
-      ancestor.subtreeDirty = true
+    while (ancestor && ancestor.subtreeDirtyEpoch !== epoch) {
+      ancestor.subtreeDirtyEpoch = epoch
       ancestor = ancestor.parent
     }
   }
@@ -449,7 +452,7 @@ function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: b
   // Without this, renderPhase would skip the container and children would
   // remain at their old pixel positions in the cloned buffer
   if (scrollOffset !== prevOffset || firstVisible !== prevFirstVisible || lastVisible !== prevLastVisible) {
-    node.subtreeDirty = true
+    node.subtreeDirtyEpoch = getRenderEpoch()
   }
 
   // Store scroll state (preserve previous offset and visible range for incremental rendering)
@@ -503,7 +506,7 @@ export function stickyPhase(root: AgNode): void {
       // Clear stale data if previously had sticky children
       if (node.stickyChildren !== undefined) {
         node.stickyChildren = undefined
-        node.subtreeDirty = true
+        node.subtreeDirtyEpoch = getRenderEpoch()
       }
       return
     }
@@ -552,7 +555,7 @@ export function stickyPhase(root: AgNode): void {
     node.stickyChildren = next
 
     if (changed) {
-      node.subtreeDirty = true
+      node.subtreeDirtyEpoch = getRenderEpoch()
     }
   })
 }

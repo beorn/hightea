@@ -28,6 +28,7 @@ import { pushContextTheme, popContextTheme } from "@silvery/theme/state"
 import type { Theme } from "@silvery/theme/types"
 import { computeCascade } from "./cascade-predicates"
 import { isStyleOnlyDirty } from "@silvery/ag/dirty-tracking"
+import { isCurrentEpoch, INITIAL_EPOCH, advanceRenderEpoch } from "@silvery/ag/epoch"
 import type { CascadeOutputs } from "./cascade-predicates"
 import type { ClipBounds, RenderPhaseStats, NodeRenderState, NodeTraceEntry, PipelineContext } from "./types"
 
@@ -131,6 +132,11 @@ export function renderPhase(root: AgNode, prevBuffer?: TerminalBuffer | null, ct
   // Without this, prevLayout stays at the old value from propagateLayout, causing
   // hasChildPositionChanged and clearExcessArea to use stale coordinates.
   syncPrevLayout(root)
+
+  // Advance the render epoch — all dirty flags stamped with the old epoch
+  // instantly become "not dirty". This replaces the O(N) clearDirtyFlags walk
+  // for rendered nodes (skipped nodes still need explicit clearing).
+  advanceRenderEpoch()
 
   return buffer
 }
@@ -327,7 +333,7 @@ function renderNodeToBuffer(
   // real render may have prevLayout=null (new nodes), making layoutChanged=true.
   // This asymmetry causes contentAreaAffected→clearNodeRegion to fire in incremental
   // but not fresh, wiping sibling content. layoutChangedThisFrame is symmetric.
-  const layoutChanged = node.layoutChangedThisFrame
+  const layoutChanged = isCurrentEpoch(node.layoutChangedThisFrame)
 
   // Check if any child shifted position (sibling shift from size changes).
   // Gap space between children belongs to this container, so must re-render.
@@ -355,11 +361,11 @@ function renderNodeToBuffer(
   // (e.g., ancestor with backgroundColor that breaks the ancestorCleared chain).
   const canSkipEntireSubtree =
     hasPrevBuffer &&
-    !node.contentDirty &&
-    !node.stylePropsDirty &&
+    !isCurrentEpoch(node.contentDirtyEpoch) &&
+    !isCurrentEpoch(node.stylePropsDirtyEpoch) &&
     !layoutChanged &&
-    !node.subtreeDirty &&
-    !node.childrenDirty &&
+    !isCurrentEpoch(node.subtreeDirtyEpoch) &&
+    !isCurrentEpoch(node.childrenDirtyEpoch) &&
     !childPositionChanged &&
     !ancestorLayoutChanged &&
     !scrollOffsetChanged
@@ -423,11 +429,11 @@ function renderNodeToBuffer(
   if (instrumentEnabled) {
     stats.nodesRendered++
     if (!hasPrevBuffer) stats.noPrevBuffer++
-    if (node.contentDirty) stats.flagContentDirty++
-    if (node.stylePropsDirty) stats.flagStylePropsDirty++
+    if (isCurrentEpoch(node.contentDirtyEpoch)) stats.flagContentDirty++
+    if (isCurrentEpoch(node.stylePropsDirtyEpoch)) stats.flagStylePropsDirty++
     if (layoutChanged) stats.flagLayoutChanged++
-    if (node.subtreeDirty) stats.flagSubtreeDirty++
-    if (node.childrenDirty) stats.flagChildrenDirty++
+    if (isCurrentEpoch(node.subtreeDirtyEpoch)) stats.flagSubtreeDirty++
+    if (isCurrentEpoch(node.childrenDirtyEpoch)) stats.flagChildrenDirty++
     if (childPositionChanged) stats.flagChildPositionChanged++
     if (ancestorLayoutChanged) stats.flagAncestorLayoutChanged++
   }
@@ -446,15 +452,15 @@ function renderNodeToBuffer(
     const { absoluteChildMutated, descendantOverflowChanged } = buildCascadeInputs(node, hasPrevBuffer)
     let cascade = computeCascade({
       hasPrevBuffer,
-      contentDirty: node.contentDirty,
-      stylePropsDirty: node.stylePropsDirty,
+      contentDirty: isCurrentEpoch(node.contentDirtyEpoch),
+      stylePropsDirty: isCurrentEpoch(node.stylePropsDirtyEpoch),
       layoutChanged,
-      subtreeDirty: node.subtreeDirty,
-      childrenDirty: node.childrenDirty,
+      subtreeDirty: isCurrentEpoch(node.subtreeDirtyEpoch),
+      childrenDirty: isCurrentEpoch(node.childrenDirtyEpoch),
       childPositionChanged,
       ancestorLayoutChanged,
       ancestorCleared,
-      bgDirty: node.bgDirty,
+      bgDirty: isCurrentEpoch(node.bgDirtyEpoch),
       isTextNode: node.type === "silvery-text",
       hasBgColor: !!getEffectiveBg(props),
       absoluteChildMutated,
@@ -544,7 +550,7 @@ function renderNodeToBuffer(
       ancestorCleared ||
       ancestorLayoutChanged ||
       cascade.contentAreaAffected ||
-      node.stylePropsDirty ||
+      isCurrentEpoch(node.stylePropsDirtyEpoch) ||
       cascade.bgRefillNeeded
 
     // Render this node's own content (box bg/border or text).
@@ -638,7 +644,7 @@ function buildCascadeInputs(
   node: AgNode,
   hasPrevBuffer: boolean,
 ): { absoluteChildMutated: boolean; descendantOverflowChanged: boolean } {
-  if (!hasPrevBuffer || !node.subtreeDirty || node.children === undefined) {
+  if (!hasPrevBuffer || !isCurrentEpoch(node.subtreeDirtyEpoch) || node.children === undefined) {
     return { absoluteChildMutated: false, descendantOverflowChanged: false }
   }
 
@@ -649,7 +655,7 @@ function buildCascadeInputs(
     const cp = child.props as BoxProps
     return (
       cp.position === "absolute" &&
-      (child.childrenDirty || child.layoutChangedThisFrame || hasChildPositionChanged(child))
+      (isCurrentEpoch(child.childrenDirtyEpoch) || isCurrentEpoch(child.layoutChangedThisFrame) || hasChildPositionChanged(child))
     )
   })
 
@@ -697,16 +703,16 @@ function traceRenderDecision(
   if (instrumentEnabled) {
     if (_traceThis) {
       const flagStr = [
-        node.contentDirty && "C",
-        node.stylePropsDirty && "P",
-        node.bgDirty && "B",
-        node.subtreeDirty && "S",
-        node.childrenDirty && "Ch",
+        isCurrentEpoch(node.contentDirtyEpoch) && "C",
+        isCurrentEpoch(node.stylePropsDirtyEpoch) && "P",
+        isCurrentEpoch(node.bgDirtyEpoch) && "B",
+        isCurrentEpoch(node.subtreeDirtyEpoch) && "S",
+        isCurrentEpoch(node.childrenDirtyEpoch) && "Ch",
         childPositionChanged && "CP",
       ]
         .filter(Boolean)
         .join(",")
-      const childrenNeedRepaint_ = node.childrenDirty || childPositionChanged || childrenNeedFreshRender
+      const childrenNeedRepaint_ = isCurrentEpoch(node.childrenDirtyEpoch) || childPositionChanged || childrenNeedFreshRender
       const childHasPrev_ = childrenNeedRepaint_ ? false : hasPrevBuffer
       const childAncestorCleared_ = contentRegionCleared || (ancestorCleared && !getEffectiveBg(props))
       nodeTrace.push({
@@ -738,9 +744,9 @@ function traceRenderDecision(
       }
       const id = (node.props as Record<string, unknown>).id ?? node.type
       const flags = [
-        node.contentDirty && "C",
-        node.stylePropsDirty && "P",
-        node.childrenDirty && "Ch",
+        isCurrentEpoch(node.contentDirtyEpoch) && "C",
+        isCurrentEpoch(node.stylePropsDirtyEpoch) && "P",
+        isCurrentEpoch(node.childrenDirtyEpoch) && "Ch",
         layoutChanged && "L",
         childPositionChanged && "CP",
       ]
@@ -757,13 +763,13 @@ function traceRenderDecision(
     const depth = _getNodeDepth(node)
     const prev = node.prevLayout
     const flags = [
-      node.contentDirty && "C",
-      node.stylePropsDirty && "P",
+      isCurrentEpoch(node.contentDirtyEpoch) && "C",
+      isCurrentEpoch(node.stylePropsDirtyEpoch) && "P",
       layoutChanged && "L",
-      node.subtreeDirty && "S",
-      node.childrenDirty && "Ch",
+      isCurrentEpoch(node.subtreeDirtyEpoch) && "S",
+      isCurrentEpoch(node.childrenDirtyEpoch) && "Ch",
       childPositionChanged && "CP",
-      node.bgDirty && "B",
+      isCurrentEpoch(node.bgDirtyEpoch) && "B",
     ]
       .filter(Boolean)
       .join(",")
@@ -1091,7 +1097,7 @@ function renderScrollContainerChildren(
 
   // Compute scroll bg eagerly -- planScrollRender needs it and it's cheap
   const scrollBg =
-    scrollOffsetChanged || node.childrenDirty || childrenNeedFreshRender || visibleRangeChanged
+    scrollOffsetChanged || isCurrentEpoch(node.childrenDirtyEpoch) || childrenNeedFreshRender || visibleRangeChanged
       ? getEffectiveBg(props)
         ? parseColor(getEffectiveBg(props)!)
         : (inheritedBg?.color ?? findInheritedBg(node).color)
@@ -1103,7 +1109,7 @@ function renderScrollContainerChildren(
     visibleRangeChanged,
     hasStickyChildren,
     childrenNeedFreshRender,
-    childrenDirty: node.childrenDirty,
+    childrenDirty: isCurrentEpoch(node.childrenDirtyEpoch),
     hasPrevBuffer,
     ancestorCleared,
     contentRegionCleared,
@@ -1169,7 +1175,7 @@ function renderScrollContainerChildren(
   }
 
   // Propagate ancestor layout change to scroll container children.
-  const childAncestorLayoutChanged = node.layoutChangedThisFrame || !!ancestorLayoutChanged
+  const childAncestorLayoutChanged = isCurrentEpoch(node.layoutChangedThisFrame) || !!ancestorLayoutChanged
 
   // For buffer shift: children that were fully visible in BOTH the previous
   // and current frames have correct pixels after the shift (childHasPrev=true).
@@ -1363,11 +1369,11 @@ function renderNormalChildren(
 
   // Force children to re-render when parent's region was modified on a clone,
   // children were restructured, or sibling positions shifted.
-  const childrenNeedRepaint = node.childrenDirty || childPositionChanged || childrenNeedFreshRender
+  const childrenNeedRepaint = isCurrentEpoch(node.childrenDirtyEpoch) || childPositionChanged || childrenNeedFreshRender
   if (instrumentEnabled && childrenNeedRepaint && hasPrevBuffer) {
     stats.normalChildrenRepaint++
     const reasons: string[] = []
-    if (node.childrenDirty) reasons.push("childrenDirty")
+    if (isCurrentEpoch(node.childrenDirtyEpoch)) reasons.push("childrenDirty")
     if (childPositionChanged) reasons.push("childPositionChanged")
     if (childrenNeedFreshRender) reasons.push("childrenNeedFreshRender")
     stats.normalRepaintReason = reasons.join("+")
@@ -1385,7 +1391,7 @@ function renderNormalChildren(
   // Propagate ancestor layout change to children: if this node or any ancestor
   // had layoutChangedThisFrame, children must not be skipped even if their own
   // flags are clean — their pixels in the cloned buffer are at wrong positions.
-  const childAncestorLayoutChanged = node.layoutChangedThisFrame || !!ancestorLayoutChanged
+  const childAncestorLayoutChanged = isCurrentEpoch(node.layoutChangedThisFrame) || !!ancestorLayoutChanged
 
   // Override child flags when sticky force refresh is active — all first-pass
   // children must re-render fresh (matching the scroll container pattern).
@@ -1519,14 +1525,19 @@ function renderNormalChildren(
 /**
  * Clear dirty flags on the current node only (no recursion).
  * Used after rendering a node to reset its flags.
+ *
+ * With epoch-stamped flags, this is only needed when a subtree is SKIPPED
+ * by the fast path (clearDirtyFlags on skipped subtrees) or for the
+ * render-phase-adapter. The normal render path relies on advanceRenderEpoch()
+ * to expire all flags at once — O(1) instead of O(N).
  */
 function clearNodeDirtyFlags(node: AgNode): void {
-  node.contentDirty = false
-  node.stylePropsDirty = false
-  node.bgDirty = false
-  node.subtreeDirty = false
-  node.childrenDirty = false
-  node.layoutChangedThisFrame = false
+  node.contentDirtyEpoch = INITIAL_EPOCH
+  node.stylePropsDirtyEpoch = INITIAL_EPOCH
+  node.bgDirtyEpoch = INITIAL_EPOCH
+  node.subtreeDirtyEpoch = INITIAL_EPOCH
+  node.childrenDirtyEpoch = INITIAL_EPOCH
+  node.layoutChangedThisFrame = INITIAL_EPOCH
 }
 
 /**
@@ -1602,7 +1613,7 @@ function _checkDescendantOverflow(
 ): boolean {
   for (const child of children) {
     // Check this child's previous layout against the ancestor's rect
-    if (child.prevLayout && child.layoutChangedThisFrame) {
+    if (child.prevLayout && isCurrentEpoch(child.layoutChangedThisFrame)) {
       const prev = child.prevLayout
       if (
         prev.x + prev.width > nodeRight ||
@@ -1614,7 +1625,7 @@ function _checkDescendantOverflow(
       }
     }
     // Recurse into subtree-dirty children to find deeper overflows
-    if (child.subtreeDirty && child.children !== undefined) {
+    if (isCurrentEpoch(child.subtreeDirtyEpoch) && child.children !== undefined) {
       if (_checkDescendantOverflow(child.children, nodeLeft, nodeTop, nodeRight, nodeBottom)) {
         return true
       }
@@ -1835,7 +1846,7 @@ function _clearDescendantOverflow(
   clearBg: Color,
 ): void {
   for (const child of children) {
-    if (child.prevLayout && child.layoutChangedThisFrame) {
+    if (child.prevLayout && isCurrentEpoch(child.layoutChangedThisFrame)) {
       const prev = child.prevLayout
       const prevRight = prev.x + prev.width
       const prevBottom = prev.y - scrollOffset + prev.height
@@ -1895,7 +1906,7 @@ function _clearDescendantOverflow(
       }
     }
     // Recurse into subtree-dirty children to find deeper overflows
-    if (child.subtreeDirty && child.children !== undefined) {
+    if (isCurrentEpoch(child.subtreeDirtyEpoch) && child.children !== undefined) {
       _clearDescendantOverflow(
         child.children,
         buffer,
