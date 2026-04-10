@@ -233,6 +233,10 @@ Standalone projects Silvery builds on — each stands on its own:
   gap: 0.75rem;
   margin: 0 0 1rem;
   padding: 0;
+  /* Break out of VitePress content container */
+  width: 100vw;
+  max-width: 1152px;
+  margin-left: calc(50% - min(50vw, 576px));
 }
 @media (max-width: 960px) {
   .features-grid {
