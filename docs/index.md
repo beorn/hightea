@@ -44,13 +44,13 @@ hero:
       link: https://github.com/beorn/silvery
 features:
   - title: Familiar React API
-    details: '<span class="line">Same Box/Text/useInput you already know. React 18 + 19 — hooks, refs, effects, suspense. Flexbox layout.</span><span class="line"><a href="/guide/silvery-vs-ink#compatibility">918/931 Ink 7.0 tests pass</a> on <a href="/guide/silvery-vs-ink">@silvery/ink</a>.<a class="feature-link" href="/guide/silvery-vs-ink">Full comparison →</a></span>'
+    details: '<span class="line">React 18 + 19 — hooks, refs, effects, suspense, context, portals. Flexbox layout.</span><span class="line">Same Box/Text/useInput you already know from Ink, at 98.6% compatibility.<a class="feature-link" href="/guide/silvery-vs-ink">Ink comparison →</a></span>'
   - title: Best-in-Class Performance
     details: '<span class="line"><a href="/guide/silvery-vs-ink#performance">3–27× faster</a> than Ink in mounted rerenders. <a href="/guide/silvery-vs-ink#output-efficiency">10–20× less terminal output</a>.</span><span class="line">Pure TypeScript, zero native deps. Layout via <a href="https://beorn.codes/flexily">Flexily</a> (or Yoga). Runs on Bun and Node.js.<a class="feature-link" href="/guide/silvery-vs-ink#performance">Benchmarks →</a></span>'
   - title: Web-like Responsive Layout
     details: '<span class="line"><a href="/guide/hooks">useBoxRect()</a> returns real dimensions during render.</span><span class="line"><a href="/guide/scrolling">Scroll containers</a> with virtualization. <a href="/guide/layout-coordinates">Sticky positioning</a>.</span><span class="line"><a href="/guide/ansi-layering">ANSI-aware compositing</a> — color blending with alpha.<a class="feature-link" href="/guide/layouts">Layout guide →</a></span>'
   - title: Inline, Fullscreen, or Both
-    details: '<span class="line">Same components, one-line switch.</span><span class="line">Fullscreen — alt screen, traditional TUI.</span><span class="line"><a href="/examples/scrollback">Inline</a> — dynamic scrollback, native Cmd+F.</span><span class="line"><a href="/design/dynamic-scrollback">Virtual inline</a> — alt screen + app-managed scrollback.<a class="feature-link" href="/guide/runtime-layers">Runtime layers →</a></span>'
+    details: '<span class="line">Same components, one-line switch.</span><span class="line"><a href="/guide/faq#can-i-use-silvery-for-fullscreen-terminal-apps">Fullscreen</a> — alt screen, traditional TUI.</span><span class="line"><a href="/examples/scrollback">Inline</a> — dynamic scrollback, native Cmd+F.</span><span class="line"><a href="/design/dynamic-scrollback">Virtual inline</a> — alt screen + app-managed scrollback.<a class="feature-link" href="/guide/runtime-layers">Runtime layers →</a></span>'
   - title: Web-like Interaction
     details: '<span class="line">Full keyboard and mouse events that just work. <a href="/guide/silvery-vs-ink#terminal-protocol-coverage">100+ auto-negotiated protocols</a>.</span><span class="line"><a href="/guide/silvery-vs-ink#focus-system">Focus scopes</a> — spatial nav, Tab, click-to-focus.</span><span class="line"><a href="/guide/text-selection">Text selection</a>. <a href="/guide/find">Find</a>. <a href="/guide/clipboard">Copy-mode</a>. <a href="/guide/event-handling">Drag-and-drop</a>.<a class="feature-link" href="/guide/event-handling">Interaction guide →</a></span>'
   - title: Rich Component Library
@@ -210,7 +210,6 @@ Standalone projects Silvery builds on — each stands on its own:
   position: absolute;
   bottom: 16px;
   right: 20px;
-  font-size: 12px;
   font-weight: 500;
   color: var(--vp-c-brand-1) !important;
   text-decoration: none !important;
