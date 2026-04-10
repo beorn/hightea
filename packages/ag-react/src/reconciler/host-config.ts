@@ -9,7 +9,7 @@
 import { createContext } from "react"
 import { DefaultEventPriority, DiscreteEventPriority, NoEventPriority } from "react-reconciler/constants.js"
 import type { BoxProps, AgNode, AgNodeType, TextProps } from "@silvery/ag/types"
-import { trackLayoutDirty, trackContentDirty } from "@silvery/ag/dirty-tracking"
+import { trackLayoutDirty, trackContentDirty, trackStyleOnlyDirty } from "@silvery/ag/dirty-tracking"
 import { classifyPropChanges } from "./helpers"
 import { applyBoxProps, createNode, createVirtualTextNode } from "./nodes"
 import { createLogger } from "loggily"
@@ -523,6 +523,16 @@ export const hostConfig = {
     // Track dirty node in module-level set for O(1) pipeline phase checks
     if (contentChanged) {
       trackContentDirty(instance)
+    }
+
+    // Track style-only dirty nodes for the fast path.
+    // A node is style-only when: contentChanged is "style" (not "text"),
+    // layoutChanged is false, bgDirty is false, AND the node doesn't already
+    // have contentDirty or childrenDirty (which may have been set by
+    // commitTextUpdate on a child BEFORE this commitUpdate runs — React
+    // processes children before parents in the commit phase).
+    if (contentChanged === "style" && !layoutChanged && !instance.bgDirty && !instance.contentDirty && !instance.childrenDirty) {
+      trackStyleOnlyDirty(instance)
     }
 
     instance.props = newProps

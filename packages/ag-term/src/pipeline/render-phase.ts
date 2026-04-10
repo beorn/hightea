@@ -22,11 +22,12 @@ import { TerminalBuffer } from "../buffer"
 import type { BoxProps, AgNode, TextProps } from "@silvery/ag/types"
 import { getBorderSize, getPadding } from "./helpers"
 import { renderBox, renderOutline, renderScrollIndicators, getEffectiveBg } from "./render-box"
-import { parseColor } from "./render-helpers"
+import { getTextStyle, parseColor } from "./render-helpers"
 import { clearBgConflictWarnings, renderText, setBgConflictMode } from "./render-text"
 import { pushContextTheme, popContextTheme } from "@silvery/theme/state"
 import type { Theme } from "@silvery/theme/types"
 import { computeCascade } from "./cascade-predicates"
+import { isStyleOnlyDirty } from "@silvery/ag/dirty-tracking"
 import type { CascadeOutputs } from "./cascade-predicates"
 import type { ClipBounds, RenderPhaseStats, NodeRenderState, NodeTraceEntry, PipelineContext } from "./types"
 
@@ -443,7 +444,7 @@ function renderNodeToBuffer(
     // Build tree-dependent cascade inputs (child traversal), then compute cascade.
     // See cascade-predicates.ts for the truth table and invariants.
     const { absoluteChildMutated, descendantOverflowChanged } = buildCascadeInputs(node, hasPrevBuffer)
-    const cascade = computeCascade({
+    let cascade = computeCascade({
       hasPrevBuffer,
       contentDirty: node.contentDirty,
       stylePropsDirty: node.stylePropsDirty,
@@ -459,6 +460,14 @@ function renderNodeToBuffer(
       absoluteChildMutated,
       descendantOverflowChanged,
     })
+    // bgOnlyChange safety check: fillBg updates ALL cells in the region, which
+    // would incorrectly overwrite children with their own explicit backgroundColor.
+    // Fall back to the full path when any descendant has its own bg.
+    if (cascade.bgOnlyChange && hasDescendantWithBg(node)) {
+      const childrenNeedFreshRender =
+        (hasPrevBuffer || ancestorCleared) && (cascade.contentAreaAffected || cascade.bgRefillNeeded)
+      cascade = { ...cascade, bgOnlyChange: false, childrenNeedFreshRender }
+    }
     const { contentRegionCleared, skipBgFill, childrenNeedFreshRender } = cascade
 
     // DIAG: Per-node trace, cascade tracking, and cell debug
@@ -485,7 +494,38 @@ function renderNodeToBuffer(
       )
     }
 
+    // Text style-only fast path: when only visual style props changed on a text
+    // node (no content, bg, or children changes), we restyle existing cells
+    // instead of re-rendering. In this case, skip region clearing — the chars
+    // in the cloned buffer are correct and must be preserved.
+    //
+    // CRITICAL: check !contentDirty and !childrenDirty in addition to
+    // isStyleOnlyDirty. The reconciler may set isStyleOnlyDirty in commitUpdate
+    // (based on prop changes alone), then commitTextUpdate on a child sets
+    // contentDirty on the layout ancestor. Both flags can be true simultaneously.
+    // Text style-only fast path: when only visual style props changed on a text
+    // node (no content, bg, or children changes), we restyle existing cells
+    // instead of re-rendering. In this case, skip region clearing — the chars
+    // in the cloned buffer are correct and must be preserved.
+    //
+    // CRITICAL: check !contentDirty and !childrenDirty in addition to
+    // isStyleOnlyDirty. The reconciler may set isStyleOnlyDirty in commitUpdate
+    // (based on prop changes alone), then commitTextUpdate on a child sets
+    // contentDirty on the layout ancestor. Both flags can be true simultaneously.
+    const useTextStyleFastPath =
+      node.type === "silvery-text" &&
+      hasPrevBuffer &&
+      isStyleOnlyDirty(node) &&
+      !node.contentDirty &&
+      !node.childrenDirty &&
+      !node.bgDirty &&
+      !ancestorCleared &&
+      !ancestorLayoutChanged &&
+      !hasChildWithBg(node)
+
     // Clear stale regions in the cloned buffer before rendering content.
+    // Suppress clearing when using the text style-only fast path — chars are
+    // correct in the clone and clearNodeRegion would destroy them with spaces.
     executeRegionClearing(
       node,
       buffer,
@@ -494,7 +534,7 @@ function renderNodeToBuffer(
       clipBounds,
       bufferIsCloned,
       layoutChanged,
-      contentRegionCleared,
+      useTextStyleFastPath ? false : contentRegionCleared,
       descendantOverflowChanged,
       instrumentEnabled,
       stats,
@@ -522,7 +562,19 @@ function renderNodeToBuffer(
         ? (nodeState.inheritedBg?.color ?? findInheritedBg(node).color)
         : undefined
     if (needsOwnRepaint) {
-      renderOwnContent(node, buffer, layout, props, nodeState, skipBgFill, instrumentEnabled, stats, ctx)
+      renderOwnContent(
+        node,
+        buffer,
+        layout,
+        props,
+        nodeState,
+        skipBgFill,
+        instrumentEnabled,
+        stats,
+        ctx,
+        cascade.bgOnlyChange,
+        useTextStyleFastPath,
+      )
     }
 
     // Compute inherited bg/fg for children. If this node sets backgroundColor,
@@ -813,6 +865,8 @@ function renderOwnContent(
   instrumentEnabled: boolean,
   stats: RenderPhaseStats,
   ctx?: PipelineContext,
+  bgOnlyChange = false,
+  useTextStyleFastPath = false,
 ): Color | undefined {
   // Use threaded inherited bg from nodeState — avoids O(depth) parent chain walk.
   // Falls back to findInheritedBg() only when nodeState doesn't carry inherited values
@@ -824,7 +878,7 @@ function renderOwnContent(
 
   if (node.type === "silvery-box") {
     if (instrumentEnabled) stats.boxNodes++
-    renderBox(node, buffer, layout, props, nodeState, skipBgFill, boxInheritedBg)
+    renderBox(node, buffer, layout, props, nodeState, skipBgFill, boxInheritedBg, bgOnlyChange)
   } else if (node.type === "silvery-text") {
     if (instrumentEnabled) stats.textNodes++
     // Pass inherited bg/fg from nearest ancestor with backgroundColor/color.
@@ -834,7 +888,37 @@ function renderOwnContent(
     // Foreground inheritance matches CSS semantics: Box color cascades to Text children.
     const textInheritedBg = nodeState.inheritedBg?.color ?? findInheritedBg(node).color
     const textInheritedFg = nodeState.inheritedFg ?? findInheritedFg(node)
-    renderText(node, buffer, layout, props, nodeState, textInheritedBg, textInheritedFg, ctx)
+
+    // Style-only fast path for text nodes: when only visual style props changed
+    // (color, bold, dim, inverse, etc.) but text content is identical, skip the
+    // expensive collectTextWithBg → formatTextLines → renderGraphemes pipeline.
+    // Instead, restyle existing cells in-place with the new style.
+    //
+    // Conditions (pre-computed as useTextStyleFastPath):
+    // 1. hasPrevBuffer: cloned buffer has correct chars from previous frame
+    // 2. isStyleOnlyDirty: only style props changed (no content, bg, or children)
+    // 3. No nested children with bg: restyleRegion would overwrite their bg
+    // 4. Not ancestorCleared/ancestorLayoutChanged: cells are at correct positions
+    //
+    // This avoids O(text_length) text processing for the common case of
+    // cursor/selection styling (just color/bold/inverse changes on text nodes).
+    if (useTextStyleFastPath) {
+      const style = getTextStyle(props)
+      if (style.fg === null && textInheritedFg !== undefined) {
+        style.fg = textInheritedFg
+      }
+      const effectiveBg = style.bg !== null ? style.bg : (textInheritedBg ?? null)
+      const { x, width, height } = layout
+      const y = layout.y - nodeState.scrollOffset
+      buffer.restyleRegion(x, y, width, height, {
+        fg: style.fg,
+        bg: effectiveBg,
+        underlineColor: style.underlineColor ?? null,
+        attrs: style.attrs,
+      })
+    } else {
+      renderText(node, buffer, layout, props, nodeState, textInheritedBg, textInheritedFg, ctx)
+    }
   }
 
   return boxInheritedBg
@@ -1542,6 +1626,45 @@ function _checkDescendantOverflow(
         return true
       }
     }
+  }
+  return false
+}
+
+/**
+ * Check if any descendant has an explicit backgroundColor.
+ *
+ * Used by the bgOnlyChange fast path: fillBg() updates ALL cells in the region
+ * with the parent's bg. If a descendant has its own bg, those cells would be
+ * incorrectly overwritten (the descendant is clean and won't re-render to fix it).
+ *
+ * Only checks Box nodes with explicit backgroundColor or effective bg from theme.
+ * Text nodes with backgroundColor are also checked since they render their own bg.
+ * Stops at first match (early exit).
+ *
+ * Performance: walks the child tree, but only runs when bgOnlyChange is true
+ * (bg changed, no other flags). This is the cursor-move hot path where trees
+ * are typically small (card contents: ~5-20 nodes).
+ */
+function hasDescendantWithBg(node: AgNode): boolean {
+  for (const child of node.children) {
+    if (getEffectiveBg(child.props as BoxProps)) return true
+    if (child.children.length > 0 && hasDescendantWithBg(child)) return true
+  }
+  return false
+}
+
+/**
+ * Check if a text node has any virtual text children with explicit backgroundColor.
+ *
+ * Used by the text style-only fast path: restyleRegion() applies a uniform
+ * style to all cells. If nested children have their own bg, the uniform restyle
+ * would overwrite it (those children rendered their own bg during the original
+ * renderText, and won't re-render to restore it).
+ */
+function hasChildWithBg(node: AgNode): boolean {
+  for (const child of node.children) {
+    if ((child.props as BoxProps).backgroundColor) return true
+    if (child.children.length > 0 && hasChildWithBg(child)) return true
   }
   return false
 }

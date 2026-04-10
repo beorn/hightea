@@ -41,6 +41,7 @@ export function renderBox(
   nodeState: NodeRenderState,
   skipBgFill = false,
   inheritedBg?: Color | null,
+  bgOnlyChange = false,
 ): void {
   const { scrollOffset, clipBounds } = nodeState
   const { x, width, height } = layout
@@ -59,6 +60,11 @@ export function renderBox(
   // In incremental mode, skipBgFill=true when the box itself hasn't changed
   // (only subtreeDirty). The cloned buffer already has the correct bg fill,
   // and re-filling would destroy child pixels that won't be repainted.
+  //
+  // bgOnlyChange: when ONLY backgroundColor changed (no content/layout/children
+  // changes), use fillBg() which updates bg without overwriting chars. This
+  // preserves child content from the cloned buffer, enabling the cascade
+  // optimization where clean children are skipped entirely.
   const effectiveBgStr = getEffectiveBg(props)
   if (effectiveBgStr && !skipBgFill) {
     const bg = parseColor(effectiveBgStr)
@@ -73,10 +79,18 @@ export function renderBox(
         clippedWidth = Math.min(x + width, clipBounds.right) - clippedX
       }
       if (clippedHeight > 0 && clippedWidth > 0) {
-        buffer.fill(clippedX, clippedY, clippedWidth, clippedHeight, { bg })
+        if (bgOnlyChange) {
+          buffer.fillBg(clippedX, clippedY, clippedWidth, clippedHeight, bg)
+        } else {
+          buffer.fill(clippedX, clippedY, clippedWidth, clippedHeight, { bg })
+        }
       }
     } else {
-      buffer.fill(x, y, width, height, { bg })
+      if (bgOnlyChange) {
+        buffer.fillBg(x, y, width, height, bg)
+      } else {
+        buffer.fill(x, y, width, height, { bg })
+      }
     }
   }
 

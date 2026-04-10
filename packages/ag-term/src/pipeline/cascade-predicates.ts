@@ -90,6 +90,16 @@ export interface CascadeOutputs {
   contentRegionCleared: boolean
   skipBgFill: boolean
   childrenNeedFreshRender: boolean
+  /**
+   * True when bgDirty is the ONLY reason contentAreaAffected is true, and the
+   * node has a backgroundColor. In this case, renderBox can use fillBg() (which
+   * preserves existing chars) instead of fill() (which overwrites with spaces).
+   * This avoids the cascade to children — clean children keep their chars from
+   * the cloned buffer with the new bg applied.
+   *
+   * Requirements: hasPrevBuffer, bgDirty, hasBgColor, no other contentAreaAffected triggers.
+   */
+  bgOnlyChange: boolean
 }
 
 /**
@@ -141,17 +151,47 @@ export function computeCascade(inputs: CascadeInputs): CascadeOutputs {
     absoluteChildMutated ||
     descendantOverflowChanged
 
+  // Is bgDirty the ONLY trigger for contentAreaAffected?
+  // When true AND hasBgColor: we can use fillBg() (preserves chars) instead of
+  // fill() (overwrites with spaces), eliminating the cascade to children.
+  const bgOnlyAffected =
+    bgDirty &&
+    !contentDirty &&
+    !layoutChanged &&
+    !childPositionChanged &&
+    !childrenDirty &&
+    !textPaintDirty &&
+    !absoluteChildMutated &&
+    !descendantOverflowChanged
+
+  // Style-only fast path: when only bg changed on a Box with bg, use fillBg
+  // to preserve child chars. Children see hasPrevBuffer=true (skippable).
+  //
+  // Additional safety checks:
+  // - !ancestorLayoutChanged: children's positions may have shifted in the clone
+  // - !ancestorCleared: parent cleared stale pixels, children must re-render
+  //
+  // IMPORTANT: this is only safe when no descendant has its own explicit
+  // backgroundColor that would be incorrectly overwritten by fillBg. The
+  // render phase checks this condition (hasDescendantWithBg) and falls back
+  // to the full path when descendants have their own bg.
+  const bgOnlyChange = hasPrevBuffer && bgOnlyAffected && hasBgColor && !ancestorLayoutChanged && !ancestorCleared
+
   // Descendant changed inside a bg-bearing Box (forces bg refill).
   const bgRefillNeeded = hasPrevBuffer && !contentAreaAffected && subtreeDirty && hasBgColor
 
   // Clear region with inherited bg when content changed but no own bg fill.
+  // bgOnlyChange on nodes WITHOUT bg still needs clearing (bg removed).
   const contentRegionCleared = (hasPrevBuffer || ancestorCleared) && contentAreaAffected && !hasBgColor
 
   // Skip bg fill when clone already has correct bg at this position.
   const skipBgFill = hasPrevBuffer && !ancestorCleared && !contentAreaAffected && !bgRefillNeeded
 
   // Children must re-render (content area modified OR bg needs refresh).
-  const childrenNeedFreshRender = (hasPrevBuffer || ancestorCleared) && (contentAreaAffected || bgRefillNeeded)
+  // Exception: bgOnlyChange uses fillBg() which preserves chars, so children
+  // don't need fresh render — they keep their correct chars from the clone.
+  const childrenNeedFreshRender =
+    (hasPrevBuffer || ancestorCleared) && (contentAreaAffected || bgRefillNeeded) && !bgOnlyChange
 
   return {
     canSkipEntireSubtree,
@@ -160,5 +200,6 @@ export function computeCascade(inputs: CascadeInputs): CascadeOutputs {
     contentRegionCleared,
     skipBgFill,
     childrenNeedFreshRender,
+    bgOnlyChange,
   }
 }

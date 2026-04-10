@@ -5,9 +5,11 @@
  * The reconciler adds nodes when dirty flags are set; pipeline phases query
  * the set to skip unnecessary work; the set is cleared after each render pass.
  *
- * Two categories tracked separately:
+ * Three categories tracked separately:
  * - layoutDirtyNodes: nodes with layoutDirty flag (need Yoga recalculation)
  * - contentDirtyNodes: nodes with any content/style dirty flag (need re-render)
+ * - styleOnlyDirtyNodes: nodes where ONLY style changed (no content, no layout,
+ *   no children) — eligible for the style-only fast path
  *
  * This replaces O(N) tree walks like hasLayoutDirtyNodes() with O(1) set checks.
  */
@@ -26,6 +28,17 @@ const layoutDirtyNodes: Set<AgNode> = new Set()
  */
 const contentDirtyNodes: Set<AgNode> = new Set()
 
+/**
+ * Nodes where ONLY style props changed (no content, layout, or children changes).
+ * These are eligible for the style-only fast path in the render phase, which
+ * updates cell styles without re-collecting text or re-computing layout.
+ *
+ * A node is style-only when commitUpdate classifies contentChanged="style"
+ * AND layoutChanged=false. The render phase checks this set to decide whether
+ * to use restyleRegion() instead of full renderText()/renderBox().
+ */
+const styleOnlyDirtyNodes: Set<AgNode> = new Set()
+
 // ---------------------------------------------------------------------------
 // Write API (reconciler)
 // ---------------------------------------------------------------------------
@@ -40,6 +53,16 @@ export function trackContentDirty(node: AgNode): void {
   contentDirtyNodes.add(node)
 }
 
+/**
+ * Mark a node as style-only dirty. Called when commitUpdate sees
+ * contentChanged="style" AND layoutChanged=false.
+ * If a node is later marked with contentDirty or layoutDirty, the
+ * render phase ignores the style-only flag (full path takes precedence).
+ */
+export function trackStyleOnlyDirty(node: AgNode): void {
+  styleOnlyDirtyNodes.add(node)
+}
+
 // ---------------------------------------------------------------------------
 // Read API (pipeline phases)
 // ---------------------------------------------------------------------------
@@ -52,6 +75,11 @@ export function hasLayoutDirty(): boolean {
 /** O(1) check: are there any content-dirty nodes? */
 export function hasContentDirty(): boolean {
   return contentDirtyNodes.size > 0
+}
+
+/** O(1) check: is this node style-only dirty (eligible for fast path)? */
+export function isStyleOnlyDirty(node: AgNode): boolean {
+  return styleOnlyDirtyNodes.has(node)
 }
 
 /** Get the set of layout-dirty nodes (for iteration). */
@@ -72,6 +100,7 @@ export function getContentDirtyNodes(): ReadonlySet<AgNode> {
 export function clearDirtyTracking(): void {
   layoutDirtyNodes.clear()
   contentDirtyNodes.clear()
+  styleOnlyDirtyNodes.clear()
 }
 
 /** Clear only layout-dirty tracking. Called after layout phase. */

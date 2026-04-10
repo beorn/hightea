@@ -65,13 +65,27 @@ function expectedOutputs(i: CascadeInputs): CascadeOutputs {
     i.absoluteChildMutated ||
     i.descendantOverflowChanged
 
+  // bgOnlyChange: bgDirty is the ONLY trigger for contentAreaAffected, node has
+  // bg and prev buffer, no ancestor changes. Uses fillBg() to preserve child chars.
+  const bgOnlyAffected =
+    i.bgDirty &&
+    !i.contentDirty &&
+    !i.layoutChanged &&
+    !i.childPositionChanged &&
+    !i.childrenDirty &&
+    !textPaintDirty &&
+    !i.absoluteChildMutated &&
+    !i.descendantOverflowChanged
+  const bgOnlyChange = i.hasPrevBuffer && bgOnlyAffected && i.hasBgColor && !i.ancestorLayoutChanged && !i.ancestorCleared
+
   const bgRefillNeeded = i.hasPrevBuffer && !contentAreaAffected && i.subtreeDirty && i.hasBgColor
 
   const contentRegionCleared = (i.hasPrevBuffer || i.ancestorCleared) && contentAreaAffected && !i.hasBgColor
 
   const skipBgFill = i.hasPrevBuffer && !i.ancestorCleared && !contentAreaAffected && !bgRefillNeeded
 
-  const childrenNeedFreshRender = (i.hasPrevBuffer || i.ancestorCleared) && (contentAreaAffected || bgRefillNeeded)
+  const childrenNeedFreshRender =
+    (i.hasPrevBuffer || i.ancestorCleared) && (contentAreaAffected || bgRefillNeeded) && !bgOnlyChange
 
   return {
     canSkipEntireSubtree,
@@ -80,6 +94,7 @@ function expectedOutputs(i: CascadeInputs): CascadeOutputs {
     contentRegionCleared,
     skipBgFill,
     childrenNeedFreshRender,
+    bgOnlyChange,
   }
 }
 
@@ -406,6 +421,70 @@ describe("cascade predicates — named scenarios", () => {
     })
     expect(out.contentAreaAffected).toBe(true)
     expect(out.skipBgFill).toBe(false)
+  })
+
+  test("bgOnlyChange — bg changed on Box with bg, no other changes", () => {
+    const out = computeCascade({
+      ...allFalse(),
+      hasPrevBuffer: true,
+      bgDirty: true,
+      stylePropsDirty: true, // always set alongside bgDirty
+      hasBgColor: true,
+    })
+    expect(out.bgOnlyChange).toBe(true)
+    expect(out.contentAreaAffected).toBe(true)
+    expect(out.childrenNeedFreshRender).toBe(false) // fast path: children skip
+  })
+
+  test("bgOnlyChange disabled when ancestorLayoutChanged", () => {
+    const out = computeCascade({
+      ...allFalse(),
+      hasPrevBuffer: true,
+      bgDirty: true,
+      stylePropsDirty: true,
+      hasBgColor: true,
+      ancestorLayoutChanged: true,
+    })
+    expect(out.bgOnlyChange).toBe(false)
+    expect(out.childrenNeedFreshRender).toBe(true)
+  })
+
+  test("bgOnlyChange disabled when ancestorCleared", () => {
+    const out = computeCascade({
+      ...allFalse(),
+      hasPrevBuffer: true,
+      bgDirty: true,
+      stylePropsDirty: true,
+      hasBgColor: true,
+      ancestorCleared: true,
+    })
+    expect(out.bgOnlyChange).toBe(false)
+    expect(out.childrenNeedFreshRender).toBe(true)
+  })
+
+  test("bgOnlyChange disabled when no bg color (bg removal)", () => {
+    const out = computeCascade({
+      ...allFalse(),
+      hasPrevBuffer: true,
+      bgDirty: true,
+      stylePropsDirty: true,
+      hasBgColor: false,
+    })
+    expect(out.bgOnlyChange).toBe(false)
+    expect(out.childrenNeedFreshRender).toBe(true) // full path for bg removal
+  })
+
+  test("bgOnlyChange disabled when contentDirty also set", () => {
+    const out = computeCascade({
+      ...allFalse(),
+      hasPrevBuffer: true,
+      bgDirty: true,
+      contentDirty: true,
+      stylePropsDirty: true,
+      hasBgColor: true,
+    })
+    expect(out.bgOnlyChange).toBe(false)
+    expect(out.childrenNeedFreshRender).toBe(true)
   })
 
   test("layout changed — content area affected, no skip", () => {

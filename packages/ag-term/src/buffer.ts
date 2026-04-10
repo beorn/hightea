@@ -936,6 +936,150 @@ export class TerminalBuffer {
   }
 
   /**
+   * Restyle a rectangular region — update fg, bg, and attrs on existing cells
+   * without changing character content (char, wide, continuation, hyperlink).
+   *
+   * This is the style-only fast path: when only visual props changed (color,
+   * bold, dim, inverse, etc.) but text content and layout are identical, we
+   * can skip text collection/formatting and just update the style metadata.
+   *
+   * @param x      Left column (inclusive)
+   * @param y      Top row (inclusive)
+   * @param width  Region width
+   * @param height Region height
+   * @param style  New style to apply (fg, bg, attrs, underlineColor)
+   */
+  restyleRegion(x: number, y: number, width: number, height: number, style: Style): void {
+    const endX = Math.min(x + width, this.width)
+    const endY = Math.min(y + height, this.height)
+    const startX = Math.max(0, x)
+    const startY = Math.max(0, y)
+
+    if (startX >= endX || startY >= endY) return
+
+    // Pre-compute style-related packed bits
+    const fgIndex = colorToIndex(style.fg) & 0xff
+    const bgIndex = (colorToIndex(style.bg) & 0xff) << 8
+    const attrBits = attrsToNumber(style.attrs)
+    const hasTrueColorFg = isTrueColor(style.fg)
+    const hasTrueColorBg = isTrueColor(style.bg)
+    const trueColorFgFlag = hasTrueColorFg ? TRUE_COLOR_FG_FLAG : 0
+    const trueColorBgFlag = hasTrueColorBg ? TRUE_COLOR_BG_FLAG : 0
+    const trueColorFg = hasTrueColorFg ? (style.fg as { r: number; g: number; b: number }) : null
+    const trueColorBg = hasTrueColorBg ? (style.bg as { r: number; g: number; b: number }) : null
+    const underlineColor = style.underlineColor ?? null
+    const hasUnderlineColor = underlineColor !== null
+
+    // Style bits to apply (everything except char position flags)
+    const styleBits = fgIndex | bgIndex | attrBits | trueColorFgFlag | trueColorBgFlag
+
+    // Mask to preserve: wide, continuation, selectable
+    // Clear: fg index (0-7), bg index (8-15), attrs (16-26), true color flags (29-30)
+    const PRESERVE_MASK = WIDE_FLAG | CONTINUATION_FLAG | SELECTABLE_FLAG
+    const needFgDelete = !hasTrueColorFg && this.fgColors.size > 0
+    const needBgDelete = !hasTrueColorBg && this.bgColors.size > 0
+    const needUlDelete = !hasUnderlineColor && this.underlineColors.size > 0
+
+    // Mark affected rows dirty
+    for (let cy = startY; cy < endY; cy++) {
+      this._dirtyRows[cy] = 1
+    }
+    if (this._minDirtyRow === -1 || startY < this._minDirtyRow) this._minDirtyRow = startY
+    if (endY - 1 > this._maxDirtyRow) this._maxDirtyRow = endY - 1
+
+    for (let cy = startY; cy < endY; cy++) {
+      const rowBase = cy * this.width
+      for (let cx = startX; cx < endX; cx++) {
+        const idx = rowBase + cx
+
+        // Preserve char position flags, replace style bits
+        const oldPacked = this.cells[idx]!
+        this.cells[idx] = ((oldPacked & PRESERVE_MASK) >>> 0) | styleBits
+
+        // Handle true color maps
+        if (hasTrueColorFg) {
+          this.fgColors.set(idx, trueColorFg!)
+        } else if (needFgDelete) {
+          this.fgColors.delete(idx)
+        }
+
+        if (hasTrueColorBg) {
+          this.bgColors.set(idx, trueColorBg!)
+        } else if (needBgDelete) {
+          this.bgColors.delete(idx)
+        }
+
+        if (hasUnderlineColor) {
+          this.underlineColors.set(idx, underlineColor)
+        } else if (needUlDelete) {
+          this.underlineColors.delete(idx)
+        }
+      }
+    }
+  }
+
+  /**
+   * Fill only the background color of a region — update bg on existing cells
+   * without changing character content, foreground, or attributes.
+   *
+   * Unlike fill() which writes space characters, this preserves existing chars.
+   * Used by the style-only fast path: when a Box's backgroundColor changes but
+   * children are unchanged, fillBg() paints the new bg without destroying child
+   * chars. Clean children can then be skipped (their chars are correct from the
+   * clone, their bg was updated by fillBg).
+   *
+   * @param x      Left column (inclusive)
+   * @param y      Top row (inclusive)
+   * @param width  Region width
+   * @param height Region height
+   * @param bg     New background color
+   */
+  fillBg(x: number, y: number, width: number, height: number, bg: Color): void {
+    const endX = Math.min(x + width, this.width)
+    const endY = Math.min(y + height, this.height)
+    const startX = Math.max(0, x)
+    const startY = Math.max(0, y)
+
+    if (startX >= endX || startY >= endY) return
+
+    const bgIndex = (colorToIndex(bg) & 0xff) << 8
+    const hasTrueColorBg = isTrueColor(bg)
+    const trueColorBg = hasTrueColorBg ? (bg as { r: number; g: number; b: number }) : null
+    const needBgDelete = !hasTrueColorBg && this.bgColors.size > 0
+
+    // Mask to clear: bg index (bits 8-15) and TRUE_COLOR_BG_FLAG (bit 30)
+    const BG_CLEAR_MASK = ~((0xff << 8) | TRUE_COLOR_BG_FLAG)
+    const trueColorBgFlag = hasTrueColorBg ? TRUE_COLOR_BG_FLAG : 0
+
+    // Mark affected rows dirty
+    for (let cy = startY; cy < endY; cy++) {
+      this._dirtyRows[cy] = 1
+    }
+    if (startY < endY) {
+      if (this._minDirtyRow === -1 || startY < this._minDirtyRow) this._minDirtyRow = startY
+      if (endY - 1 > this._maxDirtyRow) this._maxDirtyRow = endY - 1
+    }
+
+    for (let cy = startY; cy < endY; cy++) {
+      const rowBase = cy * this.width
+      for (let cx = startX; cx < endX; cx++) {
+        const idx = rowBase + cx
+
+        // Clear old bg bits, set new bg bits (preserve everything else)
+        const oldPacked = this.cells[idx]!
+        this.cells[idx] = ((oldPacked & BG_CLEAR_MASK) >>> 0) | bgIndex | trueColorBgFlag
+
+        // Handle true color bg map
+        if (hasTrueColorBg) {
+          this.bgColors.set(idx, trueColorBg!)
+        } else if (needBgDelete) {
+          this.bgColors.delete(idx)
+        }
+      }
+    }
+  }
+
+  /**
    * Clear the buffer (fill with empty cells).
    */
   clear(): void {
