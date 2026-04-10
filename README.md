@@ -58,8 +58,8 @@ await render(<Counter />).run()
   - [`SILVERY_STRICT`](https://silvery.dev/guide/debugging) — multi-level verification: buffer (incremental vs fresh), ANSI (internal parser), terminal (cross-backend), and accumulated replay
 - **[Composable architecture](https://silvery.dev/guide/providers)** — every layer is independently swappable. [DI](https://silvery.dev/guide/providers) via `pipe()` providers:
   - [Layout](https://silvery.dev/guide/layout-engine) — Flexily or Yoga
-  - State — BYO (useState, Zustand, Jotai, Redux)
-  - Term — real, headless, emulator
+  - [State](https://silvery.dev/guide/runtime-layers) — BYO (useState, Zustand, Jotai, Redux)
+  - [Term](https://silvery.dev/guide/runtime-layers) — real, headless, emulator
   - [App](https://silvery.dev/guide/runtime-layers) — from stringify to rich app (withFocus, withDomEvents, withCommands). Render to terminal, Canvas, or DOM
 - **[All modern terminal protocols](https://silvery.dev/guide/silvery-vs-ink#terminal-protocol-coverage)** — [60 years of terminal protocols](https://terminfo.dev/about), unified into clean APIs. 100+ escape sequences you'll never have to write — auto-negotiated and gracefully degraded: [Kitty keyboard](https://terminfo.dev) + [SGR mouse](https://terminfo.dev) become rich events with modifiers; [hyperlinks](https://terminfo.dev) are just props; [clipboard](https://terminfo.dev) is a function call. Truecolor, underline styles, synchronized output, bracketed paste, focus reporting, resize detection, inline images, and [more](https://silvery.dev/guide/silvery-vs-ink#terminal-protocol-coverage)
 
