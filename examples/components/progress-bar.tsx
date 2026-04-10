@@ -8,8 +8,8 @@
  */
 
 import React, { useState } from "react"
-import { Box, Text, ProgressBar } from "../../src/index.js"
-import { run, useInput } from "@silvery/ag-term/runtime"
+import { Box, Text, ProgressBar } from "silvery"
+import { run, useInput } from "silvery/runtime"
 
 function ProgressBarDemo() {
   const [progress, setProgress] = useState(0.4)

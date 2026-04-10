@@ -11,7 +11,7 @@
 import React, { useCallback, useEffect, useRef, useMemo } from "react"
 import { Box, Text, Spinner, ListView, useTea, useWindowSize } from "silvery"
 import type { ListItemMeta } from "silvery"
-import { run, useInput, useExit, type Key } from "@silvery/ag-term/runtime"
+import { run, useInput, useExit, type Key } from "silvery/runtime"
 import type { ExampleMeta } from "../../_banner.js"
 import type { ScriptEntry } from "./types.js"
 import { SCRIPT, generateStressScript, CONTEXT_WINDOW } from "./script.js"

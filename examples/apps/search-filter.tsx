@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useDeferredValue, useTransition } from "react"
-import { render, Box, Text, Kbd, Muted, Strong, Lead, useInput, useApp, createTerm, type Key } from "../../src/index.js"
+import { render, Box, Text, Kbd, Muted, Strong, Lead, useInput, useApp, createTerm, type Key } from "silvery"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 
 export const meta: ExampleMeta = {

@@ -37,7 +37,7 @@ import {
   detectTheme,
   type Key,
   type Theme,
-} from "../../src/index.js"
+} from "silvery"
 import {
   builtinPalettes,
   deriveTheme,

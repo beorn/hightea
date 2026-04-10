@@ -23,7 +23,7 @@
  */
 
 import React, { useState } from "react"
-import { Box, Text, H3, Muted, Kbd, render, useInput, useApp, type Key } from "../../src/index.js"
+import { Box, Text, H3, Muted, Kbd, render, useInput, useApp, type Key } from "silvery"
 import {
   detectTerminalCaps,
   type TerminalCaps,

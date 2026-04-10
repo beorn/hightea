@@ -8,7 +8,7 @@
  */
 
 import React from "react"
-import { Box, Text, H1, H2, Small, Muted, Strong, Kbd, HR } from "../../src/index.js"
+import { Box, Text, H1, H2, Small, Muted, Strong, Kbd, HR } from "silvery"
 import { createApp } from "@silvery/create/create-app"
 import { pipe, withReact, withTerminal, withDomEvents } from "@silvery/create/plugins"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"

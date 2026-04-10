@@ -12,8 +12,8 @@
  */
 
 import React, { useState, useCallback } from "react"
-import { Box, Text, type SilveryMouseEvent } from "../../src/index.js"
-import { run, useInput, type Key } from "@silvery/ag-term/runtime"
+import { Box, Text, type SilveryMouseEvent } from "silvery"
+import { run, useInput, type Key } from "silvery/runtime"
 
 // ============================================================================
 // Selection Model (pure functions — the whole design doc in ~60 lines)

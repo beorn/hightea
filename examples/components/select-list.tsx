@@ -8,8 +8,8 @@
  */
 
 import React, { useState } from "react"
-import { Box, Text, SelectList } from "../../src/index.js"
-import { run, useInput } from "@silvery/ag-term/runtime"
+import { Box, Text, SelectList } from "silvery"
+import { run, useInput } from "silvery/runtime"
 
 const languages = [
   { label: "TypeScript", value: "ts" },

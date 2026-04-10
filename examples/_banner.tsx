@@ -1,5 +1,5 @@
 import React from "react"
-import { Box, Text, Strong, Muted, ThemeProvider, getThemeByName, type Theme } from "../src/index.js"
+import { Box, Text, Strong, Muted, ThemeProvider, getThemeByName, type Theme } from "silvery"
 
 export interface ExampleMeta {
   name: string

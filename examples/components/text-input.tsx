@@ -8,8 +8,8 @@
  */
 
 import React, { useState } from "react"
-import { Box, Text, TextInput } from "../../src/index.js"
-import { run, useInput } from "@silvery/ag-term/runtime"
+import { Box, Text, TextInput } from "silvery"
+import { run, useInput } from "silvery/runtime"
 
 function TextInputDemo() {
   const [value, setValue] = useState("")

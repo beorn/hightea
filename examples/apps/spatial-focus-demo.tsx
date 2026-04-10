@@ -11,8 +11,8 @@
  */
 
 import React, { useState, useMemo } from "react"
-import { Box, Text } from "../../src/index.js"
-import { run, useInput, type Key } from "@silvery/ag-term/runtime"
+import { Box, Text } from "silvery"
+import { run, useInput, type Key } from "silvery/runtime"
 
 // ============================================================================
 // Data
