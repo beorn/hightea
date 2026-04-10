@@ -39,7 +39,7 @@ await render(<Counter />).run()
 
 - **[3–6× faster in mounted rerender benchmarks](https://silvery.dev/guide/silvery-vs-ink#performance-size)** — cell-level dirty tracking, only changed cells emit to the terminal. Per-node skip for unchanged subtrees. Works in inline mode with native scrollback, not just fullscreen
 - **Pure TypeScript, zero native deps** — no WASM, no build steps. [Layout via Flexily](https://silvery.dev/guide/layout-engine) (or Yoga). Works on Alpine, CI, Docker, everywhere
-- **[Web-like layout](https://silvery.dev/guide/silvery-vs-ink#responsive-layout)** — `useBoxRect()` returns actual dimensions during render. No post-render measurement, no two-pass layout cycle. Enables:
+- **[Web-like responsive layout](https://silvery.dev/guide/silvery-vs-ink#responsive-layout)** — `useBoxRect()` returns actual dimensions during render. No post-render measurement, no two-pass layout cycle. Enables:
   - [Scroll containers](https://silvery.dev/guide/scrolling) — `overflow="scroll"` with virtualization
   - [Sticky positioning](https://silvery.dev/guide/layout-coordinates) — `position="sticky"` for headers and footers
   - [ANSI-aware compositing](https://silvery.dev/guide/ansi-layering) — color blending with alpha across overlapping layers
@@ -53,7 +53,10 @@ await render(<Counter />).run()
   - [Find](https://silvery.dev/guide/find) — `Ctrl+F` with match highlighting and `n`/`N` navigation
   - [Copy-mode](https://silvery.dev/guide/clipboard) — `Esc, v` for vim-style keyboard selection and yanking
   - [Drag-and-drop](https://silvery.dev/guide/event-handling) — mouse drag with hit testing
-- **[Playwright-style testing](https://silvery.dev/guide/testing)** — `createRenderer` for fast unit tests, [Termless](https://termless.dev) for full ANSI fidelity. CSS selector locators, cell-level color assertions, frame-by-frame inspection. Built-in [`SILVERY_STRICT`](https://silvery.dev/guide/debugging) mode verifies incremental rendering matches fresh on every frame
+- **[Web-like testing](https://silvery.dev/guide/testing)** — Playwright-style testing at multiple fidelity levels:
+  - `createRenderer` — fast unit tests with CSS selector locators, cell-level color assertions
+  - [Termless](https://termless.dev) — full ANSI fidelity through real terminal emulation, test against multiple terminals
+  - [`SILVERY_STRICT`](https://silvery.dev/guide/debugging) — built-in verification that incremental rendering matches fresh on every frame
 - **[Composable architecture](https://silvery.dev/guide/providers)** — use as just a renderer (`render`), add a runtime (`run`), or build full apps with any React state library (useState, Zustand, Jotai, Redux). Swap terminal backends (real TTY, headless, xterm.js emulator) for [testing](https://silvery.dev/guide/testing). Embed silvery components in existing CLIs. Use the layout engine standalone. Render to terminal, or (experimental) Canvas, or DOM
 - **[Terminal protocol support](https://silvery.dev/guide/silvery-vs-ink#terminal-protocol-coverage)** — 100+ escape sequences, all auto-negotiated: 12 OSC (hyperlinks, clipboard, palette, text sizing, semantic prompts, notifications), 35+ CSI (cursor, mouse modes, paste, focus, sync output, device queries), 50+ SGR (6 underline styles, underline colors, truecolor, 256-color), full Kitty keyboard (5 flags), full SGR mouse (any-event, drag, wheel)
 
