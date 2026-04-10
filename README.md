@@ -2,7 +2,7 @@
 
 **Powerful apps. Polished UIs. Proudly terminal.**
 
-Ink-compatible React renderer for interactive terminal apps. Same `Box`, `Text`, `useInput` API you know.
+Ink-compatible React renderer for interactive terminal apps. Same `Box`, `Text`, `useInput` API you know. 3–6× faster on mounted workloads.
 
 > **Work in progress.** APIs may change. Feedback welcome.
 

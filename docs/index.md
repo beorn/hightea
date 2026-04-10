@@ -63,7 +63,7 @@ features:
     link: /guide/testing
     linkText: Testing guide
   - title: Incremental Rendering
-    details: "Cell-level dirty tracking — only changed cells emit to the terminal. Works in inline mode with native scrollback, not just fullscreen."
+    details: "3–6× faster than Ink 7.0 on mounted workloads. Cell-level dirty tracking — only changed cells emit to the terminal. Works in inline mode with native scrollback, not just fullscreen."
     link: /guide/silvery-vs-ink#performance
     linkText: Benchmark details
   - title: Inline, Fullscreen, or Both
