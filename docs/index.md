@@ -193,7 +193,8 @@ Standalone projects Silvery builds on — each stands on its own:
 }
 /* Tighter card padding */
 .VPFeature .box {
-  padding: 16px 20px !important;
+  padding: 16px 20px 28px !important;
+  position: relative;
 }
 .VPFeature .details {
   line-height: 1.35 !important;
@@ -201,14 +202,14 @@ Standalone projects Silvery builds on — each stands on its own:
 .VPFeature br {
   display: block;
   content: "";
-  margin-top: 0.5em;
+  margin-top: 0.6em;
 }
 .VPFeature .feature-link {
-  display: block;
-  margin-top: 0.75em;
+  position: absolute;
+  bottom: 16px;
+  right: 20px;
   font-size: 12px;
   font-weight: 500;
-  text-align: right;
   color: var(--vp-c-brand-1) !important;
   text-decoration: none !important;
 }
