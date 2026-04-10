@@ -26,9 +26,9 @@ export function measurePhase(root: AgNode, ctx?: PipelineContext): void {
     const props = node.props as BoxProps
 
     const isFitContent = props.width === "fit-content" || props.height === "fit-content"
-    const isShrinkwrap = props.width === "shrinkwrap"
+    const isFitSnug = props.width === "fit-snug"
 
-    if (isFitContent || isShrinkwrap) {
+    if (isFitContent || isFitSnug) {
       // When height="fit-content" but width is fixed, pass the available width
       // so text nodes can wrap and compute correct intrinsic height.
       let availableWidth: number | undefined
@@ -45,10 +45,10 @@ export function measurePhase(root: AgNode, ctx?: PipelineContext): void {
 
       const intrinsicSize = measureIntrinsicSize(node, ctx, availableWidth)
 
-      if (isShrinkwrap) {
-        // Shrinkwrap: find the narrowest width that keeps the same line count.
+      if (isFitSnug) {
+        // Fit-snug: find the narrowest width that keeps the same line count.
         // First get the text for analysis, then binary search for tightest width.
-        const shrunkWidth = computeShrinkwrapWidth(node, intrinsicSize.width, ctx)
+        const shrunkWidth = computeFitSnugWidth(node, intrinsicSize.width, ctx)
         node.layoutNode.setWidth(shrunkWidth)
       } else if (props.width === "fit-content") {
         node.layoutNode.setWidth(intrinsicSize.width)
@@ -174,11 +174,11 @@ function isWrapEnabled(wrap: TextProps["wrap"]): boolean {
 }
 
 /**
- * Compute shrinkwrap width for a node.
+ * Compute fit-snug width for a node.
  * Uses Pretext analysis to binary-search for the tightest width
  * that keeps the same line count as the fit-content width.
  */
-function computeShrinkwrapWidth(node: AgNode, fitContentWidth: number, ctx?: PipelineContext): number {
+function computeFitSnugWidth(node: AgNode, fitContentWidth: number, ctx?: PipelineContext): number {
   // Get or build text analysis
   let analysis = getCachedAnalysis(node)
   if (!analysis) {
