@@ -222,8 +222,8 @@ Standalone projects Silvery builds on — each stands on its own:
 .features-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin: 2rem 0;
+  gap: 1rem;
+  margin: 1.5rem 0;
   max-width: 1152px;
   margin-left: auto;
   margin-right: auto;
@@ -232,17 +232,23 @@ Standalone projects Silvery builds on — each stands on its own:
 .feature {
   border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
-  padding: 1.25rem 1.5rem;
+  padding: 0.75rem 1rem;
   background: var(--vp-c-bg-soft);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.feature:hover {
+  border-color: var(--vp-c-brand-1);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 .feature h3 {
-  margin: 0 0 0.5rem;
-  font-size: 1.1rem;
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
   color: var(--vp-c-text-1);
 }
 .feature p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   line-height: 1.6;
   color: var(--vp-c-text-2);
 }
