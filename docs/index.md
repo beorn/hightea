@@ -67,13 +67,13 @@ features:
   - title: Terminal Protocol Support
     details: "100+ escape sequences, all auto-negotiated: Kitty keyboard, SGR mouse, OSC 8 hyperlinks, OSC 52 clipboard, bracketed paste, focus reporting, text sizing, synchronized output, and more."
     link: /guide/silvery-vs-ink
+    linkText: See comparison
   - title: Pure TypeScript
     details: "No WASM, no C++, no native dependencies. Runs on Bun and Node.js. Instant startup, stable memory."
   - title: Incremental Rendering
     details: "Cell-level dirty tracking — only changed cells emit to the terminal. Works in inline mode with native scrollback, not just fullscreen."
     link: /guide/silvery-vs-ink#performance
     linkText: Benchmark details
-    linkText: See comparison
 ---
 
 ## Why Silvery?
