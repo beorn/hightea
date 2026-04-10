@@ -1268,6 +1268,11 @@ function renderScrollContainerChildren(
       thisChildAncestorCleared = false
     }
 
+    // Phase 4: dirty set pre-check — skip clean subtrees without function call overhead.
+    if (canSkipChildSubtree(child, thisChildHasPrev, childAncestorLayoutChanged)) {
+      continue
+    }
+
     // Render visible children with scroll offset applied.
     renderNodeToBuffer(
       child,
@@ -1471,6 +1476,13 @@ function renderNormalChildren(
       continue // Skip — rendered in second pass
     }
 
+    // Phase 4: dirty set pre-check — skip clean subtrees without function call overhead.
+    // The existing canSkipEntireSubtree inside renderNodeToBuffer is preserved as
+    // the second line of defense for edge cases the pre-check doesn't cover.
+    if (canSkipChildSubtree(child, childHasPrev, childAncestorLayoutChanged)) {
+      continue
+    }
+
     renderNodeToBuffer(
       child,
       buffer,
@@ -1563,6 +1575,43 @@ function renderNormalChildren(
       )
     }
   }
+}
+
+// ============================================================================
+// Dirty Set Pre-Check (Phase 4)
+// ============================================================================
+
+/**
+ * O(1) pre-check: can we skip calling renderNodeToBuffer() on this child entirely?
+ *
+ * This is the Phase 4 "dirty set rendering" optimization. Instead of calling
+ * renderNodeToBuffer() on every child (which checks canSkipEntireSubtree and
+ * returns early for clean nodes), we skip the function call entirely for
+ * subtrees with no dirty descendants.
+ *
+ * The pre-check is CONSERVATIVE: it only skips when we're certain the subtree
+ * is clean. False negatives (calling renderNodeToBuffer unnecessarily) are
+ * harmless — the existing canSkipEntireSubtree check inside handles them.
+ *
+ * Key insight: subtreeDirtyEpoch is propagated from every dirty node to the
+ * root by markSubtreeDirty (reconciler) and propagateLayout (layout phase).
+ * If subtreeDirtyEpoch !== currentEpoch, no descendant is dirty. Combined
+ * with layoutChangedThisFrame (set by layout phase but NOT included in
+ * subtreeDirtyEpoch on self — only on parent), this covers all dirty paths.
+ */
+function canSkipChildSubtree(child: AgNode, childHasPrev: boolean, childAncestorLayoutChanged: boolean): boolean {
+  // Can't skip without a previous buffer (first render or dimension change)
+  if (!childHasPrev) return false
+  // Ancestor layout change forces re-render at new position
+  if (childAncestorLayoutChanged) return false
+  // Any descendant dirty (includes own flags via markSubtreeDirty)
+  if (isCurrentEpoch(child.subtreeDirtyEpoch)) return false
+  // Own layout changed (layout phase sets this but only propagates
+  // subtreeDirtyEpoch to PARENT, not self)
+  if (isCurrentEpoch(child.layoutChangedThisFrame)) return false
+  // Defensive: scroll offset changed without dirty propagation
+  if (child.scrollState && child.scrollState.offset !== child.scrollState.prevOffset) return false
+  return true
 }
 
 // ============================================================================
