@@ -31,6 +31,14 @@ import {
 } from "../unicode"
 import { collectPlainText } from "./collect-text"
 import { getTextStyle, getTextWidth, parseColor } from "./render-helpers"
+import {
+  getCachedPlainText,
+  setCachedPlainText,
+  getCachedCollectedText,
+  setCachedCollectedText,
+  getCachedFormat,
+  setCachedFormat,
+} from "./prepared-text"
 import type { BgConflictMode, NodeRenderState, PipelineContext } from "./types"
 import { createLogger } from "loggily"
 
@@ -1284,28 +1292,46 @@ export function renderText(
     }
   }
 
+  // --- PreparedText cache: Level 0 (plain text for maxDisplayWidth) ---
   // Compute DOM-level display width budget for truncate-end modes.
   // This limits how much text collectTextWithBg gathers BEFORE ANSI serialization,
   // making OSC 8 hyperlinks and other escape sequences safe by construction.
-  // Only applies to end-truncation (truncate, truncate-end, false) where we keep
-  // text from the start. Start/middle truncation keep text from the end or both
-  // ends, so they fall back to ANSI-level truncation in formatTextLines.
-  // Budget is width + 1 display columns per line to ensure formatTextLines sees
-  // text wider than the container and adds the ellipsis character.
   let maxDisplayWidth: number | undefined
   const isTruncateEnd =
     props.wrap === false || props.wrap === "truncate-end" || props.wrap === "truncate" || props.wrap === "clip"
   if (isTruncateEnd && width > 0) {
-    const plainText = collectPlainText(node)
-    const lineCount = (plainText.match(/\n/g)?.length ?? 0) + 1
-    // Each line needs width+1 columns to trigger ellipsis. Multiply by line count.
+    const cachedPlain = getCachedPlainText(node)
+    let lineCount: number
+    if (cachedPlain) {
+      lineCount = cachedPlain.lineCount
+    } else {
+      const plainText = collectPlainText(node)
+      lineCount = (plainText.match(/\n/g)?.length ?? 0) + 1
+      setCachedPlainText(node, plainText, lineCount)
+    }
     maxDisplayWidth = (width + 1) * lineCount
   }
 
+  // --- PreparedText cache: Level 1 (collected styled text) ---
   // Collect text content and background segments from this node and all children.
   // Background color from nested Text elements is tracked as BgSegments
   // (not embedded as ANSI codes) to survive text wrapping correctly.
-  const { text, bgSegments, childSpans } = collectTextWithBg(node, {}, 0, maxDisplayWidth, ctx)
+  let text: string
+  let bgSegments: BgSegment[]
+  let childSpans: ChildSpan[]
+
+  const cachedCollected = getCachedCollectedText(node, maxDisplayWidth)
+  if (cachedCollected) {
+    text = cachedCollected.text
+    bgSegments = cachedCollected.bgSegments as BgSegment[]
+    childSpans = cachedCollected.childSpans as ChildSpan[]
+  } else {
+    const collected = collectTextWithBg(node, {}, 0, maxDisplayWidth, ctx)
+    text = collected.text
+    bgSegments = collected.bgSegments
+    childSpans = collected.childSpans
+    setCachedCollectedText(node, collected, maxDisplayWidth)
+  }
 
   // Get style for this Text node.
   // Inherit foreground from nearest ancestor Box with color prop (CSS semantics).
@@ -1314,26 +1340,31 @@ export function renderText(
     style.fg = inheritedFg
   }
 
-  // Handle wrapping/truncation
-  // When text has background color (from own prop, nested children, or inherited
-  // from parent Box), preserve trailing spaces on wrapped lines so the background
-  // color covers them. Ink preserves these spaces for the same reason.
+  // --- PreparedText cache: Level 2 (formatted lines per width) ---
+  // When text has background color, preserve trailing spaces so bg covers them.
   const hasBg = style.bg !== null || bgSegments.length > 0 || (inheritedBg !== undefined && inheritedBg !== null)
-  let lines = formatTextLines(text, width, props.wrap, ctx, !hasBg)
-
-  // Apply internal_transform if present (used by Transform component).
-  // Transform is applied per-line after formatting, matching ink's behavior.
-  // The transform may change the length of each line (e.g., adding brackets
-  // or line numbers). We track whether a transform is active so the rendering
-  // loop can expand maxCol to accommodate the transformed content.
+  const trim = !hasBg
   const internalTransform = props.internal_transform
-  if (internalTransform) {
-    lines = lines.map((line, index) => internalTransform(line, index))
-  }
 
-  // Map formatted lines back to display-width offsets for bg segment and inlineRect application
-  const needLineOffsets = bgSegments.length > 0 || childSpans.length > 0
-  const lineOffsets = needLineOffsets ? mapLinesToCharOffsets(text, lines, ctx) : []
+  let lines: string[]
+  let lineOffsets: Array<{ start: number; end: number }>
+
+  // Skip format cache when internal_transform is present (may depend on external state)
+  const cachedFmt = !internalTransform ? getCachedFormat(node, width, props.wrap, trim) : null
+  if (cachedFmt) {
+    lines = cachedFmt.lines
+    lineOffsets = cachedFmt.hasLineOffsets ? cachedFmt.lineOffsets : []
+  } else {
+    lines = formatTextLines(text, width, props.wrap, ctx, trim)
+    if (internalTransform) {
+      lines = lines.map((line, index) => internalTransform(line, index))
+    }
+    const needLineOffsets = bgSegments.length > 0 || childSpans.length > 0
+    lineOffsets = needLineOffsets ? mapLinesToCharOffsets(text, lines, ctx) : []
+    if (!internalTransform) {
+      setCachedFormat(node, width, props.wrap, trim, lines, lineOffsets, needLineOffsets)
+    }
+  }
 
   // Render each line
   for (let lineIdx = 0; lineIdx < lines.length && lineIdx < height; lineIdx++) {

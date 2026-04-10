@@ -7,6 +7,7 @@
 import type { BoxProps, AgNode, TextProps } from "@silvery/ag/types"
 import { displayWidthAnsi, wrapText, getActiveLineHeight } from "../unicode"
 import { collectPlainText as collectTextContent } from "./collect-text"
+import { getCachedPlainText, setCachedPlainText } from "./prepared-text"
 import { getBorderSize, getPadding } from "./helpers"
 import type { PipelineContext } from "./types"
 
@@ -76,7 +77,16 @@ function measureIntrinsicSize(
 
   if (node.type === "silvery-text") {
     const textProps = props as TextProps
-    const text = collectTextContent(node)
+    // PreparedText cache: reuse plain text from previous frames when content unchanged
+    const cached = getCachedPlainText(node)
+    let text: string
+    if (cached) {
+      text = cached.text
+    } else {
+      text = collectTextContent(node)
+      const lineCount = (text.match(/\n/g)?.length ?? 0) + 1
+      setCachedPlainText(node, text, lineCount)
+    }
 
     // Apply internal_transform if present (used by Transform component).
     // The transform is applied per-line, which can change the width.
