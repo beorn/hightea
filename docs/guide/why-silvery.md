@@ -25,19 +25,21 @@ No prop drilling, no post-render measurement, no `width: 0` on first paint. This
 
 ## Performance
 
-Silvery's atomic layout-first pipeline + cell-level buffer diff make it **2.5–5.2× faster than Ink 7.0** on the scenarios that matter for interactive apps. The output phase emits **10–20× less output** (much more for large trees) to the terminal than Ink's line-level diff.
+Silvery's atomic layout-first pipeline + cell-level buffer diff make it **3–6× faster than Ink 7.0** in our mounted rerender benchmarks. The output phase emits **10–20× less output** (much more for large trees) to the terminal than Ink's line-level diff.
 
-### Benchmark Comparison — mounted workloads (what users experience)
+### Mounted rerender throughput
 
-| Scenario                            | Silvery advantage |
-| ----------------------------------- | ----------------- |
-| Mounted cursor move 100-item        | **2.56×**         |
-| Mounted kanban single text change   | **3.36×**         |
-| Memo'd 100-item single toggle       | **4.59×**         |
-| Memo'd 500-item single toggle       | **5.15×**         |
-| Memo'd kanban 5×20 single card edit | **3.75×**         |
+| Scenario                                          | Silvery advantage |
+| ------------------------------------------------- | ----------------- |
+| Cursor move 100-item                              | **3.2×**          |
+| Kanban move editing marker                        | **3.2×**          |
+| Memo'd cursor highlight 100 (inverse)             | **5.6×**          |
+| Memo'd cursor highlight 1000 (inverse)            | **6.0×**          |
+| Memo'd 100-item single toggle                     | **5.4×**          |
+| Memo'd 500-item single toggle                     | **6.3×**          |
+| Memo'd kanban 5×20 move editing marker            | **4.9×**          |
 
-_Reproduce: `bun run bench`. See [detailed benchmarks](/guide/silvery-vs-ink#performance-size) for the full comparison._
+_Synchronous rerender throughput, mocked stdout. Reproduce: `bun run bench`. See [detailed benchmarks](/guide/silvery-vs-ink#performance-size) for methodology._
 
 ### Bundle size — parity with Ink+Yoga
 

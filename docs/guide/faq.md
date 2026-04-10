@@ -51,7 +51,7 @@ Three principles guide the project: take the best from the web, stay true to the
 Both use React for terminal UIs. Silvery differs in several key ways:
 
 - **Layout-first rendering** — layout runs before content render, so components know their size during render via `useBoxRect()`. No components rendering at `width: 0`, no cascading measure→rerender cycles. See [Silvery vs Ink](/guide/silvery-vs-ink#responsive-layout).
-- **Fast incremental rendering** — cell-level dirty tracking. Silvery is faster on cursor/selection updates (2-6x); Ink is faster on content-heavy changes (1.6-2.5x). See the [detailed benchmarks](/guide/silvery-vs-ink#performance--size).
+- **Fast incremental rendering** — cell-level dirty tracking. 3–6× faster than Ink in our mounted rerender benchmarks. See the [detailed benchmarks](/guide/silvery-vs-ink#performance--size).
 - **Bundle parity with Ink+Yoga** — 114.9 KB gzipped runtime vs Ink+Yoga's 116.6 KB. Pure TypeScript, zero WASM, zero native dependencies.
 - **Larger component library** — 45+ components (vs Ink's 6 core + [@inkjs/ui](https://github.com/vadimdemedes/ink-ui)'s 13), including VirtualList, CommandPalette, TreeView, SplitView, Table, and Form
 - **Terminal protocol support** — Kitty keyboard, SGR mouse, synchronized output (DEC 2026), Sixel/Kitty graphics, clipboard, and more
@@ -77,23 +77,23 @@ For new code, use Silvery's native APIs to take advantage of responsive layout a
 
 ## How fast is Silvery compared to Ink?
 
-Silvery and Ink have different performance strengths on mounted workloads. Both frameworks keep a mounted app and call `rerender()`.
+Silvery is **3–6× faster** than Ink 7.0 in our mounted rerender benchmarks. Both frameworks keep a mounted app and call `rerender()`.
 
-| Scenario                                  | Advantage          |
-| ----------------------------------------- | ------------------ |
-| Mounted cursor move 100-item              | **Silvery 2.3×**   |
-| Memo'd cursor highlight 100 (inverse)     | **Silvery 4.1×**   |
-| Memo'd cursor highlight 1000 (inverse)    | **Silvery 6.0×**   |
-| Mounted kanban text change                | **Ink 2.5×**       |
-| Memo'd 100-item toggle                    | **Ink 2.4×**       |
-| Memo'd 500-item toggle                    | **Ink 1.6×**       |
-| Memo'd kanban card edit                   | **Ink 1.7×**       |
+| Scenario                                          | Silvery advantage |
+| ------------------------------------------------- | ----------------- |
+| Cursor move 100-item                              | **3.2×**          |
+| Kanban move editing marker                        | **3.2×**          |
+| Memo'd cursor highlight 100 (inverse)             | **5.6×**          |
+| Memo'd cursor highlight 1000 (inverse)            | **6.0×**          |
+| Memo'd 100-item single toggle                     | **5.4×**          |
+| Memo'd 500-item single toggle                     | **6.3×**          |
+| Memo'd kanban 5×20 move editing marker            | **4.9×**          |
 
-Both are fast enough for 60fps at typical terminal sizes. Silvery's cell-level dirty tracking gives it an advantage on cursor and selection updates (the most common interactive operation). Ink is faster on content-heavy changes where more of the tree updates at once.
+Both are fast enough for 60fps at typical terminal sizes. Silvery's cell-level dirty tracking and per-node skip give it an advantage across all mounted workloads.
 
 Beyond CPU time, Silvery's cell-level output phase emits **10–20× less output** to the terminal than Ink's line-level diff on incremental updates.
 
-Methodology: `debug: false`, `maxFps: 10000`, `incrementalRendering: true`. See the [full benchmarks](/guide/silvery-vs-ink#performance--size) for details.
+Methodology: synchronous rerender throughput. Ink `debug: true` (no throttle), `incrementalRendering: true`. Silvery uses `@silvery/test` `createRenderer` (production render core). Both use mocked stdout. See the [full benchmarks](/guide/silvery-vs-ink#performance--size) for details.
 
 ## What components does Silvery include?
 
