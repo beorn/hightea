@@ -131,3 +131,22 @@ Flag emoji are regional indicator sequences (U+1F1E6..U+1F1FF pairs). Some termi
 **Root cause**: TTY MCP text extraction artifact. Unicode characters (📁, ✅, ▸) have width disagreements between silvery and xterm.js headless. `mcp__tty__text` extracts text based on xterm.js cell positions, which diverge from silvery's after emoji/wide chars. The visual rendering is correct.
 
 **Lesson**: For TUI bugs, ALWAYS verify with `mcp__tty__screenshot`, not just `mcp__tty__text`. Text extraction from terminal emulators is unreliable for Unicode-heavy content. Hours were spent debugging a non-existent rendering bug.
+
+## replayAnsiWithStyles missing pending wrap (STRICT_OUTPUT false positives)
+
+**Symptom**: 11 km-tui tests failed with `STRICT_OUTPUT char mismatch` — stale border characters (`╭──╯`) persisted in the incremental terminal state while the fresh render was correct. The content buffer was correct (`next buffer cell` showed the right content), but the ANSI output when replayed through the parser didn't update certain rows.
+
+**Root cause**: `replayAnsiWithStyles` (the internal VT100 parser used by STRICT_OUTPUT verification) immediately wrapped the cursor to the next line when characters filled the full terminal width. Real VT100/xterm terminals use *pending wrap* — the cursor stays at the last column and only wraps when the next character is written. Without pending wrap:
+
+1. Dense row fills all 120 columns → parser wraps to (0, row+1)
+2. `changesToAnsi` emits `\r\n` to advance to next row → parser goes to (0, row+2)
+3. Subsequent changes are written one row too late
+
+**Fix**: Implemented VT100 pending wrap semantics in `replayAnsiWithStyles`:
+- Character at last column sets `pendingWrap = true`, cursor stays at `(width-1, row)`
+- Next character write resolves the wrap first (cursor to `(0, row+1)`)
+- `\r`, `\n`, CUP, and cursor movement sequences clear `pendingWrap`
+
+**Why it wasn't in changesToAnsi**: `changesToAnsi` is correct — it matches real terminal behavior. The bug was only in the STRICT verification parser, which caused false STRICT_OUTPUT failures. Production rendering was never affected.
+
+**Lesson**: When STRICT_OUTPUT fails but the content buffer is correct, check the `replayAnsiWithStyles` parser — it may not match real terminal semantics.

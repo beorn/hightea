@@ -315,6 +315,7 @@ export function replayAnsiWithStyles(
   )
   let cx = 0
   let cy = 0
+  let pendingWrap = false // VT100 pending wrap flag
   const sgr = createDefaultSgr()
   let i = 0
 
@@ -333,6 +334,8 @@ export function replayAnsiWithStyles(
         const cmd = ansi[i]
         i++
         if (cmd === "H") {
+          // CUP clears pending wrap
+          pendingWrap = false
           if (params === "") {
             cx = 0
             cy = 0
@@ -398,15 +401,18 @@ export function replayAnsiWithStyles(
         } else if (cmd === "m") {
           applySgrParams(params, sgr)
         } else if (cmd === "C") {
-          // Cursor forward
+          // Cursor forward — clears pending wrap
+          pendingWrap = false
           const n = parseInt(params) || 1
           cx = Math.min(width - 1, cx + n)
         } else if (cmd === "A") {
-          // Cursor up
+          // Cursor up — clears pending wrap
+          pendingWrap = false
           const n = parseInt(params) || 1
           cy = Math.max(0, cy - n)
         } else if (cmd === "B") {
-          // Cursor down
+          // Cursor down — clears pending wrap
+          pendingWrap = false
           const n = parseInt(params) || 1
           cy = Math.min(height - 1, cy + n)
         } else if (cmd === "l" || cmd === "h") {
@@ -436,12 +442,16 @@ export function replayAnsiWithStyles(
     }
 
     if (ansi[i] === "\r") {
+      // CR clears pending wrap, moves to column 0
+      pendingWrap = false
       cx = 0
       i++
       continue
     }
 
     if (ansi[i] === "\n") {
+      // LF clears pending wrap and moves down one row
+      pendingWrap = false
       cy++
       if (cy >= height) {
         // Scroll: shift all rows up by 1
@@ -469,23 +479,50 @@ export function replayAnsiWithStyles(
 
     // Regular character
     if (cy < height && cx < width) {
-      const cell = screen[cy]![cx]!
-      cell.char = ansi[i]!
-      cell.fg = sgr.fg
-      cell.bg = sgr.bg
-      cell.bold = sgr.bold
-      cell.dim = sgr.dim
-      cell.italic = sgr.italic
-      cell.underline = sgr.underline
-      cell.blink = sgr.blink
-      cell.inverse = sgr.inverse
-      cell.hidden = sgr.hidden
-      cell.strikethrough = sgr.strikethrough
-      cx++
-      if (cx >= width) {
+      // Resolve pending wrap before writing
+      if (pendingWrap) {
+        pendingWrap = false
         cx = 0
         cy++
-        if (cy >= height) cy = height - 1
+        if (cy >= height) {
+          // Scroll: shift all rows up by 1
+          const first = screen.shift()!
+          for (const cell of first) {
+            cell.char = " "
+            cell.fg = null
+            cell.bg = null
+            cell.bold = false
+            cell.dim = false
+            cell.italic = false
+            cell.underline = false
+            cell.blink = false
+            cell.inverse = false
+            cell.hidden = false
+            cell.strikethrough = false
+          }
+          screen.push(first)
+          cy = height - 1
+        }
+      }
+      if (cy < height && cx < width) {
+        const cell = screen[cy]![cx]!
+        cell.char = ansi[i]!
+        cell.fg = sgr.fg
+        cell.bg = sgr.bg
+        cell.bold = sgr.bold
+        cell.dim = sgr.dim
+        cell.italic = sgr.italic
+        cell.underline = sgr.underline
+        cell.blink = sgr.blink
+        cell.inverse = sgr.inverse
+        cell.hidden = sgr.hidden
+        cell.strikethrough = sgr.strikethrough
+        cx++
+        if (cx >= width) {
+          // Enter pending wrap state — cursor stays at last column
+          cx = width - 1
+          pendingWrap = true
+        }
       }
     }
     i++
