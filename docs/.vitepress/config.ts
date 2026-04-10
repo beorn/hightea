@@ -3,6 +3,8 @@ import { withMermaid } from "vitepress-plugin-mermaid"
 import llmstxt from "vitepress-plugin-llms"
 import {
   glossaryPlugin,
+  compileEntities,
+  replaceInHtml,
   seoHead,
   seoTransformPageData,
   validateGlossary,
@@ -24,6 +26,7 @@ console.log(
   `[glossary] Loaded: ${siteGlossary.length} site + ${termGlossary.length} terminal + ${ecoGlossary.length} ecosystem = ${siteGlossary.length + termGlossary.length + ecoGlossary.length} total`,
 )
 const glossary = [...siteGlossary, ...termGlossary, ...ecoGlossary]
+const compiledGlossary = compileEntities(glossary)
 
 const seoOptions = {
   hostname: "https://silvery.dev",
@@ -88,7 +91,19 @@ export default withMermaid(
       ...seoHead(seoOptions),
     ],
 
-    transformPageData: seoTransformPageData(seoOptions),
+    transformPageData(pageData, ctx) {
+      // Glossary autolinks in frontmatter feature card details
+      const features = pageData.frontmatter.features as Array<{ details?: string }> | undefined
+      if (features) {
+        for (const feature of features) {
+          if (feature.details) {
+            feature.details = replaceInHtml(feature.details, compiledGlossary)
+          }
+        }
+      }
+      // SEO metadata
+      return seoTransformPageData(seoOptions)(pageData, ctx)
+    },
 
     buildEnd(siteConfig) {
       validateGlossary(glossary, siteConfig)
