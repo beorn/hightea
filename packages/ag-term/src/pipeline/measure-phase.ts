@@ -179,6 +179,20 @@ function isWrapEnabled(wrap: TextProps["wrap"]): boolean {
  * that keeps the same line count as the fit-content width.
  */
 function computeSnugContentWidth(node: AgNode, fitContentWidth: number, ctx?: PipelineContext): number {
+  const props = node.props as BoxProps
+
+  // Subtract padding + border from fitContentWidth to get CONTENT width.
+  // measureIntrinsicSize includes padding+border in its result, but
+  // shrinkwrapWidth operates on text content width only.
+  let overhead = 0
+  const padding = getPadding(props)
+  overhead += padding.left + padding.right
+  if (props.borderStyle) {
+    const border = getBorderSize(props)
+    overhead += border.left + border.right
+  }
+  const contentWidth = fitContentWidth - overhead
+
   // Get or build text analysis
   let analysis = getCachedAnalysis(node)
   if (!analysis) {
@@ -193,7 +207,8 @@ function computeSnugContentWidth(node: AgNode, fitContentWidth: number, ctx?: Pi
     }
   }
 
-  return shrinkwrapWidth(analysis, fitContentWidth)
+  // Shrinkwrap the content, then add overhead back
+  return shrinkwrapWidth(analysis, contentWidth) + overhead
 }
 
 /**
