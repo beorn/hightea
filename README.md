@@ -1,6 +1,4 @@
-# Silvery
-
-**React for modern terminal apps.**
+# Silvery — React for modern terminal apps
 
 Powerful apps. Polished UIs. Proudly terminal.
 
