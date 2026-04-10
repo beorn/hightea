@@ -5,9 +5,10 @@
  */
 
 import type { BoxProps, AgNode, TextProps } from "@silvery/ag/types"
-import { displayWidthAnsi, wrapText, getActiveLineHeight } from "../unicode"
+import { displayWidthAnsi, graphemeWidth, wrapText, getActiveLineHeight } from "../unicode"
 import { collectPlainText as collectTextContent } from "./collect-text"
-import { getCachedPlainText, setCachedPlainText } from "./prepared-text"
+import { getCachedPlainText, setCachedPlainText, getCachedAnalysis, setCachedAnalysis } from "./prepared-text"
+import { buildTextAnalysis, shrinkwrapWidth } from "./pretext"
 import { getBorderSize, getPadding } from "./helpers"
 import type { PipelineContext } from "./types"
 
@@ -24,14 +25,17 @@ export function measurePhase(root: AgNode, ctx?: PipelineContext): void {
 
     const props = node.props as BoxProps
 
-    if (props.width === "fit-content" || props.height === "fit-content") {
+    const isFitContent = props.width === "fit-content" || props.height === "fit-content"
+    const isShrinkwrap = props.width === "shrinkwrap"
+
+    if (isFitContent || isShrinkwrap) {
       // When height="fit-content" but width is fixed, pass the available width
       // so text nodes can wrap and compute correct intrinsic height.
       let availableWidth: number | undefined
-      if (props.height === "fit-content" && props.width !== "fit-content" && typeof props.width === "number") {
-        // Subtract padding and border from the fixed width to get content area width
+      const widthIsFixed = typeof props.width === "number"
+      if (props.height === "fit-content" && widthIsFixed) {
         const padding = getPadding(props)
-        availableWidth = props.width - padding.left - padding.right
+        availableWidth = (props.width as number) - padding.left - padding.right
         if (props.borderStyle) {
           const border = getBorderSize(props)
           availableWidth -= border.left + border.right
@@ -41,7 +45,12 @@ export function measurePhase(root: AgNode, ctx?: PipelineContext): void {
 
       const intrinsicSize = measureIntrinsicSize(node, ctx, availableWidth)
 
-      if (props.width === "fit-content") {
+      if (isShrinkwrap) {
+        // Shrinkwrap: find the narrowest width that keeps the same line count.
+        // First get the text for analysis, then binary search for tightest width.
+        const shrunkWidth = computeShrinkwrapWidth(node, intrinsicSize.width, ctx)
+        node.layoutNode.setWidth(shrunkWidth)
+      } else if (props.width === "fit-content") {
         node.layoutNode.setWidth(intrinsicSize.width)
       }
       if (props.height === "fit-content") {
@@ -161,7 +170,30 @@ function measureIntrinsicSize(
  * Check if text wrapping is enabled for a text node.
  */
 function isWrapEnabled(wrap: TextProps["wrap"]): boolean {
-  return wrap === "wrap" || wrap === "hard" || wrap === true || wrap === undefined
+  return wrap === "wrap" || wrap === "hard" || wrap === "balanced" || wrap === true || wrap === undefined
+}
+
+/**
+ * Compute shrinkwrap width for a node.
+ * Uses Pretext analysis to binary-search for the tightest width
+ * that keeps the same line count as the fit-content width.
+ */
+function computeShrinkwrapWidth(node: AgNode, fitContentWidth: number, ctx?: PipelineContext): number {
+  // Get or build text analysis
+  let analysis = getCachedAnalysis(node)
+  if (!analysis) {
+    const cached = getCachedPlainText(node)
+    const text = cached ? cached.text : collectTextContent(node)
+    const gWidthFn = ctx?.measurer?.graphemeWidth?.bind(ctx.measurer) ?? graphemeWidth
+    analysis = buildTextAnalysis(text, gWidthFn)
+    setCachedAnalysis(node, analysis)
+    if (!cached) {
+      const lineCount = (text.match(/\n/g)?.length ?? 0) + 1
+      setCachedPlainText(node, text, lineCount)
+    }
+  }
+
+  return shrinkwrapWidth(analysis, fitContentWidth)
 }
 
 /**

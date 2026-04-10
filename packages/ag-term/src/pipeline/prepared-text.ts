@@ -20,6 +20,7 @@
 
 import type { AgNode } from "@silvery/ag/types"
 import { isDirty, CONTENT_BIT, CHILDREN_BIT, STYLE_PROPS_BIT, BG_BIT, SUBTREE_BIT } from "@silvery/ag/epoch"
+import type { TextAnalysis } from "./pretext"
 
 // ============================================================================
 // Types
@@ -55,6 +56,10 @@ interface TextNodeCache {
 
   // Level 2: formatted lines (LRU, max 4 entries)
   formats: FormatEntry[]
+
+  // Level 3: Pretext analysis (cumWidths, breakpoints, etc.)
+  // Built from collected text, invalidated when collected text changes
+  analysis: TextAnalysis | null
 }
 
 // ============================================================================
@@ -95,6 +100,7 @@ function getOrCreate(node: AgNode): TextNodeCache {
       collected: null,
       collectedMaxDisplayWidth: undefined,
       formats: [],
+      analysis: null,
     }
     textCaches.set(node, entry)
   }
@@ -143,12 +149,14 @@ export function getCachedCollectedText(node: AgNode, maxDisplayWidth: number | u
   if (isDirty(node.dirtyBits, node.dirtyEpoch, COLLECTED_TEXT_DIRTY)) {
     entry.collected = null
     entry.formats = [] // collected text changed → format stale
+    entry.analysis = null // analysis depends on collected text
     return null
   }
 
   if (entry.collectedMaxDisplayWidth !== maxDisplayWidth) {
     entry.collected = null
     entry.formats = []
+    entry.analysis = null
     return null
   }
 
@@ -224,4 +232,24 @@ export function setCachedFormat(
     entry.formats.shift()
   }
   entry.formats.push({ width, wrap, trim, lines, lineOffsets, hasLineOffsets })
+}
+
+// ============================================================================
+// Level 3: Pretext analysis (cumWidths, breakpoints — for shrinkwrap/balanced)
+// ============================================================================
+
+/**
+ * Get cached text analysis. Invalidated when collected text changes.
+ * Build via buildTextAnalysis() from pretext.ts on cache miss.
+ */
+export function getCachedAnalysis(node: AgNode): TextAnalysis | null {
+  if (_cacheDisabled) return null
+  const entry = textCaches.get(node)
+  return entry?.analysis ?? null
+}
+
+/** Store text analysis in cache. */
+export function setCachedAnalysis(node: AgNode, analysis: TextAnalysis): void {
+  const entry = getOrCreate(node)
+  entry.analysis = analysis
 }

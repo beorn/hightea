@@ -38,7 +38,10 @@ import {
   setCachedCollectedText,
   getCachedFormat,
   setCachedFormat,
+  getCachedAnalysis,
+  setCachedAnalysis,
 } from "./prepared-text"
+import { buildTextAnalysis, balancedWidth as computeBalancedWidth } from "./pretext"
 import type { BgConflictMode, NodeRenderState, PipelineContext } from "./types"
 import { createLogger } from "loggily"
 
@@ -751,6 +754,16 @@ export function formatTextLines(
 
   if (wrap === "truncate-middle") {
     return lines.map((line) => truncateText(line, width, "middle", ctx))
+  }
+
+  // Balanced wrapping: equalize line widths by tightening to balanced width.
+  // Uses Pretext analysis to find the width that distributes text most evenly.
+  if (wrap === "balanced") {
+    const gWidthFn = ctx?.measurer?.graphemeWidth?.bind(ctx.measurer) ?? graphemeWidth
+    const analysis = buildTextAnalysis(normalizedText, gWidthFn)
+    const bWidth = computeBalancedWidth(analysis, width)
+    if (ctx) return ctx.measurer.wrapText(normalizedText, bWidth, true, trim)
+    return wrapText(normalizedText, bWidth, true, trim)
   }
 
   // wrap === true or wrap === 'wrap' - word-aware wrapping

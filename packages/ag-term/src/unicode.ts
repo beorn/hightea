@@ -661,7 +661,7 @@ export function constrainText(
 /**
  * Check if a grapheme is a word boundary character (space, hyphen, etc.)
  */
-function isWordBoundary(grapheme: string): boolean {
+export function isWordBoundary(grapheme: string): boolean {
   // Common word boundary characters
   return grapheme === " " || grapheme === "-" || grapheme === "\t"
 }
@@ -697,7 +697,7 @@ function isBreakBeforeOperatorWith(graphemes: string[], spaceIndex: number, gWid
  * Check if a grapheme can break anywhere (CJK characters).
  * CJK text doesn't use spaces between words, so any character boundary is valid.
  */
-function canBreakAnywhere(grapheme: string): boolean {
+export function canBreakAnywhere(grapheme: string): boolean {
   return isCJK(grapheme)
 }
 
@@ -713,7 +713,7 @@ const ANSI_SINGLE_RE = /^\x1b[DME78(B]/
  * Without this, `splitGraphemes` would split `\x1b[38;5;1m` into individual characters
  * like `[`, `3`, `8`, `;`, etc., each consuming display width.
  */
-function splitGraphemesAnsiAware(text: string): string[] {
+export function splitGraphemesAnsiAware(text: string): string[] {
   if (!hasAnsi(text)) {
     return splitGraphemes(text)
   }
