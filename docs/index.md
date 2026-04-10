@@ -48,12 +48,6 @@ features:
     details: "Same Box/Text/useInput patterns you already know. If you've used Ink, most code works with just an import change. @silvery/ink and @silvery/chalk compat layers pass 99% of Ink's and 100% of Chalk's test suites."
     link: /guide/silvery-vs-ink
     linkText: Full feature comparison
-  - title: Pure TypeScript
-    details: "No WASM, no C++, no native dependencies. Runs on Bun and Node.js. Instant startup, stable memory."
-  - title: Fast Incremental Rendering
-    details: "Fast incremental rendering with cell-level dirty tracking — only changed cells emit to the terminal. Works in inline mode with native scrollback, not just fullscreen."
-    link: /guide/silvery-vs-ink#performance
-    linkText: See benchmarks
   - title: Advanced Layout
     details: "One-phase responsive layouts — useBoxRect() returns real dimensions during render. overflow=scroll with scrollTo. position=sticky headers. ANSI-aware compositing with color blending."
     link: /guide/silvery-vs-ink
@@ -73,6 +67,12 @@ features:
   - title: Terminal Protocol Support
     details: "100+ escape sequences, all auto-negotiated: Kitty keyboard, SGR mouse, OSC 8 hyperlinks, OSC 52 clipboard, bracketed paste, focus reporting, text sizing, synchronized output, and more."
     link: /guide/silvery-vs-ink
+  - title: Pure TypeScript
+    details: "No WASM, no C++, no native dependencies. Runs on Bun and Node.js. Instant startup, stable memory."
+  - title: Incremental Rendering
+    details: "Cell-level dirty tracking — only changed cells emit to the terminal. Works in inline mode with native scrollback, not just fullscreen."
+    link: /guide/silvery-vs-ink#performance
+    linkText: Benchmark details
     linkText: See comparison
 ---
 
