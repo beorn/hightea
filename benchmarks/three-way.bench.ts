@@ -1,5 +1,5 @@
 /**
- * Three-way benchmark: Silvery (reactive) vs Silvery (oracle) vs Ink
+ * Three-way benchmark: Silvery (reactive) vs Silvery (imperative) vs Ink
  *
  * Compares all three rendering paths in one run.
  * Shows the perf impact of reactive signals vs imperative cascade vs Ink.
@@ -74,10 +74,10 @@ describe("Three-way — cursor move 100 items (80x24)", () => {
   const sReactiveRender = createRenderer({ cols: 80, rows: 24 })
   const sReactiveApp = sReactiveRender(silveryList(100, 0))
 
-  // Silvery oracle app
+  // Silvery imperative app
   setReactiveEnabled(false)
-  const sOracleRender = createRenderer({ cols: 80, rows: 24 })
-  const sOracleApp = sOracleRender(silveryList(100, 0))
+  const sImperativeRender = createRenderer({ cols: 80, rows: 24 })
+  const sImperativeApp = sImperativeRender(silveryList(100, 0))
 
   // Ink app
   const inkStdout = createMockStdout(80, 24)
@@ -94,10 +94,10 @@ describe("Three-way — cursor move 100 items (80x24)", () => {
     sReactiveApp.rerender(silveryList(100, c1))
   })
 
-  bench("Silvery (oracle)", () => {
+  bench("Silvery (imperative)", () => {
     setReactiveEnabled(false)
     c2 = (c2 + 1) % 100
-    sOracleApp.rerender(silveryList(100, c2))
+    sImperativeApp.rerender(silveryList(100, c2))
   })
 
   bench("Ink", () => {
@@ -116,8 +116,8 @@ describe("Three-way — cursor move 1000 items (80x24)", () => {
   const sReactiveApp = sReactiveRender(silveryList(1000, 0))
 
   setReactiveEnabled(false)
-  const sOracleRender = createRenderer({ cols: 80, rows: 24 })
-  const sOracleApp = sOracleRender(silveryList(1000, 0))
+  const sImperativeRender = createRenderer({ cols: 80, rows: 24 })
+  const sImperativeApp = sImperativeRender(silveryList(1000, 0))
 
   const inkStdout = createMockStdout(80, 24)
   const inkApp = inkRender(inkList(1000, 0), {
@@ -133,10 +133,10 @@ describe("Three-way — cursor move 1000 items (80x24)", () => {
     sReactiveApp.rerender(silveryList(1000, c1))
   })
 
-  bench("Silvery (oracle)", () => {
+  bench("Silvery (imperative)", () => {
     setReactiveEnabled(false)
     c2 = (c2 + 1) % 1000
-    sOracleApp.rerender(silveryList(1000, c2))
+    sImperativeApp.rerender(silveryList(1000, c2))
   })
 
   bench("Ink", () => {
