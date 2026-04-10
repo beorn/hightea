@@ -194,14 +194,17 @@ Standalone projects Silvery builds on — each stands on its own:
 <style>
 /* Autolink style for inline links within VitePress feature cards */
 .VPFeatures .details a {
-  color: var(--vp-c-text-2);
+  color: var(--vp-c-text-1);
   text-decoration: underline;
-  text-decoration-color: var(--vp-c-divider);
+  text-decoration-style: dotted;
+  text-decoration-color: var(--vp-c-text-3);
   text-underline-offset: 2px;
-  transition: color 0.2s, text-decoration-color 0.2s;
+  cursor: pointer;
+  transition: color 0.2s, text-decoration-color 0.2s, text-decoration-style 0.2s;
 }
 .VPFeatures .details a:hover {
   color: var(--vp-c-brand-1);
+  text-decoration-style: solid;
   text-decoration-color: var(--vp-c-brand-1);
 }
 .use-cases {
