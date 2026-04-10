@@ -20,7 +20,7 @@ import { run, useInput, type Key } from "@silvery/ag-term/runtime"
 import { ExampleBanner, type ExampleMeta } from "./_banner.js"
 
 export const meta: ExampleMeta = {
-  name: "Pretext Demo",
+  name: "text layout",
   description: "Snug-content bubbles + even wrapping — inspired by chenglou/pretext",
   demo: true,
   features: ['width="snug-content"', 'wrap="even"', "chat bubbles", "paragraph layout"],
