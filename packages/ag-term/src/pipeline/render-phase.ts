@@ -110,7 +110,12 @@ export function renderPhase(root: AgNode, prevBuffer?: TerminalBuffer | null, ct
   }
 
   // Sync prevLayout after render phase to prevent staleness on subsequent frames.
-  syncPrevLayout(root)
+  // Skip when no layout changed this frame (cursor move, style-only changes).
+  // The layout phase sets layoutChangedThisFrame on affected nodes; if root's
+  // subtree has any, we need the full sync. If not, prevLayout is already correct.
+  const anyLayoutChanged = isCurrentEpoch(root.layoutChangedThisFrame) ||
+    isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)
+  syncPrevLayout(root, anyLayoutChanged || !hasPrevBuffer)
 
   // Advance the render epoch — all dirty flags stamped with the old epoch
   // instantly become "not dirty". This replaces the O(N) clearDirtyFlags walk
@@ -132,7 +137,22 @@ export function renderPhase(root: AgNode, prevBuffer?: TerminalBuffer | null, ct
  *    has null/stale prevLayout while fresh has synced prevLayout, causing
  *    different cascade behavior (layoutChanged true vs false).
  */
-function syncPrevLayout(root: AgNode): void {
+/**
+ * Sync prevLayout = boxRect for nodes whose layout changed.
+ *
+ * Previously walked ALL nodes O(N) every frame. Now only visits nodes
+ * with layoutChangedThisFrame (set by propagateLayout in layout phase).
+ * Falls back to full walk when layout phase ran (dimensions changed or
+ * layoutDirty) since any node may have moved.
+ *
+ * For cursor move (no layout change): O(1) — no nodes to sync.
+ * For resize: O(N) — all nodes may have moved (same as before).
+ */
+function syncPrevLayout(root: AgNode, layoutPhaseRan: boolean): void {
+  // When layout phase ran, any node could have moved — full walk needed.
+  // When layout was skipped (cursor move, style-only), no rects changed.
+  if (!layoutPhaseRan) return
+
   const stack: AgNode[] = [root]
   while (stack.length > 0) {
     const node = stack.pop()!
