@@ -47,6 +47,16 @@ The layout phase also sets `subtreeDirty` upward when a descendant's `boxRect` c
 | ------------------------ | ------------ | --------------------------------------------------------------------------- |
 | `layoutChangedThisFrame` | Layout phase | Node's boxRect changed this frame; cleared by render phase after processing |
 
+## Style-Only Tracking
+
+The reconciler tracks nodes where ONLY visual style props changed (no content, layout, or children changes) in a module-level `styleOnlyDirtyNodes` set (dirty-tracking.ts). This enables two fast paths in the render phase:
+
+| Tracking set          | Set by                | Read by               | Cleared by           |
+| --------------------- | --------------------- | --------------------- | -------------------- |
+| `styleOnlyDirtyNodes` | Reconciler commitUpdate | Render phase (text fast path) | clearDirtyTracking() |
+
+**Safety:** The reconciler checks `!instance.contentDirty && !instance.childrenDirty` before tracking style-only. React processes children before parents in the commit phase, so a child's `commitTextUpdate` may have already set `contentDirty` on the parent before the parent's `commitUpdate` runs.
+
 ## Incremental Rendering Model
 
 This is the core optimization. Instead of rendering every node every frame, the render phase:
@@ -137,11 +147,53 @@ bgRefillNeeded = hasPrevBuffer && !contentAreaAffected && node.subtreeDirty && !
 
 skipBgFill = hasPrevBuffer && !ancestorCleared && !contentAreaAffected && !bgRefillNeeded
 
+// bgOnlyChange: bgDirty is the ONLY trigger for contentAreaAffected, node has bg,
+// no ancestor changes. Uses fillBg() to preserve child chars — children skip.
+bgOnlyAffected = bgDirty && !contentDirty && !layoutChanged && !childPositionChanged
+  && !childrenDirty && !textPaintDirty && !absoluteChildMutated && !descendantOverflowChanged
+bgOnlyChange = hasPrevBuffer && bgOnlyAffected && hasBgColor
+  && !ancestorLayoutChanged && !ancestorCleared
+
 // Must children re-render? (content area was modified OR bg needs refresh on a cloned buffer)
 // bgRefillNeeded triggers this because bg refill overwrites child pixels — children
 // must re-render on top of the fresh fill.
-childrenNeedFreshRender = (hasPrevBuffer || ancestorCleared) && (contentAreaAffected || bgRefillNeeded)
+// Exception: bgOnlyChange uses fillBg() which preserves chars, so children skip.
+childrenNeedFreshRender = (hasPrevBuffer || ancestorCleared)
+  && (contentAreaAffected || bgRefillNeeded) && !bgOnlyChange
 ```
+
+## Style-Only Fast Paths
+
+Two optimizations for style-only changes (cursor move, selection highlight, hover):
+
+### 1. bgOnlyChange — Box Background Fast Path
+
+When ONLY `backgroundColor` changed on a Box node (no content, layout, or children changes):
+
+- `renderBox` uses `buffer.fillBg()` instead of `buffer.fill()` for the bg
+- `fillBg()` updates cell bg WITHOUT overwriting chars (preserves child content)
+- `childrenNeedFreshRender = false` — clean children keep correct chars from clone
+- Children's bg is updated by `fillBg()` (they inherit from parent)
+
+**Disabled when:**
+- Any descendant has explicit `backgroundColor` (would be incorrectly overwritten)
+- `ancestorLayoutChanged` or `ancestorCleared` (children positions may be wrong)
+- Other `contentAreaAffected` triggers (content, layout, children, etc.)
+
+### 2. Text Style-Only Restyle
+
+When ONLY visual style props changed on a Text node (color, bold, dim, inverse — no content or bg):
+
+- Uses `buffer.restyleRegion()` instead of full `renderText()` pipeline
+- Skips `collectTextWithBg → formatTextLines → renderGraphemes` entirely
+- Updates fg, bg, attrs on existing cells in-place
+
+**Disabled when:**
+- `contentDirty` is true (text content changed)
+- `childrenDirty` or `bgDirty` is true
+- `ancestorCleared` or `ancestorLayoutChanged` (cells at wrong positions)
+- Nested children have explicit `backgroundColor`
+- `!hasPrevBuffer` (no previous frame to preserve chars from)
 
 ### How the cascade propagates to children
 
