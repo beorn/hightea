@@ -213,7 +213,7 @@ Standalone projects Silvery builds on — each stands on its own:
 }
 .VPFeatures .details {
   font-size: 13px !important;
-  line-height: 1.5 !important;
+  line-height: 2 !important;
 }
 .use-cases {
   margin: 0.5rem 0 1.5rem;
