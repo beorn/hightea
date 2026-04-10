@@ -3,17 +3,17 @@ title: FAQ
 description: "Frequently asked questions about Silvery — installation, Ink compatibility, performance, components, testing, and terminal support."
 faq:
   - q: "What is Silvery?"
-    a: "Silvery is a React-based framework for building terminal user interfaces (TUIs). It provides 45+ components, incremental rendering with per-node dirty tracking, responsive layout via useBoxRect(), and full support for modern terminal protocols. It works with Bun, Node.js (23.6+), and Deno."
+    a: "Polished terminal apps in React. Silvery provides 45+ components, layout-first rendering with per-node dirty tracking, responsive layout via useBoxRect(), and full support for modern terminal protocols. Three principles guide the project: take the best from the web, stay true to the terminal, and raise the bar for developer ergonomics, architecture composability, and performance. It works with Bun and Node.js (23.6+)."
   - q: "How does Silvery compare to Ink?"
-    a: "Both use React for terminal UIs. Silvery's key differences are atomic layout-first rendering (components know their size during render, no two-pass flash), 2.5-5.2x faster updates on mounted workloads, bundle-parity with Ink+Yoga (114.9 KB vs 116.6 KB gzipped), a larger component library (45+ vs ~10), and comprehensive terminal protocol support (Kitty keyboard, SGR mouse, graphics, synchronized output). Ink has a larger ecosystem and is the established standard."
+    a: "Both use React for terminal UIs. Silvery's key differences are layout-first rendering (components know their size during render via useBoxRect()), 2.5-5.2x faster on mounted workloads, bundle-parity with Ink+Yoga (114.9 KB vs 116.6 KB gzipped), a larger component library (45+ vs Ink's 6 core + @inkjs/ui's 13), and comprehensive terminal protocol support (Kitty keyboard, SGR mouse, graphics, synchronized output). Ink has a larger ecosystem and is the established standard."
   - q: "Is Silvery compatible with existing Ink code?"
     a: "Yes. Silvery provides a compatibility layer via silvery/ink and silvery/chalk that passes ~99% of Ink 7.0's test suite (918/931 tests). Most Ink code works with import path changes. See the migration guide for details."
   - q: "How fast is Silvery compared to Ink?"
-    a: "Silvery wins all 16 benchmark scenarios vs Ink 7.0 on mounted workloads. The canonical numbers: mounted cursor move 2.56x, mounted kanban single change 3.36x, memo'd 100-item toggle 4.59x, memo'd 500-item toggle 5.15x, memo'd kanban card edit 3.75x. The cell-level output phase also emits 28-192x less output than full redraw on incremental updates. Reproduce with bun run bench."
+    a: "Silvery is faster in all 16 benchmark scenarios vs Ink 7.0 on mounted workloads. The canonical numbers: mounted cursor move 2.56x, mounted kanban single change 3.36x, memo'd 100-item toggle 4.59x, memo'd 500-item toggle 5.15x, memo'd kanban card edit 3.75x. The cell-level output phase also emits 28-192x less output than full redraw on incremental updates. Reproduce with bun run bench."
   - q: "What components does Silvery include?"
     a: "45+ components across layout (Box, SplitView, Divider), input (TextInput, TextArea, SelectList, CommandPalette, Form), display (Text, Badge, Spinner, ProgressBar, Table, Tabs, Toast), navigation (TreeView, ListView, VirtualList, Breadcrumb), and containers (Screen, ModalDialog, ScrollbackView). See the component catalog for the full list."
-  - q: "Does Silvery work with Node.js, Bun, and Deno?"
-    a: "Yes. Silvery is pure TypeScript with no native dependencies or WASM. It works with Bun (any version), Node.js 23.6+ (which has native TypeScript type stripping), and Deno."
+  - q: "Does Silvery work with Node.js and Bun?"
+    a: "Yes. Silvery is pure TypeScript with no native dependencies or WASM. It works with Bun (any version) and Node.js 23.6+ (which has native TypeScript type stripping)."
   - q: "How do I test Silvery apps?"
     a: "Silvery provides two testing approaches. For fast unit tests, use createRenderer() from @silvery/test for headless rendering with text assertions. For full terminal verification (ANSI output, colors, scrollback, cursor positioning), use createTermless() which runs a real xterm.js emulator in-process."
   - q: "Does Silvery support mouse input?"
@@ -21,7 +21,7 @@ faq:
   - q: "What terminal emulators does Silvery support?"
     a: "Silvery works with any terminal that supports basic ANSI escape sequences. Modern features like Kitty keyboard protocol, truecolor, synchronized output, and graphics are auto-detected at startup and enabled when available. Tested with Ghostty, Kitty, iTerm2, WezTerm, Alacritty, Windows Terminal, and others. See terminfo.dev for detailed compatibility data."
   - q: "How does theming work in Silvery?"
-    a: "Silvery ships 23 color palettes with semantic tokens ($primary, $success, $muted, $danger, etc.). Themes auto-detect the terminal's background color and adjust for WCAG-compliant contrast. Use ThemeProvider to set a palette, then reference tokens in your components. See the styling guide and theme explorer for details."
+    a: "Silvery ships 38 color palettes with semantic tokens ($primary, $success, $muted, $danger, etc.). Themes auto-detect the terminal's background color and adjust for WCAG-compliant contrast. Use ThemeProvider to set a palette, then reference tokens in your components. See the styling guide and theme explorer for details."
   - q: "Is Silvery production-ready?"
     a: "Silvery is actively developed and used in production by a complex TUI application with thousands of nodes, multiple views, and rich interactions. The API surface is stabilizing but may have breaking changes before 1.0. It ships with comprehensive tests, including property-invariant fuzz tests for the rendering pipeline."
   - q: "Does Silvery have TypeScript support?"
@@ -40,18 +40,20 @@ Frequently asked questions about Silvery.
 
 ## What is Silvery?
 
-Silvery is a React-based framework for building terminal user interfaces (TUIs). It provides 45+ components, incremental rendering with per-node dirty tracking, responsive layout via `useBoxRect()`, and full support for modern terminal protocols. It works with Bun, Node.js (23.6+), and Deno.
+Polished terminal apps in React. Silvery provides 45+ components, layout-first rendering with per-node dirty tracking, responsive layout via `useBoxRect()`, and full support for modern terminal protocols. It works with Bun and Node.js (23.6+).
 
 If you know React, you know Silvery -- the core API (`Box`, `Text`, `useInput`, `render`) is familiar. What's different is the rendering pipeline: layout runs first, so components know their size during render, and only changed nodes are re-rendered.
+
+Three principles guide the project: take the best from the web, stay true to the terminal, and raise the bar for developer ergonomics, architecture composability, and performance.
 
 ## How does Silvery compare to Ink?
 
 Both use React for terminal UIs. Silvery differs in several key ways:
 
-- **Atomic layout-first rendering** — layout runs before content render, so components know their size during render via `useBoxRect()`. No two-pass flash, no components rendering at `width: 0`, no flicker cascade. This is the single most important architectural difference — see [Silvery vs Ink](/guide/silvery-vs-ink#the-atomicity-story).
-- **2.5–5.2× faster on mounted workloads** — wins all 16 benchmark scenarios vs Ink 7.0. Cell-level output phase emits 28–192× less output than full redraw on incremental updates.
+- **Layout-first rendering** — layout runs before content render, so components know their size during render via `useBoxRect()`. No components rendering at `width: 0`, no cascading measure→rerender cycles. See [Silvery vs Ink](/guide/silvery-vs-ink#responsive-layout).
+- **2.5–5.2× faster on mounted workloads** — faster in all 16 benchmark scenarios vs Ink 7.0. Cell-level output phase emits 28–192× less output than full redraw on incremental updates.
 - **Bundle parity with Ink+Yoga** — 114.9 KB gzipped runtime vs Ink+Yoga's 116.6 KB. Pure TypeScript, zero WASM, zero native dependencies.
-- **Larger component library** — 45+ components (vs ~10 in Ink), including VirtualList, CommandPalette, TreeView, SplitView, Table, and Form
+- **Larger component library** — 45+ components (vs Ink's 6 core + [@inkjs/ui](https://github.com/vadimdemedes/ink-ui)'s 13), including VirtualList, CommandPalette, TreeView, SplitView, Table, and Form
 - **Terminal protocol support** — Kitty keyboard, SGR mouse, synchronized output (DEC 2026), Sixel/Kitty graphics, clipboard, and more
 - **Dynamic inline scrollback** — live React zone at the bottom, completed items graduate to terminal-owned scrollback. Cmd+F works natively.
 
@@ -75,7 +77,7 @@ For new code, use Silvery's native APIs to take advantage of responsive layout a
 
 ## How fast is Silvery compared to Ink?
 
-Silvery wins all 16 benchmark scenarios vs Ink 7.0 on mounted workloads — the scenarios that matter for interactive apps. Both frameworks keep a mounted app and call `rerender()`.
+Silvery is faster in all 16 benchmark scenarios vs Ink 7.0 on mounted workloads — the scenarios that matter for interactive apps. Both frameworks keep a mounted app and call `rerender()`.
 
 | Scenario                            | Silvery advantage |
 | ----------------------------------- | ----------------- |
@@ -101,13 +103,12 @@ Reproduce with `bun run bench`. See the [benchmark methodology](/guide/silvery-v
 
 See the [component catalog](/guides/components) for usage examples and API documentation.
 
-## Does Silvery work with Node.js, Bun, and Deno?
+## Does Silvery work with Node.js and Bun?
 
 Yes. Silvery is pure TypeScript with no native dependencies or WASM. It works with:
 
 - **Bun** -- any version, natively handles TypeScript
 - **Node.js 23.6+** -- uses native TypeScript type stripping (no compilation step)
-- **Deno** -- natively handles TypeScript
 
 The package ships TypeScript source directly. There is no build step, no `dist/` directory, and no compiled JavaScript.
 
@@ -162,7 +163,7 @@ Auto-detected features include Kitty keyboard protocol, truecolor, synchronized 
 
 ## How does theming work in Silvery?
 
-Silvery ships 23 color palettes with semantic tokens:
+Silvery ships 38 color palettes with semantic tokens:
 
 ```tsx
 <Box borderStyle="round" borderColor="$primary">
@@ -173,7 +174,7 @@ Silvery ships 23 color palettes with semantic tokens:
 
 Themes auto-detect the terminal's background color (via OSC 11 query) and adjust for WCAG-compliant contrast. Use `ThemeProvider` to set a palette globally, or override per-component.
 
-See the [styling guide](/guide/styling) for token reference and the [theme explorer](/themes) to preview all 23 palettes.
+See the [styling guide](/guide/styling) for token reference and the [theme explorer](/themes) to preview all 38 palettes.
 
 ## Is Silvery production-ready?
 
@@ -192,7 +193,7 @@ Silvery uses [Flexily](https://beorn.codes/flexily), a Yoga-compatible flexbox l
 1. **Layout runs first** -- Flexily calculates positions and sizes before React renders components
 2. **Components access dimensions** -- `useBoxRect()` provides width, height, x, y during render
 3. **Flexbox model** -- standard CSS flexbox properties (`flexDirection`, `justifyContent`, `alignItems`, `flexGrow`, `flexShrink`, `gap`, etc.)
-4. **No WASM** -- pure TypeScript, roughly 1.5x faster than Yoga WASM for typical terminal layouts
+4. **No WASM** -- pure TypeScript, 2.5× faster than Yoga WASM for typical terminal layouts
 
 This enables responsive layouts (columns that adapt to terminal width), native `overflow="scroll"` containers, and automatic text truncation -- all without post-render measurement.
 
