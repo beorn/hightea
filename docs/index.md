@@ -193,33 +193,37 @@ Standalone projects Silvery builds on — each stands on its own:
 
 <style>
 /* Autolink style for inline links within VitePress feature cards */
-.VPFeatures .details a {
-  color: var(--vp-c-text-1);
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: var(--vp-c-text-3);
-  text-underline-offset: 2px;
-  cursor: pointer;
-  transition: color 0.2s, text-decoration-color 0.2s, text-decoration-style 0.2s;
+.VPFeature a {
+  color: var(--vp-c-text-1) !important;
+  text-decoration: underline !important;
+  text-decoration-style: dotted !important;
+  text-decoration-color: var(--vp-c-text-3) !important;
+  text-underline-offset: 2px !important;
+  cursor: pointer !important;
+  transition: color 0.2s, text-decoration-color 0.2s, text-decoration-style 0.2s !important;
 }
-.VPFeatures .details a:hover {
-  color: var(--vp-c-brand-1);
-  text-decoration-style: solid;
-  text-decoration-color: var(--vp-c-brand-1);
+.VPFeature a:hover {
+  color: var(--vp-c-brand-1) !important;
+  text-decoration-style: solid !important;
+  text-decoration-color: var(--vp-c-brand-1) !important;
+}
+/* Don't style the card's own link-text */
+.VPFeature .link-text a,
+.VPFeature .link-text-value {
+  color: var(--vp-c-brand-1) !important;
+  text-decoration: none !important;
 }
 /* Tighter card padding */
-.VPFeatures .VPFeature .box {
+.VPFeature .box {
   padding: 16px 20px !important;
 }
-.VPFeatures .details {
+.VPFeature p {
+  margin: 0.55em 0 0 !important;
   font-size: 13px !important;
   line-height: 1.5 !important;
 }
-.VPFeatures .details p {
-  margin: 0.55em 0 0;
-}
-.VPFeatures .details p:first-child {
-  margin-top: 0;
+.VPFeature p:first-child {
+  margin-top: 0 !important;
 }
 .use-cases {
   margin: 0.5rem 0 1.5rem;
