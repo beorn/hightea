@@ -165,7 +165,13 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number, increme
   // descendant may have layoutDirty (e.g., new child mounted via appendChild).
   // The reconciler's markSubtreeDirty propagates the current epoch upward,
   // so checking subtreeDirtyEpoch ensures we don't skip over dirty descendants.
-  if (incrementalSkip && node.boxRect && !node.layoutDirty && !isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT)) {
+  if (
+    incrementalSkip &&
+    node.boxRect &&
+    !node.layoutDirty &&
+    !isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT) &&
+    !isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT)
+  ) {
     if (
       rect.x === node.boxRect.x &&
       rect.y === node.boxRect.y &&
