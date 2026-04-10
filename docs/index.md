@@ -55,10 +55,6 @@ features:
     details: '<p><a href="/guide/hooks">useBoxRect()</a> returns real dimensions during render.</p><p><a href="/guide/scrolling">Scroll containers</a> with virtualization. <a href="/guide/layout-coordinates">Sticky positioning</a>.</p><p><a href="/guide/ansi-layering">ANSI-aware compositing</a> — color blending with alpha.</p>'
     link: /guide/layouts
     linkText: Layout guide
-  - title: Rich Component Library
-    details: '<p><a href="/guides/components">45+ components</a>: TextInput, SelectList, ListView, Table, TreeView, CommandPalette, ModalDialog, Tabs, Toast, Spinner, and more. Built-in focus, mouse, and native keybindings.</p><p><a href="/guide/styling">38 theme palettes</a> with semantic tokens and auto-detected terminal colors.</p>'
-    link: /guides/components
-    linkText: Browse components
   - title: Inline, Fullscreen, or Both
     details: '<p>Same components, one-line switch.</p><p>Fullscreen — alt screen, traditional TUI.</p><p><a href="/examples/scrollback">Inline</a> — dynamic scrollback, native Cmd+F.</p><p><a href="/design/dynamic-scrollback">Virtual inline</a> — alt screen + app-managed scrollback.</p>'
     link: /guide/runtime-layers
@@ -67,6 +63,10 @@ features:
     details: '<p>Full keyboard and mouse events that just work. <a href="/guide/silvery-vs-ink#terminal-protocol-coverage">100+ auto-negotiated protocols</a>.</p><p><a href="/guide/silvery-vs-ink#focus-system">Focus scopes</a> — spatial nav, Tab, click-to-focus.</p><p><a href="/guide/text-selection">Text selection</a>. <a href="/guide/find">Find</a>. <a href="/guide/clipboard">Copy-mode</a>. <a href="/guide/event-handling">Drag-and-drop</a>.</p>'
     link: /guide/event-handling
     linkText: Interaction guide
+  - title: Rich Component Library
+    details: '<p><a href="/guides/components">45+ components</a>: TextInput, SelectList, Table, TreeView, CommandPalette, ModalDialog, Tabs, Toast, and more. Built-in focus, mouse, and native keybindings.</p><p><a href="/guide/styling">38 theme palettes</a> with semantic tokens and auto-detected terminal colors.</p>'
+    link: /guides/components
+    linkText: Browse components
   - title: Playwright-Style Testing
     details: '<p>3,000+ tests with full access to terminal internals.</p><p>Auto-refreshing CSS locators, cell-level color assertions, press() input.</p><p><a href="https://termless.dev">Termless</a> — full ANSI fidelity with <a href="https://termless.dev/guide/backends">10 swappable backends</a> (xterm.js, Ghostty, Alacritty, WezTerm, Kitty).</p>'
     link: /guide/testing
