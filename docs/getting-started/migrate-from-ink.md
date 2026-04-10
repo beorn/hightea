@@ -1,6 +1,6 @@
 # Migration from Ink
 
-Silvery is a drop-in replacement for Ink. Change your imports, and your app works.
+Polished terminal apps in React — with 99% Ink compatibility. Silvery is a drop-in replacement for Ink. Change your imports, and your app works.
 
 ## You Don't Have to Migrate
 

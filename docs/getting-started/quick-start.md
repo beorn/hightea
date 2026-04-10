@@ -1,5 +1,7 @@
 # Quick Start
 
+Polished terminal apps in React.
+
 Silvery is a React renderer for terminal applications — use it as just a renderer, or add optional packages for a complete framework. The core API (`Box`, `Text`, `useInput`) works like other React terminal renderers. What's different: responsive layout, native scrolling, and per-node incremental rendering.
 
 ## Installation

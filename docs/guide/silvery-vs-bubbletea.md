@@ -6,6 +6,8 @@ _External project claims last verified: 2026-04. Bubble Tea version: 2.x._
 
 Silvery is a ground-up React-based terminal UI framework for TypeScript. It combines React's component model with TEA-style state machines (via `@silvery/create`), CSS flexbox layout (via Flexily), and a rendering pipeline that gives components their dimensions during render. Newer, smaller community, but more built-in features.
 
+Silvery grew out of building a complex terminal app where components needed to know their size during render, updates needed to be fast, and scroll containers, mouse events, focus scopes, and Playwright-style testing needed to just work. Three principles emerged: take the best from the web, stay true to the terminal, and raise the bar for developer ergonomics, architecture composability, and performance.
+
 ## Highlights
 
 The biggest differences at a glance:
@@ -19,7 +21,7 @@ The biggest differences at a glance:
 - **38 palettes with semantic tokens** — `$primary`, `$muted`, `$border` with auto-detection. Lip Gloss provides chainable style functions with color downsampling.
 - **Multi-backend test matrix** — [Termless](https://termless.dev) runs tests across 10+ real terminal parsers (xterm.js, vt100, Ghostty, Kitty, Alacritty, ...). `teatest` uses golden file comparison.
 - **Dynamic scrollback** — items graduate to terminal history; inline/fullscreen hybrid modes. Bubble Tea v2 supports inline mode but has no scrollback graduation mechanism.
-- **3–5× faster than Ink 7.0 on mounted workloads** — cell-level dirty tracking means most of the tree is skipped on interactive updates. No direct Bubble Tea benchmarks.
+- **3–6× faster than Ink 7.0 on mounted workloads** — cell-level dirty tracking means most of the tree is skipped on interactive updates. No direct Bubble Tea benchmarks.
 
 **Where Bubble Tea is stronger:**
 
@@ -92,7 +94,7 @@ Bubble Tea first, Silvery second. Features marked "core" are built into the fram
 | **Language**                 | Compiled Go                                                       | TypeScript (Bun or Node.js)                                                                                                  |
 | **Startup time**             | ~1 ms (compiled binary)                                           | ~50–150 ms (JS runtime initialization)                                                                                       |
 | **Distribution**             | Single static binary — `go build`, cross-compile, no dependencies | Requires Node.js/Bun runtime; bundle with `bun build` or ship as npm package                                                 |
-| **Interactive update speed** | Fast (compiled Go, cell diff)                                     | **3–5× faster than Ink 7.0** — cell-level dirty tracking skips unchanged subtrees entirely (no direct Bubble Tea benchmarks) |
+| **Interactive update speed** | Fast (compiled Go, cell diff)                                     | **3–6× faster than Ink 7.0** — cell-level dirty tracking skips unchanged subtrees entirely (no direct Bubble Tea benchmarks) |
 | **Output efficiency**        | Cell-based diff (v2)                                              | **10–20× less output** — cell-level diff + relative cursor addressing                                                        |
 | **Memory**                   | Go GC with low pause times                                        | Normal JS GC; graduated scrollback frees React tree                                                                          |
 | **Native dependencies**      | None (compiled Go)                                                | None (pure TypeScript)                                                                                                       |
@@ -309,7 +311,7 @@ Bubble Tea compiles to a native binary. Startup is near-instant (~1 ms). Renderi
 
 Silvery runs on a JavaScript runtime (Bun or Node.js). Startup includes runtime initialization (~50–150 ms). Once running, Silvery's incremental rendering skips unchanged nodes entirely — a typical interactive update (cursor move in a 1000-node tree) takes ~169 us. The 5-phase pipeline (measure, layout, content, diff, output) has overhead for full re-renders, but interactive updates are sub-millisecond because most of the tree is skipped.
 
-**For CLIs that start, do one thing, and exit**, Go's startup advantage is real — 1 ms vs 50–150 ms matters when users run the command hundreds of times a day. **For interactive TUIs that run for minutes or hours**, runtime startup is irrelevant and per-update performance matters more. Silvery's 3–5× advantage on mounted workloads (measured vs Ink; no direct Bubble Tea benchmarks yet) comes from skipping unchanged subtrees entirely rather than re-running the full view function.
+**For CLIs that start, do one thing, and exit**, Go's startup advantage is real — 1 ms vs 50–150 ms matters when users run the command hundreds of times a day. **For interactive TUIs that run for minutes or hours**, runtime startup is irrelevant and per-update performance matters more. Silvery's 3–6× advantage on mounted workloads (measured vs Ink; no direct Bubble Tea benchmarks yet) comes from skipping unchanged subtrees entirely rather than re-running the full view function.
 
 ## Ecosystem
 

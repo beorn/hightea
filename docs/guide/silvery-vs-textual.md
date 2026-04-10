@@ -6,6 +6,8 @@ _External project claims last verified: 2026-04. Textual version: 8.2.3._
 
 Silvery (2025) is a React-based terminal UI framework for TypeScript. Same broad goal — bring web-style development patterns to the terminal — but different language, different rendering architecture, and different trade-offs.
 
+Silvery grew out of building a complex terminal app where components needed to know their size during render, updates needed to be fast, and scroll containers, mouse events, focus scopes, and Playwright-style testing needed to just work. Three principles emerged: take the best from the web, stay true to the terminal, and raise the bar for developer ergonomics, architecture composability, and performance.
+
 ## Highlights
 
 The biggest differences at a glance:
@@ -14,7 +16,7 @@ The biggest differences at a glance:
 - **Layout-first rendering** — components know their size _during_ render via `useBoxRect()`. Textual widgets query `self.size` after layout, similar to web components.
 - **Cell-level incremental rendering** — per-node dirty tracking (7 flags/node), cell-level buffer diff. Textual uses Rich's rendering pipeline with careful caching.
 - **Multi-target** — terminal, Canvas 2D, DOM (experimental). Textual has a mature web target via Textual Web (serve TUI in browser).
-- **3–5× faster than Ink on mounted workloads** — wins all 16 scenarios in our [Ink benchmarks](/guide/silvery-vs-ink#performance--size). No direct Textual benchmarks yet; in practice, all three frameworks are fast enough for most TUI apps.
+- **3–6× faster than Ink on mounted workloads** — faster in all 16 scenarios in our [Ink benchmarks](/guide/silvery-vs-ink#performance--size). No direct Textual benchmarks yet; in practice, all three frameworks are fast enough for most TUI apps.
 - **Termless testing** — [Termless](https://termless.dev) runs tests across 10+ real terminal parsers (xterm.js, vt100, Ghostty, Kitty, Alacritty, ...). Verify resolved RGB colors per cell, not just widget state.
 - **Ink compatibility layer** — 99% of Ink's tests pass on silvery's compat layer. If you're in the JS ecosystem and have Ink code, it migrates easily.
 - **Blurred inline/fullscreen boundary** — inline mode gets cell-level incremental rendering and dynamic scrollback graduation; fullscreen mode gets app-managed scrollback history.
@@ -49,7 +51,7 @@ The biggest differences at a glance:
 | **Image rendering** | None built-in                                                                                                                           | Kitty graphics + Sixel with auto-detect                                                                                             |
 | **Web target**      | Textual Web (serve TUI in browser)                                                                                                      | Experimental (Canvas 2D, DOM)                                                                                                       |
 | **Theme system**    | TCSS variables + built-in themes                                                                                                        | 38 palettes, semantic tokens (`$primary`, `$muted`), auto-detect                                                                    |
-| **Runtime**         | CPython / PyPy                                                                                                                          | Node.js / Bun / Deno                                                                                                                |
+| **Runtime**         | CPython / PyPy                                                                                                                          | Node.js / Bun                                                                                                                       |
 | **Native deps**     | None                                                                                                                                    | None                                                                                                                                |
 | **Community**       | Large (Python TUI standard)                                                                                                             | Newer, smaller community                                                                                                            |
 
@@ -340,7 +342,7 @@ Python and TypeScript are both interpreted languages, so neither has Go or Rust-
 
 **Textual** uses asyncio and careful caching. Widget rendering is optimized with Rich's rendering pipeline. Large DataTables use virtual scrolling for 1000+ rows.
 
-**Silvery** uses incremental rendering with per-node dirty tracking. Cell-level buffer diff means only changed characters generate output. On mounted workloads, Silvery is 3–5× faster than Ink across all 16 benchmark scenarios — see the [Ink comparison benchmarks](/guide/silvery-vs-ink#performance--size) for methodology and numbers. We have not directly benchmarked against Textual (different language runtimes make apples-to-apples comparison difficult).
+**Silvery** uses incremental rendering with per-node dirty tracking. Cell-level buffer diff means only changed characters generate output. On mounted workloads, Silvery is 3–6× faster than Ink across all 16 benchmark scenarios — see the [Ink comparison benchmarks](/guide/silvery-vs-ink#performance--size) for methodology and numbers. We have not directly benchmarked against Textual (different language runtimes make apples-to-apples comparison difficult).
 
 For most applications, both are fast enough. If you're building an app with thousands of rapidly updating nodes, Silvery's incremental approach has an advantage. If you're building a data dashboard that updates every few seconds, both handle it comfortably.
 

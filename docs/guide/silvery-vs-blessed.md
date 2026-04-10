@@ -6,6 +6,8 @@ _External project claims last verified: 2026-04. Blessed version: 0.1.81 (last r
 
 Silvery (2025) is a ground-up reimplementation with a React component model, CSS flexbox layout, and an incremental rendering pipeline. Different era, different architecture, different trade-offs.
 
+Silvery grew out of building a complex terminal app where components needed to know their size during render, updates needed to be fast, and scroll containers, mouse events, focus scopes, and Playwright-style testing needed to just work. Three principles emerged: take the best from the web, stay true to the terminal, and raise the bar for developer ergonomics, architecture composability, and performance.
+
 ## Highlights
 
 The biggest differences at a glance:
@@ -18,7 +20,7 @@ The biggest differences at a glance:
 - **45+ built-in components** — VirtualList, Table, TreeView, CommandPalette, Toast, Tabs, SplitView, TextArea, ModalDialog, and more.
 - **Multi-backend test matrix** — [Termless](https://termless.dev) runs tests across 10+ real terminal parsers (xterm.js, vt100, Ghostty, Kitty, Alacritty, ...). Blessed has no built-in testing support.
 - **Dynamic scrollback** — items graduate to terminal history automatically; inline/fullscreen hybrid modes blur the boundary. Blessed has neither.
-- **3–5× faster on mounted workloads** — cell-level diff + incremental rendering vs region-level damage buffer. Output efficiency is 10–20× less ANSI emitted per update.
+- **3–6× faster on mounted workloads** — cell-level diff + incremental rendering vs region-level damage buffer. Output efficiency is 10–20× less ANSI emitted per update.
 - **38 palettes, semantic tokens** — theme system with `$primary`, `$muted`, auto-detection. Blessed uses manual styling.
 
 **Where Blessed is stronger:**
@@ -359,4 +361,4 @@ Both tools serve different needs. The right choice depends on your situation.
 - **Unicode content** -- international text, emoji, CJK characters work correctly out of the box
 - **Testing** -- Termless provides test coverage across 10+ terminal backends that Blessed cannot match
 - **TypeScript** -- type safety, editor support, and modern JavaScript patterns
-- **Performance** -- 3–5× faster mounted updates and 10–20× less terminal output per change
+- **Performance** -- 3–6× faster mounted updates and 10–20× less terminal output per change
