@@ -49,8 +49,14 @@ export function layoutPhase(root: AgNode, width: number, height: number): void {
     )
   }
 
-  // Propagate computed dimensions to all nodes
-  propagateLayout(root, 0, 0)
+  // Propagate computed dimensions to all nodes.
+  // When dimensions haven't changed, enable incremental skip: subtrees
+  // whose Flexily-computed rect matches their existing boxRect are skipped
+  // entirely (O(1) rect comparison prunes O(subtree) walk).
+  // On dimension change, the root constraint changed so all nodes may get
+  // new results — skip nothing, propagate the full tree.
+  const incrementalSkip = !dimensionsChanged
+  propagateLayout(root, 0, 0, incrementalSkip)
 
   // NOTE: Subscribers are NOT notified here anymore.
   // They are notified in executeRender AFTER scrollrectPhase completes,
@@ -89,16 +95,29 @@ function hasLayoutDirtyNodes(node: AgNode, path = "root"): boolean {
  * Propagate computed layout from Yoga nodes to SilveryNodes.
  * Sets boxRect (content-relative position) on each node.
  *
+ * When `incrementalSkip` is true, nodes whose Flexily-computed rect matches
+ * their existing boxRect can skip the entire subtree — their layout is
+ * unchanged. This converts the O(N) tree walk into O(dirty) for frames
+ * where only a few nodes changed layout.
+ *
+ * The skip is safe because:
+ * - Flexily's internal fingerprint caching guarantees identical output for
+ *   subtrees whose inputs didn't change
+ * - If the parent's rect matches, all descendants' rects also match
+ *   (Flexily computes absolute positions from parent dimensions)
+ * - prevLayout, layoutDirty (already false), and layoutChangedThisFrame
+ *   (stale epoch, won't match current) all retain correct values
+ *
  * @param node The node to process
  * @param parentX Absolute X position of parent
  * @param parentY Absolute Y position of parent
+ * @param incrementalSkip When true, skip subtrees where Flexily results match existing boxRect
  */
-function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
-  // Save previous layout for change detection
-  node.prevLayout = node.boxRect
-
+function propagateLayout(node: AgNode, parentX: number, parentY: number, incrementalSkip: boolean): void {
   // Virtual/raw text nodes (no layoutNode) inherit parent's position
   if (!node.layoutNode) {
+    // Save previous layout for change detection
+    node.prevLayout = node.boxRect
     const rect: Rect = {
       x: parentX,
       y: parentY,
@@ -109,7 +128,7 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
     node.layoutDirty = false
     // Still recurse to children (virtual text nodes can have raw text children)
     for (const child of node.children) {
-      propagateLayout(child, parentX, parentY)
+      propagateLayout(child, parentX, parentY, incrementalSkip)
     }
     return
   }
@@ -121,6 +140,32 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
     width: node.layoutNode.getComputedWidth(),
     height: node.layoutNode.getComputedHeight(),
   }
+
+  // Container-level layout skip: if incremental mode is enabled and this
+  // node's Flexily-computed rect matches the existing boxRect, the entire
+  // subtree is unchanged. Skip propagation — all descendants retain correct
+  // prevLayout, boxRect, layoutDirty (false), and layoutChangedThisFrame
+  // (stale epoch) from the previous frame.
+  //
+  // This check is O(1) per node (4 number comparisons) and prunes entire
+  // subtrees, converting propagateLayout from O(N) to O(changed).
+  // Note: prevLayout is already synced to boxRect by syncPrevLayout() at
+  // the end of the previous render pass, so skipping is safe.
+  if (incrementalSkip && node.boxRect && !node.layoutDirty) {
+    if (
+      rect.x === node.boxRect.x &&
+      rect.y === node.boxRect.y &&
+      rect.width === node.boxRect.width &&
+      rect.height === node.boxRect.height
+    ) {
+      return
+    }
+  }
+
+  // Save previous layout for change detection (must happen AFTER the skip
+  // check above — skipped nodes don't need prevLayout updated since
+  // syncPrevLayout already set prevLayout = boxRect after the previous frame)
+  node.prevLayout = node.boxRect
   node.boxRect = rect
 
   // Clear layout dirty flag
@@ -161,7 +206,7 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
 
   // Recurse to children
   for (const child of node.children) {
-    propagateLayout(child, rect.x, rect.y)
+    propagateLayout(child, rect.x, rect.y, incrementalSkip)
   }
 }
 
