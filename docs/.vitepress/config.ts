@@ -265,6 +265,7 @@ export default withMermaid(
             { text: "Terminal Capabilities", link: "/reference/terminal-capabilities" },
             { text: "Terminal Matrix", link: "/reference/terminal-matrix" },
             { text: "Devtools", link: "/reference/devtools" },
+            { text: "Environment Variables", link: "/reference/environment-variables" },
             { text: "Recipes", link: "/reference/recipes" },
             { text: "@silvery/commander", link: "/reference/commander" },
             { text: "@silvery/ansi", link: "/reference/ansi" },
