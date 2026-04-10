@@ -226,10 +226,16 @@ const _nodeTraceEnabled = typeof process !== "undefined" && envTruthy(process.en
  * When reactive is ON + STRICT is ON: oracle runs in parallel and asserts equivalence.
  * When reactive is ON + STRICT is OFF: pure reactive, no oracle overhead (production/bench).
  */
-const _reactiveEnabled =
+let _reactiveEnabled =
   typeof process === "undefined" || process.env?.SILVERY_REACTIVE !== "0"
-const _reactiveVerifyEnabled =
+let _reactiveVerifyEnabled =
   _reactiveEnabled && typeof process !== "undefined" && envTruthy(process.env?.SILVERY_STRICT)
+
+/** Toggle reactive cascade mode at runtime (for benchmarking). */
+export function setReactiveEnabled(enabled: boolean): void {
+  _reactiveEnabled = enabled
+  _reactiveVerifyEnabled = enabled && typeof process !== "undefined" && envTruthy(process.env?.SILVERY_STRICT)
+}
 
 /** DIAG: compute node depth in tree */
 function _getNodeDepth(node: AgNode): number {
