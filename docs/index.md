@@ -201,7 +201,7 @@ Standalone projects Silvery builds on — each stands on its own:
 }
 .VPFeature .line {
   display: block;
-  margin-top: 0.5em;
+  margin-top: 0.75em;
 }
 .VPFeature .line:first-child {
   margin-top: 0;
