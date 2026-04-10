@@ -16,7 +16,7 @@ import { createRenderer } from "@silvery/test"
 import { Box, Text } from "@silvery/ag-react"
 import { hostConfig } from "@silvery/ag-react/reconciler/host-config"
 import { createNode } from "@silvery/ag-react/reconciler/nodes"
-import { INITIAL_EPOCH, isCurrentEpoch } from "@silvery/ag/epoch"
+import { INITIAL_EPOCH, isDirty, CONTENT_BIT, STYLE_PROPS_BIT } from "@silvery/ag/epoch"
 
 /**
  * Create a controllable promise for testing Suspense.
@@ -221,32 +221,30 @@ describe("hide/unhide instances (Suspense)", () => {
     // so stylePropsDirty is the surviving flag that ensures render phase re-renders the node.
     const node = createNode("silvery-box", {})
     // Clear all flags (simulate post-render state)
-    node.contentDirtyEpoch = INITIAL_EPOCH
-    node.stylePropsDirtyEpoch = INITIAL_EPOCH
+    node.dirtyBits = 0
+    node.dirtyEpoch = INITIAL_EPOCH
     node.layoutDirty = false
-    node.subtreeDirtyEpoch = INITIAL_EPOCH
 
     hostConfig.hideInstance(node)
 
     expect(node.hidden).toBe(true)
-    expect(isCurrentEpoch(node.contentDirtyEpoch)).toBe(true)
+    expect(isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT)).toBe(true)
     // This is the missing flag — stylePropsDirty must be set
-    expect(isCurrentEpoch(node.stylePropsDirtyEpoch)).toBe(true)
+    expect(isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT)).toBe(true)
   })
 
   test("unhideInstance sets stylePropsDirty on the instance", () => {
     const node = createNode("silvery-box", {})
     node.hidden = true
-    node.contentDirtyEpoch = INITIAL_EPOCH
-    node.stylePropsDirtyEpoch = INITIAL_EPOCH
+    node.dirtyBits = 0
+    node.dirtyEpoch = INITIAL_EPOCH
     node.layoutDirty = false
-    node.subtreeDirtyEpoch = INITIAL_EPOCH
 
     hostConfig.unhideInstance(node, {})
 
     expect(node.hidden).toBe(false)
-    expect(isCurrentEpoch(node.contentDirtyEpoch)).toBe(true)
-    expect(isCurrentEpoch(node.stylePropsDirtyEpoch)).toBe(true)
+    expect(isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT)).toBe(true)
+    expect(isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT)).toBe(true)
   })
 
   test("hideInstance sets layoutDirty and marks layout node dirty", () => {
@@ -254,10 +252,9 @@ describe("hide/unhide instances (Suspense)", () => {
     // skips hidden children). The layout engine must recalculate dimensions.
     // Without layoutDirty + layoutNode.markDirty(), layout uses stale cache.
     const node = createNode("silvery-box", {})
-    node.contentDirtyEpoch = INITIAL_EPOCH
-    node.stylePropsDirtyEpoch = INITIAL_EPOCH
+    node.dirtyBits = 0
+    node.dirtyEpoch = INITIAL_EPOCH
     node.layoutDirty = false
-    node.subtreeDirtyEpoch = INITIAL_EPOCH
 
     hostConfig.hideInstance(node)
 
@@ -268,10 +265,9 @@ describe("hide/unhide instances (Suspense)", () => {
   test("unhideInstance sets layoutDirty and marks layout node dirty", () => {
     const node = createNode("silvery-box", {})
     node.hidden = true
-    node.contentDirtyEpoch = INITIAL_EPOCH
-    node.stylePropsDirtyEpoch = INITIAL_EPOCH
+    node.dirtyBits = 0
+    node.dirtyEpoch = INITIAL_EPOCH
     node.layoutDirty = false
-    node.subtreeDirtyEpoch = INITIAL_EPOCH
 
     hostConfig.unhideInstance(node, {})
 
@@ -287,19 +283,19 @@ describe("hide/unhide instances (Suspense)", () => {
     textNode.parent = parent
     parent.children.push(textNode)
     // Clear flags
-    textNode.contentDirtyEpoch = INITIAL_EPOCH
-    textNode.stylePropsDirtyEpoch = INITIAL_EPOCH
-    parent.contentDirtyEpoch = INITIAL_EPOCH
-    parent.stylePropsDirtyEpoch = INITIAL_EPOCH
+    textNode.dirtyBits = 0
+    textNode.dirtyEpoch = INITIAL_EPOCH
+    parent.dirtyBits = 0
+    parent.dirtyEpoch = INITIAL_EPOCH
     parent.layoutDirty = false
 
     hostConfig.hideTextInstance(textNode)
 
     expect(textNode.hidden).toBe(true)
-    expect(isCurrentEpoch(textNode.contentDirtyEpoch)).toBe(true)
-    expect(isCurrentEpoch(textNode.stylePropsDirtyEpoch)).toBe(true)
+    expect(isDirty(textNode.dirtyBits, textNode.dirtyEpoch, CONTENT_BIT)).toBe(true)
+    expect(isDirty(textNode.dirtyBits, textNode.dirtyEpoch, STYLE_PROPS_BIT)).toBe(true)
     // Parent (nearest layout ancestor) should be marked dirty
-    expect(isCurrentEpoch(parent.contentDirtyEpoch)).toBe(true)
+    expect(isDirty(parent.dirtyBits, parent.dirtyEpoch, CONTENT_BIT)).toBe(true)
     expect(parent.layoutDirty).toBe(true)
     // parent's layoutNode.markDirty() should have been called via markLayoutAncestorDirty
   })
@@ -310,18 +306,18 @@ describe("hide/unhide instances (Suspense)", () => {
     textNode.parent = parent
     parent.children.push(textNode)
     textNode.hidden = true
-    textNode.contentDirtyEpoch = INITIAL_EPOCH
-    textNode.stylePropsDirtyEpoch = INITIAL_EPOCH
-    parent.contentDirtyEpoch = INITIAL_EPOCH
-    parent.stylePropsDirtyEpoch = INITIAL_EPOCH
+    textNode.dirtyBits = 0
+    textNode.dirtyEpoch = INITIAL_EPOCH
+    parent.dirtyBits = 0
+    parent.dirtyEpoch = INITIAL_EPOCH
     parent.layoutDirty = false
 
     hostConfig.unhideTextInstance(textNode, "hello")
 
     expect(textNode.hidden).toBe(false)
-    expect(isCurrentEpoch(textNode.contentDirtyEpoch)).toBe(true)
-    expect(isCurrentEpoch(textNode.stylePropsDirtyEpoch)).toBe(true)
-    expect(isCurrentEpoch(parent.contentDirtyEpoch)).toBe(true)
+    expect(isDirty(textNode.dirtyBits, textNode.dirtyEpoch, CONTENT_BIT)).toBe(true)
+    expect(isDirty(textNode.dirtyBits, textNode.dirtyEpoch, STYLE_PROPS_BIT)).toBe(true)
+    expect(isDirty(parent.dirtyBits, parent.dirtyEpoch, CONTENT_BIT)).toBe(true)
     expect(parent.layoutDirty).toBe(true)
     // parent's layoutNode.markDirty() should have been called via markLayoutAncestorDirty
   })

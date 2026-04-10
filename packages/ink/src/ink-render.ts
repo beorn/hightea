@@ -8,7 +8,7 @@ import { StdoutContext, StderrContext, TermContext } from "@silvery/ag-react/con
 import { bufferToStyledText, bufferToText, type TerminalBuffer } from "@silvery/ag-term/buffer"
 import { stripAnsi } from "@silvery/ag-term/unicode"
 import { createTerm } from "@silvery/ag-term/ansi"
-import { isCurrentEpoch } from "@silvery/ag/epoch"
+import { isDirty, SUBTREE_BIT, CHILDREN_BIT } from "@silvery/ag/epoch"
 import { createCursorStore, CursorProvider } from "@silvery/ag-react/hooks/useCursor"
 import { SilveryErrorBoundary } from "@silvery/ag-react/error-boundary"
 import { InkCursorStoreCtx } from "./with-ink-cursor"
@@ -767,7 +767,11 @@ function needsLayoutRecalculation(node: any): boolean {
   // Walk up from node to root checking dirty flags
   let current = node
   while (current) {
-    if (current.layoutDirty || isCurrentEpoch(current.subtreeDirtyEpoch) || isCurrentEpoch(current.childrenDirtyEpoch))
+    if (
+      current.layoutDirty ||
+      isDirty(current.dirtyBits, current.dirtyEpoch, SUBTREE_BIT) ||
+      isDirty(current.dirtyBits, current.dirtyEpoch, CHILDREN_BIT)
+    )
       return true
     current = current.parent
   }

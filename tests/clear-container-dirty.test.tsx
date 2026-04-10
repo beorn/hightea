@@ -16,7 +16,7 @@ import { createRenderer } from "@silvery/test"
 import { Box, Text } from "@silvery/ag-react"
 import { hostConfig, type Container } from "@silvery/ag-react/reconciler/host-config"
 import { createNode } from "@silvery/ag-react/reconciler/nodes"
-import { INITIAL_EPOCH, isCurrentEpoch } from "@silvery/ag/epoch"
+import { INITIAL_EPOCH, isDirty, CONTENT_BIT, CHILDREN_BIT, SUBTREE_BIT } from "@silvery/ag/epoch"
 
 describe("clearContainer dirty invalidation", () => {
   test("clearContainer sets childrenDirty on root", () => {
@@ -29,16 +29,15 @@ describe("clearContainer dirty invalidation", () => {
       root.layoutNode.insertChild(child.layoutNode, 0)
     }
     // Clear all flags (simulate post-render state)
-    root.childrenDirtyEpoch = INITIAL_EPOCH
-    root.contentDirtyEpoch = INITIAL_EPOCH
+    root.dirtyBits = 0
+    root.dirtyEpoch = INITIAL_EPOCH
     root.layoutDirty = false
-    root.subtreeDirtyEpoch = INITIAL_EPOCH
 
     const container: Container = { root, onRender: () => {} }
     hostConfig.clearContainer(container)
 
     expect(root.children).toHaveLength(0)
-    expect(isCurrentEpoch(root.childrenDirtyEpoch)).toBe(true)
+    expect(isDirty(root.dirtyBits, root.dirtyEpoch, CHILDREN_BIT)).toBe(true)
   })
 
   test("clearContainer sets contentDirty on root", () => {
@@ -49,15 +48,14 @@ describe("clearContainer dirty invalidation", () => {
     if (root.layoutNode && child.layoutNode) {
       root.layoutNode.insertChild(child.layoutNode, 0)
     }
-    root.childrenDirtyEpoch = INITIAL_EPOCH
-    root.contentDirtyEpoch = INITIAL_EPOCH
+    root.dirtyBits = 0
+    root.dirtyEpoch = INITIAL_EPOCH
     root.layoutDirty = false
-    root.subtreeDirtyEpoch = INITIAL_EPOCH
 
     const container: Container = { root, onRender: () => {} }
     hostConfig.clearContainer(container)
 
-    expect(isCurrentEpoch(root.contentDirtyEpoch)).toBe(true)
+    expect(isDirty(root.dirtyBits, root.dirtyEpoch, CONTENT_BIT)).toBe(true)
   })
 
   test("clearContainer sets layoutDirty on root and marks layout node dirty", () => {
@@ -68,10 +66,9 @@ describe("clearContainer dirty invalidation", () => {
     if (root.layoutNode && child.layoutNode) {
       root.layoutNode.insertChild(child.layoutNode, 0)
     }
-    root.childrenDirtyEpoch = INITIAL_EPOCH
-    root.contentDirtyEpoch = INITIAL_EPOCH
+    root.dirtyBits = 0
+    root.dirtyEpoch = INITIAL_EPOCH
     root.layoutDirty = false
-    root.subtreeDirtyEpoch = INITIAL_EPOCH
 
     // Spy on layoutNode.markDirty
     const markDirtySpy = vi.spyOn(root.layoutNode!, "markDirty")
@@ -91,15 +88,14 @@ describe("clearContainer dirty invalidation", () => {
     if (root.layoutNode && child.layoutNode) {
       root.layoutNode.insertChild(child.layoutNode, 0)
     }
-    root.childrenDirtyEpoch = INITIAL_EPOCH
-    root.contentDirtyEpoch = INITIAL_EPOCH
+    root.dirtyBits = 0
+    root.dirtyEpoch = INITIAL_EPOCH
     root.layoutDirty = false
-    root.subtreeDirtyEpoch = INITIAL_EPOCH
 
     const container: Container = { root, onRender: () => {} }
     hostConfig.clearContainer(container)
 
-    expect(isCurrentEpoch(root.subtreeDirtyEpoch)).toBe(true)
+    expect(isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)).toBe(true)
   })
 
   test("clearContainer with no children still sets dirty flags", () => {
@@ -107,18 +103,17 @@ describe("clearContainer dirty invalidation", () => {
     // calls clearContainer unconditionally, and the root may have stale
     // flag state from a prior render cycle.
     const root = createNode("silvery-box", {})
-    root.childrenDirtyEpoch = INITIAL_EPOCH
-    root.contentDirtyEpoch = INITIAL_EPOCH
+    root.dirtyBits = 0
+    root.dirtyEpoch = INITIAL_EPOCH
     root.layoutDirty = false
-    root.subtreeDirtyEpoch = INITIAL_EPOCH
 
     const container: Container = { root, onRender: () => {} }
     hostConfig.clearContainer(container)
 
-    expect(isCurrentEpoch(root.childrenDirtyEpoch)).toBe(true)
-    expect(isCurrentEpoch(root.contentDirtyEpoch)).toBe(true)
+    expect(isDirty(root.dirtyBits, root.dirtyEpoch, CHILDREN_BIT)).toBe(true)
+    expect(isDirty(root.dirtyBits, root.dirtyEpoch, CONTENT_BIT)).toBe(true)
     expect(root.layoutDirty).toBe(true)
-    expect(isCurrentEpoch(root.subtreeDirtyEpoch)).toBe(true)
+    expect(isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)).toBe(true)
   })
 
   test("content replaced after conditional unmount renders correctly", () => {

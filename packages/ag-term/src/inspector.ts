@@ -18,7 +18,7 @@
 import type { createWriteStream as createWriteStreamType } from "node:fs"
 import type { RenderStats } from "./scheduler"
 import type { AgNode } from "@silvery/ag/types"
-import { isCurrentEpoch } from "@silvery/ag/epoch"
+import { isDirty, CONTENT_BIT, STYLE_PROPS_BIT, BG_BIT, SUBTREE_BIT, CHILDREN_BIT } from "@silvery/ag/epoch"
 
 // =============================================================================
 // Types
@@ -120,11 +120,11 @@ export function inspectTree(rootNode: AgNode, options?: { depth?: number; showLa
     // Dirty flags
     const dirtyFlags: string[] = []
     if (node.layoutDirty) dirtyFlags.push("layout")
-    if (isCurrentEpoch(node.contentDirtyEpoch)) dirtyFlags.push("content")
-    if (isCurrentEpoch(node.stylePropsDirtyEpoch)) dirtyFlags.push("paint")
-    if (isCurrentEpoch(node.bgDirtyEpoch)) dirtyFlags.push("bg")
-    if (isCurrentEpoch(node.subtreeDirtyEpoch)) dirtyFlags.push("subtree")
-    if (isCurrentEpoch(node.childrenDirtyEpoch)) dirtyFlags.push("children")
+    if (isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT)) dirtyFlags.push("content")
+    if (isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT)) dirtyFlags.push("paint")
+    if (isDirty(node.dirtyBits, node.dirtyEpoch, BG_BIT)) dirtyFlags.push("bg")
+    if (isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT)) dirtyFlags.push("subtree")
+    if (isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT)) dirtyFlags.push("children")
     const dirtyStr = dirtyFlags.length > 0 ? ` dirty=[${dirtyFlags.join(",")}]` : ""
 
     // Text content (for text nodes)

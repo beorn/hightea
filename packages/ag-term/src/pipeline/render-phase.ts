@@ -31,7 +31,19 @@ import type { Theme } from "@silvery/theme/types"
 // (SILVERY_REACTIVE=0 fallback). Tree-shaken in production builds.
 import { computeCascade } from "./cascade-predicates"
 import { isStyleOnlyDirty } from "@silvery/ag/dirty-tracking"
-import { isCurrentEpoch, INITIAL_EPOCH, advanceRenderEpoch } from "@silvery/ag/epoch"
+import {
+  isCurrentEpoch,
+  INITIAL_EPOCH,
+  advanceRenderEpoch,
+  isDirty,
+  CONTENT_BIT,
+  STYLE_PROPS_BIT,
+  BG_BIT,
+  CHILDREN_BIT,
+  SUBTREE_BIT,
+  ABS_CHILD_BIT,
+  DESC_OVERFLOW_BIT,
+} from "@silvery/ag/epoch"
 import type { CascadeOutputs } from "./cascade-predicates"
 import type { ClipBounds, RenderPhaseStats, NodeRenderState, NodeTraceEntry, PipelineContext } from "./types"
 import { getReactiveState, syncToSignals, readReactiveCascade, assertReactiveMatchesOracle } from "./reactive-node"
@@ -386,11 +398,11 @@ function renderNodeToBuffer(
   // (e.g., ancestor with backgroundColor that breaks the ancestorCleared chain).
   const canSkipEntireSubtree =
     hasPrevBuffer &&
-    !isCurrentEpoch(node.contentDirtyEpoch) &&
-    !isCurrentEpoch(node.stylePropsDirtyEpoch) &&
+    !isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT) &&
+    !isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT) &&
     !layoutChanged &&
-    !isCurrentEpoch(node.subtreeDirtyEpoch) &&
-    !isCurrentEpoch(node.childrenDirtyEpoch) &&
+    !isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT) &&
+    !isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT) &&
     !childPositionChanged &&
     !ancestorLayoutChanged &&
     !scrollOffsetChanged
@@ -454,11 +466,11 @@ function renderNodeToBuffer(
   if (instrumentEnabled) {
     stats.nodesRendered++
     if (!hasPrevBuffer) stats.noPrevBuffer++
-    if (isCurrentEpoch(node.contentDirtyEpoch)) stats.flagContentDirty++
-    if (isCurrentEpoch(node.stylePropsDirtyEpoch)) stats.flagStylePropsDirty++
+    if (isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT)) stats.flagContentDirty++
+    if (isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT)) stats.flagStylePropsDirty++
     if (layoutChanged) stats.flagLayoutChanged++
-    if (isCurrentEpoch(node.subtreeDirtyEpoch)) stats.flagSubtreeDirty++
-    if (isCurrentEpoch(node.childrenDirtyEpoch)) stats.flagChildrenDirty++
+    if (isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT)) stats.flagSubtreeDirty++
+    if (isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT)) stats.flagChildrenDirty++
     if (childPositionChanged) stats.flagChildPositionChanged++
     if (ancestorLayoutChanged) stats.flagAncestorLayoutChanged++
   }
@@ -497,15 +509,15 @@ function renderNodeToBuffer(
       if (_reactiveVerifyEnabled) {
         const oracleCascade = computeCascade({
           hasPrevBuffer,
-          contentDirty: isCurrentEpoch(node.contentDirtyEpoch),
-          stylePropsDirty: isCurrentEpoch(node.stylePropsDirtyEpoch),
+          contentDirty: isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT),
+          stylePropsDirty: isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT),
           layoutChanged,
-          subtreeDirty: isCurrentEpoch(node.subtreeDirtyEpoch),
-          childrenDirty: isCurrentEpoch(node.childrenDirtyEpoch),
+          subtreeDirty: isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT),
+          childrenDirty: isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT),
           childPositionChanged,
           ancestorLayoutChanged,
           ancestorCleared,
-          bgDirty: isCurrentEpoch(node.bgDirtyEpoch),
+          bgDirty: isDirty(node.dirtyBits, node.dirtyEpoch, BG_BIT),
           isTextNode: node.type === "silvery-text",
           hasBgColor: !!getEffectiveBg(props),
           absoluteChildMutated,
@@ -517,15 +529,15 @@ function renderNodeToBuffer(
       // Fallback: imperative oracle (SILVERY_REACTIVE=0)
       cascade = computeCascade({
         hasPrevBuffer,
-        contentDirty: isCurrentEpoch(node.contentDirtyEpoch),
-        stylePropsDirty: isCurrentEpoch(node.stylePropsDirtyEpoch),
+        contentDirty: isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT),
+        stylePropsDirty: isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT),
         layoutChanged,
-        subtreeDirty: isCurrentEpoch(node.subtreeDirtyEpoch),
-        childrenDirty: isCurrentEpoch(node.childrenDirtyEpoch),
+        subtreeDirty: isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT),
+        childrenDirty: isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT),
         childPositionChanged,
         ancestorLayoutChanged,
         ancestorCleared,
-        bgDirty: isCurrentEpoch(node.bgDirtyEpoch),
+        bgDirty: isDirty(node.dirtyBits, node.dirtyEpoch, BG_BIT),
         isTextNode: node.type === "silvery-text",
         hasBgColor: !!getEffectiveBg(props),
         absoluteChildMutated,
@@ -617,7 +629,7 @@ function renderNodeToBuffer(
       ancestorCleared ||
       ancestorLayoutChanged ||
       cascade.contentAreaAffected ||
-      isCurrentEpoch(node.stylePropsDirtyEpoch) ||
+      isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT) ||
       cascade.bgRefillNeeded
 
     // Render this node's own content (box bg/border or text).
@@ -709,15 +721,15 @@ function buildCascadeInputs(
   node: AgNode,
   hasPrevBuffer: boolean,
 ): { absoluteChildMutated: boolean; descendantOverflowChanged: boolean } {
-  if (!hasPrevBuffer || !isCurrentEpoch(node.subtreeDirtyEpoch) || node.children === undefined) {
+  if (!hasPrevBuffer || !isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT) || node.children === undefined) {
     return { absoluteChildMutated: false, descendantOverflowChanged: false }
   }
 
   // Phase 3b: Read cached epoch values computed during layout phase
   // (propagateLayout), avoiding per-node tree walks in the render phase.
   return {
-    absoluteChildMutated: isCurrentEpoch(node.absoluteChildMutatedEpoch),
-    descendantOverflowChanged: isCurrentEpoch(node.descendantOverflowChangedEpoch),
+    absoluteChildMutated: isDirty(node.dirtyBits, node.dirtyEpoch, ABS_CHILD_BIT),
+    descendantOverflowChanged: isDirty(node.dirtyBits, node.dirtyEpoch, DESC_OVERFLOW_BIT),
   }
 }
 
@@ -757,17 +769,17 @@ function traceRenderDecision(
   if (instrumentEnabled) {
     if (_traceThis) {
       const flagStr = [
-        isCurrentEpoch(node.contentDirtyEpoch) && "C",
-        isCurrentEpoch(node.stylePropsDirtyEpoch) && "P",
-        isCurrentEpoch(node.bgDirtyEpoch) && "B",
-        isCurrentEpoch(node.subtreeDirtyEpoch) && "S",
-        isCurrentEpoch(node.childrenDirtyEpoch) && "Ch",
+        isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT) && "C",
+        isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT) && "P",
+        isDirty(node.dirtyBits, node.dirtyEpoch, BG_BIT) && "B",
+        isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT) && "S",
+        isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT) && "Ch",
         childPositionChanged && "CP",
       ]
         .filter(Boolean)
         .join(",")
       const childrenNeedRepaint_ =
-        isCurrentEpoch(node.childrenDirtyEpoch) || childPositionChanged || childrenNeedFreshRender
+        isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT) || childPositionChanged || childrenNeedFreshRender
       const childHasPrev_ = childrenNeedRepaint_ ? false : hasPrevBuffer
       const childAncestorCleared_ = contentRegionCleared || (ancestorCleared && !getEffectiveBg(props))
       nodeTrace.push({
@@ -799,9 +811,9 @@ function traceRenderDecision(
       }
       const id = (node.props as Record<string, unknown>).id ?? node.type
       const flags = [
-        isCurrentEpoch(node.contentDirtyEpoch) && "C",
-        isCurrentEpoch(node.stylePropsDirtyEpoch) && "P",
-        isCurrentEpoch(node.childrenDirtyEpoch) && "Ch",
+        isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT) && "C",
+        isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT) && "P",
+        isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT) && "Ch",
         layoutChanged && "L",
         childPositionChanged && "CP",
       ]
@@ -818,13 +830,13 @@ function traceRenderDecision(
     const depth = _getNodeDepth(node)
     const prev = node.prevLayout
     const flags = [
-      isCurrentEpoch(node.contentDirtyEpoch) && "C",
-      isCurrentEpoch(node.stylePropsDirtyEpoch) && "P",
+      isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT) && "C",
+      isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT) && "P",
       layoutChanged && "L",
-      isCurrentEpoch(node.subtreeDirtyEpoch) && "S",
-      isCurrentEpoch(node.childrenDirtyEpoch) && "Ch",
+      isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT) && "S",
+      isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT) && "Ch",
       childPositionChanged && "CP",
-      isCurrentEpoch(node.bgDirtyEpoch) && "B",
+      isDirty(node.dirtyBits, node.dirtyEpoch, BG_BIT) && "B",
     ]
       .filter(Boolean)
       .join(",")
@@ -1147,7 +1159,10 @@ function renderScrollContainerChildren(
 
   // Compute scroll bg eagerly -- planScrollRender needs it and it's cheap
   const scrollBg =
-    scrollOffsetChanged || isCurrentEpoch(node.childrenDirtyEpoch) || childrenNeedFreshRender || visibleRangeChanged
+    scrollOffsetChanged ||
+    isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT) ||
+    childrenNeedFreshRender ||
+    visibleRangeChanged
       ? getEffectiveBg(props)
         ? parseColor(getEffectiveBg(props)!)
         : inheritedBg.color
@@ -1159,7 +1174,7 @@ function renderScrollContainerChildren(
     visibleRangeChanged,
     hasStickyChildren,
     childrenNeedFreshRender,
-    childrenDirty: isCurrentEpoch(node.childrenDirtyEpoch),
+    childrenDirty: isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT),
     hasPrevBuffer,
     ancestorCleared,
     contentRegionCleared,
@@ -1424,11 +1439,12 @@ function renderNormalChildren(
 
   // Force children to re-render when parent's region was modified on a clone,
   // children were restructured, or sibling positions shifted.
-  const childrenNeedRepaint = isCurrentEpoch(node.childrenDirtyEpoch) || childPositionChanged || childrenNeedFreshRender
+  const childrenNeedRepaint =
+    isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT) || childPositionChanged || childrenNeedFreshRender
   if (instrumentEnabled && childrenNeedRepaint && hasPrevBuffer) {
     stats.normalChildrenRepaint++
     const reasons: string[] = []
-    if (isCurrentEpoch(node.childrenDirtyEpoch)) reasons.push("childrenDirty")
+    if (isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT)) reasons.push("childrenDirty")
     if (childPositionChanged) reasons.push("childPositionChanged")
     if (childrenNeedFreshRender) reasons.push("childrenNeedFreshRender")
     stats.normalRepaintReason = reasons.join("+")
@@ -1608,7 +1624,7 @@ function canSkipChildSubtree(child: AgNode, childHasPrev: boolean, childAncestor
   // Ancestor layout change forces re-render at new position
   if (childAncestorLayoutChanged) return false
   // Any descendant dirty (includes own flags via markSubtreeDirty)
-  if (isCurrentEpoch(child.subtreeDirtyEpoch)) return false
+  if (isDirty(child.dirtyBits, child.dirtyEpoch, SUBTREE_BIT)) return false
   // Own layout changed (layout phase sets this but only propagates
   // subtreeDirtyEpoch to PARENT, not self)
   if (isCurrentEpoch(child.layoutChangedThisFrame)) return false
@@ -1631,11 +1647,8 @@ function canSkipChildSubtree(child: AgNode, childHasPrev: boolean, childAncestor
  * to expire all flags at once — O(1) instead of O(N).
  */
 function clearNodeDirtyFlags(node: AgNode): void {
-  node.contentDirtyEpoch = INITIAL_EPOCH
-  node.stylePropsDirtyEpoch = INITIAL_EPOCH
-  node.bgDirtyEpoch = INITIAL_EPOCH
-  node.subtreeDirtyEpoch = INITIAL_EPOCH
-  node.childrenDirtyEpoch = INITIAL_EPOCH
+  node.dirtyBits = 0
+  node.dirtyEpoch = INITIAL_EPOCH
   node.layoutChangedThisFrame = INITIAL_EPOCH
 }
 
@@ -1891,7 +1904,7 @@ function _clearDescendantOverflow(
       }
     }
     // Recurse into subtree-dirty children to find deeper overflows
-    if (isCurrentEpoch(child.subtreeDirtyEpoch) && child.children !== undefined) {
+    if (isDirty(child.dirtyBits, child.dirtyEpoch, SUBTREE_BIT) && child.children !== undefined) {
       _clearDescendantOverflow(
         child.children,
         buffer,

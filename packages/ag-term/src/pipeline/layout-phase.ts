@@ -8,7 +8,16 @@ import { createLogger } from "loggily"
 import { measureStats } from "./measure-stats"
 import { type BoxProps, type AgNode, type Rect, rectEqual } from "@silvery/ag/types"
 import { hasLayoutDirty, clearLayoutDirtyTracking } from "@silvery/ag/dirty-tracking"
-import { getRenderEpoch, INITIAL_EPOCH, isCurrentEpoch } from "@silvery/ag/epoch"
+import {
+  getRenderEpoch,
+  INITIAL_EPOCH,
+  isCurrentEpoch,
+  isDirty,
+  SUBTREE_BIT,
+  CHILDREN_BIT,
+  ABS_CHILD_BIT,
+  DESC_OVERFLOW_BIT,
+} from "@silvery/ag/epoch"
 import { getBorderSize, getPadding } from "./helpers"
 
 const log = createLogger("silvery:layout")
@@ -156,7 +165,7 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number, increme
   // descendant may have layoutDirty (e.g., new child mounted via appendChild).
   // The reconciler's markSubtreeDirty propagates the current epoch upward,
   // so checking subtreeDirtyEpoch ensures we don't skip over dirty descendants.
-  if (incrementalSkip && node.boxRect && !node.layoutDirty && !isCurrentEpoch(node.subtreeDirtyEpoch)) {
+  if (incrementalSkip && node.boxRect && !node.layoutDirty && !isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT)) {
     if (
       rect.x === node.boxRect.x &&
       rect.y === node.boxRect.y &&
@@ -203,8 +212,13 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number, increme
   if (isCurrentEpoch(node.layoutChangedThisFrame)) {
     const epoch = getRenderEpoch()
     let ancestor = node.parent
-    while (ancestor && ancestor.subtreeDirtyEpoch !== epoch) {
-      ancestor.subtreeDirtyEpoch = epoch
+    while (ancestor && !isDirty(ancestor.dirtyBits, ancestor.dirtyEpoch, SUBTREE_BIT)) {
+      if (ancestor.dirtyEpoch !== epoch) {
+        ancestor.dirtyBits = SUBTREE_BIT
+        ancestor.dirtyEpoch = epoch
+      } else {
+        ancestor.dirtyBits |= SUBTREE_BIT
+      }
       ancestor = ancestor.parent
     }
   }
@@ -218,20 +232,31 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number, increme
   // Both checks require children to have finalized layoutChangedThisFrame, boxRect,
   // prevLayout, childrenDirtyEpoch, and subtreeDirtyEpoch — all set above.
   // Guard: only compute when subtreeDirty (matches buildCascadeInputs guard).
-  if (isCurrentEpoch(node.subtreeDirtyEpoch) && node.children.length > 0) {
+  if (isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT) && node.children.length > 0) {
     const epoch = getRenderEpoch()
 
     // absoluteChildMutated: check direct children for absolute-positioned nodes
     // that had structural changes (children mount/unmount/reorder, layout change,
     // child position shift).
-    node.absoluteChildMutatedEpoch = _hasAbsoluteChildMutated(node.children) ? epoch : INITIAL_EPOCH
+    const absChild = _hasAbsoluteChildMutated(node.children)
 
     // descendantOverflowChanged: recursive check for descendants whose prevLayout
     // extended beyond THIS node's rect and had layoutChangedThisFrame.
-    node.descendantOverflowChangedEpoch = _hasDescendantOverflowChanged(node, rect) ? epoch : INITIAL_EPOCH
+    const descOverflow = _hasDescendantOverflowChanged(node, rect)
+
+    // Set or clear the layout-phase bits
+    let bits = node.dirtyBits
+    if (absChild) bits |= ABS_CHILD_BIT
+    else bits &= ~ABS_CHILD_BIT
+    if (descOverflow) bits |= DESC_OVERFLOW_BIT
+    else bits &= ~DESC_OVERFLOW_BIT
+    node.dirtyBits = bits
+    node.dirtyEpoch = epoch
   } else {
-    node.absoluteChildMutatedEpoch = INITIAL_EPOCH
-    node.descendantOverflowChangedEpoch = INITIAL_EPOCH
+    // Clear layout-phase bits (keep reconciler bits intact)
+    if (node.dirtyEpoch === getRenderEpoch()) {
+      node.dirtyBits &= ~(ABS_CHILD_BIT | DESC_OVERFLOW_BIT)
+    }
   }
 }
 
@@ -243,7 +268,7 @@ function _hasAbsoluteChildMutated(children: readonly AgNode[]): boolean {
     const cp = child.props as BoxProps
     if (
       cp.position === "absolute" &&
-      (isCurrentEpoch(child.childrenDirtyEpoch) ||
+      (isDirty(child.dirtyBits, child.dirtyEpoch, CHILDREN_BIT) ||
         isCurrentEpoch(child.layoutChangedThisFrame) ||
         _hasChildPositionChanged(child))
     ) {
@@ -294,7 +319,7 @@ function _checkDescendantOverflow(
         return true
       }
     }
-    if (isCurrentEpoch(child.subtreeDirtyEpoch) && child.children !== undefined) {
+    if (isDirty(child.dirtyBits, child.dirtyEpoch, SUBTREE_BIT) && child.children !== undefined) {
       if (_checkDescendantOverflow(child.children, nodeLeft, nodeTop, nodeRight, nodeBottom)) {
         return true
       }
@@ -590,7 +615,13 @@ function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: b
   // Without this, renderPhase would skip the container and children would
   // remain at their old pixel positions in the cloned buffer
   if (scrollOffset !== prevOffset || firstVisible !== prevFirstVisible || lastVisible !== prevLastVisible) {
-    node.subtreeDirtyEpoch = getRenderEpoch()
+    const epoch = getRenderEpoch()
+    if (node.dirtyEpoch !== epoch) {
+      node.dirtyBits = SUBTREE_BIT
+      node.dirtyEpoch = epoch
+    } else {
+      node.dirtyBits |= SUBTREE_BIT
+    }
   }
 
   // Store scroll state (preserve previous offset and visible range for incremental rendering)
@@ -644,7 +675,13 @@ export function stickyPhase(root: AgNode): void {
       // Clear stale data if previously had sticky children
       if (node.stickyChildren !== undefined) {
         node.stickyChildren = undefined
-        node.subtreeDirtyEpoch = getRenderEpoch()
+        const epoch = getRenderEpoch()
+        if (node.dirtyEpoch !== epoch) {
+          node.dirtyBits = SUBTREE_BIT
+          node.dirtyEpoch = epoch
+        } else {
+          node.dirtyBits |= SUBTREE_BIT
+        }
       }
       return
     }
@@ -693,7 +730,13 @@ export function stickyPhase(root: AgNode): void {
     node.stickyChildren = next
 
     if (changed) {
-      node.subtreeDirtyEpoch = getRenderEpoch()
+      const epoch = getRenderEpoch()
+      if (node.dirtyEpoch !== epoch) {
+        node.dirtyBits = SUBTREE_BIT
+        node.dirtyEpoch = epoch
+      } else {
+        node.dirtyBits |= SUBTREE_BIT
+      }
     }
   })
 }

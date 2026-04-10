@@ -10,7 +10,18 @@ import { createContext } from "react"
 import { DefaultEventPriority, DiscreteEventPriority, NoEventPriority } from "react-reconciler/constants.js"
 import type { BoxProps, AgNode, AgNodeType, TextProps } from "@silvery/ag/types"
 import { trackLayoutDirty, trackContentDirty, trackStyleOnlyDirty, trackScrollDirty } from "@silvery/ag/dirty-tracking"
-import { getRenderEpoch, INITIAL_EPOCH, isCurrentEpoch } from "@silvery/ag/epoch"
+import {
+  getRenderEpoch,
+  INITIAL_EPOCH,
+  isDirty,
+  setDirtyBit,
+  CONTENT_BIT,
+  STYLE_PROPS_BIT,
+  BG_BIT,
+  CHILDREN_BIT,
+  SUBTREE_BIT,
+  ALL_RECONCILER_BITS,
+} from "@silvery/ag/epoch"
 import { classifyPropChanges } from "./helpers"
 import { applyBoxProps, createNode, createVirtualTextNode } from "./nodes"
 import { createLogger } from "loggily"
@@ -58,8 +69,13 @@ export function setOnNodeRemoved(callback: ((removedNode: AgNode) => void) | nul
  */
 function markSubtreeDirty(node: AgNode | null): void {
   const epoch = getRenderEpoch()
-  while (node && node.subtreeDirtyEpoch !== epoch) {
-    node.subtreeDirtyEpoch = epoch
+  while (node && !isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT)) {
+    if (node.dirtyEpoch !== epoch) {
+      node.dirtyBits = SUBTREE_BIT
+      node.dirtyEpoch = epoch
+    } else {
+      node.dirtyBits |= SUBTREE_BIT
+    }
     node = node.parent
   }
 }
@@ -81,8 +97,12 @@ function markLayoutAncestorDirty(node: AgNode): void {
   }
   if (ancestor?.layoutNode) {
     const epoch = getRenderEpoch()
-    ancestor.contentDirtyEpoch = epoch
-    ancestor.stylePropsDirtyEpoch = epoch
+    if (ancestor.dirtyEpoch !== epoch) {
+      ancestor.dirtyBits = CONTENT_BIT | STYLE_PROPS_BIT
+      ancestor.dirtyEpoch = epoch
+    } else {
+      ancestor.dirtyBits |= CONTENT_BIT | STYLE_PROPS_BIT
+    }
     ancestor.layoutDirty = true
     ancestor.layoutNode.markDirty()
     trackLayoutDirty(ancestor)
@@ -256,13 +276,8 @@ export const hostConfig = {
       prevScreenRect: null,
       layoutChangedThisFrame: INITIAL_EPOCH,
       layoutDirty: false,
-      contentDirtyEpoch: epoch,
-      stylePropsDirtyEpoch: epoch,
-      bgDirtyEpoch: epoch,
-      subtreeDirtyEpoch: epoch,
-      childrenDirtyEpoch: INITIAL_EPOCH,
-      absoluteChildMutatedEpoch: INITIAL_EPOCH,
-      descendantOverflowChangedEpoch: INITIAL_EPOCH,
+      dirtyBits: CONTENT_BIT | STYLE_PROPS_BIT | BG_BIT | SUBTREE_BIT,
+      dirtyEpoch: epoch,
       layoutSubscribers: new Set(),
       textContent: text,
       isRawText: true,
@@ -291,8 +306,9 @@ export const hostConfig = {
     }
     {
       const epoch = getRenderEpoch()
-      parentInstance.childrenDirtyEpoch = epoch
-      parentInstance.contentDirtyEpoch = epoch // Text measure cache must re-collect children
+      const bits = CHILDREN_BIT | CONTENT_BIT
+      parentInstance.dirtyBits = parentInstance.dirtyEpoch !== epoch ? bits : parentInstance.dirtyBits | bits
+      parentInstance.dirtyEpoch = epoch
     }
     parentInstance.layoutDirty = true
     parentInstance.layoutNode?.markDirty()
@@ -329,8 +345,9 @@ export const hostConfig = {
     }
     {
       const epoch = getRenderEpoch()
-      container.root.childrenDirtyEpoch = epoch
-      container.root.contentDirtyEpoch = epoch // Text measure cache must re-collect children
+      const bits = CHILDREN_BIT | CONTENT_BIT
+      container.root.dirtyBits = container.root.dirtyEpoch !== epoch ? bits : container.root.dirtyBits | bits
+      container.root.dirtyEpoch = epoch
     }
     container.root.layoutDirty = true
     container.root.layoutNode?.markDirty()
@@ -352,8 +369,9 @@ export const hostConfig = {
       child.parent = null
       {
         const epoch = getRenderEpoch()
-        parentInstance.childrenDirtyEpoch = epoch
-        parentInstance.contentDirtyEpoch = epoch // Text measure cache must re-collect children
+        const bits = CHILDREN_BIT | CONTENT_BIT
+        parentInstance.dirtyBits = parentInstance.dirtyEpoch !== epoch ? bits : parentInstance.dirtyBits | bits
+        parentInstance.dirtyEpoch = epoch
       }
       parentInstance.layoutDirty = true
       parentInstance.layoutNode?.markDirty()
@@ -377,8 +395,9 @@ export const hostConfig = {
       child.parent = null
       {
         const epoch = getRenderEpoch()
-        container.root.childrenDirtyEpoch = epoch
-        container.root.contentDirtyEpoch = epoch // Text measure cache must re-collect children
+        const bits = CHILDREN_BIT | CONTENT_BIT
+        container.root.dirtyBits = container.root.dirtyEpoch !== epoch ? bits : container.root.dirtyBits | bits
+        container.root.dirtyEpoch = epoch
       }
       container.root.layoutDirty = true
       container.root.layoutNode?.markDirty()
@@ -409,8 +428,9 @@ export const hostConfig = {
       }
       {
         const epoch = getRenderEpoch()
-        parentInstance.childrenDirtyEpoch = epoch
-        parentInstance.contentDirtyEpoch = epoch // Text measure cache must re-collect children
+        const bits = CHILDREN_BIT | CONTENT_BIT
+        parentInstance.dirtyBits = parentInstance.dirtyEpoch !== epoch ? bits : parentInstance.dirtyBits | bits
+        parentInstance.dirtyEpoch = epoch
       }
       parentInstance.layoutDirty = true
       parentInstance.layoutNode?.markDirty()
@@ -440,8 +460,9 @@ export const hostConfig = {
       }
       {
         const epoch = getRenderEpoch()
-        container.root.childrenDirtyEpoch = epoch
-        container.root.contentDirtyEpoch = epoch // Text measure cache must re-collect children
+        const bits = CHILDREN_BIT | CONTENT_BIT
+        container.root.dirtyBits = container.root.dirtyEpoch !== epoch ? bits : container.root.dirtyBits | bits
+        container.root.dirtyEpoch = epoch
       }
       container.root.layoutDirty = true
       container.root.layoutNode?.markDirty()
@@ -506,13 +527,13 @@ export const hostConfig = {
       const epoch = getRenderEpoch()
       // stylePropsDirty: always set for any visual change. Render phase uses this
       // to know the node needs re-rendering (border, text style, bg, etc.).
-      instance.stylePropsDirtyEpoch = epoch
+      let bits = STYLE_PROPS_BIT
       // contentDirty: only for text content changes (not style-only changes).
       // Style-only changes (borderColor, color, bold) set stylePropsDirty but NOT
       // contentDirty, so render phase won't cascade to children for border-only
       // changes where the content area is unchanged.
       if (contentChanged === "text") {
-        instance.contentDirtyEpoch = epoch
+        bits |= CONTENT_BIT
         if (instance.layoutNode) {
           instance.layoutNode.markDirty()
         }
@@ -523,7 +544,7 @@ export const hostConfig = {
       if (
         (oldProps as Record<string, unknown>).backgroundColor !== (newProps as Record<string, unknown>).backgroundColor
       ) {
-        instance.bgDirtyEpoch = epoch
+        bits |= BG_BIT
       }
       // Border removal: when borderStyle goes from truthy to falsy, stale border
       // characters (╭╮╰╯│─) persist in the cloned buffer because renderBox doesn't
@@ -531,18 +552,20 @@ export const hostConfig = {
       // true, triggering clearNodeRegion to fill the area with inherited bg.
       // Border *addition* doesn't need this — renderBorder overwrites the old cells.
       if ((oldProps as Record<string, unknown>).borderStyle && !(newProps as Record<string, unknown>).borderStyle) {
-        instance.bgDirtyEpoch = epoch
+        bits |= BG_BIT
       }
       // Outline removal: same issue — stale outline characters persist in the clone.
       if ((oldProps as Record<string, unknown>).outlineStyle && !(newProps as Record<string, unknown>).outlineStyle) {
-        instance.bgDirtyEpoch = epoch
+        bits |= BG_BIT
       }
       // Theme change: all descendants need re-rendering with new token values.
       // bgDirty makes contentAreaAffected=true, cascading childrenNeedFreshRender
       // to force children to re-render with the new theme context.
       if ((oldProps as Record<string, unknown>).theme !== (newProps as Record<string, unknown>).theme) {
-        instance.bgDirtyEpoch = epoch
+        bits |= BG_BIT
       }
+      instance.dirtyBits = instance.dirtyEpoch !== epoch ? bits : instance.dirtyBits | bits
+      instance.dirtyEpoch = epoch
     }
 
     // Track dirty node in module-level set for O(1) pipeline phase checks
@@ -559,9 +582,9 @@ export const hostConfig = {
     if (
       contentChanged === "style" &&
       !layoutChanged &&
-      !isCurrentEpoch(instance.bgDirtyEpoch) &&
-      !isCurrentEpoch(instance.contentDirtyEpoch) &&
-      !isCurrentEpoch(instance.childrenDirtyEpoch)
+      !isDirty(instance.dirtyBits, instance.dirtyEpoch, BG_BIT) &&
+      !isDirty(instance.dirtyBits, instance.dirtyEpoch, CONTENT_BIT) &&
+      !isDirty(instance.dirtyBits, instance.dirtyEpoch, CHILDREN_BIT)
     ) {
       trackStyleOnlyDirty(instance)
     }
@@ -595,8 +618,9 @@ export const hostConfig = {
     textInstance.textContent = newText
     textInstance.props = { children: newText } as TextProps
     const epoch = getRenderEpoch()
-    textInstance.contentDirtyEpoch = epoch
-    textInstance.stylePropsDirtyEpoch = epoch
+    const bits = CONTENT_BIT | STYLE_PROPS_BIT
+    textInstance.dirtyBits = textInstance.dirtyEpoch !== epoch ? bits : textInstance.dirtyBits | bits
+    textInstance.dirtyEpoch = epoch
     trackContentDirty(textInstance)
     // Text content change affects layout (measure function will return different size)
     // Walk up to the nearest layout ancestor so its measure cache is invalidated
@@ -644,8 +668,9 @@ export const hostConfig = {
     // leaving stale buffer content (tree/buffer mismatch).
     {
       const epoch = getRenderEpoch()
-      container.root.childrenDirtyEpoch = epoch
-      container.root.contentDirtyEpoch = epoch
+      const bits = CHILDREN_BIT | CONTENT_BIT
+      container.root.dirtyBits = container.root.dirtyEpoch !== epoch ? bits : container.root.dirtyBits | bits
+      container.root.dirtyEpoch = epoch
     }
     container.root.layoutDirty = true
     container.root.layoutNode?.markDirty()
@@ -768,8 +793,9 @@ export const hostConfig = {
   hideInstance(instance: AgNode) {
     instance.hidden = true
     const epoch = getRenderEpoch()
-    instance.contentDirtyEpoch = epoch
-    instance.stylePropsDirtyEpoch = epoch
+    const bits = CONTENT_BIT | STYLE_PROPS_BIT
+    instance.dirtyBits = instance.dirtyEpoch !== epoch ? bits : instance.dirtyBits | bits
+    instance.dirtyEpoch = epoch
     instance.layoutDirty = true
     if (instance.layoutNode) {
       instance.layoutNode.markDirty()
@@ -778,7 +804,12 @@ export const hostConfig = {
     trackContentDirty(instance)
     // Mark parent dirty to trigger re-render
     if (instance.parent) {
-      instance.parent.contentDirtyEpoch = epoch
+      if (instance.parent.dirtyEpoch !== epoch) {
+        instance.parent.dirtyBits = CONTENT_BIT
+        instance.parent.dirtyEpoch = epoch
+      } else {
+        instance.parent.dirtyBits |= CONTENT_BIT
+      }
       trackContentDirty(instance.parent)
     }
     markLayoutAncestorDirty(instance)
@@ -795,8 +826,9 @@ export const hostConfig = {
   unhideInstance(instance: AgNode, _props: BoxProps | TextProps) {
     instance.hidden = false
     const epoch = getRenderEpoch()
-    instance.contentDirtyEpoch = epoch
-    instance.stylePropsDirtyEpoch = epoch
+    const bits = CONTENT_BIT | STYLE_PROPS_BIT
+    instance.dirtyBits = instance.dirtyEpoch !== epoch ? bits : instance.dirtyBits | bits
+    instance.dirtyEpoch = epoch
     instance.layoutDirty = true
     if (instance.layoutNode) {
       instance.layoutNode.markDirty()
@@ -805,7 +837,12 @@ export const hostConfig = {
     trackContentDirty(instance)
     // Mark parent dirty to trigger re-render
     if (instance.parent) {
-      instance.parent.contentDirtyEpoch = epoch
+      if (instance.parent.dirtyEpoch !== epoch) {
+        instance.parent.dirtyBits = CONTENT_BIT
+        instance.parent.dirtyEpoch = epoch
+      } else {
+        instance.parent.dirtyBits |= CONTENT_BIT
+      }
       trackContentDirty(instance.parent)
     }
     markLayoutAncestorDirty(instance)
@@ -822,11 +859,17 @@ export const hostConfig = {
   hideTextInstance(textInstance: AgNode) {
     textInstance.hidden = true
     const epoch = getRenderEpoch()
-    textInstance.contentDirtyEpoch = epoch
-    textInstance.stylePropsDirtyEpoch = epoch
+    const bits = CONTENT_BIT | STYLE_PROPS_BIT
+    textInstance.dirtyBits = textInstance.dirtyEpoch !== epoch ? bits : textInstance.dirtyBits | bits
+    textInstance.dirtyEpoch = epoch
     trackContentDirty(textInstance)
     if (textInstance.parent) {
-      textInstance.parent.contentDirtyEpoch = epoch
+      if (textInstance.parent.dirtyEpoch !== epoch) {
+        textInstance.parent.dirtyBits = CONTENT_BIT
+        textInstance.parent.dirtyEpoch = epoch
+      } else {
+        textInstance.parent.dirtyBits |= CONTENT_BIT
+      }
       trackContentDirty(textInstance.parent)
     }
     markLayoutAncestorDirty(textInstance)
@@ -842,11 +885,17 @@ export const hostConfig = {
   unhideTextInstance(textInstance: AgNode, _text: string) {
     textInstance.hidden = false
     const epoch = getRenderEpoch()
-    textInstance.contentDirtyEpoch = epoch
-    textInstance.stylePropsDirtyEpoch = epoch
+    const bits = CONTENT_BIT | STYLE_PROPS_BIT
+    textInstance.dirtyBits = textInstance.dirtyEpoch !== epoch ? bits : textInstance.dirtyBits | bits
+    textInstance.dirtyEpoch = epoch
     trackContentDirty(textInstance)
     if (textInstance.parent) {
-      textInstance.parent.contentDirtyEpoch = epoch
+      if (textInstance.parent.dirtyEpoch !== epoch) {
+        textInstance.parent.dirtyBits = CONTENT_BIT
+        textInstance.parent.dirtyEpoch = epoch
+      } else {
+        textInstance.parent.dirtyBits |= CONTENT_BIT
+      }
       trackContentDirty(textInstance.parent)
     }
     markLayoutAncestorDirty(textInstance)

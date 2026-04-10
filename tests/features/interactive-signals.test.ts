@@ -51,13 +51,8 @@ function stubNode(
     prevScreenRect: null,
     layoutChangedThisFrame: INITIAL_EPOCH,
     layoutDirty: false,
-    contentDirtyEpoch: INITIAL_EPOCH,
-    stylePropsDirtyEpoch: INITIAL_EPOCH,
-    bgDirtyEpoch: INITIAL_EPOCH,
-    subtreeDirtyEpoch: INITIAL_EPOCH,
-    childrenDirtyEpoch: INITIAL_EPOCH,
-    absoluteChildMutatedEpoch: INITIAL_EPOCH,
-    descendantOverflowChangedEpoch: INITIAL_EPOCH,
+    dirtyBits: 0,
+    dirtyEpoch: INITIAL_EPOCH,
     layoutSubscribers: new Set(),
   }
   for (const child of children) {

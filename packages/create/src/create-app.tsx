@@ -72,7 +72,7 @@ import {
 } from "@silvery/ag-term/text-sizing"
 import { createWidthDetector, applyWidthConfig } from "@silvery/ag-term"
 import { IncrementalRenderMismatchError } from "@silvery/ag-term/scheduler"
-import { isCurrentEpoch } from "@silvery/ag/epoch"
+import { isAnyDirty } from "@silvery/ag/epoch"
 import {
   createContainer,
   createFiberRoot,
@@ -1446,13 +1446,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // resets dirty rows to 0), preserving the row-level dirty markers that
     // the runtime diff needs to detect actual changes.
     // Exception: dimension changes require re-layout even without dirty flags.
-    const rootHasDirty =
-      rootNode.layoutDirty ||
-      isCurrentEpoch(rootNode.contentDirtyEpoch) ||
-      isCurrentEpoch(rootNode.stylePropsDirtyEpoch) ||
-      isCurrentEpoch(rootNode.bgDirtyEpoch) ||
-      isCurrentEpoch(rootNode.subtreeDirtyEpoch) ||
-      isCurrentEpoch(rootNode.childrenDirtyEpoch)
+    const rootHasDirty = rootNode.layoutDirty || isAnyDirty(rootNode.dirtyBits, rootNode.dirtyEpoch)
     const dimsChanged =
       _lastTermBuffer != null && (dims.cols !== _lastTermBuffer.width || dims.rows !== _lastTermBuffer.height)
     if (!rootHasDirty && !dimsChanged && _lastTermBuffer && currentBuffer) {

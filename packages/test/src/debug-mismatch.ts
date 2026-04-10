@@ -11,7 +11,7 @@
 
 import type { Cell } from "@silvery/ag-term/buffer"
 import type { BoxProps, AgNode, Rect, TextProps } from "@silvery/ag/types"
-import { isCurrentEpoch } from "@silvery/ag/epoch"
+import { isDirty, isAnyDirty, CONTENT_BIT, STYLE_PROPS_BIT, SUBTREE_BIT, CHILDREN_BIT } from "@silvery/ag/epoch"
 import type { RenderPhaseStats } from "@silvery/ag-term/pipeline/types"
 
 // ============================================================================
@@ -186,10 +186,10 @@ export function getNodeDebugInfo(node: AgNode): NodeDebugInfo {
     path: getNodePath(node),
     childIndex,
     dirtyFlags: {
-      contentDirty: isCurrentEpoch(node.contentDirtyEpoch),
-      stylePropsDirty: isCurrentEpoch(node.stylePropsDirtyEpoch),
-      subtreeDirty: isCurrentEpoch(node.subtreeDirtyEpoch),
-      childrenDirty: isCurrentEpoch(node.childrenDirtyEpoch),
+      contentDirty: isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT),
+      stylePropsDirty: isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT),
+      subtreeDirty: isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT),
+      childrenDirty: isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT),
       layoutDirty: node.layoutDirty,
     },
     layout: {
@@ -246,12 +246,7 @@ function analyzeFastPath(node: AgNode | null, scrollAncestors: AgNode[]): string
   }
 
   const flags = node
-  const allClean =
-    !isCurrentEpoch(flags.contentDirtyEpoch) &&
-    !isCurrentEpoch(flags.stylePropsDirtyEpoch) &&
-    !isCurrentEpoch(flags.subtreeDirtyEpoch) &&
-    !isCurrentEpoch(flags.childrenDirtyEpoch) &&
-    !flags.layoutDirty
+  const allClean = !isAnyDirty(flags.dirtyBits, flags.dirtyEpoch) && !flags.layoutDirty
 
   if (allClean) {
     analysis.push("⚠ ALL DIRTY FLAGS FALSE - fast-path likely skipped this node")

@@ -402,50 +402,33 @@ export interface AgNode {
    *  and has its own tracking set in dirty-tracking.ts. */
   layoutDirty: boolean
 
-  /** Epoch when content changed but layout didn't (e.g., text content update).
-   *  Set by reconciler. Read by render phase (=== renderEpoch means dirty).
-   *  NOTE: measure phase may clear this for its text-collection cache —
-   *  stylePropsDirty acts as the surviving witness for style changes.
-   *  Value: renderEpoch when dirty, INITIAL_EPOCH (-1) when clean. */
-  contentDirtyEpoch: number
+  /**
+   * Bit-packed dirty flags for the current epoch.
+   *
+   * Seven dirty flags packed into a single number:
+   *   bit 0 (CONTENT_BIT):        content changed (text content or content-affecting props)
+   *   bit 1 (STYLE_PROPS_BIT):    visual props changed (color, bg, border, etc.)
+   *   bit 2 (BG_BIT):             backgroundColor specifically changed
+   *   bit 3 (CHILDREN_BIT):       direct children added/removed/reordered
+   *   bit 4 (SUBTREE_BIT):        this node or any descendant has dirty content/layout
+   *   bit 5 (ABS_CHILD_BIT):      absolute child had structural changes
+   *   bit 6 (DESC_OVERFLOW_BIT):  descendant overflow changed
+   *
+   * Check: `isDirty(node.dirtyBits, node.dirtyEpoch, BIT)`
+   * Set:   `node.dirtyBits = setDirtyBit(node.dirtyBits, node.dirtyEpoch, BIT); node.dirtyEpoch = getRenderEpoch()`
+   * Clear: `advanceRenderEpoch()` — all nodes instantly become clean
+   *
+   * NOTE: measure phase may clear CONTENT_BIT — STYLE_PROPS_BIT acts as the
+   * surviving witness for style changes. See render-phase.ts contentAreaAffected.
+   */
+  dirtyBits: number
 
-  /** Epoch when visual props changed (color, backgroundColor, borderStyle, etc.).
-   *  Set by reconciler alongside contentDirtyEpoch. Survives measure phase clearing
-   *  of contentDirtyEpoch, ensuring render phase still detects style changes.
-   *  Value: renderEpoch when dirty, INITIAL_EPOCH (-1) when clean. */
-  stylePropsDirtyEpoch: number
-
-  /** Epoch when backgroundColor specifically changed (added, modified, or removed).
-   *  Set by reconciler when backgroundColor prop changes. Used by render phase
-   *  to avoid cascading re-renders for border-only paint changes (borderColor
-   *  doesn't affect the content area).
-   *  Value: renderEpoch when dirty, INITIAL_EPOCH (-1) when clean. */
-  bgDirtyEpoch: number
-
-  /** Epoch when this node or any descendant has dirty content/layout.
-   *  Propagated upward by reconciler when any descendant is dirtied.
-   *  When only subtreeDirty (no other flags), the node's OWN rendering is
-   *  skipped — only descendants are traversed.
-   *  Value: renderEpoch when dirty, INITIAL_EPOCH (-1) when clean. */
-  subtreeDirtyEpoch: number
-
-  /** Epoch when direct children were added, removed, or reordered.
-   *  Set by reconciler on child list changes. Triggers own repaint
-   *  (gap regions may need clearing) and forces child re-render.
-   *  Value: renderEpoch when dirty, INITIAL_EPOCH (-1) when clean. */
-  childrenDirtyEpoch: number
-
-  /** Epoch when an absolute-positioned direct child had structural changes
-   *  (children mount/unmount/reorder, layout change, child position shift).
-   *  Cached by layout phase to avoid per-node child walks in render phase.
-   *  Value: renderEpoch when dirty, INITIAL_EPOCH (-1) when clean. */
-  absoluteChildMutatedEpoch: number
-
-  /** Epoch when a descendant was overflowing THIS node's rect (prevLayout
-   *  extends beyond bounds) and had its layout change this frame.
-   *  Cached by layout phase to avoid per-node recursive subtree walks.
-   *  Value: renderEpoch when dirty, INITIAL_EPOCH (-1) when clean. */
-  descendantOverflowChangedEpoch: number
+  /**
+   * Epoch when dirtyBits was last written.
+   * When `dirtyEpoch !== renderEpoch`, all bits are stale (node is clean).
+   * Value: renderEpoch when any bit is dirty, INITIAL_EPOCH (-1) when clean.
+   */
+  dirtyEpoch: number
 
   /** Callbacks subscribed to layout changes (used by useBoxRect) */
   layoutSubscribers: Set<() => void>

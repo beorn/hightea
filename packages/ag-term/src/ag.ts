@@ -18,7 +18,7 @@
 
 import { createLogger } from "loggily"
 import type { AgNode, AgNodeType } from "@silvery/ag/types"
-import { getRenderEpoch, INITIAL_EPOCH } from "@silvery/ag/epoch"
+import { getRenderEpoch, INITIAL_EPOCH, ALL_RECONCILER_BITS, CONTENT_BIT, STYLE_PROPS_BIT } from "@silvery/ag/epoch"
 import { getLayoutEngine } from "./layout-engine"
 import type { TextFrame } from "@silvery/ag/text-frame"
 import { type TerminalBuffer, createTextFrame } from "./buffer"
@@ -285,13 +285,8 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
       prevScreenRect: null,
       layoutChangedThisFrame: INITIAL_EPOCH,
       layoutDirty: true,
-      contentDirtyEpoch: getRenderEpoch(),
-      stylePropsDirtyEpoch: getRenderEpoch(),
-      bgDirtyEpoch: getRenderEpoch(),
-      subtreeDirtyEpoch: getRenderEpoch(),
-      childrenDirtyEpoch: getRenderEpoch(),
-      absoluteChildMutatedEpoch: INITIAL_EPOCH,
-      descendantOverflowChangedEpoch: INITIAL_EPOCH,
+      dirtyBits: ALL_RECONCILER_BITS,
+      dirtyEpoch: getRenderEpoch(),
       layoutSubscribers: new Set(),
     }
   }
@@ -364,8 +359,9 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
     setText(node, text) {
       ;(node as any).textContent = text
       const epoch = getRenderEpoch()
-      node.contentDirtyEpoch = epoch
-      node.stylePropsDirtyEpoch = epoch
+      const bits = CONTENT_BIT | STYLE_PROPS_BIT
+      node.dirtyBits = node.dirtyEpoch !== epoch ? bits : node.dirtyBits | bits
+      node.dirtyEpoch = epoch
       if (node.layoutNode) {
         node.layoutNode.markDirty()
       }

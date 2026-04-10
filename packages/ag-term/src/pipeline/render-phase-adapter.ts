@@ -51,7 +51,7 @@
 
 import { type RenderBuffer, type RenderStyle, getRenderAdapter, hasRenderAdapter } from "../render-adapter"
 import type { BoxProps, AgNode, Rect, TextProps } from "@silvery/ag/types"
-import { INITIAL_EPOCH } from "@silvery/ag/epoch"
+import { INITIAL_EPOCH, CONTENT_BIT } from "@silvery/ag/epoch"
 import { getBorderSize, getPadding } from "./helpers"
 import { displayWidth, getActiveLineHeight } from "../unicode"
 import { formatTextLines } from "./render-text"
@@ -139,8 +139,8 @@ function renderNodeToBuffer(node: AgNode, buffer: RenderBuffer, scrollOffset = 0
     renderOutlineAdapter(buffer, x, outlineY, width, height, props, clipBounds)
   }
 
-  // Clear content dirty flag
-  node.contentDirtyEpoch = INITIAL_EPOCH
+  // Clear content dirty bit
+  node.dirtyBits &= ~CONTENT_BIT
 }
 
 // ============================================================================

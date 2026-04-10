@@ -19,7 +19,7 @@
 
 import { signal, computed } from "@silvery/signals"
 import type { AgNode } from "@silvery/ag/types"
-import { isCurrentEpoch } from "@silvery/ag/epoch"
+import { isDirty, CONTENT_BIT, STYLE_PROPS_BIT, BG_BIT, CHILDREN_BIT, SUBTREE_BIT } from "@silvery/ag/epoch"
 import { computeCascade, type CascadeInputs, type CascadeOutputs } from "./cascade-predicates.ts"
 
 // ============================================================================
@@ -202,11 +202,11 @@ export function syncToSignals(
   },
 ): void {
   // Sync epoch flags → boolean signals
-  state.contentDirty(isCurrentEpoch(node.contentDirtyEpoch))
-  state.stylePropsDirty(isCurrentEpoch(node.stylePropsDirtyEpoch))
-  state.bgDirty(isCurrentEpoch(node.bgDirtyEpoch))
-  state.childrenDirty(isCurrentEpoch(node.childrenDirtyEpoch))
-  state.subtreeDirty(isCurrentEpoch(node.subtreeDirtyEpoch))
+  state.contentDirty(isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT))
+  state.stylePropsDirty(isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT))
+  state.bgDirty(isDirty(node.dirtyBits, node.dirtyEpoch, BG_BIT))
+  state.childrenDirty(isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT))
+  state.subtreeDirty(isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT))
   state.layoutChanged(ctx.layoutChanged)
 
   // Sync context-dependent inputs

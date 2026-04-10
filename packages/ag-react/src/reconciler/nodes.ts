@@ -10,7 +10,19 @@ import { getConstants, getLayoutEngine } from "@silvery/ag-term/layout-engine"
 import { collectPlainTextSkipHidden as collectNodeTextContent } from "@silvery/ag-term/pipeline/collect-text"
 import { type BoxProps, type AgNode, type AgNodeType, type TextProps, rectEqual } from "@silvery/ag/types"
 import { type Measurer, displayWidth, wrapText, getActiveLineHeight } from "@silvery/ag-term/unicode"
-import { getRenderEpoch, INITIAL_EPOCH, isCurrentEpoch } from "@silvery/ag/epoch"
+import {
+  getRenderEpoch,
+  INITIAL_EPOCH,
+  isDirty,
+  CONTENT_BIT,
+  STYLE_PROPS_BIT,
+  BG_BIT,
+  CHILDREN_BIT,
+  SUBTREE_BIT,
+  ABS_CHILD_BIT,
+  DESC_OVERFLOW_BIT,
+  ALL_RECONCILER_BITS,
+} from "@silvery/ag/epoch"
 
 const measureLog = createLogger("silvery:measure")
 
@@ -48,13 +60,8 @@ export function createNode(
     prevScreenRect: null,
     layoutChangedThisFrame: epoch,
     layoutDirty: true,
-    contentDirtyEpoch: epoch,
-    stylePropsDirtyEpoch: epoch,
-    bgDirtyEpoch: epoch,
-    subtreeDirtyEpoch: epoch,
-    childrenDirtyEpoch: epoch,
-    absoluteChildMutatedEpoch: INITIAL_EPOCH,
-    descendantOverflowChangedEpoch: INITIAL_EPOCH,
+    dirtyBits: ALL_RECONCILER_BITS,
+    dirtyEpoch: epoch,
     layoutSubscribers: new Set(),
   }
 
@@ -82,7 +89,7 @@ export function createNode(
       // This avoids text collection entirely if we've measured this before
       const cacheKey = `${width}|${widthMode}|${height}|${heightMode}`
       const cached = measureCache.get(cacheKey)
-      if (cached && cachedText !== null && !isCurrentEpoch(node.contentDirtyEpoch)) {
+      if (cached && cachedText !== null && !isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT)) {
         measureStats.cacheHits++
         return cached
       }
@@ -90,7 +97,7 @@ export function createNode(
       // Collect text content from this node and its raw text children
       // Use cached text if node hasn't been marked dirty (contentDirty)
       let text: string
-      if (cachedText !== null && !isCurrentEpoch(node.contentDirtyEpoch)) {
+      if (cachedText !== null && !isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT)) {
         text = cachedText
       } else {
         measureStats.textCollects++
@@ -101,12 +108,12 @@ export function createNode(
         }
         text = newText
         cachedText = text
-        // Clear contentDirty so subsequent measure calls in same layout pass use cache.
+        // Clear CONTENT_BIT so subsequent measure calls in same layout pass use cache.
         // NOTE: This means the render phase won't see contentDirty=true for text nodes
         // whose content changed. The render phase uses stylePropsDirty (which survives the
         // measure phase) combined with the node type check to correctly identify text
         // nodes that need region clearing. See contentAreaAffected in render-phase.ts.
-        node.contentDirtyEpoch = INITIAL_EPOCH
+        node.dirtyBits &= ~CONTENT_BIT
       }
       if (!text) {
         return { width: 0, height: 0 }
@@ -236,13 +243,8 @@ export function createVirtualTextNode(props: TextProps): AgNode {
     prevScreenRect: null,
     layoutChangedThisFrame: INITIAL_EPOCH,
     layoutDirty: false,
-    contentDirtyEpoch: epoch,
-    stylePropsDirtyEpoch: epoch,
-    bgDirtyEpoch: epoch,
-    subtreeDirtyEpoch: epoch,
-    childrenDirtyEpoch: INITIAL_EPOCH,
-    absoluteChildMutatedEpoch: INITIAL_EPOCH,
-    descendantOverflowChangedEpoch: INITIAL_EPOCH,
+    dirtyBits: CONTENT_BIT | STYLE_PROPS_BIT | BG_BIT | SUBTREE_BIT,
+    dirtyEpoch: epoch,
     layoutSubscribers: new Set(),
     isRawText: false, // Not raw text, but virtual (nested) text
     inlineRects: null,
@@ -645,7 +647,13 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
 
   // If dimensions changed, content needs re-render
   if (!rectEqual(node.prevLayout, node.boxRect)) {
-    node.contentDirtyEpoch = getRenderEpoch()
+    const epoch = getRenderEpoch()
+    if (node.dirtyEpoch !== epoch) {
+      node.dirtyBits = CONTENT_BIT
+      node.dirtyEpoch = epoch
+    } else {
+      node.dirtyBits |= CONTENT_BIT
+    }
   }
 
   // Recursively propagate to children
