@@ -449,7 +449,7 @@ over the lazy dog sat on the mat.
 </Box>
 ```
 
-All three modes have the same rendering performance (~25 microseconds for typical terminal text). The text analysis is cached per node ([PreparedText](/guide/performance)) — repeated renders at the same width are free.
+All three modes have the same rendering performance (~25 microseconds for typical terminal text). The text analysis is cached per node (PreparedText) — repeated renders at the same width are free.
 
 #### Pretext API Mapping
 
