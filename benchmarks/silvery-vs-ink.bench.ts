@@ -482,6 +482,59 @@ describe("Mounted style-only — memo'd 100-item cursor highlight (backgroundCol
   })
 })
 
+describe("Mounted style-only — memo'd 1000-item cursor highlight (backgroundColor)", () => {
+  const sRender = createRenderer({ cols: 80, rows: 24 })
+  const sApp = sRender(
+    React.createElement(
+      SBox,
+      { flexDirection: "column" },
+      ...Array.from({ length: 1000 }, (_, i) =>
+        React.createElement(SStyleItem, { key: i, index: i, selected: i === 0 }),
+      ),
+    ),
+  )
+
+  const inkStdout = createMockStdout(80, 24)
+  const inkInstance = inkRender(
+    React.createElement(
+      IBox,
+      { flexDirection: "column" },
+      ...Array.from({ length: 1000 }, (_, i) =>
+        React.createElement(IStyleItem, { key: i, index: i, selected: i === 0 }),
+      ),
+    ),
+    { stdout: inkStdout, debug: true, patchConsole: false, incrementalRendering: true },
+  )
+
+  let sCursor = 0
+  bench("Silvery (memo + style-only fast path)", () => {
+    sCursor = (sCursor + 1) % 1000
+    sApp.rerender(
+      React.createElement(
+        SBox,
+        { flexDirection: "column" },
+        ...Array.from({ length: 1000 }, (_, i) =>
+          React.createElement(SStyleItem, { key: i, index: i, selected: i === sCursor }),
+        ),
+      ),
+    )
+  })
+
+  let iCursor = 0
+  bench("Ink (memo + incrementalRendering)", () => {
+    iCursor = (iCursor + 1) % 1000
+    inkInstance.rerender(
+      React.createElement(
+        IBox,
+        { flexDirection: "column" },
+        ...Array.from({ length: 1000 }, (_, i) =>
+          React.createElement(IStyleItem, { key: i, index: i, selected: i === iCursor }),
+        ),
+      ),
+    )
+  })
+})
+
 describe("Mounted incremental re-render — single text change in kanban 5×20", () => {
   const sRender = createRenderer({ cols: 200, rows: 60 })
   const sApp = sRender(silveryKanban(5, 20))
