@@ -38,8 +38,8 @@ export interface ModalDialogProps {
   hotkey?: string
   /** Content to render on the right side of the title bar (e.g., hotkey indicator, match count) */
   titleRight?: React.ReactNode
-  /** Dialog width */
-  width?: number
+  /** Dialog width. Defaults to "snug-content" (tightest fit around content). */
+  width?: number | string
   /** Dialog height (optional, omit for auto-height) */
   height?: number
   /** Footer hint text (rendered dimColor at bottom) */
@@ -140,7 +140,7 @@ export function ModalDialog({
   return (
     <Box
       flexDirection="column"
-      width={width}
+      width={width ?? "snug-content"}
       height={height}
       borderStyle="double"
       borderColor={borderColor}

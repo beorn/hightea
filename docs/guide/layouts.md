@@ -486,3 +486,17 @@ Width and wrap are orthogonal — they compose naturally:
 ```
 
 `snug-content` without a wrap mode defaults to greedy wrapping. Truncation modes (`wrap={false}`, `wrap="clip"`) produce single lines, so `snug-content` has no effect with them — use `fit-content` instead.
+
+### Convention: Floating UI vs Flow UI
+
+Silvery's built-in floating components default to `snug-content`:
+
+| Component | Default width | Why |
+|---|---|---|
+| `ModalDialog` | `snug-content` | Dialogs hug their content |
+| `ToastItem` | `snug-content` | Notifications are self-contained |
+| `Tooltip` | `snug-content` | Tooltip text is static |
+
+Flow components (SelectList, TextInput, list items) use `auto` — they fill their parent's available width.
+
+**Rule of thumb**: if a component floats over other content and wraps text, use `snug-content`. If it's part of a column or grid, use `auto` or a fixed width.

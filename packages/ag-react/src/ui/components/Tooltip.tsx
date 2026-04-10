@@ -49,7 +49,7 @@ export function Tooltip({ content, show = false, children }: TooltipProps): Reac
     <Box flexDirection="column">
       {children}
       {show && (
-        <Box>
+        <Box width="snug-content">
           <Text color="$muted" dimColor>
             {content}
           </Text>
