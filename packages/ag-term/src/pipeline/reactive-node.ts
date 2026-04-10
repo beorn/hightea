@@ -106,15 +106,16 @@ export function createReactiveNodeState(): ReactiveNodeState {
 
   // --- Computed derivations (formulas from cascade-predicates.ts) ---
 
-  const canSkipEntireSubtree = computed(() =>
-    hasPrevBuffer() &&
-    !contentDirty() &&
-    !stylePropsDirty() &&
-    !layoutChanged() &&
-    !subtreeDirty() &&
-    !childrenDirty() &&
-    !childPositionChanged() &&
-    !ancestorLayoutChanged(),
+  const canSkipEntireSubtree = computed(
+    () =>
+      hasPrevBuffer() &&
+      !contentDirty() &&
+      !stylePropsDirty() &&
+      !layoutChanged() &&
+      !subtreeDirty() &&
+      !childrenDirty() &&
+      !childPositionChanged() &&
+      !ancestorLayoutChanged(),
   )
 
   const textPaintDirty = computed(() => isTextNode() && stylePropsDirty())
@@ -135,9 +136,7 @@ export function createReactiveNodeState(): ReactiveNodeState {
   // Matches cascade-predicates.ts which hardcodes `false`.
   const bgOnlyChange = computed(() => false)
 
-  const bgRefillNeeded = computed(
-    () => hasPrevBuffer() && !contentAreaAffected() && subtreeDirty() && hasBgColor(),
-  )
+  const bgRefillNeeded = computed(() => hasPrevBuffer() && !contentAreaAffected() && subtreeDirty() && hasBgColor())
 
   const contentRegionCleared = computed(
     () => (hasPrevBuffer() || ancestorCleared()) && contentAreaAffected() && !hasBgColor(),
@@ -148,10 +147,7 @@ export function createReactiveNodeState(): ReactiveNodeState {
   )
 
   const childrenNeedFreshRender = computed(
-    () =>
-      (hasPrevBuffer() || ancestorCleared()) &&
-      (contentAreaAffected() || bgRefillNeeded()) &&
-      !bgOnlyChange(),
+    () => (hasPrevBuffer() || ancestorCleared()) && (contentAreaAffected() || bgRefillNeeded()) && !bgOnlyChange(),
   )
 
   return {
@@ -225,6 +221,28 @@ export function syncToSignals(
 }
 
 // ============================================================================
+// Reactive-driven cascade (replaces computeCascade for production)
+// ============================================================================
+
+/**
+ * Read all cascade outputs from the reactive computeds.
+ * Call AFTER `syncToSignals()`. Returns the same CascadeOutputs shape
+ * as `computeCascade()` but derived from the signal graph.
+ */
+export function readReactiveCascade(state: ReactiveNodeState): CascadeOutputs {
+  return {
+    canSkipEntireSubtree: state.canSkipEntireSubtree(),
+    textPaintDirty: state.textPaintDirty(),
+    contentAreaAffected: state.contentAreaAffected(),
+    bgRefillNeeded: state.bgRefillNeeded(),
+    contentRegionCleared: state.contentRegionCleared(),
+    skipBgFill: state.skipBgFill(),
+    childrenNeedFreshRender: state.childrenNeedFreshRender(),
+    bgOnlyChange: state.bgOnlyChange(),
+  }
+}
+
+// ============================================================================
 // Oracle Verification
 // ============================================================================
 
@@ -234,11 +252,7 @@ export function syncToSignals(
  * Call in dev mode (SILVERY_STRICT=1) after syncToSignals + computeCascade.
  * Throws on mismatch with a detailed diff.
  */
-export function assertReactiveMatchesOracle(
-  state: ReactiveNodeState,
-  oracle: CascadeOutputs,
-  nodeId: string,
-): void {
+export function assertReactiveMatchesOracle(state: ReactiveNodeState, oracle: CascadeOutputs, nodeId: string): void {
   const fields: (keyof CascadeOutputs)[] = [
     "canSkipEntireSubtree",
     "contentAreaAffected",
@@ -259,9 +273,7 @@ export function assertReactiveMatchesOracle(
   }
 
   if (mismatches.length > 0) {
-    throw new Error(
-      `ReactiveNodeState mismatch for ${nodeId || "(unnamed)"}:\n${mismatches.join("\n")}`,
-    )
+    throw new Error(`ReactiveNodeState mismatch for ${nodeId || "(unnamed)"}:\n${mismatches.join("\n")}`)
   }
 }
 

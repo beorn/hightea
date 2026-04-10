@@ -31,7 +31,7 @@ import { isStyleOnlyDirty } from "@silvery/ag/dirty-tracking"
 import { isCurrentEpoch, INITIAL_EPOCH, advanceRenderEpoch } from "@silvery/ag/epoch"
 import type { CascadeOutputs } from "./cascade-predicates"
 import type { ClipBounds, RenderPhaseStats, NodeRenderState, NodeTraceEntry, PipelineContext } from "./types"
-import { getReactiveState, syncToSignals, assertReactiveMatchesOracle } from "./reactive-node"
+import { getReactiveState, syncToSignals, readReactiveCascade, assertReactiveMatchesOracle } from "./reactive-node"
 
 const contentLog = createLogger("silvery:content")
 const traceLog = createLogger("silvery:content:trace")
@@ -217,8 +217,19 @@ let _renderPhaseCallCount = 0
 const _nodeTrace: NodeTraceEntry[] = []
 const _nodeTraceEnabled = typeof process !== "undefined" && envTruthy(process.env?.SILVERY_STRICT)
 
-/** E+ Phase 2: verify reactive cascade computeds match oracle in STRICT mode */
-const _reactiveVerifyEnabled = typeof process !== "undefined" && envTruthy(process.env?.SILVERY_STRICT)
+/**
+ * E+ Phase 2: Reactive cascade mode.
+ *
+ * SILVERY_REACTIVE=1 (default): alien-signals computeds drive rendering.
+ * SILVERY_REACTIVE=0: fall back to imperative computeCascade() (oracle).
+ *
+ * When reactive is ON + STRICT is ON: oracle runs in parallel and asserts equivalence.
+ * When reactive is ON + STRICT is OFF: pure reactive, no oracle overhead (production/bench).
+ */
+const _reactiveEnabled =
+  typeof process === "undefined" || process.env?.SILVERY_REACTIVE !== "0"
+const _reactiveVerifyEnabled =
+  _reactiveEnabled && typeof process !== "undefined" && envTruthy(process.env?.SILVERY_STRICT)
 
 /** DIAG: compute node depth in tree */
 function _getNodeDepth(node: AgNode): number {
@@ -453,30 +464,14 @@ function renderNodeToBuffer(
     // Check if this is a scrollable container
     const isScrollContainer = props.overflow === "scroll" && node.scrollState
 
-    // Build tree-dependent cascade inputs (child traversal), then compute cascade.
-    // See cascade-predicates.ts for the truth table and invariants.
+    // Build tree-dependent cascade inputs (child traversal).
     const { absoluteChildMutated, descendantOverflowChanged } = buildCascadeInputs(node, hasPrevBuffer)
-    let cascade = computeCascade({
-      hasPrevBuffer,
-      contentDirty: isCurrentEpoch(node.contentDirtyEpoch),
-      stylePropsDirty: isCurrentEpoch(node.stylePropsDirtyEpoch),
-      layoutChanged,
-      subtreeDirty: isCurrentEpoch(node.subtreeDirtyEpoch),
-      childrenDirty: isCurrentEpoch(node.childrenDirtyEpoch),
-      childPositionChanged,
-      ancestorLayoutChanged,
-      ancestorCleared,
-      bgDirty: isCurrentEpoch(node.bgDirtyEpoch),
-      isTextNode: node.type === "silvery-text",
-      hasBgColor: !!getEffectiveBg(props),
-      absoluteChildMutated,
-      descendantOverflowChanged,
-    })
 
-    // E+ Phase 2: Verify reactive computeds match oracle (STRICT mode only).
-    // This syncs epoch flags → signals, reads computeds, and asserts equivalence.
-    // Zero cost in production (gated on module-level const).
-    if (_reactiveVerifyEnabled) {
+    // Cascade computation: reactive (alien-signals) or imperative (oracle).
+    // SILVERY_REACTIVE=0 falls back to imperative. Default: reactive.
+    let cascade: CascadeOutputs
+    if (_reactiveEnabled) {
+      // E+ Phase 2: Reactive cascade — alien-signals computeds drive rendering.
       const reactiveState = getReactiveState(node)
       syncToSignals(reactiveState, node, {
         hasPrevBuffer,
@@ -488,7 +483,46 @@ function renderNodeToBuffer(
         descendantOverflowChanged,
         hasBgColor: !!getEffectiveBg(props),
       })
-      assertReactiveMatchesOracle(reactiveState, cascade, (props.id as string) ?? node.type)
+      cascade = readReactiveCascade(reactiveState)
+
+      // STRICT: verify reactive matches imperative oracle.
+      if (_reactiveVerifyEnabled) {
+        const oracleCascade = computeCascade({
+          hasPrevBuffer,
+          contentDirty: isCurrentEpoch(node.contentDirtyEpoch),
+          stylePropsDirty: isCurrentEpoch(node.stylePropsDirtyEpoch),
+          layoutChanged,
+          subtreeDirty: isCurrentEpoch(node.subtreeDirtyEpoch),
+          childrenDirty: isCurrentEpoch(node.childrenDirtyEpoch),
+          childPositionChanged,
+          ancestorLayoutChanged,
+          ancestorCleared,
+          bgDirty: isCurrentEpoch(node.bgDirtyEpoch),
+          isTextNode: node.type === "silvery-text",
+          hasBgColor: !!getEffectiveBg(props),
+          absoluteChildMutated,
+          descendantOverflowChanged,
+        })
+        assertReactiveMatchesOracle(reactiveState, oracleCascade, (props.id as string) ?? node.type)
+      }
+    } else {
+      // Fallback: imperative oracle (SILVERY_REACTIVE=0)
+      cascade = computeCascade({
+        hasPrevBuffer,
+        contentDirty: isCurrentEpoch(node.contentDirtyEpoch),
+        stylePropsDirty: isCurrentEpoch(node.stylePropsDirtyEpoch),
+        layoutChanged,
+        subtreeDirty: isCurrentEpoch(node.subtreeDirtyEpoch),
+        childrenDirty: isCurrentEpoch(node.childrenDirtyEpoch),
+        childPositionChanged,
+        ancestorLayoutChanged,
+        ancestorCleared,
+        bgDirty: isCurrentEpoch(node.bgDirtyEpoch),
+        isTextNode: node.type === "silvery-text",
+        hasBgColor: !!getEffectiveBg(props),
+        absoluteChildMutated,
+        descendantOverflowChanged,
+      })
     }
 
     // bgOnlyChange safety check: fillBg updates ALL cells in the region, which
