@@ -45,7 +45,8 @@ if (args.includes("--version") || args.includes("-v")) {
 // Strip "examples" subcommand — the examples CLI handles bare args as example names
 const delegateArgs = args[0] === "examples" ? args.slice(1) : args
 
-const proc = spawn(runtime, ["run", examplesCli, ...delegateArgs], {
+const runArgs = runtime === "bun" ? ["run", examplesCli, ...delegateArgs] : [examplesCli, ...delegateArgs]
+const proc = spawn(runtime, runArgs, {
   stdio: "inherit",
 })
 proc.on("exit", (code) => process.exit(code ?? 1))

@@ -215,7 +215,8 @@ async function exampleCommand(args: string[]): Promise<void> {
 
   const { spawn } = await import("node:child_process")
   const runtime = typeof globalThis.Bun !== "undefined" ? "bun" : "node"
-  const proc = spawn(runtime, ["run", match.file], { stdio: "inherit" })
+  const runArgs = runtime === "bun" ? ["run", match.file] : [match.file]
+  const proc = spawn(runtime, runArgs, { stdio: "inherit" })
   proc.on("exit", (code) => process.exit(code ?? 1))
 }
 
@@ -235,7 +236,8 @@ async function doctorCommand(): Promise<void> {
       await stat(termtestPath)
       const { spawn } = await import("node:child_process")
       const runtime = typeof globalThis.Bun !== "undefined" ? "bun" : "node"
-      const proc = spawn(runtime, ["run", termtestPath], { stdio: "inherit" })
+      const runArgs = runtime === "bun" ? ["run", termtestPath] : [termtestPath]
+      const proc = spawn(runtime, runArgs, { stdio: "inherit" })
       proc.on("exit", (code) => process.exit(code ?? 1))
       return
     } catch {
