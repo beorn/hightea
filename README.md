@@ -47,13 +47,13 @@ await render(<Counter />).run()
   - [Fullscreen](https://silvery.dev/guide/runtime-getting-started) — alt screen, traditional TUI
   - [Inline with dynamic scrollback](https://silvery.dev/examples/scrollback) — live React zone at bottom, completed items graduate to terminal-owned scrollback. Native Cmd+F and text selection
   - [Virtual inline](https://silvery.dev/design/dynamic-scrollback) — alt screen + app-managed scrollback history, scrollable and searchable
-- **[45+ components](https://silvery.dev/guides/components)** — TextInput, TextArea, SelectList, ListView, Table, TreeView, Console, Tabs, CommandPalette, ModalDialog, Toast, and more. [38 theme palettes](https://silvery.dev/guide/styling) with semantic tokens (`$primary`, `$error`) and auto-detected terminal colors
+- **[45+ components](https://silvery.dev/guides/components)** — TextInput, SelectList, ListView, Table, TreeView, Tabs, CommandPalette, ModalDialog, Toast, and more. All support focus (Tab/spatial arrow nav), mouse (click-to-focus, scroll), and native keybindings (readline Ctrl+A/E/K/U, vim j/k navigation). [38 theme palettes](https://silvery.dev/guide/styling) with semantic tokens (`$primary`, `$error`) and auto-detected terminal colors
 - **[Web-like interaction](https://silvery.dev/guide/event-handling)** — [focus scopes](https://silvery.dev/guide/silvery-vs-ink#focus-system) with spatial arrow-key nav, click-to-focus. Enables:
   - [Text selection](https://silvery.dev/guide/text-selection) — mouse drag, word/line, `userSelect` boundaries, Alt+drag override
   - [Find](https://silvery.dev/guide/find) — `Ctrl+F` with match highlighting and `n`/`N` navigation
   - [Copy-mode](https://silvery.dev/guide/clipboard) — `Esc, v` for vim-style keyboard selection and yanking
   - [Drag-and-drop](https://silvery.dev/guide/event-handling) — mouse drag with hit testing
-- **[Web-like testing](https://silvery.dev/guide/testing)** — Playwright-style testing with full access to terminal internals (scrollback buffer, cursor position, cell styles, window dimensions):
+- **[Web-like testing](https://silvery.dev/guide/testing)** — 3,000+ tests. Playwright-style API with full access to terminal internals (scrollback buffer, cursor position, cell styles, window dimensions):
   - `createRenderer` — fast unit tests with CSS selector locators, cell-level color assertions, frame-by-frame inspection
   - [Termless](https://termless.dev) — full ANSI fidelity through real terminal emulation. Test against [10 backends](https://termless.dev/guide/backends) (xterm.js, Ghostty, Alacritty, WezTerm, Kitty, and more)
   - [`SILVERY_STRICT`](https://silvery.dev/guide/debugging) — multi-level verification: buffer-level (incremental vs fresh), ANSI-level (internal parser), terminal-level (xterm.js, Ghostty cross-backend), and accumulated replay across all frames
