@@ -240,7 +240,7 @@ Standalone projects Silvery builds on — each stands on its own:
 .feature {
   border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   background: var(--vp-c-bg-soft);
   transition: border-color 0.25s, box-shadow 0.25s;
 }
@@ -249,10 +249,12 @@ Standalone projects Silvery builds on — each stands on its own:
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 .feature h3 {
-  margin: 0 0 0.25rem;
-  font-size: 0.95rem;
+  margin: 0 0 0.15rem;
+  padding: 0;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--vp-c-text-1);
+  border: none;
 }
 .feature p a {
   color: var(--vp-c-text-2);
@@ -266,7 +268,7 @@ Standalone projects Silvery builds on — each stands on its own:
   text-decoration-color: var(--vp-c-brand-1);
 }
 .feature-link {
-  margin-top: 0.5rem;
+  margin-top: 0.35rem;
 }
 .feature-link a {
   color: var(--vp-c-brand-1) !important;
