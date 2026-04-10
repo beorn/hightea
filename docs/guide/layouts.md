@@ -361,17 +361,39 @@ function Card({ item }) {
 
 ## Text Layout {#text-layout}
 
-Beyond flexbox, Silvery provides text layout algorithms inspired by [Pretext](https://chenglou.me/pretext/) — enabling tighter containers, balanced paragraphs, and optimal line breaking.
+CSS gives you `fit-content` (widest wrapped line) and greedy word-wrap. There's no way to say _"find the narrowest width that still produces exactly 3 lines"_ or _"break lines to minimize raggedness across the whole paragraph."_
+
+Silvery adds these capabilities, inspired by [Pretext](https://chenglou.me/pretext/).
 
 ### Width Sizing
 
-| Value | Description | CSS Equivalent |
-|---|---|---|
-| `width={number}` | Fixed width | `width: Npx` |
-| `width="fit-content"` | Shrink to widest wrapped line | `width: fit-content` |
-| `width="snug-content"` | Tightest width for same line count | No CSS equivalent |
+`width` controls how a Box sizes itself:
 
-`fit-content` sizes a container to its widest wrapped line — leaving dead space when the last line is short. `snug-content` (called "shrinkwrap" in [Pretext](https://chenglou.me/pretext/bubbles/)) binary-searches for the tightest width that keeps the same line count. Use it for chat bubbles, cards, and tooltips.
+| Value | What it does |
+|---|---|
+| `width={60}` | Fixed at 60 columns |
+| `width="fit-content"` | Shrink to widest wrapped line (CSS `fit-content`) |
+| `width="snug-content"` | Tightest width that keeps the same line count |
+
+#### `fit-content` vs `snug-content`
+
+`fit-content` wraps text, then sizes the box to the widest line. When the last line is short, the box has dead space:
+
+```
+┌──────────────────┐
+│ Hello world, this │  ← widest line sets the width
+│ is a test         │  ← wasted space ──────────→
+└──────────────────┘
+```
+
+`snug-content` finds the _narrowest_ width that still produces the same number of lines — what [Pretext calls "shrinkwrap"](https://chenglou.me/pretext/bubbles/). It binary-searches over widths, comparing line counts, without any DOM or layout reflows:
+
+```
+┌───────────────┐
+│ Hello world,  │  ← tighter: same 2 lines
+│ this is a test│  ← no dead space
+└───────────────┘
+```
 
 ```tsx
 <Box width="snug-content" borderStyle="round">
@@ -379,28 +401,75 @@ Beyond flexbox, Silvery provides text layout algorithms inspired by [Pretext](ht
 </Box>
 ```
 
+Best for: chat bubbles, tooltips, badges, cards with final content.
+
 ::: warning
-`snug-content` can cause width jitter on dynamic text. Use `fit-content` for live-editing; `snug-content` for static content.
+`snug-content` can cause width jitter on live-editing text — when text crosses a wrap boundary, the box width can suddenly shrink. Use `fit-content` for dynamic text; `snug-content` for static content.
 :::
 
 ### Wrap Modes
 
-| Mode | Description | Algorithm |
-|---|---|---|
-| `wrap="wrap"` | Word-aware wrapping (default) | Greedy |
-| `wrap="hard"` | Character-level wrapping | Break anywhere |
-| `wrap="balanced"` | Equalized line widths | Shrinkwrap at ideal width |
-| `wrap="optimal"` | Minimum-raggedness breaking | Knuth-Plass style DP |
-| `wrap={false}` | Truncate with ellipsis | — |
-| `wrap="clip"` | Hard truncate | — |
+`wrap` controls how text breaks when it exceeds the container width:
 
-**Greedy** fills each line fully. **Balanced** equalizes line widths for a less ragged right edge. **Optimal** minimizes total wasted space across all lines using dynamic programming.
+| Mode | What it does |
+|---|---|
+| `wrap="wrap"` | Word-aware wrapping — each line as full as possible (default) |
+| `wrap="balanced"` | Equalize line widths — less ragged right edge |
+| `wrap="optimal"` | Minimize total raggedness — [Knuth-Plass style](https://en.wikipedia.org/wiki/Line_wrap_and_word_wrap#Minimum_raggedness) paragraph layout |
+| `wrap="hard"` | Character-level wrapping — break anywhere |
+| `wrap={false}` | Truncate with ellipsis |
+| `wrap="clip"` | Hard cut at width, no ellipsis |
+| `wrap="truncate-start"` | Ellipsis at start: `…end of text` |
+| `wrap="truncate-middle"` | Ellipsis in middle: `start…end` |
+
+#### Greedy vs Balanced vs Optimal
+
+**Greedy** (`wrap="wrap"`) fills each line as much as possible, left to right. Simple and predictable:
+
+```
+The quick brown fox jumps over the
+lazy dog sat on the mat.
+```
+
+**Balanced** (`wrap="balanced"`) reduces raggedness by equalizing line widths:
+
+```
+The quick brown fox jumps
+over the lazy dog sat on the mat.
+```
+
+**Optimal** (`wrap="optimal"`) minimizes the _total_ wasted space across all lines using dynamic programming. This is what professional typesetting software uses ([Knuth-Plass paragraph layout](https://en.wikipedia.org/wiki/Line_wrap_and_word_wrap#Minimum_raggedness)):
 
 ```tsx
-{/* Tightest bubble with balanced lines */}
-<Box width="snug-content" borderStyle="round" padding={1}>
-  <Text wrap="balanced">Long text that wraps beautifully</Text>
+<Box width={60}>
+  <Text wrap="optimal">
+    Long paragraph that benefits from globally-optimal line breaks
+    rather than greedy per-line decisions.
+  </Text>
 </Box>
 ```
 
-All three wrapping modes have the same performance (~25 microseconds for typical terminal text). Choose based on aesthetics.
+All three modes have the same rendering performance (~25 microseconds for typical terminal text). The analysis is cached per text node — repeated renders at the same width are free.
+
+### Width × Wrap Interaction
+
+Width and wrap are orthogonal — they compose naturally:
+
+```tsx
+{/* Tightest bubble, balanced lines — prettiest for chat */}
+<Box width="snug-content" borderStyle="round" padding={1}>
+  <Text wrap="balanced">Hello world, this is a message</Text>
+</Box>
+
+{/* Fixed width, optimal paragraph breaking */}
+<Box width={60}>
+  <Text wrap="optimal">{longParagraph}</Text>
+</Box>
+
+{/* Fit-content with balanced — normal box, even lines */}
+<Box width="fit-content">
+  <Text wrap="balanced">{description}</Text>
+</Box>
+```
+
+`snug-content` without a wrap mode defaults to greedy wrapping. Truncation modes (`wrap={false}`, `wrap="clip"`) produce single lines, so `snug-content` has no effect with them — use `fit-content` instead.
