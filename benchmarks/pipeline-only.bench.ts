@@ -12,6 +12,8 @@ import React from "react"
 import { bench, describe } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Box, Text } from "silvery"
+import { buildTextAnalysis, shrinkwrapWidth, balancedWidth, knuthPlassBreaks } from "@silvery/ag-term/pipeline/pretext"
+import { graphemeWidth } from "@silvery/ag-term/unicode"
 
 // ============================================================================
 // Fixtures
@@ -258,5 +260,140 @@ describe("Width oscillation kanban 5x20 (160↔200 cols)", () => {
   bench("alternate 160↔200", () => {
     wide = !wide
     app.resize(wide ? 200 : 160, 60)
+  })
+})
+
+// ============================================================================
+// Scroll container (viewport culling opportunity — many off-screen nodes)
+//
+// Tests cursor move inside a scroll container where only 20 of 200 items
+// are visible. Currently all 200 items exist in the tree (no VirtualList).
+// This measures the cost of having off-screen nodes in the render tree.
+// ============================================================================
+
+function scrollList(count: number, cursor: number, viewportHeight: number) {
+  return React.createElement(
+    Box,
+    { flexDirection: "column", height: viewportHeight, overflow: "scroll", scrollTo: cursor },
+    ...Array.from({ length: count }, (_, i) =>
+      React.createElement(SStyleItem, { key: i, index: i, selected: i === cursor }),
+    ),
+  )
+}
+
+describe("Scroll container — 200 items, 20 visible (80x24)", () => {
+  const render = createRenderer({ cols: 80, rows: 24 })
+  const app = render(scrollList(200, 0, 20))
+  let cursor = 0
+  bench("cursor move in scroll", () => {
+    cursor = (cursor + 1) % 200
+    app.rerender(scrollList(200, cursor, 20))
+  })
+})
+
+describe("Scroll container — 1000 items, 20 visible (80x24)", () => {
+  const render = createRenderer({ cols: 80, rows: 24 })
+  const app = render(scrollList(1000, 0, 20))
+  let cursor = 0
+  bench("cursor move in scroll", () => {
+    cursor = (cursor + 1) % 1000
+    app.rerender(scrollList(1000, cursor, 20))
+  })
+})
+
+// ============================================================================
+// Pretext algorithms (pure computation, no rendering)
+//
+// Measures the cost of text analysis and layout algorithms independently
+// from the rendering pipeline. Useful for understanding the overhead of
+// shrinkwrap, balanced, and Knuth-Plass on various text sizes.
+// ============================================================================
+
+const SHORT_TEXT = "The quick brown fox jumps over the lazy dog"
+const MEDIUM_TEXT = "The quick brown fox jumps over the lazy dog. " +
+  "Pack my box with five dozen liquor jugs. " +
+  "How vexingly quick daft zebras jump. " +
+  "The five boxing wizards jump quickly."
+const LONG_TEXT = Array.from({ length: 10 }, () => MEDIUM_TEXT).join(" ")
+
+describe("Pretext — buildTextAnalysis", () => {
+  bench("short (44 chars)", () => {
+    buildTextAnalysis(SHORT_TEXT, graphemeWidth)
+  })
+  bench("medium (176 chars)", () => {
+    buildTextAnalysis(MEDIUM_TEXT, graphemeWidth)
+  })
+  bench("long (1760 chars)", () => {
+    buildTextAnalysis(LONG_TEXT, graphemeWidth)
+  })
+})
+
+describe("Pretext — shrinkwrapWidth", () => {
+  const shortA = buildTextAnalysis(SHORT_TEXT, graphemeWidth)
+  const mediumA = buildTextAnalysis(MEDIUM_TEXT, graphemeWidth)
+  const longA = buildTextAnalysis(LONG_TEXT, graphemeWidth)
+  bench("short at width=20", () => {
+    shrinkwrapWidth(shortA, 20)
+  })
+  bench("medium at width=40", () => {
+    shrinkwrapWidth(mediumA, 40)
+  })
+  bench("long at width=80", () => {
+    shrinkwrapWidth(longA, 80)
+  })
+})
+
+describe("Pretext — balancedWidth", () => {
+  const shortA = buildTextAnalysis(SHORT_TEXT, graphemeWidth)
+  const mediumA = buildTextAnalysis(MEDIUM_TEXT, graphemeWidth)
+  const longA = buildTextAnalysis(LONG_TEXT, graphemeWidth)
+  bench("short at width=20", () => {
+    balancedWidth(shortA, 20)
+  })
+  bench("medium at width=40", () => {
+    balancedWidth(mediumA, 40)
+  })
+  bench("long at width=80", () => {
+    balancedWidth(longA, 80)
+  })
+})
+
+describe("Pretext — knuthPlassBreaks", () => {
+  const shortA = buildTextAnalysis(SHORT_TEXT, graphemeWidth)
+  const mediumA = buildTextAnalysis(MEDIUM_TEXT, graphemeWidth)
+  const longA = buildTextAnalysis(LONG_TEXT, graphemeWidth)
+  bench("short at width=20", () => {
+    knuthPlassBreaks(shortA, 20)
+  })
+  bench("medium at width=40", () => {
+    knuthPlassBreaks(mediumA, 40)
+  })
+  bench("long at width=80", () => {
+    knuthPlassBreaks(longA, 80)
+  })
+})
+
+// ============================================================================
+// Pretext wrap modes — end-to-end rendering with wrap="balanced" and wrap="optimal"
+// ============================================================================
+
+function wrappedParagraph(text: string, wrap: string, width: number) {
+  return React.createElement(
+    Box,
+    { flexDirection: "column", width },
+    React.createElement(Text, { wrap: wrap as any }, text),
+  )
+}
+
+describe("Wrap mode comparison — medium text (width=40)", () => {
+  const render = createRenderer({ cols: 80, rows: 24 })
+  bench("wrap=\"wrap\" (greedy)", () => {
+    render(wrappedParagraph(MEDIUM_TEXT, "wrap", 40))
+  })
+  bench("wrap=\"balanced\"", () => {
+    render(wrappedParagraph(MEDIUM_TEXT, "balanced", 40))
+  })
+  bench("wrap=\"optimal\" (Knuth-Plass)", () => {
+    render(wrappedParagraph(MEDIUM_TEXT, "optimal", 40))
   })
 })
