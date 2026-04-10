@@ -406,6 +406,82 @@ describe("Mounted incremental re-render — cursor move in 100-item list", () =>
   })
 })
 
+// Memo'd item for style-only benchmarks — React skips children, only Box bg changes
+const SStyleItem = React.memo(
+  ({ index, selected }: { index: number; selected: boolean }) =>
+    React.createElement(
+      SBox,
+      { key: index, backgroundColor: selected ? "#334155" : undefined },
+      React.createElement(SText, null, `Item ${index}`),
+    ),
+  (prev, next) => prev.index === next.index && prev.selected === next.selected,
+)
+
+const IStyleItem = React.memo(
+  ({ index, selected }: { index: number; selected: boolean }) =>
+    React.createElement(
+      IBox,
+      { key: index, ...(selected ? { borderColor: "blue" } : {}) },
+      React.createElement(IText, null, `Item ${index}`),
+    ),
+  (prev, next) => prev.index === next.index && prev.selected === next.selected,
+)
+
+describe("Mounted style-only — memo'd 100-item cursor highlight (backgroundColor)", () => {
+  // The realistic pattern: memo'd children, only 2 items change (old cursor + new cursor).
+  // Silvery's style-only fast path skips child cascade for bg-only changes.
+  const sRender = createRenderer({ cols: 80, rows: 24 })
+  const sApp = sRender(
+    React.createElement(
+      SBox,
+      { flexDirection: "column" },
+      ...Array.from({ length: 100 }, (_, i) =>
+        React.createElement(SStyleItem, { key: i, index: i, selected: i === 0 }),
+      ),
+    ),
+  )
+
+  const inkStdout = createMockStdout(80, 24)
+  const inkInstance = inkRender(
+    React.createElement(
+      IBox,
+      { flexDirection: "column" },
+      ...Array.from({ length: 100 }, (_, i) =>
+        React.createElement(IStyleItem, { key: i, index: i, selected: i === 0 }),
+      ),
+    ),
+    { stdout: inkStdout, debug: true, patchConsole: false, incrementalRendering: true },
+  )
+
+  let sCursor = 0
+  bench("Silvery (memo + style-only fast path)", () => {
+    sCursor = (sCursor + 1) % 100
+    sApp.rerender(
+      React.createElement(
+        SBox,
+        { flexDirection: "column" },
+        ...Array.from({ length: 100 }, (_, i) =>
+          React.createElement(SStyleItem, { key: i, index: i, selected: i === sCursor }),
+        ),
+      ),
+    )
+  })
+
+  let iCursor = 0
+  bench("Ink (memo + incrementalRendering)", () => {
+    iCursor = (iCursor + 1) % 100
+    inkInstance.rerender(
+      React.createElement(
+        IBox,
+        { flexDirection: "column" },
+        ...Array.from({ length: 100 }, (_, i) =>
+          React.createElement(IStyleItem, { key: i, index: i, selected: i === iCursor }),
+        ),
+      ),
+    )
+  })
+})
+
 describe("Mounted incremental re-render — single text change in kanban 5×20", () => {
   const sRender = createRenderer({ cols: 200, rows: 60 })
   const sApp = sRender(silveryKanban(5, 20))
