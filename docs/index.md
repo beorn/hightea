@@ -48,32 +48,34 @@ features:
     details: "Same Box/Text/useInput patterns you already know. If you've used Ink, most code works with just an import change. 918/931 Ink 7.0 tests pass on the @silvery/ink compat layer."
     link: /guide/silvery-vs-ink
     linkText: Full feature comparison
+  - title: Best-in-Class Performance
+    details: "3–6× faster than Ink, 10–20× less terminal output. Pure TypeScript, zero native deps. Layout via Flexily (or Yoga). Runs on Bun and Node.js."
+    link: /guide/silvery-vs-ink#performance
+    linkText: Benchmark details
   - title: Web-like Responsive Layout
-    details: "One-phase responsive layouts — useBoxRect() returns real dimensions during render. overflow=scroll with scrollTo. position=sticky headers. ANSI-aware compositing with color blending."
+    details: "One-phase responsive layouts — useBoxRect() returns real dimensions during render. overflow=scroll with virtualization. position=sticky headers. ANSI-aware compositing with color blending."
     link: /guide/silvery-vs-ink#responsive-layout
     linkText: Architecture deep dive
   - title: Rich Component Library
     details: "45+ components: TextInput, SelectList, ListView, Table, CommandPalette, ModalDialog, Tabs, TreeView, Toast, Spinner, and more. Built-in focus, mouse, and native keybindings. 38 theme palettes with auto-detected terminal colors."
     link: /guides/components
     linkText: Browse components
-  - title: Pure TypeScript
-    details: "No WASM, no C++, no native dependencies. Layout via Flexily (or Yoga). Runs on Bun and Node.js. Instant startup, stable memory."
-  - title: Playwright-Style Testing
-    details: "3,000+ tests. Headless rendering, auto-refreshing CSS locators, cell-level color assertions, and press() input. Termless provides full ANSI fidelity with 10 swappable backends (xterm.js, Ghostty, Alacritty, WezTerm, Kitty)."
-    link: /guide/testing
-    linkText: Testing guide
-  - title: Best-in-Class Performance
-    details: "3–6× faster than Ink in mounted rerender benchmarks. Cell-level dirty tracking — only changed cells emit to the terminal. Per-node skip for unchanged subtrees."
-    link: /guide/silvery-vs-ink#performance
-    linkText: Benchmark details
   - title: Inline, Fullscreen, or Both
     details: "Same components, one-line switch. Inline mode gets fullscreen-level performance with native scrollback and Cmd+F. Fullscreen mode gets inline-level UX (app-managed scrollback). Virtual inline combines both."
     link: /guide/runtime-layers
     linkText: Runtime layers
-  - title: All Modern Terminal Protocols
-    details: "100+ escape sequences, all auto-negotiated: Kitty keyboard, SGR mouse, OSC 8 hyperlinks, OSC 52 clipboard, bracketed paste, focus reporting, synchronized output, truecolor, and more."
-    link: /guide/silvery-vs-ink#terminal-protocol-coverage
-    linkText: See full coverage
+  - title: Web-like Interaction
+    details: "Focus scopes with spatial arrow-key nav, click-to-focus, text selection, Ctrl+F find, vim copy-mode, and drag-and-drop. Powered by 100+ auto-negotiated terminal protocols: Kitty keyboard, SGR mouse, hyperlinks, clipboard, and more."
+    link: /guide/event-handling
+    linkText: Interaction guide
+  - title: Playwright-Style Testing
+    details: "3,000+ tests. Auto-refreshing CSS locators, cell-level color assertions, and press() input. Termless provides full ANSI fidelity with 10 swappable backends (xterm.js, Ghostty, Alacritty, WezTerm, Kitty)."
+    link: /guide/testing
+    linkText: Testing guide
+  - title: Composable Architecture
+    details: "Every layer is independently swappable: layout engine (Flexily or Yoga), terminal backends, state management (useState, Zustand, Jotai), render targets (terminal, Canvas, DOM), and runtime layers via pipe()."
+    link: /guide/providers
+    linkText: Architecture guide
 ---
 
 ## Why Silvery?

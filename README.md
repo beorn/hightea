@@ -31,7 +31,7 @@ await render(<Counter />).run()
 
 - **React 18 + 19** — hooks, refs, effects, suspense — all works
 - **Flexbox layout** — `Box` with `flexDirection`, `padding`, `gap`, `flexGrow`, just like Ink
-- **[Ink-compatible](https://silvery.dev/guide/silvery-vs-ink#compatibility)** — 918/931 Ink 7.0 tests pass on silvery's compat layer. Drop-in migration via [`@silvery/ink`](https://silvery.dev/guide/silvery-vs-ink). See the [full feature comparison](https://silvery.dev/guide/silvery-vs-ink)
+- **[Ink-compatible](https://silvery.dev/guide/silvery-vs-ink#compatibility)** — most code works with just an import change. 918/931 Ink 7.0 tests pass on silvery's compat layer. Drop-in migration via [`@silvery/ink`](https://silvery.dev/guide/silvery-vs-ink). See the [full feature comparison](https://silvery.dev/guide/silvery-vs-ink)
 
 ### Shiny new stuff
 
@@ -52,7 +52,7 @@ await render(<Counter />).run()
   - [Copy-mode](https://silvery.dev/guide/clipboard) — `Esc, v` for vim-style keyboard selection and yanking
   - [Drag-and-drop](https://silvery.dev/guide/event-handling) — mouse drag with hit testing
 - **[Playwright-style testing](https://silvery.dev/guide/testing)** — 3,000+ tests. Full access to terminal internals (scrollback buffer, cursor position, cell styles, window dimensions):
-  - `createRenderer` — fast unit tests with CSS selector locators, cell-level color assertions, frame-by-frame inspection
+  - `createRenderer` — fast unit tests with auto-refreshing CSS locators, cell-level color assertions, frame-by-frame inspection
   - [Termless](https://termless.dev) — like Playwright for terminals. Full ANSI fidelity with [10 swappable backends](https://termless.dev/guide/backends) (xterm.js, Ghostty, Alacritty, WezTerm, Kitty, and more)
   - [`SILVERY_STRICT`](https://silvery.dev/guide/debugging) — multi-level verification: buffer (incremental vs fresh), ANSI (internal parser), terminal (cross-backend), and accumulated replay
 - **[Composable architecture](https://silvery.dev/guide/providers)** — every layer is independently usable and swappable:
