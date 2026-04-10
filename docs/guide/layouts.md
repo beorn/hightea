@@ -364,7 +364,7 @@ function Card({ item }) {
 CSS gives you `fit-content` (widest wrapped line) and greedy word-wrap. There's no way to say _"find the narrowest width that still produces exactly 3 lines"_ or _"break lines to minimize raggedness across the whole paragraph."_
 
 ::: tip Interactive Demo
-Run `bun examples/pretext-demo.tsx` for a side-by-side visual comparison of snug-content bubbles, even wrapping, and the combined effect. See [examples/pretext-demo.tsx](/examples/pretext-demo).
+Run `bun examples/pretext-demo.tsx` for a side-by-side visual comparison of snug-content bubbles, even wrapping, and the combined effect.
 :::
 
 Silvery adds these capabilities, inspired by [Pretext](https://chenglou.me/pretext/) (`@chenglou/pretext`).
