@@ -36,7 +36,7 @@
     "@silvery/signals": "0.5.1",
     "@silvery/test": "0.5.3",
     "@silvery/theme": "0.5.1",
-    "flexily": "github:beorn/flexily"
+    "flexily": "0.5.2"
   },
   "tsdown": {
     "entry": "src/index.ts",
