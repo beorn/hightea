@@ -86,21 +86,20 @@ export {
 export { createStore, silveryUpdate, defaultInit, withFocusManagement } from "@silvery/create/store"
 export type { StoreConfig, StoreApi } from "@silvery/create/store"
 
-// Layer 3: Store integration (canonical home: @silvery/create, re-exported for compat)
-// NOTE: AppHandle is intentionally NOT re-exported — it's an era2b concept.
-// Use @silvery/create directly for createApp/AppHandle.
+// Layer 3: Store integration (canonical home: @silvery/ag-term/runtime/create-app)
 export {
   createApp,
   useApp,
   useAppShallow,
   StoreContext,
   type AppDefinition,
+  type AppHandle,
   type AppRunOptions,
   type AppRunner,
   type EventHandler,
   type EventHandlers,
   type EventHandlerContext,
-} from "@silvery/create/create-app"
+} from "./create-app"
 
 // Time/tick sources
 export { createTick, createFrameTick, createSecondTick, createAdaptiveTick } from "./tick"

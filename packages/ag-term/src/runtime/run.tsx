@@ -29,7 +29,7 @@
 
 import React, { type ReactElement } from "react"
 
-import { createApp } from "@silvery/create/create-app"
+import { createApp } from "./create-app"
 import type { Term } from "../ansi/term"
 import { detectTerminalCaps } from "../terminal-caps"
 import { detectTheme } from "@silvery/theme/detect"

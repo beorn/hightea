@@ -336,6 +336,10 @@
       "types": "./src/ui/*.ts",
       "import": "./src/ui/*.ts"
     },
+    "./with-react": {
+      "types": "./src/with-react.ts",
+      "import": "./src/with-react.ts"
+    },
     "./*": {
       "types": "./src/*",
       "import": "./src/*"

@@ -641,7 +641,7 @@ export {
 export { type PipelineConfig, type PipelineContext } from "@silvery/ag-term/pipeline"
 
 // withRender plugin
-export { withRender, type RenderTerm } from "@silvery/create/with-render"
+export { withRender, type RenderTerm } from "@silvery/ag-term/plugins/with-render"
 
 // Text sizing protocol (OSC 66) — PUA character width control
 export {
@@ -1032,8 +1032,8 @@ export type {
 } from "@silvery/commands/with-keybindings"
 
 // Diagnostic tools - prefer importing from '@silvery/ag-term/toolbelt' for new code
-export { withDiagnostics, VirtualTerminal } from "@silvery/create/with-diagnostics"
-export type { DiagnosticOptions } from "@silvery/create/with-diagnostics"
+export { withDiagnostics, VirtualTerminal } from "@silvery/ag-term/plugins/with-diagnostics"
+export type { DiagnosticOptions } from "@silvery/ag-term/plugins/with-diagnostics"
 
 // Scheduler errors (for catching incremental render mismatches)
 export { IncrementalRenderMismatchError } from "@silvery/ag-term/scheduler"

@@ -37,7 +37,7 @@ export {
   checkLayoutInvariants,
   VirtualTerminal,
   type DiagnosticOptions,
-} from "@silvery/create/with-diagnostics"
+} from "../plugins/with-diagnostics"
 
 // =============================================================================
 // Error Types

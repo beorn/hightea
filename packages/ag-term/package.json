@@ -40,6 +40,10 @@
       "types": "./src/features/index.ts",
       "import": "./src/features/index.ts"
     },
+    "./plugins": {
+      "types": "./src/plugins/index.ts",
+      "import": "./src/plugins/index.ts"
+    },
     "./*": {
       "types": "./src/*.ts",
       "import": "./src/*.ts"
