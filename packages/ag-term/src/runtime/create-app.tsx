@@ -1264,25 +1264,31 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
   // RuntimeContext input listeners — allows components using hooks/useInput
   // (TextInput, TextArea, SelectList etc.) to work inside createApp apps.
-  const runtimeInputListeners = new Set<(input: string, key: Key) => void>()
-  const runtimePasteListeners = new Set<(text: string) => void>()
-  const runtimeFocusListeners = new Set<(focused: boolean) => void>()
+  //
+  // V1r apply chain: ordered dispatch, focus lane before fallback, explicit handled.
+  // Raw Sets replaced with arrays for ordered iteration.
+  const runtimeInputListeners: Array<(input: string, key: Key) => void> = []
+  const runtimePasteListeners: Array<(text: string) => void> = []
+  const runtimeFocusListeners: Array<(focused: boolean) => void> = []
 
   // Typed event bus — supports view → runtime events via emit()
-  const runtimeEventListeners = new Map<string, Set<Function>>()
-  runtimeEventListeners.set("input", runtimeInputListeners as unknown as Set<Function>)
-  runtimeEventListeners.set("paste", runtimePasteListeners as unknown as Set<Function>)
-  runtimeEventListeners.set("focus", runtimeFocusListeners as unknown as Set<Function>)
+  const runtimeEventListeners = new Map<string, Array<Function>>()
+  runtimeEventListeners.set("input", runtimeInputListeners as unknown as Array<Function>)
+  runtimeEventListeners.set("paste", runtimePasteListeners as unknown as Array<Function>)
+  runtimeEventListeners.set("focus", runtimeFocusListeners as unknown as Array<Function>)
 
   const runtimeContextValue: RuntimeContextValue = {
     on(event, handler) {
       let listeners = runtimeEventListeners.get(event)
       if (!listeners) {
-        listeners = new Set()
+        listeners = []
         runtimeEventListeners.set(event, listeners)
       }
-      listeners.add(handler)
-      return () => listeners!.delete(handler)
+      listeners.push(handler)
+      return () => {
+        const idx = listeners!.indexOf(handler)
+        if (idx >= 0) listeners!.splice(idx, 1)
+      }
     },
     emit(event, ...args) {
       const listeners = runtimeEventListeners.get(event)

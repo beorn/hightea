@@ -1,6 +1,6 @@
 {
   "name": "@silvery/ag-term",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "description": "Terminal rendering target for silvery (internal — use silvery instead)",
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",
@@ -10,57 +10,42 @@
     "directory": "packages/ag-term"
   },
   "files": [
-    "src"
+    "dist"
   ],
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts"
-    },
-    "./runtime": {
-      "types": "./src/runtime/index.ts",
-      "import": "./src/runtime/index.ts"
-    },
-    "./toolbelt": {
-      "types": "./src/toolbelt/index.ts",
-      "import": "./src/toolbelt/index.ts"
-    },
-    "./pipeline": {
-      "types": "./src/pipeline/index.ts",
-      "import": "./src/pipeline/index.ts"
-    },
-    "./ansi": {
-      "types": "./src/ansi/index.ts",
-      "import": "./src/ansi/index.ts"
-    },
-    "./features": {
-      "types": "./src/features/index.ts",
-      "import": "./src/features/index.ts"
-    },
-    "./plugins": {
-      "types": "./src/plugins/index.ts",
-      "import": "./src/plugins/index.ts"
-    },
-    "./*": {
-      "types": "./src/*.ts",
-      "import": "./src/*.ts"
-    }
+    ".": "./src/index.ts"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs"
+      }
+    }
   },
   "dependencies": {
-    "@silvery/ag": "0.5.0",
-    "@silvery/ag-react": "0.5.0",
-    "@silvery/ansi": "0.3.1",
-    "@silvery/create": "0.5.0",
-    "@silvery/headless": "0.5.0",
-    "@silvery/signals": "0.5.0",
-    "@silvery/test": "0.5.0",
-    "@silvery/theme": "0.5.0",
+    "@silvery/ag": "0.5.1",
+    "@silvery/ag-react": "0.5.2",
+    "@silvery/ansi": "0.3.3",
+    "@silvery/create": "0.5.2",
+    "@silvery/headless": "0.5.1",
+    "@silvery/signals": "0.5.1",
+    "@silvery/test": "0.5.2",
+    "@silvery/theme": "0.5.1",
     "flexily": "github:beorn/flexily"
-  }
+  },
+  "tsdown": {
+    "entry": "src/index.ts",
+    "format": "esm",
+    "dts": true,
+    "clean": true
+  },
+  "scripts": {
+    "build": "tsdown"
+  },
+  "private": true
 }

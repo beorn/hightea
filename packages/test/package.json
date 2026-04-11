@@ -1,6 +1,6 @@
 {
   "name": "@silvery/test",
-  "version": "0.5.1",
+  "version": "0.5.3",
   "description": "Testing utilities for silvery — virtual renderer, locators, assertions",
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",
@@ -10,32 +10,40 @@
     "directory": "packages/test"
   },
   "files": [
-    "src"
+    "dist"
   ],
   "type": "module",
   "main": "src/index.tsx",
   "types": "src/index.tsx",
   "exports": {
-    ".": {
-      "types": "./src/index.tsx",
-      "import": "./src/index.tsx"
-    },
-    "./*": {
-      "types": "./src/*.ts",
-      "import": "./src/*.ts"
-    }
+    ".": "./src/index.tsx"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs"
+      }
+    }
   },
   "dependencies": {
-    "@silvery/ag": "0.5.0",
-    "@silvery/ag-react": "0.5.0",
-    "@silvery/ag-term": "0.5.0",
-    "@silvery/create": "0.5.0"
+    "@silvery/ag": "0.5.2",
+    "@silvery/ag-react": "0.5.2",
+    "@silvery/ag-term": "0.5.2",
+    "@silvery/create": "0.5.3"
   },
   "engines": {
     "bun": ">=1.0",
     "node": ">=23.6.0"
+  },
+  "tsdown": {
+    "entry": "src/index.tsx",
+    "format": "esm",
+    "dts": true,
+    "clean": true
+  },
+  "scripts": {
+    "build": "tsdown"
   }
 }

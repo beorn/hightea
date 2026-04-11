@@ -1,6 +1,6 @@
 {
   "name": "@silvery/color",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Pure color math utilities — hex/RGB/HSL conversion, blending, contrast checking. Zero dependencies.",
   "keywords": [
     "color",
@@ -18,16 +18,31 @@
     "directory": "packages/color"
   },
   "files": [
-    "src"
+    "dist"
   ],
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs"
+      }
+    }
   },
   "engines": {
     "node": ">=23.6.0"
+  },
+  "tsdown": {
+    "entry": "src/index.ts",
+    "format": "esm",
+    "dts": true,
+    "clean": true
+  },
+  "scripts": {
+    "build": "tsdown"
   }
 }

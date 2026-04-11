@@ -1,6 +1,6 @@
 {
   "name": "@silvery/ag-react",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "description": "Core React reconciler and runtime for silvery (internal — use silvery instead)",
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",
@@ -10,350 +10,39 @@
     "directory": "packages/ag-react"
   },
   "files": [
-    "src"
+    "dist"
   ],
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts"
-    },
-    "./hooks": {
-      "types": "./src/hooks/index.ts",
-      "import": "./src/hooks/index.ts"
-    },
-    "./reconciler": {
-      "types": "./src/reconciler/index.ts",
-      "import": "./src/reconciler/index.ts"
-    },
-    "./reconciler/host-config": {
-      "types": "./src/reconciler/host-config.ts",
-      "import": "./src/reconciler/host-config.ts"
-    },
-    "./reconciler/nodes": {
-      "types": "./src/reconciler/nodes.ts",
-      "import": "./src/reconciler/nodes.ts"
-    },
-    "./accessibility": {
-      "types": "./src/accessibility.ts",
-      "import": "./src/accessibility.ts"
-    },
-    "./context": {
-      "types": "./src/context.ts",
-      "import": "./src/context.ts"
-    },
-    "./error-boundary": {
-      "types": "./src/error-boundary.tsx",
-      "import": "./src/error-boundary.tsx"
-    },
-    "./measureElement": {
-      "types": "./src/measureElement.ts",
-      "import": "./src/measureElement.ts"
-    },
-    "./render": {
-      "types": "./src/render.tsx",
-      "import": "./src/render.tsx"
-    },
-    "./render-string": {
-      "types": "./src/render-string.tsx",
-      "import": "./src/render-string.tsx"
-    },
-    "./components/Box": {
-      "types": "./src/components/Box.tsx",
-      "import": "./src/components/Box.tsx"
-    },
-    "./components/Fill": {
-      "types": "./src/components/Fill.tsx",
-      "import": "./src/components/Fill.tsx"
-    },
-    "./components/Link": {
-      "types": "./src/components/Link.tsx",
-      "import": "./src/components/Link.tsx"
-    },
-    "./components/Newline": {
-      "types": "./src/components/Newline.tsx",
-      "import": "./src/components/Newline.tsx"
-    },
-    "./components/Spacer": {
-      "types": "./src/components/Spacer.tsx",
-      "import": "./src/components/Spacer.tsx"
-    },
-    "./components/Static": {
-      "types": "./src/components/Static.tsx",
-      "import": "./src/components/Static.tsx"
-    },
-    "./components/Text": {
-      "types": "./src/components/Text.tsx",
-      "import": "./src/components/Text.tsx"
-    },
-    "./components/Table": {
-      "types": "./src/components/Table.tsx",
-      "import": "./src/components/Table.tsx"
-    },
-    "./components/Transform": {
-      "types": "./src/components/Transform.tsx",
-      "import": "./src/components/Transform.tsx"
-    },
-    "./hooks/readline-ops": {
-      "types": "./src/hooks/readline-ops.ts",
-      "import": "./src/hooks/readline-ops.ts"
-    },
-    "./hooks/use-edit-context": {
-      "types": "./src/hooks/use-edit-context.ts",
-      "import": "./src/hooks/use-edit-context.ts"
-    },
-    "./hooks/useApp": {
-      "types": "./src/hooks/useApp.ts",
-      "import": "./src/hooks/useApp.ts"
-    },
-    "./hooks/useConsole": {
-      "types": "./src/hooks/useConsole.ts",
-      "import": "./src/hooks/useConsole.ts"
-    },
-    "./hooks/useCursor": {
-      "types": "./src/hooks/useCursor.ts",
-      "import": "./src/hooks/useCursor.ts"
-    },
-    "./hooks/useFocusable": {
-      "types": "./src/hooks/useFocusable.ts",
-      "import": "./src/hooks/useFocusable.ts"
-    },
-    "./hooks/useFocusManager": {
-      "types": "./src/hooks/useFocusManager.ts",
-      "import": "./src/hooks/useFocusManager.ts"
-    },
-    "./hooks/useFocusWithin": {
-      "types": "./src/hooks/useFocusWithin.ts",
-      "import": "./src/hooks/useFocusWithin.ts"
-    },
-    "./hooks/useGridPosition": {
-      "types": "./src/hooks/useGridPosition.ts",
-      "import": "./src/hooks/useGridPosition.ts"
-    },
-    "./hooks/useInput": {
-      "types": "./src/hooks/useInput.ts",
-      "import": "./src/hooks/useInput.ts"
-    },
-    "./hooks/useLayout": {
-      "types": "./src/hooks/useLayout.ts",
-      "import": "./src/hooks/useLayout.ts"
-    },
-    "./hooks/usePositionRegistry": {
-      "types": "./src/hooks/usePositionRegistry.tsx",
-      "import": "./src/hooks/usePositionRegistry.tsx"
-    },
-    "./hooks/useStderr": {
-      "types": "./src/hooks/useStderr.ts",
-      "import": "./src/hooks/useStderr.ts"
-    },
-    "./hooks/useStdout": {
-      "types": "./src/hooks/useStdout.ts",
-      "import": "./src/hooks/useStdout.ts"
-    },
-    "./hooks/useVirtualization": {
-      "types": "./src/hooks/useVirtualization.ts",
-      "import": "./src/hooks/useVirtualization.ts"
-    },
-    "./hooks/usePointerState": {
-      "types": "./src/hooks/usePointerState.tsx",
-      "import": "./src/hooks/usePointerState.tsx"
-    },
-    "./hooks/useVirtualizer": {
-      "types": "./src/hooks/useVirtualizer.ts",
-      "import": "./src/hooks/useVirtualizer.ts"
-    },
-    "./hooks/useWindowSize": {
-      "types": "./src/hooks/useWindowSize.ts",
-      "import": "./src/hooks/useWindowSize.ts"
-    },
-    "./providers/SearchProvider": {
-      "types": "./src/providers/SearchProvider.tsx",
-      "import": "./src/providers/SearchProvider.tsx"
-    },
-    "./reconciler/helpers": {
-      "types": "./src/reconciler/helpers.ts",
-      "import": "./src/reconciler/helpers.ts"
-    },
-    "./ui": {
-      "types": "./src/ui/index.ts",
-      "import": "./src/ui/index.ts"
-    },
-    "./ui/cli": {
-      "types": "./src/ui/cli/index.ts",
-      "import": "./src/ui/cli/index.ts"
-    },
-    "./ui/react": {
-      "types": "./src/ui/react/index.ts",
-      "import": "./src/ui/react/index.ts"
-    },
-    "./ui/wrappers": {
-      "types": "./src/ui/wrappers/index.ts",
-      "import": "./src/ui/wrappers/index.ts"
-    },
-    "./ui/ansi": {
-      "types": "./src/ui/ansi/index.ts",
-      "import": "./src/ui/ansi/index.ts"
-    },
-    "./ui/utils": {
-      "types": "./src/ui/utils/index.ts",
-      "import": "./src/ui/utils/index.ts"
-    },
-    "./ui/progress": {
-      "types": "./src/ui/progress/index.ts",
-      "import": "./src/ui/progress/index.ts"
-    },
-    "./ui/display": {
-      "types": "./src/ui/display/index.ts",
-      "import": "./src/ui/display/index.ts"
-    },
-    "./ui/input": {
-      "types": "./src/ui/input/index.ts",
-      "import": "./src/ui/input/index.ts"
-    },
-    "./ui/animation": {
-      "types": "./src/ui/animation.ts",
-      "import": "./src/ui/animation.ts"
-    },
-    "./ui/image": {
-      "types": "./src/ui/image/index.ts",
-      "import": "./src/ui/image/index.ts"
-    },
-    "./ui/components/CursorLine": {
-      "types": "./src/ui/components/CursorLine.tsx",
-      "import": "./src/ui/components/CursorLine.tsx"
-    },
-    "./ui/components/ListView": {
-      "types": "./src/ui/components/ListView.tsx",
-      "import": "./src/ui/components/ListView.tsx"
-    },
-    "./ui/components/Divider": {
-      "types": "./src/ui/components/Divider.tsx",
-      "import": "./src/ui/components/Divider.tsx"
-    },
-    "./ui/components/EditContextDisplay": {
-      "types": "./src/ui/components/EditContextDisplay.tsx",
-      "import": "./src/ui/components/EditContextDisplay.tsx"
-    },
-    "./ui/components/Spinner": {
-      "types": "./src/ui/components/Spinner.tsx",
-      "import": "./src/ui/components/Spinner.tsx"
-    },
-    "./ui/components/TextArea": {
-      "types": "./src/ui/components/TextArea.tsx",
-      "import": "./src/ui/components/TextArea.tsx"
-    },
-    "./ui/components/TextInput": {
-      "types": "./src/ui/components/TextInput.tsx",
-      "import": "./src/ui/components/TextInput.tsx"
-    },
-    "./ui/components/Badge": {
-      "types": "./src/ui/components/Badge.tsx",
-      "import": "./src/ui/components/Badge.tsx"
-    },
-    "./ui/components/Breadcrumb": {
-      "types": "./src/ui/components/Breadcrumb.tsx",
-      "import": "./src/ui/components/Breadcrumb.tsx"
-    },
-    "./ui/components/Button": {
-      "types": "./src/ui/components/Button.tsx",
-      "import": "./src/ui/components/Button.tsx"
-    },
-    "./ui/components/Form": {
-      "types": "./src/ui/components/Form.tsx",
-      "import": "./src/ui/components/Form.tsx"
-    },
-    "./ui/components/HorizontalVirtualList": {
-      "types": "./src/ui/components/HorizontalVirtualList.tsx",
-      "import": "./src/ui/components/HorizontalVirtualList.tsx"
-    },
-    "./ui/components/ModalDialog": {
-      "types": "./src/ui/components/ModalDialog.tsx",
-      "import": "./src/ui/components/ModalDialog.tsx"
-    },
-    "./ui/components/PickerDialog": {
-      "types": "./src/ui/components/PickerDialog.tsx",
-      "import": "./src/ui/components/PickerDialog.tsx"
-    },
-    "./ui/components/ProgressBar": {
-      "types": "./src/ui/components/ProgressBar.tsx",
-      "import": "./src/ui/components/ProgressBar.tsx"
-    },
-    "./ui/components/Screen": {
-      "types": "./src/ui/components/Screen.tsx",
-      "import": "./src/ui/components/Screen.tsx"
-    },
-    "./ui/components/SearchBar": {
-      "types": "./src/ui/components/SearchBar.tsx",
-      "import": "./src/ui/components/SearchBar.tsx"
-    },
-    "./ui/components/SelectList": {
-      "types": "./src/ui/components/SelectList.tsx",
-      "import": "./src/ui/components/SelectList.tsx"
-    },
-    "./ui/components/Skeleton": {
-      "types": "./src/ui/components/Skeleton.tsx",
-      "import": "./src/ui/components/Skeleton.tsx"
-    },
-    "./ui/components/SplitView": {
-      "types": "./src/ui/components/SplitView.tsx",
-      "import": "./src/ui/components/SplitView.tsx"
-    },
-    "./ui/components/Table": {
-      "types": "./src/ui/components/Table.tsx",
-      "import": "./src/ui/components/Table.tsx"
-    },
-    "./ui/components/Tabs": {
-      "types": "./src/ui/components/Tabs.tsx",
-      "import": "./src/ui/components/Tabs.tsx"
-    },
-    "./ui/components/Toast": {
-      "types": "./src/ui/components/Toast.tsx",
-      "import": "./src/ui/components/Toast.tsx"
-    },
-    "./ui/components/Toggle": {
-      "types": "./src/ui/components/Toggle.tsx",
-      "import": "./src/ui/components/Toggle.tsx"
-    },
-    "./ui/components/Tooltip": {
-      "types": "./src/ui/components/Tooltip.tsx",
-      "import": "./src/ui/components/Tooltip.tsx"
-    },
-    "./ui/components/TreeView": {
-      "types": "./src/ui/components/TreeView.tsx",
-      "import": "./src/ui/components/TreeView.tsx"
-    },
-    "./ui/components/Typography": {
-      "types": "./src/ui/components/Typography.tsx",
-      "import": "./src/ui/components/Typography.tsx"
-    },
-    "./ui/components/Heading": {
-      "types": "./src/ui/components/Heading.tsx",
-      "import": "./src/ui/components/Heading.tsx"
-    },
-    "./ui/*": {
-      "types": "./src/ui/*.ts",
-      "import": "./src/ui/*.ts"
-    },
-    "./with-react": {
-      "types": "./src/with-react.ts",
-      "import": "./src/with-react.ts"
-    },
-    "./*": {
-      "types": "./src/*",
-      "import": "./src/*"
-    }
+    ".": "./src/index.ts"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs"
+      }
+    }
   },
   "dependencies": {
-    "@silvery/ag": "0.5.0",
-    "@silvery/headless": "0.5.0",
-    "@silvery/theme": "0.5.0"
+    "@silvery/ag": "0.5.1",
+    "@silvery/headless": "0.5.1",
+    "@silvery/theme": "0.5.1"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"
-  }
+  },
+  "tsdown": {
+    "entry": "src/index.ts",
+    "format": "esm",
+    "dts": true,
+    "clean": true
+  },
+  "scripts": {
+    "build": "tsdown"
+  },
+  "private": true
 }

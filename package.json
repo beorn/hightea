@@ -1,7 +1,7 @@
 {
   "name": "silvery",
-  "version": "0.17.0",
-  "description": "React for modern terminal apps \u2014 powerful apps, polished UIs, proudly terminal",
+  "version": "0.17.2",
+  "description": "React for modern terminal apps — powerful apps, polished UIs, proudly terminal",
   "keywords": [
     "ansi",
     "chalk",
@@ -25,7 +25,7 @@
     "url": "https://github.com/beorn/silvery/issues"
   },
   "license": "MIT",
-  "author": "Bj\u00f8rn Stabell <bjorn@stabell.org>",
+  "author": "Bjørn Stabell <bjorn@stabell.org>",
   "repository": {
     "type": "git",
     "url": "https://github.com/beorn/silvery.git"
@@ -36,79 +36,60 @@
     "!examples"
   ],
   "files": [
-    "dist/**/*.js",
-    "src",
-    "README.md",
-    "CHANGELOG.md",
-    "LICENSE"
+    "dist"
   ],
   "type": "module",
   "exports": {
-    ".": {
-      "bun": "./src/index.ts",
-      "import": "./dist/index.js"
-    },
-    "./runtime": {
-      "bun": "./src/runtime.ts",
-      "import": "./dist/runtime.js"
-    },
-    "./theme": {
-      "bun": "./src/theme.ts",
-      "import": "./dist/theme.js"
-    },
-    "./ui": {
-      "bun": "./src/ui.ts",
-      "import": "./dist/ui.js"
-    },
-    "./ui/cli": {
-      "bun": "./src/ui/cli.ts",
-      "import": "./dist/ui/cli.js"
-    },
-    "./ui/react": {
-      "bun": "./src/ui/react.ts",
-      "import": "./dist/ui/react.js"
-    },
-    "./ui/progress": {
-      "bun": "./src/ui/progress.ts",
-      "import": "./dist/ui/progress.js"
-    },
-    "./ui/wrappers": {
-      "bun": "./src/ui/wrappers.ts",
-      "import": "./dist/ui/wrappers.js"
-    },
-    "./ui/ansi": {
-      "bun": "./src/ui/ansi.ts",
-      "import": "./dist/ui/ansi.js"
-    },
-    "./ui/display": {
-      "bun": "./src/ui/display.ts",
-      "import": "./dist/ui/display.js"
-    },
-    "./ui/input": {
-      "bun": "./src/ui/input.ts",
-      "import": "./dist/ui/input.js"
-    },
-    "./ui/animation": {
-      "bun": "./src/ui/animation.ts",
-      "import": "./dist/ui/animation.js"
-    },
-    "./ui/image": {
-      "bun": "./src/ui/image.ts",
-      "import": "./dist/ui/image.js"
-    },
-    "./ui/utils": {
-      "bun": "./src/ui/utils.ts",
-      "import": "./dist/ui/utils.js"
-    },
+    ".": "./src/index.ts",
+    "./runtime": "./src/runtime.ts",
+    "./theme": "./src/theme.ts",
+    "./ui": "./src/ui.ts",
+    "./ui/*": "./src/ui/*.ts",
     "./ink": "@silvery/ink",
     "./chalk": "@silvery/ink/chalk"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs"
+      },
+      "./runtime": {
+        "types": "./dist/runtime.d.mts",
+        "import": "./dist/runtime.mjs"
+      },
+      "./theme": {
+        "types": "./dist/theme.d.mts",
+        "import": "./dist/theme.mjs"
+      },
+      "./ui": {
+        "types": "./dist/ui.d.mts",
+        "import": "./dist/ui.mjs"
+      },
+      "./ui/*": {
+        "types": "./dist/ui/*.d.mts",
+        "import": "./dist/ui/*.mjs"
+      },
+      "./ink": "@silvery/ink",
+      "./chalk": "@silvery/ink/chalk"
+    }
+  },
+  "tsdown": {
+    "entry": [
+      "src/index.ts",
+      "src/runtime.ts",
+      "src/theme.ts",
+      "src/ui.ts",
+      "src/ui/*.ts"
+    ],
+    "format": "esm",
+    "dts": true,
+    "clean": true
   },
   "scripts": {
-    "build": "bun run scripts/build.ts",
-    "prepublishOnly": "bun run scripts/build.ts",
+    "build": "tsdown",
+    "build:all": "tsdown && tsdown -W -F '@silvery/*'",
     "test": "bunx --bun vitest run",
     "test:fast": "bunx --bun vitest run --reporter=dot",
     "typecheck": "tsc --noEmit",
@@ -127,7 +108,7 @@
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.3",
-    "@silvery/commander": "0.8.1",
+    "@silvery/commander": "0.8.2",
     "css-select": "^7.0.0",
     "css-what": "^8.0.0",
     "loggily": "0.6.0",
@@ -150,6 +131,7 @@
     "playwright": "^1.58.2",
     "react": "^19.0.0",
     "rolldown": "^1.0.0-rc.15",
+    "tsdown": "^0.21.7",
     "typescript": "^5.5.0",
     "vimonkey": "^0.2.0",
     "vite-plus": "^0.1.16",

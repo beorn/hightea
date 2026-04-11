@@ -1,7 +1,7 @@
 {
   "name": "@silvery/examples",
-  "version": "0.5.2",
-  "description": "Example apps and component demos for silvery — bunx @silvery/examples <name>",
+  "version": "0.5.4",
+  "description": "Example apps and component demos for silvery — npx @silvery/examples <name>",
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",
   "repository": {
@@ -9,11 +9,12 @@
     "url": "https://github.com/beorn/silvery.git",
     "directory": "examples"
   },
+  "type": "module",
   "bin": {
     "silvery-examples": "./bin/cli.ts"
   },
   "files": [
-    "bin",
+    "dist",
     "components",
     "apps",
     "layout",
@@ -22,14 +23,29 @@
     "kitty",
     "_banner.tsx"
   ],
-  "type": "module",
+  "exports": {
+    ".": "./bin/cli.ts"
+  },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "bin": {
+      "silvery-examples": "./dist/cli.mjs"
+    },
+    "exports": {
+      ".": {
+        "types": "./dist/cli.d.mts",
+        "import": "./dist/cli.mjs"
+      }
+    }
+  },
+  "tsdown": {
+    "entry": "bin/cli.ts",
+    "format": "esm",
+    "dts": true,
+    "clean": true
   },
   "dependencies": {
-    "@silvery/ag-term": "0.5.0",
-    "@silvery/create": "0.5.0",
-    "silvery": "0.15.0"
+    "silvery": "0.17.2"
   },
   "engines": {
     "bun": ">=1.0",

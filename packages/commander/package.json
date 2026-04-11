@@ -1,6 +1,6 @@
 {
   "name": "@silvery/commander",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Colorized Commander.js help output using ANSI escape codes",
   "keywords": [
     "ansi",
@@ -17,20 +17,24 @@
     "directory": "packages/commander"
   },
   "files": [
-    "src"
+    "dist"
   ],
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts",
-    "./plain": "./src/plain.ts",
-    "./parse": "./src/presets.ts"
+    ".": "./src/index.ts"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs"
+      }
+    }
   },
   "dependencies": {
-    "@silvery/ansi": ">=0.3.0",
+    "@silvery/ansi": "0.3.4",
     "commander": ">=13.0.0"
   },
   "peerDependencies": {
@@ -43,5 +47,14 @@
   },
   "engines": {
     "node": ">=23.6.0"
+  },
+  "tsdown": {
+    "entry": "src/index.ts",
+    "format": "esm",
+    "dts": true,
+    "clean": true
+  },
+  "scripts": {
+    "build": "tsdown"
   }
 }

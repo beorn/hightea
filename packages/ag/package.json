@@ -1,6 +1,6 @@
 {
   "name": "@silvery/ag",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "description": "Core types and infrastructure for silvery (internal — use silvery instead)",
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",
@@ -10,48 +10,32 @@
     "directory": "packages/ag"
   },
   "files": [
-    "src"
+    "dist"
   ],
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts"
-    },
-    "./types": {
-      "types": "./src/types.ts",
-      "import": "./src/types.ts"
-    },
-    "./keys": {
-      "types": "./src/keys.ts",
-      "import": "./src/keys.ts"
-    },
-    "./focus-manager": {
-      "types": "./src/focus-manager.ts",
-      "import": "./src/focus-manager.ts"
-    },
-    "./focus-events": {
-      "types": "./src/focus-events.ts",
-      "import": "./src/focus-events.ts"
-    },
-    "./focus-queries": {
-      "types": "./src/focus-queries.ts",
-      "import": "./src/focus-queries.ts"
-    },
-    "./tree-utils": {
-      "types": "./src/tree-utils.ts",
-      "import": "./src/tree-utils.ts"
-    },
-    "./interactive-signals": {
-      "types": "./src/interactive-signals.ts",
-      "import": "./src/interactive-signals.ts"
-    },
-    "./*": "./src/*.ts"
+    ".": "./src/index.ts"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs"
+      }
+    }
   },
-  "dependencies": {}
+  "dependencies": {},
+  "tsdown": {
+    "entry": "src/index.ts",
+    "format": "esm",
+    "dts": true,
+    "clean": true
+  },
+  "scripts": {
+    "build": "tsdown"
+  },
+  "private": true
 }
