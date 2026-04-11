@@ -28,6 +28,38 @@ console.log(
 const glossary = [...siteGlossary, ...termGlossary, ...ecoGlossary]
 const compiledGlossary = compileEntities(glossary)
 
+// Build href → tooltip map for enriching manual links in feature cards
+const hrefTooltipMap = new Map<string, string>()
+for (const entity of glossary) {
+  if (entity.href && entity.tooltip) {
+    hrefTooltipMap.set(entity.href, entity.tooltip)
+  }
+}
+
+/** Add data-tooltip and hover-link class to manual <a> tags that match glossary hrefs. */
+function enrichManualLinks(html: string): string {
+  return html.replace(/<a\s([^>]*?)>/g, (match, attrs: string) => {
+    // Skip links that already have data-tooltip (from glossary autolinker)
+    if (attrs.includes("data-tooltip")) return match
+    const hrefMatch = attrs.match(/href="([^"]*)"/)
+    if (!hrefMatch) return match
+    const href = hrefMatch[1]
+    // Try exact match, then without fragment
+    const tooltip = hrefTooltipMap.get(href) ?? hrefTooltipMap.get(href.replace(/#.*$/, ""))
+    if (!tooltip) return match
+    const escaped = tooltip.replace(/&/g, "&amp;").replace(/"/g, "&quot;")
+    // Add hover-link class (merge with existing if present)
+    const hasClass = attrs.match(/class="([^"]*)"/)
+    let newAttrs: string
+    if (hasClass) {
+      newAttrs = attrs.replace(/class="([^"]*)"/, `class="$1 hover-link" data-tooltip="${escaped}"`)
+    } else {
+      newAttrs = `${attrs} class="hover-link" data-tooltip="${escaped}"`
+    }
+    return `<a ${newAttrs}>`
+  })
+}
+
 const seoOptions = {
   hostname: "https://silvery.dev",
   siteName: "Silvery",
@@ -97,7 +129,7 @@ export default withMermaid(
       if (features) {
         for (const feature of features) {
           if (feature.details) {
-            feature.details = replaceInHtml(feature.details, compiledGlossary)
+            feature.details = enrichManualLinks(replaceInHtml(feature.details, compiledGlossary))
           }
         }
       }

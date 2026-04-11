@@ -176,11 +176,10 @@ Standalone projects Silvery builds on — each stands on its own:
 - **@silvery/create** — structured state management with commands, keybindings, effects-as-data
 
 <style>
-/* Autolink style for inline links within VitePress feature cards */
+/* Manual links in feature cards — dotted underline, subtle */
 .VPFeature a {
   color: var(--vp-c-text-1) !important;
-  text-decoration: underline !important;
-  text-decoration-style: dotted !important;
+  text-decoration: underline dotted 1px !important;
   text-decoration-color: var(--vp-c-text-3) !important;
   text-underline-offset: 2px !important;
   cursor: pointer !important;
@@ -188,12 +187,22 @@ Standalone projects Silvery builds on — each stands on its own:
 }
 .VPFeature a:hover {
   color: var(--vp-c-brand-1) !important;
-  text-decoration-style: solid !important;
+  text-decoration: underline solid 1px !important;
+  text-decoration-color: var(--vp-c-brand-1) !important;
+}
+/* Glossary autolinks in feature cards — no underline until hover */
+.VPFeature a.hover-link {
+  text-decoration: none !important;
+  color: inherit !important;
+}
+.VPFeature a.hover-link:hover {
+  color: var(--vp-c-brand-1) !important;
+  text-decoration: underline solid 1px !important;
   text-decoration-color: var(--vp-c-brand-1) !important;
 }
 /* Tighter card padding */
 .VPFeature .box {
-  padding: 16px 20px 28px !important;
+  padding: 16px 20px !important;
   position: relative;
 }
 .VPFeature .details {
@@ -206,10 +215,10 @@ Standalone projects Silvery builds on — each stands on its own:
 .VPFeature .line:first-child {
   margin-top: 0;
 }
+/* Main card link — own line at bottom, not absolute positioned */
 .VPFeature .feature-link {
-  position: absolute;
-  bottom: 16px;
-  right: 20px;
+  display: block;
+  margin-top: 0.75em;
   font-weight: 500;
   color: var(--vp-c-brand-1) !important;
   text-decoration: none !important;
