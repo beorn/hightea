@@ -14,3 +14,5 @@ docs/public/examples/dist/
 !docs/**/*.yaml
 *.tgz
 .claude/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
