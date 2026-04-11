@@ -1,6 +1,6 @@
 {
   "name": "silvery",
-  "version": "0.16.5",
+  "version": "0.16.6",
   "description": "React for modern terminal apps \u2014 powerful apps, polished UIs, proudly terminal",
   "keywords": [
     "ansi",
@@ -134,7 +134,7 @@
     "@silvery/commander": "0.8.1",
     "css-select": "^7.0.0",
     "css-what": "^8.0.0",
-    "loggily": "github:beorn/loggily",
+    "loggily": "0.6.0",
     "react-reconciler": "^0.33.0",
     "slice-ansi": "^8.0.0",
     "string-width": "^8.2.0"
@@ -156,6 +156,7 @@
     "rolldown": "^1.0.0-rc.15",
     "typescript": "^5.5.0",
     "vimonkey": "^0.2.0",
+    "vite-plus": "^0.1.16",
     "vitepress": "^1.5.0",
     "vitepress-enrich": "^0.4.1",
     "vitepress-plugin-d2": "^1.1.0",
