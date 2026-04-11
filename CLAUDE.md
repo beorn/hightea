@@ -416,7 +416,7 @@ ag.render({ fresh: true }) // force non-incremental render
 
 Silvery apps are assembled via `pipe()` — each **provider** (`with-*` function) adds one capability to the app object. Providers live in `@silvery/create`. Pure state machines live in `@silvery/headless`.
 
-**Unified TEA model (era2 target):** Every concern follows `(state, op) → [state, effects]`. The store is central — React hooks register into it (focus nodes, input handlers), plugin apply handlers route through the registered state. Effects are plain data with swappable runners. See `silvery-internal/design/v15-tea/plugin-system-v2.ts` for the runnable design spec.
+**Authoritative design:** [App Composition](docs/design/app-composition.md) — `create()` + `pipe()` + plugins (`withAg`, `withTerm`, `withReact`). Events flow through `dispatch → apply → handlers`. Plugins wrap `apply()` to add behavior. V1r prototype: `silvery-internal/design/v15-tea/plugin-system-v1r.ts`.
 
 - **[Providers and Plugins](docs/guide/providers.md)** — `pipe()` composition, `AppPlugin` type, all built-in providers, how to write custom providers
 - **[Headless Machines](docs/guide/headless-machines.md)** — `createMachine()`, pure update functions (readline, select-list), naming conventions, React hooks
