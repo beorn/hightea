@@ -1,6 +1,6 @@
 {
   "name": "silvery",
-  "version": "0.16.3",
+  "version": "0.16.4",
   "description": "React for modern terminal apps \u2014 powerful apps, polished UIs, proudly terminal",
   "keywords": [
     "ansi",
@@ -153,6 +153,7 @@
     "oxlint": "^1.51.0",
     "playwright": "^1.58.2",
     "react": "^19.0.0",
+    "rolldown": "^1.0.0-rc.15",
     "typescript": "^5.5.0",
     "vimonkey": "^0.2.0",
     "vitepress": "^1.5.0",

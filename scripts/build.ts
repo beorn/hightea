@@ -45,8 +45,6 @@ const external = [
   "slice-ansi",
   "string-width",
   // External packages not bundled
-  "flexily",
-  "flexily/*",
   "@termless/*",
   // Optional/dev dependencies (lazy-imported at runtime)
   "playwright",
