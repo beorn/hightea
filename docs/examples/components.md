@@ -16,19 +16,19 @@ Silvery ships 45+ components out of the box — from basic building blocks (Box,
 ::: code-group
 
 ```bash [npm]
-npx silvery examples components
+npx @silvery/examples components
 ```
 
 ```bash [bun]
-bunx silvery examples components
+bunx @silvery/examples components
 ```
 
 ```bash [pnpm]
-pnpm dlx silvery examples components
+pnpm dlx @silvery/examples components
 ```
 
 ```bash [vp]
-vp silvery examples components
+vp @silvery/examples components
 ```
 
 :::

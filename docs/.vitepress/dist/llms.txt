@@ -1,0 +1,205 @@
+# Silvery
+
+> React for modern terminal apps
+
+Powerful apps. Polished UIs. Proudly terminal.
+
+## Table of Contents
+
+### Getting Started
+
+- [Quick Start](/getting-started/quick-start.md)
+- [Migration from Ink](/getting-started/migrate-from-ink.md)
+- [Migrate from Chalk](/getting-started/migrate-from-chalk.md)
+
+### Guides
+
+- [Components](/guides/components.md)
+- [Terminal Apps](/guides/terminal-apps.md)
+- [State Management](/guides/state-management.md)
+- [Building Complex Layouts](/guide/layouts.md)
+- [Styling](/guide/styling.md)
+- [Theming](/guide/theming.md)
+- [Scrolling](/guide/scrolling.md)
+- [Text Selection](/guide/text-selection.md)
+- [Clipboard](/guide/clipboard.md)
+- [Find](/guide/find.md)
+- [Testing](/guide/testing.md)
+- [Debugging Silvery](/guide/debugging.md)
+- [Why Silvery?](/guide/why-silvery.md)
+- [FAQ](/guide/faq.md): Frequently asked questions about Silvery — installation, Ink compatibility, performance, components, testing, and terminal support.
+
+#### Comparisons
+
+- [Silvery vs Ink](/guide/silvery-vs-ink.md)
+- [Silvery vs Bubble Tea](/guide/silvery-vs-bubbletea.md)
+- [Silvery vs Textual](/guide/silvery-vs-textual.md)
+- [Silvery vs Blessed](/guide/silvery-vs-blessed.md)
+
+### API Reference
+
+- [render](/api/render.md)
+
+#### Components
+
+- [Box](/api/box.md)
+- [Text](/api/text.md)
+- [SelectList](/api/select-list.md)
+- [TextInput](/api/text-input.md)
+- [TextArea](/api/text-area.md)
+- [ListView](/api/list-view.md)
+- [Tabs](/api/tabs.md)
+- [Table](/api/table.md)
+- [Spinner](/api/spinner.md)
+- [ProgressBar](/api/progress-bar.md)
+- [CommandPalette](/api/command-palette.md)
+- [Newline](/api/newline.md)
+- [Spacer](/api/spacer.md)
+- [Static](/api/static.md)
+
+#### Hooks
+
+- [useBoxRect](/api/use-box-rect.md)
+- [useInput](/api/use-input.md)
+- [useApp](/api/use-app.md)
+- [useStdout](/api/use-stdout.md)
+- [Focus Hooks](/api/use-focus.md)
+
+### Reference
+
+- [Components & Hooks](/reference/components-hooks.md)
+- [Packages](/reference/packages.md)
+- [Ink/Chalk Compatibility](/reference/compatibility.md)
+- [Components](/reference/components.md)
+- [Hooks](/reference/hooks.md)
+- [Terminal Lifecycle](/reference/lifecycle.md)
+- [Theming](/reference/theming.md)
+- [Input Features](/reference/input-features.md)
+- [AsyncIterable Stream Helpers](/reference/streams.md)
+- [Text Cursor Utilities](/reference/text-cursor.md)
+- [Text Sizing Protocol (OSC 66)](/reference/text-sizing.md)
+- [Terminal Styling](/reference/style.md)
+- [Plugin Composition](/reference/plugins.md)
+- [Scaling with Signals](/reference/signals.md)
+- [Scroll Region Optimization (DECSTBM)](/reference/scroll-regions.md)
+- [Designing Robust Ops](/reference/robust-ops.md)
+- [Terminal Capabilities Reference](/reference/terminal-capabilities.md)
+- [Terminal Compatibility Matrix](/reference/terminal-matrix.md)
+- [React DevTools Integration](/reference/devtools.md)
+- [Environment Variables](/reference/environment-variables.md): Complete reference for all SILVERY_ environment variables — verification, debugging, diagnostics, and layout configuration.
+- [Recipes](/reference/recipes.md)
+- [@silvery/commander](/reference/commander.md)
+- [@silvery/ansi](/reference/ansi.md)
+- [Theme System](/reference/theme.md)
+
+### Deep Dives
+
+- [Hooks](/guide/hooks.md)
+- [Building Complex Layouts](/guide/layouts.md)
+- [Event Handling](/guide/event-handling.md)
+- [Input Handling Limitations](/guide/input-limitations.md)
+- [Cursor API](/guide/cursor-api.md)
+- [TextArea Component Design](/guide/textarea-design.md)
+- [Kitty Keyboard Protocol Support](/guide/kitty-protocol.md)
+- [Layout Engine](/guide/layout-engine.md)
+- [Layout Coordinate Systems](/guide/layout-coordinates.md)
+- [W3C CSS Alignment](/guide/css-alignment.md)
+- [Smart ANSI Layering](/guide/ansi-layering.md)
+- [Runtime Layers Reference](/guide/runtime-layers.md)
+- [Providers and Plugins](/guide/providers.md)
+- [@silvery/headless — Pure State Machines](/guide/headless-machines.md)
+- [Getting Started with `silvery/runtime`](/guide/runtime-getting-started.md)
+- [Migration Guide: Silvery → `silvery/runtime`](/guide/runtime-migration.md)
+- [Import Conventions](/guide/imports.md)
+- [React 19 Compatibility](/guide/react-19.md)
+- [Troubleshooting](/guide/troubleshooting.md)
+
+### Examples
+
+- [Examples](/examples.md)
+- [Components — 30+ Ready-Made UI Components](/examples/components.md): Kitchen-sink showcase of Silvery's component library — Tabs, SelectList, CommandPalette, ModalDialog, Toast, TreeView, Badge, Spinner, ProgressBar, and more.
+- [Layout — CSS Flexbox for Terminals](/examples/layout.md): Responsive flex layouts, proportional sizing, gap spacing, and scroll containers in the terminal using Silvery.
+- [Forms & Input — TextInput, SelectList, Validation](/examples/forms.md): Build interactive forms, multi-step wizards, and input-driven UIs with Silvery's TextInput, SelectList, and focus scope components.
+- [Tables & Data — Table, VirtualList, Search & Sort](/examples/tables.md): Build terminal data explorers with sortable tables, virtual lists, responsive layouts, and real-time filtering using Silvery.
+- [Scrollback — Dynamic Inline Mode (Unique Feature)](/examples/scrollback.md): Silvery's unique scrollback system — inline mode rendering, ScrollbackList/ScrollbackView, freeze-and-scroll, and natural terminal scrolling.
+- [Terminal Protocols — Kitty Keyboard, Mouse, Images](/examples/terminal.md): Leverage modern terminal protocols in Silvery — Kitty keyboard protocol, mouse events, sixel/kitty image rendering, and OSC queries.
+- [AI Coding Agent — Streaming, Tool Calls, Real-time Updates](/examples/ai-chat.md): Build terminal-based AI coding agents with scrollable output, streaming responses, tool call rendering, and Playwright-style testing using Silvery.
+- [Testing — Headless Renderer & Playwright-Style Locators](/examples/testing.md): Test Silvery TUI applications with the headless renderer, Playwright-style locators, press() simulation, and snapshot testing.
+
+### Components Library
+
+- [Component Reference](/components/README.md)
+- [Badge](/components/Badge.md)
+- [Breadcrumb](/components/Breadcrumb.md)
+- [Button](/components/Button.md)
+- [Console](/components/Console.md)
+- [Divider](/components/Divider.md)
+- [ErrorBoundary](/components/ErrorBoundary.md)
+- [Form / FormField](/components/Form.md)
+- [Image](/components/Image.md)
+- [Link](/components/Link.md)
+- [ModalDialog](/components/ModalDialog.md)
+- [PickerDialog](/components/PickerDialog.md)
+- [Screen](/components/Screen.md)
+- [ScrollbackView](/components/ScrollbackView.md)
+- [ScrollbackList](/components/ScrollbackList.md)
+- [SearchBar](/components/SearchBar.md)
+- [Skeleton](/components/Skeleton.md)
+- [SplitView](/components/SplitView.md)
+- [Toast / useToast](/components/Toast.md)
+- [Toggle](/components/Toggle.md)
+- [Tooltip](/components/Tooltip.md)
+- [TreeView](/components/TreeView.md)
+- [Typography](/components/typography.md)
+
+### Design
+
+- [App Composition](/design/app-composition.md)
+- [Plugin Architecture](/design/plugin-architecture.md)
+- [Dynamic Scrollback](/design/dynamic-scrollback.md)
+- [Terminal Support Strategy](/design/terminal-support-strategy.md)
+
+### Project
+
+- [Contributing to Silvery](/contributing.md)
+
+### Other
+
+- [About Silvery](/about.md): About Silvery — a React TUI framework for modern terminal applications. Origin story, technical approach, and ecosystem.
+- [Box](/components/Box.md)
+- [CommandPalette](/components/CommandPalette.md)
+- [Components Library](/components.md)
+- [CursorLine](/components/CursorLine.md)
+- [Design](/design.md)
+- [EditContextDisplay](/components/EditContextDisplay.md)
+- [Fill](/components/Fill.md)
+- [Getting Started](/getting-started.md)
+- [GridCell](/components/GridCell.md)
+- [Guides](/guide.md)
+- [HorizontalVirtualList](/components/HorizontalVirtualList.md)
+- [Input Architecture](/guide/input-architecture.md)
+- [ListView](/components/ListView.md)
+- [Newline](/components/Newline.md)
+- [PickerList](/components/PickerList.md)
+- [ProgressBar](/components/ProgressBar.md)
+- [Reference](/reference.md)
+- [SelectList](/components/SelectList.md)
+- [Silvery Architecture](/architecture.md)
+- [Silvery Showcase Inventory](/showcase-inventory.md)
+- [Spacer](/components/Spacer.md)
+- [Spinner](/components/Spinner.md)
+- [Static](/components/Static.md)
+- [Table](/components/Table.md)
+- [Tabs](/components/Tabs.md)
+- [Text](/components/Text.md)
+- [TextArea](/components/TextArea.md)
+- [TextInput](/components/TextInput.md)
+- [The Silvery Way](/guide/the-silvery-way.md)
+- [Theme Explorer](/themes.md)
+- [ThemeProvider](/components/ThemeProvider.md)
+- [Theming](/guides/theming.md)
+- [Transform](/components/Transform.md)
+- [VirtualList](/api/virtual-list.md)
+- [VirtualList](/components/VirtualList.md)
+- [VirtualView](/components/VirtualView.md)
+- [Xterm.js Unification: Terminal as Provider](/design/xterm-unification.md)

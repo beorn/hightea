@@ -16,19 +16,19 @@ Silvery brings CSS-like flexbox to the terminal. Proportional sizing, gap spacin
 ::: code-group
 
 ```bash [npm]
-npx silvery examples dashboard
+npx @silvery/examples dashboard
 ```
 
 ```bash [bun]
-bunx silvery examples dashboard
+bunx @silvery/examples dashboard
 ```
 
 ```bash [pnpm]
-pnpm dlx silvery examples dashboard
+pnpm dlx @silvery/examples dashboard
 ```
 
 ```bash [vp]
-vp silvery examples dashboard
+vp @silvery/examples dashboard
 ```
 
 :::

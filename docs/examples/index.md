@@ -5,19 +5,19 @@ Explore Silvery's features through interactive examples:
 ::: code-group
 
 ```bash [npm]
-npx silvery examples
+npx @silvery/examples
 ```
 
 ```bash [bun]
-bunx silvery examples
+bunx @silvery/examples
 ```
 
 ```bash [pnpm]
-pnpm dlx silvery examples
+pnpm dlx @silvery/examples
 ```
 
 ```bash [vp]
-vp silvery examples
+vp @silvery/examples
 ```
 
 :::

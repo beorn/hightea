@@ -14,19 +14,19 @@ next:
 ::: code-group
 
 ```bash [npm]
-npx silvery examples cli-wizard
+npx @silvery/examples cli-wizard
 ```
 
 ```bash [bun]
-bunx silvery examples cli-wizard
+bunx @silvery/examples cli-wizard
 ```
 
 ```bash [pnpm]
-pnpm dlx silvery examples cli-wizard
+pnpm dlx @silvery/examples cli-wizard
 ```
 
 ```bash [vp]
-vp silvery examples cli-wizard
+vp @silvery/examples cli-wizard
 ```
 
 :::

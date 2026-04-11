@@ -14,19 +14,19 @@ next:
 ::: code-group
 
 ```bash [npm]
-npx silvery examples scrollback
+npx @silvery/examples scrollback
 ```
 
 ```bash [bun]
-bunx silvery examples scrollback
+bunx @silvery/examples scrollback
 ```
 
 ```bash [pnpm]
-pnpm dlx silvery examples scrollback
+pnpm dlx @silvery/examples scrollback
 ```
 
 ```bash [vp]
-vp silvery examples scrollback
+vp @silvery/examples scrollback
 ```
 
 :::

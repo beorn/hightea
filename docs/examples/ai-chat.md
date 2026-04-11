@@ -14,19 +14,19 @@ next:
 ::: code-group
 
 ```bash [npm]
-npx silvery examples aichat
+npx @silvery/examples aichat
 ```
 
 ```bash [bun]
-bunx silvery examples aichat
+bunx @silvery/examples aichat
 ```
 
 ```bash [pnpm]
-pnpm dlx silvery examples aichat
+pnpm dlx @silvery/examples aichat
 ```
 
 ```bash [vp]
-vp silvery examples aichat
+vp @silvery/examples aichat
 ```
 
 :::

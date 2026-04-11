@@ -74,7 +74,7 @@ Along the way, three principles emerged. Take the best from the web, stay true t
 ### Next steps
 
 - [Quick start](https://silvery.dev/getting-started/quick-start) — install, first app, deploy
-- [Interactive examples](https://silvery.dev/examples) — `npx silvery examples` to try them locally
+- [Interactive examples](https://silvery.dev/examples) — `npx @silvery/examples` to try them locally
 - [Silvery vs Ink](https://silvery.dev/guide/silvery-vs-ink) — feature comparison and migration guide
 
 ## Packages

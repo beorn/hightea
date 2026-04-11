@@ -1,6 +1,6 @@
 {
   "name": "silvery",
-  "version": "0.16.6",
+  "version": "0.17.0",
   "description": "React for modern terminal apps \u2014 powerful apps, polished UIs, proudly terminal",
   "keywords": [
     "ansi",
@@ -30,16 +30,12 @@
     "type": "git",
     "url": "https://github.com/beorn/silvery.git"
   },
-  "bin": {
-    "silvery": "./bin/silvery.js"
-  },
   "workspaces": [
     "packages/*",
     "!packages/examples",
     "!examples"
   ],
   "files": [
-    "bin",
     "dist/**/*.js",
     "src",
     "README.md",

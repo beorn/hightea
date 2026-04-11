@@ -14,19 +14,19 @@ next:
 ::: code-group
 
 ```bash [npm]
-npx silvery examples data-explorer
+npx @silvery/examples data-explorer
 ```
 
 ```bash [bun]
-bunx silvery examples data-explorer
+bunx @silvery/examples data-explorer
 ```
 
 ```bash [pnpm]
-pnpm dlx silvery examples data-explorer
+pnpm dlx @silvery/examples data-explorer
 ```
 
 ```bash [vp]
-vp silvery examples data-explorer
+vp @silvery/examples data-explorer
 ```
 
 :::

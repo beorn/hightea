@@ -14,19 +14,19 @@ next:
 ::: code-group
 
 ```bash [npm]
-npx silvery examples kitty-keys
+npx @silvery/examples kitty-keys
 ```
 
 ```bash [bun]
-bunx silvery examples kitty-keys
+bunx @silvery/examples kitty-keys
 ```
 
 ```bash [pnpm]
-pnpm dlx silvery examples kitty-keys
+pnpm dlx @silvery/examples kitty-keys
 ```
 
 ```bash [vp]
-vp silvery examples kitty-keys
+vp @silvery/examples kitty-keys
 ```
 
 :::
