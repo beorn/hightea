@@ -17,7 +17,7 @@ React tree → AgNode tree → Measure → Layout → Render → ANSI output
 
 **Layout** — Flexily (pure JS flexbox, Yoga-compatible) calculates positions and sizes. Results land on `AgNode.layout` as `Rect { x, y, width, height }`. Also computes scroll offsets, sticky positions, and screen-relative rects. Components receive layout via `useBoxRect()` / `useScrollRect()`.
 
-**Render** — Incremental content render to `TerminalBuffer`. Dirty flags (`contentDirty`, `stylePropsDirty`, `bgDirty`, `subtreeDirty`, `layoutDirty`) control which nodes re-render. Previous frame buffer is cloned; only dirty subtrees are re-rendered. Output phase diffs current vs previous buffer to produce minimal ANSI escape sequences.
+**Render** — Incremental content render to `TerminalBuffer`. Dirty flags (`contentDirty`, `stylePropsDirty`, `bgDirty`, `subtreeDirty`, `childrenDirty`) control which nodes re-render. Previous frame buffer is cloned; only dirty subtrees are re-rendered. Output phase diffs current vs previous buffer to produce minimal ANSI escape sequences. Layout dirty is tracked by Flexily (`node.layoutNode.isDirty()`) — no separate silvery-side flag.
 
 The invariant: incremental output must match a fresh (non-incremental) render. Verified with `SILVERY_STRICT=1`.
 

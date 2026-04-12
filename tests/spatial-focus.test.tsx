@@ -37,7 +37,6 @@ function stubNode(testID: string, rect: Rect, opts?: { focusable?: boolean; chil
     prevScrollRect: null,
     prevScreenRect: null,
     layoutChangedThisFrame: INITIAL_EPOCH,
-    layoutDirty: false,
     dirtyBits: 0,
     dirtyEpoch: INITIAL_EPOCH,
     layoutSubscribers: new Set(),

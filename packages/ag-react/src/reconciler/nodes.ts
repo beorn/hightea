@@ -646,9 +646,6 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number): void {
     height,
   }
 
-  // Clear layout dirty flag
-  node.layoutDirty = false
-
   // If dimensions changed, content needs re-render
   if (!rectEqual(node.prevLayout, node.boxRect)) {
     const epoch = getRenderEpoch()

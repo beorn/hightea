@@ -158,7 +158,7 @@ export function renderPhase(root: AgNode, prevBuffer?: TerminalBuffer | null, ct
  * Previously walked ALL nodes O(N) every frame. Now only visits nodes
  * with layoutChangedThisFrame (set by propagateLayout in layout phase).
  * Falls back to full walk when layout phase ran (dimensions changed or
- * layoutDirty) since any node may have moved.
+ * Flexily isDirty) since any node may have moved.
  *
  * For cursor move (no layout change): O(1) — no nodes to sync.
  * For resize: O(N) — all nodes may have moved (same as before).

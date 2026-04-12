@@ -34,7 +34,6 @@ export interface NodeDebugInfo {
     stylePropsDirty: boolean
     subtreeDirty: boolean
     childrenDirty: boolean
-    layoutDirty: boolean
   }
   /** Layout info */
   layout: {
@@ -190,7 +189,6 @@ export function getNodeDebugInfo(node: AgNode): NodeDebugInfo {
       stylePropsDirty: isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT),
       subtreeDirty: isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT),
       childrenDirty: isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT),
-      layoutDirty: node.layoutDirty,
     },
     layout: {
       prevLayout: node.prevLayout,
@@ -246,7 +244,7 @@ function analyzeFastPath(node: AgNode | null, scrollAncestors: AgNode[]): string
   }
 
   const flags = node
-  const allClean = !isAnyDirty(flags.dirtyBits, flags.dirtyEpoch) && !flags.layoutDirty
+  const allClean = !isAnyDirty(flags.dirtyBits, flags.dirtyEpoch)
 
   if (allClean) {
     analysis.push("⚠ ALL DIRTY FLAGS FALSE - fast-path likely skipped this node")
@@ -394,7 +392,7 @@ export function formatMismatchContext(ctx: MismatchDebugContext, renderPhaseStat
       lines.push("  active: (none - node was clean)")
     }
     lines.push(
-      `  all: contentDirty=${flags.contentDirty} stylePropsDirty=${flags.stylePropsDirty} subtreeDirty=${flags.subtreeDirty} childrenDirty=${flags.childrenDirty} layoutDirty=${flags.layoutDirty}`,
+      `  all: contentDirty=${flags.contentDirty} stylePropsDirty=${flags.stylePropsDirty} subtreeDirty=${flags.subtreeDirty} childrenDirty=${flags.childrenDirty}`,
     )
     lines.push("")
 

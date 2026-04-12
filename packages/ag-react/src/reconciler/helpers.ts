@@ -61,7 +61,7 @@ export const LAYOUT_PROPS = new Set([
 ])
 
 /**
- * Set of content props that affect layout dimensions (trigger contentDirty + layoutDirty).
+ * Set of content props that affect layout dimensions (trigger contentDirty + Flexily markDirty()).
  * wrap changes text line count; internal_transform changes text width.
  */
 const TEXT_CONTENT_PROPS = new Set(["wrap", "internal_transform"])

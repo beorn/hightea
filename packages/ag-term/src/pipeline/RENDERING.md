@@ -19,8 +19,9 @@ React state change fires. Reconciler walks the fiber tree and sets dirty flags o
 | `contentDirty`    | Text content or content-affecting props changed | Reconciler |
 | `stylePropsDirty` | Visual props changed (color, bg, border)        | Reconciler |
 | `bgDirty`         | `backgroundColor` specifically changed          | Reconciler |
-| `layoutDirty`     | Layout-affecting props changed                  | Reconciler |
 | `childrenDirty`   | Direct children added, removed, or reordered    | Reconciler |
+
+Layout-affecting prop changes call `node.layoutNode.markDirty()` directly — Flexily's `isDirty()` is the sole layout gate.
 
 Reconciler calls `scheduler.scheduleRender()`.
 

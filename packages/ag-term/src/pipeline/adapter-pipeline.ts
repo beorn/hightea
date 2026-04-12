@@ -22,7 +22,7 @@ import {
   scrollPhase,
   stickyPhase,
 } from "./layout-phase"
-import { measurePhase, fitContentCorrectionPass } from "./measure-phase"
+import { measurePhase } from "./measure-phase"
 
 const log = createLogger("silvery:render")
 const baseLog = createLogger("@silvery/ag-react")
@@ -77,13 +77,6 @@ export function executeRenderAdapter(
     using _layout = render?.span("layout")
     layoutPhase(root, width, height)
     log.debug?.(`layout phase complete`)
-  }
-
-  // Phase 2.1: Fit-content correction (post-layout)
-  // After flex resolves parent widths, re-check fit-content/snug-content
-  // nodes that overflow their parent. If any are found, clamp and re-layout.
-  if (fitContentCorrectionPass(root)) {
-    layoutPhase(root, width, height)
   }
 
   // Phase 2.5: Scroll calculation

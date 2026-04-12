@@ -39,7 +39,8 @@ The reconciler sets flags on nodes when props/children change. The render phase 
 | `bgDirty`         | Reconciler                | `backgroundColor` specifically changed (added, modified, or removed)                     |
 | `subtreeDirty`    | Layout phase / reconciler | Some descendant has dirty flags. Node's OWN rendering may be skippable                   |
 | `childrenDirty`   | Reconciler                | Direct children added, removed, or reordered                                             |
-| `layoutDirty`     | Reconciler                | Layout-affecting props changed; triggers Yoga recalculation                              |
+
+Layout-affecting prop changes call `node.layoutNode.markDirty()` directly — Flexily's `isDirty()` propagation to root is the sole layout gate. No silvery-side layout dirty flag exists (Phase 1 of reactive-pipeline refactor deleted it).
 
 The layout phase also sets `subtreeDirty` upward when a descendant's `boxRect` changes via `layoutChangedThisFrame`.
 

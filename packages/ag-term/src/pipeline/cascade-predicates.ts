@@ -121,9 +121,9 @@
 // │                           │            │ (when rect differs  │ clearNodeDirtyFlags (skip) │                 │ via isCurrentEpoch │
 // │                           │            │ from prevLayout)    │                            │                 │                    │
 // │──────────────────────────│────────────│─────────────────────│────────────────────────────│─────────────────│────────────────────│
-// │ layoutDirty (boolean)     │ reconciler │ commitUpdate (when  │ propagateLayout in layout  │ per-layout-pass │ NO — consumed by   │
-// │                           │            │ layout props change)│ phase (node.layoutDirty=   │                 │ layout phase only  │
-// │                           │            │                     │ false)                     │                 │                    │
+// │ Flexily isDirty           │ reconciler │ commitUpdate (when  │ cleared by Flexily after   │ per-layout-pass │ NO — consumed by   │
+// │ (via markDirty())         │            │ layout props change)│ calculateLayout() runs     │                 │ layout phase only  │
+// │                           │            │                     │                            │                 │                    │
 // │──────────────────────────│────────────│─────────────────────│────────────────────────────│─────────────────│────────────────────│
 // │ childPositionChanged      │ render     │ hasChildPositionChanged│ implicit (per-frame    │ per-render-frame│ YES                │
 // │ (computed inline)         │            │ compares child      │ computation, not stored)   │                 │                    │
@@ -439,15 +439,16 @@
 //
 // RECONCILER (host-config.ts):
 //   Sets: contentDirtyEpoch, stylePropsDirtyEpoch, bgDirtyEpoch,
-//         childrenDirtyEpoch, layoutDirty, hidden
+//         childrenDirtyEpoch, hidden
+//   Calls: layoutNode.markDirty() (Flexily's isDirty propagates to root)
 //   Propagates: subtreeDirtyEpoch (upward via markSubtreeDirty)
-//   Tracks: layoutDirtyNodes, contentDirtyNodes, styleOnlyDirtyNodes,
+//   Tracks: contentDirtyNodes, styleOnlyDirtyNodes,
 //           scrollDirtyNodes (in dirty-tracking.ts)
 //
 // LAYOUT PHASE (layout-phase.ts):
 //   Sets: layoutChangedThisFrame (via propagateLayout)
 //   Propagates: subtreeDirtyEpoch (upward when layout changes)
-//   Clears: layoutDirty (per-node boolean)
+//   Checks: root.layoutNode.isDirty() — sole gate for running layout
 //   Computes: boxRect, prevLayout, scrollState (scroll phase),
 //             stickyChildren (sticky phase), scrollRect/screenRect
 //

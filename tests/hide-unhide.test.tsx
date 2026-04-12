@@ -223,7 +223,6 @@ describe("hide/unhide instances (Suspense)", () => {
     // Clear all flags (simulate post-render state)
     node.dirtyBits = 0
     node.dirtyEpoch = INITIAL_EPOCH
-    node.layoutDirty = false
 
     hostConfig.hideInstance(node)
 
@@ -238,7 +237,6 @@ describe("hide/unhide instances (Suspense)", () => {
     node.hidden = true
     node.dirtyBits = 0
     node.dirtyEpoch = INITIAL_EPOCH
-    node.layoutDirty = false
 
     hostConfig.unhideInstance(node, {})
 
@@ -284,7 +282,6 @@ describe("hide/unhide instances (Suspense)", () => {
     textNode.dirtyEpoch = INITIAL_EPOCH
     parent.dirtyBits = 0
     parent.dirtyEpoch = INITIAL_EPOCH
-    parent.layoutDirty = false
 
     hostConfig.hideTextInstance(textNode)
 
@@ -307,7 +304,6 @@ describe("hide/unhide instances (Suspense)", () => {
     textNode.dirtyEpoch = INITIAL_EPOCH
     parent.dirtyBits = 0
     parent.dirtyEpoch = INITIAL_EPOCH
-    parent.layoutDirty = false
 
     hostConfig.unhideTextInstance(textNode, "hello")
 

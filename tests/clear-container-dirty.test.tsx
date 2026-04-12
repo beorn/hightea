@@ -3,9 +3,9 @@
  *
  * clearContainer() removes all children from the root but was missing
  * dirty flag invalidation. Without setting childrenDirty, contentDirty,
- * layoutDirty, subtreeDirty, and calling layoutNode.markDirty(), the
- * pipeline can skip re-rendering after a root clear, leaving stale
- * buffer content.
+ * subtreeDirty, and calling layoutNode.markDirty() (the sole Flexily
+ * layout gate), the pipeline can skip re-rendering after a root clear,
+ * leaving stale buffer content.
  *
  * Compare with removeChildFromContainer() which correctly sets all flags.
  */
@@ -31,7 +31,6 @@ describe("clearContainer dirty invalidation", () => {
     // Clear all flags (simulate post-render state)
     root.dirtyBits = 0
     root.dirtyEpoch = INITIAL_EPOCH
-    root.layoutDirty = false
 
     const container: Container = { root, onRender: () => {} }
     hostConfig.clearContainer(container)
@@ -50,7 +49,6 @@ describe("clearContainer dirty invalidation", () => {
     }
     root.dirtyBits = 0
     root.dirtyEpoch = INITIAL_EPOCH
-    root.layoutDirty = false
 
     const container: Container = { root, onRender: () => {} }
     hostConfig.clearContainer(container)
@@ -58,7 +56,7 @@ describe("clearContainer dirty invalidation", () => {
     expect(isDirty(root.dirtyBits, root.dirtyEpoch, CONTENT_BIT)).toBe(true)
   })
 
-  test("clearContainer sets layoutDirty on root and marks layout node dirty", () => {
+  test("clearContainer marks Flexily layout node dirty", () => {
     const root = createNode("silvery-box", {})
     const child = createNode("silvery-box", {})
     root.children.push(child)
@@ -68,7 +66,6 @@ describe("clearContainer dirty invalidation", () => {
     }
     root.dirtyBits = 0
     root.dirtyEpoch = INITIAL_EPOCH
-    root.layoutDirty = false
 
     // Spy on layoutNode.markDirty
     const markDirtySpy = vi.spyOn(root.layoutNode!, "markDirty")
@@ -90,7 +87,6 @@ describe("clearContainer dirty invalidation", () => {
     }
     root.dirtyBits = 0
     root.dirtyEpoch = INITIAL_EPOCH
-    root.layoutDirty = false
 
     const container: Container = { root, onRender: () => {} }
     hostConfig.clearContainer(container)
@@ -105,7 +101,6 @@ describe("clearContainer dirty invalidation", () => {
     const root = createNode("silvery-box", {})
     root.dirtyBits = 0
     root.dirtyEpoch = INITIAL_EPOCH
-    root.layoutDirty = false
 
     const container: Container = { root, onRender: () => {} }
     hostConfig.clearContainer(container)
