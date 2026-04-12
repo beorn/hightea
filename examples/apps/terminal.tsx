@@ -778,7 +778,3 @@ export async function main() {
     process.stdout.write(disableKittyKeyboard())
   }
 }
-
-if (import.meta.main) {
-  await main()
-}

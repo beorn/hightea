@@ -210,7 +210,3 @@ export async function main() {
   })
   await handle.waitUntilExit()
 }
-
-if (import.meta.main) {
-  await main()
-}

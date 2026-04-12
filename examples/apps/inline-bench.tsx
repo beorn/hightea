@@ -132,7 +132,3 @@ export async function main() {
     console.log()
   }
 }
-
-if (import.meta.main) {
-  await main()
-}

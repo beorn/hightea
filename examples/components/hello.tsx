@@ -32,7 +32,3 @@ export async function main() {
   const handle = await run(<Hello />)
   await handle.waitUntilExit()
 }
-
-if (import.meta.main) {
-  await main()
-}

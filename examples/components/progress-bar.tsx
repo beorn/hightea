@@ -46,7 +46,3 @@ export async function main() {
   const handle = await run(<ProgressBarDemo />)
   await handle.waitUntilExit()
 }
-
-if (import.meta.main) {
-  await main()
-}

@@ -74,7 +74,3 @@ export async function main() {
     term,
   )
 }
-
-if (import.meta.main) {
-  await main()
-}

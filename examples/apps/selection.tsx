@@ -340,7 +340,3 @@ export async function main() {
   using handle = await run(<SelectionDemo />, { mode: "fullscreen" })
   await handle.waitUntilExit()
 }
-
-if (import.meta.main) {
-  await main()
-}

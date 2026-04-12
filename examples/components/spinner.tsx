@@ -38,7 +38,3 @@ export async function main() {
   const handle = await run(<SpinnerDemo />)
   await handle.waitUntilExit()
 }
-
-if (import.meta.main) {
-  await main()
-}

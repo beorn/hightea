@@ -187,7 +187,3 @@ export async function main() {
   using handle = await app.run()
   await handle.waitUntilExit()
 }
-
-if (import.meta.main) {
-  await main()
-}

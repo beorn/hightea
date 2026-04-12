@@ -366,7 +366,3 @@ export async function main() {
   using handle = await run(<SpatialFocusBoard />, { mode: "fullscreen" })
   await handle.waitUntilExit()
 }
-
-if (import.meta.main) {
-  await main()
-}

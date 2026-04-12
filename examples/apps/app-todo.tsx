@@ -195,7 +195,3 @@ export async function main() {
 
   console.log("\nFinal state:", handle.store.getState().todos.length, "todos")
 }
-
-if (import.meta.main) {
-  await main()
-}

@@ -50,7 +50,3 @@ export async function main() {
   const handle = await run(<ListViewDemo />)
   await handle.waitUntilExit()
 }
-
-if (import.meta.main) {
-  await main()
-}

@@ -326,7 +326,3 @@ export async function main() {
   )
   await waitUntilExit()
 }
-
-if (import.meta.main) {
-  await main()
-}
