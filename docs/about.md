@@ -78,7 +78,7 @@ Each stands on its own — Silvery builds on them, but they work independently:
 - **[Flexily](https://beorn.codes/flexily)** — Pure-TypeScript flexbox layout engine, Yoga-compatible, W3C spec. 2.5× faster than Yoga WASM, zero native dependencies.
 - **[Termless](https://termless.dev)** — Headless terminal testing against 10+ real parser backends. Like Playwright for terminal apps.
 - **[terminfo.dev](https://terminfo.dev)** — Terminal feature compatibility database. 161 features × 19 terminals, empirically probed via Termless.
-- **[Loggily](https://beorn.codes/loggily)** — Structured logging + span tracing + metrics in one library. Zero dependencies.
+- **[Loggily](https://loggily.dev)** — Structured logging + span tracing + metrics in one library. Zero dependencies.
 
 ## Numbers
 
@@ -112,6 +112,6 @@ See also: [Silvery vs Ink](/guide/silvery-vs-ink), [Silvery vs BubbleTea](/guide
 
 [Bjørn Stabell](https://beorn.codes) — entrepreneur and technologist based in the SF Bay Area. Building companies and developer tools since 2000.
 
-Currently building AI products for knowledge work, and open-source infrastructure for the terminal ecosystem: [Silvery](https://silvery.dev), [terminfo.dev](https://terminfo.dev), [Termless](https://termless.dev), [Flexily](https://beorn.codes/flexily), and [Loggily](https://beorn.codes/loggily).
+Currently building AI products for knowledge work, and open-source infrastructure for the terminal ecosystem: [Silvery](https://silvery.dev), [terminfo.dev](https://terminfo.dev), [Termless](https://termless.dev), [Flexily](https://beorn.codes/flexily), and [Loggily](https://loggily.dev).
 
 [beorn.codes](https://beorn.codes) · [GitHub](https://github.com/beorn) · [LinkedIn](https://linkedin.com/in/beorn) · [X](https://x.com/beorn)

@@ -166,7 +166,7 @@ Standalone projects Silvery builds on — each stands on its own:
 - **[Flexily](https://beorn.codes/flexily)** — pure JS flexbox layout engine (Yoga-compatible, 2.5× faster, zero WASM)
 - **[Termless](https://termless.dev)** — headless terminal testing, like Playwright for terminal apps
 - **[terminfo.dev](https://terminfo.dev)** — terminal feature compatibility database (161 features, 19 terminals)
-- **[Loggily](https://beorn.codes/loggily)** — structured logging + tracing + metrics in one library
+- **[Loggily](https://loggily.dev)** — structured logging + tracing + metrics in one library
 
 ## Coming
 
