@@ -93,14 +93,26 @@ function BubbleColumn({
   sublabel,
   width,
   wrap,
+  border,
 }: {
   label: string
   sublabel: string
   width: "fit-content" | "snug-content"
   wrap?: "wrap" | "even"
+  border?: boolean
 }) {
   return (
-    <Box flexDirection="column" flexGrow={1} flexBasis={0}>
+    <Box
+      flexDirection="column"
+      flexGrow={1}
+      flexBasis={0}
+      borderStyle={border ? "single" : undefined}
+      borderRight={false}
+      borderTop={false}
+      borderBottom={false}
+      borderColor="$border"
+      paddingLeft={border ? 1 : 0}
+    >
       <Text bold color="$accent">
         {label}
       </Text>
@@ -123,15 +135,35 @@ function BubbleColumn({
 }
 
 /** Side-by-side paragraph comparison. */
-function ParagraphComparison({ label, sublabel, wrap }: { label: string; sublabel: string; wrap: "wrap" | "even" }) {
+function ParagraphComparison({
+  label,
+  sublabel,
+  wrap,
+  border,
+}: {
+  label: string
+  sublabel: string
+  wrap: "wrap" | "even"
+  border?: boolean
+}) {
   return (
-    <Box flexDirection="column" flexGrow={1} flexBasis={0}>
+    <Box
+      flexDirection="column"
+      flexGrow={1}
+      flexBasis={0}
+      borderStyle={border ? "single" : undefined}
+      borderRight={false}
+      borderTop={false}
+      borderBottom={false}
+      borderColor="$border"
+      paddingLeft={border ? 1 : 0}
+    >
       <Text bold color="$accent">
         {label}
       </Text>
       <Muted>{sublabel}</Muted>
       <Text> </Text>
-      <Box width={54} borderStyle="single" borderColor="$border" paddingX={1}>
+      <Box width="fit-content" maxWidth={54} borderStyle="single" borderColor="$border" paddingX={1}>
         <Text wrap={wrap}>{PARAGRAPH}</Text>
       </Box>
     </Box>
@@ -149,7 +181,7 @@ function Demo1Bubbles() {
       <Muted>{"  "}fit-content sizes to the widest wrapped line (dead space on short lines).</Muted>
       <Muted>{"  "}snug-content binary-searches for the tightest width with the same line count.</Muted>
       <Text> </Text>
-      <Box flexDirection="row" gap={3} paddingX={1}>
+      <Box flexDirection="row" gap={1} paddingX={1}>
         <BubbleColumn
           label='width="fit-content" + wrap="wrap"'
           sublabel="CSS default — dead space"
@@ -161,6 +193,7 @@ function Demo1Bubbles() {
           sublabel="Pretext shrinkwrap — tight"
           width="snug-content"
           wrap="even"
+          border
         />
       </Box>
     </Box>
@@ -174,9 +207,9 @@ function Demo2EvenWrap() {
       <Muted>{"  "}Greedy fills each line left-to-right, leaving a ragged right edge.</Muted>
       <Muted>{"  "}Even uses minimum-raggedness DP to distribute words across all lines.</Muted>
       <Text> </Text>
-      <Box flexDirection="row" gap={3} paddingX={1}>
+      <Box flexDirection="row" gap={1} paddingX={1}>
         <ParagraphComparison label='wrap="wrap"' sublabel="Greedy — ragged right edge" wrap="wrap" />
-        <ParagraphComparison label='wrap="even"' sublabel="Min-raggedness — balanced lines" wrap="even" />
+        <ParagraphComparison label='wrap="even"' sublabel="Min-raggedness — balanced lines" wrap="even" border />
       </Box>
     </Box>
   )
@@ -188,7 +221,7 @@ function Demo3Combined() {
       <H2>Combined: snug-content + even wrapping</H2>
       <Muted>{"  "}The tightest, most beautiful text layout — both features together.</Muted>
       <Text> </Text>
-      <Box flexDirection="row" gap={3} paddingX={1}>
+      <Box flexDirection="row" gap={1} paddingX={1}>
         <Box flexDirection="column" flexGrow={1} flexBasis={0}>
           <Text bold color="$accent">
             Default (fit-content + greedy)
@@ -208,7 +241,17 @@ function Demo3Combined() {
             </Box>
           </Box>
         </Box>
-        <Box flexDirection="column" flexGrow={1} flexBasis={0}>
+        <Box
+          flexDirection="column"
+          flexGrow={1}
+          flexBasis={0}
+          borderStyle="single"
+          borderRight={false}
+          borderTop={false}
+          borderBottom={false}
+          borderColor="$border"
+          paddingLeft={1}
+        >
           <Text bold color="$accent">
             Pretext (snug-content + even)
           </Text>
