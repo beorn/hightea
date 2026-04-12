@@ -26,99 +26,41 @@ const CYAN = "\x1b[36m"
 const WHITE = "\x1b[37m"
 
 // =============================================================================
-// Types
+// Static Registry
 // =============================================================================
+
+import { REGISTRY, type RegistryEntry } from "./registry.ts"
 
 interface Example {
   name: string
-  file: string
+  main: () => Promise<void> | void
   description: string
   category: string
-  features?: string[]
-}
-
-// =============================================================================
-// Auto-Discovery
-// =============================================================================
-
-const CATEGORY_DIRS = ["components", "apps", "layout", "runtime", "inline", "kitty"] as const
-
-const CATEGORY_DISPLAY: Record<string, string> = {
-  kitty: "Kitty Protocol",
 }
 
 const CATEGORY_ORDER: Record<string, number> = {
   Components: 0,
   Apps: 1,
   Layout: 2,
-  Runtime: 3,
-  Inline: 4,
-  "Kitty Protocol": 5,
 }
 
 const CATEGORY_COLOR: Record<string, string> = {
   Components: GREEN,
   Apps: CYAN,
   Layout: MAGENTA,
-  Runtime: BLUE,
-  Inline: YELLOW,
-  "Kitty Protocol": BLUE,
 }
 
-async function discoverExamples(): Promise<Example[]> {
-  const { resolve, dirname, extname } = await import("node:path")
-  const { fileURLToPath } = await import("node:url")
-  const { readdirSync, existsSync } = await import("node:fs")
-  const __dirname = dirname(fileURLToPath(import.meta.url))
-  const examplesDir = resolve(__dirname, "..")
-
-  // Detect if running from dist/ (published) or source
-  // dist/bin/cli.mjs → examplesDir = dist/, look for dist/components/*.mjs
-  // bin/cli.ts → examplesDir = examples/, look for components/*.tsx
-  const isBuilt = __dirname.endsWith("/dist/bin") || __dirname.endsWith("/dist\\bin")
-  const ext = isBuilt ? ".mjs" : ".tsx"
-  const results: Example[] = []
-
-  for (const dir of CATEGORY_DIRS) {
-    const category = CATEGORY_DISPLAY[dir] ?? dir.charAt(0).toUpperCase() + dir.slice(1)
-    const dirPath = resolve(examplesDir, dir)
-
-    try {
-      const files = readdirSync(dirPath).filter((f: string) => f.endsWith(ext) && !f.startsWith("_"))
-      for (const file of files) {
-        const name = file.replace(/\.(tsx|mjs)$/, "").replace(/-/g, " ")
-        results.push({
-          name,
-          description: "",
-          file: resolve(dirPath, file),
-          category,
-        })
-      }
-    } catch {
-      // Directory doesn't exist — skip
-    }
-  }
-
-  // Also scan aichat subdirectory
-  const aichatPath = isBuilt
-    ? resolve(examplesDir, "apps/aichat/index.mjs")
-    : resolve(examplesDir, "apps/aichat/index.tsx")
-  if (existsSync(aichatPath)) {
-    results.push({
-      name: "aichat",
-      description: "AI Coding Agent demo",
-      file: aichatPath,
-      category: "Apps",
-    })
-  }
-
-  results.sort((a, b) => {
+function getExamples(): Example[] {
+  return REGISTRY.map((e: RegistryEntry) => ({
+    name: e.name,
+    main: e.main,
+    description: e.description ?? "",
+    category: e.category,
+  })).sort((a, b) => {
     const catDiff = (CATEGORY_ORDER[a.category] ?? 99) - (CATEGORY_ORDER[b.category] ?? 99)
     if (catDiff !== 0) return catDiff
     return a.name.localeCompare(b.name)
   })
-
-  return results
 }
 
 // =============================================================================
@@ -195,7 +137,7 @@ function printNoMatch(query: string, examples: Example[]): void {
 // =============================================================================
 
 async function exampleCommand(args: string[]): Promise<void> {
-  const examples = await discoverExamples()
+  const examples = getExamples()
 
   if (args.length === 0 || args[0] === "--list" || args[0] === "-l") {
     printExampleList(examples)
@@ -216,13 +158,7 @@ async function exampleCommand(args: string[]): Promise<void> {
 
   console.log(`${DIM}Running ${BOLD}${match.name}${RESET}${DIM}...${RESET}\n`)
 
-  const mod = await import(match.file)
-  if (typeof mod.main === "function") {
-    await mod.main()
-  } else {
-    console.error(`${RED}Error:${RESET} Example does not export a main() function`)
-    process.exit(1)
-  }
+  await match.main()
 }
 
 async function doctorCommand(): Promise<void> {
@@ -271,8 +207,7 @@ async function main(): Promise<void> {
 
   // No args → list examples
   if (args.length === 0) {
-    const examples = await discoverExamples()
-    printExampleList(examples)
+    printExampleList(getExamples())
     return
   }
 

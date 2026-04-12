@@ -1,6 +1,6 @@
 {
   "name": "@silvery/examples",
-  "version": "0.17.5",
+  "version": "0.17.6",
   "description": "Example apps and component demos for silvery — npx @silvery/examples <name>",
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",
@@ -22,7 +22,7 @@
   "publishConfig": {
     "access": "public",
     "bin": {
-      "silvery-examples": "./dist/bin/cli.mjs"
+      "silvery-examples": "./dist/cli.mjs"
     },
     "exports": {
       ".": {
@@ -32,13 +32,7 @@
     }
   },
   "tsdown": {
-    "entry": [
-      "bin/cli.ts",
-      "components/*.tsx",
-      "apps/*.tsx",
-      "apps/aichat/index.tsx",
-      "layout/*.tsx"
-    ],
+    "entry": "bin/cli.ts",
     "format": "esm",
     "dts": false,
     "clean": true,
