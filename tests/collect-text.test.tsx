@@ -116,7 +116,6 @@ function boxNode(props: BoxProps, ...children: AgNode[]): AgNode {
     layoutChangedThisFrame: INITIAL_EPOCH,
     dirtyBits: 0,
     dirtyEpoch: INITIAL_EPOCH,
-
   }
   for (const child of children) {
     child.parent = node
