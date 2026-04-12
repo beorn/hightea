@@ -11,7 +11,7 @@ import { SPINNER_FRAMES, SPINNER_INTERVALS } from "../cli/spinner"
  *
  * @example
  * ```tsx
- * import { Spinner } from "@silvery/ag-react/ui/react";
+ * import { Spinner } from "./index";
  *
  * function LoadingView() {
  *   return <Spinner label="Loading..." />;

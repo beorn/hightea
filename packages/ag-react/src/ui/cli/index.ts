@@ -3,7 +3,7 @@
  *
  * @example
  * ```ts
- * import { Spinner, ProgressBar, MultiProgress } from "@silvery/ag-react/ui/cli";
+ * import { Spinner, ProgressBar, MultiProgress } from "./index";
  *
  * // Quick spinner
  * const stop = Spinner.start("Loading...");

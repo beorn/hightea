@@ -10,11 +10,11 @@
  *   const html = await term.renderStatic(<Report />)
  */
 
-import type { Term } from "@silvery/ag-term/ansi"
+import type { Term } from "../ansi"
 import type { ReactElement } from "react"
-import type { TerminalBuffer } from "@silvery/ag-term/buffer"
-import { createPipeline, type MeasuredTerm } from "@silvery/ag-term/measurer"
-import { executeRender, type ExecuteRenderOptions, type PipelineConfig } from "@silvery/ag-term/pipeline"
+import type { TerminalBuffer } from "../buffer"
+import { createPipeline, type MeasuredTerm } from "../measurer"
+import { executeRender, type ExecuteRenderOptions, type PipelineConfig } from "../pipeline"
 import type { AgNode } from "@silvery/create/types"
 
 /**

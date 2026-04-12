@@ -67,19 +67,19 @@
  * ```
  */
 export { Box } from "./components/Box"
-export { Console } from "@silvery/ag-react/ui/components"
-export { ListView } from "@silvery/ag-react/ui/components"
+export { Console } from "./ui/components"
+export { ListView } from "./ui/components"
 export type {
   ListViewProps,
   ListViewHandle,
   ListItemMeta,
   ListViewCacheConfig,
   ListViewSearchConfig,
-} from "@silvery/ag-react/ui/components"
-export { HorizontalVirtualList } from "@silvery/ag-react/ui/components"
-export type { HorizontalVirtualListProps, HorizontalVirtualListHandle } from "@silvery/ag-react/ui/components"
-export { SplitView } from "@silvery/ag-react/ui/components"
-export type { SplitViewProps } from "@silvery/ag-react/ui/components"
+} from "./ui/components"
+export { HorizontalVirtualList } from "./ui/components"
+export type { HorizontalVirtualListProps, HorizontalVirtualListHandle } from "./ui/components"
+export { SplitView } from "./ui/components"
+export type { SplitViewProps } from "./ui/components"
 export type { LayoutNode as SplitLayoutNode } from "@silvery/ag-term/pane-manager"
 export {
   createLeaf,
@@ -117,8 +117,8 @@ export { Newline } from "./components/Newline"
 export { Spacer } from "./components/Spacer"
 export { Static } from "./components/Static"
 // Viewport Architecture (Phase 2)
-export { Screen } from "@silvery/ag-react/ui/components"
-export type { ScreenProps } from "@silvery/ag-react/ui/components"
+export { Screen } from "./ui/components"
+export type { ScreenProps } from "./ui/components"
 
 /**
  * Re-export ErrorBoundary component - catches render errors in children.
@@ -132,39 +132,39 @@ export type { ScreenProps } from "@silvery/ag-react/ui/components"
  * </ErrorBoundary>
  * ```
  */
-export { ErrorBoundary } from "@silvery/ag-react/ui/components"
-export type { ErrorBoundaryProps } from "@silvery/ag-react/ui/components"
+export { ErrorBoundary } from "./ui/components"
+export type { ErrorBoundaryProps } from "./ui/components"
 
 // Lightweight runtime-level error boundary (used as default root in createApp/run)
 export { SilveryErrorBoundary } from "./error-boundary"
 export type { SilveryErrorBoundaryProps } from "./error-boundary"
 
 // Input Components
-export { TextInput } from "@silvery/ag-react/ui/components"
-export type { TextInputProps, TextInputHandle } from "@silvery/ag-react/ui/components"
+export { TextInput } from "./ui/components"
+export type { TextInputProps, TextInputHandle } from "./ui/components"
 
-export { TextArea } from "@silvery/ag-react/ui/components"
-export type { TextAreaProps, TextAreaHandle, TextAreaSelection } from "@silvery/ag-react/ui/components"
+export { TextArea } from "./ui/components"
+export type { TextAreaProps, TextAreaHandle, TextAreaSelection } from "./ui/components"
 
-export { useTextArea, clampScroll } from "@silvery/ag-react/ui/components"
-export type { UseTextAreaOptions, UseTextAreaResult } from "@silvery/ag-react/ui/components"
+export { useTextArea, clampScroll } from "./ui/components"
+export type { UseTextAreaOptions, UseTextAreaResult } from "./ui/components"
 
-export { EditContextDisplay } from "@silvery/ag-react/ui/components"
-export type { EditContextDisplayProps } from "@silvery/ag-react/ui/components"
+export { EditContextDisplay } from "./ui/components"
+export type { EditContextDisplayProps } from "./ui/components"
 
 // Display Components
-export { CursorLine } from "@silvery/ag-react/ui/components"
-export type { CursorLineProps } from "@silvery/ag-react/ui/components"
+export { CursorLine } from "./ui/components"
+export type { CursorLineProps } from "./ui/components"
 
 // Dialog Components
-export { ModalDialog, formatTitleWithHotkey } from "@silvery/ag-react/ui/components"
-export type { ModalDialogProps } from "@silvery/ag-react/ui/components"
+export { ModalDialog, formatTitleWithHotkey } from "./ui/components"
+export type { ModalDialogProps } from "./ui/components"
 
-export { PickerDialog } from "@silvery/ag-react/ui/components"
-export type { PickerDialogProps } from "@silvery/ag-react/ui/components"
+export { PickerDialog } from "./ui/components"
+export type { PickerDialogProps } from "./ui/components"
 
-export { PickerList } from "@silvery/ag-react/ui/components"
-export type { PickerListProps } from "@silvery/ag-react/ui/components"
+export { PickerList } from "./ui/components"
+export type { PickerListProps } from "./ui/components"
 
 // Typography Presets
 export {
@@ -185,49 +185,49 @@ export {
   UL,
   OL,
   LI,
-} from "@silvery/ag-react/ui/components"
-export type { TypographyProps } from "@silvery/ag-react/ui/components"
+} from "./ui/components"
+export type { TypographyProps } from "./ui/components"
 
 // Heading (OSC 66 text sizing)
-export { Heading } from "@silvery/ag-react/ui/components"
-export type { HeadingProps, HeadingLevel } from "@silvery/ag-react/ui/components"
+export { Heading } from "./ui/components"
+export type { HeadingProps, HeadingLevel } from "./ui/components"
 
 // Focusable Controls
-export { Toggle } from "@silvery/ag-react/ui/components"
-export type { ToggleProps } from "@silvery/ag-react/ui/components"
+export { Toggle } from "./ui/components"
+export type { ToggleProps } from "./ui/components"
 
-export { Button } from "@silvery/ag-react/ui/components"
-export type { ButtonProps } from "@silvery/ag-react/ui/components"
+export { Button } from "./ui/components"
+export type { ButtonProps } from "./ui/components"
 
 // Input Hooks
-export { useReadline } from "@silvery/ag-react/ui/components"
-export type { ReadlineState, UseReadlineOptions, UseReadlineResult } from "@silvery/ag-react/ui/components"
+export { useReadline } from "./ui/components"
+export type { ReadlineState, UseReadlineOptions, UseReadlineResult } from "./ui/components"
 
 // Widget Components
-export { Spinner } from "@silvery/ag-react/ui/components"
-export type { SpinnerProps } from "@silvery/ag-react/ui/components"
+export { Spinner } from "./ui/components"
+export type { SpinnerProps } from "./ui/components"
 
-export { ProgressBar } from "@silvery/ag-react/ui/components"
-export type { ProgressBarProps } from "@silvery/ag-react/ui/components"
+export { ProgressBar } from "./ui/components"
+export type { ProgressBarProps } from "./ui/components"
 
-export { SelectList } from "@silvery/ag-react/ui/components"
-export type { SelectListProps, SelectOption } from "@silvery/ag-react/ui/components"
+export { SelectList } from "./ui/components"
+export type { SelectListProps, SelectOption } from "./ui/components"
 
 export { Table } from "./components/Table"
 export type { TableProps, Column, Column as TableColumn } from "./components/Table"
 
-export { Badge } from "@silvery/ag-react/ui/components"
-export type { BadgeProps } from "@silvery/ag-react/ui/components"
+export { Badge } from "./ui/components"
+export type { BadgeProps } from "./ui/components"
 
-export { Divider } from "@silvery/ag-react/ui/components"
-export type { DividerProps } from "@silvery/ag-react/ui/components"
+export { Divider } from "./ui/components"
+export type { DividerProps } from "./ui/components"
 
 // Form Components
-export { Form, FormField } from "@silvery/ag-react/ui/components"
-export type { FormProps, FormFieldProps } from "@silvery/ag-react/ui/components"
+export { Form, FormField } from "./ui/components"
+export type { FormProps, FormFieldProps } from "./ui/components"
 
 // Toast / Notification
-export { useToast, ToastContainer, ToastItem } from "@silvery/ag-react/ui/components"
+export { useToast, ToastContainer, ToastItem } from "./ui/components"
 export type {
   ToastData,
   ToastOptions,
@@ -235,41 +235,41 @@ export type {
   UseToastResult,
   ToastContainerProps,
   ToastItemProps,
-} from "@silvery/ag-react/ui/components"
+} from "./ui/components"
 
 // Command Palette
-export { CommandPalette } from "@silvery/ag-react/ui/components"
-export type { CommandPaletteProps, CommandItem } from "@silvery/ag-react/ui/components"
+export { CommandPalette } from "./ui/components"
+export type { CommandPaletteProps, CommandItem } from "./ui/components"
 
 // Tree View
-export { TreeView } from "@silvery/ag-react/ui/components"
-export type { TreeViewProps, TreeNode } from "@silvery/ag-react/ui/components"
+export { TreeView } from "./ui/components"
+export type { TreeViewProps, TreeNode } from "./ui/components"
 
 // Breadcrumb
-export { Breadcrumb } from "@silvery/ag-react/ui/components"
-export type { BreadcrumbProps, BreadcrumbItem } from "@silvery/ag-react/ui/components"
+export { Breadcrumb } from "./ui/components"
+export type { BreadcrumbProps, BreadcrumbItem } from "./ui/components"
 
 // Tabs
-export { Tabs, TabList, Tab, TabPanel } from "@silvery/ag-react/ui/components"
-export type { TabsProps, TabListProps, TabProps, TabPanelProps } from "@silvery/ag-react/ui/components"
+export { Tabs, TabList, Tab, TabPanel } from "./ui/components"
+export type { TabsProps, TabListProps, TabProps, TabPanelProps } from "./ui/components"
 
 // Tooltip
-export { Tooltip } from "@silvery/ag-react/ui/components"
-export type { TooltipProps } from "@silvery/ag-react/ui/components"
+export { Tooltip } from "./ui/components"
+export type { TooltipProps } from "./ui/components"
 
 // Skeleton
-export { Skeleton } from "@silvery/ag-react/ui/components"
-export type { SkeletonProps } from "@silvery/ag-react/ui/components"
+export { Skeleton } from "./ui/components"
+export type { SkeletonProps } from "./ui/components"
 
 // Image Component
-export { Image } from "@silvery/ag-react/ui/image"
-export type { ImageProps } from "@silvery/ag-react/ui/image"
+export { Image } from "./ui/image/index"
+export type { ImageProps } from "./ui/image/index"
 
 // Image Protocol Encoders
-export { encodeKittyImage, deleteKittyImage, isKittyGraphicsSupported } from "@silvery/ag-react/ui/image"
-export type { KittyImageOptions } from "@silvery/ag-react/ui/image"
-export { encodeSixel, isSixelSupported } from "@silvery/ag-react/ui/image"
-export type { SixelImageData } from "@silvery/ag-react/ui/image"
+export { encodeKittyImage, deleteKittyImage, isKittyGraphicsSupported } from "./ui/image/index"
+export type { KittyImageOptions } from "./ui/image/index"
+export { encodeSixel, isSixelSupported } from "./ui/image/index"
+export type { SixelImageData } from "./ui/image/index"
 
 // =============================================================================
 // Hooks
@@ -429,7 +429,7 @@ export { useDragState } from "./hooks/useDragState"
 // App-level Providers (Phase 4)
 export { SearchProvider, useSearch, useSearchOptional } from "./providers/SearchProvider"
 export type { Searchable, SearchContextValue } from "./providers/SearchProvider"
-export { SearchBar } from "@silvery/ag-react/ui/components"
+export { SearchBar } from "./ui/components"
 
 /**
  * Re-export React concurrent features for TUI responsiveness.
@@ -1117,8 +1117,8 @@ export type { InputBoundaryProps } from "./contexts/InputBoundary"
 export { PositionRegistryProvider, usePositionRegistry, createPositionRegistry } from "./hooks/usePositionRegistry"
 export type { PositionRegistry, ScrollRect } from "./hooks/usePositionRegistry"
 export { useGridPosition } from "./hooks/useGridPosition"
-export { GridCell } from "@silvery/ag-react/ui/components"
-export type { GridCellProps } from "@silvery/ag-react/ui/components"
+export { GridCell } from "./ui/components"
+export type { GridCellProps } from "./ui/components"
 
 // =============================================================================
 // Animation
@@ -1147,15 +1147,15 @@ export {
   useInterval,
   useTimeout,
   useLatest,
-} from "@silvery/ag-react/ui/animation"
-export { useAnimatedTransition } from "@silvery/ag-react/ui/animation"
+} from "./ui/animation"
+export { useAnimatedTransition } from "./ui/animation"
 export type {
   EasingFn,
   EasingName,
   UseAnimationOptions,
   UseAnimationResult,
   UseTransitionOptions,
-} from "@silvery/ag-react/ui/animation"
+} from "./ui/animation"
 
 // =============================================================================
 // TEA State Machines
@@ -1187,7 +1187,7 @@ export type {
  * expect(effects).toContainEqual(fx.delay(1000, { type: "done" }))
  * ```
  */
-export { useTea } from "@silvery/ag-react/ui/hooks/useTea"
+export { useTea } from "./ui/hooks/useTea"
 export { fx, collect } from "@silvery/create"
 export type { TeaResult, EffectLike, TimerEffect } from "@silvery/create"
 

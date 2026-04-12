@@ -5,7 +5,7 @@
  *
  * @example
  * ```tsx
- * import { Table } from "@silvery/ag-react/ui/display";
+ * import { Table } from "./index";
  * ```
  */
 

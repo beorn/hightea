@@ -17,9 +17,10 @@
   "types": "src/index.tsx",
   "exports": {
     ".": "./src/index.tsx",
-    "./*": "./src/*.ts",
-    "./*.ts": "./src/*.ts",
-    "./*.tsx": "./src/*.tsx"
+    "./auto-locator": "./src/auto-locator.ts",
+    "./compare-buffers": "./src/compare-buffers.ts",
+    "./debug": "./src/debug.ts",
+    "./debug-mismatch": "./src/debug-mismatch.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -27,6 +28,22 @@
       ".": {
         "types": "./dist/index.d.mts",
         "import": "./dist/index.mjs"
+      },
+      "./auto-locator": {
+        "types": "./dist/auto-locator.d.mts",
+        "import": "./dist/auto-locator.mjs"
+      },
+      "./compare-buffers": {
+        "types": "./dist/compare-buffers.d.mts",
+        "import": "./dist/compare-buffers.mjs"
+      },
+      "./debug": {
+        "types": "./dist/debug.d.mts",
+        "import": "./dist/debug.mjs"
+      },
+      "./debug-mismatch": {
+        "types": "./dist/debug-mismatch.d.mts",
+        "import": "./dist/debug-mismatch.mjs"
       }
     }
   },
@@ -41,7 +58,13 @@
     "node": ">=18.0.0"
   },
   "tsdown": {
-    "entry": "src/index.tsx",
+    "entry": [
+      "src/index.tsx",
+      "src/auto-locator.ts",
+      "src/compare-buffers.ts",
+      "src/debug.ts",
+      "src/debug-mismatch.ts"
+    ],
     "format": "esm",
     "dts": true,
     "clean": true

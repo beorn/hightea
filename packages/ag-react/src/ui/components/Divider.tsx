@@ -11,9 +11,9 @@
  * ```
  */
 import React from "react"
-import { useBoxRect } from "@silvery/ag-react/hooks/useLayout"
-import { Box } from "@silvery/ag-react/components/Box"
-import { Text } from "@silvery/ag-react/components/Text"
+import { useBoxRect } from "../../hooks/useLayout"
+import { Box } from "../../components/Box"
+import { Text } from "../../components/Text"
 
 // =============================================================================
 // Types

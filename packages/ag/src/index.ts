@@ -71,6 +71,42 @@ export type { SilveryKeyEvent, SilveryFocusEvent, FocusEventProps } from "./focu
 // Drag Event Types
 export type { DragEventPayload, DragEventProps } from "./drag-event-types"
 
+// Mouse Event Types
+export type { SilveryMouseEvent, SilveryWheelEvent, MouseEventProps } from "./mouse-event-types"
+
+// Layout Types
+export type { LayoutNode, MeasureFunc, MeasureMode } from "./layout-types"
+
+// Render Epoch + Bit-Packed Dirty Flags
+export {
+  INITIAL_EPOCH,
+  CONTENT_BIT,
+  STYLE_PROPS_BIT,
+  BG_BIT,
+  CHILDREN_BIT,
+  SUBTREE_BIT,
+  ABS_CHILD_BIT,
+  DESC_OVERFLOW_BIT,
+  ALL_RECONCILER_BITS,
+  ALL_BITS,
+  getRenderEpoch,
+  advanceRenderEpoch,
+  isCurrentEpoch,
+  isDirty,
+  isAnyDirty,
+  setDirtyBit,
+} from "./epoch"
+
+// Focus Queries
+export {
+  findFocusableAncestor,
+  getTabOrder,
+  findEnclosingScope,
+  findByTestID,
+  findSpatialTarget,
+  getExplicitFocusLink,
+} from "./focus-queries"
+
 // TextFrame
 export type { TextFrame, FrameCell, RGB } from "./text-frame"
 

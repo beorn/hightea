@@ -44,11 +44,11 @@
  * - Typing with selection: Replaces selected text
  */
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react"
-import { useBoxRect } from "@silvery/ag-react/hooks/useLayout"
-import { useFocusable } from "@silvery/ag-react/hooks/useFocusable"
-import { useCursor } from "@silvery/ag-react/hooks/useCursor"
-import { Box } from "@silvery/ag-react/components/Box"
-import { Text } from "@silvery/ag-react/components/Text"
+import { useBoxRect } from "../../hooks/useLayout"
+import { useFocusable } from "../../hooks/useFocusable"
+import { useCursor } from "../../hooks/useCursor"
+import { Box } from "../../components/Box"
+import { Text } from "../../components/Text"
 import { useTextArea } from "./useTextArea"
 import type { WrappedLine } from "@silvery/create/text-cursor"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"

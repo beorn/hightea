@@ -23,8 +23,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*.ts",
-    "./*.ts": "./src/*.ts"
+    "./plain": "./src/plain.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -32,6 +31,10 @@
       ".": {
         "types": "./dist/index.d.mts",
         "import": "./dist/index.mjs"
+      },
+      "./plain": {
+        "types": "./dist/plain.d.mts",
+        "import": "./dist/plain.mjs"
       }
     }
   },
@@ -44,7 +47,10 @@
     "node": ">=18.0.0"
   },
   "tsdown": {
-    "entry": "src/index.ts",
+    "entry": [
+      "src/index.ts",
+      "src/plain.ts"
+    ],
     "format": "esm",
     "dts": true,
     "clean": true,

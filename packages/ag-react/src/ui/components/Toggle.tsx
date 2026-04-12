@@ -14,11 +14,11 @@
  * ```
  */
 import React from "react"
-import { useFocusable } from "@silvery/ag-react/hooks/useFocusable"
-import { useInput } from "@silvery/ag-react/hooks/useInput"
-import { Box } from "@silvery/ag-react/components/Box"
-import type { BoxProps } from "@silvery/ag-react/components/Box"
-import { Text } from "@silvery/ag-react/components/Text"
+import { useFocusable } from "../../hooks/useFocusable"
+import { useInput } from "../../hooks/useInput"
+import { Box } from "../../components/Box"
+import type { BoxProps } from "../../components/Box"
+import { Text } from "../../components/Text"
 
 // =============================================================================
 // Types

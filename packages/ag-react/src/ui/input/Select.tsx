@@ -12,7 +12,7 @@ import type { SelectProps, SelectOption } from "../types.js"
  *
  * @example
  * ```tsx
- * import { Select } from "@silvery/ag-react/ui/input";
+ * import { Select } from "./index";
  *
  * function SettingsView() {
  *   const [theme, setTheme] = useState("light");

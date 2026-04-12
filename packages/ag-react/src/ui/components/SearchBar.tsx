@@ -14,8 +14,9 @@
  */
 
 import React from "react"
-import { Box, Text } from "@silvery/ag-react"
-import { useSearch } from "@silvery/ag-react/providers/SearchProvider"
+import { Box } from "../../components/Box"
+import { Text } from "../../components/Text"
+import { useSearch } from "../../providers/SearchProvider"
 import type { ReactElement } from "react"
 
 export function SearchBar(): ReactElement | null {

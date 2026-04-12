@@ -9,7 +9,7 @@
  *   CLEAR_LINE,
  *   write,
  *   isTTY,
- * } from "@silvery/ag-react/ui/ansi";
+ * } from "./index";
  *
  * if (isTTY()) {
  *   write(CURSOR_HIDE);

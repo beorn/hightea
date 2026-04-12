@@ -27,7 +27,7 @@ const BOX = {
  *
  * @example
  * ```tsx
- * import { Table } from "@silvery/ag-react/ui/display";
+ * import { Table } from "./index";
  *
  * const columns = [
  *   { key: "name", header: "Name", width: 20 },

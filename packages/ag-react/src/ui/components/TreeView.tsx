@@ -23,10 +23,10 @@
  * ```
  */
 import React, { useCallback, useMemo, useRef, useState } from "react"
-import { useInput } from "@silvery/ag-react/hooks/useInput"
-import { Box } from "@silvery/ag-react/components/Box"
-import { Text } from "@silvery/ag-react/components/Text"
-import { ListView } from "@silvery/ag-react/ui/components/ListView"
+import { useInput } from "../../hooks/useInput"
+import { Box } from "../../components/Box"
+import { Text } from "../../components/Text"
+import { ListView } from "./ListView"
 
 // =============================================================================
 // Types

@@ -3,7 +3,7 @@
  *
  * @example
  * ```tsx
- * import { TextInput, Select } from "@silvery/ag-react/ui/input";
+ * import { TextInput, Select } from "./index";
  *
  * // Text input
  * <TextInput value={name} onChange={setName} placeholder="Enter name" />

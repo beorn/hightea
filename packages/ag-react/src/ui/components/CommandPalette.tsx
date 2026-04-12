@@ -21,9 +21,9 @@
  * ```
  */
 import React, { useCallback, useMemo, useState } from "react"
-import { useInput } from "@silvery/ag-react/hooks/useInput"
-import { Box } from "@silvery/ag-react/components/Box"
-import { Text } from "@silvery/ag-react/components/Text"
+import { useInput } from "../../hooks/useInput"
+import { Box } from "../../components/Box"
+import { Text } from "../../components/Text"
 
 // =============================================================================
 // Types

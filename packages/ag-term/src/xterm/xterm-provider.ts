@@ -13,7 +13,7 @@
  *
  * @example
  * ```typescript
- * import { createXtermProvider } from "@silvery/ag-term/xterm/xterm-provider"
+ * import { createXtermProvider } from "./xterm-provider"
  *
  * const provider = createXtermProvider(terminal)
  * const cleanup = provider.onInput((chunk) => {

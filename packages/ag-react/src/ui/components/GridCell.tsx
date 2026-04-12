@@ -18,8 +18,8 @@
  */
 
 import type { ReactNode } from "react"
-import { Box } from "@silvery/ag-react/components/Box"
-import { useGridPosition } from "@silvery/ag-react/hooks/useGridPosition"
+import { Box } from "../../components/Box"
+import { useGridPosition } from "../../hooks/useGridPosition"
 
 export interface GridCellProps {
   /** Section index (e.g., column index in a kanban board). */

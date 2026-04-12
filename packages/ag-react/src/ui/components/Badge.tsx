@@ -11,8 +11,8 @@
  * ```
  */
 import React from "react"
-import { Text } from "@silvery/ag-react/components/Text"
-import type { TextProps } from "@silvery/ag-react/components/Text"
+import { Text } from "../../components/Text"
+import type { TextProps } from "../../components/Text"
 
 // =============================================================================
 // Types

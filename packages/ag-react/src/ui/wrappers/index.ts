@@ -8,7 +8,7 @@
  *   withProgress,
  *   wrapGenerator,
  *   wrapEmitter
- * } from "@silvery/ag-react/ui/wrappers";
+ * } from "./index";
  *
  * // Wrap any promise
  * const data = await withSpinner(fetchData(), "Loading...");

@@ -43,14 +43,14 @@
  * - Typing with selection: Replaces selected text
  */
 import { useCallback, useMemo, useRef, useState } from "react"
-import { useInput } from "@silvery/ag-react/hooks/useInput"
+import { useInput } from "../../hooks/useInput"
 import {
   addToKillRing,
   findNextWordEnd,
   findPrevWordStart,
   handleReadlineKey,
   type YankState,
-} from "@silvery/ag-react/hooks/readline-ops"
+} from "../../hooks/readline-ops"
 import { cursorToRowCol, getWrappedLines } from "@silvery/create/text-cursor"
 import type { WrappedLine } from "@silvery/create/text-cursor"
 

@@ -2,7 +2,7 @@
  * silvery/animation -- Smooth terminal UI animations at ~30fps.
  *
  * ```tsx
- * import { useAnimation, easings } from '@silvery/ag-react/ui/animation'
+ * import { useAnimation, easings } from './animation'
  *
  * function FadeIn() {
  *   const { value } = useAnimation({ duration: 300, easing: "easeOut" })

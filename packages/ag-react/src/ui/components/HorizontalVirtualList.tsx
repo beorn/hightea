@@ -23,9 +23,9 @@
  * ```
  */
 import React, { forwardRef, useImperativeHandle } from "react"
-import { useVirtualization } from "@silvery/ag-react/hooks/useVirtualization"
-import { Box } from "@silvery/ag-react/components/Box"
-import { Text } from "@silvery/ag-react/components/Text"
+import { useVirtualization } from "../../hooks/useVirtualization"
+import { Box } from "../../components/Box"
+import { Text } from "../../components/Text"
 
 // =============================================================================
 // Types

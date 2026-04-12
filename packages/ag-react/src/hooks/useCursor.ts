@@ -24,7 +24,7 @@ import React, {
 } from "react"
 import type { CursorShape } from "@silvery/ag-term/output"
 import type { BoxProps } from "@silvery/ag/types"
-import { NodeContext } from "@silvery/ag-react/context"
+import { NodeContext } from "../context"
 import { useScrollRect, type Rect } from "./useLayout"
 
 // ============================================================================

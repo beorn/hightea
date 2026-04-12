@@ -17,8 +17,13 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*.ts",
-    "./*.ts": "./src/*.ts"
+    "./copy-mode": "./src/copy-mode.ts",
+    "./find": "./src/find.ts",
+    "./machine": "./src/machine.ts",
+    "./pointer": "./src/pointer.ts",
+    "./readline": "./src/readline.ts",
+    "./select-list": "./src/select-list.ts",
+    "./selection": "./src/selection.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -26,6 +31,34 @@
       ".": {
         "types": "./dist/index.d.mts",
         "import": "./dist/index.mjs"
+      },
+      "./copy-mode": {
+        "types": "./dist/copy-mode.d.mts",
+        "import": "./dist/copy-mode.mjs"
+      },
+      "./find": {
+        "types": "./dist/find.d.mts",
+        "import": "./dist/find.mjs"
+      },
+      "./machine": {
+        "types": "./dist/machine.d.mts",
+        "import": "./dist/machine.mjs"
+      },
+      "./pointer": {
+        "types": "./dist/pointer.d.mts",
+        "import": "./dist/pointer.mjs"
+      },
+      "./readline": {
+        "types": "./dist/readline.d.mts",
+        "import": "./dist/readline.mjs"
+      },
+      "./select-list": {
+        "types": "./dist/select-list.d.mts",
+        "import": "./dist/select-list.mjs"
+      },
+      "./selection": {
+        "types": "./dist/selection.d.mts",
+        "import": "./dist/selection.mjs"
       }
     }
   },
@@ -42,7 +75,16 @@
     }
   },
   "tsdown": {
-    "entry": "src/index.ts",
+    "entry": [
+      "src/index.ts",
+      "src/copy-mode.ts",
+      "src/find.ts",
+      "src/machine.ts",
+      "src/pointer.ts",
+      "src/readline.ts",
+      "src/select-list.ts",
+      "src/selection.ts"
+    ],
     "format": "esm",
     "dts": true,
     "clean": true

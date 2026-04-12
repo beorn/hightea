@@ -6,7 +6,7 @@
  * @example
  * ```ts
  * // Fluent task API (recommended)
- * import { task, tasks } from "@silvery/ag-react/ui/progress";
+ * import { task, tasks } from "./progress/index";
  *
  * const data = await task("Loading").wrap(fetchData());
  *
@@ -16,10 +16,10 @@
  *   .run({ clear: true });
  *
  * // Low-level CLI components
- * import { Spinner, ProgressBar } from "@silvery/ag-react/ui/cli";
+ * import { Spinner, ProgressBar } from "./cli/index";
  *
  * // React/TUI components
- * import { Spinner, ProgressBar } from "@silvery/ag-react/ui/react";
+ * import { Spinner, ProgressBar } from "./react/index";
  * ```
  *
  * @packageDocumentation
@@ -30,5 +30,5 @@ export * from "./types.js"
 export * from "./cli/index.js"
 export * from "./wrappers/index.js"
 
-// Note: React components should be imported from "@silvery/ag-react/ui/react"
+// Note: React components should be imported from "./react/index"
 // to avoid requiring React as a dependency for CLI-only usage

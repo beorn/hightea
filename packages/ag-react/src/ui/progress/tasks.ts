@@ -6,14 +6,14 @@
  * @example
  * ```typescript
  * // OLD (deprecated):
- * import { tasks } from "@silvery/ag-react/ui/progress";
+ * import { tasks } from "./index";
  * const results = await tasks()
  *   .add("Loading", loadModules)
  *   .add("Processing", processData)
  *   .run({ clear: true });
  *
  * // NEW:
- * import { steps } from "@silvery/ag-react/ui/progress";
+ * import { steps } from "./index";
  * const results = await steps({
  *   loadModules,
  *   processData,

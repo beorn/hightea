@@ -17,8 +17,19 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*.ts",
-    "./*.ts": "./src/*.ts"
+    "./dirty-tracking": "./src/dirty-tracking.ts",
+    "./drag-event-types": "./src/drag-event-types.ts",
+    "./epoch": "./src/epoch.ts",
+    "./focus-events": "./src/focus-events.ts",
+    "./focus-manager": "./src/focus-manager.ts",
+    "./focus-queries": "./src/focus-queries.ts",
+    "./interactive-signals": "./src/interactive-signals.ts",
+    "./keys": "./src/keys.ts",
+    "./layout-types": "./src/layout-types.ts",
+    "./mouse-event-types": "./src/mouse-event-types.ts",
+    "./text-frame": "./src/text-frame.ts",
+    "./tree-utils": "./src/tree-utils.ts",
+    "./types": "./src/types.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -26,12 +37,79 @@
       ".": {
         "types": "./dist/index.d.mts",
         "import": "./dist/index.mjs"
+      },
+      "./dirty-tracking": {
+        "types": "./dist/dirty-tracking.d.mts",
+        "import": "./dist/dirty-tracking.mjs"
+      },
+      "./drag-event-types": {
+        "types": "./dist/drag-event-types.d.mts",
+        "import": "./dist/drag-event-types.mjs"
+      },
+      "./epoch": {
+        "types": "./dist/epoch.d.mts",
+        "import": "./dist/epoch.mjs"
+      },
+      "./focus-events": {
+        "types": "./dist/focus-events.d.mts",
+        "import": "./dist/focus-events.mjs"
+      },
+      "./focus-manager": {
+        "types": "./dist/focus-manager.d.mts",
+        "import": "./dist/focus-manager.mjs"
+      },
+      "./focus-queries": {
+        "types": "./dist/focus-queries.d.mts",
+        "import": "./dist/focus-queries.mjs"
+      },
+      "./interactive-signals": {
+        "types": "./dist/interactive-signals.d.mts",
+        "import": "./dist/interactive-signals.mjs"
+      },
+      "./keys": {
+        "types": "./dist/keys.d.mts",
+        "import": "./dist/keys.mjs"
+      },
+      "./layout-types": {
+        "types": "./dist/layout-types.d.mts",
+        "import": "./dist/layout-types.mjs"
+      },
+      "./mouse-event-types": {
+        "types": "./dist/mouse-event-types.d.mts",
+        "import": "./dist/mouse-event-types.mjs"
+      },
+      "./text-frame": {
+        "types": "./dist/text-frame.d.mts",
+        "import": "./dist/text-frame.mjs"
+      },
+      "./tree-utils": {
+        "types": "./dist/tree-utils.d.mts",
+        "import": "./dist/tree-utils.mjs"
+      },
+      "./types": {
+        "types": "./dist/types.d.mts",
+        "import": "./dist/types.mjs"
       }
     }
   },
   "dependencies": {},
   "tsdown": {
-    "entry": "src/index.ts",
+    "entry": [
+      "src/index.ts",
+      "src/dirty-tracking.ts",
+      "src/drag-event-types.ts",
+      "src/epoch.ts",
+      "src/focus-events.ts",
+      "src/focus-manager.ts",
+      "src/focus-queries.ts",
+      "src/interactive-signals.ts",
+      "src/keys.ts",
+      "src/layout-types.ts",
+      "src/mouse-event-types.ts",
+      "src/text-frame.ts",
+      "src/tree-utils.ts",
+      "src/types.ts"
+    ],
     "format": "esm",
     "dts": true,
     "clean": true

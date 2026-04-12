@@ -19,7 +19,7 @@
  * ```
  */
 import React, { useCallback, useState } from "react"
-import { Text } from "@silvery/ag-react/components/Text"
+import { Text } from "../../components/Text"
 import { ListView } from "./ListView"
 
 // =============================================================================

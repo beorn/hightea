@@ -47,7 +47,7 @@ import process from "node:process"
 import React, { createContext, useContext, useEffect, useRef, type ReactElement } from "react"
 import { type StateCreator, type StoreApi, createStore } from "@silvery/create/signal-store"
 
-import { createTerm } from "@silvery/ag-term/ansi"
+import { createTerm } from "../ansi"
 import {
   CacheBackendContext,
   CapabilityRegistryContext,
@@ -62,16 +62,16 @@ import { SilveryErrorBoundary } from "@silvery/ag-react/error-boundary"
 import { createFocusManager } from "@silvery/ag/focus-manager"
 import { createCursorStore, CursorProvider } from "@silvery/ag-react/hooks/useCursor"
 import { createFocusEvent, dispatchFocusEvent } from "@silvery/ag/focus-events"
-import { executeRender } from "@silvery/ag-term/pipeline"
-import { createAg, type Ag } from "@silvery/ag-term/ag"
-import { createPipeline } from "@silvery/ag-term/measurer"
+import { executeRender } from "../pipeline"
+import { createAg, type Ag } from "../ag"
+import { createPipeline } from "../measurer"
 import {
   isTextSizingLikelySupported,
   detectTextSizingSupport,
   getCachedProbeResult,
-} from "@silvery/ag-term/text-sizing"
-import { createWidthDetector, applyWidthConfig } from "@silvery/ag-term"
-import { IncrementalRenderMismatchError } from "@silvery/ag-term/scheduler"
+} from "../text-sizing"
+import { createWidthDetector, applyWidthConfig } from "../ansi/width-detection"
+import { IncrementalRenderMismatchError } from "../scheduler"
 import { isAnyDirty } from "@silvery/ag/epoch"
 import {
   createContainer,
@@ -81,24 +81,24 @@ import {
   setOnNodeRemoved,
 } from "@silvery/ag-react/reconciler"
 import { map, merge, takeUntil } from "@silvery/create/streams"
-import { createBuffer } from "@silvery/ag-term/runtime/create-buffer"
-import { createRuntime } from "@silvery/ag-term/runtime/create-runtime"
+import { createBuffer } from "./create-buffer"
+import { createRuntime } from "./create-runtime"
 import {
   createHandlerContext,
   dispatchKeyToHandlers,
   handleFocusNavigation,
   invokeEventHandler,
   type NamespacedEvent,
-} from "@silvery/ag-term/runtime/event-handlers"
+} from "./event-handlers"
 import { keyToAnsi, keyToKittyAnsi, isModifierOnlyEvent } from "@silvery/ag/keys"
-import { parseKey, type Key } from "@silvery/ag-term/runtime/keys"
-import { ensureLayoutEngine } from "@silvery/ag-term/runtime/layout"
+import { parseKey, type Key } from "./keys"
+import { ensureLayoutEngine } from "./layout"
 import {
   createMouseEventProcessor,
   updateKeyboardModifiers,
   findContainBoundary,
   selectionHitTest,
-} from "@silvery/ag-term/mouse-events"
+} from "../mouse-events"
 import {
   enableKittyKeyboard,
   disableKittyKeyboard,
@@ -108,21 +108,21 @@ import {
   resetCursorStyle,
   enterAlternateScreen,
   leaveAlternateScreen,
-} from "@silvery/ag-term/output"
-import { enableFocusReporting } from "@silvery/ag-term/focus-reporting"
-import { detectKittyFromStdio } from "@silvery/ag-term/kitty-detect"
-import { captureTerminalState, performSuspend } from "@silvery/ag-term/runtime/terminal-lifecycle"
-import { type TermProvider, createTermProvider } from "@silvery/ag-term/runtime/term-provider"
-import type { Buffer, Dims, Provider, RenderTarget } from "@silvery/ag-term/runtime/types"
+} from "../output"
+import { enableFocusReporting } from "../focus-reporting"
+import { detectKittyFromStdio } from "../kitty-detect"
+import { captureTerminalState, performSuspend } from "./terminal-lifecycle"
+import { type TermProvider, createTermProvider } from "./term-provider"
+import type { Buffer, Dims, Provider, RenderTarget } from "./types"
 import { createTerminalSelectionState, terminalSelectionUpdate, extractText } from "@silvery/headless/selection"
-import { createSelectionBridge, type SelectionFeature } from "@silvery/ag-term/features/selection"
-import { renderSelectionOverlay } from "@silvery/ag-term/selection-renderer"
+import { createSelectionBridge, type SelectionFeature } from "../features/selection"
+import { renderSelectionOverlay } from "../selection-renderer"
 import { createCapabilityRegistry, type CapabilityRegistry } from "@silvery/create/internal/capability-registry"
 import { SELECTION_CAPABILITY } from "@silvery/create/internal/capabilities"
-import { createVirtualScrollback } from "@silvery/ag-term/virtual-scrollback"
-import { createSearchState, searchUpdate, renderSearchBar, type SearchMatch } from "@silvery/ag-term/search-overlay"
-import { createOutputGuard, type OutputGuard } from "@silvery/ag-term/ansi/output-guard"
-import { perfLog, checkBudget, logExitSummary, startTracking } from "@silvery/ag-term/runtime/perf"
+import { createVirtualScrollback } from "../virtual-scrollback"
+import { createSearchState, searchUpdate, renderSearchBar, type SearchMatch } from "../search-overlay"
+import { createOutputGuard, type OutputGuard } from "../ansi/output-guard"
+import { perfLog, checkBudget, logExitSummary, startTracking } from "./perf"
 import { createLogger } from "loggily"
 
 const log = createLogger("silvery:app")
@@ -341,7 +341,7 @@ export interface AppRunOptions {
    * When provided, configures the render pipeline to use these caps
    * (scoped width measurer + output phase). Typically from term.caps.
    */
-  caps?: import("@silvery/ag-term/terminal-caps").TerminalCaps
+  caps?: import("../terminal-caps").TerminalCaps
   /**
    * Guard stdout/stderr in alt screen mode. When true (the default for
    * alternateScreen), intercepts process.stdout.write and process.stderr.write
@@ -386,7 +386,7 @@ export interface AppHandle<S> {
   /** Live reconciler root node (for locator queries) */
   readonly root: import("@silvery/ag/types").AgNode
   /** Current terminal buffer (cell-level access) */
-  readonly buffer: import("@silvery/ag-term/buffer").TerminalBuffer | null
+  readonly buffer: import("../buffer").TerminalBuffer | null
   /** Access to the Zustand store */
   readonly store: StoreApi<S>
   /** Wait until the app exits */
@@ -1371,7 +1371,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   let _ag: Ag | null = null
   // Track the last TerminalBuffer for dimension-change detection (the Ag manages
   // prevBuffer internally, but we need the dimensions for resize detection).
-  let _lastTermBuffer: import("@silvery/ag-term/buffer").TerminalBuffer | null = null
+  let _lastTermBuffer: import("../buffer").TerminalBuffer | null = null
 
   // Helper to render and get text
   function doRender(): Buffer {
@@ -1511,7 +1511,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       )
       const { cellEquals, bufferToText } =
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        require("@silvery/ag-term/buffer") as typeof import("@silvery/ag-term/buffer")
+        require("../buffer") as typeof import("../buffer")
       for (let y = 0; y < termBuffer.height; y++) {
         for (let x = 0; x < termBuffer.width; x++) {
           const a = termBuffer.getCell(x, y)

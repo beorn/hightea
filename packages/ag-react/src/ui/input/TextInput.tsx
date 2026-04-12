@@ -14,7 +14,7 @@ import type { TextInputProps } from "../types.js"
  *
  * @example
  * ```tsx
- * import { TextInput } from "@silvery/ag-react/ui/input";
+ * import { TextInput } from "./index";
  * import { useInput } from "ink";
  *
  * function MyForm() {

@@ -1,7 +1,7 @@
 import type { ConsoleEntry, PatchedConsole } from "@silvery/ag-term/ansi"
 import type { ReactElement, ReactNode } from "react"
-import { useConsole } from "@silvery/ag-react/hooks/useConsole"
-import { Text } from "@silvery/ag-react/components/Text"
+import { useConsole } from "../../hooks/useConsole"
+import { Text } from "../../components/Text"
 import { ListView } from "./ListView"
 
 export interface ConsoleProps {

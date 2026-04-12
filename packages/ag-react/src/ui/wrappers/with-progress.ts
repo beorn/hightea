@@ -6,14 +6,14 @@
  * @example
  * ```typescript
  * // OLD (deprecated):
- * import { withProgress } from "@silvery/ag-react/ui/wrappers";
+ * import { withProgress } from "./index";
  * const result = await withProgress(
  *   (onProgress) => manager.syncFromFs(onProgress),
  *   { phases: SYNC_PHASES }
  * );
  *
  * // NEW:
- * import { steps } from "@silvery/ag-react/ui/progress";
+ * import { steps } from "../progress/index";
  * const results = await steps({ syncFiles: () => manager.syncFromFs() }).run();
  * ```
  */

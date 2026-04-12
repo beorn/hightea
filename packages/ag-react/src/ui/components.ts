@@ -2,7 +2,7 @@
  * silvery/components -- Rich UI components beyond Ink's built-in set.
  *
  * ```tsx
- * import { ListView, Table, SelectList, TextInput, Spinner } from '@silvery/ag-react/ui/components'
+ * import { ListView, Table, SelectList, TextInput, Spinner } from './components'
  * ```
  *
  * @packageDocumentation
@@ -38,11 +38,11 @@ export {
   getTabOrder as getSplitTabOrder,
 } from "@silvery/ag-term/pane-manager"
 
-export { Fill } from "@silvery/ag-react/components/Fill"
-export type { FillProps } from "@silvery/ag-react/components/Fill"
+export { Fill } from "../components/Fill"
+export type { FillProps } from "../components/Fill"
 
-export { Link } from "@silvery/ag-react/components/Link"
-export type { LinkProps } from "@silvery/ag-react/components/Link"
+export { Link } from "../components/Link"
+export type { LinkProps } from "../components/Link"
 
 export { ErrorBoundary } from "./components/ErrorBoundary"
 export type { ErrorBoundaryProps } from "./components/ErrorBoundary"
@@ -108,8 +108,8 @@ export type { ProgressBarProps } from "./components/ProgressBar"
 export { SelectList } from "./components/SelectList"
 export type { SelectListProps, SelectOption } from "./components/SelectList"
 
-export { Table } from "@silvery/ag-react/components/Table"
-export type { TableProps, Column as TableColumn } from "@silvery/ag-react/components/Table"
+export { Table } from "../components/Table"
+export type { TableProps, Column as TableColumn } from "../components/Table"
 
 export { Badge } from "./components/Badge"
 export type { BadgeProps } from "./components/Badge"
@@ -190,9 +190,9 @@ export {
   PositionRegistryProvider,
   usePositionRegistry,
   createPositionRegistry,
-} from "@silvery/ag-react/hooks/usePositionRegistry"
-export type { PositionRegistry, ScrollRect } from "@silvery/ag-react/hooks/usePositionRegistry"
-export { useGridPosition } from "@silvery/ag-react/hooks/useGridPosition"
+} from "../hooks/usePositionRegistry"
+export type { PositionRegistry, ScrollRect } from "../hooks/usePositionRegistry"
+export { useGridPosition } from "../hooks/useGridPosition"
 export { GridCell } from "./components/GridCell"
 export type { GridCellProps } from "./components/GridCell"
 

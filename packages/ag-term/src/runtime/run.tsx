@@ -148,7 +148,7 @@ export interface RunHandle {
   /** Live reconciler root node (for locator queries) */
   readonly root: import("@silvery/ag/types").AgNode
   /** Current terminal buffer (cell-level access) */
-  readonly buffer: import("@silvery/ag-term/buffer").TerminalBuffer | null
+  readonly buffer: import("../buffer").TerminalBuffer | null
   /** Wait until the app exits */
   waitUntilExit(): Promise<void>
   /** Unmount and cleanup */
@@ -321,7 +321,7 @@ function isTerm(obj: unknown): obj is Term {
 function wrapHandle(handle: {
   readonly text: string
   readonly root: import("@silvery/ag/types").AgNode
-  readonly buffer: import("@silvery/ag-term/buffer").TerminalBuffer | null
+  readonly buffer: import("../buffer").TerminalBuffer | null
   waitUntilExit(): Promise<void>
   unmount(): void
   [Symbol.dispose](): void

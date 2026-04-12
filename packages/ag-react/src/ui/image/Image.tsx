@@ -28,8 +28,8 @@
 
 import { readFileSync } from "node:fs"
 import { type JSX, useContext, useEffect, useMemo, useRef } from "react"
-import { StdoutContext } from "@silvery/ag-react/context"
-import { useBoxRect } from "@silvery/ag-react/hooks/useLayout"
+import { StdoutContext } from "../../context"
+import { useBoxRect } from "../../hooks/useLayout"
 import { encodeKittyImage, isKittyGraphicsSupported, deleteKittyImage } from "./kitty-graphics"
 import { isSixelSupported } from "./sixel-encoder"
 

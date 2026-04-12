@@ -38,11 +38,11 @@ import React, {
   useRef,
   useState,
 } from "react"
-import { useVirtualizer } from "@silvery/ag-react/hooks/useVirtualizer"
-import { useInput } from "@silvery/ag-react/hooks/useInput"
-import { Box } from "@silvery/ag-react/components/Box"
-import { CacheBackendContext, StdoutContext, TermContext } from "@silvery/ag-react/context"
-import { renderStringSync } from "@silvery/ag-react/render-string"
+import { useVirtualizer } from "../../hooks/useVirtualizer"
+import { useInput } from "../../hooks/useInput"
+import { Box } from "../../components/Box"
+import { CacheBackendContext, StdoutContext, TermContext } from "../../context"
+import { renderStringSync } from "../../render-string"
 import { createHistoryBuffer, createHistoryItem } from "@silvery/ag-term/history-buffer"
 import type { HistoryBuffer } from "@silvery/ag-term/history-buffer"
 import { createListDocument } from "@silvery/ag-term/list-document"
@@ -53,7 +53,7 @@ import { composeViewport } from "@silvery/ag-term/viewport-compositor"
 import type { ComposedViewport } from "@silvery/ag-term/viewport-compositor"
 import { stripAnsi } from "@silvery/ag-term/unicode"
 import { isLayoutEngineInitialized } from "@silvery/ag-term/layout-engine"
-import { useSearchOptional } from "@silvery/ag-react/providers/SearchProvider"
+import { useSearchOptional } from "../../providers/SearchProvider"
 import type { SearchMatch } from "@silvery/ag-term/search-overlay"
 
 // =============================================================================

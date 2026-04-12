@@ -40,14 +40,14 @@
  * ```
  */
 
-import type { App } from "@silvery/ag-term/app"
+import type { App } from "../app"
 import type { FocusManager } from "@silvery/create/focus-manager"
 import {
   createMouseEventProcessor,
   processMouseEvent,
   type MouseEventProcessorOptions,
   type MouseEventProcessorState,
-} from "@silvery/ag-term/mouse-events"
+} from "../mouse-events"
 import { createInputRouter, type InputRouter } from "@silvery/create/internal/input-router"
 import { createCapabilityRegistry, type CapabilityRegistry } from "@silvery/create/internal/capability-registry"
 import { INPUT_ROUTER } from "@silvery/create/internal/capabilities"

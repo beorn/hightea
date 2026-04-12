@@ -17,8 +17,10 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*.ts",
-    "./*.ts": "./src/*.ts"
+    "./create-command-registry": "./src/create-command-registry.ts",
+    "./keys": "./src/keys.ts",
+    "./with-commands": "./src/with-commands.ts",
+    "./with-keybindings": "./src/with-keybindings.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -26,12 +28,34 @@
       ".": {
         "types": "./dist/index.d.mts",
         "import": "./dist/index.mjs"
+      },
+      "./create-command-registry": {
+        "types": "./dist/create-command-registry.d.mts",
+        "import": "./dist/create-command-registry.mjs"
+      },
+      "./keys": {
+        "types": "./dist/keys.d.mts",
+        "import": "./dist/keys.mjs"
+      },
+      "./with-commands": {
+        "types": "./dist/with-commands.d.mts",
+        "import": "./dist/with-commands.mjs"
+      },
+      "./with-keybindings": {
+        "types": "./dist/with-keybindings.d.mts",
+        "import": "./dist/with-keybindings.mjs"
       }
     }
   },
   "dependencies": {},
   "tsdown": {
-    "entry": "src/index.ts",
+    "entry": [
+      "src/index.ts",
+      "src/create-command-registry.ts",
+      "src/keys.ts",
+      "src/with-commands.ts",
+      "src/with-keybindings.ts"
+    ],
     "format": "esm",
     "dts": true,
     "clean": true

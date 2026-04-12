@@ -8,7 +8,7 @@
  * Pass an object to declare all steps upfront:
  *
  * ```typescript
- * import { steps, step } from "@silvery/ag-react/ui/progress";
+ * import { steps, step } from "./index";
  *
  * const loader = steps({
  *   loadModules,           // Auto-named: "Load modules"

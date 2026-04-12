@@ -17,8 +17,25 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*.ts",
-    "./*.ts": "./src/*.ts"
+    "./create-app": "./src/create-app.tsx",
+    "./effects": "./src/effects.ts",
+    "./focus-events": "./src/focus-events.ts",
+    "./focus-manager": "./src/focus-manager.ts",
+    "./pipe": "./src/pipe.ts",
+    "./plugins": "./src/plugins.ts",
+    "./signal-store": "./src/signal-store.ts",
+    "./store": "./src/store/index.ts",
+    "./streams": "./src/streams/index.ts",
+    "./tea": "./src/tea/index.ts",
+    "./text-cursor": "./src/text-cursor.ts",
+    "./text-decorations": "./src/text-decorations.ts",
+    "./text-ops": "./src/text-ops.ts",
+    "./types": "./src/types.ts",
+    "./with-app": "./src/with-app.ts",
+    "./with-render": "./src/with-render.ts",
+    "./internal/capabilities": "./src/internal/capabilities.ts",
+    "./internal/capability-registry": "./src/internal/capability-registry.ts",
+    "./internal/input-router": "./src/internal/input-router.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -26,6 +43,82 @@
       ".": {
         "types": "./dist/index.d.mts",
         "import": "./dist/index.mjs"
+      },
+      "./create-app": {
+        "types": "./dist/create-app.d.mts",
+        "import": "./dist/create-app.mjs"
+      },
+      "./effects": {
+        "types": "./dist/effects.d.mts",
+        "import": "./dist/effects.mjs"
+      },
+      "./focus-events": {
+        "types": "./dist/focus-events.d.mts",
+        "import": "./dist/focus-events.mjs"
+      },
+      "./focus-manager": {
+        "types": "./dist/focus-manager.d.mts",
+        "import": "./dist/focus-manager.mjs"
+      },
+      "./pipe": {
+        "types": "./dist/pipe.d.mts",
+        "import": "./dist/pipe.mjs"
+      },
+      "./plugins": {
+        "types": "./dist/plugins.d.mts",
+        "import": "./dist/plugins.mjs"
+      },
+      "./signal-store": {
+        "types": "./dist/signal-store.d.mts",
+        "import": "./dist/signal-store.mjs"
+      },
+      "./store": {
+        "types": "./dist/store/index.d.mts",
+        "import": "./dist/store/index.mjs"
+      },
+      "./streams": {
+        "types": "./dist/streams/index.d.mts",
+        "import": "./dist/streams/index.mjs"
+      },
+      "./tea": {
+        "types": "./dist/tea/index.d.mts",
+        "import": "./dist/tea/index.mjs"
+      },
+      "./text-cursor": {
+        "types": "./dist/text-cursor.d.mts",
+        "import": "./dist/text-cursor.mjs"
+      },
+      "./text-decorations": {
+        "types": "./dist/text-decorations.d.mts",
+        "import": "./dist/text-decorations.mjs"
+      },
+      "./text-ops": {
+        "types": "./dist/text-ops.d.mts",
+        "import": "./dist/text-ops.mjs"
+      },
+      "./types": {
+        "types": "./dist/types.d.mts",
+        "import": "./dist/types.mjs"
+      },
+      "./with-app": {
+        "types": "./dist/with-app.d.mts",
+        "import": "./dist/with-app.mjs"
+      },
+      "./with-render": {
+        "types": "./dist/with-render.d.mts",
+        "import": "./dist/with-render.mjs"
+      },
+      "./internal/capabilities": {
+        "types": "./dist/internal/capabilities.d.mts",
+        "import": "./dist/internal/capabilities.mjs"
+      },
+      "./internal/capability-registry": {
+        "types": "./dist/internal/capability-registry.d.mts",
+        "import": "./dist/internal/capability-registry.mjs"
+      },
+      "./internal/input-router": {
+        "types": "./dist/internal/input-router.d.mts",
+        "import": "./dist/internal/input-router.mjs"
       }
     }
   },
@@ -44,7 +137,28 @@
     "node": ">=18.0.0"
   },
   "tsdown": {
-    "entry": "src/index.ts",
+    "entry": [
+      "src/index.ts",
+      "src/create-app.tsx",
+      "src/effects.ts",
+      "src/focus-events.ts",
+      "src/focus-manager.ts",
+      "src/pipe.ts",
+      "src/plugins.ts",
+      "src/signal-store.ts",
+      "src/store/index.ts",
+      "src/streams/index.ts",
+      "src/tea/index.ts",
+      "src/text-cursor.ts",
+      "src/text-decorations.ts",
+      "src/text-ops.ts",
+      "src/types.ts",
+      "src/with-app.ts",
+      "src/with-render.ts",
+      "src/internal/capabilities.ts",
+      "src/internal/capability-registry.ts",
+      "src/internal/input-router.ts"
+    ],
     "format": "esm",
     "dts": true,
     "clean": true

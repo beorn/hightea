@@ -27,11 +27,11 @@
  * - Ctrl+T: Transpose characters
  */
 import { useCallback, useImperativeHandle, forwardRef, useState, useEffect, useRef } from "react"
-import { Box } from "@silvery/ag-react/components/Box"
-import { Text } from "@silvery/ag-react/components/Text"
+import { Box } from "../../components/Box"
+import { Text } from "../../components/Text"
 import { useReadline } from "./useReadline"
-import { useFocusable } from "@silvery/ag-react/hooks/useFocusable"
-import { useCursor } from "@silvery/ag-react/hooks/useCursor"
+import { useFocusable } from "../../hooks/useFocusable"
+import { useCursor } from "../../hooks/useCursor"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 
 // =============================================================================

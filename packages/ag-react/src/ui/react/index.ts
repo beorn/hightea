@@ -3,7 +3,7 @@
  *
  * @example
  * ```tsx
- * import { Spinner, ProgressBar, Tasks, Task, useProgress } from "@silvery/ag-react/ui/react";
+ * import { Spinner, ProgressBar, Tasks, Task, useProgress } from "./index";
  *
  * // Spinner
  * <Spinner label="Loading..." style="dots" />

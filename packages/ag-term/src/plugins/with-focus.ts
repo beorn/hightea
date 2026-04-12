@@ -27,16 +27,16 @@
  * ```
  */
 
-import type { App } from "@silvery/ag-term/app"
+import type { App } from "../app"
 import { createFocusManager, type FocusManager, type FocusManagerOptions } from "@silvery/create/focus-manager"
 import { createFocusEvent, createKeyEvent, dispatchFocusEvent, dispatchKeyEvent } from "@silvery/create/focus-events"
 import { parseHotkey, parseKey } from "@silvery/ag/keys"
-import { createSelectionFeature, type SelectionFeature } from "@silvery/ag-term/features/selection"
-import { createCopyModeFeature, type CopyModeFeature } from "@silvery/ag-term/features/copy-mode"
+import { createSelectionFeature, type SelectionFeature } from "../features/selection"
+import { createCopyModeFeature, type CopyModeFeature } from "../features/copy-mode"
 import type { CapabilityRegistry } from "@silvery/create/internal/capability-registry"
 import type { InputRouter } from "@silvery/create/internal/input-router"
 import { SELECTION_CAPABILITY, COPY_MODE_CAPABILITY, FIND_CAPABILITY } from "@silvery/create/internal/capabilities"
-import { createFindFeature, type FindFeature, type FindFeatureOptions } from "@silvery/ag-term/find-feature"
+import { createFindFeature, type FindFeature, type FindFeatureOptions } from "../find-feature"
 
 // =============================================================================
 // Types

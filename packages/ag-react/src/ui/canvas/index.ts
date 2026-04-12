@@ -39,8 +39,8 @@ import {
   reconciler,
   runWithDiscreteEvent,
   setOnNodeRemoved,
-} from "@silvery/ag-react/reconciler"
-import { RuntimeContext, FocusManagerContext, type RuntimeContextValue } from "@silvery/ag-react/context"
+} from "../../reconciler/index"
+import { RuntimeContext, FocusManagerContext, type RuntimeContextValue } from "../../context"
 import { createFocusManager } from "@silvery/ag/focus-manager"
 import { parseKey, splitRawInput } from "@silvery/ag/keys"
 import { parseBracketedPaste } from "@silvery/ag-term/bracketed-paste"
@@ -48,45 +48,45 @@ import { ThemeProvider } from "@silvery/theme/ThemeContext"
 import { catppuccinMocha } from "@silvery/theme/palettes"
 import { deriveTheme, type Theme } from "@silvery/theme"
 import { setActiveTheme } from "@silvery/theme/state"
-import { createCursorStore, CursorProvider } from "@silvery/ag-react/hooks/useCursor"
+import { createCursorStore, CursorProvider } from "../../hooks/useCursor"
 import { createCanvasInput, type CanvasInputConfig } from "./input"
 
 // Re-export core components
-export { Box, type BoxProps } from "@silvery/ag-react/components/Box"
-export { Text, type TextProps } from "@silvery/ag-react/components/Text"
+export { Box, type BoxProps } from "../../components/Box"
+export { Text, type TextProps } from "../../components/Text"
 
 // Re-export hooks
-export { useBoxRect, useScrollRect, useScreenRect } from "@silvery/ag-react/hooks/useLayout"
-export { useApp } from "@silvery/ag-react/hooks/useApp"
-export { useFocusable } from "@silvery/ag-react/hooks/useFocusable"
-export { useFocusManager } from "@silvery/ag-react/hooks/useFocusManager"
-export { useFocusWithin } from "@silvery/ag-react/hooks/useFocusWithin"
+export { useBoxRect, useScrollRect, useScreenRect } from "../../hooks/useLayout"
+export { useApp } from "../../hooks/useApp"
+export { useFocusable } from "../../hooks/useFocusable"
+export { useFocusManager } from "../../hooks/useFocusManager"
+export { useFocusWithin } from "../../hooks/useFocusWithin"
 
 // Re-export all canvas-safe UI components
-export { Badge, type BadgeProps } from "@silvery/ag-react/ui/components/Badge"
-export { Breadcrumb, type BreadcrumbProps } from "@silvery/ag-react/ui/components/Breadcrumb"
-export { Button, type ButtonProps } from "@silvery/ag-react/ui/components/Button"
-export { CursorLine } from "@silvery/ag-react/ui/components/CursorLine"
-export { Divider } from "@silvery/ag-react/ui/components/Divider"
-export { Form, FormField } from "@silvery/ag-react/ui/components/Form"
-export { ListView } from "@silvery/ag-react/ui/components/ListView"
-export { ModalDialog } from "@silvery/ag-react/ui/components/ModalDialog"
-export { PickerDialog } from "@silvery/ag-react/ui/components/PickerDialog"
-export { ProgressBar } from "@silvery/ag-react/ui/components/ProgressBar"
-export { Screen } from "@silvery/ag-react/ui/components/Screen"
-export { SearchBar } from "@silvery/ag-react/ui/components/SearchBar"
-export { SelectList } from "@silvery/ag-react/ui/components/SelectList"
-export { Skeleton } from "@silvery/ag-react/ui/components/Skeleton"
-export { Spinner } from "@silvery/ag-react/ui/components/Spinner"
-export { SplitView } from "@silvery/ag-react/ui/components/SplitView"
-export { Table } from "@silvery/ag-react/ui/components/Table"
-export { Tabs, TabList, Tab, TabPanel } from "@silvery/ag-react/ui/components/Tabs"
-export { TextArea } from "@silvery/ag-react/ui/components/TextArea"
-export { TextInput } from "@silvery/ag-react/ui/components/TextInput"
-export { Toggle } from "@silvery/ag-react/ui/components/Toggle"
-export { Tooltip } from "@silvery/ag-react/ui/components/Tooltip"
-export { TreeView } from "@silvery/ag-react/ui/components/TreeView"
-export { HorizontalVirtualList } from "@silvery/ag-react/ui/components/HorizontalVirtualList"
+export { Badge, type BadgeProps } from "../components/Badge"
+export { Breadcrumb, type BreadcrumbProps } from "../components/Breadcrumb"
+export { Button, type ButtonProps } from "../components/Button"
+export { CursorLine } from "../components/CursorLine"
+export { Divider } from "../components/Divider"
+export { Form, FormField } from "../components/Form"
+export { ListView } from "../components/ListView"
+export { ModalDialog } from "../components/ModalDialog"
+export { PickerDialog } from "../components/PickerDialog"
+export { ProgressBar } from "../components/ProgressBar"
+export { Screen } from "../components/Screen"
+export { SearchBar } from "../components/SearchBar"
+export { SelectList } from "../components/SelectList"
+export { Skeleton } from "../components/Skeleton"
+export { Spinner } from "../components/Spinner"
+export { SplitView } from "../components/SplitView"
+export { Table } from "../components/Table"
+export { Tabs, TabList, Tab, TabPanel } from "../components/Tabs"
+export { TextArea } from "../components/TextArea"
+export { TextInput } from "../components/TextInput"
+export { Toggle } from "../components/Toggle"
+export { Tooltip } from "../components/Tooltip"
+export { TreeView } from "../components/TreeView"
+export { HorizontalVirtualList } from "../components/HorizontalVirtualList"
 export {
   H1,
   H2,
@@ -105,8 +105,8 @@ export {
   UL,
   OL,
   LI,
-} from "@silvery/ag-react/ui/components/Typography"
-export { useToast, ToastContainer } from "@silvery/ag-react/ui/components/Toast"
+} from "../components/Typography"
+export { useToast, ToastContainer } from "../components/Toast"
 
 // Re-export adapter utilities
 export {

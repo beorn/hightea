@@ -18,8 +18,8 @@
  * ```
  */
 import React from "react"
-import { Box } from "@silvery/ag-react/components/Box"
-import { Text } from "@silvery/ag-react/components/Text"
+import { Box } from "../../components/Box"
+import { Text } from "../../components/Text"
 
 // =============================================================================
 // Types

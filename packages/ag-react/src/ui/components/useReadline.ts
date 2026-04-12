@@ -28,8 +28,8 @@
  * ESC followed by the key instead of a proper alt modifier.
  */
 import { useCallback, useRef, useState } from "react"
-import { useInput } from "@silvery/ag-react/hooks"
-import { killRing, addToKillRing, handleReadlineKey, type YankState } from "@silvery/ag-react/hooks/readline-ops"
+import { useInput } from "../../hooks/index"
+import { killRing, addToKillRing, handleReadlineKey, type YankState } from "../../hooks/readline-ops"
 
 // =============================================================================
 // Types

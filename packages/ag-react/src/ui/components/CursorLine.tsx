@@ -13,8 +13,8 @@
  * ```
  */
 import React, { useCallback } from "react"
-import { Box } from "@silvery/ag-react/components/Box"
-import { Text } from "@silvery/ag-react/components/Text"
+import { Box } from "../../components/Box"
+import { Text } from "../../components/Text"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 
 // =============================================================================

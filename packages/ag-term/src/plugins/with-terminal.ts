@@ -43,8 +43,8 @@
 
 import { createCapabilityRegistry, type CapabilityRegistry } from "@silvery/create/internal/capability-registry"
 import { CLIPBOARD_CAPABILITY } from "@silvery/create/internal/capabilities"
-import { createOSC52Clipboard, createRichClipboard, type ClipboardCapability } from "@silvery/ag-term/features"
-import { createAdvancedClipboard } from "@silvery/ag-term/ansi"
+import { createOSC52Clipboard, createRichClipboard, type ClipboardCapability } from "../features"
+import { createAdvancedClipboard } from "../ansi"
 import {
   createColorSchemeDetector,
   type ColorSchemeDetector,

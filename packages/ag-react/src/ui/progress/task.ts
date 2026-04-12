@@ -6,11 +6,11 @@
  * @example
  * ```typescript
  * // OLD (deprecated):
- * import { task } from "@silvery/ag-react/ui/progress";
+ * import { task } from "./index";
  * const data = await task("Loading data").wrap(fetchData());
  *
  * // NEW:
- * import { steps } from "@silvery/ag-react/ui/progress";
+ * import { steps } from "./index";
  * const results = await steps({ loadData: fetchData }).run();
  * ```
  */

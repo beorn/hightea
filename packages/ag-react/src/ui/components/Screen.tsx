@@ -25,7 +25,7 @@
  */
 
 import { useState, useEffect, type ReactNode, type ReactElement } from "react"
-import { Box } from "@silvery/ag-react/components/Box"
+import { Box } from "../../components/Box"
 
 // =============================================================================
 // Types

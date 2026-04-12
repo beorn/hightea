@@ -11,7 +11,7 @@ import { getETA, DEFAULT_ETA_BUFFER_SIZE, type ETASample } from "../utils/eta"
  *
  * @example
  * ```tsx
- * import { ProgressBar } from "@silvery/ag-react/ui/react";
+ * import { ProgressBar } from "./index";
  *
  * function DownloadProgress({ current, total }) {
  *   return (
