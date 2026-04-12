@@ -66,11 +66,17 @@ const CATEGORY_COLOR: Record<string, string> = {
 }
 
 async function discoverExamples(): Promise<Example[]> {
-  const { resolve, dirname } = await import("node:path")
+  const { resolve, dirname, extname } = await import("node:path")
   const { fileURLToPath } = await import("node:url")
-  const { readdirSync } = await import("node:fs")
+  const { readdirSync, existsSync } = await import("node:fs")
   const __dirname = dirname(fileURLToPath(import.meta.url))
   const examplesDir = resolve(__dirname, "..")
+
+  // Detect if running from dist/ (published) or source
+  // dist/bin/cli.mjs → examplesDir = dist/, look for dist/components/*.mjs
+  // bin/cli.ts → examplesDir = examples/, look for components/*.tsx
+  const isBuilt = __dirname.endsWith("/dist/bin") || __dirname.endsWith("/dist\\bin")
+  const ext = isBuilt ? ".mjs" : ".tsx"
   const results: Example[] = []
 
   for (const dir of CATEGORY_DIRS) {
@@ -78,9 +84,9 @@ async function discoverExamples(): Promise<Example[]> {
     const dirPath = resolve(examplesDir, dir)
 
     try {
-      const files = readdirSync(dirPath).filter((f: string) => f.endsWith(".tsx") && !f.startsWith("_"))
+      const files = readdirSync(dirPath).filter((f: string) => f.endsWith(ext) && !f.startsWith("_"))
       for (const file of files) {
-        const name = file.replace(/\.tsx$/, "").replace(/-/g, " ")
+        const name = file.replace(/\.(tsx|mjs)$/, "").replace(/-/g, " ")
         results.push({
           name,
           description: "",
@@ -94,19 +100,16 @@ async function discoverExamples(): Promise<Example[]> {
   }
 
   // Also scan aichat subdirectory
-  const aichatDir = resolve(examplesDir, "apps/aichat")
-  try {
-    const indexFile = resolve(aichatDir, "index.tsx")
-    const { stat } = await import("node:fs/promises")
-    await stat(indexFile)
+  const aichatPath = isBuilt
+    ? resolve(examplesDir, "apps/aichat/index.mjs")
+    : resolve(examplesDir, "apps/aichat/index.tsx")
+  if (existsSync(aichatPath)) {
     results.push({
       name: "aichat",
       description: "AI Coding Agent demo",
-      file: indexFile,
+      file: aichatPath,
       category: "Apps",
     })
-  } catch {
-    // No aichat
   }
 
   results.sort((a, b) => {

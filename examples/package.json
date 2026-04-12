@@ -1,6 +1,6 @@
 {
   "name": "@silvery/examples",
-  "version": "0.17.3",
+  "version": "0.17.4",
   "description": "Example apps and component demos for silvery — npx @silvery/examples <name>",
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",
@@ -14,14 +14,7 @@
     "silvery-examples": "./bin/cli.ts"
   },
   "files": [
-    "dist",
-    "components",
-    "apps",
-    "layout",
-    "runtime",
-    "inline",
-    "kitty",
-    "_banner.tsx"
+    "dist"
   ],
   "exports": {
     ".": "./bin/cli.ts"
@@ -29,7 +22,7 @@
   "publishConfig": {
     "access": "public",
     "bin": {
-      "silvery-examples": "./dist/cli.mjs"
+      "silvery-examples": "./dist/bin/cli.mjs"
     },
     "exports": {
       ".": {
@@ -39,10 +32,22 @@
     }
   },
   "tsdown": {
-    "entry": "bin/cli.ts",
+    "entry": [
+      "bin/cli.ts",
+      "components/*.tsx",
+      "apps/*.tsx",
+      "apps/aichat/index.tsx",
+      "layout/*.tsx"
+    ],
     "format": "esm",
-    "dts": true,
-    "clean": true
+    "dts": false,
+    "clean": true,
+    "external": [
+      "silvery",
+      "silvery/*",
+      "react",
+      "loggily"
+    ]
   },
   "dependencies": {
     "silvery": "0.17.3"
