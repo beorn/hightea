@@ -1,9 +1,10 @@
 {
   "name": "@silvery/theme",
   "version": "0.17.3",
-  "description": "Theming system with semantic color tokens for silvery (internal — use silvery/theme instead)",
+  "private": true,
+  "description": "Theming system with semantic color tokens for silvery (internal \u2014 use silvery/theme instead)",
   "license": "MIT",
-  "author": "Bjørn Stabell <bjorn@stabell.org>",
+  "author": "Bj\u00f8rn Stabell <bjorn@stabell.org>",
   "repository": {
     "type": "git",
     "url": "https://github.com/beorn/silvery.git",
@@ -17,13 +18,8 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./ThemeContext": "./src/ThemeContext.tsx",
-    "./detect": "./src/detect.ts",
-    "./palettes": "./src/palettes/index.ts",
-    "./resolve": "./src/resolve.ts",
-    "./state": "./src/state.ts",
-    "./theme": "./src/theme.ts",
-    "./types": "./src/types.ts"
+    "./*": "./src/*.ts",
+    "./*.tsx": "./src/*.tsx"
   },
   "publishConfig": {
     "access": "public",
@@ -62,11 +58,16 @@
       }
     }
   },
+  "scripts": {
+    "build": "tsdown"
+  },
   "dependencies": {
     "@silvery/ansi": "0.17.3",
     "@silvery/color": "0.17.3"
   },
   "tsdown": {
+    "clean": true,
+    "dts": true,
     "entry": [
       "src/index.ts",
       "src/ThemeContext.tsx",
@@ -77,12 +78,6 @@
       "src/theme.ts",
       "src/types.ts"
     ],
-    "format": "esm",
-    "dts": true,
-    "clean": true
-  },
-  "scripts": {
-    "build": "tsdown"
-  },
-  "private": true
+    "format": "esm"
+  }
 }

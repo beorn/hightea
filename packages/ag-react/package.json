@@ -1,9 +1,10 @@
 {
   "name": "@silvery/ag-react",
   "version": "0.17.3",
-  "description": "Core React reconciler and runtime for silvery (internal — use silvery instead)",
+  "private": true,
+  "description": "Core React reconciler and runtime for silvery (internal \u2014 use silvery instead)",
   "license": "MIT",
-  "author": "Bjørn Stabell <bjorn@stabell.org>",
+  "author": "Bj\u00f8rn Stabell <bjorn@stabell.org>",
   "repository": {
     "type": "git",
     "url": "https://github.com/beorn/silvery.git",
@@ -17,51 +18,8 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./accessibility": "./src/accessibility.ts",
-    "./components/Box": "./src/components/Box.tsx",
-    "./components/Newline": "./src/components/Newline.tsx",
-    "./components/Spacer": "./src/components/Spacer.tsx",
-    "./components/Static": "./src/components/Static.tsx",
-    "./components/Text": "./src/components/Text.tsx",
-    "./components/Transform": "./src/components/Transform.tsx",
-    "./context": "./src/context.ts",
-    "./error-boundary": "./src/error-boundary.tsx",
-    "./hooks": "./src/hooks/index.ts",
-    "./hooks/use-edit-context": "./src/hooks/use-edit-context.ts",
-    "./hooks/useApp": "./src/hooks/useApp.ts",
-    "./hooks/useCursor": "./src/hooks/useCursor.ts",
-    "./hooks/useExit": "./src/hooks/useExit.ts",
-    "./hooks/useInput": "./src/hooks/useInput.ts",
-    "./hooks/useLayout": "./src/hooks/useLayout.ts",
-    "./hooks/usePasteCallback": "./src/hooks/usePasteCallback.ts",
-    "./hooks/useStderr": "./src/hooks/useStderr.ts",
-    "./hooks/useStdout": "./src/hooks/useStdout.ts",
-    "./hooks/useWindowSize": "./src/hooks/useWindowSize.ts",
-    "./measureElement": "./src/measureElement.ts",
-    "./reconciler": "./src/reconciler/index.ts",
-    "./reconciler/host-config": "./src/reconciler/host-config.ts",
-    "./reconciler/nodes": "./src/reconciler/nodes.ts",
-    "./render": "./src/render.tsx",
-    "./render-string": "./src/render-string.tsx",
-    "./ui": "./src/ui/index.ts",
-    "./ui/animation": "./src/ui/animation.ts",
-    "./ui/ansi": "./src/ui/ansi/index.ts",
-    "./ui/cli": "./src/ui/cli/index.ts",
-    "./ui/components/CursorLine": "./src/ui/components/CursorLine.tsx",
-    "./ui/components/Divider": "./src/ui/components/Divider.tsx",
-    "./ui/components/EditContextDisplay": "./src/ui/components/EditContextDisplay.tsx",
-    "./ui/components/Spinner": "./src/ui/components/Spinner.tsx",
-    "./ui/components/TextArea": "./src/ui/components/TextArea.tsx",
-    "./ui/components/TextInput": "./src/ui/components/TextInput.tsx",
-    "./ui/components/useTextArea": "./src/ui/components/useTextArea.ts",
-    "./ui/display": "./src/ui/display/index.ts",
-    "./ui/image": "./src/ui/image/index.ts",
-    "./ui/input": "./src/ui/input/index.ts",
-    "./ui/progress": "./src/ui/progress/index.ts",
-    "./ui/react": "./src/ui/react/index.ts",
-    "./ui/utils": "./src/ui/utils/index.ts",
-    "./ui/wrappers": "./src/ui/wrappers/index.ts",
-    "./with-react": "./src/with-react.ts"
+    "./*": "./src/*.ts",
+    "./*.tsx": "./src/*.tsx"
   },
   "publishConfig": {
     "access": "public",
@@ -252,6 +210,9 @@
       }
     }
   },
+  "scripts": {
+    "build": "tsdown"
+  },
   "dependencies": {
     "@silvery/ag": "0.17.3",
     "@silvery/headless": "0.17.3",
@@ -261,6 +222,8 @@
     "react": "^18.0.0 || ^19.0.0"
   },
   "tsdown": {
+    "clean": true,
+    "dts": true,
     "entry": [
       "src/index.ts",
       "src/accessibility.ts",
@@ -309,12 +272,6 @@
       "src/ui/wrappers/index.ts",
       "src/with-react.ts"
     ],
-    "format": "esm",
-    "dts": true,
-    "clean": true
-  },
-  "scripts": {
-    "build": "tsdown"
-  },
-  "private": true
+    "format": "esm"
+  }
 }

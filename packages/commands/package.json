@@ -1,9 +1,10 @@
 {
   "name": "@silvery/commands",
   "version": "0.17.3",
+  "private": true,
   "description": "Command registry, keymaps, and invocation for silvery apps",
   "license": "MIT",
-  "author": "Bjørn Stabell <bjorn@stabell.org>",
+  "author": "Bj\u00f8rn Stabell <bjorn@stabell.org>",
   "repository": {
     "type": "git",
     "url": "https://github.com/beorn/silvery.git",
@@ -17,10 +18,7 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./create-command-registry": "./src/create-command-registry.ts",
-    "./keys": "./src/keys.ts",
-    "./with-commands": "./src/with-commands.ts",
-    "./with-keybindings": "./src/with-keybindings.ts"
+    "./*": "./src/*.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -47,8 +45,13 @@
       }
     }
   },
+  "scripts": {
+    "build": "tsdown"
+  },
   "dependencies": {},
   "tsdown": {
+    "clean": true,
+    "dts": true,
     "entry": [
       "src/index.ts",
       "src/create-command-registry.ts",
@@ -56,12 +59,6 @@
       "src/with-commands.ts",
       "src/with-keybindings.ts"
     ],
-    "format": "esm",
-    "dts": true,
-    "clean": true
-  },
-  "scripts": {
-    "build": "tsdown"
-  },
-  "private": true
+    "format": "esm"
+  }
 }

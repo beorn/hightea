@@ -1,19 +1,19 @@
 {
   "name": "@silvery/ink",
   "version": "0.17.3",
+  "private": true,
   "description": "Ink and Chalk API compatibility layer (not published separately)",
   "license": "MIT",
-  "author": "Bjørn Stabell <bjorn@stabell.org>",
+  "author": "Bj\u00f8rn Stabell <bjorn@stabell.org>",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./chalk": "./src/chalk.ts",
-    "./ink": "./src/ink.ts",
-    "./with-ink": "./src/with-ink.ts",
-    "./with-ink-cursor": "./src/with-ink-cursor.ts",
-    "./with-ink-focus": "./src/with-ink-focus.ts"
+    "./*": "./src/*.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -44,12 +44,17 @@
       }
     }
   },
+  "scripts": {
+    "build": "tsdown"
+  },
   "dependencies": {
     "@silvery/ag-react": "0.17.3",
     "@silvery/ag-term": "0.17.3",
     "@silvery/ansi": "0.17.3"
   },
   "tsdown": {
+    "clean": true,
+    "dts": true,
     "entry": [
       "src/index.ts",
       "src/chalk.ts",
@@ -58,15 +63,6 @@
       "src/with-ink-cursor.ts",
       "src/with-ink-focus.ts"
     ],
-    "format": "esm",
-    "dts": true,
-    "clean": true
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsdown"
-  },
-  "private": true
+    "format": "esm"
+  }
 }

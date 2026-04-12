@@ -1,6 +1,7 @@
 {
   "name": "@silvery/ag-term",
   "version": "0.17.3",
+  "private": true,
   "description": "Terminal rendering target for silvery (internal \u2014 use silvery instead)",
   "license": "MIT",
   "author": "Bj\u00f8rn Stabell <bjorn@stabell.org>",
@@ -17,88 +18,7 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./adapters/canvas-adapter": "./src/adapters/canvas-adapter.ts",
-    "./adapters/dom-adapter": "./src/adapters/dom-adapter.ts",
-    "./adapters/flexily-zero-adapter": "./src/adapters/flexily-zero-adapter.ts",
-    "./adapters/terminal-adapter": "./src/adapters/terminal-adapter.ts",
-    "./adapters/yoga-adapter": "./src/adapters/yoga-adapter.ts",
-    "./ag": "./src/ag.ts",
-    "./ansi": "./src/ansi/index.ts",
-    "./ansi-sanitize": "./src/ansi-sanitize.ts",
-    "./ansi/output-guard": "./src/ansi/output-guard.ts",
-    "./app": "./src/app.ts",
-    "./bound-term": "./src/bound-term.ts",
-    "./bracketed-paste": "./src/bracketed-paste.ts",
-    "./buffer": "./src/buffer.ts",
-    "./buffer-capture": "./src/buffer-capture.ts",
-    "./clipboard": "./src/clipboard.ts",
-    "./compose": "./src/compose.ts",
-    "./copy-extraction": "./src/copy-extraction.ts",
-    "./cursor-query": "./src/cursor-query.ts",
-    "./device-attrs": "./src/device-attrs.ts",
-    "./devtools": "./src/devtools.ts",
-    "./drag-events": "./src/drag-events.ts",
-    "./features/copy-mode": "./src/features/copy-mode.ts",
-    "./features/selection": "./src/features/selection.ts",
-    "./focus-reporting": "./src/focus-reporting.ts",
-    "./history-buffer": "./src/history-buffer.ts",
-    "./hit-registry": "./src/hit-registry.ts",
-    "./inspector": "./src/inspector.ts",
-    "./kitty-detect": "./src/kitty-detect.ts",
-    "./layout-engine": "./src/layout-engine.ts",
-    "./list-document": "./src/list-document.ts",
-    "./measurer": "./src/measurer.ts",
-    "./mode-query": "./src/mode-query.ts",
-    "./mouse": "./src/mouse.ts",
-    "./mouse-events": "./src/mouse-events.ts",
-    "./non-tty": "./src/non-tty.ts",
-    "./osc-markers": "./src/osc-markers.ts",
-    "./osc-palette": "./src/osc-palette.ts",
-    "./output": "./src/output.ts",
-    "./pane-manager": "./src/pane-manager.ts",
-    "./pipeline": "./src/pipeline/index.ts",
-    "./pipeline/cascade-predicates": "./src/pipeline/cascade-predicates.ts",
-    "./pipeline/collect-text": "./src/pipeline/collect-text.ts",
-    "./pipeline/diff-buffers": "./src/pipeline/diff-buffers.ts",
-    "./pipeline/layout-phase": "./src/pipeline/layout-phase.ts",
-    "./pipeline/measure-stats": "./src/pipeline/measure-stats.ts",
-    "./pipeline/output-phase": "./src/pipeline/output-phase.ts",
-    "./pipeline/pretext": "./src/pipeline/pretext.ts",
-    "./pipeline/reactive-node": "./src/pipeline/reactive-node.ts",
-    "./pipeline/render-helpers": "./src/pipeline/render-helpers.ts",
-    "./pipeline/render-phase": "./src/pipeline/render-phase.ts",
-    "./pipeline/render-phase-adapter": "./src/pipeline/render-phase-adapter.ts",
-    "./pipeline/render-text": "./src/pipeline/render-text.ts",
-    "./pipeline/types": "./src/pipeline/types.ts",
-    "./pixel-size": "./src/pixel-size.ts",
-    "./plugins": "./src/plugins/index.ts",
-    "./plugins/with-diagnostics": "./src/plugins/with-diagnostics.ts",
-    "./plugins/with-dom-events": "./src/plugins/with-dom-events.ts",
-    "./plugins/with-focus": "./src/plugins/with-focus.ts",
-    "./plugins/with-links": "./src/plugins/with-links.ts",
-    "./plugins/with-render": "./src/plugins/with-render.ts",
-    "./plugins/with-terminal": "./src/plugins/with-terminal.ts",
-    "./render-adapter": "./src/render-adapter.ts",
-    "./renderer": "./src/renderer.ts",
-    "./runtime": "./src/runtime/index.ts",
-    "./runtime/perf": "./src/runtime/perf.ts",
-    "./scheduler": "./src/scheduler.ts",
-    "./screenshot": "./src/screenshot.ts",
-    "./scroll-region": "./src/scroll-region.ts",
-    "./scroll-utils": "./src/scroll-utils.ts",
-    "./search-overlay": "./src/search-overlay.ts",
-    "./selection-renderer": "./src/selection-renderer.ts",
-    "./term-def": "./src/term-def.ts",
-    "./terminal-caps": "./src/terminal-caps.ts",
-    "./terminal-colors": "./src/terminal-colors.ts",
-    "./termtest": "./src/termtest.ts",
-    "./text-sizing": "./src/text-sizing.ts",
-    "./text-surface": "./src/text-surface.ts",
-    "./toolbelt": "./src/toolbelt/index.ts",
-    "./unicode": "./src/unicode.ts",
-    "./viewport-compositor": "./src/viewport-compositor.ts",
-    "./virtual-scrollback": "./src/virtual-scrollback.ts",
-    "./xterm/index": "./src/xterm/index.ts"
+    "./*": "./src/*.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -437,6 +357,9 @@
       }
     }
   },
+  "scripts": {
+    "build": "tsdown"
+  },
   "dependencies": {
     "@silvery/ag": "0.17.3",
     "@silvery/ag-react": "0.17.3",
@@ -449,6 +372,8 @@
     "flexily": "0.5.2"
   },
   "tsdown": {
+    "clean": true,
+    "dts": true,
     "entry": [
       "src/index.ts",
       "src/adapters/canvas-adapter.ts",
@@ -534,12 +459,6 @@
       "src/virtual-scrollback.ts",
       "src/xterm/index.ts"
     ],
-    "format": "esm",
-    "dts": true,
-    "clean": true
-  },
-  "scripts": {
-    "build": "tsdown"
-  },
-  "private": true
+    "format": "esm"
+  }
 }

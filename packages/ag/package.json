@@ -1,9 +1,10 @@
 {
   "name": "@silvery/ag",
   "version": "0.17.3",
-  "description": "Core types and infrastructure for silvery (internal — use silvery instead)",
+  "private": true,
+  "description": "Core types and infrastructure for silvery (internal \u2014 use silvery instead)",
   "license": "MIT",
-  "author": "Bjørn Stabell <bjorn@stabell.org>",
+  "author": "Bj\u00f8rn Stabell <bjorn@stabell.org>",
   "repository": {
     "type": "git",
     "url": "https://github.com/beorn/silvery.git",
@@ -17,19 +18,7 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./dirty-tracking": "./src/dirty-tracking.ts",
-    "./drag-event-types": "./src/drag-event-types.ts",
-    "./epoch": "./src/epoch.ts",
-    "./focus-events": "./src/focus-events.ts",
-    "./focus-manager": "./src/focus-manager.ts",
-    "./focus-queries": "./src/focus-queries.ts",
-    "./interactive-signals": "./src/interactive-signals.ts",
-    "./keys": "./src/keys.ts",
-    "./layout-types": "./src/layout-types.ts",
-    "./mouse-event-types": "./src/mouse-event-types.ts",
-    "./text-frame": "./src/text-frame.ts",
-    "./tree-utils": "./src/tree-utils.ts",
-    "./types": "./src/types.ts"
+    "./*": "./src/*.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -92,8 +81,13 @@
       }
     }
   },
+  "scripts": {
+    "build": "tsdown"
+  },
   "dependencies": {},
   "tsdown": {
+    "clean": true,
+    "dts": true,
     "entry": [
       "src/index.ts",
       "src/dirty-tracking.ts",
@@ -110,12 +104,6 @@
       "src/tree-utils.ts",
       "src/types.ts"
     ],
-    "format": "esm",
-    "dts": true,
-    "clean": true
-  },
-  "scripts": {
-    "build": "tsdown"
-  },
-  "private": true
+    "format": "esm"
+  }
 }
