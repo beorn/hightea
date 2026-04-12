@@ -32,6 +32,7 @@ import {
   scrollrectPhaseSimple,
   notifyLayoutSubscribers,
   detectPipelineFeatures,
+  strictLayoutOverflowCheck,
 } from "./pipeline/layout-phase"
 import { renderPhase, clearBgConflictWarnings } from "./pipeline/render-phase"
 import { clearDirtyTracking, hasScrollDirty } from "@silvery/ag/dirty-tracking"
@@ -175,6 +176,10 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
     if (fitContentCorrectionPass(root, ctx)) {
       layoutPhase(root, cols, rows)
     }
+
+    // STRICT invariant: verify no child overflows its parent's inner width.
+    // Catches fit-content/snug-content/measure-phase bugs at the source.
+    strictLayoutOverflowCheck(root)
 
     // Detect features for phase skipping. One-way merge: false → true only.
     // This scan runs every layout pass to catch newly mounted components.

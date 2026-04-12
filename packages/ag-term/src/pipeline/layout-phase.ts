@@ -337,6 +337,76 @@ export function notifyLayoutSubscribers(node: AgNode): void {
   }
 }
 
+// ============================================================================
+// STRICT Layout Overflow Invariant
+// ============================================================================
+
+/**
+ * Verify that no child's boxRect.width exceeds its parent's inner content width.
+ *
+ * This catches fit-content/snug-content bugs at the source — any measure-phase
+ * or correction-pass error fires immediately.
+ *
+ * - SILVERY_STRICT=1: console.warn on violation
+ * - SILVERY_STRICT=2: throw on violation
+ *
+ * Exceptions:
+ * - Parent has overflow: "scroll" or "hidden" (overflow is allowed)
+ * - Child has position: "absolute" (absolute nodes can overflow)
+ */
+export function strictLayoutOverflowCheck(root: AgNode): void {
+  const strict = process?.env?.SILVERY_STRICT
+  if (!strict) return
+
+  const shouldThrow = strict === "2"
+
+  function walk(node: AgNode): void {
+    for (const child of node.children) {
+      if (child.boxRect && node.boxRect) {
+        const childProps = child.props as BoxProps
+
+        // Skip absolute-positioned children — they're allowed to overflow
+        if (childProps.position === "absolute") {
+          walk(child)
+          continue
+        }
+
+        const parentProps = node.props as BoxProps
+
+        // Skip if parent allows overflow (scroll or hidden)
+        if (parentProps.overflow === "scroll" || parentProps.overflow === "hidden") {
+          walk(child)
+          continue
+        }
+
+        // Compute parent's inner content width
+        const border = parentProps.borderStyle ? getBorderSize(parentProps) : { top: 0, bottom: 0, left: 0, right: 0 }
+        const padding = getPadding(parentProps)
+        const parentInnerWidth = node.boxRect.width - padding.left - padding.right - border.left - border.right
+
+        if (child.boxRect.width > parentInnerWidth) {
+          const childId = (childProps as any).id ?? child.type
+          const parentId = (parentProps as any).id ?? node.type
+          const msg =
+            `[SILVERY_STRICT] Layout overflow: child "${childId}" width ${child.boxRect.width} ` +
+            `exceeds parent "${parentId}" inner width ${parentInnerWidth} ` +
+            `(parent box: ${node.boxRect.width}, border: ${border.left}+${border.right}, padding: ${padding.left}+${padding.right})`
+
+          if (shouldThrow) {
+            throw new Error(msg)
+          } else {
+            console.warn(msg)
+          }
+        }
+      }
+
+      walk(child)
+    }
+  }
+
+  walk(root)
+}
+
 // Re-export from types
 export { rectEqual } from "@silvery/ag/types"
 
