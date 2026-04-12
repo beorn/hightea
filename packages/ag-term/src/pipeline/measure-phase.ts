@@ -40,12 +40,19 @@ export function measurePhase(root: AgNode, ctx?: PipelineContext): void {
       //     upper bound where everything fits on one line, so shrunk ≈ intrinsic)
       let availableWidth: number | undefined
       const widthIsFixed = typeof props.width === "number"
-      const definiteUpperWidth =
+      // Find a definite upper bound for child measurement:
+      //   1. Fixed width on this node (height="fit-content" case)
+      //   2. Explicit maxWidth on this node
+      //   3. Nearest ancestor with a definite width (walk up the tree)
+      let definiteUpperWidth: number | undefined =
         widthIsFixed && props.height === "fit-content"
           ? (props.width as number)
           : typeof props.maxWidth === "number"
             ? (props.maxWidth as number)
             : undefined
+      if (definiteUpperWidth === undefined) {
+        definiteUpperWidth = findAncestorDefiniteWidth(node)
+      }
       if (definiteUpperWidth !== undefined) {
         const padding = getPadding(props)
         availableWidth = definiteUpperWidth - padding.left - padding.right
@@ -62,9 +69,16 @@ export function measurePhase(root: AgNode, ctx?: PipelineContext): void {
         // Fit-snug: find the narrowest width that keeps the same line count.
         // First get the text for analysis, then binary search for tightest width.
         const shrunkWidth = computeSnugContentWidth(node, intrinsicSize.width, ctx)
-        node.layoutNode.setWidth(shrunkWidth)
+        // Use setMaxWidth (not setWidth) so the box can shrink below its
+        // intrinsic via flex cross-axis stretch or parent constraints.
+        // CSS fit-content = min(max-content, available) — setMaxWidth provides
+        // the max-content ceiling while leaving width=auto for flex resolution.
+        node.layoutNode.setMaxWidth(shrunkWidth)
       } else if (props.width === "fit-content") {
-        node.layoutNode.setWidth(intrinsicSize.width)
+        // CSS fit-content = min(max-content, max(min-content, available)).
+        // setMaxWidth caps at intrinsic (max-content), leaving width=auto
+        // so flex stretch/shrink can clamp it to the parent's available width.
+        node.layoutNode.setMaxWidth(intrinsicSize.width)
       }
       if (props.height === "fit-content") {
         node.layoutNode.setHeight(intrinsicSize.height)
@@ -222,6 +236,91 @@ function computeSnugContentWidth(node: AgNode, fitContentWidth: number, ctx?: Pi
 
   // Shrinkwrap the content, then add overhead back
   return shrinkwrapWidth(analysis, contentWidth) + overhead
+}
+
+/**
+ * Post-layout correction for fit-content/snug-content nodes that overflow
+ * their parent's computed width. After layout resolves flex sizing, some
+ * fit-content boxes may exceed the parent's actual content area (because
+ * the parent's width was only determined by flex — no definite width existed
+ * at measure time). This pass detects overflow, clamps maxWidth to the
+ * parent's computed inner width, and returns true if any correction was made
+ * (caller should re-run layout).
+ */
+export function fitContentCorrectionPass(root: AgNode, ctx?: PipelineContext): boolean {
+  let corrected = false
+  traverseTree(root, (node) => {
+    if (!node.layoutNode || !node.parent?.boxRect || !node.boxRect) return
+    const props = node.props as BoxProps
+    if (props.width !== "fit-content" && props.width !== "snug-content") return
+
+    const parentProps = node.parent.props as BoxProps
+    let parentInner = node.parent.boxRect.width
+    const parentPadding = getPadding(parentProps)
+    parentInner -= parentPadding.left + parentPadding.right
+    if (parentProps.borderStyle) {
+      const parentBorder = getBorderSize(parentProps)
+      parentInner -= parentBorder.left + parentBorder.right
+    }
+    if (parentInner < 1) parentInner = 1
+
+    if (node.boxRect.width > parentInner + 0.5) {
+      // Node overflows parent — clamp and re-measure
+      const padding = getPadding(props)
+      let contentWidth = parentInner - padding.left - padding.right
+      if (props.borderStyle) {
+        const border = getBorderSize(props)
+        contentWidth -= border.left + border.right
+      }
+      if (contentWidth < 1) contentWidth = 1
+
+      const intrinsicSize = measureIntrinsicSize(node, ctx, contentWidth)
+      if (props.width === "snug-content") {
+        const shrunkWidth = computeSnugContentWidth(node, intrinsicSize.width, ctx)
+        node.layoutNode.setMaxWidth(shrunkWidth)
+      } else {
+        node.layoutNode.setMaxWidth(intrinsicSize.width)
+      }
+      node.layoutNode.markDirty()
+      corrected = true
+    }
+  })
+  return corrected
+}
+
+/**
+ * Walk up the tree from a node to find the nearest ancestor with a definite
+ * width (a fixed number, not "fit-content" or "snug-content"). Returns the
+ * ancestor's inner content width (after subtracting its own padding and border).
+ * Returns undefined if no definite-width ancestor is found.
+ */
+function findAncestorDefiniteWidth(node: AgNode): number | undefined {
+  let current = node.parent
+  while (current) {
+    const p = current.props as BoxProps
+    if (typeof p.width === "number") {
+      let inner = p.width as number
+      const padding = getPadding(p)
+      inner -= padding.left + padding.right
+      if (p.borderStyle) {
+        const border = getBorderSize(p)
+        inner -= border.left + border.right
+      }
+      return inner > 0 ? inner : 1
+    }
+    if (typeof p.maxWidth === "number") {
+      let inner = p.maxWidth as number
+      const padding = getPadding(p)
+      inner -= padding.left + padding.right
+      if (p.borderStyle) {
+        const border = getBorderSize(p)
+        inner -= border.left + border.right
+      }
+      return inner > 0 ? inner : 1
+    }
+    current = current.parent
+  }
+  return undefined
 }
 
 /**

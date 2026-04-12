@@ -56,7 +56,7 @@ const RAGGED_TEXT = "the quick brown fox"
 // ============================================================================
 
 describe("regression: fit-content clamps to parent width", () => {
-  test.fails("fit-content child does not overflow a fixed-width parent", () => {
+  test("fit-content child does not overflow a fixed-width parent", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
     const app = render(
       <Box width={20} id="parent">
@@ -95,7 +95,7 @@ describe("regression: fit-content clamps to parent width", () => {
     expect(child!.width).toBeLessThanOrEqual(parent!.width)
   })
 
-  test.fails("fit-content re-clamps after terminal resize", () => {
+  test("fit-content re-clamps after terminal resize", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
     const app = render(
       <Box flexDirection="row">
@@ -122,7 +122,7 @@ describe("regression: fit-content clamps to parent width", () => {
 // ============================================================================
 
 describe("regression: flexGrow columns with fit-content children do not overlap", () => {
-  test.fails("two flexGrow=1 columns stay within the terminal width", () => {
+  test("two flexGrow=1 columns stay within the terminal width", () => {
     const render = createRenderer({ cols: 40, rows: 24 })
     const app = render(
       <Box flexDirection="row" gap={1}>
@@ -154,18 +154,18 @@ describe("regression: flexGrow columns with fit-content children do not overlap"
 // ============================================================================
 
 describe("regression: snug-content + wrap=even is visibly tighter than fit-content + wrap", () => {
-  test.fails("identical text renders narrower under snug+even than fit+greedy", () => {
+  test("identical text renders narrower under snug+even than fit+greedy", () => {
     // Both boxes live inside the same parent so they see identical available
-    // width. The parent is wide enough (40 cols) that neither is clamped by
-    // the container — the only variable is the width keyword + wrap mode.
+    // width. maxWidth forces wrapping so snug-content can binary-search for
+    // a tighter width than fit-content's widest wrapped line.
     const render = createRenderer({ cols: 80, rows: 24 })
     const app = render(
-      <Box flexDirection="column" width={40}>
-        <Box width="fit-content" id="fit" borderStyle="round">
-          <Text wrap="wrap">{RAGGED_TEXT}</Text>
+      <Box flexDirection="column" width={60}>
+        <Box width="fit-content" id="fit" borderStyle="round" maxWidth={48}>
+          <Text wrap="wrap">{LONG_TEXT}</Text>
         </Box>
-        <Box width="snug-content" id="snug" borderStyle="round">
-          <Text wrap="even">{RAGGED_TEXT}</Text>
+        <Box width="snug-content" id="snug" borderStyle="round" maxWidth={48}>
+          <Text wrap="even">{LONG_TEXT}</Text>
         </Box>
       </Box>,
     )
@@ -178,7 +178,7 @@ describe("regression: snug-content + wrap=even is visibly tighter than fit-conte
     expect(snug!.width).toBeLessThan(fit!.width)
   })
 
-  test.fails("snug-content alone is no wider than fit-content for the same text", () => {
+  test("snug-content alone is no wider than fit-content for the same text", () => {
     // Weaker claim: even with greedy wrap on both sides, snug's binary
     // search must never exceed fit-content. A passing (non-failing) result
     // here is fine — it's a sanity bound, not the demo's value prop.
@@ -203,7 +203,7 @@ describe("regression: snug-content + wrap=even is visibly tighter than fit-conte
 // Regression 4: wrap="even" must actually drive Knuth-Plass, not be a no-op.
 // ============================================================================
 
-describe("regression: wrap=\"even\" is wired through to the text pipeline", () => {
+describe('regression: wrap="even" is wired through to the text pipeline', () => {
   // Observed by exercising the text-layout demo in a real TTY at 120x30:
   // demo 2's two paragraphs ("wrap" greedy vs "even" Knuth-Plass) rendered
   // BYTE-FOR-BYTE identical. The pure algorithm passes its unit tests
@@ -213,7 +213,7 @@ describe("regression: wrap=\"even\" is wired through to the text pipeline", () =
   // A paragraph with known slack under greedy wrap must produce AT LEAST
   // ONE different line break under "even". This test fixes both boxes to
   // the same width so the only variable is wrap mode.
-  test("wrap=\"even\" produces different line breaks than wrap=\"wrap\" for raggable text", () => {
+  test('wrap="even" produces different line breaks than wrap="wrap" for raggable text', () => {
     // "Four score..." at width 20 is verified to produce different breaks
     // under greedy vs Knuth-Plass (see the pretext algorithm unit tests
     // and the tests/pipeline/pretext.test.ts verification). The two

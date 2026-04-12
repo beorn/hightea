@@ -23,7 +23,7 @@ import { getLayoutEngine } from "./layout-engine"
 import type { TextFrame } from "@silvery/ag/text-frame"
 import { type TerminalBuffer, createTextFrame } from "./buffer"
 import { runWithMeasurer, type Measurer } from "./unicode"
-import { measurePhase } from "./pipeline/measure-phase"
+import { measurePhase, fitContentCorrectionPass } from "./pipeline/measure-phase"
 import {
   layoutPhase,
   scrollPhase,
@@ -168,6 +168,12 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
       layoutPhase(root, cols, rows)
       tLayout = performance.now() - t
       log.debug?.(`layout: ${tLayout.toFixed(2)}ms`)
+    }
+
+    // Post-layout correction: if fit-content/snug-content boxes overflow
+    // their parent's computed width, clamp and re-run layout.
+    if (fitContentCorrectionPass(root, ctx)) {
+      layoutPhase(root, cols, rows)
     }
 
     // Detect features for phase skipping. One-way merge: false → true only.
