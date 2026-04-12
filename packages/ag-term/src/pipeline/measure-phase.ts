@@ -227,20 +227,6 @@ function computeSnugContentWidth(node: AgNode, fitContentWidth: number, ctx?: Pi
 }
 
 /**
- * Post-layout correction pass — no longer needed.
- *
- * With Flexily native fit-content (UNIT_FIT_CONTENT/UNIT_SNUG_CONTENT),
- * the layout engine handles available-width clamping during the flex pass.
- * The old polyfill needed this because measure-phase ran BEFORE layout
- * and didn't know the parent's computed width.
- *
- * Kept as a no-op for API compatibility (called from pipeline/index.ts).
- */
-export function fitContentCorrectionPass(_root: AgNode, _ctx?: PipelineContext): boolean {
-  return false
-}
-
-/**
  * Walk up the tree from a node to find the nearest ancestor with a definite
  * width (a fixed number, not "fit-content" or "snug-content"). Returns the
  * ancestor's inner content width (after subtracting its own padding and border).
