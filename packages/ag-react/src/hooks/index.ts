@@ -7,6 +7,9 @@
 // Node access (reactive signals)
 export { useAgNode, type AgNodeHandle } from "./useAgNode"
 
+// Signal bridge (alien-signals → React re-renders)
+export { useSignal } from "./useSignal"
+
 // Layout
 export { useBoxRect, useScrollRect, useScreenRect, type Rect } from "./useLayout"
 
