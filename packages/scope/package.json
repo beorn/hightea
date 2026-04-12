@@ -1,6 +1,7 @@
 {
   "name": "@silvery/scope",
   "version": "0.17.3",
+  "private": true,
   "description": "Structured concurrency scopes for silvery apps — cancellation, disposal, lifecycle",
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",
@@ -27,14 +28,13 @@
       }
     }
   },
-  "tsdown": {
-    "entry": "src/index.ts",
-    "format": "esm",
-    "dts": true,
-    "clean": true
-  },
   "scripts": {
     "build": "tsdown"
   },
-  "private": true
+  "tsdown": {
+    "clean": true,
+    "dts": true,
+    "entry": "src/index.ts",
+    "format": "esm"
+  }
 }

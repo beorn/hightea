@@ -414,12 +414,6 @@ export interface AgNode {
    *  Value: renderEpoch when dirty, INITIAL_EPOCH (-1) when clean. */
   layoutChangedThisFrame: number
 
-  /** True if layout-affecting props changed and Yoga needs recalculation.
-   *  Set by reconciler on prop changes. Cleared after layout phase.
-   *  NOTE: layoutDirty stays boolean — it's cleared by layout phase (not render phase)
-   *  and has its own tracking set in dirty-tracking.ts. */
-  layoutDirty: boolean
-
   /**
    * Bit-packed dirty flags for the current epoch.
    *

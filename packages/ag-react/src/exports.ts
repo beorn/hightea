@@ -1140,14 +1140,7 @@ export type { GridCellProps } from "./ui/components"
  * Note: `useAnimatedTransition` is the animation interpolation hook.
  * React's `useTransition` (concurrent mode) is exported separately above.
  */
-export {
-  easings,
-  resolveEasing,
-  useAnimation,
-  useInterval,
-  useTimeout,
-  useLatest,
-} from "./ui/animation"
+export { easings, resolveEasing, useAnimation, useInterval, useTimeout, useLatest } from "./ui/animation"
 export { useAnimatedTransition } from "./ui/animation"
 export type {
   EasingFn,

@@ -73,18 +73,6 @@
       }
     }
   },
-  "tsdown": {
-    "entry": [
-      "src/index.ts",
-      "src/runtime.ts",
-      "src/theme.ts",
-      "src/ui.ts",
-      "src/ui/*.ts"
-    ],
-    "format": "esm",
-    "dts": true,
-    "clean": true
-  },
   "scripts": {
     "build": "tsdown",
     "build:all": "tsdown && tsdown -W -F '@silvery/*'",
@@ -145,6 +133,18 @@
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"
+  },
+  "tsdown": {
+    "clean": true,
+    "dts": true,
+    "entry": [
+      "src/index.ts",
+      "src/runtime.ts",
+      "src/theme.ts",
+      "src/ui.ts",
+      "src/ui/*.ts"
+    ],
+    "format": "esm"
   },
   "engines": {
     "bun": ">=1.0",

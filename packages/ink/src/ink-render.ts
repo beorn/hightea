@@ -760,15 +760,14 @@ export function renderToString(
 
 /**
  * Check if a node or any of its ancestors has dirty layout.
- * When the reconciler adds/removes children, it marks the parent as layoutDirty
- * and propagates subtreeDirty up to the root.
+ * When the reconciler adds/removes children, subtreeDirty and childrenDirty
+ * propagate up to the root via the bit-packed dirty system.
  */
 function needsLayoutRecalculation(node: any): boolean {
   // Walk up from node to root checking dirty flags
   let current = node
   while (current) {
     if (
-      current.layoutDirty ||
       isDirty(current.dirtyBits, current.dirtyEpoch, SUBTREE_BIT) ||
       isDirty(current.dirtyBits, current.dirtyEpoch, CHILDREN_BIT)
     )

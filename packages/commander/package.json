@@ -38,29 +38,29 @@
       }
     }
   },
+  "scripts": {
+    "build": "tsdown"
+  },
   "dependencies": {
     "@silvery/ansi": "0.17.3",
     "commander": ">=13.0.0",
     "zod": ">=3.0.0"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  },
   "tsdown": {
+    "clean": true,
+    "dts": true,
     "entry": [
       "src/index.ts",
       "src/plain.ts"
     ],
-    "format": "esm",
-    "dts": true,
-    "clean": true,
     "external": [
       "commander",
       "zod",
       "@silvery/ansi"
-    ]
+    ],
+    "format": "esm"
   },
-  "scripts": {
-    "build": "tsdown"
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

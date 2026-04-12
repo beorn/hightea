@@ -273,7 +273,6 @@ export const hostConfig = {
       prevScrollRect: null,
       prevScreenRect: null,
       layoutChangedThisFrame: INITIAL_EPOCH,
-      layoutDirty: false,
       dirtyBits: CONTENT_BIT | STYLE_PROPS_BIT | BG_BIT | SUBTREE_BIT,
       dirtyEpoch: epoch,
       layoutSubscribers: new Set(),

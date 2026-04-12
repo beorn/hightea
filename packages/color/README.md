@@ -16,15 +16,15 @@ npm install @silvery/color
 import { hexToRgb, rgbToHex, blend, brighten, darken, checkContrast } from "@silvery/color"
 
 // Conversion
-hexToRgb("#ff0")           // → [255, 255, 0]
-rgbToHex(128, 128, 128)    // → "#808080"
+hexToRgb("#ff0") // → [255, 255, 0]
+rgbToHex(128, 128, 128) // → "#808080"
 
 // Blending
 blend("#000", "#fff", 0.5) // → "#808080"
 
 // Lightness
-brighten("#333", 0.2)      // → lighter
-darken("#ccc", 0.2)        // → darker
+brighten("#333", 0.2) // → lighter
+darken("#ccc", 0.2) // → darker
 
 // WCAG 2.1 contrast
 checkContrast("#fff", "#000")

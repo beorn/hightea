@@ -36,11 +36,17 @@ const s = createStyle({ theme })
 
 ```ts
 import {
-  enterAltScreen, leaveAltScreen,
-  cursorTo, cursorHide, cursorShow,
-  enableMouse, disableMouse,
-  enableKittyKeyboard, disableKittyKeyboard,
-  enableBracketedPaste, disableBracketedPaste,
+  enterAltScreen,
+  leaveAltScreen,
+  cursorTo,
+  cursorHide,
+  cursorShow,
+  enableMouse,
+  disableMouse,
+  enableKittyKeyboard,
+  disableKittyKeyboard,
+  enableBracketedPaste,
+  disableBracketedPaste,
 } from "@silvery/ansi"
 
 process.stdout.write(enterAltScreen)
@@ -53,8 +59,8 @@ process.stdout.write(enableMouse)
 ```ts
 import { detectColor, detectTerminalCaps } from "@silvery/ansi"
 
-detectColor()          // → 0 (none), 1 (16), 2 (256), 3 (truecolor)
-detectTerminalCaps()   // → { color, unicode, cursor, input, extendedUnderline }
+detectColor() // → 0 (none), 1 (16), 2 (256), 3 (truecolor)
+detectTerminalCaps() // → { color, unicode, cursor, input, extendedUnderline }
 ```
 
 ### Theme derivation
@@ -84,25 +90,25 @@ process.stdout.write(underlineColor("#ff0000") + curlyUnderline("red squiggly"))
 ```ts
 import { stripAnsi, displayLength, nearestAnsi16, rgbToAnsi256 } from "@silvery/ansi"
 
-stripAnsi("\x1b[31mred\x1b[0m")   // → "red"
-displayLength("hello\x1b[1m!")     // → 6
-nearestAnsi16([255, 0, 0])         // → nearest 16-color index
+stripAnsi("\x1b[31mred\x1b[0m") // → "red"
+displayLength("hello\x1b[1m!") // → 6
+nearestAnsi16([255, 0, 0]) // → nearest 16-color index
 ```
 
 ## API Surface
 
-| Category | Exports |
-|----------|---------|
-| **Style** | `style`, `createStyle`, `createPlainStyle`, `createMixedStyle` |
-| **Detection** | `detectColor`, `detectTerminalCaps`, `detectCursor`, `detectInput`, `detectUnicode` |
-| **Terminal control** | `enterAltScreen`, `cursorTo`, `enableMouse`, `enableKittyKeyboard`, ... |
-| **SGR codes** | `fgColorCode`, `bgColorCode`, `fgFromRgb`, `bgFromRgb` |
-| **Color maps** | `nearestAnsi16`, `rgbToAnsi256`, `ANSI_16_COLORS` |
-| **Underlines** | `curlyUnderline`, `dottedUnderline`, `dashedUnderline`, `doubleUnderline`, `underlineColor` |
-| **Theme** | `deriveTheme`, `detectTheme`, `defaultDarkPalette`, `defaultLightPalette` |
-| **OSC protocol** | `queryPaletteColor`, `queryForegroundColor`, `detectColorScheme` |
-| **Utilities** | `stripAnsi`, `displayLength`, `ANSI_REGEX` |
-| **Hyperlinks** | `hyperlink`, `HYPERLINK_START`, `HYPERLINK_END` |
+| Category             | Exports                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| **Style**            | `style`, `createStyle`, `createPlainStyle`, `createMixedStyle`                              |
+| **Detection**        | `detectColor`, `detectTerminalCaps`, `detectCursor`, `detectInput`, `detectUnicode`         |
+| **Terminal control** | `enterAltScreen`, `cursorTo`, `enableMouse`, `enableKittyKeyboard`, ...                     |
+| **SGR codes**        | `fgColorCode`, `bgColorCode`, `fgFromRgb`, `bgFromRgb`                                      |
+| **Color maps**       | `nearestAnsi16`, `rgbToAnsi256`, `ANSI_16_COLORS`                                           |
+| **Underlines**       | `curlyUnderline`, `dottedUnderline`, `dashedUnderline`, `doubleUnderline`, `underlineColor` |
+| **Theme**            | `deriveTheme`, `detectTheme`, `defaultDarkPalette`, `defaultLightPalette`                   |
+| **OSC protocol**     | `queryPaletteColor`, `queryForegroundColor`, `detectColorScheme`                            |
+| **Utilities**        | `stripAnsi`, `displayLength`, `ANSI_REGEX`                                                  |
+| **Hyperlinks**       | `hyperlink`, `HYPERLINK_START`, `HYPERLINK_END`                                             |
 
 ## Relationship to Other Packages
 

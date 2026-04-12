@@ -33,16 +33,16 @@
       }
     }
   },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "tsdown": {
-    "entry": "src/index.ts",
-    "format": "esm",
-    "dts": true,
-    "clean": true
-  },
   "scripts": {
     "build": "tsdown"
+  },
+  "tsdown": {
+    "clean": true,
+    "dts": true,
+    "entry": "src/index.ts",
+    "format": "esm"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

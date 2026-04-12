@@ -12,7 +12,11 @@ function App() {
   useInput((input, key) => {
     if (key.escape) return "exit"
   })
-  return <Box><Text>Hello</Text></Box>
+  return (
+    <Box>
+      <Text>Hello</Text>
+    </Box>
+  )
 }
 
 await run(<App />)
@@ -31,11 +35,11 @@ import { pipe, withCommands } from "@silvery/create/plugins"
 const app = createApp(
   () => (set, get) => ({
     count: 0,
-    increment: () => set(s => ({ count: s.count + 1 })),
+    increment: () => set((s) => ({ count: s.count + 1 })),
   }),
   {
     "term:key": ({ input }, { set }) => {
-      if (input === "j") set(s => ({ count: s.count + 1 }))
+      if (input === "j") set((s) => ({ count: s.count + 1 }))
       if (input === "q") return "exit"
     },
   },
