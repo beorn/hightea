@@ -30,26 +30,34 @@ export const meta: ExampleMeta = {
 // Sample Data
 // ============================================================================
 
+// Chat messages chosen so snug-content binary search shrinks the box
+// visibly below fit-content's widest wrapped line. Verified at maxWidth 48:
+// each message produces a tighter snug-content box than fit-content. See
+// tests/features/pretext-layout.test.tsx for the ground-truth measurements.
 const CHAT_MESSAGES = [
-  { sender: "Alice", text: "Hey!" },
-  { sender: "Bob", text: "What are you working on?" },
-  { sender: "Alice", text: "Building a terminal UI framework with beautiful text layout." },
+  { sender: "Alice", text: "A brief note about our typography work" },
+  { sender: "Bob", text: "OK so in chat bubbles it means no more ugly dead space on the right" },
+  {
+    sender: "Alice",
+    text: "The algorithms balance lines using minimum raggedness which is literally Knuth Plass from TeX",
+  },
   {
     sender: "Bob",
-    text: "That sounds interesting. Does it handle word wrapping well? Most terminal apps have really ugly ragged text.",
+    text: "Terminal typography matters more than you think — especially when reading a long message like this one",
   },
   {
     sender: "Alice",
-    text: "Yes! It uses Pretext-inspired algorithms for snug bubbles and even line breaking.",
+    text: "You can read about it in Breaking Paragraphs into Lines — a classic paper from 1981 by Knuth and Plass",
   },
 ]
 
+// Paragraph chosen so Knuth-Plass produces visibly different break positions
+// than greedy at width 46. Verified: lines 2, 3, 4 all differ. Optimal widths
+// [39, 42, 43, 45, 15] are more balanced than greedy's [39, 45, 45, 40, 15].
 const PARAGRAPH =
-  "The quick brown fox jumps over the lazy dog. " +
-  "Typography in terminal applications has always been limited by the character grid, " +
-  "but modern algorithms can distribute text across lines for minimum raggedness, " +
-  "producing results that rival print-quality typesetting. " +
-  "Silvery brings these techniques to the terminal."
+  "Breaking paragraphs into lines is not a trivial problem. " +
+  "Knuth and Plass solved it in 1981 with a dynamic programming approach " +
+  "that minimizes squared slack across all lines simultaneously."
 
 // ============================================================================
 // Components
@@ -123,7 +131,7 @@ function ParagraphComparison({ label, sublabel, wrap }: { label: string; sublabe
       </Text>
       <Muted>{sublabel}</Muted>
       <Text> </Text>
-      <Box width={52} borderStyle="single" borderColor="$border" paddingX={1}>
+      <Box width={54} borderStyle="single" borderColor="$border" paddingX={1}>
         <Text wrap={wrap}>{PARAGRAPH}</Text>
       </Box>
     </Box>
@@ -142,8 +150,18 @@ function Demo1Bubbles() {
       <Muted>{"  "}snug-content binary-searches for the tightest width with the same line count.</Muted>
       <Text> </Text>
       <Box flexDirection="row" gap={3} paddingX={1}>
-        <BubbleColumn label='width="fit-content"' sublabel="CSS default — dead space" width="fit-content" />
-        <BubbleColumn label='width="snug-content"' sublabel="Pretext shrinkwrap — tight" width="snug-content" />
+        <BubbleColumn
+          label='width="fit-content" + wrap="wrap"'
+          sublabel="CSS default — dead space"
+          width="fit-content"
+          wrap="wrap"
+        />
+        <BubbleColumn
+          label='width="snug-content" + wrap="even"'
+          sublabel="Pretext shrinkwrap — tight"
+          width="snug-content"
+          wrap="even"
+        />
       </Box>
     </Box>
   )
@@ -180,12 +198,13 @@ function Demo3Combined() {
           <Box flexDirection="column" gap={1}>
             <Box width="fit-content" borderStyle="round" borderColor="$border" paddingX={1} maxWidth={48}>
               <Text wrap="wrap">
-                Typography in terminal applications has always been limited by the character grid, but modern algorithms
-                change that.
+                Terminal typography matters more than you think — especially when reading a long message like this one.
               </Text>
             </Box>
             <Box width="fit-content" borderStyle="round" borderColor="$border" paddingX={1} maxWidth={48}>
-              <Text wrap="wrap">Silvery brings Pretext-inspired layout to the terminal with two simple props.</Text>
+              <Text wrap="wrap">
+                The algorithms balance lines using minimum raggedness which is literally Knuth Plass from TeX.
+              </Text>
             </Box>
           </Box>
         </Box>
@@ -198,12 +217,13 @@ function Demo3Combined() {
           <Box flexDirection="column" gap={1}>
             <Box width="snug-content" borderStyle="round" borderColor="$primary" paddingX={1} maxWidth={48}>
               <Text wrap="even">
-                Typography in terminal applications has always been limited by the character grid, but modern algorithms
-                change that.
+                Terminal typography matters more than you think — especially when reading a long message like this one.
               </Text>
             </Box>
             <Box width="snug-content" borderStyle="round" borderColor="$primary" paddingX={1} maxWidth={48}>
-              <Text wrap="even">Silvery brings Pretext-inspired layout to the terminal with two simple props.</Text>
+              <Text wrap="even">
+                The algorithms balance lines using minimum raggedness which is literally Knuth Plass from TeX.
+              </Text>
             </Box>
           </Box>
         </Box>

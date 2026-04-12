@@ -29,13 +29,26 @@ export function measurePhase(root: AgNode, ctx?: PipelineContext): void {
     const isSnugContent = props.width === "snug-content"
 
     if (isFitContent || isSnugContent) {
-      // When height="fit-content" but width is fixed, pass the available width
-      // so text nodes can wrap and compute correct intrinsic height.
+      // Pass an available-width constraint to child measurement whenever a
+      // definite upper bound exists — either a fixed width (height="fit-content"
+      // + width:number case) or a maxWidth cap on the fit-content/snug-content
+      // box itself. Without this, text nodes measure their full intrinsic
+      // unwrapped width, which:
+      //   - inflates fit-content boxes beyond maxWidth (measure phase then
+      //     uses intrinsic instead of maxWidth as the content bound)
+      //   - defeats snug-content's binary search (it starts from an unclamped
+      //     upper bound where everything fits on one line, so shrunk ≈ intrinsic)
       let availableWidth: number | undefined
       const widthIsFixed = typeof props.width === "number"
-      if (props.height === "fit-content" && widthIsFixed) {
+      const definiteUpperWidth =
+        widthIsFixed && props.height === "fit-content"
+          ? (props.width as number)
+          : typeof props.maxWidth === "number"
+            ? (props.maxWidth as number)
+            : undefined
+      if (definiteUpperWidth !== undefined) {
         const padding = getPadding(props)
-        availableWidth = (props.width as number) - padding.left - padding.right
+        availableWidth = definiteUpperWidth - padding.left - padding.right
         if (props.borderStyle) {
           const border = getBorderSize(props)
           availableWidth -= border.left + border.right

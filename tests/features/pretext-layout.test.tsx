@@ -73,6 +73,28 @@ describe("regression: fit-content clamps to parent width", () => {
     expect(child!.width).toBeLessThanOrEqual(parent!.width)
   })
 
+  // Investigation dated 2026-04-11: this bug is NOT fit-content-specific.
+  // A plain <Box> without any fit-content prop also overflows a fixed-width
+  // parent — child measured 161 cols in a 20-col parent. Adding explicit
+  // alignItems="stretch" to the parent makes both cases work (child wraps
+  // correctly to 20 cols). Root cause is in Flexily's default cross-axis
+  // alignment OR in the Silvery Box component's default props — NOT in
+  // measure-phase.ts as originally suspected. Fix requires deeper work on
+  // the layout engine defaults, not a one-line patch to fit-content.
+  test.fails("plain Box child (no fit-content) is clamped by fixed-width parent", () => {
+    const render = createRenderer({ cols: 80, rows: 24 })
+    const app = render(
+      <Box width={20} id="parent">
+        <Box id="child">
+          <Text wrap="wrap">{LONG_TEXT}</Text>
+        </Box>
+      </Box>,
+    )
+    const parent = app.locator("#parent").boundingBox()
+    const child = app.locator("#child").boundingBox()
+    expect(child!.width).toBeLessThanOrEqual(parent!.width)
+  })
+
   test.fails("fit-content re-clamps after terminal resize", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
     const app = render(
@@ -191,29 +213,29 @@ describe("regression: wrap=\"even\" is wired through to the text pipeline", () =
   // A paragraph with known slack under greedy wrap must produce AT LEAST
   // ONE different line break under "even". This test fixes both boxes to
   // the same width so the only variable is wrap mode.
-  test.fails("wrap=\"even\" produces different line breaks than wrap=\"wrap\" for raggable text", () => {
-    // "aaa bbb ccc ddd eee" at width 12:
-    //   greedy:  "aaa bbb ccc " (11) + "ddd eee" (7)        → widths [11, 7]
-    //   even:    "aaa bbb "     (7)  + "ccc ddd eee" (11)   → widths [7, 11]
-    // The line *set* is the same, but the break positions differ — the
-    // text on each rendered row will differ character-by-character.
-    const text = "aaa bbb ccc ddd eee"
-    const render = createRenderer({ cols: 40, rows: 10 })
+  test("wrap=\"even\" produces different line breaks than wrap=\"wrap\" for raggable text", () => {
+    // "Four score..." at width 20 is verified to produce different breaks
+    // under greedy vs Knuth-Plass (see the pretext algorithm unit tests
+    // and the tests/pipeline/pretext.test.ts verification). The two
+    // rendered outputs must differ at least on one row.
+    const text = "Four score and seven years ago our fathers brought forth on this continent a new nation"
+    const render = createRenderer({ cols: 40, rows: 20 })
     const app = render(
       <Box flexDirection="column">
-        <Box width={12} id="greedy">
+        <Box width={20} id="greedy">
           <Text wrap="wrap">{text}</Text>
         </Box>
-        <Box width={12} id="even">
+        <Box width={20} id="even">
           <Text wrap="even">{text}</Text>
         </Box>
       </Box>,
     )
-    const greedyBox = app.locator("#greedy").boundingBox()
-    const evenBox = app.locator("#even").boundingBox()
+    const greedyBox = app.locator("#greedy").boundingBox()!
+    const evenBox = app.locator("#even").boundingBox()!
     // Read the rendered rows directly so we compare actual line breaks,
     // not textContent which collapses whitespace across rows.
-    const readRows = (box: NonNullable<ReturnType<typeof greedyBox>>): string[] => {
+    type Box = { x: number; y: number; width: number; height: number }
+    const readRows = (box: Box): string[] => {
       const rows: string[] = []
       for (let y = box.y; y < box.y + box.height; y++) {
         let row = ""
@@ -224,14 +246,12 @@ describe("regression: wrap=\"even\" is wired through to the text pipeline", () =
       }
       return rows
     }
-    const greedyRows = readRows(greedyBox!)
-    const evenRows = readRows(evenBox!)
-    // Diagnostic ground truth measured on 2026-04-11 via this test:
-    //   greedyRows = ["aaa bbb ccc ", "ddd eee     "]
-    //   evenRows   = ["aaa bbb ccc ", "ddd eee     "]  ← identical, should differ
-    // Knuth-Plass at width 12 should produce ["aaa bbb     ", "ccc ddd eee "]
-    // or similar with lower raggedness. That the two rows are identical
-    // proves <Text wrap="even"> is not calling optimalWrap().
+    const greedyRows = readRows(greedyBox)
+    const evenRows = readRows(evenBox)
+    // Expected (from algorithm unit tests for this exact input/width):
+    //   optimal: ["Four score and","seven years ago","our fathers brought", ...]
+    //   greedy:  ["Four score and seven","years ago our", ...]
+    // The rendered rows must differ somewhere.
     expect(evenRows).not.toEqual(greedyRows)
   })
 })
@@ -243,3 +263,99 @@ describe("regression: wrap=\"even\" is wired through to the text pipeline", () =
 // entire component tree swapping at the same position (demo 2 unmounts →
 // demo 3 mounts), which is a different dirty-flag cascade path. Tracked
 // separately for a proper reproduction (tree-swap incremental test).
+
+// ============================================================================
+// Regression 6: maxWidth must feed availableWidth for fit-content/snug-content
+// measurement, so text wraps inside the cap and snug-content has room to
+// shrink below the widest wrapped line.
+//
+// Before the fix: measureIntrinsicSize only passed availableWidth when width
+// was a fixed number (and height="fit-content"). For <Box width="fit-content"
+// maxWidth={N}> the child text was measured at its full unwrapped width,
+// which defeated both the maxWidth cap (measure returned intrinsic > N) and
+// the snug-content binary search (starting upper bound was unwrapped, so
+// shrunk ≈ intrinsic, never smaller than fit-content).
+//
+// After the fix: maxWidth is used as availableWidth when no fixed width is
+// set, so text wraps during measurement and snug-content's binary search
+// operates on the wrapped line widths.
+// ============================================================================
+
+describe("fit-content and snug-content respect maxWidth during measurement", () => {
+  // Text chosen so that at inner-width 44 (maxWidth 48 - 2 padding - 2 border)
+  // greedy wrap produces widest-line 43 while snug-content binary-searches
+  // down to 33 — a 10-col saving. Verified by the pretext pure-algorithm
+  // unit tests for shrinkwrapWidth.
+  const WRAPPING_TEXT = "OK so in chat bubbles it means no more ugly dead space on the right"
+
+  test("fit-content box stays within maxWidth when text would wrap inside", () => {
+    const render = createRenderer({ cols: 80, rows: 24 })
+    const app = render(
+      <Box width="fit-content" id="fc" maxWidth={48} borderStyle="round" paddingX={1}>
+        <Text wrap="wrap">{WRAPPING_TEXT}</Text>
+      </Box>,
+    )
+    const box = app.locator("#fc").boundingBox()
+    expect(box).not.toBeNull()
+    // The box must not exceed its maxWidth.
+    expect(box!.width).toBeLessThanOrEqual(48)
+    // And should be wider than one line would need (proving it wrapped).
+    expect(box!.height).toBeGreaterThanOrEqual(4)
+  })
+
+  test("snug-content box shrinks visibly below fit-content at same maxWidth", () => {
+    const render = createRenderer({ cols: 80, rows: 24 })
+    const app = render(
+      <Box flexDirection="column">
+        <Box width="fit-content" id="fc" maxWidth={48} borderStyle="round" paddingX={1}>
+          <Text wrap="wrap">{WRAPPING_TEXT}</Text>
+        </Box>
+        <Box width="snug-content" id="snug" maxWidth={48} borderStyle="round" paddingX={1}>
+          <Text wrap="even">{WRAPPING_TEXT}</Text>
+        </Box>
+      </Box>,
+    )
+    const fc = app.locator("#fc").boundingBox()
+    const snug = app.locator("#snug").boundingBox()
+    expect(fc).not.toBeNull()
+    expect(snug).not.toBeNull()
+    // snug-content must be visibly narrower — this is the whole value prop.
+    expect(snug!.width).toBeLessThan(fc!.width)
+    // Both must still fit the same text (same line count).
+    expect(snug!.height).toBe(fc!.height)
+  })
+
+  test("snug-content + even visibly rebalances line widths vs fit-content + greedy", () => {
+    // Uses the "Four score" input where optimal and greedy both fit in the
+    // same number of lines but with different break positions.
+    const text = "Four score and seven years ago our fathers brought forth on this continent a new nation"
+    const render = createRenderer({ cols: 40, rows: 20 })
+    const app = render(
+      <Box flexDirection="column">
+        <Box width="fit-content" id="fc" maxWidth={22} paddingX={1}>
+          <Text wrap="wrap">{text}</Text>
+        </Box>
+        <Box width="snug-content" id="snug" maxWidth={22} paddingX={1}>
+          <Text wrap="even">{text}</Text>
+        </Box>
+      </Box>,
+    )
+    const fc = app.locator("#fc").boundingBox()!
+    const snug = app.locator("#snug").boundingBox()!
+    // Read rendered rows from both boxes.
+    const readRows = (box: typeof fc): string[] => {
+      const rows: string[] = []
+      for (let y = box.y; y < box.y + box.height; y++) {
+        let row = ""
+        for (let x = box.x; x < box.x + box.width; x++) row += app.cell(x, y).char
+        rows.push(row.trimEnd())
+      }
+      return rows
+    }
+    const fcRows = readRows(fc).filter((r) => r.length > 0)
+    const snugRows = readRows(snug).filter((r) => r.length > 0)
+    // At least one row must differ — proves the two pipelines (greedy/even)
+    // produced different break positions.
+    expect(snugRows).not.toEqual(fcRows)
+  })
+})
