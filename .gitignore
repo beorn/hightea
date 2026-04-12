@@ -13,6 +13,7 @@ docs/public/examples/dist/
 !docs/**/*.png
 !docs/**/*.yaml
 *.tgz
+package/
 .claude/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
