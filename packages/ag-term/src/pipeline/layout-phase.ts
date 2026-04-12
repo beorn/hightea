@@ -20,6 +20,7 @@ import {
   DESC_OVERFLOW_BIT,
 } from "@silvery/ag/epoch"
 import { getBorderSize, getPadding } from "./helpers"
+import { syncRectSignals } from "./rect-signals"
 
 const log = createLogger("silvery:layout")
 
@@ -64,7 +65,7 @@ export function layoutPhase(root: AgNode, width: number, height: number): void {
   propagateLayout(root, 0, 0, incrementalSkip)
 
   // NOTE: Subscribers are NOT notified here anymore.
-  // They are notified in executeRender AFTER scrollrectPhase completes,
+  // They are notified by the pipeline AFTER scrollrectPhase completes,
   // so useScrollRect can read the correct screen positions.
 }
 
@@ -311,7 +312,7 @@ function _checkDescendantOverflow(
 /**
  * Notify all layout subscribers of dimension changes.
  *
- * Called from executeRender AFTER scrollrectPhase completes,
+ * Called by the pipeline AFTER scrollrectPhase completes,
  * so useScrollRect can read correct screen positions.
  *
  * Notifies when EITHER boxRect, scrollRect, or screenRect changed.
@@ -330,6 +331,11 @@ export function notifyLayoutSubscribers(node: AgNode): void {
       subscriber()
     }
   }
+
+  // Sync rect values into alien-signals (for signal-based hooks).
+  // Always sync — even when no rect changed — because the signal may
+  // have been created after the last sync (lazy initialization).
+  syncRectSignals(node)
 
   // Recurse to children
   for (const child of node.children) {

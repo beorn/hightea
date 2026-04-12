@@ -219,6 +219,10 @@
         "types": "./dist/pipeline/reactive-node.d.mts",
         "import": "./dist/pipeline/reactive-node.mjs"
       },
+      "./pipeline/rect-signals": {
+        "types": "./dist/pipeline/rect-signals.d.mts",
+        "import": "./dist/pipeline/rect-signals.mjs"
+      },
       "./pipeline/render-helpers": {
         "types": "./dist/pipeline/render-helpers.d.mts",
         "import": "./dist/pipeline/render-helpers.mjs"
@@ -424,6 +428,7 @@
       "src/pipeline/output-phase.ts",
       "src/pipeline/pretext.ts",
       "src/pipeline/reactive-node.ts",
+      "src/pipeline/rect-signals.ts",
       "src/pipeline/render-helpers.ts",
       "src/pipeline/render-phase.ts",
       "src/pipeline/render-phase-adapter.ts",

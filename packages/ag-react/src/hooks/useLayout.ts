@@ -25,8 +25,10 @@
  */
 
 import { useContext, useLayoutEffect, useReducer, useRef } from "react"
+import { effect } from "@silvery/signals"
 import { NodeContext } from "../context"
 import { type AgNode, type BoxProps, type Rect, rectEqual } from "@silvery/ag/types"
+import { getRectSignals, type RectSignals } from "@silvery/ag-term/pipeline/rect-signals"
 
 export type { Rect }
 
@@ -71,12 +73,25 @@ function getInnerRect(node: AgNode): Rect {
 
 type RectCallback = (rect: Rect) => void
 
+/** Selector that picks which rect signal to subscribe to. */
+type RectSignalKey = keyof RectSignals
+
 /**
- * Reactive rect hook: subscribes to the node's layoutSubscribers and forces a
- * re-render whenever the selected rect changes. `getRect` pulls the current
- * rect from the node for each render and change check.
+ * Reactive rect hook: subscribes to a rect signal via alien-signals effect()
+ * and forces a React re-render whenever the derived rect changes.
+ *
+ * `signalKey` identifies which rect signal to track (boxRect, scrollRect, or
+ * screenRect). `getRect` derives the final value from the node (e.g.,
+ * computing inner rect from boxRect by subtracting padding/border).
+ *
+ * The effect() creates a reactive dependency on the signal — when
+ * syncRectSignals writes a new value, the effect re-runs, compares via
+ * rectEqual, and triggers forceUpdate only when the derived rect changed.
  */
-function useReactiveRect(getRect: (node: AgNode) => Rect | null | undefined): Rect {
+function useReactiveRect(
+  getRect: (node: AgNode) => Rect | null | undefined,
+  signalKey: RectSignalKey,
+): Rect {
   const node = useContext(NodeContext)
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0)
   const prevRef = useRef<Rect | null>(null)
@@ -84,18 +99,24 @@ function useReactiveRect(getRect: (node: AgNode) => Rect | null | undefined): Re
   useLayoutEffect(() => {
     if (!node) return
 
-    const handleLayoutComplete = () => {
+    const signals = getRectSignals(node)
+    const rectSignal = signals[signalKey]
+
+    // effect() subscribes to the signal — re-runs when the signal value changes.
+    // Reading rectSignal() inside effect creates the reactive dependency.
+    const dispose = effect(() => {
+      // Read the signal to establish the dependency
+      rectSignal()
+
+      // Derive the final rect from the node (may compute inner rect, etc.)
       const next = getRect(node) ?? null
       if (!rectEqual(prevRef.current, next)) {
         prevRef.current = next
         forceUpdate()
       }
-    }
+    })
 
-    node.layoutSubscribers.add(handleLayoutComplete)
-    return () => {
-      node.layoutSubscribers.delete(handleLayoutComplete)
-    }
+    return dispose
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node])
 
@@ -104,18 +125,19 @@ function useReactiveRect(getRect: (node: AgNode) => Rect | null | undefined): Re
 }
 
 /**
- * Callback rect hook: subscribes without triggering re-renders. The callback
- * is invoked after layout completes whenever the selected rect is available.
- * Uses a ref so the hook doesn't re-subscribe when the caller passes a fresh
- * function each render.
+ * Callback rect hook: subscribes via alien-signals effect() without
+ * triggering React re-renders. The callback is invoked after layout
+ * completes whenever the selected rect is available.
  *
- * `getRectRef` is wrapped in a ref to keep the subscription stable across
- * renders — the `getRect` function is typically created inline as
- * `(node) => node.scrollRect` and would otherwise invalidate the effect on
- * every render, missing layout notifications in tests that re-render the
- * same tree with a fresh registry.
+ * Uses refs to keep the subscription stable across renders — the `getRect`
+ * and `callback` functions are typically created inline and would otherwise
+ * invalidate the effect on every render.
  */
-function useCallbackRect(getRect: (node: AgNode) => Rect | null | undefined, callback: RectCallback): void {
+function useCallbackRect(
+  getRect: (node: AgNode) => Rect | null | undefined,
+  callback: RectCallback,
+  signalKey: RectSignalKey,
+): void {
   const node = useContext(NodeContext)
 
   const callbackRef = useRef(callback)
@@ -126,20 +148,19 @@ function useCallbackRect(getRect: (node: AgNode) => Rect | null | undefined, cal
   useLayoutEffect(() => {
     if (!node) return
 
-    const handleLayoutComplete = () => {
+    const signals = getRectSignals(node)
+    const rectSignal = signals[signalKey]
+
+    // effect() subscribes to the signal — re-runs when the signal value changes.
+    const dispose = effect(() => {
+      // Read the signal to establish the dependency
+      rectSignal()
+
       const rect = getRectRef.current(node)
       if (rect) callbackRef.current(rect)
-    }
+    })
 
-    node.layoutSubscribers.add(handleLayoutComplete)
-
-    // Call immediately if the rect is already computed
-    const rect = getRectRef.current(node)
-    if (rect) callbackRef.current(rect)
-
-    return () => {
-      node.layoutSubscribers.delete(handleLayoutComplete)
-    }
+    return dispose
   }, [node])
 }
 
@@ -175,9 +196,9 @@ export function useBoxRect(): Rect
 export function useBoxRect(callback: RectCallback): void
 export function useBoxRect(callback?: RectCallback): Rect | void {
   if (callback) {
-    return useCallbackRect((node) => getInnerRect(node), callback)
+    return useCallbackRect((node) => getInnerRect(node), callback, "boxRect")
   }
-  return useReactiveRect((node) => getInnerRect(node))
+  return useReactiveRect((node) => getInnerRect(node), "boxRect")
 }
 
 // ============================================================================
@@ -216,9 +237,9 @@ export function useScrollRect(): Rect
 export function useScrollRect(callback: RectCallback): void
 export function useScrollRect(callback?: RectCallback): Rect | void {
   if (callback) {
-    return useCallbackRect((node) => node.scrollRect, callback)
+    return useCallbackRect((node) => node.scrollRect, callback, "scrollRect")
   }
-  return useReactiveRect((node) => node.scrollRect)
+  return useReactiveRect((node) => node.scrollRect, "scrollRect")
 }
 
 // ============================================================================
@@ -258,7 +279,7 @@ export function useScreenRect(): Rect
 export function useScreenRect(callback: RectCallback): void
 export function useScreenRect(callback?: RectCallback): Rect | void {
   if (callback) {
-    return useCallbackRect((node) => node.screenRect, callback)
+    return useCallbackRect((node) => node.screenRect, callback, "screenRect")
   }
-  return useReactiveRect((node) => node.screenRect)
+  return useReactiveRect((node) => node.screenRect, "screenRect")
 }

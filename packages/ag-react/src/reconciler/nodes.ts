@@ -31,6 +31,8 @@ const measureLog = createLogger("silvery:measure")
 import { measureStats } from "@silvery/ag-term/pipeline/measure-stats"
 export { measureStats }
 
+import { syncRectSignals } from "@silvery/ag-term/pipeline/rect-signals"
+
 // ============================================================================
 // Node Creation
 // ============================================================================
@@ -671,6 +673,9 @@ function notifyLayoutSubscribers(node: AgNode): void {
       subscriber()
     }
   }
+
+  // Sync rect values into alien-signals (for signal-based hooks)
+  syncRectSignals(node)
 
   for (const child of node.children) {
     notifyLayoutSubscribers(child)
