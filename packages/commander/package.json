@@ -22,7 +22,9 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts",
+    "./*.ts": "./src/*.ts"
   },
   "publishConfig": {
     "access": "public",

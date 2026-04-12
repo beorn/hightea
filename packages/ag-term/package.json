@@ -16,7 +16,21 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./runtime": "./src/runtime/index.ts",
+    "./ansi": "./src/ansi/index.ts",
+    "./features": "./src/features/index.ts",
+    "./plugins": "./src/plugins/index.ts",
+    "./pipeline": "./src/pipeline/index.ts",
+    "./pipeline/*": "./src/pipeline/*.ts",
+    "./ansi/*": "./src/ansi/*.ts",
+    "./features/*": "./src/features/*.ts",
+    "./plugins/*": "./src/plugins/*.ts",
+    "./runtime/*": "./src/runtime/*.ts",
+    "./adapters/*": "./src/adapters/*.ts",
+    "./xterm/*": "./src/xterm/*.ts",
+    "./*": "./src/*.ts",
+    "./*.ts": "./src/*.ts"
   },
   "publishConfig": {
     "access": "public",
