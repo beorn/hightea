@@ -171,7 +171,7 @@ export function withAg(options?: { root?: AgNode; measurer?: import("./unicode")
         prevScrollRect: null,
         prevScreenRect: null,
         layoutChangedThisFrame: INITIAL_EPOCH,
-        layoutDirty: true,
+        layoutDirty: false,
         dirtyBits: ALL_RECONCILER_BITS,
         dirtyEpoch: getRenderEpoch(),
         layoutSubscribers: new Set(),

@@ -65,11 +65,7 @@ import { createFocusEvent, dispatchFocusEvent } from "@silvery/ag/focus-events"
 import { executeRender } from "../pipeline"
 import { createAg, type Ag } from "../ag"
 import { createPipeline } from "../measurer"
-import {
-  isTextSizingLikelySupported,
-  detectTextSizingSupport,
-  getCachedProbeResult,
-} from "../text-sizing"
+import { isTextSizingLikelySupported, detectTextSizingSupport, getCachedProbeResult } from "../text-sizing"
 import { createWidthDetector, applyWidthConfig } from "../ansi/width-detection"
 import { IncrementalRenderMismatchError } from "../scheduler"
 import { isAnyDirty } from "@silvery/ag/epoch"
@@ -1452,7 +1448,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // resets dirty rows to 0), preserving the row-level dirty markers that
     // the runtime diff needs to detect actual changes.
     // Exception: dimension changes require re-layout even without dirty flags.
-    const rootHasDirty = rootNode.layoutDirty || isAnyDirty(rootNode.dirtyBits, rootNode.dirtyEpoch)
+    const rootHasDirty = rootNode.layoutNode?.isDirty() || isAnyDirty(rootNode.dirtyBits, rootNode.dirtyEpoch)
     const dimsChanged =
       _lastTermBuffer != null && (dims.cols !== _lastTermBuffer.width || dims.rows !== _lastTermBuffer.height)
     if (!rootHasDirty && !dimsChanged && _lastTermBuffer && currentBuffer) {

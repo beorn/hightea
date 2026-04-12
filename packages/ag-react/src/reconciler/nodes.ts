@@ -59,7 +59,7 @@ export function createNode(
     prevScrollRect: null,
     prevScreenRect: null,
     layoutChangedThisFrame: epoch,
-    layoutDirty: true,
+    layoutDirty: false,
     dirtyBits: ALL_RECONCILER_BITS,
     dirtyEpoch: epoch,
     layoutSubscribers: new Set(),

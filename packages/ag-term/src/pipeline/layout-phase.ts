@@ -7,7 +7,8 @@
 import { createLogger } from "loggily"
 import { measureStats } from "./measure-stats"
 import { type BoxProps, type AgNode, type Rect, rectEqual } from "@silvery/ag/types"
-import { hasLayoutDirty, clearLayoutDirtyTracking } from "@silvery/ag/dirty-tracking"
+// Layout dirty gate: Flexily's root.layoutNode.isDirty() is the sole source
+// of truth. No silvery-side layout dirty tracking needed.
 import {
   getRenderEpoch,
   INITIAL_EPOCH,
@@ -35,16 +36,11 @@ export function layoutPhase(root: AgNode, width: number, height: number): void {
   const dimensionsChanged = prevLayout && (prevLayout.width !== width || prevLayout.height !== height)
 
   // Only recalculate if something changed (dirty nodes or dimensions).
-  // hasLayoutDirty() is O(1) via the module-level dirty set, replacing
-  // the previous O(N) hasLayoutDirtyNodes() tree walk.
-  if (!dimensionsChanged && !hasLayoutDirty()) {
+  // Flexily's root isDirty() propagates from any markDirty() call —
+  // no silvery-side tracking needed.
+  if (!dimensionsChanged && !root.layoutNode?.isDirty()) {
     return
   }
-
-  // Clear layout dirty tracking now that we've committed to running layout.
-  // This prevents stale entries from persisting if layout runs but the
-  // reconciler doesn't set new flags before the next frame.
-  clearLayoutDirtyTracking()
 
   // Run layout calculation (root always has a layoutNode)
   if (root.layoutNode) {
@@ -84,23 +80,6 @@ function countNodes(node: AgNode): number {
 }
 
 /**
- * Check if any node in the tree has layoutDirty flag set.
- * @deprecated Replaced by hasLayoutDirty() from @silvery/ag/dirty-tracking for O(1) checks.
- *   Kept for debugging — walks the full tree and logs dirty nodes.
- */
-function hasLayoutDirtyNodes(node: AgNode, path = "root"): boolean {
-  if (node.layoutDirty) {
-    const props = node.props as BoxProps
-    log.debug?.(`dirty node found: ${path} (id=${props.id ?? "?"}, type=${node.type})`)
-    return true
-  }
-  for (let i = 0; i < node.children.length; i++) {
-    if (hasLayoutDirtyNodes(node.children[i]!, `${path}[${i}]`)) return true
-  }
-  return false
-}
-
-/**
  * Propagate computed layout from Yoga nodes to SilveryNodes.
  * Sets boxRect (content-relative position) on each node.
  *
@@ -114,8 +93,8 @@ function hasLayoutDirtyNodes(node: AgNode, path = "root"): boolean {
  *   subtrees whose inputs didn't change
  * - If the parent's rect matches, all descendants' rects also match
  *   (Flexily computes absolute positions from parent dimensions)
- * - prevLayout, layoutDirty (already false), and layoutChangedThisFrame
- *   (stale epoch, won't match current) all retain correct values
+ * - prevLayout and layoutChangedThisFrame (stale epoch, won't match
+ *   current) all retain correct values
  *
  * @param node The node to process
  * @param parentX Absolute X position of parent
@@ -134,7 +113,6 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number, increme
       height: 0,
     }
     node.boxRect = rect
-    node.layoutDirty = false
     // Still recurse to children (virtual text nodes can have raw text children)
     for (const child of node.children) {
       propagateLayout(child, parentX, parentY, incrementalSkip)
@@ -153,8 +131,8 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number, increme
   // Container-level layout skip: if incremental mode is enabled and this
   // node's Flexily-computed rect matches the existing boxRect, the entire
   // subtree is unchanged. Skip propagation — all descendants retain correct
-  // prevLayout, boxRect, layoutDirty (false), and layoutChangedThisFrame
-  // (stale epoch) from the previous frame.
+  // prevLayout, boxRect, and layoutChangedThisFrame (stale epoch) from the
+  // previous frame.
   //
   // This check is O(1) per node (4 number comparisons + 1 epoch check) and
   // prunes entire subtrees, converting propagateLayout from O(N) to O(changed).
@@ -162,13 +140,12 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number, increme
   // the end of the previous render pass, so skipping is safe.
   //
   // subtreeDirtyEpoch guard: even when this node's rect is unchanged, a
-  // descendant may have layoutDirty (e.g., new child mounted via appendChild).
+  // descendant may need processing (e.g., new child mounted via appendChild).
   // The reconciler's markSubtreeDirty propagates the current epoch upward,
   // so checking subtreeDirtyEpoch ensures we don't skip over dirty descendants.
   if (
     incrementalSkip &&
     node.boxRect &&
-    !node.layoutDirty &&
     !isDirty(node.dirtyBits, node.dirtyEpoch, SUBTREE_BIT) &&
     !isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT)
   ) {
@@ -187,9 +164,6 @@ function propagateLayout(node: AgNode, parentX: number, parentY: number, increme
   // syncPrevLayout already set prevLayout = boxRect after the previous frame)
   node.prevLayout = node.boxRect
   node.boxRect = rect
-
-  // Clear layout dirty flag
-  node.layoutDirty = false
 
   // Set authoritative "layout changed this frame" epoch stamp.
   // Unlike !rectEqual(prevLayout, boxRect) which becomes stale when

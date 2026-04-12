@@ -126,14 +126,10 @@ export { getAncestorPath, pointInRect } from "./tree-utils"
 
 // Dirty Tracking
 export {
-  trackLayoutDirty,
   trackContentDirty,
   trackScrollDirty,
-  hasLayoutDirty,
   hasContentDirty,
   hasScrollDirty,
-  getLayoutDirtyNodes,
   getContentDirtyNodes,
   clearDirtyTracking,
-  clearLayoutDirtyTracking,
 } from "./dirty-tracking"

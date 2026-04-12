@@ -239,7 +239,7 @@ function createMockApp(onPress?: (key: string) => void) {
       prevScrollRect: null,
       prevScreenRect: null,
       layoutChangedThisFrame: false,
-      layoutDirty: true,
+      layoutDirty: false,
       contentDirty: true,
       stylePropsDirty: true,
       bgDirty: true,

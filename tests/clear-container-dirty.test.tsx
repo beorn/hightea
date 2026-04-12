@@ -76,7 +76,7 @@ describe("clearContainer dirty invalidation", () => {
     const container: Container = { root, onRender: () => {} }
     hostConfig.clearContainer(container)
 
-    expect(root.layoutDirty).toBe(true)
+    expect(root.layoutNode!.isDirty()).toBe(true)
     expect(markDirtySpy).toHaveBeenCalled()
   })
 
@@ -112,7 +112,7 @@ describe("clearContainer dirty invalidation", () => {
 
     expect(isDirty(root.dirtyBits, root.dirtyEpoch, CHILDREN_BIT)).toBe(true)
     expect(isDirty(root.dirtyBits, root.dirtyEpoch, CONTENT_BIT)).toBe(true)
-    expect(root.layoutDirty).toBe(true)
+    expect(root.layoutNode!.isDirty()).toBe(true)
     expect(isDirty(root.dirtyBits, root.dirtyEpoch, SUBTREE_BIT)).toBe(true)
   })
 

@@ -5,22 +5,16 @@
  * The reconciler adds nodes when dirty flags are set; pipeline phases query
  * the set to skip unnecessary work; the set is cleared after each render pass.
  *
- * Three categories tracked separately:
- * - layoutDirtyNodes: nodes with layoutDirty flag (need Yoga recalculation)
+ * Two categories tracked:
  * - contentDirtyNodes: nodes with any content/style dirty flag (need re-render)
  * - styleOnlyDirtyNodes: nodes where ONLY style changed (no content, no layout,
  *   no children) — eligible for the style-only fast path
  *
- * This replaces O(N) tree walks like hasLayoutDirtyNodes() with O(1) set checks.
+ * Layout dirty tracking is NOT here — Flexily owns it via isDirty() propagation.
+ * The layout gate in ag.ts / layout-phase.ts checks root.layoutNode.isDirty().
  */
 
 import type { AgNode } from "./types"
-
-/**
- * Nodes with layoutDirty=true. Replaces hasLayoutDirtyNodes() tree walk.
- * Written by reconciler (host-config.ts), read by layoutPhase.
- */
-const layoutDirtyNodes: Set<AgNode> = new Set()
 
 /**
  * Nodes with any content/style dirty flag. Written by reconciler,
@@ -40,10 +34,9 @@ const contentDirtyNodes: Set<AgNode> = new Set()
 const styleOnlyDirtyNodes: Set<AgNode> = new Set()
 
 /**
- * Nodes where scrollTo/scrollOffset changed. These don't set layoutDirty
- * (scroll offset doesn't affect Yoga layout dimensions), but the scroll,
- * sticky, scrollRect, and notify phases must still run to update visible
- * children positions.
+ * Nodes where scrollTo/scrollOffset changed. These don't affect Flexily layout
+ * dimensions, but the scroll, sticky, scrollRect, and notify phases must still
+ * run to update visible children positions.
  *
  * Written by reconciler (host-config.ts commitUpdate), read by ag.ts
  * layout-on-demand gate.
@@ -54,11 +47,6 @@ const scrollDirtyNodes: Set<AgNode> = new Set()
 // Write API (reconciler)
 // ---------------------------------------------------------------------------
 
-/** Mark a node as layout-dirty. Called when layoutDirty is set to true. */
-export function trackLayoutDirty(node: AgNode): void {
-  layoutDirtyNodes.add(node)
-}
-
 /** Mark a node as content-dirty. Called when content/style flags are set. */
 export function trackContentDirty(node: AgNode): void {
   contentDirtyNodes.add(node)
@@ -67,8 +55,8 @@ export function trackContentDirty(node: AgNode): void {
 /**
  * Mark a node as style-only dirty. Called when commitUpdate sees
  * contentChanged="style" AND layoutChanged=false.
- * If a node is later marked with contentDirty or layoutDirty, the
- * render phase ignores the style-only flag (full path takes precedence).
+ * If a node is later marked with contentDirty, the render phase ignores
+ * the style-only flag (full path takes precedence).
  */
 export function trackStyleOnlyDirty(node: AgNode): void {
   styleOnlyDirtyNodes.add(node)
@@ -82,11 +70,6 @@ export function trackScrollDirty(node: AgNode): void {
 // ---------------------------------------------------------------------------
 // Read API (pipeline phases)
 // ---------------------------------------------------------------------------
-
-/** O(1) check: are there any layout-dirty nodes? */
-export function hasLayoutDirty(): boolean {
-  return layoutDirtyNodes.size > 0
-}
 
 /** O(1) check: are there any content-dirty nodes? */
 export function hasContentDirty(): boolean {
@@ -103,11 +86,6 @@ export function isStyleOnlyDirty(node: AgNode): boolean {
   return styleOnlyDirtyNodes.has(node)
 }
 
-/** Get the set of layout-dirty nodes (for iteration). */
-export function getLayoutDirtyNodes(): ReadonlySet<AgNode> {
-  return layoutDirtyNodes
-}
-
 /** Get the set of content-dirty nodes (for iteration). */
 export function getContentDirtyNodes(): ReadonlySet<AgNode> {
   return contentDirtyNodes
@@ -119,13 +97,7 @@ export function getContentDirtyNodes(): ReadonlySet<AgNode> {
 
 /** Clear all dirty tracking. Called after each render pass completes. */
 export function clearDirtyTracking(): void {
-  layoutDirtyNodes.clear()
   contentDirtyNodes.clear()
   styleOnlyDirtyNodes.clear()
   scrollDirtyNodes.clear()
-}
-
-/** Clear only layout-dirty tracking. Called after layout phase. */
-export function clearLayoutDirtyTracking(): void {
-  layoutDirtyNodes.clear()
 }

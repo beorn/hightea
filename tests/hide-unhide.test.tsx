@@ -247,31 +247,28 @@ describe("hide/unhide instances (Suspense)", () => {
     expect(isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT)).toBe(true)
   })
 
-  test("hideInstance sets layoutDirty and marks layout node dirty", () => {
+  test("hideInstance marks Flexily layout node dirty", () => {
     // When a node is hidden, its measured content changes (collectNodeTextContent
     // skips hidden children). The layout engine must recalculate dimensions.
-    // Without layoutDirty + layoutNode.markDirty(), layout uses stale cache.
+    // layoutNode.markDirty() is the sole mechanism — no silvery-side layoutDirty.
     const node = createNode("silvery-box", {})
     node.dirtyBits = 0
     node.dirtyEpoch = INITIAL_EPOCH
-    node.layoutDirty = false
 
     hostConfig.hideInstance(node)
 
-    expect(node.layoutDirty).toBe(true)
-    // layoutNode.markDirty() should have been called to invalidate the layout cache
+    expect(node.layoutNode!.isDirty()).toBe(true)
   })
 
-  test("unhideInstance sets layoutDirty and marks layout node dirty", () => {
+  test("unhideInstance marks Flexily layout node dirty", () => {
     const node = createNode("silvery-box", {})
     node.hidden = true
     node.dirtyBits = 0
     node.dirtyEpoch = INITIAL_EPOCH
-    node.layoutDirty = false
 
     hostConfig.unhideInstance(node, {})
 
-    expect(node.layoutDirty).toBe(true)
+    expect(node.layoutNode!.isDirty()).toBe(true)
     // layoutNode.markDirty() should have been called to invalidate the layout cache
   })
 
@@ -296,8 +293,8 @@ describe("hide/unhide instances (Suspense)", () => {
     expect(isDirty(textNode.dirtyBits, textNode.dirtyEpoch, STYLE_PROPS_BIT)).toBe(true)
     // Parent (nearest layout ancestor) should be marked dirty
     expect(isDirty(parent.dirtyBits, parent.dirtyEpoch, CONTENT_BIT)).toBe(true)
-    expect(parent.layoutDirty).toBe(true)
     // parent's layoutNode.markDirty() should have been called via markLayoutAncestorDirty
+    expect(parent.layoutNode!.isDirty()).toBe(true)
   })
 
   test("unhideTextInstance sets stylePropsDirty and propagates layout dirty to ancestor", () => {
@@ -318,8 +315,8 @@ describe("hide/unhide instances (Suspense)", () => {
     expect(isDirty(textNode.dirtyBits, textNode.dirtyEpoch, CONTENT_BIT)).toBe(true)
     expect(isDirty(textNode.dirtyBits, textNode.dirtyEpoch, STYLE_PROPS_BIT)).toBe(true)
     expect(isDirty(parent.dirtyBits, parent.dirtyEpoch, CONTENT_BIT)).toBe(true)
-    expect(parent.layoutDirty).toBe(true)
     // parent's layoutNode.markDirty() should have been called via markLayoutAncestorDirty
+    expect(parent.layoutNode!.isDirty()).toBe(true)
   })
 
   test("hidden node with backgroundColor does not render its bg", () => {

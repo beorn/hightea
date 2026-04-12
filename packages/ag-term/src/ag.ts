@@ -34,7 +34,7 @@ import {
   detectPipelineFeatures,
 } from "./pipeline/layout-phase"
 import { renderPhase, clearBgConflictWarnings } from "./pipeline/render-phase"
-import { clearDirtyTracking, hasLayoutDirty, hasScrollDirty } from "@silvery/ag/dirty-tracking"
+import { clearDirtyTracking, hasScrollDirty } from "@silvery/ag/dirty-tracking"
 import type { PipelineContext } from "./pipeline/types"
 
 const log = createLogger("silvery:render")
@@ -137,16 +137,16 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
     rows: number,
     opts?: AgLayoutOptions,
   ): { tMeasure: number; tLayout: number; tScroll: number; tScrollRect: number; tNotify: number } {
-    // Layout-on-demand gate: skip ALL layout phases when no node has layoutDirty,
-    // no scroll offset changed, and dimensions haven't changed. This eliminates
-    // ~38% of per-frame pipeline cost for cursor/style-only changes.
-    // First render always has layoutDirty (reconciler sets it on node creation).
-    // scrollTo/scrollOffset changes don't set layoutDirty (they don't affect Yoga
+    // Layout-on-demand gate: skip ALL layout phases when Flexily reports
+    // no dirty nodes, no scroll offset changed, and dimensions haven't changed.
+    // This eliminates ~38% of per-frame pipeline cost for cursor/style-only changes.
+    // First render always has isDirty (Flexily nodes start dirty on creation).
+    // scrollTo/scrollOffset changes don't affect Flexily (they don't change
     // dimensions) but DO need scroll/sticky/scrollRect/notify phases to run.
     const prevRootLayout = root.boxRect
     const dimensionsChanged = prevRootLayout && (prevRootLayout.width !== cols || prevRootLayout.height !== rows)
-    if (!dimensionsChanged && !hasLayoutDirty() && !hasScrollDirty()) {
-      log.debug?.("layout: skipped (no layoutDirty, no scrollDirty, dimensions unchanged)")
+    if (!dimensionsChanged && !root.layoutNode?.isDirty() && !hasScrollDirty()) {
+      log.debug?.("layout: skipped (Flexily clean, no scrollDirty, dimensions unchanged)")
       return { tMeasure: 0, tLayout: 0, tScroll: 0, tScrollRect: 0, tNotify: 0 }
     }
 
@@ -255,8 +255,8 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
     }
 
     // Clear the module-level dirty tracking after each render pass.
-    // Content dirty nodes were processed by renderPhase; layout dirty was
-    // already cleared by layoutPhase (clearLayoutDirtyTracking).
+    // Content dirty nodes were processed by renderPhase; layout dirty is
+    // managed by Flexily internally (isDirty cleared after calculateLayout).
     clearDirtyTracking()
 
     // Bench instrumentation: accumulate content-phase timing.
@@ -290,7 +290,7 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
       prevScrollRect: null,
       prevScreenRect: null,
       layoutChangedThisFrame: INITIAL_EPOCH,
-      layoutDirty: true,
+      layoutDirty: false,
       dirtyBits: ALL_RECONCILER_BITS,
       dirtyEpoch: getRenderEpoch(),
       layoutSubscribers: new Set(),

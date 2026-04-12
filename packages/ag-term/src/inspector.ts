@@ -119,7 +119,7 @@ export function inspectTree(rootNode: AgNode, options?: { depth?: number; showLa
 
     // Dirty flags
     const dirtyFlags: string[] = []
-    if (node.layoutDirty) dirtyFlags.push("layout")
+    if (node.layoutNode?.isDirty()) dirtyFlags.push("layout")
     if (isDirty(node.dirtyBits, node.dirtyEpoch, CONTENT_BIT)) dirtyFlags.push("content")
     if (isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT)) dirtyFlags.push("paint")
     if (isDirty(node.dirtyBits, node.dirtyEpoch, BG_BIT)) dirtyFlags.push("bg")

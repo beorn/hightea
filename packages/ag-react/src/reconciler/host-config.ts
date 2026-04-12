@@ -9,7 +9,7 @@
 import { createContext } from "react"
 import { DefaultEventPriority, DiscreteEventPriority, NoEventPriority } from "react-reconciler/constants.js"
 import type { BoxProps, AgNode, AgNodeType, TextProps } from "@silvery/ag/types"
-import { trackLayoutDirty, trackContentDirty, trackStyleOnlyDirty, trackScrollDirty } from "@silvery/ag/dirty-tracking"
+import { trackContentDirty, trackStyleOnlyDirty, trackScrollDirty } from "@silvery/ag/dirty-tracking"
 import {
   getRenderEpoch,
   INITIAL_EPOCH,
@@ -103,9 +103,7 @@ function markLayoutAncestorDirty(node: AgNode): void {
     } else {
       ancestor.dirtyBits |= CONTENT_BIT | STYLE_PROPS_BIT
     }
-    ancestor.layoutDirty = true
     ancestor.layoutNode.markDirty()
-    trackLayoutDirty(ancestor)
     trackContentDirty(ancestor)
   }
 }
@@ -310,9 +308,7 @@ export const hostConfig = {
       parentInstance.dirtyBits = parentInstance.dirtyEpoch !== epoch ? bits : parentInstance.dirtyBits | bits
       parentInstance.dirtyEpoch = epoch
     }
-    parentInstance.layoutDirty = true
     parentInstance.layoutNode?.markDirty()
-    trackLayoutDirty(parentInstance)
     trackContentDirty(parentInstance)
     markLayoutAncestorDirty(parentInstance)
     markSubtreeDirty(parentInstance)
@@ -349,9 +345,7 @@ export const hostConfig = {
       container.root.dirtyBits = container.root.dirtyEpoch !== epoch ? bits : container.root.dirtyBits | bits
       container.root.dirtyEpoch = epoch
     }
-    container.root.layoutDirty = true
     container.root.layoutNode?.markDirty()
-    trackLayoutDirty(container.root)
     trackContentDirty(container.root)
     markSubtreeDirty(container.root)
   },
@@ -373,9 +367,7 @@ export const hostConfig = {
         parentInstance.dirtyBits = parentInstance.dirtyEpoch !== epoch ? bits : parentInstance.dirtyBits | bits
         parentInstance.dirtyEpoch = epoch
       }
-      parentInstance.layoutDirty = true
       parentInstance.layoutNode?.markDirty()
-      trackLayoutDirty(parentInstance)
       trackContentDirty(parentInstance)
       markLayoutAncestorDirty(parentInstance)
       markSubtreeDirty(parentInstance)
@@ -399,9 +391,7 @@ export const hostConfig = {
         container.root.dirtyBits = container.root.dirtyEpoch !== epoch ? bits : container.root.dirtyBits | bits
         container.root.dirtyEpoch = epoch
       }
-      container.root.layoutDirty = true
       container.root.layoutNode?.markDirty()
-      trackLayoutDirty(container.root)
       trackContentDirty(container.root)
       markSubtreeDirty(container.root)
     }
@@ -432,9 +422,7 @@ export const hostConfig = {
         parentInstance.dirtyBits = parentInstance.dirtyEpoch !== epoch ? bits : parentInstance.dirtyBits | bits
         parentInstance.dirtyEpoch = epoch
       }
-      parentInstance.layoutDirty = true
       parentInstance.layoutNode?.markDirty()
-      trackLayoutDirty(parentInstance)
       trackContentDirty(parentInstance)
       markLayoutAncestorDirty(parentInstance)
       markSubtreeDirty(parentInstance)
@@ -464,9 +452,7 @@ export const hostConfig = {
         container.root.dirtyBits = container.root.dirtyEpoch !== epoch ? bits : container.root.dirtyBits | bits
         container.root.dirtyEpoch = epoch
       }
-      container.root.layoutDirty = true
       container.root.layoutNode?.markDirty()
-      trackLayoutDirty(container.root)
       trackContentDirty(container.root)
       markSubtreeDirty(container.root)
     }
@@ -520,8 +506,6 @@ export const hostConfig = {
         applyBoxProps(instance.layoutNode, newProps as BoxProps, oldProps as BoxProps)
         instance.layoutNode.markDirty()
       }
-      instance.layoutDirty = true
-      trackLayoutDirty(instance)
     }
     if (contentChanged) {
       const epoch = getRenderEpoch()
@@ -608,7 +592,7 @@ export const hostConfig = {
     if (scrollToChanged || scrollOffsetChanged) {
       trackScrollDirty(instance)
     }
-    if (instance.layoutDirty || contentChanged || scrollToChanged || scrollOffsetChanged) {
+    if (layoutChanged || contentChanged || scrollToChanged || scrollOffsetChanged) {
       markLayoutAncestorDirty(instance)
       markSubtreeDirty(instance)
     }
@@ -672,9 +656,7 @@ export const hostConfig = {
       container.root.dirtyBits = container.root.dirtyEpoch !== epoch ? bits : container.root.dirtyBits | bits
       container.root.dirtyEpoch = epoch
     }
-    container.root.layoutDirty = true
     container.root.layoutNode?.markDirty()
-    trackLayoutDirty(container.root)
     trackContentDirty(container.root)
     markSubtreeDirty(container.root)
   },
@@ -786,9 +768,9 @@ export const hostConfig = {
    * Called when React needs to hide content while showing a fallback.
    *
    * Must set stylePropsDirty (render phase fast-path skip includes stylePropsDirty check),
-   * layoutDirty + layoutNode.markDirty() (hiding changes measured content — the
-   * layout engine must recalculate dimensions), and markLayoutAncestorDirty
-   * (virtual text nodes without layoutNode need the nearest layout ancestor dirty).
+   * layoutNode.markDirty() (hiding changes measured content — the layout engine
+   * must recalculate dimensions), and markLayoutAncestorDirty (virtual text nodes
+   * without layoutNode need the nearest layout ancestor dirty).
    */
   hideInstance(instance: AgNode) {
     instance.hidden = true
@@ -796,11 +778,9 @@ export const hostConfig = {
     const bits = CONTENT_BIT | STYLE_PROPS_BIT
     instance.dirtyBits = instance.dirtyEpoch !== epoch ? bits : instance.dirtyBits | bits
     instance.dirtyEpoch = epoch
-    instance.layoutDirty = true
     if (instance.layoutNode) {
       instance.layoutNode.markDirty()
     }
-    trackLayoutDirty(instance)
     trackContentDirty(instance)
     // Mark parent dirty to trigger re-render
     if (instance.parent) {
@@ -829,11 +809,9 @@ export const hostConfig = {
     const bits = CONTENT_BIT | STYLE_PROPS_BIT
     instance.dirtyBits = instance.dirtyEpoch !== epoch ? bits : instance.dirtyBits | bits
     instance.dirtyEpoch = epoch
-    instance.layoutDirty = true
     if (instance.layoutNode) {
       instance.layoutNode.markDirty()
     }
-    trackLayoutDirty(instance)
     trackContentDirty(instance)
     // Mark parent dirty to trigger re-render
     if (instance.parent) {
