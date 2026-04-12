@@ -18,6 +18,13 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./ansi": "./src/ansi/index.ts",
+    "./dom": "./src/dom/index.ts",
+    "./pipeline": "./src/pipeline/index.ts",
+    "./plugins": "./src/plugins/index.ts",
+    "./runtime": "./src/runtime/index.ts",
+    "./toolbelt": "./src/toolbelt/index.ts",
+    "./xterm": "./src/xterm/index.ts",
     "./*": "./src/*.ts"
   },
   "publishConfig": {

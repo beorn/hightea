@@ -18,8 +18,11 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*.ts",
-    "./*.tsx": "./src/*.tsx"
+    "./core": "./src/core/index.ts",
+    "./store": "./src/store/index.ts",
+    "./streams": "./src/streams/index.ts",
+    "./tea": "./src/tea/index.ts",
+    "./*": "./src/*.ts"
   },
   "publishConfig": {
     "access": "public",

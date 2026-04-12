@@ -19,8 +19,22 @@
   "exports": {
     ".": "./src/index.ts",
     "./reconciler": "./src/reconciler/index.ts",
-    "./*": "./src/*.ts",
-    "./*.tsx": "./src/*.tsx"
+    "./ui/canvas": "./src/ui/canvas/index.ts",
+    "./ui/cli": "./src/ui/cli/index.ts",
+    "./ui/progress": "./src/ui/progress/index.ts",
+    "./components/Box": "./src/components/Box.tsx",
+    "./components/Newline": "./src/components/Newline.tsx",
+    "./components/Spacer": "./src/components/Spacer.tsx",
+    "./components/Static": "./src/components/Static.tsx",
+    "./components/Text": "./src/components/Text.tsx",
+    "./components/Transform": "./src/components/Transform.tsx",
+    "./error-boundary": "./src/error-boundary.tsx",
+    "./render": "./src/render.tsx",
+    "./render-string": "./src/render-string.tsx",
+    "./ui/components/Divider": "./src/ui/components/Divider.tsx",
+    "./ui/components/Spinner": "./src/ui/components/Spinner.tsx",
+    "./ui/components/TextInput": "./src/ui/components/TextInput.tsx",
+    "./*": "./src/*.ts"
   },
   "publishConfig": {
     "access": "public",

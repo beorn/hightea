@@ -9,7 +9,7 @@
 
 import React from "react"
 import { Box, Text, H1, H2, Small, Muted, Strong, Kbd, HR } from "silvery"
-import { createApp } from "@silvery/create/create-app"
+import { createApp } from "@silvery/create"
 import { pipe, withReact, withTerminal, withDomEvents } from "@silvery/create/plugins"
 import { ExampleBanner, type ExampleMeta } from "../_banner.js"
 import { useSelection } from "../../packages/ag-react/src/hooks/useSelection"

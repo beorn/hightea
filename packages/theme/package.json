@@ -18,8 +18,9 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*.ts",
-    "./*.tsx": "./src/*.tsx"
+    "./palettes": "./src/palettes/index.ts",
+    "./ThemeContext": "./src/ThemeContext.tsx",
+    "./*": "./src/*.ts"
   },
   "publishConfig": {
     "access": "public",
