@@ -4,6 +4,9 @@
  * React hooks for building terminal UI applications.
  */
 
+// Node access (reactive signals)
+export { useAgNode, type AgNodeHandle } from "./useAgNode"
+
 // Layout
 export { useBoxRect, useScrollRect, useScreenRect, type Rect } from "./useLayout"
 
