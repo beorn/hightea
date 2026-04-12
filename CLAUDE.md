@@ -484,9 +484,9 @@ These are workspace packages for development. Users do not import from them dire
 
 | Package             | What                                       |
 | ------------------- | ------------------------------------------ |
-| `@silvery/ag`       | Core types (AgNode, BoxProps, keys, focus) |
-| `@silvery/ag-react` | React reconciler, hooks, and UI components |
-| `@silvery/ag-term`  | Terminal runtime, ANSI output, pipeline    |
+| `@silvery/ag`       | Core types, rect-signals, node-signals (framework-agnostic reactive layer) |
+| `@silvery/ag-react` | React reconciler, hooks (useSignal, useAgNode, useBoxRect), UI components |
+| `@silvery/ag-term`  | Terminal runtime, ANSI output, pipeline, syncRectSignals bridge |
 | `@silvery/theme`    | Theme tokens, 38 palettes, theme CLI       |
 | `@silvery/ink`      | Ink/Chalk compatibility layers             |
 
@@ -505,6 +505,11 @@ These are workspace packages for development. Users do not import from them dire
 
 | File                                            | What                                                 |
 | ----------------------------------------------- | ---------------------------------------------------- |
+| `packages/ag/src/rect-signals.ts`               | Layout rect signals (boxRect, scrollRect, screenRect) — Layer 1 |
+| `packages/ag/src/node-signals.ts`               | Node state signals (textContent, focused) — Layer 1  |
+| `packages/ag-react/src/hooks/useSignal.ts`      | alien-signals → React bridge — Layer 2               |
+| `packages/ag-react/src/hooks/useLayout.ts`      | useBoxRect, useScrollRect, useScreenRect — Layer 3   |
+| `packages/ag-react/src/hooks/useAgNode.ts`      | Raw AgNode + signals access for components           |
 | `packages/ag/src/text-frame.ts`                 | TextFrame + FrameCell type definitions               |
 | `packages/ag-term/src/ansi/term.ts`             | Term type and createTerm() — the central abstraction |
 | `packages/ag-term/src/runtime/term-provider.ts` | Terminal as Provider (state, events, input parsing)  |

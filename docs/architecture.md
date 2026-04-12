@@ -21,6 +21,25 @@ React tree → AgNode tree → Measure → Layout → Render → ANSI output
 
 The invariant: incremental output must match a fresh (non-incremental) render. Verified with `SILVERY_STRICT=1`.
 
+## Reactive Architecture
+
+Layout and reactivity are handled by two separate systems with a one-way sync bridge between them.
+
+**Flexily** (imperative, engine-internal) owns layout dirty tracking. `markDirty()` propagates up to the root; `calculateLayout()` checks `root.isDirty()`. Flexily is a standalone flexbox engine with zero dependencies — it has no knowledge of signals.
+
+**@silvery/ag** (framework-agnostic signals) exposes layout results as reactive signals. After Flexily completes layout, `syncRectSignals()` copies node rects into writable signals (`boxRect`, `scrollRect`, `screenRect`). Similarly, `syncTextContentSignal()` and `syncFocusedSignal()` bridge reconciler and focus mutations into signals. Signals are WeakMap-backed and lazily created — nodes without subscribers pay no cost.
+
+**@silvery/ag-react** bridges signals to React. `useSignal(signal)` subscribes to any alien-signal and triggers re-renders on change. Semantic hooks (`useBoxRect()`, `useScreenRect()`, `useScrollRect()`) use signals internally but expose a simple `Rect` return value with optional callback form for zero-rerender hot paths.
+
+```
+Layer 0: alien-signals (signal, computed, effect)       — pure reactive primitives
+Layer 1: getRectSignals, getNodeSignals                 — @silvery/ag, framework-agnostic
+Layer 2: useSignal(signal)                              — @silvery/ag-react, React bridge
+Layer 3: useBoxRect, useScreenRect, useAgNode           — semantic convenience hooks
+```
+
+The boundary is intentional: Flexily's `isDirty()` propagation is reliable and fast. Wrapping it in signals would create a parallel dirty-tracking system — signals are for *consumers* of layout, not for the layout engine itself. This also keeps Flexily portable: signals in `@silvery/ag` work for React, Solid, canvas, DOM, or any future adapter.
+
 ## Key Abstractions
 
 **Term** — The terminal. Wraps a backend (Node.js stdin/stdout, xterm.js, headless) and provides styling, capabilities, dimensions, I/O, and events. Created via `createTerm()`, passed to `render()` or `run()`. Everything flows through Term.
