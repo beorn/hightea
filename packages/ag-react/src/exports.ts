@@ -292,6 +292,29 @@ export type { SixelImageData } from "./ui/image/index"
 export { useBoxRect, useScrollRect, useScreenRect } from "./hooks/useLayout"
 
 /**
+ * Access the current component's AgNode and its reactive rect signals.
+ *
+ * Returns `{ node, signals }` where `signals` contains `boxRect`, `scrollRect`,
+ * and `screenRect` as alien-signals writable functions. Call `signal()` to read
+ * the current value. Use inside an `effect()` from `@silvery/signals` for
+ * reactive subscriptions.
+ *
+ * Returns `null` if called outside a silvery component tree.
+ *
+ * @example
+ * ```tsx
+ * function DebugOverlay() {
+ *   const handle = useAgNode()
+ *   if (!handle) return null
+ *   const rect = handle.signals.boxRect()
+ *   return <Text>{`Position: ${rect?.x},${rect?.y}`}</Text>
+ * }
+ * ```
+ */
+export { useAgNode } from "./hooks/useAgNode"
+export type { AgNodeHandle } from "./hooks/useAgNode"
+
+/**
  * Ink-compatible box metrics hook.
  *
  * Returns `{ width, height, left, top, hasMeasured }` for the nearest silvery

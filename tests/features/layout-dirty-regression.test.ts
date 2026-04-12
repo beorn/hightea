@@ -28,12 +28,7 @@
 import { test, expect, describe, beforeAll } from "vitest"
 import { hostConfig } from "@silvery/ag-react/reconciler/host-config"
 import { createNode } from "@silvery/ag-react/reconciler/nodes"
-import {
-  isDirty,
-  SUBTREE_BIT,
-  CHILDREN_BIT,
-  advanceRenderEpoch,
-} from "@silvery/ag/epoch"
+import { isDirty, SUBTREE_BIT, CHILDREN_BIT, advanceRenderEpoch } from "@silvery/ag/epoch"
 import { ensureDefaultLayoutEngine } from "@silvery/ag-term/layout-engine"
 
 beforeAll(async () => {

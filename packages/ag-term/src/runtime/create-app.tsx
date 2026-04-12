@@ -1496,7 +1496,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     if (STRICT_MODE && wasIncremental) {
       const doFreshRender = () => {
         const freshAg = createAg(rootNode, { measurer: pipelineConfig?.measurer })
-        freshAg.layout({ cols: dims.cols, rows: dims.rows }, { skipLayoutNotifications: true, skipScrollStateUpdates: true })
+        freshAg.layout(
+          { cols: dims.cols, rows: dims.rows },
+          { skipLayoutNotifications: true, skipScrollStateUpdates: true },
+        )
         return freshAg.render()
       }
       const measurer = pipelineConfig?.measurer

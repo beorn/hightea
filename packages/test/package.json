@@ -2,9 +2,9 @@
   "name": "@silvery/test",
   "version": "0.17.3",
   "private": true,
-  "description": "Testing utilities for silvery \u2014 virtual renderer, locators, assertions",
+  "description": "Testing utilities for silvery — virtual renderer, locators, assertions",
   "license": "MIT",
-  "author": "Bj\u00f8rn Stabell <bjorn@stabell.org>",
+  "author": "Bjørn Stabell <bjorn@stabell.org>",
   "repository": {
     "type": "git",
     "url": "https://github.com/beorn/silvery.git",

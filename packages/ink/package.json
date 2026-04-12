@@ -4,7 +4,7 @@
   "private": true,
   "description": "Ink and Chalk API compatibility layer (not published separately)",
   "license": "MIT",
-  "author": "Bj\u00f8rn Stabell <bjorn@stabell.org>",
+  "author": "Bjørn Stabell <bjorn@stabell.org>",
   "files": [
     "dist"
   ],

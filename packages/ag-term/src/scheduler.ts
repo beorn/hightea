@@ -491,8 +491,14 @@ export class RenderScheduler {
         const outputFn = this.pipelineConfig?.outputPhaseFn ?? outputPhase
         let ansiOutput: string
         try {
-          ansiOutput = outputFn(this.prevBuffer, buffer, this.mode, scrollbackOffset,
-            this.mode === "inline" ? (this.stdout.rows ?? 24) : undefined, inlineCursor)
+          ansiOutput = outputFn(
+            this.prevBuffer,
+            buffer,
+            this.mode,
+            scrollbackOffset,
+            this.mode === "inline" ? (this.stdout.rows ?? 24) : undefined,
+            inlineCursor,
+          )
         } catch (e) {
           if (e instanceof Error) {
             ;(e as any).__silvery_buffer = buffer
