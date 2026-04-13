@@ -29,8 +29,8 @@ React 18 + 19 with concurrent mode, Suspense, and flexbox layout. [Drop-in Ink c
 
 ### Shiny new stuff
 
-- **[Best-in-class performance](https://silvery.dev/guide/silvery-vs-ink#performance-size)** — **3–27× faster** (typically 15–20×) and **10–20× less terminal output** vs Ink 7.0 with its new incremental rendering, in mounted rerender benchmarks. Cell-level dirty tracking, only changed cells emit. Per-node skip for unchanged subtrees. Works in inline mode with native scrollback, not just fullscreen
-- **Pure TypeScript, zero native deps** — no WASM, no build steps. [Layout via Flexily](https://silvery.dev/guide/layout-engine) (or Yoga). Works on Alpine, CI, Docker, everywhere
+- **[Best-in-class performance](https://silvery.dev/guide/silvery-vs-ink#performance-size)** — **3–27× faster** (typically 15–20×) and **10–20× less terminal output** vs Ink 7.0 with its new incremental rendering, in mounted rerender benchmarks. Cell-level dirty tracking, only changed cells emit. Per-node skip for unchanged subtrees. Works in inline mode with native scrollback, not just fullscreen.
+- **Pure TypeScript, zero native deps** — no WASM, no build steps. [Layout via Flexily](https://silvery.dev/guide/layout-engine) (or Yoga). Works on Alpine, CI, Docker, everywhere.
 - **[Web-like responsive layout](https://silvery.dev/guide/silvery-vs-ink#responsive-layout)** — `useBoxRect()` returns actual dimensions during render. No post-render measurement, no two-pass layout cycle. Enables:
   - [Scroll containers](https://silvery.dev/guide/scrolling) — `overflow="scroll"` with virtualization
   - [Sticky positioning](https://silvery.dev/guide/layout-coordinates) — `position="sticky"` for headers and footers
@@ -45,7 +45,7 @@ React 18 + 19 with concurrent mode, Suspense, and flexbox layout. [Drop-in Ink c
   - [Find](https://silvery.dev/guide/find) — `Ctrl+F` with match highlighting and `n`/`N` navigation
   - [Copy-mode](https://silvery.dev/guide/clipboard) — `Esc, v` for vim-style keyboard selection and yanking
   - [Drag-and-drop](https://silvery.dev/guide/event-handling) — mouse drag with hit testing
-- **[Rich component library](https://silvery.dev/guides/components)** — 45+ components: TextInput, SelectList, ListView, Table, TreeView, Tabs, CommandPalette, ModalDialog, Toast, and more. Every component automatically participates in focus, mouse, and keybindings (readline, vim) — no wiring needed. [38 theme palettes](https://silvery.dev/guide/styling) with semantic tokens (`$primary`, `$error`) and auto-detected terminal colors
+- **[Rich component library](https://silvery.dev/guides/components)** — 45+ components: TextInput, SelectList, ListView, Table, TreeView, Tabs, CommandPalette, ModalDialog, Toast, and more. Every component automatically participates in focus, mouse, and keybindings (readline, vim) — no wiring needed. [38 theme palettes](https://silvery.dev/guide/styling) with semantic tokens (`$primary`, `$error`) and auto-detected terminal colors.
 - **[Playwright-style testing](https://silvery.dev/guide/testing)** — 3,000+ tests. Full access to terminal internals (scrollback buffer, cursor position, cell styles, window dimensions):
   - `createRenderer` — fast unit tests with auto-refreshing CSS locators, cell-level color assertions, frame-by-frame inspection
   - [Termless](https://termless.dev) — like Playwright for terminals. Full ANSI fidelity with [10 swappable backends](https://termless.dev/guide/backends) (xterm.js, Ghostty, Alacritty, WezTerm, Kitty, and more)
@@ -55,7 +55,7 @@ React 18 + 19 with concurrent mode, Suspense, and flexbox layout. [Drop-in Ink c
   - [State](https://silvery.dev/guide/runtime-layers) — BYO (useState, Zustand, Jotai, Redux)
   - [Term](https://silvery.dev/guide/runtime-layers) — real, headless, emulator
   - [App](https://silvery.dev/guide/runtime-layers) — from stringify to rich app (withFocus, withDomEvents, withCommands). Render to terminal, Canvas, or DOM
-- **[All modern terminal protocols](https://silvery.dev/guide/silvery-vs-ink#terminal-protocol-coverage)** — [60 years of terminal protocols](https://terminfo.dev/about), unified into clean APIs. 100+ escape sequences you'll never have to write — auto-negotiated and gracefully degraded: [Kitty keyboard](https://terminfo.dev) + [SGR mouse](https://terminfo.dev) become rich events with modifiers; [hyperlinks](https://terminfo.dev) are just props; [clipboard](https://terminfo.dev) is a function call. Truecolor, underline styles, synchronized output, bracketed paste, focus reporting, resize detection, inline images, and [more](https://silvery.dev/guide/silvery-vs-ink#terminal-protocol-coverage)
+- **[All modern terminal protocols](https://silvery.dev/guide/silvery-vs-ink#terminal-protocol-coverage)** — [60 years of terminal protocols](https://terminfo.dev/about), unified into clean APIs. 100+ escape sequences you'll never have to write — auto-negotiated and gracefully degraded: [Kitty keyboard](https://terminfo.dev) + [SGR mouse](https://terminfo.dev) become rich events with modifiers; [hyperlinks](https://terminfo.dev) are just props; [clipboard](https://terminfo.dev) is a function call. Truecolor, underline styles, synchronized output, bracketed paste, focus reporting, resize detection, inline images, and [more](https://silvery.dev/guide/silvery-vs-ink#terminal-protocol-coverage).
 
 ### Why Silvery?
 
