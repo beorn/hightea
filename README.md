@@ -29,7 +29,7 @@ React 18 + 19 with concurrent mode, Suspense, and flexbox layout. [Drop-in Ink c
 
 ### Shiny new stuff
 
-- **[Best-in-class performance](https://silvery.dev/guide/silvery-vs-ink#performance-size)** — **3–27× faster** (typically 15–20×) than Ink 7 (with its new incremental rendering) in mounted rerender benchmarks, **10–20× less terminal output**. Cell-level dirty tracking, only changed cells emit. Per-node skip for unchanged subtrees. Works in inline mode with native scrollback, not just fullscreen
+- **[Best-in-class performance](https://silvery.dev/guide/silvery-vs-ink#performance-size)** — **3–27× faster** (typically 15–20×) and **10–20× less terminal output** vs Ink 7.0 with its new incremental rendering, in mounted rerender benchmarks. Cell-level dirty tracking, only changed cells emit. Per-node skip for unchanged subtrees. Works in inline mode with native scrollback, not just fullscreen
 - **Pure TypeScript, zero native deps** — no WASM, no build steps. [Layout via Flexily](https://silvery.dev/guide/layout-engine) (or Yoga). Works on Alpine, CI, Docker, everywhere
 - **[Web-like responsive layout](https://silvery.dev/guide/silvery-vs-ink#responsive-layout)** — `useBoxRect()` returns actual dimensions during render. No post-render measurement, no two-pass layout cycle. Enables:
   - [Scroll containers](https://silvery.dev/guide/scrolling) — `overflow="scroll"` with virtualization
