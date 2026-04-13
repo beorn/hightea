@@ -73,20 +73,20 @@ Along the way, three principles emerged. Take the best from the web, stay true t
 
 ::: code-group
 
-```bash [npm]
-npm install silvery react
+```console [npm]
+$ npm install silvery react
 ```
 
-```bash [bun]
-bun add silvery react
+```console [bun]
+$ bun add silvery react
 ```
 
-```bash [pnpm]
-pnpm add silvery react
+```console [pnpm]
+$ pnpm add silvery react
 ```
 
-```bash [yarn]
-yarn add silvery react
+```console [yarn]
+$ yarn add silvery react
 ```
 
 :::
@@ -116,20 +116,20 @@ Try the interactive examples:
 
 ::: code-group
 
-```bash [npm]
-npx @silvery/examples
+```console [npm]
+$ npx @silvery/examples
 ```
 
-```bash [bun]
-bunx @silvery/examples
+```console [bun]
+$ bunx @silvery/examples
 ```
 
-```bash [pnpm]
-pnpm dlx @silvery/examples
+```console [pnpm]
+$ pnpm dlx @silvery/examples
 ```
 
-```bash [vp]
-vp @silvery/examples
+```console [vp]
+$ vp @silvery/examples
 ```
 
 :::
