@@ -2798,11 +2798,27 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // Start loop in background
   eventLoop().catch((err: unknown) => {
     cleanup() // exit alt screen so error is visible in normal terminal
-    const msg = err instanceof Error ? err.message : String(err)
-    // Show first 2 lines (summary + dump path), not the full buffer dump
-    const summary = msg.split("\n").slice(0, 2).join("\n")
-    log.error?.(`eventLoop failed: ${summary}`)
-    process.stderr.write(`\n${summary}\n`)
+    const errObj = err instanceof Error ? err : new Error(String(err))
+    const msg = errObj.message
+    const stack = errObj.stack ?? "(no stack)"
+
+    // Dump the full error + stack to a temp file — alt screen clears
+    // stderr, and for deep stacks (e.g. "Maximum call stack size exceeded")
+    // the user needs the recursive frame to diagnose. Same pattern as the
+    // SILVERY_STRICT mismatch dump and the React render-error dump.
+    let dumpPath: string | undefined
+    try {
+      dumpPath = `${tmpdir()}/silvery-eventloop-failure-${Date.now()}.txt`
+      writeFileSync(dumpPath, `${msg}\n\n${stack}\n`)
+    } catch {
+      // Best-effort
+    }
+
+    const summaryLine = dumpPath
+      ? `eventLoop failed: ${msg.split("\n")[0]}\n  dump: ${dumpPath}`
+      : `eventLoop failed: ${msg.split("\n")[0]}`
+    log.error?.(summaryLine)
+    process.stderr.write(`\n${summaryLine}\n`)
     process.exitCode = 1
   })
 
