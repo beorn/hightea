@@ -93,7 +93,7 @@ Example: `CSI 97 ; 1 : 3 u` = 'a' key released.
 
 ## Terminal Support
 
-For up-to-date compatibility data across all terminals, see [terminfo.dev's Kitty keyboard page](https://terminfo.dev/keyboard/kitty-keyboard-protocol).
+For up-to-date compatibility data across all terminals, see [terminfo.dev's Kitty keyboard page](https://terminfo.dev/extensions/kitty-keyboard-protocol).
 
 ### Terminals with Full Support
 
@@ -105,7 +105,7 @@ For up-to-date compatibility data across all terminals, see [terminfo.dev's Kitt
 | [Ghostty](https://ghostty.org/)            | macOS, Linux          | Full support                 |
 | [Alacritty](https://alacritty.org/)        | Cross-platform        | Full support (added 2024)    |
 | [iTerm2](https://iterm2.com/)              | macOS                 | Full support                 |
-| [rio](https://raphamorim.io/rio/)          | Cross-platform        | Full support                 |
+| [rio](https://rioterm.com)                 | Cross-platform        | Full support                 |
 
 ### Terminals Without Support
 

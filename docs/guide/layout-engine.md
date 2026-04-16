@@ -233,7 +233,7 @@ interface LayoutConstants {
 }
 ```
 
-See the [Flexily adapter source](https://github.com/beorn/silvery/blob/main/src/adapters/flexily-adapter.ts) for a complete example.
+See the [Flexily adapter source](https://github.com/beorn/silvery/blob/main/packages/ag-term/src/adapters/flexily-zero-adapter.ts) for a complete example.
 
 ### Example: Minimal Custom Engine
 

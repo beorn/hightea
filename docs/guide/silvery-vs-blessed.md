@@ -2,7 +2,7 @@
 
 _External project claims last verified: 2026-04. Blessed version: 0.1.81 (last release 2015)._
 
-[Blessed](https://github.com/chjj/blessed) (2013) pioneered rich terminal UIs in Node.js by reimplementing ncurses entirely in JavaScript (~16,000 lines). Its curses-like API — screens, boxes, lists, forms, tables, and a terminal-within-terminal widget — was state-of-the-art for its era. The last tagged release (v0.1.81) was 2015; the last commit to the main repository was January 2016. Community forks ([neo-blessed](https://github.com/embarklabs/neo-blessed), [blessed-ng](https://github.com/nicholasgasior/blessed-ng)) apply maintenance patches but haven't substantially changed the architecture. Despite being unmaintained, Blessed still sees ~1M+ npm weekly downloads — a testament to how many production CLIs depend on it.
+[Blessed](https://github.com/chjj/blessed) (2013) pioneered rich terminal UIs in Node.js by reimplementing ncurses entirely in JavaScript (~16,000 lines). Its curses-like API — screens, boxes, lists, forms, tables, and a terminal-within-terminal widget — was state-of-the-art for its era. The last tagged release (v0.1.81) was 2015; the last commit to the main repository was January 2016. Community forks ([neo-blessed](https://github.com/embarklabs/neo-blessed)) apply maintenance patches but haven't substantially changed the architecture. Despite being unmaintained, Blessed still sees ~1M+ npm weekly downloads — a testament to how many production CLIs depend on it.
 
 Silvery (2025) is a ground-up reimplementation with a React component model, CSS flexbox layout, and an incremental rendering pipeline. Different era, different architecture, different trade-offs.
 
@@ -308,7 +308,7 @@ expect(term.scrollback).toContainText("Previous item")
 Blessed has several community forks that apply maintenance patches:
 
 - **[neo-blessed](https://github.com/embarklabs/neo-blessed)** -- the most active fork, positioned as a drop-in replacement. Applies bug fixes and compatibility patches, with recent npm releases (v2.0.2 as of early 2026).
-- **[blessed-ng](https://github.com/nicholasgasior/blessed-ng)** -- another community maintenance fork.
+- **blessed-ng** -- another community maintenance fork (discontinued, repo removed).
 - **[@terminal-junkies/neo-blessed](https://www.npmjs.com/package/@terminal-junkies/neo-blessed)** -- a fork of neo-blessed with additional bug fixes.
 
 These forks keep Blessed usable on modern Node.js versions, but none have changed the fundamental architecture. They are maintenance patches, not evolution.

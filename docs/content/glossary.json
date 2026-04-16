@@ -420,7 +420,7 @@
   },
   {
     "term": "ANSI escape",
-    "href": "https://terminfo.dev/fundamentals/anatomy",
+    "href": "https://terminfo.dev/fundamentals",
     "tooltip": "Control codes starting with ESC that tell terminals to set colors, move cursor, etc.",
     "external": true
   },
@@ -532,27 +532,27 @@
   },
   {
     "term": "useAnimation",
-    "href": "/api/use-animation",
+    "href": "/reference/hooks",
     "tooltip": "Frame-based animation hook — provides frame count, elapsed time, and delta. Silvery adds easing functions and useAnimatedTransition."
   },
   {
     "term": "usePaste",
-    "href": "/api/use-paste",
+    "href": "/reference/hooks",
     "tooltip": "Hook for receiving bracketed paste events — automatically enables/disables paste mode."
   },
   {
     "term": "useCursor",
-    "href": "/api/use-cursor",
+    "href": "/reference/hooks",
     "tooltip": "Hook for IME cursor positioning — reports cursor location for input method editors."
   },
   {
     "term": "useFocusManager",
-    "href": "/api/use-focus-manager",
+    "href": "/reference/hooks",
     "tooltip": "Programmatic focus control — focusNext(), focusPrevious(), focusById(). Works with both Ink compat and silvery-native focus."
   },
   {
     "term": "useFocusWithin",
-    "href": "/api/use-focus-within",
+    "href": "/reference/hooks",
     "tooltip": "Hook that reports whether any descendant of the current component has focus — useful for styling parent containers."
   },
   {
