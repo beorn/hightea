@@ -87,6 +87,18 @@ TUIs can't vary font size — bold, dim, and italic are your only typographic to
 | Fine print      | `$muted` + `dim`    | Maximally receded — captions, footnotes        |
 | Disabled        | `$disabledfg`       | Faded — clearly inactive                       |
 
+::: tip ✨ MECE rule — when to use `$muted`, when to add `dim`
+
+`$muted` and `dimColor` are **two separate layers**. They compose; they don't imply each other.
+
+- **`$muted` alone** — meta text, captions, labels, hints, secondary info. The canonical "grey". **Use this by default.**
+- **`$muted` + `dimColor`** — fine print. Maximally recessed. Keybinding legends, footnotes, timestamps next to primary content.
+- **`dimColor` without `$muted`** — only when deliberately dimming a non-muted color (rare; usually means you want `$muted` instead).
+- **Neither** — primary body text. `$fg` is inherited from the parent or resolved by the theme.
+
+Rule of thumb: **don't manually pair `$muted` + `dimColor`** — reach for the `<Small>` preset instead. The preset bundles them correctly and documents the intent ("this is fine print"). If `<Small>`'s dim washes your color (e.g. on a selection bg), opt out per-call with `<Small dimColor={false}>` — `TypographyProps` spreads `{...rest}` last, so the override wins.
+:::
+
 Since TUIs lack font-size variation, using 2-3 colors for heading levels is natural and expected — just use **semantic tokens** (`$primary`, `$accent`, `$fg`) rather than status colors (`$success`, `$error`).
 
 ::: tip ✨ Shiny
