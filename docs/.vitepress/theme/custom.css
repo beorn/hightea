@@ -6,9 +6,6 @@
  * CSS custom properties. No layout customizations.
  * ============================================================ */
 
-/* Brand fonts — three-family system */
-@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
-
 /* ---- Brand palette ---- */
 :root {
   /* Silver + charcoal — the anchor colors */
@@ -28,11 +25,6 @@
   --silvery-success: #6a9b7a;
   --silvery-warning: #b89058;
   --silvery-danger: #b4614a;
-
-  /* Font families */
-  --silvery-font-display: "Rubik", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --silvery-font-body: "Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --silvery-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Monaco, Consolas, monospace;
 }
 
 /* ---- VitePress brand variable overrides (light mode defaults) ---- */
@@ -54,14 +46,6 @@
   --vp-button-brand-active-text: #ffffff;
   --vp-button-brand-active-bg: var(--silvery-accent-dark);
 
-  /* Typography */
-  --vp-font-family-base: var(--silvery-font-body);
-  --vp-font-family-mono: var(--silvery-font-mono);
-
-  /* Home hero name gradient — solid silver-blue, no rainbow */
-  --vp-home-hero-name-color: var(--silvery-accent);
-  --vp-home-hero-name-background: transparent;
-
   /* Image slot for hero — no tiny blob */
   --vp-home-hero-image-background-image: none;
   --vp-home-hero-image-filter: none;
@@ -78,45 +62,79 @@
   --vp-button-brand-bg: var(--silvery-accent);
   --vp-button-brand-hover-border: var(--silvery-accent-light);
   --vp-button-brand-hover-bg: var(--silvery-accent-light);
-
-  --vp-home-hero-name-color: var(--silvery-accent-light);
 }
 
-/* ---- Display typography — Rubik for brand voice ---- */
-.VPHero .name,
-.VPHero .text,
-.VPHomeHero .name,
-.VPHomeHero .text,
-h1,
-h2,
-h3,
-h4 {
-  font-family: var(--silvery-font-display);
+/* ============================================================
+ * Chrome gleam on "Silvery" wordmarks
+ *
+ * Applied to the nav site title AND the hero `.name` — the two
+ * places where "Silvery" appears as a brand wordmark. Gleam is a
+ * linear gradient fill clipped to text, animated on page load +
+ * every 25s of idle (per design doc: silver surfaces catch one
+ * moving light source).
+ * ============================================================ */
+
+.VPNavBarTitle .title,
+.VPHome .name,
+.VPHero .name {
+  /* Light-mode silver gradient (charcoal → silver highlight → charcoal) */
+  background: linear-gradient(
+    110deg,
+    #4a4f5a 0%,
+    #4a4f5a 35%,
+    #d6d9e0 50%,
+    #4a4f5a 65%,
+    #4a4f5a 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+
+  animation: silvery-wordmark-gleam 25s ease-in-out infinite;
 }
 
-/* Hero name — slightly tighter tracking (Rubik responds well) */
-.VPHero .name,
-.VPHomeHero .name {
-  font-weight: 700;
-  letter-spacing: -0.03em;
+.dark .VPNavBarTitle .title,
+.dark .VPHome .name,
+.dark .VPHero .name {
+  /* Dark-mode silver gradient (brighter mid-tone on darker rail) */
+  background: linear-gradient(
+    110deg,
+    #8a90a0 0%,
+    #8a90a0 35%,
+    #f5f7fc 50%,
+    #8a90a0 65%,
+    #8a90a0 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: silvery-wordmark-gleam 25s ease-in-out infinite;
 }
 
-.VPHero .text,
-.VPHomeHero .text {
-  font-weight: 500;
-  letter-spacing: -0.015em;
+@keyframes silvery-wordmark-gleam {
+  /* Sweep the highlight from right to left once, then sit for the rest of the 25s */
+  0% {
+    background-position: 100% 0;
+  }
+  6% {
+    background-position: -100% 0; /* fast sweep over ~1.5s */
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
-/* Hero tagline — mono (JetBrains Mono), terminal-native */
-.VPHero .tagline,
-.VPHomeHero .tagline {
-  font-family: var(--silvery-font-mono);
-  font-weight: 400;
-  font-size: 1rem;
-  line-height: 1.6;
-}
+/* ============================================================
+ * Blinking cursor at end of hero tagline
+ * Single source of animated activity on the page
+ * ============================================================ */
 
-/* Blinking cursor at end of tagline */
 .VPHero .tagline::after,
 .VPHomeHero .tagline::after {
   content: "";
@@ -125,7 +143,7 @@ h4 {
   height: 1em;
   background-color: currentColor;
   vertical-align: text-bottom;
-  margin-left: 0.1em;
+  margin-left: 0.15em;
   animation: silvery-cursor-blink 1s steps(1) infinite;
 }
 
@@ -138,13 +156,6 @@ h4 {
   100% {
     opacity: 0;
   }
-}
-
-/* Feature card titles — Rubik Medium */
-.VPFeature .title,
-.VPFeatures .title {
-  font-family: var(--silvery-font-display);
-  font-weight: 500;
 }
 
 /* ---- Preserve existing fixes ---- */
