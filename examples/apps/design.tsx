@@ -12,7 +12,7 @@
  * - Component showcase in the current theme
  * - ANSI 16 degradation preview (which slot each token collapses to)
  *
- * Run: bunx silvery design  (or: bun vendor/silvery/examples/apps/design.tsx)
+ * Run: bunx silvery design  (or: bun examples/apps/design.tsx)
  */
 
 import type { JSX } from "react"
@@ -743,7 +743,7 @@ export async function main(): Promise<void> {
   await waitUntilExit()
 }
 
-// Run directly: `bun vendor/silvery/examples/apps/design.tsx`
+// Run directly: `bun examples/apps/design.tsx`
 if (import.meta.main) {
   main().catch((err) => {
     console.error(err)

@@ -4,7 +4,7 @@
  * Validates the API design: pure state machines, identity returns,
  * kill ring sharing, and the createMachine wrapper.
  *
- * Run: bun vitest run vendor/internal/silvery/prototype/headless/
+ * Run: bun vitest run tests/features/headless.test.ts
  */
 import { describe, expect, test } from "vitest"
 import {

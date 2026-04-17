@@ -2,7 +2,7 @@
  * Smoke test for silvery.dev — verifies pages load and demos render.
  *
  * Requires: `bun run docs:dev` on localhost:5173 (or set SITE_URL).
- * Run: `bunx playwright test vendor/silvery/tests/site-smoke.test.ts`
+ * Run: `bunx playwright test tests/site-smoke.test.ts`
  * Prod: `SITE_URL=https://silvery.dev bunx playwright test ...`
  */
 import { test, expect, type Page } from "@playwright/test"

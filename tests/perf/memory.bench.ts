@@ -9,7 +9,7 @@
  * that can't shrink. Memory should stay constant across re-renders
  * and shrink when component trees shrink.
  *
- * Run: bun vitest bench vendor/silvery/tests/perf/memory.bench.ts
+ * Run: bun vitest bench tests/perf/memory.bench.ts
  */
 
 import React from "react"

@@ -1,6 +1,6 @@
 # Tree-Shaking Verification Results
 
-Generated 2026-03-09 by `bun vendor/silvery/tests/tree-shaking/verify.ts`.
+Generated 2026-03-09 by `bun tests/tree-shaking/verify.ts`.
 
 ## Method
 

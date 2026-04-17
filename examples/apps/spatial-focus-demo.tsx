@@ -7,7 +7,7 @@
  * Cards have varied heights to prove spatial navigation handles non-uniform layouts.
  * Focus is shown via yellow border and bold title on the focused card.
  *
- * Run: bun vendor/silvery/examples/apps/spatial-focus-demo.tsx
+ * Run: bun examples/apps/spatial-focus-demo.tsx
  */
 
 import React, { useState, useMemo } from "react"

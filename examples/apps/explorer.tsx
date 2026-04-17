@@ -7,7 +7,7 @@
  * - Shared TextInput search bar with useDeferredValue for non-blocking filtering
  * - ListView with interactive scrolling for both tabs
  *
- * Usage: bun vendor/silvery/examples/apps/explorer.tsx
+ * Usage: bun examples/apps/explorer.tsx
  *
  * Controls:
  *   Tab/h/l       - Switch tabs (Logs / Processes)

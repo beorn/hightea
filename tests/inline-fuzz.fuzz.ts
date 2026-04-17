@@ -15,8 +15,8 @@
  * ## Running
  *
  * ```bash
- * bun vitest run vendor/silvery/tests/inline-fuzz.fuzz.ts
- * FUZZ=1 bun vitest run vendor/silvery/tests/inline-fuzz.fuzz.ts
+ * bun vitest run tests/inline-fuzz.fuzz.ts
+ * FUZZ=1 bun vitest run tests/inline-fuzz.fuzz.ts
  * ```
  */
 

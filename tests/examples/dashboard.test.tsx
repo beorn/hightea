@@ -6,9 +6,9 @@
  * to layout, borders, labels, or spacing will fail the snapshot.
  *
  * To update the snapshot after an intentional change:
- *   bun vitest run --project vendor --update vendor/silvery/tests/examples/dashboard.test.tsx
+ *   bun vitest run --update tests/examples/dashboard.test.tsx
  *
- * Approved mockup: vendor/internal/silvery/design/mockups/dashboard-mockup.ansi
+ * Approved mockup: https://github.com/beorn/silvery-internal/blob/main/design/mockups/dashboard-mockup.ansi
  */
 
 import React from "react"

@@ -5,7 +5,7 @@
  * This is Phase 4 of the pipeline: comparing two buffers and producing
  * minimal ANSI escape sequences for the differences.
  *
- * Run: bun vitest bench vendor/silvery/tests/perf/diff.bench.ts
+ * Run: bun vitest bench tests/perf/diff.bench.ts
  */
 
 import { bench, describe, beforeAll } from "vitest"

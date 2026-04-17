@@ -1,7 +1,7 @@
 # Ink Compatibility Analysis
 
 Date: 2026-04-09
-Silvery version: vendor/silvery (HEAD)
+Silvery version: (HEAD)
 Ink test suite: vadimdemedes/ink v7.0.0
 
 ## Summary

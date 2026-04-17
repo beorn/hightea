@@ -1,7 +1,7 @@
 # Ink Compatibility Audit Results
 
 Date: 2026-04-09
-Silvery version: vendor/silvery (HEAD)
+Silvery version: (HEAD)
 Ink version: 7.0.0 (tests adapted from github.com/vadimdemedes/ink)
 
 ## Summary

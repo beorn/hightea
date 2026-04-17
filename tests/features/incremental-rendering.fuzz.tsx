@@ -25,8 +25,8 @@
  * ## Running
  *
  * ```bash
- * bun vitest run vendor/silvery/tests/features/incremental-rendering.fuzz.tsx
- * FUZZ=1 bun vitest run vendor/silvery/tests/features/incremental-rendering.fuzz.tsx
+ * bun vitest run tests/features/incremental-rendering.fuzz.tsx
+ * FUZZ=1 bun vitest run tests/features/incremental-rendering.fuzz.tsx
  * ```
  */
 

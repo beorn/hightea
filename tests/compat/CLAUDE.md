@@ -49,8 +49,8 @@ Auto-generated from Ink's upstream ava test suite via a codemod. Generated tests
 bun packages/ink/scripts/gen-vitest.ts
 
 # Run
-bun vitest run --project vendor vendor/silvery/tests/compat/ink/generated/
-bun vitest run --project vendor vendor/silvery/tests/compat/chalk/
+bun vitest run tests/compat/ink/generated/
+bun vitest run tests/compat/chalk/
 ```
 
 ### What the codemod does
@@ -114,12 +114,12 @@ bun run compat:ink
 bun packages/ink/scripts/gen-vitest.ts
 
 # 4. Run Layer 2 and fix failures
-bun vitest run --project vendor vendor/silvery/tests/compat/ink/generated/
+bun vitest run tests/compat/ink/generated/
 
 # 5. Update EXPECTED_FAILURES / RENDER_MODE_FAILURES in gen-vitest.ts as needed
 
 # 6. Verify both layers
-bun run compat && bun vitest run --project vendor vendor/silvery/tests/compat/ink/generated/
+bun run compat && bun vitest run tests/compat/ink/generated/
 ```
 
 The generated tests are gitignored. The codemod script + helpers are the source of truth.

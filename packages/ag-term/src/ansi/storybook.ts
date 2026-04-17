@@ -3,7 +3,7 @@
  * chalk-x Storybook - Visual Feature Catalog
  *
  * Renders all chalk-x features for visual inspection.
- * Run: bun vendor/silvery/packages/ansi/src/storybook.ts
+ * Run: bun packages/ansi/src/storybook.ts
  *
  * NOTE: Extended underline styles only render in modern terminals
  * (Ghostty, Kitty, WezTerm, iTerm2). Other terminals will show

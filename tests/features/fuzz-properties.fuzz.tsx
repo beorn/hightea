@@ -15,8 +15,8 @@
  * ## Running
  *
  * ```bash
- * bun vitest run vendor/silvery/tests/features/fuzz-properties.fuzz.tsx
- * FUZZ=1 bun vitest run vendor/silvery/tests/features/fuzz-properties.fuzz.tsx
+ * bun vitest run tests/features/fuzz-properties.fuzz.tsx
+ * FUZZ=1 bun vitest run tests/features/fuzz-properties.fuzz.tsx
  * ```
  */
 

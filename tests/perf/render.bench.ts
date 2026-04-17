@@ -5,7 +5,7 @@
  * render phase + output phase. Tests both initial renders and re-renders
  * (dirty-tracking updates).
  *
- * Run: bun vitest bench vendor/silvery/tests/perf/render.bench.ts
+ * Run: bun vitest bench tests/perf/render.bench.ts
  */
 
 import React from "react"

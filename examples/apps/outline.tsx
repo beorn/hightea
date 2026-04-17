@@ -11,7 +11,7 @@
  * - Toggle between styles with Tab
  * - Live content dimensions via useBoxRect()
  *
- * Run: bun vendor/silvery/examples/apps/outline.tsx
+ * Run: bun examples/apps/outline.tsx
  */
 
 import React, { useState } from "react"

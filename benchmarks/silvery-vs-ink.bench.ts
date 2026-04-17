@@ -17,7 +17,7 @@
  * - Same terminal dimensions
  * - Ink's Yoga WASM init happens once at import (not measured per-render)
  *
- * Run: SILVERY_STRICT=0 bun vitest bench vendor/silvery/benchmarks/silvery-vs-ink.bench.ts
+ * Run: SILVERY_STRICT=0 bun vitest bench benchmarks/silvery-vs-ink.bench.ts
  */
 
 import React from "react"

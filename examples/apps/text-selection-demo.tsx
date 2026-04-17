@@ -4,7 +4,7 @@
  * Demonstrates silvery's real text selection system using the useSelection hook.
  * Shows userSelect modes (text, none, contain) and live selection state readout.
  *
- * Run: bun vendor/silvery/examples/apps/text-selection-demo.tsx
+ * Run: bun examples/apps/text-selection-demo.tsx
  */
 
 import React from "react"

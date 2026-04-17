@@ -11,7 +11,7 @@
  * - Shows character count and line count of pasted text
  * - Maintains a history of paste events
  *
- * Run: bun vendor/silvery/examples/apps/paste-demo.tsx
+ * Run: bun examples/apps/paste-demo.tsx
  */
 
 import React, { useState } from "react"

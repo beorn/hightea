@@ -4,7 +4,7 @@
  * Compares all three rendering paths in one run.
  * Shows the perf impact of reactive signals vs imperative cascade vs Ink.
  *
- * Run: bun vitest bench --project vendor vendor/silvery/benchmarks/three-way.bench.ts
+ * Run: bun vitest bench benchmarks/three-way.bench.ts
  */
 
 import React from "react"

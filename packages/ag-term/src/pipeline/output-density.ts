@@ -4,7 +4,7 @@
  * Given a sorted dirty-cell pool, compute per-row density summaries and pick
  * the cheapest emission mode (whole-row / run-length / scatter).
  *
- * See: vendor/internal/silvery/design/v05-layout/hybrid-output.md
+ * See: https://github.com/beorn/silvery-internal/blob/main/design/v05-layout/hybrid-output.md
  * Tracking: km-silvery.hybrid-output
  *
  * This file is SCAFFOLD ONLY — all functions throw. Integration is a
@@ -91,7 +91,7 @@ export interface DensityAnalysis {
  * See design doc §2 (density analysis) and §5 (data structures).
  */
 export function analyzeRowDensity(_pool: readonly CellChange[], _count: number, _width: number): DensityAnalysis {
-  throw new Error("analyzeRowDensity: not implemented — see vendor/internal/silvery/design/v05-layout/hybrid-output.md")
+  throw new Error("analyzeRowDensity: not implemented — see https://github.com/beorn/silvery-internal/blob/main/design/v05-layout/hybrid-output.md")
 }
 
 /**
@@ -105,7 +105,7 @@ export function analyzeRowDensity(_pool: readonly CellChange[], _count: number, 
  *   wholeCost   = ROW_PREAMBLE + width * PER_CELL_IN_ROW
  *
  * The constants are tuned against the new bench scenarios in
- * `vendor/internal/silvery/benchmarks/silvery-vs-ink.bench.ts`
+ * `benchmarks/silvery-vs-ink.bench.ts`
  * (`Dense row update`, `Contiguous run update`, `Scatter update`).
  *
  * Fast paths (no estimator):
@@ -116,5 +116,5 @@ export function analyzeRowDensity(_pool: readonly CellChange[], _count: number, 
  * TODO(hybrid-output phase 2): implement.
  */
 export function pickEmissionMode(_row: DirtyRowSummary, _width: number): EmissionMode {
-  throw new Error("pickEmissionMode: not implemented — see vendor/internal/silvery/design/v05-layout/hybrid-output.md")
+  throw new Error("pickEmissionMode: not implemented — see https://github.com/beorn/silvery-internal/blob/main/design/v05-layout/hybrid-output.md")
 }

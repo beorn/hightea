@@ -5,7 +5,7 @@
  * measures absolute time per operation in microseconds. Use to track
  * the impact of individual pipeline optimizations.
  *
- * Run: SILVERY_STRICT=0 bun vitest bench vendor/silvery/benchmarks/pipeline-only.bench.ts
+ * Run: SILVERY_STRICT=0 bun vitest bench benchmarks/pipeline-only.bench.ts
  */
 
 import React from "react"

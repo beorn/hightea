@@ -7,7 +7,7 @@
  * Tests at terminal-relevant scales: 100 and 1000 nodes.
  * Includes both cold (create + layout) and warm (re-layout) scenarios.
  *
- * Run: bun vitest bench vendor/silvery/tests/perf/layout.bench.ts
+ * Run: bun vitest bench tests/perf/layout.bench.ts
  */
 
 import { bench, describe } from "vitest"

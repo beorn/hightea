@@ -1,7 +1,7 @@
 /**
  * Tests for the output guard — intercepts process.stdout/stderr writes in alt screen mode.
  *
- * Run: bun vitest run --project vendor vendor/silvery/tests/features/output-guard.test.ts
+ * Run: bun vitest run tests/features/output-guard.test.ts
  */
 import { describe, expect, test, afterEach } from "vitest"
 import { createOutputGuard, type OutputGuard } from "@silvery/ag-term/ansi/output-guard"

@@ -19,7 +19,7 @@
  * - Image Support (Kitty Graphics / Sixel)
  * - DA1/DA2/DA3 Device Attributes
  *
- * Run: bun vendor/silvery/examples/apps/terminal-caps-demo.tsx
+ * Run: bun examples/apps/terminal-caps-demo.tsx
  */
 
 import React, { useState } from "react"

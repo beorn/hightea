@@ -8,7 +8,7 @@
  * 3. Whether heavy dependencies leak across entry points
  *
  * Usage:
- *   bun vendor/silvery/tests/tree-shaking/verify.ts
+ *   bun tests/tree-shaking/verify.ts
  */
 
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"

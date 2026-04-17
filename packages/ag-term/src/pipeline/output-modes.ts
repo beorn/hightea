@@ -6,7 +6,7 @@
  * cursor and style state carries across rows (enabling the `\r\n` shortcut
  * and avoiding redundant SGR transitions).
  *
- * See: vendor/internal/silvery/design/v05-layout/hybrid-output.md
+ * See: https://github.com/beorn/silvery-internal/blob/main/design/v05-layout/hybrid-output.md
  * Tracking: km-silvery.hybrid-output
  *
  * This file is SCAFFOLD ONLY — all functions throw. Integration is a
@@ -83,7 +83,7 @@ export function emitWholeRow(
   _ctx: OutputContext,
   _state: OutputEmitState,
 ): void {
-  throw new Error("emitWholeRow: not implemented — see vendor/internal/silvery/design/v05-layout/hybrid-output.md")
+  throw new Error("emitWholeRow: not implemented — see https://github.com/beorn/silvery-internal/blob/main/design/v05-layout/hybrid-output.md")
 }
 
 /**
@@ -122,7 +122,7 @@ export function emitRuns(
   _ctx: OutputContext,
   _state: OutputEmitState,
 ): void {
-  throw new Error("emitRuns: not implemented — see vendor/internal/silvery/design/v05-layout/hybrid-output.md")
+  throw new Error("emitRuns: not implemented — see https://github.com/beorn/silvery-internal/blob/main/design/v05-layout/hybrid-output.md")
 }
 
 /**
@@ -161,5 +161,5 @@ export function emitScatter(
   _ctx: OutputContext,
   _state: OutputEmitState,
 ): void {
-  throw new Error("emitScatter: not implemented — see vendor/internal/silvery/design/v05-layout/hybrid-output.md")
+  throw new Error("emitScatter: not implemented — see https://github.com/beorn/silvery-internal/blob/main/design/v05-layout/hybrid-output.md")
 }

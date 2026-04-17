@@ -5,7 +5,7 @@
  * These tests verify the writeOutput wiring by testing the clear() method,
  * which writes a simple ANSI sequence without requiring a full node tree.
  *
- * Run: bun vitest run --project vendor vendor/silvery/tests/features/scheduler-write-output.test.ts
+ * Run: bun vitest run tests/features/scheduler-write-output.test.ts
  */
 import { describe, expect, test } from "vitest"
 import { RenderScheduler } from "@silvery/ag-term/scheduler"

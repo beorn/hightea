@@ -13,8 +13,8 @@
  * ## Running
  *
  * ```bash
- * bun vitest run vendor/silvery/tests/features/property-invariants.fuzz.tsx
- * FUZZ=1 bun vitest run vendor/silvery/tests/features/property-invariants.fuzz.tsx
+ * bun vitest run tests/features/property-invariants.fuzz.tsx
+ * FUZZ=1 bun vitest run tests/features/property-invariants.fuzz.tsx
  * ```
  */
 
