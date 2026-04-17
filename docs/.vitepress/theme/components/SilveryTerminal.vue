@@ -1,98 +1,114 @@
 <!--
   SilveryTerminal — hero image slot component for silvery.dev
 
-  macOS-Terminal.app-fidelity mockup. Interior uses Unicode
-  box-drawing characters for panel structure — genuinely ANSI-graphical
-  in the lazygit / neovim tradition.
-
-  Design constraints:
-  - Thin chrome bezel, lighter color (not near-black)
-  - Title bar: macOS traffic lights + bold left-aligned title
-  - Smaller font to fit more content
-  - ANSI-only interior (box-drawing chars, SGR colors)
-  - No cursor inside (and user removed the tagline cursor too)
-  - Pushed down 2 lines to vertically balance with hero copy
+  macOS-Terminal.app-fidelity mockup. Chrome bezel is thicker and
+  whiter than before, with its own gleam animation that syncs with
+  the wordmark gleam. Interior uses Unicode box-drawing panels
+  inside a single <pre> block to guarantee character alignment.
 -->
 
 <template>
-  <div class="silvery-terminal">
-    <div class="silvery-terminal__titlebar">
-      <div class="silvery-terminal__dots">
-        <span class="silvery-terminal__dot silvery-terminal__dot--red"></span>
-        <span class="silvery-terminal__dot silvery-terminal__dot--yellow"></span>
-        <span class="silvery-terminal__dot silvery-terminal__dot--green"></span>
+  <div class="silvery-terminal-wrap">
+    <div class="silvery-terminal">
+      <div class="silvery-terminal__titlebar">
+        <div class="silvery-terminal__dots">
+          <span class="silvery-terminal__dot silvery-terminal__dot--red"></span>
+          <span class="silvery-terminal__dot silvery-terminal__dot--yellow"></span>
+          <span class="silvery-terminal__dot silvery-terminal__dot--green"></span>
+        </div>
+        <div class="silvery-terminal__title">silvery-agent — ~/silvery</div>
       </div>
-      <div class="silvery-terminal__title">silvery-agent — ~/silvery</div>
-    </div>
 
-    <div class="silvery-terminal__body">
-      <!-- User prompt panel -->
-      <div class="silvery-terminal__line t-dim">╭─ <span class="t-accent">user</span> <span class="t-dim">──────────────────────────────╮</span></div>
-      <div class="silvery-terminal__line t-dim">│ <span class="t-command">add a blinking cursor after the</span>    <span class="t-dim">│</span></div>
-      <div class="silvery-terminal__line t-dim">│ <span class="t-command">tagline</span>                            <span class="t-dim">│</span></div>
-      <div class="silvery-terminal__line t-dim">╰────────────────────────────────────╯</div>
-      <div class="silvery-terminal__line t-spacer"></div>
+      <!-- Using <pre> so exact character widths and box-drawing chars
+           align pixel-perfect. Only color classes inside. -->
+      <pre class="silvery-terminal__body"><span class="t-dim">╭─ </span><span class="t-accent">user</span><span class="t-dim"> ────────────────────────╮
+│</span> <span class="t-command">add a blinking cursor after</span> <span class="t-dim">│
+│</span> <span class="t-command">the tagline</span>                 <span class="t-dim">│
+╰────────────────────────────────╯</span>
 
-      <!-- Agent work -->
-      <div class="silvery-terminal__line">
-        <span class="t-think">⏺</span> <span class="t-dim">Planning the change...</span>
-      </div>
-      <div class="silvery-terminal__line t-spacer-sm"></div>
+<span class="t-think">⏺</span> <span class="t-dim">Planning the change...</span>
 
-      <div class="silvery-terminal__line">
-        <span class="t-tool">●</span> Read <span class="t-path">.vitepress/theme/custom.css</span>
-      </div>
-      <div class="silvery-terminal__line">
-        <span>  </span><span class="t-ok">✓</span> <span class="t-dim">found</span> <span class="t-path">.VPHero .tagline</span>
-      </div>
-      <div class="silvery-terminal__line t-spacer-sm"></div>
+<span class="t-tool">●</span> Read <span class="t-path">.vitepress/theme/custom.css</span>
+  <span class="t-ok">✓</span> <span class="t-dim">found</span> <span class="t-path">.VPHero .tagline</span>
 
-      <div class="silvery-terminal__line">
-        <span class="t-tool">●</span> Edit <span class="t-path">.vitepress/theme/custom.css</span>
-      </div>
-      <div class="silvery-terminal__line">
-        <span class="t-dim">  + tagline::after blink animation</span>
-      </div>
-      <div class="silvery-terminal__line">
-        <span class="t-dim">  + 1Hz steps(1), currentColor</span>
-      </div>
-      <div class="silvery-terminal__line">
-        <span>  </span><span class="t-ok">✓</span> <span class="t-dim">applied · 12 insertions</span>
-      </div>
-      <div class="silvery-terminal__line t-spacer"></div>
+<span class="t-tool">●</span> Edit <span class="t-path">.vitepress/theme/custom.css</span>
+  <span class="t-dim">+ tagline::after blink anim</span>
+  <span class="t-dim">+ 1Hz steps(1), currentColor</span>
+  <span class="t-ok">✓</span> <span class="t-dim">applied · 12 insertions</span>
 
-      <!-- Assistant reply panel -->
-      <div class="silvery-terminal__line t-dim">╭─ <span class="t-accent">assistant</span> <span class="t-dim">──────────────────────╮</span></div>
-      <div class="silvery-terminal__line t-dim">│ <span class="t-fg">Blink lands at end of tagline.</span>     <span class="t-dim">│</span></div>
-      <div class="silvery-terminal__line t-dim">│ <span class="t-dim">One cursor per page · matches doc.</span> <span class="t-dim">│</span></div>
-      <div class="silvery-terminal__line t-dim">╰────────────────────────────────────╯</div>
+<span class="t-dim">╭─ </span><span class="t-accent">assistant</span><span class="t-dim"> ───────────────────╮
+│</span> <span class="t-fg">Blink lands at end.</span>            <span class="t-dim">│
+│</span> <span class="t-dim">One cursor per page.</span>           <span class="t-dim">│
+╰────────────────────────────────╯</span></pre>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* ----- Terminal wrapper ----- */
+/* ----- Wrapper: gleam-enabled chrome bezel ----- */
+.silvery-terminal-wrap {
+  /* This wrapper IS the chrome frame — thicker and whiter than the
+     inner terminal border. Padded to reveal the frame around the
+     inner terminal. The gleam animation plays on this wrapper's
+     background. */
+  padding: 5px;
+  border-radius: 14px;
+  margin: 2.5em auto 0;
+  max-width: 500px;
+  overflow: hidden;
+
+  /* Chrome gradient matches wordmark gleam timing */
+  background: linear-gradient(
+    110deg,
+    #9aa1b0 0%,
+    #9aa1b0 42%,
+    #f0f3f8 50%,
+    #9aa1b0 58%,
+    #9aa1b0 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  animation: silvery-chrome-gleam 18s ease-in-out infinite;
+
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.dark .silvery-terminal-wrap {
+  background: linear-gradient(
+    110deg,
+    #b0b6c4 0%,
+    #b0b6c4 42%,
+    #ffffff 50%,
+    #b0b6c4 58%,
+    #b0b6c4 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  animation: silvery-chrome-gleam 18s ease-in-out infinite;
+}
+
+@keyframes silvery-chrome-gleam {
+  0% {
+    background-position: 100% 0;
+  }
+  10% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+/* ----- Inner terminal (sits on top of the chrome wrapper) ----- */
 .silvery-terminal {
-  /* Interior stays dark in both site modes */
   background: #0f1419;
   color: #d6d9e0;
-
-  /* Lighter chrome bezel */
-  border: 2px solid #5a6272;
-  border-radius: 10px;
-
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
-    0 4px 24px rgba(0, 0, 0, 0.3);
+  border-radius: 9px;
 
   font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 11px;           /* smaller to fit more */
-  line-height: 1.38;
-
+  font-size: 11px;
+  line-height: 1.45;
   overflow: hidden;
-  width: 100%;
-  max-width: 480px;          /* slightly narrower */
-  margin: 2.5em auto 0;      /* push down 2 lines */
 }
 
 /* ----- Title bar ----- */
@@ -118,11 +134,10 @@
   display: inline-block;
 }
 
-.silvery-terminal__dot--red   { background: #ff5f57; }
+.silvery-terminal__dot--red    { background: #ff5f57; }
 .silvery-terminal__dot--yellow { background: #febc2e; }
-.silvery-terminal__dot--green { background: #28c840; }
+.silvery-terminal__dot--green  { background: #28c840; }
 
-/* Title — bold, high-contrast, left-aligned */
 .silvery-terminal__title {
   font-size: 11px;
   color: #e6e9ef;
@@ -135,23 +150,24 @@
 
 /* ----- Body ----- */
 .silvery-terminal__body {
+  margin: 0;
   padding: 12px 14px 14px;
-}
-
-.silvery-terminal__line {
-  display: block;
+  font-family: inherit;  /* inherit from .silvery-terminal */
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  background: transparent;
   white-space: pre;
-  font-feature-settings: "liga" 0, "calt" 0;  /* preserve box-drawing alignment */
+  overflow-x: auto;
+
+  /* Disable font ligatures so box-drawing aligns perfectly */
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-variant-ligatures: none;
 }
 
-.silvery-terminal__line.t-spacer     { height: 0.6em; }
-.silvery-terminal__line.t-spacer-sm  { height: 0.2em; }
-
-/* ----- Token colors (ANSI-ish palette) ----- */
-
+/* ----- Token colors ----- */
 .t-accent  { color: #8ea4c8; font-weight: 500; }
 .t-fg      { color: #e6e9ef; }
-.t-prompt  { color: #7a8090; }
 .t-command { color: #f1f3f7; font-weight: 500; }
 .t-think   { color: #8ea4c8; }
 .t-tool    { color: #7dd3c0; }
@@ -161,10 +177,15 @@
 
 /* Responsive */
 @media (max-width: 640px) {
-  .silvery-terminal {
-    font-size: 10px;
+  .silvery-terminal-wrap {
     max-width: 100%;
     margin-top: 1.5em;
+    padding: 4px;
+    border-radius: 12px;
+  }
+  .silvery-terminal {
+    font-size: 10px;
+    border-radius: 8px;
   }
   .silvery-terminal__body {
     padding: 10px 12px 12px;

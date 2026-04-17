@@ -18,9 +18,13 @@
   --silvery-accent-light: #7a8aa5;
   --silvery-accent-dark: #3a4a65;
 
-  /* Wordmark rest color (what the gleam settles to) */
-  --silvery-wordmark-rest: #1a1a1a;
+  /* Nav wordmark rest color (settled silver-gray) */
+  --silvery-wordmark-rest: #2a3040;
   --silvery-wordmark-highlight: #d6d9e0;
+
+  /* Hero wordmark rest color (pure black — distinct from nav) */
+  --silvery-hero-rest: #000000;
+  --silvery-hero-highlight: #e8eaef;
 
   /* TS-blue reserved for TypeScript-specific refs */
   --silvery-ts-blue: #3178c6;
@@ -66,23 +70,23 @@
   --vp-button-brand-hover-border: var(--silvery-accent-light);
   --vp-button-brand-hover-bg: var(--silvery-accent-light);
 
-  --silvery-wordmark-rest: #e6e6e6;
+  --silvery-wordmark-rest: #d6d9e0;
   --silvery-wordmark-highlight: #ffffff;
+
+  --silvery-hero-rest: #ffffff;
+  --silvery-hero-highlight: #ffffff;
 }
 
 /* ============================================================
  * Chrome gleam on "Silvery" wordmark
  *
- * Gradient has solid dark endpoints → mid-highlight → solid dark.
- * Background-position drifts from right to left once per 18s.
- * Since both endpoints are the rest color, the cycle restart is
- * invisible: the wordmark sits at rest color 90% of the time,
- * then a smooth highlight passes through.
+ * Two rest colors: nav stays silver-gray; hero goes pure black.
+ * Gleam sweep lasts 10% of the cycle (1.8s of 18s), then sits.
+ * Both endpoints are the rest color — no visible snap at restart.
  * ============================================================ */
 
-.VPNavBarTitle .title,
-.VPHome .name,
-.VPHero .name {
+/* Nav wordmark */
+.VPNavBarTitle .title {
   background: linear-gradient(
     110deg,
     var(--silvery-wordmark-rest) 0%,
@@ -97,19 +101,27 @@
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-
   animation: silvery-wordmark-gleam 18s ease-in-out infinite;
 }
 
-/* Hero wordmark also gets a subtle outline */
+/* Hero wordmark — same gleam mechanism, settles to pure black */
 .VPHome .name,
 .VPHero .name {
-  -webkit-text-stroke: 0.5px rgba(90, 106, 133, 0.35);
-}
-
-.dark .VPHome .name,
-.dark .VPHero .name {
-  -webkit-text-stroke: 0.5px rgba(230, 230, 230, 0.2);
+  background: linear-gradient(
+    110deg,
+    var(--silvery-hero-rest) 0%,
+    var(--silvery-hero-rest) 42%,
+    var(--silvery-hero-highlight) 50%,
+    var(--silvery-hero-rest) 58%,
+    var(--silvery-hero-rest) 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: silvery-wordmark-gleam 18s ease-in-out infinite;
 }
 
 @keyframes silvery-wordmark-gleam {
@@ -162,15 +174,10 @@
  * Feature card key-term highlighting
  *
  * Inline links inside feature cards (e.g. "React 18 + 19",
- * "3-27× faster", "useBoxRect()") are treated as highlighted
- * chips — accent color, weight 500, subtle underline. They
- * become filled chips on hover.
- *
- * The trailing "Feature link →" arrow at the end of each card
- * (.feature-link) is styled separately as a subtle bottom link.
+ * "3-27× faster", "useBoxRect()") are chip-styled: accent color,
+ * weight 500, subtle underline at rest; filled pill on hover.
  * ============================================================ */
 
-/* Inline prose links in feature cards — chip-style highlighting */
 .VPFeature a:not(.feature-link) {
   color: var(--silvery-accent);
   font-weight: 500;
@@ -221,8 +228,7 @@
   color: var(--silvery-accent-light);
 }
 
-/* "Feature link →" arrows at the bottom of each feature card
-   — subtle baseline link, ghost on hover */
+/* "Feature link →" arrows — subtle, slide-right on hover */
 .feature-link {
   display: inline-block;
   margin-top: 0.5em;
@@ -243,20 +249,6 @@
 .dark .feature-link:hover {
   color: #ffffff !important;
 }
-
-/* Nav links — accent underline on hover */
-.VPNavBarMenu .VPNavBarMenuLink {
-  transition:
-    color 0.15s ease,
-    border-bottom-color 0.15s ease !important;
-}
-
-/* ============================================================
- * Note: the blinking cursor at the end of the tagline was
- * removed per user feedback — it competed with the wordmark
- * gleam and felt distracting. Single source of animated
- * activity on the page is now the wordmark gleam sweep.
- * ============================================================ */
 
 /* ---- Preserve existing fixes ---- */
 
