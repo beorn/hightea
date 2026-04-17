@@ -121,6 +121,6 @@ Theme tokens adapt to the active palette -- your app looks correct in any theme 
 
 ## See Also
 
-- [Theming Guide](/guides/theming) -- Full theme system documentation
+- [Theming Guide](/guide/theming) -- Full theme system documentation
 - [Components Guide](/guides/components) -- Text component styling props
 - [Ink/Chalk Compatibility Reference](/reference/compatibility) -- Complete API mapping tables
