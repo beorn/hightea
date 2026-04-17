@@ -1,7 +1,7 @@
 /**
  * Selection Model Demo
  *
- * Demonstrates the silvery selection model from docs/design/selection-model.md:
+ * Demonstrates the silvery selection model from docs/design/ui/selection.md:
  * - Node selection (click, j/k)
  * - Multi-select (Cmd+click toggle, Shift+j/k extend)
  * - Text editing (Enter → edit, Escape → node mode)
