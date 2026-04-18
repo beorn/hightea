@@ -151,6 +151,8 @@ export type { Style, StyleOptions, ThemeLike } from "./style/types"
 
 export { deriveTheme, loadTheme } from "./theme/derive"
 export type { ThemeAdjustment, LoadThemeOptions } from "./theme/derive"
+export { deriveMonochromeTheme, monoAttrsFor, DEFAULT_MONO_ATTRS } from "./theme/monochrome"
+export type { MonoAttr, MonochromeAttrs } from "./theme/monochrome"
 export {
   validateThemeInvariants,
   formatViolations,
