@@ -98,7 +98,7 @@
  * boundary is invisible. */
 @keyframes silvery-page-gleam {
   0%   { background-position: -100vw 0; }  /* pulse starts: bright off-left */
-  40%  { background-position: 100vw 0; }   /* pulse finished: bright off-right */
+  50%  { background-position: 100vw 0; }   /* pulse finished: bright off-right */
   100% { background-position: 100vw 0; }   /* hold at rest until next pulse */
 }
 
@@ -121,7 +121,7 @@
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: silvery-page-gleam 3s linear infinite;
+  animation: silvery-page-gleam 5s linear infinite;
 }
 
 /* Hero wordmark — rest color is dark, chrome highlight sweeps across */
@@ -144,7 +144,7 @@
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: silvery-page-gleam 3s linear infinite;
+  animation: silvery-page-gleam 5s linear infinite;
 }
 
 /* Hero headline "React for modern terminal apps" — dim rest, chrome peak */
@@ -167,7 +167,7 @@
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: silvery-page-gleam 3s linear infinite;
+  animation: silvery-page-gleam 5s linear infinite;
 }
 
 .dark .VPHome .text,
@@ -189,7 +189,7 @@
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: silvery-page-gleam 3s linear infinite;
+  animation: silvery-page-gleam 5s linear infinite;
 }
 
 /* Get Started primary button — dim rest, chrome peak */
@@ -209,7 +209,7 @@
   background-attachment: fixed !important;
   background-repeat: no-repeat !important;
   background-position: 100vw 0;
-  animation: silvery-page-gleam 3s linear infinite;
+  animation: silvery-page-gleam 5s linear infinite;
   border-color: var(--silvery-accent) !important;
   color: #ffffff !important;
 }
@@ -342,7 +342,7 @@
   background-attachment: fixed;
   background-repeat: no-repeat;
   background-position: 100vw 0;
-  animation: silvery-page-gleam 3s linear infinite;
+  animation: silvery-page-gleam 5s linear infinite;
 
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
@@ -360,7 +360,7 @@
   background-attachment: fixed;
   background-repeat: no-repeat;
   background-position: 100vw 0;
-  animation: silvery-page-gleam 3s linear infinite;
+  animation: silvery-page-gleam 5s linear infinite;
 }
 
 @media (max-width: 820px) {
