@@ -31,7 +31,7 @@ Each branch below explains when it's the right answer.
 
 | Token | Resolves to |
 |-------|-------------|
-| `$brand` | App's primary identity color. Defaults to `scheme.primary` (often the cursor color or the scheme's declared primary). Apps pin via `<ThemeProvider tokens={{ brand: "#5B8DEF" }}>`. |
+| `$brand` | App's primary identity color. Defaults to `scheme.primary` (often the cursor color or the scheme's declared primary). Apps pin via <span v-pre>`<ThemeProvider tokens={{ brand: "#5B8DEF" }}>`</span>. |
 | `$brand-hover` | +0.04 L in OKLCH (+darken on light themes). For interactive hover states. |
 | `$brand-active` | +0.08 L in OKLCH. For active/pressed states. |
 
