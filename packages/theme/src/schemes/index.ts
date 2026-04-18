@@ -60,6 +60,8 @@ export { twilight } from "./twilight"
 export { breeze } from "./breeze"
 export { andromeda } from "./andromeda"
 export { relaxed } from "./relaxed"
+export { silveryDark, silveryLight } from "./silvery"
+export { vga, xtermDefault, appleTerminalBasic, windowsTerminalCampbell, gnomeTerminalTango } from "./classics"
 
 // ── Import for registry ────────────────────────────────────────────
 import { catppuccinMocha, catppuccinFrappe, catppuccinMacchiato, catppuccinLatte } from "./catppuccin"
@@ -111,6 +113,14 @@ import { twilight } from "./twilight"
 import { breeze } from "./breeze"
 import { andromeda } from "./andromeda"
 import { relaxed } from "./relaxed"
+import { silveryDark, silveryLight } from "./silvery"
+import {
+  vga,
+  xtermDefault,
+  appleTerminalBasic,
+  windowsTerminalCampbell,
+  gnomeTerminalTango,
+} from "./classics"
 
 // ============================================================================
 // ANSI 16 Themes (no palette required — hardcoded for any terminal)
@@ -369,6 +379,15 @@ export const builtinPalettes: Record<string, ColorScheme> = {
   andromeda: andromeda,
   // Relaxed
   relaxed: relaxed,
+  // Silvery signatures (defaults)
+  "silvery-dark": silveryDark,
+  "silvery-light": silveryLight,
+  // Classic terminal defaults (anchor points for fingerprint matching)
+  vga: vga,
+  "xterm-default": xtermDefault,
+  "apple-terminal-basic": appleTerminalBasic,
+  "windows-terminal-campbell": windowsTerminalCampbell,
+  "gnome-terminal-tango": gnomeTerminalTango,
 }
 
 /** All built-in themes, indexed by name (includes backward-compat aliases). */
