@@ -351,14 +351,28 @@
   }
 }
 
-/* VitePress hero on mobile pulls .image up by -76px and offsets content
- * with -48px bottom margin (for stylized halo images). Our terminal has
- * real content, so those negatives make the title overlap the terminal.
- * Reset on mobile. */
+/* VitePress hero defaults are sized for a stylized halo image with fixed
+ * 320×320 container + negative margins. Our terminal has real content and
+ * variable height, so we reset the defaults and tighten vertical padding
+ * for a compact mobile hero. */
 @media (max-width: 960px) {
+  .VPHero {
+    padding-top: 80px !important;   /* was 112px (nav is 64px, leaves ~16px gap) */
+    padding-bottom: 16px !important; /* was 48px */
+  }
   .VPHero .image {
-    margin-top: 0 !important;
-    margin-bottom: 1rem !important;
+    margin-top: 0 !important;        /* was -76px */
+    margin-bottom: 0.5rem !important; /* was -48px */
+  }
+  .VPHero .image-container {
+    width: auto !important;          /* was 320px fixed */
+    height: auto !important;         /* was 320px fixed — left 112px empty */
+  }
+  .VPHero .image-bg {
+    display: none;                   /* hide halo bg — we don't use it */
+  }
+  .silvery-terminal-wrap {
+    margin-top: 0.5em;               /* tighter gap above terminal */
   }
 }
 
