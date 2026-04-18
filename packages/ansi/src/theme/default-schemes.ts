@@ -57,6 +57,17 @@ export const ansi16DarkTheme: Theme = {
     "cyanBright",
     "whiteBright",
   ],
+  brand: "yellow",
+  brandHover: "yellow",
+  brandActive: "yellow",
+  brandRed: "redBright",
+  brandOrange: "redBright", // no orange slot in ANSI 16
+  brandYellow: "yellow",
+  brandGreen: "greenBright",
+  brandTeal: "cyan",
+  brandBlue: "blueBright",
+  brandPurple: "magenta",
+  brandPink: "magentaBright",
 }
 
 export const ansi16LightTheme: Theme = {
@@ -112,6 +123,17 @@ export const ansi16LightTheme: Theme = {
     "cyanBright",
     "whiteBright",
   ],
+  brand: "blue",
+  brandHover: "blue",
+  brandActive: "blue",
+  brandRed: "red",
+  brandOrange: "red",
+  brandYellow: "yellow",
+  brandGreen: "green",
+  brandTeal: "cyan",
+  brandBlue: "blue",
+  brandPurple: "magenta",
+  brandPink: "magenta",
 }
 
 export const defaultDarkScheme: ColorScheme = {

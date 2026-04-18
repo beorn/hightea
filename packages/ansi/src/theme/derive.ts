@@ -2,7 +2,7 @@
  * Theme derivation — transforms a ColorScheme into a Theme.
  */
 
-import { blend, contrastFg, complement, hexToOklch, oklchToHex, colorDistance } from "@silvery/color"
+import { blend, contrastFg, complement, hexToOklch, oklchToHex, colorDistance, brighten, darken } from "@silvery/color"
 import { checkContrast, ensureContrast } from "@silvery/color"
 import type { ColorScheme, Theme } from "./types.ts"
 import {
@@ -132,6 +132,23 @@ function deriveTruecolorTheme(p: ColorScheme, adjustments?: ThemeAdjustment[]): 
   const success = ensure("success", p.green, bg, AA)
   const info = ensure("info", blend(fg, accent, 0.5), bg, AA)
   const link = ensure("link", dark ? p.brightBlue : p.blue, bg, AA)
+
+  // Brand tokens (standard in every theme, Apple system-color model).
+  // $brand anchors to primary; hover/active shift OKLCH L ±0.04 / ±0.08.
+  // Auxiliary hues (red/orange/yellow/green/teal/blue/purple/pink) pull from
+  // the scheme's accent ring, ensureContrast-adjusted against bg — an evenly-
+  // weighted categorical palette, NOT status colors.
+  const brand = primary
+  const brandHover = dark ? brighten(primary, 0.04) : darken(primary, 0.04)
+  const brandActive = dark ? brighten(primary, 0.08) : darken(primary, 0.08)
+  const brandRed = ensure("brandRed", p.red, bg, AA)
+  const brandOrange = ensure("brandOrange", blend(p.red, p.yellow, 0.5), bg, AA)
+  const brandYellow = ensure("brandYellow", p.yellow, bg, AA)
+  const brandGreen = ensure("brandGreen", p.green, bg, AA)
+  const brandTeal = ensure("brandTeal", blend(p.green, p.cyan, 0.5), bg, AA)
+  const brandBlue = ensure("brandBlue", dark ? p.brightBlue : p.blue, bg, AA)
+  const brandPurple = ensure("brandPurple", p.magenta, bg, AA)
+  const brandPink = ensure("brandPink", blend(p.magenta, p.red, 0.5), bg, AA)
   const mutedbg = blend(bg, p.foreground, 0.04)
   const muted = ensure("muted", blend(fg, bg, 0.4), mutedbg, AA)
   const disabledfg = ensure("disabledfg", blend(fg, bg, 0.5), bg, DIM)
@@ -199,6 +216,17 @@ function deriveTruecolorTheme(p: ColorScheme, adjustments?: ThemeAdjustment[]): 
       p.brightCyan,
       p.brightWhite,
     ],
+    brand,
+    brandHover,
+    brandActive,
+    brandRed,
+    brandOrange,
+    brandYellow,
+    brandGreen,
+    brandTeal,
+    brandBlue,
+    brandPurple,
+    brandPink,
   }
 }
 
@@ -258,6 +286,18 @@ function deriveAnsi16Theme(p: ColorScheme): Theme {
       p.brightCyan,
       p.brightWhite,
     ],
+    // Brand tokens at ANSI 16 — map to named slots (no blending possible).
+    brand: primaryColor,
+    brandHover: primaryColor,
+    brandActive: primaryColor,
+    brandRed: dark ? p.brightRed : p.red,
+    brandOrange: dark ? p.brightRed : p.red, // no orange slot in ANSI 16 — use red
+    brandYellow: p.yellow,
+    brandGreen: dark ? p.brightGreen : p.green,
+    brandTeal: p.cyan,
+    brandBlue: dark ? p.brightBlue : p.blue,
+    brandPurple: p.magenta,
+    brandPink: dark ? p.brightMagenta : p.magenta,
   }
 }
 

@@ -115,6 +115,28 @@ export interface Theme {
   link: string
   disabledfg: string
   palette: string[]
+
+  // Brand tokens (Apple system-color model) — standard in every theme, auto-derived
+  // from scheme, overridable via ThemeProvider tokens. Auxiliary hues (red/orange/
+  // yellow/green/teal/blue/purple/pink) are categorical accents, NOT status colors.
+  //
+  // Use for: tag palettes, calendar categories, chart series, diff-type labels,
+  // priority levels where color is categorical rather than stateful.
+  //
+  // Distinguish from:
+  //   - $color0..$color15  (raw terminal ANSI, user's theme verbatim, unadjusted)
+  //   - $error/$warning/$success/$info  (semantic state — communicates meaning)
+  brand: string
+  brandHover: string
+  brandActive: string
+  brandRed: string
+  brandOrange: string
+  brandYellow: string
+  brandGreen: string
+  brandTeal: string
+  brandBlue: string
+  brandPurple: string
+  brandPink: string
 }
 
 export type AnsiPrimary = "yellow" | "cyan" | "magenta" | "green" | "red" | "blue" | "white"

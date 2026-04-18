@@ -84,6 +84,17 @@ const PRIMER_ALIASES: Record<string, string> = {
   // Border slots — "border-<role>"
   borderfocus: "focusborder",
   borderinput: "inputborder",
+  // Brand tokens (Apple system-color model) — kebab-case → camelCase in Theme
+  brandhover: "brandHover",
+  brandactive: "brandActive",
+  brandred: "brandRed",
+  brandorange: "brandOrange",
+  brandyellow: "brandYellow",
+  brandgreen: "brandGreen",
+  brandteal: "brandTeal",
+  brandblue: "brandBlue",
+  brandpurple: "brandPurple",
+  brandpink: "brandPink",
 }
 
 /** Internal: resolve a token name (with or without $ prefix) against a theme. */
