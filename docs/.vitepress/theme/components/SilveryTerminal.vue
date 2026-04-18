@@ -1,17 +1,13 @@
 <!--
   SilveryTerminal — hero image slot component for silvery.dev
 
-  macOS-Terminal.app fidelity. The chrome bezel is a separate
-  wrapper with its own gleam animation synced to the wordmark
-  gleam (one light source across both).
+  Box widths verified via diagram skill protocol:
+    W (longest content) = 46 ("One cursor per page · matches the design doc.")
+    total width = 62 chars per line
 
-  Box width verified via the diagram skill protocol:
-    W (longest content) = 41 chars ("One cursor per page · matches the design.")
-    interior = W + 2 = 43 chars (between the `│` walls)
-    total    = interior + 2 = 45 chars per line
-
-  Every box line below is exactly 45 chars wide in monospace,
-  regardless of HTML span wrappers around color tokens.
+  Gleam is continuous — a slow steady drift across the chrome bezel,
+  looping forever. Both gradient endpoints are dark so the cycle wrap
+  is invisible.
 -->
 
 <template>
@@ -26,34 +22,35 @@
         <div class="silvery-terminal__title">silvery-agent — ~/silvery</div>
       </div>
 
-      <pre class="silvery-terminal__body"><span class="t-dim">╭─ </span><span class="t-accent">user</span><span class="t-dim"> ────────────────────────────────────╮</span>
-<span class="t-dim">│</span> <span class="t-command">add a blinking cursor after the tagline</span>   <span class="t-dim">│</span>
-<span class="t-dim">╰───────────────────────────────────────────╯</span>
+      <pre class="silvery-terminal__body"><span class="t-dim">╭─ </span><span class="t-accent">user</span><span class="t-dim"> ─────────────────────────────────────────────────────╮</span>
+<span class="t-dim">│</span> <span class="t-command">add a blinking cursor after the tagline</span>                    <span class="t-dim">│</span>
+<span class="t-dim">╰────────────────────────────────────────────────────────────╯</span>
 
 <span class="t-think">⏺</span> <span class="t-dim">Planning the change...</span>
 
 <span class="t-tool">●</span> Read <span class="t-path">.vitepress/theme/custom.css</span>
-  <span class="t-ok">✓</span> <span class="t-dim">found </span><span class="t-path">.VPHero .tagline</span><span class="t-dim"> selector</span>
+  <span class="t-ok">✓</span> <span class="t-dim">found </span><span class="t-path">.VPHero .tagline</span><span class="t-dim"> selector at line 148</span>
 
 <span class="t-tool">●</span> Edit <span class="t-path">.vitepress/theme/custom.css</span>
-  <span class="t-dim">+ tagline::after blink (1Hz steps(1))</span>
-  <span class="t-ok">✓</span> <span class="t-dim">applied · 12 insertions</span>
+  <span class="t-dim">+ tagline::after blink animation (1Hz steps(1))</span>
+  <span class="t-dim">+ silvery-cursor-blink keyframes</span>
+  <span class="t-ok">✓</span> <span class="t-dim">applied · 12 insertions · 0 deletions</span>
 
-<span class="t-dim">╭─ </span><span class="t-accent">assistant</span><span class="t-dim"> ───────────────────────────────╮</span>
-<span class="t-dim">│</span> <span class="t-fg">Blink lands at end of tagline.</span>            <span class="t-dim">│</span>
-<span class="t-dim">│</span> <span class="t-dim">One cursor per page · matches the design.</span> <span class="t-dim">│</span>
-<span class="t-dim">╰───────────────────────────────────────────╯</span></pre>
+<span class="t-dim">╭─ </span><span class="t-accent">assistant</span><span class="t-dim"> ────────────────────────────────────────────────╮</span>
+<span class="t-dim">│</span> <span class="t-fg">Blink lands at end of tagline.</span>                             <span class="t-dim">│</span>
+<span class="t-dim">│</span> <span class="t-dim">One cursor per page · matches the design doc.</span>              <span class="t-dim">│</span>
+<span class="t-dim">╰────────────────────────────────────────────────────────────╯</span></pre>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* ----- Chrome bezel wrapper with gleam ----- */
+/* ----- Chrome bezel wrapper — continuous gleam drift ----- */
 .silvery-terminal-wrap {
   padding: 5px;
   border-radius: 14px;
   margin: 2.5em auto 0;
-  max-width: 620px;          /* wider terminal */
+  max-width: 760px;          /* wider terminal */
   overflow: hidden;
 
   background: linear-gradient(
@@ -65,8 +62,8 @@
     #9aa1b0 100%
   );
   background-size: 300% 100%;
-  background-position: 100% 0;
-  animation: silvery-chrome-gleam 22s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  background-position: 150% 0;
+  animation: silvery-chrome-drift 18s linear infinite;
 
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
@@ -81,17 +78,16 @@
     #b0b6c4 100%
   );
   background-size: 300% 100%;
-  background-position: 100% 0;
-  animation: silvery-chrome-gleam 22s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  background-position: 150% 0;
+  animation: silvery-chrome-drift 18s linear infinite;
 }
 
-@keyframes silvery-chrome-gleam {
-  0%      { background-position: 100% 0; }
-  18%     { background-position: -100% 0; }
-  22%     { background-position: -100% 0; }
-  22.01%  { background-position: 100% 0; }
-  40%     { background-position: -100% 0; }
-  100%    { background-position: -100% 0; }
+/* Continuous drift — the highlight moves steadily across forever.
+ * Both endpoints (150% and -150%) show the dark rest color, so the
+ * cycle wrap is invisible and the gleam never visibly "stops". */
+@keyframes silvery-chrome-drift {
+  0%   { background-position: 150% 0; }
+  100% { background-position: -150% 0; }
 }
 
 /* ----- Inner terminal ----- */
@@ -155,7 +151,6 @@
   white-space: pre;
   overflow-x: auto;
 
-  /* Ligatures and kerning off so monospace chars all have identical width */
   font-feature-settings: "liga" 0, "calt" 0;
   font-variant-ligatures: none;
   font-kerning: none;
@@ -172,7 +167,7 @@
 .t-dim     { color: #6a7080; }
 
 /* Responsive */
-@media (max-width: 700px) {
+@media (max-width: 820px) {
   .silvery-terminal-wrap {
     max-width: 100%;
     margin-top: 1.5em;

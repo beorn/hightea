@@ -72,11 +72,12 @@
 }
 
 /* ============================================================
- * Chrome gleam on "Silvery" wordmark
+ * Chrome gleam on "Silvery" wordmark — continuous drift
  *
- * Two sweeps per cycle, with smooth cubic-bezier acceleration.
- * Both gradient endpoints are the rest color, so cycle restart
- * and the between-sweeps reset are both invisible.
+ * The highlight drifts steadily from right to left and loops
+ * forever. Both gradient endpoints are the rest color (hero: black,
+ * nav: silver-gray) so the cycle wrap is invisible — no jagged
+ * restart, just a slow steady passage.
  * ============================================================ */
 
 .VPNavBarTitle .title {
@@ -89,12 +90,12 @@
     var(--silvery-wordmark-rest) 100%
   );
   background-size: 300% 100%;
-  background-position: 100% 0;
+  background-position: 150% 0;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: silvery-wordmark-gleam 22s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation: silvery-wordmark-drift 18s linear infinite;
 }
 
 .VPHome .name,
@@ -108,24 +109,21 @@
     var(--silvery-hero-rest) 100%
   );
   background-size: 300% 100%;
-  background-position: 100% 0;
+  background-position: 150% 0;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: silvery-wordmark-gleam 22s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation: silvery-wordmark-drift 18s linear infinite;
 }
 
-/* Two-sweep cycle: smooth long sweep, brief pause, second smooth sweep,
- * then a long rest. Endpoints are solid rest color so the between-sweep
- * "reset" and the cycle restart are both invisible. */
-@keyframes silvery-wordmark-gleam {
-  0%      { background-position: 100% 0; }
-  18%     { background-position: -100% 0; }   /* first sweep, ~4s smooth */
-  22%     { background-position: -100% 0; }   /* brief hold (dark, invisible) */
-  22.01%  { background-position: 100% 0; }    /* reset to right (dark→dark, invisible) */
-  40%     { background-position: -100% 0; }   /* second sweep, ~4s smooth */
-  100%    { background-position: -100% 0; }   /* long rest */
+/* Continuous linear drift. At position 150% we see the far-right of
+ * the oversized gradient (rest color). At position -150% we see the
+ * far-left (rest color). Cycle wrap is invisible — no visible snap,
+ * the gleam simply keeps drifting across forever. */
+@keyframes silvery-wordmark-drift {
+  0%   { background-position: 150% 0; }
+  100% { background-position: -150% 0; }
 }
 
 /* ============================================================
