@@ -88,16 +88,16 @@
  * viewport at the same moment.
  * ============================================================ */
 
-/* Gleam travels left → right across the viewport, cycles forever.
- * Both endpoints of the gradient are the rest color, so the jump
- * from 100vw back to -100vw at cycle boundary is invisible. */
+/* Gleam pulses — quick left → right sweep, then a pause at rest
+ * before the next pulse. Both endpoints show rest color (highlight
+ * band sits at 30-70% of the gradient, and visible windows at
+ * background-position 0% and 100% fall entirely outside that band),
+ * so the hold segment is truly invisible and the jump back to the
+ * start is seamless. */
 @keyframes silvery-page-gleam {
-  /* Highlight enters from LEFT (position 100% = gradient shifted right,
-   * highlight off-left) and drifts to RIGHT (position 0% = gradient at
-   * origin, highlight pushed off-right). Endpoints show rest color,
-   * so cycle wrap is invisible. */
-  0%   { background-position: 100% 0; }
-  100% { background-position: 0% 0; }
+  0%   { background-position: 100% 0; }   /* pulse starts: highlight off-left */
+  40%  { background-position: 0% 0; }     /* pulse finished: highlight off-right */
+  100% { background-position: 0% 0; }     /* hold at rest until next pulse */
 }
 
 /* Nav wordmark */
@@ -116,7 +116,7 @@
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: silvery-page-gleam 4.5s linear infinite;
+  animation: silvery-page-gleam 3s linear infinite;
 }
 
 /* Hero wordmark */
@@ -136,7 +136,7 @@
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: silvery-page-gleam 4.5s linear infinite;
+  animation: silvery-page-gleam 3s linear infinite;
 }
 
 /* Hero headline "React for modern terminal apps" */
@@ -156,7 +156,7 @@
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: silvery-page-gleam 4.5s linear infinite;
+  animation: silvery-page-gleam 3s linear infinite;
 }
 
 .dark .VPHome .text,
@@ -175,7 +175,7 @@
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: silvery-page-gleam 4.5s linear infinite;
+  animation: silvery-page-gleam 3s linear infinite;
 }
 
 /* Get Started primary button */
@@ -192,7 +192,7 @@
   ) !important;
   background-size: 300% 100% !important;
   background-position: 100% 0;
-  animation: silvery-page-gleam 4.5s linear infinite;
+  animation: silvery-page-gleam 3s linear infinite;
   border-color: var(--silvery-accent) !important;
   color: #ffffff !important;
 }
@@ -323,7 +323,7 @@
   );
   background-size: 300% 100%;
   background-position: 100% 0;
-  animation: silvery-page-gleam 4.5s linear infinite;
+  animation: silvery-page-gleam 3s linear infinite;
 
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
@@ -339,7 +339,7 @@
   );
   background-size: 300% 100%;
   background-position: 100% 0;
-  animation: silvery-page-gleam 4.5s linear infinite;
+  animation: silvery-page-gleam 3s linear infinite;
 }
 
 @media (max-width: 820px) {
