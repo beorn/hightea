@@ -1,13 +1,16 @@
 /**
  * WCAG 2.1 contrast checking and enforcement.
  *
- * - checkContrast(): measure the ratio between two colors
+ * - checkContrast(): measure the ratio between two colors (WCAG 2.1)
  * - ensureContrast(): adjust a color until it meets a target ratio
  *
- * Uses the relative luminance formula from WCAG 2.1.
+ * `ensureContrast` operates in OKLCH — it preserves hue and chroma while
+ * walking lightness toward the contrast target. This avoids the hue-shift
+ * artifacts HSL-based contrast repair can introduce.
  */
 
-import { hexToHsl, hslToHex, contrastFg, relativeLuminance } from "./color.ts"
+import { hexToOklch, oklchToHex } from "./oklch.ts"
+import { contrastFg, relativeLuminance } from "./color.ts"
 import type { ContrastResult } from "./types.ts"
 
 /**
@@ -46,24 +49,24 @@ export function checkContrast(fg: string, bg: string): ContrastResult | null {
 }
 
 /**
- * Adjust a color's lightness until it meets a minimum contrast ratio
- * against a reference color. Preserves hue and saturation — only
- * lightness is shifted, and only as much as needed.
+ * Adjust a color's OKLCH lightness until it meets a minimum WCAG contrast ratio
+ * against a reference color. Preserves hue and chroma — only lightness shifts,
+ * and only as much as needed.
  *
  * Returns the original color unchanged if it already meets the target.
+ *
+ * For impossible targets (e.g. 21:1 against mid-gray), returns the
+ * best achievable color (near-black or near-white in the same hue).
  *
  * @param color - The color to adjust (hex)
  * @param against - The reference background color (hex)
  * @param minRatio - Minimum contrast ratio to achieve (e.g. 4.5 for AA)
  * @returns Adjusted hex color meeting the target, or original if already OK
  *
- * For impossible targets (e.g. 21:1 against mid-gray), returns the
- * best achievable color (near-black or near-white in the same hue).
- *
  * @example
  * ```typescript
- * // Yellow on white — too low contrast, gets darkened
- * ensureContrast("#FFAB91", "#FFFFFF", 4.5)  // → "#B35600" (darker orange)
+ * // Yellow on white — too low contrast, gets darkened (perceptually; same hue preserved)
+ * ensureContrast("#FFAB91", "#FFFFFF", 4.5)
  *
  * // Blue on dark bg — already fine, returned unchanged
  * ensureContrast("#5C9FFF", "#1A1A2E", 4.5)  // → "#5C9FFF"
@@ -74,27 +77,25 @@ export function ensureContrast(color: string, against: string, minRatio: number)
   if (!current) return color // non-hex input — return unchanged
   if (current.ratio >= minRatio) return color
 
-  const hsl = hexToHsl(color)
-  if (!hsl) return color
-  const [h, s] = hsl
+  const o = hexToOklch(color)
+  if (!o) return color
 
   // Light bg → darken (decrease L), dark bg → lighten (increase L)
   const lightBg = contrastFg(against) === "#000000"
 
-  // Binary search for the minimum lightness shift that achieves the target.
-  // lo/hi bracket the L range to search within.
+  // Binary search the minimum L shift (in OKLCH) that achieves the target.
   let lo: number, hi: number
   if (lightBg) {
     lo = 0 // maximum darkening
-    hi = hsl[2] // current lightness
+    hi = o.L // current lightness
   } else {
-    lo = hsl[2] // current lightness
+    lo = o.L // current lightness
     hi = 1 // maximum lightening
   }
 
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 24; i++) {
     const mid = (lo + hi) / 2
-    const candidate = hslToHex(h, s, mid)
+    const candidate = oklchToHex({ L: mid, C: o.C, H: o.H })
     const r = checkContrast(candidate, against)
     if (!r) break
     if (lightBg) {
@@ -108,5 +109,5 @@ export function ensureContrast(color: string, against: string, minRatio: number)
     }
   }
 
-  return hslToHex(h, s, lightBg ? lo : hi)
+  return oklchToHex({ L: lightBg ? lo : hi, C: o.C, H: o.H })
 }

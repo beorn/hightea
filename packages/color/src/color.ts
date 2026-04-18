@@ -2,14 +2,18 @@
  * Color manipulation utilities.
  *
  * Operates in OKLCH for perceptual uniformity — hue rotations look right,
- * lightness changes feel linear, chroma is preserved.
+ * lightness changes feel linear, chroma is preserved. sRGB hex is the
+ * serialization format; everything else happens in OKLCH.
  *
- * Currently uses simple RGB blending as a foundation. Full OKLCH conversion
- * will be added when needed for advanced derivation (shade generation,
- * palette generation from minimal input).
+ * Public API stays hex-in, hex-out — callers never see OKLCH unless they
+ * opt in via `oklch()` / `toHex()`. For non-hex input (ANSI names like
+ * `"red"`), operations pass through unchanged so accidental misuse is
+ * visible without crashing styled output.
  */
 
 import type { HSL } from "./types.ts"
+import type { OKLCH } from "./oklch.ts"
+import { hexToOklch, oklchToHex, lerpOklch, deltaE as oklchDeltaE } from "./oklch.ts"
 
 // ============================================================================
 // Hex ↔ RGB Parsing
@@ -35,39 +39,103 @@ export function rgbToHex(r: number, g: number, b: number): string {
 }
 
 // ============================================================================
-// Color Manipulation
+// OKLCH entry points (convenience aliases)
+// ============================================================================
+
+/** Parse a hex color into OKLCH. Returns null for non-hex input. */
+export function oklch(hex: string): OKLCH | null {
+  return hexToOklch(hex)
+}
+
+/** Serialize OKLCH → hex. Gamut-maps by reducing chroma if out-of-sRGB. */
+export function toHex(c: OKLCH): string {
+  return oklchToHex(c)
+}
+
+// ============================================================================
+// Color Manipulation — OKLCH-native
 // ============================================================================
 
 /**
- * Blend two hex colors. t=0 returns a, t=1 returns b.
+ * Blend two hex colors in OKLCH space. t=0 returns a, t=1 returns b.
+ * Perceptually-uniform midpoints (unlike naive RGB blending which produces
+ * muddy halfway colors).
+ *
  * For non-hex inputs (ANSI names), returns `a` unchanged.
  */
 export function blend(a: string, b: string, t: number): string {
-  const rgbA = hexToRgb(a)
-  const rgbB = hexToRgb(b)
-  if (!rgbA || !rgbB) return a
-
-  return rgbToHex(
-    rgbA[0] + (rgbB[0] - rgbA[0]) * t,
-    rgbA[1] + (rgbB[1] - rgbA[1]) * t,
-    rgbA[2] + (rgbB[2] - rgbA[2]) * t,
-  )
+  const oa = hexToOklch(a)
+  const ob = hexToOklch(b)
+  if (!oa || !ob) return a
+  return oklchToHex(lerpOklch(oa, ob, t))
 }
 
 /**
- * Brighten a hex color. amount=0.1 adds 10% lightness toward white.
- * For non-hex inputs (ANSI names), returns the color unchanged.
+ * Brighten a hex color by raising OKLCH lightness. amount=0.1 adds 0.1 to L
+ * (perceptually linear — 10% brighter looks 10% brighter regardless of hue).
+ *
+ * For non-hex inputs, returns the color unchanged.
  */
 export function brighten(color: string, amount: number): string {
-  return blend(color, "#FFFFFF", amount)
+  const o = hexToOklch(color)
+  if (!o) return color
+  return oklchToHex({ L: Math.min(1, o.L + amount), C: o.C, H: o.H })
 }
 
 /**
- * Darken a hex color. amount=0.1 adds 10% darkness toward black.
- * For non-hex inputs (ANSI names), returns the color unchanged.
+ * Darken a hex color by lowering OKLCH lightness. amount=0.1 subtracts 0.1 from L.
+ *
+ * For non-hex inputs, returns the color unchanged.
  */
 export function darken(color: string, amount: number): string {
-  return blend(color, "#000000", amount)
+  const o = hexToOklch(color)
+  if (!o) return color
+  return oklchToHex({ L: Math.max(0, o.L - amount), C: o.C, H: o.H })
+}
+
+/**
+ * Saturate a hex color by raising OKLCH chroma. amount=0.05 adds 0.05 to C.
+ * Gamut mapping in `toHex` clamps impossible chroma back to the sRGB-visible max.
+ *
+ * For non-hex inputs, returns the color unchanged.
+ */
+export function saturate(color: string, amount: number): string {
+  const o = hexToOklch(color)
+  if (!o) return color
+  return oklchToHex({ L: o.L, C: Math.max(0, o.C + amount), H: o.H })
+}
+
+/**
+ * Desaturate a hex color by lowering OKLCH chroma. amount=0.4 reduces C by 40%
+ * (relative — consistent with the original HSL-based contract). For a flat
+ * subtraction, use `saturate(color, -amount)`.
+ *
+ * For non-hex inputs, returns the color unchanged.
+ */
+export function desaturate(color: string, amount: number): string {
+  const o = hexToOklch(color)
+  if (!o) return color
+  return oklchToHex({ L: o.L, C: Math.max(0, o.C * (1 - amount)), H: o.H })
+}
+
+/**
+ * Get the complementary color (180° hue rotation) in OKLCH. Preserves L + C,
+ * so the complement has the same perceived brightness and colorfulness.
+ *
+ * For non-hex inputs, returns the color unchanged.
+ */
+export function complement(color: string): string {
+  const o = hexToOklch(color)
+  if (!o) return color
+  return oklchToHex({ L: o.L, C: o.C, H: (o.H + 180) % 360 })
+}
+
+/** Perceptual color distance (ΔE) between two hex colors, in OKLCH. */
+export function colorDistance(a: string, b: string): number | null {
+  const oa = hexToOklch(a)
+  const ob = hexToOklch(b)
+  if (!oa || !ob) return null
+  return oklchDeltaE(oa, ob)
 }
 
 // ============================================================================
@@ -75,9 +143,8 @@ export function darken(color: string, amount: number): string {
 // ============================================================================
 
 /**
- * Linearize an sRGB channel value (0-255) for luminance calculation.
- * Per WCAG 2.1: values below the threshold use a linear scale,
- * above use the gamma-corrected formula.
+ * Linearize an sRGB channel value (0-255) for WCAG 2.1 luminance.
+ * Kept for WCAG contrast checking — OKLCH uses its own linearization.
  */
 export function channelLuminance(c: number): number {
   const s = c / 255
@@ -96,7 +163,7 @@ export function relativeLuminance(hex: string): number | null {
 
 /**
  * Pick black or white text for readability on the given background.
- * Uses relative luminance (WCAG formula).
+ * Uses WCAG 2.1 relative luminance.
  */
 export function contrastFg(bg: string): "#000000" | "#FFFFFF" {
   const luminance = relativeLuminance(bg)
@@ -105,7 +172,7 @@ export function contrastFg(bg: string): "#000000" | "#FFFFFF" {
 }
 
 // ============================================================================
-// HSL Utilities
+// HSL Utilities — kept for serialization compatibility (HSL is NOT the color math engine)
 // ============================================================================
 
 export function rgbToHsl(r: number, g: number, b: number): HSL {
@@ -139,27 +206,4 @@ export function hexToHsl(hex: string): HSL | null {
   const rgb = hexToRgb(hex)
   if (!rgb) return null
   return rgbToHsl(rgb[0], rgb[1], rgb[2])
-}
-
-/**
- * Desaturate a hex color by reducing saturation.
- * amount=0.4 reduces saturation by 40%.
- * For non-hex inputs, returns the color unchanged.
- */
-export function desaturate(color: string, amount: number): string {
-  const hsl = hexToHsl(color)
-  if (!hsl) return color
-  const [h, s, l] = hsl
-  return hslToHex(h, s * (1 - amount), l)
-}
-
-/**
- * Get the complementary color (180° hue rotation).
- * For non-hex inputs, returns the color unchanged.
- */
-export function complement(color: string): string {
-  const hsl = hexToHsl(color)
-  if (!hsl) return color
-  const [h, s, l] = hsl
-  return hslToHex(h + 180, s, l)
 }

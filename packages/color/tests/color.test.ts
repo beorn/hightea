@@ -1,5 +1,5 @@
 /**
- * Tests for @silvery/color — pure color math utilities.
+ * Tests for @silvery/color — OKLCH-native pure color math utilities.
  */
 
 import { describe, expect, it } from "vitest"
@@ -9,16 +9,25 @@ import {
   blend,
   brighten,
   darken,
+  saturate,
   contrastFg,
   rgbToHsl,
   hslToHex,
   hexToHsl,
   desaturate,
   complement,
+  oklch,
+  toHex,
+  colorDistance,
   checkContrast,
   ensureContrast,
+  hexToOklch,
+  oklchToHex,
+  lerpOklch,
+  lerpHue,
+  deltaE,
 } from "@silvery/color"
-import type { HSL, ContrastResult } from "@silvery/color"
+import type { HSL, ContrastResult, OKLCH } from "@silvery/color"
 
 // ── hexToRgb ────────────────────────────────────────────────────────
 
@@ -72,33 +81,176 @@ describe("rgbToHex", () => {
   })
 })
 
+// ── OKLCH primitives ────────────────────────────────────────────────
+
+describe("hexToOklch / oklchToHex", () => {
+  it("roundtrips black", () => {
+    const o = hexToOklch("#000000")!
+    expect(o.L).toBeCloseTo(0, 3)
+    expect(oklchToHex(o)).toBe("#000000")
+  })
+
+  it("roundtrips white", () => {
+    const o = hexToOklch("#FFFFFF")!
+    expect(o.L).toBeCloseTo(1, 2)
+    expect(oklchToHex(o)).toBe("#FFFFFF")
+  })
+
+  it("roundtrips saturated hues within 1 sRGB step", () => {
+    for (const hex of ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#00FFFF", "#FF00FF"]) {
+      const o = hexToOklch(hex)!
+      const back = oklchToHex(o)
+      const a = hexToRgb(hex)!
+      const b = hexToRgb(back)!
+      for (let i = 0; i < 3; i++) expect(Math.abs(a[i]! - b[i]!)).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it("returns null for invalid hex", () => {
+    expect(hexToOklch("red")).toBeNull()
+    expect(hexToOklch("")).toBeNull()
+  })
+
+  it("gamut-maps out-of-sRGB chroma by reducing C", () => {
+    // Extreme chroma — gets chroma-reduced to stay in sRGB
+    const hex = oklchToHex({ L: 0.7, C: 1.0, H: 30 })
+    expect(hex).toMatch(/^#[0-9A-F]{6}$/)
+    const rgb = hexToRgb(hex)!
+    for (const c of rgb) {
+      expect(c).toBeGreaterThanOrEqual(0)
+      expect(c).toBeLessThanOrEqual(255)
+    }
+  })
+})
+
+describe("oklch / toHex convenience aliases", () => {
+  it("oklch parses hex", () => {
+    const o = oklch("#FF0000")!
+    expect(o.L).toBeGreaterThan(0)
+    expect(o.C).toBeGreaterThan(0)
+  })
+  it("toHex serializes", () => {
+    const hex = toHex({ L: 0.5, C: 0.1, H: 180 })
+    expect(hex).toMatch(/^#[0-9A-F]{6}$/)
+  })
+  it("oklch returns null for non-hex", () => {
+    expect(oklch("red")).toBeNull()
+  })
+})
+
+describe("lerpHue", () => {
+  it("takes the short arc", () => {
+    expect(lerpHue(350, 10, 0.5)).toBeCloseTo(0, 5)
+  })
+  it("midpoint for 0 → 180 picks one of the two equidistant arcs", () => {
+    // 0° and 180° are diametrically opposite — both 90° and 270° are shortest-arc midpoints.
+    const h = lerpHue(0, 180, 0.5)
+    expect([90, 270]).toContain(Math.round(h))
+  })
+  it("midpoint 30 → 150 is 90 (unambiguous)", () => {
+    expect(lerpHue(30, 150, 0.5)).toBeCloseTo(90, 5)
+  })
+  it("wraps to [0, 360)", () => {
+    expect(lerpHue(10, -30, 0)).toBeCloseTo(10, 5)
+    const h = lerpHue(10, 350, 0.5)
+    expect(h).toBeGreaterThanOrEqual(0)
+    expect(h).toBeLessThan(360)
+  })
+})
+
+describe("lerpOklch", () => {
+  it("t=0 returns first", () => {
+    const a: OKLCH = { L: 0.5, C: 0.1, H: 180 }
+    const b: OKLCH = { L: 0.2, C: 0.2, H: 60 }
+    expect(lerpOklch(a, b, 0)).toEqual(a)
+  })
+  it("t=1 returns second", () => {
+    const a: OKLCH = { L: 0.5, C: 0.1, H: 180 }
+    const b: OKLCH = { L: 0.2, C: 0.2, H: 60 }
+    expect(lerpOklch(a, b, 1)).toEqual(b)
+  })
+  it("t=0.5 is midpoint in L and C", () => {
+    const a: OKLCH = { L: 0.4, C: 0.1, H: 90 }
+    const b: OKLCH = { L: 0.8, C: 0.3, H: 90 }
+    const mid = lerpOklch(a, b, 0.5)
+    expect(mid.L).toBeCloseTo(0.6, 5)
+    expect(mid.C).toBeCloseTo(0.2, 5)
+    expect(mid.H).toBeCloseTo(90, 5)
+  })
+})
+
+describe("deltaE", () => {
+  it("is zero for identical colors", () => {
+    const a: OKLCH = { L: 0.5, C: 0.15, H: 210 }
+    expect(deltaE(a, a)).toBeCloseTo(0, 5)
+  })
+  it("grows with L difference", () => {
+    const a: OKLCH = { L: 0.3, C: 0.1, H: 0 }
+    const b: OKLCH = { L: 0.7, C: 0.1, H: 0 }
+    expect(deltaE(a, b)).toBeGreaterThan(0.3)
+  })
+})
+
 // ── blend ───────────────────────────────────────────────────────────
 
 describe("blend", () => {
-  it("t=0 returns first color", () => {
+  it("t=0 returns first color (exact)", () => {
     expect(blend("#FF0000", "#0000FF", 0)).toBe("#FF0000")
   })
 
-  it("t=1 returns second color", () => {
+  it("t=1 returns second color (exact)", () => {
     expect(blend("#FF0000", "#0000FF", 1)).toBe("#0000FF")
   })
 
-  it("t=0.5 returns midpoint", () => {
-    expect(blend("#000000", "#FFFFFF", 0.5)).toBe("#808080")
+  it("t=0.5 black↔white produces a perceptual mid-gray (~#777–#7E, brighter than naive RGB #80)", () => {
+    // OKLCH midpoint of black and white is perceptually 50% — which is DARKER in sRGB
+    // than naive RGB #80 because L=0.5 in OKLCH corresponds to ~#777 sRGB gray.
+    const mid = blend("#000000", "#FFFFFF", 0.5)
+    const [r, g, b] = hexToRgb(mid)!
+    expect(r).toBe(g)
+    expect(g).toBe(b) // neutral gray
+    expect(r).toBeGreaterThan(0x60)
+    expect(r).toBeLessThan(0x90)
   })
 
   it("returns first color unchanged for non-hex input", () => {
     expect(blend("red", "#0000FF", 0.5)).toBe("red")
     expect(blend("#FF0000", "blue", 0.5)).toBe("#FF0000")
   })
+
+  it("same color at any t returns that color (within 1 sRGB step)", () => {
+    const a = "#4A9EE8"
+    for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+      const out = blend(a, a, t)
+      const orig = hexToRgb(a)!
+      const back = hexToRgb(out)!
+      for (let i = 0; i < 3; i++) expect(Math.abs(orig[i]! - back[i]!)).toBeLessThanOrEqual(1)
+    }
+  })
 })
 
-// ── brighten / darken ───────────────────────────────────────────────
+// ── brighten / darken / saturate / desaturate ───────────────────────
 
-describe("brighten", () => {
-  it("moves color toward white", () => {
-    const result = brighten("#000000", 0.5)
-    expect(result).toBe(blend("#000000", "#FFFFFF", 0.5))
+describe("brighten (OKLCH additive L)", () => {
+  it("increases OKLCH L by amount", () => {
+    const before = hexToOklch("#333333")!
+    const after = hexToOklch(brighten("#333333", 0.2))!
+    expect(after.L - before.L).toBeCloseTo(0.2, 1)
+  })
+
+  it("clamps L at 1", () => {
+    const out = brighten("#FFFFFF", 0.5)
+    expect(out).toBe("#FFFFFF")
+  })
+
+  it("preserves hue and chroma", () => {
+    const before = hexToOklch("#5B8FC8")!
+    const after = hexToOklch(brighten("#5B8FC8", 0.1))!
+    expect(after.C).toBeCloseTo(before.C, 2)
+    // Hue preservation — short-arc distance < 1°.
+    const d = (((after.H - before.H) % 360) + 360) % 360
+    const shortArc = Math.min(d, 360 - d)
+    expect(shortArc).toBeLessThan(1)
   })
 
   it("returns non-hex unchanged", () => {
@@ -106,14 +258,84 @@ describe("brighten", () => {
   })
 })
 
-describe("darken", () => {
-  it("moves color toward black", () => {
-    const result = darken("#FFFFFF", 0.5)
-    expect(result).toBe(blend("#FFFFFF", "#000000", 0.5))
+describe("darken (OKLCH additive L)", () => {
+  it("decreases OKLCH L by amount", () => {
+    const before = hexToOklch("#CCCCCC")!
+    const after = hexToOklch(darken("#CCCCCC", 0.2))!
+    expect(before.L - after.L).toBeCloseTo(0.2, 1)
+  })
+
+  it("clamps L at 0", () => {
+    const out = darken("#000000", 0.5)
+    expect(out).toBe("#000000")
   })
 
   it("returns non-hex unchanged", () => {
     expect(darken("red", 0.5)).toBe("red")
+  })
+})
+
+describe("saturate", () => {
+  it("increases OKLCH C additively", () => {
+    const before = hexToOklch("#A0A0A0")!
+    const after = hexToOklch(saturate("#5B8FC8", 0.05))!
+    expect(after.C).toBeGreaterThan(before.C)
+  })
+  it("returns non-hex unchanged", () => {
+    expect(saturate("red", 0.1)).toBe("red")
+  })
+})
+
+describe("desaturate", () => {
+  it("reduces OKLCH C multiplicatively", () => {
+    const before = hexToOklch("#FF0000")!
+    const after = hexToOklch(desaturate("#FF0000", 0.5))!
+    expect(after.C).toBeCloseTo(before.C * 0.5, 2)
+  })
+
+  it("returns non-hex unchanged", () => {
+    expect(desaturate("red", 0.5)).toBe("red")
+  })
+})
+
+describe("complement", () => {
+  it("rotates hue by 180 degrees, preserves L (C may gamut-map)", () => {
+    // Pure red #FF0000 is at the sRGB chroma boundary; its OKLCH complement
+    // (cyan at same L+C) may lie outside sRGB and gamut-map to lower C.
+    // L and H must still be preserved exactly.
+    const before = hexToOklch("#FF0000")!
+    const after = hexToOklch(complement("#FF0000"))!
+    const hueDiff = ((((after.H - before.H) % 360) + 360) % 360)
+    expect(Math.abs(hueDiff - 180)).toBeLessThan(1)
+    expect(after.L).toBeCloseTo(before.L, 2)
+    // Chroma ≤ original (gamut-mapped down if needed), but still colorful.
+    expect(after.C).toBeLessThanOrEqual(before.C + 0.001)
+    expect(after.C).toBeGreaterThan(0.05)
+  })
+
+  it("preserves L exactly and C approximately for in-gamut colors", () => {
+    // A moderately-saturated blue whose complement stays in sRGB gamut.
+    // C may drift slightly near sRGB edges even for moderate colors.
+    const before = hexToOklch("#5570C0")!
+    const after = hexToOklch(complement("#5570C0"))!
+    expect(after.L).toBeCloseTo(before.L, 2)
+    expect(Math.abs(after.C - before.C)).toBeLessThan(0.02)
+  })
+
+  it("returns non-hex unchanged", () => {
+    expect(complement("red")).toBe("red")
+  })
+})
+
+describe("colorDistance", () => {
+  it("is zero for same color", () => {
+    expect(colorDistance("#3355AA", "#3355AA")).toBeCloseTo(0, 4)
+  })
+  it("is positive for different colors", () => {
+    expect(colorDistance("#FF0000", "#0000FF")).toBeGreaterThan(0)
+  })
+  it("returns null for non-hex", () => {
+    expect(colorDistance("red", "#000")).toBeNull()
   })
 })
 
@@ -192,35 +414,6 @@ describe("hexToHsl", () => {
   })
 })
 
-// ── desaturate / complement ─────────────────────────────────────────
-
-describe("desaturate", () => {
-  it("reduces saturation", () => {
-    const original = hexToHsl("#FF0000")!
-    const result = desaturate("#FF0000", 0.5)
-    const desaturated = hexToHsl(result)!
-    expect(desaturated[1]).toBeLessThan(original[1])
-  })
-
-  it("returns non-hex unchanged", () => {
-    expect(desaturate("red", 0.5)).toBe("red")
-  })
-})
-
-describe("complement", () => {
-  it("rotates hue by 180 degrees", () => {
-    const original = hexToHsl("#FF0000")!
-    const result = complement("#FF0000")
-    const comp = hexToHsl(result)!
-    // Red (0) -> Cyan (180)
-    expect(comp[0]).toBeCloseTo(180, 0)
-  })
-
-  it("returns non-hex unchanged", () => {
-    expect(complement("red")).toBe("red")
-  })
-})
-
 // ── checkContrast ───────────────────────────────────────────────────
 
 describe("checkContrast", () => {
@@ -255,7 +448,7 @@ describe("checkContrast", () => {
 
 // ── ensureContrast ──────────────────────────────────────────────────
 
-describe("ensureContrast", () => {
+describe("ensureContrast (OKLCH L adjustment)", () => {
   it("returns color unchanged when already meeting target", () => {
     expect(ensureContrast("#000000", "#FFFFFF", 4.5)).toBe("#000000")
   })
@@ -274,6 +467,17 @@ describe("ensureContrast", () => {
     expect(result!.ratio).toBeGreaterThanOrEqual(4.5)
   })
 
+  it("preserves hue (OKLCH repair keeps the color family)", () => {
+    // Start with a blue that fails contrast; repair darkens but stays blue.
+    const adjusted = ensureContrast("#5570C0", "#FFFFFF", 4.5)
+    const before = hexToOklch("#5570C0")!
+    const after = hexToOklch(adjusted)!
+    // Hue difference from 0 (perfect preservation) — allow ≤10° drift from gamut mapping.
+    const diff = ((((after.H - before.H) % 360) + 360) % 360) // 0..360
+    const shortArc = Math.min(diff, 360 - diff)
+    expect(shortArc).toBeLessThan(10)
+  })
+
   it("returns non-hex color unchanged", () => {
     expect(ensureContrast("red", "#FFFFFF", 4.5)).toBe("red")
   })
@@ -281,5 +485,12 @@ describe("ensureContrast", () => {
   it("type: HSL is a tuple", () => {
     const hsl: HSL = [180, 0.5, 0.5]
     expect(hsl).toHaveLength(3)
+  })
+
+  it("type: OKLCH has L, C, H fields", () => {
+    const o: OKLCH = { L: 0.5, C: 0.1, H: 180 }
+    expect(o.L).toBe(0.5)
+    expect(o.C).toBe(0.1)
+    expect(o.H).toBe(180)
   })
 })
