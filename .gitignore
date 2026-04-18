@@ -17,3 +17,4 @@ package/
 .claude/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
+.release-state.json
