@@ -51,6 +51,10 @@ export { createBuffer } from "./create-buffer"
 // Layer 1: Runtime kernel
 export { createRuntime } from "./create-runtime"
 
+// Layer 2 (themed shortcut): runThemed — detectScheme + ThemeProvider + run
+export { runThemed } from "./themed"
+export type { RunThemedOptions } from "./themed"
+
 // Layer 2: React integration
 // NOTE: RunHandle intentionally NOT re-exported from barrel.
 // Use pipe(create(), withAg(), withTerm()) for new apps.

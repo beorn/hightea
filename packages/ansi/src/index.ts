@@ -157,6 +157,15 @@ export { fingerprintMatch, fingerprintCandidates } from "./theme/fingerprint"
 export type { FingerprintMatch, FingerprintOptions } from "./theme/fingerprint"
 export { detectScheme, detectSchemeTheme } from "./theme/orchestrator"
 export type { DetectSchemeResult, DetectSchemeOptions, DetectSource, SlotSource } from "./theme/orchestrator"
+export type {
+  ThemeToken,
+  StandardThemeToken,
+  BrandToken,
+  PaletteToken,
+  KnownThemeToken,
+  TextColor,
+  ColorKeyword,
+} from "./theme/tokens"
 export { defineTokens, resolveCustomToken, CustomTokenError } from "./theme/custom"
 export type { DeriveTokenDef, BrandTokenDef, CustomTokenDef, CustomTokenRegistry } from "./theme/custom"
 export {
