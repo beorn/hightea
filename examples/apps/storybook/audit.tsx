@@ -80,7 +80,13 @@ function InvariantSummary({ result }: { result: InvariantResult }) {
   )
 }
 
-function FingerprintSummary({ match, expected }: { match: FingerprintMatch | null; expected: string }) {
+function FingerprintSummary({
+  match,
+  expected,
+}: {
+  match: FingerprintMatch | null
+  expected: string
+}) {
   return (
     <Box flexDirection="column" paddingX={1} gap={1}>
       <H3>fingerprintMatch (probed = active scheme's own slots)</H3>
@@ -103,8 +109,8 @@ function FingerprintSummary({ match, expected }: { match: FingerprintMatch | nul
           </Box>
           <Muted>
             {"  "}
-            confidence {(match.confidence * 100).toFixed(1)}% · ΣΔE {match.sumDeltaE.toFixed(2)} · maxΔE{" "}
-            {match.maxDeltaE.toFixed(2)} · {match.slotsCompared} slots
+            confidence {(match.confidence * 100).toFixed(1)}% · ΣΔE {match.sumDeltaE.toFixed(2)} ·
+            maxΔE {match.maxDeltaE.toFixed(2)} · {match.slotsCompared} slots
           </Muted>
         </Box>
       )}

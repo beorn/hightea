@@ -42,7 +42,13 @@ export function SchemeBrowser({
   width = 30,
 }: Props) {
   return (
-    <Box flexDirection="column" width={width} borderStyle="single" overflow="scroll" scrollTo={selectedIndex}>
+    <Box
+      flexDirection="column"
+      width={width}
+      borderStyle="single"
+      overflow="scroll"
+      scrollTo={selectedIndex}
+    >
       <Box paddingX={1} gap={1}>
         <Text bold color="$primary">
           {title}

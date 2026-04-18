@@ -180,11 +180,12 @@ export function Storybook({ entries }: StorybookProps) {
   const primary = entries[primaryIdx]!
   const secondary = entries[secondaryIdx]!
 
-  // Pre-compute tier views so toggling is zero-latency.
-  const primaryTierView = useMemo(() => buildTierView(primary.palette, tier), [primary.palette, tier])
-  const secondaryTierView = useMemo(
-    () => buildTierView(secondary.palette, tier),
-    [secondary.palette, tier],
+  // Pre-compute the tier view for the active primary scheme. The compare
+  // panel uses each entry's own truecolor theme via ThemeProvider — tier
+  // toggling intentionally does not apply in compare mode.
+  const primaryTierView = useMemo(
+    () => buildTierView(primary.palette, tier),
+    [primary.palette, tier],
   )
 
   function stepScheme(delta: number) {
@@ -248,12 +249,7 @@ export function Storybook({ entries }: StorybookProps) {
               selectedIndex={primaryIdx}
               secondaryIndex={panel === "browser" ? undefined : undefined}
             />
-            <PanelBody
-              panel={panel}
-              primary={primary}
-              tier={tier}
-              tierView={primaryTierView}
-            />
+            <PanelBody panel={panel} primary={primary} tier={tier} tierView={primaryTierView} />
           </>
         )}
       </Box>
@@ -427,7 +423,16 @@ function AnsiRow({
   bright: boolean
 }) {
   const keys: (keyof import("@silvery/theme").ColorScheme)[] = bright
-    ? ["brightBlack", "brightRed", "brightGreen", "brightYellow", "brightBlue", "brightMagenta", "brightCyan", "brightWhite"]
+    ? [
+        "brightBlack",
+        "brightRed",
+        "brightGreen",
+        "brightYellow",
+        "brightBlue",
+        "brightMagenta",
+        "brightCyan",
+        "brightWhite",
+      ]
     : ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"]
   return (
     <Box gap={0}>

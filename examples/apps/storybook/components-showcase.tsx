@@ -56,11 +56,7 @@ function FakeTextInput({
         paddingX={1}
         width={36}
       >
-        {value ? (
-          <Text>{value}</Text>
-        ) : (
-          <Text color="$disabledfg">{placeholder ?? ""}</Text>
-        )}
+        {value ? <Text>{value}</Text> : <Text color="$disabledfg">{placeholder ?? ""}</Text>}
       </Box>
     </Box>
   )

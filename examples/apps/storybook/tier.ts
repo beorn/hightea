@@ -127,7 +127,8 @@ export function buildTierView(palette: ColorScheme, tier: Tier): TierView {
       theme: remap(truecolor, quantize256),
       monochrome: false,
       monoAttrs: null,
-      description: "xterm-256 6×6×6 cube + 24-step grey ramp — each token quantized to the nearest palette slot.",
+      description:
+        "xterm-256 6×6×6 cube + 24-step grey ramp — each token quantized to the nearest palette slot.",
     }
   }
   if (tier === "ansi16") {
@@ -145,6 +146,7 @@ export function buildTierView(palette: ColorScheme, tier: Tier): TierView {
     theme: truecolor, // unused (app omits ThemeProvider in mono tier)
     monochrome: true,
     monoAttrs: attrs,
-    description: "No color — hierarchy carried by SGR attrs (bold, dim, inverse, italic, underline).",
+    description:
+      "No color — hierarchy carried by SGR attrs (bold, dim, inverse, italic, underline).",
   }
 }

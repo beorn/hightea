@@ -67,21 +67,36 @@ export function SlotSwatches({ palette }: { palette: ColorScheme }) {
       <Box flexDirection="column" paddingX={1}>
         <H3>ANSI 0–7 (normal)</H3>
         {ANSI_NORMAL.map((name) => (
-          <SwatchRow key={name} color={palette[name] as string} label={name} hex={palette[name] as string} />
+          <SwatchRow
+            key={name}
+            color={palette[name] as string}
+            label={name}
+            hex={palette[name] as string}
+          />
         ))}
       </Box>
 
       <Box flexDirection="column" paddingX={1}>
         <H3>ANSI 8–15 (bright)</H3>
         {ANSI_BRIGHT.map((name) => (
-          <SwatchRow key={name} color={palette[name] as string} label={name} hex={palette[name] as string} />
+          <SwatchRow
+            key={name}
+            color={palette[name] as string}
+            label={name}
+            hex={palette[name] as string}
+          />
         ))}
       </Box>
 
       <Box flexDirection="column" paddingX={1}>
         <H3>Surface + cursor + selection</H3>
         {SURFACE_SLOTS.map((name) => (
-          <SwatchRow key={name} color={palette[name] as string} label={name} hex={palette[name] as string} />
+          <SwatchRow
+            key={name}
+            color={palette[name] as string}
+            label={name}
+            hex={palette[name] as string}
+          />
         ))}
       </Box>
     </Box>
