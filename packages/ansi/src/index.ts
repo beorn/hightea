@@ -149,8 +149,19 @@ export type { Style, StyleOptions, ThemeLike } from "./style/types"
 // Theme Derivation
 // =============================================================================
 
-export { deriveTheme } from "./theme/derive"
-export type { ThemeAdjustment } from "./theme/derive"
+export { deriveTheme, loadTheme } from "./theme/derive"
+export type { ThemeAdjustment, LoadThemeOptions } from "./theme/derive"
+export {
+  validateThemeInvariants,
+  formatViolations,
+  ThemeInvariantError,
+  AA_RATIO,
+  LARGE_RATIO,
+  FAINT_RATIO,
+  SELECTION_DELTA_L,
+  CURSOR_DELTA_E,
+} from "./theme/invariants"
+export type { InvariantViolation, InvariantResult } from "./theme/invariants"
 export { ansi16DarkTheme, ansi16LightTheme, defaultDarkScheme, defaultLightScheme } from "./theme/default-schemes"
 export type { ColorScheme, Theme, AnsiPrimary, HueName } from "./theme/types"
 export type { AnsiColorName as PaletteColorName } from "./theme/types"

@@ -2,9 +2,16 @@
  * Theme derivation — transforms a ColorScheme into a Theme.
  */
 
-import { blend, contrastFg, complement } from "@silvery/color"
+import { blend, contrastFg, complement, hexToOklch, oklchToHex, colorDistance } from "@silvery/color"
 import { checkContrast, ensureContrast } from "@silvery/color"
 import type { ColorScheme, Theme } from "./types.ts"
+import {
+  validateThemeInvariants,
+  ThemeInvariantError,
+  SELECTION_DELTA_L,
+  CURSOR_DELTA_E,
+  type InvariantViolation,
+} from "./invariants.ts"
 
 export interface ThemeAdjustment {
   token: string
@@ -23,6 +30,62 @@ export function deriveTheme(
 ): Theme {
   if (mode === "ansi16") return deriveAnsi16Theme(palette)
   return deriveTruecolorTheme(palette, adjustments)
+}
+
+export interface LoadThemeOptions {
+  /** Output mode. Default: "truecolor". */
+  mode?: "ansi16" | "truecolor"
+  /**
+   * Invariant enforcement:
+   *   - `"strict"` — throw `ThemeInvariantError` when invariants fail (default for user themes).
+   *   - `"lenient"` — accept auto-adjustments from `deriveTheme`, warn on remaining violations.
+   *   - `"off"` — skip invariant validation entirely (callers own correctness).
+   *
+   * Default: "lenient".
+   */
+  enforce?: "strict" | "lenient" | "off"
+  /** Out-parameter: adjustments applied by `deriveTheme`'s ensureContrast calls. */
+  adjustments?: ThemeAdjustment[]
+  /** Out-parameter: invariant violations (only populated in "lenient" mode; "strict" throws). */
+  violations?: InvariantViolation[]
+}
+
+/**
+ * Load and validate a theme from a ColorScheme.
+ *
+ * Combines `deriveTheme()` (lenient auto-adjust) with `validateThemeInvariants()`
+ * (strict post-derivation check). Three enforcement levels:
+ *
+ *   - `"strict"`: throws `ThemeInvariantError` on any invariant failure. Use at
+ *     build-time to verify bundled themes.
+ *   - `"lenient"` (default): accepts auto-adjustments, populates the `violations`
+ *     out-param for remaining issues. Warn-level reporting for apps.
+ *   - `"off"`: skip validation. For experimentation or when upstream guarantees.
+ *
+ * @example
+ * ```ts
+ * // Strict: fail fast on violations (build-time validation)
+ * const theme = loadTheme(myScheme, { enforce: "strict" })
+ *
+ * // Lenient: accept adjustments, collect remaining issues
+ * const violations: InvariantViolation[] = []
+ * const theme = loadTheme(myScheme, { violations })
+ * if (violations.length) console.warn("theme violations:", violations)
+ * ```
+ */
+export function loadTheme(palette: ColorScheme, opts: LoadThemeOptions = {}): Theme {
+  const mode = opts.mode ?? "truecolor"
+  const enforce = opts.enforce ?? "lenient"
+  const theme = deriveTheme(palette, mode, opts.adjustments)
+  if (enforce === "off") return theme
+
+  const { ok, violations } = validateThemeInvariants(theme)
+  if (!ok) {
+    if (enforce === "strict") throw new ThemeInvariantError(violations)
+    // lenient: expose for caller
+    if (opts.violations) opts.violations.push(...violations)
+  }
+  return theme
 }
 
 const AA = 4.5
@@ -68,8 +131,14 @@ function deriveTruecolorTheme(p: ColorScheme, adjustments?: ThemeAdjustment[]): 
   const disabledfg = ensure("disabledfg", blend(fg, bg, 0.5), bg, DIM)
   const border = ensure("border", blend(bg, p.foreground, 0.15), bg, FAINT)
   const inputborder = ensure("inputborder", blend(bg, p.foreground, 0.25), bg, CONTROL)
-  const selection = ensure("selection", p.selectionForeground, p.selectionBackground, AA)
-  const cursor = ensure("cursor", p.cursorText, p.cursorColor, AA)
+  // Repair selection visibility — nudge selectionbg L away from bg until ΔL ≥ threshold.
+  // Preserves hue + chroma. For ultra-subtle themes (one-light, serendipity-morning, etc.)
+  // this shifts the selection ~0.05 L while keeping the aesthetic.
+  const selectionBg = repairSelectionBg(p.selectionBackground, bg)
+  const selection = ensure("selection", p.selectionForeground, selectionBg, AA)
+  // Repair cursor visibility — nudge cursorbg ΔE away from bg (OKLCH).
+  const cursorBgRepaired = repairCursorBg(p.cursorColor, bg)
+  const cursor = ensure("cursor", p.cursorText, cursorBgRepaired, AA)
 
   return {
     name: p.name ?? (dark ? "derived-dark" : "derived-light"),
@@ -84,9 +153,9 @@ function deriveTruecolorTheme(p: ColorScheme, adjustments?: ThemeAdjustment[]): 
     inverse: contrastFg(blend(fg, bg, 0.1)),
     inversebg: blend(fg, bg, 0.1),
     cursor,
-    cursorbg: p.cursorColor,
+    cursorbg: cursorBgRepaired,
     selection,
-    selectionbg: p.selectionBackground,
+    selectionbg: selectionBg,
     primary,
     primaryfg: contrastFg(primary),
     secondary,
@@ -184,4 +253,47 @@ function deriveAnsi16Theme(p: ColorScheme): Theme {
       p.brightWhite,
     ],
   }
+}
+
+/**
+ * Nudge `selectionBg`'s OKLCH lightness until it differs from `bg` by at least
+ * `SELECTION_DELTA_L`. Preserves hue + chroma. Non-hex input returns unchanged.
+ *
+ * Direction: shift away from bg — if bg is dark, lift L; if bg is light, drop L.
+ * If the input already meets the threshold, it's returned unchanged.
+ */
+function repairSelectionBg(selectionBg: string, bg: string): string {
+  const oSel = hexToOklch(selectionBg)
+  const oBg = hexToOklch(bg)
+  if (!oSel || !oBg) return selectionBg
+  const dL = Math.abs(oSel.L - oBg.L)
+  if (dL >= SELECTION_DELTA_L) return selectionBg
+
+  const needed = SELECTION_DELTA_L - dL + 0.005 // small overshoot to land above floor after gamut-map
+  const direction = oSel.L >= oBg.L ? 1 : -1
+  const newL = Math.max(0, Math.min(1, oSel.L + direction * needed))
+  return oklchToHex({ L: newL, C: oSel.C, H: oSel.H })
+}
+
+/**
+ * Nudge `cursorBg`'s OKLCH values until it differs from `bg` by at least
+ * `CURSOR_DELTA_E`. Shifts lightness first (preserves hue/chroma aesthetics).
+ * Non-hex input returns unchanged.
+ */
+function repairCursorBg(cursorBg: string, bg: string): string {
+  const d = colorDistance(cursorBg, bg)
+  if (d === null || d >= CURSOR_DELTA_E) return cursorBg
+
+  const oCur = hexToOklch(cursorBg)!
+  const oBg = hexToOklch(bg)!
+  // Shift L in the direction that increases distance.
+  const lGap = SELECTION_DELTA_L + 0.02
+  const direction = oCur.L >= oBg.L ? 1 : -1
+  const newL = Math.max(0, Math.min(1, oCur.L + direction * lGap))
+  const candidate = oklchToHex({ L: newL, C: oCur.C, H: oCur.H })
+  const d2 = colorDistance(candidate, bg)
+  if (d2 !== null && d2 >= CURSOR_DELTA_E) return candidate
+
+  // Fallback: high-contrast neutral pick.
+  return oBg.L > 0.5 ? "#000000" : "#FFFFFF"
 }
