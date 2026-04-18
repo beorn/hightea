@@ -5,6 +5,11 @@
  *
  * Hover discipline: COLOR changes only. Never raise, translate,
  * scale, or change padding/border-radius on hover.
+ *
+ * Gleam is a SINGLE page-wide light source. All gleam targets
+ * use `background-attachment: fixed` so their gradients are
+ * viewport-relative — one highlight sweep passes through every
+ * silvery element at the same time and speed.
  * ============================================================ */
 
 /* ---- Brand palette ---- */
@@ -17,11 +22,9 @@
   --silvery-accent-light: #7a8aa5;
   --silvery-accent-dark: #3a4a65;
 
-  /* Nav wordmark settles to silver-gray */
   --silvery-wordmark-rest: #2a3040;
   --silvery-wordmark-highlight: #d6d9e0;
 
-  /* Hero wordmark settles to pure black */
   --silvery-hero-rest: #000000;
   --silvery-hero-highlight: #e8eaef;
 
@@ -72,16 +75,27 @@
 }
 
 /* ============================================================
- * Chrome gleam on "Silvery" wordmark — continuous drift
+ * Unified page-wide gleam
  *
- * The highlight drifts steadily from right to left and loops
- * forever. Both gradient endpoints are the rest color (hero: black,
- * nav: silver-gray) so the cycle wrap is invisible — no jagged
- * restart, just a slow steady passage.
+ * Every silvery-branded element uses:
+ *   background-attachment: fixed     (gradient is viewport-relative)
+ *   background-size: 200vw 100vh     (double viewport width)
+ *   animation: silvery-page-gleam    (same duration for all)
+ *
+ * The gradient origin is the same across all elements — so the
+ * bright highlight passes through wordmark, HERO-TEXT, button,
+ * and terminal chrome at the same horizontal position in the
+ * viewport at the same moment.
  * ============================================================ */
 
+@keyframes silvery-page-gleam {
+  0%   { background-position: 100vw 0; }
+  100% { background-position: -100vw 0; }
+}
+
+/* Nav wordmark */
 .VPNavBarTitle .title {
-  background: linear-gradient(
+  background-image: linear-gradient(
     110deg,
     var(--silvery-wordmark-rest) 0%,
     var(--silvery-wordmark-rest) 42%,
@@ -89,18 +103,20 @@
     var(--silvery-wordmark-rest) 58%,
     var(--silvery-wordmark-rest) 100%
   );
-  background-size: 300% 100%;
-  background-position: 150% 0;
+  background-size: 200vw 100vh;
+  background-attachment: fixed;
+  background-position: 100vw 0;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: silvery-wordmark-drift 9s linear infinite;
+  animation: silvery-page-gleam 9s linear infinite;
 }
 
+/* Hero wordmark */
 .VPHome .name,
 .VPHero .name {
-  background: linear-gradient(
+  background-image: linear-gradient(
     110deg,
     var(--silvery-hero-rest) 0%,
     var(--silvery-hero-rest) 42%,
@@ -108,35 +124,20 @@
     var(--silvery-hero-rest) 58%,
     var(--silvery-hero-rest) 100%
   );
-  background-size: 300% 100%;
-  background-position: 150% 0;
+  background-size: 200vw 100vh;
+  background-attachment: fixed;
+  background-position: 100vw 0;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: silvery-wordmark-drift 9s linear infinite;
+  animation: silvery-page-gleam 9s linear infinite;
 }
 
-/* Continuous linear drift. At position 150% we see the far-right of
- * the oversized gradient (rest color). At position -150% we see the
- * far-left (rest color). Cycle wrap is invisible — no visible snap,
- * the gleam simply keeps drifting across forever. */
-@keyframes silvery-wordmark-drift {
-  0%   { background-position: 150% 0; }
-  100% { background-position: -150% 0; }
-}
-
-/* ============================================================
- * Gleam on hero-text headline ("React for modern terminal apps")
- *
- * Silver-blue palette — more colorful than the wordmark's black/
- * white. Rest color is the accent; highlight is a brighter silver-
- * blue. Synced timing with wordmark + chrome bezel.
- * ============================================================ */
-
+/* Hero headline "React for modern terminal apps" */
 .VPHome .text,
 .VPHero .text {
-  background: linear-gradient(
+  background-image: linear-gradient(
     110deg,
     var(--silvery-accent) 0%,
     var(--silvery-accent) 42%,
@@ -144,18 +145,19 @@
     var(--silvery-accent) 58%,
     var(--silvery-accent) 100%
   );
-  background-size: 300% 100%;
-  background-position: 150% 0;
+  background-size: 200vw 100vh;
+  background-attachment: fixed;
+  background-position: 100vw 0;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: silvery-wordmark-drift 9s linear infinite;
+  animation: silvery-page-gleam 9s linear infinite;
 }
 
 .dark .VPHome .text,
 .dark .VPHero .text {
-  background: linear-gradient(
+  background-image: linear-gradient(
     110deg,
     var(--silvery-accent-light) 0%,
     var(--silvery-accent-light) 42%,
@@ -163,27 +165,21 @@
     var(--silvery-accent-light) 58%,
     var(--silvery-accent-light) 100%
   );
-  background-size: 300% 100%;
-  background-position: 150% 0;
+  background-size: 200vw 100vh;
+  background-attachment: fixed;
+  background-position: 100vw 0;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: silvery-wordmark-drift 9s linear infinite;
+  animation: silvery-page-gleam 9s linear infinite;
 }
 
-/* ============================================================
- * Gleam on "Get Started" primary brand button
- *
- * The button already has a silver-blue fill; overlay an animated
- * lighter band that sweeps across the fill. Pure CSS via gradient
- * background on the button itself — no pseudo-element required.
- * ============================================================ */
-
+/* Get Started primary button */
 .VPButton.brand,
 .VPHome .VPButton.brand,
 .VPHero .VPButton.brand {
-  background: linear-gradient(
+  background-image: linear-gradient(
     110deg,
     var(--silvery-accent) 0%,
     var(--silvery-accent) 42%,
@@ -191,14 +187,15 @@
     var(--silvery-accent) 58%,
     var(--silvery-accent) 100%
   ) !important;
-  background-size: 300% 100% !important;
-  background-position: 150% 0;
-  animation: silvery-wordmark-drift 9s linear infinite;
+  background-size: 200vw 100vh !important;
+  background-attachment: fixed !important;
+  background-position: 100vw 0 !important;
+  animation: silvery-page-gleam 9s linear infinite;
   border-color: var(--silvery-accent) !important;
   color: #ffffff !important;
 }
 .VPButton.brand:hover {
-  background: linear-gradient(
+  background-image: linear-gradient(
     110deg,
     var(--silvery-accent-dark) 0%,
     var(--silvery-accent-dark) 42%,
@@ -206,7 +203,6 @@
     var(--silvery-accent-dark) 58%,
     var(--silvery-accent-dark) 100%
   ) !important;
-  background-size: 300% 100% !important;
   border-color: var(--silvery-accent-dark) !important;
 }
 
@@ -220,7 +216,6 @@
  *   - Only color, background-color, text-decoration-color, opacity
  * ============================================================ */
 
-/* Feature cards — border color + subtle background shift on hover (no lift) */
 .VPFeature {
   transition:
     border-color 0.18s ease,
@@ -244,11 +239,7 @@
   color: var(--silvery-accent-light);
 }
 
-/* ============================================================
- * Feature card inline links — accent text + solid underline.
- * On hover: color shift only. No pill, no padding, no margin.
- * ============================================================ */
-
+/* Feature card inline links — accent chip styling */
 .VPFeature a:not(.feature-link) {
   color: var(--silvery-accent);
   font-weight: 500;
@@ -273,7 +264,6 @@
   text-decoration-color: #ffffff;
 }
 
-/* Prose docs links — standard underline, color shift on hover only */
 .vp-doc a {
   text-decoration-thickness: 1.5px;
   text-decoration-color: var(--silvery-accent);
@@ -291,7 +281,6 @@
   text-decoration-color: #ffffff;
 }
 
-/* "Feature link →" arrows — color shift only on hover, no translate */
 .feature-link {
   display: inline-block;
   margin-top: 0.5em;
@@ -312,12 +301,10 @@
 
 /* ---- Preserve existing fixes ---- */
 
-/* Fix glossary tooltips being clipped by table scroll containers */
 .vp-doc .table-wrapper {
   overflow: visible;
 }
 
-/* Ensure glossary tooltips render above table content */
 .glossary-link .glossary-tooltip,
 .glossary-link [class*="tooltip"] {
   z-index: 100;

@@ -1,12 +1,12 @@
 <!--
   SilveryTerminal — hero image slot component for silvery.dev
 
-  Tight line-height (1.15) so Unicode box-drawing vertical bars
-  connect into continuous lines — no gaps between rows.
+  Box-border color hierarchy:
+    t-box         — very dim gray, for past-turn boxes (user/assistant)
+    t-input-frame — bright silver-blue accent, for the ACTIVE input box
 
-  All 9 box lines exactly 62 chars wide, verified via Python.
-  Labels use Sentence case (User / Assistant / Input).
-  Input box has thicker accent border + blinking cursor.
+  Block cursor sits at the beginning of the input (after `❯ `), blinks.
+  Input prompt `❯` is silver-blue to match the input frame.
 -->
 
 <template>
@@ -21,9 +21,9 @@
         <div class="silvery-terminal__title">silvery-agent — ~/silvery</div>
       </div>
 
-      <pre class="silvery-terminal__body"><span class="t-dim">╭─ </span><span class="t-label">User</span><span class="t-dim"> ─────────────────────────────────────────────────────╮</span>
-<span class="t-dim">│</span> <span class="t-command">add a blinking cursor after the tagline</span>                    <span class="t-dim">│</span>
-<span class="t-dim">╰────────────────────────────────────────────────────────────╯</span>
+      <pre class="silvery-terminal__body"><span class="t-box">╭─ </span><span class="t-label">User</span><span class="t-box"> ─────────────────────────────────────────────────────╮</span>
+<span class="t-box">│</span> <span class="t-command">add a blinking cursor after the tagline</span>                    <span class="t-box">│</span>
+<span class="t-box">╰────────────────────────────────────────────────────────────╯</span>
 
 <span class="t-tool">●</span> <span class="t-fg">Read</span> <span class="t-path">.vitepress/theme/custom.css</span>
   <span class="t-ok">✓</span> <span class="t-dim">found </span><span class="t-path">.VPHero .tagline</span><span class="t-dim"> selector at line 148</span>
@@ -32,20 +32,23 @@
   <span class="t-dim">+ tagline::after blink animation (1Hz steps(1))</span>
   <span class="t-ok">✓</span> <span class="t-dim">applied · 12 insertions · 0 deletions</span>
 
-<span class="t-dim">╭─ </span><span class="t-label">Assistant</span><span class="t-dim"> ────────────────────────────────────────────────╮</span>
-<span class="t-dim">│</span> <span class="t-fg">Blink lands at end of tagline.</span>                             <span class="t-dim">│</span>
-<span class="t-dim">│</span> <span class="t-dim">One cursor per page · matches the design doc.</span>              <span class="t-dim">│</span>
-<span class="t-dim">╰────────────────────────────────────────────────────────────╯</span>
+<span class="t-box">╭─ </span><span class="t-label">Assistant</span><span class="t-box"> ────────────────────────────────────────────────╮</span>
+<span class="t-box">│</span> <span class="t-fg">Blink lands at end of tagline.</span>                             <span class="t-box">│</span>
+<span class="t-box">│</span> <span class="t-dim">One cursor per page · matches the design doc.</span>              <span class="t-box">│</span>
+<span class="t-box">╰────────────────────────────────────────────────────────────╯</span>
 
 <span class="t-input-frame">╭─ </span><span class="t-label">Input</span><span class="t-input-frame"> ────────────────────────────────────────────────────╮</span>
-<span class="t-input-frame">│</span> <span class="t-prompt">❯</span> <span class="t-dim">ask anything about silvery</span><span class="t-cursor">_</span>                              <span class="t-input-frame">│</span>
+<span class="t-input-frame">│</span> <span class="t-prompt">❯</span> <span class="t-cursor">█</span> <span class="t-dim">ask anything about silvery</span>                             <span class="t-input-frame">│</span>
 <span class="t-input-frame">╰────────────────────────────────────────────────────────────╯</span></pre>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* ----- Chrome bezel wrapper — fast continuous gleam drift ----- */
+/* ----- Chrome bezel wrapper — synced to page-wide gleam -----
+ * Uses `background-attachment: fixed` + viewport-relative size so
+ * the highlight passes through the chrome at the same moment it
+ * passes through the wordmark and HERO-TEXT. One light source. */
 .silvery-terminal-wrap {
   padding: 5px;
   border-radius: 14px;
@@ -53,7 +56,7 @@
   max-width: 760px;
   overflow: hidden;
 
-  background: linear-gradient(
+  background-image: linear-gradient(
     110deg,
     #9aa1b0 0%,
     #9aa1b0 42%,
@@ -61,15 +64,16 @@
     #9aa1b0 58%,
     #9aa1b0 100%
   );
-  background-size: 300% 100%;
-  background-position: 150% 0;
-  animation: silvery-chrome-drift 9s linear infinite;
+  background-size: 200vw 100vh;
+  background-attachment: fixed;
+  background-position: 100vw 0;
+  animation: silvery-page-gleam 9s linear infinite;
 
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
-.dark .silvery-terminal-wrap {
-  background: linear-gradient(
+:global(.dark) .silvery-terminal-wrap {
+  background-image: linear-gradient(
     110deg,
     #b0b6c4 0%,
     #b0b6c4 42%,
@@ -77,15 +81,13 @@
     #b0b6c4 58%,
     #b0b6c4 100%
   );
-  background-size: 300% 100%;
-  background-position: 150% 0;
-  animation: silvery-chrome-drift 9s linear infinite;
+  background-size: 200vw 100vh;
+  background-attachment: fixed;
+  background-position: 100vw 0;
+  animation: silvery-page-gleam 9s linear infinite;
 }
 
-@keyframes silvery-chrome-drift {
-  0%   { background-position: 150% 0; }
-  100% { background-position: -150% 0; }
-}
+/* silvery-page-gleam keyframes are defined in custom.css globally */
 
 /* ----- Inner terminal ----- */
 .silvery-terminal {
@@ -95,7 +97,7 @@
 
   font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 13px;
-  line-height: 1.15;     /* tight: box-drawing verticals connect */
+  line-height: 1.15;
   overflow: hidden;
 }
 
@@ -154,26 +156,31 @@
 }
 
 /* ----- Token colors ----- */
-.t-label       { color: #e6b872; font-weight: 600; }  /* high-contrast section labels */
+.t-label       { color: #e6b872; font-weight: 600; }   /* section labels */
 .t-fg          { color: #e6e9ef; font-weight: 500; }
 .t-command     { color: #ffffff; font-weight: 500; }
-.t-prompt      { color: #e6b872; font-weight: 700; }  /* prompt arrow — warm sand, bold */
 .t-tool        { color: #7dd3c0; font-weight: 600; }
 .t-ok          { color: #8bc79a; font-weight: 600; }
-.t-path        { color: #8ea4c8; font-weight: 500; }  /* file paths — silver-blue */
-.t-dim         { color: #6a7080; }
+.t-path        { color: #8ea4c8; font-weight: 500; }
+.t-dim         { color: #6a7080; }                     /* dim text content */
 
-/* Input box frame — thicker, brighter accent than t-dim boxes */
+/* Box border hierarchy
+ * t-box         — very dim past-turn borders (user + assistant)
+ * t-input-frame — bright silver-blue active input border */
+.t-box         { color: #2f343d; }                     /* much dimmer than t-dim */
 .t-input-frame { color: #9fb3d8; font-weight: 600; }
 
-/* Blinking block cursor inside the input box */
+/* Input prompt glyph — silver-blue to match input frame */
+.t-prompt { color: #9fb3d8; font-weight: 700; }
+
+/* Blinking block cursor at start of input field */
 .t-cursor {
   color: #e6e9ef;
   animation: silvery-term-cursor-blink 1s steps(1) infinite;
 }
 @keyframes silvery-term-cursor-blink {
-  0%, 50%   { opacity: 1; }
-  50.01%, 100% { opacity: 0; }
+  0%, 50%       { opacity: 1; }
+  50.01%, 100%  { opacity: 0; }
 }
 
 /* Responsive */
