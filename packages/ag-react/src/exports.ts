@@ -160,6 +160,9 @@ export type { CursorLineProps } from "./ui/components"
 export { ModalDialog, formatTitleWithHotkey } from "./ui/components"
 export type { ModalDialogProps } from "./ui/components"
 
+export { Backdrop } from "./ui/components"
+export type { BackdropProps } from "./ui/components"
+
 export { PickerDialog } from "./ui/components"
 export type { PickerDialogProps } from "./ui/components"
 
