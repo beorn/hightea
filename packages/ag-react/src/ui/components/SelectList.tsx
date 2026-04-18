@@ -133,7 +133,14 @@ export function SelectList({
 
   const renderItem = useCallback(
     (item: SelectOption, _index: number, meta: { isCursor: boolean }) => (
-      <Text key={item.value} inverse={meta.isCursor} dimColor={item.disabled}>
+      // Fake cursor uses scheme cursorColor/cursorText ($cursorbg + $cursor)
+      // so it matches the user's terminal cursor color — native feel per theme.
+      // Disabled rows route through $disabledfg (not dimColor) per token system.
+      <Text
+        key={item.value}
+        color={item.disabled ? "$disabledfg" : meta.isCursor ? "$cursor" : undefined}
+        backgroundColor={meta.isCursor ? "$cursorbg" : undefined}
+      >
         {indicator ? (meta.isCursor ? indicator : " ".repeat(indicator.length)) : ""}
         {item.label}
       </Text>
