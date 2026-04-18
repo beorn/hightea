@@ -4,7 +4,7 @@
  * All generators return a complete ColorScheme (22 fields).
  */
 
-import { hexToRgb, hexToHsl, hslToHex, brighten, darken, blend } from "./color"
+import { hexToOklch, oklchToHex, brighten, darken, blend, relativeLuminance } from "./color"
 import { importBase16 as importBase16Internal } from "./import/base16"
 import { getSchemeByName } from "./schemes/index"
 import type { ColorScheme, HueName } from "./types"
@@ -13,58 +13,57 @@ import type { ColorScheme, HueName } from "./types"
 // Luminance
 // ============================================================================
 
-function luminance(hex: string): number {
-  const rgb = hexToRgb(hex)
-  if (!rgb) return 0.5
-  return (rgb[0] + rgb[1] + rgb[2]) / (255 * 3)
-}
-
 function isDarkColor(hex: string): boolean {
-  return luminance(hex) < 0.5
+  const L = relativeLuminance(hex)
+  return L === null ? true : L < 0.5
 }
 
 // ============================================================================
 // Accent Generation
 // ============================================================================
 
-/** Target hues for each accent slot. */
+/**
+ * Target hues for each accent slot, in OKLCH degrees.
+ * OKLCH hues differ from HSL — red ≈ 29, green ≈ 142, blue ≈ 264. Calibrated
+ * per Ottosson's reference ramps for perceptually-uniform accent generation.
+ */
 const targetHues: Record<HueName, number> = {
-  red: 0,
-  orange: 30,
-  yellow: 60,
-  green: 120,
-  teal: 180,
-  blue: 220,
-  purple: 280,
-  pink: 330,
+  red: 29,
+  orange: 55,
+  yellow: 90,
+  green: 142,
+  teal: 195,
+  blue: 240,
+  purple: 305,
+  pink: 350,
 }
 
-/** Find which hue slot the primary color best matches by hue angle proximity. */
+/** Find which hue slot the primary color best matches by OKLCH hue angle proximity. */
 export function assignPrimaryToSlot(primary: string): HueName {
-  const hsl = hexToHsl(primary)
-  if (!hsl) return "blue"
-  const h = hsl[0]
+  const o = hexToOklch(primary)
+  if (!o) return "blue"
+  const h = o.H
   const slots: [number, number, HueName][] = [
     [0, 15, "red"],
-    [15, 45, "orange"],
-    [45, 75, "yellow"],
-    [75, 165, "green"],
-    [165, 200, "teal"],
-    [200, 260, "blue"],
-    [260, 310, "purple"],
-    [310, 345, "pink"],
-    [345, 360, "red"],
+    [15, 42, "orange"],
+    [42, 75, "yellow"],
+    [75, 170, "green"],
+    [170, 210, "teal"],
+    [210, 275, "blue"],
+    [275, 330, "purple"],
+    [330, 360, "pink"],
   ]
   for (const [lo, hi, name] of slots) {
     if (h >= lo && h < hi) return name
   }
-  return "blue"
+  // Fallback: red band wraps around 0 — anything >345 or <15 is red.
+  return "red"
 }
 
 /** Generate 8 accent hues from a primary, placing it in its natural slot. */
 function generateAccentsFromPrimary(primary: string): Record<HueName, string> {
-  const hsl = hexToHsl(primary)
-  if (!hsl) {
+  const o = hexToOklch(primary)
+  if (!o) {
     return {
       red: "#BF616A",
       orange: "#D08770",
@@ -76,11 +75,13 @@ function generateAccentsFromPrimary(primary: string): Record<HueName, string> {
       pink: "#D4879C",
     }
   }
-  const [, s, l] = hsl
   const slot = assignPrimaryToSlot(primary)
   const result = {} as Record<HueName, string>
   for (const [name, targetH] of Object.entries(targetHues) as [HueName, number][]) {
-    result[name] = name === slot ? primary : hslToHex(targetH, s, l)
+    // Hue rotation in OKLCH preserves L + C so all accents have equal
+    // perceived lightness and colorfulness — the defining property of a
+    // visually-balanced accent ramp.
+    result[name] = name === slot ? primary : oklchToHex({ L: o.L, C: o.C, H: targetH })
   }
   return result
 }

@@ -37,13 +37,23 @@ export interface LoadThemeOptions {
   mode?: "ansi16" | "truecolor"
   /**
    * Invariant enforcement:
-   *   - `"strict"` — throw `ThemeInvariantError` when invariants fail (default for user themes).
-   *   - `"lenient"` — accept auto-adjustments from `deriveTheme`, warn on remaining violations.
-   *   - `"off"` — skip invariant validation entirely (callers own correctness).
+   *   - `"strict"` — throw `ThemeInvariantError` when invariants fail.
+   *   - `"lenient"` (default) — accept auto-adjustments, populate `violations` out-param.
+   *   - `"off"` — skip invariant validation entirely.
    *
-   * Default: "lenient".
+   * Note: `deriveTheme()` already runs `ensureContrast` on every text/bg pair
+   * it builds (thresholds: AA=4.5, DIM=3.0, FAINT=1.5, CONTROL=3.0 — tuned for
+   * terminals, not blind WCAG imports). Invariant validation is a second pass
+   * that catches things derive can't fix. Default: visibility only.
    */
   enforce?: "strict" | "lenient" | "off"
+  /**
+   * Run WCAG contrast validation in addition to visibility. Default: false.
+   * `deriveTheme` already applies the project-tweaked thresholds via
+   * `ensureContrast`; only enable `wcag: true` for build-time audits of
+   * bundled themes or to validate hand-authored Theme objects.
+   */
+  wcag?: boolean
   /** Out-parameter: adjustments applied by `deriveTheme`'s ensureContrast calls. */
   adjustments?: ThemeAdjustment[]
   /** Out-parameter: invariant violations (only populated in "lenient" mode; "strict" throws). */
@@ -53,24 +63,21 @@ export interface LoadThemeOptions {
 /**
  * Load and validate a theme from a ColorScheme.
  *
- * Combines `deriveTheme()` (lenient auto-adjust) with `validateThemeInvariants()`
- * (strict post-derivation check). Three enforcement levels:
+ * Combines `deriveTheme()` (auto-adjust via ensureContrast with project-tuned
+ * thresholds) with `validateThemeInvariants()` (post-derivation visibility +
+ * optional WCAG).
  *
- *   - `"strict"`: throws `ThemeInvariantError` on any invariant failure. Use at
- *     build-time to verify bundled themes.
- *   - `"lenient"` (default): accepts auto-adjustments, populates the `violations`
- *     out-param for remaining issues. Warn-level reporting for apps.
- *   - `"off"`: skip validation. For experimentation or when upstream guarantees.
+ * We don't re-impose WCAG on top of derive's tweaked thresholds — default
+ * validation checks visibility invariants only (selection/cursor vs bg) that
+ * derive doesn't handle.
  *
  * @example
  * ```ts
- * // Strict: fail fast on violations (build-time validation)
- * const theme = loadTheme(myScheme, { enforce: "strict" })
+ * // Default: lenient + visibility-only (derive already handled contrast)
+ * const theme = loadTheme(myScheme)
  *
- * // Lenient: accept adjustments, collect remaining issues
- * const violations: InvariantViolation[] = []
- * const theme = loadTheme(myScheme, { violations })
- * if (violations.length) console.warn("theme violations:", violations)
+ * // Build-time audit: strict + full WCAG
+ * const theme = loadTheme(myScheme, { enforce: "strict", wcag: true })
  * ```
  */
 export function loadTheme(palette: ColorScheme, opts: LoadThemeOptions = {}): Theme {
@@ -79,10 +86,9 @@ export function loadTheme(palette: ColorScheme, opts: LoadThemeOptions = {}): Th
   const theme = deriveTheme(palette, mode, opts.adjustments)
   if (enforce === "off") return theme
 
-  const { ok, violations } = validateThemeInvariants(theme)
+  const { ok, violations } = validateThemeInvariants(theme, { wcag: opts.wcag })
   if (!ok) {
     if (enforce === "strict") throw new ThemeInvariantError(violations)
-    // lenient: expose for caller
     if (opts.violations) opts.violations.push(...violations)
   }
   return theme

@@ -1,22 +1,38 @@
 /**
  * Auto-generate themes — create a complete Theme from a single primary color.
  *
- * Uses HSL color manipulation to derive complementary and analogous colors
- * for the full palette from one input color.
+ * Uses OKLCH color manipulation to derive complementary and analogous colors
+ * for the full palette from one input color. OKLCH preserves perceived
+ * lightness and chroma across hue rotations, so accent ramps look balanced.
  */
 
-import { hexToHsl, hslToHex, blend } from "./color"
+import { hexToOklch, oklchToHex, blend } from "./color"
 import { fromColors } from "./generators"
 import { deriveTheme } from "./derive"
 import type { Theme } from "./types"
 
+/** Standard OKLCH hue positions for semantic accents (degrees).
+ * OKLCH hues differ from HSL: red≈29, orange≈55, yellow≈90, green≈142,
+ * teal≈195, blue≈240, purple≈305, pink≈350. Calibrated against Ottosson's
+ * reference ramps. */
+const HUE = {
+  red: 29,
+  orangeBright: 55,
+  yellow: 90,
+  green: 142,
+  cyan: 195,
+  blue: 240,
+  magenta: 310,
+  pinkBright: 350,
+} as const
+
 /**
  * Generate a complete Theme from a single primary color.
  *
- * Derives a full ColorScheme using HSL color manipulation:
- * - Background/foreground from lightness inversion
+ * Derives a full ColorScheme using OKLCH color manipulation:
+ * - Background/foreground from lightness endpoints using the primary's hue
  * - Complementary and analogous accent colors from hue rotation
- * - Surface ramp from background blending
+ * - Surface ramp from bg lightness offsets
  * - Status colors (error, warning, success, info) from standard hue positions
  *
  * @param primaryColor - A hex color string (e.g. "#5E81AC")
@@ -33,59 +49,52 @@ import type { Theme } from "./types"
  * ```
  */
 export function autoGenerateTheme(primaryColor: string, mode: "dark" | "light"): Theme {
-  const hsl = hexToHsl(primaryColor)
-  if (!hsl) {
+  const o = hexToOklch(primaryColor)
+  if (!o) {
     // Fallback: use default colors if input is not valid hex
     const palette = fromColors({ dark: mode === "dark" })
     return deriveTheme(palette)
   }
 
-  const [h, s] = hsl
   const dark = mode === "dark"
 
-  // Generate background and foreground based on mode
-  const bgL = dark ? 0.12 : 0.97
-  const fgL = dark ? 0.87 : 0.13
-  // Use low saturation for bg/fg to keep them neutral
-  const bgS = Math.min(s, 0.15)
-  const bg = hslToHex(h, bgS, bgL)
-  const fg = hslToHex(h, bgS * 0.5, fgL)
+  // Background and foreground — use the primary's hue at low chroma for subtle
+  // tinting, OKLCH L endpoints calibrated perceptually.
+  const bgL = dark ? 0.22 : 0.96
+  const fgL = dark ? 0.9 : 0.2
+  const bgC = Math.min(o.C, 0.03) // keep bg chroma low — it's a neutral
+  const bg = oklchToHex({ L: bgL, C: bgC, H: o.H })
+  const fg = oklchToHex({ L: fgL, C: bgC * 0.5, H: o.H })
 
-  // Generate accent colors from hue rotations
-  // Standard hue positions for semantic colors
-  const redHue = 0
-  const yellowHue = 45
-  const greenHue = 130
-  const cyanHue = 185
-  const blueHue = 220
-  const magentaHue = 300
+  // Accent ring — same L and C as primary, different H. Preserves perceived
+  // weight across the ramp so no one color pops more than another.
+  const accentL = dark ? 0.72 : 0.52
+  const accentC = Math.max(o.C, 0.1) // ensure accents are vivid enough
+  const accent = (h: number) => oklchToHex({ L: accentL, C: accentC, H: h })
 
-  // Use the primary's saturation and adjust lightness for the mode
-  const accentL = dark ? 0.65 : 0.45
-  const accentS = Math.max(s, 0.5) // Ensure accents are reasonably saturated
+  const red = accent(HUE.red)
+  const green = accent(HUE.green)
+  const yellow = accent(HUE.yellow)
+  const blue = accent(HUE.blue)
+  const magenta = accent(HUE.magenta)
+  const cyan = accent(HUE.cyan)
 
-  const red = hslToHex(redHue, accentS, accentL)
-  const green = hslToHex(greenHue, accentS, accentL)
-  const yellow = hslToHex(yellowHue, accentS, accentL)
-  const blue = hslToHex(blueHue, accentS, accentL)
-  const magenta = hslToHex(magentaHue, accentS, accentL)
-  const cyan = hslToHex(cyanHue, accentS, accentL)
+  // Bright variants — shift L by ±0.08 in the appropriate direction.
+  const brightL = accentL + (dark ? 0.1 : -0.1)
+  const brightAccent = (h: number) => oklchToHex({ L: brightL, C: accentC, H: h })
 
-  // Bright variants: increase lightness slightly
-  const brightOffset = dark ? 0.1 : -0.1
-  const brightL = accentL + brightOffset
-  const brightRed = hslToHex(30, accentS, brightL) // orange-ish
-  const brightGreen = hslToHex(greenHue, accentS, brightL)
-  const brightYellow = hslToHex(yellowHue, accentS, brightL)
-  const brightBlue = hslToHex(blueHue, accentS, brightL)
-  const brightMagenta = hslToHex(330, accentS, brightL) // pink-ish
-  const brightCyan = hslToHex(cyanHue, accentS, brightL)
+  const brightRed = brightAccent(HUE.orangeBright)
+  const brightGreen = brightAccent(HUE.green)
+  const brightYellow = brightAccent(HUE.yellow)
+  const brightBlue = brightAccent(HUE.blue)
+  const brightMagenta = brightAccent(HUE.pinkBright)
+  const brightCyan = brightAccent(HUE.cyan)
 
-  // Surface colors from background
-  const black = dark ? hslToHex(h, bgS, bgL * 0.7) : hslToHex(h, bgS, bgL * 0.92)
-  const white = dark ? hslToHex(h, bgS * 0.3, 0.6) : hslToHex(h, bgS * 0.3, 0.35)
-  const brightBlack = dark ? hslToHex(h, bgS, bgL + 0.08) : hslToHex(h, bgS, bgL - 0.08)
-  const brightWhite = dark ? fg : hslToHex(h, bgS * 0.5, fgL - 0.05)
+  // Surface ramp — neutral grays at the bg's hue
+  const black = oklchToHex({ L: dark ? bgL * 0.7 : bgL * 0.92, C: bgC, H: o.H })
+  const white = oklchToHex({ L: dark ? 0.6 : 0.35, C: bgC * 0.3, H: o.H })
+  const brightBlack = oklchToHex({ L: dark ? bgL + 0.1 : bgL - 0.08, C: bgC, H: o.H })
+  const brightWhite = dark ? fg : oklchToHex({ L: fgL - 0.05, C: bgC * 0.5, H: o.H })
 
   const palette = {
     name: `generated-${mode}`,

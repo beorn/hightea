@@ -1,18 +1,22 @@
 /**
- * Theme invariants — post-derivation WCAG + visibility checks.
+ * Theme invariants — post-derivation visibility + optional WCAG checks.
  *
- * `deriveTheme()` already applies `ensureContrast` while building the Theme
- * (lenient-mode auto-adjust). `validateThemeInvariants()` is the strict gate:
- * it checks the final Theme and returns violations, so bundled themes can be
- * verified at build time and apps can choose strict vs. lenient loading.
+ * Two independent invariant groups:
  *
- * Invariant targets (from hub/silvery/design/v10-terminal/terminal-color-strategy.md):
- *   - AA (4.5:1): fg, primary, secondary, accent, error, warning, success, info,
- *                 link, selection on selectionbg, cursor on cursorbg
- *   - Large (3:1): muted on its bg, inputborder, focusborder on bg
- *   - Faint (1.5:1): border on bg
- *   - Selection visibility: ΔL ≥ 0.15 between selectionbg and bg
- *   - Cursor visibility: ΔE ≥ 20 between cursorbg and bg (OKLCH, ΔE×100)
+ * 1. **Visibility (always checked)** — selection and cursor must be
+ *    distinguishable from bg. These fail silently in the old system because
+ *    ensureContrast doesn't touch selectionbg/cursorbg; you get "invisible
+ *    selection" bugs that only surface via user complaints.
+ *
+ * 2. **WCAG contrast (opt-in)** — `deriveTheme()` already runs `ensureContrast`
+ *    on every text/bg pair as it builds the Theme (lenient auto-adjust). A
+ *    second validation pass is redundant for normal use. Enable it explicitly
+ *    at build time to *verify* that shipped themes meet the targets, or when
+ *    loading a hand-authored Theme object that skipped `deriveTheme`.
+ *
+ * This is why `validateThemeInvariants` defaults to `{ wcag: false }` — the
+ * existing derivation already handles contrast. Callers opt in via
+ * `validateThemeInvariants(theme, { wcag: true })` for strict pre-ship audits.
  */
 
 import { checkContrast, hexToOklch, deltaE as oklchDeltaE } from "@silvery/color"
@@ -48,6 +52,22 @@ export interface InvariantResult {
   ok: boolean
   /** Every failing invariant. */
   violations: InvariantViolation[]
+}
+
+export interface InvariantOptions {
+  /**
+   * Check WCAG contrast ratios. Default `false` because `deriveTheme` already
+   * runs `ensureContrast` during derivation (lenient auto-adjust). Enable for
+   * build-time audits of bundled themes or to validate hand-authored Theme
+   * objects that bypassed derivation.
+   */
+  wcag?: boolean
+  /**
+   * Check selection + cursor visibility (ΔL / ΔE vs bg). Default `true`
+   * because these aren't handled by ensureContrast — they're independent
+   * visibility invariants.
+   */
+  visibility?: boolean
 }
 
 interface Pair {
@@ -99,69 +119,83 @@ function lightness(hex: string): number | null {
 }
 
 /**
- * Validate WCAG contrast + visibility invariants on a derived Theme.
+ * Validate post-derivation invariants on a Theme.
  *
- * Returns `{ ok, violations }`. Non-hex values (ANSI names from `ansi16` mode)
- * are skipped with no violation — ANSI 16 themes can't be contrast-checked in
- * hex space; they're validated at the scheme level via terminal capability
- * defaults.
+ * Default: visibility checks only (selection ΔL, cursor ΔE). These are
+ * invariants that `deriveTheme` doesn't enforce and that matter for every
+ * theme regardless of authoring pedigree.
+ *
+ * Opt into WCAG contrast checks via `{ wcag: true }`. Use at build-time to
+ * verify bundled themes, or when loading hand-authored Theme objects that
+ * didn't flow through `deriveTheme`'s `ensureContrast` pass.
+ *
+ * Non-hex values (ANSI names from `ansi16` mode) are skipped with no
+ * violation — ANSI 16 themes can't be contrast-checked in hex space.
  *
  * @example
  * ```ts
- * const theme = deriveTheme(scheme)
+ * // Default — visibility only, fast
  * const { ok, violations } = validateThemeInvariants(theme)
- * if (!ok) console.error(violations.map(v => v.message).join("\n"))
+ *
+ * // Build-time audit — full WCAG check
+ * const audit = validateThemeInvariants(theme, { wcag: true })
  * ```
  */
-export function validateThemeInvariants(theme: Theme): InvariantResult {
+export function validateThemeInvariants(theme: Theme, opts: InvariantOptions = {}): InvariantResult {
+  const checkWcag = opts.wcag ?? false
+  const checkVisibility = opts.visibility ?? true
   const violations: InvariantViolation[] = []
 
-  for (const pair of CONTRAST_PAIRS) {
-    const fg = theme[pair.fg] as string
-    const bg = theme[pair.bg] as string
-    if (typeof fg !== "string" || typeof bg !== "string") continue
-    const r = checkContrast(fg, bg)
-    if (r === null) continue // non-hex — skip (ANSI16 mode)
-    if (r.ratio < pair.min) {
-      violations.push({
-        rule: pair.rule,
-        tokens: [String(pair.fg), String(pair.bg)],
-        actual: r.ratio,
-        required: pair.min,
-        message: `${pair.fg} (${fg}) on ${pair.bg} (${bg}) is ${r.ratio.toFixed(2)}:1, needs ${pair.min.toFixed(1)}:1`,
-      })
+  if (checkWcag) {
+    for (const pair of CONTRAST_PAIRS) {
+      const fg = theme[pair.fg] as string
+      const bg = theme[pair.bg] as string
+      if (typeof fg !== "string" || typeof bg !== "string") continue
+      const r = checkContrast(fg, bg)
+      if (r === null) continue // non-hex — skip (ANSI16 mode)
+      if (r.ratio < pair.min) {
+        violations.push({
+          rule: pair.rule,
+          tokens: [String(pair.fg), String(pair.bg)],
+          actual: r.ratio,
+          required: pair.min,
+          message: `${pair.fg} (${fg}) on ${pair.bg} (${bg}) is ${r.ratio.toFixed(2)}:1, needs ${pair.min.toFixed(1)}:1`,
+        })
+      }
     }
   }
 
-  // Selection visibility — ΔL ≥ 0.15 between selectionbg and bg (so highlight is distinguishable)
-  const lBg = lightness(theme.bg)
-  const lSelBg = lightness(theme.selectionbg)
-  if (lBg !== null && lSelBg !== null) {
-    const dL = Math.abs(lSelBg - lBg)
-    if (dL < SELECTION_DELTA_L) {
-      violations.push({
-        rule: "visibility:selection",
-        tokens: ["selectionbg", "bg"],
-        actual: dL,
-        required: SELECTION_DELTA_L,
-        message: `selectionbg (${theme.selectionbg}) differs from bg (${theme.bg}) by ΔL=${dL.toFixed(3)}, needs ≥ ${SELECTION_DELTA_L.toFixed(2)}`,
-      })
+  if (checkVisibility) {
+    // Selection visibility — ΔL ≥ 0.08 between selectionbg and bg (so highlight is distinguishable)
+    const lBg = lightness(theme.bg)
+    const lSelBg = lightness(theme.selectionbg)
+    if (lBg !== null && lSelBg !== null) {
+      const dL = Math.abs(lSelBg - lBg)
+      if (dL < SELECTION_DELTA_L) {
+        violations.push({
+          rule: "visibility:selection",
+          tokens: ["selectionbg", "bg"],
+          actual: dL,
+          required: SELECTION_DELTA_L,
+          message: `selectionbg (${theme.selectionbg}) differs from bg (${theme.bg}) by ΔL=${dL.toFixed(3)}, needs ≥ ${SELECTION_DELTA_L.toFixed(2)}`,
+        })
+      }
     }
-  }
 
-  // Cursor visibility — ΔE ≥ 0.2 (OKLCH) between cursorbg and bg
-  const oBg = hexToOklch(theme.bg)
-  const oCursorBg = hexToOklch(theme.cursorbg)
-  if (oBg && oCursorBg) {
-    const de = oklchDeltaE(oBg, oCursorBg)
-    if (de < CURSOR_DELTA_E) {
-      violations.push({
-        rule: "visibility:cursor",
-        tokens: ["cursorbg", "bg"],
-        actual: de,
-        required: CURSOR_DELTA_E,
-        message: `cursorbg (${theme.cursorbg}) differs from bg (${theme.bg}) by ΔE=${de.toFixed(3)}, needs ≥ ${CURSOR_DELTA_E.toFixed(2)}`,
-      })
+    // Cursor visibility — ΔE ≥ 0.15 (OKLCH) between cursorbg and bg
+    const oBg = hexToOklch(theme.bg)
+    const oCursorBg = hexToOklch(theme.cursorbg)
+    if (oBg && oCursorBg) {
+      const de = oklchDeltaE(oBg, oCursorBg)
+      if (de < CURSOR_DELTA_E) {
+        violations.push({
+          rule: "visibility:cursor",
+          tokens: ["cursorbg", "bg"],
+          actual: de,
+          required: CURSOR_DELTA_E,
+          message: `cursorbg (${theme.cursorbg}) differs from bg (${theme.bg}) by ΔE=${de.toFixed(3)}, needs ≥ ${CURSOR_DELTA_E.toFixed(2)}`,
+        })
+      }
     }
   }
 

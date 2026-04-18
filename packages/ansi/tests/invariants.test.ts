@@ -19,40 +19,56 @@ import {
 import type { Theme, ColorScheme, InvariantViolation } from "@silvery/ansi"
 
 describe("validateThemeInvariants — bundled schemes", () => {
-  it("default-dark passes all invariants after deriveTheme", () => {
+  it("default-dark passes default (visibility) invariants after deriveTheme", () => {
     const theme = deriveTheme(defaultDarkScheme)
     const { ok, violations } = validateThemeInvariants(theme)
     expect(ok, formatViolations(violations)).toBe(true)
   })
 
-  it("default-light passes all invariants after deriveTheme", () => {
+  it("default-light passes default (visibility) invariants after deriveTheme", () => {
     const theme = deriveTheme(defaultLightScheme)
     const { ok, violations } = validateThemeInvariants(theme)
+    expect(ok, formatViolations(violations)).toBe(true)
+  })
+
+  it("default-dark passes the full WCAG audit too", () => {
+    const theme = deriveTheme(defaultDarkScheme)
+    const { ok, violations } = validateThemeInvariants(theme, { wcag: true })
+    expect(ok, formatViolations(violations)).toBe(true)
+  })
+
+  it("default-light passes the full WCAG audit too", () => {
+    const theme = deriveTheme(defaultLightScheme)
+    const { ok, violations } = validateThemeInvariants(theme, { wcag: true })
     expect(ok, formatViolations(violations)).toBe(true)
   })
 })
 
 describe("validateThemeInvariants — intentionally broken themes", () => {
-  it("detects contrast violation: fg too close to bg", () => {
+  it("detects contrast violation: fg too close to bg (wcag opt-in)", () => {
     const broken: Theme = {
       ...deriveTheme(defaultDarkScheme),
       fg: "#2E3440", // same luminance as default-dark bg
     }
-    const { ok, violations } = validateThemeInvariants(broken)
+    // Default (visibility only) won't catch this.
+    expect(validateThemeInvariants(broken).ok).toBe(true)
+    // Opt-in WCAG catches it.
+    const { ok, violations } = validateThemeInvariants(broken, { wcag: true })
     expect(ok).toBe(false)
     expect(violations.some((v) => v.rule.startsWith("contrast:fg"))).toBe(true)
   })
 
-  it("detects selection visibility failure: selectionbg === bg", () => {
+  it("detects selection visibility failure: selectionbg === bg (default)", () => {
     const broken: Theme = {
       ...deriveTheme(defaultDarkScheme),
       selectionbg: defaultDarkScheme.background, // no ΔL
     }
+    // Visibility is on by default — no opt-in needed.
     const { violations } = validateThemeInvariants(broken)
     expect(violations.some((v) => v.rule === "visibility:selection")).toBe(true)
   })
 
-  it("detects cursor visibility failure: cursorbg === bg", () => {
+  it("detects cursor visibility failure: cursorbg === bg (default)", () => {
     const broken: Theme = {
       ...deriveTheme(defaultDarkScheme),
       cursorbg: defaultDarkScheme.background, // no ΔE
@@ -61,14 +77,29 @@ describe("validateThemeInvariants — intentionally broken themes", () => {
     expect(violations.some((v) => v.rule === "visibility:cursor")).toBe(true)
   })
 
-  it("exposes the actual measured value in violation", () => {
+  it("exposes the actual measured value in WCAG violation", () => {
     const broken: Theme = { ...deriveTheme(defaultDarkScheme), fg: "#2E3440" }
-    const { violations } = validateThemeInvariants(broken)
+    const { violations } = validateThemeInvariants(broken, { wcag: true })
     const fgViolation = violations.find((v) => v.rule.startsWith("contrast:fg"))
     expect(fgViolation).toBeDefined()
     expect(fgViolation!.actual).toBeGreaterThan(0)
     expect(fgViolation!.actual).toBeLessThan(AA_RATIO)
     expect(fgViolation!.required).toBe(AA_RATIO)
+  })
+
+  it("wcag: false skips contrast checks (default)", () => {
+    const broken: Theme = { ...deriveTheme(defaultDarkScheme), fg: "#2E3440" }
+    const { ok } = validateThemeInvariants(broken) // default
+    expect(ok).toBe(true) // contrast not checked → no violations reported
+  })
+
+  it("visibility: false skips visibility checks", () => {
+    const broken: Theme = {
+      ...deriveTheme(defaultDarkScheme),
+      selectionbg: defaultDarkScheme.background,
+    }
+    const { ok } = validateThemeInvariants(broken, { visibility: false })
+    expect(ok).toBe(true)
   })
 })
 
