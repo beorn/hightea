@@ -9,8 +9,6 @@ import {
   hexToOklch,
   oklchToHex,
   colorDistance,
-  brighten,
-  darken,
 } from "@silvery/color"
 import { checkContrast, ensureContrast } from "@silvery/color"
 import type { ColorScheme, Theme, Variant } from "./types.ts"
@@ -21,6 +19,7 @@ import {
   CURSOR_DELTA_E,
   type InvariantViolation,
 } from "./invariants.ts"
+import { deriveFields } from "./derived.ts"
 
 export interface ThemeAdjustment {
   token: string
@@ -142,12 +141,6 @@ function deriveTruecolorTheme(p: ColorScheme, adjustments?: ThemeAdjustment[]): 
   const info = ensure("info", blend(fg, accent, 0.5), bg, AA)
   const link = ensure("link", dark ? p.brightBlue : p.blue, bg, AA)
 
-  // Brand anchor (Apple system-color model) — app identity.
-  // $brand anchors to primary; hover/active shift OKLCH L ±0.04 / ±0.08.
-  const brand = primary
-  const brandHover = dark ? brighten(primary, 0.04) : darken(primary, 0.04)
-  const brandActive = dark ? brighten(primary, 0.08) : darken(primary, 0.08)
-
   // Categorical color ring — 8 harmonious hues for tagging / chart series /
   // categories. ensureContrast-adjusted against bg.
   const red = ensure("red", p.red, bg, AA)
@@ -169,22 +162,20 @@ function deriveTruecolorTheme(p: ColorScheme, adjustments?: ThemeAdjustment[]): 
   const selectionBg = repairSelectionBg(p.selectionBackground, bg)
   const selection = ensure("selection", p.selectionForeground, selectionBg, AA)
 
-  // State variant helper — brightens on dark themes, darkens on light themes.
-  const shift = (hex: string, amount: number): string =>
-    dark ? brighten(hex, amount) : darken(hex, amount)
-
-  // State variants — hover (+0.04L), active (+0.08L)
-  const primaryHover = shift(primary, 0.04)
-  const primaryActive = shift(primary, 0.08)
-  const accentHover = shift(accent, 0.04)
-  const accentActive = shift(accent, 0.08)
-  const fgHover = shift(fg, 0.04)
-  const fgActive = shift(fg, 0.08)
-  const bgSelectedHover = shift(selectionBg, 0.04)
-  const bgSurfaceHover = shift(surfacebg, 0.04)
   // Repair cursor visibility — nudge cursorbg ΔE away from bg (OKLCH).
   const cursorBgRepaired = repairCursorBg(p.cursorColor, bg)
   const cursor = ensure("cursor", p.cursorText, cursorBgRepaired, AA)
+
+  const derived = deriveFields({
+    mode: "truecolor",
+    dark,
+    primary,
+    accent,
+    fg,
+    selectionbg: selectionBg,
+    surfacebg,
+    ring: { red, orange, yellow, green, teal, blue, purple, pink },
+  })
 
   return {
     name: p.name ?? (dark ? "derived-dark" : "derived-light"),
@@ -239,44 +230,34 @@ function deriveTruecolorTheme(p: ColorScheme, adjustments?: ThemeAdjustment[]): 
       p.brightCyan,
       p.brightWhite,
     ],
-    brand,
-    brandHover,
-    brandActive,
-    // State variants
-    primaryHover,
-    primaryActive,
-    accentHover,
-    accentActive,
-    fgHover,
-    fgActive,
-    bgSelectedHover,
-    bgSurfaceHover,
-    // Categorical ring — primary names
-    red,
-    orange,
-    yellow,
-    green,
-    teal,
-    blue,
-    purple,
-    pink,
-    // Deprecated brand-<hue> aliases (same values; for backward compat one release)
-    brandRed: red,
-    brandOrange: orange,
-    brandYellow: yellow,
-    brandGreen: green,
-    brandTeal: teal,
-    brandBlue: blue,
-    brandPurple: purple,
-    brandPink: pink,
-    // Typography variants — defaults matching the Typography preset components.
-    variants: defaultVariants(primary, accent, muted, mutedbg, link),
+    ...derived,
   }
 }
 
 function deriveAnsi16Theme(p: ColorScheme): Theme {
   const dark = p.dark ?? true
   const primaryColor = dark ? p.yellow : p.blue
+  const accentColor = p.cyan
+
+  const derived = deriveFields({
+    mode: "ansi16",
+    primary: primaryColor,
+    accent: accentColor,
+    fg: p.foreground,
+    selectionbg: p.selectionBackground,
+    surfacebg: p.black,
+    ring: {
+      red: dark ? p.brightRed : p.red,
+      orange: dark ? p.brightRed : p.red, // no orange slot in ANSI 16
+      yellow: p.yellow,
+      green: dark ? p.brightGreen : p.green,
+      teal: p.cyan,
+      blue: dark ? p.brightBlue : p.blue,
+      purple: p.magenta,
+      pink: dark ? p.brightMagenta : p.magenta,
+    },
+  })
+
   return {
     name: p.name ?? (dark ? "derived-ansi16-dark" : "derived-ansi16-light"),
     bg: p.background,
@@ -297,7 +278,7 @@ function deriveAnsi16Theme(p: ColorScheme): Theme {
     primaryfg: p.black,
     secondary: p.magenta,
     secondaryfg: p.black,
-    accent: p.cyan,
+    accent: accentColor,
     accentfg: p.black,
     error: dark ? p.brightRed : p.red,
     errorfg: p.black,
@@ -330,73 +311,10 @@ function deriveAnsi16Theme(p: ColorScheme): Theme {
       p.brightCyan,
       p.brightWhite,
     ],
-    // Brand tokens at ANSI 16 — map to named slots (no blending possible).
-    brand: primaryColor,
-    brandHover: primaryColor,
-    brandActive: primaryColor,
-    // State variants at ANSI 16 — no lightness shifts possible; fall back to base.
-    primaryHover: primaryColor,
-    primaryActive: primaryColor,
-    accentHover: p.cyan,
-    accentActive: p.cyan,
-    fgHover: p.foreground,
-    fgActive: p.foreground,
-    bgSelectedHover: p.selectionBackground,
-    bgSurfaceHover: p.black,
-    // Categorical ring (canonical names)
-    red: dark ? p.brightRed : p.red,
-    orange: dark ? p.brightRed : p.red, // no orange slot in ANSI 16
-    yellow: p.yellow,
-    green: dark ? p.brightGreen : p.green,
-    teal: p.cyan,
-    blue: dark ? p.brightBlue : p.blue,
-    purple: p.magenta,
-    pink: dark ? p.brightMagenta : p.magenta,
-    // Deprecated brand-<hue> aliases (same values)
-    brandRed: dark ? p.brightRed : p.red,
-    brandOrange: dark ? p.brightRed : p.red,
-    brandYellow: p.yellow,
-    brandGreen: dark ? p.brightGreen : p.green,
-    brandTeal: p.cyan,
-    brandBlue: dark ? p.brightBlue : p.blue,
-    brandPurple: p.magenta,
-    brandPink: dark ? p.brightMagenta : p.magenta,
-    // Typography variants — defaults matching the Typography preset components.
-    variants: defaultVariants(primaryColor, p.cyan, p.white, p.black, dark ? p.brightBlue : p.blue),
+    ...derived,
   }
 }
 
-/**
- * Build the default variants map from derived theme tokens.
- *
- * @param primary - resolved primary color (or ANSI name)
- * @param accent  - resolved accent color (or ANSI name)
- * @param muted   - resolved muted color (or ANSI name)
- * @param mutedbg - resolved muted background (or ANSI name)
- * @param link    - resolved link color (or ANSI name)
- */
-function defaultVariants(
-  primary: string,
-  accent: string,
-  muted: string,
-  mutedbg: string,
-  link: string,
-): Record<string, Variant> {
-  return {
-    h1: { color: "$primary", bold: true },
-    h2: { color: "$accent", bold: true },
-    h3: { bold: true },
-    body: {},
-    "body-muted": { color: "$muted" },
-    "fine-print": { color: "$muted", dim: true },
-    strong: { bold: true },
-    em: { italic: true },
-    link: { color: "$link", underlineStyle: "single" },
-    key: { color: "$accent", bold: true },
-    code: { backgroundColor: "$mutedbg" },
-    kbd: { backgroundColor: "$mutedbg", color: "$accent", bold: true },
-  }
-}
 
 /**
  * Nudge `selectionBg`'s OKLCH lightness until it differs from `bg` by at least

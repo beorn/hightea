@@ -2,23 +2,52 @@
  * Default palettes and themes — shipped with @silvery/ansi.
  */
 
-import type { ColorScheme, Theme, Variant } from "./types.ts"
+import type { ColorScheme, Theme } from "./types.ts"
+import { deriveFields, DEFAULT_VARIANTS } from "./derived.ts"
 
-/** Default variants — token-based so they work across any theme. */
-const DEFAULT_VARIANTS: Record<string, Variant> = {
-  h1: { color: "$primary", bold: true },
-  h2: { color: "$accent", bold: true },
-  h3: { bold: true },
-  body: {},
-  "body-muted": { color: "$muted" },
-  "fine-print": { color: "$muted", dim: true },
-  strong: { bold: true },
-  em: { italic: true },
-  link: { color: "$link", underlineStyle: "single" },
-  key: { color: "$accent", bold: true },
-  code: { backgroundColor: "$mutedbg" },
-  kbd: { backgroundColor: "$mutedbg", color: "$accent", bold: true },
-}
+// Dark ANSI16 ring
+const _darkRing = {
+  red: "redBright",
+  orange: "redBright",
+  yellow: "yellow",
+  green: "greenBright",
+  teal: "cyan",
+  blue: "blueBright",
+  purple: "magenta",
+  pink: "magentaBright",
+} as const
+
+// Light ANSI16 ring
+const _lightRing = {
+  red: "red",
+  orange: "red",
+  yellow: "yellow",
+  green: "green",
+  teal: "cyan",
+  blue: "blue",
+  purple: "magenta",
+  pink: "magenta",
+} as const
+
+const _darkDerived = deriveFields({
+  mode: "ansi16",
+  primary: "yellow",
+  accent: "blueBright",
+  fg: "whiteBright",
+  selectionbg: "yellow",
+  surfacebg: "black",
+  ring: _darkRing,
+})
+
+const _lightDerived = deriveFields({
+  mode: "ansi16",
+  primary: "blue",
+  accent: "cyan",
+  fg: "black",
+  selectionbg: "cyan",
+  surfacebg: "white",
+  ring: _lightRing,
+})
 
 export const ansi16DarkTheme: Theme = {
   name: "dark-ansi16",
@@ -73,34 +102,7 @@ export const ansi16DarkTheme: Theme = {
     "cyanBright",
     "whiteBright",
   ],
-  brand: "yellow",
-  brandHover: "yellow",
-  brandActive: "yellow",
-  primaryHover: "yellow",
-  primaryActive: "yellow",
-  accentHover: "blueBright",
-  accentActive: "blueBright",
-  fgHover: "whiteBright",
-  fgActive: "whiteBright",
-  bgSelectedHover: "yellow",
-  bgSurfaceHover: "black",
-  red: "redBright",
-  orange: "redBright",
-  yellow: "yellow",
-  green: "greenBright",
-  teal: "cyan",
-  blue: "blueBright",
-  purple: "magenta",
-  pink: "magentaBright",
-  brandRed: "redBright",
-  brandOrange: "redBright",
-  brandYellow: "yellow",
-  brandGreen: "greenBright",
-  brandTeal: "cyan",
-  brandBlue: "blueBright",
-  brandPurple: "magenta",
-  brandPink: "magentaBright",
-  variants: DEFAULT_VARIANTS,
+  ..._darkDerived,
 }
 
 export const ansi16LightTheme: Theme = {
@@ -156,34 +158,7 @@ export const ansi16LightTheme: Theme = {
     "cyanBright",
     "whiteBright",
   ],
-  brand: "blue",
-  brandHover: "blue",
-  brandActive: "blue",
-  primaryHover: "blue",
-  primaryActive: "blue",
-  accentHover: "cyan",
-  accentActive: "cyan",
-  fgHover: "black",
-  fgActive: "black",
-  bgSelectedHover: "cyan",
-  bgSurfaceHover: "white",
-  red: "red",
-  orange: "red",
-  yellow: "yellow",
-  green: "green",
-  teal: "cyan",
-  blue: "blue",
-  purple: "magenta",
-  pink: "magenta",
-  brandRed: "red",
-  brandOrange: "red",
-  brandYellow: "yellow",
-  brandGreen: "green",
-  brandTeal: "cyan",
-  brandBlue: "blue",
-  brandPurple: "magenta",
-  brandPink: "magenta",
-  variants: DEFAULT_VARIANTS,
+  ..._lightDerived,
 }
 
 export const defaultDarkScheme: ColorScheme = {

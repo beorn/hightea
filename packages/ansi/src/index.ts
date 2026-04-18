@@ -151,6 +151,13 @@ export type { Style, StyleOptions, ThemeLike } from "./style/types"
 
 export { deriveTheme, loadTheme } from "./theme/derive"
 export type { ThemeAdjustment, LoadThemeOptions } from "./theme/derive"
+export { deriveFields, DEFAULT_VARIANTS } from "./theme/derived"
+export type {
+  DeriveFieldsInput,
+  DeriveFieldsAnsi16Input,
+  DeriveFieldsTruecolorInput,
+  DerivedFields,
+} from "./theme/derived"
 export {
   deriveMonochromeTheme,
   monoAttrsFor,

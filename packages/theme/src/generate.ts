@@ -4,23 +4,11 @@
  * Uses ANSI color names (not hex) so it works on any terminal without truecolor support.
  */
 
-import type { AnsiPrimary, Theme, Variant } from "./types"
+import type { AnsiPrimary, Theme } from "./types"
+import { deriveFields, DEFAULT_VARIANTS } from "@silvery/ansi"
 
-/** Default variants — token-based so they work across any theme. */
-const DEFAULT_VARIANTS: Record<string, Variant> = {
-  h1: { color: "$primary", bold: true },
-  h2: { color: "$accent", bold: true },
-  h3: { bold: true },
-  body: {},
-  "body-muted": { color: "$muted" },
-  "fine-print": { color: "$muted", dim: true },
-  strong: { bold: true },
-  em: { italic: true },
-  link: { color: "$link", underlineStyle: "single" },
-  key: { color: "$accent", bold: true },
-  code: { backgroundColor: "$mutedbg" },
-  kbd: { backgroundColor: "$mutedbg", color: "$accent", bold: true },
-}
+// Re-export for consumers that import DEFAULT_VARIANTS from here.
+export { DEFAULT_VARIANTS }
 
 /**
  * Generate a complete ANSI 16 theme from a primary color + dark/light preference.
@@ -28,18 +16,37 @@ const DEFAULT_VARIANTS: Record<string, Variant> = {
  * All token values are ANSI color names (e.g. "yellow", "blueBright").
  */
 export function generateTheme(primary: AnsiPrimary, dark: boolean): Theme {
+  const fg = dark ? "whiteBright" : "black"
+  const accent = primary // generate.ts: accent = primary (single-color generator)
+  const selectionbg = primary
+  const surfacebg = dark ? "black" : "white"
+
+  // Categorical ring — computed from dark flag alone (no ColorScheme available)
+  const ring = {
+    red: dark ? "redBright" : "red",
+    orange: dark ? "redBright" : "red", // no orange slot in ANSI 16
+    yellow: "yellow",
+    green: dark ? "greenBright" : "green",
+    teal: "cyan", // canonical: cyan (not cyanBright — aligned to deriveAnsi16Theme)
+    blue: dark ? "blueBright" : "blue",
+    purple: "magenta",
+    pink: dark ? "magentaBright" : "magenta",
+  }
+
+  const derived = deriveFields({ mode: "ansi16", primary, accent, fg, selectionbg, surfacebg, ring })
+
   return {
     name: `${dark ? "dark" : "light"}-${primary}`,
 
     // ── Root pair ─────────────────────────────────────────────────
     bg: "",
-    fg: dark ? "whiteBright" : "black",
+    fg,
 
     // ── Surface pairs (base = text, *bg = background) ──────────
     muted: dark ? "white" : "blackBright",
     mutedbg: dark ? "black" : "white",
     surface: dark ? "whiteBright" : "black",
-    surfacebg: dark ? "black" : "white",
+    surfacebg,
     popover: dark ? "whiteBright" : "black",
     popoverbg: dark ? "blackBright" : "white",
     inverse: dark ? "black" : "whiteBright",
@@ -92,42 +99,7 @@ export function generateTheme(primary: AnsiPrimary, dark: boolean): Theme {
       "whiteBright",
     ],
 
-    // ── Brand identity (Apple system-color model) ────────────────
-    brand: primary,
-    brandHover: primary,
-    brandActive: primary,
-
-    // ── State variants (no lightness shifts in ANSI 16 — fall back to base) ──
-    primaryHover: primary,
-    primaryActive: primary,
-    accentHover: primary,
-    accentActive: primary,
-    fgHover: dark ? "whiteBright" : "black",
-    fgActive: dark ? "whiteBright" : "black",
-    bgSelectedHover: primary,
-    bgSurfaceHover: dark ? "black" : "white",
-
-    // ── Categorical color ring ───────────────────────────────────
-    red: dark ? "redBright" : "red",
-    orange: dark ? "redBright" : "red", // no orange slot in ANSI 16
-    yellow: "yellow",
-    green: dark ? "greenBright" : "green",
-    teal: dark ? "cyanBright" : "cyan",
-    blue: dark ? "blueBright" : "blue",
-    purple: "magenta",
-    pink: dark ? "magentaBright" : "magenta",
-
-    // ── Deprecated aliases (one-cycle compat) ────────────────────
-    brandRed: dark ? "redBright" : "red",
-    brandOrange: dark ? "redBright" : "red",
-    brandYellow: "yellow",
-    brandGreen: dark ? "greenBright" : "green",
-    brandTeal: dark ? "cyanBright" : "cyan",
-    brandBlue: dark ? "blueBright" : "blue",
-    brandPurple: "magenta",
-    brandPink: dark ? "magentaBright" : "magenta",
-
-    // ── Typography variants ───────────────────────────────────────
-    variants: DEFAULT_VARIANTS,
+    // ── Derived fields (brand, ring, state variants, variants) ───
+    ...derived,
   }
 }
