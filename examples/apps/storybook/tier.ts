@@ -74,14 +74,14 @@ function rgbToHex(r: number, g: number, b: number): string {
 function quantize256(hex: string): string {
   const rgb = hexToRgb(hex)
   if (!rgb) return hex
-  const idx = rgbToAnsi256(rgb.r, rgb.g, rgb.b)
+  const idx = rgbToAnsi256(rgb[0], rgb[1], rgb[2])
   return ansi256ToHex(idx)
 }
 
 function quantizeAnsi16Hex(hex: string): string {
   const rgb = hexToRgb(hex)
   if (!rgb) return hex
-  const idx = nearestAnsi16(rgb.r, rgb.g, rgb.b)
+  const idx = nearestAnsi16(rgb[0], rgb[1], rgb[2])
   return ANSI16_HEX[idx] ?? hex
 }
 
@@ -98,7 +98,7 @@ function remap(theme: Theme, fn: (hex: string) => string): Theme {
   if (Array.isArray(theme.palette)) {
     out.palette = theme.palette.map(fn)
   }
-  return out as Theme
+  return out as unknown as Theme
 }
 
 export interface TierView {

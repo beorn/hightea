@@ -423,17 +423,17 @@ function AnsiRow({
   palette,
   bright,
 }: {
-  palette: { [k: string]: unknown } & { black: string }
+  palette: import("@silvery/theme").ColorScheme
   bright: boolean
 }) {
-  const keys = bright
+  const keys: (keyof import("@silvery/theme").ColorScheme)[] = bright
     ? ["brightBlack", "brightRed", "brightGreen", "brightYellow", "brightBlue", "brightMagenta", "brightCyan", "brightWhite"]
     : ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"]
   return (
     <Box gap={0}>
       <Muted>{bright ? "8-15 " : "0-7  "}</Muted>
       {keys.map((k) => (
-        <Text key={k} color={palette[k] as string}>
+        <Text key={k as string} color={palette[k] as string}>
           {"██"}
         </Text>
       ))}
