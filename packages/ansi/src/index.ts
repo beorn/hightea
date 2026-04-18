@@ -155,6 +155,8 @@ export { deriveMonochromeTheme, monoAttrsFor, DEFAULT_MONO_ATTRS } from "./theme
 export type { MonoAttr, MonochromeAttrs } from "./theme/monochrome"
 export { fingerprintMatch, fingerprintCandidates } from "./theme/fingerprint"
 export type { FingerprintMatch, FingerprintOptions } from "./theme/fingerprint"
+export { defineTokens, resolveCustomToken, CustomTokenError } from "./theme/custom"
+export type { DeriveTokenDef, BrandTokenDef, CustomTokenDef, CustomTokenRegistry } from "./theme/custom"
 export {
   validateThemeInvariants,
   formatViolations,
