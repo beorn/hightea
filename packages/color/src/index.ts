@@ -51,6 +51,7 @@ export {
   hexToOklch,
   oklchToHex,
   lerpOklch,
+  lerpOklabHex,
   lerpHue,
   deltaE,
   srgbToLinear,

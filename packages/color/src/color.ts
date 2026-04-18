@@ -13,7 +13,7 @@
 
 import type { HSL } from "./types.ts"
 import type { OKLCH } from "./oklch.ts"
-import { hexToOklch, oklchToHex, lerpOklch, deltaE as oklchDeltaE } from "./oklch.ts"
+import { hexToOklch, oklchToHex, lerpOklch, lerpOklabHex, deltaE as oklchDeltaE } from "./oklch.ts"
 
 // ============================================================================
 // Hex ↔ RGB Parsing
@@ -57,17 +57,19 @@ export function toHex(c: OKLCH): string {
 // ============================================================================
 
 /**
- * Blend two hex colors in OKLCH space. t=0 returns a, t=1 returns b.
+ * Blend two hex colors in OKLab space. t=0 returns a, t=1 returns b.
  * Perceptually-uniform midpoints (unlike naive RGB blending which produces
  * muddy halfway colors).
+ *
+ * Interpolation is done in OKLab (rectangular a/b), not OKLCH (polar). This
+ * matches CSS Color Module 4's default interpolation space and avoids hue-arc
+ * weirdness when one endpoint is near-neutral (its hue is effectively
+ * undefined). For explicit hue-rotation blending, use `lerpOklch` directly.
  *
  * For non-hex inputs (ANSI names), returns `a` unchanged.
  */
 export function blend(a: string, b: string, t: number): string {
-  const oa = hexToOklch(a)
-  const ob = hexToOklch(b)
-  if (!oa || !ob) return a
-  return oklchToHex(lerpOklch(oa, ob, t))
+  return lerpOklabHex(a, b, t) ?? a
 }
 
 /**

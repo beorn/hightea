@@ -162,13 +162,51 @@ export function lerpHue(h1: number, h2: number, t: number): number {
   return ((h % 360) + 360) % 360
 }
 
-/** Linear interpolate in OKLCH space. `t=0` → a, `t=1` → b. */
+/**
+ * Linear interpolate in OKLCH space (polar — interpolates L, C, H separately).
+ * Good for hue rotations; can produce surprising results when blending a
+ * near-neutral (tiny C) with a chromatic color because the hue of the neutral
+ * endpoint is effectively meaningless.
+ */
 export function lerpOklch(a: OKLCH, b: OKLCH, t: number): OKLCH {
   return {
     L: a.L + (b.L - a.L) * t,
     C: a.C + (b.C - a.C) * t,
     H: lerpHue(a.H, b.H, t),
   }
+}
+
+/**
+ * Linear interpolate in OKLab (rectangular — a, b, L interpolated directly).
+ *
+ * CSS Color Module 4's default interpolation space. Avoids the hue-arc
+ * weirdness of `lerpOklch` when one endpoint is near-neutral (its H is
+ * effectively undefined). Produces the expected "tinted surface" when blending
+ * `bg` with an accent color.
+ */
+export function lerpOklabHex(aHex: string, bHex: string, t: number): string | null {
+  const aOk = hexToOklch(aHex)
+  const bOk = hexToOklch(bHex)
+  if (!aOk || !bOk) return null
+
+  // OKLCH → OKLab
+  const aRad = (aOk.H * Math.PI) / 180
+  const bRad = (bOk.H * Math.PI) / 180
+  const aA = aOk.C * Math.cos(aRad)
+  const aB = aOk.C * Math.sin(aRad)
+  const bA = bOk.C * Math.cos(bRad)
+  const bB = bOk.C * Math.sin(bRad)
+
+  // Lerp in OKLab
+  const L = aOk.L + (bOk.L - aOk.L) * t
+  const A = aA + (bA - aA) * t
+  const B = aB + (bB - aB) * t
+
+  // OKLab → OKLCH → hex
+  const C = Math.sqrt(A * A + B * B)
+  let H = (Math.atan2(B, A) * 180) / Math.PI
+  if (H < 0) H += 360
+  return oklchToHex({ L, C, H })
 }
 
 /**
