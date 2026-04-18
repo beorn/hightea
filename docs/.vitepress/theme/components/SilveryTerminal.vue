@@ -1,10 +1,12 @@
 <!--
   SilveryTerminal — hero image slot component for silvery.dev
 
-  All box-drawing lines exactly 62 chars wide (verified via Python
-  HTML-strip + length check). Continuous gleam drift on chrome bezel.
-  Agent-style input box at the bottom as the final "awaiting input"
-  affordance.
+  Tight line-height (1.15) so Unicode box-drawing vertical bars
+  connect into continuous lines — no gaps between rows.
+
+  All 9 box lines exactly 62 chars wide, verified via Python.
+  Labels use Sentence case (User / Assistant / Input).
+  Input box has thicker accent border + blinking cursor.
 -->
 
 <template>
@@ -19,35 +21,35 @@
         <div class="silvery-terminal__title">silvery-agent — ~/silvery</div>
       </div>
 
-      <pre class="silvery-terminal__body"><span class="t-dim">╭─ </span><span class="t-accent">user</span><span class="t-dim"> ─────────────────────────────────────────────────────╮</span>
+      <pre class="silvery-terminal__body"><span class="t-dim">╭─ </span><span class="t-label">User</span><span class="t-dim"> ─────────────────────────────────────────────────────╮</span>
 <span class="t-dim">│</span> <span class="t-command">add a blinking cursor after the tagline</span>                    <span class="t-dim">│</span>
 <span class="t-dim">╰────────────────────────────────────────────────────────────╯</span>
 
-<span class="t-tool">●</span> Read <span class="t-path">.vitepress/theme/custom.css</span>
+<span class="t-tool">●</span> <span class="t-fg">Read</span> <span class="t-path">.vitepress/theme/custom.css</span>
   <span class="t-ok">✓</span> <span class="t-dim">found </span><span class="t-path">.VPHero .tagline</span><span class="t-dim"> selector at line 148</span>
 
-<span class="t-tool">●</span> Edit <span class="t-path">.vitepress/theme/custom.css</span>
+<span class="t-tool">●</span> <span class="t-fg">Edit</span> <span class="t-path">.vitepress/theme/custom.css</span>
   <span class="t-dim">+ tagline::after blink animation (1Hz steps(1))</span>
   <span class="t-ok">✓</span> <span class="t-dim">applied · 12 insertions · 0 deletions</span>
 
-<span class="t-dim">╭─ </span><span class="t-accent">assistant</span><span class="t-dim"> ────────────────────────────────────────────────╮</span>
+<span class="t-dim">╭─ </span><span class="t-label">Assistant</span><span class="t-dim"> ────────────────────────────────────────────────╮</span>
 <span class="t-dim">│</span> <span class="t-fg">Blink lands at end of tagline.</span>                             <span class="t-dim">│</span>
 <span class="t-dim">│</span> <span class="t-dim">One cursor per page · matches the design doc.</span>              <span class="t-dim">│</span>
 <span class="t-dim">╰────────────────────────────────────────────────────────────╯</span>
 
-<span class="t-accent">╭────────────────────────────────────────────────────────────╮</span>
-<span class="t-accent">│</span> <span class="t-prompt">❯</span> <span class="t-dim">ask anything about silvery</span>                               <span class="t-accent">│</span>
-<span class="t-accent">╰────────────────────────────────────────────────────────────╯</span></pre>
+<span class="t-input-frame">╭─ </span><span class="t-label">Input</span><span class="t-input-frame"> ────────────────────────────────────────────────────╮</span>
+<span class="t-input-frame">│</span> <span class="t-prompt">❯</span> <span class="t-dim">ask anything about silvery</span><span class="t-cursor">_</span>                              <span class="t-input-frame">│</span>
+<span class="t-input-frame">╰────────────────────────────────────────────────────────────╯</span></pre>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* ----- Chrome bezel wrapper — continuous gleam drift ----- */
+/* ----- Chrome bezel wrapper — fast continuous gleam drift ----- */
 .silvery-terminal-wrap {
   padding: 5px;
   border-radius: 14px;
-  margin: 1.5em auto 0;      /* pushed up 1 line */
+  margin: 1.5em auto 0;
   max-width: 760px;
   overflow: hidden;
 
@@ -61,7 +63,7 @@
   );
   background-size: 300% 100%;
   background-position: 150% 0;
-  animation: silvery-chrome-drift 9s linear infinite;   /* 2x faster: 18 → 9s */
+  animation: silvery-chrome-drift 9s linear infinite;
 
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
@@ -93,7 +95,7 @@
 
   font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.15;     /* tight: box-drawing verticals connect */
   overflow: hidden;
 }
 
@@ -137,7 +139,7 @@
 /* ----- Body ----- */
 .silvery-terminal__body {
   margin: 0;
-  padding: 12px 18px 14px;
+  padding: 14px 18px 16px;
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
@@ -152,14 +154,27 @@
 }
 
 /* ----- Token colors ----- */
-.t-accent  { color: #8ea4c8; font-weight: 500; }
-.t-fg      { color: #e6e9ef; }
-.t-command { color: #f1f3f7; font-weight: 500; }
-.t-prompt  { color: #f1f3f7; font-weight: 600; }
-.t-tool    { color: #7dd3c0; }
-.t-ok      { color: #8bc79a; }
-.t-path    { color: #e6b872; }
-.t-dim     { color: #6a7080; }
+.t-label       { color: #e6b872; font-weight: 600; }  /* high-contrast section labels */
+.t-fg          { color: #e6e9ef; font-weight: 500; }
+.t-command     { color: #ffffff; font-weight: 500; }
+.t-prompt      { color: #e6b872; font-weight: 700; }  /* prompt arrow — warm sand, bold */
+.t-tool        { color: #7dd3c0; font-weight: 600; }
+.t-ok          { color: #8bc79a; font-weight: 600; }
+.t-path        { color: #8ea4c8; font-weight: 500; }  /* file paths — silver-blue */
+.t-dim         { color: #6a7080; }
+
+/* Input box frame — thicker, brighter accent than t-dim boxes */
+.t-input-frame { color: #9fb3d8; font-weight: 600; }
+
+/* Blinking block cursor inside the input box */
+.t-cursor {
+  color: #e6e9ef;
+  animation: silvery-term-cursor-blink 1s steps(1) infinite;
+}
+@keyframes silvery-term-cursor-blink {
+  0%, 50%   { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
 
 /* Responsive */
 @media (max-width: 820px) {
@@ -174,7 +189,7 @@
     border-radius: 8px;
   }
   .silvery-terminal__body {
-    padding: 10px 14px 12px;
+    padding: 12px 14px 14px;
   }
 }
 </style>

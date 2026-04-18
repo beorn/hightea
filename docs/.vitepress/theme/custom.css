@@ -127,6 +127,90 @@
 }
 
 /* ============================================================
+ * Gleam on hero-text headline ("React for modern terminal apps")
+ *
+ * Silver-blue palette — more colorful than the wordmark's black/
+ * white. Rest color is the accent; highlight is a brighter silver-
+ * blue. Synced timing with wordmark + chrome bezel.
+ * ============================================================ */
+
+.VPHome .text,
+.VPHero .text {
+  background: linear-gradient(
+    110deg,
+    var(--silvery-accent) 0%,
+    var(--silvery-accent) 42%,
+    #a8b5d0 50%,
+    var(--silvery-accent) 58%,
+    var(--silvery-accent) 100%
+  );
+  background-size: 300% 100%;
+  background-position: 150% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: silvery-wordmark-drift 9s linear infinite;
+}
+
+.dark .VPHome .text,
+.dark .VPHero .text {
+  background: linear-gradient(
+    110deg,
+    var(--silvery-accent-light) 0%,
+    var(--silvery-accent-light) 42%,
+    #c5d1e8 50%,
+    var(--silvery-accent-light) 58%,
+    var(--silvery-accent-light) 100%
+  );
+  background-size: 300% 100%;
+  background-position: 150% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: silvery-wordmark-drift 9s linear infinite;
+}
+
+/* ============================================================
+ * Gleam on "Get Started" primary brand button
+ *
+ * The button already has a silver-blue fill; overlay an animated
+ * lighter band that sweeps across the fill. Pure CSS via gradient
+ * background on the button itself — no pseudo-element required.
+ * ============================================================ */
+
+.VPButton.brand,
+.VPHome .VPButton.brand,
+.VPHero .VPButton.brand {
+  background: linear-gradient(
+    110deg,
+    var(--silvery-accent) 0%,
+    var(--silvery-accent) 42%,
+    var(--silvery-accent-light) 50%,
+    var(--silvery-accent) 58%,
+    var(--silvery-accent) 100%
+  ) !important;
+  background-size: 300% 100% !important;
+  background-position: 150% 0;
+  animation: silvery-wordmark-drift 9s linear infinite;
+  border-color: var(--silvery-accent) !important;
+  color: #ffffff !important;
+}
+.VPButton.brand:hover {
+  background: linear-gradient(
+    110deg,
+    var(--silvery-accent-dark) 0%,
+    var(--silvery-accent-dark) 42%,
+    var(--silvery-accent) 50%,
+    var(--silvery-accent-dark) 58%,
+    var(--silvery-accent-dark) 100%
+  ) !important;
+  background-size: 300% 100% !important;
+  border-color: var(--silvery-accent-dark) !important;
+}
+
+/* ============================================================
  * Hover states — COLOR CHANGES ONLY
  *
  * Rules:
