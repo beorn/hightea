@@ -1,0 +1,36 @@
+{
+  "repoName": "silvery",
+  "version": "0.18.0",
+  "packages": {
+    "silvery": {
+      "bumped": true,
+      "built": true,
+      "verified": true
+    },
+    "@silvery/commander": {
+      "bumped": true,
+      "built": true,
+      "verified": true
+    },
+    "@silvery/color": {
+      "bumped": true,
+      "built": true,
+      "verified": true
+    },
+    "@silvery/ansi": {
+      "bumped": true,
+      "built": true,
+      "verified": true
+    },
+    "@silvery/theme-detect": {
+      "bumped": true,
+      "built": true,
+      "verified": true
+    },
+    "@silvery/examples": {
+      "bumped": true,
+      "built": true,
+      "verified": true
+    }
+  }
+}
