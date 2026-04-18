@@ -71,6 +71,11 @@ export interface PickerDialogProps<T> {
   promptColor?: string
   /** Whether the input is active (default: true) */
   isActive?: boolean
+  /**
+   * Backdrop fade amount for the underlying `ModalDialog`. Range [0, 1].
+   * Default is the ModalDialog default (0.4). `fade={0}` disables fade.
+   */
+  fade?: number
 }
 
 // =============================================================================
@@ -105,6 +110,7 @@ export function PickerDialog<T>({
   prompt,
   promptColor,
   isActive = true,
+  fade,
 }: PickerDialogProps<T>): React.ReactElement {
   const [selectedIndex, setSelectedIndex] = useState(0)
 
@@ -180,7 +186,7 @@ export function PickerDialog<T>({
   const showPlaceholder = !readline.value && placeholder
 
   return (
-    <ModalDialog title={title} width={width} height={height} footer={footer}>
+    <ModalDialog title={title} width={width} height={height} footer={footer} {...(fade !== undefined ? { fade } : {})}>
       {/* Search input */}
       <Box flexShrink={0} flexDirection="column">
         <Box>

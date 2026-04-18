@@ -50,9 +50,19 @@ export interface ModalDialogProps extends Omit<BoxProps, "children" | "flexDirec
   onClose?: () => void
   /** Whether to create a focus scope (default: true, for future focus system integration) */
   focusScope?: boolean
+  /**
+   * Backdrop fade amount — fades everything OUTSIDE this dialog's rect, making
+   * the modal's content stand out visually. Range [0, 1]. Default: 0.4.
+   *
+   * Applied at render time via a cell-level color transform (see
+   * `@silvery/ag-term/pipeline/backdrop-phase`). Set `fade={0}` to disable.
+   */
+  fade?: number
   /** Dialog children */
   children: React.ReactNode
 }
+
+const DEFAULT_FADE = 0.4
 
 // =============================================================================
 // Helpers
@@ -131,12 +141,19 @@ export function ModalDialog({
   footerAlign = "center",
   onClose: _onClose,
   focusScope: _focusScope = true,
+  fade = DEFAULT_FADE,
   children,
   ...boxProps
 }: ModalDialogProps): React.ReactElement {
   const effectiveTitleColor = titleColor ?? "$primary"
   // When titleRight is provided, use space-between layout for the title bar
   const effectiveTitleAlign = titleRight ? "space-between" : titleAlign
+
+  // Backdrop fade: emit `data-backdrop-fade-excluded` so the pipeline's
+  // backdrop pass fades everything OUTSIDE this dialog's screen rect.
+  // `fade={0}` disables the effect entirely (no marker emitted).
+  const fadeAttrs: Record<string, unknown> =
+    Number.isFinite(fade) && fade > 0 ? { "data-backdrop-fade-excluded": clampFade(fade) } : {}
 
   return (
     <Box
@@ -149,6 +166,7 @@ export function ModalDialog({
       paddingX={2}
       paddingY={1}
       userSelect="contain"
+      {...fadeAttrs}
       {...boxProps}
     >
       {title && (
@@ -179,4 +197,9 @@ export function ModalDialog({
       )}
     </Box>
   )
+}
+
+function clampFade(n: number): number {
+  if (!Number.isFinite(n) || n <= 0) return 0
+  return n > 1 ? 1 : n
 }
