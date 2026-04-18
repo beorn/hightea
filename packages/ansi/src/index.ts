@@ -167,7 +167,7 @@ export {
   SELECTION_DELTA_L,
   CURSOR_DELTA_E,
 } from "./theme/invariants"
-export type { InvariantViolation, InvariantResult } from "./theme/invariants"
+export type { InvariantViolation, InvariantResult, InvariantOptions } from "./theme/invariants"
 export { ansi16DarkTheme, ansi16LightTheme, defaultDarkScheme, defaultLightScheme } from "./theme/default-schemes"
 export type { ColorScheme, Theme, AnsiPrimary, HueName } from "./theme/types"
 export type { AnsiColorName as PaletteColorName } from "./theme/types"
