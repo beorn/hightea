@@ -102,15 +102,16 @@
   100% { background-position: 100vw 0; }   /* hold at rest until next pulse */
 }
 
-/* Nav wordmark */
+/* Nav wordmark — rest color is dark, chrome highlight sweeps across */
 .VPNavBarTitle .title {
+  background-color: var(--silvery-wordmark-rest);
   background-image: linear-gradient(
     110deg,
-    var(--silvery-wordmark-rest) 0%,
-    var(--silvery-wordmark-rest) 30%,
+    transparent 0%,
+    transparent 30%,
     var(--silvery-wordmark-highlight) 50%,
-    var(--silvery-wordmark-rest) 70%,
-    var(--silvery-wordmark-rest) 100%
+    transparent 70%,
+    transparent 100%
   );
   background-size: 100vw 100vh;
   background-attachment: fixed;
@@ -123,16 +124,17 @@
   animation: silvery-page-gleam 3s linear infinite;
 }
 
-/* Hero wordmark */
+/* Hero wordmark — rest color is dark, chrome highlight sweeps across */
 .VPHome .name,
 .VPHero .name {
+  background-color: var(--silvery-hero-rest);
   background-image: linear-gradient(
     110deg,
-    var(--silvery-hero-rest) 0%,
-    var(--silvery-hero-rest) 30%,
+    transparent 0%,
+    transparent 30%,
     var(--silvery-hero-highlight) 50%,
-    var(--silvery-hero-rest) 70%,
-    var(--silvery-hero-rest) 100%
+    transparent 70%,
+    transparent 100%
   );
   background-size: 100vw 100vh;
   background-attachment: fixed;
@@ -145,16 +147,17 @@
   animation: silvery-page-gleam 3s linear infinite;
 }
 
-/* Hero headline "React for modern terminal apps" */
+/* Hero headline "React for modern terminal apps" — dim rest, chrome peak */
 .VPHome .text,
 .VPHero .text {
+  background-color: var(--silvery-accent);
   background-image: linear-gradient(
     110deg,
-    var(--silvery-accent) 0%,
-    var(--silvery-accent) 30%,
+    transparent 0%,
+    transparent 30%,
     #d6e0f0 50%,
-    var(--silvery-accent) 70%,
-    var(--silvery-accent) 100%
+    transparent 70%,
+    transparent 100%
   );
   background-size: 100vw 100vh;
   background-attachment: fixed;
@@ -169,13 +172,14 @@
 
 .dark .VPHome .text,
 .dark .VPHero .text {
+  background-color: var(--silvery-accent-light);
   background-image: linear-gradient(
     110deg,
-    var(--silvery-accent-light) 0%,
-    var(--silvery-accent-light) 30%,
+    transparent 0%,
+    transparent 30%,
     #ffffff 50%,
-    var(--silvery-accent-light) 70%,
-    var(--silvery-accent-light) 100%
+    transparent 70%,
+    transparent 100%
   );
   background-size: 100vw 100vh;
   background-attachment: fixed;
@@ -188,20 +192,22 @@
   animation: silvery-page-gleam 3s linear infinite;
 }
 
-/* Get Started primary button */
+/* Get Started primary button — dim rest, chrome peak */
 .VPButton.brand,
 .VPHome .VPButton.brand,
 .VPHero .VPButton.brand {
+  background-color: var(--silvery-accent) !important;
   background-image: linear-gradient(
     110deg,
-    var(--silvery-accent) 0%,
-    var(--silvery-accent) 30%,
+    transparent 0%,
+    transparent 30%,
     #d6e0f0 50%,
-    var(--silvery-accent) 70%,
-    var(--silvery-accent) 100%
+    transparent 70%,
+    transparent 100%
   ) !important;
   background-size: 100vw 100vh !important;
   background-attachment: fixed !important;
+  background-repeat: no-repeat !important;
   background-position: 100vw 0;
   animation: silvery-page-gleam 3s linear infinite;
   border-color: var(--silvery-accent) !important;
