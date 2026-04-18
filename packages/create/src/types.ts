@@ -31,7 +31,9 @@ export type Op = { type: string; [key: string]: unknown }
  * - `{type: "render-barrier"}`  — force a render + microtask flush before the next op
  * - `{type: "exit"}`            — quit the app
  * - `{type: "suspend"}`         — Ctrl+Z suspend (SIGTSTP)
- * - `{type: "dispatch", ...}`   — re-dispatch another Op (append to queue)
+ * - `{type: "dispatch", op}`    — re-dispatch the nested Op through the
+ *                                   apply chain (runs in the drain loop,
+ *                                   not via reentrant dispatch())
  */
 export type Effect = { type: string; [key: string]: unknown }
 
