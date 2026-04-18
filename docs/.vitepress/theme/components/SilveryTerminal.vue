@@ -37,7 +37,7 @@
 <span class="t-box">│</span> <span class="t-dim">One cursor per page · matches the design doc.</span>              <span class="t-box">│</span>
 <span class="t-box">╰────────────────────────────────────────────────────────────╯</span>
 
-<span class="t-input-frame">╭─ </span><span class="t-label">Input</span><span class="t-input-frame"> ────────────────────────────────────────────────────╮</span>
+<span class="t-input-frame">╭─ </span><span class="t-input-frame">Input</span><span class="t-input-frame"> ────────────────────────────────────────────────────╮</span>
 <span class="t-input-frame">│</span> <span class="t-prompt">❯</span> <span class="t-cursor">█</span>                                                        <span class="t-input-frame">│</span>
 <span class="t-input-frame">╰────────────────────────────────────────────────────────────╯</span></pre>
     </div>
@@ -127,12 +127,12 @@
 
 /* Box border hierarchy
  * t-box         — very dim past-turn borders (user + assistant)
- * t-input-frame — bright silver-blue active input border */
-.t-box         { color: #2f343d; }                     /* much dimmer than t-dim */
-.t-input-frame { color: #9fb3d8; font-weight: 600; }
+ * t-input-frame — BRIGHT BLUE active input border (also used on Input label) */
+.t-box         { color: #2f343d; }
+.t-input-frame { color: #5ba8f5; font-weight: 600; }   /* vivid silvery-blue */
 
-/* Input prompt glyph — silver-blue to match input frame */
-.t-prompt { color: #9fb3d8; font-weight: 700; }
+/* Input prompt glyph — matches the brighter blue input frame */
+.t-prompt { color: #5ba8f5; font-weight: 700; }
 
 /* Static block cursor at start of input field (no blink — it's a mockup,
  * a blinking cursor falsely implies the input is interactive). */
