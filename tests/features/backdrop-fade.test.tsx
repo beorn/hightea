@@ -92,7 +92,11 @@ describe("backdrop fade: Backdrop primitive", () => {
 })
 
 describe("backdrop fade: ModalDialog integration", () => {
-  test("default fade (0.4) fades cells OUTSIDE the dialog, keeps cells INSIDE crisp", () => {
+  // NOTE: ModalDialog's fade defaults to 0 (off) until the backdrop pass is
+  // proven stable against modal-rect-streaming flicker. Apps opt in with
+  // `fade={0.4}`. When re-enabled, change these test props to rely on the
+  // default again.
+  test("explicit fade={0.4} fades cells OUTSIDE the dialog, keeps cells INSIDE crisp", () => {
     const render = createRenderer({ cols: 40, rows: 10 })
 
     function App({ open }: { open: boolean }) {
@@ -106,7 +110,7 @@ describe("backdrop fade: ModalDialog integration", () => {
           ))}
           {open && (
             <Box position="absolute" marginLeft={10} marginTop={3}>
-              <ModalDialog width={20}>
+              <ModalDialog width={20} fade={0.4}>
                 <Text color="#FFFFFF">DIALOG</Text>
               </ModalDialog>
             </Box>
@@ -185,7 +189,7 @@ describe("backdrop fade: realistic-scale fixture (50+ nodes)", () => {
           ))}
           {open && (
             <Box position="absolute" marginLeft={20} marginTop={8}>
-              <ModalDialog width={24} title="Modal">
+              <ModalDialog width={24} title="Modal" fade={0.4}>
                 <Text color="#FFFFFF">body</Text>
               </ModalDialog>
             </Box>

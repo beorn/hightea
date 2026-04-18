@@ -61,6 +61,21 @@ interface FadeRect {
  * Returns `true` if at least one region was modified; `false` if nothing
  * changed (no markers found, or colorLevel is `none`).
  */
+/**
+ * Quick check: does the tree contain any backdrop markers? Used as a gate so
+ * we don't clone the buffer every frame when no fade is active. Walks the
+ * full tree once (O(N)) — the alternative (tracking dirty markers in the
+ * reconciler) is more complex and the walk is cheap compared to the pass.
+ */
+export function hasBackdropMarkers(root: AgNode): boolean {
+  const props = root.props as Record<string, unknown>
+  if (props[FADE_ATTR] !== undefined || props[FADE_EXCLUDE_ATTR] !== undefined) return true
+  for (const child of root.children) {
+    if (hasBackdropMarkers(child)) return true
+  }
+  return false
+}
+
 export function applyBackdropFade(
   root: AgNode,
   buffer: TerminalBuffer,

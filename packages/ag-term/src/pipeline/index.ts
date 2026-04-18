@@ -58,7 +58,7 @@ export {
 export { renderPhase, clearBgConflictWarnings, setBgConflictMode } from "./render-phase"
 export { renderPhaseAdapter } from "./render-phase-adapter"
 export { outputPhase } from "./output-phase"
-export { applyBackdropFade } from "./backdrop-phase"
+export { applyBackdropFade, hasBackdropMarkers } from "./backdrop-phase"
 export type { BackdropColorLevel, BackdropFadeOptions } from "./backdrop-phase"
 // Layout signals — unified module (backward compat re-exports)
 export { getLayoutSignals, hasLayoutSignals, syncRectSignals, type LayoutSignals } from "@silvery/ag/layout-signals"

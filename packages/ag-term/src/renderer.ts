@@ -240,6 +240,14 @@ interface RenderInstance {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React reconciler internal type
   fiberRoot: any
   prevBuffer: TerminalBuffer | null
+  /**
+   * The buffer that was painted on the previous frame (post-fade). Used by
+   * the output-phase diff as the "from" state so only actually-painted cells
+   * are compared. `prevBuffer` separately carries the PRE-fade state forward
+   * for the next frame's renderPhase incremental clone. When no backdrop
+   * markers exist, the two are identical.
+   */
+  prevPaintedBuffer: TerminalBuffer | null
   mounted: boolean
   /** True while inside act() or doRender() — detects re-entrant calls */
   rendering: boolean
@@ -336,6 +344,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     container: null as unknown as ReturnType<typeof createContainer>,
     fiberRoot: null,
     prevBuffer: null,
+    prevPaintedBuffer: null,
     mounted: true,
     rendering: false,
     columns: cols,
@@ -542,12 +551,19 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     rows: number,
     prevBuffer: TerminalBuffer | null,
     opts?: { skipLayoutNotifications?: boolean; skipScrollStateUpdates?: boolean },
-  ): { output: string; buffer: TerminalBuffer } {
+  ): { output: string; buffer: TerminalBuffer; carryForwardBuffer: TerminalBuffer } {
     const ag = createAg(root)
     ag.layout({ cols, rows }, opts)
-    const { buffer } = ag.render({ prevBuffer })
-    const output = outputPhase(prevBuffer, buffer, "fullscreen")
-    return { output, buffer }
+    // `buffer` is post-fade (what we paint); `carryForwardBuffer` is pre-fade
+    // (what the NEXT frame's incremental render must clone). See ag.ts
+    // `AgRenderResult.carryForwardBuffer` for the invariant rationale.
+    const { buffer, carryForwardBuffer } = ag.render({ prevBuffer })
+    // Output-phase diff uses the previously painted (post-fade) buffer.
+    // `prevPaintedBuffer` is set by the caller (see singlePass/classic loops)
+    // and stored as `instance.prevPaintedBuffer`.
+    const prevForDiff = instance.prevPaintedBuffer ?? prevBuffer
+    const output = outputPhase(prevForDiff, buffer, "fullscreen")
+    return { output, buffer, carryForwardBuffer }
   }
 
   function doRender(): string {
@@ -578,6 +594,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         hadReactCommit = false
         singlePassCount++
         let renderError: Error | null = null
+        let carryForwardBuffer: TerminalBuffer | undefined
         withActEnvironment(() => {
           act(() => {
             const root = getContainerRoot(instance.container)
@@ -590,6 +607,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
               )
               output = result.output
               buffer = result.buffer
+              carryForwardBuffer = result.carryForwardBuffer
             } catch (e) {
               // STRICT output verification may throw from the output phase.
               // The render phase buffer is still valid and attached to the
@@ -598,14 +616,22 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
               const attachedBuffer = (e as any)?.__silvery_buffer
               if (attachedBuffer) {
                 buffer = attachedBuffer
+                carryForwardBuffer = attachedBuffer
               }
             }
             // Always update prevBuffer when a new buffer was produced,
             // even if the output phase threw. The buffer from renderPhase
             // is correct; the STRICT verification exception is a diagnostic that
             // should not corrupt incremental rendering state.
+            //
+            // Carry forward the PRE-fade buffer so the next frame's incremental
+            // render starts from unfaded cells. Without this, backdrop-fade
+            // compounds across frames.
             if (buffer) {
-              instance.prevBuffer = buffer
+              // `prevBuffer` = pre-fade — carried into next frame's renderPhase.
+              // `prevPaintedBuffer` = post-fade — what the output phase diffs against.
+              instance.prevBuffer = carryForwardBuffer ?? buffer
+              instance.prevPaintedBuffer = buffer
             }
             instance.renderCount++
             onBufferReady?.(output, buffer, getRootContentHeight())
@@ -655,6 +681,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         // Run the render pipeline inside act() so that forceUpdate/setState
         // from notifyLayoutSubscribers (Phase 2.7) are properly captured.
         let classicRenderError: Error | null = null
+        let carryForwardBuffer: TerminalBuffer | undefined
         withActEnvironment(() => {
           act(() => {
             const root = getContainerRoot(instance.container)
@@ -667,15 +694,20 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
               )
               output = result.output
               buffer = result.buffer
+              carryForwardBuffer = result.carryForwardBuffer
             } catch (e) {
               classicRenderError = e as Error
               const attachedBuffer = (e as any)?.__silvery_buffer
               if (attachedBuffer) {
                 buffer = attachedBuffer
+                carryForwardBuffer = attachedBuffer
               }
             }
             if (buffer) {
-              instance.prevBuffer = buffer
+              // Carry forward PRE-fade buffer for renderPhase incremental clone;
+              // track POST-fade buffer for output-phase diff.
+              instance.prevBuffer = carryForwardBuffer ?? buffer
+              instance.prevPaintedBuffer = buffer
             }
             instance.renderCount++
             onBufferReady?.(output, buffer, getRootContentHeight())
@@ -830,7 +862,10 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
 
   // Helper functions for App
   const getContainer = () => getContainerRoot(instance.container)
-  const getBuffer = () => instance.prevBuffer
+  // Expose the POST-fade buffer so app.cell() / app.text / createTextFrame
+  // read what was actually painted. `instance.prevBuffer` is the pre-fade
+  // buffer used for the next frame's renderPhase incremental clone.
+  const getBuffer = () => instance.prevPaintedBuffer ?? instance.prevBuffer
 
   const sendInput = (data: string) => {
     if (!instance.mounted) {
@@ -1009,6 +1044,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   const clearFn = () => {
     instance.frames.length = 0
     instance.prevBuffer = null
+    instance.prevPaintedBuffer = null
   }
 
   const debugFn = () => {
@@ -1043,6 +1079,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     stdoutEmitter.emit("resize")
     // Clear prevBuffer to force full redraw (matches scheduler.setupResizeListener)
     instance.prevBuffer = null
+    instance.prevPaintedBuffer = null
     // Re-render at new dimensions
     const newFrame = doRender()
     instance.frames.push(newFrame)

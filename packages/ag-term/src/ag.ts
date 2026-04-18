@@ -35,7 +35,7 @@ import {
   strictLayoutOverflowCheck,
 } from "./pipeline/layout-phase"
 import { renderPhase, clearBgConflictWarnings } from "./pipeline/render-phase"
-import { applyBackdropFade, type BackdropColorLevel } from "./pipeline/backdrop-phase"
+import { applyBackdropFade, hasBackdropMarkers, type BackdropColorLevel } from "./pipeline/backdrop-phase"
 import { clearDirtyTracking, hasScrollDirty } from "@silvery/ag/dirty-tracking"
 import type { PipelineContext } from "./pipeline/types"
 
@@ -72,8 +72,18 @@ export interface CreateAgOptionsInternal {
 export interface AgRenderResult {
   /** Immutable TextFrame snapshot of the rendered output. */
   readonly frame: TextFrame
-  /** Raw buffer for output-phase diffing. Internal — prefer frame for reading. */
+  /**
+   * Post-transform buffer for painting. Includes backdrop-fade cell transforms
+   * (if any). Pass this to `term.paint()` / `outputPhase()` as `next`.
+   */
   readonly buffer: TerminalBuffer
+  /**
+   * Pre-transform buffer. Identical to `buffer` when no backdrop-fade markers
+   * are present. Callers managing their own incremental prev-buffer state must
+   * carry THIS (not `buffer`) forward, so the next frame's render phase starts
+   * from pre-fade cells and the fade pass re-applies deterministically.
+   */
+  readonly carryForwardBuffer: TerminalBuffer
   /** Previous frame's buffer (null on first render). For output-phase diffing. */
   readonly prevBuffer: TerminalBuffer | null
 }
@@ -272,13 +282,30 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
     }
 
     // Backdrop-fade pass — runs after content + decoration, before output.
-    // Mutates the buffer in place. Deterministic on both incremental and
-    // fresh paths (see backdrop-phase.ts header for invariant discussion).
-    applyBackdropFade(root, buffer, { colorLevel })
-
-    // Only save for incremental — fresh renders (STRICT comparison) don't update state
-    if (!opts?.fresh) {
-      _prevBuffer = buffer
+    //
+    // Incremental invariant: fast-path cells carry the PREVIOUS frame's
+    // pixels into the clone inside renderPhase. If those pixels are
+    // POST-fade, the fade pass re-fades already-faded cells and the result
+    // compounds across frames (STRICT: incremental post-fade diverges from
+    // fresh post-fade after 2+ frames).
+    //
+    // Solution: snapshot the PRE-transform buffer BEFORE applying fade.
+    // Store it as `_prevBuffer` (for internal ag state) AND return it as
+    // `carryForwardBuffer` so external callers managing their own prev
+    // state (renderer.ts) can track pre-fade. The post-fade `buffer` is
+    // what gets painted; pre-fade is what gets cloned for incremental.
+    let carryForwardBuffer: TerminalBuffer
+    if (hasBackdropMarkers(root)) {
+      carryForwardBuffer = buffer.clone()
+      if (!opts?.fresh) {
+        _prevBuffer = carryForwardBuffer
+      }
+      applyBackdropFade(root, buffer, { colorLevel })
+    } else {
+      carryForwardBuffer = buffer
+      if (!opts?.fresh) {
+        _prevBuffer = buffer
+      }
     }
 
     // Clear the module-level dirty tracking after each render pass.
@@ -294,7 +321,7 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
     }
 
     const frame = createTextFrame(buffer)
-    return { frame, buffer, prevBuffer, tContent }
+    return { frame, buffer, carryForwardBuffer, prevBuffer, tContent }
   }
 
   // -------------------------------------------------------------------------
@@ -368,7 +395,12 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
 
     render(options) {
       const result = measurer ? runWithMeasurer(measurer, () => doRender(options)) : doRender(options)
-      return { frame: result.frame, buffer: result.buffer, prevBuffer: result.prevBuffer }
+      return {
+        frame: result.frame,
+        buffer: result.buffer,
+        carryForwardBuffer: result.carryForwardBuffer,
+        prevBuffer: result.prevBuffer,
+      }
     },
 
     resetBuffer() {
