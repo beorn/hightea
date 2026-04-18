@@ -159,9 +159,26 @@ Full styling reference: [Styling Guide](docs/guide/styling.md)
 >
 > **Plugin-centric design**: Events are ops that flow through the plugin `apply` chain.
 > Plugins own event routing — React hooks are thin store readers. The era2
-> plugin composition pattern (dispatch/apply pipeline) is the target model;
-> design notes live in km's private workspace. **Any work on events, input
-> handling, or focus dispatch must follow the era2 plugin composition pattern.**
+> plugin composition pattern (dispatch/apply pipeline) is the target model.
+> **Any work on events, input handling, or focus dispatch must use the
+> apply-chain substrate in `@silvery/create/runtime/`.**
+>
+> Substrate modules (shipped, tested, stable API):
+>
+> - `runtime/base-app.ts` — `createBaseApp()` + `wrapApply()`
+> - `runtime/with-terminal-chain.ts` — modifier observer + resize/focus
+> - `runtime/with-input-chain.ts` — the fallback `useInput` store
+> - `runtime/with-paste-chain.ts` — focused-route + global paste handlers
+> - `runtime/with-focus-chain.ts` — focused-element key dispatch
+> - `runtime/event-loop.ts` — `runEventBatch` (functional processEventBatch)
+> - `runtime/lifecycle-effects.ts` — Ctrl+C / Ctrl+Z / exit / suspend as Effects
+>
+> `processEventBatch` inside `create-app.tsx` still uses the legacy
+> `runtimeInputListeners + handleFocusNavigation` pattern; migration onto
+> `runEventBatch` is staged in bead `km-silvery.tea-useinput` so each
+> commit keeps behavioural equivalence tests green. The ag-react hooks
+> (`useInput`, `usePaste*`, `useInputLayer`, `useExit`, `useModifierKeys`)
+> still read from `RuntimeContext.on()` pending that migration.
 
 ### Single useInput — two import paths, one implementation
 
