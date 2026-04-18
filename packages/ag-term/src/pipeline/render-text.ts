@@ -184,14 +184,22 @@ function styleToAnsi(style: StyleContext): string {
   } else if (style.underline) {
     parts.push("4")
   }
-  // Underline color (SGR 58;5;N or 58;2;r;g;b)
+  // Underline color (SGR 58;5;N or 58;2;r;g;b).
+  // "currentColor"/"inherit" → resolve to the merged fg (style.color), so the
+  // underline tracks whatever color the surrounding text ended up as.
   if (style.underlineColor) {
-    const ulColor = parseColor(style.underlineColor)
-    if (ulColor !== null) {
-      if (typeof ulColor === "number") {
-        parts.push(`58;5;${ulColor}`)
-      } else {
-        parts.push(`58;2;${ulColor.r};${ulColor.g};${ulColor.b}`)
+    const underlineSource =
+      style.underlineColor === "currentColor" || style.underlineColor === "inherit"
+        ? style.color
+        : style.underlineColor
+    if (underlineSource) {
+      const ulColor = parseColor(underlineSource)
+      if (ulColor !== null) {
+        if (typeof ulColor === "number") {
+          parts.push(`58;5;${ulColor}`)
+        } else {
+          parts.push(`58;2;${ulColor.r};${ulColor.g};${ulColor.b}`)
+        }
       }
     }
   }
@@ -210,8 +218,14 @@ function styleToAnsi(style: StyleContext): string {
  * Child values override parent values when specified.
  */
 function mergeStyleContext(parent: StyleContext, childProps: TextProps): StyleContext {
+  // color="inherit"/"currentColor" on a virtual-text child is a pass-through:
+  // the child's effective color is whatever the parent already resolved to.
+  // Without this, nested <Text color="inherit"> clobbered the merged context
+  // with the raw keyword, which styleToAnsi then mapped to null (no fg SGR).
+  const isInheritKeyword = childProps.color === "inherit" || childProps.color === "currentColor"
+  const effectiveChildColor = isInheritKeyword ? parent.color : childProps.color
   return {
-    color: childProps.color ?? parent.color,
+    color: effectiveChildColor ?? parent.color,
     backgroundColor: childProps.backgroundColor ?? parent.backgroundColor,
     bold: childProps.bold ?? parent.bold,
     dim: childProps.dim ?? childProps.dimColor ?? parent.dim,
@@ -1336,13 +1350,30 @@ export function renderText(
   let bgSegments: BgSegment[]
   let childSpans: ChildSpan[]
 
+  // Seed the collection parent context with this Text's own effective props so
+  // nested virtual <Text color="inherit"> children can resolve "inherit" /
+  // "currentColor" back to the owner Text's color. Without this, virtual
+  // children only see "{}" and keyword lookups produced no fg.
+  const rootContext: StyleContext = {
+    color: props.color,
+    backgroundColor: props.backgroundColor,
+    bold: props.bold,
+    dim: props.dim || props.dimColor,
+    italic: props.italic,
+    underline: !!(props.underline || props.underlineStyle),
+    underlineStyle: props.underlineStyle,
+    underlineColor: props.underlineColor,
+    inverse: props.inverse,
+    strikethrough: props.strikethrough,
+  }
+
   const cachedCollected = getCachedCollectedText(node, maxDisplayWidth)
   if (cachedCollected) {
     text = cachedCollected.text
     bgSegments = cachedCollected.bgSegments as BgSegment[]
     childSpans = cachedCollected.childSpans as ChildSpan[]
   } else {
-    const collected = collectTextWithBg(node, {}, 0, maxDisplayWidth, ctx)
+    const collected = collectTextWithBg(node, rootContext, 0, maxDisplayWidth, ctx)
     text = collected.text
     bgSegments = collected.bgSegments
     childSpans = collected.childSpans
@@ -1354,6 +1385,13 @@ export function renderText(
   const style = getTextStyle(props)
   if (style.fg === null && inheritedFg !== undefined) {
     style.fg = inheritedFg
+  }
+  // underlineColor="currentColor"/"inherit" tracks the text's resolved fg.
+  // getTextStyle already produced style.underlineColor = null for the keyword
+  // (parseColor("currentColor") === null). Upgrade it here — AFTER fg
+  // inheritance has been applied — so the underline matches the visible text.
+  if (props.underlineColor === "currentColor" || props.underlineColor === "inherit") {
+    style.underlineColor = style.fg
   }
 
   // --- PreparedText cache: Level 2 (formatted lines per width) ---

@@ -649,11 +649,19 @@ function renderNodeToBuffer(
       : nodeTheme
         ? { color: parseColor(nodeTheme.bg), ancestorRect: node.boxRect }
         : nodeState.inheritedBg
-    const childInheritedFg = props.color
-      ? parseColor(props.color)
-      : nodeTheme
-        ? parseColor(nodeTheme.fg)
-        : nodeState.inheritedFg
+    // color="inherit"/"currentColor" is a pass-through — children inherit
+    // from this node's OWN inheritedFg (our parent's color), not from null.
+    // Without this, an intermediate "inherit" node breaks the cascade to
+    // grandchildren because parseColor("inherit") returns null, clobbering
+    // the ancestor fg. See Bead km-silvery.color-inherit.
+    const isInheritKeyword = props.color === "inherit" || props.color === "currentColor"
+    const childInheritedFg = isInheritKeyword
+      ? nodeState.inheritedFg
+      : props.color
+        ? parseColor(props.color)
+        : nodeTheme
+          ? parseColor(nodeTheme.fg)
+          : nodeState.inheritedFg
 
     // Render children — pass inherited bg/fg so children don't walk the parent chain
     const childState: NodeRenderState = { ...nodeState, inheritedBg: childInheritedBg, inheritedFg: childInheritedFg }
@@ -929,7 +937,8 @@ function renderOwnContent(
 
   if (node.type === "silvery-box") {
     if (instrumentEnabled) stats.boxNodes++
-    renderBox(node, buffer, layout, props, nodeState, skipBgFill, boxInheritedBg, bgOnlyChange)
+    // inheritedFg is threaded so renderBorder can resolve borderColor="currentColor".
+    renderBox(node, buffer, layout, props, nodeState, skipBgFill, boxInheritedBg, bgOnlyChange, nodeState.inheritedFg)
   } else if (node.type === "silvery-text") {
     if (instrumentEnabled) stats.textNodes++
     // O(1) inherited bg/fg — threaded top-down through nodeState.

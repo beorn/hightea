@@ -42,6 +42,7 @@ export function renderBox(
   skipBgFill = false,
   inheritedBg?: Color | null,
   bgOnlyChange = false,
+  inheritedFg?: Color | null,
 ): void {
   const { scrollOffset, clipBounds } = nodeState
   const { x, width, height } = layout
@@ -96,7 +97,7 @@ export function renderBox(
 
   // Render border if set
   if (props.borderStyle) {
-    renderBorder(buffer, x, y, width, height, props, clipBounds, inheritedBg)
+    renderBorder(buffer, x, y, width, height, props, clipBounds, inheritedBg, inheritedFg)
   }
 }
 
@@ -116,9 +117,18 @@ export function renderBorder(
   props: BoxProps,
   clipBounds?: { top: number; bottom: number; left?: number; right?: number },
   inheritedBg?: Color | null,
+  inheritedFg?: Color | null,
 ): void {
   const chars = getBorderChars(props.borderStyle ?? "single")
-  const color = props.borderColor ? parseColor(props.borderColor) : null
+  // borderColor="currentColor"/"inherit" resolves to the Box's own fg —
+  // explicit props.color if set, else the inherited fg from the nearest
+  // ancestor with a color. Mirrors CSS `border-color: currentColor`.
+  let color: Color | null
+  if (props.borderColor === "currentColor" || props.borderColor === "inherit") {
+    color = props.color ? parseColor(props.color) : (inheritedFg ?? null)
+  } else {
+    color = props.borderColor ? parseColor(props.borderColor) : null
+  }
   // Preserve the box's background color on border cells. Falls back to
   // inherited bg from the nearest ancestor with backgroundColor, ensuring
   // border cells don't punch transparent holes through parent backgrounds.
