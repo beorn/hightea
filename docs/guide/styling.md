@@ -632,3 +632,9 @@ Supports theme tokens (`$bg`, `$link`), named colors (`red`, `blue`), and hex (`
 - **16-color fallback**: Status colors may map to the same ANSI color. Always pair with icons.
 - **Progressive enhancement**: Same vocabulary works ANSI 16 → 256 → truecolor.
 - **Vibrancy/saturation**: Apple-style super-saturated colors (like macOS window tints or iOS label colors) don't translate to terminals. Terminal colors are ANSI — no blur, no transparency, no variable saturation. Design with solid, readable colors. If you want vibrancy, pick a truecolor theme with vivid palette colors (like Catppuccin or Tokyo Night) — the theme does the heavy lifting, not your component code.
+
+## See Also
+
+- **[Color Schemes](./color-schemes)** — the 22-slot scheme model, `deriveTheme()`, the 84+ bundled schemes, and how to author your own.
+- **[Capability Tiers](./capability-tiers)** — how tokens render at truecolor / 256 / ANSI 16 / monochrome, and the four opt-out modes (`NO_COLOR`, `SILVERY_COLOR=mono|plain`, `SILVERY_STRIP_ALL`).
+- **[Custom Tokens](./custom-tokens)** — `defineTokens()` for app-specific semantic tokens and brand colors with proper fallbacks.
