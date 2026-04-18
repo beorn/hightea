@@ -160,6 +160,82 @@ export interface RuntimeContextValue<E extends BaseRuntimeEvents = BaseRuntimeEv
 export const RuntimeContext = createContext<RuntimeContextValue | null>(null)
 
 // ============================================================================
+// Chain App Context (TEA Phase 2 — apply-chain plugin stores)
+// ============================================================================
+
+/**
+ * Minimal key shape forwarded to chain handlers. Kept structural (not
+ * imported from @silvery/ag/keys) so this context stays dependency-free;
+ * consumers narrow to `Key` at the call site.
+ */
+export interface ChainKey {
+  ctrl?: boolean
+  shift?: boolean
+  meta?: boolean
+  super?: boolean
+  hyper?: boolean
+  alt?: boolean
+  eventType?: "press" | "repeat" | "release" | undefined
+}
+
+/** Handler registered with the fallback useInput store. */
+export type ChainInputHandler = (input: string, key: ChainKey) => void | "exit"
+
+/** Handler registered with the paste store. */
+export type ChainPasteHandler = (text: string) => void
+
+/** Handler registered with the terminal focus store. */
+export type ChainFocusHandler = (focused: boolean) => void
+
+/** Raw-key observer handler — fires for every input:key op (press/repeat/release/modifier-only). */
+export type ChainRawKeyHandler = (input: string, key: ChainKey) => void
+
+/** Input-fallback store slice exposed by withInputChain. */
+export interface ChainInputStore {
+  register(handler: ChainInputHandler, active?: boolean): () => void
+  setActive(handler: ChainInputHandler, active: boolean): void
+}
+
+/** Raw-key observer slice — sees every key event before focus/useInput filters. */
+export interface ChainRawKeyObserver {
+  register(handler: ChainRawKeyHandler): () => void
+}
+
+/** Paste store slice exposed by withPasteChain. */
+export interface ChainPasteStore {
+  register(handler: ChainPasteHandler): () => void
+}
+
+/** Window focus slice exposed alongside the chain for createApp. */
+export interface ChainFocusEvents {
+  register(handler: ChainFocusHandler): () => void
+}
+
+/**
+ * Context that exposes the apply-chain plugin stores.
+ *
+ * Provided by `createApp()` (and `run()` eventually) when an apply-chain
+ * runtime is present. Hooks prefer this context; they fall back to
+ * {@link RuntimeContext} when the chain is absent (e.g. children inside
+ * an `InputBoundary`, which provides its own isolated RuntimeContext but
+ * no chain).
+ */
+export interface ChainAppContextValue {
+  readonly input: ChainInputStore
+  readonly paste: ChainPasteStore
+  readonly focusEvents: ChainFocusEvents
+  /**
+   * Raw-key observer — sees every `input:key` op (press/repeat/release/
+   * modifier-only), unfiltered by focus or useInput. Used by hooks like
+   * `useModifierKeys` that need to track sub-press state regardless of
+   * whether a focused element consumed the key.
+   */
+  readonly rawKeys: ChainRawKeyObserver
+}
+
+export const ChainAppContext = createContext<ChainAppContextValue | null>(null)
+
+// ============================================================================
 // Cache Backend Context (mode-agnostic cache selection)
 // ============================================================================
 

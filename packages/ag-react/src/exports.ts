@@ -507,8 +507,24 @@ export {
   RuntimeContext,
   StderrContext,
   CapabilityRegistryContext,
+  ChainAppContext,
 } from "./context"
-export type { CacheBackend, RuntimeContextValue, BaseRuntimeEvents, CapabilityLookup } from "./context"
+export type {
+  CacheBackend,
+  RuntimeContextValue,
+  BaseRuntimeEvents,
+  CapabilityLookup,
+  ChainAppContextValue,
+  ChainInputStore,
+  ChainPasteStore,
+  ChainFocusEvents,
+  ChainRawKeyObserver,
+  ChainInputHandler,
+  ChainPasteHandler,
+  ChainFocusHandler,
+  ChainRawKeyHandler,
+  ChainKey,
+} from "./context"
 
 // Theming
 export { ThemeProvider } from "./ThemeProvider"

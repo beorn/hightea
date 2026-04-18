@@ -52,6 +52,8 @@ import { createTerm } from "../ansi"
 import {
   CacheBackendContext,
   CapabilityRegistryContext,
+  ChainAppContext,
+  type ChainAppContextValue,
   FocusManagerContext,
   RuntimeContext,
   type RuntimeContextValue,
@@ -1318,10 +1320,18 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // Apply-chain substrate (TEA Phase 2 wiring) — see
   // @silvery/create/runtime/{base-app,with-*-chain,event-loop}.
   //
-  // Built additively: for now the chain runs alongside the legacy listener
-  // arrays via fan-out in `runtimeContextValue.on` below. Commits 2/3 migrate
-  // hooks to subscribe via the plugin stores directly, at which point the
-  // legacy arrays can be deleted.
+  // Built additively: the chain runs in parallel with the legacy listener
+  // arrays. ag-react hooks subscribe via the chain stores (preferred) when
+  // ChainAppContext is present; they fall back to RuntimeContext.on for
+  // InputBoundary-scoped subtrees. Commit 3 deletes the legacy arrays and
+  // the focus navigation double-call.
+  //
+  // `chainFocusConsumedOverride` lets the legacy loop precompute the focus
+  // tree's decision (so we don't call handleFocusNavigation twice when both
+  // the legacy loop and the chain dispatch see the same event). When
+  // undefined, withFocusChain calls handleFocusNavigation itself — that
+  // path is taken by run()-style apps that drive the chain directly.
+  let chainFocusConsumedOverride: boolean | undefined
   const baseApp = createBaseApp()
   const terminalChainApp = withTerminalChain({
     cols: currentDims.cols,
@@ -1331,15 +1341,16 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   const inputChainApp = withInputChain(pasteChainApp)
   const app = withFocusChain({
     dispatchKey: (input, key) => {
+      if (chainFocusConsumedOverride !== undefined) return chainFocusConsumedOverride
       const focusResult = handleFocusNavigation(input, key as Key, focusManager, container)
       return focusResult === "consumed"
     },
     hasActiveFocus: () => focusManager.activeElement !== null,
   })(inputChainApp)
-  // Focus event slice — withTerminalChain observes window focus/blur on ops,
-  // but legacy RuntimeContext 'focus' subscribers (useTerminalFocused, the
-  // modifier-reset in useModifierKeys) still go through `runtimeFocusListeners`
-  // until commit 2 migrates them to this slice.
+  // Focus event slice — mirrors the withTerminalChain `focused` snapshot
+  // into a pub/sub store shaped like InputStore/PasteStore. Used by the
+  // ChainAppContext `focusEvents` accessor (hooks useTerminalFocused,
+  // useModifierKeys).
   const focusEventListeners: Array<(focused: boolean) => void> = []
   const appFocusEvents = {
     register(handler: (focused: boolean) => void): () => void {
@@ -1348,6 +1359,26 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         const i = focusEventListeners.indexOf(handler)
         if (i >= 0) focusEventListeners.splice(i, 1)
       }
+    },
+    notify(focused: boolean): void {
+      for (const h of focusEventListeners) h(focused)
+    },
+  }
+
+  // Raw-key observer slice — hooks that need unfiltered access to key events
+  // (useModifierKeys is the canonical consumer). Fired for every key event
+  // including release and modifier-only, regardless of focus consumption.
+  const rawKeyListeners: Array<(input: string, key: Key) => void> = []
+  const appRawKeys = {
+    register(handler: (input: string, key: Key) => void): () => void {
+      rawKeyListeners.push(handler)
+      return () => {
+        const i = rawKeyListeners.indexOf(handler)
+        if (i >= 0) rawKeyListeners.splice(i, 1)
+      }
+    },
+    notify(input: string, key: Key): void {
+      for (const h of rawKeyListeners) h(input, key)
     },
   }
   // Expose on the BaseApp so ag-react hooks can reach the slice once migrated.
@@ -1358,11 +1389,20 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     terminal: TerminalStore
     focusChain: FocusChainStore
     focusEvents: typeof appFocusEvents
+    rawKeys: typeof appRawKeys
   }
-  const chainApp: AppWithChains = Object.assign(app, { focusEvents: appFocusEvents })
-  // Side-effect anchors so the chain substrate isn't tree-shaken / so tests
-  // can peek at it. No behaviour depends on these references in commit 1.
-  void chainApp
+  const chainApp: AppWithChains = Object.assign(app, {
+    focusEvents: appFocusEvents,
+    rawKeys: appRawKeys,
+  })
+
+  // ChainAppContext value — the ag-react-visible slice of the chain.
+  const chainAppContextValue: ChainAppContextValue = {
+    input: chainApp.input,
+    paste: chainApp.paste,
+    focusEvents: chainApp.focusEvents,
+    rawKeys: chainApp.rawKeys,
+  }
 
   // Typed event bus — supports view → runtime events via emit()
   const runtimeEventListeners = new Map<string, Array<Function>>()
@@ -1451,11 +1491,13 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
               >
                 <FocusManagerContext.Provider value={focusManager}>
                   <RuntimeContext.Provider value={runtimeContextValue}>
-                    <CapabilityRegistryContext.Provider value={capabilityRegistry}>
-                      <Root>
-                        <StoreContext.Provider value={store as StoreApi<unknown>}>{element}</StoreContext.Provider>
-                      </Root>
-                    </CapabilityRegistryContext.Provider>
+                    <ChainAppContext.Provider value={chainAppContextValue}>
+                      <CapabilityRegistryContext.Provider value={capabilityRegistry}>
+                        <Root>
+                          <StoreContext.Provider value={store as StoreApi<unknown>}>{element}</StoreContext.Provider>
+                        </Root>
+                      </CapabilityRegistryContext.Provider>
+                    </ChainAppContext.Provider>
                   </RuntimeContext.Provider>
                 </FocusManagerContext.Provider>
               </StderrContext.Provider>
@@ -2430,12 +2472,26 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         // mouse events. SGR mouse protocol can't report these — Kitty fills the gap.
         updateKeyboardModifiers(mouseEventState, parsedKey)
 
+        // Raw-key observer: fire unconditionally (useModifierKeys tracks state
+        // from every key event, including release and modifier-only).
+        chainApp.rawKeys.notify(input, parsedKey)
+
         // Release and modifier-only events: bridge to RuntimeContext (useModifierKeys
         // needs them) but skip focus dispatch and app handlers.
         if (parsedKey.eventType === "release" || isModifierOnlyEvent(input, parsedKey)) {
           for (const listener of runtimeInputListeners) {
             listener(input, parsedKey)
           }
+          // Chain dual-dispatch: withInputChain filters out release / modifier-only
+          // internally, so useInput handlers are correctly skipped. Fire the
+          // chain anyway so withTerminalChain's modifier snapshot stays current
+          // (future-proofing for plugins that read it).
+          chainFocusConsumedOverride = false
+          chainApp.dispatch({ type: "input:key", input, key: parsedKey })
+          chainFocusConsumedOverride = undefined
+          // Drain any effects the chain emitted — render/exit/etc are re-emitted
+          // by the legacy loop below, so here we just drop them.
+          chainApp.drainEffects()
           if (shouldExit) {
             inEventHandler = false
             return null
@@ -2459,16 +2515,34 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             listener(input, parsedKey)
           }
         }
+
+        // Chain dual-dispatch: reuse the already-computed focus decision so
+        // handleFocusNavigation isn't called twice. withInputChain short-
+        // circuits if withFocusChain reports consumed — matching the legacy
+        // precedence exactly.
+        chainFocusConsumedOverride = focusConsumed
+        chainApp.dispatch({ type: "input:key", input, key: parsedKey })
+        chainFocusConsumedOverride = undefined
+        chainApp.drainEffects()
       } else if (event.type === "term:paste") {
         const { text } = event.data as { text: string }
         for (const listener of runtimePasteListeners) {
           listener(text)
         }
+        // Chain dual-dispatch for paste — fires chain.paste store subscribers.
+        chainApp.dispatch({ type: "term:paste", text })
+        chainApp.drainEffects()
       } else if (event.type === "term:focus") {
         const { focused } = event.data as { focused: boolean }
         for (const listener of runtimeFocusListeners) {
           listener(focused)
         }
+        // Chain dual-dispatch: withTerminalChain updates the focused snapshot,
+        // then manually notify the chain focusEvents store (withTerminalChain
+        // is observer-only, it doesn't call the focusEvents subscribers).
+        chainApp.dispatch({ type: "term:focus", focused })
+        chainApp.drainEffects()
+        chainApp.focusEvents.notify(focused)
       }
 
       // If a listener called exit() (e.g., useInput handler returned "exit"),
@@ -2952,10 +3026,21 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         }
       }
 
+      // Raw-key observer: fire unconditionally (useModifierKeys tracks state
+      // from every key event, including release and modifier-only).
+      chainApp.rawKeys.notify(input, parsedKey)
+
       // Bridge to RuntimeContext listeners (useInput consumers)
       for (const listener of runtimeInputListeners) {
         listener(input, parsedKey)
       }
+      // Chain dual-dispatch (press path). Legacy press() always fires
+      // useInput BEFORE focus navigation, so feed the chain with
+      // `focusConsumedOverride = false` to preserve that semantics.
+      chainFocusConsumedOverride = false
+      chainApp.dispatch({ type: "input:key", input, key: parsedKey })
+      chainFocusConsumedOverride = undefined
+      chainApp.drainEffects()
 
       // Suppress subscription renders — flush loop below handles everything.
       inEventHandler = true

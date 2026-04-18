@@ -21,7 +21,8 @@
  * ```
  */
 
-import { useState, useEffect } from "react"
+import { useContext, useEffect, useState } from "react"
+import { ChainAppContext } from "../context"
 import { useRuntime } from "./useRuntime"
 
 /**
@@ -32,14 +33,22 @@ import { useRuntime } from "./useRuntime"
  */
 export function useTerminalFocused(): boolean {
   const [focused, setFocused] = useState(true)
+  const chain = useContext(ChainAppContext)
   const rt = useRuntime()
 
   useEffect(() => {
-    if (!rt) return
-    return rt.on("focus", (isFocused: boolean) => {
-      setFocused(isFocused)
-    })
-  }, [rt])
+    if (chain) {
+      return chain.focusEvents.register((isFocused) => {
+        setFocused(isFocused)
+      })
+    }
+    if (rt) {
+      return rt.on("focus", (isFocused: boolean) => {
+        setFocused(isFocused)
+      })
+    }
+    return undefined
+  }, [chain, rt])
 
   return focused
 }

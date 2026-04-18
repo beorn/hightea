@@ -11,7 +11,7 @@
  */
 
 import { useContext, useEffect, useRef } from "react"
-import { RuntimeContext } from "../context"
+import { ChainAppContext, RuntimeContext } from "../context"
 import { isModifierOnlyEvent, type InputHandler, type Key } from "@silvery/ag/keys"
 
 // ============================================================================
@@ -91,6 +91,10 @@ export interface UseInputOptions {
  * ```
  */
 export function useInput(inputHandler: InputHandler, options: UseInputOptions = {}): void {
+  // Prefer the apply-chain stores when present (root createApp); fall back
+  // to RuntimeContext.on for isolated scopes like InputBoundary which still
+  // ship a subscriber-list runtime without a chain.
+  const chain = useContext(ChainAppContext)
   const rt = useContext(RuntimeContext)
 
   const { isActive = true, onPaste, onRelease } = options
@@ -107,33 +111,61 @@ export function useInput(inputHandler: InputHandler, options: UseInputOptions = 
   const onReleaseRef = useRef(onRelease)
   onReleaseRef.current = onRelease
 
-  // Subscribe to input events via RuntimeContext
-  // In static mode (no runtime), this is a no-op — components render
-  // without input handling, which is correct for createRenderer() tests.
+  // Subscribe to input events via the chain input store (preferred) or the
+  // legacy RuntimeContext fallback. In static mode (no runtime, no chain),
+  // this is a no-op.
   useEffect(() => {
-    if (!isActive || !rt) return
+    if (!isActive) return
+    if (chain) {
+      return chain.input.register((input, key) => {
+        // Skip modifier-only keys (Cmd, Shift, Ctrl, Alt pressed alone).
+        // Handled by useModifierKeys, not useInput consumers.
+        if (isModifierOnlyEvent(input, key as Key)) return
+        // Release events → onRelease if provided, otherwise dropped.
+        if (key.eventType === "release") {
+          onReleaseRef.current?.(input, key as Key)
+          return
+        }
+        const result = handlerRef.current(input, key as Key)
+        if (result === "exit") {
+          // Route exit through the RuntimeContext (same as the legacy path).
+          // The chain also emits an `exit` effect but the runner drains and
+          // discards effects in commit-2 wiring; rt.exit() is the canonical
+          // path until commit 3 moves to runEventBatch effect handling.
+          rt?.exit()
+          return "exit"
+        }
+        return undefined
+      })
+    }
+    if (rt) {
+      return rt.on("input", (input: string, key: Key) => {
+        if (isModifierOnlyEvent(input, key)) return
+        if (key.eventType === "release") {
+          onReleaseRef.current?.(input, key)
+          return
+        }
+        const result = handlerRef.current(input, key)
+        if (result === "exit") rt.exit()
+      })
+    }
+    return undefined
+  }, [isActive, chain, rt])
 
-    return rt.on("input", (input: string, key: Key) => {
-      // Skip modifier-only keys (Cmd, Shift, Ctrl, Alt pressed alone).
-      // These are handled by useModifierKeys, not useInput consumers.
-      if (isModifierOnlyEvent(input, key)) return
-      // Release events are dispatched to onRelease if provided,
-      // otherwise silently dropped (handlers expect press-only semantics).
-      if (key.eventType === "release") {
-        onReleaseRef.current?.(input, key)
-        return
-      }
-      const result = handlerRef.current(input, key)
-      if (result === "exit") rt.exit()
-    })
-  }, [isActive, rt])
-
-  // Subscribe to paste events via RuntimeContext
+  // Subscribe to paste events via the chain paste store (preferred) or the
+  // legacy RuntimeContext fallback.
   useEffect(() => {
-    if (!isActive || !rt) return
-
-    return rt.on("paste", (text: string) => {
-      onPasteRef.current?.(text)
-    })
-  }, [isActive, rt])
+    if (!isActive) return
+    if (chain) {
+      return chain.paste.register((text) => {
+        onPasteRef.current?.(text)
+      })
+    }
+    if (rt) {
+      return rt.on("paste", (text: string) => {
+        onPasteRef.current?.(text)
+      })
+    }
+    return undefined
+  }, [isActive, chain, rt])
 }
