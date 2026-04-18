@@ -2307,8 +2307,11 @@ import type { TextFrame, FrameCell, RGB } from "@silvery/ag/text-frame"
  * Colors 0-15: standard + bright colors (approximate).
  * Colors 16-231: 6×6×6 color cube.
  * Colors 232-255: grayscale ramp.
+ *
+ * Exported for the backdrop-fade pipeline pass, which needs to resolve
+ * palette-indexed cells to RGB before blending via `@silvery/color`.
  */
-function ansi256ToRgb(idx: number): RGB {
+export function ansi256ToRgb(idx: number): RGB {
   if (idx < 16) {
     // Standard 16 colors (same values used by xterm)
     const table: [number, number, number][] = [

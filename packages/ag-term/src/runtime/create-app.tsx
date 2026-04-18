@@ -1440,7 +1440,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Create or reuse long-lived Ag instance. Created lazily because the root
     // AgNode is produced by the React reconciler in Phase A above.
     if (!_ag) {
-      _ag = createAg(rootNode, { measurer: pipelineConfig?.measurer })
+      _ag = createAg(rootNode, { measurer: pipelineConfig?.measurer, colorLevel: effectiveCaps?.colorLevel })
     }
 
     // Invalidate prevBuffer on dimension change (resize).
@@ -1531,7 +1531,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // STRICT_MODE is hoisted to module scope — the env var is read once at load.
     if (STRICT_MODE && wasIncremental) {
       const doFreshRender = () => {
-        const freshAg = createAg(rootNode, { measurer: pipelineConfig?.measurer })
+        const freshAg = createAg(rootNode, { measurer: pipelineConfig?.measurer, colorLevel: effectiveCaps?.colorLevel })
         freshAg.layout(
           { cols: dims.cols, rows: dims.rows },
           { skipLayoutNotifications: true, skipScrollStateUpdates: true },

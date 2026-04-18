@@ -35,6 +35,7 @@ import {
   strictLayoutOverflowCheck,
 } from "./pipeline/layout-phase"
 import { renderPhase, clearBgConflictWarnings } from "./pipeline/render-phase"
+import { applyBackdropFade, type BackdropColorLevel } from "./pipeline/backdrop-phase"
 import { clearDirtyTracking, hasScrollDirty } from "@silvery/ag/dirty-tracking"
 import type { PipelineContext } from "./pipeline/types"
 
@@ -55,6 +56,17 @@ export interface AgRenderOptions {
   fresh?: boolean
   /** Override prevBuffer for this render (bypasses internal tracking). */
   prevBuffer?: TerminalBuffer | null
+}
+
+export interface CreateAgOptionsInternal {
+  /** Width measurer scoped to terminal capabilities. */
+  measurer?: Measurer
+  /**
+   * Terminal color tier for the backdrop-fade pass (see `backdrop-phase.ts`).
+   * Defaults to `"truecolor"` (OKLab blend). Set to `"basic"` at ANSI 16 tier
+   * (SGR 2 dim) or `"none"` to disable the pass entirely.
+   */
+  colorLevel?: BackdropColorLevel
 }
 
 export interface AgRenderResult {
@@ -116,6 +128,11 @@ export interface Ag {
 export interface CreateAgOptions {
   /** Width measurer scoped to terminal capabilities. */
   measurer?: Measurer
+  /**
+   * Terminal color tier for the backdrop-fade pass. Defaults to `"truecolor"`.
+   * See `backdrop-phase.ts` for tier semantics.
+   */
+  colorLevel?: BackdropColorLevel
 }
 
 // =============================================================================
@@ -124,6 +141,7 @@ export interface CreateAgOptions {
 
 export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
   const measurer = options?.measurer
+  const colorLevel: BackdropColorLevel = options?.colorLevel ?? "truecolor"
   const ctx: PipelineContext | undefined = measurer ? { measurer } : undefined
   let _prevBuffer: TerminalBuffer | null = null
 
@@ -252,6 +270,11 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
       tContent = performance.now() - t
       log.debug?.(`content: ${tContent.toFixed(2)}ms`)
     }
+
+    // Backdrop-fade pass — runs after content + decoration, before output.
+    // Mutates the buffer in place. Deterministic on both incremental and
+    // fresh paths (see backdrop-phase.ts header for invariant discussion).
+    applyBackdropFade(root, buffer, { colorLevel })
 
     // Only save for incremental — fresh renders (STRICT comparison) don't update state
     if (!opts?.fresh) {
