@@ -179,7 +179,7 @@ Silvery ships 38 color palettes with semantic tokens:
 
 Themes auto-detect the terminal's background color (via OSC 11 query) and adjust for WCAG-compliant contrast. Use `ThemeProvider` to set a palette globally, or override per-component.
 
-See the [styling guide](/guide/styling) for token reference and the [theme explorer](/themes) to preview all 38 palettes.
+See the [styling guide](/guide/styling) for token reference and the [theme explorer](/themes) to preview all 84 color schemes.
 
 ## Is Silvery production-ready?
 

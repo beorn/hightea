@@ -247,7 +247,7 @@ Keybindings are a UI detail. Commands are the API. Build on commands; bind keys 
 
 Components express semantic intent — color, hierarchy, state — via **tokens and presets**. The token system decides the concrete rendering details: which hex value, which SGR attributes, which tier-appropriate fallback. Components never reach for raw rendering primitives (hex colors, ANSI escapes, or SGR modifiers like `dim` / `bold` / `italic` / `underline`).
 
-[`silvery/theme`](/reference/packages) auto-detects your terminal's palette via OSC queries — no configuration needed. ~33 semantic tokens and typography presets adapt to every terminal theme. 38 built-in palettes (Catppuccin, Nord, Dracula, Tokyo Night, Solarized, …) work automatically.
+[`silvery/theme`](/reference/packages) auto-detects your terminal's palette via OSC queries — no configuration needed. ~33 semantic tokens and typography presets adapt to every terminal theme. 84 color schemes (Catppuccin, Nord, Dracula, Tokyo Night, Solarized, …) work automatically.
 
 ### Why not SGR in components
 

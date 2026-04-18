@@ -195,7 +195,7 @@ function TypographyTab({ scrollOffset }: { scrollOffset?: number }) {
         </Box>
       </Box>
 
-      <Small>silvery v0.0.1 — 38 palettes, 30+ components — silvery.dev</Small>
+      <Small>silvery v0.0.1 — 84 color schemes, 30+ components — silvery.dev</Small>
     </Box>
   )
 }
@@ -550,7 +550,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             <Box flexDirection="column" gap={1}>
               <P>
                 This gallery demonstrates <Strong>silvery</Strong>'s built-in UI components. Every component uses
-                semantic theme tokens — they adapt to any of the 38 built-in palettes automatically.
+                semantic theme tokens — they adapt to any of the 84 color schemes automatically.
               </P>
               <HR />
               <Box flexDirection="column">

@@ -71,7 +71,7 @@ Silvery ships 45+ components organized across several categories:
 
 **Interaction:** Mouse events, spatial focus navigation (`focusScope` on Box), command system with keybindings, input layer stack
 
-**Theming:** 38 palettes with semantic color tokens (`$primary`, `$success`, `$muted`, `$danger`), auto-detection of terminal background color, WCAG-aware contrast. See the [theme explorer](/themes) to preview all palettes.
+**Theming:** 84 color schemes with semantic color tokens (`$primary`, `$success`, `$muted`, `$danger`), auto-detection of terminal background color, WCAG-aware contrast. See the [theme explorer](/themes) to preview all palettes.
 
 ## Terminal Protocol Coverage
 
@@ -106,7 +106,7 @@ Beyond responsive layout, the renderer provides:
 Optional packages extend the renderer into a full framework:
 
 - **Rich interaction** -- mouse events, spatial focus navigation, command system with keybindings, input layer stack
-- **Theming** -- 38 palettes with semantic color tokens, auto-detects terminal colors
+- **Theming** -- 84 color schemes with semantic color tokens, auto-detects terminal colors
 - **TEA state machines** (`@silvery/create`, optional) -- pure `(action, state) -> [state, effects]` for testing, replay, and undo
 
 If you know React, you know Silvery -- the core API (`Box`, `Text`, `useInput`, `render`) is familiar. See the [Getting Started guide](/getting-started/quick-start) to try it, or the [detailed comparison](/guide/silvery-vs-ink) for the full technical breakdown.

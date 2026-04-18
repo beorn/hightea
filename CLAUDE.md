@@ -113,7 +113,7 @@ Use the built-in components — don't reimplement keyboard navigation, scroll ha
 
 ### Semantic tokens — not raw colors
 
-Tokens adapt to any terminal theme automatically. 38 built-in palettes work out of the box.
+Tokens adapt to any terminal theme automatically. 84 color schemes work out of the box.
 
 ```tsx
 <Text color="$primary">Selected item</Text>
@@ -495,7 +495,7 @@ These are workspace packages for development. Users do not import from them dire
 | `@silvery/ag`       | Core types, layout-signals (framework-agnostic reactive layer)            |
 | `@silvery/ag-react` | React reconciler, hooks (useSignal, useAgNode, useBoxRect), UI components |
 | `@silvery/ag-term`  | Terminal runtime, ANSI output, pipeline, syncRectSignals bridge           |
-| `@silvery/theme`    | Theme tokens, 38 palettes, theme CLI                                      |
+| `@silvery/theme`    | Theme tokens, 84 color schemes, theme CLI                                      |
 | `@silvery/ink`      | Ink/Chalk compatibility layers                                            |
 
 ## Structure

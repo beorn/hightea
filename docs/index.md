@@ -54,7 +54,7 @@ features:
   - title: Web-like Interaction
     details: '<span class="line"><a href="/guide/silvery-vs-ink#terminal-protocol-coverage">100+ protocols</a> — full keyboard and mouse, auto-negotiated.</span><span class="line"><a href="/guide/silvery-vs-ink#focus-system">Focus scopes</a> — spatial nav, Tab, click-to-focus.</span><span class="line"><a href="/guide/text-selection">Text selection</a>. <a href="/guide/find">Find</a>. <a href="/guide/clipboard">Copy-mode</a>. <a href="/guide/event-handling">Drag-and-drop</a>.<a class="feature-link" href="/guide/event-handling">Interaction guide →</a></span>'
   - title: Rich Component Library
-    details: '<span class="line"><a href="/guides/components">45+ components</a> — TextInput, SelectList, Table, TreeView, CommandPalette, ModalDialog, Tabs, Toast, and more.</span><span class="line"><a href="/guide/styling">38 palettes</a> — semantic tokens, auto-detected terminal colors.<a class="feature-link" href="/guides/components">Browse components →</a></span>'
+    details: '<span class="line"><a href="/guides/components">45+ components</a> — TextInput, SelectList, Table, TreeView, CommandPalette, ModalDialog, Tabs, Toast, and more.</span><span class="line"><a href="/guide/styling">84 color schemes</a> — semantic tokens, auto-detected terminal colors.<a class="feature-link" href="/guides/components">Browse components →</a></span>'
   - title: Playwright-Style Testing
     details: '<span class="line"><a href="/guide/testing">CSS locators</a> — cell-level color assertions, press() input.</span><span class="line"><a href="https://termless.dev">Termless</a> — full ANSI fidelity, <a href="https://termless.dev/guide/backends">10 swappable backends</a>.</span><span class="line">3,000+ tests with full access to terminal internals.<a class="feature-link" href="/guide/testing">Testing guide →</a></span>'
   - title: Composable Architecture
@@ -156,7 +156,7 @@ $ vp @silvery/examples
 | `@silvery/ink` / `@silvery/chalk` | [Ink compatibility](/guide/silvery-vs-ink) — 99% of Ink 7.0 tests, 100% of Chalk tests    |
 | `@silvery/test`                   | [Playwright-style testing](/examples/testing) — locators, `press()`, buffer assertions    |
 | `@silvery/create`                 | Composable app builder — `pipe()` providers _(under active development)_                  |
-| `@silvery/theme`                  | 38 palettes, semantic tokens (`$primary`, `$muted`), auto-detect                          |
+| `@silvery/theme`                  | 84 color schemes, semantic tokens (`$primary`, `$muted`), auto-detect                          |
 | `@silvery/commander`              | **[Beautiful CLIs for free](/reference/commander)** — help renders through Silvery itself |
 | `@silvery/headless`               | Pure state machines — portable, embeddable, no React                                      |
 | `@silvery/ansi`                   | [Terminal primitives](/reference/ansi) — styling, SGR, truecolor, detection               |

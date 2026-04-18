@@ -278,7 +278,7 @@ const myPalette: ColorScheme = {
 const theme = deriveTheme(myPalette)
 ```
 
-See the [ColorScheme type definition](/reference/theme#colorpalette-22-colors) for all fields.
+See the [ColorScheme type definition](/reference/theme#colorscheme-22-colors) for all fields, or the [Color Schemes guide](/guide/color-schemes) for the broader model.
 
 ## CLI Usage
 
@@ -451,4 +451,4 @@ This is useful for understanding why a token looks different from the raw palett
 - [Theming reference](/reference/theming) — `$token` shorthand, special values, `ThemeProvider` API
 - [Styling guide](/guide/styling) — when to use tokens vs letting components handle it
 - [@silvery/ansi reference](/reference/style) — CLI styling API
-- [Theme Explorer](/themes) — browse all 38 palettes interactively
+- [Theme Explorer](/themes) — browse all 84 color schemes interactively

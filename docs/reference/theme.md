@@ -338,7 +338,7 @@ Both `$surfacebg` and `$surface-bg` resolve identically — hyphens are stripped
 
 ## Built-in Palettes
 
-The `@silvery/theme` package ships 38 palettes across 23 palette files, covering the most popular terminal and editor color schemes.
+The `@silvery/theme` package ships 84 color schemes across 23 palette files, covering the most popular terminal and editor color schemes.
 
 ### Palette Families
 

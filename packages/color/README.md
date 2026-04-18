@@ -63,7 +63,7 @@ ensureContrast("#777", "#888", 4.5)
 ```
 @silvery/color          ← pure math, zero deps
   └─ @silvery/ansi      ← terminal styling, detection, theme derivation
-       └─ @silvery/theme ← 38 palettes, ThemeProvider, useTheme
+       └─ @silvery/theme ← 84 color schemes, ThemeProvider, useTheme
             └─ silvery   ← full framework barrel
 ```
 

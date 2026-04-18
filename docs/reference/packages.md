@@ -20,7 +20,7 @@ These are implementation details — you'll only need them for advanced use case
 | `@silvery/ag-react`    | `@silvery/ag-react`    | React reconciler, components, and hooks                     |
 | `@silvery/ag-term`     | `@silvery/ag-term`     | Terminal runtime, ANSI output, rendering pipeline           |
 | `@silvery/ag-react/ui` | `@silvery/ag-react/ui` | Component library (45+ components) + CLI progress utilities |
-| `@silvery/theme`       | `@silvery/theme`       | Theme tokens, 38 palettes, theme CLI                        |
+| `@silvery/theme`       | `@silvery/theme`       | Theme tokens, 84 color schemes, theme CLI                        |
 | `@silvery/ink`         | `@silvery/ink`         | Legacy Ink/Chalk compatibility                              |
 
 ## Import Conventions
@@ -114,7 +114,7 @@ App composition and state management. _(Coming soon — API is in active develop
 
 ## `@silvery/theme`
 
-Theme system with 38 built-in palettes, auto-generation from a single color, semantic tokens, and contrast checking.
+Theme system with 84 color schemes, auto-generation from a single color, semantic tokens, and contrast checking.
 
 See the [Theming Guide](/guide/theming) for full documentation.
 

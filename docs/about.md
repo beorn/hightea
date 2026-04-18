@@ -29,7 +29,7 @@ Testing the renderer meant testing against real terminals. I missed Playwright �
 
 But there was a surprising lack of information about what terminals actually support. Which ones handle Kitty keyboard? OSC 52 clipboard? Sixel graphics? The answers were scattered across source code, GitHub issues, and trial-and-error. So I built [terminfo.dev](https://terminfo.dev) — an empirical compatibility database covering 161 features across 19 terminals, all probed via Termless.
 
-Inside Silvery itself, the same pattern repeated. The framework needed a theme system that auto-detects terminal colors and adjusts for contrast — that became [@silvery/theme](https://silvery.dev/themes) with 38 palettes and semantic tokens. It needed built-in testing utilities — that became [@silvery/test](https://silvery.dev/examples/testing) with Playwright-style locators and `press()` simulation. CLI apps needed beautiful help text — that became [@silvery/commander](https://silvery.dev/reference/commander), which renders its help through Silvery itself.
+Inside Silvery itself, the same pattern repeated. The framework needed a theme system that auto-detects terminal colors and adjusts for contrast — that became [@silvery/theme](https://silvery.dev/themes) with 84 color schemes and semantic tokens. It needed built-in testing utilities — that became [@silvery/test](https://silvery.dev/examples/testing) with Playwright-style locators and `press()` simulation. CLI apps needed beautiful help text — that became [@silvery/commander](https://silvery.dev/reference/commander), which renders its help through Silvery itself.
 
 It's a little addictive, owning the entire pipeline. Each piece you build reveals the next opportunity. And there are a lot of opportunities that have come — and will come — out of having every layer work together.
 
@@ -66,7 +66,7 @@ All MIT-licensed, all part of the same development effort.
 | `@silvery/ink` / `@silvery/chalk` | Ink compatibility — 99% of Ink 7.0 tests, 100% of Chalk tests            |
 | `@silvery/test`                   | Playwright-style testing — locators, `press()`, buffer assertions        |
 | `@silvery/create`                 | Composable app builder — `pipe()` providers _(under active development)_ |
-| `@silvery/theme`                  | 38 palettes, semantic tokens (`$primary`, `$muted`), auto-detect         |
+| `@silvery/theme`                  | 84 color schemes, semantic tokens (`$primary`, `$muted`), auto-detect         |
 | `@silvery/commander`              | **Beautiful CLIs for free** — help renders through Silvery itself        |
 | `@silvery/headless`               | Pure state machines — portable, embeddable, no React                     |
 | `@silvery/ansi`                   | Terminal primitives — styling, SGR, truecolor, detection                 |

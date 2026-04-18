@@ -99,7 +99,7 @@ export {
   getThemeByName,
 } from "./schemes/index"
 
-// Built-in palettes (45 palettes from 15 theme families)
+// Built-in schemes (84 color schemes — see packages/theme/src/schemes/)
 export {
   builtinPalettes,
   getSchemeByName,

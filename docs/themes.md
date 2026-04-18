@@ -9,6 +9,6 @@ import ThemeExplorer from './.vitepress/components/ThemeExplorer.vue'
 
 # Theme Explorer
 
-Browse 38 built-in palettes, preview how they look, or generate a custom theme from any color.
+Browse 84 color schemes, preview how they look, or generate a custom theme from any color.
 
 <ThemeExplorer />

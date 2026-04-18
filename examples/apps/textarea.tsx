@@ -27,7 +27,7 @@ const INITIAL_CONTENT = `# Release Notes — Silvery v0.1
 
 - **Flexbox layout engine** — CSS-compatible sizing,
   wrapping, and gap support via Flexily
-- **38 built-in color palettes** — from Dracula
+- **84 built-in color schemes** — from Dracula
   to Solarized, Nord to Catppuccin
 - **Incremental rendering** — only changed cells
   are repainted, no full-screen flicker
