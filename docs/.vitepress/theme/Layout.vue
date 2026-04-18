@@ -13,4 +13,5 @@ const { frontmatter } = useData()
       <SilveryTerminal />
     </template>
   </Layout>
+  <div class="silvery-page-gleam" aria-hidden="true"></div>
 </template>

@@ -75,153 +75,77 @@
 }
 
 /* ============================================================
- * Unified page-wide gleam — one highlight, shared viewport space
+ * Page-wide spotlight sweep
  *
- * Every silvery-branded element uses:
- *   background-size: 100vw 100vh     (one viewport wide)
- *   background-attachment: fixed     (bg anchored to viewport, not element)
- *   animation: silvery-page-gleam    (same keyframes, same duration)
+ * A single fixed overlay element translates across the viewport,
+ * carrying a narrow bright band that brightens everything beneath
+ * it via mix-blend-mode. One physical spotlight, moving diagonally
+ * from top-left to bottom-right, hits each branded element in
+ * spatial order because there IS only one light source — no math,
+ * no coincidence, no invisible-text edge cases.
  *
- * Because bg is viewport-anchored, every element's gradient is
- * painted in the SAME viewport coordinate system. The bright band
- * exists at one viewport-x at any moment — every element whose
- * bounds overlap that x shows its highlight color there. The effect
- * is a single spotlight moving across the page, hitting the nav
- * wordmark, hero wordmark, tagline, button, and terminal chrome
- * one after another as it sweeps from left to right.
+ * Silvery-branded elements are styled with solid rest colors
+ * (dark base, transparent terminal chrome). The overlay sweep
+ * brightens them momentarily as it passes.
  * ============================================================ */
 
-/* Pulse: bright band enters from off-left (-100vw), sweeps across
- * the viewport in 40% of the cycle, exits off-right (+100vw), then
- * holds at rest for the remaining 60%. Both animation endpoints
- * have the bright band off-screen, so the jump at the cycle
- * boundary is invisible. */
-@keyframes silvery-page-gleam {
-  0%   { background-position: -100vw 0; }  /* pulse starts: bright off-left */
-  50%  { background-position: 100vw 0; }   /* pulse finished: bright off-right */
-  100% { background-position: 100vw 0; }   /* hold at rest until next pulse */
-}
-
-/* Nav wordmark — rest color is dark, chrome highlight sweeps across */
-.VPNavBarTitle .title {
-  background-color: var(--silvery-wordmark-rest);
-  background-image: linear-gradient(
-    110deg,
+.silvery-page-gleam {
+  position: fixed;
+  top: -30vh;
+  left: 0;
+  width: 25vw;
+  height: 160vh;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-30vw, 0) rotate(20deg);
+  transform-origin: top left;
+  background: linear-gradient(
+    to right,
     transparent 0%,
-    transparent 46%,
-    var(--silvery-wordmark-highlight) 50%,
-    transparent 54%,
+    rgba(255, 255, 255, 0.55) 50%,
     transparent 100%
   );
-  background-size: 100vw 100vh;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-  background-position: 100vw 0;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  animation: silvery-page-gleam 5s linear infinite;
+  mix-blend-mode: screen;
+  will-change: transform;
+  animation: silvery-page-sweep 5s linear infinite;
 }
 
-/* Hero wordmark — rest color is dark, chrome highlight sweeps across */
+@keyframes silvery-page-sweep {
+  0%   { transform: translate(-30vw, 0) rotate(20deg); }      /* off-left */
+  50%  { transform: translate(130vw, 0) rotate(20deg); }      /* off-right */
+  100% { transform: translate(130vw, 0) rotate(20deg); }      /* hold */
+}
+
+/* Silvery-branded element rest states (static — overlay does the sweep) */
+
+.VPNavBarTitle .title {
+  color: var(--silvery-wordmark-rest);
+}
+
 .VPHome .name,
 .VPHero .name {
-  background-color: var(--silvery-hero-rest);
-  background-image: linear-gradient(
-    110deg,
-    transparent 0%,
-    transparent 46%,
-    var(--silvery-hero-highlight) 50%,
-    transparent 54%,
-    transparent 100%
-  );
-  background-size: 100vw 100vh;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-  background-position: 100vw 0;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  animation: silvery-page-gleam 5s linear infinite;
+  color: var(--silvery-hero-rest);
 }
 
-/* Hero headline "React for modern terminal apps" — dim rest, chrome peak */
 .VPHome .text,
 .VPHero .text {
-  background-color: var(--silvery-accent);
-  background-image: linear-gradient(
-    110deg,
-    transparent 0%,
-    transparent 46%,
-    #d6e0f0 50%,
-    transparent 54%,
-    transparent 100%
-  );
-  background-size: 100vw 100vh;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-  background-position: 100vw 0;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  animation: silvery-page-gleam 5s linear infinite;
+  color: var(--silvery-accent);
 }
 
 .dark .VPHome .text,
 .dark .VPHero .text {
-  background-color: var(--silvery-accent-light);
-  background-image: linear-gradient(
-    110deg,
-    transparent 0%,
-    transparent 46%,
-    #ffffff 50%,
-    transparent 54%,
-    transparent 100%
-  );
-  background-size: 100vw 100vh;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-  background-position: 100vw 0;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  animation: silvery-page-gleam 5s linear infinite;
+  color: var(--silvery-accent-light);
 }
 
-/* Get Started primary button — dim rest, chrome peak */
 .VPButton.brand,
 .VPHome .VPButton.brand,
 .VPHero .VPButton.brand {
-  background-color: var(--silvery-accent) !important;
-  background-image: linear-gradient(
-    110deg,
-    transparent 0%,
-    transparent 46%,
-    #d6e0f0 50%,
-    transparent 54%,
-    transparent 100%
-  ) !important;
-  background-size: 100vw 100vh !important;
-  background-attachment: fixed !important;
-  background-repeat: no-repeat !important;
-  background-position: 100vw 0;
-  animation: silvery-page-gleam 5s linear infinite;
+  background: var(--silvery-accent) !important;
   border-color: var(--silvery-accent) !important;
   color: #ffffff !important;
 }
 .VPButton.brand:hover {
-  background-image: linear-gradient(
-    110deg,
-    var(--silvery-accent-dark) 0%,
-    var(--silvery-accent-dark) 42%,
-    var(--silvery-accent) 50%,
-    var(--silvery-accent-dark) 58%,
-    var(--silvery-accent-dark) 100%
-  ) !important;
+  background: var(--silvery-accent-dark) !important;
   border-color: var(--silvery-accent-dark) !important;
 }
 
@@ -330,37 +254,15 @@
   max-width: 760px;
   overflow: hidden;
 
-  background-image: linear-gradient(
-    110deg,
-    transparent 0%,
-    transparent 46%,
-    #ffffff 50%,
-    transparent 54%,
-    transparent 100%
-  );
-  background-size: 100vw 100vh;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-  background-position: 100vw 0;
-  animation: silvery-page-gleam 5s linear infinite;
+  /* Dim rest — almost invisible. The page-wide spotlight overlay
+   * brightens it to chrome as it sweeps across. */
+  background: #2a3040;
 
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .dark .silvery-terminal-wrap {
-  background-image: linear-gradient(
-    110deg,
-    transparent 0%,
-    transparent 46%,
-    #ffffff 50%,
-    transparent 54%,
-    transparent 100%
-  );
-  background-size: 100vw 100vh;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-  background-position: 100vw 0;
-  animation: silvery-page-gleam 5s linear infinite;
+  background: #3a4252;
 }
 
 @media (max-width: 820px) {
