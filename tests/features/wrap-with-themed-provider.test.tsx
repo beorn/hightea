@@ -47,7 +47,7 @@ function ActiveSchemeDisplay() {
 /** Tiny component that reads a custom token from the active theme. */
 function TokenDisplay({ token }: { token: string }) {
   const theme = useTheme()
-  const value = (theme as Record<string, unknown>)[token]
+  const value = (theme as unknown as Record<string, unknown>)[token]
   return <Text>{typeof value === "string" ? value : "missing"}</Text>
 }
 
