@@ -69,14 +69,24 @@
  *
  * ## Emoji / wide-char cells
  *
- * Terminals render emoji using the glyph's own bitmap colors, so the fg mix
- * has no visible effect on the emoji itself. Two compensations:
+ * Terminals render emoji using the glyph's own bitmap colors — the per-cell
+ * fg mix has no visible effect on the emoji itself. Two paths, mutually
+ * exclusive:
  *
- * 1. Stamp `attrs.dim` (SGR 2) on lead + continuation cells. Modern terminals
- *    (Ghostty, iTerm2, Kitty, WezTerm) honor SGR 2 on emoji. Best-effort.
- * 2. Optionally emit Kitty graphics overlays via `buildKittyOverlay`. The
- *    scrim color for the Kitty overlay matches the scrimColor used for cell
- *    mixing, so the emoji visually fades in lockstep with surrounding cells.
+ * 1. **Kitty graphics available** (Ghostty / Kitty / WezTerm outside tmux):
+ *    `buildKittyOverlay` emits a translucent scrim image at alpha=amount
+ *    above each wide cell, and the per-cell mix SKIPS wide cells entirely.
+ *    The terminal composites the overlay on top of the unmixed cell, landing
+ *    at `cell_bg * (1 - amount) + scrim * amount` — the same luminance as
+ *    surrounding non-wide cells (which were mixed via the cell pass). This
+ *    avoids the double-fade that would make emoji bg visibly blacker than
+ *    surrounding text cells.
+ *
+ * 2. **Kitty graphics unavailable** (tmux, or older terminal): the per-cell
+ *    mix runs on wide cells too and stamps `attrs.dim` (SGR 2) on lead +
+ *    continuation. Terminals honoring SGR 2 on emoji fade the glyph;
+ *    others see the glyph at full brightness but the cell bg matches
+ *    surroundings.
  */
 
 import { relativeLuminance } from "@silvery/color"
@@ -211,12 +221,19 @@ export function applyBackdropFade(
   const scrim = deriveScrimColor(options?.rootBg)
   const rootBgHex = options?.rootBg ?? null
 
+  // When Kitty graphics are available, the emoji scrim overlay does ALL the
+  // darkening for wide-char cells (both the glyph and its bg region). The
+  // per-cell sRGB mix must then SKIP wide cells — otherwise wide cells get
+  // mixed at amount PLUS overlaid at amount, producing a visibly blacker
+  // emoji bg than surrounding cells. Pass the flag down to fadeCell.
+  const kittyEnabled = options?.kittyGraphics === true && strategy === "mix"
+
   let modified = false
 
   // Pass 1: data-backdrop-fade — fade cells INSIDE each marked rect.
   for (const { rect, amount } of includes) {
     if (amount <= 0) continue
-    if (fadeRect(buffer, rect, amount, strategy, scrim, rootBgHex)) modified = true
+    if (fadeRect(buffer, rect, amount, strategy, scrim, rootBgHex, kittyEnabled)) modified = true
   }
 
   // Pass 2: data-backdrop-fade-excluded — fade everything OUTSIDE each marked
@@ -226,20 +243,33 @@ export function applyBackdropFade(
     const fullRect: Rect = { x: 0, y: 0, width: buffer.width, height: buffer.height }
     for (const { rect, amount } of excludes) {
       if (amount <= 0) continue
-      if (fadeRectExcluding(buffer, fullRect, rect, amount, strategy, scrim, rootBgHex))
+      if (
+        fadeRectExcluding(buffer, fullRect, rect, amount, strategy, scrim, rootBgHex, kittyEnabled)
+      )
         modified = true
     }
   }
 
   // Emit Kitty graphics placements for wide-char cells in the faded region.
   // SGR 2 "dim" is a no-op on bitmap emoji in most terminals, so the scrim
-  // overlay is the only way to visually fade emoji/CJK alongside text.
-  const kittyEnabled = options?.kittyGraphics === true && strategy === "mix"
+  // overlay is the only way to visually fade emoji/CJK alongside text. The
+  // overlay's alpha matches the fade amount so emoji bg lands at the same
+  // visual luminance as surrounding non-wide cells (which were mixed in the
+  // cell pass). When multiple rects have different amounts, the
+  // representative amount is used — per-cell alpha placements would bloat
+  // the overlay string disproportionately for a rare case.
+  const kittyAmount = representativeAmount(includes, excludes)
   const kittyOverlay = kittyEnabled
-    ? buildKittyOverlay(buffer, includes, excludes, scrim, rootBgHex)
+    ? buildKittyOverlay(buffer, includes, excludes, scrim, rootBgHex, kittyAmount)
     : ""
 
   return { modified, kittyOverlay }
+}
+
+/** Pick a representative fade amount for the Kitty overlay alpha. */
+function representativeAmount(includes: FadeRect[], excludes: FadeRect[]): number {
+  const first = includes[0]?.amount ?? excludes[0]?.amount ?? 0
+  return Math.max(0, Math.min(1, first))
 }
 
 const EMPTY_RESULT: BackdropFadeResult = { modified: false, kittyOverlay: "" }
@@ -295,6 +325,7 @@ function fadeRect(
   strategy: FadeStrategy,
   scrim: string | null,
   rootBgHex: string | null,
+  kittyEnabled: boolean,
 ): boolean {
   const x0 = Math.max(0, rect.x)
   const y0 = Math.max(0, rect.y)
@@ -305,7 +336,7 @@ function fadeRect(
   let any = false
   for (let y = y0; y < y1; y++) {
     for (let x = x0; x < x1; x++) {
-      if (fadeCell(buffer, x, y, amount, strategy, scrim, rootBgHex)) any = true
+      if (fadeCell(buffer, x, y, amount, strategy, scrim, rootBgHex, kittyEnabled)) any = true
     }
   }
   return any
@@ -319,6 +350,7 @@ function fadeRectExcluding(
   strategy: FadeStrategy,
   scrim: string | null,
   rootBgHex: string | null,
+  kittyEnabled: boolean,
 ): boolean {
   const ox0 = Math.max(0, outer.x)
   const oy0 = Math.max(0, outer.y)
@@ -335,7 +367,7 @@ function fadeRectExcluding(
   for (let y = oy0; y < oy1; y++) {
     for (let x = ox0; x < ox1; x++) {
       if (innerValid && x >= ix0 && x < ix1 && y >= iy0 && y < iy1) continue
-      if (fadeCell(buffer, x, y, amount, strategy, scrim, rootBgHex)) any = true
+      if (fadeCell(buffer, x, y, amount, strategy, scrim, rootBgHex, kittyEnabled)) any = true
     }
   }
   return any
@@ -383,6 +415,7 @@ function fadeCell(
   strategy: FadeStrategy,
   scrim: string | null,
   rootBgHex: string | null,
+  kittyEnabled: boolean,
 ): boolean {
   // Skip continuation half of wide chars — the leading cell at x-1 will update
   // this cell's bg + dim in lockstep when it's processed.
@@ -403,6 +436,15 @@ function fadeCell(
   }
 
   // strategy === "mix"
+  // When Kitty graphics are available, the emoji scrim overlay will composite
+  // over the wide cell at alpha=amount — doing the per-cell mix here too
+  // would double-dim the bg and produce a visibly blacker emoji region than
+  // surrounding text cells. Skip wide cells entirely; Kitty does the fade.
+  // (When Kitty is NOT available, the `mix` branch below still runs on wide
+  // cells and stamps SGR 2 dim as a degraded fallback — visible fade on
+  // terminals honoring SGR 2 on emoji, bg slightly inconsistent otherwise.)
+  if (kittyEnabled && cell.wide) return false
+
   const fgHex = colorToHex(cell.fg)
 
   if (scrim !== null && rootBgHex !== null) {
@@ -566,15 +608,12 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
 // =============================================================================
 
 /**
- * Alpha for the scrim overlay (0-255). Matches the "~50% darken" look: enough
- * to visibly mute the emoji without hiding it entirely. Chosen to feel
- * consistent with the ~0.25 fade applied to surrounding text cells.
- */
-const SCRIM_ALPHA = 128
-
-/**
  * Build the Kitty graphics escape sequence that covers wide-char cells in the
  * backdrop region with a translucent scrim.
+ *
+ * The scrim alpha matches the fade `amount` (scaled 0-255) so the composited
+ * emoji bg lands at the same luminance as surrounding text cells: both
+ * produce `cell_bg * (1 - amount) + scrim * amount`.
  */
 function buildKittyOverlay(
   buffer: TerminalBuffer,
@@ -582,6 +621,7 @@ function buildKittyOverlay(
   excludes: FadeRect[],
   scrim: string | null,
   rootBgHex: string | null,
+  amount: number,
 ): string {
   const cells = collectWideCellsInFadeRegion(buffer, includes, excludes)
   if (cells.length === 0) return ""
@@ -590,7 +630,8 @@ function buildKittyOverlay(
   // white by theme luminance). Fallback to pure black.
   const tintHex = scrim ?? rootBgHex ?? "#000000"
   const tint = hexToRgb(tintHex) ?? { r: 0, g: 0, b: 0 }
-  const pixels = buildScrimPixels(tint, SCRIM_ALPHA)
+  const scrimAlpha = Math.max(0, Math.min(255, Math.round(amount * 255)))
+  const pixels = buildScrimPixels(tint, scrimAlpha)
 
   const parts: string[] = []
   parts.push(CURSOR_SAVE)

@@ -648,80 +648,94 @@ describe("backdrop fade: empty-cell bg darkening (regression)", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("backdrop fade: wide-char / emoji bg propagation (regression)", () => {
-  test("wide char behind modal has both cells darkened in lockstep", () => {
-    // Uses an explicit colored bg so we can assert continuation cell's bg
-    // matches the lead cell's post-blend bg (rather than staying at the
-    // pre-blend red).
-    const render = createRenderer({ cols: 40, rows: 10 })
+  // When Kitty graphics are available, the per-cell bg mix is skipped on
+  // wide cells — the Kitty scrim overlay composites the fade on top at the
+  // same alpha, so emoji bg visually matches surrounding text cells after
+  // the terminal draws. In the headless test renderer we can't verify the
+  // overlay compositing, so these tests explicitly disable Kitty to
+  // exercise the cell-level fallback path (where lead + cont bg must be
+  // mixed in lockstep).
+  test("wide char behind modal has both cells darkened in lockstep (no Kitty)", () => {
+    const prev = process.env.SILVERY_KITTY_GRAPHICS
+    process.env.SILVERY_KITTY_GRAPHICS = "0"
+    const restore = () => {
+      if (prev === undefined) delete process.env.SILVERY_KITTY_GRAPHICS
+      else process.env.SILVERY_KITTY_GRAPHICS = prev
+    }
+    try {
+      const render = createRenderer({ cols: 40, rows: 10 })
 
-    function App({ open }: { open: boolean }) {
-      return (
-        <ThemeProvider theme={darkTheme}>
-          <Box flexDirection="column" width={40} height={10}>
-            {/* Emoji row with explicit red bg — easy to observe the blend */}
-            <Box backgroundColor="#ff0000">
-              <Text color="#FFFFFF">🎉 emoji row here</Text>
-            </Box>
-            {Array.from({ length: 7 }, (_, i) => (
-              <Text key={i} color="#FFFFFF">
-                {`row ${i}`}
-              </Text>
-            ))}
-            {open && (
-              <Box position="absolute" marginLeft={15} marginTop={3}>
-                <ModalDialog width={20} fade={0.4}>
-                  <Text color="#FFFFFF">DIALOG</Text>
-                </ModalDialog>
+      function App({ open }: { open: boolean }) {
+        return (
+          <ThemeProvider theme={darkTheme}>
+            <Box flexDirection="column" width={40} height={10}>
+              {/* Emoji row with explicit red bg — easy to observe the blend */}
+              <Box backgroundColor="#ff0000">
+                <Text color="#FFFFFF">🎉 emoji row here</Text>
               </Box>
-            )}
-          </Box>
-        </ThemeProvider>
-      )
-    }
-
-    // Frame 1 — modal closed. Find the wide-char lead + continuation.
-    const app = render(<App open={false} />)
-    // Scan row 0 for the wide cell; emoji is the first char.
-    let leadX = -1
-    for (let x = 0; x < 40; x++) {
-      const c = app.cell(x, 0)
-      if (c.wide) {
-        leadX = x
-        break
+              {Array.from({ length: 7 }, (_, i) => (
+                <Text key={i} color="#FFFFFF">
+                  {`row ${i}`}
+                </Text>
+              ))}
+              {open && (
+                <Box position="absolute" marginLeft={15} marginTop={3}>
+                  <ModalDialog width={20} fade={0.4}>
+                    <Text color="#FFFFFF">DIALOG</Text>
+                  </ModalDialog>
+                </Box>
+              )}
+            </Box>
+          </ThemeProvider>
+        )
       }
+
+      // Frame 1 — modal closed. Find the wide-char lead + continuation.
+      const app = render(<App open={false} />)
+      // Scan row 0 for the wide cell; emoji is the first char.
+      let leadX = -1
+      for (let x = 0; x < 40; x++) {
+        const c = app.cell(x, 0)
+        if (c.wide) {
+          leadX = x
+          break
+        }
+      }
+      expect(leadX).toBeGreaterThanOrEqual(0)
+
+      const preLead = app.cell(leadX, 0)
+      const preCont = app.cell(leadX + 1, 0)
+      expect(preLead.wide).toBe(true)
+      expect(preCont.continuation).toBe(true)
+      expect(preLead.bg).not.toBeNull()
+      expect(preCont.bg).not.toBeNull()
+      // Pre-modal: both halves of the emoji have the same red bg.
+      const preLeadBg = preLead.bg as { r: number; g: number; b: number }
+      const preContBg = preCont.bg as { r: number; g: number; b: number }
+      expect(preLeadBg.r).toBe(255)
+      expect(preContBg.r).toBe(255)
+
+      // Frame 2 — modal open. Both halves must have darkened bg, AND they must
+      // have the SAME darkened bg (no visual split down the middle of the emoji).
+      app.rerender(<App open={true} />)
+      const postLead = app.cell(leadX, 0)
+      const postCont = app.cell(leadX + 1, 0)
+      expect(postLead.wide).toBe(true)
+      expect(postCont.continuation).toBe(true)
+      expect(postLead.bg).not.toBeNull()
+      expect(postCont.bg).not.toBeNull()
+      const postLeadBg = postLead.bg as { r: number; g: number; b: number }
+      const postContBg = postCont.bg as { r: number; g: number; b: number }
+
+      // Lead cell darkened.
+      expect(postLeadBg.r).toBeLessThan(255)
+      // Continuation cell matches lead — the critical anti-regression assertion.
+      expect(postContBg.r).toBe(postLeadBg.r)
+      expect(postContBg.g).toBe(postLeadBg.g)
+      expect(postContBg.b).toBe(postLeadBg.b)
+    } finally {
+      restore()
     }
-    expect(leadX).toBeGreaterThanOrEqual(0)
-
-    const preLead = app.cell(leadX, 0)
-    const preCont = app.cell(leadX + 1, 0)
-    expect(preLead.wide).toBe(true)
-    expect(preCont.continuation).toBe(true)
-    expect(preLead.bg).not.toBeNull()
-    expect(preCont.bg).not.toBeNull()
-    // Pre-modal: both halves of the emoji have the same red bg.
-    const preLeadBg = preLead.bg as { r: number; g: number; b: number }
-    const preContBg = preCont.bg as { r: number; g: number; b: number }
-    expect(preLeadBg.r).toBe(255)
-    expect(preContBg.r).toBe(255)
-
-    // Frame 2 — modal open. Both halves must have darkened bg, AND they must
-    // have the SAME darkened bg (no visual split down the middle of the emoji).
-    app.rerender(<App open={true} />)
-    const postLead = app.cell(leadX, 0)
-    const postCont = app.cell(leadX + 1, 0)
-    expect(postLead.wide).toBe(true)
-    expect(postCont.continuation).toBe(true)
-    expect(postLead.bg).not.toBeNull()
-    expect(postCont.bg).not.toBeNull()
-    const postLeadBg = postLead.bg as { r: number; g: number; b: number }
-    const postContBg = postCont.bg as { r: number; g: number; b: number }
-
-    // Lead cell darkened.
-    expect(postLeadBg.r).toBeLessThan(255)
-    // Continuation cell matches lead — the critical anti-regression assertion.
-    expect(postContBg.r).toBe(postLeadBg.r)
-    expect(postContBg.g).toBe(postLeadBg.g)
-    expect(postContBg.b).toBe(postLeadBg.b)
   })
 })
 
@@ -1052,71 +1066,87 @@ describe("backdrop fade: real-app regressions (b2dafd70)", () => {
     expect(postBlueness).toBeLessThan(preBlueness)
   })
 
-  test("emoji cells stamp dim attribute so terminals visibly fade emoji glyphs", () => {
+  test("emoji cells stamp dim attribute so terminals visibly fade emoji glyphs (no Kitty)", () => {
     // Emoji / wide-char cells have `fg=<text color>` but terminals ignore
     // that fg when rendering the emoji glyph — the glyph uses its own
     // bitmap colors. So a fg blend alone has NO visible effect on emoji.
     //
-    // To fade emoji visually, we stamp `attrs.dim` (SGR 2) on the lead +
-    // continuation cells. Most modern terminals (Ghostty, iTerm2, Kitty,
-    // WezTerm) honor SGR 2 on emoji and render the glyph at reduced opacity.
+    // Two fallbacks:
+    //   - With Kitty graphics: scrim overlay at alpha=amount composites on
+    //     top of the emoji. SGR 2 dim is NOT stamped (the overlay does the
+    //     work, and a double-fade would over-darken). That path is not
+    //     testable via buffer state in the headless renderer.
+    //   - Without Kitty: stamp SGR 2 dim on lead + continuation. Terminals
+    //     that honor SGR 2 on emoji (most modern ones) render at reduced
+    //     opacity; others see no glyph fade but the surrounding bg was
+    //     still mixed via the per-cell path.
     //
-    // Regression guard: both lead and continuation cells of an emoji in the
-    // backdrop must have attrs.dim === true post-fade.
-    const render = createRenderer({ cols: 40, rows: 10 })
+    // This test pins the no-Kitty fallback (SILVERY_KITTY_GRAPHICS=0 forces
+    // the cell-level mix path): both lead + cont cells stamp dim.
+    const prev = process.env.SILVERY_KITTY_GRAPHICS
+    process.env.SILVERY_KITTY_GRAPHICS = "0"
+    const restore = () => {
+      if (prev === undefined) delete process.env.SILVERY_KITTY_GRAPHICS
+      else process.env.SILVERY_KITTY_GRAPHICS = prev
+    }
+    try {
+      const render = createRenderer({ cols: 40, rows: 10 })
 
-    function App({ open }: { open: boolean }) {
-      return (
-        <ThemeProvider theme={darkTheme}>
-          <Box flexDirection="column" width={40} height={10}>
-            <Box backgroundColor="#1e1e2e">
-              <Text color="#FFFFFF">🔴 red bullet marker</Text>
-            </Box>
-            {Array.from({ length: 7 }, (_, i) => (
-              <Text key={i} color="#FFFFFF">
-                {`row ${i}`}
-              </Text>
-            ))}
-            {open && (
-              <Box position="absolute" marginLeft={15} marginTop={3}>
-                <ModalDialog width={20} fade={0.4}>
-                  <Text color="#FFFFFF">DIALOG</Text>
-                </ModalDialog>
+      function App({ open }: { open: boolean }) {
+        return (
+          <ThemeProvider theme={darkTheme}>
+            <Box flexDirection="column" width={40} height={10}>
+              <Box backgroundColor="#1e1e2e">
+                <Text color="#FFFFFF">🔴 red bullet marker</Text>
               </Box>
-            )}
-          </Box>
-        </ThemeProvider>
-      )
-    }
-
-    const app = render(<App open={false} />)
-    // Locate the emoji lead + continuation cells.
-    let leadX = -1
-    for (let x = 0; x < 40; x++) {
-      if (app.cell(x, 0).wide) {
-        leadX = x
-        break
+              {Array.from({ length: 7 }, (_, i) => (
+                <Text key={i} color="#FFFFFF">
+                  {`row ${i}`}
+                </Text>
+              ))}
+              {open && (
+                <Box position="absolute" marginLeft={15} marginTop={3}>
+                  <ModalDialog width={20} fade={0.4}>
+                    <Text color="#FFFFFF">DIALOG</Text>
+                  </ModalDialog>
+                </Box>
+              )}
+            </Box>
+          </ThemeProvider>
+        )
       }
+
+      const app = render(<App open={false} />)
+      // Locate the emoji lead + continuation cells.
+      let leadX = -1
+      for (let x = 0; x < 40; x++) {
+        if (app.cell(x, 0).wide) {
+          leadX = x
+          break
+        }
+      }
+      expect(leadX).toBeGreaterThanOrEqual(0)
+
+      // Pre-fade: no dim on emoji cells.
+      const preLead = app.cell(leadX, 0)
+      const preCont = app.cell(leadX + 1, 0)
+      expect(preLead.wide).toBe(true)
+      expect(preCont.continuation).toBe(true)
+      expect(preLead.dim).toBeFalsy()
+      expect(preCont.dim).toBeFalsy()
+
+      // Post-fade: both halves stamp dim — otherwise the emoji visibly stands
+      // out against surrounding faded cells (terminals ignore fg blend on
+      // emoji glyphs).
+      app.rerender(<App open={true} />)
+      const postLead = app.cell(leadX, 0)
+      const postCont = app.cell(leadX + 1, 0)
+      expect(postLead.wide).toBe(true)
+      expect(postCont.continuation).toBe(true)
+      expect(postLead.dim).toBe(true)
+      expect(postCont.dim).toBe(true)
+    } finally {
+      restore()
     }
-    expect(leadX).toBeGreaterThanOrEqual(0)
-
-    // Pre-fade: no dim on emoji cells.
-    const preLead = app.cell(leadX, 0)
-    const preCont = app.cell(leadX + 1, 0)
-    expect(preLead.wide).toBe(true)
-    expect(preCont.continuation).toBe(true)
-    expect(preLead.dim).toBeFalsy()
-    expect(preCont.dim).toBeFalsy()
-
-    // Post-fade: both halves stamp dim — otherwise the emoji visibly stands
-    // out against surrounding faded cells (terminals ignore fg blend on
-    // emoji glyphs).
-    app.rerender(<App open={true} />)
-    const postLead = app.cell(leadX, 0)
-    const postCont = app.cell(leadX + 1, 0)
-    expect(postLead.wide).toBe(true)
-    expect(postCont.continuation).toBe(true)
-    expect(postLead.dim).toBe(true)
-    expect(postCont.dim).toBe(true)
   })
 })
