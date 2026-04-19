@@ -270,18 +270,22 @@ async function inspectTheme(flags: {
   const COL3 = 20 // SGR attrs
 
   // Header: detected terminal info
-  const sourceLine =
-    result.source === "fingerprint"
-      ? `fingerprint matched ${result.matchedName} (confidence ${(result.confidence * 100).toFixed(0)}%)`
-      : result.source === "probed"
-        ? `probed (no catalog match, confidence ${(result.confidence * 100).toFixed(0)}%)`
-        : result.source === "fallback"
-          ? `fallback (detection failed)`
-          : result.source === "override"
-            ? `override (${result.matchedName ?? "explicit"})`
-            : result.source
+  const pct = `${(result.confidence * 100).toFixed(0)}%`
+  let sourceLine: string
+  if (result.source === "fingerprint") {
+    sourceLine = `fingerprint matched ${result.matchedName} (confidence ${pct})`
+  } else if (result.source === "probed") {
+    sourceLine = `probed (no catalog match, confidence ${pct})`
+  } else if (result.source === "fallback") {
+    sourceLine = "fallback (detection failed)"
+  } else if (result.source === "override") {
+    sourceLine = `override (${result.matchedName ?? "explicit"})`
+  } else {
+    sourceLine = result.source
+  }
 
-  const isDark = (theme.bg.startsWith("#") ? parseInt(theme.bg.slice(1), 16) < 0x808080 : true)
+  const bgHex = theme.bg
+  const isDark = bgHex.startsWith("#") ? parseInt(bgHex.slice(1), 16) < 0x808080 : true
 
   console.log()
   const schemeLabel = result.matchedName ?? (result.source === "probed" ? "custom" : "unknown")
