@@ -148,13 +148,14 @@ export function applyBackdropFade(
   // Pure black/white is chosen (not $bg itself) so cells already AT $bg darken
   // further, amplifying the depth separation from the modal.
   const blendTarget = deriveBlendTarget(options?.rootBg)
+  const rootBgHex = options?.rootBg ?? null
 
   let modified = false
 
   // Pass 1: data-backdrop-fade — fade cells INSIDE each marked rect.
   for (const { rect, amount } of includes) {
     if (amount <= 0) continue
-    if (fadeRect(buffer, rect, amount, strategy, blendTarget)) modified = true
+    if (fadeRect(buffer, rect, amount, strategy, blendTarget, rootBgHex)) modified = true
   }
 
   // Pass 2: data-backdrop-fade-excluded — fade everything OUTSIDE each marked
@@ -164,7 +165,8 @@ export function applyBackdropFade(
     const fullRect: Rect = { x: 0, y: 0, width: buffer.width, height: buffer.height }
     for (const { rect, amount } of excludes) {
       if (amount <= 0) continue
-      if (fadeRectExcluding(buffer, fullRect, rect, amount, strategy, blendTarget)) modified = true
+      if (fadeRectExcluding(buffer, fullRect, rect, amount, strategy, blendTarget, rootBgHex))
+        modified = true
     }
   }
 
@@ -220,6 +222,7 @@ function fadeRect(
   amount: number,
   strategy: FadeStrategy,
   blendTarget: string | null,
+  rootBgHex: string | null,
 ): boolean {
   const x0 = Math.max(0, rect.x)
   const y0 = Math.max(0, rect.y)
@@ -230,7 +233,7 @@ function fadeRect(
   let any = false
   for (let y = y0; y < y1; y++) {
     for (let x = x0; x < x1; x++) {
-      if (fadeCell(buffer, x, y, amount, strategy, blendTarget)) any = true
+      if (fadeCell(buffer, x, y, amount, strategy, blendTarget, rootBgHex)) any = true
     }
   }
   return any
@@ -243,6 +246,7 @@ function fadeRectExcluding(
   amount: number,
   strategy: FadeStrategy,
   blendTarget: string | null,
+  rootBgHex: string | null,
 ): boolean {
   const ox0 = Math.max(0, outer.x)
   const oy0 = Math.max(0, outer.y)
@@ -259,7 +263,7 @@ function fadeRectExcluding(
   for (let y = oy0; y < oy1; y++) {
     for (let x = ox0; x < ox1; x++) {
       if (innerValid && x >= ix0 && x < ix1 && y >= iy0 && y < iy1) continue
-      if (fadeCell(buffer, x, y, amount, strategy, blendTarget)) any = true
+      if (fadeCell(buffer, x, y, amount, strategy, blendTarget, rootBgHex)) any = true
     }
   }
   return any
@@ -297,6 +301,7 @@ function fadeCell(
   amount: number,
   strategy: FadeStrategy,
   blendTarget: string | null,
+  rootBgHex: string | null,
 ): boolean {
   // Skip continuation half of wide chars — the leading cell carries the style.
   if (buffer.isCellContinuation(x, y)) return false
@@ -312,7 +317,7 @@ function fadeCell(
   // strategy === "blend"
   const fgHex = colorToHex(cell.fg)
 
-  if (blendTarget !== null) {
+  if (blendTarget !== null && rootBgHex !== null) {
     // Two-channel transform: blend fg AND bg toward the theme-neutral.
     if (!fgHex) {
       // fg unresolvable — stamp dim as fallback.
@@ -325,22 +330,18 @@ function fadeCell(
     const blendedFg = hexToRgb(blendedFgHex)
     if (!blendedFg) return false
 
-    // Blend bg toward the neutral only when it's an explicit (resolvable) color.
-    // null or DEFAULT_BG cells inherit the terminal bg — they're already at the
-    // "deepest" level and don't need to be shifted.
-    const bgHex = colorToHex(cell.bg)
-    if (bgHex) {
-      const blendedBgHex = blend(bgHex, blendTarget, amount)
-      const blendedBg = hexToRgb(blendedBgHex)
-      if (!blendedBg) {
-        buffer.setCell(x, y, { ...cell, fg: blendedFg })
-        return true
-      }
-      buffer.setCell(x, y, { ...cell, fg: blendedFg, bg: blendedBg })
-    } else {
-      // bg is null/default — only update fg.
+    // Blend bg toward the neutral. When cell.bg is null/DEFAULT_BG, treat it
+    // as the theme's rootBg — that IS the color the terminal paints for those
+    // cells. Blending null-bg cells produces an explicit darkened hex so the
+    // backdrop visibly darkens past $bg, matching cells with explicit $bg.
+    const bgHex = colorToHex(cell.bg) ?? rootBgHex
+    const blendedBgHex = blend(bgHex, blendTarget, amount)
+    const blendedBg = hexToRgb(blendedBgHex)
+    if (!blendedBg) {
       buffer.setCell(x, y, { ...cell, fg: blendedFg })
+      return true
     }
+    buffer.setCell(x, y, { ...cell, fg: blendedFg, bg: blendedBg })
     return true
   }
 
