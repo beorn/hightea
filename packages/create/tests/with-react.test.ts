@@ -132,7 +132,7 @@ describe("withReact", () => {
       const bound = makeElement("bound")
       const explicit = makeElement("explicit")
       const wrapped = withReact(bound)(app)
-      wrapped.run(explicit as unknown as undefined)
+      ;(wrapped.run as (el?: ReactElement) => Promise<void>)(explicit)
       expect(calls[0]!.element).toBe(explicit)
     })
 
