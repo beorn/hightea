@@ -32,7 +32,8 @@ import React, { type ReactElement } from "react"
 import { createApp } from "./create-app"
 import type { Term } from "../ansi/term"
 import { detectTerminalCaps } from "../terminal-caps"
-import { detectTheme } from "@silvery/theme/detect"
+import { detectTheme } from "@silvery/ansi"
+import { nord, catppuccinLatte } from "@silvery/theme/schemes"
 import { ThemeProvider } from "@silvery/ag-react/ThemeProvider"
 
 // Re-export types from keys.ts
@@ -271,7 +272,7 @@ export async function run(
     // Real terminal: full setup
     const caps = term.caps ?? detectTerminalCaps()
     // Detect terminal colors via OSC — must happen before alt screen
-    const theme = await detectTheme()
+    const theme = await detectTheme({ fallbackDark: nord, fallbackLight: catppuccinLatte })
     const themed = <ThemeProvider theme={theme}>{element}</ThemeProvider>
     const app = createApp(() => () => ({}))
     const handle = await app.run(themed, {
@@ -298,7 +299,9 @@ export async function run(
   // Detect terminal colors via OSC — must happen before alt screen (skipped for headless)
   const themed = headless
     ? element
-    : await detectTheme().then((theme) => <ThemeProvider theme={theme}>{element}</ThemeProvider>)
+    : await detectTheme({ fallbackDark: nord, fallbackLight: catppuccinLatte }).then(
+        (theme) => <ThemeProvider theme={theme}>{element}</ThemeProvider>,
+      )
   const app = createApp(() => () => ({}))
   const handle = await app.run(themed, {
     ...rest,

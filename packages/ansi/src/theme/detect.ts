@@ -130,8 +130,21 @@ export async function detectTerminalScheme(timeoutMs = 150): Promise<DetectedSch
 }
 
 export interface DetectThemeOptions {
+  /** Fallback ColorScheme when detection fails or returns partial data.
+   * Detected colors override matching fallback fields.
+   * When omitted, defaults based on dark/light detection:
+   *   dark  → `fallbackDark` (if set) or built-in defaultDarkScheme
+   *   light → `fallbackLight` (if set) or built-in defaultLightScheme */
   fallback?: ColorScheme
+  /** Fallback for dark terminals (overrides `fallback` for dark mode). */
+  fallbackDark?: ColorScheme
+  /** Fallback for light terminals (overrides `fallback` for light mode). */
+  fallbackLight?: ColorScheme
+  /** Timeout per OSC query in ms (default 150). */
   timeoutMs?: number
+  /** Terminal capabilities (from detectTerminalCaps). When provided:
+   * - colorLevel "none"/"basic" skips OSC detection and returns ANSI 16 theme
+   * - darkBackground informs fallback selection when detection fails */
   caps?: { colorLevel?: string; darkBackground?: boolean }
 }
 
@@ -143,7 +156,11 @@ export async function detectTheme(opts: DetectThemeOptions = {}): Promise<Theme>
   }
   const detected = await detectTerminalScheme(opts.timeoutMs)
   const isDark = detected?.dark ?? opts.caps?.darkBackground ?? true
-  const fallback = opts.fallback ?? (isDark ? defaultDarkScheme : defaultLightScheme)
+  const fallback =
+    opts.fallback ??
+    (isDark
+      ? (opts.fallbackDark ?? defaultDarkScheme)
+      : (opts.fallbackLight ?? defaultLightScheme))
   if (!detected) return deriveTheme(fallback)
   const merged: ColorScheme = { ...fallback, ...stripNulls(detected.palette) }
   return deriveTheme(merged)

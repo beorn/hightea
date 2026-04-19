@@ -35,48 +35,48 @@ function getL(hex: string): number {
 describe("dark theme state variants — OKLCH L shift", () => {
   const theme = deriveTheme(catppuccinMocha, "truecolor")
 
-  test("primaryHover equals brighten(primary, 0.04)", () => {
+  test("primary-hover equals brighten(primary, 0.04)", () => {
     const expected = brighten(theme.primary, 0.04)
-    expect(theme.primaryHover).toBe(expected)
+    expect(theme["primary-hover"]).toBe(expected)
   })
 
-  test("primaryActive equals brighten(primary, 0.08)", () => {
+  test("primary-active equals brighten(primary, 0.08)", () => {
     const expected = brighten(theme.primary, 0.08)
-    expect(theme.primaryActive).toBe(expected)
+    expect(theme["primary-active"]).toBe(expected)
   })
 
-  test("accentHover equals brighten(accent, 0.04)", () => {
+  test("accent-hover equals brighten(accent, 0.04)", () => {
     const expected = brighten(theme.accent, 0.04)
-    expect(theme.accentHover).toBe(expected)
+    expect(theme["accent-hover"]).toBe(expected)
   })
 
-  test("accentActive equals brighten(accent, 0.08)", () => {
+  test("accent-active equals brighten(accent, 0.08)", () => {
     const expected = brighten(theme.accent, 0.08)
-    expect(theme.accentActive).toBe(expected)
+    expect(theme["accent-active"]).toBe(expected)
   })
 
-  test("fgHover equals brighten(fg, 0.04)", () => {
+  test("fg-hover equals brighten(fg, 0.04)", () => {
     const expected = brighten(theme.fg, 0.04)
-    expect(theme.fgHover).toBe(expected)
+    expect(theme["fg-hover"]).toBe(expected)
   })
 
-  test("fgActive equals brighten(fg, 0.08)", () => {
+  test("fg-active equals brighten(fg, 0.08)", () => {
     const expected = brighten(theme.fg, 0.08)
-    expect(theme.fgActive).toBe(expected)
+    expect(theme["fg-active"]).toBe(expected)
   })
 
-  test("primaryHover OKLCH L is higher than primary (dark theme brightens)", () => {
+  test("primary-hover OKLCH L is higher than primary (dark theme brightens)", () => {
     const baseL = getL(theme.primary)
-    const hoverL = getL(theme.primaryHover)
-    const activeL = getL(theme.primaryActive)
+    const hoverL = getL(theme["primary-hover"])
+    const activeL = getL(theme["primary-active"])
     // Gamut clamping may cap the shift, but direction must be non-negative
     expect(hoverL).toBeGreaterThanOrEqual(baseL - 0.001)
     expect(activeL).toBeGreaterThanOrEqual(baseL - 0.001)
   })
 
-  test("primaryActive OKLCH L is >= primaryHover (active >= hover)", () => {
-    const hoverL = getL(theme.primaryHover)
-    const activeL = getL(theme.primaryActive)
+  test("primary-active OKLCH L is >= primary-hover (active >= hover)", () => {
+    const hoverL = getL(theme["primary-hover"])
+    const activeL = getL(theme["primary-active"])
     expect(activeL).toBeGreaterThanOrEqual(hoverL - 0.001)
   })
 })
@@ -86,33 +86,33 @@ describe("dark theme state variants — OKLCH L shift", () => {
 describe("light theme state variants — OKLCH L shift (opposite direction)", () => {
   const theme = deriveTheme(catppuccinLatte, "truecolor")
 
-  test("primaryHover equals darken(primary, 0.04) in light mode", () => {
+  test("primary-hover equals darken(primary, 0.04) in light mode", () => {
     const expected = darken(theme.primary, 0.04)
-    expect(theme.primaryHover).toBe(expected)
+    expect(theme["primary-hover"]).toBe(expected)
   })
 
-  test("primaryActive equals darken(primary, 0.08) in light mode", () => {
+  test("primary-active equals darken(primary, 0.08) in light mode", () => {
     const expected = darken(theme.primary, 0.08)
-    expect(theme.primaryActive).toBe(expected)
+    expect(theme["primary-active"]).toBe(expected)
   })
 
-  test("accentHover equals darken(accent, 0.04) in light mode", () => {
+  test("accent-hover equals darken(accent, 0.04) in light mode", () => {
     const expected = darken(theme.accent, 0.04)
-    expect(theme.accentHover).toBe(expected)
+    expect(theme["accent-hover"]).toBe(expected)
   })
 
-  test("primaryHover OKLCH L is lower than primary (light theme darkens)", () => {
+  test("primary-hover OKLCH L is lower than primary (light theme darkens)", () => {
     const baseL = getL(theme.primary)
-    const hoverL = getL(theme.primaryHover)
-    const activeL = getL(theme.primaryActive)
+    const hoverL = getL(theme["primary-hover"])
+    const activeL = getL(theme["primary-active"])
     // Gamut clamping may cap the shift, but direction must be non-positive
     expect(hoverL).toBeLessThanOrEqual(baseL + 0.001)
     expect(activeL).toBeLessThanOrEqual(baseL + 0.001)
   })
 
-  test("primaryActive OKLCH L is <= primaryHover (active darker than hover)", () => {
-    const hoverL = getL(theme.primaryHover)
-    const activeL = getL(theme.primaryActive)
+  test("primary-active OKLCH L is <= primary-hover (active darker than hover)", () => {
+    const hoverL = getL(theme["primary-hover"])
+    const activeL = getL(theme["primary-active"])
     expect(activeL).toBeLessThanOrEqual(hoverL + 0.001)
   })
 })
@@ -122,12 +122,12 @@ describe("light theme state variants — OKLCH L shift (opposite direction)", ()
 describe("dark theme state variants — oneDark", () => {
   const theme = deriveTheme(oneDark, "truecolor")
 
-  test("primaryHover equals brighten(primary, 0.04)", () => {
-    expect(theme.primaryHover).toBe(brighten(theme.primary, 0.04))
+  test("primary-hover equals brighten(primary, 0.04)", () => {
+    expect(theme["primary-hover"]).toBe(brighten(theme.primary, 0.04))
   })
 
-  test("primaryActive equals brighten(primary, 0.08)", () => {
-    expect(theme.primaryActive).toBe(brighten(theme.primary, 0.08))
+  test("primary-active equals brighten(primary, 0.08)", () => {
+    expect(theme["primary-active"]).toBe(brighten(theme.primary, 0.08))
   })
 })
 
@@ -136,7 +136,7 @@ describe("dark theme state variants — oneDark", () => {
 const render = createRenderer({ cols: 40, rows: 5 })
 
 describe("$primary-hover token resolves in JSX", () => {
-  test("<Text color='$primary-hover'> renders with theme.primaryHover RGB", () => {
+  test("<Text color='$primary-hover'> renders with theme['primary-hover'] RGB", () => {
     const theme = deriveTheme(catppuccinMocha, "truecolor")
 
     const app = render(
@@ -152,7 +152,7 @@ describe("$primary-hover token resolves in JSX", () => {
       if (cell.char === "X") {
         expect(cell.fg).not.toBeNull()
         if (cell.fg) {
-          const expected = hexToRgbTest(theme.primaryHover)
+          const expected = hexToRgbTest(theme["primary-hover"])
           expect(cell.fg.r).toBe(expected.r)
           expect(cell.fg.g).toBe(expected.g)
           expect(cell.fg.b).toBe(expected.b)
@@ -164,7 +164,7 @@ describe("$primary-hover token resolves in JSX", () => {
     expect(found).toBe(true)
   })
 
-  test("<Text color='$accent-active'> resolves to theme.accentActive RGB", () => {
+  test("<Text color='$accent-active'> resolves to theme['accent-active'] RGB", () => {
     const theme = deriveTheme(catppuccinMocha, "truecolor")
 
     const app = render(
@@ -179,7 +179,7 @@ describe("$primary-hover token resolves in JSX", () => {
       if (cell.char === "Y") {
         expect(cell.fg).not.toBeNull()
         if (cell.fg) {
-          const expected = hexToRgbTest(theme.accentActive)
+          const expected = hexToRgbTest(theme["accent-active"])
           expect(cell.fg.r).toBe(expected.r)
           expect(cell.fg.g).toBe(expected.g)
           expect(cell.fg.b).toBe(expected.b)
@@ -200,13 +200,13 @@ describe("$primary-hover token resolves in JSX", () => {
 // we merge the override into a theme object and pass it via Box theme={}.
 
 describe("ThemeProvider token override", () => {
-  test("tokens={{ primaryHover: '#abcdef' }} sticks to theme.primaryHover", () => {
+  test("tokens={{ 'primary-hover': '#abcdef' }} sticks to theme['primary-hover']", () => {
     const overrideColor = "#abcdef"
     // ThemeProvider merges tokens over the parent theme; verify the merge works
     // by checking the resolved theme via useTheme in a child component.
     // We also verify cell-level resolution by passing the merged theme via Box.
     const baseTheme = deriveTheme(catppuccinMocha, "truecolor")
-    const mergedTheme = { ...baseTheme, primaryHover: overrideColor }
+    const mergedTheme = { ...baseTheme, "primary-hover": overrideColor }
     const expected = hexToRgbTest(overrideColor)
 
     const app = render(
@@ -232,10 +232,10 @@ describe("ThemeProvider token override", () => {
     expect(found).toBe(true)
   })
 
-  test("tokens={{ accentHover: '#ff5500' }} sticks to theme.accentHover", () => {
+  test("tokens={{ 'accent-hover': '#ff5500' }} sticks to theme['accent-hover']", () => {
     const overrideColor = "#ff5500"
     const baseTheme = deriveTheme(catppuccinMocha, "truecolor")
-    const mergedTheme = { ...baseTheme, accentHover: overrideColor }
+    const mergedTheme = { ...baseTheme, "accent-hover": overrideColor }
     const expected = hexToRgbTest(overrideColor)
 
     const app = render(
