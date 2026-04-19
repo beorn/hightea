@@ -29,13 +29,17 @@ import {
   H3,
   P,
   Lead,
-  TextInput,
 } from "silvery"
 
 /**
- * Show silvery's real TextInput with isActive toggled. No fake replica —
- * pass-through to the canonical component exercises the same code path
- * real apps use, and the real fake-cursor / focus-border styling.
+ * Visual-only preview of TextInput. We can't use the real silvery TextInput
+ * directly here: `isActive={true}` captures j/k (stealing from storybook
+ * navigation), and `isActive={false}` hides the cursor glyph. Silvery's
+ * TextInput doesn't split "visual focus" from "input capture" — tracked as
+ * a follow-up in km-silvery.text-input-readonly.
+ *
+ * For now: a thin replica that mimics TextInput's rendered output (border,
+ * placeholder styling, cursor glyph) but does not capture input.
  */
 function TextInputPreview({
   label,
@@ -48,18 +52,29 @@ function TextInputPreview({
   placeholder?: string
   focused?: boolean
 }) {
-  const [text, setText] = React.useState(value)
-  React.useEffect(() => setText(value), [value])
+  const hasValue = value.length > 0
   return (
     <Box flexDirection="column">
       <Muted>{label}</Muted>
-      <Box width={36}>
-        <TextInput
-          value={text}
-          onChange={setText}
-          placeholder={placeholder}
-          isActive={!!focused}
-        />
+      <Box
+        borderStyle="single"
+        borderColor={focused ? "$focusborder" : "$inputborder"}
+        paddingX={1}
+        width={36}
+      >
+        {hasValue ? (
+          <Text>
+            <Text>{value}</Text>
+            {focused ? <Text inverse> </Text> : null}
+          </Text>
+        ) : focused ? (
+          <Text>
+            <Text inverse> </Text>
+            <Text color="$disabledfg">{placeholder ? placeholder.slice(1) : ""}</Text>
+          </Text>
+        ) : (
+          <Text color="$disabledfg">{placeholder ?? ""}</Text>
+        )}
       </Box>
     </Box>
   )
@@ -88,100 +103,6 @@ export function ComponentShowcase(_props: ComponentShowcaseProps = {}) {
       <DialogSection />
       <Divider />
       <TextBlocksSection />
-      <Divider />
-      <CodeSample />
-    </Box>
-  )
-}
-
-/**
- * Syntax-highlighted code snippet — uses the `$color0..$color15` raw ANSI
- * palette slots as silvery's token taxonomy prescribes for syntax highlighting
- * ("exact terminal color parity matters"). See token-taxonomy.md.
- *
- * Mapping (tree-sitter / vim / Neovim convention):
- *   keyword / control flow → $color1  (red)
- *   string literal         → $color2  (green)
- *   number / constant      → $color3  (yellow)
- *   function name          → $color4  (blue)
- *   type / purple          → $color5  (magenta)
- *   type name / built-in   → $color6  (cyan)
- *   operator / default fg  → $fg      (plain)
- *   comment                → $muted   (semantic, contrast-adjusted)
- *   link in comment        → $color4 + underline
- *
- * Comments DELIBERATELY route through $muted (contrast-adjusted) instead of
- * $color8 (raw bright-black). On low-contrast schemes like catppuccin-frappe,
- * raw $color8 against $mutedbg is near-invisible. $muted is repaired against
- * the surface it renders on during deriveTheme, so it stays readable across
- * all 84 bundled schemes.
- */
-function CodeSample() {
-  return (
-    <Box flexDirection="column" paddingX={1} gap={1}>
-      <H2>Code sample (syntax highlighting via $color0..$color15)</H2>
-      <Box backgroundColor="$mutedbg" padding={1} flexDirection="column">
-        <Box>
-          <Text color="$muted">// See </Text>
-          <Text color="$color4" underlineStyle="single">
-            https://silvery.dev
-          </Text>
-          <Text color="$muted"> — theme tokens in action</Text>
-        </Box>
-
-        <Box>
-          <Text color="$color1">export async </Text>
-          <Text color="$color1">function </Text>
-          <Text color="$color4">resolveToken</Text>
-          <Text color="$fg">(name</Text>
-          <Text color="$fg">: </Text>
-          <Text color="$color6">string</Text>
-          <Text color="$fg">, theme</Text>
-          <Text color="$fg">?: </Text>
-          <Text color="$color6">Theme</Text>
-          <Text color="$fg">): </Text>
-          <Text color="$color6">Promise</Text>
-          <Text color="$fg">{"<"}</Text>
-          <Text color="$color6">string</Text>
-          <Text color="$fg">{">"}</Text>
-          <Text color="$fg"> {"{"}</Text>
-        </Box>
-
-        <Box>
-          <Text>{"  "}</Text>
-          <Text color="$color1">const</Text>
-          <Text color="$fg"> result = </Text>
-          <Text color="$color1">await </Text>
-          <Text color="$color4">lookup</Text>
-          <Text color="$fg">(</Text>
-          <Text color="$color2">{`"$`}</Text>
-          <Text color="$color2">{`{name}"`}</Text>
-          <Text color="$fg">, </Text>
-          <Text color="$color3">42</Text>
-          <Text color="$fg">)</Text>
-        </Box>
-
-        <Box>
-          <Text>{"  "}</Text>
-          <Text color="$color1">if</Text>
-          <Text color="$fg"> (!result) </Text>
-          <Text color="$color1">throw new </Text>
-          <Text color="$color6">Error</Text>
-          <Text color="$fg">(</Text>
-          <Text color="$color2">{`"not found"`}</Text>
-          <Text color="$fg">)</Text>
-        </Box>
-
-        <Box>
-          <Text>{"  "}</Text>
-          <Text color="$color1">return </Text>
-          <Text color="$fg">result</Text>
-        </Box>
-
-        <Box>
-          <Text color="$fg">{"}"}</Text>
-        </Box>
-      </Box>
     </Box>
   )
 }
