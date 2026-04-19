@@ -15,7 +15,7 @@
  * ```
  */
 
-import React, { createContext, useContext } from "react"
+import { createContext, useContext } from "react"
 import type { Theme } from "@silvery/ansi"
 import { defaultDarkTheme } from "./schemes/index"
 
@@ -25,29 +25,6 @@ import { defaultDarkTheme } from "./schemes/index"
 
 /** @internal Exported for @silvery/ag-react ThemeProvider — not public API. */
 export const ThemeContext = createContext<Theme>(defaultDarkTheme)
-
-// ============================================================================
-// Provider
-// ============================================================================
-
-export interface ThemeProviderProps {
-  theme: Theme
-  children: React.ReactNode
-}
-
-/**
- * Provide a theme to the subtree via React context only.
- *
- * Components beneath this provider can use `useTheme()` or `$token`
- * color props (e.g. `color="$primary"`).
- *
- * For pipeline $token resolution, use the `ThemeProvider` from `@silvery/ag-react`
- * instead — it also attaches the theme to the AgNode tree via a Box wrapper,
- * enabling the render phase to resolve tokens without a module-level global.
- */
-export function ThemeProvider({ theme, children }: ThemeProviderProps): React.ReactElement {
-  return React.createElement(ThemeContext.Provider, { value: theme }, children)
-}
 
 // ============================================================================
 // Hook

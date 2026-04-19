@@ -232,8 +232,15 @@ describe("Custom variants via ThemeProvider", () => {
 
     const cell = app.cell(0, 0)
     expect(cell.bold).toBe(true)
-    // Should have same fg as $accent
-    const accentDirect = r(<Text color="$accent">X</Text>).cell(0, 0)
+    // Should have same fg as $accent resolved within the same ThemeProvider scope.
+    // Use the same ThemeProvider wrapper to ensure consistent theme resolution —
+    // without ThemeProvider the fallback (ansi16DarkTheme) may differ from the
+    // merged theme used above.
+    const accentDirect = r(
+      <ThemeProvider tokens={{ variants: { hero: { color: "$accent", bold: true } } }}>
+        <Text color="$accent">X</Text>
+      </ThemeProvider>,
+    ).cell(0, 0)
     expect(cell.fg).toEqual(accentDirect.fg)
   })
 

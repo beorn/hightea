@@ -174,8 +174,15 @@ describe("resolveThemeColor", () => {
     expect(resolveThemeColor("$color0", { palette: ["#000000"] })).toBe("#000000")
   })
 
-  it("strips hyphens for lookup", () => {
+  it("strips hyphens for lookup (legacy no-hyphen key)", () => {
     expect(resolveThemeColor("$surface-bg", { surfacebg: "#1e1e2e" })).toBe("#1e1e2e")
+  })
+
+  it("direct kebab lookup for state-variant tokens", () => {
+    // New-style flat kebab keys — resolved via direct lookup without stripping
+    const theme = { "primary-hover": "#aabbcc", "bg-selected-hover": "#112233" }
+    expect(resolveThemeColor("$primary-hover", theme)).toBe("#aabbcc")
+    expect(resolveThemeColor("$bg-selected-hover", theme)).toBe("#112233")
   })
 
   // Primer-style aliases (theme-system-v2 token rename) — new names resolve to

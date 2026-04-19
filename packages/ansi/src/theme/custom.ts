@@ -107,6 +107,18 @@ const RESERVED_KEYS = new Set<string>([
   "disabledfg",
   "palette",
   "name",
+  // Brand + state variants (kebab keys)
+  "brand",
+  "brand-hover",
+  "brand-active",
+  "primary-hover",
+  "primary-active",
+  "accent-hover",
+  "accent-active",
+  "fg-hover",
+  "fg-active",
+  "bg-selected-hover",
+  "bg-surface-hover",
 ])
 
 function stripSigil(key: string): string {

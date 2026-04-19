@@ -134,7 +134,8 @@ Semantic color tokens, built-in themes, theme generation and detection.
 
 ```ts
 import { defaultDarkTheme, defaultLightTheme, generateTheme, detectTheme } from "@silvery/theme"
-import { ThemeProvider, useTheme } from "@silvery/theme"
+import { ThemeProvider } from "@silvery/ag-react"
+import { useTheme } from "@silvery/theme"
 import type { Theme } from "@silvery/theme"
 ```
 

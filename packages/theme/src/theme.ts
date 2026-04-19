@@ -18,9 +18,10 @@
  * @packageDocumentation
  */
 
-// React integration
-export { ThemeProvider, useTheme } from "./ThemeContext"
-export type { ThemeProviderProps } from "./ThemeContext"
+// React integration — ThemeContext + useTheme hook
+// Note: ThemeProvider is in @silvery/ag-react (the full provider with AgNode tree integration).
+// The legacy ThemeProvider from @silvery/theme/ThemeContext is kept for backward compat only.
+export { ThemeContext, useTheme } from "./ThemeContext"
 
 // Core types
 export type { Theme, ColorScheme, HueName, AnsiPrimary, AnsiColorName } from "@silvery/ansi"
