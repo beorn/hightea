@@ -20,10 +20,13 @@ interface Props {
   width?: number
 }
 
-function MiniSwatch({ entry, inverse }: { entry: StorybookEntry; inverse?: boolean }) {
+function MiniSwatch({ entry }: { entry: StorybookEntry }) {
+  // Swatches never invert — inverse on a solid colored block produces a blank
+  // cell (fg becomes bg → terminal bg paints over the color). Selection is
+  // indicated by inverting the label text only.
   const { palette } = entry
   return (
-    <Text inverse={inverse}>
+    <Text>
       <Text color={palette.red}>{"█"}</Text>
       <Text color={palette.green}>{"█"}</Text>
       <Text color={palette.blue}>{"█"}</Text>
@@ -131,7 +134,7 @@ export function SchemeBrowser({
           // swatches.
           return (
             <Box key={entry.name} flexDirection="row">
-              <MiniSwatch entry={entry} inverse={isPrimary} />
+              <MiniSwatch entry={entry} />
               <Text
                 inverse={isPrimary}
                 color={isSecondary && !isPrimary ? "$accent" : undefined}
