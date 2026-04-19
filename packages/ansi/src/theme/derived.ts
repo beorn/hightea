@@ -12,6 +12,7 @@
  * deriveAnsi16Theme output (which is itself the canonical ANSI16 reference).
  */
 
+import { brighten, darken } from "@silvery/color"
 import type { Theme, Variant } from "./types.ts"
 
 // =============================================================================
@@ -48,11 +49,18 @@ export const DEFAULT_VARIANTS: Record<string, Variant> = {
  */
 export interface DeriveFieldsInput {
   /**
-   * Optional color-shift function. Receives a color value and a positive
-   * lightness-shift amount, returns the shifted color.
+   * Truecolor shift mode: when `dark === true` hover/active brighten;
+   * when `dark === false` they darken. Omit (or pass `undefined`) for ANSI16
+   * — hover/active fall back to the base color (no OKLCH math on 16-color).
    *
-   * When absent, hover/active state variants equal their base color (correct
-   * for ANSI16 where no OKLCH math is possible).
+   * Moved inside derived.ts to avoid the cross-chunk closure bug that broke
+   * Verify Publishable #111 — tsdown split `shift` callers from their
+   * brighten/darken imports.
+   */
+  dark?: boolean
+  /**
+   * @deprecated Pass `dark` instead. Retained one release; ignored when
+   * `dark` is provided. If present without `dark`, invoked as before.
    */
   shift?: (color: string, amount: number) => string
   /** The primary color. */
@@ -144,11 +152,14 @@ export interface DerivedFields {
  * deriveFields({ primary, accent, fg, selectionbg, surfacebg, ring })
  */
 export function deriveFields(input: DeriveFieldsInput): DerivedFields {
-  const { shift, primary, accent, fg, selectionbg, surfacebg, ring } = input
+  const { dark, shift, primary, accent, fg, selectionbg, surfacebg, ring } = input
 
-  // Identity fallback: when no shift function provided (ANSI16), hover/active
-  // equal the base color — no intermediate intensities on 16-color terminals.
-  const applyShift = shift ?? ((color: string, _amount: number) => color)
+  // Priority: explicit `dark` flag (uses local brighten/darken, survives tsdown
+  // chunking) → legacy `shift` callback (deprecated) → identity (ANSI16).
+  const applyShift =
+    dark !== undefined
+      ? (color: string, amount: number) => (dark ? brighten(color, amount) : darken(color, amount))
+      : (shift ?? ((color: string, _amount: number) => color))
 
   return {
     // Brand — maps to primary; hover/active use OKLCH shift or passthrough

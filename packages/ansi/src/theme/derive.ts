@@ -4,10 +4,8 @@
 
 import {
   blend,
-  brighten,
   contrastFg,
   complement,
-  darken,
   hexToOklch,
   oklchToHex,
   colorDistance,
@@ -169,7 +167,7 @@ function deriveTruecolorTheme(p: ColorScheme, adjustments?: ThemeAdjustment[]): 
   const cursor = ensure("cursor", p.cursorText, cursorBgRepaired, AA)
 
   const derived = deriveFields({
-    shift: (hex: string, amount: number) => (dark ? brighten(hex, amount) : darken(hex, amount)),
+    dark,
     primary,
     accent,
     fg,
