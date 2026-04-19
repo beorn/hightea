@@ -86,7 +86,7 @@
     "docs:preview": "vitepress preview docs",
     "theme": "bun packages/theme/src/cli.ts",
     "demo": "bun examples/bin/cli.ts",
-    "example:storybook": "bun examples/apps/storybook.tsx",
+    "example:storybook": "bun examples/apps/storybook/index.tsx",
     "compat": "bun packages/ink/scripts/compat-check.ts",
     "compat:ink": "bun packages/ink/scripts/compat-check.ts ink",
     "compat:chalk": "bun packages/ink/scripts/compat-check.ts chalk",

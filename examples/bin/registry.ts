@@ -46,6 +46,7 @@ import { main as theme } from "../apps/theme.tsx"
 import { main as transform } from "../apps/transform.tsx"
 import { main as virtual10k } from "../apps/virtual-10k.tsx"
 import { main as aichat } from "../apps/aichat/index.tsx"
+import { main as storybook } from "../apps/storybook/index.tsx"
 
 // Layout
 import { main as dashboard } from "../layout/dashboard.tsx"
@@ -104,6 +105,12 @@ export const REGISTRY: RegistryEntry[] = [
   { name: "theme", main: theme, category: "Apps" },
   { name: "transform", main: transform, category: "Apps" },
   { name: "virtual 10k", main: virtual10k, category: "Apps" },
+  {
+    name: "storybook",
+    main: storybook,
+    category: "Apps",
+    description: "Sterling Storybook — 3-pane design-system explorer",
+  },
 
   // Layout
   { name: "dashboard", main: dashboard, category: "Layout" },
