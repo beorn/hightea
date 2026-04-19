@@ -106,7 +106,11 @@ import {
 export type BackdropColorLevel = "none" | "basic" | "256" | "truecolor"
 
 export interface BackdropFadeOptions {
-  /** Terminal color tier. Controls which transform strategy runs. */
+  /**
+   * Terminal color tier. `"none"` short-circuits to a no-op (monochrome).
+   * All other tiers run the same sRGB scrim mix — output phase quantizes
+   * to the tier's palette on emit.
+   */
   colorLevel?: BackdropColorLevel
   /**
    * Root background hex color from the active theme (e.g. `theme.bg`).
@@ -136,21 +140,27 @@ export interface BackdropFadeOptions {
 }
 
 /**
- * Result of `applyBackdropFade`. Replaces the old boolean return so callers
- * can route the out-of-band Kitty overlay escapes through the output path
- * alongside the normal ANSI diff.
+ * Result of `applyBackdropFade`.
+ *
+ * The split between `bufferModified` and `visuallyModified` reflects that
+ * Kitty-capable terminals can change the visible frame without mutating
+ * any buffer cells (pure overlay). Callers gating on "did anything change"
+ * should check `visuallyModified`; callers logging buffer-cell stats
+ * should check `bufferModified`. `modified` is a pre-split alias kept for
+ * backward compatibility — it equals `bufferModified`.
  */
 export interface BackdropFadeResult {
-  /** Whether at least one cell in the buffer was modified (for logging/stats). */
+  /** @deprecated alias for `bufferModified`. */
   modified: boolean
+  /** True when at least one buffer cell was mutated by the pass. */
+  bufferModified: boolean
+  /** True when the visible frame differs from pre-fade: buffer OR overlay. */
+  visuallyModified: boolean
   /**
-   * Out-of-band ANSI escapes that must be appended to the output stream after
-   * the normal output phase diff. Empty string when no Kitty overlays are
-   * emitted (cap disabled, no wide cells in region, or no backdrop active).
-   *
-   * Contains: CURSOR_SAVE + (optional image upload on first frame per term)
-   * + per-cell CUP + place + CURSOR_RESTORE. Wrapped in save/restore so the
-   * overlay doesn't disturb the main output phase's cursor tracking.
+   * Out-of-band ANSI escapes appended after the normal output phase diff.
+   * Non-empty whenever Kitty graphics are enabled AND a backdrop is active
+   * — includes a delete-all-placements command so last-frame scrims get
+   * cleared even if this frame has no wide cells.
    */
   kittyOverlay: string
 }
@@ -195,10 +205,17 @@ export function hasBackdropMarkers(root: AgNode): boolean {
  * Apply backdrop-fade to the buffer based on tree markers.
  *
  * Returns a `BackdropFadeResult`:
- * - `modified` — whether any cells changed (for stats/logging).
- * - `kittyOverlay` — out-of-band ANSI escapes to append after output-phase
- *   diff. Empty when Kitty graphics are disabled or no wide cells exist in
- *   the faded region.
+ * - `bufferModified` — any buffer cells changed (STRICT compares buffers;
+ *   this is the narrow "did we mutate the buffer" signal).
+ * - `visuallyModified` — the visible frame differs from the pre-fade state.
+ *   True when buffer cells changed OR a Kitty overlay is emitted. Callers
+ *   that gate re-render on "anything changed" should check this field.
+ * - `kittyOverlay` — out-of-band ANSI escapes. Non-empty when Kitty graphics
+ *   are enabled AND backdrop is active: contains at minimum a scrim-clear
+ *   command so last-frame placements get erased even if this frame has no
+ *   wide cells. Empty only when Kitty is disabled or backdrop is inactive.
+ * - `modified` — deprecated alias for `bufferModified`, kept for callers
+ *   that predate the visual/buffer split.
  */
 export function applyBackdropFade(
   root: AgNode,
@@ -214,65 +231,99 @@ export function applyBackdropFade(
 
   if (includes.length === 0 && excludes.length === 0) return EMPTY_RESULT
 
-  const strategy: FadeStrategy = colorLevel === "basic" ? "dim" : "mix"
+  // One mode for all supported color tiers: sRGB source-over scrim mix.
+  // For ANSI-16 terminals the output phase quantizes the mixed truecolor hex
+  // to the nearest palette slot — good enough, and strictly better than the
+  // earlier "SGR 2 dim" fallback which only affected fg, leaving bg bright.
+  // Monochrome is handled by the `colorLevel === "none"` early return above.
 
   // Derive the scrim from rootBg luminance. Pure black for dark themes, pure
   // white for light — the canonical Apple / Material / Flutter convention.
   const scrim = deriveScrimColor(options?.rootBg)
   const rootBgHex = options?.rootBg ?? null
 
-  // When Kitty graphics are available, the emoji scrim overlay does ALL the
-  // darkening for wide-char cells (both the glyph and its bg region). The
-  // per-cell sRGB mix must then SKIP wide cells — otherwise wide cells get
-  // mixed at amount PLUS overlaid at amount, producing a visibly blacker
-  // emoji bg than surrounding cells. Pass the flag down to fadeCell.
-  const kittyEnabled = options?.kittyGraphics === true && strategy === "mix"
+  // Kitty graphics realize the scrim for wide-char cells (emoji, CJK): the
+  // overlay composites at alpha=amount above the unmixed cell, matching the
+  // luminance of surrounding text cells (mixed via the cell pass). Require a
+  // resolved scrim — mixing wide cells against an unknown scrim would
+  // produce inconsistent visuals.
+  const kittyEnabled = options?.kittyGraphics === true && scrim !== null
 
-  let modified = false
+  // Single-amount invariant: the Kitty overlay emits one scrim image at one
+  // alpha. Multiple fade regions with different amounts would require either
+  // per-cell alpha maps or grouping — neither is cheap. Assert one global
+  // amount for now; revisit if nested-modal use cases appear.
+  const uniqueAmount = assertSingleAmount(includes, excludes)
+
+  let bufferModified = false
 
   // Pass 1: data-backdrop-fade — fade cells INSIDE each marked rect.
   for (const { rect, amount } of includes) {
     if (amount <= 0) continue
-    if (fadeRect(buffer, rect, amount, strategy, scrim, rootBgHex, kittyEnabled)) modified = true
+    if (fadeRect(buffer, rect, amount, scrim, rootBgHex, kittyEnabled)) bufferModified = true
   }
 
   // Pass 2: data-backdrop-fade-excluded — fade everything OUTSIDE each marked
-  // rect (the modal "cuts a hole"). When multiple excluded rects exist, each
-  // is processed independently: the union of their rects is the crisp region.
+  // rect (the modal "cuts a hole").
   if (excludes.length > 0) {
     const fullRect: Rect = { x: 0, y: 0, width: buffer.width, height: buffer.height }
     for (const { rect, amount } of excludes) {
       if (amount <= 0) continue
-      if (
-        fadeRectExcluding(buffer, fullRect, rect, amount, strategy, scrim, rootBgHex, kittyEnabled)
-      )
-        modified = true
+      if (fadeRectExcluding(buffer, fullRect, rect, amount, scrim, rootBgHex, kittyEnabled))
+        bufferModified = true
     }
   }
 
-  // Emit Kitty graphics placements for wide-char cells in the faded region.
-  // SGR 2 "dim" is a no-op on bitmap emoji in most terminals, so the scrim
-  // overlay is the only way to visually fade emoji/CJK alongside text. The
-  // overlay's alpha matches the fade amount so emoji bg lands at the same
-  // visual luminance as surrounding non-wide cells (which were mixed in the
-  // cell pass). When multiple rects have different amounts, the
-  // representative amount is used — per-cell alpha placements would bloat
-  // the overlay string disproportionately for a rare case.
-  const kittyAmount = representativeAmount(includes, excludes)
+  // Kitty overlay. Always emitted when kittyEnabled is true (even if no wide
+  // cells this frame) so last-frame placements get cleared by the delete-all
+  // at the head of the overlay string. Without this, stale scrims from a
+  // prior backdrop region can persist visually when the current frame has
+  // no emoji to overlay.
   const kittyOverlay = kittyEnabled
-    ? buildKittyOverlay(buffer, includes, excludes, scrim, rootBgHex, kittyAmount)
+    ? buildKittyOverlay(buffer, includes, excludes, scrim, rootBgHex, uniqueAmount)
     : ""
 
-  return { modified, kittyOverlay }
+  const visuallyModified = bufferModified || kittyOverlay !== ""
+
+  return {
+    modified: bufferModified,
+    bufferModified,
+    visuallyModified,
+    kittyOverlay,
+  }
 }
 
-/** Pick a representative fade amount for the Kitty overlay alpha. */
-function representativeAmount(includes: FadeRect[], excludes: FadeRect[]): number {
-  const first = includes[0]?.amount ?? excludes[0]?.amount ?? 0
+/**
+ * Assert that all fade markers share a single amount, returning that amount.
+ * Mixed amounts currently break the Kitty overlay (one image, one alpha) and
+ * have unclear composition semantics (max? source-over compound?). Dev-mode
+ * warn and fall back to the first observed amount; production behavior is
+ * first-wins but will look wrong.
+ */
+function assertSingleAmount(includes: FadeRect[], excludes: FadeRect[]): number {
+  const all = [...includes, ...excludes]
+  const first = all[0]?.amount ?? 0
+  if (process.env.NODE_ENV !== "production") {
+    for (const r of all) {
+      if (Math.abs(r.amount - first) > 1e-6) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[silvery:backdrop-fade] multiple fade amounts in one frame (${first} vs ${r.amount}); ` +
+            `Kitty overlay will use the first. See buildKittyOverlay / assertSingleAmount.`,
+        )
+        break
+      }
+    }
+  }
   return Math.max(0, Math.min(1, first))
 }
 
-const EMPTY_RESULT: BackdropFadeResult = { modified: false, kittyOverlay: "" }
+const EMPTY_RESULT: BackdropFadeResult = {
+  modified: false,
+  bufferModified: false,
+  visuallyModified: false,
+  kittyOverlay: "",
+}
 
 /**
  * Derive the scrim color from the root bg hex.
@@ -287,8 +338,6 @@ function deriveScrimColor(rootBg: string | undefined): string | null {
   if (lum === null) return null
   return lum < DARK_LUMINANCE_THRESHOLD ? DARK_SCRIM : LIGHT_SCRIM
 }
-
-type FadeStrategy = "mix" | "dim"
 
 function collectBackdropMarkers(node: AgNode, includes: FadeRect[], excludes: FadeRect[]): void {
   const props = node.props as Record<string, unknown>
@@ -322,7 +371,6 @@ function fadeRect(
   buffer: TerminalBuffer,
   rect: Rect,
   amount: number,
-  strategy: FadeStrategy,
   scrim: string | null,
   rootBgHex: string | null,
   kittyEnabled: boolean,
@@ -336,7 +384,7 @@ function fadeRect(
   let any = false
   for (let y = y0; y < y1; y++) {
     for (let x = x0; x < x1; x++) {
-      if (fadeCell(buffer, x, y, amount, strategy, scrim, rootBgHex, kittyEnabled)) any = true
+      if (fadeCell(buffer, x, y, amount, scrim, rootBgHex, kittyEnabled)) any = true
     }
   }
   return any
@@ -347,7 +395,6 @@ function fadeRectExcluding(
   outer: Rect,
   inner: Rect,
   amount: number,
-  strategy: FadeStrategy,
   scrim: string | null,
   rootBgHex: string | null,
   kittyEnabled: boolean,
@@ -367,7 +414,7 @@ function fadeRectExcluding(
   for (let y = oy0; y < oy1; y++) {
     for (let x = ox0; x < ox1; x++) {
       if (innerValid && x >= ix0 && x < ix1 && y >= iy0 && y < iy1) continue
-      if (fadeCell(buffer, x, y, amount, strategy, scrim, rootBgHex, kittyEnabled)) any = true
+      if (fadeCell(buffer, x, y, amount, scrim, rootBgHex, kittyEnabled)) any = true
     }
   }
   return any
@@ -376,43 +423,38 @@ function fadeRectExcluding(
 /**
  * Fade a single cell. Returns true if the cell was modified.
  *
- * ### `mix` strategy — sRGB source-over alpha
+ * sRGB source-over alpha mix:
+ *   fg' = fg * (1 - amount) + scrim * amount
+ *   bg' = bg * (1 - amount) + scrim * amount
  *
- * When `scrim` (derived from `rootBg`) is provided:
- * - `cell.fg` is mixed toward `scrim` at `amount`: `fg' = fg * (1 - amount) + scrim * amount`.
- * - `cell.bg` is mixed toward `scrim` at `amount`. `null`/`DEFAULT_BG` cells
- *   are treated as the theme's `rootBg` first (that IS the color the terminal
- *   paints for them), then mixed — so empty cells darken at the same rate as
- *   explicitly-colored cells.
+ * `null`/`DEFAULT_BG` cells are resolved to the theme's `rootBg` first (that
+ * IS the color the terminal paints), then mixed — so empty cells darken at
+ * the same rate as explicitly-colored cells.
  *
  * Uniform amounts for fg + bg preserve relative brightness ordering across
- * borders vs fills. Heaviness is controlled by `amount`, not by asymmetric
- * math. Calibration at the call site — ModalDialog default is 0.25,
- * calibrated against macOS 0.20, Material 3 0.32, iOS 0.40, Flutter 0.54.
+ * borders vs fills. Heaviness is controlled by `amount` (default 0.25,
+ * calibrated against macOS 0.20, Material 3 0.32, iOS 0.40, Flutter 0.54).
  *
- * When `scrim` is null (legacy path): mix fg toward cell.bg only.
+ * When `scrim` is null (no theme context, e.g. bare `<Backdrop>` without
+ * `<ThemeProvider>`): falls back to mixing fg toward cell.bg so the cell
+ * still reads as "receded" without needing external theme info.
  *
  * ### Wide-char / emoji handling
  *
- * Terminals render emoji glyphs using the glyph's own bitmap colors — the
- * `fg` mix has no visible effect on the emoji. Two compensations:
+ * Terminals render emoji using the glyph's own bitmap colors — the fg mix
+ * has no visible effect on the emoji. Two paths, mutually exclusive:
  *
- * 1. Stamp `attrs.dim` (SGR 2) on lead + continuation cells so terminals
- *    honoring SGR 2 fade the glyph. Best-effort.
- * 2. Propagate the mixed bg to the continuation cell so the two halves of
- *    the glyph share the same background (no visible split down the middle).
- *
- * ### `dim` strategy
- *
- * Stamps `attrs.dim` (SGR 2) on every covered cell. Used for the ANSI-16
- * tier where palette slot mixing isn't well-defined.
+ * 1. Kitty graphics available: `fadeCell` SKIPS wide cells entirely. The
+ *    Kitty overlay composites the scrim at alpha=amount on top, landing at
+ *    `cell * (1 - amount) + scrim * amount` — same as surrounding cells.
+ * 2. Kitty unavailable: mix the cell bg + stamp `attrs.dim` on lead +
+ *    continuation. Terminals honoring SGR 2 on emoji fade the glyph.
  */
 function fadeCell(
   buffer: TerminalBuffer,
   x: number,
   y: number,
   amount: number,
-  strategy: FadeStrategy,
   scrim: string | null,
   rootBgHex: string | null,
   kittyEnabled: boolean,
@@ -423,19 +465,6 @@ function fadeCell(
 
   const cell = buffer.getCell(x, y)
 
-  if (strategy === "dim") {
-    if (cell.attrs.dim) return false
-    buffer.setCell(x, y, { ...cell, attrs: { ...cell.attrs, dim: true } })
-    if (cell.wide && x + 1 < buffer.width) {
-      const cont = buffer.getCell(x + 1, y)
-      if (!cont.attrs.dim) {
-        buffer.setCell(x + 1, y, { ...cont, attrs: { ...cont.attrs, dim: true } })
-      }
-    }
-    return true
-  }
-
-  // strategy === "mix"
   // When Kitty graphics are available, the emoji scrim overlay will composite
   // over the wide cell at alpha=amount — doing the per-cell mix here too
   // would double-dim the bg and produce a visibly blacker emoji region than
@@ -614,6 +643,12 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
  * The scrim alpha matches the fade `amount` (scaled 0-255) so the composited
  * emoji bg lands at the same luminance as surrounding text cells: both
  * produce `cell_bg * (1 - amount) + scrim * amount`.
+ *
+ * Always emits at least `CURSOR_SAVE + kittyDeleteAllScrimPlacements() +
+ * CURSOR_RESTORE` when called — even with zero wide cells in the region —
+ * so stale placements from a previous frame get cleared. Without the
+ * unconditional clear, an emoji visible under a modal in frame N could
+ * persist as an orphan scrim into frame N+1 after the modal closes.
  */
 function buildKittyOverlay(
   buffer: TerminalBuffer,
@@ -624,17 +659,25 @@ function buildKittyOverlay(
   amount: number,
 ): string {
   const cells = collectWideCellsInFadeRegion(buffer, includes, excludes)
-  if (cells.length === 0) return ""
 
   // Tint the scrim with the same color used for cell mixing (pure black /
   // white by theme luminance). Fallback to pure black.
   const tintHex = scrim ?? rootBgHex ?? "#000000"
   const tint = hexToRgb(tintHex) ?? { r: 0, g: 0, b: 0 }
   const scrimAlpha = Math.max(0, Math.min(255, Math.round(amount * 255)))
-  const pixels = buildScrimPixels(tint, scrimAlpha)
 
   const parts: string[] = []
   parts.push(CURSOR_SAVE)
+
+  if (cells.length === 0) {
+    // No wide cells to cover this frame, but we must still clear any
+    // placements left over from a prior frame where there were some.
+    parts.push(kittyDeleteAllScrimPlacements())
+    parts.push(CURSOR_RESTORE)
+    return parts.join("")
+  }
+
+  const pixels = buildScrimPixels(tint, scrimAlpha)
   parts.push(kittyUploadScrimImage(pixels, 2, 2))
   parts.push(kittyDeleteAllScrimPlacements())
 
