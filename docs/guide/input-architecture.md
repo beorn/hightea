@@ -127,6 +127,22 @@ After the bridge, the event loop filters for app handlers using `isModifierOnlyE
 2. **Modifier-only events** (`isModifierOnlyEvent(input, key)`) -- skipped. Only `useModifierKeys()` consumes these.
 3. **Press and repeat events** -- continue to focus dispatch and app handlers.
 
+### Apply-chain substrate (Phase 2 — staged)
+
+The ad-hoc `runtimeInputListeners` arrays and hardcoded `handleFocusNavigation` branch are being replaced with a typed apply chain. The substrate ships in `@silvery/create/runtime/`:
+
+- **`base-app.ts`** — `createBaseApp()`. The apply chain: plugins capture `app.apply` and replace it with a wrapper that delegates to the captured function. `apply(op) -> false | Effect[]`. `dispatch(op)` runs the chain inside a reentry guard and drains effects via a queue (so `{type:"dispatch", op}` effects re-enter safely).
+- **`with-terminal-chain.ts`** — observer lane (modifier state) + `term:resize` + `term:focus` (clears sticky modifiers on blur).
+- **`with-input-chain.ts`** — the fallback `useInput` store, running AFTER focused dispatch. Handlers invoked in registration order; `"exit"` short-circuits.
+- **`with-paste-chain.ts`** — paste routing: focused `onPaste` (via `routeToFocused`) wins; otherwise global handlers fire.
+- **`with-focus-chain.ts`** — focused-element key dispatch via injected `dispatchKey`/`hasActiveFocus`. Sits outermost so focused consumes before `useInput`.
+- **`event-loop.ts`** — `runEventBatch(app, events, hooks, options)`. Pure function: intercepts Ctrl+C/Ctrl+Z via `lifecycle-effects.ts`, dispatches each event to the chain, drains effects through the runner's `onRender`/`onBarrier`/`onExit`/`onSuspend`/`afterDispatch` hooks.
+- **`lifecycle-effects.ts`** — Ctrl+C / Ctrl+Z / exit / suspend / render-barrier as typed `Effect` data with constructors and detectors.
+
+Every substrate module ships with unit tests (90 across 7 files). See `packages/create/tests/` for the authoritative contract.
+
+The wiring — replacing `processEventBatch`'s `runtimeInputListeners + handleFocusNavigation` with `runEventBatch` on a piped chain — is staged in a follow-up commit so every step keeps behavioural equivalence tests green.
+
 ## Stage 4: Focus Dispatch
 
 `dispatchKeyEvent()` in `@silvery/ag` routes key events through the render tree using DOM-style phases.

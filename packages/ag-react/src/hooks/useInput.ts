@@ -11,8 +11,11 @@
  */
 
 import { useContext, useEffect, useRef } from "react"
-import { RuntimeContext } from "../context"
+import { ChainAppContext, RuntimeContext } from "../context"
 import { isModifierOnlyEvent, type InputHandler, type Key } from "@silvery/ag/keys"
+// RuntimeContext import retained for the exit() side channel — the chain
+// owns input subscriptions but exit still flows through RuntimeContext until
+// lifecycle effects land.
 
 // ============================================================================
 // Types
@@ -91,6 +94,14 @@ export interface UseInputOptions {
  * ```
  */
 export function useInput(inputHandler: InputHandler, options: UseInputOptions = {}): void {
+  // Input subscriptions flow through ChainAppContext — provided by root
+  // `createApp()` and by `InputBoundary` for isolated scopes. In static mode
+  // (no chain), this hook is a no-op.
+  //
+  // RuntimeContext is still used for `exit()` (exit is a side effect the
+  // chain emits but this hook routes through rt so the existing exit path
+  // stays authoritative).
+  const chain = useContext(ChainAppContext)
   const rt = useContext(RuntimeContext)
 
   const { isActive = true, onPaste, onRelease } = options
@@ -107,33 +118,46 @@ export function useInput(inputHandler: InputHandler, options: UseInputOptions = 
   const onReleaseRef = useRef(onRelease)
   onReleaseRef.current = onRelease
 
-  // Subscribe to input events via RuntimeContext
-  // In static mode (no runtime), this is a no-op — components render
-  // without input handling, which is correct for createRenderer() tests.
+  // Subscribe to input events via the chain input store (press/repeat only —
+  // withInputChain filters out release and modifier-only events). No-op if
+  // absent (static/render-string mode).
   useEffect(() => {
-    if (!isActive || !rt) return
-
-    return rt.on("input", (input: string, key: Key) => {
+    if (!isActive) return
+    if (!chain) return
+    return chain.input.register((input, key) => {
       // Skip modifier-only keys (Cmd, Shift, Ctrl, Alt pressed alone).
-      // These are handled by useModifierKeys, not useInput consumers.
-      if (isModifierOnlyEvent(input, key)) return
-      // Release events are dispatched to onRelease if provided,
-      // otherwise silently dropped (handlers expect press-only semantics).
-      if (key.eventType === "release") {
-        onReleaseRef.current?.(input, key)
-        return
+      // Handled by useModifierKeys, not useInput consumers.
+      if (isModifierOnlyEvent(input, key as Key)) return
+      const result = handlerRef.current(input, key as Key)
+      if (result === "exit") {
+        // Route exit through RuntimeContext. The chain also emits an `exit`
+        // effect but the runner drains and discards effects in the current
+        // wiring; rt.exit() is the canonical path until runEventBatch effect
+        // handling lands.
+        rt?.exit()
+        return "exit"
       }
-      const result = handlerRef.current(input, key)
-      if (result === "exit") rt.exit()
+      return undefined
     })
-  }, [isActive, rt])
+  }, [isActive, chain, rt])
 
-  // Subscribe to paste events via RuntimeContext
+  // Release events bypass withInputChain's handler invocation — subscribe
+  // via the raw-key observer so onRelease still fires.
   useEffect(() => {
-    if (!isActive || !rt) return
+    if (!isActive) return
+    if (!chain) return
+    return chain.rawKeys.register((input, key) => {
+      if (key.eventType !== "release") return
+      onReleaseRef.current?.(input, key as Key)
+    })
+  }, [isActive, chain])
 
-    return rt.on("paste", (text: string) => {
+  // Subscribe to paste events via the chain paste store.
+  useEffect(() => {
+    if (!isActive) return
+    if (!chain) return
+    return chain.paste.register((text) => {
       onPasteRef.current?.(text)
     })
-  }, [isActive, rt])
+  }, [isActive, chain])
 }

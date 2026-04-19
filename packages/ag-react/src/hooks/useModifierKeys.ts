@@ -24,7 +24,7 @@
  */
 
 import { useContext, useMemo, useSyncExternalStore } from "react"
-import { RuntimeContext, type RuntimeContextValue } from "../context"
+import { ChainAppContext, type ChainAppContextValue } from "../context"
 import type { Key } from "@silvery/ag/keys"
 
 // ============================================================================
@@ -69,12 +69,12 @@ interface ModifierStore {
   getSnapshot: () => ModifierState
 }
 
-const stores = new WeakMap<RuntimeContextValue, ModifierStore>()
+const chainStores = new WeakMap<ChainAppContextValue, ModifierStore>()
 
-function getOrCreateStore(rt: RuntimeContextValue): ModifierStore {
-  let store = stores.get(rt)
-  if (store) return store
-
+function buildStore(
+  subscribeInput: (handler: (_input: string, key: Key) => void) => () => void,
+  subscribeFocus: (handler: (focused: boolean) => void) => () => void,
+): ModifierStore {
   let state = INITIAL
   const listeners = new Set<() => void>()
 
@@ -82,8 +82,7 @@ function getOrCreateStore(rt: RuntimeContextValue): ModifierStore {
     for (const cb of listeners) cb()
   }
 
-  // Track modifiers from every key event
-  rt.on("input", (_input: string, key: Key) => {
+  subscribeInput((_input, key) => {
     const next: ModifierState = {
       super: !!key.super,
       ctrl: !!key.ctrl,
@@ -102,8 +101,7 @@ function getOrCreateStore(rt: RuntimeContextValue): ModifierStore {
     }
   })
 
-  // Reset on terminal focus loss (avoids stuck modifiers)
-  rt.on("focus", (focused: boolean) => {
+  subscribeFocus((focused) => {
     if (!focused && (state.super || state.ctrl || state.alt || state.shift)) {
       state = INITIAL
       lastModifierState = INITIAL
@@ -111,23 +109,40 @@ function getOrCreateStore(rt: RuntimeContextValue): ModifierStore {
     }
   })
 
-  store = {
+  return {
     subscribe: (cb) => {
       listeners.add(cb)
       return () => listeners.delete(cb)
     },
     getSnapshot: () => state,
   }
-  stores.set(rt, store)
+}
+
+function getOrCreateChainStore(chain: ChainAppContextValue): ModifierStore {
+  let store = chainStores.get(chain)
+  if (store) return store
+  // useModifierKeys needs unfiltered key events — including release and
+  // modifier-only — so subscribe to the chain's raw-key observer, not the
+  // fallback input store (which filters release/modifier-only).
+  store = buildStore(
+    (h) => chain.rawKeys.register((input, key) => h(input, key as Key)),
+    (h) => chain.focusEvents.register(h),
+  )
+  chainStores.set(chain, store)
   return store
 }
 
 /**
  * Read the current modifier state imperatively (outside React).
  * For use in event handlers, TEA update functions, etc.
+ *
+ * Accepts a {@link ChainAppContextValue} — the canonical subscription
+ * surface after the TEA Phase 2 wiring. Returns {@link INITIAL} when the
+ * chain has no cached modifier store yet.
  */
-export function getModifierState(rt: RuntimeContextValue): ModifierState {
-  const store = stores.get(rt)
+export function getModifierState(chain: ChainAppContextValue | null | undefined): ModifierState {
+  if (!chain) return INITIAL
+  const store = chainStores.get(chain)
   return store ? store.getSnapshot() : INITIAL
 }
 
@@ -154,10 +169,14 @@ const noopSubscribe = (_cb: () => void) => noopUnsubscribe
 // underline style subscription triggers a targeted repaint.
 export function useModifierKeys(opts?: UseModifierKeysOptions): ModifierState {
   const enabled = opts?.enabled ?? true
-  const rt = useContext(RuntimeContext)
+  const chain = useContext(ChainAppContext)
 
-  // Memoize the store instance (stable across renders for same runtime)
-  const store = useMemo(() => (rt ? getOrCreateStore(rt) : null), [rt])
+  // Memoize the store instance (stable across renders for same chain app).
+  // No chain (static mode, no runtime) → null → returns INITIAL.
+  const store = useMemo(() => {
+    if (chain) return getOrCreateChainStore(chain)
+    return null
+  }, [chain])
 
   return useSyncExternalStore(
     enabled && store ? store.subscribe : noopSubscribe,

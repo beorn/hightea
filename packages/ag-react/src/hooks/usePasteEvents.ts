@@ -16,7 +16,7 @@
  */
 
 import { useContext, useEffect, useRef } from "react"
-import { RuntimeContext } from "../context"
+import { ChainAppContext } from "../context"
 import { createPasteEvent, getInternalClipboard } from "@silvery/ag-term/copy-extraction"
 import { usePaste } from "./usePaste"
 
@@ -30,7 +30,7 @@ import { usePaste } from "./usePaste"
  * 4. If no PasteHandler, the event is silently ignored
  */
 export function usePasteEvents(): void {
-  const rt = useContext(RuntimeContext)
+  const chain = useContext(ChainAppContext)
   const pasteHandler = usePaste()
 
   // Use ref for handler to avoid teardown/setup on every render
@@ -38,15 +38,13 @@ export function usePasteEvents(): void {
   handlerRef.current = pasteHandler
 
   useEffect(() => {
-    if (!rt) return
-
-    return rt.on("paste", (text: string) => {
+    if (!chain) return
+    return chain.paste.register((text: string) => {
       const handler = handlerRef.current
       if (!handler) return
-
       const clipboard = getInternalClipboard()
       const event = createPasteEvent(text, clipboard)
       handler.onPaste(event)
     })
-  }, [rt])
+  }, [chain])
 }

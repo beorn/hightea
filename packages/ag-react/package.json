@@ -232,6 +232,7 @@
   },
   "dependencies": {
     "@silvery/ag": "0.18.0",
+    "@silvery/create": "0.18.0",
     "@silvery/headless": "0.18.0",
     "@silvery/theme": "0.18.0"
   },

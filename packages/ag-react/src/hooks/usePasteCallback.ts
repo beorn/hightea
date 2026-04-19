@@ -13,20 +13,20 @@
  */
 
 import { useContext, useEffect, useRef } from "react"
-import { RuntimeContext } from "../context"
+import { ChainAppContext } from "../context"
 
 export type PasteCallback = (text: string) => void
 
 export function usePasteCallback(handler: PasteCallback): void {
-  const rt = useContext(RuntimeContext)
+  const chain = useContext(ChainAppContext)
 
   const handlerRef = useRef(handler)
   handlerRef.current = handler
 
   useEffect(() => {
-    if (!rt) return
-    return rt.on("paste", (text: string) => {
+    if (!chain) return
+    return chain.paste.register((text) => {
       handlerRef.current(text)
     })
-  }, [rt])
+  }, [chain])
 }

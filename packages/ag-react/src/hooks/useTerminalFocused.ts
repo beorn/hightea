@@ -21,8 +21,8 @@
  * ```
  */
 
-import { useState, useEffect } from "react"
-import { useRuntime } from "./useRuntime"
+import { useContext, useEffect, useState } from "react"
+import { ChainAppContext } from "../context"
 
 /**
  * Track whether the terminal window is focused.
@@ -32,14 +32,14 @@ import { useRuntime } from "./useRuntime"
  */
 export function useTerminalFocused(): boolean {
   const [focused, setFocused] = useState(true)
-  const rt = useRuntime()
+  const chain = useContext(ChainAppContext)
 
   useEffect(() => {
-    if (!rt) return
-    return rt.on("focus", (isFocused: boolean) => {
+    if (!chain) return
+    return chain.focusEvents.register((isFocused) => {
       setFocused(isFocused)
     })
-  }, [rt])
+  }, [chain])
 
   return focused
 }
