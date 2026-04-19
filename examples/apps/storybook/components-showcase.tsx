@@ -29,10 +29,7 @@ import {
   H3,
   P,
   Lead,
-  SelectList,
-  Table,
   TextInput,
-  type Column,
 } from "silvery"
 
 /**
@@ -70,14 +67,14 @@ function TextInputPreview({
 
 interface ComponentShowcaseProps {
   /**
-   * When false, interactive components (SelectList) have isActive=false so
-   * they do not capture j/k input. Use this when rendering inside a container
-   * that owns key handling (e.g. CompareView, storybook panel routing).
+   * Reserved for future interactive/non-interactive toggle. Currently unused
+   * (no interactive components remain in the showcase). Keep the prop for
+   * compatibility with CompareView.
    */
   interactive?: boolean
 }
 
-export function ComponentShowcase({ interactive = true }: ComponentShowcaseProps) {
+export function ComponentShowcase(_props: ComponentShowcaseProps = {}) {
   return (
     <Box flexDirection="column" gap={1}>
       <TypographySection />
@@ -87,8 +84,6 @@ export function ComponentShowcase({ interactive = true }: ComponentShowcaseProps
       <IndicatorsSection />
       <Divider />
       <InputsSection />
-      <Divider />
-      <SelectAndTableSection interactive={interactive} />
       <Divider />
       <DialogSection />
       <Divider />
@@ -101,9 +96,8 @@ export function ComponentShowcase({ interactive = true }: ComponentShowcaseProps
 
 /**
  * Syntax-highlighted code snippet — uses the `$color0..$color15` raw ANSI
- * palette slots as silvery's token taxonomy explicitly prescribes for syntax
- * highlighting ("exact terminal color parity matters"). See
- * vendor/silvery/docs/guide/token-taxonomy.md.
+ * palette slots as silvery's token taxonomy prescribes for syntax highlighting
+ * ("exact terminal color parity matters"). See token-taxonomy.md.
  *
  * Mapping (tree-sitter / vim / Neovim convention):
  *   keyword / control flow → $color1  (red)
@@ -113,8 +107,14 @@ export function ComponentShowcase({ interactive = true }: ComponentShowcaseProps
  *   type / purple          → $color5  (magenta)
  *   type name / built-in   → $color6  (cyan)
  *   operator / default fg  → $fg      (plain)
- *   comment                → $color8  (bright black / dim)
+ *   comment                → $muted   (semantic, contrast-adjusted)
  *   link in comment        → $color4 + underline
+ *
+ * Comments DELIBERATELY route through $muted (contrast-adjusted) instead of
+ * $color8 (raw bright-black). On low-contrast schemes like catppuccin-frappe,
+ * raw $color8 against $mutedbg is near-invisible. $muted is repaired against
+ * the surface it renders on during deriveTheme, so it stays readable across
+ * all 84 bundled schemes.
  */
 function CodeSample() {
   return (
@@ -122,11 +122,11 @@ function CodeSample() {
       <H2>Code sample (syntax highlighting via $color0..$color15)</H2>
       <Box backgroundColor="$mutedbg" padding={1} flexDirection="column">
         <Box>
-          <Text color="$color8">// See </Text>
+          <Text color="$muted">// See </Text>
           <Text color="$color4" underlineStyle="single">
             https://silvery.dev
           </Text>
-          <Text color="$color8"> — theme tokens in action</Text>
+          <Text color="$muted"> — theme tokens in action</Text>
         </Box>
 
         <Box>
@@ -267,44 +267,6 @@ function InputsSection() {
       <Box gap={2} flexWrap="wrap" marginTop={1}>
         <Toggle value={true} onChange={() => {}} label="Enabled" />
         <Toggle value={false} onChange={() => {}} label="Disabled" />
-      </Box>
-    </Box>
-  )
-}
-
-function SelectAndTableSection({ interactive = true }: { interactive?: boolean }) {
-  const items = [
-    { label: "TypeScript", value: "ts" },
-    { label: "Rust", value: "rs" },
-    { label: "Python", value: "py" },
-    { label: "Go", value: "go" },
-  ]
-
-  type Row = { name: string; lang: string; stars: string; status: string }
-  const rows: Row[] = [
-    { name: "silvery", lang: "TypeScript", stars: "★ 2.1k", status: "active" },
-    { name: "flexily", lang: "TypeScript", stars: "★ 340", status: "active" },
-    { name: "termless", lang: "TypeScript", stars: "★ 210", status: "beta" },
-  ]
-  const columns: Column<Row>[] = [
-    { header: "Name", key: "name" },
-    { header: "Lang", key: "lang" },
-    { header: "Stars", key: "stars", align: "right" },
-    { header: "Status", key: "status" },
-  ]
-
-  return (
-    <Box flexDirection="column" paddingX={1} gap={1}>
-      <H2>SelectList + Table</H2>
-      <Box gap={3} flexWrap="wrap">
-        <Box flexDirection="column">
-          <Muted>SelectList (static render)</Muted>
-          <SelectList items={items} isActive={interactive} />
-        </Box>
-        <Box flexDirection="column" flexGrow={1}>
-          <Muted>Table</Muted>
-          <Table data={rows} columns={columns} />
-        </Box>
       </Box>
     </Box>
   )
