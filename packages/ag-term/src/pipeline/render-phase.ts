@@ -535,7 +535,9 @@ function renderNodeToBuffer(
   // Placed after all early returns and fast-path skip — only active during
   // actual rendering. Popped at the end of this function after all child passes.
   const nodeTheme = (props as BoxProps).theme as Theme | undefined
-  if (nodeTheme) pushContextTheme(nodeTheme)
+  if (nodeTheme) {
+    pushContextTheme(nodeTheme)
+  }
   try {
     // Check if this is a scrollable container
     const isScrollContainer = props.overflow === "scroll" && node.scrollState

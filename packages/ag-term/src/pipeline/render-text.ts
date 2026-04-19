@@ -31,6 +31,7 @@ import {
 } from "../unicode"
 import { collectPlainText } from "./collect-text"
 import { getTextStyle, getTextWidth, parseColor } from "./render-helpers"
+import { getActiveTheme } from "@silvery/theme/state"
 import {
   getCachedPlainText,
   setCachedPlainText,
@@ -1416,7 +1417,13 @@ export function renderText(
     strikethrough: props.strikethrough,
   }
 
-  const cachedCollected = getCachedCollectedText(node, maxDisplayWidth)
+  // Pass the active context theme as a cache key so that $token ANSI codes
+  // embedded in collected text are invalidated when the nearest-ancestor
+  // ThemeProvider changes its theme. Without this, a theme change would leave
+  // stale ANSI-encoded token colors in the cache (e.g., $primary → blue from
+  // the first render), causing the new theme's green to be overridden.
+  const contextTheme = getActiveTheme()
+  const cachedCollected = getCachedCollectedText(node, maxDisplayWidth, contextTheme)
   if (cachedCollected) {
     text = cachedCollected.text
     bgSegments = cachedCollected.bgSegments as BgSegment[]
@@ -1426,7 +1433,7 @@ export function renderText(
     text = collected.text
     bgSegments = collected.bgSegments
     childSpans = collected.childSpans
-    setCachedCollectedText(node, collected, maxDisplayWidth)
+    setCachedCollectedText(node, collected, maxDisplayWidth, contextTheme)
   }
 
   // Get style for this Text node.

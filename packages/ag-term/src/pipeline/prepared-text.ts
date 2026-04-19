@@ -10,7 +10,7 @@
  *
  * Invalidation uses the epoch-based dirty flag system:
  *   - Plain text:     CONTENT_BIT | CHILDREN_BIT
- *   - Collected text:  CONTENT_BIT | CHILDREN_BIT | STYLE_PROPS_BIT | BG_BIT
+ *   - Collected text:  CONTENT_BIT | CHILDREN_BIT | STYLE_PROPS_BIT | BG_BIT | SUBTREE_BIT | context theme ref
  *   - Format entries:  cleared when collected text is invalidated; keyed by (width, wrap, trim)
  *
  * The WeakMap ensures automatic cleanup when nodes are removed from the tree.
@@ -28,6 +28,7 @@ import {
   SUBTREE_BIT,
 } from "@silvery/ag/epoch"
 import type { TextAnalysis } from "./pretext"
+import type { Theme } from "@silvery/ansi"
 
 // ============================================================================
 // Types
@@ -60,6 +61,11 @@ interface TextNodeCache {
   // Level 1: collected styled text
   collected: CollectedTextResult | null
   collectedMaxDisplayWidth: number | undefined
+  /** The context theme (by reference) when collected was last computed.
+   * When the nearest-ancestor ThemeProvider changes its theme, this reference
+   * becomes stale and getCachedCollectedText returns null, forcing re-collection
+   * with the new theme's token values embedded in the ANSI codes. */
+  collectedContextTheme: Theme | null
 
   // Level 2: formatted lines (LRU, max 4 entries)
   formats: FormatEntry[]
@@ -106,6 +112,7 @@ function getOrCreate(node: AgNode): TextNodeCache {
       plainTextLineCount: 0,
       collected: null,
       collectedMaxDisplayWidth: undefined,
+      collectedContextTheme: null,
       formats: [],
       analysis: null,
     }
@@ -146,11 +153,18 @@ export function setCachedPlainText(node: AgNode, text: string, lineCount: number
 
 /**
  * Get cached collected text (from collectTextWithBg).
- * Invalidated by content, children, style, or bg changes, or maxDisplayWidth mismatch.
+ * Invalidated by content, children, style, or bg changes, maxDisplayWidth mismatch,
+ * or a context theme change (ancestor ThemeProvider changed token values).
+ *
+ * @param contextTheme - The active theme at the time of rendering (from getActiveTheme()).
+ *   Used as a cache key so that when the nearest-ancestor ThemeProvider changes its
+ *   merged theme, text nodes that embed $token ANSI codes in their collected text
+ *   are re-collected with the new token values. Pass null when no theme context exists.
  */
 export function getCachedCollectedText(
   node: AgNode,
   maxDisplayWidth: number | undefined,
+  contextTheme: Theme | null,
 ): CollectedTextResult | null {
   if (_cacheDisabled) return null
   const entry = textCaches.get(node)
@@ -170,6 +184,15 @@ export function getCachedCollectedText(
     return null
   }
 
+  // When the ancestor theme changes, ANSI-encoded $token colors in the collected
+  // text are stale. Invalidate so collectTextWithBg re-runs with new token values.
+  if (entry.collectedContextTheme !== contextTheme) {
+    entry.collected = null
+    entry.formats = []
+    entry.analysis = null
+    return null
+  }
+
   return entry.collected
 }
 
@@ -178,10 +201,12 @@ export function setCachedCollectedText(
   node: AgNode,
   result: CollectedTextResult,
   maxDisplayWidth: number | undefined,
+  contextTheme: Theme | null,
 ): void {
   const entry = getOrCreate(node)
   entry.collected = result
   entry.collectedMaxDisplayWidth = maxDisplayWidth
+  entry.collectedContextTheme = contextTheme
 }
 
 // ============================================================================

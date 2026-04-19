@@ -566,12 +566,20 @@ export const hostConfig = {
       // phase walks every frame and clears previous outline cells from
       // per-cell snapshots. See pipeline/decoration-phase.ts.
       // Theme change: all descendants need re-rendering with new token values.
-      // bgDirty makes contentAreaAffected=true, cascading childrenNeedFreshRender
-      // to force children to re-render with the new theme context.
+      // We set both CONTENT_BIT and BG_BIT so that bgOnlyAffected remains false
+      // (bgOnlyAffected = bgDirty && !contentDirty && ...). Without CONTENT_BIT,
+      // bgOnlyChange fires when the ThemeProvider Box has a theme.bg value
+      // (hasBgColor=true via getEffectiveBg), and bgOnlyChange sets
+      // childrenNeedFreshRender=false — children skip re-render and use stale
+      // $token-resolved colors from the clone. CONTENT_BIT disables bgOnlyChange
+      // and ensures childrenNeedFreshRender=true so children re-render with the
+      // new pushContextTheme(newTheme) context in the render phase.
+      // NOTE: CONTENT_BIT here does NOT call layoutNode.markDirty() — that is
+      // only done when contentChanged === "text" (not for theme-only changes).
       if (
         (oldProps as Record<string, unknown>).theme !== (newProps as Record<string, unknown>).theme
       ) {
-        bits |= BG_BIT
+        bits |= BG_BIT | CONTENT_BIT
       }
       instance.dirtyBits = instance.dirtyEpoch !== epoch ? bits : instance.dirtyBits | bits
       instance.dirtyEpoch = epoch

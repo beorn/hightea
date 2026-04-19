@@ -31,6 +31,11 @@
  * Pipeline $token resolution uses the same `theme` prop on the inner Box —
  * no separate `<Box theme={}>` wrapper needed. Nested ThemeProviders each
  * scope their own Box, so inner themes never bleed into outer subtrees.
+ *
+ * The inner Box uses `flexGrow={1} flexShrink={1} alignSelf="stretch"` so it
+ * fills its parent (critical when children use `position="absolute"` — without
+ * these, an all-absolute child tree gives the Box zero content height, which
+ * propagates null height to the root layout node and crashes the render phase).
  */
 
 import React, { useContext, useMemo } from "react"
@@ -87,9 +92,15 @@ export function ThemeProvider({ tokens, theme, children }: ThemeProviderProps): 
   // render phase calls pushContextTheme/popContextTheme when it encounters a node
   // with a theme prop, so $token resolution always uses the nearest ancestor theme
   // without relying on any module-level global.
+  // flexGrow/flexShrink/alignSelf: ensure this Box fills its parent (column flex).
+  // Required because children with position="absolute" contribute zero content
+  // height, so an auto-sized Box with only absolute children gets height=null
+  // from Flexily, corrupting the root node's boxRect and crashing the render phase.
   return (
     <ThemeContext.Provider value={merged}>
-      <Box theme={merged}>{children}</Box>
+      <Box theme={merged} flexGrow={1} flexShrink={1} alignSelf="stretch">
+        {children}
+      </Box>
     </ThemeContext.Provider>
   )
 }
