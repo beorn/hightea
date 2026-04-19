@@ -165,11 +165,13 @@ const STANDALONE_TOKENS: (keyof Theme)[] = [
 function TokenRow({ theme, token }: { theme: Theme; token: keyof Theme }) {
   const value = theme[token]
   if (typeof value !== "string") return null
+  const oklch = formatOklch(value)
   return (
     <Box gap={1}>
       <SwatchCell color={value} />
       <Text>${String(token).padEnd(14)}</Text>
       <Muted>{value}</Muted>
+      {oklch ? <Muted>· {oklch}</Muted> : null}
     </Box>
   )
 }
