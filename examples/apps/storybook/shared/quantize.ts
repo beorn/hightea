@@ -18,51 +18,26 @@
  * This is a preview-only transform — it does not affect what a real terminal
  * would render at truecolor, because the output phase leaves truecolor hex
  * alone regardless.
+ *
+ * Implementation: thin wrappers over the public {@link pickColorLevel} API.
+ * `pickColorLevel` walks hex leaves at any depth (flat tokens, nested roles,
+ * palette arrays, arbitrary objects) so both Theme shapes work without a
+ * storybook-local implementation.
  */
 
-import { quantizeHex, type ColorTier } from "@silvery/ansi"
+import { pickColorLevel, quantizeHex, type ColorTier } from "@silvery/ansi"
 import type { Theme as LegacyTheme } from "@silvery/ansi"
-import type { Theme as SterlingTheme } from "@silvery/theme"
-
-const HEX_RE = /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/
-
-function isHex(value: unknown): value is string {
-  return typeof value === "string" && HEX_RE.test(value)
-}
-
-/**
- * Deep-quantize every hex-string leaf in an object. Non-hex strings, numbers,
- * booleans, and arrays of non-hex values pass through unchanged. Used for
- * both LegacyTheme and SterlingTheme — the structural rule "any leaf that
- * looks like a hex is a color value" holds for both.
- */
-function quantizeObject<T>(obj: T, tier: ColorTier): T {
-  if (obj == null) return obj
-  if (isHex(obj)) return quantizeHex(obj, tier) as unknown as T
-  if (Array.isArray(obj)) {
-    return obj.map((v) => quantizeObject(v, tier)) as unknown as T
-  }
-  if (typeof obj === "object") {
-    const out: Record<string, unknown> = {}
-    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
-      out[k] = quantizeObject(v, tier)
-    }
-    return out as T
-  }
-  return obj
-}
+import type { SterlingTheme } from "@silvery/theme"
 
 /** Quantize the legacy (silvery/ui) Theme. Returns a new object; inputs not mutated. */
 export function quantizeLegacyTheme(theme: LegacyTheme, tier: ColorTier): LegacyTheme {
-  if (tier === "truecolor") return theme
-  return quantizeObject(theme, tier)
+  return pickColorLevel(theme, tier)
 }
 
 /** Quantize the Sterling Theme (nested roles + flat tokens). */
 export function quantizeSterlingTheme(theme: SterlingTheme, tier: ColorTier): SterlingTheme {
-  if (tier === "truecolor") return theme
-  return quantizeObject(theme, tier)
+  return pickColorLevel(theme, tier)
 }
 
-export { quantizeHex }
+export { pickColorLevel, quantizeHex }
 export type { ColorTier }
