@@ -608,11 +608,11 @@ The fade amount is in `[0, 1]`: `0` is a passthrough (no-op), `1` is fully conve
 
 **Color tiers:**
 
-| Tier | What happens |
-|------|-------------|
-| truecolor / 256 | OKLab blend toward neutral — exact, perceptually uniform |
-| ANSI 16 | SGR 2 (dim) stamped on cells — best-effort, single-channel |
-| monochrome | no-op — modal border carries separation |
+| Tier            | What happens                                               |
+| --------------- | ---------------------------------------------------------- |
+| truecolor / 256 | OKLab blend toward neutral — exact, perceptually uniform   |
+| ANSI 16         | SGR 2 (dim) stamped on cells — best-effort, single-channel |
+| monochrome      | no-op — modal border carries separation                    |
 
 ::: tip ✨ Shiny — standalone Backdrop
 
@@ -622,7 +622,7 @@ The fade amount is in `[0, 1]`: `0` is a passthrough (no-op), `1` is fully conve
   <Backdrop fade={0.5}>
     <FileTree />
   </Backdrop>
-  <Editor />    {/* crisp */}
+  <Editor /> {/* crisp */}
 </Box>
 ```
 

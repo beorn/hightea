@@ -11,7 +11,13 @@
 
 import { hexToRgb } from "@silvery/color"
 import type { ColorScheme } from "@silvery/theme"
-import { deriveMonochromeTheme, rgbToAnsi256, nearestAnsi16, deriveTheme, type Theme } from "@silvery/ansi"
+import {
+  deriveMonochromeTheme,
+  rgbToAnsi256,
+  nearestAnsi16,
+  deriveTheme,
+  type Theme,
+} from "@silvery/ansi"
 import type { MonochromeAttrs } from "@silvery/ansi"
 import type { Tier } from "./types"
 

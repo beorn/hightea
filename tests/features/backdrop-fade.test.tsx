@@ -276,18 +276,22 @@ describe("backdrop fade: two-channel transform (rootBg via theme prop)", () => {
       expect((preCell.bg as { r: number; g: number; b: number }).b).toBe(0)
     }
 
-    // After modal: row 0 bg is blended toward black — no longer pure #ff0000.
+    // After modal: row 0 bg is blended toward a desaturated neutral — no
+    // longer pure #ff0000. Blend target is a C=0 dark gray (see
+    // `deriveBlendTarget`), so saturated red cells desaturate slightly as
+    // they darken — g/b channels may rise a bit off 0, but red still
+    // dominates.
     app.rerender(<App open={true} />)
     const fadedCell = app.cell(0, 0)
     expect(fadedCell.char).toBe("c")
     expect(fadedCell.bg).not.toBeNull()
     if (fadedCell.bg) {
       const bg = fadedCell.bg as { r: number; g: number; b: number }
-      // blended bg is between #ff0000 and #000000 — r < 255, g === 0, b === 0
+      // Red still dominates (r >> g, r >> b) and darkened (r < 255).
       expect(bg.r).toBeGreaterThan(0)
       expect(bg.r).toBeLessThan(255)
-      expect(bg.g).toBe(0)
-      expect(bg.b).toBe(0)
+      expect(bg.r).toBeGreaterThan(bg.g + 50)
+      expect(bg.r).toBeGreaterThan(bg.b + 50)
     }
   })
 
@@ -419,21 +423,24 @@ describe("standalone Backdrop: rootBg from ThemeProvider", () => {
   test("fades fg + bg toward theme neutral (dark) when wrapped in ThemeProvider", () => {
     // darkTheme.bg = "#1e1e2e" → luminance ≈ 0.012 → dark neutral = "#000000".
     //
-    // Asymmetric blend amounts (see BG_FADE_RATIO in backdrop-phase.ts):
-    //   fg blends at full `amount`
-    //   bg blends at `amount * 0.5` (bg color dominates visual weight, so
-    //   matching fg amount drowns the scene)
+    // UNIFORM blend amounts (post-b2dafd70 regression fix):
+    //   Both fg and bg blend toward the neutral at the same `amount`.
+    //   The previous asymmetric approach (bg at half amount) broke
+    //   border/panel brightness ordering — see `fadeCell` docblock.
     //
-    // With fade=0.7:
-    //   fg #ffffff → 70% toward #000000 in OKLab → dark gray ≈ {46,46,46}
-    //   bg #ff0000 → 35% toward #000000 in OKLab → muted red (r < 255 but
-    //   significantly brighter than symmetric-blend result)
+    // Calibration moved to the CALL SITE: use a small fade (0.25) for a
+    // gentle backdrop, or a larger one for a heavier dim. Here we use
+    // fade=0.4 to produce an easily-observable blend result.
+    //
+    // With fade=0.4:
+    //   fg #ffffff → 40% toward #000000 in OKLab
+    //   bg #ff0000 → 40% toward #000000 in OKLab (uniform with fg)
     const render = createRenderer({ cols: 40, rows: 10 })
 
     function App() {
       return (
         <ThemeProvider theme={darkTheme}>
-          <Backdrop fade={0.7}>
+          <Backdrop fade={0.4}>
             <Box backgroundColor="#ff0000" width={10} height={3}>
               <Text color="#ffffff">RED PANEL</Text>
             </Box>
@@ -448,29 +455,23 @@ describe("standalone Backdrop: rootBg from ThemeProvider", () => {
     const cell = app.cell(0, 0)
     expect(cell.char).toBe("R")
 
-    // fg: full amount — white blends 70% toward black → dark gray {46,46,46}
+    // fg: 40% blend toward black — white becomes mid-gray.
     expect(cell.fg).not.toBeNull()
     const fg = cell.fg as { r: number; g: number; b: number }
-    expect(fg.r).toBe(46)
-    expect(fg.g).toBe(46)
-    expect(fg.b).toBe(46)
+    expect(fg.r).toBeLessThan(255)
+    expect(fg.r).toBeGreaterThan(0)
+    expect(fg.r).toBe(fg.g) // white preserves grayscale through blend-to-black
+    expect(fg.g).toBe(fg.b)
 
-    // bg: half amount — red blends 35% toward black.
-    // Key calibration assertions:
-    //   1. bg must have darkened (r < 255)
-    //   2. bg must still be clearly "red" (r >> g and r >> b)
-    //   3. bg must NOT be close to black (r > fg.r — backdrop reads as
-    //      "receded colored surface" not "swallowed into void")
+    // bg: 40% blend toward DESATURATED neutral — red darkens and slightly
+    // desaturates, but red channel still dominates. Target has C=0 so a
+    // small g/b rise is expected (cell gains a touch of gray).
     expect(cell.bg).not.toBeNull()
     const bg = cell.bg as { r: number; g: number; b: number }
     expect(bg.r).toBeLessThan(255) // darkened
     expect(bg.r).toBeGreaterThan(100) // still clearly red-dominant
-    expect(bg.g).toBe(0) // pure hue preserved
-    expect(bg.b).toBe(0)
-    // Calibration guard: bg must be brighter than the fg blend — this is the
-    // anti-"everything is dark" assertion. If someone regresses bg to the same
-    // amount as fg, bg.r would collapse toward 46 (matching fg.r).
-    expect(bg.r).toBeGreaterThan(fg.r)
+    expect(bg.r).toBeGreaterThan(bg.g + 80) // red still clearly wins
+    expect(bg.r).toBeGreaterThan(bg.b + 80)
   })
 
   test("Backdrop without ThemeProvider falls back to legacy fg-toward-bg path", () => {
@@ -728,23 +729,27 @@ describe("backdrop fade: wide-char / emoji bg propagation (regression)", () => {
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Calibration guard: the bg fade must be visibly gentler than the fg fade.
-// This is the anti-regression test for the "everything is too dark" feedback.
-// If bg ever blends at the same amount as fg, the entire backdrop drops to
-// near-black and the modal's spotlight effect collapses.
+// Uniform fg/bg calibration (regression guard).
+//
+// Prior revision (b2dafd70) used asymmetric amounts — bg blended at half
+// the fg rate. That broke brightness ordering: a border char (fg-dominated)
+// became darker than its panel fill (bg-dominated) because fg sped faster
+// toward the neutral. This describe-block anchors the uniform-amount
+// behavior: fg and bg fade together, visual hierarchy is preserved, and
+// over-darkness is calibrated via the DEFAULT_FADE at the call site (0.25).
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("backdrop fade: bg/fg asymmetric calibration (regression)", () => {
-  test("bg fade is strictly gentler than fg fade at the same amount", () => {
-    // White fg + colored bg under a dark-theme backdrop with fade=0.8
-    // (near-max). If both channels blended at 0.8, fg and bg would both be
-    // nearly pure black. With bg at half-strength, bg remains clearly colored.
+describe("backdrop fade: uniform fg/bg calibration (regression)", () => {
+  test("fg and bg blend toward neutral at the same amount (no asymmetric drift)", () => {
+    // White fg + colored bg. Under uniform amounts, fg and bg both blend at
+    // the given `amount`. Pure hue channels survive the blend (green bg stays
+    // green, just darker). Grayscale fg stays grayscale.
     const render = createRenderer({ cols: 30, rows: 3 })
 
     function App() {
       return (
         <ThemeProvider theme={darkTheme}>
-          <Backdrop fade={0.8}>
+          <Backdrop fade={0.5}>
             <Box backgroundColor="#00aa00" width={20} height={3}>
               <Text color="#FFFFFF">XYZ</Text>
             </Box>
@@ -761,19 +766,24 @@ describe("backdrop fade: bg/fg asymmetric calibration (regression)", () => {
     const fg = cell.fg as { r: number; g: number; b: number }
     const bg = cell.bg as { r: number; g: number; b: number }
 
-    // fg (full amount): white blends 80% toward black → very dark gray.
-    // bg (half amount): green blends 40% toward black → dimmed green.
-    // The green channel of bg must be SIGNIFICANTLY brighter than fg's green
-    // channel — this enforces the asymmetric calibration.
-    expect(bg.g).toBeGreaterThan(fg.g + 30)
-    // Sanity: bg is still meaningfully darkened (not a no-op).
-    expect(bg.g).toBeLessThan(170) // started at 170 (0xaa), must have faded.
+    // White fg at 50% blend toward black → mid-gray. Grayscale preserved.
+    expect(fg.r).toBe(fg.g)
+    expect(fg.g).toBe(fg.b)
+    expect(fg.r).toBeLessThan(255)
+    expect(fg.r).toBeGreaterThan(0)
+
+    // Green bg at 50% blend toward a DESATURATED neutral → dimmed green.
+    // Green still clearly dominates; r/b may have a small rise from the
+    // desaturation pull. Started at 170 (0xaa).
+    expect(bg.g).toBeLessThan(170) // darkened
+    expect(bg.g).toBeGreaterThan(0)
+    expect(bg.g).toBeGreaterThan(bg.r + 40) // green still dominates
+    expect(bg.g).toBeGreaterThan(bg.b + 40)
   })
 
-  test("fade=0.4 on ModalDialog default produces readable backdrop (not blacked out)", () => {
-    // This is the concrete calibration assertion for the ModalDialog default
-    // fade. The scene must remain readable — if "everything is dark," fg and
-    // bg of backdrop cells are both near 0.
+  test("at default fade ModalDialog produces a readable backdrop (not blacked out)", () => {
+    // The default-fade calibration: a colored backdrop row must retain
+    // meaningful luminance after the modal opens.
     const render = createRenderer({ cols: 40, rows: 10 })
 
     function App() {
@@ -788,8 +798,9 @@ describe("backdrop fade: bg/fg asymmetric calibration (regression)", () => {
                 {`row ${i}`}
               </Text>
             ))}
+            {/* Use ModalDialog's own default fade (0.25). */}
             <Box position="absolute" marginLeft={10} marginTop={3}>
-              <ModalDialog width={20} fade={0.4}>
+              <ModalDialog width={20}>
                 <Text color="#FFFFFF">DIALOG</Text>
               </ModalDialog>
             </Box>
@@ -806,14 +817,311 @@ describe("backdrop fade: bg/fg asymmetric calibration (regression)", () => {
     const fg = cell.fg as { r: number; g: number; b: number }
     const bg = cell.bg as { r: number; g: number; b: number }
 
-    // At fade=0.4 the scene must still be legible:
+    // At the default fade the scene must still be clearly legible:
     //   - fg has darkened (fade is working)
     expect(fg.r).toBeLessThan(255)
-    //   - bg remains clearly magenta (not swallowed into black)
+    //   - bg remains clearly magenta (hue survives — target is desaturated
+    //     but saturated colors still dominate through the blend)
     expect(bg.r).toBeGreaterThan(150)
     expect(bg.b).toBeGreaterThan(150)
-    //   - bg's red channel must exceed fg's red channel (bg is brighter than
-    //     the faded fg — the "spotlight" depth contrast)
-    expect(bg.r).toBeGreaterThan(fg.r)
+    //   - magenta dominates over the green channel
+    expect(bg.r).toBeGreaterThan(bg.g + 80)
+    expect(bg.b).toBeGreaterThan(bg.g + 80)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Regression: real-app bug reports from 2026-04-19 against commit b2dafd70.
+//
+// 1. Overall backdrop too strong: at the ModalDialog default fade, the scene
+//    should read as "dimmed," not "blacked out." A dark panel bg (like
+//    catppuccin mocha #1e1e2e) must retain meaningful luminance after fade
+//    or the UI drowns.
+//
+// 2. Emoji / wide-char cells look "bright" against surrounding darkened cells.
+//    Root cause: `fg` blend at full strength is INVISIBLE on emoji (terminals
+//    ignore fg for emoji glyphs), so emoji cells only get half-strength (bg)
+//    darkening while neighboring text gets full (fg) + half (bg). The
+//    visible delta is what makes emoji appear to "pop." Fix: wide-char cells
+//    also stamp `attrs.dim` so terminals that honor SGR 2 on emoji (most
+//    modern ones) dim the glyph. And with uniform blend amounts, the bg is
+//    the same darkness whether the cell contains text or emoji — no
+//    relative-brightness delta.
+//
+// 3. Border inversion: a bright-grey border char on a dark-grey panel
+//    (border LIGHTER than fill pre-fade) becomes DARKER than the fill
+//    post-fade. Caused by asymmetric blend amounts: fg crosses bg's
+//    brightness on the way to the neutral. The user's exact observation:
+//    "Column/grid separator border cells that were LIGHTER than panel bg
+//    pre-modal become DARKER than panel bg post-modal." Fix: uniform fg/bg
+//    blend amount preserves brightness ordering.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("backdrop fade: real-app regressions (b2dafd70)", () => {
+  test("border fg-brightness ordering is preserved through fade (no inversion)", () => {
+    // Dark panel bg (#1e1e2e — catppuccin mocha, matches km vault rendering)
+    // with a grey border (#808080) — border is clearly lighter than panel.
+    // After fade, luminance ordering must be PRESERVED: faded-border
+    // brightness >= faded-panel-bg brightness. Asymmetric amounts break this.
+    const render = createRenderer({ cols: 20, rows: 5 })
+
+    function App({ open }: { open: boolean }) {
+      return (
+        <ThemeProvider theme={darkTheme}>
+          <Box width={20} height={5} backgroundColor="#1e1e2e">
+            {/* Panel with border — border is clearly grey-on-dark, visibly
+                lighter than the panel bg. */}
+            <Box
+              width={18}
+              height={3}
+              backgroundColor="#1e1e2e"
+              borderStyle="single"
+              borderColor="#808080"
+            />
+            {open && (
+              <Box position="absolute" marginLeft={6} marginTop={3}>
+                <ModalDialog width={8}>
+                  <Text color="#FFFFFF">x</Text>
+                </ModalDialog>
+              </Box>
+            )}
+          </Box>
+        </ThemeProvider>
+      )
+    }
+
+    const app = render(<App open={false} />)
+
+    // Find a border cell on row 0 (top border — horizontal char) and a
+    // panel-fill cell on row 1 (interior — no char).
+    const borderCell = app.cell(1, 0) // inside top border line
+    const fillCell = app.cell(1, 1) // panel interior
+    expect(borderCell.char).not.toBe(" ") // confirm this is a border char
+    // fillCell is interior space — its fg is null, bg is panel bg.
+    // borderCell's fg is the border color (grey #808080).
+    const preBorderFg = borderCell.fg as { r: number; g: number; b: number } | null
+    expect(preBorderFg).not.toBeNull()
+    const preFillBg = fillCell.bg as { r: number; g: number; b: number } | null
+    expect(preFillBg).not.toBeNull()
+
+    // Pre-fade: border fg brightness (grey 0x80=128 per channel) >> fill bg
+    // brightness (panel 0x1e=30 per channel). Record ordering.
+    const preBorderLuma = (preBorderFg!.r + preBorderFg!.g + preBorderFg!.b) / 3
+    const preFillLuma = (preFillBg!.r + preFillBg!.g + preFillBg!.b) / 3
+    expect(preBorderLuma).toBeGreaterThan(preFillLuma)
+
+    // Post-fade: open the modal, fade the backdrop.
+    app.rerender(<App open={true} />)
+    const postBorder = app.cell(1, 0)
+    const postFill = app.cell(1, 1)
+    const postBorderFg = postBorder.fg as { r: number; g: number; b: number } | null
+    const postFillBg = postFill.bg as { r: number; g: number; b: number } | null
+    expect(postBorderFg).not.toBeNull()
+    expect(postFillBg).not.toBeNull()
+
+    const postBorderLuma = (postBorderFg!.r + postBorderFg!.g + postBorderFg!.b) / 3
+    const postFillLuma = (postFillBg!.r + postFillBg!.g + postFillBg!.b) / 3
+
+    // Critical: border must STILL be brighter than fill after fade AND
+    // the brightness delta must not collapse catastrophically. Asymmetric
+    // blend amounts (fg at full `amount`, bg at `amount/2`) push fg toward
+    // the neutral much faster than bg — the perceptual delta collapses even
+    // when strict mathematical ordering is preserved. With pre-delta of ~248
+    // (grey 0x80 border on 0x1e panel), post-delta < 30 means the two
+    // cells are visually indistinguishable ("inversion" in practice).
+    expect(postBorderLuma).toBeGreaterThan(postFillLuma)
+    const preDelta = preBorderLuma - preFillLuma
+    const postDelta = postBorderLuma - postFillLuma
+    // Post-fade delta must retain at least 40% of the pre-fade delta.
+    // With BG_FADE_RATIO=0.5 + fade=0.7, the delta collapses to <5%
+    // of original, making the border visually disappear.
+    expect(postDelta).toBeGreaterThan(preDelta * 0.4)
+  })
+
+  test("default ModalDialog fade on dark theme keeps panel bg readable", () => {
+    // After the fade, a dark-theme panel bg (#1e1e2e ≈ luminance 46) must
+    // retain meaningful brightness — not collapse toward pure black. The
+    // "overall too strong" regression is detectable as: default-fade produces
+    // a panel bg with any channel below ~18 (≈60% of pre-fade brightness lost).
+    //
+    // This test pins the ModalDialog default fade calibration. If the default
+    // is too aggressive, this fails and forces recalibration.
+    const render = createRenderer({ cols: 40, rows: 10 })
+
+    function App({ open }: { open: boolean }) {
+      return (
+        <ThemeProvider theme={darkTheme}>
+          <Box flexDirection="column" width={40} height={10} backgroundColor="#1e1e2e">
+            {Array.from({ length: 8 }, (_, i) => (
+              <Text key={i} color="#CDD6F4">
+                {`row ${i}`}
+              </Text>
+            ))}
+            {open && (
+              <Box position="absolute" marginLeft={12} marginTop={3}>
+                {/* Use ModalDialog's own default fade — pins the calibration. */}
+                <ModalDialog width={16}>
+                  <Text color="#FFFFFF">DIALOG</Text>
+                </ModalDialog>
+              </Box>
+            )}
+          </Box>
+        </ThemeProvider>
+      )
+    }
+
+    const app = render(<App open={false} />)
+    const pre = app.cell(0, 0) // "r" of "row 0" on the dark panel
+    expect(pre.char).toBe("r")
+    const preBg = pre.bg as { r: number; g: number; b: number }
+    expect(preBg.r).toBe(30)
+    expect(preBg.g).toBe(30)
+    expect(preBg.b).toBe(46)
+
+    app.rerender(<App open={true} />)
+    const post = app.cell(0, 0)
+    const postBg = post.bg as { r: number; g: number; b: number }
+
+    // "Not blacked out" calibration: bg must retain >= 50% of its pre-fade
+    // luminance on the dominant channel. Catppuccin mocha bg has b=46 (its
+    // brightest channel). At default fade, post.bg.b must be >= 23. If
+    // someone bumps the default fade back toward 0.7 with asymmetric math,
+    // panel bg collapses to ~15 and this fires.
+    expect(postBg.b).toBeGreaterThanOrEqual(23)
+    // And fg of the row text must still be visibly lighter than the panel bg
+    // (otherwise the UI is illegible — all cells collapse to same luma).
+    const postFg = post.fg as { r: number; g: number; b: number }
+    expect((postFg.r + postFg.g + postFg.b) / 3).toBeGreaterThan(
+      (postBg.r + postBg.g + postBg.b) / 3 + 20,
+    )
+  })
+
+  test("backdrop does not tint the whole scene with rootBg's hue (no blue cast on Nord)", () => {
+    // Regression: blending null-bg cells toward pure black (`#000000`) in
+    // OKLab preserves the starting hue. On a Nord-like blue-tinted theme
+    // (rootBg #2E3440, OKLCH H ≈ 264°), every null-bg cell gets resolved to
+    // explicit darker-blue hex post-fade. The whole backdrop tints blue.
+    //
+    // Fix: blend target is a DESATURATED neutral gray (C=0) at lower L, so
+    // null-bg cells lose their hue as they darken (chroma drops toward 0).
+    // This test verifies the post-fade null-bg cell has LOWER chroma than
+    // the pre-fade rootBg hue — the cell genuinely desaturates.
+    const render = createRenderer({ cols: 40, rows: 10 })
+
+    // Emulate Nord dark theme — blue-tinted bg.
+    const nordTheme = {
+      ...darkTheme,
+      bg: "#2E3440",
+      theme: { ...darkTheme.theme, bg: "#2E3440" },
+    }
+
+    function App({ open }: { open: boolean }) {
+      return (
+        <ThemeProvider theme={nordTheme}>
+          <Box flexDirection="column" width={40} height={10} backgroundColor="#2E3440">
+            {Array.from({ length: 8 }, (_, i) => (
+              <Text key={i} color="#FFFFFF">
+                {`row ${i}`}
+              </Text>
+            ))}
+            {open && (
+              <Box position="absolute" marginLeft={12} marginTop={3}>
+                <ModalDialog width={16} fade={0.4}>
+                  <Text color="#FFFFFF">DIALOG</Text>
+                </ModalDialog>
+              </Box>
+            )}
+          </Box>
+        </ThemeProvider>
+      )
+    }
+
+    const app = render(<App open={false} />)
+    // Pick an empty cell past the end of row 0's text — has explicit Nord bg.
+    const pre = app.cell(35, 0)
+    const preBg = pre.bg as { r: number; g: number; b: number }
+    // Pre-fade: blue-ish Nord bg — blue channel > red channel.
+    expect(preBg.b).toBeGreaterThan(preBg.r)
+    const preBlueness = preBg.b - preBg.r // how much blue over red
+
+    // After fade: blue channel - red channel gap must SHRINK — the cell has
+    // desaturated toward neutral. With the old pure-black target, this gap
+    // stayed constant (or even grew proportionally) because OKLab preserves
+    // hue when blending toward black.
+    app.rerender(<App open={true} />)
+    const post = app.cell(35, 0)
+    const postBg = post.bg as { r: number; g: number; b: number }
+    const postBlueness = postBg.b - postBg.r
+    // Post-fade blueness must be at most 50% of pre-fade blueness — the
+    // backdrop has visibly desaturated, not just darkened.
+    expect(postBlueness).toBeLessThan(preBlueness * 0.6)
+  })
+
+  test("emoji cells stamp dim attribute so terminals visibly fade emoji glyphs", () => {
+    // Emoji / wide-char cells have `fg=<text color>` but terminals ignore
+    // that fg when rendering the emoji glyph — the glyph uses its own
+    // bitmap colors. So a fg blend alone has NO visible effect on emoji.
+    //
+    // To fade emoji visually, we stamp `attrs.dim` (SGR 2) on the lead +
+    // continuation cells. Most modern terminals (Ghostty, iTerm2, Kitty,
+    // WezTerm) honor SGR 2 on emoji and render the glyph at reduced opacity.
+    //
+    // Regression guard: both lead and continuation cells of an emoji in the
+    // backdrop must have attrs.dim === true post-fade.
+    const render = createRenderer({ cols: 40, rows: 10 })
+
+    function App({ open }: { open: boolean }) {
+      return (
+        <ThemeProvider theme={darkTheme}>
+          <Box flexDirection="column" width={40} height={10}>
+            <Box backgroundColor="#1e1e2e">
+              <Text color="#FFFFFF">🔴 red bullet marker</Text>
+            </Box>
+            {Array.from({ length: 7 }, (_, i) => (
+              <Text key={i} color="#FFFFFF">
+                {`row ${i}`}
+              </Text>
+            ))}
+            {open && (
+              <Box position="absolute" marginLeft={15} marginTop={3}>
+                <ModalDialog width={20} fade={0.4}>
+                  <Text color="#FFFFFF">DIALOG</Text>
+                </ModalDialog>
+              </Box>
+            )}
+          </Box>
+        </ThemeProvider>
+      )
+    }
+
+    const app = render(<App open={false} />)
+    // Locate the emoji lead + continuation cells.
+    let leadX = -1
+    for (let x = 0; x < 40; x++) {
+      if (app.cell(x, 0).wide) {
+        leadX = x
+        break
+      }
+    }
+    expect(leadX).toBeGreaterThanOrEqual(0)
+
+    // Pre-fade: no dim on emoji cells.
+    const preLead = app.cell(leadX, 0)
+    const preCont = app.cell(leadX + 1, 0)
+    expect(preLead.wide).toBe(true)
+    expect(preCont.continuation).toBe(true)
+    expect(preLead.dim).toBeFalsy()
+    expect(preCont.dim).toBeFalsy()
+
+    // Post-fade: both halves stamp dim — otherwise the emoji visibly stands
+    // out against surrounding faded cells (terminals ignore fg blend on
+    // emoji glyphs).
+    app.rerender(<App open={true} />)
+    const postLead = app.cell(leadX, 0)
+    const postCont = app.cell(leadX + 1, 0)
+    expect(postLead.wide).toBe(true)
+    expect(postCont.continuation).toBe(true)
+    expect(postLead.dim).toBe(true)
+    expect(postCont.dim).toBe(true)
   })
 })

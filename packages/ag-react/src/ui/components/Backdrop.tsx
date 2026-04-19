@@ -29,7 +29,10 @@ import { Box, type BoxProps } from "../../components/Box"
 export interface BackdropProps extends Omit<BoxProps, "children"> {
   /**
    * Fade amount in [0, 1]. 0 = crisp (no fade), 1 = fully blended into bg
-   * (fg == bg, effectively invisible text). Default: 0.4.
+   * (fg == bg, effectively invisible text). Default: 0.25.
+   *
+   * Calibrated to match scrim conventions (macOS ~0.20, Material 3 = 0.32).
+   * Apps that want a heavier dim can opt in with `fade={0.4}` or higher.
    *
    * Interpreted by the `backdrop-phase` pass after content rendering — the
    * fade is NOT applied in React; it's a cell-level transform on the finished
@@ -45,7 +48,11 @@ export interface BackdropProps extends Omit<BoxProps, "children"> {
  *
  * `fade={0}` is a passthrough — no data attribute is emitted, no pass work.
  */
-export function Backdrop({ fade = 0.7, children, ...boxProps }: BackdropProps): React.ReactElement {
+export function Backdrop({
+  fade = 0.25,
+  children,
+  ...boxProps
+}: BackdropProps): React.ReactElement {
   const clamped = clamp01(fade)
   const attrs: Record<string, unknown> = clamped > 0 ? { "data-backdrop-fade": clamped } : {}
   return (

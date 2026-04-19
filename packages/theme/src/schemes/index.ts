@@ -7,7 +7,11 @@
  * - Registry functions (getThemeByName, getSchemeByName)
  */
 
-import { deriveTheme, ansi16DarkTheme as _ansi16DarkTheme, ansi16LightTheme as _ansi16LightTheme } from "@silvery/ansi"
+import {
+  deriveTheme,
+  ansi16DarkTheme as _ansi16DarkTheme,
+  ansi16LightTheme as _ansi16LightTheme,
+} from "@silvery/ansi"
 import type { Theme, ColorScheme } from "@silvery/ansi"
 
 // ── Re-export all palette definitions ──────────────────────────────

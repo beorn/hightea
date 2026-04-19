@@ -45,7 +45,14 @@ export function generateTheme(primary: AnsiPrimary, dark: boolean): Theme {
     pink: slotHex(dark ? "magentaBright" : "magenta"),
   }
 
-  const derived = deriveFields({ primary: primaryHex, accent: accentHex, fg: fgHex, selectionbg: selectionbgHex, surfacebg: surfacebgHex, ring })
+  const derived = deriveFields({
+    primary: primaryHex,
+    accent: accentHex,
+    fg: fgHex,
+    selectionbg: selectionbgHex,
+    surfacebg: surfacebgHex,
+    ring,
+  })
 
   return {
     name: `${dark ? "dark" : "light"}-${primary}`,

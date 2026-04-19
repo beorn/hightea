@@ -58,7 +58,7 @@
  * state across frames.
  */
 
-import { blend } from "@silvery/color"
+import { blend, hexToOklch, oklchToHex } from "@silvery/color"
 import { relativeLuminance } from "@silvery/color"
 import type { AgNode, Rect } from "@silvery/ag/types"
 import { ansi256ToRgb, isDefaultBg, type Color, type TerminalBuffer } from "../buffer"
@@ -96,31 +96,63 @@ const FADE_EXCLUDE_ATTR = "data-backdrop-fade-excluded"
  */
 const DARK_LUMINANCE_THRESHOLD = 0.18
 
-/** Derived neutral color for dark themes — blend target for the spotlight effect. */
-const DARK_NEUTRAL = "#000000"
-
-/** Derived neutral color for light themes — blend target for the spotlight effect. */
-const LIGHT_NEUTRAL = "#ffffff"
+/**
+ * OKLCH lightness offset for dark-theme neutral. The blend target for dark
+ * themes is a DESATURATED gray at `rootBg.L - 0.15`. Using pure black
+ * (`#000000`) as the target preserves the rootBg's hue when blending null-bg
+ * cells (the cell's starting color is rootBg, and black has undefined hue in
+ * OKLab so the hue doesn't drift — but the cell ends up at a darker version
+ * of rootBg's hue, giving a "blue cast" on Nord-like blue-tinted schemes).
+ *
+ * Blending toward a hue-neutral dark gray (C=0) drags the cell's chroma down
+ * while darkening L — so null-bg cells desaturate as they darken. Explicitly-
+ * colored cells (red text, green badges) keep their hue because the blend
+ * target has C=0, which in OKLab means "no color contribution" — the
+ * saturated channel dominates relative to neutral, preserving hue.
+ *
+ * 0.15 is the empirically-chosen L offset: enough to visibly darken, small
+ * enough that null-bg cells remain in the "backdrop palette" rather than
+ * collapsing to pure black (which would exaggerate the fade and lose
+ * readability). For light themes the sign flips.
+ */
+const DARK_NEUTRAL_L_OFFSET = -0.15
+const LIGHT_NEUTRAL_L_OFFSET = 0.15
 
 /**
- * Ratio of bg blend strength to fg blend strength.
+ * Uniform fg/bg blend — both channels blend toward the theme-neutral at the
+ * same `amount`.
  *
- * The `fade` parameter is semantically a fg-fade amount (how much text is
- * pushed toward the theme neutral). Blending `bg` by the same amount produces
- * a much heavier visual effect because bg color dominates the cell's visual
- * weight — every cell darkens, including empty space. With `amount=0.7` (the
- * ModalDialog default) and bg blended at the same strength, the entire
- * backdrop turns nearly black and the "spotlight" separation collapses.
+ * History: an earlier revision (b2dafd70) used asymmetric amounts
+ * (`bg = fg * 0.5`) with the rationale that bg dominates visual weight. That
+ * rationale is CORRECT, but the execution caused three real-app regressions:
  *
- * Halving the bg amount produces a gentler backdrop shift that still reads as
- * "receded" without swallowing the scene. This matches the historical
- * behavior pre-c5bd32e where empty cells got only `dim` (a subtle SGR 2
- * attribute flag) while colored bg cells were left alone.
+ * 1. Brightness-ordering inversion (dominant). A border char (fg-dominated
+ *    cell) and an adjacent panel-fill cell (bg-dominated) walk toward the
+ *    neutral at different rates. Border fg at full `amount` darkens ~2x
+ *    faster than panel bg at `amount/2`. A border that was visibly brighter
+ *    than its panel pre-fade (the standard UI affordance: "border delineates
+ *    panel") collapses in relative brightness — and often inverts outright.
+ *    The user's exact observation: separator borders that were lighter
+ *    became darker than the panel fill after the modal opened.
  *
- * 0.5 was chosen empirically: at fade=0.7 → bg blend 0.35, which visually
- * approximates the pre-fix "dim" strength without the SGR-2 caveats.
+ * 2. Emoji / wide-char "bright spot." Emoji glyphs are rendered by the
+ *    terminal using their own bitmap colors — the fg blend has NO visual
+ *    effect on the glyph. So emoji cells only saw the (reduced) bg blend
+ *    while surrounding text saw both full-amount fg + half-amount bg.
+ *    Emoji visibly popped against darkened neighbors. (Separate fix:
+ *    `attrs.dim` is stamped on wide-char cells so terminals honoring SGR 2
+ *    fade the glyph.)
+ *
+ * 3. Excessive overall darkness. The `amount=0.7` default was calibrated
+ *    against the asymmetric path — halving bg compensated for over-eager
+ *    fg. With uniform amounts that compensation is gone; the default must
+ *    come down substantially. macOS sheet backdrop ≈ 20%, iOS action sheet
+ *    ≈ 40%, Material 3 scrim = 32%. We aim for ~0.25 by default.
+ *
+ * Uniform amounts preserve relative brightness ordering and deltas across
+ * fg/bg — the UI's visual hierarchy survives the fade. The "too heavy"
+ * problem is solved by lowering the default fade, not by asymmetric math.
  */
-const BG_FADE_RATIO = 0.5
 
 interface FadeRect {
   rect: Rect
@@ -194,16 +226,33 @@ export function applyBackdropFade(
 }
 
 /**
- * Derive the blend target color (theme-neutral) from the root bg hex.
+ * Derive the blend target color from the root bg hex.
+ *
+ * The target is a DESATURATED gray (C=0 in OKLCH) at a luminance offset from
+ * the rootBg. For dark themes: `oklch(rootBg.L - 0.15, 0, 0)` → a dark gray.
+ * For light themes: `oklch(rootBg.L + 0.15, 0, 0)` → a light gray.
+ *
+ * Using C=0 means the target has no hue, so blending null-bg cells (which
+ * start at rootBg's hue) drags chroma DOWN as they darken — they desaturate
+ * along the way rather than staying at rootBg's hue. On a Nord-like theme
+ * (#2E3440, blue-tinted) the user previously saw the whole backdrop tint
+ * blue post-fade; with this target the backdrop goes neutral gray instead.
+ *
+ * Explicitly-colored text/bg cells keep their hue because OKLab blending
+ * toward a C=0 target preserves hue (the saturated channel dominates).
  *
  * Returns `null` when `rootBg` is absent or unparseable — signals legacy
  * single-channel fallback in `fadeCell`.
  */
 function deriveBlendTarget(rootBg: string | undefined): string | null {
   if (!rootBg) return null
+  const o = hexToOklch(rootBg)
+  if (!o) return null
   const lum = relativeLuminance(rootBg)
   if (lum === null) return null
-  return lum < DARK_LUMINANCE_THRESHOLD ? DARK_NEUTRAL : LIGHT_NEUTRAL
+  const offset = lum < DARK_LUMINANCE_THRESHOLD ? DARK_NEUTRAL_L_OFFSET : LIGHT_NEUTRAL_L_OFFSET
+  const targetL = Math.max(0, Math.min(1, o.L + offset))
+  return oklchToHex({ L: targetL, C: 0, H: 0 })
 }
 
 type FadeStrategy = "blend" | "dim"
@@ -292,19 +341,20 @@ function fadeRectExcluding(
 /**
  * Fade a single cell. Returns true if the cell was modified.
  *
- * ### `blend` strategy — two-channel transform (asymmetric amounts)
+ * ### `blend` strategy — two-channel uniform transform
  *
  * When `blendTarget` (derived from `rootBg`) is provided:
- * - `cell.fg` is blended toward `blendTarget` at the full `amount` (only when
+ * - `cell.fg` is blended toward `blendTarget` at `amount` (only when
  *   `cell.fg` resolves to a concrete color; null fg cells keep `fg=null`).
- * - `cell.bg` is blended toward `blendTarget` at a reduced amount
- *   (`amount * BG_FADE_RATIO`). `null`/`DEFAULT_BG` cells are treated as the
- *   theme's `rootBg` (that IS the color the terminal paints for them), so
- *   empty space cells in the modal's shadow visibly darken — but at half
- *   strength so the backdrop reads as "receded" rather than "blacked out."
+ * - `cell.bg` is blended toward `blendTarget` at `amount`. `null`/`DEFAULT_BG`
+ *   cells are treated as the theme's `rootBg` (that IS the color the
+ *   terminal paints for them), so empty space cells in the modal's shadow
+ *   darken at the same rate as explicitly-colored cells.
  *
- * The asymmetric amounts matter: bg color dominates visual weight, so
- * matching the fg amount drowns the scene. See `BG_FADE_RATIO` docblock.
+ * Uniform amounts preserve relative brightness ordering between border
+ * (fg-dominated) and panel-fill (bg-dominated) cells — the visual hierarchy
+ * survives the fade. Calibration happens at the call site: the ModalDialog
+ * default fade is deliberately small (~0.25) to keep the backdrop readable.
  *
  * This is the "modal spotlight" transform: everything outside the modal
  * converges toward the theme-neutral (pure black for dark themes, pure white
@@ -314,23 +364,27 @@ function fadeRectExcluding(
  *
  * When `blendTarget` is null (legacy path): mix fg toward cell.bg only.
  *
+ * ### Wide-char / emoji handling
+ *
+ * Terminals render emoji glyphs using the glyph's own bitmap colors — the
+ * `fg` blend has no visual effect on the emoji itself, only on text chars.
+ * So an emoji in a backdrop, even with `fg` blended to near-black, would
+ * visibly pop against surrounding darkened cells.
+ *
+ * Mitigation: stamp `attrs.dim` (SGR 2) on wide-char lead + continuation
+ * cells. Most modern terminals (Ghostty, iTerm2, Kitty, WezTerm) honor SGR
+ * 2 on emoji and render the glyph at reduced opacity. This is a best-effort
+ * fade — not all terminals implement it, but the ones that do make the
+ * emoji recede visually alongside its darkened bg.
+ *
+ * Separately, the continuation cell at `x+1` also needs its bg synced to
+ * the lead cell's blended bg (otherwise the two halves of the glyph have
+ * different bg colors — a visual split down the middle).
+ *
  * ### `dim` strategy
  *
- * Stamps `attrs.dim` (SGR 2). Used for the ANSI-16 tier where palette slot
- * blending isn't well-defined.
- *
- * ### Wide-char handling
- *
- * Wide chars (emoji, CJK) occupy two columns: a lead cell + a continuation
- * cell. The continuation cell shares all style metadata with the lead cell
- * conceptually, but the buffer tracks them as separate cells with their own
- * bg. Skipping the continuation would leave a half-faded emoji (lead cell's
- * bg darkens, continuation cell's bg stays at pre-fade value) — visually
- * ugly and mathematically inconsistent with a fresh render.
- *
- * Solution: when the lead cell's bg is blended, the continuation cell at x+1
- * gets the same blended bg written. The continuation's own `setCell` call
- * preserves `continuation=true` so wide-char invariants stay intact.
+ * Stamps `attrs.dim` (SGR 2) on every covered cell. Used for the ANSI-16
+ * tier where palette slot blending isn't well-defined.
  */
 function fadeCell(
   buffer: TerminalBuffer,
@@ -342,9 +396,8 @@ function fadeCell(
   rootBgHex: string | null,
 ): boolean {
   // Skip continuation half of wide chars — the leading cell at x-1 will update
-  // this cell's bg in lockstep when it's processed (see wide-char handling
-  // below). Processing the continuation independently would double-blend or
-  // desync bg from the lead cell.
+  // this cell's bg + dim in lockstep when it's processed. Processing the
+  // continuation independently would double-blend or desync from the lead.
   if (buffer.isCellContinuation(x, y)) return false
 
   const cell = buffer.getCell(x, y)
@@ -364,30 +417,31 @@ function fadeCell(
 
   // strategy === "blend"
   const fgHex = colorToHex(cell.fg)
-  const bgAmount = amount * BG_FADE_RATIO
 
   if (blendTarget !== null && rootBgHex !== null) {
-    // Two-channel transform: blend fg (full amount) AND bg (reduced amount)
-    // toward the theme-neutral.
+    // Two-channel UNIFORM transform: blend fg and bg toward the theme-neutral
+    // at the same `amount`. Asymmetric amounts (the b2dafd70 revision) caused
+    // border/panel brightness inversion — see the BG_FADE_RATIO docblock
+    // (removed) for the full history.
     //
     // Blend bg toward the neutral. When cell.bg is null/DEFAULT_BG, treat it
     // as the theme's rootBg — that IS the color the terminal paints for those
     // cells. Blending null-bg cells produces an explicit darkened hex so the
     // backdrop visibly darkens past $bg, matching cells with explicit $bg.
-    //
-    // IMPORTANT: bg darkening must happen even when fgHex is null (empty
-    // space cells: char=" ", fg=null). Previously these short-circuited to a
-    // `dim` stamp and never blended their bg, so entire empty regions behind
-    // the modal looked identical pre/post-open. See regression test
-    // "empty space cells behind modal darken their bg toward theme neutral".
     const bgHex = colorToHex(cell.bg) ?? rootBgHex
-    const blendedBgHex = blend(bgHex, blendTarget, bgAmount)
+    const blendedBgHex = blend(bgHex, blendTarget, amount)
     const blendedBg = hexToRgb(blendedBgHex)
+
+    // Wide-char fg is INVISIBLE for emoji (terminal uses the glyph's own
+    // colors). Stamp dim as a best-effort so terminals honoring SGR 2
+    // on emoji fade the glyph alongside surrounding cells. Also stamp the
+    // continuation cell.
+    const stampEmojiDim = cell.wide
+    const newAttrs = stampEmojiDim && !cell.attrs.dim ? { ...cell.attrs, dim: true } : cell.attrs
 
     // If fg is unresolvable (null — e.g., space character with no foreground),
     // blend the bg alone. Still mark dim as a belt-and-suspenders signal for
-    // any downstream consumer that doesn't look at bg (e.g., terminals that
-    // don't render true-color bg but do honour SGR 2).
+    // downstream consumers (terminals that ignore bg but honor SGR 2).
     if (!fgHex) {
       if (!blendedBg) {
         // Couldn't resolve either channel — final fallback to dim stamp.
@@ -395,8 +449,8 @@ function fadeCell(
         buffer.setCell(x, y, { ...cell, attrs: { ...cell.attrs, dim: true } })
         return true
       }
-      buffer.setCell(x, y, { ...cell, bg: blendedBg })
-      propagateBgToContinuation(buffer, cell, x, y, blendedBg)
+      buffer.setCell(x, y, { ...cell, bg: blendedBg, attrs: newAttrs })
+      propagateBgToContinuation(buffer, cell, x, y, blendedBg, stampEmojiDim)
       return true
     }
 
@@ -405,13 +459,14 @@ function fadeCell(
     if (!blendedFg) return false
 
     if (!blendedBg) {
-      buffer.setCell(x, y, { ...cell, fg: blendedFg })
-      // No bg change to propagate, but fg changes don't need continuation
-      // sync — continuations don't render a separate glyph.
+      buffer.setCell(x, y, { ...cell, fg: blendedFg, attrs: newAttrs })
+      // No bg change to propagate, but continuation dim still needs syncing
+      // when this is a wide char.
+      if (stampEmojiDim) propagateDimToContinuation(buffer, cell, x, y)
       return true
     }
-    buffer.setCell(x, y, { ...cell, fg: blendedFg, bg: blendedBg })
-    propagateBgToContinuation(buffer, cell, x, y, blendedBg)
+    buffer.setCell(x, y, { ...cell, fg: blendedFg, bg: blendedBg, attrs: newAttrs })
+    propagateBgToContinuation(buffer, cell, x, y, blendedBg, stampEmojiDim)
     return true
   }
 
@@ -448,8 +503,11 @@ function fadeCell(
  * an emoji darken by different amounts — lead cell shows the blended bg,
  * continuation keeps the pre-fade bg, producing a visually-split glyph.
  *
+ * When `stampDim=true` also stamps `attrs.dim` on the continuation (matches
+ * the lead cell's dim stamp for emoji visual fade).
+ *
  * `setCell` on a continuation cell preserves the continuation flag and char
- * (usually space or mirror of lead). Only the bg updates.
+ * (usually space or mirror of lead). Only the bg / dim attr updates.
  */
 function propagateBgToContinuation(
   buffer: TerminalBuffer,
@@ -457,12 +515,33 @@ function propagateBgToContinuation(
   x: number,
   y: number,
   blendedBg: { r: number; g: number; b: number },
+  stampDim: boolean,
 ): void {
   if (!leadCell.wide) return
   if (x + 1 >= buffer.width) return
   const cont = buffer.getCell(x + 1, y)
   if (!cont.continuation) return
-  buffer.setCell(x + 1, y, { ...cont, bg: blendedBg })
+  const attrs = stampDim && !cont.attrs.dim ? { ...cont.attrs, dim: true } : cont.attrs
+  buffer.setCell(x + 1, y, { ...cont, bg: blendedBg, attrs })
+}
+
+/**
+ * Stamp `attrs.dim` on the continuation cell of a wide char when the lead
+ * cell has been dimmed but no bg change needed propagation (e.g., lead cell
+ * had null bg and only fg was blended).
+ */
+function propagateDimToContinuation(
+  buffer: TerminalBuffer,
+  leadCell: { wide: boolean },
+  x: number,
+  y: number,
+): void {
+  if (!leadCell.wide) return
+  if (x + 1 >= buffer.width) return
+  const cont = buffer.getCell(x + 1, y)
+  if (!cont.continuation) return
+  if (cont.attrs.dim) return
+  buffer.setCell(x + 1, y, { ...cont, attrs: { ...cont.attrs, dim: true } })
 }
 
 /** Convert a buffer Color to a `#rrggbb` hex string, or null if unresolvable. */

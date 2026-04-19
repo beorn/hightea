@@ -94,9 +94,22 @@ describe("Theme objects carry pure hex values (no ANSI slot name strings)", () =
 
   test("no ANSI slot name strings in ansi16DarkTheme (spot check)", () => {
     const slotNames = [
-      "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
-      "blackBright", "redBright", "greenBright", "yellowBright",
-      "blueBright", "magentaBright", "cyanBright", "whiteBright",
+      "black",
+      "red",
+      "green",
+      "yellow",
+      "blue",
+      "magenta",
+      "cyan",
+      "white",
+      "blackBright",
+      "redBright",
+      "greenBright",
+      "yellowBright",
+      "blueBright",
+      "magentaBright",
+      "cyanBright",
+      "whiteBright",
     ]
     for (const [key, value] of Object.entries(ansi16DarkTheme)) {
       if (typeof value === "string" && !NON_HEX_FIELDS.has(key)) {
