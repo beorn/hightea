@@ -20,7 +20,8 @@
 
 // React integration — ThemeContext + useTheme hook
 // Note: ThemeProvider is in @silvery/ag-react (the full provider with AgNode tree integration).
-// The legacy ThemeProvider from @silvery/theme/ThemeContext is kept for backward compat only.
+// This module re-exports the raw React context + hook only; the provider component
+// was removed in R1 (km-silvery.theme-v3-r1-one-provider).
 export { ThemeContext, useTheme } from "./ThemeContext"
 
 // Core types
