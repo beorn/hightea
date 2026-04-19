@@ -22,6 +22,8 @@
     "./store": "./src/store/index.ts",
     "./streams": "./src/streams/index.ts",
     "./tea": "./src/tea/index.ts",
+    "./create-app": "./src/create-app.tsx",
+    "./create-app-context": "./src/create-app-context.tsx",
     "./*": "./src/*.ts"
   },
   "publishConfig": {
@@ -34,6 +36,10 @@
       "./create-app": {
         "types": "./dist/create-app.d.mts",
         "import": "./dist/create-app.mjs"
+      },
+      "./create-app-context": {
+        "types": "./dist/create-app-context.d.mts",
+        "import": "./dist/create-app-context.mjs"
       },
       "./effects": {
         "types": "./dist/effects.d.mts",
@@ -128,6 +134,7 @@
     "entry": [
       "src/index.ts",
       "src/create-app.tsx",
+      "src/create-app-context.tsx",
       "src/effects.ts",
       "src/focus-events.ts",
       "src/focus-manager.ts",
