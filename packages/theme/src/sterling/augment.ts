@@ -83,7 +83,7 @@ function schemeFromLegacy(theme: LegacyTheme): ColorScheme {
  */
 function isDark(hex: string): boolean {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex)
-  if (!m) return true
+  if (!m?.[1]) return true
   const n = parseInt(m[1], 16)
   const r = (n >> 16) & 0xff
   const g = (n >> 8) & 0xff
@@ -100,10 +100,7 @@ function isDark(hex: string): boolean {
  * When omitted, Sterling derives from a ColorScheme reconstructed from the
  * theme itself — good enough for runtime augmentation of hand-authored themes.
  */
-export function augmentWithSterlingFlat(
-  theme: LegacyTheme,
-  scheme?: ColorScheme,
-): UnifiedTheme {
+export function augmentWithSterlingFlat(theme: LegacyTheme, scheme?: ColorScheme): UnifiedTheme {
   const src = scheme ?? schemeFromLegacy(theme)
   const { roles } = deriveRoles(src, { contrast: "auto-lift" })
 
@@ -132,7 +129,9 @@ export function augmentWithSterlingFlat(
     setIfAbsent(`bg-${role}`, r.bg)
     setIfAbsent(`fg-on-${role}`, r.fgOn)
     for (const state of ["hover", "active"] as const) {
-      const s = (r as { hover?: { fg: string; bg: string }; active?: { fg: string; bg: string } })[state]
+      const s = (r as { hover?: { fg: string; bg: string }; active?: { fg: string; bg: string } })[
+        state
+      ]
       if (!s) continue
       setIfAbsent(`fg-${role}-${state}`, s.fg)
       setIfAbsent(`bg-${role}-${state}`, s.bg)

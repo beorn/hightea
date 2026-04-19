@@ -161,13 +161,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       // Default fallback: red bordered box with error message
       return (
-        <Box borderStyle="single" borderColor="$error" padding={1} flexDirection="column">
-          <Text color="$error" bold>
+        <Box borderStyle="single" borderColor="$fg-error" padding={1} flexDirection="column">
+          <Text color="$fg-error" bold>
             Error
           </Text>
-          {error && <Text color="$error">{error.message}</Text>}
+          {error && <Text color="$fg-error">{error.message}</Text>}
           {errorInfo?.componentStack && (
-            <Text color="$muted" wrap="truncate">
+            <Text color="$fg-muted" wrap="truncate">
               {errorInfo.componentStack.split("\n").slice(0, 3).join("\n")}
             </Text>
           )}

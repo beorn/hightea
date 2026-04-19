@@ -6,13 +6,13 @@
  *
  * All components accept an optional `color` prop to override the default.
  * Headings default to semantic theme colors; pass a custom color for
- * panel differentiation (e.g., <H1 color="$success">Panel A</H1>).
+ * panel differentiation (e.g., <H1 color="$fg-success">Panel A</H1>).
  *
  * ## Color inheritance
  *
  * Body-text components (P, Strong, Em, H3) inherit foreground color from
  * the nearest ancestor Box with a `color` or `theme` prop — just like CSS.
- * They do NOT hardcode `$fg`, so `<Box color="$error"><P>red text</P></Box>` works.
+ * They do NOT hardcode `$fg`, so `<Box color="$fg-error"><P>red text</P></Box>` works.
  *
  * `Box theme={}` auto-inherits `$fg` for all text and auto-fills `$bg`:
  * ```tsx
@@ -162,7 +162,7 @@ export function Kbd({ children, color, ...rest }: TypographyProps) {
 export function Blockquote({ children, color }: TypographyProps) {
   return (
     <Box>
-      <Text color={color ?? "$muted"}>│ </Text>
+      <Text color={color ?? "$fg-muted"}>│ </Text>
       <Box flexShrink={1}>
         <Text italic>{children}</Text>
       </Box>
@@ -174,7 +174,7 @@ export function Blockquote({ children, color }: TypographyProps) {
 export function CodeBlock({ children, color }: TypographyProps) {
   return (
     <Box>
-      <Text color={color ?? "$border"}>│ </Text>
+      <Text color={color ?? "$border-default"}>│ </Text>
       <Box flexShrink={1}>
         <Text>{children}</Text>
       </Box>
@@ -185,7 +185,7 @@ export function CodeBlock({ children, color }: TypographyProps) {
 /** Horizontal rule — thin line across the available width. */
 export function HR({ color, ...rest }: Omit<TypographyProps, "children">) {
   return (
-    <Text color={color ?? "$border"} wrap="truncate" {...rest}>
+    <Text color={color ?? "$border-default"} wrap="truncate" {...rest}>
       {"─".repeat(200)}
     </Text>
   )
@@ -242,7 +242,7 @@ export function LI({ children, color, _index }: TypographyProps & { _index?: num
 
   return (
     <Box>
-      <Text color={color ?? "$muted"}>
+      <Text color={color ?? "$fg-muted"}>
         {indent}
         {marker}
       </Text>

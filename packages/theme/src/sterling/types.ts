@@ -208,11 +208,12 @@ export type DerivationTrace = readonly DerivationStep[]
  *   - `mode` — light/dark
  *   - `derivationTrace` — optional; present only when `{ trace: true }` was passed
  */
-export type Theme = FlatTokens & Roles & {
-  readonly name?: string
-  readonly mode: "light" | "dark"
-  readonly derivationTrace?: DerivationTrace
-}
+export type Theme = FlatTokens &
+  Roles & {
+    readonly name?: string
+    readonly mode: "light" | "dark"
+    readonly derivationTrace?: DerivationTrace
+  }
 
 // ── ThemeShape metadata ────────────────────────────────────────────────────
 
@@ -288,7 +289,11 @@ export interface DesignSystem {
   deriveFromColor(color: string, opts?: DeriveOptions & { mode?: "light" | "dark" }): Theme
 
   /** Derive from a light/dark scheme pair. */
-  deriveFromPair(light: ColorScheme, dark: ColorScheme, opts?: DeriveOptions): {
+  deriveFromPair(
+    light: ColorScheme,
+    dark: ColorScheme,
+    opts?: DeriveOptions,
+  ): {
     light: Theme
     dark: Theme
   }

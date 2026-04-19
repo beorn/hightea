@@ -194,7 +194,7 @@ export function TreeView({
       return (
         <Text inverse={meta.isCursor}>
           {padding}
-          <Text color={hasChildren ? "$primary" : "$fg"}>{prefix}</Text>
+          <Text color={hasChildren ? "$fg-accent" : "$fg"}>{prefix}</Text>
           {renderNode ? renderNode(item.node, item.depth) : <Text>{item.node.label}</Text>}
         </Text>
       )
@@ -205,7 +205,7 @@ export function TreeView({
   if (flatItems.length === 0) {
     return (
       <Box>
-        <Text color="$disabledfg">No items</Text>
+        <Text color="$fg-muted">No items</Text>
       </Box>
     )
   }

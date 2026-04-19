@@ -50,7 +50,7 @@ export function Divider({
   if (!title) {
     return (
       <Box>
-        <Text color="$border">{char.repeat(totalWidth)}</Text>
+        <Text color="$border-default">{char.repeat(totalWidth)}</Text>
       </Box>
     )
   }
@@ -63,9 +63,9 @@ export function Divider({
 
   return (
     <Box>
-      <Text color="$border">{char.repeat(leftLen)}</Text>
+      <Text color="$border-default">{char.repeat(leftLen)}</Text>
       <Text bold>{titleWithPad}</Text>
-      <Text color="$border">{char.repeat(rightLen)}</Text>
+      <Text color="$border-default">{char.repeat(rightLen)}</Text>
     </Box>
   )
 }

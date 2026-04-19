@@ -80,13 +80,13 @@ export function FormField({
 }: FormFieldProps): React.ReactElement {
   return (
     <Box flexDirection="column">
-      <Text color="$muted" bold>
+      <Text color="$fg-muted" bold>
         {label}
-        {required && <Text color="$error"> *</Text>}
+        {required && <Text color="$fg-error"> *</Text>}
       </Text>
-      {description && <Text color="$disabledfg">{description}</Text>}
+      {description && <Text color="$fg-muted">{description}</Text>}
       <Box>{children}</Box>
-      {error && <Text color="$error">{error}</Text>}
+      {error && <Text color="$fg-error">{error}</Text>}
     </Box>
   )
 }

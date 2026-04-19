@@ -53,7 +53,10 @@ export const sterling: DesignSystem = {
 
   theme(partial?: DeepPartial<Theme>, opts: DeriveOptions = {}): Theme {
     const mode = opts.mode ?? "dark"
-    const base = buildTheme(defaultScheme(mode), { ...opts, contrast: opts.contrast ?? "auto-lift" })
+    const base = buildTheme(defaultScheme(mode), {
+      ...opts,
+      contrast: opts.contrast ?? "auto-lift",
+    })
     if (!partial) return base
     // Merge partial over base, then re-flatten (nested keys may have changed).
     const merged = mergePartial(base, partial)
@@ -84,7 +87,11 @@ export const sterling: DesignSystem = {
     return buildTheme(scheme, opts)
   },
 
-  deriveFromPair(light: ColorScheme, dark: ColorScheme, opts: DeriveOptions = {}): {
+  deriveFromPair(
+    light: ColorScheme,
+    dark: ColorScheme,
+    opts: DeriveOptions = {},
+  ): {
     light: Theme
     dark: Theme
   } {

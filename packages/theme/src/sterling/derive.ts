@@ -141,7 +141,13 @@ function guardTarget(
 ): string {
   const pinned = pin(pins, nestedPath, flatPath)
   if (pinned !== undefined) {
-    trace.push({ token: nestedPath, rule: "pinned by scheme author", inputs: [pinned], output: pinned, pinned: true })
+    trace.push({
+      token: nestedPath,
+      rule: "pinned by scheme author",
+      inputs: [pinned],
+      output: pinned,
+      pinned: true,
+    })
     return pinned
   }
   if (against === undefined) {
@@ -182,7 +188,12 @@ function guardTarget(
 export function deriveRoles(
   scheme: ColorScheme,
   opts: DeriveOptions,
-): { roles: Roles; mode: "light" | "dark"; trace: DerivationStep[]; violations: ContrastViolation[] } {
+): {
+  roles: Roles
+  mode: "light" | "dark"
+  trace: DerivationStep[]
+  violations: ContrastViolation[]
+} {
   const mode = inferMode(scheme, opts.mode)
   const contrast = opts.contrast ?? "auto-lift"
   const pins = opts.pins
@@ -195,8 +206,28 @@ export function deriveRoles(
   const fg = scheme.foreground
 
   // Shared function: guard one leaf token through pins + contrast.
-  function guard(nestedPath: string, flatPath: string, rule: string, inputs: string[], value: string, against?: string, target = WCAG_AA): string {
-    return guardTarget(nestedPath, flatPath, rule, inputs, value, against, target, contrast, pins, trace, violations)
+  function guard(
+    nestedPath: string,
+    flatPath: string,
+    rule: string,
+    inputs: string[],
+    value: string,
+    against?: string,
+    target = WCAG_AA,
+  ): string {
+    return guardTarget(
+      nestedPath,
+      flatPath,
+      rule,
+      inputs,
+      value,
+      against,
+      target,
+      contrast,
+      pins,
+      trace,
+      violations,
+    )
   }
 
   // ── Accent ───────────────────────────────────────────────────────────────
@@ -217,7 +248,14 @@ export function deriveRoles(
     [accentBg],
     shiftL(accentBg, deltaA.active, mode),
   )
-  const accentFgOn = guard("accent.fgOn", "fg-on-accent", "contrast-pick(scheme.fg/bg/BW)", [accentBg], pickFgOn(accentBg, scheme), accentBg)
+  const accentFgOn = guard(
+    "accent.fgOn",
+    "fg-on-accent",
+    "contrast-pick(scheme.fg/bg/BW)",
+    [accentBg],
+    pickFgOn(accentBg, scheme),
+    accentBg,
+  )
   const accentBorder = guard("accent.border", "border-accent", "= accent.bg", [accentBg], accentBg)
   const accentHoverFg = guard(
     "accent.hover.fg",
@@ -260,12 +298,32 @@ export function deriveRoles(
   // (AA-Large / UI), which is the accessibility minimum for non-body text.
   // Blend at 0.4 toward bg (less muted than 0.5 midpoint) so schemes with
   // low fg/bg contrast still clear the 3:1 floor.
-  const mutedFg = guard("muted.fg", "fg-muted", "blend(fg, bg, 0.4)", [fg, bg], blend(fg, bg, 0.4), bg, 3.0)
-  const mutedBg = guard("muted.bg", "bg-muted", "blend(bg, fg, 0.08)", [bg, fg], blend(bg, fg, 0.08))
+  const mutedFg = guard(
+    "muted.fg",
+    "fg-muted",
+    "blend(fg, bg, 0.4)",
+    [fg, bg],
+    blend(fg, bg, 0.4),
+    bg,
+    3.0,
+  )
+  const mutedBg = guard(
+    "muted.bg",
+    "bg-muted",
+    "blend(bg, fg, 0.08)",
+    [bg, fg],
+    blend(bg, fg, 0.08),
+  )
   const muted: MutedRole = { fg: mutedFg, bg: mutedBg }
 
   // ── Surface ──────────────────────────────────────────────────────────────
-  const surfaceDefault = guard("surface.default", "bg-surface-default", "scheme.background", [bg], bg)
+  const surfaceDefault = guard(
+    "surface.default",
+    "bg-surface-default",
+    "scheme.background",
+    [bg],
+    bg,
+  )
   const surfaceSubtle = guard(
     "surface.subtle",
     "bg-surface-subtle",
@@ -322,8 +380,20 @@ export function deriveRoles(
 
   // ── Cursor ───────────────────────────────────────────────────────────────
   const cursor: CursorRole = {
-    fg: guard("cursor.fg", "fg-cursor", "scheme.cursorText", [scheme.cursorText], scheme.cursorText),
-    bg: guard("cursor.bg", "bg-cursor", "scheme.cursorColor", [scheme.cursorColor], scheme.cursorColor),
+    fg: guard(
+      "cursor.fg",
+      "fg-cursor",
+      "scheme.cursorText",
+      [scheme.cursorText],
+      scheme.cursorText,
+    ),
+    bg: guard(
+      "cursor.bg",
+      "bg-cursor",
+      "scheme.cursorColor",
+      [scheme.cursorColor],
+      scheme.cursorColor,
+    ),
   }
 
   const roles: Roles = { accent, info, success, warning, error, muted, surface, border, cursor }
@@ -354,7 +424,20 @@ function buildInteractive(
     value: string,
     against?: string,
     target = WCAG_AA,
-  ): string => guardTarget(nestedPath, flatPath, rule, inputs, value, against, target, contrast, pins, trace, violations)
+  ): string =>
+    guardTarget(
+      nestedPath,
+      flatPath,
+      rule,
+      inputs,
+      value,
+      against,
+      target,
+      contrast,
+      pins,
+      trace,
+      violations,
+    )
 
   const fg = guard(`${name}.fg`, `fg-${name}`, seedRule(name), [seed], seed, bg)
   const roleBg = guard(`${name}.bg`, `bg-${name}`, seedRule(name), [seed], seed)
@@ -434,7 +517,10 @@ function seedRule(name: string): string {
  *
  * Returned Theme is NOT frozen and DOES NOT contain flat keys yet.
  */
-export function deriveTheme(scheme: ColorScheme, opts: DeriveOptions = {}): Omit<Theme, keyof import("./types.ts").FlatTokens> {
+export function deriveTheme(
+  scheme: ColorScheme,
+  opts: DeriveOptions = {},
+): Omit<Theme, keyof import("./types.ts").FlatTokens> {
   const { roles, mode, trace, violations } = deriveRoles(scheme, opts)
 
   if ((opts.contrast ?? "auto-lift") === "strict" && violations.length > 0) {
@@ -466,7 +552,13 @@ export function mergePartial(base: Theme, patch: DeepPartial<Theme> | undefined)
       out[k] = { ...cur, ...(v as object) }
       // Second-level deep (for hover/active under roles)
       for (const [k2, v2] of Object.entries(v as object)) {
-        if (v2 && typeof v2 === "object" && !Array.isArray(v2) && cur[k2] && typeof cur[k2] === "object") {
+        if (
+          v2 &&
+          typeof v2 === "object" &&
+          !Array.isArray(v2) &&
+          cur[k2] &&
+          typeof cur[k2] === "object"
+        ) {
           out[k][k2] = { ...cur[k2], ...(v2 as object) }
         }
       }

@@ -64,7 +64,7 @@ export function Skeleton({
     const pad = Math.max(0, Math.floor((width - circleWidth) / 2))
     return (
       <Box>
-        <Text color="$muted">
+        <Text color="$fg-muted">
           {" ".repeat(pad)}
           {char.repeat(circleWidth)}
         </Text>
@@ -78,7 +78,7 @@ export function Skeleton({
   return (
     <Box flexDirection="column">
       {rows.map((i) => (
-        <Text key={i} color="$muted">
+        <Text key={i} color="$fg-muted">
           {line}
         </Text>
       ))}

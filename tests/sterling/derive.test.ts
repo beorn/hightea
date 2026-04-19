@@ -116,7 +116,10 @@ describe("sterling.deriveFromScheme — shape", () => {
   })
 
   test("deriveFromPair returns two themes", () => {
-    const pair = sterling.deriveFromPair(builtinPalettes["catppuccin-latte"]!, builtinPalettes["nord"]!)
+    const pair = sterling.deriveFromPair(
+      builtinPalettes["catppuccin-latte"]!,
+      builtinPalettes["nord"]!,
+    )
     expect(pair.light.mode).toBe("light")
     expect(pair.dark.mode).toBe("dark")
   })

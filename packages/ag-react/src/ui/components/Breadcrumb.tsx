@@ -60,8 +60,8 @@ export function Breadcrumb({ items, separator = "/" }: BreadcrumbProps): React.R
 
         return (
           <React.Fragment key={i}>
-            {i > 0 && <Text color="$disabledfg"> {separator} </Text>}
-            <Text color={isLast ? "$fg" : "$muted"} bold={isLast}>
+            {i > 0 && <Text color="$fg-muted"> {separator} </Text>}
+            <Text color={isLast ? "$fg" : "$fg-muted"} bold={isLast}>
               {item.label}
             </Text>
           </React.Fragment>

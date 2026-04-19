@@ -32,8 +32,8 @@ describe("augmentWithSterlingFlat", () => {
     const unified = augmentWithSterlingFlat(legacy, nord)
 
     for (const key of Object.keys(legacy)) {
-      expect((unified as Record<string, unknown>)[key], `legacy key ${key}`).toEqual(
-        (legacy as Record<string, unknown>)[key],
+      expect((unified as unknown as Record<string, unknown>)[key], `legacy key ${key}`).toEqual(
+        (legacy as unknown as Record<string, unknown>)[key],
       )
     }
   })
@@ -42,7 +42,7 @@ describe("augmentWithSterlingFlat", () => {
     const unified = augmentWithSterlingFlat(deriveTheme(nord), nord)
 
     for (const token of STERLING_FLAT_TOKENS) {
-      const v = (unified as Record<string, unknown>)[token]
+      const v = (unified as unknown as Record<string, unknown>)[token]
       expect(typeof v, `${token} must be a string`).toBe("string")
       expect(v, `${token} must be a 6-digit hex`).toMatch(HEX)
     }
@@ -54,8 +54,18 @@ describe("augmentWithSterlingFlat", () => {
     // objects arrive in Phase 2d.
     const unified = augmentWithSterlingFlat(deriveTheme(nord), nord)
 
-    for (const role of ["accent", "error", "surface", "border", "cursor", "muted", "info", "success", "warning"]) {
-      const v = (unified as Record<string, unknown>)[role]
+    for (const role of [
+      "accent",
+      "error",
+      "surface",
+      "border",
+      "cursor",
+      "muted",
+      "info",
+      "success",
+      "warning",
+    ]) {
+      const v = (unified as unknown as Record<string, unknown>)[role]
       expect(typeof v, `${role} must remain a legacy hex string`).toBe("string")
     }
   })
@@ -68,8 +78,8 @@ describe("augmentWithSterlingFlat", () => {
     // Both should populate the full flat set; values may differ slightly
     // (reconstructed ANSI slots are lossy) but all tokens must be hex.
     for (const token of STERLING_FLAT_TOKENS) {
-      expect((unifiedWith as Record<string, unknown>)[token]).toMatch(HEX)
-      expect((unifiedWithout as Record<string, unknown>)[token]).toMatch(HEX)
+      expect((unifiedWith as unknown as Record<string, unknown>)[token]).toMatch(HEX)
+      expect((unifiedWithout as unknown as Record<string, unknown>)[token]).toMatch(HEX)
     }
   })
 })
@@ -87,13 +97,22 @@ describe("default themes ship Sterling flat tokens", () => {
   for (const [name, theme] of pairs) {
     it(`${name} has every Sterling flat token`, () => {
       for (const token of STERLING_FLAT_TOKENS) {
-        expect((theme as Record<string, unknown>)[token], `${name} missing ${token}`).toMatch(HEX)
+        expect((theme as unknown as Record<string, unknown>)[token], `${name} missing ${token}`).toMatch(HEX)
       }
     })
 
     it(`${name} preserves legacy string role values`, () => {
-      for (const role of ["accent", "error", "muted", "surface", "border", "info", "success", "warning"]) {
-        expect(typeof (theme as Record<string, unknown>)[role], `${name}.${role}`).toBe("string")
+      for (const role of [
+        "accent",
+        "error",
+        "muted",
+        "surface",
+        "border",
+        "info",
+        "success",
+        "warning",
+      ]) {
+        expect(typeof (theme as unknown as Record<string, unknown>)[role], `${name}.${role}`).toBe("string")
       }
     })
   }

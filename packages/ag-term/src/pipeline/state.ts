@@ -16,6 +16,7 @@
 
 import type { Theme } from "@silvery/ansi"
 import { ansi16DarkTheme } from "@silvery/ansi"
+import { augmentWithSterlingFlat } from "@silvery/theme"
 
 // ============================================================================
 // Active Theme (fallback only — not set by ThemeProvider)
@@ -27,8 +28,12 @@ import { ansi16DarkTheme } from "@silvery/ansi"
  * This is only returned by getActiveTheme() when called from a code path that
  * has no pushContextTheme frame on the stack, e.g. a bare test that renders
  * without ThemeProvider.
+ *
+ * Augmented with Sterling flat tokens (Phase 2b) so bare-test render paths
+ * resolve `$fg-accent` / `$bg-surface-subtle` / etc. without needing an
+ * explicit ThemeProvider.
  */
-const _activeTheme: Theme = ansi16DarkTheme
+const _activeTheme: Theme = augmentWithSterlingFlat(ansi16DarkTheme)
 
 /** Get the active theme (fallback to ansi16DarkTheme when no context stack entry exists). */
 export function getActiveTheme(): Theme {

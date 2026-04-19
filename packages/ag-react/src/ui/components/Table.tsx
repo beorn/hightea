@@ -153,16 +153,16 @@ export function Table({
               return (
                 <React.Fragment key={col.key ?? col.header}>
                   <Box width={colWidths[i]} flexShrink={0}>
-                    <Text bold={headerBold} color="$muted">
+                    <Text bold={headerBold} color="$fg-muted">
                       {col.header}
                     </Text>
                   </Box>
-                  {!isLast && <Text color="$border">{separator}</Text>}
+                  {!isLast && <Text color="$border-default">{separator}</Text>}
                 </React.Fragment>
               )
             })}
           </Box>
-          <Text color="$border">{separatorLine}</Text>
+          <Text color="$border-default">{separatorLine}</Text>
         </>
       )}
       {data.length > 0 && (

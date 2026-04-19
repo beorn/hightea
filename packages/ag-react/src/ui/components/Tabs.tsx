@@ -161,7 +161,7 @@ export function Tabs({
  */
 export function TabList({ children }: TabListProps): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={1} borderBottom borderColor="$border">
+    <Box flexDirection="row" gap={1} borderBottom borderColor="$border-default">
       {children}
     </Box>
   )
@@ -198,7 +198,7 @@ export function Tab({ value, children }: TabProps): React.ReactElement {
       onMouseLeave={() => setIsHovered(false)}
       backgroundColor={hoverBg}
     >
-      <Text color={isActive ? "$primary" : "$muted"} bold={isActive} underline={isActive}>
+      <Text color={isActive ? "$fg-accent" : "$fg-muted"} bold={isActive} underline={isActive}>
         {children}
       </Text>
     </Box>

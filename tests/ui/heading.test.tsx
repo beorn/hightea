@@ -33,12 +33,12 @@ const EXPECTED_SCALES: Record<HeadingLevel, number> = {
 }
 
 const EXPECTED_COLORS: Record<HeadingLevel, string | undefined> = {
-  1: "$primary",
-  2: "$accent",
-  3: "$primary",
+  1: "$fg-accent",
+  2: "$fg-accent",
+  3: "$fg-accent",
   4: undefined,
   5: undefined,
-  6: "$muted",
+  6: "$fg-muted",
 }
 
 // =============================================================================
@@ -119,31 +119,31 @@ describe("Heading", () => {
     }
   })
 
-  test("h1 defaults to $primary color", () => {
+  test("h1 defaults to $fg-accent color", () => {
     const app = render(<Heading level={1}>Primary</Heading>)
     const node = app.getByText("Primary").resolve()
-    expect((node!.props as StyleProps).color).toBe("$primary")
+    expect((node!.props as StyleProps).color).toBe("$fg-accent")
   })
 
-  test("h2 defaults to $accent color", () => {
+  test("h2 defaults to $fg-accent color (Sterling collapses primary+accent)", () => {
     const app = render(<Heading level={2}>Accent</Heading>)
     const node = app.getByText("Accent").resolve()
-    expect((node!.props as StyleProps).color).toBe("$accent")
+    expect((node!.props as StyleProps).color).toBe("$fg-accent")
   })
 
-  test("h6 defaults to $muted color", () => {
+  test("h6 defaults to $fg-muted color", () => {
     const app = render(<Heading level={6}>Muted</Heading>)
     const node = app.getByText("Muted").resolve()
-    expect((node!.props as StyleProps).color).toBe("$muted")
+    expect((node!.props as StyleProps).color).toBe("$fg-muted")
   })
 
   test("custom color overrides default", () => {
     const app = render(
-      <Heading level={1} color="$success">
+      <Heading level={1} color="$fg-success">
         Custom
       </Heading>,
     )
     const node = app.getByText("Custom").resolve()
-    expect((node!.props as StyleProps).color).toBe("$success")
+    expect((node!.props as StyleProps).color).toBe("$fg-success")
   })
 })

@@ -48,12 +48,12 @@ const LEVEL_SCALES: Record<HeadingLevel, number> = {
 
 /** Default semantic color per heading level */
 const LEVEL_COLORS: Record<HeadingLevel, string | undefined> = {
-  1: "$primary",
-  2: "$accent",
-  3: "$primary",
+  1: "$fg-accent",
+  2: "$fg-accent",
+  3: "$fg-accent",
   4: undefined, // inherit fg
   5: undefined,
-  6: "$muted",
+  6: "$fg-muted",
 }
 
 // =============================================================================
