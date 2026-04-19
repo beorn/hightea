@@ -51,13 +51,13 @@ export interface TextInputProps {
   onEOF?: () => void
   /** Placeholder text when empty */
   placeholder?: string
-  /** Placeholder color (default: "$disabledfg") */
+  /** Placeholder color (default: "$fg-muted") */
   placeholderColor?: string
   /** Whether input is focused/active (overrides focus system) */
   isActive?: boolean
   /** Prompt prefix (e.g., "$ " or "> ") */
   prompt?: string
-  /** Prompt color */
+  /** Prompt color (default: "$fg-accent") */
   promptColor?: string
   /** Text color */
   color?: string
@@ -71,9 +71,9 @@ export interface TextInputProps {
   mask?: string
   /** Border style (e.g., "round", "single") — wraps input in bordered Box */
   borderStyle?: string
-  /** Border color when unfocused (default: "$border") */
+  /** Border color when unfocused (default: "$border-default") */
   borderColor?: string
-  /** Border color when focused (default: "$focusborder") */
+  /** Border color when focused (default: "$border-focus") */
   focusBorderColor?: string
   /** Test ID for focus system identification */
   testID?: string
@@ -102,18 +102,18 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
     onSubmit,
     onEOF,
     placeholder = "",
-    placeholderColor = "$disabledfg",
+    placeholderColor = "$fg-muted",
     isActive: isActiveProp,
     prompt = "",
-    promptColor = "$control",
+    promptColor = "$fg-accent",
     color,
     cursorStyle = "block",
     showUnderline = false,
     underlineWidth = 40,
     mask,
     borderStyle: borderStyleProp,
-    borderColor: borderColorProp = "$border",
-    focusBorderColor = "$focusborder",
+    borderColor: borderColorProp = "$border-default",
+    focusBorderColor = "$border-focus",
     testID,
   },
   ref,
@@ -235,7 +235,7 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
     <Text color={color}>
       {prompt && <Text color={promptColor}>{prompt}</Text>}
       {showPlaceholder ? (
-        // Placeholder uses the semantic $disabledfg token (overridable via
+        // Placeholder uses the semantic $fg-muted token (overridable via
         // `placeholderColor`) rather than raw `dimColor`. SGR 2 has uneven
         // terminal support (e.g. Ghostty ignores it on some foregrounds), so
         // the semantic token — which resolves to a pre-dimmed truecolor hex —
@@ -276,7 +276,7 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
         onMouseDown={handleMouseDown}
       >
         {inputContent}
-        {showUnderline && <Text color="$border">{"─".repeat(underlineWidth)}</Text>}
+        {showUnderline && <Text color="$border-default">{"─".repeat(underlineWidth)}</Text>}
       </Box>
     )
   }
@@ -284,7 +284,7 @@ export const TextInput = forwardRef<TextInputHandle, TextInputProps>(function Te
   return (
     <Box focusable testID={testID} flexDirection="column" onMouseDown={handleMouseDown}>
       {inputContent}
-      {showUnderline && <Text color="$border">{"─".repeat(underlineWidth)}</Text>}
+      {showUnderline && <Text color="$border-default">{"─".repeat(underlineWidth)}</Text>}
     </Box>
   )
 })

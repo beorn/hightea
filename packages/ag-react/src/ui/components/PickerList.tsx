@@ -72,7 +72,7 @@ export function PickerList<T>({
   if (items.length === 0) {
     return (
       <Box flexDirection="column" flexGrow={1} flexShrink={1} overflow="hidden">
-        <Text color="$muted">{emptyMessage}</Text>
+        <Text color="$fg-muted">{emptyMessage}</Text>
       </Box>
     )
   }

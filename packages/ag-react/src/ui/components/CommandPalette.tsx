@@ -154,34 +154,34 @@ export function CommandPalette({
     <Box
       flexDirection="column"
       borderStyle="single"
-      borderColor="$border"
-      backgroundColor="$popover-bg"
+      borderColor="$border-default"
+      backgroundColor="$bg-surface-raised"
       paddingX={1}
     >
       {/* Search input */}
       <Box>
-        <Text color="$primary" bold>
+        <Text color="$fg-accent" bold>
           {">"}{" "}
         </Text>
-        <Text>{query || <Text color="$disabledfg">{placeholder}</Text>}</Text>
+        <Text>{query || <Text color="$fg-muted">{placeholder}</Text>}</Text>
       </Box>
       <Box>
-        <Text color="$border">{"─".repeat(30)}</Text>
+        <Text color="$border-default">{"─".repeat(30)}</Text>
       </Box>
       {/* Results */}
       {visible.length === 0 ? (
-        <Text color="$disabledfg">No matching commands</Text>
+        <Text color="$fg-muted">No matching commands</Text>
       ) : (
         visible.map((cmd, i) => {
           const isSelected = i === selectedIndex
           return (
             <Box key={cmd.name} gap={1}>
-              <Text inverse={isSelected} color={isSelected ? "$primary" : "$fg"}>
+              <Text inverse={isSelected} color={isSelected ? "$fg-accent" : "$fg"}>
                 {isSelected ? ">" : " "} {cmd.name}
               </Text>
-              {cmd.description && <Text color="$muted">{cmd.description}</Text>}
+              {cmd.description && <Text color="$fg-muted">{cmd.description}</Text>}
               {cmd.shortcut && (
-                <Text color="$disabledfg" bold>
+                <Text color="$fg-muted" bold>
                   {cmd.shortcut}
                 </Text>
               )}
@@ -191,7 +191,7 @@ export function CommandPalette({
       )}
       {/* Status */}
       {filtered.length > maxVisible && (
-        <Text color="$disabledfg">{filtered.length - maxVisible} more...</Text>
+        <Text color="$fg-muted">{filtered.length - maxVisible} more...</Text>
       )}
     </Box>
   )

@@ -26,11 +26,11 @@ import { Text } from "../../components/Text"
 // =============================================================================
 
 export interface ModalDialogProps extends Omit<BoxProps, "children" | "flexDirection"> {
-  /** Border color (default: $border). Cyan is reserved for text input focus rings. */
+  /** Border color (default: $border-default). Accent is reserved for text input focus rings. */
   borderColor?: string
   /** Dialog title (rendered bold in titleColor or borderColor) */
   title?: string
-  /** Title color override (default: $primary). Separate from border for independent styling. */
+  /** Title color override (default: $fg-accent). Separate from border for independent styling. */
   titleColor?: string
   /** Title alignment (default: center) */
   titleAlign?: "center" | "flex-start" | "flex-end"
@@ -103,11 +103,11 @@ export function formatTitleWithHotkey(
     return (
       <Text color={color} bold>
         {before}
-        <Text color="$muted" bold={false}>
+        <Text color="$fg-muted" bold={false}>
           [
         </Text>
         <Text bold>{matched}</Text>
-        <Text color="$muted" bold={false}>
+        <Text color="$fg-muted" bold={false}>
           ]
         </Text>
         {after}
@@ -117,11 +117,11 @@ export function formatTitleWithHotkey(
   // Hotkey not in title (or symbol) — prepend [X] Title
   return (
     <Text color={color} bold>
-      <Text color="$muted" bold={false}>
+      <Text color="$fg-muted" bold={false}>
         [
       </Text>
       <Text bold>{hotkey}</Text>
-      <Text color="$muted" bold={false}>
+      <Text color="$fg-muted" bold={false}>
         ]
       </Text>{" "}
       {title}
@@ -144,7 +144,7 @@ export function formatTitleWithHotkey(
  * - Footer: centered, dimColor, with spacer above
  */
 export function ModalDialog({
-  borderColor = "$border",
+  borderColor = "$border-default",
   title,
   titleColor,
   titleAlign = "center",
@@ -160,7 +160,7 @@ export function ModalDialog({
   children,
   ...boxProps
 }: ModalDialogProps): React.ReactElement {
-  const effectiveTitleColor = titleColor ?? "$primary"
+  const effectiveTitleColor = titleColor ?? "$fg-accent"
   // When titleRight is provided, use space-between layout for the title bar
   const effectiveTitleAlign = titleRight ? "space-between" : titleAlign
 
@@ -177,7 +177,7 @@ export function ModalDialog({
       height={height}
       borderStyle="double"
       borderColor={borderColor}
-      backgroundColor={"$popover-bg"}
+      backgroundColor={"$bg-surface-raised"}
       paddingX={2}
       paddingY={1}
       userSelect="contain"
@@ -208,7 +208,7 @@ export function ModalDialog({
         <>
           <Text> </Text>
           <Box justifyContent={footerAlign}>
-            {typeof footer === "string" ? <Text color="$muted">{footer}</Text> : footer}
+            {typeof footer === "string" ? <Text color="$fg-muted">{footer}</Text> : footer}
           </Box>
         </>
       )}

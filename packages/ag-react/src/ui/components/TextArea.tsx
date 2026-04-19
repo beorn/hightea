@@ -84,9 +84,9 @@ export interface TextAreaProps {
   maxLength?: number
   /** Border style (e.g., "round", "single") — wraps input in bordered Box */
   borderStyle?: string
-  /** Border color when unfocused (default: "$border") */
+  /** Border color when unfocused (default: "$border-default") */
   borderColor?: string
-  /** Border color when focused (default: "$focusborder") */
+  /** Border color when focused (default: "$border-focus") */
   focusBorderColor?: string
   /** Test ID for focus system identification */
   testID?: string
@@ -125,8 +125,8 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
     disabled,
     maxLength,
     borderStyle: borderStyleProp,
-    borderColor: borderColorProp = "$border",
-    focusBorderColor = "$focusborder",
+    borderColor: borderColorProp = "$border-default",
+    focusBorderColor = "$border-focus",
     testID,
   },
   ref,
@@ -228,7 +228,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   if (showPlaceholder) {
     return (
       <Box focusable testID={testID} flexDirection="column" height={height} {...borderProps}>
-        <Text color="$muted">{placeholder}</Text>
+        <Text color="$fg-muted">{placeholder}</Text>
       </Box>
     )
   }
@@ -255,7 +255,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
 
         if (disabled) {
           return (
-            <Text key={absoluteRow} color="$disabledfg">
+            <Text key={absoluteRow} color="$fg-muted">
               {wl.line || " "}
             </Text>
           )

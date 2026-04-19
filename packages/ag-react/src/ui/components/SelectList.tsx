@@ -154,9 +154,9 @@ export function SelectList({
 
   const renderItem = useCallback(
     (item: SelectOption, index: number, meta: { isCursor: boolean }) => {
-      // Fake cursor uses scheme cursorColor/cursorText ($cursor-bg + $cursor)
+      // Fake cursor uses scheme cursorColor/cursorText ($bg-cursor + $fg-cursor)
       // so it matches the user's terminal cursor color — native feel per theme.
-      // Disabled rows route through $disabledfg (not dimColor) per token system.
+      // Disabled rows route through $fg-muted (not dimColor) per token system.
 
       // Default hover/click handlers: hover moves keyboard cursor; click
       // moves cursor + confirms selection (Enter-equivalent).
@@ -175,12 +175,12 @@ export function SelectList({
           <Box
             key={item.value}
             width="100%"
-            backgroundColor={meta.isCursor ? "$cursor-bg" : undefined}
+            backgroundColor={meta.isCursor ? "$bg-cursor" : undefined}
             onMouseEnter={handleHover}
             onClick={handleClick}
           >
             <Text
-              color={item.disabled ? "$disabledfg" : meta.isCursor ? "$cursor" : undefined}
+              color={item.disabled ? "$fg-muted" : meta.isCursor ? "$fg-cursor" : undefined}
               bold={meta.isCursor && !item.disabled}
             >
               {item.label}
@@ -193,8 +193,8 @@ export function SelectList({
       return (
         <Text
           key={item.value}
-          color={item.disabled ? "$disabledfg" : meta.isCursor ? "$cursor" : undefined}
-          backgroundColor={meta.isCursor ? "$cursor-bg" : undefined}
+          color={item.disabled ? "$fg-muted" : meta.isCursor ? "$fg-cursor" : undefined}
+          backgroundColor={meta.isCursor ? "$bg-cursor" : undefined}
           onMouseEnter={handleHover}
           onClick={handleClick}
         >
