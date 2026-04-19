@@ -183,7 +183,7 @@ export { pipe } from "./pipe"
 export type { AppPlugin } from "./pipe"
 
 export { withReact } from "./with-react"
-export type { AppWithReact } from "./with-react"
+export type { AppWithReact, WithReactOptions, ViewFactory } from "./with-react"
 
 export { withTerminal } from "./with-terminal"
 export type { WithTerminalOptions, AppWithTerminal, ProcessLike } from "./with-terminal"

@@ -1,9 +1,34 @@
 /**
- * withReact(element) — Plugin: mount React reconciler + virtual buffer
+ * withReact — Plugin: mount React reconciler + virtual buffer
  *
  * This plugin represents the React rendering layer in silvery's plugin
  * composition model. It mounts a React element through the reconciler,
  * manages the virtual buffer, and re-renders reactively on store changes.
+ *
+ * ## Three call forms
+ *
+ * Legacy positional form (back-compat):
+ * ```tsx
+ * withReact(<Board />)
+ * ```
+ *
+ * Object form — element:
+ * ```tsx
+ * withReact({ view: <Board /> })
+ * ```
+ *
+ * Object form — factory `(app) => ReactElement`. The factory runs
+ * immediately at plugin-install time, receiving the current app (with
+ * all previously-piped plugins installed). Useful when the view needs
+ * access to app state that earlier plugins have added (e.g. `app.chat`
+ * from `withChat`):
+ * ```tsx
+ * withReact({ view: (app) => (
+ *   <ChatProvider chat={app.chat}>
+ *     <ChatView />
+ *   </ChatProvider>
+ * ) })
+ * ```
  *
  * In the current architecture, React mounting is handled by createApp()
  * and render(). This plugin provides the declarative interface for
@@ -17,16 +42,19 @@
  * )
  * ```
  *
- * Currently, withReact stores the element for use by the runtime
- * that calls run(). Future iterations will extract the full React
- * reconciler lifecycle into this plugin.
- *
  * @example
  * ```tsx
  * import { pipe, withReact } from '@silvery/create'
  *
- * // The element is associated with the app for later mounting
+ * // Element bound at install time
  * const app = pipe(baseApp, withReact(<MyComponent />))
+ *
+ * // Factory bound to app state
+ * const app = pipe(
+ *   baseApp,
+ *   withChat({ chat }),
+ *   withReact({ view: (app) => <ChatProvider chat={app.chat}><ChatView /></ChatProvider> }),
+ * )
  * ```
  */
 
@@ -55,9 +83,43 @@ interface RunnableApp {
   [key: string]: unknown
 }
 
+/**
+ * Factory form: receives the app (with all prior plugins installed) and
+ * returns the element to render. Runs once at plugin-install time.
+ */
+export type ViewFactory<T> = (app: T) => ReactElement
+
+/**
+ * Object-form options accepted by {@link withReact}.
+ * `view` may be a ReactElement or a factory `(app) => ReactElement`.
+ */
+export interface WithReactOptions<T> {
+  view: ReactElement | ViewFactory<T>
+}
+
 // =============================================================================
 // Implementation
 // =============================================================================
+
+/**
+ * Type guard: distinguish ReactElement from WithReactOptions.
+ *
+ * A ReactElement always has a `type` field (string for host, function/class
+ * for composite). WithReactOptions does not — it has `view`. This lets us
+ * accept both forms without ambiguity.
+ */
+function isReactElement(x: unknown): x is ReactElement {
+  return (
+    typeof x === "object" && x !== null && "type" in x && !("view" in (x as Record<string, unknown>))
+  )
+}
+
+/**
+ * Resolve a view (ReactElement or factory) to a ReactElement.
+ */
+function resolveView<T>(view: ReactElement | ViewFactory<T>, app: T): ReactElement {
+  return typeof view === "function" ? (view as ViewFactory<T>)(app) : view
+}
 
 /**
  * Associate a React element with an app for rendering.
@@ -69,14 +131,31 @@ interface RunnableApp {
  * - Before: `app.run(<Board />, options)`
  * - After: `app.run()` (element already bound)
  *
- * @param element - The React element to render
+ * Accepts three call forms:
+ * - `withReact(element)` — legacy positional ReactElement
+ * - `withReact({ view: element })` — object form with element
+ * - `withReact({ view: (app) => element })` — object form with factory
+ *
+ * @param viewOrOptions - ReactElement (legacy) or `{ view: ReactElement | (app) => ReactElement }`
  * @returns Plugin function that binds the element to the app
  */
 export function withReact<T extends RunnableApp>(
-  element: ReactElement,
+  viewOrOptions: ReactElement | WithReactOptions<T>,
 ): (app: T) => T & AppWithReact {
   return (app: T): T & AppWithReact => {
     const originalRun = app.run
+
+    // Resolve the view spec to a ReactElement.
+    //
+    // - Bare ReactElement (legacy): use as-is.
+    // - Object form with element: unwrap.
+    // - Object form with factory: call factory(app) — the app passed here
+    //   includes all plugins piped before withReact, so the factory can
+    //   read (e.g.) app.chat, app.quit. Eager resolution matches idiomatic
+    //   usage where withReact is the last entry in the pipe.
+    const element = isReactElement(viewOrOptions)
+      ? viewOrOptions
+      : resolveView(viewOrOptions.view, app)
 
     return Object.assign(Object.create(app), {
       element,
