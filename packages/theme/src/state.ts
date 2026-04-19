@@ -1,33 +1,47 @@
 /**
- * Active theme state — module-level for pipeline access.
+ * Active theme state — module-level fallback for pipeline access.
  *
  * This module has side effects (global mutable state).
  * Marked in package.json sideEffects for tree-shaking.
  *
- * Usage is optional — standalone users pass Theme objects explicitly
- * to resolveThemeColor(token, theme). The global state exists for
- * silvery's render pipeline where React context isn't accessible.
+ * NOTE: `setActiveTheme()` is now a no-op. Theme flows through the AgNode tree
+ * via `<Box theme={}>` props (set by ThemeProvider in @silvery/ag-react), using
+ * the same pushContextTheme/popContextTheme mechanism as the existing `theme`
+ * prop cascade in render-phase.ts. `getActiveTheme()` remains as a safe fallback
+ * for code paths that render without a ThemeProvider (e.g. bare tests, xterm
+ * renderer before ThemeProvider wraps the element).
+ *
+ * Usage of standalone resolveThemeColor(token, theme) is preferred for callers
+ * that have a Theme reference available.
  */
 
 import type { Theme } from "@silvery/ansi"
 import { ansi16DarkTheme } from "./schemes/index"
 
 // ============================================================================
-// Active Theme
+// Active Theme (fallback only — not set by ThemeProvider)
 // ============================================================================
 
 /**
- * The currently active theme, set by ThemeProvider during render.
- * Used by parseColor() to resolve $token strings without React context access.
+ * Safe fallback theme. Never mutated — the theme flows via the AgNode tree
+ * (Box theme= prop + pushContextTheme/popContextTheme in render-phase.ts).
+ * This is only returned by getActiveTheme() when called from a code path that
+ * has no pushContextTheme frame on the stack, e.g. a bare test that renders
+ * without ThemeProvider.
  */
-let _activeTheme: Theme = ansi16DarkTheme
+const _activeTheme: Theme = ansi16DarkTheme
 
-/** Set the active theme (called by ThemeProvider). */
-export function setActiveTheme(theme: Theme): void {
-  _activeTheme = theme
+/**
+ * @deprecated No-op. Theme now flows via the AgNode tree (Box theme= prop +
+ * pushContextTheme/popContextTheme in render-phase.ts). Calls to setActiveTheme
+ * have no effect. Remove call sites; use ThemeProvider from @silvery/ag-react.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function setActiveTheme(_theme: Theme): void {
+  // intentional no-op — theme flows via AgNode tree, not module state
 }
 
-/** Get the active theme (called by parseColor in render-helpers). */
+/** Get the active theme (fallback to ansi16DarkTheme when no context stack entry exists). */
 export function getActiveTheme(): Theme {
   return _contextStack.length > 0 ? _contextStack[_contextStack.length - 1]! : _activeTheme
 }
@@ -75,6 +89,8 @@ export function getActiveColorLevel(): ActiveColorLevel {
  *
  * This enables CSS custom property-like cascading: the nearest ancestor
  * Box with a theme prop determines $token resolution for its subtree.
+ * ThemeProvider (in @silvery/ag-react) renders a <Box theme={merged}>
+ * wrapper, so its theme is naturally pushed via this mechanism.
  */
 const _contextStack: Theme[] = []
 

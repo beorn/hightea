@@ -4,8 +4,10 @@
 
 import {
   blend,
+  brighten,
   contrastFg,
   complement,
+  darken,
   hexToOklch,
   oklchToHex,
   colorDistance,
@@ -167,8 +169,7 @@ function deriveTruecolorTheme(p: ColorScheme, adjustments?: ThemeAdjustment[]): 
   const cursor = ensure("cursor", p.cursorText, cursorBgRepaired, AA)
 
   const derived = deriveFields({
-    mode: "truecolor",
-    dark,
+    shift: (hex: string, amount: number) => (dark ? brighten(hex, amount) : darken(hex, amount)),
     primary,
     accent,
     fg,
@@ -240,7 +241,6 @@ function deriveAnsi16Theme(p: ColorScheme): Theme {
   const accentColor = p.cyan
 
   const derived = deriveFields({
-    mode: "ansi16",
     primary: primaryColor,
     accent: accentColor,
     fg: p.foreground,

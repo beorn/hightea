@@ -44,10 +44,9 @@ import { RuntimeContext, FocusManagerContext, type RuntimeContextValue } from ".
 import { createFocusManager } from "@silvery/ag/focus-manager"
 import { parseKey, splitRawInput } from "@silvery/ag/keys"
 import { parseBracketedPaste } from "@silvery/ag-term/bracketed-paste"
-import { ThemeProvider } from "@silvery/theme/ThemeContext"
+import { ThemeProvider } from "../../ThemeProvider"
 import { catppuccinMocha } from "@silvery/theme/schemes"
 import { deriveTheme, type Theme } from "@silvery/theme"
-import { setActiveTheme } from "@silvery/theme/state"
 import { createCursorStore, CursorProvider } from "../../hooks/useCursor"
 import { createCanvasInput, type CanvasInputConfig } from "./input"
 
@@ -278,7 +277,7 @@ export function renderToCanvas(
   initCanvasRenderer(optionsWithDpr)
 
   const theme = options.theme ?? getDefaultTheme()
-  setActiveTheme(theme)
+  // Theme flows via ThemeProvider's Box wrapper (AgNode tree cascade), no setActiveTheme needed.
 
   let pixelWidth = options.width ?? canvas.width
   let pixelHeight = options.height ?? canvas.height

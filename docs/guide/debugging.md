@@ -102,6 +102,49 @@ The scheduler auto-enables instrumentation for the STRICT comparison render. No 
 - Scheduled/allow-fail: `SILVERY_STRICT_TERMINAL=ghostty` (WASM, has known grapheme bugs)
 - Local debug: `SILVERY_STRICT_TERMINAL=all`
 
+## Inspecting the Active Theme
+
+`bun run theme inspect` runs the full orchestrator against the current terminal and prints every semantic token with its resolved hex value and mono-tier SGR attrs:
+
+```bash
+bun run theme inspect                    # human-readable table
+bun run theme inspect --format json      # structured JSON for scripting
+bun run theme inspect --diff nord        # compare detected vs a named scheme
+```
+
+Example output:
+
+```
+  Detected terminal:  catppuccin-mocha
+  Source:             fingerprint matched catppuccin-mocha (confidence 98%)
+  Dark:               true
+
+  Token                      Value        SGR (mono tier)
+  ────────────────────────── ──────────── ────────────────────
+  $fg                        #cdd6f4      none
+  $bg                        #1e1e2e      none
+  $primary                   #cba6f7      bold
+  $muted                     #a6adc8      dim
+  $error                     #f38ba8      bold+inverse
+  $link                      #89b4fa      underline
+  ...
+```
+
+Useful when:
+- You want to confirm which scheme silvery detected and at what confidence
+- Debugging a "wrong colors" issue — see which token resolved to what hex
+- Comparing your terminal's detected scheme against a reference scheme
+- Scripting theme-aware tooling via `--format json`
+
+The `source` field tells you how the scheme was determined:
+
+| Source        | Meaning                                                        |
+| ------------- | -------------------------------------------------------------- |
+| `fingerprint` | Probed slots matched a catalog scheme (most accurate)          |
+| `probed`      | Probed but no catalog match — uses merged scheme               |
+| `fallback`    | Detection failed — using default dark or light scheme          |
+| `override`    | Explicit override via `SILVERY_COLOR` env var or option        |
+
 ## Diagnostic Workflow
 
 1. **Start with STRICT**: `SILVERY_STRICT=1 bun vitest run ...` catches any incremental vs fresh render divergence immediately.

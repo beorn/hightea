@@ -130,67 +130,44 @@ export interface DerivedFields {
  * Derive the shared "delta" fields common to every theme object:
  * brand tokens, categorical ring, state variants, and typography variants.
  *
- * Truecolor mode: hover = ±0.04L, active = ±0.08L (brighten on dark, darken on light).
- * ANSI16 mode: no lightness shifts possible — hover/active fall back to base color.
+ * Pass a `shift` function for truecolor hover/active derivation (OKLCH
+ * brighten/darken). Omit `shift` for ANSI16 — hover/active fall back to the
+ * base color (no intermediate intensities available on 16-color terminals).
+ *
+ * @example
+ * // Truecolor (dark theme)
+ * import { brighten, darken } from "@silvery/color"
+ * deriveFields({ shift: (hex, a) => brighten(hex, a), primary, ... })
+ *
+ * @example
+ * // ANSI16 — no shift function
+ * deriveFields({ primary, accent, fg, selectionbg, surfacebg, ring })
  */
 export function deriveFields(input: DeriveFieldsInput): DerivedFields {
-  if (input.mode === "ansi16") {
-    return deriveFieldsAnsi16(input)
-  }
-  return deriveFieldsTruecolor(input)
-}
+  const { shift, primary, accent, fg, selectionbg, surfacebg, ring } = input
 
-function deriveFieldsAnsi16(input: DeriveFieldsAnsi16Input): DerivedFields {
-  const { primary, accent, fg, selectionbg, surfacebg, ring } = input
+  // Identity fallback: when no shift function provided (ANSI16), hover/active
+  // equal the base color — no intermediate intensities on 16-color terminals.
+  const applyShift = shift ?? ((color: string, _amount: number) => color)
 
   return {
-    // Brand — maps to primary; no shifts in ANSI16
+    // Brand — maps to primary; hover/active use OKLCH shift or passthrough
     brand: primary,
-    "brand-hover": primary,
-    "brand-active": primary,
+    "brand-hover": applyShift(primary, 0.04),
+    "brand-active": applyShift(primary, 0.08),
 
     // Categorical ring
     ...ring,
 
-    // State variants — no OKLCH shifts in ANSI16; fall back to base color
-    "primary-hover": primary,
-    "primary-active": primary,
-    "accent-hover": accent,
-    "accent-active": accent,
-    "fg-hover": fg,
-    "fg-active": fg,
-    "bg-selected-hover": selectionbg,
-    "bg-surface-hover": surfacebg,
-
-    variants: DEFAULT_VARIANTS,
-  }
-}
-
-function deriveFieldsTruecolor(input: DeriveFieldsTruecolorInput): DerivedFields {
-  const { dark, primary, accent, fg, selectionbg, surfacebg, ring } = input
-
-  // Shift helper — brightens on dark themes, darkens on light themes
-  const shift = (hex: string, amount: number): string =>
-    dark ? brighten(hex, amount) : darken(hex, amount)
-
-  return {
-    // Brand — maps to primary; hover/active shift OKLCH L ±0.04 / ±0.08
-    brand: primary,
-    "brand-hover": shift(primary, 0.04),
-    "brand-active": shift(primary, 0.08),
-
-    // Categorical ring
-    ...ring,
-
-    // State variants — OKLCH lightness shift ±0.04 / ±0.08 (flat kebab keys)
-    "primary-hover": shift(primary, 0.04),
-    "primary-active": shift(primary, 0.08),
-    "accent-hover": shift(accent, 0.04),
-    "accent-active": shift(accent, 0.08),
-    "fg-hover": shift(fg, 0.04),
-    "fg-active": shift(fg, 0.08),
-    "bg-selected-hover": shift(selectionbg, 0.04),
-    "bg-surface-hover": shift(surfacebg, 0.04),
+    // State variants — OKLCH shift or passthrough (ANSI16)
+    "primary-hover": applyShift(primary, 0.04),
+    "primary-active": applyShift(primary, 0.08),
+    "accent-hover": applyShift(accent, 0.04),
+    "accent-active": applyShift(accent, 0.08),
+    "fg-hover": applyShift(fg, 0.04),
+    "fg-active": applyShift(fg, 0.08),
+    "bg-selected-hover": applyShift(selectionbg, 0.04),
+    "bg-surface-hover": applyShift(surfacebg, 0.04),
 
     variants: DEFAULT_VARIANTS,
   }

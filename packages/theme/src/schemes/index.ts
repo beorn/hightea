@@ -143,7 +143,6 @@ import {
 // ============================================================================
 
 const _darkDerived = deriveFields({
-  mode: "ansi16",
   primary: "yellow",
   accent: "blueBright",
   fg: "whiteBright",
@@ -162,7 +161,6 @@ const _darkDerived = deriveFields({
 })
 
 const _lightDerived = deriveFields({
-  mode: "ansi16",
   primary: "blue",
   accent: "cyan",
   fg: "black",

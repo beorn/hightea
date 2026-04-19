@@ -157,6 +157,197 @@ function showJson(name: string): void {
   console.log(JSON.stringify(theme, null, 2))
 }
 
+// ── Inspect command ──────────────────────────────────────────────────
+
+/** All standard token keys shown in inspect output, in display order. */
+const INSPECT_TOKENS: readonly (keyof Theme)[] = [
+  "fg",
+  "bg",
+  "muted",
+  "mutedbg",
+  "surface",
+  "surfacebg",
+  "popover",
+  "popoverbg",
+  "inverse",
+  "inversebg",
+  "cursor",
+  "cursorbg",
+  "selection",
+  "selectionbg",
+  "primary",
+  "primaryfg",
+  "secondary",
+  "secondaryfg",
+  "accent",
+  "accentfg",
+  "error",
+  "errorfg",
+  "warning",
+  "warningfg",
+  "success",
+  "successfg",
+  "info",
+  "infofg",
+  "border",
+  "inputborder",
+  "focusborder",
+  "link",
+  "disabledfg",
+]
+
+/** Format a token value for display. Hex strings get a color swatch; ANSI names shown as-is. */
+function tokenDisplay(value: string, wide = false): string {
+  if (value.startsWith("#") && value.length === 7) {
+    const sw = wide ? swatch(value) + " " : ""
+    return sw + value
+  }
+  return value
+}
+
+/** Build a divider line of repeated chars to a given width. */
+function divider(char: string, width: number): string {
+  return char.repeat(width)
+}
+
+async function inspectTheme(flags: {
+  diff?: string
+  format?: string
+}): Promise<void> {
+  const catalog = Object.values(builtinPalettes)
+
+  // Detect the active terminal scheme via OSC probe + fingerprint
+  const result = await detectScheme({ catalog, enforce: "lenient" })
+  const theme = result.theme
+
+  if (flags.format === "json") {
+    const output: Record<string, unknown> = {
+      terminal: {
+        source: result.source,
+        confidence: result.confidence,
+        matchedName: result.matchedName ?? null,
+      },
+      theme: Object.fromEntries(
+        INSPECT_TOKENS.map((key) => {
+          const value = theme[key] as string
+          const attrs = DEFAULT_MONO_ATTRS[key] ?? []
+          return [
+            `$${String(key)}`,
+            {
+              value,
+              monoAttrs: attrs,
+            },
+          ]
+        }),
+      ),
+    }
+
+    if (flags.diff) {
+      const diffPalette = builtinPalettes[flags.diff]
+      if (!diffPalette) {
+        console.error(`Unknown scheme for --diff: ${flags.diff}`)
+        process.exit(1)
+      }
+      const diffTheme = deriveTheme(diffPalette)
+      const differences: Record<string, { detected: string; reference: string }> = {}
+      for (const key of INSPECT_TOKENS) {
+        const a = theme[key] as string
+        const b = diffTheme[key] as string
+        if (a !== b) {
+          differences[`$${String(key)}`] = { detected: a, reference: b }
+        }
+      }
+      ;(output as Record<string, unknown>).diff = { against: flags.diff, differences }
+    }
+
+    console.log(JSON.stringify(output, null, 2))
+    return
+  }
+
+  // Human-readable output
+  const COL1 = 26 // token name
+  const COL2 = 12 // value (hex + swatch)
+  const COL3 = 20 // SGR attrs
+
+  // Header: detected terminal info
+  const sourceLine =
+    result.source === "fingerprint"
+      ? `fingerprint matched ${result.matchedName} (confidence ${(result.confidence * 100).toFixed(0)}%)`
+      : result.source === "probed"
+        ? `probed (no catalog match, confidence ${(result.confidence * 100).toFixed(0)}%)`
+        : result.source === "fallback"
+          ? `fallback (detection failed)`
+          : result.source === "override"
+            ? `override (${result.matchedName ?? "explicit"})`
+            : result.source
+
+  const isDark = (theme.bg.startsWith("#") ? parseInt(theme.bg.slice(1), 16) < 0x808080 : true)
+
+  console.log()
+  const schemeLabel = result.matchedName ?? (result.source === "probed" ? "custom" : "unknown")
+  console.log(`  Detected terminal:  ${schemeLabel}`)
+  console.log(`  Source:             ${sourceLine}`)
+  console.log(`  Dark:               ${isDark}`)
+  console.log()
+
+  // Column headers
+  const h1 = "Token".padEnd(COL1)
+  const h2 = "Value".padEnd(COL2)
+  const h3 = "SGR (mono tier)"
+  console.log(`  ${h1} ${h2} ${h3}`)
+  console.log(`  ${divider("─", COL1)} ${divider("─", COL2)} ${divider("─", COL3)}`)
+
+  // Token rows
+  for (const key of INSPECT_TOKENS) {
+    const value = theme[key] as string
+    const attrs = DEFAULT_MONO_ATTRS[key]
+    const attrStr = attrs && attrs.length > 0 ? attrs.join("+") : "none"
+
+    const tokenCol = `$${String(key)}`.padEnd(COL1)
+    const valueStr = value.startsWith("#") ? value : value || "(unset)"
+    const valueRaw = valueStr.padEnd(COL2)
+    const swatchStr = value.startsWith("#") ? swatch(value) : "  "
+
+    console.log(`  ${tokenCol} ${swatchStr} ${valueRaw} ${attrStr}`)
+  }
+  console.log()
+
+  // Diff section
+  if (flags.diff) {
+    const diffPalette = builtinPalettes[flags.diff]
+    if (!diffPalette) {
+      console.error(`Unknown scheme for --diff: ${flags.diff}`)
+      process.exit(1)
+    }
+    const diffTheme = deriveTheme(diffPalette)
+
+    const diffRows: Array<{ token: string; detected: string; reference: string }> = []
+    for (const key of INSPECT_TOKENS) {
+      const a = theme[key] as string
+      const b = diffTheme[key] as string
+      if (a !== b) {
+        diffRows.push({ token: `$${String(key)}`, detected: a, reference: b })
+      }
+    }
+
+    if (diffRows.length === 0) {
+      console.log(`  No differences vs ${flags.diff}`)
+    } else {
+      console.log(`  Differences vs ${flags.diff} (${diffRows.length} tokens):`)
+      console.log()
+      for (const row of diffRows) {
+        const tokenCol = row.token.padEnd(COL1)
+        const detSwatch = row.detected.startsWith("#") ? swatch(row.detected) : "  "
+        const refSwatch = row.reference.startsWith("#") ? swatch(row.reference) : "  "
+        const detVal = row.detected.padEnd(9)
+        const refVal = row.reference.padEnd(9)
+        console.log(`  ${tokenCol} ${detSwatch} ${detVal} → ${refSwatch} ${refVal}`)
+      }
+    }
+    console.log()
+  }
+}
+
 async function interactiveBrowser(): Promise<void> {
   const names = Object.keys(builtinPalettes).sort()
   let cursor = 0
@@ -266,6 +457,24 @@ switch (cmd) {
   case "json":
     showJson(args[0] ?? "")
     break
+  case "inspect": {
+    // Parse flags: --diff <name>, --format <fmt>
+    let diffScheme: string | undefined
+    let formatArg: string | undefined
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === "--diff" && args[i + 1]) {
+        diffScheme = args[++i]
+      } else if (args[i]?.startsWith("--diff=")) {
+        diffScheme = args[i]!.slice("--diff=".length)
+      } else if (args[i] === "--format" && args[i + 1]) {
+        formatArg = args[++i]
+      } else if (args[i]?.startsWith("--format=")) {
+        formatArg = args[i]!.slice("--format=".length)
+      }
+    }
+    await inspectTheme({ diff: diffScheme, format: formatArg })
+    break
+  }
   case undefined:
   case "view":
     await interactiveBrowser()
@@ -276,7 +485,7 @@ switch (cmd) {
       showTheme(cmd)
     } else {
       console.error(`Unknown command: ${cmd}`)
-      console.error("Usage: bun theme [list|show <name>|json <name>|view]")
+      console.error("Usage: bun theme [list|show <name>|json <name>|inspect|view]")
       process.exit(1)
     }
 }

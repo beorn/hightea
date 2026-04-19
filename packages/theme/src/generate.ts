@@ -33,7 +33,7 @@ export function generateTheme(primary: AnsiPrimary, dark: boolean): Theme {
     pink: dark ? "magentaBright" : "magenta",
   }
 
-  const derived = deriveFields({ mode: "ansi16", primary, accent, fg, selectionbg, surfacebg, ring })
+  const derived = deriveFields({ primary, accent, fg, selectionbg, surfacebg, ring })
 
   return {
     name: `${dark ? "dark" : "light"}-${primary}`,

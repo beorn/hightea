@@ -55,10 +55,9 @@ import { createFocusManager } from "@silvery/ag/focus-manager"
 import { parseKey, splitRawInput } from "@silvery/ag/keys"
 import { parseBracketedPaste } from "../bracketed-paste"
 import { createXtermProvider, type XtermProvider } from "./xterm-provider"
-import { ThemeProvider } from "@silvery/theme/ThemeContext"
+import { ThemeProvider } from "@silvery/ag-react/ThemeProvider"
 import { catppuccinMocha } from "@silvery/theme/schemes"
 import { deriveTheme, type Theme } from "@silvery/theme"
-import { setActiveTheme } from "@silvery/theme/state"
 import { createCursorStore, CursorProvider } from "@silvery/ag-react/hooks/useCursor"
 
 /** Default theme for xterm.js rendering — Catppuccin Mocha (dark). */
@@ -478,13 +477,9 @@ export function renderToXterm(
     }
   }
 
-  // Set the active theme at module level BEFORE rendering.
-  // This ensures the pipeline's getActiveTheme() returns the correct theme,
-  // even if the browser bundle deduplicates @silvery/theme/state differently
-  // than the ThemeProvider's setActiveTheme() call during React render.
-  setActiveTheme(deriveThemeFromXterm(terminal))
-
   // Initial render: hide cursor, clear screen, move to home, then render
+  // Theme flows via the Box theme= prop on the ThemeProvider wrapper (see wrapElement()).
+  // No pre-render setActiveTheme() call needed.
   terminal.write(CURSOR_HIDE + CURSOR_HOME + CLEAR_SCREEN)
   doRender()
   // Second pass picks up layout feedback (useBoxRect dimensions).

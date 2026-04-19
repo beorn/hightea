@@ -33,7 +33,7 @@ import { createApp } from "./create-app"
 import type { Term } from "../ansi/term"
 import { detectTerminalCaps } from "../terminal-caps"
 import { detectTheme } from "@silvery/theme/detect"
-import { ThemeProvider } from "@silvery/theme/ThemeContext"
+import { ThemeProvider } from "@silvery/ag-react/ThemeProvider"
 
 // Re-export types from keys.ts
 export type { Key, InputHandler } from "./keys"
