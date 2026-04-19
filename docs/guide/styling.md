@@ -175,7 +175,7 @@ Variants are theme tokens — `h1`, `h2`, `h3`, `body`, `body-muted`, `fine-prin
 <Text variant="kbd">⌘K</Text>                   // $mutedbg + $accent + bold
 ```
 
-Apps extend the variant table via `<ThemeProvider tokens={{ variants: { hero: { color: "$brand", bold: true } } }}>`. Caller props always win over the variant (`<Text variant="h1" color="$success">` overrides color, keeps bold).
+Apps extend the variant table via <span v-pre>`<ThemeProvider tokens={{ variants: { hero: { color: "$brand", bold: true } } }}>`</span>. Caller props always win over the variant (`<Text variant="h1" color="$success">` overrides color, keeps bold).
 :::
 
 → [Typography reference](/components/typography) · [Text reference](/api/text) · [Theme tokens](/reference/theming#token-reference)
