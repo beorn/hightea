@@ -101,6 +101,118 @@ export function ComponentShowcase({ interactive = true }: ComponentShowcaseProps
       <DialogSection />
       <Divider />
       <TextBlocksSection />
+      <Divider />
+      <CodeSample />
+    </Box>
+  )
+}
+
+/**
+ * Syntax-highlighted code snippet — exercises every semantic + accent token
+ * so you can eyeball how the scheme handles real code. Each color role maps
+ * to a theme token, so the snippet is readable under any scheme.
+ */
+function CodeSample() {
+  // Map syntax roles → tokens:
+  //   keyword     $primary   (most prominent semantic color)
+  //   function    $accent    (contrasting complement)
+  //   string      $success   (green, universal string convention)
+  //   number      $warning   (yellow/orange)
+  //   type        $info      (cyan, type-name convention)
+  //   comment     $muted     (receding, dim)
+  //   operator    $fg        (default)
+  //   bracket     $muted     (receding)
+  //   error inline $error    (mark a bad token)
+  //   link inline  $link      (URLs)
+  return (
+    <Box flexDirection="column" paddingX={1} gap={1}>
+      <H2>Code sample</H2>
+      <Box backgroundColor="$mutedbg" padding={1} flexDirection="column">
+        <Box>
+          <Text color="$muted">// See </Text>
+          <Text color="$link" underlineStyle="single">
+            https://silvery.dev
+          </Text>
+          <Text color="$muted"> — theme tokens in action</Text>
+        </Box>
+
+        <Box>
+          <Text color="$primary" bold>
+            export async
+          </Text>
+          <Text> </Text>
+          <Text color="$primary" bold>
+            function
+          </Text>
+          <Text> </Text>
+          <Text color="$accent">resolveToken</Text>
+          <Text color="$muted">(</Text>
+          <Text>name</Text>
+          <Text color="$fg">: </Text>
+          <Text color="$info">string</Text>
+          <Text color="$muted">,</Text>
+          <Text> theme</Text>
+          <Text color="$fg">?: </Text>
+          <Text color="$info">Theme</Text>
+          <Text color="$muted">): </Text>
+          <Text color="$info">Promise</Text>
+          <Text color="$muted">{"<"}</Text>
+          <Text color="$info">string</Text>
+          <Text color="$muted">{">"}</Text>
+          <Text color="$muted"> {"{"}</Text>
+        </Box>
+
+        <Box>
+          <Text>{"  "}</Text>
+          <Text color="$primary" bold>
+            const
+          </Text>
+          <Text> result </Text>
+          <Text color="$fg">= </Text>
+          <Text color="$primary" bold>
+            await
+          </Text>
+          <Text> </Text>
+          <Text color="$accent">lookup</Text>
+          <Text color="$muted">(</Text>
+          <Text color="$success">{`"$`}</Text>
+          <Text color="$success">{`{name}"`}</Text>
+          <Text color="$muted">, </Text>
+          <Text color="$warning">42</Text>
+          <Text color="$muted">)</Text>
+        </Box>
+
+        <Box>
+          <Text>{"  "}</Text>
+          <Text color="$primary" bold>
+            if
+          </Text>
+          <Text color="$muted"> (</Text>
+          <Text color="$fg">!</Text>
+          <Text>result</Text>
+          <Text color="$muted">) </Text>
+          <Text color="$primary" bold>
+            throw new
+          </Text>
+          <Text> </Text>
+          <Text color="$error">Error</Text>
+          <Text color="$muted">(</Text>
+          <Text color="$success">{`"not found"`}</Text>
+          <Text color="$muted">)</Text>
+        </Box>
+
+        <Box>
+          <Text>{"  "}</Text>
+          <Text color="$primary" bold>
+            return
+          </Text>
+          <Text> result</Text>
+        </Box>
+
+        <Box>
+          <Text color="$muted">{"}"}</Text>
+        </Box>
+      </Box>
     </Box>
   )
 }
