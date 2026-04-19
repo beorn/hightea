@@ -19,7 +19,7 @@
 import React, { useState } from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Backdrop, Box, Text, ModalDialog } from "@silvery/ag-react"
+import { Backdrop, Box, Text, ModalDialog, ThemeProvider } from "@silvery/ag-react"
 import { deriveTheme } from "@silvery/theme"
 import { catppuccinMocha } from "@silvery/theme/schemes"
 
@@ -403,6 +403,126 @@ describe("backdrop fade: two-channel transform (rootBg via theme prop)", () => {
           }
         }
       }
+    }
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Standalone Backdrop: <Backdrop fade={...}> used directly, not inside
+// ModalDialog. Verifies that the rootBg walk (findRootThemeBg in ag.ts)
+// finds the theme from ThemeProvider and activates the two-channel blend path.
+//
+// Phase: km-silvery.theme-v4-backdrop-standalone
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("standalone Backdrop: rootBg from ThemeProvider", () => {
+  test("fades fg + bg toward theme neutral (dark) when wrapped in ThemeProvider", () => {
+    // darkTheme.bg = "#1e1e2e" → luminance ≈ 0.012 → dark neutral = "#000000".
+    // With fade=0.7, white fg (#ffffff) blends 70% toward #000000 in OKLab.
+    // Red bg (#ff0000) blends 70% toward #000000 in OKLab.
+    const render = createRenderer({ cols: 40, rows: 10 })
+
+    function App() {
+      return (
+        <ThemeProvider theme={darkTheme}>
+          <Backdrop fade={0.7}>
+            <Box backgroundColor="#ff0000" width={10} height={3}>
+              <Text color="#ffffff">RED PANEL</Text>
+            </Box>
+          </Backdrop>
+        </ThemeProvider>
+      )
+    }
+
+    const app = render(<App />)
+    expect(app.text).toContain("RED PANEL")
+
+    // Cell at (0, 0) is inside the Backdrop — "R" of RED PANEL
+    // Two-channel transform: darkTheme.bg="#1e1e2e" → neutral="#000000".
+    // fade=0.7: fg #ffffff → {r:46,g:46,b:46}, bg #ff0000 → {r:46,g:0,b:0}.
+    const cell = app.cell(0, 0)
+    expect(cell.char).toBe("R")
+
+    // fg: white #ffffff blended 70% toward #000000 in OKLab → dark gray {r:46,g:46,b:46}
+    expect(cell.fg).not.toBeNull()
+    const fg = cell.fg as { r: number; g: number; b: number }
+    expect(fg.r).toBe(46)
+    expect(fg.g).toBe(46)
+    expect(fg.b).toBe(46)
+
+    // bg: red #ff0000 blended 70% toward #000000 in OKLab → dark red {r:46,g:0,b:0}
+    expect(cell.bg).not.toBeNull()
+    const bg = cell.bg as { r: number; g: number; b: number }
+    expect(bg.r).toBe(46)
+    expect(bg.g).toBe(0)
+    expect(bg.b).toBe(0)
+  })
+
+  test("Backdrop without ThemeProvider falls back to legacy fg-toward-bg path", () => {
+    // Without ThemeProvider, findRootThemeBg returns null → blendTarget = null
+    // → legacy path: cell.fg = blend(fg, cell.bg, amount), cell.bg unchanged.
+    const render = createRenderer({ cols: 20, rows: 5 })
+
+    function App() {
+      return (
+        // No ThemeProvider wrapper — bare Backdrop
+        <Box backgroundColor="#000000">
+          <Backdrop fade={0.7}>
+            <Box backgroundColor="#ff0000" width={10} height={3}>
+              <Text color="#ffffff">HELLO</Text>
+            </Box>
+          </Backdrop>
+        </Box>
+      )
+    }
+
+    const app = render(<App />)
+    expect(app.text).toContain("HELLO")
+
+    const cell = app.cell(0, 0)
+    expect(cell.char).toBe("H")
+
+    // fg must be faded (legacy: fg blends toward cell.bg which is #ff0000)
+    // White #ffffff blended 70% toward red #ff0000 in OKLab → {r:255,g:127,b:110}
+    expect(cell.fg).not.toBeNull()
+    const fg = cell.fg as { r: number; g: number; b: number }
+    expect(fg.r).toBe(255)
+    expect(fg.g).toBe(127)
+    expect(fg.b).toBe(110)
+
+    // bg is UNCHANGED in legacy path (only fg blended, not bg)
+    expect(cell.bg).not.toBeNull()
+    const bg = cell.bg as { r: number; g: number; b: number }
+    expect(bg.r).toBe(255)
+    expect(bg.g).toBe(0)
+    expect(bg.b).toBe(0)
+  })
+
+  test("incremental renders match fresh at SILVERY_STRICT=2 (standalone Backdrop)", () => {
+    // Mount and toggle content inside a standalone Backdrop to exercise
+    // incremental rendering with the rootBg walk path.
+    const render = createRenderer({ cols: 40, rows: 10 })
+
+    function App({ label }: { label: string }) {
+      return (
+        <ThemeProvider theme={darkTheme}>
+          <Backdrop fade={0.5}>
+            <Box backgroundColor="#0000ff" width={20} height={5}>
+              <Text color="#ffffff">{label}</Text>
+            </Box>
+          </Backdrop>
+        </ThemeProvider>
+      )
+    }
+
+    const app = render(<App label="INITIAL" />)
+    expect(app.text).toContain("INITIAL")
+
+    // SILVERY_STRICT=1 (set by vitest/setup.ts) automatically verifies
+    // incremental === fresh on every rerender. Toggle the label several times.
+    for (let i = 0; i < 4; i++) {
+      app.rerender(<App label={`FRAME-${i}`} />)
+      expect(app.text).toContain(`FRAME-${i}`)
     }
   })
 })

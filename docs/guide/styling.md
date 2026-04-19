@@ -588,6 +588,75 @@ Supports theme tokens (`$bg`, `$link`), named colors (`red`, `blue`), and hex (`
 `$link` blue on `$inversebg` may have poor contrast. Hardcoded `#3a1111` for an error tint breaks across themes — `mix($bg, $error, 15%)` adapts automatically.
 :::
 
+## 10. Use `<Backdrop>` to Dim a Region
+
+`<Backdrop fade={n}>` is a render-time fade effect: every cell covered by its rect has its `fg` and `bg` blended toward the theme neutral (pure black for dark themes, pure white for light). It works standalone — no modal required — as long as a `<ThemeProvider>` is in scope.
+
+```tsx
+// Dim the entire board while a side panel is open
+<Backdrop fade={0.7}>
+  <Board />
+</Backdrop>
+<SidePanel />  {/* crisp, not wrapped */}
+```
+
+The fade amount is in `[0, 1]`: `0` is a passthrough (no-op), `1` is fully converged to the neutral (essentially invisible). A value around `0.4`–`0.7` is typical for "active but background" regions.
+
+**Two-channel transform (with `ThemeProvider`):** when a `<ThemeProvider>` is in scope, both `fg` and `bg` are blended toward the neutral. This gives the classic "modal spotlight" depth effect — colored surfaces (panels, borders, badges) all recede toward the same dark or light neutral, amplifying the visual separation.
+
+**Legacy fallback (no `ThemeProvider`):** without a theme in scope, only `fg` is blended (toward the cell's own `bg`). Explicit `bg` values are left unchanged. This produces a milder fade but still distinguishes the region.
+
+**Color tiers:**
+
+| Tier | What happens |
+|------|-------------|
+| truecolor / 256 | OKLab blend toward neutral — exact, perceptually uniform |
+| ANSI 16 | SGR 2 (dim) stamped on cells — best-effort, single-channel |
+| monochrome | no-op — modal border carries separation |
+
+::: tip ✨ Shiny — standalone Backdrop
+
+```tsx
+// Backdrop outside any modal — dims a panel region directly
+<Box flexDirection="row">
+  <Backdrop fade={0.5}>
+    <FileTree />
+  </Backdrop>
+  <Editor />    {/* crisp */}
+</Box>
+```
+
+:::
+
+::: tip ✨ Shiny — Backdrop inside ModalDialog
+
+For modals, prefer the `fade` prop on `ModalDialog` / `PickerDialog` — it fades everything **outside** the dialog automatically, without you needing to wrap siblings:
+
+```tsx
+<ModalDialog title="Confirm" fade={0.4}>
+  <Text>Are you sure?</Text>
+</ModalDialog>
+```
+
+:::
+
+::: danger 🩶 Tarnished
+
+```tsx
+// Re-rendering with different opacity each frame — manual fade loop
+const [fade, setFade] = useState(0)
+useEffect(() => { const t = setInterval(() => setFade(f => Math.min(f + 0.1, 0.7)), 50); return () => clearInterval(t) }, [])
+<Backdrop fade={fade}>...</Backdrop>
+
+// Hardcoded dim instead of using Backdrop
+<Box style={{ opacity: 0.5 }}>...</Box>   // opacity doesn't exist in terminal rendering
+```
+
+`Backdrop` is a render-time transform, not an animation primitive. Fade values set in React state are fine for instant transitions (modal open/close); don't animate them in a 50ms loop. And there's no `opacity` in TUIs — `Backdrop` is the only semantic way to dim a region.
+:::
+
+→ [Backdrop API](/api/backdrop) · [ModalDialog](/api/modal-dialog)
+
 ## Quick Reference
 
 ### Decision Flowchart
