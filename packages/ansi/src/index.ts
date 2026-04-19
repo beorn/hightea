@@ -84,8 +84,11 @@ export {
   ANSI16_SLOT_HEX,
   nearestAnsi16,
   rgbToAnsi256,
+  ansi256ToHex,
   fgFromRgb,
   bgFromRgb,
+  quantizeHex,
+  type ColorTier,
 } from "./color-maps"
 
 // =============================================================================

@@ -179,3 +179,102 @@ export function bgFromRgb(r: number, g: number, b: number, level: ColorLevel): s
   const idx = nearestAnsi16(r, g, b)
   return idx < 8 ? `${40 + idx}` : `${92 + idx}` // 100-107 for bright
 }
+
+// =============================================================================
+// Hex-in / hex-out tier quantization (for previews)
+// =============================================================================
+
+/**
+ * Convert a 256-palette index back to its canonical xterm hex value.
+ *
+ * Mirrors `rgbToAnsi256`:
+ *   - 16–231: 6×6×6 color cube. Index = 16 + 36·r + 6·g + b (each channel 0..5).
+ *   - 232–255: 24-step grayscale ramp.
+ *   - 0–15: ANSI 16 slots (reuses ANSI16_SLOT_HEX for exact parity with
+ *     `nearestAnsi16`).
+ */
+export function ansi256ToHex(idx: number): string {
+  if (idx < 0 || idx > 255 || !Number.isInteger(idx)) return "#000000"
+  if (idx < 16) {
+    // ANSI16 slot — index order matches ANSI_16_COLORS above.
+    const [r, g, b] = ANSI_16_COLORS[idx]!
+    return rgbToHexHash(r, g, b)
+  }
+  if (idx < 232) {
+    // 6×6×6 cube. xterm levels: 0, 95, 135, 175, 215, 255.
+    const levels = [0, 95, 135, 175, 215, 255] as const
+    const i = idx - 16
+    const r = levels[Math.floor(i / 36)]!
+    const g = levels[Math.floor((i % 36) / 6)]!
+    const b = levels[i % 6]!
+    return rgbToHexHash(r, g, b)
+  }
+  // 232..255 grayscale ramp: 8, 18, 28, ..., 238.
+  const gray = 8 + (idx - 232) * 10
+  return rgbToHexHash(gray, gray, gray)
+}
+
+function rgbToHexHash(r: number, g: number, b: number): string {
+  const h = (n: number) => n.toString(16).padStart(2, "0")
+  return `#${h(r)}${h(g)}${h(b)}`
+}
+
+function parseHexLocal(hex: string): [number, number, number] | null {
+  if (typeof hex !== "string") return null
+  let s = hex.trim()
+  if (s.startsWith("#")) s = s.slice(1)
+  if (s.length === 3) {
+    s = s
+      .split("")
+      .map((c) => c + c)
+      .join("")
+  }
+  if (s.length !== 6) return null
+  const r = parseInt(s.slice(0, 2), 16)
+  const g = parseInt(s.slice(2, 4), 16)
+  const b = parseInt(s.slice(4, 6), 16)
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null
+  return [r, g, b]
+}
+
+/**
+ * Color tier for preview quantization.
+ *
+ * Mirrors the tiers a real terminal would resolve to when the output phase
+ * emits ANSI: `truecolor` (pass-through), `256` (6×6×6 cube + grayscale ramp),
+ * `ansi16` (nearest of 16 slots), `mono` (luminance → black/white).
+ */
+export type ColorTier = "truecolor" | "256" | "ansi16" | "mono"
+
+/**
+ * Hex-in / hex-out quantization for previews.
+ *
+ * Takes any hex color and returns the hex a real terminal at that tier would
+ * actually emit. Used by the Sterling storybook to make the `1/2/3/4` tier
+ * toggle visibly different in-process — the output phase already does this
+ * when writing to a real TTY, but preview surfaces (theme swatches, rendered
+ * components inside a storybook app) bypass output-phase quantization. Apply
+ * `quantizeHex` at render time to mimic tier-specific terminal output.
+ *
+ *   - `truecolor`: returns the input unchanged (normalized to `#rrggbb`).
+ *   - `256`: snaps to the nearest xterm-256 slot, then returns that slot's hex.
+ *   - `ansi16`: snaps to one of the 16 standard slots (canonical xterm RGB).
+ *   - `mono`: luminance threshold (>= 0.5 → `#ffffff`, else `#000000`).
+ *
+ * Returns the input unchanged if it cannot be parsed as a hex color.
+ */
+export function quantizeHex(hex: string, tier: ColorTier): string {
+  const rgb = parseHexLocal(hex)
+  if (!rgb) return hex
+  const [r, g, b] = rgb
+  if (tier === "truecolor") return rgbToHexHash(r, g, b)
+  if (tier === "256") return ansi256ToHex(rgbToAnsi256(r, g, b))
+  if (tier === "ansi16") {
+    const idx = nearestAnsi16(r, g, b)
+    const [cr, cg, cb] = ANSI_16_COLORS[idx]!
+    return rgbToHexHash(cr, cg, cb)
+  }
+  // mono: Rec. 709 luminance threshold.
+  const y = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+  return y >= 0.5 ? "#ffffff" : "#000000"
+}
