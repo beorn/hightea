@@ -39,8 +39,8 @@
  */
 
 import React, { useContext, useMemo } from "react"
-import { ThemeContext } from "@silvery/theme/ThemeContext"
-import type { Theme } from "@silvery/ansi"
+import { ThemeContext, ActiveSchemeContext } from "@silvery/theme/ThemeContext"
+import type { Theme, ActiveScheme } from "@silvery/ansi"
 import { Box } from "./components/Box"
 
 /** Partial token bag — merged over the base theme. Accepts any Theme key, custom $tokens via app-defined keys, or a full Theme. */
@@ -61,10 +61,17 @@ export interface ThemeProviderProps {
    * whole object as `tokens`. Prefer `tokens` for new code.
    */
   theme?: Theme
+  /**
+   * Optional scheme detection metadata. When provided, makes
+   * `useActiveScheme()` return this object for all descendants. Populated
+   * automatically by `runThemed()`. Omitting it leaves any parent
+   * ActiveSchemeContext unchanged (may be null).
+   */
+  scheme?: ActiveScheme
   children: React.ReactNode
 }
 
-export function ThemeProvider({ tokens, theme, children }: ThemeProviderProps): React.ReactElement {
+export function ThemeProvider({ tokens, theme, scheme, children }: ThemeProviderProps): React.ReactElement {
   const parent = useContext(ThemeContext)
   const merged = useMemo(() => {
     if (tokens && theme) {
@@ -96,11 +103,15 @@ export function ThemeProvider({ tokens, theme, children }: ThemeProviderProps): 
   // Required because children with position="absolute" contribute zero content
   // height, so an auto-sized Box with only absolute children gets height=null
   // from Flexily, corrupting the root node's boxRect and crashing the render phase.
-  return (
+  const inner = (
     <ThemeContext.Provider value={merged}>
       <Box theme={merged} flexGrow={1} flexShrink={1} alignSelf="stretch">
         {children}
       </Box>
     </ThemeContext.Provider>
   )
+  if (scheme !== undefined) {
+    return <ActiveSchemeContext.Provider value={scheme}>{inner}</ActiveSchemeContext.Provider>
+  }
+  return inner
 }

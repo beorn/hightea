@@ -1294,3 +1294,6 @@ export type { TeaResult, EffectLike, TimerEffect } from "@silvery/create"
 // Reactive theme
 export { useColorScheme } from "./hooks/useColorScheme"
 export { ReactiveThemeProvider } from "./ReactiveThemeProvider"
+export { useActiveScheme } from "./hooks/useActiveScheme"
+export type { ActiveScheme } from "@silvery/ansi"
+export { ActiveSchemeContext } from "@silvery/theme/ThemeContext"

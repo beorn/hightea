@@ -6,6 +6,10 @@
  * (React context) and `run` (silvery-loop runtime). Apps that need custom
  * composition (store, pipe, withFocus) keep using `createApp + pipe`.
  *
+ * Delegates the wrap step to `wrapWithThemedProvider` — the shared internal
+ * used by any themed boot helper that wants detection + ThemeProvider without
+ * coupling to the `run()` call shape.
+ *
  * @example
  * ```tsx
  * import { runThemed } from "silvery/runtime"
@@ -26,19 +30,15 @@
  * ```
  */
 
-import React, { type ReactElement } from "react"
-import { detectScheme, type ColorScheme, type DetectSchemeOptions } from "@silvery/ansi"
-import { ThemeProvider, type ThemeTokens } from "@silvery/ag-react"
+import type { ReactElement } from "react"
+import type { ColorScheme } from "@silvery/ansi"
 import { run, type RunHandle, type RunOptions } from "./run"
+import {
+  wrapWithThemedProvider,
+  type ThemedProviderOptions,
+} from "./wrap-with-themed-provider"
 
-export interface RunThemedOptions extends DetectSchemeOptions {
-  /**
-   * Additional token overrides applied after detection. Merged over the
-   * detected theme via `<ThemeProvider tokens={...}>`. Use for app brand
-   * colors (`{ brand: "#5B8DEF" }`) or app-specific custom tokens
-   * (`{ "priority-p0": "#FF5555" }`).
-   */
-  tokens?: ThemeTokens
+export interface RunThemedOptions extends ThemedProviderOptions {
   /** Forwarded to `run()` — terminal + rendering options. */
   run?: RunOptions
 }
@@ -62,21 +62,7 @@ export async function runThemed(
   element: ReactElement,
   opts: RunThemedOptions = {},
 ): Promise<RunHandle> {
-  const { theme } = await detectScheme({
-    override: opts.override,
-    catalog: opts.catalog,
-    timeoutMs: opts.timeoutMs,
-    darkFallback: opts.darkFallback,
-    enforce: opts.enforce,
-    wcag: opts.wcag,
-  })
-
-  const wrapped = (
-    <ThemeProvider theme={theme}>
-      {opts.tokens ? <ThemeProvider tokens={opts.tokens}>{element}</ThemeProvider> : element}
-    </ThemeProvider>
-  )
-
+  const { element: wrapped } = await wrapWithThemedProvider(element, opts)
   return run(wrapped, opts.run)
 }
 

@@ -182,6 +182,32 @@ export interface Theme {
   variants: Record<string, Variant>
 }
 
+/**
+ * Metadata describing how the active color scheme was determined.
+ *
+ * Returned by `detectScheme()` and surfaced at runtime via `useActiveScheme()`.
+ * Lets apps log how the theme was detected ("catppuccin-mocha at 87% confidence via
+ * fingerprint") or render a debug badge without re-running detection.
+ *
+ * @example
+ * ```tsx
+ * const scheme = useActiveScheme()
+ * if (scheme?.source === "fingerprint") {
+ *   console.log(`detected ${scheme.matchedName} at ${Math.round((scheme.confidence ?? 0) * 100)}%`)
+ * }
+ * ```
+ */
+export interface ActiveScheme {
+  /** Scheme name pulled from Theme.name or the override. */
+  name: string
+  /** How the active theme was determined. */
+  source: "probe" | "fingerprint" | "fallback" | "override"
+  /** Confidence [0,1] — only meaningful for "fingerprint" source. */
+  confidence?: number
+  /** Catalog scheme name matched (only for "fingerprint" source). */
+  matchedName?: string
+}
+
 export type AnsiPrimary = "yellow" | "cyan" | "magenta" | "green" | "red" | "blue" | "white"
 export type HueName = "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple" | "pink"
 

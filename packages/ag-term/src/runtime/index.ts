@@ -55,6 +55,15 @@ export { createRuntime } from "./create-runtime"
 export { runThemed } from "./themed"
 export type { RunThemedOptions } from "./themed"
 
+// Shared internal: wrapWithThemedProvider — detect + wrap without run().
+// Use this for pipe-chain boot helpers (createThemedApp, withTheme, etc.)
+// that need the ThemeProvider wrap but supply their own boot step.
+export { wrapWithThemedProvider } from "./wrap-with-themed-provider"
+export type {
+  ThemedProviderOptions,
+  WrapWithThemedProviderResult,
+} from "./wrap-with-themed-provider"
+
 // Layer 2: React integration
 // NOTE: RunHandle intentionally NOT re-exported from barrel.
 // Use pipe(create(), withAg(), withTerm()) for new apps.

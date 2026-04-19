@@ -174,6 +174,7 @@ export type {
   DetectSource,
   SlotSource,
 } from "./theme/orchestrator"
+export type { ActiveScheme } from "./theme/types"
 export type {
   ThemeToken,
   StandardThemeToken,

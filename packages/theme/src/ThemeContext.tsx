@@ -16,7 +16,7 @@
  */
 
 import { createContext, useContext } from "react"
-import type { Theme } from "@silvery/ansi"
+import type { Theme, ActiveScheme } from "@silvery/ansi"
 import { defaultDarkTheme } from "./schemes/index"
 
 // ============================================================================
@@ -25,6 +25,18 @@ import { defaultDarkTheme } from "./schemes/index"
 
 /** @internal Exported for @silvery/ag-react ThemeProvider — not public API. */
 export const ThemeContext = createContext<Theme>(defaultDarkTheme)
+
+/**
+ * Context that carries scheme detection metadata (name, source, confidence).
+ *
+ * Separate from ThemeContext because scheme metadata is orthogonal to the
+ * theme token bag. Populated by `<ThemeProvider scheme={...}>` when the
+ * caller passes detection provenance (e.g. from `runThemed`). Null when
+ * no scheme metadata was injected.
+ *
+ * @internal Exported for @silvery/ag-react ThemeProvider.
+ */
+export const ActiveSchemeContext = createContext<ActiveScheme | null>(null)
 
 // ============================================================================
 // Hook
