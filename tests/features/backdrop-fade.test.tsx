@@ -526,3 +526,102 @@ describe("standalone Backdrop: rootBg from ThemeProvider", () => {
     }
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Regression: empty cells (no fg, just space + inherited bg) behind the modal
+// must also darken. Previously `fgHex=null` short-circuited to a `dim` stamp
+// instead of blending the bg toward the theme neutral — so empty areas looked
+// identical pre- and post-modal, while text cells correctly darkened.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("backdrop fade: empty-cell bg darkening (regression)", () => {
+  test("empty space cells behind modal darken their bg toward theme neutral", () => {
+    // ThemeProvider sets inheritedBg = darkTheme.bg. The outer layout
+    // renders text on rows 0-7 but col 30+ is empty (just space chars with
+    // fg=null, bg=inherited theme bg). When the modal opens with fade=0.4,
+    // those empty cells must have bg darkened toward #000000 (dark neutral).
+    const render = createRenderer({ cols: 40, rows: 10 })
+
+    function App({ open }: { open: boolean }) {
+      return (
+        <ThemeProvider theme={darkTheme}>
+          <Box flexDirection="column" width={40} height={10}>
+            {Array.from({ length: 8 }, (_, i) => (
+              <Text key={i} color="#FFFFFF">
+                {`row ${i}`}
+              </Text>
+            ))}
+            {open && (
+              <Box position="absolute" marginLeft={10} marginTop={3}>
+                <ModalDialog width={20} fade={0.4}>
+                  <Text color="#FFFFFF">DIALOG</Text>
+                </ModalDialog>
+              </Box>
+            )}
+          </Box>
+        </ThemeProvider>
+      )
+    }
+
+    const app = render(<App open={false} />)
+    // Empty cell at col 35 row 7 — outside the modal rect, past end of "row 7".
+    const pre = app.cell(35, 7)
+    expect(pre.char).toBe(" ")
+    expect(pre.fg).toBeNull()
+    // Pre-modal: bg is inherited rootBg (darkTheme.bg = #1e1e2e = {30,30,46}).
+    expect(pre.bg).not.toBeNull()
+    const preBg = pre.bg as { r: number; g: number; b: number }
+    expect(preBg.r).toBe(30)
+    expect(preBg.g).toBe(30)
+    expect(preBg.b).toBe(46)
+
+    // After modal opens: same cell must darken (blended toward #000000).
+    app.rerender(<App open={true} />)
+    const post = app.cell(35, 7)
+    expect(post.char).toBe(" ")
+    // fg is still null (no text), that's fine.
+    // bg MUST be darker than pre.bg — this is the regression guard.
+    expect(post.bg).not.toBeNull()
+    const postBg = post.bg as { r: number; g: number; b: number }
+    // Every channel must be STRICTLY less than the pre-fade bg — the
+    // modal's "spotlight" effect has pushed every cell toward pure black.
+    expect(postBg.r).toBeLessThan(preBg.r)
+    expect(postBg.g).toBeLessThan(preBg.g)
+    expect(postBg.b).toBeLessThan(preBg.b)
+  })
+
+  test("standalone Backdrop darkens empty cells' bg (no Text leaves inside)", () => {
+    // Bare Backdrop wrapping a bg-only Box. Every covered cell has fg=null
+    // (no text), but cell.bg is explicit (#00ff00). The two-channel path
+    // must still run and darken bg even with fg unresolvable.
+    const render = createRenderer({ cols: 20, rows: 5 })
+
+    function App({ open }: { open: boolean }) {
+      return (
+        <ThemeProvider theme={darkTheme}>
+          <Box width={20} height={5}>
+            {open && (
+              <Backdrop fade={0.6}>
+                <Box backgroundColor="#00ff00" width={20} height={5} />
+              </Backdrop>
+            )}
+            {!open && <Box backgroundColor="#00ff00" width={20} height={5} />}
+          </Box>
+        </ThemeProvider>
+      )
+    }
+
+    const app = render(<App open={false} />)
+    const pre = app.cell(5, 2)
+    expect(pre.bg).not.toBeNull()
+    const preBg = pre.bg as { r: number; g: number; b: number }
+    expect(preBg.g).toBe(255) // pure green
+
+    app.rerender(<App open={true} />)
+    const post = app.cell(5, 2)
+    expect(post.bg).not.toBeNull()
+    const postBg = post.bg as { r: number; g: number; b: number }
+    // Green channel must have darkened — bg blended toward #000000.
+    expect(postBg.g).toBeLessThan(255)
+  })
+})

@@ -275,14 +275,17 @@ function fadeRectExcluding(
  * ### `blend` strategy — two-channel transform
  *
  * When `blendTarget` (derived from `rootBg`) is provided:
- * - `cell.fg` is blended toward `blendTarget`
- * - `cell.bg` is blended toward `blendTarget` (explicit hex/256 only;
- *   null or DEFAULT_BG are left unchanged — they already represent the
- *   terminal's own background)
+ * - `cell.fg` is blended toward `blendTarget` (only when `cell.fg` resolves
+ *   to a concrete color; null fg cells keep `fg=null`).
+ * - `cell.bg` is blended toward `blendTarget`. `null`/`DEFAULT_BG` cells are
+ *   treated as the theme's `rootBg` (that IS the color the terminal paints
+ *   for them), so empty space cells in the modal's shadow visibly darken.
  *
  * This is the "modal spotlight" transform: everything outside the modal
  * converges toward the theme-neutral (pure black for dark themes, pure white
- * for light themes), creating a strong visual separation.
+ * for light themes), creating a strong visual separation. Both filled and
+ * empty cells must darken — otherwise empty regions read as "modal not
+ * active" while only text cells show the fade.
  *
  * When `blendTarget` is null (legacy path): mix fg toward cell.bg only.
  *
@@ -319,10 +322,33 @@ function fadeCell(
 
   if (blendTarget !== null && rootBgHex !== null) {
     // Two-channel transform: blend fg AND bg toward the theme-neutral.
+    //
+    // Blend bg toward the neutral. When cell.bg is null/DEFAULT_BG, treat it
+    // as the theme's rootBg — that IS the color the terminal paints for those
+    // cells. Blending null-bg cells produces an explicit darkened hex so the
+    // backdrop visibly darkens past $bg, matching cells with explicit $bg.
+    //
+    // IMPORTANT: bg darkening must happen even when fgHex is null (empty
+    // space cells: char=" ", fg=null). Previously these short-circuited to a
+    // `dim` stamp and never blended their bg, so entire empty regions behind
+    // the modal looked identical pre/post-open. See regression test
+    // "empty space cells behind modal darken their bg toward theme neutral".
+    const bgHex = colorToHex(cell.bg) ?? rootBgHex
+    const blendedBgHex = blend(bgHex, blendTarget, amount)
+    const blendedBg = hexToRgb(blendedBgHex)
+
+    // If fg is unresolvable (null — e.g., space character with no foreground),
+    // blend the bg alone. Still mark dim as a belt-and-suspenders signal for
+    // any downstream consumer that doesn't look at bg (e.g., terminals that
+    // don't render true-color bg but do honour SGR 2).
     if (!fgHex) {
-      // fg unresolvable — stamp dim as fallback.
-      if (cell.attrs.dim) return false
-      buffer.setCell(x, y, { ...cell, attrs: { ...cell.attrs, dim: true } })
+      if (!blendedBg) {
+        // Couldn't resolve either channel — final fallback to dim stamp.
+        if (cell.attrs.dim) return false
+        buffer.setCell(x, y, { ...cell, attrs: { ...cell.attrs, dim: true } })
+        return true
+      }
+      buffer.setCell(x, y, { ...cell, bg: blendedBg })
       return true
     }
 
@@ -330,13 +356,6 @@ function fadeCell(
     const blendedFg = hexToRgb(blendedFgHex)
     if (!blendedFg) return false
 
-    // Blend bg toward the neutral. When cell.bg is null/DEFAULT_BG, treat it
-    // as the theme's rootBg — that IS the color the terminal paints for those
-    // cells. Blending null-bg cells produces an explicit darkened hex so the
-    // backdrop visibly darkens past $bg, matching cells with explicit $bg.
-    const bgHex = colorToHex(cell.bg) ?? rootBgHex
-    const blendedBgHex = blend(bgHex, blendTarget, amount)
-    const blendedBg = hexToRgb(blendedBgHex)
     if (!blendedBg) {
       buffer.setCell(x, y, { ...cell, fg: blendedFg })
       return true
