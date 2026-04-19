@@ -450,13 +450,18 @@ function AnsiRow({
         "brightWhite",
       ]
     : ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"]
+  // Render each slot as a colored cell with a thin `▏` separator in $border
+  // between neighbors. Keeps near-white / near-bg swatches visible as distinct
+  // cells (e.g. monokai-pro's brightGreen ≈ #c4e890 is near-white — without
+  // the separator, the 8-15 row looks like it has blank gaps).
   return (
     <Box gap={0}>
       <Muted>{bright ? "8-15 " : "0-7  "}</Muted>
-      {keys.map((k) => (
-        <Text key={k as string} color={palette[k] as string}>
-          {"██"}
-        </Text>
+      {keys.map((k, i) => (
+        <React.Fragment key={k as string}>
+          {i > 0 ? <Text color="$border">▏</Text> : null}
+          <Text color={palette[k] as string}>██</Text>
+        </React.Fragment>
       ))}
     </Box>
   )
