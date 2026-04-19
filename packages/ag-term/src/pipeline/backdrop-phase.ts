@@ -79,7 +79,7 @@
  *    mixing, so the emoji visually fades in lockstep with surrounding cells.
  */
 
-import { mixSrgb, relativeLuminance } from "@silvery/color"
+import { relativeLuminance } from "@silvery/color"
 import type { AgNode, Rect } from "@silvery/ag/types"
 import { ansi256ToRgb, isDefaultBg, type Color, type TerminalBuffer } from "../buffer"
 import {
@@ -524,6 +524,26 @@ function rgbToHex(r: number, g: number, b: number): string {
     return v.toString(16).padStart(2, "0")
   }
   return `#${clamp(r)}${clamp(g)}${clamp(b)}`
+}
+
+/**
+ * sRGB source-over alpha mix. Inlined locally to avoid a publish-cycle
+ * dependency on `@silvery/color`'s `mixSrgb` export — silvery's build
+ * references `@silvery/color` as an external at install time, so adding a
+ * new export in the same release cycle breaks CI verify (the published
+ * `@silvery/color` dist doesn't ship the new name until its next publish).
+ * `@silvery/color` does re-export `mixSrgb` from its source for third-party
+ * consumers; this inline copy exists only to keep silvery self-contained.
+ */
+function mixSrgb(a: string, b: string, t: number): string {
+  const ra = hexToRgb(a)
+  const rb = hexToRgb(b)
+  if (!ra || !rb) return a
+  const u = Math.max(0, Math.min(1, t))
+  const r = ra.r * (1 - u) + rb.r * u
+  const g = ra.g * (1 - u) + rb.g * u
+  const bl = ra.b * (1 - u) + rb.b * u
+  return rgbToHex(r, g, bl)
 }
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
