@@ -64,6 +64,42 @@ export {
   getThemeByName,
 } from "./schemes/index"
 
+// Sterling — new canonical design system (Phase 2a, additive).
+// See packages/theme/src/sterling/ and hub/silvery/design/v10-terminal/design-system.md.
+export { sterling } from "./sterling/index"
+export {
+  deriveTheme as sterlingDeriveTheme,
+  deriveRoles as sterlingDeriveRoles,
+  populateFlat as sterlingPopulateFlat,
+  defaultScheme as sterlingDefaultScheme,
+  STERLING_FLAT_TOKENS,
+  WCAG_AA,
+  autoLift as sterlingAutoLift,
+  checkAA as sterlingCheckAA,
+  ContrastError as SterlingContrastError,
+} from "./sterling/index"
+export type {
+  AccentRole,
+  BorderRole,
+  ContrastMode as SterlingContrastMode,
+  ContrastViolation as SterlingContrastViolation,
+  CursorRole,
+  DeepPartial as SterlingDeepPartial,
+  DerivationStep as SterlingDerivationStep,
+  DerivationTrace as SterlingDerivationTrace,
+  DeriveOptions as SterlingDeriveOptions,
+  DesignSystem,
+  FlatToken as SterlingFlatToken,
+  FlatTokens as SterlingFlatTokens,
+  InteractiveRole,
+  MutedRole,
+  Roles as SterlingRoles,
+  StatePair,
+  SurfaceRole,
+  Theme as SterlingTheme,
+  ThemeShape,
+} from "./sterling/index"
+
 // Built-in schemes (84 color schemes — see packages/theme/src/schemes/)
 export {
   builtinPalettes,

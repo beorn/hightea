@@ -19,6 +19,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./schemes": "./src/schemes/index.ts",
+    "./sterling": "./src/sterling/index.ts",
     "./*": "./src/*.ts"
   },
   "publishConfig": {
@@ -35,6 +36,10 @@
       "./schemes": {
         "types": "./dist/schemes.d.mts",
         "import": "./dist/schemes.mjs"
+      },
+      "./sterling": {
+        "types": "./dist/sterling/index.d.mts",
+        "import": "./dist/sterling/index.mjs"
       },
       "./theme": {
         "types": "./dist/theme.d.mts",
@@ -56,6 +61,7 @@
       "src/index.ts",
       "src/detect.ts",
       "src/schemes/index.ts",
+      "src/sterling/index.ts",
       "src/theme.ts"
     ],
     "format": "esm"
