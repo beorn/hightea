@@ -13,6 +13,7 @@
 import React, { useMemo } from "react"
 import { Box, Text, Muted, Divider, Strong, Small } from "silvery"
 import type { SterlingTheme, SterlingDerivationStep } from "@silvery/theme"
+import { quantizeHex, type ColorTier } from "@silvery/ansi"
 
 /** Convert a nested path like "accent.hover.bg" → flat "bg-accent-hover". */
 export function nestedToFlat(path: string): string {
@@ -43,11 +44,18 @@ export function nestedToFlat(path: string): string {
 export interface DerivationPanelProps {
   theme: SterlingTheme
   openedPath: string | null
+  /**
+   * Active preview tier. When provided and != "truecolor", the panel shows
+   * both the derived truecolor hex (full precision) AND the quantized hex
+   * a terminal at this tier would actually emit.
+   */
+  tier?: ColorTier
 }
 
 export function DerivationPanel({
   theme,
   openedPath,
+  tier = "truecolor",
 }: DerivationPanelProps): React.ReactElement | null {
   const step: SterlingDerivationStep | null = useMemo(() => {
     if (!openedPath) return null
@@ -59,6 +67,8 @@ export function DerivationPanel({
 
   const flat = nestedToFlat(openedPath)
   const hex = step?.output ?? "(unknown)"
+  const isKnown = hex !== "(unknown)"
+  const quantized = isKnown && tier !== "truecolor" ? quantizeHex(hex, tier) : null
 
   return (
     <Box
@@ -89,6 +99,15 @@ export function DerivationPanel({
           <Text color={hex}>██</Text>
           <Text bold>{hex}</Text>
         </Box>
+        {quantized ? (
+          <Box gap={1}>
+            <Muted>@{tier}</Muted>
+            <Text color={quantized}>██</Text>
+            <Text bold color="$warning">
+              {quantized}
+            </Text>
+          </Box>
+        ) : null}
         {step ? (
           <>
             <Box gap={1}>

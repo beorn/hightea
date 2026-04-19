@@ -47,6 +47,7 @@ import { ComponentPreview } from "./ComponentPreview.tsx"
 import { TokenTree, flattenTokens, type FlatTokenEntry } from "./TokenTree.tsx"
 import { DerivationPanel } from "./DerivationPanel.tsx"
 import { TierBar, TIER_ORDER, type Tier } from "./TierBar.tsx"
+import { quantizeLegacyTheme, quantizeSterlingTheme } from "./shared/quantize.ts"
 
 // ────────────────────────────────────────────────────────────────────────────
 // Scheme list — sort dark-first, then alpha, for a predictable browser order.
@@ -80,11 +81,12 @@ function buildLegacyTheme(schemeName: string, tier: Tier): LegacyTheme {
   if (!palette) {
     throw new Error(`Unknown scheme: ${schemeName}`)
   }
-  // Legacy derive supports ansi16 + truecolor. We approximate "256" and
-  // "mono" by falling back to truecolor — the tier-quantization at the
-  // output phase still applies via the silvery runtime.
-  const mode = tier === "ansi16" ? "ansi16" : "truecolor"
-  return legacyDeriveTheme(palette, mode)
+  // Always derive at truecolor so the theme carries full-precision hex,
+  // then preview-quantize to the selected tier below. The output phase
+  // would quantize again for a real TTY at tier < truecolor — but our
+  // in-process preview bypasses that, so we mirror it here.
+  const base = legacyDeriveTheme(palette, "truecolor")
+  return quantizeLegacyTheme(base, tier)
 }
 
 /**
@@ -115,7 +117,13 @@ export function App(): React.ReactElement {
   const [openedToken, setOpenedToken] = useState<string | null>(null)
 
   const schemeName = schemes[schemeIdx]!
-  const sterlingTheme = useMemo(() => buildSterlingTheme(schemeName), [schemeName])
+  // Base = full-precision truecolor derivation; tier-quantized = what a
+  // real terminal would render at the current tier.
+  const sterlingThemeBase = useMemo(() => buildSterlingTheme(schemeName), [schemeName])
+  const sterlingTheme = useMemo(
+    () => quantizeSterlingTheme(sterlingThemeBase, tier),
+    [sterlingThemeBase, tier],
+  )
   const legacyTheme = useMemo(() => buildLegacyTheme(schemeName, tier), [schemeName, tier])
   const flatTokens: FlatTokenEntry[] = useMemo(() => flattenTokens(sterlingTheme), [sterlingTheme])
 
@@ -249,7 +257,7 @@ export function App(): React.ReactElement {
               openedPath={openedToken}
               focused={focus === "tokens"}
             />
-            <DerivationPanel theme={sterlingTheme} openedPath={openedToken} />
+            <DerivationPanel theme={sterlingThemeBase} openedPath={openedToken} tier={tier} />
           </Box>
         </Box>
         <Divider />
