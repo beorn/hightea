@@ -371,6 +371,7 @@
     "@silvery/ag": "0.18.0",
     "@silvery/ag-react": "0.18.0",
     "@silvery/ansi": "0.18.0",
+    "@silvery/color": "0.18.0",
     "@silvery/create": "0.18.0",
     "@silvery/headless": "0.18.0",
     "@silvery/signals": "0.18.0",

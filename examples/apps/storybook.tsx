@@ -88,39 +88,76 @@ function StatusBar({
   schemeName,
   secondaryName,
   dark,
+  detected,
 }: {
   panel: Panel
   tier: Tier
   schemeName: string
   secondaryName?: string
   dark: boolean
+  detected?: DetectedInfo | null
 }) {
   return (
+    <Box flexDirection="column">
+      <Box paddingX={1} gap={1}>
+        <Muted>scheme</Muted>
+        <Text bold color="$primary">
+          {schemeName}
+        </Text>
+        {secondaryName ? (
+          <>
+            <Muted>vs</Muted>
+            <Text bold color="$accent">
+              {secondaryName}
+            </Text>
+          </>
+        ) : null}
+        <Text>·</Text>
+        <Muted>{dark ? "dark" : "light"}</Muted>
+        <Text>·</Text>
+        <Muted>tier</Muted>
+        <Text bold color="$success">
+          {TIER_LABEL[tier]}
+        </Text>
+        <Text>·</Text>
+        <Muted>panel</Muted>
+        <Text bold color="$info">
+          {PANEL_LABEL[panel]}
+        </Text>
+      </Box>
+      {detected ? <DetectedLine detected={detected} /> : null}
+    </Box>
+  )
+}
+
+/** One-line banner describing how the user's actual terminal scheme was detected. */
+function DetectedLine({ detected }: { detected: DetectedInfo }) {
+  const confidencePct = Math.round(detected.confidence * 100)
+  return (
     <Box paddingX={1} gap={1}>
-      <Muted>scheme</Muted>
-      <Text bold color="$primary">
-        {schemeName}
-      </Text>
-      {secondaryName ? (
+      <Muted>detected</Muted>
+      {detected.source === "fingerprint" && detected.matchedName ? (
         <>
-          <Muted>vs</Muted>
           <Text bold color="$accent">
-            {secondaryName}
+            {detected.matchedName}
           </Text>
+          <Muted>
+            ({detected.source} · {confidencePct}%)
+          </Muted>
         </>
-      ) : null}
-      <Text>·</Text>
-      <Muted>{dark ? "dark" : "light"}</Muted>
-      <Text>·</Text>
-      <Muted>tier</Muted>
-      <Text bold color="$success">
-        {TIER_LABEL[tier]}
-      </Text>
-      <Text>·</Text>
-      <Muted>panel</Muted>
-      <Text bold color="$info">
-        {PANEL_LABEL[panel]}
-      </Text>
+      ) : detected.source === "probe" ? (
+        <>
+          <Muted>probed OSC palette — no catalog match</Muted>
+        </>
+      ) : detected.source === "override" ? (
+        <>
+          <Muted>override ({detected.matchedName ?? "custom"})</Muted>
+        </>
+      ) : (
+        <>
+          <Muted>fallback ({detected.matchedName ?? "default"})</Muted>
+        </>
+      )}
     </Box>
   )
 }
@@ -170,16 +207,36 @@ function Legend({ panel }: { panel: Panel }) {
 // Main app
 // ----------------------------------------------------------------------------
 
-interface StorybookProps {
-  entries: ReturnType<typeof buildEntries>
+/** Detected scheme metadata (subset of DetectSchemeResult — just what the UI needs). */
+export interface DetectedInfo {
+  source: "probe" | "fingerprint" | "fallback" | "override"
+  confidence: number
+  matchedName?: string
 }
 
-export function Storybook({ entries }: StorybookProps) {
+interface StorybookProps {
+  entries: ReturnType<typeof buildEntries>
+  /** Optional — if null, detection was skipped or failed; banner omits the line. */
+  detected?: DetectedInfo | null
+}
+
+export function Storybook({ entries, detected }: StorybookProps) {
   const { exit } = useApp()
   const [panel, setPanel] = useState<Panel>("browser")
   const [tier, setTier] = useState<Tier>("truecolor")
-  const [primaryIdx, setPrimaryIdx] = useState(0)
-  const [secondaryIdx, setSecondaryIdx] = useState(Math.min(1, entries.length - 1))
+  // Auto-select the detected catalog match on first render, so the storybook
+  // opens on the user's actual terminal scheme. Falls back to index 0 when
+  // detection failed or matched nothing.
+  const initialIdx = useMemo(() => {
+    const name = detected?.matchedName
+    if (!name) return 0
+    const i = entries.findIndex((e) => e.name === name)
+    return i >= 0 ? i : 0
+  }, [detected?.matchedName, entries])
+  const [primaryIdx, setPrimaryIdx] = useState(initialIdx)
+  const [secondaryIdx, setSecondaryIdx] = useState(
+    Math.min(initialIdx === 0 ? 1 : 0, entries.length - 1),
+  )
   const [activePane, setActivePane] = useState<"left" | "right">("left")
 
   const primary = entries[primaryIdx]!
@@ -276,6 +333,7 @@ export function Storybook({ entries }: StorybookProps) {
         schemeName={primary.name}
         secondaryName={panel === "compare" ? secondary.name : undefined}
         dark={primary.dark}
+        detected={detected}
       />
       <Legend panel={panel} />
     </Box>
@@ -473,10 +531,20 @@ function AnsiRow({
 
 export async function main() {
   const entries = buildEntries()
+
+  // Detect the user's actual terminal scheme so the storybook can show what
+  // their real environment resolves to (and optionally start the cursor on
+  // the matched catalog entry for a familiar first-render).
+  const { builtinPalettes } = await import("@silvery/theme")
+  const { detectScheme } = await import("@silvery/ansi")
+  const detected = await detectScheme({
+    catalog: Object.values(builtinPalettes),
+  }).catch(() => null)
+
   using term = createTerm()
   const { waitUntilExit } = await render(
     <ExampleBanner meta={meta} controls="1-5 panels · j/k scheme · t tier · c compare · q quit">
-      <Storybook entries={entries} />
+      <Storybook entries={entries} detected={detected} />
     </ExampleBanner>,
     term,
   )
