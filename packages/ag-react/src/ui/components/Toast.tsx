@@ -29,7 +29,23 @@ import { Text } from "../../components/Text"
 // Types
 // =============================================================================
 
-export type ToastVariant = "default" | "success" | "error" | "warning" | "info"
+/**
+ * Toast tone — Sterling statuses plus the `destructive` intent alias. Phase 2b
+ * adds `accent` and `destructive` to the surface; `default` stays for plain
+ * notifications that don't carry semantic meaning.
+ *
+ * `destructive` resolves to `error` (see design-system.md §"Intent vs role");
+ * apps write `tone="destructive"` when the toast announces a destructive action
+ * and `tone="error"` when something failed.
+ */
+export type ToastVariant =
+  | "default"
+  | "accent"
+  | "success"
+  | "error"
+  | "warning"
+  | "info"
+  | "destructive"
 
 export interface ToastData {
   /** Unique toast ID (auto-generated if not provided) */
@@ -86,18 +102,22 @@ const DEFAULT_DURATION = 3000
 
 const VARIANT_COLORS: Record<ToastVariant, string> = {
   default: "$fg",
-  success: "$success",
-  error: "$error",
-  warning: "$warning",
-  info: "$info",
+  accent: "$fg-accent",
+  success: "$fg-success",
+  error: "$fg-error",
+  warning: "$fg-warning",
+  info: "$fg-info",
+  destructive: "$fg-error",
 }
 
 const VARIANT_ICONS: Record<ToastVariant, string> = {
   default: "i",
+  accent: "*",
   success: "+",
   error: "x",
   warning: "!",
   info: "i",
+  destructive: "x",
 }
 
 // =============================================================================
@@ -190,9 +210,9 @@ export function ToastItem({ toast, ...boxProps }: ToastItemProps): React.ReactEl
   return (
     <Box
       borderStyle="single"
-      borderColor="$border"
+      borderColor="$border-default"
       paddingX={1}
-      backgroundColor="$popover-bg"
+      backgroundColor="$bg-surface-raised"
       width="snug-content"
       {...boxProps}
     >
@@ -200,7 +220,7 @@ export function ToastItem({ toast, ...boxProps }: ToastItemProps): React.ReactEl
         [{icon}]
       </Text>
       <Text> {toast.title}</Text>
-      {toast.description && <Text color="$muted"> {toast.description}</Text>}
+      {toast.description && <Text color="$fg-muted"> {toast.description}</Text>}
     </Box>
   )
 }
