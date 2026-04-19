@@ -460,9 +460,8 @@ export function renderToXterm(
     }
   }
 
-  // Initial render: hide cursor, clear screen, move to home, then render
+  // Initial render: hide cursor, clear screen, move to home, then render.
   // Theme flows via the Box theme= prop on the ThemeProvider wrapper (see wrapElement()).
-  // No pre-render setActiveTheme() call needed.
   terminal.write(CURSOR_HIDE + CURSOR_HOME + CLEAR_SCREEN)
   doRender()
   // Second pass picks up layout feedback (useBoxRect dimensions).

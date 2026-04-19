@@ -28,28 +28,30 @@ import { Box, Text } from "silvery"
 import { parseColor, getTextStyle } from "@silvery/ag-term/pipeline/render-helpers"
 import { createOutputPhase } from "@silvery/ag-term/pipeline/output-phase"
 import { createBuffer } from "@silvery/ag-term/buffer"
-import {
-  getActiveColorLevel,
-  setActiveColorLevel,
-  setActiveTheme,
-  getActiveTheme,
-  ansi16DarkTheme,
-} from "@silvery/theme"
+import { getActiveColorLevel, setActiveColorLevel, ansi16DarkTheme } from "@silvery/theme"
+import { pushContextTheme, popContextTheme } from "@silvery/theme/state"
 
 // ============================================================================
 // Tier-dispatch fixtures
 // ============================================================================
 
+/** Run `fn` under the given context theme — push before, pop after. */
+function withTheme(theme: typeof ansi16DarkTheme, fn: () => void): void {
+  pushContextTheme(theme)
+  try {
+    fn()
+  } finally {
+    popContextTheme()
+  }
+}
+
 function withMonoTier(run: () => void): void {
   const prevLevel = getActiveColorLevel()
-  const prevTheme = getActiveTheme()
   try {
     setActiveColorLevel("none")
-    setActiveTheme(ansi16DarkTheme)
-    run()
+    withTheme(ansi16DarkTheme, run)
   } finally {
     setActiveColorLevel(prevLevel)
-    setActiveTheme(prevTheme)
   }
 }
 
@@ -90,12 +92,13 @@ describe("parseColor: monochrome tier", () => {
 
   test("$primary at truecolor tier resolves to a hex RGB", () => {
     setActiveColorLevel("truecolor")
-    setActiveTheme(ansi16DarkTheme)
-    const result = parseColor("$primary")
-    // At truecolor tier, $primary must NOT be null — we rely on the normal
-    // token → hex → RGB pipeline. This guards against an accidental always-on
-    // mono-strip regression.
-    expect(result).not.toBeNull()
+    withTheme(ansi16DarkTheme, () => {
+      const result = parseColor("$primary")
+      // At truecolor tier, $primary must NOT be null — we rely on the normal
+      // token → hex → RGB pipeline. This guards against an accidental always-on
+      // mono-strip regression.
+      expect(result).not.toBeNull()
+    })
   })
 })
 
@@ -191,11 +194,12 @@ describe("getTextStyle: monochrome tier attrs injection", () => {
 
   test("at truecolor tier, $primary → RGB fg, no bold injected", () => {
     setActiveColorLevel("truecolor")
-    setActiveTheme(ansi16DarkTheme)
-    const style = getTextStyle({ color: "$primary" })
-    expect(style.fg).not.toBeNull()
-    // Bold is NOT auto-injected when the user didn't ask for it at color tiers.
-    expect(style.attrs.bold).toBeFalsy()
+    withTheme(ansi16DarkTheme, () => {
+      const style = getTextStyle({ color: "$primary" })
+      expect(style.fg).not.toBeNull()
+      // Bold is NOT auto-injected when the user didn't ask for it at color tiers.
+      expect(style.attrs.bold).toBeFalsy()
+    })
   })
 })
 
@@ -270,12 +274,12 @@ describe("render pipeline: $token attrs reach the buffer at mono tier", () => {
   // ANSI) is exercised separately in "output phase: mono tier strips ...".
   beforeEach(() => {
     setActiveColorLevel("none")
-    setActiveTheme(ansi16DarkTheme)
+    pushContextTheme(ansi16DarkTheme)
   })
 
   afterEach(() => {
+    popContextTheme()
     setActiveColorLevel("truecolor")
-    setActiveTheme(ansi16DarkTheme)
   })
 
   test("<Text color='$primary'> renders bold cells, no fg", () => {
@@ -349,12 +353,12 @@ describe("render pipeline: $token attrs reach the buffer at mono tier", () => {
 describe("mono tier: realistic 50+ node fixture (STRICT compounding safety)", () => {
   beforeEach(() => {
     setActiveColorLevel("none")
-    setActiveTheme(ansi16DarkTheme)
+    pushContextTheme(ansi16DarkTheme)
   })
 
   afterEach(() => {
+    popContextTheme()
     setActiveColorLevel("truecolor")
-    setActiveTheme(ansi16DarkTheme)
   })
 
   function MonoApp({ highlightIndex }: { highlightIndex: number }) {

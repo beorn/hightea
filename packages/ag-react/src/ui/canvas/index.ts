@@ -278,7 +278,7 @@ export function renderToCanvas(
   initCanvasRenderer(optionsWithDpr)
 
   const theme = options.theme ?? getDefaultTheme()
-  // Theme flows via ThemeProvider's Box wrapper (AgNode tree cascade), no setActiveTheme needed.
+  // Theme flows via ThemeProvider's Box wrapper (AgNode tree cascade).
 
   let pixelWidth = options.width ?? canvas.width
   let pixelHeight = options.height ?? canvas.height
@@ -498,8 +498,6 @@ export function renderToCanvas(
     reconciler.updateContainerSync(null, fiberRoot, null, null)
     reconciler.flushSyncWork()
     setOnNodeRemoved(null)
-    inputHandlers.clear()
-    pasteHandlers.clear()
   }
   doUnmount = unmount
 

@@ -1,18 +1,17 @@
 /**
  * Active theme state — module-level fallback for pipeline access.
  *
- * This module has side effects (global mutable state).
- * Marked in package.json sideEffects for tree-shaking.
- *
- * NOTE: `setActiveTheme()` is now a no-op. Theme flows through the AgNode tree
- * via `<Box theme={}>` props (set by ThemeProvider in @silvery/ag-react), using
- * the same pushContextTheme/popContextTheme mechanism as the existing `theme`
- * prop cascade in render-phase.ts. `getActiveTheme()` remains as a safe fallback
- * for code paths that render without a ThemeProvider (e.g. bare tests, xterm
- * renderer before ThemeProvider wraps the element).
+ * Theme flows through the AgNode tree via `<Box theme={}>` props (set by
+ * ThemeProvider in @silvery/ag-react) and the pushContextTheme/popContextTheme
+ * cascade in render-phase.ts. `getActiveTheme()` reads the nearest stack entry,
+ * falling back to ansi16DarkTheme for code paths that render without a
+ * ThemeProvider (bare tests, xterm renderer before wrap).
  *
  * Usage of standalone resolveThemeColor(token, theme) is preferred for callers
  * that have a Theme reference available.
+ *
+ * `setActiveTheme()` was removed in R2 (km-silvery.theme-v3-r2-agnode-cascade);
+ * the no-op stub is gone too. Callers should wrap in ThemeProvider.
  */
 
 import type { Theme } from "@silvery/ansi"
@@ -30,16 +29,6 @@ import { ansi16DarkTheme } from "./schemes/index"
  * without ThemeProvider.
  */
 const _activeTheme: Theme = ansi16DarkTheme
-
-/**
- * @deprecated No-op. Theme now flows via the AgNode tree (Box theme= prop +
- * pushContextTheme/popContextTheme in render-phase.ts). Calls to setActiveTheme
- * have no effect. Remove call sites; use ThemeProvider from @silvery/ag-react.
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function setActiveTheme(_theme: Theme): void {
-  // intentional no-op — theme flows via AgNode tree, not module state
-}
 
 /** Get the active theme (fallback to ansi16DarkTheme when no context stack entry exists). */
 export function getActiveTheme(): Theme {

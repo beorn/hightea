@@ -60,9 +60,11 @@ export { createTheme, quickTheme, presetTheme } from "./builder"
 // Palette generators
 export { fromBase16, fromColors, fromPreset } from "./generators"
 
-// Active theme state (side-effectful)
+// Active theme state (side-effectful). Theme flows via pushContextTheme/
+// popContextTheme during render-phase tree walks; getActiveTheme reads the
+// stack with ansi16DarkTheme as fallback. setActiveTheme was removed in R2
+// (no-op after AgNode cascade; use ThemeProvider from @silvery/ag-react).
 export {
-  setActiveTheme,
   getActiveTheme,
   pushContextTheme,
   popContextTheme,
