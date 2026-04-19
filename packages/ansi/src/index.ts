@@ -81,6 +81,7 @@ export {
   FG_COLORS,
   BG_COLORS,
   ANSI_16_COLORS,
+  ANSI16_SLOT_HEX,
   nearestAnsi16,
   rgbToAnsi256,
   fgFromRgb,
@@ -149,7 +150,7 @@ export type { Style, StyleOptions, ThemeLike } from "./style/types"
 // Theme Derivation
 // =============================================================================
 
-export { deriveTheme, loadTheme } from "./theme/derive"
+export { deriveTheme, deriveAnsi16Theme, loadTheme } from "./theme/derive"
 export type { ThemeAdjustment, LoadThemeOptions } from "./theme/derive"
 export { deriveFields, DEFAULT_VARIANTS } from "./theme/derived"
 export type {
@@ -257,3 +258,11 @@ export {
   DISABLE_BG_MODE_REPORTING,
 } from "./color-scheme"
 export type { BgModeDetector, BgModeDetectorOptions, BgMode } from "./color-scheme"
+
+// =============================================================================
+// Palette Generation (scheme-independent — no built-in lookup)
+// =============================================================================
+
+export { fromColors, assignPrimaryToSlot } from "./theme/generators"
+export { autoGenerateTheme } from "./theme/auto-generate"
+export { generateTheme } from "./theme/generate"

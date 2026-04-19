@@ -7,7 +7,7 @@
  * - Registry functions (getThemeByName, getSchemeByName)
  */
 
-import { deriveTheme, deriveFields, DEFAULT_VARIANTS } from "@silvery/ansi"
+import { deriveTheme, ansi16DarkTheme as _ansi16DarkTheme, ansi16LightTheme as _ansi16LightTheme } from "@silvery/ansi"
 import type { Theme, ColorScheme } from "@silvery/ansi"
 
 // ── Re-export all palette definitions ──────────────────────────────
@@ -139,158 +139,22 @@ import {
 } from "./classics"
 
 // ============================================================================
-// ANSI 16 Themes (no palette required — hardcoded for any terminal)
+// ANSI 16 Themes (derived from default dark/light schemes — hex-valued)
 // ============================================================================
 
-const _darkDerived = deriveFields({
-  primary: "yellow",
-  accent: "blueBright",
-  fg: "whiteBright",
-  selectionbg: "yellow",
-  surfacebg: "black",
-  ring: {
-    red: "redBright",
-    orange: "redBright",
-    yellow: "yellow",
-    green: "greenBright",
-    teal: "cyan",
-    blue: "blueBright",
-    purple: "magenta",
-    pink: "magentaBright",
-  },
-})
+/**
+ * Dark ANSI 16 theme — hex-valued, derived from the default dark scheme.
+ * All token values are hex strings (no ANSI slot names).
+ * Terminal rendering quantizes hex to 4-bit ANSI codes when colorLevel === "basic".
+ */
+export const ansi16DarkTheme: Theme = _ansi16DarkTheme
 
-const _lightDerived = deriveFields({
-  primary: "blue",
-  accent: "cyan",
-  fg: "black",
-  selectionbg: "cyan",
-  surfacebg: "white",
-  ring: {
-    red: "red",
-    orange: "red",
-    yellow: "yellow",
-    green: "green",
-    teal: "cyan",
-    blue: "blue",
-    purple: "magenta",
-    pink: "magenta",
-  },
-})
-
-/** Dark ANSI 16 theme — works on any terminal. Primary = yellow. */
-export const ansi16DarkTheme: Theme = {
-  name: "dark-ansi16",
-  bg: "",
-  fg: "whiteBright",
-  muted: "white",
-  mutedbg: "black",
-  surface: "whiteBright",
-  surfacebg: "black",
-  popover: "whiteBright",
-  popoverbg: "black",
-  inverse: "black",
-  inversebg: "whiteBright",
-  cursor: "black",
-  cursorbg: "yellow",
-  selection: "black",
-  selectionbg: "yellow",
-  primary: "yellow",
-  primaryfg: "black",
-  secondary: "white",
-  secondaryfg: "black",
-  accent: "blueBright",
-  accentfg: "black",
-  error: "redBright",
-  errorfg: "black",
-  warning: "yellow",
-  warningfg: "black",
-  success: "greenBright",
-  successfg: "black",
-  info: "cyan",
-  infofg: "black",
-  border: "gray",
-  inputborder: "gray",
-  focusborder: "blueBright",
-  link: "blueBright",
-  disabledfg: "gray",
-  palette: [
-    "black",
-    "red",
-    "green",
-    "yellow",
-    "blue",
-    "magenta",
-    "cyan",
-    "white",
-    "blackBright",
-    "redBright",
-    "greenBright",
-    "yellowBright",
-    "blueBright",
-    "magentaBright",
-    "cyanBright",
-    "whiteBright",
-  ],
-  ..._darkDerived,
-}
-
-/** Light ANSI 16 theme — works on any terminal. Primary = blue. */
-export const ansi16LightTheme: Theme = {
-  name: "light-ansi16",
-  bg: "",
-  fg: "black",
-  muted: "blackBright",
-  mutedbg: "white",
-  surface: "black",
-  surfacebg: "white",
-  popover: "black",
-  popoverbg: "white",
-  inverse: "whiteBright",
-  inversebg: "black",
-  cursor: "black",
-  cursorbg: "blue",
-  selection: "black",
-  selectionbg: "cyan",
-  primary: "blue",
-  primaryfg: "black",
-  secondary: "blue",
-  secondaryfg: "black",
-  accent: "cyan",
-  accentfg: "black",
-  error: "red",
-  errorfg: "black",
-  warning: "yellow",
-  warningfg: "black",
-  success: "green",
-  successfg: "black",
-  info: "cyan",
-  infofg: "black",
-  border: "gray",
-  inputborder: "gray",
-  focusborder: "blue",
-  link: "blueBright",
-  disabledfg: "gray",
-  palette: [
-    "black",
-    "red",
-    "green",
-    "yellow",
-    "blue",
-    "magenta",
-    "cyan",
-    "white",
-    "blackBright",
-    "redBright",
-    "greenBright",
-    "yellowBright",
-    "blueBright",
-    "magentaBright",
-    "cyanBright",
-    "whiteBright",
-  ],
-  ..._lightDerived,
-}
+/**
+ * Light ANSI 16 theme — hex-valued, derived from the default light scheme.
+ * All token values are hex strings (no ANSI slot names).
+ * Terminal rendering quantizes hex to 4-bit ANSI codes when colorLevel === "basic".
+ */
+export const ansi16LightTheme: Theme = _ansi16LightTheme
 
 // ============================================================================
 // Default Truecolor Themes (derived from Nord palette)

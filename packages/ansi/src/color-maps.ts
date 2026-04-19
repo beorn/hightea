@@ -95,6 +95,39 @@ export const ANSI_16_COLORS: Array<[number, number, number]> = [
   [255, 255, 255], // 15: bright white
 ]
 
+/**
+ * Canonical hex values for the 16 standard ANSI color slots.
+ *
+ * These are the xterm-256 reference values — the same RGB values used by
+ * `nearestAnsi16` for quantization. Used to convert ANSI16 slot-name themes
+ * (e.g., "yellow") into hex-valued themes (e.g., "#808000") so Theme objects
+ * are pure hex across all tiers.
+ *
+ * Terminal-rendering behavior is unchanged: the output phase reads `colorLevel`
+ * and emits 4-bit ANSI codes when `colorLevel === "basic"` — the hex value is
+ * only carried in the Theme object itself, not emitted verbatim.
+ */
+export const ANSI16_SLOT_HEX: Record<string, string> = {
+  black: "#000000",
+  red: "#800000",
+  green: "#008000",
+  yellow: "#808000",
+  blue: "#000080",
+  magenta: "#800080",
+  cyan: "#008080",
+  white: "#c0c0c0",
+  blackBright: "#808080",
+  gray: "#808080",
+  grey: "#808080",
+  redBright: "#ff0000",
+  greenBright: "#00ff00",
+  yellowBright: "#ffff00",
+  blueBright: "#0000ff",
+  magentaBright: "#ff00ff",
+  cyanBright: "#00ffff",
+  whiteBright: "#ffffff",
+}
+
 /** Find nearest ANSI 16 color index for an RGB value. */
 export function nearestAnsi16(r: number, g: number, b: number): number {
   let bestIdx = 0

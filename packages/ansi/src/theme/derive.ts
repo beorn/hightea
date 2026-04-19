@@ -233,7 +233,7 @@ function deriveTruecolorTheme(p: ColorScheme, adjustments?: ThemeAdjustment[]): 
   }
 }
 
-function deriveAnsi16Theme(p: ColorScheme): Theme {
+export function deriveAnsi16Theme(p: ColorScheme): Theme {
   const dark = p.dark ?? true
   const primaryColor = dark ? p.yellow : p.blue
   const accentColor = p.cyan
@@ -312,7 +312,6 @@ function deriveAnsi16Theme(p: ColorScheme): Theme {
     ...derived,
   }
 }
-
 
 /**
  * Nudge `selectionBg`'s OKLCH lightness until it differs from `bg` by at least

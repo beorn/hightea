@@ -3,161 +3,7 @@
  */
 
 import type { ColorScheme, Theme } from "./types.ts"
-import { deriveFields, DEFAULT_VARIANTS } from "./derived.ts"
-
-// Dark ANSI16 ring
-const _darkRing = {
-  red: "redBright",
-  orange: "redBright",
-  yellow: "yellow",
-  green: "greenBright",
-  teal: "cyan",
-  blue: "blueBright",
-  purple: "magenta",
-  pink: "magentaBright",
-} as const
-
-// Light ANSI16 ring
-const _lightRing = {
-  red: "red",
-  orange: "red",
-  yellow: "yellow",
-  green: "green",
-  teal: "cyan",
-  blue: "blue",
-  purple: "magenta",
-  pink: "magenta",
-} as const
-
-const _darkDerived = deriveFields({
-  primary: "yellow",
-  accent: "blueBright",
-  fg: "whiteBright",
-  selectionbg: "yellow",
-  surfacebg: "black",
-  ring: _darkRing,
-})
-
-const _lightDerived = deriveFields({
-  primary: "blue",
-  accent: "cyan",
-  fg: "black",
-  selectionbg: "cyan",
-  surfacebg: "white",
-  ring: _lightRing,
-})
-
-export const ansi16DarkTheme: Theme = {
-  name: "dark-ansi16",
-  bg: "",
-  fg: "whiteBright",
-  muted: "white",
-  mutedbg: "black",
-  surface: "whiteBright",
-  surfacebg: "black",
-  popover: "whiteBright",
-  popoverbg: "black",
-  inverse: "black",
-  inversebg: "whiteBright",
-  cursor: "black",
-  cursorbg: "yellow",
-  selection: "black",
-  selectionbg: "yellow",
-  primary: "yellow",
-  primaryfg: "black",
-  secondary: "white",
-  secondaryfg: "black",
-  accent: "blueBright",
-  accentfg: "black",
-  error: "redBright",
-  errorfg: "black",
-  warning: "yellow",
-  warningfg: "black",
-  success: "greenBright",
-  successfg: "black",
-  info: "cyan",
-  infofg: "black",
-  border: "gray",
-  inputborder: "gray",
-  focusborder: "blueBright",
-  link: "blueBright",
-  disabledfg: "gray",
-  palette: [
-    "black",
-    "red",
-    "green",
-    "yellow",
-    "blue",
-    "magenta",
-    "cyan",
-    "white",
-    "blackBright",
-    "redBright",
-    "greenBright",
-    "yellowBright",
-    "blueBright",
-    "magentaBright",
-    "cyanBright",
-    "whiteBright",
-  ],
-  ..._darkDerived,
-}
-
-export const ansi16LightTheme: Theme = {
-  name: "light-ansi16",
-  bg: "",
-  fg: "black",
-  muted: "blackBright",
-  mutedbg: "white",
-  surface: "black",
-  surfacebg: "white",
-  popover: "black",
-  popoverbg: "white",
-  inverse: "whiteBright",
-  inversebg: "black",
-  cursor: "black",
-  cursorbg: "blue",
-  selection: "black",
-  selectionbg: "cyan",
-  primary: "blue",
-  primaryfg: "black",
-  secondary: "blue",
-  secondaryfg: "black",
-  accent: "cyan",
-  accentfg: "black",
-  error: "red",
-  errorfg: "black",
-  warning: "yellow",
-  warningfg: "black",
-  success: "green",
-  successfg: "black",
-  info: "cyan",
-  infofg: "black",
-  border: "gray",
-  inputborder: "gray",
-  focusborder: "blue",
-  link: "blueBright",
-  disabledfg: "gray",
-  palette: [
-    "black",
-    "red",
-    "green",
-    "yellow",
-    "blue",
-    "magenta",
-    "cyan",
-    "white",
-    "blackBright",
-    "redBright",
-    "greenBright",
-    "yellowBright",
-    "blueBright",
-    "magentaBright",
-    "cyanBright",
-    "whiteBright",
-  ],
-  ..._lightDerived,
-}
+import { deriveAnsi16Theme } from "./derive.ts"
 
 export const defaultDarkScheme: ColorScheme = {
   name: "default-dark",
@@ -212,3 +58,19 @@ export const defaultLightScheme: ColorScheme = {
   selectionBackground: "#ccd0da",
   selectionForeground: "#4c4f69",
 }
+
+/**
+ * Dark ANSI 16 theme — hex-valued, derived from the default dark scheme.
+ *
+ * All token values are hex strings. Terminal rendering quantizes hex to
+ * 4-bit ANSI codes at paint time when colorLevel === "basic".
+ */
+export const ansi16DarkTheme: Theme = deriveAnsi16Theme(defaultDarkScheme)
+
+/**
+ * Light ANSI 16 theme — hex-valued, derived from the default light scheme.
+ *
+ * All token values are hex strings. Terminal rendering quantizes hex to
+ * 4-bit ANSI codes at paint time when colorLevel === "basic".
+ */
+export const ansi16LightTheme: Theme = deriveAnsi16Theme(defaultLightScheme)
