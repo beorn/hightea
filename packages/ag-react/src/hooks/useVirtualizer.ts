@@ -334,31 +334,68 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
       }
     }
 
-    // Render window = visible items + overscan buffer, capped at maxRendered.
+    // Render window = enough items to fill the viewport + overscan buffer,
+    // capped at maxRendered.
     //
-    // CRITICAL INVARIANT: the window is derived from effectiveScrollOffset
+    // CRITICAL INVARIANT 1: the window is derived from effectiveScrollOffset
     // (the viewport top), NOT from the cursor. Cursor-centered windows fail
     // at edges — when the cursor is at index 0 with overscan=5, only the
     // lower half of the window renders (5 items), leaving blank viewport
     // rows. The cursor's role is to drive scrollOffset (via
     // calcEdgeBasedScrollOffset); it does not constrain the render window.
     //
-    // Window layout:
-    //   start = scrollOffset - overscan        (items above the viewport)
-    //   end   = start + visibleCount + 2*overscan
-    //         = scrollOffset + visibleCount + overscan
+    // CRITICAL INVARIANT 2: the window size is derived from HEIGHTS, not
+    // from item counts. A count-based window (`estimatedVisibleCount +
+    // 2*overscan`) fails when item heights are highly variable — e.g. the
+    // first N items are short (3 rows) and the rest are tall (30 rows).
+    // avgHeight weighs these evenly, so estimatedVisibleCount undercounts
+    // how many of the (short) first items are needed to fill the viewport.
+    // Symptom: viewport partially blank, `▼N` indicator at the bottom even
+    // though items that would fit are NOT being rendered.
     //
-    // With both-edge overscan, the window always spans the viewport fully.
-    const renderCount = Math.min(estimatedVisibleCount + 2 * overscan, maxRendered)
+    // The height-aware algorithm: expand `end` forward from `start`, summing
+    // measured heights, until accumulated height ≥ viewport + overscanPixels.
+    // Always include `estimatedVisibleCount + 2*overscan` items as a minimum
+    // (so unmeasured-first-render still has a reasonable window).
+    //
+    // Window layout:
+    //   start = scrollOffset - overscan        (items above viewport)
+    //   end   = smallest index s.t. sumHeights(start, end) covers the
+    //           viewport + overscan pixels below it
+    const overscanPixels = overscan * avgHeight
+    const minItems = estimatedVisibleCount + 2 * overscan
 
     let start = Math.max(0, effectiveScrollOffset - overscan)
-    const end = Math.min(count, start + renderCount)
+    // Target rendered height = viewport (above scrollOffset is already
+    // measured by start reduction) + overscan both ends.
+    const targetHeight = viewportHeight + 2 * overscanPixels
 
-    // Adjust start if we hit the end — keep the window size constant when
-    // there are enough items to fill it, so trailing edges near the bottom
-    // still show a full viewport.
+    // Expand `end` using actual heights (or estimates for unmeasured).
+    let accumulated = 0
+    let end = start
+    while (end < count && accumulated < targetHeight) {
+      accumulated += getHeight(end, estimateHeight, measuredHeights, getItemKey, avgHeight) + gap
+      end++
+    }
+    // Minimum item count — protects against very small measured heights that
+    // would otherwise truncate the window (and guards fresh renders where
+    // nothing is measured yet).
+    end = Math.min(count, Math.max(end, start + minItems))
+    // Apply maxRendered cap last (safety bound).
+    end = Math.min(end, start + maxRendered)
+
+    // Adjust start if we hit the end — keep enough items to cover the
+    // viewport when there are enough items to fill it.
     if (end === count) {
-      start = Math.max(0, end - renderCount)
+      // Pull `start` back so that start..count covers at least the viewport.
+      let startFill = 0
+      let newStart = end
+      while (newStart > 0 && startFill < targetHeight) {
+        newStart--
+        startFill += getHeight(newStart, estimateHeight, measuredHeights, getItemKey, avgHeight) + gap
+      }
+      // Keep minimum count so the window never shrinks below item-count floor.
+      start = Math.min(Math.max(0, newStart), Math.max(0, end - minItems))
     }
 
     // Calculate placeholder sizes using measured heights when available.
@@ -381,6 +418,7 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
     estimateHeight,
     avgHeight,
     gap,
+    viewportHeight,
     measurementVersion,
     getItemKey,
   ])
