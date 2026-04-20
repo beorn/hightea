@@ -49,7 +49,7 @@ The root `silvery@0.19.x` barrel was unaffected because it bundles its dependenc
 ### What changed
 
 - `.github/workflows/release.yml`:
-  - `bun run build` → `bun run build:all` (which runs `tsdown && tsdown -W -F '@silvery/*'`), so workspace package `dist/` folders are populated before publish.
+  - `bun run build` → `bun run build:all`, so workspace package `dist/` folders are populated before publish. The `build:all` script itself was also fixed: the original `tsdown -W -F '@silvery/*'` glob filter matches nothing in tsdown@0.21.7 (`No valid configuration found`), so it was replaced with an explicit per-package `-F` list covering all 14 silvery workspace packages.
   - `npm publish` → `pnpm publish --no-git-checks` (kept from 0.19.1), so `publishConfig.exports` overrides apply.
   - Added `pnpm/action-setup@v4` so pnpm is available on the runner.
   - Skip private packages (`private: true`) instead of failing the publish loop on EPRIVATE.
