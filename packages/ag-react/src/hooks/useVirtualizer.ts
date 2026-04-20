@@ -371,10 +371,16 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
     const targetHeight = viewportHeight + 2 * overscanPixels
 
     // Expand `end` using actual heights (or estimates for unmeasured).
+    // Gap accounting: n items contribute (n-1) inter-item gaps. We add `gap`
+    // between consecutive items, not after the first one — this matches the
+    // `(itemCount - 1) * gap` semantics used in `sumHeights`, so the
+    // virtualizer's idea of window height agrees with the placeholder
+    // prefix-sum used in `leadingHeight`/`trailingHeight`.
     let accumulated = 0
     let end = start
     while (end < count && accumulated < targetHeight) {
-      accumulated += getHeight(end, estimateHeight, measuredHeights, getItemKey, avgHeight) + gap
+      if (end > start) accumulated += gap
+      accumulated += getHeight(end, estimateHeight, measuredHeights, getItemKey, avgHeight)
       end++
     }
     // Minimum item count — protects against very small measured heights that
@@ -388,12 +394,13 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
     // viewport when there are enough items to fill it.
     if (end === count) {
       // Pull `start` back so that start..count covers at least the viewport.
+      // Same gap semantics as the forward walk: (n-1) gaps for n items.
       let startFill = 0
       let newStart = end
       while (newStart > 0 && startFill < targetHeight) {
         newStart--
-        startFill +=
-          getHeight(newStart, estimateHeight, measuredHeights, getItemKey, avgHeight) + gap
+        startFill += getHeight(newStart, estimateHeight, measuredHeights, getItemKey, avgHeight)
+        if (newStart + 1 < end) startFill += gap
       }
       // Keep minimum count so the window never shrinks below item-count floor.
       start = Math.min(Math.max(0, newStart), Math.max(0, end - minItems))
