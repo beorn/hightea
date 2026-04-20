@@ -2,28 +2,32 @@
  * DerivationPanel — inline panel surfaced below the TokenTree when a token
  * is opened (Enter).
  *
- * Shows: nested path, flat key, hex swatch, derivation rule, input hexes.
- * The rule comes from theme.derivationTrace (Sterling attaches it when the
- * derivation is called with `{ trace: true }`).
+ * Shows:
+ *   • Nested path + flat key + hex swatch
+ *   • Rule from theme.derivationTrace (Sterling attaches it when derived
+ *     with `{ trace: true }`)
+ *   • OKLCH (L, C, H) triplet for the output hex
+ *   • For each input: its OKLCH triplet + the delta (ΔL / ΔC / ΔH)
+ *     from input → output — makes the OKLCH math visible, not guessed at
+ *   • If the token was auto-lifted for WCAG AA, the pre-lift value, the
+ *     post-lift value, and the contrast-ratio delta against the pairing bg
+ *   • At non-truecolor tiers, the quantized hex (what a terminal would
+ *     actually emit)
  *
- * MVP scope: the rule + inputs as captured by Sterling. The full OKLCH-math
- * visualizer is deferred to the Full storybook.
+ * Full (feature 1 of 5) — scope extension of the MVP. The MVP showed rule
+ * + inputs; the visualizer adds perceptual-space values so users can see
+ * why "+0.04L on accent.bg" produces the hover color it does.
  */
 
 import React, { useMemo } from "react"
 import { Box, Text, Muted, Divider, Strong, Small } from "silvery"
 import type { SterlingTheme, SterlingDerivationStep } from "@silvery/theme"
 import { quantizeHex, type ColorTier } from "@silvery/ansi"
+import { hexToOklch, checkContrast, type OKLCH } from "@silvery/color"
 
 /** Convert a nested path like "accent.hover.bg" → flat "bg-accent-hover". */
 export function nestedToFlat(path: string): string {
   const parts = path.split(".")
-  // shape cases:
-  //   role.fg / role.bg / role.fgOn / role.border
-  //   role.hover.fg / role.hover.bg / role.active.fg / role.active.bg
-  //   surface.default / surface.subtle / ...
-  //   border.default / border.focus / ...
-  //   cursor.fg / cursor.bg
   if (parts.length === 2) {
     const [role, kind] = parts
     if (kind === "fgOn") return `fg-on-${role}`
@@ -39,6 +43,41 @@ export function nestedToFlat(path: string): string {
     return `${kind}-${role}-${state}`
   }
   return path
+}
+
+/** Format OKLCH as a compact triplet — e.g. "L 0.78 · C 0.09 · H 220°". */
+function fmtOklch(o: OKLCH | null): string {
+  if (!o) return "(n/a)"
+  return `L ${o.L.toFixed(2)} · C ${o.C.toFixed(2)} · H ${Math.round(o.H)}°`
+}
+
+/** Signed number for a delta, e.g. 0.04 → "+0.04". */
+function signed(n: number, digits = 2): string {
+  const s = n.toFixed(digits)
+  return n >= 0 ? `+${s}` : s
+}
+
+/** Shortest-arc hue delta in degrees. */
+function hueDelta(a: number, b: number): number {
+  const d = ((b - a + 540) % 360) - 180
+  return d
+}
+
+/**
+ * Guess a reasonable "pairing background" for the token, used for the
+ * contrast delta display when a token was auto-lifted. For an `fg-on-*`
+ * token pair with the matching `bg-*`; otherwise pair with the surface
+ * default. Returns null if we can't guess — contrast info is then skipped.
+ */
+function pairingBgFor(theme: SterlingTheme, path: string): string | null {
+  const parts = path.split(".")
+  // Sterling flat paths like "fg-on-error" → pair with "bg-error"
+  if (parts.length === 2 && parts[1] === "fgOn") {
+    const role = parts[0] as keyof SterlingTheme
+    const r = theme[role] as { bg?: string } | undefined
+    return r?.bg ?? null
+  }
+  return theme.surface.default ?? theme.bg ?? null
 }
 
 export interface DerivationPanelProps {
@@ -70,6 +109,23 @@ export function DerivationPanel({
   const isKnown = hex !== "(unknown)"
   const quantized = isKnown && tier !== "truecolor" ? quantizeHex(hex, tier) : null
 
+  const outOklch = isKnown ? hexToOklch(hex) : null
+  const inputOklchs = useMemo(
+    () => (step?.inputs ?? []).map((i) => ({ hex: i, o: hexToOklch(i) })),
+    [step],
+  )
+
+  // If lifted, the pre-lift hex is step.liftedFrom; post-lift is step.output.
+  // Contrast ratios against the pairing bg convey the benefit.
+  const liftInfo = useMemo(() => {
+    if (!step?.liftedFrom) return null
+    const bg = pairingBgFor(theme, openedPath)
+    if (!bg) return { pre: step.liftedFrom, post: step.output, bg: null, preR: null, postR: null }
+    const preR = checkContrast(step.liftedFrom, bg)
+    const postR = checkContrast(step.output, bg)
+    return { pre: step.liftedFrom, post: step.output, bg, preR, postR }
+  }, [step, theme, openedPath])
+
   return (
     <Box
       flexDirection="column"
@@ -99,6 +155,12 @@ export function DerivationPanel({
           <Text color={hex}>██</Text>
           <Text bold>{hex}</Text>
         </Box>
+        {outOklch ? (
+          <Box gap={1}>
+            <Muted>oklch</Muted>
+            <Text>{fmtOklch(outOklch)}</Text>
+          </Box>
+        ) : null}
         {quantized ? (
           <Box gap={1}>
             <Muted>@{tier}</Muted>
@@ -115,21 +177,51 @@ export function DerivationPanel({
               <Text color="$info">{step.rule}</Text>
             </Box>
             {step.inputs.length > 0 ? (
-              <Box gap={1} flexWrap="wrap">
-                <Muted>inputs</Muted>
-                {step.inputs.map((inp, i) => (
-                  <Box key={i} gap={0}>
+              <Box flexDirection="column" gap={0}>
+                <Muted>inputs → output (OKLCH delta)</Muted>
+                {inputOklchs.map(({ hex: inp, o: inO }, i) => (
+                  <Box key={i} gap={1}>
                     <Text color={inp}>██</Text>
                     <Muted>{inp}</Muted>
+                    <Text color="$muted">{fmtOklch(inO)}</Text>
+                    {inO && outOklch ? (
+                      <Text color="$accent">
+                        {"Δ "}
+                        {signed(outOklch.L - inO.L)}L {signed(outOklch.C - inO.C)}C{" "}
+                        {signed(hueDelta(inO.H, outOklch.H), 0)}°H
+                      </Text>
+                    ) : null}
                   </Box>
                 ))}
               </Box>
             ) : null}
-            {step.liftedFrom ? (
-              <Box gap={1}>
-                <Muted>auto-lifted from</Muted>
-                <Text color={step.liftedFrom}>██</Text>
-                <Muted>{step.liftedFrom}</Muted>
+            {liftInfo ? (
+              <Box flexDirection="column" gap={0}>
+                <Muted>auto-lifted for WCAG AA</Muted>
+                <Box gap={1}>
+                  <Text color={liftInfo.pre}>██</Text>
+                  <Muted>pre</Muted>
+                  <Text>{liftInfo.pre}</Text>
+                  {liftInfo.preR ? (
+                    <Text color="$error">{liftInfo.preR.ratio.toFixed(2)}:1</Text>
+                  ) : null}
+                </Box>
+                <Box gap={1}>
+                  <Text color={liftInfo.post}>██</Text>
+                  <Muted>post</Muted>
+                  <Text bold>{liftInfo.post}</Text>
+                  {liftInfo.postR ? (
+                    <Text color="$success">{liftInfo.postR.ratio.toFixed(2)}:1</Text>
+                  ) : null}
+                </Box>
+                {liftInfo.preR && liftInfo.postR ? (
+                  <Small>
+                    <Muted>
+                      Δ contrast {signed(liftInfo.postR.ratio - liftInfo.preR.ratio, 2)} against{" "}
+                      {liftInfo.bg}
+                    </Muted>
+                  </Small>
+                ) : null}
               </Box>
             ) : null}
             {step.pinned ? (

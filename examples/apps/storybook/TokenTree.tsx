@@ -30,15 +30,19 @@ export interface FlatTokenEntry {
 export function flattenTokens(theme: SterlingTheme): FlatTokenEntry[] {
   const out: FlatTokenEntry[] = []
 
-  // Interactive roles (same shape: fg, bg, fgOn, hover, active [+ border for accent])
+  // Interactive / status roles. `accent` is link-like — state variants carry
+  // both fg + bg. Status roles (info/success/warning/error) are surface-only
+  // at state — hover/active expose `bg` but not `fg` (post prune; see
+  // commit bfc017a5 — fg.hover for status tokens had no semantic meaning
+  // and produced illegible derivations at high-L seeds).
   const interactive = ["accent", "info", "success", "warning", "error"] as const
   for (const role of interactive) {
     const r = theme[role] as {
       fg: string
       bg: string
       fgOn: string
-      hover: { fg: string; bg: string }
-      active: { fg: string; bg: string }
+      hover: { fg?: string; bg: string }
+      active: { fg?: string; bg: string }
       border?: string
     }
     out.push({ group: role, path: `${role}.fg`, hex: r.fg, label: "fg" })
@@ -47,9 +51,12 @@ export function flattenTokens(theme: SterlingTheme): FlatTokenEntry[] {
     if (r.border) {
       out.push({ group: role, path: `${role}.border`, hex: r.border, label: "border" })
     }
-    out.push({ group: role, path: `${role}.hover.fg`, hex: r.hover.fg, label: "hover.fg" })
+    // Only accent emits fg.hover / fg.active after the prune.
+    if (r.hover.fg)
+      out.push({ group: role, path: `${role}.hover.fg`, hex: r.hover.fg, label: "hover.fg" })
     out.push({ group: role, path: `${role}.hover.bg`, hex: r.hover.bg, label: "hover.bg" })
-    out.push({ group: role, path: `${role}.active.fg`, hex: r.active.fg, label: "active.fg" })
+    if (r.active.fg)
+      out.push({ group: role, path: `${role}.active.fg`, hex: r.active.fg, label: "active.fg" })
     out.push({ group: role, path: `${role}.active.bg`, hex: r.active.bg, label: "active.bg" })
   }
 
