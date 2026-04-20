@@ -38,8 +38,18 @@ jobs:
         run: |
           publish() {
             local dir=$1
-            local name=$(node -e "console.log(require('./$dir/package.json').name)")
-            local version=$(node -e "console.log(require('./$dir/package.json').version)")
+            local pkg="./$dir/package.json"
+            if [ ! -f "$pkg" ]; then
+              echo "⚠ $dir/package.json not found — skipping"
+              return 0
+            fi
+            local name=$(node -e "console.log(require('$pkg').name)")
+            local version=$(node -e "console.log(require('$pkg').version)")
+            local private=$(node -e "console.log(require('$pkg').private === true)")
+            if [ "$private" = "true" ]; then
+              echo "🔒 $name@$version is private — skipping"
+              return 0
+            fi
             local published=$(npm view "$name@$version" version 2>/dev/null || echo "")
             if [ "$published" = "$version" ]; then
               echo "⏭ $name@$version already published"
