@@ -7,6 +7,48 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## 0.19.0 — Sterling Theme expansion (additive)
+
+Sterling Theme — silvery's design system canonical type — gains the fields needed for full theme parity: `variants`, `palette`, and 8 categorical hues. The legacy `Theme` interface is unchanged in this release; legacy fields (`theme.primary`, `theme.bg`, etc.) continue to resolve through `inlineSterlingTokens` exactly as before.
+
+This is a stepping-stone toward 0.20.0, which will make Sterling THE Theme type and remove the legacy fields. Consumers should begin migrating string-token references in this release window:
+
+### Migration map (begin migrating now; required for 0.20.0)
+
+| Legacy `$token` | Sterling `$token` |
+| --- | --- |
+| `$primary` | `$fg-accent` |
+| `$muted` | `$fg-muted` |
+| `$accent` | `$fg-accent` |
+| `$link` | `$fg-accent` |
+| `$error` | `$fg-error` |
+| `$warning` | `$fg-warning` |
+| `$success` | `$fg-success` |
+| `$info` | `$fg-info` |
+| `$brand` | `$fg-accent` |
+| `$secondary` | `$fg-muted` |
+| `$inverse` | `$fg-on-accent` |
+| `$surface` | `$bg-surface-default` |
+| `$popover` | `$bg-surface-overlay` |
+| `$selection` | `$bg-accent` |
+| `$focusborder` | `$border-focus` |
+| `$cursor` | `$bg-cursor` |
+| `$border` | `$border-default` |
+| `$bg` | `$bg-surface-default` |
+| `$fg` | `$fg-default` |
+
+### What landed
+
+- **Sterling Theme type expansion** (`@silvery/theme/sterling/types`): `variants`, `palette`, 8 categorical hues. `deriveFromScheme` populates them.
+- **Pipeline migration**: `ag-term/ag.ts` `findRootThemeBg`, `pipeline/decoration-phase.ts`, `pipeline/render-box.ts` bg-fill — all read Sterling flat tokens with legacy fallback. No more raw `theme.bg` reads in pipeline code.
+- **Theme tooling**: `@silvery/theme` `inspect` / `show` / CSS exports use Sterling flat-token grammar.
+
+### What's coming in 0.20.0
+
+- Legacy `Theme` interface fields removed at the type level (`theme.primary`, `theme.bg`, etc. — TypeScript errors instead of silent any).
+- `inlineSterlingTokens` deleted; runtime resolution requires Sterling flat-token names only.
+- `deriveTheme` removed; `sterling.deriveFromScheme` is the only path.
+
 ## [0.18.2] - 2026-04-20
 
 Backdrop internal refactor + snap-scroll fix. **No public API break.**
