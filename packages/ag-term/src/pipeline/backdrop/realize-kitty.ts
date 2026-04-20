@@ -42,17 +42,19 @@ import { forEachFadeRegionCell } from "./region"
  * Stage 2b — emit the Kitty graphics overlay for the plan.
  *
  * The output always begins with `CURSOR_SAVE + kittyDeleteAllScrimPlacements()
- * + CURSOR_RESTORE` when `plan.active` is true — even when zero emoji cells
+ * + CURSOR_RESTORE` when the plan is realized — even when zero emoji cells
  * fall inside the faded region this frame. The unconditional clear is what
  * erases stale placements from a previous frame.
  *
- * Returns `""` when `plan.active` is false. Callers that also need to
- * suppress the overlay because Kitty graphics are not available should NOT
- * call this function at all — the orchestrator (`./index.ts`) guards the
- * call site with `plan.kittyEnabled`.
+ * Returns `""` when the plan can't be realized as a Kitty overlay. Public
+ * API safety — callers (tests, future consumers) should be able to invoke
+ * this directly without re-deriving the `kittyEnabled` / `scrim` /
+ * `amount > 0` gate. The orchestrator (`./index.ts`) also gates with
+ * `plan.kittyEnabled` for clarity, but the early-out below is the
+ * authoritative contract.
  */
 export function realizeToKitty(plan: Plan, buffer: TerminalBuffer): string {
-  if (!plan.active) return ""
+  if (!plan.active || !plan.kittyEnabled || plan.amount <= 0 || plan.scrim === null) return ""
 
   const cells = collectEmojiCellsInFadeRegion(buffer, plan)
 

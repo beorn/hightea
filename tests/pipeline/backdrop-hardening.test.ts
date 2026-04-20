@@ -193,3 +193,71 @@ describe("backdrop-hardening 2: kitty-edge-cleanup — inactive frames are silen
     expect(result.modified).toBe(false)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. realize-kitty-guard — realizeToKitty's only guard was `!plan.active`.
+// It must also honor plan.kittyEnabled and plan.scrim. Public-API safety:
+// callers (tests, future consumers) shouldn't have to re-derive the same gate.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("backdrop-hardening 3: realize-kitty-guard — full contract", () => {
+  test("activePlan with kittyEnabled=false returns ''", () => {
+    // Construct via buildPlan WITHOUT kittyGraphics — plan.kittyEnabled=false.
+    const root = fakeNode({}, null, [fakeNode({ "data-backdrop-fade": 0.4 }, RECT_FADE)])
+    const plan = buildPlan(root, { defaultBg: "#1e1e2e" })
+    expect(plan.active).toBe(true)
+    expect(plan.kittyEnabled).toBe(false)
+    const buffer = createBuffer(20, 6)
+    expect(realizeToKitty(plan, buffer)).toBe("")
+  })
+
+  test("activePlan with scrim=null returns ''", () => {
+    // No defaultBg + no scrimColor → scrim=null. kittyGraphics=true is
+    // requested but plan derives kittyEnabled=false because scrim=null.
+    // realizeToKitty must still return "" if a caller invokes it directly.
+    const root = fakeNode({}, null, [fakeNode({ "data-backdrop-fade": 0.4 }, RECT_FADE)])
+    const plan = buildPlan(root, { kittyGraphics: true })
+    expect(plan.active).toBe(true)
+    expect(plan.scrim).toBeNull()
+    expect(plan.kittyEnabled).toBe(false)
+    const buffer = createBuffer(20, 6)
+    expect(realizeToKitty(plan, buffer)).toBe("")
+  })
+
+  test("inactivePlan returns ''", () => {
+    // Even when wrapped to look enabled, inactive short-circuits.
+    const root = fakeNode({})
+    const plan = buildPlan(root, { kittyGraphics: true, defaultBg: "#1e1e2e" })
+    expect(plan.active).toBe(false)
+    const buffer = createBuffer(20, 6)
+    expect(realizeToKitty(plan, buffer)).toBe("")
+  })
+
+  test("activePlan with kittyEnabled=true and scrim still emits overlay", () => {
+    // Sanity: the new guards don't break the happy path.
+    const root = fakeNode({}, null, [fakeNode({ "data-backdrop-fade": 0.4 }, RECT_FADE)])
+    const plan = buildPlan(root, { kittyGraphics: true, defaultBg: "#1e1e2e" })
+    expect(plan.kittyEnabled).toBe(true)
+    const buffer = createBuffer(20, 6)
+    expect(realizeToKitty(plan, buffer).length).toBeGreaterThan(0)
+  })
+
+  test("amount<=0 plan with kittyEnabled returns ''", () => {
+    // Plan that somehow has amount=0 but active=true (defensive). Synthesize
+    // by hand to verify the guard.
+    const synthPlan = {
+      active: true,
+      amount: 0,
+      scrim: "#000000" as const,
+      defaultBg: "#000000" as const,
+      defaultFg: "#ffffff" as const,
+      includes: [{ rect: { x: 0, y: 0, width: 4, height: 4 } }],
+      excludes: [],
+      mixedAmounts: false,
+      scrimTowardLight: false,
+      kittyEnabled: true,
+    } as const
+    const buffer = createBuffer(20, 6)
+    expect(realizeToKitty(synthPlan, buffer)).toBe("")
+  })
+})
