@@ -477,10 +477,23 @@ function fadeCell(
   // terminals honoring SGR 2 on emoji, bg slightly inconsistent otherwise.)
   if (kittyEnabled && cell.wide) return false
 
-  const fgHex = colorToHex(cell.fg)
+  const rawFgHex = colorToHex(cell.fg)
 
   if (scrim !== null && rootBgHex !== null) {
-    // sRGB source-over mix: uniform fg + bg toward scrim at `amount`.
+    // Resolve null/default fg to its implicit terminal color BEFORE fading.
+    // On dark themes, default fg renders as white-ish; on light themes, as
+    // black-ish. Leaving it unresolved would skip the fg fade entirely —
+    // bg darkens but fg stays at full terminal brightness, producing a
+    // visible "text is MORE saturated / pops HARDER against faded bg"
+    // effect that users notice as "colors look more saturated when
+    // darkened". Substituting `scrim`'s opposite (white for dark scrim,
+    // black for light scrim) as the implicit default lets deemphasize
+    // produce a proportionally-faded fg that matches the backdrop's
+    // receded feel.
+    const fgHex = rawFgHex ?? (scrim === DARK_SCRIM ? LIGHT_SCRIM : DARK_SCRIM)
+    const fgWasDefault = rawFgHex === null
+
+    // sRGB source-over mix: uniform bg toward scrim at `amount`.
     const bgHex = colorToHex(cell.bg) ?? rootBgHex
     const mixedBgHex = mixSrgb(bgHex, scrim, amount)
     const mixedBg = hexToRgb(mixedBgHex)
@@ -489,17 +502,6 @@ function fadeCell(
     // as best-effort for terminals honoring SGR 2 on bitmap glyphs.
     const stampEmojiDim = cell.wide
     const newAttrs = stampEmojiDim && !cell.attrs.dim ? { ...cell.attrs, dim: true } : cell.attrs
-
-    if (!fgHex) {
-      if (!mixedBg) {
-        if (cell.attrs.dim) return false
-        buffer.setCell(x, y, { ...cell, attrs: { ...cell.attrs, dim: true } })
-        return true
-      }
-      buffer.setCell(x, y, { ...cell, bg: mixedBg, attrs: newAttrs })
-      propagateBgToContinuation(buffer, cell, x, y, mixedBg, stampEmojiDim)
-      return true
-    }
 
     // Fg uses OKLCH deemphasize (L *= 1-α, C *= 1-α, H preserved) instead of
     // sRGB source-over. sRGB channel-linear scaling preserves HSL ratios but
@@ -515,17 +517,37 @@ function fadeCell(
     // when both appear in the same faded region.
     const deemphasizedFgHex = deemphasizeOklch(fgHex, amount)
     const mixedFg = hexToRgb(deemphasizedFgHex)
-    if (!mixedFg) return false
 
-    if (!mixedBg) {
+    if (mixedFg) {
+      // When `fg` was originally default (null), we write an explicit faded
+      // hex — the cell stops deferring to the terminal default under the
+      // backdrop. When the backdrop lifts, the cell is repainted from the
+      // fresh render (no state leak). `fgWasDefault` is tracked for future
+      // diagnostics / STRICT assertions but isn't behaviorally used today.
+      void fgWasDefault
+      if (mixedBg) {
+        buffer.setCell(x, y, { ...cell, fg: mixedFg, bg: mixedBg, attrs: newAttrs })
+        propagateBgToContinuation(buffer, cell, x, y, mixedBg, stampEmojiDim)
+        return true
+      }
       buffer.setCell(x, y, { ...cell, fg: mixedFg, attrs: newAttrs })
       if (stampEmojiDim) propagateDimToContinuation(buffer, cell, x, y)
       return true
     }
-    buffer.setCell(x, y, { ...cell, fg: mixedFg, bg: mixedBg, attrs: newAttrs })
-    propagateBgToContinuation(buffer, cell, x, y, mixedBg, stampEmojiDim)
+
+    // Fg deemphasize failed (very rare — hex parse edge). Fall back to
+    // bg-only mix + dim stamp.
+    if (mixedBg) {
+      buffer.setCell(x, y, { ...cell, bg: mixedBg, attrs: newAttrs })
+      propagateBgToContinuation(buffer, cell, x, y, mixedBg, stampEmojiDim)
+      return true
+    }
+    if (cell.attrs.dim) return false
+    buffer.setCell(x, y, { ...cell, attrs: { ...cell.attrs, dim: true } })
     return true
   }
+
+  const fgHex = rawFgHex
 
   // Legacy path (no scrim): mix fg toward cell.bg.
   const bgHex = colorToHex(cell.bg)
