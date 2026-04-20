@@ -19,11 +19,13 @@ import {
   applyBackdrop,
   buildCorePlan,
   buildPlan,
-  forEachFadeRegionCell,
   realizeToKitty,
   type CorePlan,
   type TerminalPlan,
 } from "@silvery/ag-term/pipeline/backdrop"
+// Internal — tests reach in directly so the public barrel can stay
+// minimal. See km-silvery.backdrop-hardening.slim-barrel.
+import { forEachFadeRegionCell } from "@silvery/ag-term/pipeline/backdrop/region"
 import type { AgNode, Rect } from "@silvery/ag/types"
 import { createBuffer } from "@silvery/ag-term/buffer"
 

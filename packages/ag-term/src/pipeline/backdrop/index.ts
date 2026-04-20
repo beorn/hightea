@@ -68,8 +68,13 @@ import { buildPlan, type BackdropOptions } from "./plan"
 import { realizeToBuffer } from "./realize-buffer"
 import { realizeToKitty } from "./realize-kitty"
 
-// Public re-exports — callers import from `./pipeline/backdrop` (the barrel
-// below) or from `./pipeline` (which re-re-exports).
+// Public re-exports — this is an INTERNAL pipeline module. Only export
+// what callers (renderer.ts, ag.ts, scheduler.ts, tests-by-public-API)
+// actually need. Internals like `forEachFadeRegionCell`, `mixSrgb`, and
+// `deemphasizeOklch[Toward]` live in their own files; tests that need
+// them import from those paths directly.
+//
+// See km-silvery.backdrop-hardening.slim-barrel.
 export {
   buildCorePlan,
   buildPlan,
@@ -84,8 +89,6 @@ export {
   type TerminalPlan,
 } from "./plan"
 export { type HexColor, normalizeHex } from "./color"
-export { deemphasizeOklch, deemphasizeOklchToward, mixSrgb } from "./color-compat"
-export { forEachFadeRegionCell } from "./region"
 export { realizeToBuffer } from "./realize-buffer"
 export { realizeToKitty } from "./realize-kitty"
 

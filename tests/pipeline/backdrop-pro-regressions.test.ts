@@ -21,11 +21,13 @@ import type { AgNode, Rect } from "@silvery/ag/types"
 import {
   buildPlan,
   DEFAULT_AMOUNT,
-  deemphasizeOklchToward,
-  forEachFadeRegionCell,
   INACTIVE_PLAN,
   normalizeHex,
 } from "@silvery/ag-term/pipeline/backdrop"
+// Internal modules — tests reach in directly so the public barrel can stay
+// minimal. See km-silvery.backdrop-hardening.slim-barrel.
+import { deemphasizeOklchToward } from "@silvery/ag-term/pipeline/backdrop/color-compat"
+import { forEachFadeRegionCell } from "@silvery/ag-term/pipeline/backdrop/region"
 import { hexToOklch } from "@silvery/color"
 
 /** Minimal AgNode factory — matches `backdrop-plan.test.ts`. */
