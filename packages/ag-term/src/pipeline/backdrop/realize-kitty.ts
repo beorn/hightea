@@ -69,8 +69,8 @@ export function realizeFadePlanToKittyOverlay(plan: FadePlan, buffer: TerminalBu
  */
 function buildKittyOverlay(
   buffer: TerminalBuffer,
-  includes: FadeRect[],
-  excludes: FadeRect[],
+  includes: readonly FadeRect[],
+  excludes: readonly FadeRect[],
   scrim: string | null,
   defaultBg: string | null,
   amount: number,
@@ -123,8 +123,8 @@ function buildKittyOverlay(
  */
 function collectEmojiCellsInFadeRegion(
   buffer: TerminalBuffer,
-  includes: FadeRect[],
-  excludes: FadeRect[],
+  includes: readonly FadeRect[],
+  excludes: readonly FadeRect[],
 ): Array<{ x: number; y: number }> {
   const seen = new Set<number>() // encoded y * W + x
   const out: Array<{ x: number; y: number }> = []

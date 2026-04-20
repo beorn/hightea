@@ -50,6 +50,13 @@
  * `"none"` (monochrome) the pass short-circuits to a no-op. For `basic`,
  * `256`, and `truecolor`, the per-cell operation is identical — the output
  * phase quantizes the mixed truecolor hex to the tier's palette on emit.
+ *
+ * ## Purity
+ *
+ * This module is pure: no console I/O, no buffer access, no mutable module
+ * state. `buildFadePlan` returns a `FadePlan` whose `mixedAmounts` flag
+ * signals multi-amount frames; the orchestrator (`./index.ts`) emits the
+ * dev-mode warning so stage 1 remains a pure function of its inputs.
  */
 
 import { relativeLuminance } from "@silvery/color"
@@ -65,12 +72,12 @@ export interface BackdropFadeOptions {
    */
   colorLevel?: BackdropColorLevel
   /**
-   * Root background hex color from the active theme. Used as the implicit
-   * `defaultBg` (for null/default cell bg) AND as the luminance source for
-   * deriving the scrim. Kept for back-compat; prefer the split `defaultBg`
-   * / `scrimColor` options.
+   * Explicit scrim color, or `"auto"` (default) to derive from theme
+   * luminance: pure black for dark themes, pure white for light. Apps that
+   * want a tinted scrim (e.g., a mid-gray for flat-color TUIs) override
+   * here.
    */
-  rootBg?: string
+  scrimColor?: string | "auto"
   /**
    * Default background hex — resolves null/default `cell.bg` before mixing
    * toward the scrim. If omitted, falls back to `rootBg`.
@@ -85,13 +92,6 @@ export interface BackdropFadeOptions {
    */
   defaultFg?: string
   /**
-   * Explicit scrim color, or `"auto"` (default) to derive from theme
-   * luminance: pure black for dark themes, pure white for light. Apps that
-   * want a tinted scrim (e.g., a mid-gray for flat-color TUIs) override
-   * here.
-   */
-  scrimColor?: string | "auto"
-  /**
    * When true, emit Kitty graphics protocol overlays on emoji cells inside
    * the faded region. The terminal renders a translucent scrim image above
    * the emoji glyph, which SGR 2 "dim" alone can't fade on bitmap emoji.
@@ -102,6 +102,15 @@ export interface BackdropFadeOptions {
    * buffer mix when Kitty is active.
    */
   kittyGraphics?: boolean
+  /**
+   * Root background hex color from the active theme. Used as the implicit
+   * `defaultBg` (for null/default cell bg) AND as the luminance source for
+   * deriving the scrim.
+   *
+   * @deprecated Use `defaultBg` and `scrimColor` instead. Kept for
+   *   back-compat with the pre-split options object.
+   */
+  rootBg?: string
 }
 
 /** Marker prop key for include rects (fade cells INSIDE the node's rect). */
@@ -123,8 +132,8 @@ export const DARK_SCRIM = "#000000"
 export const LIGHT_SCRIM = "#ffffff"
 
 export interface FadeRect {
-  rect: Rect
-  amount: number
+  readonly rect: Rect
+  readonly amount: number
 }
 
 /**
@@ -142,7 +151,8 @@ export interface FadeRect {
  *   inactive plan for `colorLevel: "none"`.
  * - `amount ∈ [0, 1]`, clamped, and identical across all collected rects
  *   (single-amount invariant — mixed amounts break the Kitty overlay's
- *   one-image-one-alpha model; dev-mode warn, prod falls back to first).
+ *   one-image-one-alpha model; `mixedAmounts=true` surfaces the dev warn,
+ *   prod falls back to first).
  * - `scrim` is either a resolved hex color (for the truecolor/256 tiers
  *   with a known theme bg) or `null` (legacy fallback where `fadeCell`
  *   mixes fg toward cell.bg without a scrim).
@@ -151,47 +161,56 @@ export interface FadeRect {
  */
 export interface FadePlan {
   /** True when the tree had at least one fade marker with amount > 0. */
-  active: boolean
+  readonly active: boolean
   /**
    * The enforced single amount for this frame, clamped to [0, 1]. Zero
    * when `active` is false.
    */
-  amount: number
+  readonly amount: number
   /**
    * Resolved scrim hex, or null when no theme bg is available. The
    * buffer-realizer falls back to a legacy single-channel mix when null.
    */
-  scrim: string | null
+  readonly scrim: string | null
   /**
    * Default background hex for resolving null/default `cell.bg`. Derived
    * from `options.defaultBg` or `options.rootBg`.
    */
-  defaultBg: string | null
+  readonly defaultBg: string | null
   /**
    * Default foreground hex for resolving null/default `cell.fg`. Derived
    * from `options.defaultFg`, else the opposite of the scrim (white for
    * dark scrim, black for light).
    */
-  defaultFg: string | null
+  readonly defaultFg: string | null
   /** Rects marked `data-backdrop-fade` — fade cells INSIDE each rect. */
-  includes: FadeRect[]
+  readonly includes: readonly FadeRect[]
   /**
    * Rects marked `data-backdrop-fade-excluded` — fade everything OUTSIDE
    * each rect (the modal "cuts a hole").
    */
-  excludes: FadeRect[]
+  readonly excludes: readonly FadeRect[]
+  /**
+   * True when the collected markers had differing `amount` values. The
+   * orchestrator reads this to emit a dev-mode warning; stage 1 stays pure
+   * by surfacing the signal instead of calling `console.warn` inline.
+   * Mixed amounts break the Kitty overlay's one-image-one-alpha model;
+   * prod falls back to the first observed amount.
+   */
+  readonly mixedAmounts: boolean
 }
 
 /** Sentinel "nothing to do" plan — reused across frames to avoid allocations. */
-export const INACTIVE_PLAN: FadePlan = {
+export const INACTIVE_PLAN: FadePlan = Object.freeze({
   active: false,
   amount: 0,
   scrim: null,
   defaultBg: null,
   defaultFg: null,
-  includes: [],
-  excludes: [],
-}
+  includes: Object.freeze([]) as readonly FadeRect[],
+  excludes: Object.freeze([]) as readonly FadeRect[],
+  mixedAmounts: false,
+})
 
 /**
  * Quick check: does the tree contain any backdrop markers? Used as a gate so
@@ -212,7 +231,9 @@ export function hasBackdropMarkers(root: AgNode): boolean {
  * Stage 1 — build the immutable `FadePlan`.
  *
  * Pure function of `(tree markers, options)`. No buffer access, no Kitty
- * capability knowledge. The realizers read from the plan exclusively.
+ * capability knowledge, no console I/O. The realizers read from the plan
+ * exclusively; the orchestrator (`./index.ts`) handles dev-mode diagnostics
+ * derived from `plan.mixedAmounts`.
  *
  * Returns `INACTIVE_PLAN` when:
  * - `colorLevel === "none"` (monochrome terminal — pass is a no-op).
@@ -242,12 +263,14 @@ export function buildFadePlan(root: AgNode, options?: BackdropFadeOptions): Fade
   const scrim =
     typeof scrimColorOpt === "string" && scrimColorOpt !== "auto"
       ? scrimColorOpt
-      : deriveScrimColor(defaultBg)
+      : deriveAutoScrimColor(defaultBg)
   const defaultFg =
     options?.defaultFg ?? (scrim === null ? null : scrim === DARK_SCRIM ? LIGHT_SCRIM : DARK_SCRIM)
 
-  // Single-amount invariant: one scrim image per frame at one alpha.
-  const amount = assertSingleAmount(includes, excludes)
+  // Single-amount invariant: one scrim image per frame at one alpha. Mixed
+  // amounts are surfaced via `mixedAmounts` so the orchestrator can emit a
+  // dev-mode warning; stage 1 stays pure.
+  const { amount, hasMixedAmounts } = assertSingleAmount(includes, excludes)
 
   return {
     active: true,
@@ -257,42 +280,44 @@ export function buildFadePlan(root: AgNode, options?: BackdropFadeOptions): Fade
     defaultFg,
     includes,
     excludes,
+    mixedAmounts: hasMixedAmounts,
   }
 }
 
 /**
- * Assert that all fade markers share a single amount, returning that amount.
- * Mixed amounts currently break the Kitty overlay (one image, one alpha) and
- * have unclear composition semantics (max? source-over compound?). Dev-mode
- * warn and fall back to the first observed amount; production behavior is
- * first-wins but will look wrong.
+ * Detect the single-amount invariant across all markers. Returns the
+ * clamped first-observed amount AND a flag indicating whether any later
+ * marker differed. The orchestrator uses the flag to emit a dev-mode warn.
+ *
+ * Mixed amounts currently break the Kitty overlay (one image, one alpha)
+ * and have unclear composition semantics (max? source-over compound?).
+ * Production behavior is first-wins but will look wrong until the markers
+ * are reconciled to a single value.
  */
-function assertSingleAmount(includes: FadeRect[], excludes: FadeRect[]): number {
+function assertSingleAmount(
+  includes: FadeRect[],
+  excludes: FadeRect[],
+): { amount: number; hasMixedAmounts: boolean } {
   const all = [...includes, ...excludes]
   const first = all[0]?.amount ?? 0
-  if (process.env.NODE_ENV !== "production") {
-    for (const r of all) {
-      if (Math.abs(r.amount - first) > 1e-6) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[silvery:backdrop-fade] multiple fade amounts in one frame (${first} vs ${r.amount}); ` +
-            `Kitty overlay will use the first. See buildKittyOverlay / assertSingleAmount.`,
-        )
-        break
-      }
+  let hasMixedAmounts = false
+  for (const r of all) {
+    if (Math.abs(r.amount - first) > 1e-6) {
+      hasMixedAmounts = true
+      break
     }
   }
-  return Math.max(0, Math.min(1, first))
+  return { amount: Math.max(0, Math.min(1, first)), hasMixedAmounts }
 }
 
 /**
- * Derive the scrim color from the root bg hex.
+ * Derive the auto scrim color from the root bg hex.
  *
  * Dark themes scrim toward `#000000`; light themes scrim toward `#ffffff`.
  * Returns `null` when `rootBg` is absent or unparseable — signals legacy
  * single-channel fallback in `fadeCell`.
  */
-function deriveScrimColor(rootBg: string | null | undefined): string | null {
+function deriveAutoScrimColor(rootBg: string | null | undefined): string | null {
   if (!rootBg) return null
   const lum = relativeLuminance(rootBg)
   if (lum === null) return null

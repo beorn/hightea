@@ -45,6 +45,11 @@
  * the full text-vs-emoji decision table.
  */
 
+import {
+  CURSOR_RESTORE,
+  CURSOR_SAVE,
+  kittyDeleteAllScrimPlacements,
+} from "@silvery/ansi"
 import type { AgNode } from "@silvery/ag/types"
 import type { TerminalBuffer } from "../../buffer"
 import { buildFadePlan, type BackdropFadeOptions } from "./plan"
@@ -76,26 +81,40 @@ export { realizeFadePlanToKittyOverlay } from "./realize-kitty"
  */
 export interface BackdropFadeResult {
   /** @deprecated alias for `bufferModified`. */
-  modified: boolean
+  readonly modified: boolean
   /** True when at least one buffer cell was mutated by the pass. */
-  bufferModified: boolean
+  readonly bufferModified: boolean
   /** True when the visible frame differs from pre-fade: buffer OR overlay. */
-  visuallyModified: boolean
+  readonly visuallyModified: boolean
   /**
    * Out-of-band ANSI escapes appended after the normal output phase diff.
    * Non-empty whenever Kitty graphics are enabled AND a backdrop is active
    * — includes a delete-all-placements command so last-frame scrims get
-   * cleared even if this frame has no wide cells.
+   * cleared even if this frame has no wide cells. Also non-empty when
+   * Kitty is enabled and the backdrop is INACTIVE this frame: the
+   * orchestrator emits `CURSOR_SAVE + kittyDeleteAllScrimPlacements() +
+   * CURSOR_RESTORE` so stale placements from a prior active frame are
+   * cleaned up even when stage 2a and 2b short-circuit.
    */
-  kittyOverlay: string
+  readonly kittyOverlay: string
 }
 
-const EMPTY_RESULT: BackdropFadeResult = {
+const EMPTY_RESULT: BackdropFadeResult = Object.freeze({
   modified: false,
   bufferModified: false,
   visuallyModified: false,
   kittyOverlay: "",
-}
+})
+
+/**
+ * Cached "Kitty inactive-frame cleanup" overlay. Emitted when Kitty
+ * graphics are enabled but the backdrop is inactive this frame so any
+ * stale scrim placements from the previous frame are cleared. Kept as a
+ * module-level constant so repeated inactive frames don't rebuild the
+ * same string.
+ */
+const KITTY_CLEANUP_OVERLAY: string =
+  CURSOR_SAVE + kittyDeleteAllScrimPlacements() + CURSOR_RESTORE
 
 /**
  * Apply backdrop-fade to the buffer based on tree markers.
@@ -113,11 +132,20 @@ const EMPTY_RESULT: BackdropFadeResult = {
  *   True when buffer cells changed OR a Kitty overlay is emitted. Callers
  *   that gate re-render on "anything changed" should check this field.
  * - `kittyOverlay` — out-of-band ANSI escapes. Non-empty when Kitty graphics
- *   are enabled AND backdrop is active: contains at minimum a scrim-clear
- *   command so last-frame placements get erased even if this frame has no
- *   wide cells. Empty only when Kitty is disabled or backdrop is inactive.
+ *   are enabled (regardless of whether the plan is active):
+ *     - Plan active: contains at minimum a scrim-clear command so last-frame
+ *       placements get erased even if this frame has no wide cells.
+ *     - Plan inactive: contains a cursor-save/delete-all/cursor-restore
+ *       sequence so stale placements from a prior active frame are cleaned
+ *       up. Without this, leftover scrim rectangles persist on screen when
+ *       the backdrop deactivates.
  * - `modified` — deprecated alias for `bufferModified`, kept for callers
  *   that predate the visual/buffer split.
+ *
+ * Because the overlay now self-cleans on deactivation, the higher-level
+ * `_kittyActive` tracker in `ag.ts` is redundant for this module. It is
+ * intentionally left in place (out of scope for this pass); future cleanup
+ * can delete it once the renderer-level tracker is also removed.
  */
 export function applyBackdropFade(
   root: AgNode,
@@ -125,7 +153,33 @@ export function applyBackdropFade(
   options?: BackdropFadeOptions,
 ): BackdropFadeResult {
   const plan = buildFadePlan(root, options)
-  if (!plan.active) return EMPTY_RESULT
+
+  // Stage 1 diagnostics: surface the mixed-amounts warning at the orchestrator
+  // so `buildFadePlan` can remain a pure function of its inputs. The warning
+  // fires in dev/test only — production suppresses via NODE_ENV.
+  if (plan.mixedAmounts && process.env.NODE_ENV !== "production") {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[silvery:backdrop-fade] multiple fade amounts in one frame (using ${plan.amount}); ` +
+        `Kitty overlay will use the first observed amount. See plan.ts / assertSingleAmount.`,
+    )
+  }
+
+  if (!plan.active) {
+    // Kitty cleanup path: even when the plan is inactive this frame, if the
+    // caller has Kitty graphics enabled we must emit the delete-all so any
+    // scrim placements from a prior active frame are cleared. Without this,
+    // the orphan rectangles persist on screen after the backdrop turns off.
+    if (options?.kittyGraphics === true) {
+      return {
+        modified: false,
+        bufferModified: false,
+        visuallyModified: true,
+        kittyOverlay: KITTY_CLEANUP_OVERLAY,
+      }
+    }
+    return EMPTY_RESULT
+  }
 
   // Kitty graphics realize the scrim for emoji cells (not CJK text — they
   // respond to fg like normal text). The overlay composites at alpha=amount
