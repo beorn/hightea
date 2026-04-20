@@ -26,6 +26,12 @@ jobs:
           node-version: "23"
           registry-url: "https://registry.npmjs.org"
 
+      # Pre-publish gate: real publish + install + import-probe through a
+      # local verdaccio. Same script devs run as `bun run verify-publishable`.
+      # If this fails, no tarballs reach npm.
+      - name: Verify publishable (verdaccio gate)
+        run: bun scripts/verify-publishable.ts --no-build
+
       # Publish packages in dependency order
       # Skip if version already published (idempotent)
       # Use `pnpm publish` (not `npm publish`) so `publishConfig.exports`

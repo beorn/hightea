@@ -17,29 +17,29 @@ import { ansi16DarkTheme, ansi16LightTheme, type Theme } from "@silvery/ansi"
 // Tests below use Sterling flat tokens in JSX; the inlineSterlingTokens shim
 // populates Sterling keys from the legacy palette by default, but explicit
 // overrides on the Sterling keys win — that's what these themes pin.
-const themeA: Theme = {
+const themeA = {
   ...ansi16DarkTheme,
   name: "theme-a",
   primary: "#ff0000", // legacy alias
   primaryfg: "#ffffff",
   muted: "#888888",
-  "bg-accent": "#ff0000", // red
+  "bg-accent": "#ff0000", // red — Sterling flat token (added at runtime via inlineSterlingTokens)
   "fg-on-accent": "#ffffff",
   "fg-accent": "#ff0000",
   "fg-muted": "#888888",
-}
+} satisfies Theme & Record<string, unknown>
 
-const themeB: Theme = {
+const themeB = {
   ...ansi16DarkTheme,
   name: "theme-b",
   primary: "#00ff00", // legacy alias
   primaryfg: "#000000",
   muted: "#cccccc",
-  "bg-accent": "#00ff00", // green
+  "bg-accent": "#00ff00", // green — Sterling flat token (added at runtime via inlineSterlingTokens)
   "fg-on-accent": "#000000",
   "fg-accent": "#00ff00",
   "fg-muted": "#cccccc",
-}
+} satisfies Theme & Record<string, unknown>
 
 describe("theme change rendering", () => {
   test("theme prop change marks bgDirty and re-renders affected node", () => {

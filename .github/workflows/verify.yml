@@ -1,5 +1,19 @@
 name: Verify Publishable
 
+# Pre-publish gate using a local verdaccio registry. Catches three classes
+# of bug BEFORE tag-publish:
+#   (a) wrong publishConfig.exports / missing dist entries
+#   (b) empty tarball / missing dist files
+#   (c) EPRIVATE on accidentally-listed private packages
+#
+# The legacy version of this workflow ran `npm install <tgz>` for each packed
+# tarball, but the tarballs reference @silvery/<dep>@<thisversion> which is not
+# on the public registry yet during release windows — so it failed on every
+# push with ETARGET. Verdaccio gives every package a real registry to install
+# from, so the gate measures what consumers will actually see.
+#
+# Local equivalent: `bun run verify-publishable` (or `bun scripts/verify-publishable.ts`).
+
 on:
   push:
     branches: [main]
@@ -9,6 +23,7 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -17,60 +32,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "23"
-      - run: npm install -g pnpm
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - run: bun install
 
-      - name: Build and verify
-        run: |
-          set -e
-          verify_pkg() {
-            local dir=$1
-            local name=$(node -e "console.log(require('./$dir/package.json').name)")
-            local private=$(node -e "const p=require('./$dir/package.json'); console.log(p.private || false)")
-            local has_tsdown=$(node -e "const p=require('./$dir/package.json'); console.log(!!p.tsdown)")
-            if [ "$private" = "true" ]; then
-              echo "⏭ $name (private)"
-              return 0
-            fi
-            if [ "$has_tsdown" = "false" ]; then
-              echo "⏭ $name (no tsdown config)"
-              return 0
-            fi
-
-            echo "📦 Building $name..."
-            (cd "$dir" && npx tsdown --no-dts 2>&1) || {
-              echo "⚠ Build failed for $name (continuing without dist)"
-            }
-
-            echo "📦 Packing $name..."
-            (cd "$dir" && pnpm pack 2>/dev/null) || true
-            local tgz=$(ls "$dir"/*.tgz 2>/dev/null | head -1)
-            if [ -z "$tgz" ]; then
-              echo "⚠ pnpm pack produced no tarball for $name"
-              return 0
-            fi
-
-            local tmpdir=$(mktemp -d)
-            (cd "$tmpdir" && npm init -y --quiet 2>/dev/null && npm install "$GITHUB_WORKSPACE/$tgz" --no-save 2>&1) || {
-              echo "❌ npm install failed for $name"
-              rm -rf "$tmpdir" "$tgz"
-              exit 1
-            }
-
-            echo "  ✓ pack + install"
-
-            (cd "$tmpdir" && node -e "import('$name').then(m => console.log('  ✓ import:', Object.keys(m).slice(0,3).join(', ')))") 2>&1 || {
-              echo "❌ import('$name') failed"
-              rm -rf "$tmpdir" "$tgz"
-              exit 1
-            }
-
-            rm -rf "$tmpdir" "$tgz"
-            echo "  ✓ $name verified"
-          }
-
-          verify_pkg "packages/ansi"
-          verify_pkg "packages/color"
-          verify_pkg "packages/commander"
-          verify_pkg "."
-          verify_pkg "examples"
+      - name: Verify publishable (verdaccio gate)
+        run: bun run verify-publishable

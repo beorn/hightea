@@ -175,21 +175,22 @@ describe("useColorScheme", () => {
 describe("ReactiveThemeProvider", () => {
   // Two visually distinct themes for assertions. Override both legacy and
   // Sterling flat keys so JSX using either token shape resolves correctly.
-  const darkTheme: Theme = {
+  // bg-accent is a Sterling flat token added at runtime via inlineSterlingTokens.
+  const darkTheme = {
     ...ansi16DarkTheme,
     name: "test-dark",
     primary: "#ff0000", // legacy alias
     "bg-accent": "#ff0000", // red
     "fg-accent": "#ff0000",
-  }
+  } satisfies Theme & Record<string, unknown>
 
-  const lightTheme: Theme = {
+  const lightTheme = {
     ...ansi16LightTheme,
     name: "test-light",
     primary: "#00ff00", // legacy alias
     "bg-accent": "#00ff00", // green
     "fg-accent": "#00ff00",
-  }
+  } satisfies Theme & Record<string, unknown>
 
   test("uses dark theme by default (unknown scheme)", () => {
     const render = createRenderer({ cols: 60, rows: 5 })

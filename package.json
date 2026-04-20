@@ -90,6 +90,7 @@
     "compat": "bun packages/ink/scripts/compat-check.ts",
     "compat:ink": "bun packages/ink/scripts/compat-check.ts ink",
     "compat:chalk": "bun packages/ink/scripts/compat-check.ts chalk",
+    "verify-publishable": "bun scripts/verify-publishable.ts",
     "bench": "cd benchmarks && bun run bench",
     "bench:compare": "cd benchmarks && bun run bench:compare"
   },
