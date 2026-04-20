@@ -198,16 +198,10 @@ describe("backdrop-pro A4: shared region walker with overlap dedup", () => {
     // x=[5,10), y=[0,4) → 20 cells. Union (with dedup) should be 10*4 +
     // 10*4 - 20 = 60 cells.
     const visits = new Map<string, number>()
-    const count = forEachBackdropCell(
-      16,
-      4,
-      [{ rect: RECT_A }, { rect: RECT_B }],
-      [],
-      (x, y) => {
-        const key = `${x},${y}`
-        visits.set(key, (visits.get(key) ?? 0) + 1)
-      },
-    )
+    const count = forEachBackdropCell(16, 4, [{ rect: RECT_A }, { rect: RECT_B }], [], (x, y) => {
+      const key = `${x},${y}`
+      visits.set(key, (visits.get(key) ?? 0) + 1)
+    })
     expect(count).toBe(60)
     expect(visits.size).toBe(60)
     for (const [, n] of visits) expect(n).toBe(1) // no double-visits

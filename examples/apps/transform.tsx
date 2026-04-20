@@ -169,7 +169,13 @@ function TextPanel({
   children: React.ReactNode
 }) {
   return (
-    <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border-default" paddingX={1}>
+    <Box
+      flexDirection="column"
+      flexGrow={1}
+      borderStyle="round"
+      borderColor="$border-default"
+      paddingX={1}
+    >
       <Box marginBottom={1}>
         <H1 color={titleColor}>{title}</H1>
       </Box>

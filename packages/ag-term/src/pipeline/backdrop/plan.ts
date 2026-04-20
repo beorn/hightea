@@ -368,7 +368,9 @@ export function buildPlan(root: AgNode, options?: BackdropOptions): TerminalPlan
   // derived default — treating a typo as "use auto" is friendlier than
   // nullifying the scrim and dropping to the legacy single-channel path.
   const explicitScrim =
-    typeof scrimColorOpt === "string" && scrimColorOpt !== "auto" ? normalizeHex(scrimColorOpt) : null
+    typeof scrimColorOpt === "string" && scrimColorOpt !== "auto"
+      ? normalizeHex(scrimColorOpt)
+      : null
   const scrim = explicitScrim ?? deriveAutoScrimColor(defaultBg)
 
   // Polarity by luminance: scrim with luminance >= threshold is "light"
@@ -377,7 +379,8 @@ export function buildPlan(root: AgNode, options?: BackdropOptions): TerminalPlan
 
   // Default fg fallback: opposite of the scrim polarity.
   const defaultFg =
-    normalizeHex(options?.defaultFg) ?? (scrim === null ? null : scrimTowardLight ? DARK_SCRIM : LIGHT_SCRIM)
+    normalizeHex(options?.defaultFg) ??
+    (scrim === null ? null : scrimTowardLight ? DARK_SCRIM : LIGHT_SCRIM)
 
   // Single-amount invariant: one scrim image per frame at one alpha.
   const { amount, hasMixedAmounts } = assertSingleAmount(includeAmounts, excludeAmounts)

@@ -79,7 +79,11 @@ describe("Banner", () => {
 
   test("onDismiss fires on Escape", async () => {
     const onDismiss = vi.fn()
-    const app = render(<Banner tone="info" onDismiss={onDismiss}>Retrying</Banner>)
+    const app = render(
+      <Banner tone="info" onDismiss={onDismiss}>
+        Retrying
+      </Banner>,
+    )
     expect(app.containsText("Retrying")).toBe(true)
     // Dismiss affordance renders when onDismiss is supplied.
     expect(app.containsText("dismiss ×")).toBe(true)

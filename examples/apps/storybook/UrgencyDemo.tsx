@@ -17,7 +17,19 @@
  */
 
 import React from "react"
-import { Box, Text, Muted, Divider, Strong, Small, Kbd, InlineAlert, Banner, Alert, Button } from "silvery"
+import {
+  Box,
+  Text,
+  Muted,
+  Divider,
+  Strong,
+  Small,
+  Kbd,
+  InlineAlert,
+  Banner,
+  Alert,
+  Button,
+} from "silvery"
 
 function UrgencyRow({
   level,
@@ -60,8 +72,8 @@ export function UrgencyDemo(): React.ReactElement {
       </Box>
       <Small>
         <Muted>
-          Same color. Three urgency levels. Zero `priority` / `severity` prop. Component
-          choice + position + content carry urgency — not token vocabulary.
+          Same color. Three urgency levels. Zero `priority` / `severity` prop. Component choice +
+          position + content carry urgency — not token vocabulary.
         </Muted>
       </Small>
 
@@ -118,9 +130,9 @@ export function UrgencyDemo(): React.ReactElement {
         </Box>
         <Small>
           <Muted>
-            A system that shipped `priority="high"` would reinvent urgency in the token
-            vocabulary. Sterling keeps tokens status-only — components carry urgency by
-            their <Kbd>shape</Kbd> and <Kbd>placement</Kbd>.
+            A system that shipped `priority="high"` would reinvent urgency in the token vocabulary.
+            Sterling keeps tokens status-only — components carry urgency by their <Kbd>shape</Kbd>{" "}
+            and <Kbd>placement</Kbd>.
           </Muted>
         </Small>
       </Box>

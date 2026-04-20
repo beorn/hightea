@@ -90,7 +90,11 @@ function ChatApp({
             {meta.isCursor ? ">" : " "}{" "}
             <Text
               color={
-                ex.role === "user" ? "$fg-accent" : ex.role === "agent" ? "$fg-success" : "$fg-warning"
+                ex.role === "user"
+                  ? "$fg-accent"
+                  : ex.role === "agent"
+                    ? "$fg-success"
+                    : "$fg-warning"
               }
               bold
             >

@@ -68,14 +68,14 @@ await render(<App />, term, { mode: "inline" })
 
 Use semantic `$token` colors instead of hardcoded values:
 
-| Token            | Use for                               |
-| ---------------- | ------------------------------------- |
-| `$fg-accent`     | Active elements, progress bars, links |
-| `$fg-success`    | Completed items, checkmarks           |
-| `$fg-warning`    | Caution, compaction                   |
-| `$fg-error`      | Failures, diff removals               |
-| `$fg-muted`      | Secondary info, timestamps            |
-| `$border-default`| Default border color                  |
+| Token             | Use for                               |
+| ----------------- | ------------------------------------- |
+| `$fg-accent`      | Active elements, progress bars, links |
+| `$fg-success`     | Completed items, checkmarks           |
+| `$fg-warning`     | Caution, compaction                   |
+| `$fg-error`       | Failures, diff removals               |
+| `$fg-muted`       | Secondary info, timestamps            |
+| `$border-default` | Default border color                  |
 
 ### Testing Showcases
 

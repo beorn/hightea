@@ -122,7 +122,8 @@ function ToolCallBlock({ call, phase }: { call: ToolCall; phase: "pending" | "ru
       {phase === "done" && (
         <Box flexDirection="column" paddingLeft={2}>
           {call.output.map((line, i) => {
-            if (line.startsWith("+")) return <LinkifiedLine key={i} text={line} color="$fg-success" />
+            if (line.startsWith("+"))
+              return <LinkifiedLine key={i} text={line} color="$fg-success" />
             if (line.startsWith("-")) return <LinkifiedLine key={i} text={line} color="$fg-error" />
             return <LinkifiedLine key={i} text={line} />
           })}

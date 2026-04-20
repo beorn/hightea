@@ -214,7 +214,9 @@ function CompactingOverlay() {
         <Spinner type="arc" /> Compacting context
       </Text>
       <Text> </Text>
-      <Text color="$fg-muted">Freezing exchanges into terminal scrollback. Scroll up to review.</Text>
+      <Text color="$fg-muted">
+        Freezing exchanges into terminal scrollback. Scroll up to review.
+      </Text>
     </Box>
   )
 }

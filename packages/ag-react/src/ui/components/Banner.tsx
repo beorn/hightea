@@ -94,13 +94,7 @@ export function Banner({
   )
 
   return (
-    <Box
-      flexDirection="row"
-      backgroundColor={tokens.bg}
-      paddingX={2}
-      width="100%"
-      {...boxProps}
-    >
+    <Box flexDirection="row" backgroundColor={tokens.bg} paddingX={2} width="100%" {...boxProps}>
       {showIcon && (
         <Text color={tokens.fg} bold>
           {glyph}{" "}

@@ -615,8 +615,12 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
                   {"✓ Input components (TextInput, TextArea, SelectList)"}
                 </Text>
                 <Text color="$fg-success">{"✓ Display widgets (ProgressBar, Spinner, Badge)"}</Text>
-                <Text color="$fg-success">{"✓ Layout primitives (Box, Divider, border styles)"}</Text>
-                <Text color="$fg-success">{"✓ Dialog system (ModalDialog with input blocking)"}</Text>
+                <Text color="$fg-success">
+                  {"✓ Layout primitives (Box, Divider, border styles)"}
+                </Text>
+                <Text color="$fg-success">
+                  {"✓ Dialog system (ModalDialog with input blocking)"}
+                </Text>
               </Box>
             </Box>
           </ModalDialog>

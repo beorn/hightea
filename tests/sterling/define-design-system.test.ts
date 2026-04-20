@@ -74,8 +74,10 @@ describe("defineDesignSystem — flatten flag", () => {
 
   test("flatten: true — nested and flat reference the SAME string", () => {
     const sys = makeTiny(true)
-    const t = sys.defaults() as unknown as Record<string, unknown> &
-      { accent: { bg: string }; surface: { subtle: string } }
+    const t = sys.defaults() as unknown as Record<string, unknown> & {
+      accent: { bg: string }
+      surface: { subtle: string }
+    }
 
     expect(t.accent.bg).toBe(t["bg-accent"])
     expect(t.surface.subtle).toBe(t["bg-surface-subtle"])
@@ -191,10 +193,7 @@ describe("defineDesignSystem — every derivation entry auto-flattens", () => {
 
   test("deriveFromSchemeWithBrand() flattens", () => {
     const scheme = {} as unknown as Parameters<typeof sys.deriveFromSchemeWithBrand>[0]
-    const t = sys.deriveFromSchemeWithBrand(scheme, "#ff00ff") as unknown as Record<
-      string,
-      unknown
-    >
+    const t = sys.deriveFromSchemeWithBrand(scheme, "#ff00ff") as unknown as Record<string, unknown>
     expect(t["bg-accent"]).toBe("#1f6feb")
   })
 })

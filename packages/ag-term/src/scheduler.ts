@@ -624,11 +624,7 @@ export class RenderScheduler {
         // the emoji walk, or placement ID derivation — any of which would
         // cause scrim flicker or orphaned placements across frames.
         if (incrementalOverlay !== freshOverlay) {
-          const msg = formatOverlayMismatch(
-            incrementalOverlay,
-            freshOverlay,
-            renderNum,
-          )
+          const msg = formatOverlayMismatch(incrementalOverlay, freshOverlay, renderNum)
           if (process.env.DEBUG_LOG) {
             appendFileSync(process.env.DEBUG_LOG, msg + "\n")
           }

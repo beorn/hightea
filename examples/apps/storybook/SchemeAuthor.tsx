@@ -119,7 +119,12 @@ function HexSlot({
         {label}
       </Text>
       {editing ? (
-        <Box borderStyle="single" borderColor={valid ? "$fg-accent" : "$fg-error"} paddingX={1} width={12}>
+        <Box
+          borderStyle="single"
+          borderColor={valid ? "$fg-accent" : "$fg-error"}
+          paddingX={1}
+          width={12}
+        >
           <TextInput
             value={buffer}
             onChange={setBuffer}
@@ -239,8 +244,8 @@ export function SchemeAuthor({
         <Muted>·</Muted>
         <Small>
           <Muted>
-            <Text color="$fg-accent">Enter</Text> edit · <Text color="$fg-accent">Esc</Text> cancel ·{" "}
-            <Text color="$fg-accent">x</Text> copy JSON
+            <Text color="$fg-accent">Enter</Text> edit · <Text color="$fg-accent">Esc</Text> cancel
+            · <Text color="$fg-accent">x</Text> copy JSON
           </Muted>
         </Small>
       </Box>
@@ -248,9 +253,9 @@ export function SchemeAuthor({
       <Box flexDirection="column" paddingX={1}>
         <Small>
           <Muted>
-            Type hex (`#rrggbb` / `#rgb`). Enter commits, the full Sterling Theme re-derives,
-            and the rest of the storybook re-themes live. `x` exports the 22 raw colors as
-            ColorScheme JSON and copies to clipboard (OSC 52).
+            Type hex (`#rrggbb` / `#rgb`). Enter commits, the full Sterling Theme re-derives, and
+            the rest of the storybook re-themes live. `x` exports the 22 raw colors as ColorScheme
+            JSON and copies to clipboard (OSC 52).
           </Muted>
         </Small>
         <Divider />
@@ -287,10 +292,10 @@ export function SchemeAuthor({
           <Strong>Live derivation chain</Strong>
           <Small>
             <Muted>
-              22 raw colors (above) → sterling.deriveFromScheme() → 40 flat tokens + role
-              objects → every component in COMPONENTS / TOKENS / CONTRAST panes re-themed.
-              The derivation runs on every commit; open the TOKENS pane to inspect the
-              output, CONTRAST to audit WCAG compliance.
+              22 raw colors (above) → sterling.deriveFromScheme() → 40 flat tokens + role objects →
+              every component in COMPONENTS / TOKENS / CONTRAST panes re-themed. The derivation runs
+              on every commit; open the TOKENS pane to inspect the output, CONTRAST to audit WCAG
+              compliance.
             </Muted>
           </Small>
         </Box>

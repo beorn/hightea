@@ -38,7 +38,11 @@ function IntentRow({
   warning?: string
 }): React.ReactElement {
   const annColor =
-    annotationTone === "error" ? "$fg-error" : annotationTone === "success" ? "$fg-success" : undefined
+    annotationTone === "error"
+      ? "$fg-error"
+      : annotationTone === "success"
+        ? "$fg-success"
+        : undefined
   return (
     <Box flexDirection="column" gap={0}>
       <Box gap={2}>
@@ -75,9 +79,9 @@ export function IntentDemo(): React.ReactElement {
       </Box>
       <Small>
         <Muted>
-          `error` is STATUS — "this is an error". `destructive` is INTENT — "this does harm".
-          Theme owns status tokens; component layer owns intent. destructive aliases to error
-          pixels by default; no `destructive` Theme field.
+          `error` is STATUS — "this is an error". `destructive` is INTENT — "this does harm". Theme
+          owns status tokens; component layer owns intent. destructive aliases to error pixels by
+          default; no `destructive` Theme field.
         </Muted>
       </Small>
 
@@ -122,8 +126,8 @@ export function IntentDemo(): React.ReactElement {
         <Small>
           <Muted>
             Component libraries classify actions; the Theme classifies surfaces. Aliasing
-            destructive → error keeps the Theme minimal (no action taxonomy leaking into
-            color tokens) while letting component APIs speak intent.
+            destructive → error keeps the Theme minimal (no action taxonomy leaking into color
+            tokens) while letting component APIs speak intent.
           </Muted>
         </Small>
       </Box>

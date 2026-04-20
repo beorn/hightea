@@ -67,7 +67,13 @@ function App({ scrollTo }: { scrollTo: number }): React.ReactElement {
   return (
     <Box flexDirection="column" height={30}>
       <Text>Header</Text>
-      <Box overflow="scroll" height={28} scrollTo={scrollTo} overflowIndicator flexDirection="column">
+      <Box
+        overflow="scroll"
+        height={28}
+        scrollTo={scrollTo}
+        overflowIndicator
+        flexDirection="column"
+      >
         {items.map((i) => (
           <Item key={i} index={i} />
         ))}
@@ -164,9 +170,7 @@ describe("scroll snap to child-top (mixed-height, km-tui.column-top-disappears)"
       const lines = text.split("\n")
       for (const line of lines) {
         if (line.includes("▲") && line.includes("╭")) {
-          throw new Error(
-            `scrollTo=${target}: indicator row overwrites a top-border: "${line}"`,
-          )
+          throw new Error(`scrollTo=${target}: indicator row overwrites a top-border: "${line}"`)
         }
       }
     }

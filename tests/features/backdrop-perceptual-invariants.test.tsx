@@ -100,10 +100,7 @@ describe("backdrop perceptual invariants: deemphasize primitive", () => {
       for (const amount of AMOUNTS) {
         const after = hexToOklch(deemphasize(hex, amount))!
         if (after.C < 0.005) continue // deemphasized to near-neutral — H meaningless
-        const delta = Math.min(
-          Math.abs(before.H - after.H),
-          360 - Math.abs(before.H - after.H),
-        )
+        const delta = Math.min(Math.abs(before.H - after.H), 360 - Math.abs(before.H - after.H))
         expect(
           delta,
           `${name} ${hex} @α=${amount}: H drifted ${delta.toFixed(1)}° (was ${before.H.toFixed(1)} → ${after.H.toFixed(1)})`,

@@ -240,7 +240,9 @@ describe("ListView variable-heights: column-top-disappears real-vault shape", ()
 
     if (indicatorMatch) {
       const indicatorCount = parseInt(indicatorMatch[1]!, 10)
-      const visibleCount = Array.from({ length: 30 }).filter((_, i) => text.includes(`j-${i}`)).length
+      const visibleCount = Array.from({ length: 30 }).filter((_, i) =>
+        text.includes(`j-${i}`),
+      ).length
       const hiddenItemCount = 30 - visibleCount
 
       // Indicator must grow with hidden-item count — not stuck at 1.
@@ -364,7 +366,10 @@ describe("ListView edge-case matrix: column-top-disappears symmetric walk", () =
   })
 
   test("5. cursor ON tall outlier (height >> viewport) — outlier renders, ▲▼ flanking", () => {
-    const items = Array.from({ length: 30 }, (_, i) => ({ id: `e-${i}`, height: i === 15 ? 200 : 3 }))
+    const items = Array.from({ length: 30 }, (_, i) => ({
+      id: `e-${i}`,
+      height: i === 15 ? 200 : 3,
+    }))
     const r = renderList({ items, scrollTo: 15, viewport: 60 })
     // The tall item should render (clipped). Its id ("e-15") should appear.
     expect(r.text, "outlier item must render (even clipped)").toContain("e-15")

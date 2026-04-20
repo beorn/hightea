@@ -96,7 +96,7 @@ function buildPairs(theme: SterlingTheme): PairSpec[] {
 function Verdict({ aa, aaa }: { aa: boolean; aaa: boolean }): React.ReactElement {
   if (aaa) return <Text color="$fg-success">AAA</Text>
   if (aa) return <Text color="$fg-info">AA </Text>
-  return <Text color="$fg-error">×  </Text>
+  return <Text color="$fg-error">× </Text>
 }
 
 export interface ContrastAuditProps {
@@ -164,7 +164,7 @@ export function ContrastAudit({ theme, schemeName }: ContrastAuditProps): React.
           <Muted>pair</Muted>
           <Box flexGrow={1} />
           <Muted>ratio</Muted>
-          <Muted>  </Muted>
+          <Muted> </Muted>
           <Muted>verdict</Muted>
         </Box>
         <Divider />
@@ -179,7 +179,7 @@ export function ContrastAudit({ theme, schemeName }: ContrastAuditProps): React.
               </Text>
               <Box flexGrow={1} />
               <Text bold>{row.ratio.toFixed(2)}:1</Text>
-              <Text>  </Text>
+              <Text> </Text>
               <Verdict aa={row.aa} aaa={row.aaa} />
             </Box>
           )
@@ -219,9 +219,9 @@ export function ContrastAudit({ theme, schemeName }: ContrastAuditProps): React.
         <Box marginTop={1} flexDirection="column">
           <Small>
             <Muted>
-              WCAG 2.1: AA ≥ 4.5:1 for normal text · AAA ≥ 7:1. Sterling auto-lifts failing{" "}
-              tokens via OKLCH L-shifts (contrast: "auto-lift"). Light schemes like{" "}
-              catppuccin-latte and gruvbox-light are where lifts typically show up.
+              WCAG 2.1: AA ≥ 4.5:1 for normal text · AAA ≥ 7:1. Sterling auto-lifts failing tokens
+              via OKLCH L-shifts (contrast: "auto-lift"). Light schemes like catppuccin-latte and
+              gruvbox-light are where lifts typically show up.
             </Muted>
           </Small>
         </Box>

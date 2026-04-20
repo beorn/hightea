@@ -18,12 +18,7 @@
  */
 
 import { describe, expect, it } from "vitest"
-import {
-  builtinPalettes,
-  createTheme,
-  getThemeByName,
-  quickTheme,
-} from "@silvery/theme"
+import { builtinPalettes, createTheme, getThemeByName, quickTheme } from "@silvery/theme"
 import { autoGenerateTheme } from "@silvery/ansi"
 import { deriveTheme, type Theme } from "@silvery/ansi"
 import { checkContrast, ensureContrast } from "@silvery/color"
@@ -263,9 +258,9 @@ describe("deriveTheme contrast guarantees", () => {
     // fg-on-<role> text on <role> fill (badge / button readability)
     for (const role of ["accent", "error", "warning", "success", "info"] as const) {
       it(`fg-on-${role} / bg-${role} >= AA (4.5:1)`, () => {
-        expect(
-          ratio(tok(theme, `fg-on-${role}`), tok(theme, `bg-${role}`)),
-        ).toBeGreaterThanOrEqual(AA - 0.01)
+        expect(ratio(tok(theme, `fg-on-${role}`), tok(theme, `bg-${role}`))).toBeGreaterThanOrEqual(
+          AA - 0.01,
+        )
       })
     }
 
@@ -276,9 +271,9 @@ describe("deriveTheme contrast guarantees", () => {
     // Sterling's adaptive cursor derivation + `repairCursorBg` port.
     // Tracked under `km-silvery.sterling-cursor-adaptive`.
     it.skip("fg-cursor / bg-cursor >= AA (4.5:1)", () => {
-      expect(
-        ratio(tok(theme, "fg-cursor"), tok(theme, "bg-cursor")),
-      ).toBeGreaterThanOrEqual(AA - 0.01)
+      expect(ratio(tok(theme, "fg-cursor"), tok(theme, "bg-cursor"))).toBeGreaterThanOrEqual(
+        AA - 0.01,
+      )
     })
   })
 })

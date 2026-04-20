@@ -259,7 +259,13 @@ export type {
 
 // Shared tone surface (ToneKey + resolvers) — building block for tone-bearing
 // components. Apps writing their own tone components can reuse these helpers.
-export { toneFillTokens, toneSubtleTokens, toneFgToken, toneIcon, TONE_ICONS } from "./ui/components"
+export {
+  toneFillTokens,
+  toneSubtleTokens,
+  toneFgToken,
+  toneIcon,
+  TONE_ICONS,
+} from "./ui/components"
 export type { ToneKey, ToneFillTokens, ToneSubtleTokens } from "./ui/components"
 
 // Command Palette

@@ -106,7 +106,10 @@ describe("ListView overflowIndicator: content fits viewport", () => {
 
     const text = stripAnsi(app.text)
     // Positive control: when content genuinely overflows, indicator SHOULD render.
-    expect(text, "positive control: overflow indicator should appear when content exceeds viewport").toMatch(/▼\d+/)
+    expect(
+      text,
+      "positive control: overflow indicator should appear when content exceeds viewport",
+    ).toMatch(/▼\d+/)
   })
 
   test("content barely exceeds viewport: indicator reserves its row — last card's content not overwritten", () => {

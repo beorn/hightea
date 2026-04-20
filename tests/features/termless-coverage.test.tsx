@@ -98,7 +98,12 @@ function FreezePromoteApp({ initialItems }: { initialItems: FreezeItem[] }) {
         getKey={(it: FreezeItem) => it.id}
         cache={{ mode: "auto", isCacheable: (it: FreezeItem) => it.frozen }}
         renderItem={(item: FreezeItem) => (
-          <Box flexDirection="column" borderStyle="round" borderColor="$border-default" paddingX={1}>
+          <Box
+            flexDirection="column"
+            borderStyle="round"
+            borderColor="$border-default"
+            paddingX={1}
+          >
             <Text>
               [{item.id}] {item.text}
             </Text>

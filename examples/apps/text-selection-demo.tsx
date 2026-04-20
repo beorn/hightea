@@ -27,7 +27,13 @@ export const meta: ExampleMeta = {
 
 function SelectableTextPanel(): React.ReactElement {
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="$border-default" paddingX={1} flexGrow={1}>
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      borderColor="$border-default"
+      paddingX={1}
+      flexGrow={1}
+    >
       <H2>Selectable Text</H2>
       <Small>userSelect="text" (default)</Small>
       <Box height={1} />
@@ -110,7 +116,13 @@ function SelectionStatePanel(): React.ReactElement {
   const selection = useSelection()
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="$fg-info" paddingX={1} flexGrow={1}>
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      borderColor="$fg-info"
+      paddingX={1}
+      flexGrow={1}
+    >
       <H2 color="$fg-info">Selection State</H2>
       <Small>Live readout from useSelection()</Small>
       <Box height={1} />

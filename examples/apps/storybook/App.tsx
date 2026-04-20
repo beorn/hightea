@@ -322,44 +322,64 @@ function HelpOverlay(): React.ReactElement {
       <Divider />
       <Box flexDirection="column" gap={0}>
         <Text>
-          <Text bold color="$fg-accent">h / l
+          <Text bold color="$fg-accent">
+            h / l
           </Text>{" "}
           <Muted>— switch pane (schemes ↔ tokens)</Muted>
         </Text>
         <Text>
-          <Text bold color="$fg-accent">j / k</Text>{" "}
+          <Text bold color="$fg-accent">
+            j / k
+          </Text>{" "}
           <Muted>— move cursor in focused pane (J/K = ±10)</Muted>
         </Text>
         <Text>
-          <Text bold color="$fg-accent">Enter</Text>{" "}
+          <Text bold color="$fg-accent">
+            Enter
+          </Text>{" "}
           <Muted>— open token (derivation panel) or edit author slot</Muted>
         </Text>
         <Text>
-          <Text bold color="$fg-accent">Esc</Text>{" "}
+          <Text bold color="$fg-accent">
+            Esc
+          </Text>{" "}
           <Muted>— close derivation / exit view mode / cancel edit</Muted>
         </Text>
         <Text>
-          <Text bold color="$fg-accent">1–4 / t</Text>{" "}
+          <Text bold color="$fg-accent">
+            1–4 / t
+          </Text>{" "}
           <Muted>— color tier (truecolor / 256 / ansi16 / mono)</Muted>
         </Text>
         <Text>
-          <Text bold color="$fg-accent">v</Text>{" "}
+          <Text bold color="$fg-accent">
+            v
+          </Text>{" "}
           <Muted>— components view</Muted>
         </Text>
         <Text>
-          <Text bold color="$fg-accent">c</Text>{" "}
+          <Text bold color="$fg-accent">
+            c
+          </Text>{" "}
           <Muted>— contrast-audit view (WCAG AA/AAA)</Muted>
         </Text>
         <Text>
-          <Text bold color="$fg-accent">a</Text>{" "}
+          <Text bold color="$fg-accent">
+            a
+          </Text>{" "}
           <Muted>— scheme-author view (22-color input grid)</Muted>
         </Text>
         <Text>
-          <Text bold color="$fg-accent">x</Text>{" "}
+          <Text bold color="$fg-accent">
+            x
+          </Text>{" "}
           <Muted>— (author view) export ColorScheme JSON, OSC 52 to clipboard</Muted>
         </Text>
         <Text>
-          <Text bold color="$fg-accent">q / Ctrl+C</Text> <Muted>— quit</Muted>
+          <Text bold color="$fg-accent">
+            q / Ctrl+C
+          </Text>{" "}
+          <Muted>— quit</Muted>
         </Text>
       </Box>
       <Divider />

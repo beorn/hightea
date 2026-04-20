@@ -182,7 +182,13 @@ export type {
 } from "./components/Alert"
 
 // Shared tone surface — ToneKey union and resolver helpers.
-export { toneFillTokens, toneSubtleTokens, toneFgToken, toneIcon, TONE_ICONS } from "./components/_tone"
+export {
+  toneFillTokens,
+  toneSubtleTokens,
+  toneFgToken,
+  toneIcon,
+  TONE_ICONS,
+} from "./components/_tone"
 export type { ToneKey, ToneFillTokens, ToneSubtleTokens } from "./components/_tone"
 
 // Command Palette

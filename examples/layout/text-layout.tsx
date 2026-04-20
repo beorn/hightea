@@ -80,7 +80,13 @@ function Bubble({
   return (
     <Box flexDirection="column" alignItems={align ?? "flex-start"}>
       <Small> {sender}</Small>
-      <Box width={width} borderStyle="round" borderColor="$border-default" paddingX={1} maxWidth={48}>
+      <Box
+        width={width}
+        borderStyle="round"
+        borderColor="$border-default"
+        paddingX={1}
+        maxWidth={48}
+      >
         <Text wrap={wrap ?? "wrap"}>{text}</Text>
       </Box>
     </Box>

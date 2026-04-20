@@ -193,7 +193,11 @@ function ItemRow({
   const idStr = String(item.id).padStart(5, " ")
 
   return (
-    <Box flexDirection="column" paddingX={1} backgroundColor={isSelected ? "$fg-accent" : undefined}>
+    <Box
+      flexDirection="column"
+      paddingX={1}
+      backgroundColor={isSelected ? "$fg-accent" : undefined}
+    >
       <Box>
         <Text color={STATUS_COLORS[item.status]}>{STATUS_ICONS[item.status]}</Text>
         <Text dim> {idStr} </Text>

@@ -65,12 +65,7 @@ export {
   realizeToBuffer,
   realizeToKitty,
 } from "./backdrop"
-export type {
-  BackdropOptions,
-  BackdropResult,
-  ColorLevel,
-  Plan,
-} from "./backdrop"
+export type { BackdropOptions, BackdropResult, ColorLevel, Plan } from "./backdrop"
 // Active theme + color level state (pipeline-internal, exposed for out-of-tree consumers)
 export {
   getActiveTheme,

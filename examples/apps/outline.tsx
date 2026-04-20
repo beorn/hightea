@@ -142,7 +142,11 @@ export function OutlineDemo() {
       <Box gap={1}>
         <Text bold>Style:</Text>
         {STYLES.map((s, i) => (
-          <Text key={s} color={i === styleIndex ? "$fg-accent" : "$fg-muted"} bold={i === styleIndex}>
+          <Text
+            key={s}
+            color={i === styleIndex ? "$fg-accent" : "$fg-muted"}
+            bold={i === styleIndex}
+          >
             {i === styleIndex ? `[${s}]` : s}
           </Text>
         ))}

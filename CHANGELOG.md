@@ -76,27 +76,27 @@ This is a stepping-stone toward 0.20.0, which will make Sterling THE Theme type 
 
 ### Migration map (begin migrating now; required for 0.20.0)
 
-| Legacy `$token` | Sterling `$token` |
-| --- | --- |
-| `$primary` | `$fg-accent` |
-| `$muted` | `$fg-muted` |
-| `$accent` | `$fg-accent` |
-| `$link` | `$fg-accent` |
-| `$error` | `$fg-error` |
-| `$warning` | `$fg-warning` |
-| `$success` | `$fg-success` |
-| `$info` | `$fg-info` |
-| `$brand` | `$fg-accent` |
-| `$secondary` | `$fg-muted` |
-| `$inverse` | `$fg-on-accent` |
-| `$surface` | `$bg-surface-default` |
-| `$popover` | `$bg-surface-overlay` |
-| `$selection` | `$bg-accent` |
-| `$focusborder` | `$border-focus` |
-| `$cursor` | `$bg-cursor` |
-| `$border` | `$border-default` |
-| `$bg` | `$bg-surface-default` |
-| `$fg` | `$fg-default` |
+| Legacy `$token` | Sterling `$token`     |
+| --------------- | --------------------- |
+| `$primary`      | `$fg-accent`          |
+| `$muted`        | `$fg-muted`           |
+| `$accent`       | `$fg-accent`          |
+| `$link`         | `$fg-accent`          |
+| `$error`        | `$fg-error`           |
+| `$warning`      | `$fg-warning`         |
+| `$success`      | `$fg-success`         |
+| `$info`         | `$fg-info`            |
+| `$brand`        | `$fg-accent`          |
+| `$secondary`    | `$fg-muted`           |
+| `$inverse`      | `$fg-on-accent`       |
+| `$surface`      | `$bg-surface-default` |
+| `$popover`      | `$bg-surface-overlay` |
+| `$selection`    | `$bg-accent`          |
+| `$focusborder`  | `$border-focus`       |
+| `$cursor`       | `$bg-cursor`          |
+| `$border`       | `$border-default`     |
+| `$bg`           | `$bg-surface-default` |
+| `$fg`           | `$fg-default`         |
 
 ### What landed
 

@@ -392,7 +392,8 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
       let newStart = end
       while (newStart > 0 && startFill < targetHeight) {
         newStart--
-        startFill += getHeight(newStart, estimateHeight, measuredHeights, getItemKey, avgHeight) + gap
+        startFill +=
+          getHeight(newStart, estimateHeight, measuredHeights, getItemKey, avgHeight) + gap
       }
       // Keep minimum count so the window never shrinks below item-count floor.
       start = Math.min(Math.max(0, newStart), Math.max(0, end - minItems))

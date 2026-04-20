@@ -587,7 +587,11 @@ function ClipboardTab() {
                 <Small>{h.time}</Small>{" "}
                 <Text
                   color={
-                    h.action === "copy" ? "$fg-success" : h.action === "paste" ? "$fg-warning" : "$fg-muted"
+                    h.action === "copy"
+                      ? "$fg-success"
+                      : h.action === "paste"
+                        ? "$fg-warning"
+                        : "$fg-muted"
                   }
                   bold
                 >
@@ -666,7 +670,8 @@ function FocusTab() {
 
         <Box marginTop={1}>
           <Text>
-            <Text bold>Protocol:</Text> <Text color="$fg-info">CSI ?1004h (DECRPM focus events)</Text>
+            <Text bold>Protocol:</Text>{" "}
+            <Text color="$fg-info">CSI ?1004h (DECRPM focus events)</Text>
           </Text>
         </Box>
       </Box>

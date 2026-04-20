@@ -395,7 +395,9 @@ function AdjustmentLog({ adjustments = [] }: { adjustments?: ThemeAdjustment[] }
       <Box flexDirection="column">
         <H2>Contrast Adjustments</H2>
         <Box paddingX={1}>
-          <Text color="$fg-success">✓ No adjustments needed — all tokens meet contrast targets</Text>
+          <Text color="$fg-success">
+            ✓ No adjustments needed — all tokens meet contrast targets
+          </Text>
         </Box>
       </Box>
     )

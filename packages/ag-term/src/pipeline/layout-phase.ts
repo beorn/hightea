@@ -529,7 +529,13 @@ export function scrollPhase(root: AgNode, options: ScrollPhaseOptions = {}): voi
  */
 function snapOffsetToChildTop(
   rawOffset: number,
-  childPositions: { child: AgNode; top: number; bottom: number; index: number; isSticky: boolean }[],
+  childPositions: {
+    child: AgNode
+    top: number
+    bottom: number
+    index: number
+    isSticky: boolean
+  }[],
   target: { top: number; bottom: number; index: number },
 ): number {
   if (rawOffset <= 0) return rawOffset

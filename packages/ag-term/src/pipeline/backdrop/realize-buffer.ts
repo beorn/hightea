@@ -151,8 +151,7 @@ function fadeCell(buffer: TerminalBuffer, x: number, y: number, plan: Plan): boo
     // fade entirely — bg darkens but fg stays at full terminal brightness,
     // producing a visible "text POPS against faded bg" effect that users
     // perceive as "colors look more saturated when darkened".
-    const fgHex: HexColor =
-      rawFgHex ?? defaultFg ?? (scrimTowardLight ? DARK_SCRIM : LIGHT_SCRIM)
+    const fgHex: HexColor = rawFgHex ?? defaultFg ?? (scrimTowardLight ? DARK_SCRIM : LIGHT_SCRIM)
 
     // sRGB source-over mix: uniform bg toward scrim at `amount`. sRGB
     // matches the Kitty graphics overlay compositing so text-cell bg and

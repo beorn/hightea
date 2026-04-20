@@ -84,9 +84,7 @@ describe("Button tone surface", () => {
   })
 
   test("tone wins when both tone and color are set", () => {
-    const app = render(
-      <Button label="both" tone="error" color="#ff00ff" onPress={() => {}} />,
-    )
+    const app = render(<Button label="both" tone="error" color="#ff00ff" onPress={() => {}} />)
     // Tone path kicks in, so bg + fg come from Sterling, not the raw color.
     expect(bgColorOf("both", app)).toBe("$bg-error")
     expect(textColorOf("both", app)).toBe("$fg-on-error")

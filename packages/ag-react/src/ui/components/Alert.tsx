@@ -44,7 +44,10 @@ import { type ToneKey, toneFgToken, toneIcon } from "./_tone"
 // Types
 // =============================================================================
 
-export interface AlertProps extends Omit<BoxProps, "children" | "flexDirection" | "width" | "height"> {
+export interface AlertProps extends Omit<
+  BoxProps,
+  "children" | "flexDirection" | "width" | "height"
+> {
   /**
    * Sterling tone. `destructive` aliases to `error` at the component layer.
    * Defaults to `error` — the prototypical high-urgency case (destructive
@@ -83,11 +86,7 @@ export interface AlertActionsProps {
 // =============================================================================
 
 function AlertTitle({ children }: AlertTitleProps): React.ReactElement {
-  return (
-    <Text bold>
-      {children}
-    </Text>
-  )
+  return <Text bold>{children}</Text>
 }
 
 function AlertBody({ children }: AlertBodyProps): React.ReactElement {
