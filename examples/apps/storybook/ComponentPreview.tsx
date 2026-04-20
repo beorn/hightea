@@ -32,6 +32,7 @@ import {
   type SelectOption,
 } from "silvery"
 import { IntentDemo } from "./IntentDemo.tsx"
+import { UrgencyDemo } from "./UrgencyDemo.tsx"
 
 // Sample data kept tiny so the pane always fits.
 const SELECT_ITEMS: SelectOption[] = [
@@ -321,6 +322,11 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
 
         {/* Feature 3 — Intent vs role (Sterling preflight decision D1) */}
         <IntentDemo />
+
+        <Divider />
+
+        {/* Feature 4 — Urgency is not a token */}
+        <UrgencyDemo />
       </Box>
     </Box>
   )
