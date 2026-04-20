@@ -7,6 +7,75 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.18.1] - 2026-04-20
+
+Internal cleanup — **no public API break**. Sterling flat tokens that used
+to require an explicit augment call are now baked into every shipped Theme
+at construction. Token resolution simplifies to a direct-lookup path.
+
+### Changed
+
+- **`augmentWithSterlingFlat` removed from the public surface.** Every
+  shipped default Theme (`ansi16DarkTheme`, `ansi16LightTheme`,
+  `defaultDarkTheme`, `defaultLightTheme`, plus lazily-derived schemes via
+  `getThemeByName`) now ships with Sterling flat tokens baked in. Callers
+  that imported `augmentWithSterlingFlat` or `SterlingUnifiedTheme` from
+  `@silvery/theme` should stop calling the augment and consume the Theme
+  directly — flat tokens are already present. The logic lives on as an
+  internal `inlineSterlingTokens` helper that the default-theme constructors
+  use at build time.
+- **`LEGACY_ALIASES` alias table removed from `resolveThemeColor`.** The
+  fallback that translated `$fg-muted` → `theme.muted`, `$bg-surface` →
+  `theme.surfacebg`, etc. is gone — Sterling flat tokens are on every Theme
+  directly. Token resolution now runs: direct key lookup → no-hyphen
+  fallback. The `PRIMER_ALIASES_FOR_MONO` twin table in monochrome.ts is
+  also gone; `DEFAULT_MONO_ATTRS` grows Sterling-keyed entries so mono-tier
+  attr resolution stays a single direct lookup.
+- **`StandardThemeToken` union trimmed.** Tokens that existed only as
+  aliases no longer appear in the type union (autocomplete change only —
+  `(string & {})` tail still accepts any runtime string). Affected tokens:
+  `$bg-surface`, `$bg-popover`, `$bg-inverse`, `$bg-selected`,
+  `$fg-selected`, `$fg-disabled`, `$fg-on-primary`, `$fg-on-secondary`,
+  `$border-input`. Migrate to the canonical Sterling forms:
+
+  | Removed            | Use instead           |
+  | ------------------ | --------------------- |
+  | `$bg-surface`      | `$bg-surface-default` |
+  | `$bg-popover`      | `$bg-surface-overlay` |
+  | `$bg-inverse`      | `$bg-surface-overlay` |
+  | `$bg-selected`     | `$selectionbg`        |
+  | `$fg-selected`     | `$selection`          |
+  | `$fg-disabled`     | `$fg-muted`           |
+  | `$fg-on-primary`   | `$fg-on-accent`       |
+  | `$fg-on-secondary` | `$fg-on-accent`       |
+  | `$border-input`    | `$border-default`     |
+
+### Fixed
+
+- **`validateThemeInvariants` visibility checks** prefer Sterling flat
+  tokens (`bg-cursor`, `bg-selected`) with a legacy fallback, so
+  hand-crafted Themes that bypass `inlineSterlingTokens` still validate.
+
+### Internal
+
+- `packages/theme/src/sterling/augment.ts` → `packages/theme/src/sterling/inline.ts`
+  (renamed + made internal; not exported from the barrel).
+- `packages/ag-term/src/pipeline/state.ts` reads the pre-populated
+  `ansi16DarkTheme` from `@silvery/theme` instead of augmenting the
+  `@silvery/ansi` export.
+- `tests/sterling/augment.test.ts` → `tests/sterling/baked-flat-tokens.test.ts`
+  (same invariants, retargeted at shipped defaults).
+
+### Deferred to 0.19.0 (`km-silvery.sterling-2e-interior-migration`)
+
+- Reshape the exported `Theme` type to Sterling's structured form
+  (`FlatTokens & Roles`) and drop concat-kebab fields (`primaryfg`,
+  `mutedbg`, `selectionbg`, …) from the type union. Requires coordinated
+  rewrite of `CONTRAST_PAIRS`, `theme-contrast.test.ts`, ag-react's Text
+  color resolver, ag-term pipeline backdrop/decoration/render-box, the
+  theme CLI, and km-tui's theme.ts single-hex role accesses (~2000 LOC
+  across ~20 files).
+
 ## [0.15.0] - 2026-04-10
 
 ### Performance
