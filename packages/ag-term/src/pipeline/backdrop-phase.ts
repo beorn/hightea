@@ -16,32 +16,35 @@
  *
  * ### Two operations, one per channel
  *
- *   fg' = deemphasize(fg, amount)     // OKLCH: L*=1-α, C*=1-α, H preserved
+ *   fg' = deemphasize(fg, amount)     // OKLCH: L*=(1-α), C*=(1-α)², H preserved
  *   bg' = mixSrgb(bg, scrim, amount)  // sRGB source-over alpha
  *
  * Why the split:
  *
- * Foreground colored text (syntax highlights, badges, chromatic glyphs) is
- * where users notice "darkened colors look MORE saturated" — sRGB channel-
- * linear scaling preserves HSL ratios but subtly breaks perceived chroma-
- * per-luminance (C/L) because OKLCH's L isn't linear with sRGB channel
- * multiplication. Using OKLCH `deemphasize` (proportional L + C scaling, H
- * preserved) keeps C/L constant — a blue stays "the same blue, less visually
- * present" rather than "darker blue that pops harder".
+ * Foreground colored text is where users notice "darkened colors look MORE
+ * saturated" — human vision reads chroma RELATIVE to luminance
+ * nonlinearly, so modest C at low L appears more chromatic than the same C
+ * at high L. sRGB channel scaling preserves HSL ratios but subtly amplifies
+ * perceived saturation during darkening, and even proportional OKLCH
+ * scaling (L and C by the same factor) leaves C/L high at lower L. The
+ * quadratic chroma falloff in `deemphasize` compensates: chroma drops
+ * faster than lightness, producing a perceptually muted result rather than
+ * an "intensified dark" — a pale lavender becomes dull slate, not deep
+ * indigo.
  *
  * Background uses sRGB source-over because the Kitty graphics scrim overlay
  * composites in sRGB at alpha at the hardware level. Using sRGB for bg here
  * keeps text-cell bg visually matching emoji-cell bg (where Kitty handles
- * the fade) — critical for making wide cells and neighboring text cells
- * read as the same faded region.
+ * the fade) in shared faded regions.
  *
- * ### No asymmetric amount math
+ * ### Uniform amount per channel, heaviness tuned at call site
  *
- * Amounts are uniform across fg and bg (both use `amount`). An earlier
- * revision halved bg amount to prevent "scene drowning" — that caused
- * border/panel brightness inversion (fg-dominated border darkens faster
- * than bg-dominated fill). Heaviness is controlled by `amount`, not by
- * asymmetric math.
+ * Both fg and bg use the same `amount`. An earlier revision halved bg
+ * amount to prevent "scene drowning" — that caused border/panel brightness
+ * inversion (fg-dominated border darkens faster than bg-dominated fill).
+ * Heaviness is controlled by `amount`, not by asymmetric math. ModalDialog's
+ * default amount is 0.25 (calibrated against macOS 0.20, Material 3 0.32,
+ * iOS 0.40, Flutter 0.54).
  *
  * ## Scrim color
  *
@@ -70,23 +73,25 @@
  * 3. Running the same pure transform produces identical post-transform
  *    buffers — `SILVERY_STRICT=1` stays green.
  *
- * ## Emoji / wide-char cells
+ * ## Emoji vs wide-text cells
  *
- * Terminals render emoji using the glyph's own bitmap colors — the per-cell
- * fg mix has no visible effect on the emoji itself. Two paths, mutually
- * exclusive:
+ * Wide ≠ emoji. CJK / Hangul / Japanese fullwidth text occupies two columns
+ * but responds to `fg` color normally — it goes through the standard mix
+ * path. Only EMOJI (bitmap glyphs that ignore `fg`) need special handling,
+ * detected via `isLikelyEmoji(cell.char)`.
+ *
+ * For emoji cells, two paths, mutually exclusive:
  *
  * 1. **Kitty graphics available** (Ghostty / Kitty / WezTerm outside tmux):
  *    `buildKittyOverlay` emits a translucent scrim image at alpha=amount
- *    above each wide cell, and the per-cell mix SKIPS wide cells entirely.
+ *    above each emoji cell, and the per-cell mix SKIPS emoji cells entirely.
  *    The terminal composites the overlay on top of the unmixed cell, landing
  *    at `cell_bg * (1 - amount) + scrim * amount` — the same luminance as
- *    surrounding non-wide cells (which were mixed via the cell pass). This
- *    avoids the double-fade that would make emoji bg visibly blacker than
- *    surrounding text cells.
+ *    surrounding text cells (mixed via the cell pass). This avoids the
+ *    double-fade that would make emoji bg visibly blacker.
  *
  * 2. **Kitty graphics unavailable** (tmux, or older terminal): the per-cell
- *    mix runs on wide cells too and stamps `attrs.dim` (SGR 2) on lead +
+ *    mix runs on emoji cells too and stamps `attrs.dim` (SGR 2) on lead +
  *    continuation. Terminals honoring SGR 2 on emoji fade the glyph;
  *    others see the glyph at full brightness but the cell bg matches
  *    surroundings.
