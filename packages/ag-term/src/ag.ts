@@ -450,17 +450,22 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
       if (!opts?.fresh) {
         _prevBuffer = buffer
       }
-      // Kitty scrim deactivation: when the backdrop was active last frame but
-      // is gone now (modal closed), emit a one-shot delete-all so leftover
-      // placements don't linger on screen. The flag `_kittyActive` tracks
-      // whether we emitted placements in the previous frame.
-      if (_kittyActive) {
-        overlay = CURSOR_SAVE + kittyDeleteAllScrimPlacements() + CURSOR_RESTORE
-      }
     }
-    // Track active placements across frames. True when we emitted (or will
-    // emit) overlay escapes this frame WITH backdrop still active.
-    _kittyActive = backdropActive && overlay.length > 0
+    // Kitty scrim deactivation — edge-triggered. When the previous frame
+    // painted Kitty placements but this frame did not, emit a one-shot
+    // delete-all so leftover placements don't linger on screen. Handles
+    // BOTH cases:
+    //   (a) markers removed entirely (backdropActive=false), and
+    //   (b) markers still present but plan became inactive (e.g., fade={0}),
+    //       where applyBackdrop intentionally returns an empty overlay.
+    // This MUST be edge-triggered: emitting the delete-all every inactive
+    // frame would spam the terminal indefinitely once a Modal mounts at
+    // fade={0}.
+    const kittyActiveThisFrame = backdropActive && overlay.length > 0
+    if (_kittyActive && !kittyActiveThisFrame) {
+      overlay = CURSOR_SAVE + kittyDeleteAllScrimPlacements() + CURSOR_RESTORE
+    }
+    _kittyActive = kittyActiveThisFrame
 
     // Clear the module-level dirty tracking after each render pass.
     // Content dirty nodes were processed by renderPhase; layout dirty is

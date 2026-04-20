@@ -62,11 +62,6 @@
  *   ./index.ts         — this file: applyBackdrop orchestrator + barrel
  */
 
-import {
-  CURSOR_RESTORE,
-  CURSOR_SAVE,
-  kittyDeleteAllScrimPlacements,
-} from "@silvery/ansi"
 import type { AgNode } from "@silvery/ag/types"
 import type { TerminalBuffer } from "../../buffer"
 import { buildPlan, type BackdropOptions } from "./plan"
@@ -126,16 +121,6 @@ const EMPTY_RESULT: BackdropResult = Object.freeze({
 })
 
 /**
- * Cached "Kitty inactive-frame cleanup" overlay. Emitted when Kitty
- * graphics are enabled but the backdrop is inactive this frame so any
- * stale scrim placements from the previous frame are cleared. Kept as a
- * module-level constant so repeated inactive frames don't rebuild the
- * same string.
- */
-const KITTY_CLEANUP_OVERLAY: string =
-  CURSOR_SAVE + kittyDeleteAllScrimPlacements() + CURSOR_RESTORE
-
-/**
  * Apply backdrop-fade to the buffer based on tree markers.
  *
  * Thin orchestrator over the mask → realize stages:
@@ -146,19 +131,19 @@ const KITTY_CLEANUP_OVERLAY: string =
  *
  * Returns a `BackdropResult`:
  * - `modified` — any buffer cells changed.
- * - `overlay` — out-of-band ANSI escapes. Non-empty when Kitty graphics
- *   are enabled (regardless of whether the plan is active):
- *     - Plan active: contains at minimum a scrim-clear command so last-frame
- *       placements get erased even if this frame has no wide cells.
- *     - Plan inactive: contains a cursor-save/delete-all/cursor-restore
- *       sequence so stale placements from a prior active frame are cleaned
- *       up. Without this, leftover scrim rectangles persist on screen when
- *       the backdrop deactivates.
+ * - `overlay` — out-of-band ANSI escapes. Non-empty only when the plan is
+ *   active AND Kitty graphics are enabled. An active overlay always begins
+ *   with a delete-all command so last-frame placements get erased even if
+ *   this frame has no wide cells.
  *
- * Because the overlay self-cleans on deactivation, the higher-level
- * `_kittyActive` tracker in `ag.ts` is redundant for this module. It is
- * intentionally left in place (out of scope for this pass); future cleanup
- * can delete it once the renderer-level tracker is also removed.
+ * **Inactive frames are silent.** When `plan.active` is false this returns
+ * `EMPTY_RESULT` regardless of `options.kittyGraphics`. Stale scrim
+ * placements from a prior active frame must be cleaned up at the
+ * deactivation EDGE by the caller (e.g., `ag.ts` tracks `_kittyActive`
+ * across frames and emits a one-shot delete-all when active→inactive).
+ * Emitting the delete-all every inactive frame here would spam the
+ * terminal — Modal's default `fade={0}` would push a cleanup string every
+ * frame indefinitely.
  */
 export function applyBackdrop(
   root: AgNode,
@@ -178,19 +163,7 @@ export function applyBackdrop(
     )
   }
 
-  if (!plan.active) {
-    // Kitty cleanup path: even when the plan is inactive this frame, if the
-    // caller has Kitty graphics enabled we must emit the delete-all so any
-    // scrim placements from a prior active frame are cleared. Without this,
-    // the orphan rectangles persist on screen after the backdrop turns off.
-    if (options?.kittyGraphics === true) {
-      return {
-        modified: false,
-        overlay: KITTY_CLEANUP_OVERLAY,
-      }
-    }
-    return EMPTY_RESULT
-  }
+  if (!plan.active) return EMPTY_RESULT
 
   const modified = realizeToBuffer(plan, buffer)
 

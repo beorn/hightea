@@ -136,3 +136,60 @@ describe("backdrop-hardening 1: multi-exclude union semantics", () => {
     expect(visits.has("6,2")).toBe(true)
   })
 })
+
+const RECT_FADE: Rect = { x: 0, y: 0, width: 10, height: 4 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. kitty-edge-cleanup — applyBackdrop must NOT emit overlay bytes on every
+// inactive frame when options.kittyGraphics === true. Edge-triggered cleanup
+// (active→inactive) is the renderer's job (ag.ts uses _kittyActive).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("backdrop-hardening 2: kitty-edge-cleanup — inactive frames are silent", () => {
+  test("fade={0} + kittyGraphics=true → 0 overlay bytes/frame", () => {
+    // Marker present but amount=0 → plan inactive. Previously emitted
+    // KITTY_CLEANUP_OVERLAY every inactive frame; should now be silent.
+    const root = fakeNode({}, null, [fakeNode({ "data-backdrop-fade": 0 }, RECT_FADE)])
+    const buffer = createBuffer(20, 6)
+    const result = applyBackdrop(root, buffer, {
+      kittyGraphics: true,
+      defaultBg: "#1e1e2e",
+    })
+    expect(result.overlay).toBe("")
+    expect(result.modified).toBe(false)
+  })
+
+  test("inactive no-scrim plan + kittyGraphics=true → 0 bytes", () => {
+    // No markers at all — plan inactive. Same expectation: silent.
+    const root = fakeNode({})
+    const buffer = createBuffer(20, 6)
+    const result = applyBackdrop(root, buffer, {
+      kittyGraphics: true,
+      defaultBg: "#1e1e2e",
+    })
+    expect(result.overlay).toBe("")
+    expect(result.modified).toBe(false)
+  })
+
+  test("active frame still emits the per-frame overlay (cleanup head + cells)", () => {
+    // Sanity: deactivation suppression must not break the active path.
+    const root = fakeNode({}, null, [fakeNode({ "data-backdrop-fade": 0.4 }, RECT_FADE)])
+    const buffer = createBuffer(20, 6)
+    const result = applyBackdrop(root, buffer, {
+      kittyGraphics: true,
+      defaultBg: "#1e1e2e",
+    })
+    // Active plan with kittyEnabled emits at least the cursor-save / delete-all
+    // / cursor-restore preamble (no emoji needed).
+    expect(result.overlay.length).toBeGreaterThan(0)
+  })
+
+  test("inactive + kittyGraphics=false → 0 bytes (unchanged)", () => {
+    // Sanity: Kitty-disabled inactive frames stay silent (always have).
+    const root = fakeNode({}, null, [fakeNode({ "data-backdrop-fade": 0 }, RECT_FADE)])
+    const buffer = createBuffer(20, 6)
+    const result = applyBackdrop(root, buffer)
+    expect(result.overlay).toBe("")
+    expect(result.modified).toBe(false)
+  })
+})
