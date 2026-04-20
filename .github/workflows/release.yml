@@ -58,6 +58,7 @@ jobs:
           publish packages/ag-term
           publish packages/ansi
           publish packages/commands
+          publish packages/theme-detect
 
           # Layer 4: Depends on ag-term
           publish packages/ink
