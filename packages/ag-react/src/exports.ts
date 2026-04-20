@@ -547,16 +547,21 @@ export type {
 export { ThemeProvider } from "./ThemeProvider"
 export { useTheme } from "./ThemeContext"
 export type { ThemeProviderProps, ThemeTokens } from "./ThemeProvider"
-export { defaultDarkTheme, defaultLightTheme, builtinThemes, getThemeByName } from "@silvery/theme"
+// Sterling-aware themes: `ansi16DarkTheme`, `ansi16LightTheme`, `detectTheme`
+// come from @silvery/theme so every shipped Theme has Sterling flat tokens
+// (`border-default`, `fg-muted`, `bg-surface-default`, …) baked in. Without
+// this, `$border-default` would resolve to undefined → parseColor → null →
+// the terminal's default foreground ("borders look white" regression).
 export {
+  defaultDarkTheme,
+  defaultLightTheme,
+  builtinThemes,
+  getThemeByName,
   ansi16DarkTheme,
   ansi16LightTheme,
-  resolveThemeColor,
   detectTheme,
-  deriveTheme,
-  quantizeHex,
-  pickColorLevel,
-} from "@silvery/ansi"
+} from "@silvery/theme"
+export { resolveThemeColor, deriveTheme, quantizeHex, pickColorLevel } from "@silvery/ansi"
 export type { Theme, AnsiPrimary, DetectThemeOptions, ColorTier } from "@silvery/ansi"
 export { generateTheme } from "@silvery/ansi"
 

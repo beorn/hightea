@@ -64,6 +64,11 @@ export {
   getThemeByName,
 } from "./schemes/index"
 
+// Terminal detection — Sterling-aware wrapper (runs @silvery/ansi's detectTheme
+// through inlineSterlingTokens so `$border-default` etc. always resolve).
+export { detectTheme, detectTerminalScheme } from "./detect"
+export type { DetectedScheme, DetectThemeOptions } from "./detect"
+
 // Sterling — silvery's canonical design system.
 // See packages/theme/src/sterling/ and hub/silvery/design/v10-terminal/design-system.md.
 //
