@@ -178,10 +178,10 @@ const ALL_PROCESSES = generateProcesses(TOTAL_PROCESSES)
 // ============================================================================
 
 const STATUS_COLORS: Record<ProcessStatus, string> = {
-  running: "$success",
-  sleeping: "$muted",
-  stopped: "$warning",
-  zombie: "$error",
+  running: "$fg-success",
+  sleeping: "$fg-muted",
+  stopped: "$fg-warning",
+  zombie: "$fg-error",
 }
 
 const STATUS_ICONS: Record<ProcessStatus, string> = {
@@ -220,7 +220,7 @@ function TableHeader({ width }: { width: number }) {
 
   return (
     <Box paddingX={1}>
-      <Text bold color="$muted">
+      <Text bold color="$fg-muted">
         {"PID".padEnd(cols.pidW)}
         {"NAME".padEnd(cols.nameW)}
         {"CPU%".padStart(cols.cpuW)}
@@ -246,16 +246,16 @@ function ProcessRow({
   width: number
 }) {
   const cols = useColumns(width)
-  const cpuColor = proc.cpu > 80 ? "$error" : proc.cpu > 40 ? "$warning" : "$success"
-  const memColor = proc.mem > 40 ? "$warning" : "$muted"
+  const cpuColor = proc.cpu > 80 ? "$fg-error" : proc.cpu > 40 ? "$fg-warning" : "$fg-success"
+  const memColor = proc.mem > 40 ? "$fg-warning" : "$fg-muted"
 
   // Truncate name to fit column
   const displayName =
     proc.name.length > cols.nameW - 1 ? proc.name.slice(0, cols.nameW - 2) + "\u2026" : proc.name
 
   return (
-    <Box paddingX={1} backgroundColor={isSelected ? "$primary" : undefined}>
-      <Text color={isSelected ? "$primary-fg" : "$muted"}>
+    <Box paddingX={1} backgroundColor={isSelected ? "$fg-accent" : undefined}>
+      <Text color={isSelected ? "$primary-fg" : "$fg-muted"}>
         {String(proc.pid).padEnd(cols.pidW)}
       </Text>
       <Text bold={isSelected} color={isSelected ? "$primary-fg" : undefined}>
@@ -271,12 +271,12 @@ function ProcessRow({
       <Text color={isSelected ? "$primary-fg" : STATUS_COLORS[proc.status]}>
         {STATUS_ICONS[proc.status]} {proc.status.padEnd(cols.statusW - 2)}
       </Text>
-      <Text color={isSelected ? "$primary-fg" : "$muted"}>{proc.user.padEnd(cols.userW)}</Text>
-      <Text color={isSelected ? "$primary-fg" : "$muted"}>
+      <Text color={isSelected ? "$primary-fg" : "$fg-muted"}>{proc.user.padEnd(cols.userW)}</Text>
+      <Text color={isSelected ? "$primary-fg" : "$fg-muted"}>
         {String(proc.threads).padStart(cols.threadsW)}
       </Text>
       <Text>{"  "}</Text>
-      <Text color={isSelected ? "$primary-fg" : "$muted"}>
+      <Text color={isSelected ? "$primary-fg" : "$fg-muted"}>
         {proc.uptime.padStart(cols.uptimeW)}
       </Text>
     </Box>
@@ -300,13 +300,13 @@ function SummaryBar({ processes, query }: { processes: ProcessInfo[]; query: str
     <Box paddingX={1} gap={2}>
       <Text bold>{processes.length}</Text>
       <Muted>processes</Muted>
-      <Text color="$success" bold>
+      <Text color="$fg-success" bold>
         {stats.running}
       </Text>
       <Muted>running</Muted>
       <Muted>|</Muted>
-      <Text color="$primary">CPU: {stats.totalCpu}%</Text>
-      <Text color="$warning">MEM: {stats.totalMem}%</Text>
+      <Text color="$fg-accent">CPU: {stats.totalCpu}%</Text>
+      <Text color="$fg-warning">MEM: {stats.totalMem}%</Text>
       {query && (
         <>
           <Muted>|</Muted>
@@ -441,7 +441,7 @@ export function DataExplorer() {
       <Box paddingX={1}>
         {searchMode ? (
           <Box>
-            <Text color="$primary" bold>
+            <Text color="$fg-accent" bold>
               /{" "}
             </Text>
             <TextInput

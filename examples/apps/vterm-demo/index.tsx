@@ -66,7 +66,7 @@ function ChatApp({
   if (exchanges.length === 0) {
     return (
       <Box paddingX={1}>
-        <Text color="$muted">Waiting...</Text>
+        <Text color="$fg-muted">Waiting...</Text>
       </Box>
     )
   }
@@ -90,7 +90,7 @@ function ChatApp({
             {meta.isCursor ? ">" : " "}{" "}
             <Text
               color={
-                ex.role === "user" ? "$primary" : ex.role === "agent" ? "$success" : "$warning"
+                ex.role === "user" ? "$fg-accent" : ex.role === "agent" ? "$fg-success" : "$fg-warning"
               }
               bold
             >
@@ -111,7 +111,7 @@ function ChatApp({
 function StatusBar({ mode, count }: { mode: string; count: number }) {
   return (
     <Box paddingX={1}>
-      <Text color="$muted">
+      <Text color="$fg-muted">
         [{mode}] {count} exchanges | Ctrl+F search | q quit
       </Text>
     </Box>
@@ -164,11 +164,11 @@ function PanesApp({ fast }: { fast: boolean }) {
           width="50%"
           flexDirection="column"
           borderStyle="single"
-          borderColor={focus === "left" ? "$primary" : "$border"}
+          borderColor={focus === "left" ? "$fg-accent" : "$border-default"}
           overflow="hidden"
         >
           <Box paddingX={1}>
-            <Text color={focus === "left" ? "$primary" : "$muted"} bold={focus === "left"}>
+            <Text color={focus === "left" ? "$fg-accent" : "$fg-muted"} bold={focus === "left"}>
               Pane A
             </Text>
           </Box>
@@ -178,11 +178,11 @@ function PanesApp({ fast }: { fast: boolean }) {
           width="50%"
           flexDirection="column"
           borderStyle="single"
-          borderColor={focus === "right" ? "$primary" : "$border"}
+          borderColor={focus === "right" ? "$fg-accent" : "$border-default"}
           overflow="hidden"
         >
           <Box paddingX={1}>
-            <Text color={focus === "right" ? "$primary" : "$muted"} bold={focus === "right"}>
+            <Text color={focus === "right" ? "$fg-accent" : "$fg-muted"} bold={focus === "right"}>
               Pane B
             </Text>
           </Box>

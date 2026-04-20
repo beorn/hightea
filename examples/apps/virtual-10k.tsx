@@ -148,10 +148,10 @@ const ALL_ITEMS = generateItems(TOTAL_ITEMS)
 // ============================================================================
 
 const PRIORITY_COLORS: Record<Item["priority"], string> = {
-  P0: "$error",
-  P1: "$warning",
-  P2: "$info",
-  P3: "$muted",
+  P0: "$fg-error",
+  P1: "$fg-warning",
+  P2: "$fg-info",
+  P3: "$fg-muted",
 }
 
 const STATUS_ICONS: Record<Item["status"], string> = {
@@ -162,10 +162,10 @@ const STATUS_ICONS: Record<Item["status"], string> = {
 }
 
 const STATUS_COLORS: Record<Item["status"], string> = {
-  todo: "$muted",
-  "in-progress": "$warning",
-  done: "$success",
-  blocked: "$error",
+  todo: "$fg-muted",
+  "in-progress": "$fg-warning",
+  done: "$fg-success",
+  blocked: "$fg-error",
 }
 
 function ProgressBar({ percent, width: barWidth }: { percent: number; width: number }) {
@@ -175,7 +175,7 @@ function ProgressBar({ percent, width: barWidth }: { percent: number; width: num
 
   return (
     <Text>
-      <Text color="$success">{"█".repeat(filled)}</Text>
+      <Text color="$fg-success">{"█".repeat(filled)}</Text>
       <Text dim>{"░".repeat(empty)}</Text>
     </Text>
   )
@@ -193,7 +193,7 @@ function ItemRow({
   const idStr = String(item.id).padStart(5, " ")
 
   return (
-    <Box flexDirection="column" paddingX={1} backgroundColor={isSelected ? "$primary" : undefined}>
+    <Box flexDirection="column" paddingX={1} backgroundColor={isSelected ? "$fg-accent" : undefined}>
       <Box>
         <Text color={STATUS_COLORS[item.status]}>{STATUS_ICONS[item.status]}</Text>
         <Text dim> {idStr} </Text>
@@ -204,7 +204,7 @@ function ItemRow({
         <Text bold={isSelected}>{item.title}</Text>
         <Text> </Text>
         {item.tags.map((tag) => (
-          <Text key={tag} dim color="$info">
+          <Text key={tag} dim color="$fg-info">
             {" "}
             #{tag}
           </Text>
@@ -240,14 +240,14 @@ function ScrollIndicator({
 
   return (
     <Box gap={2} paddingX={1}>
-      <Strong color="$primary">{(current + 1).toLocaleString()}</Strong>
+      <Strong color="$fg-accent">{(current + 1).toLocaleString()}</Strong>
       <Text dim>of</Text>
       <Strong>{total.toLocaleString()}</Strong>
       <Text>
-        <Text color="$primary">{"█".repeat(filled)}</Text>
+        <Text color="$fg-accent">{"█".repeat(filled)}</Text>
         <Text dim>{"░".repeat(empty)}</Text>
       </Text>
-      <Strong color="$primary">{percent}%</Strong>
+      <Strong color="$fg-accent">{percent}%</Strong>
     </Box>
   )
 }
@@ -277,21 +277,21 @@ function StatsBar({ items }: { items: Item[] }) {
 
   return (
     <Box gap={2} paddingX={1}>
-      <Strong color="$error">P0:{stats.p0}</Strong>
-      <Strong color="$warning">P1:{stats.p1}</Strong>
-      <Text color="$info">P2:{stats.p2}</Text>
+      <Strong color="$fg-error">P0:{stats.p0}</Strong>
+      <Strong color="$fg-warning">P1:{stats.p1}</Strong>
+      <Text color="$fg-info">P2:{stats.p2}</Text>
       <Text dim>P3:{stats.p3}</Text>
       <Text dim>|</Text>
-      <Text color="$muted">
+      <Text color="$fg-muted">
         {STATUS_ICONS.todo} {stats.todo}
       </Text>
-      <Text color="$warning">
+      <Text color="$fg-warning">
         {STATUS_ICONS["in-progress"]} {stats.inProg}
       </Text>
-      <Text color="$success">
+      <Text color="$fg-success">
         {STATUS_ICONS.done} {stats.done}
       </Text>
-      <Text color="$error">
+      <Text color="$fg-error">
         {STATUS_ICONS.blocked} {stats.blocked}
       </Text>
     </Box>

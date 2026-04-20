@@ -56,11 +56,11 @@ interface PasteEvent {
 function PasteIndicator() {
   return (
     <Box gap={1} paddingX={1}>
-      <Text color="$success" bold>
+      <Text color="$fg-success" bold>
         {"●"}
       </Text>
       <Text>Paste mode:</Text>
-      <Text color="$success" bold>
+      <Text color="$fg-success" bold>
         ENABLED
       </Text>
       <Muted>(bracketed paste is automatic with render())</Muted>
@@ -76,12 +76,12 @@ function PasteEventCard({ event, isLatest }: { event: PasteEvent; isLatest: bool
     <Box
       flexDirection="column"
       borderStyle="round"
-      borderColor={isLatest ? "$primary" : "$border"}
+      borderColor={isLatest ? "$fg-accent" : "$border-default"}
       paddingX={1}
       marginBottom={0}
     >
       <Box justifyContent="space-between">
-        <H1 color={isLatest ? "$primary" : undefined}>Paste #{event.id}</H1>
+        <H1 color={isLatest ? "$fg-accent" : undefined}>Paste #{event.id}</H1>
         <Small>{event.timestamp}</Small>
       </Box>
       <Box gap={2}>
@@ -93,7 +93,7 @@ function PasteEventCard({ event, isLatest }: { event: PasteEvent; isLatest: bool
         </Small>
       </Box>
       <Box marginTop={1}>
-        <Text color="$warning">{displayText}</Text>
+        <Text color="$fg-warning">{displayText}</Text>
       </Box>
     </Box>
   )
@@ -150,7 +150,7 @@ export function PasteDemo() {
     <Box flexDirection="column" padding={1} gap={1}>
       <PasteIndicator />
 
-      <Box flexDirection="column" borderStyle="round" borderColor="$primary" paddingX={1}>
+      <Box flexDirection="column" borderStyle="round" borderColor="$fg-accent" paddingX={1}>
         <Box marginBottom={1}>
           <H1>Paste History</H1>
           <Small>

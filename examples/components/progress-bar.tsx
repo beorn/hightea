@@ -32,7 +32,7 @@ function ProgressBarDemo() {
         <ProgressBar />
       </Box>
 
-      <Text color="$muted">j/k: adjust q: quit</Text>
+      <Text color="$fg-muted">j/k: adjust q: quit</Text>
     </Box>
   )
 }

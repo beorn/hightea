@@ -67,15 +67,15 @@ function pushHistory(history: number[], value: number, max = 20): number[] {
 }
 
 function severityColor(pct: number): string {
-  if (pct >= 80) return "$error"
-  if (pct >= 60) return "$warning"
-  return "$success"
+  if (pct >= 80) return "$fg-error"
+  if (pct >= 60) return "$fg-warning"
+  return "$fg-success"
 }
 
 function heatColor(temp: number): string {
-  if (temp >= 75) return "$error"
-  if (temp >= 60) return "$warning"
-  return "$success"
+  if (temp >= 75) return "$fg-error"
+  if (temp >= 60) return "$fg-warning"
+  return "$fg-success"
 }
 
 // ============================================================================
@@ -538,13 +538,13 @@ function CpuFooter({ state }: { state: DashboardState }) {
         <Box gap={2} wrap="truncate">
           <LV label="Power" value={`${state.power}W`} />
           <LV label="Fan" value={`${state.fan}RPM`} />
-          <LV label="Boost" value="on" color="$success" />
+          <LV label="Boost" value="on" color="$fg-success" />
         </Box>
       </LR>
       <LR>
         <Box gap={1} wrap="truncate">
           <Muted>History</Muted>
-          <Text color="$primary">{sparkline(state.cpuHistory)}</Text>
+          <Text color="$fg-accent">{sparkline(state.cpuHistory)}</Text>
         </Box>
         <Muted>60s</Muted>
       </LR>
@@ -629,7 +629,7 @@ function MemoryPanel({ memory }: { memory: MemoryMetrics }) {
       <LR>
         <Box gap={1} wrap="truncate">
           <Muted>Trend</Muted>
-          <Text color="$primary">{sparkline(memory.history)}</Text>
+          <Text color="$fg-accent">{sparkline(memory.history)}</Text>
         </Box>
         <Muted>30m</Muted>
       </LR>
@@ -662,9 +662,9 @@ function NetworkPanel({ network }: { network: NetworkMetrics }) {
       <LR>
         <Box wrap="truncate">
           <Muted>{"UL "}</Muted>
-          <Text color="$info">{`${network.ulRate} Mb/s `}</Text>
-          <Text color="$info">{`${ulPct}% `}</Text>
-          <Text color="$info">{miniBar(ulPct, 12)}</Text>
+          <Text color="$fg-info">{`${network.ulRate} Mb/s `}</Text>
+          <Text color="$fg-info">{`${ulPct}% `}</Text>
+          <Text color="$fg-info">{miniBar(ulPct, 12)}</Text>
         </Box>
         <Box gap={1} wrap="truncate">
           <Muted>peak</Muted>
@@ -695,14 +695,14 @@ function NetworkPanel({ network }: { network: NetworkMetrics }) {
       <LR>
         <Box gap={1} wrap="truncate">
           <Muted>DL</Muted>
-          <Text color="$primary">{sparkline(network.dlHistory)}</Text>
+          <Text color="$fg-accent">{sparkline(network.dlHistory)}</Text>
         </Box>
         <Muted>60s</Muted>
       </LR>
       <LR>
         <Box gap={1} wrap="truncate">
           <Muted>UL</Muted>
-          <Text color="$info">{sparkline(network.ulHistory)}</Text>
+          <Text color="$fg-info">{sparkline(network.ulHistory)}</Text>
         </Box>
         <Muted>60s</Muted>
       </LR>
@@ -719,12 +719,12 @@ const COL = { pid: 6, name: 62, cpu: 6, memp: 6, mem: 9, status: 10, time: 10, i
 function statusColor(status: ProcessInfo["status"]): string | undefined {
   switch (status) {
     case "Running":
-      return "$success"
+      return "$fg-success"
     case "I/O wait":
-      return "$warning"
+      return "$fg-warning"
     case "Sleep":
     default:
-      return "$muted"
+      return "$fg-muted"
   }
 }
 
@@ -733,7 +733,7 @@ function ProcessHeader() {
     <Box wrap="clip">
       <Muted>{`${"PID".padStart(COL.pid)} `}</Muted>
       <Muted>{`${"NAME".padEnd(COL.name)} `}</Muted>
-      <Text bold color="$primary">{`${"CPU%\u2193".padStart(COL.cpu)} `}</Text>
+      <Text bold color="$fg-accent">{`${"CPU%\u2193".padStart(COL.cpu)} `}</Text>
       <Muted>{`${"MEM%".padStart(COL.memp)} `}</Muted>
       <Muted>{`${"MEM".padStart(COL.mem)} `}</Muted>
       <Muted>{`${"STATUS".padEnd(COL.status)} `}</Muted>
@@ -746,7 +746,7 @@ function ProcessHeader() {
 
 function ProcessRow({ proc, isTop }: { proc: ProcessInfo; isTop: boolean }) {
   const cpuColor = severityColor(proc.cpu)
-  const ioColor = proc.io === "0" ? "$muted" : "$primary"
+  const ioColor = proc.io === "0" ? "$fg-muted" : "$fg-accent"
 
   return (
     <Box wrap="clip">
@@ -773,16 +773,16 @@ function ProcessFooter({ processes, state }: { processes: ProcessInfo[]; state: 
     <LR>
       <Box gap={2} wrap="truncate">
         <Muted>184 processes</Muted>
-        <Text color="$success">{`${running} running`}</Text>
+        <Text color="$fg-success">{`${running} running`}</Text>
         <Muted>{`${sleeping} sleeping`}</Muted>
-        <Text color="$warning">{`${iowait} iowait`}</Text>
+        <Text color="$fg-warning">{`${iowait} iowait`}</Text>
       </Box>
       <Box gap={2} wrap="truncate">
         <LV label="Threads" value="1,942" />
         <LV label="CPU" value={`${state.totalCpu}%`} color={severityColor(state.totalCpu)} />
         <LV label="MEM" value={`${ramPct}%`} color={severityColor(ramPct)} />
-        <Text color="$primary">{`428\u2193`}</Text>
-        <Text color="$info">{`86\u2191`}</Text>
+        <Text color="$fg-accent">{`428\u2193`}</Text>
+        <Text color="$fg-info">{`86\u2191`}</Text>
       </Box>
     </LR>
   )
@@ -825,14 +825,14 @@ function Panel({
   return (
     <Box
       borderStyle="round"
-      borderColor="$primary"
+      borderColor="$fg-accent"
       paddingX={1}
       flexDirection="column"
       flexGrow={flexGrow}
       flexBasis={flexBasis}
     >
       <LR>
-        <Text bold color="$primary">
+        <Text bold color="$fg-accent">
           {` ${title} `}
         </Text>
         {subtitle && <Muted>{` ${subtitle} `}</Muted>}
@@ -929,11 +929,11 @@ export function Dashboard({ static: isStatic }: { static?: boolean } = {}) {
   return (
     <Box flexDirection="column" flexGrow={1}>
       <Box wrap="truncate">
-        <Text bold color="$primary">
+        <Text bold color="$fg-accent">
           Silvery TUI
         </Text>
         <Muted>{" system monitor showcase "}</Muted>
-        <Text color="$primary">devbox-01</Text>
+        <Text color="$fg-accent">devbox-01</Text>
         <Muted>{"┄".repeat(19)}</Muted>
         <Muted>14:27 UTC [h]help [1]cpu [2]mem [3]net [p]proc [/]filter [q]quit</Muted>
       </Box>

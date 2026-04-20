@@ -130,12 +130,12 @@ export function DerivationPanel({
     <Box
       flexDirection="column"
       borderStyle="double"
-      borderColor="$accent"
+      borderColor="$fg-accent"
       paddingX={1}
       marginTop={0}
     >
       <Box gap={1}>
-        <Text color="$accent" bold>
+        <Text color="$fg-accent" bold>
           ▼
         </Text>
         <Strong>Derivation</Strong>
@@ -165,7 +165,7 @@ export function DerivationPanel({
           <Box gap={1}>
             <Muted>@{tier}</Muted>
             <Text color={quantized}>██</Text>
-            <Text bold color="$warning">
+            <Text bold color="$fg-warning">
               {quantized}
             </Text>
           </Box>
@@ -174,7 +174,7 @@ export function DerivationPanel({
           <>
             <Box gap={1}>
               <Muted>rule</Muted>
-              <Text color="$info">{step.rule}</Text>
+              <Text color="$fg-info">{step.rule}</Text>
             </Box>
             {step.inputs.length > 0 ? (
               <Box flexDirection="column" gap={0}>
@@ -183,9 +183,9 @@ export function DerivationPanel({
                   <Box key={i} gap={1}>
                     <Text color={inp}>██</Text>
                     <Muted>{inp}</Muted>
-                    <Text color="$muted">{fmtOklch(inO)}</Text>
+                    <Text color="$fg-muted">{fmtOklch(inO)}</Text>
                     {inO && outOklch ? (
-                      <Text color="$accent">
+                      <Text color="$fg-accent">
                         {"Δ "}
                         {signed(outOklch.L - inO.L)}L {signed(outOklch.C - inO.C)}C{" "}
                         {signed(hueDelta(inO.H, outOklch.H), 0)}°H
@@ -203,7 +203,7 @@ export function DerivationPanel({
                   <Muted>pre</Muted>
                   <Text>{liftInfo.pre}</Text>
                   {liftInfo.preR ? (
-                    <Text color="$error">{liftInfo.preR.ratio.toFixed(2)}:1</Text>
+                    <Text color="$fg-error">{liftInfo.preR.ratio.toFixed(2)}:1</Text>
                   ) : null}
                 </Box>
                 <Box gap={1}>
@@ -211,7 +211,7 @@ export function DerivationPanel({
                   <Muted>post</Muted>
                   <Text bold>{liftInfo.post}</Text>
                   {liftInfo.postR ? (
-                    <Text color="$success">{liftInfo.postR.ratio.toFixed(2)}:1</Text>
+                    <Text color="$fg-success">{liftInfo.postR.ratio.toFixed(2)}:1</Text>
                   ) : null}
                 </Box>
                 {liftInfo.preR && liftInfo.postR ? (

@@ -160,10 +160,10 @@ function generateInitialLogs(count: number): LogEntry[] {
 // ============================================================================
 
 const LEVEL_COLORS: Record<LogLevel, string> = {
-  DEBUG: "$muted",
-  INFO: "$primary",
-  WARN: "$warning",
-  ERROR: "$error",
+  DEBUG: "$fg-muted",
+  INFO: "$fg-accent",
+  WARN: "$fg-warning",
+  ERROR: "$fg-error",
 }
 
 const LEVEL_BADGES: Record<LogLevel, string> = {
@@ -190,11 +190,11 @@ function LogRow({ entry, isSelected }: { entry: LogEntry; isSelected: boolean })
   const badge = LEVEL_BADGES[entry.level]
   const color = LEVEL_COLORS[entry.level]
 
-  // When selected, use $primary-fg for all text to ensure contrast against $primary bg.
+  // When selected, use $primary-fg for all text to ensure contrast against $fg-accent bg.
   // When not selected, use level-specific colors for visual distinction.
   if (isSelected) {
     return (
-      <Box paddingX={1} backgroundColor="$primary">
+      <Box paddingX={1} backgroundColor="$fg-accent">
         <Text color="$primary-fg">{formatTime(entry.timestamp)} </Text>
         <Text color="$primary-fg" bold>
           {badge}
@@ -226,16 +226,16 @@ function LevelCounts({ entries }: { entries: LogEntry[] }) {
 
   return (
     <Box gap={2}>
-      <Strong color="$muted">
+      <Strong color="$fg-muted">
         {LEVEL_BADGES.DEBUG}:{counts.DEBUG}
       </Strong>
-      <Strong color="$primary">
+      <Strong color="$fg-accent">
         {LEVEL_BADGES.INFO}:{counts.INFO}
       </Strong>
-      <Strong color="$warning">
+      <Strong color="$fg-warning">
         {LEVEL_BADGES.WARN}:{counts.WARN}
       </Strong>
-      <Strong color="$error">
+      <Strong color="$fg-error">
         {LEVEL_BADGES.ERROR}:{counts.ERROR}
       </Strong>
     </Box>
@@ -350,20 +350,20 @@ export function DevTools() {
   return (
     <Box flexDirection="column" flexGrow={1} padding={1}>
       {/* Header */}
-      <Box justifyContent="space-between" backgroundColor="$surfacebg">
+      <Box justifyContent="space-between" backgroundColor="$bg-surface-default">
         <Box gap={2}>
-          <Text bold color="$primary">
+          <Text bold color="$fg-accent">
             {"▸"} Log Viewer
           </Text>
           <LevelCounts entries={entries} />
         </Box>
         <Box gap={1}>
           {autoScroll && (
-            <Text backgroundColor="$success" color="$success-fg" bold>
+            <Text backgroundColor="$fg-success" color="$success-fg" bold>
               {" LIVE "}
             </Text>
           )}
-          <Strong color="$primary">{cursor + 1}</Strong>
+          <Strong color="$fg-accent">{cursor + 1}</Strong>
           <Muted>/ {entries.length}</Muted>
         </Box>
       </Box>

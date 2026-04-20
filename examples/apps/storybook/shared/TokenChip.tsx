@@ -40,9 +40,9 @@ export function TokenChip({
   const marker = opened ? "●" : selected ? "▸" : " "
   return (
     <Box gap={1}>
-      <Text color={selected || opened ? "$accent" : "$muted"}>{marker}</Text>
+      <Text color={selected || opened ? "$fg-accent" : "$fg-muted"}>{marker}</Text>
       <Text color={hex}>██</Text>
-      <Text color={selected || opened ? "$accent" : undefined} bold={selected || opened}>
+      <Text color={selected || opened ? "$fg-accent" : undefined} bold={selected || opened}>
         {padded}
       </Text>
       <Muted>{hex}</Muted>

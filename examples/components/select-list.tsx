@@ -30,11 +30,11 @@ function SelectListDemo() {
   return (
     <Box flexDirection="column" padding={1} gap={1}>
       <Text bold>Pick a language:</Text>
-      <Box borderStyle="round" borderColor="$border" paddingX={1}>
+      <Box borderStyle="round" borderColor="$border-default" paddingX={1}>
         <SelectList items={languages} onSelect={(opt) => setSelected(opt.value)} />
       </Box>
-      {selected && <Text color="$success">Selected: {selected}</Text>}
-      <Text color="$muted">j/k: navigate Enter: select Esc: quit</Text>
+      {selected && <Text color="$fg-success">Selected: {selected}</Text>}
+      <Text color="$fg-muted">j/k: navigate Enter: select Esc: quit</Text>
     </Box>
   )
 }

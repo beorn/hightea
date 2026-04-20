@@ -146,7 +146,7 @@ function TransformSelector({
           <Box key={t.name} paddingX={1}>
             <Text
               color={isSelected ? "$bg" : undefined}
-              backgroundColor={isSelected ? "$primary" : undefined}
+              backgroundColor={isSelected ? "$fg-accent" : undefined}
               bold={isSelected}
             >
               {isSelected ? " > " : "   "}
@@ -169,7 +169,7 @@ function TextPanel({
   children: React.ReactNode
 }) {
   return (
-    <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border" paddingX={1}>
+    <Box flexDirection="column" flexGrow={1} borderStyle="round" borderColor="$border-default" paddingX={1}>
       <Box marginBottom={1}>
         <H1 color={titleColor}>{title}</H1>
       </Box>
@@ -201,7 +201,7 @@ export function TransformDemo() {
   return (
     <Box flexDirection="column" padding={1} gap={1}>
       {/* Transform selector */}
-      <Box flexDirection="column" borderStyle="round" borderColor="$primary" paddingX={1}>
+      <Box flexDirection="column" borderStyle="round" borderColor="$fg-accent" paddingX={1}>
         <Box marginBottom={1} gap={1}>
           <H1>Transform</H1>
           <Small>
@@ -213,7 +213,7 @@ export function TransformDemo() {
 
       {/* Side-by-side comparison */}
       <Box flexDirection="row" gap={1}>
-        <TextPanel title="Original" titleColor="$muted">
+        <TextPanel title="Original" titleColor="$fg-muted">
           <Box flexDirection="column">
             {sampleLines.map((line, i) => (
               <Text key={i}>{line || " "}</Text>
@@ -221,7 +221,7 @@ export function TransformDemo() {
           </Box>
         </TextPanel>
 
-        <TextPanel title={`${current.name}`} titleColor="$warning">
+        <TextPanel title={`${current.name}`} titleColor="$fg-warning">
           <Transform transform={current.fn}>
             <Text>{sampleLines.join("\n")}</Text>
           </Transform>

@@ -94,9 +94,9 @@ function buildPairs(theme: SterlingTheme): PairSpec[] {
 
 /** Short pass/fail indicator. */
 function Verdict({ aa, aaa }: { aa: boolean; aaa: boolean }): React.ReactElement {
-  if (aaa) return <Text color="$success">AAA</Text>
-  if (aa) return <Text color="$info">AA </Text>
-  return <Text color="$error">×  </Text>
+  if (aaa) return <Text color="$fg-success">AAA</Text>
+  if (aa) return <Text color="$fg-info">AA </Text>
+  return <Text color="$fg-error">×  </Text>
 }
 
 export interface ContrastAuditProps {
@@ -132,11 +132,11 @@ export function ContrastAudit({ theme, schemeName }: ContrastAuditProps): React.
       flexDirection="column"
       flexGrow={1}
       borderStyle="single"
-      borderColor="$warning"
+      borderColor="$fg-warning"
       overflow="scroll"
     >
       <Box paddingX={1} gap={1}>
-        <Text bold color="$warning">
+        <Text bold color="$fg-warning">
           CONTRAST AUDIT
         </Text>
         <Muted>·</Muted>
@@ -144,17 +144,17 @@ export function ContrastAudit({ theme, schemeName }: ContrastAuditProps): React.
         <Muted>·</Muted>
         <Muted>{theme.mode}</Muted>
         <Muted>·</Muted>
-        <Text color="$success">
+        <Text color="$fg-success">
           {passAa}/{rows.length} AA
         </Text>
         <Muted>·</Muted>
-        <Text color={passAaa === rows.length ? "$success" : "$muted"}>
+        <Text color={passAaa === rows.length ? "$fg-success" : "$fg-muted"}>
           {passAaa}/{rows.length} AAA
         </Text>
         {lifted.length > 0 ? (
           <>
             <Muted>·</Muted>
-            <Text color="$warning">{lifted.length} auto-lifted</Text>
+            <Text color="$fg-warning">{lifted.length} auto-lifted</Text>
           </>
         ) : null}
       </Box>
@@ -174,7 +174,7 @@ export function ContrastAudit({ theme, schemeName }: ContrastAuditProps): React.
             <Box key={`${p.fgPath}|${p.bgPath}`} gap={1}>
               <Text color={p.fg}>██</Text>
               <Text color={p.bg}>██</Text>
-              <Text bold={row.aa === false} color={row.aa ? undefined : "$error"}>
+              <Text bold={row.aa === false} color={row.aa ? undefined : "$fg-error"}>
                 {p.label}
               </Text>
               <Box flexGrow={1} />
@@ -194,7 +194,7 @@ export function ContrastAudit({ theme, schemeName }: ContrastAuditProps): React.
             {lifted.map((step) => (
               <Box key={step.token} flexDirection="column" gap={0}>
                 <Box gap={1}>
-                  <Text color="$warning">⚠</Text>
+                  <Text color="$fg-warning">⚠</Text>
                   <Text bold>{step.token}</Text>
                 </Box>
                 <Box gap={1} paddingX={2}>

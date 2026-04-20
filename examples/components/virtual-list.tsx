@@ -30,13 +30,13 @@ function ListViewDemo() {
         estimateHeight={1}
         nav
         renderItem={(item, _index, meta) => (
-          <Text key={item.id} color={meta.isCursor ? "$primary" : undefined} bold={meta.isCursor}>
+          <Text key={item.id} color={meta.isCursor ? "$fg-accent" : undefined} bold={meta.isCursor}>
             {meta.isCursor ? "> " : "  "}
             {item.name}
           </Text>
         )}
       />
-      <Text color="$muted">j/k: navigate q: quit</Text>
+      <Text color="$fg-muted">j/k: navigate q: quit</Text>
     </Box>
   )
 }

@@ -80,7 +80,7 @@ function Bubble({
   return (
     <Box flexDirection="column" alignItems={align ?? "flex-start"}>
       <Small> {sender}</Small>
-      <Box width={width} borderStyle="round" borderColor="$border" paddingX={1} maxWidth={48}>
+      <Box width={width} borderStyle="round" borderColor="$border-default" paddingX={1} maxWidth={48}>
         <Text wrap={wrap ?? "wrap"}>{text}</Text>
       </Box>
     </Box>
@@ -110,10 +110,10 @@ function BubbleColumn({
       borderRight={false}
       borderTop={false}
       borderBottom={false}
-      borderColor="$border"
+      borderColor="$border-default"
       paddingLeft={border ? 1 : 0}
     >
-      <Text bold color="$accent">
+      <Text bold color="$fg-accent">
         {label}
       </Text>
       <Muted>{sublabel}</Muted>
@@ -155,10 +155,10 @@ function ParagraphComparison({
       borderRight={false}
       borderTop={false}
       borderBottom={false}
-      borderColor="$border"
+      borderColor="$border-default"
       paddingLeft={border ? 1 : 0}
     >
-      <Text bold color="$accent">
+      <Text bold color="$fg-accent">
         {label}
       </Text>
       <Muted>{sublabel}</Muted>
@@ -167,7 +167,7 @@ function ParagraphComparison({
         width="fit-content"
         maxWidth={54}
         borderStyle="single"
-        borderColor="$border"
+        borderColor="$border-default"
         paddingX={1}
       >
         <Text wrap={wrap}>{PARAGRAPH}</Text>
@@ -240,7 +240,7 @@ function Demo3Combined() {
       <Text> </Text>
       <Box flexDirection="row" gap={1} paddingX={1}>
         <Box flexDirection="column" flexGrow={1} flexBasis={0}>
-          <Text bold color="$accent">
+          <Text bold color="$fg-accent">
             Default (fit-content + greedy)
           </Text>
           <Muted>Widest line sets width, lines fill greedily</Muted>
@@ -249,7 +249,7 @@ function Demo3Combined() {
             <Box
               width="fit-content"
               borderStyle="round"
-              borderColor="$border"
+              borderColor="$border-default"
               paddingX={1}
               maxWidth={48}
             >
@@ -261,7 +261,7 @@ function Demo3Combined() {
             <Box
               width="fit-content"
               borderStyle="round"
-              borderColor="$border"
+              borderColor="$border-default"
               paddingX={1}
               maxWidth={48}
             >
@@ -280,10 +280,10 @@ function Demo3Combined() {
           borderRight={false}
           borderTop={false}
           borderBottom={false}
-          borderColor="$border"
+          borderColor="$border-default"
           paddingLeft={1}
         >
-          <Text bold color="$accent">
+          <Text bold color="$fg-accent">
             Pretext (snug-content + even)
           </Text>
           <Muted>Tightest width, balanced line lengths</Muted>
@@ -292,7 +292,7 @@ function Demo3Combined() {
             <Box
               width="snug-content"
               borderStyle="round"
-              borderColor="$primary"
+              borderColor="$fg-accent"
               paddingX={1}
               maxWidth={48}
             >
@@ -304,7 +304,7 @@ function Demo3Combined() {
             <Box
               width="snug-content"
               borderStyle="round"
-              borderColor="$primary"
+              borderColor="$fg-accent"
               paddingX={1}
               maxWidth={48}
             >
@@ -352,7 +352,7 @@ function PretextDemo() {
       {/* Tab bar */}
       <Box gap={2}>
         {DEMO_LABELS.map((label, i) => (
-          <Text key={i} bold={i === demoIndex} color={i === demoIndex ? "$primary" : "$muted"}>
+          <Text key={i} bold={i === demoIndex} color={i === demoIndex ? "$fg-accent" : "$fg-muted"}>
             {i === demoIndex ? "▸ " : "  "}
             {i + 1}. {label}
           </Text>

@@ -144,7 +144,7 @@ const items: Item[] = [
 function SearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <Box>
-      <Strong color="$primary">Search: </Strong>
+      <Strong color="$fg-accent">Search: </Strong>
       <Text>{value}</Text>
       <Text dim>|</Text>
     </Box>
@@ -174,7 +174,7 @@ function FilteredList({ query, isPending }: { query: string; isPending: boolean 
         <Box key={item.id} marginBottom={1}>
           <Text bold>{item.name}</Text>
           <Text dim> [{item.category}]</Text>
-          <Text color="$muted"> {item.tags.join(", ")}</Text>
+          <Text color="$fg-muted"> {item.tags.join(", ")}</Text>
         </Box>
       ))}
       {filtered.length === 0 && <Lead>No matches found</Lead>}

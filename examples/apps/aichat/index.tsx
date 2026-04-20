@@ -206,26 +206,26 @@ function CompactingOverlay() {
     <Box
       flexDirection="column"
       borderStyle="round"
-      borderColor="$warning"
+      borderColor="$fg-warning"
       paddingX={1}
       overflow="hidden"
     >
-      <Text color="$warning" bold>
+      <Text color="$fg-warning" bold>
         <Spinner type="arc" /> Compacting context
       </Text>
       <Text> </Text>
-      <Text color="$muted">Freezing exchanges into terminal scrollback. Scroll up to review.</Text>
+      <Text color="$fg-muted">Freezing exchanges into terminal scrollback. Scroll up to review.</Text>
     </Box>
   )
 }
 
 function SessionComplete() {
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="$success" paddingX={1}>
-      <Text color="$success" bold>
+    <Box flexDirection="column" borderStyle="round" borderColor="$fg-success" paddingX={1}>
+      <Text color="$fg-success" bold>
         {"✓"} Session complete
       </Text>
-      <Text color="$muted">
+      <Text color="$fg-muted">
         Scroll up to review — colors, borders, and hyperlinks preserved in scrollback.
       </Text>
     </Box>

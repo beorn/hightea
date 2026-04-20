@@ -55,11 +55,11 @@ function ContentWithSize({ label }: { label: string }) {
       <Text bold>{label}</Text>
       <Text>
         Content area:{" "}
-        <Text color="$success" bold>
+        <Text color="$fg-success" bold>
           {width}
         </Text>
         x
-        <Text color="$success" bold>
+        <Text color="$fg-success" bold>
           {height}
         </Text>
       </Text>
@@ -73,12 +73,12 @@ function ContentWithSize({ label }: { label: string }) {
 function BorderPanel({ style, highlight }: { style: StyleVariant; highlight: boolean }) {
   return (
     <Box flexDirection="column" flexGrow={1} gap={1}>
-      <Text bold color={highlight ? "$primary" : undefined}>
+      <Text bold color={highlight ? "$fg-accent" : undefined}>
         borderStyle="{style}"
       </Text>
       <Box
         borderStyle={style}
-        borderColor={highlight ? "$primary" : "$border"}
+        borderColor={highlight ? "$fg-accent" : "$border-default"}
         width={30}
         height={9}
       >
@@ -93,12 +93,12 @@ function BorderPanel({ style, highlight }: { style: StyleVariant; highlight: boo
 function OutlinePanel({ style, highlight }: { style: StyleVariant; highlight: boolean }) {
   return (
     <Box flexDirection="column" flexGrow={1} gap={1}>
-      <Text bold color={highlight ? "$warning" : undefined}>
+      <Text bold color={highlight ? "$fg-warning" : undefined}>
         outlineStyle="{style}"
       </Text>
       <Box
         outlineStyle={style}
-        outlineColor={highlight ? "$warning" : "$border"}
+        outlineColor={highlight ? "$fg-warning" : "$border-default"}
         width={30}
         height={9}
       >
@@ -142,7 +142,7 @@ export function OutlineDemo() {
       <Box gap={1}>
         <Text bold>Style:</Text>
         {STYLES.map((s, i) => (
-          <Text key={s} color={i === styleIndex ? "$primary" : "$muted"} bold={i === styleIndex}>
+          <Text key={s} color={i === styleIndex ? "$fg-accent" : "$fg-muted"} bold={i === styleIndex}>
             {i === styleIndex ? `[${s}]` : s}
           </Text>
         ))}

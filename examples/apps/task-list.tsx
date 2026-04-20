@@ -76,9 +76,9 @@ function generateTasks(count: number): Task[] {
 
 function PriorityBadge({ priority }: { priority: "high" | "medium" | "low" }) {
   const colors = {
-    high: "$error",
-    medium: "$warning",
-    low: "$success",
+    high: "$fg-error",
+    medium: "$fg-warning",
+    low: "$fg-success",
   }
   const symbols = {
     high: "!!!",
@@ -109,7 +109,7 @@ function TaskItem({
     <Box flexDirection="column">
       <Box>
         {isSelected ? (
-          <Text backgroundColor="$primary" color="$primary-fg">
+          <Text backgroundColor="$fg-accent" color="$primary-fg">
             {" "}
             {checkbox} {task.title}{" "}
           </Text>
@@ -240,7 +240,7 @@ export function TaskList() {
         flexGrow={1}
         flexDirection="column"
         borderStyle="round"
-        borderColor="$border"
+        borderColor="$border-default"
         overflow="hidden"
         height={visibleCount + 2}
       >

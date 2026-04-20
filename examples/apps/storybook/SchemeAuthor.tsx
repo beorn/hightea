@@ -100,7 +100,7 @@ function HexSlot({
 
   const valid = HEX.test(buffer.trim())
   const marker = editing ? "✎" : selected ? "▸" : " "
-  const labelColor = editing || selected ? "$accent" : undefined
+  const labelColor = editing || selected ? "$fg-accent" : undefined
   const label = slotKey.padEnd(20)
 
   // Cancel on Escape — driven by useInput at isActive=editing.
@@ -113,13 +113,13 @@ function HexSlot({
 
   return (
     <Box gap={1}>
-      <Text color={editing || selected ? "$accent" : "$muted"}>{marker}</Text>
-      <Text color={valid ? value : "$error"}>██</Text>
+      <Text color={editing || selected ? "$fg-accent" : "$fg-muted"}>{marker}</Text>
+      <Text color={valid ? value : "$fg-error"}>██</Text>
       <Text color={labelColor} bold={editing || selected}>
         {label}
       </Text>
       {editing ? (
-        <Box borderStyle="single" borderColor={valid ? "$accent" : "$error"} paddingX={1} width={12}>
+        <Box borderStyle="single" borderColor={valid ? "$fg-accent" : "$fg-error"} paddingX={1} width={12}>
           <TextInput
             value={buffer}
             onChange={setBuffer}
@@ -137,7 +137,7 @@ function HexSlot({
       )}
       {editing && !valid ? (
         <Small>
-          <Text color="$error">invalid</Text>
+          <Text color="$fg-error">invalid</Text>
         </Small>
       ) : null}
     </Box>
@@ -226,21 +226,21 @@ export function SchemeAuthor({
       flexDirection="column"
       flexGrow={1}
       borderStyle="single"
-      borderColor="$accent"
+      borderColor="$fg-accent"
       overflow="scroll"
     >
       <Box paddingX={1} gap={1}>
-        <Text bold color="$accent">
+        <Text bold color="$fg-accent">
           SCHEME AUTHOR
         </Text>
         <Muted>·</Muted>
         <Muted>seeded from</Muted>
-        <Text color="$info">{schemeName}</Text>
+        <Text color="$fg-info">{schemeName}</Text>
         <Muted>·</Muted>
         <Small>
           <Muted>
-            <Text color="$accent">Enter</Text> edit · <Text color="$accent">Esc</Text> cancel ·{" "}
-            <Text color="$accent">x</Text> copy JSON
+            <Text color="$fg-accent">Enter</Text> edit · <Text color="$fg-accent">Esc</Text> cancel ·{" "}
+            <Text color="$fg-accent">x</Text> copy JSON
           </Muted>
         </Small>
       </Box>

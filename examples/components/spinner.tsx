@@ -24,7 +24,7 @@ function SpinnerDemo() {
         <Spinner type="arc" label="Optimizing..." />
         <Spinner type="bounce" label="Connecting..." />
       </Box>
-      <Text color="$muted">q: quit</Text>
+      <Text color="$fg-muted">q: quit</Text>
     </Box>
   )
 }

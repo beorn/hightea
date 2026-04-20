@@ -33,15 +33,15 @@ function TextInputDemo() {
       />
       {submitted.length > 0 && (
         <Box flexDirection="column">
-          <Text color="$muted">Submitted:</Text>
+          <Text color="$fg-muted">Submitted:</Text>
           {submitted.map((s, i) => (
-            <Text key={i} color="$success">
+            <Text key={i} color="$fg-success">
               {s}
             </Text>
           ))}
         </Box>
       )}
-      <Text color="$muted">Enter: submit Esc: quit</Text>
+      <Text color="$fg-muted">Enter: submit Esc: quit</Text>
     </Box>
   )
 }

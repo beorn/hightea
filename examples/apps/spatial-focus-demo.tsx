@@ -185,22 +185,22 @@ function navigate(
 // ============================================================================
 
 const tagColors: Record<string, string> = {
-  frontend: "$info",
-  backend: "$accent",
-  design: "$warning",
-  devops: "$success",
-  testing: "$primary",
-  ux: "$muted",
-  security: "$error",
-  bug: "$error",
-  api: "$primary",
-  maintenance: "$muted",
+  frontend: "$fg-info",
+  backend: "$fg-accent",
+  design: "$fg-warning",
+  devops: "$fg-success",
+  testing: "$fg-accent",
+  ux: "$fg-muted",
+  security: "$fg-error",
+  bug: "$fg-error",
+  api: "$fg-accent",
+  maintenance: "$fg-muted",
 }
 
 const prioritySymbols: Record<string, { symbol: string; color: string }> = {
-  high: { symbol: "▲", color: "$error" },
-  medium: { symbol: "◆", color: "$warning" },
-  low: { symbol: "▽", color: "$muted" },
+  high: { symbol: "▲", color: "$fg-error" },
+  medium: { symbol: "◆", color: "$fg-warning" },
+  low: { symbol: "▽", color: "$fg-muted" },
 }
 
 // ============================================================================
@@ -208,7 +208,7 @@ const prioritySymbols: Record<string, { symbol: string; color: string }> = {
 // ============================================================================
 
 function Tag({ name }: { name: string }) {
-  const color = tagColors[name] ?? "$muted"
+  const color = tagColors[name] ?? "$fg-muted"
   return (
     <Text color={color} dim>
       #{name}
@@ -224,17 +224,17 @@ function CardView({ card, focused }: { card: CardData; focused: boolean }) {
       testID={card.id}
       flexDirection="column"
       borderStyle="round"
-      borderColor={focused ? "$warning" : "$border"}
+      borderColor={focused ? "$fg-warning" : "$border-default"}
     >
       <Box paddingX={1} gap={1}>
         {priority && <Text color={priority.color}>{priority.symbol}</Text>}
-        <Text bold={focused} color={focused ? "$warning" : undefined} wrap="truncate">
+        <Text bold={focused} color={focused ? "$fg-warning" : undefined} wrap="truncate">
           {card.title}
         </Text>
       </Box>
       {card.description && (
         <Box paddingX={1}>
-          <Text color="$muted" dim wrap="truncate">
+          <Text color="$fg-muted" dim wrap="truncate">
             {card.description}
           </Text>
         </Box>
@@ -263,13 +263,13 @@ function ColumnView({
       flexGrow={1}
       flexBasis={0}
       borderStyle="single"
-      borderColor={hasFocus ? "$warning" : "$border"}
+      borderColor={hasFocus ? "$fg-warning" : "$border-default"}
     >
-      <Box backgroundColor={hasFocus ? "$warning" : undefined} paddingX={1}>
+      <Box backgroundColor={hasFocus ? "$fg-warning" : undefined} paddingX={1}>
         <Text bold color={hasFocus ? "$warning-fg" : undefined}>
           {column.title}
         </Text>
-        <Text color={hasFocus ? "$warning-fg" : "$muted"}> ({column.cards.length})</Text>
+        <Text color={hasFocus ? "$warning-fg" : "$fg-muted"}> ({column.cards.length})</Text>
       </Box>
       <Box flexDirection="column" paddingX={1} flexGrow={1}>
         {column.cards.map((card) => (
@@ -294,17 +294,17 @@ function StatusBar({ focusedId }: { focusedId: string | null }) {
 
   return (
     <Box paddingX={1} gap={2}>
-      <Text color="$muted" dim>
+      <Text color="$fg-muted" dim>
         ←↑↓→/hjkl navigate
       </Text>
-      <Text color="$muted" dim>
+      <Text color="$fg-muted" dim>
         q quit
       </Text>
       {focusedCard && (
         <>
-          <Text color="$border">│</Text>
-          <Text color="$warning">{focusedColumn}</Text>
-          <Text color="$muted">→</Text>
+          <Text color="$border-default">│</Text>
+          <Text color="$fg-warning">{focusedColumn}</Text>
+          <Text color="$fg-muted">→</Text>
           <Text>{focusedCard.title}</Text>
         </>
       )}
@@ -348,10 +348,10 @@ function SpatialFocusBoard() {
   return (
     <Box flexDirection="column" padding={1} height="100%">
       <Box marginBottom={1} paddingX={1} gap={1}>
-        <Text bold color="$warning">
+        <Text bold color="$fg-warning">
           Spatial Focus
         </Text>
-        <Text color="$muted">— arrow keys / hjkl navigate between cards across columns</Text>
+        <Text color="$fg-muted">— arrow keys / hjkl navigate between cards across columns</Text>
       </Box>
 
       <Box flexGrow={1} flexDirection="row" gap={1} overflow="hidden">

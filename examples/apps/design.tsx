@@ -386,7 +386,7 @@ function TopBar({
   return (
     <Box paddingX={1} gap={2}>
       {SECTIONS.map((s, i) => (
-        <Text key={s} color={s === section ? "$primary" : "$muted"} bold={s === section}>
+        <Text key={s} color={s === section ? "$fg-accent" : "$fg-muted"} bold={s === section}>
           {i + 1}. {SECTION_LABELS[s]}
         </Text>
       ))}
@@ -416,7 +416,7 @@ function SpecView() {
         <Box key={m.name} flexDirection="column" marginBottom={1} paddingX={1}>
           <Box gap={1}>
             <Box width={22}>
-              <Text bold color="$primary">
+              <Text bold color="$fg-accent">
                 {m.name}
               </Text>
             </Box>
@@ -514,7 +514,7 @@ function TokenRow({
       <Box gap={1}>
         {/* Swatch + hex */}
         <Box width={14}>
-          <Text color={color ?? "$muted"} bold>
+          <Text color={color ?? "$fg-muted"} bold>
             {spec.token.padEnd(12)}
           </Text>
         </Box>
@@ -524,7 +524,7 @@ function TokenRow({
         {/* Contrast readout */}
         <Box width={20}>
           {result ? (
-            <Text color={passesTarget ? "$success" : "$error"}>
+            <Text color={passesTarget ? "$fg-success" : "$fg-error"}>
               {result.ratio.toFixed(2)}:1 vs bg (target {targetRatio})
             </Text>
           ) : (
@@ -667,17 +667,17 @@ function ComponentsView() {
       <Box flexDirection="column">
         <H3>Surfaces</H3>
         <Box flexDirection="column" paddingLeft={1} gap={1}>
-          <Box backgroundColor="$surfacebg" paddingX={1} paddingY={1}>
+          <Box backgroundColor="$bg-surface-default" paddingX={1} paddingY={1}>
             <Text color="$surface">Surface — blend(bg, fg, 5%)</Text>
           </Box>
-          <Box backgroundColor="$popoverbg" paddingX={1} paddingY={1}>
+          <Box backgroundColor="$bg-surface-overlay" paddingX={1} paddingY={1}>
             <Text color="$popover">Popover — blend(bg, fg, 8%)</Text>
           </Box>
           <Box backgroundColor="$inversebg" paddingX={1} paddingY={1}>
             <Text color="$inverse">Inverse — status bar family</Text>
           </Box>
-          <Box borderStyle="single" borderColor="$border" paddingX={1}>
-            <Text>Box with $border — blend 15% ensured FAINT</Text>
+          <Box borderStyle="single" borderColor="$border-default" paddingX={1}>
+            <Text>Box with $border-default — blend 15% ensured FAINT</Text>
           </Box>
           <Box borderStyle="single" borderColor="$inputborder" paddingX={1}>
             <Text>Box with $inputborder — blend 25% ensured CONTROL</Text>

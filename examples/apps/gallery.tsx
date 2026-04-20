@@ -265,7 +265,7 @@ function ImagesTab() {
   return (
     <Box flexDirection="column" flexGrow={1} gap={1}>
       <Box paddingX={1} gap={2}>
-        <Text bold color="$primary">
+        <Text bold color="$fg-accent">
           {img.name}
         </Text>
         <Muted>{img.description}</Muted>

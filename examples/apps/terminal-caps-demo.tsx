@@ -69,13 +69,13 @@ interface CapEntry {
 function StatusIcon({ status }: { status: CapStatus }) {
   switch (status) {
     case "supported":
-      return <Text color="$success">{"✓"}</Text>
+      return <Text color="$fg-success">{"✓"}</Text>
     case "not-supported":
-      return <Text color="$error">{"✗"}</Text>
+      return <Text color="$fg-error">{"✗"}</Text>
     case "probing":
-      return <Text color="$warning">{"?"}</Text>
+      return <Text color="$fg-warning">{"?"}</Text>
     case "detected":
-      return <Text color="$warning">{"?"}</Text>
+      return <Text color="$fg-warning">{"?"}</Text>
   }
 }
 
@@ -86,7 +86,7 @@ function CapRow({ entry, width }: { entry: CapEntry; width: number }) {
     <Box>
       <StatusIcon status={entry.status} />
       <Text> </Text>
-      <Text color={entry.status === "not-supported" ? "$muted" : undefined}>{padded}</Text>
+      <Text color={entry.status === "not-supported" ? "$fg-muted" : undefined}>{padded}</Text>
     </Box>
   )
 }
@@ -228,7 +228,7 @@ function TerminalCapsApp({
       <Box>
         {/* Left column: static capabilities */}
         <Box flexDirection="column" width={colWidth + 4}>
-          <Text bold color="$primary">
+          <Text bold color="$fg-accent">
             Static Detection
           </Text>
           <Box height={1} />
@@ -239,7 +239,7 @@ function TerminalCapsApp({
 
         {/* Right column: runtime probes */}
         <Box flexDirection="column" width={colWidth + 4}>
-          <Text bold color="$primary">
+          <Text bold color="$fg-accent">
             Runtime Probes
           </Text>
           <Box height={1} />

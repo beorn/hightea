@@ -15,10 +15,10 @@ function Hello() {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold color="$primary">
+      <Text bold color="$fg-accent">
         Hello, Silvery!
       </Text>
-      <Text color="$muted">Press any key to exit.</Text>
+      <Text color="$fg-muted">Press any key to exit.</Text>
     </Box>
   )
 }

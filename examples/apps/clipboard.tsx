@@ -67,7 +67,7 @@ function ListItem({ item, isSelected }: { item: (typeof allItems)[0]; isSelected
     <Box paddingX={1}>
       <Text
         color={isSelected ? "$bg" : undefined}
-        backgroundColor={isSelected ? "$primary" : undefined}
+        backgroundColor={isSelected ? "$fg-accent" : undefined}
         bold={isSelected}
       >
         {isSelected ? " > " : "   "}
@@ -86,14 +86,14 @@ function StatusBar({
   lastPasted: string | null
 }) {
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="$border" paddingX={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor="$border-default" paddingX={1}>
       <Box gap={1}>
         <Muted>Copied:</Muted>
-        {lastCopied ? <Text color="$success">{lastCopied}</Text> : <Lead>nothing yet</Lead>}
+        {lastCopied ? <Text color="$fg-success">{lastCopied}</Text> : <Lead>nothing yet</Lead>}
       </Box>
       <Box gap={1}>
         <Muted>Pasted:</Muted>
-        {lastPasted ? <Text color="$warning">{lastPasted}</Text> : <Lead>nothing yet</Lead>}
+        {lastPasted ? <Text color="$fg-warning">{lastPasted}</Text> : <Lead>nothing yet</Lead>}
       </Box>
     </Box>
   )
@@ -146,7 +146,7 @@ export function ClipboardDemo() {
 
   return (
     <Box flexDirection="column" padding={1} gap={1}>
-      <Box flexDirection="column" borderStyle="round" borderColor="$primary" paddingX={1}>
+      <Box flexDirection="column" borderStyle="round" borderColor="$fg-accent" paddingX={1}>
         <Box marginBottom={1}>
           <H1>Items</H1>
           <Small>

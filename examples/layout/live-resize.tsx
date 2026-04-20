@@ -229,7 +229,7 @@ function CodeSnippet({ width }: { width: number }) {
   }
 
   return (
-    <Box flexDirection="column" borderStyle="single" borderColor="$border" paddingX={1}>
+    <Box flexDirection="column" borderStyle="single" borderColor="$border-default" paddingX={1}>
       <H1 color="yellow">How it works:</H1>
       <Text color="gray">
         {"  "}

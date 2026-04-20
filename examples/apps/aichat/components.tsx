@@ -83,12 +83,12 @@ function LinkifiedLine({ text, dim, color }: { text: string; dim?: boolean; colo
 function ThinkingBlock({ text, done }: { text: string; done: boolean }) {
   if (done)
     return (
-      <Text color="$muted" italic>
+      <Text color="$fg-muted" italic>
         {"▸ thought"}
       </Text>
     )
   return (
-    <Text color="$muted" wrap="truncate" italic>
+    <Text color="$fg-muted" wrap="truncate" italic>
       {text}
     </Text>
   )
@@ -96,7 +96,7 @@ function ThinkingBlock({ text, done }: { text: string; done: boolean }) {
 
 /** Tool call with lifecycle: spinner -> output -> checkmark. */
 function ToolCallBlock({ call, phase }: { call: ToolCall; phase: "pending" | "running" | "done" }) {
-  const color = TOOL_COLORS[call.tool] ?? "$muted"
+  const color = TOOL_COLORS[call.tool] ?? "$fg-muted"
 
   return (
     <Box flexDirection="column" marginTop={0}>
@@ -106,15 +106,15 @@ function ToolCallBlock({ call, phase }: { call: ToolCall; phase: "pending" | "ru
             <Spinner type="dots" />{" "}
           </>
         ) : phase === "done" ? (
-          <Text color="$success">{"✓ "}</Text>
+          <Text color="$fg-success">{"✓ "}</Text>
         ) : (
-          <Text color="$muted">{"○ "}</Text>
+          <Text color="$fg-muted">{"○ "}</Text>
         )}
         <Text color={color} bold>
           {call.tool}
         </Text>{" "}
         {call.tool === "Bash" || call.tool === "Grep" || call.tool === "Glob" ? (
-          <Text color="$muted">{call.args}</Text>
+          <Text color="$fg-muted">{call.args}</Text>
         ) : (
           <Link href={`file://${call.args}`}>{call.args}</Link>
         )}
@@ -122,8 +122,8 @@ function ToolCallBlock({ call, phase }: { call: ToolCall; phase: "pending" | "ru
       {phase === "done" && (
         <Box flexDirection="column" paddingLeft={2}>
           {call.output.map((line, i) => {
-            if (line.startsWith("+")) return <LinkifiedLine key={i} text={line} color="$success" />
-            if (line.startsWith("-")) return <LinkifiedLine key={i} text={line} color="$error" />
+            if (line.startsWith("+")) return <LinkifiedLine key={i} text={line} color="$fg-success" />
+            if (line.startsWith("-")) return <LinkifiedLine key={i} text={line} color="$fg-error" />
             return <LinkifiedLine key={i} text={line} />
           })}
         </Box>
@@ -163,7 +163,7 @@ function StreamingText({
   return (
     <Text>
       {revealedText}
-      {showCursor && <Text color="$primary">{"▌"}</Text>}
+      {showCursor && <Text color="$fg-accent">{"▌"}</Text>}
     </Text>
   )
 }
@@ -195,7 +195,7 @@ export function ExchangeItem({
         <Text> </Text>
         <Text bold>AI Chat</Text>
         <Text> </Text>
-        <Text color="$muted">{exchange.content}</Text>
+        <Text color="$fg-muted">{exchange.content}</Text>
         <Text> </Text>
       </Box>
     )
@@ -234,7 +234,7 @@ export function ExchangeItem({
   // Split content into title (first sentence) and body (rest)
   const { title, body } = splitTitleBody(exchange.content)
 
-  const bulletColor = hasOperations ? "$success" : "$muted"
+  const bulletColor = hasOperations ? "$fg-success" : "$fg-muted"
   const contentText = title ? body : exchange.content
 
   return (
@@ -244,14 +244,14 @@ export function ExchangeItem({
           {"●"}
         </Text>
         {phase === "thinking" ? (
-          <Text color="$muted" italic>
+          <Text color="$fg-muted" italic>
             {" "}
             <Spinner type="dots" /> thinking
           </Text>
         ) : (
           <>
             {title && <Text> {title}</Text>}
-            <Text color="$muted">{metaStr}</Text>
+            <Text color="$fg-muted">{metaStr}</Text>
           </>
         )}
       </Text>
@@ -259,7 +259,7 @@ export function ExchangeItem({
       <Box
         flexDirection="column"
         borderStyle="bold"
-        borderColor="$border"
+        borderColor="$border-default"
         borderLeft
         borderRight={false}
         borderTop={false}
@@ -324,19 +324,19 @@ export function StatusBar({
   const ctxFrac = effectiveContext / CONTEXT_WINDOW
   const ctxFilled = Math.round(Math.min(ctxFrac, 1) * CTX_W)
   const ctxPct = Math.round(ctxFrac * 100)
-  const ctxColor = ctxPct > 100 ? "$error" : ctxPct > 80 ? "$warning" : "$primary"
+  const ctxColor = ctxPct > 100 ? "$fg-error" : ctxPct > 80 ? "$fg-warning" : "$fg-accent"
   const ctxBar = "█".repeat(ctxFilled) + "░".repeat(CTX_W - ctxFilled)
 
   const keys = ctrlDPending ? "Ctrl-D again to exit" : compacting ? "compacting..." : "esc quit"
 
   return (
     <Box flexDirection="row" justifyContent="space-between" width="100%">
-      <Text color="$muted" wrap="truncate">
+      <Text color="$fg-muted" wrap="truncate">
         {elapsedStr}
         {"  "}
         {keys}
       </Text>
-      <Text color={ctxPct > 80 ? ctxColor : "$muted"} wrap="truncate">
+      <Text color={ctxPct > 80 ? ctxColor : "$fg-muted"} wrap="truncate">
         ctx {ctxBar} {ctxPct}%{"  "}
         {cost}
       </Text>
@@ -445,7 +445,7 @@ export function DemoFooter({
       <Box
         flexDirection="row"
         borderStyle="round"
-        borderColor={!done && terminalFocused ? "$focusborder" : "$inputborder"}
+        borderColor={!done && terminalFocused ? "$border-focus" : "$inputborder"}
         paddingX={1}
       >
         <Text bold color="$focusring">

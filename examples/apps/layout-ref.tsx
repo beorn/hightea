@@ -88,8 +88,8 @@ function ImperativeAccessDemo() {
   }
 
   return (
-    <Box ref={boxRef} flexDirection="column" borderStyle="double" borderColor="$accent" padding={1}>
-      <H1 color="$accent">Imperative Access (BoxHandle)</H1>
+    <Box ref={boxRef} flexDirection="column" borderStyle="double" borderColor="$fg-accent" padding={1}>
+      <H1 color="$fg-accent">Imperative Access (BoxHandle)</H1>
       <Muted>Press 'i' to inspect this box</Muted>
       <Box marginTop={1}>
         <Text>{info}</Text>
@@ -128,13 +128,13 @@ export function LayoutRefApp() {
     <Box flexDirection="column" padding={1}>
       {/* Row of resizable panes with onLayout callbacks */}
       <Box flexDirection="row" gap={1} height={8}>
-        <ResizablePane title="Pane A" color="$success" onLayoutChange={handleLayoutChange("a")} />
-        <ResizablePane title="Pane B" color="$info" onLayoutChange={handleLayoutChange("b")} />
-        <ResizablePane title="Pane C" color="$primary" onLayoutChange={handleLayoutChange("c")} />
+        <ResizablePane title="Pane A" color="$fg-success" onLayoutChange={handleLayoutChange("a")} />
+        <ResizablePane title="Pane B" color="$fg-info" onLayoutChange={handleLayoutChange("b")} />
+        <ResizablePane title="Pane C" color="$fg-accent" onLayoutChange={handleLayoutChange("c")} />
       </Box>
 
       {/* Show layout info from onLayout callbacks */}
-      <Box marginTop={1} borderStyle="single" borderColor="$border" padding={1}>
+      <Box marginTop={1} borderStyle="single" borderColor="$border-default" padding={1}>
         <Box flexDirection="column">
           <Text bold dim>
             onLayout Results:

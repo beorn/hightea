@@ -132,10 +132,10 @@ const LOG_TEMPLATES: Record<LogLevel, string[]> = {
 }
 
 const LEVEL_COLORS: Record<LogLevel, string> = {
-  DEBUG: "$muted",
-  INFO: "$success",
-  WARN: "$warning",
-  ERROR: "$error",
+  DEBUG: "$fg-muted",
+  INFO: "$fg-success",
+  WARN: "$fg-warning",
+  ERROR: "$fg-error",
 }
 
 const LEVEL_BADGES: Record<LogLevel, string> = {
@@ -276,10 +276,10 @@ function generateProcesses(count: number): ProcessInfo[] {
 const INITIAL_PROCESSES = generateProcesses(50)
 
 const STATUS_COLORS: Record<ProcessInfo["status"], string> = {
-  running: "$success",
-  sleeping: "$muted",
-  stopped: "$warning",
-  zombie: "$error",
+  running: "$fg-success",
+  sleeping: "$fg-muted",
+  stopped: "$fg-warning",
+  zombie: "$fg-error",
 }
 
 const STATUS_ICONS: Record<ProcessInfo["status"], string> = {
@@ -297,7 +297,7 @@ const SORT_COLUMNS: SortColumn[] = ["cpu", "mem", "pid", "name", "status"]
 
 function LogRow({ entry, isSelected }: { entry: LogEntry; isSelected: boolean }) {
   return (
-    <Box paddingX={1} backgroundColor={isSelected ? "$mutedbg" : undefined}>
+    <Box paddingX={1} backgroundColor={isSelected ? "$bg-muted" : undefined}>
       <Muted>{entry.timestamp} </Muted>
       <Text color={LEVEL_COLORS[entry.level]} bold>
         {LEVEL_BADGES[entry.level]}
@@ -339,11 +339,11 @@ function LevelToggles({
         const active = levels[level]
         return (
           <Box key={level} gap={0}>
-            <Text color="$muted" dim>
+            <Text color="$fg-muted" dim>
               {i + 1}:
             </Text>
             <Text
-              color={active ? LEVEL_COLORS[level] : "$muted"}
+              color={active ? LEVEL_COLORS[level] : "$fg-muted"}
               bold={active}
               dim={!active}
               strikethrough={!active}
@@ -377,7 +377,7 @@ function ProcessHeader({ width }: { width: number }) {
   const cols = useColumns(width)
   return (
     <Box paddingX={1}>
-      <Text bold color="$muted">
+      <Text bold color="$fg-muted">
         {"PID".padEnd(cols.pidW)}
         {"NAME".padEnd(cols.nameW)}
         {"CPU%".padStart(cols.cpuW)}
@@ -399,16 +399,16 @@ function ProcessRow({
   width: number
 }) {
   const cols = useColumns(width)
-  const cpuColor = proc.cpu > 80 ? "$error" : proc.cpu > 40 ? "$warning" : "$success"
+  const cpuColor = proc.cpu > 80 ? "$fg-error" : proc.cpu > 40 ? "$fg-warning" : "$fg-success"
   const displayName =
     proc.name.length > cols.nameW - 1 ? proc.name.slice(0, cols.nameW - 2) + "\u2026" : proc.name
 
   return (
-    <Box paddingX={1} backgroundColor={isSelected ? "$mutedbg" : undefined}>
-      <Text color="$muted">{String(proc.pid).padEnd(cols.pidW)}</Text>
+    <Box paddingX={1} backgroundColor={isSelected ? "$bg-muted" : undefined}>
+      <Text color="$fg-muted">{String(proc.pid).padEnd(cols.pidW)}</Text>
       <Text bold={isSelected}>{displayName.padEnd(cols.nameW)}</Text>
       <Text color={cpuColor}>{proc.cpu.toFixed(1).padStart(cols.cpuW - 1)}%</Text>
-      <Text color={proc.mem > 40 ? "$warning" : "$muted"}>
+      <Text color={proc.mem > 40 ? "$fg-warning" : "$fg-muted"}>
         {proc.mem.toFixed(1).padStart(cols.memW - 1)}%
       </Text>
       <Text>{"  "}</Text>
@@ -642,7 +642,7 @@ export function Explorer() {
       <Box paddingX={1}>
         {searchMode ? (
           <Box flexGrow={1}>
-            <Text color="$primary" bold>
+            <Text color="$fg-accent" bold>
               /{" "}
             </Text>
             <TextInput
@@ -704,7 +704,7 @@ export function Explorer() {
           <Box paddingX={1} justifyContent="space-between">
             <Box gap={1}>
               <Muted>sort:</Muted>
-              <Text bold color="$primary">
+              <Text bold color="$fg-accent">
                 {sortCol.toUpperCase()}
               </Text>
               <Muted>

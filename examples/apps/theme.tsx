@@ -116,7 +116,7 @@ function ThemeList({ entries, selectedIndex }: { entries: ThemeEntry[]; selected
       scrollTo={selectedIndex}
     >
       <Box paddingX={1}>
-        <Text bold color="$primary">
+        <Text bold color="$fg-accent">
           Palettes
         </Text>
         <Muted> ({entries.length})</Muted>
@@ -147,13 +147,13 @@ function ThemeList({ entries, selectedIndex }: { entries: ThemeEntry[]; selected
 /** Semantic token showcase row */
 function SemanticTokens() {
   const tokens: Array<{ name: string; token: string; icon: string }> = [
-    { name: "primary", token: "$primary", icon: "●" },
-    { name: "success", token: "$success", icon: "✓" },
-    { name: "warning", token: "$warning", icon: "⚠" },
-    { name: "error", token: "$error", icon: "✗" },
-    { name: "info", token: "$info", icon: "ℹ" },
-    { name: "accent", token: "$accent", icon: "◆" },
-    { name: "muted", token: "$muted", icon: "○" },
+    { name: "primary", token: "$fg-accent", icon: "●" },
+    { name: "success", token: "$fg-success", icon: "✓" },
+    { name: "warning", token: "$fg-warning", icon: "⚠" },
+    { name: "error", token: "$fg-error", icon: "✗" },
+    { name: "info", token: "$fg-info", icon: "ℹ" },
+    { name: "accent", token: "$fg-accent", icon: "◆" },
+    { name: "muted", token: "$fg-muted", icon: "○" },
     { name: "link", token: "$link", icon: "🔗" },
   ]
 
@@ -254,7 +254,7 @@ function ComponentShowcase() {
         {/* Links */}
         <Box gap={2}>
           <Link href="https://silvery.dev">silvery.dev</Link>
-          <Link href="https://example.com" color="$primary">
+          <Link href="https://example.com" color="$fg-accent">
             primary link
           </Link>
           <Link href="https://example.com" dim>
@@ -297,7 +297,7 @@ function ComponentShowcase() {
 
         {/* Dialog box */}
         <Box borderStyle="round" paddingX={1} flexDirection="column">
-          <Text bold color="$primary">
+          <Text bold color="$fg-accent">
             Dialog Title
           </Text>
           <Text>Body text with default colors.</Text>
@@ -310,7 +310,7 @@ function ComponentShowcase() {
         </Box>
 
         {/* Focus border */}
-        <Box borderStyle="single" borderColor="$focusborder" paddingX={1} width={30}>
+        <Box borderStyle="single" borderColor="$border-focus" paddingX={1} width={30}>
           <Text>Focused input</Text>
         </Box>
       </Box>
@@ -351,36 +351,36 @@ function SurfacePairs() {
       <H2>Surfaces</H2>
       <Box flexDirection="column" paddingX={1} gap={0}>
         <Box gap={1}>
-          <Box backgroundColor="$surfacebg" paddingX={1}>
+          <Box backgroundColor="$bg-surface-default" paddingX={1}>
             <Text color="$surface">surface</Text>
           </Box>
           <Box backgroundColor="$inversebg" paddingX={1}>
             <Text color="$inverse">inverse</Text>
           </Box>
-          <Box backgroundColor="$mutedbg" paddingX={1}>
+          <Box backgroundColor="$bg-muted" paddingX={1}>
             <Text>muted bg</Text>
           </Box>
         </Box>
         <Box gap={1}>
-          <Box backgroundColor="$primary" paddingX={1}>
-            <Text color="$primaryfg">primary</Text>
+          <Box backgroundColor="$fg-accent" paddingX={1}>
+            <Text color="$fg-on-accent">primary</Text>
           </Box>
-          <Box backgroundColor="$error" paddingX={1}>
-            <Text color="$errorfg">error</Text>
+          <Box backgroundColor="$fg-error" paddingX={1}>
+            <Text color="$fg-on-error">error</Text>
           </Box>
-          <Box backgroundColor="$success" paddingX={1}>
-            <Text color="$successfg">success</Text>
+          <Box backgroundColor="$fg-success" paddingX={1}>
+            <Text color="$fg-on-success">success</Text>
           </Box>
         </Box>
         <Box gap={1}>
           <Box backgroundColor="$selectionbg" paddingX={1}>
             <Text color="$selection">selection</Text>
           </Box>
-          <Box backgroundColor="$popoverbg" paddingX={1}>
+          <Box backgroundColor="$bg-surface-overlay" paddingX={1}>
             <Text color="$popover">popover</Text>
           </Box>
-          <Box backgroundColor="$accent" paddingX={1}>
-            <Text color="$accentfg">accent</Text>
+          <Box backgroundColor="$fg-accent" paddingX={1}>
+            <Text color="$fg-on-accent">accent</Text>
           </Box>
         </Box>
       </Box>
@@ -395,7 +395,7 @@ function AdjustmentLog({ adjustments = [] }: { adjustments?: ThemeAdjustment[] }
       <Box flexDirection="column">
         <H2>Contrast Adjustments</H2>
         <Box paddingX={1}>
-          <Text color="$success">✓ No adjustments needed — all tokens meet contrast targets</Text>
+          <Text color="$fg-success">✓ No adjustments needed — all tokens meet contrast targets</Text>
         </Box>
       </Box>
     )

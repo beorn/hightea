@@ -25,11 +25,11 @@ function Counter() {
     <Box flexDirection="column" padding={1}>
       <Box gap={1}>
         <Text>Count:</Text>
-        <Text bold color={count >= 0 ? "$success" : "$error"}>
+        <Text bold color={count >= 0 ? "$fg-success" : "$fg-error"}>
           {count}
         </Text>
       </Box>
-      <Text color="$muted">j/k: +/- r: reset q: quit</Text>
+      <Text color="$fg-muted">j/k: +/- r: reset q: quit</Text>
     </Box>
   )
 }

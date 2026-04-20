@@ -17,12 +17,12 @@ export const OUTPUT_COST_PER_M = 75 // $/M output tokens
 export const CONTEXT_WINDOW = 200_000
 
 export const TOOL_COLORS: Record<string, string> = {
-  Read: "$info",
-  Edit: "$warning",
-  Bash: "$error",
-  Write: "$accent",
-  Glob: "$muted",
-  Grep: "$success",
+  Read: "$fg-info",
+  Edit: "$fg-warning",
+  Bash: "$fg-error",
+  Write: "$fg-accent",
+  Glob: "$fg-muted",
+  Grep: "$fg-success",
 }
 
 export const TOOL_ICONS: Record<string, string> = {

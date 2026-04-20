@@ -198,7 +198,7 @@ function KeysTab({ kittySupported }: { kittySupported: boolean }) {
           <Box flexDirection="column" overflow="scroll" scrollTo={events.length - 1}>
             {events.map((e, i) => (
               <Text key={e.index} dimColor={i < events.length - 1}>
-                <Text color="$muted">#{String(e.index).padStart(3)}</Text>{" "}
+                <Text color="$fg-muted">#{String(e.index).padStart(3)}</Text>{" "}
                 {formatKeyEventSummary(e)}
               </Text>
             ))}
@@ -236,7 +236,7 @@ function KeyDetails({ event }: { event: KeyEvent }) {
     <Box flexDirection="column">
       <Text>
         <Text bold>Name:</Text>{" "}
-        <Text bold color="$primary">
+        <Text bold color="$fg-accent">
           {parsed.name || "(none)"}
         </Text>
       </Text>
@@ -255,14 +255,14 @@ function KeyDetails({ event }: { event: KeyEvent }) {
       {parsed.eventType && (
         <Box marginTop={1}>
           <Text>
-            <Text bold>Event type:</Text> <Text color="$accent">{parsed.eventType}</Text>
+            <Text bold>Event type:</Text> <Text color="$fg-accent">{parsed.eventType}</Text>
           </Text>
         </Box>
       )}
 
       {/* Kitty extensions */}
       <Box flexDirection="column" marginTop={1}>
-        <Text bold color="$muted">
+        <Text bold color="$fg-muted">
           Kitty Extensions
         </Text>
         <KittyField label="shiftedKey" value={parsed.shiftedKey} />
@@ -299,7 +299,7 @@ function ModBadge({ mod, active }: { mod: ModDef; active: boolean }) {
       </Text>
     )
   }
-  return <Text color="$muted">{`  ${mod.symbol}  `}</Text>
+  return <Text color="$fg-muted">{`  ${mod.symbol}  `}</Text>
 }
 
 function KittyField({ label, value }: { label: string; value: string | boolean | undefined }) {
@@ -312,7 +312,7 @@ function KittyField({ label, value }: { label: string; value: string | boolean |
   }
   return (
     <Text>
-      {label}: <Text color="$warning">{String(value)}</Text>
+      {label}: <Text color="$fg-warning">{String(value)}</Text>
     </Text>
   )
 }
@@ -413,13 +413,13 @@ function MouseTab() {
             <Box flexDirection="column">
               <Text>
                 <Text bold>X:</Text>{" "}
-                <Text color="$primary" bold>
+                <Text color="$fg-accent" bold>
                   {String(mousePos.x).padStart(4)}
                 </Text>
               </Text>
               <Text>
                 <Text bold>Y:</Text>{" "}
-                <Text color="$primary" bold>
+                <Text color="$fg-accent" bold>
                   {String(mousePos.y).padStart(4)}
                 </Text>
               </Text>
@@ -433,16 +433,16 @@ function MouseTab() {
           <H2>Click Counts</H2>
           <Box marginTop={1} flexDirection="column">
             <Text>
-              <Text bold>Left:</Text> <Text color="$info">{clicks.left}</Text>
+              <Text bold>Left:</Text> <Text color="$fg-info">{clicks.left}</Text>
             </Text>
             <Text>
-              <Text bold>Middle:</Text> <Text color="$info">{clicks.middle}</Text>
+              <Text bold>Middle:</Text> <Text color="$fg-info">{clicks.middle}</Text>
             </Text>
             <Text>
-              <Text bold>Right:</Text> <Text color="$info">{clicks.right}</Text>
+              <Text bold>Right:</Text> <Text color="$fg-info">{clicks.right}</Text>
             </Text>
             <Text>
-              <Text bold>Scroll:</Text> <Text color="$info">{scrollTotal}</Text>
+              <Text bold>Scroll:</Text> <Text color="$fg-info">{scrollTotal}</Text>
             </Text>
           </Box>
         </Box>
@@ -461,14 +461,14 @@ function MouseTab() {
             {events.map((e, i) => (
               <Text key={e.index} dimColor={i < events.length - 1}>
                 <Small>{e.timestamp}</Small>{" "}
-                <Text color={e.action.startsWith("scroll") ? "$accent" : "$primary"} bold>
+                <Text color={e.action.startsWith("scroll") ? "$fg-accent" : "$fg-accent"} bold>
                   {e.action}
                 </Text>{" "}
                 {e.button !== "wheel" && <Text>{e.button} </Text>}
                 <Muted>
                   ({e.x},{e.y})
                 </Muted>
-                {e.mods ? <Text color="$warning"> +{e.mods}</Text> : null}
+                {e.mods ? <Text color="$fg-warning"> +{e.mods}</Text> : null}
               </Text>
             ))}
           </Box>
@@ -547,7 +547,7 @@ function ClipboardTab() {
             <Box key={i} paddingX={1}>
               <Text
                 color={i === selectedIndex ? "$bg" : undefined}
-                backgroundColor={i === selectedIndex ? "$primary" : undefined}
+                backgroundColor={i === selectedIndex ? "$fg-accent" : undefined}
                 bold={i === selectedIndex}
               >
                 {i === selectedIndex ? " > " : "   "}
@@ -563,7 +563,7 @@ function ClipboardTab() {
         <Box flexDirection="column">
           <Text bold>Last Copied:</Text>
           {lastCopied ? (
-            <Text color="$success">
+            <Text color="$fg-success">
               {"✓ "}
               {lastCopied}
             </Text>
@@ -573,7 +573,7 @@ function ClipboardTab() {
         </Box>
         <Box flexDirection="column">
           <Text bold>Last Pasted:</Text>
-          {lastPasted ? <Text color="$warning">{lastPasted}</Text> : <Muted>nothing</Muted>}
+          {lastPasted ? <Text color="$fg-warning">{lastPasted}</Text> : <Muted>nothing</Muted>}
         </Box>
       </Box>
 
@@ -587,7 +587,7 @@ function ClipboardTab() {
                 <Small>{h.time}</Small>{" "}
                 <Text
                   color={
-                    h.action === "copy" ? "$success" : h.action === "paste" ? "$warning" : "$muted"
+                    h.action === "copy" ? "$fg-success" : h.action === "paste" ? "$fg-warning" : "$fg-muted"
                   }
                   bold
                 >
@@ -649,10 +649,10 @@ function FocusTab() {
       <Box flexDirection="column" width={36}>
         <H2>Terminal Focus</H2>
         <Box marginTop={1} flexDirection="column" alignItems="center" gap={1}>
-          <Text bold color={focused ? "$success" : "$error"}>
+          <Text bold color={focused ? "$fg-success" : "$fg-error"}>
             {focused ? "  FOCUSED  " : " UNFOCUSED "}
           </Text>
-          <Text color={focused ? "$success" : "$error"}>
+          <Text color={focused ? "$fg-success" : "$fg-error"}>
             {focused ? "Terminal window is active" : "Terminal window lost focus"}
           </Text>
         </Box>
@@ -666,7 +666,7 @@ function FocusTab() {
 
         <Box marginTop={1}>
           <Text>
-            <Text bold>Protocol:</Text> <Text color="$info">CSI ?1004h (DECRPM focus events)</Text>
+            <Text bold>Protocol:</Text> <Text color="$fg-info">CSI ?1004h (DECRPM focus events)</Text>
           </Text>
         </Box>
       </Box>
@@ -684,10 +684,10 @@ function FocusTab() {
             {events.map((e, i) => (
               <Text key={e.index} dimColor={i < events.length - 1}>
                 <Small>{e.timestamp}</Small>{" "}
-                <Text color={e.focused ? "$success" : "$error"} bold>
+                <Text color={e.focused ? "$fg-success" : "$fg-error"} bold>
                   {e.focused ? "focus-in " : "focus-out"}
                 </Text>{" "}
-                <Text color={e.focused ? "$success" : "$error"}>
+                <Text color={e.focused ? "$fg-success" : "$fg-error"}>
                   {e.focused ? "Terminal gained focus" : "Terminal lost focus"}
                 </Text>
               </Text>
@@ -719,9 +719,9 @@ export function TerminalDemo({ kittySupported }: { kittySupported: boolean }) {
         <Text>
           <Text bold>Kitty:</Text>{" "}
           {kittySupported ? (
-            <Text color="$success">enabled</Text>
+            <Text color="$fg-success">enabled</Text>
           ) : (
-            <Text color="$warning">legacy mode</Text>
+            <Text color="$fg-warning">legacy mode</Text>
           )}
         </Text>
       </Box>

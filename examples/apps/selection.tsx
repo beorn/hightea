@@ -139,23 +139,23 @@ function ItemRow({
       onClick={(e: SilveryMouseEvent) => onSelect(item.id, e.metaKey, e.shiftKey)}
       onDoubleClick={() => onSelect(item.id, false, false)}
     >
-      <Text color={isSelected ? "$primary" : "$muted"}>{marker} </Text>
+      <Text color={isSelected ? "$fg-accent" : "$fg-muted"}>{marker} </Text>
       {isEditing ? (
         <Text backgroundColor="$surface" color="$text" bold>
           {" "}
           {item.label}
-          <Text color="$primary">│</Text>{" "}
+          <Text color="$fg-accent">│</Text>{" "}
         </Text>
       ) : (
         <Text
           bold={isCursor}
-          color={isCursor ? "$primary" : isSelected ? "$primary" : "$text"}
+          color={isCursor ? "$fg-accent" : isSelected ? "$fg-accent" : "$text"}
           dim={!isSelected && !isCursor}
         >
           {item.label}
         </Text>
       )}
-      <Text color="$muted" dim>
+      <Text color="$fg-muted" dim>
         {anchorMark}
       </Text>
     </Box>
@@ -164,34 +164,34 @@ function ItemRow({
 
 function StatusBar({ sel }: { sel: Selection | undefined }) {
   const mode = S.inputMode(sel)
-  const modeColor = mode === "text" ? "$success" : mode === "node" ? "$primary" : "$muted"
+  const modeColor = mode === "text" ? "$fg-success" : mode === "node" ? "$fg-accent" : "$fg-muted"
 
   return (
-    <Box flexDirection="column" borderStyle="single" borderColor="$border" paddingX={1}>
+    <Box flexDirection="column" borderStyle="single" borderColor="$border-default" paddingX={1}>
       <Box gap={2}>
         <Text color={modeColor} bold>
           {mode.toUpperCase()}
         </Text>
         {sel && (
           <>
-            <Text color="$muted">
-              cursor=<Text color="$primary">{S.cursor(sel)}</Text>
+            <Text color="$fg-muted">
+              cursor=<Text color="$fg-accent">{S.cursor(sel)}</Text>
             </Text>
-            <Text color="$muted">
+            <Text color="$fg-muted">
               anchor=<Text color="$text">{S.anchor(sel)}</Text>
             </Text>
-            <Text color="$muted">
+            <Text color="$fg-muted">
               selected=<Text color="$text">{sel.nodes.length}</Text>
             </Text>
             {sel.text && (
-              <Text color="$muted">
-                text=<Text color="$success">offset {sel.text[0].offset}</Text>
+              <Text color="$fg-muted">
+                text=<Text color="$fg-success">offset {sel.text[0].offset}</Text>
               </Text>
             )}
           </>
         )}
       </Box>
-      <Text color="$muted" dim>
+      <Text color="$fg-muted" dim>
         j/k nav · Enter edit · Esc back · Shift+j/k extend · Cmd+click toggle · q quit
       </Text>
     </Box>
@@ -308,17 +308,17 @@ function SelectionDemo() {
   return (
     <Box flexDirection="column" padding={1} height="100%">
       <Box marginBottom={1}>
-        <Text bold color="$primary">
+        <Text bold color="$fg-accent">
           Selection Model Demo
         </Text>
-        <Text color="$muted"> — silvery reactive selection</Text>
+        <Text color="$fg-muted"> — silvery reactive selection</Text>
       </Box>
 
       <Box
         flexDirection="column"
         flexGrow={1}
         borderStyle="round"
-        borderColor="$border"
+        borderColor="$border-default"
         overflow="hidden"
       >
         {displayItems.map((item) => (
@@ -329,7 +329,7 @@ function SelectionDemo() {
       <StatusBar sel={sel} />
 
       <Box marginTop={1} flexDirection="column">
-        <Text color="$muted" dim>
+        <Text color="$fg-muted" dim>
           nodes=[{sel?.nodes.join(", ") ?? ""}]
         </Text>
       </Box>

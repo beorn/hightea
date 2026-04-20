@@ -72,7 +72,7 @@ function ChatPane({
   if (exchanges.length === 0) {
     return (
       <Box paddingX={1}>
-        <Text color="$muted">Waiting...</Text>
+        <Text color="$fg-muted">Waiting...</Text>
       </Box>
     )
   }
@@ -135,12 +135,12 @@ function PanesApp({ fastMode, rows }: { fastMode: boolean; rows: number }) {
           width="50%"
           flexDirection="column"
           borderStyle="single"
-          borderColor={focusedPane === "left" ? "$primary" : "$border"}
+          borderColor={focusedPane === "left" ? "$fg-accent" : "$border-default"}
           overflow="hidden"
         >
           <Box paddingX={1}>
             <Text
-              color={focusedPane === "left" ? "$primary" : "$border"}
+              color={focusedPane === "left" ? "$fg-accent" : "$border-default"}
               bold={focusedPane === "left"}
             >
               Agent A
@@ -158,12 +158,12 @@ function PanesApp({ fastMode, rows }: { fastMode: boolean; rows: number }) {
           width="50%"
           flexDirection="column"
           borderStyle="single"
-          borderColor={focusedPane === "right" ? "$primary" : "$border"}
+          borderColor={focusedPane === "right" ? "$fg-accent" : "$border-default"}
           overflow="hidden"
         >
           <Box paddingX={1}>
             <Text
-              color={focusedPane === "right" ? "$primary" : "$border"}
+              color={focusedPane === "right" ? "$fg-accent" : "$border-default"}
               bold={focusedPane === "right"}
             >
               Agent B
@@ -180,7 +180,7 @@ function PanesApp({ fastMode, rows }: { fastMode: boolean; rows: number }) {
       </Box>
       <SearchBar />
       <Box paddingX={1}>
-        <Text color="$muted">Tab: switch pane · Ctrl+F: search · Esc: quit</Text>
+        <Text color="$fg-muted">Tab: switch pane · Ctrl+F: search · Esc: quit</Text>
       </Box>
     </Box>
   )

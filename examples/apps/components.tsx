@@ -84,13 +84,13 @@ function TypographyTab({ scrollOffset }: { scrollOffset?: number }) {
         <Box flexDirection="column" flexGrow={1} flexBasis={0}>
           <H2>Typography</H2>
           <Box flexDirection="column">
-            <Text bold color="$primary">
-              H1 — Page Title (bold, $primary)
+            <Text bold color="$fg-accent">
+              H1 — Page Title (bold, $fg-accent)
             </Text>
-            <Text bold color="$accent">
-              H2 — Section Heading (bold, $accent)
+            <Text bold color="$fg-accent">
+              H2 — Section Heading (bold, $fg-accent)
             </Text>
-            <Text color="$primary">H3 — Group Heading ($primary)</Text>
+            <Text color="$fg-accent">H3 — Group Heading ($fg-accent)</Text>
             <P>P — Body paragraph text</P>
             <Lead>Lead — Introductory italic text</Lead>
             <Muted>Muted — Secondary information</Muted>
@@ -133,29 +133,29 @@ function TypographyTab({ scrollOffset }: { scrollOffset?: number }) {
       <H2>Semantic Colors</H2>
       <Box flexDirection="column">
         <Box gap={1}>
-          <Text backgroundColor="$primary" color="$primary-fg" bold>
-            {" $primary "}
+          <Text backgroundColor="$fg-accent" color="$primary-fg" bold>
+            {" $fg-accent "}
           </Text>
-          <Text backgroundColor="$accent" color="$accent-fg" bold>
-            {" $accent  "}
+          <Text backgroundColor="$fg-accent" color="$accent-fg" bold>
+            {" $fg-accent  "}
           </Text>
-          <Text backgroundColor="$success" color="$success-fg" bold>
-            {" $success "}
+          <Text backgroundColor="$fg-success" color="$success-fg" bold>
+            {" $fg-success "}
           </Text>
-          <Text backgroundColor="$warning" color="$warning-fg" bold>
-            {" $warning "}
+          <Text backgroundColor="$fg-warning" color="$warning-fg" bold>
+            {" $fg-warning "}
           </Text>
-          <Text backgroundColor="$error" color="$error-fg" bold>
-            {" $error   "}
+          <Text backgroundColor="$fg-error" color="$error-fg" bold>
+            {" $fg-error   "}
           </Text>
         </Box>
         <Box gap={1} marginTop={1}>
-          <Text color="$primary">{"████"} primary</Text>
-          <Text color="$accent">{"████"} accent</Text>
-          <Text color="$success">{"████"} success</Text>
-          <Text color="$warning">{"████"} warning</Text>
-          <Text color="$error">{"████"} error</Text>
-          <Text color="$muted">{"████"} muted</Text>
+          <Text color="$fg-accent">{"████"} primary</Text>
+          <Text color="$fg-accent">{"████"} accent</Text>
+          <Text color="$fg-success">{"████"} success</Text>
+          <Text color="$fg-warning">{"████"} warning</Text>
+          <Text color="$fg-error">{"████"} error</Text>
+          <Text color="$fg-muted">{"████"} muted</Text>
         </Box>
       </Box>
 
@@ -283,7 +283,7 @@ function InputsTab() {
           <H2>Select List</H2>
           <Box
             borderStyle="round"
-            borderColor={focusIndex === 2 ? "$focusborder" : "$border"}
+            borderColor={focusIndex === 2 ? "$border-focus" : "$border-default"}
             paddingX={1}
           >
             <SelectList
@@ -301,7 +301,7 @@ function InputsTab() {
           <Box
             flexDirection="column"
             borderStyle="round"
-            borderColor={focusIndex === 3 ? "$focusborder" : "$border"}
+            borderColor={focusIndex === 3 ? "$border-focus" : "$border-default"}
             paddingX={1}
             paddingY={1}
             gap={1}
@@ -329,7 +329,7 @@ function InputsTab() {
           <H2>Current Values</H2>
           <Box
             flexDirection="column"
-            backgroundColor="$surfacebg"
+            backgroundColor="$bg-surface-default"
             paddingX={1}
             paddingY={1}
             borderStyle="round"
@@ -395,7 +395,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
     flexGrow: 1,
     flexBasis: 0,
     borderStyle: "round" as const,
-    borderColor: "$border",
+    borderColor: "$border-default",
     paddingX: 1,
     paddingY: 1,
     flexDirection: "column" as const,
@@ -407,30 +407,30 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
       {/* Row 1 */}
       <Box flexDirection="row" gap={1}>
         <Box {...cell}>
-          <Text color="$primary">
+          <Text color="$fg-accent">
             <Strong>Progress Bars</Strong>
           </Text>
           <Box flexDirection="column">
             <Box>
-              <Text color="$muted">{"Build   "}</Text>
+              <Text color="$fg-muted">{"Build   "}</Text>
               <Box flexGrow={1}>
                 <ProgressBar value={1.0} label="✓" />
               </Box>
             </Box>
             <Box>
-              <Text color="$muted">{"Test    "}</Text>
+              <Text color="$fg-muted">{"Test    "}</Text>
               <Box flexGrow={1}>
                 <ProgressBar value={0.73} />
               </Box>
             </Box>
             <Box>
-              <Text color="$muted">{"Deploy  "}</Text>
+              <Text color="$fg-muted">{"Deploy  "}</Text>
               <Box flexGrow={1}>
                 <ProgressBar value={0.35} />
               </Box>
             </Box>
             <Box>
-              <Text color="$muted">{"Install "}</Text>
+              <Text color="$fg-muted">{"Install "}</Text>
               <Box flexGrow={1}>
                 <ProgressBar />
               </Box>
@@ -443,7 +443,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
           </Box>
         </Box>
         <Box {...cell}>
-          <Text color="$primary">
+          <Text color="$fg-accent">
             <Strong>Input Controls</Strong>
           </Text>
           <Box flexDirection="column" gap={1}>
@@ -482,7 +482,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
         {/* Left half: two stacked boxes */}
         <Box flexDirection="column" gap={1} flexGrow={1} flexBasis={0}>
           <Box {...cell} flexGrow={1} flexBasis={0}>
-            <Text color="$primary">
+            <Text color="$fg-accent">
               <Strong>Border Styles</Strong>
             </Text>
             <Box flexDirection="column" gap={0}>
@@ -490,7 +490,7 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
                 <Box
                   key={style}
                   borderStyle={style as any}
-                  borderColor={i === selectedBorder ? "$primary" : "$border"}
+                  borderColor={i === selectedBorder ? "$fg-accent" : "$border-default"}
                   borderLeft={true}
                   borderRight={true}
                   borderTop={i === 0}
@@ -506,33 +506,33 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             </Box>
           </Box>
           <Box {...cell} flexGrow={1} flexBasis={0}>
-            <Text color="$primary">
+            <Text color="$fg-accent">
               <Strong>Design Tokens</Strong>
             </Text>
             <Box flexDirection="row" gap={2}>
               <Box flexDirection="column" width={14}>
-                <Text color="$success">
-                  {"●"} {"$success".padEnd(10)}
+                <Text color="$fg-success">
+                  {"●"} {"$fg-success".padEnd(10)}
                 </Text>
-                <Text color="$warning">
-                  {"●"} {"$warning".padEnd(10)}
+                <Text color="$fg-warning">
+                  {"●"} {"$fg-warning".padEnd(10)}
                 </Text>
-                <Text color="$error">
-                  {"●"} {"$error".padEnd(10)}
+                <Text color="$fg-error">
+                  {"●"} {"$fg-error".padEnd(10)}
                 </Text>
-                <Text color="$info">
-                  {"●"} {"$info".padEnd(10)}
+                <Text color="$fg-info">
+                  {"●"} {"$fg-info".padEnd(10)}
                 </Text>
-                <Text color="$primary">
-                  {"●"} {"$primary".padEnd(10)}
+                <Text color="$fg-accent">
+                  {"●"} {"$fg-accent".padEnd(10)}
                 </Text>
                 <Muted>
-                  {"●"} {"$muted".padEnd(10)}
+                  {"●"} {"$fg-muted".padEnd(10)}
                 </Muted>
               </Box>
               <Box flexDirection="column">
-                <Text backgroundColor="$primary" color="$primary-fg">
-                  {" $primary   "}
+                <Text backgroundColor="$fg-accent" color="$primary-fg">
+                  {" $fg-accent   "}
                 </Text>
                 <Text backgroundColor="$fg" color="$bg">
                   {" $inverse   "}
@@ -540,20 +540,20 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
                 <Text backgroundColor="$muted-bg" color="$fg">
                   {" $surface   "}
                 </Text>
-                <Text backgroundColor="$surfacebg" color="$surface">
-                  {" $surfacebg "}
+                <Text backgroundColor="$bg-surface-default" color="$surface">
+                  {" $bg-surface-default "}
                 </Text>
               </Box>
             </Box>
           </Box>
         </Box>
         {/* Right half: Modal Dialog */}
-        <Box {...cell} backgroundColor="$surfacebg" paddingRight={2}>
+        <Box {...cell} backgroundColor="$bg-surface-default" paddingRight={2}>
           <Box justifyContent="space-between" paddingBottom={1}>
-            <Text color="$primary">
+            <Text color="$fg-accent">
               <Strong>Modal Dialog</Strong>
             </Text>
-            <Small color="$muted">Esc to close</Small>
+            <Small color="$fg-muted">Esc to close</Small>
           </Box>
           <Box flexDirection="column" gap={1}>
             <Box gap={1}>
@@ -568,20 +568,20 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
             </Box>
             <Box flexDirection="column">
               <Text>
-                <Text color="$success">{"✓"}</Text> All checks passed
+                <Text color="$fg-success">{"✓"}</Text> All checks passed
               </Text>
               <Text>
-                <Text color="$success">{"✓"}</Text> Tests: 247 passed
+                <Text color="$fg-success">{"✓"}</Text> Tests: 247 passed
               </Text>
               <Text>
-                <Text color="$warning">{"⚠"}</Text> 2 deprecation warnings
+                <Text color="$fg-warning">{"⚠"}</Text> 2 deprecation warnings
               </Text>
               <Text>
-                <Text color="$muted">{"ℹ"}</Text> Deploy target: us-east-1
+                <Text color="$fg-muted">{"ℹ"}</Text> Deploy target: us-east-1
               </Text>
             </Box>
             <Box gap={2}>
-              <Text backgroundColor="$primary" color="$primary-fg">
+              <Text backgroundColor="$fg-accent" color="$primary-fg">
                 {"  Deploy  "}
               </Text>
               <Text backgroundColor="$muted-bg" color="$fg">
@@ -610,13 +610,13 @@ function DisplayTab({ scrollOffset }: { scrollOffset?: number }) {
               </P>
               <HR />
               <Box flexDirection="column">
-                <Text color="$success">{"✓ Typography presets (H1-H3, Lead, Muted, Code)"}</Text>
-                <Text color="$success">
+                <Text color="$fg-success">{"✓ Typography presets (H1-H3, Lead, Muted, Code)"}</Text>
+                <Text color="$fg-success">
                   {"✓ Input components (TextInput, TextArea, SelectList)"}
                 </Text>
-                <Text color="$success">{"✓ Display widgets (ProgressBar, Spinner, Badge)"}</Text>
-                <Text color="$success">{"✓ Layout primitives (Box, Divider, border styles)"}</Text>
-                <Text color="$success">{"✓ Dialog system (ModalDialog with input blocking)"}</Text>
+                <Text color="$fg-success">{"✓ Display widgets (ProgressBar, Spinner, Badge)"}</Text>
+                <Text color="$fg-success">{"✓ Layout primitives (Box, Divider, border styles)"}</Text>
+                <Text color="$fg-success">{"✓ Dialog system (ModalDialog with input blocking)"}</Text>
               </Box>
             </Box>
           </ModalDialog>

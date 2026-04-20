@@ -36,10 +36,10 @@ export function SchemeList({
       flexDirection="column"
       width={22}
       borderStyle="single"
-      borderColor={focused ? "$accent" : "$border"}
+      borderColor={focused ? "$fg-accent" : "$border-default"}
     >
       <Box paddingX={1}>
-        <Text bold color="$accent">
+        <Text bold color="$fg-accent">
           SCHEMES
         </Text>
       </Box>

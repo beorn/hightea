@@ -27,14 +27,14 @@ export const meta: ExampleMeta = {
 
 function SelectableTextPanel(): React.ReactElement {
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="$border" paddingX={1} flexGrow={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor="$border-default" paddingX={1} flexGrow={1}>
       <H2>Selectable Text</H2>
       <Small>userSelect="text" (default)</Small>
       <Box height={1} />
       <Text>Drag your mouse over this text to select it.</Text>
       <Text>Multi-line selections work across paragraphs.</Text>
       <Box height={1} />
-      <Text color="$muted">
+      <Text color="$fg-muted">
         The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.
       </Text>
     </Box>
@@ -50,7 +50,7 @@ function NonSelectablePanel(): React.ReactElement {
     <Box
       flexDirection="column"
       borderStyle="round"
-      borderColor="$border"
+      borderColor="$border-default"
       paddingX={1}
       flexGrow={1}
       userSelect="none"
@@ -75,28 +75,28 @@ function ContainedPanel(): React.ReactElement {
     <Box
       flexDirection="column"
       borderStyle="round"
-      borderColor="$warning"
+      borderColor="$fg-warning"
       paddingX={1}
       flexGrow={1}
     >
-      <H2 color="$warning">Contained Selection</H2>
+      <H2 color="$fg-warning">Contained Selection</H2>
       <Small>userSelect="contain"</Small>
       <Box height={1} />
       <Box
         flexDirection="column"
         borderStyle="round"
-        borderColor="$primary"
+        borderColor="$fg-accent"
         paddingX={1}
         userSelect="contain"
       >
-        <Text bold color="$primary">
+        <Text bold color="$fg-accent">
           Selection Boundary
         </Text>
         <Box height={1} />
         <Text>Selection cannot escape this container.</Text>
         <Text>Try dragging past the border — it clips.</Text>
         <Box height={1} />
-        <Text color="$success">Useful for modals, side panes, overlays.</Text>
+        <Text color="$fg-success">Useful for modals, side panes, overlays.</Text>
       </Box>
     </Box>
   )
@@ -110,17 +110,17 @@ function SelectionStatePanel(): React.ReactElement {
   const selection = useSelection()
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="$info" paddingX={1} flexGrow={1}>
-      <H2 color="$info">Selection State</H2>
+    <Box flexDirection="column" borderStyle="round" borderColor="$fg-info" paddingX={1} flexGrow={1}>
+      <H2 color="$fg-info">Selection State</H2>
       <Small>Live readout from useSelection()</Small>
       <Box height={1} />
       {!selection ? (
-        <Text color="$muted">useSelection() returned undefined — feature not installed</Text>
+        <Text color="$fg-muted">useSelection() returned undefined — feature not installed</Text>
       ) : selection.range ? (
         <>
           <Box gap={1}>
             <Strong>Status:</Strong>
-            <Text color="$success">{selection.selecting ? "Selecting..." : "Selected"}</Text>
+            <Text color="$fg-success">{selection.selecting ? "Selecting..." : "Selected"}</Text>
           </Box>
           <Box gap={1}>
             <Strong>Source:</Strong>
@@ -140,7 +140,7 @@ function SelectionStatePanel(): React.ReactElement {
           </Box>
         </>
       ) : (
-        <Text color="$muted">No active selection — drag to select text</Text>
+        <Text color="$fg-muted">No active selection — drag to select text</Text>
       )}
     </Box>
   )
@@ -168,7 +168,7 @@ function TextSelectionDemo(): React.ReactElement {
   return (
     <Box flexDirection="column" padding={1} gap={1} height="100%">
       <Box>
-        <H1 color="$primary">Text Selection Demo</H1>
+        <H1 color="$fg-accent">Text Selection Demo</H1>
         <Muted> — real selection via useSelection()</Muted>
       </Box>
 

@@ -43,7 +43,7 @@ export function ScrollExample() {
         flexGrow={1}
         flexDirection="column"
         borderStyle="round"
-        borderColor="$primary"
+        borderColor="$fg-accent"
         overflow="scroll"
         scrollTo={selectedIndex}
         height={10}
@@ -52,7 +52,7 @@ export function ScrollExample() {
           <Box
             key={item.id}
             paddingX={1}
-            backgroundColor={index === selectedIndex ? "$primary" : undefined}
+            backgroundColor={index === selectedIndex ? "$fg-accent" : undefined}
           >
             <Text
               color={index === selectedIndex ? "$primary-fg" : undefined}

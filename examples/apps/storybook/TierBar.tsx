@@ -49,19 +49,19 @@ export function TierBar({ tier, focus, view }: TierBarProps): React.ReactElement
         <Muted>tier</Muted>
         {TIER_ORDER.map((t, i) => (
           <React.Fragment key={t}>
-            <Text color={t === tier ? "$accent" : undefined} bold={t === tier} inverse={t === tier}>
+            <Text color={t === tier ? "$fg-accent" : undefined} bold={t === tier} inverse={t === tier}>
               {` ${i + 1} ${TIER_LABEL[t]} `}
             </Text>
           </React.Fragment>
         ))}
         <Muted>·</Muted>
         <Muted>view</Muted>
-        <Text color="$warning" bold={view !== "components"}>
+        <Text color="$fg-warning" bold={view !== "components"}>
           {VIEW_LABEL[view]}
         </Text>
         <Muted>·</Muted>
         <Muted>focus</Muted>
-        <Text color="$info" bold>
+        <Text color="$fg-info" bold>
           {FOCUS_LABEL[focus]}
         </Text>
       </Box>

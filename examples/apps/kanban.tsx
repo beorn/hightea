@@ -82,17 +82,17 @@ const initialColumns: Column[] = [
 // ============================================================================
 
 const tagColors: Record<string, string> = {
-  frontend: "$info",
-  backend: "$accent",
-  design: "$warning",
-  devops: "$success",
-  docs: "$primary",
-  ux: "$muted",
-  security: "$error",
+  frontend: "$fg-info",
+  backend: "$fg-accent",
+  design: "$fg-warning",
+  devops: "$fg-success",
+  docs: "$fg-accent",
+  ux: "$fg-muted",
+  security: "$fg-error",
 }
 
 function Tag({ name }: { name: string }) {
-  const color = tagColors[name] ?? "$muted"
+  const color = tagColors[name] ?? "$fg-muted"
   return (
     <Text color={color} dim>
       #{name}
@@ -105,10 +105,10 @@ function CardComponent({ card, isSelected }: { card: Card; isSelected: boolean }
     <Box
       flexDirection="column"
       borderStyle="round"
-      borderColor={isSelected ? "$primary" : "$border"}
+      borderColor={isSelected ? "$fg-accent" : "$border-default"}
     >
       {isSelected ? (
-        <Box backgroundColor="$primary" paddingX={1}>
+        <Box backgroundColor="$fg-accent" paddingX={1}>
           <Text color="$primary-fg" bold wrap="truncate">
             {card.title}
           </Text>
@@ -142,13 +142,13 @@ function ColumnComponent({
       flexGrow={1}
       flexBasis={0}
       borderStyle="single"
-      borderColor={isSelected ? "$primary" : "$border"}
+      borderColor={isSelected ? "$fg-accent" : "$border-default"}
     >
-      <Box backgroundColor={isSelected ? "$primary" : undefined} paddingX={1}>
+      <Box backgroundColor={isSelected ? "$fg-accent" : undefined} paddingX={1}>
         <Text bold color={isSelected ? "$primary-fg" : "$text"}>
           {column.title}
         </Text>
-        <Text color={isSelected ? "$primary-fg" : "$muted"}> ({column.cards.length})</Text>
+        <Text color={isSelected ? "$primary-fg" : "$fg-muted"}> ({column.cards.length})</Text>
       </Box>
 
       <Box

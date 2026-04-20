@@ -96,7 +96,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
         const isDone = i < current
         const isCurrent = i === current
         const dot = isDone ? "\u25cf" : isCurrent ? "\u25cb" : "\u25cb"
-        const color = isDone ? "$success" : isCurrent ? "$primary" : "$muted"
+        const color = isDone ? "$fg-success" : isCurrent ? "$fg-accent" : "$fg-muted"
         return (
           <Text key={i} color={color} bold={isCurrent}>
             {dot}
@@ -143,7 +143,7 @@ function NameStep({
         <H1>:</H1>
       </Box>
       <Box>
-        <Text color="$muted">{"\u276f "}</Text>
+        <Text color="$fg-muted">{"\u276f "}</Text>
         <TextInput value={value} onChange={onChange} onSubmit={onSubmit} prompt="" />
       </Box>
       <Box marginTop={1}>
@@ -161,14 +161,14 @@ function InstallStep({ progress, stepIndex }: { progress: number; stepIndex: num
     <Box flexDirection="column" paddingX={1}>
       <Box marginBottom={1}>
         <Spinner type="dots" />
-        <Text bold color="$warning">
+        <Text bold color="$fg-warning">
           {" "}
           Installing dependencies...
         </Text>
       </Box>
 
       <Box marginBottom={1}>
-        <ProgressBar value={progress} color="$primary" label="" />
+        <ProgressBar value={progress} color="$fg-accent" label="" />
       </Box>
 
       <Muted>{currentStep}</Muted>
@@ -181,13 +181,13 @@ function DoneStep({ framework, projectName }: { framework: string; projectName: 
   return (
     <Box flexDirection="column" paddingX={1}>
       <Box marginBottom={1}>
-        <H1 color="$success">{"\u2714"} Project created successfully!</H1>
+        <H1 color="$fg-success">{"\u2714"} Project created successfully!</H1>
       </Box>
 
       <Box
         flexDirection="column"
         borderStyle="round"
-        borderColor="$success"
+        borderColor="$fg-success"
         paddingX={2}
         paddingY={1}
       >
@@ -292,7 +292,7 @@ export function CliWizard() {
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-      <Box borderStyle="single" borderColor="$primary" paddingX={2} marginBottom={1}>
+      <Box borderStyle="single" borderColor="$fg-accent" paddingX={2} marginBottom={1}>
         <H1>create-app</H1>
         <Muted> v1.0.0</Muted>
       </Box>

@@ -93,7 +93,7 @@ export function NoteEditor() {
         {/* Main editor */}
         <Box
           borderStyle="round"
-          borderColor={focusIndex === 0 ? "$primary" : "$border"}
+          borderColor={focusIndex === 0 ? "$fg-accent" : "$border-default"}
           flexDirection="column"
           flexGrow={3}
           flexBasis={0}
@@ -119,7 +119,7 @@ export function NoteEditor() {
         {/* Saved notes sidebar */}
         <Box
           borderStyle="round"
-          borderColor={focusIndex === 1 ? "$primary" : "$border"}
+          borderColor={focusIndex === 1 ? "$fg-accent" : "$border-default"}
           flexDirection="column"
           flexGrow={2}
           flexBasis={0}
@@ -136,7 +136,7 @@ export function NoteEditor() {
               notes.map((note, i) => (
                 <Box key={i} flexDirection="column" marginBottom={1}>
                   <Text wrap="truncate">
-                    <Strong color="$success">#{i + 1}</Strong> {note.split("\n")[0]}
+                    <Strong color="$fg-success">#{i + 1}</Strong> {note.split("\n")[0]}
                   </Text>
                   <Muted>
                     {note.split("\n").length} lines, {note.length} chars

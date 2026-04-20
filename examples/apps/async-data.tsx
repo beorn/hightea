@@ -67,8 +67,8 @@ function UserProfile() {
   )
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="$success" padding={1}>
-      <H1 color="$success">User Profile</H1>
+    <Box flexDirection="column" borderStyle="round" borderColor="$fg-success" padding={1}>
+      <H1 color="$fg-success">User Profile</H1>
       <Text>Name: {user.name}</Text>
       <Text>Email: {user.email}</Text>
       <Text>Role: {user.role}</Text>
@@ -92,7 +92,7 @@ function Statistics() {
   )
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="$primary" padding={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor="$fg-accent" padding={1}>
       <H1>Statistics</H1>
       <Text>Projects: {stats.projects}</Text>
       <Text>Commits: {stats.commits}</Text>
@@ -117,8 +117,8 @@ function RecentActivity() {
   )
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="$warning" padding={1}>
-      <H1 color="$warning">Recent Activity</H1>
+    <Box flexDirection="column" borderStyle="round" borderColor="$fg-warning" padding={1}>
+      <H1 color="$fg-warning">Recent Activity</H1>
       {activities.map((a) => (
         <Text key={a.id}>
           <Text dim>{a.time}</Text> {a.action}
@@ -131,8 +131,8 @@ function RecentActivity() {
 // Loading fallbacks
 function LoadingBox({ label }: { label: string }) {
   return (
-    <Box borderStyle="round" borderColor="$border" padding={1}>
-      <Text color="$muted">Loading {label}...</Text>
+    <Box borderStyle="round" borderColor="$border-default" padding={1}>
+      <Text color="$fg-muted">Loading {label}...</Text>
     </Box>
   )
 }
@@ -161,19 +161,19 @@ export function AsyncDataApp() {
     <Box flexDirection="column" padding={1} key={refreshKey}>
       <Box flexGrow={1} flexDirection="row" gap={1}>
         {/* Each Suspense boundary loads independently */}
-        <ErrorBoundary fallback={<Text color="$error">User error</Text>}>
+        <ErrorBoundary fallback={<Text color="$fg-error">User error</Text>}>
           <Suspense fallback={<LoadingBox label="user" />}>
             <UserProfile />
           </Suspense>
         </ErrorBoundary>
 
-        <ErrorBoundary fallback={<Text color="$error">Stats error</Text>}>
+        <ErrorBoundary fallback={<Text color="$fg-error">Stats error</Text>}>
           <Suspense fallback={<LoadingBox label="stats" />}>
             <Statistics />
           </Suspense>
         </ErrorBoundary>
 
-        <ErrorBoundary fallback={<Text color="$error">Activity error</Text>}>
+        <ErrorBoundary fallback={<Text color="$fg-error">Activity error</Text>}>
           <Suspense fallback={<LoadingBox label="activity" />}>
             <RecentActivity />
           </Suspense>

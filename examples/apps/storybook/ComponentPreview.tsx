@@ -60,7 +60,7 @@ function TextInputPreview({
       <Muted>{label}</Muted>
       <Box
         borderStyle="single"
-        borderColor={focused ? "$accent" : "$border"}
+        borderColor={focused ? "$fg-accent" : "$border-default"}
         paddingX={1}
         width={36}
       >
@@ -72,10 +72,10 @@ function TextInputPreview({
         ) : focused ? (
           <Text>
             <Text inverse> </Text>
-            <Text color="$muted">{placeholder ? placeholder.slice(1) : ""}</Text>
+            <Text color="$fg-muted">{placeholder ? placeholder.slice(1) : ""}</Text>
           </Text>
         ) : (
-          <Text color="$muted">{placeholder ?? ""}</Text>
+          <Text color="$fg-muted">{placeholder ?? ""}</Text>
         )}
       </Box>
     </Box>
@@ -121,7 +121,7 @@ function ModalPreview() {
   return (
     <Box
       borderStyle="double"
-      borderColor="$accent"
+      borderColor="$fg-accent"
       paddingX={2}
       paddingY={1}
       width={52}
@@ -129,7 +129,7 @@ function ModalPreview() {
       gap={0}
     >
       <Box gap={1}>
-        <Text color="$accent" bold>
+        <Text color="$fg-accent" bold>
           ◆
         </Text>
         <Strong>Confirm destructive action</Strong>
@@ -137,13 +137,13 @@ function ModalPreview() {
       <Muted>Delete 3 items — this cannot be undone.</Muted>
       <Divider />
       <Box gap={1}>
-        <Box backgroundColor="$error" paddingX={1}>
-          <Text color="$errorfg" bold>
+        <Box backgroundColor="$fg-error" paddingX={1}>
+          <Text color="$fg-on-error" bold>
             {" "}
             Delete{" "}
           </Text>
         </Box>
-        <Box borderStyle="single" borderColor="$border" paddingX={1}>
+        <Box borderStyle="single" borderColor="$border-default" paddingX={1}>
           <Text>Cancel</Text>
         </Box>
       </Box>
@@ -164,11 +164,11 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
       flexDirection="column"
       flexGrow={1}
       borderStyle="single"
-      borderColor="$border"
+      borderColor="$border-default"
       overflow="scroll"
     >
       <Box paddingX={1} gap={1}>
-        <Text bold color="$accent">
+        <Text bold color="$fg-accent">
           COMPONENTS
         </Text>
         <Muted>·</Muted>
@@ -184,9 +184,9 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
         <H3>Heading three</H3>
         <P>
           A paragraph of body text under the active scheme. Inline{" "}
-          <Text color="$accent">accent</Text>, <Text color="$info">info</Text>,{" "}
-          <Text color="$success">success</Text>, <Text color="$warning">warning</Text>, and{" "}
-          <Text color="$error">error</Text>.
+          <Text color="$fg-accent">accent</Text>, <Text color="$fg-info">info</Text>,{" "}
+          <Text color="$fg-success">success</Text>, <Text color="$fg-warning">warning</Text>, and{" "}
+          <Text color="$fg-error">error</Text>.
         </P>
         <Muted>Muted secondary text</Muted>
 
@@ -254,7 +254,7 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
             <Box backgroundColor="$bg-surface-hover" paddingX={2}>
               <Text>surface.hover</Text>
             </Box>
-            <Box backgroundColor="$mutedbg" paddingX={2}>
+            <Box backgroundColor="$bg-muted" paddingX={2}>
               <Text>muted.bg</Text>
             </Box>
           </Box>
@@ -274,7 +274,7 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
             focused={true}
           />
           <TextInputPreview label="Project" value="km-tui" focused={false} />
-          <Box borderStyle="single" borderColor="$border" paddingX={1} width={36}>
+          <Box borderStyle="single" borderColor="$border-default" paddingX={1} width={36}>
             <SelectList
               items={SELECT_ITEMS}
               highlightedIndex={selectIdx}

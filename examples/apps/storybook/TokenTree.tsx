@@ -127,11 +127,11 @@ export function TokenTree({
       flexDirection="column"
       width={32}
       borderStyle="single"
-      borderColor={focused ? "$accent" : "$border"}
+      borderColor={focused ? "$fg-accent" : "$border-default"}
       overflow="scroll"
     >
       <Box paddingX={1} gap={1}>
-        <Text bold color="$accent">
+        <Text bold color="$fg-accent">
           TOKENS
         </Text>
         <Muted>{tokens.length}</Muted>
@@ -141,7 +141,7 @@ export function TokenTree({
         {Array.from(groups.entries()).map(([groupName, list]) => (
           <Box key={groupName} flexDirection="column" gap={0}>
             <Box>
-              <Text bold color="$info">
+              <Text bold color="$fg-info">
                 ▼ {groupName}
               </Text>
             </Box>
