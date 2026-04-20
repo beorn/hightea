@@ -504,6 +504,58 @@ export function scrollPhase(root: AgNode, options: ScrollPhaseOptions = {}): voi
 }
 
 /**
+ * Snap scroll offset so the first visible child (after the top overflow
+ * indicator's reserved row) aligns with a child-top boundary.
+ *
+ * When scrolling "down to show the target at the bottom," the raw offset
+ * `target.bottom - effectiveHeight` assumes the entire viewport above the
+ * bottom-indicator is usable content. But the TOP overflow indicator also
+ * consumes a row when `hiddenAbove > 0`, rendering at viewport row 0 on top
+ * of whatever child starts there. If that row is a card's top border, the
+ * border is overwritten — users see a "headless" card and perceive the
+ * column as "gotten shorter" (see km-tui `column-top-disappears`).
+ *
+ * This snap shifts the offset so `offset + 1 === firstFullyVisibleChild.top`:
+ * the top-indicator row coincides with the 1-row gap ABOVE the first child,
+ * not with that child's content. When children have heterogeneous heights,
+ * this means moving the viewport DOWN by a few rows (so an earlier, shorter
+ * child scrolls fully off-screen and the next child starts cleanly).
+ *
+ * Guardrails:
+ * - Never snap past the target's own top (keeps the target visible).
+ * - If no suitable boundary exists above `rawOffset + 1` and ≤ `target.top`,
+ *   returns `rawOffset` unchanged (scroll behaves as before).
+ * - Returns 0 unchanged — offset=0 means no top indicator, no conflict.
+ */
+function snapOffsetToChildTop(
+  rawOffset: number,
+  childPositions: { child: AgNode; top: number; bottom: number; index: number; isSticky: boolean }[],
+  target: { top: number; bottom: number; index: number },
+): number {
+  if (rawOffset <= 0) return rawOffset
+  // Desired: first-visible-child.top === offset + 1 (leaving row 0 for indicator).
+  // Find the smallest child-top in the range (rawOffset + 1, target.top] and
+  // set offset = that child-top - 1. This places the child-top one row below
+  // the viewport top — exactly the row the top indicator occupies.
+  let bestChildTop = -1
+  for (const cp of childPositions) {
+    if (cp.isSticky) continue
+    if (cp.top === cp.bottom) continue // skip zero-height
+    if (cp.top > rawOffset && cp.top <= target.top) {
+      if (bestChildTop === -1 || cp.top < bestChildTop) {
+        bestChildTop = cp.top
+      }
+    }
+  }
+  if (bestChildTop === -1) return rawOffset
+  // Reserve one row for the top indicator: scrollOffset = childTop - 1.
+  // This keeps the child at viewport row 1 (just below the indicator row).
+  const snapped = bestChildTop - 1
+  // Safety: never reduce offset below rawOffset (would hide target.bottom).
+  return snapped >= rawOffset ? snapped : rawOffset
+}
+
+/**
  * Calculate scroll state for a single scrollable container.
  */
 function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: boolean): void {
@@ -586,11 +638,27 @@ function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: b
 
       // Only scroll if target is outside visible range
       if (target.top < visibleTop) {
-        // Target is above viewport - scroll up to show it at top
-        scrollOffset = target.top
+        // Target is above viewport - scroll up to show it at top.
+        //
+        // Reserve one row for the TOP overflow indicator so it doesn't
+        // overwrite the target's top border. When target.top > 0 there
+        // will be a top indicator (target isn't the first child, so items
+        // above exist). Shifting scrollOffset one row up places the
+        // indicator at viewport row 0 (over the preceding card's bottom
+        // row — typically its bottom border) and leaves target.top at
+        // viewport row 1, rendering its top border cleanly.
+        scrollOffset = target.top > 0 ? target.top - 1 : 0
       } else if (target.bottom > visibleBottom) {
-        // Target is below viewport - scroll down to show it at bottom
-        scrollOffset = target.bottom - effectiveHeight
+        // Target is below viewport - scroll down to show it at bottom.
+        //
+        // Snap to a child-top boundary when a pixel-exact offset would land
+        // inside a child (clipping its top border). Without snapping, mixed-
+        // height children produce a "headless card" at the viewport top —
+        // users perceive it as "column got shorter" (see km-tui bug
+        // `column-top-disappears`). Snap DOWN (toward a larger offset) so the
+        // target remains visible at the bottom of the viewport.
+        const rawOffset = target.bottom - effectiveHeight
+        scrollOffset = snapOffsetToChildTop(rawOffset, childPositions, target)
       }
       // Otherwise, keep current scroll position (target is visible)
     }
