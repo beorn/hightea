@@ -169,9 +169,18 @@ export function validateThemeInvariants(
   }
 
   if (checkVisibility) {
-    // Selection visibility — ΔL ≥ 0.08 between selectionbg and bg (so highlight is distinguishable)
+    // Bracket access to Sterling flat tokens falls back to legacy concat-kebab
+    // field when the Theme hasn't been Sterling-augmented (hand-crafted Theme
+    // objects that bypass `inlineSterlingTokens`). The CONTRAST_PAIRS table
+    // migration (full Sterling-key rewrite) is tracked under
+    // km-silvery.sterling-2e-interior-migration.
+    const themeAny = theme as unknown as Record<string, string | undefined>
+    const selectionBg = themeAny["bg-selected"] ?? themeAny["selectionbg"] ?? ""
+    const cursorBg = themeAny["bg-cursor"] ?? themeAny["cursorbg"] ?? ""
+
+    // Selection visibility — ΔL ≥ 0.08 between selection bg and bg (so highlight is distinguishable)
     const lBg = lightness(theme.bg)
-    const lSelBg = lightness(theme.selectionbg)
+    const lSelBg = lightness(selectionBg)
     if (lBg !== null && lSelBg !== null) {
       const dL = Math.abs(lSelBg - lBg)
       if (dL < SELECTION_DELTA_L) {
@@ -180,14 +189,14 @@ export function validateThemeInvariants(
           tokens: ["selectionbg", "bg"],
           actual: dL,
           required: SELECTION_DELTA_L,
-          message: `selectionbg (${theme.selectionbg}) differs from bg (${theme.bg}) by ΔL=${dL.toFixed(3)}, needs ≥ ${SELECTION_DELTA_L.toFixed(2)}`,
+          message: `selection bg (${selectionBg}) differs from bg (${theme.bg}) by ΔL=${dL.toFixed(3)}, needs ≥ ${SELECTION_DELTA_L.toFixed(2)}`,
         })
       }
     }
 
-    // Cursor visibility — ΔE ≥ 0.15 (OKLCH) between cursorbg and bg
+    // Cursor visibility — ΔE ≥ 0.15 (OKLCH) between cursor bg and bg
     const oBg = hexToOklch(theme.bg)
-    const oCursorBg = hexToOklch(theme.cursorbg)
+    const oCursorBg = hexToOklch(cursorBg)
     if (oBg && oCursorBg) {
       const de = oklchDeltaE(oBg, oCursorBg)
       if (de < CURSOR_DELTA_E) {
@@ -196,7 +205,7 @@ export function validateThemeInvariants(
           tokens: ["cursorbg", "bg"],
           actual: de,
           required: CURSOR_DELTA_E,
-          message: `cursorbg (${theme.cursorbg}) differs from bg (${theme.bg}) by ΔE=${de.toFixed(3)}, needs ≥ ${CURSOR_DELTA_E.toFixed(2)}`,
+          message: `cursor bg (${cursorBg}) differs from bg (${theme.bg}) by ΔE=${de.toFixed(3)}, needs ≥ ${CURSOR_DELTA_E.toFixed(2)}`,
         })
       }
     }
