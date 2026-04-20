@@ -58,8 +58,19 @@ export {
 export { renderPhase, clearBgConflictWarnings, setBgConflictMode } from "./render-phase"
 export { renderPhaseAdapter } from "./render-phase-adapter"
 export { outputPhase } from "./output-phase"
-export { applyBackdropFade, hasBackdropMarkers } from "./backdrop-phase"
-export type { BackdropColorLevel, BackdropFadeOptions } from "./backdrop-phase"
+export {
+  applyBackdropFade,
+  buildFadePlan,
+  hasBackdropMarkers,
+  realizeFadePlanToBuffer,
+  realizeFadePlanToKittyOverlay,
+} from "./backdrop-phase"
+export type {
+  BackdropColorLevel,
+  BackdropFadeOptions,
+  BackdropFadeResult,
+  FadePlan,
+} from "./backdrop-phase"
 // Active theme + color level state (pipeline-internal, exposed for out-of-tree consumers)
 export {
   getActiveTheme,

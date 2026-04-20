@@ -1,10 +1,31 @@
 /**
- * Backdrop fade pass.
+ * Backdrop fade pass — mask → realize two-stage model.
  *
- * Runs AFTER the content + decoration phases, BEFORE the output phase. Walks
- * the tree to find nodes with `data-backdrop-fade` or
- * `data-backdrop-fade-excluded` markers, then applies a cell-level color
- * transform to the affected rect(s) on the buffer.
+ * Runs AFTER the content + decoration phases, BEFORE the output phase. The
+ * pipeline orchestrator (`ag.ts`) invokes `applyBackdropFade(root, buffer,
+ * options)`, which performs two independent stages:
+ *
+ *   1. `buildFadePlan(root, options)` — a PURE, capability-independent pass
+ *      that walks the tree, collects `data-backdrop-fade` /
+ *      `data-backdrop-fade-excluded` markers, enforces the single-amount
+ *      invariant, and resolves the scrim + default colors.
+ *   2a. `realizeFadePlanToBuffer(plan, buffer, kittyEnabled)` — cell-level
+ *      transform over the plan's include/exclude rects. Handles CJK/wide
+ *      text and (when `kittyEnabled === false`) emoji glyphs via SGR 2
+ *      stamp. Mutates the buffer in place.
+ *   2b. `realizeFadePlanToKittyOverlay(plan, buffer)` — emits the Kitty
+ *      graphics escape sequence. When `plan.active` is true the overlay
+ *      ALWAYS begins with `CURSOR_SAVE + kittyDeleteAllScrimPlacements() +
+ *      CURSOR_RESTORE` so stale placements from a prior frame are cleared,
+ *      even when there are no emoji cells in the faded region this frame.
+ *      Returns `""` only when the caller did not enable Kitty graphics.
+ *
+ * Public API (`applyBackdropFade`, `hasBackdropMarkers`, `BackdropFadeOptions`,
+ * `BackdropFadeResult`) is unchanged — `applyBackdropFade` is a thin
+ * orchestrator that wires the three stages together. The split exists so each
+ * stage is independently testable and so STRICT-mode diagnostics can compare
+ * plans + overlays across fresh/incremental paths without re-walking the
+ * buffer.
  *
  * ## The model: per-channel alpha scrim with perceptually-aware fg
  *
@@ -62,16 +83,18 @@
  * ## Incremental correctness
  *
  * The pass mutates the final buffer in place after the decoration phase. The
- * same buffer is what `ag.render()` stores as `_prevBuffer`. This is safe
- * because:
+ * PRE-transform buffer is snapshotted and stored as `_prevBuffer` (see
+ * `ag.ts`), so the next frame's incremental render clones pre-fade pixels
+ * and re-fades them freshly. Because `buildFadePlan` is pure and the
+ * realizers trust the plan, fresh and incremental paths produce identical
+ * post-transform buffers — `SILVERY_STRICT=1` stays green.
  *
- * 1. The backdrop pass is a pure function of (tree markers, buffer cells,
- *    rootBg). `rootBg` is stable within a frame and identical on fresh/
- *    incremental paths.
- * 2. `renderPhase` writes the same pre-transform pixels on both fresh and
- *    incremental paths (existing incremental invariant).
- * 3. Running the same pure transform produces identical post-transform
- *    buffers — `SILVERY_STRICT=1` stays green.
+ * **STRICT overlay invariant**: `realizeFadePlanToKittyOverlay` is a pure
+ * function of `(plan, buffer)`. When the same tree is rendered via the
+ * fresh path and the incremental path within a single frame, both produce
+ * byte-identical Kitty overlay strings. STRICT mode compares these
+ * overlays alongside the buffer (see `scheduler.ts`) — any drift signals a
+ * latent determinism bug in marker collection or the emoji walk.
  *
  * ## Emoji vs wide-text cells
  *
@@ -83,12 +106,13 @@
  * For emoji cells, two paths, mutually exclusive:
  *
  * 1. **Kitty graphics available** (Ghostty / Kitty / WezTerm outside tmux):
- *    `buildKittyOverlay` emits a translucent scrim image at alpha=amount
- *    above each emoji cell, and the per-cell mix SKIPS emoji cells entirely.
- *    The terminal composites the overlay on top of the unmixed cell, landing
- *    at `cell_bg * (1 - amount) + scrim * amount` — the same luminance as
- *    surrounding text cells (mixed via the cell pass). This avoids the
- *    double-fade that would make emoji bg visibly blacker.
+ *    `realizeFadePlanToKittyOverlay` emits a translucent scrim image at
+ *    alpha=amount above each emoji cell, and `realizeFadePlanToBuffer`
+ *    SKIPS emoji cells entirely. The terminal composites the overlay on
+ *    top of the unmixed cell, landing at `cell_bg * (1 - amount) + scrim
+ *    * amount` — the same luminance as surrounding text cells (mixed via
+ *    the cell pass). This avoids the double-fade that would make emoji bg
+ *    visibly blacker.
  *
  * 2. **Kitty graphics unavailable** (tmux, or older terminal): the per-cell
  *    mix runs on emoji cells too and stamps `attrs.dim` (SGR 2) on lead +
@@ -209,6 +233,72 @@ interface FadeRect {
 }
 
 /**
+ * The immutable output of `buildFadePlan` — a capability-independent
+ * description of what the backdrop pass intends to do this frame.
+ *
+ * The realizers (`realizeFadePlanToBuffer`, `realizeFadePlanToKittyOverlay`)
+ * trust the plan: they do NOT re-walk the tree, re-resolve the scrim, or
+ * re-validate amounts. `buildFadePlan` is the single source of truth.
+ *
+ * ### Invariants enforced by `buildFadePlan`
+ *
+ * - `active = includes.length > 0 || excludes.length > 0` whenever a
+ *   non-zero fade marker is present. The stage-1 pass short-circuits to an
+ *   inactive plan for `colorLevel: "none"`.
+ * - `amount ∈ [0, 1]`, clamped, and identical across all collected rects
+ *   (single-amount invariant — mixed amounts break the Kitty overlay's
+ *   one-image-one-alpha model; dev-mode warn, prod falls back to first).
+ * - `scrim` is either a resolved hex color (for the truecolor/256 tiers
+ *   with a known theme bg) or `null` (legacy fallback where `fadeCell`
+ *   mixes fg toward cell.bg without a scrim).
+ * - `defaultBg` / `defaultFg` are resolved for the stage-2 passes — the
+ *   realizers substitute these when `cell.bg` / `cell.fg` is null.
+ */
+export interface FadePlan {
+  /** True when the tree had at least one fade marker with amount > 0. */
+  active: boolean
+  /**
+   * The enforced single amount for this frame, clamped to [0, 1]. Zero
+   * when `active` is false.
+   */
+  amount: number
+  /**
+   * Resolved scrim hex, or null when no theme bg is available. The
+   * buffer-realizer falls back to a legacy single-channel mix when null.
+   */
+  scrim: string | null
+  /**
+   * Default background hex for resolving null/default `cell.bg`. Derived
+   * from `options.defaultBg` or `options.rootBg`.
+   */
+  defaultBg: string | null
+  /**
+   * Default foreground hex for resolving null/default `cell.fg`. Derived
+   * from `options.defaultFg`, else the opposite of the scrim (white for
+   * dark scrim, black for light).
+   */
+  defaultFg: string | null
+  /** Rects marked `data-backdrop-fade` — fade cells INSIDE each rect. */
+  includes: FadeRect[]
+  /**
+   * Rects marked `data-backdrop-fade-excluded` — fade everything OUTSIDE
+   * each rect (the modal "cuts a hole").
+   */
+  excludes: FadeRect[]
+}
+
+/** Sentinel "nothing to do" plan — reused across frames to avoid allocations. */
+const INACTIVE_PLAN: FadePlan = {
+  active: false,
+  amount: 0,
+  scrim: null,
+  defaultBg: null,
+  defaultFg: null,
+  includes: [],
+  excludes: [],
+}
+
+/**
  * Quick check: does the tree contain any backdrop markers? Used as a gate so
  * we don't clone the buffer every frame when no fade is active. Walks the
  * full tree once (O(N)) — the alternative (tracking dirty markers in the
@@ -224,34 +314,24 @@ export function hasBackdropMarkers(root: AgNode): boolean {
 }
 
 /**
- * Apply backdrop-fade to the buffer based on tree markers.
+ * Stage 1 — build the immutable `FadePlan`.
  *
- * Returns a `BackdropFadeResult`:
- * - `bufferModified` — any buffer cells changed (STRICT compares buffers;
- *   this is the narrow "did we mutate the buffer" signal).
- * - `visuallyModified` — the visible frame differs from the pre-fade state.
- *   True when buffer cells changed OR a Kitty overlay is emitted. Callers
- *   that gate re-render on "anything changed" should check this field.
- * - `kittyOverlay` — out-of-band ANSI escapes. Non-empty when Kitty graphics
- *   are enabled AND backdrop is active: contains at minimum a scrim-clear
- *   command so last-frame placements get erased even if this frame has no
- *   wide cells. Empty only when Kitty is disabled or backdrop is inactive.
- * - `modified` — deprecated alias for `bufferModified`, kept for callers
- *   that predate the visual/buffer split.
+ * Pure function of `(tree markers, options)`. No buffer access, no Kitty
+ * capability knowledge. The realizers read from the plan exclusively.
+ *
+ * Returns `INACTIVE_PLAN` when:
+ * - `colorLevel === "none"` (monochrome terminal — pass is a no-op).
+ * - The tree has no backdrop markers, OR all markers have `amount <= 0`.
  */
-export function applyBackdropFade(
-  root: AgNode,
-  buffer: TerminalBuffer,
-  options?: BackdropFadeOptions,
-): BackdropFadeResult {
+export function buildFadePlan(root: AgNode, options?: BackdropFadeOptions): FadePlan {
   const colorLevel: BackdropColorLevel = options?.colorLevel ?? "truecolor"
-  if (colorLevel === "none") return EMPTY_RESULT
+  if (colorLevel === "none") return INACTIVE_PLAN
 
   const includes: FadeRect[] = []
   const excludes: FadeRect[] = []
   collectBackdropMarkers(root, includes, excludes)
 
-  if (includes.length === 0 && excludes.length === 0) return EMPTY_RESULT
+  if (includes.length === 0 && excludes.length === 0) return INACTIVE_PLAN
 
   // Resolve the three color inputs. Prefer the split options; fall back to
   // `rootBg` for back-compat.
@@ -271,42 +351,145 @@ export function applyBackdropFade(
   const defaultFg =
     options?.defaultFg ?? (scrim === null ? null : scrim === DARK_SCRIM ? LIGHT_SCRIM : DARK_SCRIM)
 
-  // Kitty graphics realize the scrim for emoji cells (not CJK text — they
-  // respond to fg like normal text). The overlay composites at alpha=amount
-  // above the unmixed cell. Require a resolved scrim.
-  const kittyEnabled = options?.kittyGraphics === true && scrim !== null
-
   // Single-amount invariant: one scrim image per frame at one alpha.
-  const uniqueAmount = assertSingleAmount(includes, excludes)
+  const amount = assertSingleAmount(includes, excludes)
+
+  return {
+    active: true,
+    amount,
+    scrim,
+    defaultBg,
+    defaultFg,
+    includes,
+    excludes,
+  }
+}
+
+/**
+ * Stage 2a — apply the plan's cell-level transform to the buffer.
+ *
+ * Walks every include rect (fade cells INSIDE) and every exclude rect (fade
+ * cells OUTSIDE). Trusts the plan: no marker re-collection, no
+ * scrim/default resolution, no amount validation.
+ *
+ * When `kittyEnabled === true`, emoji cells (detected via
+ * `isLikelyEmoji(cell.char)`) are SKIPPED — the Kitty overlay realizer
+ * composites the scrim on top of the unmixed cell. When
+ * `kittyEnabled === false`, emoji cells go through the per-cell mix AND
+ * get SGR 2 (`attrs.dim`) stamped on lead + continuation.
+ *
+ * Returns `true` when at least one buffer cell was mutated.
+ */
+export function realizeFadePlanToBuffer(
+  plan: FadePlan,
+  buffer: TerminalBuffer,
+  kittyEnabled: boolean,
+): boolean {
+  if (!plan.active) return false
 
   let bufferModified = false
 
   // Pass 1: data-backdrop-fade — fade cells INSIDE each marked rect.
-  for (const { rect, amount } of includes) {
+  for (const { rect, amount } of plan.includes) {
     if (amount <= 0) continue
-    if (fadeRect(buffer, rect, amount, scrim, defaultBg, defaultFg, kittyEnabled))
+    if (fadeRect(buffer, rect, amount, plan.scrim, plan.defaultBg, plan.defaultFg, kittyEnabled))
       bufferModified = true
   }
 
   // Pass 2: data-backdrop-fade-excluded — fade everything OUTSIDE each marked
   // rect (the modal "cuts a hole").
-  if (excludes.length > 0) {
+  if (plan.excludes.length > 0) {
     const fullRect: Rect = { x: 0, y: 0, width: buffer.width, height: buffer.height }
-    for (const { rect, amount } of excludes) {
+    for (const { rect, amount } of plan.excludes) {
       if (amount <= 0) continue
       if (
-        fadeRectExcluding(buffer, fullRect, rect, amount, scrim, defaultBg, defaultFg, kittyEnabled)
+        fadeRectExcluding(
+          buffer,
+          fullRect,
+          rect,
+          amount,
+          plan.scrim,
+          plan.defaultBg,
+          plan.defaultFg,
+          kittyEnabled,
+        )
       )
         bufferModified = true
     }
   }
 
+  return bufferModified
+}
+
+/**
+ * Stage 2b — emit the Kitty graphics overlay for the plan.
+ *
+ * The output always begins with `CURSOR_SAVE + kittyDeleteAllScrimPlacements()
+ * + CURSOR_RESTORE` when `plan.active` is true — even when zero emoji cells
+ * fall inside the faded region this frame. The unconditional clear is what
+ * erases stale placements from a previous frame (e.g., a modal that covered
+ * an emoji in frame N, then moved in frame N+1). Without it, orphan scrim
+ * rectangles persist on screen.
+ *
+ * Returns `""` when `plan.active` is false. Callers that also need to
+ * suppress the overlay because Kitty graphics are not available should NOT
+ * call this function at all — the ag-term orchestrator guards the call site
+ * with its own `kittyEnabled` flag.
+ *
+ * ### STRICT determinism invariant
+ *
+ * For a given `(plan, buffer)` pair, this function produces a byte-identical
+ * string on every invocation. STRICT mode compares the overlay across
+ * fresh and incremental paths to catch latent non-determinism in marker
+ * collection order, emoji walk ordering, or placement ID derivation.
+ */
+export function realizeFadePlanToKittyOverlay(plan: FadePlan, buffer: TerminalBuffer): string {
+  if (!plan.active) return ""
+
+  return buildKittyOverlay(buffer, plan.includes, plan.excludes, plan.scrim, plan.defaultBg, plan.amount)
+}
+
+/**
+ * Apply backdrop-fade to the buffer based on tree markers.
+ *
+ * Thin orchestrator over the mask → realize stages:
+ *
+ *   plan = buildFadePlan(root, options)
+ *   bufferModified = realizeFadePlanToBuffer(plan, buffer, kittyEnabled)
+ *   kittyOverlay = kittyEnabled ? realizeFadePlanToKittyOverlay(plan, buffer) : ""
+ *
+ * Returns a `BackdropFadeResult`:
+ * - `bufferModified` — any buffer cells changed (STRICT compares buffers;
+ *   this is the narrow "did we mutate the buffer" signal).
+ * - `visuallyModified` — the visible frame differs from the pre-fade state.
+ *   True when buffer cells changed OR a Kitty overlay is emitted. Callers
+ *   that gate re-render on "anything changed" should check this field.
+ * - `kittyOverlay` — out-of-band ANSI escapes. Non-empty when Kitty graphics
+ *   are enabled AND backdrop is active: contains at minimum a scrim-clear
+ *   command so last-frame placements get erased even if this frame has no
+ *   wide cells. Empty only when Kitty is disabled or backdrop is inactive.
+ * - `modified` — deprecated alias for `bufferModified`, kept for callers
+ *   that predate the visual/buffer split.
+ */
+export function applyBackdropFade(
+  root: AgNode,
+  buffer: TerminalBuffer,
+  options?: BackdropFadeOptions,
+): BackdropFadeResult {
+  const plan = buildFadePlan(root, options)
+  if (!plan.active) return EMPTY_RESULT
+
+  // Kitty graphics realize the scrim for emoji cells (not CJK text — they
+  // respond to fg like normal text). The overlay composites at alpha=amount
+  // above the unmixed cell. Require a resolved scrim.
+  const kittyEnabled = options?.kittyGraphics === true && plan.scrim !== null
+
+  const bufferModified = realizeFadePlanToBuffer(plan, buffer, kittyEnabled)
+
   // Kitty overlay. Always emitted when kittyEnabled (even if no emoji this
   // frame) so last-frame placements get cleared by the delete-all at the
   // head of the overlay string.
-  const kittyOverlay = kittyEnabled
-    ? buildKittyOverlay(buffer, includes, excludes, scrim, defaultBg, uniqueAmount)
-    : ""
+  const kittyOverlay = kittyEnabled ? realizeFadePlanToKittyOverlay(plan, buffer) : ""
 
   const visuallyModified = bufferModified || kittyOverlay !== ""
 
@@ -357,7 +540,7 @@ const EMPTY_RESULT: BackdropFadeResult = {
  * Returns `null` when `rootBg` is absent or unparseable — signals legacy
  * single-channel fallback in `fadeCell`.
  */
-function deriveScrimColor(rootBg: string | undefined): string | null {
+function deriveScrimColor(rootBg: string | null | undefined): string | null {
   if (!rootBg) return null
   const lum = relativeLuminance(rootBg)
   if (lum === null) return null

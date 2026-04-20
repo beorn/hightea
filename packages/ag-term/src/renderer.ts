@@ -580,7 +580,12 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     rows: number,
     prevBuffer: TerminalBuffer | null,
     opts?: { skipLayoutNotifications?: boolean; skipScrollStateUpdates?: boolean },
-  ): { output: string; buffer: TerminalBuffer; carryForwardBuffer: TerminalBuffer } {
+  ): {
+    output: string
+    buffer: TerminalBuffer
+    carryForwardBuffer: TerminalBuffer
+    kittyOverlay: string
+  } {
     const ag = createAg(root)
     ag.layout({ cols, rows }, opts)
     // `buffer` is post-fade (what we paint); `carryForwardBuffer` is pre-fade
@@ -606,12 +611,16 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       output += _CURSOR_SAVE + _kittyDeleteAllScrimPlacements() + _CURSOR_RESTORE
       instance.kittyActive = false
     }
-    return { output, buffer, carryForwardBuffer }
+    return { output, buffer, carryForwardBuffer, kittyOverlay }
   }
 
   function doRender(): string {
     let output: string
     let buffer!: TerminalBuffer
+    // Kitty backdrop-fade overlay from the incremental render. Captured
+    // here so the STRICT block below can compare it against the fresh
+    // render's overlay (determinism invariant — see backdrop-phase.ts).
+    let incrementalKittyOverlay = ""
 
     if (instance.singlePassLayout) {
       // Production-matching single-pass: one runPipeline, no stabilization
@@ -651,6 +660,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
               output = result.output
               buffer = result.buffer
               carryForwardBuffer = result.carryForwardBuffer
+              incrementalKittyOverlay = result.kittyOverlay
             } catch (e) {
               // STRICT output verification may throw from the output phase.
               // The render phase buffer is still valid and attached to the
@@ -738,6 +748,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
               output = result.output
               buffer = result.buffer
               carryForwardBuffer = result.carryForwardBuffer
+              incrementalKittyOverlay = result.kittyOverlay
             } catch (e) {
               classicRenderError = e as Error
               const attachedBuffer = (e as any)?.__silvery_buffer
@@ -800,7 +811,25 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     // Skip first render (nothing to compare against)
     if (strictMode && instance.renderCount > 1) {
       const root = getContainerRoot(instance.container)
-      const freshBuffer = doFreshRender()
+      const { buffer: freshBuffer, kittyOverlay: freshKittyOverlay } = doFreshRenderFull()
+
+      // STRICT overlay-plan comparison.
+      //
+      // Invariant: `applyBackdropFade` is a pure function of (tree markers,
+      // buffer cells, options) → kittyOverlay is deterministic. Incremental
+      // and fresh paths MUST emit byte-identical overlay strings. Any drift
+      // is a determinism bug in marker collection, the emoji walk, or
+      // placement ID derivation — see `formatOverlayMismatch` in
+      // scheduler.ts for the diagnostic path.
+      if (incrementalKittyOverlay !== freshKittyOverlay) {
+        const msg = formatRendererOverlayMismatch(
+          incrementalKittyOverlay,
+          freshKittyOverlay,
+          instance.renderCount,
+        )
+        throw new IncrementalRenderMismatchError(msg)
+      }
+
       for (let y = 0; y < buffer!.height; y++) {
         for (let x = 0; x < buffer!.width; x++) {
           const a = buffer!.getCell(x, y)
@@ -850,14 +879,21 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     return output!
   }
 
-  // Fresh render: renders from scratch without updating incremental state
-  function doFreshRender(): TerminalBuffer {
+  // Fresh render: renders from scratch without updating incremental state.
+  // Returns buffer + kittyOverlay so the STRICT block can compare the
+  // backdrop-fade overlay byte-for-byte against the incremental render.
+  function doFreshRenderFull(): { buffer: TerminalBuffer; kittyOverlay: string } {
     const root = getContainerRoot(instance.container)
-    const { buffer } = runPipeline(root, instance.columns, instance.rows, null, {
+    const { buffer, kittyOverlay } = runPipeline(root, instance.columns, instance.rows, null, {
       skipLayoutNotifications: true,
       skipScrollStateUpdates: true,
     })
-    return buffer
+    return { buffer, kittyOverlay }
+  }
+  // Public shim: keeps the `freshRender(): TerminalBuffer` API stable for
+  // external callers (with-diagnostics, app.freshRender).
+  function doFreshRender(): TerminalBuffer {
+    return doFreshRenderFull().buffer
   }
 
   // Synchronously update React tree within act()
@@ -1497,6 +1533,76 @@ function withActEnvironment(fn: () => void): void {
  */
 export function getActiveRenderCount(): number {
   return pruneAndCountActiveRenders()
+}
+
+// ============================================================================
+// STRICT Diagnostics — Backdrop Overlay Mismatch
+// ============================================================================
+
+/**
+ * Format a human-readable diff when the incremental and fresh Kitty overlays
+ * disagree. The overlay is a Kitty graphics protocol escape sequence emitted
+ * by `realizeFadePlanToKittyOverlay` (see `pipeline/backdrop-phase.ts`) — it
+ * places translucent "scrim" images over emoji cells inside faded regions.
+ * The invariant is that the fresh and incremental paths emit byte-identical
+ * strings for the same tree; any drift is a determinism bug.
+ *
+ * The diff surfaces the placement IDs that differ — the Kitty protocol uses
+ * `p=<id>` in each placement command, so grep-friendly IDs are the quickest
+ * path from "test failed" to "which cell drifted".
+ */
+function formatRendererOverlayMismatch(
+  incremental: string,
+  fresh: string,
+  renderNum: number,
+): string {
+  const incPlacements = extractOverlayPlacementIds(incremental)
+  const freshPlacements = extractOverlayPlacementIds(fresh)
+
+  const incSet = new Set(incPlacements)
+  const freshSet = new Set(freshPlacements)
+
+  const onlyIncremental = incPlacements.filter((id) => !freshSet.has(id))
+  const onlyFresh = freshPlacements.filter((id) => !incSet.has(id))
+
+  const lines: string[] = [
+    `[SILVERY_STRICT] Kitty overlay mismatch at render #${renderNum}`,
+    `  incremental length: ${incremental.length} bytes, placements: ${incPlacements.length}`,
+    `  fresh       length: ${fresh.length} bytes, placements: ${freshPlacements.length}`,
+  ]
+  if (onlyIncremental.length > 0) {
+    lines.push(`  only in incremental (moved/appeared): ${onlyIncremental.join(", ")}`)
+  }
+  if (onlyFresh.length > 0) {
+    lines.push(`  only in fresh       (missing/disappeared): ${onlyFresh.join(", ")}`)
+  }
+  if (onlyIncremental.length === 0 && onlyFresh.length === 0) {
+    lines.push(`  placements match — drift is in scrim-image payload or ordering`)
+  }
+
+  // Truncated raw bytes for inspection. Full strings can be many KB (each
+  // scrim image payload is base64-encoded) — cap to avoid log-flood.
+  const cap = 400
+  lines.push(
+    `  incremental[0..${cap}]: ${JSON.stringify(incremental.slice(0, cap))}`,
+    `  fresh      [0..${cap}]: ${JSON.stringify(fresh.slice(0, cap))}`,
+  )
+  return lines.join("\n")
+}
+
+/**
+ * Extract the list of `p=<id>` placement IDs from a Kitty overlay string, in
+ * emission order. Used by the STRICT diagnostic to show which placements
+ * moved/appeared/disappeared.
+ */
+function extractOverlayPlacementIds(overlay: string): string[] {
+  const ids: string[] = []
+  const re = /p=(\d+)/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(overlay)) !== null) {
+    ids.push(m[1]!)
+  }
+  return ids
 }
 
 // ============================================================================

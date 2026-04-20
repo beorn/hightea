@@ -523,9 +523,13 @@ export class RenderScheduler {
           acc.pipelineCalls += 1
         }
 
-        return { output: ansiOutput, buffer }
+        return { output: ansiOutput, buffer, kittyOverlay }
       }
-      const { output, buffer } = measurer ? runWithMeasurer(measurer, doRender) : doRender()
+      const {
+        output,
+        buffer,
+        kittyOverlay: incrementalKittyOverlay,
+      } = measurer ? runWithMeasurer(measurer, doRender) : doRender()
 
       // Transform output based on non-TTY mode
       let transformedOutput: string
@@ -606,9 +610,32 @@ export class RenderScheduler {
           freshAg.layout({ cols: width, rows: height }, { skipLayoutNotifications: true })
           return freshAg.render()
         }
-        const { buffer: freshBuffer } = measurer
+        const { buffer: freshBuffer, kittyOverlay: freshKittyOverlay } = measurer
           ? runWithMeasurer(measurer, doFreshRender)
           : doFreshRender()
+
+        // STRICT overlay-plan comparison.
+        //
+        // Invariant: `applyBackdropFade` is a pure function of (tree markers,
+        // buffer cells, options) → kittyOverlay is deterministic. Incremental
+        // and fresh paths MUST emit byte-identical overlay strings.
+        //
+        // A drift here signals non-determinism in marker collection order,
+        // the emoji walk, or placement ID derivation — any of which would
+        // cause scrim flicker or orphaned placements across frames.
+        if (incrementalKittyOverlay !== freshKittyOverlay) {
+          const msg = formatOverlayMismatch(
+            incrementalKittyOverlay,
+            freshKittyOverlay,
+            renderNum,
+          )
+          if (process.env.DEBUG_LOG) {
+            appendFileSync(process.env.DEBUG_LOG, msg + "\n")
+          }
+          log.error?.(msg)
+          throw new IncrementalRenderMismatchError(msg)
+        }
+
         let found = false
         for (let y = 0; y < buffer.height && !found; y++) {
           for (let x = 0; x < buffer.width && !found; x++) {
@@ -738,6 +765,76 @@ export class RenderScheduler {
       log.error?.(`${message} ${String(error)}`)
     }
   }
+}
+
+// ============================================================================
+// STRICT Diagnostics Helpers
+// ============================================================================
+
+/**
+ * Format a human-readable diff when the incremental and fresh Kitty overlays
+ * disagree. The overlays are Kitty graphics protocol escape sequences that
+ * place translucent "scrim" images over emoji cells inside faded regions
+ * (see `backdrop-phase.ts`). They MUST be byte-identical across fresh and
+ * incremental paths — any drift is a determinism bug in:
+ *
+ * - `collectBackdropMarkers` (tree walk order)
+ * - `collectEmojiCellsInFadeRegion` (rect iteration)
+ * - `backdropPlacementId` (per-cell ID derivation)
+ * - `assertSingleAmount` (amount selection when markers disagree)
+ *
+ * The diff surfaces the placement IDs that differ — the Kitty protocol uses
+ * `p=<id>` in each placement command, so grep-friendly IDs are the
+ * quickest path from "test failed" to "which cell drifted".
+ */
+function formatOverlayMismatch(incremental: string, fresh: string, renderNum: number): string {
+  const incPlacements = extractPlacementIds(incremental)
+  const freshPlacements = extractPlacementIds(fresh)
+
+  const incSet = new Set(incPlacements)
+  const freshSet = new Set(freshPlacements)
+
+  const onlyIncremental = incPlacements.filter((id) => !freshSet.has(id))
+  const onlyFresh = freshPlacements.filter((id) => !incSet.has(id))
+
+  const lines: string[] = [
+    `[SILVERY_STRICT] Kitty overlay mismatch at render #${renderNum}`,
+    `  incremental length: ${incremental.length} bytes, placements: ${incPlacements.length}`,
+    `  fresh       length: ${fresh.length} bytes, placements: ${freshPlacements.length}`,
+  ]
+  if (onlyIncremental.length > 0) {
+    lines.push(`  only in incremental (moved/appeared): ${onlyIncremental.join(", ")}`)
+  }
+  if (onlyFresh.length > 0) {
+    lines.push(`  only in fresh       (missing/disappeared): ${onlyFresh.join(", ")}`)
+  }
+  if (onlyIncremental.length === 0 && onlyFresh.length === 0) {
+    lines.push(`  placements match — drift is in scrim-image payload or ordering`)
+  }
+
+  // Truncated raw bytes for inspection. Full strings can be many KB (each
+  // scrim image payload is base64-encoded) — cap to avoid log-flood.
+  const cap = 400
+  lines.push(
+    `  incremental[0..${cap}]: ${JSON.stringify(incremental.slice(0, cap))}`,
+    `  fresh      [0..${cap}]: ${JSON.stringify(fresh.slice(0, cap))}`,
+  )
+  return lines.join("\n")
+}
+
+/**
+ * Extract the list of `p=<id>` placement IDs from a Kitty overlay string, in
+ * emission order. Used by the STRICT diagnostic to show which placements
+ * moved/appeared/disappeared.
+ */
+function extractPlacementIds(overlay: string): string[] {
+  const ids: string[] = []
+  const re = /p=(\d+)/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(overlay)) !== null) {
+    ids.push(m[1]!)
+  }
+  return ids
 }
 
 // ============================================================================
