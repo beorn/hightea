@@ -9,7 +9,7 @@
  */
 import { describe, test, expect } from "vitest"
 import type { AgNode, Rect } from "@silvery/ag/types"
-import { buildFadePlan } from "@silvery/ag-term/pipeline/backdrop-phase"
+import { buildFadePlan } from "@silvery/ag-term/pipeline/backdrop"
 
 /**
  * Minimal AgNode factory for plan tests — `collectBackdropMarkers` only

@@ -619,7 +619,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     let buffer!: TerminalBuffer
     // Kitty backdrop-fade overlay from the incremental render. Captured
     // here so the STRICT block below can compare it against the fresh
-    // render's overlay (determinism invariant — see backdrop-phase.ts).
+    // render's overlay (determinism invariant — see pipeline/backdrop/).
     let incrementalKittyOverlay = ""
 
     if (instance.singlePassLayout) {
@@ -1542,7 +1542,7 @@ export function getActiveRenderCount(): number {
 /**
  * Format a human-readable diff when the incremental and fresh Kitty overlays
  * disagree. The overlay is a Kitty graphics protocol escape sequence emitted
- * by `realizeFadePlanToKittyOverlay` (see `pipeline/backdrop-phase.ts`) — it
+ * by `realizeFadePlanToKittyOverlay` (see `pipeline/backdrop/`) — it
  * places translucent "scrim" images over emoji cells inside faded regions.
  * The invariant is that the fresh and incremental paths emit byte-identical
  * strings for the same tree; any drift is a determinism bug.

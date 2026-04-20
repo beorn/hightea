@@ -62,11 +62,11 @@ export interface ModalDialogProps extends Omit<BoxProps, "children" | "flexDirec
    * 0.25 lands in the middle — the backdrop is visibly dimmed but the UI
    * behind stays readable. An earlier default of 0.7 drowned the scene
    * because the asymmetric blend math used uniform amounts for fg/bg; with
-   * the asymmetric path removed (see `backdrop-phase.ts`), 0.7 is now truly
+   * the asymmetric path removed (see `pipeline/backdrop/`), 0.7 is now truly
    * too strong. Apps that want a heavier dim can opt in with `fade={0.4}`.
    *
    * Applied at render time via a cell-level color transform (see
-   * `@silvery/ag-term/pipeline/backdrop-phase`). Set `fade={0}` to disable.
+   * `@silvery/ag-term/pipeline/backdrop`). Set `fade={0}` to disable.
    */
   fade?: number
   /** Dialog children */

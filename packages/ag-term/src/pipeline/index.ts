@@ -64,13 +64,13 @@ export {
   hasBackdropMarkers,
   realizeFadePlanToBuffer,
   realizeFadePlanToKittyOverlay,
-} from "./backdrop-phase"
+} from "./backdrop"
 export type {
   BackdropColorLevel,
   BackdropFadeOptions,
   BackdropFadeResult,
   FadePlan,
-} from "./backdrop-phase"
+} from "./backdrop"
 // Active theme + color level state (pipeline-internal, exposed for out-of-tree consumers)
 export {
   getActiveTheme,

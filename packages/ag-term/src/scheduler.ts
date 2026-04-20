@@ -775,7 +775,7 @@ export class RenderScheduler {
  * Format a human-readable diff when the incremental and fresh Kitty overlays
  * disagree. The overlays are Kitty graphics protocol escape sequences that
  * place translucent "scrim" images over emoji cells inside faded regions
- * (see `backdrop-phase.ts`). They MUST be byte-identical across fresh and
+ * (see `pipeline/backdrop/`). They MUST be byte-identical across fresh and
  * incremental paths — any drift is a determinism bug in:
  *
  * - `collectBackdropMarkers` (tree walk order)

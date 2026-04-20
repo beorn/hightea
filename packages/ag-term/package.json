@@ -21,6 +21,7 @@
     "./ansi": "./src/ansi/index.ts",
     "./dom": "./src/dom/index.ts",
     "./pipeline": "./src/pipeline/index.ts",
+    "./pipeline/backdrop": "./src/pipeline/backdrop/index.ts",
     "./plugins": "./src/plugins/index.ts",
     "./runtime": "./src/runtime/index.ts",
     "./toolbelt": "./src/toolbelt/index.ts",
@@ -193,6 +194,10 @@
       "./pipeline": {
         "types": "./dist/pipeline/index.d.mts",
         "import": "./dist/pipeline/index.mjs"
+      },
+      "./pipeline/backdrop": {
+        "types": "./dist/pipeline/backdrop/index.d.mts",
+        "import": "./dist/pipeline/backdrop/index.mjs"
       },
       "./pipeline/cascade-predicates": {
         "types": "./dist/pipeline/cascade-predicates.d.mts",
@@ -424,6 +429,7 @@
       "src/output.ts",
       "src/pane-manager.ts",
       "src/pipeline/index.ts",
+      "src/pipeline/backdrop/index.ts",
       "src/pipeline/cascade-predicates.ts",
       "src/pipeline/collect-text.ts",
       "src/pipeline/diff-buffers.ts",

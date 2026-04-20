@@ -45,7 +45,7 @@ import {
   applyBackdropFade,
   hasBackdropMarkers,
   type BackdropColorLevel,
-} from "./pipeline/backdrop-phase"
+} from "./pipeline/backdrop"
 import { CURSOR_RESTORE, CURSOR_SAVE, kittyDeleteAllScrimPlacements } from "@silvery/ansi"
 import type { Theme } from "@silvery/ansi"
 import { clearDirtyTracking, hasScrollDirty } from "@silvery/ag/dirty-tracking"
@@ -74,7 +74,7 @@ export interface CreateAgOptionsInternal {
   /** Width measurer scoped to terminal capabilities. */
   measurer?: Measurer
   /**
-   * Terminal color tier for the backdrop-fade pass (see `backdrop-phase.ts`).
+   * Terminal color tier for the backdrop-fade pass (see `pipeline/backdrop/`).
    * Defaults to `"truecolor"` (OKLab blend). Set to `"basic"` at ANSI 16 tier
    * (SGR 2 dim) or `"none"` to disable the pass entirely.
    */
@@ -175,7 +175,7 @@ export interface CreateAgOptions {
   measurer?: Measurer
   /**
    * Terminal color tier for the backdrop-fade pass. Defaults to `"truecolor"`.
-   * See `backdrop-phase.ts` for tier semantics.
+   * See `pipeline/backdrop/` for tier semantics.
    */
   colorLevel?: BackdropColorLevel
   /**

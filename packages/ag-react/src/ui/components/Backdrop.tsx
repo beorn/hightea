@@ -34,7 +34,7 @@ export interface BackdropProps extends Omit<BoxProps, "children"> {
    * Calibrated to match scrim conventions (macOS ~0.20, Material 3 = 0.32).
    * Apps that want a heavier dim can opt in with `fade={0.4}` or higher.
    *
-   * Interpreted by the `backdrop-phase` pass after content rendering — the
+   * Interpreted by the `pipeline/backdrop` pass after content rendering — the
    * fade is NOT applied in React; it's a cell-level transform on the finished
    * buffer. Fade propagates through the subtree via the node's screen rect.
    */
