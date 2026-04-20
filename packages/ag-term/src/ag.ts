@@ -47,7 +47,6 @@ import {
   type ColorLevel as BackdropColorLevel,
 } from "./pipeline/backdrop"
 import { CURSOR_RESTORE, CURSOR_SAVE, kittyDeleteAllScrimPlacements } from "@silvery/ansi"
-import type { Theme } from "@silvery/ansi"
 import { clearDirtyTracking, hasScrollDirty } from "@silvery/ag/dirty-tracking"
 import type { PipelineContext } from "./pipeline/types"
 
@@ -199,14 +198,19 @@ export interface CreateAgOptions {
  * We walk the tree directly to recover the root bg without requiring the
  * render phase to be running.
  *
- * Returns the first Box node's `theme.bg` value found in a depth-first walk,
- * or `null` if no theme node is present (bare tests without ThemeProvider).
+ * Returns the first Box node's Sterling `bg-surface-default` (with legacy `bg`
+ * fallback for backdrop-only Themes that pre-date Sterling's flat surface
+ * tokens) found in a depth-first walk, or `null` if no theme node is present
+ * (bare tests without ThemeProvider).
  */
 function findRootThemeBg(root: AgNode): string | null {
   const props = root.props as Record<string, unknown>
   if (props.theme) {
-    const theme = props.theme as Theme
-    if (theme.bg && typeof theme.bg === "string") return theme.bg
+    const theme = props.theme as Record<string, unknown>
+    const sterlingBg = theme["bg-surface-default"]
+    if (typeof sterlingBg === "string") return sterlingBg
+    const legacyBg = theme["bg"]
+    if (typeof legacyBg === "string") return legacyBg
   }
   for (const child of root.children) {
     const found = findRootThemeBg(child)

@@ -9,7 +9,6 @@
 
 import type { Color, Style, TerminalBuffer } from "../buffer"
 import type { BoxProps, AgNode, Rect } from "@silvery/ag/types"
-import type { Theme } from "@silvery/ansi"
 import { getPadding } from "./helpers"
 import { getBorderChars, getBorderSize, parseColor } from "./render-helpers"
 import { renderTextLine } from "./render-text"
@@ -17,12 +16,20 @@ import type { NodeRenderState, PipelineContext } from "./types"
 
 /**
  * Get the effective background color string for a Box.
- * Returns explicit backgroundColor if set, otherwise theme.bg if theme is set.
+ * Returns explicit `backgroundColor` if set, otherwise the Theme's root
+ * surface background — Sterling's `bg-surface-default` if present, falling
+ * back to the legacy `bg` root for any pre-Sterling Theme shape.
  * Used by both renderBox (paint fill) and render-phase (cascade logic).
  */
 export function getEffectiveBg(props: BoxProps): string | undefined {
   if (props.backgroundColor) return props.backgroundColor as string
-  if (props.theme) return (props.theme as Theme).bg
+  if (props.theme) {
+    const theme = props.theme as unknown as Record<string, unknown>
+    const sterlingBg = theme["bg-surface-default"]
+    if (typeof sterlingBg === "string") return sterlingBg
+    const legacyBg = theme["bg"]
+    if (typeof legacyBg === "string") return legacyBg
+  }
   return undefined
 }
 

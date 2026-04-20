@@ -34,7 +34,6 @@
 
 import type { TerminalBuffer, Cell, Color } from "../buffer"
 import type { BoxProps, AgNode } from "@silvery/ag/types"
-import type { Theme } from "@silvery/ansi"
 import { getBorderSize, getPadding } from "./helpers"
 import { renderOutline, getEffectiveBg } from "./render-box"
 import { parseColor } from "./render-helpers"
@@ -116,11 +115,17 @@ function walk(
   // Compute the effective background the outline should inherit from this
   // box — matches the `boxInheritedBg` calculation in renderOwnContent.
   const effectiveBg = getEffectiveBg(props)
-  const theme = props.theme as Theme | undefined
+  const theme = props.theme as Record<string, unknown> | undefined
+  const themeBg =
+    theme && typeof theme["bg-surface-default"] === "string"
+      ? (theme["bg-surface-default"] as string)
+      : theme && typeof theme["bg"] === "string"
+        ? (theme["bg"] as string)
+        : undefined
   const childInheritedBg: { color: Color } = effectiveBg
     ? { color: parseColor(effectiveBg) }
-    : theme
-      ? { color: parseColor(theme.bg) }
+    : themeBg !== undefined
+      ? { color: parseColor(themeBg) }
       : inheritedBg
 
   // Draw the outline AFTER content — this means we paint on top of whatever
