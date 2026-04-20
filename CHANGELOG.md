@@ -7,6 +7,27 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## 0.19.1 — Republish with correct exports
+
+Republish of the 0.19.0 surface to fix broken installs of the standalone scoped packages on npm.
+
+### Why
+
+`@silvery/ansi@0.19.0`, `@silvery/color@0.19.0`, and `@silvery/commander@0.19.0` shipped with `exports → ./src/index.ts` because the release workflow used `npm publish`, and npm does not honour `publishConfig.exports`. Only `pnpm publish` applies the override that maps consumers to `dist/*.mjs`. As a result, `npm install @silvery/ansi@0.19.0 && node -e "import '@silvery/ansi'"` failed with `Cannot find module '.../@silvery/ansi/src/index.ts'`. The root `silvery@0.19.0` barrel was unaffected because it bundles its dependencies into its own `dist/`.
+
+### What changed
+
+- `.github/workflows/release.yml`: switched the publish step from `npm publish` to `pnpm publish --no-git-checks`, and added `pnpm/action-setup` so the runner has pnpm available. No package contents changed.
+- All published package versions bumped 0.19.0 → 0.19.1 (and cross-package `@silvery/*` deps updated in lockstep) so consumers can pin a known-good tag.
+
+### Migration
+
+```bash
+npm install @silvery/ansi@0.19.1   # or @silvery/color, @silvery/commander, etc.
+```
+
+No source-level changes from 0.19.0.
+
 ## 0.19.0 — Sterling Theme expansion (additive)
 
 Sterling Theme — silvery's design system canonical type — gains the fields needed for full theme parity: `variants`, `palette`, and 8 categorical hues. The legacy `Theme` interface is unchanged in this release; legacy fields (`theme.primary`, `theme.bg`, etc.) continue to resolve through `inlineSterlingTokens` exactly as before.

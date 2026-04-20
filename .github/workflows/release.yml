@@ -16,6 +16,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - run: bun install
       - run: bun run build
       - uses: actions/setup-node@v4
@@ -25,9 +28,13 @@ jobs:
 
       # Publish packages in dependency order
       # Skip if version already published (idempotent)
+      # Use `pnpm publish` (not `npm publish`) so `publishConfig.exports`
+      # overrides apply — npm ignores them, leaving consumers with
+      # `exports → ./src/index.ts` and broken installs (see 0.19.0).
       - name: Publish packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           publish() {
             local dir=$1
@@ -38,7 +45,7 @@ jobs:
               echo "⏭ $name@$version already published"
             else
               echo "📦 Publishing $name@$version..."
-              (cd $dir && npm publish --access public)
+              (cd $dir && pnpm publish --access public --no-git-checks)
             fi
           }
 
