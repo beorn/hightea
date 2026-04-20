@@ -34,7 +34,7 @@
   "dependencies": {
     "loggily": "^0.6.0",
     "react": "^19.0.0",
-    "silvery": "0.18.0"
+    "silvery": "0.18.2"
   },
   "tsdown": {
     "clean": true,
