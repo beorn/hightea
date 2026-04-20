@@ -13,7 +13,7 @@
  *   const terminalFocused = useTerminalFocused()
  *   return (
  *     <TextInput
- *       borderColor={terminalFocused ? "$focusborder" : "$border"}
+ *       borderColor={terminalFocused ? "$border-focus" : "$border-default"}
  *       isActive={terminalFocused}
  *     />
  *   )

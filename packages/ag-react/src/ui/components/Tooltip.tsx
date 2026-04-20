@@ -42,7 +42,7 @@ export interface TooltipProps extends Omit<BoxProps, "children"> {
  * Contextual tooltip that appears below its children.
  *
  * Renders inline below the target element when `show` is true.
- * Tooltip text is rendered in `$muted` with dimColor for subtlety.
+ * Tooltip text is rendered in `$fg-muted` with dimColor for subtlety.
  */
 export function Tooltip({
   content,

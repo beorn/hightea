@@ -171,7 +171,7 @@ export function TabList({ children }: TabListProps): React.ReactElement {
  * Individual tab trigger.
  *
  * Renders the tab label with active/inactive styling. Active tab is bold
- * with `$primary` color; inactive tabs use `$muted`.
+ * with `$fg-accent` color; inactive tabs use `$fg-muted`.
  *
  * Hover: a non-active hovered tab gets a subtle `$bg-muted` background to
  * signal interactivity. The active tab is already visually prominent — no
@@ -187,7 +187,7 @@ export function Tab({ value, children }: TabProps): React.ReactElement {
     registerTab(value)
   }, [value, registerTab])
 
-  // Hover background: only for inactive tabs. Active tab already has $primary
+  // Hover background: only for inactive tabs. Active tab already has $fg-accent
   // fg + bold — adding a bg on top creates visual conflict.
   const hoverBg = !isActive && isHovered ? "$bg-muted" : undefined
 

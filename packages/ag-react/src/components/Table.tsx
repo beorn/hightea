@@ -49,7 +49,7 @@ export type TableProps<T> = {
   data: T[]
   /** Column definitions */
   columns: Column<T>[]
-  /** Header text color (default: "$primary") */
+  /** Header text color (default: "$fg-accent") */
   headerColor?: string
   /** Show header row (default: true) */
   showHeader?: boolean
@@ -84,7 +84,7 @@ function computeWidths<T>(columns: Column<T>[], data: T[], padding: number): num
 export function Table<T>({
   data,
   columns,
-  headerColor = "$primary",
+  headerColor = "$fg-accent",
   showHeader = true,
   padding = 2,
 }: TableProps<T>): React.ReactElement {

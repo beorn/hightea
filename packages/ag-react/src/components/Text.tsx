@@ -58,10 +58,10 @@ export interface TextProps extends TextPropsType {
    * @example
    * ```tsx
    * <Text variant="h1">Title</Text>
-   * // → uses theme.variants.h1 as defaults ({ color: "$primary", bold: true })
+   * // → uses theme.variants.h1 as defaults ({ color: "$fg-accent", bold: true })
    *
-   * <Text variant="h1" color="$success">Done</Text>
-   * // → color="$success" wins; bold still comes from variant
+   * <Text variant="h1" color="$fg-success">Done</Text>
+   * // → color="$fg-success" wins; bold still comes from variant
    * ```
    */
   variant?: KnownVariant
@@ -116,7 +116,7 @@ export interface TextHandle {
  * // With variant — typography presets from theme
  * <Text variant="h1">Page Title</Text>
  * <Text variant="body-muted">Caption text</Text>
- * <Text variant="h1" color="$success">Done</Text>  // caller color wins
+ * <Text variant="h1" color="$fg-success">Done</Text>  // caller color wins
  * ```
  */
 export const Text = forwardRef(function Text(
@@ -134,19 +134,19 @@ export const Text = forwardRef(function Text(
   //   2. variantDefaults — overwrite only where callerProps was undefined
   //                        (fills in color/bold/etc when caller didn't specify)
   //   3. definedCallerProps — restore any explicitly provided caller overrides
-  //                           (e.g. color="$success", bold={false} win over variant)
+  //                           (e.g. color="$fg-success", bold={false} win over variant)
   //
   // Example: `<Text variant="h1">T</Text>` (color not passed → undefined)
   //   callerProps = { color: undefined }
-  //   variantDefaults = { color: "$primary", bold: true }
+  //   variantDefaults = { color: "$fg-accent", bold: true }
   //   definedCallerProps = {} (color=undefined excluded)
-  //   → { color: "$primary", bold: true } ✓
+  //   → { color: "$fg-accent", bold: true } ✓
   //
-  // Example: `<Text variant="h1" color="$success">T</Text>`
-  //   callerProps = { color: "$success" }
-  //   variantDefaults = { color: "$primary", bold: true }
-  //   definedCallerProps = { color: "$success" }
-  //   → { color: "$success", bold: true } ✓ (caller color wins)
+  // Example: `<Text variant="h1" color="$fg-success">T</Text>`
+  //   callerProps = { color: "$fg-success" }
+  //   variantDefaults = { color: "$fg-accent", bold: true }
+  //   definedCallerProps = { color: "$fg-success" }
+  //   → { color: "$fg-success", bold: true } ✓ (caller color wins)
   let styleProps = callerProps
   if (variant != null) {
     const resolved = theme.variants?.[variant]

@@ -8,9 +8,9 @@
  *
  * @example
  * ```tsx
- * <Heading>Page Title</Heading>           // h1: 2.0x, bold, $primary
- * <Heading level={2}>Section</Heading>    // h2: 1.5x, bold, $accent
- * <Heading level={3}>Subsection</Heading> // h3: 1.25x, bold, $primary
+ * <Heading>Page Title</Heading>           // h1: 2.0x, bold, $fg-accent
+ * <Heading level={2}>Section</Heading>    // h2: 1.5x, bold, $fg-accent
+ * <Heading level={3}>Subsection</Heading> // h3: 1.25x, bold, $fg-accent
  * <Heading level={4}>Group</Heading>      // h4: 1.0x, bold only
  * <Heading level={5}>Minor</Heading>      // h5: 0.9x, bold
  * <Heading level={6}>Smallest</Heading>   // h6: 0.8x, bold

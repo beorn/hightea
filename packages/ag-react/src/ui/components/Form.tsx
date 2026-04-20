@@ -69,7 +69,7 @@ export function Form({ onSubmit: _onSubmit, gap = 1, children }: FormProps): Rea
  * Form field wrapper providing label, error display, and spacing.
  *
  * Renders a label above the input with optional required indicator,
- * description text, and error message in `$error` color.
+ * description text, and error message in `$fg-error` color.
  */
 export function FormField({
   label,

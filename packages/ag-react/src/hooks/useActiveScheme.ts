@@ -16,9 +16,9 @@
  *   const scheme = useActiveScheme()
  *   if (!scheme) return null
  *   if (scheme.source === "fingerprint") {
- *     return <Text color="$muted">Theme: {scheme.matchedName} ({Math.round((scheme.confidence ?? 0) * 100)}%)</Text>
+ *     return <Text color="$fg-muted">Theme: {scheme.matchedName} ({Math.round((scheme.confidence ?? 0) * 100)}%)</Text>
  *   }
- *   return <Text color="$muted">Theme: {scheme.name} ({scheme.source})</Text>
+ *   return <Text color="$fg-muted">Theme: {scheme.name} ({scheme.source})</Text>
  * }
  * ```
  */

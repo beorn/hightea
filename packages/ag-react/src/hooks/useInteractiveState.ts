@@ -34,7 +34,7 @@ const DEFAULT_STATE: Readonly<InteractiveState> = Object.freeze({
  *   const { hovered, armed, focused } = useInteractiveState()
  *   return (
  *     <Box
- *       backgroundColor={armed ? '$primary' : hovered ? '$muted-bg' : undefined}
+ *       backgroundColor={armed ? '$fg-accent' : hovered ? '$muted-bg' : undefined}
  *       outlineStyle={focused ? 'round' : undefined}
  *     >
  *       {children}

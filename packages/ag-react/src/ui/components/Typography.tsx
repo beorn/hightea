@@ -47,7 +47,7 @@ export interface TypographyProps extends Omit<TextProps, "children"> {
 // Headings
 // ============================================================================
 
-/** Page title — $primary + bold. Maximum emphasis. */
+/** Page title — $fg-accent + bold. Maximum emphasis. */
 export function H1({ children, color, ...rest }: TypographyProps) {
   return (
     <Text variant="h1" color={color} {...rest}>
@@ -56,7 +56,7 @@ export function H1({ children, color, ...rest }: TypographyProps) {
   )
 }
 
-/** Section heading — $accent + bold. Contrasts with H1. */
+/** Section heading — $fg-accent + bold. Contrasts with H1. */
 export function H2({ children, color, ...rest }: TypographyProps) {
   return (
     <Text variant="h2" color={color} {...rest}>
@@ -87,7 +87,7 @@ export function P({ children, color, ...rest }: TypographyProps) {
   )
 }
 
-/** Introductory/lead text — $muted + italic. Slightly elevated, slightly receded. */
+/** Introductory/lead text — $fg-muted + italic. Slightly elevated, slightly receded. */
 export function Lead({ children, color, ...rest }: TypographyProps) {
   return (
     <Text variant="body-muted" italic color={color} {...rest}>
@@ -96,7 +96,7 @@ export function Lead({ children, color, ...rest }: TypographyProps) {
   )
 }
 
-/** Secondary/supporting text — $muted. Recedes from body text. */
+/** Secondary/supporting text — $fg-muted. Recedes from body text. */
 export function Muted({ children, color, ...rest }: TypographyProps) {
   return (
     <Text variant="body-muted" color={color} {...rest}>
@@ -105,7 +105,7 @@ export function Muted({ children, color, ...rest }: TypographyProps) {
   )
 }
 
-/** Fine print — $muted + dim. Captions, footnotes, text that recedes even more than Muted. */
+/** Fine print — $fg-muted + dim. Captions, footnotes, text that recedes even more than Muted. */
 export function Small({ children, color, ...rest }: TypographyProps) {
   return (
     <Text variant="fine-print" color={color} {...rest}>
@@ -136,7 +136,7 @@ export function Em({ children, color, ...rest }: TypographyProps) {
 // Inline Elements
 // ============================================================================
 
-/** Inline code — $mutedbg background with padding. Inherits foreground from parent. */
+/** Inline code — $bg-muted background with padding. Inherits foreground from parent. */
 export function Code({ children, color, ...rest }: TypographyProps) {
   return (
     <Text variant="code" color={color} {...rest}>
@@ -145,7 +145,7 @@ export function Code({ children, color, ...rest }: TypographyProps) {
   )
 }
 
-/** Keyboard shortcut badge — $mutedbg background + bold. Inherits foreground from parent. */
+/** Keyboard shortcut badge — $bg-muted background + bold. Inherits foreground from parent. */
 export function Kbd({ children, color, ...rest }: TypographyProps) {
   return (
     <Text variant="kbd" color={color} {...rest}>
@@ -158,7 +158,7 @@ export function Kbd({ children, color, ...rest }: TypographyProps) {
 // Block Elements
 // ============================================================================
 
-/** Blockquote — │ border in $muted + italic content. Wrapped text stays indented. */
+/** Blockquote — │ border in $fg-muted + italic content. Wrapped text stays indented. */
 export function Blockquote({ children, color }: TypographyProps) {
   return (
     <Box>
@@ -170,7 +170,7 @@ export function Blockquote({ children, color }: TypographyProps) {
   )
 }
 
-/** Code block — │ border in $border + monospace content. Distinct from Blockquote. */
+/** Code block — │ border in $border-default + monospace content. Distinct from Blockquote. */
 export function CodeBlock({ children, color }: TypographyProps) {
   return (
     <Box>
