@@ -207,6 +207,16 @@ function fadeCell(buffer: TerminalBuffer, x: number, y: number, plan: Plan): boo
     const mixedHex = mixSrgb(fgHex, bgHex, amount)
     const mixedRgb = hexToRgb(mixedHex)
     if (!mixedRgb) return false
+    // Emoji glyphs ignore fg color — the mix has no visible effect on the
+    // glyph. Stamp attrs.dim on lead + continuation so terminals honoring
+    // SGR 2 on emoji still fade the glyph. CJK and other wide TEXT keep
+    // getting the fg mix only; SGR 2 on CJK over-fades.
+    if (isEmojiGlyph) {
+      const newAttrs = cell.attrs.dim ? cell.attrs : { ...cell.attrs, dim: true }
+      buffer.setCell(x, y, { ...cell, fg: mixedRgb, attrs: newAttrs })
+      propagateToContinuation(buffer, cell, x, y, { dim: true })
+      return true
+    }
     buffer.setCell(x, y, { ...cell, fg: mixedRgb })
     return true
   }

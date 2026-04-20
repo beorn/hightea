@@ -261,3 +261,79 @@ describe("backdrop-hardening 3: realize-kitty-guard — full contract", () => {
     expect(realizeToKitty(synthPlan, buffer)).toBe("")
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. legacy-emoji-dim — when scrim is null (no theme context, e.g., no
+// ThemeProvider) AND Kitty is unavailable, the legacy fadeCell branch must
+// stamp attrs.dim on emoji lead + continuation. The fg mix has no visual
+// effect on emoji — without dim the emoji glyph stays at full brightness.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("backdrop-hardening 4: legacy-emoji-dim — emoji fades without scrim/Kitty", () => {
+  test("emoji in faded region without ThemeProvider has dim on lead + continuation", () => {
+    // No defaultBg → plan.scrim === null (legacy branch in fadeCell).
+    const root = fakeNode({}, null, [fakeNode({ "data-backdrop-fade": 0.4 }, RECT_FADE)])
+    const buffer = createBuffer(10, 4)
+
+    // Place an emoji at (2, 1). Lead cell + continuation cell at (3, 1).
+    buffer.setCell(2, 1, {
+      char: "😀",
+      wide: true,
+      fg: { r: 255, g: 255, b: 255 },
+      bg: { r: 30, g: 30, b: 46 },
+    })
+    buffer.setCell(3, 1, {
+      continuation: true,
+      fg: { r: 255, g: 255, b: 255 },
+      bg: { r: 30, g: 30, b: 46 },
+    })
+
+    const result = applyBackdrop(root, buffer)
+    expect(result.modified).toBe(true)
+
+    const lead = buffer.getCell(2, 1)
+    const cont = buffer.getCell(3, 1)
+    expect(lead.attrs.dim).toBe(true)
+    expect(cont.attrs.dim).toBe(true)
+  })
+
+  test("emoji with null bg in legacy branch still gets dim (idempotent)", () => {
+    // Emoji with null bg + null fg falls through to the dim fallback already.
+    // Re-pin: dim must be present even when fgHex AND bgHex are both null.
+    const root = fakeNode({}, null, [fakeNode({ "data-backdrop-fade": 0.4 }, RECT_FADE)])
+    const buffer = createBuffer(10, 4)
+    buffer.setCell(2, 1, {
+      char: "😀",
+      wide: true,
+    })
+    buffer.setCell(3, 1, { continuation: true })
+
+    const result = applyBackdrop(root, buffer)
+    expect(result.modified).toBe(true)
+    expect(buffer.getCell(2, 1).attrs.dim).toBe(true)
+    expect(buffer.getCell(3, 1).attrs.dim).toBe(true)
+  })
+
+  test("non-emoji wide char (CJK) in legacy branch does NOT get dim (over-fades)", () => {
+    // CJK responds to fg mix — stamping dim would over-fade. Cell still
+    // gets the fg mix; just no dim attr.
+    const root = fakeNode({}, null, [fakeNode({ "data-backdrop-fade": 0.4 }, RECT_FADE)])
+    const buffer = createBuffer(10, 4)
+    buffer.setCell(2, 1, {
+      char: "漢",
+      wide: true,
+      fg: { r: 255, g: 255, b: 255 },
+      bg: { r: 30, g: 30, b: 46 },
+    })
+    buffer.setCell(3, 1, {
+      continuation: true,
+      fg: { r: 255, g: 255, b: 255 },
+      bg: { r: 30, g: 30, b: 46 },
+    })
+
+    const result = applyBackdrop(root, buffer)
+    expect(result.modified).toBe(true)
+    // Dim NOT stamped on CJK (legacy branch only stamps on isEmojiGlyph).
+    expect(buffer.getCell(2, 1).attrs.dim ?? false).toBe(false)
+  })
+})
