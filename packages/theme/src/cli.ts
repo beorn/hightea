@@ -110,22 +110,24 @@ function showTheme(name: string): void {
     `  ${swatch(palette.cursorColor)} cursor      ${swatch(palette.selectionBackground)} selection`,
   )
 
-  // Semantic tokens
+  // Semantic tokens (Sterling flat grammar — channel-role-state)
   console.log(`\n  Semantic tokens:`)
-  const tokens: Array<[string, string]> = [
-    ["primary", theme.primary],
-    ["secondary", theme.secondary],
-    ["accent", theme.accent],
-    ["error", theme.error],
-    ["warning", theme.warning],
-    ["success", theme.success],
-    ["info", theme.info],
-    ["border", theme.border],
-    ["link", theme.link],
-    ["surface", theme.surface],
+  const flat = theme as unknown as Record<string, string | undefined>
+  const tokens: Array<[string, string | undefined]> = [
+    ["fg-accent", flat["fg-accent"]],
+    ["bg-accent", flat["bg-accent"]],
+    ["fg-on-accent", flat["fg-on-accent"]],
+    ["fg-error", flat["fg-error"]],
+    ["fg-warning", flat["fg-warning"]],
+    ["fg-success", flat["fg-success"]],
+    ["fg-info", flat["fg-info"]],
+    ["border-default", flat["border-default"]],
+    ["border-focus", flat["border-focus"]],
+    ["bg-surface-default", flat["bg-surface-default"]],
+    ["bg-surface-subtle", flat["bg-surface-subtle"]],
   ]
   for (const [label, color] of tokens) {
-    if (color.startsWith("#")) {
+    if (typeof color === "string" && color.startsWith("#")) {
       console.log(`  ${swatch(color)} ${label}`)
     }
   }
@@ -134,15 +136,18 @@ function showTheme(name: string): void {
   console.log(`\n  Preview:`)
   const previewBg = palette.background
   const previewFg = palette.foreground
+  const accentFg = flat["fg-accent"]
+  const successFg = flat["fg-success"]
+  const errorFg = flat["fg-error"]
   console.log(`  ${bg(previewBg, fg(previewFg, `  Hello from ${name}!  `))}`)
   console.log(
-    `  ${bg(previewBg, fg(theme.primary.startsWith("#") ? theme.primary : palette.blue, `  Primary text          `))}`,
+    `  ${bg(previewBg, fg(accentFg?.startsWith("#") ? accentFg : palette.blue, `  Accent text           `))}`,
   )
   console.log(
-    `  ${bg(previewBg, fg(theme.success.startsWith("#") ? theme.success : palette.green, `  Success message       `))}`,
+    `  ${bg(previewBg, fg(successFg?.startsWith("#") ? successFg : palette.green, `  Success message       `))}`,
   )
   console.log(
-    `  ${bg(previewBg, fg(theme.error.startsWith("#") ? theme.error : palette.red, `  Error message         `))}`,
+    `  ${bg(previewBg, fg(errorFg?.startsWith("#") ? errorFg : palette.red, `  Error message         `))}`,
   )
   console.log()
 }
@@ -159,41 +164,45 @@ function showJson(name: string): void {
 
 // ── Inspect command ──────────────────────────────────────────────────
 
-/** All standard token keys shown in inspect output, in display order. */
-const INSPECT_TOKENS: readonly (keyof Theme)[] = [
-  "fg",
-  "bg",
-  "muted",
-  "mutedbg",
-  "surface",
-  "surfacebg",
-  "popover",
-  "popoverbg",
-  "inverse",
-  "inversebg",
-  "cursor",
-  "cursorbg",
-  "selection",
-  "selectionbg",
-  "primary",
-  "primaryfg",
-  "secondary",
-  "secondaryfg",
-  "accent",
-  "accentfg",
-  "error",
-  "errorfg",
-  "warning",
-  "warningfg",
-  "success",
-  "successfg",
-  "info",
-  "infofg",
-  "border",
-  "inputborder",
-  "focusborder",
-  "link",
-  "disabledfg",
+/** Sterling flat tokens shown in inspect output, grouped by role. */
+const INSPECT_TOKENS: readonly string[] = [
+  // Surface ramp
+  "bg-surface-default",
+  "bg-surface-subtle",
+  "bg-surface-raised",
+  "bg-surface-overlay",
+  "bg-surface-hover",
+  // Muted + cursor
+  "fg-muted",
+  "bg-muted",
+  "fg-cursor",
+  "bg-cursor",
+  // Accent (link-like, keeps fg state variants)
+  "fg-accent",
+  "bg-accent",
+  "fg-on-accent",
+  "fg-accent-hover",
+  "bg-accent-hover",
+  "fg-accent-active",
+  "bg-accent-active",
+  "border-accent",
+  // Status roles (bg-state only)
+  "fg-info",
+  "bg-info",
+  "fg-on-info",
+  "fg-success",
+  "bg-success",
+  "fg-on-success",
+  "fg-warning",
+  "bg-warning",
+  "fg-on-warning",
+  "fg-error",
+  "bg-error",
+  "fg-on-error",
+  // Borders
+  "border-default",
+  "border-focus",
+  "border-muted",
 ]
 
 /** Format a token value for display. Hex strings get a color swatch; ANSI names shown as-is. */
@@ -218,6 +227,8 @@ async function inspectTheme(flags: { diff?: string; format?: string }): Promise<
   const theme = result.theme
 
   if (flags.format === "json") {
+    const flat = theme as unknown as Record<string, string | undefined>
+    const monoAttrs = DEFAULT_MONO_ATTRS as unknown as Record<string, readonly string[] | undefined>
     const output: Record<string, unknown> = {
       terminal: {
         source: result.source,
@@ -226,10 +237,10 @@ async function inspectTheme(flags: { diff?: string; format?: string }): Promise<
       },
       theme: Object.fromEntries(
         INSPECT_TOKENS.map((key) => {
-          const value = theme[key] as string
-          const attrs = DEFAULT_MONO_ATTRS[key] ?? []
+          const value = flat[key] ?? ""
+          const attrs = monoAttrs[key] ?? []
           return [
-            `$${String(key)}`,
+            `$${key}`,
             {
               value,
               monoAttrs: attrs,
@@ -246,12 +257,13 @@ async function inspectTheme(flags: { diff?: string; format?: string }): Promise<
         process.exit(1)
       }
       const diffTheme = deriveTheme(diffPalette)
+      const diffFlat = diffTheme as unknown as Record<string, string | undefined>
       const differences: Record<string, { detected: string; reference: string }> = {}
       for (const key of INSPECT_TOKENS) {
-        const a = theme[key] as string
-        const b = diffTheme[key] as string
+        const a = flat[key] ?? ""
+        const b = diffFlat[key] ?? ""
         if (a !== b) {
-          differences[`$${String(key)}`] = { detected: a, reference: b }
+          differences[`$${key}`] = { detected: a, reference: b }
         }
       }
       ;(output as Record<string, unknown>).diff = { against: flags.diff, differences }
@@ -281,7 +293,8 @@ async function inspectTheme(flags: { diff?: string; format?: string }): Promise<
     sourceLine = result.source
   }
 
-  const bgHex = theme.bg
+  const inspectFlat = theme as unknown as Record<string, string | undefined>
+  const bgHex = inspectFlat["bg-surface-default"] ?? ""
   const isDark = bgHex.startsWith("#") ? parseInt(bgHex.slice(1), 16) < 0x808080 : true
 
   console.log()
@@ -299,12 +312,16 @@ async function inspectTheme(flags: { diff?: string; format?: string }): Promise<
   console.log(`  ${divider("─", COL1)} ${divider("─", COL2)} ${divider("─", COL3)}`)
 
   // Token rows
+  const monoAttrsMap = DEFAULT_MONO_ATTRS as unknown as Record<
+    string,
+    readonly string[] | undefined
+  >
   for (const key of INSPECT_TOKENS) {
-    const value = theme[key] as string
-    const attrs = DEFAULT_MONO_ATTRS[key]
+    const value = inspectFlat[key] ?? ""
+    const attrs = monoAttrsMap[key]
     const attrStr = attrs && attrs.length > 0 ? attrs.join("+") : "none"
 
-    const tokenCol = `$${String(key)}`.padEnd(COL1)
+    const tokenCol = `$${key}`.padEnd(COL1)
     const valueStr = value.startsWith("#") ? value : value || "(unset)"
     const valueRaw = valueStr.padEnd(COL2)
     const swatchStr = value.startsWith("#") ? swatch(value) : "  "
@@ -321,13 +338,14 @@ async function inspectTheme(flags: { diff?: string; format?: string }): Promise<
       process.exit(1)
     }
     const diffTheme = deriveTheme(diffPalette)
+    const diffFlat = diffTheme as unknown as Record<string, string | undefined>
 
     const diffRows: Array<{ token: string; detected: string; reference: string }> = []
     for (const key of INSPECT_TOKENS) {
-      const a = theme[key] as string
-      const b = diffTheme[key] as string
+      const a = inspectFlat[key] ?? ""
+      const b = diffFlat[key] ?? ""
       if (a !== b) {
-        diffRows.push({ token: `$${String(key)}`, detected: a, reference: b })
+        diffRows.push({ token: `$${key}`, detected: a, reference: b })
       }
     }
 

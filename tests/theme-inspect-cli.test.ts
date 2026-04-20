@@ -64,18 +64,23 @@ describe("theme inspect CLI", () => {
 
     const theme = parsed.theme as Record<string, unknown>
 
-    // Verify all standard token pairs are present
+    // Verify a sample of Sterling flat tokens are present (channel-role-state
+    // grammar). The full inspect list emits ~34 tokens — these are the ones
+    // an app is most likely to consume.
     const expectedTokens = [
-      "$fg",
-      "$bg",
-      "$primary",
-      "$error",
-      "$warning",
-      "$success",
-      "$info",
-      "$muted",
-      "$border",
-      "$link",
+      "$bg-surface-default",
+      "$bg-surface-subtle",
+      "$fg-accent",
+      "$bg-accent",
+      "$fg-on-accent",
+      "$fg-error",
+      "$bg-error",
+      "$fg-warning",
+      "$fg-success",
+      "$fg-info",
+      "$fg-muted",
+      "$border-default",
+      "$border-focus",
     ]
     for (const token of expectedTokens) {
       expect(theme).toHaveProperty(token)
@@ -86,37 +91,37 @@ describe("theme inspect CLI", () => {
     }
   })
 
-  it("$primary monoAttrs contains 'bold'", () => {
+  it("$fg-accent monoAttrs contains 'bold'", () => {
     const { status, stdout } = runCli(["inspect", "--format", "json"])
     expect(status).toBe(0)
     const parsed = JSON.parse(stdout) as Record<string, unknown>
     const theme = parsed.theme as Record<string, { value: string; monoAttrs: string[] }>
-    expect(theme["$primary"]!.monoAttrs).toContain("bold")
+    expect(theme["$fg-accent"]!.monoAttrs).toContain("bold")
   })
 
-  it("$muted monoAttrs contains 'dim'", () => {
+  it("$fg-muted monoAttrs contains 'dim'", () => {
     const { status, stdout } = runCli(["inspect", "--format", "json"])
     expect(status).toBe(0)
     const parsed = JSON.parse(stdout) as Record<string, unknown>
     const theme = parsed.theme as Record<string, { value: string; monoAttrs: string[] }>
-    expect(theme["$muted"]!.monoAttrs).toContain("dim")
+    expect(theme["$fg-muted"]!.monoAttrs).toContain("dim")
   })
 
-  it("$error monoAttrs contains 'bold' and 'inverse'", () => {
+  it("$fg-error monoAttrs contains 'bold' and 'inverse'", () => {
     const { status, stdout } = runCli(["inspect", "--format", "json"])
     expect(status).toBe(0)
     const parsed = JSON.parse(stdout) as Record<string, unknown>
     const theme = parsed.theme as Record<string, { value: string; monoAttrs: string[] }>
-    expect(theme["$error"]!.monoAttrs).toContain("bold")
-    expect(theme["$error"]!.monoAttrs).toContain("inverse")
+    expect(theme["$fg-error"]!.monoAttrs).toContain("bold")
+    expect(theme["$fg-error"]!.monoAttrs).toContain("inverse")
   })
 
-  it("$link monoAttrs contains 'underline'", () => {
+  it("$border-focus monoAttrs contains 'bold'", () => {
     const { status, stdout } = runCli(["inspect", "--format", "json"])
     expect(status).toBe(0)
     const parsed = JSON.parse(stdout) as Record<string, unknown>
     const theme = parsed.theme as Record<string, { value: string; monoAttrs: string[] }>
-    expect(theme["$link"]!.monoAttrs).toContain("underline")
+    expect(theme["$border-focus"]!.monoAttrs).toContain("bold")
   })
 
   it("--format json with --diff produces diff section", () => {
@@ -141,11 +146,11 @@ describe("theme inspect CLI", () => {
     expect(stdout).toContain("Token")
     expect(stdout).toContain("Value")
     expect(stdout).toContain("SGR (mono tier)")
-    // Must have token rows
-    expect(stdout).toContain("$fg")
-    expect(stdout).toContain("$bg")
-    expect(stdout).toContain("$primary")
-    expect(stdout).toContain("$error")
+    // Must have Sterling flat-token rows
+    expect(stdout).toContain("$bg-surface-default")
+    expect(stdout).toContain("$fg-accent")
+    expect(stdout).toContain("$fg-error")
+    expect(stdout).toContain("$border-focus")
   })
 
   it("exits with error for unknown --diff scheme", () => {
