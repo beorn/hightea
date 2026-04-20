@@ -153,37 +153,33 @@ export interface PlanRect {
 }
 
 /**
- * The immutable output of `buildPlan` — a capability-independent
- * description of what the backdrop pass intends to do this frame.
+ * Framework-agnostic description of a backdrop frame. Does NOT carry
+ * terminal-specific capability flags (`kittyEnabled`, `colorLevel`). A
+ * canvas/DOM target with its own overlay strategy can realize a `CorePlan`
+ * without touching terminal fields.
  *
- * The realizers (`realizeToBuffer`, `realizeToKitty`) trust the plan:
- * they do NOT re-walk the tree, re-resolve the scrim, or re-validate
- * amounts. `buildPlan` is the single source of truth.
+ * Realizers trust the plan: they do NOT re-walk the tree, re-resolve the
+ * scrim, or re-validate amounts. `buildCorePlan` / `buildPlan` is the
+ * single source of truth.
  *
- * ### Invariants enforced by `buildPlan`
+ * ### Invariants enforced by `buildCorePlan`
  *
  * - `active = includes.length > 0 || excludes.length > 0` whenever a
- *   non-zero fade marker is present. The stage-1 pass short-circuits to an
- *   inactive plan for `colorLevel: "none"`.
+ *   non-zero fade marker is present.
  * - `amount ∈ [0, 1]`, clamped, and identical across all collected rects
- *   (single-amount invariant — mixed amounts break the Kitty overlay's
- *   one-image-one-alpha model; `mixedAmounts=true` surfaces the dev warn,
+ *   (single-amount invariant — `mixedAmounts=true` surfaces the dev warn,
  *   prod falls back to first).
- * - `scrim` is either a normalized `#rrggbb` hex (for the truecolor/256
- *   tiers with a known theme bg or an explicit `scrimColor`) or `null`
- *   (legacy fallback where `fadeCell` mixes fg toward cell.bg without a
- *   scrim).
- * - `defaultBg` / `defaultFg` are resolved for the stage-2 passes — the
- *   realizers substitute these when `cell.bg` / `cell.fg` is null.
- * - `scrimTowardLight` records whether the scrim is light (white-ish) or
- *   dark (black-ish). The fg deemphasize pass uses this to drift toward
- *   the correct neutral — toward 0 on dark themes, toward 1 on light.
- * - `kittyEnabled` is the DERIVED capability flag — true only when the
- *   caller enabled `kittyGraphics` AND the plan has a resolvable scrim
- *   (Kitty overlay needs a tint). Realizers read this instead of
- *   re-deriving at each call site.
+ * - `scrim` is either a normalized `#rrggbb` hex (with a known theme bg or
+ *   an explicit `scrimColor`) or `null` (legacy fallback where the buffer
+ *   realizer mixes fg toward cell.bg without a scrim).
+ * - `defaultBg` / `defaultFg` are resolved for stage-2 passes.
+ * - `scrimTowardLight` records whether the scrim is on the light side of
+ *   the luminance threshold. Null-scrim plans default to `false`.
+ * - Active plans are frozen (`Object.isFrozen(plan) === true`); so are
+ *   `includes` and `excludes`. `PlanRect.rect` is cloned so mutating the
+ *   source AgNode's rect does not affect the plan.
  */
-export interface Plan {
+export interface CorePlan {
   /** True when the tree had at least one fade marker with amount > 0. */
   readonly active: boolean
   /**
@@ -231,18 +227,31 @@ export interface Plan {
    * polarity.
    */
   readonly scrimTowardLight: boolean
-  /**
-   * True when the Kitty graphics overlay should run this frame. Derived
-   * from `options.kittyGraphics === true && scrim !== null` — the overlay
-   * needs a resolvable tint to composite, so a null-scrim plan can't use
-   * the Kitty path even when the caller has the capability enabled.
-   * Realizers read this directly (no re-derivation at call sites).
-   */
+}
+
+/**
+ * Terminal-specific plan. Adds the `kittyEnabled` capability flag the
+ * terminal realizers consume. Extends `CorePlan`.
+ *
+ * - `kittyEnabled` is DERIVED from `options.kittyGraphics === true &&
+ *   scrim !== null`. The Kitty overlay needs a resolvable tint to
+ *   composite, so a null-scrim plan can't use the Kitty path even when
+ *   the caller has the capability enabled. Realizers read this directly
+ *   (no re-derivation at call sites).
+ */
+export interface TerminalPlan extends CorePlan {
   readonly kittyEnabled: boolean
 }
 
+/**
+ * Legacy alias retained so callers importing `Plan` keep compiling. All
+ * existing call sites pass a TerminalPlan (via `buildPlan`). New code
+ * should prefer `CorePlan` + `TerminalPlan` explicitly.
+ */
+export type Plan = TerminalPlan
+
 /** Sentinel "nothing to do" plan — reused across frames to avoid allocations. */
-export const INACTIVE_PLAN: Plan = Object.freeze({
+export const INACTIVE_PLAN: TerminalPlan = Object.freeze({
   active: false,
   amount: 0,
   scrim: null,
@@ -272,19 +281,58 @@ export function hasBackdropMarkers(root: AgNode): boolean {
   return false
 }
 
+/** Inactive CorePlan sentinel (TerminalPlan minus the Kitty field). */
+const INACTIVE_CORE_PLAN: CorePlan = Object.freeze({
+  active: false,
+  amount: 0,
+  scrim: null,
+  defaultBg: null,
+  defaultFg: null,
+  includes: Object.freeze([]) as readonly PlanRect[],
+  excludes: Object.freeze([]) as readonly PlanRect[],
+  mixedAmounts: false,
+  scrimTowardLight: false,
+})
+
 /**
- * Stage 1 — build the immutable `Plan`.
+ * Stage 1 (core) — build the framework-agnostic `CorePlan`.
  *
- * Pure function of `(tree markers, options)`. No buffer access, no Kitty
- * capability knowledge, no console I/O. The realizers read from the plan
- * exclusively; the orchestrator (`./index.ts`) handles dev-mode diagnostics
- * derived from `plan.mixedAmounts`.
+ * Pure function of `(tree markers, options)`. No buffer access, no
+ * terminal capability knowledge, no console I/O. Suitable for any target
+ * (terminal, canvas, DOM) — the realizer decides how to paint the plan.
  *
- * Returns `INACTIVE_PLAN` when:
- * - `colorLevel === "none"` (monochrome terminal — pass is a no-op).
+ * Returns a frozen inactive plan when:
+ * - `colorLevel === "none"` (no-op, e.g. monochrome terminal).
  * - The tree has no backdrop markers, OR all markers have `amount <= 0`.
+ *
+ * Implemented as a thin wrapper over `buildPlan` that strips the
+ * terminal-specific `kittyEnabled` field. The stripping (and
+ * `kittyGraphics` option suppression) keeps `CorePlan` JSON-serializable
+ * to a subset that can be reconstructed on a non-terminal target.
  */
-export function buildPlan(root: AgNode, options?: BackdropOptions): Plan {
+export function buildCorePlan(root: AgNode, options?: BackdropOptions): CorePlan {
+  // Suppress kittyGraphics so derived flags don't leak through.
+  const coreOptions: BackdropOptions | undefined =
+    options === undefined ? undefined : { ...options, kittyGraphics: false }
+  const plan = buildPlan(root, coreOptions)
+  if (!plan.active) return INACTIVE_CORE_PLAN
+  // Strip the terminal-specific field. Using object-rest to drop the key
+  // entirely (so JSON.stringify doesn't include it) rather than setting it
+  // to undefined.
+  const { kittyEnabled: _kittyEnabled, ...core } = plan
+  return Object.freeze(core)
+}
+
+/**
+ * Stage 1 (terminal) — build the immutable `TerminalPlan`.
+ *
+ * Same as `buildCorePlan` plus the derived `kittyEnabled` capability flag.
+ * `kittyEnabled = options.kittyGraphics === true && scrim !== null` — the
+ * overlay needs a resolvable tint to composite, so a null-scrim plan
+ * cannot use the Kitty path even when the caller has the capability
+ * enabled.
+ */
+export function buildPlan(root: AgNode, options?: BackdropOptions): TerminalPlan {
   const colorLevel: ColorLevel = options?.colorLevel ?? "truecolor"
   if (colorLevel === "none") return INACTIVE_PLAN
 
@@ -302,14 +350,6 @@ export function buildPlan(root: AgNode, options?: BackdropOptions): Plan {
   // exactly once here — downstream comparisons (e.g., `scrim === defaultBg`)
   // and string-equality tests in the realizers work regardless of input
   // casing or shorthand.
-  //   - defaultBg: used to resolve null/default cell.bg before sRGB mix
-  //     AND feeds auto-scrim luminance derivation.
-  //   - scrimColor: the target of the mix. "auto" (default) derives from
-  //     luminance — black for dark themes, white for light.
-  //   - defaultFg: used to resolve null/default cell.fg before deemphasize.
-  //     Critical for default-fg text (common in TUIs that don't set colors
-  //     on every Text node) — without it, default-fg cells skip the fade
-  //     and the text pops against a dimmed bg.
   const defaultBg = normalizeHex(options?.defaultBg ?? null)
   const scrimColorOpt = options?.scrimColor
   // Explicit scrimColor wins when it parses to a valid hex. Unparseable
@@ -321,27 +361,26 @@ export function buildPlan(root: AgNode, options?: BackdropOptions): Plan {
   const scrim = explicitScrim ?? deriveAutoScrimColor(defaultBg)
 
   // Polarity by luminance: scrim with luminance >= threshold is "light"
-  // (drift fg toward white), below is "dark" (drift toward black). Uses
-  // the same WCAG-derived `relativeLuminance` as the auto-scrim derivation
-  // so any custom scrim color lands on the correct branch.
+  // (drift fg toward white), below is "dark" (drift toward black).
   const scrimTowardLight = isLightScrim(scrim)
 
-  // Default fg fallback: opposite of the scrim polarity. For a tinted
-  // scrim the user probably wants to override with an explicit `defaultFg`
-  // anyway, but this gives a sensible default.
+  // Default fg fallback: opposite of the scrim polarity.
   const defaultFg =
     normalizeHex(options?.defaultFg) ?? (scrim === null ? null : scrimTowardLight ? DARK_SCRIM : LIGHT_SCRIM)
 
-  // Single-amount invariant: one scrim image per frame at one alpha. Mixed
-  // amounts are surfaced via `mixedAmounts` so the orchestrator can emit a
-  // dev-mode warning; stage 1 stays pure.
+  // Single-amount invariant: one scrim image per frame at one alpha.
   const { amount, hasMixedAmounts } = assertSingleAmount(includeAmounts, excludeAmounts)
 
   // Kitty overlay is available only when the caller enabled the capability
   // AND the plan resolved a scrim — the overlay needs a tint to composite.
   const kittyEnabled = options?.kittyGraphics === true && scrim !== null
 
-  return {
+  // Freeze the rect arrays so realizers (and external observers) cannot
+  // mutate them. The plan itself is also frozen below.
+  Object.freeze(includes)
+  Object.freeze(excludes)
+
+  return Object.freeze({
     active: true,
     amount,
     scrim,
@@ -352,7 +391,7 @@ export function buildPlan(root: AgNode, options?: BackdropOptions): Plan {
     mixedAmounts: hasMixedAmounts,
     scrimTowardLight,
     kittyEnabled,
-  }
+  })
 }
 
 /**
@@ -432,16 +471,26 @@ function collectBackdropMarkers(
   const excludeRaw = props[BACKDROP_FADE_EXCLUDE_ATTR]
 
   if (includeRaw !== undefined || excludeRaw !== undefined) {
-    const rect = node.screenRect ?? node.scrollRect ?? node.boxRect
-    if (rect && rect.width > 0 && rect.height > 0) {
+    const sourceRect = node.screenRect ?? node.scrollRect ?? node.boxRect
+    if (sourceRect && sourceRect.width > 0 && sourceRect.height > 0) {
+      // Clone the rect — the source aliases the AgNode's live `screenRect`
+      // / `scrollRect` / `boxRect`, which the layout phase mutates next
+      // frame. Without a clone, mid-frame layout changes would silently
+      // shift the plan's rects.
+      const rect = Object.freeze({
+        x: sourceRect.x,
+        y: sourceRect.y,
+        width: sourceRect.width,
+        height: sourceRect.height,
+      })
       const inc = parseFade(includeRaw)
       if (inc !== null) {
-        includes.push({ rect })
+        includes.push(Object.freeze({ rect }))
         includeAmounts.push(inc)
       }
       const exc = parseFade(excludeRaw)
       if (exc !== null) {
-        excludes.push({ rect })
+        excludes.push(Object.freeze({ rect }))
         excludeAmounts.push(exc)
       }
     }

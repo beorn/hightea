@@ -71,14 +71,17 @@ import { realizeToKitty } from "./realize-kitty"
 // Public re-exports — callers import from `./pipeline/backdrop` (the barrel
 // below) or from `./pipeline` (which re-re-exports).
 export {
+  buildCorePlan,
   buildPlan,
   DEFAULT_AMOUNT,
   hasBackdropMarkers,
   INACTIVE_PLAN,
   type BackdropOptions,
   type ColorLevel,
+  type CorePlan,
   type Plan,
   type PlanRect,
+  type TerminalPlan,
 } from "./plan"
 export { type HexColor, normalizeHex } from "./color"
 export { deemphasizeOklch, deemphasizeOklchToward, mixSrgb } from "./color-compat"

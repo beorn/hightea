@@ -131,7 +131,9 @@ describe("buildPlan — marker collection", () => {
     // The per-rect `amount` was removed in the A1 follow-up; the single
     // `plan.amount` is the source of truth for realization.
     expect(plan.amount).toBe(0.25)
-    expect(plan.includes[0]!.rect).toBe(RECT)
+    // `PlanRect.rect` is cloned (not aliasing the source AgNode rect),
+    // so use deep equality. See backdrop-hardening 5: split-core-plan.
+    expect(plan.includes[0]!.rect).toEqual(RECT)
   })
 
   test("data-backdrop-fade-excluded collects into excludes", () => {
@@ -157,9 +159,9 @@ describe("buildPlan — marker collection", () => {
     const root = fakeNode({}, null, [top])
     const plan = buildPlan(root, { defaultBg: "#1e1e2e" })
     expect(plan.includes).toHaveLength(2)
-    // Walk order: parent before child.
-    expect(plan.includes[0]!.rect).toBe(RECT)
-    expect(plan.includes[1]!.rect).toBe(inner)
+    // Walk order: parent before child. Rects are cloned, use deep equal.
+    expect(plan.includes[0]!.rect).toEqual(RECT)
+    expect(plan.includes[1]!.rect).toEqual(inner)
   })
 })
 

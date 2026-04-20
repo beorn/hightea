@@ -17,9 +17,12 @@
 import { describe, test, expect } from "vitest"
 import {
   applyBackdrop,
+  buildCorePlan,
   buildPlan,
   forEachFadeRegionCell,
   realizeToKitty,
+  type CorePlan,
+  type TerminalPlan,
 } from "@silvery/ag-term/pipeline/backdrop"
 import type { AgNode, Rect } from "@silvery/ag/types"
 import { createBuffer } from "@silvery/ag-term/buffer"
@@ -335,5 +338,73 @@ describe("backdrop-hardening 4: legacy-emoji-dim — emoji fades without scrim/K
     expect(result.modified).toBe(true)
     // Dim NOT stamped on CJK (legacy branch only stamps on isEmojiGlyph).
     expect(buffer.getCell(2, 1).attrs.dim ?? false).toBe(false)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. split-core-plan — CorePlan (framework-agnostic) vs TerminalPlan
+// (terminal-only, adds kittyEnabled). Active plans + includes/excludes
+// arrays are frozen. PlanRect.rect is cloned, not aliasing the source node.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("backdrop-hardening 5: split-core-plan", () => {
+  test("CorePlan type does not carry Kitty fields (JSON-serializable)", () => {
+    const root = fakeNode({}, null, [fakeNode({ "data-backdrop-fade": 0.4 }, RECT_FADE)])
+    const corePlan: CorePlan = buildCorePlan(root, { defaultBg: "#1e1e2e" })
+    // Round-trip through JSON proves no Kitty fields and no cyclic AgNode refs
+    const json = JSON.stringify(corePlan)
+    const parsed = JSON.parse(json) as Record<string, unknown> & {
+      active: boolean
+      amount: number
+      includes: Array<{ rect: { x: number; y: number; width: number; height: number } }>
+    }
+    expect("kittyEnabled" in parsed).toBe(false)
+    expect("colorLevel" in parsed).toBe(false)
+    expect(parsed.active).toBe(true)
+    expect(parsed.amount).toBe(0.4)
+    expect(parsed.includes).toHaveLength(1)
+    expect(parsed.includes[0]!.rect.x).toBe(RECT_FADE.x)
+    expect(parsed.includes[0]!.rect.width).toBe(RECT_FADE.width)
+  })
+
+  test("TerminalPlan extends CorePlan with kittyEnabled", () => {
+    const root = fakeNode({}, null, [fakeNode({ "data-backdrop-fade": 0.4 }, RECT_FADE)])
+    const plan: TerminalPlan = buildPlan(root, { kittyGraphics: true, defaultBg: "#1e1e2e" })
+    expect(plan.kittyEnabled).toBe(true)
+    expect(plan.active).toBe(true)
+  })
+
+  test("active plan is frozen", () => {
+    const root = fakeNode({}, null, [fakeNode({ "data-backdrop-fade": 0.4 }, RECT_FADE)])
+    const plan = buildPlan(root, { defaultBg: "#1e1e2e" })
+    expect(Object.isFrozen(plan)).toBe(true)
+    expect(Object.isFrozen(plan.includes)).toBe(true)
+    expect(Object.isFrozen(plan.excludes)).toBe(true)
+  })
+
+  test("PlanRect.rect is cloned — mutating source node rect does not affect plan", () => {
+    const sharedRect: Rect = { x: 0, y: 0, width: 10, height: 4 }
+    const root = fakeNode({}, null, [fakeNode({ "data-backdrop-fade": 0.4 }, sharedRect)])
+    const plan = buildPlan(root, { defaultBg: "#1e1e2e" })
+    expect(plan.includes[0]!.rect).not.toBe(sharedRect)
+    expect(plan.includes[0]!.rect).toEqual(sharedRect)
+    // Mutate after — plan stays stable
+    sharedRect.width = 999
+    expect(plan.includes[0]!.rect.width).toBe(10)
+  })
+
+  test("buildCorePlan(root) === buildPlan minus Kitty fields", () => {
+    const root = fakeNode({}, null, [fakeNode({ "data-backdrop-fade": 0.4 }, RECT_FADE)])
+    const core = buildCorePlan(root, { defaultBg: "#1e1e2e" })
+    const term = buildPlan(root, { defaultBg: "#1e1e2e" })
+    expect(core.active).toBe(term.active)
+    expect(core.amount).toBe(term.amount)
+    expect(core.scrim).toBe(term.scrim)
+    expect(core.defaultBg).toBe(term.defaultBg)
+    expect(core.defaultFg).toBe(term.defaultFg)
+    expect(core.scrimTowardLight).toBe(term.scrimTowardLight)
+    expect(core.mixedAmounts).toBe(term.mixedAmounts)
+    expect(core.includes).toHaveLength(term.includes.length)
+    expect(core.excludes).toHaveLength(term.excludes.length)
   })
 })
