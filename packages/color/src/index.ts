@@ -31,6 +31,7 @@ export {
   rgbToHex,
   blend,
   mixSrgb,
+  deemphasize,
   brighten,
   darken,
   saturate,

@@ -81,6 +81,40 @@ export function blend(a: string, b: string, t: number): string {
 }
 
 /**
+ * Deemphasize a color — reduce visual prominence by scaling OKLCH lightness
+ * and chroma proportionally toward the achromatic origin. Hue is preserved.
+ *
+ *   L' = L × (1 - amount)
+ *   C' = C × (1 - amount)
+ *   H' = H
+ *
+ * Because L and C scale by the same factor, the C/L ratio (a proxy for
+ * perceived saturation) is exactly preserved — the cell looks "like the
+ * same color, just less visually present" rather than "darker but oddly
+ * more saturated" (which is what pure sRGB source-over tends to produce
+ * because sRGB channel scaling isn't perceptually uniform).
+ *
+ * Use `deemphasize` when you want a single "reduce prominence" control
+ * that fades a cell toward neutrality without hue drift. For industry-
+ * standard scrim compositing (overlay a translucent black rect), use
+ * `mixSrgb` — it matches what CSS filter/backdrop-filter, Material, and
+ * Flutter ship but will appear slightly hue-shifted during darkening on
+ * some colors.
+ *
+ * For non-hex inputs, returns the color unchanged.
+ */
+export function deemphasize(color: string, amount: number): string {
+  const o = hexToOklch(color)
+  if (!o) return color
+  const a = Math.max(0, Math.min(1, amount))
+  return oklchToHex({
+    L: Math.max(0, o.L * (1 - a)),
+    C: Math.max(0, o.C * (1 - a)),
+    H: o.H,
+  })
+}
+
+/**
  * sRGB source-over alpha compositing: the canonical "scrim over backdrop"
  * operation used by CSS `filter: brightness()`, Quartz, Cairo OVER, Skia
  * kSrcOver, Material 3 `Scrim`, and Flutter `AnimatedModalBarrier`.

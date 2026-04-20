@@ -6,52 +6,55 @@
  * `data-backdrop-fade-excluded` markers, then applies a cell-level color
  * transform to the affected rect(s) on the buffer.
  *
- * ## The model: source-over alpha scrim
+ * ## The model: per-channel alpha scrim with perceptually-aware fg
  *
- * This is the operation every production UI stack ships — CSS `filter:
- * brightness()` + opacity, Apple UIKit `colorWithWhite:alpha:` dimming view,
- * Material 3 `Scrim(color, alpha)` → `drawRect`, Flutter `AnimatedModalBarrier`
- * at `Colors.black54`, Figma / Adobe / Sketch "Normal blend + opacity",
- * Quartz `(α·src) + (1-α)·dst`, Cairo OVER, Skia kSrcOver. Same shape
- * everywhere:
+ * The pass fades every covered cell by blending BOTH fg AND bg toward a
+ * neutral scrim color at the caller's `amount`. Default scrim: pure black
+ * for dark themes (Apple `colorWithWhite:0.0 alpha:0.4`), pure white for
+ * light. Default amount: 0.25 (calibrated against macOS 0.20, Material 3
+ * 0.32, iOS 0.40, Flutter 0.54).
  *
- *   out = mix_srgb(cell, scrimColor, amount)
- *       = cell * (1 - amount) + scrimColor * amount
+ * ### Two operations, one per channel
  *
- * Computed in sRGB gamma space (not OKLab/OKLCH) — that's where CSS filters,
- * Quartz, Skia, and every shipping design tool live. OKLab gives perceptually
- * uniform *interpolation*, but it drags the cell's chroma toward the target,
- * which violates the source-over compositing contract (Ottosson himself
- * recommends linear-sRGB over OKLab for transparency). sRGB is also the
- * simpler, CSS-filter-aligned choice.
+ *   fg' = deemphasize(fg, amount)     // OKLCH: L*=1-α, C*=1-α, H preserved
+ *   bg' = mixSrgb(bg, scrim, amount)  // sRGB source-over alpha
  *
- * Both `cell.fg` AND `cell.bg` are mixed uniformly. Asymmetric amounts were
- * tried briefly (bg at half amount to prevent "scene drowning") but caused
- * border/panel brightness-ordering inversion — a border cell (fg-dominated)
- * darkens faster than its panel fill (bg-dominated) when fg and bg move
- * toward the scrim at different rates. Uniform amounts preserve visual
- * hierarchy; heaviness is controlled by the `amount` itself (default 0.25,
- * calibrated against macOS 20%, Material 3 32%, iOS 40%, Flutter 54%).
+ * Why the split:
+ *
+ * Foreground colored text (syntax highlights, badges, chromatic glyphs) is
+ * where users notice "darkened colors look MORE saturated" — sRGB channel-
+ * linear scaling preserves HSL ratios but subtly breaks perceived chroma-
+ * per-luminance (C/L) because OKLCH's L isn't linear with sRGB channel
+ * multiplication. Using OKLCH `deemphasize` (proportional L + C scaling, H
+ * preserved) keeps C/L constant — a blue stays "the same blue, less visually
+ * present" rather than "darker blue that pops harder".
+ *
+ * Background uses sRGB source-over because the Kitty graphics scrim overlay
+ * composites in sRGB at alpha at the hardware level. Using sRGB for bg here
+ * keeps text-cell bg visually matching emoji-cell bg (where Kitty handles
+ * the fade) — critical for making wide cells and neighboring text cells
+ * read as the same faded region.
+ *
+ * ### No asymmetric amount math
+ *
+ * Amounts are uniform across fg and bg (both use `amount`). An earlier
+ * revision halved bg amount to prevent "scene drowning" — that caused
+ * border/panel brightness inversion (fg-dominated border darkens faster
+ * than bg-dominated fill). Heaviness is controlled by `amount`, not by
+ * asymmetric math.
  *
  * ## Scrim color
  *
  * - Dark themes: pure black (`#000000`) — Apple's modal-sheet dimming color.
  * - Light themes: pure white (`#ffffff`) — the sign-flipped equivalent.
  *
- * A pure-black scrim behind a blue-tinted theme (e.g. Nord `#2E3440`)
- * desaturates null-bg cells naturally: blending `#2E3440` toward `#000000` at
- * amount=0.25 lands at `#222732` — still slightly blue but muted, not
- * amplified. An earlier revision used an OKLab-desaturated gray target to
- * actively kill the hue cast; that target violated the source-over contract
- * for authored colors (blue text lost chroma at the same rate as ambient bg,
- * which users perceived as "the blue looks more saturated than expected").
- * Black scrim is both simpler AND closer to industry practice.
+ * Null-bg cells are resolved to rootBg first, then `mixSrgb` toward the
+ * scrim — empty cells darken at the same rate as explicitly-colored ones.
  *
- * Tiers (`colorLevel`):
- * - `truecolor` / `256`: sRGB source-over mix toward the scrim when `rootBg`
- *   is supplied; falls back to fg-toward-cell-bg mix otherwise. Deterministic.
- * - `basic` (ANSI 16): stamps `attrs.dim` (SGR 2). Can't mix palette slots.
- * - `none` (monochrome): no-op. Modal border + box-drawing carry separation.
+ * Tiers (`colorLevel`): a single code path for all supported tiers. For
+ * `"none"` (monochrome) the pass short-circuits to a no-op. For `basic`,
+ * `256`, and `truecolor`, the per-cell operation is identical — the output
+ * phase quantizes the mixed truecolor hex to the tier's palette on emit.
  *
  * ## Incremental correctness
  *
@@ -89,7 +92,7 @@
  *    surroundings.
  */
 
-import { relativeLuminance } from "@silvery/color"
+import { hexToOklch, oklchToHex, relativeLuminance } from "@silvery/color"
 import type { AgNode, Rect } from "@silvery/ag/types"
 import { ansi256ToRgb, isDefaultBg, type Color, type TerminalBuffer } from "../buffer"
 import {
@@ -498,8 +501,20 @@ function fadeCell(
       return true
     }
 
-    const mixedFgHex = mixSrgb(fgHex, scrim, amount)
-    const mixedFg = hexToRgb(mixedFgHex)
+    // Fg uses OKLCH deemphasize (L *= 1-α, C *= 1-α, H preserved) instead of
+    // sRGB source-over. sRGB channel-linear scaling preserves HSL ratios but
+    // NOT C/L (perceived saturation) — colored text tends to look slightly
+    // MORE saturated per unit luminance after darkening, which users notice
+    // on flat-color TUIs (where the effect isn't masked by photos / blur /
+    // gradients). OKLCH proportional L+C scaling preserves C/L exactly, so
+    // darkened text reads as "the same color, less visually present" rather
+    // than "darker but somehow poppier".
+    //
+    // Bg stays sRGB because the Kitty overlay composites in sRGB at the same
+    // alpha — using sRGB for bg keeps text-cell bg matching emoji-cell bg
+    // when both appear in the same faded region.
+    const deemphasizedFgHex = deemphasizeOklch(fgHex, amount)
+    const mixedFg = hexToRgb(deemphasizedFgHex)
     if (!mixedFg) return false
 
     if (!mixedBg) {
@@ -606,6 +621,28 @@ function rgbToHex(r: number, g: number, b: number): string {
  * `@silvery/color` does re-export `mixSrgb` from its source for third-party
  * consumers; this inline copy exists only to keep silvery self-contained.
  */
+/**
+ * OKLCH-native deemphasize: proportional L and C reduction, hue preserved.
+ * `L *= (1 - amount); C *= (1 - amount); H unchanged`. Preserves the C/L
+ * ratio — the cell reads as "same color, less visually present", not
+ * "darker and oddly more saturated" (which sRGB channel scaling can
+ * produce on some hues because it isn't perceptually uniform).
+ *
+ * `@silvery/color` exports `deemphasize` for third-party consumers; this
+ * inline copy exists only to keep silvery self-contained across publish
+ * cycles (see the `mixSrgb` inline comment for rationale).
+ */
+function deemphasizeOklch(hex: string, amount: number): string {
+  const o = hexToOklch(hex)
+  if (!o) return hex
+  const a = Math.max(0, Math.min(1, amount))
+  return oklchToHex({
+    L: Math.max(0, o.L * (1 - a)),
+    C: Math.max(0, o.C * (1 - a)),
+    H: o.H,
+  })
+}
+
 function mixSrgb(a: string, b: string, t: number): string {
   const ra = hexToRgb(a)
   const rb = hexToRgb(b)

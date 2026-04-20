@@ -431,12 +431,11 @@ describe("standalone Backdrop: rootBg from ThemeProvider", () => {
   test("fades fg + bg toward theme scrim (dark) when wrapped in ThemeProvider", () => {
     // darkTheme.bg = "#1e1e2e" → luminance ≈ 0.012 → dark scrim = "#000000".
     //
-    // sRGB source-over alpha at α=0.4:
-    //   fg #ffffff → (255, 255, 255) * 0.6 + (0,0,0) * 0.4 = (153, 153, 153)
-    //   bg #ff0000 → (255, 0, 0) * 0.6 + (0,0,0) * 0.4 = (153, 0, 0)
+    // Fg uses OKLCH deemphasize: L *= (1 - α), C *= (1 - α), H preserved.
+    // At α=0.4, white fg (L=1, C=0) → (L=0.6, C=0, H=*) → sRGB (128,128,128).
+    // (White is grayscale so any H works; OKLCH-to-sRGB at L=0.6 lands at 128.)
     //
-    // Uniform fg/bg amounts preserve brightness ordering across border vs
-    // fill cells. Calibration at call site — 0.4 here for easy observation.
+    // Bg uses sRGB source-over alpha: bg #ff0000 → (153, 0, 0).
     const render = createRenderer({ cols: 40, rows: 10 })
 
     function App() {
@@ -457,15 +456,16 @@ describe("standalone Backdrop: rootBg from ThemeProvider", () => {
     const cell = app.cell(0, 0)
     expect(cell.char).toBe("R")
 
-    // fg: 40% mix toward #000000 — white → (153, 153, 153). Grayscale preserved.
+    // fg: OKLCH deemphasize of white at α=0.4 — L=0.6 → sRGB (128,128,128).
     expect(cell.fg).not.toBeNull()
     const fg = cell.fg as { r: number; g: number; b: number }
-    expect(fg.r).toBe(153)
-    expect(fg.g).toBe(153)
-    expect(fg.b).toBe(153)
+    expect(fg.r).toBe(128)
+    expect(fg.g).toBe(128)
+    expect(fg.b).toBe(128)
 
-    // bg: 40% mix toward #000000 — (255, 0, 0) → (153, 0, 0). Saturation
-    // preserved (ratios of r:g:b unchanged when mixing toward achromatic).
+    // bg: sRGB source-over at α=0.4 — (255,0,0) → (153, 0, 0). Uses sRGB
+    // (not deemphasize) to match the Kitty overlay compositing which lands
+    // at cell * (1-α) + scrim * α.
     expect(cell.bg).not.toBeNull()
     const bg = cell.bg as { r: number; g: number; b: number }
     expect(bg.r).toBe(153)
