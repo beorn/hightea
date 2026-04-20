@@ -118,6 +118,88 @@ describe("ListView variable-heights: column-top-disappears real-vault shape", ()
     ).toBeLessThanOrEqual(3)
   })
 
+  test("MID-COLUMN scrollTo with leading placeholder: no blank rows ABOVE viewport", () => {
+    // User-reported follow-up (2026-04-20): after the forward-walk fix, a
+    // DIFFERENT symptom appeared — a SYMMETRIC blank gap at the TOP of the
+    // viewport when cursor moves mid-column.
+    //
+    // Root cause: when the virtualizer's window starts at `start > 0`, a
+    // `leadingHeight` placeholder Box fills the scroll content from row 0 to
+    // row leadingHeight. The scroll container only scrolls when the target
+    // is outside the viewport — if the target is within viewport reach at
+    // scrollOffset=0, no scroll happens, and the leading placeholder remains
+    // visible as blank rows at the top of the viewport.
+    //
+    // Example from real vault probe (virt log):
+    //   count=33 scrollOff=13 start=8 end=28 leadH=39 trailH=209
+    //   - items 8..27 rendered, leading placeholder = 39 rows
+    //   - scroll container child[6]=item 13, target.top≈64, target.bottom≈68
+    //   - visibleTop=0, visibleBottom=115: target in view → no scroll
+    //   - viewport rows 0-38 show BLANK leading placeholder
+    //
+    // Expected: initial scrollOffset must push leadingHeight out of view.
+    // ListView should communicate leadingHeight to the scroll container (e.g.
+    // pass scrollOffset={leadingHeight} as a minimum), OR the scroll container
+    // should treat leading placeholder as "virtual space" that must be
+    // scrolled past.
+    //
+    // Fixture: enough items that count > minWindowSize AND cursor scrollTo
+    // lands mid-column such that `start > 0` but the target is still inside
+    // the naive viewport (scrollOffset=0).
+    const items = Array.from({ length: 50 }, (_, i) => ({
+      id: `k-${i}`,
+      // Uniform short items so the window is small but non-zero leadingHeight
+      // produces a visible gap.
+      height: 3,
+    }))
+
+    const r = createRenderer({ cols: 60, rows: 105 })
+    const app = r(
+      <Box flexDirection="column" height={105}>
+        <ListView
+          items={items}
+          height={100}
+          width={58}
+          estimateHeight={3}
+          overflowIndicator
+          scrollTo={25}
+          getKey={(item) => item.id}
+          renderItem={(item) => (
+            <Box flexDirection="column" height={item.height} flexShrink={0} borderStyle="round">
+              <Text>{item.id}</Text>
+            </Box>
+          )}
+        />
+      </Box>,
+    )
+
+    const text = stripAnsi(app.text)
+    const lines = text.split("\n")
+
+    // Count blank rows at the top of the viewport (rows 0..N that contain no
+    // visible character). A card border `╭`, text `k-N`, or indicator `▲`
+    // breaks the gap.
+    let gapTop = 0
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i] ?? ""
+      if (/\S/.test(line)) break
+      gapTop++
+    }
+
+    const dump = lines
+      .slice(0, Math.min(30, lines.length))
+      .map((l, i) => `${String(i).padStart(3, "0")}: ${/\S/.test(l) ? l : "<blank>"}`)
+      .join("\n")
+
+    // INVARIANT: no blank rows at top of viewport.
+    //   Passing: 0 (first row has content — card top border or ▲ indicator).
+    //   Buggy: N blank rows = leadingHeight rows (placeholder visible).
+    expect(
+      gapTop,
+      `${gapTop} blank rows at top of viewport — the leading placeholder is visible, should be scrolled past.\n\nDUMP (first 30 rows):\n${dump}`,
+    ).toBeLessThanOrEqual(3)
+  })
+
   test("overflow indicator count scales with number of hidden items (not stuck at 1)", () => {
     // When the virtualizer renders a window smaller than `count`, the trailing
     // placeholder is a single Box that represents MULTIPLE hidden items. Before
@@ -168,6 +250,171 @@ describe("ListView variable-heights: column-top-disappears real-vault shape", ()
         indicatorCount,
         `▼N says ${indicatorCount} items below; ${hiddenItemCount} items actually hidden (j-${visibleCount}..j-29). Indicator must reflect real hidden count (≥ hidden/2), not be stuck at 1.`,
       ).toBeGreaterThanOrEqual(Math.ceil(hiddenItemCount / 2))
+    }
+  })
+})
+
+// =============================================================================
+// Edge-case matrix — required by coordinator for the symmetric-walk fix.
+// Each test uses the same synthetic ListView fixture so failures are 100%
+// deterministic (no real vault needed).
+// =============================================================================
+
+describe("ListView edge-case matrix: column-top-disappears symmetric walk", () => {
+  // Helper: render ListView with mixed heights, return text lines + indicators.
+  // Uses cols=60, rows = viewport + small margin. The ListView is rendered at
+  // the full viewport height within a Box that's slightly taller.
+  function renderList(config: {
+    items: { id: string; height: number }[]
+    scrollTo?: number
+    viewport: number
+    estimateHeight?: number
+  }): { text: string; lines: string[]; indicatorUp?: string; indicatorDown?: string } {
+    const rows = config.viewport + 5
+    const r = createRenderer({ cols: 60, rows })
+    const app = r(
+      <ListView
+        items={config.items}
+        height={config.viewport}
+        width={58}
+        estimateHeight={config.estimateHeight ?? 3}
+        overflowIndicator
+        scrollTo={config.scrollTo}
+        getKey={(item) => item.id}
+        renderItem={(item) => (
+          <Box flexDirection="column" height={item.height} flexShrink={0} borderStyle="round">
+            <Text>{item.id}</Text>
+          </Box>
+        )}
+      />,
+    )
+    const text = stripAnsi(app.text)
+    const lines = text.split("\n").slice(0, config.viewport)
+    const up = text.match(/▲(\d+)/)?.[1]
+    const down = text.match(/▼(\d+)/)?.[1]
+    return { text, lines, indicatorUp: up, indicatorDown: down }
+  }
+
+  // Helper: count blank rows at top of rendered list before first card.
+  function gapTop(lines: string[]): number {
+    let n = 0
+    for (const line of lines) {
+      if (/\S/.test(line)) break
+      n++
+    }
+    return n
+  }
+
+  // Helper: count blank rows between last card's ╰/│ and ▼N indicator.
+  function gapBottom(lines: string[]): number {
+    const indicatorRow = lines.findIndex((l) => /▼\d+/.test(l))
+    if (indicatorRow < 0) return 0
+    let n = 0
+    for (let i = indicatorRow - 1; i >= 0; i--) {
+      const line = lines[i] ?? ""
+      if (line.includes("╰") || line.includes("│")) break
+      if (!/\S/.test(line)) n++
+      else break
+    }
+    return n
+  }
+
+  test("1. cursor at TOP + mixed heights — no blank gap at bottom above ▼N", () => {
+    const items = Array.from({ length: 40 }, (_, i) => ({ id: `a-${i}`, height: i < 20 ? 3 : 10 }))
+    const r = renderList({ items, scrollTo: 0, viewport: 100 })
+    expect(r.indicatorDown, "▼N must be present (content > viewport)").toBeDefined()
+    expect(gapBottom(r.lines)).toBeLessThanOrEqual(3)
+    expect(gapTop(r.lines)).toBeLessThanOrEqual(3)
+  })
+
+  test("2. cursor at BOTTOM — no blank gap at top; ▲N shows items above", () => {
+    const items = Array.from({ length: 40 }, (_, i) => ({ id: `b-${i}`, height: 3 }))
+    const r = renderList({ items, scrollTo: 39, viewport: 60 })
+    expect(r.indicatorUp, "▲N must be present (cursor at bottom with items above)").toBeDefined()
+    expect(gapTop(r.lines)).toBeLessThanOrEqual(3)
+  })
+
+  test("3. cursor MID-LIST, tall outlier ABOVE cursor — no blank gap at top", () => {
+    // 50 items; item 10 is 30 rows tall (outlier); others are 3 rows. Cursor
+    // at 30 (below outlier). Viewport=60.
+    const items = Array.from({ length: 50 }, (_, i) => ({
+      id: `c-${i}`,
+      height: i === 10 ? 30 : 3,
+    }))
+    const r = renderList({ items, scrollTo: 30, viewport: 60 })
+    const rawDump = r.lines
+      .slice(0, 65)
+      .map((l, i) => `${String(i).padStart(3, "0")}: [${l}]`)
+      .join("\n")
+    expect(
+      gapTop(r.lines),
+      `Cursor mid-list with tall outlier above: gapTop should be ≤ 3. RAW:\n${rawDump}`,
+    ).toBeLessThanOrEqual(3)
+  })
+
+  test("4. cursor MID-LIST, tall outlier BELOW cursor — no blank gap at bottom above ▼N", () => {
+    const items = Array.from({ length: 50 }, (_, i) => ({
+      id: `d-${i}`,
+      height: i === 40 ? 30 : 3,
+    }))
+    const r = renderList({ items, scrollTo: 15, viewport: 60 })
+    if (r.indicatorDown) {
+      expect(gapBottom(r.lines)).toBeLessThanOrEqual(3)
+    }
+  })
+
+  test("5. cursor ON tall outlier (height >> viewport) — outlier renders, ▲▼ flanking", () => {
+    const items = Array.from({ length: 30 }, (_, i) => ({ id: `e-${i}`, height: i === 15 ? 200 : 3 }))
+    const r = renderList({ items, scrollTo: 15, viewport: 60 })
+    // The tall item should render (clipped). Its id ("e-15") should appear.
+    expect(r.text, "outlier item must render (even clipped)").toContain("e-15")
+  })
+
+  test("6. uniform short cards baseline — all render, no indicator, no gap", () => {
+    const items = Array.from({ length: 15 }, (_, i) => ({ id: `f-${i}`, height: 3 }))
+    const r = renderList({ items, scrollTo: 0, viewport: 50 })
+    expect(r.indicatorUp, "no items above cursor=0").toBeUndefined()
+    // Content = 45 rows, viewport = 50 → no overflow.
+    expect(r.indicatorDown, "all items fit → no ▼N").toBeUndefined()
+    // All items rendered.
+    for (let i = 0; i < 15; i++) {
+      expect(r.text).toContain(`f-${i}`)
+    }
+  })
+
+  test("7. uniform TALL cards — cursor mid, ▲/▼ indicators accurate, no gaps", () => {
+    const items = Array.from({ length: 10 }, (_, i) => ({ id: `g-${i}`, height: 20 }))
+    const r = renderList({ items, scrollTo: 5, viewport: 60 })
+    expect(r.indicatorUp, "items above cursor must show ▲N").toBeDefined()
+    expect(r.indicatorDown, "items below cursor must show ▼N").toBeDefined()
+    expect(gapTop(r.lines)).toBeLessThanOrEqual(3)
+    expect(gapBottom(r.lines)).toBeLessThanOrEqual(3)
+  })
+
+  test("8. single item (count=1) — no indicators, item renders at top", () => {
+    const items = [{ id: "h-only", height: 5 }]
+    const r = renderList({ items, scrollTo: 0, viewport: 30 })
+    expect(r.indicatorUp).toBeUndefined()
+    expect(r.indicatorDown).toBeUndefined()
+    expect(r.text).toContain("h-only")
+    expect(gapTop(r.lines)).toBeLessThanOrEqual(2)
+  })
+
+  test("9. empty list (count=0) — no crash, no indicators", () => {
+    const items: { id: string; height: number }[] = []
+    const r = renderList({ items, viewport: 30 })
+    expect(r.indicatorUp).toBeUndefined()
+    expect(r.indicatorDown).toBeUndefined()
+  })
+
+  test("10. contentHeight === viewportHeight exactly — no overflow indicators, no gap", () => {
+    // 10 items × 3 rows = 30 rows of content. Viewport = 30 → exactly fits.
+    const items = Array.from({ length: 10 }, (_, i) => ({ id: `p-${i}`, height: 3 }))
+    const r = renderList({ items, scrollTo: 0, viewport: 30 })
+    expect(r.indicatorUp).toBeUndefined()
+    expect(r.indicatorDown).toBeUndefined()
+    for (let i = 0; i < 10; i++) {
+      expect(r.text).toContain(`p-${i}`)
     }
   })
 })
