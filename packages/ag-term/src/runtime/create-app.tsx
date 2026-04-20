@@ -1538,12 +1538,23 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Kitty keyboard protocol
     if (kittyOption != null && kittyOption !== false) {
       if (kittyOption === true) {
-        // Auto-detect: probe terminal, enable if supported
-        const result = await detectKittyFromStdio(stdout, stdin as NodeJS.ReadStream)
-        if (result.supported) {
+        // Auto-detect: probe terminal, enable if supported.
+        // If caller already detected Kitty support synchronously (via caps from
+        // detectTerminalCaps — $TERM-based), skip the 200ms stdio roundtrip and
+        // enable directly. The synchronous heuristic is reliable for the four
+        // Kitty-protocol terminals (kitty/ghostty/wezterm/foot); the probe only
+        // adds value when caps weren't provided.
+        if (capsOption?.kittyKeyboard) {
           stdout.write(enableKittyKeyboard(defaultKittyFlags))
           kittyEnabled = true
           kittyFlags = defaultKittyFlags
+        } else {
+          const result = await detectKittyFromStdio(stdout, stdin as NodeJS.ReadStream)
+          if (result.supported) {
+            stdout.write(enableKittyKeyboard(defaultKittyFlags))
+            kittyEnabled = true
+            kittyFlags = defaultKittyFlags
+          }
         }
       } else {
         // Explicit flags — enable directly without detection
