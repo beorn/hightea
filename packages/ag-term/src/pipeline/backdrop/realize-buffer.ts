@@ -2,7 +2,7 @@
  * Backdrop fade — stage 2a: apply the plan's cell-level transform to the
  * terminal buffer.
  *
- * Uses the shared `forEachFadeRegionCell` walker (`./region.ts`) to visit
+ * Uses the shared `forEachBackdropCell` walker (`./region.ts`) to visit
  * every cell covered by the plan's include + exclude rects exactly once.
  * Trusts the plan: no marker re-collection, no scrim/default resolution,
  * no amount validation, no capability re-derivation (`plan.kittyEnabled`
@@ -43,12 +43,12 @@ import { isLikelyEmoji } from "../../unicode"
 import { colorToHex, type HexColor, hexToRgb } from "./color"
 import { deemphasizeOklchToward } from "./color-shim"
 import { DARK_SCRIM, LIGHT_SCRIM, type Plan } from "./plan"
-import { forEachFadeRegionCell } from "./region"
+import { forEachBackdropCell } from "./region"
 
 /**
  * Stage 2a — apply the plan's cell-level transform to the buffer.
  *
- * Walks every include + exclude cell once via `forEachFadeRegionCell` and
+ * Walks every include + exclude cell once via `forEachBackdropCell` and
  * applies `fadeCell` with the plan's single `amount`. The buffer is mutated
  * in place.
  *
@@ -65,7 +65,7 @@ export function realizeToBuffer(plan: Plan, buffer: TerminalBuffer): boolean {
   if (plan.amount <= 0) return false
 
   let modified = false
-  forEachFadeRegionCell(buffer.width, buffer.height, plan.includes, plan.excludes, (x, y) => {
+  forEachBackdropCell(buffer.width, buffer.height, plan.includes, plan.excludes, (x, y) => {
     if (fadeCell(buffer, x, y, plan)) modified = true
   })
   return modified

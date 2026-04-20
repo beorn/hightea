@@ -14,7 +14,7 @@
  * string on every invocation. STRICT mode compares the overlay across
  * fresh and incremental paths to catch latent non-determinism in marker
  * collection order, emoji walk ordering, or placement ID derivation. The
- * shared `forEachFadeRegionCell` walker provides the stable row-ascending,
+ * shared `forEachBackdropCell` walker provides the stable row-ascending,
  * col-ascending iteration order.
  *
  * @see ./plan.ts for the Plan shape and color model.
@@ -36,7 +36,7 @@ import type { TerminalBuffer } from "../../buffer"
 import { isLikelyEmoji } from "../../unicode"
 import { hexToRgb } from "./color"
 import type { Plan } from "./plan"
-import { forEachFadeRegionCell } from "./region"
+import { forEachBackdropCell } from "./region"
 
 /**
  * Stage 2b — emit the Kitty graphics overlay for the plan.
@@ -103,7 +103,7 @@ export function realizeToKitty(plan: Plan, buffer: TerminalBuffer): string {
  * overlay because their rendering ignores the fg color.
  *
  * The iteration order is deterministic (delegated to
- * `forEachFadeRegionCell`), matching the buffer realizer's order. STRICT
+ * `forEachBackdropCell`), matching the buffer realizer's order. STRICT
  * mode compares the overlay string across fresh and incremental paths —
  * any drift in this order would fail the comparison.
  */
@@ -112,7 +112,7 @@ function collectEmojiCellsInFadeRegion(
   plan: Plan,
 ): Array<{ x: number; y: number }> {
   const out: Array<{ x: number; y: number }> = []
-  forEachFadeRegionCell(buffer.width, buffer.height, plan.includes, plan.excludes, (x, y) => {
+  forEachBackdropCell(buffer.width, buffer.height, plan.includes, plan.excludes, (x, y) => {
     if (x + 1 >= buffer.width) return // no room for continuation
     if (!buffer.isCellWide(x, y)) return
     if (buffer.isCellContinuation(x, y)) return

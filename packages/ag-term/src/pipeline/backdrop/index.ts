@@ -5,11 +5,13 @@
  * pipeline orchestrator (`ag.ts`) invokes `applyBackdrop(root, buffer,
  * options)`, which performs two independent stages:
  *
- *   1. `buildPlan(root, options)` — PURE, capability-independent tree
- *      walk. Collects `data-backdrop-fade` / `data-backdrop-fade-excluded`
- *      markers, enforces the single-amount invariant, resolves the scrim +
- *      default colors, and derives `plan.kittyEnabled` from
- *      `options.kittyGraphics` + scrim availability. See `./plan.ts`.
+ *   1. `buildPlan(root, options)` — PURE tree walk. Collects
+ *      `data-backdrop-fade` / `data-backdrop-fade-excluded` markers,
+ *      enforces the single-amount invariant, resolves the scrim + default
+ *      colors, and derives `plan.kittyEnabled` from
+ *      `options.kittyGraphics` + scrim availability. Returns a
+ *      `TerminalPlan` (`CorePlan` + `kittyEnabled`); call `buildCorePlan`
+ *      for a framework-agnostic plan. See `./plan.ts`.
  *   2a. `realizeToBuffer(plan, buffer)` — cell-level transform over the
  *       plan's include/exclude rects. Mutates the buffer in place. Reads
  *       `plan.kittyEnabled` to decide the emoji branch. See
@@ -61,6 +63,20 @@
  *                         then `mixSrgb` + `deemphasize` are imported from
  *                         upstream directly.
  *   ./index.ts         — this file: applyBackdrop orchestrator + barrel
+ *
+ * ## Naming policy
+ *
+ *   - Public surface uses the `Backdrop` prefix: `BackdropOptions`,
+ *     `BackdropResult`, `applyBackdrop`, `hasBackdropMarkers`,
+ *     `forEachBackdropCell` — disambiguates from "fade" which is too
+ *     generic at the framework level (animation, theme, etc.).
+ *   - `Plan` / `PlanRect` / `CorePlan` / `TerminalPlan` are intentionally
+ *     UNPREFIXED. The pass already lives in `./pipeline/backdrop/`; the
+ *     namespace makes the prefix redundant and the names cleaner.
+ *   - `hasBackdropMarkers` is purely SYNTACTIC — true whenever the tree
+ *     has any `data-backdrop-fade*` attribute, even with `amount=0` (which
+ *     produces an inactive plan). Callers that need "is the plan active
+ *     this frame?" should test `plan.active` after `buildPlan`.
  */
 
 import type { AgNode } from "@silvery/ag/types"
@@ -71,7 +87,7 @@ import { realizeToKitty } from "./realize-kitty"
 
 // Public re-exports — this is an INTERNAL pipeline module. Only export
 // what callers (renderer.ts, ag.ts, scheduler.ts, tests-by-public-API)
-// actually need. Internals like `forEachFadeRegionCell`, `mixSrgb`, and
+// actually need. Internals like `forEachBackdropCell`, `mixSrgb`, and
 // `deemphasizeOklch[Toward]` live in their own files; tests that need
 // them import from those paths directly.
 //
@@ -165,8 +181,9 @@ export function applyBackdrop(
   if (plan.mixedAmounts && process.env.NODE_ENV !== "production") {
     // eslint-disable-next-line no-console
     console.warn(
-      `[silvery:backdrop] multiple fade amounts in one frame (using ${plan.amount}); ` +
-        `Kitty overlay will use the first observed amount. See plan.ts / assertSingleAmount.`,
+      `[silvery:backdrop] multiple fade amounts in one frame; plan.amount ` +
+        `collapsed to the first observed (${plan.amount}). Visuals may differ ` +
+        `from intent. See plan.ts / assertSingleAmount.`,
     )
   }
 

@@ -6,7 +6,7 @@
  * single-visit semantics. Overlapping rects would otherwise double-fade
  * cells (buffer) or emit duplicate Kitty placements (overlay).
  *
- * `forEachFadeRegionCell` centralizes that walk with a `Uint8Array`
+ * `forEachBackdropCell` centralizes that walk with a `Uint8Array`
  * "visited" bitset. Pass an `includes` list to fade cells INSIDE each rect
  * (data-backdrop-fade), and an `excludes` list to fade everything OUTSIDE
  * each rect (data-backdrop-fade-excluded). Cells inside any include and
@@ -56,7 +56,7 @@ import type { PlanRect } from "./plan"
  * Returns the count of unique cells visited. Useful for short-circuiting
  * the "was any cell modified?" signal in realizers.
  */
-export function forEachFadeRegionCell(
+export function forEachBackdropCell(
   bufferWidth: number,
   bufferHeight: number,
   includes: readonly PlanRect[],

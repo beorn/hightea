@@ -1,12 +1,15 @@
 /**
  * Backdrop fade — stage 1: build the immutable `Plan`.
  *
- * `buildPlan(root, options)` is a PURE, capability-independent pass that
- * walks the tree, collects `data-backdrop-fade` / `data-backdrop-fade-excluded`
- * markers, enforces the single-amount invariant, and resolves the scrim +
- * default colors. The realizers (`./realize-buffer.ts`, `./realize-kitty.ts`)
- * trust the plan: they do NOT re-walk the tree, re-resolve the scrim, or
- * re-validate amounts. This module is the single source of truth.
+ * `buildPlan(root, options)` is a PURE pass that walks the tree, collects
+ * `data-backdrop-fade` / `data-backdrop-fade-excluded` markers, enforces
+ * the single-amount invariant, and resolves the scrim + default colors.
+ * It returns a `TerminalPlan` (`CorePlan` + `kittyEnabled`); call
+ * `buildCorePlan` for a framework-agnostic plan that strips terminal
+ * capability flags. The realizers (`./realize-buffer.ts`,
+ * `./realize-kitty.ts`) trust the plan: they do NOT re-walk the tree,
+ * re-resolve the scrim, or re-validate amounts. This module is the
+ * single source of truth.
  *
  * ## The model: per-channel alpha scrim with perceptually-aware fg
  *
@@ -85,21 +88,24 @@ export interface BackdropOptions {
    * want a tinted scrim (e.g., a mid-gray for flat-color TUIs) override
    * here.
    */
-  scrimColor?: HexColor | string | "auto"
+  scrimColor?: HexColor | "auto" | string
   /**
    * Default background hex — resolves null/default `cell.bg` before mixing
    * toward the scrim AND feeds the auto-scrim luminance derivation when
-   * `scrimColor` is `"auto"`.
+   * `scrimColor` is `"auto"`. Accepts any string; `normalizeHex` validates
+   * and normalizes inside `buildPlan`.
    */
-  defaultBg?: HexColor | string
+  defaultBg?: string
   /**
    * Default foreground hex — resolves null/default `cell.fg` before the
    * deemphasize pass. Without this, text using the terminal's default fg
    * would stay at full brightness against a darkened backdrop (looks like
    * the text is POPPING instead of receding). If omitted, the pass picks
    * the opposite of the scrim (white for dark scrim, black for light).
+   * Accepts any string; `normalizeHex` validates and normalizes inside
+   * `buildPlan`.
    */
-  defaultFg?: HexColor | string
+  defaultFg?: string
   /**
    * When true, emit Kitty graphics protocol overlays on emoji cells inside
    * the faded region. The terminal renders a translucent scrim image above
@@ -265,10 +271,15 @@ export const INACTIVE_PLAN: TerminalPlan = Object.freeze({
 })
 
 /**
- * Quick check: does the tree contain any backdrop markers? Used as a gate so
- * we don't clone the buffer every frame when no fade is active. Walks the
- * full tree once (O(N)) — the alternative (tracking dirty markers in the
- * reconciler) is more complex and the walk is cheap compared to the pass.
+ * Syntactic check: does the tree contain any `data-backdrop-fade*`
+ * attribute? Returns true even when the marker amounts are 0 (which
+ * yields an inactive plan). For "is the plan active this frame?" use
+ * `buildPlan(...).active`.
+ *
+ * Used as a gate so we don't clone the buffer every frame when no
+ * backdrop markers are mounted. Walks the full tree once (O(N)) — the
+ * alternative (tracking dirty markers in the reconciler) is more complex
+ * and the walk is cheap compared to the pass.
  */
 export function hasBackdropMarkers(root: AgNode): boolean {
   const props = root.props as Record<string, unknown>

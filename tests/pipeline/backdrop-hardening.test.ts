@@ -25,7 +25,7 @@ import {
 } from "@silvery/ag-term/pipeline/backdrop"
 // Internal — tests reach in directly so the public barrel can stay
 // minimal. See km-silvery.backdrop-hardening.slim-barrel.
-import { forEachFadeRegionCell } from "@silvery/ag-term/pipeline/backdrop/region"
+import { forEachBackdropCell } from "@silvery/ag-term/pipeline/backdrop/region"
 import type { AgNode, Rect } from "@silvery/ag/types"
 import { createBuffer } from "@silvery/ag-term/buffer"
 
@@ -64,7 +64,7 @@ describe("backdrop-hardening 1: multi-exclude union semantics", () => {
     // Buffer 10x4. Exclude A at (1,1) 2x2; exclude B at (6,1) 2x2.
     // Correct: outside(A ∪ B) = 40 - 4 - 4 = 32 cells.
     const visits = new Set<string>()
-    const count = forEachFadeRegionCell(
+    const count = forEachBackdropCell(
       10,
       4,
       [],
@@ -89,7 +89,7 @@ describe("backdrop-hardening 1: multi-exclude union semantics", () => {
     // Buffer 10x4 = 40. Exclude A at (1,0) 4x4; exclude B at (3,0) 4x4.
     // Union interior = x=[1,7), y=[0,4) = 24 cells. Outside = 40 - 24 = 16.
     const visits = new Set<string>()
-    const count = forEachFadeRegionCell(
+    const count = forEachBackdropCell(
       10,
       4,
       [],
@@ -120,7 +120,7 @@ describe("backdrop-hardening 1: multi-exclude union semantics", () => {
     // — these are NOT in outside(A∪B), so the include adds them. Other 8 already in outside.
     // Total unique = 24 + 4 = 28.
     const visits = new Set<string>()
-    const count = forEachFadeRegionCell(
+    const count = forEachBackdropCell(
       8,
       4,
       [{ rect: { x: 5, y: 0, width: 3, height: 4 } }],

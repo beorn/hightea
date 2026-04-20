@@ -27,7 +27,7 @@ import {
 // Internal modules — tests reach in directly so the public barrel can stay
 // minimal. See km-silvery.backdrop-hardening.slim-barrel.
 import { deemphasizeOklchToward } from "@silvery/ag-term/pipeline/backdrop/color-shim"
-import { forEachFadeRegionCell } from "@silvery/ag-term/pipeline/backdrop/region"
+import { forEachBackdropCell } from "@silvery/ag-term/pipeline/backdrop/region"
 import { hexToOklch } from "@silvery/color"
 
 /** Minimal AgNode factory — matches `backdrop-plan.test.ts`. */
@@ -198,7 +198,7 @@ describe("backdrop-pro A4: shared region walker with overlap dedup", () => {
     // x=[5,10), y=[0,4) → 20 cells. Union (with dedup) should be 10*4 +
     // 10*4 - 20 = 60 cells.
     const visits = new Map<string, number>()
-    const count = forEachFadeRegionCell(
+    const count = forEachBackdropCell(
       16,
       4,
       [{ rect: RECT_A }, { rect: RECT_B }],
@@ -216,7 +216,7 @@ describe("backdrop-pro A4: shared region walker with overlap dedup", () => {
   test("excludes walker visits outside-rect cells exactly once", () => {
     // Buffer 4x4 = 16 cells, exclude interior 2x2 at (1,1)-(2,2) → 12 cells outside
     const visits = new Set<string>()
-    const count = forEachFadeRegionCell(
+    const count = forEachBackdropCell(
       4,
       4,
       [],
@@ -236,7 +236,7 @@ describe("backdrop-pro A4: shared region walker with overlap dedup", () => {
 
   test("clips out-of-bounds rects to the buffer", () => {
     const visits: Array<[number, number]> = []
-    const count = forEachFadeRegionCell(
+    const count = forEachBackdropCell(
       4,
       4,
       [{ rect: { x: -2, y: -2, width: 5, height: 5 } }],
@@ -254,7 +254,7 @@ describe("backdrop-pro A4: shared region walker with overlap dedup", () => {
   })
 
   test("empty includes + excludes is a no-op", () => {
-    const count = forEachFadeRegionCell(4, 4, [], [], () => {
+    const count = forEachBackdropCell(4, 4, [], [], () => {
       throw new Error("should not be called")
     })
     expect(count).toBe(0)
