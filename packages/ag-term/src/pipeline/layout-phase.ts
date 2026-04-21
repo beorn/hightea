@@ -642,8 +642,26 @@ function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: b
       const visibleTop = scrollOffset
       const visibleBottom = scrollOffset + effectiveHeight
 
-      // Only scroll if target is outside visible range
-      if (target.top < visibleTop) {
+      // Only scroll if target is outside visible range.
+      //
+      // "Too tall to fit" must be handled FIRST: when the target is taller
+      // than the effective viewport, no offset can satisfy both
+      // `target.top >= visibleTop` AND `target.bottom <= visibleBottom`.
+      // Without this branch, the two branches below alternate across
+      // iterations of the layout loop — `target.top - 1` exposes the top
+      // edge, which then makes `target.bottom > visibleBottom` true, so
+      // the next iteration flips to the snap-to-bottom branch, whose offset
+      // makes `target.top < visibleTop` true again, and so on. The offset
+      // pingpongs, exhausting the 5-iteration budget and forcing downstream
+      // consumers (e.g. the virtualizer) to route around the instability.
+      //
+      // Show the TOP of the oversized target. That matches "cursor on tall
+      // outlier" intent (the user wants to see the card they moved to) and
+      // is stable — no subsequent branch fires because only one is eligible.
+      const targetHeight = target.bottom - target.top
+      if (targetHeight > effectiveHeight) {
+        scrollOffset = target.top > 0 ? target.top - 1 : 0
+      } else if (target.top < visibleTop) {
         // Target is above viewport - scroll up to show it at top.
         //
         // Reserve one row for the TOP overflow indicator so it doesn't
