@@ -79,6 +79,7 @@ import {
   renderFixture,
   dumpViewport,
   checkAllInvariants,
+  checkVirtualizerScrollAgreement,
 } from "./listview-scroll-helpers"
 
 // ============================================================================
@@ -150,6 +151,16 @@ describe("ListView scroll-contract fuzz sweep (cols × rows × heights × scroll
             }
 
             const analysis = renderFixture(fixture)
+            // INV-5 FIRST, as its own primary assertion: the virtualizer-
+            // scroll agreement is the architectural invariant load-bearing
+            // for read-don't-walk. A breakdown here means the virtualizer
+            // and scroll-phase disagree about what's visible — fail loudly.
+            const inv5 = checkVirtualizerScrollAgreement(fixture, analysis)
+            if (!inv5.ok) {
+              throw new Error(
+                `[INV-5 primary] ${inv5.message}\n\n${dumpViewport(fixture, analysis)}`,
+              )
+            }
             const violation = checkAllInvariants(fixture, analysis)
             if (violation) {
               throw new Error(`${violation.message}\n\n${dumpViewport(fixture, analysis)}`)

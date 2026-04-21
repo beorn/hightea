@@ -347,17 +347,25 @@ export function checkVirtualizerScrollAgreement(
   return { ok: true, message: `contiguous range [${first}..${last}] (${sorted.length} items)` }
 }
 
-/** Run all 5 invariants. Returns first violation or null. */
+/**
+ * Run all 5 invariants. Returns first violation or null.
+ *
+ * INV-5 (virtualizer↔scroll-phase agreement) runs FIRST so a breakdown in
+ * the read-don't-walk contract fails loudly even when earlier invariants
+ * (gap, count-accuracy, anchoring) would also catch a symptom. That
+ * architectural invariant is the load-bearing one — if it breaks, the other
+ * invariants become symptom-only guards.
+ */
 export function checkAllInvariants(
   f: ListViewFixture,
   a: RenderAnalysis,
 ): InvariantResult | null {
   for (const check of [
+    checkVirtualizerScrollAgreement,
     checkNoBlankGap,
     checkOverflowCountAccuracy,
     checkFirstVisibleZeroOffset,
     checkViewportTopCard,
-    checkVirtualizerScrollAgreement,
   ]) {
     const r = check(f, a)
     if (!r.ok) return r
