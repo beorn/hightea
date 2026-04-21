@@ -107,42 +107,119 @@ export function createWheelEvent(
 // Hit Testing
 // ============================================================================
 
+/** Position property on a Box that takes the node out of normal flow. */
+function isAbsolutePositioned(node: AgNode): boolean {
+  const p = node.props as { position?: string }
+  return p.position === "absolute"
+}
+
 /**
- * Tree-based hit test: find the deepest node whose scrollRect contains (x, y).
- * Uses reverse child order (last sibling wins = highest z-order, like DOM).
- * Respects overflow:hidden clipping.
+ * Geometry-based hit test for absolute-positioned descendants.
+ *
+ * Walks the whole subtree rooted at `node` in tree order. For each
+ * absolute-positioned descendant whose scrollRect contains (x, y), recurse
+ * into it as a standalone hit-test (which finds the deepest in-flow child
+ * under that absolute) and track the latest-in-tree hit — that one paints
+ * on top (third pass in render order uses natural child order, so later =
+ * higher z).
+ *
+ * Respects pointerEvents="none" on the absolute root and its ancestors,
+ * and overflow:hidden/scroll clipping on ancestors up to `node`.
+ *
+ * Returns null if no absolute descendant covers (x, y).
  */
-export function hitTest(node: AgNode, x: number, y: number): AgNode | null {
+function hitTestAbsoluteDescendants(
+  node: AgNode,
+  x: number,
+  y: number,
+  ancestorClipRect: Rect | null,
+): AgNode | null {
+  let result: AgNode | null = null
+
+  for (const child of node.children) {
+    // Honor pointerEvents="none" on any ancestor of the absolute node.
+    const cp = child.props as { pointerEvents?: string; overflow?: string }
+    if (cp.pointerEvents === "none") continue
+
+    // Compute the effective clip rect for this child's descendants.
+    let childClip = ancestorClipRect
+    if (cp.overflow === "hidden" || cp.overflow === "scroll") {
+      const cr = child.scrollRect
+      if (cr) {
+        childClip = childClip ? intersectRect(childClip, cr) : cr
+      }
+    }
+
+    if (isAbsolutePositioned(child) && child.scrollRect) {
+      // If an ancestor clips and the absolute node is outside the clip, skip.
+      const clipExcludes = ancestorClipRect && !pointInRect(x, y, ancestorClipRect)
+      if (!clipExcludes && pointInRect(x, y, child.scrollRect)) {
+        // Recurse INTO the absolute node to find the deepest descendant
+        // under it. We use hitTestInFlow plus a nested absolute pass so
+        // nested absolutes also resolve geometrically.
+        const nestedAbs = hitTestAbsoluteDescendants(child, x, y, null)
+        const hit = nestedAbs ?? hitTestInFlow(child, x, y)
+        if (hit) {
+          // Later-in-tree wins for z-order (paints on top in absolute pass).
+          result = hit
+        }
+      }
+    }
+
+    // Continue searching this child's subtree for deeper absolute descendants
+    // (an absolute node can contain nested absolute nodes; we still want the
+    // latest one to win).
+    const deeper = hitTestAbsoluteDescendants(child, x, y, childClip)
+    if (deeper) result = deeper
+  }
+
+  return result
+}
+
+/** Compute the intersection of two rects; returns a zero-size rect if disjoint. */
+function intersectRect(a: Rect, b: Rect): Rect {
+  const x1 = Math.max(a.x, b.x)
+  const y1 = Math.max(a.y, b.y)
+  const x2 = Math.min(a.x + a.width, b.x + b.width)
+  const y2 = Math.min(a.y + a.height, b.y + b.height)
+  return { x: x1, y: y1, width: Math.max(0, x2 - x1), height: Math.max(0, y2 - y1) }
+}
+
+/**
+ * In-flow (non-absolute) DFS hit test. Used by both `hitTest` after the
+ * absolute pass, and by `hitTestAbsoluteDescendants` when recursing into a
+ * matched absolute to find the deepest in-flow descendant under it.
+ *
+ * Skips absolute children — they're handled by the absolute pass at the
+ * entry point (`hitTest`).
+ */
+function hitTestInFlow(node: AgNode, x: number, y: number): AgNode | null {
   const rect = node.scrollRect
   if (!rect) return null
 
-  // Check if point is within this node's bounds
   if (!pointInRect(x, y, rect)) return null
 
-  // pointerEvents="none" makes this node and its subtree invisible to hit testing
   const props = node.props as { overflow?: string; pointerEvents?: string }
   if (props.pointerEvents === "none") return null
 
-  // Check overflow clipping — if overflow is "hidden" or "scroll",
-  // children outside this node's rect are not hittable
   const clips = props.overflow === "hidden" || props.overflow === "scroll"
 
-  // DFS: check children in reverse order (last child = top z-order, like DOM)
+  // DFS: reverse child order (last child = top z-order).
   for (let i = node.children.length - 1; i >= 0; i--) {
     const child = node.children[i]!
-    // If parent clips, skip children whose scrollRect doesn't overlap parent
+    if (isAbsolutePositioned(child)) continue // handled by absolute pass
+
     if (clips) {
       const childRect = child.scrollRect
       if (childRect && !pointInRect(x, y, rect)) {
         continue
       }
     }
-    const hit = hitTest(child, x, y)
+    const hit = hitTestInFlow(child, x, y)
     if (hit) return hit
   }
 
-  // Check virtual text children with inlineRects (nested Text inside Text).
-  // These don't have scrollRect/layoutNode, so standard DFS misses them.
+  // Virtual text children with inlineRects (nested Text inside Text).
   if (node.type === "silvery-text") {
     for (let i = node.children.length - 1; i >= 0; i--) {
       const child = node.children[i]!
@@ -154,8 +231,42 @@ export function hitTest(node: AgNode, x: number, y: number): AgNode | null {
     }
   }
 
-  // No child matched — this node is the target (if it has a scrollRect)
   return node
+}
+
+/**
+ * Tree-based hit test: find the deepest node whose scrollRect contains (x, y).
+ *
+ * Uses reverse child order (last sibling wins = highest z-order, like DOM).
+ * Respects overflow:hidden clipping and pointerEvents="none".
+ *
+ * ### Absolute-positioned nodes escape parent bounds
+ *
+ * Absolute descendants participate in hit-testing by GEOMETRY, not by
+ * tree order / parent rect containment. An absolute child can be placed
+ * outside its parent's bounding rect (e.g., a popover anchored near a
+ * viewport edge); it still occupies screen cells at its own geometry and
+ * must be hittable.
+ *
+ * The hit test runs an "absolute pass" first that walks the whole subtree
+ * for absolute descendants and returns the latest-in-tree hit (matching
+ * the three-pass render order where absolute children paint on top of
+ * normal + sticky content). If no absolute descendant covers the point,
+ * it falls through to standard in-flow DFS.
+ *
+ * A recursive sub-call (via `hitTest(absolute, ...)`) would re-run the
+ * absolute pass on that absolute's subtree — which is correct: nested
+ * absolutes also need geometry-based hit testing.
+ */
+export function hitTest(node: AgNode, x: number, y: number): AgNode | null {
+  // 1. Absolute pass: find the topmost absolute descendant under (x, y).
+  //    Respects pointerEvents and overflow:hidden/scroll clipping on
+  //    ancestors.
+  const absHit = hitTestAbsoluteDescendants(node, x, y, null)
+  if (absHit) return absHit
+
+  // 2. In-flow DFS (classic tree walk).
+  return hitTestInFlow(node, x, y)
 }
 
 // ============================================================================
