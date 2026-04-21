@@ -128,7 +128,7 @@ const entries: EntryPoint[] = [
   {
     name: "@silvery/ag-react/ui/wrappers",
     specifier: "@silvery/ag-react/ui/wrappers",
-    importExpr: "{ withSpinner, withProgress }",
+    importExpr: "{ withSpinner, wrapGenerator }",
     expectNoReact: true,
     expectNoReconciler: true,
   },

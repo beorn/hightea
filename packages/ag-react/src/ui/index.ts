@@ -1,19 +1,17 @@
 /**
  * silvery-ui - UI components for Ink/silvery TUI apps
  *
- * Progress indicators, spinners, and task wrappers for CLI applications.
+ * Progress indicators, spinners, and step runners for CLI applications.
  *
  * @example
  * ```ts
- * // Fluent task API (recommended)
- * import { task, tasks } from "./progress/index";
+ * // Declarative step runner
+ * import { steps } from "./progress/index";
  *
- * const data = await task("Loading").wrap(fetchData());
- *
- * const results = await tasks()
- *   .add("Loading", () => fetchData())
- *   .add("Processing", () => process())
- *   .run({ clear: true });
+ * const results = await steps({
+ *   loadData: () => fetchData(),
+ *   process: () => process(),
+ * }).run({ clear: true });
  *
  * // Low-level CLI components
  * import { Spinner, ProgressBar } from "./cli/index";

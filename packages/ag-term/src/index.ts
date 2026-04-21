@@ -45,7 +45,6 @@ export {
 } from "./pipeline"
 export {
   outputPhase,
-  setOutputCaps,
   createOutputPhase,
   type OutputPhaseFn,
   type OutputCaps,
@@ -430,10 +429,7 @@ export {
   // Emoji presentation
   ensureEmojiPresentation,
   // Text sizing state
-  setTextSizingEnabled,
   isTextSizingEnabled,
-  // Text-presentation emoji width
-  setTextEmojiWide,
   // Buffer writing
   writeTextToBuffer,
   writeTextTruncated,

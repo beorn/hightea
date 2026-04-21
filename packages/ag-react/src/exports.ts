@@ -13,7 +13,7 @@
  * import { Box, Text, useBoxRect, useInput, useApp, render, createTerm, term } from '@silvery/ag-react'
  *
  * // Testing utilities
- * import { createRenderer, createLocator } from '@silvery/test'
+ * import { createRenderer, createAutoLocator } from '@silvery/test'
  * ```
  *
  * ## Quick Example
@@ -760,7 +760,6 @@ export {
 
 // Output-phase capability configuration (suppress unsupported SGR codes)
 export {
-  setOutputCaps,
   createOutputPhase,
   type OutputPhaseFn,
   type OutputCaps,
@@ -1003,10 +1002,7 @@ export {
   // Emoji presentation
   ensureEmojiPresentation,
   // Text sizing state
-  setTextSizingEnabled,
   isTextSizingEnabled,
-  // Text-presentation emoji width
-  setTextEmojiWide,
   // Buffer writing
   writeTextToBuffer,
   writeTextTruncated,

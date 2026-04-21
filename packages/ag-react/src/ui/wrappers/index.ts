@@ -5,19 +5,12 @@
  * ```ts
  * import {
  *   withSpinner,
- *   withProgress,
  *   wrapGenerator,
  *   wrapEmitter
  * } from "./index";
  *
  * // Wrap any promise
  * const data = await withSpinner(fetchData(), "Loading...");
- *
- * // Wrap callback-based APIs (like km sync)
- * await withProgress(
- *   (onProgress) => manager.syncFromFs(onProgress),
- *   { phases: { scanning: "Scanning", reconciling: "Reconciling" } }
- * );
  *
  * // Wrap generators
  * await wrapGenerator(evaluateAllRules(), "Evaluating rules");
@@ -28,7 +21,6 @@
  */
 
 export { withSpinner, attachSpinner } from "./with-spinner"
-export { withProgress, createProgressCallback } from "./with-progress"
 export { wrapGenerator, withIterableProgress } from "./wrap-generator"
 export { wrapEmitter, waitForEvent } from "./wrap-emitter"
 export { withSelect, createSelect } from "./with-select"

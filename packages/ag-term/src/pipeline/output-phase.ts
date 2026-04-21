@@ -66,15 +66,6 @@ export function captureStrictFailureArtifacts(
 
 import type { TerminalCaps } from "../terminal-caps"
 
-/**
- * @deprecated Use createOutputPhase(caps) instead. This is a no-op.
- */
-export function setOutputCaps(
-  _caps: Partial<Pick<TerminalCaps, "underlineStyles" | "underlineColor" | "colorLevel">>,
-): void {
-  // No-op: use createOutputPhase(caps) instead
-}
-
 // ============================================================================
 // Output Phase Factory (per-term instance, no globals)
 // ============================================================================

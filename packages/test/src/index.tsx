@@ -92,8 +92,6 @@ export type { BoundTerm } from "@silvery/ag-term/bound-term"
 export { bufferToText, bufferToStyledText, bufferToHTML } from "@silvery/ag-term/buffer"
 export type { TerminalBuffer } from "@silvery/ag-term/buffer"
 
-// Re-export locator API for DOM queries (legacy, prefer App.locator())
-export { createLocator, type SilveryLocator } from "./locator"
 export type { Rect } from "@silvery/ag/types"
 
 // Re-export keyboard utilities

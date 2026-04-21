@@ -27,7 +27,7 @@
  * ```
  */
 
-// Modern API (recommended)
+// Modern API
 export {
   steps,
   step,
@@ -38,12 +38,6 @@ export {
   type StepNode,
   type StepContext,
 } from "./steps"
-
-// Legacy task wrappers (deprecated - use steps() instead)
-/** @deprecated Use steps() instead */
-export { task, type TaskWrapper } from "./task"
-/** @deprecated Use steps() instead */
-export { tasks, type TaskBuilder, type RunOptions } from "./tasks"
 
 // Re-export CLI progress components
 export { Spinner, createSpinner, type CallableSpinner } from "../cli/spinner"

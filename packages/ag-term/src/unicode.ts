@@ -124,22 +124,6 @@ export function runWithMeasurer<T>(measurer: WidthMeasurer, fn: () => T): T {
 }
 
 /**
- * @deprecated Use createWidthMeasurer() with { textEmojiWide } instead.
- * Kept for backward compatibility but is a no-op.
- */
-export function setTextEmojiWide(_wide: boolean): void {
-  // No-op: use createWidthMeasurer() with { textEmojiWide } instead
-}
-
-/**
- * @deprecated Use createWidthMeasurer() with { textSizingEnabled } instead.
- * Kept for backward compatibility but is a no-op.
- */
-export function setTextSizingEnabled(_enabled: boolean): void {
-  // No-op: use createWidthMeasurer() with { textSizingEnabled } instead
-}
-
-/**
  * Check if text sizing mode is currently enabled.
  * Returns the default (false) since globals have been removed.
  * Use measurer.textSizingEnabled for scoped queries.
@@ -299,14 +283,6 @@ function getDefaultMeasurer(): Measurer {
     _defaultMeasurer = createWidthMeasurer()
   }
   return _defaultMeasurer
-}
-
-/**
- * @deprecated Use createWidthMeasurer() and pass the measurer explicitly.
- * Kept as a no-op for backward compatibility.
- */
-export function withMeasurer<T>(_measurer: WidthMeasurer, fn: () => T): T {
-  return fn()
 }
 
 /**
