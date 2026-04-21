@@ -4,9 +4,9 @@
  * This is the primary locator API. Prefer `App.locator()` / `App.getByTestId()` /
  * `App.getByText()` which use AutoLocator internally.
  *
- * Unlike the static SilveryLocator in `testing/locator.ts` (legacy, deprecated),
  * AutoLocator re-evaluates queries against the current tree on each access.
- * This eliminates the stale locator problem in tests.
+ * This eliminates the stale locator problem in tests (a static locator
+ * captures node identity at construction and cannot survive re-renders).
  *
  * @example
  * ```tsx

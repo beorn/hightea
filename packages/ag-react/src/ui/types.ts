@@ -95,20 +95,6 @@ export interface WithSpinnerOptions {
   color?: string
 }
 
-/** Options for withProgress wrapper */
-export interface WithProgressOptions {
-  /** Map of phase keys to display names */
-  phases?: Record<string, string>
-  /** Format string for progress bar */
-  format?: string
-  /** Clear output on completion */
-  clearOnComplete?: boolean
-  /** Show initial loading message after this many ms (default: 1000). Set to 0 to show immediately. */
-  showAfter?: number
-  /** Initial loading message to show before progress starts (default: "Loading...") */
-  initialMessage?: string
-}
-
 /** Task state for Tasks component */
 export interface TaskState {
   id: string
