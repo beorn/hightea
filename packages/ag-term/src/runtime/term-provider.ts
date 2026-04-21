@@ -310,21 +310,51 @@ export function createTermProvider(
         }
       }
 
-      // Resize handler for events
+      // Resize handler for events — coalesces bursts within one frame.
+      //
+      // Terminal multiplexers (cmux, tmux, Ghostty tabs) can fire multiple
+      // SIGWINCH events in rapid succession as the PTY re-syncs (e.g. on
+      // tab switch-back). Without coalescing, each event triggers a full
+      // re-layout + re-render at an intermediate size, producing visible
+      // 2-3-phase layout shift before the terminal settles.
+      //
+      // Strategy: on first resize, schedule a flush one frame ahead
+      // (~16ms). Additional resizes arriving before the flush fires simply
+      // let the flush read the latest stdout.columns/rows — they don't
+      // enqueue new events. This collapses any burst that settles within
+      // one frame to a single event carrying the final geometry. Discrete
+      // resizes spaced further apart than the window pass through normally.
+      //
+      // The 16ms window matches one 60Hz frame: long enough to absorb the
+      // typical "PTY re-sync" burst from cmux/tmux tab switches (observed
+      // 2-5 SIGWINCH within 5ms), short enough that an intentional user-
+      // driven resize still feels immediate.
+      //
+      // Bead: km-tui.tab-switch-layout-shift
+      const RESIZE_COALESCE_MS = 16
+      let resizeFlushTimer: ReturnType<typeof setTimeout> | null = null
       const onResizeEvent = () => {
-        const event: ProviderEvent<TermEvents> = {
-          type: "resize",
-          data: {
-            cols: stdout.columns || 80,
-            rows: stdout.rows || 24,
-          },
+        if (resizeFlushTimer !== null) {
+          // Burst in progress — the already-scheduled flush will pick up
+          // the latest dims. Nothing to do.
+          return
         }
-        queue.push(event)
-        if (eventResolve) {
-          const resolve = eventResolve
-          eventResolve = null
-          resolve()
-        }
+        resizeFlushTimer = setTimeout(() => {
+          resizeFlushTimer = null
+          const event: ProviderEvent<TermEvents> = {
+            type: "resize",
+            data: {
+              cols: stdout.columns || 80,
+              rows: stdout.rows || 24,
+            },
+          }
+          queue.push(event)
+          if (eventResolve) {
+            const resolve = eventResolve
+            eventResolve = null
+            resolve()
+          }
+        }, RESIZE_COALESCE_MS)
       }
 
       // Enable bracketed paste for TTY input.
@@ -344,6 +374,11 @@ export function createTermProvider(
         }
         stdin.off("data", onChunk)
         stdout.off("resize", onResizeEvent)
+        // Cancel any pending resize flush so dispose doesn't leak a timer.
+        if (resizeFlushTimer !== null) {
+          clearTimeout(resizeFlushTimer)
+          resizeFlushTimer = null
+        }
         if (stdin.isTTY) {
           stdin.setRawMode(false)
         }
