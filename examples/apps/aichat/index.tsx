@@ -108,14 +108,18 @@ export function AIChat({
         estimateHeight={6}
         renderItem={renderExchange}
         scrollTo={state.exchanges.length - 1}
-        cache={{
-          // "auto" adapts to cacheBackend from context:
-          // - inline mode → "terminal" (promote to real terminal scrollback;
-          //   naturally trims the reserved empty area below the footer)
-          // - fullscreen → "retain" (keep in render tree)
-          mode: "auto",
-          isCacheable: (_ex, index) => index < state.exchanges.length - 1,
-        }}
+        cache={
+          inline
+            ? {
+                // Inline mode: promote completed turns to real terminal
+                // scrollback. "auto" resolves to "terminal" via cacheBackend
+                // context when the runtime is in inline mode.
+                mode: "auto" as const,
+                isCacheable: (_ex: unknown, index: number) =>
+                  index < state.exchanges.length - 1,
+              }
+            : undefined
+        }
         listFooter={
           <DemoFooter
             controlRef={footerControlRef}

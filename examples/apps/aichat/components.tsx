@@ -409,15 +409,16 @@ export function DemoFooter({
 
   const handleSubmit = useCallback(
     (text: string) => {
-      if (!text.trim() && effectiveMessage) {
-        onSubmit(effectiveMessage)
-      } else {
-        onSubmit(text)
-      }
+      // Empty submit is a no-op — the old behavior silently sent the
+      // placeholder ("Fix the login bug…") whenever the user pressed Enter
+      // on an empty input, which read as "text auto-inserted into the input"
+      // (bead km-silvery.inline-bugs bug 2). Tab handles the fill flow.
+      if (!text.trim()) return
+      onSubmit(text)
       setInputText("")
       setRandomIdx((i) => i + 1)
     },
-    [onSubmit, effectiveMessage],
+    [onSubmit],
   )
 
   // Expose submit() + fillOrSubmit() to parent. Tab calls fillOrSubmit():

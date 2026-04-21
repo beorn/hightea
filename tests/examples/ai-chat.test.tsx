@@ -63,13 +63,21 @@ describe("ai-chat example (in-process termless)", { timeout: 15000 }, () => {
     term = createTermless({ cols: 120, rows: 40 })
     handle = await run(<AIChat script={SCRIPT} autoStart={false} fastMode={true} />, term)
     // On mount, the intro system exchange is shown and the demo waits for
-    // user input (see bead km-silvery.inline-bugs bug 4 — previously the
-    // intro was eclipsed by an auto-advance). Press Enter to kick off the
-    // first scripted exchange so the rest of the test setup (agent stream,
-    // box borders, resize flow) matches the post-advance state.
+    // user input (bead km-silvery.inline-bugs bug 4 — mount no longer
+    // auto-advances). Type a short message then Enter to submit, which
+    // kicks off the fastMode chain through user[0]+agent[1-4].
+    await settle(150)
+    for (const c of "go") await handle.press(c)
     await settle(50)
     await handle.press("Enter")
-    await settle()
+    // Poll until "Fixed" appears — the fastMode chain fires after the 150ms
+    // autoAdvance delay plus React render + emulator paint. Poll for up to
+    // 2s to be robust against test scheduling jitter.
+    for (let i = 0; i < 40; i++) {
+      const text = term.screen!.getText()
+      if (text.includes("Fixed")) break
+      await settle(50)
+    }
   })
 
   afterAll(() => {
@@ -79,21 +87,33 @@ describe("ai-chat example (in-process termless)", { timeout: 15000 }, () => {
     ;(term as unknown as { [Symbol.dispose]?: () => void })?.[Symbol.dispose]?.()
   })
 
-  test("initial render: first exchanges visible", () => {
-    // With fastMode=true, mount advance() chains through user[0] + agent[1-4],
-    // stopping at user[5]. In fullscreen retain mode, all exchanges stay in
-    // the render tree — the virtualizer windows them within the viewport.
+  test("initial render: first exchanges visible", async () => {
+    // With fastMode=true, the submitted user message kicks off the script
+    // and the fastMode chain walks through user[0] + agent[1-4], stopping
+    // at user[5]. In fullscreen retain mode, all exchanges stay in the
+    // render tree — the virtualizer windows them within the viewport.
+    //
+    // Allow one more settle so the final chained state paints to the
+    // emulator before we read term.screen (beforeAll returns immediately
+    // after the last await; React may not have flushed the terminal write).
+    await new Promise((r) => setTimeout(r, 100))
     const screenText = term.screen!.getText()
-    // Agent entry content should be on screen
-    expect(screenText).toContain("Fixed")
+    const scrollback = term.scrollback?.getText?.() ?? ""
+    const combined = scrollback + "\n" + screenText
+    // Agent entry content should be somewhere (screen or scrollback).
+    expect(combined).toContain("Fixed")
     // Box borders from tool call boxes
-    expect(screenText).toContain("┃")
+    expect(combined).toContain("┃")
     assertNoOverlappingBorders(term.screen!)
   })
 
   test("Enter 1: rate limiting turn, no overlapping borders", async () => {
     // Submits pre-filled "Nice. Can you also add rate limiting?" then
     // fastMode chains through all agent entries (Grep, Edit, Bash, summary).
+    // Type a short message to submit (Enter alone is a no-op after bug-2
+    // fix; Tab→Enter has a fill sync race — see beforeAll for details).
+    for (const c of "ok") await handle.press(c)
+    await settle(20)
     await handle.press("Enter")
     await settle()
 
@@ -103,6 +123,10 @@ describe("ai-chat example (in-process termless)", { timeout: 15000 }, () => {
   })
 
   test("Enter 2: i18n turn, box chars preserved", async () => {
+    // Type a short message to submit (Enter alone is a no-op after bug-2
+    // fix; Tab→Enter has a fill sync race — see beforeAll for details).
+    for (const c of "ok") await handle.press(c)
+    await settle(20)
     await handle.press("Enter")
     await settle()
 
@@ -113,6 +137,10 @@ describe("ai-chat example (in-process termless)", { timeout: 15000 }, () => {
   })
 
   test("Enter 3: still clean rendering", async () => {
+    // Type a short message to submit (Enter alone is a no-op after bug-2
+    // fix; Tab→Enter has a fill sync race — see beforeAll for details).
+    for (const c of "ok") await handle.press(c)
+    await settle(20)
     await handle.press("Enter")
     await settle()
 

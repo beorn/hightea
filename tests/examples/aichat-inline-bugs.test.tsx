@@ -66,7 +66,12 @@ describe("aichat inline bugs", { timeout: 15000 }, () => {
     } = opts
     term = createTermless({ cols, rows })
     handle = await run(
-      <AIChat script={SCRIPT} autoStart={autoStart} fastMode={fastMode} />,
+      <AIChat
+        script={SCRIPT}
+        autoStart={autoStart}
+        fastMode={fastMode}
+        inline={mode === "inline"}
+      />,
       term,
       { mode, focusReporting },
     )
@@ -106,18 +111,40 @@ describe("aichat inline bugs", { timeout: 15000 }, () => {
   })
 
   // ==========================================================================
+  // Bug 2: Text auto-inserted into input — empty Enter used to silently
+  // submit the placeholder as if the user had typed it.
+  // ==========================================================================
+
+  test("bug 2: empty Enter is a no-op (does not submit the placeholder)", async () => {
+    await setup({ mode: "inline", fastMode: false, autoStart: false })
+    await settle(80)
+
+    // Starting state: intro + empty input (no agent response yet).
+    expect(countAgentBullets(term.screen!)).toBe(0)
+
+    // Press Enter with empty input. Old behavior: placeholder gets submitted
+    // ("Fix the login bug...") and agent starts thinking. New behavior: no-op.
+    await handle.press("Enter")
+    await settle(200)
+
+    // Still no agent bullet — nothing was submitted.
+    expect(countAgentBullets(term.screen!)).toBe(0)
+  })
+
+  // ==========================================================================
   // Bug 1: Compaction says 'session complete' in non-auto mode
   // ==========================================================================
 
   test("bug 1: manual mode never marks session done", async () => {
     await setup({ autoStart: false, fastMode: true })
-    // Submit some input to exercise the script.
-    await handle.press("Enter")
-    await settle()
-    await handle.press("Enter")
-    await settle()
-    await handle.press("Enter")
-    await settle()
+    // Exercise the script via Tab (fill) + Enter (submit) — empty Enter is
+    // a no-op after the bug-2 fix, so we can't spam Enter to advance.
+    for (let i = 0; i < 3; i++) {
+      await handle.press("Tab")
+      await settle(50)
+      await handle.press("Enter")
+      await settle()
+    }
 
     const screenText = term.screen!.getText()
     // "Session complete" overlay must NOT appear in manual mode.
@@ -130,10 +157,13 @@ describe("aichat inline bugs", { timeout: 15000 }, () => {
 
   test("bug 7: no overlapping borders during streaming (inline mode)", async () => {
     await setup({ mode: "inline", fastMode: true })
-    await handle.press("Enter")
-    await settle()
-    await handle.press("Enter")
-    await settle()
+    // Advance the script with Tab-then-Enter (empty Enter is now a no-op).
+    for (let i = 0; i < 2; i++) {
+      await handle.press("Tab")
+      await settle(50)
+      await handle.press("Enter")
+      await settle()
+    }
 
     assertNoOverlappingBorders(term.screen!)
   })
@@ -161,27 +191,110 @@ describe("aichat inline bugs", { timeout: 15000 }, () => {
   // ==========================================================================
 
   test("bug 8: input border reflects terminal focus state", async () => {
-    await setup({ mode: "inline", focusReporting: true })
+    await setup({ mode: "inline", focusReporting: true, fastMode: false, autoStart: false })
+    await settle(80)
 
-    // Initial state: assume focused (optimistic default).
-    // We verify semantic correctness by sending focus-out and checking that
-    // DemoFooter renders an alternate border color — the visible result is
-    // that the border character switches from "focus" to "input" styling.
-    // We use the styled ANSI output to detect the color change.
-    //
-    // Simpler assertion: once CSI O is received, something in the output
-    // must change (re-render triggered).
-    const before = term.screen!.getText()
-    expect(before.length).toBeGreaterThan(0)
+    // Find the border row, capture the color of a border cell.
+    const findBorderCell = () => {
+      const lines = term.screen!.getLines()
+      for (let row = 0; row < lines.length; row++) {
+        const line = lines[row]!
+        const col = line.indexOf("╭")
+        if (col >= 0) return { row, col }
+      }
+      return null
+    }
 
-    // Send focus-out (CSI O) via term.sendInput — the termless mock pipes it to stdin.
+    const focusedCell = findBorderCell()
+    expect(focusedCell).not.toBeNull()
+    const focusedFg = (term.screen!.cell?.(focusedCell!.row, focusedCell!.col) as any)?.fg
+
+    // Send focus-out (CSI O) — border color should flip to $inputborder.
     ;(term as any).sendInput?.("\x1b[O")
     await settle(150)
 
-    // Border color should change — easiest check: placeholder changes to "Click to focus"
-    const after = term.screen!.getText()
-    // Note: "Click to focus" placeholder replaces whatever was there.
-    expect(after).toContain("Click to focus")
+    const unfocusedCell = findBorderCell()
+    expect(unfocusedCell).not.toBeNull()
+    const unfocusedFg = (term.screen!.cell?.(unfocusedCell!.row, unfocusedCell!.col) as any)?.fg
+
+    // The placeholder also flips to "Click to focus" — this confirms the
+    // re-render fired and the DemoFooter received terminalFocused=false.
+    expect(term.screen!.getText()).toContain("Click to focus")
+
+    // The foreground color of the border cell must differ between focused
+    // and unfocused states. Exact colors are theme-dependent.
+    if (focusedFg != null && unfocusedFg != null) {
+      expect(JSON.stringify(focusedFg)).not.toBe(JSON.stringify(unfocusedFg))
+    }
+  })
+
+  test("typing + Enter submits (smoke test)", async () => {
+    await setup({ mode: "inline", fastMode: false, autoStart: false })
+    await settle(80)
+
+    const agentBefore = countAgentBullets(term.screen!)
+    for (const c of "test") await handle.press(c)
+    await settle(50)
+    await handle.press("Enter")
+    await settle(500)
+
+    const agentAfter = countAgentBullets(term.screen!)
+    expect(agentAfter).toBeGreaterThan(agentBefore)
+  })
+
+  // ==========================================================================
+  // Bug 5: Input box jump-up — the footer's vertical position should not
+  // oscillate during a single interaction. After a press, content may grow
+  // once and the footer moves with it — but it should not immediately bounce
+  // back up to its old position in the next frame.
+  // ==========================================================================
+
+  test("bug 5: input border row doesn't bounce (no jump-up) after submit", async () => {
+    await setup({ mode: "inline", cols: 100, rows: 30, fastMode: false, autoStart: false })
+    await settle(80)
+
+    const findBorderRow = () => {
+      const lines = term.screen!.getLines()
+      for (let row = 0; row < lines.length; row++) {
+        if (lines[row]!.trimStart().startsWith("╭")) return row
+      }
+      return -1
+    }
+
+    const rowBefore = findBorderRow()
+    expect(rowBefore).toBeGreaterThanOrEqual(0)
+
+    // Send Tab + Enter — fills the scripted message into the input, then
+    // submits it. Empty Enter is a no-op after the bug-2 fix.
+    await handle.press("Tab")
+    await settle(50)
+    await handle.press("Enter")
+
+    // Capture the border row position every 30ms for ~600ms. The row
+    // should move monotonically (downward as content grows, or stable)
+    // — never oscillate (jump up after going down).
+    const samples: number[] = []
+    for (let i = 0; i < 20; i++) {
+      await settle(30)
+      const r = findBorderRow()
+      if (r >= 0) samples.push(r)
+    }
+
+    // No oscillation: each sample should be >= the minimum achieved so far
+    // (content grows, footer moves down or stays put, never jumps back up
+    // past a position it already left).
+    let maxSeen = samples[0] ?? 0
+    let jumped = false
+    let prev = samples[0] ?? 0
+    for (const r of samples) {
+      if (r > maxSeen) maxSeen = r
+      // Allow monotonic movement; detect a decrease of more than 1 row as a
+      // jump-up (a single-row decrease can happen on stream-end if content
+      // gets virtualized away, which is expected).
+      if (r < prev - 1) jumped = true
+      prev = r
+    }
+    expect(jumped).toBe(false)
   })
 
   // ==========================================================================
