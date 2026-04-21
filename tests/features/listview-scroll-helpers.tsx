@@ -141,10 +141,16 @@ export function renderFixture(f: ListViewFixture): RenderAnalysis {
     if (/▲\d+/.test(line) && indicatorUpRow < 0) indicatorUpRow = y
   }
 
-  // Visible indices: search full text for each id.
+  // Visible indices: search full text for each id with word boundaries so
+  // `p-1` doesn't match inside `p-10`, `p-11`, … . Ids use `[prefix]-N` and
+  // typically appear inside `│` borders so we anchor with word-boundary
+  // classes (non-digits on either side).
   const visibleIndices = new Set<number>()
   for (let i = 0; i < f.items.length; i++) {
-    if (text.includes(f.items[i]!.id)) visibleIndices.add(i)
+    const id = f.items[i]!.id
+    // Escape regex metachars in the id (defensive; ids are `[a-z]+-N` today).
+    const esc = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    if (new RegExp(`(^|[^0-9])${esc}([^0-9]|$)`).test(text)) visibleIndices.add(i)
   }
 
   return {
@@ -295,7 +301,53 @@ export function checkViewportTopCard(f: ListViewFixture, a: RenderAnalysis): Inv
   return { ok: true, message: `firstCard.top=${firstCard.top}, max=${maxTop}` }
 }
 
-/** Run all 4 invariants. Returns first violation or null. */
+/**
+ * INV-5: VIRTUALIZER ↔ SCROLL-PHASE AGREEMENT.
+ *
+ * The virtualizer's rendered window must be a SUPERSET of what scroll-phase
+ * considers visible. With the read-don't-walk activation (bead
+ * km-silvery.virtualizer-from-layout), the virtualizer reads
+ * `firstVisibleChild`/`lastVisibleChild` directly from layout-phase — so
+ * divergence is impossible by construction.
+ *
+ * The OBSERVABLE test: the IDs of items appearing in the rendered output
+ * (`a.visibleIndices`) must form a CONTIGUOUS RANGE. A "phantom" hole —
+ * where item K is missing but K-1 and K+1 are present — would indicate the
+ * virtualizer dropped an item that scroll-phase expected rendered. This
+ * shape specifically catches the class of bugs where the virtualizer's
+ * window math disagrees with scroll-phase's pixel-space reality.
+ *
+ * Also catches "window contains items that aren't in the viewport" when
+ * combined with indicator checks (INV-2), though the main guarantee here
+ * is contiguity.
+ */
+export function checkVirtualizerScrollAgreement(
+  f: ListViewFixture,
+  a: RenderAnalysis,
+): InvariantResult {
+  if (a.visibleIndices.size === 0) return { ok: true, message: "no visible items" }
+  const sorted = Array.from(a.visibleIndices).sort((x, y) => x - y)
+  const first = sorted[0]!
+  const last = sorted[sorted.length - 1]!
+  const expectedSize = last - first + 1
+  if (sorted.length !== expectedSize) {
+    // Find the first gap for diagnostics.
+    let gapAt = -1
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i]! - sorted[i - 1]! > 1) {
+        gapAt = sorted[i - 1]! + 1
+        break
+      }
+    }
+    return {
+      ok: false,
+      message: `INV-5 VIRTUALIZER↔SCROLL-PHASE AGREEMENT: rendered items form a non-contiguous range [${first}..${last}] with ${sorted.length} items present (expected ${expectedSize}). First gap at index ${gapAt}. Virtualizer's window disagrees with scroll-phase visible range — a hole in the rendered output means an item that should be visible was dropped.`,
+    }
+  }
+  return { ok: true, message: `contiguous range [${first}..${last}] (${sorted.length} items)` }
+}
+
+/** Run all 5 invariants. Returns first violation or null. */
 export function checkAllInvariants(
   f: ListViewFixture,
   a: RenderAnalysis,
@@ -305,6 +357,7 @@ export function checkAllInvariants(
     checkOverflowCountAccuracy,
     checkFirstVisibleZeroOffset,
     checkViewportTopCard,
+    checkVirtualizerScrollAgreement,
   ]) {
     const r = check(f, a)
     if (!r.ok) return r

@@ -30,8 +30,16 @@
  *   2. OVERFLOW-COUNT-ACCURACY   — ▲N + ▼N ≥ ceil(hidden/2)
  *   3. FIRST-VISIBLE-HAS-ZERO-OFFSET — at scrollTo=0, first ╭ at y ≤ 2
  *   4. VIEWPORT-TOP-CARD         — first card top near viewport top
- *   5. (deferred) VIRTUALIZER ↔ SCROLL-PHASE AGREEMENT — requires test-time
- *      ref into useVirtualizer state; not wired up.
+ *   5. VIRTUALIZER ↔ SCROLL-PHASE AGREEMENT — every visible card identified
+ *      by layout-phase (indicator counts indirectly reveal the window) must
+ *      also be rendered by the virtualizer. With read-don't-walk activation
+ *      (bead km-silvery.virtualizer-from-layout), this is a tautology: the
+ *      virtualizer reads `firstVisibleChild`/`lastVisibleChild` directly from
+ *      layout-phase, so divergence is impossible by construction. The
+ *      invariant asserts the OBSERVABLE consequence: `visibleIndices ∩
+ *      renderedWindow = visibleIndices` — i.e. no "phantom" hidden items
+ *      that layout-phase reports visible but virtualizer dropped. See
+ *      `checkVirtualizerScrollAgreement` in `listview-scroll-helpers.tsx`.
  *
  * ============================================================================
  * Spec ambiguities (documented per prompt)
