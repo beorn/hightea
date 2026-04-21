@@ -749,7 +749,7 @@ function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: b
       lastVisible = cp.index
       // When indicator reserve is active, count partially visible bottom children
       // in hiddenBelow so the indicator shows the correct count. But discriminate
-      // two cases for the LAST child:
+      // three cases for the LAST child:
       //   (a) cp.bottom > raw viewport bottom → content is truly truncated,
       //       indicator should fire (e.g. 10 cards × 3 rows in viewport=29 →
       //       last card's bottom row is cut off; ▼N expected)
@@ -757,10 +757,20 @@ function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: b
       //       bottom → the reserve row "steals" from an otherwise-visible last
       //       card, producing a PHANTOM ▼1 at scrollTo=lastIndex when nothing
       //       lies beyond. Skip the increment in this case.
+      //   (c) childHeight > viewportHeight AND scrollTo === last index → the
+      //       too-tall-to-fit branch above placed the oversized target's top at
+      //       row 1 (below the top indicator reserve), so its bottom extends
+      //       far past rawViewportBottom. Case (a)'s check fires, but the user
+      //       IS at the last item — nothing lies beyond. Skip the increment
+      //       (the bottom reserve is legitimately stealing from the target's
+      //       tail, not from a hidden below-item).
       const isLastChild = cp.index === childPositions[childPositions.length - 1]?.index
       const rawViewportBottom = scrollOffset + viewportHeight
+      const childHeight = cp.bottom - cp.top
       const isPhantomReserveCut = isLastChild && cp.bottom <= rawViewportBottom
-      if (indicatorReserve > 0 && !isPhantomReserveCut) {
+      const isOversizedLastAtEnd =
+        isLastChild && childHeight > viewportHeight && scrollTo === cp.index
+      if (indicatorReserve > 0 && !isPhantomReserveCut && !isOversizedLastAtEnd) {
         hiddenBelow += logicalCount(cp)
       }
     } else {
