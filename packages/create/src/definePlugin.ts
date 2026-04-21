@@ -107,7 +107,7 @@ export interface DefinePluginInput<
  * The plugin handle returned by `definePlugin`. A Zustand-shape store
  * enriched with metadata (`name`, `keys`) and typed op helpers.
  */
-export interface Plugin<
+export interface DefinedPlugin<
   Name extends string,
   State,
   Ops extends PluginOps<State>,
@@ -147,7 +147,7 @@ export function definePlugin<
   const Name extends string,
   State,
   const Ops extends PluginOps<State>,
->(spec: DefinePluginInput<Name, State, Ops>): Plugin<Name, State, Ops> {
+>(spec: DefinePluginInput<Name, State, Ops>): DefinedPlugin<Name, State, Ops> {
   const { name, state: initial, ops, keys = {} } = spec
   const opNames = Object.keys(ops) as (keyof Ops & string)[]
 

@@ -239,7 +239,7 @@ export { IncrementalRenderMismatchError } from "./plugins"
 
 export { definePlugin } from "./definePlugin"
 export type {
-  Plugin,
+  DefinedPlugin,
   DefinePluginInput,
   PluginReducer,
   PluginOps,

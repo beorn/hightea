@@ -14,7 +14,7 @@
  * the commit automatically.
  */
 import { useCallback, useSyncExternalStore } from "react"
-import type { OpOf, Plugin, PluginOps } from "./definePlugin.ts"
+import type { DefinedPlugin, OpOf, PluginOps } from "./definePlugin.ts"
 
 export interface PluginHandle<
   Name extends string,
@@ -34,7 +34,7 @@ export function useStore<
   Name extends string,
   State,
   Ops extends PluginOps<State>,
->(plugin: Plugin<Name, State, Ops>): PluginHandle<Name, State, Ops> {
+>(plugin: DefinedPlugin<Name, State, Ops>): PluginHandle<Name, State, Ops> {
   const subscribe = useCallback((listener: () => void) => plugin.subscribe(listener), [plugin])
   const state = useSyncExternalStore(subscribe, plugin.getState, plugin.getState)
   return { state, dispatch: plugin.dispatch.bind(plugin) }
