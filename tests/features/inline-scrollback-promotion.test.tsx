@@ -92,7 +92,7 @@ describe("inline mode with pre-existing terminal content", () => {
 
   test("shell prompt survives initial render", async () => {
     ;({ term, handle } = await runInlineWithShellPrompt(
-      <AIChat script={SCRIPT} autoStart={false} fastMode={true} />,
+      <AIChat script={SCRIPT} autoStart={false} fastMode={true} inline={true} />,
       {
         cols: 120,
         rows: 40,
@@ -111,7 +111,7 @@ describe("inline mode with pre-existing terminal content", () => {
 
   test("shell prompt survives after first Enter press", async () => {
     ;({ term, handle } = await runInlineWithShellPrompt(
-      <AIChat script={SCRIPT} autoStart={false} fastMode={true} />,
+      <AIChat script={SCRIPT} autoStart={false} fastMode={true} inline={true} />,
       {
         cols: 120,
         rows: 40,
@@ -134,7 +134,7 @@ describe("inline mode with pre-existing terminal content", () => {
 
   test("cursor-up does not overshoot into shell prompt area", async () => {
     ;({ term, handle } = await runInlineWithShellPrompt(
-      <AIChat script={SCRIPT} autoStart={false} fastMode={true} />,
+      <AIChat script={SCRIPT} autoStart={false} fastMode={true} inline={true} />,
       {
         cols: 120,
         rows: 40,
@@ -163,13 +163,18 @@ describe("inline mode with pre-existing terminal content", () => {
 
   test("repeated Enter presses accumulate content correctly", async () => {
     ;({ term, handle } = await runInlineWithShellPrompt(
-      <AIChat script={SCRIPT} autoStart={false} fastMode={true} />,
+      <AIChat script={SCRIPT} autoStart={false} fastMode={true} inline={true} />,
       { cols: 120, rows: 30 },
       3,
     ))
 
     for (let i = 0; i < 5; i++) {
+      // After the inline-bugs bug-2 fix, empty Enter is a no-op. Tab fills
+      // the input with the next scripted message, Enter submits it.
+      await handle.press("Tab")
+      await new Promise((r) => setTimeout(r, 50))
       await handle.press("Enter")
+      await new Promise((r) => setTimeout(r, 100))
 
       const lines = term.screen!.getLines()
       const nonBlankLines = lines.filter((l: string) => l.trim().length > 0).length
@@ -177,7 +182,7 @@ describe("inline mode with pre-existing terminal content", () => {
       // Screen should never be mostly blank
       expect(
         nonBlankLines,
-        `After Enter ${i + 1}: only ${nonBlankLines}/${lines.length} non-blank lines`,
+        `After Tab+Enter ${i + 1}: only ${nonBlankLines}/${lines.length} non-blank lines`,
       ).toBeGreaterThan(3)
 
       // Status bar should always be visible
@@ -187,12 +192,16 @@ describe("inline mode with pre-existing terminal content", () => {
 
   test("frozen content enters terminal scrollback", async () => {
     ;({ term, handle } = await runInlineWithShellPrompt(
-      <AIChat script={SCRIPT} autoStart={false} fastMode={true} />,
+      <AIChat script={SCRIPT} autoStart={false} fastMode={true} inline={true} />,
       { cols: 120, rows: 20 },
       3,
     ))
 
     for (let i = 0; i < 6; i++) {
+      // Empty Enter is a no-op after bug-2 fix; Tab+Enter submits the
+      // next scripted message.
+      await handle.press("Tab")
+      await new Promise((r) => setTimeout(r, 50))
       await handle.press("Enter")
       await new Promise((r) => setTimeout(r, 300))
     }
@@ -217,7 +226,7 @@ describe("inline mode with pre-existing terminal content", () => {
     // With a 40-row terminal and 5 shell lines, the app starts at ~row 6.
     // After Enter, content should stay in the same region, not jump to row 0.
     ;({ term, handle } = await runInlineWithShellPrompt(
-      <AIChat script={SCRIPT} autoStart={false} fastMode={true} />,
+      <AIChat script={SCRIPT} autoStart={false} fastMode={true} inline={true} />,
       {
         cols: 120,
         rows: 40,
@@ -279,17 +288,24 @@ describe("clean screen baseline (no shell prompt)", () => {
       feed(data: string): void
     }
 
-    handle = await run(<AIChat script={SCRIPT} autoStart={false} fastMode={true} />, {
+    handle = await run(<AIChat script={SCRIPT} autoStart={false} fastMode={true} inline={true} />, {
       mode: "inline",
       writable: { write: (s: string) => emulator.feed(s) },
       cols: 120,
       rows: 40,
     })
 
-    // Header hidden since mount advance auto-loads exchanges
+    // Header visible before any advance — mount no longer auto-loads
+    // exchanges (bead km-silvery.inline-bugs bug 4). ctx is part of the
+    // status bar, which is always visible regardless of advance state.
+    await new Promise((r) => setTimeout(r, 100))
     expect(term.screen).toContainText("ctx")
 
     for (let i = 0; i < 5; i++) {
+      // Tab+Enter advances the script; empty Enter is a no-op after
+      // bug-2 fix.
+      await handle.press("Tab")
+      await new Promise((r) => setTimeout(r, 50))
       await handle.press("Enter")
       await new Promise((r) => setTimeout(r, 300))
       expect(term.screen).toContainText("ctx")
