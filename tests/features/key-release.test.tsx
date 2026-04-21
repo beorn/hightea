@@ -343,19 +343,20 @@ describe("Term.sendInput (production event pipeline)", () => {
       return <Text>super={String(mods.super)}</Text>
     }
 
-    const term = createTermless({ cols: 40, rows: 5 })
+    using term = createTermless({ cols: 40, rows: 5 })
     const app = await run(<App />, term, { kitty: true, mouse: true })
+    try {
+      await expect(term.screen).toContainText("super=false")
 
-    await expect(term.screen).toContainText("super=false")
+      // Inject raw Kitty leftsuper press through the REAL pipeline:
+      // term.sendInput → eventQueue → term.events() → pumpEvents → processEventBatch
+      ;(term as any).sendInput("\x1b[57444;9:1u")
 
-    // Inject raw Kitty leftsuper press through the REAL pipeline:
-    // term.sendInput → eventQueue → term.events() → pumpEvents → processEventBatch
-    ;(term as any).sendInput("\x1b[57444;9:1u")
-
-    // Wait for async event loop to process (pump → processEventBatch → render)
-    await expect(term.screen).toContainText("super=true", { timeout: 2000 })
-
-    app.unmount()
+      // Wait for async event loop to process (pump → processEventBatch → render)
+      await expect(term.screen).toContainText("super=true", { timeout: 2000 })
+    } finally {
+      app.unmount()
+    }
   })
 
   test.skip("sendInput modifier release clears state", async () => {
@@ -364,18 +365,19 @@ describe("Term.sendInput (production event pipeline)", () => {
       return <Text>super={String(mods.super)}</Text>
     }
 
-    const term = createTermless({ cols: 40, rows: 5 })
+    using term = createTermless({ cols: 40, rows: 5 })
     const app = await run(<App />, term, { kitty: true, mouse: true })
+    try {
+      // Press Cmd
+      ;(term as any).sendInput("\x1b[57444;9:1u")
+      await expect(term.screen).toContainText("super=true", { timeout: 2000 })
 
-    // Press Cmd
-    ;(term as any).sendInput("\x1b[57444;9:1u")
-    await expect(term.screen).toContainText("super=true", { timeout: 2000 })
-
-    // Release Cmd
-    ;(term as any).sendInput("\x1b[57444;1:3u")
-    await expect(term.screen).toContainText("super=false", { timeout: 2000 })
-
-    app.unmount()
+      // Release Cmd
+      ;(term as any).sendInput("\x1b[57444;1:3u")
+      await expect(term.screen).toContainText("super=false", { timeout: 2000 })
+    } finally {
+      app.unmount()
+    }
   })
 })
 

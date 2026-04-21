@@ -68,6 +68,9 @@ describe("ai-chat example (in-process termless)", { timeout: 15000 }, () => {
 
   afterAll(() => {
     handle?.unmount()
+    // Dispose the Term so the xterm.js Terminal is released —
+    // see bead km-silvery.termless-memleak.
+    ;(term as unknown as { [Symbol.dispose]?: () => void })?.[Symbol.dispose]?.()
   })
 
   test("initial render: first exchanges visible", () => {

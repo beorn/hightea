@@ -268,9 +268,15 @@ describe("termless: resize + reflow", () => {
 
 describe("termless: inline mode output", () => {
   let handle: RunHandle
+  // Track the Term created in each test so afterEach can dispose it.
+  // Without this, xterm.js Terminal instances leak per test — see
+  // bead km-silvery.termless-memleak.
+  let term: Term | undefined
 
   afterEach(() => {
     handle?.unmount()
+    term?.[Symbol.dispose]()
+    term = undefined
   })
 
   /** Run a component in inline mode through a termless emulator. */
@@ -278,7 +284,7 @@ describe("termless: inline mode output", () => {
     element: React.ReactElement,
     dims: { cols: number; rows: number } = { cols: 80, rows: 24 },
   ): Promise<{ term: Term; handle: RunHandle }> {
-    const term = createTermless(dims)
+    term = createTermless(dims)
     const emulator = (term as unknown as Record<string, unknown>)._emulator as {
       feed(data: string): void
     }
@@ -334,7 +340,7 @@ describe("termless: inline mode output", () => {
 
   test("inline mode preserves pre-existing terminal content", async () => {
     const dims = { cols: 80, rows: 24 }
-    const term = createTermless(dims)
+    term = createTermless(dims)
     const emulator = (term as unknown as Record<string, unknown>)._emulator as {
       feed(data: string): void
     }
@@ -370,6 +376,9 @@ describe("termless: scrollbackList freeze/promote borders", () => {
 
   afterEach(() => {
     handle?.unmount()
+    // Dispose the Term so the xterm.js Terminal is released —
+    // see bead km-silvery.termless-memleak.
+    term?.[Symbol.dispose]?.()
   })
 
   function makeItems(count: number): FreezeItem[] {

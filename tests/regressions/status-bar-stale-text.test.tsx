@@ -108,22 +108,24 @@ describe("regression: status bar stale text (km-silvery.aichat-incr)", () => {
       )
     }
 
-    const term = createTermless({ cols: 80, rows: 25 })
+    using term = createTermless({ cols: 80, rows: 25 })
     const handle = await run(<App />, term)
-    await settle(100)
-
-    // Trigger several re-renders with changing cost string
-    for (let i = 1; i <= 5; i++) {
-      ;(globalThis as any).__testSetCount(i)
+    try {
       await settle(100)
+
+      // Trigger several re-renders with changing cost string
+      for (let i = 1; i <= 5; i++) {
+        ;(globalThis as any).__testSetCount(i)
+        await settle(100)
+      }
+
+      // The SILVERY_STRICT check in the pipeline will throw
+      // IncrementalRenderMismatchError if stale chars remain
+      const text = term.screen!.getText()
+      expect(text).toContain("$0.75") // 5 * 0.15 = 0.75
+    } finally {
+      handle.unmount()
+      delete (globalThis as any).__testSetCount
     }
-
-    // The SILVERY_STRICT check in the pipeline will throw
-    // IncrementalRenderMismatchError if stale chars remain
-    const text = term.screen!.getText()
-    expect(text).toContain("$0.75") // 5 * 0.15 = 0.75
-
-    handle.unmount()
-    delete (globalThis as any).__testSetCount
   })
 })

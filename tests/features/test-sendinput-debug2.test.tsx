@@ -6,7 +6,7 @@ import { Text, useModifierKeys } from "@silvery/ag-react"
 
 describe("sendInput debug2", () => {
   test("isFullProvider check", async () => {
-    const term = createTermless({ cols: 40, rows: 5 })
+    using term = createTermless({ cols: 40, rows: 5 })
 
     // Manually check isFullProvider conditions
     const isObj = term !== null && (typeof term === "object" || typeof term === "function")

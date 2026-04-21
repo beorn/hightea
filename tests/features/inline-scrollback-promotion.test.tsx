@@ -85,6 +85,9 @@ describe("inline mode with pre-existing terminal content", () => {
 
   afterEach(() => {
     handle?.unmount()
+    // Dispose the Term so the xterm.js Terminal is released —
+    // see bead km-silvery.termless-memleak.
+    term?.[Symbol.dispose]?.()
   })
 
   test("shell prompt survives initial render", async () => {
@@ -264,6 +267,9 @@ describe("clean screen baseline (no shell prompt)", () => {
 
   afterEach(() => {
     handle?.unmount()
+    // Dispose the Term so the xterm.js Terminal is released —
+    // see bead km-silvery.termless-memleak.
+    term?.[Symbol.dispose]?.()
   })
 
   test("works correctly without pre-existing content", async () => {

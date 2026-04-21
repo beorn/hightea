@@ -139,11 +139,58 @@ await ensureDefaultLayoutEngine()
 import { createTerm, type Term } from "@silvery/ag-term"
 
 /**
+ * Live-termless tracker. Each `createTermless()` registers a WeakRef to the
+ * returned Term; when the Term is disposed (Symbol.dispose → emulator.close
+ * → backend.destroy → xterm Terminal.dispose), the GC eventually clears the
+ * ref. A large number of live un-disposed terminals typically means a test
+ * forgot to use `using term = createTermless(...)` — the xterm Terminal
+ * (1000-line scrollback buffer) stays resident until the worker exits.
+ *
+ * See bead km-silvery.termless-memleak.
+ */
+const liveTermlessInstances = new Set<WeakRef<Term>>()
+
+/** Tunable guard threshold — print a warning when we exceed this many live Terms. */
+const TERMLESS_LEAK_WARN_THRESHOLD = 128
+
+/** True once we've emitted the warning; avoid spamming. */
+let hasWarnedAboutTermlessLeak = false
+
+/**
+ * Prune GC'd entries from the tracker and return the count of still-live
+ * instances. Cheap O(n) scan; n is small in practice.
+ */
+function pruneLiveTermless(): number {
+  let live = 0
+  for (const ref of liveTermlessInstances) {
+    if (ref.deref() === undefined) {
+      liveTermlessInstances.delete(ref)
+    } else {
+      live++
+    }
+  }
+  return live
+}
+
+/**
+ * Return the current count of live (un-GC'd) termless Term instances.
+ * Exported for tests that want to assert cleanup happened.
+ */
+export function getActiveTermlessCount(): number {
+  return pruneLiveTermless()
+}
+
+/**
  * Create a Term backed by a termless xterm.js emulator for full ANSI testing.
  *
  * Convenience wrapper around `createTerm(createXtermBackend(), dims)` that
  * handles the xterm.js backend import. Use with `run()` to render components
  * into a real terminal emulator in-process — no PTY, no timing issues.
+ *
+ * **Always dispose with `using` or an explicit `term[Symbol.dispose]()`.**
+ * Without disposal, each call leaks the xterm.js Terminal (~1 MB scrollback
+ * per instance). This accumulated to 18-28 GB per vitest worker in CI before
+ * `km-silvery.termless-memleak` was fixed.
  *
  * @example
  * ```tsx
@@ -170,7 +217,24 @@ export function createTermless(
   const { createXtermBackend } = require("@termless/xtermjs") as {
     createXtermBackend: () => import("@silvery/ag-term").TermEmulatorBackend
   }
-  return createTerm(createXtermBackend(), dims)
+  const term = createTerm(createXtermBackend(), dims)
+
+  // Track this instance for leak detection
+  liveTermlessInstances.add(new WeakRef(term))
+  if (!hasWarnedAboutTermlessLeak) {
+    const live = pruneLiveTermless()
+    if (live >= TERMLESS_LEAK_WARN_THRESHOLD) {
+      hasWarnedAboutTermlessLeak = true
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[silvery/test] ${live} live termless Term instances detected — likely a test forgot ` +
+          "to use `using term = createTermless(...)`. Each un-disposed Term retains an " +
+          "xterm.js Terminal with ~1 MB scrollback. See bead km-silvery.termless-memleak.",
+      )
+    }
+  }
+
+  return term
 }
 
 // ============================================================================

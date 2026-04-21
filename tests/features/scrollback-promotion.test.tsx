@@ -25,6 +25,9 @@ describe("scrollback promotion: border preservation", () => {
 
   afterEach(() => {
     handle?.unmount()
+    // Dispose the Term so the xterm.js Terminal is released —
+    // see bead km-silvery.termless-memleak.
+    term?.[Symbol.dispose]?.()
   })
 
   test("fully promoted boxes retain all border characters", async () => {
@@ -77,6 +80,9 @@ describe("scrollback promotion: no blank screen on Enter", () => {
 
   afterEach(() => {
     handle?.unmount()
+    // Dispose the Term so the xterm.js Terminal is released —
+    // see bead km-silvery.termless-memleak.
+    term?.[Symbol.dispose]?.()
   })
 
   /**
