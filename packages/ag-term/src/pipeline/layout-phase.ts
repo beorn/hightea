@@ -789,6 +789,34 @@ function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: b
     })
   }
 
+  // STRICT invariants (run BEFORE skipStateUpdates so fresh-render comparisons
+  // catch violations too).
+  //
+  // Rationale: the column-top-disappears bug class (2026-04-20, ≥4 sessions)
+  // arose because scroll state carried subtly illegal values (offset past max,
+  // firstVisibleChild pointing at a child that didn't actually intersect the
+  // viewport, sticky render offset clipped beyond legal bounds). STRICT mode
+  // verifies incremental==fresh but cannot catch drift that's consistent
+  // between both passes. Per-coordination-point invariants plug that gap.
+  //
+  // SILVERY_STRICT=1 → console.warn on violation
+  // SILVERY_STRICT=2 → throw on violation (regression test gate)
+  //
+  // All invariants are generic (no virtualizer knowledge) — ListView-specific
+  // invariants live in ListView itself.
+  strictScrollInvariants(
+    node,
+    props,
+    scrollOffset,
+    contentHeight,
+    viewportHeight,
+    indicatorReserve,
+    childPositions,
+    firstVisible,
+    lastVisible,
+    stickyChildren,
+  )
+
   // Skip state updates for fresh render comparisons (SILVERY_STRICT)
   if (skipStateUpdates) return
 
@@ -826,6 +854,133 @@ function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: b
     hiddenAbove,
     hiddenBelow,
     stickyChildren: stickyChildren.length > 0 ? stickyChildren : undefined,
+  }
+}
+
+/**
+ * Runtime invariants for scroll state. Gated on SILVERY_STRICT.
+ *
+ * Invariant set (all violations use `[SILVERY_STRICT]` prefix, L1 warn / L2 throw):
+ *   1. scrollOffset is clamped: 0 ≤ scrollOffset ≤ max(0, contentHeight - viewportHeight).
+ *   2. If scrollTo is a valid index, the target child intersects the effective
+ *      viewport (viewport minus indicatorReserve) after the offset calc.
+ *   3. firstVisibleChild / lastVisibleChild correspond to children that actually
+ *      intersect the effective viewport (not spacer indices outside).
+ *   4. Sticky child renderOffset stays within legal viewport bounds — specifically
+ *      `renderOffset + height > 0 && renderOffset < viewportHeight` (sticky row
+ *      not clipped entirely out, which `calculateScrollState` already filters,
+ *      but we also verify the sticky row's bottom doesn't sit ABOVE 0 for
+ *      isSticking=true entries since clamping should have prevented that).
+ *
+ * These are GENERIC scroll invariants — no virtualizer knowledge. Any divergence
+ * points to a bug in the scroll/sticky math itself.
+ */
+function strictScrollInvariants(
+  node: AgNode,
+  props: BoxProps,
+  scrollOffset: number,
+  contentHeight: number,
+  viewportHeight: number,
+  indicatorReserve: number,
+  childPositions: {
+    child: AgNode
+    top: number
+    bottom: number
+    index: number
+    isSticky: boolean
+    stickyTop?: number
+    stickyBottom?: number
+  }[],
+  firstVisible: number,
+  lastVisible: number,
+  stickyChildren: NonNullable<AgNode["scrollState"]>["stickyChildren"] & object,
+): void {
+  const strict = process?.env?.SILVERY_STRICT
+  if (!strict) return
+
+  const shouldThrow = strict === "2"
+  const nodeId = (props as any).id ?? node.type
+  const report = (msg: string): void => {
+    const full = `[SILVERY_STRICT] ${msg} (node: ${nodeId})`
+    if (shouldThrow) throw new Error(full)
+    else console.warn(full)
+  }
+
+  // Invariant 1: scrollOffset clamping
+  const maxOffset = Math.max(0, contentHeight - viewportHeight)
+  if (scrollOffset < 0) {
+    report(`scrollOffset ${scrollOffset} < 0`)
+  } else if (scrollOffset > maxOffset) {
+    report(
+      `scrollOffset ${scrollOffset} exceeds max ${maxOffset} ` +
+        `(contentHeight=${contentHeight}, viewportHeight=${viewportHeight})`,
+    )
+  }
+
+  // Invariant 2: scrollTo target intersects the RAW viewport (not the
+  // indicator-reserved effective viewport). The indicator overlays the
+  // reserved row rather than hiding content, so a target whose top lands
+  // exactly at the reserved row is still visible through the overlay —
+  // a legitimate edge case at scrollTo=last-item.
+  const scrollTo = props.scrollTo
+  if (scrollTo !== undefined && scrollTo >= 0 && scrollTo < childPositions.length) {
+    const target = childPositions.find((c) => c.index === scrollTo)
+    if (target && target.top !== target.bottom) {
+      // Zero-height children are exempt — they can't intersect anything.
+      const visibleTop = scrollOffset
+      const visibleBottom = scrollOffset + viewportHeight
+      const intersects = target.bottom > visibleTop && target.top < visibleBottom
+      if (!intersects) {
+        report(
+          `scrollTo target index=${scrollTo} does not intersect viewport ` +
+            `(target [${target.top},${target.bottom}), visible [${visibleTop},${visibleBottom}), ` +
+            `indicatorReserve=${indicatorReserve})`,
+        )
+      }
+    }
+  }
+
+  // Invariant 3: firstVisible / lastVisible correspond to intersecting children
+  const visibleTop = scrollOffset
+  const visibleBottom = scrollOffset + viewportHeight - indicatorReserve
+  const checkVisible = (label: string, idx: number): void => {
+    if (idx < 0) return // -1 = nothing visible, legal
+    const cp = childPositions.find((c) => c.index === idx)
+    if (!cp) {
+      report(`${label}=${idx} but no child at that index`)
+      return
+    }
+    if (cp.isSticky) return // sticky children are always "visible" by design
+    if (cp.top === cp.bottom) {
+      // Zero-height children shouldn't be chosen as first/last visible.
+      report(`${label}=${idx} references zero-height child`)
+      return
+    }
+    // Child must actually intersect the effective viewport (partial counts).
+    const intersects = cp.bottom > visibleTop && cp.top < visibleBottom
+    if (!intersects) {
+      report(
+        `${label}=${idx} does not intersect effective viewport ` +
+          `(child [${cp.top},${cp.bottom}), visible [${visibleTop},${visibleBottom}))`,
+      )
+    }
+  }
+  checkVisible("firstVisibleChild", firstVisible)
+  checkVisible("lastVisibleChild", lastVisible)
+
+  // Invariant 4: sticky child renderOffset is within legal viewport bounds.
+  // calculateScrollState already filters out sticky children that end up entirely
+  // off-screen (renderOffset+h ≤ 0 or renderOffset ≥ viewportHeight), so every
+  // entry here MUST at least partially intersect [0, viewportHeight).
+  for (const sc of stickyChildren) {
+    const topRow = sc.renderOffset
+    const bottomRow = sc.renderOffset + sc.height
+    if (bottomRow <= 0 || topRow >= viewportHeight) {
+      report(
+        `sticky child index=${sc.index} renderOffset=${topRow} height=${sc.height} ` +
+          `outside viewport [0,${viewportHeight})`,
+      )
+    }
   }
 }
 

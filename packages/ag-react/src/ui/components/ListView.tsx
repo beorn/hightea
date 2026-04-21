@@ -38,7 +38,7 @@ import React, {
   useRef,
   useState,
 } from "react"
-import { useVirtualizer } from "../../hooks/useVirtualizer"
+import { sumHeights, useVirtualizer } from "../../hooks/useVirtualizer"
 import { useInput } from "../../hooks/useInput"
 import { Box } from "../../components/Box"
 import { CacheBackendContext, StdoutContext, TermContext } from "../../context"
@@ -648,6 +648,43 @@ function ListViewInner<T>(
   // ── Render ──────────────────────────────────────────────────────
   const { startIndex, endIndex } = range
   const visibleItems = activeItems.slice(startIndex, endIndex)
+
+  // STRICT invariant: virtualizer's leadingHeight must equal
+  // sumHeights(0, startIndex) — i.e. the placeholder row-count matches the
+  // prefix-sum the virtualizer used internally. This catches drift between
+  // window-placement math and placeholder-height math (e.g. the divergence
+  // that caused the column-top-disappears bug class). Scoped here (not in
+  // the hook) because it exercises a user-visible contract that affects
+  // overflow math.
+  //
+  // NOTE: The /pro review's stronger form ("sumHeights(0, virtualizer.scrollOffset)
+  // == leadingHeight") does NOT hold in general — the virtualizer's `scrollOffset`
+  // is viewport-top-item-index while `startIndex` can sit below it by up to
+  // `overscan` items (start = max(0, scrollOffset - overscan)). The stronger
+  // form only holds when overscan doesn't pull `start` back (scrollOffset=0 or
+  // viewport at count-end). We instead check the always-true internal
+  // consistency invariant — any violation points to a virtualizer math bug.
+  if (process?.env?.SILVERY_STRICT) {
+    const strict = process.env.SILVERY_STRICT
+    const shouldThrow = strict === "2"
+    const expectedLeading = sumHeights(
+      0,
+      startIndex,
+      adjustedEstimateHeight,
+      gap,
+      measuredHeights,
+      wrappedGetKey,
+    )
+    // Allow 1 row of floating-point slack for avgMeasured fallback divisions.
+    if (Math.abs(leadingHeight - expectedLeading) > 1) {
+      const msg =
+        `[SILVERY_STRICT] ListView leadingHeight ${leadingHeight} diverges from ` +
+        `sumHeights(0, startIndex=${startIndex})=${expectedLeading} ` +
+        `(scrollOffset=${scrollOffset}, count=${activeItems.length})`
+      if (shouldThrow) throw new Error(msg)
+      else console.warn(msg)
+    }
+  }
 
   // Calculate scrollTo index for silvery Box overflow="scroll"
   const hasTopPlaceholder = leadingHeight > 0
