@@ -178,7 +178,11 @@ export function createDemoUpdate(script: ScriptEntry[], fastMode: boolean, autoM
   function doAdvance(state: DemoState, extraEffects: DemoEffect[] = []): DemoResult {
     if (state.done || state.compacting || state.streamPhase !== "done") return state
     if (state.scriptIdx >= script.length) {
-      return autoMode ? { ...state, done: true } : state
+      // End of script: wait for user input instead of ending the session.
+      // Previously we set `done: true` in autoMode, which blocked further
+      // interaction and showed "Session complete" — particularly painful
+      // after a compaction cycle that walked past the script end.
+      return state
     }
 
     const entry = script[state.scriptIdx]!
@@ -210,8 +214,15 @@ export function createDemoUpdate(script: ScriptEntry[], fastMode: boolean, autoM
 
   return function update(state: DemoState, msg: DemoMsg): DemoResult {
     switch (msg.type) {
-      case "mount":
-        return doAdvance(state, [fx.interval(400, { type: "pulse" }, "pulse")])
+      case "mount": {
+        // In auto mode, kick off the scripted walk-through immediately.
+        // In interactive mode, leave the intro exchange visible and wait
+        // for user input — auto-advancing on mount buries the intro text
+        // under the first scripted user message before the user sees it.
+        const pulseFx = fx.interval(400, { type: "pulse" }, "pulse")
+        if (autoMode) return doAdvance(state, [pulseFx])
+        return [state, [pulseFx]]
+      }
 
       case "advance":
       case "autoAdvance": {
@@ -231,7 +242,14 @@ export function createDemoUpdate(script: ScriptEntry[], fastMode: boolean, autoM
           }
         }
         if (autoMode && state.scriptIdx >= script.length && state.streamPhase === "done") {
-          return { ...state, done: true }
+          // Script exhausted in auto mode: keep the demo alive with a random
+          // agent response rather than freezing on "Session complete". The
+          // user can still Ctrl-D out; double-Ctrl-D in useKeyBindings
+          // handles true exit.
+          return [
+            { ...state, offScript: true },
+            [fx.delay(1200, { type: "respondRandom" })],
+          ]
         }
         return doAdvance(state)
       }
@@ -281,13 +299,21 @@ export function createDemoUpdate(script: ScriptEntry[], fastMode: boolean, autoM
       }
 
       case "submit": {
-        // Fast-forward streaming if still animating
+        // Fast-forward streaming if still animating. Also clear `done` —
+        // any user interaction should reopen the session, so the "Session
+        // complete" overlay never traps the user. Auto-exit in --auto mode
+        // is driven by done=true via useAutoExit; once the user types, we
+        // assume they want to keep talking.
+        const fastForward = {
+          streamPhase: "done" as StreamPhase,
+          revealFraction: 1,
+          autoTyping: null,
+          done: false,
+        }
         const base =
-          state.streamPhase !== "done"
-            ? { ...state, streamPhase: "done" as StreamPhase, revealFraction: 1, autoTyping: null }
-            : state.autoTyping
-              ? { ...state, autoTyping: null }
-              : state
+          state.streamPhase !== "done" || state.autoTyping || state.done
+            ? { ...state, ...fastForward }
+            : state
         const cancelEffects: DemoEffect[] =
           state.streamPhase !== "done"
             ? [fx.cancel("reveal"), fx.cancel("typing")]
@@ -295,7 +321,6 @@ export function createDemoUpdate(script: ScriptEntry[], fastMode: boolean, autoM
 
         // Empty submit just fast-forwards (no text to queue)
         if (!msg.text.trim()) return [base, cancelEffects]
-        if (base.done) return base
 
         const s = addExchange(base, {
           role: "user",

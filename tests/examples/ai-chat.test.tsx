@@ -62,7 +62,13 @@ describe("ai-chat example (in-process termless)", { timeout: 15000 }, () => {
   beforeAll(async () => {
     term = createTermless({ cols: 120, rows: 40 })
     handle = await run(<AIChat script={SCRIPT} autoStart={false} fastMode={true} />, term)
-    // Wait for mount advance + fastMode auto-chain to settle
+    // On mount, the intro system exchange is shown and the demo waits for
+    // user input (see bead km-silvery.inline-bugs bug 4 — previously the
+    // intro was eclipsed by an auto-advance). Press Enter to kick off the
+    // first scripted exchange so the rest of the test setup (agent stream,
+    // box borders, resize flow) matches the post-advance state.
+    await settle(50)
+    await handle.press("Enter")
     await settle()
   })
 

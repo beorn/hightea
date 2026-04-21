@@ -18,7 +18,14 @@ import { formatTokens, formatCost, computeCumulativeTokens } from "./state.js"
 // ============================================================================
 
 export interface FooterControl {
+  /** Submit the current input (or the placeholder message if input is empty). */
   submit: () => void
+  /**
+   * Tab behavior: if the input is empty, fill it with the next scripted message
+   * (or a random placeholder) so the user can edit before submitting. If the
+   * input already has content, submit it like Enter.
+   */
+  fillOrSubmit: () => void
 }
 
 // ============================================================================
@@ -413,9 +420,26 @@ export function DemoFooter({
     [onSubmit, effectiveMessage],
   )
 
-  // Expose submit() to parent — replaces the old getText/setText/getPlaceholder pattern
+  // Expose submit() + fillOrSubmit() to parent. Tab calls fillOrSubmit():
+  // - empty input + a candidate message → write that message into the input
+  //   (user can edit before submitting); no network round-trip.
+  // - non-empty input → submit it (Tab behaves like Enter).
   controlRef.current = {
     submit: () => handleSubmit(inputTextRef.current),
+    fillOrSubmit: () => {
+      const current = inputTextRef.current
+      if (current.trim()) {
+        // Non-empty: submit like Enter.
+        handleSubmit(current)
+        return
+      }
+      // Empty: fill with the candidate message if we have one; otherwise do
+      // nothing (Tab on an empty input with no message shouldn't side-effect).
+      if (effectiveMessage) {
+        setInputText(effectiveMessage)
+        setRandomIdx((i) => i + 1)
+      }
+    },
   }
 
   // Auto-submit: if idle for AUTO_SUBMIT_DELAY, submit the placeholder message

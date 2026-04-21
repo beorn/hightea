@@ -59,7 +59,10 @@ export function AIChat({
     [script, fastMode, autoStart],
   )
   const [state, send] = useTea(INIT_STATE, update)
-  const footerControlRef = useRef<FooterControl>({ submit: () => {} })
+  const footerControlRef = useRef<FooterControl>({
+    submit: () => {},
+    fillOrSubmit: () => {},
+  })
 
   useEffect(() => send({ type: "mount" }), [send])
   useAutoCompact(state, send)
@@ -188,7 +191,10 @@ function useKeyBindings(
     }
     if (key.tab) {
       if (state.done || state.compacting) return
-      footerControlRef.current.submit()
+      // Tab: empty input fills with the next scripted message (user can edit
+      // before submitting); non-empty input submits like Enter. See
+      // FooterControl.fillOrSubmit in components.tsx.
+      footerControlRef.current.fillOrSubmit()
       return
     }
     if (key.ctrl && input === "l") {
