@@ -138,6 +138,23 @@ describe("aichat inline bugs", { timeout: 15000 }, () => {
     assertNoOverlappingBorders(term.screen!)
   })
 
+  test("bug 7: input-box border spans the full width (not truncated to 4 chars)", async () => {
+    // Regression: with `flexDirection="row"` and no explicit width, the
+    // bordered Box sized to fit only the ❯ prefix and the TextInput overflowed
+    // outside the border. Top/bottom borders became "╭──╮" / "╰──╯" while
+    // the middle row's content extended well past the right border.
+    await setup({ mode: "inline", cols: 100, rows: 30, autoStart: false, fastMode: false })
+    await settle(80)
+
+    // Find the ╭ top-border row and measure its length. A broken border shows
+    // as `╭──╮` (4 chars) while a correct one spans most of the width.
+    const lines = term.screen!.getLines()
+    const topRow = lines.find((line) => line.trimStart().startsWith("╭"))
+    expect(topRow).toBeDefined()
+    const borderLen = topRow!.trim().length
+    expect(borderLen).toBeGreaterThan(40) // generous lower bound for a 100-col terminal
+  })
+
   // ==========================================================================
   // Bug 8: Focus outline when unfocused — input box border should NOT be
   // $border-focus color when terminal is unfocused.

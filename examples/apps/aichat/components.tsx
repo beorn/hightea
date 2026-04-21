@@ -469,6 +469,7 @@ export function DemoFooter({
       <Text> </Text>
       <Box
         flexDirection="row"
+        width="100%"
         borderStyle="round"
         borderColor={!done && terminalFocused ? "$border-focus" : "$inputborder"}
         paddingX={1}

@@ -47,10 +47,13 @@ export function AIChat({
   script,
   autoStart,
   fastMode,
+  inline = false,
 }: {
   script: ScriptEntry[]
   autoStart: boolean
   fastMode: boolean
+  /** Inline mode — size content to fit, no reserved empty area. */
+  inline?: boolean
 }) {
   const exit = useExit()
   const { rows: termRows } = useWindowSize()
@@ -96,16 +99,21 @@ export function AIChat({
   )
 
   return (
-    <Box flexDirection="column" paddingX={1}>
+    <Box flexDirection="column" width="100%" paddingX={1}>
       <ListView
         items={state.exchanges}
         getKey={(ex) => ex.id}
+        width="100%"
         height={termRows}
         estimateHeight={6}
         renderItem={renderExchange}
         scrollTo={state.exchanges.length - 1}
         cache={{
-          mode: "virtual",
+          // "auto" adapts to cacheBackend from context:
+          // - inline mode → "terminal" (promote to real terminal scrollback;
+          //   naturally trims the reserved empty area below the footer)
+          // - fullscreen → "retain" (keep in render tree)
+          mode: "auto",
           isCacheable: (_ex, index) => index < state.exchanges.length - 1,
         }}
         listFooter={
@@ -143,6 +151,7 @@ export async function main() {
       script={script}
       autoStart={args.includes("--auto")}
       fastMode={args.includes("--fast")}
+      inline={mode === "inline"}
     />,
     { mode: mode as "inline" | "fullscreen", focusReporting: true },
   )
