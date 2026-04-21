@@ -147,4 +147,5 @@ export {
   syncTextContentSignal,
   syncFocusedSignal,
   type LayoutSignals,
+  type ScrollStateSnapshot,
 } from "./layout-signals"
