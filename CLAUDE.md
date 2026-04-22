@@ -21,9 +21,9 @@ try {
 }
 ```
 
-**Why it breaks**: `process.stdin` is a global, multi-tenant resource. The "snapshot at entry, restore at exit" protocol assumes a single consumer. Under async, multiple polite tenants race — and the last finally to run wins, silently disabling input for the host TUI. Caught in the wild April 2026: `probeColors` invoked from a React `useEffect` raced with the term-provider's `events()` generator and reset raw mode mid-frame, killing all input. See [silvery 2d9ab59f](https://github.com/beorn/silvery/commit/2d9ab59f) for the patch.
+**Why it breaks**: `process.stdin` is a global, multi-tenant resource. The "snapshot at entry, restore at exit" protocol assumes a single consumer. Under async, multiple polite tenants race — and the last finally to run wins, silently disabling input for the host TUI. The same shape reappears for every shared terminal global (stdout writes, protocol modes, resize, signals, `console.*`), which is why the answer is structural ownership — not a more careful snapshot.
 
-**The structural fix — `term.input.probe()` — is SHIPPED in silvery 0.19.2.** Stdin has ONE owner per session, exposed as `term.input` on the `Term` interface. Probes never call `stdin.setRawMode` or `stdin.on('data', …)`. They call `term.input.probe({ query, parse, timeoutMs })` and the owner routes matching response bytes back to the caller. Same META-pattern as `term.output` (stdout), `term.modes` (protocol modes), `term.size` (dimensions), and `term.console` (console.* capture). See [The I/O umbrella](docs/guide/term.md) and [term.input reference](docs/api/term-input.md).
+**The structural fix is `term.input`.** Stdin has ONE owner per session, exposed as `term.input` on the `Term` interface. Probes never call `stdin.setRawMode` or `stdin.on('data', …)`. They call `term.input.probe({ query, parse, timeoutMs })` and the owner routes matching response bytes back to the caller. Same pattern for every terminal global — `term.output` (stdout), `term.modes` (protocol modes), `term.size` (dimensions), `term.signals` (process signals), `term.console` (`console.*` capture). See [The I/O umbrella](docs/guide/term.md) and [term.input reference](docs/api/term-input.md).
 
 **File layout** — sub-owners live under `packages/ag-term/src/runtime/devices/`:
 

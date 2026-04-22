@@ -21,9 +21,9 @@ try {
 }
 ```
 
-When two tenants overlap across an `await`, the last `finally` to run wins — silently disabling raw mode and killing the host's input. This is not a hypothetical; it was the 2026-04-22 `wasRaw` incident, where a color probe invoked from a React `useEffect` raced the term-provider's event loop and froze every key press. See [the `wasRaw` anti-pattern note](./faq.md) for the full post-mortem.
+When two tenants overlap across an `await`, the last `finally` to run wins — silently disabling raw mode and killing the host's input. The async concurrency makes the failure non-deterministic, which is why the pattern looks safe until the day it isn't.
 
-Sub-owners fix the class of bug, not just the incident. Each one owns exactly one resource, is set once at session start, and restored once at dispose. Tenants don't toggle globals — they ask the owner for a capability and the owner routes the work.
+Sub-owners fix the class of bug, not the symptom. Each one owns exactly one resource, is set once at session start, and restored once at dispose. Tenants don't toggle globals — they ask the owner for a capability and the owner routes the work.
 
 ## The six sub-owners
 
@@ -35,7 +35,7 @@ Each sub-owner is a field on `Term`. They are constructed lazily (cheap — no s
 | `term.output`     | stdout, stderr, and `console.*` during the alt-screen session | [term.output](/api/term-output) |
 | `term.modes`      | Raw mode, alt screen, bracketed paste, Kitty, mouse, focus    | [term.modes](/api/term-modes) |
 | `term.size`       | Terminal cols/rows — live, reactive, coalesced on resize      | [term.size](/api/term-size)   |
-| `term.signals`    | `SIGINT`/`SIGTERM`/`SIGTSTP`/`exit` handler scope             | _landing in Phase 6_          |
+| `term.signals`    | `SIGINT`/`SIGTERM`/`SIGTSTP`/`exit` handler scope             | [term.signals](/api/term-signals) |
 | `term.console`    | `console.log/info/warn/error/debug` capture + replay          | [term.console](/api/term-console) |
 
 `term.input`, `term.output`, and `term.console` are `undefined` on Terms that don't own a real terminal (headless test terms, emulator-backed terms). The others are always present.
@@ -44,7 +44,7 @@ Each sub-owner is a field on `Term`. They are constructed lazily (cheap — no s
 
 **Never touch `process.stdin` or `process.stdout` from app code.** Silvery owns them for the Term's lifetime. Any `process.stdin.setRawMode(…)`, `process.stdout.write(…)`, or `process.stdin.on("data", …)` outside the sub-owners will race the session.
 
-**Never use `term.stdin` or `term.stdout`.** Those fields are deprecated. They remain on the `Term` interface only to unblock the Phase 8a migration and will be removed in a future release — new code must go through the sub-owners.
+**Never reach for raw streams.** `term.stdin` and `term.stdout` are not part of the `Term` interface — the sub-owners are the only supported surface. Any helper you write for input or output should accept a sub-owner (`Input`, `Output`), never a `NodeJS.ReadStream` or `NodeJS.WriteStream`.
 
 **Never toggle a protocol mode mid-session.** `term.modes` is set once at startup and restored once on dispose. Suspend/resume flows (SIGTSTP) are the only legitimate mid-session toggles, and they still go through `term.modes` so the owner's state stays consistent.
 
@@ -138,7 +138,7 @@ If you're moving an app off the old helpers, the mapping is mechanical:
 | `createOutputGuard(…)` / `OutputGuard`                 | `term.output` / `createOutput()` (type is now `Output`)   |
 | `patchConsole(…)`                                      | `term.console.capture({ suppress: true })`                |
 | `probeColors(stdin, stdout, …)` (direct stdin access)  | `probeColors(stdin, stdout, { inputOwner: term.input })`  |
-| `process.on("SIGINT", …)` ad hoc                       | `term.signals.on("SIGINT", …, { priority })` _(Phase 6)_  |
+| `process.on("SIGINT", …)` ad hoc                       | `term.signals.on("SIGINT", …, { priority })`              |
 
 ## Ownership axiom
 
