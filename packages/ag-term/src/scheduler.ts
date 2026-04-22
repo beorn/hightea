@@ -78,6 +78,14 @@ export type ResolvedNonTTYMode = Exclude<NonTTYMode, "auto">
 export interface SchedulerOptions {
   /** stdout stream for writing output */
   stdout: NodeJS.WriteStream
+  /**
+   * Term size owner — single source of truth for cols/rows (and the only
+   * reader that sees the coalesced resize post-window). When omitted the
+   * scheduler falls back to reading `stdout.columns` / `stdout.rows`
+   * directly; this keeps legacy embedders working but forfeits the coalesce
+   * window.
+   */
+  size?: import("./runtime/devices/size").Size
   /** Root Silvery node */
   root: AgNode
   /** Debug mode - logs render timing */
@@ -148,6 +156,7 @@ export interface RenderStats {
  */
 export class RenderScheduler {
   private stdout: NodeJS.WriteStream
+  private size?: import("./runtime/devices/size").Size
   private root: AgNode
   private debugMode: boolean
   private minFrameTime: number
@@ -207,6 +216,7 @@ export class RenderScheduler {
 
   constructor(options: SchedulerOptions) {
     this.stdout = options.stdout
+    this.size = options.size
     this.root = options.root
     this.debugMode = options.debug ?? false
     this.minFrameTime = options.minFrameTime ?? 16
@@ -471,11 +481,14 @@ export class RenderScheduler {
     const startTime = Date.now()
 
     try {
-      // Get terminal dimensions
-      const width = this.stdout.columns ?? 80
+      // Get terminal dimensions. Prefer the Term's Size owner (coalesced
+      // resize, alien-signals-backed) when provided. Falls back to direct
+      // stdout reads for legacy embedders that haven't wired a Size yet.
+      const width = this.size?.cols ?? this.stdout.columns ?? 80
       // Inline mode: use NaN height so layout engine auto-sizes to content.
       // Fullscreen mode: use terminal rows as the constraint.
-      const height = this.mode === "inline" ? NaN : (this.stdout.rows ?? 24)
+      const height =
+        this.mode === "inline" ? NaN : (this.size?.rows ?? this.stdout.rows ?? 24)
 
       log.debug?.(
         `render #${this.stats.renderCount + 1}: ${width}x${height}, nonTTYMode=${this.nonTTYMode}`,
@@ -502,7 +515,9 @@ export class RenderScheduler {
             buffer,
             this.mode,
             scrollbackOffset,
-            this.mode === "inline" ? (this.stdout.rows ?? 24) : undefined,
+            this.mode === "inline"
+              ? (this.size?.rows ?? this.stdout.rows ?? 24)
+              : undefined,
             inlineCursor,
           )
         } catch (e) {

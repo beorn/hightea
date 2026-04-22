@@ -57,6 +57,13 @@ import {
 export type { Size, SizeSnapshot }
 import { createModes, type Modes } from "../runtime/devices/modes"
 export type { Modes }
+import {
+  createConsole,
+  type Console as DeviceConsole,
+  type ConsoleCaptureOptions,
+  type ConsoleStats,
+} from "../runtime/devices/console"
+export type { DeviceConsole as Console, ConsoleCaptureOptions, ConsoleStats }
 import { splitRawInput, parseKey } from "@silvery/ag/keys"
 import { isMouseSequence, parseMouseSequence } from "../mouse"
 import { parseFocusEvent } from "../focus-reporting"
@@ -357,6 +364,22 @@ export interface Term extends Disposable, StyleChain {
    * race class — concentrating them behind one owner makes them race-free.
    */
   readonly modes: Modes
+
+  /**
+   * Console owner — single-owner console.* interceptor for the Term's lifetime.
+   *
+   * Starts inert. Call `term.console.capture({suppress:true})` once the alt
+   * screen is active to route `console.log/info/warn/error/debug` into a
+   * buffer instead of the screen; then `term.console.replay(stdout, stderr)`
+   * on exit to re-emit captured entries to the normal streams. React apps
+   * read via `subscribe` + `getSnapshot` (see `<Console>` + `useConsole`).
+   *
+   * Replaces the standalone `patchConsole()` helper — same implementation,
+   * Term-owned lifecycle. Undefined for Terms that don't own a real console
+   * (headless dims + emulator-backed), which never render through the global
+   * terminal and therefore have nothing to corrupt.
+   */
+  readonly console: DeviceConsole | undefined
 
   // -------------------------------------------------------------------------
   // I/O Methods
@@ -708,15 +731,19 @@ function createNodeTerm(options: CreateTermOptions): Term {
   // Create style instance with appropriate color level
   const styleInstance = createStyle({ level: cachedColor })
 
+  // Size owner — single source of truth for cols/rows. Subscribes to stdout's
+  // `resize` event with 16ms coalescing so burst SIGWINCH from tmux/cmux/
+  // Ghostty tab switches collapses to one notification. Constructed eagerly
+  // so term.size and term.cols/rows are valid even before events()/subscribe()
+  // is called. See km-silvery.term-sub-owners Phase 5.
+  const size = createSize(stdout)
+
   // Lazy Provider — only created when getState/subscribe/events is called.
-  // This avoids adding a resize listener for styling-only usage.
+  // Shares the Term's Size owner so provider resize events match term.size.
   let provider: ReturnType<typeof createTermProvider> | null = null
   const getProvider = () => {
     if (!provider) {
-      provider = createTermProvider(stdin, stdout, {
-        cols: stdout.columns || 80,
-        rows: stdout.rows || 24,
-      })
+      provider = createTermProvider(stdin, stdout, { size })
     }
     return provider
   }
@@ -749,12 +776,6 @@ function createNodeTerm(options: CreateTermOptions): Term {
     return _output
   }
 
-  // Size owner — single source of truth for cols/rows. Subscribes to stdout's
-  // `resize` event with 16ms coalescing so burst SIGWINCH from tmux/cmux/
-  // Ghostty tab switches collapses to one notification.
-  // See km-silvery.term-sub-owners Phase 5.
-  const size = createSize(stdout)
-
   // Modes owner — single authority for terminal protocol modes (raw, alt-
   // screen, paste, kitty keyboard, mouse, focus reporting). Consolidates
   // the scattered enable*/disable* call sites. See Phase 4.
@@ -762,6 +783,12 @@ function createNodeTerm(options: CreateTermOptions): Term {
     write: (s: string) => stdout.write(s),
     stdin,
   })
+
+  // Console owner — captures console.* during alt-screen rendering. Constructed
+  // eagerly (cheap: no patching until capture()) so consumers can subscribe to
+  // entries even before the TUI goes interactive (buffered startup warnings).
+  // See km-silvery.term-sub-owners Phase 7.
+  const consoleOwner = createConsole(globalThis.console)
 
   const termBase = {
     hasCursor: () => cachedCursor,
@@ -773,6 +800,7 @@ function createNodeTerm(options: CreateTermOptions): Term {
     stdin,
     size,
     modes,
+    console: consoleOwner,
     write: (str: string) => {
       stdout.write(str)
     },
@@ -793,6 +821,7 @@ function createNodeTerm(options: CreateTermOptions): Term {
       if (_input) _input[Symbol.dispose]()
       if (_output) _output[Symbol.dispose]()
       if (provider) provider[Symbol.dispose]()
+      consoleOwner[Symbol.dispose]()
       modes[Symbol.dispose]()
       size[Symbol.dispose]()
     },
@@ -849,6 +878,7 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
     stdin: process.stdin,
     size,
     modes,
+    console: undefined as DeviceConsole | undefined,
     write: () => {},
     writeLine: () => {},
     getState: (): TermState => dims,
@@ -918,6 +948,7 @@ function createBackendTerm(emulator: TermEmulator): Term {
     stdin: process.stdin,
     size,
     modes,
+    console: undefined as DeviceConsole | undefined,
     write: (str: string) => emulator.feed(str),
     writeLine: (str: string) => emulator.feed(str + "\n"),
     getState: (): TermState => ({ cols: emulator.cols, rows: emulator.rows }),

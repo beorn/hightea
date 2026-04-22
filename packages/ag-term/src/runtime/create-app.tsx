@@ -140,6 +140,8 @@ import {
 import { createVirtualScrollback } from "../virtual-scrollback"
 import { createSearchState, searchUpdate } from "../search-overlay"
 import { createOutput, type Output } from "./devices/output"
+import { createModes } from "./devices/modes"
+import type { Term } from "../ansi/term"
 import { perfLog, checkBudget, logExitSummary, startTracking } from "./perf"
 import { createLogger } from "loggily"
 import {
@@ -644,6 +646,16 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   const rows = explicitRows ?? process.stdout.rows ?? 24
   const stdout = explicitStdout ?? process.stdout
 
+  // If the caller passed `term` (from run()'s Term path), its `modes` sub-owner
+  // is the single authority for protocol mode toggles — raw, alt-screen, paste,
+  // kitty keyboard, mouse, focus reporting. Otherwise we construct a local
+  // Modes owner over the raw streams to get the same consolidation for
+  // createApp-direct callers. Either way, every enable*/disable* call in this
+  // function goes through an owner — no scattered raw ANSI toggles.
+  // See km-silvery.term-sub-owners Phase 4.
+  const injectedTerm = (injectValues as { term?: Term }).term
+  const modes = injectedTerm?.modes ?? createModes({ write: (s) => stdout.write(s), stdin })
+
   // Output guard: created after protocol setup (see below).
   // Only guard when using real process.stdout — mock stdouts don't benefit from
   // the guard (which patches process.stdout.write), and it would route render
@@ -784,20 +796,31 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // Track current dimensions
   let currentDims: Dims = { cols, rows }
 
-  // Subscribe to stdout resize events so currentDims stays in sync.
+  // Subscribe to resize events so currentDims stays in sync.
   // In headless mode this is handled by explicitOnResize above.
-  // In non-headless mode, stdout resize events update currentDims directly
-  // and notify mockTerm subscribers (so useSyncExternalStore re-renders).
+  // When a Term with a `size` sub-owner is injected, subscribe through the
+  // owner so create-app sees the SAME coalesced geometry as the rest of the
+  // pipeline. Otherwise fall back to direct stdout "resize" events for
+  // standalone callers. See km-silvery.term-sub-owners Phase 5.
   if (!headless) {
-    const onStdoutResize = () => {
-      currentDims = {
-        cols: stdout.columns || 80,
-        rows: stdout.rows || 24,
+    const termSize = injectedTerm?.size
+    if (termSize) {
+      const unsub = termSize.subscribe((next) => {
+        currentDims = { cols: next.cols, rows: next.rows }
+        for (const listener of mockTermSubscribers) listener(currentDims)
+      })
+      providerCleanups.push(unsub)
+    } else {
+      const onStdoutResize = () => {
+        currentDims = {
+          cols: stdout.columns || 80,
+          rows: stdout.rows || 24,
+        }
+        for (const listener of mockTermSubscribers) listener(currentDims)
       }
-      for (const listener of mockTermSubscribers) listener(currentDims)
+      stdout.on("resize", onStdoutResize)
+      providerCleanups.push(() => stdout.off("resize", onStdoutResize))
     }
-    stdout.on("resize", onStdoutResize)
-    providerCleanups.push(() => stdout.off("resize", onStdoutResize))
   }
 
   let shouldExit = false
@@ -910,6 +933,15 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           return currentDims
         },
         onResize(handler: (dims: Dims) => void): () => void {
+          // Prefer the injected Term's Size owner (coalesced) when present;
+          // fall back to direct stdout "resize" for standalone callers.
+          const termSize = injectedTerm?.size
+          if (termSize) {
+            return termSize.subscribe((next) => {
+              currentDims = { cols: next.cols, rows: next.rows }
+              handler(currentDims)
+            })
+          }
           const onResize = () => {
             currentDims = {
               cols: stdout.columns || 80,
@@ -1247,6 +1279,18 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       }
     })
 
+    // Dispose the Modes owner — restores any protocols it activated.
+    // This runs AFTER the writeSync safety sequences above, so modes'
+    // dispose is a no-op for the common exit path (state has already been
+    // cleared). When createApp was invoked without a terminal Term (e.g.
+    // tests that exit without the writeSync block running), Modes handles
+    // its own cleanup.
+    if (!injectedTerm) {
+      // Only dispose locally-owned Modes. A Term-owned Modes is disposed by
+      // the Term's own Symbol.dispose (see term.ts).
+      modes[Symbol.dispose]()
+    }
+
     // Dispose runtime
     runtime[Symbol.dispose]()
 
@@ -1533,12 +1577,16 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       require("node:fs").appendFileSync("/tmp/silvery-trace.log", "=== ALT SCREEN + CLEAR ===\n")
     }
     if (alternateScreen) {
-      stdout.write("\x1b[?1049h")
+      // Route through modes so the owner tracks state for race-free dispose.
+      // Clear + home still go through stdout — they're transient cursor moves,
+      // not mode toggles.
+      modes.setAlternateScreen(true)
       stdout.write("\x1b[2J\x1b[H")
     }
     stdout.write("\x1b[?25l")
 
-    // Kitty keyboard protocol
+    // Kitty keyboard protocol — all paths go through the Modes owner so state
+    // is tracked for race-free teardown.
     if (kittyOption != null && kittyOption !== false) {
       if (kittyOption === true) {
         // Auto-detect: probe terminal, enable if supported.
@@ -1548,33 +1596,33 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         // Kitty-protocol terminals (kitty/ghostty/wezterm/foot); the probe only
         // adds value when caps weren't provided.
         if (capsOption?.kittyKeyboard) {
-          stdout.write(enableKittyKeyboard(defaultKittyFlags))
+          modes.setKittyKeyboard(defaultKittyFlags)
           kittyEnabled = true
           kittyFlags = defaultKittyFlags
         } else {
           const result = await detectKittyFromStdio(stdout, stdin as NodeJS.ReadStream)
           if (result.supported) {
-            stdout.write(enableKittyKeyboard(defaultKittyFlags))
+            modes.setKittyKeyboard(defaultKittyFlags)
             kittyEnabled = true
             kittyFlags = defaultKittyFlags
           }
         }
       } else {
         // Explicit flags — enable directly without detection
-        stdout.write(enableKittyKeyboard(kittyOption as 1))
+        modes.setKittyKeyboard(kittyOption as number)
         kittyEnabled = true
         kittyFlags = kittyOption as number
       }
     } else if (kittyOption == null) {
       // No option specified: legacy behavior — always enable Kitty with full fidelity
-      stdout.write(enableKittyKeyboard(defaultKittyFlags))
+      modes.setKittyKeyboard(defaultKittyFlags)
       kittyEnabled = true
       kittyFlags = defaultKittyFlags
     }
 
     // Mouse tracking
     if (mouseOption) {
-      stdout.write(enableMouse())
+      modes.setMouseEnabled(true)
       mouseEnabled = true
     }
 
@@ -2486,7 +2534,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Must be deferred from the init phase because the terminal's immediate
     // CSI I/O response would leak before the input parser was ready.
     if (focusReportingOption && !focusReportingEnabled) {
-      enableFocusReporting((s) => (output ? output.write(s) : stdout.write(s)))
+      modes.setFocusReporting(true)
       focusReportingEnabled = true
     }
 
