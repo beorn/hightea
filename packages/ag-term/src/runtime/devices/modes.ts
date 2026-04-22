@@ -1,5 +1,5 @@
 /**
- * term.modes — single owner for terminal protocol modes.
+ * term.modes — single owner for terminal protocol modes, exposed as signals.
  *
  * Consolidates the previously-scattered enable/disable calls for:
  *   - raw mode (stdin termios)
@@ -17,26 +17,41 @@
  * 2026-04-22 `wasRaw` incident: multi-tenant toggling of global termios/
  * terminal state across async boundaries.
  *
+ * ## API shape: signals
+ *
+ * Each mode is a callable alien-signals `Signal<T>`:
+ *
+ * - `modes.altScreen()`      — read current value
+ * - `modes.altScreen(true)`  — write; internal effect emits ANSI on change
+ * - `effect(() => modes.altScreen())` — subscribe to changes
+ *
+ * Idempotence is automatic: alien-signals doesn't fire dependents when the
+ * new value equals the prior value, so `modes.altScreen(true)` twice produces
+ * one ANSI write.
+ *
  * ## Ownership contract
  *
  * One `Modes` instance per Term. Construction is cheap — no ANSI is emitted
- * until `set*` is called. Callers set modes ONCE at session start and restore
- * them ONCE on dispose. Mid-session re-toggling is permitted (e.g. suspend/
- * resume flows need to drop protocols before SIGTSTP), but MUST go through
- * the owner so state stays consistent.
+ * until the first write to a signal. Callers write modes ONCE at session
+ * start and restore them ONCE on dispose. Mid-session re-toggling is
+ * permitted (e.g. suspend/resume flows need to drop protocols before SIGTSTP),
+ * but MUST go through the owner so state stays consistent.
  *
- * State getters (`isRawMode`, `isMouseEnabled`, etc.) reflect the last value
- * *this owner* wrote. They are the app's source of truth — the terminal has
- * no query-for-current-mode protocol for most of these.
+ * Signals reflect the last value *this owner* wrote. They are the app's
+ * source of truth — the terminal has no query-for-current-mode protocol for
+ * most of these.
  *
  * ## Dispose
  *
  * Restores every mode this owner activated (ignores modes the owner never
  * touched — setting `rawMode=false` when we never enabled raw would be wrong
- * on a shared stdin). Idempotent.
+ * on a shared stdin). Dispose writes `false` to each ever-activated signal;
+ * the internal effects emit the disable ANSI naturally. Idempotent.
  *
- * Bead: km-silvery.term-sub-owners (Phase 4).
+ * Bead: km-silvery.term-sub-owners (Phase 4) + km-silvery.modes-as-signals.
  */
+
+import { signal, effect, type Signal } from "@silvery/signals"
 
 import {
   enableMouse,
@@ -79,59 +94,44 @@ export const KittyFlags = {
 /**
  * Terminal protocol modes sub-owner.
  *
- * Owns ALL protocol-mode ANSI sequences for one Term's lifetime. Tracks the
- * last-set value for each mode so `dispose()` can restore exactly what was
- * activated (not a global reset that could stomp on a neighbouring session).
+ * Each property is a callable alien-signals `Signal`:
+ * - read:      `modes.altScreen()` → `boolean`
+ * - write:     `modes.altScreen(true)` — internal effect emits ANSI on change
+ * - subscribe: `effect(() => modes.altScreen())`
+ *
+ * `dispose()` writes `false` to every signal that was ever activated, which
+ * drives the same effects to emit the disable ANSI. Mode signals that were
+ * never touched stay `false` — no ANSI is emitted for them, matching the
+ * shared-stdin safety contract.
  */
 export interface Modes extends Disposable {
-  // ---------------------------------------------------------------------------
-  // Setters
-  // ---------------------------------------------------------------------------
-
   /**
-   * Set stdin raw mode. Idempotent — a repeat call with the same value is a
-   * no-op. Safe to call on a non-TTY stdin (becomes a no-op).
+   * stdin raw mode.
    *
-   * wasRaw note: prefer a single `setRawMode(true)` at session start; do not
-   * capture-and-restore around async work. See
+   * wasRaw note: prefer a single `modes.rawMode(true)` at session start; do
+   * not capture-and-restore around async work. See
    * `vendor/silvery/CLAUDE.md` "Anti-pattern: wasRaw".
    */
-  setRawMode(on: boolean): void
+  readonly rawMode: Signal<boolean>
 
-  /** Enter or leave the alternate screen buffer (DEC 1049). */
-  setAlternateScreen(on: boolean): void
+  /** Alternate screen buffer (DEC 1049). */
+  readonly altScreen: Signal<boolean>
 
-  /** Enable or disable bracketed paste (DEC 2004). */
-  setBracketedPaste(on: boolean): void
-
-  /**
-   * Enable or disable Kitty keyboard protocol.
-   * Pass a flags bitfield (see `KittyFlags`) to enable; pass `false` to
-   * disable. `true` enables with `KittyFlags.DISAMBIGUATE` only — use a
-   * numeric bitfield for richer modes.
-   */
-  setKittyKeyboard(flags: number | false): void
+  /** Bracketed paste (DEC 2004). */
+  readonly bracketedPaste: Signal<boolean>
 
   /**
-   * Enable or disable SGR mouse tracking (xterm modes 1003 + 1006).
-   * 1003 = all motion + clicks (hover supported). 1006 = SGR encoding.
+   * Kitty keyboard protocol flags. Bitfield (see `KittyFlags`) to enable,
+   * `false` to disable. A change from one non-false bitfield to another
+   * emits a fresh `CSI > flags u` write.
    */
-  setMouseEnabled(on: boolean): void
+  readonly kittyKeyboard: Signal<number | false>
 
-  /** Enable or disable focus-in / focus-out reporting (DEC 1004). */
-  setFocusReporting(on: boolean): void
+  /** SGR mouse tracking (xterm modes 1003 + 1006). */
+  readonly mouse: Signal<boolean>
 
-  // ---------------------------------------------------------------------------
-  // State (reflects the last value this owner wrote)
-  // ---------------------------------------------------------------------------
-
-  readonly isRawMode: boolean
-  readonly isAlternateScreen: boolean
-  readonly isBracketedPaste: boolean
-  /** Current Kitty flags bitfield, or `false` if disabled. */
-  readonly kittyKeyboard: number | false
-  readonly isMouseEnabled: boolean
-  readonly isFocusReporting: boolean
+  /** Focus-in / focus-out reporting (DEC 1004). */
+  readonly focusReporting: Signal<boolean>
 }
 
 /**
@@ -140,7 +140,7 @@ export interface Modes extends Disposable {
  * The owner needs:
  * - a write function for ANSI sequences (routes through Output if activated,
  *   else bare `stdout.write`)
- * - the stdin stream (for `setRawMode` — termios toggle, not ANSI)
+ * - the stdin stream (for `rawMode` — termios toggle, not ANSI)
  */
 export interface CreateModesOptions {
   /** Write raw ANSI bytes to stdout. */
@@ -151,134 +151,177 @@ export interface CreateModesOptions {
 
 /**
  * Create a `Modes` sub-owner. Does not emit any ANSI at construction — all
- * sequences are written lazily on the first `set*` call.
+ * sequences are written lazily on the first change to a mode signal.
  */
 export function createModes(opts: CreateModesOptions): Modes {
   const { write, stdin } = opts
 
-  let rawMode = false
-  let alternateScreen = false
-  let bracketedPaste = false
-  let kittyKeyboard: number | false = false
-  let mouseEnabled = false
-  let focusReporting = false
-  let disposed = false
+  const rawMode = signal<boolean>(false)
+  const altScreen = signal<boolean>(false)
+  const bracketedPaste = signal<boolean>(false)
+  const kittyKeyboard = signal<number | false>(false)
+  const mouse = signal<boolean>(false)
+  const focusReporting = signal<boolean>(false)
 
-  const setRawMode: Modes["setRawMode"] = (on) => {
-    if (disposed) return
-    if (rawMode === on) return
+  // Track which modes this owner ever activated. Dispose only restores those,
+  // matching the pre-signals behaviour — we must not emit a disable sequence
+  // for a mode a neighbouring owner intentionally set up.
+  let touchedRawMode = false
+  let touchedAltScreen = false
+  let touchedBracketedPaste = false
+  let touchedKittyKeyboard = false
+  let touchedMouse = false
+  let touchedFocusReporting = false
+
+  let disposed = false
+  let disposing = false
+
+  // Each mode has a dedicated effect: when the signal changes, emit the
+  // matching enable/disable ANSI. Same-value writes don't fire dependents
+  // (alien-signals equality check), so idempotence is automatic.
+  //
+  // Each effect reads its signal once, which seeds the dependency. The first
+  // firing is the "seed" read (value=false) — we skip emitting ANSI there so
+  // construction stays free, matching the previous lazy-first-write contract.
+  let rawSeeded = false
+  const stopRawEffect = effect(() => {
+    const on = rawMode()
+    if (!rawSeeded) {
+      rawSeeded = true
+      return
+    }
+    if (disposed && !disposing) return
+    if (on) touchedRawMode = true
     if (stdin.isTTY) {
       try {
         stdin.setRawMode(on)
       } catch {
-        // stdin may be closed mid-call — ignore, state tracked below
+        // stdin may be closed mid-call — ignore, signal value still tracked
       }
     }
-    rawMode = on
-  }
+  })
 
-  const setAlternateScreen: Modes["setAlternateScreen"] = (on) => {
-    if (disposed) return
-    if (alternateScreen === on) return
-    write(on ? ENTER_ALT_SCREEN : LEAVE_ALT_SCREEN)
-    alternateScreen = on
-  }
-
-  const setBracketedPaste: Modes["setBracketedPaste"] = (on) => {
-    if (disposed) return
-    if (bracketedPaste === on) return
-    write(on ? enableBracketedPaste() : disableBracketedPaste())
-    bracketedPaste = on
-  }
-
-  const setKittyKeyboard: Modes["setKittyKeyboard"] = (flags) => {
-    if (disposed) return
-    if (kittyKeyboard === flags) return
-    if (flags === false) {
-      write(disableKittyKeyboard())
-    } else {
-      write(enableKittyKeyboard(flags))
+  let altSeeded = false
+  const stopAltEffect = effect(() => {
+    const on = altScreen()
+    if (!altSeeded) {
+      altSeeded = true
+      return
     }
-    kittyKeyboard = flags
-  }
+    if (disposed && !disposing) return
+    if (on) touchedAltScreen = true
+    try {
+      write(on ? ENTER_ALT_SCREEN : LEAVE_ALT_SCREEN)
+    } catch {
+      // Terminal may already be gone (SSH disconnect, etc.)
+    }
+  })
 
-  const setMouseEnabled: Modes["setMouseEnabled"] = (on) => {
-    if (disposed) return
-    if (mouseEnabled === on) return
-    write(on ? enableMouse() : disableMouse())
-    mouseEnabled = on
-  }
+  let pasteSeeded = false
+  const stopPasteEffect = effect(() => {
+    const on = bracketedPaste()
+    if (!pasteSeeded) {
+      pasteSeeded = true
+      return
+    }
+    if (disposed && !disposing) return
+    if (on) touchedBracketedPaste = true
+    try {
+      write(on ? enableBracketedPaste() : disableBracketedPaste())
+    } catch {
+      // Terminal may already be gone
+    }
+  })
 
-  const setFocusReporting: Modes["setFocusReporting"] = (on) => {
-    if (disposed) return
-    if (focusReporting === on) return
-    write(on ? ENABLE_FOCUS_REPORTING : DISABLE_FOCUS_REPORTING)
-    focusReporting = on
-  }
+  let kittySeeded = false
+  const stopKittyEffect = effect(() => {
+    const flags = kittyKeyboard()
+    if (!kittySeeded) {
+      kittySeeded = true
+      return
+    }
+    if (disposed && !disposing) return
+    if (flags !== false) touchedKittyKeyboard = true
+    try {
+      write(flags === false ? disableKittyKeyboard() : enableKittyKeyboard(flags))
+    } catch {
+      // Terminal may already be gone
+    }
+  })
+
+  let mouseSeeded = false
+  const stopMouseEffect = effect(() => {
+    const on = mouse()
+    if (!mouseSeeded) {
+      mouseSeeded = true
+      return
+    }
+    if (disposed && !disposing) return
+    if (on) touchedMouse = true
+    try {
+      write(on ? enableMouse() : disableMouse())
+    } catch {
+      // Terminal may already be gone
+    }
+  })
+
+  let focusSeeded = false
+  const stopFocusEffect = effect(() => {
+    const on = focusReporting()
+    if (!focusSeeded) {
+      focusSeeded = true
+      return
+    }
+    if (disposed && !disposing) return
+    if (on) touchedFocusReporting = true
+    try {
+      write(on ? ENABLE_FOCUS_REPORTING : DISABLE_FOCUS_REPORTING)
+    } catch {
+      // Terminal may already be gone
+    }
+  })
 
   const dispose = () => {
     if (disposed) return
     disposed = true
+    disposing = true
 
     // Restore ONLY what this owner activated. Order matters: drop protocols
     // first (so the terminal stops sending their events), then leave the alt
     // screen, then drop raw. Mirrors the order of `restoreTerminalState()`
     // in terminal-lifecycle.ts.
-    const sequences: string[] = []
-    if (focusReporting) sequences.push(DISABLE_FOCUS_REPORTING)
-    if (mouseEnabled) sequences.push(disableMouse())
-    if (kittyKeyboard !== false) sequences.push(disableKittyKeyboard())
-    if (bracketedPaste) sequences.push(disableBracketedPaste())
-    if (alternateScreen) sequences.push(LEAVE_ALT_SCREEN)
-    if (sequences.length > 0) {
-      try {
-        write(sequences.join(""))
-      } catch {
-        // Terminal may already be gone (SSH disconnect, etc.)
-      }
-    }
+    //
+    // We flip each signal back to its inactive value; the per-mode effect
+    // emits the disable ANSI as a side-effect. Effects that were never
+    // activated stay at `false` (no value change → no emission).
+    if (touchedFocusReporting) focusReporting(false)
+    if (touchedMouse) mouse(false)
+    if (touchedKittyKeyboard) kittyKeyboard(false)
+    if (touchedBracketedPaste) bracketedPaste(false)
+    if (touchedAltScreen) altScreen(false)
+    if (touchedRawMode) rawMode(false)
 
-    if (rawMode && stdin.isTTY) {
-      try {
-        stdin.setRawMode(false)
-      } catch {
-        // stdin may be closed
-      }
-    }
+    disposing = false
 
-    focusReporting = false
-    mouseEnabled = false
-    kittyKeyboard = false
-    bracketedPaste = false
-    alternateScreen = false
-    rawMode = false
+    // Tear down the effects now that the restore writes have fired. Any
+    // further writes to the signals after this point update the values but
+    // do not emit ANSI (effects are stopped, and the `disposed && !disposing`
+    // guard blocks the edge case where tearDown order races).
+    stopRawEffect()
+    stopAltEffect()
+    stopPasteEffect()
+    stopKittyEffect()
+    stopMouseEffect()
+    stopFocusEffect()
   }
 
   return {
-    setRawMode,
-    setAlternateScreen,
-    setBracketedPaste,
-    setKittyKeyboard,
-    setMouseEnabled,
-    setFocusReporting,
-    get isRawMode() {
-      return rawMode
-    },
-    get isAlternateScreen() {
-      return alternateScreen
-    },
-    get isBracketedPaste() {
-      return bracketedPaste
-    },
-    get kittyKeyboard() {
-      return kittyKeyboard
-    },
-    get isMouseEnabled() {
-      return mouseEnabled
-    },
-    get isFocusReporting() {
-      return focusReporting
-    },
+    rawMode,
+    altScreen,
+    bracketedPaste,
+    kittyKeyboard,
+    mouse,
+    focusReporting,
     [Symbol.dispose]: dispose,
   }
 }

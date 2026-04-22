@@ -343,11 +343,14 @@ export interface Term extends Disposable, StyleChain {
   readonly size: Size
 
   /**
-   * Modes owner — single authority for terminal protocol modes.
+   * Modes owner — single authority for terminal protocol modes, exposed as
+   * alien-signals `Signal<T>`s.
    *
-   * `term.modes.setRawMode(on)`, `setAlternateScreen`, `setBracketedPaste`,
-   * `setKittyKeyboard(flags|false)`, `setMouseEnabled`, `setFocusReporting`.
-   * Each setter is idempotent and tracks the last-written value; `dispose`
+   * Each mode is a callable signal: `term.modes.rawMode`, `altScreen`,
+   * `bracketedPaste`, `kittyKeyboard` (`number | false`), `mouse`,
+   * `focusReporting`. Read via `modes.altScreen()`, write via
+   * `modes.altScreen(true)`, subscribe via `effect(() => modes.altScreen())`.
+   * Same-value writes don't re-emit ANSI (alien-signals equality). `dispose`
    * restores exactly what this owner activated.
    *
    * Replaces the scattered `enableMouse()` / `enableKittyKeyboard()` /
@@ -967,7 +970,7 @@ function createBackendTerm(emulator: TermEmulator): Term {
   const size = createFixedSize({ cols: emulator.cols, rows: emulator.rows })
   // Modes owner for emulator-backed terms: ANSI mode sequences would be
   // interpreted as input if fed to the emulator, so the write function is a
-  // sink. The owner still tracks state (`isMouseEnabled`, etc.) for parity
+  // sink. The owner still tracks state (`modes.mouse()`, etc.) for parity
   // with Node terms, but the emulator itself decides what to accept.
   const modes = createModes({ write: () => {}, stdin: HEADLESS_STDIN })
 

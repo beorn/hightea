@@ -30,6 +30,27 @@ export {
 
 import { startBatch, endBatch } from "alien-signals"
 
+/**
+ * A reactive value — callable getter/setter.
+ *
+ * - `sig()` reads the current value (and subscribes the active effect/computed).
+ * - `sig(next)` writes a new value; subscribers re-run only if `next !== current`.
+ *
+ * Matches the return shape of `signal<T>(initial)` from alien-signals, so any
+ * `signal()` result is assignable to `Signal<T>`.
+ */
+export type Signal<T> = {
+  (): T
+  (value: T): void
+}
+
+/**
+ * A read-only reactive value — callable getter that subscribes the active
+ * effect/computed but cannot be written to. Matches the return shape of
+ * `computed<T>(fn)` from alien-signals.
+ */
+export type ReadSignal<T> = () => T
+
 /** Batch multiple signal updates, notifying subscribers once at the end. */
 export function batch(fn: () => void): void {
   startBatch()

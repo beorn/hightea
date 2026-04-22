@@ -1580,7 +1580,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // Route through modes so the owner tracks state for race-free dispose.
       // Clear + home still go through stdout — they're transient cursor moves,
       // not mode toggles.
-      modes.setAlternateScreen(true)
+      modes.altScreen(true)
       stdout.write("\x1b[2J\x1b[H")
     }
     stdout.write("\x1b[?25l")
@@ -1596,33 +1596,33 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         // Kitty-protocol terminals (kitty/ghostty/wezterm/foot); the probe only
         // adds value when caps weren't provided.
         if (capsOption?.kittyKeyboard) {
-          modes.setKittyKeyboard(defaultKittyFlags)
+          modes.kittyKeyboard(defaultKittyFlags)
           kittyEnabled = true
           kittyFlags = defaultKittyFlags
         } else {
           const result = await detectKittyFromStdio(stdout, stdin as NodeJS.ReadStream)
           if (result.supported) {
-            modes.setKittyKeyboard(defaultKittyFlags)
+            modes.kittyKeyboard(defaultKittyFlags)
             kittyEnabled = true
             kittyFlags = defaultKittyFlags
           }
         }
       } else {
         // Explicit flags — enable directly without detection
-        modes.setKittyKeyboard(kittyOption as number)
+        modes.kittyKeyboard(kittyOption as number)
         kittyEnabled = true
         kittyFlags = kittyOption as number
       }
     } else if (kittyOption == null) {
       // No option specified: legacy behavior — always enable Kitty with full fidelity
-      modes.setKittyKeyboard(defaultKittyFlags)
+      modes.kittyKeyboard(defaultKittyFlags)
       kittyEnabled = true
       kittyFlags = defaultKittyFlags
     }
 
     // Mouse tracking
     if (mouseOption) {
-      modes.setMouseEnabled(true)
+      modes.mouse(true)
       mouseEnabled = true
     }
 
@@ -2534,7 +2534,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Must be deferred from the init phase because the terminal's immediate
     // CSI I/O response would leak before the input parser was ready.
     if (focusReportingOption && !focusReportingEnabled) {
-      modes.setFocusReporting(true)
+      modes.focusReporting(true)
       focusReportingEnabled = true
     }
 

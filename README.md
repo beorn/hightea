@@ -23,8 +23,8 @@ function Counter() {
 }
 
 using term = createTerm()
-term.modes.setAlternateScreen(true)
-term.modes.setRawMode(true)
+term.modes.altScreen(true)
+term.modes.rawMode(true)
 await render(<Counter />, term).run()
 ```
 

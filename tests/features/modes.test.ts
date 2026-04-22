@@ -1,14 +1,18 @@
 /**
- * Unit tests for term.modes — the single-owner terminal protocol mode setter.
+ * Unit tests for term.modes — the single-owner terminal protocol modes.
  *
- * Covers: raw, alt-screen, bracketed paste, kitty keyboard, mouse, focus
- * reporting. Each setter is idempotent, tracks last-written state, and
- * dispose() restores exactly what the owner activated (no global reset).
+ * After the signals refactor, each mode is a callable alien-signals Signal.
+ * Read via `modes.altScreen()`, write via `modes.altScreen(true)`, subscribe
+ * via `effect(() => modes.altScreen())`. Idempotence is automatic (alien-
+ * signals doesn't notify when the value doesn't change). Dispose writes
+ * `false` to each ever-activated signal; the internal effects emit the
+ * disable ANSI as a side-effect.
  */
 
 import { describe, it, expect } from "vitest"
 import { createModes, KittyFlags } from "@silvery/ag-term/runtime"
 import { createTerm } from "@silvery/ag-term/ansi"
+import { effect } from "@silvery/signals"
 
 // =============================================================================
 // Mock stdin (only the bits setRawMode touches)
@@ -46,34 +50,34 @@ function createRecordingWrite() {
 // =============================================================================
 
 describe("createModes — construction", () => {
-  it("does not emit any ANSI or termios change until a setter is called", () => {
+  it("does not emit any ANSI or termios change until a signal is written", () => {
     const { stdin, state } = createMockStdin()
     const { write, writes } = createRecordingWrite()
     const modes = createModes({ write, stdin })
 
     expect(writes).toHaveLength(0)
     expect(state.setRawCalls).toBe(0)
-    expect(modes.isRawMode).toBe(false)
-    expect(modes.isAlternateScreen).toBe(false)
-    expect(modes.isBracketedPaste).toBe(false)
-    expect(modes.kittyKeyboard).toBe(false)
-    expect(modes.isMouseEnabled).toBe(false)
-    expect(modes.isFocusReporting).toBe(false)
+    expect(modes.rawMode()).toBe(false)
+    expect(modes.altScreen()).toBe(false)
+    expect(modes.bracketedPaste()).toBe(false)
+    expect(modes.kittyKeyboard()).toBe(false)
+    expect(modes.mouse()).toBe(false)
+    expect(modes.focusReporting()).toBe(false)
   })
 })
 
-describe("createModes — setRawMode", () => {
+describe("createModes — rawMode", () => {
   it("toggles stdin raw state and tracks it", () => {
     const { stdin, state } = createMockStdin()
     const { write } = createRecordingWrite()
     const modes = createModes({ write, stdin })
 
-    modes.setRawMode(true)
+    modes.rawMode(true)
     expect(state.isRaw).toBe(true)
-    expect(modes.isRawMode).toBe(true)
+    expect(modes.rawMode()).toBe(true)
     expect(state.setRawCalls).toBe(1)
 
-    modes.setRawMode(true) // idempotent — no second call to stdin.setRawMode
+    modes.rawMode(true) // idempotent — alien-signals no-op for same value
     expect(state.setRawCalls).toBe(1)
   })
 
@@ -82,63 +86,63 @@ describe("createModes — setRawMode", () => {
     const { write } = createRecordingWrite()
     const modes = createModes({ write, stdin })
 
-    modes.setRawMode(true)
-    // non-TTY: setRawMode on the stream isn't called, but our state tracks intent
+    modes.rawMode(true)
+    // non-TTY: setRawMode on the stream isn't called, but our signal tracks intent
     expect(state.setRawCalls).toBe(0)
-    expect(modes.isRawMode).toBe(true)
+    expect(modes.rawMode()).toBe(true)
   })
 })
 
-describe("createModes — setAlternateScreen", () => {
+describe("createModes — altScreen", () => {
   it("emits 1049h on enable and 1049l on disable, idempotent", () => {
     const { stdin } = createMockStdin()
     const { write, writes } = createRecordingWrite()
     const modes = createModes({ write, stdin })
 
-    modes.setAlternateScreen(true)
-    expect(modes.isAlternateScreen).toBe(true)
+    modes.altScreen(true)
+    expect(modes.altScreen()).toBe(true)
     expect(writes).toContain("\x1b[?1049h")
 
     const before = writes.length
-    modes.setAlternateScreen(true) // idempotent
+    modes.altScreen(true) // idempotent
     expect(writes.length).toBe(before)
 
-    modes.setAlternateScreen(false)
-    expect(modes.isAlternateScreen).toBe(false)
+    modes.altScreen(false)
+    expect(modes.altScreen()).toBe(false)
     expect(writes.at(-1)).toBe("\x1b[?1049l")
   })
 })
 
-describe("createModes — setBracketedPaste", () => {
+describe("createModes — bracketedPaste", () => {
   it("emits 2004h / 2004l", () => {
     const { stdin } = createMockStdin()
     const { write, writes } = createRecordingWrite()
     const modes = createModes({ write, stdin })
 
-    modes.setBracketedPaste(true)
+    modes.bracketedPaste(true)
     expect(writes).toContain("\x1b[?2004h")
-    expect(modes.isBracketedPaste).toBe(true)
+    expect(modes.bracketedPaste()).toBe(true)
 
-    modes.setBracketedPaste(false)
+    modes.bracketedPaste(false)
     expect(writes.at(-1)).toBe("\x1b[?2004l")
-    expect(modes.isBracketedPaste).toBe(false)
+    expect(modes.bracketedPaste()).toBe(false)
   })
 })
 
-describe("createModes — setKittyKeyboard", () => {
+describe("createModes — kittyKeyboard", () => {
   it("emits CSI > flags u on enable, CSI < u on disable", () => {
     const { stdin } = createMockStdin()
     const { write, writes } = createRecordingWrite()
     const modes = createModes({ write, stdin })
 
     const flags = KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS
-    modes.setKittyKeyboard(flags)
+    modes.kittyKeyboard(flags)
     expect(writes).toContain(`\x1b[>${flags}u`)
-    expect(modes.kittyKeyboard).toBe(flags)
+    expect(modes.kittyKeyboard()).toBe(flags)
 
-    modes.setKittyKeyboard(false)
+    modes.kittyKeyboard(false)
     expect(writes.at(-1)).toBe("\x1b[<u")
-    expect(modes.kittyKeyboard).toBe(false)
+    expect(modes.kittyKeyboard()).toBe(false)
   })
 
   it("treats repeat-same-flags call as idempotent", () => {
@@ -146,43 +150,102 @@ describe("createModes — setKittyKeyboard", () => {
     const { write, writes } = createRecordingWrite()
     const modes = createModes({ write, stdin })
 
-    modes.setKittyKeyboard(11)
+    modes.kittyKeyboard(11)
     const count = writes.length
-    modes.setKittyKeyboard(11)
+    modes.kittyKeyboard(11)
     expect(writes.length).toBe(count)
+  })
+
+  it("emits fresh enable sequence when flags change from one bitfield to another", () => {
+    const { stdin } = createMockStdin()
+    const { write, writes } = createRecordingWrite()
+    const modes = createModes({ write, stdin })
+
+    modes.kittyKeyboard(1)
+    modes.kittyKeyboard(3)
+    // Two distinct enable writes — values changed.
+    const enables = writes.filter((w) => /\[>\d+u/.test(w))
+    expect(enables).toEqual(["\x1b[>1u", "\x1b[>3u"])
   })
 })
 
-describe("createModes — setMouseEnabled", () => {
+describe("createModes — mouse", () => {
   it("emits SGR mouse enable (1003+1006) / disable (1006l+1003l)", () => {
     const { stdin } = createMockStdin()
     const { write, writes } = createRecordingWrite()
     const modes = createModes({ write, stdin })
 
-    modes.setMouseEnabled(true)
+    modes.mouse(true)
     // canonical sequence from @silvery/ansi: ?1003h + ?1006h
     expect(writes.at(-1)).toBe("\x1b[?1003h\x1b[?1006h")
-    expect(modes.isMouseEnabled).toBe(true)
+    expect(modes.mouse()).toBe(true)
 
-    modes.setMouseEnabled(false)
+    modes.mouse(false)
     expect(writes.at(-1)).toBe("\x1b[?1006l\x1b[?1003l")
-    expect(modes.isMouseEnabled).toBe(false)
+    expect(modes.mouse()).toBe(false)
   })
 })
 
-describe("createModes — setFocusReporting", () => {
+describe("createModes — focusReporting", () => {
   it("emits 1004h / 1004l", () => {
     const { stdin } = createMockStdin()
     const { write, writes } = createRecordingWrite()
     const modes = createModes({ write, stdin })
 
-    modes.setFocusReporting(true)
+    modes.focusReporting(true)
     expect(writes.at(-1)).toBe("\x1b[?1004h")
-    expect(modes.isFocusReporting).toBe(true)
+    expect(modes.focusReporting()).toBe(true)
 
-    modes.setFocusReporting(false)
+    modes.focusReporting(false)
     expect(writes.at(-1)).toBe("\x1b[?1004l")
-    expect(modes.isFocusReporting).toBe(false)
+    expect(modes.focusReporting()).toBe(false)
+  })
+})
+
+describe("createModes — effect subscription", () => {
+  it("effect(() => modes.altScreen()) fires on writes", () => {
+    const { stdin } = createMockStdin()
+    const { write } = createRecordingWrite()
+    const modes = createModes({ write, stdin })
+
+    const observed: boolean[] = []
+    const stop = effect(() => {
+      observed.push(modes.altScreen())
+    })
+
+    // Seed read records the initial value.
+    expect(observed).toEqual([false])
+
+    modes.altScreen(true)
+    expect(observed).toEqual([false, true])
+
+    modes.altScreen(false)
+    expect(observed).toEqual([false, true, false])
+
+    // Same-value write is a no-op for alien-signals — no re-emission.
+    modes.altScreen(false)
+    expect(observed).toEqual([false, true, false])
+
+    stop()
+  })
+
+  it("effect(() => modes.kittyKeyboard()) sees each distinct bitfield", () => {
+    const { stdin } = createMockStdin()
+    const { write } = createRecordingWrite()
+    const modes = createModes({ write, stdin })
+
+    const observed: (number | false)[] = []
+    const stop = effect(() => {
+      observed.push(modes.kittyKeyboard())
+    })
+
+    modes.kittyKeyboard(1)
+    modes.kittyKeyboard(1) // idempotent — no new emission
+    modes.kittyKeyboard(3)
+    modes.kittyKeyboard(false)
+
+    expect(observed).toEqual([false, 1, 3, false])
+    stop()
   })
 })
 
@@ -190,18 +253,18 @@ describe("createTerm exposes modes on the Term interface", () => {
   it("headless Term: term.modes is a working Modes instance", () => {
     const term = createTerm({ cols: 80, rows: 24 })
     expect(term.modes).toBeDefined()
-    expect(term.modes.isRawMode).toBe(false)
+    expect(term.modes.rawMode()).toBe(false)
 
-    term.modes.setAlternateScreen(true)
-    expect(term.modes.isAlternateScreen).toBe(true)
+    term.modes.altScreen(true)
+    expect(term.modes.altScreen()).toBe(true)
 
-    term.modes.setKittyKeyboard(KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS)
-    expect(term.modes.kittyKeyboard).toBe(3)
+    term.modes.kittyKeyboard(KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS)
+    expect(term.modes.kittyKeyboard()).toBe(3)
 
     term[Symbol.dispose]()
     // dispose flips state back to false
-    expect(term.modes.isAlternateScreen).toBe(false)
-    expect(term.modes.kittyKeyboard).toBe(false)
+    expect(term.modes.altScreen()).toBe(false)
+    expect(term.modes.kittyKeyboard()).toBe(false)
   })
 })
 
@@ -211,12 +274,12 @@ describe("createModes — dispose", () => {
     const { write, writes } = createRecordingWrite()
     const modes = createModes({ write, stdin })
 
-    modes.setRawMode(true)
-    modes.setAlternateScreen(true)
-    modes.setBracketedPaste(true)
-    modes.setKittyKeyboard(1)
-    modes.setMouseEnabled(true)
-    modes.setFocusReporting(true)
+    modes.rawMode(true)
+    modes.altScreen(true)
+    modes.bracketedPaste(true)
+    modes.kittyKeyboard(1)
+    modes.mouse(true)
+    modes.focusReporting(true)
 
     writes.length = 0 // clear so we only see dispose output
     modes[Symbol.dispose]()
@@ -232,13 +295,13 @@ describe("createModes — dispose", () => {
     // Raw mode restored via termios, not ANSI
     expect(state.isRaw).toBe(false)
 
-    // State cleared
-    expect(modes.isRawMode).toBe(false)
-    expect(modes.isAlternateScreen).toBe(false)
-    expect(modes.isBracketedPaste).toBe(false)
-    expect(modes.kittyKeyboard).toBe(false)
-    expect(modes.isMouseEnabled).toBe(false)
-    expect(modes.isFocusReporting).toBe(false)
+    // Signals cleared
+    expect(modes.rawMode()).toBe(false)
+    expect(modes.altScreen()).toBe(false)
+    expect(modes.bracketedPaste()).toBe(false)
+    expect(modes.kittyKeyboard()).toBe(false)
+    expect(modes.mouse()).toBe(false)
+    expect(modes.focusReporting()).toBe(false)
   })
 
   it("does nothing on dispose if nothing was activated", () => {
@@ -251,7 +314,7 @@ describe("createModes — dispose", () => {
     expect(state.setRawCalls).toBe(0)
   })
 
-  it("ignores setters after dispose (no leak)", () => {
+  it("ignores writes after dispose (no leak)", () => {
     const { stdin } = createMockStdin()
     const { write, writes } = createRecordingWrite()
     const modes = createModes({ write, stdin })
@@ -259,13 +322,10 @@ describe("createModes — dispose", () => {
     modes[Symbol.dispose]()
     writes.length = 0
 
-    modes.setRawMode(true)
-    modes.setAlternateScreen(true)
-    modes.setMouseEnabled(true)
+    modes.rawMode(true)
+    modes.altScreen(true)
+    modes.mouse(true)
     expect(writes).toHaveLength(0)
-    expect(modes.isRawMode).toBe(false)
-    expect(modes.isAlternateScreen).toBe(false)
-    expect(modes.isMouseEnabled).toBe(false)
   })
 
   it("is idempotent — second dispose is a no-op", () => {
@@ -273,7 +333,7 @@ describe("createModes — dispose", () => {
     const { write, writes } = createRecordingWrite()
     const modes = createModes({ write, stdin })
 
-    modes.setBracketedPaste(true)
+    modes.bracketedPaste(true)
     modes[Symbol.dispose]()
     const after = writes.length
     modes[Symbol.dispose]()

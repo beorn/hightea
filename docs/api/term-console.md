@@ -126,7 +126,7 @@ Does not clear entries. Typical usage at TUI exit:
 term.console?.replay(process.stdout, process.stderr)
 ```
 
-Call this **after** `term.modes.setAlternateScreen(false)` so the replay lands in the primary screen the user actually reads.
+Call this **after** `term.modes.altScreen(false)` so the replay lands in the primary screen the user actually reads.
 
 ## Relation to `term.output`
 

@@ -76,13 +76,13 @@ Multiple probes can run concurrently — the owner tries parsers in registration
 
 ### Enter the alternate screen
 
-`term.modes.setAlternateScreen(true)` writes DEC 1049 through `term.output`, and `dispose()` restores it.
+`term.modes.altScreen(true)` writes DEC 1049 through `term.output`, and `dispose()` restores it. Each mode on `term.modes` is an alien-signals `Signal` — call with no arguments to read, call with a value to write, subscribe via `effect(() => term.modes.altScreen())`.
 
 ```ts
 using term = createTerm()
-term.modes.setAlternateScreen(true)
-term.modes.setRawMode(true)
-term.modes.setBracketedPaste(true)
+term.modes.altScreen(true)
+term.modes.rawMode(true)
+term.modes.bracketedPaste(true)
 // render loop…
 // dispose restores everything this owner activated, in reverse order.
 ```
@@ -129,12 +129,12 @@ If you're moving an app off the old helpers, the mapping is mechanical:
 
 | Old                                                    | New                                                       |
 | ------------------------------------------------------ | --------------------------------------------------------- |
-| `process.stdin.setRawMode(true)`                       | `term.modes.setRawMode(true)`                             |
+| `process.stdin.setRawMode(true)`                       | `term.modes.rawMode(true)`                                |
 | `process.stdin.on("data", …)`                          | `term.input.onData(…)` (or use `term.input.probe` for queries) |
-| `process.stdout.write(seq)` (for protocol ANSI)        | `term.modes.setAlternateScreen(true)` / equivalent setter |
+| `process.stdout.write(seq)` (for protocol ANSI)        | `term.modes.altScreen(true)` / equivalent mode signal     |
 | `process.stdout.columns`, `process.stdout.rows`        | `term.size.cols`, `term.size.rows`                        |
 | `stdout.on("resize", …)`                               | `term.size.subscribe(…)`                                  |
-| `enableMouse()` / `enableKittyKeyboard()` / etc.       | `term.modes.setMouseEnabled(true)` / `setKittyKeyboard(flags)` |
+| `enableMouse()` / `enableKittyKeyboard()` / etc.       | `term.modes.mouse(true)` / `term.modes.kittyKeyboard(flags)` |
 | `createOutputGuard(…)` / `OutputGuard`                 | `term.output` / `createOutput()` (type is now `Output`)   |
 | `patchConsole(…)`                                      | `term.console.capture({ suppress: true })`                |
 | `probeColors(stdin, stdout, …)` (direct stdin access)  | `probeColors(stdin, stdout, { inputOwner: term.input })`  |

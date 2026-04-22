@@ -507,10 +507,10 @@ Silvery owns terminal I/O. `Term` is the umbrella, and each class of shared-glob
 ```tsx
 using term = createTerm()
 
-// Raw mode, alt screen, bracketed paste — one authority, idempotent setters
-term.modes.setAlternateScreen(true)
-term.modes.setRawMode(true)
-term.modes.setBracketedPaste(true)
+// Raw mode, alt screen, bracketed paste — one authority, reactive signals
+term.modes.altScreen(true)
+term.modes.rawMode(true)
+term.modes.bracketedPaste(true)
 
 // Dimensions — live reads, coalesced subscriptions
 const { cols, rows } = term.size.snapshot

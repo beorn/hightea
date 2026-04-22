@@ -41,7 +41,7 @@ if (!term.output) {
 Unlike `term.input`, Output starts deactivated. Installing stdout intercepts before protocol setup would suppress the setup ANSI itself. The canonical order is:
 
 1. Construct the Term.
-2. Enter the alt screen via `term.modes.setAlternateScreen(true)` (raw ANSI reaches the terminal).
+2. Enter the alt screen via `term.modes.altScreen(true)` (raw ANSI reaches the terminal).
 3. `term.output.activate()` — from now on only `term.output.write(…)` bypasses the intercept.
 4. Render loop.
 5. On exit, `term.output.deactivate()` restores originals.
