@@ -1,0 +1,147 @@
+# Term — the I/O umbrella
+
+`Term` is Silvery's terminal abstraction. It wraps the one shared global you can't escape — the user's terminal — and exposes it as a set of **typed sub-owners**, one per class of I/O state. Instead of the host, the app, and every helper each reaching for `process.stdin` and `process.stdout`, every concern has a single owner that lives for the Term's lifetime.
+
+This page is the roadmap to those sub-owners. For each one there's an API reference with the full surface.
+
+## Why sub-owners
+
+`process.stdin` and `process.stdout` are multi-tenant globals. So are the protocol modes that toggle on top of them — raw mode, alternate screen, bracketed paste, Kitty keyboard, mouse tracking, focus reporting — and the resize events, signal handlers, and `console.*` interceptors that live alongside them.
+
+The historical pattern was "polite snapshot, polite restore":
+
+```ts
+// Tarnished — async-unsafe capture/restore
+const wasRaw = stdin.isRaw
+if (!wasRaw) stdin.setRawMode(true)
+try {
+  await doProbe()
+} finally {
+  if (!wasRaw) stdin.setRawMode(false) // ← races with other tenants
+}
+```
+
+When two tenants overlap across an `await`, the last `finally` to run wins — silently disabling raw mode and killing the host's input. This is not a hypothetical; it was the 2026-04-22 `wasRaw` incident, where a color probe invoked from a React `useEffect` raced the term-provider's event loop and froze every key press. See [the `wasRaw` anti-pattern note](./faq.md) for the full post-mortem.
+
+Sub-owners fix the class of bug, not just the incident. Each one owns exactly one resource, is set once at session start, and restored once at dispose. Tenants don't toggle globals — they ask the owner for a capability and the owner routes the work.
+
+## The six sub-owners
+
+Each sub-owner is a field on `Term`. They are constructed lazily (cheap — no syscalls, no ANSI until you call a setter), share the Term's dispose lifetime, and have the same shape: `active` / `capturing` getter, idempotent setters, `Symbol.dispose`.
+
+| Sub-owner         | Owns                                                          | Reference                     |
+| ----------------- | ------------------------------------------------------------- | ----------------------------- |
+| `term.input`      | stdin raw mode, the single `data` listener, probe responses   | [term.input](/api/term-input) |
+| `term.output`     | stdout, stderr, and `console.*` during the alt-screen session | [term.output](/api/term-output) |
+| `term.modes`      | Raw mode, alt screen, bracketed paste, Kitty, mouse, focus    | [term.modes](/api/term-modes) |
+| `term.size`       | Terminal cols/rows — live, reactive, coalesced on resize      | [term.size](/api/term-size)   |
+| `term.signals`    | `SIGINT`/`SIGTERM`/`SIGTSTP`/`exit` handler scope             | _landing in Phase 6_          |
+| `term.console`    | `console.log/info/warn/error/debug` capture + replay          | [term.console](/api/term-console) |
+
+`term.input`, `term.output`, and `term.console` are `undefined` on Terms that don't own a real terminal (headless test terms, emulator-backed terms). The others are always present.
+
+## Anti-patterns
+
+**Never touch `process.stdin` or `process.stdout` from app code.** Silvery owns them for the Term's lifetime. Any `process.stdin.setRawMode(…)`, `process.stdout.write(…)`, or `process.stdin.on("data", …)` outside the sub-owners will race the session.
+
+**Never use `term.stdin` or `term.stdout`.** Those fields are deprecated. They remain on the `Term` interface only to unblock the Phase 8a migration and will be removed in a future release — new code must go through the sub-owners.
+
+**Never toggle a protocol mode mid-session.** `term.modes` is set once at startup and restored once on dispose. Suspend/resume flows (SIGTSTP) are the only legitimate mid-session toggles, and they still go through `term.modes` so the owner's state stays consistent.
+
+**Never call `patchConsole()` directly.** The standalone helper has been folded into `term.console`. Use `term.console.capture({ suppress: true })` and `term.console.replay(stdout, stderr)` at exit.
+
+## How-to recipes
+
+### Probe the terminal for capabilities
+
+`term.input.probe(…)` issues a query, collects response bytes from the shared buffer, and resolves with the first match — without touching raw mode or installing a new listener.
+
+```ts
+using term = createTerm()
+if (!term.input) return // non-TTY — skip the probe
+
+// Ask the terminal for its background color (OSC 11).
+const bg = await term.input.probe({
+  query: "\x1b]11;?\x07",
+  parse: (acc) => {
+    const match = acc.match(/\x1b\]11;rgb:([0-9a-f/]+)\x07/)
+    if (!match) return null
+    return { result: match[1], consumed: match[0].length }
+  },
+  timeoutMs: 50,
+})
+```
+
+Multiple probes can run concurrently — the owner tries parsers in registration order and returns bytes one parser consumes to the shared buffer for the next.
+
+### Enter the alternate screen
+
+`term.modes.setAlternateScreen(true)` writes DEC 1049 through `term.output`, and `dispose()` restores it.
+
+```ts
+using term = createTerm()
+term.modes.setAlternateScreen(true)
+term.modes.setRawMode(true)
+term.modes.setBracketedPaste(true)
+// render loop…
+// dispose restores everything this owner activated, in reverse order.
+```
+
+The full session startup happens in one place. No subsystem re-toggles the modes later.
+
+### React to resize
+
+`term.size` is backed by [alien-signals](https://github.com/stackblitz/alien-signals) and coalesces PTY burst resizes within one 60 Hz frame (16 ms):
+
+```ts
+using term = createTerm()
+
+console.log(`starting at ${term.size.cols}×${term.size.rows}`)
+
+const unsubscribe = term.size.subscribe((s) => {
+  console.log(`resized to ${s.cols}×${s.rows}`)
+})
+```
+
+Inside React, `useBoxRect` and the runtime context already read through `term.size` — components get rect updates without subscribing directly.
+
+### Capture `console.*` during the TUI session
+
+`term.console` taps the global console so stray logs don't corrupt the alt screen, and replays them to the real streams on exit.
+
+```ts
+using term = createTerm()
+
+term.console.capture({ suppress: true })
+// render loop…
+
+// At exit, replay the captured log to the normal streams:
+if (term.console) {
+  term.console.replay(process.stdout, process.stderr)
+  const { total, errors, warnings } = term.console.getStats()
+  console.log(`${total} log lines (${errors} errors, ${warnings} warnings)`)
+}
+```
+
+## Migration — old API → new API
+
+If you're moving an app off the old helpers, the mapping is mechanical:
+
+| Old                                                    | New                                                       |
+| ------------------------------------------------------ | --------------------------------------------------------- |
+| `process.stdin.setRawMode(true)`                       | `term.modes.setRawMode(true)`                             |
+| `process.stdin.on("data", …)`                          | `term.input.onData(…)` (or use `term.input.probe` for queries) |
+| `process.stdout.write(seq)` (for protocol ANSI)        | `term.modes.setAlternateScreen(true)` / equivalent setter |
+| `process.stdout.columns`, `process.stdout.rows`        | `term.size.cols`, `term.size.rows`                        |
+| `stdout.on("resize", …)`                               | `term.size.subscribe(…)`                                  |
+| `enableMouse()` / `enableKittyKeyboard()` / etc.       | `term.modes.setMouseEnabled(true)` / `setKittyKeyboard(flags)` |
+| `createOutputGuard(…)` / `OutputGuard`                 | `term.output` / `createOutput()` (type is now `Output`)   |
+| `patchConsole(…)`                                      | `term.console.capture({ suppress: true })`                |
+| `probeColors(stdin, stdout, …)` (direct stdin access)  | `probeColors(stdin, stdout, { inputOwner: term.input })`  |
+| `process.on("SIGINT", …)` ad hoc                       | `term.signals.on("SIGINT", …, { priority })` _(Phase 6)_  |
+
+## Ownership axiom
+
+Silvery owns terminal I/O. Components and helpers never touch `process.*` or emit ANSI directly. They go through the Term's sub-owners. When a feature needs something the sub-owners don't cover, grow the sub-owner — don't punch through it.
+
+This is the structural answer to the whole class of races that kept surfacing in pre-owner silvery: if there's exactly one writer per resource, there's nothing to race.
