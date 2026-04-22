@@ -308,6 +308,7 @@ export default withMermaid(
                 { text: "term.output", link: "/api/term-output" },
                 { text: "term.modes", link: "/api/term-modes" },
                 { text: "term.size", link: "/api/term-size" },
+                { text: "term.signals", link: "/api/term-signals" },
                 { text: "term.console", link: "/api/term-console" },
               ],
             },
