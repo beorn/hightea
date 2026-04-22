@@ -44,6 +44,19 @@ import {
 } from "./detection"
 import type { ProviderEvent } from "../runtime/types"
 import { createTermProvider, type TermState, type TermEvents } from "../runtime/term-provider"
+import { createInputOwner, type InputOwner as Input } from "../runtime/input-owner"
+export type { Input }
+import { createOutput, type Output } from "../runtime/devices/output"
+export type { Output }
+import {
+  createFixedSize,
+  createSize,
+  type Size,
+  type SizeSnapshot,
+} from "../runtime/devices/size"
+export type { Size, SizeSnapshot }
+import { createModes, type Modes } from "../runtime/devices/modes"
+export type { Modes }
 import { splitRawInput, parseKey } from "@silvery/ag/keys"
 import { isMouseSequence, parseMouseSequence } from "../mouse"
 import { parseFocusEvent } from "../focus-reporting"
@@ -51,6 +64,7 @@ import { parseBracketedPaste } from "../bracketed-paste"
 
 // Re-export Provider-related types for convenience
 export type { TermState, TermEvents } from "../runtime/term-provider"
+export type { OutputOptions } from "../runtime/devices/output"
 
 // =============================================================================
 // ANSI Utilities
@@ -250,18 +264,100 @@ export interface Term extends Disposable, StyleChain {
   readonly rows: number | undefined
 
   // -------------------------------------------------------------------------
-  // Streams
+  // Streams (DEPRECATED — being removed in Phase 8 of km-silvery.term-sub-owners)
+  //
+  // Direct access to raw stdin/stdout is the leak vector that produced the
+  // 2026-04-22 wasRaw race class. Use the typed sub-owners instead:
+  //   - term.input  — for reads / probes (replaces term.stdin.on('data', …))
+  //   - term.output — for writes (replaces term.stdout.write(…))
+  //   - term.modes  — for raw mode + protocol toggles
+  //   - term.size   — for cols/rows + resize subscription
+  //   - term.signals — for process signal scope
+  //   - term.console — for patched console capture
+  //
+  // Phase 8 deletes these fields entirely. New code MUST use sub-owners.
   // -------------------------------------------------------------------------
 
   /**
    * Output stream (defaults to process.stdout).
+   * @deprecated Use `term.output` (km-silvery.term-sub-owners Phase 8).
    */
   readonly stdout: NodeJS.WriteStream
 
   /**
    * Input stream (defaults to process.stdin).
+   * @deprecated Use `term.input` (km-silvery.term-sub-owners Phase 8).
    */
   readonly stdin: NodeJS.ReadStream
+
+  // -------------------------------------------------------------------------
+  // Sub-owners (the typed I/O surface — see km-silvery.term-sub-owners)
+  //
+  // Each sub-owner owns one class of shared global I/O state for the Term's
+  // lifetime. Race-free by construction: only one writer per resource.
+  // -------------------------------------------------------------------------
+
+  /**
+   * Input owner — mediates ALL stdin reads + raw-mode + data subscription.
+   * Use `term.input.probe(…)` for terminal queries (color, cursor, kitty, etc.)
+   * and `term.input.onData(…)` for primary key/mouse stream consumers.
+   *
+   * Replaces direct `process.stdin.setRawMode` / `stdin.on('data', …)` —
+   * those patterns race under async (the 2026-04-22 wasRaw class).
+   *
+   * Lazily constructed on first access for Node-backed Terms.
+   * Undefined for headless Terms (no stdin to own).
+   */
+  readonly input: Input | undefined
+
+  /**
+   * Output owner — single-owner stdout/stderr/console mediator.
+   * Use `term.output.write(…)` for render-pipeline output.
+   *
+   * When activated (after protocol setup), intercepts `process.stdout` /
+   * `process.stderr` / `console.*` so only silvery's render pipeline reaches
+   * the terminal. Non-silvery writes are suppressed (stdout) or redirected to
+   * `DEBUG_LOG` / buffered (stderr). Replaces the ad-hoc
+   * `createOutputGuard()` pattern — one stable owner per Term, toggled via
+   * `activate()` / `deactivate()` for pause/resume cycles.
+   *
+   * Lazily constructed on first access for Node-backed Terms.
+   * Undefined for headless and emulator-backed Terms (no real stdout to own).
+   */
+  readonly output: Output | undefined
+
+  /**
+   * Size owner — single source of truth for terminal dimensions.
+   *
+   * `term.size.cols` / `term.size.rows` / `term.size.snapshot` are live reads
+   * of the alien-signals-backed signal. `term.size.subscribe(handler)` fires
+   * on every coalesced resize (16ms window, matches one 60Hz frame).
+   *
+   * Replaces direct `process.stdout.columns` / `stdout.rows` reads — those
+   * return stale snapshots under concurrent resize and scatter coalescing
+   * logic across every consumer.
+   *
+   * `term.cols` / `term.rows` remain as shorthand getters that delegate to
+   * this owner; they are slated for removal alongside `term.stdin/stdout` in
+   * Phase 8.
+   */
+  readonly size: Size
+
+  /**
+   * Modes owner — single authority for terminal protocol modes.
+   *
+   * `term.modes.setRawMode(on)`, `setAlternateScreen`, `setBracketedPaste`,
+   * `setKittyKeyboard(flags|false)`, `setMouseEnabled`, `setFocusReporting`.
+   * Each setter is idempotent and tracks the last-written value; `dispose`
+   * restores exactly what this owner activated.
+   *
+   * Replaces the scattered `enableMouse()` / `enableKittyKeyboard()` /
+   * `enableBracketedPaste()` / `enableFocusReporting()` call sites that
+   * previously toggled terminal state from every subsystem. Those shared
+   * globals are the same leak vector that produced the 2026-04-22 wasRaw
+   * race class — concentrating them behind one owner makes them race-free.
+   */
+  readonly modes: Modes
 
   // -------------------------------------------------------------------------
   // I/O Methods
@@ -628,6 +724,46 @@ function createNodeTerm(options: CreateTermOptions): Term {
 
   let _frame: TextFrame | undefined
 
+  // Lazy Input — constructed on first access. Owns stdin's raw mode + data
+  // listener for the Term's lifetime. See km-silvery.term-sub-owners Phase 2.
+  // Only available for TTY-backed Node terms; non-TTY callers get undefined.
+  let _input: Input | null = null
+  const getInput = (): Input | undefined => {
+    if (!stdin.isTTY) return undefined
+    if (!_input) {
+      _input = createInputOwner(stdin, stdout, { writeStdout: (s) => stdout.write(s) })
+    }
+    return _input
+  }
+
+  // Lazy Output — constructed on first access. Owns stdout/stderr/console
+  // intercepts for the Term's lifetime. Starts deactivated; caller activates
+  // after protocol setup. See km-silvery.term-sub-owners Phase 3.
+  // Only available when stdout is the real process.stdout (mocks + emulators
+  // don't benefit from the global-patching guard).
+  let _output: Output | null = null
+  const getOutput = (): Output | undefined => {
+    if (stdout !== process.stdout) return undefined
+    if (!_output) {
+      _output = createOutput()
+    }
+    return _output
+  }
+
+  // Size owner — single source of truth for cols/rows. Subscribes to stdout's
+  // `resize` event with 16ms coalescing so burst SIGWINCH from tmux/cmux/
+  // Ghostty tab switches collapses to one notification.
+  // See km-silvery.term-sub-owners Phase 5.
+  const size = createSize(stdout)
+
+  // Modes owner — single authority for terminal protocol modes (raw, alt-
+  // screen, paste, kitty keyboard, mouse, focus reporting). Consolidates
+  // the scattered enable*/disable* call sites. See Phase 4.
+  const modes = createModes({
+    write: (s: string) => stdout.write(s),
+    stdin,
+  })
+
   const termBase = {
     hasCursor: () => cachedCursor,
     hasInput: () => cachedInput,
@@ -636,6 +772,8 @@ function createNodeTerm(options: CreateTermOptions): Term {
     caps: detectedCaps,
     stdout,
     stdin,
+    size,
+    modes,
     write: (str: string) => {
       stdout.write(str)
     },
@@ -653,7 +791,11 @@ function createNodeTerm(options: CreateTermOptions): Term {
       return output
     },
     [Symbol.dispose]: () => {
+      if (_input) _input[Symbol.dispose]()
+      if (_output) _output[Symbol.dispose]()
       if (provider) provider[Symbol.dispose]()
+      modes[Symbol.dispose]()
+      size[Symbol.dispose]()
     },
   }
 
@@ -663,18 +805,40 @@ function createNodeTerm(options: CreateTermOptions): Term {
     { get: () => _frame },
     {
       defineProperties: {
-        cols: { get: () => (stdout.isTTY ? stdout.columns : undefined), enumerable: true },
-        rows: { get: () => (stdout.isTTY ? stdout.rows : undefined), enumerable: true },
+        // cols / rows are shorthand for term.size.cols / .rows. Non-TTY
+        // streams have no reliable dims — surface undefined then.
+        cols: { get: () => (stdout.isTTY ? size.cols : undefined), enumerable: true },
+        rows: { get: () => (stdout.isTTY ? size.rows : undefined), enumerable: true },
+        input: { get: () => getInput(), enumerable: true },
+        output: { get: () => getOutput(), enumerable: true },
       },
     },
   )
 }
+
+/** Stand-in ReadStream for Modes on headless / emulator-backed Terms.
+ *
+ * Not a TTY, so `setRawMode` is a no-op on the underlying stream. The Modes
+ * owner tracks intent (e.g. `isRawMode`) but emits no ANSI and touches no
+ * real termios — correct for testing / emulator backends.
+ */
+const HEADLESS_STDIN: NodeJS.ReadStream = {
+  isTTY: false,
+  setRawMode() {
+    return this as NodeJS.ReadStream
+  },
+} as unknown as NodeJS.ReadStream
 
 /** Create a headless terminal for testing — no I/O, fixed dimensions. */
 function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
   let disposed = false
   const controller = new AbortController()
   let _frame: TextFrame | undefined
+  const size = createFixedSize(dims)
+  // Modes owner for the headless term: writes go to a sink, stdin is
+  // non-TTY so raw-mode toggles are tracked but never applied. Keeps the
+  // `term.modes` surface uniform across Term variants.
+  const modes = createModes({ write: () => {}, stdin: HEADLESS_STDIN })
 
   const termBase = {
     hasCursor: () => false,
@@ -684,6 +848,8 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
     caps: undefined as TerminalCaps | undefined,
     stdout: process.stdout,
     stdin: process.stdin,
+    size,
+    modes,
     write: () => {},
     writeLine: () => {},
     getState: (): TermState => dims,
@@ -703,6 +869,8 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
       if (disposed) return
       disposed = true
       controller.abort()
+      modes[Symbol.dispose]()
+      size[Symbol.dispose]()
     },
   }
 
@@ -712,8 +880,12 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
     { get: () => _frame },
     {
       defineProperties: {
-        cols: { get: () => dims.cols, enumerable: true },
-        rows: { get: () => dims.rows, enumerable: true },
+        cols: { get: () => size.cols, enumerable: true },
+        rows: { get: () => size.rows, enumerable: true },
+        // Headless Terms have no real stdin to own — sub-owner is undefined.
+        input: { get: () => undefined, enumerable: true },
+        // Headless Terms have no real stdout to own — sub-owner is undefined.
+        output: { get: () => undefined, enumerable: true },
       },
     },
   )
@@ -730,17 +902,12 @@ function createBackendTerm(emulator: TermEmulator): Term {
   )
   const subscribers = new Set<(state: TermState) => void>()
   let _frame: TextFrame | undefined
-
-  const termBase = {
-    hasCursor: () => true,
-    hasInput: () => true,
-    hasColor: () => "truecolor" as ColorLevel | null,
-    hasUnicode: () => true,
-    caps: undefined as TerminalCaps | undefined,
-    stdout,
-    stdin: process.stdin,
-    write: (str: string) => emulator.feed(str),
-    writeLine: (str: string) => emulator.feed(str + "\n"),
+  const size = createFixedSize({ cols: emulator.cols, rows: emulator.rows })
+  // Modes owner for emulator-backed terms: ANSI mode sequences would be
+  // interpreted as input if fed to the emulator, so the write function is a
+  // sink. The owner still tracks state (`isMouseEnabled`, etc.) for parity
+  // with Node terms, but the emulator itself decides what to accept.
+  const modes = createModes({ write: () => {}, stdin: HEADLESS_STDIN })
     getState: (): TermState => ({ cols: emulator.cols, rows: emulator.rows }),
     subscribe: (listener: (state: TermState) => void): (() => void) => {
       subscribers.add(listener)
@@ -752,6 +919,7 @@ function createBackendTerm(emulator: TermEmulator): Term {
       subscribers.forEach((l) => l({ cols, rows }))
       eq.push({ type: "resize", data: { cols, rows } })
       updateDims(cols, rows)
+      size.update(cols, rows)
       resizeListeners.forEach((l) => l())
     },
     sendInput: (data: string) => eq.push(...parseInputEvents(data)),
@@ -767,6 +935,7 @@ function createBackendTerm(emulator: TermEmulator): Term {
       eq.dispose()
       controller.abort()
       subscribers.clear()
+      size[Symbol.dispose]()
       emulator.close().catch(() => {})
     },
   }
@@ -777,10 +946,16 @@ function createBackendTerm(emulator: TermEmulator): Term {
     { get: () => _frame },
     {
       defineProperties: {
-        cols: { get: () => emulator.cols, enumerable: true },
-        rows: { get: () => emulator.rows, enumerable: true },
+        cols: { get: () => size.cols, enumerable: true },
+        rows: { get: () => size.rows, enumerable: true },
         screen: { get: () => emulator.screen, enumerable: true },
         scrollback: { get: () => emulator.scrollback, enumerable: true },
+        // Termless-backed Terms drive the emulator's input via emulator.feed,
+        // not via a real stdin — no InputOwner needed.
+        input: { get: () => undefined, enumerable: true },
+        // Termless-backed Terms write through emulator.feed, not process.stdout —
+        // no Output guard needed.
+        output: { get: () => undefined, enumerable: true },
       },
       delegateFrom: emulator,
     },
