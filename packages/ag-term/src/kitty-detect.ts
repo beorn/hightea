@@ -64,8 +64,16 @@ export async function detectKittyFromStdio(
   stdin: NodeJS.ReadStream,
   timeoutMs = 200,
 ): Promise<KittyDetectResult> {
+  // Race-safe rawMode toggle — see probeColors comment in
+  // vendor/silvery/packages/ansi/src/theme/detect.ts. If another consumer
+  // (e.g. silvery's term-provider) is on stdin, leave raw mode alone.
+  const otherListeners = stdin.listenerCount("data") > 0
   const wasRaw = stdin.isRaw
-  if (!wasRaw) stdin.setRawMode(true)
+  let didSetRaw = false
+  if (!wasRaw && !otherListeners) {
+    stdin.setRawMode(true)
+    didSetRaw = true
+  }
 
   try {
     const write = (s: string) => {
@@ -90,6 +98,6 @@ export async function detectKittyFromStdio(
 
     return await detectKittySupport(write, read, timeoutMs)
   } finally {
-    if (!wasRaw) stdin.setRawMode(false)
+    if (didSetRaw) stdin.setRawMode(false)
   }
 }

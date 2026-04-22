@@ -39,8 +39,20 @@ export async function probeColors(timeoutMs = 150): Promise<DetectedScheme | nul
   const stdout = process.stdout
   if (!stdin.isTTY || !stdout.isTTY) return null
 
+  // Race-safe rawMode handling: only flip raw mode if NO other consumer is
+  // already running. Inside a TUI session the term-provider has set raw=true
+  // and attached a data listener; if we toggle raw=false in the finally
+  // (because wasRaw was captured before term-provider was set up, or some
+  // other call inverted it mid-probe), we silently kill the host app's
+  // input. Restoring on the basis of "did *this* probe set it" keeps us
+  // honest in both standalone and TUI contexts.
+  const otherListeners = stdin.listenerCount("data") > 0
   const wasRaw = stdin.isRaw
-  if (!wasRaw) stdin.setRawMode(true)
+  let didSetRaw = false
+  if (!wasRaw && !otherListeners) {
+    stdin.setRawMode(true)
+    didSetRaw = true
+  }
 
   let buffer = ""
   const onData = (chunk: Buffer) => {
@@ -138,7 +150,11 @@ export async function probeColors(timeoutMs = 150): Promise<DetectedScheme | nul
     return { fg, bg, ansi, dark, palette }
   } finally {
     stdin.removeListener("data", onData)
-    if (!wasRaw) stdin.setRawMode(false)
+    // Only undo what *we* did. `wasRaw` can be stale by the time we reach
+    // the finally — another stdin consumer (e.g. silvery's term-provider)
+    // may have flipped raw=true in the meantime, and re-setting raw=false
+    // here would kill its input. Track our own toggle explicitly.
+    if (didSetRaw) stdin.setRawMode(false)
   }
 }
 

@@ -54,8 +54,17 @@ export async function queryCursorFromStdio(
   stdin: NodeJS.ReadStream,
   timeoutMs = 200,
 ): Promise<{ row: number; col: number } | null> {
+  // Only flip raw mode if no other consumer is on stdin — see probeColors
+  // (vendor/silvery/packages/ansi/src/theme/detect.ts) for the same fix:
+  // re-setting raw=false in the finally based on a stale `wasRaw` capture
+  // kills the host TUI's input.
+  const otherListeners = stdin.listenerCount("data") > 0
   const wasRaw = stdin.isRaw
-  if (!wasRaw) stdin.setRawMode(true)
+  let didSetRaw = false
+  if (!wasRaw && !otherListeners) {
+    stdin.setRawMode(true)
+    didSetRaw = true
+  }
 
   try {
     const write = (s: string) => {
@@ -80,6 +89,6 @@ export async function queryCursorFromStdio(
 
     return await queryCursorPosition(write, read, timeoutMs)
   } finally {
-    if (!wasRaw) stdin.setRawMode(false)
+    if (didSetRaw) stdin.setRawMode(false)
   }
 }
