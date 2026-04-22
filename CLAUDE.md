@@ -6,6 +6,27 @@ React framework for modern terminal UIs. Layout feedback, incremental rendering,
 
 **[Styling Guide](docs/guide/styling.md)** — Semantic colors, typography presets, and component defaults. Read it before styling anything.
 
+## Anti-pattern: `wasRaw` capture/restore on `process.stdin`
+
+**Never write this code in silvery.** It looks polite. It races silently.
+
+```ts
+// ❌ TARNISHED — async-unsafe, undoes other consumers' setRawMode(true)
+const wasRaw = stdin.isRaw
+if (!wasRaw) stdin.setRawMode(true)
+try {
+  await someAsyncWork()  // any other code path can run here
+} finally {
+  if (!wasRaw) stdin.setRawMode(false)  // ← undoes whatever ran during the await
+}
+```
+
+**Why it breaks**: `process.stdin` is a global, multi-tenant resource. The "snapshot at entry, restore at exit" protocol assumes a single consumer. Under async, multiple polite tenants race — and the last finally to run wins, silently disabling input for the host TUI. Caught in the wild April 2026: `probeColors` invoked from a React `useEffect` raced with the term-provider's `events()` generator and reset raw mode mid-frame, killing all input. See [silvery 2d9ab59f](https://github.com/beorn/silvery/commit/2d9ab59f) for the patch and `km-silvery.input-owner` for the structural fix in flight.
+
+**The structural fix**: stdin has ONE owner per session — the term-provider, mediated through an `InputOwner` (mirrors `output-guard.ts` for stdout). Probes never call `stdin.setRawMode` or `stdin.on('data', …)`. They call `inputOwner.probe(query, parseFn, timeoutMs)` and the owner routes matching response bytes to them. Same META-pattern as `OutputGuard` and `forwardConsole` (workers don't write stdout, post events to the owner).
+
+**Until that lands**: if you absolutely must call `setRawMode`, use the `didSetRaw` + `listenerCount("data") > 0` guard pattern — see `vendor/silvery/packages/ansi/src/theme/detect.ts:probeColors` for the canonical template. Restore by what YOU set, not by a stale capture.
+
 ## Mandatory: New Props Require Tests
 
 **Every new prop in `packages/ag/src/types.ts` (BoxProps, TextProps, etc.) MUST have at least one test in `tests/` that exercises it through the render pipeline at SILVERY_STRICT=2.**
