@@ -139,7 +139,7 @@ import {
 } from "@silvery/create/plugins"
 import { createVirtualScrollback } from "../virtual-scrollback"
 import { createSearchState, searchUpdate } from "../search-overlay"
-import { createOutputGuard, type OutputGuard } from "../ansi/output-guard"
+import { createOutput, type Output } from "./devices/output"
 import { perfLog, checkBudget, logExitSummary, startTracking } from "./perf"
 import { createLogger } from "loggily"
 import {
@@ -650,7 +650,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // output to the real stdout instead of the mock.
   const isRealStdout = stdout === process.stdout
   const shouldGuardOutput = guardOutputOption ?? (alternateScreen && !headless && isRealStdout)
-  let outputGuard: OutputGuard | null = null
+  // Output owner — mediates stdout/stderr/console writes. Stable across the
+  // session; toggled via activate()/deactivate() for pause/resume cycles.
+  // Constructed lazily below only if shouldGuardOutput is true.
+  let output: Output | null = null
 
   // Initialize layout engine
   await ensureLayoutEngine()
@@ -896,8 +899,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             )
           }
           if (!renderPaused) {
-            if (outputGuard) {
-              outputGuard.writeStdout(frame)
+            if (output) {
+              output.write(frame)
             } else {
               stdout.write(frame)
             }
@@ -1131,11 +1134,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       }
     })
 
-    // Dispose output guard BEFORE terminal protocol cleanup — restores original
+    // Dispose output owner BEFORE terminal protocol cleanup — restores original
     // stdout/stderr write methods so the cleanup sequences go through unimpeded.
-    if (outputGuard) {
-      outputGuard.dispose()
-      outputGuard = null
+    if (output) {
+      output.dispose()
+      output = null
     }
 
     // === Terminal protocol cleanup ===
@@ -1596,12 +1599,13 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     )
   }
 
-  // Activate output guard after protocol setup and initial render are done.
+  // Activate output owner after protocol setup and initial render are done.
   // This intercepts process.stdout/stderr writes so that only silvery's
   // render pipeline can write to stdout — all other writes are suppressed
   // (stdout) or redirected to DEBUG_LOG (stderr).
   if (shouldGuardOutput) {
-    outputGuard = createOutputGuard()
+    output = createOutput()
+    output.activate()
   }
 
   // Assign pause/resume now that doRender and runtime are available.
@@ -1609,21 +1613,16 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   if (!headless) {
     runtimeContextValue.pause = () => {
       renderPaused = true
-      // Temporarily dispose the output guard so console-mode writes
-      // (e.g., log dump) reach the terminal directly.
-      if (outputGuard) {
-        outputGuard.dispose()
-        outputGuard = null
-      }
+      // Deactivate the output owner so console-mode writes (e.g., log dump)
+      // reach the terminal directly. Owner is retained — resume() re-activates.
+      if (output) output.deactivate()
       if (alternateScreen) stdout.write(leaveAlternateScreen())
     }
     runtimeContextValue.resume = () => {
       if (alternateScreen) stdout.write(enterAlternateScreen())
       renderPaused = false
-      // Re-create the output guard (disposed during pause)
-      if (shouldGuardOutput && !outputGuard) {
-        outputGuard = createOutputGuard()
-      }
+      // Re-activate the output owner (deactivated during pause)
+      if (shouldGuardOutput && output) output.activate()
       // Reset diff state so next render outputs a full frame.
       // The screen was cleared when entering console mode, so
       // incremental diffing would produce an incomplete frame.
@@ -2365,7 +2364,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           })
 
         const probeResult = await detectTextSizingSupport(
-          (data) => (outputGuard ? outputGuard.writeStdout(data) : stdout.write(data)),
+          (data) => (output ? output.write(data) : stdout.write(data)),
           probeRead,
           500, // Short timeout — probe should be fast
         )
@@ -2429,7 +2428,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         stdin.on("data", stdinListener)
 
         const detector = createWidthDetector({
-          write: (data) => (outputGuard ? outputGuard.writeStdout(data) : stdout.write(data)),
+          write: (data) => (output ? output.write(data) : stdout.write(data)),
           onData: (handler) => {
             stdinHandlers.push(handler)
             return () => {
@@ -2487,7 +2486,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Must be deferred from the init phase because the terminal's immediate
     // CSI I/O response would leak before the input parser was ready.
     if (focusReportingOption && !focusReportingEnabled) {
-      enableFocusReporting((s) => (outputGuard ? outputGuard.writeStdout(s) : stdout.write(s)))
+      enableFocusReporting((s) => (output ? output.write(s) : stdout.write(s)))
       focusReportingEnabled = true
     }
 

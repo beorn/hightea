@@ -357,7 +357,7 @@ describe("InputOwner", () => {
     }
   })
 
-  it("uses writeStdout override when provided (OutputGuard integration)", async () => {
+  it("uses writeStdout override when provided (Output integration)", async () => {
     const { stdin, stdout } = createMockIO()
     const guarded: string[] = []
     using owner = createInputOwner(stdin, stdout, {

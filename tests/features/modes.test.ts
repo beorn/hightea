@@ -8,6 +8,7 @@
 
 import { describe, it, expect } from "vitest"
 import { createModes, KittyFlags } from "@silvery/ag-term/runtime"
+import { createTerm } from "@silvery/ag-term/ansi"
 
 // =============================================================================
 // Mock stdin (only the bits setRawMode touches)
@@ -182,6 +183,25 @@ describe("createModes — setFocusReporting", () => {
     modes.setFocusReporting(false)
     expect(writes.at(-1)).toBe("\x1b[?1004l")
     expect(modes.isFocusReporting).toBe(false)
+  })
+})
+
+describe("createTerm exposes modes on the Term interface", () => {
+  it("headless Term: term.modes is a working Modes instance", () => {
+    const term = createTerm({ cols: 80, rows: 24 })
+    expect(term.modes).toBeDefined()
+    expect(term.modes.isRawMode).toBe(false)
+
+    term.modes.setAlternateScreen(true)
+    expect(term.modes.isAlternateScreen).toBe(true)
+
+    term.modes.setKittyKeyboard(KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS)
+    expect(term.modes.kittyKeyboard).toBe(3)
+
+    term[Symbol.dispose]()
+    // dispose flips state back to false
+    expect(term.modes.isAlternateScreen).toBe(false)
+    expect(term.modes.kittyKeyboard).toBe(false)
   })
 })
 

@@ -30,6 +30,7 @@ import {
 } from "../bracketed-paste"
 import { enableFocusReporting, disableFocusReporting, parseFocusEvent } from "../focus-reporting"
 import type { Dims, Provider, ProviderEvent } from "./types"
+import { createSize, type Size } from "./devices/size"
 
 // ============================================================================
 // Input Splitting
@@ -170,6 +171,14 @@ export interface TermProviderOptions {
   cols?: number
   /** Initial rows (default: from stdout or 24) */
   rows?: number
+  /**
+   * Shared Size owner (from Term). When provided, the provider reads dims
+   * from `size.snapshot` and emits coalesced resize events via
+   * `size.subscribe(...)`. When omitted, a private Size owner is constructed
+   * and disposed with the provider (backward compatibility for standalone
+   * use).
+   */
+  size?: Size
 }
 
 // ============================================================================
@@ -189,10 +198,22 @@ export function createTermProvider(
   stdout: NodeJS.WriteStream,
   options: TermProviderOptions = {},
 ): TermProvider {
-  const { cols = stdout.columns || 80, rows = stdout.rows || 24 } = options
+  // Shared Size owner drives both state and resize events. If the caller
+  // didn't inject one, construct a private Size that is disposed alongside
+  // the provider. Resize coalescing lives in Size — term-provider has no
+  // coalesce logic of its own. See km-silvery.term-sub-owners Phase 5.
+  const ownsSize = !options.size
+  const size: Size =
+    options.size ??
+    createSize(stdout, {
+      cols: options.cols,
+      rows: options.rows,
+    })
 
-  // Current state
-  let state: TermState = { cols, rows }
+  // Current state — populated from size's signal; kept as a plain object so
+  // getState() returns a cheap snapshot without triggering alien-signals
+  // subscription.
+  let state: TermState = { cols: size.cols, rows: size.rows }
 
   // Subscribers
   const listeners = new Set<(state: TermState) => void>()
@@ -207,14 +228,13 @@ export function createTermProvider(
   // Shared stdin cleanup — set by events(), callable from dispose as safety net
   let stdinCleanup: (() => void) | null = null
 
-  // Resize handler
-  const onResize = () => {
-    state = {
-      cols: stdout.columns || 80,
-      rows: stdout.rows || 24,
-    }
+  // Propagate size changes to provider subscribers. Size already coalesces
+  // SIGWINCH bursts (16ms window) so every notification here carries the
+  // final geometry.
+  const unsubscribeSize = size.subscribe((next) => {
+    state = { cols: next.cols, rows: next.rows }
     listeners.forEach((l) => l(state))
-  }
+  })
 
   // Increase max listeners to avoid warnings in apps with many subscribers
   // (e.g., ScrollbackList items each using useTerm for reactive state)
@@ -222,9 +242,6 @@ export function createTermProvider(
     const current = stdout.getMaxListeners?.() ?? 10
     if (current < 50) stdout.setMaxListeners(50)
   }
-
-  // Subscribe to resize
-  stdout.on("resize", onResize)
 
   return {
     getState(): TermState {
@@ -310,52 +327,18 @@ export function createTermProvider(
         }
       }
 
-      // Resize handler for events — coalesces bursts within one frame.
-      //
-      // Terminal multiplexers (cmux, tmux, Ghostty tabs) can fire multiple
-      // SIGWINCH events in rapid succession as the PTY re-syncs (e.g. on
-      // tab switch-back). Without coalescing, each event triggers a full
-      // re-layout + re-render at an intermediate size, producing visible
-      // 2-3-phase layout shift before the terminal settles.
-      //
-      // Strategy: on first resize, schedule a flush one frame ahead
-      // (~16ms). Additional resizes arriving before the flush fires simply
-      // let the flush read the latest stdout.columns/rows — they don't
-      // enqueue new events. This collapses any burst that settles within
-      // one frame to a single event carrying the final geometry. Discrete
-      // resizes spaced further apart than the window pass through normally.
-      //
-      // The 16ms window matches one 60Hz frame: long enough to absorb the
-      // typical "PTY re-sync" burst from cmux/tmux tab switches (observed
-      // 2-5 SIGWINCH within 5ms), short enough that an intentional user-
-      // driven resize still feels immediate.
-      //
-      // Bead: km-tui.tab-switch-layout-shift
-      const RESIZE_COALESCE_MS = 16
-      let resizeFlushTimer: ReturnType<typeof setTimeout> | null = null
-      const onResizeEvent = () => {
-        if (resizeFlushTimer !== null) {
-          // Burst in progress — the already-scheduled flush will pick up
-          // the latest dims. Nothing to do.
-          return
+      // Resize events are driven by the injected Size owner, which coalesces
+      // SIGWINCH bursts within one 60Hz frame (see runtime/devices/size.ts
+      // for the full rationale — bead: km-tui.tab-switch-layout-shift). The
+      // provider just re-fires the coalesced geometry onto its event queue.
+      const unsubscribeResizeEvent = size.subscribe((next) => {
+        queue.push({ type: "resize", data: { cols: next.cols, rows: next.rows } })
+        if (eventResolve) {
+          const resolve = eventResolve
+          eventResolve = null
+          resolve()
         }
-        resizeFlushTimer = setTimeout(() => {
-          resizeFlushTimer = null
-          const event: ProviderEvent<TermEvents> = {
-            type: "resize",
-            data: {
-              cols: stdout.columns || 80,
-              rows: stdout.rows || 24,
-            },
-          }
-          queue.push(event)
-          if (eventResolve) {
-            const resolve = eventResolve
-            eventResolve = null
-            resolve()
-          }
-        }, RESIZE_COALESCE_MS)
-      }
+      })
 
       // Enable bracketed paste for TTY input.
       // Note: focus reporting is NOT enabled here — it's controlled by the
@@ -367,18 +350,12 @@ export function createTermProvider(
 
       // Subscribe — track the cleanup function for use by both finally and dispose
       stdin.on("data", onChunk)
-      stdout.on("resize", onResizeEvent)
       stdinCleanup = () => {
         if (stdin.isTTY) {
           disableBracketedPaste(stdout)
         }
         stdin.off("data", onChunk)
-        stdout.off("resize", onResizeEvent)
-        // Cancel any pending resize flush so dispose doesn't leak a timer.
-        if (resizeFlushTimer !== null) {
-          clearTimeout(resizeFlushTimer)
-          resizeFlushTimer = null
-        }
+        unsubscribeResizeEvent()
         if (stdin.isTTY) {
           stdin.setRawMode(false)
         }
@@ -421,8 +398,8 @@ export function createTermProvider(
       // Abort pending waits
       controller.abort()
 
-      // Remove resize listener
-      stdout.off("resize", onResize)
+      // Stop propagating size changes to provider subscribers.
+      unsubscribeSize()
 
       // Clear listeners
       listeners.clear()
@@ -433,6 +410,12 @@ export function createTermProvider(
         const fn = stdinCleanup
         stdinCleanup = null
         fn()
+      }
+
+      // Dispose the Size we constructed ourselves. An injected Size is
+      // owned by the caller (the Term) and lives past the provider.
+      if (ownsSize) {
+        size[Symbol.dispose]()
       }
     },
   }

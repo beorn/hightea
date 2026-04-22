@@ -67,10 +67,6 @@
         "types": "./dist/ansi-sanitize.d.mts",
         "import": "./dist/ansi-sanitize.mjs"
       },
-      "./ansi/output-guard": {
-        "types": "./dist/ansi/output-guard.d.mts",
-        "import": "./dist/ansi/output-guard.mjs"
-      },
       "./app": {
         "types": "./dist/app.d.mts",
         "import": "./dist/app.mjs"
@@ -397,7 +393,6 @@
       "src/ag.ts",
       "src/ansi/index.ts",
       "src/ansi-sanitize.ts",
-      "src/ansi/output-guard.ts",
       "src/app.ts",
       "src/bound-term.ts",
       "src/bracketed-paste.ts",

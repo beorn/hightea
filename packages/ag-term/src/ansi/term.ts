@@ -317,8 +317,7 @@ export interface Term extends Disposable, StyleChain {
    * When activated (after protocol setup), intercepts `process.stdout` /
    * `process.stderr` / `console.*` so only silvery's render pipeline reaches
    * the terminal. Non-silvery writes are suppressed (stdout) or redirected to
-   * `DEBUG_LOG` / buffered (stderr). Replaces the ad-hoc
-   * `createOutputGuard()` pattern — one stable owner per Term, toggled via
+   * `DEBUG_LOG` / buffered (stderr). One stable owner per Term, toggled via
    * `activate()` / `deactivate()` for pause/resume cycles.
    *
    * Lazily constructed on first access for Node-backed Terms.
@@ -908,6 +907,19 @@ function createBackendTerm(emulator: TermEmulator): Term {
   // sink. The owner still tracks state (`isMouseEnabled`, etc.) for parity
   // with Node terms, but the emulator itself decides what to accept.
   const modes = createModes({ write: () => {}, stdin: HEADLESS_STDIN })
+
+  const termBase = {
+    hasCursor: () => true,
+    hasInput: () => true,
+    hasColor: () => "truecolor" as ColorLevel | null,
+    hasUnicode: () => true,
+    caps: undefined as TerminalCaps | undefined,
+    stdout,
+    stdin: process.stdin,
+    size,
+    modes,
+    write: (str: string) => emulator.feed(str),
+    writeLine: (str: string) => emulator.feed(str + "\n"),
     getState: (): TermState => ({ cols: emulator.cols, rows: emulator.rows }),
     subscribe: (listener: (state: TermState) => void): (() => void) => {
       subscribers.add(listener)
@@ -935,6 +947,7 @@ function createBackendTerm(emulator: TermEmulator): Term {
       eq.dispose()
       controller.abort()
       subscribers.clear()
+      modes[Symbol.dispose]()
       size[Symbol.dispose]()
       emulator.close().catch(() => {})
     },

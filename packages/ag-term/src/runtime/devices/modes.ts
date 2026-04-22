@@ -138,8 +138,8 @@ export interface Modes extends Disposable {
  * Options for `createModes()`.
  *
  * The owner needs:
- * - a write function for ANSI sequences (routes through OutputGuard if
- *   installed, else bare `stdout.write`)
+ * - a write function for ANSI sequences (routes through Output if activated,
+ *   else bare `stdout.write`)
  * - the stdin stream (for `setRawMode` — termios toggle, not ANSI)
  */
 export interface CreateModesOptions {
@@ -193,14 +193,13 @@ export function createModes(opts: CreateModesOptions): Modes {
 
   const setKittyKeyboard: Modes["setKittyKeyboard"] = (flags) => {
     if (disposed) return
-    const want = flags === true ? KittyFlags.DISAMBIGUATE : flags
-    if (kittyKeyboard === want) return
-    if (want === false) {
+    if (kittyKeyboard === flags) return
+    if (flags === false) {
       write(disableKittyKeyboard())
     } else {
-      write(enableKittyKeyboard(want))
+      write(enableKittyKeyboard(flags))
     }
-    kittyKeyboard = want
+    kittyKeyboard = flags
   }
 
   const setMouseEnabled: Modes["setMouseEnabled"] = (on) => {

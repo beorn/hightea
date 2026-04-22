@@ -1,6 +1,6 @@
 /**
  * Input owner — mediates ALL stdin raw-mode + data access within a silvery
- * session. Mirrors `OutputGuard` (`../ansi/output-guard.ts`) for stdout and
+ * session. Mirrors `Output` (`./devices/output.ts`) for stdout and
  * `forwardConsole` in loggily's worker.ts for cross-process output: one owner
  * per resource, tenants issue capability requests.
  *
@@ -36,11 +36,11 @@
  * termios at all — they get a response-parse capability, not a terminal-io
  * capability.
  *
- * ## Relation to OutputGuard
+ * ## Relation to Output
  *
- * The owner is agnostic to whether OutputGuard is installed. If it is, the
- * caller passes a write function that routes through `outputGuard.writeStdout`;
- * if not, a bare `stdout.write` is fine. The owner's concern is stdin.
+ * The owner is agnostic to whether Output is activated. If it is, the caller
+ * passes a write function that routes through `output.write`; if not, a bare
+ * `stdout.write` is fine. The owner's concern is stdin.
  *
  * ## Migration path
  *
@@ -111,8 +111,8 @@ export interface InputOwner extends Disposable {
 
 export interface InputOwnerOptions {
   /**
-   * Alternate writer for outgoing query bytes (e.g.
-   * `outputGuard.writeStdout`). Defaults to `stdout.write.bind(stdout)`.
+   * Alternate writer for outgoing query bytes (e.g. `output.write`). Defaults
+   * to `stdout.write.bind(stdout)`.
    */
   writeStdout?: (data: string) => boolean | void
   /**
